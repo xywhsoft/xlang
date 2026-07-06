@@ -1,5 +1,0 @@
-{
-  "format":"xlang-xapi-0",
-  "module":{"name":"broken_xapi","source":"test/fixtures/broken_xapi","sourceHash":""},
-  "exports":[]
-}

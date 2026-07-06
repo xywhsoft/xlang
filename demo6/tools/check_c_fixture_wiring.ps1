@@ -61,6 +61,16 @@ function Test-DirectReference($text, $relative)
     return $false
 }
 
+function Test-SameNameXlangCompanion($asset)
+{
+    if ( $asset.Extension -ne ".c" ) {
+        return $false
+    }
+
+    $xlPath = [System.IO.Path]::ChangeExtension($asset.FullName, ".xl")
+    return (Test-Path -LiteralPath $xlPath -PathType Leaf)
+}
+
 $entryWiringFiles += Get-TestSuiteWiringFiles
 $entryTextParts = New-Object System.Collections.Generic.List[string]
 foreach ( $relative in $entryWiringFiles ) {
@@ -89,6 +99,9 @@ foreach ( $assetRoot in $entryAssetRoots ) {
     } | Sort-Object FullName)
     foreach ( $asset in $assets ) {
         $relative = $asset.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
+        if ( Test-SameNameXlangCompanion $asset ) {
+            continue
+        }
         if ( ! (Test-DirectReference $entryText $relative) ) {
             Add-Failure "C fixture is not wired: $relative"
         }
@@ -124,6 +137,7 @@ foreach ( $packageDir in $packageDirs ) {
     }
 
     $jsonFiles = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse -Filter "*.json" | Sort-Object FullName)
+    $xlpFiles = @(Get-ChildItem -LiteralPath $packageDir -File -Recurse -Filter "*.xlp" | Sort-Object FullName)
 
     function Add-PackageDeclaredSource($sourcePath)
     {
@@ -164,6 +178,26 @@ foreach ( $packageDir in $packageDirs ) {
                 if ( ! (Test-Path -LiteralPath $sourcePath -PathType Leaf) ) {
                     $relJson = $json.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
                     Add-Failure "package cSources missing file: $relJson -> $source"
+                }
+            }
+        }
+    }
+
+    foreach ( $xlp in $xlpFiles ) {
+        $text = Read-Utf8Text $xlp.FullName
+
+        $sourceMatches = [regex]::Matches($text, '"cSources"\s*:\s*\[(?<items>[^\]]*)\]')
+        foreach ( $sourceMatch in $sourceMatches ) {
+            $items = $sourceMatch.Groups["items"].Value
+            $itemMatches = [regex]::Matches($items, '"([^"]+\.c)"')
+            foreach ( $itemMatch in $itemMatches ) {
+                $source = $itemMatch.Groups[1].Value
+                $sourcePath = Join-Path $xlp.DirectoryName $source
+                Add-PackageDeclaredSource $sourcePath
+
+                if ( ! (Test-Path -LiteralPath $sourcePath -PathType Leaf) ) {
+                    $relXlp = $xlp.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
+                    Add-Failure "xlp cSources missing file: $relXlp -> $source"
                 }
             }
         }

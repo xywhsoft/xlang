@@ -11,8 +11,14 @@ func handleRequest(point reqHandle, point respHandle) as bool
 
     resp.header("X-Xlang", "request")
 
-    if req.method() == "GET" and req.path() == "/users/42" and req.query() == "name=xlang" then
-        if req.param("id") == "42" and req.queryValue("name") == "xlang" and req.header("Host") != "" then
+    if req.method() == "GET" and req.methodId() == 1 and req.target() == "/users/42?name=xlang" and req.path() == "/users/42" and req.query() == "name=xlang" then
+        bool headerEnumOk = req.headerCount() >= 2 and req.headerName(0) != "" and req.headerValue(0) != "" and req.headerName(req.headerCount()) == "" and req.headerValue(-1) == ""
+        bool paramEnumOk = req.paramCount() == 1 and req.paramName(0) == "id" and req.paramValue(0) == "42" and req.paramName(1) == "" and req.paramValue(-1) == ""
+        bool queryEnumOk = req.queryCount() == 1 and req.queryName(0) == "name" and req.queryValueAt(0) == "xlang" and req.queryHasValue(0) and not req.queryHasValue(1) and req.queryName(1) == "" and req.queryValueAt(-1) == ""
+        bool cookieEnumOk = req.cookieCount() == 1 and req.cookieName(0) == "sid" and req.cookieValueAt(0) == "abc" and req.cookieName(1) == "" and req.cookieValueAt(-1) == ""
+        bool metaOk = req.param("id") == "42" and paramEnumOk and req.queryValue("name") == "xlang" and queryEnumOk and req.cookie("sid") == "abc" and cookieEnumOk and req.header("Host") != "" and headerEnumOk
+        bool addrOk = req.contentLength() == -1 and req.localPort() > 0 and req.remotePort() > 0 and req.localAddr() != "" and req.remoteAddr() != ""
+        if metaOk and addrOk then
             resp.status(201, "Created")
             return resp.text("route-get-ok")
         end
@@ -22,28 +28,286 @@ func handleRequest(point reqHandle, point respHandle) as bool
         return resp.text("xlang-http-ok")
     end
 
+    if req.method() == "POST" and req.path() == "/form" then
+        bool formOk = req.isFormUrlEncoded() and req.contentType() != "" and req.formCount() == 2 and req.formName(0) == "name" and req.formValueAt(0) == "alice bob" and req.formValue("city") == "shanghai" and req.formHasValue(0) and not req.formHasValue(2) and req.formName(2) == "" and req.formValueAt(-1) == ""
+        if formOk then
+            return resp.text("form-ok")
+        end
+        resp.status(500)
+        return resp.text("form-bad")
+    end
+
+    if req.method() == "POST" and req.path() == "/multipart" then
+        bool fieldOk = req.isMultipartForm() and req.multipartCount() == 2 and req.multipartName(0) == "title" and req.multipartText(0) == "hello multipart" and req.multipartValue("title") == "hello multipart" and not req.multipartIsFile(0)
+        bool fileMetaOk = req.multipartIsFile(1) and req.multipartName(1) == "upload" and req.multipartFileName(1) == "note.txt" and req.multipartContentType(1) == "text/plain" and req.multipartSize(1) == 9
+        Buffer fileBytes = req.multipartBytes(1)
+        bool fileDataOk = fileBytes.len() == 9 and fileBytes[0] == 102 and fileBytes[1] == 105 and fileBytes[2] == 108 and fileBytes[3] == 101 and fileBytes[4] == 45 and fileBytes[5] == 100 and fileBytes[6] == 97 and fileBytes[7] == 116 and fileBytes[8] == 97
+        bool invalidOk = req.multipartName(2) == "" and req.multipartFileName(-1) == "" and req.multipartSize(2) == 0
+        if fieldOk and fileMetaOk and fileDataOk and invalidOk then
+            return resp.text("multipart-ok")
+        end
+        resp.status(500)
+        return resp.text("multipart-bad")
+    end
+
+    if req.method() == "GET" and req.path() == "/json" then
+        resp.addHeader("X-Http-Test", "json")
+        return resp.jsonText("{\"ok\":true}")
+    end
+
+    if req.method() == "GET" and req.path() == "/idle" then
+        return resp.text("idle-ok")
+    end
+
+    if req.method() == "POST" and req.path() == "/slow-body" then
+        return resp.text("slow-body-hit")
+    end
+
+    if req.method() == "POST" and req.methodId() == 3 and req.path() == "/bytes" and req.contentLength() == 4 and req.bodySize() == 4 and req.body() == "pong" then
+        Buffer bodyBytes = req.bodyBytes()
+        if bodyBytes.len() != 4 or bodyBytes[0] != 112 or bodyBytes[1] != 111 or bodyBytes[2] != 110 or bodyBytes[3] != 103 then
+            resp.status(500)
+            return resp.text("bad-body-bytes")
+        end
+        return resp.body(req.bodyData(), c_size(req.bodySize()), "application/octet-stream")
+    end
+
+    if req.method() == "GET" and req.path() == "/file" then
+        return resp.file("build/test/stdlib_http_static/file.txt")
+    end
+
+    if req.method() == "GET" and req.path() == "/redirect" then
+        return resp.redirect("/target", 301)
+    end
+
+    if req.method() == "GET" and req.path() == "/cookie" then
+        int flags = http.server.cookieSecure + http.server.cookieHttpOnly
+        if not resp.cookie("sid", "xyz", "/", 3600, http.server.sameSiteLax, flags) then
+            resp.status(500)
+            return resp.text("cookie-fail")
+        end
+        return resp.text("cookie-ok")
+    end
+
+    if req.method() == "GET" and req.path() == "/sni" then
+        return resp.text(req.tlsSNI())
+    end
+
+    if req.method() == "GET" and req.path() == "/delete-cookie" then
+        if not resp.deleteCookie("sid", "/") then
+            resp.status(500)
+            return resp.text("delete-cookie-fail")
+        end
+        return resp.text("delete-cookie-ok")
+    end
+
+    if req.method() == "GET" and req.path() == "/stream" then
+        resp.status(200)
+        resp.header("Content-Type", "text/plain; charset=utf-8")
+        if not resp.start() then
+            return false
+        end
+        if not resp.write("stream-") then
+            return false
+        end
+        if not resp.write("ok") then
+            return false
+        end
+        return resp.finish()
+    end
+
     if req.method() == "PUT" and req.path() == "/any" then
         return resp.text("route-any-ok")
+    end
+
+    if req.method() == "DELETE" and req.path() == "/generic" then
+        return resp.text("route-generic-ok")
+    end
+
+    if req.method() == "PATCH" and req.path() == "/app-generic" then
+        return resp.text("app-generic-ok")
     end
 
     resp.status(404)
     return resp.text("not-found")
 end
 
+func appOne(string method, string path, string query, string body) as string
+    return "app-one"
+end
+
+func appTwo(string method, string path, string query, string body) as string
+    return "app-two"
+end
+
+func hostApp(string method, string path, string query, string body) as string
+    return "host-ok"
+end
+
+func errorHandler(int status, string message, point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.status(status)
+    resp.header("X-Xlang-Error", req.path())
+    return resp.text("error-" + status.toString() + "-" + message)
+end
+
+func streamBegin(point reqHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    string name = req.param("name")
+    string path = "build/test/stdlib_http_stream_body_"
+    path = path + name
+    path = path + ".tmp"
+    file.writeText(path, "")
+    return req.method() == "POST" or req.method() == "PUT"
+end
+
+func streamChunk(point reqHandle, point data, int size) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    Buffer bytes = http.server.chunkBytes(data, size)
+    if bytes.len() != size then
+        return false
+    end
+    string name = req.param("name")
+    string path = "build/test/stdlib_http_stream_body_"
+    path = path + name
+    path = path + ".tmp"
+    return file.appendText(path, http.server.chunkText(data, size))
+end
+
+func streamEnd(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    string name = req.param("name")
+    string path = "build/test/stdlib_http_stream_body_"
+    path = path + name
+    path = path + ".tmp"
+    string streamBody = file.readText(path)
+    string text = "stream:"
+    text = text + name
+    text = text + ":"
+    text = text + streamBody
+    return resp.text(text)
+end
+
 export "xl6_http_server_create" func createServer() as point
     func(string, string, string, string) as string fn = handle
+    func(string, string, string, string) as string appOneFn = appOne
+    func(string, string, string, string) as string appTwoFn = appTwo
+    func(string, string, string, string) as string hostFn = hostApp
     func(point, point) as bool reqFn = handleRequest
+    func(int, string, point, point) as bool errFn = errorHandler
+    func(point) as bool streamBeginFn = streamBegin
+    func(point, point, int) as bool streamChunkFn = streamChunk
+    func(point, point) as bool streamEndFn = streamEnd
     dir.createAll("build/test/stdlib_http_static")
     file.writeText("build/test/stdlib_http_static/index.txt", "static-ok")
+    file.writeText("build/test/stdlib_http_static/file.txt", "file-ok")
+    file.writeText("build/test/stdlib_http_static/home.txt", "home-ok")
+    file.writeText("build/test/stdlib_http_static/server.txt", "server-static-ok")
     assert http.server.mimeByPath("index.html") == "text/html; charset=utf-8", "mimeByPath mismatch"
-    point server = http.server.create(0)
+    point tlsProbe = http.server.createTls("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem", 0, "127.0.0.1", 64, 262144, 262144, 100, 65536, 1)
+    assert tlsProbe != null, "createTls failed"
+    assert http.server.tlsHost(tlsProbe, "127.0.0.1", "release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem"), "tlsHost failed"
+    assert http.server.removeTlsHost(tlsProbe, "127.0.0.1"), "removeTlsHost failed"
+    http.server.destroy(tlsProbe)
+    point server = http.server.create(0, "127.0.0.1", 64, 262144, 262144, 100, 65536, 1)
+    point app1 = http.server.app()
+    point app2 = http.server.app()
+    point vhost = http.server.app()
     http.server.get(server, "/legacy", fn)
     http.server.post(server, "/legacy-post", fn)
     http.server.any(server, "/legacy-any", fn)
     http.server.getRequest(server, "/users/{id}", reqFn)
     http.server.postRequest(server, "/demo", reqFn)
+    http.server.postRequest(server, "/form", reqFn)
+    http.server.postRequest(server, "/multipart", reqFn)
+    http.server.getRequest(server, "/json", reqFn)
+    http.server.postRequest(server, "/bytes", reqFn)
+    http.server.getRequest(server, "/file", reqFn)
+    http.server.getRequest(server, "/redirect", reqFn)
+    http.server.getRequest(server, "/cookie", reqFn)
+    http.server.getRequest(server, "/sni", reqFn)
+    http.server.getRequest(server, "/delete-cookie", reqFn)
     http.server.anyRequest(server, "/any", reqFn)
+    assert not http.server.routeRequest(server, "BOGUS", "/bad-method", reqFn), "bad route method should fail"
     http.server.static(server, "/public", "build/test/stdlib_http_static")
+    http.server.error(server, errFn)
+    http.server.appGet(app1, "/app", appOneFn)
+    http.server.appGet(app2, "/app", appTwoFn)
+    http.server.appGet(app2, "/legacy", fn)
+    http.server.appPost(app2, "/legacy-post", fn)
+    http.server.appAny(app2, "/legacy-any", fn)
+    assert http.server.appRoute(app2, "OPTIONS", "/app-generic-text", fn), "appRoute failed"
+    http.server.appGetRequest(app2, "/users/{id}", reqFn)
+    http.server.appPostRequest(app2, "/demo", reqFn)
+    http.server.appPostRequest(app2, "/form", reqFn)
+    http.server.appPostRequest(app2, "/multipart", reqFn)
+    http.server.appGetRequest(app2, "/json", reqFn)
+    http.server.appPostRequest(app2, "/bytes", reqFn)
+    http.server.appGetRequest(app2, "/file", reqFn)
+    http.server.appGetRequest(app2, "/redirect", reqFn)
+    http.server.appGetRequest(app2, "/cookie", reqFn)
+    http.server.appGetRequest(app2, "/sni", reqFn)
+    http.server.appGetRequest(app2, "/delete-cookie", reqFn)
+    http.server.appGetRequest(app2, "/stream", reqFn)
+    http.server.appAnyRequest(app2, "/any", reqFn)
+    assert http.server.appPostStreamRequest(app2, "/app-stream-body/{name}", streamBeginFn, streamChunkFn, streamEndFn), "appPostStreamRequest failed"
+    assert http.server.appRouteRequest(app2, "PATCH", "/app-generic", reqFn), "appRouteRequest failed"
+    http.server.appStatic(app2, "/public", "build/test/stdlib_http_static")
+    http.server.appError(app2, errFn)
+    http.server.appGet(vhost, "/host", hostFn)
+    assert http.server.setApp(server, app1), "setApp failed"
+    assert http.server.host(server, "x.local", vhost), "host failed"
+    assert http.server.reloadApp(server, app2), "reloadApp failed"
+    assert http.server.route(server, "OPTIONS", "/generic-text", fn), "route failed"
+    assert http.server.routeRequest(server, "DELETE", "/generic", reqFn), "routeRequest failed"
+    assert http.server.postStreamRequest(server, "/stream-body/{name}", streamBeginFn, streamChunkFn, streamEndFn), "postStreamRequest failed"
+    assert http.server.routeStreamRequest(server, "PUT", "/stream-put/{name}", streamBeginFn, streamChunkFn, streamEndFn), "routeStreamRequest failed"
+    assert http.server.appStaticEx(app2, "/assets", "build/test/stdlib_http_static", "home.txt", "max-age=30", 4096, http.server.allowDotfiles), "appStaticEx failed"
+    int staticFlags = http.server.allowDotfiles + http.server.allowBackslash
+    int cookieFlags = http.server.cookieSecure + http.server.cookieHttpOnly + http.server.cookiePartitioned + http.server.cookieSameParty
+    int sameSiteSum = http.server.sameSiteUnspecified + http.server.sameSiteLax + http.server.sameSiteStrict + http.server.sameSiteNone
+    assert staticFlags >= http.server.allowDotfiles, "static flags should be numeric"
+    assert cookieFlags > 0, "cookie flags should be numeric"
+    assert sameSiteSum == 6, "sameSite constants should be stable"
+    assert http.server.staticEx(server, "/server-assets", "build/test/stdlib_http_static", "server.txt", "max-age=45", 4096, staticFlags), "staticEx failed"
+    http.server.destroyApp(app1)
+    http.server.destroyApp(app2)
+    http.server.destroyApp(vhost)
+    http.server.start(server)
+    return server
+end
+
+export "xl6_http_server_create_limited" func createLimitedServer() as point
+    func(point, point) as bool reqFn = handleRequest
+    point server = http.server.create(0, "127.0.0.1", 64, 1024, 8, 100, 65536, 1)
+    http.server.postRequest(server, "/limited", reqFn)
+    http.server.start(server)
+    return server
+end
+
+export "xl6_http_server_create_header_limited" func createHeaderLimitedServer() as point
+    func(point, point) as bool reqFn = handleRequest
+    point server = http.server.create(0, "127.0.0.1", 64, 262144, 262144, 2, 1024, 1)
+    http.server.getRequest(server, "/headers", reqFn)
+    http.server.start(server)
+    return server
+end
+
+export "xl6_http_server_create_multipart_limited" func createMultipartLimitedServer() as point
+    func(point, point) as bool reqFn = handleRequest
+    point server = http.server.create(0, "127.0.0.1", 64, 1024, 1024, 100, 65536, 1, 30000, 30000, 60000, 30000, 1, 4)
+    http.server.postRequest(server, "/multipart-limit", reqFn)
+    http.server.start(server)
+    return server
+end
+
+export "xl6_http_server_create_timeout" func createTimeoutServer() as point
+    func(point, point) as bool reqFn = handleRequest
+    point server = http.server.create(0, "127.0.0.1", 64, 1024, 1024, 100, 1024, 1, 120, 120, 120, 120)
+    http.server.getRequest(server, "/idle", reqFn)
+    http.server.postRequest(server, "/slow-body", reqFn)
     http.server.start(server)
     return server
 end
@@ -52,9 +316,28 @@ export "xl6_http_server_port" func serverPort(point server) as int
     return http.server.port(server)
 end
 
+export "xl6_http_server_request_count" func requestCount(point server) as int
+    return http.server.requestCount(server)
+end
+
+export "xl6_http_server_connection_count" func connectionCount(point server) as int
+    return http.server.connectionCount(server)
+end
+
+export "xl6_http_server_drain" func drainServer(point server, int timeoutMs) as bool
+    return http.server.drain(server, timeoutMs)
+end
+
 export "xl6_http_server_stop" func stopServer(point server)
     http.server.stop(server)
     http.server.destroy(server)
     file.delete("build/test/stdlib_http_static/index.txt")
+    file.delete("build/test/stdlib_http_static/file.txt")
+    file.delete("build/test/stdlib_http_static/home.txt")
+    file.delete("build/test/stdlib_http_static/server.txt")
     dir.delete("build/test/stdlib_http_static")
+end
+
+export "xl6_http_server_remove_host" func removeHost(point server) as bool
+    return http.server.removeHost(server, "x.local")
 end

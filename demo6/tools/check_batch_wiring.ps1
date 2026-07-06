@@ -67,7 +67,6 @@ function Check-SmokeBatch($text)
         'release\\xl\.exe\s+check\s+',
         'release\\xl\.exe\s+cgen\s+',
         'release\\xl\.exe\s+abi\s+',
-        'release\\xl\.exe\s+xapi\s+',
         'release\\xl\.exe\s+run\s+release\\examples\\containers\.xl',
         'release\\xl\.exe\s+run\s+release\\examples\\stdlib_string\.xl'
     )

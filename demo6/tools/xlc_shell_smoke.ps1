@@ -98,7 +98,7 @@ $helpOut = Join-Path $tmpDir "xlc_shell_help.out.txt"
 $helpErr = Join-Path $tmpDir "xlc_shell_help.err.txt"
 Invoke-XlCapture -Name "help" -CommandArgs @("--help") -Stdout $helpOut -Stderr $helpErr | Out-Null
 $help = Read-Text $helpOut
-foreach ( $cmd in @("xl lex", "xl parse", "xl check", "xl ir", "xl cgen", "xl abi", "xl xapi", "xl run", "xl dbg", "xl dap", "xl build") ) {
+foreach ( $cmd in @("xl lex", "xl parse", "xl check", "xl ir", "xl cgen", "xl abi", "xl run", "xl dbg", "xl dap", "xl build") ) {
     Assert-Contains "help" $help $cmd
 }
 
@@ -110,7 +110,6 @@ Invoke-XlCapture -Name "parse json" -CommandArgs @("parse", $case, "--format", "
 Invoke-XlCapture -Name "ir" -CommandArgs @("ir", $case, "--emit", "build\test\xlc_shell.xlir") -Stdout (Join-Path $tmpDir "xlc_shell_ir.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_ir.err.txt") | Out-Null
 Invoke-XlCapture -Name "cgen" -CommandArgs @("cgen", $case, "--emit", "build\test\xlc_shell.c", "--emit-header", "build\test\xlc_shell.h") -Stdout (Join-Path $tmpDir "xlc_shell_cgen.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_cgen.err.txt") | Out-Null
 Invoke-XlCapture -Name "abi" -CommandArgs @("abi", $case, "--json", "--emit", "build\test\xlc_shell.abi.json") -Stdout (Join-Path $tmpDir "xlc_shell_abi.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_abi.err.txt") | Out-Null
-Invoke-XlCapture -Name "xapi" -CommandArgs @("xapi", $case, "--emit", "build\test\xlc_shell.xapi.json") -Stdout (Join-Path $tmpDir "xlc_shell_xapi.out.txt") -Stderr (Join-Path $tmpDir "xlc_shell_xapi.err.txt") | Out-Null
 
 $runOut = Join-Path $tmpDir "xlc_shell_run.out.txt"
 $runErr = Join-Path $tmpDir "xlc_shell_run.err.txt"

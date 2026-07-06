@@ -1,11 +1,11 @@
 # DEMO6 测试资产入口
 
-本目录保存 demo6 的回归测试资产。`test/cases` 下的 `.xl` 文件会被递归纳入用例 wiring 守门，由 `test.bat`、`test/suites/*.bat`、范例批处理和工具脚本接线；`.c`/`.h` 宿主 fixture 由 C fixture 守门检查；`.json`/`.xapi.json` 数据 fixture 由 test data 守门检查。
+本目录保存 demo6 的回归测试资产。`test/cases` 下的 `.xl` 文件会被递归纳入用例 wiring 守门，由 `test.bat`、`test/suites/*.bat`、范例批处理和工具脚本接线；`.c`/`.h` 宿主 fixture 由 C fixture 守门检查；`.json`/`.xlp` 数据 fixture 由 test data 或分类套件守门检查。
 
 ## 主要入口
 
 - `test.bat`：主回归调度入口，先完成构建、清理和工具链准备，再按顺序运行 `test/suites` 下的分类套件。
-- `test_smoke.bat`：快速冒烟入口，覆盖构建、核心文档/源码/工具接线、CLI 基础阶段、ABI/XAPI、import、容器运行和一个标准库运行样本。
+- `test_smoke.bat`：快速冒烟入口，覆盖构建、核心文档/源码/工具接线、CLI 基础阶段、ABI、source import/package、容器运行和一个标准库运行样本。
 - `test_all.bat`：完整回归入口，串联主回归、tutorial 和 DLL 测试。
 - `test_tutorial.bat`：教学范例回归。
 - `test_feature_suite.bat`：功能范例套件回归。
@@ -29,19 +29,19 @@ test\suites\02_language_frontend.bat
 当前分类：
 
 - `00_static_smoke.bat`：文档、工具、批处理、源码、编码、临时目录、DLL/API、标准库覆盖等静态守门，以及 CLI dump/save-temps 基础冒烟。
-- `01_import_package_xapi.bat`：import、package、XAPI、依赖版本、私有依赖、native singleton 和 JSON 诊断。
+- `01_import_package_source.bat`：source import、package、同名 C companion、`.xlp`、依赖版本、私有依赖和 JSON 诊断。
 - `02_language_frontend.bat`：词法、语法、字面量、布局、运算符、泛型约束、协议、derive、字段属性和第二阶段基础示例。
 - `03_cgen_runtime_core.bat`：IR/C 生成、运行时基础、main/varargs/closure/function、容器、字符串、f-string、time、runtime type、标准库 math/string/time/random/buffer/path/file/dir 核心路径。
-- `04_oop_abi_export.bat`：控制流 lowering、OOP/class/object/native-backed class、重载、ABI、C export、XAPI、混编和链接路径。
+- `04_oop_abi_export.bat`：控制流 lowering、OOP/class/object/native-backed class、重载、ABI、C export、混编和链接路径。
 - `05_semantics_exceptions_concurrency_base.bat`：类型语义负例、异常/#doc、sync/thread/async 基础运行与生成形态守门。
 - `06_task_api_spawn.bat`：future/task API、task.spawn、task.all/race/cancel、任务边界和重复运行稳定性。
-- `07_async_generator_channel_docs.bat`：async class await、async generator、generator、channel、并发负例、XAPI doc 和 f-string/语法负例。
+- `07_async_generator_channel_docs.bat`：async class await、async generator、generator、channel、并发负例、文档注释和 f-string/语法负例。
 - `08_stdlib_extended.bat`：JSON/XSON、codec/hash/crypto、URL/query、log/template/regex/process/http.server 等扩展标准库。
 - `09_artifact_closure.bat`：负例诊断产物和 `build\tmp` 文本产物收口检查，通常作为 `test.bat` 全量调度的最后一步运行。
 
 ## fixtures
 
-- `fixtures/libprobe`：package/import/XAPI 测试用裸包名 fixture，用于验证 `XLANG_PACKAGE_PATH=release\extlibs;test\fixtures` 下的非发布物搜索路径。
+- `fixtures/libprobe`：package/import 测试用裸包名 fixture，用于验证 `XLANG_PACKAGE_PATH=release\extlibs;test\fixtures` 下的非发布物搜索路径。
 
 ## 用例前缀索引
 
@@ -54,6 +54,7 @@ test\suites\02_language_frontend.bat
 - `cgen`：代码生成、运行时 lowering 和生成 C 快照用例。
 - `class`：class/custom 基础语义用例。
 - `cli`：CLI link/loadlib 用例。
+- `companion`：同名 C companion 用例。
 - `comments`：注释词法语法用例。
 - `containers`：容器基础语义用例。
 - `control`：控制流用例。
@@ -62,7 +63,7 @@ test\suites\02_language_frontend.bat
 - `function`：function 类型基础用例。
 - `generic`：泛型类型基础用例。
 - `generics`：泛型语法基础用例。
-- `import`：import/package/XAPI 导入用例。
+- `import`：source import/package 导入用例。
 - `invalid`：无效运算和无效 range 负例。
 - `layout`：布局和语句分隔用例。
 - `member`：成员与索引用例。
@@ -75,13 +76,12 @@ test\suites\02_language_frontend.bat
 - `type`：type 值和类型别名用例。
 - `varargs`：可变参数基础用例。
 - `xlang`：xlang 嵌入、嵌套运行和脚本上下文用例。
-- `xapi`：XAPI doc、JSON 转义和类型字段用例。
 - `xl`：`xl run` 参数用例。
 <!-- case-prefix-index:end -->
 
 ## 守门脚本
 
 - `tools/check_test_case_wiring.ps1`：所有 `test/cases` 下递归发现的 `.xl` 必须按相对路径接入回归入口，且本 README 的前缀索引必须与当前用例一致。
-- `tools/check_test_data_wiring.ps1`：所有 JSON/XAPI 数据 fixture 必须有效，并通过完整相对路径或 XAPI import 语义被引用。
+- `tools/check_test_data_wiring.ps1`：所有 JSON 数据 fixture 必须有效，并通过完整相对路径或 package/import 语义被引用。
 - `tools/check_c_fixture_wiring.ps1`：所有 C/H fixture 必须被测试、范例、DLL 或同 package 目录内 metadata 接线。
 - `tools/check_stdlib_test_wiring.ps1`：所有 `test/cases/stdlib_*.xl` 必须按完整相对路径接入主回归。

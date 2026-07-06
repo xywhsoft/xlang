@@ -60,16 +60,20 @@ $forbiddenExportNames = New-Object System.Collections.Generic.HashSet[string]([S
 }
 $externalServiceCoverageExemptionsByPackage = @{}
 $failures = New-Object System.Collections.Generic.List[string]
-$exportNameSetsByPackage = @{}
 
 function Add-Failure($message)
 {
     $script:failures.Add($message) | Out-Null
 }
 
+function Read-Utf8Text($path)
+{
+    return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+}
+
 function Read-Json($path)
 {
-    $text = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+    $text = Read-Utf8Text $path
     return $text | ConvertFrom-Json
 }
 
@@ -79,21 +83,6 @@ function String-Array($value)
         return @()
     }
     return @($value | ForEach-Object { [string]$_ })
-}
-
-function Same-StringSet($left, $right)
-{
-    $a = @($left | Sort-Object)
-    $b = @($right | Sort-Object)
-    if ( $a.Count -ne $b.Count ) {
-        return $false
-    }
-    for ( $i = 0; $i -lt $a.Count; ++$i ) {
-        if ( $a[$i] -ne $b[$i] ) {
-            return $false
-        }
-    }
-    return $true
 }
 
 function Check-PathValue($packageName, $label, $value)
@@ -194,36 +183,71 @@ function Is-CoverageExempt($packageName, $functionName)
     return @($script:externalServiceCoverageExemptionsByPackage[$packageName]) -contains $functionName
 }
 
-function Get-PackageExportNameSet($packageName)
+function Sanitize-PackageName($name)
 {
-    if ( [string]::IsNullOrEmpty($packageName) ) {
-        return $null
-    }
-    if ( $script:exportNameSetsByPackage.ContainsKey($packageName) ) {
-        return $script:exportNameSetsByPackage[$packageName]
-    }
+    return ([string]$name).Replace(".", "_").Replace("-", "_")
+}
 
-    $path = Join-Path $script:releaseDir (Join-Path $packageName "package.xapi.json")
-    if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
-        return $null
-    }
-
-    $xapi = Read-Json $path
+function Get-PublicFunctionNames($pkg, $manifest)
+{
     $set = New-Object System.Collections.Generic.HashSet[string]
-    foreach ( $export in @($xapi.exports) ) {
-        $exportName = [string]$export.name
-        if ( $exportName -ne "" ) {
-            $set.Add($exportName) | Out-Null
+    $prefix = "__xl6_import_{0}_" -f (Sanitize-PackageName $manifest.name)
+
+    foreach ( $source in (String-Array $manifest.artifact.xlSources) ) {
+        $sourcePath = Join-Path $pkg.FullName $source
+        if ( ! (Test-Path -LiteralPath $sourcePath -PathType Leaf) ) {
+            continue
+        }
+
+        $text = Read-Utf8Text $sourcePath
+        $matches = [regex]::Matches(
+            $text,
+            '(?m)^\s*(?:extern\s+"[^"]+"\s+|export\s+"[^"]+"\s+)?func\s+([A-Za-z_][A-Za-z0-9_]*)\s*\('
+        )
+        foreach ( $match in $matches ) {
+            $name = $match.Groups[1].Value
+            if ( ! $name.StartsWith($prefix, [System.StringComparison]::Ordinal) ) {
+                continue
+            }
+
+            $publicName = $name.Substring($prefix.Length)
+            if ( $publicName.EndsWith("_export", [System.StringComparison]::Ordinal) ) {
+                continue
+            }
+            if ( $publicName -ne "" ) {
+                $set.Add($publicName) | Out-Null
+            }
         }
     }
-    foreach ( $type in @($xapi.types) ) {
-        $typeName = [string]$type.name
-        if ( $typeName -ne "" ) {
-            $set.Add($typeName) | Out-Null
-        }
-    }
-    $script:exportNameSetsByPackage[$packageName] = $set
+
     return $set
+}
+
+function Validate-RelativeFileList($pkg, $manifestRel, $items, $label, $extension)
+{
+    foreach ( $item in $items ) {
+        if ( [string]::IsNullOrWhiteSpace($item) ) {
+            Add-Failure "release extlib $label contains empty path: $manifestRel"
+            continue
+        }
+        if ( [System.IO.Path]::IsPathRooted($item) ) {
+            Add-Failure "release extlib $label must be relative: $manifestRel -> $item"
+            continue
+        }
+        if ( $item -match '(^|[\\/])[.][.]([\\/]|$)' ) {
+            Add-Failure "release extlib $label must not use parent traversal: $manifestRel -> $item"
+            continue
+        }
+        if ( $extension -ne "" -and ! $item.EndsWith($extension) ) {
+            Add-Failure "release extlib $label extension mismatch: $manifestRel -> $item"
+        }
+        Check-PathValue $pkg.Name $label $item
+
+        $fullPath = Join-Path $pkg.FullName $item
+        if ( ! (Test-Path -LiteralPath $fullPath -PathType Leaf) ) {
+            Add-Failure "release extlib $label missing file: $manifestRel -> $item"
+        }
+    }
 }
 
 if ( ! (Test-Path -LiteralPath $releaseDir -PathType Container) ) {
@@ -255,7 +279,7 @@ Check-ReleaseTextContent $exampleDir "extlib example text"
 Check-NoDraftFiles $releaseDir "extlibs"
 Check-NoDraftFiles $exampleDir "extlib examples"
 
-$runnerText = [System.IO.File]::ReadAllText($runnerPath, [System.Text.Encoding]::UTF8)
+$runnerText = Read-Utf8Text $runnerPath
 $exampleFiles = @(Get-ChildItem -LiteralPath $exampleDir -File -Filter "*.xl" | Sort-Object Name)
 $exampleTextByFile = @{}
 $importsByPackage = @{}
@@ -264,7 +288,7 @@ foreach ( $file in $exampleFiles ) {
     if ( $file.Name -like "x_*.xl" ) {
         Add-Failure "release extlib example must not use old x_ prefix: $($file.Name)"
     }
-    $text = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
+    $text = Read-Utf8Text $file.FullName
     if ( [regex]::IsMatch($text, '(?m)^\s*if\s+false\s+then\b') ) {
         Add-Failure "release extlib example must not hide coverage behind if false: $($file.Name)"
     }
@@ -286,11 +310,14 @@ foreach ( $file in $exampleFiles ) {
 }
 
 $packageIds = New-Object System.Collections.Generic.HashSet[string]
+$manifestsByPackage = @{}
+$dirsByPackage = @{}
 
 foreach ( $pkg in $packages ) {
     $name = $pkg.Name
     $manifestPath = Join-Path $pkg.FullName "xlang.package.json"
-    $xapiPath = Join-Path $pkg.FullName "package.xapi.json"
+    $legacyXapiPath = Join-Path $pkg.FullName "package.xapi.json"
+    $manifestRel = "release/extlibs/$name/xlang.package.json"
 
     if ( $name.StartsWith("x.") ) {
         Add-Failure "release extlib package keeps old x. namespace prefix: $name"
@@ -298,27 +325,23 @@ foreach ( $pkg in $packages ) {
     if ( $name.StartsWith("x_") ) {
         Add-Failure "release extlib package keeps old x_ prefix: $name"
     }
-    if ( ! (Test-Path -LiteralPath $manifestPath -PathType Leaf) ) {
-        Add-Failure "release extlib manifest missing: release/extlibs/$name/xlang.package.json"
-        continue
+    if ( Test-Path -LiteralPath $legacyXapiPath -PathType Leaf ) {
+        Add-Failure "release extlib must not publish legacy package.xapi.json: release/extlibs/$name/package.xapi.json"
     }
-    if ( ! (Test-Path -LiteralPath $xapiPath -PathType Leaf) ) {
-        Add-Failure "release extlib xapi missing: release/extlibs/$name/package.xapi.json"
+    if ( ! (Test-Path -LiteralPath $manifestPath -PathType Leaf) ) {
+        Add-Failure "release extlib manifest missing: $manifestRel"
         continue
     }
 
     try {
         $manifest = Read-Json $manifestPath
     } catch {
-        Add-Failure "release extlib manifest is not valid JSON: release/extlibs/$name/xlang.package.json"
+        Add-Failure "release extlib manifest is not valid JSON: $manifestRel"
         continue
     }
-    try {
-        $xapi = Read-Json $xapiPath
-    } catch {
-        Add-Failure "release extlib xapi is not valid JSON: release/extlibs/$name/package.xapi.json"
-        continue
-    }
+
+    $manifestsByPackage[$name] = $manifest
+    $dirsByPackage[$name] = $pkg
 
     if ( $manifest.format -ne "xlang-package-1" ) {
         Add-Failure "release extlib manifest format mismatch: $name"
@@ -329,108 +352,81 @@ foreach ( $pkg in $packages ) {
     if ( [string]$manifest.name -ne $name ) {
         Add-Failure "release extlib manifest name must match directory: $name"
     }
-    if ( $xapi.format -ne "xlang-xapi-1" ) {
-        Add-Failure "release extlib xapi format mismatch: $name"
+    if ( [string]::IsNullOrWhiteSpace([string]$manifest.version) ) {
+        Add-Failure "release extlib manifest version missing: $name"
     }
-    if ( [string]$xapi.package.name -ne $name ) {
-        Add-Failure "release extlib xapi package name must match directory: $name"
+    if ( [string]::IsNullOrWhiteSpace([string]$manifest.abiVersion) ) {
+        Add-Failure "release extlib manifest abiVersion missing: $name"
     }
-    if ( [string]$xapi.module.name -ne $name ) {
-        Add-Failure "release extlib xapi module name must match directory: $name"
+    if ( $null -ne $manifest.xapi ) {
+        Add-Failure "release extlib manifest must not declare legacy xapi field: $name"
     }
-    if ( [string]$xapi.module.source -ne "release/extlibs/$name" ) {
-        Add-Failure "release extlib module.source mismatch: $name"
+    if ( $null -eq $manifest.artifact ) {
+        Add-Failure "release extlib artifact missing: $name"
+        continue
     }
-    if ( [string]$manifest.xapi -ne "package.xapi.json" ) {
-        Add-Failure "release extlib manifest xapi must be package.xapi.json: $name"
-    }
-    if ( [string]$manifest.version -ne [string]$xapi.package.version ) {
-        Add-Failure "release extlib version mismatch between manifest and xapi: $name"
-    }
-    if ( [string]$manifest.abiVersion -ne [string]$xapi.package.abiVersion ) {
-        Add-Failure "release extlib abiVersion mismatch between manifest and xapi: $name"
-    }
-
-    $expectedPackageId = "{0}@{1}#abi{2}" -f $manifest.name, $manifest.version, $manifest.abiVersion
-    if ( [string]$xapi.package.packageId -ne $expectedPackageId ) {
-        Add-Failure "release extlib packageId mismatch: $name"
-    } elseif ( ! $packageIds.Add($expectedPackageId) ) {
-        Add-Failure "duplicate release extlib package identity: $expectedPackageId"
-    }
-
-    $manifestCSources = String-Array $manifest.artifact.cSources
-    $xapiCSources = String-Array $xapi.cSources
-    if ( ! (Same-StringSet $manifestCSources $xapiCSources) ) {
-        Add-Failure "release extlib cSources mismatch between manifest and xapi: $name"
-    }
-    foreach ( $source in $manifestCSources ) {
-        Check-PathValue $name "cSource" $source
-        if ( ! (Test-Path -LiteralPath (Join-Path $pkg.FullName $source) -PathType Leaf) ) {
-            Add-Failure "release extlib cSource missing: release/extlibs/$name/$source"
-        }
+    if ( [string]$manifest.artifact.kind -ne "source" ) {
+        Add-Failure "release extlib artifact.kind must be source: $name"
     }
 
     $manifestXlSources = String-Array $manifest.artifact.xlSources
-    foreach ( $source in $manifestXlSources ) {
-        Check-PathValue $name "xlSource" $source
-        $sourcePath = Join-Path $pkg.FullName $source
-        if ( ! (Test-Path -LiteralPath $sourcePath -PathType Leaf) ) {
-            Add-Failure "release extlib xlSource missing: release/extlibs/$name/$source"
-        } else {
-            $sourceText = [System.IO.File]::ReadAllText($sourcePath, [System.Text.Encoding]::UTF8)
-            foreach ( $importMatch in [regex]::Matches($sourceText, '(?m)^\s*import\s+([A-Za-z0-9_.]+)\b') ) {
-                $importName = $importMatch.Groups[1].Value
-                $exportNames = Get-PackageExportNameSet $importName
-                if ( $null -eq $exportNames ) {
-                    continue
-                }
-                $memberPattern = "(?<![A-Za-z0-9_])$([regex]::Escape($importName))\.([A-Za-z_][A-Za-z0-9_]*)\b"
-                foreach ( $memberMatch in [regex]::Matches($sourceText, $memberPattern) ) {
-                    $memberName = $memberMatch.Groups[1].Value
-                    if ( ! $exportNames.Contains($memberName) ) {
-                        Add-Failure "release extlib source references non-exported dependency symbol: $name -> $importName.$memberName in $source"
-                    }
-                }
-            }
-        }
+    $manifestCSources = String-Array $manifest.artifact.cSources
+    if ( $manifestXlSources.Count -eq 0 ) {
+        Add-Failure "release extlib xlSources must not be empty: $name"
     }
+    Validate-RelativeFileList $pkg $manifestRel $manifestXlSources "xlSources" ".xl"
+    Validate-RelativeFileList $pkg $manifestRel $manifestCSources "cSources" ".c"
 
-    foreach ( $value in (String-Array $manifest.links) + (String-Array $manifest.loadlibs) + (String-Array $xapi.links) + (String-Array $xapi.loadlibs) ) {
+    foreach ( $value in (String-Array $manifest.links) + (String-Array $manifest.loadlibs) ) {
         Check-PathValue $name "link/loadlib" $value
     }
-    if ( ! (Same-StringSet (String-Array $manifest.links) (String-Array $xapi.links)) ) {
-        Add-Failure "release extlib links mismatch between manifest and xapi: $name"
+
+    $expectedPackageId = "{0}@{1}#abi{2}" -f $manifest.name, $manifest.version, $manifest.abiVersion
+    if ( ! $packageIds.Add($expectedPackageId) ) {
+        Add-Failure "duplicate release extlib package identity: $expectedPackageId"
     }
-    if ( ! (Same-StringSet (String-Array $manifest.loadlibs) (String-Array $xapi.loadlibs)) ) {
-        Add-Failure "release extlib loadlibs mismatch between manifest and xapi: $name"
+}
+
+foreach ( $name in $manifestsByPackage.Keys ) {
+    $manifest = $manifestsByPackage[$name]
+    foreach ( $dep in @($manifest.dependencies) ) {
+        if ( $null -eq $dep ) {
+            continue
+        }
+        $key = "{0}@{1}#abi{2}" -f $dep.name, $dep.version, $dep.abiVersion
+        if ( ! $packageIds.Contains($key) ) {
+            Add-Failure "release extlib dependency target missing: $name -> $key"
+        }
     }
+}
+
+foreach ( $name in $manifestsByPackage.Keys ) {
+    $manifest = $manifestsByPackage[$name]
+    $pkg = $dirsByPackage[$name]
 
     if ( ! $importsByPackage.ContainsKey($name) ) {
         Add-Failure "release extlib has no example importing it: $name"
-    } else {
-        $exampleText = ""
-        foreach ( $exampleName in $importsByPackage[$name] ) {
-            if ( $exampleTextByFile.ContainsKey($exampleName) ) {
-                $exampleText += "`n" + $exampleTextByFile[$exampleName]
-            }
+        continue
+    }
+
+    $exampleText = ""
+    foreach ( $exampleName in $importsByPackage[$name] ) {
+        if ( $exampleTextByFile.ContainsKey($exampleName) ) {
+            $exampleText += "`n" + $exampleTextByFile[$exampleName]
         }
-        $functionNames = @(
-            $xapi.exports |
-                Where-Object { [string]$_.kind -eq "function" -and ! [string]::IsNullOrEmpty([string]$_.name) } |
-                ForEach-Object { [string]$_.name } |
-                Sort-Object -Unique
-        )
-        foreach ( $functionName in $functionNames ) {
-            if ( $forbiddenExportNames.Contains($functionName) ) {
-                Add-Failure "release extlib must not export placeholder function: $name.$functionName"
-                continue
-            }
-            if ( Is-CoverageExempt $name $functionName ) {
-                continue
-            }
-            if ( ! (Text-ContainsName $exampleText $functionName) ) {
-                Add-Failure "release extlib example coverage missing function: $name.$functionName"
-            }
+    }
+
+    $functionNames = Get-PublicFunctionNames $pkg $manifest
+    foreach ( $functionName in ($functionNames | Sort-Object) ) {
+        if ( $forbiddenExportNames.Contains($functionName) ) {
+            Add-Failure "release extlib must not export placeholder function: $name.$functionName"
+            continue
+        }
+        if ( Is-CoverageExempt $name $functionName ) {
+            continue
+        }
+        if ( ! (Text-ContainsName $exampleText $functionName) ) {
+            Add-Failure "release extlib example coverage missing function: $name.$functionName"
         }
     }
 }

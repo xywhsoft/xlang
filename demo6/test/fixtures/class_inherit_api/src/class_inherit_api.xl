@@ -1,0 +1,13 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+class Entity
+    int id
+end
+
+class NamedPoint extends Entity
+    int x
+    int y
+end
+
+extern "xl6_class_inherit_api_make" func __xl6_import_class_inherit_api_makeNamedPoint(int id, int x, int y) as NamedPoint
+extern "xl6_class_inherit_api_score" func __xl6_import_class_inherit_api_score(NamedPoint point) as int

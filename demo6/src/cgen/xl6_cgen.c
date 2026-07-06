@@ -97,6 +97,7 @@
 #include "src/cgen/xl6_cgen_std_string.c"
 #include "src/cgen/xl6_cgen_path.c"
 #include "src/cgen/xl6_cgen_http_server.c"
+#include "src/cgen/xl6_cgen_http_client.c"
 #include "src/cgen/xl6_cgen_buffer.c"
 #include "src/cgen/xl6_cgen_encoding.c"
 #include "src/cgen/xl6_cgen_log.c"

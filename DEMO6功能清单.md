@@ -1098,7 +1098,9 @@ auto text = file.readText("data.txt")
 - `log` 常量：`traceLevel`、`debugLevel`、`infoLevel`、`warnLevel`、`errorLevel`、`fatalLevel`、`offLevel`、`textFormat`、`simpleFormat`、`jsonFormat`。
 - `log`：`create`、`default`、`setLevel`、`getLevel`、`levelName`、`addConsole`、`addFile`、`addRollingFile`、`write`、`trace`、`debug`、`info`、`warn`、`error`、`fatal`、`flush`。
 - `template`：`compile`、`render`、`renderFile`；预编译对象使用 `Template`，支持 `render`、`nodeCount`、`exprCount`、`argCount`、`stringPoolSize`。
-- `http.server`：`create`、`get`、`post`、`any`、`getRequest`、`postRequest`、`anyRequest`、`static`、`destroy`、`port`、`start`、`stop`、`mimeByPath`；对象化路由使用 `HttpRequest`、`HttpResponse`。
+- `http`：`get`、`post`、`request`；对象化客户端使用 `HttpClientRequest`、`HttpClientResponse`。
+- `http.server` 常量：`allowDotfiles`、`allowBackslash`、`sameSiteUnspecified`、`sameSiteLax`、`sameSiteStrict`、`sameSiteNone`、`cookieSecure`、`cookieHttpOnly`、`cookiePartitioned`、`cookieSameParty`。
+- `http.server`：`create`、`createTls`、`tlsHost`、`removeTlsHost`、`app`、`destroyApp`、`appRoute`、`appRouteRequest`、`appRouteStreamRequest`、`appGet`、`appPost`、`appAny`、`appGetRequest`、`appPostRequest`、`appAnyRequest`、`appPostStreamRequest`、`appAnyStreamRequest`、`appStatic`、`appStaticEx`、`appError`、`setApp`、`reloadApp`、`host`、`removeHost`、`error`、`route`、`routeRequest`、`routeStreamRequest`、`get`、`post`、`any`、`getRequest`、`postRequest`、`anyRequest`、`postStreamRequest`、`anyStreamRequest`、`chunkText`、`chunkBytes`、`static`、`staticEx`、`destroy`、`port`、`requestCount`、`connectionCount`、`start`、`drain`、`stop`、`mimeByPath`；对象化路由使用 `HttpRequest`、`HttpResponse`。
 
 常用默认参数：
 - `string.compare(left, right, ignoreCase = false)`、`string.equals(...)`、`string.contains(...)`、`string.indexOf(...)`、`string.lastIndexOf(...)`、`string.count(...)`、`string.startsWith(...)`、`string.endsWith(...)`、`string.like(...)`。
@@ -1114,7 +1116,19 @@ auto text = file.readText("data.txt")
 - `process.exec(command, timeoutMs = 0)`、`process.success(command, timeoutMs = 0)`、`process.exitCode(command, timeoutMs = 0)` 保留 shell 便捷路径；`process.run(command, timeoutMs = 0)`、`process.runFile(program, args = [], timeoutMs = 0)` 返回结构化 `ProcessResult`；`process.cmd(program, args = [])`、`process.shell(command)` 创建 pipeline 阶段；`process.pipeline(commands, timeoutMs = 0)` 返回 `PipelineResult`；`process.start(command)`、`process.startFile(program, args = [])` 返回可交互 `Process`。
 - `log.create(name = "xlang")` 创建独立 `Logger`；`log.default()` 包装默认 logger；`log.addConsole(level = log.traceLevel, color = true, format = log.textFormat)`、`log.addFile(path, level = log.infoLevel, format = log.textFormat)`、`log.addRollingFile(path, maxSize = 10485760, maxBackup = 5, level = log.infoLevel, format = log.textFormat)` 添加输出目标；`log.trace/debug/info/warn/error/fatal(message)` 写入默认 logger。
 - `template.compile(text, bracket = "{}")` 编译模板文本；`template.render(text, data = null, bracket = "{}")` 一次性渲染模板；`template.renderFile(path, data = null, bracket = "{}")` 通过 XRT UTF-8 文件层读取模板并渲染；`Template(text, bracket).render(data)` 适合重复渲染。
-- `http.server.create(port = 0)` 创建本机 HTTP server 句柄；`http.server.get/post/any(server, pattern, handler)` 注册简化文本路由，handler 签名为 `func(string, string, string, string) as string`；`http.server.getRequest/postRequest/anyRequest(server, pattern, handler)` 注册对象化路由，handler 签名为 `func(point, point) as bool`，函数内用 `HttpRequest(reqHandle)` 和 `HttpResponse(respHandle)` 访问请求与响应；`pattern` 支持静态段、`{id}` 变量段和尾部 `*` 通配符；`http.server.static(server, mount, root)` 挂载静态文件目录；`http.server.mimeByPath(path)` 根据扩展名返回 Content-Type。
+- `http.get(url, timeoutMs = 5000)`、`http.post(url, body, contentType = "text/plain; charset=utf-8", timeoutMs = 5000)`、`http.request(method, url, body = "", contentType = "", timeoutMs = 5000)` 提供阻塞式 HTTP/HTTPS client，返回 `HttpClientResponse`。`HttpClientRequest(url = "")` 支持 `method(method)`、`url(url)`、`header(name, value)`、`body(data, size, contentType)`、`text(data, contentType = "text/plain; charset=utf-8")`、`timeout(timeoutMs)`、`idleTimeout(timeoutMs)`、`verifyPeer(value)`、`execute()`；`HttpClientResponse` 支持 `status()`、`ok()`、`reason()`、`header(name)`、`contentLength()`、`body()`、`bodyData()`、`bodySize()`、`bodyBytes()`。`bodyData/bodySize` 是响应生命周期内的字节视图，`bodyBytes()` 返回独立复制的 `Buffer`。当前 client API 是同步阻塞模型；异步 HTTP client 归入后续统一异步网络运行时。
+- `http.server.create(port = 0, host = "127.0.0.1", backlog = 128, recvLimit = 1048576, bodyLimit = 1048576, headerLimit = 100, headerBytesLimit = 65536, workerCount = 1, headerTimeoutMs = 30000, bodyTimeoutMs = 30000, idleTimeoutMs = 60000, writeTimeoutMs = 30000, multipartPartLimit = 1000, multipartPartSizeLimit = 0)` 创建 HTTP server 句柄；`http.server.get/post/any(server, pattern, handler)` 注册到 server 当前默认 app，handler 签名为 `func(string, string, string, string) as string`；`http.server.getRequest/postRequest/anyRequest(server, pattern, handler)` 注册对象化路由，handler 签名为 `func(point, point) as bool`，函数内用 `HttpRequest(reqHandle)` 和 `HttpResponse(respHandle)` 访问请求与响应；`http.server.route(server, method, pattern, handler)` 和 `http.server.routeRequest(server, method, pattern, handler)` 支持 `GET`、`HEAD`、`POST`、`PUT`、`DELETE`、`PATCH`、`OPTIONS`、`ANY`，也支持 `GET|POST`、`GET,POST` 这类组合方法字符串；`http.server.postStreamRequest/anyStreamRequest/routeStreamRequest` 注册流式请求体路由；`pattern` 支持静态段、`{id}` 变量段和尾部 `*` 通配符；`http.server.static(server, mount, root)` 挂载默认静态目录；`http.server.staticEx(server, mount, root, indexNames = "index.html;index.htm", cacheControl = "", chunkSize = 65536, flags = 0)` 可设置 index 文件名列表、`Cache-Control`、发送块大小和静态目录安全 flag；`http.server.mimeByPath(path)` 根据扩展名返回 Content-Type。
+- 流式请求体路由三段 handler：`beginHandler` 为 `func(point) as bool`，`chunkHandler` 为 `func(point, point, int) as bool`，`endHandler` 为 `func(point, point) as bool`。`chunkHandler` 中的 `point data` 只在当前回调期间有效，需要保存时调用 `http.server.chunkText(data, size)` 复制为 `string`，或调用 `http.server.chunkBytes(data, size)` 复制为独立 `Buffer`。当前 `endHandler` 必须同步写出响应，暂不支持异步结束。
+- `http.server.create` / `createTls` 默认使用 XRT owned engine：每个 server 拥有独立网络 engine，`workerCount` 对该 engine 生效，`http.server.destroy(server)` 会释放 server 与对应 engine。C 侧如果直接使用 XRT，可显式传入外部 `xnetengine*` 来让多个 server 共享同一个事件循环。
+- `http.server.create` / `createTls` 的 `recvLimit` 是底层连接接收缓冲上限，`bodyLimit` 是单个 HTTP 请求 body 上限，`headerLimit` 是请求头数量上限，`headerBytesLimit` 是请求头总字节上限，`multipartPartLimit` 是 multipart part 数量上限，`multipartPartSizeLimit` 是单个 multipart part body 字节上限；`multipartPartLimit = 0` 或 `multipartPartSizeLimit = 0` 表示关闭对应限制。请求 body 或 multipart 超限时底层 XRT 直接返回 `413 Payload Too Large`，请求头超过限制时返回 `431 Request Header Fields Too Large`，这些拒绝路径都不会进入路由 handler。`headerTimeoutMs` 控制请求头读完前的最长等待时间，`bodyTimeoutMs` 控制固定长度 body 读完前的最长等待时间，`idleTimeoutMs` 控制 keep-alive 空闲连接保留时间，`writeTimeoutMs` 控制响应提交后发送队列排空的最长等待时间；header/body 超时返回 `408 Request Timeout`，idle 超时静默关闭连接，write 超时直接关闭连接。
+- `http.server.createTls(certFile, keyFile, port = 0, host = "127.0.0.1", backlog = 128, recvLimit = 1048576, bodyLimit = 1048576, headerLimit = 100, headerBytesLimit = 65536, workerCount = 1, headerTimeoutMs = 30000, bodyTimeoutMs = 30000, idleTimeoutMs = 60000, writeTimeoutMs = 30000, multipartPartLimit = 1000, multipartPartSizeLimit = 0)` 创建 HTTPS server 句柄，底层使用 XRT `xtlsconfig` 的证书文件路径能力。
+- `http.server.tlsHost(server, host, certFile, keyFile)` 为 HTTPS server 增加 SNI 证书映射；`http.server.removeTlsHost(server, host)` 移除映射。TLS 握手时 XRT 按 SNI host 匹配证书；没有匹配时使用 `createTls` 的默认证书。
+- `http.server.requestCount(server)` 返回 server 启动后的累计请求数；`http.server.connectionCount(server)` 返回当前连接数量；`http.server.drain(server, timeoutMs = -1)` 优雅停止监听并等待连接结束，`timeoutMs = 0` 表示只发起 drain 并立即返回，负数表示无限等待；`http.server.stop(server)` 是强制停止。
+- `http.server.error(server, handler)` 设置默认 app 错误处理器；`http.server.appError(app, handler)` 设置指定 app 错误处理器。handler 签名为 `func(int, string, point, point) as bool`，参数依次为状态码、错误文本、request 句柄和 response 句柄。
+- `HttpRequest` 支持 `method()`、`methodId()`、`target()`、`path()`、`query()`、`header(name)`、`headerCount()`、`headerName(index)`、`headerValue(index)`、`param(name)`、`paramCount()`、`paramName(index)`、`paramValue(index)`、`queryValue(name)`、`queryCount()`、`queryName(index)`、`queryValueAt(index)`、`queryHasValue(index)`、`cookie(name)`、`cookieCount()`、`cookieName(index)`、`cookieValueAt(index)`、`contentType()`、`isFormUrlEncoded()`、`formValue(name)`、`formCount()`、`formName(index)`、`formValueAt(index)`、`formHasValue(index)`、`isMultipartForm()`、`multipartValue(name)`、`multipartCount()`、`multipartName(index)`、`multipartText(index)`、`multipartIsFile(index)`、`multipartFileName(index)`、`multipartContentType(index)`、`multipartSize(index)`、`multipartBytes(index)`、`contentLength()`、`localAddr()`、`localPort()`、`remoteAddr()`、`remotePort()`、`tlsSNI()`、`body()`、`bodyData()`、`bodySize()`、`bodyBytes()`；`headerName/headerValue/paramName/paramValue/queryName/queryValueAt/cookieName/cookieValueAt/formName/formValueAt/multipartName/multipartText/multipartFileName/multipartContentType` 越界或负索引返回空字符串；`tlsSNI()` 在 HTTPS 且客户端提供 SNI 时返回 host，否则返回空字符串；其中 `bodyData/bodySize` 是请求生命周期内的二进制 body 字节视图，`bodyBytes()` 返回独立复制的 `Buffer`，`multipartBytes(index)` 返回对应 part body 的独立 `Buffer`。
+- `HttpResponse` 支持 `status(code)`、`header(name, value)`、`addHeader(name, value)`、`cookie(name, value, path = "/", maxAge = -1, sameSite = http.server.sameSiteUnspecified, flags = 0)`、`deleteCookie(name, path = "/")`、`text(text, contentType = "text/plain; charset=utf-8")`、`jsonText(text)`、`body(data, size, contentType)`、`start()`、`write(text)`、`send(data, size)`、`finish()`、`file(path)`、`redirect(url, status = 302)`；`cookie` 追加 `Set-Cookie` 响应头，`maxAge < 0` 表示会话 Cookie，`flags` 可组合 `http.server.cookieSecure`、`http.server.cookieHttpOnly`、`http.server.cookiePartitioned`、`http.server.cookieSameParty`；`start/write/send/finish` 用于流式响应，未设置 `Content-Length` 时底层自动使用 chunked 响应。
+- `http.server.app()` 创建独立 app；`http.server.appRoute/appRouteRequest/appRouteStreamRequest` 支持通用方法字符串，`http.server.appGet/appPost/appAny`、`http.server.appGetRequest/appPostRequest/appAnyRequest`、`http.server.appPostStreamRequest/appAnyStreamRequest`、`http.server.appStatic/appStaticEx` 将路由和静态目录注册到 app；`http.server.setApp(server, app)` 替换默认 app；`http.server.reloadApp(server, app)` 用于热替换默认 app；`http.server.host(server, host, app)` 将 Host 虚拟主机绑定到 app；`http.server.removeHost(server, host)` 移除虚拟主机。server 会持有 app 引用，`destroyApp(app)` 只释放当前 xlang 侧 app 句柄；如果 app 已绑定到 server，路由闭包会由 XRT route 生命周期托管。
+  app 族函数的完整调用形态：`http.server.appGet(app, pattern, handler)`、`http.server.appPost(app, pattern, handler)`、`http.server.appAny(app, pattern, handler)`、`http.server.appRoute(app, method, pattern, handler)`、`http.server.appGetRequest(app, pattern, handler)`、`http.server.appPostRequest(app, pattern, handler)`、`http.server.appAnyRequest(app, pattern, handler)`、`http.server.appRouteRequest(app, method, pattern, handler)`、`http.server.appPostStreamRequest(app, pattern, beginHandler, chunkHandler, endHandler)`、`http.server.appAnyStreamRequest(app, pattern, beginHandler, chunkHandler, endHandler)`、`http.server.appRouteStreamRequest(app, method, pattern, beginHandler, chunkHandler, endHandler)`、`http.server.appStatic(app, mount, root)`、`http.server.appStaticEx(app, mount, root, indexNames = "index.html;index.htm", cacheControl = "", chunkSize = 65536, flags = 0)`、`http.server.setApp(server, app)`、`http.server.reloadApp(server, app)`、`http.server.host(server, host, app)`、`http.server.removeHost(server, host)`。`flags` 可组合 `http.server.allowDotfiles` 与 `http.server.allowBackslash`。
 
 文件信息结构：
 
@@ -1194,18 +1208,28 @@ TcpStream peer = TcpStream(await accepted)
 client.send("ping")
 string text = peer.recv(3000)
 
+Buffer bytes = Buffer()
+bytes.appendByte(0)
+bytes.appendByte(255)
+client.sendBytes(bytes.data(), c_size(bytes.len()))
+Buffer received = peer.recvBytes(3000)
+
 UdpSocket sock = UdpSocket(udp.bind(0))
 bool ok = sock.send("127.0.0.1", uint16(sock.port()), "hello")
+sock.sendBytes("127.0.0.1", uint16(sock.port()), bytes.data(), c_size(bytes.len()))
 UdpPacket packet = UdpPacket(sock.recv(3000))
+Buffer packetBytes = packet.bytes()
 ```
 
 - `TcpStream`、`TcpServer`、`UdpSocket`、`UdpPacket` 均为 native-backed class。
 - `tcp.connect`、`tcp.connectAsync`、`tcp.listen`、`udp.bind` 返回 `point`，调用者必须显式构造对应 class，避免网络句柄发生隐式复制。
-- TCP 已支持同步/异步 connect、accept、send、recv、drain 和 close；UDP 已支持同步/异步 send、recv。
-- 当前网络标准库以 UTF-8 文本收发为主，C/XRT 对照范例和 xlang 范例输出会在主回归中比较一致性。
+- TCP 已支持同步/异步 connect、accept、文本 send/recv、二进制 `sendBytes/readBytes/recvBytes`、drain 和 close。
+- UDP 已支持同步/异步文本 send/recv，并支持二进制 `sendBytes` 与 `UdpPacket.bytes()`。
+- 二进制发送采用 `point data, c_size size` 字节视图参数，例如 `stream.sendBytes(buf.data(), c_size(buf.len()))`。这是因为 `Buffer` 是不可复制 native-backed class，不能作为按值参数传入函数。
+- XRT 底层已补齐 TCP/UDP 配置型 API 与二进制便捷 API：`xrtNetTcpConnectEx`、`xrtNetTcpListenEx`、`xrtNetUdpBindEx`、`xrtNetStreamReadBytes`、`xrtNetStreamRecvBytes`、`xrtNetStreamSendBytes`、`xrtNetUdpSendBytes`、`xrtNetDgramPacketBytesCopy`。
+- xlang 标准库已把上述二进制能力封装到 `Buffer`/字节视图写法中，C/XRT 对照范例和 xlang 范例输出在主回归中比较一致性。
 
 当前边界：
-- HTTP client 暂缓进入标准库。
 - 标准库命名空间只在成员访问位置生效，例如 `math.sqrt`、`math.pi`；写成已存在命名空间但不存在符号时会报错。
 - `math.pi`、`math.tau`、`math.e`、`math.nan`、`math.inf` 是标准库常量，编译期直接重写为字面量，不产生运行时函数调用。
 - 文件、目录、路径能力优先通过 XRT 处理，避免 Windows 下 CRT 对 UTF-8 路径支持不足的问题。
@@ -1441,7 +1465,6 @@ DEMO6 是 xlang 准备发布的第一个候选口径，原则是不背负 DEMO5 
 
 - `and` / `or` 短路逻辑的协议化方案。
 - 完整 package manager。
-- HTTP client 标准库。
 - 完整调试器。
 - 泛型约束的 trait/protocol bound 方法集合推导。
 - 泛型 class 成员直接导出 C ABI 的专用实例化 wrapper。

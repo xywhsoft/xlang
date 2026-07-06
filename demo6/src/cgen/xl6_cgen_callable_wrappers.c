@@ -273,16 +273,33 @@ static void xl6CgenEmitFunctionValueInvoke(XL6_CgenContext* ctx, const XL6_AstNo
 {
     const XL6_AstNode* params;
     const XL6_AstNode* returns;
+    const char* firstParamName;
     size_t i;
 
     params = func->childCount > 1 ? func->children[1] : NULL;
     returns = func->childCount > 2 ? func->children[2] : NULL;
+    firstParamName = (params != NULL && params->childCount > 0 && params->children[0] != NULL) ?
+        params->children[0]->text : "arg";
 
     xl6CgenFunctionReturnStructDecl(ctx, params, returns);
     xl6OutputPuts("static ", ctx->out);
     xl6CgenEmitFunctionValueInvokeProto(ctx, func);
     xl6OutputPuts("\n{\n", ctx->out);
     xl6OutputPuts("    (void)__xl6_env;\n", ctx->out);
+    if ( xl6CgenIsPrintIntrinsicFunc(func) ) {
+        xl6OutputPuts("    xl6_xrt_print(", ctx->out);
+        xl6CgenFputsCIdent(ctx->out, firstParamName);
+        xl6OutputPrintf(ctx->out, ", %d);\n", xl6CgenPrintIntrinsicNewline(func->children[0]->text));
+        xl6OutputPuts("    if (", ctx->out);
+        xl6CgenFputsCIdent(ctx->out, firstParamName);
+        xl6OutputPuts(" != 0) { xvoUnref(", ctx->out);
+        xl6CgenFputsCIdent(ctx->out, firstParamName);
+        xl6OutputPuts("); ", ctx->out);
+        xl6CgenFputsCIdent(ctx->out, firstParamName);
+        xl6OutputPuts(" = 0; }\n", ctx->out);
+        xl6OutputPuts("}\n\n", ctx->out);
+        return;
+    }
     if ( returns != NULL && returns->childCount > 1 ) {
         xl6OutputPuts("    ", ctx->out);
         xl6CgenFuncReturnStructName(ctx, func);
@@ -401,6 +418,14 @@ static void xl6CgenEmitFunctionValueXCall(XL6_CgenContext* ctx, const XL6_AstNod
     xl6CgenEmitXCallArityCheck(ctx, params, fixedCount, hasArrayVararg, hasDictVararg);
     xl6CgenEmitXCallTypeChecks(ctx, params, fixedCount);
     xl6CgenEmitXCallVarargPack(ctx, params, fixedCount, hasArrayVararg, hasDictVararg);
+
+    if ( xl6CgenIsPrintIntrinsicFunc(func) ) {
+        xl6OutputPrintf(ctx->out, "    xl6_xrt_print(__xl6_vararg, %d);\n", xl6CgenPrintIntrinsicNewline(func->children[0]->text));
+        xl6OutputPuts("    if (__xl6_vararg != 0) { xvoUnref(__xl6_vararg); __xl6_vararg = 0; }\n", ctx->out);
+        xl6OutputPuts("    return true;\n", ctx->out);
+        xl6OutputPuts("}\n\n", ctx->out);
+        return;
+    }
 
     if ( returns != NULL && returns->childCount > 1 ) {
         xl6OutputPuts("    ", ctx->out);

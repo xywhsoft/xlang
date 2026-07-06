@@ -1,0 +1,8 @@
+import import_source_math
+
+func main(...) as int
+    if import_source_math.add(19, 23) == 42 then
+        return 0
+    end
+    return 1
+end

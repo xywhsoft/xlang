@@ -4,26 +4,12 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static xvalue xl6_xrt_index_safe_get_i64(xvalue values, long long index)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    int type;\n", out);
-    xl6OutputPuts("    if ( values == 0 || xvoIsNull(values) ) {\n", out);
-    xl6OutputPuts("        return xvoArrayGetValue(0, 0u);\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    type = xvoType(values);\n", out);
-    xl6OutputPuts("    if ( type == XL6_XVO_DT_ARRAY ) {\n", out);
-    xl6OutputPuts("        return xvoArrayGetValue(values, (unsigned int)index);\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if ( type == XL6_XVO_DT_LIST ) {\n", out);
-    xl6OutputPuts("        return xvoListGetValue(values, index);\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    return xvoArrayGetValue(0, 0u);\n", out);
+    xl6OutputPuts("    return xvoIndexGetI64(values, index);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static xvalue xl6_xrt_index_safe_get_key(xvalue values, const char* key)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    if ( values == 0 || xvoIsNull(values) || xvoType(values) != XL6_XVO_DT_TABLE ) {\n", out);
-    xl6OutputPuts("        return xvoTableGetValue(0, key, 0);\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    return xvoTableGetValue(values, key, 0);\n", out);
+    xl6OutputPuts("    return xvoIndexGetKey(values, key, 0);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static xvalue xl6_xrt_dict_get_var_key(xvalue values, xvalue key)\n", out);

@@ -27,6 +27,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int hasStdStringRuntime;
     int hasPathRuntime;
     int hasHttpServerRuntime;
+    int hasHttpClientRuntime;
     int hasBufferRuntime;
     int hasEncodingRuntime;
     int hasLogRuntime;
@@ -80,6 +81,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasStdStringRuntime = xl6CgenNodeNeedsStdStringRuntime(root);
     hasPathRuntime = xl6CgenNodeNeedsPathRuntime(root);
     hasHttpServerRuntime = xl6CgenNodeNeedsHttpServerRuntime(root);
+    hasHttpClientRuntime = xl6CgenNodeNeedsHttpClientRuntime(root);
     hasBufferRuntime = xl6CgenNodeNeedsBufferRuntime(root);
     hasEncodingRuntime = xl6CgenNodeNeedsEncodingRuntime(root);
     hasLogRuntime = xl6CgenNodeNeedsLogRuntime(root);
@@ -201,11 +203,14 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasFunctionVarRuntime ) {
         xl6CgenEmitFunctionVarRuntime(out, hasTaskSpawn);
     }
+    if ( hasBufferRuntime ) {
+        xl6CgenEmitBufferRuntime(out);
+    }
     if ( hasHttpServerRuntime ) {
         xl6CgenEmitHttpServerRuntime(out);
     }
-    if ( hasBufferRuntime ) {
-        xl6CgenEmitBufferRuntime(out);
+    if ( hasHttpClientRuntime ) {
+        xl6CgenEmitHttpClientRuntime(out);
     }
     if ( hasEncodingRuntime ) {
         xl6CgenEmitEncodingRuntime(out);

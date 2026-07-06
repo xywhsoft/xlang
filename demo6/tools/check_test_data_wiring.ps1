@@ -10,7 +10,7 @@ if ( $Root -eq "" ) {
 
 $caseDir = Join-Path $Root "test\cases"
 $testSuiteDir = Join-Path $Root "test\suites"
-$minJsonFixtures = 5
+$minJsonFixtures = 0
 $wiringFiles = @(
     "test.bat",
     "test_all.bat",
@@ -110,18 +110,11 @@ foreach ( $data in $dataFiles ) {
         continue
     }
 
-    if ( $caseRelative.EndsWith(".xapi.json") ) {
-        $importBase = $caseRelative.Substring(0, $caseRelative.Length - ".xapi.json".Length)
-        if ( $allText -match ('import\s+"{0}"' -f [regex]::Escape($importBase)) ) {
-            continue
-        }
-    }
-
     Add-Failure "test data fixture is not wired: $relative"
 }
 
 $referenced = New-Object System.Collections.Generic.HashSet[string]
-$matches = [regex]::Matches($allText, 'test[\\/]+cases[\\/]+([^"''\s>]+\.(?:xapi\.)?json)')
+$matches = [regex]::Matches($allText, 'test[\\/]+cases[\\/]+([^"''\s>]+\.json)')
 foreach ( $match in $matches ) {
     $relative = Normalize-PathText ("test/cases/" + $match.Groups[1].Value)
     if ( $relative.Contains("%") -or $relative.Contains("*") ) {

@@ -1,0 +1,10 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+class Point
+    int x
+    int y
+end
+
+extern "xl6_class_api_make" func __xl6_import_class_api_makePoint(int x, int y) as Point
+extern "xl6_class_api_sum" func __xl6_import_class_api_sum(Point point) as int
+extern "xl6_class_api_origin" var Point __xl6_import_class_api_origin

@@ -611,6 +611,74 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_process_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_process_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib process xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\stdlib_http_client.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_http_client.xl --emit build\test\stdlib_http_client.c
+if errorlevel 1 exit /b 1
+findstr /C:"void* xl6_xrt_http_client_request_create_url" build\test\stdlib_http_client.c >nul
+if errorlevel 1 (
+    echo stdlib_http_client.c missing http client request helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_http_client_response_body_text" build\test\stdlib_http_client.c >nul
+if errorlevel 1 (
+    echo stdlib_http_client.c missing http client response helper.
+    exit /b 1
+)
+findstr /C:"bool xl6_xrt_http_server_get_request" build\test\stdlib_http_client.c >nul
+if errorlevel 1 (
+    echo stdlib_http_client.c missing http server request route helper.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\stdlib_http_client.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_http_client.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_http_client.exe > build\test\stdlib_http_client.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"http_get=ok" build\test\stdlib_http_client.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_http_client.out.txt missing http_get verification.
+    exit /b 1
+)
+findstr /C:"http_request_object=ok" build\test\stdlib_http_client.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_http_client.out.txt missing http_request_object verification.
+    exit /b 1
+)
+findstr /C:"http_post=ok" build\test\stdlib_http_client.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_http_client.out.txt missing http_post verification.
+    exit /b 1
+)
+findstr /C:"http_request_method=ok" build\test\stdlib_http_client.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_http_client.out.txt missing http_request_method verification.
+    exit /b 1
+)
+"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_http_client_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_http_client_c.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_http_client_c.exe > build\test\stdlib_http_client_c.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"http_get=ok" build\test\stdlib_http_client_c.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_http_client_c.out.txt missing http_get verification.
+    exit /b 1
+)
+findstr /C:"http_request_object=ok" build\test\stdlib_http_client_c.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_http_client_c.out.txt missing http_request_object verification.
+    exit /b 1
+)
+findstr /C:"http_post=ok" build\test\stdlib_http_client_c.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_http_client_c.out.txt missing http_post verification.
+    exit /b 1
+)
+findstr /C:"http_request_method=ok" build\test\stdlib_http_client_c.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_http_client_c.out.txt missing http_request_method verification.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\stdlib_http_server.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_http_server.xl --emit build\test\stdlib_http_server.c
@@ -650,14 +718,84 @@ if errorlevel 1 (
     echo stdlib_http_server.c missing http request object helper.
     exit /b 1
 )
+findstr /C:"void* xl6_xrt_http_request_cookie" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http request cookie helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_http_request_body_data" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http request body data helper.
+    exit /b 1
+)
+findstr /C:"long long xl6_xrt_http_request_body_size" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http request body size helper.
+    exit /b 1
+)
 findstr /C:"int xl6_xrt_http_response_text" build\test\stdlib_http_server.c >nul
 if errorlevel 1 (
     echo stdlib_http_server.c missing http response object helper.
     exit /b 1
 )
+findstr /C:"int xl6_xrt_http_response_add_header" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http response addHeader helper.
+    exit /b 1
+)
+findstr /C:"int xl6_xrt_http_response_json_text" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http response json helper.
+    exit /b 1
+)
+findstr /C:"int xl6_xrt_http_response_body" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http response body helper.
+    exit /b 1
+)
+findstr /C:"int xl6_xrt_http_response_file" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http response file helper.
+    exit /b 1
+)
+findstr /C:"int xl6_xrt_http_response_redirect" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http response redirect helper.
+    exit /b 1
+)
 findstr /C:"bool xl6_xrt_http_server_static" build\test\stdlib_http_server.c >nul
 if errorlevel 1 (
     echo stdlib_http_server.c missing http server static helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_http_app_create" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http app create helper.
+    exit /b 1
+)
+findstr /C:"bool xl6_xrt_http_server_reload_app" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http server reload app helper.
+    exit /b 1
+)
+findstr /C:"bool xl6_xrt_http_server_host" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http server host helper.
+    exit /b 1
+)
+findstr /C:"bool xl6_xrt_http_server_post_stream_request" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http server stream request helper.
+    exit /b 1
+)
+findstr /C:"bool xl6_xrt_http_app_post_stream_request" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http app stream request helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_http_body_chunk_text" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http body chunk text helper.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\stdlib_http_server.c test\cases\stdlib_http_server_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_http_server.exe
@@ -674,6 +812,8 @@ if errorlevel 1 (
     echo stdlib_http_server_c.exe missing callback_count verification.
     exit /b 1
 )
+release\xl.exe run release\examples\stdlib_http_server.xl > build\test\stdlib_http_server_example.out.txt
+if errorlevel 1 exit /b 1
 
 release\xl.exe run test\cases\stdlib_tcc_import_only.xl > build\test\stdlib_tcc_import_only.out.txt
 if errorlevel 1 exit /b 1

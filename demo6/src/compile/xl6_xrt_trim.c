@@ -61,6 +61,7 @@ static void xl6XrtTrimKeepNetworkStack(XL6_XrtTrimConfig* cfg)
         return;
     }
     cfg->keepNetwork = 1;
+    cfg->keepCoroutine = 1;
     cfg->keepQueue = 1;
     cfg->keepFile = 1;
     cfg->keepFileAsync = 1;
@@ -104,6 +105,20 @@ static void xl6XrtTrimKeepWebStack(XL6_XrtTrimConfig* cfg)
     cfg->keepXCodec = 1;
     cfg->keepXHttpd = 1;
     cfg->keepXWeb = 1;
+    cfg->keepNetTls = 1;
+}
+
+static void xl6XrtTrimKeepHttpClientStack(XL6_XrtTrimConfig* cfg)
+{
+    if ( cfg == NULL ) {
+        return;
+    }
+    xl6XrtTrimKeepNetworkStack(cfg);
+    cfg->keepXUrl = 1;
+    cfg->keepHttpUtil = 1;
+    cfg->keepXCodec = 1;
+    cfg->keepXHttp = 1;
+    cfg->keepNetTls = 1;
 }
 
 static void xl6XrtTrimKeepCoroutineStack(XL6_XrtTrimConfig* cfg)
@@ -216,6 +231,11 @@ static void xl6XrtTrimScanText(XL6_XrtTrimConfig* cfg, const char* text)
         cfg->keepJson = 1;
         cfg->keepJnum = 1;
         xl6XrtTrimKeepValueStack(cfg);
+    }
+    if ( xl6XrtTrimTextStartsWith(text, "xl6_xrt_http_client_") ||
+         strcmp(text, "HttpClientRequest") == 0 ||
+         strcmp(text, "HttpClientResponse") == 0 ) {
+        xl6XrtTrimKeepHttpClientStack(cfg);
     }
     if ( xl6XrtTrimTextStartsWith(text, "__xl_std_runtime_url_") ) {
         xl6XrtTrimKeepUrlStack(cfg);
@@ -332,6 +352,9 @@ static void xl6XrtTrimApplyBasicNeeds(XL6_XrtTrimConfig* cfg, const XL6_AstNode*
         cfg->keepJson = 1;
         cfg->keepJnum = 1;
         xl6XrtTrimKeepValueStack(cfg);
+    }
+    if ( xl6CgenNodeNeedsHttpClientRuntime(root) ) {
+        xl6XrtTrimKeepHttpClientStack(cfg);
     }
     if ( xl6CgenNodeNeedsLogRuntime(root) ) {
         cfg->keepLogger = 1;

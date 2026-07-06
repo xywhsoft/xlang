@@ -2575,35 +2575,6 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe xapi test\cases\xapi_doc.xl --emit build\test\xapi_doc.json
-if errorlevel 1 exit /b 1
-
-findstr /C:"\"doc\"" build\test\xapi_doc.json >nul
-if errorlevel 1 (
-    echo xapi_doc.json missing doc object.
-    exit /b 1
-)
-
-findstr /C:"Add two integers." build\test\xapi_doc.json >nul
-if errorlevel 1 (
-    echo xapi_doc.json missing desc text.
-    exit /b 1
-)
-
-findstr /C:"auto value = add(1, 2)" build\test\xapi_doc.json >nul
-if errorlevel 1 (
-    echo xapi_doc.json missing example text.
-    exit /b 1
-)
-
-release\xl.exe xapi test\cases\xapi_json_escape.xl --emit build\test\xapi_json_escape.json
-if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'build\test\xapi_json_escape.json' -Raw | ConvertFrom-Json; $q=[char]34; $fields=$j.exports[0].doc.fields; $desc=($fields | Where-Object { $_.kind -eq 'desc' } | Select-Object -First 1).text; $example=($fields | Where-Object { $_.kind -eq 'example' } | Select-Object -First 1).text; if($desc -ne ('Quote '+$q+'demo'+$q+' and path c:\tmp\file.')){exit 1}; if($example -ne ('print('+$q+'hello\nworld'+$q+')')){exit 2}"
-if errorlevel 1 (
-    echo xapi_json_escape.json failed JSON escape roundtrip.
-    exit /b 1
-)
-
 release\xl.exe check test\cases\sem_throw_int.xl >nul 2> build\test\sem_throw_int.err.txt
 if not errorlevel 1 (
     echo sem_throw_int.xl should fail.

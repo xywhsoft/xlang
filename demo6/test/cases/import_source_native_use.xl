@@ -1,0 +1,8 @@
+import import_source_native
+
+func main(...) as int
+    if import_source_native.add(20, 22) == 42 then
+        return 0
+    end
+    return 1
+end

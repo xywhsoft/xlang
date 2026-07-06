@@ -1279,6 +1279,84 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("http.server", "create", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerCreate");
     }
+    if ( xl6StdlibFindFunc("http.server", "createTls", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerCreateTls");
+    }
+    if ( xl6StdlibFindFunc("http.server", "app", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppCreate");
+    }
+    if ( xl6StdlibFindFunc("http.server", "destroyApp", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppDestroy");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appRoute", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppRoute");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appRouteRequest", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppRouteRequest");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appGet", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppGet");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appPost", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppPost");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appAny", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppAny");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appGetRequest", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppGetRequest");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appPostRequest", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppPostRequest");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appAnyRequest", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppAnyRequest");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appRouteStreamRequest", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppRouteStreamRequest");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appPostStreamRequest", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppPostStreamRequest");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appAnyStreamRequest", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppAnyStreamRequest");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appStatic", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppStatic");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appStaticEx", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppStaticEx");
+    }
+    if ( xl6StdlibFindFunc("http.server", "appError", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpAppError");
+    }
+    if ( xl6StdlibFindFunc("http.server", "setApp", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerSetApp");
+    }
+    if ( xl6StdlibFindFunc("http.server", "reloadApp", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerReloadApp");
+    }
+    if ( xl6StdlibFindFunc("http.server", "host", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerHost");
+    }
+    if ( xl6StdlibFindFunc("http.server", "removeHost", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerRemoveHost");
+    }
+    if ( xl6StdlibFindFunc("http.server", "tlsHost", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerTlsHost");
+    }
+    if ( xl6StdlibFindFunc("http.server", "removeTlsHost", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerRemoveTlsHost");
+    }
+    if ( xl6StdlibFindFunc("http.server", "error", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerError");
+    }
+    if ( xl6StdlibFindFunc("http.server", "route", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerRoute");
+    }
+    if ( xl6StdlibFindFunc("http.server", "routeRequest", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerRouteRequest");
+    }
     if ( xl6StdlibFindFunc("http.server", "get", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerGet");
     }
@@ -1297,8 +1375,20 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("http.server", "anyRequest", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerAnyRequest");
     }
+    if ( xl6StdlibFindFunc("http.server", "routeStreamRequest", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerRouteStreamRequest");
+    }
+    if ( xl6StdlibFindFunc("http.server", "postStreamRequest", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerPostStreamRequest");
+    }
+    if ( xl6StdlibFindFunc("http.server", "anyStreamRequest", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerAnyStreamRequest");
+    }
     if ( xl6StdlibFindFunc("http.server", "static", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerStatic");
+    }
+    if ( xl6StdlibFindFunc("http.server", "staticEx", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerStaticEx");
     }
     if ( xl6StdlibFindFunc("http.server", "start", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerStart");
@@ -1306,8 +1396,17 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("http.server", "port", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerPort");
     }
+    if ( xl6StdlibFindFunc("http.server", "requestCount", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerRequestCount");
+    }
+    if ( xl6StdlibFindFunc("http.server", "connectionCount", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerConnectionCount");
+    }
     if ( xl6StdlibFindFunc("http.server", "stop", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerStop");
+    }
+    if ( xl6StdlibFindFunc("http.server", "drain", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerDrain");
     }
     if ( xl6StdlibFindFunc("http.server", "destroy", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpServerDestroy");
@@ -1315,6 +1414,23 @@ static void xl6StdlibApplyDeps(int* used)
     if ( xl6StdlibFindFunc("http.server", "mimeByPath", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpMimeByPath");
+    }
+    if ( xl6StdlibFindFunc("http.server", "chunkText", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpBodyChunkText");
+    }
+    if ( xl6StdlibFindFunc("http.server", "chunkBytes", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "httpBodyChunkBytes");
+    }
+    if ( xl6StdlibFindFunc("http", "get", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "http", "request");
+    }
+    if ( xl6StdlibFindFunc("http", "post", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "http", "request");
+    }
+    if ( xl6StdlibFindFunc("http", "request", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
     }
 }
 
@@ -1748,6 +1864,50 @@ static int xl6StdlibNeedsHttpServerClass(const XL6_AstNode* root, const int* use
     if ( xl6StdlibFindFunc("http.server", "anyRequest", &index) != NULL && used[index] ) {
         return 1;
     }
+    if ( xl6StdlibFindFunc("http.server", "routeStreamRequest", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("http.server", "postStreamRequest", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("http.server", "anyStreamRequest", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("http.server", "appRouteStreamRequest", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("http.server", "appPostStreamRequest", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("http.server", "appAnyStreamRequest", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("http.server", "error", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("http.server", "appError", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    return 0;
+}
+
+static int xl6StdlibNeedsHttpClientClass(const XL6_AstNode* root, const int* used)
+{
+    size_t index;
+
+    if ( xl6StdlibNodeUsesTypeName(root, "HttpClientRequest") ||
+         xl6StdlibNodeUsesTypeName(root, "HttpClientResponse") ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("http", "request", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("http", "get", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("http", "post", &index) != NULL && used[index] ) {
+        return 1;
+    }
     return 0;
 }
 
@@ -1831,6 +1991,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsTemplateClass;
     int needsCryptoClass;
     int needsHttpServerClass;
+    int needsHttpClientClass;
     int needsTccClass;
     int needsXlangClass;
     int ok;
@@ -1845,8 +2006,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         return 0;
     }
     needsRandomClass = xl6StdlibNeedsRandomClass(root, used);
-    needsBufferClass = xl6StdlibNeedsBufferClass(root, used);
     needsNetClass = xl6StdlibNeedsNetClass(root, used);
+    needsHttpServerClass = xl6StdlibNeedsHttpServerClass(root, used);
+    needsHttpClientClass = xl6StdlibNeedsHttpClientClass(root, used);
+    needsBufferClass = xl6StdlibNeedsBufferClass(root, used) || needsNetClass || needsHttpServerClass || needsHttpClientClass;
     needsFileInfoClass = xl6StdlibNeedsFileInfoClass(root, used);
     needsFileClass = xl6StdlibNeedsFileClass(root, used);
     needsRegexClass = xl6StdlibNeedsRegexClass(root, used);
@@ -1854,7 +2017,6 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsLoggerClass = xl6StdlibNeedsLoggerClass(root, used);
     needsTemplateClass = xl6StdlibNeedsTemplateClass(root, used);
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
-    needsHttpServerClass = xl6StdlibNeedsHttpServerClass(root, used);
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
     needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
     if ( needsRegexClass ) {
@@ -1866,7 +2028,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsFileClass ) {
         xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
     }
-    if ( needsRandomClass || needsBufferClass || needsNetClass || needsFileClass || needsRegexClass || needsProcessClass || needsHttpServerClass || needsTemplateClass || needsCryptoClass || needsXlangClass ) {
+    if ( needsHttpClientClass ) {
+        xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
+    }
+    if ( needsRandomClass || needsBufferClass || needsNetClass || needsFileClass || needsRegexClass || needsProcessClass || needsHttpServerClass || needsHttpClientClass || needsTemplateClass || needsCryptoClass || needsXlangClass ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
     }
     xl6StdlibApplyDeps(used);
@@ -1891,6 +2056,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsHttpServerClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibHttpServerClassSource);
+    }
+    if ( needsHttpClientClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibHttpClientClassSource);
     }
     if ( needsNetClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetClassSource);

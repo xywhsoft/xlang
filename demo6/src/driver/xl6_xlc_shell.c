@@ -15,6 +15,7 @@
 #endif
 
 static char xlcShellKeptTempDir[512];
+static char xlcShellProjectKind[16];
 
 static void xlcShellPrintHelp(void)
 {
@@ -25,11 +26,10 @@ static void xlcShellPrintHelp(void)
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl ir <file.xl> [--format text|json] [--emit output.xlir]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl cgen <file.xl> [--emit output.c] [--emit-header output.h] [--dump-dir dir]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl abi <file.xl> [--json] [--emit output.abi.txt]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl xapi <file.xl> [--emit output.xapi.json]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c> [helper.c ...] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c|file.xlp> [helper.c ...] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl dbg <file.xl> [--break line] [--stop-on-entry] [--commands file] [--save-temps] [-- <args>...]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl dap\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c> [helper.c ...] -o <output.exe|dll> [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] -o <output.exe|dll> [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl impdef <file.dll> -o <output.def>\n");
 }
 
@@ -385,6 +385,486 @@ static int xlcShellIsCSourcePath(const char* path)
            xlcShellHasExtensionNoCase(path, ".cxx");
 }
 
+static int xlcShellIsXlangSourcePath(const char* path)
+{
+    return xlcShellHasExtensionNoCase(path, ".xl");
+}
+
+static int xlcShellIsProjectPath(const char* path)
+{
+    return xlcShellHasExtensionNoCase(path, ".xlp");
+}
+
+typedef struct XLC_ShellJson {
+    const char* text;
+    size_t len;
+    size_t pos;
+} XLC_ShellJson;
+
+typedef struct XLC_ShellStringList {
+    char** items;
+    size_t count;
+} XLC_ShellStringList;
+
+typedef struct XLC_ShellProject {
+    char* format;
+    char* kind;
+    char* entry;
+    char dir[512];
+    XLC_ShellStringList cSources;
+} XLC_ShellProject;
+
+static char* xlcShellDupText(const char* text)
+{
+    const char* src;
+
+    src = text != NULL ? text : "";
+    return xrtCopyStr((char*)src, strlen(src));
+}
+
+static void xlcShellStringListInit(XLC_ShellStringList* list)
+{
+    if ( list != NULL ) {
+        memset(list, 0, sizeof(*list));
+    }
+}
+
+static void xlcShellStringListFree(XLC_ShellStringList* list)
+{
+    size_t i;
+
+    if ( list == NULL ) {
+        return;
+    }
+    for ( i = 0; i < list->count; ++i ) {
+        xrtFree(list->items[i]);
+    }
+    xrtFree(list->items);
+    memset(list, 0, sizeof(*list));
+}
+
+static int xlcShellStringListAppend(XLC_ShellStringList* list, const char* text)
+{
+    char** newItems;
+    char* copy;
+
+    if ( list == NULL || text == NULL ) {
+        return 0;
+    }
+    copy = xlcShellDupText(text);
+    if ( copy == NULL ) {
+        return 0;
+    }
+    newItems = (char**)xrtRealloc(list->items, (list->count + 1u) * sizeof(char*));
+    if ( newItems == NULL ) {
+        xrtFree(copy);
+        return 0;
+    }
+    list->items = newItems;
+    list->items[list->count] = copy;
+    list->count += 1;
+    return 1;
+}
+
+static void xlcShellProjectInit(XLC_ShellProject* project)
+{
+    if ( project != NULL ) {
+        memset(project, 0, sizeof(*project));
+        xlcShellStringListInit(&project->cSources);
+    }
+}
+
+static void xlcShellProjectFree(XLC_ShellProject* project)
+{
+    if ( project == NULL ) {
+        return;
+    }
+    xrtFree(project->format);
+    xrtFree(project->kind);
+    xrtFree(project->entry);
+    xlcShellStringListFree(&project->cSources);
+    memset(project, 0, sizeof(*project));
+}
+
+static void xlcShellJsonSkipWs(XLC_ShellJson* json)
+{
+    while ( json != NULL && json->pos < json->len ) {
+        char ch = json->text[json->pos];
+        if ( ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n' ) {
+            break;
+        }
+        json->pos += 1;
+    }
+}
+
+static int xlcShellJsonPeek(XLC_ShellJson* json)
+{
+    xlcShellJsonSkipWs(json);
+    if ( json == NULL || json->pos >= json->len ) {
+        return 0;
+    }
+    return (unsigned char)json->text[json->pos];
+}
+
+static int xlcShellJsonConsume(XLC_ShellJson* json, char ch)
+{
+    xlcShellJsonSkipWs(json);
+    if ( json == NULL || json->pos >= json->len || json->text[json->pos] != ch ) {
+        return 0;
+    }
+    json->pos += 1;
+    return 1;
+}
+
+static int xlcShellJsonAppendChar(char** out, size_t* len, size_t* cap, char ch)
+{
+    char* newData;
+    size_t newCap;
+
+    if ( out == NULL || len == NULL || cap == NULL ) {
+        return 0;
+    }
+    if ( *len + 2 > *cap ) {
+        newCap = *cap == 0 ? 32 : *cap * 2;
+        while ( *len + 2 > newCap ) {
+            newCap *= 2;
+        }
+        newData = (char*)xrtRealloc(*out, newCap);
+        if ( newData == NULL ) {
+            return 0;
+        }
+        *out = newData;
+        *cap = newCap;
+    }
+    (*out)[*len] = ch;
+    *len += 1;
+    (*out)[*len] = '\0';
+    return 1;
+}
+
+static char* xlcShellJsonReadString(XLC_ShellJson* json)
+{
+    char* out;
+    size_t len;
+    size_t cap;
+
+    if ( !xlcShellJsonConsume(json, '"') ) {
+        return NULL;
+    }
+    out = NULL;
+    len = 0;
+    cap = 0;
+    while ( json->pos < json->len ) {
+        char ch = json->text[json->pos++];
+        if ( ch == '"' ) {
+            return out != NULL ? out : xlcShellDupText("");
+        }
+        if ( ch == '\\' && json->pos < json->len ) {
+            ch = json->text[json->pos++];
+            switch ( ch ) {
+            case '"': ch = '"'; break;
+            case '\\': ch = '\\'; break;
+            case '/': ch = '/'; break;
+            case 'b': ch = '\b'; break;
+            case 'f': ch = '\f'; break;
+            case 'n': ch = '\n'; break;
+            case 'r': ch = '\r'; break;
+            case 't': ch = '\t'; break;
+            case 'u':
+                if ( json->pos + 4 <= json->len ) {
+                    json->pos += 4;
+                }
+                ch = '?';
+                break;
+            default:
+                break;
+            }
+        }
+        if ( !xlcShellJsonAppendChar(&out, &len, &cap, ch) ) {
+            xrtFree(out);
+            return NULL;
+        }
+    }
+    xrtFree(out);
+    return NULL;
+}
+
+static int xlcShellJsonReadBool(XLC_ShellJson* json)
+{
+    xlcShellJsonSkipWs(json);
+    if ( json->pos + 4 <= json->len && memcmp(json->text + json->pos, "true", 4) == 0 ) {
+        json->pos += 4;
+        return 1;
+    }
+    if ( json->pos + 5 <= json->len && memcmp(json->text + json->pos, "false", 5) == 0 ) {
+        json->pos += 5;
+        return 1;
+    }
+    return 0;
+}
+
+static int xlcShellJsonSkipValue(XLC_ShellJson* json);
+
+static int xlcShellJsonSkipObject(XLC_ShellJson* json)
+{
+    if ( !xlcShellJsonConsume(json, '{') ) {
+        return 0;
+    }
+    if ( xlcShellJsonConsume(json, '}') ) {
+        return 1;
+    }
+    for (;;) {
+        char* key = xlcShellJsonReadString(json);
+        if ( key == NULL ) {
+            return 0;
+        }
+        xrtFree(key);
+        if ( !xlcShellJsonConsume(json, ':') || !xlcShellJsonSkipValue(json) ) {
+            return 0;
+        }
+        if ( xlcShellJsonConsume(json, '}') ) {
+            return 1;
+        }
+        if ( !xlcShellJsonConsume(json, ',') ) {
+            return 0;
+        }
+    }
+}
+
+static int xlcShellJsonSkipArray(XLC_ShellJson* json)
+{
+    if ( !xlcShellJsonConsume(json, '[') ) {
+        return 0;
+    }
+    if ( xlcShellJsonConsume(json, ']') ) {
+        return 1;
+    }
+    for (;;) {
+        if ( !xlcShellJsonSkipValue(json) ) {
+            return 0;
+        }
+        if ( xlcShellJsonConsume(json, ']') ) {
+            return 1;
+        }
+        if ( !xlcShellJsonConsume(json, ',') ) {
+            return 0;
+        }
+    }
+}
+
+static int xlcShellJsonSkipValue(XLC_ShellJson* json)
+{
+    int ch;
+
+    ch = xlcShellJsonPeek(json);
+    if ( ch == '"' ) {
+        char* text = xlcShellJsonReadString(json);
+        xrtFree(text);
+        return text != NULL;
+    }
+    if ( ch == '{' ) {
+        return xlcShellJsonSkipObject(json);
+    }
+    if ( ch == '[' ) {
+        return xlcShellJsonSkipArray(json);
+    }
+    if ( ch == 't' || ch == 'f' ) {
+        return xlcShellJsonReadBool(json);
+    }
+    if ( ch == 'n' && json->pos + 4 <= json->len && memcmp(json->text + json->pos, "null", 4) == 0 ) {
+        json->pos += 4;
+        return 1;
+    }
+    xlcShellJsonSkipWs(json);
+    while ( json->pos < json->len ) {
+        ch = (unsigned char)json->text[json->pos];
+        if ( ch == ',' || ch == ']' || ch == '}' || ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' ) {
+            break;
+        }
+        json->pos += 1;
+    }
+    return 1;
+}
+
+static int xlcShellJsonReadStringArray(XLC_ShellJson* json, XLC_ShellStringList* list)
+{
+    if ( !xlcShellJsonConsume(json, '[') ) {
+        return 0;
+    }
+    if ( xlcShellJsonConsume(json, ']') ) {
+        return 1;
+    }
+    for (;;) {
+        char* text = xlcShellJsonReadString(json);
+        int ok = text != NULL && xlcShellStringListAppend(list, text);
+        xrtFree(text);
+        if ( !ok ) {
+            return 0;
+        }
+        if ( xlcShellJsonConsume(json, ']') ) {
+            return 1;
+        }
+        if ( !xlcShellJsonConsume(json, ',') ) {
+            return 0;
+        }
+    }
+}
+
+static int xlcShellProjectParseRoot(XLC_ShellJson* json, XLC_ShellProject* project)
+{
+    if ( !xlcShellJsonConsume(json, '{') ) {
+        return 0;
+    }
+    if ( xlcShellJsonConsume(json, '}') ) {
+        return 1;
+    }
+    for (;;) {
+        char* key = xlcShellJsonReadString(json);
+        if ( key == NULL || !xlcShellJsonConsume(json, ':') ) {
+            xrtFree(key);
+            return 0;
+        }
+        if ( strcmp(key, "format") == 0 ) {
+            xrtFree(project->format);
+            project->format = xlcShellJsonReadString(json);
+        } else if ( strcmp(key, "kind") == 0 ) {
+            xrtFree(project->kind);
+            project->kind = xlcShellJsonReadString(json);
+        } else if ( strcmp(key, "entry") == 0 ) {
+            xrtFree(project->entry);
+            project->entry = xlcShellJsonReadString(json);
+        } else if ( strcmp(key, "cSources") == 0 ) {
+            if ( !xlcShellJsonReadStringArray(json, &project->cSources) ) {
+                xrtFree(key);
+                return 0;
+            }
+        } else if ( !xlcShellJsonSkipValue(json) ) {
+            xrtFree(key);
+            return 0;
+        }
+        xrtFree(key);
+        if ( xlcShellJsonConsume(json, '}') ) {
+            return 1;
+        }
+        if ( !xlcShellJsonConsume(json, ',') ) {
+            return 0;
+        }
+    }
+}
+
+static int xlcShellProjectIsSharedKind(const char* kind)
+{
+    return xlcShellTextEqualsNoCase(kind, "dll") || xlcShellTextEqualsNoCase(kind, "shared");
+}
+
+static int xlcShellProjectValidate(const char* path, const XLC_ShellProject* project)
+{
+    size_t i;
+
+    if ( project->format != NULL && !xlcShellTextEquals(project->format, "xlang-project-1") ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "invalid xlp format: %s\n", path);
+        return 0;
+    }
+    if ( project->kind == NULL || project->kind[0] == '\0' ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp requires kind: %s\n", path);
+        return 0;
+    }
+    if ( !xlcShellTextEqualsNoCase(project->kind, "exe") && !xlcShellProjectIsSharedKind(project->kind) ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp kind must be exe or dll: %s\n", path);
+        return 0;
+    }
+    if ( project->entry == NULL || project->entry[0] == '\0' ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp requires entry: %s\n", path);
+        return 0;
+    }
+    if ( !xlcShellIsXlangSourcePath(project->entry) ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp entry must be an .xl file: %s\n", project->entry);
+        return 0;
+    }
+    for ( i = 0; i < project->cSources.count; ++i ) {
+        if ( !xlcShellIsCSourcePath(project->cSources.items[i]) ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp cSources only accepts C source files: %s\n", project->cSources.items[i]);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int xlcShellIsAbsolutePath(const char* path)
+{
+    if ( path == NULL || path[0] == '\0' ) {
+        return 0;
+    }
+    if ( path[0] == '\\' || path[0] == '/' ) {
+        return 1;
+    }
+    return ((path[0] >= 'A' && path[0] <= 'Z') || (path[0] >= 'a' && path[0] <= 'z')) &&
+           path[1] == ':';
+}
+
+static int xlcShellProjectResolvePath(char* out, size_t outSize, const XLC_ShellProject* project, const char* path)
+{
+    if ( out == NULL || outSize == 0 || project == NULL || path == NULL ) {
+        return 0;
+    }
+    if ( xlcShellIsAbsolutePath(path) ) {
+        return xlcShellCopyText(out, outSize, path);
+    }
+    return xlcShellJoinDirPath(out, outSize, project->dir[0] != '\0' ? project->dir : ".", path);
+}
+
+static int xlcShellProjectLoad(const char* path, XLC_ShellProject* project)
+{
+    char* text;
+    size_t textLen;
+    XLC_ShellJson json;
+    int ok;
+
+    if ( path == NULL || project == NULL ) {
+        return 0;
+    }
+    xlcShellProjectFree(project);
+    xlcShellProjectInit(project);
+    textLen = 0;
+    text = (char*)xrtFileReadAll((char*)path, XRT_CP_UTF8, &textLen);
+    if ( text == NULL ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot read xlp: %s\n", path);
+        return 0;
+    }
+    memset(&json, 0, sizeof(json));
+    json.text = text;
+    json.len = textLen;
+    if ( json.len >= 3 &&
+         (unsigned char)json.text[0] == 0xEF &&
+         (unsigned char)json.text[1] == 0xBB &&
+         (unsigned char)json.text[2] == 0xBF ) {
+        json.pos = 3;
+    }
+    ok = xlcShellProjectParseRoot(&json, project);
+    xrtFree(text);
+    if ( !ok || !xlcShellProjectValidate(path, project) ) {
+        if ( ok ) {
+            xlcShellProjectFree(project);
+        } else {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "invalid xlp json: %s\n", path);
+            xlcShellProjectFree(project);
+        }
+        return 0;
+    }
+    if ( !xlcShellCopyText(project->dir, sizeof(project->dir), path) ) {
+        xlcShellProjectFree(project);
+        return 0;
+    }
+    xlcShellDirNameInPlace(project->dir);
+    if ( project->dir[0] == '\0' ) {
+        if ( !xlcShellCopyText(project->dir, sizeof(project->dir), ".") ) {
+            xlcShellProjectFree(project);
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static int xlcShellOptionTakesValue(const char* arg);
 
 #define XLC_SHELL_MAX_C_INPUTS 64
@@ -727,6 +1207,54 @@ static int xlcShellAddFile(XLC_Context* ctx, const char* file)
     return 1;
 }
 
+static int xlcShellAddProject(XLC_Context* ctx, const char* file)
+{
+    XLC_ShellProject project;
+    char path[512];
+    size_t i;
+    int ok;
+
+    if ( ctx == NULL || file == NULL || file[0] == '\0' ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "missing xlp file\n");
+        return 0;
+    }
+    xlcShellProjectInit(&project);
+    if ( !xlcShellProjectLoad(file, &project) ) {
+        xlcShellProjectFree(&project);
+        return 0;
+    }
+    if ( !xlcShellProjectResolvePath(path, sizeof(path), &project, project.entry) ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp entry path is too long: %s\n", project.entry);
+        xlcShellProjectFree(&project);
+        return 0;
+    }
+    ok = xlcShellAddFile(ctx, path);
+    for ( i = 0; ok && i < project.cSources.count; ++i ) {
+        if ( !xlcShellProjectResolvePath(path, sizeof(path), &project, project.cSources.items[i]) ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp cSources path is too long: %s\n", project.cSources.items[i]);
+            ok = 0;
+            break;
+        }
+        if ( !xlcAddCSourceFile(ctx, path) ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "%s\n", xlcGetLastError(ctx));
+            ok = 0;
+            break;
+        }
+    }
+    snprintf(xlcShellProjectKind, sizeof(xlcShellProjectKind), "%s", project.kind != NULL ? project.kind : "");
+    xlcShellProjectFree(&project);
+    return ok;
+}
+
+static int xlcShellAddInputFile(XLC_Context* ctx, const char* file)
+{
+    xlcShellProjectKind[0] = '\0';
+    if ( xlcShellIsProjectPath(file) ) {
+        return xlcShellAddProject(ctx, file);
+    }
+    return xlcShellAddFile(ctx, file);
+}
+
 static int xlcShellRunWithFileEx(int argc, char** argv, int (*proc)(XLC_Context*, int, char**), int printLastError)
 {
     XLC_Context* ctx;
@@ -736,7 +1264,7 @@ static int xlcShellRunWithFileEx(int argc, char** argv, int (*proc)(XLC_Context*
     if ( ctx == NULL ) {
         return 1;
     }
-    if ( !xlcShellAddFile(ctx, xlcShellFileArg(argc, argv)) ) {
+    if ( !xlcShellAddInputFile(ctx, xlcShellFileArg(argc, argv)) ) {
         xlcDestroyContext(ctx);
         return 1;
     }
@@ -828,11 +1356,6 @@ static int xlcShellDoAbi(XLC_Context* ctx, int argc, char** argv)
     return xlcEmitAbi(ctx, xlcShellFindValue(argc, argv, "--emit", 3), xlcShellHasJson(argc, argv));
 }
 
-static int xlcShellDoXapi(XLC_Context* ctx, int argc, char** argv)
-{
-    return xlcEmitXapi(ctx, xlcShellFindValue(argc, argv, "--emit", 3));
-}
-
 static int xlcShellDoRun(XLC_Context* ctx, int argc, char** argv)
 {
     char* runArgs[129];
@@ -840,6 +1363,10 @@ static int xlcShellDoRun(XLC_Context* ctx, int argc, char** argv)
     int argStart;
     int i;
 
+    if ( xlcShellProjectKind[0] != '\0' && xlcShellProjectIsSharedKind(xlcShellProjectKind) ) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot run dll project: %s\n", xlcShellFileArg(argc, argv));
+        return 0;
+    }
     runArgCount = 0;
     runArgs[runArgCount++] = (char*)xlcShellFileArg(argc, argv);
     argStart = xlcShellFindArgSplit(argc, argv);
@@ -916,8 +1443,6 @@ static int xlcShellCgenDumpDir(XLC_Context* ctx, const char* inputPath, const ch
          !xlcEmitIr(ctx, path, 0) ||
          !xlcShellJoinPath(path, sizeof(path), dumpDir, base, ".abi.json") ||
          !xlcEmitAbi(ctx, path, 1) ||
-         !xlcShellJoinPath(path, sizeof(path), dumpDir, base, ".xapi.json") ||
-         !xlcEmitXapi(ctx, path) ||
          !xlcShellJoinPath(path, sizeof(path), dumpDir, base, ".c") ||
          !xlcEmitC(ctx, path) ||
          !xlcShellJoinPath(path, sizeof(path), dumpDir, base, ".h") ||
@@ -1005,6 +1530,8 @@ static int xlcShellDoBuild(XLC_Context* ctx, int argc, char** argv)
 {
     const char* output;
     const char* emitHeader;
+    int cliShared;
+    int buildShared;
     int ok;
 
     output = xlcShellFindValue(argc, argv, "-o", 3);
@@ -1016,7 +1543,16 @@ static int xlcShellDoBuild(XLC_Context* ctx, int argc, char** argv)
     if ( emitHeader != NULL && !xlcShellEmitHeader(ctx, emitHeader) ) {
         return 0;
     }
-    if ( xlcShellHasFlag(argc, argv, "-shared") || xlcShellHasFlag(argc, argv, "--shared") ) {
+    cliShared = xlcShellHasFlag(argc, argv, "-shared") || xlcShellHasFlag(argc, argv, "--shared");
+    buildShared = cliShared;
+    if ( xlcShellProjectKind[0] != '\0' ) {
+        buildShared = xlcShellProjectIsSharedKind(xlcShellProjectKind);
+        if ( cliShared && !buildShared ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp kind conflicts with -shared: %s\n", xlcShellFileArg(argc, argv));
+            return 0;
+        }
+    }
+    if ( buildShared ) {
         ok = xlcEmitSharedLibrary(ctx, output);
     } else {
         ok = xlcEmitExe(ctx, output);
@@ -1259,9 +1795,6 @@ int xlcShellMain(int argc, char** argv)
     }
     if ( xlcShellTextEquals(cmd, "abi") ) {
         return xlcShellRunWithFile(argc, argv, xlcShellDoAbi);
-    }
-    if ( xlcShellTextEquals(cmd, "xapi") ) {
-        return xlcShellRunWithFile(argc, argv, xlcShellDoXapi);
     }
     if ( xlcShellTextEquals(cmd, "run") ) {
         if ( xlcShellIsCSourcePath(xlcShellFileArg(argc, argv)) ) {

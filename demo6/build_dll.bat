@@ -101,8 +101,6 @@ echo Building DEMO6 xl.dll runtime...
     "%XL6_BUILD_TMP%\tcc_builtin_resources_runtime.c" ^
     src\abi\xl6_abi_json.c ^
     src\abi\xl6_callable.c ^
-    src\abi\xl6_xapi_dump.c ^
-    src\abi\xl6_xapi_load.c ^
     src\backend\xl6_build_backend.c ^
     src\compile\xl6_compile_unit.c ^
     src\compile\xl6_imports.c ^
@@ -158,8 +156,6 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\abi\xl6_abi_dump.c ^
     src\abi\xl6_abi_json.c ^
     src\abi\xl6_callable.c ^
-    src\abi\xl6_xapi_dump.c ^
-    src\abi\xl6_xapi_load.c ^
     src\backend\xl6_build_backend.c ^
     src\compile\xl6_compile_unit.c ^
     src\compile\xl6_imports.c ^

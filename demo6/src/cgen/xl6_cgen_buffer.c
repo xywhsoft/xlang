@@ -16,6 +16,51 @@ static void xl6CgenEmitBufferRuntime(XL6_Output* out)
     xl6OutputPuts("void xrtBufferUnit(xbuffer pBuf);\n", out);
     xl6OutputPuts("bool xrtBufferMalloc(xbuffer pBuf, unsigned int iCount);\n", out);
     xl6OutputPuts("bool xrtBufferAppend(xbuffer pBuf, void* pData, unsigned int iSize, unsigned int bStrMode);\n\n", out);
+    xl6OutputPuts("void* xrtNetStreamReadBytes(void* pStream, size_t iMaxBytes, size_t* pOutLen);\n", out);
+    xl6OutputPuts("void* xrtNetStreamRecvBytes(void* pStream, size_t iMaxBytes, long long iTimeoutMs, size_t* pOutLen);\n", out);
+    xl6OutputPuts("void* xrtNetDgramPacketBytesCopy(void* pPacket, size_t* pOutLen);\n\n", out);
+
+    xl6OutputPuts("static void* xl6_xrt_buffer_from_owned_bytes(void* data, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xbuffer buf;\n", out);
+    xl6OutputPuts("    if ( size > 4294967295u ) {\n", out);
+    xl6OutputPuts("        xrtFree(data);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    buf = (xbuffer)xrtBufferCreate(0u);\n", out);
+    xl6OutputPuts("    if ( buf == 0 ) {\n", out);
+    xl6OutputPuts("        xrtFree(data);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( size > 0u ) {\n", out);
+    xl6OutputPuts("        if ( data == 0 || !xrtBufferAppend(buf, data, (unsigned int)size, 0u) ) {\n", out);
+    xl6OutputPuts("            xrtBufferDestroy(buf);\n", out);
+    xl6OutputPuts("            xrtFree(data);\n", out);
+    xl6OutputPuts("            return 0;\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    xrtFree(data);\n", out);
+    xl6OutputPuts("    return buf;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void* xl6_xrt_buffer_from_view_bytes(const void* data, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xbuffer buf;\n", out);
+    xl6OutputPuts("    if ( size > 4294967295u ) {\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    buf = (xbuffer)xrtBufferCreate(0u);\n", out);
+    xl6OutputPuts("    if ( buf == 0 ) {\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( size > 0u ) {\n", out);
+    xl6OutputPuts("        if ( data == 0 || !xrtBufferAppend(buf, (void*)data, (unsigned int)size, 0u) ) {\n", out);
+    xl6OutputPuts("            xrtBufferDestroy(buf);\n", out);
+    xl6OutputPuts("            return 0;\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return buf;\n", out);
+    xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_buffer_create(void)\n", out);
     xl6OutputPuts("{\n", out);
@@ -148,5 +193,26 @@ static void xl6CgenEmitBufferRuntime(XL6_Output* out)
     xl6OutputPuts("void* xl6_xrt_buffer_data(void* self)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return self != 0 ? ((xbuffer)self)->Buffer : 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_tcp_stream_read_buffer(void* stream, size_t maxBytes)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t size = 0u;\n", out);
+    xl6OutputPuts("    void* data = xrtNetStreamReadBytes(stream, maxBytes, &size);\n", out);
+    xl6OutputPuts("    return xl6_xrt_buffer_from_owned_bytes(data, size);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_tcp_stream_recv_buffer(void* stream, size_t maxBytes, long long timeoutMs)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t size = 0u;\n", out);
+    xl6OutputPuts("    void* data = xrtNetStreamRecvBytes(stream, maxBytes, timeoutMs, &size);\n", out);
+    xl6OutputPuts("    return xl6_xrt_buffer_from_owned_bytes(data, size);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_udp_packet_buffer(void* packet)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t size = 0u;\n", out);
+    xl6OutputPuts("    void* data = xrtNetDgramPacketBytesCopy(packet, &size);\n", out);
+    xl6OutputPuts("    return xl6_xrt_buffer_from_owned_bytes(data, size);\n", out);
     xl6OutputPuts("}\n\n", out);
 }

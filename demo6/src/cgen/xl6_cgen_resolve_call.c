@@ -43,7 +43,10 @@ static XL6_AstNode* xl6CgenResolveCallFuncInternal(
         int cost;
         XL6_AstNode* candidateArgs;
 
-        if ( node == NULL || (node->kind != XL6_AST_FUNC && node->kind != XL6_AST_ASYNC_FUNC) || node->childCount == 0 ) {
+        if ( node == NULL ||
+             (node->kind != XL6_AST_FUNC && node->kind != XL6_AST_ASYNC_FUNC &&
+              node->kind != XL6_AST_EXTERN_FUNC && node->kind != XL6_AST_EXPORT_FUNC) ||
+             node->childCount == 0 ) {
             continue;
         }
         nameNode = node->children[0];

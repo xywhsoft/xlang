@@ -1,0 +1,5 @@
+extern "xl6_import_source_native_add" func nativeAdd(int left, int right) as int
+
+export "xl6_import_source_native_add_export" func add(int left, int right) as int
+    return nativeAdd(left, right)
+end

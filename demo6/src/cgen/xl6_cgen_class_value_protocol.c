@@ -284,7 +284,7 @@ static void xl6CgenClassAssignFromValue(
     }
     if ( xl6CTextEquals(concreteType->text, "string") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_text_temp_copy(xvoGetText(%s));\n", valuePath, itemName);
+        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_temp_cstr(xvoGetText(%s));\n", valuePath, itemName);
         return;
     }
     if ( xl6CTextEquals(concreteType->text, "time") ) {

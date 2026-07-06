@@ -28,7 +28,7 @@
 
 - 词法 dump。
 - 语法树 dump。
-- AST/IR/ABI/XAPI 调试输出命令。
+- AST/IR/ABI 调试输出命令。
 - CLI 参数解析。
 - 交互式调试器。
 
@@ -127,7 +127,6 @@ int xlcEmitC(XLC_Context* ctx, const char* outputPath);
 int xlcEmitDebugC(XLC_Context* ctx, const char* outputPath, const char* debugSourcePath);
 int xlcEmitHeader(XLC_Context* ctx, const char* outputPath, const char* guardName);
 int xlcEmitAbi(XLC_Context* ctx, const char* outputPath, int jsonOutput);
-int xlcEmitXapi(XLC_Context* ctx, const char* outputPath);
 int xlcEmitExe(XLC_Context* ctx, const char* outputExe);
 int xlcEmitDebugExe(XLC_Context* ctx, const char* outputExe, const char* debugSourcePath);
 int xlcEmitSharedLibrary(XLC_Context* ctx, const char* outputDll);
@@ -139,7 +138,7 @@ const char* xlcGetLastError(XLC_Context* ctx);
 void xlcClearLastError(XLC_Context* ctx);
 ```
 
-`xlc.dll` owns compiler-library operations that are useful without CLI argument parsing: checking, token/AST/IR/ABI/XAPI emission, C/header/debug-C emission, executable/debug-executable/shared-library output, in-process relocation, and direct run. `xl.exe` is responsible for command-line parsing and maps those commands onto these APIs.
+`xlc.dll` owns compiler-library operations that are useful without CLI argument parsing: checking, token/AST/IR/ABI emission, C/header/debug-C emission, executable/debug-executable/shared-library output, in-process relocation, and direct run. `xl.exe` is responsible for command-line parsing and maps those commands onto these APIs.
 
 命名说明：
 

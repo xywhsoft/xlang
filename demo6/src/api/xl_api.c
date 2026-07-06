@@ -3,7 +3,6 @@
 #include "lib/xrt/xrt.h"
 #include "libtcc.h"
 #include "src/abi/xl6_abi_dump.h"
-#include "src/abi/xl6_xapi_dump.h"
 #include "src/ast/xl6_ast_dump.h"
 #include "src/backend/xl6_toolchain.h"
 #include "src/cgen/xl6_cgen.h"
@@ -194,7 +193,6 @@ XL_API int xlcEmitC(XLC_Context* ctx, const char* outputPath);
 XL_API int xlcEmitDebugC(XLC_Context* ctx, const char* outputPath, const char* debugSourcePath);
 XL_API int xlcEmitHeader(XLC_Context* ctx, const char* outputPath, const char* guardName);
 XL_API int xlcEmitAbi(XLC_Context* ctx, const char* outputPath, int jsonOutput);
-XL_API int xlcEmitXapi(XLC_Context* ctx, const char* outputPath);
 XL_API int xlcEmitExe(XLC_Context* ctx, const char* outputExe);
 XL_API int xlcEmitDebugExe(XLC_Context* ctx, const char* outputExe, const char* debugSourcePath);
 XL_API int xlcEmitSharedLibrary(XLC_Context* ctx, const char* outputDll);
@@ -1246,7 +1244,6 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
          !xlAddTccSymbol(s, "xlcEmitDebugC", (const void*)xlcEmitDebugC) ||
          !xlAddTccSymbol(s, "xlcEmitHeader", (const void*)xlcEmitHeader) ||
          !xlAddTccSymbol(s, "xlcEmitAbi", (const void*)xlcEmitAbi) ||
-         !xlAddTccSymbol(s, "xlcEmitXapi", (const void*)xlcEmitXapi) ||
          !xlAddTccSymbol(s, "xlcEmitExe", (const void*)xlcEmitExe) ||
          !xlAddTccSymbol(s, "xlcEmitDebugExe", (const void*)xlcEmitDebugExe) ||
          !xlAddTccSymbol(s, "xlcRuntimeContext", (const void*)xlcRuntimeContext) ||
@@ -1830,8 +1827,10 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtNetChainPeek);
     XL_ADD_XRT_SYMBOL(s, xrtNetChainConsume);
     XL_ADD_XRT_SYMBOL(s, xrtNetTcpConnect);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTcpConnectEx);
     XL_ADD_XRT_SYMBOL(s, xrtNetTcpConnectAsync);
     XL_ADD_XRT_SYMBOL(s, xrtNetTcpListen);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTcpListenEx);
     XL_ADD_XRT_SYMBOL(s, xrtNetTcpListenerDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtNetTcpAccept);
     XL_ADD_XRT_SYMBOL(s, xrtNetTcpAcceptAsync);
@@ -1840,9 +1839,12 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtNetTcpStreamClose);
     XL_ADD_XRT_SYMBOL(s, xrtNetStreamAvailable);
     XL_ADD_XRT_SYMBOL(s, xrtNetStreamRead);
+    XL_ADD_XRT_SYMBOL(s, xrtNetStreamReadBytes);
     XL_ADD_XRT_SYMBOL(s, xrtNetStreamReadText);
+    XL_ADD_XRT_SYMBOL(s, xrtNetStreamRecvBytes);
     XL_ADD_XRT_SYMBOL(s, xrtNetStreamRecvText);
     XL_ADD_XRT_SYMBOL(s, xrtNetStreamRecvTextAsync);
+    XL_ADD_XRT_SYMBOL(s, xrtNetStreamSendBytes);
     XL_ADD_XRT_SYMBOL(s, xrtNetStreamSendText);
     XL_ADD_XRT_SYMBOL(s, xrtNetStreamSendTextAsync);
     XL_ADD_XRT_SYMBOL(s, xrtNetStreamDrain);
@@ -1852,14 +1854,17 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtNetStreamLocalPort);
     XL_ADD_XRT_SYMBOL(s, xrtNetStreamRemotePort);
     XL_ADD_XRT_SYMBOL(s, xrtNetUdpBind);
+    XL_ADD_XRT_SYMBOL(s, xrtNetUdpBindEx);
     XL_ADD_XRT_SYMBOL(s, xrtNetUdpDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtNetUdpLocalPort);
     XL_ADD_XRT_SYMBOL(s, xrtNetUdpLocalAddrText);
+    XL_ADD_XRT_SYMBOL(s, xrtNetUdpSendBytes);
     XL_ADD_XRT_SYMBOL(s, xrtNetUdpSendText);
     XL_ADD_XRT_SYMBOL(s, xrtNetUdpSendTextAsync);
     XL_ADD_XRT_SYMBOL(s, xrtNetUdpRecv);
     XL_ADD_XRT_SYMBOL(s, xrtNetUdpRecvAsync);
     XL_ADD_XRT_SYMBOL(s, xrtNetDgramPacketDestroy);
+    XL_ADD_XRT_SYMBOL(s, xrtNetDgramPacketBytesCopy);
     XL_ADD_XRT_SYMBOL(s, xrtNetDgramPacketText);
     XL_ADD_XRT_SYMBOL(s, xrtNetDgramPacketFromText);
     XL_ADD_XRT_SYMBOL(s, xrtNetDgramPacketFromPort);
@@ -1883,6 +1888,8 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtMultipartNextN);
     XL_ADD_XRT_SYMBOL(s, xrtHttpRequestInit);
     XL_ADD_XRT_SYMBOL(s, xrtHttpRequestUnit);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpRequestCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpRequestDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtHttpRequestSetMethod);
     XL_ADD_XRT_SYMBOL(s, xrtHttpRequestSetURL);
     XL_ADD_XRT_SYMBOL(s, xrtHttpRequestSetHeader);
@@ -1891,12 +1898,20 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtHttpRequestSetIdleTimeout);
     XL_ADD_XRT_SYMBOL(s, xrtHttpRequestSetVerifyPeer);
     XL_ADD_XRT_SYMBOL(s, xrtHttpResponseDestroy);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpResponseStatusCode);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpResponseReason);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpResponseHeader);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpResponseContentLength);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpResponseBody);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpResponseBodyTextCopy);
     XL_ADD_XRT_SYMBOL(s, xrtHttpExecuteSync);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpExecuteSyncDefault);
     XL_ADD_XRT_SYMBOL(s, xrtHttpdConfigInit);
     XL_ADD_XRT_SYMBOL(s, xrtHttpdCreate);
     XL_ADD_XRT_SYMBOL(s, xrtHttpdBoundPort);
     XL_ADD_XRT_SYMBOL(s, xrtHttpdStart);
     XL_ADD_XRT_SYMBOL(s, xrtHttpdStop);
+    XL_ADD_XRT_SYMBOL(s, xrtHttpdDrain);
     XL_ADD_XRT_SYMBOL(s, xrtHttpdDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtHttpdResponseSetStatus);
     XL_ADD_XRT_SYMBOL(s, xrtHttpdResponseSetHeader);
@@ -1904,39 +1919,124 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtHttpdResponseSetBodyCopy);
     XL_ADD_XRT_SYMBOL(s, xrtWebConfigInit);
     XL_ADD_XRT_SYMBOL(s, xrtWebStaticConfigInit);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppRetain);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppRelease);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppDestroy);
+    XL_ADD_XRT_SYMBOL(s, xrtWebMethodMask);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppRouteEx);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppRoute);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppStreamRouteEx);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppStreamRoute);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppGet);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppPost);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppAny);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppStatic);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppStaticDefault);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppStaticEx);
+    XL_ADD_XRT_SYMBOL(s, xrtWebAppError);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerCreateHostEx);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerCreateHostTlsEx);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerStart);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerStartOk);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerStop);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerDrain);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerPort);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerRequestCount);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerConnectionCount);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerSetApp);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerReloadApp);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerHost);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerRemoveHost);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerTlsHost);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerRemoveTlsHost);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerError);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerRouteEx);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerRoute);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerStreamRouteEx);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerStreamRoute);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerGet);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerPost);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerAny);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerStatic);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerStaticDefault);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerStaticEx);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestMethod);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestMethodCopy);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestMethodId);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestTarget);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestTargetCopy);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestPath);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestPathCopy);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestQuery);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestQueryCopy);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestQueryCount);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestQueryHasValueAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestQueryNameCopyAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestQueryValueCopyAt);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestHeader);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestHeaderCopy);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestHeaderCount);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestHeaderNameAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestHeaderValueAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestHeaderNameCopyAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestHeaderValueCopyAt);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestBody);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestBodyTextCopy);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestContentLength);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestContentType);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestIsFormUrlEncoded);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestFormCount);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestFormPairAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestFormHasValueAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestFormNameCopyAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestFormValueCopyAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestFormValueCopy);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestIsMultipartForm);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestMultipartCount);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestMultipartPartAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestMultipartIsFileAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestMultipartNameCopyAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestMultipartFileNameCopyAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestMultipartContentTypeCopyAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestMultipartBodyViewAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestMultipartBodySizeAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestMultipartBodyTextCopyAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestMultipartValueCopy);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestLocalAddrCopy);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestRemoteAddrCopy);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestTlsSNICopy);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestLocalPort);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestRemotePort);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestParam);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestParamCopy);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestParamCount);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestParamNameAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestParamValueViewAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestParamNameCopyAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestParamValueCopyAt);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestQueryValue);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestQueryValueCopy);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestCookie);
     XL_ADD_XRT_SYMBOL(s, xrtWebRequestCookieCopy);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestCookieCount);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestCookiePairAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestCookieNameCopyAt);
+    XL_ADD_XRT_SYMBOL(s, xrtWebRequestCookieValueCopyAt);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseStatus);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseSetHeader);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseAddHeader);
+    XL_ADD_XRT_SYMBOL(s, xrtWebResponseCookie);
+    XL_ADD_XRT_SYMBOL(s, xrtWebResponseDeleteCookie);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseText);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseJsonText);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseBody);
+    XL_ADD_XRT_SYMBOL(s, xrtWebResponseStart);
+    XL_ADD_XRT_SYMBOL(s, xrtWebResponseSend);
+    XL_ADD_XRT_SYMBOL(s, xrtWebResponseWriteText);
+    XL_ADD_XRT_SYMBOL(s, xrtWebResponseEnd);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseFile);
     XL_ADD_XRT_SYMBOL(s, xrtWebResponseRedirect);
     XL_ADD_XRT_SYMBOL(s, xrtWebMimeByPath);
@@ -2711,8 +2811,6 @@ static int xlAddEmbeddedXlangRuntimeSources(XL_Context* ctx, TCCState* s, const 
         "src\\api\\xl_api.c",
         "src\\abi\\xl6_abi_json.c",
         "src\\abi\\xl6_callable.c",
-        "src\\abi\\xl6_xapi_dump.c",
-        "src\\abi\\xl6_xapi_load.c",
         "src\\backend\\xl6_build_backend.c",
         "src\\compile\\xl6_compile_unit.c",
         "src\\compile\\xl6_imports.c",
@@ -3039,6 +3137,9 @@ static int xlCompileUnitToExternalOutputWithC(
         xlSetError(ctx, "cannot generate XRT implementation source");
         goto cleanup;
     }
+    if ( !xlSaveTempTextByName(ctx, "xrt_impl.c", xrtText) ) {
+        goto cleanup;
+    }
     if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_XRT_C, xrtText, "cannot compile XRT single header") ) {
         goto cleanup;
     }
@@ -3092,23 +3193,73 @@ static int xlCompileUnitToDebugExe(XL_Context* ctx, XL6_CompileUnit* unit, const
     return xlCompileUnitToExternalOutputEx(ctx, unit, outputExe, TCC_OUTPUT_EXE, "debug exe", &options);
 }
 
+static int xlAstIsTopLevelRuntimeStmt(const XL6_AstNode* node)
+{
+    if ( node == NULL ) {
+        return 0;
+    }
+    switch ( node->kind ) {
+    case XL6_AST_IMPORT:
+    case XL6_AST_FUNC:
+    case XL6_AST_ASYNC_FUNC:
+    case XL6_AST_EXTERN_FUNC:
+    case XL6_AST_EXPORT_FUNC:
+    case XL6_AST_EXTERN_VAR:
+    case XL6_AST_EXPORT_VAR:
+    case XL6_AST_EXPORT_CONST:
+    case XL6_AST_TYPE_ALIAS:
+    case XL6_AST_EXTERN_TYPE_ALIAS:
+    case XL6_AST_UNION:
+    case XL6_AST_CLASS:
+        return 0;
+    default:
+        return 1;
+    }
+}
+
+static const XL6_AstNode* xlAstFindMainFunc(const XL6_AstNode* root)
+{
+    size_t i;
+
+    if ( root == NULL ) {
+        return NULL;
+    }
+    for ( i = 0; i < root->childCount; ++i ) {
+        const XL6_AstNode* node = root->children[i];
+        const XL6_AstNode* nameNode;
+        if ( node == NULL || node->kind != XL6_AST_FUNC || node->childCount == 0 ) {
+            continue;
+        }
+        nameNode = node->children[0];
+        if ( nameNode != NULL && nameNode->text != NULL && strcmp(nameNode->text, "main") == 0 ) {
+            return node;
+        }
+    }
+    return NULL;
+}
+
+static int xlAstHasTopLevelRuntimeStmt(const XL6_AstNode* root)
+{
+    size_t i;
+
+    if ( root == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < root->childCount; ++i ) {
+        if ( xlAstIsTopLevelRuntimeStmt(root->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int xlCompileUnitHasExecutableEntry(XL_Context* ctx, XL6_CompileUnit* unit)
 {
-    XL6_XapiModule xapi;
-    int hasEntry;
-
     if ( ctx == NULL || unit == NULL ) {
         return -1;
     }
-    xl6XapiModuleInit(&xapi);
-    if ( !xl6XapiModuleBuild(&xapi, unit->parse.root, unit->path, unit->moduleName) ) {
-        xlSetError(ctx, "cannot inspect shared library entry kind");
-        xl6XapiModuleFree(&xapi);
-        return -1;
-    }
-    hasEntry = xl6XapiModuleHasExecutableEntry(&xapi);
-    xl6XapiModuleFree(&xapi);
-    return hasEntry;
+    return xlAstFindMainFunc(unit->parse.root) != NULL ||
+           xlAstHasTopLevelRuntimeStmt(unit->parse.root);
 }
 
 static int xlCompileUnitToSharedLibraryWithC(XL_Context* ctx, XL6_CompileUnit* unit, const char* outputDll, const XL_StringList* cSourceFiles)
@@ -4896,31 +5047,6 @@ XL_API int xlcEmitAbi(XLC_Context* ctx, const char* outputPath, int jsonOutput)
             xl6AbiDumpText(&out, ctx->unit.parse.root);
         }
         ok = xlcOutputClose(ctx->runtime, &out, "cannot write ABI output");
-    }
-    xlLeaveWorkDir(&cwd);
-    xlApiUnlock();
-    return ok;
-}
-
-XL_API int xlcEmitXapi(XLC_Context* ctx, const char* outputPath)
-{
-    XL_CwdScope cwd;
-    XL6_Output out;
-    int ok;
-
-    if ( ctx == NULL || ctx->runtime == NULL ) {
-        return 0;
-    }
-    xlApiLock();
-    xlClearLastErrorUnlocked(ctx->runtime);
-    if ( !xlEnterWorkDir(ctx->runtime, &cwd) ) {
-        xlApiUnlock();
-        return 0;
-    }
-    ok = xlcCompileUnlocked(ctx) && xlcOutputOpen(ctx->runtime, &out, outputPath, "cannot open XAPI output");
-    if ( ok ) {
-        xl6XapiDumpJson(&out, ctx->unit.parse.root, ctx->unit.path, ctx->unit.moduleName);
-        ok = xlcOutputClose(ctx->runtime, &out, "cannot write XAPI output");
     }
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();

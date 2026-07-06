@@ -22,13 +22,14 @@
 - `C混编设计.md`：C 与 xlang 互相声明、导出、生成头文件和 C ABI wrapper。
 - `命令行设计.md`：CLI、四阶段编译管线、调试 dump、构建、运行和 C 混编命令。
 - `标准库设计.md`：标准库默认注册、短命名空间、XRT/CRT 边界、第一批标准库函数、暂缓能力和后续设计议题。
+- `网络服务基座补全设计.md`：XRT 网络服务基座、HTTP server 标准库、路由、静态资源、请求响应对象和 xs 静态原型支撑设计。
 - `异常处理与文档注释设计.md`：异常处理、断言、高级错误模型和 `#doc ... #end` 文档注释。
 - `调试器与task_async_generator设计.md`：完整调试器体系、高层 `task` API 和 `async generator<T>` 的设计口径、开发顺序和验收标准。
-- `扩展库系统设计.md`：package、XAPI、接口元数据、版本隔离、依赖解析和扩展库分发模型。
+- `扩展库系统设计.md`：source import、package、同名 C companion、版本隔离、依赖解析和扩展库分发模型。
 - `DLL嵌入式运行库设计.md`：`xl.dll` / `xlc.dll` 嵌入式 API、上下文、脚本运行、exe 编译、C 函数注册和 XRT 注入。
 - `TCC内嵌与运行入口设计.md`：内嵌 `libtcc`、运行版/编译版 DLL 分层、`xlang_main(xvalue arg)` 入口 ABI、VFS 资源包和 TCC IO 边界。
 - `脚本嵌入与TCC模块设计.md`：`tcc` 模块、脚本嵌入、动态 VFS、运行版/编译版能力边界和按需嵌入裁剪口径。
-- `union设计.md`：C 风格 `union` 的语法、规则、代码生成、C ABI 和 XAPI 元数据。
+- `union设计.md`：C 风格 `union` 的语法、规则、代码生成、C ABI 和接口元数据。
 
 ## 当前工程与质量口径
 
@@ -47,7 +48,7 @@
 - `本轮开发任务_XAPI_import_混编.md`：XAPI、import、零配置 C 混编、main 入口、`xlInit`/`xlUnit` 生命周期的成熟化任务。
 - `本轮工程骨架优化任务.md`：CompileUnit、XAPI 内部模型、独立临时目录和 package resolver 地基任务。
 - `工程收口10项任务.md`：canonical type、XAPI 权威化、package/import、callable descriptor、后端接口和生命周期强化任务。
-- `RC0稳定化与import闭环.md`：import 读取 XAPI 并注入声明的 RC0 闭环记录；文档内已标注当前实现状态。
+- `RC0稳定化与import闭环.md`：旧 import 闭环阶段记录；当前实现已切换为 source import/package。
 - `RC0工作区清单.md`：RC0 工作区规模、变更分组和提交前建议的历史快照。
 - `并发异步长期实现任务.md`：async/await、thread、channel、同步原语和 generator 的长期实现任务边界。
 - `扩展库系统RC实现任务.md`：扩展库系统进入 RC 实现阶段的任务边界和验收口径。
@@ -75,7 +76,7 @@
 
 以下 README 只描述测试资产，不作为语言设计来源：
 
-- `../release/extlibs/README.md`：package/import/XAPI 测试包目录索引、正负例用途和验证入口。
+- `../release/extlibs/README.md`：package/import 发布扩展库目录索引和验证入口。
 - `../test/README.md`：测试目录入口、用例前缀索引和测试资产守门脚本说明。
 
 ## 工程目录文档
@@ -95,5 +96,5 @@
 - 新设计先落到本目录，再进入实现。
 - 修改 cgen 行为时，同步维护 `demo6/cgenrule` 对应规则表和验证矩阵。
 - 修改标准库命名、参数默认值或 XRT/CRT 边界时，同步维护 `标准库设计.md`。
-- 修改 import/package/XAPI 行为时，同步维护 `扩展库系统设计.md`、`C混编设计.md` 和相关 cgenrule 文档。
+- 修改 import/package 行为时，同步维护 `扩展库系统设计.md`、`C混编设计.md` 和相关 cgenrule 文档。
 - 历史任务单中的旧状态不能作为当前实现结论直接引用，必须回查当前权威设计或代码。

@@ -134,7 +134,7 @@ function Test-ExampleReadmeIndex($relativeDir)
         return
     }
 
-    $readme = Read-Utf8Text $readmePath
+    $readme = (Read-Utf8Text $readmePath).Replace("`r`n", "`n").Replace("`r", "`n")
     $files = @(
         Get-ChildItem -LiteralPath $dir -File -Filter "*.xl" |
             Where-Object {
@@ -170,7 +170,7 @@ function Test-RootExampleReadmeIndex()
         return
     }
 
-    $readme = Read-Utf8Text $readmePath
+    $readme = (Read-Utf8Text $readmePath).Replace("`r`n", "`n").Replace("`r", "`n")
     $files = @(Get-ChildItem -LiteralPath $exampleDir -File -Filter "*.xl" | Sort-Object Name)
     $known = New-Object System.Collections.Generic.HashSet[string]
 
@@ -241,7 +241,7 @@ function Test-RootExampleCoverageModes()
         return
     }
 
-    $readme = Read-Utf8Text $readmePath
+    $readme = (Read-Utf8Text $readmePath).Replace("`r`n", "`n").Replace("`r", "`n")
     $testText = Read-TestRegressionText
     $coverageMarker = [string]::Concat([char]0x56DE, [char]0x5F52, [char]0xFF1A)
     $modeMap = [ordered]@{

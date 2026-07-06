@@ -1,0 +1,5 @@
+import import_source_math
+
+func main(...) as int
+    return add(1, 2)
+end
