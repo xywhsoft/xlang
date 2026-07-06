@@ -55,6 +55,22 @@ func handleRequest(point reqHandle, point respHandle) as bool
         return resp.jsonText("{\"ok\":true}")
     end
 
+    if req.method() == "GET" and req.path() == "/append-body" then
+        if not resp.reserveBody(16) then
+            resp.status(500)
+            return resp.text("append-reserve-fail")
+        end
+        if not resp.appendText("append") then
+            resp.status(500)
+            return resp.text("append-first-fail")
+        end
+        if not resp.appendText("-body") then
+            resp.status(500)
+            return resp.text("append-second-fail")
+        end
+        return true
+    end
+
     if req.method() == "GET" and req.path() == "/idle" then
         return resp.text("idle-ok")
     end
@@ -223,6 +239,7 @@ export "xl6_http_server_create" func createServer() as point
     http.server.postRequest(server, "/form", reqFn)
     http.server.postRequest(server, "/multipart", reqFn)
     http.server.getRequest(server, "/json", reqFn)
+    http.server.getRequest(server, "/append-body", reqFn)
     http.server.postRequest(server, "/bytes", reqFn)
     http.server.getRequest(server, "/file", reqFn)
     http.server.getRequest(server, "/redirect", reqFn)
@@ -244,6 +261,7 @@ export "xl6_http_server_create" func createServer() as point
     http.server.appPostRequest(app2, "/form", reqFn)
     http.server.appPostRequest(app2, "/multipart", reqFn)
     http.server.appGetRequest(app2, "/json", reqFn)
+    http.server.appGetRequest(app2, "/append-body", reqFn)
     http.server.appPostRequest(app2, "/bytes", reqFn)
     http.server.appGetRequest(app2, "/file", reqFn)
     http.server.appGetRequest(app2, "/redirect", reqFn)

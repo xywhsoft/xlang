@@ -2,4 +2,7 @@ import tcc
 
 println("before tcc context")
 TccContext ctx = tcc.Context()
+string source = "#include <stddef.h>\n#include <stdbool.h>\ntypedef struct xrt_web_response xwebresponse;\nbool xrtWebResponseReserveBody(xwebresponse* pResp, size_t iCap);\nbool xrtWebResponseAppendBody(xwebresponse* pResp, const void* pData, size_t iLen);\nbool xrtWebResponseAppendText(xwebresponse* pResp, const char* sText);\nint main(void){ return (xrtWebResponseReserveBody && xrtWebResponseAppendBody && xrtWebResponseAppendText) ? 0 : 1; }\n"
+assert ctx.compileString(source) == 0, "xrt response append symbols should compile"
+assert ctx.run() == 0, "xrt response append symbols should run"
 println("after tcc context")

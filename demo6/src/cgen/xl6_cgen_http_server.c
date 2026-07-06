@@ -142,6 +142,9 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("bool xrtWebResponseText(xwebresponse* pResp, const char* sText, const char* sContentType);\n\n", out);
     xl6OutputPuts("bool xrtWebResponseJsonText(xwebresponse* pResp, const char* sText);\n", out);
     xl6OutputPuts("bool xrtWebResponseBody(xwebresponse* pResp, const void* pData, size_t iLen, const char* sContentType);\n", out);
+    xl6OutputPuts("bool xrtWebResponseReserveBody(xwebresponse* pResp, size_t iCap);\n", out);
+    xl6OutputPuts("bool xrtWebResponseAppendBody(xwebresponse* pResp, const void* pData, size_t iLen);\n", out);
+    xl6OutputPuts("bool xrtWebResponseAppendText(xwebresponse* pResp, const char* sText);\n", out);
     xl6OutputPuts("bool xrtWebResponseStart(xwebresponse* pResp);\n", out);
     xl6OutputPuts("bool xrtWebResponseSend(xwebresponse* pResp, const void* pData, size_t iLen);\n", out);
     xl6OutputPuts("bool xrtWebResponseWriteText(xwebresponse* pResp, const char* sText);\n", out);
@@ -592,6 +595,21 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("int xl6_xrt_http_response_body(void* resp, void* data, size_t size, const char* contentType)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xrtWebResponseBody((xwebresponse*)resp, data, size, contentType);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_response_reserve_body(void* resp, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebResponseReserveBody((xwebresponse*)resp, size);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_response_append_body(void* resp, void* data, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebResponseAppendBody((xwebresponse*)resp, data, size);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_response_append_text(void* resp, const char* text)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebResponseAppendText((xwebresponse*)resp, text);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("int xl6_xrt_http_response_start(void* resp)\n", out);

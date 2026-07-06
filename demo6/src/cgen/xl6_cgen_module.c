@@ -83,6 +83,13 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasHttpServerRuntime = xl6CgenNodeNeedsHttpServerRuntime(root);
     hasHttpClientRuntime = xl6CgenNodeNeedsHttpClientRuntime(root);
     hasBufferRuntime = xl6CgenNodeNeedsBufferRuntime(root);
+    if ( hasHttpServerRuntime || hasHttpClientRuntime ) {
+        /*
+            HTTP 请求/响应 helper 会暴露 Buffer 视图复制函数。
+            即使用户代码没有显式声明 Buffer，也必须生成这组运行时封装。
+        */
+        hasBufferRuntime = 1;
+    }
     hasEncodingRuntime = xl6CgenNodeNeedsEncodingRuntime(root);
     hasLogRuntime = xl6CgenNodeNeedsLogRuntime(root);
     hasTemplateRuntime = xl6CgenNodeNeedsTemplateRuntime(root);
