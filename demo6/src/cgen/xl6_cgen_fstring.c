@@ -15,6 +15,13 @@ static void xl6CgenFStringTextLiteral(XL6_CgenContext* ctx, const char* text, in
                 xl6OutputPutc((int)*(++p), ctx->out);
                 continue;
             }
+            if ( *p == '\r' ) {
+                if ( p[1] == '\n' ) {
+                    ++p;
+                }
+                xl6CgenWriteCStringChar(ctx->out, '\n');
+                continue;
+            }
             xl6CgenWriteCStringChar(ctx->out, *p);
         }
     }

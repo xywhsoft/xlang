@@ -1,0 +1,6 @@
+{
+  "format": "xlang-project-1",
+  "kind": "exe",
+  "entry": "main.xl",
+  "cSources": ["native.c"]
+}

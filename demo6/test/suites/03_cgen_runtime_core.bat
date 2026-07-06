@@ -319,101 +319,6 @@ if errorlevel 1 (
     echo export_union.h missing union parameter.
     exit /b 1
 )
-findstr /C:"\"kind\":\"union\"" build\test\dump_export_union\export_union.xapi.json >nul
-if errorlevel 1 (
-    echo export_union.xapi.json missing union type metadata.
-    exit /b 1
-)
-findstr /C:"\"fields\"" build\test\dump_export_union\export_union.xapi.json >nul
-if errorlevel 1 (
-    echo export_union.xapi.json missing union fields metadata.
-    exit /b 1
-)
-findstr /C:"\"name\":\"i\"" build\test\dump_export_union\export_union.xapi.json >nul
-if errorlevel 1 (
-    echo export_union.xapi.json missing union field i metadata.
-    exit /b 1
-)
-findstr /C:"\"type\":\"c_double\"" build\test\dump_export_union\export_union.xapi.json >nul
-if errorlevel 1 (
-    echo export_union.xapi.json missing union c_double field type.
-    exit /b 1
-)
-release\xl.exe xapi test\cases\xapi_type_fields.xl --emit build\test\xapi_type_fields.json
-if errorlevel 1 exit /b 1
-findstr /C:"\"kind\":\"class\"" build\test\xapi_type_fields.json >nul
-if errorlevel 1 (
-    echo xapi_type_fields.json missing class type metadata.
-    exit /b 1
-)
-findstr /C:"\"name\":\"tag\"" build\test\xapi_type_fields.json >nul
-if errorlevel 1 (
-    echo xapi_type_fields.json missing class field tag metadata.
-    exit /b 1
-)
-findstr /C:"Packet tag field." build\test\xapi_type_fields.json >nul
-if errorlevel 1 (
-    echo xapi_type_fields.json missing class field doc metadata.
-    exit /b 1
-)
-findstr /C:"\"kind\":\"desc\"" build\test\xapi_type_fields.json >nul
-if errorlevel 1 (
-    echo xapi_type_fields.json missing structured class field doc metadata.
-    exit /b 1
-)
-findstr /C:"\"base\":\"Packet\"" build\test\xapi_type_fields.json >nul
-if errorlevel 1 (
-    echo xapi_type_fields.json missing class base metadata.
-    exit /b 1
-)
-findstr /C:"\"typeParams\":[\"T\"]" build\test\xapi_type_fields.json >nul
-if errorlevel 1 (
-    echo xapi_type_fields.json missing generic class type parameter metadata.
-    exit /b 1
-)
-findstr /C:"\"storage\":\"inline-union\"" build\test\xapi_type_fields.json >nul
-if errorlevel 1 (
-    echo xapi_type_fields.json missing inline union field storage metadata.
-    exit /b 1
-)
-findstr /C:"\"name\":\"code\"" build\test\xapi_type_fields.json >nul
-if errorlevel 1 (
-    echo xapi_type_fields.json missing inline union field code metadata.
-    exit /b 1
-)
-findstr /C:"\"name\":\"ClassPayload\"" build\test\xapi_type_fields.json >nul
-if errorlevel 1 (
-    echo xapi_type_fields.json missing union class field owner metadata.
-    exit /b 1
-)
-findstr /C:"\"type\":\"Point\"" build\test\xapi_type_fields.json >nul
-if errorlevel 1 (
-    echo xapi_type_fields.json missing union class field type metadata.
-    exit /b 1
-)
-findstr /C:"\"name\":\"NativeView\"" build\test\xapi_type_fields.json >nul
-if errorlevel 1 (
-    echo xapi_type_fields.json missing native-backed class type metadata.
-    exit /b 1
-)
-"%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\xapi_load_types_host.c src\abi\xl6_xapi_load.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\xapi_load_types_host.exe
-if errorlevel 1 exit /b 1
-build\test\xapi_load_types_host.exe build\test\xapi_type_fields.json
-if errorlevel 1 exit /b 1
-"%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\xapi_loader_defaults_host.c src\abi\xl6_xapi_load.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\xapi_loader_defaults_host.exe
-if errorlevel 1 exit /b 1
-build\test\xapi_loader_defaults_host.exe unknowns test\cases\xapi_unknown_fields.xapi.json
-if errorlevel 1 exit /b 1
-build\test\xapi_loader_defaults_host.exe unknowns test\cases\xapi_invalid_doc_string.xapi.json >nul 2> build\test\xapi_invalid_doc_string.err.txt
-if not errorlevel 1 (
-    echo xapi_invalid_doc_string.xapi.json should fail.
-    exit /b 1
-)
-findstr /C:"XAPI doc" build\test\xapi_invalid_doc_string.err.txt >nul
-if errorlevel 1 (
-    echo xapi_invalid_doc_string.err.txt missing strict doc diagnostic.
-    exit /b 1
-)
 release\xl.exe check test\cases\sem_union_top_anon.xl >nul 2> build\test\sem_union_top_anon.err.txt
 if not errorlevel 1 (
     echo sem_union_top_anon.xl should fail.
@@ -4423,6 +4328,16 @@ if errorlevel 1 (
 findstr /C:"void* xrtNetUdpBind" build\test\stdlib_net_tcp_udp.c >nul
 if errorlevel 1 (
     echo stdlib_net_tcp_udp.c missing xrtNetUdpBind extern prototype.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_tcp_stream_recv_buffer" build\test\stdlib_net_tcp_udp.c >nul
+if errorlevel 1 (
+    echo stdlib_net_tcp_udp.c missing TCP binary buffer bridge.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_udp_packet_buffer" build\test\stdlib_net_tcp_udp.c >nul
+if errorlevel 1 (
+    echo stdlib_net_tcp_udp.c missing UDP packet buffer bridge.
     exit /b 1
 )
 release\xl.exe build test\cases\stdlib_net_tcp_udp.xl -o build\test\stdlib_net_tcp_udp.exe

@@ -260,6 +260,13 @@ static void xl6CgenStringLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
             xl6OutputPutc(text[++i], ctx->out);
             continue;
         }
+        if ( ch == '\r' ) {
+            if ( i + 1 < end && text[i + 1] == '\n' ) {
+                ++i;
+            }
+            xl6CgenWriteCStringChar(ctx->out, '\n');
+            continue;
+        }
         xl6CgenWriteCStringChar(ctx->out, ch);
     }
     xl6OutputPutc('"', ctx->out);

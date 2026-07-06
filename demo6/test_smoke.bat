@@ -64,14 +64,6 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe xapi release\examples\hello.xl --emit build\test\smoke_hello.xapi.json
-if errorlevel 1 exit /b 1
-findstr /C:"xlang-xapi-1" build\test\smoke_hello.xapi.json >nul
-if errorlevel 1 (
-    echo smoke_hello.xapi.json missing XAPI format marker.
-    exit /b 1
-)
-
 release\xl.exe check test\cases\import_metadata.xl
 if errorlevel 1 exit /b 1
 

@@ -80,6 +80,9 @@ int main(void)
     xfuture* accepted;
     xfuture* received;
     char* reply;
+    unsigned char tcpBytes[] = {0u, 1u, 128u, 255u};
+    void* tcpBytesRecv;
+    size_t tcpBytesRecvLen;
     int tcpOk;
 
     xnetlistener* asyncServer;
@@ -94,6 +97,10 @@ int main(void)
     xdgramsock* right;
     xnetdgrampkt* packet;
     xnetdgrampkt* replyPacket;
+    xnetdgrampkt* bytesPacket;
+    unsigned char udpBytes[] = {0u, 2u, 127u, 255u};
+    void* udpBytesRecv;
+    size_t udpBytesRecvLen;
     char* packetText;
     char* replyText;
     int udpOk;
@@ -121,6 +128,17 @@ int main(void)
     reply = xrtNetStreamRecvText(client, 0, 3000);
     tcpOk = tcpOk && reply != NULL && strcmp(reply, "pong") == 0;
     xrtFree(reply);
+    tcpBytesRecv = NULL;
+    tcpBytesRecvLen = 0;
+    tcpOk = tcpOk &&
+            xrtNetStreamSendBytes(client, tcpBytes, sizeof(tcpBytes)) &&
+            xrtNetStreamDrain(client, 3000);
+    tcpBytesRecv = xrtNetStreamRecvBytes(peer, 0, 3000, &tcpBytesRecvLen);
+    tcpOk = tcpOk &&
+            tcpBytesRecv != NULL &&
+            tcpBytesRecvLen == sizeof(tcpBytes) &&
+            memcmp(tcpBytesRecv, tcpBytes, sizeof(tcpBytes)) == 0;
+    xrtFree(tcpBytesRecv);
     xrtNetTcpStreamClose(client);
     xrtNetTcpStreamClose(peer);
     require_line("tcp", tcpOk);
@@ -143,6 +161,9 @@ int main(void)
     right = xrtNetUdpBind("127.0.0.1", 0);
     packet = NULL;
     replyPacket = NULL;
+    bytesPacket = NULL;
+    udpBytesRecv = NULL;
+    udpBytesRecvLen = 0;
     packetText = NULL;
     replyText = NULL;
     xrtSleep(10);
@@ -157,10 +178,20 @@ int main(void)
     replyPacket = xrtNetUdpRecv(left, 3000);
     replyText = xrtNetDgramPacketText(replyPacket);
     udpOk = udpOk && replyText != NULL && strcmp(replyText, "reply") == 0;
+    udpOk = udpOk &&
+            xrtNetUdpSendBytes(left, "127.0.0.1", (uint16)xrtNetUdpLocalPort(right), udpBytes, sizeof(udpBytes));
+    bytesPacket = xrtNetUdpRecv(right, 3000);
+    udpBytesRecv = xrtNetDgramPacketBytesCopy(bytesPacket, &udpBytesRecvLen);
+    udpOk = udpOk &&
+            udpBytesRecv != NULL &&
+            udpBytesRecvLen == sizeof(udpBytes) &&
+            memcmp(udpBytesRecv, udpBytes, sizeof(udpBytes)) == 0;
     xrtFree(packetText);
     xrtFree(replyText);
+    xrtFree(udpBytesRecv);
     xrtNetDgramPacketDestroy(packet);
     xrtNetDgramPacketDestroy(replyPacket);
+    xrtNetDgramPacketDestroy(bytesPacket);
     xrtNetUdpDestroy(left);
     xrtNetUdpDestroy(right);
     require_line("udp", udpOk);

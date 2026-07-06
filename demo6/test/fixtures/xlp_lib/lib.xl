@@ -1,0 +1,3 @@
+export "xl6_xlp_lib_add" func add(int a, int b) as int
+    return a + b
+end

@@ -1,0 +1,13 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+extern "xstbir_available" func __xl6_import_stb_image_resize2_available() as bool
+extern "xstbir_version" func __xl6_import_stb_image_resize2_version() as string
+extern "xstbir_last_error" func __xl6_import_stb_image_resize2_last_error() as string
+extern "xstbir_resize_uint8_srgb_native" func __xl6_import_stb_image_resize2_resize_uint8(point data, c_int width, c_int height, c_int channels, c_int out_width, c_int out_height, c_int input_stride) as point
+extern "xstbir_resize_uint8_linear_native" func __xl6_import_stb_image_resize2_resize_uint8_linear(point data, c_int width, c_int height, c_int channels, c_int out_width, c_int out_height, c_int input_stride) as point
+extern "xstbir_image_valid" func __xl6_import_stb_image_resize2_valid(point image) as c_int
+extern "xstbir_image_width" func __xl6_import_stb_image_resize2_width(point image) as c_int
+extern "xstbir_image_height" func __xl6_import_stb_image_resize2_height(point image) as c_int
+extern "xstbir_image_channels" func __xl6_import_stb_image_resize2_channels(point image) as c_int
+extern "xstbir_image_data" func __xl6_import_stb_image_resize2_data(point image) as point
+extern "xstbir_image_release" func __xl6_import_stb_image_resize2_release(point image) as c_int

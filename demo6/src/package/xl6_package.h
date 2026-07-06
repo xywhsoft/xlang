@@ -15,7 +15,6 @@ typedef struct XL6_PackageResolveResult {
     char target[256];
     char manifestPath[512];
     char packageDir[512];
-    char interfacePath[512];
     char packageName[128];
     char packageVersion[64];
     char abiVersion[64];
@@ -46,7 +45,6 @@ typedef struct XL6_PackageManifest {
     char* version;
     char* abiVersion;
     char* packageId;
-    char* xapi;
     char* dir;
     XL6_PackageStringList cSources;
     XL6_PackageStringList xlSources;
@@ -68,7 +66,6 @@ int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest);
 void xl6PackageResolveResultInit(XL6_PackageResolveResult* result);
 const char* xl6PackageResolveKindName(XL6_PackageResolveKind kind);
 int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_PackageResolveResult* result);
-int xl6PackageResolveInterfacePath(const XL6_PackageResolveResult* result, char* out, size_t outSize);
 int xl6PackageJoinPath(char* out, size_t outSize, const char* a, const char* b);
 
 #endif

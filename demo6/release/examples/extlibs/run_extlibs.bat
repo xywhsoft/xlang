@@ -42,11 +42,11 @@ call :run_example release\examples\extlibs\sqlite.xl sqlite xsqlite3_open_native
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\pkg_math.xl pkg.math xpkg_math_add_one
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\volc_sts.xl volc.sts __xl6_import_x_volc_sts_assume_role_trn
+call :run_example release\examples\extlibs\volc_sts.xl volc.sts __xl6_import_volc_sts_assume_role_trn
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\volc_phone.xl volc.phone __xl6_import_x_volc_phone_product_body
+call :run_example release\examples\extlibs\volc_phone.xl volc.phone __xl6_import_volc_phone_product_body
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\mail_mime.xl mail.mime __xl6_import_x_mail_mime_build_json
+call :run_example release\examples\extlibs\mail_mime.xl mail.mime __xl6_import_mail_mime_build_json
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\mail_smtp.xl mail.smtp xmail_smtp_send_json_native
 if errorlevel 1 exit /b 1
@@ -66,9 +66,9 @@ call :run_example release\examples\extlibs\xfeat.xl xfeat __xl6_import_xfeat_ver
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\rapidocr.xl rapidocr __xl6_import_rapidocr_available
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\ui_auto.xl ui.auto __xl6_import_x_ui_auto_test_window
+call :run_example release\examples\extlibs\ui_auto.xl ui.auto __xl6_import_ui_auto_test_window
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\redis.xl redis __xl6_import_x_redis_resp_encode3
+call :run_example release\examples\extlibs\redis.xl redis __xl6_import_redis_resp_encode3
 if errorlevel 1 exit /b 1
 
 echo DEMO6 extension library examples ok.
@@ -81,14 +81,6 @@ set "symbol=%~3"
 
 release\xl.exe check %example%
 if errorlevel 1 exit /b 1
-
-release\xl.exe xapi %example% --emit "%EXTLIB_TEST_DIR%\ext_%name%_example.xapi.json"
-if errorlevel 1 exit /b 1
-findstr /C:"%name%" "%EXTLIB_TEST_DIR%\ext_%name%_example.xapi.json" >nul
-if errorlevel 1 (
-    echo ext_%name%_example.xapi.json missing %name% import metadata.
-    exit /b 1
-)
 
 release\xl.exe cgen %example% --emit "%EXTLIB_TEST_DIR%\ext_%name%_example.c" --emit-header "%EXTLIB_TEST_DIR%\ext_%name%_example.h"
 if errorlevel 1 exit /b 1
@@ -107,14 +99,6 @@ set "symbol=%~3"
 
 release\xl.exe check %example%
 if errorlevel 1 exit /b 1
-
-release\xl.exe xapi %example% --emit "%EXTLIB_TEST_DIR%\ext_%name%_example.xapi.json"
-if errorlevel 1 exit /b 1
-findstr /C:"%name%" "%EXTLIB_TEST_DIR%\ext_%name%_example.xapi.json" >nul
-if errorlevel 1 (
-    echo ext_%name%_example.xapi.json missing %name% import metadata.
-    exit /b 1
-)
 
 release\xl.exe cgen %example% --emit "%EXTLIB_TEST_DIR%\ext_%name%_example.c"
 if errorlevel 1 exit /b 1

@@ -25,6 +25,38 @@ static int xl6CgenNeedsTypeIsString(XL6_CgenContext* ctx, const XL6_AstNode* typ
     return concreteType != NULL && xl6CTextEquals(concreteType->text, "string");
 }
 
+static int xl6CgenNeedsClassValueDeriveStringTempCopy(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
+{
+    const XL6_AstNode* body;
+    size_t i;
+
+    if ( ctx == NULL || classNode == NULL || !xl6CgenClassHasValueDerive(classNode) ) {
+        return 0;
+    }
+
+    body = xl6CgenClassBody(classNode);
+    for ( i = 0; body != NULL && i < body->childCount; ++i ) {
+        const XL6_AstNode* member = body->children[i];
+
+        if ( member == NULL ||
+             member->kind != XL6_AST_FIELD ||
+             xl6CgenIsStaticMember(member) ||
+             member->childCount == 0 ) {
+            continue;
+        }
+
+        /*
+            自动 value/json/xson 协议会从 xvalue 读回 string 字段。
+            这里显式拉起 string runtime，避免协议生成代码依赖未输出的临时字符串拷贝 helper。
+        */
+        if ( xl6CgenNeedsTypeIsString(ctx, member->children[0]) ) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static int xl6CgenNeedsReturnListHasString(XL6_CgenContext* ctx, const XL6_AstNode* returns)
 {
     size_t i;
@@ -374,6 +406,9 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
 
         ctx->currentClass = node;
         ctx->currentNativeClass = NULL;
+        if ( xl6CgenNeedsClassValueDeriveStringTempCopy(ctx, node) ) {
+            result = 1;
+        }
         for ( i = 0; i < node->childCount; ++i ) {
             if ( xl6CgenNodeNeedsTypeConvertRuntime(ctx, node->children[i]) ) {
                 result = 1;

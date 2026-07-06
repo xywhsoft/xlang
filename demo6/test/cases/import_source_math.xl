@@ -1,0 +1,7 @@
+func helper(int value) as int
+    return value + 1
+end
+
+export "xl6_import_source_math_add" func add(int left, int right) as int
+    return helper(left) + right - 1
+end

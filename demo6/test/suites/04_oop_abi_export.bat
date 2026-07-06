@@ -314,14 +314,14 @@ if errorlevel 1 (
     echo cgen_safe_index.c missing null safe index lowering.
     exit /b 1
 )
-findstr /C:"return xvoArrayGetValue(0, 0u);" build\test\cgen_safe_index.c >nul
+findstr /C:"return xvoIndexGetI64(values, index);" release\include\xl_runtime.h >nul
 if errorlevel 1 (
-    echo cgen_safe_index.c should return borrowed null for numeric safe index misses.
+    echo xl_runtime.h should delegate numeric safe index misses to XRT.
     exit /b 1
 )
-findstr /C:"return xvoTableGetValue(0, key, 0);" build\test\cgen_safe_index.c >nul
+findstr /C:"return xvoIndexGetKey(values, (str)key, 0);" release\include\xl_runtime.h >nul
 if errorlevel 1 (
-    echo cgen_safe_index.c should return borrowed null for keyed safe index misses.
+    echo xl_runtime.h should delegate keyed safe index misses to XRT.
     exit /b 1
 )
 findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_nc_" build\test\cgen_safe_index.c >nul
@@ -2224,9 +2224,14 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_main_entry.xl --emit build\test\cgen_main_entry.c
 if errorlevel 1 exit /b 1
-findstr /C:"static xvalue xl6_argv_to_arg(int argc, char** argv)" build\test\cgen_main_entry.c >nul
+findstr /C:"#define XL_RUNTIME_NEED_ARGV 1" build\test\cgen_main_entry.c >nul
 if errorlevel 1 (
-    echo cgen_main_entry.c missing argv-to-arg helper.
+    echo cgen_main_entry.c missing argv runtime need macro.
+    exit /b 1
+)
+findstr /C:"static xvalue xl6_argv_to_arg(int argc, char** argv)" release\include\xl_runtime.h >nul
+if errorlevel 1 (
+    echo xl_runtime.h missing argv-to-arg helper.
     exit /b 1
 )
 findstr /C:"XL_InitOptions __xl6_options = xlInitOptions(argc, argv);" build\test\cgen_main_entry.c >nul
@@ -2259,14 +2264,6 @@ if errorlevel 1 (
     echo cgen_main_entry.c missing xlUnit call.
     exit /b 1
 )
-release\xl.exe xapi test\cases\cgen_main_entry.xl --emit build\test\cgen_main_entry.xapi.json
-if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'build\test\cgen_main_entry.xapi.json' -Raw | ConvertFrom-Json; if($j.entry.kind -ne 'xlang-main'){exit 1}; if($j.entry.cSymbol -ne 'xlang_main'){exit 2}; if($j.entry.returnType -ne 'int'){exit 3}"
-if errorlevel 1 (
-    echo cgen_main_entry.xapi.json missing xlang main entry metadata.
-    exit /b 1
-)
-
 release\xl.exe cgen test\cases\cgen_main_uncaught.xl --emit build\test\cgen_main_uncaught.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_error_print_uncaught();" build\test\cgen_main_uncaught.c >nul
@@ -2292,13 +2289,6 @@ if errorlevel 1 (
     echo cgen_main_case_sensitive.c should treat Main as a normal function.
     exit /b 1
 )
-release\xl.exe xapi test\cases\cgen_main_case_sensitive.xl --emit build\test\cgen_main_case_sensitive.xapi.json
-if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'build\test\cgen_main_case_sensitive.xapi.json' -Raw | ConvertFrom-Json; if($j.entry.kind -ne 'none'){exit 1}"
-if errorlevel 1 (
-    echo cgen_main_case_sensitive.xapi.json should report entry none.
-    exit /b 1
-)
 release\xl.exe check test\cases\cgen_main_case_sensitive_script.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_main_case_sensitive_script.xl --emit build\test\cgen_main_case_sensitive_script.c
@@ -2306,18 +2296,6 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_case_sensitive_script.c' -Raw; if($t -notmatch 'int xlang_main\(xvalue arg\)'){exit 1}; if($t -notmatch 'int main\('){exit 2}; if($t -notmatch 'long long Main\(xvalue arg\)'){exit 3}; if($t -notmatch 'expect_i64\(1LL, 1LL\);'){exit 4}"
 if errorlevel 1 (
     echo cgen_main_case_sensitive_script.c should treat Main as normal function and top-level code as script main.
-    exit /b 1
-)
-release\xl.exe xapi test\cases\cgen_main_case_sensitive_script.xl --emit build\test\cgen_main_case_sensitive_script.xapi.json
-if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'build\test\cgen_main_case_sensitive_script.xapi.json' -Raw | ConvertFrom-Json; if($j.entry.kind -ne 'script-main'){exit 1}; if($j.entry.returnType -ne 'int'){exit 2}"
-if errorlevel 1 (
-    echo cgen_main_case_sensitive_script.xapi.json should report script-main.
-    exit /b 1
-)
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$j=Get-Content 'build\test\cgen_main_case_sensitive_script.xapi.json' -Raw | ConvertFrom-Json; if($j.entry.cSymbol -ne 'xlang_main'){exit 1}"
-if errorlevel 1 (
-    echo cgen_main_case_sensitive_script.xapi.json missing xlang_main cSymbol.
     exit /b 1
 )
 release\xl.exe build test\cases\cgen_main_case_sensitive_script.xl test\cases\cgen_class_host.c -o build\test\cgen_main_case_sensitive_script.exe
@@ -2335,14 +2313,6 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "if(-not (Select-String -Path 'build\test\xl_help.txt' -SimpleMatch 'xl build')){exit 1}"
 if errorlevel 1 (
     echo xl_help.txt missing build usage.
-    exit /b 1
-)
-
-release\xl.exe xapi test\cases\export_add.xl > build\test\xapi_stdout.json
-if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "if(-not (Select-String -Path 'build\test\xapi_stdout.json' -SimpleMatch 'xlang-xapi-1')){exit 1}"
-if errorlevel 1 (
-    echo xapi stdout missing format marker.
     exit /b 1
 )
 
@@ -2666,18 +2636,6 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\export_class_method_header_host.exe
 if errorlevel 1 exit /b 1
-release\xl.exe xapi test\cases\export_class_method.xl --emit build\test\export_class_method.xapi.json
-if errorlevel 1 exit /b 1
-findstr /C:"\"kind\":\"class_method\"" build\test\export_class_method.xapi.json >nul
-if errorlevel 1 (
-    echo export_class_method.xapi.json missing class_method export metadata.
-    exit /b 1
-)
-findstr /C:"\"owner\":\"Point\"" build\test\export_class_method.xapi.json >nul
-if errorlevel 1 (
-    echo export_class_method.xapi.json missing class method owner metadata.
-    exit /b 1
-)
 release\xl.exe abi test\cases\export_class_method.xl --emit build\test\export_class_method.abi.txt
 if errorlevel 1 exit /b 1
 findstr /C:"signature: fn:app.Point.move(int,int) as int" build\test\export_class_method.abi.txt >nul

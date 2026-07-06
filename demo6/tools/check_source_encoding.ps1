@@ -60,6 +60,11 @@ function Should-SkipFile($file)
         return $true
     }
 
+    if ( $normalized -eq "build" -or
+         $normalized.StartsWith("build/", [System.StringComparison]::OrdinalIgnoreCase) ) {
+        return $true
+    }
+
     return $false
 }
 

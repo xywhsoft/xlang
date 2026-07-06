@@ -112,9 +112,6 @@ int main(void)
     if ( !xlcEmitAbi(ctx, "build\\test\\xlc_api_abi.json", 1) ) {
         return fail_xlc(ctx, "xlcEmitAbi");
     }
-    if ( !xlcEmitXapi(ctx, "build\\test\\xlc_api_xapi.json") ) {
-        return fail_xlc(ctx, "xlcEmitXapi");
-    }
     module = xlcRelocateModule(ctx);
     if ( module == NULL ) {
         return fail_xlc(ctx, "xlcRelocateModule");

@@ -10,7 +10,7 @@
 - `xl.def`：由 `build_dll.bat` 生成的 DLL import definition。
 - `include`：随 `xl.exe` 分发的公开 C API 头文件目录。
 - `examples`：随 `xl.exe` 分发的范例程序。
-- `extlibs`：随 `xl.exe` 分发的 import/package/XAPI 测试与扩展库资产。
+- `extlibs`：随 `xl.exe` 分发的 import/package 扩展库资产。
 - `xl_dll_embed_string.exe`、`xl_dll_null_context.exe`、`xl_dll_threaded_host.exe`：DLL API 验证程序。
 
 ## 维护规则

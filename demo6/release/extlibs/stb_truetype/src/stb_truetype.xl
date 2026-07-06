@@ -1,0 +1,28 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+extern "xstbtt_available" func __xl6_import_stb_truetype_available() as bool
+extern "xstbtt_version" func __xl6_import_stb_truetype_version() as string
+extern "xstbtt_last_error" func __xl6_import_stb_truetype_last_error() as string
+extern "xstbtt_default_font_path" func __xl6_import_stb_truetype_default_font_path() as string
+extern "xstbtt_load" func __xl6_import_stb_truetype_load(string path, c_int font_index) as point
+extern "xstbtt_font_valid" func __xl6_import_stb_truetype_valid(point font) as c_int
+extern "xstbtt_font_release" func __xl6_import_stb_truetype_release(point font) as c_int
+extern "xstbtt_scale_for_pixel_height" func __xl6_import_stb_truetype_scale_for_pixel_height(point font, c_double pixel_height) as c_double
+extern "xstbtt_ascent" func __xl6_import_stb_truetype_ascent(point font) as c_int
+extern "xstbtt_descent" func __xl6_import_stb_truetype_descent(point font) as c_int
+extern "xstbtt_line_gap" func __xl6_import_stb_truetype_line_gap(point font) as c_int
+extern "xstbtt_find_glyph_index" func __xl6_import_stb_truetype_find_glyph_index(point font, c_int codepoint) as c_int
+extern "xstbtt_h_advance" func __xl6_import_stb_truetype_h_advance(point font, c_int codepoint) as c_int
+extern "xstbtt_left_bearing" func __xl6_import_stb_truetype_left_bearing(point font, c_int codepoint) as c_int
+extern "xstbtt_kern_advance" func __xl6_import_stb_truetype_kern_advance(point font, c_int codepoint1, c_int codepoint2) as c_int
+extern "xstbtt_vmetrics_json" func __xl6_import_stb_truetype_vmetrics(point font) as string
+extern "xstbtt_hmetrics_json" func __xl6_import_stb_truetype_hmetrics(point font, c_int codepoint) as string
+extern "xstbtt_codepoint_bitmap" func __xl6_import_stb_truetype_codepoint_bitmap(point font, c_int codepoint, c_double pixel_height) as point
+extern "xstbtt_codepoint_bitmap_box_json" func __xl6_import_stb_truetype_codepoint_bitmap_box(point font, c_int codepoint, c_double pixel_height) as string
+extern "xstbtt_bitmap_valid" func __xl6_import_stb_truetype_bitmap_valid(point bitmap) as c_int
+extern "xstbtt_bitmap_width" func __xl6_import_stb_truetype_bitmap_width(point bitmap) as c_int
+extern "xstbtt_bitmap_height" func __xl6_import_stb_truetype_bitmap_height(point bitmap) as c_int
+extern "xstbtt_bitmap_xoff" func __xl6_import_stb_truetype_bitmap_xoff(point bitmap) as c_int
+extern "xstbtt_bitmap_yoff" func __xl6_import_stb_truetype_bitmap_yoff(point bitmap) as c_int
+extern "xstbtt_bitmap_data" func __xl6_import_stb_truetype_bitmap_data(point bitmap) as point
+extern "xstbtt_bitmap_release" func __xl6_import_stb_truetype_bitmap_release(point bitmap) as c_int

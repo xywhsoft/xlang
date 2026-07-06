@@ -321,6 +321,8 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("xvalue xvoArrayGetValue(xvalue pArr, unsigned int index);\n", out);
     xl6OutputPuts("xvalue xvoListGetValue(xvalue pList, long long index);\n", out);
     xl6OutputPuts("xvalue xvoTableGetValue(xvalue pTbl, const void* key, unsigned int kl);\n", out);
+    xl6OutputPuts("xvalue xvoIndexGetI64(xvalue pVal, long long index);\n", out);
+    xl6OutputPuts("xvalue xvoIndexGetKey(xvalue pVal, const void* key, unsigned int kl);\n", out);
     xl6OutputPuts("xvalue xvoCopy(xvalue pVal);\n", out);
     xl6OutputPuts("xvalue xvoDeepCopy(xvalue pVal);\n", out);
     xl6OutputPuts("unsigned int xvoArrayItemCount(xvalue pArr);\n", out);
@@ -411,6 +413,8 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
 
     xl6CgenEmitXValueReleaseConvertHelpers(out);
 
+    xl6OutputPuts("#ifndef XL6_XRT_TEXT_TEMP_COPY_HELPER\n", out);
+    xl6OutputPuts("#define XL6_XRT_TEXT_TEMP_COPY_HELPER\n", out);
     xl6OutputPuts("static const char* xl6_xrt_text_temp_copy(const char* value)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    size_t len;\n", out);
@@ -425,7 +429,8 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    memcpy(text, value, len + 1u);\n", out);
     xl6OutputPuts("    return text;\n", out);
-    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("#endif\n\n", out);
 
     xl6OutputPuts("#define XL6_XVO_DT_NULL 0\n", out);
     xl6OutputPuts("#define XL6_XVO_DT_BOOL 1\n", out);

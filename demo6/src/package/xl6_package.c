@@ -203,7 +203,6 @@ void xl6PackageManifestFree(XL6_PackageManifest* manifest)
     xrtFree(manifest->version);
     xrtFree(manifest->abiVersion);
     xrtFree(manifest->packageId);
-    xrtFree(manifest->xapi);
     xrtFree(manifest->dir);
     xl6PackageStringListFree(&manifest->cSources);
     xl6PackageStringListFree(&manifest->xlSources);
@@ -673,9 +672,6 @@ static int xl6PackageManifestParseRoot(XL6_PackageJson* json, XL6_PackageManifes
         } else if ( strcmp(key, "abiVersion") == 0 ) {
             xrtFree(manifest->abiVersion);
             manifest->abiVersion = xl6PackageJsonReadString(json);
-        } else if ( strcmp(key, "xapi") == 0 ) {
-            xrtFree(manifest->xapi);
-            manifest->xapi = xl6PackageJsonReadString(json);
         } else if ( strcmp(key, "artifact") == 0 ) {
             if ( !xl6PackageManifestReadArtifact(json, manifest) ) {
                 xrtFree(key);
@@ -751,6 +747,12 @@ int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest)
     memset(&json, 0, sizeof(json));
     json.text = text;
     json.len = textLen;
+    if ( json.len >= 3 &&
+         (unsigned char)json.text[0] == 0xEF &&
+         (unsigned char)json.text[1] == 0xBB &&
+         (unsigned char)json.text[2] == 0xBF ) {
+        json.pos = 3;
+    }
     ok = xl6PackageManifestParseRoot(&json, manifest);
     xrtFree(text);
     xl6PackageDirName(dir, sizeof(dir), path);
@@ -767,15 +769,12 @@ int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest)
     if ( ok && manifest->abiVersion == NULL ) {
         manifest->abiVersion = xl6PackageDupText("1");
     }
-    if ( ok && manifest->xapi == NULL ) {
-        manifest->xapi = xl6PackageDupText("package.xapi.json");
-    }
     if ( ok ) {
         manifest->dir = xl6PackageDupText(dir);
         xl6PackageMakePackageId(packageId, sizeof(packageId), manifest->name, manifest->version, manifest->abiVersion);
         manifest->packageId = xl6PackageDupText(packageId);
         if ( manifest->name == NULL || manifest->version == NULL || manifest->abiVersion == NULL ||
-             manifest->xapi == NULL || manifest->dir == NULL || manifest->packageId == NULL ) {
+             manifest->dir == NULL || manifest->packageId == NULL ) {
             ok = 0;
         }
     }
@@ -785,29 +784,9 @@ int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest)
     return ok;
 }
 
-static void xl6PackageFinalizeXapiResult(XL6_PackageResolveResult* result)
-{
-    char base[128];
-    size_t baseLen;
-
-    xl6PackageDirName(result->packageDir, sizeof(result->packageDir), result->manifestPath);
-    xl6PackageCopyText(result->interfacePath, sizeof(result->interfacePath), result->manifestPath);
-    xl6PackageBaseNameNoExt(base, sizeof(base), result->manifestPath);
-    baseLen = strlen(base);
-    if ( baseLen > 5 && strcmp(base + baseLen - 5, ".xapi") == 0 ) {
-        base[baseLen - 5] = '\0';
-    }
-    xl6PackageCopyText(result->packageName, sizeof(result->packageName), base);
-    xl6PackageCopyText(result->packageVersion, sizeof(result->packageVersion), "0.0.0");
-    xl6PackageCopyText(result->abiVersion, sizeof(result->abiVersion), "1");
-    xl6PackageMakePackageId(result->packageId, sizeof(result->packageId),
-                            result->packageName, result->packageVersion, result->abiVersion);
-}
-
 static int xl6PackageFinalizeManifestResult(XL6_PackageResolveResult* result)
 {
     XL6_PackageManifest manifest;
-    char xapiPath[512];
     int ok;
 
     xl6PackageManifestInit(&manifest);
@@ -815,15 +794,12 @@ static int xl6PackageFinalizeManifestResult(XL6_PackageResolveResult* result)
         xl6PackageManifestFree(&manifest);
         return 0;
     }
-    ok = xl6PackageJoinPath(xapiPath, sizeof(xapiPath), manifest.dir, manifest.xapi);
-    if ( ok ) {
-        xl6PackageCopyText(result->packageDir, sizeof(result->packageDir), manifest.dir);
-        xl6PackageCopyText(result->interfacePath, sizeof(result->interfacePath), xapiPath);
-        xl6PackageCopyText(result->packageName, sizeof(result->packageName), manifest.name);
-        xl6PackageCopyText(result->packageVersion, sizeof(result->packageVersion), manifest.version);
-        xl6PackageCopyText(result->abiVersion, sizeof(result->abiVersion), manifest.abiVersion);
-        xl6PackageCopyText(result->packageId, sizeof(result->packageId), manifest.packageId);
-    }
+    ok = 1;
+    xl6PackageCopyText(result->packageDir, sizeof(result->packageDir), manifest.dir);
+    xl6PackageCopyText(result->packageName, sizeof(result->packageName), manifest.name);
+    xl6PackageCopyText(result->packageVersion, sizeof(result->packageVersion), manifest.version);
+    xl6PackageCopyText(result->abiVersion, sizeof(result->abiVersion), manifest.abiVersion);
+    xl6PackageCopyText(result->packageId, sizeof(result->packageId), manifest.packageId);
     xl6PackageManifestFree(&manifest);
     return ok;
 }
@@ -839,10 +815,6 @@ static int xl6PackageTryManifest(XL6_PackageResolveResult* result, const char* p
     result->resolved = 1;
     result->kind = kind;
     xl6PackageCopyText(result->manifestPath, sizeof(result->manifestPath), path);
-    if ( xl6PackageEndsWith(path, ".xapi.json") ) {
-        xl6PackageFinalizeXapiResult(result);
-        return 1;
-    }
     if ( !xl6PackageFinalizeManifestResult(result) ) {
         xl6PackageResolveResultInit(result);
         return 0;
@@ -890,15 +862,7 @@ static int xl6PackageTryPathCandidates(XL6_PackageResolveResult* result, const c
     if ( xl6PackageTryManifest(result, path, XL6_PACKAGE_RESOLVE_FILE) ) {
         return 1;
     }
-    snprintf(path2, sizeof(path2), "%s.xapi.json", path);
-    if ( xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_FILE) ) {
-        return 1;
-    }
     if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
-         xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
-        return 1;
-    }
-    if ( xl6PackageJoinPath(path2, sizeof(path2), path, "package.xapi.json") &&
          xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
         return 1;
     }
@@ -930,10 +894,6 @@ static int xl6PackageTryNamedPackageInBase(XL6_PackageResolveResult* result, con
     }
     if ( xl6PackageJoinPath(path, sizeof(path), baseDir, target) ) {
         if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
-             xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
-            return 1;
-        }
-        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "package.xapi.json") &&
              xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
             return 1;
         }
@@ -1099,30 +1059,3 @@ int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_Pa
     return 0;
 }
 
-int xl6PackageResolveInterfacePath(const XL6_PackageResolveResult* result, char* out, size_t outSize)
-{
-    char dir[512];
-    char path[512];
-
-    if ( out == NULL || outSize == 0 ) {
-        return 0;
-    }
-    out[0] = '\0';
-    if ( result == NULL || !result->resolved || result->manifestPath[0] == '\0' ) {
-        return 0;
-    }
-    if ( result->interfacePath[0] != '\0' ) {
-        xl6PackageCopyText(out, outSize, result->interfacePath);
-        return 1;
-    }
-    if ( xl6PackageEndsWith(result->manifestPath, ".xapi.json") ) {
-        xl6PackageCopyText(out, outSize, result->manifestPath);
-        return 1;
-    }
-    xl6PackageDirName(dir, sizeof(dir), result->manifestPath);
-    if ( xl6PackageJoinPath(path, sizeof(path), dir, "package.xapi.json") && xrtFileExists((char*)path) ) {
-        xl6PackageCopyText(out, outSize, path);
-        return 1;
-    }
-    return 0;
-}

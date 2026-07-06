@@ -1,0 +1,8 @@
+extern "xl6_xlp_native_value" func nativeValue() as int
+
+func main(...) as int
+    if nativeValue() == 123 then
+        return 0
+    end
+    return 1
+end

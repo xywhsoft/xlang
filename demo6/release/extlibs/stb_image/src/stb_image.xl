@@ -1,0 +1,16 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+extern "xstbi_available" func __xl6_import_stb_image_available() as bool
+extern "xstbi_version" func __xl6_import_stb_image_version() as string
+extern "xstbi_last_error" func __xl6_import_stb_image_last_error() as string
+extern "xstbi_load" func __xl6_import_stb_image_load(string path, c_int desired_channels) as point
+extern "xstbi_loadf" func __xl6_import_stb_image_loadf(string path, c_int desired_channels) as point
+extern "xstbi_is_hdr" func __xl6_import_stb_image_is_hdr(string path) as c_int
+extern "xstbi_info_json" func __xl6_import_stb_image_info(string path) as string
+extern "xstbi_image_valid" func __xl6_import_stb_image_valid(point image) as c_int
+extern "xstbi_image_width" func __xl6_import_stb_image_width(point image) as c_int
+extern "xstbi_image_height" func __xl6_import_stb_image_height(point image) as c_int
+extern "xstbi_image_channels" func __xl6_import_stb_image_channels(point image) as c_int
+extern "xstbi_image_data" func __xl6_import_stb_image_data(point image) as point
+extern "xstbi_image_is_float" func __xl6_import_stb_image_is_float(point image) as c_int
+extern "xstbi_image_release" func __xl6_import_stb_image_release(point image) as c_int

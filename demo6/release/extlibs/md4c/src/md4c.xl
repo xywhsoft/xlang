@@ -1,0 +1,13 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+extern "xmd4c_available" func __xl6_import_md4c_available() as bool
+extern "xmd4c_version" func __xl6_import_md4c_version() as string
+extern "xmd4c_last_error" func __xl6_import_md4c_last_error() as string
+extern "xmd4c_html" func __xl6_import_md4c_html(string markdown) as string
+extern "xmd4c_html_flags" func __xl6_import_md4c_html_flags(string markdown, c_int parser_flags, c_int renderer_flags) as string
+extern "xmd4c_file_html" func __xl6_import_md4c_file_html(string path, c_int parser_flags, c_int renderer_flags) as string
+extern "xmd4c_commonmark_flags" func __xl6_import_md4c_commonmark_flags() as c_int
+extern "xmd4c_github_flags" func __xl6_import_md4c_github_flags() as c_int
+extern "xmd4c_xhtml_flag" func __xl6_import_md4c_xhtml_flag() as c_int
+extern "xmd4c_skip_utf8_bom_flag" func __xl6_import_md4c_skip_utf8_bom_flag() as c_int
+extern "xmd4c_verbatim_entities_flag" func __xl6_import_md4c_verbatim_entities_flag() as c_int

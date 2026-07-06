@@ -241,24 +241,6 @@ release\xl.exe parse test\cases\type_aliases.xl > build\test\type_aliases.ast.tx
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\type_aliases.xl
 if errorlevel 1 exit /b 1
-release\xl.exe xapi test\cases\export_alias.xl --emit build\test\export_alias.xapi.json
-if errorlevel 1 exit /b 1
-findstr /C:"\"type\":\"int\"" build\test\export_alias.xapi.json >nul
-if errorlevel 1 (
-    echo export_alias.xapi.json missing canonical alias type.
-    exit /b 1
-)
-findstr /C:"\"callingConvention\":\"cdecl\"" build\test\export_alias.xapi.json >nul
-if errorlevel 1 (
-    echo export_alias.xapi.json missing callable convention.
-    exit /b 1
-)
-findstr /C:"\"varargMode\":\"none\"" build\test\export_alias.xapi.json >nul
-if errorlevel 1 (
-    echo export_alias.xapi.json missing callable vararg mode.
-    exit /b 1
-)
-
 release\xl.exe parse test\cases\cgen_string_concat.xl > build\test\cgen_string_concat.ast.txt
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\cgen_string_concat.xl

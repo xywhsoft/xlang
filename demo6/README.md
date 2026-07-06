@@ -1,6 +1,6 @@
 # xlang DEMO6
 
-本目录是 xlang DEMO6 的当前实现目录。DEMO6 的设计目标是把已讨论并落盘的语言基础、C 混编、XRT 集成、标准库、XAPI/import/package、DLL 嵌入式运行等能力压实到发布候选质量。
+本目录是 xlang DEMO6 的当前实现目录。DEMO6 的设计目标是把已讨论并落盘的语言基础、C 混编、XRT 集成、标准库、source import/package、DLL 嵌入式运行等能力压实到发布候选质量。
 
 ## 入口文档
 
@@ -8,7 +8,8 @@
 - `cgenrule/README.md`：代码生成规则对照表入口，用于追踪 xlang 写法到 C 代码的生成路径。
 - `release/examples/README.md`：范例目录入口，说明当前可用写法、标准库范例、教学范例和功能套件。
 - `test/README.md`：测试资产入口，说明主回归、用例前缀、测试数据和 C fixture 守门。
-- `release/extlibs/README.md`：package/import/XAPI fixture 入口，说明扩展库系统测试资产。
+- `release/extlibs/README.md`：package/import 入口，说明扩展库系统发布资产。
+- `EXTLIB_NATIVE_TODO.md`：多 C 源扩展库和后续 native artifact 管理清单。
 - `tools/README.md`：工具链配置和守门脚本入口。
 - `src/README.md`：编译器源码分片说明。
 - `release/include/README.md`：对外 C API 头文件说明。

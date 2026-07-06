@@ -2656,1211 +2656,1211 @@ func smembers_json(Client client, string key) as string
 end
 
 // xl6 generated import wrappers begin
-func __xl6_import_x_redis_available() as bool
+func __xl6_import_redis_available() as bool
     return available()
 end
 
-func __xl6_import_x_redis_version() as string
+func __xl6_import_redis_version() as string
     return version()
 end
 
-func __xl6_import_x_redis_parser_last_error() as string
+func __xl6_import_redis_parser_last_error() as string
     return parser_last_error()
 end
 
-func __xl6_import_x_redis_resp_encode1(string p0) as string
+func __xl6_import_redis_resp_encode1(string p0) as string
     return resp_encode1(p0)
 end
 
-func __xl6_import_x_redis_resp_encode2(string p0, string p1) as string
+func __xl6_import_redis_resp_encode2(string p0, string p1) as string
     return resp_encode2(p0, p1)
 end
 
-func __xl6_import_x_redis_resp_encode3(string p0, string p1, string p2) as string
+func __xl6_import_redis_resp_encode3(string p0, string p1, string p2) as string
     return resp_encode3(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_resp_encode4(string p0, string p1, string p2, string p3) as string
+func __xl6_import_redis_resp_encode4(string p0, string p1, string p2, string p3) as string
     return resp_encode4(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_resp_encode5(string p0, string p1, string p2, string p3, string p4) as string
+func __xl6_import_redis_resp_encode5(string p0, string p1, string p2, string p3, string p4) as string
     return resp_encode5(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_resp_encode_array(list<string> p0) as string
+func __xl6_import_redis_resp_encode_array(list<string> p0) as string
     return resp_encode_array(p0)
 end
 
-func __xl6_import_x_redis_resp_encode_json(string p0) as string
+func __xl6_import_redis_resp_encode_json(string p0) as string
     return resp_encode_json(p0)
 end
 
-func __xl6_import_x_redis_resp_encode_pipeline_json(string p0) as string
+func __xl6_import_redis_resp_encode_pipeline_json(string p0) as string
     return resp_encode_pipeline_json(p0)
 end
 
-func __xl6_import_x_redis_parse_response_json(string p0) as string
+func __xl6_import_redis_parse_response_json(string p0) as string
     return parse_response_json(p0)
 end
 
-func __xl6_import_x_redis_parse_response_chunks_json(string p0, string p1) as string
+func __xl6_import_redis_parse_response_chunks_json(string p0, string p1) as string
     return parse_response_chunks_json(p0, p1)
 end
 
-func __xl6_import_x_redis_transport_name() as string
+func __xl6_import_redis_transport_name() as string
     return transport_name()
 end
 
-func __xl6_import_x_redis_transport_binary_safe() as bool
+func __xl6_import_redis_transport_binary_safe() as bool
     return transport_binary_safe()
 end
 
-func __xl6_import_x_redis_transport_tls() as bool
+func __xl6_import_redis_transport_tls() as bool
     return transport_tls()
 end
 
-func __xl6_import_x_redis_transport_limits_json() as string
+func __xl6_import_redis_transport_limits_json() as string
     return transport_limits_json()
 end
 
-func __xl6_import_x_redis_sentinel_capabilities_json() as string
+func __xl6_import_redis_sentinel_capabilities_json() as string
     return sentinel_capabilities_json()
 end
 
-func __xl6_import_x_redis_cluster_capabilities_json() as string
+func __xl6_import_redis_cluster_capabilities_json() as string
     return cluster_capabilities_json()
 end
 
-func __xl6_import_x_redis_argv_json1(string p0) as string
+func __xl6_import_redis_argv_json1(string p0) as string
     return argv_json1(p0)
 end
 
-func __xl6_import_x_redis_argv_json2(string p0, string p1) as string
+func __xl6_import_redis_argv_json2(string p0, string p1) as string
     return argv_json2(p0, p1)
 end
 
-func __xl6_import_x_redis_argv_json3(string p0, string p1, string p2) as string
+func __xl6_import_redis_argv_json3(string p0, string p1, string p2) as string
     return argv_json3(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_argv_json4(string p0, string p1, string p2, string p3) as string
+func __xl6_import_redis_argv_json4(string p0, string p1, string p2, string p3) as string
     return argv_json4(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_argv_json_list(string p0, array<string> p1) as string
+func __xl6_import_redis_argv_json_list(string p0, array<string> p1) as string
     return argv_json_list(p0, p1)
 end
 
-func __xl6_import_x_redis_pipeline_json_array(array<string> p0) as string
+func __xl6_import_redis_pipeline_json_array(array<string> p0) as string
     return pipeline_json_array(p0)
 end
 
-func __xl6_import_x_redis_pipeline_json1(string p0) as string
+func __xl6_import_redis_pipeline_json1(string p0) as string
     return pipeline_json1(p0)
 end
 
-func __xl6_import_x_redis_pipeline_json2(string p0, string p1) as string
+func __xl6_import_redis_pipeline_json2(string p0, string p1) as string
     return pipeline_json2(p0, p1)
 end
 
-func __xl6_import_x_redis_pipeline_json3(string p0, string p1, string p2) as string
+func __xl6_import_redis_pipeline_json3(string p0, string p1, string p2) as string
     return pipeline_json3(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_pipeline_json4(string p0, string p1, string p2, string p3) as string
+func __xl6_import_redis_pipeline_json4(string p0, string p1, string p2, string p3) as string
     return pipeline_json4(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_pipeline_json5(string p0, string p1, string p2, string p3, string p4) as string
+func __xl6_import_redis_pipeline_json5(string p0, string p1, string p2, string p3, string p4) as string
     return pipeline_json5(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_response_type(string p0) as string
+func __xl6_import_redis_response_type(string p0) as string
     return response_type(p0)
 end
 
-func __xl6_import_x_redis_response_value(string p0) as string
+func __xl6_import_redis_response_value(string p0) as string
     return response_value(p0)
 end
 
-func __xl6_import_x_redis_response_int(string p0) as int
+func __xl6_import_redis_response_int(string p0) as int
     return response_int(p0)
 end
 
-func __xl6_import_x_redis_response_bool(string p0) as bool
+func __xl6_import_redis_response_bool(string p0) as bool
     return response_bool(p0)
 end
 
-func __xl6_import_x_redis_response_double_text(string p0) as string
+func __xl6_import_redis_response_double_text(string p0) as string
     return response_double_text(p0)
 end
 
-func __xl6_import_x_redis_response_bignumber_text(string p0) as string
+func __xl6_import_redis_response_bignumber_text(string p0) as string
     return response_bignumber_text(p0)
 end
 
-func __xl6_import_x_redis_response_blob_error_text(string p0) as string
+func __xl6_import_redis_response_blob_error_text(string p0) as string
     return response_blob_error_text(p0)
 end
 
-func __xl6_import_x_redis_response_verbatim_text(string p0) as string
+func __xl6_import_redis_response_verbatim_text(string p0) as string
     return response_verbatim_text(p0)
 end
 
-func __xl6_import_x_redis_response_nil(string p0) as bool
+func __xl6_import_redis_response_nil(string p0) as bool
     return response_nil(p0)
 end
 
-func __xl6_import_x_redis_response_ok(string p0) as bool
+func __xl6_import_redis_response_ok(string p0) as bool
     return response_ok(p0)
 end
 
-func __xl6_import_x_redis_response_error(string p0) as bool
+func __xl6_import_redis_response_error(string p0) as bool
     return response_error(p0)
 end
 
-func __xl6_import_x_redis_response_error_text(string p0) as string
+func __xl6_import_redis_response_error_text(string p0) as string
     return response_error_text(p0)
 end
 
-func __xl6_import_x_redis_response_array_value(string p0, int p1) as string
+func __xl6_import_redis_response_array_value(string p0, int p1) as string
     return response_array_value(p0, p1)
 end
 
-func __xl6_import_x_redis_response_array_length(string p0) as int
+func __xl6_import_redis_response_array_length(string p0) as int
     return response_array_length(p0)
 end
 
-func __xl6_import_x_redis_response_set_value(string p0, int p1) as string
+func __xl6_import_redis_response_set_value(string p0, int p1) as string
     return response_set_value(p0, p1)
 end
 
-func __xl6_import_x_redis_response_set_length(string p0) as int
+func __xl6_import_redis_response_set_length(string p0) as int
     return response_set_length(p0)
 end
 
-func __xl6_import_x_redis_response_map_length(string p0) as int
+func __xl6_import_redis_response_map_length(string p0) as int
     return response_map_length(p0)
 end
 
-func __xl6_import_x_redis_response_map_key_value(string p0, int p1) as string
+func __xl6_import_redis_response_map_key_value(string p0, int p1) as string
     return response_map_key_value(p0, p1)
 end
 
-func __xl6_import_x_redis_response_map_value_value(string p0, int p1) as string
+func __xl6_import_redis_response_map_value_value(string p0, int p1) as string
     return response_map_value_value(p0, p1)
 end
 
-func __xl6_import_x_redis_response_map_value(string p0, string p1) as string
+func __xl6_import_redis_response_map_value(string p0, string p1) as string
     return response_map_value(p0, p1)
 end
 
-func __xl6_import_x_redis_response_map_has_key(string p0, string p1) as bool
+func __xl6_import_redis_response_map_has_key(string p0, string p1) as bool
     return response_map_has_key(p0, p1)
 end
 
-func __xl6_import_x_redis_connect(string p0, int p1) as Client
+func __xl6_import_redis_connect(string p0, int p1) as Client
     return xredis_connect(p0, p1)
 end
 
-func __xl6_import_x_redis_connect(string p0, int p1, int p2) as Client
+func __xl6_import_redis_connect(string p0, int p1, int p2) as Client
     return xredis_connect(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_close(Client p0) as bool
+func __xl6_import_redis_close(Client p0) as bool
     return xredis_close(p0)
 end
 
-func __xl6_import_x_redis_last_error(Client p0) as string
+func __xl6_import_redis_last_error(Client p0) as string
     return last_error(p0)
 end
 
-func __xl6_import_x_redis_pool(string p0, int p1, int p2) as Pool
+func __xl6_import_redis_pool(string p0, int p1, int p2) as Pool
     return pool(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_pool(string p0, int p1, int p2, int p3) as Pool
+func __xl6_import_redis_pool(string p0, int p1, int p2, int p3) as Pool
     return pool(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_pool_acquire(Pool p0) as Client
+func __xl6_import_redis_pool_acquire(Pool p0) as Client
     return pool_acquire(p0)
 end
 
-func __xl6_import_x_redis_pool_release(Pool p0, Client p1) as bool
+func __xl6_import_redis_pool_release(Pool p0, Client p1) as bool
     return pool_release(p0, p1)
 end
 
-func __xl6_import_x_redis_pool_close(Pool p0) as int
+func __xl6_import_redis_pool_close(Pool p0) as int
     return pool_close(p0)
 end
 
-func __xl6_import_x_redis_pool_idle_count(Pool p0) as int
+func __xl6_import_redis_pool_idle_count(Pool p0) as int
     return pool_idle_count(p0)
 end
 
-func __xl6_import_x_redis_cluster_slots_cache(string p0) as ClusterSlotsCache
+func __xl6_import_redis_cluster_slots_cache(string p0) as ClusterSlotsCache
     return cluster_slots_cache(p0)
 end
 
-func __xl6_import_x_redis_cluster_slots_cache_json(ClusterSlotsCache p0) as string
+func __xl6_import_redis_cluster_slots_cache_json(ClusterSlotsCache p0) as string
     return cluster_slots_cache_json(p0)
 end
 
-func __xl6_import_x_redis_cluster_slots_cache_valid(ClusterSlotsCache p0) as bool
+func __xl6_import_redis_cluster_slots_cache_valid(ClusterSlotsCache p0) as bool
     return cluster_slots_cache_valid(p0)
 end
 
-func __xl6_import_x_redis_cluster_slots_cache_refresh(ClusterSlotsCache p0, Client p1) as bool
+func __xl6_import_redis_cluster_slots_cache_refresh(ClusterSlotsCache p0, Client p1) as bool
     return cluster_slots_cache_refresh(p0, p1)
 end
 
-func __xl6_import_x_redis_command1(Client p0, string p1) as string
+func __xl6_import_redis_command1(Client p0, string p1) as string
     return command1(p0, p1)
 end
 
-func __xl6_import_x_redis_command2(Client p0, string p1, string p2) as string
+func __xl6_import_redis_command2(Client p0, string p1, string p2) as string
     return command2(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_command3(Client p0, string p1, string p2, string p3) as string
+func __xl6_import_redis_command3(Client p0, string p1, string p2, string p3) as string
     return command3(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_command4(Client p0, string p1, string p2, string p3, string p4) as string
+func __xl6_import_redis_command4(Client p0, string p1, string p2, string p3, string p4) as string
     return command4(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_command5(Client p0, string p1, string p2, string p3, string p4, string p5) as string
+func __xl6_import_redis_command5(Client p0, string p1, string p2, string p3, string p4, string p5) as string
     return command5(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_command_array(Client p0, list<string> p1) as string
+func __xl6_import_redis_command_array(Client p0, list<string> p1) as string
     return command_array(p0, p1)
 end
 
-func __xl6_import_x_redis_command_array(Client p0, array<string> p1) as string
+func __xl6_import_redis_command_array(Client p0, array<string> p1) as string
     return command_array(p0, p1)
 end
 
-func __xl6_import_x_redis_command_json(Client p0, string p1) as string
+func __xl6_import_redis_command_json(Client p0, string p1) as string
     return command_json(p0, p1)
 end
 
-func __xl6_import_x_redis_cluster_command_redirect_once_json(Client p0, string p1) as string
+func __xl6_import_redis_cluster_command_redirect_once_json(Client p0, string p1) as string
     return cluster_command_redirect_once_json(p0, p1)
 end
 
-func __xl6_import_x_redis_cluster_command_redirect_once_json(Client p0, string p1, int p2) as string
+func __xl6_import_redis_cluster_command_redirect_once_json(Client p0, string p1, int p2) as string
     return cluster_command_redirect_once_json(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_command_redirect_retry_json(Client p0, string p1, int p2) as string
+func __xl6_import_redis_cluster_command_redirect_retry_json(Client p0, string p1, int p2) as string
     return cluster_command_redirect_retry_json(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_command_redirect_retry_json(Client p0, string p1, int p2, int p3) as string
+func __xl6_import_redis_cluster_command_redirect_retry_json(Client p0, string p1, int p2, int p3) as string
     return cluster_command_redirect_retry_json(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_command_pipeline_json(Client p0, string p1) as string
+func __xl6_import_redis_command_pipeline_json(Client p0, string p1) as string
     return command_pipeline_json(p0, p1)
 end
 
-func __xl6_import_x_redis_read_response_json(Client p0) as string
+func __xl6_import_redis_read_response_json(Client p0) as string
     return read_response_json(p0)
 end
 
-func __xl6_import_x_redis_ping(Client p0) as string
+func __xl6_import_redis_ping(Client p0) as string
     return ping(p0)
 end
 
-func __xl6_import_x_redis_ping(Client p0, string p1) as string
+func __xl6_import_redis_ping(Client p0, string p1) as string
     return ping(p0, p1)
 end
 
-func __xl6_import_x_redis_auth(Client p0, string p1) as bool
+func __xl6_import_redis_auth(Client p0, string p1) as bool
     return auth(p0, p1)
 end
 
-func __xl6_import_x_redis_auth(Client p0, string p1, string p2) as bool
+func __xl6_import_redis_auth(Client p0, string p1, string p2) as bool
     return auth(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_hello(Client p0, int p1) as string
+func __xl6_import_redis_hello(Client p0, int p1) as string
     return hello(p0, p1)
 end
 
-func __xl6_import_x_redis_hello_auth(Client p0, int p1, string p2, string p3) as string
+func __xl6_import_redis_hello_auth(Client p0, int p1, string p2, string p3) as string
     return hello_auth(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_select(Client p0, int p1) as bool
+func __xl6_import_redis_select(Client p0, int p1) as bool
     return xredis_select(p0, p1)
 end
 
-func __xl6_import_x_redis_dbsize(Client p0) as int
+func __xl6_import_redis_dbsize(Client p0) as int
     return dbsize(p0)
 end
 
-func __xl6_import_x_redis_flushdb(Client p0) as bool
+func __xl6_import_redis_flushdb(Client p0) as bool
     return flushdb(p0)
 end
 
-func __xl6_import_x_redis_sentinel_masters_json(Client p0) as string
+func __xl6_import_redis_sentinel_masters_json(Client p0) as string
     return sentinel_masters_json(p0)
 end
 
-func __xl6_import_x_redis_sentinel_master_json(Client p0, string p1) as string
+func __xl6_import_redis_sentinel_master_json(Client p0, string p1) as string
     return sentinel_master_json(p0, p1)
 end
 
-func __xl6_import_x_redis_sentinel_get_master_addr_by_name_json(Client p0, string p1) as string
+func __xl6_import_redis_sentinel_get_master_addr_by_name_json(Client p0, string p1) as string
     return sentinel_get_master_addr_by_name_json(p0, p1)
 end
 
-func __xl6_import_x_redis_sentinel_replicas_json(Client p0, string p1) as string
+func __xl6_import_redis_sentinel_replicas_json(Client p0, string p1) as string
     return sentinel_replicas_json(p0, p1)
 end
 
-func __xl6_import_x_redis_sentinel_sentinels_json(Client p0, string p1) as string
+func __xl6_import_redis_sentinel_sentinels_json(Client p0, string p1) as string
     return sentinel_sentinels_json(p0, p1)
 end
 
-func __xl6_import_x_redis_cluster_info_json(Client p0) as string
+func __xl6_import_redis_cluster_info_json(Client p0) as string
     return cluster_info_json(p0)
 end
 
-func __xl6_import_x_redis_cluster_nodes_json(Client p0) as string
+func __xl6_import_redis_cluster_nodes_json(Client p0) as string
     return cluster_nodes_json(p0)
 end
 
-func __xl6_import_x_redis_cluster_slots_json(Client p0) as string
+func __xl6_import_redis_cluster_slots_json(Client p0) as string
     return cluster_slots_json(p0)
 end
 
-func __xl6_import_x_redis_cluster_slots_node_host(string p0, int p1) as string
+func __xl6_import_redis_cluster_slots_node_host(string p0, int p1) as string
     return cluster_slots_node_host(p0, p1)
 end
 
-func __xl6_import_x_redis_cluster_slots_node_port(string p0, int p1) as int
+func __xl6_import_redis_cluster_slots_node_port(string p0, int p1) as int
     return cluster_slots_node_port(p0, p1)
 end
 
-func __xl6_import_x_redis_cluster_connect_slot(string p0, int p1) as Client
+func __xl6_import_redis_cluster_connect_slot(string p0, int p1) as Client
     return cluster_connect_slot(p0, p1)
 end
 
-func __xl6_import_x_redis_cluster_connect_slot(string p0, int p1, int p2) as Client
+func __xl6_import_redis_cluster_connect_slot(string p0, int p1, int p2) as Client
     return cluster_connect_slot(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_keyslot(Client p0, string p1) as int
+func __xl6_import_redis_cluster_keyslot(Client p0, string p1) as int
     return cluster_keyslot(p0, p1)
 end
 
-func __xl6_import_x_redis_cluster_command_slot_once_json(Client p0, string p1, string p2, string p3) as string
+func __xl6_import_redis_cluster_command_slot_once_json(Client p0, string p1, string p2, string p3) as string
     return cluster_command_slot_once_json(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_command_slot_once_json(Client p0, string p1, string p2, string p3, int p4) as string
+func __xl6_import_redis_cluster_command_slot_once_json(Client p0, string p1, string p2, string p3, int p4) as string
     return cluster_command_slot_once_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_slot_retry_json(Client p0, string p1, string p2, string p3, int p4) as string
+func __xl6_import_redis_cluster_command_slot_retry_json(Client p0, string p1, string p2, string p3, int p4) as string
     return cluster_command_slot_retry_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_slot_retry_json(Client p0, string p1, string p2, string p3, int p4, int p5) as string
+func __xl6_import_redis_cluster_command_slot_retry_json(Client p0, string p1, string p2, string p3, int p4, int p5) as string
     return cluster_command_slot_retry_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_key_once_json(Client p0, string p1, string p2) as string
+func __xl6_import_redis_cluster_command_key_once_json(Client p0, string p1, string p2) as string
     return cluster_command_key_once_json(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_command_key_once_json(Client p0, string p1, string p2, int p3) as string
+func __xl6_import_redis_cluster_command_key_once_json(Client p0, string p1, string p2, int p3) as string
     return cluster_command_key_once_json(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_command_key_retry_json(Client p0, string p1, string p2, int p3) as string
+func __xl6_import_redis_cluster_command_key_retry_json(Client p0, string p1, string p2, int p3) as string
     return cluster_command_key_retry_json(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_command_key_retry_json(Client p0, string p1, string p2, int p3, int p4) as string
+func __xl6_import_redis_cluster_command_key_retry_json(Client p0, string p1, string p2, int p3, int p4) as string
     return cluster_command_key_retry_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_slot_once_password_json(Client p0, string p1, string p2, string p3, string p4) as string
+func __xl6_import_redis_cluster_command_slot_once_password_json(Client p0, string p1, string p2, string p3, string p4) as string
     return cluster_command_slot_once_password_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_slot_once_password_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
+func __xl6_import_redis_cluster_command_slot_once_password_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
     return cluster_command_slot_once_password_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_slot_retry_password_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
+func __xl6_import_redis_cluster_command_slot_retry_password_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
     return cluster_command_slot_retry_password_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_slot_retry_password_json(Client p0, string p1, string p2, string p3, string p4, int p5, int p6) as string
+func __xl6_import_redis_cluster_command_slot_retry_password_json(Client p0, string p1, string p2, string p3, string p4, int p5, int p6) as string
     return cluster_command_slot_retry_password_json(p0, p1, p2, p3, p4, p5, p6)
 end
 
-func __xl6_import_x_redis_cluster_command_slot_once_auth_json(Client p0, string p1, string p2, string p3, string p4, string p5) as string
+func __xl6_import_redis_cluster_command_slot_once_auth_json(Client p0, string p1, string p2, string p3, string p4, string p5) as string
     return cluster_command_slot_once_auth_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_slot_once_auth_json(Client p0, string p1, string p2, string p3, string p4, string p5, int p6) as string
+func __xl6_import_redis_cluster_command_slot_once_auth_json(Client p0, string p1, string p2, string p3, string p4, string p5, int p6) as string
     return cluster_command_slot_once_auth_json(p0, p1, p2, p3, p4, p5, p6)
 end
 
-func __xl6_import_x_redis_cluster_command_slot_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, string p5, int p6) as string
+func __xl6_import_redis_cluster_command_slot_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, string p5, int p6) as string
     return cluster_command_slot_retry_auth_json(p0, p1, p2, p3, p4, p5, p6)
 end
 
-func __xl6_import_x_redis_cluster_command_slot_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, string p5, int p6, int p7) as string
+func __xl6_import_redis_cluster_command_slot_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, string p5, int p6, int p7) as string
     return cluster_command_slot_retry_auth_json(p0, p1, p2, p3, p4, p5, p6, p7)
 end
 
-func __xl6_import_x_redis_cluster_command_key_once_password_json(Client p0, string p1, string p2, string p3) as string
+func __xl6_import_redis_cluster_command_key_once_password_json(Client p0, string p1, string p2, string p3) as string
     return cluster_command_key_once_password_json(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_command_key_once_password_json(Client p0, string p1, string p2, string p3, int p4) as string
+func __xl6_import_redis_cluster_command_key_once_password_json(Client p0, string p1, string p2, string p3, int p4) as string
     return cluster_command_key_once_password_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_key_retry_password_json(Client p0, string p1, string p2, string p3, int p4) as string
+func __xl6_import_redis_cluster_command_key_retry_password_json(Client p0, string p1, string p2, string p3, int p4) as string
     return cluster_command_key_retry_password_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_key_retry_password_json(Client p0, string p1, string p2, string p3, int p4, int p5) as string
+func __xl6_import_redis_cluster_command_key_retry_password_json(Client p0, string p1, string p2, string p3, int p4, int p5) as string
     return cluster_command_key_retry_password_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_key_once_auth_json(Client p0, string p1, string p2, string p3, string p4) as string
+func __xl6_import_redis_cluster_command_key_once_auth_json(Client p0, string p1, string p2, string p3, string p4) as string
     return cluster_command_key_once_auth_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_key_once_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
+func __xl6_import_redis_cluster_command_key_once_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
     return cluster_command_key_once_auth_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_key_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
+func __xl6_import_redis_cluster_command_key_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
     return cluster_command_key_retry_auth_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_key_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5, int p6) as string
+func __xl6_import_redis_cluster_command_key_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5, int p6) as string
     return cluster_command_key_retry_auth_json(p0, p1, p2, p3, p4, p5, p6)
 end
 
-func __xl6_import_x_redis_cluster_command_cached_key_once_json(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
+func __xl6_import_redis_cluster_command_cached_key_once_json(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
     return cluster_command_cached_key_once_json(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_command_cached_key_once_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as string
+func __xl6_import_redis_cluster_command_cached_key_once_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as string
     return cluster_command_cached_key_once_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_cached_key_retry_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as string
+func __xl6_import_redis_cluster_command_cached_key_retry_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as string
     return cluster_command_cached_key_retry_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_cached_key_retry_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4, int p5) as string
+func __xl6_import_redis_cluster_command_cached_key_retry_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4, int p5) as string
     return cluster_command_cached_key_retry_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_cache_refresh_key_once_json(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
+func __xl6_import_redis_cluster_command_cache_refresh_key_once_json(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
     return cluster_command_cache_refresh_key_once_json(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_command_cache_refresh_key_once_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as string
+func __xl6_import_redis_cluster_command_cache_refresh_key_once_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as string
     return cluster_command_cache_refresh_key_once_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_cache_refresh_key_retry_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as string
+func __xl6_import_redis_cluster_command_cache_refresh_key_retry_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as string
     return cluster_command_cache_refresh_key_retry_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_cache_refresh_key_retry_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4, int p5) as string
+func __xl6_import_redis_cluster_command_cache_refresh_key_retry_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4, int p5) as string
     return cluster_command_cache_refresh_key_retry_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_cached_key_once_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4) as string
+func __xl6_import_redis_cluster_command_cached_key_once_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4) as string
     return cluster_command_cached_key_once_password_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_cached_key_once_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5) as string
+func __xl6_import_redis_cluster_command_cached_key_once_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5) as string
     return cluster_command_cached_key_once_password_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_cached_key_retry_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5) as string
+func __xl6_import_redis_cluster_command_cached_key_retry_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5) as string
     return cluster_command_cached_key_retry_password_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_cached_key_retry_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5, int p6) as string
+func __xl6_import_redis_cluster_command_cached_key_retry_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5, int p6) as string
     return cluster_command_cached_key_retry_password_json(p0, p1, p2, p3, p4, p5, p6)
 end
 
-func __xl6_import_x_redis_cluster_command_cached_key_once_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5) as string
+func __xl6_import_redis_cluster_command_cached_key_once_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5) as string
     return cluster_command_cached_key_once_auth_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_cached_key_once_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6) as string
+func __xl6_import_redis_cluster_command_cached_key_once_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6) as string
     return cluster_command_cached_key_once_auth_json(p0, p1, p2, p3, p4, p5, p6)
 end
 
-func __xl6_import_x_redis_cluster_command_cached_key_retry_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6) as string
+func __xl6_import_redis_cluster_command_cached_key_retry_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6) as string
     return cluster_command_cached_key_retry_auth_json(p0, p1, p2, p3, p4, p5, p6)
 end
 
-func __xl6_import_x_redis_cluster_command_cached_key_retry_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6, int p7) as string
+func __xl6_import_redis_cluster_command_cached_key_retry_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6, int p7) as string
     return cluster_command_cached_key_retry_auth_json(p0, p1, p2, p3, p4, p5, p6, p7)
 end
 
-func __xl6_import_x_redis_cluster_command_cache_refresh_key_once_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4) as string
+func __xl6_import_redis_cluster_command_cache_refresh_key_once_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4) as string
     return cluster_command_cache_refresh_key_once_password_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_command_cache_refresh_key_once_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5) as string
+func __xl6_import_redis_cluster_command_cache_refresh_key_once_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5) as string
     return cluster_command_cache_refresh_key_once_password_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_cache_refresh_key_retry_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5) as string
+func __xl6_import_redis_cluster_command_cache_refresh_key_retry_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5) as string
     return cluster_command_cache_refresh_key_retry_password_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_cache_refresh_key_retry_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5, int p6) as string
+func __xl6_import_redis_cluster_command_cache_refresh_key_retry_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5, int p6) as string
     return cluster_command_cache_refresh_key_retry_password_json(p0, p1, p2, p3, p4, p5, p6)
 end
 
-func __xl6_import_x_redis_cluster_command_cache_refresh_key_once_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5) as string
+func __xl6_import_redis_cluster_command_cache_refresh_key_once_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5) as string
     return cluster_command_cache_refresh_key_once_auth_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_cluster_command_cache_refresh_key_once_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6) as string
+func __xl6_import_redis_cluster_command_cache_refresh_key_once_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6) as string
     return cluster_command_cache_refresh_key_once_auth_json(p0, p1, p2, p3, p4, p5, p6)
 end
 
-func __xl6_import_x_redis_cluster_command_cache_refresh_key_retry_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6) as string
+func __xl6_import_redis_cluster_command_cache_refresh_key_retry_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6) as string
     return cluster_command_cache_refresh_key_retry_auth_json(p0, p1, p2, p3, p4, p5, p6)
 end
 
-func __xl6_import_x_redis_cluster_command_cache_refresh_key_retry_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6, int p7) as string
+func __xl6_import_redis_cluster_command_cache_refresh_key_retry_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6, int p7) as string
     return cluster_command_cache_refresh_key_retry_auth_json(p0, p1, p2, p3, p4, p5, p6, p7)
 end
 
-func __xl6_import_x_redis_cluster_myid(Client p0) as string
+func __xl6_import_redis_cluster_myid(Client p0) as string
     return cluster_myid(p0)
 end
 
-func __xl6_import_x_redis_cluster_redirect_type(string p0) as string
+func __xl6_import_redis_cluster_redirect_type(string p0) as string
     return cluster_redirect_type(p0)
 end
 
-func __xl6_import_x_redis_cluster_redirect_slot(string p0) as int
+func __xl6_import_redis_cluster_redirect_slot(string p0) as int
     return cluster_redirect_slot(p0)
 end
 
-func __xl6_import_x_redis_cluster_redirect_endpoint(string p0) as string
+func __xl6_import_redis_cluster_redirect_endpoint(string p0) as string
     return cluster_redirect_endpoint(p0)
 end
 
-func __xl6_import_x_redis_cluster_redirect_host(string p0) as string
+func __xl6_import_redis_cluster_redirect_host(string p0) as string
     return cluster_redirect_host(p0)
 end
 
-func __xl6_import_x_redis_cluster_redirect_port(string p0) as int
+func __xl6_import_redis_cluster_redirect_port(string p0) as int
     return cluster_redirect_port(p0)
 end
 
-func __xl6_import_x_redis_cluster_retryable_error(string p0) as bool
+func __xl6_import_redis_cluster_retryable_error(string p0) as bool
     return cluster_retryable_error(p0)
 end
 
-func __xl6_import_x_redis_cluster_connect_redirect(string p0) as Client
+func __xl6_import_redis_cluster_connect_redirect(string p0) as Client
     return cluster_connect_redirect(p0)
 end
 
-func __xl6_import_x_redis_cluster_connect_redirect(string p0, int p1) as Client
+func __xl6_import_redis_cluster_connect_redirect(string p0, int p1) as Client
     return cluster_connect_redirect(p0, p1)
 end
 
-func __xl6_import_x_redis_cluster_asking(Client p0) as bool
+func __xl6_import_redis_cluster_asking(Client p0) as bool
     return cluster_asking(p0)
 end
 
-func __xl6_import_x_redis_cluster_get(Client p0, ClusterSlotsCache p1, string p2) as string
+func __xl6_import_redis_cluster_get(Client p0, ClusterSlotsCache p1, string p2) as string
     return cluster_get(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_get_or(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
+func __xl6_import_redis_cluster_get_or(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
     return cluster_get_or(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_set(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
+func __xl6_import_redis_cluster_set(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
     return cluster_set(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_set_nx(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
+func __xl6_import_redis_cluster_set_nx(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
     return cluster_set_nx(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_set_xx(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
+func __xl6_import_redis_cluster_set_xx(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
     return cluster_set_xx(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_set_ex(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as bool
+func __xl6_import_redis_cluster_set_ex(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as bool
     return cluster_set_ex(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_mget_json(Client p0, ClusterSlotsCache p1, array<string> p2) as string
+func __xl6_import_redis_cluster_mget_json(Client p0, ClusterSlotsCache p1, array<string> p2) as string
     return cluster_mget_json(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_mset(Client p0, ClusterSlotsCache p1, array<string> p2) as bool
+func __xl6_import_redis_cluster_mset(Client p0, ClusterSlotsCache p1, array<string> p2) as bool
     return cluster_mset(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_append(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
+func __xl6_import_redis_cluster_append(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
     return cluster_append(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_strlen(Client p0, ClusterSlotsCache p1, string p2) as int
+func __xl6_import_redis_cluster_strlen(Client p0, ClusterSlotsCache p1, string p2) as int
     return cluster_strlen(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_del(Client p0, ClusterSlotsCache p1, string p2) as int
+func __xl6_import_redis_cluster_del(Client p0, ClusterSlotsCache p1, string p2) as int
     return cluster_del(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_exists(Client p0, ClusterSlotsCache p1, string p2) as bool
+func __xl6_import_redis_cluster_exists(Client p0, ClusterSlotsCache p1, string p2) as bool
     return cluster_exists(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_expire(Client p0, ClusterSlotsCache p1, string p2, int p3) as bool
+func __xl6_import_redis_cluster_expire(Client p0, ClusterSlotsCache p1, string p2, int p3) as bool
     return cluster_expire(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_persist(Client p0, ClusterSlotsCache p1, string p2) as bool
+func __xl6_import_redis_cluster_persist(Client p0, ClusterSlotsCache p1, string p2) as bool
     return cluster_persist(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_ttl(Client p0, ClusterSlotsCache p1, string p2) as int
+func __xl6_import_redis_cluster_ttl(Client p0, ClusterSlotsCache p1, string p2) as int
     return cluster_ttl(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_pttl(Client p0, ClusterSlotsCache p1, string p2) as int
+func __xl6_import_redis_cluster_pttl(Client p0, ClusterSlotsCache p1, string p2) as int
     return cluster_pttl(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_incr(Client p0, ClusterSlotsCache p1, string p2) as int
+func __xl6_import_redis_cluster_incr(Client p0, ClusterSlotsCache p1, string p2) as int
     return cluster_incr(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_incr_by(Client p0, ClusterSlotsCache p1, string p2, int p3) as int
+func __xl6_import_redis_cluster_incr_by(Client p0, ClusterSlotsCache p1, string p2, int p3) as int
     return cluster_incr_by(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_decr(Client p0, ClusterSlotsCache p1, string p2) as int
+func __xl6_import_redis_cluster_decr(Client p0, ClusterSlotsCache p1, string p2) as int
     return cluster_decr(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_decr_by(Client p0, ClusterSlotsCache p1, string p2, int p3) as int
+func __xl6_import_redis_cluster_decr_by(Client p0, ClusterSlotsCache p1, string p2, int p3) as int
     return cluster_decr_by(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_hget(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
+func __xl6_import_redis_cluster_hget(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
     return cluster_hget(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_hget_or(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4) as string
+func __xl6_import_redis_cluster_hget_or(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4) as string
     return cluster_hget_or(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_hset(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4) as int
+func __xl6_import_redis_cluster_hset(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4) as int
     return cluster_hset(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_hdel(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
+func __xl6_import_redis_cluster_hdel(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
     return cluster_hdel(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_hexists(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
+func __xl6_import_redis_cluster_hexists(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
     return cluster_hexists(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_hlen(Client p0, ClusterSlotsCache p1, string p2) as int
+func __xl6_import_redis_cluster_hlen(Client p0, ClusterSlotsCache p1, string p2) as int
     return cluster_hlen(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_hstrlen(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
+func __xl6_import_redis_cluster_hstrlen(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
     return cluster_hstrlen(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_hgetall_json(Client p0, ClusterSlotsCache p1, string p2) as string
+func __xl6_import_redis_cluster_hgetall_json(Client p0, ClusterSlotsCache p1, string p2) as string
     return cluster_hgetall_json(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_lpush(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
+func __xl6_import_redis_cluster_lpush(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
     return cluster_lpush(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_rpush(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
+func __xl6_import_redis_cluster_rpush(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
     return cluster_rpush(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_lpop(Client p0, ClusterSlotsCache p1, string p2) as string
+func __xl6_import_redis_cluster_lpop(Client p0, ClusterSlotsCache p1, string p2) as string
     return cluster_lpop(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_lpop_or(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
+func __xl6_import_redis_cluster_lpop_or(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
     return cluster_lpop_or(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_rpop(Client p0, ClusterSlotsCache p1, string p2) as string
+func __xl6_import_redis_cluster_rpop(Client p0, ClusterSlotsCache p1, string p2) as string
     return cluster_rpop(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_rpop_or(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
+func __xl6_import_redis_cluster_rpop_or(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
     return cluster_rpop_or(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_llen(Client p0, ClusterSlotsCache p1, string p2) as int
+func __xl6_import_redis_cluster_llen(Client p0, ClusterSlotsCache p1, string p2) as int
     return cluster_llen(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_cluster_lrange_json(Client p0, ClusterSlotsCache p1, string p2, int p3, int p4) as string
+func __xl6_import_redis_cluster_lrange_json(Client p0, ClusterSlotsCache p1, string p2, int p3, int p4) as string
     return cluster_lrange_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_cluster_sadd(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
+func __xl6_import_redis_cluster_sadd(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
     return cluster_sadd(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_srem(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
+func __xl6_import_redis_cluster_srem(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
     return cluster_srem(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_sismember(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
+func __xl6_import_redis_cluster_sismember(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
     return cluster_sismember(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_cluster_smembers_json(Client p0, ClusterSlotsCache p1, string p2) as string
+func __xl6_import_redis_cluster_smembers_json(Client p0, ClusterSlotsCache p1, string p2) as string
     return cluster_smembers_json(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_master_host(string p0) as string
+func __xl6_import_redis_sentinel_master_host(string p0) as string
     return sentinel_master_host(p0)
 end
 
-func __xl6_import_x_redis_sentinel_master_port(string p0) as int
+func __xl6_import_redis_sentinel_master_port(string p0) as int
     return sentinel_master_port(p0)
 end
 
-func __xl6_import_x_redis_sentinel_connect_master(Client p0, string p1) as Client
+func __xl6_import_redis_sentinel_connect_master(Client p0, string p1) as Client
     return sentinel_connect_master(p0, p1)
 end
 
-func __xl6_import_x_redis_sentinel_connect_master(Client p0, string p1, int p2) as Client
+func __xl6_import_redis_sentinel_connect_master(Client p0, string p1, int p2) as Client
     return sentinel_connect_master(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_command_master_once_json(Client p0, string p1, string p2) as string
+func __xl6_import_redis_sentinel_command_master_once_json(Client p0, string p1, string p2) as string
     return sentinel_command_master_once_json(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_command_master_once_json(Client p0, string p1, string p2, int p3) as string
+func __xl6_import_redis_sentinel_command_master_once_json(Client p0, string p1, string p2, int p3) as string
     return sentinel_command_master_once_json(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_command_master_retry_json(Client p0, string p1, string p2, int p3) as string
+func __xl6_import_redis_sentinel_command_master_retry_json(Client p0, string p1, string p2, int p3) as string
     return sentinel_command_master_retry_json(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_command_master_retry_json(Client p0, string p1, string p2, int p3, int p4) as string
+func __xl6_import_redis_sentinel_command_master_retry_json(Client p0, string p1, string p2, int p3, int p4) as string
     return sentinel_command_master_retry_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_sentinel_command_master_once_password_json(Client p0, string p1, string p2, string p3) as string
+func __xl6_import_redis_sentinel_command_master_once_password_json(Client p0, string p1, string p2, string p3) as string
     return sentinel_command_master_once_password_json(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_command_master_once_password_json(Client p0, string p1, string p2, string p3, int p4) as string
+func __xl6_import_redis_sentinel_command_master_once_password_json(Client p0, string p1, string p2, string p3, int p4) as string
     return sentinel_command_master_once_password_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_sentinel_command_master_retry_password_json(Client p0, string p1, string p2, string p3, int p4) as string
+func __xl6_import_redis_sentinel_command_master_retry_password_json(Client p0, string p1, string p2, string p3, int p4) as string
     return sentinel_command_master_retry_password_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_sentinel_command_master_retry_password_json(Client p0, string p1, string p2, string p3, int p4, int p5) as string
+func __xl6_import_redis_sentinel_command_master_retry_password_json(Client p0, string p1, string p2, string p3, int p4, int p5) as string
     return sentinel_command_master_retry_password_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_sentinel_command_master_once_auth_json(Client p0, string p1, string p2, string p3, string p4) as string
+func __xl6_import_redis_sentinel_command_master_once_auth_json(Client p0, string p1, string p2, string p3, string p4) as string
     return sentinel_command_master_once_auth_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_sentinel_command_master_once_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
+func __xl6_import_redis_sentinel_command_master_once_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
     return sentinel_command_master_once_auth_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_sentinel_command_master_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
+func __xl6_import_redis_sentinel_command_master_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
     return sentinel_command_master_retry_auth_json(p0, p1, p2, p3, p4, p5)
 end
 
-func __xl6_import_x_redis_sentinel_command_master_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5, int p6) as string
+func __xl6_import_redis_sentinel_command_master_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5, int p6) as string
     return sentinel_command_master_retry_auth_json(p0, p1, p2, p3, p4, p5, p6)
 end
 
-func __xl6_import_x_redis_sentinel_ping(Client p0, string p1) as string
+func __xl6_import_redis_sentinel_ping(Client p0, string p1) as string
     return sentinel_ping(p0, p1)
 end
 
-func __xl6_import_x_redis_sentinel_ping(Client p0, string p1, string p2) as string
+func __xl6_import_redis_sentinel_ping(Client p0, string p1, string p2) as string
     return sentinel_ping(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_select(Client p0, string p1, int p2) as bool
+func __xl6_import_redis_sentinel_select(Client p0, string p1, int p2) as bool
     return sentinel_select(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_dbsize(Client p0, string p1) as int
+func __xl6_import_redis_sentinel_dbsize(Client p0, string p1) as int
     return sentinel_dbsize(p0, p1)
 end
 
-func __xl6_import_x_redis_sentinel_get(Client p0, string p1, string p2) as string
+func __xl6_import_redis_sentinel_get(Client p0, string p1, string p2) as string
     return sentinel_get(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_get_or(Client p0, string p1, string p2, string p3) as string
+func __xl6_import_redis_sentinel_get_or(Client p0, string p1, string p2, string p3) as string
     return sentinel_get_or(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_set(Client p0, string p1, string p2, string p3) as bool
+func __xl6_import_redis_sentinel_set(Client p0, string p1, string p2, string p3) as bool
     return sentinel_set(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_set_nx(Client p0, string p1, string p2, string p3) as bool
+func __xl6_import_redis_sentinel_set_nx(Client p0, string p1, string p2, string p3) as bool
     return sentinel_set_nx(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_set_xx(Client p0, string p1, string p2, string p3) as bool
+func __xl6_import_redis_sentinel_set_xx(Client p0, string p1, string p2, string p3) as bool
     return sentinel_set_xx(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_set_ex(Client p0, string p1, string p2, string p3, int p4) as bool
+func __xl6_import_redis_sentinel_set_ex(Client p0, string p1, string p2, string p3, int p4) as bool
     return sentinel_set_ex(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_sentinel_mget_json(Client p0, string p1, array<string> p2) as string
+func __xl6_import_redis_sentinel_mget_json(Client p0, string p1, array<string> p2) as string
     return sentinel_mget_json(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_mset(Client p0, string p1, array<string> p2) as bool
+func __xl6_import_redis_sentinel_mset(Client p0, string p1, array<string> p2) as bool
     return sentinel_mset(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_append(Client p0, string p1, string p2, string p3) as int
+func __xl6_import_redis_sentinel_append(Client p0, string p1, string p2, string p3) as int
     return sentinel_append(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_strlen(Client p0, string p1, string p2) as int
+func __xl6_import_redis_sentinel_strlen(Client p0, string p1, string p2) as int
     return sentinel_strlen(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_del(Client p0, string p1, string p2) as int
+func __xl6_import_redis_sentinel_del(Client p0, string p1, string p2) as int
     return sentinel_del(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_exists(Client p0, string p1, string p2) as bool
+func __xl6_import_redis_sentinel_exists(Client p0, string p1, string p2) as bool
     return sentinel_exists(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_expire(Client p0, string p1, string p2, int p3) as bool
+func __xl6_import_redis_sentinel_expire(Client p0, string p1, string p2, int p3) as bool
     return sentinel_expire(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_persist(Client p0, string p1, string p2) as bool
+func __xl6_import_redis_sentinel_persist(Client p0, string p1, string p2) as bool
     return sentinel_persist(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_ttl(Client p0, string p1, string p2) as int
+func __xl6_import_redis_sentinel_ttl(Client p0, string p1, string p2) as int
     return sentinel_ttl(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_pttl(Client p0, string p1, string p2) as int
+func __xl6_import_redis_sentinel_pttl(Client p0, string p1, string p2) as int
     return sentinel_pttl(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_incr(Client p0, string p1, string p2) as int
+func __xl6_import_redis_sentinel_incr(Client p0, string p1, string p2) as int
     return sentinel_incr(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_incr_by(Client p0, string p1, string p2, int p3) as int
+func __xl6_import_redis_sentinel_incr_by(Client p0, string p1, string p2, int p3) as int
     return sentinel_incr_by(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_decr(Client p0, string p1, string p2) as int
+func __xl6_import_redis_sentinel_decr(Client p0, string p1, string p2) as int
     return sentinel_decr(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_decr_by(Client p0, string p1, string p2, int p3) as int
+func __xl6_import_redis_sentinel_decr_by(Client p0, string p1, string p2, int p3) as int
     return sentinel_decr_by(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_hget(Client p0, string p1, string p2, string p3) as string
+func __xl6_import_redis_sentinel_hget(Client p0, string p1, string p2, string p3) as string
     return sentinel_hget(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_hget_or(Client p0, string p1, string p2, string p3, string p4) as string
+func __xl6_import_redis_sentinel_hget_or(Client p0, string p1, string p2, string p3, string p4) as string
     return sentinel_hget_or(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_sentinel_hset(Client p0, string p1, string p2, string p3, string p4) as int
+func __xl6_import_redis_sentinel_hset(Client p0, string p1, string p2, string p3, string p4) as int
     return sentinel_hset(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_sentinel_hdel(Client p0, string p1, string p2, string p3) as int
+func __xl6_import_redis_sentinel_hdel(Client p0, string p1, string p2, string p3) as int
     return sentinel_hdel(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_hexists(Client p0, string p1, string p2, string p3) as bool
+func __xl6_import_redis_sentinel_hexists(Client p0, string p1, string p2, string p3) as bool
     return sentinel_hexists(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_hlen(Client p0, string p1, string p2) as int
+func __xl6_import_redis_sentinel_hlen(Client p0, string p1, string p2) as int
     return sentinel_hlen(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_hstrlen(Client p0, string p1, string p2, string p3) as int
+func __xl6_import_redis_sentinel_hstrlen(Client p0, string p1, string p2, string p3) as int
     return sentinel_hstrlen(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_hgetall_json(Client p0, string p1, string p2) as string
+func __xl6_import_redis_sentinel_hgetall_json(Client p0, string p1, string p2) as string
     return sentinel_hgetall_json(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_lpush(Client p0, string p1, string p2, string p3) as int
+func __xl6_import_redis_sentinel_lpush(Client p0, string p1, string p2, string p3) as int
     return sentinel_lpush(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_rpush(Client p0, string p1, string p2, string p3) as int
+func __xl6_import_redis_sentinel_rpush(Client p0, string p1, string p2, string p3) as int
     return sentinel_rpush(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_lpop(Client p0, string p1, string p2) as string
+func __xl6_import_redis_sentinel_lpop(Client p0, string p1, string p2) as string
     return sentinel_lpop(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_lpop_or(Client p0, string p1, string p2, string p3) as string
+func __xl6_import_redis_sentinel_lpop_or(Client p0, string p1, string p2, string p3) as string
     return sentinel_lpop_or(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_rpop(Client p0, string p1, string p2) as string
+func __xl6_import_redis_sentinel_rpop(Client p0, string p1, string p2) as string
     return sentinel_rpop(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_rpop_or(Client p0, string p1, string p2, string p3) as string
+func __xl6_import_redis_sentinel_rpop_or(Client p0, string p1, string p2, string p3) as string
     return sentinel_rpop_or(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_llen(Client p0, string p1, string p2) as int
+func __xl6_import_redis_sentinel_llen(Client p0, string p1, string p2) as int
     return sentinel_llen(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sentinel_lrange_json(Client p0, string p1, string p2, int p3, int p4) as string
+func __xl6_import_redis_sentinel_lrange_json(Client p0, string p1, string p2, int p3, int p4) as string
     return sentinel_lrange_json(p0, p1, p2, p3, p4)
 end
 
-func __xl6_import_x_redis_sentinel_sadd(Client p0, string p1, string p2, string p3) as int
+func __xl6_import_redis_sentinel_sadd(Client p0, string p1, string p2, string p3) as int
     return sentinel_sadd(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_srem(Client p0, string p1, string p2, string p3) as int
+func __xl6_import_redis_sentinel_srem(Client p0, string p1, string p2, string p3) as int
     return sentinel_srem(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_sismember(Client p0, string p1, string p2, string p3) as bool
+func __xl6_import_redis_sentinel_sismember(Client p0, string p1, string p2, string p3) as bool
     return sentinel_sismember(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sentinel_smembers_json(Client p0, string p1, string p2) as string
+func __xl6_import_redis_sentinel_smembers_json(Client p0, string p1, string p2) as string
     return sentinel_smembers_json(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_subscribe(Client p0, string p1) as string
+func __xl6_import_redis_subscribe(Client p0, string p1) as string
     return subscribe(p0, p1)
 end
 
-func __xl6_import_x_redis_unsubscribe(Client p0, string p1) as string
+func __xl6_import_redis_unsubscribe(Client p0, string p1) as string
     return unsubscribe(p0, p1)
 end
 
-func __xl6_import_x_redis_publish(Client p0, string p1, string p2) as int
+func __xl6_import_redis_publish(Client p0, string p1, string p2) as int
     return publish(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_get_value(Client p0, string p1) as string
+func __xl6_import_redis_get_value(Client p0, string p1) as string
     return get_value(p0, p1)
 end
 
-func __xl6_import_x_redis_get_or(Client p0, string p1, string p2) as string
+func __xl6_import_redis_get_or(Client p0, string p1, string p2) as string
     return get_or(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_exists(Client p0, string p1) as bool
+func __xl6_import_redis_exists(Client p0, string p1) as bool
     return xredis_exists(p0, p1)
 end
 
-func __xl6_import_x_redis_set(Client p0, string p1, string p2) as bool
+func __xl6_import_redis_set(Client p0, string p1, string p2) as bool
     return xredis_set(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_set_nx(Client p0, string p1, string p2) as bool
+func __xl6_import_redis_set_nx(Client p0, string p1, string p2) as bool
     return set_nx(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_set_xx(Client p0, string p1, string p2) as bool
+func __xl6_import_redis_set_xx(Client p0, string p1, string p2) as bool
     return set_xx(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_set_ex(Client p0, string p1, string p2, int p3) as bool
+func __xl6_import_redis_set_ex(Client p0, string p1, string p2, int p3) as bool
     return set_ex(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_mget_json(Client p0, array<string> p1) as string
+func __xl6_import_redis_mget_json(Client p0, array<string> p1) as string
     return mget_json(p0, p1)
 end
 
-func __xl6_import_x_redis_mset(Client p0, array<string> p1) as bool
+func __xl6_import_redis_mset(Client p0, array<string> p1) as bool
     return mset(p0, p1)
 end
 
-func __xl6_import_x_redis_append(Client p0, string p1, string p2) as int
+func __xl6_import_redis_append(Client p0, string p1, string p2) as int
     return append(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_strlen(Client p0, string p1) as int
+func __xl6_import_redis_strlen(Client p0, string p1) as int
     return xredis_strlen(p0, p1)
 end
 
-func __xl6_import_x_redis_del(Client p0, string p1) as int
+func __xl6_import_redis_del(Client p0, string p1) as int
     return xredis_del(p0, p1)
 end
 
-func __xl6_import_x_redis_expire(Client p0, string p1, int p2) as bool
+func __xl6_import_redis_expire(Client p0, string p1, int p2) as bool
     return expire(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_persist(Client p0, string p1) as bool
+func __xl6_import_redis_persist(Client p0, string p1) as bool
     return persist(p0, p1)
 end
 
-func __xl6_import_x_redis_ttl(Client p0, string p1) as int
+func __xl6_import_redis_ttl(Client p0, string p1) as int
     return ttl(p0, p1)
 end
 
-func __xl6_import_x_redis_pttl(Client p0, string p1) as int
+func __xl6_import_redis_pttl(Client p0, string p1) as int
     return pttl(p0, p1)
 end
 
-func __xl6_import_x_redis_incr(Client p0, string p1) as int
+func __xl6_import_redis_incr(Client p0, string p1) as int
     return incr(p0, p1)
 end
 
-func __xl6_import_x_redis_incr_by(Client p0, string p1, int p2) as int
+func __xl6_import_redis_incr_by(Client p0, string p1, int p2) as int
     return incr_by(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_decr(Client p0, string p1) as int
+func __xl6_import_redis_decr(Client p0, string p1) as int
     return decr(p0, p1)
 end
 
-func __xl6_import_x_redis_decr_by(Client p0, string p1, int p2) as int
+func __xl6_import_redis_decr_by(Client p0, string p1, int p2) as int
     return decr_by(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_hget(Client p0, string p1, string p2) as string
+func __xl6_import_redis_hget(Client p0, string p1, string p2) as string
     return hget(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_hget_or(Client p0, string p1, string p2, string p3) as string
+func __xl6_import_redis_hget_or(Client p0, string p1, string p2, string p3) as string
     return hget_or(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_hset(Client p0, string p1, string p2, string p3) as int
+func __xl6_import_redis_hset(Client p0, string p1, string p2, string p3) as int
     return hset(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_hdel(Client p0, string p1, string p2) as int
+func __xl6_import_redis_hdel(Client p0, string p1, string p2) as int
     return hdel(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_hexists(Client p0, string p1, string p2) as bool
+func __xl6_import_redis_hexists(Client p0, string p1, string p2) as bool
     return hexists(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_hlen(Client p0, string p1) as int
+func __xl6_import_redis_hlen(Client p0, string p1) as int
     return hlen(p0, p1)
 end
 
-func __xl6_import_x_redis_hstrlen(Client p0, string p1, string p2) as int
+func __xl6_import_redis_hstrlen(Client p0, string p1, string p2) as int
     return hstrlen(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_hgetall_json(Client p0, string p1) as string
+func __xl6_import_redis_hgetall_json(Client p0, string p1) as string
     return hgetall_json(p0, p1)
 end
 
-func __xl6_import_x_redis_lpush(Client p0, string p1, string p2) as int
+func __xl6_import_redis_lpush(Client p0, string p1, string p2) as int
     return lpush(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_rpush(Client p0, string p1, string p2) as int
+func __xl6_import_redis_rpush(Client p0, string p1, string p2) as int
     return rpush(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_lpop(Client p0, string p1) as string
+func __xl6_import_redis_lpop(Client p0, string p1) as string
     return lpop(p0, p1)
 end
 
-func __xl6_import_x_redis_lpop_or(Client p0, string p1, string p2) as string
+func __xl6_import_redis_lpop_or(Client p0, string p1, string p2) as string
     return lpop_or(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_rpop(Client p0, string p1) as string
+func __xl6_import_redis_rpop(Client p0, string p1) as string
     return rpop(p0, p1)
 end
 
-func __xl6_import_x_redis_rpop_or(Client p0, string p1, string p2) as string
+func __xl6_import_redis_rpop_or(Client p0, string p1, string p2) as string
     return rpop_or(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_llen(Client p0, string p1) as int
+func __xl6_import_redis_llen(Client p0, string p1) as int
     return llen(p0, p1)
 end
 
-func __xl6_import_x_redis_lrange_json(Client p0, string p1, int p2, int p3) as string
+func __xl6_import_redis_lrange_json(Client p0, string p1, int p2, int p3) as string
     return lrange_json(p0, p1, p2, p3)
 end
 
-func __xl6_import_x_redis_sadd(Client p0, string p1, string p2) as int
+func __xl6_import_redis_sadd(Client p0, string p1, string p2) as int
     return sadd(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_srem(Client p0, string p1, string p2) as int
+func __xl6_import_redis_srem(Client p0, string p1, string p2) as int
     return srem(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_sismember(Client p0, string p1, string p2) as bool
+func __xl6_import_redis_sismember(Client p0, string p1, string p2) as bool
     return sismember(p0, p1, p2)
 end
 
-func __xl6_import_x_redis_smembers_json(Client p0, string p1) as string
+func __xl6_import_redis_smembers_json(Client p0, string p1) as string
     return smembers_json(p0, p1)
 end
 

@@ -10,7 +10,6 @@
     "dependencies":  [
 
                      ],
-    "xapi":  "package.xapi.json",
     "name":  "redis",
     "links":  [
                   "ws2_32"

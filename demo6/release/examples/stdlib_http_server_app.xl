@@ -1,0 +1,92 @@
+func firstApp(string method, string path, string query, string body) as string
+    return "first app"
+end
+
+func secondApp(string method, string path, string query, string body) as string
+    return "second app"
+end
+
+func hostApp(string method, string path, string query, string body) as string
+    return "host app"
+end
+
+func appRoute(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+
+    if req.path() == "/stream" then
+        resp.header("Content-Type", "text/plain; charset=utf-8")
+        if not resp.start() then
+            return false
+        end
+        resp.write("stream ")
+        resp.write("response")
+        return resp.finish()
+    end
+
+    return resp.text(req.path())
+end
+
+func appError(int status, string message, point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.status(status)
+    resp.header("X-App-Error", req.path())
+    return resp.text("app error " + status.toString() + ": " + message)
+end
+
+func(string, string, string, string) as string firstHandler = firstApp
+func(string, string, string, string) as string secondHandler = secondApp
+func(string, string, string, string) as string hostHandler = hostApp
+func(point, point) as bool appRequestHandler = appRoute
+func(int, string, point, point) as bool appErrorHandler = appError
+
+point server = http.server.create(0, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 1)
+point app1 = http.server.app()
+point app2 = http.server.app()
+point vhost = http.server.app()
+
+dir.createAll("examples_out/example_http_app_static")
+file.writeText("examples_out/example_http_app_static/index.txt", "app static")
+file.writeText("examples_out/example_http_app_static/home.txt", "app static ex")
+
+http.server.appGet(app1, "/", firstHandler)
+http.server.appPost(app1, "/post", firstHandler)
+http.server.appAny(app1, "/any", firstHandler)
+http.server.appRoute(app1, "OPTIONS", "/route", firstHandler)
+http.server.appGetRequest(app1, "/request", appRequestHandler)
+http.server.appGetRequest(app1, "/stream", appRequestHandler)
+http.server.appPostRequest(app1, "/request-post", appRequestHandler)
+http.server.appAnyRequest(app1, "/request-any", appRequestHandler)
+http.server.appRouteRequest(app1, "PUT|PATCH", "/request-generic", appRequestHandler)
+
+http.server.appGet(app2, "/", secondHandler)
+http.server.appAny(app2, "/any", secondHandler)
+http.server.appStatic(app2, "/public", "examples_out/example_http_app_static")
+http.server.appStaticEx(app2, "/assets", "examples_out/example_http_app_static", "home.txt", "max-age=60", 65536, 0)
+http.server.appError(app2, appErrorHandler)
+
+http.server.appGet(vhost, "/", hostHandler)
+
+http.server.setApp(server, app1)
+http.server.host(server, "x.local", vhost)
+http.server.reloadApp(server, app2)
+
+http.server.destroyApp(app1)
+http.server.destroyApp(app2)
+http.server.destroyApp(vhost)
+
+if http.server.start(server) then
+    assert http.server.port(server) > 0, "server port should be available"
+    assert http.server.requestCount(server) >= 0, "requestCount should be available"
+    assert http.server.connectionCount(server) >= 0, "connectionCount should be available"
+    time.sleep(200)
+    assert http.server.drain(server, 1000), "drain should stop listener and wait for app connections"
+    http.server.stop(server)
+end
+
+http.server.removeHost(server, "x.local")
+http.server.destroy(server)
+file.delete("examples_out/example_http_app_static/index.txt")
+file.delete("examples_out/example_http_app_static/home.txt")
+dir.delete("examples_out/example_http_app_static")

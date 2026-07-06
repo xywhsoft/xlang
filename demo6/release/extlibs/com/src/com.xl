@@ -90,66 +90,66 @@ class ComObject extends object
 
 end
 
-func __xl6_import_x_com_create(string progid) as point
+func __xl6_import_com_create(string progid) as point
 	return x_com_create(progid)
 end
 
-func __xl6_import_x_com_attach(point dispatch) as point
+func __xl6_import_com_attach(point dispatch) as point
 	return x_com_attach(dispatch)
 end
 
-func __xl6_import_x_com_test_object() as point
+func __xl6_import_com_test_object() as point
 	return x_com_attach(x_com_test_object())
 end
 
-func __xl6_import_x_com_available() as bool
+func __xl6_import_com_available() as bool
 	return x_com_available() != 0
 end
 
-func __xl6_import_x_com_version() as string
+func __xl6_import_com_version() as string
 	return x_com_version()
 end
 
-func __xl6_import_x_com_missing() as point
+func __xl6_import_com_missing() as point
 	return x_com_missing()
 end
 
-func __xl6_import_x_com_release(point handle) as int
+func __xl6_import_com_release(point handle) as int
 	return x_com_release(handle)
 end
 
-func __xl6_import_x_com_is_null(point handle) as int
+func __xl6_import_com_is_null(point handle) as int
 	return x_com_is_null(handle)
 end
 
-func __xl6_import_x_com_last_error() as string
+func __xl6_import_com_last_error() as string
 	return x_com_last_error()
 end
 
-func __xl6_import_x_com_get_text(point handle, string name) as string
+func __xl6_import_com_get_text(point handle, string name) as string
 	return x_com_get_text(handle, name)
 end
 
-func __xl6_import_x_com_get_int(point handle, string name) as int
+func __xl6_import_com_get_int(point handle, string name) as int
 	return x_com_get_int(handle, name)
 end
 
-func __xl6_import_x_com_put_var(point handle, string name, var value) as int
+func __xl6_import_com_put_var(point handle, string name, var value) as int
 	return x_com_put_var(handle, name, value)
 end
 
-func __xl6_import_x_com_put_ref(point handle, string name, var value) as int
+func __xl6_import_com_put_ref(point handle, string name, var value) as int
 	return x_com_put_ref(handle, name, value)
 end
 
-func __xl6_import_x_com_invoke(point handle, string name, array args) as var
+func __xl6_import_com_invoke(point handle, string name, array args) as var
 	return x_com_invoke_array(handle, name, args)
 end
 
-func __xl6_import_x_com_invoke_out(point handle, string name, array args, array byrefs) as var
+func __xl6_import_com_invoke_out(point handle, string name, array args, array byrefs) as var
 	return x_com_invoke_out(handle, name, args, byrefs)
 end
 
-func __xl6_import_x_com_invoke_named(point handle, string name, array args, array names) as var
+func __xl6_import_com_invoke_named(point handle, string name, array args, array names) as var
 	return x_com_invoke_named(handle, name, args, names)
 end

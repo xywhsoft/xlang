@@ -3,7 +3,6 @@
     "name":  "dinov3",
     "version":  "0.1.0",
     "abiVersion":  "1",
-    "xapi":  "package.xapi.json",
     "kind":  "demo6-extlib",
     "artifact":  {
                      "kind":  "source",

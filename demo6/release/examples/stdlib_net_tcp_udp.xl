@@ -16,10 +16,31 @@ string request = await received
 bool replied = peer.send("pong")
 bool replyDrained = peer.drain(3000)
 string reply = client.recv(8000)
+
+Buffer tcpBytes = Buffer()
+tcpBytes.appendByte(0)
+tcpBytes.appendByte(1)
+tcpBytes.appendByte(128)
+tcpBytes.appendByte(255)
+bool tcpBytesSent = client.sendBytes(tcpBytes.data(), c_size(tcpBytes.len()))
+bool tcpBytesDrained = client.drain(8000)
+Buffer tcpBytesRecv = peer.recvBytes(8000)
+
 client.close()
 peer.close()
 
-requireLine("tcp", tcpPort > 0 and sent and drained and request == "ping" and replied and replyDrained and reply == "pong")
+requireLine(
+    "tcp",
+    tcpPort > 0 and
+        sent and drained and request == "ping" and
+        replied and replyDrained and reply == "pong" and
+        tcpBytesSent and tcpBytesDrained and
+        tcpBytesRecv.len() == 4 and
+        tcpBytesRecv[0] == 0 and
+        tcpBytesRecv[1] == 1 and
+        tcpBytesRecv[2] == 128 and
+        tcpBytesRecv[3] == 255
+)
 
 TcpServer asyncServer = TcpServer(tcp.listen(0))
 int asyncPort = int(asyncServer.port())
@@ -47,7 +68,27 @@ UdpPacket packet = UdpPacket(right.recv(8000))
 bool udpReplySent = right.send("127.0.0.1", uint16(leftPort), "reply")
 UdpPacket replyPacket = UdpPacket(left.recv(8000))
 
-requireLine("udp", leftPort > 0 and rightPort > 0 and udpSent and packet.text() == "hello" and udpReplySent and replyPacket.text() == "reply")
+Buffer udpBytes = Buffer()
+udpBytes.appendByte(0)
+udpBytes.appendByte(2)
+udpBytes.appendByte(127)
+udpBytes.appendByte(255)
+bool udpBytesSent = left.sendBytes("127.0.0.1", uint16(rightPort), udpBytes.data(), c_size(udpBytes.len()))
+UdpPacket bytesPacket = UdpPacket(right.recv(8000))
+Buffer udpBytesRecv = bytesPacket.bytes()
+
+requireLine(
+    "udp",
+    leftPort > 0 and rightPort > 0 and
+        udpSent and packet.text() == "hello" and
+        udpReplySent and replyPacket.text() == "reply" and
+        udpBytesSent and
+        udpBytesRecv.len() == 4 and
+        udpBytesRecv[0] == 0 and
+        udpBytesRecv[1] == 2 and
+        udpBytesRecv[2] == 127 and
+        udpBytesRecv[3] == 255
+)
 
 UdpSocket asyncLeft = UdpSocket(udp.bind(0))
 UdpSocket asyncRight = UdpSocket(udp.bind(0))

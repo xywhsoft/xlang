@@ -444,90 +444,90 @@ func not_condition(Condition condition) as Condition
 	return Condition(x_uia_condition_not(condition.handle))
 end
 
-func __xl6_import_x_uia_version() as string
+func __xl6_import_uia_version() as string
 	return version()
 end
 
-func __xl6_import_x_uia_available() as bool
+func __xl6_import_uia_available() as bool
 	return available()
 end
 
-func __xl6_import_x_uia_last_error() as string
+func __xl6_import_uia_last_error() as string
 	return last_error()
 end
 
-func __xl6_import_x_uia_shutdown() as bool
+func __xl6_import_uia_shutdown() as bool
 	return shutdown()
 end
 
-func __xl6_import_x_uia_launch(string command) as Process
+func __xl6_import_uia_launch(string command) as Process
 	return launch(command)
 end
 
-func __xl6_import_x_uia_test_window() as TestWindow
+func __xl6_import_uia_test_window() as TestWindow
 	return test_window()
 end
 
-func __xl6_import_x_uia_desktop() as Element
+func __xl6_import_uia_desktop() as Element
 	return desktop()
 end
 
-func __xl6_import_x_uia_focused() as Element
+func __xl6_import_uia_focused() as Element
 	return focused()
 end
 
-func __xl6_import_x_uia_focused_locator() as string
+func __xl6_import_uia_focused_locator() as string
 	return focused_locator()
 end
 
-func __xl6_import_x_uia_from_hwnd(point hwnd) as Element
+func __xl6_import_uia_from_hwnd(point hwnd) as Element
 	return from_hwnd(hwnd)
 end
 
-func __xl6_import_x_uia_from_point(int x, int y) as Element
+func __xl6_import_uia_from_point(int x, int y) as Element
 	return from_point(x, y)
 end
 
-func __xl6_import_x_uia_events() as Events
+func __xl6_import_uia_events() as Events
 	return events()
 end
 
-func __xl6_import_x_uia_element(point handle) as Element
+func __xl6_import_uia_element(point handle) as Element
 	return element(handle)
 end
 
-func __xl6_import_x_uia_locator_for(Element element_value) as string
+func __xl6_import_uia_locator_for(Element element_value) as string
 	return locator_for(element_value)
 end
 
-func __xl6_import_x_uia_by_name(string name) as Condition
+func __xl6_import_uia_by_name(string name) as Condition
 	return by_name(name)
 end
 
-func __xl6_import_x_uia_by_process_id(int process_id) as Condition
+func __xl6_import_uia_by_process_id(int process_id) as Condition
 	return by_process_id(process_id)
 end
 
-func __xl6_import_x_uia_by_automation_id(string automation_id) as Condition
+func __xl6_import_uia_by_automation_id(string automation_id) as Condition
 	return by_automation_id(automation_id)
 end
 
-func __xl6_import_x_uia_by_class_name(string class_name) as Condition
+func __xl6_import_uia_by_class_name(string class_name) as Condition
 	return by_class_name(class_name)
 end
 
-func __xl6_import_x_uia_by_control_type(int control_type) as Condition
+func __xl6_import_uia_by_control_type(int control_type) as Condition
 	return by_control_type(control_type)
 end
 
-func __xl6_import_x_uia_all_of(Condition left, Condition right) as Condition
+func __xl6_import_uia_all_of(Condition left, Condition right) as Condition
 	return all_of(left, right)
 end
 
-func __xl6_import_x_uia_any_of(Condition left, Condition right) as Condition
+func __xl6_import_uia_any_of(Condition left, Condition right) as Condition
 	return any_of(left, right)
 end
 
-func __xl6_import_x_uia_not_condition(Condition condition) as Condition
+func __xl6_import_uia_not_condition(Condition condition) as Condition
 	return not_condition(condition)
 end

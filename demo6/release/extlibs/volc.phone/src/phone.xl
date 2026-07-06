@@ -657,239 +657,238 @@ func pull_file(string access_key, string secret_key, string session_token, strin
 	return call_default(access_key, secret_key, session_token, "PullFile", pull_file_body(product_id, pod_id, remote_path, local_path), timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_last_error() as string
+func __xl6_import_volc_phone_last_error() as string
 	return last_error()
 end
 
-func __xl6_import_x_volc_phone_available() as bool
+func __xl6_import_volc_phone_available() as bool
 	return available()
 end
 
-func __xl6_import_x_volc_phone_version() as string
+func __xl6_import_volc_phone_version() as string
 	return version()
 end
 
-func __xl6_import_x_volc_phone_call_spec(string spec) as Response
+func __xl6_import_volc_phone_call_spec(string spec) as Response
 	return call_spec(spec)
 end
 
-func __xl6_import_x_volc_phone_raw_spec(string spec) as string
+func __xl6_import_volc_phone_raw_spec(string spec) as string
 	return raw_spec(spec)
 end
 
-func __xl6_import_x_volc_phone_call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
+func __xl6_import_volc_phone_call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
 	return call(access_key, secret_key, session_token, action, version, body, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_raw_call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
+func __xl6_import_volc_phone_raw_call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
 	return raw_call(access_key, secret_key, session_token, action, version, body, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_call_default(string access_key, string secret_key, string session_token, string action, string body, int timeout_ms) as string
+func __xl6_import_volc_phone_call_default(string access_key, string secret_key, string session_token, string action, string body, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, action, body, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_product_body(string product_id) as string
+func __xl6_import_volc_phone_product_body(string product_id) as string
 	return product_body(product_id)
 end
 
-func __xl6_import_x_volc_phone_pod_body(string product_id, string pod_id) as string
+func __xl6_import_volc_phone_pod_body(string product_id, string pod_id) as string
 	return pod_body(product_id, pod_id)
 end
 
-func __xl6_import_x_volc_phone_create_pod_body(string product_id, string dc, string configuration_code, int resource_type, string host_id, string pod_name, string display_layout_id, bool start) as string
+func __xl6_import_volc_phone_create_pod_body(string product_id, string dc, string configuration_code, int resource_type, string host_id, string pod_name, string display_layout_id, bool start) as string
 	return create_pod_body(product_id, dc, configuration_code, resource_type, host_id, pod_name, display_layout_id, start)
 end
 
-func __xl6_import_x_volc_phone_create_pod_batch_body(string product_id, string dc, string configuration_code, int apply_num, int resource_type, string host_id, string pod_name, string display_layout_id, bool start) as string
+func __xl6_import_volc_phone_create_pod_batch_body(string product_id, string dc, string configuration_code, int apply_num, int resource_type, string host_id, string pod_name, string display_layout_id, bool start) as string
 	return create_pod_batch_body(product_id, dc, configuration_code, apply_num, resource_type, host_id, pod_name, display_layout_id, start)
 end
 
-func __xl6_import_x_volc_phone_pod_adb_body(string product_id, string pod_id, bool enable) as string
+func __xl6_import_volc_phone_pod_adb_body(string product_id, string pod_id, bool enable) as string
 	return pod_adb_body(product_id, pod_id, enable)
 end
 
-func __xl6_import_x_volc_phone_command_body(string product_id, string pod_id, string command) as string
+func __xl6_import_volc_phone_command_body(string product_id, string pod_id, string command) as string
 	return command_body(product_id, pod_id, command)
 end
 
-func __xl6_import_x_volc_phone_app_body(string product_id, string pod_id, string package_name) as string
+func __xl6_import_volc_phone_app_body(string product_id, string pod_id, string package_name) as string
 	return app_body(product_id, pod_id, package_name)
 end
 
-func __xl6_import_x_volc_phone_install_app_body(string product_id, string pod_id, string app_id, string version_id) as string
+func __xl6_import_volc_phone_install_app_body(string product_id, string pod_id, string app_id, string version_id) as string
 	return install_app_body(product_id, pod_id, app_id, version_id)
 end
 
-func __xl6_import_x_volc_phone_screenshot_body(string product_id, string pod_id, string round_id) as string
+func __xl6_import_volc_phone_screenshot_body(string product_id, string pod_id, string round_id) as string
 	return screenshot_body(product_id, pod_id, round_id)
 end
 
-func __xl6_import_x_volc_phone_batch_screenshot_body(string product_id, string pod_id_list_json, string round_id) as string
+func __xl6_import_volc_phone_batch_screenshot_body(string product_id, string pod_id_list_json, string round_id) as string
 	return batch_screenshot_body(product_id, pod_id_list_json, round_id)
 end
 
-func __xl6_import_x_volc_phone_recording_body(string product_id, string pod_id, string round_id, int duration_limit, bool saved_on_pod) as string
+func __xl6_import_volc_phone_recording_body(string product_id, string pod_id, string round_id, int duration_limit, bool saved_on_pod) as string
 	return recording_body(product_id, pod_id, round_id, duration_limit, saved_on_pod)
 end
 
-func __xl6_import_x_volc_phone_file_body(string product_id, string pod_id, string local_path, string remote_path) as string
+func __xl6_import_volc_phone_file_body(string product_id, string pod_id, string local_path, string remote_path) as string
 	return file_body(product_id, pod_id, local_path, remote_path)
 end
 
-func __xl6_import_x_volc_phone_pull_file_body(string product_id, string pod_id, string remote_path, string local_path) as string
+func __xl6_import_volc_phone_pull_file_body(string product_id, string pod_id, string remote_path, string local_path) as string
 	return pull_file_body(product_id, pod_id, remote_path, local_path)
 end
 
-func __xl6_import_x_volc_phone_normalize_response(string action, string raw) as Response
+func __xl6_import_volc_phone_normalize_response(string action, string raw) as Response
 	return normalize_response(action, raw)
 end
 
-func __xl6_import_x_volc_phone_response_json(string action, string raw) as string
+func __xl6_import_volc_phone_response_json(string action, string raw) as string
 	return response_json(action, raw)
 end
 
-func __xl6_import_x_volc_phone_json_string_field(string raw, string key) as string
+func __xl6_import_volc_phone_json_string_field(string raw, string key) as string
 	return json_string_field(raw, key)
 end
 
-func __xl6_import_x_volc_phone_json_int_field(string raw, string key) as int
+func __xl6_import_volc_phone_json_int_field(string raw, string key) as int
 	return json_int_field(raw, key)
 end
 
-func __xl6_import_x_volc_phone_json_section(string raw, string key) as string
+func __xl6_import_volc_phone_json_section(string raw, string key) as string
 	return json_section(raw, key)
 end
 
-func __xl6_import_x_volc_phone_client(string access_key, string secret_key, string product_id) as Client
+func __xl6_import_volc_phone_client(string access_key, string secret_key, string product_id) as Client
 	return client(access_key, secret_key, product_id)
 end
 
-func __xl6_import_x_volc_phone_client_token(string access_key, string secret_key, string session_token, string product_id) as Client
+func __xl6_import_volc_phone_client_token(string access_key, string secret_key, string session_token, string product_id) as Client
 	return client_token(access_key, secret_key, session_token, product_id)
 end
 
-func __xl6_import_x_volc_phone_list_pod(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
+func __xl6_import_volc_phone_list_pod(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
 	return list_pod(access_key, secret_key, session_token, product_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_list_host(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
+func __xl6_import_volc_phone_list_host(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
 	return list_host(access_key, secret_key, session_token, product_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_list_dc(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
+func __xl6_import_volc_phone_list_dc(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
 	return list_dc(access_key, secret_key, session_token, product_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_detail_pod(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+func __xl6_import_volc_phone_detail_pod(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return detail_pod(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_detail_host(string access_key, string secret_key, string session_token, string product_id, string host_id, int timeout_ms) as string
+func __xl6_import_volc_phone_detail_host(string access_key, string secret_key, string session_token, string product_id, string host_id, int timeout_ms) as string
 	return detail_host(access_key, secret_key, session_token, product_id, host_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_create_pod(string access_key, string secret_key, string session_token, string product_id, string dc, string configuration_code, int resource_type, string host_id, string pod_name, string display_layout_id, bool start, int timeout_ms) as string
+func __xl6_import_volc_phone_create_pod(string access_key, string secret_key, string session_token, string product_id, string dc, string configuration_code, int resource_type, string host_id, string pod_name, string display_layout_id, bool start, int timeout_ms) as string
 	return create_pod(access_key, secret_key, session_token, product_id, dc, configuration_code, resource_type, host_id, pod_name, display_layout_id, start, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_create_pod_batch(string access_key, string secret_key, string session_token, string product_id, string dc, string configuration_code, int apply_num, int resource_type, string host_id, string pod_name, string display_layout_id, bool start, int timeout_ms) as string
+func __xl6_import_volc_phone_create_pod_batch(string access_key, string secret_key, string session_token, string product_id, string dc, string configuration_code, int apply_num, int resource_type, string host_id, string pod_name, string display_layout_id, bool start, int timeout_ms) as string
 	return create_pod_batch(access_key, secret_key, session_token, product_id, dc, configuration_code, apply_num, resource_type, host_id, pod_name, display_layout_id, start, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_power_on(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+func __xl6_import_volc_phone_power_on(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return power_on(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_power_off(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+func __xl6_import_volc_phone_power_off(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return power_off(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_reboot(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+func __xl6_import_volc_phone_reboot(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return reboot(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_reset(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+func __xl6_import_volc_phone_reset(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return reset(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_delete_pod(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+func __xl6_import_volc_phone_delete_pod(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return delete_pod(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_pod_adb(string access_key, string secret_key, string session_token, string product_id, string pod_id, bool enable, int timeout_ms) as string
+func __xl6_import_volc_phone_pod_adb(string access_key, string secret_key, string session_token, string product_id, string pod_id, bool enable, int timeout_ms) as string
 	return pod_adb(access_key, secret_key, session_token, product_id, pod_id, enable, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_run_sync_command(string access_key, string secret_key, string session_token, string product_id, string pod_id, string command, int timeout_ms) as string
+func __xl6_import_volc_phone_run_sync_command(string access_key, string secret_key, string session_token, string product_id, string pod_id, string command, int timeout_ms) as string
 	return run_sync_command(access_key, secret_key, session_token, product_id, pod_id, command, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_run_command(string access_key, string secret_key, string session_token, string product_id, string pod_id, string command, int timeout_ms) as string
+func __xl6_import_volc_phone_run_command(string access_key, string secret_key, string session_token, string product_id, string pod_id, string command, int timeout_ms) as string
 	return run_command(access_key, secret_key, session_token, product_id, pod_id, command, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_get_task_info(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms) as string
+func __xl6_import_volc_phone_get_task_info(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms) as string
 	return get_task_info(access_key, secret_key, session_token, product_id, task_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_task_state(string task_info_json) as string
+func __xl6_import_volc_phone_task_state(string task_info_json) as string
 	return task_state(task_info_json)
 end
 
-func __xl6_import_x_volc_phone_wait_task(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms, int poll_interval_ms) as string
+func __xl6_import_volc_phone_wait_task(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms, int poll_interval_ms) as string
 	return wait_task(access_key, secret_key, session_token, product_id, task_id, timeout_ms, poll_interval_ms)
 end
 
-func __xl6_import_x_volc_phone_install_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string app_id, string version_id, int timeout_ms) as string
+func __xl6_import_volc_phone_install_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string app_id, string version_id, int timeout_ms) as string
 	return install_app(access_key, secret_key, session_token, product_id, pod_id, app_id, version_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_launch_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string package_name, int timeout_ms) as string
+func __xl6_import_volc_phone_launch_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string package_name, int timeout_ms) as string
 	return launch_app(access_key, secret_key, session_token, product_id, pod_id, package_name, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_close_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string package_name, int timeout_ms) as string
+func __xl6_import_volc_phone_close_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string package_name, int timeout_ms) as string
 	return close_app(access_key, secret_key, session_token, product_id, pod_id, package_name, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_screenshot(string access_key, string secret_key, string session_token, string product_id, string pod_id, string round_id, int timeout_ms) as string
+func __xl6_import_volc_phone_screenshot(string access_key, string secret_key, string session_token, string product_id, string pod_id, string round_id, int timeout_ms) as string
 	return screenshot(access_key, secret_key, session_token, product_id, pod_id, round_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_batch_screenshot(string access_key, string secret_key, string session_token, string product_id, string pod_id_list_json, string round_id, int timeout_ms) as string
+func __xl6_import_volc_phone_batch_screenshot(string access_key, string secret_key, string session_token, string product_id, string pod_id_list_json, string round_id, int timeout_ms) as string
 	return batch_screenshot(access_key, secret_key, session_token, product_id, pod_id_list_json, round_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_start_recording(string access_key, string secret_key, string session_token, string product_id, string pod_id, string round_id, int duration_limit, bool saved_on_pod, int timeout_ms) as string
+func __xl6_import_volc_phone_start_recording(string access_key, string secret_key, string session_token, string product_id, string pod_id, string round_id, int duration_limit, bool saved_on_pod, int timeout_ms) as string
 	return start_recording(access_key, secret_key, session_token, product_id, pod_id, round_id, duration_limit, saved_on_pod, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_stop_recording(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+func __xl6_import_volc_phone_stop_recording(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return stop_recording(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_recording_download_url(string raw) as string
+func __xl6_import_volc_phone_recording_download_url(string raw) as string
 	return recording_download_url(raw)
 end
 
-func __xl6_import_x_volc_phone_pod_adb_endpoint(string detail_pod_json) as string
+func __xl6_import_volc_phone_pod_adb_endpoint(string detail_pod_json) as string
 	return pod_adb_endpoint(detail_pod_json)
 end
 
-func __xl6_import_x_volc_phone_pod_run_state(string detail_pod_json) as int
+func __xl6_import_volc_phone_pod_run_state(string detail_pod_json) as int
 	return pod_run_state(detail_pod_json)
 end
 
-func __xl6_import_x_volc_phone_host_remain_text(string detail_host_json) as string
+func __xl6_import_volc_phone_host_remain_text(string detail_host_json) as string
 	return host_remain_text(detail_host_json)
 end
 
-func __xl6_import_x_volc_phone_push_file(string access_key, string secret_key, string session_token, string product_id, string pod_id, string local_path, string remote_path, int timeout_ms) as string
+func __xl6_import_volc_phone_push_file(string access_key, string secret_key, string session_token, string product_id, string pod_id, string local_path, string remote_path, int timeout_ms) as string
 	return push_file(access_key, secret_key, session_token, product_id, pod_id, local_path, remote_path, timeout_ms)
 end
 
-func __xl6_import_x_volc_phone_pull_file(string access_key, string secret_key, string session_token, string product_id, string pod_id, string remote_path, string local_path, int timeout_ms) as string
+func __xl6_import_volc_phone_pull_file(string access_key, string secret_key, string session_token, string product_id, string pod_id, string remote_path, string local_path, int timeout_ms) as string
 	return pull_file(access_key, secret_key, session_token, product_id, pod_id, remote_path, local_path, timeout_ms)
 end
-

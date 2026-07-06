@@ -201,18 +201,61 @@ const char* xl6StdlibHttpServerClassSource =
     "    native point handle\n"
     "    extern \"xl6_xrt_http_request_wrap\" create(point handle)\n"
     "    extern \"xl6_xrt_http_request_method\" func methodNative() as point\n"
+    "    extern \"xl6_xrt_http_request_method_id\" func methodId() as int\n"
+    "    extern \"xl6_xrt_http_request_target\" func targetNative() as point\n"
     "    extern \"xl6_xrt_http_request_path\" func pathNative() as point\n"
     "    extern \"xl6_xrt_http_request_query\" func queryNative() as point\n"
+    "    extern \"xl6_xrt_http_request_query_count\" func queryCount() as int\n"
+    "    extern \"xl6_xrt_http_request_query_has_value\" func queryHasValue(int index) as bool\n"
+    "    extern \"xl6_xrt_http_request_query_name\" func queryNameNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_request_query_value_at\" func queryValueAtNative(int index) as point\n"
     "    extern \"xl6_xrt_http_request_header\" func headerNative(string name) as point\n"
+    "    extern \"xl6_xrt_http_request_header_count\" func headerCount() as int\n"
+    "    extern \"xl6_xrt_http_request_header_name\" func headerNameNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_request_header_value\" func headerValueNative(int index) as point\n"
     "    extern \"xl6_xrt_http_request_param\" func paramNative(string name) as point\n"
+    "    extern \"xl6_xrt_http_request_param_count\" func paramCount() as int\n"
+    "    extern \"xl6_xrt_http_request_param_name\" func paramNameNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_request_param_value\" func paramValueNative(int index) as point\n"
     "    extern \"xl6_xrt_http_request_query_value\" func queryValueNative(string name) as point\n"
     "    extern \"xl6_xrt_http_request_cookie\" func cookieNative(string name) as point\n"
+    "    extern \"xl6_xrt_http_request_cookie_count\" func cookieCount() as int\n"
+    "    extern \"xl6_xrt_http_request_cookie_name\" func cookieNameNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_request_cookie_value_at\" func cookieValueAtNative(int index) as point\n"
     "    extern \"xl6_xrt_http_request_body_text\" func bodyNative() as point\n"
     "    extern \"xl6_xrt_http_request_body_data\" func bodyData() as point\n"
     "    extern \"xl6_xrt_http_request_body_size\" func bodySize() as int\n"
+    "    extern \"xl6_xrt_http_request_body_buffer\" func bodyBytesNative() as point\n"
+    "    extern \"xl6_xrt_http_request_content_length\" func contentLength() as int\n"
+    "    extern \"xl6_xrt_http_request_content_type\" func contentTypeNative() as point\n"
+    "    extern \"xl6_xrt_http_request_is_form_urlencoded\" func isFormUrlEncoded() as bool\n"
+    "    extern \"xl6_xrt_http_request_form_count\" func formCount() as int\n"
+    "    extern \"xl6_xrt_http_request_form_has_value\" func formHasValue(int index) as bool\n"
+    "    extern \"xl6_xrt_http_request_form_name\" func formNameNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_request_form_value_at\" func formValueAtNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_request_form_value\" func formValueNative(string name) as point\n"
+    "    extern \"xl6_xrt_http_request_is_multipart_form\" func isMultipartForm() as bool\n"
+    "    extern \"xl6_xrt_http_request_multipart_count\" func multipartCount() as int\n"
+    "    extern \"xl6_xrt_http_request_multipart_is_file\" func multipartIsFile(int index) as bool\n"
+    "    extern \"xl6_xrt_http_request_multipart_name\" func multipartNameNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_request_multipart_file_name\" func multipartFileNameNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_request_multipart_content_type\" func multipartContentTypeNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_request_multipart_size\" func multipartSize(int index) as int\n"
+    "    extern \"xl6_xrt_http_request_multipart_text\" func multipartTextNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_request_multipart_bytes\" func multipartBytesNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_request_multipart_value\" func multipartValueNative(string name) as point\n"
+    "    extern \"xl6_xrt_http_request_local_addr\" func localAddrNative() as point\n"
+    "    extern \"xl6_xrt_http_request_remote_addr\" func remoteAddrNative() as point\n"
+    "    extern \"xl6_xrt_http_request_tls_sni\" func tlsSNINative() as point\n"
+    "    extern \"xl6_xrt_http_request_local_port\" func localPort() as int\n"
+    "    extern \"xl6_xrt_http_request_remote_port\" func remotePort() as int\n"
     "\n"
     "    func method() as string\n"
     "        return __xl_std_runtime_take_cstr(self.methodNative())\n"
+    "    end\n"
+    "\n"
+    "    func target() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.targetNative())\n"
     "    end\n"
     "\n"
     "    func path() as string\n"
@@ -223,12 +266,36 @@ const char* xl6StdlibHttpServerClassSource =
     "        return __xl_std_runtime_take_cstr(self.queryNative())\n"
     "    end\n"
     "\n"
+    "    func queryName(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.queryNameNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func queryValueAt(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.queryValueAtNative(index))\n"
+    "    end\n"
+    "\n"
     "    func header(string name) as string\n"
     "        return __xl_std_runtime_take_cstr(self.headerNative(name))\n"
     "    end\n"
     "\n"
+    "    func headerName(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.headerNameNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func headerValue(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.headerValueNative(index))\n"
+    "    end\n"
+    "\n"
     "    func param(string name) as string\n"
     "        return __xl_std_runtime_take_cstr(self.paramNative(name))\n"
+    "    end\n"
+    "\n"
+    "    func paramName(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.paramNameNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func paramValue(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.paramValueNative(index))\n"
     "    end\n"
     "\n"
     "    func queryValue(string name) as string\n"
@@ -239,8 +306,74 @@ const char* xl6StdlibHttpServerClassSource =
     "        return __xl_std_runtime_take_cstr(self.cookieNative(name))\n"
     "    end\n"
     "\n"
+    "    func cookieName(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.cookieNameNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func cookieValueAt(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.cookieValueAtNative(index))\n"
+    "    end\n"
+    "\n"
     "    func body() as string\n"
     "        return __xl_std_runtime_take_cstr(self.bodyNative())\n"
+    "    end\n"
+    "\n"
+    "    func bodyBytes() as Buffer\n"
+    "        point handle = self.bodyBytesNative()\n"
+    "        return Buffer(handle)\n"
+    "    end\n"
+    "\n"
+    "    func contentType() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.contentTypeNative())\n"
+    "    end\n"
+    "\n"
+    "    func formName(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.formNameNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func formValueAt(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.formValueAtNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func formValue(string name) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.formValueNative(name))\n"
+    "    end\n"
+    "\n"
+    "    func multipartName(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.multipartNameNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func multipartFileName(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.multipartFileNameNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func multipartContentType(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.multipartContentTypeNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func multipartText(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.multipartTextNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func multipartBytes(int index) as Buffer\n"
+    "        point handle = self.multipartBytesNative(index)\n"
+    "        return Buffer(handle)\n"
+    "    end\n"
+    "\n"
+    "    func multipartValue(string name) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.multipartValueNative(name))\n"
+    "    end\n"
+    "\n"
+    "    func localAddr() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.localAddrNative())\n"
+    "    end\n"
+    "\n"
+    "    func remoteAddr() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.remoteAddrNative())\n"
+    "    end\n"
+    "\n"
+    "    func tlsSNI() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.tlsSNINative())\n"
     "    end\n"
     "end\n"
     "\n"
@@ -250,9 +383,15 @@ const char* xl6StdlibHttpServerClassSource =
     "    extern \"xl6_xrt_http_response_status\" func statusNative(int code, string reason)\n"
     "    extern \"xl6_xrt_http_response_header\" func header(string name, string value) as bool\n"
     "    extern \"xl6_xrt_http_response_add_header\" func addHeader(string name, string value) as bool\n"
+    "    extern \"xl6_xrt_http_response_cookie\" func cookieNative(string name, string value, string path, int maxAge, int sameSite, c_uint flags) as bool\n"
+    "    extern \"xl6_xrt_http_response_delete_cookie\" func deleteCookieNative(string name, string path) as bool\n"
     "    extern \"xl6_xrt_http_response_text\" func textNative(string text, string contentType) as bool\n"
     "    extern \"xl6_xrt_http_response_json_text\" func jsonText(string text) as bool\n"
     "    extern \"xl6_xrt_http_response_body\" func bodyNative(point data, c_size size, string contentType) as bool\n"
+    "    extern \"xl6_xrt_http_response_start\" func start() as bool\n"
+    "    extern \"xl6_xrt_http_response_send\" func send(point data, c_size size) as bool\n"
+    "    extern \"xl6_xrt_http_response_write\" func write(string text) as bool\n"
+    "    extern \"xl6_xrt_http_response_end\" func finish() as bool\n"
     "    extern \"xl6_xrt_http_response_file\" func fileNative(string path, c_size chunkSize) as bool\n"
     "    extern \"xl6_xrt_http_response_redirect\" func redirectNative(string url, int code) as bool\n"
     "\n"
@@ -268,12 +407,80 @@ const char* xl6StdlibHttpServerClassSource =
     "        return self.bodyNative(data, size, contentType)\n"
     "    end\n"
     "\n"
+    "    func cookie(string name, string value, string path = \"/\", int maxAge = -1, int sameSite = 0, int flags = 0) as bool\n"
+    "        return self.cookieNative(name, value, path, maxAge, sameSite, c_uint(flags))\n"
+    "    end\n"
+    "\n"
+    "    func deleteCookie(string name, string path = \"/\") as bool\n"
+    "        return self.deleteCookieNative(name, path)\n"
+    "    end\n"
+    "\n"
     "    func file(string path, int chunkSize = 65536) as bool\n"
     "        return self.fileNative(path, c_size(chunkSize))\n"
     "    end\n"
     "\n"
     "    func redirect(string url, int code = 302) as bool\n"
     "        return self.redirectNative(url, code)\n"
+    "    end\n"
+    "end\n";
+
+const char* xl6StdlibHttpClientClassSource =
+    "class HttpClientResponse\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_http_client_response_wrap\" create(point handle)\n"
+    "    extern \"xl6_xrt_http_client_response_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_http_client_response_status\" func status() as int\n"
+    "    extern \"xl6_xrt_http_client_response_reason\" func reasonNative() as point\n"
+    "    extern \"xl6_xrt_http_client_response_header\" func headerNative(string name) as point\n"
+    "    extern \"xl6_xrt_http_client_response_content_length\" func contentLength() as int\n"
+    "    extern \"xl6_xrt_http_client_response_body_text\" func bodyNative() as point\n"
+    "    extern \"xl6_xrt_http_client_response_body_data\" func bodyData() as point\n"
+    "    extern \"xl6_xrt_http_client_response_body_size\" func bodySize() as int\n"
+    "    extern \"xl6_xrt_http_client_response_body_buffer\" func bodyBytesNative() as point\n"
+    "\n"
+    "    func ok() as bool\n"
+    "        int code = self.status()\n"
+    "        return code >= 200 and code < 400\n"
+    "    end\n"
+    "\n"
+    "    func reason() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.reasonNative())\n"
+    "    end\n"
+    "\n"
+    "    func header(string name) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.headerNative(name))\n"
+    "    end\n"
+    "\n"
+    "    func body() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.bodyNative())\n"
+    "    end\n"
+    "\n"
+    "    func bodyBytes() as Buffer\n"
+    "        point handle = self.bodyBytesNative()\n"
+    "        return Buffer(handle)\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class HttpClientRequest\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_http_client_request_create\" create()\n"
+    "    extern \"xl6_xrt_http_client_request_create_url\" create(string url)\n"
+    "    extern \"xl6_xrt_http_client_request_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_http_client_request_method\" func method(string method) as bool\n"
+    "    extern \"xl6_xrt_http_client_request_url\" func url(string url) as bool\n"
+    "    extern \"xl6_xrt_http_client_request_header\" func header(string name, string value) as bool\n"
+    "    extern \"xl6_xrt_http_client_request_body\" func body(string data, c_size size, string contentType) as bool\n"
+    "    extern \"xl6_xrt_http_client_request_timeout\" func timeout(int timeoutMs)\n"
+    "    extern \"xl6_xrt_http_client_request_idle_timeout\" func idleTimeout(int timeoutMs)\n"
+    "    extern \"xl6_xrt_http_client_request_verify_peer\" func verifyPeer(bool value)\n"
+    "    extern \"xl6_xrt_http_client_request_execute\" func executeNative() as point\n"
+    "\n"
+    "    func text(string data, string contentType = \"text/plain; charset=utf-8\") as bool\n"
+    "        return self.body(data, __xl_std_crt_strlen(data), contentType)\n"
+    "    end\n"
+    "\n"
+    "    func execute() as HttpClientResponse\n"
+    "        return HttpClientResponse(self.executeNative())\n"
     "    end\n"
     "end\n";
 
@@ -287,6 +494,9 @@ const char* xl6StdlibNetClassSource =
     "    extern \"xrtNetStreamAvailable\" func availableNative() as c_size\n"
     "    extern \"xrtNetStreamReadText\" func readNative(c_size maxBytes) as point\n"
     "    extern \"xrtNetStreamRecvText\" func recvNative(c_size maxBytes, int timeoutMs) as point\n"
+    "    extern \"xrtNetStreamSendBytes\" func sendBytesRaw(point data, c_size size) as bool\n"
+    "    extern \"xl6_xrt_tcp_stream_read_buffer\" func readBytesNative(c_size maxBytes) as point\n"
+    "    extern \"xl6_xrt_tcp_stream_recv_buffer\" func recvBytesNative(c_size maxBytes, int timeoutMs) as point\n"
     "    extern \"xrtNetStreamRecvTextAsync\" func recvAsyncNative(c_size maxBytes, int timeoutMs) as future<string>\n"
     "    extern \"xrtNetStreamDrain\" func drainNative(int timeoutMs) as bool\n"
     "    extern \"xrtNetStreamDrainAsync\" func drainAsyncNative(int timeoutMs) as future<bool>\n"
@@ -305,6 +515,20 @@ const char* xl6StdlibNetClassSource =
     "\n"
     "    func recv(int timeoutMs = -1, int maxBytes = 0) as string\n"
     "        return __xl_std_runtime_take_cstr(self.recvNative(c_size(maxBytes), timeoutMs))\n"
+    "    end\n"
+    "\n"
+    "    func sendBytes(point data, c_size size) as bool\n"
+    "        return self.sendBytesRaw(data, size)\n"
+    "    end\n"
+    "\n"
+    "    func readBytes(int maxBytes = 0) as Buffer\n"
+    "        point handle = self.readBytesNative(c_size(maxBytes))\n"
+    "        return Buffer(handle)\n"
+    "    end\n"
+    "\n"
+    "    func recvBytes(int timeoutMs = -1, int maxBytes = 0) as Buffer\n"
+    "        point handle = self.recvBytesNative(c_size(maxBytes), timeoutMs)\n"
+    "        return Buffer(handle)\n"
     "    end\n"
     "\n"
     "    func recvAsync(int timeoutMs = -1, int maxBytes = 0) as future<string>\n"
@@ -348,11 +572,17 @@ const char* xl6StdlibNetClassSource =
     "    native point handle\n"
     "    extern \"xrtNetDgramPacketDestroy\" destroy()\n"
     "    extern \"xrtNetDgramPacketText\" func textNative() as point\n"
+    "    extern \"xl6_xrt_udp_packet_buffer\" func bytesNative() as point\n"
     "    extern \"xrtNetDgramPacketFromText\" func addrNative() as point\n"
     "    extern \"xrtNetDgramPacketFromPort\" func port() as int\n"
     "\n"
     "    func text() as string\n"
     "        return __xl_std_runtime_take_cstr(self.textNative())\n"
+    "    end\n"
+    "\n"
+    "    func bytes() as Buffer\n"
+    "        point handle = self.bytesNative()\n"
+    "        return Buffer(handle)\n"
     "    end\n"
     "\n"
     "    func addr() as string\n"
@@ -366,6 +596,7 @@ const char* xl6StdlibNetClassSource =
     "    extern \"xrtNetUdpLocalPort\" func port() as int\n"
     "    extern \"xrtNetUdpLocalAddrText\" func localAddrNative() as point\n"
     "    extern \"xrtNetUdpSendText\" func send(string host, uint16 port, string text) as bool\n"
+    "    extern \"xrtNetUdpSendBytes\" func sendBytesRaw(string host, uint16 port, point data, c_size size) as bool\n"
     "    extern \"xrtNetUdpSendTextAsync\" func sendAsync(string host, uint16 port, string text) as future<bool>\n"
     "    extern \"xrtNetUdpRecv\" func recvNative(int timeoutMs) as point\n"
     "    extern \"xrtNetUdpRecvAsync\" func recvAsyncNative(int timeoutMs) as future<point>\n"
@@ -376,6 +607,10 @@ const char* xl6StdlibNetClassSource =
     "\n"
     "    func recv(int timeoutMs = -1) as point\n"
     "        return self.recvNative(timeoutMs)\n"
+    "    end\n"
+    "\n"
+    "    func sendBytes(string host, uint16 port, point data, c_size size) as bool\n"
+    "        return self.sendBytesRaw(host, port, data, size)\n"
     "    end\n"
     "\n"
     "    func recvAsync(int timeoutMs = -1) as future<point>\n"
@@ -1027,15 +1262,63 @@ static const XL6_StdlibParam xl6StdRuntimePathJoinParams[] = {
 };
 
 static const XL6_StdlibParam xl6StdRuntimeHttpServerCreateParams[] = {
-    {"c_int", "port"}
+    {"string", "host"},
+    {"c_int", "port"},
+    {"c_uint", "backlog"},
+    {"c_uint", "recvLimit"},
+    {"c_uint", "bodyLimit"},
+    {"c_uint", "headerLimit"},
+    {"c_uint", "headerBytesLimit"},
+    {"c_uint", "workerCount"},
+    {"c_uint", "headerTimeoutMs"},
+    {"c_uint", "bodyTimeoutMs"},
+    {"c_uint", "idleTimeoutMs"},
+    {"c_uint", "writeTimeoutMs"},
+    {"c_uint", "multipartPartLimit"},
+    {"c_uint", "multipartPartSizeLimit"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpServerCreateTlsParams[] = {
+    {"string", "certFile"},
+    {"string", "keyFile"},
+    {"string", "host"},
+    {"c_int", "port"},
+    {"c_uint", "backlog"},
+    {"c_uint", "recvLimit"},
+    {"c_uint", "bodyLimit"},
+    {"c_uint", "headerLimit"},
+    {"c_uint", "headerBytesLimit"},
+    {"c_uint", "workerCount"},
+    {"c_uint", "headerTimeoutMs"},
+    {"c_uint", "bodyTimeoutMs"},
+    {"c_uint", "idleTimeoutMs"},
+    {"c_uint", "writeTimeoutMs"},
+    {"c_uint", "multipartPartLimit"},
+    {"c_uint", "multipartPartSizeLimit"}
 };
 
 static const XL6_StdlibParam xl6StdRuntimeHttpServerHandleParams[] = {
     {"point", "server"}
 };
 
+static const XL6_StdlibParam xl6StdRuntimeHttpServerDrainParams[] = {
+    {"point", "server"},
+    {"int", "timeoutMs"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpAppHandleParams[] = {
+    {"point", "app"}
+};
+
 static const XL6_StdlibParam xl6StdRuntimeHttpServerRouteParams[] = {
     {"point", "server"},
+    {"string", "pattern"},
+    {"func(string, string, string, string) as string", "handler"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpServerGenericRouteParams[] = {
+    {"point", "server"},
+    {"string", "method"},
     {"string", "pattern"},
     {"func(string, string, string, string) as string", "handler"}
 };
@@ -1046,14 +1329,150 @@ static const XL6_StdlibParam xl6StdRuntimeHttpServerRequestRouteParams[] = {
     {"func(point, point) as bool", "handler"}
 };
 
+static const XL6_StdlibParam xl6StdRuntimeHttpServerGenericRequestRouteParams[] = {
+    {"point", "server"},
+    {"string", "method"},
+    {"string", "pattern"},
+    {"func(point, point) as bool", "handler"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpServerStreamRouteParams[] = {
+    {"point", "server"},
+    {"string", "pattern"},
+    {"func(point) as bool", "beginHandler"},
+    {"func(point, point, int) as bool", "chunkHandler"},
+    {"func(point, point) as bool", "endHandler"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpServerGenericStreamRouteParams[] = {
+    {"point", "server"},
+    {"string", "method"},
+    {"string", "pattern"},
+    {"func(point) as bool", "beginHandler"},
+    {"func(point, point, int) as bool", "chunkHandler"},
+    {"func(point, point) as bool", "endHandler"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpServerErrorParams[] = {
+    {"point", "server"},
+    {"func(int, string, point, point) as bool", "handler"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpAppRouteParams[] = {
+    {"point", "app"},
+    {"string", "pattern"},
+    {"func(string, string, string, string) as string", "handler"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpAppGenericRouteParams[] = {
+    {"point", "app"},
+    {"string", "method"},
+    {"string", "pattern"},
+    {"func(string, string, string, string) as string", "handler"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpAppRequestRouteParams[] = {
+    {"point", "app"},
+    {"string", "pattern"},
+    {"func(point, point) as bool", "handler"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpAppGenericRequestRouteParams[] = {
+    {"point", "app"},
+    {"string", "method"},
+    {"string", "pattern"},
+    {"func(point, point) as bool", "handler"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpAppStreamRouteParams[] = {
+    {"point", "app"},
+    {"string", "pattern"},
+    {"func(point) as bool", "beginHandler"},
+    {"func(point, point, int) as bool", "chunkHandler"},
+    {"func(point, point) as bool", "endHandler"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpAppGenericStreamRouteParams[] = {
+    {"point", "app"},
+    {"string", "method"},
+    {"string", "pattern"},
+    {"func(point) as bool", "beginHandler"},
+    {"func(point, point, int) as bool", "chunkHandler"},
+    {"func(point, point) as bool", "endHandler"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpAppErrorParams[] = {
+    {"point", "app"},
+    {"func(int, string, point, point) as bool", "handler"}
+};
+
 static const XL6_StdlibParam xl6StdRuntimeHttpServerStaticParams[] = {
     {"point", "server"},
     {"string", "mount"},
     {"string", "root"}
 };
 
+static const XL6_StdlibParam xl6StdRuntimeHttpServerStaticExParams[] = {
+    {"point", "server"},
+    {"string", "mount"},
+    {"string", "root"},
+    {"string", "indexNames"},
+    {"string", "cacheControl"},
+    {"c_size", "chunkSize"},
+    {"uint32", "flags"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpAppStaticParams[] = {
+    {"point", "app"},
+    {"string", "mount"},
+    {"string", "root"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpAppStaticExParams[] = {
+    {"point", "app"},
+    {"string", "mount"},
+    {"string", "root"},
+    {"string", "indexNames"},
+    {"string", "cacheControl"},
+    {"c_size", "chunkSize"},
+    {"uint32", "flags"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpServerAppParams[] = {
+    {"point", "server"},
+    {"point", "app"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpServerHostParams[] = {
+    {"point", "server"},
+    {"string", "host"},
+    {"point", "app"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpServerRemoveHostParams[] = {
+    {"point", "server"},
+    {"string", "host"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpServerTlsHostParams[] = {
+    {"point", "server"},
+    {"string", "host"},
+    {"string", "certFile"},
+    {"string", "keyFile"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpServerRemoveTlsHostParams[] = {
+    {"point", "server"},
+    {"string", "host"}
+};
+
 static const XL6_StdlibParam xl6StdRuntimeHttpMimeByPathParams[] = {
     {"string", "path"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeHttpBodyChunkParams[] = {
+    {"point", "data"},
+    {"c_size", "size"}
 };
 
 static const XL6_StdlibParam xl6StdXrtStringCaseParams[] = {
@@ -3197,8 +3616,138 @@ static const char xl6StdQueryAppendBody[] =
     "end\n";
 
 static const char xl6StdHttpServerCreateBody[] =
-    "func __xl_std_http_server_create(int port = 0) as point\n"
-    "    return __xl_std_runtime_http_server_create(c_int(port))\n"
+    "func __xl_std_http_server_create(int port = 0, string host = \"127.0.0.1\", int backlog = 128, int recvLimit = 1048576, int bodyLimit = 1048576, int headerLimit = 100, int headerBytesLimit = 65536, int workerCount = 1, int headerTimeoutMs = 30000, int bodyTimeoutMs = 30000, int idleTimeoutMs = 60000, int writeTimeoutMs = 30000, int multipartPartLimit = 1000, int multipartPartSizeLimit = 0) as point\n"
+    "    return __xl_std_runtime_http_server_create(host, c_int(port), c_uint(backlog), c_uint(recvLimit), c_uint(bodyLimit), c_uint(headerLimit), c_uint(headerBytesLimit), c_uint(workerCount), c_uint(headerTimeoutMs), c_uint(bodyTimeoutMs), c_uint(idleTimeoutMs), c_uint(writeTimeoutMs), c_uint(multipartPartLimit), c_uint(multipartPartSizeLimit))\n"
+    "end\n";
+
+static const char xl6StdHttpServerCreateTlsBody[] =
+    "func __xl_std_http_server_create_tls(string certFile, string keyFile, int port = 0, string host = \"127.0.0.1\", int backlog = 128, int recvLimit = 1048576, int bodyLimit = 1048576, int headerLimit = 100, int headerBytesLimit = 65536, int workerCount = 1, int headerTimeoutMs = 30000, int bodyTimeoutMs = 30000, int idleTimeoutMs = 60000, int writeTimeoutMs = 30000, int multipartPartLimit = 1000, int multipartPartSizeLimit = 0) as point\n"
+    "    return __xl_std_runtime_http_server_create_tls(certFile, keyFile, host, c_int(port), c_uint(backlog), c_uint(recvLimit), c_uint(bodyLimit), c_uint(headerLimit), c_uint(headerBytesLimit), c_uint(workerCount), c_uint(headerTimeoutMs), c_uint(bodyTimeoutMs), c_uint(idleTimeoutMs), c_uint(writeTimeoutMs), c_uint(multipartPartLimit), c_uint(multipartPartSizeLimit))\n"
+    "end\n";
+
+static const char xl6StdHttpAppCreateBody[] =
+    "func __xl_std_http_app_create() as point\n"
+    "    return __xl_std_runtime_http_app_create()\n"
+    "end\n";
+
+static const char xl6StdHttpAppDestroyBody[] =
+    "func __xl_std_http_app_destroy(point app)\n"
+    "    __xl_std_runtime_http_app_destroy(app)\n"
+    "end\n";
+
+static const char xl6StdHttpAppRouteBody[] =
+    "func __xl_std_http_app_route(point app, string method, string pattern, func(string, string, string, string) as string handler) as bool\n"
+    "    return __xl_std_runtime_http_app_route(app, method, pattern, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpAppRouteRequestBody[] =
+    "func __xl_std_http_app_route_request(point app, string method, string pattern, func(point, point) as bool handler) as bool\n"
+    "    return __xl_std_runtime_http_app_route_request(app, method, pattern, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpAppGetBody[] =
+    "func __xl_std_http_app_get(point app, string pattern, func(string, string, string, string) as string handler) as bool\n"
+    "    return __xl_std_runtime_http_app_get(app, pattern, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpAppPostBody[] =
+    "func __xl_std_http_app_post(point app, string pattern, func(string, string, string, string) as string handler) as bool\n"
+    "    return __xl_std_runtime_http_app_post(app, pattern, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpAppAnyBody[] =
+    "func __xl_std_http_app_any(point app, string pattern, func(string, string, string, string) as string handler) as bool\n"
+    "    return __xl_std_runtime_http_app_any(app, pattern, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpAppGetRequestBody[] =
+    "func __xl_std_http_app_get_request(point app, string pattern, func(point, point) as bool handler) as bool\n"
+    "    return __xl_std_runtime_http_app_get_request(app, pattern, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpAppPostRequestBody[] =
+    "func __xl_std_http_app_post_request(point app, string pattern, func(point, point) as bool handler) as bool\n"
+    "    return __xl_std_runtime_http_app_post_request(app, pattern, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpAppAnyRequestBody[] =
+    "func __xl_std_http_app_any_request(point app, string pattern, func(point, point) as bool handler) as bool\n"
+    "    return __xl_std_runtime_http_app_any_request(app, pattern, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpAppRouteStreamRequestBody[] =
+    "func __xl_std_http_app_route_stream_request(point app, string method, string pattern, func(point) as bool beginHandler, func(point, point, int) as bool chunkHandler, func(point, point) as bool endHandler) as bool\n"
+    "    return __xl_std_runtime_http_app_route_stream_request(app, method, pattern, beginHandler, chunkHandler, endHandler)\n"
+    "end\n";
+
+static const char xl6StdHttpAppPostStreamRequestBody[] =
+    "func __xl_std_http_app_post_stream_request(point app, string pattern, func(point) as bool beginHandler, func(point, point, int) as bool chunkHandler, func(point, point) as bool endHandler) as bool\n"
+    "    return __xl_std_runtime_http_app_post_stream_request(app, pattern, beginHandler, chunkHandler, endHandler)\n"
+    "end\n";
+
+static const char xl6StdHttpAppAnyStreamRequestBody[] =
+    "func __xl_std_http_app_any_stream_request(point app, string pattern, func(point) as bool beginHandler, func(point, point, int) as bool chunkHandler, func(point, point) as bool endHandler) as bool\n"
+    "    return __xl_std_runtime_http_app_any_stream_request(app, pattern, beginHandler, chunkHandler, endHandler)\n"
+    "end\n";
+
+static const char xl6StdHttpAppStaticBody[] =
+    "func __xl_std_http_app_static(point app, string mount, string root) as bool\n"
+    "    return __xl_std_runtime_http_app_static(app, mount, root)\n"
+    "end\n";
+
+static const char xl6StdHttpAppStaticExBody[] =
+    "func __xl_std_http_app_static_ex(point app, string mount, string root, string indexNames = \"index.html;index.htm\", string cacheControl = \"\", int chunkSize = 65536, int flags = 0) as bool\n"
+    "    return __xl_std_runtime_http_app_static_ex(app, mount, root, indexNames, cacheControl, c_size(chunkSize), uint32(flags))\n"
+    "end\n";
+
+static const char xl6StdHttpAppErrorBody[] =
+    "func __xl_std_http_app_error(point app, func(int, string, point, point) as bool handler) as bool\n"
+    "    return __xl_std_runtime_http_app_error(app, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpServerSetAppBody[] =
+    "func __xl_std_http_server_set_app(point server, point app) as bool\n"
+    "    return __xl_std_runtime_http_server_set_app(server, app)\n"
+    "end\n";
+
+static const char xl6StdHttpServerReloadAppBody[] =
+    "func __xl_std_http_server_reload_app(point server, point app) as bool\n"
+    "    return __xl_std_runtime_http_server_reload_app(server, app)\n"
+    "end\n";
+
+static const char xl6StdHttpServerHostBody[] =
+    "func __xl_std_http_server_host(point server, string host, point app) as bool\n"
+    "    return __xl_std_runtime_http_server_host(server, host, app)\n"
+    "end\n";
+
+static const char xl6StdHttpServerRemoveHostBody[] =
+    "func __xl_std_http_server_remove_host(point server, string host) as bool\n"
+    "    return __xl_std_runtime_http_server_remove_host(server, host)\n"
+    "end\n";
+
+static const char xl6StdHttpServerTlsHostBody[] =
+    "func __xl_std_http_server_tls_host(point server, string host, string certFile, string keyFile) as bool\n"
+    "    return __xl_std_runtime_http_server_tls_host(server, host, certFile, keyFile)\n"
+    "end\n";
+
+static const char xl6StdHttpServerRemoveTlsHostBody[] =
+    "func __xl_std_http_server_remove_tls_host(point server, string host) as bool\n"
+    "    return __xl_std_runtime_http_server_remove_tls_host(server, host)\n"
+    "end\n";
+
+static const char xl6StdHttpServerErrorBody[] =
+    "func __xl_std_http_server_error(point server, func(int, string, point, point) as bool handler) as bool\n"
+    "    return __xl_std_runtime_http_server_error(server, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpServerRouteBody[] =
+    "func __xl_std_http_server_route(point server, string method, string pattern, func(string, string, string, string) as string handler) as bool\n"
+    "    return __xl_std_runtime_http_server_route(server, method, pattern, handler)\n"
+    "end\n";
+
+static const char xl6StdHttpServerRouteRequestBody[] =
+    "func __xl_std_http_server_route_request(point server, string method, string pattern, func(point, point) as bool handler) as bool\n"
+    "    return __xl_std_runtime_http_server_route_request(server, method, pattern, handler)\n"
     "end\n";
 
 static const char xl6StdHttpServerGetBody[] =
@@ -3231,9 +3780,29 @@ static const char xl6StdHttpServerAnyRequestBody[] =
     "    return __xl_std_runtime_http_server_any_request(server, pattern, handler)\n"
     "end\n";
 
+static const char xl6StdHttpServerRouteStreamRequestBody[] =
+    "func __xl_std_http_server_route_stream_request(point server, string method, string pattern, func(point) as bool beginHandler, func(point, point, int) as bool chunkHandler, func(point, point) as bool endHandler) as bool\n"
+    "    return __xl_std_runtime_http_server_route_stream_request(server, method, pattern, beginHandler, chunkHandler, endHandler)\n"
+    "end\n";
+
+static const char xl6StdHttpServerPostStreamRequestBody[] =
+    "func __xl_std_http_server_post_stream_request(point server, string pattern, func(point) as bool beginHandler, func(point, point, int) as bool chunkHandler, func(point, point) as bool endHandler) as bool\n"
+    "    return __xl_std_runtime_http_server_post_stream_request(server, pattern, beginHandler, chunkHandler, endHandler)\n"
+    "end\n";
+
+static const char xl6StdHttpServerAnyStreamRequestBody[] =
+    "func __xl_std_http_server_any_stream_request(point server, string pattern, func(point) as bool beginHandler, func(point, point, int) as bool chunkHandler, func(point, point) as bool endHandler) as bool\n"
+    "    return __xl_std_runtime_http_server_any_stream_request(server, pattern, beginHandler, chunkHandler, endHandler)\n"
+    "end\n";
+
 static const char xl6StdHttpServerStaticBody[] =
     "func __xl_std_http_server_static(point server, string mount, string root) as bool\n"
     "    return __xl_std_runtime_http_server_static(server, mount, root)\n"
+    "end\n";
+
+static const char xl6StdHttpServerStaticExBody[] =
+    "func __xl_std_http_server_static_ex(point server, string mount, string root, string indexNames = \"index.html;index.htm\", string cacheControl = \"\", int chunkSize = 65536, int flags = 0) as bool\n"
+    "    return __xl_std_runtime_http_server_static_ex(server, mount, root, indexNames, cacheControl, c_size(chunkSize), uint32(flags))\n"
     "end\n";
 
 static const char xl6StdHttpServerStartBody[] =
@@ -3246,9 +3815,24 @@ static const char xl6StdHttpServerPortBody[] =
     "    return int(__xl_std_runtime_http_server_port(server))\n"
     "end\n";
 
+static const char xl6StdHttpServerRequestCountBody[] =
+    "func __xl_std_http_server_request_count(point server) as int\n"
+    "    return int(__xl_std_runtime_http_server_request_count(server))\n"
+    "end\n";
+
+static const char xl6StdHttpServerConnectionCountBody[] =
+    "func __xl_std_http_server_connection_count(point server) as int\n"
+    "    return int(__xl_std_runtime_http_server_connection_count(server))\n"
+    "end\n";
+
 static const char xl6StdHttpServerStopBody[] =
     "func __xl_std_http_server_stop(point server)\n"
     "    __xl_std_runtime_http_server_stop(server)\n"
+    "end\n";
+
+static const char xl6StdHttpServerDrainBody[] =
+    "func __xl_std_http_server_drain(point server, int timeoutMs = -1) as bool\n"
+    "    return __xl_std_runtime_http_server_drain(server, timeoutMs)\n"
     "end\n";
 
 static const char xl6StdHttpServerDestroyBody[] =
@@ -3259,6 +3843,38 @@ static const char xl6StdHttpServerDestroyBody[] =
 static const char xl6StdHttpServerMimeByPathBody[] =
     "func __xl_std_http_server_mime_by_path(string path) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_http_mime_by_path(path))\n"
+    "end\n";
+
+static const char xl6StdHttpServerChunkTextBody[] =
+    "func __xl_std_http_server_chunk_text(point data, int size) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_http_body_chunk_text(data, c_size(size)))\n"
+    "end\n";
+
+static const char xl6StdHttpServerChunkBytesBody[] =
+    "func __xl_std_http_server_chunk_bytes(point data, int size) as Buffer\n"
+    "    point handle = __xl_std_runtime_http_body_chunk_bytes(data, c_size(size))\n"
+    "    return Buffer(handle)\n"
+    "end\n";
+
+static const char xl6StdHttpRequestBody[] =
+    "func __xl_std_http_request(string method, string url, string body = \"\", string contentType = \"\", int timeoutMs = 30000) as HttpClientResponse\n"
+    "    HttpClientRequest req = HttpClientRequest(url)\n"
+    "    req.method(method)\n"
+    "    req.timeout(timeoutMs)\n"
+    "    if body != \"\" or contentType != \"\" then\n"
+    "        req.text(body, contentType)\n"
+    "    end\n"
+    "    return req.execute()\n"
+    "end\n";
+
+static const char xl6StdHttpGetBody[] =
+    "func __xl_std_http_get(string url, int timeoutMs = 30000) as HttpClientResponse\n"
+    "    return __xl_std_http_request(\"GET\", url, \"\", \"\", timeoutMs)\n"
+    "end\n";
+
+static const char xl6StdHttpPostBody[] =
+    "func __xl_std_http_post(string url, string body = \"\", string contentType = \"text/plain; charset=utf-8\", int timeoutMs = 30000) as HttpClientResponse\n"
+    "    return __xl_std_http_request(\"POST\", url, body, contentType, timeoutMs)\n"
     "end\n";
 
 static const char xl6StdPrintBody[] =
@@ -3377,7 +3993,17 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
     {"tcc", "EXE", XL6_AST_INT, "2"},
     {"tcc", "OBJ", XL6_AST_INT, "3"},
     {"tcc", "DLL", XL6_AST_INT, "4"},
-    {"tcc", "PREPROCESS", XL6_AST_INT, "5"}
+    {"tcc", "PREPROCESS", XL6_AST_INT, "5"},
+    {"http.server", "allowDotfiles", XL6_AST_INT, "1"},
+    {"http.server", "allowBackslash", XL6_AST_INT, "2"},
+    {"http.server", "sameSiteUnspecified", XL6_AST_INT, "0"},
+    {"http.server", "sameSiteLax", XL6_AST_INT, "1"},
+    {"http.server", "sameSiteStrict", XL6_AST_INT, "2"},
+    {"http.server", "sameSiteNone", XL6_AST_INT, "3"},
+    {"http.server", "cookieSecure", XL6_AST_INT, "64"},
+    {"http.server", "cookieHttpOnly", XL6_AST_INT, "128"},
+    {"http.server", "cookiePartitioned", XL6_AST_INT, "256"},
+    {"http.server", "cookieSameParty", XL6_AST_INT, "512"}
 };
 
 const XL6_StdlibFunc xl6StdlibFuncs[] = {
@@ -3463,19 +4089,54 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "dirGlob", "__xl_std_runtime_dir_glob", "xl6_xrt_dir_glob", xl6StdRuntimeDirGlobParams, 4, "var", NULL},
     {"__xl_runtime", "dirEntries", "__xl_std_runtime_dir_entries", "xl6_xrt_dir_entries", xl6StdRuntimeDirEntriesParams, 5, "var", NULL},
     {"__xl_runtime", "pathJoin", "__xl_std_runtime_path_join", "xl6_xrt_path_join", xl6StdRuntimePathJoinParams, 4, "point", NULL},
-    {"__xl_runtime", "httpServerCreate", "__xl_std_runtime_http_server_create", "xl6_xrt_http_server_create", xl6StdRuntimeHttpServerCreateParams, 1, "point", NULL},
+    {"__xl_runtime", "httpServerCreate", "__xl_std_runtime_http_server_create", "xl6_xrt_http_server_create", xl6StdRuntimeHttpServerCreateParams, 14, "point", NULL},
+    {"__xl_runtime", "httpServerCreateTls", "__xl_std_runtime_http_server_create_tls", "xl6_xrt_http_server_create_tls", xl6StdRuntimeHttpServerCreateTlsParams, 16, "point", NULL},
+    {"__xl_runtime", "httpAppCreate", "__xl_std_runtime_http_app_create", "xl6_xrt_http_app_create", NULL, 0, "point", NULL},
+    {"__xl_runtime", "httpAppDestroy", "__xl_std_runtime_http_app_destroy", "xl6_xrt_http_app_destroy", xl6StdRuntimeHttpAppHandleParams, 1, "", NULL},
+    {"__xl_runtime", "httpAppRoute", "__xl_std_runtime_http_app_route", "xl6_xrt_http_app_route", xl6StdRuntimeHttpAppGenericRouteParams, 4, "c_bool", NULL},
+    {"__xl_runtime", "httpAppRouteRequest", "__xl_std_runtime_http_app_route_request", "xl6_xrt_http_app_route_request", xl6StdRuntimeHttpAppGenericRequestRouteParams, 4, "c_bool", NULL},
+    {"__xl_runtime", "httpAppGet", "__xl_std_runtime_http_app_get", "xl6_xrt_http_app_get", xl6StdRuntimeHttpAppRouteParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpAppPost", "__xl_std_runtime_http_app_post", "xl6_xrt_http_app_post", xl6StdRuntimeHttpAppRouteParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpAppAny", "__xl_std_runtime_http_app_any", "xl6_xrt_http_app_any", xl6StdRuntimeHttpAppRouteParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpAppGetRequest", "__xl_std_runtime_http_app_get_request", "xl6_xrt_http_app_get_request", xl6StdRuntimeHttpAppRequestRouteParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpAppPostRequest", "__xl_std_runtime_http_app_post_request", "xl6_xrt_http_app_post_request", xl6StdRuntimeHttpAppRequestRouteParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpAppAnyRequest", "__xl_std_runtime_http_app_any_request", "xl6_xrt_http_app_any_request", xl6StdRuntimeHttpAppRequestRouteParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpAppRouteStreamRequest", "__xl_std_runtime_http_app_route_stream_request", "xl6_xrt_http_app_route_stream_request", xl6StdRuntimeHttpAppGenericStreamRouteParams, 6, "c_bool", NULL},
+    {"__xl_runtime", "httpAppPostStreamRequest", "__xl_std_runtime_http_app_post_stream_request", "xl6_xrt_http_app_post_stream_request", xl6StdRuntimeHttpAppStreamRouteParams, 5, "c_bool", NULL},
+    {"__xl_runtime", "httpAppAnyStreamRequest", "__xl_std_runtime_http_app_any_stream_request", "xl6_xrt_http_app_any_stream_request", xl6StdRuntimeHttpAppStreamRouteParams, 5, "c_bool", NULL},
+    {"__xl_runtime", "httpAppStatic", "__xl_std_runtime_http_app_static", "xl6_xrt_http_app_static", xl6StdRuntimeHttpAppStaticParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpAppStaticEx", "__xl_std_runtime_http_app_static_ex", "xl6_xrt_http_app_static_ex", xl6StdRuntimeHttpAppStaticExParams, 7, "c_bool", NULL},
+    {"__xl_runtime", "httpAppError", "__xl_std_runtime_http_app_error", "xl6_xrt_http_app_error", xl6StdRuntimeHttpAppErrorParams, 2, "c_bool", NULL},
+    {"__xl_runtime", "httpServerSetApp", "__xl_std_runtime_http_server_set_app", "xl6_xrt_http_server_set_app", xl6StdRuntimeHttpServerAppParams, 2, "c_bool", NULL},
+    {"__xl_runtime", "httpServerReloadApp", "__xl_std_runtime_http_server_reload_app", "xl6_xrt_http_server_reload_app", xl6StdRuntimeHttpServerAppParams, 2, "c_bool", NULL},
+    {"__xl_runtime", "httpServerHost", "__xl_std_runtime_http_server_host", "xl6_xrt_http_server_host", xl6StdRuntimeHttpServerHostParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpServerRemoveHost", "__xl_std_runtime_http_server_remove_host", "xl6_xrt_http_server_remove_host", xl6StdRuntimeHttpServerRemoveHostParams, 2, "c_bool", NULL},
+    {"__xl_runtime", "httpServerTlsHost", "__xl_std_runtime_http_server_tls_host", "xl6_xrt_http_server_tls_host", xl6StdRuntimeHttpServerTlsHostParams, 4, "c_bool", NULL},
+    {"__xl_runtime", "httpServerRemoveTlsHost", "__xl_std_runtime_http_server_remove_tls_host", "xl6_xrt_http_server_remove_tls_host", xl6StdRuntimeHttpServerRemoveTlsHostParams, 2, "c_bool", NULL},
+    {"__xl_runtime", "httpServerError", "__xl_std_runtime_http_server_error", "xl6_xrt_http_server_error", xl6StdRuntimeHttpServerErrorParams, 2, "c_bool", NULL},
+    {"__xl_runtime", "httpServerRoute", "__xl_std_runtime_http_server_route", "xl6_xrt_http_server_route", xl6StdRuntimeHttpServerGenericRouteParams, 4, "c_bool", NULL},
+    {"__xl_runtime", "httpServerRouteRequest", "__xl_std_runtime_http_server_route_request", "xl6_xrt_http_server_route_request", xl6StdRuntimeHttpServerGenericRequestRouteParams, 4, "c_bool", NULL},
     {"__xl_runtime", "httpServerGet", "__xl_std_runtime_http_server_get", "xl6_xrt_http_server_get", xl6StdRuntimeHttpServerRouteParams, 3, "c_bool", NULL},
     {"__xl_runtime", "httpServerPost", "__xl_std_runtime_http_server_post", "xl6_xrt_http_server_post", xl6StdRuntimeHttpServerRouteParams, 3, "c_bool", NULL},
     {"__xl_runtime", "httpServerAny", "__xl_std_runtime_http_server_any", "xl6_xrt_http_server_any", xl6StdRuntimeHttpServerRouteParams, 3, "c_bool", NULL},
     {"__xl_runtime", "httpServerGetRequest", "__xl_std_runtime_http_server_get_request", "xl6_xrt_http_server_get_request", xl6StdRuntimeHttpServerRequestRouteParams, 3, "c_bool", NULL},
     {"__xl_runtime", "httpServerPostRequest", "__xl_std_runtime_http_server_post_request", "xl6_xrt_http_server_post_request", xl6StdRuntimeHttpServerRequestRouteParams, 3, "c_bool", NULL},
     {"__xl_runtime", "httpServerAnyRequest", "__xl_std_runtime_http_server_any_request", "xl6_xrt_http_server_any_request", xl6StdRuntimeHttpServerRequestRouteParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpServerRouteStreamRequest", "__xl_std_runtime_http_server_route_stream_request", "xl6_xrt_http_server_route_stream_request", xl6StdRuntimeHttpServerGenericStreamRouteParams, 6, "c_bool", NULL},
+    {"__xl_runtime", "httpServerPostStreamRequest", "__xl_std_runtime_http_server_post_stream_request", "xl6_xrt_http_server_post_stream_request", xl6StdRuntimeHttpServerStreamRouteParams, 5, "c_bool", NULL},
+    {"__xl_runtime", "httpServerAnyStreamRequest", "__xl_std_runtime_http_server_any_stream_request", "xl6_xrt_http_server_any_stream_request", xl6StdRuntimeHttpServerStreamRouteParams, 5, "c_bool", NULL},
     {"__xl_runtime", "httpServerStatic", "__xl_std_runtime_http_server_static", "xl6_xrt_http_server_static", xl6StdRuntimeHttpServerStaticParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "httpServerStaticEx", "__xl_std_runtime_http_server_static_ex", "xl6_xrt_http_server_static_ex", xl6StdRuntimeHttpServerStaticExParams, 7, "c_bool", NULL},
     {"__xl_runtime", "httpServerStart", "__xl_std_runtime_http_server_start", "xl6_xrt_http_server_start", xl6StdRuntimeHttpServerHandleParams, 1, "c_bool", NULL},
     {"__xl_runtime", "httpServerPort", "__xl_std_runtime_http_server_port", "xl6_xrt_http_server_port", xl6StdRuntimeHttpServerHandleParams, 1, "c_int", NULL},
+    {"__xl_runtime", "httpServerRequestCount", "__xl_std_runtime_http_server_request_count", "xl6_xrt_http_server_request_count", xl6StdRuntimeHttpServerHandleParams, 1, "c_int", NULL},
+    {"__xl_runtime", "httpServerConnectionCount", "__xl_std_runtime_http_server_connection_count", "xl6_xrt_http_server_connection_count", xl6StdRuntimeHttpServerHandleParams, 1, "c_int", NULL},
     {"__xl_runtime", "httpServerStop", "__xl_std_runtime_http_server_stop", "xl6_xrt_http_server_stop", xl6StdRuntimeHttpServerHandleParams, 1, "", NULL},
+    {"__xl_runtime", "httpServerDrain", "__xl_std_runtime_http_server_drain", "xl6_xrt_http_server_drain", xl6StdRuntimeHttpServerDrainParams, 2, "c_bool", NULL},
     {"__xl_runtime", "httpServerDestroy", "__xl_std_runtime_http_server_destroy", "xl6_xrt_http_server_destroy", xl6StdRuntimeHttpServerHandleParams, 1, "", NULL},
     {"__xl_runtime", "httpMimeByPath", "__xl_std_runtime_http_mime_by_path", "xl6_xrt_http_mime_by_path", xl6StdRuntimeHttpMimeByPathParams, 1, "point", NULL},
+    {"__xl_runtime", "httpBodyChunkText", "__xl_std_runtime_http_body_chunk_text", "xl6_xrt_http_body_chunk_text", xl6StdRuntimeHttpBodyChunkParams, 2, "point", NULL},
+    {"__xl_runtime", "httpBodyChunkBytes", "__xl_std_runtime_http_body_chunk_bytes", "xl6_xrt_http_body_chunk_bytes", xl6StdRuntimeHttpBodyChunkParams, 2, "point", NULL},
     {"tcc", "Context", "__xl_std_tcc_context", NULL, NULL, 0, "TccContext", xl6StdTccContextBody},
     {"tcc", "run", "__xl_std_tcc_run", NULL, NULL, 0, "int", xl6StdTccRunBody},
     {"tcc", "runFile", "__xl_std_tcc_run_file", NULL, NULL, 0, "int", xl6StdTccRunFileBody},
@@ -4045,20 +4706,65 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"template", "renderFile", "__xl_std_template_render_file", NULL, xl6StdTemplateRenderFileParams, 3, "string", xl6StdTemplateRenderFileBody},
 
     {"http.server", "create", "__xl_std_http_server_create", NULL, NULL, 0, "point", xl6StdHttpServerCreateBody},
+    {"http.server", "createTls", "__xl_std_http_server_create_tls", NULL, NULL, 0, "point", xl6StdHttpServerCreateTlsBody},
+    {"http.server", "app", "__xl_std_http_app_create", NULL, NULL, 0, "point", xl6StdHttpAppCreateBody},
+    {"http.server", "destroyApp", "__xl_std_http_app_destroy", NULL, NULL, 0, "", xl6StdHttpAppDestroyBody},
+    {"http.server", "appRoute", "__xl_std_http_app_route", NULL, NULL, 0, "bool", xl6StdHttpAppRouteBody},
+    {"http.server", "appRouteRequest", "__xl_std_http_app_route_request", NULL, NULL, 0, "bool", xl6StdHttpAppRouteRequestBody},
+    {"http.server", "appGet", "__xl_std_http_app_get", NULL, NULL, 0, "bool", xl6StdHttpAppGetBody},
+    {"http.server", "appPost", "__xl_std_http_app_post", NULL, NULL, 0, "bool", xl6StdHttpAppPostBody},
+    {"http.server", "appAny", "__xl_std_http_app_any", NULL, NULL, 0, "bool", xl6StdHttpAppAnyBody},
+    {"http.server", "appGetRequest", "__xl_std_http_app_get_request", NULL, NULL, 0, "bool", xl6StdHttpAppGetRequestBody},
+    {"http.server", "appPostRequest", "__xl_std_http_app_post_request", NULL, NULL, 0, "bool", xl6StdHttpAppPostRequestBody},
+    {"http.server", "appAnyRequest", "__xl_std_http_app_any_request", NULL, NULL, 0, "bool", xl6StdHttpAppAnyRequestBody},
+    {"http.server", "appRouteStreamRequest", "__xl_std_http_app_route_stream_request", NULL, NULL, 0, "bool", xl6StdHttpAppRouteStreamRequestBody},
+    {"http.server", "appPostStreamRequest", "__xl_std_http_app_post_stream_request", NULL, NULL, 0, "bool", xl6StdHttpAppPostStreamRequestBody},
+    {"http.server", "appAnyStreamRequest", "__xl_std_http_app_any_stream_request", NULL, NULL, 0, "bool", xl6StdHttpAppAnyStreamRequestBody},
+    {"http.server", "appStatic", "__xl_std_http_app_static", NULL, NULL, 0, "bool", xl6StdHttpAppStaticBody},
+    {"http.server", "appStaticEx", "__xl_std_http_app_static_ex", NULL, NULL, 0, "bool", xl6StdHttpAppStaticExBody},
+    {"http.server", "appError", "__xl_std_http_app_error", NULL, NULL, 0, "bool", xl6StdHttpAppErrorBody},
+    {"http.server", "setApp", "__xl_std_http_server_set_app", NULL, NULL, 0, "bool", xl6StdHttpServerSetAppBody},
+    {"http.server", "reloadApp", "__xl_std_http_server_reload_app", NULL, NULL, 0, "bool", xl6StdHttpServerReloadAppBody},
+    {"http.server", "host", "__xl_std_http_server_host", NULL, NULL, 0, "bool", xl6StdHttpServerHostBody},
+    {"http.server", "removeHost", "__xl_std_http_server_remove_host", NULL, NULL, 0, "bool", xl6StdHttpServerRemoveHostBody},
+    {"http.server", "tlsHost", "__xl_std_http_server_tls_host", NULL, NULL, 0, "bool", xl6StdHttpServerTlsHostBody},
+    {"http.server", "removeTlsHost", "__xl_std_http_server_remove_tls_host", NULL, NULL, 0, "bool", xl6StdHttpServerRemoveTlsHostBody},
+    {"http.server", "error", "__xl_std_http_server_error", NULL, NULL, 0, "bool", xl6StdHttpServerErrorBody},
+    {"http.server", "route", "__xl_std_http_server_route", NULL, NULL, 0, "bool", xl6StdHttpServerRouteBody},
+    {"http.server", "routeRequest", "__xl_std_http_server_route_request", NULL, NULL, 0, "bool", xl6StdHttpServerRouteRequestBody},
     {"http.server", "get", "__xl_std_http_server_get", NULL, NULL, 0, "bool", xl6StdHttpServerGetBody},
     {"http.server", "post", "__xl_std_http_server_post", NULL, NULL, 0, "bool", xl6StdHttpServerPostBody},
     {"http.server", "any", "__xl_std_http_server_any", NULL, NULL, 0, "bool", xl6StdHttpServerAnyBody},
     {"http.server", "getRequest", "__xl_std_http_server_get_request", NULL, NULL, 0, "bool", xl6StdHttpServerGetRequestBody},
     {"http.server", "postRequest", "__xl_std_http_server_post_request", NULL, NULL, 0, "bool", xl6StdHttpServerPostRequestBody},
     {"http.server", "anyRequest", "__xl_std_http_server_any_request", NULL, NULL, 0, "bool", xl6StdHttpServerAnyRequestBody},
+    {"http.server", "routeStreamRequest", "__xl_std_http_server_route_stream_request", NULL, NULL, 0, "bool", xl6StdHttpServerRouteStreamRequestBody},
+    {"http.server", "postStreamRequest", "__xl_std_http_server_post_stream_request", NULL, NULL, 0, "bool", xl6StdHttpServerPostStreamRequestBody},
+    {"http.server", "anyStreamRequest", "__xl_std_http_server_any_stream_request", NULL, NULL, 0, "bool", xl6StdHttpServerAnyStreamRequestBody},
     {"http.server", "static", "__xl_std_http_server_static", NULL, NULL, 0, "bool", xl6StdHttpServerStaticBody},
+    {"http.server", "staticEx", "__xl_std_http_server_static_ex", NULL, NULL, 0, "bool", xl6StdHttpServerStaticExBody},
     {"http.server", "start", "__xl_std_http_server_start", NULL, NULL, 0, "bool", xl6StdHttpServerStartBody},
     {"http.server", "port", "__xl_std_http_server_port", NULL, NULL, 0, "int", xl6StdHttpServerPortBody},
+    {"http.server", "requestCount", "__xl_std_http_server_request_count", NULL, NULL, 0, "int", xl6StdHttpServerRequestCountBody},
+    {"http.server", "connectionCount", "__xl_std_http_server_connection_count", NULL, NULL, 0, "int", xl6StdHttpServerConnectionCountBody},
     {"http.server", "stop", "__xl_std_http_server_stop", NULL, NULL, 0, "", xl6StdHttpServerStopBody},
+    {"http.server", "drain", "__xl_std_http_server_drain", NULL, NULL, 0, "bool", xl6StdHttpServerDrainBody},
     {"http.server", "destroy", "__xl_std_http_server_destroy", NULL, NULL, 0, "", xl6StdHttpServerDestroyBody},
-    {"http.server", "mimeByPath", "__xl_std_http_server_mime_by_path", NULL, NULL, 0, "string", xl6StdHttpServerMimeByPathBody}
+    {"http.server", "mimeByPath", "__xl_std_http_server_mime_by_path", NULL, NULL, 0, "string", xl6StdHttpServerMimeByPathBody},
+    {"http.server", "chunkText", "__xl_std_http_server_chunk_text", NULL, NULL, 0, "string", xl6StdHttpServerChunkTextBody},
+    {"http.server", "chunkBytes", "__xl_std_http_server_chunk_bytes", NULL, NULL, 0, "Buffer", xl6StdHttpServerChunkBytesBody},
+    {"http", "request", "__xl_std_http_request", NULL, NULL, 0, "HttpClientResponse", xl6StdHttpRequestBody},
+    {"http", "get", "__xl_std_http_get", NULL, NULL, 0, "HttpClientResponse", xl6StdHttpGetBody},
+    {"http", "post", "__xl_std_http_post", NULL, NULL, 0, "HttpClientResponse", xl6StdHttpPostBody}
 };
 
+
+#define XL6_STDLIB_ARRAY_COUNT(a) (sizeof(a) / sizeof((a)[0]))
+
+typedef char XL6_StdlibConstCountCheck[
+    XL6_STDLIB_ARRAY_COUNT(xl6StdlibConsts) == XL6_STDLIB_CONST_COUNT ? 1 : -1];
+typedef char XL6_StdlibFuncCountCheck[
+    XL6_STDLIB_ARRAY_COUNT(xl6StdlibFuncs) == XL6_STDLIB_FUNC_COUNT ? 1 : -1];
 
 const size_t xl6StdlibConstCount = XL6_STDLIB_CONST_COUNT;
 const size_t xl6StdlibFuncCount = XL6_STDLIB_FUNC_COUNT;

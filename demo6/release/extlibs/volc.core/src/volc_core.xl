@@ -1,0 +1,21 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+extern "x_volc_core_available" func __xl6_import_volc_core_available() as bool
+extern "x_volc_core_version" func __xl6_import_volc_core_version() as string
+extern "x_volc_core_json_string" func __xl6_import_volc_core_json_string(string text) as string
+extern "x_volc_core_last_error" func __xl6_import_volc_core_last_error() as string
+extern "x_volc_core_last_status" func __xl6_import_volc_core_last_status() as int
+extern "x_volc_core_sha256_hex" func __xl6_import_volc_core_sha256_hex(string text) as string
+extern "x_volc_core_hmac_sha256_hex" func __xl6_import_volc_core_hmac_sha256_hex(string key, string text) as string
+extern "x_volc_core_hmac_sha256_hex_key" func __xl6_import_volc_core_hmac_sha256_hex_key(string hex_key, string text) as string
+extern "x_volc_core_canonical_query" func __xl6_import_volc_core_canonical_query(string action, string version, string extra_pairs) as string
+extern "x_volc_core_sign_preview" func __xl6_import_volc_core_sign_preview(string method, string host, string path, string service, string region, string action, string version, string access_key, string secret_key, string session_token, string content_type, string extra_pairs, string body, string x_date) as string
+extern "x_volc_core_request" func __xl6_import_volc_core_request(string method, string host, string path, string service, string region, string action, string version, string access_key, string secret_key, string session_token, string content_type, string extra_pairs, string body, int timeout_ms) as string
+extern "x_volc_core_request_acep" func __xl6_import_volc_core_request_acep(string action, string version, string access_key, string secret_key, string session_token, string body, int timeout_ms) as string
+extern "x_volc_core_sign_preview_acep" func __xl6_import_volc_core_sign_preview_acep(string action, string version, string access_key, string secret_key, string session_token, string body, string x_date) as string
+extern "x_volc_core_request_sts" func __xl6_import_volc_core_request_sts(string access_key, string secret_key, string role_trn, string role_session_name, int duration_seconds, int timeout_ms) as string
+extern "x_volc_core_sign_preview_sts" func __xl6_import_volc_core_sign_preview_sts(string access_key, string secret_key, string role_trn, string role_session_name, int duration_seconds, string x_date) as string
+extern "x_volc_core_request_acep_spec" func __xl6_import_volc_core_request_acep_spec(string spec) as string
+extern "x_volc_core_sign_preview_acep_spec" func __xl6_import_volc_core_sign_preview_acep_spec(string spec) as string
+extern "x_volc_core_request_sts_spec" func __xl6_import_volc_core_request_sts_spec(string spec) as string
+extern "x_volc_core_sign_preview_sts_spec" func __xl6_import_volc_core_sign_preview_sts_spec(string spec) as string

@@ -1,0 +1,83 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+extern "xsqlite_available_native" func __xl6_import_sqlite_available() as bool
+extern "xsqlite_version_native" func __xl6_import_sqlite_version() as string
+extern "xsqlite_last_error_native" func __xl6_import_sqlite_last_error() as string
+extern "xsqlite3_last_error" func __xl6_import_sqlite_sqlite3_last_error() as string
+extern "xsqlite3_open_native" func __xl6_import_sqlite_sqlite3_open(string filename) as point
+extern "xsqlite3_open_v2_native" func __xl6_import_sqlite_sqlite3_open_v2(string filename, int flags, string vfs) as point
+extern "xsqlite3_close_native" func __xl6_import_sqlite_sqlite3_close(point db) as int
+extern "xsqlite3_close_v2_native" func __xl6_import_sqlite_sqlite3_close_v2(point db) as int
+extern "xsqlite3_exec_native" func __xl6_import_sqlite_sqlite3_exec(point db, string sql) as int
+extern "xsqlite3_prepare_v2_native" func __xl6_import_sqlite_sqlite3_prepare_v2(point db, string sql) as point
+extern "xsqlite3_step_native" func __xl6_import_sqlite_sqlite3_step(point stmt) as int
+extern "xsqlite3_finalize_native" func __xl6_import_sqlite_sqlite3_finalize(point stmt) as int
+extern "xsqlite3_reset_native" func __xl6_import_sqlite_sqlite3_reset(point stmt) as int
+extern "xsqlite3_clear_bindings_native" func __xl6_import_sqlite_sqlite3_clear_bindings(point stmt) as int
+extern "xsqlite3_bind_int_native" func __xl6_import_sqlite_sqlite3_bind_int(point stmt, int index, int value) as int
+extern "xsqlite3_bind_double_native" func __xl6_import_sqlite_sqlite3_bind_double(point stmt, int index, float value) as int
+extern "xsqlite3_bind_text_native" func __xl6_import_sqlite_sqlite3_bind_text(point stmt, int index, string value) as int
+extern "xsqlite3_bind_blob_text_native" func __xl6_import_sqlite_sqlite3_bind_blob_text(point stmt, int index, string value) as int
+extern "xsqlite3_bind_null_native" func __xl6_import_sqlite_sqlite3_bind_null(point stmt, int index) as int
+extern "xsqlite3_bind_parameter_count_native" func __xl6_import_sqlite_sqlite3_bind_parameter_count(point stmt) as int
+extern "xsqlite3_column_count_native" func __xl6_import_sqlite_sqlite3_column_count(point stmt) as int
+extern "xsqlite3_column_type_native" func __xl6_import_sqlite_sqlite3_column_type(point stmt, int column) as int
+extern "xsqlite3_column_int_native" func __xl6_import_sqlite_sqlite3_column_int(point stmt, int column) as int
+extern "xsqlite3_column_double_native" func __xl6_import_sqlite_sqlite3_column_double(point stmt, int column) as float
+extern "xsqlite3_column_text_native" func __xl6_import_sqlite_sqlite3_column_text(point stmt, int column) as string
+extern "xsqlite3_column_text_native" func __xl6_import_sqlite_sqlite3_column_blob_text(point stmt, int column) as string
+extern "xsqlite3_column_bytes_native" func __xl6_import_sqlite_sqlite3_column_bytes(point stmt, int column) as int
+extern "xsqlite3_column_name_native" func __xl6_import_sqlite_sqlite3_column_name(point stmt, int column) as string
+extern "xsqlite3_errmsg_native" func __xl6_import_sqlite_sqlite3_errmsg(point db) as string
+extern "xsqlite3_errstr_native" func __xl6_import_sqlite_sqlite3_errstr(int rc) as string
+extern "xsqlite3_extended_errcode_native" func __xl6_import_sqlite_sqlite3_extended_errcode(point db) as int
+extern "xsqlite3_changes_native" func __xl6_import_sqlite_sqlite3_changes(point db) as int
+extern "xsqlite3_total_changes_native" func __xl6_import_sqlite_sqlite3_total_changes(point db) as int
+extern "xsqlite3_last_insert_rowid_text_native" func __xl6_import_sqlite_sqlite3_last_insert_rowid_text(point db) as string
+extern "xsqlite3_libversion_native" func __xl6_import_sqlite_sqlite3_libversion() as string
+extern "xsqlite3_libversion_number_native" func __xl6_import_sqlite_sqlite3_libversion_number() as int
+extern "xsqlite_const_SQLITE_OK" var int __xl6_import_sqlite_SQLITE_OK
+extern "xsqlite_const_SQLITE_ERROR" var int __xl6_import_sqlite_SQLITE_ERROR
+extern "xsqlite_const_SQLITE_INTERNAL" var int __xl6_import_sqlite_SQLITE_INTERNAL
+extern "xsqlite_const_SQLITE_PERM" var int __xl6_import_sqlite_SQLITE_PERM
+extern "xsqlite_const_SQLITE_ABORT" var int __xl6_import_sqlite_SQLITE_ABORT
+extern "xsqlite_const_SQLITE_BUSY" var int __xl6_import_sqlite_SQLITE_BUSY
+extern "xsqlite_const_SQLITE_LOCKED" var int __xl6_import_sqlite_SQLITE_LOCKED
+extern "xsqlite_const_SQLITE_NOMEM" var int __xl6_import_sqlite_SQLITE_NOMEM
+extern "xsqlite_const_SQLITE_READONLY" var int __xl6_import_sqlite_SQLITE_READONLY
+extern "xsqlite_const_SQLITE_INTERRUPT" var int __xl6_import_sqlite_SQLITE_INTERRUPT
+extern "xsqlite_const_SQLITE_IOERR" var int __xl6_import_sqlite_SQLITE_IOERR
+extern "xsqlite_const_SQLITE_CORRUPT" var int __xl6_import_sqlite_SQLITE_CORRUPT
+extern "xsqlite_const_SQLITE_NOTFOUND" var int __xl6_import_sqlite_SQLITE_NOTFOUND
+extern "xsqlite_const_SQLITE_FULL" var int __xl6_import_sqlite_SQLITE_FULL
+extern "xsqlite_const_SQLITE_CANTOPEN" var int __xl6_import_sqlite_SQLITE_CANTOPEN
+extern "xsqlite_const_SQLITE_PROTOCOL" var int __xl6_import_sqlite_SQLITE_PROTOCOL
+extern "xsqlite_const_SQLITE_EMPTY" var int __xl6_import_sqlite_SQLITE_EMPTY
+extern "xsqlite_const_SQLITE_SCHEMA" var int __xl6_import_sqlite_SQLITE_SCHEMA
+extern "xsqlite_const_SQLITE_TOOBIG" var int __xl6_import_sqlite_SQLITE_TOOBIG
+extern "xsqlite_const_SQLITE_CONSTRAINT" var int __xl6_import_sqlite_SQLITE_CONSTRAINT
+extern "xsqlite_const_SQLITE_MISMATCH" var int __xl6_import_sqlite_SQLITE_MISMATCH
+extern "xsqlite_const_SQLITE_MISUSE" var int __xl6_import_sqlite_SQLITE_MISUSE
+extern "xsqlite_const_SQLITE_NOLFS" var int __xl6_import_sqlite_SQLITE_NOLFS
+extern "xsqlite_const_SQLITE_AUTH" var int __xl6_import_sqlite_SQLITE_AUTH
+extern "xsqlite_const_SQLITE_FORMAT" var int __xl6_import_sqlite_SQLITE_FORMAT
+extern "xsqlite_const_SQLITE_RANGE" var int __xl6_import_sqlite_SQLITE_RANGE
+extern "xsqlite_const_SQLITE_NOTADB" var int __xl6_import_sqlite_SQLITE_NOTADB
+extern "xsqlite_const_SQLITE_NOTICE" var int __xl6_import_sqlite_SQLITE_NOTICE
+extern "xsqlite_const_SQLITE_WARNING" var int __xl6_import_sqlite_SQLITE_WARNING
+extern "xsqlite_const_SQLITE_ROW" var int __xl6_import_sqlite_SQLITE_ROW
+extern "xsqlite_const_SQLITE_DONE" var int __xl6_import_sqlite_SQLITE_DONE
+extern "xsqlite_const_SQLITE_INTEGER" var int __xl6_import_sqlite_SQLITE_INTEGER
+extern "xsqlite_const_SQLITE_FLOAT" var int __xl6_import_sqlite_SQLITE_FLOAT
+extern "xsqlite_const_SQLITE_TEXT" var int __xl6_import_sqlite_SQLITE_TEXT
+extern "xsqlite_const_SQLITE_BLOB" var int __xl6_import_sqlite_SQLITE_BLOB
+extern "xsqlite_const_SQLITE_NULL" var int __xl6_import_sqlite_SQLITE_NULL
+extern "xsqlite_const_SQLITE_OPEN_READONLY" var int __xl6_import_sqlite_SQLITE_OPEN_READONLY
+extern "xsqlite_const_SQLITE_OPEN_READWRITE" var int __xl6_import_sqlite_SQLITE_OPEN_READWRITE
+extern "xsqlite_const_SQLITE_OPEN_CREATE" var int __xl6_import_sqlite_SQLITE_OPEN_CREATE
+extern "xsqlite_const_SQLITE_OPEN_URI" var int __xl6_import_sqlite_SQLITE_OPEN_URI
+extern "xsqlite_const_SQLITE_OPEN_MEMORY" var int __xl6_import_sqlite_SQLITE_OPEN_MEMORY
+extern "xsqlite_const_SQLITE_OPEN_NOMUTEX" var int __xl6_import_sqlite_SQLITE_OPEN_NOMUTEX
+extern "xsqlite_const_SQLITE_OPEN_FULLMUTEX" var int __xl6_import_sqlite_SQLITE_OPEN_FULLMUTEX
+extern "xsqlite_const_SQLITE_OPEN_SHAREDCACHE" var int __xl6_import_sqlite_SQLITE_OPEN_SHAREDCACHE
+extern "xsqlite_const_SQLITE_OPEN_PRIVATECACHE" var int __xl6_import_sqlite_SQLITE_OPEN_PRIVATECACHE

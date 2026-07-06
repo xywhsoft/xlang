@@ -1,0 +1,10 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+extern "xihash_available" func __xl6_import_imagehash_available() as bool
+extern "xihash_version" func __xl6_import_imagehash_version() as string
+extern "xihash_last_error" func __xl6_import_imagehash_last_error() as string
+extern "xihash_ahash" func __xl6_import_imagehash_ahash(string path) as string
+extern "xihash_dhash" func __xl6_import_imagehash_dhash(string path) as string
+extern "xihash_phash" func __xl6_import_imagehash_phash(string path) as string
+extern "xihash_hamming" func __xl6_import_imagehash_hamming(string left, string right) as c_int
+extern "xihash_valid" func __xl6_import_imagehash_valid(string hash) as c_int

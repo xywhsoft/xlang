@@ -1,11 +1,11 @@
 # DEMO6 release extlibs
 
-本目录位于 `xl.exe` 同级目录下，只存放可发布的功能扩展库。package/import/XAPI 回归测试用 fixture 已迁移到 `demo6/test/fixtures`，测试通过 `XLANG_PACKAGE_PATH` 访问。
+本目录位于 `xl.exe` 同级目录下，只存放可发布的功能扩展库。package/import 回归测试用 fixture 已迁移到 `demo6/test/fixtures`，测试通过 `XLANG_PACKAGE_PATH` 访问。
 
 ## 使用方式
 
-- `xlang.package.json` 描述包名、版本、ABI 版本、XAPI 文件、C source、links/loadlibs、dependencies 和 native 元数据。
-- `package.xapi.json` 描述导出函数、变量、类型和 import 恢复所需信息。
+- `xlang.package.json` 描述包名、版本、ABI 版本、`xlSources`、`cSources`、links/loadlibs、dependencies 和 native 元数据。
+- `xlSources` 中的 `.xl` 文件是 import 的声明/实现来源；C 函数仍需要在 xlang 中显式 `extern` 声明。
 - 包内 `.c`、`.h`、`.xl`、`bin`、`third_party` 等文件是扩展库自身实现或运行所需资产。
 
 ## 发布扩展库索引

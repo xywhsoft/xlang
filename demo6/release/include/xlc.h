@@ -43,7 +43,6 @@ XLC_API int xlcEmitC(XLC_Context* ctx, const char* outputPath);
 XLC_API int xlcEmitDebugC(XLC_Context* ctx, const char* outputPath, const char* debugSourcePath);
 XLC_API int xlcEmitHeader(XLC_Context* ctx, const char* outputPath, const char* guardName);
 XLC_API int xlcEmitAbi(XLC_Context* ctx, const char* outputPath, int jsonOutput);
-XLC_API int xlcEmitXapi(XLC_Context* ctx, const char* outputPath);
 XLC_API int xlcEmitExe(XLC_Context* ctx, const char* outputExe);
 XLC_API int xlcEmitDebugExe(XLC_Context* ctx, const char* outputExe, const char* debugSourcePath);
 XLC_API int xlcEmitSharedLibrary(XLC_Context* ctx, const char* outputDll);

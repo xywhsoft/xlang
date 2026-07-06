@@ -1,0 +1,6 @@
+{
+  "format": "xlang-project-1",
+  "kind": "exe",
+  "entry": "../fixtures/xlp_app/main.xl",
+  "cSources": ["native.obj"]
+}

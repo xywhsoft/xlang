@@ -93,8 +93,11 @@
 - `stdlib_regex_c.c`：与 `stdlib_regex.xl` 对照的 C/XRT 正则库范例，展示懒加载 match object 和 regex set。
 - `stdlib_process.xl`
 - `stdlib_process_c.c`：与 `stdlib_process.xl` 对照的 C/XRT process 库范例，展示结构化执行、pipeline 和长生命周期进程。
-- `stdlib_http_server.xl`
-- `stdlib_http_server_c.c`：与 `stdlib_http_server.xl` 对照的 C/XRT `xweb` HTTP server 范例，展示 GET/POST/ANY 路由和静态文件。
+- `stdlib_http_client.xl`：`http` 客户端范例，展示 GET、POST、通用 request、请求对象、响应对象、header、body 和超时配置。
+- `stdlib_http_client_c.c`：与 `stdlib_http_client.xl` 对照的 C/XRT HTTP client 范例。
+- `stdlib_http_server.xl`：`http.server` 基础服务示例，展示简化路由、对象化路由、静态文件、流式响应、流式请求体上传、HTTPS 创建、错误处理器和统计接口。
+- `stdlib_http_server_c.c`：与 `stdlib_http_server.xl` 对照的 C/XRT `xweb` HTTP server 范例，展示 GET/POST/ANY 路由、静态文件和流式请求体 route。
+- `stdlib_http_server_app.xl`：`http.server` app、vhost、reload 和 `appError` 示例，展示默认 app 替换、虚拟主机、错误处理器和 app 句柄释放后的 server 持有语义。
 - `stdlib_tcc_xlang_embed.xl`：TCC C 脚本、动态 VFS、编译输出和内嵌 xlang 运行范例。
 
 ## 复合应用范例
@@ -135,7 +138,8 @@
 - `stdlib_log_c.c`：与 `stdlib_log.xl` 对照的 C/XRT logger 范例，主回归会比较两者输出。
 - `stdlib_template_c.c`：与 `stdlib_template.xl` 对照的 C/XRT template 范例，主回归会比较两者输出。
 - `stdlib_regex_c.c`：与 `stdlib_regex.xl` 对照的 C/XRT 正则库范例，主回归会比较两者输出。
-- `stdlib_http_server_c.c`：与 `stdlib_http_server.xl` 对照的 C/XRT `xweb` HTTP server 范例，展示 GET/POST/ANY 路由和静态文件。
+- `stdlib_http_client_c.c`：与 `stdlib_http_client.xl` 对照的 C/XRT HTTP client 范例。
+- `stdlib_http_server_c.c`：与 `stdlib_http_server.xl` 对照的 C/XRT `xweb` HTTP server 范例，展示 GET/POST/ANY 路由、静态文件和流式请求体 route。
 
 ## 回归入口
 

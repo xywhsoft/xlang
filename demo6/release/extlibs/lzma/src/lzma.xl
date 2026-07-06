@@ -1,0 +1,11 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+extern "xlzma_available" func __xl6_import_lzma_available() as bool
+extern "xlzma_version" func __xl6_import_lzma_version() as string
+extern "xlzma_last_error" func __xl6_import_lzma_last_error() as string
+extern "xlzma_compress_hex" func __xl6_import_lzma_compress_hex(string text) as string
+extern "xlzma_compress_hex_level" func __xl6_import_lzma_compress_hex_level(string text, c_int level) as string
+extern "xlzma_decompress_hex" func __xl6_import_lzma_decompress_hex(string hex_text) as string
+extern "xlzma_compress_file" func __xl6_import_lzma_compress_file(string input_path, string output_path) as c_int
+extern "xlzma_compress_file_level" func __xl6_import_lzma_compress_file_level(string input_path, string output_path, c_int level) as c_int
+extern "xlzma_decompress_file" func __xl6_import_lzma_decompress_file(string input_path, string output_path) as c_int

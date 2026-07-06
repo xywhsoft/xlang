@@ -352,12 +352,11 @@ Invoke-GuardStep "command surface" {
     Invoke-Xl "ir" @("ir", $basic, "--format", "json", "--emit", (Join-Path $tmp "ir.json"))
     Invoke-Xl "cgen" @("cgen", $basic, "--emit", (Join-Path $tmp "out.c"), "--emit-header", (Join-Path $tmp "out.h"))
     Invoke-Xl "abi" @("abi", $basic, "--json", "--emit", (Join-Path $tmp "out.abi.json"))
-    Invoke-Xl "xapi" @("xapi", $basic, "--emit", (Join-Path $tmp "out.xapi.json"))
     Invoke-XlToFile "cgen stdout" @("cgen", $basic) (Join-Path $tmp "stdout.c")
     Invoke-XlToFile "run" @("run", $basic) (Join-Path $tmp "run.txt")
     Invoke-XlToFile "build" @("build", $basic, "-o", (Join-Path $tmp "app.exe")) (Join-Path $tmp "build.txt")
 
-    foreach ( $name in @("lex.json", "check.json", "parse.json", "ir.json", "out.c", "out.h", "out.abi.json", "out.xapi.json", "stdout.c", "app.exe") ) {
+    foreach ( $name in @("lex.json", "check.json", "parse.json", "ir.json", "out.c", "out.h", "out.abi.json", "stdout.c", "app.exe") ) {
         $file = Join-Path $tmp $name
         if ( ! (Test-Path -LiteralPath $file -PathType Leaf) ) {
             throw "missing command output: $name"
@@ -373,9 +372,9 @@ Invoke-GuardStep "diagnostics" {
     New-Item -ItemType Directory -Path $tmp | Out-Null
 
     Invoke-XlExpectJsonFailure "semantic json diagnostic" @("check", "test\cases\sem_unknown_type.xl", "--json") (Join-Path $tmp "sem.json") "sem"
-    Invoke-XlExpectJsonFailure "import json diagnostic" @("check", "test\cases\import_missing_xapi.xl", "--json") (Join-Path $tmp "import.json") "import"
+    Invoke-XlExpectJsonFailure "import json diagnostic" @("build", "test\cases\import_source_no_global_pollution.xl", "-o", (Join-Path $tmp "bad_import.exe"), "--json") (Join-Path $tmp "import.json") "sem"
     Invoke-XlExpectTextFailure "semantic text diagnostic" @("check", "test\cases\sem_unknown_type.xl") (Join-Path $tmp "sem.txt") "sem"
-    Invoke-XlExpectTextFailure "import text diagnostic" @("check", "test\cases\import_missing_xapi.xl") (Join-Path $tmp "import.txt") "import"
+    Invoke-XlExpectTextFailure "import text diagnostic" @("build", "test\cases\import_source_no_global_pollution.xl", "-o", (Join-Path $tmp "bad_import.exe")) (Join-Path $tmp "import.txt") "sem"
 }
 
 if ( ! $SkipFullTests ) {

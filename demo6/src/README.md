@@ -11,7 +11,7 @@ This directory contains the DEMO6 compiler, CLI, DLL runtime API, and supporting
 - `type`: shared type model helpers.
 - `ir`: intermediate dump used for debugging and rule review.
 - `cgen`: C code generator shards. Rule docs must stay aligned with `../cgenrule/README.md`.
-- `abi`: ABI dump, XAPI dump/load, and callable metadata.
+- `abi`: ABI dump and callable metadata.
 - `package`: package manifest, resolver, and import dependency handling.
 - `compile`: compile-unit orchestration and import/stdlib expansion.
 - `backend`: build backend and toolchain boundary.

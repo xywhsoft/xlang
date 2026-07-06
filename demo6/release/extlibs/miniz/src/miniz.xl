@@ -1,0 +1,15 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+extern "xminiz_available" func __xl6_import_miniz_available() as bool
+extern "xminiz_version" func __xl6_import_miniz_version() as string
+extern "xminiz_last_error" func __xl6_import_miniz_last_error() as string
+extern "xminiz_compress_hex" func __xl6_import_miniz_compress_hex(string text) as string
+extern "xminiz_compress_hex_level" func __xl6_import_miniz_compress_hex_level(string text, c_int level) as string
+extern "xminiz_decompress_hex" func __xl6_import_miniz_decompress_hex(string hex_text) as string
+extern "xminiz_compress_file" func __xl6_import_miniz_compress_file(string input_path, string output_path) as c_int
+extern "xminiz_compress_file_level" func __xl6_import_miniz_compress_file_level(string input_path, string output_path, c_int level) as c_int
+extern "xminiz_decompress_file" func __xl6_import_miniz_decompress_file(string input_path, string output_path) as c_int
+extern "xminiz_zip_write_text" func __xl6_import_miniz_zip_write_text(string zip_path, string entry_name, string text) as c_int
+extern "xminiz_zip_count" func __xl6_import_miniz_zip_count(string zip_path) as c_int
+extern "xminiz_zip_first_name" func __xl6_import_miniz_zip_first_name(string zip_path) as string
+extern "xminiz_zip_read_text" func __xl6_import_miniz_zip_read_text(string zip_path, string entry_name) as string

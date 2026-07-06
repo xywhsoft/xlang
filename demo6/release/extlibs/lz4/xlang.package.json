@@ -1,23 +1,31 @@
 {
-  "format": "xlang-package-1",
-  "name": "lz4",
-  "version": "0.1.0",
-  "abiVersion": "1",
-  "xapi": "package.xapi.json",
-  "kind": "demo6-extlib",
-  "artifact": {
-    "kind": "source",
-    "cSources": [
-      "lz4_native.c",
-      "third_party/lz4.c"
-    ]
-  },
-  "links": [],
-  "loadlibs": [],
-  "dependencies": [],
-  "native": {
-    "singleton": false,
-    "loadName": "",
-    "version": ""
-  }
+    "format":  "xlang-package-1",
+    "name":  "lz4",
+    "version":  "0.1.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "lz4_native.c",
+                                      "third_party/lz4.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/lz4.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
 }

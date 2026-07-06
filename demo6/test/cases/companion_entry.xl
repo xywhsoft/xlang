@@ -1,0 +1,8 @@
+extern "xl6_companion_entry_value" func companionValue() as int
+
+func main(...) as int
+    if companionValue() == 7 then
+        return 0
+    end
+    return 1
+end

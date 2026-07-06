@@ -66,8 +66,8 @@ $extraMarkdownDocs = @(
     "release\examples\apps\README.md",
     "release\examples\feature_suite\README.md",
     "release\examples\tutorial\README.md",
-    "release\extlibs\README.md",
     "release\projects\xs_static\README.md",
+    "release\extlibs\README.md",
     "test\README.md"
 )
 
@@ -89,7 +89,8 @@ $ignoredReadmePrefixes = @(
     "build\tmp\",
     "build\test\",
     "release\tcc\",
-    "lib\xrt\"
+    "lib\xrt\",
+    "dev\xapi_legacy\"
 )
 $stalePatterns = @(
     '\bTODO\b',

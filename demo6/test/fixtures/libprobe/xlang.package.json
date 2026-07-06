@@ -1,17 +1,37 @@
 {
-  "format": "xlang-package-1",
-  "name": "libprobe",
-  "version": "1.0.0",
-  "abiVersion": "1",
-  "xapi": "package.xapi.json",
-  "unknownObject": {
-    "ignored": true,
-    "items": [1, "two", {"three": 3}]
-  },
-  "links": [],
-  "loadlibs": [],
-  "dependencies": [],
-  "native": {
-    "singleton": false
-  }
+    "format":  "xlang-package-1",
+    "name":  "libprobe",
+    "version":  "1.0.0",
+    "abiVersion":  "1",
+    "unknownObject":  {
+                          "ignored":  true,
+                          "items":  [
+                                        1,
+                                        "two",
+                                        {
+                                            "three":  3
+                                        }
+                                    ]
+                      },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "native":  {
+                   "singleton":  false
+               },
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+
+                                  ],
+                     "xlSources":  [
+                                       "src/libprobe.xl"
+                                   ]
+                 }
 }

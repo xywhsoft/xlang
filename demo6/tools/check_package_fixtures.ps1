@@ -14,40 +14,39 @@ $readmePath = Join-Path $releasePackageDir "README.md"
 $testBatPath = Join-Path $Root "test.bat"
 $testSuiteDir = Join-Path $Root "test\suites"
 $minReleasePackages = 31
-$minPackages = 18
-$failures = New-Object System.Collections.Generic.List[string]
+$minPackages = 14
 $fixturePackageNames = @(
-    "broken_xapi",
     "class_api",
     "class_inherit_api",
     "counter",
     "dep_value",
     "dep_value@2.0.0",
-    "invalid_decl_xapi",
     "libprobe",
     "metadata_combo",
-    "missing_interface",
     "native_one",
     "native_two",
     "settings",
     "union_api",
-    "unsupported_xapi",
     "uses_dep",
     "uses_dep_bad",
     "uses_dep_v2"
 )
-$missingXapiPackages = @("missing_interface")
-$invalidFormatPackages = @("broken_xapi")
 $badDependencyPackages = @("uses_dep_bad")
+$failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
 {
     $script:failures.Add($message) | Out-Null
 }
 
+function Read-Utf8Text($path)
+{
+    return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+}
+
 function Read-Json($path)
 {
-    $text = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+    $text = Read-Utf8Text $path
     return $text | ConvertFrom-Json
 }
 
@@ -59,22 +58,37 @@ function String-Array($value)
     return @($value | ForEach-Object { [string]$_ })
 }
 
-function Artifact-Sources($manifest)
+function Same-StringSet($left, $right)
 {
-    if ( $null -eq $manifest.artifact -or $null -eq $manifest.artifact.cSources ) {
-        return @()
+    $a = @($left | Sort-Object)
+    $b = @($right | Sort-Object)
+    if ( $a.Count -ne $b.Count ) {
+        return $false
     }
-    return String-Array $manifest.artifact.cSources
+    for ( $i = 0; $i -lt $a.Count; ++$i ) {
+        if ( $a[$i] -ne $b[$i] ) {
+            return $false
+        }
+    }
+    return $true
 }
 
-function Read-PackageText($name, $relative)
+function Get-TestRegressionText()
 {
-    $path = Join-Path (Join-Path $script:packageDir $name) $relative
-    if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
-        Add-Failure "package fixture file missing: test/fixtures/$name/$relative"
-        return ""
+    $parts = New-Object System.Collections.Generic.List[string]
+
+    if ( Test-Path -LiteralPath $script:testBatPath -PathType Leaf ) {
+        $parts.Add((Read-Utf8Text $script:testBatPath)) | Out-Null
     }
-    return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+
+    if ( Test-Path -LiteralPath $script:testSuiteDir -PathType Container ) {
+        $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
+        foreach ( $suite in $suiteFiles ) {
+            $parts.Add((Read-Utf8Text $suite.FullName)) | Out-Null
+        }
+    }
+
+    return [string]::Join("`n", $parts)
 }
 
 function Find-Dependency($manifest, $name, $version, $abiVersion)
@@ -99,41 +113,44 @@ function Assert-Dependency($packageName, $depName, $depVersion, $depAbiVersion)
         return
     }
     if ( ! (Find-Dependency $script:manifests[$packageName] $depName $depVersion $depAbiVersion) ) {
-        Add-Failure "package fixture dependency mismatch: release/extlibs/$packageName must depend on $depName@$depVersion#abi$depAbiVersion"
+        Add-Failure "package fixture dependency mismatch: test/fixtures/$packageName must depend on $depName@$depVersion#abi$depAbiVersion"
     }
 }
 
-function Same-StringSet($left, $right)
+function Read-PackageText($name, $relative)
 {
-    $a = @($left | Sort-Object)
-    $b = @($right | Sort-Object)
-    if ( $a.Count -ne $b.Count ) {
-        return $false
+    $path = Join-Path (Join-Path $script:packageDir $name) $relative
+    if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
+        Add-Failure "package fixture file missing: test/fixtures/$name/$relative"
+        return ""
     }
-    for ( $i = 0; $i -lt $a.Count; ++$i ) {
-        if ( $a[$i] -ne $b[$i] ) {
-            return $false
-        }
-    }
-    return $true
+    return Read-Utf8Text $path
 }
 
-function Get-TestRegressionText()
+function Validate-RelativeFileList($pkg, $manifestPath, $items, $label, $extension)
 {
-    $parts = New-Object System.Collections.Generic.List[string]
+    foreach ( $item in $items ) {
+        if ( [string]::IsNullOrWhiteSpace($item) ) {
+            Add-Failure "package $label contains empty path: $manifestPath"
+            continue
+        }
+        if ( [System.IO.Path]::IsPathRooted($item) ) {
+            Add-Failure "package $label must be relative: $manifestPath -> $item"
+            continue
+        }
+        if ( $item -match '(^|[\\/])[.][.]([\\/]|$)' ) {
+            Add-Failure "package $label must not use parent traversal: $manifestPath -> $item"
+            continue
+        }
+        if ( $extension -ne "" -and ! $item.EndsWith($extension) ) {
+            Add-Failure "package $label extension mismatch: $manifestPath -> $item"
+        }
 
-    if ( Test-Path -LiteralPath $script:testBatPath -PathType Leaf ) {
-        $parts.Add([System.IO.File]::ReadAllText($script:testBatPath, [System.Text.Encoding]::UTF8)) | Out-Null
-    }
-
-    if ( Test-Path -LiteralPath $script:testSuiteDir -PathType Container ) {
-        $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
-        foreach ( $suite in $suiteFiles ) {
-            $parts.Add([System.IO.File]::ReadAllText($suite.FullName, [System.Text.Encoding]::UTF8)) | Out-Null
+        $fullPath = Join-Path $pkg.FullName $item
+        if ( ! (Test-Path -LiteralPath $fullPath -PathType Leaf) ) {
+            Add-Failure "package $label missing file: $manifestPath -> $item"
         }
     }
-
-    return [string]::Join("`n", $parts)
 }
 
 if ( ! (Test-Path -LiteralPath $releasePackageDir -PathType Container) ) {
@@ -144,22 +161,18 @@ if ( ! (Test-Path -LiteralPath $packageDir -PathType Container) ) {
     Write-Host "test fixtures directory missing: $packageDir"
     exit 1
 }
-if ( ! (Test-Path -LiteralPath $testBatPath -PathType Leaf) ) {
-    Add-Failure "test.bat missing: $testBatPath"
-} else {
-    $testBatText = Get-TestRegressionText
-if ( ! $testBatText.Contains('set "XLANG_PACKAGE_PATH=release\extlibs;test\fixtures"') ) {
+
+$testText = Get-TestRegressionText
+if ( ! $testText.Contains('set "XLANG_PACKAGE_PATH=release\extlibs;test\fixtures"') ) {
     Add-Failure "test.bat/test suites must set XLANG_PACKAGE_PATH=release\extlibs;test\fixtures before package/import regression"
 }
-    foreach ( $snippet in @(
-        "release\xl.exe run test\cases\import_dependency_versions.xl",
-        "release\xl.exe build test\cases\import_dependency_versions.xl",
-        "package dependency version mismatch",
-        "private package dependency is not exported"
-    ) ) {
-        if ( ! $testBatText.Contains($snippet) ) {
-            Add-Failure "test.bat/test suites missing package dependency regression snippet: $snippet"
-        }
+foreach ( $snippet in @(
+    "release\xl.exe run test\cases\import_dependency_versions.xl",
+    "release\xl.exe build test\cases\import_dependency_versions.xl",
+    "private package dependency is not exported"
+) ) {
+    if ( ! $testText.Contains($snippet) ) {
+        Add-Failure "test.bat/test suites missing package dependency regression snippet: $snippet"
     }
 }
 
@@ -169,12 +182,11 @@ $packages = @(Get-ChildItem -LiteralPath $packageDir -Directory |
     Sort-Object Name)
 $manifests = @{}
 $packageIndex = New-Object System.Collections.Generic.HashSet[string]
-$moduleIndex = New-Object System.Collections.Generic.HashSet[string]
-$exportIndex = New-Object System.Collections.Generic.HashSet[string]
 
 if ( $releasePackages.Count -lt $minReleasePackages ) {
     Add-Failure "release package baseline regressed: $($releasePackages.Count) < $minReleasePackages"
 }
+
 foreach ( $name in $fixturePackageNames ) {
     $fixturePath = Join-Path $packageDir $name
     if ( ! (Test-Path -LiteralPath $fixturePath -PathType Container) ) {
@@ -186,6 +198,16 @@ foreach ( $name in $fixturePackageNames ) {
     }
 }
 
+foreach ( $pkg in $packages ) {
+    if ( $fixturePackageNames -notcontains $pkg.Name ) {
+        continue
+    }
+    $legacyXapi = Join-Path $pkg.FullName "package.xapi.json"
+    if ( Test-Path -LiteralPath $legacyXapi -PathType Leaf ) {
+        Add-Failure "legacy package.xapi.json must not remain in mainline fixture: test/fixtures/$($pkg.Name)/package.xapi.json"
+    }
+}
+
 if ( $packages.Count -lt $minPackages ) {
     Add-Failure "package fixture baseline regressed: $($packages.Count) < $minPackages"
 }
@@ -193,7 +215,7 @@ if ( $packages.Count -lt $minPackages ) {
 if ( ! (Test-Path -LiteralPath $readmePath -PathType Leaf) ) {
     Add-Failure "packages README missing: release/extlibs/README.md"
 } else {
-    $readmeText = [System.IO.File]::ReadAllText($readmePath, [System.Text.Encoding]::UTF8)
+    $readmeText = Read-Utf8Text $readmePath
     $readmePackageNames = New-Object System.Collections.Generic.HashSet[string]
     $startMarker = "<!-- package-index:start -->"
     $endMarker = "<!-- package-index:end -->"
@@ -209,7 +231,6 @@ if ( ! (Test-Path -LiteralPath $readmePath -PathType Leaf) ) {
     }
 
     $readmeMatches = [regex]::Matches($indexText, '(?m)^-\s+`([^`]+)`')
-
     foreach ( $match in $readmeMatches ) {
         $name = $match.Groups[1].Value
         if ( ! $readmePackageNames.Add($name) ) {
@@ -230,205 +251,104 @@ if ( ! (Test-Path -LiteralPath $readmePath -PathType Leaf) ) {
 }
 
 foreach ( $pkg in $packages ) {
-    $manifestPath = Join-Path $pkg.FullName "xlang.package.json"
-    if ( ! (Test-Path -LiteralPath $manifestPath -PathType Leaf) ) {
-        Add-Failure "package manifest missing: release/extlibs/$($pkg.Name)/xlang.package.json"
+    if ( $fixturePackageNames -notcontains $pkg.Name ) {
         continue
     }
 
+    $manifestPath = Join-Path $pkg.FullName "xlang.package.json"
+    $manifestRel = "test/fixtures/$($pkg.Name)/xlang.package.json"
     try {
         $manifest = Read-Json $manifestPath
     } catch {
-        Add-Failure "package manifest is not valid JSON: release/extlibs/$($pkg.Name)/xlang.package.json"
+        Add-Failure "package manifest is not valid JSON: $manifestRel"
         continue
     }
 
     $manifests[$pkg.Name] = $manifest
 
     if ( $manifest.format -ne "xlang-package-1" ) {
-        Add-Failure "package manifest format mismatch: release/extlibs/$($pkg.Name)/xlang.package.json"
+        Add-Failure "package manifest format mismatch: $manifestRel"
     }
     if ( [string]::IsNullOrEmpty($manifest.name) ) {
-        Add-Failure "package manifest name missing: release/extlibs/$($pkg.Name)/xlang.package.json"
+        Add-Failure "package manifest name missing: $manifestRel"
     }
     if ( [string]::IsNullOrEmpty($manifest.version) ) {
-        Add-Failure "package manifest version missing: release/extlibs/$($pkg.Name)/xlang.package.json"
+        Add-Failure "package manifest version missing: $manifestRel"
     }
     if ( [string]::IsNullOrEmpty($manifest.abiVersion) ) {
-        Add-Failure "package manifest abiVersion missing: release/extlibs/$($pkg.Name)/xlang.package.json"
+        Add-Failure "package manifest abiVersion missing: $manifestRel"
     }
-    if ( [string]::IsNullOrEmpty($manifest.xapi) ) {
-        Add-Failure "package manifest xapi missing: release/extlibs/$($pkg.Name)/xlang.package.json"
+    if ( $null -ne $manifest.xapi ) {
+        Add-Failure "package manifest must not declare legacy xapi field: $manifestRel"
     }
+
+    if ( $null -eq $manifest.artifact ) {
+        Add-Failure "package manifest artifact missing: $manifestRel"
+        continue
+    }
+    if ( [string]$manifest.artifact.kind -ne "source" ) {
+        Add-Failure "package artifact.kind must be source: $manifestRel"
+    }
+
+    $xlSources = String-Array $manifest.artifact.xlSources
+    $cSources = String-Array $manifest.artifact.cSources
+    if ( $xlSources.Count -eq 0 ) {
+        Add-Failure "package artifact.xlSources must not be empty: $manifestRel"
+    }
+    Validate-RelativeFileList $pkg $manifestRel $xlSources "xlSources" ".xl"
+    Validate-RelativeFileList $pkg $manifestRel $cSources "cSources" ".c"
 
     $expectedPackageId = "{0}@{1}#abi{2}" -f $manifest.name, $manifest.version, $manifest.abiVersion
     if ( ! $packageIndex.Add($expectedPackageId) ) {
         Add-Failure "duplicate package identity: $expectedPackageId"
     }
+
+    if ( $null -ne $manifest.links ) {
+        foreach ( $link in (String-Array $manifest.links) ) {
+            if ( [string]::IsNullOrWhiteSpace($link) ) {
+                Add-Failure "package links contains empty path: $manifestRel"
+            }
+        }
+    }
+    if ( $null -ne $manifest.loadlibs ) {
+        foreach ( $loadlib in (String-Array $manifest.loadlibs) ) {
+            if ( [string]::IsNullOrWhiteSpace($loadlib) ) {
+                Add-Failure "package loadlibs contains empty path: $manifestRel"
+            }
+        }
+    }
+
+    if ( $null -ne $manifest.native ) {
+        if ( $null -eq $manifest.native.singleton ) {
+            Add-Failure "package native.singleton missing: $manifestRel"
+        }
+        if ( $null -ne $manifest.native.loadName -and [string]::IsNullOrWhiteSpace([string]$manifest.native.loadName) ) {
+            Add-Failure "package native.loadName empty: $manifestRel"
+        }
+        if ( $null -ne $manifest.native.version -and [string]::IsNullOrWhiteSpace([string]$manifest.native.version) ) {
+            Add-Failure "package native.version empty: $manifestRel"
+        }
+    }
 }
 
 foreach ( $pkg in $packages ) {
-    if ( ! $manifests.ContainsKey($pkg.Name) ) {
+    if ( $fixturePackageNames -notcontains $pkg.Name -or ! $manifests.ContainsKey($pkg.Name) ) {
         continue
     }
-
-    $manifest = $manifests[$pkg.Name]
-    $xapiRel = [string]$manifest.xapi
-    $xapiPath = Join-Path $pkg.FullName $xapiRel
-
-    if ( ! (Test-Path -LiteralPath $xapiPath -PathType Leaf) ) {
-        if ( $missingXapiPackages -notcontains $pkg.Name ) {
-            Add-Failure "package xapi file missing: release/extlibs/$($pkg.Name)/$xapiRel"
-        }
+    if ( $badDependencyPackages -contains $pkg.Name ) {
         continue
     }
-
-    try {
-        $xapi = Read-Json $xapiPath
-    } catch {
-        Add-Failure "package xapi is not valid JSON: release/extlibs/$($pkg.Name)/$xapiRel"
-        continue
-    }
-
-    if ( $invalidFormatPackages -contains $pkg.Name ) {
-        if ( $xapi.format -eq "xlang-xapi-1" ) {
-            Add-Failure "invalid-format negative package unexpectedly uses xlang-xapi-1: release/extlibs/$($pkg.Name)/$xapiRel"
-        }
-        continue
-    }
-
-    if ( $xapi.format -ne "xlang-xapi-1" ) {
-        Add-Failure "package xapi format mismatch: release/extlibs/$($pkg.Name)/$xapiRel"
-        continue
-    }
-
-    if ( $xapi.package.name -ne $manifest.name ) {
-        Add-Failure "package name mismatch between manifest and xapi: release/extlibs/$($pkg.Name)"
-    }
-    if ( $xapi.package.version -ne $manifest.version ) {
-        Add-Failure "package version mismatch between manifest and xapi: release/extlibs/$($pkg.Name)"
-    }
-    if ( $xapi.package.abiVersion -ne $manifest.abiVersion ) {
-        Add-Failure "package abiVersion mismatch between manifest and xapi: release/extlibs/$($pkg.Name)"
-    }
-
-    $expectedPackageId = "{0}@{1}#abi{2}" -f $manifest.name, $manifest.version, $manifest.abiVersion
-    if ( [string]$xapi.package.packageId -ne $expectedPackageId ) {
-        Add-Failure "packageId mismatch between manifest and xapi: release/extlibs/$($pkg.Name)"
-    }
-
-    if ( [string]::IsNullOrEmpty($xapi.module.name) ) {
-        Add-Failure "package xapi module.name missing: release/extlibs/$($pkg.Name)/$xapiRel"
-    } elseif ( [string]$xapi.module.name -ne [string]$manifest.name ) {
-        Add-Failure "module name mismatch between manifest and xapi: release/extlibs/$($pkg.Name)"
-    }
-
-    $expectedModuleId = "{0}::{1}" -f $expectedPackageId, $xapi.module.name
-    if ( [string]$xapi.module.moduleId -ne $expectedModuleId ) {
-        Add-Failure "moduleId mismatch between packageId and module name: release/extlibs/$($pkg.Name)"
-    } elseif ( ! $moduleIndex.Add([string]$xapi.module.moduleId) ) {
-        Add-Failure "duplicate xapi moduleId: $($xapi.module.moduleId)"
-    }
-
-    $expectedSource = "test/fixtures/$($pkg.Name)"
-    if ( [string]$xapi.module.source -ne $expectedSource ) {
-        Add-Failure "module source mismatch: release/extlibs/$($pkg.Name), expected $expectedSource"
-    }
-
-    if ( [string]$xapi.entry.kind -ne "none" ) {
-        Add-Failure "package xapi entry.kind must be none: release/extlibs/$($pkg.Name)"
-    }
-    if ( [string]$xapi.entry.initSymbol -ne "xlInit" ) {
-        Add-Failure "package xapi entry.initSymbol must be xlInit: release/extlibs/$($pkg.Name)"
-    }
-    if ( [string]$xapi.entry.unitSymbol -ne "xlUnit" ) {
-        Add-Failure "package xapi entry.unitSymbol must be xlUnit: release/extlibs/$($pkg.Name)"
-    }
-
-    foreach ( $export in @($xapi.exports) ) {
-        if ( $null -eq $export ) {
+    foreach ( $dep in @($manifests[$pkg.Name].dependencies) ) {
+        if ( $null -eq $dep ) {
             continue
         }
-
-        if ( [string]::IsNullOrEmpty($export.kind) ) {
-            Add-Failure "package xapi export kind missing: release/extlibs/$($pkg.Name)"
-        }
-        if ( [string]::IsNullOrEmpty($export.name) ) {
-            Add-Failure "package xapi export name missing: release/extlibs/$($pkg.Name)"
-        }
-        if ( [string]::IsNullOrEmpty($export.signature) ) {
-            Add-Failure "package xapi export signature missing: release/extlibs/$($pkg.Name)::$($export.name)"
-        }
-        if ( [string]::IsNullOrEmpty($export.exportId) ) {
-            Add-Failure "package xapi exportId missing: release/extlibs/$($pkg.Name)::$($export.name)"
-            continue
-        }
-
-        $expectedExportId = "{0}::{1}({2})" -f $xapi.module.moduleId, $export.name, $export.signature
-        if ( [string]$export.exportId -ne $expectedExportId ) {
-            Add-Failure "package xapi exportId mismatch: release/extlibs/$($pkg.Name)::$($export.name)"
-        }
-
-        if ( ! $exportIndex.Add([string]$export.exportId) ) {
-            Add-Failure "duplicate xapi exportId: $($export.exportId)"
-        }
-    }
-
-    $manifestSources = Artifact-Sources $manifest
-    $xapiSources = String-Array $xapi.cSources
-    if ( ! (Same-StringSet $manifestSources $xapiSources) ) {
-        Add-Failure "package cSources mismatch between manifest and xapi: release/extlibs/$($pkg.Name)"
-    }
-
-    foreach ( $source in $manifestSources ) {
-        $sourcePath = Join-Path $pkg.FullName $source
-        if ( ! (Test-Path -LiteralPath $sourcePath -PathType Leaf) ) {
-            Add-Failure "package cSource missing: release/extlibs/$($pkg.Name)/$source"
-        }
-    }
-
-    if ( ! (Same-StringSet (String-Array $manifest.links) (String-Array $xapi.links)) ) {
-        Add-Failure "package links mismatch between manifest and xapi: release/extlibs/$($pkg.Name)"
-    }
-    if ( ! (Same-StringSet (String-Array $manifest.loadlibs) (String-Array $xapi.loadlibs)) ) {
-        Add-Failure "package loadlibs mismatch between manifest and xapi: release/extlibs/$($pkg.Name)"
-    }
-
-    if ( $null -ne $manifest.native -and $null -ne $xapi.native ) {
-        if ( [bool]$manifest.native.singleton -ne [bool]$xapi.native.singleton ) {
-            Add-Failure "package native.singleton mismatch between manifest and xapi: release/extlibs/$($pkg.Name)"
-        }
-        if ( [string]$manifest.native.loadName -ne [string]$xapi.native.loadName ) {
-            Add-Failure "package native.loadName mismatch between manifest and xapi: release/extlibs/$($pkg.Name)"
-        }
-        if ( [string]$manifest.native.version -ne [string]$xapi.native.version ) {
-            Add-Failure "package native.version mismatch between manifest and xapi: release/extlibs/$($pkg.Name)"
-        }
-    }
-
-    if ( $badDependencyPackages -notcontains $pkg.Name ) {
-        foreach ( $dep in @($manifest.dependencies)) {
-            if ( $null -eq $dep ) {
-                continue
-            }
-            $key = "{0}@{1}#abi{2}" -f $dep.name, $dep.version, $dep.abiVersion
-            if ( ! $packageIndex.Contains($key) ) {
-                Add-Failure "package dependency target missing: release/extlibs/$($pkg.Name) -> $key"
-            }
+        $key = "{0}@{1}#abi{2}" -f $dep.name, $dep.version, $dep.abiVersion
+        if ( ! $packageIndex.Contains($key) ) {
+            Add-Failure "package dependency target missing: test/fixtures/$($pkg.Name) -> $key"
         }
     }
 }
 
-foreach ( $name in $missingXapiPackages ) {
-    if ( ! $manifests.ContainsKey($name) ) {
-        Add-Failure "missing-xapi negative package not found: $name"
-    }
-}
-foreach ( $name in $invalidFormatPackages ) {
-    if ( ! $manifests.ContainsKey($name) ) {
-        Add-Failure "invalid-format negative package not found: $name"
-    }
-}
 foreach ( $name in $badDependencyPackages ) {
     if ( ! $manifests.ContainsKey($name) ) {
         Add-Failure "bad-dependency negative package not found: $name"
@@ -479,5 +399,5 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
-Write-Host "Package fixtures ok: $($packages.Count) packages."
+Write-Host "Package fixtures ok: $($packages.Count) package fixture manifests."
 exit 0

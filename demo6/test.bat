@@ -24,7 +24,7 @@ set "XL6_SUITE_PREPARED=1"
 
 call test\suites\00_static_smoke.bat
 if errorlevel 1 exit /b 1
-call test\suites\01_import_package_xapi.bat
+call test\suites\01_import_package_source.bat
 if errorlevel 1 exit /b 1
 call test\suites\02_language_frontend.bat
 if errorlevel 1 exit /b 1

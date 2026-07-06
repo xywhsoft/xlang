@@ -59,6 +59,11 @@ static int xl6CgenExprParamMatchCost(XL6_CgenContext* ctx, const XL6_AstNode* ex
             xl6AstFree(exprType);
             return 0;
         }
+        if ( xl6CgenIsFunctionType(paramType) && xl6CgenIsFunctionType(exprType) &&
+             exprType->childCount == 0 && paramType->childCount > 0 ) {
+            xl6AstFree(exprType);
+            return 30;
+        }
         if ( exprTypeName != NULL && xl6CTextEquals(exprTypeName, targetType) &&
              paramType->childCount == 0 &&
              ((xl6CgenIsClassType(ctx, exprType) && xl6CgenIsClassType(ctx, paramType)) ||

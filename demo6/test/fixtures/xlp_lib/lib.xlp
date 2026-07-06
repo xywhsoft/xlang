@@ -1,0 +1,6 @@
+{
+  "format": "xlang-project-1",
+  "kind": "dll",
+  "entry": "lib.xl",
+  "cSources": []
+}

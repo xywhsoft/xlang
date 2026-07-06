@@ -1,22 +1,30 @@
 {
-  "format": "xlang-package-1",
-  "name": "stb_image",
-  "version": "0.1.0",
-  "abiVersion": "1",
-  "xapi": "package.xapi.json",
-  "kind": "demo6-extlib",
-  "artifact": {
-    "kind": "source",
-    "cSources": [
-      "stb_image_native.c"
-    ]
-  },
-  "links": [],
-  "loadlibs": [],
-  "dependencies": [],
-  "native": {
-    "singleton": false,
-    "loadName": "",
-    "version": ""
-  }
+    "format":  "xlang-package-1",
+    "name":  "stb_image",
+    "version":  "0.1.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "stb_image_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/stb_image.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
 }

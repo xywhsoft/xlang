@@ -1,0 +1,8 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+extern "xmd5_available" func __xl6_import_md5_available() as bool
+extern "xmd5_version" func __xl6_import_md5_version() as string
+extern "xmd5_last_error" func __xl6_import_md5_last_error() as string
+extern "xmd5_hex" func __xl6_import_md5_hex(string text) as string
+extern "xmd5_file" func __xl6_import_md5_file(string path) as string
+extern "xmd5_valid" func __xl6_import_md5_valid(string text) as c_int

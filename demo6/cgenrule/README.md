@@ -31,13 +31,10 @@
 - `23_P2_cleanup与借用生命周期细则.md`：cleanup 栈、function/class/custom/xvalue/typed container/并发对象释放、借用判定和 loop target 细则。
 - `24_P2_上下文状态表细则.md`：变量表、typed container 标记、上下文状态、class/union 去重、多返回签名表和 try target 细则。
 - `25_P2_入口判定细则.md`：顶层运行语句筛选、xlang main 识别和入口扫描细则。
-- `26_P2_XAPI基础输出与doc细则.md`：XAPI JSON 转义、类型字符串、入口元数据、基础 export/import 输出、`#doc` 解析和导出身份构造细则。
-- `27_P2_XAPI模块构建与JSON输出细则.md`：XAPI module 模型、class/union 字段、export/type/import 构建和完整 JSON 输出细则。
-- `28_P2_XAPI读取与模型恢复细则.md`：XAPI JSON 读取、字符串/布尔/整数解析、param/return/field/doc 恢复、模块模型重建和文件读取细则。
-- `29_P2_import依赖与命名空间细则.md`：import 依赖收集、package 版本解析、私有命名空间、符号表构建和类型 token 重写细则。
-- `30_P2_import声明生成与AST重写细则.md`：XAPI 声明注入、extern 函数/变量/type 声明生成、import AST 合并、命名空间访问重写和缺失诊断细则。
-- `31_P2_package解析与resolver细则.md`：package manifest JSON 读取、默认身份补齐、路径/裸包名搜索、XAPI interfacePath 归一和 resolver 状态细则。
-- `32_P2_CLI构建运行与产物路径细则.md`：CLI/backend 命令分派、cgen/header/xapi/dump、build/run 临时产物、TCC 链接和 C 混编 wrapper 细则。
+- `29_P2_import依赖与命名空间细则.md`：源码 import 依赖收集、package 版本解析、私有命名空间、符号表构建和类型 token 重写细则。
+- `30_P2_import声明生成与AST重写细则.md`：源码 import 声明合并、extern 函数/变量/type 声明重写、命名空间访问 AST 重写和缺失诊断细则。
+- `31_P2_package解析与resolver细则.md`：package manifest JSON 读取、默认身份补齐、路径/裸包名搜索、`xlSources`/`cSources` 和 resolver 状态细则。
+- `32_P2_CLI构建运行与产物路径细则.md`：CLI/backend 命令分派、cgen/header/dump、build/run/`.xlp`、TCC 链接和 C 混编 wrapper 细则。
 - `33_P2_DLL_API动态执行细则.md`：xl.dll/API 上下文、libtcc 动态加载、XRT 符号注入、脚本内存运行和编译到 exe 细则。
 - `34_规则测试范例交叉索引.md`：规则文档与 `demo6/test/cases`、feature suite、tutorial、DLL/CLI 测试入口的交叉覆盖索引；不计入 `CGEN-*` 规则数。
 - `35_主干P0规则验证矩阵.md`：主干规则与 P0 规则共 175 条的验证矩阵，记录直接/间接证据和非阻断增强项；不计入 `CGEN-*` 规则数。
@@ -45,8 +42,7 @@
 - `37_P2运行时HeaderModule标准库验证矩阵.md`：标准库 wrapper、header/needs、module 总装配、runtime/main/xvalue helper 共 94 条 P2 规则的验证矩阵；不计入 `CGEN-*` 规则数。
 - `38_P2符号泛型调用类型推断验证矩阵.md`：符号命名与类型映射、泛型推断与运行时状态、调用解析与默认值、类型克隆与表达式推断共 136 条 P2 规则的验证矩阵；不计入 `CGEN-*` 规则数。
 - `39_P2清理上下文入口验证矩阵.md`：cleanup 与借用生命周期、上下文状态表、入口判定共 82 条 P2 规则的验证矩阵；不计入 `CGEN-*` 规则数。
-- `40_P2_XAPI元数据验证矩阵.md`：XAPI 基础输出与 doc、XAPI module 构建与 JSON 输出、XAPI 读取与模型恢复共 87 条 P2 规则的验证矩阵；不计入 `CGEN-*` 规则数。
-- `41_P2_import_package验证矩阵.md`：import 依赖与命名空间、import 声明生成与 AST 重写、package 解析与 resolver 共 74 条 P2 规则的验证矩阵；不计入 `CGEN-*` 规则数。
+- `41_P2_import_package验证矩阵.md`：源码 import 依赖与命名空间、import 声明合并与 AST 重写、package 解析与 resolver 共 74 条 P2 规则的验证矩阵；不计入 `CGEN-*` 规则数。
 - `42_P2_CLI_DLL验证矩阵.md`：CLI 构建运行与产物路径、DLL/API 动态执行共 63 条 P2 规则的验证矩阵；不计入 `CGEN-*` 规则数。
 - `43_文档整理收口.md`：记录本轮文档整理后的稳定口径、剩余非阻断增强项和后续维护要求；不计入 `CGEN-*` 规则数。
 - `44_文档整理验收报告.md`：记录本轮文档整理的最终验收口径、计数校验、重复 ID 校验和行号引用校验；不计入 `CGEN-*` 规则数。
@@ -67,7 +63,7 @@
 
 这里的“规则”指会改变生成 C 形态的分支，不把纯字符串编码、哈希、数组扩容、上下文清理这类内部工具函数单独当成语言规则。辅助函数仍在 `_function_index.generated.md` 和 `00_文件覆盖索引.md` 中保留索引。
 
-当前已经完成主干规则、P0 细化、async/generator/class/custom/ABI 元数据/声明与多返回值 P1 细化，以及标准库 wrapper、header/needs/module runtime helper/符号命名与类型映射/泛型推断与运行时状态/调用解析/类型克隆与表达式推断/cleanup 与借用生命周期/上下文状态表/入口判定/XAPI 输出/XAPI 读取/import 展开/package resolver/CLI 工具链/xl.dll API P2 细化。目录内已有 843 条 `CGEN-*` 规则；同时已完成主干/P0、P1 核心、P2 运行时/Header/Module/标准库、P2 符号/泛型/调用/类型推断、P2 cleanup/上下文/入口、P2 XAPI 元数据、P2 import/package、P2 CLI/DLL 验证矩阵。
+当前已经完成主干规则、P0 细化、async/generator/class/custom/ABI 元数据/声明与多返回值 P1 细化，以及标准库 wrapper、header/needs/module runtime helper/符号命名与类型映射/泛型推断与运行时状态/调用解析/类型克隆与表达式推断/cleanup 与借用生命周期/上下文状态表/入口判定/source import/package resolver/CLI 工具链/xl.dll API P2 细化。目录内已有 756 条 `CGEN-*` 规则；同时已完成主干/P0、P1 核心、P2 运行时/Header/Module/标准库、P2 符号/泛型/调用/类型推断、P2 cleanup/上下文/入口、P2 import/package、P2 CLI/DLL 验证矩阵。
 
 剩余内容不再属于规则文档缺失，而是非阻断增强：把人工矩阵机器化、为内部状态补更细生成快照、扩展资源巡检和错误路径测试。新增或修改 cgen 行为时，应同步更新对应规则表、验证矩阵和 `05_继续细化清单.md`。
 
