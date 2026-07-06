@@ -1,0 +1,65 @@
+{
+    "name": "xs",
+    "durationMs": 0,
+    "verbose": true,
+    "xlPath": "",
+    "services": [
+        {
+            "type": "http",
+            "name": "web",
+            "host": "127.0.0.1",
+            "port": 18080,
+            "routes": [
+                {
+                    "kind": "static",
+                    "pattern": "/",
+                    "root": "projects/xs/wwwroot",
+                    "indexNames": "index.html",
+                    "cacheControl": "max-age=30"
+                },
+                {
+                    "kind": "handler",
+                    "method": "GET|POST",
+                    "pattern": "/api/xl",
+                    "handler": "projects/xs/handlers/http_xl.xl",
+                    "contentType": "text/plain; charset=utf-8",
+                    "timeoutMs": 5000
+                },
+                {
+                    "kind": "handler",
+                    "method": "GET|POST",
+                    "pattern": "/api/c",
+                    "handler": "projects/xs/handlers/http_c.c",
+                    "contentType": "text/plain; charset=utf-8",
+                    "timeoutMs": 5000
+                }
+            ]
+        },
+        {
+            "type": "tcp",
+            "name": "tcp-xl",
+            "host": "127.0.0.1",
+            "port": 18081,
+            "handler": "projects/xs/handlers/tcp_xl.xl",
+            "timeoutMs": 5000,
+            "requestLimit": 0
+        },
+        {
+            "type": "udp",
+            "name": "udp-c",
+            "host": "127.0.0.1",
+            "port": 18082,
+            "handler": "projects/xs/handlers/udp_c.c",
+            "timeoutMs": 5000,
+            "requestLimit": 0
+        },
+        {
+            "type": "custom",
+            "name": "boot-xl",
+            "handler": "projects/xs/handlers/custom_xl.xl",
+            "timeoutMs": 5000,
+            "intervalMs": 0,
+            "requestLimit": 1
+        }
+    ]
+}

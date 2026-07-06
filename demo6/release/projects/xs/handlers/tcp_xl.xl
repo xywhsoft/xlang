@@ -1,0 +1,33 @@
+func main(...) as int
+    int offset = 0
+    if arg.length > 0 then
+        string firstArg = string(arg[0])
+        if string.endsWith(firstArg, ".xl") or string.endsWith(firstArg, ".exe") then
+            offset = 1
+        end
+    end
+
+    string serviceName = ""
+    string data = ""
+    string outPath = ""
+    if offset + 1 < arg.length then
+        serviceName = string(arg[offset + 1])
+    end
+    if offset + 2 < arg.length then
+        data = string(arg[offset + 2])
+    end
+    if arg.length > offset then
+        string lastArg = string(arg[arg.length - 1])
+        if string.endsWith(lastArg, ".out") then
+            outPath = lastArg
+        end
+    end
+
+    string response = "xl-tcp:" + serviceName + ":" + data
+    if outPath != "" then
+        file.writeText(outPath, response)
+    else
+        println(response)
+    end
+    return 0
+end

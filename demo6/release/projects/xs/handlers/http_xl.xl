@@ -1,0 +1,43 @@
+func main(...) as int
+    int offset = 0
+    if arg.length > 0 then
+        string firstArg = string(arg[0])
+        if string.endsWith(firstArg, ".xl") or string.endsWith(firstArg, ".exe") then
+            offset = 1
+        end
+    end
+
+    string protocol = ""
+    string method = ""
+    string requestPath = ""
+    string query = ""
+    string body = ""
+    string outPath = ""
+
+    if offset < arg.length then
+        protocol = string(arg[offset])
+    end
+    if offset + 1 < arg.length then
+        method = string(arg[offset + 1])
+    end
+    if offset + 2 < arg.length then
+        requestPath = string(arg[offset + 2])
+    end
+    if offset + 3 < arg.length then
+        query = string(arg[offset + 3])
+    end
+    if offset + 4 < arg.length then
+        body = string(arg[offset + 4])
+    end
+    if offset + 5 < arg.length then
+        outPath = string(arg[offset + 5])
+    end
+
+    string response = "xl-http:" + protocol + ":" + method + ":" + requestPath + ":" + query + ":" + body
+    if outPath != "" then
+        file.writeText(outPath, response)
+    else
+        println(response)
+    end
+    return 0
+end

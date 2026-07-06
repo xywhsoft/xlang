@@ -1,0 +1,6 @@
+println("top-level init")
+
+func main(...) as int
+    println("main body")
+    return 0
+end

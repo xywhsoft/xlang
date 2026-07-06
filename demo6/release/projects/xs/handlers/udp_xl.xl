@@ -1,0 +1,38 @@
+func main(...) as int
+    int offset = 0
+    if arg.length > 0 then
+        string firstArg = string(arg[0])
+        if string.endsWith(firstArg, ".xl") or string.endsWith(firstArg, ".exe") then
+            offset = 1
+        end
+    end
+
+    string serviceName = ""
+    string data = ""
+    string remoteAddr = ""
+    string remotePort = ""
+    string outPath = ""
+    if offset + 1 < arg.length then
+        serviceName = string(arg[offset + 1])
+    end
+    if offset + 2 < arg.length then
+        data = string(arg[offset + 2])
+    end
+    if offset + 3 < arg.length then
+        remoteAddr = string(arg[offset + 3])
+    end
+    if offset + 4 < arg.length then
+        remotePort = string(arg[offset + 4])
+    end
+    if offset + 5 < arg.length then
+        outPath = string(arg[offset + 5])
+    end
+
+    string response = "xl-udp:" + serviceName + ":" + data + ":" + remoteAddr + ":" + remotePort
+    if outPath != "" then
+        file.writeText(outPath, response)
+    else
+        println(response)
+    end
+    return 0
+end
