@@ -29,7 +29,7 @@ static void xlcShellPrintHelp(void)
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c|file.xlp> [helper.c ...] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl dbg <file.xl> [--break line] [--stop-on-entry] [--commands file] [--save-temps] [-- <args>...]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl dap\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] -o <output.exe|dll> [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o <output.exe|dll>] [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl impdef <file.dll> -o <output.def>\n");
 }
 
@@ -954,6 +954,33 @@ static int xlcShellJoinPath(char* out, size_t outSize, const char* dir, const ch
     return written > 0 && (size_t)written < outSize;
 }
 
+static const char* xlcShellDefaultExeSuffix(void)
+{
+#ifdef _WIN32
+    return ".exe";
+#else
+    return "";
+#endif
+}
+
+static int xlcShellDefaultBuildOutput(char* out, size_t outSize, const char* inputPath)
+{
+    char base[256];
+    const char* suffix;
+    int written;
+
+    if ( out == NULL || outSize == 0 || inputPath == NULL || inputPath[0] == '\0' ) {
+        return 0;
+    }
+    xlcShellBaseNoExt(base, sizeof(base), inputPath);
+    if ( base[0] == '\0' ) {
+        return 0;
+    }
+    suffix = xlcShellDefaultExeSuffix();
+    written = snprintf(out, outSize, "%s%s", base, suffix);
+    return written > 0 && (size_t)written < outSize;
+}
+
 static int xlcShellOptionTakesValue(const char* arg)
 {
     return xlcShellTextEquals(arg, "--emit") ||
@@ -1316,6 +1343,7 @@ static int xlcShellWriteFileToConsole(const char* path, XL6_ConsoleStream stream
 
 static int xlcShellDoCheck(XLC_Context* ctx, int argc, char** argv)
 {
+    char tmpDir[512];
     char outputPath[512];
     int ok;
 
@@ -1323,13 +1351,14 @@ static int xlcShellDoCheck(XLC_Context* ctx, int argc, char** argv)
     if ( xlcShellHasJson(argc, argv) ) {
         return xlcCheck(ctx, NULL, 1);
     }
-    if ( !xlcShellBuildTmpDir(outputPath, sizeof(outputPath)) ) {
+    if ( !xlcShellBuildTmpDir(tmpDir, sizeof(tmpDir)) ) {
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create temporary directory\n");
         return 0;
     }
     if ( snprintf(outputPath,
                   sizeof(outputPath),
-                  "build\\tmp\\xlc_check_%lu_%lu.txt",
+                  "%s\\xlc_check_%lu_%lu.txt",
+                  tmpDir,
                   xlcShellProcessId(),
                   xlcShellTick()) <= 0 ) {
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create temporary check path\n");
@@ -1530,19 +1559,11 @@ static int xlcShellDoBuild(XLC_Context* ctx, int argc, char** argv)
 {
     const char* output;
     const char* emitHeader;
+    char defaultOutput[512];
     int cliShared;
     int buildShared;
     int ok;
 
-    output = xlcShellFindValue(argc, argv, "-o", 3);
-    if ( output == NULL ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "build requires -o <output.exe>\n");
-        return 0;
-    }
-    emitHeader = xlcShellFindValue(argc, argv, "--emit-header", 3);
-    if ( emitHeader != NULL && !xlcShellEmitHeader(ctx, emitHeader) ) {
-        return 0;
-    }
     cliShared = xlcShellHasFlag(argc, argv, "-shared") || xlcShellHasFlag(argc, argv, "--shared");
     buildShared = cliShared;
     if ( xlcShellProjectKind[0] != '\0' ) {
@@ -1551,6 +1572,22 @@ static int xlcShellDoBuild(XLC_Context* ctx, int argc, char** argv)
             xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp kind conflicts with -shared: %s\n", xlcShellFileArg(argc, argv));
             return 0;
         }
+    }
+    output = xlcShellFindValue(argc, argv, "-o", 3);
+    if ( output == NULL ) {
+        if ( buildShared ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "build shared library requires -o <output.dll>\n");
+            return 0;
+        }
+        if ( !xlcShellDefaultBuildOutput(defaultOutput, sizeof(defaultOutput), xlcShellFileArg(argc, argv)) ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create default output path\n");
+            return 0;
+        }
+        output = defaultOutput;
+    }
+    emitHeader = xlcShellFindValue(argc, argv, "--emit-header", 3);
+    if ( emitHeader != NULL && !xlcShellEmitHeader(ctx, emitHeader) ) {
+        return 0;
     }
     if ( buildShared ) {
         ok = xlcEmitSharedLibrary(ctx, output);
@@ -1569,23 +1606,33 @@ static int xlcShellBuildC(int argc, char** argv)
     XL_Context* runtime;
     const char* cInputs[XLC_SHELL_MAX_C_INPUTS];
     const char* output;
+    char defaultOutput[512];
     int cInputCount;
+    int buildShared;
     int ok;
 
-    output = xlcShellFindValue(argc, argv, "-o", 3);
-    if ( output == NULL ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "build requires -o <output.exe>\n");
-        return 1;
-    }
     if ( !xlcShellCollectCInputs(argc, argv, cInputs, XLC_SHELL_MAX_C_INPUTS, &cInputCount) ) {
         return 1;
+    }
+    buildShared = xlcShellHasFlag(argc, argv, "-shared") || xlcShellHasFlag(argc, argv, "--shared");
+    output = xlcShellFindValue(argc, argv, "-o", 3);
+    if ( output == NULL ) {
+        if ( buildShared ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "build shared library requires -o <output.dll>\n");
+            return 1;
+        }
+        if ( !xlcShellDefaultBuildOutput(defaultOutput, sizeof(defaultOutput), cInputs[0]) ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create default output path\n");
+            return 1;
+        }
+        output = defaultOutput;
     }
     ctx = xlcShellCreateContext(argc, argv);
     if ( ctx == NULL ) {
         return 1;
     }
     runtime = xlcRuntimeContext(ctx);
-    if ( xlcShellHasFlag(argc, argv, "-shared") || xlcShellHasFlag(argc, argv, "--shared") ) {
+    if ( buildShared ) {
         ok = runtime != NULL && xlCompileCSourceFilesToSharedLibrary(runtime, cInputs, cInputCount, output);
     } else {
         ok = runtime != NULL && xlCompileCSourceFilesToExe(runtime, cInputs, cInputCount, output);

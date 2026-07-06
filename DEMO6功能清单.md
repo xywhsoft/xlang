@@ -63,7 +63,7 @@ xl cgen <file.xl> [--emit output.c] [--emit-header output.h] [--dump-dir dir]
 xl abi <file.xl> [--json] [--emit output.abi.txt]
 xl xapi <file.xl> [--emit output.xapi.json]
 xl run <file.xl> [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]
-xl build <file.xl> -o <output.exe> [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]
+xl build <file.xl> [-o <output.exe>] [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]
 ```
 
 命令行为：
@@ -79,6 +79,7 @@ xl build <file.xl> -o <output.exe> [-shared] [--save-temps] [--emit-header outpu
 - `run`：生成 C 后挂载到动态 VFS，调用内嵌 TCC 编译到内存并直接调用 `xlang_main(xvalue arg)`；不生成临时 `app.exe`，也不启动独立子进程执行脚本。
 - `run -- <args>...`：把命令行参数传给 xlang 程序。
 - `run --save-temps`：显式导出动态 VFS 内的 `module.c`、`module.h`、`module.xapi.json`、`csrc_N.c` 等调试产物。
+- `build`：生成 native 可执行程序；省略 `-o` 时，默认在当前工作目录使用第一个输入文件的文件名生成输出，Windows 为 `文件名.exe`，Linux 为 `文件名`；显式提供 `-o` 时按 `-o` 路径输出。
 - `build`：生成 exe。
 - `build -shared`：进入共享库/DLL 构建边界。
 - `build --emit-header`：输出供 C 调用的头文件。
@@ -1118,7 +1119,8 @@ auto text = file.readText("data.txt")
 - `template.compile(text, bracket = "{}")` 编译模板文本；`template.render(text, data = null, bracket = "{}")` 一次性渲染模板；`template.renderFile(path, data = null, bracket = "{}")` 通过 XRT UTF-8 文件层读取模板并渲染；`Template(text, bracket).render(data)` 适合重复渲染。
 - `http.get(url, timeoutMs = 5000)`、`http.post(url, body, contentType = "text/plain; charset=utf-8", timeoutMs = 5000)`、`http.request(method, url, body = "", contentType = "", timeoutMs = 5000)` 提供阻塞式 HTTP/HTTPS client，返回 `HttpClientResponse`。`HttpClientRequest(url = "")` 支持 `method(method)`、`url(url)`、`header(name, value)`、`body(data, size, contentType)`、`text(data, contentType = "text/plain; charset=utf-8")`、`timeout(timeoutMs)`、`idleTimeout(timeoutMs)`、`verifyPeer(value)`、`execute()`；`HttpClientResponse` 支持 `status()`、`ok()`、`reason()`、`header(name)`、`contentLength()`、`body()`、`bodyData()`、`bodySize()`、`bodyBytes()`。`bodyData/bodySize` 是响应生命周期内的字节视图，`bodyBytes()` 返回独立复制的 `Buffer`。当前 client API 是同步阻塞模型；异步 HTTP client 归入后续统一异步网络运行时。
 - `http.server.create(port = 0, host = "127.0.0.1", backlog = 128, recvLimit = 1048576, bodyLimit = 1048576, headerLimit = 100, headerBytesLimit = 65536, workerCount = 1, headerTimeoutMs = 30000, bodyTimeoutMs = 30000, idleTimeoutMs = 60000, writeTimeoutMs = 30000, multipartPartLimit = 1000, multipartPartSizeLimit = 0)` 创建 HTTP server 句柄；`http.server.get/post/any(server, pattern, handler)` 注册到 server 当前默认 app，handler 签名为 `func(string, string, string, string) as string`；`http.server.getRequest/postRequest/anyRequest(server, pattern, handler)` 注册对象化路由，handler 签名为 `func(point, point) as bool`，函数内用 `HttpRequest(reqHandle)` 和 `HttpResponse(respHandle)` 访问请求与响应；`http.server.route(server, method, pattern, handler)` 和 `http.server.routeRequest(server, method, pattern, handler)` 支持 `GET`、`HEAD`、`POST`、`PUT`、`DELETE`、`PATCH`、`OPTIONS`、`ANY`，也支持 `GET|POST`、`GET,POST` 这类组合方法字符串；`http.server.postStreamRequest/anyStreamRequest/routeStreamRequest` 注册流式请求体路由；`pattern` 支持静态段、`{id}` 变量段和尾部 `*` 通配符；`http.server.static(server, mount, root)` 挂载默认静态目录；`http.server.staticEx(server, mount, root, indexNames = "index.html;index.htm", cacheControl = "", chunkSize = 65536, flags = 0)` 可设置 index 文件名列表、`Cache-Control`、发送块大小和静态目录安全 flag；`http.server.mimeByPath(path)` 根据扩展名返回 Content-Type。
-- 流式请求体路由三段 handler：`beginHandler` 为 `func(point) as bool`，`chunkHandler` 为 `func(point, point, int) as bool`，`endHandler` 为 `func(point, point) as bool`。`chunkHandler` 中的 `point data` 只在当前回调期间有效，需要保存时调用 `http.server.chunkText(data, size)` 复制为 `string`，或调用 `http.server.chunkBytes(data, size)` 复制为独立 `Buffer`。当前 `endHandler` 必须同步写出响应，暂不支持异步结束。
+- `http.server.static/staticEx/appStatic/appStaticEx` 的静态文件响应由 XRT `xweb` 统一处理：自动输出 `ETag`、`Last-Modified`、`Accept-Ranges: bytes`；支持 `If-None-Match` 返回 `304 Not Modified`；支持单段 `Range: bytes=...` 返回 `206 Partial Content` 和 `Content-Range`；无效 range 返回 `416 Range Not Satisfiable`；`If-Range` 不匹配时忽略 range 并返回完整文件。
+- 流式请求体路由三段 handler：`beginHandler` 为 `func(point) as bool`，`chunkHandler` 为 `func(point, point, int) as bool`，`endHandler` 为 `func(point, point) as bool`。`chunkHandler` 中的 `point data` 只在当前回调期间有效，需要保存时调用 `http.server.chunkText(data, size)` 复制为 `string`，或调用 `http.server.chunkBytes(data, size)` 复制为独立 `Buffer`。当前 xlang 高层 `endHandler` 必须同步写出响应，暂不支持异步结束；XRT/xweb C API 已支持 `StreamRouteAsync` 系列异步 body end。
 - `http.server.create` / `createTls` 默认使用 XRT owned engine：每个 server 拥有独立网络 engine，`workerCount` 对该 engine 生效，`http.server.destroy(server)` 会释放 server 与对应 engine。C 侧如果直接使用 XRT，可显式传入外部 `xnetengine*` 来让多个 server 共享同一个事件循环。
 - `http.server.create` / `createTls` 的 `recvLimit` 是底层连接接收缓冲上限，`bodyLimit` 是单个 HTTP 请求 body 上限，`headerLimit` 是请求头数量上限，`headerBytesLimit` 是请求头总字节上限，`multipartPartLimit` 是 multipart part 数量上限，`multipartPartSizeLimit` 是单个 multipart part body 字节上限；`multipartPartLimit = 0` 或 `multipartPartSizeLimit = 0` 表示关闭对应限制。请求 body 或 multipart 超限时底层 XRT 直接返回 `413 Payload Too Large`，请求头超过限制时返回 `431 Request Header Fields Too Large`，这些拒绝路径都不会进入路由 handler。`headerTimeoutMs` 控制请求头读完前的最长等待时间，`bodyTimeoutMs` 控制固定长度 body 读完前的最长等待时间，`idleTimeoutMs` 控制 keep-alive 空闲连接保留时间，`writeTimeoutMs` 控制响应提交后发送队列排空的最长等待时间；header/body 超时返回 `408 Request Timeout`，idle 超时静默关闭连接，write 超时直接关闭连接。
 - `http.server.createTls(certFile, keyFile, port = 0, host = "127.0.0.1", backlog = 128, recvLimit = 1048576, bodyLimit = 1048576, headerLimit = 100, headerBytesLimit = 65536, workerCount = 1, headerTimeoutMs = 30000, bodyTimeoutMs = 30000, idleTimeoutMs = 60000, writeTimeoutMs = 30000, multipartPartLimit = 1000, multipartPartSizeLimit = 0)` 创建 HTTPS server 句柄，底层使用 XRT `xtlsconfig` 的证书文件路径能力。
@@ -1446,6 +1448,7 @@ xl run test.xl
 
 ```bat
 cd demo6\release
+xl build test.xl
 xl build test.xl -o test.exe
 test.exe
 ```

@@ -855,9 +855,19 @@ if errorlevel 1 (
     echo stdlib_tcc_embed.c missing XRT response append symbol prototype.
     exit /b 1
 )
+findstr /C:"bool xrtWebServerStreamRouteAsync" build\test\stdlib_tcc_embed.c >nul
+if errorlevel 1 (
+    echo stdlib_tcc_embed.c missing XRT async stream route symbol prototype.
+    exit /b 1
+)
 findstr /C:"XL6_TCC_ADD_SYMBOL(xrtWebResponseAppendText)" build\test\stdlib_tcc_embed.c >nul
 if errorlevel 1 (
     echo stdlib_tcc_embed.c missing XRT response append symbol registration.
+    exit /b 1
+)
+findstr /C:"XL6_TCC_ADD_SYMBOL(xrtWebServerStreamRouteAsync)" build\test\stdlib_tcc_embed.c >nul
+if errorlevel 1 (
+    echo stdlib_tcc_embed.c missing XRT async stream route symbol registration.
     exit /b 1
 )
 release\xl.exe run test\cases\stdlib_tcc_embed.xl > build\test\stdlib_tcc_embed.out.txt
