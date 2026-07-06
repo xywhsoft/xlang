@@ -1,0 +1,9 @@
+import counter
+
+func main(...) as int
+    if counter.counterAdd(10, 32) == 42 then
+        return 0
+    else
+        return 1
+    end
+end

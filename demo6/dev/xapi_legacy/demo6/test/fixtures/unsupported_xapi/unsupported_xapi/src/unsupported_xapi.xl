@@ -1,0 +1,3 @@
+﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+
+extern "xl6_unsupported_call" func __xl6_import_unsupported_xapi_unsupportedCall(int first, array<var> arg) as int

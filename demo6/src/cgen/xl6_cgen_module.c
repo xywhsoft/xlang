@@ -251,8 +251,8 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     for ( i = 0; i < root->childCount; ++i ) {
         if ( (root->children[i]->kind == XL6_AST_FUNC || root->children[i]->kind == XL6_AST_EXPORT_FUNC) &&
-             !xl6CgenIsPrintIntrinsicFunc(root->children[i]) &&
-             !xl6CgenFuncIsGeneric(root->children[i]) ) {
+             !xl6CgenFuncIsGeneric(root->children[i]) &&
+             !xl6CgenIsPrintIntrinsicFunc(root->children[i]) ) {
             xl6CgenFuncReturnStructDecl(&ctx, root->children[i]);
         }
     }
@@ -285,8 +285,8 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
                     root->children[i]->kind == XL6_AST_EXPORT_CONST ) {
             xl6CgenExportVarDef(&ctx, root->children[i]);
         } else if ( root->children[i]->kind == XL6_AST_FUNC &&
-                    !xl6CgenIsPrintIntrinsicFunc(root->children[i]) &&
-                    !xl6CgenFuncIsGeneric(root->children[i]) ) {
+                    !xl6CgenFuncIsGeneric(root->children[i]) &&
+                    !xl6CgenIsPrintIntrinsicFunc(root->children[i]) ) {
             xl6CgenFuncProto(&ctx, root->children[i]);
             xl6OutputPuts(";\n", out);
         } else if ( root->children[i]->kind == XL6_AST_ASYNC_FUNC && !xl6CgenFuncIsGeneric(root->children[i]) ) {
@@ -337,8 +337,8 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
 
     for ( i = 0; i < root->childCount; ++i ) {
         if ( root->children[i]->kind == XL6_AST_FUNC &&
-             !xl6CgenIsPrintIntrinsicFunc(root->children[i]) &&
-             !xl6CgenFuncIsGeneric(root->children[i]) ) {
+             !xl6CgenFuncIsGeneric(root->children[i]) &&
+             !xl6CgenIsPrintIntrinsicFunc(root->children[i]) ) {
             if ( xl6CgenFuncReturnsGenerator(&ctx, root->children[i]) ) {
                 xl6CgenGeneratorFunc(&ctx, root->children[i]);
             } else {

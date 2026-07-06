@@ -1,0 +1,19 @@
+#doc
+desc:
+    Add two integers.
+param left:
+    Left value.
+param right:
+    Right value.
+return value:
+    Sum value.
+note:
+    Stable ABI example.
+example:
+    ```xlang
+    auto value = add(1, 2)
+    ```
+#end
+export "xl6_doc_add" func add(int left, int right) as int
+    return left + right
+end

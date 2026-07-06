@@ -1,0 +1,11 @@
+import union_api
+
+func main(...) as int
+    if union_api.defaultPayload.i != 42 then
+        return 1
+    end
+    if union_api.pick(union_api.defaultPayload) != 42 then
+        return 2
+    end
+    return 0
+end

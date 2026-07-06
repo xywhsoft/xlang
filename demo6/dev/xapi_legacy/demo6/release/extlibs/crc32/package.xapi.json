@@ -1,0 +1,28 @@
+{
+  "format":"xlang-xapi-1",
+  "compiler":{"name":"xl","version":"demo6","xlangAbi":1,"xrtAbi":1},
+  "target":{"os":"windows","arch":"x64","callingConvention":"cdecl"},
+  "package":{"name":"crc32","version":"0.1.0","abiVersion":"1","packageId":"crc32@0.1.0#abi1"},
+  "module":{"name":"crc32","moduleId":"crc32@0.1.0#abi1::crc32","source":"release/extlibs/crc32","sourceHash":""},
+  "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
+  "exports":[
+    {"kind":"function","name":"available","cSymbol":"xcrc32_available","signature":"func() as bool","exportId":"crc32@0.1.0#abi1::crc32::available(func() as bool)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"bool"}]},
+    {"kind":"function","name":"version","cSymbol":"xcrc32_version","signature":"func() as string","exportId":"crc32@0.1.0#abi1::crc32::version(func() as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"string"}]},
+    {"kind":"function","name":"last_error","cSymbol":"xcrc32_last_error","signature":"func() as string","exportId":"crc32@0.1.0#abi1::crc32::last_error(func() as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"string"}]},
+    {"kind":"function","name":"init","cSymbol":"xcrc32_init","signature":"func() as int","exportId":"crc32@0.1.0#abi1::crc32::init(func() as int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"int"}]},
+    {"kind":"function","name":"update","cSymbol":"xcrc32_update","signature":"func(int,string) as int","exportId":"crc32@0.1.0#abi1::crc32::update(func(int,string) as int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":2,"fixedParamCount":2,"params":[{"name":"crc","type":"int","optional":false,"vararg":false},{"name":"text","type":"string","optional":false,"vararg":false}],"returns":[{"type":"int"}]},
+    {"kind":"function","name":"finish","cSymbol":"xcrc32_finish","signature":"func(int) as int","exportId":"crc32@0.1.0#abi1::crc32::finish(func(int) as int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"crc","type":"int","optional":false,"vararg":false}],"returns":[{"type":"int"}]},
+    {"kind":"function","name":"checksum","cSymbol":"xcrc32_string","signature":"func(string) as int","exportId":"crc32@0.1.0#abi1::crc32::checksum(func(string) as int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"text","type":"string","optional":false,"vararg":false}],"returns":[{"type":"int"}]},
+    {"kind":"function","name":"checksum_hex","cSymbol":"xcrc32_string_hex","signature":"func(string) as string","exportId":"crc32@0.1.0#abi1::crc32::checksum_hex(func(string) as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"text","type":"string","optional":false,"vararg":false}],"returns":[{"type":"string"}]},
+    {"kind":"function","name":"file","cSymbol":"xcrc32_file","signature":"func(string) as int","exportId":"crc32@0.1.0#abi1::crc32::file(func(string) as int)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"path","type":"string","optional":false,"vararg":false}],"returns":[{"type":"int"}]},
+    {"kind":"function","name":"file_hex","cSymbol":"xcrc32_file_hex","signature":"func(string) as string","exportId":"crc32@0.1.0#abi1::crc32::file_hex(func(string) as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"path","type":"string","optional":false,"vararg":false}],"returns":[{"type":"string"}]},
+    {"kind":"function","name":"hex","cSymbol":"xcrc32_hex","signature":"func(int) as string","exportId":"crc32@0.1.0#abi1::crc32::hex(func(int) as string)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":1,"fixedParamCount":1,"params":[{"name":"crc","type":"int","optional":false,"vararg":false}],"returns":[{"type":"string"}]}
+  ],
+  "types":[],
+  "imports":[],
+  "links":[],
+  "loadlibs":[],
+  "cSources":["crc32_native.c"],
+  "native":{"singleton":false,"loadName":"","version":""},
+  "docs":[]
+}

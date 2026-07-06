@@ -1,0 +1,334 @@
+{
+  "format": "xlang-xapi-1",
+  "compiler": {
+    "name": "xl",
+    "version": "demo6",
+    "xlangAbi": 1,
+    "xrtAbi": 1
+  },
+  "target": {
+    "os": "windows",
+    "arch": "x64",
+    "callingConvention": "cdecl"
+  },
+  "package": {
+    "name": "stb_image_write",
+    "version": "0.1.0",
+    "abiVersion": "1",
+    "packageId": "stb_image_write@0.1.0#abi1"
+  },
+  "module": {
+    "name": "stb_image_write",
+    "moduleId": "stb_image_write@0.1.0#abi1::stb_image_write",
+    "source": "release/extlibs/stb_image_write",
+    "sourceHash": ""
+  },
+  "entry": {
+    "kind": "none",
+    "requiresExplicitInit": true,
+    "initSymbol": "xlInit",
+    "unitSymbol": "xlUnit"
+  },
+  "exports": [
+    {"kind":"function","name":"available","cSymbol":"xstbiw_available","signature":"func() as bool","exportId":"stb_image_write@0.1.0#abi1::stb_image_write::available(func() as bool)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"bool"}]},
+    {
+      "kind": "function",
+      "name": "version",
+      "cSymbol": "xstbiw_version",
+      "signature": "func() as string",
+      "exportId": "stb_image_write@0.1.0#abi1::stb_image_write::version(func() as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 0,
+      "fixedParamCount": 0,
+      "params": [],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "last_error",
+      "cSymbol": "xstbiw_last_error",
+      "signature": "func() as string",
+      "exportId": "stb_image_write@0.1.0#abi1::stb_image_write::last_error(func() as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 0,
+      "fixedParamCount": 0,
+      "params": [],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "write_png",
+      "cSymbol": "xstbiw_write_png",
+      "signature": "func(string,point,c_int,c_int,c_int,c_int) as c_int",
+      "exportId": "stb_image_write@0.1.0#abi1::stb_image_write::write_png(func(string,point,c_int,c_int,c_int,c_int) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 6,
+      "fixedParamCount": 6,
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "data",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "width",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "height",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "channels",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "stride",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "write_jpg",
+      "cSymbol": "xstbiw_write_jpg",
+      "signature": "func(string,point,c_int,c_int,c_int,c_int) as c_int",
+      "exportId": "stb_image_write@0.1.0#abi1::stb_image_write::write_jpg(func(string,point,c_int,c_int,c_int,c_int) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 6,
+      "fixedParamCount": 6,
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "data",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "width",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "height",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "channels",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "quality",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "write_bmp",
+      "cSymbol": "xstbiw_write_bmp",
+      "signature": "func(string,point,c_int,c_int,c_int) as c_int",
+      "exportId": "stb_image_write@0.1.0#abi1::stb_image_write::write_bmp(func(string,point,c_int,c_int,c_int) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 5,
+      "fixedParamCount": 5,
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "data",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "width",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "height",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "channels",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "write_tga",
+      "cSymbol": "xstbiw_write_tga",
+      "signature": "func(string,point,c_int,c_int,c_int) as c_int",
+      "exportId": "stb_image_write@0.1.0#abi1::stb_image_write::write_tga(func(string,point,c_int,c_int,c_int) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 5,
+      "fixedParamCount": 5,
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "data",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "width",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "height",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "channels",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "write_hdr",
+      "cSymbol": "xstbiw_write_hdr",
+      "signature": "func(string,point,c_int,c_int,c_int) as c_int",
+      "exportId": "stb_image_write@0.1.0#abi1::stb_image_write::write_hdr(func(string,point,c_int,c_int,c_int) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 5,
+      "fixedParamCount": 5,
+      "params": [
+        {
+          "name": "path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "data",
+          "type": "point",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "width",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "height",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "channels",
+          "type": "c_int",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    }
+  ],
+  "types": [],
+  "imports": [],
+  "links": [],
+  "loadlibs": [],
+  "cSources": [
+    "stb_image_write_native.c"
+  ],
+  "native": {
+    "singleton": false,
+    "loadName": "",
+    "version": ""
+  },
+  "docs": []
+}

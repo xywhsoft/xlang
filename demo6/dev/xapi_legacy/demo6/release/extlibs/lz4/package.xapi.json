@@ -1,0 +1,191 @@
+{
+  "format": "xlang-xapi-1",
+  "compiler": {
+    "name": "xl",
+    "version": "demo6",
+    "xlangAbi": 1,
+    "xrtAbi": 1
+  },
+  "target": {
+    "os": "windows",
+    "arch": "x64",
+    "callingConvention": "cdecl"
+  },
+  "package": {
+    "name": "lz4",
+    "version": "0.1.0",
+    "abiVersion": "1",
+    "packageId": "lz4@0.1.0#abi1"
+  },
+  "module": {
+    "name": "lz4",
+    "moduleId": "lz4@0.1.0#abi1::lz4",
+    "source": "release/extlibs/lz4",
+    "sourceHash": ""
+  },
+  "entry": {
+    "kind": "none",
+    "requiresExplicitInit": true,
+    "initSymbol": "xlInit",
+    "unitSymbol": "xlUnit"
+  },
+  "exports": [
+    {"kind":"function","name":"available","cSymbol":"xlz4_available","signature":"func() as bool","exportId":"lz4@0.1.0#abi1::lz4::available(func() as bool)","callingConvention":"cdecl","varargMode":"none","requiredParamCount":0,"fixedParamCount":0,"params":[],"returns":[{"type":"bool"}]},
+    {
+      "kind": "function",
+      "name": "version",
+      "cSymbol": "xlz4_version",
+      "signature": "func() as string",
+      "exportId": "lz4@0.1.0#abi1::lz4::version(func() as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 0,
+      "fixedParamCount": 0,
+      "params": [],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "last_error",
+      "cSymbol": "xlz4_last_error",
+      "signature": "func() as string",
+      "exportId": "lz4@0.1.0#abi1::lz4::last_error(func() as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 0,
+      "fixedParamCount": 0,
+      "params": [],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "compress_hex",
+      "cSymbol": "xlz4_compress_hex",
+      "signature": "func(string) as string",
+      "exportId": "lz4@0.1.0#abi1::lz4::compress_hex(func(string) as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "text",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "decompress_hex",
+      "cSymbol": "xlz4_decompress_hex",
+      "signature": "func(string) as string",
+      "exportId": "lz4@0.1.0#abi1::lz4::decompress_hex(func(string) as string)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 1,
+      "fixedParamCount": 1,
+      "params": [
+        {
+          "name": "hex_text",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "compress_file",
+      "cSymbol": "xlz4_compress_file",
+      "signature": "func(string,string) as c_int",
+      "exportId": "lz4@0.1.0#abi1::lz4::compress_file(func(string,string) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 2,
+      "fixedParamCount": 2,
+      "params": [
+        {
+          "name": "input_path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "output_path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "decompress_file",
+      "cSymbol": "xlz4_decompress_file",
+      "signature": "func(string,string) as c_int",
+      "exportId": "lz4@0.1.0#abi1::lz4::decompress_file(func(string,string) as c_int)",
+      "callingConvention": "cdecl",
+      "varargMode": "none",
+      "requiredParamCount": 2,
+      "fixedParamCount": 2,
+      "params": [
+        {
+          "name": "input_path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        },
+        {
+          "name": "output_path",
+          "type": "string",
+          "optional": false,
+          "vararg": false
+        }
+      ],
+      "returns": [
+        {
+          "type": "c_int"
+        }
+      ]
+    }
+  ],
+  "types": [],
+  "imports": [],
+  "links": [],
+  "loadlibs": [],
+  "cSources": [
+    "lz4_native.c",
+    "third_party/lz4.c"
+  ],
+  "native": {
+    "singleton": false,
+    "loadName": "",
+    "version": ""
+  },
+  "docs": []
+}

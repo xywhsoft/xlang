@@ -1,0 +1,14 @@
+import class_api
+
+func main(...) as int
+    if class_api.origin.x != 11 then
+        return 1
+    end
+    if class_api.origin.y != 31 then
+        return 2
+    end
+    if class_api.sum(class_api.origin) != 42 then
+        return 3
+    end
+    return 0
+end

@@ -35,11 +35,42 @@ func appError(int status, string message, point reqHandle, point respHandle) as 
     return resp.text("app error " + status.toString() + ": " + message)
 end
 
+func appUploadBegin(point reqHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    string name = req.param("name")
+    string path = "examples_out/app_upload_"
+    path = path + name
+    path = path + ".tmp"
+    return file.writeText(path, "")
+end
+
+func appUploadChunk(point reqHandle, point data, int size) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    string name = req.param("name")
+    string path = "examples_out/app_upload_"
+    path = path + name
+    path = path + ".tmp"
+    return file.appendText(path, http.server.chunkText(data, size))
+end
+
+func appUploadEnd(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    string name = req.param("name")
+    string path = "examples_out/app_upload_"
+    path = path + name
+    path = path + ".tmp"
+    return resp.text(file.readText(path))
+end
+
 func(string, string, string, string) as string firstHandler = firstApp
 func(string, string, string, string) as string secondHandler = secondApp
 func(string, string, string, string) as string hostHandler = hostApp
 func(point, point) as bool appRequestHandler = appRoute
 func(int, string, point, point) as bool appErrorHandler = appError
+func(point) as bool appUploadBeginHandler = appUploadBegin
+func(point, point, int) as bool appUploadChunkHandler = appUploadChunk
+func(point, point) as bool appUploadEndHandler = appUploadEnd
 
 point server = http.server.create(0, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 1)
 point app1 = http.server.app()
@@ -59,6 +90,9 @@ http.server.appGetRequest(app1, "/stream", appRequestHandler)
 http.server.appPostRequest(app1, "/request-post", appRequestHandler)
 http.server.appAnyRequest(app1, "/request-any", appRequestHandler)
 http.server.appRouteRequest(app1, "PUT|PATCH", "/request-generic", appRequestHandler)
+http.server.appPostStreamRequest(app1, "/upload/{name}", appUploadBeginHandler, appUploadChunkHandler, appUploadEndHandler)
+http.server.appAnyStreamRequest(app1, "/upload-any/{name}", appUploadBeginHandler, appUploadChunkHandler, appUploadEndHandler)
+http.server.appRouteStreamRequest(app1, "PUT|PATCH", "/upload-route/{name}", appUploadBeginHandler, appUploadChunkHandler, appUploadEndHandler)
 
 http.server.appGet(app2, "/", secondHandler)
 http.server.appAny(app2, "/any", secondHandler)

@@ -1,0 +1,16 @@
+{
+  "format":"xlang-xapi-1",
+  "compiler":{"name":"xl","version":"demo6","xlangAbi":1,"xrtAbi":1},
+  "target":{"os":"windows","arch":"x64","callingConvention":"cdecl"},
+  "package":{"name":"native_one","version":"1.0.0","abiVersion":"1","packageId":"native_one@1.0.0#abi1"},
+  "module":{"name":"native_one","moduleId":"native_one@1.0.0#abi1::native_one","source":"test/fixtures/native_one","sourceHash":""},
+  "entry":{"kind":"none","requiresExplicitInit":true,"initSymbol":"xlInit","unitSymbol":"xlUnit"},
+  "exports":[],
+  "types":[],
+  "imports":[],
+  "links":[],
+  "loadlibs":[],
+  "cSources":[],
+  "native":{"singleton":true,"loadName":"shared_native.dll","version":"1.0.0"},
+  "docs":[]
+}
