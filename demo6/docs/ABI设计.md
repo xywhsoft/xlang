@@ -366,7 +366,7 @@ xlang point    -> C xptr
 
 class 数据 ABI 采用“数据尽量透明，行为显式导出”的原则。
 
-也就是说，C 侧可以通过生成的头文件、XRT 类型和 XAPI 元数据理解并操作 xlang 数据结构；但 C 侧不能默认直接调用所有 xlang 成员函数，成员函数需要显式 export 或通过 xcall/协议接口调用。
+也就是说，C 侧可以通过生成的头文件、XRT 类型和 ABI 元数据理解并操作 xlang 数据结构；但 C 侧不能默认直接调用所有 xlang 成员函数，成员函数需要显式 export 或通过 xcall/协议接口调用。
 
 建议内部 C 布局：
 
@@ -384,7 +384,7 @@ typedef struct XL_Class_Vec2 {
 - 字段类型使用 XRT 或 ABI 文档中定义的 C 可见类型表达。
 - `string`、`array`、`list`、`set`、`dict`、`function`、object 动态字段等复合数据，应通过 XRT 类型和协议 API 向 C 暴露。
 - 泛型已实例化类型应生成具体布局和类型元数据。
-- 泛型未实例化类型只能作为 XAPI 元数据存在，C 不能直接构造值。
+- 泛型未实例化类型只能作为 ABI 元数据存在，C 不能直接构造值。
 - 带 virtual 的 class 必须在元数据中描述 vtable 或等价动态派发表。
 - C 可以读取生成头文件中的结构声明，但对资源字段、私有字段和协议字段的写入责任由 ABI 文档约束。
 
@@ -522,7 +522,7 @@ export math_add_i64
 
 - 多返回值作为多个 C 返回值直接导出；应使用 out 参数或 xcall wrapper。
 - `var` 脱离 XRT 类型信息直接裸导出。
-- 容器脱离 XRT 类型和 XAPI 元数据直接裸导出。
+- 容器脱离 XRT 类型和 ABI 元数据直接裸导出。
 - class 按值传参与按值返回。
 - C 调用约定属性，例如 stdcall/fastcall。
 - C 结构体按值互传。

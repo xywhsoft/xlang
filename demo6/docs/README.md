@@ -29,7 +29,7 @@
 - `DLL嵌入式运行库设计.md`：`xl.dll` / `xlc.dll` 嵌入式 API、上下文、脚本运行、exe 编译、C 函数注册和 XRT 注入。
 - `TCC内嵌与运行入口设计.md`：内嵌 `libtcc`、运行版/编译版 DLL 分层、`xlang_main(xvalue arg)` 入口 ABI、VFS 资源包和 TCC IO 边界。
 - `脚本嵌入与TCC模块设计.md`：`tcc` 模块、脚本嵌入、动态 VFS、运行版/编译版能力边界和按需嵌入裁剪口径。
-- `union设计.md`：C 风格 `union` 的语法、规则、代码生成、C ABI 和接口元数据。
+- `union设计.md`：C 风格 `union` 的语法、规则、代码生成、C ABI 和ABI 元数据。
 
 ## 当前工程与质量口径
 
@@ -45,9 +45,9 @@
 以下文件记录阶段性任务和立项背景。它们可以帮助理解实现来路，但若与“当前权威设计”冲突，以当前权威设计和当前代码为准。
 
 - `第二阶段功能清单.md`：第二阶段基础语义夯实目标、XRT 改造边界、xvalue/type desc/type ops、静态泛型容器和 xcall 设计。
-- `本轮开发任务_XAPI_import_混编.md`：XAPI、import、零配置 C 混编、main 入口、`xlInit`/`xlUnit` 生命周期的成熟化任务。
-- `本轮工程骨架优化任务.md`：CompileUnit、XAPI 内部模型、独立临时目录和 package resolver 地基任务。
-- `工程收口10项任务.md`：canonical type、XAPI 权威化、package/import、callable descriptor、后端接口和生命周期强化任务。
+- `本轮开发任务_import_混编.md`：source import、package、零配置 C 混编、main 入口、`xlInit`/`xlUnit` 生命周期的成熟化任务。
+- `本轮工程骨架优化任务.md`：CompileUnit、ABI 元数据 内部模型、独立临时目录和 package resolver 地基任务。
+- `工程收口10项任务.md`：canonical type、ABI 元数据 权威化、package/import、callable descriptor、后端接口和生命周期强化任务。
 - `RC0稳定化与import闭环.md`：旧 import 闭环阶段记录；当前实现已切换为 source import/package。
 - `RC0工作区清单.md`：RC0 工作区规模、变更分组和提交前建议的历史快照。
 - `并发异步长期实现任务.md`：async/await、thread、channel、同步原语和 generator 的长期实现任务边界。

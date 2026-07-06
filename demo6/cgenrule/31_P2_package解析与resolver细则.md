@@ -1,6 +1,6 @@
-﻿# P2 package 解析与 resolver 细则
+# P2 package 解析与 resolver 细则
 
-本文细化 `demo6/src/package/xl6_package.c`。该文件不直接输出 C 代码，但它决定 `import` 目标如何解析为 XAPI 接口文件、package 身份、native/link/cSource 依赖以及私有命名空间输入，因此属于代码生成链路的前置规则。
+本文细化 `demo6/src/package/xl6_package.c`。该文件不直接输出 C 代码，但它决定 `import` 目标如何解析为源码文件或 `xlang.package.json` package manifest、package 身份、native/link/cSource 依赖以及私有命名空间输入，因此属于代码生成链路的前置规则。
 
 ## CGEN-PKG-001 字符串复制与空值归一
 
@@ -30,10 +30,10 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | package 内 `xapi`、`release/extlibs/name`、`test/fixtures/name` |
+| xlang 写法 | package 内 `xlang.package.json`、`release/extlibs/name`、`test/fixtures/name` |
 | 生成规则描述 | `a` 末尾已有 `\` 或 `/` 时直接拼接，否则插入 `\`。输出使用固定缓冲区，只有 `snprintf` 完整写入时返回成功。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:58` |
-| 对应生成的 C 代码 | 不直接生成 C；影响 XAPI/interfacePath 和 package 搜索路径。 |
+| 对应生成的 C 代码 | 不直接生成 C；影响 manifestPath 和 package 搜索路径。 |
 | 中间形态伪代码 | `join(a,b) = a + (needsSep ? "\\" : "") + b` |
 | 实现同等功能手写的 C 代码 | 手写 C 可以使用 `PathCchCombine`，当前实现保持轻量无平台 API。 |
 | 额外依赖的封装代码 | 无。 |
@@ -79,7 +79,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 读取 `xlang.package.json` |
-| 生成规则描述 | manifest 初始化为全零；释放时释放 format/name/version/abiVersion/packageId/xapi/dir、三组字符串列表、每个 dependency 字段、native 字段，最后清零结构体。 |
+| 生成规则描述 | manifest 初始化为全零；释放时释放 format/name/version/abiVersion/packageId/dir、三组字符串列表、每个 dependency 字段、native 字段，最后清零结构体。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:177`、`demo6/src/package/xl6_package.c:184` |
 | 对应生成的 C 代码 | 不直接生成 C；保证 import 多次解析不会泄漏旧 manifest。 |
 | 中间形态伪代码 | `free all owned fields; memset(0)` |
@@ -105,7 +105,7 @@
 | xlang 写法 | manifest 字符串字段 |
 | 生成规则描述 | 字符串必须以 `"` 开始。支持常见转义 `\"`、`\\`、`\/`、`\b`、`\f`、`\n`、`\r`、`\t`。`\uXXXX` 会跳过 4 位并写入 `?`。空字符串返回 XRT 复制的空串。未闭合或扩容失败返回失败。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:249`、`demo6/src/package/xl6_package.c:275` |
-| 对应生成的 C 代码 | 不直接生成 C；影响 packageName、xapi、link 等文本。 |
+| 对应生成的 C 代码 | 不直接生成 C；影响 packageName、xlSources/cSources、link 等文本。 |
 | 中间形态伪代码 | `read quoted string; decode simple escapes; unicode => "?"` |
 | 实现同等功能手写的 C 代码 | 手写 JSON 读取应完整保留 UTF-8；当前实现对 `\uXXXX` 是保守降级。 |
 | 额外依赖的封装代码 | XRT realloc/free。 |
@@ -187,7 +187,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xlang.package.json` 根对象 |
-| 生成规则描述 | 根必须是 JSON 对象。识别 format/name/version/abiVersion/xapi/artifact/links/loadlibs/cSources/dependencies/native。未知字段跳过。links、loadlibs、根级 cSources 都是字符串数组。 |
+| 生成规则描述 | 根必须是 JSON 对象。识别 format/name/version/abiVersion/artifact/links/loadlibs/cSources/xlSources/dependencies/native。未知字段跳过。links、loadlibs、根级 cSources 和 xlSources 都是字符串数组。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:634` |
 | 对应生成的 C 代码 | 不直接生成 C；决定包导出的构建依赖和接口文件。 |
 | 中间形态伪代码 | `switch rootKey: assign field or parse child object/array` |
@@ -222,12 +222,12 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | manifest 缺省 `name`、`version`、`abiVersion`、`xapi` |
-| 生成规则描述 | name 缺省为包目录名；version 缺省 `0.0.0`；abiVersion 缺省 `1`；xapi 缺省 `package.xapi.json`。这些默认值只在格式校验成功后补齐。 |
+| xlang 写法 | manifest 缺省 `name`、`version`、`abiVersion` |
+| 生成规则描述 | name 缺省为包目录名；version 缺省 `0.0.0`；abiVersion 缺省 `1`。这些默认值只在格式校验成功后补齐。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:740` |
-| 对应生成的 C 代码 | 不直接生成 C；影响 import namespace、packageId 和 interfacePath。 |
-| 中间形态伪代码 | `name ||= fallbackDirName; version ||= 0.0.0; abi ||= 1; xapi ||= package.xapi.json` |
-| 实现同等功能手写的 C 代码 | 手写包可让简单包只写 format 和 xapi。 |
+| 对应生成的 C 代码 | 不直接生成 C；影响 import namespace、packageId 和 manifestPath。 |
+| 中间形态伪代码 | `name ||= fallbackDirName; version ||= 0.0.0; abi ||= 1` |
+| 实现同等功能手写的 C 代码 | 手写包可让简单包只写 format、artifact.xlSources 和必要依赖字段。 |
 | 额外依赖的封装代码 | basename/packageId helper。 |
 
 ## CGEN-PKG-020 manifest 最终身份构建与失败清理
@@ -235,48 +235,48 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 成功读取 package manifest |
-| 生成规则描述 | 成功时记录 manifest 所在目录，按 name/version/abiVersion 生成 packageId，并检查 name/version/abiVersion/xapi/dir/packageId 都存在。任何缺失都标记失败并释放整个 manifest。 |
+| 生成规则描述 | 成功时记录 manifest 所在目录，按 name/version/abiVersion 生成 packageId，并检查 name/version/abiVersion/dir/packageId 都存在。任何缺失都标记失败并释放整个 manifest。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:752` |
 | 对应生成的 C 代码 | 不直接生成 C；后续 import 以该身份作为包实例权威。 |
 | 中间形态伪代码 | `manifest.dir = dirname; manifest.packageId = makePackageId(...)` |
 | 实现同等功能手写的 C 代码 | 手写 resolver 应在返回前完成对象不变量校验。 |
 | 额外依赖的封装代码 | manifest lifecycle 和 packageId helper。 |
 
-## CGEN-PKG-021 直接 XAPI 文件结果归一
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import "./foo.xapi.json"` |
-| 生成规则描述 | 当解析目标本身以 `.xapi.json` 结尾时，不读取 manifest。resolver 把 manifestPath 同时作为 interfacePath；packageDir 为 XAPI 所在目录；packageName 使用 XAPI 文件名去扩展名，并额外剥离 `.xapi` 双后缀；version 固定 `0.0.0`，abiVersion 固定 `1`，并生成 packageId。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:767` |
-| 对应生成的 C 代码 | 不直接生成 C；import 后续直接读取该 XAPI。 |
-| 中间形态伪代码 | `if path.endsWith(".xapi.json"): interfacePath = path; packageName = strip(".xapi")` |
-| 实现同等功能手写的 C 代码 | 手写导入裸接口文件也需要补齐包身份。 |
-| 额外依赖的封装代码 | packageId helper。 |
-
-## CGEN-PKG-022 manifest 结果归一为 interfacePath
+## CGEN-PKG-021 manifest 结果归一
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `import "./pkg"` 命中 `xlang.package.json` |
-| 生成规则描述 | 读取 manifest 后，把 manifest.dir 和 manifest.xapi 拼成 interfacePath，并复制 packageDir、packageName、packageVersion、abiVersion、packageId 到 resolver 结果。读取或拼接失败则解析失败。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:781` |
-| 对应生成的 C 代码 | 不直接生成 C；后续 XAPI loader 使用 interfacePath。 |
-| 中间形态伪代码 | `result.interfacePath = join(manifest.dir, manifest.xapi)` |
-| 实现同等功能手写的 C 代码 | 手写包解析需要从 manifest 映射到实际接口文件。 |
-| 额外依赖的封装代码 | manifest loader。 |
+| 生成规则描述 | 读取 manifest 后，复制 packageDir、packageName、packageVersion、abiVersion、packageId 到 resolver 结果。读取失败则解析失败。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:767` |
+| 对应生成的 C 代码 | 不直接生成 C；import 后续读取 manifest 的 `xlSources` 并合并源码模块。 |
+| 中间形态伪代码 | `result = { packageDir, packageName, packageVersion, abiVersion, packageId }` |
+| 实现同等功能手写的 C 代码 | 手写导入裸包也需要补齐包身份。 |
+| 额外依赖的封装代码 | manifest loader 和 packageId helper。 |
 
-## CGEN-PKG-023 manifest 尝试命中规则
+## CGEN-PKG-022 manifest 尝试命中规则
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | resolver 搜索某个候选路径 |
-| 生成规则描述 | 候选路径必须存在。存在后先标记 resolved/kind/manifestPath；若是 `.xapi.json` 则走直接 XAPI 归一，否则读取 manifest 归一。manifest 归一失败时会重置 result 为 unresolved。 |
+| xlang 写法 | resolver 搜索某个候选 `xlang.package.json` |
+| 生成规则描述 | 候选路径必须存在。存在后先标记 resolved/kind/manifestPath，再读取 manifest 归一。manifest 归一失败时会重置 result 为 unresolved。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:781` |
+| 对应生成的 C 代码 | 不直接生成 C；决定 import 是否继续尝试下一个候选路径。 |
+| 中间形态伪代码 | `if exists(path): finalizeManifestResult()` |
+| 实现同等功能手写的 C 代码 | 手写 resolver 应把“文件存在”和“manifest 可用”分开判断。 |
+| 额外依赖的封装代码 | manifest loader。 |
+
+## CGEN-PKG-023 path import 判定
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `import "./a"`、`import "a.b"`、`import "pkg"` |
+| 生成规则描述 | import target 只要包含 `\`、`/`、`:` 或 `.`，就按路径目标解析；否则按裸包名解析。空 target 不算路径。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:805` |
 | 对应生成的 C 代码 | 不直接生成 C；决定 import 是否继续尝试下一个候选路径。 |
-| 中间形态伪代码 | `if exists(path): finalizeBySuffixOrManifest()` |
-| 实现同等功能手写的 C 代码 | 手写 resolver 应把“文件存在”和“manifest 可用”分开判断。 |
-| 额外依赖的封装代码 | XRT 文件存在检查。 |
+| 中间形态伪代码 | `isPathTarget = containsSlashOrColonOrDot(target)` |
+| 实现同等功能手写的 C 代码 | 手写 import 系统通常也会先区分 path import 与 package import。 |
+| 额外依赖的封装代码 | 无。 |
 
 ## CGEN-PKG-024 path import 判定
 
@@ -319,22 +319,22 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `import "D:/pkg/xlang.package.json"` |
-| 生成规则描述 | target 若被判定为路径，会先区分绝对路径和相对路径。绝对路径直接把 target 作为候选基准交给 `xl6PackageTryPathCandidates`；相对路径只在 importerDir 优先候选失败后，才把原始 target 作为 cwd 兜底候选。候选基准命中 `.xapi.json` 得到 file 结果；命中 manifest 文件时保持 file kind。 |
+| 生成规则描述 | target 若被判定为路径，会先区分绝对路径和相对路径。绝对路径直接把 target 作为候选基准交给 `xl6PackageTryPathCandidates`；相对路径只在 importerDir 优先候选失败后，才把原始 target 作为 cwd 兜底候选。候选基准可以直接是 `xlang.package.json` 文件，也可以是包含 `xlang.package.json` 的目录。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:847`、`demo6/src/package/xl6_package.c:862`、`demo6/src/package/xl6_package.c:925`、`demo6/src/package/xl6_package.c:934` |
-| 对应生成的 C 代码 | 不直接生成 C；命中后 import 使用该目标接口。 |
-| 中间形态伪代码 | `if absolute(target) tryCandidates(target) else tryCandidates(join(importerDir,target)); tryCandidates(target)` |
+| 对应生成的 C 代码 | 不直接生成 C；命中后 import 使用该 manifest 的 package 身份和 `xlSources`。 |
+| 中间形态伪代码 | `if absolute(target) tryManifestOrDir(target) else tryManifestOrDir(join(importerDir,target)); tryManifestOrDir(target)` |
 | 实现同等功能手写的 C 代码 | 手写导入绝对路径时也应优先使用用户指定路径。 |
 | 额外依赖的封装代码 | manifest try helper。 |
 
-## CGEN-PKG-028 path target 自动追加 `.xapi.json`
+## CGEN-PKG-028 path target 目录 manifest 候选
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `import "./foo"`，旁边存在 `./foo.xapi.json` |
-| 生成规则描述 | 每个候选基准路径都会先尝试原样路径，再追加 `.xapi.json` 作为 file kind 尝试。这样可以省略接口文件后缀；相对路径场景下，追加后缀也跟随 importerDir 优先级。 |
+| xlang 写法 | `import "./foo"`，旁边存在 `./foo/xlang.package.json` |
+| 生成规则描述 | 每个候选基准路径都会先尝试原样路径是否为 manifest，再尝试把 `xlang.package.json` 拼到该路径下作为 package kind。这样目录包可以直接按目录导入。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:869`、`demo6/src/package/xl6_package.c:872` |
-| 对应生成的 C 代码 | 不直接生成 C；命中后 import 读取追加后缀的 XAPI。 |
-| 中间形态伪代码 | `tryManifest(base, FILE); tryManifest(base + ".xapi.json", FILE)` |
+| 对应生成的 C 代码 | 不直接生成 C；命中后 import 读取 manifest 并合并 package 的 `xlSources`。 |
+| 中间形态伪代码 | `tryManifest(base, FILE); tryManifest(join(base, "xlang.package.json"), PACKAGE)` |
 | 实现同等功能手写的 C 代码 | 手写包导入也常支持扩展名省略。 |
 | 额外依赖的封装代码 | manifest try helper。 |
 
@@ -343,7 +343,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 源文件位于 `src/main.xl`，写 `import "./pkg"` |
-| 生成规则描述 | 相对路径 target 先把 importerDir 与 target 拼接后尝试完整候选集合；只有 importerDir 候选全部失败时，才回退尝试原始 target。这样同一进程 cwd 下的同名 XAPI 不会遮蔽源文件旁边的相对 import。 |
+| 生成规则描述 | 相对路径 target 先把 importerDir 与 target 拼接后尝试完整候选集合；只有 importerDir 候选全部失败时，才回退尝试原始 target。这样同一进程 cwd 下的同名 package 不会遮蔽源文件旁边的相对 import。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:922`、`demo6/src/package/xl6_package.c:930`、`demo6/src/package/xl6_package.c:934` |
 | 对应生成的 C 代码 | 不直接生成 C；使相对 import 以当前源文件所在目录为第一基准。 |
 | 中间形态伪代码 | `base = join(importerDir, target); if tryCandidates(base) return; tryCandidates(target)` |
@@ -354,23 +354,23 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `import "./pkg"`，目录内有 `xlang.package.json` 或 `package.xapi.json` |
-| 生成规则描述 | 每个候选基准路径都可以作为目录包：先尝试 `<base>/xlang.package.json` 并以 package kind 归一；失败后尝试 `<base>/package.xapi.json`，同样标为 package kind。相对路径目录包仍遵循 importerDir 优先。 |
+| xlang 写法 | `import "./pkg"`，目录内有 `xlang.package.json` |
+| 生成规则描述 | 每个候选基准路径都可以作为 manifest 文件或目录包：先尝试 `<base>`，失败后尝试 `<base>/xlang.package.json` 并以 package kind 归一。相对路径目录包仍遵循 importerDir 优先。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:876`、`demo6/src/package/xl6_package.c:880` |
-| 对应生成的 C 代码 | 不直接生成 C；目录包优先使用 manifest，其次允许只有默认 XAPI 的轻量包。 |
-| 中间形态伪代码 | `try base/xlang.package.json; try base/package.xapi.json` |
+| 对应生成的 C 代码 | 不直接生成 C；目录包必须使用 manifest。 |
+| 中间形态伪代码 | `tryManifest(base, FILE); tryManifest(join(base, "xlang.package.json"), PACKAGE)` |
 | 实现同等功能手写的 C 代码 | 手写包系统常约定目录下 manifest 优先于默认接口文件。 |
 | 额外依赖的封装代码 | manifest try helper。 |
 
-## CGEN-PKG-031 裸包名 packages 搜索规则
+## CGEN-PKG-031 裸包名 importer 目录搜索规则
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `import json` |
-| 生成规则描述 | target 不像路径时，先搜索 `release/extlibs/<target>/xlang.package.json`，再搜索 `release/extlibs/<target>/package.xapi.json`。两者均以 package kind 解析。 |
+| 生成规则描述 | target 不像路径时，先搜索 importerDir 下的 `<target>/xlang.package.json`。未命中时再进入 `XLANG_PACKAGE_PATH` 与 xl.exe 同目录 `extlibs` 搜索。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:907` |
-| 对应生成的 C 代码 | 不直接生成 C；命中后 import 声明生成会使用该包 XAPI。 |
-| 中间形态伪代码 | `base = join("packages", target); try base/xlang.package.json; try base/package.xapi.json` |
+| 对应生成的 C 代码 | 不直接生成 C；命中后 import 会使用该包 manifest 的 `xlSources/cSources/links/loadlibs`。 |
+| 中间形态伪代码 | `try join(importerDir, target, "xlang.package.json")` |
 | 实现同等功能手写的 C 代码 | 手写包管理器通常先查项目本地 packages 目录。 |
 | 额外依赖的封装代码 | path join 和 manifest try helper。 |
 
@@ -378,10 +378,10 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `import json`，包位于 `lib/json`；或 import 侧请求最终 XAPI 路径 |
-| 生成规则描述 | `packages` 未命中后搜索 `lib/<target>/xlang.package.json`，再搜索 `lib/<target>/package.xapi.json`。解析完成后，`xl6PackageResolveInterfacePath` 优先返回 result.interfacePath；若为空且 manifestPath 是 `.xapi.json` 则返回 manifestPath；否则尝试 manifest 所在目录下的 `package.xapi.json`。 |
+| xlang 写法 | `import json`，包位于 `release/extlibs/json` 或 `XLANG_PACKAGE_PATH` 中 |
+| 生成规则描述 | 裸包名先搜索 importerDir 附近的同名目录，再搜索 `XLANG_PACKAGE_PATH` 中的包目录，最后搜索 xl.exe 同目录下的 `extlibs/<target>/xlang.package.json`。解析完成后，resolver 返回 manifestPath 和 package 身份，不再返回独立接口路径。 |
 | 生成器文件名和行号 | `demo6/src/package/xl6_package.c:917`、`demo6/src/package/xl6_package.c:930` |
-| 对应生成的 C 代码 | 不直接生成 C；最终返回路径供 `xl6XapiLoadFile` 读取接口元数据。 |
-| 中间形态伪代码 | `search lib target; interface = result.interfacePath || manifestPathIfXapi || dirname(manifest)/package.xapi.json` |
-| 实现同等功能手写的 C 代码 | 手写包系统需要一个单独 API 把解析结果转为接口文件路径。 |
+| 对应生成的 C 代码 | 不直接生成 C；最终返回路径供 import 展开读取 manifest 并合并源码模块。 |
+| 中间形态伪代码 | `search package roots; result = {manifestPath, packageDir, packageId}` |
+| 实现同等功能手写的 C 代码 | 手写包系统需要一个单独 API 把解析结果转为 package manifest 与源码列表。 |
 | 额外依赖的封装代码 | XRT file exists、path helper。 |

@@ -1,4 +1,4 @@
-﻿# P0 函数调用与 callable 生成细则
+# P0 函数调用与 callable 生成细则
 
 本文细化函数调用、重载解析、泛型函数调用、`function` 值、`var` 函数调用、匿名函数、XCall 调用帧、函数签名与多返回值 wrapper 的生成规则。该部分是 xlang 与 C/XRT ABI 沟通的核心。
 
@@ -108,7 +108,7 @@
 | 对应生成的 C 代码 | `cputs("hi")`、`xl6_export_f()` |
 | 中间形态伪代码 | `if extern: emit externSymbol; else if export: emit exportInternalSymbol` |
 | 实现同等功能手写的 C 代码 | 与直接 C 函数调用一致。 |
-| 额外依赖的封装代码 | export 函数可能有导出表/XAPI 信息，调用本身不额外生成 helper。 |
+| 额外依赖的封装代码 | export 函数可能有导出表/ABI 元数据 信息，调用本身不额外生成 helper。 |
 
 ## CGEN-CALL-010 `type(expr)` 与类型转换调用
 
@@ -363,7 +363,7 @@
 | 生成器文件名和行号 | `xl6_cgen_abi.c:168`、`xl6_cgen_abi.c:181`、`xl6_cgen_abi.c:333`、`xl6_cgen_abi.c:480`、`xl6_cgen_abi.c:504`、`xl6_cgen_callable_wrappers.c:723` |
 | 对应生成的 C 代码 | `static xrt_func_param __xl6_sig_params[2u]; static const struct xrt_type_desc* __xl6_sig_returns[1u]; static xrt_func_sig __xl6_sig; __xl6_sig.Params = __xl6_sig_params; __xl6_sig.ReturnTypes = __xl6_sig_returns;` |
 | 中间形态伪代码 | `signatureId = hash(paramTypes, returnTypes); sig.Params = paramMetadata(params); sig.ReturnTypes = typeDescRefs(returns)` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要同时保持签名 id、参数元数据和返回类型元数据一致，才能被 xlang 调用点、XCall 和 XAPI 长期复用。 |
+| 实现同等功能手写的 C 代码 | 手写 C 需要同时保持签名 id、参数元数据和返回类型元数据一致，才能被 xlang 调用点、XCall 和 ABI 元数据 长期复用。 |
 | 额外依赖的封装代码 | 签名对象由 wrapper 内静态生成；参数/返回类型指针依赖 `xrtType*` 或生成的 type desc 函数。 |
 
 ## 本文件观察到的优化风险

@@ -1,9 +1,0 @@
-#doc
-desc:
-    Quote "demo" and path c:\tmp\file.
-example:
-    print("hello\nworld")
-#end
-export "xl6_escape_doc" func escapeDoc() as int
-    return 1
-end

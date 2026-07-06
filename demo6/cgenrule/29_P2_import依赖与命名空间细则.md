@@ -1,4 +1,4 @@
-﻿# P2 import 依赖与命名空间细则
+# P2 import 依赖与命名空间细则
 
 本文细化 `demo6/src/compile/xl6_imports.c` 的前半部分，覆盖 import 生成文本缓冲、依赖收集、package 多版本图、native singleton 冲突、命名空间表和导入类型名重写。
 
@@ -110,17 +110,17 @@
 | 实现同等功能手写的 C 代码 | 手写构建系统读取 package manifest 后合并依赖。 |
 | 额外依赖的封装代码 | package manifest model。 |
 
-## CGEN-IMP-010 XAPI 依赖信息收集
+## CGEN-IMP-010 package manifest 依赖信息收集
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | XAPI 中的 cSources、links、loadlibs、native |
-| 生成规则描述 | 从 XAPI module 收集 packageId、cSources、links、loadlibs 和 native 信息。相对路径基准为 resolved packageDir。 |
+| xlang 写法 | package manifest 中的 cSources、links、loadlibs、native |
+| 生成规则描述 | 从 source module 收集 packageId、cSources、links、loadlibs 和 native 信息。相对路径基准为 resolved packageDir。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:394` |
 | 对应生成的 C 代码 | 不生成 C；影响后续 build/link 参数。 |
-| 中间形态伪代码 | `deps += xapi package/link/loadlib/cSource/native` |
-| 实现同等功能手写的 C 代码 | 手写构建系统读取接口元数据后合并依赖。 |
-| 额外依赖的封装代码 | XAPI module model。 |
+| 中间形态伪代码 | `deps += manifest package/link/loadlib/cSource/native` |
+| 实现同等功能手写的 C 代码 | 手写构建系统读取 package manifest 后合并依赖。 |
+| 额外依赖的封装代码 | source module model。 |
 
 ## CGEN-IMP-011 dependency 版本与 ABI 匹配
 
@@ -163,12 +163,12 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | import 成功解析到 package |
-| 生成规则描述 | 如果 packageId 已访问则跳过。必须解析 interface path 且文件存在，否则诊断缺少 `package.xapi.json`。可选读取 manifest；读取 XAPI 后用 resolver 结果覆盖 package 身份，并把依赖 package namespace 作为 private 加入符号表。随后收集 manifest deps、XAPI deps 和 manifest dependency graph。 |
+| 生成规则描述 | 如果 packageId 已访问则跳过。必须解析 manifestPath 且能读取 `xlang.package.json`。读取 manifest 后用 resolver 结果覆盖 package 身份，并把依赖 package namespace 作为 private 加入符号表。随后收集 manifest deps 和 manifest dependency graph。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:537` |
 | 对应生成的 C 代码 | 不生成 C；为 import 建立依赖闭包和私有命名空间。 |
-| 中间形态伪代码 | `load xapi; namespace private; collect manifest/xapi/dependency graph` |
-| 实现同等功能手写的 C 代码 | 手写包管理器需要解析接口文件并收集传递依赖。 |
-| 额外依赖的封装代码 | XAPI loader、package manifest、package resolver。 |
+| 中间形态伪代码 | `load manifest; namespace private; collect manifest/dependency graph` |
+| 实现同等功能手写的 C 代码 | 手写包管理器需要解析 package manifest 并收集传递依赖。 |
+| 额外依赖的封装代码 | source import loader、package manifest、package resolver。 |
 
 ## CGEN-IMP-015 import 符号表初始化与释放
 
@@ -218,24 +218,24 @@
 | 实现同等功能手写的 C 代码 | 手写 C 桥接通常使用前缀避免命名冲突。 |
 | 额外依赖的封装代码 | import text builder。 |
 
-## CGEN-IMP-019 XAPI 类型查找与 owner 泛型参数保护
+## CGEN-IMP-019 source module 类型查找与 owner 泛型参数保护
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | import class `Box<T>` 字段类型中出现 `T` 和同包类型名 |
-| 生成规则描述 | 类型文本 token 支持 ASCII 标识符字符和 UTF-8 字节。查找 XAPI type 时按 token 与 module->types[i].name 精确匹配；若 token 是当前 owner 的 typeParam，则不当作导入类型改名。 |
+| 生成规则描述 | 类型文本 token 支持 ASCII 标识符字符和 UTF-8 字节。查找 source type 时按 token 与 module->types[i].name 精确匹配；若 token 是当前 owner 的 typeParam，则不当作导入类型改名。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:734` |
 | 对应生成的 C 代码 | 不直接生成 C；影响生成的 import 类型声明文本。 |
 | 中间形态伪代码 | `if token in owner.typeParams: keep; else if token is imported type: rewrite` |
 | 实现同等功能手写的 C 代码 | 手写泛型类型声明需要区分类型参数和外部类型名。 |
-| 额外依赖的封装代码 | XAPI type table。 |
+| 额外依赖的封装代码 | import type table。 |
 
 ## CGEN-IMP-020 导入类型文本重写
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | imported class 字段 `OtherType value` |
-| 生成规则描述 | 扫描类型字符串中的标识符 token。若 token 是 XAPI 中的导入类型且不是 owner type param，则替换为该类型的内部名称；否则原样保留。非标识符字符逐字节复制。 |
+| 生成规则描述 | 扫描类型字符串中的标识符 token。若 token 是导入模块中的类型且不是 owner type param，则替换为该类型的内部名称；否则原样保留。非标识符字符逐字节复制。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:770` |
 | 对应生成的 C 代码 | 后续 cgen 会看到改名后的类型，例如 `__xl6_import_pkg_OtherType`。 |
 | 中间形态伪代码 | `typeText tokens -> imported type names rewritten to internal names` |
@@ -246,7 +246,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | XAPI export 进入 import 符号表 |
+| xlang 写法 | source export 进入 import 符号表 |
 | 生成规则描述 | 若同 namespace/name 符号已存在，直接成功。否则追加 symbol，复制 ns/name/internalName，并保存 supported 标记。不支持的导出仍登记，但 internalName 为空，用于后续访问时报明确诊断。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:812` |
 | 对应生成的 C 代码 | 不直接生成 C；支持的符号才会生成 extern 声明。 |

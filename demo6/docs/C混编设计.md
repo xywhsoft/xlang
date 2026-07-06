@@ -238,7 +238,7 @@ xxx_destroy(a.handle);
 
 - 不支持的类型在 `check` 或 `cgen` 阶段直接报错。
 - 不做自动回退到 `xvalue` 的兼容方案。
-- 如果要跨 C 暴露复杂对象，应显式使用 XRT 类型、XAPI 元数据、生成头文件或 C ABI wrapper。
+- 如果要跨 C 暴露复杂对象，应显式使用 XRT 类型、ABI 元数据、生成头文件或 C ABI wrapper。
 - C 可以访问 xlang 的数据结构，但访问方式必须由 XRT 类型和 ABI 元数据支撑。
 - C 调用 xlang 成员函数必须通过显式 `export "c_symbol"` wrapper 或未来的 xcall 入口。
 
@@ -270,7 +270,7 @@ C 与 xlang 的 class 混编采用以下原则：
 
 - 数据尽量透明。
 - 行为显式导出。
-- 复杂语义通过 XRT 类型、XAPI 元数据和 wrapper 解释。
+- 复杂语义通过 XRT 类型、ABI 元数据和 wrapper 解释。
 
 数据透明表示：
 

@@ -1,3 +1,0 @@
-import invalid_decl_xapi
-
-int value = invalid_decl_xapi.broken(1)

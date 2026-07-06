@@ -1,6 +1,6 @@
-﻿# P2 import 声明生成与 AST 重写细则
+# P2 import 声明生成与 AST 重写细则
 
-本文继续细化 `demo6/src/compile/xl6_imports.c` 的后半部分，覆盖 XAPI export/type 到 xlang extern 声明的生成、生成声明重新解析并合并 AST、命名空间冲突检查，以及 `pkg.symbol` 成员访问重写为内部名称。
+本文继续细化 `demo6/src/compile/xl6_imports.c` 的后半部分，覆盖 source export/type 到 xlang extern 声明的生成、生成声明重新解析并合并 AST、命名空间冲突检查，以及 `pkg.symbol` 成员访问重写为内部名称。
 
 ## CGEN-IMPG-001 function export 是否可进入 extern
 
@@ -12,7 +12,7 @@
 | 对应生成的 C 代码 | 支持者后续生成 `extern "c_symbol" func __xl6_import_pkg_foo(...)` 并由 cgen 生成 C extern 调用。 |
 | 中间形态伪代码 | `function && cdecl && no vararg && <=1 return && no optional params` |
 | 实现同等功能手写的 C 代码 | 手写桥接当前也只能直接声明简单 C ABI 函数。 |
-| 额外依赖的封装代码 | XAPI callable metadata。 |
+| 额外依赖的封装代码 | source callable metadata。 |
 
 ## CGEN-IMPG-002 泛型参数文本输出
 
@@ -31,7 +31,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 导入 class/union 字段 |
-| 生成规则描述 | 字段必须有 name 和 type。输出缩进、重写后的类型、空格、字段名和换行。类型重写会把同 XAPI 模块内的类型名替换为内部名称。 |
+| 生成规则描述 | 字段必须有 name 和 type。输出缩进、重写后的类型、空格、字段名和换行。类型重写会把同导入模块内的类型名替换为内部名称。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:883` |
 | 对应生成的 C 代码 | 不直接生成 C；生成 xlang 字段声明文本。 |
 | 中间形态伪代码 | `emit indent + rewrite(type) + " " + field.name` |
@@ -42,7 +42,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | XAPI type kind 为 `union` |
+| xlang 写法 | source type kind 为 `union` |
 | 生成规则描述 | 输出 `union <internalName>`，随后按字段顺序输出字段声明，最后输出 `end`。字段类型会按 import 类型重写规则处理。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:901` |
 | 对应生成的 C 代码 | 经解析和 cgen 后会生成对应 union C 声明。 |
@@ -54,7 +54,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | XAPI type kind 为 `class`，字段 storage 可能是 `inline-union` |
+| xlang 写法 | source type kind 为 `class`，字段 storage 可能是 `inline-union` |
 | 生成规则描述 | 输出 `class <internalName>` 加泛型参数；有 base 时输出 `extends <rewritten base>`。字段顺序输出，连续 `inline-union` 字段会包在 `union ... end` 块中，非 inline 字段会关闭已打开的 union。最后输出 class `end`。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:919` |
 | 对应生成的 C 代码 | 经解析和 cgen 后生成改名后的 class C 布局。 |
@@ -66,7 +66,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | XAPI type kind 为 `custom` |
+| xlang 写法 | source type kind 为 `custom` |
 | 生成规则描述 | custom 导入只生成空壳轻量类型：`custom <internalName>\nend`。当前导入侧不恢复 custom 方法映射。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:957` |
 | 对应生成的 C 代码 | 经 cgen 后生成 custom handle 类型基础声明。 |
@@ -74,7 +74,7 @@
 | 实现同等功能手写的 C 代码 | 手写桥接可以先声明 opaque custom 类型，再显式声明函数。 |
 | 额外依赖的封装代码 | import generated declaration parser。 |
 
-## CGEN-IMPG-007 XAPI 类型声明批量生成
+## CGEN-IMPG-007 导入模块类型声明批量生成
 
 | 项目 | 内容 |
 |---|---|
@@ -90,7 +90,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | XAPI function export 可进入 extern |
+| xlang 写法 | source function export 可进入 extern |
 | 生成规则描述 | 输出 `extern "<cSymbol>" func <internalName>(...)`。参数按顺序输出重写后的类型和参数名；当前只支持 0 或 1 个返回值，1 个返回值输出 ` as <type>`。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:994` |
 | 对应生成的 C 代码 | 经 cgen 后生成 C extern 原型并可直接调用 C symbol。 |
@@ -102,7 +102,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | XAPI var export |
+| xlang 写法 | source var export |
 | 生成规则描述 | 只有 kind 为 `var` 且 type 存在时输出 `extern "<cSymbol>" var <type> <internalName>`。const 导出当前不会生成 extern var 声明。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1024` |
 | 对应生成的 C 代码 | 经 cgen 后生成 C extern 变量声明。 |
@@ -110,7 +110,7 @@
 | 实现同等功能手写的 C 代码 | 手写桥接声明需要 extern 变量。 |
 | 额外依赖的封装代码 | import type rewrite helper。 |
 
-## CGEN-IMPG-010 XAPI 声明生成与符号登记
+## CGEN-IMPG-010 导入模块声明生成与符号登记
 
 | 项目 | 内容 |
 |---|---|
@@ -127,7 +127,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | import 生成的隐式声明 |
-| 生成规则描述 | 若 generated 为空，直接成功。否则调用 `xl6ParseSource(generated, "<xapi-import>")` 重新解析生成文本；解析失败会先输出稳定总括诊断 `XAPI import generated invalid extern declarations`，再把解析诊断转移到当前诊断列表。解析成功后把 result.root 的 children 移动到当前 root。 |
+| 生成规则描述 | 若 generated 为空，直接成功。否则调用 `xl6ParseSource(generated, "<source-import>")` 重新解析生成文本；解析失败会把解析诊断转移到当前诊断列表。解析成功后把 result.root 的 children 移动到当前 root。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1087` |
 | 对应生成的 C 代码 | 不直接生成 C；合并后的 AST 会被后续 sem/cgen 正常处理。 |
 | 中间形态伪代码 | `parse generated declarations; move children into root` |
@@ -139,24 +139,24 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `import target` 后访问 `namespace.symbol` |
-| 生成规则描述 | namespace 优先取 resolver 的 packageName；其次取 XAPI module packageName；再取 module name；最后回退到 import target 或 `package`。 |
+| 生成规则描述 | namespace 优先取 resolver 的 packageName；其次取 source module packageName；再取 module name；最后回退到 import target 或 `package`。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1116` |
 | 对应生成的 C 代码 | 不生成 C；影响用户访问前缀和内部名称前缀。 |
 | 中间形态伪代码 | `ns = resolved.packageName || module.packageName || module.name || target || package` |
 | 实现同等功能手写的 C 代码 | 手写包系统需要稳定命名空间策略。 |
-| 额外依赖的封装代码 | package resolver 和 XAPI module model。 |
+| 额外依赖的封装代码 | package resolver 和 source module model。 |
 
-## CGEN-IMPG-013 resolver 结果覆盖 XAPI package 身份
+## CGEN-IMPG-013 resolver 结果覆盖 package 身份
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | import 解析到带版本的 package 实例 |
-| 生成规则描述 | 若 resolver 提供非空 packageId，则释放 XAPI module 中的 packageName/version/abiVersion/packageId，并用 resolver 的 packageName/packageVersion/abiVersion/packageId 覆盖。这样 XAPI 身份以实际解析到的 package 实例为准。 |
+| 生成规则描述 | 若 resolver 提供非空 packageId，则释放 source module 中的 packageName/version/abiVersion/packageId，并用 resolver 的 packageName/packageVersion/abiVersion/packageId 覆盖。这样导入模块身份以实际解析到的 package 实例为准。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1130` |
 | 对应生成的 C 代码 | 不生成 C；影响 namespace、packageId 和 exportId 语义。 |
 | 中间形态伪代码 | `module.package = resolved.package` |
 | 实现同等功能手写的 C 代码 | 手写包管理器应以 resolver 实例身份为权威。 |
-| 额外依赖的封装代码 | XAPI module model。 |
+| 额外依赖的封装代码 | source module model。 |
 
 ## CGEN-IMPG-014 单个 import 目标解析
 
@@ -170,16 +170,16 @@
 | 实现同等功能手写的 C 代码 | 手写实现可选择把未解析 import 留给其他模块系统。 |
 | 额外依赖的封装代码 | package resolver。 |
 
-## CGEN-IMPG-015 import 缺少 XAPI 接口诊断
+## CGEN-IMPG-015 import 缺少 package source manifest 诊断
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | import 解析到 package，但找不到 interface 文件 |
-| 生成规则描述 | 如果 resolver 不能得到 interface path，或对应文件不存在，则诊断 `import package missing package.xapi.json interface file` 并失败。 |
+| xlang 写法 | import 解析到 package，但找不到可用 manifest 或 xlSources |
+| 生成规则描述 | 如果 resolver 不能得到 manifestPath，或 manifest 不可读取/没有 xlSources，则诊断并失败。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1174` |
 | 对应生成的 C 代码 | 不生成 C；阻断 import 展开。 |
-| 中间形态伪代码 | `if no xapi path or !fileExists: diag; fail` |
-| 实现同等功能手写的 C 代码 | 手写包导入也必须要求接口文件存在。 |
+| 中间形态伪代码 | `if no manifestPath or !hasXlSources: diag; fail` |
+| 实现同等功能手写的 C 代码 | 手写包导入也必须要求 manifest 和源码入口存在。 |
 | 额外依赖的封装代码 | package resolver 和 XRT file exists。 |
 
 ## CGEN-IMPG-016 public namespace 冲突检查
@@ -187,7 +187,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 同一源文件直接 import 两个同名 namespace |
-| 生成规则描述 | 加载 XAPI 后选择 namespace。若符号表中已存在同名 namespace 且该 namespace 不是 private，则诊断 `duplicate import namespace` 并失败；否则登记 public namespace。 |
+| 生成规则描述 | 加载 package/source 后选择 namespace。若符号表中已存在同名 namespace 且该 namespace 不是 private，则诊断 `duplicate import namespace` 并失败；否则登记 public namespace。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1190` |
 | 对应生成的 C 代码 | 不生成 C；避免 `pkg.symbol` 解析二义性。 |
 | 中间形态伪代码 | `if existing namespace public: duplicate error; else add public namespace` |
@@ -199,12 +199,12 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `import pkg` |
-| 生成规则描述 | 单个 import 的成功路径为：解析 target -> 检查 XAPI -> 可选读取 manifest -> 读取 XAPI -> 覆盖 package 身份 -> 检查/登记 namespace -> 收集 manifest deps -> 收集 XAPI deps -> 收集 manifest dependency graph -> 生成隐式声明 -> 解析并合并 AST -> 释放临时资源。 |
+| 生成规则描述 | 单个 import 的成功路径为：解析 target -> 读取 package manifest 或源码文件 -> 覆盖 package 身份 -> 检查/登记 namespace -> 收集 manifest deps -> 收集 manifest dependency graph -> 合并 xlSources/source module -> 重写 namespace 符号 -> 释放临时资源。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1209` |
 | 对应生成的 C 代码 | 隐式声明进入 AST 后由 cgen 生成 C。 |
 | 中间形态伪代码 | `resolve/load/collect/generate/parse/merge/free` |
 | 实现同等功能手写的 C 代码 | 手写工具链也需要固定 import 展开阶段顺序。 |
-| 额外依赖的封装代码 | XAPI loader、package manifest、parser API。 |
+| 额外依赖的封装代码 | source import loader、package manifest、parser API。 |
 
 ## CGEN-IMPG-018 成员访问节点重写为名称
 
@@ -223,7 +223,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `pkg.foo()`、`pkg.value` |
-| 生成规则描述 | 递归遍历 AST。若节点是 member，receiver 是 name，则尝试按 receiver.text 和成员名查 import symbol。找到 supported 符号时重写为内部名称；找到 unsupported 符号时报 `XAPI 导入符号当前不能进入 C ABI bridge: <ns>.<symbol>`。 |
+| 生成规则描述 | 递归遍历 AST。若节点是 member，receiver 是 name，则尝试按 receiver.text 和成员名查 import symbol。找到 supported 符号时重写为内部名称；找到 unsupported 符号时报 `导入符号当前不能进入 C ABI bridge: <ns>.<symbol>`。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1257` |
 | 对应生成的 C 代码 | supported 符号经 cgen 生成对应内部 extern 调用/访问。 |
 | 中间形态伪代码 | `if member ns.name and symbol supported -> rewrite; unsupported -> diag` |

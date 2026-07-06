@@ -6,7 +6,7 @@
 
 - `RC0工作区清单.md`：记录早期 RC0 提交前工作区历史快照，用于追溯当时哪些文件应纳入基线、哪些属于生成物；它不代表当前工程规模。
 - `RC0变更摘要.md`：记录当前 RC0 基线完成的主要变化、非目标和后续风险。
-- `扩展库系统设计.md`：记录 import/package/XAPI/extlib 与多版本共存的长期设计口径。
+- `扩展库系统设计.md`：记录 import/package/source import/extlib 与多版本共存的长期设计口径。
 
 ## 守门入口
 
@@ -41,12 +41,12 @@ rc0_guard.bat -SkipFullTests
 - 该手写 C/CRT 安全检查已经直接接入轻量 RC0 守门，不会只依赖 `test.bat` 的完整主回归路径。
 - 测试用例 wiring 检查，确保 `test/cases/*.xl` 不会成为未接入的沉睡用例。
 - 预期失败诊断 wiring 检查，确保 xlang 负例不会只检查退出码；本轮校准基线为 446 条预期失败命令、445 个诊断产物、446 条内容断言，baseline-only 必须保持为 0。
-- 测试数据 wiring 检查，确保 `test/cases` 下的 JSON/XAPI fixture 可解析、被测试入口或测试源码引用，并且引用不失效。
+- 测试数据 wiring 检查，确保 `test/cases` 下的 JSON/ABI 元数据 fixture 可解析、被测试入口或测试源码引用，并且引用不失效。
 - 范例 wiring 检查，确保 `release/examples/**/*.xl` 被主回归、教程、feature suite 或标准库范例入口覆盖。
 - C fixture wiring 检查，确保 C/H host 文件和 package native C 文件不会成为未接入的沉睡资产。
-- package fixture 一致性检查，确保测试包 manifest、XAPI、native cSources、links/loadlibs 和依赖目标保持同步。
-- 上述测试、范例、fixture 与标准库覆盖检查同时守住本轮校准数量基线：695 个测试用例、28 个测试前缀、121 个范例、5 个 JSON/XAPI fixture、18 个测试 package fixture、358 个标准库公开函数、27 个标准库测试、17 个标准库范例、68 个入口 C/H fixture 和 55 个 package/extlib C/H fixture。
-- `lex`、`check`、`parse`、`ir`、`cgen`、`abi`、`xapi`、`run`、`build` 命令面检查。
+- package fixture 一致性检查，确保测试包 manifest、ABI 元数据、native cSources、links/loadlibs 和依赖目标保持同步。
+- 上述测试、范例、fixture 与标准库覆盖检查同时守住本轮校准数量基线：695 个测试用例、28 个测试前缀、121 个范例、5 个 JSON/ABI 元数据 fixture、18 个测试 package fixture、358 个标准库公开函数、27 个标准库测试、17 个标准库范例、68 个入口 C/H fixture 和 55 个 package/extlib C/H fixture。
+- `lex`、`check`、`parse`、`ir`、`cgen`、`abi`、`ABI 元数据`、`run`、`build` 命令面检查。
 - 语义错误与 import 错误的文本/JSON 诊断稳定性检查。
 - `test_all.bat` 全量测试：依次覆盖 `test.bat` 主回归调度、`test_tutorial.bat` 教程范例、`test_apps.bat` 复合应用范例和 `test_dll.bat` 嵌入式 DLL 验收。
 - `git diff --check -- demo6` 空白检查。
@@ -54,7 +54,7 @@ rc0_guard.bat -SkipFullTests
 快速冒烟入口：
 
 - `test_smoke.bat` 不再作为 `test.bat` 的别名，而是独立的快速验证入口。
-- 当前 smoke 覆盖 `build.bat`、文档/源码/工具接线、`lex`、`parse`、`check`、`cgen`、`abi`、`xapi`、import metadata、容器运行和一个标准库运行样本。
+- 当前 smoke 覆盖 `build.bat`、文档/源码/工具接线、`lex`、`parse`、`check`、`cgen`、`abi`、`ABI 元数据`、import metadata、容器运行和一个标准库运行样本。
 - 完整功能矩阵仍以 `test.bat` 调度的分类套件、`test_all.bat`、feature suite、tutorial、apps 和 DLL 测试为准。
 
 ## 当前基线目录
@@ -63,10 +63,10 @@ rc0_guard.bat -SkipFullTests
 
 - `src`：DEMO6 编译器源码。
 - `lib/xrt/xrt.h`：DEMO6 当前同步的 XRT 单头文件。
-- `test/cases`：语法、语义、代码生成、混编、import/XAPI 等测试用例。
+- `test/cases`：语法、语义、代码生成、混编、import/package 等测试用例。
 - `test/suites`：主回归分类套件，供 `test.bat` 调度，也可按模块单独运行。
 - `release/examples`：与 `xl.exe` 同目录的正式范例程序与 feature suite 资产。
-- `release/extlibs`：与 `xl.exe` 同目录的正式 import/package/XAPI 测试与扩展库示例资产。
+- `release/extlibs`：与 `xl.exe` 同目录的正式 import/package/source import 测试与扩展库示例资产。
 - `docs`：DEMO6 当前唯一设计口径目录。
 - `build.bat`、`test.bat`、`test_all.bat`、`test_smoke.bat`、`test_feature_suite.bat`、`test_tutorial.bat`、`test_apps.bat`：构建与测试入口，其中 `test.bat` 调度 `test/suites/*.bat` 分类套件，`test_smoke.bat` 是快速冒烟入口，不替代完整主回归。
 - `build_dll.bat`、`test_dll.bat`：`xl.dll` 构建、嵌入式运行和宿主 API 边界验收入口。
@@ -130,10 +130,10 @@ rc0_guard.bat -SkipFullTests
 
 编译阶段诊断优先进入 `XL6_DiagList`：
 
-- 词法、语法、语义、import/XAPI、代码生成可恢复错误应尽量进入诊断列表。
+- 词法、语法、语义、import/package、代码生成可恢复错误应尽量进入诊断列表。
 - CLI 的 `stdout` 用于帮助文本和普通成功文本，`stderr` 用于流程级错误，例如构建工具缺失、输出文件失败、命令参数错误；手写 `src` 路径必须通过 `xl6Console*` 或 `XL6_Output` 输出。
 - JSON 诊断输出是稳定接口，不能只保证文本输出可读。
-- 新增语义错误或 import/XAPI 错误时，应同步新增负向测试用例。
+- 新增语义错误或 import/package 错误时，应同步新增负向测试用例。
 - 新增中文诊断或中文路径相关流程错误时，应确保 `test.bat`、相应分类套件或相应用例覆盖 stderr 重定向后的严格 UTF-8 读取路径。
 - RC0 守门脚本捕获命令输出或失败诊断时必须使用 raw stdout/stderr 文件，不允许把 PowerShell native error 包装字段混入守门证据。
 

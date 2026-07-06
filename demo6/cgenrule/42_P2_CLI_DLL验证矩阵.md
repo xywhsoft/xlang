@@ -1,4 +1,4 @@
-﻿# P2 CLI 与 DLL/API 验证矩阵
+# P2 CLI 与 DLL/API 验证矩阵
 
 本文继续细化 `34_规则测试范例交叉索引.md`，覆盖以下 P2 规则文档：
 
@@ -12,8 +12,8 @@
 | 规则范围 | 当前验证用例 | 证据等级 | 核验结论 |
 |---|---|---|---|
 | `CGEN-CLI-001` 默认 TCC backend | `build.bat`、`test.bat` 中大量 `release\xl.exe build/run`、`cli_link.xl`、`cli_loadlib.xl` | build/run 回归 | 默认 TCC 路径、include/lib 前缀、XRT/TCC 运行库路径在完整回归中被反复使用；属于强间接覆盖。 |
-| `CGEN-CLI-002..003` 命令帮助、公开子命令、通用选项读取 | `test.bat` 覆盖 `lex/parse/check/ir/cgen/abi/xapi/run/build`，并检查 `xl help` 输出包含 build 用法；同时使用 `--emit`、`--emit-header`、`--dump-dir`、`-o`、`--json` | CLI 行为覆盖 | 九类命令入口、帮助文本和主要带值选项均有实际调用。 |
-| `CGEN-CLI-004..005` header include guard、dump 目录创建、stdout/file 输出 | `xl cgen release\examples\hello.xl --dump-dir build\test\dump_hello`；`findstr` 检查 `hello.h` guard、`hello.c`、tokens/AST/IR/ABI/XAPI；`xl xapi export_add.xl > xapi_stdout.json` | 文件产物检查 | dump-dir 全产物、header guard、C/header 文件输出和 stdout XAPI 均有直接断言。 |
+| `CGEN-CLI-002..003` 命令帮助、公开子命令、通用选项读取 | `test.bat` 覆盖 `lex/parse/check/ir/cgen/abi/ABI 元数据/run/build`，并检查 `xl help` 输出包含 build 用法；同时使用 `--emit`、`--emit-header`、`--dump-dir`、`-o`、`--json` | CLI 行为覆盖 | 九类命令入口、帮助文本和主要带值选项均有实际调用。 |
+| `CGEN-CLI-004..005` header include guard、dump 目录创建、stdout/file 输出 | `xl cgen release\examples\hello.xl --dump-dir build\test\dump_hello`；`findstr` 检查 `hello.h` guard、`hello.c`、tokens/AST/IR/ABI；`xl abi export_add.xl > abi_stdout.json` | 文件产物检查 | dump-dir 全产物、header guard、C/header 文件输出和 stdout ABI 元数据均有直接断言。 |
 
 ## CLI Build/Run 与 TCC 链接
 
@@ -31,9 +31,9 @@
 
 | 规则范围 | 当前验证用例 | 证据等级 | 核验结论 |
 |---|---|---|---|
-| `CGEN-CLI-020..023` header、受检编译单元、C 输出、XAPI 输出命令 | `export_*.xl --emit-header`、`import_metadata.xapi.json`、`xapi_doc.json`、`xl xapi export_add.xl > xapi_stdout.json`、大量 `xl cgen --emit` | 文件内容检查 | 语义检查后再输出 C/header/XAPI 的主路径有强覆盖，XAPI stdout 已补快照。 |
-| `CGEN-CLI-024..027` lex/parse/check/ir/abi/cgen dump-dir 调试产物 | `test.bat` 的 `dump_hello`、`import_xapi_use.xlir`、`export_alias.abi.json/txt` | 阶段产物检查 | tokens、AST、IR、ABI、XAPI、header、C 全阶段 dump 已直接检查关键字段。 |
-| `CGEN-CLI-028..030` build 必要参数、shared 入口限制、header/XAPI/C 输出顺序 | `cgen_main_entry.xl` build/run；`bad_main_shared.err.txt`；`export_add.xl -shared --emit-header`；`build_missing_output.err.txt` | build/run + 负例 | `-o` build、缺 `-o` 诊断、XAPI 入口判断、shared 禁止 xlang main、用户 header 输出均有覆盖。 |
+| `CGEN-CLI-020..023` header、受检编译单元、C 输出、ABI 元数据输出命令 | `export_*.xl --emit-header`、`import_metadata.abi.json`、`xl abi export_add.xl > abi_stdout.json`、大量 `xl cgen --emit` | 文件内容检查 | 语义检查后再输出 C/header/ABI 元数据的主路径有强覆盖，ABI stdout 已补快照。 |
+| `CGEN-CLI-024..027` lex/parse/check/ir/abi/cgen dump-dir 调试产物 | `test.bat` 的 `dump_hello`、`import_source_use.xlir`、`export_alias.abi.json/txt` | 阶段产物检查 | tokens、AST、IR、ABI、header、C 全阶段 dump 已直接检查关键字段。 |
+| `CGEN-CLI-028..030` build 必要参数、shared 入口限制、header/ABI 元数据/C 输出顺序 | `cgen_main_entry.xl` build/run；`bad_main_shared.err.txt`；`export_add.xl -shared --emit-header`；`build_missing_output.err.txt` | build/run + 负例 | `-o` build、缺 `-o` 诊断、ABI 元数据 入口判断、shared 禁止 xlang main、用户 header 输出均有覆盖。 |
 | `CGEN-CLI-031..032` build C 输入集合、编译与清理 | `build_mixed_host.exe`、import package build/run、shared DLL 生成、`bad_main_shared` 失败清理计数断言 | C 混编 + package build + 失败清理 | 动态 VFS 主 `__xlvfs__/module.c`、import cSources、动态 VFS 用户 C wrapper 一起编译的路径有覆盖；默认失败清理和 `--save-temps` 导出保留均有直接断言。 |
 | `CGEN-CLI-033..035` run 内存执行、程序参数和 CLI 主分派 | `cgen_main_entry.exe alpha beta` 返回 argc 3；`xl_run_args.xl` 通过 `xl run ... -- alpha "two words" "quote\"value" beta ""` 断言 argv；所有命令分派均在 `test.bat` 使用 | run 行为 + 主分派 | `xl run` 通过 TCC 内存重定位直接调用 `xlang_main(xvalue arg)`；`--` 后 argv 传递、含空格/双引号/空字符串参数和 CLI 主分派均有覆盖。 |
 
@@ -68,4 +68,4 @@
 
 ## 阶段结论
 
-至此，`32` 到 `33` 的 CLI/DLL P2 规则已有矩阵级覆盖说明，并已补强 help/stdout/缺 `-o`、`--save-temps` wrapper、多 C 输入、输入上限、显式 XRT 链接、`xl run --` argv 空格/引号/空字符串传递、DLL 文件入口、DLL link/loadlib setter、依赖路径快照、静态 libtcc 入口、setter 空值负例、NULL context 纯 C 单元测试、多上下文 cwd 恢复和 lastError phase/行列断言。CLI 的主干 build/run/cgen/xapi/dump/link/loadlib/C 混编路径覆盖较强；DLL 的字符串/文件运行、标准库符号注入、宿主 C 函数注册、外部 link/loadlib、字符串/文件编译到 exe、NULL context 边界、cwd 成功/失败恢复已有可运行验证。
+至此，`32` 到 `33` 的 CLI/DLL P2 规则已有矩阵级覆盖说明，并已补强 help/stdout/缺 `-o`、`--save-temps` wrapper、多 C 输入、输入上限、显式 XRT 链接、`xl run --` argv 空格/引号/空字符串传递、DLL 文件入口、DLL link/loadlib setter、依赖路径快照、静态 libtcc 入口、setter 空值负例、NULL context 纯 C 单元测试、多上下文 cwd 恢复和 lastError phase/行列断言。CLI 的主干 build/run/cgen/ABI 元数据/dump/link/loadlib/C 混编路径覆盖较强；DLL 的字符串/文件运行、标准库符号注入、宿主 C 函数注册、外部 link/loadlib、字符串/文件编译到 exe、NULL context 边界、cwd 成功/失败恢复已有可运行验证。

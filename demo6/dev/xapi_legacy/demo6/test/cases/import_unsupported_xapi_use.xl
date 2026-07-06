@@ -1,5 +1,0 @@
-import unsupported_xapi
-
-func main(...) as int
-    return unsupported_xapi.unsupportedCall(1, 2)
-end

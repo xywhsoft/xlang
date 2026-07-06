@@ -78,7 +78,7 @@
 
 内容：
 
-- 接入 build/run/cgen/xapi/import/package 所需命令面。
+- 接入 build/run/cgen/ABI 元数据/import/package 所需命令面。
 - 自动链接 XRT/TCC 基础依赖。
 - 统一输出文件走 `XL6_Output`。
 - 临时文件删除使用 XRT。
@@ -116,13 +116,13 @@
 - cgen 不直接依赖 `FILE*`、`stdout`、`stderr`。
 - 输出统一通过 `XL6_Output` 和 XRT `xbuffer`。
 
-### 5. ABI、XAPI、callable 与 import/package
+### 5. ABI、ABI 元数据、callable 与 import/package
 
 相关文件：
 
 - `demo6/src/abi/xl6_callable.*`。
-- `demo6/src/abi/xl6_xapi_dump.*`。
-- `demo6/src/abi/xl6_xapi_load.*`。
+- `demo6/src/abi/xl6_abi_dump.*`。
+- `demo6/src/abi/xl6_abi_json.*`。
 - `demo6/src/abi/xl6_abi_dump.*`。
 - `demo6/src/compile/xl6_imports.*`。
 - `demo6/src/package/xl6_package.*`。
@@ -130,7 +130,7 @@
 
 内容：
 
-- XAPI 元数据生成与读取。
+- ABI 元数据生成与读取。
 - import 读取 package/interface 信息。
 - callable descriptor 与 xcall 基础设施。
 - C export ABI、头文件生成和混编测试基础。
@@ -166,7 +166,7 @@
 
 - smoke 测试覆盖基础语法、语义负例和 cgen。
 - feature suite 覆盖语言基础、表达式、函数、类型、容器、泛型、闭包、class/native-backed class、C 混编、C export ABI。
-- 新增 import/XAPI、typed containers、function value、native-backed class/class 等测试。
+- 新增 import/package、typed containers、function value、native-backed class/class 等测试。
 
 ## 忽略规则
 

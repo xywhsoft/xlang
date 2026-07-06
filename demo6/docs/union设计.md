@@ -91,7 +91,7 @@ typedef struct XL_Class_Packet {
 XL_Union_Payload p = {0};
 ```
 
-## C ABI 和 XAPI
+## C ABI 和 ABI 元数据
 
 具名 union 是 C ABI 类型，可以用于 `extern` / `export` 函数参数和返回值。
 
@@ -119,7 +119,7 @@ typedef union XL_Union_Payload {
 int64_t xl6_union_pick(XL_Union_Payload p);
 ```
 
-XAPI 中 `union` 作为类型元数据导出：
+ABI 元数据 中 `union` 作为类型元数据导出：
 
 ```json
 {"kind":"union","name":"Payload"}
