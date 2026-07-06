@@ -1598,6 +1598,41 @@ if errorlevel 1 exit /b 1
 build\test\cgen_minimal_runtime.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_top_level_before_main.xl --emit build\test\cgen_top_level_before_main.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_top_level_before_main.c' -Raw; $top=$t.IndexOf('top:'); $call=$t.IndexOf('__xl6_main_code = __xl6_user_main(arg);'); if($t -notmatch 'int __xl6_user_main\(xvalue arg\)'){exit 1}; if($t -notmatch 'int xlang_main\(xvalue arg\)'){exit 2}; if($call -lt 0){exit 3}; if($top -lt 0){exit 4}; if($top -gt $call){exit 5}"
+if errorlevel 1 (
+    echo cgen_top_level_before_main.c missing top-level/main dispatch.
+    exit /b 1
+)
+release\xl.exe run test\cases\cgen_top_level_before_main.xl > build\test\cgen_top_level_before_main.out.txt 2> build\test\cgen_top_level_before_main.err.txt
+if not "%errorlevel%"=="1" (
+    echo cgen_top_level_before_main.xl run should report non-zero script return.
+    exit /b 1
+)
+findstr /C:"top:main" build\test\cgen_top_level_before_main.out.txt >nul
+if errorlevel 1 (
+    echo cgen_top_level_before_main.xl output order is wrong.
+    exit /b 1
+)
+findstr /C:"script returned 7" build\test\cgen_top_level_before_main.err.txt >nul
+if errorlevel 1 (
+    echo cgen_top_level_before_main.xl missing script return diagnostic.
+    exit /b 1
+)
+release\xl.exe build test\cases\cgen_top_level_before_main.xl -o build\test\cgen_top_level_before_main.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_top_level_before_main.exe > build\test\cgen_top_level_before_main.exe.out.txt
+if not "%errorlevel%"=="7" (
+    echo cgen_top_level_before_main.exe should return 7.
+    exit /b 1
+)
+findstr /C:"top:main" build\test\cgen_top_level_before_main.exe.out.txt >nul
+if errorlevel 1 (
+    echo cgen_top_level_before_main.exe output order is wrong.
+    exit /b 1
+)
+
 release\xl.exe ir test\cases\type_aliases.xl --emit build\test\type_aliases.xlir
 if errorlevel 1 exit /b 1
 findstr /C:"typedef MyInt = int" build\test\type_aliases.xlir >nul

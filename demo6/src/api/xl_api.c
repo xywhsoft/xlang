@@ -1798,6 +1798,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtThreadStop);
     XL_ADD_XRT_SYMBOL(s, xrtThreadGetState);
     XL_ADD_XRT_SYMBOL(s, xrtThreadGetExitCode);
+    XL_ADD_XRT_SYMBOL(s, xrtThreadGetCurrentId);
     XL_ADD_XRT_SYMBOL(s, xrtCoCreate);
     XL_ADD_XRT_SYMBOL(s, xrtCoDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtCoResume);
@@ -3046,7 +3047,14 @@ static int xlCompileAndRunUnit(XL_Context* ctx, XL6_CompileUnit* unit, xvalue su
         xlSetError(ctx, "script entry xlang_main not found");
         goto cleanup;
     }
+    /*
+     * 编译器/TCC 全局状态需要串行化，但用户脚本执行期不能一直持有
+     * xlApiLock。否则脚本中的 HTTP/任务线程再调用 xlRunScript* 会等待
+     * 外层脚本结束，形成跨线程嵌套运行死锁。
+     */
+    xlApiUnlock();
     rc = entry(runArg);
+    xlApiLock();
     if ( xlCheckScriptActiveError(ctx, s) ) {
         goto cleanup;
     }
@@ -3630,7 +3638,13 @@ static int xlRunModuleMainUnlocked(XL_Context* ctx, XL_Module* module, xvalue su
     if ( !xlPrepareRuntimeArg(ctx, suppliedArg, &runArg) ) {
         return 0;
     }
+    /*
+     * module 已经完成编译和 relocate。执行用户入口时释放 API 全局锁，
+     * 允许服务线程中的 XLangHandler 复用已编译模块。
+     */
+    xlApiUnlock();
     rc = entry(runArg);
+    xlApiLock();
     if ( runArg != NULL ) {
         xvoUnref(runArg);
     }

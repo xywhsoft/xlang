@@ -84,6 +84,8 @@ if errorlevel 1 (
 
 release\xl.exe check test\cases\import_package_use.xl
 if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\import_rapidocr_main_entry.xl
+if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\import_builtin_features.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\import_dependency_version_mismatch.xl >nul 2> build\test\import_dependency_version_mismatch.err.txt

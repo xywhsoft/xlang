@@ -136,6 +136,7 @@ typedef struct XL6_CgenContext {
     int needsXValueRuntime;
     int needsFunctionVarRuntime;
     int needsErrorRuntime;
+    int wrapExplicitMainWithTopLevel;
     int ok;
     int indent;
     int tempId;
