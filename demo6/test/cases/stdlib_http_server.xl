@@ -159,7 +159,7 @@ func streamBegin(point reqHandle) as bool
     path = path + name
     path = path + ".tmp"
     file.writeText(path, "")
-    return req.method() == "POST" or req.method() == "PUT"
+    return req.method() == "POST" or req.method() == "PUT" or req.method() == "PATCH"
 end
 
 func streamChunk(point reqHandle, point data, int size) as bool
@@ -253,6 +253,8 @@ export "xl6_http_server_create" func createServer() as point
     http.server.appGetRequest(app2, "/stream", reqFn)
     http.server.appAnyRequest(app2, "/any", reqFn)
     assert http.server.appPostStreamRequest(app2, "/app-stream-body/{name}", streamBeginFn, streamChunkFn, streamEndFn), "appPostStreamRequest failed"
+    assert http.server.appAnyStreamRequest(app2, "/app-any-stream-body/{name}", streamBeginFn, streamChunkFn, streamEndFn), "appAnyStreamRequest failed"
+    assert http.server.appRouteStreamRequest(app2, "PATCH", "/app-route-stream-body/{name}", streamBeginFn, streamChunkFn, streamEndFn), "appRouteStreamRequest failed"
     assert http.server.appRouteRequest(app2, "PATCH", "/app-generic", reqFn), "appRouteRequest failed"
     http.server.appStatic(app2, "/public", "build/test/stdlib_http_static")
     http.server.appError(app2, errFn)
@@ -264,6 +266,7 @@ export "xl6_http_server_create" func createServer() as point
     assert http.server.routeRequest(server, "DELETE", "/generic", reqFn), "routeRequest failed"
     assert http.server.postStreamRequest(server, "/stream-body/{name}", streamBeginFn, streamChunkFn, streamEndFn), "postStreamRequest failed"
     assert http.server.routeStreamRequest(server, "PUT", "/stream-put/{name}", streamBeginFn, streamChunkFn, streamEndFn), "routeStreamRequest failed"
+    assert http.server.anyStreamRequest(server, "/stream-any/{name}", streamBeginFn, streamChunkFn, streamEndFn), "anyStreamRequest failed"
     assert http.server.appStaticEx(app2, "/assets", "build/test/stdlib_http_static", "home.txt", "max-age=30", 4096, http.server.allowDotfiles), "appStaticEx failed"
     int staticFlags = http.server.allowDotfiles + http.server.allowBackslash
     int cookieFlags = http.server.cookieSecure + http.server.cookieHttpOnly + http.server.cookiePartitioned + http.server.cookieSameParty

@@ -345,6 +345,27 @@ int main(void)
     check_step("stream body chunked app", request_parts_once(port, request, "6\r\n-world\r\n", "0\r\n\r\n", "stream:app:hello-world"), &ok);
 
     snprintf(request, sizeof(request),
+        "PUT /app-any-stream-body/app-any HTTP/1.1\r\n"
+        "Host: 127.0.0.1:%lld\r\n"
+        "Connection: close\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: 10\r\n"
+        "\r\n"
+        "any",
+        (long long)port);
+    check_step("stream body app any", request_parts_once(port, request, "-stream", "", "stream:app-any:any-stream"), &ok);
+
+    snprintf(request, sizeof(request),
+        "PATCH /app-route-stream-body/app-route HTTP/1.1\r\n"
+        "Host: 127.0.0.1:%lld\r\n"
+        "Connection: close\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+        "5\r\nroute\r\n",
+        (long long)port);
+    check_step("stream body app route", request_parts_once(port, request, "5\r\n-body\r\n", "0\r\n\r\n", "stream:app-route:route-body"), &ok);
+
+    snprintf(request, sizeof(request),
         "PUT /stream-put/route HTTP/1.1\r\n"
         "Host: 127.0.0.1:%lld\r\n"
         "Connection: close\r\n"
@@ -353,6 +374,17 @@ int main(void)
         "4\r\nping\r\n",
         (long long)port);
     check_step("stream body generic", request_parts_once(port, request, "4\r\npong\r\n", "0\r\n\r\n", "stream:route:pingpong"), &ok);
+
+    snprintf(request, sizeof(request),
+        "PATCH /stream-any/any HTTP/1.1\r\n"
+        "Host: 127.0.0.1:%lld\r\n"
+        "Connection: close\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: 11\r\n"
+        "\r\n"
+        "stream",
+        (long long)port);
+    check_step("stream body any", request_parts_once(port, request, "-body", "", "stream:any:stream-body"), &ok);
 
     snprintf(request, sizeof(request),
         "GET /file HTTP/1.1\r\n"

@@ -1,0 +1,12 @@
+import class_api
+
+func main(...) as int
+    auto point = class_api.makePoint(7, 35)
+    if point.x + point.y != 42 then
+        return 1
+    end
+    if class_api.sum(point) != 42 then
+        return 1
+    end
+    return 0
+end

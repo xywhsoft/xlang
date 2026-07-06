@@ -1,0 +1,25 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "invalid_decl_xapi",
+    "version":  "1.0.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-test-package",
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+
+                                  ],
+                     "xlSources":  [
+                                       "src/invalid_decl_xapi.xl"
+                                   ]
+                 }
+}
