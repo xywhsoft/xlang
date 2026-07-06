@@ -214,7 +214,7 @@ lib/xrt/xrt.h
 - DLL/API 与 CLI `xl run` 运行路径均不调用 C `main`，统一使用 `TCC_OUTPUT_MEMORY`、`tcc_relocate()`、`tcc_get_symbol("xlang_main")` 并直接传入 `xvalue arg`。
 - `xlRunScriptString/File` 和 `xlCompileScriptString/FileToExe` 的主生成 C 已改为挂载动态 VFS 后通过 `tcc_add_file` 编译，不再用磁盘临时文件交换主 C 文件。
 - CLI `xl build` / `xl run` 的主生成 C、生成头和 C 混编 wrapper 已改为挂载动态 VFS 后通过 `tcc_add_file` 编译；默认不再用 `module.c`、`module.h`、`csrc_N.c` 交换中间源码。
-- CLI `--save-temps` 是显式调试输出，会把动态 VFS 中的主 C、生成头、XAPI 和 wrapper 导出到工作目录并保留。
+- CLI `--save-temps` 是显式调试输出，会把动态 VFS 中的主 C、生成头、ABI 元数据 和 wrapper 导出到工作目录并保留。
 - CLI `xl run` 不再输出临时 `app.exe`，也不再创建独立子进程运行脚本；运行参数由 xl.exe 构造为 `array<var>` 后传给 `xlang_main(xvalue arg)`。
 - DLL/API 的脚本运行和编译 exe 入口不再为了普通执行预创建 `tempDir`；`tempDir/saveTemps` 保留给后续显式导出动态 VFS 内容。
 - `xlRunScriptStringArg` / `xlRunScriptFileArg` 已加入公开头文件和实现。

@@ -1,4 +1,4 @@
-# DEMO6 本轮开发任务：XAPI、import 与 C 混编成熟化
+# DEMO6 本轮开发任务：source import、package 与 C 混编成熟化
 
 本文档记录本轮长期开发任务的唯一执行清单。目标是让 DEMO6 已实现的基础能力进入可组合、可分发、可混编、可长期维护的阶段。
 
@@ -6,7 +6,7 @@
 
 本轮不继续堆叠高级语法，优先完成以下能力：
 
-- XAPI 接口元数据：作为 xl 的预解析/接口声明产物。
+- ABI 元数据：作为 xl 的预解析/接口声明产物。
 - 零配置 C 混编：支持 `xl build main.xl helper.c -o app.exe`。
 - 自动链接 XRT：XRT 是 xlang 基础，不要求用户手写链接参数。
 - C 自动注入头文件：C 文件不需要手写 `#include "xrt.h"` 或生成头文件。
@@ -16,23 +16,23 @@
 - 最小 package/import：普通 `.xl` 是接口真相，package JSON 只负责定位能力和构建信息。
 - 测试与范例：所有新增能力必须有可运行回归。
 
-## 2. XAPI 接口元数据
+## 2. ABI 元数据
 
-XAPI 暂以 `.xapi.json` 形式落地，后续可增加二进制 `.xapi`。
+ABI 元数据 暂以 `.abi.json` 形式落地，后续可增加二进制 ABI 元数据格式。
 
-XAPI 不是用户常规手写源，而是机器生成的接口元数据：
+ABI 元数据 不是用户常规手写源，而是机器生成的ABI 元数据：
 
-- 开发期：`.xl` 是权威源，`.xapi.json` 是缓存/调试产物。
-- 分发期：`.xapi` 可以作为权威接口，供二进制扩展库 import。
-- C 混编：`.xapi` 是生成 C header 的源。
-- package/import：`.xapi` 负责导入命名空间、链接信息和 ABI 信息。
-- 文档：未来 `#doc ... #end` 进入 `.xapi`，再生成帮助文档。
+- 开发期：`.xl` 是权威源，`.abi.json` 是缓存/调试产物。
+- 分发期：二进制 ABI 元数据可以作为权威接口，供二进制扩展库 import。
+- C 混编：二进制 ABI 元数据是生成 C header 的源。
+- package/import：二进制 ABI 元数据负责导入命名空间、链接信息和 ABI 信息。
+- 文档：未来 `#doc ... #end` 进入 ABI 元数据，再生成帮助文档。
 
-第一版 XAPI 字段：
+第一版 ABI 元数据 字段：
 
 ```json
 {
-  "format": "xlang-xapi-1",
+  "format": "xlang-abi-1",
   "compiler": {
     "name": "xl",
     "version": "demo6",
@@ -213,7 +213,7 @@ __attribute__((destructor))
 static void xl_so_detach(void) { xlDllDetach(0); }
 ```
 
-DEMO6 当前先落地 Windows/TCC 口径，同时在 XAPI 中记录跨平台生命周期字段。
+DEMO6 当前先落地 Windows/TCC 口径，同时在 ABI 元数据 中记录跨平台生命周期字段。
 
 ## 5. CLI 与构建体验
 
@@ -226,7 +226,7 @@ xl build main.xl helper.c -o app.exe
 要求：
 
 - 支持多输入文件。
-- `.xl` 输入生成 C 与 XAPI。
+- `.xl` 输入生成 C 与 ABI 元数据。
 - `.c` 输入直接参与编译。
 - C 输入自动强制 include `xrt.h` 与 xlang 生成 header。
 - 自动链接 XRT、TCC 运行库和默认系统库。
@@ -286,10 +286,10 @@ import 行为：
 
 - `import counter` 查找本地 package。
 - 读取 `package.json`。
-- 解析 entry `.xl` 或读取分发期 `.xapi`。
+- 解析 entry `.xl` 或读取分发期 ABI 元数据。
 - 只导入 `export` 符号。
 - 符号进入 `counter.xxx` 命名空间，不污染全局。
-- 自动加入 package 的 C 源码、链接库、动态库和 XAPI。
+- 自动加入 package 的 C 源码、链接库、动态库和 ABI 元数据。
 
 第一版只做本地包，不做远程包下载或完整包管理器。
 
@@ -299,10 +299,10 @@ import 行为：
 
 - C parser。
 - `.xli`。
-- 手写 XAPI 作为常规开发源。
+- 手写 ABI 元数据 作为常规开发源。
 - 完整包管理器。
 - 远程包下载。
-- 二进制 `.xapi`。
+- 二进制 ABI 元数据。
 - 完整文档生成器。
 - 异步、异常、object 元编程。
 
@@ -310,9 +310,9 @@ import 行为：
 
 1. 落盘本文档。
 2. 梳理当前 CLI/CGEN/SEM/ABI 入口。
-3. 实现 XAPI 生成器与 `xapi` 命令。
-4. 让 `cgen --dump-dir` 输出 `.xapi.json`。
-5. 让 header 逐步改为从 XAPI 信息投影。
+3. 实现 ABI 元数据 生成器与 `abi` 命令。
+4. 让 `cgen --dump-dir` 输出 `.abi.json`。
+5. 让 header 逐步改为从 ABI 元数据 信息投影。
 6. 实现 `func main(...)` 约定、顶层脚本 main 互斥规则。
 7. 实现 `xlInit` / `xlUnit` 与 `XL_InitOptions`。
 8. 改造 build 支持多输入 `.xl + .c`。

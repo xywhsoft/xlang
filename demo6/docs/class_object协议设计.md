@@ -60,7 +60,7 @@
 - 构造生命周期。
 - 析构生命周期。
 - C ABI 映射。
-- XAPI 元数据输出。
+- ABI 元数据输出。
 - 泛型 class 的后续扩展入口。
 
 普通成员访问：
@@ -168,7 +168,7 @@ func __setItem__(string key, var value)
 
 - 避免占用 `item`、`field`、`copy` 等普通用户命名。
 - 让特殊语义在代码中明显可见。
-- 和普通方法共用函数声明、重载、ABI、XAPI、文档注释等基础设施。
+- 和普通方法共用函数声明、重载、ABI、ABI 元数据、文档注释等基础设施。
 - 便于编译器在语义阶段识别并建立协议表。
 
 协议方法不是 `meta` 方法。
@@ -503,7 +503,7 @@ a.name
 - 索引表达式可以是运行期值。
 - 点号优先服务对象模型，索引优先服务容器模型。
 - 字段访问需要先检查静态字段和静态方法，索引访问不需要。
-- C ABI、XAPI 和错误诊断可以分别表达字段协议与索引协议。
+- C ABI、ABI 元数据 和错误诊断可以分别表达字段协议与索引协议。
 
 ## 5. 运算符协议
 
@@ -773,13 +773,13 @@ DEMO6 不继续扩大 `nocopy` 关键字路线，而是使用能力系统表达�
 - `derive moveOnly` 明确表达只能移动。
 - `__copyable__` 可作为运行期能力查询协议。
 
-这样比单独关键字更容易和标准库、XAPI、文档、C ABI 结合。
+这样比单独关键字更容易和标准库、ABI 元数据、文档、C ABI 结合。
 
-## 12. ABI 与 XAPI
+## 12. ABI 与 ABI 元数据
 
 协议方法应进入类型元数据，但需要和普通方法区分。
 
-XAPI 建议字段：
+ABI 元数据 建议字段：
 
 ```json
 {
@@ -798,9 +798,9 @@ XAPI 建议字段：
 要求：
 
 - 协议方法保留普通函数签名。
-- XAPI 标记 protocol 名称。
+- ABI 元数据 标记 protocol 名称。
 - C 头文件默认不导出隐式协议调用语法，只导出真实函数或 wrapper。
-- `derive` 生成的方法要在 XAPI 中标记为 generated。
+- `derive` 生成的方法要在 ABI 元数据 中标记为 generated。
 - 文档生成可以把协议能力展示为类型能力。
 
 ## 13. 语义检查规则
@@ -852,7 +852,7 @@ XAPI 建议字段：
 - 标准库 `object` 基类。
 - 标准库 `copy` / `clone`。
 - `derive copy` / `derive clone` / `derive moveOnly`。
-- XAPI protocol 标记。
+- ABI 元数据 protocol 标记。
 - 对应测试与范例。
 
 第二批实现：
@@ -928,7 +928,7 @@ XAPI 建议字段：
 - class/object/protocol 有功能范例。
 - copy/clone 有基础类型、容器、class、native-backed class 边界测试。
 - json/xson 持久化有 roundtrip 测试。
-- XAPI 输出包含协议与 derive 元数据测试。
+- ABI 元数据 输出包含协议与 derive 元数据测试。
 - C 混编不被 object/protocol 破坏。
 - `test.bat` 通过。
 - `rc0_guard.ps1` 通过或明确更新守门基线。

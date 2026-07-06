@@ -89,8 +89,7 @@ $ignoredReadmePrefixes = @(
     "build\tmp\",
     "build\test\",
     "release\tcc\",
-    "lib\xrt\",
-    "dev\xapi_legacy\"
+    "lib\xrt\"
 )
 $stalePatterns = @(
     '\bTODO\b',

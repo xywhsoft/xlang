@@ -198,16 +198,6 @@ foreach ( $name in $fixturePackageNames ) {
     }
 }
 
-foreach ( $pkg in $packages ) {
-    if ( $fixturePackageNames -notcontains $pkg.Name ) {
-        continue
-    }
-    $legacyXapi = Join-Path $pkg.FullName "package.xapi.json"
-    if ( Test-Path -LiteralPath $legacyXapi -PathType Leaf ) {
-        Add-Failure "legacy package.xapi.json must not remain in mainline fixture: test/fixtures/$($pkg.Name)/package.xapi.json"
-    }
-}
-
 if ( $packages.Count -lt $minPackages ) {
     Add-Failure "package fixture baseline regressed: $($packages.Count) < $minPackages"
 }
@@ -278,10 +268,6 @@ foreach ( $pkg in $packages ) {
     if ( [string]::IsNullOrEmpty($manifest.abiVersion) ) {
         Add-Failure "package manifest abiVersion missing: $manifestRel"
     }
-    if ( $null -ne $manifest.xapi ) {
-        Add-Failure "package manifest must not declare legacy xapi field: $manifestRel"
-    }
-
     if ( $null -eq $manifest.artifact ) {
         Add-Failure "package manifest artifact missing: $manifestRel"
         continue

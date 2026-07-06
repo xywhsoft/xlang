@@ -1,6 +1,6 @@
-﻿# P2 CLI 构建运行与产物路径细则
+# P2 CLI 构建运行与产物路径细则
 
-本文细化 `demo6/src/driver/xl6_xlc_shell.c` 与 `demo6/src/backend/xl6_build_backend.c`。这些规则不一定直接改变 `xl6CgenEmitC` 的输出文本，但会决定 `.xl` 文件何时生成 C、头文件、XAPI、dump 产物、exe/dll，以及如何把 XRT、import package、用户 C 源和动态库链接进最终程序。
+本文细化 `demo6/src/driver/xl6_xlc_shell.c` 与 `demo6/src/backend/xl6_build_backend.c`。这些规则不一定直接改变 `xl6CgenEmitC` 的输出文本，但会决定 `.xl` 文件何时生成 C、头文件、ABI 元数据、dump 产物、exe/dll，以及如何把 XRT、import package、用户 C 源和动态库链接进最终程序。
 
 ## CGEN-CLI-001 默认 TCC backend
 
@@ -19,7 +19,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl help` |
-| 生成规则描述 | CLI 公开 lex、parse、check、ir、cgen、abi、xapi、run、build 九类命令。run/build 暴露 `--inc-path`、`--lib-path`、`--link`、`--loadlib`、`--save-temps`，build 额外支持 `-shared`、`--emit-header`。 |
+| 生成规则描述 | CLI 公开 lex、parse、check、ir、cgen、abi、ABI 元数据、run、build 九类命令。run/build 暴露 `--inc-path`、`--lib-path`、`--link`、`--loadlib`、`--save-temps`，build 额外支持 `-shared`、`--emit-header`。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:26` |
 | 对应生成的 C 代码 | 不生成 C；定义用户可触发的产物路径集合。 |
 | 中间形态伪代码 | `print usage for debug commands and build/run` |
@@ -33,7 +33,7 @@
 | xlang 写法 | `--emit out.c`、`--emit-header out.h`、`--dump-dir dump`、`-o app.exe` |
 | 生成规则描述 | 文件参数固定取 `argv[2]`；`--json` 或 `--format json` 打开 JSON 输出；`--emit`、`--emit-header`、`--dump-dir`、`-o` 都从命令行中线性扫描第一个后继值。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:40`、`demo6/src/driver/xl6_xlc_shell.c:48`、`demo6/src/driver/xl6_xlc_shell.c:63`、`demo6/src/driver/xl6_xlc_shell.c:99` |
-| 对应生成的 C 代码 | 不直接生成 C；影响 cgen/header/xapi/dump 输出位置。 |
+| 对应生成的 C 代码 | 不直接生成 C；影响 cgen/header/ABI 元数据/dump 输出位置。 |
 | 中间形态伪代码 | `find option value after command/file` |
 | 实现同等功能手写的 C 代码 | 手写 CLI 也需要统一解析输出文件选项。 |
 | 额外依赖的封装代码 | 无。 |
@@ -139,7 +139,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl run main.xl` 或 `xl build main.xl -o app.exe` |
-| 生成规则描述 | build/debug/save-temps 仍可能按用途创建 `<xl.exe目录>\tmp\xl6_<purpose>_<pid>_<time>_<counter>` 工作目录。正常编译的主 C、生成头和 C wrapper 通过动态 VFS 交给 TCC；`xl run` 使用 `TCC_OUTPUT_MEMORY` 直接重定位并调用 `xlang_main(xvalue arg)`，不生成临时 `app.exe`，也不启动独立子进程执行脚本；`--loadlib` 仍可能生成 def 文件。build 成功或失败都会进入统一 cleanup 出口，默认删除列出的临时文件和工作目录；`--save-temps` 时把动态 VFS 内容导出为 `module.c`、`module.h`、`module.xapi.json`、`csrc_N.c` 并保留路径。 |
+| 生成规则描述 | build/debug/save-temps 仍可能按用途创建 `<xl.exe目录>\tmp\xl6_<purpose>_<pid>_<time>_<counter>` 工作目录。正常编译的主 C、生成头和 C wrapper 通过动态 VFS 交给 TCC；`xl run` 使用 `TCC_OUTPUT_MEMORY` 直接重定位并调用 `xlang_main(xvalue arg)`，不生成临时 `app.exe`，也不启动独立子进程执行脚本；`--loadlib` 仍可能生成 def 文件。build 成功或失败都会进入统一 cleanup 出口，默认删除列出的临时文件和工作目录；`--save-temps` 时把动态 VFS 内容导出为 `module.c`、`module.h`、`module.abi.json`、`csrc_N.c` 并保留路径。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:126`、`demo6/src/driver/xl6_xlc_shell.c:164`、`demo6/src/driver/xl6_xlc_shell.c:609`、`demo6/src/api/xl_api.c:2367` |
 | 对应生成的 C 代码 | 默认 C 输入为动态 VFS 路径 `__xlvfs__/module.c`、`__xlvfs__/csrc_N.c`；`--save-temps` 才导出真实文件。 |
 | 中间形态伪代码 | `mount dynamic VFS; compile; finally clear VFS and cleanupUnlessSaveTemps` |
@@ -247,7 +247,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 任何需要 sem/import 的命令 |
-| 生成规则描述 | `xlcShellLoadCheckedUnit` 初始化编译单元，并调用 `xl6CompileUnitLoadFile(path, 1)`。失败时按当前 phase 打印诊断。cgen/build/run/xapi/header/ir/abi 都依赖这一路径。 |
+| 生成规则描述 | `xlcShellLoadCheckedUnit` 初始化编译单元，并调用 `xl6CompileUnitLoadFile(path, 1)`。失败时按当前 phase 打印诊断。cgen/build/run/ABI 元数据/header/ir/abi 都依赖这一路径。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:644`、`demo6/src/api/xl_api.c:4535` |
 | 对应生成的 C 代码 | 只有加载成功后才进入 cgen。 |
 | 中间形态伪代码 | `parse + import expand + sem check` |
@@ -266,17 +266,17 @@
 | 实现同等功能手写的 C 代码 | 手写编译器需要将 AST 后端输出到文件。 |
 | 额外依赖的封装代码 | cgen module 规则。 |
 
-## CGEN-CLI-023 XAPI 输出命令
+## CGEN-CLI-023 ABI 元数据 输出命令
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `xl xapi main.xl --emit main.xapi.json` |
-| 生成规则描述 | 先构建 `XL6_XapiModule`，再写入 JSON。调用者可传 outModule 复用构建出的 module，用于 build 阶段判断是否有可执行入口。emitPath 为空时写 stdout。 |
+| xlang 写法 | `xl abi main.xl --emit main.abi.json` |
+| 生成规则描述 | 先构建 `XL6_CompileUnit`，再写入 JSON。调用者可传 outModule 复用构建出的 module，用于 build 阶段判断是否有可执行入口。emitPath 为空时写 stdout。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:745`、`demo6/src/api/xl_api.c:4891` |
-| 对应生成的 C 代码 | 不生成 C；生成 `xlang-xapi-1` JSON。 |
-| 中间形态伪代码 | `module = buildXapi(root); dumpJson(module)` |
-| 实现同等功能手写的 C 代码 | 手写扩展库需要导出接口元数据。 |
-| 额外依赖的封装代码 | XAPI dump 规则。 |
+| 对应生成的 C 代码 | 不生成 C；生成 `xlang-abi-1` JSON。 |
+| 中间形态伪代码 | `module = buildCompileUnit(root); dumpAbiJson(module)` |
+| 实现同等功能手写的 C 代码 | 手写扩展库需要导出ABI 元数据。 |
+| 额外依赖的封装代码 | ABI 元数据 dump 规则。 |
 
 ## CGEN-CLI-024 parse/check/lex/ir 调试命令
 
@@ -319,23 +319,23 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl cgen main.xl --dump-dir dump` |
-| 生成规则描述 | dump-dir 会创建 7 个产物：`<base>.tokens.json`、`<base>.ast.json`、`<base>.xlir`、`<base>.abi.json`、`<base>.xapi.json`、`<base>.h`、`<base>.c`。各阶段按顺序生成，任何一步失败即停止。 |
+| 生成规则描述 | dump-dir 会创建 7 个产物：`<base>.tokens.json`、`<base>.ast.json`、`<base>.xlir`、`<base>.abi.json`、`<base>.abi.json`、`<base>.h`、`<base>.c`。各阶段按顺序生成，任何一步失败即停止。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:745`、`demo6/src/api/xl_api.c:4891` |
 | 对应生成的 C 代码 | dump 目录中的 `<base>.c` 为完整 cgen 输出，`<base>.h` 为导出头。 |
-| 中间形态伪代码 | `tokens -> checked unit -> ast -> ir -> abi -> xapi -> header -> c` |
+| 中间形态伪代码 | `tokens -> checked unit -> ast -> ir -> abi -> ABI 元数据 -> header -> c` |
 | 实现同等功能手写的 C 代码 | 手写编译器调试包通常也输出全阶段快照。 |
-| 额外依赖的封装代码 | lexer、compile unit、IR、ABI、XAPI、cgen。 |
+| 额外依赖的封装代码 | lexer、compile unit、IR、ABI、ABI 元数据、cgen。 |
 
 ## CGEN-CLI-028 build 必要参数与工作文件
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl build main.xl -o app.exe` |
-| 生成规则描述 | build 必须提供 `-o`。收集输入后创建 `build` 工作目录用于 `--save-temps` 导出和 loadlib def。主 C、生成头和 wrapper 默认只生成到内存并挂载到动态 VFS；XAPI 默认只构建内存元数据用于 shared 入口校验。工作目录创建成功后，后续失败统一跳转到 cleanup 出口。 |
+| 生成规则描述 | build 必须提供 `-o`。收集输入后创建 `build` 工作目录用于 `--save-temps` 导出和 loadlib def。主 C、生成头和 wrapper 默认只生成到内存并挂载到动态 VFS；ABI 元数据 默认只构建内存元数据用于 shared 入口校验。工作目录创建成功后，后续失败统一跳转到 cleanup 出口。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:918`、`demo6/src/driver/xl6_xlc_shell.c:930`、`demo6/src/api/xl_api.c:4916` |
 | 对应生成的 C 代码 | 主模块 C 文件虚拟路径为 `__xlvfs__/module.c`。 |
-| 中间形态伪代码 | `build -> headerMemory + xapiMemory + cMemory -> dynamic VFS` |
-| 实现同等功能手写的 C 代码 | 手写构建需要中间 C、头文件和接口元数据，但默认不必落盘。 |
+| 中间形态伪代码 | `build -> headerMemory + abiMemory + cMemory -> dynamic VFS` |
+| 实现同等功能手写的 C 代码 | 手写构建需要中间 C、头文件和ABI 元数据，但默认不必落盘。 |
 | 额外依赖的封装代码 | dynamic VFS、workDir/temp cleanup。 |
 
 ## CGEN-CLI-029 shared build 入口限制
@@ -343,24 +343,24 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl build lib.xl -shared -o lib.dll` |
-| 生成规则描述 | build 先构建内存 XAPI module。若指定 `-shared` 且 XAPI 判断模块含 xlang main 或顶层可执行语句，则报错：shared build 不能包含可执行入口。`--save-temps` 时额外导出 `module.xapi.json`。 |
+| 生成规则描述 | build 先构建内存 source module。若指定 `-shared` 且 ABI 元数据 判断模块含 xlang main 或顶层可执行语句，则报错：shared build 不能包含可执行入口。`--save-temps` 时额外导出 `module.abi.json`。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:930`、`demo6/src/api/xl_api.c:4842` |
 | 对应生成的 C 代码 | 不输出最终 DLL；避免把 exe 入口打进共享库目标。 |
 | 中间形态伪代码 | `if shared && hasExecutableEntry: error` |
 | 实现同等功能手写的 C 代码 | 手写 DLL 构建通常禁止 main。 |
-| 额外依赖的封装代码 | XAPI entry metadata。 |
+| 额外依赖的封装代码 | ABI 元数据 entry metadata。 |
 
 ## CGEN-CLI-030 build 导出头与 C 输出顺序
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl build main.xl -o app.exe --emit-header public.h` |
-| 生成规则描述 | build 总是先为 wrapper 生成内存 `module.h` 并挂载到动态 VFS，再构建内存 XAPI；若用户提供 `--emit-header`，额外生成用户指定头文件；最后生成内存 `module.c` 并挂载到动态 VFS。`--save-temps` 时这些内存产物会导出到工作目录。 |
+| 生成规则描述 | build 总是先为 wrapper 生成内存 `module.h` 并挂载到动态 VFS，再构建内存 ABI 元数据；若用户提供 `--emit-header`，额外生成用户指定头文件；最后生成内存 `module.c` 并挂载到动态 VFS。`--save-temps` 时这些内存产物会导出到工作目录。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:918`、`demo6/src/driver/xl6_xlc_shell.c:934`、`demo6/src/driver/xl6_xlc_shell.c:936`、`demo6/src/api/xl_api.c:4916` |
 | 对应生成的 C 代码 | `__xlvfs__/module.c` 配合 `__xlvfs__/module.h` 与用户 C wrapper 编译。 |
-| 中间形态伪代码 | `header(memory); xapi(memory); header(user?); cgen(memory); mount all` |
+| 中间形态伪代码 | `header(memory); ABI 元数据(memory); header(user?); cgen(memory); mount all` |
 | 实现同等功能手写的 C 代码 | 手写混编应先产出 C 可见声明再编译用户 C。 |
-| 额外依赖的封装代码 | cgen header、XAPI dump。 |
+| 额外依赖的封装代码 | cgen header、ABI 元数据 dump。 |
 
 ## CGEN-CLI-031 build C 输入集合
 
@@ -379,7 +379,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl build main.xl -o app.exe` |
-| 生成规则描述 | build 调用内嵌 TCC 编译所有 C 输入到 outputPath。成功或失败都释放 XAPI/compile unit、释放内存 C/header/wrapper，并清理 save-temps 导出文件、loadlib def 和工作目录；`--save-temps` 时保留导出文件。TCC 失败时打印 `tcc build failed`。 |
+| 生成规则描述 | build 调用内嵌 TCC 编译所有 C 输入到 outputPath。成功或失败都释放 ABI 元数据/compile unit、释放内存 C/header/wrapper，并清理 save-temps 导出文件、loadlib def 和工作目录；`--save-temps` 时保留导出文件。TCC 失败时打印 `tcc build failed`。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:918`、`demo6/src/api/xl_api.c:4916`、`demo6/src/api/xl_api.c:4965` |
 | 对应生成的 C 代码 | 临时 C 和 header 默认只在动态 VFS/内存中存在，最终产物是 `-o` 指定的 exe/dll。 |
 | 中间形态伪代码 | `compile(vfsInputs -> output); free memory; cleanup exported temps` |
@@ -391,7 +391,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl run main.xl` |
-| 生成规则描述 | run 加载受检单元后只生成内存 C，不生成 header/xapi，也不生成 C `main` wrapper；TCC 输入为动态 VFS `__xlvfs__/module.c` 加 importDeps.cSources，输出类型为 `TCC_OUTPUT_MEMORY`。重定位成功后通过 `tcc_get_symbol("xlang_main")` 取得入口，直接传入由 CLI argv 构造的 `array<var>`。 |
+| 生成规则描述 | run 加载受检单元后只生成内存 C，不生成 header/ABI 元数据，也不生成 C `main` wrapper；TCC 输入为动态 VFS `__xlvfs__/module.c` 加 importDeps.cSources，输出类型为 `TCC_OUTPUT_MEMORY`。重定位成功后通过 `tcc_get_symbol("xlang_main")` 取得入口，直接传入由 CLI argv 构造的 `array<var>`。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:760`、`demo6/src/api/xl_api.c:4410`、`demo6/src/api/xl_api.c:3256` |
 | 对应生成的 C 代码 | 动态 VFS 中的 `__xlvfs__/module.c`；内存运行时通过 cgen option 抑制 C `main` wrapper，只保留 `xlang_main(xvalue arg)`。 |
 | 中间形态伪代码 | `arg = argvToXValue(argv); emitC(noMainWrapper) -> TCC memory -> relocate -> entry = symbol("xlang_main") -> entry(arg)` |
@@ -415,7 +415,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xl <cmd> ...` |
-| 生成规则描述 | `xlcShellMain` 处理 help 和缺失文件参数后，按命令名分派到 lex、parse、check、ir、cgen、run、build、abi、xapi。未知命令返回错误。 |
+| 生成规则描述 | `xlcShellMain` 处理 help 和缺失文件参数后，按命令名分派到 lex、parse、check、ir、cgen、run、build、abi、ABI 元数据。未知命令返回错误。 |
 | 生成器文件名和行号 | `demo6/src/driver/xl6_xlc_shell.c:1140` |
 | 对应生成的 C 代码 | 不直接生成 C；决定用户请求进入哪条产物路径。 |
 | 中间形态伪代码 | `switch argv[1] -> command handler` |

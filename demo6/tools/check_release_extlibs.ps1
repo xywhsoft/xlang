@@ -13,13 +13,11 @@ $exampleDir = Join-Path $Root "release\examples\extlibs"
 $runnerPath = Join-Path $exampleDir "run_extlibs.bat"
 $expectedMinPackages = 31
 $fixtureNames = @(
-    "broken_xapi",
     "class_api",
     "class_inherit_api",
     "counter",
     "dep_value",
     "dep_value@2.0.0",
-    "invalid_decl_xapi",
     "libprobe",
     "metadata_combo",
     "missing_interface",
@@ -27,7 +25,6 @@ $fixtureNames = @(
     "native_two",
     "settings",
     "union_api",
-    "unsupported_xapi",
     "uses_dep",
     "uses_dep_bad",
     "uses_dep_v2"
@@ -316,7 +313,6 @@ $dirsByPackage = @{}
 foreach ( $pkg in $packages ) {
     $name = $pkg.Name
     $manifestPath = Join-Path $pkg.FullName "xlang.package.json"
-    $legacyXapiPath = Join-Path $pkg.FullName "package.xapi.json"
     $manifestRel = "release/extlibs/$name/xlang.package.json"
 
     if ( $name.StartsWith("x.") ) {
@@ -324,9 +320,6 @@ foreach ( $pkg in $packages ) {
     }
     if ( $name.StartsWith("x_") ) {
         Add-Failure "release extlib package keeps old x_ prefix: $name"
-    }
-    if ( Test-Path -LiteralPath $legacyXapiPath -PathType Leaf ) {
-        Add-Failure "release extlib must not publish legacy package.xapi.json: release/extlibs/$name/package.xapi.json"
     }
     if ( ! (Test-Path -LiteralPath $manifestPath -PathType Leaf) ) {
         Add-Failure "release extlib manifest missing: $manifestRel"
@@ -357,9 +350,6 @@ foreach ( $pkg in $packages ) {
     }
     if ( [string]::IsNullOrWhiteSpace([string]$manifest.abiVersion) ) {
         Add-Failure "release extlib manifest abiVersion missing: $name"
-    }
-    if ( $null -ne $manifest.xapi ) {
-        Add-Failure "release extlib manifest must not declare legacy xapi field: $name"
     }
     if ( $null -eq $manifest.artifact ) {
         Add-Failure "release extlib artifact missing: $name"

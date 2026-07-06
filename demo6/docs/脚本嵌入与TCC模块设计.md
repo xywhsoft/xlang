@@ -417,14 +417,14 @@ xlang.compiler.check(source)
 xlang.compiler.lex(source)
 xlang.compiler.parse(source)
 xlang.compiler.emitC(source)
-xlang.compiler.emitXapi(source)
+xlang.compiler.emitAbi(source)
 ```
 
 第一期优先实现运行闭环和外部产物输出闭环，不急于暴露调试 dump 类 API。
 
 ## 自动 feature 推断
 
-编译器根据 import/package/XAPI 依赖图自动生成嵌入计划。
+编译器根据 import/package/source import 依赖图自动生成嵌入计划。
 
 规则：
 

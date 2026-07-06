@@ -108,22 +108,22 @@ RC0 的目标不是继续扩张语言特性，而是把已经实现的基础能�
 - `xl6_cgen_type_*.c`。
 - `xl6_cgen_value_*.c`。
 
-### ABI、XAPI 与 import/package
+### ABI、ABI 元数据 与 import/package
 
 完成：
 
 - ABI dump 文本和 JSON 输出。
-- XAPI JSON 生成。
-- XAPI JSON 加载。
-- import 从 XAPI/package 读取声明信息。
+- ABI 元数据 JSON 生成。
+- ABI 元数据 JSON 加载。
+- import 从 ABI 元数据/package 读取声明信息。
 - package resolver 基础实现。
 - C export ABI 和头文件生成测试。
 - 混编 build/run 链路测试。
 
 当前定位：
 
-- XAPI 是 xl 的内部接口声明信息，可持久化用于 package/import/C 互通。
-- 用户不需要手写 XAPI。
+- ABI 元数据 是 xl 的内部接口声明信息，可持久化用于 package/import/C 互通。
+- 用户不需要手写 ABI 元数据。
 - C 自动获得 xlang 导出声明，xlang 仍通过显式 import 获得外部能力。
 
 ### 诊断系统
@@ -182,7 +182,7 @@ JSON 诊断格式基线：
 - C/H fixture：45 个入口 fixture，55 个 package/extlib native fixture。
 - `release/examples`：104 个 `.xl` 范例文件，其中标准库范例 17 个。
 - package/extlib fixture：48 个。
-- 测试数据 fixture：5 个 JSON/XAPI fixture。
+- 测试数据 fixture：5 个 JSON/ABI 元数据 fixture。
 - 标准库覆盖：180 个公开函数、21 个标准库测试、17 个标准库范例。
 - 负例诊断守门：429 条预期失败命令、428 个诊断产物、429 条内容断言，baseline-only 为 0。
 - `feature_suite` 覆盖基础语言、控制流、函数、类型、容器、泛型、闭包、class/object/native-backed class、union、C 混编、C export ABI、错误处理、文档注释、并发和任务。
@@ -211,7 +211,7 @@ DEMO6 smoke tests ok.
 以下内容不作为本轮压实任务继续扩张：
 
 - 未进入当前设计文档口径的新语言特性。
-- 用户手写 XAPI 格式承诺。
+- 用户手写 ABI 元数据 格式承诺。
 - 继续把 `test.bat` 拆成更细的独立子套件。
 - 新的 package 管理器命令和远程依赖获取能力。
 - 非 TCC 后端的正式支持。

@@ -67,7 +67,7 @@ function Test-CaseReference($text, $relative)
 
 function Get-CasePrefix($baseName)
 {
-    if ( $baseName -match '^(cgen|sem|stdlib|import|export|extern|invalid|xapi|cli|control|call)' ) {
+    if ( $baseName -match '^(cgen|sem|stdlib|import|export|extern|invalid|cli|control|call)' ) {
         return $Matches[1]
     }
     if ( $baseName -match '^[^_]+' ) {

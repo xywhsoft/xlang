@@ -1,5 +1,0 @@
-import settings
-
-func readImported() as int
-    return settings.importedCounter
-end
