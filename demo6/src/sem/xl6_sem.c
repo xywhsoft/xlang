@@ -1932,7 +1932,7 @@ static int xl6SemIsBuiltinConvertTypeName(const char* name)
     return xl6SemIsIntegerTypeName(name) || xl6SemIsFloatTypeName(name) ||
            xl6SemIsBoolTypeName(name) || xl6TextEquals(name, "string") ||
            xl6TextEquals(name, "time") || xl6TextEquals(name, "point") ||
-           xl6TextEquals(name, "var");
+           xl6TextEquals(name, "type") || xl6TextEquals(name, "var");
 }
 
 static int xl6SemClassDeclHasValueDerive(const XL6_AstNode* classNode)
@@ -2013,7 +2013,7 @@ static int xl6SemTypeCanDeriveValueDepth(XL6_SemContext* ctx, const XL6_AstNode*
          xl6TextEquals(name, "dict") ) {
         itemType = xl6SemTypeNodeFirstGenericArg(typeNode);
         return itemType == NULL ||
-               (itemType->text != NULL && xl6TextEquals(itemType->text, "var"));
+               xl6SemTypeCanDeriveValueDepth(ctx, itemType, depth + 1);
     }
     if ( xl6TextEquals(name, "object") ) {
         return 1;
@@ -2387,7 +2387,8 @@ static int xl6SemCanConvertType(const char* source, const char* target)
     if ( xl6TextEquals(target, "string") ) {
         return xl6SemIsIntegerTypeName(source) || xl6SemIsFloatTypeName(source) ||
                xl6SemIsBoolTypeName(source) || xl6TextEquals(source, "string") ||
-               xl6TextEquals(source, "time") || xl6TextEquals(source, "point");
+               xl6TextEquals(source, "time") || xl6TextEquals(source, "point") ||
+               xl6TextEquals(source, "type");
     }
     if ( xl6TextEquals(target, "time") ) {
         return xl6TextEquals(source, "time") || xl6TextEquals(source, "string") ||
@@ -11418,9 +11419,10 @@ static int xl6SemCheckTryStmt(XL6_SemContext* ctx, XL6_AstNode* node)
         xl6SemErrorNode(ctx, node, "try 必须包含 catch 或 finally");
         ok = 0;
     }
-    if ( xl6SemNodeContainsAbruptControl(tryBlock) ||
-         xl6SemNodeContainsAbruptControl(catchNode) ||
-         xl6SemNodeContainsAbruptControl(finallyBlock) ) {
+    if ( finallyBlock != NULL && finallyBlock->childCount > 0 &&
+         (xl6SemNodeContainsAbruptControl(tryBlock) ||
+          xl6SemNodeContainsAbruptControl(catchNode) ||
+          xl6SemNodeContainsAbruptControl(finallyBlock)) ) {
         xl6SemErrorNode(ctx, node, "try/catch/finally 当前不支持 return/break/continue 穿过异常边界");
         ok = 0;
     }

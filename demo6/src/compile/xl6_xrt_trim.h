@@ -45,7 +45,9 @@ typedef struct XL6_XrtTrimConfig {
 
 void xl6XrtTrimConfigInit(XL6_XrtTrimConfig* cfg);
 void xl6XrtTrimAnalyze(XL6_XrtTrimConfig* cfg, const XL6_AstNode* root, const XL6_ImportDeps* deps);
+void xl6XrtTrimAnalyzeWithGeneratedSource(XL6_XrtTrimConfig* cfg, const XL6_AstNode* root, const XL6_ImportDeps* deps, const char* generatedSource);
 int xl6XrtTrimEmitImplementationSource(XL6_Output* out, const XL6_XrtTrimConfig* cfg);
 int xl6XrtTrimBuildImplementationSource(const XL6_AstNode* root, const XL6_ImportDeps* deps, char** outText);
+int xl6XrtTrimBuildImplementationSourceWithGeneratedSource(const XL6_AstNode* root, const XL6_ImportDeps* deps, const char* generatedSource, char** outText);
 
 #endif

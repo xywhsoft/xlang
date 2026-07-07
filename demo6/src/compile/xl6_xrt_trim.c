@@ -82,6 +82,7 @@ static void xl6XrtTrimKeepHttpUtilStack(XL6_XrtTrimConfig* cfg)
         return;
     }
     xl6XrtTrimKeepNetworkStack(cfg);
+    cfg->keepXUrl = 1;
     cfg->keepHttpUtil = 1;
 }
 
@@ -252,8 +253,31 @@ static void xl6XrtTrimScanText(XL6_XrtTrimConfig* cfg, const char* text)
          xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_form_url_") ) {
         xl6XrtTrimKeepHttpUtilStack(cfg);
     }
+    if ( strcmp(text, "codec") == 0 ||
+         strcmp(text, "hexEncode") == 0 ||
+         strcmp(text, "hexDecode") == 0 ||
+         strcmp(text, "base64Encode") == 0 ||
+         strcmp(text, "base64Decode") == 0 ||
+         strcmp(text, "hexEncodeBytes") == 0 ||
+         strcmp(text, "hexDecodeBytes") == 0 ||
+         strcmp(text, "base64EncodeBytes") == 0 ||
+         strcmp(text, "base64DecodeBytes") == 0 ) {
+        xl6XrtTrimKeepCodecStack(cfg);
+    }
+    if ( strcmp(text, "codec") == 0 ||
+         strcmp(text, "percentEncode") == 0 ||
+         strcmp(text, "percentDecode") == 0 ||
+         strcmp(text, "formUrlEncode") == 0 ||
+         strcmp(text, "formUrlDecode") == 0 ) {
+        xl6XrtTrimKeepHttpUtilStack(cfg);
+    }
+    if ( strcmp(text, "hexDecodeBytes") == 0 ||
+         strcmp(text, "base64DecodeBytes") == 0 ) {
+        cfg->keepBuffer = 1;
+    }
     if ( xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_buffer_from_") ) {
         cfg->keepBuffer = 1;
+        xl6XrtTrimKeepCodecStack(cfg);
     }
     if ( xl6XrtTrimTextStartsWith(text, "__xl_std_runtime_encoding_") ) {
         /* charset/encoding 暂无独立裁剪宏，保持核心实现可见即可。 */
@@ -269,6 +293,7 @@ static void xl6XrtTrimScanText(XL6_XrtTrimConfig* cfg, const char* text)
          xl6XrtTrimTextStartsWith(text, "__xl_std_runtime_x448") ||
          xl6XrtTrimTextStartsWith(text, "__xl_std_runtime_rsa_") ) {
         cfg->keepCrypto = 1;
+        xl6XrtTrimKeepCodecStack(cfg);
         xl6XrtTrimKeepValueStack(cfg);
     }
     if ( xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_make_xids") ) {
@@ -316,6 +341,131 @@ static void xl6XrtTrimScanNode(XL6_XrtTrimConfig* cfg, const XL6_AstNode* node)
     }
 }
 
+static void xl6XrtTrimScanGeneratedSource(XL6_XrtTrimConfig* cfg, const char* source)
+{
+    if ( cfg == NULL || source == NULL || source[0] == '\0' || cfg->full ) {
+        return;
+    }
+
+    /*
+     * 标准库声明会在 cgen 阶段注入，原始 AST 看不到这些真实 XRT 符号。
+     * 这里按生成后的 C 源再补一轮依赖，只用于裁剪 XRT 实现，不改变语言语义。
+     */
+    if ( xl6XrtTrimTextContains(source, "__xl_std_tcc_") ||
+         xl6XrtTrimTextContains(source, "xl6_tcc_") ||
+         xl6XrtTrimTextContains(source, "__xl_std_xlang_") ||
+         xl6XrtTrimTextContains(source, "xl6_xlang_") ) {
+        cfg->full = 1;
+        return;
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xvo") ||
+         xl6XrtTrimTextContains(source, "xvalue") ) {
+        xl6XrtTrimKeepValueStack(cfg);
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtDate") ||
+         xl6XrtTrimTextContains(source, "xrtTime") ||
+         xl6XrtTrimTextContains(source, "xrtNow") ||
+         xl6XrtTrimTextContains(source, "xrtTimer") ) {
+        cfg->keepTime = 1;
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtFile") ||
+         xl6XrtTrimTextContains(source, "xrtDir") ||
+         xl6XrtTrimTextContains(source, "xrtPath") ) {
+        cfg->keepFile = 1;
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtParseJSON") ||
+         xl6XrtTrimTextContains(source, "xrtJson") ||
+         xl6XrtTrimTextContains(source, "xrtStringifyJSON") ) {
+        xl6XrtTrimKeepJsonStack(cfg);
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtParseXSON") ||
+         xl6XrtTrimTextContains(source, "xrtXson") ||
+         xl6XrtTrimTextContains(source, "xrtStringifyXSON") ) {
+        cfg->keepXson = 1;
+        xl6XrtTrimKeepJsonStack(cfg);
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtHex") ||
+         xl6XrtTrimTextContains(source, "xrtBase64") ) {
+        xl6XrtTrimKeepCodecStack(cfg);
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtBuffer") ) {
+        cfg->keepBuffer = 1;
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtPercent") ||
+         xl6XrtTrimTextContains(source, "xrtFormUrl") ) {
+        xl6XrtTrimKeepHttpUtilStack(cfg);
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtSHA") ||
+         xl6XrtTrimTextContains(source, "xrtHMAC") ||
+         xl6XrtTrimTextContains(source, "xrtHKDF") ||
+         xl6XrtTrimTextContains(source, "xrtChaCha") ||
+         xl6XrtTrimTextContains(source, "xrtAES") ||
+         xl6XrtTrimTextContains(source, "xrtEd25519") ||
+         xl6XrtTrimTextContains(source, "xrtX25519") ||
+         xl6XrtTrimTextContains(source, "xrtX448") ||
+         xl6XrtTrimTextContains(source, "xrtRSA") ) {
+        cfg->keepCrypto = 1;
+        xl6XrtTrimKeepCodecStack(cfg);
+        xl6XrtTrimKeepValueStack(cfg);
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtNet") ) {
+        xl6XrtTrimKeepNetworkStack(cfg);
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtNetDgramPacketBytesCopy") ) {
+        cfg->keepBuffer = 1;
+        xl6XrtTrimKeepNetworkStack(cfg);
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtHttp") ||
+         xl6XrtTrimTextContains(source, "xrtWeb") ) {
+        xl6XrtTrimKeepWebStack(cfg);
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtUrl") ) {
+        xl6XrtTrimKeepUrlStack(cfg);
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtRegex") ||
+         xl6XrtTrimTextContains(source, "bbre") ) {
+        cfg->keepRegex = 1;
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtSubprocess") ||
+         xl6XrtTrimTextContains(source, "xrtProcess") ) {
+        cfg->keepSubprocess = 1;
+        cfg->keepFile = 1;
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtLog") ) {
+        cfg->keepLogger = 1;
+        cfg->keepFile = 1;
+        cfg->keepTime = 1;
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtTemplate") ) {
+        cfg->keepTemplate = 1;
+        cfg->keepJnum = 1;
+        xl6XrtTrimKeepValueStack(cfg);
+    }
+
+    if ( xl6XrtTrimTextContains(source, "xrtMakeXIDS") ) {
+        cfg->keepXid = 1;
+        cfg->keepTime = 1;
+    }
+
+}
+
 static void xl6XrtTrimApplyBasicNeeds(XL6_XrtTrimConfig* cfg, const XL6_AstNode* root)
 {
     if ( cfg == NULL || root == NULL ) {
@@ -329,6 +479,7 @@ static void xl6XrtTrimApplyBasicNeeds(XL6_XrtTrimConfig* cfg, const XL6_AstNode*
     }
     if ( xl6CgenNodeNeedsCryptoRuntime(root) ) {
         cfg->keepCrypto = 1;
+        xl6XrtTrimKeepCodecStack(cfg);
     }
     if ( xl6CgenNodeNeedsRegexRuntime(root) ) {
         cfg->keepRegex = 1;
@@ -461,6 +612,16 @@ void xl6XrtTrimAnalyze(XL6_XrtTrimConfig* cfg, const XL6_AstNode* root, const XL
     xl6XrtTrimApplyDeps(cfg);
 }
 
+void xl6XrtTrimAnalyzeWithGeneratedSource(XL6_XrtTrimConfig* cfg, const XL6_AstNode* root, const XL6_ImportDeps* deps, const char* generatedSource)
+{
+    if ( cfg == NULL ) {
+        return;
+    }
+    xl6XrtTrimAnalyze(cfg, root, deps);
+    xl6XrtTrimScanGeneratedSource(cfg, generatedSource);
+    xl6XrtTrimApplyDeps(cfg);
+}
+
 static int xl6XrtTrimEmitNoMacro(XL6_Output* out, int keep, const char* macroName)
 {
     if ( keep ) {
@@ -537,6 +698,29 @@ int xl6XrtTrimBuildImplementationSource(const XL6_AstNode* root, const XL6_Impor
     }
     *outText = NULL;
     xl6XrtTrimAnalyze(&cfg, root, deps);
+    if ( !xl6OutputOpenMemory(&out) ) {
+        return 0;
+    }
+    ok = xl6XrtTrimEmitImplementationSource(&out, &cfg) && !xl6OutputHasFailed(&out);
+    if ( ok ) {
+        *outText = xl6OutputTakeMemoryText(&out, NULL);
+        ok = *outText != NULL;
+    }
+    xl6OutputClose(&out);
+    return ok;
+}
+
+int xl6XrtTrimBuildImplementationSourceWithGeneratedSource(const XL6_AstNode* root, const XL6_ImportDeps* deps, const char* generatedSource, char** outText)
+{
+    XL6_XrtTrimConfig cfg;
+    XL6_Output out;
+    int ok;
+
+    if ( outText == NULL ) {
+        return 0;
+    }
+    *outText = NULL;
+    xl6XrtTrimAnalyzeWithGeneratedSource(&cfg, root, deps, generatedSource);
     if ( !xl6OutputOpenMemory(&out) ) {
         return 0;
     }

@@ -213,6 +213,16 @@ if errorlevel 1 exit /b 1
 build\test\cgen_class_static_only.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe run test\cases\cgen_issue_dynamic_array_concat.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_issue_json_typed_class_array.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_issue_list_json_dict_remove_type.xl
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File test\suites\check_cgen_issue_runtime.ps1
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_default_init.xl --emit build\test\cgen_default_init.c
 if errorlevel 1 exit /b 1
 findstr /C:"long long count;" build\test\cgen_default_init.c >nul
@@ -1174,12 +1184,12 @@ if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed class array copy.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_dict_copy_mode(xl6_type_desc_XL_Class_FnBox(), named, XRT_OBJMODE_LOCAL)" build\test\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_dict_copy_mode(xl6_type_desc_XL_Class_FnBox(), named, XRT_OBJMODE_SHARED)" build\test\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed class dict copy.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Class_Native(), natives, XRT_OBJMODE_LOCAL)" build\test\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Class_Native(), natives, XRT_OBJMODE_SHARED)" build\test\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed native-backed class array copy.
     exit /b 1
@@ -1620,18 +1630,13 @@ if errorlevel 1 (
     exit /b 1
 )
 release\xl.exe run test\cases\cgen_top_level_before_main.xl > build\test\cgen_top_level_before_main.out.txt 2> build\test\cgen_top_level_before_main.err.txt
-if not "%errorlevel%"=="1" (
-    echo cgen_top_level_before_main.xl run should report non-zero script return.
+if not "%errorlevel%"=="7" (
+    echo cgen_top_level_before_main.xl run should return 7.
     exit /b 1
 )
 findstr /C:"top:main" build\test\cgen_top_level_before_main.out.txt >nul
 if errorlevel 1 (
     echo cgen_top_level_before_main.xl output order is wrong.
-    exit /b 1
-)
-findstr /C:"script returned 7" build\test\cgen_top_level_before_main.err.txt >nul
-if errorlevel 1 (
-    echo cgen_top_level_before_main.xl missing script return diagnostic.
     exit /b 1
 )
 release\xl.exe build test\cases\cgen_top_level_before_main.xl -o build\test\cgen_top_level_before_main.exe
@@ -1837,7 +1842,7 @@ release\xl.exe check test\cases\cgen_auto_inference_matrix.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_auto_inference_matrix.xl --emit build\test\cgen_auto_inference_matrix.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_auto_inference_matrix.c'; $checks=@('long long literalInt;','double literalFloat;','int literalBool;','const char* literalString;','xvalue dynamicArray;','xvalue dynamicList;','xvalue dynamicDict;','typedArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedArray','typedListItem = (*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(typedList','typedDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(typedDict','missingTypedItem = xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(typedArray','dynamicArrayItem = xl6_xrt_retain(xvoArrayGetValue(dynamicArray','dynamicListItem = xl6_xrt_retain(xvoListGetValue(dynamicList','dynamicDictItem = xl6_xrt_retain(xvoTableGetValue(dynamicDict','XL_Class_MatrixBox box;','box = makeBox(7LL,','fieldValue = box.value;','fieldText = box.label;','methodValue = xl_class_MatrixBox__getValue(&box);','fn = makeAdder(10LL);','long long fnResult;','callResult = add(fieldValue, methodValue);','futureValue = doubleAsync(6LL);','long long awaitedValue;','autoCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','sent = xl6_channel_send_value(autoCh','received = xl6_channel_recv_into(autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_auto_inference_matrix.c'; $checks=@('long long literalInt;','double literalFloat;','int literalBool;','const char* literalString;','xvalue dynamicArray;','xvalue dynamicList;','xvalue dynamicDict;','typedArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedArray','typedListItem = xl6_xrt_str_dup((*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(typedList','typedDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(typedDict','missingTypedItem = xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(typedArray','dynamicArrayItem = xl6_xrt_retain(xvoArrayGetValue(dynamicArray','dynamicListItem = xl6_xrt_retain(xvoListGetValue(dynamicList','dynamicDictItem = xl6_xrt_retain(xvoTableGetValue(dynamicDict','XL_Class_MatrixBox box;','box = makeBox(7LL,','fieldValue = box.value;','fieldText = box.label;','methodValue = xl_class_MatrixBox__getValue(&box);','fn = makeAdder(10LL);','long long fnResult;','callResult = add(fieldValue, methodValue);','futureValue = doubleAsync(6LL);','long long awaitedValue;','autoCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','sent = xl6_channel_send_value(autoCh','received = xl6_channel_recv_into(autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_auto_inference_matrix.xl test\cases\cgen_class_host.c -o build\test\cgen_auto_inference_matrix.exe
 if errorlevel 1 exit /b 1

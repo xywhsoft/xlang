@@ -79,6 +79,10 @@ static void xl6CgenClassPersistenceHelperProtos(XL6_CgenContext* ctx, const XL6_
 
 static void xl6CgenClassPersistenceFromValueHelper(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
 {
+    int hasJson;
+    int hasXson;
+    int emittedBranch;
+
     xl6CgenClassPersistenceFromValueHelperProto(ctx, classNode);
     xl6OutputPuts("\n{\n", ctx->out);
     ctx->indent += 1;
@@ -91,17 +95,26 @@ static void xl6CgenClassPersistenceFromValueHelper(XL6_CgenContext* ctx, const X
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__fromValue__") ) {
-        xl6OutputPuts("if ( formatKind == 1 ) { ", ctx->out);
-        xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, "json");
-        xl6OutputPuts("(&object, value); }\n", ctx->out);
+        hasJson = xl6CgenClassHasFormatDerive(classNode, "json");
+        hasXson = xl6CgenClassHasFormatDerive(classNode, "xson");
+        emittedBranch = 0;
+        if ( hasJson ) {
+            xl6OutputPuts("if ( formatKind == 1 ) { ", ctx->out);
+            xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, "json");
+            xl6OutputPuts("(&object, value); }\n", ctx->out);
+            emittedBranch = 1;
+        }
+        if ( hasXson ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPuts(emittedBranch ? "else if ( formatKind == 2 ) { " : "if ( formatKind == 2 ) { ", ctx->out);
+            xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, "xson");
+            xl6OutputPuts("(&object, value); }\n", ctx->out);
+            emittedBranch = 1;
+        }
         xl6CgenIndent(ctx);
-        xl6OutputPuts("else if ( formatKind == 2 ) { ", ctx->out);
-        xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, "xson");
-        xl6OutputPuts("(&object, value); }\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("else { ", ctx->out);
+        xl6OutputPuts(emittedBranch ? "else { " : "", ctx->out);
         xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, NULL);
-        xl6OutputPuts("(&object, value); }\n", ctx->out);
+        xl6OutputPuts(emittedBranch ? "(&object, value); }\n" : "(&object, value);\n", ctx->out);
     } else {
         xl6CgenEmitClassFromValueSymbol(ctx, classNode);
         xl6OutputPuts("(&object, value);\n", ctx->out);
@@ -122,6 +135,10 @@ static void xl6CgenClassPersistenceStringifyHelper(
     const XL6_AstNode* classNode,
     const char* format)
 {
+    int hasJson;
+    int hasXson;
+    int emittedBranch;
+
     (void)format;
     xl6CgenClassPersistenceStringifyHelperProto(ctx, classNode, format);
     xl6OutputPuts("\n{\n", ctx->out);
@@ -139,17 +156,26 @@ static void xl6CgenClassPersistenceStringifyHelper(
     xl6OutputPuts("}\n", ctx->out);
     xl6CgenIndent(ctx);
     if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__toValue__") ) {
-        xl6OutputPuts("if ( formatKind == 1 ) { value = ", ctx->out);
-        xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "json");
-        xl6OutputPuts("(&source); }\n", ctx->out);
+        hasJson = xl6CgenClassHasFormatDerive(classNode, "json");
+        hasXson = xl6CgenClassHasFormatDerive(classNode, "xson");
+        emittedBranch = 0;
+        if ( hasJson ) {
+            xl6OutputPuts("if ( formatKind == 1 ) { value = ", ctx->out);
+            xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "json");
+            xl6OutputPuts("(&source); }\n", ctx->out);
+            emittedBranch = 1;
+        }
+        if ( hasXson ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPuts(emittedBranch ? "else if ( formatKind == 2 ) { value = " : "if ( formatKind == 2 ) { value = ", ctx->out);
+            xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "xson");
+            xl6OutputPuts("(&source); }\n", ctx->out);
+            emittedBranch = 1;
+        }
         xl6CgenIndent(ctx);
-        xl6OutputPuts("else if ( formatKind == 2 ) { value = ", ctx->out);
-        xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "xson");
-        xl6OutputPuts("(&source); }\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("else { value = ", ctx->out);
+        xl6OutputPuts(emittedBranch ? "else { value = " : "value = ", ctx->out);
         xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, NULL);
-        xl6OutputPuts("(&source); }\n", ctx->out);
+        xl6OutputPuts(emittedBranch ? "(&source); }\n" : "(&source);\n", ctx->out);
     } else {
         xl6OutputPuts("value = ", ctx->out);
         xl6CgenEmitClassToValueSymbol(ctx, classNode);
@@ -175,6 +201,10 @@ static void xl6CgenClassPersistenceWriteHelper(
     const XL6_AstNode* classNode,
     const char* format)
 {
+    int hasJson;
+    int hasXson;
+    int emittedBranch;
+
     (void)format;
     xl6CgenClassPersistenceWriteHelperProto(ctx, classNode, format);
     xl6OutputPuts("\n{\n", ctx->out);
@@ -192,17 +222,26 @@ static void xl6CgenClassPersistenceWriteHelper(
     xl6OutputPuts("}\n", ctx->out);
     xl6CgenIndent(ctx);
     if ( xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__toValue__") ) {
-        xl6OutputPuts("if ( formatKind == 1 ) { value = ", ctx->out);
-        xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "json");
-        xl6OutputPuts("(&source); }\n", ctx->out);
+        hasJson = xl6CgenClassHasFormatDerive(classNode, "json");
+        hasXson = xl6CgenClassHasFormatDerive(classNode, "xson");
+        emittedBranch = 0;
+        if ( hasJson ) {
+            xl6OutputPuts("if ( formatKind == 1 ) { value = ", ctx->out);
+            xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "json");
+            xl6OutputPuts("(&source); }\n", ctx->out);
+            emittedBranch = 1;
+        }
+        if ( hasXson ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPuts(emittedBranch ? "else if ( formatKind == 2 ) { value = " : "if ( formatKind == 2 ) { value = ", ctx->out);
+            xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "xson");
+            xl6OutputPuts("(&source); }\n", ctx->out);
+            emittedBranch = 1;
+        }
         xl6CgenIndent(ctx);
-        xl6OutputPuts("else if ( formatKind == 2 ) { value = ", ctx->out);
-        xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "xson");
-        xl6OutputPuts("(&source); }\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("else { value = ", ctx->out);
+        xl6OutputPuts(emittedBranch ? "else { value = " : "value = ", ctx->out);
         xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, NULL);
-        xl6OutputPuts("(&source); }\n", ctx->out);
+        xl6OutputPuts(emittedBranch ? "(&source); }\n" : "(&source);\n", ctx->out);
     } else {
         xl6OutputPuts("value = ", ctx->out);
         xl6CgenEmitClassToValueSymbol(ctx, classNode);

@@ -87,10 +87,10 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("size_t xrtStrByteLen(const char* sStr, size_t iSize);\n", out);
     xl6OutputPuts("size_t xrtStrCharLen(const char* sStr, size_t iSize);\n", out);
     xl6OutputPuts("void* xrtCheckStr(void* sText, size_t iSize, void* sSubText, size_t iSubSize);\n", out);
-    xl6OutputPuts("void* xrtHexEncode(const char* sStr, size_t iSize);\n", out);
+    xl6OutputPuts("void* xrtHexEncode(void* pMem, size_t iSize);\n", out);
     xl6OutputPuts("void* xrtHexDecode(const char* sStr, size_t iSize);\n", out);
     xl6OutputPuts("void* xrtBase64Encode(void* pData, size_t iSize, const char* sTable);\n", out);
-    xl6OutputPuts("void* xrtBase64Decode(char* sText, size_t iSize, const char* sTable);\n", out);
+    xl6OutputPuts("void* xrtBase64Decode(const char* sText, size_t iSize, const char* sTable);\n", out);
     xl6OutputPuts("void* xrtParseJSON(const char* sText, size_t iSize);\n", out);
     xl6OutputPuts("void* xrtStringifyJSON(xvalue varVal, int bFormat, void* pRetSize);\n", out);
     xl6OutputPuts("void* xrtParseXSON(const char* sText, size_t iSize);\n", out);

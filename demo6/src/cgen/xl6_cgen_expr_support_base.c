@@ -380,6 +380,9 @@ static int xl6CgenClassNeedsDestroy(XL6_CgenContext* ctx, const XL6_AstNode* cla
             if ( xl6CgenIsXValueType(typeNode) ) {
                 return 1;
             }
+            if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+                return 1;
+            }
             customNode = xl6CgenFindNativeBackedClass(ctx, typeNode != NULL ? typeNode->text : NULL);
             if ( customNode != NULL && xl6CgenNativeBackedClassHasDestroy(customNode) ) {
                 return 1;
@@ -435,6 +438,92 @@ static void xl6CgenRetainFunctionPath(XL6_CgenContext* ctx, const char* path)
     xl6OutputPuts("}\n", ctx->out);
 }
 
+static const char* xl6CgenTypedContainerCopyFuncName(const char* typeName)
+{
+    if ( xl6CTextEquals(typeName, "array") ) {
+        return "xl6_xrt_typed_array_copy_mode";
+    }
+    if ( xl6CTextEquals(typeName, "list") ) {
+        return "xl6_xrt_typed_list_copy_mode";
+    }
+    if ( xl6CTextEquals(typeName, "set") ) {
+        return "xl6_xrt_typed_set_copy_mode";
+    }
+    if ( xl6CTextEquals(typeName, "dict") ) {
+        return "xl6_xrt_typed_dict_copy_mode";
+    }
+    return NULL;
+}
+
+static const char* xl6CgenTypedContainerDestroyFuncName(const char* typeName)
+{
+    if ( xl6CTextEquals(typeName, "array") ) {
+        return "xrtTypedArrayDestroy";
+    }
+    if ( xl6CTextEquals(typeName, "list") ) {
+        return "xrtTypedListDestroy";
+    }
+    if ( xl6CTextEquals(typeName, "set") ) {
+        return "xrtTypedSetDestroy";
+    }
+    if ( xl6CTextEquals(typeName, "dict") ) {
+        return "xrtTypedDictDestroy";
+    }
+    return NULL;
+}
+
+static void xl6CgenTypedContainerFieldRef(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* fieldPath,
+    int retain)
+{
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* itemType;
+    const char* typeName;
+    const char* funcName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    itemType = xl6CgenTypedContainerItemType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( typeName == NULL || fieldPath == NULL ) {
+        return;
+    }
+
+    xl6CgenIndent(ctx);
+    if ( retain ) {
+        funcName = xl6CgenTypedContainerCopyFuncName(typeName);
+        if ( funcName == NULL ) {
+            xl6CgenError(ctx, typeNode, "typed container copy requires array/list/set/dict");
+            return;
+        }
+        xl6OutputPuts(fieldPath, ctx->out);
+        xl6OutputPuts(" = ", ctx->out);
+        xl6OutputPuts(funcName, ctx->out);
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+        xl6OutputPuts(", ", ctx->out);
+        xl6OutputPuts(fieldPath, ctx->out);
+        xl6OutputPuts(", XRT_OBJMODE_LOCAL);\n", ctx->out);
+        return;
+    }
+
+    funcName = xl6CgenTypedContainerDestroyFuncName(typeName);
+    if ( funcName == NULL ) {
+        xl6CgenError(ctx, typeNode, "typed container destroy requires array/list/set/dict");
+        return;
+    }
+    xl6OutputPuts("if (", ctx->out);
+    xl6OutputPuts(fieldPath, ctx->out);
+    xl6OutputPuts(" != 0) { ", ctx->out);
+    xl6OutputPuts(funcName, ctx->out);
+    xl6OutputPutc('(', ctx->out);
+    xl6OutputPuts(fieldPath, ctx->out);
+    xl6OutputPuts("); ", ctx->out);
+    xl6OutputPuts(fieldPath, ctx->out);
+    xl6OutputPuts(" = 0; }\n", ctx->out);
+}
+
 static void xl6CgenClassFunctionFieldRefs(
     XL6_CgenContext* ctx,
     const XL6_AstNode* classNode,
@@ -477,6 +566,10 @@ static void xl6CgenClassFunctionFieldRefs(
         typeNode = member->children[0];
         xl6CgenCIdentText(cFieldName, sizeof(cFieldName), member->text);
         snprintf(fieldPath, sizeof(fieldPath), "%s.%s", valuePath, cFieldName);
+        if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+            xl6CgenTypedContainerFieldRef(ctx, typeNode, fieldPath, retain);
+            continue;
+        }
         if ( xl6CgenIsXValueType(typeNode) ) {
             xl6CgenIndent(ctx);
             if ( retain ) {

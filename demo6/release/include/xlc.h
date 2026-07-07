@@ -52,6 +52,7 @@ XLC_API int xlcRun(XLC_Context* ctx, int argc, char** argv);
 XLC_API XL_Context* xlcRuntimeContext(XLC_Context* ctx);
 XLC_API const char* xlcGetLastError(XLC_Context* ctx);
 XLC_API void xlcClearLastError(XLC_Context* ctx);
+XLC_API int xlcGetLastExitCode(XLC_Context* ctx);
 
 #ifdef __cplusplus
 }

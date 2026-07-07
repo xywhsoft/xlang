@@ -186,6 +186,10 @@ static void xl6StdlibApplyDeps(int* used)
         xl6StdlibMarkFuncUsed(used, "__xrt_math", "sign");
     }
 
+    if ( xl6StdlibFindFunc("dict", "remove", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xrt_value", "tableRemove");
+    }
+
     if ( xl6StdlibFindFunc("", "print", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "print");
     }

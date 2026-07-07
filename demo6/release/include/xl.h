@@ -80,6 +80,7 @@ XL_API int xlCompileCSourceFilesToSharedLibrary(XL_Context* ctx, const char** pa
 
 XL_API const char* xlGetLastError(XL_Context* ctx);
 XL_API void xlClearLastError(XL_Context* ctx);
+XL_API int xlGetLastExitCode(XL_Context* ctx);
 
 #ifdef __cplusplus
 }

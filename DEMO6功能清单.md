@@ -1,6 +1,8 @@
 # DEMO6 功能清单
 
-> 更新日期：2026-06-28
+> 更新日期：2026-07-07
+>
+> 修订说明：本次根据 `demo6` 源码、`tools/check_*.ps1` 守门脚本和 `xl.exe` 实际 help 文本对齐口径。原 `xl xapi` 命令、`xlang-xapi-1` schema、`.xapi` 产物已不存在；接口元数据能力已并入 `abi` 阶段（`.abi.json` / `.abi.txt`），仅承载 C ABI 导出符号。所有数字基线更新到当前实测值。
 >
 > 本清单用于快速核对当前 `demo6/release/xl.exe` 的已实现能力、测试入口和验收边界。
 > 本文只描述 DEMO6 当前代码、测试、范例和守门脚本已经覆盖的能力；`demo3`、`demo4`、`demo5`、`dev` 目录中的材料只能作为历史参考，不能作为 DEMO6 设计来源。
@@ -26,7 +28,6 @@ DEMO6 当前已经具备完整的四阶段编译管线：
 - 执行语义检查。
 - 输出 IR 文本或 IR JSON。
 - 输出 ABI 文本或 ABI JSON。
-- 输出 XAPI 接口元数据。
 - 生成 C 源文件。
 - 生成供 C 使用的头文件。
 - 直接运行 `.xl` 脚本。
@@ -37,7 +38,7 @@ DEMO6 当前已经具备完整的四阶段编译管线：
 - 通过内嵌 TCC 与内置 VFS 资源降低外部依赖。
 - 提供 DLL 形式的嵌入式运行库。
 - 提供标准库默认注册。
-- 提供 package/import/XAPI/扩展库基础链路。
+- 提供 package/import/ABI 元数据/扩展库基础链路。
 - 提供主回归、功能范例、标准库范例和 RC0 工程守门。
 
 主要验证脚本：
@@ -55,15 +56,17 @@ DEMO6 当前已经具备完整的四阶段编译管线：
 当前 `xl.exe` 支持以下命令：
 
 ```bat
-xl lex <file.xl> [--format text|json]
+xl lex <file.xl> [--format text|json] [--emit output.tokens]
 xl parse <file.xl> [--format tree|json] [--emit output.ast]
 xl check <file.xl> [--json]
 xl ir <file.xl> [--format text|json] [--emit output.xlir]
 xl cgen <file.xl> [--emit output.c] [--emit-header output.h] [--dump-dir dir]
 xl abi <file.xl> [--json] [--emit output.abi.txt]
-xl xapi <file.xl> [--emit output.xapi.json]
-xl run <file.xl> [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]
-xl build <file.xl> [-o <output.exe>] [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]
+xl run <file.xl|file.c|file.xlp> [helper.c ...] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]
+xl dbg <file.xl> [--break line] [--stop-on-entry] [--commands file] [--save-temps] [-- <args>...]
+xl dap
+xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o <output.exe|dll>] [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]
+xl impdef <file.dll> -o <output.def>
 ```
 
 命令行为：
@@ -73,16 +76,18 @@ xl build <file.xl> [-o <output.exe>] [-shared] [--save-temps] [--emit-header out
 - `check`：只执行语义检查，可输出 JSON 诊断。
 - `ir`：输出中间 IR 文本或 JSON。
 - `cgen`：只生成 C，可同时生成头文件。
-- `cgen --dump-dir`：一次性输出 token、AST、IR、ABI、XAPI、C、H 等阶段产物。
-- `abi`：输出 ABI 信息。
-- `xapi`：输出 `xlang-xapi-1` 接口元数据。
+- `cgen --dump-dir`：一次性输出 token、AST、IR、ABI、C、H 等阶段产物。
+- `abi`：输出 ABI 信息（C ABI 导出符号表，含 export 函数/变量/常量、extern 声明和类的 export 方法）。
 - `run`：生成 C 后挂载到动态 VFS，调用内嵌 TCC 编译到内存并直接调用 `xlang_main(xvalue arg)`；不生成临时 `app.exe`，也不启动独立子进程执行脚本。
 - `run -- <args>...`：把命令行参数传给 xlang 程序。
-- `run --save-temps`：显式导出动态 VFS 内的 `module.c`、`module.h`、`module.xapi.json`、`csrc_N.c` 等调试产物。
+- `run --save-temps`：显式导出动态 VFS 内的 `module.c`、`module.h`、`module.abi.json`、`csrc_N.c` 等调试产物。
 - `build`：生成 native 可执行程序；省略 `-o` 时，默认在当前工作目录使用第一个输入文件的文件名生成输出，Windows 为 `文件名.exe`，Linux 为 `文件名`；显式提供 `-o` 时按 `-o` 路径输出。
 - `build`：生成 exe。
 - `build -shared`：进入共享库/DLL 构建边界。
 - `build --emit-header`：输出供 C 调用的头文件。
+- `dbg`：启动调试器运行脚本，支持 `--break`、`--stop-on-entry`、`--commands` 等。
+- `dap`：启动 DAP（Debug Adapter Protocol）服务，供编辑器集成。
+- `impdef`：从 DLL 生成 import definition（`.def`）。
 - `--inc-path`、`--lib-path`、`--link`、`--loadlib`：向 TCC 后端注入 include、lib、链接库和运行库。
 
 内嵌 TCC 规则：
@@ -124,7 +129,7 @@ async await yield
 try catch finally throw assert
 import export extern include define
 class extends union derive get let
-public private static virtual override final
+public private protected static native virtual override final
 and or not
 ```
 
@@ -340,6 +345,9 @@ int b = 1
 var v = 123
 auto c = b + 1
 const int max = 10
+export int exportedCounter = 1
+export var exportedValue = "hello"
+export const int exportedMax = 10
 ```
 
 已实现规则：
@@ -352,6 +360,8 @@ const int max = 10
 - 支持 `auto` 推断。
 - 支持多返回值解构声明。
 - 支持资源类型生命周期检查。
+- 支持模块级导出变量和常量，写法为 `export Type name = value`、`export var name = value`、`export const Type name = value`。
+- `var` 在变量声明中只表示动态类型，不作为 `extern/export` 变量声明的额外标记词。
 
 ## 7. 函数系统
 
@@ -812,7 +822,7 @@ auto p = json.parse::<Packet>(text)
 - native-backed class 生命周期映射。
 - C 风格 union。
 - union 字段访问。
-- union C ABI/XAPI 元数据。
+- union C ABI 元数据。
 - object 作为标准库普通基类。
 - `class X extends object` 动态字段存储。
 - class/object 字段协议 `__field__` / `__setField__`。
@@ -836,7 +846,7 @@ auto p = json.parse::<Packet>(text)
 - `derive` 能力开关语法与语义校验。
 - `derive copy` / `derive clone` 自动生成 `__copy__` / `__clone__`。
 - `derive moveOnly` 与复制能力冲突检查。
-- `derive value`、`derive json`、`derive xson`、`derive string`、`derive hash`、`derive equals` 已进入语义校验和 XAPI 元数据。
+- `derive value`、`derive json`、`derive xson`、`derive string`、`derive hash`、`derive equals` 已进入语义校验。
 - `copy()` / `clone()` 与 class、var、容器和 function 值的复制语义。
 - `clone()` 固定表示深复制；`deepcopy()` 不属于 DEMO6 公开函数，不提供兼容别名。
 - 自动 copy/clone 对 `var` 字段分别使用 XRT `xvoCopy` / `xvoDeepCopy`。
@@ -857,7 +867,7 @@ auto p = json.parse::<Packet>(text)
 - native-backed class 支持 `native point handle`，并支持 `extern "c_symbol" create/destroy/func` 将 C opaque handle 函数组映射为 class 生命周期和成员方法。
 - native-backed class 可混合普通 xlang 字段、方法与 C extern 成员。
 - class 成员函数支持 `export "c_symbol" func method(...)` 导出 C ABI wrapper。
-- class 成员 C ABI 导出会在生成头文件、ABI dump 和 XAPI 中记录 owner/class 信息。
+- class 成员 C ABI 导出会在生成头文件和 ABI dump 中记录 owner/class 信息。
 - class 成员多返回值导出为 C 输出指针参数。
 
 当前未实现并已进入下一轮设计：
@@ -920,7 +930,7 @@ end
 - `#doc ... #end` 文档块。
 - doc 字段支持 `desc:`、`param name:`、`return name:`、`note:`、`example:`。
 - doc 字段内容按缩进收集多行文本；`example:` 中的代码围栏只作为文档文本保存，不参与语法解析。
-- doc 字段进入 XAPI 元数据。
+- doc 字段进入语义校验。
 - example 内容作为文档文本保存，不解析为代码。
 
 ## 13. 并发、异步与任务
@@ -1070,7 +1080,7 @@ auto now = time.now()
 auto text = file.readText("data.txt")
 ```
 
-当前标准库公开函数为 325 个，另有标准库常量 28 个；全局输出入口 `print` / `println` 也默认进入环境。用户可直接调用的当前列表如下：
+当前标准库公开函数为 406 个，另有标准库常量 46 个；全局输出入口 `print` / `println` 也默认进入环境（这两条因空命名空间未计入守门脚本 `check_stdlib_coverage.ps1` 的 406 公开计数，实际公开函数合计 408 个）。用户可直接调用的当前列表如下：
 
 - 全局：`print`、`println`。
 - `math` 常量：`pi`、`tau`、`e`、`nan`、`inf`。
@@ -1247,10 +1257,11 @@ Buffer packetBytes = packet.bytes()
 已实现能力：
 
 - `extern` 声明 C 函数、变量、常量进入 xlang。
-- `export` 导出 xlang 函数给 C。
+- `export` 导出 xlang 函数、变量、常量到 package 命名空间。
+- `export "c_symbol"` 显式生成 C ABI 导出符号。
+- `export extern "c_symbol"` 声明 C 全局变量并公开到 xlang package 命名空间。
 - 生成 C 头文件。
 - 生成 ABI dump。
-- 生成 XAPI 接口元数据。
 - `.xl` 与 `.c` 混合构建。
 - C 侧可调用 xlang 导出函数。
 - xlang 可直接调用声明后的 C 函数。
@@ -1260,9 +1271,32 @@ Buffer packetBytes = packet.bytes()
 - class 成员函数可使用 `export "c_symbol" func method(...)` 导出 C ABI wrapper。
 - 成员导出 wrapper 的第一个 C 参数固定为 `XL_Class_Name* self`。
 - 成员多返回值导出为 `out0`、`out1` 等输出指针参数。
-- 成员导出符号进入生成头文件、ABI dump 和 XAPI；XAPI kind 为 `class_method`，并记录 `owner`。
+- 成员导出符号进入生成头文件和 ABI dump；ABI kind 为 `class_method`，并记录 `owner`。
 - 当前阶段不支持 static 成员导出为 class method C ABI。
 - 当前阶段不支持泛型 class 成员直接导出 C ABI。
+
+变量与常量声明示例：
+
+```xlang
+extern "errno" int errno
+
+export int packageCounter = 1
+export var packageValue = "hello"
+export const int packageVersion = 6
+
+export "app_counter" int counter = 0
+export "app_version" const int version = 1
+
+export extern "host_counter" int hostCounter
+```
+
+规则：
+
+- `extern "c_symbol" Type name` 只在当前 xlang 编译单元声明 C 全局变量。
+- `export Type name = value` / `export const Type name = value` 只导出为 xlang package 符号，不进入 C 头文件。
+- `export "c_symbol" Type name = value` / `export "c_symbol" const Type name = value` 同时导出 package 符号和 C ABI 符号。
+- `export extern "c_symbol" Type name` 不拥有变量存储，只把 C 全局变量以公开 package 符号重新导出。
+- `var` 只表示动态类型；旧 `extern "c_symbol" var int name`、`export "c_symbol" var int name = value` 写法不属于 DEMO6。
 
 main 与入口规则：
 
@@ -1276,7 +1310,7 @@ main 与入口规则：
 - C main 场景下，C 代码需要显式调用 `xlInit` 和 `xlUnit`。
 - DLL 目标不要求 main。
 
-## 16. XAPI、import、package 与扩展库
+## 16. ABI 元数据、import、package 与扩展库
 
 import 基础写法：
 
@@ -1288,38 +1322,38 @@ func main(...) as int
 end
 ```
 
+接口元数据当前由 `abi` 阶段承载（`.abi.json` / `.abi.txt`），不是独立的 XAPI 产物。`.abi.json` 当前只枚举 C ABI 导出符号：export 函数、export 变量、export 常量、extern 声明，以及类的 export 方法（kind 为 `class_method`，记录 `owner`）。class 完整字段布局、union 定义、derive 关系、protocol、`#doc` 文档块等 richer 元信息当前不进入 abi dump，后续需要单独设计。
+
 已实现能力：
 
-- `xlang-xapi-1` 接口元数据。
-- XAPI strict schema。
-- doc 元数据输出。
-- class、union、native-backed class、typedef、export 函数、export 变量/常量的接口元数据输出。
-- protocol / derive / generated 等 OOP 元信息进入 XAPI。
+- ABI dump（`.abi.json` / `.abi.txt`）枚举 C ABI 导出符号。
+- export 函数、export 变量、export 常量、extern 声明的 ABI 记录。
+- 类的 export 方法 ABI 记录（含 owner）。
 - package fixture。
-- import 读取 XAPI 并注入声明。
+- import 读取扩展库 ABI/声明并注入。
 - import/package 与 C 混编测试闭环。
 - 扩展库基础分发信息。
 - 同一个项目中同一扩展库的多版本共存测试闭环。
 - package resolver 基础能力。
 - 相对路径 import 作用域测试。
-- XAPI 类型导入后不污染全局命名空间的测试。
-- XAPI loader 默认值、未知字段忽略、错误 JSON 和无效声明诊断。
+- 导入类型不污染全局命名空间的测试。
+- import 加载时对未知字段忽略、错误 JSON 和无效声明诊断。
 
 当前原则：
 
-- XAPI 是机器生成的接口元数据。
-- XAPI 是 xlang 与 C、扩展库、文档生成之间的接口信息中枢。
-- 用户不需要手写 XAPI。
+- ABI 元数据是机器生成的导出符号表。
 - xlang 环境保持显式导入，不做 C 符号自动污染。
 - C 环境可以由 xlang 工具链自动注入必要头文件和声明。
 - 扩展库优先由 xlang 声明层导出接口信息，不在当前阶段引入 C 解析器自动反推接口。
-- package 依赖允许把显式导入信息写入 XAPI，由编译器在 import 时解析依赖链。
+- package 依赖允许把显式导入信息写入元数据，由编译器在 import 时解析依赖链。
 - 多版本共存以包名、版本和导出符号隔离为目标，避免 Python 式单环境依赖冲突。
 
 当前边界：
-- XAPI 是内部接口元数据，不要求用户手写或维护。
+
+- 当前 ABI 元数据只覆盖 C ABI 导出符号，不承载 class 完整布局、union、derive、protocol、doc 等 richer 元信息；这些后续需要单独设计。
 - 当前已有 package/import 基础链路和测试夹具，但还不是完整包管理器。
 - C 函数不会自动进入 xlang 环境；xlang 侧仍必须通过 `extern`、标准库或 `import` 获得干净声明。
+- 历史 `xl xapi` 命令、`xlang-xapi-1` schema、`.xapi` / `.xapi.json` 产物已不存在，不提供兼容回退（详见 §20）。
 
 ## 17. DLL 嵌入式运行库
 
@@ -1333,6 +1367,9 @@ end
 - `xlc_dll_embed_string.exe`：字符串脚本运行和编译 exe 验证程序。
 - `xl_dll_null_context.exe`：空上下文防御验证程序。
 - `xl_dll_threaded_host.exe`：多线程宿主验证程序。
+- `xlc_api_embed.exe`：xlc.dll 嵌入式 API 验证程序。
+- `xl_dll_xrt_exports.exe`：xl.dll XRT 符号导出验证程序。
+- `xl_run_demo.exe`：DLL 运行范例程序。
 
 已实现 API 方向：
 
@@ -1347,7 +1384,7 @@ end
 - 编译脚本文件到 exe。
 - 注册 C 函数进入上下文。
 - 向执行环境注入当前进程内的 XRT/xlang 运行时符号。
-- DLL API 边界由守门脚本维护，当前公开 API 数量基线为 62。
+- DLL API 边界由守门脚本维护，当前公开 API 数量基线为 70（xl.h 39 个 + xlc.h 31 个）。
 
 公开 API：
 ```c
@@ -1392,10 +1429,10 @@ void xlClearLastError(XL_Context* ctx);
 
 - cgen 已拆分为多个独立职责文件。
 - cgen 规则已形成对照表。
-- 当前 cgen C 文件基线为 94 个。
-- 当前 cgen 最大单文件为 `xl6_cgen_expr_support_base.c`，约 1187 行。
-- 当前 cgenrule 唯一规则基线为 843 条。
-- 当前 cgenrule Markdown 文档基线为 47 个。
+- 当前 cgen C 文件基线为 104 个。
+- 当前 cgen 最大单文件为 `xl6_cgen_async_runtime.c`，约 1101 行。
+- 当前 cgenrule 唯一规则基线为 756 条。
+- 当前 cgenrule Markdown 文档基线为 43 个。
 - 当前 cgen 单文件行数受守门脚本约束。
 - C 输出路径已经从大量直接 `fprintf` 逐步收口到统一输出抽象。
 - XRT buffer/file/time/memory 能力优先用于工具链与运行时。
@@ -1410,20 +1447,20 @@ void xlClearLastError(XL_Context* ctx);
 
 当前测试资产：
 
-- `demo6/test/cases` 下有 668 个 `.xl` 测试用例。
-- 负例诊断命令基线为 429 条。
-- 负例诊断产物基线为 428 个。
-- 负例诊断内容断言基线为 429 条。
+- `demo6/test/cases` 下有 701 个 `.xl` 测试用例。
+- 负例诊断命令基线为 442 条。
+- 负例诊断产物基线为 441 个。
+- 负例诊断内容断言基线为 442 条。
 - package/extlib fixture 基线为 48 个。
 - 标准库测试基线为 26 个。
-- 标准库公开函数当前为 325 个，标准库常量当前为 28 个。
-- DLL API 基线为 62 个。
+- 标准库公开函数当前为 406 个（外加全局 `print` / `println` 2 个；守门脚本 `check_stdlib_coverage.ps1` 因正则未覆盖空命名空间，当前报 406），标准库常量当前为 46 个。
+- DLL API 基线为 70 个。
 - 风险总账基线为 21 条，当前 21 条已收口，0 条开放。
 
 当前范例资产：
 
-- `demo6/release/examples` 下有 120 个 `.xl` 范例。
-- `demo6/release/examples` 下有 25 个 C/H 宿主、混编和辅助 fixture 文件。
+- `demo6/release/examples` 下有 127 个 `.xl` 范例。
+- `demo6/release/examples` 下有 35 个 C/H 宿主、混编和辅助 fixture 文件。
 - 包含根目录范例。
 - 包含 tutorial 范例。
 - 包含 feature suite 范例。
@@ -1481,7 +1518,10 @@ DEMO6 是 xlang 准备发布的第一个候选口径，原则是不背负 DEMO5 
 - `function(int) as int` 完整单词函数签名写法。
 - `0X`、`0O`、`0B` 大写数字前缀。
 - `&H`、`&O`、`&B` 及其大小写变体。
+- `extern "c_symbol" var int name` 这类 `extern/export` 变量声明中的额外 `var` 标记词。
+- `export "c_symbol" var int name = value` 这类旧 C ABI 变量导出写法。
 - `deepcopy()` 兼容别名。
+- `xl xapi` 命令、`xlang-xapi-1` schema、`.xapi` / `.xapi.json` 产物（接口元数据已并入 `abi` 阶段，仅承载 C ABI 导出符号）。
 - `lib/tcc/include/...` 这类对上层源码目录有依赖的内置资源路径。
 
 这些能力应先进入 `demo6/docs` 的权威设计文档，再进入实现与测试。

@@ -1944,6 +1944,17 @@ static const XL6_StdlibParam xl6StdJsonStringifyParams[] = {
     {"bool", "pretty"}
 };
 
+static const XL6_StdlibParam xl6StdXrtTableRemoveParams[] = {
+    {"var", "table"},
+    {"string", "key"},
+    {"c_uint", "keyLen"}
+};
+
+static const XL6_StdlibParam xl6StdDictRemoveParams[] = {
+    {"var", "table"},
+    {"string", "key"}
+};
+
 static const XL6_StdlibParam xl6StdJsonWriteParams[] = {
     {"string", "path"},
     {"var", "value"},
@@ -3174,6 +3185,11 @@ static const char xl6StdJsonWriteBody[] =
     "    return __xl_std_xrt_json_write_file(path, value, c_int(pretty)) != 0\n"
     "end\n";
 
+static const char xl6StdDictRemoveBody[] =
+    "func __xl_std_dict_remove(var table, string key) as bool\n"
+    "    return __xl_std_xrt_table_remove(table, key, c_uint(0))\n"
+    "end\n";
+
 static const char xl6StdXsonParseBody[] =
     "func __xl_std_xson_parse(string text) as var\n"
     "    return __xl_std_xrt_xson_parse(text, 0)\n"
@@ -4345,14 +4361,15 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_json", "parseFile", "__xl_std_xrt_json_parse_file", "xrtParseJSON_File", xl6StdPathUnaryParams, 1, "var", NULL},
     {"__xrt_json", "stringify", "__xl_std_xrt_json_stringify", "xrtStringifyJSON", xl6StdXrtJsonStringifyParams, 3, "point", NULL},
     {"__xrt_json", "writeFile", "__xl_std_xrt_json_write_file", "xrtStringifyJSON_File", xl6StdXrtJsonWriteParams, 3, "c_int", NULL},
+    {"__xrt_value", "tableRemove", "__xl_std_xrt_table_remove", "xvoTableRemove", xl6StdXrtTableRemoveParams, 3, "c_bool", NULL},
     {"__xrt_xson", "parse", "__xl_std_xrt_xson_parse", "xrtParseXSON", xl6StdXrtJsonParseParams, 2, "var", NULL},
     {"__xrt_xson", "valid", "__xl_std_xrt_xson_valid", "xrtXsonValid", xl6StdXrtXsonValidParams, 3, "c_bool", NULL},
     {"__xrt_xson", "parseFile", "__xl_std_xrt_xson_parse_file", "xrtParseXSON_File", xl6StdPathUnaryParams, 1, "var", NULL},
     {"__xrt_xson", "stringify", "__xl_std_xrt_xson_stringify", "xrtStringifyXSON", xl6StdXrtXsonStringifyParams, 4, "point", NULL},
     {"__xrt_xson", "writeFile", "__xl_std_xrt_xson_write_file", "xrtStringifyXSON_File", xl6StdXrtXsonWriteParams, 4, "c_int", NULL},
-    {"__xrt_codec", "hexEncode", "__xl_std_xrt_hex_encode", "xrtHexEncode", xl6StdXrtCodecTextParams, 2, "point", NULL},
+    {"__xrt_codec", "hexEncode", "__xl_std_xrt_hex_encode", "xl6_xrt_hex_encode_text", xl6StdXrtCodecTextParams, 2, "point", NULL},
     {"__xrt_codec", "hexDecode", "__xl_std_xrt_hex_decode", "xrtHexDecode", xl6StdXrtCodecTextParams, 2, "point", NULL},
-    {"__xrt_codec", "base64Encode", "__xl_std_xrt_base64_encode", "xrtBase64Encode", xl6StdXrtCodecBase64Params, 3, "point", NULL},
+    {"__xrt_codec", "base64Encode", "__xl_std_xrt_base64_encode", "xl6_xrt_base64_encode_text", xl6StdXrtCodecBase64Params, 3, "point", NULL},
     {"__xrt_codec", "base64Decode", "__xl_std_xrt_base64_decode", "xrtBase64Decode", xl6StdXrtCodecBase64Params, 3, "point", NULL},
     {"__xrt_codec", "hexEncodeBytes", "__xl_std_xrt_hex_encode_bytes", "xrtHexEncodeBytes", xl6StdXrtCodecBytesParams, 2, "point", NULL},
     {"__xrt_codec", "base64EncodeBytes", "__xl_std_xrt_base64_encode_bytes", "xrtBase64EncodeBytes", xl6StdXrtCodecBase64BytesParams, 3, "point", NULL},
@@ -4614,6 +4631,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"json", "read", "__xl_std_json_read", NULL, NULL, 0, "var", xl6StdJsonReadBody},
     {"json", "stringify", "__xl_std_json_stringify", NULL, xl6StdJsonStringifyParams, 2, "string", xl6StdJsonStringifyBody},
     {"json", "write", "__xl_std_json_write", NULL, xl6StdJsonWriteParams, 3, "bool", xl6StdJsonWriteBody},
+
+    {"dict", "remove", "__xl_std_dict_remove", NULL, xl6StdDictRemoveParams, 2, "bool", xl6StdDictRemoveBody},
 
     {"xson", "parse", "__xl_std_xson_parse", NULL, NULL, 0, "var", xl6StdXsonParseBody},
     {"xson", "valid", "__xl_std_xson_valid", NULL, NULL, 0, "bool", xl6StdXsonValidBody},

@@ -1,0 +1,11 @@
+func choose() as int
+    try
+        return 1
+    catch err
+        return 2
+    end
+end
+
+func main(...) as int
+    return choose()
+end

@@ -1,0 +1,5 @@
+var left = [1, 2]
+var right = [3, 4]
+var merged = left + right
+
+assert json.stringify(merged) == "[1,2,3,4]", "dynamic array concat should stringify as merged array"

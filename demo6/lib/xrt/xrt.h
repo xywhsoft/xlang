@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-07-06 17:42:53
+    Generated: 2026-07-08 02:18:55
 
     MIT License
 
@@ -46,15 +46,59 @@
 //
 // ========================================
 
-#ifndef XRT_SINGLE_HEADER
-#define XRT_SINGLE_HEADER
+#ifndef XRT_GENERATED_SINGLE_HEADER
+#define XRT_GENERATED_SINGLE_HEADER
 
 
 // ========================================
 // File: D:/GIT/xrt/xrt.h
 // ========================================
 
-#pragma once
+/*
+    XRT Single Header File
+    Generated: 2026-07-06 17:42:53
+    MIT License
+    Copyright (c) 2025 xLeaves [xywhsoft] <xywhsoft@qq.com>
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+*/
+// ========================================
+// XRT Single Header File
+// ========================================
+//
+// Usage:
+//   // In exactly ONE source file:
+//   #define XRT_IMPLEMENTATION
+//   #include "xrt.h"
+//
+//   // In all other files:
+//   #include "xrt.h"
+//
+// Note:
+//   - Define XRT_IMPLEMENTATION in exactly one source file
+//   - Include this header in all other files without XRT_IMPLEMENTATION
+//   - No need to link against xrt library
+//
+// ========================================
+#ifndef XRT_SINGLE_HEADER
+#define XRT_SINGLE_HEADER
+// ========================================
+// File: D:/GIT/xrt/xrt.h
+// ========================================
+// (skipped pragma once: D:/GIT/xrt/xrt.h)
 /*
 	
 	MIT License
@@ -96,6 +140,23 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <limits.h>
+#if defined(__TINYC__)
+	#ifndef UINT32_C
+		#define UINT32_C(x) x ## U
+	#endif
+	#ifndef UINT64_C
+		#define UINT64_C(x) x ## ULL
+	#endif
+	#undef SIZE_MAX
+	#define SIZE_MAX ((size_t)-1)
+#endif
+#ifndef SIZE_MAX
+	#if defined(UINTPTR_MAX) && UINTPTR_MAX > 0xffffffffu
+		#define SIZE_MAX UINT64_MAX
+	#else
+		#define SIZE_MAX UINT32_MAX
+	#endif
+#endif
 #ifndef UNUSED_ATTR
 	#if defined(__GNUC__) || defined(__clang__)
 		#define UNUSED_ATTR __attribute__((unused))
@@ -8578,6 +8639,14 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 		#define xrtFSMemPoolUnit(objMM) xrtFSMemPoolUnitDbg((objMM), __FILE__, __LINE__)
 	#endif
 #endif
+// ========================================
+// Implementation
+// ========================================
+// (skipped XRT_IMPLEMENTATION block: D:/GIT/xrt/xrt.h)
+// ========================================
+// End of Single Header
+// ========================================
+#endif // XRT_SINGLE_HEADER
 
 // ========================================
 // Implementation
@@ -8776,6 +8845,16 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	#include <netdb.h>
 	#include <dirent.h>
 	#include <sys/wait.h>
+#endif
+#if defined(__TINYC__)
+	#ifndef UINT32_C
+		#define UINT32_C(x) x ## U
+	#endif
+	#ifndef UINT64_C
+		#define UINT64_C(x) x ## ULL
+	#endif
+	#undef SIZE_MAX
+	#define SIZE_MAX ((size_t)-1)
 #endif
 #if defined(__APPLE__) && defined(__MACH__)
 	extern char** environ;
@@ -13208,7 +13287,6 @@ XXAPI str xrtIntFormat(int64 value, str format)
 		numLen = (int)(tmpEnd - numStart);
 		opts.showSign = FALSE;
 		opts.thousands = FALSE;
-		negative = FALSE;
 	}
 	
 	// 计算所需总长度
@@ -13928,7 +14006,7 @@ NMHASH32_long(const uint8_t* const NMH_RESTRICT p, size_t const len, uint32_t co
 	for (i = 0; i < sizeof(accX)/sizeof(*accX); ++i) accX[i] ^= NMH_ACC_INIT[i];
 	for (i = 0; i < sizeof(accX)/sizeof(*accX); ++i) sum += accX[i];
 	
-#	if SIZE_MAX > UINT32_C(-1)
+#	if defined(_WIN64) || defined(__x86_64__) || defined(__x86_64) || defined(__aarch64__) || defined(_M_X64) || defined(_M_AMD64) || defined(_M_ARM64)
 	sum += (uint32_t)(len >> 32);
 #	endif
 	return sum ^ (uint32_t)len;
@@ -93644,6 +93722,8 @@ XXAPI xvalue xrtParseJSON_File(str sFile)
 }
 // 将 xte Value 序列化为字符串
 void xvo_private_Stringify_Table(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey);
+void xvo_private_Stringify_List(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey);
+void xvo_private_Stringify_Value(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey);
 // 序列化数组为 JSON 字符串
 void xvo_private_Stringify_Array(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey)
 {
@@ -93665,6 +93745,8 @@ void xvo_private_Stringify_Array(json_sax_print_hd handle, xvalue varVal, json_s
 			xrtJsonPrintString(handle, NULL, &jstr);
 		} else if ( objItem->Type == XVO_DT_ARRAY ) {
 			xvo_private_Stringify_Array(handle, objItem, NULL);
+		} else if ( objItem->Type == XVO_DT_LIST ) {
+			xvo_private_Stringify_List(handle, objItem, NULL);
 		} else if ( objItem->Type == XVO_DT_TABLE ) {
 			xvo_private_Stringify_Table(handle, objItem, NULL);
 		}
@@ -93693,6 +93775,8 @@ int xvo_private_Stringify_Table_Proc(Dict_Key* pKey, xvalue* ppVal, json_sax_pri
 		xrtJsonPrintString(handle, &jkey, &jstr);
 	} else if ( objItem->Type == XVO_DT_ARRAY ) {
 		xvo_private_Stringify_Array(handle, objItem, &jkey);
+	} else if ( objItem->Type == XVO_DT_LIST ) {
+		xvo_private_Stringify_List(handle, objItem, &jkey);
 	} else if ( objItem->Type == XVO_DT_TABLE ) {
 		xvo_private_Stringify_Table(handle, objItem, &jkey);
 	}
@@ -93704,6 +93788,45 @@ void xvo_private_Stringify_Table(json_sax_print_hd handle, xvalue varVal, json_s
 	xrtJsonPrintObject(handle, sKey, JSON_SAX_START);
 	xrtDictWalk(varVal->vTable, (void*)xvo_private_Stringify_Table_Proc, (void*)handle);
 	xrtJsonPrintObject(handle, NULL, JSON_SAX_FINISH);
+}
+void xvo_private_Stringify_Value(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey)
+{
+	if ( varVal == NULL || varVal->Type == XVO_DT_NULL ) {
+		xrtJsonPrintNull(handle, sKey);
+	} else if ( varVal->Type == XVO_DT_BOOL ) {
+		xrtJsonPrintBool(handle, sKey, varVal->vInt);
+	} else if ( varVal->Type == XVO_DT_INT ) {
+		xrtJsonPrintInt64(handle, sKey, varVal->vInt);
+	} else if ( varVal->Type == XVO_DT_FLOAT ) {
+		xrtJsonPrintDouble(handle, sKey, varVal->vFloat);
+	} else if ( varVal->Type == XVO_DT_TEXT ) {
+		json_string_t jstr = {0};
+		jstr.str = __xrt_str(varVal->vText);
+		xrtJsonUpdateStringInfo(&jstr);
+		xrtJsonPrintString(handle, sKey, &jstr);
+	} else if ( varVal->Type == XVO_DT_ARRAY ) {
+		xvo_private_Stringify_Array(handle, varVal, sKey);
+	} else if ( varVal->Type == XVO_DT_LIST ) {
+		xvo_private_Stringify_List(handle, varVal, sKey);
+	} else if ( varVal->Type == XVO_DT_TABLE ) {
+		xvo_private_Stringify_Table(handle, varVal, sKey);
+	} else {
+		xrtJsonPrintNull(handle, sKey);
+	}
+}
+bool xvo_private_Stringify_List_Proc(int64 iKey, xvalue* ppVal, json_sax_print_hd handle)
+{
+	(void)iKey;
+	xvo_private_Stringify_Value(handle, ppVal != NULL ? *ppVal : NULL, NULL);
+	return FALSE;
+}
+void xvo_private_Stringify_List(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey)
+{
+	xrtJsonPrintArray(handle, sKey, JSON_SAX_START);
+	if ( varVal != NULL && varVal->vList != NULL ) {
+		xrtListWalk(varVal->vList, (ptr)xvo_private_Stringify_List_Proc, (void*)handle);
+	}
+	xrtJsonPrintArray(handle, NULL, JSON_SAX_FINISH);
 }
 // 将 xvalue 序列化为 JSON 字符串
 XXAPI str xrtStringifyJSON(xvalue varVal, int bFormat, size_t* pRetSize)
@@ -93731,6 +93854,8 @@ XXAPI str xrtStringifyJSON(xvalue varVal, int bFormat, size_t* pRetSize)
 		xrtJsonPrintString(handle, NULL, &jstr);
 	} else if ( varVal->Type == XVO_DT_ARRAY ) {
 		xvo_private_Stringify_Array(handle, varVal, NULL);
+	} else if ( varVal->Type == XVO_DT_LIST ) {
+		xvo_private_Stringify_List(handle, varVal, NULL);
 	} else if ( varVal->Type == XVO_DT_TABLE ) {
 		xvo_private_Stringify_Table(handle, varVal, NULL);
 	}
@@ -100785,4 +100910,4 @@ XXAPI void xrtUnit()
 // End of Single Header
 // ========================================
 
-#endif // XRT_SINGLE_HEADER
+#endif // XRT_GENERATED_SINGLE_HEADER

@@ -2254,7 +2254,7 @@ if errorlevel 1 (
     echo cgen_main_entry.c missing xlInitOptions call.
     exit /b 1
 )
-findstr /C:"__xl6_arg = xl6_argv_to_arg(argc, argv);" build\test\cgen_main_entry.c >nul
+findstr /C:"__xl6_arg = xl6_command_argv_to_arg(argc, argv);" build\test\cgen_main_entry.c >nul
 if errorlevel 1 (
     echo cgen_main_entry.c missing argv-to-arg call.
     exit /b 1

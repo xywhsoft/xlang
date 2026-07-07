@@ -58,6 +58,9 @@ typedef bool (*xrt_xcall_proc)(xrt_call_frame* pFrame, xrt_call_result* pResult)
 #ifndef XRT_OBJMODE_LOCAL
 #define XRT_OBJMODE_LOCAL 0u
 #endif
+#ifndef XRT_OBJMODE_SHARED
+#define XRT_OBJMODE_SHARED 1u
+#endif
 
 #define XL6_XRT_FUNC_FLAG_VARARGS 0x00000001u
 #define XL6_XRT_FUNC_FLAG_KWARGS 0x00000002u
@@ -518,6 +521,40 @@ static uint64 xl6_xrt_type_name_id(const char* name, uint32 size)
     return hash;
 }
 
+static const char* xl6_xrt_type_name_from_id(uint64 typeId)
+{
+    uint32 low = (uint32)typeId;
+#define XL6_XRT_MATCH_TYPE_NAME(name, size) if ( low == (uint32)xl6_xrt_type_name_id(name, size) ) { return name; }
+    XL6_XRT_MATCH_TYPE_NAME("null", 4)
+    XL6_XRT_MATCH_TYPE_NAME("bool", 4)
+    XL6_XRT_MATCH_TYPE_NAME("int", 3)
+    XL6_XRT_MATCH_TYPE_NAME("int8", 4)
+    XL6_XRT_MATCH_TYPE_NAME("uint8", 5)
+    XL6_XRT_MATCH_TYPE_NAME("int16", 5)
+    XL6_XRT_MATCH_TYPE_NAME("uint16", 6)
+    XL6_XRT_MATCH_TYPE_NAME("int32", 5)
+    XL6_XRT_MATCH_TYPE_NAME("uint32", 6)
+    XL6_XRT_MATCH_TYPE_NAME("int64", 5)
+    XL6_XRT_MATCH_TYPE_NAME("uint64", 6)
+    XL6_XRT_MATCH_TYPE_NAME("float", 5)
+    XL6_XRT_MATCH_TYPE_NAME("float32", 7)
+    XL6_XRT_MATCH_TYPE_NAME("float64", 7)
+    XL6_XRT_MATCH_TYPE_NAME("string", 6)
+    XL6_XRT_MATCH_TYPE_NAME("time", 4)
+    XL6_XRT_MATCH_TYPE_NAME("point", 5)
+    XL6_XRT_MATCH_TYPE_NAME("func", 4)
+    XL6_XRT_MATCH_TYPE_NAME("function", 8)
+    XL6_XRT_MATCH_TYPE_NAME("array", 5)
+    XL6_XRT_MATCH_TYPE_NAME("list", 4)
+    XL6_XRT_MATCH_TYPE_NAME("set", 3)
+    XL6_XRT_MATCH_TYPE_NAME("dict", 4)
+    XL6_XRT_MATCH_TYPE_NAME("type", 4)
+    XL6_XRT_MATCH_TYPE_NAME("object", 6)
+    XL6_XRT_MATCH_TYPE_NAME("var", 3)
+#undef XL6_XRT_MATCH_TYPE_NAME
+    return "unknown";
+}
+
 static xvalue xl6_xrt_bind_type(xvalue value, const xrt_type_desc* desc)
 {
     if ( value != 0 && desc != 0 ) {
@@ -753,12 +790,56 @@ static xvalue xl6_xrt_value_text_concat(xvalue left, xvalue right)
     return xvoCreateText(xrtStrConcat(xvoGetText(left), xvoGetText(right)), 0, true);
 }
 
+static xvalue xl6_xrt_array_concat(xvalue left, xvalue right)
+{
+    xvalue result = xvoCreateArray();
+    uint32 leftCount;
+    uint32 rightCount;
+    uint32 i;
+
+    if ( result == 0 ) {
+        return xvoCreateNull();
+    }
+    leftCount = xvoArrayItemCount(left);
+    for ( i = 0; i < leftCount; ++i ) {
+        xvalue item = xvoArrayGetValue(left, i);
+        if ( item != 0 ) {
+            xvoAddRef(item);
+        }
+        if ( !xvoArrayAppendValue(result, item, true) ) {
+            if ( item != 0 ) {
+                xvoUnref(item);
+            }
+            xvoUnref(result);
+            return xvoCreateNull();
+        }
+    }
+    rightCount = xvoArrayItemCount(right);
+    for ( i = 0; i < rightCount; ++i ) {
+        xvalue item = xvoArrayGetValue(right, i);
+        if ( item != 0 ) {
+            xvoAddRef(item);
+        }
+        if ( !xvoArrayAppendValue(result, item, true) ) {
+            if ( item != 0 ) {
+                xvoUnref(item);
+            }
+            xvoUnref(result);
+            return xvoCreateNull();
+        }
+    }
+    return result;
+}
+
 static xvalue xl6_xrt_basic_binary(xvalue left, xvalue right, int op)
 {
     int leftType = xvoType(left);
     int rightType = xvoType(right);
     if ( op == 0 && leftType == XL6_XVO_DT_TEXT && rightType == XL6_XVO_DT_TEXT ) {
         return xl6_xrt_value_text_concat(left, right);
+    }
+    if ( op == 0 && leftType == XL6_XVO_DT_ARRAY && rightType == XL6_XVO_DT_ARRAY ) {
+        return xl6_xrt_array_concat(left, right);
     }
     if ( !xl6_xrt_type_is_numeric(leftType) || !xl6_xrt_type_is_numeric(rightType) ) { return xvoCreateNull(); }
     if ( op >= 5 ) {
@@ -831,6 +912,14 @@ static xvalue xl6_xrt_basic_unary_release(xvalue value, int op)
 {
     xvalue result = value != 0 ? xl6_xrt_basic_unary(value, op) : xvoCreateNull();
     if ( value != 0 ) { xvoUnref(value); }
+    return result;
+}
+
+static xvalue xl6_xrt_basic_binary_release(xvalue left, xvalue right, int op)
+{
+    xvalue result = (left != 0 && right != 0) ? xl6_xrt_basic_binary(left, right, op) : xvoCreateNull();
+    if ( left != 0 ) { xvoUnref(left); }
+    if ( right != 0 ) { xvoUnref(right); }
     return result;
 }
 #endif
@@ -912,6 +1001,8 @@ static xvalue xl6_xrt_typed_box_or_null(const xrt_type_desc* type, const void* i
     return xrtTypeBoxValue(type, item);
 }
 
+typedef xvalue (*xl6_xrt_typed_item_box_fn)(void* item);
+
 static void* xl6_xrt_typed_require_item(void* item)
 {
     if ( item == 0 ) { xl6_runtime_fatal(3); }
@@ -921,6 +1012,24 @@ static void* xl6_xrt_typed_require_item(void* item)
 static void* xl6_xrt_typed_array_get_at(xtarray values, uint32 index)
 {
     return xrtTypedArrayGet(values, index + 1u);
+}
+
+static xvalue xl6_xrt_typed_array_to_xvalue_map(xtarray values, xl6_xrt_typed_item_box_fn box)
+{
+    xvalue result = xvoCreateArray();
+    uint32 count = xrtTypedArrayCount(values);
+    uint32 i;
+    if ( result == 0 ) {
+        return xvoCreateNull();
+    }
+    for ( i = 0; i < count; ++i ) {
+        void* rawItem = xl6_xrt_typed_array_get_at(values, i);
+        xvalue item = rawItem != 0 && box != 0 ? box(rawItem) : xvoCreateNull();
+        if ( !xvoArrayAppendValue(result, item, true) && item != 0 ) {
+            xvoUnref(item);
+        }
+    }
+    return result;
 }
 
 static bool xl6_xrt_typed_array_set_at(xtarray values, uint32 index, xvalue value)
@@ -1171,13 +1280,93 @@ static xvalue xl6_argv_to_arg(int argc, char** argv)
 {
     int i;
     xvalue arg = xvoCreateArray();
-    if ( arg == 0 ) { return xvoCreateNull(); }
+    if ( arg == 0 ) { return 0; }
     for ( i = 0; i < argc; ++i ) {
         const char* text = (argv != 0 && argv[i] != 0) ? argv[i] : "";
         xvalue item = xvoCreateText((void*)text, 0, false);
-        if ( !xvoArrayAppendValue(arg, item, true) && item != 0 ) { xvoUnref(item); }
+        if ( item == 0 || !xvoArrayAppendValue(arg, item, true) ) {
+            if ( item != 0 ) { xvoUnref(item); }
+            xvoUnref(arg);
+            return 0;
+        }
     }
     return arg;
+}
+
+#if defined(_WIN32) || defined(_WIN64)
+#include <wchar.h>
+#ifndef XL6_WINAPI_ARGV_DECL
+#define XL6_WINAPI_ARGV_DECL
+__declspec(dllimport) wchar_t* __stdcall GetCommandLineW(void);
+__declspec(dllimport) wchar_t** __stdcall CommandLineToArgvW(const wchar_t* lpCmdLine, int* pNumArgs);
+__declspec(dllimport) int __stdcall WideCharToMultiByte(unsigned int CodePage, unsigned long dwFlags, const wchar_t* lpWideCharStr, int cchWideChar, char* lpMultiByteStr, int cbMultiByte, const char* lpDefaultChar, int* lpUsedDefaultChar);
+__declspec(dllimport) void* __stdcall LocalFree(void* hMem);
+#define XL6_CP_UTF8 65001u
+#endif
+
+static char* xl6_wide_to_utf8(const wchar_t* text)
+{
+    int size;
+    char* utf8;
+
+    if ( text == 0 ) {
+        text = L"";
+    }
+    size = WideCharToMultiByte(XL6_CP_UTF8, 0, text, -1, 0, 0, 0, 0);
+    if ( size <= 0 ) {
+        return 0;
+    }
+    utf8 = (char*)xrtMalloc((size_t)size);
+    if ( utf8 == 0 ) {
+        return 0;
+    }
+    if ( WideCharToMultiByte(XL6_CP_UTF8, 0, text, -1, utf8, size, 0, 0) <= 0 ) {
+        xrtFree(utf8);
+        return 0;
+    }
+    return utf8;
+}
+
+static xvalue xl6_windows_argv_to_arg(int fallbackArgc, char** fallbackArgv)
+{
+    int argc = 0;
+    wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    xvalue arg;
+    int i;
+
+    if ( argv == 0 ) {
+        return xl6_argv_to_arg(fallbackArgc, fallbackArgv);
+    }
+    arg = xvoCreateArray();
+    if ( arg == 0 ) {
+        LocalFree(argv);
+        return 0;
+    }
+    for ( i = 0; i < argc; ++i ) {
+        char* text = xl6_wide_to_utf8(argv[i]);
+        xvalue item = text != 0 ? xvoCreateText((void*)text, 0, false) : 0;
+        if ( text != 0 ) {
+            xrtFree(text);
+        }
+        if ( item == 0 || !xvoArrayAppendValue(arg, item, true) ) {
+            if ( item != 0 ) { xvoUnref(item); }
+            xvoUnref(arg);
+            LocalFree(argv);
+            return 0;
+        }
+    }
+    LocalFree(argv);
+    return arg;
+}
+#endif
+
+static xvalue xl6_command_argv_to_arg(int argc, char** argv)
+{
+#if defined(_WIN32) || defined(_WIN64)
+    return xl6_windows_argv_to_arg(argc, argv);
+#else
+    return xl6_argv_to_arg(argc, argv);
+#endif
 }
 #endif
 

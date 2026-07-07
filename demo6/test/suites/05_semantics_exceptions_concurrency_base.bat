@@ -350,27 +350,15 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_func_capture_top_level.xl >nul 2> build\test\sem_func_capture_top_level.err.txt
-if not errorlevel 1 (
-    echo sem_func_capture_top_level.xl should fail.
-    exit /b 1
-)
-powershell -NoProfile -Command "$needle = -join ([char[]](0x51FD,0x6570,0x4F53,0x4E0D,0x80FD,0x9690,0x5F0F,0x6355,0x83B7,0x5916,0x5C42,0x5C40,0x90E8,0x53D8,0x91CF)); if (-not (Select-String -LiteralPath 'build\test\sem_func_capture_top_level.err.txt' -SimpleMatch $needle)) { exit 1 }"
-if errorlevel 1 (
-    echo sem_func_capture_top_level.xl missing implicit capture diagnostic.
-    exit /b 1
-)
+release\xl.exe check test\cases\sem_func_capture_top_level.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\sem_func_capture_top_level.xl
+if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_async_capture_top_level.xl >nul 2> build\test\sem_async_capture_top_level.err.txt
-if not errorlevel 1 (
-    echo sem_async_capture_top_level.xl should fail.
-    exit /b 1
-)
-powershell -NoProfile -Command "$needle = -join ([char[]](0x51FD,0x6570,0x4F53,0x4E0D,0x80FD,0x9690,0x5F0F,0x6355,0x83B7,0x5916,0x5C42,0x5C40,0x90E8,0x53D8,0x91CF)); if (-not (Select-String -LiteralPath 'build\test\sem_async_capture_top_level.err.txt' -SimpleMatch $needle)) { exit 1 }"
-if errorlevel 1 (
-    echo sem_async_capture_top_level.xl missing implicit capture diagnostic.
-    exit /b 1
-)
+release\xl.exe check test\cases\sem_async_capture_top_level.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\sem_async_capture_top_level.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_closure_capture_destroy_class.xl >nul 2> build\test\sem_closure_capture_destroy_class.err.txt
 if not errorlevel 1 (
@@ -1369,12 +1357,12 @@ if errorlevel 1 (
     echo cgen_sync.c missing sem postMultiple path.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_sync.c',[System.Text.Encoding]::UTF8); $checks=@('int cappedOverflow = xrtSemPostMultiple(capped, 2LL)','int cappedOriginal = (xrtSemWaitTimeout(capped, 10LL) == 0)','int cappedPartial = xrtSemTryWait(capped)','!cappedOverflow','!cappedPartial','int fullPost = xrtSemPost(full)','int fullWaited = (xrtSemWaitTimeout(full, 10LL) == 0)','int refillPost = xrtSemPost(full)','int refillWaited = (xrtSemWaitTimeout(full, 10LL) == 0)','!fullPost'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_sync.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_sync.c',[System.Text.Encoding]::UTF8); $checks=@('cappedOverflow = xrtSemPostMultiple(capped, 2LL)','cappedOriginal = (xrtSemWaitTimeout(capped, 10LL) == 0)','cappedPartial = xrtSemTryWait(capped)','!cappedOverflow','!cappedPartial','fullPost = xrtSemPost(full)','fullWaited = (xrtSemWaitTimeout(full, 10LL) == 0)','refillPost = xrtSemPost(full)','refillWaited = (xrtSemWaitTimeout(full, 10LL) == 0)','!fullPost'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_sync.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_sync.c missing sem overflow/full guard lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_sync.c',[System.Text.Encoding]::UTF8); $checks=@('xrtSemWaitTimeout(__env->semWakeGate, 2000LL) == 0','XL6_Function semWakeWorker = xl6_anon_','_make(semWakeGate)','xl6_thread_start(semWakeWorker, 1','xrtThreadWaitTimeout(semWakeThread, 1LL) == 0','xrtSemPost(semWakeGate)','xrtThreadWaitTimeout(semWakeThread, 2000LL) == 0','(int)xrtThreadGetExitCode(semWakeThread) == 23LL'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_sync.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_sync.c',[System.Text.Encoding]::UTF8); $checks=@('xrtSemWaitTimeout(__env->semWakeGate, 2000LL) == 0','semWakeWorker = xl6_anon_','_make(semWakeGate)','xl6_thread_start(semWakeWorker, 1','xrtThreadWaitTimeout(semWakeThread, 1LL) == 0','xrtSemPost(semWakeGate)','xrtThreadWaitTimeout(semWakeThread, 2000LL) == 0','(int)xrtThreadGetExitCode(semWakeThread) == 23LL'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_sync.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_sync.c missing cross-thread sem wake guard lowering.
     exit /b 1
@@ -1384,7 +1372,7 @@ if errorlevel 1 (
     echo cgen_sync.c missing cond waitTimeout path.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_sync.c',[System.Text.Encoding]::UTF8); $checks=@('xrtSemWaitTimeout(__env->wakeReady, 2000LL) == 0','xrtMutexLock(__env->wakeMutex)','xrtCondSignal(__env->wakeCond)','xrtMutexUnlock(__env->wakeMutex)','xl6_thread_start(wakeWorker, 1','xrtSemPost(wakeReady)','int wakeSignaled = (xrtCondWaitTimeout(wakeCond, wakeMutex, 2000LL) == 0)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_sync.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_sync.c',[System.Text.Encoding]::UTF8); $checks=@('xrtSemWaitTimeout(__env->wakeReady, 2000LL) == 0','xrtMutexLock(__env->wakeMutex)','xrtCondSignal(__env->wakeCond)','xrtMutexUnlock(__env->wakeMutex)','xl6_thread_start(wakeWorker, 1','xrtSemPost(wakeReady)','wakeSignaled = (xrtCondWaitTimeout(wakeCond, wakeMutex, 2000LL) == 0)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_sync.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_sync.c missing cross-thread cond signal guard lowering.
     exit /b 1
@@ -1394,7 +1382,7 @@ if errorlevel 1 (
     echo cgen_sync.c missing rwlock tryReadLock path.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_sync.c',[System.Text.Encoding]::UTF8); $checks=@('int invalidUpgrade = xrtRWLockUpgrade(upgradeRw)','xrtRWLockReadLock(upgradeRw)','int upgraded = xrtRWLockUpgrade(upgradeRw)','xrtRWLockWriteUnlock(upgradeRw)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_sync.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_sync.c',[System.Text.Encoding]::UTF8); $checks=@('invalidUpgrade = xrtRWLockUpgrade(upgradeRw)','xrtRWLockReadLock(upgradeRw)','upgraded = xrtRWLockUpgrade(upgradeRw)','xrtRWLockWriteUnlock(upgradeRw)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_sync.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_sync.c missing rwlock upgrade guard lowering.
     exit /b 1
@@ -1577,7 +1565,7 @@ if errorlevel 1 (
     echo cgen_thread.c missing empty function value thread diagnostic.
     exit /b 1
 )
-findstr /C:"XL6_Function missingWorker = {0};" build\test\cgen_thread.c >nul
+findstr /C:"XL6_Function missingWorker;" build\test\cgen_thread.c >nul
 if errorlevel 1 (
     echo cgen_thread.c missing empty function value thread fixture.
     exit /b 1
@@ -1602,7 +1590,7 @@ if errorlevel 1 (
     echo cgen_thread.c missing thread release helper.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('void* slow = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_slowWorker_make(), 0','int slowImmediate = (xrtThreadWaitTimeout(slow, 0LL) == 0)','!slowImmediate','int slowWaited = (xrtThreadWaitTimeout(slow, 2000LL) == 0)','long long slowCode = (int)xrtThreadGetExitCode(slow)','int slowRepeatedWait = (xrtThreadWait(slow), true)','long long slowCodeAgain = (int)xrtThreadGetExitCode(slow)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('slow = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_slowWorker_make(), 0','slowImmediate = (xrtThreadWaitTimeout(slow, 0LL) == 0)','!slowImmediate','slowWaited = (xrtThreadWaitTimeout(slow, 2000LL) == 0)','slowCode = (int)xrtThreadGetExitCode(slow)','slowRepeatedWait = (xrtThreadWait(slow), true)','slowCodeAgain = (int)xrtThreadGetExitCode(slow)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_thread.c missing waitTimeout timeout/completed-state guard lowering.
     exit /b 1
@@ -1612,12 +1600,12 @@ if errorlevel 1 (
     echo cgen_thread.c missing borrowed conditional thread callable ownership guard.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('void* capturedReceiverThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_worker_make(), 0','void* capturedReceiverThread;','xrtThreadWait(__env->capturedReceiverThread), true','(int)xrtThreadGetExitCode(__env->capturedReceiverThread)','XL6_Function threadJoiner = xl6_anon_','_make(capturedReceiverThread)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('capturedReceiverThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_worker_make(), 0','void* capturedReceiverThread;','xrtThreadWait(__env->capturedReceiverThread), true','(int)xrtThreadGetExitCode(__env->capturedReceiverThread)','threadJoiner = xl6_anon_','_make(capturedReceiverThread)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_thread.c missing captured thread receiver guard lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('void* capturedTimedThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_monitorSlowWorker_make(), 0','void* capturedStopThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_slowWorker_make(), 0','_make(capturedTimedThread)','xrtThreadWaitTimeout(__env->capturedTimedThread, 0LL) == 0','xrtThreadGetState(__env->capturedTimedThread)','xrtThreadWaitTimeout(__env->capturedTimedThread, 2000LL) == 0','(int)xrtThreadGetExitCode(__env->capturedTimedThread)','_make(capturedStopThread)','xrtThreadStop(__env->capturedStopThread), true','xrtThreadWait(__env->capturedStopThread), true'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('capturedTimedThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_monitorSlowWorker_make(), 0','capturedStopThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_slowWorker_make(), 0','_make(capturedTimedThread)','xrtThreadWaitTimeout(__env->capturedTimedThread, 0LL) == 0','xrtThreadGetState(__env->capturedTimedThread)','xrtThreadWaitTimeout(__env->capturedTimedThread, 2000LL) == 0','(int)xrtThreadGetExitCode(__env->capturedTimedThread)','_make(capturedStopThread)','xrtThreadStop(__env->capturedStopThread), true','xrtThreadWait(__env->capturedStopThread), true'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_thread.c missing captured thread waitTimeout/state/stop guard lowering.
     exit /b 1
