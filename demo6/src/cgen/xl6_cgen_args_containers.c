@@ -575,6 +575,18 @@ static void xl6CgenDictVarargExpr(XL6_CgenContext* ctx, const XL6_AstNode* param
     xl6OutputPutc(')', ctx->out);
 }
 
+static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* param, const XL6_AstNode* expr)
+{
+    const XL6_AstNode* targetType;
+
+    targetType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
+    if ( targetType != NULL && xl6CgenIsXValueType(targetType) ) {
+        xl6CgenXValueFromExprForTarget(ctx, targetType, expr);
+        return;
+    }
+    xl6CgenExpr(ctx, expr);
+}
+
 static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* args)
 {
     const XL6_AstNode* params;
@@ -594,9 +606,9 @@ static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, 
             xl6OutputPuts(", ", ctx->out);
         }
         if ( expr != NULL ) {
-            xl6CgenExpr(ctx, expr);
+            xl6CgenFixedParamArgExpr(ctx, param, expr);
         } else if ( param->childCount > 1 ) {
-            xl6CgenExpr(ctx, param->children[1]);
+            xl6CgenFixedParamArgExpr(ctx, param, param->children[1]);
         } else {
             xl6CgenError(ctx, param, "missing required argument for parameter");
             xl6OutputPuts("0", ctx->out);
@@ -634,9 +646,9 @@ static void xl6CgenParamNodeArgs(XL6_CgenContext* ctx, const XL6_AstNode* params
             xl6OutputPuts(", ", ctx->out);
         }
         if ( expr != NULL ) {
-            xl6CgenExpr(ctx, expr);
+            xl6CgenFixedParamArgExpr(ctx, param, expr);
         } else if ( param->childCount > 1 ) {
-            xl6CgenExpr(ctx, param->children[1]);
+            xl6CgenFixedParamArgExpr(ctx, param, param->children[1]);
         } else {
             xl6CgenError(ctx, param, "missing required argument for parameter");
             xl6OutputPuts("0", ctx->out);

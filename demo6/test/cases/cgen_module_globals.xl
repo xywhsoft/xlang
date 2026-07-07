@@ -1,0 +1,16 @@
+string config = "hello"
+int offset = 7
+
+func useConfig() as string
+    return config
+end
+
+func addOffset(int value) as int
+    return value + offset
+end
+
+func main(...) as int
+    if useConfig() != "hello" then return 1 end
+    if addOffset(5) != 12 then return 2 end
+    return 0
+end

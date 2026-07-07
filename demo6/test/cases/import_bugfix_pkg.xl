@@ -1,0 +1,19 @@
+import bugfix_pkg
+
+func main(...) as int
+    if bugfix_pkg.hello() != "hello from bugfix_pkg" then return 1 end
+    if bugfix_pkg.add(20, 22) != 42 then return 2 end
+    if bugfix_pkg.checkType("hello") != 2 then return 3 end
+    if bugfix_pkg.checkType(42) != 1 then return 4 end
+
+    auto a, b = bugfix_pkg.getPair()
+    if a != 10 then return 5 end
+    if b != 20 then return 6 end
+
+    int x = 0
+    int y = 0
+    x, y = bugfix_pkg.getPair()
+    if x != 10 then return 7 end
+    if y != 20 then return 8 end
+    return 0
+end

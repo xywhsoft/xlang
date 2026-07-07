@@ -727,6 +727,15 @@ export_func_decl(A) ::= KW_EXPORT(E) STRING(S) KW_FUNC name_tok(F) name_params(P
     xl6AstAddChild(A, B);
     (void)E;
 }
+export_func_decl(A) ::= KW_EXPORT(E) KW_FUNC name_tok(F) name_params(P) return_sig(R) need_sep block(B) KW_END. {
+    A = xl6AstNew(XL6_AST_EXPORT_FUNC, NULL);
+    A->line = E.startLine;
+    A->column = E.startColumn;
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &F));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, R);
+    xl6AstAddChild(A, B);
+}
 
 extern_var_decl(A) ::= KW_EXTERN(E) STRING(S) KW_VAR var_type_ref(T) name_tok(N) need_sep. {
     A = xl6AstNew(XL6_AST_EXTERN_VAR, &S);
@@ -1303,7 +1312,7 @@ if_stmt(A) ::= KW_IF(I) expr(C) if_sep block(B) elseif_list(EL) else_opt(EO) KW_
     xl6AstAddChild(A, EO);
 }
 
-if_stmt(A) ::= KW_IF(I) expr(C) KW_THEN inline_stmt(S). [KW_THEN] {
+if_stmt(A) ::= KW_IF(I) expr(C) KW_THEN inline_stmt(S) KW_END. [KW_THEN] {
     A = xl6AstNew(XL6_AST_IF, &I);
     xl6AstAddChild(A, C);
     xl6AstAddChild(A, xl6PBlockWith(S));
@@ -1311,7 +1320,7 @@ if_stmt(A) ::= KW_IF(I) expr(C) KW_THEN inline_stmt(S). [KW_THEN] {
     xl6AstAddChild(A, xl6AstNew(XL6_AST_BLOCK, NULL));
 }
 
-if_stmt(A) ::= KW_IF(I) expr(C) KW_THEN inline_stmt(T) KW_ELSE inline_stmt(E). {
+if_stmt(A) ::= KW_IF(I) expr(C) KW_THEN inline_stmt(T) KW_ELSE inline_stmt(E) KW_END. {
     A = xl6AstNew(XL6_AST_IF, &I);
     xl6AstAddChild(A, C);
     xl6AstAddChild(A, xl6PBlockWith(T));
@@ -1319,20 +1328,16 @@ if_stmt(A) ::= KW_IF(I) expr(C) KW_THEN inline_stmt(T) KW_ELSE inline_stmt(E). {
     xl6AstAddChild(A, xl6PBlockWith(E));
 }
 
-inline_stmt(A) ::= inline_return_stmt(B). { A = B; }
-inline_stmt(A) ::= inline_break_stmt(B). { A = B; }
-inline_stmt(A) ::= inline_continue_stmt(B). { A = B; }
-
-inline_return_stmt(A) ::= KW_RETURN(R) expr_list(L). {
-    A = xl6AstNew(XL6_AST_RETURN, &R);
-    xl6AstMoveChildren(A, L);
-    xl6AstFree(L);
-}
-inline_break_stmt(A) ::= KW_BREAK(B). {
-    A = xl6AstNew(XL6_AST_BREAK, &B);
-}
-inline_continue_stmt(A) ::= KW_CONTINUE(C). {
-    A = xl6AstNew(XL6_AST_CONTINUE, &C);
+inline_stmt(A) ::= assign_stmt(B). { A = B; }
+inline_stmt(A) ::= return_stmt(B). { A = B; }
+inline_stmt(A) ::= yield_stmt(B). { A = B; }
+inline_stmt(A) ::= throw_stmt(B). { A = B; }
+inline_stmt(A) ::= assert_stmt(B). { A = B; }
+inline_stmt(A) ::= break_stmt(B). { A = B; }
+inline_stmt(A) ::= continue_stmt(B). { A = B; }
+inline_stmt(A) ::= expr(E). {
+    A = xl6AstNew(XL6_AST_EXPR_STMT, NULL);
+    xl6AstAddChild(A, E);
 }
 
 if_sep ::= need_sep.

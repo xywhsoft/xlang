@@ -1,0 +1,21 @@
+export func hello() as string
+    return "hello from bugfix_pkg"
+end
+
+export func add(int a, int b) as int
+    return a + b
+end
+
+export func checkType(var value) as int
+    if value is int then return 1 end
+    if value is string then return 2 end
+    return 0
+end
+
+func rawPair() as (int, int)
+    return 10, 20
+end
+
+export func getPair() as (int, int)
+    return rawPair()
+end

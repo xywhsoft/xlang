@@ -126,7 +126,11 @@ static const XL6_AstNode* xl6CgenResolveMultiReturnClassMethod(
 
 static void xl6CgenEmitKnownFuncCall(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* call)
 {
-    xl6CgenFuncSymbol(ctx, func);
+    if ( func != NULL && func->kind == XL6_AST_EXPORT_FUNC ) {
+        xl6CgenExportInternalSymbol(ctx->out, func);
+    } else {
+        xl6CgenFuncSymbol(ctx, func);
+    }
     xl6OutputPutc('(', ctx->out);
     if ( call != NULL && call->childCount > 1 ) {
         xl6CgenKnownCallArgs(ctx, func, call->children[1]);

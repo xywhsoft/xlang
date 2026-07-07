@@ -3222,6 +3222,8 @@ static int xlAstIsTopLevelRuntimeStmt(const XL6_AstNode* node)
     case XL6_AST_EXTERN_VAR:
     case XL6_AST_EXPORT_VAR:
     case XL6_AST_EXPORT_CONST:
+    case XL6_AST_VAR_DECL:
+    case XL6_AST_CONST_DECL:
     case XL6_AST_TYPE_ALIAS:
     case XL6_AST_EXTERN_TYPE_ALIAS:
     case XL6_AST_UNION:

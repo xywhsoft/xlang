@@ -62,6 +62,7 @@ static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typ
     char classTypeName[256];
     char sourceName[512];
     size_t i;
+    int fieldCount;
 
     if ( ctx == NULL || typeNode == NULL || typeNode->childCount == 0 ) {
         return;
@@ -106,6 +107,7 @@ static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typ
     }
 
     xl6OutputPrintf(ctx->out, "typedef struct %s {\n", classTypeName);
+    fieldCount = 0;
     if ( body != NULL ) {
         for ( i = 0; i < body->childCount; ++i ) {
             const XL6_AstNode* member = body->children[i];
@@ -114,6 +116,7 @@ static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typ
             }
             if ( member->kind == XL6_AST_UNION ) {
                 xl6CgenInlineUnionFieldDecl(ctx, member);
+                fieldCount += 1;
                 continue;
             }
             if ( !xl6CgenIsInstanceField(member) || member->childCount == 0 ) {
@@ -124,7 +127,11 @@ static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typ
             xl6OutputPutc(' ', ctx->out);
             xl6CgenFputsCIdent(ctx->out, member->text);
             xl6OutputPuts(";\n", ctx->out);
+            fieldCount += 1;
         }
+    }
+    if ( fieldCount == 0 ) {
+        xl6OutputPuts("    int __xl6_empty;\n", ctx->out);
     }
     xl6OutputPrintf(ctx->out, "} %s;\n", classTypeName);
 
@@ -385,6 +392,7 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
     XL6_AstNode* baseClass;
     char cTypeName[512];
     size_t i;
+    int fieldCount;
 
     if ( classNode == NULL || classNode->text == NULL || xl6CgenClassWasEmitted(ctx, classNode->text) ) {
         return;
@@ -425,10 +433,12 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
     xl6OutputPuts("typedef struct ", ctx->out);
     xl6CgenClassTypeName(ctx->out, classNode->text);
     xl6OutputPuts(" {\n", ctx->out);
+    fieldCount = 0;
     if ( base != NULL && base->kind == XL6_AST_NAME ) {
         xl6OutputPuts("    ", ctx->out);
         xl6CgenClassTypeName(ctx->out, base->text);
         xl6OutputPuts(" base;\n", ctx->out);
+        fieldCount += 1;
     }
     xl6CgenVirtualFieldDecl(ctx, classNode);
 
@@ -440,6 +450,7 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
             }
             if ( member->kind == XL6_AST_UNION ) {
                 xl6CgenInlineUnionFieldDecl(ctx, member);
+                fieldCount += 1;
                 continue;
             }
             if ( !xl6CgenIsInstanceField(member) || member->childCount == 0 ) {
@@ -450,7 +461,11 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
             xl6OutputPutc(' ', ctx->out);
             xl6CgenFputsCIdent(ctx->out, member->text);
             xl6OutputPuts(";\n", ctx->out);
+            fieldCount += 1;
         }
+    }
+    if ( fieldCount == 0 ) {
+        xl6OutputPuts("    int __xl6_empty;\n", ctx->out);
     }
     xl6OutputPuts("} ", ctx->out);
     xl6CgenClassTypeName(ctx->out, classNode->text);
@@ -478,7 +493,8 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
                  member->kind == XL6_AST_NATIVE_EXTERN_FUNC ) {
                 xl6CgenClassFuncProto(ctx, classNode, member);
                 xl6OutputPuts(";\n", ctx->out);
-                if ( member->kind == XL6_AST_EXPORT_FUNC ) {
+                if ( member->kind == XL6_AST_EXPORT_FUNC &&
+                     member->text != NULL && member->text[0] != '\0' ) {
                     xl6CgenClassExportWrapperProto(ctx, classNode, member);
                     xl6OutputPuts(";\n", ctx->out);
                 }

@@ -34,6 +34,70 @@ static void xl6CgenForIn(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6AstFree(iterableType);
 }
 
+static int xl6CgenReturnTryMultiCallInto(XL6_CgenContext* ctx, const XL6_AstNode* expr, int returnId)
+{
+    const XL6_AstNode* func;
+    const XL6_AstNode* functionType;
+    const XL6_AstNode* classMethod;
+    const XL6_AstNode* ownerClass;
+    const XL6_AstNode* receiverType;
+    XL6_AstNode* ownedFunctionType;
+    const XL6_AstNode* returns;
+    int multiId;
+    size_t i;
+    char memberTempName[64];
+
+    if ( ctx == NULL || expr == NULL || ctx->currentReturns == NULL || ctx->currentReturns->childCount <= 1 ) {
+        return 0;
+    }
+
+    ownedFunctionType = NULL;
+    functionType = xl6CgenResolveMultiReturnFunctionType(ctx, expr, &ownedFunctionType);
+    func = functionType == NULL ? xl6CgenResolveMultiReturnCall(ctx, expr) : NULL;
+    ownerClass = NULL;
+    receiverType = NULL;
+    classMethod = (functionType == NULL && func == NULL) ?
+        xl6CgenResolveMultiReturnClassMethod(ctx, expr, &ownerClass, &receiverType) :
+        NULL;
+    returns = functionType != NULL ? xl6CgenFunctionReturnTypes(functionType) :
+              (func != NULL ? func->children[2] :
+              (classMethod != NULL && classMethod->childCount > 2 ? classMethod->children[2] : NULL));
+    if ( returns == NULL || returns->childCount != ctx->currentReturns->childCount ) {
+        xl6AstFree(ownedFunctionType);
+        return 0;
+    }
+
+    multiId = ctx->tempId++;
+    memberTempName[0] = '\0';
+    xl6CgenEmitMultiReturnMemberTemp(
+        ctx,
+        xl6CgenMultiReturnMemberCallee(expr, functionType),
+        multiId,
+        memberTempName,
+        sizeof(memberTempName));
+
+    xl6CgenIndent(ctx);
+    xl6CgenMultiReturnStructName(ctx, func, functionType, classMethod, ownerClass, receiverType);
+    xl6OutputPrintf(ctx->out, " __xl6_multi_%d = ", multiId);
+    xl6CgenEmitMultiReturnCall(ctx, expr, func, functionType, classMethod, memberTempName[0] != '\0' ? memberTempName : NULL);
+    xl6OutputPuts(";\n", ctx->out);
+
+    xl6CgenIndent(ctx);
+    if ( ctx->currentReturnFunc != NULL ) {
+        xl6CgenFuncReturnStructName(ctx, ctx->currentReturnFunc);
+    } else {
+        xl6CgenFunctionReturnStructName(ctx, ctx->currentReturnParams, ctx->currentReturns);
+    }
+    xl6OutputPrintf(ctx->out, " __xl6_return_%d;\n", returnId);
+    for ( i = 0; i < ctx->currentReturns->childCount; ++i ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "__xl6_return_%d.value%u = __xl6_multi_%d.value%u;\n",
+                        returnId, (unsigned)i, multiId, (unsigned)i);
+    }
+    xl6AstFree(ownedFunctionType);
+    return 1;
+}
+
 static int xl6CgenReturnTrySingleValueStmt(
     XL6_CgenContext* ctx,
     const XL6_AstNode* returnType,
@@ -433,7 +497,11 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             int id = ctx->tempId++;
             char returnName[64];
 
-            if ( ctx->currentReturns != NULL && ctx->currentReturns->childCount > 1 ) {
+            if ( ctx->currentReturns != NULL && ctx->currentReturns->childCount > 1 &&
+                 node->childCount == 1 &&
+                 xl6CgenReturnTryMultiCallInto(ctx, node->children[0], id) ) {
+                ;
+            } else if ( ctx->currentReturns != NULL && ctx->currentReturns->childCount > 1 ) {
                 size_t i;
 
                 xl6CgenIndent(ctx);

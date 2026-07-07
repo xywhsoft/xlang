@@ -199,19 +199,33 @@ if errorlevel 1 exit /b 1
 build\test\cgen_basic.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe run test\cases\cgen_module_globals.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_module_globals.xl -o build\test\cgen_module_globals.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_module_globals.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\cgen_class_static_only.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_class_static_only.xl -o build\test\cgen_class_static_only.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_class_static_only.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_default_init.xl --emit build\test\cgen_default_init.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long count = 0;" build\test\cgen_default_init.c >nul
+findstr /C:"long long count;" build\test\cgen_default_init.c >nul
 if errorlevel 1 (
     echo cgen_default_init.c missing int default init.
     exit /b 1
 )
-findstr /C:"const char* name = \"\";" build\test\cgen_default_init.c >nul
+findstr /C:"name = \"\";" build\test\cgen_default_init.c >nul
 if errorlevel 1 (
     echo cgen_default_init.c missing string default init.
     exit /b 1
 )
-findstr /C:"void* handle = 0;" build\test\cgen_default_init.c >nul
+findstr /C:"void* handle;" build\test\cgen_default_init.c >nul
 if errorlevel 1 (
     echo cgen_default_init.c missing point default init.
     exit /b 1
@@ -672,12 +686,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_containers.xl --emit build\test\cgen_containers.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue emptyArray = xvoCreateArray();" build\test\cgen_containers.c >nul
+findstr /C:"emptyArray = xvoCreateArray();" build\test\cgen_containers.c >nul
 if errorlevel 1 (
     echo cgen_containers.c missing array default init.
     exit /b 1
 )
-findstr /C:"xvoArrayAppendValue(values, __xl6_array_item_" build\test\cgen_containers.c >nul
+findstr /C:"xvoArrayAppendValue(__xl6_global_init_" build\test\cgen_containers.c >nul
 if errorlevel 1 (
     echo cgen_containers.c missing statement-level array literal append.
     exit /b 1
@@ -707,12 +721,12 @@ if errorlevel 1 (
     echo cgen_containers.c missing explicit empty dict lowering.
     exit /b 1
 )
-findstr /C:"xvoArrayAppendValue(prefixedArray, __xl6_array_item_" build\test\cgen_containers.c >nul
+findstr /C:"xvoArrayAppendValue(__xl6_global_init_" build\test\cgen_containers.c >nul
 if errorlevel 1 (
     echo cgen_containers.c missing prefixed array statement-level append.
     exit /b 1
 )
-findstr /C:"xvalue prefixedDict = xl6_xrt_dict_varargs(1" build\test\cgen_containers.c >nul
+findstr /C:"prefixedDict = xl6_xrt_dict_varargs(1" build\test\cgen_containers.c >nul
 if errorlevel 1 (
     echo cgen_containers.c missing prefixed dict expression fallback.
     exit /b 1
@@ -1269,7 +1283,7 @@ if errorlevel 1 (
     echo cgen_typed_container_objects.c missing native-backed class hash type op.
     exit /b 1
 )
-findstr /C:"xrtTypedSetAddValue(pairSet" build\test\cgen_typed_container_objects.c >nul
+findstr /C:"xrtTypedSetAddValue(__xl6_global_init_" build\test\cgen_typed_container_objects.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_objects.c missing typed class set fill.
     exit /b 1
@@ -1551,27 +1565,27 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\type_values.xl --emit build\test\type_values.c
 if errorlevel 1 exit /b 1
-findstr /C:"unsigned long long valueType = 0x" build\test\type_values.c >nul
+findstr /C:"valueType = 0x" build\test\type_values.c >nul
 if errorlevel 1 (
     echo type_values.c missing type value declaration.
     exit /b 1
 )
-findstr /C:"int intOk = (valueType == 0x" build\test\type_values.c >nul
+findstr /C:"intOk = (valueType == 0x" build\test\type_values.c >nul
 if errorlevel 1 (
     echo type_values.c missing type literal comparison.
     exit /b 1
 )
-findstr /C:"int classOk = (boxType == 0x" build\test\type_values.c >nul
+findstr /C:"classOk = (boxType == 0x" build\test\type_values.c >nul
 if errorlevel 1 (
     echo type_values.c missing class type literal comparison.
     exit /b 1
 )
-findstr /C:"int arrayOk = (arrayType == 0x" build\test\type_values.c >nul
+findstr /C:"arrayOk = (arrayType == 0x" build\test\type_values.c >nul
 if errorlevel 1 (
     echo type_values.c missing array type literal comparison.
     exit /b 1
 )
-findstr /C:"int dictOk = (dictType == 0x" build\test\type_values.c >nul
+findstr /C:"dictOk = (dictType == 0x" build\test\type_values.c >nul
 if errorlevel 1 (
     echo type_values.c missing dict type literal comparison.
     exit /b 1
@@ -1647,12 +1661,12 @@ if errorlevel 1 (
 )
 release\xl.exe cgen test\cases\type_aliases.xl --emit build\test\type_aliases.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long value = 41LL;" build\test\type_aliases.c >nul
+findstr /C:"long long value;" build\test\type_aliases.c >nul
 if errorlevel 1 (
     echo type_aliases.c missing int alias lowering.
     exit /b 1
 )
-findstr /C:"void* handle = 0;" build\test\type_aliases.c >nul
+findstr /C:"void* handle;" build\test\type_aliases.c >nul
 if errorlevel 1 (
     echo type_aliases.c missing point alias lowering.
     exit /b 1
@@ -1669,7 +1683,7 @@ if errorlevel 1 (
     echo cgen_string_concat.c missing string runtime trim macro.
     exit /b 1
 )
-findstr /C:"const char* joined = xl6_xrt_str_concat" build\test\cgen_string_concat.c >nul
+findstr /C:"joined = xl6_xrt_str_concat" build\test\cgen_string_concat.c >nul
 if errorlevel 1 (
     echo cgen_string_concat.c missing string concat declaration.
     exit /b 1
@@ -1708,12 +1722,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_string_literals.xl --emit build\test\cgen_string_literals.c
 if errorlevel 1 exit /b 1
-findstr /C:"const char* single =" build\test\cgen_string_literals.c >nul
+findstr /C:"const char* single;" build\test\cgen_string_literals.c >nul
 if errorlevel 1 (
     echo cgen_string_literals.c missing single quote string lowering.
     exit /b 1
 )
-findstr /C:"const char* rawPath =" build\test\cgen_string_literals.c >nul
+findstr /C:"const char* rawPath;" build\test\cgen_string_literals.c >nul
 if errorlevel 1 (
     echo cgen_string_literals.c missing raw string lowering.
     exit /b 1
@@ -1757,22 +1771,22 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_time_literals.xl --emit build\test\cgen_time_literals.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long dateOnly = xrtStrToTime(" build\test\cgen_time_literals.c >nul
+findstr /C:"dateOnly = xrtStrToTime(" build\test\cgen_time_literals.c >nul
 if errorlevel 1 (
     echo cgen_time_literals.c missing date literal lowering.
     exit /b 1
 )
-findstr /C:"long long timeOnly = xrtStrToTime(" build\test\cgen_time_literals.c >nul
+findstr /C:"timeOnly = xrtStrToTime(" build\test\cgen_time_literals.c >nul
 if errorlevel 1 (
     echo cgen_time_literals.c missing time literal lowering.
     exit /b 1
 )
-findstr /C:"long long both = xrtStrToTime(" build\test\cgen_time_literals.c >nul
+findstr /C:"both = xrtStrToTime(" build\test\cgen_time_literals.c >nul
 if errorlevel 1 (
     echo cgen_time_literals.c missing datetime literal lowering.
     exit /b 1
 )
-findstr /C:"long long inferred = xrtStrToTime(" build\test\cgen_time_literals.c >nul
+findstr /C:"inferred = xrtStrToTime(" build\test\cgen_time_literals.c >nul
 if errorlevel 1 (
     echo cgen_time_literals.c missing time auto inference.
     exit /b 1
@@ -1789,12 +1803,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_auto_expressions.xl --emit build\test\cgen_auto_expressions.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue dynSum = 0;" build\test\cgen_auto_expressions.c >nul
+findstr /C:"xvalue dynSum;" build\test\cgen_auto_expressions.c >nul
 if errorlevel 1 (
     echo cgen_auto_expressions.c missing auto dynamic expression lowering.
     exit /b 1
 )
-findstr /C:"dynSum = xl6_xrt_basic_binary(__xl6_bin_left_" build\test\cgen_auto_expressions.c >nul
+findstr /C:"= xl6_xrt_basic_binary(__xl6_bin_left_" build\test\cgen_auto_expressions.c >nul
 if errorlevel 1 (
     echo cgen_auto_expressions.c missing auto dynamic binary statement assignment.
     exit /b 1
@@ -1804,12 +1818,12 @@ if not errorlevel 1 (
     echo cgen_auto_expressions.c should not emit auto dynamic binary declaration statement expressions.
     exit /b 1
 )
-findstr /C:"long long sum =" build\test\cgen_auto_expressions.c >nul
+findstr /C:"long long sum;" build\test\cgen_auto_expressions.c >nul
 if errorlevel 1 (
     echo cgen_auto_expressions.c missing auto integer expression inference.
     exit /b 1
 )
-findstr /C:"double floatSum =" build\test\cgen_auto_expressions.c >nul
+findstr /C:"double floatSum;" build\test\cgen_auto_expressions.c >nul
 if errorlevel 1 (
     echo cgen_auto_expressions.c missing auto float expression inference.
     exit /b 1
@@ -1823,7 +1837,7 @@ release\xl.exe check test\cases\cgen_auto_inference_matrix.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_auto_inference_matrix.xl --emit build\test\cgen_auto_inference_matrix.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_auto_inference_matrix.c'; $checks=@('long long literalInt =','double literalFloat =','int literalBool =','const char* literalString =','xvalue dynamicArray =','xvalue dynamicList =','xvalue dynamicDict =','long long typedArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedArray','const char* typedListItem = (*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(typedList','long long typedDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(typedDict','xvalue missingTypedItem = xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(typedArray','xvalue dynamicArrayItem = xl6_xrt_retain(xvoArrayGetValue(dynamicArray','xvalue dynamicListItem = xl6_xrt_retain(xvoListGetValue(dynamicList','xvalue dynamicDictItem = xl6_xrt_retain(xvoTableGetValue(dynamicDict','XL_Class_MatrixBox box = {0};','box = makeBox(7LL,','long long fieldValue = box.value;','const char* fieldText = box.label;','long long methodValue = xl_class_MatrixBox__getValue(&box);','XL6_Function fn = makeAdder(10LL);','long long fnResult =','long long callResult = add(fieldValue, methodValue);','xfuture* futureValue = doubleAsync(6LL);','long long awaitedValue =','xchannel autoCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','int sent = xl6_channel_send_value(autoCh','int received = xl6_channel_recv_into(autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_auto_inference_matrix.c'; $checks=@('long long literalInt;','double literalFloat;','int literalBool;','const char* literalString;','xvalue dynamicArray;','xvalue dynamicList;','xvalue dynamicDict;','typedArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedArray','typedListItem = (*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(typedList','typedDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(typedDict','missingTypedItem = xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(typedArray','dynamicArrayItem = xl6_xrt_retain(xvoArrayGetValue(dynamicArray','dynamicListItem = xl6_xrt_retain(xvoListGetValue(dynamicList','dynamicDictItem = xl6_xrt_retain(xvoTableGetValue(dynamicDict','XL_Class_MatrixBox box;','box = makeBox(7LL,','fieldValue = box.value;','fieldText = box.label;','methodValue = xl_class_MatrixBox__getValue(&box);','fn = makeAdder(10LL);','long long fnResult;','callResult = add(fieldValue, methodValue);','futureValue = doubleAsync(6LL);','long long awaitedValue;','autoCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','sent = xl6_channel_send_value(autoCh','received = xl6_channel_recv_into(autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_auto_inference_matrix.xl test\cases\cgen_class_host.c -o build\test\cgen_auto_inference_matrix.exe
 if errorlevel 1 exit /b 1
@@ -2095,7 +2109,7 @@ if errorlevel 1 (
     echo cgen_array_literal_expr_elements.c missing statement-level array literal return creation.
     exit /b 1
 )
-findstr /C:"xvalue declared = xvoCreateArray();" build\test\cgen_array_literal_expr_elements.c >nul
+findstr /C:"xvalue __xl6_global_init_" build\test\cgen_array_literal_expr_elements.c | findstr /C:"xvoCreateArray()" >nul
 if errorlevel 1 (
     echo cgen_array_literal_expr_elements.c missing statement-level array literal declaration creation.
     exit /b 1
@@ -2115,12 +2129,12 @@ if errorlevel 1 (
     echo cgen_array_literal_expr_elements.c missing array literal return append.
     exit /b 1
 )
-findstr /C:"xvoArrayAppendValue(declared" build\test\cgen_array_literal_expr_elements.c >nul
+findstr /C:"xvoArrayAppendValue(__xl6_global_init_" build\test\cgen_array_literal_expr_elements.c >nul
 if errorlevel 1 (
     echo cgen_array_literal_expr_elements.c missing array literal declaration append.
     exit /b 1
 )
-findstr /C:"xvoArrayAppendValue(prefixed" build\test\cgen_array_literal_expr_elements.c >nul
+findstr /C:"xvoArrayAppendValue(__xl6_global_init_" build\test\cgen_array_literal_expr_elements.c >nul
 if errorlevel 1 (
     echo cgen_array_literal_expr_elements.c missing prefixed array declaration append.
     exit /b 1
@@ -2162,17 +2176,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_var_values.xl --emit build\test\cgen_var_values.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue empty = xvoCreateNull();" build\test\cgen_var_values.c >nul
+findstr /C:"empty = xvoCreateNull();" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing var null initialization.
     exit /b 1
 )
-findstr /C:"xvalue number = xvoCreateInt((long long)(123LL));" build\test\cgen_var_values.c >nul
+findstr /C:"number = xvoCreateInt((long long)(123LL));" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing int var boxing.
     exit /b 1
 )
-findstr /C:"xvalue moment = xvoCreateTime((long long)(xrtStrToTime(" build\test\cgen_var_values.c >nul
+findstr /C:"moment = xvoCreateTime((long long)(xrtStrToTime(" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing time var boxing.
     exit /b 1
@@ -2222,12 +2236,12 @@ if errorlevel 1 (
     echo cgen_var_values.c missing dynamic value arithmetic cleanup.
     exit /b 1
 )
-findstr /C:"xvalue sumNumber = 0;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue sumNumber;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level sumNumber dynamic arithmetic declaration.
     exit /b 1
 )
-findstr /C:"sumNumber = xl6_xrt_basic_binary(__xl6_bin_left_" build\test\cgen_var_values.c >nul
+findstr /C:"= xl6_xrt_basic_binary(__xl6_bin_left_" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level sumNumber dynamic arithmetic assignment.
     exit /b 1
@@ -2237,12 +2251,12 @@ if not errorlevel 1 (
     echo cgen_var_values.c should not emit sumNumber dynamic arithmetic declaration statement expressions.
     exit /b 1
 )
-findstr /C:"xvalue joinedText = 0;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue joinedText;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level joinedText dynamic arithmetic declaration.
     exit /b 1
 )
-findstr /C:"joinedText = xl6_xrt_basic_binary(__xl6_bin_left_" build\test\cgen_var_values.c >nul
+findstr /C:"= xl6_xrt_basic_binary(__xl6_bin_left_" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level joinedText dynamic arithmetic assignment.
     exit /b 1
@@ -2252,12 +2266,12 @@ if not errorlevel 1 (
     echo cgen_var_values.c should not emit joinedText dynamic arithmetic declaration statement expressions.
     exit /b 1
 )
-findstr /C:"xvalue mixedPlus = 0;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue mixedPlus;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level mixedPlus dynamic arithmetic declaration.
     exit /b 1
 )
-findstr /C:"mixedPlus = xl6_xrt_basic_binary(__xl6_bin_left_" build\test\cgen_var_values.c >nul
+findstr /C:"= xl6_xrt_basic_binary(__xl6_bin_left_" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level mixedPlus dynamic arithmetic assignment.
     exit /b 1
@@ -2267,12 +2281,12 @@ if not errorlevel 1 (
     echo cgen_var_values.c should not emit mixedPlus dynamic arithmetic declaration statement expressions.
     exit /b 1
 )
-findstr /C:"xvalue conditionalPick = 0;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue conditionalPick;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level conditionalPick declaration.
     exit /b 1
 )
-findstr /C:"conditionalPick = xl6_xrt_retain(lowNumber);" build\test\cgen_var_values.c >nul
+findstr /C:"xl6_xrt_retain(lowNumber);" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level conditionalPick assignment.
     exit /b 1
@@ -2282,12 +2296,12 @@ if not errorlevel 1 (
     echo cgen_var_values.c should not emit conditionalPick declaration statement expressions.
     exit /b 1
 )
-findstr /C:"xvalue conditionalTemp = 0;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue conditionalTemp;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level conditionalTemp declaration.
     exit /b 1
 )
-findstr /C:"conditionalTemp = makeValue(40LL);" build\test\cgen_var_values.c >nul
+findstr /C:"makeValue(40LL);" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level conditionalTemp assignment.
     exit /b 1
@@ -2297,12 +2311,12 @@ if not errorlevel 1 (
     echo cgen_var_values.c should not emit conditionalTemp declaration statement expressions.
     exit /b 1
 )
-findstr /C:"xvalue mixedAuto = 0;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue mixedAuto;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level mixedAuto declaration.
     exit /b 1
 )
-findstr /C:"mixedAuto = xvoCreateInt((long long)(12LL));" build\test\cgen_var_values.c >nul
+findstr /C:"xvoCreateInt((long long)(12LL));" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level mixedAuto assignment.
     exit /b 1
@@ -2312,12 +2326,12 @@ if not errorlevel 1 (
     echo cgen_var_values.c should not emit mixedAuto declaration statement expressions.
     exit /b 1
 )
-findstr /C:"xvalue mixedConditional = 0;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue mixedConditional;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level mixedConditional declaration.
     exit /b 1
 )
-findstr /C:"mixedConditional = xvoCreateText((void*)(" build\test\cgen_var_values.c >nul
+findstr /C:"xvoCreateText((void*)(" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level mixedConditional assignment.
     exit /b 1
@@ -2327,12 +2341,12 @@ if not errorlevel 1 (
     echo cgen_var_values.c should not emit mixedConditional declaration statement expressions.
     exit /b 1
 )
-findstr /C:"int compareDecl = 0;" build\test\cgen_var_values.c >nul
+findstr /C:"int compareDecl;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level compareDecl declaration.
     exit /b 1
 )
-findstr /C:"compareDecl = (int)(__xl6_cmp_result_" build\test\cgen_var_values.c >nul
+findstr /C:"compareDecl = __xl6_global_init_" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level compareDecl assignment.
     exit /b 1
@@ -2342,12 +2356,12 @@ if not errorlevel 1 (
     echo cgen_var_values.c should not emit compareDecl declaration statement expressions.
     exit /b 1
 )
-findstr /C:"long long orderDecl = 0;" build\test\cgen_var_values.c >nul
+findstr /C:"long long orderDecl;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level orderDecl declaration.
     exit /b 1
 )
-findstr /C:"orderDecl = (long long)(__xl6_cmp_result_" build\test\cgen_var_values.c >nul
+findstr /C:"orderDecl = __xl6_global_init_" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level orderDecl assignment.
     exit /b 1
@@ -2357,12 +2371,12 @@ if not errorlevel 1 (
     echo cgen_var_values.c should not emit orderDecl declaration statement expressions.
     exit /b 1
 )
-findstr /C:"int autoCompareDecl = 0;" build\test\cgen_var_values.c >nul
+findstr /C:"int autoCompareDecl;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level autoCompareDecl declaration.
     exit /b 1
 )
-findstr /C:"autoCompareDecl = (int)(__xl6_cmp_result_" build\test\cgen_var_values.c >nul
+findstr /C:"autoCompareDecl = __xl6_global_init_" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level autoCompareDecl assignment.
     exit /b 1
@@ -2372,12 +2386,12 @@ if not errorlevel 1 (
     echo cgen_var_values.c should not emit autoCompareDecl declaration statement expressions.
     exit /b 1
 )
-findstr /C:"int approxDecl = 0;" build\test\cgen_var_values.c >nul
+findstr /C:"int approxDecl;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level approxDecl declaration.
     exit /b 1
 )
-findstr /C:"approxDecl = (int)(__xl6_approx_result_" build\test\cgen_var_values.c >nul
+findstr /C:"approxDecl = __xl6_global_init_" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level approxDecl assignment.
     exit /b 1
@@ -2387,12 +2401,12 @@ if not errorlevel 1 (
     echo cgen_var_values.c should not emit approxDecl declaration statement expressions.
     exit /b 1
 )
-findstr /C:"int autoApproxDecl = 0;" build\test\cgen_var_values.c >nul
+findstr /C:"int autoApproxDecl;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level autoApproxDecl declaration.
     exit /b 1
 )
-findstr /C:"autoApproxDecl = (int)(__xl6_approx_result_" build\test\cgen_var_values.c >nul
+findstr /C:"autoApproxDecl = __xl6_global_init_" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level autoApproxDecl assignment.
     exit /b 1
@@ -3013,7 +3027,7 @@ if errorlevel 1 (
     echo cgen_closure.c missing function copy retain.
     exit /b 1
 )
-findstr /C:"long long value = ((add10.signature == " build\test\cgen_closure.c >nul
+findstr /C:"value = ((add10.signature == " build\test\cgen_closure.c >nul
 if errorlevel 1 (
     echo cgen_closure.c missing function signature guard.
     exit /b 1
@@ -3102,7 +3116,7 @@ if errorlevel 1 (
     echo cgen_function_bare_call.c missing erased function argument type check.
     exit /b 1
 )
-findstr /C:"xvalue value = xl6_function_call_var(add, 2" build\test\cgen_function_bare_call.c >nul
+findstr /C:"value = xl6_function_call_var(add, 2" build\test\cgen_function_bare_call.c >nul
 if errorlevel 1 (
     echo cgen_function_bare_call.c missing bare function call lowering.
     exit /b 1
@@ -3134,27 +3148,27 @@ if errorlevel 1 (
     echo cgen_function_named_value.c missing named function erased wrapper.
     exit /b 1
 )
-findstr /C:"XL6_Function typed = xl6_fnvalue_add_make();" build\test\cgen_function_named_value.c >nul
+findstr /C:"typed = xl6_fnvalue_add_make();" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing typed function value init.
     exit /b 1
 )
-findstr /C:"XL6_Function erased = xl6_fnvalue_add_make();" build\test\cgen_function_named_value.c >nul
+findstr /C:"erased = xl6_fnvalue_add_make();" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing bare function value init.
     exit /b 1
 )
-findstr /C:"XL6_Function oneDefault = xl6_fnvalue_addDefault_arity1_make();" build\test\cgen_function_named_value.c >nul
+findstr /C:"oneDefault = xl6_fnvalue_addDefault_arity1_make();" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing optional parameter function adapter.
     exit /b 1
 )
-findstr /C:"XL6_Function variadicDefault = xl6_fnvalue_totalDefault_arity0_vararg_make();" build\test\cgen_function_named_value.c >nul
+findstr /C:"variadicDefault = xl6_fnvalue_totalDefault_arity0_vararg_make();" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing optional vararg function adapter.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_function_named_value.c',[System.Text.Encoding]::UTF8); if($text.IndexOf('XL6_Function mixedPicker = (chooseMixedPicker ? xl6_function_copy_value(borrowedMixedPicker) : makePicker(200LL));') -lt 0 -or $text.IndexOf('XL6_Function __xl6_function_assign_') -lt 0 -or $text.IndexOf('= (chooseMixedPicker ? xl6_function_copy_value(borrowedMixedPicker) : makePicker(300LL));') -lt 0){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_function_named_value.c',[System.Text.Encoding]::UTF8); if($text.IndexOf('mixedPicker = (chooseMixedPicker ? xl6_function_copy_value(borrowedMixedPicker) : makePicker(200LL));') -lt 0 -or $text.IndexOf('XL6_Function __xl6_function_assign_') -lt 0 -or $text.IndexOf('= (chooseMixedPicker ? xl6_function_copy_value(borrowedMixedPicker) : makePicker(300LL));') -lt 0){ exit 1 }"
 if errorlevel 1 (
     echo cgen_function_named_value.c missing mixed conditional function value branch copy.
     exit /b 1
@@ -3328,12 +3342,12 @@ if errorlevel 1 (
     echo cgen_function_multi_return.c missing function multi-return struct.
     exit /b 1
 )
-findstr /C:"XL6_Function pairFn = xl6_fnvalue_pair_make();" build\test\cgen_function_multi_return.c >nul
+findstr /C:"pairFn = xl6_fnvalue_pair_make();" build\test\cgen_function_multi_return.c >nul
 if errorlevel 1 (
     echo cgen_function_multi_return.c missing multi-return named function value.
     exit /b 1
 )
-findstr /C:"XL6_Function defaultFn = xl6_fnvalue_pairDefault_arity1_make();" build\test\cgen_function_multi_return.c >nul
+findstr /C:"defaultFn = xl6_fnvalue_pairDefault_arity1_make();" build\test\cgen_function_multi_return.c >nul
 if errorlevel 1 (
     echo cgen_function_multi_return.c missing multi-return optional adapter.
     exit /b 1
@@ -3502,12 +3516,12 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing class assignment temporary.
     exit /b 1
 )
-findstr /C:"__xl6_class_field_recv_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"XL_Class_Payload __xl6_member_recv_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing class field receiver temporary.
     exit /b 1
 )
-findstr /C:"xl_class_Payload__destroy(&__xl6_class_field_recv_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"xl_class_Payload__destroy(&__xl6_member_recv_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing class field receiver cleanup.
     exit /b 1
@@ -3522,7 +3536,7 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing temporary receiver member function cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'tempFunctionFieldValue\s*=\s*0;\s*\{[\s\S]*?XL_Class_Payload\s+(__xl6_member_recv_\d+)\s*=\s*\{0\};[\s\S]*?XL6_Function\s+__xl6_member_fn_call_\d+\s*=\s*\1\.op;[\s\S]*?tempFunctionFieldValue\s*=[\s\S]*?xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long\s+(__xl6_global_init_\d+)\s*=\s*0;\s*\{[\s\S]*?XL_Class_Payload\s+(__xl6_member_recv_\d+)\s*=\s*\{0\};[\s\S]*?XL6_Function\s+__xl6_member_fn_call_\d+\s*=\s*\2\.op;[\s\S]*?\1\s*=[\s\S]*?xl_class_Payload__destroy\(&\2\);\s*\}\s*tempFunctionFieldValue\s*=\s*\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing statement-level cleanup for temporary receiver function-field call.
     exit /b 1
@@ -3646,7 +3660,7 @@ if errorlevel 1 (
     echo cgen_function_default.c missing function runtime.
     exit /b 1
 )
-findstr /C:"XL6_Function fn = {0};" build\test\cgen_function_default.c >nul
+findstr /C:"XL6_Function fn;" build\test\cgen_function_default.c >nul
 if errorlevel 1 (
     echo cgen_function_default.c missing function default init.
     exit /b 1
@@ -3670,17 +3684,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\call_defaults.xl --emit build\test\call_defaults.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long first = add(1LL, 1LL, 2LL);" build\test\call_defaults.c >nul
+findstr /C:"first = add(1LL, 1LL, 2LL);" build\test\call_defaults.c >nul
 if errorlevel 1 (
     echo call_defaults.c missing default arguments.
     exit /b 1
 )
-findstr /C:"long long second = add(1LL, 1LL, 4LL);" build\test\call_defaults.c >nul
+findstr /C:"second = add(1LL, 1LL, 4LL);" build\test\call_defaults.c >nul
 if errorlevel 1 (
     echo call_defaults.c missing named argument reorder.
     exit /b 1
 )
-findstr /C:"long long third = add(1LL, 2LL, 3LL);" build\test\call_defaults.c >nul
+findstr /C:"third = add(1LL, 2LL, 3LL);" build\test\call_defaults.c >nul
 if errorlevel 1 (
     echo call_defaults.c missing all named arguments.
     exit /b 1
@@ -4281,7 +4295,7 @@ if errorlevel 1 (
     echo stdlib_buffer.c missing Buffer class bridge.
     exit /b 1
 )
-findstr /C:"void* xrtBufferCreate" build\test\stdlib_buffer.c >nul
+findstr /C:"xbuffer xrtBufferCreate" build\test\stdlib_buffer.c >nul
 if errorlevel 1 (
     echo stdlib_buffer.c missing xrtBufferCreate extern prototype.
     exit /b 1

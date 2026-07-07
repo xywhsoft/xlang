@@ -12,27 +12,32 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_numeric_literals.xl --emit build\test\cgen_numeric_literals.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long dec = 1000000LL;" build\test\cgen_numeric_literals.c >nul
+findstr /C:"long long dec;" build\test\cgen_numeric_literals.c >nul
+if errorlevel 1 (
+    echo cgen_numeric_literals.c missing decimal global declaration.
+    exit /b 1
+)
+findstr /C:"dec = 1000000LL;" build\test\cgen_numeric_literals.c >nul
 if errorlevel 1 (
     echo cgen_numeric_literals.c missing decimal literal normalization.
     exit /b 1
 )
-findstr /C:"long long hexA = 42LL;" build\test\cgen_numeric_literals.c >nul
+findstr /C:"hexA = 42LL;" build\test\cgen_numeric_literals.c >nul
 if errorlevel 1 (
     echo cgen_numeric_literals.c missing hex literal normalization.
     exit /b 1
 )
-findstr /C:"long long octA = 42LL;" build\test\cgen_numeric_literals.c >nul
+findstr /C:"octA = 42LL;" build\test\cgen_numeric_literals.c >nul
 if errorlevel 1 (
     echo cgen_numeric_literals.c missing oct literal normalization.
     exit /b 1
 )
-findstr /C:"long long binA = 42LL;" build\test\cgen_numeric_literals.c >nul
+findstr /C:"binA = 42LL;" build\test\cgen_numeric_literals.c >nul
 if errorlevel 1 (
     echo cgen_numeric_literals.c missing bin literal normalization.
     exit /b 1
 )
-findstr /C:"double sci = 12.5e1;" build\test\cgen_numeric_literals.c >nul
+findstr /C:"sci = 12.5e1;" build\test\cgen_numeric_literals.c >nul
 if errorlevel 1 (
     echo cgen_numeric_literals.c missing float underscore normalization.
     exit /b 1
@@ -85,19 +90,34 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_case_sensitive.xl --emit build\test\cgen_case_sensitive.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long Name = 1LL;" build\test\cgen_case_sensitive.c >nul
+findstr /C:"long long Name;" build\test\cgen_case_sensitive.c >nul
 if errorlevel 1 (
     echo cgen_case_sensitive.c missing upper-case Name.
     exit /b 1
 )
-findstr /C:"long long name = 2LL;" build\test\cgen_case_sensitive.c >nul
+findstr /C:"Name = 1LL;" build\test\cgen_case_sensitive.c >nul
+if errorlevel 1 (
+    echo cgen_case_sensitive.c missing upper-case Name init.
+    exit /b 1
+)
+findstr /C:"long long name;" build\test\cgen_case_sensitive.c >nul
 if errorlevel 1 (
     echo cgen_case_sensitive.c missing lower-case name.
     exit /b 1
 )
-findstr /C:"long long NAME = 3LL;" build\test\cgen_case_sensitive.c >nul
+findstr /C:"name = 2LL;" build\test\cgen_case_sensitive.c >nul
+if errorlevel 1 (
+    echo cgen_case_sensitive.c missing lower-case name init.
+    exit /b 1
+)
+findstr /C:"long long NAME;" build\test\cgen_case_sensitive.c >nul
 if errorlevel 1 (
     echo cgen_case_sensitive.c missing all-caps NAME.
+    exit /b 1
+)
+findstr /C:"NAME = 3LL;" build\test\cgen_case_sensitive.c >nul
+if errorlevel 1 (
+    echo cgen_case_sensitive.c missing all-caps NAME init.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_case_sensitive.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_case_sensitive.exe
@@ -107,19 +127,34 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_context_keywords.xl --emit build\test\cgen_context_keywords.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long self = 1LL;" build\test\cgen_context_keywords.c >nul
+findstr /C:"long long self;" build\test\cgen_context_keywords.c >nul
 if errorlevel 1 (
     echo cgen_context_keywords.c missing ordinary self variable.
     exit /b 1
 )
-findstr /C:"long long base = 2LL;" build\test\cgen_context_keywords.c >nul
+findstr /C:"self = 1LL;" build\test\cgen_context_keywords.c >nul
+if errorlevel 1 (
+    echo cgen_context_keywords.c missing ordinary self init.
+    exit /b 1
+)
+findstr /C:"long long base;" build\test\cgen_context_keywords.c >nul
 if errorlevel 1 (
     echo cgen_context_keywords.c missing ordinary base variable.
     exit /b 1
 )
-findstr /C:"long long xl_kw_static = 8LL;" build\test\cgen_context_keywords.c >nul
+findstr /C:"base = 2LL;" build\test\cgen_context_keywords.c >nul
+if errorlevel 1 (
+    echo cgen_context_keywords.c missing ordinary base init.
+    exit /b 1
+)
+findstr /C:"long long xl_kw_static;" build\test\cgen_context_keywords.c >nul
 if errorlevel 1 (
     echo cgen_context_keywords.c missing escaped static context identifier.
+    exit /b 1
+)
+findstr /C:"xl_kw_static = 8LL;" build\test\cgen_context_keywords.c >nul
+if errorlevel 1 (
+    echo cgen_context_keywords.c missing escaped static context identifier init.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_context_keywords.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_context_keywords.exe
