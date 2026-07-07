@@ -6,7 +6,7 @@
 #include "src/ast/xl6_ast.h"
 
 #define XL6_STDLIB_CONST_COUNT 46
-#define XL6_STDLIB_FUNC_COUNT 723
+#define XL6_STDLIB_FUNC_COUNT 725
 
 typedef struct XL6_StdlibParam {
     const char* type;

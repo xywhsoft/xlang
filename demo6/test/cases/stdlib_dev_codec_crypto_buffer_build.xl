@@ -1,0 +1,12 @@
+assert codec.hexEncode("AB") == "4142", "codec.hexEncode should work in xl build"
+assert codec.hexDecode("4142") == "AB", "codec.hexDecode should work in xl build"
+assert codec.percentEncode("a b") == "a%20b", "codec.percentEncode should work in xl build"
+assert codec.percentDecode("a%20b") == "a b", "codec.percentDecode should work in xl build"
+
+assert string.len(crypto.sha256("AB")) == 64, "crypto.sha256 should work with codec symbols"
+
+Buffer buf = Buffer()
+assert buf.append("AB"), "Buffer.append should work in xl build"
+assert buf.appendByte(67), "Buffer.appendByte should work in xl build"
+assert buf.len() == 3, "Buffer.len should include text and byte appends"
+assert buf.text() == "ABC", "Buffer.text should expose appended bytes"

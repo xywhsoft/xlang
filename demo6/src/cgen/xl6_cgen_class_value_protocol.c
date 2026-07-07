@@ -148,6 +148,45 @@ static XL6_AstNode* xl6CgenPersistenceClassForType(XL6_CgenContext* ctx, const X
     return xl6CgenFindClass(ctx, concreteType->text);
 }
 
+static const XL6_AstNode* xl6CgenPersistenceContainerItemType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* args;
+    const char* name;
+
+    concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
+    name = concreteType != NULL ? concreteType->text : NULL;
+    if ( !xl6CTextEquals(name, "array") &&
+         !xl6CTextEquals(name, "list") &&
+         !xl6CTextEquals(name, "set") &&
+         !xl6CTextEquals(name, "dict") ) {
+        return NULL;
+    }
+    args = concreteType->childCount > 0 ? concreteType->children[0] : NULL;
+    return args != NULL && args->kind == XL6_AST_LIST && args->childCount == 1 ? args->children[0] : NULL;
+}
+
+static XL6_AstNode* xl6CgenPersistenceContainerItemClass(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* itemType;
+
+    itemType = xl6CgenPersistenceContainerItemType(ctx, typeNode);
+    return itemType != NULL ? xl6CgenPersistenceClassForType(ctx, itemType) : NULL;
+}
+
+static int xl6CgenPersistenceTypeIsTypedContainer(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    return xl6CgenPersistenceContainerItemType(ctx, typeNode) != NULL;
+}
+
+static int xl6CgenClassArrayAssignFromValueStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* valuePath,
+    const char* itemName,
+    const char* okName,
+    const char* format);
+
 static void xl6CgenEmitClassToValueSymbol(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
 {
     const XL6_AstNode* method;
@@ -230,6 +269,23 @@ static void xl6CgenClassValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeN
         xl6OutputPuts("))", ctx->out);
         return;
     }
+    if ( xl6CgenPersistenceTypeIsTypedContainer(ctx, concreteType) ) {
+        const XL6_AstNode* itemType = xl6CgenPersistenceContainerItemType(ctx, concreteType);
+        if ( xl6CTextEquals(concreteType->text, "array") ) {
+            xl6OutputPuts("xl6_xrt_typed_array_to_xvalue(", ctx->out);
+        } else if ( xl6CTextEquals(concreteType->text, "list") ) {
+            xl6OutputPuts("xl6_xrt_typed_list_to_xvalue(", ctx->out);
+        } else if ( xl6CTextEquals(concreteType->text, "set") ) {
+            xl6OutputPuts("xl6_xrt_typed_set_to_xvalue(", ctx->out);
+        } else {
+            xl6OutputPuts("xl6_xrt_typed_dict_to_xvalue(", ctx->out);
+        }
+        xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+        xl6OutputPuts(", ", ctx->out);
+        xl6OutputPuts(valuePath, ctx->out);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
     if ( xl6CgenIsXValueType(typeNode) ) {
         xl6OutputPuts("xvoCopy(", ctx->out);
         xl6OutputPuts(valuePath, ctx->out);
@@ -258,7 +314,8 @@ static void xl6CgenClassAssignFromValue(
     const XL6_AstNode* typeNode,
     const char* valuePath,
     const char* itemName,
-    const char* okName)
+    const char* okName,
+    const char* format)
 {
     const XL6_AstNode* concreteType;
     XL6_AstNode* classNode;
@@ -295,6 +352,9 @@ static void xl6CgenClassAssignFromValue(
     if ( xl6CTextEquals(concreteType->text, "point") ) {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = xvoGetPoint(%s);\n", valuePath, itemName);
+        return;
+    }
+    if ( xl6CgenClassArrayAssignFromValueStmt(ctx, concreteType, valuePath, itemName, okName, format) ) {
         return;
     }
     if ( xl6CgenIsXValueType(typeNode) ) {
@@ -451,6 +511,189 @@ static void xl6CgenClassPersistSetField(
     xl6OutputPuts("item = 0;\n", ctx->out);
 }
 
+static void xl6CgenEmitClassToValueForFormat(
+    XL6_CgenContext* ctx,
+    XL6_AstNode* classNode,
+    const char* format)
+{
+    if ( classNode != NULL && xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__toValue__") ) {
+        if ( xl6CTextEquals(format, "json") ) {
+            xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "json");
+        } else if ( xl6CTextEquals(format, "xson") ) {
+            xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, "xson");
+        } else {
+            xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, NULL);
+        }
+        return;
+    }
+    xl6CgenEmitClassToValueSymbol(ctx, classNode);
+}
+
+static int xl6CgenClassArrayValueStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* valuePath,
+    const char* itemName,
+    const char* format)
+{
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* itemType;
+    XL6_AstNode* itemClass;
+    int id;
+
+    concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
+    if ( concreteType == NULL || !xl6CTextEquals(concreteType->text, "array") ) {
+        return 0;
+    }
+    itemType = xl6CgenPersistenceContainerItemType(ctx, concreteType);
+    itemClass = xl6CgenPersistenceContainerItemClass(ctx, concreteType);
+    if ( itemType == NULL || itemClass == NULL ) {
+        return 0;
+    }
+
+    id = ctx->tempId++;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("{\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvalue __xl6_array_value_%d = xvoCreateArray();\n", id);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "unsigned int __xl6_array_count_%d = xrtTypedArrayCount(%s);\n", id, valuePath);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "unsigned int __xl6_array_i_%d;\n", id);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "for (__xl6_array_i_%d = 0; __xl6_array_i_%d < __xl6_array_count_%d; ++__xl6_array_i_%d) {\n",
+                    id, id, id, id);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts(xl6CgenTypeName(ctx, itemType), ctx->out);
+    xl6OutputPrintf(ctx->out, "* __xl6_array_item_%d = (", id);
+    xl6OutputPuts(xl6CgenTypeName(ctx, itemType), ctx->out);
+    xl6OutputPrintf(ctx->out, "*)xl6_xrt_typed_array_get_at(%s, __xl6_array_i_%d);\n", valuePath, id);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvalue __xl6_array_item_value_%d = __xl6_array_item_%d != 0 ? ", id, id);
+    xl6CgenEmitClassToValueForFormat(ctx, itemClass, format);
+    xl6OutputPrintf(ctx->out, "(__xl6_array_item_%d) : xvoCreateNull();\n", id);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out,
+                    "if ( !xvoArrayAppendValue(__xl6_array_value_%d, __xl6_array_item_value_%d, true) && __xl6_array_item_value_%d != 0 ) { xvoUnref(__xl6_array_item_value_%d); }\n",
+                    id, id, id, id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = __xl6_array_value_%d != 0 ? __xl6_array_value_%d : xvoCreateNull();\n", itemName, id, id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    return 1;
+}
+
+static void xl6CgenEmitClassFromValueForFormat(
+    XL6_CgenContext* ctx,
+    XL6_AstNode* classNode,
+    const char* format)
+{
+    if ( classNode != NULL && xl6CgenClassNeedsAutoValueProtocol(ctx, classNode, "__fromValue__") ) {
+        if ( xl6CTextEquals(format, "json") ) {
+            xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, "json");
+        } else if ( xl6CTextEquals(format, "xson") ) {
+            xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, "xson");
+        } else {
+            xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, NULL);
+        }
+        return;
+    }
+    xl6CgenEmitClassFromValueSymbol(ctx, classNode);
+}
+
+static int xl6CgenClassArrayAssignFromValueStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* valuePath,
+    const char* itemName,
+    const char* okName,
+    const char* format)
+{
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* itemType;
+    XL6_AstNode* itemClass;
+    int id;
+
+    concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
+    if ( concreteType == NULL || !xl6CTextEquals(concreteType->text, "array") ) {
+        return 0;
+    }
+    itemType = xl6CgenPersistenceContainerItemType(ctx, concreteType);
+    if ( itemType == NULL ) {
+        return 0;
+    }
+    itemClass = xl6CgenPersistenceContainerItemClass(ctx, concreteType);
+
+    id = ctx->tempId++;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("{\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtTypedArrayDestroy(%s); }\n", valuePath, valuePath);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = xrtTypedArrayCreate(", valuePath);
+    xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+    xl6OutputPuts(", XRT_OBJMODE_LOCAL);\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (%s == 0 || %s == 0 || xvoType(%s) != XL6_XVO_DT_ARRAY) {\n", valuePath, itemName, itemName);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = 0;\n", okName);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("} else {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "unsigned int __xl6_array_count_%d = xvoArrayItemCount(%s);\n", id, itemName);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "unsigned int __xl6_array_i_%d;\n", id);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "for (__xl6_array_i_%d = 0; __xl6_array_i_%d < __xl6_array_count_%d; ++__xl6_array_i_%d) {\n",
+                    id, id, id, id);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvalue __xl6_array_item_value_%d = xvoArrayGetValue(%s, __xl6_array_i_%d);\n", id, itemName, id);
+    if ( itemClass != NULL ) {
+        char elemName[64];
+        snprintf(elemName, sizeof(elemName), "__xl6_array_item_%d", id);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts(xl6CgenTypeName(ctx, itemType), ctx->out);
+        xl6OutputPrintf(ctx->out, " %s = {0};\n", elemName);
+        xl6CgenClassDefaultInitFields(ctx, itemClass, elemName);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("if (!", ctx->out);
+        xl6CgenEmitClassFromValueForFormat(ctx, itemClass, format);
+        xl6OutputPrintf(ctx->out, "(&%s, __xl6_array_item_value_%d)) { %s = 0; }\n", elemName, id, okName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (xrtTypedArrayAppend(%s, &%s) == 0) { %s = 0; }\n", valuePath, elemName, okName);
+        if ( xl6CgenClassNeedsDestroy(ctx, itemClass) ) {
+            xl6CgenIndent(ctx);
+            xl6CgenClassMemberSymbol(ctx->out, itemClass->text, "destroy");
+            xl6OutputPrintf(ctx->out, "(&%s);\n", elemName);
+        }
+    } else {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (!xrtTypedArrayAppendValue(%s, __xl6_array_item_value_%d)) { %s = 0; }\n",
+                        valuePath, id, okName);
+    }
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    return 1;
+}
+
 static void xl6CgenClassAutoToValueFormatProtocol(
     XL6_CgenContext* ctx,
     const XL6_AstNode* classNode,
@@ -509,10 +752,12 @@ static void xl6CgenClassAutoToValueFormatProtocol(
         }
         fieldType = member->children[0];
         xl6CgenClassFieldPath(fieldPath, sizeof(fieldPath), "self", 1, member->text);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("item = ", ctx->out);
-        xl6CgenClassValueExpr(ctx, fieldType, fieldPath);
-        xl6OutputPuts(";\n", ctx->out);
+        if ( !xl6CgenClassArrayValueStmt(ctx, fieldType, fieldPath, "item", format) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPuts("item = ", ctx->out);
+            xl6CgenClassValueExpr(ctx, fieldType, fieldPath);
+            xl6OutputPuts(";\n", ctx->out);
+        }
         xl6CgenClassPersistSetField(ctx, member, &cfg);
     }
 
@@ -598,7 +843,7 @@ static void xl6CgenClassAutoFromValueFormatProtocol(
         xl6CgenIndent(ctx);
         xl6OutputPuts("if ( item != 0 && !xvoIsNull(item) ) {\n", ctx->out);
         ctx->indent += 1;
-        xl6CgenClassAssignFromValue(ctx, fieldType, fieldPath, "item", "ok");
+        xl6CgenClassAssignFromValue(ctx, fieldType, fieldPath, "item", "ok", format);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);

@@ -1,0 +1,70 @@
+func firstInt(array<int> values) as int
+    return values[0]
+end
+
+func lenOf(array<int> values) as int
+    return values.length
+end
+
+func listFirst(list<string> values) as string
+    return string(values[0])
+end
+
+func readVarParam(var values) as float
+    return float(values[1])
+end
+
+func boxFloat() as var
+    return 1.5
+end
+
+class VarSlot
+    derive value
+    derive json
+
+    var value = null
+end
+
+list<string> g_asyncNames = list[0: "alpha", 1: "beta"]
+
+async func asyncReadGlobalList(int index) as string
+    var value = g_asyncNames[index]
+    return string(value)
+end
+
+array<int> ints = array[10, 20, 30]
+assert lenOf(ints) == 3, "typed array parameter should preserve length"
+assert firstInt(ints) == 10, "typed array parameter should preserve indexed values"
+
+list<string> names = list[0: "red", 1: "green"]
+assert listFirst(names) == "red", "typed list parameter should preserve indexed strings"
+
+array<float> floats = array[5.0, 3.25, 1.0]
+assert readVarParam(floats) == 3.25, "var parameter should accept typed array values"
+
+list<string> swapNames = list[0: "alpha", 1: "beta"]
+string saved = swapNames[0]
+swapNames[0] = swapNames[1]
+swapNames[1] = saved
+assert swapNames[0] == "beta", "list<string> swap should write second value into first slot"
+assert swapNames[1] == "alpha", "list<string> element read should copy, not alias internal storage"
+
+assert string.formatInt(-255, "X") == "-FF", "negative hex format should keep sign"
+assert string.formatInt(-9, "b") == "-1001", "negative binary format should keep sign"
+assert string.formatInt(-8, "o") == "-10", "negative octal format should keep sign"
+
+var boxed = boxFloat()
+assert float(boxed) == 1.5, "returning scalar expression from var function should box value"
+
+VarSlot slot
+slot.value = 2.5
+assert float(slot.value) == 2.5, "assigning scalar expression to var field should box value"
+
+var dynamic = json.parse("{}")
+dynamic["ratio"] = 0.75
+assert float(dynamic["ratio"]) == 0.75, "assigning scalar expression to var dict slot should box value"
+
+future<string> asyncValue = asyncReadGlobalList(1)
+assert asyncValue.wait(), "async read of global typed list should complete"
+assert await asyncValue == "beta", "async read of global typed list should preserve element value"
+

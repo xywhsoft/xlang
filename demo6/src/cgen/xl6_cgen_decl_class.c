@@ -123,7 +123,11 @@ static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typ
                 continue;
             }
             xl6OutputPuts("    ", ctx->out);
-            xl6OutputPuts(xl6CgenTypeName(ctx, member->children[0]), ctx->out);
+            if ( xl6CgenIsTypedContainerType(ctx, member->children[0]) ) {
+                xl6OutputPuts(xl6CgenTypedContainerCType(ctx, member->children[0]), ctx->out);
+            } else {
+                xl6OutputPuts(xl6CgenTypeName(ctx, member->children[0]), ctx->out);
+            }
             xl6OutputPutc(' ', ctx->out);
             xl6CgenFputsCIdent(ctx->out, member->text);
             xl6OutputPuts(";\n", ctx->out);
@@ -457,7 +461,11 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
                 continue;
             }
             xl6OutputPuts("    ", ctx->out);
-            xl6OutputPuts(xl6CgenTypeName(ctx, member->children[0]), ctx->out);
+            if ( xl6CgenIsTypedContainerType(ctx, member->children[0]) ) {
+                xl6OutputPuts(xl6CgenTypedContainerCType(ctx, member->children[0]), ctx->out);
+            } else {
+                xl6OutputPuts(xl6CgenTypeName(ctx, member->children[0]), ctx->out);
+            }
             xl6OutputPutc(' ', ctx->out);
             xl6CgenFputsCIdent(ctx->out, member->text);
             xl6OutputPuts(";\n", ctx->out);
@@ -603,13 +611,36 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
         }
         fieldType = member->children[0];
         initExpr = xl6CgenFieldDefaultExpr(member);
-        if ( initExpr == NULL ) {
-            continue;
-        }
         fieldCustom = fieldType != NULL ? xl6CgenFindNativeBackedClass(ctx, fieldType->text) : NULL;
         ctorCustom = NULL;
         fieldClass = fieldType != NULL ? xl6CgenFindClass(ctx, fieldType->text) : NULL;
         ctorClass = NULL;
+        snprintf(fieldPath, sizeof(fieldPath), "%s.", varPath);
+        xl6CgenCIdentText(fieldPath + strlen(fieldPath), sizeof(fieldPath) - strlen(fieldPath), member->text);
+        if ( xl6CgenIsTypedContainerType(ctx, fieldType) ) {
+            const XL6_AstNode* literal = xl6CgenTypedContainerInitLiteral(ctx, fieldType, initExpr);
+            int initByCopy = initExpr != NULL && literal == NULL && xl6CgenTypedContainerCanCopyFromExpr(ctx, fieldType, initExpr);
+            int initByMove = initExpr != NULL && literal == NULL && xl6CgenTypedContainerCanMoveFromExpr(ctx, fieldType, initExpr);
+
+            xl6CgenIndent(ctx);
+            xl6OutputPuts(fieldPath, ctx->out);
+            xl6OutputPuts(" = ", ctx->out);
+            if ( initByCopy ) {
+                xl6CgenTypedContainerCopyExpr(ctx, fieldType, initExpr);
+            } else if ( initByMove ) {
+                xl6CgenExpr(ctx, initExpr);
+            } else {
+                xl6CgenTypedContainerCreateExpr(ctx, fieldType);
+            }
+            xl6OutputPuts(";\n", ctx->out);
+            if ( !initByCopy && !initByMove ) {
+                xl6CgenTypedContainerFillFromLiteral(ctx, fieldPath, fieldType, initExpr);
+            }
+            continue;
+        }
+        if ( initExpr == NULL ) {
+            continue;
+        }
         if ( fieldCustom != NULL && xl6CgenCallIsNativeBackedCtor(ctx, initExpr, &ctorCustom) ) {
             if ( !xl6CTextEquals(fieldCustom->text, ctorCustom->text) ) {
                 xl6CgenError(ctx, initExpr, "native-backed class field initializer constructor type does not match field type");
@@ -629,8 +660,6 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
                 xl6CgenError(ctx, initExpr, "class field initializer constructor type does not match field type");
                 continue;
             }
-            snprintf(fieldPath, sizeof(fieldPath), "%s.", varPath);
-            xl6CgenCIdentText(fieldPath + strlen(fieldPath), sizeof(fieldPath) - strlen(fieldPath), member->text);
             xl6CgenEmitClassCtorInto(ctx, initExpr, fieldPath);
             continue;
         }

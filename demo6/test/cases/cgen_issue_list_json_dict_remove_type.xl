@@ -1,0 +1,13 @@
+list<string> names = list[0: "a", 1: "b", 2: "c"]
+assert json.stringify(names) == "[\"a\",\"b\",\"c\"]", "typed list should stringify as json array"
+
+var table = {}
+table["1"] = {"x": 1}
+table["2"] = {"x": 2}
+
+assert dict.remove(table, "2"), "dict.remove should report removed key"
+assert table.length == 1, "dict.remove should shrink table"
+assert json.stringify(table) == "{\"1\":{\"x\":1}}", "dict.remove should remove the key from json output"
+
+int64 value = 100
+assert string(type(value)) == "int64", "string(type(value)) should use type name"

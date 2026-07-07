@@ -1409,6 +1409,32 @@ static int xlcShellDoRun(XLC_Context* ctx, int argc, char** argv)
     return xlcRun(ctx, runArgCount, runArgs);
 }
 
+static int xlcShellRunRunCommand(int argc, char** argv)
+{
+    XLC_Context* ctx;
+    int ok;
+    int rc;
+
+    ctx = xlcShellCreateContext(argc, argv);
+    if ( ctx == NULL ) {
+        return 1;
+    }
+    if ( !xlcShellAddInputFile(ctx, xlcShellFileArg(argc, argv)) ) {
+        xlcDestroyContext(ctx);
+        return 1;
+    }
+    ok = xlcShellDoRun(ctx, argc, argv);
+    rc = ok ? xlcGetLastExitCode(ctx) : 1;
+    if ( !ok ) {
+        const char* errorText = xlcGetLastError(ctx);
+        if ( errorText != NULL && errorText[0] != '\0' ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "%s\n", errorText);
+        }
+    }
+    xlcDestroyContext(ctx);
+    return rc;
+}
+
 static int xlcShellRunC(int argc, char** argv)
 {
     XLC_Context* ctx;
@@ -1448,7 +1474,7 @@ static int xlcShellRunC(int argc, char** argv)
         }
     }
     xlcDestroyContext(ctx);
-    return ok ? 0 : 1;
+    return ok ? xlGetLastExitCode(runtime) : 1;
 }
 
 static int xlcShellCgenDumpDir(XLC_Context* ctx, const char* inputPath, const char* dumpDir)
@@ -1847,7 +1873,7 @@ int xlcShellMain(int argc, char** argv)
         if ( xlcShellIsCSourcePath(xlcShellFileArg(argc, argv)) ) {
             return xlcShellRunC(argc, argv);
         }
-        return xlcShellRunWithFile(argc, argv, xlcShellDoRun);
+        return xlcShellRunRunCommand(argc, argv);
     }
     if ( xlcShellTextEquals(cmd, "build") ) {
         if ( xlcShellIsCSourcePath(xlcShellFileArg(argc, argv)) ) {

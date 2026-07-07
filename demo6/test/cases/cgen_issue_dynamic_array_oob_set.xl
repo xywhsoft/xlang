@@ -1,0 +1,5 @@
+func main(...) as int
+    var values = []
+    values[0] = 10
+    return 0
+end

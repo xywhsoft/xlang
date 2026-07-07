@@ -98,6 +98,13 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
          xl6CgenExprStaticTypeIs(ctx, node->children[1], "string") ) {
         return 1;
     }
+    if ( (node->kind == XL6_AST_INDEX ||
+          node->kind == XL6_AST_SAFE_INDEX ||
+          node->kind == XL6_AST_MEMBER ||
+          node->kind == XL6_AST_SAFE_MEMBER) &&
+         xl6CgenExprStaticTypeIs(ctx, node, "string") ) {
+        return 1;
+    }
 
     if ( node->kind == XL6_AST_VAR_DECL || node->kind == XL6_AST_CONST_DECL ) {
         const XL6_AstNode* typeNode = node->childCount > 0 ? node->children[0] : NULL;
@@ -281,7 +288,7 @@ static int xl6CgenTypeConvertCallNeedsRuntime(XL6_CgenContext* ctx, const XL6_As
     } else if ( xl6CTextEquals(target, "string") &&
                 (xl6CgenIsIntegerTypeName(source) || xl6CgenIsFloatTypeName(source) ||
                  xl6CTextEquals(source, "time") || xl6CTextEquals(source, "point") ||
-                 xl6CTextEquals(source, "var")) ) {
+                 xl6CTextEquals(source, "type") || xl6CTextEquals(source, "var")) ) {
         result = 1;
     }
 

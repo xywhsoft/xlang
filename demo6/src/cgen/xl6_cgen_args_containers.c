@@ -580,6 +580,12 @@ static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* pa
     const XL6_AstNode* targetType;
 
     targetType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
+    if ( targetType != NULL &&
+         xl6CgenIsTypedContainerType(ctx, targetType) &&
+         xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
+        xl6CgenFputsCIdent(ctx->out, expr->text);
+        return;
+    }
     if ( targetType != NULL && xl6CgenIsXValueType(targetType) ) {
         xl6CgenXValueFromExprForTarget(ctx, targetType, expr);
         return;

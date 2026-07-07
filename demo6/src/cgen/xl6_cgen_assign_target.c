@@ -2,6 +2,7 @@ static int xl6CgenSimpleAssignTargetPath(const XL6_AstNode* left, char* buffer, 
 {
     char receiver[256];
     char field[256];
+    int written;
 
     if ( left == NULL || buffer == NULL || capacity == 0 ) {
         return 0;
@@ -10,20 +11,27 @@ static int xl6CgenSimpleAssignTargetPath(const XL6_AstNode* left, char* buffer, 
         xl6CgenCIdentText(buffer, capacity, left->text);
         return 1;
     }
-    if ( left->kind != XL6_AST_MEMBER || left->childCount == 0 || left->children[0] == NULL ||
-         left->children[0]->kind != XL6_AST_NAME ) {
+    if ( left->kind != XL6_AST_MEMBER || left->childCount == 0 || left->children[0] == NULL ) {
         return 0;
     }
 
     xl6CgenCIdentText(field, sizeof(field), left->text);
-    if ( xl6CTextEquals(left->children[0]->text, "self") ) {
-        snprintf(buffer, capacity, "self->%s", field);
-        return 1;
+    if ( left->children[0]->kind == XL6_AST_NAME ) {
+        if ( xl6CTextEquals(left->children[0]->text, "self") ) {
+            written = snprintf(buffer, capacity, "self->%s", field);
+            return written > 0 && (size_t)written < capacity;
+        }
+
+        xl6CgenCIdentText(receiver, sizeof(receiver), left->children[0]->text);
+        written = snprintf(buffer, capacity, "%s.%s", receiver, field);
+        return written > 0 && (size_t)written < capacity;
     }
 
-    xl6CgenCIdentText(receiver, sizeof(receiver), left->children[0]->text);
-    snprintf(buffer, capacity, "%s.%s", receiver, field);
-    return 1;
+    if ( !xl6CgenSimpleAssignTargetPath(left->children[0], receiver, sizeof(receiver)) ) {
+        return 0;
+    }
+    written = snprintf(buffer, capacity, "%s.%s", receiver, field);
+    return written > 0 && (size_t)written < capacity;
 }
 
 static int xl6CgenTryClassCtorAssignTarget(

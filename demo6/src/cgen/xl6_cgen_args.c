@@ -278,6 +278,7 @@ static int xl6CgenTypedContainerXValueFromExpr(XL6_CgenContext* ctx, const XL6_A
     const XL6_AstNode* typeNode;
     const XL6_AstNode* concreteType;
     const XL6_AstNode* itemType;
+    XL6_AstNode* itemClass;
     const char* typeName;
 
     if ( !xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
@@ -298,24 +299,46 @@ static int xl6CgenTypedContainerXValueFromExpr(XL6_CgenContext* ctx, const XL6_A
     }
 
     xl6OutputPuts("xl6_xrt_bind_type(", ctx->out);
-    if ( xl6CTextEquals(typeName, "array") ) {
+    itemClass = itemType != NULL && itemType->text != NULL ? xl6CgenFindClass(ctx, itemType->text) : NULL;
+    if ( xl6CTextEquals(typeName, "array") &&
+         itemClass != NULL &&
+         xl6CgenClassHasValueDerive(itemClass) ) {
+        xl6OutputPuts("xl6_xrt_typed_array_to_xvalue_map(", ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPuts(", (xl6_xrt_typed_item_box_fn)", ctx->out);
+        xl6CgenClassAutoToValueFormatSymbol(ctx->out, itemClass, NULL);
+        xl6OutputPutc(')', ctx->out);
+    } else if ( xl6CTextEquals(typeName, "array") ) {
         xl6OutputPuts("xl6_xrt_typed_array_to_xvalue(", ctx->out);
+        xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(typeName, "list") ) {
         xl6OutputPuts("xl6_xrt_typed_list_to_xvalue(", ctx->out);
+        xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(typeName, "set") ) {
         xl6OutputPuts("xl6_xrt_typed_set_to_xvalue(", ctx->out);
+        xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(typeName, "dict") ) {
         xl6OutputPuts("xl6_xrt_typed_dict_to_xvalue(", ctx->out);
+        xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPutc(')', ctx->out);
     } else {
         xl6CgenError(ctx, expr, "typed container boxing requires array/list/set/dict");
         xl6OutputPuts("xvoCreateNull()", ctx->out);
         xl6AstFree(rawTypeNode);
         return 1;
     }
-    xl6CgenEmitXrtTypeDescRef(ctx, itemType);
     xl6OutputPuts(", ", ctx->out);
-    xl6CgenExpr(ctx, expr);
-    xl6OutputPuts("), ", ctx->out);
     xl6CgenEmitRuntimeTypeDescRef(ctx, typeNode);
     xl6OutputPutc(')', ctx->out);
 
@@ -363,6 +386,10 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6OutputPuts("xvoCreatePoint((void*)(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("))", ctx->out);
+    } else if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "type") ) {
+        xl6OutputPuts("xvoCreateText((void*)xl6_xrt_type_name_from_id((unsigned long long)(", ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPuts(")), 0, false)", ctx->out);
     } else if ( typeNode != NULL &&
                 (xl6CTextEquals(typeNode->text, "float") || xl6CTextEquals(typeNode->text, "float32") ||
                  xl6CTextEquals(typeNode->text, "float64")) ) {
@@ -616,8 +643,21 @@ static int xl6CgenXValueBinaryMode(const char* op)
 
 static void xl6CgenXValueBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    xl6CgenError(ctx, node, "dynamic var binary expression requires statement-level lowering");
-    xl6OutputPuts("xvoCreateNull()", ctx->out);
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+
+    if ( node == NULL || node->childCount < 2 ) {
+        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        return;
+    }
+
+    left = node->children[0];
+    right = node->children[1];
+    xl6OutputPuts("xl6_xrt_basic_binary_release(", ctx->out);
+    xl6CgenXValueFromExpr(ctx, left);
+    xl6OutputPuts(", ", ctx->out);
+    xl6CgenXValueFromExpr(ctx, right);
+    xl6OutputPrintf(ctx->out, ", %d)", xl6CgenXValueBinaryMode(node->text));
 }
 static int xl6CgenUnaryIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
@@ -834,6 +874,10 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
             xl6OutputPutc('(', ctx->out);
             xl6CgenExpr(ctx, arg);
             xl6OutputPuts(" ? \"true\" : \"false\")", ctx->out);
+        } else if ( xl6CTextEquals(source, "type") ) {
+            xl6OutputPuts("xl6_xrt_type_name_from_id((unsigned long long)(", ctx->out);
+            xl6CgenExpr(ctx, arg);
+            xl6OutputPuts("))", ctx->out);
         } else if ( xl6CTextEquals(source, "time") ) {
             xl6OutputPuts("xl6_xrt_take_cstr((char*)xrtTimeToStr((long long)(", ctx->out);
             xl6CgenExpr(ctx, arg);

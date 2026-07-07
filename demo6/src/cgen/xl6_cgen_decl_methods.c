@@ -138,6 +138,11 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
         }
         xl6CgenCIdentText(cFieldName, sizeof(cFieldName), member->text);
         typeNode = member->children[0];
+        if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+            snprintf(path, sizeof(path), "self->%s", cFieldName);
+            xl6CgenTypedContainerFieldRef(ctx, typeNode, path, 0);
+            continue;
+        }
         if ( xl6CgenIsXValueType(typeNode) ) {
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "if (self->%s != 0) { xvoUnref(self->%s); self->%s = 0; }\n", cFieldName, cFieldName, cFieldName);

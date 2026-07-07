@@ -1,0 +1,9 @@
+func main(...) as int
+    if arg.length < 2 then
+        return 1
+    end
+    if string(arg[1]) != "milk" then
+        return 2
+    end
+    return 0
+end

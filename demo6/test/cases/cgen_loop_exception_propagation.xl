@@ -21,6 +21,8 @@ func loopThrow() as int
 end
 
 func main(...) as int
-    if loopThrow() != 112 then return 1
+    if loopThrow() != 112 then
+        return 1
+    end
     return 0
 end

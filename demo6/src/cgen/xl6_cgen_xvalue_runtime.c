@@ -67,6 +67,8 @@ static void xl6CgenEmitTypeConvertRuntime(XL6_Output* out)
     xl6OutputPuts("long long xrtStrToTime(const char* sTime, size_t iSize);\n", out);
     xl6OutputPuts("void* xrtTimeToStr(long long iTime, int iFormat);\n", out);
     xl6OutputPuts("void* xrtFormat(const void* sFormat, ...);\n\n", out);
+    xl6OutputPuts("void* xrtHexEncode(void* pMem, size_t iSize);\n", out);
+    xl6OutputPuts("void* xrtBase64Encode(void* pMem, size_t iSize, const char* sTable);\n\n", out);
     xl6OutputPuts("int xvoType(xvalue pVal);\n", out);
     xl6OutputPuts("bool xvoGetBool(xvalue pVal);\n", out);
     xl6OutputPuts("long long xvoGetInt(xvalue pVal);\n", out);
@@ -100,6 +102,16 @@ static void xl6CgenEmitTypeConvertRuntime(XL6_Output* out)
     xl6OutputPuts("        xrtFree(value);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return text;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_hex_encode_text(const char* text, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtHexEncode((void*)text, size);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_base64_encode_text(const char* text, size_t size, void* table)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtBase64Encode((void*)text, size, (const char*)table);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static const char* xl6_xrt_i64_to_string(long long value)\n", out);
@@ -271,6 +283,9 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("#define XL6_XRT_HANDLE_FLAG_NULLABLE 0x00000004u\n", out);
     xl6OutputPuts("#ifndef XRT_OBJMODE_LOCAL\n", out);
     xl6OutputPuts("#define XRT_OBJMODE_LOCAL 0u\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("#ifndef XRT_OBJMODE_SHARED\n", out);
+    xl6OutputPuts("#define XRT_OBJMODE_SHARED 1u\n", out);
     xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("typedef void* xlist;\n", out);
     xl6OutputPuts("typedef void* xdict;\n", out);
@@ -600,6 +615,40 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("    return hash;\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("static const char* xl6_xrt_type_name_from_id(unsigned long long typeId)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned int low = (unsigned int)typeId;\n", out);
+    xl6OutputPuts("#define XL6_XRT_MATCH_TYPE_NAME(name, size) if ( low == (unsigned int)xl6_xrt_type_name_id(name, size) ) { return name; }\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"null\", 4)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"bool\", 4)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"int\", 3)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"int8\", 4)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"uint8\", 5)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"int16\", 5)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"uint16\", 6)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"int32\", 5)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"uint32\", 6)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"int64\", 5)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"uint64\", 6)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"float\", 5)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"float32\", 7)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"float64\", 7)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"string\", 6)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"time\", 4)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"point\", 5)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"func\", 4)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"function\", 8)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"array\", 5)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"list\", 4)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"set\", 3)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"dict\", 4)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"type\", 4)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"object\", 6)\n", out);
+    xl6OutputPuts("    XL6_XRT_MATCH_TYPE_NAME(\"var\", 3)\n", out);
+    xl6OutputPuts("#undef XL6_XRT_MATCH_TYPE_NAME\n", out);
+    xl6OutputPuts("    return \"unknown\";\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("static xvalue xl6_xrt_bind_type(xvalue value, const xrt_type_desc* desc)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( value != 0 && desc != 0 ) {\n", out);
@@ -866,6 +915,8 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("typedef xvalue (*xl6_xrt_typed_item_box_fn)(void* item);\n\n", out);
+
     xl6OutputPuts("static void* xl6_xrt_typed_require_item(void* item)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( item == 0 ) {\n", out);
@@ -877,6 +928,24 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("static void* xl6_xrt_typed_array_get_at(xtarray values, unsigned int index)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xrtTypedArrayGet(values, index + 1u);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static xvalue xl6_xrt_typed_array_to_xvalue_map(xtarray values, xl6_xrt_typed_item_box_fn box)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xvalue result = xvoCreateArray();\n", out);
+    xl6OutputPuts("    unsigned int count = xrtTypedArrayCount(values);\n", out);
+    xl6OutputPuts("    unsigned int i;\n", out);
+    xl6OutputPuts("    if ( result == 0 ) {\n", out);
+    xl6OutputPuts("        return xvoCreateNull();\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
+    xl6OutputPuts("        void* rawItem = xl6_xrt_typed_array_get_at(values, i);\n", out);
+    xl6OutputPuts("        xvalue item = rawItem != 0 && box != 0 ? box(rawItem) : xvoCreateNull();\n", out);
+    xl6OutputPuts("        if ( !xvoArrayAppendValue(result, item, true) && item != 0 ) {\n", out);
+    xl6OutputPuts("            xvoUnref(item);\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static bool xl6_xrt_typed_array_set_at(xtarray values, unsigned int index, xvalue value)\n", out);

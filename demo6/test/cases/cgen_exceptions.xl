@@ -105,11 +105,23 @@ func assertTrueDoesNothing() as int
 end
 
 func main(...) as int
-    if catchThrow() != 15 then return 1
-    if catchAssert() != 3 then return 2
-    if rethrowKeepsOriginal() != 11 then return 3
-    if finallyWithoutCatchNormal() != 11 then return 4
-    if finallyWithoutCatchThrows() != 111 then return 5
-    if assertTrueDoesNothing() != 2 then return 6
+    if catchThrow() != 15 then
+        return 1
+    end
+    if catchAssert() != 3 then
+        return 2
+    end
+    if rethrowKeepsOriginal() != 11 then
+        return 3
+    end
+    if finallyWithoutCatchNormal() != 11 then
+        return 4
+    end
+    if finallyWithoutCatchThrows() != 111 then
+        return 5
+    end
+    if assertTrueDoesNothing() != 2 then
+        return 6
+    end
     return 0
 end

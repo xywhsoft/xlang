@@ -136,6 +136,7 @@ struct XL_Context {
     char* tccLibtcc1Path;
     int saveTemps;
     char* lastError;
+    int lastExitCode;
     XL_StringList includePaths;
     XL_StringList libraryPaths;
     XL_StringList linkLibraries;
@@ -201,6 +202,7 @@ XL_API XL_Module* xlcRelocateModule(XLC_Context* ctx);
 XL_API int xlcRun(XLC_Context* ctx, int argc, char** argv);
 XL_API const char* xlcGetLastError(XLC_Context* ctx);
 XL_API void xlcClearLastError(XLC_Context* ctx);
+XL_API int xlcGetLastExitCode(XLC_Context* ctx);
 #endif
 
 typedef struct XL_CwdScope {
@@ -1208,7 +1210,8 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
          !xlAddTccSymbol(s, "xlModuleGetSymbol", (const void*)xlModuleGetSymbol) ||
          !xlAddTccSymbol(s, "xlDestroyModule", (const void*)xlDestroyModule) ||
          !xlAddTccSymbol(s, "xlGetLastError", (const void*)xlGetLastError) ||
-         !xlAddTccSymbol(s, "xlClearLastError", (const void*)xlClearLastError) ) {
+         !xlAddTccSymbol(s, "xlClearLastError", (const void*)xlClearLastError) ||
+         !xlAddTccSymbol(s, "xlGetLastExitCode", (const void*)xlGetLastExitCode) ) {
         return 0;
     }
     if ( !xlAddTccSymbol(s, "xlTccRegisterXrtEnvironment", (const void*)xlTccRegisterXrtEnvironment) ) {
@@ -1251,6 +1254,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
          !xlAddTccSymbol(s, "xlcRun", (const void*)xlcRun) ||
          !xlAddTccSymbol(s, "xlcGetLastError", (const void*)xlcGetLastError) ||
          !xlAddTccSymbol(s, "xlcClearLastError", (const void*)xlcClearLastError) ||
+         !xlAddTccSymbol(s, "xlcGetLastExitCode", (const void*)xlcGetLastExitCode) ||
          !xlAddTccSymbol(s, "xlcEmitSharedLibrary", (const void*)xlcEmitSharedLibrary) ) {
         return 0;
     }
@@ -2933,12 +2937,8 @@ static int xlRunMainInState(XL_Context* ctx, TCCState* state, int argc, char** a
         return 0;
     }
     rc = entry(argc > 0 ? argc : 0, argv);
-    if ( rc != 0 ) {
-        char text[128];
-        snprintf(text, sizeof(text), "%s %d", returnPrefix != NULL ? returnPrefix : "main returned", rc);
-        xlSetError(ctx, text);
-        return 0;
-    }
+    ctx->lastExitCode = rc;
+    (void)returnPrefix;
     return 1;
 }
 
@@ -3058,12 +3058,7 @@ static int xlCompileAndRunUnit(XL_Context* ctx, XL6_CompileUnit* unit, xvalue su
     if ( xlCheckScriptActiveError(ctx, s) ) {
         goto cleanup;
     }
-    if ( rc != 0 ) {
-        char text[128];
-        snprintf(text, sizeof(text), "script returned %d", rc);
-        xlSetError(ctx, text);
-        goto cleanup;
-    }
+    ctx->lastExitCode = rc;
     ok = 1;
 
 cleanup:
@@ -3125,8 +3120,6 @@ static int xlCompileUnitToExternalOutputWithC(
     if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_MODULE_C, cText, "TCC compile failed") ) {
         goto cleanup;
     }
-    xrtFree(cText);
-    cText = NULL;
     xlAddDefaultTccRuntime(s, ctx);
     for ( i = 0; i < unit->importDeps.cSources.count; ++i ) {
         if ( xl__tcc.tcc_add_file(s, unit->importDeps.cSources.items[i]) != 0 ) {
@@ -3148,7 +3141,7 @@ static int xlCompileUnitToExternalOutputWithC(
     if ( !xlAddEmbeddedXlangRuntimeSources(ctx, s, unit) ) {
         goto cleanup;
     }
-    if ( !xl6XrtTrimBuildImplementationSource(unit->parse.root, &unit->importDeps, &xrtText) ) {
+    if ( !xl6XrtTrimBuildImplementationSourceWithGeneratedSource(unit->parse.root, &unit->importDeps, cText, &xrtText) ) {
         xlSetError(ctx, "cannot generate XRT implementation source");
         goto cleanup;
     }
@@ -3322,6 +3315,7 @@ static void xlClearLastErrorUnlocked(XL_Context* ctx)
     }
     xrtFree(ctx->lastError);
     ctx->lastError = NULL;
+    ctx->lastExitCode = 0;
 }
 
 static int xlRuntimeRefTotal(void)
@@ -3653,12 +3647,7 @@ static int xlRunModuleMainUnlocked(XL_Context* ctx, XL_Module* module, xvalue su
     if ( xlCheckScriptActiveError(ctx, module->state) ) {
         return 0;
     }
-    if ( rc != 0 ) {
-        char text[128];
-        snprintf(text, sizeof(text), "script returned %d", rc);
-        xlSetError(ctx, text);
-        return 0;
-    }
+    ctx->lastExitCode = rc;
     return 1;
 }
 
@@ -5215,6 +5204,11 @@ XL_API void xlcClearLastError(XLC_Context* ctx)
         xlClearLastError(ctx->runtime);
     }
 }
+
+XL_API int xlcGetLastExitCode(XLC_Context* ctx)
+{
+    return ctx != NULL ? xlGetLastExitCode(ctx->runtime) : 0;
+}
 #endif
 
 const char* xlGetLastError(XL_Context* ctx)
@@ -5233,4 +5227,9 @@ void xlClearLastError(XL_Context* ctx)
     xlApiLock();
     xlClearLastErrorUnlocked(ctx);
     xlApiUnlock();
+}
+
+int xlGetLastExitCode(XL_Context* ctx)
+{
+    return ctx != NULL ? ctx->lastExitCode : 0;
 }
