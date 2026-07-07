@@ -260,15 +260,15 @@ class Client
 	end
 end
 
-func last_error() as string
+export func last_error() as string
 	return volc.core.last_error()
 end
 
-func available() as bool
+export func available() as bool
 	return string.len(volc.core.version()) > 0
 end
 
-func version() as string
+export func version() as string
 	return "0.1.0"
 end
 
@@ -289,89 +289,89 @@ func phone_request_acep_spec(string spec) as string
 	return volc.core.request_acep_spec(spec)
 end
 
-func call_spec(string spec) as Response
+export func call_spec(string spec) as Response
 	return normalize_response("ACEP", phone_request_acep_spec(spec))
 end
 
-func raw_spec(string spec) as string
+export func raw_spec(string spec) as string
 	return phone_request_acep_spec(spec)
 end
 
-func client(string access_key, string secret_key, string product_id) as Client
+export func client(string access_key, string secret_key, string product_id) as Client
 	return Client(access_key, secret_key, product_id)
 end
 
-func client_token(string access_key, string secret_key, string session_token, string product_id) as Client
+export func client_token(string access_key, string secret_key, string session_token, string product_id) as Client
 	return Client(access_key, secret_key, session_token, product_id)
 end
 
-func raw_call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
+export func raw_call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
 	string spec = "action=" + action + "\nversion=" + version + "\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + body + "\ntimeout_ms=" + string.formatInt(timeout_ms, "")
 	return phone_request_acep_spec(spec)
 end
 
-func call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
+export func call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
 	return raw_call(access_key, secret_key, session_token, action, version, body, timeout_ms)
 end
 
-func call_default(string access_key, string secret_key, string session_token, string action, string body, int timeout_ms) as string
+export func call_default(string access_key, string secret_key, string session_token, string action, string body, int timeout_ms) as string
 	return raw_call(access_key, secret_key, session_token, action, "2023-10-30", body, timeout_ms)
 end
 
-func product_body(string product_id) as string
+export func product_body(string product_id) as string
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + "}"
 end
 
-func pod_body(string product_id, string pod_id) as string
+export func pod_body(string product_id, string pod_id) as string
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"PodId\":" + volc.core.json_string(pod_id) + "}"
 end
 
-func create_pod_body(string product_id, string dc, string configuration_code, int resource_type, string host_id, string pod_name, string display_layout_id, bool start) as string
+export func create_pod_body(string product_id, string dc, string configuration_code, int resource_type, string host_id, string pod_name, string display_layout_id, bool start) as string
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"ResourceType\":" + string.formatInt(resource_type, "") + ",\"PodName\":" + volc.core.json_string(pod_name) + ",\"HostId\":" + volc.core.json_string(host_id) + ",\"ConfigurationCode\":" + volc.core.json_string(configuration_code) + ",\"Dc\":" + volc.core.json_string(dc) + ",\"DisplayLayoutId\":" + volc.core.json_string(display_layout_id) + ",\"UpBandwidthLimit\":0,\"DownBandwidthLimit\":0,\"Start\":" + bool_text(start) + "}"
 end
 
-func create_pod_batch_body(string product_id, string dc, string configuration_code, int apply_num, int resource_type, string host_id, string pod_name, string display_layout_id, bool start) as string
+export func create_pod_batch_body(string product_id, string dc, string configuration_code, int apply_num, int resource_type, string host_id, string pod_name, string display_layout_id, bool start) as string
 	string spec = "{\"ApplyNum\":" + string.formatInt(apply_num, "") + ",\"Dc\":" + volc.core.json_string(dc) + ",\"ConfigurationCode\":" + volc.core.json_string(configuration_code) + ",\"HostId\":" + volc.core.json_string(host_id) + ",\"PodName\":" + volc.core.json_string(pod_name) + ",\"DisplayLayoutId\":" + volc.core.json_string(display_layout_id) + ",\"UpBandwidthLimit\":0,\"DownBandwidthLimit\":0,\"Start\":" + bool_text(start) + "}"
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"ResourceType\":" + string.formatInt(resource_type, "") + ",\"PodSpecList\":[" + spec + "]}"
 end
 
-func pod_adb_body(string product_id, string pod_id, bool enable) as string
+export func pod_adb_body(string product_id, string pod_id, bool enable) as string
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"PodId\":" + volc.core.json_string(pod_id) + ",\"Enable\":" + bool_text(enable) + "}"
 end
 
-func command_body(string product_id, string pod_id, string command) as string
+export func command_body(string product_id, string pod_id, string command) as string
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"PodId\":" + volc.core.json_string(pod_id) + ",\"Command\":" + volc.core.json_string(command) + "}"
 end
 
-func app_body(string product_id, string pod_id, string package_name) as string
+export func app_body(string product_id, string pod_id, string package_name) as string
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"PodId\":" + volc.core.json_string(pod_id) + ",\"PackageName\":" + volc.core.json_string(package_name) + "}"
 end
 
-func install_app_body(string product_id, string pod_id, string app_id, string version_id) as string
+export func install_app_body(string product_id, string pod_id, string app_id, string version_id) as string
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"PodIdList\":[" + volc.core.json_string(pod_id) + "],\"AppId\":" + volc.core.json_string(app_id) + ",\"VersionId\":" + volc.core.json_string(version_id) + "}"
 end
 
-func screenshot_body(string product_id, string pod_id, string round_id) as string
+export func screenshot_body(string product_id, string pod_id, string round_id) as string
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"PodId\":" + volc.core.json_string(pod_id) + ",\"RoundId\":" + volc.core.json_string(round_id) + "}"
 end
 
-func batch_screenshot_body(string product_id, string pod_id_list_json, string round_id) as string
+export func batch_screenshot_body(string product_id, string pod_id_list_json, string round_id) as string
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"PodIdList\":" + pod_id_list_json + ",\"RoundId\":" + volc.core.json_string(round_id) + "}"
 end
 
-func recording_body(string product_id, string pod_id, string round_id, int duration_limit, bool saved_on_pod) as string
+export func recording_body(string product_id, string pod_id, string round_id, int duration_limit, bool saved_on_pod) as string
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"PodId\":" + volc.core.json_string(pod_id) + ",\"RoundId\":" + volc.core.json_string(round_id) + ",\"DurationLimit\":" + string.formatInt(duration_limit, "") + ",\"IsSavedOnPod\":" + bool_text(saved_on_pod) + "}"
 end
 
-func file_body(string product_id, string pod_id, string local_path, string remote_path) as string
+export func file_body(string product_id, string pod_id, string local_path, string remote_path) as string
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"PodId\":" + volc.core.json_string(pod_id) + ",\"LocalPath\":" + volc.core.json_string(local_path) + ",\"RemotePath\":" + volc.core.json_string(remote_path) + "}"
 end
 
-func pull_file_body(string product_id, string pod_id, string remote_path, string local_path) as string
+export func pull_file_body(string product_id, string pod_id, string remote_path, string local_path) as string
 	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"PodId\":" + volc.core.json_string(pod_id) + ",\"RemotePath\":" + volc.core.json_string(remote_path) + ",\"LocalPath\":" + volc.core.json_string(local_path) + "}"
 end
 
-func normalize_response(string action, string raw) as Response
+export func normalize_response(string action, string raw) as Response
 	int status = volc.core.last_status()
 	if raw == "" then
 		return Response(false, action, status, "", "transport_error", 0, volc.core.last_error(), "", raw)
@@ -387,12 +387,12 @@ func normalize_response(string action, string raw) as Response
 	return Response(ok_value, action, status, request_id, code_value, code_n_value, message_value, json_section(raw, "Result"), raw)
 end
 
-func response_json(string action, string raw) as string
+export func response_json(string action, string raw) as string
 	Response response = normalize_response(action, raw)
 	return response.to_json()
 end
 
-func json_string_field(string raw, string key) as string
+export func json_string_field(string raw, string key) as string
 	string pattern = "\"" + key + "\":\""
 	int start = string.indexOf(raw, pattern)
 	if start < 0 then
@@ -411,7 +411,7 @@ func json_string_field(string raw, string key) as string
 	return x_volc_phone_substr(rest, 0, end_pos)
 end
 
-func json_int_field(string raw, string key) as int
+export func json_int_field(string raw, string key) as int
 	string pattern = "\"" + key + "\":"
 	int start = string.indexOf(raw, pattern)
 	if start < 0 then
@@ -426,7 +426,7 @@ func json_int_field(string raw, string key) as int
 	return int(rest)
 end
 
-func json_section(string raw, string key) as string
+export func json_section(string raw, string key) as string
 	string pattern = "\"" + key + "\":"
 	int start = string.indexOf(raw, pattern)
 	if start < 0 then
@@ -441,76 +441,76 @@ func json_section(string raw, string key) as string
 	return rest
 end
 
-func list_pod(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
+export func list_pod(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
 	string spec = "action=ListPod\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.formatInt(timeout_ms, "")
 	return phone_request_acep_spec(spec)
 end
 
-func list_host(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
+export func list_host(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
 	string spec = "action=ListHost\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.formatInt(timeout_ms, "")
 	return phone_request_acep_spec(spec)
 end
 
-func list_dc(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
+export func list_dc(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
 	string spec = "action=ListDc\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.formatInt(timeout_ms, "")
 	return phone_request_acep_spec(spec)
 end
 
-func detail_pod(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+export func detail_pod(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "DetailPod", pod_body(product_id, pod_id), timeout_ms)
 end
 
-func detail_host(string access_key, string secret_key, string session_token, string product_id, string host_id, int timeout_ms) as string
+export func detail_host(string access_key, string secret_key, string session_token, string product_id, string host_id, int timeout_ms) as string
 	string body = "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"HostId\":" + volc.core.json_string(host_id) + "}"
 	return call_default(access_key, secret_key, session_token, "DetailHost", body, timeout_ms)
 end
 
-func create_pod(string access_key, string secret_key, string session_token, string product_id, string dc, string configuration_code, int resource_type, string host_id, string pod_name, string display_layout_id, bool start, int timeout_ms) as string
+export func create_pod(string access_key, string secret_key, string session_token, string product_id, string dc, string configuration_code, int resource_type, string host_id, string pod_name, string display_layout_id, bool start, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "CreatePod", create_pod_body(product_id, dc, configuration_code, resource_type, host_id, pod_name, display_layout_id, start), timeout_ms)
 end
 
-func create_pod_batch(string access_key, string secret_key, string session_token, string product_id, string dc, string configuration_code, int apply_num, int resource_type, string host_id, string pod_name, string display_layout_id, bool start, int timeout_ms) as string
+export func create_pod_batch(string access_key, string secret_key, string session_token, string product_id, string dc, string configuration_code, int apply_num, int resource_type, string host_id, string pod_name, string display_layout_id, bool start, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "CreatePod", create_pod_batch_body(product_id, dc, configuration_code, apply_num, resource_type, host_id, pod_name, display_layout_id, start), timeout_ms)
 end
 
-func power_on(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+export func power_on(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "PowerOnPod", pod_body(product_id, pod_id), timeout_ms)
 end
 
-func power_off(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+export func power_off(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "PowerOffPod", pod_body(product_id, pod_id), timeout_ms)
 end
 
-func reboot(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+export func reboot(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "RebootPod", pod_body(product_id, pod_id), timeout_ms)
 end
 
-func reset(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+export func reset(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "ResetPod", pod_body(product_id, pod_id), timeout_ms)
 end
 
-func delete_pod(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+export func delete_pod(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "DeletePod", pod_body(product_id, pod_id), timeout_ms)
 end
 
-func pod_adb(string access_key, string secret_key, string session_token, string product_id, string pod_id, bool enable, int timeout_ms) as string
+export func pod_adb(string access_key, string secret_key, string session_token, string product_id, string pod_id, bool enable, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "PodAdb", pod_adb_body(product_id, pod_id, enable), timeout_ms)
 end
 
-func run_sync_command(string access_key, string secret_key, string session_token, string product_id, string pod_id, string command, int timeout_ms) as string
+export func run_sync_command(string access_key, string secret_key, string session_token, string product_id, string pod_id, string command, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "RunSyncCommand", command_body(product_id, pod_id, command), timeout_ms)
 end
 
-func run_command(string access_key, string secret_key, string session_token, string product_id, string pod_id, string command, int timeout_ms) as string
+export func run_command(string access_key, string secret_key, string session_token, string product_id, string pod_id, string command, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "RunCommand", command_body(product_id, pod_id, command), timeout_ms)
 end
 
-func get_task_info(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms) as string
+export func get_task_info(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms) as string
 	string body = "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"TaskId\":" + volc.core.json_string(task_id) + "}"
 	return call_default(access_key, secret_key, session_token, "GetTaskInfo", body, timeout_ms)
 end
 
-func task_state(string task_info_json) as string
+export func task_state(string task_info_json) as string
 	if string.contains(task_info_json, "\"TaskResult\":100") or string.contains(task_info_json, "\"TaskResult\": 100") then
 		return "success"
 	end
@@ -523,7 +523,7 @@ func task_state(string task_info_json) as string
 	return "unknown"
 end
 
-func wait_task(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms, int poll_interval_ms) as string
+export func wait_task(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms, int poll_interval_ms) as string
 	if timeout_ms <= 0 then
 		return get_task_info(access_key, secret_key, session_token, product_id, task_id, timeout_ms)
 	end
@@ -544,35 +544,35 @@ func wait_task(string access_key, string secret_key, string session_token, strin
 	return get_task_info(access_key, secret_key, session_token, product_id, task_id, interval)
 end
 
-func install_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string app_id, string version_id, int timeout_ms) as string
+export func install_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string app_id, string version_id, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "InstallApp", install_app_body(product_id, pod_id, app_id, version_id), timeout_ms)
 end
 
-func launch_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string package_name, int timeout_ms) as string
+export func launch_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string package_name, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "LaunchApp", app_body(product_id, pod_id, package_name), timeout_ms)
 end
 
-func close_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string package_name, int timeout_ms) as string
+export func close_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string package_name, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "CloseApp", app_body(product_id, pod_id, package_name), timeout_ms)
 end
 
-func screenshot(string access_key, string secret_key, string session_token, string product_id, string pod_id, string round_id, int timeout_ms) as string
+export func screenshot(string access_key, string secret_key, string session_token, string product_id, string pod_id, string round_id, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "ScreenShot", screenshot_body(product_id, pod_id, round_id), timeout_ms)
 end
 
-func batch_screenshot(string access_key, string secret_key, string session_token, string product_id, string pod_id_list_json, string round_id, int timeout_ms) as string
+export func batch_screenshot(string access_key, string secret_key, string session_token, string product_id, string pod_id_list_json, string round_id, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "BatchScreenShot", batch_screenshot_body(product_id, pod_id_list_json, round_id), timeout_ms)
 end
 
-func start_recording(string access_key, string secret_key, string session_token, string product_id, string pod_id, string round_id, int duration_limit, bool saved_on_pod, int timeout_ms) as string
+export func start_recording(string access_key, string secret_key, string session_token, string product_id, string pod_id, string round_id, int duration_limit, bool saved_on_pod, int timeout_ms) as string
 	return call(access_key, secret_key, session_token, "StartRecording", "2025-05-01", recording_body(product_id, pod_id, round_id, duration_limit, saved_on_pod), timeout_ms)
 end
 
-func stop_recording(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
+export func stop_recording(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
 	return call(access_key, secret_key, session_token, "StopRecording", "2025-05-01", pod_body(product_id, pod_id), timeout_ms)
 end
 
-func recording_download_url(string raw) as string
+export func recording_download_url(string raw) as string
 	string value = json_string_field(raw, "DownloadUrl")
 	if value != "" then
 		return value
@@ -632,263 +632,85 @@ func recording_download_url(string raw) as string
 	return json_string_field(raw, "URL")
 end
 
-func pod_adb_endpoint(string detail_pod_json) as string
+export func pod_adb_endpoint(string detail_pod_json) as string
 	if json_int_field(detail_pod_json, "AdbStatus") != 1 then
 		return ""
 	end
 	return json_string_field(detail_pod_json, "Adb")
 end
 
-func pod_run_state(string detail_pod_json) as int
+export func pod_run_state(string detail_pod_json) as int
 	return json_int_field(detail_pod_json, "Online")
 end
 
-func host_remain_text(string detail_host_json) as string
+export func host_remain_text(string detail_host_json) as string
 	int available = json_int_field(detail_host_json, "PodNumAvailable")
 	int on_host = json_int_field(detail_host_json, "PodNumOnHost")
 	return string.formatInt(on_host, "") + "," + string.formatInt(available - on_host, "")
 end
 
-func push_file(string access_key, string secret_key, string session_token, string product_id, string pod_id, string local_path, string remote_path, int timeout_ms) as string
+export func push_file(string access_key, string secret_key, string session_token, string product_id, string pod_id, string local_path, string remote_path, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "PushFile", file_body(product_id, pod_id, local_path, remote_path), timeout_ms)
 end
 
-func pull_file(string access_key, string secret_key, string session_token, string product_id, string pod_id, string remote_path, string local_path, int timeout_ms) as string
+export func pull_file(string access_key, string secret_key, string session_token, string product_id, string pod_id, string remote_path, string local_path, int timeout_ms) as string
 	return call_default(access_key, secret_key, session_token, "PullFile", pull_file_body(product_id, pod_id, remote_path, local_path), timeout_ms)
 end
 
-func __xl6_import_volc_phone_last_error() as string
-	return last_error()
-end
 
-func __xl6_import_volc_phone_available() as bool
-	return available()
-end
 
-func __xl6_import_volc_phone_version() as string
-	return version()
-end
 
-func __xl6_import_volc_phone_call_spec(string spec) as Response
-	return call_spec(spec)
-end
 
-func __xl6_import_volc_phone_raw_spec(string spec) as string
-	return raw_spec(spec)
-end
 
-func __xl6_import_volc_phone_call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
-	return call(access_key, secret_key, session_token, action, version, body, timeout_ms)
-end
 
-func __xl6_import_volc_phone_raw_call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
-	return raw_call(access_key, secret_key, session_token, action, version, body, timeout_ms)
-end
 
-func __xl6_import_volc_phone_call_default(string access_key, string secret_key, string session_token, string action, string body, int timeout_ms) as string
-	return call_default(access_key, secret_key, session_token, action, body, timeout_ms)
-end
 
-func __xl6_import_volc_phone_product_body(string product_id) as string
-	return product_body(product_id)
-end
 
-func __xl6_import_volc_phone_pod_body(string product_id, string pod_id) as string
-	return pod_body(product_id, pod_id)
-end
 
-func __xl6_import_volc_phone_create_pod_body(string product_id, string dc, string configuration_code, int resource_type, string host_id, string pod_name, string display_layout_id, bool start) as string
-	return create_pod_body(product_id, dc, configuration_code, resource_type, host_id, pod_name, display_layout_id, start)
-end
 
-func __xl6_import_volc_phone_create_pod_batch_body(string product_id, string dc, string configuration_code, int apply_num, int resource_type, string host_id, string pod_name, string display_layout_id, bool start) as string
-	return create_pod_batch_body(product_id, dc, configuration_code, apply_num, resource_type, host_id, pod_name, display_layout_id, start)
-end
 
-func __xl6_import_volc_phone_pod_adb_body(string product_id, string pod_id, bool enable) as string
-	return pod_adb_body(product_id, pod_id, enable)
-end
 
-func __xl6_import_volc_phone_command_body(string product_id, string pod_id, string command) as string
-	return command_body(product_id, pod_id, command)
-end
 
-func __xl6_import_volc_phone_app_body(string product_id, string pod_id, string package_name) as string
-	return app_body(product_id, pod_id, package_name)
-end
 
-func __xl6_import_volc_phone_install_app_body(string product_id, string pod_id, string app_id, string version_id) as string
-	return install_app_body(product_id, pod_id, app_id, version_id)
-end
 
-func __xl6_import_volc_phone_screenshot_body(string product_id, string pod_id, string round_id) as string
-	return screenshot_body(product_id, pod_id, round_id)
-end
 
-func __xl6_import_volc_phone_batch_screenshot_body(string product_id, string pod_id_list_json, string round_id) as string
-	return batch_screenshot_body(product_id, pod_id_list_json, round_id)
-end
 
-func __xl6_import_volc_phone_recording_body(string product_id, string pod_id, string round_id, int duration_limit, bool saved_on_pod) as string
-	return recording_body(product_id, pod_id, round_id, duration_limit, saved_on_pod)
-end
 
-func __xl6_import_volc_phone_file_body(string product_id, string pod_id, string local_path, string remote_path) as string
-	return file_body(product_id, pod_id, local_path, remote_path)
-end
 
-func __xl6_import_volc_phone_pull_file_body(string product_id, string pod_id, string remote_path, string local_path) as string
-	return pull_file_body(product_id, pod_id, remote_path, local_path)
-end
 
-func __xl6_import_volc_phone_normalize_response(string action, string raw) as Response
-	return normalize_response(action, raw)
-end
 
-func __xl6_import_volc_phone_response_json(string action, string raw) as string
-	return response_json(action, raw)
-end
 
-func __xl6_import_volc_phone_json_string_field(string raw, string key) as string
-	return json_string_field(raw, key)
-end
 
-func __xl6_import_volc_phone_json_int_field(string raw, string key) as int
-	return json_int_field(raw, key)
-end
 
-func __xl6_import_volc_phone_json_section(string raw, string key) as string
-	return json_section(raw, key)
-end
 
-func __xl6_import_volc_phone_client(string access_key, string secret_key, string product_id) as Client
-	return client(access_key, secret_key, product_id)
-end
 
-func __xl6_import_volc_phone_client_token(string access_key, string secret_key, string session_token, string product_id) as Client
-	return client_token(access_key, secret_key, session_token, product_id)
-end
 
-func __xl6_import_volc_phone_list_pod(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
-	return list_pod(access_key, secret_key, session_token, product_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_list_host(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
-	return list_host(access_key, secret_key, session_token, product_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_list_dc(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
-	return list_dc(access_key, secret_key, session_token, product_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_detail_pod(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
-	return detail_pod(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_detail_host(string access_key, string secret_key, string session_token, string product_id, string host_id, int timeout_ms) as string
-	return detail_host(access_key, secret_key, session_token, product_id, host_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_create_pod(string access_key, string secret_key, string session_token, string product_id, string dc, string configuration_code, int resource_type, string host_id, string pod_name, string display_layout_id, bool start, int timeout_ms) as string
-	return create_pod(access_key, secret_key, session_token, product_id, dc, configuration_code, resource_type, host_id, pod_name, display_layout_id, start, timeout_ms)
-end
 
-func __xl6_import_volc_phone_create_pod_batch(string access_key, string secret_key, string session_token, string product_id, string dc, string configuration_code, int apply_num, int resource_type, string host_id, string pod_name, string display_layout_id, bool start, int timeout_ms) as string
-	return create_pod_batch(access_key, secret_key, session_token, product_id, dc, configuration_code, apply_num, resource_type, host_id, pod_name, display_layout_id, start, timeout_ms)
-end
 
-func __xl6_import_volc_phone_power_on(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
-	return power_on(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_power_off(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
-	return power_off(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_reboot(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
-	return reboot(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_reset(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
-	return reset(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_delete_pod(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
-	return delete_pod(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_pod_adb(string access_key, string secret_key, string session_token, string product_id, string pod_id, bool enable, int timeout_ms) as string
-	return pod_adb(access_key, secret_key, session_token, product_id, pod_id, enable, timeout_ms)
-end
 
-func __xl6_import_volc_phone_run_sync_command(string access_key, string secret_key, string session_token, string product_id, string pod_id, string command, int timeout_ms) as string
-	return run_sync_command(access_key, secret_key, session_token, product_id, pod_id, command, timeout_ms)
-end
 
-func __xl6_import_volc_phone_run_command(string access_key, string secret_key, string session_token, string product_id, string pod_id, string command, int timeout_ms) as string
-	return run_command(access_key, secret_key, session_token, product_id, pod_id, command, timeout_ms)
-end
 
-func __xl6_import_volc_phone_get_task_info(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms) as string
-	return get_task_info(access_key, secret_key, session_token, product_id, task_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_task_state(string task_info_json) as string
-	return task_state(task_info_json)
-end
 
-func __xl6_import_volc_phone_wait_task(string access_key, string secret_key, string session_token, string product_id, string task_id, int timeout_ms, int poll_interval_ms) as string
-	return wait_task(access_key, secret_key, session_token, product_id, task_id, timeout_ms, poll_interval_ms)
-end
 
-func __xl6_import_volc_phone_install_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string app_id, string version_id, int timeout_ms) as string
-	return install_app(access_key, secret_key, session_token, product_id, pod_id, app_id, version_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_launch_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string package_name, int timeout_ms) as string
-	return launch_app(access_key, secret_key, session_token, product_id, pod_id, package_name, timeout_ms)
-end
 
-func __xl6_import_volc_phone_close_app(string access_key, string secret_key, string session_token, string product_id, string pod_id, string package_name, int timeout_ms) as string
-	return close_app(access_key, secret_key, session_token, product_id, pod_id, package_name, timeout_ms)
-end
 
-func __xl6_import_volc_phone_screenshot(string access_key, string secret_key, string session_token, string product_id, string pod_id, string round_id, int timeout_ms) as string
-	return screenshot(access_key, secret_key, session_token, product_id, pod_id, round_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_batch_screenshot(string access_key, string secret_key, string session_token, string product_id, string pod_id_list_json, string round_id, int timeout_ms) as string
-	return batch_screenshot(access_key, secret_key, session_token, product_id, pod_id_list_json, round_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_start_recording(string access_key, string secret_key, string session_token, string product_id, string pod_id, string round_id, int duration_limit, bool saved_on_pod, int timeout_ms) as string
-	return start_recording(access_key, secret_key, session_token, product_id, pod_id, round_id, duration_limit, saved_on_pod, timeout_ms)
-end
 
-func __xl6_import_volc_phone_stop_recording(string access_key, string secret_key, string session_token, string product_id, string pod_id, int timeout_ms) as string
-	return stop_recording(access_key, secret_key, session_token, product_id, pod_id, timeout_ms)
-end
 
-func __xl6_import_volc_phone_recording_download_url(string raw) as string
-	return recording_download_url(raw)
-end
 
-func __xl6_import_volc_phone_pod_adb_endpoint(string detail_pod_json) as string
-	return pod_adb_endpoint(detail_pod_json)
-end
 
-func __xl6_import_volc_phone_pod_run_state(string detail_pod_json) as int
-	return pod_run_state(detail_pod_json)
-end
 
-func __xl6_import_volc_phone_host_remain_text(string detail_host_json) as string
-	return host_remain_text(detail_host_json)
-end
 
-func __xl6_import_volc_phone_push_file(string access_key, string secret_key, string session_token, string product_id, string pod_id, string local_path, string remote_path, int timeout_ms) as string
-	return push_file(access_key, secret_key, session_token, product_id, pod_id, local_path, remote_path, timeout_ms)
-end
-
-func __xl6_import_volc_phone_pull_file(string access_key, string secret_key, string session_token, string product_id, string pod_id, string remote_path, string local_path, int timeout_ms) as string
-	return pull_file(access_key, secret_key, session_token, product_id, pod_id, remote_path, local_path, timeout_ms)
-end

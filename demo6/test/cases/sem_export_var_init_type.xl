@@ -1,1 +1,1 @@
-export "bad_counter" var int counter = "bad"
+export "bad_counter" int counter = "bad"

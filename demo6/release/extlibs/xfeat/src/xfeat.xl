@@ -452,67 +452,66 @@ func xfeat_last_error() as string
 	return xfeat_last_error_native()
 end
 
-// xl6 generated import wrappers begin
-func __xl6_import_xfeat_open() as point
+export func open() as point
     return xfeat_open()
 end
-func __xl6_import_xfeat_open(int p0, int p1) as point
+export func open(int p0, int p1) as point
     return xfeat_open(p0, p1)
 end
-func __xl6_import_xfeat_open(string p0, string p1) as point
+export func open(string p0, string p1) as point
     return xfeat_open(p0, p1)
 end
-func __xl6_import_xfeat_open(string p0, string p1, int p2, int p3) as point
+export func open(string p0, string p1, int p2, int p3) as point
     return xfeat_open(p0, p1, p2, p3)
 end
-func __xl6_import_xfeat_close(point p0) as bool
+export func close(point p0) as bool
     return xfeat_close(p0)
 end
-func __xl6_import_xfeat_prepare_query(point p0, string p1) as point
+export func prepare_query(point p0, string p1) as point
     return xfeat_prepare_query(p0, p1)
 end
-func __xl6_import_xfeat_release_query(point p0) as bool
+export func release_query(point p0) as bool
     return xfeat_release_query(p0)
 end
-func __xl6_import_xfeat_reset_stats() as bool
+export func reset_stats() as bool
     return xfeat_reset_stats()
 end
-func __xl6_import_xfeat_stats_json() as string
+export func stats_json() as string
     return xfeat_stats_json()
 end
-func __xl6_import_xfeat_locate_json(string p0, string p1) as string
+export func locate_json(string p0, string p1) as string
     return xfeat_locate_json(p0, p1)
 end
-func __xl6_import_xfeat_locate_json(point p0, point p1, string p2) as string
+export func locate_json(point p0, point p1, string p2) as string
     return xfeat_locate_json(p0, p1, p2)
 end
-func __xl6_import_xfeat_locate_json(point p0, string p1, string p2) as string
+export func locate_json(point p0, string p1, string p2) as string
     return xfeat_locate_json(p0, p1, p2)
 end
-func __xl6_import_xfeat_locate_json(string p0, string p1, string p2, string p3) as string
+export func locate_json(string p0, string p1, string p2, string p3) as string
     return xfeat_locate_json(p0, p1, p2, p3)
 end
-func __xl6_import_xfeat_locate_json(point p0, string p1, string p2, string p3, string p4) as string
+export func locate_json(point p0, string p1, string p2, string p3, string p4) as string
     return xfeat_locate_json(p0, p1, p2, p3, p4)
 end
-func __xl6_import_xfeat_locate_json(point p0, point p1, string p2, string p3, string p4) as string
+export func locate_json(point p0, point p1, string p2, string p3, string p4) as string
     return xfeat_locate_json(p0, p1, p2, p3, p4)
 end
-func __xl6_import_xfeat_locate_and_save(string p0, string p1, string p2) as string
+export func locate_and_save(string p0, string p1, string p2) as string
     return xfeat_locate_and_save(p0, p1, p2)
 end
-func __xl6_import_xfeat_locate_and_save(point p0, point p1, string p2, string p3) as string
+export func locate_and_save(point p0, point p1, string p2, string p3) as string
     return xfeat_locate_and_save(p0, p1, p2, p3)
 end
-func __xl6_import_xfeat_locate_and_save(point p0, string p1, string p2, string p3) as string
+export func locate_and_save(point p0, string p1, string p2, string p3) as string
     return xfeat_locate_and_save(p0, p1, p2, p3)
 end
-func __xl6_import_xfeat_version() as string
+export func version() as string
     return xfeat_version()
 end
-func __xl6_import_xfeat_available() as bool
+export func available() as bool
     return xfeat_available()
 end
-func __xl6_import_xfeat_last_error() as string
+export func last_error() as string
     return xfeat_last_error()
 end

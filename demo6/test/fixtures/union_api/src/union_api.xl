@@ -1,10 +1,16 @@
-﻿// Generated from legacy package metadata. The compiler imports this source file directly.
-
 union Payload
     int i
     c_double d
 end
 
-extern "xl6_union_api_make" func __xl6_import_union_api_makePayload(int value) as Payload
-extern "xl6_union_api_pick" func __xl6_import_union_api_pick(Payload payload) as int
-extern "xl6_union_api_default" var Payload __xl6_import_union_api_defaultPayload
+extern "xl6_union_api_make" func __xl6_native_union_api_makePayload(int value) as Payload
+extern "xl6_union_api_pick" func __xl6_native_union_api_pick(Payload payload) as int
+export extern "xl6_union_api_default" Payload defaultPayload
+
+export func makePayload(int value) as Payload
+    return __xl6_native_union_api_makePayload(value)
+end
+
+export func pick(Payload payload) as int
+    return __xl6_native_union_api_pick(payload)
+end

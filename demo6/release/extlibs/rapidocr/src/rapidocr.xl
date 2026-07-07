@@ -1005,97 +1005,96 @@ func rapidocr_last_error() as string
 	return rapidocr_last_error_native()
 end
 
-// xl6 generated import wrappers begin
-func __xl6_import_rapidocr_RapidOCR() as RapidOCREngine
+export func RapidOCR() as RapidOCREngine
     return rapidocr_RapidOCR()
 end
-func __xl6_import_rapidocr_RapidOCR(string p0) as RapidOCREngine
+export func RapidOCR(string p0) as RapidOCREngine
     return rapidocr_RapidOCR(p0)
 end
-func __xl6_import_rapidocr_RapidOCR(string p0, string p1, string p2, string p3) as RapidOCREngine
+export func RapidOCR(string p0, string p1, string p2, string p3) as RapidOCREngine
     return rapidocr_RapidOCR(p0, p1, p2, p3)
 end
-func __xl6_import_rapidocr_available() as bool
+export func available() as bool
     return rapidocr_available()
 end
-func __xl6_import_rapidocr_backend() as string
+export func backend() as string
     return rapidocr_backend()
 end
-func __xl6_import_rapidocr_version() as string
+export func version() as string
     return rapidocr_version()
 end
-func __xl6_import_rapidocr_dependency_status() as string
+export func dependency_status() as string
     return rapidocr_dependency_status()
 end
-func __xl6_import_rapidocr_default_model_dir() as string
+export func default_model_dir() as string
     return rapidocr_default_model_dir()
 end
-func __xl6_import_rapidocr_default_config_json() as string
+export func default_config_json() as string
     return rapidocr_default_config_json()
 end
-func __xl6_import_rapidocr_model_layout_json() as string
+export func model_layout_json() as string
     return rapidocr_model_layout_json()
 end
-func __xl6_import_rapidocr_det_boxes_from_output(string p0, int p1, int p2) as string
+export func det_boxes_from_output(string p0, int p1, int p2) as string
     return rapidocr_det_boxes_from_output(p0, p1, p2)
 end
-func __xl6_import_rapidocr_det_boxes_from_output(string p0, int p1, int p2, float p3) as string
+export func det_boxes_from_output(string p0, int p1, int p2, float p3) as string
     return rapidocr_det_boxes_from_output(p0, p1, p2, p3)
 end
-func __xl6_import_rapidocr_charset_info(string p0) as string
+export func charset_info(string p0) as string
     return rapidocr_charset_info(p0)
 end
-func __xl6_import_rapidocr_rec_decode(string p0, string p1) as string
+export func rec_decode(string p0, string p1) as string
     return rapidocr_rec_decode(p0, p1)
 end
-func __xl6_import_rapidocr_rec_decode_result(point p0, string p1) as string
+export func rec_decode_result(point p0, string p1) as string
     return rapidocr_rec_decode_result(p0, p1)
 end
-func __xl6_import_rapidocr_cls_decode_result(point p0) as string
+export func cls_decode_result(point p0) as string
     return rapidocr_cls_decode_result(p0)
 end
-func __xl6_import_rapidocr_box_count(string p0) as int
+export func box_count(string p0) as int
     return rapidocr_box_count(p0)
 end
-func __xl6_import_rapidocr_box_x(string p0, int p1) as int
+export func box_x(string p0, int p1) as int
     return rapidocr_box_x(p0, p1)
 end
-func __xl6_import_rapidocr_box_y(string p0, int p1) as int
+export func box_y(string p0, int p1) as int
     return rapidocr_box_y(p0, p1)
 end
-func __xl6_import_rapidocr_box_width(string p0, int p1) as int
+export func box_width(string p0, int p1) as int
     return rapidocr_box_width(p0, p1)
 end
-func __xl6_import_rapidocr_box_height(string p0, int p1) as int
+export func box_height(string p0, int p1) as int
     return rapidocr_box_height(p0, p1)
 end
-func __xl6_import_rapidocr_box_point_x(string p0, int p1, int p2) as float
+export func box_point_x(string p0, int p1, int p2) as float
     return rapidocr_box_point_x(p0, p1, p2)
 end
-func __xl6_import_rapidocr_box_point_y(string p0, int p1, int p2) as float
+export func box_point_y(string p0, int p1, int p2) as float
     return rapidocr_box_point_y(p0, p1, p2)
 end
-func __xl6_import_rapidocr_vis_image(string p0, string p1, string p2) as bool
+export func vis_image(string p0, string p1, string p2) as bool
     return rapidocr_vis_image(p0, p1, p2)
 end
-func __xl6_import_rapidocr_assemble_result(string p0, string p1) as string
+export func assemble_result(string p0, string p1) as string
     return rapidocr_assemble_result(p0, p1)
 end
-func __xl6_import_rapidocr_assemble_result(string p0, string p1, float p2) as string
+export func assemble_result(string p0, string p1, float p2) as string
     return rapidocr_assemble_result(p0, p1, p2)
 end
-func __xl6_import_rapidocr_assemble_result2(string p0, string p1, string p2) as string
+export func assemble_result2(string p0, string p1, string p2) as string
     return rapidocr_assemble_result2(p0, p1, p2)
 end
-func __xl6_import_rapidocr_assemble_result2(string p0, string p1, string p2, float p3) as string
+export func assemble_result2(string p0, string p1, string p2, float p3) as string
     return rapidocr_assemble_result2(p0, p1, p2, p3)
 end
-func __xl6_import_rapidocr_assemble_result4(string p0, string p1, string p2, string p3, string p4) as string
+export func assemble_result4(string p0, string p1, string p2, string p3, string p4) as string
     return rapidocr_assemble_result4(p0, p1, p2, p3, p4)
 end
-func __xl6_import_rapidocr_assemble_result4(string p0, string p1, string p2, string p3, string p4, float p5) as string
+export func assemble_result4(string p0, string p1, string p2, string p3, string p4, float p5) as string
     return rapidocr_assemble_result4(p0, p1, p2, p3, p4, p5)
 end
-func __xl6_import_rapidocr_last_error() as string
+export func last_error() as string
     return rapidocr_last_error()
 end

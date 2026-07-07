@@ -625,6 +625,7 @@ item_base(A) ::= import_decl(B). { A = B; }
 item_base(A) ::= extern_func_decl(B). { A = B; }
 item_base(A) ::= export_func_decl(B). { A = B; }
 item_base(A) ::= extern_var_decl(B). { A = B; }
+item_base(A) ::= export_extern_var_decl(B). { A = B; }
 item_base(A) ::= export_var_decl(B). { A = B; }
 item_base(A) ::= export_const_decl(B). { A = B; }
 item_base(A) ::= type_alias_decl(B). { A = B; }
@@ -737,14 +738,30 @@ export_func_decl(A) ::= KW_EXPORT(E) KW_FUNC name_tok(F) name_params(P) return_s
     xl6AstAddChild(A, B);
 }
 
-extern_var_decl(A) ::= KW_EXTERN(E) STRING(S) KW_VAR var_type_ref(T) name_tok(N) need_sep. {
+extern_var_decl(A) ::= KW_EXTERN(E) STRING(S) var_type_ref(T) name_tok(N) need_sep. {
     A = xl6AstNew(XL6_AST_EXTERN_VAR, &S);
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, T);
     (void)E;
 }
 
-export_var_decl(A) ::= KW_EXPORT(E) STRING(S) KW_VAR var_type_ref(T) name_tok(N) ASSIGN expr(V) need_sep. {
+export_extern_var_decl(A) ::= KW_EXPORT(E) KW_EXTERN STRING(S) var_type_ref(T) name_tok(N) need_sep. {
+    A = xl6AstNew(XL6_AST_EXTERN_VAR, &S);
+    A->flags |= XL6_AST_FLAG_PUBLIC;
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, T);
+    (void)E;
+}
+
+export_var_decl(A) ::= KW_EXPORT(E) var_type_ref(T) name_tok(N) ASSIGN expr(V) need_sep. {
+    A = xl6AstNew(XL6_AST_EXPORT_VAR, NULL);
+    A->line = E.startLine;
+    A->column = E.startColumn;
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, T);
+    xl6AstAddChild(A, V);
+}
+export_var_decl(A) ::= KW_EXPORT(E) STRING(S) var_type_ref(T) name_tok(N) ASSIGN expr(V) need_sep. {
     A = xl6AstNew(XL6_AST_EXPORT_VAR, &S);
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, T);
@@ -752,6 +769,14 @@ export_var_decl(A) ::= KW_EXPORT(E) STRING(S) KW_VAR var_type_ref(T) name_tok(N)
     (void)E;
 }
 
+export_const_decl(A) ::= KW_EXPORT(E) KW_CONST type_ref(T) name_tok(N) ASSIGN expr(V) need_sep. {
+    A = xl6AstNew(XL6_AST_EXPORT_CONST, NULL);
+    A->line = E.startLine;
+    A->column = E.startColumn;
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, T);
+    xl6AstAddChild(A, V);
+}
 export_const_decl(A) ::= KW_EXPORT(E) STRING(S) KW_CONST type_ref(T) name_tok(N) ASSIGN expr(V) need_sep. {
     A = xl6AstNew(XL6_AST_EXPORT_CONST, &S);
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));

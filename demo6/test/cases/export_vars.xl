@@ -1,4 +1,4 @@
-export "xl6_counter" var int counter = 1
+export "xl6_counter" int counter = 1
 export "xl6_version" const int version = 7
 
 export "xl6_get_total" func getTotal() as int

@@ -356,178 +356,111 @@ class Events
 	end
 end
 
-func version() as string
+export func version() as string
 	return x_uia_version()
 end
 
-func available() as bool
+export func available() as bool
 	return string.len(version()) > 0
 end
 
-func last_error() as string
+export func last_error() as string
 	return x_uia_last_error()
 end
 
-func shutdown() as bool
+export func shutdown() as bool
 	return x_uia_shutdown()
 end
 
-func launch(string command) as Process
+export func launch(string command) as Process
 	return Process(x_uia_launch(command))
 end
 
-func test_window() as TestWindow
+export func test_window() as TestWindow
 	return TestWindow(x_uia_test_window_create())
 end
 
-func desktop() as Element
+export func desktop() as Element
 	return Element(x_uia_desktop())
 end
 
-func focused() as Element
+export func focused() as Element
 	return Element(x_uia_focused())
 end
 
-func focused_locator() as string
+export func focused_locator() as string
 	return x_uia_focused_locator()
 end
 
-func from_hwnd(point hwnd) as Element
+export func from_hwnd(point hwnd) as Element
 	return Element(x_uia_from_hwnd(hwnd))
 end
 
-func from_point(int x, int y) as Element
+export func from_point(int x, int y) as Element
 	return Element(x_uia_from_point(x, y))
 end
 
-func events() as Events
+export func events() as Events
 	return Events(x_uia_events_create())
 end
 
-func element(point handle) as Element
+export func element(point handle) as Element
 	return Element(handle)
 end
 
-func locator_for(Element element) as string
+export func locator_for(Element element) as string
 	return x_uia_locator_for(element.handle)
 end
 
-func by_name(string name) as Condition
+export func by_name(string name) as Condition
 	return Condition(x_uia_by_name(name))
 end
 
-func by_process_id(int process_id) as Condition
+export func by_process_id(int process_id) as Condition
 	return Condition(x_uia_by_process_id(process_id))
 end
 
-func by_automation_id(string automation_id) as Condition
+export func by_automation_id(string automation_id) as Condition
 	return Condition(x_uia_by_automation_id(automation_id))
 end
 
-func by_class_name(string class_name) as Condition
+export func by_class_name(string class_name) as Condition
 	return Condition(x_uia_by_class_name(class_name))
 end
 
-func by_control_type(int control_type) as Condition
+export func by_control_type(int control_type) as Condition
 	return Condition(x_uia_by_control_type(control_type))
 end
 
-func all_of(Condition left, Condition right) as Condition
+export func all_of(Condition left, Condition right) as Condition
 	return Condition(x_uia_condition_and(left.handle, right.handle))
 end
 
-func any_of(Condition left, Condition right) as Condition
+export func any_of(Condition left, Condition right) as Condition
 	return Condition(x_uia_condition_or(left.handle, right.handle))
 end
 
-func not_condition(Condition condition) as Condition
+export func not_condition(Condition condition) as Condition
 	return Condition(x_uia_condition_not(condition.handle))
 end
 
-func __xl6_import_uia_version() as string
-	return version()
-end
 
-func __xl6_import_uia_available() as bool
-	return available()
-end
 
-func __xl6_import_uia_last_error() as string
-	return last_error()
-end
 
-func __xl6_import_uia_shutdown() as bool
-	return shutdown()
-end
 
-func __xl6_import_uia_launch(string command) as Process
-	return launch(command)
-end
 
-func __xl6_import_uia_test_window() as TestWindow
-	return test_window()
-end
 
-func __xl6_import_uia_desktop() as Element
-	return desktop()
-end
 
-func __xl6_import_uia_focused() as Element
-	return focused()
-end
 
-func __xl6_import_uia_focused_locator() as string
-	return focused_locator()
-end
 
-func __xl6_import_uia_from_hwnd(point hwnd) as Element
-	return from_hwnd(hwnd)
-end
 
-func __xl6_import_uia_from_point(int x, int y) as Element
-	return from_point(x, y)
-end
 
-func __xl6_import_uia_events() as Events
-	return events()
-end
 
-func __xl6_import_uia_element(point handle) as Element
-	return element(handle)
-end
 
-func __xl6_import_uia_locator_for(Element element_value) as string
-	return locator_for(element_value)
-end
 
-func __xl6_import_uia_by_name(string name) as Condition
-	return by_name(name)
-end
 
-func __xl6_import_uia_by_process_id(int process_id) as Condition
-	return by_process_id(process_id)
-end
 
-func __xl6_import_uia_by_automation_id(string automation_id) as Condition
-	return by_automation_id(automation_id)
-end
 
-func __xl6_import_uia_by_class_name(string class_name) as Condition
-	return by_class_name(class_name)
-end
 
-func __xl6_import_uia_by_control_type(int control_type) as Condition
-	return by_control_type(control_type)
-end
 
-func __xl6_import_uia_all_of(Condition left, Condition right) as Condition
-	return all_of(left, right)
-end
 
-func __xl6_import_uia_any_of(Condition left, Condition right) as Condition
-	return any_of(left, right)
-end
-
-func __xl6_import_uia_not_condition(Condition condition) as Condition
-	return not_condition(condition)
-end

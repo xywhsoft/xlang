@@ -37,19 +37,19 @@ const int RECV_SIZE = 4096
 const int MAX_RESPONSE_BYTES = 16777216
 const int MAX_ARRAY_DEPTH = 16
 
-export "xredis_g_resp_buffer" var string g_resp_buffer = ""
-export "xredis_g_resp_pos" var int g_resp_pos = 0
-export "xredis_g_resp_error" var string g_resp_error = ""
+export "xredis_g_resp_buffer" string g_resp_buffer = ""
+export "xredis_g_resp_pos" int g_resp_pos = 0
+export "xredis_g_resp_error" string g_resp_error = ""
 
-func available() as bool
+export func available() as bool
 	return true
 end
 
-func version() as string
+export func version() as string
 	return "0.1.0"
 end
 
-func parser_last_error() as string
+export func parser_last_error() as string
 	return g_resp_error
 end
 
@@ -237,27 +237,27 @@ func bulk(string value) as string
 	return "$" + string.formatInt(string.len(value), "") + "\r\n" + value + "\r\n"
 end
 
-func resp_encode1(string a0) as string
+export func resp_encode1(string a0) as string
 	return "*1\r\n" + bulk(a0)
 end
 
-func resp_encode2(string a0, string a1) as string
+export func resp_encode2(string a0, string a1) as string
 	return "*2\r\n" + bulk(a0) + bulk(a1)
 end
 
-func resp_encode3(string a0, string a1, string a2) as string
+export func resp_encode3(string a0, string a1, string a2) as string
 	return "*3\r\n" + bulk(a0) + bulk(a1) + bulk(a2)
 end
 
-func resp_encode4(string a0, string a1, string a2, string a3) as string
+export func resp_encode4(string a0, string a1, string a2, string a3) as string
 	return "*4\r\n" + bulk(a0) + bulk(a1) + bulk(a2) + bulk(a3)
 end
 
-func resp_encode5(string a0, string a1, string a2, string a3, string a4) as string
+export func resp_encode5(string a0, string a1, string a2, string a3, string a4) as string
 	return "*5\r\n" + bulk(a0) + bulk(a1) + bulk(a2) + bulk(a3) + bulk(a4)
 end
 
-func resp_encode_array(list<string> args) as string
+export func resp_encode_array(list<string> args) as string
 	auto out = "*" + string.formatInt(args.length, "") + "\r\n"
 	for value in args
 		out = out + bulk(value)
@@ -273,12 +273,12 @@ func resp_encode_array_values(var args) as string
 	return out
 end
 
-func resp_encode_json(string argv_json) as string
+export func resp_encode_json(string argv_json) as string
     var args = json.parse(argv_json)
 	return resp_encode_array_values(args)
 end
 
-func resp_encode_pipeline_json(string commands_json) as string
+export func resp_encode_pipeline_json(string commands_json) as string
     var commands = json.parse(commands_json)
 	auto out = ""
 	for command in commands
@@ -288,12 +288,12 @@ func resp_encode_pipeline_json(string commands_json) as string
 	return out
 end
 
-func parse_response_json(string text) as string
+export func parse_response_json(string text) as string
 	reader_reset(text)
 	return parse_one_json()
 end
 
-func parse_response_chunks_json(string first, string second) as string
+export func parse_response_chunks_json(string first, string second) as string
 	reader_reset("")
 	reader_append(first)
 	auto out = parse_one_json()
@@ -304,27 +304,27 @@ func parse_response_chunks_json(string first, string second) as string
 	return parse_one_json()
 end
 
-func transport_name() as string
+export func transport_name() as string
 	return "std.net.tcp"
 end
 
-func transport_binary_safe() as bool
+export func transport_binary_safe() as bool
 	return false
 end
 
-func transport_tls() as bool
+export func transport_tls() as bool
 	return false
 end
 
-func transport_limits_json() as string
+export func transport_limits_json() as string
 	return "{\"transport\":\"std.net.tcp\",\"binary_safe\":false,\"tls\":false,\"connect_timeout\":false,\"reason\":\"std.net.tcp send and recv expose string-oriented APIs\"}"
 end
 
-func sentinel_capabilities_json() as string
+export func sentinel_capabilities_json() as string
 	return "{\"discovery\":true,\"explicit_master_connect\":true,\"current_master_raw_commands\":true,\"current_master_auth_raw_commands\":true,\"current_master_wrappers\":true,\"background_monitoring\":false,\"failover_persistent_connections\":false}"
 end
 
-func cluster_capabilities_json() as string
+export func cluster_capabilities_json() as string
 	return "{\"discovery\":true,\"redirect_parsing\":true,\"asking\":true,\"slot_owner_routing\":true,\"cached_key_routing\":true,\"cache_refresh_key_routing\":true,\"auth_raw_commands\":true,\"same_slot_mget_mset\":true,\"transparent_ordinary_commands\":false,\"transparent_cross_node_routing\":false}"
 end
 
@@ -332,23 +332,23 @@ func json_string(string value) as string
 	return xredis_json_string_native(value)
 end
 
-func argv_json1(string a0) as string
+export func argv_json1(string a0) as string
 	return "[" + json_string(a0) + "]"
 end
 
-func argv_json2(string a0, string a1) as string
+export func argv_json2(string a0, string a1) as string
 	return "[" + json_string(a0) + "," + json_string(a1) + "]"
 end
 
-func argv_json3(string a0, string a1, string a2) as string
+export func argv_json3(string a0, string a1, string a2) as string
 	return "[" + json_string(a0) + "," + json_string(a1) + "," + json_string(a2) + "]"
 end
 
-func argv_json4(string a0, string a1, string a2, string a3) as string
+export func argv_json4(string a0, string a1, string a2, string a3) as string
 	return "[" + json_string(a0) + "," + json_string(a1) + "," + json_string(a2) + "," + json_string(a3) + "]"
 end
 
-func argv_json_list(string command, array<string> values) as string
+export func argv_json_list(string command, array<string> values) as string
 	auto out = "[" + json_string(command)
 	for value in values
 		out = out + "," + json_string(value)
@@ -356,7 +356,7 @@ func argv_json_list(string command, array<string> values) as string
 	return out + "]"
 end
 
-func pipeline_json_array(array<string> commands) as string
+export func pipeline_json_array(array<string> commands) as string
 	auto out = "["
 	int index = 0
 	for command in commands
@@ -369,23 +369,23 @@ func pipeline_json_array(array<string> commands) as string
 	return out + "]"
 end
 
-func pipeline_json1(string command0) as string
+export func pipeline_json1(string command0) as string
 	return "[" + command0 + "]"
 end
 
-func pipeline_json2(string command0, string command1) as string
+export func pipeline_json2(string command0, string command1) as string
 	return "[" + command0 + "," + command1 + "]"
 end
 
-func pipeline_json3(string command0, string command1, string command2) as string
+export func pipeline_json3(string command0, string command1, string command2) as string
 	return "[" + command0 + "," + command1 + "," + command2 + "]"
 end
 
-func pipeline_json4(string command0, string command1, string command2, string command3) as string
+export func pipeline_json4(string command0, string command1, string command2, string command3) as string
 	return "[" + command0 + "," + command1 + "," + command2 + "," + command3 + "]"
 end
 
-func pipeline_json5(string command0, string command1, string command2, string command3, string command4) as string
+export func pipeline_json5(string command0, string command1, string command2, string command3, string command4) as string
 	return "[" + command0 + "," + command1 + "," + command2 + "," + command3 + "," + command4 + "]"
 end
 
@@ -794,31 +794,31 @@ func xredis_close(Client client) as bool
 	return client.close()
 end
 
-func last_error(Client client) as string
+export func last_error(Client client) as string
 	return client.last_error()
 end
 
-func pool(string host, int port, int max_idle) as Pool
+export func pool(string host, int port, int max_idle) as Pool
 	return Pool(host, port, 5000, max_idle)
 end
 
-func pool(string host, int port, int timeout_ms, int max_idle) as Pool
+export func pool(string host, int port, int timeout_ms, int max_idle) as Pool
 	return Pool(host, port, timeout_ms, max_idle)
 end
 
-func pool_acquire(Pool pool_value) as Client
+export func pool_acquire(Pool pool_value) as Client
 	return pool_value.acquire()
 end
 
-func pool_release(Pool pool_value, Client client) as bool
+export func pool_release(Pool pool_value, Client client) as bool
 	return pool_value.release(client)
 end
 
-func pool_close(Pool pool_value) as int
+export func pool_close(Pool pool_value) as int
 	return pool_value.close()
 end
 
-func pool_idle_count(Pool pool_value) as int
+export func pool_idle_count(Pool pool_value) as int
 	return pool_value.idle_size()
 end
 
@@ -861,43 +861,43 @@ func command_raw(Client client, string encoded) as string
 	return json_error(client.last_error_text)
 end
 
-func command1(Client client, string a0) as string
+export func command1(Client client, string a0) as string
 	return command_raw(client, resp_encode1(a0))
 end
 
-func command2(Client client, string a0, string a1) as string
+export func command2(Client client, string a0, string a1) as string
 	return command_raw(client, resp_encode2(a0, a1))
 end
 
-func command3(Client client, string a0, string a1, string a2) as string
+export func command3(Client client, string a0, string a1, string a2) as string
 	return command_raw(client, resp_encode3(a0, a1, a2))
 end
 
-func command4(Client client, string a0, string a1, string a2, string a3) as string
+export func command4(Client client, string a0, string a1, string a2, string a3) as string
 	return command_raw(client, resp_encode4(a0, a1, a2, a3))
 end
 
-func command5(Client client, string a0, string a1, string a2, string a3, string a4) as string
+export func command5(Client client, string a0, string a1, string a2, string a3, string a4) as string
 	return command_raw(client, resp_encode5(a0, a1, a2, a3, a4))
 end
 
-func command_array(Client client, list<string> args) as string
+export func command_array(Client client, list<string> args) as string
 	return command_raw(client, resp_encode_array(args))
 end
 
-func command_array(Client client, array<string> args) as string
+export func command_array(Client client, array<string> args) as string
 	return command_raw(client, resp_encode_array_values(args))
 end
 
-func command_json(Client client, string argv_json) as string
+export func command_json(Client client, string argv_json) as string
 	return command_raw(client, resp_encode_json(argv_json))
 end
 
-func cluster_command_redirect_once_json(Client client, string argv_json) as string
+export func cluster_command_redirect_once_json(Client client, string argv_json) as string
 	return cluster_command_redirect_once_json(client, argv_json, client.timeout_ms)
 end
 
-func cluster_command_redirect_once_json(Client client, string argv_json, int timeout_ms) as string
+export func cluster_command_redirect_once_json(Client client, string argv_json, int timeout_ms) as string
 	auto first = command_json(client, argv_json)
 	auto redirect_type = cluster_redirect_type(first)
 	if redirect_type == "" then
@@ -926,11 +926,11 @@ func cluster_command_redirect_once_json(Client client, string argv_json, int tim
 	return out
 end
 
-func cluster_command_redirect_retry_json(Client client, string argv_json, int max_redirects) as string
+export func cluster_command_redirect_retry_json(Client client, string argv_json, int max_redirects) as string
 	return cluster_command_redirect_retry_json(client, argv_json, max_redirects, client.timeout_ms)
 end
 
-func cluster_command_redirect_retry_json(Client client, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_redirect_retry_json(Client client, string argv_json, int max_redirects, int timeout_ms) as string
 	auto out = command_json(client, argv_json)
 	int redirects = 0
 	while cluster_redirect_type(out) != "" and redirects < max_redirects do
@@ -960,7 +960,7 @@ func cluster_command_redirect_retry_json(Client client, string argv_json, int ma
 	return out
 end
 
-func command_pipeline_json(Client client, string commands_json) as string
+export func command_pipeline_json(Client client, string commands_json) as string
     var commands = json.parse(commands_json)
 	auto encoded = ""
 	for command in commands
@@ -1019,7 +1019,7 @@ func command_pipeline_raw(Client client, string encoded, int count) as string
 	return json_error(client.last_error_text)
 end
 
-func read_response_json(Client client) as string
+export func read_response_json(Client client) as string
 	if client.valid() == false then
 		client.last_error_text = "redis client is closed"
 		return json_error(client.last_error_text)
@@ -1055,75 +1055,75 @@ func read_response_json(Client client) as string
 	return json_error(client.last_error_text)
 end
 
-func response_type(string response_json) as string
+export func response_type(string response_json) as string
 	return xredis_response_type_native(response_json)
 end
 
-func response_value(string response_json) as string
+export func response_value(string response_json) as string
 	return xredis_response_value_native(response_json)
 end
 
-func response_int(string response_json) as int
+export func response_int(string response_json) as int
 	return xredis_response_int_native(response_json)
 end
 
-func response_bool(string response_json) as bool
+export func response_bool(string response_json) as bool
 	return xredis_response_bool_native(response_json)
 end
 
-func response_double_text(string response_json) as string
+export func response_double_text(string response_json) as string
 	return xredis_response_value_native(response_json)
 end
 
-func response_bignumber_text(string response_json) as string
+export func response_bignumber_text(string response_json) as string
 	if response_type(response_json) != "bignumber" then
 		return ""
 	end
 	return response_value(response_json)
 end
 
-func response_blob_error_text(string response_json) as string
+export func response_blob_error_text(string response_json) as string
 	if response_type(response_json) != "blob_error" then
 		return ""
 	end
 	return response_value(response_json)
 end
 
-func response_verbatim_text(string response_json) as string
+export func response_verbatim_text(string response_json) as string
 	if response_type(response_json) != "verbatim" then
 		return ""
 	end
 	return response_value(response_json)
 end
 
-func response_nil(string response_json) as bool
+export func response_nil(string response_json) as bool
 	return xredis_response_nil_native(response_json)
 end
 
-func response_ok(string response_json) as bool
+export func response_ok(string response_json) as bool
 	return response_type(response_json) == "simple" and response_value(response_json) == "OK"
 end
 
-func response_error(string response_json) as bool
+export func response_error(string response_json) as bool
 	return response_type(response_json) == "error"
 end
 
-func response_error_text(string response_json) as string
+export func response_error_text(string response_json) as string
 	if response_error(response_json) == false then
 		return ""
 	end
 	return response_value(response_json)
 end
 
-func cluster_slots_cache(string slots_response_json) as ClusterSlotsCache
+export func cluster_slots_cache(string slots_response_json) as ClusterSlotsCache
 	return ClusterSlotsCache(slots_response_json)
 end
 
-func cluster_slots_cache_json(ClusterSlotsCache cache) as string
+export func cluster_slots_cache_json(ClusterSlotsCache cache) as string
 	return cache.slots_json
 end
 
-func cluster_slots_cache_valid(ClusterSlotsCache cache) as bool
+export func cluster_slots_cache_valid(ClusterSlotsCache cache) as bool
 	if cache.slots_json == "" then
 		return false
 	end
@@ -1144,7 +1144,7 @@ func cluster_redirect_message(string response_json) as string
 	return ""
 end
 
-func cluster_redirect_type(string response_json) as string
+export func cluster_redirect_type(string response_json) as string
 	auto message = cluster_redirect_message(response_json)
 	if string.len(message) >= 5 and xredis_substr_native(message, 0, 5) == "MOVED" then
 		return "MOVED"
@@ -1155,7 +1155,7 @@ func cluster_redirect_type(string response_json) as string
 	return ""
 end
 
-func cluster_retryable_error(string response_json) as bool
+export func cluster_retryable_error(string response_json) as bool
 	if response_type(response_json) != "error" then
 		return false
 	end
@@ -1172,7 +1172,7 @@ func cluster_retryable_error(string response_json) as bool
 	return false
 end
 
-func cluster_redirect_slot(string response_json) as int
+export func cluster_redirect_slot(string response_json) as int
 	auto message = cluster_redirect_message(response_json)
 	auto first = string.indexOf(message, " ")
 	if first < 0 then
@@ -1186,7 +1186,7 @@ func cluster_redirect_slot(string response_json) as int
 	return int(xredis_substr_native(rest, 0, second))
 end
 
-func cluster_redirect_endpoint(string response_json) as string
+export func cluster_redirect_endpoint(string response_json) as string
 	auto message = cluster_redirect_message(response_json)
 	auto first = string.indexOf(message, " ")
 	if first < 0 then
@@ -1200,7 +1200,7 @@ func cluster_redirect_endpoint(string response_json) as string
 	return xredis_substr_native(rest, second + 1, string.len(rest) - second - 1)
 end
 
-func cluster_redirect_host(string response_json) as string
+export func cluster_redirect_host(string response_json) as string
 	auto endpoint = cluster_redirect_endpoint(response_json)
 	auto idx = string.indexOf(endpoint, ":")
 	if idx < 0 then
@@ -1209,7 +1209,7 @@ func cluster_redirect_host(string response_json) as string
 	return xredis_substr_native(endpoint, 0, idx)
 end
 
-func cluster_redirect_port(string response_json) as int
+export func cluster_redirect_port(string response_json) as int
 	auto endpoint = cluster_redirect_endpoint(response_json)
 	auto idx = string.indexOf(endpoint, ":")
 	if idx < 0 then
@@ -1218,11 +1218,11 @@ func cluster_redirect_port(string response_json) as int
 	return int(xredis_substr_native(endpoint, idx + 1, string.len(endpoint) - idx - 1))
 end
 
-func cluster_connect_redirect(string response_json) as Client
+export func cluster_connect_redirect(string response_json) as Client
 	return cluster_connect_redirect(response_json, 5000)
 end
 
-func cluster_connect_redirect(string response_json, int timeout_ms) as Client
+export func cluster_connect_redirect(string response_json, int timeout_ms) as Client
 	auto host = cluster_redirect_host(response_json)
 	auto port = cluster_redirect_port(response_json)
 	if host == "" or port <= 0 then
@@ -1231,47 +1231,47 @@ func cluster_connect_redirect(string response_json, int timeout_ms) as Client
 	return xredis_connect(host, port, timeout_ms)
 end
 
-func response_array_value(string response_json, int index) as string
+export func response_array_value(string response_json, int index) as string
 	return xredis_response_array_value_native(response_json, index)
 end
 
-func response_array_length(string response_json) as int
+export func response_array_length(string response_json) as int
 	return xredis_response_array_length_native(response_json)
 end
 
-func response_set_value(string response_json, int index) as string
+export func response_set_value(string response_json, int index) as string
 	return response_array_value(response_json, index)
 end
 
-func response_set_length(string response_json) as int
+export func response_set_length(string response_json) as int
 	return response_array_length(response_json)
 end
 
-func response_map_length(string response_json) as int
+export func response_map_length(string response_json) as int
 	return xredis_response_map_length_native(response_json)
 end
 
-func response_map_key_value(string response_json, int index) as string
+export func response_map_key_value(string response_json, int index) as string
 	return xredis_response_map_key_value_native(response_json, index)
 end
 
-func response_map_value_value(string response_json, int index) as string
+export func response_map_value_value(string response_json, int index) as string
 	return xredis_response_map_value_value_native(response_json, index)
 end
 
-func response_map_value(string response_json, string key_text) as string
+export func response_map_value(string response_json, string key_text) as string
 	return xredis_response_map_value_native(response_json, key_text)
 end
 
-func response_map_has_key(string response_json, string key_text) as bool
+export func response_map_has_key(string response_json, string key_text) as bool
 	return xredis_response_map_has_key_native(response_json, key_text)
 end
 
-func sentinel_master_host(string addr_response_json) as string
+export func sentinel_master_host(string addr_response_json) as string
 	return response_array_value(addr_response_json, 0)
 end
 
-func sentinel_master_port(string addr_response_json) as int
+export func sentinel_master_port(string addr_response_json) as int
 	auto text = response_array_value(addr_response_json, 1)
 	if text == "" then
 		return -1
@@ -1279,29 +1279,29 @@ func sentinel_master_port(string addr_response_json) as int
 	return int(text)
 end
 
-func ping(Client client) as string
+export func ping(Client client) as string
 	auto response = command1(client, "PING")
 	return response_value(response)
 end
 
-func ping(Client client, string message) as string
+export func ping(Client client, string message) as string
 	auto response = command2(client, "PING", message)
 	return response_value(response)
 end
 
-func auth(Client client, string password) as bool
+export func auth(Client client, string password) as bool
 	return response_ok(command2(client, "AUTH", password))
 end
 
-func auth(Client client, string username, string password) as bool
+export func auth(Client client, string username, string password) as bool
 	return response_ok(command3(client, "AUTH", username, password))
 end
 
-func hello(Client client, int protocol) as string
+export func hello(Client client, int protocol) as string
 	return command2(client, "HELLO", string.formatInt(protocol, ""))
 end
 
-func hello_auth(Client client, int protocol, string username, string password) as string
+export func hello_auth(Client client, int protocol, string username, string password) as string
 	return command5(client, "HELLO", string.formatInt(protocol, ""), "AUTH", username, password)
 end
 
@@ -1309,31 +1309,31 @@ func xredis_select(Client client, int db) as bool
 	return response_ok(command2(client, "SELECT", string.formatInt(db, "")))
 end
 
-func dbsize(Client client) as int
+export func dbsize(Client client) as int
 	return response_int(command1(client, "DBSIZE"))
 end
 
-func flushdb(Client client) as bool
+export func flushdb(Client client) as bool
 	return response_ok(command1(client, "FLUSHDB"))
 end
 
-func sentinel_masters_json(Client client) as string
+export func sentinel_masters_json(Client client) as string
 	return command2(client, "SENTINEL", "MASTERS")
 end
 
-func sentinel_master_json(Client client, string name) as string
+export func sentinel_master_json(Client client, string name) as string
 	return command3(client, "SENTINEL", "MASTER", name)
 end
 
-func sentinel_get_master_addr_by_name_json(Client client, string name) as string
+export func sentinel_get_master_addr_by_name_json(Client client, string name) as string
 	return command3(client, "SENTINEL", "GET-MASTER-ADDR-BY-NAME", name)
 end
 
-func sentinel_connect_master(Client sentinel, string name) as Client
+export func sentinel_connect_master(Client sentinel, string name) as Client
 	return sentinel_connect_master(sentinel, name, 5000)
 end
 
-func sentinel_connect_master(Client sentinel, string name, int timeout_ms) as Client
+export func sentinel_connect_master(Client sentinel, string name, int timeout_ms) as Client
 	auto response = sentinel_get_master_addr_by_name_json(sentinel, name)
 	auto host = sentinel_master_host(response)
 	auto port = sentinel_master_port(response)
@@ -1343,11 +1343,11 @@ func sentinel_connect_master(Client sentinel, string name, int timeout_ms) as Cl
 	return xredis_connect(host, port, timeout_ms)
 end
 
-func sentinel_command_master_once_json(Client sentinel, string name, string argv_json) as string
+export func sentinel_command_master_once_json(Client sentinel, string name, string argv_json) as string
 	return sentinel_command_master_once_json(sentinel, name, argv_json, sentinel.timeout_ms)
 end
 
-func sentinel_command_master_once_json(Client sentinel, string name, string argv_json, int timeout_ms) as string
+export func sentinel_command_master_once_json(Client sentinel, string name, string argv_json, int timeout_ms) as string
 	auto master = sentinel_connect_master(sentinel, name, timeout_ms)
 	if master.valid() == false then
 		sentinel.last_error_text = master.last_error()
@@ -1363,11 +1363,11 @@ func sentinel_command_master_once_json(Client sentinel, string name, string argv
 	return out
 end
 
-func sentinel_command_master_once_password_json(Client sentinel, string name, string password, string argv_json) as string
+export func sentinel_command_master_once_password_json(Client sentinel, string name, string password, string argv_json) as string
 	return sentinel_command_master_once_password_json(sentinel, name, password, argv_json, sentinel.timeout_ms)
 end
 
-func sentinel_command_master_once_password_json(Client sentinel, string name, string password, string argv_json, int timeout_ms) as string
+export func sentinel_command_master_once_password_json(Client sentinel, string name, string password, string argv_json, int timeout_ms) as string
 	auto master = sentinel_connect_master(sentinel, name, timeout_ms)
 	if master.valid() == false then
 		sentinel.last_error_text = master.last_error()
@@ -1389,11 +1389,11 @@ func sentinel_command_master_once_password_json(Client sentinel, string name, st
 	return out
 end
 
-func sentinel_command_master_once_auth_json(Client sentinel, string name, string username, string password, string argv_json) as string
+export func sentinel_command_master_once_auth_json(Client sentinel, string name, string username, string password, string argv_json) as string
 	return sentinel_command_master_once_auth_json(sentinel, name, username, password, argv_json, sentinel.timeout_ms)
 end
 
-func sentinel_command_master_once_auth_json(Client sentinel, string name, string username, string password, string argv_json, int timeout_ms) as string
+export func sentinel_command_master_once_auth_json(Client sentinel, string name, string username, string password, string argv_json, int timeout_ms) as string
 	auto master = sentinel_connect_master(sentinel, name, timeout_ms)
 	if master.valid() == false then
 		sentinel.last_error_text = master.last_error()
@@ -1415,11 +1415,11 @@ func sentinel_command_master_once_auth_json(Client sentinel, string name, string
 	return out
 end
 
-func sentinel_command_master_retry_json(Client sentinel, string name, string argv_json, int max_attempts) as string
+export func sentinel_command_master_retry_json(Client sentinel, string name, string argv_json, int max_attempts) as string
 	return sentinel_command_master_retry_json(sentinel, name, argv_json, max_attempts, sentinel.timeout_ms)
 end
 
-func sentinel_command_master_retry_json(Client sentinel, string name, string argv_json, int max_attempts, int timeout_ms) as string
+export func sentinel_command_master_retry_json(Client sentinel, string name, string argv_json, int max_attempts, int timeout_ms) as string
 	if max_attempts <= 0 then
 		max_attempts = 1
 	end
@@ -1435,11 +1435,11 @@ func sentinel_command_master_retry_json(Client sentinel, string name, string arg
 	return out
 end
 
-func sentinel_command_master_retry_password_json(Client sentinel, string name, string password, string argv_json, int max_attempts) as string
+export func sentinel_command_master_retry_password_json(Client sentinel, string name, string password, string argv_json, int max_attempts) as string
 	return sentinel_command_master_retry_password_json(sentinel, name, password, argv_json, max_attempts, sentinel.timeout_ms)
 end
 
-func sentinel_command_master_retry_password_json(Client sentinel, string name, string password, string argv_json, int max_attempts, int timeout_ms) as string
+export func sentinel_command_master_retry_password_json(Client sentinel, string name, string password, string argv_json, int max_attempts, int timeout_ms) as string
 	if max_attempts <= 0 then
 		max_attempts = 1
 	end
@@ -1455,11 +1455,11 @@ func sentinel_command_master_retry_password_json(Client sentinel, string name, s
 	return out
 end
 
-func sentinel_command_master_retry_auth_json(Client sentinel, string name, string username, string password, string argv_json, int max_attempts) as string
+export func sentinel_command_master_retry_auth_json(Client sentinel, string name, string username, string password, string argv_json, int max_attempts) as string
 	return sentinel_command_master_retry_auth_json(sentinel, name, username, password, argv_json, max_attempts, sentinel.timeout_ms)
 end
 
-func sentinel_command_master_retry_auth_json(Client sentinel, string name, string username, string password, string argv_json, int max_attempts, int timeout_ms) as string
+export func sentinel_command_master_retry_auth_json(Client sentinel, string name, string username, string password, string argv_json, int max_attempts, int timeout_ms) as string
 	if max_attempts <= 0 then
 		max_attempts = 1
 	end
@@ -1475,25 +1475,25 @@ func sentinel_command_master_retry_auth_json(Client sentinel, string name, strin
 	return out
 end
 
-func sentinel_ping(Client sentinel, string name) as string
+export func sentinel_ping(Client sentinel, string name) as string
 	auto response = sentinel_command_master_retry_json(sentinel, name, argv_json1("PING"), 2, sentinel.timeout_ms)
 	return response_value(response)
 end
 
-func sentinel_ping(Client sentinel, string name, string message) as string
+export func sentinel_ping(Client sentinel, string name, string message) as string
 	auto response = sentinel_command_master_retry_json(sentinel, name, argv_json2("PING", message), 2, sentinel.timeout_ms)
 	return response_value(response)
 end
 
-func sentinel_select(Client sentinel, string name, int db) as bool
+export func sentinel_select(Client sentinel, string name, int db) as bool
 	return response_ok(sentinel_command_master_retry_json(sentinel, name, argv_json2("SELECT", string.formatInt(db, "")), 2, sentinel.timeout_ms))
 end
 
-func sentinel_dbsize(Client sentinel, string name) as int
+export func sentinel_dbsize(Client sentinel, string name) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json1("DBSIZE"), 2, sentinel.timeout_ms))
 end
 
-func sentinel_get(Client sentinel, string name, string key) as string
+export func sentinel_get(Client sentinel, string name, string key) as string
 	auto response = sentinel_command_master_retry_json(sentinel, name, argv_json2("GET", key), 2, sentinel.timeout_ms)
 	if response_nil(response) then
 		return ""
@@ -1501,7 +1501,7 @@ func sentinel_get(Client sentinel, string name, string key) as string
 	return response_value(response)
 end
 
-func sentinel_get_or(Client sentinel, string name, string key, string fallback) as string
+export func sentinel_get_or(Client sentinel, string name, string key, string fallback) as string
 	auto response = sentinel_command_master_retry_json(sentinel, name, argv_json2("GET", key), 2, sentinel.timeout_ms)
 	if response_nil(response) then
 		return fallback
@@ -1512,79 +1512,79 @@ func sentinel_get_or(Client sentinel, string name, string key, string fallback) 
 	return response_value(response)
 end
 
-func sentinel_set(Client sentinel, string name, string key, string value) as bool
+export func sentinel_set(Client sentinel, string name, string key, string value) as bool
 	return response_ok(sentinel_command_master_retry_json(sentinel, name, argv_json3("SET", key, value), 2, sentinel.timeout_ms))
 end
 
-func sentinel_set_nx(Client sentinel, string name, string key, string value) as bool
+export func sentinel_set_nx(Client sentinel, string name, string key, string value) as bool
 	return response_ok(sentinel_command_master_retry_json(sentinel, name, argv_json4("SET", key, value, "NX"), 2, sentinel.timeout_ms))
 end
 
-func sentinel_set_xx(Client sentinel, string name, string key, string value) as bool
+export func sentinel_set_xx(Client sentinel, string name, string key, string value) as bool
 	return response_ok(sentinel_command_master_retry_json(sentinel, name, argv_json4("SET", key, value, "XX"), 2, sentinel.timeout_ms))
 end
 
-func sentinel_set_ex(Client sentinel, string name, string key, string value, int seconds) as bool
+export func sentinel_set_ex(Client sentinel, string name, string key, string value, int seconds) as bool
 	return response_ok(sentinel_command_master_retry_json(sentinel, name, argv_json4("SETEX", key, string.formatInt(seconds, ""), value), 2, sentinel.timeout_ms))
 end
 
-func sentinel_mget_json(Client sentinel, string name, array<string> keys) as string
+export func sentinel_mget_json(Client sentinel, string name, array<string> keys) as string
 	return sentinel_command_master_retry_json(sentinel, name, argv_json_list("MGET", keys), 2, sentinel.timeout_ms)
 end
 
-func sentinel_mset(Client sentinel, string name, array<string> key_values) as bool
+export func sentinel_mset(Client sentinel, string name, array<string> key_values) as bool
 	return response_ok(sentinel_command_master_retry_json(sentinel, name, argv_json_list("MSET", key_values), 2, sentinel.timeout_ms))
 end
 
-func sentinel_append(Client sentinel, string name, string key, string value) as int
+export func sentinel_append(Client sentinel, string name, string key, string value) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("APPEND", key, value), 2, sentinel.timeout_ms))
 end
 
-func sentinel_strlen(Client sentinel, string name, string key) as int
+export func sentinel_strlen(Client sentinel, string name, string key) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json2("STRLEN", key), 2, sentinel.timeout_ms))
 end
 
-func sentinel_del(Client sentinel, string name, string key) as int
+export func sentinel_del(Client sentinel, string name, string key) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json2("DEL", key), 2, sentinel.timeout_ms))
 end
 
-func sentinel_exists(Client sentinel, string name, string key) as bool
+export func sentinel_exists(Client sentinel, string name, string key) as bool
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json2("EXISTS", key), 2, sentinel.timeout_ms)) > 0
 end
 
-func sentinel_expire(Client sentinel, string name, string key, int seconds) as bool
+export func sentinel_expire(Client sentinel, string name, string key, int seconds) as bool
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("EXPIRE", key, string.formatInt(seconds, "")), 2, sentinel.timeout_ms)) == 1
 end
 
-func sentinel_persist(Client sentinel, string name, string key) as bool
+export func sentinel_persist(Client sentinel, string name, string key) as bool
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json2("PERSIST", key), 2, sentinel.timeout_ms)) == 1
 end
 
-func sentinel_ttl(Client sentinel, string name, string key) as int
+export func sentinel_ttl(Client sentinel, string name, string key) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json2("TTL", key), 2, sentinel.timeout_ms))
 end
 
-func sentinel_pttl(Client sentinel, string name, string key) as int
+export func sentinel_pttl(Client sentinel, string name, string key) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json2("PTTL", key), 2, sentinel.timeout_ms))
 end
 
-func sentinel_incr(Client sentinel, string name, string key) as int
+export func sentinel_incr(Client sentinel, string name, string key) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json2("INCR", key), 2, sentinel.timeout_ms))
 end
 
-func sentinel_incr_by(Client sentinel, string name, string key, int amount) as int
+export func sentinel_incr_by(Client sentinel, string name, string key, int amount) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("INCRBY", key, string.formatInt(amount, "")), 2, sentinel.timeout_ms))
 end
 
-func sentinel_decr(Client sentinel, string name, string key) as int
+export func sentinel_decr(Client sentinel, string name, string key) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json2("DECR", key), 2, sentinel.timeout_ms))
 end
 
-func sentinel_decr_by(Client sentinel, string name, string key, int amount) as int
+export func sentinel_decr_by(Client sentinel, string name, string key, int amount) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("DECRBY", key, string.formatInt(amount, "")), 2, sentinel.timeout_ms))
 end
 
-func sentinel_hget(Client sentinel, string name, string key, string field) as string
+export func sentinel_hget(Client sentinel, string name, string key, string field) as string
 	auto response = sentinel_command_master_retry_json(sentinel, name, argv_json3("HGET", key, field), 2, sentinel.timeout_ms)
 	if response_nil(response) then
 		return ""
@@ -1592,7 +1592,7 @@ func sentinel_hget(Client sentinel, string name, string key, string field) as st
 	return response_value(response)
 end
 
-func sentinel_hget_or(Client sentinel, string name, string key, string field, string fallback) as string
+export func sentinel_hget_or(Client sentinel, string name, string key, string field, string fallback) as string
 	auto response = sentinel_command_master_retry_json(sentinel, name, argv_json3("HGET", key, field), 2, sentinel.timeout_ms)
 	if response_nil(response) then
 		return fallback
@@ -1603,39 +1603,39 @@ func sentinel_hget_or(Client sentinel, string name, string key, string field, st
 	return response_value(response)
 end
 
-func sentinel_hset(Client sentinel, string name, string key, string field, string value) as int
+export func sentinel_hset(Client sentinel, string name, string key, string field, string value) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json4("HSET", key, field, value), 2, sentinel.timeout_ms))
 end
 
-func sentinel_hdel(Client sentinel, string name, string key, string field) as int
+export func sentinel_hdel(Client sentinel, string name, string key, string field) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("HDEL", key, field), 2, sentinel.timeout_ms))
 end
 
-func sentinel_hexists(Client sentinel, string name, string key, string field) as bool
+export func sentinel_hexists(Client sentinel, string name, string key, string field) as bool
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("HEXISTS", key, field), 2, sentinel.timeout_ms)) == 1
 end
 
-func sentinel_hlen(Client sentinel, string name, string key) as int
+export func sentinel_hlen(Client sentinel, string name, string key) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json2("HLEN", key), 2, sentinel.timeout_ms))
 end
 
-func sentinel_hstrlen(Client sentinel, string name, string key, string field) as int
+export func sentinel_hstrlen(Client sentinel, string name, string key, string field) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("HSTRLEN", key, field), 2, sentinel.timeout_ms))
 end
 
-func sentinel_hgetall_json(Client sentinel, string name, string key) as string
+export func sentinel_hgetall_json(Client sentinel, string name, string key) as string
 	return sentinel_command_master_retry_json(sentinel, name, argv_json2("HGETALL", key), 2, sentinel.timeout_ms)
 end
 
-func sentinel_lpush(Client sentinel, string name, string key, string value) as int
+export func sentinel_lpush(Client sentinel, string name, string key, string value) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("LPUSH", key, value), 2, sentinel.timeout_ms))
 end
 
-func sentinel_rpush(Client sentinel, string name, string key, string value) as int
+export func sentinel_rpush(Client sentinel, string name, string key, string value) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("RPUSH", key, value), 2, sentinel.timeout_ms))
 end
 
-func sentinel_lpop(Client sentinel, string name, string key) as string
+export func sentinel_lpop(Client sentinel, string name, string key) as string
 	auto response = sentinel_command_master_retry_json(sentinel, name, argv_json2("LPOP", key), 2, sentinel.timeout_ms)
 	if response_nil(response) then
 		return ""
@@ -1643,7 +1643,7 @@ func sentinel_lpop(Client sentinel, string name, string key) as string
 	return response_value(response)
 end
 
-func sentinel_lpop_or(Client sentinel, string name, string key, string fallback) as string
+export func sentinel_lpop_or(Client sentinel, string name, string key, string fallback) as string
 	auto response = sentinel_command_master_retry_json(sentinel, name, argv_json2("LPOP", key), 2, sentinel.timeout_ms)
 	if response_nil(response) then
 		return fallback
@@ -1654,7 +1654,7 @@ func sentinel_lpop_or(Client sentinel, string name, string key, string fallback)
 	return response_value(response)
 end
 
-func sentinel_rpop(Client sentinel, string name, string key) as string
+export func sentinel_rpop(Client sentinel, string name, string key) as string
 	auto response = sentinel_command_master_retry_json(sentinel, name, argv_json2("RPOP", key), 2, sentinel.timeout_ms)
 	if response_nil(response) then
 		return ""
@@ -1662,7 +1662,7 @@ func sentinel_rpop(Client sentinel, string name, string key) as string
 	return response_value(response)
 end
 
-func sentinel_rpop_or(Client sentinel, string name, string key, string fallback) as string
+export func sentinel_rpop_or(Client sentinel, string name, string key, string fallback) as string
 	auto response = sentinel_command_master_retry_json(sentinel, name, argv_json2("RPOP", key), 2, sentinel.timeout_ms)
 	if response_nil(response) then
 		return fallback
@@ -1673,51 +1673,51 @@ func sentinel_rpop_or(Client sentinel, string name, string key, string fallback)
 	return response_value(response)
 end
 
-func sentinel_llen(Client sentinel, string name, string key) as int
+export func sentinel_llen(Client sentinel, string name, string key) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json2("LLEN", key), 2, sentinel.timeout_ms))
 end
 
-func sentinel_lrange_json(Client sentinel, string name, string key, int start, int stop) as string
+export func sentinel_lrange_json(Client sentinel, string name, string key, int start, int stop) as string
 	return sentinel_command_master_retry_json(sentinel, name, argv_json4("LRANGE", key, string.formatInt(start, ""), string.formatInt(stop, "")), 2, sentinel.timeout_ms)
 end
 
-func sentinel_sadd(Client sentinel, string name, string key, string member) as int
+export func sentinel_sadd(Client sentinel, string name, string key, string member) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("SADD", key, member), 2, sentinel.timeout_ms))
 end
 
-func sentinel_srem(Client sentinel, string name, string key, string member) as int
+export func sentinel_srem(Client sentinel, string name, string key, string member) as int
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("SREM", key, member), 2, sentinel.timeout_ms))
 end
 
-func sentinel_sismember(Client sentinel, string name, string key, string member) as bool
+export func sentinel_sismember(Client sentinel, string name, string key, string member) as bool
 	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("SISMEMBER", key, member), 2, sentinel.timeout_ms)) == 1
 end
 
-func sentinel_smembers_json(Client sentinel, string name, string key) as string
+export func sentinel_smembers_json(Client sentinel, string name, string key) as string
 	return sentinel_command_master_retry_json(sentinel, name, argv_json2("SMEMBERS", key), 2, sentinel.timeout_ms)
 end
 
-func sentinel_replicas_json(Client client, string name) as string
+export func sentinel_replicas_json(Client client, string name) as string
 	return command3(client, "SENTINEL", "REPLICAS", name)
 end
 
-func sentinel_sentinels_json(Client client, string name) as string
+export func sentinel_sentinels_json(Client client, string name) as string
 	return command3(client, "SENTINEL", "SENTINELS", name)
 end
 
-func cluster_info_json(Client client) as string
+export func cluster_info_json(Client client) as string
 	return command2(client, "CLUSTER", "INFO")
 end
 
-func cluster_nodes_json(Client client) as string
+export func cluster_nodes_json(Client client) as string
 	return command2(client, "CLUSTER", "NODES")
 end
 
-func cluster_slots_json(Client client) as string
+export func cluster_slots_json(Client client) as string
 	return command2(client, "CLUSTER", "SLOTS")
 end
 
-func cluster_slots_cache_refresh(ClusterSlotsCache cache, Client seed) as bool
+export func cluster_slots_cache_refresh(ClusterSlotsCache cache, Client seed) as bool
 	auto slots = cluster_slots_json(seed)
 	if response_type(slots) == "error" then
 		seed.last_error_text = response_value(slots)
@@ -1731,19 +1731,19 @@ func cluster_slots_cache_refresh(ClusterSlotsCache cache, Client seed) as bool
 	return true
 end
 
-func cluster_slots_node_host(string slots_response_json, int slot) as string
+export func cluster_slots_node_host(string slots_response_json, int slot) as string
 	return xredis_cluster_slots_node_host_native(slots_response_json, slot)
 end
 
-func cluster_slots_node_port(string slots_response_json, int slot) as int
+export func cluster_slots_node_port(string slots_response_json, int slot) as int
 	return xredis_cluster_slots_node_port_native(slots_response_json, slot)
 end
 
-func cluster_connect_slot(string slots_response_json, int slot) as Client
+export func cluster_connect_slot(string slots_response_json, int slot) as Client
 	return cluster_connect_slot(slots_response_json, slot, 5000)
 end
 
-func cluster_connect_slot(string slots_response_json, int slot, int timeout_ms) as Client
+export func cluster_connect_slot(string slots_response_json, int slot, int timeout_ms) as Client
 	auto host = cluster_slots_node_host(slots_response_json, slot)
 	auto port = cluster_slots_node_port(slots_response_json, slot)
 	if host == "" or port <= 0 then
@@ -1752,15 +1752,15 @@ func cluster_connect_slot(string slots_response_json, int slot, int timeout_ms) 
 	return xredis_connect(host, port, timeout_ms)
 end
 
-func cluster_keyslot(Client client, string key) as int
+export func cluster_keyslot(Client client, string key) as int
 	return response_int(command3(client, "CLUSTER", "KEYSLOT", key))
 end
 
-func cluster_command_slot_once_json(Client seed, string slots_response_json, string key, string argv_json) as string
+export func cluster_command_slot_once_json(Client seed, string slots_response_json, string key, string argv_json) as string
 	return cluster_command_slot_once_json(seed, slots_response_json, key, argv_json, seed.timeout_ms)
 end
 
-func cluster_command_slot_once_json(Client seed, string slots_response_json, string key, string argv_json, int timeout_ms) as string
+export func cluster_command_slot_once_json(Client seed, string slots_response_json, string key, string argv_json, int timeout_ms) as string
 	auto slot = cluster_keyslot(seed, key)
 	if slot < 0 then
 		seed.last_error_text = "cluster keyslot failed"
@@ -1781,11 +1781,11 @@ func cluster_command_slot_once_json(Client seed, string slots_response_json, str
 	return out
 end
 
-func cluster_command_slot_once_password_json(Client seed, string slots_response_json, string key, string password, string argv_json) as string
+export func cluster_command_slot_once_password_json(Client seed, string slots_response_json, string key, string password, string argv_json) as string
 	return cluster_command_slot_once_password_json(seed, slots_response_json, key, password, argv_json, seed.timeout_ms)
 end
 
-func cluster_command_slot_once_password_json(Client seed, string slots_response_json, string key, string password, string argv_json, int timeout_ms) as string
+export func cluster_command_slot_once_password_json(Client seed, string slots_response_json, string key, string password, string argv_json, int timeout_ms) as string
 	auto slot = cluster_keyslot(seed, key)
 	if slot < 0 then
 		seed.last_error_text = "cluster keyslot failed"
@@ -1812,11 +1812,11 @@ func cluster_command_slot_once_password_json(Client seed, string slots_response_
 	return out
 end
 
-func cluster_command_slot_once_auth_json(Client seed, string slots_response_json, string key, string username, string password, string argv_json) as string
+export func cluster_command_slot_once_auth_json(Client seed, string slots_response_json, string key, string username, string password, string argv_json) as string
 	return cluster_command_slot_once_auth_json(seed, slots_response_json, key, username, password, argv_json, seed.timeout_ms)
 end
 
-func cluster_command_slot_once_auth_json(Client seed, string slots_response_json, string key, string username, string password, string argv_json, int timeout_ms) as string
+export func cluster_command_slot_once_auth_json(Client seed, string slots_response_json, string key, string username, string password, string argv_json, int timeout_ms) as string
 	auto slot = cluster_keyslot(seed, key)
 	if slot < 0 then
 		seed.last_error_text = "cluster keyslot failed"
@@ -1843,11 +1843,11 @@ func cluster_command_slot_once_auth_json(Client seed, string slots_response_json
 	return out
 end
 
-func cluster_command_slot_retry_json(Client seed, string slots_response_json, string key, string argv_json, int max_redirects) as string
+export func cluster_command_slot_retry_json(Client seed, string slots_response_json, string key, string argv_json, int max_redirects) as string
 	return cluster_command_slot_retry_json(seed, slots_response_json, key, argv_json, max_redirects, seed.timeout_ms)
 end
 
-func cluster_command_slot_retry_json(Client seed, string slots_response_json, string key, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_slot_retry_json(Client seed, string slots_response_json, string key, string argv_json, int max_redirects, int timeout_ms) as string
 	auto out = cluster_command_slot_once_json(seed, slots_response_json, key, argv_json, timeout_ms)
 	int redirects = 0
 	while cluster_redirect_type(out) != "" and redirects < max_redirects do
@@ -1877,11 +1877,11 @@ func cluster_command_slot_retry_json(Client seed, string slots_response_json, st
 	return out
 end
 
-func cluster_command_slot_retry_password_json(Client seed, string slots_response_json, string key, string password, string argv_json, int max_redirects) as string
+export func cluster_command_slot_retry_password_json(Client seed, string slots_response_json, string key, string password, string argv_json, int max_redirects) as string
 	return cluster_command_slot_retry_password_json(seed, slots_response_json, key, password, argv_json, max_redirects, seed.timeout_ms)
 end
 
-func cluster_command_slot_retry_password_json(Client seed, string slots_response_json, string key, string password, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_slot_retry_password_json(Client seed, string slots_response_json, string key, string password, string argv_json, int max_redirects, int timeout_ms) as string
 	auto out = cluster_command_slot_once_password_json(seed, slots_response_json, key, password, argv_json, timeout_ms)
 	int redirects = 0
 	while cluster_redirect_type(out) != "" and redirects < max_redirects do
@@ -1917,11 +1917,11 @@ func cluster_command_slot_retry_password_json(Client seed, string slots_response
 	return out
 end
 
-func cluster_command_slot_retry_auth_json(Client seed, string slots_response_json, string key, string username, string password, string argv_json, int max_redirects) as string
+export func cluster_command_slot_retry_auth_json(Client seed, string slots_response_json, string key, string username, string password, string argv_json, int max_redirects) as string
 	return cluster_command_slot_retry_auth_json(seed, slots_response_json, key, username, password, argv_json, max_redirects, seed.timeout_ms)
 end
 
-func cluster_command_slot_retry_auth_json(Client seed, string slots_response_json, string key, string username, string password, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_slot_retry_auth_json(Client seed, string slots_response_json, string key, string username, string password, string argv_json, int max_redirects, int timeout_ms) as string
 	auto out = cluster_command_slot_once_auth_json(seed, slots_response_json, key, username, password, argv_json, timeout_ms)
 	int redirects = 0
 	while cluster_redirect_type(out) != "" and redirects < max_redirects do
@@ -1957,11 +1957,11 @@ func cluster_command_slot_retry_auth_json(Client seed, string slots_response_jso
 	return out
 end
 
-func cluster_command_key_once_json(Client seed, string key, string argv_json) as string
+export func cluster_command_key_once_json(Client seed, string key, string argv_json) as string
 	return cluster_command_key_once_json(seed, key, argv_json, seed.timeout_ms)
 end
 
-func cluster_command_key_once_json(Client seed, string key, string argv_json, int timeout_ms) as string
+export func cluster_command_key_once_json(Client seed, string key, string argv_json, int timeout_ms) as string
 	auto slots = cluster_slots_json(seed)
 	if response_type(slots) == "error" then
 		seed.last_error_text = response_value(slots)
@@ -1970,11 +1970,11 @@ func cluster_command_key_once_json(Client seed, string key, string argv_json, in
 	return cluster_command_slot_once_json(seed, slots, key, argv_json, timeout_ms)
 end
 
-func cluster_command_key_once_password_json(Client seed, string key, string password, string argv_json) as string
+export func cluster_command_key_once_password_json(Client seed, string key, string password, string argv_json) as string
 	return cluster_command_key_once_password_json(seed, key, password, argv_json, seed.timeout_ms)
 end
 
-func cluster_command_key_once_password_json(Client seed, string key, string password, string argv_json, int timeout_ms) as string
+export func cluster_command_key_once_password_json(Client seed, string key, string password, string argv_json, int timeout_ms) as string
 	auto slots = cluster_slots_json(seed)
 	if response_type(slots) == "error" then
 		seed.last_error_text = response_value(slots)
@@ -1983,11 +1983,11 @@ func cluster_command_key_once_password_json(Client seed, string key, string pass
 	return cluster_command_slot_once_password_json(seed, slots, key, password, argv_json, timeout_ms)
 end
 
-func cluster_command_key_once_auth_json(Client seed, string key, string username, string password, string argv_json) as string
+export func cluster_command_key_once_auth_json(Client seed, string key, string username, string password, string argv_json) as string
 	return cluster_command_key_once_auth_json(seed, key, username, password, argv_json, seed.timeout_ms)
 end
 
-func cluster_command_key_once_auth_json(Client seed, string key, string username, string password, string argv_json, int timeout_ms) as string
+export func cluster_command_key_once_auth_json(Client seed, string key, string username, string password, string argv_json, int timeout_ms) as string
 	auto slots = cluster_slots_json(seed)
 	if response_type(slots) == "error" then
 		seed.last_error_text = response_value(slots)
@@ -1996,11 +1996,11 @@ func cluster_command_key_once_auth_json(Client seed, string key, string username
 	return cluster_command_slot_once_auth_json(seed, slots, key, username, password, argv_json, timeout_ms)
 end
 
-func cluster_command_key_retry_json(Client seed, string key, string argv_json, int max_redirects) as string
+export func cluster_command_key_retry_json(Client seed, string key, string argv_json, int max_redirects) as string
 	return cluster_command_key_retry_json(seed, key, argv_json, max_redirects, seed.timeout_ms)
 end
 
-func cluster_command_key_retry_json(Client seed, string key, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_key_retry_json(Client seed, string key, string argv_json, int max_redirects, int timeout_ms) as string
 	auto slots = cluster_slots_json(seed)
 	if response_type(slots) == "error" then
 		seed.last_error_text = response_value(slots)
@@ -2009,11 +2009,11 @@ func cluster_command_key_retry_json(Client seed, string key, string argv_json, i
 	return cluster_command_slot_retry_json(seed, slots, key, argv_json, max_redirects, timeout_ms)
 end
 
-func cluster_command_key_retry_password_json(Client seed, string key, string password, string argv_json, int max_redirects) as string
+export func cluster_command_key_retry_password_json(Client seed, string key, string password, string argv_json, int max_redirects) as string
 	return cluster_command_key_retry_password_json(seed, key, password, argv_json, max_redirects, seed.timeout_ms)
 end
 
-func cluster_command_key_retry_password_json(Client seed, string key, string password, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_key_retry_password_json(Client seed, string key, string password, string argv_json, int max_redirects, int timeout_ms) as string
 	auto slots = cluster_slots_json(seed)
 	if response_type(slots) == "error" then
 		seed.last_error_text = response_value(slots)
@@ -2022,11 +2022,11 @@ func cluster_command_key_retry_password_json(Client seed, string key, string pas
 	return cluster_command_slot_retry_password_json(seed, slots, key, password, argv_json, max_redirects, timeout_ms)
 end
 
-func cluster_command_key_retry_auth_json(Client seed, string key, string username, string password, string argv_json, int max_redirects) as string
+export func cluster_command_key_retry_auth_json(Client seed, string key, string username, string password, string argv_json, int max_redirects) as string
 	return cluster_command_key_retry_auth_json(seed, key, username, password, argv_json, max_redirects, seed.timeout_ms)
 end
 
-func cluster_command_key_retry_auth_json(Client seed, string key, string username, string password, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_key_retry_auth_json(Client seed, string key, string username, string password, string argv_json, int max_redirects, int timeout_ms) as string
 	auto slots = cluster_slots_json(seed)
 	if response_type(slots) == "error" then
 		seed.last_error_text = response_value(slots)
@@ -2035,11 +2035,11 @@ func cluster_command_key_retry_auth_json(Client seed, string key, string usernam
 	return cluster_command_slot_retry_auth_json(seed, slots, key, username, password, argv_json, max_redirects, timeout_ms)
 end
 
-func cluster_command_cached_key_once_json(Client seed, ClusterSlotsCache cache, string key, string argv_json) as string
+export func cluster_command_cached_key_once_json(Client seed, ClusterSlotsCache cache, string key, string argv_json) as string
 	return cluster_command_cached_key_once_json(seed, cache, key, argv_json, seed.timeout_ms)
 end
 
-func cluster_command_cached_key_once_json(Client seed, ClusterSlotsCache cache, string key, string argv_json, int timeout_ms) as string
+export func cluster_command_cached_key_once_json(Client seed, ClusterSlotsCache cache, string key, string argv_json, int timeout_ms) as string
 	if cluster_slots_cache_valid(cache) == false then
 		seed.last_error_text = "cluster slots cache is empty"
 		return json_error(seed.last_error_text)
@@ -2047,11 +2047,11 @@ func cluster_command_cached_key_once_json(Client seed, ClusterSlotsCache cache, 
 	return cluster_command_slot_once_json(seed, cache.slots_json, key, argv_json, timeout_ms)
 end
 
-func cluster_command_cached_key_retry_json(Client seed, ClusterSlotsCache cache, string key, string argv_json, int max_redirects) as string
+export func cluster_command_cached_key_retry_json(Client seed, ClusterSlotsCache cache, string key, string argv_json, int max_redirects) as string
 	return cluster_command_cached_key_retry_json(seed, cache, key, argv_json, max_redirects, seed.timeout_ms)
 end
 
-func cluster_command_cached_key_retry_json(Client seed, ClusterSlotsCache cache, string key, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_cached_key_retry_json(Client seed, ClusterSlotsCache cache, string key, string argv_json, int max_redirects, int timeout_ms) as string
 	if cluster_slots_cache_valid(cache) == false then
 		seed.last_error_text = "cluster slots cache is empty"
 		return json_error(seed.last_error_text)
@@ -2059,11 +2059,11 @@ func cluster_command_cached_key_retry_json(Client seed, ClusterSlotsCache cache,
 	return cluster_command_slot_retry_json(seed, cache.slots_json, key, argv_json, max_redirects, timeout_ms)
 end
 
-func cluster_command_cached_key_once_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json) as string
+export func cluster_command_cached_key_once_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json) as string
 	return cluster_command_cached_key_once_password_json(seed, cache, key, password, argv_json, seed.timeout_ms)
 end
 
-func cluster_command_cached_key_once_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json, int timeout_ms) as string
+export func cluster_command_cached_key_once_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json, int timeout_ms) as string
 	if cluster_slots_cache_valid(cache) == false then
 		seed.last_error_text = "cluster slots cache is empty"
 		return json_error(seed.last_error_text)
@@ -2071,11 +2071,11 @@ func cluster_command_cached_key_once_password_json(Client seed, ClusterSlotsCach
 	return cluster_command_slot_once_password_json(seed, cache.slots_json, key, password, argv_json, timeout_ms)
 end
 
-func cluster_command_cached_key_retry_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json, int max_redirects) as string
+export func cluster_command_cached_key_retry_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json, int max_redirects) as string
 	return cluster_command_cached_key_retry_password_json(seed, cache, key, password, argv_json, max_redirects, seed.timeout_ms)
 end
 
-func cluster_command_cached_key_retry_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_cached_key_retry_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json, int max_redirects, int timeout_ms) as string
 	if cluster_slots_cache_valid(cache) == false then
 		seed.last_error_text = "cluster slots cache is empty"
 		return json_error(seed.last_error_text)
@@ -2083,11 +2083,11 @@ func cluster_command_cached_key_retry_password_json(Client seed, ClusterSlotsCac
 	return cluster_command_slot_retry_password_json(seed, cache.slots_json, key, password, argv_json, max_redirects, timeout_ms)
 end
 
-func cluster_command_cached_key_once_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json) as string
+export func cluster_command_cached_key_once_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json) as string
 	return cluster_command_cached_key_once_auth_json(seed, cache, key, username, password, argv_json, seed.timeout_ms)
 end
 
-func cluster_command_cached_key_once_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json, int timeout_ms) as string
+export func cluster_command_cached_key_once_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json, int timeout_ms) as string
 	if cluster_slots_cache_valid(cache) == false then
 		seed.last_error_text = "cluster slots cache is empty"
 		return json_error(seed.last_error_text)
@@ -2095,11 +2095,11 @@ func cluster_command_cached_key_once_auth_json(Client seed, ClusterSlotsCache ca
 	return cluster_command_slot_once_auth_json(seed, cache.slots_json, key, username, password, argv_json, timeout_ms)
 end
 
-func cluster_command_cached_key_retry_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json, int max_redirects) as string
+export func cluster_command_cached_key_retry_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json, int max_redirects) as string
 	return cluster_command_cached_key_retry_auth_json(seed, cache, key, username, password, argv_json, max_redirects, seed.timeout_ms)
 end
 
-func cluster_command_cached_key_retry_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_cached_key_retry_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json, int max_redirects, int timeout_ms) as string
 	if cluster_slots_cache_valid(cache) == false then
 		seed.last_error_text = "cluster slots cache is empty"
 		return json_error(seed.last_error_text)
@@ -2107,11 +2107,11 @@ func cluster_command_cached_key_retry_auth_json(Client seed, ClusterSlotsCache c
 	return cluster_command_slot_retry_auth_json(seed, cache.slots_json, key, username, password, argv_json, max_redirects, timeout_ms)
 end
 
-func cluster_command_cache_refresh_key_once_json(Client seed, ClusterSlotsCache cache, string key, string argv_json) as string
+export func cluster_command_cache_refresh_key_once_json(Client seed, ClusterSlotsCache cache, string key, string argv_json) as string
 	return cluster_command_cache_refresh_key_once_json(seed, cache, key, argv_json, seed.timeout_ms)
 end
 
-func cluster_command_cache_refresh_key_once_json(Client seed, ClusterSlotsCache cache, string key, string argv_json, int timeout_ms) as string
+export func cluster_command_cache_refresh_key_once_json(Client seed, ClusterSlotsCache cache, string key, string argv_json, int timeout_ms) as string
 	if cluster_slots_cache_valid(cache) == false then
 		if cluster_slots_cache_refresh(cache, seed) == false then
 			return json_error(seed.last_error_text)
@@ -2120,11 +2120,11 @@ func cluster_command_cache_refresh_key_once_json(Client seed, ClusterSlotsCache 
 	return cluster_command_cached_key_once_json(seed, cache, key, argv_json, timeout_ms)
 end
 
-func cluster_command_cache_refresh_key_retry_json(Client seed, ClusterSlotsCache cache, string key, string argv_json, int max_redirects) as string
+export func cluster_command_cache_refresh_key_retry_json(Client seed, ClusterSlotsCache cache, string key, string argv_json, int max_redirects) as string
 	return cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json, max_redirects, seed.timeout_ms)
 end
 
-func cluster_command_cache_refresh_key_retry_json(Client seed, ClusterSlotsCache cache, string key, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_cache_refresh_key_retry_json(Client seed, ClusterSlotsCache cache, string key, string argv_json, int max_redirects, int timeout_ms) as string
 	if cluster_slots_cache_valid(cache) == false then
 		if cluster_slots_cache_refresh(cache, seed) == false then
 			return json_error(seed.last_error_text)
@@ -2144,11 +2144,11 @@ func cluster_command_cache_refresh_key_retry_json(Client seed, ClusterSlotsCache
 	return out
 end
 
-func cluster_command_cache_refresh_key_once_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json) as string
+export func cluster_command_cache_refresh_key_once_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json) as string
 	return cluster_command_cache_refresh_key_once_password_json(seed, cache, key, password, argv_json, seed.timeout_ms)
 end
 
-func cluster_command_cache_refresh_key_once_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json, int timeout_ms) as string
+export func cluster_command_cache_refresh_key_once_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json, int timeout_ms) as string
 	if cluster_slots_cache_valid(cache) == false then
 		if cluster_slots_cache_refresh(cache, seed) == false then
 			return json_error(seed.last_error_text)
@@ -2157,11 +2157,11 @@ func cluster_command_cache_refresh_key_once_password_json(Client seed, ClusterSl
 	return cluster_command_cached_key_once_password_json(seed, cache, key, password, argv_json, timeout_ms)
 end
 
-func cluster_command_cache_refresh_key_retry_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json, int max_redirects) as string
+export func cluster_command_cache_refresh_key_retry_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json, int max_redirects) as string
 	return cluster_command_cache_refresh_key_retry_password_json(seed, cache, key, password, argv_json, max_redirects, seed.timeout_ms)
 end
 
-func cluster_command_cache_refresh_key_retry_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_cache_refresh_key_retry_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json, int max_redirects, int timeout_ms) as string
 	if cluster_slots_cache_valid(cache) == false then
 		if cluster_slots_cache_refresh(cache, seed) == false then
 			return json_error(seed.last_error_text)
@@ -2181,11 +2181,11 @@ func cluster_command_cache_refresh_key_retry_password_json(Client seed, ClusterS
 	return out
 end
 
-func cluster_command_cache_refresh_key_once_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json) as string
+export func cluster_command_cache_refresh_key_once_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json) as string
 	return cluster_command_cache_refresh_key_once_auth_json(seed, cache, key, username, password, argv_json, seed.timeout_ms)
 end
 
-func cluster_command_cache_refresh_key_once_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json, int timeout_ms) as string
+export func cluster_command_cache_refresh_key_once_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json, int timeout_ms) as string
 	if cluster_slots_cache_valid(cache) == false then
 		if cluster_slots_cache_refresh(cache, seed) == false then
 			return json_error(seed.last_error_text)
@@ -2194,11 +2194,11 @@ func cluster_command_cache_refresh_key_once_auth_json(Client seed, ClusterSlotsC
 	return cluster_command_cached_key_once_auth_json(seed, cache, key, username, password, argv_json, timeout_ms)
 end
 
-func cluster_command_cache_refresh_key_retry_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json, int max_redirects) as string
+export func cluster_command_cache_refresh_key_retry_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json, int max_redirects) as string
 	return cluster_command_cache_refresh_key_retry_auth_json(seed, cache, key, username, password, argv_json, max_redirects, seed.timeout_ms)
 end
 
-func cluster_command_cache_refresh_key_retry_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json, int max_redirects, int timeout_ms) as string
+export func cluster_command_cache_refresh_key_retry_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json, int max_redirects, int timeout_ms) as string
 	if cluster_slots_cache_valid(cache) == false then
 		if cluster_slots_cache_refresh(cache, seed) == false then
 			return json_error(seed.last_error_text)
@@ -2218,16 +2218,16 @@ func cluster_command_cache_refresh_key_retry_auth_json(Client seed, ClusterSlots
 	return out
 end
 
-func cluster_myid(Client client) as string
+export func cluster_myid(Client client) as string
 	auto response = command2(client, "CLUSTER", "MYID")
 	return response_value(response)
 end
 
-func cluster_asking(Client client) as bool
+export func cluster_asking(Client client) as bool
 	return response_ok(command1(client, "ASKING"))
 end
 
-func cluster_get(Client seed, ClusterSlotsCache cache, string key) as string
+export func cluster_get(Client seed, ClusterSlotsCache cache, string key) as string
 	auto response = cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("GET", key), 1, seed.timeout_ms)
 	if response_nil(response) then
 		return ""
@@ -2235,7 +2235,7 @@ func cluster_get(Client seed, ClusterSlotsCache cache, string key) as string
 	return response_value(response)
 end
 
-func cluster_get_or(Client seed, ClusterSlotsCache cache, string key, string fallback) as string
+export func cluster_get_or(Client seed, ClusterSlotsCache cache, string key, string fallback) as string
 	auto response = cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("GET", key), 1, seed.timeout_ms)
 	if response_nil(response) then
 		return fallback
@@ -2246,23 +2246,23 @@ func cluster_get_or(Client seed, ClusterSlotsCache cache, string key, string fal
 	return response_value(response)
 end
 
-func cluster_set(Client seed, ClusterSlotsCache cache, string key, string value) as bool
+export func cluster_set(Client seed, ClusterSlotsCache cache, string key, string value) as bool
 	return response_ok(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("SET", key, value), 1, seed.timeout_ms))
 end
 
-func cluster_set_nx(Client seed, ClusterSlotsCache cache, string key, string value) as bool
+export func cluster_set_nx(Client seed, ClusterSlotsCache cache, string key, string value) as bool
 	return response_ok(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json4("SET", key, value, "NX"), 1, seed.timeout_ms))
 end
 
-func cluster_set_xx(Client seed, ClusterSlotsCache cache, string key, string value) as bool
+export func cluster_set_xx(Client seed, ClusterSlotsCache cache, string key, string value) as bool
 	return response_ok(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json4("SET", key, value, "XX"), 1, seed.timeout_ms))
 end
 
-func cluster_set_ex(Client seed, ClusterSlotsCache cache, string key, string value, int seconds) as bool
+export func cluster_set_ex(Client seed, ClusterSlotsCache cache, string key, string value, int seconds) as bool
 	return response_ok(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json4("SETEX", key, string.formatInt(seconds, ""), value), 1, seed.timeout_ms))
 end
 
-func cluster_mget_json(Client seed, ClusterSlotsCache cache, array<string> keys) as string
+export func cluster_mget_json(Client seed, ClusterSlotsCache cache, array<string> keys) as string
 	if keys.length <= 0 then
 		seed.last_error_text = "cluster_mget_json requires at least one key"
 		return json_error(seed.last_error_text)
@@ -2270,7 +2270,7 @@ func cluster_mget_json(Client seed, ClusterSlotsCache cache, array<string> keys)
 	return cluster_command_cache_refresh_key_retry_json(seed, cache, keys[0], argv_json_list("MGET", keys), 1, seed.timeout_ms)
 end
 
-func cluster_mset(Client seed, ClusterSlotsCache cache, array<string> key_values) as bool
+export func cluster_mset(Client seed, ClusterSlotsCache cache, array<string> key_values) as bool
 	if key_values.length < 2 then
 		seed.last_error_text = "cluster_mset requires key/value arguments"
 		return false
@@ -2278,55 +2278,55 @@ func cluster_mset(Client seed, ClusterSlotsCache cache, array<string> key_values
 	return response_ok(cluster_command_cache_refresh_key_retry_json(seed, cache, key_values[0], argv_json_list("MSET", key_values), 1, seed.timeout_ms))
 end
 
-func cluster_append(Client seed, ClusterSlotsCache cache, string key, string value) as int
+export func cluster_append(Client seed, ClusterSlotsCache cache, string key, string value) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("APPEND", key, value), 1, seed.timeout_ms))
 end
 
-func cluster_strlen(Client seed, ClusterSlotsCache cache, string key) as int
+export func cluster_strlen(Client seed, ClusterSlotsCache cache, string key) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("STRLEN", key), 1, seed.timeout_ms))
 end
 
-func cluster_del(Client seed, ClusterSlotsCache cache, string key) as int
+export func cluster_del(Client seed, ClusterSlotsCache cache, string key) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("DEL", key), 1, seed.timeout_ms))
 end
 
-func cluster_exists(Client seed, ClusterSlotsCache cache, string key) as bool
+export func cluster_exists(Client seed, ClusterSlotsCache cache, string key) as bool
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("EXISTS", key), 1, seed.timeout_ms)) > 0
 end
 
-func cluster_expire(Client seed, ClusterSlotsCache cache, string key, int seconds) as bool
+export func cluster_expire(Client seed, ClusterSlotsCache cache, string key, int seconds) as bool
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("EXPIRE", key, string.formatInt(seconds, "")), 1, seed.timeout_ms)) == 1
 end
 
-func cluster_persist(Client seed, ClusterSlotsCache cache, string key) as bool
+export func cluster_persist(Client seed, ClusterSlotsCache cache, string key) as bool
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("PERSIST", key), 1, seed.timeout_ms)) == 1
 end
 
-func cluster_ttl(Client seed, ClusterSlotsCache cache, string key) as int
+export func cluster_ttl(Client seed, ClusterSlotsCache cache, string key) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("TTL", key), 1, seed.timeout_ms))
 end
 
-func cluster_pttl(Client seed, ClusterSlotsCache cache, string key) as int
+export func cluster_pttl(Client seed, ClusterSlotsCache cache, string key) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("PTTL", key), 1, seed.timeout_ms))
 end
 
-func cluster_incr(Client seed, ClusterSlotsCache cache, string key) as int
+export func cluster_incr(Client seed, ClusterSlotsCache cache, string key) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("INCR", key), 1, seed.timeout_ms))
 end
 
-func cluster_incr_by(Client seed, ClusterSlotsCache cache, string key, int amount) as int
+export func cluster_incr_by(Client seed, ClusterSlotsCache cache, string key, int amount) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("INCRBY", key, string.formatInt(amount, "")), 1, seed.timeout_ms))
 end
 
-func cluster_decr(Client seed, ClusterSlotsCache cache, string key) as int
+export func cluster_decr(Client seed, ClusterSlotsCache cache, string key) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("DECR", key), 1, seed.timeout_ms))
 end
 
-func cluster_decr_by(Client seed, ClusterSlotsCache cache, string key, int amount) as int
+export func cluster_decr_by(Client seed, ClusterSlotsCache cache, string key, int amount) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("DECRBY", key, string.formatInt(amount, "")), 1, seed.timeout_ms))
 end
 
-func cluster_hget(Client seed, ClusterSlotsCache cache, string key, string field) as string
+export func cluster_hget(Client seed, ClusterSlotsCache cache, string key, string field) as string
 	auto response = cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("HGET", key, field), 1, seed.timeout_ms)
 	if response_nil(response) then
 		return ""
@@ -2334,7 +2334,7 @@ func cluster_hget(Client seed, ClusterSlotsCache cache, string key, string field
 	return response_value(response)
 end
 
-func cluster_hget_or(Client seed, ClusterSlotsCache cache, string key, string field, string fallback) as string
+export func cluster_hget_or(Client seed, ClusterSlotsCache cache, string key, string field, string fallback) as string
 	auto response = cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("HGET", key, field), 1, seed.timeout_ms)
 	if response_nil(response) then
 		return fallback
@@ -2345,39 +2345,39 @@ func cluster_hget_or(Client seed, ClusterSlotsCache cache, string key, string fi
 	return response_value(response)
 end
 
-func cluster_hset(Client seed, ClusterSlotsCache cache, string key, string field, string value) as int
+export func cluster_hset(Client seed, ClusterSlotsCache cache, string key, string field, string value) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json4("HSET", key, field, value), 1, seed.timeout_ms))
 end
 
-func cluster_hdel(Client seed, ClusterSlotsCache cache, string key, string field) as int
+export func cluster_hdel(Client seed, ClusterSlotsCache cache, string key, string field) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("HDEL", key, field), 1, seed.timeout_ms))
 end
 
-func cluster_hexists(Client seed, ClusterSlotsCache cache, string key, string field) as bool
+export func cluster_hexists(Client seed, ClusterSlotsCache cache, string key, string field) as bool
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("HEXISTS", key, field), 1, seed.timeout_ms)) == 1
 end
 
-func cluster_hlen(Client seed, ClusterSlotsCache cache, string key) as int
+export func cluster_hlen(Client seed, ClusterSlotsCache cache, string key) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("HLEN", key), 1, seed.timeout_ms))
 end
 
-func cluster_hstrlen(Client seed, ClusterSlotsCache cache, string key, string field) as int
+export func cluster_hstrlen(Client seed, ClusterSlotsCache cache, string key, string field) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("HSTRLEN", key, field), 1, seed.timeout_ms))
 end
 
-func cluster_hgetall_json(Client seed, ClusterSlotsCache cache, string key) as string
+export func cluster_hgetall_json(Client seed, ClusterSlotsCache cache, string key) as string
 	return cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("HGETALL", key), 1, seed.timeout_ms)
 end
 
-func cluster_lpush(Client seed, ClusterSlotsCache cache, string key, string value) as int
+export func cluster_lpush(Client seed, ClusterSlotsCache cache, string key, string value) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("LPUSH", key, value), 1, seed.timeout_ms))
 end
 
-func cluster_rpush(Client seed, ClusterSlotsCache cache, string key, string value) as int
+export func cluster_rpush(Client seed, ClusterSlotsCache cache, string key, string value) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("RPUSH", key, value), 1, seed.timeout_ms))
 end
 
-func cluster_lpop(Client seed, ClusterSlotsCache cache, string key) as string
+export func cluster_lpop(Client seed, ClusterSlotsCache cache, string key) as string
 	auto response = cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("LPOP", key), 1, seed.timeout_ms)
 	if response_nil(response) then
 		return ""
@@ -2385,7 +2385,7 @@ func cluster_lpop(Client seed, ClusterSlotsCache cache, string key) as string
 	return response_value(response)
 end
 
-func cluster_lpop_or(Client seed, ClusterSlotsCache cache, string key, string fallback) as string
+export func cluster_lpop_or(Client seed, ClusterSlotsCache cache, string key, string fallback) as string
 	auto response = cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("LPOP", key), 1, seed.timeout_ms)
 	if response_nil(response) then
 		return fallback
@@ -2396,7 +2396,7 @@ func cluster_lpop_or(Client seed, ClusterSlotsCache cache, string key, string fa
 	return response_value(response)
 end
 
-func cluster_rpop(Client seed, ClusterSlotsCache cache, string key) as string
+export func cluster_rpop(Client seed, ClusterSlotsCache cache, string key) as string
 	auto response = cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("RPOP", key), 1, seed.timeout_ms)
 	if response_nil(response) then
 		return ""
@@ -2404,7 +2404,7 @@ func cluster_rpop(Client seed, ClusterSlotsCache cache, string key) as string
 	return response_value(response)
 end
 
-func cluster_rpop_or(Client seed, ClusterSlotsCache cache, string key, string fallback) as string
+export func cluster_rpop_or(Client seed, ClusterSlotsCache cache, string key, string fallback) as string
 	auto response = cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("RPOP", key), 1, seed.timeout_ms)
 	if response_nil(response) then
 		return fallback
@@ -2415,43 +2415,43 @@ func cluster_rpop_or(Client seed, ClusterSlotsCache cache, string key, string fa
 	return response_value(response)
 end
 
-func cluster_llen(Client seed, ClusterSlotsCache cache, string key) as int
+export func cluster_llen(Client seed, ClusterSlotsCache cache, string key) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("LLEN", key), 1, seed.timeout_ms))
 end
 
-func cluster_lrange_json(Client seed, ClusterSlotsCache cache, string key, int start, int stop) as string
+export func cluster_lrange_json(Client seed, ClusterSlotsCache cache, string key, int start, int stop) as string
 	return cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json4("LRANGE", key, string.formatInt(start, ""), string.formatInt(stop, "")), 1, seed.timeout_ms)
 end
 
-func cluster_sadd(Client seed, ClusterSlotsCache cache, string key, string member) as int
+export func cluster_sadd(Client seed, ClusterSlotsCache cache, string key, string member) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("SADD", key, member), 1, seed.timeout_ms))
 end
 
-func cluster_srem(Client seed, ClusterSlotsCache cache, string key, string member) as int
+export func cluster_srem(Client seed, ClusterSlotsCache cache, string key, string member) as int
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("SREM", key, member), 1, seed.timeout_ms))
 end
 
-func cluster_sismember(Client seed, ClusterSlotsCache cache, string key, string member) as bool
+export func cluster_sismember(Client seed, ClusterSlotsCache cache, string key, string member) as bool
 	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("SISMEMBER", key, member), 1, seed.timeout_ms)) == 1
 end
 
-func cluster_smembers_json(Client seed, ClusterSlotsCache cache, string key) as string
+export func cluster_smembers_json(Client seed, ClusterSlotsCache cache, string key) as string
 	return cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json2("SMEMBERS", key), 1, seed.timeout_ms)
 end
 
-func subscribe(Client client, string channel) as string
+export func subscribe(Client client, string channel) as string
 	return command2(client, "SUBSCRIBE", channel)
 end
 
-func unsubscribe(Client client, string channel) as string
+export func unsubscribe(Client client, string channel) as string
 	return command2(client, "UNSUBSCRIBE", channel)
 end
 
-func publish(Client client, string channel, string message) as int
+export func publish(Client client, string channel, string message) as int
 	return response_int(command3(client, "PUBLISH", channel, message))
 end
 
-func get_value(Client client, string key) as string
+export func get_value(Client client, string key) as string
 	auto response = command2(client, "GET", key)
 	if response_nil(response) then
 		return ""
@@ -2459,7 +2459,7 @@ func get_value(Client client, string key) as string
 	return response_value(response)
 end
 
-func get_or(Client client, string key, string fallback) as string
+export func get_or(Client client, string key, string fallback) as string
 	auto response = command2(client, "GET", key)
 	if response_nil(response) then
 		return fallback
@@ -2478,27 +2478,27 @@ func xredis_set(Client client, string key, string value) as bool
 	return response_ok(command3(client, "SET", key, value))
 end
 
-func set_nx(Client client, string key, string value) as bool
+export func set_nx(Client client, string key, string value) as bool
 	return response_ok(command4(client, "SET", key, value, "NX"))
 end
 
-func set_xx(Client client, string key, string value) as bool
+export func set_xx(Client client, string key, string value) as bool
 	return response_ok(command4(client, "SET", key, value, "XX"))
 end
 
-func set_ex(Client client, string key, string value, int seconds) as bool
+export func set_ex(Client client, string key, string value, int seconds) as bool
 	return response_ok(command4(client, "SETEX", key, string.formatInt(seconds, ""), value))
 end
 
-func mget_json(Client client, array<string> keys) as string
+export func mget_json(Client client, array<string> keys) as string
 	return command_array_with_head(client, "MGET", keys)
 end
 
-func mset(Client client, array<string> key_values) as bool
+export func mset(Client client, array<string> key_values) as bool
 	return response_ok(command_array_with_head(client, "MSET", key_values))
 end
 
-func append(Client client, string key, string value) as int
+export func append(Client client, string key, string value) as int
 	return response_int(command3(client, "APPEND", key, value))
 end
 
@@ -2510,39 +2510,39 @@ func xredis_del(Client client, string key) as int
 	return response_int(command2(client, "DEL", key))
 end
 
-func expire(Client client, string key, int seconds) as bool
+export func expire(Client client, string key, int seconds) as bool
 	return response_int(command3(client, "EXPIRE", key, string.formatInt(seconds, ""))) == 1
 end
 
-func persist(Client client, string key) as bool
+export func persist(Client client, string key) as bool
 	return response_int(command2(client, "PERSIST", key)) == 1
 end
 
-func ttl(Client client, string key) as int
+export func ttl(Client client, string key) as int
 	return response_int(command2(client, "TTL", key))
 end
 
-func pttl(Client client, string key) as int
+export func pttl(Client client, string key) as int
 	return response_int(command2(client, "PTTL", key))
 end
 
-func incr(Client client, string key) as int
+export func incr(Client client, string key) as int
 	return response_int(command2(client, "INCR", key))
 end
 
-func incr_by(Client client, string key, int amount) as int
+export func incr_by(Client client, string key, int amount) as int
 	return response_int(command3(client, "INCRBY", key, string.formatInt(amount, "")))
 end
 
-func decr(Client client, string key) as int
+export func decr(Client client, string key) as int
 	return response_int(command2(client, "DECR", key))
 end
 
-func decr_by(Client client, string key, int amount) as int
+export func decr_by(Client client, string key, int amount) as int
 	return response_int(command3(client, "DECRBY", key, string.formatInt(amount, "")))
 end
 
-func hget(Client client, string key, string field) as string
+export func hget(Client client, string key, string field) as string
 	auto response = command3(client, "HGET", key, field)
 	if response_nil(response) then
 		return ""
@@ -2550,7 +2550,7 @@ func hget(Client client, string key, string field) as string
 	return response_value(response)
 end
 
-func hget_or(Client client, string key, string field, string fallback) as string
+export func hget_or(Client client, string key, string field, string fallback) as string
 	auto response = command3(client, "HGET", key, field)
 	if response_nil(response) then
 		return fallback
@@ -2561,39 +2561,39 @@ func hget_or(Client client, string key, string field, string fallback) as string
 	return response_value(response)
 end
 
-func hset(Client client, string key, string field, string value) as int
+export func hset(Client client, string key, string field, string value) as int
 	return response_int(command4(client, "HSET", key, field, value))
 end
 
-func hdel(Client client, string key, string field) as int
+export func hdel(Client client, string key, string field) as int
 	return response_int(command3(client, "HDEL", key, field))
 end
 
-func hexists(Client client, string key, string field) as bool
+export func hexists(Client client, string key, string field) as bool
 	return response_int(command3(client, "HEXISTS", key, field)) == 1
 end
 
-func hlen(Client client, string key) as int
+export func hlen(Client client, string key) as int
 	return response_int(command2(client, "HLEN", key))
 end
 
-func hstrlen(Client client, string key, string field) as int
+export func hstrlen(Client client, string key, string field) as int
 	return response_int(command3(client, "HSTRLEN", key, field))
 end
 
-func hgetall_json(Client client, string key) as string
+export func hgetall_json(Client client, string key) as string
 	return command2(client, "HGETALL", key)
 end
 
-func lpush(Client client, string key, string value) as int
+export func lpush(Client client, string key, string value) as int
 	return response_int(command3(client, "LPUSH", key, value))
 end
 
-func rpush(Client client, string key, string value) as int
+export func rpush(Client client, string key, string value) as int
 	return response_int(command3(client, "RPUSH", key, value))
 end
 
-func lpop(Client client, string key) as string
+export func lpop(Client client, string key) as string
 	auto response = command2(client, "LPOP", key)
 	if response_nil(response) then
 		return ""
@@ -2601,7 +2601,7 @@ func lpop(Client client, string key) as string
 	return response_value(response)
 end
 
-func lpop_or(Client client, string key, string fallback) as string
+export func lpop_or(Client client, string key, string fallback) as string
 	auto response = command2(client, "LPOP", key)
 	if response_nil(response) then
 		return fallback
@@ -2612,7 +2612,7 @@ func lpop_or(Client client, string key, string fallback) as string
 	return response_value(response)
 end
 
-func rpop(Client client, string key) as string
+export func rpop(Client client, string key) as string
 	auto response = command2(client, "RPOP", key)
 	if response_nil(response) then
 		return ""
@@ -2620,7 +2620,7 @@ func rpop(Client client, string key) as string
 	return response_value(response)
 end
 
-func rpop_or(Client client, string key, string fallback) as string
+export func rpop_or(Client client, string key, string fallback) as string
 	auto response = command2(client, "RPOP", key)
 	if response_nil(response) then
 		return fallback
@@ -2631,1239 +2631,354 @@ func rpop_or(Client client, string key, string fallback) as string
 	return response_value(response)
 end
 
-func llen(Client client, string key) as int
+export func llen(Client client, string key) as int
 	return response_int(command2(client, "LLEN", key))
 end
 
-func lrange_json(Client client, string key, int start, int stop) as string
+export func lrange_json(Client client, string key, int start, int stop) as string
 	return command4(client, "LRANGE", key, string.formatInt(start, ""), string.formatInt(stop, ""))
 end
 
-func sadd(Client client, string key, string member) as int
+export func sadd(Client client, string key, string member) as int
 	return response_int(command3(client, "SADD", key, member))
 end
 
-func srem(Client client, string key, string member) as int
+export func srem(Client client, string key, string member) as int
 	return response_int(command3(client, "SREM", key, member))
 end
 
-func sismember(Client client, string key, string member) as bool
+export func sismember(Client client, string key, string member) as bool
 	return response_int(command3(client, "SISMEMBER", key, member)) == 1
 end
 
-func smembers_json(Client client, string key) as string
+export func smembers_json(Client client, string key) as string
 	return command2(client, "SMEMBERS", key)
 end
 
-// xl6 generated import wrappers begin
-func __xl6_import_redis_available() as bool
-    return available()
-end
 
-func __xl6_import_redis_version() as string
-    return version()
-end
 
-func __xl6_import_redis_parser_last_error() as string
-    return parser_last_error()
-end
 
-func __xl6_import_redis_resp_encode1(string p0) as string
-    return resp_encode1(p0)
-end
 
-func __xl6_import_redis_resp_encode2(string p0, string p1) as string
-    return resp_encode2(p0, p1)
-end
 
-func __xl6_import_redis_resp_encode3(string p0, string p1, string p2) as string
-    return resp_encode3(p0, p1, p2)
-end
 
-func __xl6_import_redis_resp_encode4(string p0, string p1, string p2, string p3) as string
-    return resp_encode4(p0, p1, p2, p3)
-end
 
-func __xl6_import_redis_resp_encode5(string p0, string p1, string p2, string p3, string p4) as string
-    return resp_encode5(p0, p1, p2, p3, p4)
-end
 
-func __xl6_import_redis_resp_encode_array(list<string> p0) as string
-    return resp_encode_array(p0)
-end
 
-func __xl6_import_redis_resp_encode_json(string p0) as string
-    return resp_encode_json(p0)
-end
 
-func __xl6_import_redis_resp_encode_pipeline_json(string p0) as string
-    return resp_encode_pipeline_json(p0)
-end
 
-func __xl6_import_redis_parse_response_json(string p0) as string
-    return parse_response_json(p0)
-end
 
-func __xl6_import_redis_parse_response_chunks_json(string p0, string p1) as string
-    return parse_response_chunks_json(p0, p1)
-end
 
-func __xl6_import_redis_transport_name() as string
-    return transport_name()
-end
 
-func __xl6_import_redis_transport_binary_safe() as bool
-    return transport_binary_safe()
-end
 
-func __xl6_import_redis_transport_tls() as bool
-    return transport_tls()
-end
 
-func __xl6_import_redis_transport_limits_json() as string
-    return transport_limits_json()
-end
 
-func __xl6_import_redis_sentinel_capabilities_json() as string
-    return sentinel_capabilities_json()
-end
 
-func __xl6_import_redis_cluster_capabilities_json() as string
-    return cluster_capabilities_json()
-end
 
-func __xl6_import_redis_argv_json1(string p0) as string
-    return argv_json1(p0)
-end
 
-func __xl6_import_redis_argv_json2(string p0, string p1) as string
-    return argv_json2(p0, p1)
-end
 
-func __xl6_import_redis_argv_json3(string p0, string p1, string p2) as string
-    return argv_json3(p0, p1, p2)
-end
 
-func __xl6_import_redis_argv_json4(string p0, string p1, string p2, string p3) as string
-    return argv_json4(p0, p1, p2, p3)
-end
 
-func __xl6_import_redis_argv_json_list(string p0, array<string> p1) as string
-    return argv_json_list(p0, p1)
-end
 
-func __xl6_import_redis_pipeline_json_array(array<string> p0) as string
-    return pipeline_json_array(p0)
-end
 
-func __xl6_import_redis_pipeline_json1(string p0) as string
-    return pipeline_json1(p0)
-end
 
-func __xl6_import_redis_pipeline_json2(string p0, string p1) as string
-    return pipeline_json2(p0, p1)
-end
 
-func __xl6_import_redis_pipeline_json3(string p0, string p1, string p2) as string
-    return pipeline_json3(p0, p1, p2)
-end
 
-func __xl6_import_redis_pipeline_json4(string p0, string p1, string p2, string p3) as string
-    return pipeline_json4(p0, p1, p2, p3)
-end
 
-func __xl6_import_redis_pipeline_json5(string p0, string p1, string p2, string p3, string p4) as string
-    return pipeline_json5(p0, p1, p2, p3, p4)
-end
 
-func __xl6_import_redis_response_type(string p0) as string
-    return response_type(p0)
-end
 
-func __xl6_import_redis_response_value(string p0) as string
-    return response_value(p0)
-end
 
-func __xl6_import_redis_response_int(string p0) as int
-    return response_int(p0)
-end
 
-func __xl6_import_redis_response_bool(string p0) as bool
-    return response_bool(p0)
-end
 
-func __xl6_import_redis_response_double_text(string p0) as string
-    return response_double_text(p0)
-end
 
-func __xl6_import_redis_response_bignumber_text(string p0) as string
-    return response_bignumber_text(p0)
-end
 
-func __xl6_import_redis_response_blob_error_text(string p0) as string
-    return response_blob_error_text(p0)
-end
 
-func __xl6_import_redis_response_verbatim_text(string p0) as string
-    return response_verbatim_text(p0)
-end
 
-func __xl6_import_redis_response_nil(string p0) as bool
-    return response_nil(p0)
-end
 
-func __xl6_import_redis_response_ok(string p0) as bool
-    return response_ok(p0)
-end
 
-func __xl6_import_redis_response_error(string p0) as bool
-    return response_error(p0)
-end
 
-func __xl6_import_redis_response_error_text(string p0) as string
-    return response_error_text(p0)
-end
 
-func __xl6_import_redis_response_array_value(string p0, int p1) as string
-    return response_array_value(p0, p1)
-end
 
-func __xl6_import_redis_response_array_length(string p0) as int
-    return response_array_length(p0)
-end
 
-func __xl6_import_redis_response_set_value(string p0, int p1) as string
-    return response_set_value(p0, p1)
-end
 
-func __xl6_import_redis_response_set_length(string p0) as int
-    return response_set_length(p0)
-end
 
-func __xl6_import_redis_response_map_length(string p0) as int
-    return response_map_length(p0)
-end
 
-func __xl6_import_redis_response_map_key_value(string p0, int p1) as string
-    return response_map_key_value(p0, p1)
-end
 
-func __xl6_import_redis_response_map_value_value(string p0, int p1) as string
-    return response_map_value_value(p0, p1)
-end
 
-func __xl6_import_redis_response_map_value(string p0, string p1) as string
-    return response_map_value(p0, p1)
-end
 
-func __xl6_import_redis_response_map_has_key(string p0, string p1) as bool
-    return response_map_has_key(p0, p1)
-end
 
-func __xl6_import_redis_connect(string p0, int p1) as Client
+export func connect(string p0, int p1) as Client
     return xredis_connect(p0, p1)
 end
 
-func __xl6_import_redis_connect(string p0, int p1, int p2) as Client
+export func connect(string p0, int p1, int p2) as Client
     return xredis_connect(p0, p1, p2)
 end
 
-func __xl6_import_redis_close(Client p0) as bool
+export func close(Client p0) as bool
     return xredis_close(p0)
 end
 
-func __xl6_import_redis_last_error(Client p0) as string
-    return last_error(p0)
-end
 
-func __xl6_import_redis_pool(string p0, int p1, int p2) as Pool
-    return pool(p0, p1, p2)
-end
 
-func __xl6_import_redis_pool(string p0, int p1, int p2, int p3) as Pool
-    return pool(p0, p1, p2, p3)
-end
 
-func __xl6_import_redis_pool_acquire(Pool p0) as Client
-    return pool_acquire(p0)
-end
 
-func __xl6_import_redis_pool_release(Pool p0, Client p1) as bool
-    return pool_release(p0, p1)
-end
 
-func __xl6_import_redis_pool_close(Pool p0) as int
-    return pool_close(p0)
-end
 
-func __xl6_import_redis_pool_idle_count(Pool p0) as int
-    return pool_idle_count(p0)
-end
 
-func __xl6_import_redis_cluster_slots_cache(string p0) as ClusterSlotsCache
-    return cluster_slots_cache(p0)
-end
 
-func __xl6_import_redis_cluster_slots_cache_json(ClusterSlotsCache p0) as string
-    return cluster_slots_cache_json(p0)
-end
 
-func __xl6_import_redis_cluster_slots_cache_valid(ClusterSlotsCache p0) as bool
-    return cluster_slots_cache_valid(p0)
-end
 
-func __xl6_import_redis_cluster_slots_cache_refresh(ClusterSlotsCache p0, Client p1) as bool
-    return cluster_slots_cache_refresh(p0, p1)
-end
 
-func __xl6_import_redis_command1(Client p0, string p1) as string
-    return command1(p0, p1)
-end
 
-func __xl6_import_redis_command2(Client p0, string p1, string p2) as string
-    return command2(p0, p1, p2)
-end
 
-func __xl6_import_redis_command3(Client p0, string p1, string p2, string p3) as string
-    return command3(p0, p1, p2, p3)
-end
 
-func __xl6_import_redis_command4(Client p0, string p1, string p2, string p3, string p4) as string
-    return command4(p0, p1, p2, p3, p4)
-end
 
-func __xl6_import_redis_command5(Client p0, string p1, string p2, string p3, string p4, string p5) as string
-    return command5(p0, p1, p2, p3, p4, p5)
-end
 
-func __xl6_import_redis_command_array(Client p0, list<string> p1) as string
-    return command_array(p0, p1)
-end
 
-func __xl6_import_redis_command_array(Client p0, array<string> p1) as string
-    return command_array(p0, p1)
-end
 
-func __xl6_import_redis_command_json(Client p0, string p1) as string
-    return command_json(p0, p1)
-end
 
-func __xl6_import_redis_cluster_command_redirect_once_json(Client p0, string p1) as string
-    return cluster_command_redirect_once_json(p0, p1)
-end
 
-func __xl6_import_redis_cluster_command_redirect_once_json(Client p0, string p1, int p2) as string
-    return cluster_command_redirect_once_json(p0, p1, p2)
-end
 
-func __xl6_import_redis_cluster_command_redirect_retry_json(Client p0, string p1, int p2) as string
-    return cluster_command_redirect_retry_json(p0, p1, p2)
-end
 
-func __xl6_import_redis_cluster_command_redirect_retry_json(Client p0, string p1, int p2, int p3) as string
-    return cluster_command_redirect_retry_json(p0, p1, p2, p3)
-end
 
-func __xl6_import_redis_command_pipeline_json(Client p0, string p1) as string
-    return command_pipeline_json(p0, p1)
-end
 
-func __xl6_import_redis_read_response_json(Client p0) as string
-    return read_response_json(p0)
-end
 
-func __xl6_import_redis_ping(Client p0) as string
-    return ping(p0)
-end
 
-func __xl6_import_redis_ping(Client p0, string p1) as string
-    return ping(p0, p1)
-end
 
-func __xl6_import_redis_auth(Client p0, string p1) as bool
-    return auth(p0, p1)
-end
 
-func __xl6_import_redis_auth(Client p0, string p1, string p2) as bool
-    return auth(p0, p1, p2)
-end
 
-func __xl6_import_redis_hello(Client p0, int p1) as string
-    return hello(p0, p1)
-end
 
-func __xl6_import_redis_hello_auth(Client p0, int p1, string p2, string p3) as string
-    return hello_auth(p0, p1, p2, p3)
-end
 
-func __xl6_import_redis_select(Client p0, int p1) as bool
+export func select(Client p0, int p1) as bool
     return xredis_select(p0, p1)
 end
 
-func __xl6_import_redis_dbsize(Client p0) as int
-    return dbsize(p0)
-end
-
-func __xl6_import_redis_flushdb(Client p0) as bool
-    return flushdb(p0)
-end
-
-func __xl6_import_redis_sentinel_masters_json(Client p0) as string
-    return sentinel_masters_json(p0)
-end
-
-func __xl6_import_redis_sentinel_master_json(Client p0, string p1) as string
-    return sentinel_master_json(p0, p1)
-end
-
-func __xl6_import_redis_sentinel_get_master_addr_by_name_json(Client p0, string p1) as string
-    return sentinel_get_master_addr_by_name_json(p0, p1)
-end
-
-func __xl6_import_redis_sentinel_replicas_json(Client p0, string p1) as string
-    return sentinel_replicas_json(p0, p1)
-end
-
-func __xl6_import_redis_sentinel_sentinels_json(Client p0, string p1) as string
-    return sentinel_sentinels_json(p0, p1)
-end
-
-func __xl6_import_redis_cluster_info_json(Client p0) as string
-    return cluster_info_json(p0)
-end
-
-func __xl6_import_redis_cluster_nodes_json(Client p0) as string
-    return cluster_nodes_json(p0)
-end
-
-func __xl6_import_redis_cluster_slots_json(Client p0) as string
-    return cluster_slots_json(p0)
-end
-
-func __xl6_import_redis_cluster_slots_node_host(string p0, int p1) as string
-    return cluster_slots_node_host(p0, p1)
-end
-
-func __xl6_import_redis_cluster_slots_node_port(string p0, int p1) as int
-    return cluster_slots_node_port(p0, p1)
-end
-
-func __xl6_import_redis_cluster_connect_slot(string p0, int p1) as Client
-    return cluster_connect_slot(p0, p1)
-end
-
-func __xl6_import_redis_cluster_connect_slot(string p0, int p1, int p2) as Client
-    return cluster_connect_slot(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_keyslot(Client p0, string p1) as int
-    return cluster_keyslot(p0, p1)
-end
-
-func __xl6_import_redis_cluster_command_slot_once_json(Client p0, string p1, string p2, string p3) as string
-    return cluster_command_slot_once_json(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_command_slot_once_json(Client p0, string p1, string p2, string p3, int p4) as string
-    return cluster_command_slot_once_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_slot_retry_json(Client p0, string p1, string p2, string p3, int p4) as string
-    return cluster_command_slot_retry_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_slot_retry_json(Client p0, string p1, string p2, string p3, int p4, int p5) as string
-    return cluster_command_slot_retry_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_key_once_json(Client p0, string p1, string p2) as string
-    return cluster_command_key_once_json(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_command_key_once_json(Client p0, string p1, string p2, int p3) as string
-    return cluster_command_key_once_json(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_command_key_retry_json(Client p0, string p1, string p2, int p3) as string
-    return cluster_command_key_retry_json(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_command_key_retry_json(Client p0, string p1, string p2, int p3, int p4) as string
-    return cluster_command_key_retry_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_slot_once_password_json(Client p0, string p1, string p2, string p3, string p4) as string
-    return cluster_command_slot_once_password_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_slot_once_password_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
-    return cluster_command_slot_once_password_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_slot_retry_password_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
-    return cluster_command_slot_retry_password_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_slot_retry_password_json(Client p0, string p1, string p2, string p3, string p4, int p5, int p6) as string
-    return cluster_command_slot_retry_password_json(p0, p1, p2, p3, p4, p5, p6)
-end
-
-func __xl6_import_redis_cluster_command_slot_once_auth_json(Client p0, string p1, string p2, string p3, string p4, string p5) as string
-    return cluster_command_slot_once_auth_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_slot_once_auth_json(Client p0, string p1, string p2, string p3, string p4, string p5, int p6) as string
-    return cluster_command_slot_once_auth_json(p0, p1, p2, p3, p4, p5, p6)
-end
-
-func __xl6_import_redis_cluster_command_slot_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, string p5, int p6) as string
-    return cluster_command_slot_retry_auth_json(p0, p1, p2, p3, p4, p5, p6)
-end
-
-func __xl6_import_redis_cluster_command_slot_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, string p5, int p6, int p7) as string
-    return cluster_command_slot_retry_auth_json(p0, p1, p2, p3, p4, p5, p6, p7)
-end
-
-func __xl6_import_redis_cluster_command_key_once_password_json(Client p0, string p1, string p2, string p3) as string
-    return cluster_command_key_once_password_json(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_command_key_once_password_json(Client p0, string p1, string p2, string p3, int p4) as string
-    return cluster_command_key_once_password_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_key_retry_password_json(Client p0, string p1, string p2, string p3, int p4) as string
-    return cluster_command_key_retry_password_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_key_retry_password_json(Client p0, string p1, string p2, string p3, int p4, int p5) as string
-    return cluster_command_key_retry_password_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_key_once_auth_json(Client p0, string p1, string p2, string p3, string p4) as string
-    return cluster_command_key_once_auth_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_key_once_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
-    return cluster_command_key_once_auth_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_key_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
-    return cluster_command_key_retry_auth_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_key_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5, int p6) as string
-    return cluster_command_key_retry_auth_json(p0, p1, p2, p3, p4, p5, p6)
-end
-
-func __xl6_import_redis_cluster_command_cached_key_once_json(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
-    return cluster_command_cached_key_once_json(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_command_cached_key_once_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as string
-    return cluster_command_cached_key_once_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_cached_key_retry_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as string
-    return cluster_command_cached_key_retry_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_cached_key_retry_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4, int p5) as string
-    return cluster_command_cached_key_retry_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_cache_refresh_key_once_json(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
-    return cluster_command_cache_refresh_key_once_json(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_command_cache_refresh_key_once_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as string
-    return cluster_command_cache_refresh_key_once_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_cache_refresh_key_retry_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as string
-    return cluster_command_cache_refresh_key_retry_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_cache_refresh_key_retry_json(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4, int p5) as string
-    return cluster_command_cache_refresh_key_retry_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_cached_key_once_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4) as string
-    return cluster_command_cached_key_once_password_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_cached_key_once_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5) as string
-    return cluster_command_cached_key_once_password_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_cached_key_retry_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5) as string
-    return cluster_command_cached_key_retry_password_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_cached_key_retry_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5, int p6) as string
-    return cluster_command_cached_key_retry_password_json(p0, p1, p2, p3, p4, p5, p6)
-end
-
-func __xl6_import_redis_cluster_command_cached_key_once_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5) as string
-    return cluster_command_cached_key_once_auth_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_cached_key_once_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6) as string
-    return cluster_command_cached_key_once_auth_json(p0, p1, p2, p3, p4, p5, p6)
-end
-
-func __xl6_import_redis_cluster_command_cached_key_retry_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6) as string
-    return cluster_command_cached_key_retry_auth_json(p0, p1, p2, p3, p4, p5, p6)
-end
-
-func __xl6_import_redis_cluster_command_cached_key_retry_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6, int p7) as string
-    return cluster_command_cached_key_retry_auth_json(p0, p1, p2, p3, p4, p5, p6, p7)
-end
-
-func __xl6_import_redis_cluster_command_cache_refresh_key_once_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4) as string
-    return cluster_command_cache_refresh_key_once_password_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_command_cache_refresh_key_once_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5) as string
-    return cluster_command_cache_refresh_key_once_password_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_cache_refresh_key_retry_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5) as string
-    return cluster_command_cache_refresh_key_retry_password_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_cache_refresh_key_retry_password_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, int p5, int p6) as string
-    return cluster_command_cache_refresh_key_retry_password_json(p0, p1, p2, p3, p4, p5, p6)
-end
-
-func __xl6_import_redis_cluster_command_cache_refresh_key_once_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5) as string
-    return cluster_command_cache_refresh_key_once_auth_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_cluster_command_cache_refresh_key_once_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6) as string
-    return cluster_command_cache_refresh_key_once_auth_json(p0, p1, p2, p3, p4, p5, p6)
-end
-
-func __xl6_import_redis_cluster_command_cache_refresh_key_retry_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6) as string
-    return cluster_command_cache_refresh_key_retry_auth_json(p0, p1, p2, p3, p4, p5, p6)
-end
-
-func __xl6_import_redis_cluster_command_cache_refresh_key_retry_auth_json(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4, string p5, int p6, int p7) as string
-    return cluster_command_cache_refresh_key_retry_auth_json(p0, p1, p2, p3, p4, p5, p6, p7)
-end
-
-func __xl6_import_redis_cluster_myid(Client p0) as string
-    return cluster_myid(p0)
-end
-
-func __xl6_import_redis_cluster_redirect_type(string p0) as string
-    return cluster_redirect_type(p0)
-end
-
-func __xl6_import_redis_cluster_redirect_slot(string p0) as int
-    return cluster_redirect_slot(p0)
-end
-
-func __xl6_import_redis_cluster_redirect_endpoint(string p0) as string
-    return cluster_redirect_endpoint(p0)
-end
-
-func __xl6_import_redis_cluster_redirect_host(string p0) as string
-    return cluster_redirect_host(p0)
-end
-
-func __xl6_import_redis_cluster_redirect_port(string p0) as int
-    return cluster_redirect_port(p0)
-end
-
-func __xl6_import_redis_cluster_retryable_error(string p0) as bool
-    return cluster_retryable_error(p0)
-end
-
-func __xl6_import_redis_cluster_connect_redirect(string p0) as Client
-    return cluster_connect_redirect(p0)
-end
-
-func __xl6_import_redis_cluster_connect_redirect(string p0, int p1) as Client
-    return cluster_connect_redirect(p0, p1)
-end
-
-func __xl6_import_redis_cluster_asking(Client p0) as bool
-    return cluster_asking(p0)
-end
-
-func __xl6_import_redis_cluster_get(Client p0, ClusterSlotsCache p1, string p2) as string
-    return cluster_get(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_get_or(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
-    return cluster_get_or(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_set(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
-    return cluster_set(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_set_nx(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
-    return cluster_set_nx(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_set_xx(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
-    return cluster_set_xx(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_set_ex(Client p0, ClusterSlotsCache p1, string p2, string p3, int p4) as bool
-    return cluster_set_ex(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_mget_json(Client p0, ClusterSlotsCache p1, array<string> p2) as string
-    return cluster_mget_json(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_mset(Client p0, ClusterSlotsCache p1, array<string> p2) as bool
-    return cluster_mset(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_append(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
-    return cluster_append(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_strlen(Client p0, ClusterSlotsCache p1, string p2) as int
-    return cluster_strlen(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_del(Client p0, ClusterSlotsCache p1, string p2) as int
-    return cluster_del(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_exists(Client p0, ClusterSlotsCache p1, string p2) as bool
-    return cluster_exists(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_expire(Client p0, ClusterSlotsCache p1, string p2, int p3) as bool
-    return cluster_expire(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_persist(Client p0, ClusterSlotsCache p1, string p2) as bool
-    return cluster_persist(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_ttl(Client p0, ClusterSlotsCache p1, string p2) as int
-    return cluster_ttl(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_pttl(Client p0, ClusterSlotsCache p1, string p2) as int
-    return cluster_pttl(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_incr(Client p0, ClusterSlotsCache p1, string p2) as int
-    return cluster_incr(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_incr_by(Client p0, ClusterSlotsCache p1, string p2, int p3) as int
-    return cluster_incr_by(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_decr(Client p0, ClusterSlotsCache p1, string p2) as int
-    return cluster_decr(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_decr_by(Client p0, ClusterSlotsCache p1, string p2, int p3) as int
-    return cluster_decr_by(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_hget(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
-    return cluster_hget(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_hget_or(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4) as string
-    return cluster_hget_or(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_hset(Client p0, ClusterSlotsCache p1, string p2, string p3, string p4) as int
-    return cluster_hset(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_hdel(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
-    return cluster_hdel(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_hexists(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
-    return cluster_hexists(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_hlen(Client p0, ClusterSlotsCache p1, string p2) as int
-    return cluster_hlen(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_hstrlen(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
-    return cluster_hstrlen(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_hgetall_json(Client p0, ClusterSlotsCache p1, string p2) as string
-    return cluster_hgetall_json(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_lpush(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
-    return cluster_lpush(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_rpush(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
-    return cluster_rpush(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_lpop(Client p0, ClusterSlotsCache p1, string p2) as string
-    return cluster_lpop(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_lpop_or(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
-    return cluster_lpop_or(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_rpop(Client p0, ClusterSlotsCache p1, string p2) as string
-    return cluster_rpop(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_rpop_or(Client p0, ClusterSlotsCache p1, string p2, string p3) as string
-    return cluster_rpop_or(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_llen(Client p0, ClusterSlotsCache p1, string p2) as int
-    return cluster_llen(p0, p1, p2)
-end
-
-func __xl6_import_redis_cluster_lrange_json(Client p0, ClusterSlotsCache p1, string p2, int p3, int p4) as string
-    return cluster_lrange_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_cluster_sadd(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
-    return cluster_sadd(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_srem(Client p0, ClusterSlotsCache p1, string p2, string p3) as int
-    return cluster_srem(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_sismember(Client p0, ClusterSlotsCache p1, string p2, string p3) as bool
-    return cluster_sismember(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_cluster_smembers_json(Client p0, ClusterSlotsCache p1, string p2) as string
-    return cluster_smembers_json(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_master_host(string p0) as string
-    return sentinel_master_host(p0)
-end
-
-func __xl6_import_redis_sentinel_master_port(string p0) as int
-    return sentinel_master_port(p0)
-end
-
-func __xl6_import_redis_sentinel_connect_master(Client p0, string p1) as Client
-    return sentinel_connect_master(p0, p1)
-end
-
-func __xl6_import_redis_sentinel_connect_master(Client p0, string p1, int p2) as Client
-    return sentinel_connect_master(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_command_master_once_json(Client p0, string p1, string p2) as string
-    return sentinel_command_master_once_json(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_command_master_once_json(Client p0, string p1, string p2, int p3) as string
-    return sentinel_command_master_once_json(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_command_master_retry_json(Client p0, string p1, string p2, int p3) as string
-    return sentinel_command_master_retry_json(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_command_master_retry_json(Client p0, string p1, string p2, int p3, int p4) as string
-    return sentinel_command_master_retry_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_sentinel_command_master_once_password_json(Client p0, string p1, string p2, string p3) as string
-    return sentinel_command_master_once_password_json(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_command_master_once_password_json(Client p0, string p1, string p2, string p3, int p4) as string
-    return sentinel_command_master_once_password_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_sentinel_command_master_retry_password_json(Client p0, string p1, string p2, string p3, int p4) as string
-    return sentinel_command_master_retry_password_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_sentinel_command_master_retry_password_json(Client p0, string p1, string p2, string p3, int p4, int p5) as string
-    return sentinel_command_master_retry_password_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_sentinel_command_master_once_auth_json(Client p0, string p1, string p2, string p3, string p4) as string
-    return sentinel_command_master_once_auth_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_sentinel_command_master_once_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
-    return sentinel_command_master_once_auth_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_sentinel_command_master_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5) as string
-    return sentinel_command_master_retry_auth_json(p0, p1, p2, p3, p4, p5)
-end
-
-func __xl6_import_redis_sentinel_command_master_retry_auth_json(Client p0, string p1, string p2, string p3, string p4, int p5, int p6) as string
-    return sentinel_command_master_retry_auth_json(p0, p1, p2, p3, p4, p5, p6)
-end
-
-func __xl6_import_redis_sentinel_ping(Client p0, string p1) as string
-    return sentinel_ping(p0, p1)
-end
-
-func __xl6_import_redis_sentinel_ping(Client p0, string p1, string p2) as string
-    return sentinel_ping(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_select(Client p0, string p1, int p2) as bool
-    return sentinel_select(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_dbsize(Client p0, string p1) as int
-    return sentinel_dbsize(p0, p1)
-end
-
-func __xl6_import_redis_sentinel_get(Client p0, string p1, string p2) as string
-    return sentinel_get(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_get_or(Client p0, string p1, string p2, string p3) as string
-    return sentinel_get_or(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_set(Client p0, string p1, string p2, string p3) as bool
-    return sentinel_set(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_set_nx(Client p0, string p1, string p2, string p3) as bool
-    return sentinel_set_nx(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_set_xx(Client p0, string p1, string p2, string p3) as bool
-    return sentinel_set_xx(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_set_ex(Client p0, string p1, string p2, string p3, int p4) as bool
-    return sentinel_set_ex(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_sentinel_mget_json(Client p0, string p1, array<string> p2) as string
-    return sentinel_mget_json(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_mset(Client p0, string p1, array<string> p2) as bool
-    return sentinel_mset(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_append(Client p0, string p1, string p2, string p3) as int
-    return sentinel_append(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_strlen(Client p0, string p1, string p2) as int
-    return sentinel_strlen(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_del(Client p0, string p1, string p2) as int
-    return sentinel_del(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_exists(Client p0, string p1, string p2) as bool
-    return sentinel_exists(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_expire(Client p0, string p1, string p2, int p3) as bool
-    return sentinel_expire(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_persist(Client p0, string p1, string p2) as bool
-    return sentinel_persist(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_ttl(Client p0, string p1, string p2) as int
-    return sentinel_ttl(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_pttl(Client p0, string p1, string p2) as int
-    return sentinel_pttl(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_incr(Client p0, string p1, string p2) as int
-    return sentinel_incr(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_incr_by(Client p0, string p1, string p2, int p3) as int
-    return sentinel_incr_by(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_decr(Client p0, string p1, string p2) as int
-    return sentinel_decr(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_decr_by(Client p0, string p1, string p2, int p3) as int
-    return sentinel_decr_by(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_hget(Client p0, string p1, string p2, string p3) as string
-    return sentinel_hget(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_hget_or(Client p0, string p1, string p2, string p3, string p4) as string
-    return sentinel_hget_or(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_sentinel_hset(Client p0, string p1, string p2, string p3, string p4) as int
-    return sentinel_hset(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_sentinel_hdel(Client p0, string p1, string p2, string p3) as int
-    return sentinel_hdel(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_hexists(Client p0, string p1, string p2, string p3) as bool
-    return sentinel_hexists(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_hlen(Client p0, string p1, string p2) as int
-    return sentinel_hlen(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_hstrlen(Client p0, string p1, string p2, string p3) as int
-    return sentinel_hstrlen(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_hgetall_json(Client p0, string p1, string p2) as string
-    return sentinel_hgetall_json(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_lpush(Client p0, string p1, string p2, string p3) as int
-    return sentinel_lpush(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_rpush(Client p0, string p1, string p2, string p3) as int
-    return sentinel_rpush(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_lpop(Client p0, string p1, string p2) as string
-    return sentinel_lpop(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_lpop_or(Client p0, string p1, string p2, string p3) as string
-    return sentinel_lpop_or(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_rpop(Client p0, string p1, string p2) as string
-    return sentinel_rpop(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_rpop_or(Client p0, string p1, string p2, string p3) as string
-    return sentinel_rpop_or(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_llen(Client p0, string p1, string p2) as int
-    return sentinel_llen(p0, p1, p2)
-end
-
-func __xl6_import_redis_sentinel_lrange_json(Client p0, string p1, string p2, int p3, int p4) as string
-    return sentinel_lrange_json(p0, p1, p2, p3, p4)
-end
-
-func __xl6_import_redis_sentinel_sadd(Client p0, string p1, string p2, string p3) as int
-    return sentinel_sadd(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_srem(Client p0, string p1, string p2, string p3) as int
-    return sentinel_srem(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_sismember(Client p0, string p1, string p2, string p3) as bool
-    return sentinel_sismember(p0, p1, p2, p3)
-end
-
-func __xl6_import_redis_sentinel_smembers_json(Client p0, string p1, string p2) as string
-    return sentinel_smembers_json(p0, p1, p2)
-end
-
-func __xl6_import_redis_subscribe(Client p0, string p1) as string
-    return subscribe(p0, p1)
-end
-
-func __xl6_import_redis_unsubscribe(Client p0, string p1) as string
-    return unsubscribe(p0, p1)
-end
-
-func __xl6_import_redis_publish(Client p0, string p1, string p2) as int
-    return publish(p0, p1, p2)
-end
-
-func __xl6_import_redis_get_value(Client p0, string p1) as string
-    return get_value(p0, p1)
-end
-
-func __xl6_import_redis_get_or(Client p0, string p1, string p2) as string
-    return get_or(p0, p1, p2)
-end
-
-func __xl6_import_redis_exists(Client p0, string p1) as bool
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export func exists(Client p0, string p1) as bool
     return xredis_exists(p0, p1)
 end
 
-func __xl6_import_redis_set(Client p0, string p1, string p2) as bool
+export func set(Client p0, string p1, string p2) as bool
     return xredis_set(p0, p1, p2)
 end
 
-func __xl6_import_redis_set_nx(Client p0, string p1, string p2) as bool
-    return set_nx(p0, p1, p2)
-end
 
-func __xl6_import_redis_set_xx(Client p0, string p1, string p2) as bool
-    return set_xx(p0, p1, p2)
-end
 
-func __xl6_import_redis_set_ex(Client p0, string p1, string p2, int p3) as bool
-    return set_ex(p0, p1, p2, p3)
-end
 
-func __xl6_import_redis_mget_json(Client p0, array<string> p1) as string
-    return mget_json(p0, p1)
-end
 
-func __xl6_import_redis_mset(Client p0, array<string> p1) as bool
-    return mset(p0, p1)
-end
 
-func __xl6_import_redis_append(Client p0, string p1, string p2) as int
-    return append(p0, p1, p2)
-end
 
-func __xl6_import_redis_strlen(Client p0, string p1) as int
+export func strlen(Client p0, string p1) as int
     return xredis_strlen(p0, p1)
 end
 
-func __xl6_import_redis_del(Client p0, string p1) as int
+export func del(Client p0, string p1) as int
     return xredis_del(p0, p1)
 end
 
-func __xl6_import_redis_expire(Client p0, string p1, int p2) as bool
-    return expire(p0, p1, p2)
-end
 
-func __xl6_import_redis_persist(Client p0, string p1) as bool
-    return persist(p0, p1)
-end
 
-func __xl6_import_redis_ttl(Client p0, string p1) as int
-    return ttl(p0, p1)
-end
 
-func __xl6_import_redis_pttl(Client p0, string p1) as int
-    return pttl(p0, p1)
-end
 
-func __xl6_import_redis_incr(Client p0, string p1) as int
-    return incr(p0, p1)
-end
 
-func __xl6_import_redis_incr_by(Client p0, string p1, int p2) as int
-    return incr_by(p0, p1, p2)
-end
 
-func __xl6_import_redis_decr(Client p0, string p1) as int
-    return decr(p0, p1)
-end
 
-func __xl6_import_redis_decr_by(Client p0, string p1, int p2) as int
-    return decr_by(p0, p1, p2)
-end
 
-func __xl6_import_redis_hget(Client p0, string p1, string p2) as string
-    return hget(p0, p1, p2)
-end
 
-func __xl6_import_redis_hget_or(Client p0, string p1, string p2, string p3) as string
-    return hget_or(p0, p1, p2, p3)
-end
 
-func __xl6_import_redis_hset(Client p0, string p1, string p2, string p3) as int
-    return hset(p0, p1, p2, p3)
-end
 
-func __xl6_import_redis_hdel(Client p0, string p1, string p2) as int
-    return hdel(p0, p1, p2)
-end
 
-func __xl6_import_redis_hexists(Client p0, string p1, string p2) as bool
-    return hexists(p0, p1, p2)
-end
 
-func __xl6_import_redis_hlen(Client p0, string p1) as int
-    return hlen(p0, p1)
-end
 
-func __xl6_import_redis_hstrlen(Client p0, string p1, string p2) as int
-    return hstrlen(p0, p1, p2)
-end
 
-func __xl6_import_redis_hgetall_json(Client p0, string p1) as string
-    return hgetall_json(p0, p1)
-end
 
-func __xl6_import_redis_lpush(Client p0, string p1, string p2) as int
-    return lpush(p0, p1, p2)
-end
 
-func __xl6_import_redis_rpush(Client p0, string p1, string p2) as int
-    return rpush(p0, p1, p2)
-end
 
-func __xl6_import_redis_lpop(Client p0, string p1) as string
-    return lpop(p0, p1)
-end
 
-func __xl6_import_redis_lpop_or(Client p0, string p1, string p2) as string
-    return lpop_or(p0, p1, p2)
-end
 
-func __xl6_import_redis_rpop(Client p0, string p1) as string
-    return rpop(p0, p1)
-end
 
-func __xl6_import_redis_rpop_or(Client p0, string p1, string p2) as string
-    return rpop_or(p0, p1, p2)
-end
 
-func __xl6_import_redis_llen(Client p0, string p1) as int
-    return llen(p0, p1)
-end
 
-func __xl6_import_redis_lrange_json(Client p0, string p1, int p2, int p3) as string
-    return lrange_json(p0, p1, p2, p3)
-end
 
-func __xl6_import_redis_sadd(Client p0, string p1, string p2) as int
-    return sadd(p0, p1, p2)
-end
 
-func __xl6_import_redis_srem(Client p0, string p1, string p2) as int
-    return srem(p0, p1, p2)
-end
 
-func __xl6_import_redis_sismember(Client p0, string p1, string p2) as bool
-    return sismember(p0, p1, p2)
-end
 
-func __xl6_import_redis_smembers_json(Client p0, string p1) as string
-    return smembers_json(p0, p1)
-end
-
-// xl6 generated import wrappers end
 
 

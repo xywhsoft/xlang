@@ -1,10 +1,42 @@
-﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+// Source package exports. The compiler imports this source file directly.
 
-extern "xstbiw_available" func __xl6_import_stb_image_write_available() as bool
-extern "xstbiw_version" func __xl6_import_stb_image_write_version() as string
-extern "xstbiw_last_error" func __xl6_import_stb_image_write_last_error() as string
-extern "xstbiw_write_png" func __xl6_import_stb_image_write_write_png(string path, point data, c_int width, c_int height, c_int channels, c_int stride) as c_int
-extern "xstbiw_write_jpg" func __xl6_import_stb_image_write_write_jpg(string path, point data, c_int width, c_int height, c_int channels, c_int quality) as c_int
-extern "xstbiw_write_bmp" func __xl6_import_stb_image_write_write_bmp(string path, point data, c_int width, c_int height, c_int channels) as c_int
-extern "xstbiw_write_tga" func __xl6_import_stb_image_write_write_tga(string path, point data, c_int width, c_int height, c_int channels) as c_int
-extern "xstbiw_write_hdr" func __xl6_import_stb_image_write_write_hdr(string path, point data, c_int width, c_int height, c_int channels) as c_int
+extern "xstbiw_available" func __xl6_native_stb_image_write_available() as bool
+
+export func available() as bool
+    return __xl6_native_stb_image_write_available()
+end
+extern "xstbiw_version" func __xl6_native_stb_image_write_version() as string
+
+export func version() as string
+    return __xl6_native_stb_image_write_version()
+end
+extern "xstbiw_last_error" func __xl6_native_stb_image_write_last_error() as string
+
+export func last_error() as string
+    return __xl6_native_stb_image_write_last_error()
+end
+extern "xstbiw_write_png" func __xl6_native_stb_image_write_write_png(string path, point data, c_int width, c_int height, c_int channels, c_int stride) as c_int
+
+export func write_png(string path, point data, c_int width, c_int height, c_int channels, c_int stride) as c_int
+    return __xl6_native_stb_image_write_write_png(path, data, width, height, channels, stride)
+end
+extern "xstbiw_write_jpg" func __xl6_native_stb_image_write_write_jpg(string path, point data, c_int width, c_int height, c_int channels, c_int quality) as c_int
+
+export func write_jpg(string path, point data, c_int width, c_int height, c_int channels, c_int quality) as c_int
+    return __xl6_native_stb_image_write_write_jpg(path, data, width, height, channels, quality)
+end
+extern "xstbiw_write_bmp" func __xl6_native_stb_image_write_write_bmp(string path, point data, c_int width, c_int height, c_int channels) as c_int
+
+export func write_bmp(string path, point data, c_int width, c_int height, c_int channels) as c_int
+    return __xl6_native_stb_image_write_write_bmp(path, data, width, height, channels)
+end
+extern "xstbiw_write_tga" func __xl6_native_stb_image_write_write_tga(string path, point data, c_int width, c_int height, c_int channels) as c_int
+
+export func write_tga(string path, point data, c_int width, c_int height, c_int channels) as c_int
+    return __xl6_native_stb_image_write_write_tga(path, data, width, height, channels)
+end
+extern "xstbiw_write_hdr" func __xl6_native_stb_image_write_write_hdr(string path, point data, c_int width, c_int height, c_int channels) as c_int
+
+export func write_hdr(string path, point data, c_int width, c_int height, c_int channels) as c_int
+    return __xl6_native_stb_image_write_write_hdr(path, data, width, height, channels)
+end

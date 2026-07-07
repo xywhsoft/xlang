@@ -210,86 +210,86 @@ end
 func opencv_toCHWTensorJson(Image image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as string
 	return image.toCHWTensorJson(scale, mean0, mean1, mean2, std0, std1, std2)
 end
-func __xl6_import_opencv_available() as bool
+export func available() as bool
 	return opencv_available()
 end
 
-func __xl6_import_opencv_backend() as string
+export func backend() as string
 	return opencv_backend()
 end
 
-func __xl6_import_opencv_version() as string
+export func version() as string
 	return opencv_version()
 end
 
-func __xl6_import_opencv_last_error() as string
+export func last_error() as string
 	return opencv_last_error()
 end
 
-func __xl6_import_opencv_imread(string path) as Image
+export func imread(string path) as Image
 	return opencv_imread_default(path)
 end
 
-func __xl6_import_opencv_imread_flags(string path, int flags) as Image
+export func imread_flags(string path, int flags) as Image
 	return opencv_imread_flags(path, flags)
 end
 
-func __xl6_import_opencv_imwrite(string path, Image image) as bool
+export func imwrite(string path, Image image) as bool
 	return opencv_imwrite(path, image)
 end
 
-func __xl6_import_opencv_resize(Image image, int width, int height) as Image
+export func resize(Image image, int width, int height) as Image
 	return opencv_resize(image, width, height)
 end
 
-func __xl6_import_opencv_crop(Image image, int x, int y, int width, int height) as Image
+export func crop(Image image, int x, int y, int width, int height) as Image
 	return opencv_crop(image, x, y, width, height)
 end
 
-func __xl6_import_opencv_perspectiveCrop(Image image, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) as Image
+export func perspectiveCrop(Image image, float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) as Image
 	return opencv_perspectiveCrop(image, x0, y0, x1, y1, x2, y2, x3, y3)
 end
 
-func __xl6_import_opencv_rotate180(Image image) as Image
+export func rotate180(Image image) as Image
 	return opencv_rotate180(image)
 end
 
-func __xl6_import_opencv_rotate90ccw(Image image) as Image
+export func rotate90ccw(Image image) as Image
 	return opencv_rotate90ccw(image)
 end
 
-func __xl6_import_opencv_capture_rect(int x, int y, int width, int height) as Image
+export func capture_rect(int x, int y, int width, int height) as Image
 	return opencv_capture_rect(x, y, width, height)
 end
 
-func __xl6_import_opencv_capture_window(point hwnd) as Image
+export func capture_window(point hwnd) as Image
 	return opencv_capture_window(hwnd)
 end
 
-func __xl6_import_opencv_cvtColor(Image image, int code) as Image
+export func cvtColor(Image image, int code) as Image
 	return opencv_cvtColor(image, code)
 end
 
-func __xl6_import_opencv_copyMakeBorder(Image image, int top, int bottom, int left, int right, int border_type) as Image
+export func copyMakeBorder(Image image, int top, int bottom, int left, int right, int border_type) as Image
 	return opencv_copyMakeBorder_default(image, top, bottom, left, right, border_type)
 end
 
-func __xl6_import_opencv_copyMakeBorder_rgba(Image image, int top, int bottom, int left, int right, int border_type, float value0, float value1, float value2, float value3) as Image
+export func copyMakeBorder_rgba(Image image, int top, int bottom, int left, int right, int border_type, float value0, float value1, float value2, float value3) as Image
 	return opencv_copyMakeBorder_rgba(image, top, bottom, left, right, border_type, value0, value1, value2, value3)
 end
 
-func __xl6_import_opencv_rectangle(Image image, int x1, int y1, int x2, int y2, float value0, float value1, float value2) as Image
+export func rectangle(Image image, int x1, int y1, int x2, int y2, float value0, float value1, float value2) as Image
 	return opencv_rectangle_default(image, x1, y1, x2, y2, value0, value1, value2)
 end
 
-func __xl6_import_opencv_rectangle_thickness(Image image, int x1, int y1, int x2, int y2, float value0, float value1, float value2, int thickness) as Image
+export func rectangle_thickness(Image image, int x1, int y1, int x2, int y2, float value0, float value1, float value2, int thickness) as Image
 	return opencv_rectangle_thickness(image, x1, y1, x2, y2, value0, value1, value2, thickness)
 end
 
-func __xl6_import_opencv_normalize(Image image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as Image
+export func normalize(Image image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as Image
 	return opencv_normalize(image, scale, mean0, mean1, mean2, std0, std1, std2)
 end
 
-func __xl6_import_opencv_toCHWTensorJson(Image image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as string
+export func toCHWTensorJson(Image image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as string
 	return opencv_toCHWTensorJson(image, scale, mean0, mean1, mean2, std0, std1, std2)
 end

@@ -971,7 +971,7 @@ static int xl6CgenTryKnownCallStatementWithScalarArgTemps(XL6_CgenContext* ctx, 
     exportFunc = xl6CgenFindExportFunc(ctx, callee->text);
     if ( externFunc != NULL ) {
         func = externFunc;
-    } else if ( exportFunc != NULL ) {
+    } else if ( exportFunc != NULL && xl6CgenExportFuncOverloadCount(ctx, callee->text) <= 1 ) {
         func = exportFunc;
     } else {
         func = xl6CgenResolveCallFuncInternal(ctx, expr, callee->text, &inferredArgs, 0);
@@ -1103,7 +1103,7 @@ static int xl6CgenTryKnownCallStatementWithClassArgTemps(XL6_CgenContext* ctx, c
     exportFunc = xl6CgenFindExportFunc(ctx, callee->text);
     if ( externFunc != NULL ) {
         func = externFunc;
-    } else if ( exportFunc != NULL ) {
+    } else if ( exportFunc != NULL && xl6CgenExportFuncOverloadCount(ctx, callee->text) <= 1 ) {
         func = exportFunc;
     } else {
         func = xl6CgenResolveCallFuncInternal(ctx, expr, callee->text, &inferredArgs, 0);

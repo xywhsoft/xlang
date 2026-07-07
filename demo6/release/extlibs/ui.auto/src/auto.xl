@@ -361,82 +361,82 @@ func screenshot_in_root(Element root, Locator loc, string path) as bool
 	return image.save(path)
 end
 
-func __xl6_import_ui_auto_available() as bool
+export func available() as bool
 	return x_ui_auto_available()
 end
 
-func __xl6_import_ui_auto_version() as string
+export func version() as string
 	return x_ui_auto_version()
 end
 
-func __xl6_import_ui_auto_last_error() as string
+export func last_error() as string
 	return x_ui_auto_last_error()
 end
 
-func __xl6_import_ui_auto_locator() as Locator
+export func locator() as Locator
 	return x_ui_auto_locator()
 end
 
-func __xl6_import_ui_auto_test_window() as AutoTestWindow
+export func test_window() as AutoTestWindow
 	return x_ui_auto_test_window()
 end
 
-func __xl6_import_ui_auto_shutdown() as bool
+export func shutdown() as bool
 	return x_ui_auto_shutdown()
 end
 
-func __xl6_import_ui_auto_by_automation_id(string automation_id, int control_type) as Locator
+export func by_automation_id(string automation_id, int control_type) as Locator
 	return x_ui_auto_by_automation_id(automation_id, control_type)
 end
 
-func __xl6_import_ui_auto_by_class_name(string class_name, string name, int control_type) as Locator
+export func by_class_name(string class_name, string name, int control_type) as Locator
 	return x_ui_auto_by_class_name(class_name, name, control_type)
 end
 
-func __xl6_import_ui_auto_by_name(string name, int control_type) as Locator
+export func by_name(string name, int control_type) as Locator
 	return x_ui_auto_by_name(name, control_type)
 end
 
-func __xl6_import_ui_auto_by_control_type(int control_type) as Locator
+export func by_control_type(int control_type) as Locator
 	return x_ui_auto_by_control_type(control_type)
 end
 
-func __xl6_import_ui_auto_by_process_id(int process_id) as Locator
+export func by_process_id(int process_id) as Locator
 	return x_ui_auto_by_process_id(process_id)
 end
 
-func __xl6_import_ui_auto_within(Locator loc, point hwnd) as Locator
+export func within(Locator loc, point hwnd) as Locator
 	return x_ui_auto_within(loc, hwnd)
 end
 
-func __xl6_import_ui_auto_with_timeout(Locator loc, int timeout_ms) as Locator
+export func with_timeout(Locator loc, int timeout_ms) as Locator
 	return x_ui_auto_with_timeout(loc, timeout_ms)
 end
 
-func __xl6_import_ui_auto_locator_from_json(string json) as Locator
+export func locator_from_json(string json) as Locator
 	return x_ui_auto_locator_from_json(json)
 end
 
-func __xl6_import_ui_auto_wait_exists(Locator loc) as bool
+export func wait_exists(Locator loc) as bool
 	return x_ui_auto_wait_exists(loc)
 end
 
-func __xl6_import_ui_auto_click(Locator loc) as bool
+export func click(Locator loc) as bool
 	return x_ui_auto_click(loc)
 end
 
-func __xl6_import_ui_auto_type_text(Locator loc, string text) as bool
+export func type_text(Locator loc, string text) as bool
 	return x_ui_auto_type_text(loc, text)
 end
 
-func __xl6_import_ui_auto_read(Locator loc) as string
+export func read(Locator loc) as string
 	return x_ui_auto_read(loc)
 end
 
-func __xl6_import_ui_auto_screenshot(Locator loc, string path) as bool
+export func screenshot(Locator loc, string path) as bool
 	return x_ui_auto_screenshot(loc, path)
 end
 
-func __xl6_import_ui_auto_focused_locator_json() as string
+export func focused_locator_json() as string
 	return x_ui_auto_focused_locator_json()
 end

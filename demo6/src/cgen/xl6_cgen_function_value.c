@@ -132,15 +132,6 @@ static void xl6CgenLoopJump(XL6_CgenContext* ctx, const XL6_AstNode* node, int i
     xl6OutputPrintf(ctx->out, "goto __xl6_%s_%d;\n", isContinue ? "continue" : "break", isContinue ? target->continueId : target->breakId);
 }
 
-static void xl6CgenExportInternalSymbol(XL6_Output* out, const XL6_AstNode* node)
-{
-    const XL6_AstNode* nameNode;
-
-    nameNode = node->childCount > 0 ? node->children[0] : NULL;
-    xl6OutputPuts("xl6_export_", out);
-    xl6CgenFputsEncodedText(out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_");
-}
-
 static XL6_AstNode* xl6CgenFindExternFunc(XL6_CgenContext* ctx, const char* name)
 {
     size_t i;

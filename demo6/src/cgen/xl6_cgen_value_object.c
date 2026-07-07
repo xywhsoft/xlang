@@ -328,7 +328,7 @@ static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name)
     if ( xl6CgenFindTrackedVarType(ctx, name) == NULL ) {
         externalVar = xl6CgenFindExternalVar(ctx, name);
         if ( externalVar != NULL ) {
-            xl6CgenCStringSymbol(ctx->out, externalVar->text);
+            xl6CgenExternalVarStorageName(ctx->out, externalVar);
             return;
         }
     }
@@ -655,6 +655,7 @@ static int xl6CgenEmitClassCtorInto(XL6_CgenContext* ctx, const XL6_AstNode* cal
 static int xl6CgenClassConstructorExpr(XL6_CgenContext* ctx, const XL6_AstNode* call)
 {
     const XL6_AstNode* callee;
+    const XL6_AstNode* nameNode;
     XL6_AstNode* classNode;
 
     if ( ctx == NULL || call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
@@ -662,11 +663,15 @@ static int xl6CgenClassConstructorExpr(XL6_CgenContext* ctx, const XL6_AstNode* 
     }
 
     callee = call->children[0];
-    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+    nameNode = callee;
+    if ( callee != NULL && callee->kind == XL6_AST_GENERIC_INSTANT ) {
+        nameNode = callee->childCount > 0 ? callee->children[0] : NULL;
+    }
+    if ( nameNode == NULL || nameNode->kind != XL6_AST_NAME ) {
         return 0;
     }
 
-    classNode = xl6CgenFindClass(ctx, callee->text);
+    classNode = xl6CgenFindClass(ctx, nameNode->text);
     if ( classNode == NULL ) {
         return 0;
     }

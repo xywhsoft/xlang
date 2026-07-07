@@ -127,7 +127,7 @@ static const XL6_AstNode* xl6CgenResolveMultiReturnClassMethod(
 static void xl6CgenEmitKnownFuncCall(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* call)
 {
     if ( func != NULL && func->kind == XL6_AST_EXPORT_FUNC ) {
-        xl6CgenExportInternalSymbol(ctx->out, func);
+        xl6CgenExportInternalSymbol(ctx, func);
     } else {
         xl6CgenFuncSymbol(ctx, func);
     }

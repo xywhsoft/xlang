@@ -322,57 +322,55 @@ func dinov3_last_error() as string
 	return dinov3_last_error_native()
 end
 
-// xl6 generated import wrappers begin
-func __xl6_import_dinov3_DinoV3() as DinoV3Model
+export func DinoV3() as DinoV3Model
     return dinov3_DinoV3()
 end
 
-func __xl6_import_dinov3_DinoV3(string p0) as DinoV3Model
+export func DinoV3(string p0) as DinoV3Model
     return dinov3_DinoV3(p0)
 end
 
-func __xl6_import_dinov3_embedding_json(string p0) as string
+export func embedding_json(string p0) as string
     return dinov3_embedding_json(p0)
 end
 
-func __xl6_import_dinov3_embedding_json(string p0, string p1) as string
+export func embedding_json(string p0, string p1) as string
     return dinov3_embedding_json(p0, p1)
 end
 
-func __xl6_import_dinov3_infer_json(string p0) as string
+export func infer_json(string p0) as string
     return dinov3_infer_json(p0)
 end
 
-func __xl6_import_dinov3_infer_json(string p0, string p1) as string
+export func infer_json(string p0, string p1) as string
     return dinov3_infer_json(p0, p1)
 end
 
-func __xl6_import_dinov3_similarity(string p0, string p1) as float
+export func similarity(string p0, string p1) as float
     return dinov3_similarity(p0, p1)
 end
 
-func __xl6_import_dinov3_similarity(string p0, string p1, string p2) as float
+export func similarity(string p0, string p1, string p2) as float
     return dinov3_similarity(p0, p1, p2)
 end
 
-func __xl6_import_dinov3_cosine_similarity(string p0, string p1) as float
+export func cosine_similarity(string p0, string p1) as float
     return dinov3_cosine_similarity(p0, p1)
 end
 
-func __xl6_import_dinov3_cosine_similarity(string p0, string p1, string p2) as float
+export func cosine_similarity(string p0, string p1, string p2) as float
     return dinov3_cosine_similarity(p0, p1, p2)
 end
 
-func __xl6_import_dinov3_version() as string
+export func version() as string
     return dinov3_version()
 end
 
-func __xl6_import_dinov3_available() as bool
+export func available() as bool
     return dinov3_available()
 end
 
-func __xl6_import_dinov3_last_error() as string
+export func last_error() as string
     return dinov3_last_error()
 end
 
-// xl6 generated import wrappers end

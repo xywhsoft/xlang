@@ -6,15 +6,15 @@ extern "xmail_pop3_list_json_native" func xmail_pop3_list_json_native(string con
 extern "xmail_pop3_fetch_json_native" func xmail_pop3_fetch_json_native(string request_json) as string
 extern "xmail_pop3_delete_json_native" func xmail_pop3_delete_json_native(string request_json) as string
 
-func __xl6_import_mail_pop3_available() as bool
+export func available() as bool
     return true
 end
 
-func __xl6_import_mail_pop3_version() as string
+export func version() as string
     return "0.1.0"
 end
 
-func __xl6_import_mail_pop3_last_error() as string
+export func last_error() as string
     return ""
 end
 
@@ -65,74 +65,74 @@ func mail_pop3_preview_json(string operation, string payload_json) as string
     return json.stringify(mail_pop3_preview(operation, {"payload_json": payload_json}))
 end
 
-func __xl6_import_mail_pop3_result(bool ok, string error, string stage, var data) as var
+export func result(bool ok, string error, string stage, var data) as var
     return mail.mime.result(ok, error, stage, data)
 end
 
-func __xl6_import_mail_pop3_capability(var config) as var
+export func capability(var config) as var
     if mail_pop3_dry_run(config) then
         return mail_pop3_preview("capability", config)
     end
     return json.parse(xmail_pop3_capability_json_native(json.stringify(config)))
 end
 
-func __xl6_import_mail_pop3_status(var config) as var
+export func status(var config) as var
     if mail_pop3_dry_run(config) then
         return mail_pop3_preview("status", config)
     end
     return json.parse(xmail_pop3_status_json_native(json.stringify(config)))
 end
 
-func __xl6_import_mail_pop3_list(var config) as var
+export func list(var config) as var
     if mail_pop3_dry_run(config) then
         return mail_pop3_preview("list", config)
     end
     return json.parse(xmail_pop3_list_json_native(json.stringify(config)))
 end
 
-func __xl6_import_mail_pop3_fetch(var request) as var
+export func fetch(var request) as var
     if mail_pop3_dry_run(request) then
         return mail_pop3_preview("fetch", request)
     end
     return json.parse(xmail_pop3_fetch_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_pop3_delete_message(var request) as var
+export func delete_message(var request) as var
     if mail_pop3_dry_run(request) then
         return mail_pop3_preview("delete_message", request)
     end
     return json.parse(xmail_pop3_delete_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_pop3_capability_json(string config_json) as string
+export func capability_json(string config_json) as string
     if mail_pop3_dry_run_text(config_json) then
         return mail_pop3_preview_json("capability", config_json)
     end
     return xmail_pop3_capability_json_native(config_json)
 end
 
-func __xl6_import_mail_pop3_status_json(string config_json) as string
+export func status_json(string config_json) as string
     if mail_pop3_dry_run_text(config_json) then
         return mail_pop3_preview_json("status", config_json)
     end
     return xmail_pop3_status_json_native(config_json)
 end
 
-func __xl6_import_mail_pop3_list_json(string config_json) as string
+export func list_json(string config_json) as string
     if mail_pop3_dry_run_text(config_json) then
         return mail_pop3_preview_json("list", config_json)
     end
     return xmail_pop3_list_json_native(config_json)
 end
 
-func __xl6_import_mail_pop3_fetch_json(string request_json) as string
+export func fetch_json(string request_json) as string
     if mail_pop3_dry_run_text(request_json) then
         return mail_pop3_preview_json("fetch", request_json)
     end
     return xmail_pop3_fetch_json_native(request_json)
 end
 
-func __xl6_import_mail_pop3_delete_message_json(string request_json) as string
+export func delete_message_json(string request_json) as string
     if mail_pop3_dry_run_text(request_json) then
         return mail_pop3_preview_json("delete_message", request_json)
     end

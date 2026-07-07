@@ -13,15 +13,15 @@ extern "xmail_imap_idle_probe_json_native" func xmail_imap_idle_probe_json_nativ
 extern "xmail_imap_idle_json_native" func xmail_imap_idle_json_native(string request_json) as string
 extern "xmail_imap_watch_json_native" func xmail_imap_watch_json_native(string request_json) as string
 
-func __xl6_import_mail_imap_available() as bool
+export func available() as bool
     return true
 end
 
-func __xl6_import_mail_imap_version() as string
+export func version() as string
     return "0.1.0"
 end
 
-func __xl6_import_mail_imap_last_error() as string
+export func last_error() as string
     return ""
 end
 
@@ -93,172 +93,172 @@ func mail_imap_preview_json(string operation, string payload_json) as string
     return json.stringify(mail_imap_preview(operation, {"payload_json": payload_json}))
 end
 
-func __xl6_import_mail_imap_result(bool ok, string error, string stage, var data) as var
+export func result(bool ok, string error, string stage, var data) as var
     return mail.mime.result(ok, error, stage, data)
 end
 
-func __xl6_import_mail_imap_capability(var request) as var
+export func capability(var request) as var
     if mail_imap_dry_run(request) then
         return mail_imap_preview("capability", request)
     end
     return json.parse(xmail_imap_capability_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_imap_status(var request) as var
+export func status(var request) as var
     if mail_imap_dry_run(request) then
         return mail_imap_preview("status", request)
     end
     return json.parse(xmail_imap_status_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_imap_list(var request) as var
+export func list(var request) as var
     if mail_imap_dry_run(request) then
         return mail_imap_preview("list", request)
     end
     return json.parse(xmail_imap_list_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_imap_search(var request) as var
+export func search(var request) as var
     if mail_imap_dry_run(request) then
         return mail_imap_preview("search", request)
     end
     return json.parse(xmail_imap_search_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_imap_fetch(var request) as var
+export func fetch(var request) as var
     if mail_imap_dry_run(request) then
         return mail_imap_preview("fetch", request)
     end
     return json.parse(xmail_imap_fetch_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_imap_bodystructure(var request) as var
+export func bodystructure(var request) as var
     if mail_imap_dry_run(request) then
         return mail_imap_preview("bodystructure", request)
     end
     return json.parse(xmail_imap_bodystructure_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_imap_fetch_flags(var request) as var
+export func fetch_flags(var request) as var
     if mail_imap_dry_run(request) then
         return mail_imap_preview("fetch_flags", request)
     end
     return json.parse(xmail_imap_fetch_flags_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_imap_store_flags(var request) as var
+export func store_flags(var request) as var
     if mail_imap_dry_run(request) then
         return mail_imap_preview("store_flags", request)
     end
     return json.parse(xmail_imap_store_flags_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_imap_expunge(var request) as var
+export func expunge(var request) as var
     if mail_imap_dry_run(request) then
         return mail_imap_preview("expunge", request)
     end
     return json.parse(xmail_imap_expunge_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_imap_idle_probe(var request) as var
+export func idle_probe(var request) as var
     if mail_imap_dry_run(request) then
         return mail_imap_preview("idle_probe", request)
     end
     return json.parse(xmail_imap_idle_probe_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_imap_idle(var request) as var
+export func idle(var request) as var
     if mail_imap_dry_run(request) then
         return mail_imap_preview("idle", request)
     end
     return json.parse(xmail_imap_idle_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_imap_watch(var request) as var
+export func watch(var request) as var
     if mail_imap_dry_run(request) then
         return mail_imap_preview("watch", request)
     end
     return json.parse(xmail_imap_watch_json_native(json.stringify(request)))
 end
 
-func __xl6_import_mail_imap_capability_json(string request_json) as string
+export func capability_json(string request_json) as string
     if mail_imap_dry_run_text(request_json) then
         return mail_imap_preview_json("capability", request_json)
     end
     return xmail_imap_capability_json_native(request_json)
 end
 
-func __xl6_import_mail_imap_status_json(string request_json) as string
+export func status_json(string request_json) as string
     if mail_imap_dry_run_text(request_json) then
         return mail_imap_preview_json("status", request_json)
     end
     return xmail_imap_status_json_native(request_json)
 end
 
-func __xl6_import_mail_imap_list_json(string request_json) as string
+export func list_json(string request_json) as string
     if mail_imap_dry_run_text(request_json) then
         return mail_imap_preview_json("list", request_json)
     end
     return xmail_imap_list_json_native(request_json)
 end
 
-func __xl6_import_mail_imap_search_json(string request_json) as string
+export func search_json(string request_json) as string
     if mail_imap_dry_run_text(request_json) then
         return mail_imap_preview_json("search", request_json)
     end
     return xmail_imap_search_json_native(request_json)
 end
 
-func __xl6_import_mail_imap_fetch_json(string request_json) as string
+export func fetch_json(string request_json) as string
     if mail_imap_dry_run_text(request_json) then
         return mail_imap_preview_json("fetch", request_json)
     end
     return xmail_imap_fetch_json_native(request_json)
 end
 
-func __xl6_import_mail_imap_bodystructure_json(string request_json) as string
+export func bodystructure_json(string request_json) as string
     if mail_imap_dry_run_text(request_json) then
         return mail_imap_preview_json("bodystructure", request_json)
     end
     return xmail_imap_bodystructure_json_native(request_json)
 end
 
-func __xl6_import_mail_imap_fetch_flags_json(string request_json) as string
+export func fetch_flags_json(string request_json) as string
     if mail_imap_dry_run_text(request_json) then
         return mail_imap_preview_json("fetch_flags", request_json)
     end
     return xmail_imap_fetch_flags_json_native(request_json)
 end
 
-func __xl6_import_mail_imap_store_flags_json(string request_json) as string
+export func store_flags_json(string request_json) as string
     if mail_imap_dry_run_text(request_json) then
         return mail_imap_preview_json("store_flags", request_json)
     end
     return xmail_imap_store_flags_json_native(request_json)
 end
 
-func __xl6_import_mail_imap_expunge_json(string request_json) as string
+export func expunge_json(string request_json) as string
     if mail_imap_dry_run_text(request_json) then
         return mail_imap_preview_json("expunge", request_json)
     end
     return xmail_imap_expunge_json_native(request_json)
 end
 
-func __xl6_import_mail_imap_idle_probe_json(string request_json) as string
+export func idle_probe_json(string request_json) as string
     if mail_imap_dry_run_text(request_json) then
         return mail_imap_preview_json("idle_probe", request_json)
     end
     return xmail_imap_idle_probe_json_native(request_json)
 end
 
-func __xl6_import_mail_imap_idle_json(string request_json) as string
+export func idle_json(string request_json) as string
     if mail_imap_dry_run_text(request_json) then
         return mail_imap_preview_json("idle", request_json)
     end
     return xmail_imap_idle_json_native(request_json)
 end
 
-func __xl6_import_mail_imap_watch_json(string request_json) as string
+export func watch_json(string request_json) as string
     if mail_imap_dry_run_text(request_json) then
         return mail_imap_preview_json("watch", request_json)
     end

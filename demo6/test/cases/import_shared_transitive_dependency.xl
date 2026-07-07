@@ -1,0 +1,9 @@
+import shared_left_pkg
+import shared_right_pkg
+
+func main(...) as int
+    if shared_left_pkg.left() + shared_right_pkg.right() == 42 then
+        return 0
+    end
+    return 1
+end

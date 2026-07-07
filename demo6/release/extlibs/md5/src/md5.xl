@@ -1,8 +1,32 @@
-﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+// Source package exports. The compiler imports this source file directly.
 
-extern "xmd5_available" func __xl6_import_md5_available() as bool
-extern "xmd5_version" func __xl6_import_md5_version() as string
-extern "xmd5_last_error" func __xl6_import_md5_last_error() as string
-extern "xmd5_hex" func __xl6_import_md5_hex(string text) as string
-extern "xmd5_file" func __xl6_import_md5_file(string path) as string
-extern "xmd5_valid" func __xl6_import_md5_valid(string text) as c_int
+extern "xmd5_available" func __xl6_native_md5_available() as bool
+
+export func available() as bool
+    return __xl6_native_md5_available()
+end
+extern "xmd5_version" func __xl6_native_md5_version() as string
+
+export func version() as string
+    return __xl6_native_md5_version()
+end
+extern "xmd5_last_error" func __xl6_native_md5_last_error() as string
+
+export func last_error() as string
+    return __xl6_native_md5_last_error()
+end
+extern "xmd5_hex" func __xl6_native_md5_hex(string text) as string
+
+export func hex(string text) as string
+    return __xl6_native_md5_hex(text)
+end
+extern "xmd5_file" func __xl6_native_md5_file(string path) as string
+
+export func file(string path) as string
+    return __xl6_native_md5_file(path)
+end
+extern "xmd5_valid" func __xl6_native_md5_valid(string text) as c_int
+
+export func valid(string text) as c_int
+    return __xl6_native_md5_valid(text)
+end

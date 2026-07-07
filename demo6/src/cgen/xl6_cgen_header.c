@@ -796,6 +796,9 @@ static void xl6CgenHeaderExportVarDecl(XL6_Output* out, const XL6_AstNode* root,
 {
     const XL6_AstNode* typeNode;
 
+    if ( node == NULL || node->text == NULL || node->text[0] == '\0' ) {
+        return;
+    }
     typeNode = xl6CgenHeaderExternalVarTypeNode(node);
     xl6OutputPuts("extern ", out);
     if ( node != NULL && node->kind == XL6_AST_EXPORT_CONST ) {
@@ -898,7 +901,9 @@ int xl6CgenEmitHeader(XL6_Output* out, XL6_AstNode* root, const char* guardName,
     }
     for ( i = 0; i < root->childCount; ++i ) {
         const XL6_AstNode* node = root->children[i];
-        if ( node != NULL && (node->kind == XL6_AST_EXPORT_VAR || node->kind == XL6_AST_EXPORT_CONST) ) {
+        if ( node != NULL &&
+             (node->kind == XL6_AST_EXPORT_VAR || node->kind == XL6_AST_EXPORT_CONST) &&
+             node->text != NULL && node->text[0] != '\0' ) {
             xl6CgenHeaderExportVarDecl(out, root, node);
         }
     }

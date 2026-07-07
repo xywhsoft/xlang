@@ -429,133 +429,82 @@ class InferenceSessionObject
 	end
 end
 
-func SessionOptions() as SessionOptionsObject
+export func SessionOptions() as SessionOptionsObject
 	return SessionOptionsObject()
 end
 
-func RunOptions() as RunOptionsObject
+export func RunOptions() as RunOptionsObject
 	return RunOptionsObject()
 end
 
-func TensorZerosF32(string shape_json) as TensorObject
+export func TensorZerosF32(string shape_json) as TensorObject
 	return TensorObject(ort_tensor_zeros_f32_native(shape_json))
 end
 
-func TensorFromOpenCV(point image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as TensorObject
+export func TensorFromOpenCV(point image, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as TensorObject
 	return TensorObject(ort_tensor_from_opencv_native(image, scale, mean0, mean1, mean2, std0, std1, std2))
 end
 
-func TensorFromOpenCVResized(point image, int width, int height, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as TensorObject
+export func TensorFromOpenCVResized(point image, int width, int height, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as TensorObject
 	return TensorObject(ort_tensor_from_opencv_resized_native(image, width, height, scale, mean0, mean1, mean2, std0, std1, std2))
 end
 
-func TensorFromOpenCVBatch(int batch_count, point image0, point image1, point image2, point image3, point image4, point image5, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as TensorObject
+export func TensorFromOpenCVBatch(int batch_count, point image0, point image1, point image2, point image3, point image4, point image5, float scale, float mean0, float mean1, float mean2, float std0, float std1, float std2) as TensorObject
 	return TensorObject(ort_tensor_from_opencv_batch_native(batch_count, image0, image1, image2, image3, image4, image5, scale, mean0, mean1, mean2, std0, std1, std2))
 end
 
-func InferenceSession(string model_path) as InferenceSessionObject
+export func InferenceSession(string model_path) as InferenceSessionObject
 	return InferenceSessionObject(model_path)
 end
 
-func InferenceSession(string model_path, SessionOptionsObject options) as InferenceSessionObject
+export func InferenceSession(string model_path, SessionOptionsObject options) as InferenceSessionObject
 	return InferenceSessionObject(model_path, options)
 end
 
-func available() as bool
+export func available() as bool
 	return ort_available_native() != 0
 end
 
-func backend() as string
+export func backend() as string
 	return ort_backend_native()
 end
 
-func get_version_string() as string
+export func get_version_string() as string
 	return ort_get_version_string_native()
 end
 
-func version() as string
+export func version() as string
 	return get_version_string()
 end
 
-func get_available_providers() as string
+export func get_available_providers() as string
 	return ort_get_available_providers_json_native()
 end
 
-func get_providers() as string
+export func get_providers() as string
 	return get_available_providers()
 end
 
-func last_error() as string
+export func last_error() as string
 	return ort_last_error_native()
 end
 
-func get_last_error() as string
+export func get_last_error() as string
 	return last_error()
 end
 
-// xl6 generated import wrappers begin
-func __xl6_import_onnxruntime_SessionOptions() as SessionOptionsObject
-    return SessionOptions()
-end
 
-func __xl6_import_onnxruntime_RunOptions() as RunOptionsObject
-    return RunOptions()
-end
 
-func __xl6_import_onnxruntime_TensorZerosF32(string p0) as TensorObject
-    return TensorZerosF32(p0)
-end
 
-func __xl6_import_onnxruntime_TensorFromOpenCV(point p0, float p1, float p2, float p3, float p4, float p5, float p6, float p7) as TensorObject
-    return TensorFromOpenCV(p0, p1, p2, p3, p4, p5, p6, p7)
-end
 
-func __xl6_import_onnxruntime_TensorFromOpenCVResized(point p0, int p1, int p2, float p3, float p4, float p5, float p6, float p7, float p8, float p9) as TensorObject
-    return TensorFromOpenCVResized(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9)
-end
 
-func __xl6_import_onnxruntime_TensorFromOpenCVBatch(int p0, point p1, point p2, point p3, point p4, point p5, point p6, float p7, float p8, float p9, float p10, float p11, float p12, float p13) as TensorObject
-    return TensorFromOpenCVBatch(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13)
-end
 
-func __xl6_import_onnxruntime_InferenceSession(string p0) as InferenceSessionObject
-    return InferenceSession(p0)
-end
 
-func __xl6_import_onnxruntime_InferenceSession(string p0, SessionOptionsObject p1) as InferenceSessionObject
-    return InferenceSession(p0, p1)
-end
 
-func __xl6_import_onnxruntime_available() as bool
-    return available()
-end
 
-func __xl6_import_onnxruntime_backend() as string
-    return backend()
-end
 
-func __xl6_import_onnxruntime_version() as string
-    return version()
-end
 
-func __xl6_import_onnxruntime_get_version_string() as string
-    return get_version_string()
-end
 
-func __xl6_import_onnxruntime_get_available_providers() as string
-    return get_available_providers()
-end
 
-func __xl6_import_onnxruntime_get_providers() as string
-    return get_providers()
-end
 
-func __xl6_import_onnxruntime_last_error() as string
-    return last_error()
-end
 
-func __xl6_import_onnxruntime_get_last_error() as string
-    return get_last_error()
-end
-
-// xl6 generated import wrappers end

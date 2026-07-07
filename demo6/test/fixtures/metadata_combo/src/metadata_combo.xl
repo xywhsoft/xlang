@@ -1,5 +1,15 @@
-﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+extern "xl6_metadata_combo_source" func __xl6_native_metadata_combo_sourceValue() as int
+extern "xl6_metadata_combo_link" func __xl6_native_metadata_combo_linkValue() as int
+extern "xl6_metadata_combo_loadlib" func __xl6_native_metadata_combo_loadValue() as int
 
-extern "xl6_metadata_combo_source" func __xl6_import_metadata_combo_sourceValue() as int
-extern "xl6_metadata_combo_link" func __xl6_import_metadata_combo_linkValue() as int
-extern "xl6_metadata_combo_loadlib" func __xl6_import_metadata_combo_loadValue() as int
+export func sourceValue() as int
+    return __xl6_native_metadata_combo_sourceValue()
+end
+
+export func linkValue() as int
+    return __xl6_native_metadata_combo_linkValue()
+end
+
+export func loadValue() as int
+    return __xl6_native_metadata_combo_loadValue()
+end

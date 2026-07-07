@@ -1,11 +1,47 @@
-﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+// Source package exports. The compiler imports this source file directly.
 
-extern "xzstd_available" func __xl6_import_zstd_available() as bool
-extern "xzstd_version" func __xl6_import_zstd_version() as string
-extern "xzstd_last_error" func __xl6_import_zstd_last_error() as string
-extern "xzstd_compress_hex" func __xl6_import_zstd_compress_hex(string text) as string
-extern "xzstd_compress_hex_level" func __xl6_import_zstd_compress_hex_level(string text, c_int level) as string
-extern "xzstd_decompress_hex" func __xl6_import_zstd_decompress_hex(string hex_text) as string
-extern "xzstd_compress_file" func __xl6_import_zstd_compress_file(string input_path, string output_path) as c_int
-extern "xzstd_compress_file_level" func __xl6_import_zstd_compress_file_level(string input_path, string output_path, c_int level) as c_int
-extern "xzstd_decompress_file" func __xl6_import_zstd_decompress_file(string input_path, string output_path) as c_int
+extern "xzstd_available" func __xl6_native_zstd_available() as bool
+
+export func available() as bool
+    return __xl6_native_zstd_available()
+end
+extern "xzstd_version" func __xl6_native_zstd_version() as string
+
+export func version() as string
+    return __xl6_native_zstd_version()
+end
+extern "xzstd_last_error" func __xl6_native_zstd_last_error() as string
+
+export func last_error() as string
+    return __xl6_native_zstd_last_error()
+end
+extern "xzstd_compress_hex" func __xl6_native_zstd_compress_hex(string text) as string
+
+export func compress_hex(string text) as string
+    return __xl6_native_zstd_compress_hex(text)
+end
+extern "xzstd_compress_hex_level" func __xl6_native_zstd_compress_hex_level(string text, c_int level) as string
+
+export func compress_hex_level(string text, c_int level) as string
+    return __xl6_native_zstd_compress_hex_level(text, level)
+end
+extern "xzstd_decompress_hex" func __xl6_native_zstd_decompress_hex(string hex_text) as string
+
+export func decompress_hex(string hex_text) as string
+    return __xl6_native_zstd_decompress_hex(hex_text)
+end
+extern "xzstd_compress_file" func __xl6_native_zstd_compress_file(string input_path, string output_path) as c_int
+
+export func compress_file(string input_path, string output_path) as c_int
+    return __xl6_native_zstd_compress_file(input_path, output_path)
+end
+extern "xzstd_compress_file_level" func __xl6_native_zstd_compress_file_level(string input_path, string output_path, c_int level) as c_int
+
+export func compress_file_level(string input_path, string output_path, c_int level) as c_int
+    return __xl6_native_zstd_compress_file_level(input_path, output_path, level)
+end
+extern "xzstd_decompress_file" func __xl6_native_zstd_decompress_file(string input_path, string output_path) as c_int
+
+export func decompress_file(string input_path, string output_path) as c_int
+    return __xl6_native_zstd_decompress_file(input_path, output_path)
+end

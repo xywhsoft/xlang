@@ -352,7 +352,7 @@ static void xl6CgenDeclEmitKnownStatementCallSymbol(XL6_CgenContext* ctx, const 
     if ( func->kind == XL6_AST_EXTERN_FUNC ) {
         xl6CgenCStringSymbol(ctx->out, func->text);
     } else if ( func->kind == XL6_AST_EXPORT_FUNC ) {
-        xl6CgenExportInternalSymbol(ctx->out, func);
+        xl6CgenExportInternalSymbol(ctx, func);
     } else {
         xl6CgenFuncSymbol(ctx, func);
     }
@@ -456,7 +456,7 @@ static int xl6CgenDeclTryTemporaryClassArgInit(
 
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s %s = ", cType, cName);
-    xl6CgenFuncSymbol(ctx, func);
+    xl6CgenDeclEmitKnownStatementCallSymbol(ctx, func);
     xl6OutputPutc('(', ctx->out);
     xl6CgenDeclEmitKnownCallArgsWithClassTemps(ctx, func, args, temps, fixedCount);
     xl6OutputPuts(");\n", ctx->out);

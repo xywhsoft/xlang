@@ -1,0 +1,8 @@
+import string_dep_pkg
+
+func main(...) as int
+    if string_dep_pkg.hello() == "hello from string_dep_pkg" then
+        return 0
+    end
+    return 1
+end

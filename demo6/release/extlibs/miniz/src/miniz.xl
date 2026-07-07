@@ -1,15 +1,67 @@
-﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+// Source package exports. The compiler imports this source file directly.
 
-extern "xminiz_available" func __xl6_import_miniz_available() as bool
-extern "xminiz_version" func __xl6_import_miniz_version() as string
-extern "xminiz_last_error" func __xl6_import_miniz_last_error() as string
-extern "xminiz_compress_hex" func __xl6_import_miniz_compress_hex(string text) as string
-extern "xminiz_compress_hex_level" func __xl6_import_miniz_compress_hex_level(string text, c_int level) as string
-extern "xminiz_decompress_hex" func __xl6_import_miniz_decompress_hex(string hex_text) as string
-extern "xminiz_compress_file" func __xl6_import_miniz_compress_file(string input_path, string output_path) as c_int
-extern "xminiz_compress_file_level" func __xl6_import_miniz_compress_file_level(string input_path, string output_path, c_int level) as c_int
-extern "xminiz_decompress_file" func __xl6_import_miniz_decompress_file(string input_path, string output_path) as c_int
-extern "xminiz_zip_write_text" func __xl6_import_miniz_zip_write_text(string zip_path, string entry_name, string text) as c_int
-extern "xminiz_zip_count" func __xl6_import_miniz_zip_count(string zip_path) as c_int
-extern "xminiz_zip_first_name" func __xl6_import_miniz_zip_first_name(string zip_path) as string
-extern "xminiz_zip_read_text" func __xl6_import_miniz_zip_read_text(string zip_path, string entry_name) as string
+extern "xminiz_available" func __xl6_native_miniz_available() as bool
+
+export func available() as bool
+    return __xl6_native_miniz_available()
+end
+extern "xminiz_version" func __xl6_native_miniz_version() as string
+
+export func version() as string
+    return __xl6_native_miniz_version()
+end
+extern "xminiz_last_error" func __xl6_native_miniz_last_error() as string
+
+export func last_error() as string
+    return __xl6_native_miniz_last_error()
+end
+extern "xminiz_compress_hex" func __xl6_native_miniz_compress_hex(string text) as string
+
+export func compress_hex(string text) as string
+    return __xl6_native_miniz_compress_hex(text)
+end
+extern "xminiz_compress_hex_level" func __xl6_native_miniz_compress_hex_level(string text, c_int level) as string
+
+export func compress_hex_level(string text, c_int level) as string
+    return __xl6_native_miniz_compress_hex_level(text, level)
+end
+extern "xminiz_decompress_hex" func __xl6_native_miniz_decompress_hex(string hex_text) as string
+
+export func decompress_hex(string hex_text) as string
+    return __xl6_native_miniz_decompress_hex(hex_text)
+end
+extern "xminiz_compress_file" func __xl6_native_miniz_compress_file(string input_path, string output_path) as c_int
+
+export func compress_file(string input_path, string output_path) as c_int
+    return __xl6_native_miniz_compress_file(input_path, output_path)
+end
+extern "xminiz_compress_file_level" func __xl6_native_miniz_compress_file_level(string input_path, string output_path, c_int level) as c_int
+
+export func compress_file_level(string input_path, string output_path, c_int level) as c_int
+    return __xl6_native_miniz_compress_file_level(input_path, output_path, level)
+end
+extern "xminiz_decompress_file" func __xl6_native_miniz_decompress_file(string input_path, string output_path) as c_int
+
+export func decompress_file(string input_path, string output_path) as c_int
+    return __xl6_native_miniz_decompress_file(input_path, output_path)
+end
+extern "xminiz_zip_write_text" func __xl6_native_miniz_zip_write_text(string zip_path, string entry_name, string text) as c_int
+
+export func zip_write_text(string zip_path, string entry_name, string text) as c_int
+    return __xl6_native_miniz_zip_write_text(zip_path, entry_name, text)
+end
+extern "xminiz_zip_count" func __xl6_native_miniz_zip_count(string zip_path) as c_int
+
+export func zip_count(string zip_path) as c_int
+    return __xl6_native_miniz_zip_count(zip_path)
+end
+extern "xminiz_zip_first_name" func __xl6_native_miniz_zip_first_name(string zip_path) as string
+
+export func zip_first_name(string zip_path) as string
+    return __xl6_native_miniz_zip_first_name(zip_path)
+end
+extern "xminiz_zip_read_text" func __xl6_native_miniz_zip_read_text(string zip_path, string entry_name) as string
+
+export func zip_read_text(string zip_path, string entry_name) as string
+    return __xl6_native_miniz_zip_read_text(zip_path, entry_name)
+end

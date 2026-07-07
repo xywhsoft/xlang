@@ -52,6 +52,68 @@ static void xl6CgenMangledType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode
     }
 }
 
+static int xl6CgenExportFuncOverloadCount(XL6_CgenContext* ctx, const char* name)
+{
+    size_t i;
+    int count;
+
+    count = 0;
+    if ( ctx == NULL || ctx->root == NULL || name == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < ctx->root->childCount; ++i ) {
+        XL6_AstNode* node = ctx->root->children[i];
+        XL6_AstNode* nameNode;
+
+        if ( node == NULL ||
+             node->kind != XL6_AST_EXPORT_FUNC ||
+             xl6CgenFuncIsGeneric(node) ||
+             node->childCount == 0 ) {
+            continue;
+        }
+        nameNode = node->children[0];
+        if ( nameNode != NULL && xl6CTextEquals(nameNode->text, name) ) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+static void xl6CgenCallableParamSignatureSuffix(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* params;
+    size_t i;
+
+    params = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
+    if ( params == NULL || params->childCount == 0 ) {
+        xl6OutputPuts("__void", ctx->out);
+        return;
+    }
+    for ( i = 0; i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+
+        xl6OutputPuts("__", ctx->out);
+        if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
+            xl6CgenMangledType(ctx, param->children[0]);
+        } else {
+            xl6OutputPutc('_', ctx->out);
+        }
+    }
+}
+
+static void xl6CgenExportInternalSymbol(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* nameNode;
+
+    nameNode = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    xl6OutputPuts("xl6_export_", ctx->out);
+    xl6CgenMangledPart(ctx->out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_");
+    if ( nameNode != NULL &&
+         xl6CgenExportFuncOverloadCount(ctx, nameNode->text) > 1 ) {
+        xl6CgenCallableParamSignatureSuffix(ctx, node);
+    }
+}
+
 static int xl6CgenGenericFuncNeedsSignatureSuffix(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
 {
     const XL6_AstNode* nameNode;
@@ -351,7 +413,7 @@ static void xl6CgenCallableTargetSymbol(XL6_CgenContext* ctx, const XL6_AstNode*
     if ( funcNode != NULL && funcNode->kind == XL6_AST_EXTERN_FUNC ) {
         xl6CgenCStringSymbol(ctx->out, funcNode->text);
     } else if ( funcNode != NULL && funcNode->kind == XL6_AST_EXPORT_FUNC ) {
-        xl6CgenExportInternalSymbol(ctx->out, funcNode);
+        xl6CgenExportInternalSymbol(ctx, funcNode);
     } else {
         xl6CgenFuncSymbol(ctx, funcNode);
     }

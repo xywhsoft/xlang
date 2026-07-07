@@ -1,13 +1,57 @@
-﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+// Source package exports. The compiler imports this source file directly.
 
-extern "xcrc32_available" func __xl6_import_crc32_available() as bool
-extern "xcrc32_version" func __xl6_import_crc32_version() as string
-extern "xcrc32_last_error" func __xl6_import_crc32_last_error() as string
-extern "xcrc32_init" func __xl6_import_crc32_init() as int
-extern "xcrc32_update" func __xl6_import_crc32_update(int crc, string text) as int
-extern "xcrc32_finish" func __xl6_import_crc32_finish(int crc) as int
-extern "xcrc32_string" func __xl6_import_crc32_checksum(string text) as int
-extern "xcrc32_string_hex" func __xl6_import_crc32_checksum_hex(string text) as string
-extern "xcrc32_file" func __xl6_import_crc32_file(string path) as int
-extern "xcrc32_file_hex" func __xl6_import_crc32_file_hex(string path) as string
-extern "xcrc32_hex" func __xl6_import_crc32_hex(int crc) as string
+extern "xcrc32_available" func __xl6_native_crc32_available() as bool
+
+export func available() as bool
+    return __xl6_native_crc32_available()
+end
+extern "xcrc32_version" func __xl6_native_crc32_version() as string
+
+export func version() as string
+    return __xl6_native_crc32_version()
+end
+extern "xcrc32_last_error" func __xl6_native_crc32_last_error() as string
+
+export func last_error() as string
+    return __xl6_native_crc32_last_error()
+end
+extern "xcrc32_init" func __xl6_native_crc32_init() as int
+
+export func init() as int
+    return __xl6_native_crc32_init()
+end
+extern "xcrc32_update" func __xl6_native_crc32_update(int crc, string text) as int
+
+export func update(int crc, string text) as int
+    return __xl6_native_crc32_update(crc, text)
+end
+extern "xcrc32_finish" func __xl6_native_crc32_finish(int crc) as int
+
+export func finish(int crc) as int
+    return __xl6_native_crc32_finish(crc)
+end
+extern "xcrc32_string" func __xl6_native_crc32_checksum(string text) as int
+
+export func checksum(string text) as int
+    return __xl6_native_crc32_checksum(text)
+end
+extern "xcrc32_string_hex" func __xl6_native_crc32_checksum_hex(string text) as string
+
+export func checksum_hex(string text) as string
+    return __xl6_native_crc32_checksum_hex(text)
+end
+extern "xcrc32_file" func __xl6_native_crc32_file(string path) as int
+
+export func file(string path) as int
+    return __xl6_native_crc32_file(path)
+end
+extern "xcrc32_file_hex" func __xl6_native_crc32_file_hex(string path) as string
+
+export func file_hex(string path) as string
+    return __xl6_native_crc32_file_hex(path)
+end
+extern "xcrc32_hex" func __xl6_native_crc32_hex(int crc) as string
+
+export func hex(int crc) as string
+    return __xl6_native_crc32_hex(crc)
+end

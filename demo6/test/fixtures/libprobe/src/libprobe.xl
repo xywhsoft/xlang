@@ -1,3 +1,5 @@
-﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+extern "xl6_libprobe_value" func __xl6_native_libprobe_value() as int
 
-extern "xl6_libprobe_value" func __xl6_import_libprobe_value() as int
+export func value() as int
+    return __xl6_native_libprobe_value()
+end

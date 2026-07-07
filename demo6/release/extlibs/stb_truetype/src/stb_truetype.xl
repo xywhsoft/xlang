@@ -1,28 +1,132 @@
-﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+// Source package exports. The compiler imports this source file directly.
 
-extern "xstbtt_available" func __xl6_import_stb_truetype_available() as bool
-extern "xstbtt_version" func __xl6_import_stb_truetype_version() as string
-extern "xstbtt_last_error" func __xl6_import_stb_truetype_last_error() as string
-extern "xstbtt_default_font_path" func __xl6_import_stb_truetype_default_font_path() as string
-extern "xstbtt_load" func __xl6_import_stb_truetype_load(string path, c_int font_index) as point
-extern "xstbtt_font_valid" func __xl6_import_stb_truetype_valid(point font) as c_int
-extern "xstbtt_font_release" func __xl6_import_stb_truetype_release(point font) as c_int
-extern "xstbtt_scale_for_pixel_height" func __xl6_import_stb_truetype_scale_for_pixel_height(point font, c_double pixel_height) as c_double
-extern "xstbtt_ascent" func __xl6_import_stb_truetype_ascent(point font) as c_int
-extern "xstbtt_descent" func __xl6_import_stb_truetype_descent(point font) as c_int
-extern "xstbtt_line_gap" func __xl6_import_stb_truetype_line_gap(point font) as c_int
-extern "xstbtt_find_glyph_index" func __xl6_import_stb_truetype_find_glyph_index(point font, c_int codepoint) as c_int
-extern "xstbtt_h_advance" func __xl6_import_stb_truetype_h_advance(point font, c_int codepoint) as c_int
-extern "xstbtt_left_bearing" func __xl6_import_stb_truetype_left_bearing(point font, c_int codepoint) as c_int
-extern "xstbtt_kern_advance" func __xl6_import_stb_truetype_kern_advance(point font, c_int codepoint1, c_int codepoint2) as c_int
-extern "xstbtt_vmetrics_json" func __xl6_import_stb_truetype_vmetrics(point font) as string
-extern "xstbtt_hmetrics_json" func __xl6_import_stb_truetype_hmetrics(point font, c_int codepoint) as string
-extern "xstbtt_codepoint_bitmap" func __xl6_import_stb_truetype_codepoint_bitmap(point font, c_int codepoint, c_double pixel_height) as point
-extern "xstbtt_codepoint_bitmap_box_json" func __xl6_import_stb_truetype_codepoint_bitmap_box(point font, c_int codepoint, c_double pixel_height) as string
-extern "xstbtt_bitmap_valid" func __xl6_import_stb_truetype_bitmap_valid(point bitmap) as c_int
-extern "xstbtt_bitmap_width" func __xl6_import_stb_truetype_bitmap_width(point bitmap) as c_int
-extern "xstbtt_bitmap_height" func __xl6_import_stb_truetype_bitmap_height(point bitmap) as c_int
-extern "xstbtt_bitmap_xoff" func __xl6_import_stb_truetype_bitmap_xoff(point bitmap) as c_int
-extern "xstbtt_bitmap_yoff" func __xl6_import_stb_truetype_bitmap_yoff(point bitmap) as c_int
-extern "xstbtt_bitmap_data" func __xl6_import_stb_truetype_bitmap_data(point bitmap) as point
-extern "xstbtt_bitmap_release" func __xl6_import_stb_truetype_bitmap_release(point bitmap) as c_int
+extern "xstbtt_available" func __xl6_native_stb_truetype_available() as bool
+
+export func available() as bool
+    return __xl6_native_stb_truetype_available()
+end
+extern "xstbtt_version" func __xl6_native_stb_truetype_version() as string
+
+export func version() as string
+    return __xl6_native_stb_truetype_version()
+end
+extern "xstbtt_last_error" func __xl6_native_stb_truetype_last_error() as string
+
+export func last_error() as string
+    return __xl6_native_stb_truetype_last_error()
+end
+extern "xstbtt_default_font_path" func __xl6_native_stb_truetype_default_font_path() as string
+
+export func default_font_path() as string
+    return __xl6_native_stb_truetype_default_font_path()
+end
+extern "xstbtt_load" func __xl6_native_stb_truetype_load(string path, c_int font_index) as point
+
+export func load(string path, c_int font_index) as point
+    return __xl6_native_stb_truetype_load(path, font_index)
+end
+extern "xstbtt_font_valid" func __xl6_native_stb_truetype_valid(point font) as c_int
+
+export func valid(point font) as c_int
+    return __xl6_native_stb_truetype_valid(font)
+end
+extern "xstbtt_font_release" func __xl6_native_stb_truetype_release(point font) as c_int
+
+export func release(point font) as c_int
+    return __xl6_native_stb_truetype_release(font)
+end
+extern "xstbtt_scale_for_pixel_height" func __xl6_native_stb_truetype_scale_for_pixel_height(point font, c_double pixel_height) as c_double
+
+export func scale_for_pixel_height(point font, c_double pixel_height) as c_double
+    return __xl6_native_stb_truetype_scale_for_pixel_height(font, pixel_height)
+end
+extern "xstbtt_ascent" func __xl6_native_stb_truetype_ascent(point font) as c_int
+
+export func ascent(point font) as c_int
+    return __xl6_native_stb_truetype_ascent(font)
+end
+extern "xstbtt_descent" func __xl6_native_stb_truetype_descent(point font) as c_int
+
+export func descent(point font) as c_int
+    return __xl6_native_stb_truetype_descent(font)
+end
+extern "xstbtt_line_gap" func __xl6_native_stb_truetype_line_gap(point font) as c_int
+
+export func line_gap(point font) as c_int
+    return __xl6_native_stb_truetype_line_gap(font)
+end
+extern "xstbtt_find_glyph_index" func __xl6_native_stb_truetype_find_glyph_index(point font, c_int codepoint) as c_int
+
+export func find_glyph_index(point font, c_int codepoint) as c_int
+    return __xl6_native_stb_truetype_find_glyph_index(font, codepoint)
+end
+extern "xstbtt_h_advance" func __xl6_native_stb_truetype_h_advance(point font, c_int codepoint) as c_int
+
+export func h_advance(point font, c_int codepoint) as c_int
+    return __xl6_native_stb_truetype_h_advance(font, codepoint)
+end
+extern "xstbtt_left_bearing" func __xl6_native_stb_truetype_left_bearing(point font, c_int codepoint) as c_int
+
+export func left_bearing(point font, c_int codepoint) as c_int
+    return __xl6_native_stb_truetype_left_bearing(font, codepoint)
+end
+extern "xstbtt_kern_advance" func __xl6_native_stb_truetype_kern_advance(point font, c_int codepoint1, c_int codepoint2) as c_int
+
+export func kern_advance(point font, c_int codepoint1, c_int codepoint2) as c_int
+    return __xl6_native_stb_truetype_kern_advance(font, codepoint1, codepoint2)
+end
+extern "xstbtt_vmetrics_json" func __xl6_native_stb_truetype_vmetrics(point font) as string
+
+export func vmetrics(point font) as string
+    return __xl6_native_stb_truetype_vmetrics(font)
+end
+extern "xstbtt_hmetrics_json" func __xl6_native_stb_truetype_hmetrics(point font, c_int codepoint) as string
+
+export func hmetrics(point font, c_int codepoint) as string
+    return __xl6_native_stb_truetype_hmetrics(font, codepoint)
+end
+extern "xstbtt_codepoint_bitmap" func __xl6_native_stb_truetype_codepoint_bitmap(point font, c_int codepoint, c_double pixel_height) as point
+
+export func codepoint_bitmap(point font, c_int codepoint, c_double pixel_height) as point
+    return __xl6_native_stb_truetype_codepoint_bitmap(font, codepoint, pixel_height)
+end
+extern "xstbtt_codepoint_bitmap_box_json" func __xl6_native_stb_truetype_codepoint_bitmap_box(point font, c_int codepoint, c_double pixel_height) as string
+
+export func codepoint_bitmap_box(point font, c_int codepoint, c_double pixel_height) as string
+    return __xl6_native_stb_truetype_codepoint_bitmap_box(font, codepoint, pixel_height)
+end
+extern "xstbtt_bitmap_valid" func __xl6_native_stb_truetype_bitmap_valid(point bitmap) as c_int
+
+export func bitmap_valid(point bitmap) as c_int
+    return __xl6_native_stb_truetype_bitmap_valid(bitmap)
+end
+extern "xstbtt_bitmap_width" func __xl6_native_stb_truetype_bitmap_width(point bitmap) as c_int
+
+export func bitmap_width(point bitmap) as c_int
+    return __xl6_native_stb_truetype_bitmap_width(bitmap)
+end
+extern "xstbtt_bitmap_height" func __xl6_native_stb_truetype_bitmap_height(point bitmap) as c_int
+
+export func bitmap_height(point bitmap) as c_int
+    return __xl6_native_stb_truetype_bitmap_height(bitmap)
+end
+extern "xstbtt_bitmap_xoff" func __xl6_native_stb_truetype_bitmap_xoff(point bitmap) as c_int
+
+export func bitmap_xoff(point bitmap) as c_int
+    return __xl6_native_stb_truetype_bitmap_xoff(bitmap)
+end
+extern "xstbtt_bitmap_yoff" func __xl6_native_stb_truetype_bitmap_yoff(point bitmap) as c_int
+
+export func bitmap_yoff(point bitmap) as c_int
+    return __xl6_native_stb_truetype_bitmap_yoff(bitmap)
+end
+extern "xstbtt_bitmap_data" func __xl6_native_stb_truetype_bitmap_data(point bitmap) as point
+
+export func bitmap_data(point bitmap) as point
+    return __xl6_native_stb_truetype_bitmap_data(bitmap)
+end
+extern "xstbtt_bitmap_release" func __xl6_native_stb_truetype_bitmap_release(point bitmap) as c_int
+
+export func bitmap_release(point bitmap) as c_int
+    return __xl6_native_stb_truetype_bitmap_release(bitmap)
+end

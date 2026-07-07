@@ -270,7 +270,7 @@ static unsigned long long xl6CgenTypeIdForTypeNode(XL6_CgenContext* ctx, const X
     }
     hash = 1469598103934665603ULL;
     xl6CgenHashText(&hash, "type:");
-    xl6CgenHashTypeNode(&hash, typeNode);
+    xl6CgenHashSignatureTypeNode(ctx, &hash, typeNode);
     return hash;
 }
 

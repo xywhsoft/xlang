@@ -1,3 +1,5 @@
-﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+extern "xl6_dep_value" func __xl6_native_dep_value_depValue() as int
 
-extern "xl6_dep_value" func __xl6_import_dep_value_depValue() as int
+export func depValue() as int
+    return __xl6_native_dep_value_depValue()
+end

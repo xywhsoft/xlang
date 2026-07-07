@@ -1,25 +1,25 @@
-func __xl6_import_pkg_math_add_one(int value = 41) as int
+export func add_one(int value = 41) as int
     return value + 1
 end
 
-func __xl6_import_pkg_math_available() as bool
+export func available() as bool
     return true
 end
 
-func __xl6_import_pkg_math_version() as string
+export func version() as string
     return "1.0.0"
 end
 
-func __xl6_import_pkg_math_last_error() as string
+export func last_error() as string
     return ""
 end
 
-export "xpkg_math_available" func __xl6_import_pkg_math_available_export() as bool
-    return __xl6_import_pkg_math_available()
+export "xpkg_math_available" func available_export() as bool
+    return available()
 end
 
-export "xpkg_math_add_one" func __xl6_import_pkg_math_add_one_export(int value) as int
-    return __xl6_import_pkg_math_add_one(value)
+export "xpkg_math_add_one" func add_one_export(int value) as int
+    return add_one(value)
 end
 
-export "xpkg_math_base" var int __xl6_import_pkg_math_base = 41
+export "xpkg_math_base" int base = 41

@@ -1,0 +1,15 @@
+class SharedItem
+    int value
+
+    create(int value)
+        self.value = value
+    end
+
+    func read() as int
+        return self.value
+    end
+end
+
+export func make(int value) as SharedItem
+    return SharedItem(value)
+end

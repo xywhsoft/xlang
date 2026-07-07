@@ -1,0 +1,9 @@
+export int packageCounter = 1
+export var packageValue = "hello"
+export const int packageVersion = 6
+
+assert packageCounter == 1
+packageCounter = packageCounter + 1
+assert packageCounter == 2
+assert packageVersion == 6
+assert packageValue == "hello"

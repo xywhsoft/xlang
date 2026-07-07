@@ -144,7 +144,7 @@ release\xl.exe check test\cases\import_relative_scope\root\source\import_relativ
 if errorlevel 1 exit /b 1
 release\xl.exe ir test\cases\import_package_use.xl --emit build\test\import_package_use.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"extern \"xl6_import_counter_add\" func __xl6_import_counter_counterAdd" build\test\import_package_use.xlir >nul
+findstr /C:"extern \"xl6_import_counter_add\" func __xl6_import_counter___xl6_native_counter_counterAdd" build\test\import_package_use.xlir >nul
 if errorlevel 1 (
     echo import_package_use.xlir missing package extern.
     exit /b 1
@@ -167,6 +167,24 @@ release\xl.exe build test\cases\import_dependency_versions.xl -o build\test\impo
 if errorlevel 1 exit /b 1
 build\test\import_dependency_versions.exe
 if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\import_dependency_string_shorthand.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\import_shared_transitive_dependency.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\import_export_overload_pkg.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\import_export_overload_pkg.xl --emit build\test\import_export_overload_pkg.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_export_____xl6__import__export__overload__pkg__value__int" build\test\import_export_overload_pkg.c >nul
+if errorlevel 1 (
+    echo import_export_overload_pkg.c missing int export overload symbol.
+    exit /b 1
+)
+findstr /C:"xl6_export_____xl6__import__export__overload__pkg__value__string" build\test\import_export_overload_pkg.c >nul
+if errorlevel 1 (
+    echo import_export_overload_pkg.c missing string export overload symbol.
+    exit /b 1
+)
 release\xl.exe check test\cases\import_dependency_no_pollution.xl >nul 2> build\test\import_dependency_no_pollution.err.txt
 if not errorlevel 1 (
     echo import_dependency_no_pollution.xl should fail.
@@ -186,7 +204,7 @@ release\xl.exe check test\cases\import_package_var_use.xl
 if errorlevel 1 exit /b 1
 release\xl.exe ir test\cases\import_package_var_use.xl --emit build\test\import_package_var_use.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"extern \"xl6_imported_counter\" var __xl6_import_settings_importedCounter : int" build\test\import_package_var_use.xlir >nul
+findstr /C:"export extern \"xl6_imported_counter\" int __xl6_import_settings_importedCounter" build\test\import_package_var_use.xlir >nul
 if errorlevel 1 (
     echo import_package_var_use.xlir missing package extern variable.
     exit /b 1

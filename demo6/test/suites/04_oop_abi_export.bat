@@ -329,12 +329,17 @@ if not errorlevel 1 (
     echo cgen_safe_index.c should pre-evaluate null coalesce scalar arguments.
     exit /b 1
 )
-findstr /C:"long long declaredFallback = 0;" build\test\cgen_safe_index.c >nul
+findstr /C:"long long __xl6_global_init_" build\test\cgen_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_safe_index.c missing declaration-level safe index scalar temporary.
     exit /b 1
 )
 findstr /C:"declaredFallback = (long long)xl6_xrt_value_to_i64_release(__xl6_call_value_" build\test\cgen_safe_index.c >nul
+if not errorlevel 1 (
+    echo cgen_safe_index.c should route declaration-level safe index through scalar temporary.
+    exit /b 1
+)
+findstr /C:"declaredFallback = __xl6_global_init_" build\test\cgen_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_safe_index.c missing declaration-level safe index scalar handoff.
     exit /b 1
@@ -366,17 +371,17 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing typed dict safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeValue = xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(values" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"maybeValue = xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(values" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing auto typed array safe index as xvalue.
     exit /b 1
 )
-findstr /C:"xvalue missingName = xl6_xrt_typed_box_or_null(xrtTypeString(), xrtTypedListGet(names" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"missingName = xl6_xrt_typed_box_or_null(xrtTypeString(), xrtTypedListGet(names" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing auto typed list safe index as xvalue.
     exit /b 1
 )
-findstr /C:"xvalue missingScore = xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedDictGet(scores" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"missingScore = xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedDictGet(scores" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing auto typed dict safe index as xvalue.
     exit /b 1
@@ -418,42 +423,42 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_safe_index_objects_functions.xl --emit build\test\cgen_typed_container_safe_index_objects_functions.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue maybePair = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xl6_xrt_typed_array_get_at(pairs" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybePair = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xl6_xrt_typed_array_get_at(pairs" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybePayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xl6_xrt_typed_array_get_at(payloads" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybePayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xl6_xrt_typed_array_get_at(payloads" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xl6_xrt_typed_array_get_at(natives" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xl6_xrt_typed_array_get_at(natives" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeFn = xl6_xrt_typed_box_or_null(xrtTypeFunction(), xl6_xrt_typed_array_get_at(funcs" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeFn = xl6_xrt_typed_box_or_null(xrtTypeFunction(), xl6_xrt_typed_array_get_at(funcs" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeListPair = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xrtTypedListGet(pairList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeListPair = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xrtTypedListGet(pairList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeListPayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedListGet(payloadList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeListPayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedListGet(payloadList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeListNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xrtTypedListGet(nativeList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeListNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xrtTypedListGet(nativeList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeListFn = xl6_xrt_typed_box_or_null(xrtTypeFunction(), xrtTypedListGet(funcList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeListFn = xl6_xrt_typed_box_or_null(xrtTypeFunction(), xrtTypedListGet(funcList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function typed list safe index lowering.
     exit /b 1
@@ -463,12 +468,12 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed dict dynamic safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeDictPayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedDictGet(payloadDict" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeDictPayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedDictGet(payloadDict" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed dict safe index lowering.
     exit /b 1
 )
-findstr /C:"xvalue maybeDictNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xrtTypedDictGet(nativeDict" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeDictNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xrtTypedDictGet(nativeDict" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed dict safe index lowering.
     exit /b 1
@@ -555,12 +560,17 @@ if not errorlevel 1 (
     echo cgen_dynamic_member_access.c should pre-evaluate null coalesce scalar arguments.
     exit /b 1
 )
-findstr /C:"long long declaredSafeMissing = 0;" build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"long long __xl6_global_init_" build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing declaration-level dynamic member scalar temporary.
     exit /b 1
 )
 findstr /C:"declaredSafeMissing = (long long)xl6_xrt_value_to_i64_release(__xl6_call_value_" build\test\cgen_dynamic_member_access.c >nul
+if not errorlevel 1 (
+    echo cgen_dynamic_member_access.c should route declaration-level dynamic member through scalar temporary.
+    exit /b 1
+)
+findstr /C:"declaredSafeMissing = __xl6_global_init_" build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing declaration-level dynamic member scalar handoff.
     exit /b 1
@@ -594,12 +604,12 @@ if errorlevel 1 (
     echo cgen_dynamic_container_param.c missing dynamic array index return.
     exit /b 1
 )
-findstr /C:"xvalue direct = take(xl6_xrt_array_varargs(2," build\test\cgen_dynamic_container_param.c >nul
+findstr /C:"direct = take(xl6_xrt_array_varargs(2," build\test\cgen_dynamic_container_param.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_container_param.c missing dynamic array literal argument.
     exit /b 1
 )
-findstr /C:"xvalue named = choose(xl6_xrt_dict_varargs(1," build\test\cgen_dynamic_container_param.c >nul
+findstr /C:"named = choose(xl6_xrt_dict_varargs(1," build\test\cgen_dynamic_container_param.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_container_param.c missing dynamic dict literal argument.
     exit /b 1
@@ -641,12 +651,17 @@ if not errorlevel 1 (
     echo cgen_safe_member.c should pre-evaluate null coalesce scalar arguments.
     exit /b 1
 )
-findstr /C:"long long declaredLengthFallback = 0;" build\test\cgen_safe_member.c >nul
+findstr /C:"long long __xl6_global_init_" build\test\cgen_safe_member.c >nul
 if errorlevel 1 (
     echo cgen_safe_member.c missing declaration-level safe member scalar temporary.
     exit /b 1
 )
 findstr /C:"declaredLengthFallback = (long long)xl6_xrt_value_to_i64_release(__xl6_call_value_" build\test\cgen_safe_member.c >nul
+if not errorlevel 1 (
+    echo cgen_safe_member.c should route declaration-level safe member through scalar temporary.
+    exit /b 1
+)
+findstr /C:"declaredLengthFallback = __xl6_global_init_" build\test\cgen_safe_member.c >nul
 if errorlevel 1 (
     echo cgen_safe_member.c missing declaration-level safe member scalar handoff.
     exit /b 1
@@ -707,12 +722,12 @@ if errorlevel 1 (
     echo cgen_assign_ops.c missing compound assignment.
     exit /b 1
 )
-findstr /C:"long long selected = (1 ? inverted : 1LL);" build\test\cgen_assign_ops.c >nul
+findstr /C:"selected = (1 ? inverted : 1LL);" build\test\cgen_assign_ops.c >nul
 if errorlevel 1 (
     echo cgen_assign_ops.c missing ternary expression.
     exit /b 1
 )
-findstr /C:"int logicAnd = (1 && (!0));" build\test\cgen_assign_ops.c >nul
+findstr /C:"logicAnd = (1 && (!0));" build\test\cgen_assign_ops.c >nul
 if errorlevel 1 (
     echo cgen_assign_ops.c missing logical expression.
     exit /b 1
@@ -724,17 +739,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_null_coalesce.xl --emit build\test\cgen_null_coalesce.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue fallback = 0;" build\test\cgen_null_coalesce.c >nul
+findstr /C:"xvalue __xl6_global_init_" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing var null coalesce statement lowering.
     exit /b 1
 )
-findstr /C:"fallback = xvoCreateInt((long long)(9LL));" build\test\cgen_null_coalesce.c >nul
+findstr /C:"__xl6_global_init_" build\test\cgen_null_coalesce.c | findstr /C:"xvoCreateInt((long long)(9LL));" >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing var null coalesce fallback assignment.
     exit /b 1
 )
-findstr /C:"xvalue probed = 0;" build\test\cgen_null_coalesce.c >nul
+findstr /C:"probed = __xl6_global_init_" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing single-evaluation null coalesce lowering.
     exit /b 1
@@ -744,12 +759,12 @@ if errorlevel 1 (
     echo cgen_null_coalesce.c missing var null coalesce left temporary.
     exit /b 1
 )
-findstr /C:"long long staticProbed = 0;" build\test\cgen_null_coalesce.c >nul
+findstr /C:"long long __xl6_global_init_" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing static single-evaluation null coalesce lowering.
     exit /b 1
 )
-findstr /C:"staticProbed = 44LL;" build\test\cgen_null_coalesce.c >nul
+findstr /C:"__xl6_global_init_" build\test\cgen_null_coalesce.c | findstr /C:"= 44LL;" >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing static null coalesce fallback assignment.
     exit /b 1
@@ -789,12 +804,12 @@ if not errorlevel 1 (
     echo cgen_null_coalesce.c still uses call argument null coalesce statement expression.
     exit /b 1
 )
-findstr /C:"xvalue literal = xvoCreateInt((long long)(7LL));" build\test\cgen_null_coalesce.c >nul
+findstr /C:"literal = xvoCreateInt((long long)(7LL));" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing literal null coalesce boxing.
     exit /b 1
 )
-findstr /C:"long long staticInt = 5LL;" build\test\cgen_null_coalesce.c >nul
+findstr /C:"staticInt = 5LL;" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing static null coalesce inference.
     exit /b 1
@@ -816,7 +831,7 @@ if errorlevel 1 (
     echo cgen_pow.c missing int pow helper.
     exit /b 1
 )
-findstr /C:"long long rightAssoc = xl6_int_pow_i64(2LL, xl6_int_pow_i64(3LL, 2LL));" build\test\cgen_pow.c >nul
+findstr /C:"rightAssoc = xl6_int_pow_i64(2LL, xl6_int_pow_i64(3LL, 2LL));" build\test\cgen_pow.c >nul
 if errorlevel 1 (
     echo cgen_pow.c missing right-associative pow lowering.
     exit /b 1
@@ -1097,7 +1112,7 @@ if errorlevel 1 (
     echo cgen_class_methods.c missing create call.
     exit /b 1
 )
-findstr /C:"long long value = xl_class_Point__length2(&p);" build\test\cgen_class_methods.c >nul
+findstr /C:"value = xl_class_Point__length2(&p);" build\test\cgen_class_methods.c >nul
 if errorlevel 1 (
     echo cgen_class_methods.c missing method call.
     exit /b 1
@@ -1424,12 +1439,12 @@ if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded class method symbol.
     exit /b 1
 )
-findstr /C:"long long _u7ED3__u679C_ = xl_fn__u52A0__u4E00___int(41LL);" build\test\cgen_unicode_identifiers.c >nul
+findstr /C:"_u7ED3__u679C_ = xl_fn__u52A0__u4E00___int(41LL);" build\test\cgen_unicode_identifiers.c >nul
 if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded local variable.
     exit /b 1
 )
-findstr /C:"XL_Class__u70B9_ _u5750__u6807_ = {0};" build\test\cgen_unicode_identifiers.c >nul
+findstr /C:"XL_Class__u70B9_ _u5750__u6807_;" build\test\cgen_unicode_identifiers.c >nul
 if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded class variable.
     exit /b 1
@@ -1580,7 +1595,7 @@ if errorlevel 1 (
     echo cgen_overloads.c missing string overload symbol.
     exit /b 1
 )
-findstr /C:"long long chosen = xl_fn_pick__int(41LL);" build\test\cgen_overloads.c >nul
+findstr /C:"chosen = xl_fn_pick__int(41LL);" build\test\cgen_overloads.c >nul
 if errorlevel 1 (
     echo cgen_overloads.c missing resolved overload call.
     exit /b 1
@@ -1633,12 +1648,12 @@ if errorlevel 1 (
     echo cgen_generic_explicit_overload.c missing array explicit generic overload instance.
     exit /b 1
 )
-findstr /C:"long long arrayValue = xl_gen_pick__int__sig__array_of_int(" build\test\cgen_generic_explicit_overload.c >nul
+findstr /C:"arrayValue = xl_gen_pick__int__sig__array_of_int(" build\test\cgen_generic_explicit_overload.c >nul
 if errorlevel 1 (
     echo cgen_generic_explicit_overload.c should choose array explicit generic overload.
     exit /b 1
 )
-findstr /C:"long long scalarValue = xl_gen_pick__int__sig__int(1LL);" build\test\cgen_generic_explicit_overload.c >nul
+findstr /C:"scalarValue = xl_gen_pick__int__sig__int(1LL);" build\test\cgen_generic_explicit_overload.c >nul
 if errorlevel 1 (
     echo cgen_generic_explicit_overload.c should choose scalar explicit generic overload.
     exit /b 1
@@ -1650,7 +1665,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_signature_suffix.xl --emit build\test\cgen_generic_signature_suffix.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_generic_signature_suffix.c'; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__int__string\(long long left, const char\* right\);', 'Multiline')).Count -ne 1){exit 1}; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__string__int\(const char\* left, long long right\);', 'Multiline')).Count -ne 1){exit 2}; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__int__string\(long long left, const char\* right\)\s*\{', 'Multiline')).Count -ne 1){exit 3}; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__string__int\(const char\* left, long long right\)\s*\{', 'Multiline')).Count -ne 1){exit 4}; if($t -notmatch 'long long first = xl_gen_order__int__string__sig__int__string\(1LL, \"x\"\);'){exit 5}; if($t -notmatch 'long long second = xl_gen_order__int__string__sig__string__int\(\"x\", 1LL\);'){exit 6}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_generic_signature_suffix.c'; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__int__string\(long long left, const char\* right\);', 'Multiline')).Count -ne 1){exit 1}; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__string__int\(const char\* left, long long right\);', 'Multiline')).Count -ne 1){exit 2}; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__int__string\(long long left, const char\* right\)\s*\{', 'Multiline')).Count -ne 1){exit 3}; if(([regex]::Matches($t, '^long long xl_gen_order__int__string__sig__string__int\(const char\* left, long long right\)\s*\{', 'Multiline')).Count -ne 1){exit 4}; if($t -notmatch 'first = xl_gen_order__int__string__sig__int__string\(1LL, \"x\"\);'){exit 5}; if($t -notmatch 'second = xl_gen_order__int__string__sig__string__int\(\"x\", 1LL\);'){exit 6}"
 if errorlevel 1 (
     echo cgen_generic_signature_suffix.c missing distinct generic signature suffix instances.
     exit /b 1
@@ -1672,12 +1687,12 @@ if errorlevel 1 (
     echo cgen_generic_function.c missing string generic instance prototype.
     exit /b 1
 )
-findstr /C:"long long number = xl_gen_identity__int(41LL);" build\test\cgen_generic_function.c >nul
+findstr /C:"number = xl_gen_identity__int(41LL);" build\test\cgen_generic_function.c >nul
 if errorlevel 1 (
     echo cgen_generic_function.c missing int generic call.
     exit /b 1
 )
-findstr /C:"const char* text = xl_gen_identity__string(\"ok\");" build\test\cgen_generic_function.c >nul
+findstr /C:"text = xl_gen_identity__string(\"ok\");" build\test\cgen_generic_function.c >nul
 if errorlevel 1 (
     echo cgen_generic_function.c missing string generic call.
     exit /b 1
@@ -1751,27 +1766,27 @@ if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred function-param generic instance.
     exit /b 1
 )
-findstr /C:"long long number = xl_gen_identity__int(41LL);" build\test\cgen_generic_infer.c >nul
+findstr /C:"number = xl_gen_identity__int(41LL);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred int call.
     exit /b 1
 )
-findstr /C:"const char* text = xl_gen_identity__string(\"ok\");" build\test\cgen_generic_infer.c >nul
+findstr /C:"text = xl_gen_identity__string(\"ok\");" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred string call.
     exit /b 1
 )
-findstr /C:"long long chosen = xl_gen_choose__int(1LL, 2LL);" build\test\cgen_generic_infer.c >nul
+findstr /C:"chosen = xl_gen_choose__int(1LL, 2LL);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred choose call.
     exit /b 1
 )
-findstr /C:"long long copied = xl_gen_identity__int(seed);" build\test\cgen_generic_infer.c >nul
+findstr /C:"copied = xl_gen_identity__int(seed);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred call from auto variable.
     exit /b 1
 )
-findstr /C:"xvalue explicitNested = xl6_xrt_bind_type(xl_gen_identity__array_of_dict_of_int(" build\test\cgen_generic_infer.c >nul
+findstr /C:"explicitNested = xl6_xrt_bind_type(xl_gen_identity__array_of_dict_of_int(" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing explicit nested generic call.
     exit /b 1
@@ -1793,7 +1808,7 @@ if not errorlevel 1 (
     echo cgen_generic_alias.c should not mangle transparent alias into generic symbol.
     exit /b 1
 )
-findstr /C:"long long explicitAlias = xl_gen_identity__int(41LL);" build\test\cgen_generic_alias.c >nul
+findstr /C:"explicitAlias = xl_gen_identity__int(41LL);" build\test\cgen_generic_alias.c >nul
 if errorlevel 1 (
     echo cgen_generic_alias.c missing canonical explicit alias call.
     exit /b 1
@@ -1815,7 +1830,7 @@ if not errorlevel 1 (
     echo cgen_generic_class_alias.c should not mangle transparent alias into class symbol.
     exit /b 1
 )
-findstr /C:"XL_Class_Box__int aliasBox = {0};" build\test\cgen_generic_class_alias.c >nul
+findstr /C:"XL_Class_Box__int aliasBox;" build\test\cgen_generic_class_alias.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_alias.c missing canonical alias variable type.
     exit /b 1
@@ -1847,12 +1862,12 @@ if errorlevel 1 (
     echo cgen_generic_class.c missing string field substitution.
     exit /b 1
 )
-findstr /C:"XL_Class_Box__int intBox = {0};" build\test\cgen_generic_class.c >nul
+findstr /C:"XL_Class_Box__int intBox;" build\test\cgen_generic_class.c >nul
 if errorlevel 1 (
     echo cgen_generic_class.c missing int variable declaration.
     exit /b 1
 )
-findstr /C:"XL_Class_Box__string stringBox = {0};" build\test\cgen_generic_class.c >nul
+findstr /C:"XL_Class_Box__string stringBox;" build\test\cgen_generic_class.c >nul
 if errorlevel 1 (
     echo cgen_generic_class.c missing string variable declaration.
     exit /b 1
@@ -2042,7 +2057,7 @@ if errorlevel 1 (
     echo cgen_generic_class_methods.c missing generic class method body.
     exit /b 1
 )
-findstr /C:"long long value = xl_class_Box__int__valueOf(&intBox);" build\test\cgen_generic_class_methods.c >nul
+findstr /C:"value = xl_class_Box__int__valueOf(&intBox);" build\test\cgen_generic_class_methods.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_methods.c missing generic class method call.
     exit /b 1
@@ -2054,12 +2069,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_class_auto.xl --emit build\test\cgen_generic_class_auto.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long fromField = intBox.value;" build\test\cgen_generic_class_auto.c >nul
+findstr /C:"fromField = intBox.value;" build\test\cgen_generic_class_auto.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_auto.c missing generic field auto inference.
     exit /b 1
 )
-findstr /C:"long long fromMethod = xl_class_Box__int__valueOf(&intBox);" build\test\cgen_generic_class_auto.c >nul
+findstr /C:"fromMethod = xl_class_Box__int__valueOf(&intBox);" build\test\cgen_generic_class_auto.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_auto.c missing generic method return auto inference.
     exit /b 1
@@ -2113,7 +2128,7 @@ if errorlevel 1 (
     echo cgen_generic_class_ctor.c missing generic class create call.
     exit /b 1
 )
-findstr /C:"long long value = xl_class_Box__int__valueOf(&intBox);" build\test\cgen_generic_class_ctor.c >nul
+findstr /C:"value = xl_class_Box__int__valueOf(&intBox);" build\test\cgen_generic_class_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_ctor.c missing generic class method call after create.
     exit /b 1
@@ -2152,7 +2167,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_class_explicit_ctor.xl --emit build\test\cgen_generic_class_explicit_ctor.c
 if errorlevel 1 exit /b 1
-findstr /C:"XL_Class_Box__int intBox = {0};" build\test\cgen_generic_class_explicit_ctor.c >nul
+findstr /C:"XL_Class_Box__int intBox;" build\test\cgen_generic_class_explicit_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing explicit generic class variable declaration.
     exit /b 1
@@ -2162,7 +2177,7 @@ if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing explicit generic class create call.
     exit /b 1
 )
-findstr /C:"long long value = xl_class_Box__int__valueOf(&intBox);" build\test\cgen_generic_class_explicit_ctor.c >nul
+findstr /C:"value = xl_class_Box__int__valueOf(&intBox);" build\test\cgen_generic_class_explicit_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing method call after explicit create.
     exit /b 1
@@ -2174,7 +2189,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_class_type_values.xl --emit build\test\cgen_generic_class_type_values.c
 if errorlevel 1 exit /b 1
-findstr /C:"unsigned long long leftType = 0x" build\test\cgen_generic_class_type_values.c >nul
+findstr /C:"leftType = 0x" build\test\cgen_generic_class_type_values.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_type_values.c missing generic class type value.
     exit /b 1
@@ -2316,16 +2331,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe build test\cases\export_add.xl >nul 2> build\test\build_missing_output.err.txt
-if not errorlevel 1 (
-    echo build without -o should fail.
-    exit /b 1
-)
-powershell -NoProfile -ExecutionPolicy Bypass -Command "if(-not (Select-String -Path 'build\test\build_missing_output.err.txt' -SimpleMatch 'build requires -o')){exit 1}"
+if exist cgen_basic.exe del /f /q cgen_basic.exe
+release\xl.exe build test\cases\cgen_basic.xl >nul
 if errorlevel 1 (
-    echo build missing -o diagnostic missing.
+    echo build without -o should use default output path.
     exit /b 1
 )
+if not exist cgen_basic.exe (
+    echo build without -o did not create default output executable.
+    exit /b 1
+)
+cgen_basic.exe
+if errorlevel 1 exit /b 1
+del /f /q cgen_basic.exe
 
 release\xl.exe build release\examples\feature_suite\09_c_export_abi.xl test\cases\build_mixed_host.c test\cases\build_mixed_extra.c -o build\test\build_mixed_two_c.exe
 if errorlevel 1 exit /b 1
@@ -2515,7 +2533,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe ir test\cases\extern_var.xl --emit build\test\extern_var.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"extern \"host_counter\" var counter : int" build\test\extern_var.xlir >nul
+findstr /C:"extern \"host_counter\" int counter" build\test\extern_var.xlir >nul
 if errorlevel 1 (
     echo extern_var.xlir missing extern var declaration.
     exit /b 1
@@ -2905,12 +2923,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe ir test\cases\export_vars.xl --emit build\test\export_vars.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"export \"xl6_counter\" var counter : int = 1" build\test\export_vars.xlir >nul
+findstr /C:"export \"xl6_counter\" int counter = 1" build\test\export_vars.xlir >nul
 if errorlevel 1 (
     echo export_vars.xlir missing export var declaration.
     exit /b 1
 )
-findstr /C:"export \"xl6_version\" const version : int = 7" build\test\export_vars.xlir >nul
+findstr /C:"export \"xl6_version\" const int version = 7" build\test\export_vars.xlir >nul
 if errorlevel 1 (
     echo export_vars.xlir missing export const declaration.
     exit /b 1
@@ -2961,9 +2979,19 @@ if errorlevel 1 exit /b 1
 build\test\export_vars_header_host.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe run test\cases\export_package_vars.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\export_package_vars.xl --emit build\test\export_package_vars.c --emit-header build\test\export_package_vars.h
+if errorlevel 1 exit /b 1
+findstr /C:"packageCounter" build\test\export_package_vars.h >nul
+if not errorlevel 1 (
+    echo export_package_vars.h should not expose package-only export variable.
+    exit /b 1
+)
+
 release\xl.exe cgen test\cases\export_call.xl --emit build\test\export_call.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long value = xl6_export_add__i64(1LL, 2LL);" build\test\export_call.c >nul
+findstr /C:"value = xl6_export_add__i64(1LL, 2LL);" build\test\export_call.c >nul
 if errorlevel 1 (
     echo export_call.c did not use internal ABI symbol.
     exit /b 1
@@ -2996,11 +3024,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe build test\cases\cgen_basic.xl >nul 2> build\test\build_missing_output.err.txt
-if not errorlevel 1 (
-    echo build without -o should fail.
+if exist cgen_basic.exe del /f /q cgen_basic.exe
+release\xl.exe build test\cases\cgen_basic.xl >nul
+if errorlevel 1 (
+    echo build without -o should use default output path.
     exit /b 1
 )
+if not exist cgen_basic.exe (
+    echo build without -o did not create default output executable.
+    exit /b 1
+)
+cgen_basic.exe
+if errorlevel 1 exit /b 1
+del /f /q cgen_basic.exe
 
 release\xl.exe check test\cases\sem_duplicate.xl >nul 2> build\test\sem_duplicate.err.txt
 if not errorlevel 1 (
