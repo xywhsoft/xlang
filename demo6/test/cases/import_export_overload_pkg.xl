@@ -1,0 +1,7 @@
+import export_overload_pkg
+
+func main(...) as int
+    assert export_overload_pkg.value(41) == 42
+    assert export_overload_pkg.value("ok") == "ok!"
+    return 0
+end

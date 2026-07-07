@@ -1,0 +1,1 @@
+extern "host_counter" var int counter

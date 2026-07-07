@@ -2771,6 +2771,28 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\parse_invalid_extern_var_marker.xl >nul 2> build\test\parse_invalid_extern_var_marker.err.txt
+if not errorlevel 1 (
+    echo parse_invalid_extern_var_marker.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[parse]" build\test\parse_invalid_extern_var_marker.err.txt >nul
+if errorlevel 1 (
+    echo parse_invalid_extern_var_marker.err.txt missing parse diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\parse_invalid_export_var_marker.xl >nul 2> build\test\parse_invalid_export_var_marker.err.txt
+if not errorlevel 1 (
+    echo parse_invalid_export_var_marker.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[parse]" build\test\parse_invalid_export_var_marker.err.txt >nul
+if errorlevel 1 (
+    echo parse_invalid_export_var_marker.err.txt missing parse diagnostic.
+    exit /b 1
+)
+
 release\xl.exe parse test\cases\parse_fstring_bad_brace.xl > build\test\parse_fstring_bad_brace.ast.txt 2> build\test\parse_fstring_bad_brace.err.txt
 if not errorlevel 1 (
     echo parse_fstring_bad_brace.xl should fail.

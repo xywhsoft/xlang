@@ -63,8 +63,9 @@ ABI 元数据 不是用户常规手写源，而是机器生成的ABI 元数据�
 第一版重点记录：
 
 - `export "c_symbol" func`
-- `export "c_symbol" var`
-- `export "c_symbol" const`
+- `export "c_symbol" Type name`
+- `export "c_symbol" const Type name`
+- `export extern "c_symbol" Type name`
 - `class`
 - native-backed class
 - function signature

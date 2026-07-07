@@ -25,7 +25,7 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         if ( xl6CgenFindTrackedVarType(ctx, node->text) == NULL ) {
             const XL6_AstNode* externalVar = xl6CgenFindExternalVar(ctx, node->text);
             if ( externalVar != NULL ) {
-                xl6CgenCStringSymbol(ctx->out, externalVar->text);
+                xl6CgenExternalVarStorageName(ctx->out, externalVar);
                 break;
             }
         }
@@ -297,7 +297,11 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6CgenAddGenericInstance(ctx, knownFunc, typeArgs);
                 ctx->currentGenericParams = xl6CgenFuncTypeParams(knownFunc);
                 ctx->currentGenericArgs = typeArgs;
-                xl6CgenFuncSymbol(ctx, knownFunc);
+                if ( knownFunc->kind == XL6_AST_EXPORT_FUNC ) {
+                    xl6CgenExportInternalSymbol(ctx, knownFunc);
+                } else {
+                    xl6CgenFuncSymbol(ctx, knownFunc);
+                }
                 xl6OutputPutc('(', ctx->out);
                 if ( node->childCount > 1 ) {
                     xl6CgenKnownCallArgs(ctx, knownFunc, node->children[1]);
@@ -341,9 +345,9 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 if ( externFunc != NULL ) {
                     knownFunc = externFunc;
                     xl6CgenCStringSymbol(ctx->out, externFunc->text);
-                } else if ( exportFunc != NULL ) {
+                } else if ( exportFunc != NULL && xl6CgenExportFuncOverloadCount(ctx, callee->text) <= 1 ) {
                     knownFunc = exportFunc;
-                    xl6CgenExportInternalSymbol(ctx->out, exportFunc);
+                    xl6CgenExportInternalSymbol(ctx, exportFunc);
                 } else {
                     XL6_AstNode* inferredArgs = NULL;
                     knownFunc = xl6CgenResolveCallFuncWithTypeArgs(ctx, node, callee->text, &inferredArgs);
@@ -353,7 +357,11 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
                         ctx->currentGenericParams = xl6CgenFuncTypeParams(knownFunc);
                         ctx->currentGenericArgs = inferredArgs;
-                        xl6CgenFuncSymbol(ctx, knownFunc);
+                        if ( knownFunc->kind == XL6_AST_EXPORT_FUNC ) {
+                            xl6CgenExportInternalSymbol(ctx, knownFunc);
+                        } else {
+                            xl6CgenFuncSymbol(ctx, knownFunc);
+                        }
                         xl6OutputPutc('(', ctx->out);
                         if ( node->childCount > 1 ) {
                             xl6CgenKnownCallArgs(ctx, knownFunc, node->children[1]);
@@ -366,7 +374,11 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                     }
                     xl6AstFree(inferredArgs);
                     if ( knownFunc != NULL ) {
-                        xl6CgenFuncSymbol(ctx, knownFunc);
+                        if ( knownFunc->kind == XL6_AST_EXPORT_FUNC ) {
+                            xl6CgenExportInternalSymbol(ctx, knownFunc);
+                        } else {
+                            xl6CgenFuncSymbol(ctx, knownFunc);
+                        }
                     } else {
                         xl6CgenExpr(ctx, callee);
                     }

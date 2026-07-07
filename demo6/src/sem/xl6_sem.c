@@ -3111,6 +3111,56 @@ static XL6_AstNode* xl6SemExternalVarInitExpr(const XL6_AstNode* node)
     return node != NULL && node->childCount > 2 ? node->children[2] : NULL;
 }
 
+static int xl6SemExternalVarHasCSymbol(const XL6_AstNode* node)
+{
+    return node != NULL && node->text != NULL && node->text[0] != '\0';
+}
+
+static int xl6SemIsPackageExportVarDecl(const XL6_AstNode* node)
+{
+    return node != NULL &&
+           (node->kind == XL6_AST_EXPORT_VAR || node->kind == XL6_AST_EXPORT_CONST) &&
+           !xl6SemExternalVarHasCSymbol(node);
+}
+
+static XL6_AstNode* xl6SemVarDeclNameNode(const XL6_AstNode* node)
+{
+    if ( node == NULL ) {
+        return NULL;
+    }
+    if ( node->kind == XL6_AST_EXPORT_VAR || node->kind == XL6_AST_EXPORT_CONST ) {
+        return xl6SemExternalVarNameNode(node);
+    }
+    return (XL6_AstNode*)node;
+}
+
+static XL6_AstNode* xl6SemVarDeclTypeNode(const XL6_AstNode* node)
+{
+    if ( node == NULL ) {
+        return NULL;
+    }
+    if ( node->kind == XL6_AST_EXPORT_VAR || node->kind == XL6_AST_EXPORT_CONST ) {
+        return xl6SemExternalVarTypeNode(node);
+    }
+    return node->childCount > 0 ? node->children[0] : NULL;
+}
+
+static XL6_AstNode* xl6SemVarDeclInitExpr(const XL6_AstNode* node)
+{
+    if ( node == NULL ) {
+        return NULL;
+    }
+    if ( node->kind == XL6_AST_EXPORT_VAR || node->kind == XL6_AST_EXPORT_CONST ) {
+        return xl6SemExternalVarInitExpr(node);
+    }
+    return node->childCount > 1 ? node->children[1] : NULL;
+}
+
+static int xl6SemVarDeclIsConst(const XL6_AstNode* node)
+{
+    return node != NULL && (node->kind == XL6_AST_CONST_DECL || node->kind == XL6_AST_EXPORT_CONST);
+}
+
 static const char* xl6SemLiteralExprTypeName(const XL6_AstNode* expr)
 {
     if ( expr == NULL ) {
@@ -10463,6 +10513,7 @@ static int xl6SemDeclareVarWithKind(
     XL6_SymbolKind valueKind,
     XL6_SymbolKind constKind)
 {
+    XL6_AstNode* nameNode;
     XL6_AstNode* declaredType;
     XL6_AstNode* symbolType;
     XL6_AstNode* initExpr;
@@ -10472,9 +10523,10 @@ static int xl6SemDeclareVarWithKind(
 
     ok = 1;
     declaredTypeOk = 1;
-    declaredType = node->childCount > 0 ? node->children[0] : NULL;
+    nameNode = xl6SemVarDeclNameNode(node);
+    declaredType = xl6SemVarDeclTypeNode(node);
     symbolType = declaredType;
-    initExpr = node->childCount > 1 ? node->children[1] : NULL;
+    initExpr = xl6SemVarDeclInitExpr(node);
 
     if ( declaredType != NULL ) {
         if ( !xl6SemCheckType(ctx, declaredType) ) {
@@ -10498,7 +10550,7 @@ static int xl6SemDeclareVarWithKind(
             }
         }
     }
-    if ( !xl6ScopeAddTyped(ctx, node, node->kind == XL6_AST_CONST_DECL ? constKind : valueKind, symbolType) ) {
+    if ( !xl6ScopeAddTyped(ctx, nameNode, xl6SemVarDeclIsConst(node) ? constKind : valueKind, symbolType) ) {
         ok = 0;
     }
     if ( initExpr != NULL && !xl6SemCheckExpr(ctx, initExpr) ) {
@@ -10540,7 +10592,10 @@ static int xl6SemDeclareModuleGlobalVar(XL6_SemContext* ctx, XL6_AstNode* node)
 
 static int xl6SemIsModuleGlobalDecl(const XL6_AstNode* node)
 {
-    return node != NULL && (node->kind == XL6_AST_VAR_DECL || node->kind == XL6_AST_CONST_DECL);
+    return node != NULL &&
+           (node->kind == XL6_AST_VAR_DECL ||
+            node->kind == XL6_AST_CONST_DECL ||
+            xl6SemIsPackageExportVarDecl(node));
 }
 
 static int xl6SemTypeCanAssignFromType(XL6_SemContext* ctx, const XL6_AstNode* valueType, const XL6_AstNode* targetType)
@@ -14872,7 +14927,7 @@ int xl6SemCheckModule(XL6_AstNode* root, XL6_DiagList* diags)
             if ( !xl6SemDeclareGlobalFuncName(&ctx, child->children[0]) ) {
                 ok = 0;
             }
-        } else if ( xl6SemIsExternalVarDecl(child) ) {
+        } else if ( xl6SemIsExternalVarDecl(child) && !xl6SemIsPackageExportVarDecl(child) ) {
             if ( !xl6SemDeclareExternalVar(&ctx, child) ) {
                 ok = 0;
             }

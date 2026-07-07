@@ -1,3 +1,5 @@
-﻿// Generated from legacy package metadata. The compiler imports this source file directly.
+extern "xl6_import_counter_add" func __xl6_native_counter_counterAdd(int a, int b) as int
 
-extern "xl6_import_counter_add" func __xl6_import_counter_counterAdd(int a, int b) as int
+export func counterAdd(int a, int b) as int
+    return __xl6_native_counter_counterAdd(a, b)
+end

@@ -23,7 +23,7 @@ C -> xlang 使用 `extern`。
 ```xlang
 extern "xrtSleep" func sleep(uint32 ms)
 extern "xrtTimer" func timer() as float64
-extern "errno" var int errno
+extern "errno" int errno
 extern type HANDLE = point
 ```
 
@@ -42,7 +42,7 @@ export "app_add" func add(int left, int right) as int
 	return left + right
 end
 
-export "app_counter" var int counter = 0
+export "app_counter" int counter = 0
 
 export "app_version" const int version = 1
 ```
@@ -57,8 +57,11 @@ export "app_version" const int version = 1
 
 - `export func name(...)`：只导出为 xlang 模块符号。
 - `export "c_symbol" func name(...)`：导出为 xlang 模块符号，同时生成 C ABI wrapper。
-- `export "c_symbol" var ...`：导出 C 可访问变量符号。
-- `export "c_symbol" const ...`：导出 C 可访问常量符号。
+- `export Type name = value`：只导出为 xlang package 变量符号。
+- `export "c_symbol" Type name = value`：导出为 xlang package 变量符号，同时生成 C 可访问变量符号。
+- `export const Type name = value`：只导出为 xlang package 常量符号。
+- `export "c_symbol" const Type name = value`：导出为 xlang package 常量符号，同时生成 C 可访问常量符号。
+- `export extern "c_symbol" Type name`：声明 C 全局变量，并公开到 xlang package 命名空间。
 
 这样仍然是一套 `export` 机制，只是显式带 C 符号名时才进入 C ABI。
 

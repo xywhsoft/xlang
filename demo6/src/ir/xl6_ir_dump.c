@@ -1,4 +1,4 @@
-﻿#include "src/ir/xl6_ir_dump.h"
+#include "src/ir/xl6_ir_dump.h"
 #include "src/ast/xl6_ast_dump.h"
 #include "src/common/xl6_output.h"
 
@@ -769,15 +769,21 @@ static void xl6IrDumpExternalVar(XL6_Output* out, const XL6_AstNode* node)
     typeNode = node->childCount > 1 ? node->children[1] : NULL;
     initExpr = node->childCount > 2 ? node->children[2] : NULL;
 
-    if ( node->kind == XL6_AST_EXTERN_VAR ) {
+    if ( node->kind == XL6_AST_EXTERN_VAR && (node->flags & XL6_AST_FLAG_PUBLIC) != 0 ) {
+        xl6OutputPuts("export extern ", out);
+    } else if ( node->kind == XL6_AST_EXTERN_VAR ) {
         xl6OutputPuts("extern ", out);
     } else {
         xl6OutputPuts("export ", out);
     }
-    xl6OutputPrintf(out, "%s %s ", node->text != NULL ? node->text : "\"\"",
-            node->kind == XL6_AST_EXPORT_CONST ? "const" : "var");
-    xl6OutputPrintf(out, "%s : ", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
+    if ( node->text != NULL && node->text[0] != '\0' ) {
+        xl6OutputPrintf(out, "%s ", node->text);
+    }
+    if ( node->kind == XL6_AST_EXPORT_CONST ) {
+        xl6OutputPuts("const ", out);
+    }
     xl6IrDumpType(out, typeNode);
+    xl6OutputPrintf(out, " %s", (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "<unnamed>");
     if ( initExpr != NULL ) {
         xl6OutputPuts(" = ", out);
         xl6IrDumpExpr(out, initExpr);

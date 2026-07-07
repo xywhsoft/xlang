@@ -61,7 +61,7 @@ static void xl6CgenExportInternalProto(XL6_CgenContext* ctx, const XL6_AstNode* 
     }
 
     xl6OutputPutc(' ', ctx->out);
-    xl6CgenExportInternalSymbol(ctx->out, node);
+    xl6CgenExportInternalSymbol(ctx, node);
     xl6OutputPutc('(', ctx->out);
 
     params = node->childCount > 1 ? node->children[1] : NULL;
@@ -247,7 +247,7 @@ static void xl6CgenExternVarDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6OutputPuts("extern ", ctx->out);
     xl6OutputPuts(xl6CgenCAbiTypeName(ctx, typeNode), ctx->out);
     xl6OutputPutc(' ', ctx->out);
-    xl6CgenCStringSymbol(ctx->out, node != NULL ? node->text : NULL);
+    xl6CgenExternalVarStorageName(ctx->out, node);
     xl6OutputPuts(";\n", ctx->out);
 }
 
@@ -263,7 +263,7 @@ static void xl6CgenExportVarDef(XL6_CgenContext* ctx, const XL6_AstNode* node)
     }
     xl6OutputPuts(xl6CgenCAbiTypeName(ctx, typeNode), ctx->out);
     xl6OutputPutc(' ', ctx->out);
-    xl6CgenCStringSymbol(ctx->out, node != NULL ? node->text : NULL);
+    xl6CgenExternalVarStorageName(ctx->out, node);
     xl6OutputPuts(" = ", ctx->out);
     xl6CgenExpr(ctx, initExpr);
     xl6OutputPuts(";\n", ctx->out);

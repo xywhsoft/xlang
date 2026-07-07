@@ -1,0 +1,7 @@
+export func value(int input) as int
+    return input + 1
+end
+
+export func value(string input) as string
+    return input + "!"
+end

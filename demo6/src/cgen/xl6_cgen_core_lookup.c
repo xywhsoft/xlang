@@ -1,4 +1,5 @@
-﻿static int xl6CgenClassHasNativeHandle(const XL6_AstNode* classNode);
+static int xl6CgenClassHasNativeHandle(const XL6_AstNode* classNode);
+static void xl6CgenCStringSymbol(XL6_Output* out, const char* symbol);
 
 static XL6_AstNode* xl6CgenFindNativeBackedClass(XL6_CgenContext* ctx, const char* name)
 {
@@ -434,6 +435,28 @@ static const XL6_AstNode* xl6CgenExternalVarTypeNode(const XL6_AstNode* node)
 static const XL6_AstNode* xl6CgenExternalVarInitExpr(const XL6_AstNode* node)
 {
     return node != NULL && node->childCount > 2 ? node->children[2] : NULL;
+}
+
+static int xl6CgenExternalVarHasCSymbol(const XL6_AstNode* node)
+{
+    return node != NULL && node->text != NULL && node->text[0] != '\0';
+}
+
+static const char* xl6CgenExternalVarLocalName(const XL6_AstNode* node)
+{
+    const XL6_AstNode* nameNode;
+
+    nameNode = xl6CgenExternalVarNameNode(node);
+    return nameNode != NULL ? nameNode->text : NULL;
+}
+
+static void xl6CgenExternalVarStorageName(XL6_Output* out, const XL6_AstNode* node)
+{
+    if ( xl6CgenExternalVarHasCSymbol(node) ) {
+        xl6CgenCStringSymbol(out, node->text);
+        return;
+    }
+    xl6CgenFputsCIdent(out, xl6CgenExternalVarLocalName(node));
 }
 
 static int xl6CgenIsTypeAliasDecl(const XL6_AstNode* node)

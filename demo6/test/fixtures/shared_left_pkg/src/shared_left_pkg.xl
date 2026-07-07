@@ -1,0 +1,6 @@
+import shared_base_pkg
+
+export func left() as int
+    auto item = shared_base_pkg.make(20)
+    return item.read()
+end

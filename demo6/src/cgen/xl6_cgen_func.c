@@ -113,7 +113,7 @@ static void xl6CgenExportWrapper(XL6_CgenContext* ctx, const XL6_AstNode* node)
     } else if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts("return ", ctx->out);
     }
-    xl6CgenExportInternalSymbol(ctx->out, node);
+    xl6CgenExportInternalSymbol(ctx, node);
     xl6OutputPutc('(', ctx->out);
     params = node->childCount > 1 ? node->children[1] : NULL;
     if ( params != NULL ) {

@@ -1,4 +1,4 @@
-﻿int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
+int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
 {
     return xl6CgenEmitCEx(out, root, diags, NULL);
 }
@@ -298,7 +298,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
             }
         } else if ( root->children[i]->kind == XL6_AST_EXPORT_VAR ||
                     root->children[i]->kind == XL6_AST_EXPORT_CONST ) {
-            xl6CgenExportVarDef(&ctx, root->children[i]);
+            if ( xl6CgenExternalVarHasCSymbol(root->children[i]) ) {
+                xl6CgenExportVarDef(&ctx, root->children[i]);
+            }
         } else if ( root->children[i]->kind == XL6_AST_FUNC &&
                     !xl6CgenFuncIsGeneric(root->children[i]) &&
                     !xl6CgenIsPrintIntrinsicFunc(root->children[i]) ) {

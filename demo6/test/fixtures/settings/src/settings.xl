@@ -1,3 +1,1 @@
-﻿// Generated from legacy package metadata. The compiler imports this source file directly.
-
-extern "xl6_imported_counter" var int __xl6_import_settings_importedCounter
+export extern "xl6_imported_counter" int importedCounter

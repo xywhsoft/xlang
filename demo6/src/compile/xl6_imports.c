@@ -488,12 +488,17 @@ static int xl6ImportsDependencyMatches(
     XL6_DiagList* diags)
 {
     char message[256];
+    int versionOk;
+    int abiOk;
 
     if ( dep == NULL || resolved == NULL ) {
         return 0;
     }
-    if ( !xl6ImportsTextEquals(dep->version, resolved->packageVersion) ||
-         !xl6ImportsTextEquals(dep->abiVersion, resolved->abiVersion) ) {
+    versionOk = xl6ImportsTextEquals(dep->version, "*") ||
+                xl6ImportsTextEquals(dep->version, resolved->packageVersion);
+    abiOk = xl6ImportsTextEquals(dep->abiVersion, "*") ||
+            xl6ImportsTextEquals(dep->abiVersion, resolved->abiVersion);
+    if ( !versionOk || !abiOk ) {
         if ( diags != NULL ) {
             snprintf(message,
                      sizeof(message),
@@ -531,6 +536,16 @@ static int xl6ImportsResolveDependency(
             return 1;
         }
         sawMismatchedPackage = 1;
+    }
+
+    if ( xl6ImportsTextEquals(dep->version, "*") ) {
+        if ( diags != NULL ) {
+            xl6DiagAdd(diags,
+                       importNode != NULL ? importNode->line : 1,
+                       importNode != NULL ? importNode->column : 1,
+                       "package dependency is not resolved");
+        }
+        return 0;
     }
 
     snprintf(versionedName, sizeof(versionedName), "%s@%s", dep->name, dep->version);
@@ -1047,7 +1062,8 @@ static int xl6ImportsIsModulePublicDecl(const XL6_AstNode* node)
     }
     return node->kind == XL6_AST_EXPORT_FUNC ||
            node->kind == XL6_AST_EXPORT_VAR ||
-           node->kind == XL6_AST_EXPORT_CONST;
+           node->kind == XL6_AST_EXPORT_CONST ||
+           (node->kind == XL6_AST_EXTERN_VAR && (node->flags & XL6_AST_FLAG_PUBLIC) != 0);
 }
 
 static int xl6ImportsModuleHasDeclName(const XL6_AstNode* moduleRoot, const char* name)
@@ -1064,6 +1080,35 @@ static int xl6ImportsModuleHasDeclName(const XL6_AstNode* moduleRoot, const char
         }
     }
     return 0;
+}
+
+static int xl6ImportsIsInternalImportName(const char* name);
+
+static void xl6ImportsDropDuplicateImportedDecls(XL6_AstNode* dstRoot, XL6_AstNode* srcRoot)
+{
+    size_t i;
+
+    if ( dstRoot == NULL || srcRoot == NULL ) {
+        return;
+    }
+    i = 0;
+    while ( i < srcRoot->childCount ) {
+        XL6_AstNode* child = srcRoot->children[i];
+        const char* declName = xl6ImportsDeclName(child);
+
+        if ( xl6ImportsIsInternalImportName(declName) &&
+             xl6ImportsModuleHasDeclName(dstRoot, declName) ) {
+            xl6AstFree(child);
+            if ( i + 1 < srcRoot->childCount ) {
+                memmove(srcRoot->children + i,
+                        srcRoot->children + i + 1,
+                        (srcRoot->childCount - i - 1) * sizeof(*srcRoot->children));
+            }
+            srcRoot->childCount -= 1;
+            continue;
+        }
+        i += 1;
+    }
 }
 
 static int xl6ImportsIsInternalImportName(const char* name)
@@ -1800,6 +1845,7 @@ static int xl6ImportsMergeSourceFile(
         ok = xl6ImportsPrepareSourceModule(result.root, ns, symbols, diags);
     }
     if ( ok && result.root != NULL ) {
+        xl6ImportsDropDuplicateImportedDecls(root, result.root);
         xl6AstMoveChildren(root, result.root);
     } else if ( diags != NULL && result.diags.count == 0 ) {
         xl6DiagAdd(diags, 1, 1, "source import failed");

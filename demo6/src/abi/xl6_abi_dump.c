@@ -397,6 +397,52 @@ static int xl6AbiFuncOverloadCount(const XL6_AstNode* root, const char* name)
     return count;
 }
 
+static int xl6AbiExportFuncOverloadCount(const XL6_AstNode* root, const char* name)
+{
+    size_t i;
+    int count;
+
+    count = 0;
+    if ( root == NULL || name == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < root->childCount; ++i ) {
+        const XL6_AstNode* node = root->children[i];
+        const XL6_AstNode* nameNode;
+
+        if ( node == NULL || node->kind != XL6_AST_EXPORT_FUNC || node->childCount == 0 ) {
+            continue;
+        }
+        nameNode = node->children[0];
+        if ( nameNode != NULL && xl6AbiTextEquals(nameNode->text, name) ) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+static void xl6AbiDumpParamSignatureSuffix(XL6_Output* out, const XL6_AstNode* node)
+{
+    const XL6_AstNode* params;
+    size_t i;
+
+    params = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
+    if ( params == NULL || params->childCount == 0 ) {
+        xl6OutputPuts("__void", out);
+        return;
+    }
+    for ( i = 0; i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+
+        xl6OutputPuts("__", out);
+        if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
+            xl6AbiEncodedText(out, param->children[0]->text);
+        } else {
+            xl6OutputPutc('_', out);
+        }
+    }
+}
+
 static void xl6AbiDumpInternalSymbol(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node)
 {
     const XL6_AstNode* nameNode;
@@ -407,6 +453,9 @@ static void xl6AbiDumpInternalSymbol(XL6_Output* out, const XL6_AstNode* root, c
     if ( node->kind == XL6_AST_EXPORT_FUNC ) {
         xl6OutputPuts("xl6_export_", out);
         xl6AbiEncodedText(out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_");
+        if ( nameNode != NULL && xl6AbiExportFuncOverloadCount(root, nameNode->text) > 1 ) {
+            xl6AbiDumpParamSignatureSuffix(out, node);
+        }
         return;
     }
 
@@ -445,6 +494,9 @@ static void xl6AbiDumpInternalSymbolJsonString(XL6_Output* out, const XL6_AstNod
     if ( node->kind == XL6_AST_EXPORT_FUNC ) {
         xl6OutputPuts("xl6_export_", out);
         xl6AbiEncodedText(out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_");
+        if ( nameNode != NULL && xl6AbiExportFuncOverloadCount(root, nameNode->text) > 1 ) {
+            xl6AbiDumpParamSignatureSuffix(out, node);
+        }
         xl6OutputPutc('"', out);
         return;
     }

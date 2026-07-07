@@ -1,0 +1,13 @@
+{
+  "format": "xlang-package-1",
+  "name": "export_overload_pkg",
+  "version": "1.0.0",
+  "abiVersion": "abi1",
+  "kind": "source",
+  "artifact": {
+    "kind": "source",
+    "xlSources": [
+      "src/export_overload_pkg.xl"
+    ]
+  }
+}

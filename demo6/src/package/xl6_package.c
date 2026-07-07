@@ -458,9 +458,9 @@ static int xl6PackageManifestReadStringArray(XL6_PackageJson* json, XL6_PackageS
 
 static int xl6PackageManifestAppendDependency(
     XL6_PackageManifest* manifest,
-    char* name,
-    char* version,
-    char* abiVersion)
+    const char* name,
+    const char* version,
+    const char* abiVersion)
 {
     XL6_PackageDependency* newItems;
     XL6_PackageDependency* dep;
@@ -488,6 +488,17 @@ static int xl6PackageManifestAppendDependency(
     }
     manifest->dependencyCount += 1;
     return 1;
+}
+
+static int xl6PackageManifestReadDependencyString(XL6_PackageJson* json, XL6_PackageManifest* manifest)
+{
+    char* name;
+    int ok;
+
+    name = xl6PackageJsonReadString(json);
+    ok = name != NULL && xl6PackageManifestAppendDependency(manifest, name, "*", "*");
+    xrtFree(name);
+    return ok;
 }
 
 static int xl6PackageManifestReadDependencyObject(XL6_PackageJson* json, XL6_PackageManifest* manifest)
@@ -557,7 +568,15 @@ static int xl6PackageManifestReadDependencies(XL6_PackageJson* json, XL6_Package
         return 1;
     }
     for (;;) {
-        if ( !xl6PackageManifestReadDependencyObject(json, manifest) ) {
+        int ok;
+
+        xl6PackageJsonSkipWs(json);
+        if ( json->pos < json->len && json->text[json->pos] == '"' ) {
+            ok = xl6PackageManifestReadDependencyString(json, manifest);
+        } else {
+            ok = xl6PackageManifestReadDependencyObject(json, manifest);
+        }
+        if ( !ok ) {
             return 0;
         }
         if ( xl6PackageJsonConsume(json, ']') ) {
