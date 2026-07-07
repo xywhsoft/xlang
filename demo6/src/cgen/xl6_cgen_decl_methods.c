@@ -629,7 +629,9 @@ static void xl6CgenClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* classNo
             xl6CgenClassExternSpecial(ctx, classNode, member);
         } else if ( member->kind == XL6_AST_EXPORT_FUNC ) {
             xl6CgenClassFunc(ctx, classNode, member);
-            xl6CgenClassExportWrapper(ctx, classNode, member);
+            if ( member->text != NULL && member->text[0] != '\0' ) {
+                xl6CgenClassExportWrapper(ctx, classNode, member);
+            }
         } else if ( member->kind == XL6_AST_FUNC || member->kind == XL6_AST_GET || member->kind == XL6_AST_LET ) {
             xl6CgenClassFunc(ctx, classNode, member);
         } else if ( member->kind == XL6_AST_CREATE ) {

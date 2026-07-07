@@ -1,11 +1,21 @@
 extern "expect_i64" func expect(int actual, int expected)
 
 func sign(int value) as int
-    if value > 0 then return 1
-    if value < 0 then return -1 else return 0
+    if value > 0 then return 1 end
+    if value < 0 then return -1 else return 0 end
 end
 
 int result = sign(1)
 expect(result, 1)
 expect(sign(-1), -1)
 expect(sign(0), 0)
+
+func branchAssign(int value) as int
+    int pass = 0
+    int fail = 0
+    if value > 3 then pass += 1 else fail += 1 end
+    return pass * 10 + fail
+end
+
+expect(branchAssign(5), 10)
+expect(branchAssign(1), 1)

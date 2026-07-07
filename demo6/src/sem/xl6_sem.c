@@ -10457,7 +10457,11 @@ static int xl6SemCheckExpr(XL6_SemContext* ctx, XL6_AstNode* node)
     }
 }
 
-static int xl6SemDeclareVar(XL6_SemContext* ctx, XL6_AstNode* node)
+static int xl6SemDeclareVarWithKind(
+    XL6_SemContext* ctx,
+    XL6_AstNode* node,
+    XL6_SymbolKind valueKind,
+    XL6_SymbolKind constKind)
 {
     XL6_AstNode* declaredType;
     XL6_AstNode* symbolType;
@@ -10494,8 +10498,7 @@ static int xl6SemDeclareVar(XL6_SemContext* ctx, XL6_AstNode* node)
             }
         }
     }
-    if ( !xl6ScopeAddTyped(ctx, node, node->kind == XL6_AST_CONST_DECL ? XL6_SYM_CONST : XL6_SYM_VALUE,
-                           symbolType) ) {
+    if ( !xl6ScopeAddTyped(ctx, node, node->kind == XL6_AST_CONST_DECL ? constKind : valueKind, symbolType) ) {
         ok = 0;
     }
     if ( initExpr != NULL && !xl6SemCheckExpr(ctx, initExpr) ) {
@@ -10523,6 +10526,21 @@ static int xl6SemDeclareVar(XL6_SemContext* ctx, XL6_AstNode* node)
         ok = 0;
     }
     return ok;
+}
+
+static int xl6SemDeclareVar(XL6_SemContext* ctx, XL6_AstNode* node)
+{
+    return xl6SemDeclareVarWithKind(ctx, node, XL6_SYM_VALUE, XL6_SYM_CONST);
+}
+
+static int xl6SemDeclareModuleGlobalVar(XL6_SemContext* ctx, XL6_AstNode* node)
+{
+    return xl6SemDeclareVarWithKind(ctx, node, XL6_SYM_GLOBAL_VALUE, XL6_SYM_GLOBAL_CONST);
+}
+
+static int xl6SemIsModuleGlobalDecl(const XL6_AstNode* node)
+{
+    return node != NULL && (node->kind == XL6_AST_VAR_DECL || node->kind == XL6_AST_CONST_DECL);
 }
 
 static int xl6SemTypeCanAssignFromType(XL6_SemContext* ctx, const XL6_AstNode* valueType, const XL6_AstNode* targetType)
@@ -12172,7 +12190,8 @@ static int xl6SemCheckExportFunc(XL6_SemContext* ctx, XL6_AstNode* node)
     int ok;
 
     ok = xl6SemCheckExportSymbolUnique(ctx, node);
-    if ( !xl6SemCheckExportCAbi(ctx, node) ) {
+    if ( node != NULL && node->text != NULL && node->text[0] != '\0' &&
+         !xl6SemCheckExportCAbi(ctx, node) ) {
         ok = 0;
     }
     if ( !xl6SemCheckFunc(ctx, node) ) {
@@ -13222,6 +13241,10 @@ static int xl6SemCheckClassExportFuncBase(XL6_SemContext* ctx, XL6_AstNode* clas
 {
     XL6_AstNode* nameNode;
     int ok;
+
+    if ( node == NULL || node->text == NULL || node->text[0] == '\0' ) {
+        return 1;
+    }
 
     ok = 1;
     nameNode = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
@@ -14488,6 +14511,44 @@ static int xl6SemCheckYieldStmt(XL6_SemContext* ctx, XL6_AstNode* node)
     return ok;
 }
 
+static int xl6SemCheckReturnMultiCallExpr(XL6_SemContext* ctx, XL6_AstNode* node, XL6_AstNode* expr)
+{
+    XL6_AstNode* ownedReturnType;
+    XL6_AstNode* returns;
+    size_t i;
+    int ok;
+
+    ok = 1;
+    ownedReturnType = NULL;
+    returns = xl6SemCallReturnTypesEx(ctx, expr, &ownedReturnType);
+    if ( ctx->currentReturns == NULL || returns == NULL ) {
+        xl6AstFree(ownedReturnType);
+        return 0;
+    }
+    if ( returns->childCount != ctx->currentReturns->childCount ) {
+        xl6SemCountMismatchError(
+            ctx,
+            node,
+            "return 多返回值数量和函数声明不匹配",
+            ctx->currentReturns->childCount,
+            returns->childCount);
+        ok = 0;
+    }
+    for ( i = 0; i < returns->childCount && i < ctx->currentReturns->childCount; ++i ) {
+        if ( !xl6SemTypeCanAssignFromType(ctx, returns->children[i], ctx->currentReturns->children[i]) ) {
+            xl6SemTypeMismatchError(
+                ctx,
+                expr,
+                "return 多返回值类型和函数声明不匹配",
+                ctx->currentReturns->children[i],
+                returns->children[i] != NULL ? returns->children[i]->text : NULL);
+            ok = 0;
+        }
+    }
+    xl6AstFree(ownedReturnType);
+    return ok;
+}
+
 static int xl6SemCheckReturnStmt(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     int expected;
@@ -14512,6 +14573,13 @@ static int xl6SemCheckReturnStmt(XL6_SemContext* ctx, XL6_AstNode* node)
     } else if ( ctx->currentReturnTypesValid ) {
         expected = (int)ctx->currentReturns->childCount;
         actual = (int)node->childCount;
+        if ( expected > 1 && actual == 1 && xl6SemExprIsMultiReturnCall(ctx, node->children[0]) ) {
+            if ( !xl6SemCheckReturnMultiCallExpr(ctx, node, node->children[0]) ) {
+                ok = 0;
+            }
+            expected = 0;
+            actual = 0;
+        }
         if ( expected != actual ) {
             xl6SemCountMismatchError(
                 ctx,
@@ -14685,6 +14753,8 @@ static int xl6SemIsTopLevelRuntimeStmt(const XL6_AstNode* node)
            node->kind != XL6_AST_EXTERN_VAR &&
            node->kind != XL6_AST_EXPORT_VAR &&
            node->kind != XL6_AST_EXPORT_CONST &&
+           node->kind != XL6_AST_VAR_DECL &&
+           node->kind != XL6_AST_CONST_DECL &&
            node->kind != XL6_AST_TYPE_ALIAS &&
            node->kind != XL6_AST_EXTERN_TYPE_ALIAS &&
            node->kind != XL6_AST_UNION &&
@@ -14808,6 +14878,12 @@ int xl6SemCheckModule(XL6_AstNode* root, XL6_DiagList* diags)
             }
         }
     }
+    for ( i = 0; i < root->childCount; ++i ) {
+        XL6_AstNode* child = root->children[i];
+        if ( xl6SemIsModuleGlobalDecl(child) && !xl6SemDeclareModuleGlobalVar(&ctx, child) ) {
+            ok = 0;
+        }
+    }
 
     if ( !xl6SemCheckDocsRecursive(&ctx, root) ) {
         ok = 0;
@@ -14815,7 +14891,8 @@ int xl6SemCheckModule(XL6_AstNode* root, XL6_DiagList* diags)
 
     for ( i = 0; i < root->childCount; ++i ) {
         XL6_AstNode* child = root->children[i];
-        if ( child->kind == XL6_AST_IMPORT || xl6SemIsFuncDecl(child) || xl6SemIsTypeDecl(child) ) {
+        if ( child->kind == XL6_AST_IMPORT || xl6SemIsFuncDecl(child) || xl6SemIsTypeDecl(child) ||
+             xl6SemIsModuleGlobalDecl(child) ) {
             continue;
         } else if ( xl6SemIsExternalVarDecl(child) ) {
             if ( !xl6SemCheckExternalVar(&ctx, child) ) {

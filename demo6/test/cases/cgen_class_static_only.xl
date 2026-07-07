@@ -1,0 +1,12 @@
+class RuntimeConfig
+    static string name = "default"
+
+    static func getName() as string
+        return RuntimeConfig.name
+    end
+end
+
+func main(...) as int
+    if RuntimeConfig.getName() != "default" then return 1 end
+    return 0
+end

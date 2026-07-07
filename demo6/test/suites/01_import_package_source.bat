@@ -156,6 +156,8 @@ if errorlevel 1 (
 )
 release\xl.exe run test\cases\import_package_use.xl
 if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\import_bugfix_pkg.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe run test\cases\import_dependency_private.xl
 if errorlevel 1 exit /b 1
