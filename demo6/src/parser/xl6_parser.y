@@ -493,6 +493,14 @@ static XL6_AstNode* xl6PTypedLiteral(const XL6_Token* token, XL6_AstNode* litera
     return node;
 }
 
+static XL6_AstNode* xl6PTypedLiteralWithType(const XL6_Token* token, XL6_AstNode* typeNode, XL6_AstNode* literal)
+{
+    XL6_AstNode* node = xl6AstNew(XL6_AST_TYPED_LITERAL, token);
+    xl6AstAddChild(node, literal);
+    xl6AstAddChild(node, typeNode);
+    return node;
+}
+
 static XL6_AstNode* xl6PIndexPayloadFromList(XL6_AstNode* list)
 {
     XL6_AstNode* only;
@@ -1226,6 +1234,9 @@ assign_op(A) ::= STAR_ASSIGN(B). { A = B; }
 assign_op(A) ::= SLASH_ASSIGN(B). { A = B; }
 assign_op(A) ::= PERCENT_ASSIGN(B). { A = B; }
 assign_op(A) ::= POW_ASSIGN(B). { A = B; }
+assign_op(A) ::= BIT_AND_ASSIGN(B). { A = B; }
+assign_op(A) ::= BIT_OR_ASSIGN(B). { A = B; }
+assign_op(A) ::= BIT_XOR_ASSIGN(B). { A = B; }
 assign_op(A) ::= NULL_ASSIGN(B). { A = B; }
 
 compound_stmt(A) ::= if_stmt(B). { A = B; }
@@ -1581,6 +1592,18 @@ atom(A) ::= name_tok(T) bracket_literal(B). {
 }
 atom(A) ::= name_tok(T) brace_literal(B). {
     A = xl6PBraceAfterName(&T, B);
+}
+atom(A) ::= name_tok(T) LT type_list(L) GT bracket_literal(B). {
+    A = xl6PTypedLiteralWithType(&T, xl6AstNewGenericType(&T, L), B);
+}
+atom(A) ::= name_tok(T) TYPE_LT type_list(L) GT bracket_literal(B). {
+    A = xl6PTypedLiteralWithType(&T, xl6AstNewGenericType(&T, L), B);
+}
+atom(A) ::= name_tok(T) LT type_list(L) GT brace_literal(B). {
+    A = xl6PTypedLiteralWithType(&T, xl6AstNewGenericType(&T, L), B);
+}
+atom(A) ::= name_tok(T) TYPE_LT type_list(L) GT brace_literal(B). {
+    A = xl6PTypedLiteralWithType(&T, xl6AstNewGenericType(&T, L), B);
 }
 
 anon_func(A) ::= KW_FUNC(F) name_params(P) return_sig(R) need_sep block(B) KW_END. {

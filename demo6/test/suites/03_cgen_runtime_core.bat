@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 setlocal
 call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
@@ -723,14 +723,19 @@ if errorlevel 1 (
     echo cgen_containers.c missing list literal lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_set_literal(3" build\test\cgen_containers.c >nul
+findstr /C:"xrtTypedSetCreate(xrtTypeInt()" build\test\cgen_containers.c >nul
 if errorlevel 1 (
-    echo cgen_containers.c missing set literal lowering.
+    echo cgen_containers.c missing inferred typed set literal lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_dict_varargs(2" build\test\cgen_containers.c >nul
+findstr /C:"xrtTypedDictCreate(xrtTypeInt()" build\test\cgen_containers.c >nul
 if errorlevel 1 (
-    echo cgen_containers.c missing dict literal lowering.
+    echo cgen_containers.c missing inferred typed dict literal lowering.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictSetValue(__xl6_global_init_" build\test\cgen_containers.c >nul
+if errorlevel 1 (
+    echo cgen_containers.c missing inferred typed dict item lowering.
     exit /b 1
 )
 findstr /C:"xl6_xrt_set_literal(0" build\test\cgen_containers.c >nul
@@ -777,6 +782,36 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\cgen_containers.exe
 if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\cgen_container_ops.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_container_ops.xl --emit build\test\cgen_container_ops.c
+if errorlevel 1 exit /b 1
+findstr /C:"xrtTypedArrayConcat(" build\test\cgen_container_ops.c >nul
+if errorlevel 1 (
+    echo cgen_container_ops.c missing typed array concat lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_list_concat(" build\test\cgen_container_ops.c >nul
+if errorlevel 1 (
+    echo cgen_container_ops.c missing typed list concat lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_dict_concat(" build\test\cgen_container_ops.c >nul
+if errorlevel 1 (
+    echo cgen_container_ops.c missing typed dict concat lowering.
+    exit /b 1
+)
+findstr /C:"xrtTypedSetUnion(" build\test\cgen_container_ops.c >nul
+if errorlevel 1 (
+    echo cgen_container_ops.c missing typed set union lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_set_relation(" build\test\cgen_container_ops.c >nul
+if errorlevel 1 (
+    echo cgen_container_ops.c missing typed set relation lowering.
+    exit /b 1
+)
 
 release\xl.exe cgen test\cases\cgen_static_typed_containers.xl --emit build\test\cgen_static_typed_containers.c
 if errorlevel 1 exit /b 1
@@ -1154,24 +1189,24 @@ if errorlevel 1 (
     echo cgen_typed_container_copy_assign.c missing typed container length lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_set_to_xvalue(xrtTypeInt(), idsCopy)" build\test\cgen_typed_container_copy_assign.c >nul
+findstr /C:"xl6_xrt_typed_set_contains_value_release(idsCopy" build\test\cgen_typed_container_copy_assign.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_copy_assign.c missing typed set in lowering.
+    echo cgen_typed_container_copy_assign.c missing typed set contains lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_to_xvalue(xrtTypeInt(), values)" build\test\cgen_typed_container_copy_assign.c >nul
+findstr /C:"xl6_xrt_typed_array_contains_value_release(values" build\test\cgen_typed_container_copy_assign.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_copy_assign.c missing typed array in lowering.
+    echo cgen_typed_container_copy_assign.c missing typed array contains lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_list_to_xvalue(xrtTypeString(), names)" build\test\cgen_typed_container_copy_assign.c >nul
+findstr /C:"xl6_xrt_typed_list_contains_value_release(names" build\test\cgen_typed_container_copy_assign.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_copy_assign.c missing typed list in lowering.
+    echo cgen_typed_container_copy_assign.c missing typed list contains lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_dict_to_xvalue(xrtTypeInt(), scoresCopy)" build\test\cgen_typed_container_copy_assign.c >nul
+findstr /C:"xrtTypedDictExists(scoresCopy" build\test\cgen_typed_container_copy_assign.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_copy_assign.c missing typed dict in lowering.
+    echo cgen_typed_container_copy_assign.c missing typed dict contains lowering.
     exit /b 1
 )
 findstr /C:"expect_i64(({ xvalue __xl6_in_values_" build\test\cgen_typed_container_copy_assign.c >nul
@@ -1854,7 +1889,7 @@ release\xl.exe check test\cases\cgen_auto_inference_matrix.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_auto_inference_matrix.xl --emit build\test\cgen_auto_inference_matrix.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_auto_inference_matrix.c'; $checks=@('long long literalInt;','double literalFloat;','int literalBool;','const char* literalString;','xvalue dynamicArray;','xvalue dynamicList;','xvalue dynamicDict;','typedArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedArray','typedListItem = xl6_xrt_str_dup((*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(typedList','typedDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(typedDict','missingTypedItem = xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(typedArray','dynamicArrayItem = xl6_xrt_retain(xvoArrayGetValue(dynamicArray','dynamicListItem = xl6_xrt_retain(xvoListGetValue(dynamicList','dynamicDictItem = xl6_xrt_retain(xvoTableGetValue(dynamicDict','XL_Class_MatrixBox box;','box = makeBox(7LL,','fieldValue = box.value;','fieldText = box.label;','methodValue = xl_class_MatrixBox__getValue(&box);','fn = makeAdder(10LL);','long long fnResult;','callResult = add(fieldValue, methodValue);','futureValue = doubleAsync(6LL);','long long awaitedValue;','autoCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','sent = xl6_channel_send_value(autoCh','received = xl6_channel_recv_into(autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_auto_inference_matrix.c'; $checks=@('long long literalInt;','double literalFloat;','int literalBool;','const char* literalString;','xtarray inferredArray;','xtlist inferredList;','xtdict inferredDict;','typedArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedArray','typedListItem = xl6_xrt_str_dup((*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(typedList','typedDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(typedDict','missingTypedItem = xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(typedArray','inferredArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(inferredArray','inferredListItem = xl6_xrt_str_dup((*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(inferredList','inferredDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(inferredDict','XL_Class_MatrixBox box;','box = makeBox(7LL,','fieldValue = box.value;','fieldText = box.label;','methodValue = xl_class_MatrixBox__getValue(&box);','fn = makeAdder(10LL);','long long fnResult;','callResult = add(fieldValue, methodValue);','futureValue = doubleAsync(6LL);','long long awaitedValue;','autoCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','sent = xl6_channel_send_value(autoCh','received = xl6_channel_recv_into(autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_auto_inference_matrix.xl test\cases\cgen_class_host.c -o build\test\cgen_auto_inference_matrix.exe
 if errorlevel 1 exit /b 1
@@ -3821,24 +3856,24 @@ if errorlevel 1 (
     echo cgen_in_containers.c missing string in lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_array_contains(values" build\test\cgen_in_containers.c >nul
+findstr /C:"xl6_xrt_typed_array_contains_value_release(values" build\test\cgen_in_containers.c >nul
 if errorlevel 1 (
-    echo cgen_in_containers.c missing array in lowering.
+    echo cgen_in_containers.c missing typed array in lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_list_contains(sparse" build\test\cgen_in_containers.c >nul
+findstr /C:"xl6_xrt_typed_list_contains_value_release(sparse" build\test\cgen_in_containers.c >nul
 if errorlevel 1 (
-    echo cgen_in_containers.c missing list in lowering.
+    echo cgen_in_containers.c missing typed list in lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_set_contains(unique" build\test\cgen_in_containers.c >nul
+findstr /C:"xl6_xrt_typed_set_contains_value_release(unique" build\test\cgen_in_containers.c >nul
 if errorlevel 1 (
-    echo cgen_in_containers.c missing set in lowering.
+    echo cgen_in_containers.c missing typed set in lowering.
     exit /b 1
 )
-findstr /C:"xvoTableExists(table, \"a\", 0)" build\test\cgen_in_containers.c >nul
+findstr /C:"xrtTypedDictExists(table, \"a\", 0)" build\test\cgen_in_containers.c >nul
 if errorlevel 1 (
-    echo cgen_in_containers.c missing dict in lowering.
+    echo cgen_in_containers.c missing typed dict in lowering.
     exit /b 1
 )
 findstr /C:"xl6_xrt_value_contains(dynArray" build\test\cgen_in_containers.c >nul

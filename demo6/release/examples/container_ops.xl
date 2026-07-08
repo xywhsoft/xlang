@@ -1,0 +1,44 @@
+array<int> left = array<int>[1, 2]
+array<int> right = array<int>[3, 4]
+auto joined = left + right
+println("array + length = " + string(joined.length))
+left += right
+println("array += last = " + string(left[3]))
+left.insert(0, 0)
+println("array insert first = " + string(left[0]))
+println("array take first = " + string(left.take(0)))
+println("array pop last = " + string(left.pop()))
+
+list<string> names = list<string>[0: "alice", 2: "bob"]
+list<string> patch = list<string>[2: "BOB", 5: "carol"]
+auto mergedNames = names + patch
+println("list + index 2 = " + mergedNames[2])
+println("list contains carol = " + string(mergedNames.contains("carol")))
+names += patch
+names -= 0
+println("list -= contains alice = " + string(names.contains("alice")))
+
+dict<int> scores = dict<int>{"alice": 10, "bob": 20}
+dict<int> bonus = dict<int>{"bob": 25, "carol": 30}
+auto mergedScores = scores + bonus
+println("dict + bob = " + string(mergedScores["bob"]))
+println("dict contains carol = " + string("carol" in mergedScores))
+scores += bonus
+scores -= "alice"
+println("dict -= contains alice = " + string("alice" in scores))
+
+set<int> a = set<int>{1, 2, 3}
+set<int> b = set<int>{3, 4}
+auto unionSet = a | b
+auto intersectionSet = a & b
+auto differenceSet = a - b
+auto xorSet = a ^ b
+println("set | length = " + string(unionSet.length))
+println("set & has 3 = " + string(intersectionSet.contains(3)))
+println("set - has 1 = " + string(differenceSet.contains(1)))
+println("set ^ has 4 = " + string(xorSet.contains(4)))
+println("set subset = " + string(a <= unionSet))
+a |= b
+a &= set<int>{3, 4}
+a ^= set<int>{4, 5}
+println("set compound length = " + string(a.length))

@@ -523,10 +523,16 @@ static int xl6CgenBinaryCompareIsXValue(XL6_CgenContext* ctx, const XL6_AstNode*
 {
     XL6_AstNode* leftType;
     XL6_AstNode* rightType;
+    int typedContainerBool;
     int result;
 
     if ( node == NULL || node->kind != XL6_AST_BINARY || node->childCount < 2 ||
          !xl6CgenBinaryCompareOpIsXValue(node->text) ) {
+        return 0;
+    }
+
+    typedContainerBool = 0;
+    if ( xl6CgenTypedContainerBinaryInfo(ctx, node, NULL, &typedContainerBool) && typedContainerBool ) {
         return 0;
     }
 

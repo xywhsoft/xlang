@@ -308,6 +308,19 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6CgenEmitMemberFunctionStatementTemp(ctx, initExpr, memberTempName);
             }
         }
+        if ( initByMove &&
+             memberFunctionType == NULL &&
+             xl6CgenDeclCallExprArgsNeedCallArgTemps(ctx, initExpr) ) {
+            xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), cName);
+            xl6CgenDefaultValue(ctx, typeNode);
+            xl6OutputPuts(";\n", ctx->out);
+            xl6CgenAddVarTypeWithFlags(ctx, node->text, typeNode, XL6_CGEN_VAR_TYPED_CONTAINER);
+            xl6CgenAddTypedContainerCleanup(ctx, node->text, typeNode);
+            if ( !xl6CgenDeclEmitTypedContainerCallExprWithArgTemps(ctx, typeNode, initExpr, cName) ) {
+                xl6CgenError(ctx, initExpr, "typed container declaration call argument lowering failed");
+            }
+            return;
+        }
         xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), cName);
         if ( initByCopy ) {
             xl6CgenTypedContainerCopyExpr(ctx, typeNode, initExpr);

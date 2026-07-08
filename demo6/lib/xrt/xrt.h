@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-07-08 02:18:55
+    Generated: 2026-07-08 15:10:48
 
     MIT License
 
@@ -7255,10 +7255,26 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI void xrtTypedArrayUnit(xtarray pArray);
 	XXAPI ptr xrtTypedArrayAppend(xtarray pArray, const ptr pItem);
 	XXAPI bool xrtTypedArrayAppendValue(xtarray pArray, xvalue pVal);
+	XXAPI ptr xrtTypedArrayInsert(xtarray pArray, uint32 iPos, const ptr pItem);
+	XXAPI bool xrtTypedArrayInsertValue(xtarray pArray, uint32 iPos, xvalue pVal);
 	XXAPI bool xrtTypedArraySet(xtarray pArray, uint32 iPos, const ptr pItem);
 	XXAPI bool xrtTypedArraySetValue(xtarray pArray, uint32 iPos, xvalue pVal);
 	XXAPI ptr xrtTypedArrayGet(xtarray pArray, uint32 iPos);
 	XXAPI bool xrtTypedArrayRemove(xtarray pArray, uint32 iPos, uint32 iCount);
+	XXAPI bool xrtTypedArrayTake(xtarray pArray, uint32 iPos, ptr pOut);
+	XXAPI xvalue xrtTypedArrayTakeValue(xtarray pArray, uint32 iPos);
+	XXAPI bool xrtTypedArrayPop(xtarray pArray, ptr pOut);
+	XXAPI xvalue xrtTypedArrayPopValue(xtarray pArray);
+	XXAPI bool xrtTypedArrayClear(xtarray pArray);
+	XXAPI bool xrtTypedArrayReverse(xtarray pArray);
+	XXAPI int64 xrtTypedArrayIndexOf(xtarray pArray, const ptr pItem);
+	XXAPI int64 xrtTypedArrayIndexOfValue(xtarray pArray, xvalue pVal);
+	XXAPI bool xrtTypedArrayContains(xtarray pArray, const ptr pItem);
+	XXAPI bool xrtTypedArrayContainsValue(xtarray pArray, xvalue pVal);
+	XXAPI bool xrtTypedArrayExtend(xtarray pTarget, xtarray pSource);
+	XXAPI xtarray xrtTypedArrayClone(xtarray pArray);
+	XXAPI xtarray xrtTypedArrayConcat(xtarray pLeft, xtarray pRight);
+	XXAPI bool xrtTypedArrayEquals(xtarray pLeft, xtarray pRight);
 	XXAPI uint32 xrtTypedArrayCount(xtarray pArray);
 	XXAPI const xrt_type_desc* xrtTypedArrayItemType(xtarray pArray);
 	XXAPI xtlist xrtTypedListCreate(const xrt_type_desc* pItemType, uint32 iMode);
@@ -7270,6 +7286,14 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI ptr xrtTypedListGet(xtlist pList, int64 iKey);
 	XXAPI ptr xrtTypedListItemAt(xtlist pList, uint32 iIndex, int64* pKey);
 	XXAPI bool xrtTypedListRemove(xtlist pList, int64 iKey);
+	XXAPI bool xrtTypedListTake(xtlist pList, int64 iKey, ptr pOut);
+	XXAPI xvalue xrtTypedListTakeValue(xtlist pList, int64 iKey);
+	XXAPI bool xrtTypedListClear(xtlist pList);
+	XXAPI bool xrtTypedListContains(xtlist pList, const ptr pItem);
+	XXAPI bool xrtTypedListContainsValue(xtlist pList, xvalue pVal);
+	XXAPI bool xrtTypedListMerge(xtlist pTarget, xtlist pSource);
+	XXAPI xtlist xrtTypedListClone(xtlist pList);
+	XXAPI bool xrtTypedListEquals(xtlist pLeft, xtlist pRight);
 	XXAPI uint32 xrtTypedListCount(xtlist pList);
 	XXAPI const xrt_type_desc* xrtTypedListItemType(xtlist pList);
 	XXAPI xtset xrtTypedSetCreate(const xrt_type_desc* pItemType, uint32 iMode);
@@ -7278,10 +7302,22 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI void xrtTypedSetUnit(xtset pSet);
 	XXAPI bool xrtTypedSetAdd(xtset pSet, const ptr pItem);
 	XXAPI bool xrtTypedSetAddValue(xtset pSet, xvalue pVal);
+	XXAPI bool xrtTypedSetExistsValue(xtset pSet, xvalue pVal);
+	XXAPI bool xrtTypedSetRemoveValue(xtset pSet, xvalue pVal);
 	XXAPI ptr xrtTypedSetGet(xtset pSet, const ptr pItem);
 	XXAPI bool xrtTypedSetExists(xtset pSet, const ptr pItem);
 	XXAPI bool xrtTypedSetRemove(xtset pSet, const ptr pItem);
 	XXAPI ptr xrtTypedSetItemAt(xtset pSet, uint32 iIndex);
+	XXAPI bool xrtTypedSetClear(xtset pSet);
+	XXAPI bool xrtTypedSetMerge(xtset pTarget, xtset pSource);
+	XXAPI xtset xrtTypedSetClone(xtset pSet);
+	XXAPI xtset xrtTypedSetUnion(xtset pLeft, xtset pRight);
+	XXAPI xtset xrtTypedSetIntersection(xtset pLeft, xtset pRight);
+	XXAPI xtset xrtTypedSetDifference(xtset pLeft, xtset pRight);
+	XXAPI xtset xrtTypedSetSymmetricDifference(xtset pLeft, xtset pRight);
+	XXAPI bool xrtTypedSetIsSubset(xtset pLeft, xtset pRight, bool bProper);
+	XXAPI bool xrtTypedSetIsSuperset(xtset pLeft, xtset pRight, bool bProper);
+	XXAPI bool xrtTypedSetEquals(xtset pLeft, xtset pRight);
 	XXAPI uint32 xrtTypedSetCount(xtset pSet);
 	XXAPI const xrt_type_desc* xrtTypedSetItemType(xtset pSet);
 	XXAPI xtdict xrtTypedDictCreate(const xrt_type_desc* pItemType, uint32 iMode);
@@ -7294,6 +7330,12 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI ptr xrtTypedDictItemAt(xtdict pDict, uint32 iIndex, const char** psKey, uint32* piKeyLen);
 	XXAPI bool xrtTypedDictExists(xtdict pDict, const ptr sKey, uint32 iKeyLen);
 	XXAPI bool xrtTypedDictRemove(xtdict pDict, const ptr sKey, uint32 iKeyLen);
+	XXAPI bool xrtTypedDictTake(xtdict pDict, const ptr sKey, uint32 iKeyLen, ptr pOut);
+	XXAPI xvalue xrtTypedDictTakeValue(xtdict pDict, const ptr sKey, uint32 iKeyLen);
+	XXAPI bool xrtTypedDictClear(xtdict pDict);
+	XXAPI bool xrtTypedDictMerge(xtdict pTarget, xtdict pSource);
+	XXAPI xtdict xrtTypedDictClone(xtdict pDict);
+	XXAPI bool xrtTypedDictEquals(xtdict pLeft, xtdict pRight);
 	XXAPI uint32 xrtTypedDictCount(xtdict pDict);
 	XXAPI const xrt_type_desc* xrtTypedDictItemType(xtdict pDict);
 	/* ------------------------------------ Set 函数库 ------------------------------------ */
@@ -7313,7 +7355,17 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI ptr xrtSetGet(xset pSet, const ptr pItem);
 	XXAPI ptr xrtSetItemAt(xset pSet, uint32 iIndex);
 	XXAPI uint32 xrtSetCount(xset pSet);
+	XXAPI bool xrtSetClear(xset pSet);
 	XXAPI void xrtSetWalk(xset pSet, xset_each_proc procEach, ptr pArg);
+	XXAPI xset xrtSetClone(xset pSet);
+	XXAPI bool xrtSetMerge(xset pTarget, xset pSource);
+	XXAPI xset xrtSetUnion(xset pLeft, xset pRight);
+	XXAPI xset xrtSetIntersection(xset pLeft, xset pRight);
+	XXAPI xset xrtSetDifference(xset pLeft, xset pRight);
+	XXAPI xset xrtSetSymmetricDifference(xset pLeft, xset pRight);
+	XXAPI bool xrtSetIsSubset(xset pLeft, xset pRight, bool bProper);
+	XXAPI bool xrtSetIsSuperset(xset pLeft, xset pRight, bool bProper);
+	XXAPI bool xrtSetEquals(xset pLeft, xset pRight);
 	/* ------------------------------------ Value 函数库 ------------------------------------ */
 	/*
 		依赖项：
@@ -85675,6 +85727,15 @@ XXAPI uint32 xrtSetCount(xset pSet)
 	}
 	return pSet->Count;
 }
+// 清空 set，保留类型描述，容量在下一次写入时按需恢复
+XXAPI bool xrtSetClear(xset pSet)
+{
+	if ( pSet == NULL ) {
+		return FALSE;
+	}
+	xrtSetUnit(pSet);
+	return TRUE;
+}
 // 遍历 set
 XXAPI void xrtSetWalk(xset pSet, xset_each_proc procEach, ptr pArg)
 {
@@ -85693,6 +85754,219 @@ XXAPI void xrtSetWalk(xset pSet, xset_each_proc procEach, ptr pArg)
 		}
 	}
 	xrtOwnerEndMutable(&pSet->Owner);
+}
+// ------------------------------------ set 高层集合运算 ------------------------------------
+static bool __xrtSetSameType(xset pLeft, xset pRight)
+{
+	if ( pLeft == NULL || pRight == NULL ) {
+		return FALSE;
+	}
+	if ( xrtTypeSame(pLeft->Type, pRight->Type) ) {
+		return TRUE;
+	}
+	return pLeft->Type == NULL && pRight->Type == NULL && pLeft->ItemLength == pRight->ItemLength;
+}
+typedef struct __xrt_set_merge_arg {
+	xset Target;
+	bool Failed;
+} __xrt_set_merge_arg;
+static bool __xrtSetMergeEach(const ptr pItem, ptr pArg)
+{
+	__xrt_set_merge_arg* pState = (__xrt_set_merge_arg*)pArg;
+	if ( pState == NULL || pState->Target == NULL ) {
+		return TRUE;
+	}
+	if ( !xrtSetAdd(pState->Target, pItem) ) {
+		pState->Failed = TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+XXAPI xset xrtSetClone(xset pSet)
+{
+	xset pRet;
+	if ( pSet == NULL ) {
+		return NULL;
+	}
+	pRet = xrtSetCreate(pSet->Type, XRT_OBJMODE_LOCAL);
+	if ( pRet == NULL ) {
+		return NULL;
+	}
+	if ( !xrtSetMerge(pRet, pSet) ) {
+		xrtSetDestroy(pRet);
+		return NULL;
+	}
+	return pRet;
+}
+XXAPI bool xrtSetMerge(xset pTarget, xset pSource)
+{
+	__xrt_set_merge_arg state;
+	if ( pTarget == NULL || pSource == NULL ) {
+		return FALSE;
+	}
+	if ( pTarget == pSource ) {
+		return TRUE;
+	}
+	if ( !__xrtSetSameType(pTarget, pSource) ) {
+		return FALSE;
+	}
+	state.Target = pTarget;
+	state.Failed = FALSE;
+	xrtSetWalk(pSource, __xrtSetMergeEach, &state);
+	return state.Failed == FALSE;
+}
+XXAPI xset xrtSetUnion(xset pLeft, xset pRight)
+{
+	xset pRet;
+	if ( pLeft == NULL || pRight == NULL || !__xrtSetSameType(pLeft, pRight) ) {
+		return NULL;
+	}
+	pRet = xrtSetClone(pLeft);
+	if ( pRet == NULL ) {
+		return NULL;
+	}
+	if ( !xrtSetMerge(pRet, pRight) ) {
+		xrtSetDestroy(pRet);
+		return NULL;
+	}
+	return pRet;
+}
+typedef struct __xrt_set_binary_arg {
+	xset Other;
+	xset Result;
+	bool Failed;
+} __xrt_set_binary_arg;
+static bool __xrtSetIntersectionEach(const ptr pItem, ptr pArg)
+{
+	__xrt_set_binary_arg* pState = (__xrt_set_binary_arg*)pArg;
+	if ( pState == NULL || pState->Other == NULL || pState->Result == NULL ) {
+		return TRUE;
+	}
+	if ( xrtSetExists(pState->Other, pItem) && !xrtSetAdd(pState->Result, pItem) ) {
+		pState->Failed = TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+static bool __xrtSetDifferenceEach(const ptr pItem, ptr pArg)
+{
+	__xrt_set_binary_arg* pState = (__xrt_set_binary_arg*)pArg;
+	if ( pState == NULL || pState->Other == NULL || pState->Result == NULL ) {
+		return TRUE;
+	}
+	if ( !xrtSetExists(pState->Other, pItem) && !xrtSetAdd(pState->Result, pItem) ) {
+		pState->Failed = TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+XXAPI xset xrtSetIntersection(xset pLeft, xset pRight)
+{
+	__xrt_set_binary_arg state;
+	if ( pLeft == NULL || pRight == NULL || !__xrtSetSameType(pLeft, pRight) ) {
+		return NULL;
+	}
+	state.Other = pRight;
+	state.Result = xrtSetCreate(pLeft->Type, XRT_OBJMODE_LOCAL);
+	state.Failed = FALSE;
+	if ( state.Result == NULL ) {
+		return NULL;
+	}
+	xrtSetWalk(pLeft, __xrtSetIntersectionEach, &state);
+	if ( state.Failed ) {
+		xrtSetDestroy(state.Result);
+		return NULL;
+	}
+	return state.Result;
+}
+XXAPI xset xrtSetDifference(xset pLeft, xset pRight)
+{
+	__xrt_set_binary_arg state;
+	if ( pLeft == NULL || pRight == NULL || !__xrtSetSameType(pLeft, pRight) ) {
+		return NULL;
+	}
+	state.Other = pRight;
+	state.Result = xrtSetCreate(pLeft->Type, XRT_OBJMODE_LOCAL);
+	state.Failed = FALSE;
+	if ( state.Result == NULL ) {
+		return NULL;
+	}
+	xrtSetWalk(pLeft, __xrtSetDifferenceEach, &state);
+	if ( state.Failed ) {
+		xrtSetDestroy(state.Result);
+		return NULL;
+	}
+	return state.Result;
+}
+XXAPI xset xrtSetSymmetricDifference(xset pLeft, xset pRight)
+{
+	xset pLeftOnly;
+	xset pRightOnly;
+	xset pRet;
+	if ( pLeft == NULL || pRight == NULL || !__xrtSetSameType(pLeft, pRight) ) {
+		return NULL;
+	}
+	pLeftOnly = xrtSetDifference(pLeft, pRight);
+	pRightOnly = xrtSetDifference(pRight, pLeft);
+	if ( pLeftOnly == NULL || pRightOnly == NULL ) {
+		if ( pLeftOnly != NULL ) { xrtSetDestroy(pLeftOnly); }
+		if ( pRightOnly != NULL ) { xrtSetDestroy(pRightOnly); }
+		return NULL;
+	}
+	pRet = xrtSetUnion(pLeftOnly, pRightOnly);
+	xrtSetDestroy(pLeftOnly);
+	xrtSetDestroy(pRightOnly);
+	return pRet;
+}
+typedef struct __xrt_set_relation_arg {
+	xset Other;
+	bool Result;
+} __xrt_set_relation_arg;
+static bool __xrtSetSubsetEach(const ptr pItem, ptr pArg)
+{
+	__xrt_set_relation_arg* pState = (__xrt_set_relation_arg*)pArg;
+	if ( pState == NULL || pState->Other == NULL ) {
+		return TRUE;
+	}
+	if ( !xrtSetExists(pState->Other, pItem) ) {
+		pState->Result = FALSE;
+		return TRUE;
+	}
+	return FALSE;
+}
+XXAPI bool xrtSetIsSubset(xset pLeft, xset pRight, bool bProper)
+{
+	__xrt_set_relation_arg state;
+	if ( pLeft == NULL || pRight == NULL || !__xrtSetSameType(pLeft, pRight) ) {
+		return FALSE;
+	}
+	if ( bProper && pLeft->Count >= pRight->Count ) {
+		return FALSE;
+	}
+	if ( pLeft->Count > pRight->Count ) {
+		return FALSE;
+	}
+	state.Other = pRight;
+	state.Result = TRUE;
+	xrtSetWalk(pLeft, __xrtSetSubsetEach, &state);
+	return state.Result;
+}
+XXAPI bool xrtSetIsSuperset(xset pLeft, xset pRight, bool bProper)
+{
+	if ( pLeft == NULL || pRight == NULL ) {
+		return FALSE;
+	}
+	return xrtSetIsSubset(pRight, pLeft, bProper);
+}
+XXAPI bool xrtSetEquals(xset pLeft, xset pRight)
+{
+	if ( pLeft == NULL || pRight == NULL || !__xrtSetSameType(pLeft, pRight) ) {
+		return FALSE;
+	}
+	if ( pLeft->Count != pRight->Count ) {
+		return FALSE;
+	}
+	return xrtSetIsSubset(pLeft, pRight, FALSE);
 }
 #undef XRT_SET_SLOT_EMPTY
 #undef XRT_SET_SLOT_USED
@@ -85774,6 +86048,23 @@ static void __xrtTypedFreeTemp(const xrt_type_desc* pType, ptr pItem)
 		xrtFree(pItem);
 	}
 }
+static bool __xrtTypedSameItemType(const xrt_type_desc* pLeft, const xrt_type_desc* pRight)
+{
+	return xrtTypeSame(pLeft, pRight);
+}
+static int __xrtTypedCompareItem(const xrt_type_desc* pType, const ptr pLeft, const ptr pRight)
+{
+	if ( pType != NULL && pType->Ops != NULL && pType->Ops->compare != NULL ) {
+		return pType->Ops->compare(pLeft, pRight);
+	}
+	return memcmp(pLeft, pRight, __xrtTypedItemLength(pType));
+}
+static xvalue __xrtTypedBoxItem(const xrt_type_desc* pType, const ptr pItem)
+{
+	xvalue pVal;
+	pVal = xrtTypeBoxValue(pType, pItem);
+	return pVal != NULL ? pVal : xvoCreateNull();
+}
 // ------------------------------------ typed array ------------------------------------
 XXAPI xtarray xrtTypedArrayCreate(const xrt_type_desc* pItemType, uint32 iMode)
 {
@@ -85843,6 +86134,36 @@ XXAPI bool xrtTypedArrayAppendValue(xtarray pArray, xvalue pVal)
 	__xrtTypedFreeTemp(pArray->ItemType, pItem);
 	return bOk;
 }
+XXAPI ptr xrtTypedArrayInsert(xtarray pArray, uint32 iPos, const ptr pItem)
+{
+	uint32 iNewPos;
+	ptr pSlot;
+	if ( pArray == NULL ) {
+		return NULL;
+	}
+	iNewPos = xrtArrayInsert(&pArray->Array, iPos > 0 ? iPos - 1 : 0, 1);
+	if ( iNewPos == 0 ) {
+		return NULL;
+	}
+	pSlot = xrtArrayGet_Unsafe(&pArray->Array, iNewPos);
+	__xrtTypedCopyItem(pArray->ItemType, pSlot, pItem);
+	return pSlot;
+}
+XXAPI bool xrtTypedArrayInsertValue(xtarray pArray, uint32 iPos, xvalue pVal)
+{
+	ptr pItem;
+	bool bOk;
+	if ( pArray == NULL ) {
+		return FALSE;
+	}
+	pItem = __xrtTypedUnboxTemp(pArray->ItemType, pVal);
+	if ( pItem == NULL ) {
+		return FALSE;
+	}
+	bOk = xrtTypedArrayInsert(pArray, iPos, pItem) != NULL;
+	__xrtTypedFreeTemp(pArray->ItemType, pItem);
+	return bOk;
+}
 XXAPI bool xrtTypedArraySet(xtarray pArray, uint32 iPos, const ptr pItem)
 {
 	ptr pSlot;
@@ -85895,6 +86216,193 @@ XXAPI bool xrtTypedArrayRemove(xtarray pArray, uint32 iPos, uint32 iCount)
 	}
 	return xrtArrayRemove(&pArray->Array, iPos, iEnd - iPos);
 }
+XXAPI bool xrtTypedArrayTake(xtarray pArray, uint32 iPos, ptr pOut)
+{
+	ptr pSlot;
+	if ( pArray == NULL || iPos == 0 || iPos > pArray->Array.Count ) {
+		return FALSE;
+	}
+	pSlot = xrtArrayGet_Unsafe(&pArray->Array, iPos);
+	if ( pOut != NULL ) {
+		__xrtTypedCopyItem(pArray->ItemType, pOut, pSlot);
+	}
+	return xrtTypedArrayRemove(pArray, iPos, 1);
+}
+XXAPI xvalue xrtTypedArrayTakeValue(xtarray pArray, uint32 iPos)
+{
+	ptr pSlot;
+	xvalue pRet;
+	if ( pArray == NULL || iPos == 0 || iPos > pArray->Array.Count ) {
+		return xvoCreateNull();
+	}
+	pSlot = xrtArrayGet_Unsafe(&pArray->Array, iPos);
+	pRet = __xrtTypedBoxItem(pArray->ItemType, pSlot);
+	xrtTypedArrayRemove(pArray, iPos, 1);
+	return pRet;
+}
+XXAPI bool xrtTypedArrayPop(xtarray pArray, ptr pOut)
+{
+	if ( pArray == NULL || pArray->Array.Count == 0 ) {
+		return FALSE;
+	}
+	return xrtTypedArrayTake(pArray, pArray->Array.Count, pOut);
+}
+XXAPI xvalue xrtTypedArrayPopValue(xtarray pArray)
+{
+	if ( pArray == NULL || pArray->Array.Count == 0 ) {
+		return xvoCreateNull();
+	}
+	return xrtTypedArrayTakeValue(pArray, pArray->Array.Count);
+}
+XXAPI bool xrtTypedArrayClear(xtarray pArray)
+{
+	uint32 i;
+	if ( pArray == NULL ) {
+		return FALSE;
+	}
+	for ( i = 1; i <= pArray->Array.Count; ++i ) {
+		__xrtTypedDropItem(pArray->ItemType, xrtArrayGet_Unsafe(&pArray->Array, i));
+	}
+	pArray->Array.Count = 0;
+	return TRUE;
+}
+XXAPI bool xrtTypedArrayReverse(xtarray pArray)
+{
+	uint32 i;
+	uint32 iCount;
+	if ( pArray == NULL ) {
+		return FALSE;
+	}
+	iCount = pArray->Array.Count;
+	for ( i = 1; i <= iCount / 2; ++i ) {
+		if ( !xrtArraySwap(&pArray->Array, i, iCount - i + 1) ) {
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+XXAPI int64 xrtTypedArrayIndexOf(xtarray pArray, const ptr pItem)
+{
+	uint32 i;
+	if ( pArray == NULL || pItem == NULL ) {
+		return -1;
+	}
+	for ( i = 1; i <= pArray->Array.Count; ++i ) {
+		if ( __xrtTypedCompareItem(pArray->ItemType, xrtArrayGet_Unsafe(&pArray->Array, i), pItem) == 0 ) {
+			return (int64)(i - 1);
+		}
+	}
+	return -1;
+}
+XXAPI int64 xrtTypedArrayIndexOfValue(xtarray pArray, xvalue pVal)
+{
+	ptr pItem;
+	int64 iRet;
+	if ( pArray == NULL ) {
+		return -1;
+	}
+	pItem = __xrtTypedUnboxTemp(pArray->ItemType, pVal);
+	if ( pItem == NULL ) {
+		return -1;
+	}
+	iRet = xrtTypedArrayIndexOf(pArray, pItem);
+	__xrtTypedFreeTemp(pArray->ItemType, pItem);
+	return iRet;
+}
+XXAPI bool xrtTypedArrayContains(xtarray pArray, const ptr pItem)
+{
+	return xrtTypedArrayIndexOf(pArray, pItem) >= 0;
+}
+XXAPI bool xrtTypedArrayContainsValue(xtarray pArray, xvalue pVal)
+{
+	return xrtTypedArrayIndexOfValue(pArray, pVal) >= 0;
+}
+XXAPI bool xrtTypedArrayExtend(xtarray pTarget, xtarray pSource)
+{
+	uint32 i;
+	uint32 iCount;
+	xtarray pSnapshot = NULL;
+	if ( pTarget == NULL || pSource == NULL ) {
+		return FALSE;
+	}
+	if ( !__xrtTypedSameItemType(pTarget->ItemType, pSource->ItemType) ) {
+		return FALSE;
+	}
+	if ( pTarget == pSource ) {
+		pSnapshot = xrtTypedArrayClone(pSource);
+		if ( pSnapshot == NULL ) {
+			return FALSE;
+		}
+		pSource = pSnapshot;
+	}
+	iCount = pSource->Array.Count;
+	for ( i = 1; i <= iCount; ++i ) {
+		if ( xrtTypedArrayAppend(pTarget, xrtArrayGet_Unsafe(&pSource->Array, i)) == NULL ) {
+			if ( pSnapshot != NULL ) {
+				xrtTypedArrayDestroy(pSnapshot);
+			}
+			return FALSE;
+		}
+	}
+	if ( pSnapshot != NULL ) {
+		xrtTypedArrayDestroy(pSnapshot);
+	}
+	return TRUE;
+}
+XXAPI xtarray xrtTypedArrayClone(xtarray pArray)
+{
+	xtarray pRet;
+	if ( pArray == NULL ) {
+		return NULL;
+	}
+	pRet = xrtTypedArrayCreate(pArray->ItemType, XRT_OBJMODE_LOCAL);
+	if ( pRet == NULL ) {
+		return NULL;
+	}
+	if ( !xrtTypedArrayExtend(pRet, pArray) ) {
+		xrtTypedArrayDestroy(pRet);
+		return NULL;
+	}
+	return pRet;
+}
+XXAPI xtarray xrtTypedArrayConcat(xtarray pLeft, xtarray pRight)
+{
+	xtarray pRet;
+	if ( pLeft == NULL || pRight == NULL ) {
+		return NULL;
+	}
+	if ( !__xrtTypedSameItemType(pLeft->ItemType, pRight->ItemType) ) {
+		return NULL;
+	}
+	pRet = xrtTypedArrayClone(pLeft);
+	if ( pRet == NULL ) {
+		return NULL;
+	}
+	if ( !xrtTypedArrayExtend(pRet, pRight) ) {
+		xrtTypedArrayDestroy(pRet);
+		return NULL;
+	}
+	return pRet;
+}
+XXAPI bool xrtTypedArrayEquals(xtarray pLeft, xtarray pRight)
+{
+	uint32 i;
+	if ( pLeft == NULL || pRight == NULL ) {
+		return FALSE;
+	}
+	if ( !__xrtTypedSameItemType(pLeft->ItemType, pRight->ItemType) ) {
+		return FALSE;
+	}
+	if ( pLeft->Array.Count != pRight->Array.Count ) {
+		return FALSE;
+	}
+	for ( i = 1; i <= pLeft->Array.Count; ++i ) {
+		if ( __xrtTypedCompareItem(pLeft->ItemType, xrtArrayGet_Unsafe(&pLeft->Array, i), xrtArrayGet_Unsafe(&pRight->Array, i)) != 0 ) {
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
 XXAPI uint32 xrtTypedArrayCount(xtarray pArray)
 {
 	return pArray != NULL ? pArray->Array.Count : 0;
@@ -85931,6 +86439,59 @@ static bool __xrtTypedListItemAtProc(int64 iKey, ptr pVal, ptr pArg)
 		return TRUE;
 	}
 	pState->Pos++;
+	return FALSE;
+}
+typedef struct __xrt_typed_list_contains_arg {
+	const xrt_type_desc* ItemType;
+	ptr Item;
+	bool Found;
+} __xrt_typed_list_contains_arg;
+static bool __xrtTypedListContainsProc(int64 iKey, ptr pVal, ptr pArg)
+{
+	__xrt_typed_list_contains_arg* pState = (__xrt_typed_list_contains_arg*)pArg;
+	(void)iKey;
+	if ( pState == NULL || pState->Item == NULL ) {
+		return TRUE;
+	}
+	if ( __xrtTypedCompareItem(pState->ItemType, pVal, pState->Item) == 0 ) {
+		pState->Found = TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+typedef struct __xrt_typed_list_merge_arg {
+	xtlist Target;
+	bool Failed;
+} __xrt_typed_list_merge_arg;
+static bool __xrtTypedListMergeProc(int64 iKey, ptr pVal, ptr pArg)
+{
+	__xrt_typed_list_merge_arg* pState = (__xrt_typed_list_merge_arg*)pArg;
+	if ( pState == NULL || pState->Target == NULL ) {
+		return TRUE;
+	}
+	if ( xrtTypedListSet(pState->Target, iKey, pVal) == NULL ) {
+		pState->Failed = TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+typedef struct __xrt_typed_list_equals_arg {
+	xtlist Right;
+	const xrt_type_desc* ItemType;
+	bool Equal;
+} __xrt_typed_list_equals_arg;
+static bool __xrtTypedListEqualsProc(int64 iKey, ptr pVal, ptr pArg)
+{
+	ptr pRightVal;
+	__xrt_typed_list_equals_arg* pState = (__xrt_typed_list_equals_arg*)pArg;
+	if ( pState == NULL || pState->Right == NULL ) {
+		return TRUE;
+	}
+	pRightVal = xrtTypedListGet(pState->Right, iKey);
+	if ( pRightVal == NULL || __xrtTypedCompareItem(pState->ItemType, pVal, pRightVal) != 0 ) {
+		pState->Equal = FALSE;
+		return TRUE;
+	}
 	return FALSE;
 }
 XXAPI xtlist xrtTypedListCreate(const xrt_type_desc* pItemType, uint32 iMode)
@@ -86036,6 +86597,140 @@ XXAPI bool xrtTypedListRemove(xtlist pList, int64 iKey)
 	__xrtTypedDropItem(pList->ItemType, pSlot);
 	return xrtListRemove(&pList->List, iKey);
 }
+XXAPI bool xrtTypedListTake(xtlist pList, int64 iKey, ptr pOut)
+{
+	ptr pSlot;
+	if ( pList == NULL ) {
+		return FALSE;
+	}
+	pSlot = xrtListGet(&pList->List, iKey);
+	if ( pSlot == NULL ) {
+		return FALSE;
+	}
+	if ( pOut != NULL ) {
+		__xrtTypedCopyItem(pList->ItemType, pOut, pSlot);
+	}
+	__xrtTypedDropItem(pList->ItemType, pSlot);
+	return xrtListRemove(&pList->List, iKey);
+}
+XXAPI xvalue xrtTypedListTakeValue(xtlist pList, int64 iKey)
+{
+	ptr pSlot;
+	xvalue pRet;
+	if ( pList == NULL ) {
+		return xvoCreateNull();
+	}
+	pSlot = xrtListGet(&pList->List, iKey);
+	if ( pSlot == NULL ) {
+		return xvoCreateNull();
+	}
+	pRet = __xrtTypedBoxItem(pList->ItemType, pSlot);
+	__xrtTypedDropItem(pList->ItemType, pSlot);
+	xrtListRemove(&pList->List, iKey);
+	return pRet;
+}
+XXAPI bool xrtTypedListClear(xtlist pList)
+{
+	const xrt_type_desc* pType;
+	uint32 iLen;
+	if ( pList == NULL ) {
+		return FALSE;
+	}
+	pType = pList->ItemType;
+	iLen = pList->ItemLength;
+	xrtListWalk(&pList->List, __xrtTypedListDropProc, pList);
+	xrtListUnit(&pList->List);
+	xrtListInit(&pList->List, iLen, XRT_OBJMODE_LOCAL);
+	pList->ItemType = pType;
+	pList->ItemLength = iLen;
+	return TRUE;
+}
+XXAPI bool xrtTypedListContains(xtlist pList, const ptr pItem)
+{
+	__xrt_typed_list_contains_arg state;
+	if ( pList == NULL || pItem == NULL ) {
+		return FALSE;
+	}
+	state.ItemType = pList->ItemType;
+	state.Item = pItem;
+	state.Found = FALSE;
+	xrtListWalk(&pList->List, __xrtTypedListContainsProc, &state);
+	return state.Found;
+}
+XXAPI bool xrtTypedListContainsValue(xtlist pList, xvalue pVal)
+{
+	ptr pItem;
+	bool bRet;
+	if ( pList == NULL ) {
+		return FALSE;
+	}
+	pItem = __xrtTypedUnboxTemp(pList->ItemType, pVal);
+	if ( pItem == NULL ) {
+		return FALSE;
+	}
+	bRet = xrtTypedListContains(pList, pItem);
+	__xrtTypedFreeTemp(pList->ItemType, pItem);
+	return bRet;
+}
+XXAPI bool xrtTypedListMerge(xtlist pTarget, xtlist pSource)
+{
+	__xrt_typed_list_merge_arg state;
+	xtlist pSnapshot = NULL;
+	if ( pTarget == NULL || pSource == NULL ) {
+		return FALSE;
+	}
+	if ( !__xrtTypedSameItemType(pTarget->ItemType, pSource->ItemType) ) {
+		return FALSE;
+	}
+	if ( pTarget == pSource ) {
+		pSnapshot = xrtTypedListClone(pSource);
+		if ( pSnapshot == NULL ) {
+			return FALSE;
+		}
+		pSource = pSnapshot;
+	}
+	state.Target = pTarget;
+	state.Failed = FALSE;
+	xrtListWalk(&pSource->List, __xrtTypedListMergeProc, &state);
+	if ( pSnapshot != NULL ) {
+		xrtTypedListDestroy(pSnapshot);
+	}
+	return state.Failed == FALSE;
+}
+XXAPI xtlist xrtTypedListClone(xtlist pList)
+{
+	xtlist pRet;
+	if ( pList == NULL ) {
+		return NULL;
+	}
+	pRet = xrtTypedListCreate(pList->ItemType, XRT_OBJMODE_LOCAL);
+	if ( pRet == NULL ) {
+		return NULL;
+	}
+	if ( !xrtTypedListMerge(pRet, pList) ) {
+		xrtTypedListDestroy(pRet);
+		return NULL;
+	}
+	return pRet;
+}
+XXAPI bool xrtTypedListEquals(xtlist pLeft, xtlist pRight)
+{
+	__xrt_typed_list_equals_arg state;
+	if ( pLeft == NULL || pRight == NULL ) {
+		return FALSE;
+	}
+	if ( !__xrtTypedSameItemType(pLeft->ItemType, pRight->ItemType) ) {
+		return FALSE;
+	}
+	if ( xrtListCount(&pLeft->List) != xrtListCount(&pRight->List) ) {
+		return FALSE;
+	}
+	state.Right = pRight;
+	state.ItemType = pLeft->ItemType;
+	state.Equal = TRUE;
+	xrtListWalk(&pLeft->List, __xrtTypedListEqualsProc, &state);
+	return state.Equal;
+}
 XXAPI uint32 xrtTypedListCount(xtlist pList)
 {
 	return pList != NULL ? xrtListCount(&pList->List) : 0;
@@ -86101,6 +86796,36 @@ XXAPI bool xrtTypedSetAddValue(xtset pSet, xvalue pVal)
 	__xrtTypedFreeTemp(pSet->ItemType, pItem);
 	return bOk;
 }
+XXAPI bool xrtTypedSetExistsValue(xtset pSet, xvalue pVal)
+{
+	ptr pItem;
+	bool bOk;
+	if ( pSet == NULL ) {
+		return FALSE;
+	}
+	pItem = __xrtTypedUnboxTemp(pSet->ItemType, pVal);
+	if ( pItem == NULL ) {
+		return FALSE;
+	}
+	bOk = xrtTypedSetExists(pSet, pItem);
+	__xrtTypedFreeTemp(pSet->ItemType, pItem);
+	return bOk;
+}
+XXAPI bool xrtTypedSetRemoveValue(xtset pSet, xvalue pVal)
+{
+	ptr pItem;
+	bool bOk;
+	if ( pSet == NULL ) {
+		return FALSE;
+	}
+	pItem = __xrtTypedUnboxTemp(pSet->ItemType, pVal);
+	if ( pItem == NULL ) {
+		return FALSE;
+	}
+	bOk = xrtTypedSetRemove(pSet, pItem);
+	__xrtTypedFreeTemp(pSet->ItemType, pItem);
+	return bOk;
+}
 XXAPI ptr xrtTypedSetGet(xtset pSet, const ptr pItem)
 {
 	if ( pSet == NULL ) {
@@ -86129,6 +86854,110 @@ XXAPI ptr xrtTypedSetItemAt(xtset pSet, uint32 iIndex)
 	}
 	return xrtSetItemAt(&pSet->Set, iIndex);
 }
+XXAPI bool xrtTypedSetClear(xtset pSet)
+{
+	if ( pSet == NULL ) {
+		return FALSE;
+	}
+	return xrtSetClear(&pSet->Set);
+}
+XXAPI bool xrtTypedSetMerge(xtset pTarget, xtset pSource)
+{
+	if ( pTarget == NULL || pSource == NULL ) {
+		return FALSE;
+	}
+	if ( !__xrtTypedSameItemType(pTarget->ItemType, pSource->ItemType) ) {
+		return FALSE;
+	}
+	return xrtSetMerge(&pTarget->Set, &pSource->Set);
+}
+XXAPI xtset xrtTypedSetClone(xtset pSet)
+{
+	xtset pRet;
+	if ( pSet == NULL ) {
+		return NULL;
+	}
+	pRet = xrtTypedSetCreate(pSet->ItemType, XRT_OBJMODE_LOCAL);
+	if ( pRet == NULL ) {
+		return NULL;
+	}
+	if ( !xrtTypedSetMerge(pRet, pSet) ) {
+		xrtTypedSetDestroy(pRet);
+		return NULL;
+	}
+	return pRet;
+}
+static xtset __xrtTypedSetFromRaw(xtset pBase, xset pRaw)
+{
+	xtset pRet;
+	if ( pBase == NULL || pRaw == NULL ) {
+		if ( pRaw != NULL ) {
+			xrtSetDestroy(pRaw);
+		}
+		return NULL;
+	}
+	pRet = xrtTypedSetCreate(pBase->ItemType, XRT_OBJMODE_LOCAL);
+	if ( pRet == NULL ) {
+		xrtSetDestroy(pRaw);
+		return NULL;
+	}
+	if ( !xrtSetMerge(&pRet->Set, pRaw) ) {
+		xrtTypedSetDestroy(pRet);
+		xrtSetDestroy(pRaw);
+		return NULL;
+	}
+	xrtSetDestroy(pRaw);
+	return pRet;
+}
+XXAPI xtset xrtTypedSetUnion(xtset pLeft, xtset pRight)
+{
+	if ( pLeft == NULL || pRight == NULL || !__xrtTypedSameItemType(pLeft->ItemType, pRight->ItemType) ) {
+		return NULL;
+	}
+	return __xrtTypedSetFromRaw(pLeft, xrtSetUnion(&pLeft->Set, &pRight->Set));
+}
+XXAPI xtset xrtTypedSetIntersection(xtset pLeft, xtset pRight)
+{
+	if ( pLeft == NULL || pRight == NULL || !__xrtTypedSameItemType(pLeft->ItemType, pRight->ItemType) ) {
+		return NULL;
+	}
+	return __xrtTypedSetFromRaw(pLeft, xrtSetIntersection(&pLeft->Set, &pRight->Set));
+}
+XXAPI xtset xrtTypedSetDifference(xtset pLeft, xtset pRight)
+{
+	if ( pLeft == NULL || pRight == NULL || !__xrtTypedSameItemType(pLeft->ItemType, pRight->ItemType) ) {
+		return NULL;
+	}
+	return __xrtTypedSetFromRaw(pLeft, xrtSetDifference(&pLeft->Set, &pRight->Set));
+}
+XXAPI xtset xrtTypedSetSymmetricDifference(xtset pLeft, xtset pRight)
+{
+	if ( pLeft == NULL || pRight == NULL || !__xrtTypedSameItemType(pLeft->ItemType, pRight->ItemType) ) {
+		return NULL;
+	}
+	return __xrtTypedSetFromRaw(pLeft, xrtSetSymmetricDifference(&pLeft->Set, &pRight->Set));
+}
+XXAPI bool xrtTypedSetIsSubset(xtset pLeft, xtset pRight, bool bProper)
+{
+	if ( pLeft == NULL || pRight == NULL || !__xrtTypedSameItemType(pLeft->ItemType, pRight->ItemType) ) {
+		return FALSE;
+	}
+	return xrtSetIsSubset(&pLeft->Set, &pRight->Set, bProper);
+}
+XXAPI bool xrtTypedSetIsSuperset(xtset pLeft, xtset pRight, bool bProper)
+{
+	if ( pLeft == NULL || pRight == NULL || !__xrtTypedSameItemType(pLeft->ItemType, pRight->ItemType) ) {
+		return FALSE;
+	}
+	return xrtSetIsSuperset(&pLeft->Set, &pRight->Set, bProper);
+}
+XXAPI bool xrtTypedSetEquals(xtset pLeft, xtset pRight)
+{
+	if ( pLeft == NULL || pRight == NULL || !__xrtTypedSameItemType(pLeft->ItemType, pRight->ItemType) ) {
+		return FALSE;
+	}
+	return xrtSetEquals(&pLeft->Set, &pRight->Set);
+}
 XXAPI uint32 xrtTypedSetCount(xtset pSet)
 {
 	return pSet != NULL ? xrtSetCount(&pSet->Set) : 0;
@@ -86153,6 +86982,41 @@ static uint32 __xrtTypedDictKeyLen(const ptr sKey, uint32 iKeyLen)
 		return (uint32)strlen((const char*)sKey);
 	}
 	return iKeyLen;
+}
+typedef struct __xrt_typed_dict_merge_arg {
+	xtdict Target;
+	bool Failed;
+} __xrt_typed_dict_merge_arg;
+static bool __xrtTypedDictMergeProc(Dict_Key* pKey, ptr pVal, ptr pArg)
+{
+	__xrt_typed_dict_merge_arg* pState = (__xrt_typed_dict_merge_arg*)pArg;
+	if ( pState == NULL || pState->Target == NULL || pKey == NULL ) {
+		return TRUE;
+	}
+	if ( xrtTypedDictSet(pState->Target, pKey->Key, pKey->KeyLen, pVal) == NULL ) {
+		pState->Failed = TRUE;
+		return TRUE;
+	}
+	return FALSE;
+}
+typedef struct __xrt_typed_dict_equals_arg {
+	xtdict Right;
+	const xrt_type_desc* ItemType;
+	bool Equal;
+} __xrt_typed_dict_equals_arg;
+static bool __xrtTypedDictEqualsProc(Dict_Key* pKey, ptr pVal, ptr pArg)
+{
+	ptr pRightVal;
+	__xrt_typed_dict_equals_arg* pState = (__xrt_typed_dict_equals_arg*)pArg;
+	if ( pState == NULL || pState->Right == NULL || pKey == NULL ) {
+		return TRUE;
+	}
+	pRightVal = xrtTypedDictGet(pState->Right, pKey->Key, pKey->KeyLen);
+	if ( pRightVal == NULL || __xrtTypedCompareItem(pState->ItemType, pVal, pRightVal) != 0 ) {
+		pState->Equal = FALSE;
+		return TRUE;
+	}
+	return FALSE;
 }
 XXAPI xtdict xrtTypedDictCreate(const xrt_type_desc* pItemType, uint32 iMode)
 {
@@ -86280,6 +87144,115 @@ XXAPI bool xrtTypedDictRemove(xtdict pDict, const ptr sKey, uint32 iKeyLen)
 	}
 	__xrtTypedDropItem(pDict->ItemType, pSlot);
 	return xrtDictRemove(&pDict->Dict, (ptr)sKey, iKeyLen);
+}
+XXAPI bool xrtTypedDictTake(xtdict pDict, const ptr sKey, uint32 iKeyLen, ptr pOut)
+{
+	ptr pSlot;
+	if ( pDict == NULL || sKey == NULL ) {
+		return FALSE;
+	}
+	iKeyLen = __xrtTypedDictKeyLen(sKey, iKeyLen);
+	pSlot = xrtDictGet(&pDict->Dict, (ptr)sKey, iKeyLen);
+	if ( pSlot == NULL ) {
+		return FALSE;
+	}
+	if ( pOut != NULL ) {
+		__xrtTypedCopyItem(pDict->ItemType, pOut, pSlot);
+	}
+	__xrtTypedDropItem(pDict->ItemType, pSlot);
+	return xrtDictRemove(&pDict->Dict, (ptr)sKey, iKeyLen);
+}
+XXAPI xvalue xrtTypedDictTakeValue(xtdict pDict, const ptr sKey, uint32 iKeyLen)
+{
+	ptr pSlot;
+	xvalue pRet;
+	if ( pDict == NULL || sKey == NULL ) {
+		return xvoCreateNull();
+	}
+	iKeyLen = __xrtTypedDictKeyLen(sKey, iKeyLen);
+	pSlot = xrtDictGet(&pDict->Dict, (ptr)sKey, iKeyLen);
+	if ( pSlot == NULL ) {
+		return xvoCreateNull();
+	}
+	pRet = __xrtTypedBoxItem(pDict->ItemType, pSlot);
+	__xrtTypedDropItem(pDict->ItemType, pSlot);
+	xrtDictRemove(&pDict->Dict, (ptr)sKey, iKeyLen);
+	return pRet;
+}
+XXAPI bool xrtTypedDictClear(xtdict pDict)
+{
+	const xrt_type_desc* pType;
+	uint32 iLen;
+	if ( pDict == NULL ) {
+		return FALSE;
+	}
+	pType = pDict->ItemType;
+	iLen = pDict->ItemLength;
+	xrtDictWalk(&pDict->Dict, __xrtTypedDictDropProc, pDict);
+	xrtDictUnit(&pDict->Dict);
+	xrtDictInit(&pDict->Dict, iLen, XRT_OBJMODE_LOCAL);
+	pDict->ItemType = pType;
+	pDict->ItemLength = iLen;
+	return TRUE;
+}
+XXAPI bool xrtTypedDictMerge(xtdict pTarget, xtdict pSource)
+{
+	__xrt_typed_dict_merge_arg state;
+	xtdict pSnapshot = NULL;
+	if ( pTarget == NULL || pSource == NULL ) {
+		return FALSE;
+	}
+	if ( !__xrtTypedSameItemType(pTarget->ItemType, pSource->ItemType) ) {
+		return FALSE;
+	}
+	if ( pTarget == pSource ) {
+		pSnapshot = xrtTypedDictClone(pSource);
+		if ( pSnapshot == NULL ) {
+			return FALSE;
+		}
+		pSource = pSnapshot;
+	}
+	state.Target = pTarget;
+	state.Failed = FALSE;
+	xrtDictWalk(&pSource->Dict, __xrtTypedDictMergeProc, &state);
+	if ( pSnapshot != NULL ) {
+		xrtTypedDictDestroy(pSnapshot);
+	}
+	return state.Failed == FALSE;
+}
+XXAPI xtdict xrtTypedDictClone(xtdict pDict)
+{
+	xtdict pRet;
+	if ( pDict == NULL ) {
+		return NULL;
+	}
+	pRet = xrtTypedDictCreate(pDict->ItemType, XRT_OBJMODE_LOCAL);
+	if ( pRet == NULL ) {
+		return NULL;
+	}
+	if ( !xrtTypedDictMerge(pRet, pDict) ) {
+		xrtTypedDictDestroy(pRet);
+		return NULL;
+	}
+	return pRet;
+}
+XXAPI bool xrtTypedDictEquals(xtdict pLeft, xtdict pRight)
+{
+	__xrt_typed_dict_equals_arg state;
+	if ( pLeft == NULL || pRight == NULL ) {
+		return FALSE;
+	}
+	if ( !__xrtTypedSameItemType(pLeft->ItemType, pRight->ItemType) ) {
+		return FALSE;
+	}
+	if ( xrtDictCount(&pLeft->Dict) != xrtDictCount(&pRight->Dict) ) {
+		return FALSE;
+	}
+	state.Right = pRight;
+	state.ItemType = pLeft->ItemType;
+	state.Equal = TRUE;
+	xrtDictWalk(&pLeft->Dict, __xrtTypedDictEqualsProc, &state);
+	return state.Equal;
 }
 XXAPI uint32 xrtTypedDictCount(xtdict pDict)
 {
@@ -87830,8 +88803,30 @@ XXAPI bool xvoSetClear(xvalue pSet)
 	if ( (pSet == NULL) || !__xvoIsSetValue(pSet) ) {
 		return FALSE;
 	}
-	xrtSetUnit(pSet->vSet);
-	return TRUE;
+	return xrtSetClear(pSet->vSet);
+}
+static xvalue __xvoCreateSetFromRaw(xset pRawSet)
+{
+	xvalue pRet;
+	if ( pRawSet == NULL ) {
+		return &XVO_VALUE_NULL;
+	}
+	pRet = xvoCreateSet();
+	if ( pRet == NULL || pRet == &XVO_VALUE_NULL ) {
+		xrtSetDestroy(pRawSet);
+		return &XVO_VALUE_NULL;
+	}
+	if ( !xrtSetMerge(pRet->vSet, pRawSet) ) {
+		xvoUnref(pRet);
+		xrtSetDestroy(pRawSet);
+		return &XVO_VALUE_NULL;
+	}
+	xrtSetDestroy(pRawSet);
+	return pRet;
+}
+static bool __xvoBothAreSetValues(xvalue pLeft, xvalue pRight)
+{
+	return __xvoIsSetValue(pLeft) && __xvoIsSetValue(pRight);
 }
 // Coll 获取差集 [ pSelf 集合相对 pColl 集合没有的元素 ]
 struct CollProcParam {
@@ -87860,7 +88855,10 @@ XXAPI xvalue xvoCollDifference(xvalue pSelf, xvalue pColl)
 		return &XVO_VALUE_NULL;
 	}
 	if ( __xvoIsSetValue(pSelf) || __xvoIsSetValue(pColl) ) {
-		return &XVO_VALUE_NULL;
+		if ( !__xvoBothAreSetValues(pSelf, pColl) ) {
+			return &XVO_VALUE_NULL;
+		}
+		return __xvoCreateSetFromRaw(xrtSetDifference(pSelf->vSet, pColl->vSet));
 	}
 	xvalue pRetVal = xvoCreateColl();
 	struct CollProcParam param = { pColl, pRetVal };
@@ -87880,7 +88878,10 @@ XXAPI xvalue xvoCollSymmetricDifference(xvalue pSelf, xvalue pColl)
 		return &XVO_VALUE_NULL;
 	}
 	if ( __xvoIsSetValue(pSelf) || __xvoIsSetValue(pColl) ) {
-		return &XVO_VALUE_NULL;
+		if ( !__xvoBothAreSetValues(pSelf, pColl) ) {
+			return &XVO_VALUE_NULL;
+		}
+		return __xvoCreateSetFromRaw(xrtSetSymmetricDifference(pSelf->vSet, pColl->vSet));
 	}
 	xvalue pRetVal = xvoCreateColl();
 	struct CollProcParam param = { pColl, pRetVal };
@@ -87911,7 +88912,10 @@ XXAPI xvalue xvoCollIntersection(xvalue pSelf, xvalue pColl)
 		return &XVO_VALUE_NULL;
 	}
 	if ( __xvoIsSetValue(pSelf) || __xvoIsSetValue(pColl) ) {
-		return &XVO_VALUE_NULL;
+		if ( !__xvoBothAreSetValues(pSelf, pColl) ) {
+			return &XVO_VALUE_NULL;
+		}
+		return __xvoCreateSetFromRaw(xrtSetIntersection(pSelf->vSet, pColl->vSet));
 	}
 	xvalue pRetVal = xvoCreateColl();
 	struct CollProcParam param = { pColl, pRetVal };
@@ -87937,7 +88941,10 @@ XXAPI xvalue xvoCollUnion(xvalue pSelf, xvalue pColl)
 		return &XVO_VALUE_NULL;
 	}
 	if ( __xvoIsSetValue(pSelf) || __xvoIsSetValue(pColl) ) {
-		return &XVO_VALUE_NULL;
+		if ( !__xvoBothAreSetValues(pSelf, pColl) ) {
+			return &XVO_VALUE_NULL;
+		}
+		return __xvoCreateSetFromRaw(xrtSetUnion(pSelf->vSet, pColl->vSet));
 	}
 	xvalue pRetVal = xvoCreateColl();
 	xrtAVLTreeWalk(pSelf->vColl, (ptr)xvoCollUnion_EachProc, pRetVal->vColl);
@@ -87957,7 +88964,10 @@ XXAPI bool xvoCollMerge(xvalue pSelf, xvalue pColl)
 		return FALSE;
 	}
 	if ( __xvoIsSetValue(pSelf) || __xvoIsSetValue(pColl) ) {
-		return FALSE;
+		if ( !__xvoBothAreSetValues(pSelf, pColl) ) {
+			return FALSE;
+		}
+		return xrtSetMerge(pSelf->vSet, pColl->vSet);
 	}
 	xrtAVLTreeWalk(pColl->vColl, (ptr)xvoCollUnion_EachProc, pSelf->vColl);
 	return TRUE;

@@ -8,6 +8,66 @@ string missingImagePath = "examples_out/extlibs/clipboard_missing.bmp"
 int cfText = 1
 int cfUnicodeText = 13
 
+func clipboard_clear_retry() as bool
+    for i in range(0, 10)
+        if clipboard.clear() then
+            return true
+        end
+        time.sleep(30)
+    end
+    return false
+end
+
+func clipboard_set_text_retry(string text) as bool
+    for i in range(0, 10)
+        if clipboard.set_text(text) then
+            return true
+        end
+        time.sleep(30)
+    end
+    return false
+end
+
+func clipboard_write_text_retry(string text) as bool
+    for i in range(0, 10)
+        if clipboard.write_text(text) then
+            return true
+        end
+        time.sleep(30)
+    end
+    return false
+end
+
+func clipboard_set_file_retry(string path) as bool
+    for i in range(0, 10)
+        if clipboard.set_file(path) then
+            return true
+        end
+        time.sleep(30)
+    end
+    return false
+end
+
+func clipboard_set_files_retry(array paths) as bool
+    for i in range(0, 10)
+        if clipboard.set_files(paths) then
+            return true
+        end
+        time.sleep(30)
+    end
+    return false
+end
+
+func clipboard_write_files_retry(array paths) as bool
+    for i in range(0, 10)
+        if clipboard.write_files(paths) then
+            return true
+        end
+        time.sleep(30)
+    end
+    return false
+end
+
 file.writeText(filePath, "clipboard file marker")
 file.delete(imagePath)
 
@@ -26,7 +86,7 @@ assert cfUnicodeText == 13, "CF_UNICODETEXT mismatch"
 assert clipboard.format_name(cfUnicodeText) == "CF_UNICODETEXT", "format_name mismatch"
 assert clipboard.is_format_available(-1) == false, "negative format should not be available"
 
-assert clipboard.clear(), "clipboard clear failed"
+assert clipboard_clear_retry(), "clipboard clear failed"
 assert clipboard.count_formats() == 0, "clear should remove formats"
 assert clipboard.has_text() == false, "text should not be available after clear"
 assert clipboard.has_image() == false, "image should not be available after clear"
@@ -35,18 +95,18 @@ var emptyTypes = clipboard.types()
 assert emptyTypes.length == 0, "types should be empty after clear"
 assert clipboard.types_json() == clipboard.formats_json(), "types_json alias mismatch"
 
-assert clipboard.set_text(sample), "set_text failed"
+assert clipboard_set_text_retry(sample), "set_text failed"
 assert clipboard.has_text(), "has_text failed"
 assert clipboard.get_text() == sample, "get_text mismatch"
 assert clipboard.read_text() == sample, "read_text alias mismatch"
-assert clipboard.write_text(sample + " write"), "write_text failed"
+assert clipboard_write_text_retry(sample + " write"), "write_text failed"
 assert clipboard.get_text() == sample + " write", "write_text mismatch"
 assert clipboard.count_formats() > 0, "set_text should create formats"
 assert string.contains(clipboard.formats_json(), "CF_UNICODETEXT"), "formats_json should include text format"
 var textTypes = clipboard.types()
 assert textTypes.length > 0, "types should include text format"
 
-assert clipboard.set_file(filePath), "set_file failed"
+assert clipboard_set_file_retry(filePath), "set_file failed"
 assert clipboard.has_files(), "has_files failed"
 assert clipboard.get_file() == filePath, "get_file mismatch"
 var files = clipboard.get_files()
@@ -55,9 +115,9 @@ assert string(files[0]) == filePath, "get_files path mismatch"
 var readFiles = clipboard.read_files()
 assert readFiles.length == 1, "read_files count mismatch"
 assert string(readFiles[0]) == filePath, "read_files path mismatch"
-assert clipboard.set_files([filePath]), "set_files failed"
+assert clipboard_set_files_retry([filePath]), "set_files failed"
 assert clipboard.get_file() == filePath, "set_files get_file mismatch"
-assert clipboard.write_files([filePath]), "write_files failed"
+assert clipboard_write_files_retry([filePath]), "write_files failed"
 assert clipboard.get_file() == filePath, "write_files get_file mismatch"
 
 assert clipboard.save_image(imagePath) == false, "save_image should fail when clipboard has file data"
@@ -73,7 +133,7 @@ assert clipboard.sequence_number() >= 0, "sequence_number should be non-negative
 if snapshotOk then
     assert clipboard.restore(), "clipboard restore failed"
 else
-    clipboard.clear()
+    clipboard_clear_retry()
 end
 assert clipboard.count_formats() >= 0, "count_formats should remain callable after restore"
 

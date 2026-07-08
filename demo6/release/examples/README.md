@@ -13,6 +13,8 @@
 - `hello.xl`：最小程序、CLI 基础阶段示例；回归：`lex`、`parse`、`check`、`cgen`、`ir`。
 - `literals.xl`：数字、字符串、time 等字面量基础示例；回归：`lex`、`parse`。
 - `containers.xl`：容器字面量、索引和基础操作；回归：`check`、`run`。
+- `container_methods.xl`：typed/dynamic 容器成员 API 示例；回归：`check`、`run`。
+- `container_ops.xl`：typed 容器拼接、集合运算和复合赋值示例；回归：`check`、`run`。
 - `anonymous_functions.xl`：匿名函数与函数值基础示例；回归：`check`。
 - `generic_identity.xl`：泛型函数最小示例；回归：`check`。
 - `generics.xl`：泛型函数、泛型调用和泛型容器示例；回归：`check`。

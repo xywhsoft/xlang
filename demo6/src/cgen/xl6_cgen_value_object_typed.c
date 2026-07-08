@@ -25,6 +25,9 @@ static void xl6CgenDefaultXValueForTarget(XL6_CgenContext* ctx, const XL6_AstNod
 }
 
 static int xl6CgenAwaitExprReturnsOwnedTemporaryCtx(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+static const XL6_AstNode* xl6CgenTypedContainerInitLiteral(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr);
+static int xl6CgenTypedContainerCanCopyFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr);
+static int xl6CgenTypedContainerCanMoveFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr);
 
 static int xl6CgenDeclShouldUseTypedContainer(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr, int declaredAuto)
 {
@@ -34,7 +37,12 @@ static int xl6CgenDeclShouldUseTypedContainer(XL6_CgenContext* ctx, const XL6_As
     if ( !declaredAuto ) {
         return 1;
     }
-    return initExpr != NULL && initExpr->kind == XL6_AST_TYPED_LITERAL;
+    if ( initExpr == NULL ) {
+        return 0;
+    }
+    return xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ||
+           xl6CgenTypedContainerCanCopyFromExpr(ctx, typeNode, initExpr) ||
+           xl6CgenTypedContainerCanMoveFromExpr(ctx, typeNode, initExpr);
 }
 
 static void xl6CgenTypedContainerCreateExprMode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* mode)
@@ -180,8 +188,19 @@ static int xl6CgenTypedContainerCanCopyFromExpr(XL6_CgenContext* ctx, const XL6_
 
 static int xl6CgenTypedContainerCanMoveFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr)
 {
+    XL6_AstNode* binaryResultType;
+    int canMoveBinary;
+
     if ( initExpr == NULL || xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
         return 0;
+    }
+    binaryResultType = NULL;
+    canMoveBinary = initExpr->kind == XL6_AST_BINARY &&
+                    xl6CgenTypedContainerBinaryInfo(ctx, initExpr, &binaryResultType, NULL) &&
+                    xl6CgenTypedContainerExprTypeMatches(ctx, typeNode, initExpr);
+    xl6AstFree(binaryResultType);
+    if ( canMoveBinary ) {
+        return 1;
     }
     if ( initExpr->kind == XL6_AST_AWAIT ) {
         if ( !xl6CgenAwaitExprReturnsOwnedTemporaryCtx(ctx, initExpr) ) {

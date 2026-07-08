@@ -70,94 +70,6 @@ static XL6_AstNode* xl6CgenCloneAsyncCallType(
     return xl6CgenNewGenericTypeNode("future", valueType, at != NULL ? at : func);
 }
 
-static XL6_AstNode* xl6CgenCloneCommonLiteralElementType(XL6_CgenContext* ctx, const XL6_AstNode* literal, int usePairValue)
-{
-    XL6_AstNode* common;
-    size_t i;
-
-    if ( literal == NULL || literal->childCount == 0 ) {
-        return NULL;
-    }
-
-    common = NULL;
-    for ( i = 0; i < literal->childCount; ++i ) {
-        const XL6_AstNode* item = literal->children[i];
-        const XL6_AstNode* value = usePairValue ?
-            (item != NULL && item->childCount > 1 ? item->children[1] : NULL) :
-            item;
-        XL6_AstNode* valueType = xl6CgenCloneExprTypeForInference(ctx, value);
-        XL6_AstNode* canonicalType;
-
-        if ( valueType == NULL ) {
-            xl6AstFree(common);
-            return NULL;
-        }
-        canonicalType = xl6CgenCloneCanonicalTypeNode(ctx, valueType);
-        xl6AstFree(valueType);
-        if ( canonicalType == NULL ) {
-            xl6AstFree(common);
-            return NULL;
-        }
-
-        if ( common == NULL ) {
-            common = canonicalType;
-        } else if ( xl6CgenTypeNodeEqual(common, canonicalType) ) {
-            xl6AstFree(canonicalType);
-        } else {
-            xl6AstFree(common);
-            xl6AstFree(canonicalType);
-            return NULL;
-        }
-    }
-    return common;
-}
-
-static const char* xl6CgenContainerLiteralName(const XL6_AstNode* literal)
-{
-    if ( literal == NULL ) {
-        return NULL;
-    }
-    switch ( literal->kind ) {
-    case XL6_AST_ARRAY_LITERAL:
-        return "array";
-    case XL6_AST_LIST_LITERAL:
-        return "list";
-    case XL6_AST_SET_LITERAL:
-        return "set";
-    case XL6_AST_DICT_LITERAL:
-        return "dict";
-    default:
-        return NULL;
-    }
-}
-
-static XL6_AstNode* xl6CgenCloneContainerLiteralType(
-    XL6_CgenContext* ctx,
-    const char* forcedName,
-    const XL6_AstNode* literal,
-    const XL6_AstNode* at)
-{
-    const char* name;
-    int usePairValue;
-    XL6_AstNode* elementType;
-
-    name = forcedName != NULL ? forcedName : xl6CgenContainerLiteralName(literal);
-    if ( name == NULL ) {
-        return NULL;
-    }
-
-    if ( literal == NULL || literal->childCount == 0 ) {
-        return xl6CgenNewSimpleType(name, at);
-    }
-
-    usePairValue = xl6CTextEquals(name, "list") || xl6CTextEquals(name, "dict");
-    elementType = xl6CgenCloneCommonLiteralElementType(ctx, literal, usePairValue);
-    if ( elementType == NULL ) {
-        return xl6CgenNewSimpleType(name, at);
-    }
-    return xl6CgenNewGenericTypeNode(name, elementType, at);
-}
-
 static XL6_AstNode* xl6CgenNewFunctionTypeFromParts(const XL6_AstNode* params, const XL6_AstNode* returns, const XL6_AstNode* at)
 {
     XL6_AstNode* typeNode;
@@ -579,6 +491,9 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         if ( expr->text != NULL &&
              (xl6CTextEquals(expr->text, "array") || xl6CTextEquals(expr->text, "list") ||
               xl6CTextEquals(expr->text, "set") || xl6CTextEquals(expr->text, "dict")) ) {
+            if ( expr->childCount > 1 && expr->children[1] != NULL ) {
+                return xl6CgenCloneCanonicalTypeNode(ctx, expr->children[1]);
+            }
             return xl6CgenCloneContainerLiteralType(
                 ctx,
                 expr->text,
@@ -645,6 +560,51 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         return NULL;
     }
     case XL6_AST_BINARY:
+        if ( xl6CTextEquals(expr->text, "+") ) {
+            XL6_AstNode* leftType = expr->childCount > 0 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
+            XL6_AstNode* rightType = expr->childCount > 1 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[1]) : NULL;
+            XL6_AstNode* leftCanonical = xl6CgenCloneCanonicalTypeNode(ctx, leftType);
+            XL6_AstNode* rightCanonical = xl6CgenCloneCanonicalTypeNode(ctx, rightType);
+            const XL6_AstNode* leftContainer = xl6CgenTypedContainerConcreteType(ctx, leftCanonical);
+            const char* leftContainerName = leftContainer != NULL ? leftContainer->text : NULL;
+            int sameType = leftCanonical != NULL && rightCanonical != NULL &&
+                           xl6CgenTypeNodeEqual(leftCanonical, rightCanonical);
+            int isString = leftType != NULL && rightType != NULL &&
+                           xl6CTextEquals(leftType->text, "string") &&
+                           xl6CTextEquals(rightType->text, "string");
+            int isTypedContainerConcat = sameType &&
+                                         (xl6CTextEquals(leftContainerName, "array") ||
+                                          xl6CTextEquals(leftContainerName, "list") ||
+                                          xl6CTextEquals(leftContainerName, "dict"));
+            int isXValue = !isTypedContainerConcat &&
+                            (xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType));
+            int isNumeric = leftType != NULL && rightType != NULL &&
+                            (xl6CgenIsIntegerTypeName(leftType->text) || xl6CgenIsFloatTypeName(leftType->text)) &&
+                            (xl6CgenIsIntegerTypeName(rightType->text) || xl6CgenIsFloatTypeName(rightType->text));
+            int isFloat = isNumeric &&
+                          (xl6CgenIsFloatTypeName(leftType->text) || xl6CgenIsFloatTypeName(rightType->text));
+            if ( isTypedContainerConcat ) {
+                XL6_AstNode* result = xl6CgenCloneTypeNode(leftCanonical);
+                xl6AstFree(leftType);
+                xl6AstFree(rightType);
+                xl6AstFree(leftCanonical);
+                xl6AstFree(rightCanonical);
+                return result;
+            }
+            xl6AstFree(leftType);
+            xl6AstFree(rightType);
+            xl6AstFree(leftCanonical);
+            xl6AstFree(rightCanonical);
+            if ( isString ) {
+                return xl6CgenNewSimpleType("string", expr);
+            }
+            if ( isXValue ) {
+                return xl6CgenNewSimpleType("var", expr);
+            }
+            if ( isNumeric ) {
+                return xl6CgenNewSimpleType(isFloat ? "float" : "int", expr);
+            }
+        }
         if ( expr->childCount > 1 ) {
             const char* protocolName = NULL;
             XL6_AstNode* receiverType = NULL;
@@ -675,6 +635,12 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
                 return protocolType;
             }
         }
+        {
+            XL6_AstNode* containerResultType = NULL;
+            if ( xl6CgenTypedContainerBinaryInfo(ctx, expr, &containerResultType, NULL) ) {
+                return containerResultType;
+            }
+        }
         if ( xl6CTextEquals(expr->text, "and") || xl6CTextEquals(expr->text, "or") ||
              xl6CTextEquals(expr->text, "==") || xl6CTextEquals(expr->text, "!=") ||
              xl6CTextEquals(expr->text, "~=") ||
@@ -703,30 +669,6 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             xl6AstFree(leftType);
             xl6AstFree(rightType);
             return result;
-        }
-        if ( xl6CTextEquals(expr->text, "+") ) {
-            XL6_AstNode* leftType = expr->childCount > 0 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
-            XL6_AstNode* rightType = expr->childCount > 1 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[1]) : NULL;
-            int isString = leftType != NULL && rightType != NULL &&
-                           xl6CTextEquals(leftType->text, "string") &&
-                           xl6CTextEquals(rightType->text, "string");
-            int isXValue = xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType);
-            int isNumeric = leftType != NULL && rightType != NULL &&
-                            (xl6CgenIsIntegerTypeName(leftType->text) || xl6CgenIsFloatTypeName(leftType->text)) &&
-                            (xl6CgenIsIntegerTypeName(rightType->text) || xl6CgenIsFloatTypeName(rightType->text));
-            int isFloat = isNumeric &&
-                          (xl6CgenIsFloatTypeName(leftType->text) || xl6CgenIsFloatTypeName(rightType->text));
-            xl6AstFree(leftType);
-            xl6AstFree(rightType);
-            if ( isString ) {
-                return xl6CgenNewSimpleType("string", expr);
-            }
-            if ( isXValue ) {
-                return xl6CgenNewSimpleType("var", expr);
-            }
-            if ( isNumeric ) {
-                return xl6CgenNewSimpleType(isFloat ? "float" : "int", expr);
-            }
         }
         if ( xl6CTextEquals(expr->text, "-") || xl6CTextEquals(expr->text, "*") ||
              xl6CTextEquals(expr->text, "/") ) {
@@ -941,6 +883,7 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
                                         xl6CTextEquals(callee->text, "append") ||
                                         xl6CTextEquals(callee->text, "insert") ||
                                         xl6CTextEquals(callee->text, "remove") ||
+                                        xl6CTextEquals(callee->text, "removeValue") ||
                                         xl6CTextEquals(callee->text, "pop") ||
                                         xl6CTextEquals(callee->text, "take") ||
                                         xl6CTextEquals(callee->text, "clear") ||
@@ -953,12 +896,17 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
                                         xl6CTextEquals(callee->text, "append") ||
                                         xl6CTextEquals(callee->text, "insert") ||
                                         xl6CTextEquals(callee->text, "remove") ||
+                                        xl6CTextEquals(callee->text, "removeValue") ||
                                         xl6CTextEquals(callee->text, "pop") ||
                                         xl6CTextEquals(callee->text, "take") ||
                                         xl6CTextEquals(callee->text, "clear") ||
                                         xl6CTextEquals(callee->text, "reserve") ||
                                         xl6CTextEquals(callee->text, "swap") ||
-                                        xl6CTextEquals(callee->text, "contains");
+                                        xl6CTextEquals(callee->text, "contains") ||
+                                        (typedContainer != NULL &&
+                                         xl6CTextEquals(typedContainer->text, "array") &&
+                                         (xl6CTextEquals(callee->text, "indexOf") ||
+                                          xl6CTextEquals(callee->text, "reverse")));
                 } else if ( isList ) {
                     isContainerMethod = xl6CTextEquals(callee->text, "remove") ||
                                         xl6CTextEquals(callee->text, "take") ||
@@ -976,14 +924,39 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
                                         xl6CTextEquals(callee->text, "clear");
                 }
 
-                xl6AstFree(receiverType);
                 if ( isContainerMethod ) {
                     if ( xl6CTextEquals(callee->text, "pop") ||
                          xl6CTextEquals(callee->text, "take") ) {
-                        return xl6CgenNewSimpleType("var", expr);
+                        const XL6_AstNode* itemType = (typedContainer != NULL &&
+                                                       xl6CTextEquals(typedContainer->text, "array"))
+                            ? xl6CgenTypedContainerItemType(ctx, receiverType)
+                            : NULL;
+                        const XL6_AstNode* concreteItemType = itemType != NULL
+                            ? xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, itemType))
+                            : NULL;
+                        if ( concreteItemType != NULL &&
+                             !(xl6CgenIsIntegerTypeName(concreteItemType->text) ||
+                               xl6CgenIsFloatTypeName(concreteItemType->text) ||
+                               xl6CgenIsBoolTypeName(concreteItemType->text) ||
+                               xl6CTextEquals(concreteItemType->text, "string") ||
+                               xl6CTextEquals(concreteItemType->text, "time") ||
+                               xl6CTextEquals(concreteItemType->text, "point")) ) {
+                            concreteItemType = NULL;
+                        }
+                        XL6_AstNode* result = concreteItemType != NULL
+                            ? xl6CgenCloneCanonicalTypeNode(ctx, concreteItemType)
+                            : xl6CgenNewSimpleType("var", expr);
+                        xl6AstFree(receiverType);
+                        return result;
                     }
+                    if ( xl6CTextEquals(callee->text, "indexOf") ) {
+                        xl6AstFree(receiverType);
+                        return xl6CgenNewSimpleType("int", expr);
+                    }
+                    xl6AstFree(receiverType);
                     return xl6CgenNewSimpleType("bool", expr);
                 }
+                xl6AstFree(receiverType);
             }
             XL6_AstNode* classMethodType = xl6CgenCloneClassMethodCallType(ctx, expr);
             XL6_AstNode* memberType = xl6CgenCloneMemberFieldTypeForInference(ctx, expr->children[0]);

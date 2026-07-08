@@ -36,9 +36,9 @@ auto literalFloat = 1.5
 auto literalBool = true
 auto literalString = "matrix"
 
-auto dynamicArray = [1, 2, 3]
-auto dynamicList = [0: "zero", 2: "two"]
-auto dynamicDict = {"count": 5}
+auto inferredArray = [1, 2, 3]
+auto inferredList = [0: "zero", 2: "two"]
+auto inferredDict = {"count": 5}
 
 array<int> typedArray = array[10, 20, 30]
 list<string> typedList = list[2: "two"]
@@ -49,9 +49,9 @@ auto typedListItem = typedList[2]
 auto typedDictItem = typedDict["count"]
 auto missingTypedItem = typedArray?[9]
 
-auto dynamicArrayItem = dynamicArray[1]
-auto dynamicListItem = dynamicList[2]
-auto dynamicDictItem = dynamicDict["count"]
+auto inferredArrayItem = inferredArray[1]
+auto inferredListItem = inferredList[2]
+auto inferredDictItem = inferredDict["count"]
 
 auto box = makeBox(7, "box")
 auto fieldValue = box.value
@@ -81,11 +81,11 @@ expectStr(typedListItem, "two")
 expect(typedDictItem, 9)
 expect(type(missingTypedItem) == null, 1)
 
-expect(type(dynamicArrayItem) == int, 1)
-expect(int(dynamicArrayItem), 2)
-expectStr(string(dynamicListItem), "two")
-expect(type(dynamicDictItem) == int, 1)
-expect(int(dynamicDictItem), 5)
+expect(type(inferredArrayItem) == int, 1)
+expect(int(inferredArrayItem), 2)
+expectStr(string(inferredListItem), "two")
+expect(type(inferredDictItem) == int, 1)
+expect(int(inferredDictItem), 5)
 
 expect(fieldValue, 7)
 expectStr(fieldText, "box")

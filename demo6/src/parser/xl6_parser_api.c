@@ -112,6 +112,9 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_TK_SLASH_ASSIGN: return XL6PG_SLASH_ASSIGN;
     case XL6_TK_PERCENT_ASSIGN: return XL6PG_PERCENT_ASSIGN;
     case XL6_TK_POW_ASSIGN: return XL6PG_POW_ASSIGN;
+    case XL6_TK_BIT_AND_ASSIGN: return XL6PG_BIT_AND_ASSIGN;
+    case XL6_TK_BIT_OR_ASSIGN: return XL6PG_BIT_OR_ASSIGN;
+    case XL6_TK_BIT_XOR_ASSIGN: return XL6PG_BIT_XOR_ASSIGN;
     case XL6_TK_NULL_ASSIGN: return XL6PG_NULL_ASSIGN;
     case XL6_TK_FAT_ARROW: return XL6PG_FAT_ARROW;
     case XL6_TK_ELLIPSIS: return XL6PG_ELLIPSIS;
@@ -873,6 +876,53 @@ static int xl6ParserSplitNestedGenericShr(XL6_ParseTokenStream* stream)
     return ok;
 }
 
+static int xl6ParserTokenTextIs(const XL6_Token* token, const char* text)
+{
+    size_t len;
+
+    if ( token == NULL || token->text == NULL || text == NULL ) {
+        return 0;
+    }
+    len = strlen(text);
+    return token->len == len && strncmp(token->text, text, len) == 0;
+}
+
+static int xl6ParserIsContainerLiteralTypeName(const XL6_Token* token)
+{
+    return xl6ParserTokenTextIs(token, "array") ||
+           xl6ParserTokenTextIs(token, "list") ||
+           xl6ParserTokenTextIs(token, "set") ||
+           xl6ParserTokenTextIs(token, "dict");
+}
+
+static void xl6ParserMarkContainerLiteralTypeLt(XL6_ParseTokenStream* stream)
+{
+    size_t i;
+    size_t afterType;
+    XL6_TokenKind nextKind;
+
+    if ( stream == NULL ) {
+        return;
+    }
+
+    for ( i = 0; i + 4 < stream->count; ++i ) {
+        if ( !xl6ParserIsContainerLiteralTypeName(&stream->tokens[i]) ) {
+            continue;
+        }
+        if ( stream->tokens[i + 1].kind != XL6_TK_LT ) {
+            continue;
+        }
+        if ( !xl6ParserMatchTypeRef(stream, i, &afterType) || afterType >= stream->count ) {
+            continue;
+        }
+
+        nextKind = stream->tokens[afterType].kind;
+        if ( nextKind == XL6_TK_LBRACKET || nextKind == XL6_TK_LBRACE ) {
+            stream->parserKinds[i + 1] = XL6PG_TYPE_LT;
+        }
+    }
+}
+
 static void xl6ParserMarkGenericDeclTypeLt(XL6_ParseTokenStream* stream)
 {
     size_t i;
@@ -936,6 +986,7 @@ static int xl6ParserReadTokens(XL6_Lexer* lexer, XL6_ParseTokenStream* stream, X
         return 0;
     }
     xl6ParserMarkFunctionTypeTokens(stream);
+    xl6ParserMarkContainerLiteralTypeLt(stream);
     xl6ParserMarkGenericDeclTypeLt(stream);
     return 1;
 }

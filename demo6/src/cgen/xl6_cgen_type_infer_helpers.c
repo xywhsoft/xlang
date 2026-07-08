@@ -160,6 +160,92 @@ static XL6_AstNode* xl6CgenNewGenericTypeNode(const char* name, XL6_AstNode* typ
     return typeNode;
 }
 
+static int xl6CgenTypedContainerBinaryInfo(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* expr,
+    XL6_AstNode** outResultType,
+    int* outBoolResult)
+{
+    XL6_AstNode* leftType;
+    XL6_AstNode* rightType;
+    XL6_AstNode* leftCanonical;
+    XL6_AstNode* rightCanonical;
+    const XL6_AstNode* leftConcrete;
+    const char* kind;
+    const char* op;
+    int sameType;
+    int ok;
+    int boolResult;
+
+    if ( outResultType != NULL ) {
+        *outResultType = NULL;
+    }
+    if ( outBoolResult != NULL ) {
+        *outBoolResult = 0;
+    }
+    if ( ctx == NULL || expr == NULL || expr->kind != XL6_AST_BINARY ||
+         expr->childCount < 2 || expr->text == NULL ) {
+        return 0;
+    }
+
+    op = expr->text;
+    leftType = xl6CgenCloneExprTypeForInference(ctx, expr->children[0]);
+    rightType = xl6CgenCloneExprTypeForInference(ctx, expr->children[1]);
+    leftCanonical = xl6CgenCloneCanonicalTypeNode(ctx, leftType);
+    rightCanonical = xl6CgenCloneCanonicalTypeNode(ctx, rightType);
+    leftConcrete = xl6CgenTypedContainerConcreteType(ctx, leftCanonical);
+    kind = leftConcrete != NULL ? leftConcrete->text : NULL;
+    sameType = leftCanonical != NULL && rightCanonical != NULL &&
+               xl6CgenTypeNodeEqual(leftCanonical, rightCanonical);
+    ok = 0;
+    boolResult = 0;
+
+    if ( kind != NULL ) {
+        if ( sameType &&
+             (xl6CTextEquals(op, "==") || xl6CTextEquals(op, "!=")) ) {
+            ok = 1;
+            boolResult = 1;
+        } else if ( sameType && xl6CTextEquals(kind, "array") &&
+                    xl6CTextEquals(op, "+") ) {
+            ok = 1;
+        } else if ( sameType && xl6CTextEquals(kind, "list") &&
+                    xl6CTextEquals(op, "+") ) {
+            ok = 1;
+        } else if ( xl6CTextEquals(kind, "list") && xl6CTextEquals(op, "-") &&
+                    rightCanonical != NULL && xl6CgenIsIntegerTypeName(rightCanonical->text) ) {
+            ok = 1;
+        } else if ( sameType && xl6CTextEquals(kind, "dict") &&
+                    xl6CTextEquals(op, "+") ) {
+            ok = 1;
+        } else if ( xl6CTextEquals(kind, "dict") && xl6CTextEquals(op, "-") &&
+                    rightCanonical != NULL && xl6CTextEquals(rightCanonical->text, "string") ) {
+            ok = 1;
+        } else if ( sameType && xl6CTextEquals(kind, "set") &&
+                    (xl6CTextEquals(op, "|") || xl6CTextEquals(op, "&") ||
+                     xl6CTextEquals(op, "-") || xl6CTextEquals(op, "^")) ) {
+            ok = 1;
+        } else if ( sameType && xl6CTextEquals(kind, "set") &&
+                    (xl6CTextEquals(op, "<") || xl6CTextEquals(op, "<=") ||
+                     xl6CTextEquals(op, ">") || xl6CTextEquals(op, ">=")) ) {
+            ok = 1;
+            boolResult = 1;
+        }
+    }
+
+    if ( ok && outResultType != NULL ) {
+        *outResultType = boolResult ? xl6CgenNewSimpleType("bool", expr) : xl6CgenCloneTypeNode(leftCanonical);
+    }
+    if ( ok && outBoolResult != NULL ) {
+        *outBoolResult = boolResult;
+    }
+
+    xl6AstFree(leftType);
+    xl6AstFree(rightType);
+    xl6AstFree(leftCanonical);
+    xl6AstFree(rightCanonical);
+    return ok;
+}
+
 static int xl6CgenIsFutureLikeType(const XL6_AstNode* typeNode)
 {
     return typeNode != NULL &&

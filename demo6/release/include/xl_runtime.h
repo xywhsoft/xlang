@@ -293,7 +293,7 @@ xvalue xvoTableGetValue(xvalue pTbl, const void* key, uint32 kl);
 bool xvoTableSetValue(xvalue pTbl, const void* key, uint32 kl, xvalue pVal, bool bColloc);
 bool xvoTableMerge(xvalue pTbl1, xvalue pTbl2, bool bReWrite);
 bool xvoTableExists(xvalue pTbl, str key, uint32 kl);
-bool xvoTableRemove(xvalue pTbl, const char* key, uint32 kl);
+bool xvoTableRemove(xvalue pTbl, str key, uint32 kl);
 xvalue xvoTableTakeValue(xvalue pTbl, str key, uint32 kl);
 bool xvoTableClear(xvalue pTbl);
 uint32 xvoTableItemCount(xvalue pTbl);
@@ -314,9 +314,19 @@ xtarray xrtTypedArrayCreate(const xrt_type_desc* pItemType, uint32 iMode);
 void xrtTypedArrayDestroy(xtarray pArray);
 ptr xrtTypedArrayAppend(xtarray pArray, const void* pItem);
 bool xrtTypedArrayAppendValue(xtarray pArray, xvalue pVal);
+bool xrtTypedArrayInsertValue(xtarray pArray, uint32 iPos, xvalue pVal);
+xvalue xrtTypedArrayTakeValue(xtarray pArray, uint32 iPos);
+xvalue xrtTypedArrayPopValue(xtarray pArray);
 bool xrtTypedArraySetValue(xtarray pArray, uint32 iPos, xvalue pVal);
 ptr xrtTypedArrayGet(xtarray pArray, uint32 iPos);
 bool xrtTypedArrayRemove(xtarray pArray, uint32 iPos, uint32 iCount);
+bool xrtTypedArrayClear(xtarray pArray);
+bool xrtTypedArrayReverse(xtarray pArray);
+int64 xrtTypedArrayIndexOfValue(xtarray pArray, xvalue pVal);
+bool xrtTypedArrayContainsValue(xtarray pArray, xvalue pVal);
+bool xrtTypedArrayExtend(xtarray pArray, xtarray pItems);
+xtarray xrtTypedArrayConcat(xtarray pA, xtarray pB);
+bool xrtTypedArrayEquals(xtarray pA, xtarray pB);
 uint32 xrtTypedArrayCount(xtarray pArray);
 xtlist xrtTypedListCreate(const xrt_type_desc* pItemType, uint32 iMode);
 void xrtTypedListDestroy(xtlist pList);
@@ -324,12 +334,29 @@ bool xrtTypedListSetValue(xtlist pList, int64 iKey, xvalue pVal);
 ptr xrtTypedListGet(xtlist pList, int64 iKey);
 ptr xrtTypedListItemAt(xtlist pList, uint32 iIndex, int64* pKey);
 bool xrtTypedListRemove(xtlist pList, int64 iKey);
+xvalue xrtTypedListTakeValue(xtlist pList, int64 iKey);
+bool xrtTypedListClear(xtlist pList);
+bool xrtTypedListContainsValue(xtlist pList, xvalue pVal);
+bool xrtTypedListMerge(xtlist pA, xtlist pB);
+xtlist xrtTypedListClone(xtlist pList);
+bool xrtTypedListEquals(xtlist pA, xtlist pB);
 uint32 xrtTypedListCount(xtlist pList);
 xtset xrtTypedSetCreate(const xrt_type_desc* pItemType, uint32 iMode);
 void xrtTypedSetDestroy(xtset pSet);
 bool xrtTypedSetAddValue(xtset pSet, xvalue pVal);
 bool xrtTypedSetExists(xtset pSet, const void* pItem);
+bool xrtTypedSetExistsValue(xtset pSet, xvalue pVal);
 bool xrtTypedSetRemove(xtset pSet, const void* pItem);
+bool xrtTypedSetRemoveValue(xtset pSet, xvalue pVal);
+bool xrtTypedSetClear(xtset pSet);
+bool xrtTypedSetMerge(xtset pSelf, xtset pSet);
+xtset xrtTypedSetUnion(xtset pA, xtset pB);
+xtset xrtTypedSetIntersection(xtset pA, xtset pB);
+xtset xrtTypedSetDifference(xtset pA, xtset pB);
+xtset xrtTypedSetSymmetricDifference(xtset pA, xtset pB);
+bool xrtTypedSetIsSubset(xtset pA, xtset pB, bool bProper);
+bool xrtTypedSetIsSuperset(xtset pA, xtset pB, bool bProper);
+bool xrtTypedSetEquals(xtset pA, xtset pB);
 ptr xrtTypedSetItemAt(xtset pSet, uint32 iIndex);
 uint32 xrtTypedSetCount(xtset pSet);
 const xrt_type_desc* xrtTypedSetItemType(xtset pSet);
@@ -341,6 +368,11 @@ ptr xrtTypedDictItemAt(xtdict pDict, uint32 iIndex, const char** psKey, uint32* 
 uint32 xrtTypedDictCount(xtdict pDict);
 bool xrtTypedDictExists(xtdict pDict, const void* sKey, uint32 iKeyLen);
 bool xrtTypedDictRemove(xtdict pDict, const void* sKey, uint32 iKeyLen);
+xvalue xrtTypedDictTakeValue(xtdict pDict, const void* sKey, uint32 iKeyLen);
+bool xrtTypedDictClear(xtdict pDict);
+bool xrtTypedDictMerge(xtdict pA, xtdict pB);
+xtdict xrtTypedDictClone(xtdict pDict);
+bool xrtTypedDictEquals(xtdict pA, xtdict pB);
 bool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, ptr pOut);
 void xrtTypeDropValue(const xrt_type_desc* pType, ptr pObj);
 
@@ -970,6 +1002,35 @@ static int xl6_xrt_array_contains_release(xvalue values, xvalue item) { return x
 static int xl6_xrt_list_contains_release(xvalue values, xvalue item) { return xl6_xrt_value_contains_release(values, item); }
 static int xl6_xrt_set_contains_release(xvalue values, xvalue item) { return xl6_xrt_value_contains_release(values, item); }
 
+static int xl6_xrt_array_remove_value_release(xvalue values, xvalue item)
+{
+    uint32 count;
+    uint32 i;
+    int ok;
+
+    count = xvoArrayItemCount(values);
+    ok = 0;
+    for ( i = 0; i < count; ++i ) {
+        if ( xl6_xrt_basic_equal(xvoArrayGetValue(values, i), item) ) {
+            ok = xvoArrayRemove(values, i, 1) ? 1 : 0;
+            break;
+        }
+    }
+    if ( item != 0 ) { xvoUnref(item); }
+    return ok;
+}
+
+static int xl6_xrt_value_remove_value_release(xvalue values, xvalue item)
+{
+    int ok = 0;
+    if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {
+        ok = xl6_xrt_array_remove_value_release(values, item);
+    } else if ( item != 0 ) {
+        xvoUnref(item);
+    }
+    return ok;
+}
+
 static int xl6_xrt_table_exists_release(xvalue values, const char* key)
 {
     int found = xvoTableExists(values, (str)key, 0) ? 1 : 0;
@@ -1040,6 +1101,127 @@ static int xl6_xrt_typed_array_append_value_release(xtarray values, xvalue item)
     int ok = xrtTypedArrayAppendValue(values, item) ? 1 : 0;
     if ( item != 0 ) { xvoUnref(item); }
     return ok;
+}
+
+static int xl6_xrt_typed_array_insert_value_release(xtarray values, uint32 index, xvalue item)
+{
+    int ok = xrtTypedArrayInsertValue(values, index, item) ? 1 : 0;
+    if ( item != 0 ) { xvoUnref(item); }
+    return ok;
+}
+
+static xvalue xl6_xrt_typed_array_take_value_or_null(xtarray values, uint32 index)
+{
+    xvalue result = xrtTypedArrayTakeValue(values, index);
+    return result != 0 ? result : xvoCreateNull();
+}
+
+static xvalue xl6_xrt_typed_array_pop_value_or_null(xtarray values)
+{
+    xvalue result = xrtTypedArrayPopValue(values);
+    return result != 0 ? result : xvoCreateNull();
+}
+
+static int64 xl6_xrt_typed_array_index_of_value_release(xtarray values, xvalue item)
+{
+    int64 result = xrtTypedArrayIndexOfValue(values, item);
+    if ( item != 0 ) { xvoUnref(item); }
+    return result;
+}
+
+static int xl6_xrt_typed_array_remove_value_release(xtarray values, xvalue item)
+{
+    int64 index = xrtTypedArrayIndexOfValue(values, item);
+    int ok = 0;
+    if ( index >= 0 ) {
+        ok = xrtTypedArrayRemove(values, (uint32)index + 1u, 1u) ? 1 : 0;
+    }
+    if ( item != 0 ) { xvoUnref(item); }
+    return ok;
+}
+
+static int xl6_xrt_typed_array_contains_value_release(xtarray values, xvalue item)
+{
+    int ok = xrtTypedArrayContainsValue(values, item) ? 1 : 0;
+    if ( item != 0 ) { xvoUnref(item); }
+    return ok;
+}
+
+static xvalue xl6_xrt_typed_list_take_value_or_null(xtlist values, int64 key)
+{
+    xvalue result = xrtTypedListTakeValue(values, key);
+    return result != 0 ? result : xvoCreateNull();
+}
+
+static int xl6_xrt_typed_list_contains_value_release(xtlist values, xvalue item)
+{
+    int ok = xrtTypedListContainsValue(values, item) ? 1 : 0;
+    if ( item != 0 ) { xvoUnref(item); }
+    return ok;
+}
+
+static xtlist xl6_xrt_typed_list_concat(xtlist left, xtlist right)
+{
+    xtlist result = xrtTypedListClone(left);
+    if ( result == 0 ) {
+        return 0;
+    }
+    if ( !xrtTypedListMerge(result, right) ) {
+        xrtTypedListDestroy(result);
+        return 0;
+    }
+    return result;
+}
+
+static xvalue xl6_xrt_typed_dict_take_value_or_null(xtdict values, const char* key, uint32 keyLen)
+{
+    xvalue result = xrtTypedDictTakeValue(values, key, keyLen);
+    return result != 0 ? result : xvoCreateNull();
+}
+
+static xtlist xl6_xrt_typed_list_without_key(xtlist values, int64 key)
+{
+    xtlist result = xrtTypedListClone(values);
+    if ( result != 0 ) {
+        xrtTypedListRemove(result, key);
+    }
+    return result;
+}
+
+static xtdict xl6_xrt_typed_dict_concat(xtdict left, xtdict right)
+{
+    xtdict result = xrtTypedDictClone(left);
+    if ( result == 0 ) {
+        return 0;
+    }
+    if ( !xrtTypedDictMerge(result, right) ) {
+        xrtTypedDictDestroy(result);
+        return 0;
+    }
+    return result;
+}
+
+static xtdict xl6_xrt_typed_dict_without_key(xtdict values, const char* key, uint32 keyLen)
+{
+    xtdict result = xrtTypedDictClone(values);
+    if ( result != 0 ) {
+        xrtTypedDictRemove(result, key, keyLen);
+    }
+    return result;
+}
+
+static int xl6_xrt_typed_set_relation(xtset left, xtset right, int mode)
+{
+    if ( mode == 0 ) {
+        return xrtTypedSetIsSubset(left, right, false) ? 1 : 0;
+    }
+    if ( mode == 1 ) {
+        return xrtTypedSetIsSubset(left, right, true) ? 1 : 0;
+    }
+    if ( mode == 2 ) {
+        return xrtTypedSetIsSuperset(left, right, false) ? 1 : 0;
+    }
+    return xrtTypedSetIsSuperset(left, right, true) ? 1 : 0;
 }
 
 static int xl6_xrt_typed_set_add_value_release(xtset values, xvalue item)
@@ -1129,10 +1311,15 @@ static int xl6_xrt_container_remove_value(xvalue values, xvalue key, uint32 coun
     } else if ( !hasCount && valuesType == XL6_XVO_DT_COLL ) {
         ok = xvoSetRemoveValue(values, key) ? 1 : 0;
     } else if ( !hasCount && valuesType == XL6_XVO_DT_TABLE && keyType == XL6_XVO_DT_TEXT ) {
-        ok = xvoTableRemove(values, xvoGetText(key), 0) ? 1 : 0;
+        ok = xvoTableRemove(values, (str)xvoGetText(key), 0) ? 1 : 0;
     }
     if ( key != 0 ) { xvoUnref(key); }
     return ok;
+}
+
+bool xl6_xrt_std_table_remove(xvalue table, const char* key, uint32 keyLen)
+{
+    return xvoTableRemove(table, (str)key, keyLen);
 }
 
 static xvalue xl6_xrt_container_take_value(xvalue values, xvalue key)
@@ -1145,7 +1332,7 @@ static xvalue xl6_xrt_container_take_value(xvalue values, xvalue key)
     } else if ( valuesType == XL6_XVO_DT_LIST && keyType == XL6_XVO_DT_INT ) {
         result = xvoListTakeValue(values, xvoGetInt(key));
     } else if ( valuesType == XL6_XVO_DT_TABLE && keyType == XL6_XVO_DT_TEXT ) {
-        result = xvoTableTakeValue(values, xvoGetText(key), 0);
+        result = xvoTableTakeValue(values, (str)xvoGetText(key), 0);
     }
     if ( key != 0 ) { xvoUnref(key); }
     return result != 0 ? result : xvoCreateNull();
@@ -1184,6 +1371,62 @@ static int xl6_xrt_container_swap(xvalue values, uint32 index1, uint32 index2)
 #define xl6_xrt_list_literal xvoCreateListArgs
 #define xl6_xrt_set_literal xvoCreateSetArgs
 #define xl6_xrt_dict_varargs xvoCreateTableArgs
+
+#ifndef XL6_XRT_TAKE_CSTR_HELPERS
+#define XL6_XRT_TAKE_CSTR_HELPERS
+static const char* xl6_xrt_temp_cstr(const char* value)
+{
+    size_t len;
+    char* text;
+
+    if ( value == 0 ) {
+        return "";
+    }
+    len = strlen(value);
+    text = (char*)xrtTempMemory(len + 1);
+    if ( text == 0 ) {
+        return "";
+    }
+    memcpy(text, value, len + 1);
+    return text;
+}
+
+static const char* xl6_xrt_take_cstr(void* value)
+{
+    const char* source;
+    size_t len;
+    char* text;
+
+    if ( value == 0 ) {
+        return "";
+    }
+    source = (const char*)value;
+    len = strlen(source);
+    text = (char*)xrtTempMemory(len + 1);
+    if ( text == 0 ) {
+        xrtFree(value);
+        return "";
+    }
+    memcpy(text, source, len + 1);
+    xrtFree(value);
+    return text;
+}
+#endif
+
+#ifndef XL6_XRT_VALUE_STRING_HELPERS
+#define XL6_XRT_VALUE_STRING_HELPERS
+static const char* xl6_xrt_value_to_string(xvalue value)
+{
+    return xl6_xrt_take_cstr((char*)xvoToString(value, 0));
+}
+
+static const char* xl6_xrt_value_to_string_release(xvalue value)
+{
+    const char* text = xl6_xrt_value_to_string(value);
+    if ( value != 0 ) { xvoUnref(value); }
+    return text;
+}
+#endif
 
 #ifndef XL6_XRT_VALUE_RELEASE_CONVERT_HELPERS
 #define XL6_XRT_VALUE_RELEASE_CONVERT_HELPERS
