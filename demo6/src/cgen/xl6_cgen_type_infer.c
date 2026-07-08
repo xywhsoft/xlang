@@ -919,6 +919,72 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         }
         if ( expr->childCount > 0 && expr->children[0] != NULL &&
              expr->children[0]->kind == XL6_AST_MEMBER ) {
+            const XL6_AstNode* callee = expr->children[0];
+            if ( callee->text != NULL && callee->childCount > 0 ) {
+                XL6_AstNode* receiverType = xl6CgenCloneExprTypeForInference(ctx, callee->children[0]);
+                const XL6_AstNode* typedContainer = receiverType != NULL
+                    ? xl6CgenTypedContainerConcreteType(ctx, receiverType)
+                    : NULL;
+                int isVar = receiverType != NULL && xl6CTextEquals(receiverType->text, "var");
+                int isArray = xl6CgenIsArrayXValueType(receiverType) ||
+                              (typedContainer != NULL && xl6CTextEquals(typedContainer->text, "array"));
+                int isList = xl6CgenIsListXValueType(receiverType) ||
+                             (typedContainer != NULL && xl6CTextEquals(typedContainer->text, "list"));
+                int isSet = xl6CgenIsSetXValueType(receiverType) ||
+                            (typedContainer != NULL && xl6CTextEquals(typedContainer->text, "set"));
+                int isDict = xl6CgenIsDictXValueType(receiverType) ||
+                             (typedContainer != NULL && xl6CTextEquals(typedContainer->text, "dict"));
+                int isContainerMethod = 0;
+
+                if ( isVar ) {
+                    isContainerMethod = xl6CTextEquals(callee->text, "push") ||
+                                        xl6CTextEquals(callee->text, "append") ||
+                                        xl6CTextEquals(callee->text, "insert") ||
+                                        xl6CTextEquals(callee->text, "remove") ||
+                                        xl6CTextEquals(callee->text, "pop") ||
+                                        xl6CTextEquals(callee->text, "take") ||
+                                        xl6CTextEquals(callee->text, "clear") ||
+                                        xl6CTextEquals(callee->text, "reserve") ||
+                                        xl6CTextEquals(callee->text, "swap") ||
+                                        xl6CTextEquals(callee->text, "add") ||
+                                        xl6CTextEquals(callee->text, "contains");
+                } else if ( isArray ) {
+                    isContainerMethod = xl6CTextEquals(callee->text, "push") ||
+                                        xl6CTextEquals(callee->text, "append") ||
+                                        xl6CTextEquals(callee->text, "insert") ||
+                                        xl6CTextEquals(callee->text, "remove") ||
+                                        xl6CTextEquals(callee->text, "pop") ||
+                                        xl6CTextEquals(callee->text, "take") ||
+                                        xl6CTextEquals(callee->text, "clear") ||
+                                        xl6CTextEquals(callee->text, "reserve") ||
+                                        xl6CTextEquals(callee->text, "swap") ||
+                                        xl6CTextEquals(callee->text, "contains");
+                } else if ( isList ) {
+                    isContainerMethod = xl6CTextEquals(callee->text, "remove") ||
+                                        xl6CTextEquals(callee->text, "take") ||
+                                        xl6CTextEquals(callee->text, "clear") ||
+                                        xl6CTextEquals(callee->text, "contains");
+                } else if ( isSet ) {
+                    isContainerMethod = xl6CTextEquals(callee->text, "add") ||
+                                        xl6CTextEquals(callee->text, "remove") ||
+                                        xl6CTextEquals(callee->text, "contains") ||
+                                        xl6CTextEquals(callee->text, "clear");
+                } else if ( isDict ) {
+                    isContainerMethod = xl6CTextEquals(callee->text, "remove") ||
+                                        xl6CTextEquals(callee->text, "contains") ||
+                                        xl6CTextEquals(callee->text, "take") ||
+                                        xl6CTextEquals(callee->text, "clear");
+                }
+
+                xl6AstFree(receiverType);
+                if ( isContainerMethod ) {
+                    if ( xl6CTextEquals(callee->text, "pop") ||
+                         xl6CTextEquals(callee->text, "take") ) {
+                        return xl6CgenNewSimpleType("var", expr);
+                    }
+                    return xl6CgenNewSimpleType("bool", expr);
+                }
+            }
             XL6_AstNode* classMethodType = xl6CgenCloneClassMethodCallType(ctx, expr);
             XL6_AstNode* memberType = xl6CgenCloneMemberFieldTypeForInference(ctx, expr->children[0]);
             if ( classMethodType != NULL ) {

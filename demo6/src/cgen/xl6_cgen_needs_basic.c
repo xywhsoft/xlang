@@ -69,6 +69,32 @@ static int xl6CgenNeedsBasicIsXValueType(const XL6_AstNode* typeNode)
             xl6CgenNeedsBasicIsDictXValueType(typeNode));
 }
 
+static int xl6CgenNeedsBasicIsContainerMethodCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+    const char* name;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_MEMBER || callee->text == NULL ) {
+        return 0;
+    }
+    name = callee->text;
+    return xl6CgenNeedsBasicTextEquals(name, "push") ||
+           xl6CgenNeedsBasicTextEquals(name, "append") ||
+           xl6CgenNeedsBasicTextEquals(name, "insert") ||
+           xl6CgenNeedsBasicTextEquals(name, "remove") ||
+           xl6CgenNeedsBasicTextEquals(name, "pop") ||
+           xl6CgenNeedsBasicTextEquals(name, "take") ||
+           xl6CgenNeedsBasicTextEquals(name, "clear") ||
+           xl6CgenNeedsBasicTextEquals(name, "reserve") ||
+           xl6CgenNeedsBasicTextEquals(name, "swap") ||
+           xl6CgenNeedsBasicTextEquals(name, "add") ||
+           xl6CgenNeedsBasicTextEquals(name, "contains");
+}
+
 static int xl6CgenNeedsBasicIsBuiltinObjectClass(const XL6_AstNode* node)
 {
     return node != NULL &&
@@ -699,6 +725,9 @@ int xl6CgenNodeNeedsXValueRuntime(const XL6_AstNode* node)
         return 1;
     }
     if ( xl6CgenNeedsBasicIsPrintIntrinsicCall(node) ) {
+        return 1;
+    }
+    if ( xl6CgenNeedsBasicIsContainerMethodCall(node) ) {
         return 1;
     }
     if ( node->kind == XL6_AST_ARRAY_LITERAL || node->kind == XL6_AST_LIST_LITERAL ||

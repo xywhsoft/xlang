@@ -5,4 +5,14 @@ assert ("count" in data) == false, "dict.remove should remove existing key"
 assert dict.remove(data, "missing") == false, "dict.remove should return false for missing key"
 assert data["name"] == "xlang", "dict.remove should keep unrelated keys"
 
+var dynamicData = {"a": 1, "b": 2}
+assert dynamicData.remove("b") == true, "dict member remove should return true for existing key"
+assert ("b" in dynamicData) == false, "dict member remove should delete existing key"
+assert dynamicData.remove("missing") == false, "dict member remove should return false for missing key"
+
+dict<int> typedData = dict{"x": 10, "y": 20}
+assert typedData.remove("y") == true, "typed dict member remove should return true for existing key"
+assert ("y" in typedData) == false, "typed dict member remove should delete existing key"
+assert typedData.length == 1, "typed dict member remove should update length"
+
 println("stdlib dict ok")
