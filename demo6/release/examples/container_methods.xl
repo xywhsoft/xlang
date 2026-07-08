@@ -1,0 +1,39 @@
+// Container implicit-class member API: dynamic containers expose XRT xvalue operations.
+var arr = [1, 3]
+arr.push(4)
+arr.insert(1, 2)
+println("array length = " + string(arr.length))
+println("array contains 3 = " + string(arr.contains(3)))
+println("array pop = " + string(arr.pop()))
+
+var lst = list[0: "a", 2: "b"]
+println("list contains b = " + string(lst.contains("b")))
+println("list take 2 = " + string(lst.take(2)))
+
+var st = set{1, 2}
+st.add(3)
+println("set contains 3 = " + string(st.contains(3)))
+st.remove(2)
+println("set contains 2 = " + string(st.contains(2)))
+
+var tbl = {"a": 1, "b": 2}
+println("dict contains a = " + string(tbl.contains("a")))
+println("dict take a = " + string(tbl.take("a")))
+tbl.clear()
+println("dict length = " + string(tbl.length))
+
+// Typed containers expose the stable XRT typed-container operations available today.
+array<int> typedArr = array[1]
+typedArr.push(2)
+typedArr.append(3)
+typedArr.remove(1)
+println("typed array length = " + string(typedArr.length))
+
+set<int> typedSet = set{1}
+typedSet.add(2)
+println("typed set contains 2 = " + string(typedSet.contains(2)))
+typedSet.remove(1)
+
+dict<int> typedDict = dict{"x": 10}
+println("typed dict contains x = " + string(typedDict.contains("x")))
+typedDict.remove("x")

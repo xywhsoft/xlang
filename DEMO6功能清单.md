@@ -594,6 +594,53 @@ set<int> empty = set<int>{}
 - 容器支持索引读写、索引复合赋值和安全索引 `?[...]`。
 - 容器赋值和进入 `var` 时保持当前实现的复制/引用计数语义，避免裸 C 指针泄漏。
 
+容器成员 API：
+
+```xlang
+var a = [1, 2, 3]
+a.push(4)
+a.append(5)
+a.insert(1, 99)
+a.remove(1)
+a.remove(0, 2)
+var last = a.pop()
+var item = a.take(0)
+a.reserve(16)
+a.swap(0, 1)
+a.clear()
+
+var l = [0: "a", 2: "b"]
+bool has = l.contains("b")
+var v = l.take(2)
+l.remove(0)
+l.clear()
+
+var s = set{1, 2, 3}
+s.add(4)
+bool hit = s.contains(2)
+s.remove(2)
+s.clear()
+
+var d = {"a": 1}
+bool exists = d.contains("a")
+var old = d.take("a")
+d.remove("a")
+d.clear()
+```
+
+成员 API 当前规则：
+
+- 动态 `array` 支持 `push(value)`、`append(value)`、`insert(index, value)`、`remove(index, count = 1)`、`pop()`、`take(index)`、`clear()`、`reserve(count)`、`swap(index1, index2)`、`contains(value)`。
+- 动态 `list` 支持 `remove(index)`、`take(index)`、`clear()`、`contains(value)`。
+- 动态 `set` 支持 `add(value)`、`contains(value)`、`remove(value)`、`clear()`。
+- 动态 `dict` 支持 `contains(key)`、`remove(key)`、`take(key)`、`clear()`，`key` 当前为 `string`。
+- `array<T>` 支持 `push(value)`、`append(value)`、`remove(index, count = 1)`，并在语义阶段检查 `value` 是否匹配元素类型。
+- `list<T>` 支持 `remove(index)`。
+- `set<T>` 支持 `add(value)`、`contains(value)`、`remove(value)`，并在语义阶段检查 `value` 是否匹配元素类型。
+- `dict<T>` 支持 `contains(key)`、`remove(key)`，`key` 当前为 `string`。
+- 上述成员 API 均调用 XRT/xvalue 或 XRT typed-container 能力，不在 xlang 侧重复实现容器算法。
+- 尚未开放的 typed-container 方法不是兼容缺口，而是等待 XRT 提供对应稳定公开 API 后再接入。
+
 for-in 示例：
 
 ```xlang

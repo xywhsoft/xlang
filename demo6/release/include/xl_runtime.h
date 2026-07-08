@@ -265,21 +265,37 @@ const xrt_func_sig* xvoCallableSig(xvalue pVal);
 bool xvoInvoke(xvalue pFunc, xrt_call_frame* pFrame, xrt_call_result* pResult);
 xvalue xvoArrayGetValue(xvalue pArr, uint32 index);
 bool xvoArrayAppendValue(xvalue pArr, xvalue pVal, bool bColloc);
+bool xvoArrayInsertValue(xvalue pArr, uint32 index, xvalue pVal, bool bColloc);
+bool xvoArrayRemove(xvalue pArr, uint32 index, uint32 count);
+xvalue xvoArrayTakeValue(xvalue pArr, uint32 index);
+xvalue xvoArrayPopValue(xvalue pArr);
+bool xvoArrayClear(xvalue pArr);
+bool xvoArrayAlloc(xvalue pArr, uint32 count);
+bool xvoArraySwap(xvalue pArr, uint32 index1, uint32 index2);
 bool xvoArraySetValue(xvalue pArr, uint32 index, xvalue pVal, bool bColloc);
 uint32 xvoArrayItemCount(xvalue pArr);
 xvalue xvoListGetValue(xvalue pList, int64 index);
 bool xvoListSetValue(xvalue pList, int64 index, xvalue pVal, bool bColloc);
+bool xvoListRemove(xvalue pList, int64 index);
+xvalue xvoListTakeValue(xvalue pList, int64 index);
+bool xvoListClear(xvalue pList);
 uint32 xvoListItemCount(xvalue pList);
 xvalue xvoSetGetValueAt(xvalue pSet, uint32 iIndex);
 uint32 xvoSetItemCount(xvalue pSet);
 bool xvoCollSetValue(xvalue pColl, xvalue pVal, bool bColloc);
 bool xvoCollExists(xvalue pColl, xvalue pVal);
 uint32 xvoCollItemCount(xvalue pColl);
+bool xvoSetAddValue(xvalue pSet, xvalue pVal, bool bColloc);
+bool xvoSetExistsValue(xvalue pSet, xvalue pVal);
+bool xvoSetRemoveValue(xvalue pSet, xvalue pVal);
+bool xvoSetClear(xvalue pSet);
 xvalue xvoTableGetValue(xvalue pTbl, const void* key, uint32 kl);
 bool xvoTableSetValue(xvalue pTbl, const void* key, uint32 kl, xvalue pVal, bool bColloc);
 bool xvoTableMerge(xvalue pTbl1, xvalue pTbl2, bool bReWrite);
 bool xvoTableExists(xvalue pTbl, str key, uint32 kl);
 bool xvoTableRemove(xvalue pTbl, const char* key, uint32 kl);
+xvalue xvoTableTakeValue(xvalue pTbl, str key, uint32 kl);
+bool xvoTableClear(xvalue pTbl);
 uint32 xvoTableItemCount(xvalue pTbl);
 xlist xvoGetList(xvalue pVal);
 xdict xvoGetTable(xvalue pVal);
@@ -300,24 +316,33 @@ ptr xrtTypedArrayAppend(xtarray pArray, const void* pItem);
 bool xrtTypedArrayAppendValue(xtarray pArray, xvalue pVal);
 bool xrtTypedArraySetValue(xtarray pArray, uint32 iPos, xvalue pVal);
 ptr xrtTypedArrayGet(xtarray pArray, uint32 iPos);
+bool xrtTypedArrayRemove(xtarray pArray, uint32 iPos, uint32 iCount);
 uint32 xrtTypedArrayCount(xtarray pArray);
 xtlist xrtTypedListCreate(const xrt_type_desc* pItemType, uint32 iMode);
 void xrtTypedListDestroy(xtlist pList);
 bool xrtTypedListSetValue(xtlist pList, int64 iKey, xvalue pVal);
 ptr xrtTypedListGet(xtlist pList, int64 iKey);
 ptr xrtTypedListItemAt(xtlist pList, uint32 iIndex, int64* pKey);
+bool xrtTypedListRemove(xtlist pList, int64 iKey);
 uint32 xrtTypedListCount(xtlist pList);
 xtset xrtTypedSetCreate(const xrt_type_desc* pItemType, uint32 iMode);
 void xrtTypedSetDestroy(xtset pSet);
 bool xrtTypedSetAddValue(xtset pSet, xvalue pVal);
+bool xrtTypedSetExists(xtset pSet, const void* pItem);
+bool xrtTypedSetRemove(xtset pSet, const void* pItem);
 ptr xrtTypedSetItemAt(xtset pSet, uint32 iIndex);
 uint32 xrtTypedSetCount(xtset pSet);
+const xrt_type_desc* xrtTypedSetItemType(xtset pSet);
 xtdict xrtTypedDictCreate(const xrt_type_desc* pItemType, uint32 iMode);
 void xrtTypedDictDestroy(xtdict pDict);
 bool xrtTypedDictSetValue(xtdict pDict, const void* sKey, uint32 iKeyLen, xvalue pVal);
 ptr xrtTypedDictGet(xtdict pDict, const void* sKey, uint32 iKeyLen);
 ptr xrtTypedDictItemAt(xtdict pDict, uint32 iIndex, const char** psKey, uint32* piKeyLen);
 uint32 xrtTypedDictCount(xtdict pDict);
+bool xrtTypedDictExists(xtdict pDict, const void* sKey, uint32 iKeyLen);
+bool xrtTypedDictRemove(xtdict pDict, const void* sKey, uint32 iKeyLen);
+bool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, ptr pOut);
+void xrtTypeDropValue(const xrt_type_desc* pType, ptr pObj);
 
 void xrtCallResultInit(xrt_call_result* pResult);
 void xrtCallResultUnit(xrt_call_result* pResult);
@@ -950,6 +975,209 @@ static int xl6_xrt_table_exists_release(xvalue values, const char* key)
     int found = xvoTableExists(values, (str)key, 0) ? 1 : 0;
     if ( values != 0 ) { xvoUnref(values); }
     return found;
+}
+
+static int xl6_xrt_array_push_value(xvalue values, xvalue item)
+{
+    if ( !xvoArrayAppendValue(values, item, true) ) {
+        if ( item != 0 ) { xvoUnref(item); }
+        return 0;
+    }
+    return 1;
+}
+
+static int xl6_xrt_array_insert_value(xvalue values, uint32 index, xvalue item)
+{
+    if ( !xvoArrayInsertValue(values, index, item, true) ) {
+        if ( item != 0 ) { xvoUnref(item); }
+        return 0;
+    }
+    return 1;
+}
+
+static int xl6_xrt_set_add_value(xvalue values, xvalue item)
+{
+    if ( !xvoSetAddValue(values, item, true) ) {
+        if ( item != 0 ) { xvoUnref(item); }
+        return 0;
+    }
+    return 1;
+}
+
+static int xl6_xrt_set_remove_value_release(xvalue values, xvalue item)
+{
+    int ok = xvoSetRemoveValue(values, item) ? 1 : 0;
+    if ( item != 0 ) { xvoUnref(item); }
+    return ok;
+}
+
+static xvalue xl6_xrt_array_take_value_or_null(xvalue values, uint32 index)
+{
+    xvalue result = xvoArrayTakeValue(values, index);
+    return result != 0 ? result : xvoCreateNull();
+}
+
+static xvalue xl6_xrt_array_pop_value_or_null(xvalue values)
+{
+    xvalue result = xvoArrayPopValue(values);
+    return result != 0 ? result : xvoCreateNull();
+}
+
+static xvalue xl6_xrt_list_take_value_or_null(xvalue values, int64 key)
+{
+    xvalue result = xvoListTakeValue(values, key);
+    return result != 0 ? result : xvoCreateNull();
+}
+
+static xvalue xl6_xrt_table_take_value_or_null(xvalue values, const char* key)
+{
+    xvalue result = xvoTableTakeValue(values, (str)key, 0);
+    return result != 0 ? result : xvoCreateNull();
+}
+
+static int xl6_xrt_typed_array_append_value_release(xtarray values, xvalue item)
+{
+    int ok = xrtTypedArrayAppendValue(values, item) ? 1 : 0;
+    if ( item != 0 ) { xvoUnref(item); }
+    return ok;
+}
+
+static int xl6_xrt_typed_set_add_value_release(xtset values, xvalue item)
+{
+    int ok = xrtTypedSetAddValue(values, item) ? 1 : 0;
+    if ( item != 0 ) { xvoUnref(item); }
+    return ok;
+}
+
+static int xl6_xrt_typed_set_value_op(xtset values, xvalue item, int remove)
+{
+    const xrt_type_desc* type = values != 0 ? xrtTypedSetItemType(values) : 0;
+    ptr raw;
+    int ok;
+    if ( type == 0 || type->Size == 0u ) {
+        if ( item != 0 ) { xvoUnref(item); }
+        return 0;
+    }
+    raw = xrtMalloc(type->Size);
+    if ( raw == 0 ) {
+        if ( item != 0 ) { xvoUnref(item); }
+        return 0;
+    }
+    if ( !xrtTypeUnboxValue(type, item, raw) ) {
+        xrtFree(raw);
+        if ( item != 0 ) { xvoUnref(item); }
+        return 0;
+    }
+    ok = remove ? (xrtTypedSetRemove(values, raw) ? 1 : 0) : (xrtTypedSetExists(values, raw) ? 1 : 0);
+    xrtTypeDropValue(type, raw);
+    xrtFree(raw);
+    if ( item != 0 ) { xvoUnref(item); }
+    return ok;
+}
+
+static int xl6_xrt_typed_set_contains_value_release(xtset values, xvalue item)
+{
+    return xl6_xrt_typed_set_value_op(values, item, 0);
+}
+
+static int xl6_xrt_typed_set_remove_value_release(xtset values, xvalue item)
+{
+    return xl6_xrt_typed_set_value_op(values, item, 1);
+}
+
+static int xl6_xrt_container_push_value(xvalue values, xvalue item)
+{
+    if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {
+        return xl6_xrt_array_push_value(values, item);
+    }
+    if ( item != 0 ) { xvoUnref(item); }
+    return 0;
+}
+
+static int xl6_xrt_container_add_value(xvalue values, xvalue item)
+{
+    if ( values != 0 && xvoType(values) == XL6_XVO_DT_COLL ) {
+        return xl6_xrt_set_add_value(values, item);
+    }
+    if ( item != 0 ) { xvoUnref(item); }
+    return 0;
+}
+
+static int xl6_xrt_container_insert_value(xvalue values, xvalue index, xvalue item)
+{
+    int ok = 0;
+    if ( values != 0 && index != 0 &&
+         xvoType(values) == XL6_XVO_DT_ARRAY &&
+         xvoType(index) == XL6_XVO_DT_INT ) {
+        ok = xl6_xrt_array_insert_value(values, (uint32)xvoGetInt(index), item);
+    } else if ( item != 0 ) {
+        xvoUnref(item);
+    }
+    if ( index != 0 ) { xvoUnref(index); }
+    return ok;
+}
+
+static int xl6_xrt_container_remove_value(xvalue values, xvalue key, uint32 count, int hasCount)
+{
+    int ok = 0;
+    int valuesType = values != 0 ? xvoType(values) : -1;
+    int keyType = key != 0 ? xvoType(key) : -1;
+    if ( valuesType == XL6_XVO_DT_ARRAY && keyType == XL6_XVO_DT_INT ) {
+        ok = xvoArrayRemove(values, (uint32)xvoGetInt(key), hasCount ? count : 1u) ? 1 : 0;
+    } else if ( !hasCount && valuesType == XL6_XVO_DT_LIST && keyType == XL6_XVO_DT_INT ) {
+        ok = xvoListRemove(values, xvoGetInt(key)) ? 1 : 0;
+    } else if ( !hasCount && valuesType == XL6_XVO_DT_COLL ) {
+        ok = xvoSetRemoveValue(values, key) ? 1 : 0;
+    } else if ( !hasCount && valuesType == XL6_XVO_DT_TABLE && keyType == XL6_XVO_DT_TEXT ) {
+        ok = xvoTableRemove(values, xvoGetText(key), 0) ? 1 : 0;
+    }
+    if ( key != 0 ) { xvoUnref(key); }
+    return ok;
+}
+
+static xvalue xl6_xrt_container_take_value(xvalue values, xvalue key)
+{
+    xvalue result = 0;
+    int valuesType = values != 0 ? xvoType(values) : -1;
+    int keyType = key != 0 ? xvoType(key) : -1;
+    if ( valuesType == XL6_XVO_DT_ARRAY && keyType == XL6_XVO_DT_INT ) {
+        result = xvoArrayTakeValue(values, (uint32)xvoGetInt(key));
+    } else if ( valuesType == XL6_XVO_DT_LIST && keyType == XL6_XVO_DT_INT ) {
+        result = xvoListTakeValue(values, xvoGetInt(key));
+    } else if ( valuesType == XL6_XVO_DT_TABLE && keyType == XL6_XVO_DT_TEXT ) {
+        result = xvoTableTakeValue(values, xvoGetText(key), 0);
+    }
+    if ( key != 0 ) { xvoUnref(key); }
+    return result != 0 ? result : xvoCreateNull();
+}
+
+static xvalue xl6_xrt_container_pop_value(xvalue values)
+{
+    xvalue result = 0;
+    if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {
+        result = xvoArrayPopValue(values);
+    }
+    return result != 0 ? result : xvoCreateNull();
+}
+
+static int xl6_xrt_container_clear(xvalue values)
+{
+    int type = values != 0 ? xvoType(values) : -1;
+    if ( type == XL6_XVO_DT_ARRAY ) { return xvoArrayClear(values) ? 1 : 0; }
+    if ( type == XL6_XVO_DT_LIST ) { return xvoListClear(values) ? 1 : 0; }
+    if ( type == XL6_XVO_DT_COLL ) { return xvoSetClear(values) ? 1 : 0; }
+    if ( type == XL6_XVO_DT_TABLE ) { return xvoTableClear(values) ? 1 : 0; }
+    return 0;
+}
+
+static int xl6_xrt_container_reserve(xvalue values, uint32 count)
+{
+    return values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ? (xvoArrayAlloc(values, count) ? 1 : 0) : 0;
+}
+
+static int xl6_xrt_container_swap(xvalue values, uint32 index1, uint32 index2)
+{
+    return values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ? (xvoArraySwap(values, index1, index2) ? 1 : 0) : 0;
 }
 
 #define xl6_xrt_array_varargs xvoCreateArrayArgs

@@ -69,6 +69,15 @@ if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\containers.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\container_methods.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\container_methods.xl %XL6_XL_DEFAULT_LINK_ARGS%
+if errorlevel 1 exit /b 1
+
+release\xl.exe run release\examples\container_methods.xl %XL6_XL_DEFAULT_LINK_ARGS%
+if errorlevel 1 exit /b 1
+
 release\xl.exe check test\cases\layout.xl
 if errorlevel 1 exit /b 1
 
