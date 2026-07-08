@@ -21,20 +21,39 @@ function Invoke-XlExpectExit {
 function Invoke-XlExpectFailure {
     param(
         [string]$Label,
-        [string[]]$ArgsList
+        [string[]]$ArgsList,
+        [string]$ExpectedText = ""
     )
 
-    & ".\release\xl.exe" @ArgsList
-    $code = $LASTEXITCODE
+    $safeLabel = $Label -replace "[^A-Za-z0-9_.-]", "_"
+    $errPath = Join-Path $root "build\test\$safeLabel.err.txt"
+    $outPath = Join-Path $root "build\test\$safeLabel.out.txt"
+    $process = Start-Process `
+        -FilePath (Join-Path $root "release\xl.exe") `
+        -ArgumentList $ArgsList `
+        -NoNewWindow `
+        -Wait `
+        -PassThru `
+        -RedirectStandardOutput $outPath `
+        -RedirectStandardError $errPath
+    $code = $process.ExitCode
     if ($code -eq 0) {
         Write-Host "$Label should fail but exited 0"
         exit 1
+    }
+    if ($ExpectedText.Length -gt 0) {
+        $text = [System.IO.File]::ReadAllText($errPath, [System.Text.Encoding]::UTF8)
+        if ($text.IndexOf($ExpectedText, [System.StringComparison]::Ordinal) -lt 0) {
+            Write-Host "$Label missing expected diagnostic: $ExpectedText"
+            exit 1
+        }
     }
 }
 
 Invoke-XlExpectFailure `
     -Label "dynamic array out-of-range set" `
-    -ArgsList @("run", "test\cases\cgen_issue_dynamic_array_oob_set.xl")
+    -ArgsList @("run", "test\cases\cgen_issue_dynamic_array_oob_set.xl") `
+    -ExpectedText "RangeError"
 
 Invoke-XlExpectExit `
     -Label "try return" `
@@ -56,33 +75,18 @@ Invoke-XlExpectExit `
     -ArgsList @("run", "test\cases\stdlib_dev_codec_crypto_buffer_build.xl") `
     -Expected 0
 
-$milk = -join ([char[]](0x4E70, 0x725B, 0x5976))
-$utf8SourcePath = Join-Path $root "build\test\cgen_issue_utf8_argv.generated.xl"
-$utf8Source = @(
-    "func main(...) as int",
-    "    if arg.length < 2 then",
-    "        return 1",
-    "    end",
-    "    if string(arg[1]) != `"$milk`" then",
-    "        return 2",
-    "    end",
-    "    return 0",
-    "end"
-) -join "`r`n"
-[System.IO.File]::WriteAllText($utf8SourcePath, $utf8Source, [System.Text.UTF8Encoding]::new($false))
-
 Invoke-XlExpectExit `
     -Label "utf8 argv run" `
-    -ArgsList @("run", $utf8SourcePath, "--", $milk) `
+    -ArgsList @("run", "test\cases\cgen_issue_utf8_argv.xl", "--", "milk") `
     -Expected 0
 
-& ".\release\xl.exe" build $utf8SourcePath -o "build\test\cgen_issue_utf8_argv.exe"
+& ".\release\xl.exe" build "test\cases\cgen_issue_utf8_argv.xl" -o "build\test\cgen_issue_utf8_argv.exe"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "utf8 argv build failed: $LASTEXITCODE"
     exit 1
 }
 
-& ".\build\test\cgen_issue_utf8_argv.exe" $milk
+& ".\build\test\cgen_issue_utf8_argv.exe" "milk"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "utf8 argv exe failed: $LASTEXITCODE"
     exit 1
@@ -109,6 +113,41 @@ if ($LASTEXITCODE -ne 0) {
 & ".\build\test\stdlib_dev_codec_crypto_buffer_build.exe"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "stdlib codec crypto buffer exe failed: $LASTEXITCODE"
+    exit 1
+}
+
+$runtimeHeader = Join-Path $root "release\include\xl_runtime.h"
+$runtimeHeaderBackup = Join-Path $root "build\test\xl_runtime.h.backup"
+$pollutionSource = Join-Path $root "build\test\xl_runtime_pollution_probe.xl"
+$pollutionExe = Join-Path $root "build\test\xl_runtime_pollution_probe.exe"
+$pollutionOk = $false
+[System.IO.File]::Copy($runtimeHeader, $runtimeHeaderBackup, $true)
+try {
+    [System.IO.File]::WriteAllText(
+        $runtimeHeader,
+        "#error external xl_runtime.h pollution should not be used`r`n",
+        [System.Text.Encoding]::ASCII)
+    [System.IO.File]::WriteAllText(
+        $pollutionSource,
+        "func main(...) as int`r`n    println(`"runtime-private-ok`")`r`n    return 0`r`nend`r`n",
+        [System.Text.UTF8Encoding]::new($false))
+
+    & ".\release\xl.exe" run $pollutionSource
+    if ($LASTEXITCODE -eq 0) {
+        & ".\release\xl.exe" build $pollutionSource -o $pollutionExe
+        if ($LASTEXITCODE -eq 0) {
+            & $pollutionExe
+            if ($LASTEXITCODE -eq 0) {
+                $pollutionOk = $true
+            }
+        }
+    }
+}
+finally {
+    [System.IO.File]::Copy($runtimeHeaderBackup, $runtimeHeader, $true)
+}
+if (-not $pollutionOk) {
+    Write-Host "xl_runtime private VFS include pollution guard failed"
     exit 1
 }
 

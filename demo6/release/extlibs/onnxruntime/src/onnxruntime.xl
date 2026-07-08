@@ -437,6 +437,10 @@ export func RunOptions() as RunOptionsObject
 	return RunOptionsObject()
 end
 
+export func RunResultFromHandle(point handle) as RunResult
+	return RunResult(handle)
+end
+
 export func TensorZerosF32(string shape_json) as TensorObject
 	return TensorObject(ort_tensor_zeros_f32_native(shape_json))
 end
@@ -459,6 +463,10 @@ end
 
 export func InferenceSession(string model_path, SessionOptionsObject options) as InferenceSessionObject
 	return InferenceSessionObject(model_path, options)
+end
+
+export func InferenceSessionFromHandle(point handle) as InferenceSessionObject
+	return InferenceSessionObject(handle)
 end
 
 export func available() as bool

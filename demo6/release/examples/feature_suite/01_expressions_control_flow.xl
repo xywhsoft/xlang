@@ -74,8 +74,8 @@ expect(branch, 2)
 
 // 单行 if return。
 func sign(int input) as int
-    if input > 0 then return 1
-    if input < 0 then return -1 else return 0
+    if input > 0 then return 1 end
+    if input < 0 then return -1 else return 0 end
 end
 
 expect(sign(12), 1)

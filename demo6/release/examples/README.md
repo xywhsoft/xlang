@@ -33,6 +33,7 @@
 - `class_native_bridge.xl`：native-backed class 对接 C opaque handle 的声明示例；回归：`check`。
 - `custom_counter.xl`：native-backed class 句柄类示例；回归：`check`。
 - `second_stage.xl`：第二阶段基础语义组合示例；回归：`check`、`run`。
+- `top_level_main.xl`：顶层语句与 `main(...)` 共存示例，验证顶层语句先于 `main` 执行；回归：`run`。
 - `concurrency.xl`：并发、通道和异步相关示例；回归：`run`。
 - `task_api.xl`：高层 task API 的 spawn、all、race 和 cancel 示例；回归：`run`。
 - `async_task_wait.xl`：future wait、waitTimeout、state/error、cancel 和 task.whenAny 示例；回归：`run`。
@@ -69,6 +70,7 @@
 - `stdlib_xson.xl`
 - `stdlib_xson_c.c`: C/XRT counterpart for `stdlib_xson.xl`; covers strict validation, ignore-unsupported validation, stringify and file read/write.
 - `stdlib_print.xl`
+- `stdlib_dict.xl`
 - `stdlib_codec.xl`
 - `stdlib_codec_c.c`：与 `stdlib_codec.xl` 对照的 C/XRT 编解码范例，覆盖 HEX、Base64、百分号编码和 form-url 编解码。
 - `stdlib_encoding.xl`

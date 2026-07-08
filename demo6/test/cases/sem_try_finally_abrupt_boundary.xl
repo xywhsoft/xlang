@@ -1,0 +1,9 @@
+func bad() as int
+    try
+        return 1
+    finally
+        int value = 0
+    end
+
+    return 0
+end

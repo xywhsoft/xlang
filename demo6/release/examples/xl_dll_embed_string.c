@@ -17,6 +17,11 @@ int main(void)
         xlDestroyContext(ctx);
         return 2;
     }
+    if ( xlGetLastExitCode(ctx) != 0 ) {
+        fprintf(stderr, "unexpected xl exit code: %d\n", xlGetLastExitCode(ctx));
+        xlDestroyContext(ctx);
+        return 3;
+    }
     xlDestroyContext(ctx);
     return 0;
 }
@@ -377,6 +382,17 @@ int main(void)
     xlClearLastError(ctx);
     if ( xlGetLastError(ctx)[0] != '\0' ) {
         fprintf(stderr, "xlClearLastError failed\n");
+        xlDestroyContext(ctx);
+        return 1;
+    }
+
+    if ( !xlRunScriptString(ctx, "func main(...) as int\n    return 7\nend\n") ) {
+        fprintf(stderr, "exit code script failed: %s\n", xlGetLastError(ctx));
+        xlDestroyContext(ctx);
+        return 1;
+    }
+    if ( xlGetLastExitCode(ctx) != 7 ) {
+        fprintf(stderr, "xlGetLastExitCode failed: %d\n", xlGetLastExitCode(ctx));
         xlDestroyContext(ctx);
         return 1;
     }

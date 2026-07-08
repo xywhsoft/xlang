@@ -1,7 +1,11 @@
-channel<int> ch = channel::<int>(1)
-int out = 0
+func outer() as int
+    channel<int> ch = channel::<int>(1)
+    int out = 0
 
-auto recv = func() as int
-    ch.tryRecvInto(out)
-    return out
+    auto recv = func() as int
+        ch.tryRecvInto(out)
+        return out
+    end
+
+    return 0
 end

@@ -681,7 +681,7 @@ static void xl6StdlibApplyDeps(int* used)
     }
     if ( xl6StdlibFindFunc("file", "readText", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
-        xl6StdlibMarkFuncUsed(used, "__xrt_file", "readAll");
+        xl6StdlibMarkFuncUsed(used, "__xrt_file", "readTextStrict");
     }
     if ( xl6StdlibFindFunc("file", "writeText", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_file", "writeAll");
@@ -1277,7 +1277,7 @@ static void xl6StdlibApplyDeps(int* used)
         xl6StdlibMarkFuncUsed(used, "template", "render");
         xl6StdlibMarkFuncUsed(used, "file", "readText");
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
-        xl6StdlibMarkFuncUsed(used, "__xrt_file", "readAll");
+        xl6StdlibMarkFuncUsed(used, "__xrt_file", "readTextStrict");
     }
 
     if ( xl6StdlibFindFunc("http.server", "create", &index) != NULL && used[index] ) {

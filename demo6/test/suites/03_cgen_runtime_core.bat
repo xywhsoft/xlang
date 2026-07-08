@@ -219,6 +219,18 @@ release\xl.exe run test\cases\cgen_issue_json_typed_class_array.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\cgen_issue_list_json_dict_remove_type.xl
 if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_dict.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_dict.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_container_index_errors.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_dev_feedback_priority.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_dev_feedback_priority.xl -o build\test\cgen_dev_feedback_priority.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_dev_feedback_priority.exe
+if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File test\suites\check_cgen_issue_runtime.ps1
 if errorlevel 1 exit /b 1
@@ -1372,7 +1384,7 @@ if errorlevel 1 (
     echo cgen_typed_container_index_assign.c missing typed dict index assignment.
     exit /b 1
 )
-findstr /C:"#include <xl_runtime.h>" build\test\cgen_typed_container_index_assign.c >nul
+findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\cgen_typed_container_index_assign.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign.c missing centralized runtime header.
     exit /b 1
@@ -1531,7 +1543,7 @@ if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing function dynamic dict multi assignment.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_typed_container_multi_assign_index.c' -Raw; $simple=[regex]::Matches($t,'xvalue (__xl6_multi_index_\d+) = (?:xvoCreateInt|xl6_box_XL_Class_Pair|xl6_box_XL_Union_Payload|xl6_function_to_xvalue)[^;]*;\s*if \(!(?:xl6_xrt_typed_array_set_at|xrtTyped(?:List|Dict)SetValue)\([^\n]*\1\)\) \{\s*xl6_runtime_fatal\(3\);\s*\}\s*xvoUnref\(\1\);',[Text.RegularExpressions.RegexOptions]::Singleline); if($simple.Count -lt 6){exit 1}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_box_XL_Class_Native\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(natives,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 2}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_function_to_xvalue\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(table,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 3}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_typed_container_multi_assign_index.c' -Raw; $fail='(?:xl6_runtime_fatal\(3\)|xl6_error_raise\([^;]+;)'; $simple=[regex]::Matches($t,'xvalue (__xl6_multi_index_\d+) = (?:xvoCreateInt|xl6_box_XL_Class_Pair|xl6_box_XL_Union_Payload|xl6_function_to_xvalue)[^;]*;\s*if \(!(?:xl6_xrt_typed_array_set_at|xrtTyped(?:List|Dict)SetValue)\([^\n]*\1\)\) \{\s*' + $fail + '\s*\}\s*xvoUnref\(\1\);',[Text.RegularExpressions.RegexOptions]::Singleline); if($simple.Count -lt 6){exit 1}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_box_XL_Class_Native\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(natives,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 2}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_function_to_xvalue\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(table,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 3}"
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing multi-return typed index temp cleanup ordering.
     exit /b 1
@@ -3283,7 +3295,7 @@ if errorlevel 1 (
     echo cgen_function_named_value.c missing centralized function fatal helper.
     exit /b 1
 )
-findstr /C:"#include <xl_runtime.h>" build\test\cgen_function_named_value.c >nul
+findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing centralized runtime header.
     exit /b 1

@@ -12,22 +12,27 @@ end
 
 int hostCounter = 40
 
-// extern 鍑芥暟锛歺lang 澹版槑 C 绗﹀彿鍚庣洿鎺ヨ皟鐢ㄣ€?expect(nativeAdd(20, 22), 42)
+// xlang 声明 C 符号后可以直接调用。
+expect(nativeAdd(20, 22), 42)
 expect(nativeFlip(false), 1)
 
-// extern 鍙橀噺锛歺lang 鍙互璇诲啓 C 鍏ㄥ眬鍙橀噺銆?expect(hostCounter, 40)
+// xlang 可以读写 C 全局变量。
+expect(hostCounter, 40)
 hostCounter += 2
 expect(hostCounter, 42)
 
-// export 鍑芥暟锛氱敓鎴愮粰 C 璋冪敤鐨?ABI 绗﹀彿銆?export "xl6_feature_add_i64" func exportedAdd(int left, int right) as int
+// export 函数：生成给 C 调用的 ABI 符号。
+export "xl6_feature_add_i64" func exportedAdd(int left, int right) as int
     return left + right
 end
 
-// export 澶氳繑鍥炲€硷細C 渚ч€氳繃鐢熸垚澶存枃浠朵腑鐨?out 鍙傛暟鎺ユ敹銆?export "xl6_feature_pair_i64" func exportedPair(int seed) as (int, int)
+// export 多返回值：C 侧通过生成头文件中的 out 参数接收。
+export "xl6_feature_pair_i64" func exportedPair(int seed) as (int, int)
     return seed, seed + 1
 end
 
-// export 鍙橀噺锛氱敓鎴?C 鍙鍏ㄥ眬绗﹀彿銆?export "xl6_feature_counter" int exportedCounter = 1
+// export 变量：生成 C 可见全局符号。
+export "xl6_feature_counter" int exportedCounter = 1
 export "xl6_feature_version" const int exportedVersion = 6
 
 func getExportedTotal() as int
@@ -38,7 +43,8 @@ export "xl6_feature_get_total" func exportedTotal() as int
     return getExportedTotal()
 end
 
-// 瀵煎嚭鐨勫嚱鏁板拰鍙橀噺鍦?xlang 鍐呴儴浠嶅彲姝ｅ父浣跨敤銆?expect(exportedAdd(30, 12), 42)
+// 导出的函数和变量在 xlang 内部仍可正常使用。
+expect(exportedAdd(30, 12), 42)
 expect(exportedTotal(), 7)
 exportedCounter = 36
 expect(exportedTotal(), 42)

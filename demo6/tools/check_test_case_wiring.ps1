@@ -37,7 +37,9 @@ function Get-TestSuiteWiringFiles()
 
     if ( Test-Path -LiteralPath $script:testSuiteDir -PathType Container ) {
         $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
-        $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
+        $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File |
+            Where-Object { $_.Extension -eq ".bat" -or $_.Extension -eq ".ps1" } |
+            Sort-Object Name)
         foreach ( $suite in $suiteFiles ) {
             $files.Add($suite.FullName.Substring($rootPath.Length + 1)) | Out-Null
         }

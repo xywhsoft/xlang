@@ -467,16 +467,25 @@ if ( $failures.Count -eq 0 ) {
     if ( ! (Test-ManifestEntry $runtimeManifestEntries "file" "lib/libtcc1.a") ) {
         Add-Failure "runtime VFS manifest must include lib/libtcc1.a"
     }
+    if ( ! (Test-ManifestEntry $runtimeManifestEntries "file" "include/__xl_runtime/xl_runtime.h") ) {
+        Add-Failure "runtime VFS manifest must include xl_runtime.h under the private __xl_runtime path"
+    }
+    if ( Test-ManifestVirtual $runtimeManifestEntries "include/xl_runtime.h" ) {
+        Add-Failure "runtime VFS manifest must not expose xl_runtime.h under the public include path"
+    }
     foreach ( $forbidden in @("lib/xrt/xrt.h", "lib/xrt/xrt.o", "lib/kernel32.def", "lib/msvcrt.def", "lib/user32.def", "lib/gdi32.def", "lib/ws2_32.def", "lib/shell32.def") ) {
         if ( Test-ManifestVirtual $runtimeManifestEntries $forbidden ) {
             Add-Failure "runtime VFS manifest must not carry compiler/exe resource: $forbidden"
         }
     }
 
-    foreach ( $required in @("include", "lib/libtcc1.a", "lib/kernel32.def", "lib/msvcrt.def", "lib/user32.def", "lib/gdi32.def", "lib/ws2_32.def", "lib/shell32.def", "lib/xrt/xrt.h") ) {
+    foreach ( $required in @("include", "include/__xl_runtime/xl_runtime.h", "lib/libtcc1.a", "lib/kernel32.def", "lib/msvcrt.def", "lib/user32.def", "lib/gdi32.def", "lib/ws2_32.def", "lib/shell32.def", "lib/xrt/xrt.h") ) {
         if ( ! (Test-ManifestVirtual $compilerManifestEntries $required) ) {
             Add-Failure "compiler VFS manifest missing required resource: $required"
         }
+    }
+    if ( Test-ManifestVirtual $compilerManifestEntries "include/xl_runtime.h" ) {
+        Add-Failure "compiler VFS manifest must not expose xl_runtime.h under the public include path"
     }
     if ( Test-ManifestVirtual $compilerManifestEntries "lib/xrt/xrt.o" ) {
         Add-Failure "compiler VFS manifest must use xrt.h and must not embed xrt.o"

@@ -105,6 +105,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         hasAsyncRuntime = 1;
         hasErrorRuntime = 1;
     }
+    if ( hasFileRuntime ) {
+        hasErrorRuntime = 1;
+    }
     if ( hasStdStringRuntime || hasDirRuntime ) {
         hasXValueRuntime = 1;
     }
@@ -154,7 +157,11 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( mainFunc != NULL || hasEntryRuntime ) {
         xl6OutputPuts("#define XL_RUNTIME_NEED_ARGV 1\n", out);
     }
-    xl6OutputPuts("#include <xl_runtime.h>\n\n", out);
+    /*
+        xl_runtime.h 是 xlang 生成代码的内部运行时头。
+        使用专用 VFS 路径，避免 release/include 下的外部残留文件覆盖内置版本。
+    */
+    xl6OutputPuts("#include <__xl_runtime/xl_runtime.h>\n\n", out);
     if ( ctx.debugMode ) {
         xl6CgenEmitDebugRuntime(out);
     }

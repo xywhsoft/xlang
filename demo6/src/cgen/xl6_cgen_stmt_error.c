@@ -5,6 +5,21 @@ static int xl6CgenNodeNeedsErrorRuntime(const XL6_AstNode* node)
     if ( node == NULL ) {
         return 0;
     }
+    if ( node->kind == XL6_AST_CALL &&
+         node->childCount > 0 &&
+         node->children[0] != NULL &&
+         node->children[0]->kind == XL6_AST_NAME &&
+         xl6CTextEquals(node->children[0]->text, "__xl_std_xrt_file_read_text_strict") ) {
+        return 1;
+    }
+    if ( node->kind == XL6_AST_INDEX ||
+         node->kind == XL6_AST_SAFE_INDEX ) {
+        /*
+         * 索引读写需要运行时边界诊断：
+         * 赋值失败、错误 key 类型等场景应进入异常系统，而不是静默 fatal。
+         */
+        return 1;
+    }
     if ( node->kind == XL6_AST_FOR &&
          node->childCount > 1 &&
          xl6CgenIsRangeCall(node->children[1]) &&

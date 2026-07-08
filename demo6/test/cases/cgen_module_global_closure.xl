@@ -1,0 +1,24 @@
+int value = 0
+
+auto writeGlobal = func() as int
+    value = 42
+    return value
+end
+
+assert writeGlobal() == 42, "module global closure return failed"
+assert value == 42, "module global closure writeback failed"
+
+channel<int> ch = channel::<int>(1)
+int received = 0
+
+assert ch.send(77), "module global channel send failed"
+
+auto recvGlobal = func() as int
+    if not ch.recvInto(received) then
+        return -1
+    end
+    return received
+end
+
+assert recvGlobal() == 77, "module global channel recv return failed"
+assert received == 77, "module global channel recv writeback failed"

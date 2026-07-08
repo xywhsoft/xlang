@@ -36,7 +36,7 @@ end
 func dinov3_center_crop(Image image, int crop_w, int crop_h) as Image
 	if image.empty() then
 		point nullHandle = null
-		return Image(nullHandle)
+		return opencv.ImageFromHandle(nullHandle)
 	end
 	int x = (image.width() - crop_w) / 2
 	int y = (image.height() - crop_h) / 2
@@ -68,7 +68,7 @@ class DinoV3Output
 
 	func release() as bool
 		if self.handle != null then
-			RunResult result = RunResult(self.handle)
+			RunResult result = onnxruntime.RunResultFromHandle(self.handle)
 			result.release()
 			self.handle = null
 			return true
@@ -89,17 +89,17 @@ class DinoV3Output
 	end
 
 	func shape_json() as string
-		RunResult result = RunResult(self.handle)
+		RunResult result = onnxruntime.RunResultFromHandle(self.handle)
 		return result.float_shape_json()
 	end
 
 	func count() as int
-		RunResult result = RunResult(self.handle)
+		RunResult result = onnxruntime.RunResultFromHandle(self.handle)
 		return result.float_count()
 	end
 
 	func at(int index) as float
-		RunResult result = RunResult(self.handle)
+		RunResult result = onnxruntime.RunResultFromHandle(self.handle)
 		return result.float_at(index)
 	end
 

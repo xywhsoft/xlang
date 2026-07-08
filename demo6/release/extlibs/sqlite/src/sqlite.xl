@@ -180,48 +180,48 @@ extern "xsqlite3_libversion_number_native" func __xl6_native_sqlite_sqlite3_libv
 export func sqlite3_libversion_number() as int
     return __xl6_native_sqlite_sqlite3_libversion_number()
 end
-extern "xsqlite_const_SQLITE_OK" int SQLITE_OK
-extern "xsqlite_const_SQLITE_ERROR" int SQLITE_ERROR
-extern "xsqlite_const_SQLITE_INTERNAL" int SQLITE_INTERNAL
-extern "xsqlite_const_SQLITE_PERM" int SQLITE_PERM
-extern "xsqlite_const_SQLITE_ABORT" int SQLITE_ABORT
-extern "xsqlite_const_SQLITE_BUSY" int SQLITE_BUSY
-extern "xsqlite_const_SQLITE_LOCKED" int SQLITE_LOCKED
-extern "xsqlite_const_SQLITE_NOMEM" int SQLITE_NOMEM
-extern "xsqlite_const_SQLITE_READONLY" int SQLITE_READONLY
-extern "xsqlite_const_SQLITE_INTERRUPT" int SQLITE_INTERRUPT
-extern "xsqlite_const_SQLITE_IOERR" int SQLITE_IOERR
-extern "xsqlite_const_SQLITE_CORRUPT" int SQLITE_CORRUPT
-extern "xsqlite_const_SQLITE_NOTFOUND" int SQLITE_NOTFOUND
-extern "xsqlite_const_SQLITE_FULL" int SQLITE_FULL
-extern "xsqlite_const_SQLITE_CANTOPEN" int SQLITE_CANTOPEN
-extern "xsqlite_const_SQLITE_PROTOCOL" int SQLITE_PROTOCOL
-extern "xsqlite_const_SQLITE_EMPTY" int SQLITE_EMPTY
-extern "xsqlite_const_SQLITE_SCHEMA" int SQLITE_SCHEMA
-extern "xsqlite_const_SQLITE_TOOBIG" int SQLITE_TOOBIG
-extern "xsqlite_const_SQLITE_CONSTRAINT" int SQLITE_CONSTRAINT
-extern "xsqlite_const_SQLITE_MISMATCH" int SQLITE_MISMATCH
-extern "xsqlite_const_SQLITE_MISUSE" int SQLITE_MISUSE
-extern "xsqlite_const_SQLITE_NOLFS" int SQLITE_NOLFS
-extern "xsqlite_const_SQLITE_AUTH" int SQLITE_AUTH
-extern "xsqlite_const_SQLITE_FORMAT" int SQLITE_FORMAT
-extern "xsqlite_const_SQLITE_RANGE" int SQLITE_RANGE
-extern "xsqlite_const_SQLITE_NOTADB" int SQLITE_NOTADB
-extern "xsqlite_const_SQLITE_NOTICE" int SQLITE_NOTICE
-extern "xsqlite_const_SQLITE_WARNING" int SQLITE_WARNING
-extern "xsqlite_const_SQLITE_ROW" int SQLITE_ROW
-extern "xsqlite_const_SQLITE_DONE" int SQLITE_DONE
-extern "xsqlite_const_SQLITE_INTEGER" int SQLITE_INTEGER
-extern "xsqlite_const_SQLITE_FLOAT" int SQLITE_FLOAT
-extern "xsqlite_const_SQLITE_TEXT" int SQLITE_TEXT
-extern "xsqlite_const_SQLITE_BLOB" int SQLITE_BLOB
-extern "xsqlite_const_SQLITE_NULL" int SQLITE_NULL
-extern "xsqlite_const_SQLITE_OPEN_READONLY" int SQLITE_OPEN_READONLY
-extern "xsqlite_const_SQLITE_OPEN_READWRITE" int SQLITE_OPEN_READWRITE
-extern "xsqlite_const_SQLITE_OPEN_CREATE" int SQLITE_OPEN_CREATE
-extern "xsqlite_const_SQLITE_OPEN_URI" int SQLITE_OPEN_URI
-extern "xsqlite_const_SQLITE_OPEN_MEMORY" int SQLITE_OPEN_MEMORY
-extern "xsqlite_const_SQLITE_OPEN_NOMUTEX" int SQLITE_OPEN_NOMUTEX
-extern "xsqlite_const_SQLITE_OPEN_FULLMUTEX" int SQLITE_OPEN_FULLMUTEX
-extern "xsqlite_const_SQLITE_OPEN_SHAREDCACHE" int SQLITE_OPEN_SHAREDCACHE
-extern "xsqlite_const_SQLITE_OPEN_PRIVATECACHE" int SQLITE_OPEN_PRIVATECACHE
+export extern "xsqlite_const_SQLITE_OK" int SQLITE_OK
+export extern "xsqlite_const_SQLITE_ERROR" int SQLITE_ERROR
+export extern "xsqlite_const_SQLITE_INTERNAL" int SQLITE_INTERNAL
+export extern "xsqlite_const_SQLITE_PERM" int SQLITE_PERM
+export extern "xsqlite_const_SQLITE_ABORT" int SQLITE_ABORT
+export extern "xsqlite_const_SQLITE_BUSY" int SQLITE_BUSY
+export extern "xsqlite_const_SQLITE_LOCKED" int SQLITE_LOCKED
+export extern "xsqlite_const_SQLITE_NOMEM" int SQLITE_NOMEM
+export extern "xsqlite_const_SQLITE_READONLY" int SQLITE_READONLY
+export extern "xsqlite_const_SQLITE_INTERRUPT" int SQLITE_INTERRUPT
+export extern "xsqlite_const_SQLITE_IOERR" int SQLITE_IOERR
+export extern "xsqlite_const_SQLITE_CORRUPT" int SQLITE_CORRUPT
+export extern "xsqlite_const_SQLITE_NOTFOUND" int SQLITE_NOTFOUND
+export extern "xsqlite_const_SQLITE_FULL" int SQLITE_FULL
+export extern "xsqlite_const_SQLITE_CANTOPEN" int SQLITE_CANTOPEN
+export extern "xsqlite_const_SQLITE_PROTOCOL" int SQLITE_PROTOCOL
+export extern "xsqlite_const_SQLITE_EMPTY" int SQLITE_EMPTY
+export extern "xsqlite_const_SQLITE_SCHEMA" int SQLITE_SCHEMA
+export extern "xsqlite_const_SQLITE_TOOBIG" int SQLITE_TOOBIG
+export extern "xsqlite_const_SQLITE_CONSTRAINT" int SQLITE_CONSTRAINT
+export extern "xsqlite_const_SQLITE_MISMATCH" int SQLITE_MISMATCH
+export extern "xsqlite_const_SQLITE_MISUSE" int SQLITE_MISUSE
+export extern "xsqlite_const_SQLITE_NOLFS" int SQLITE_NOLFS
+export extern "xsqlite_const_SQLITE_AUTH" int SQLITE_AUTH
+export extern "xsqlite_const_SQLITE_FORMAT" int SQLITE_FORMAT
+export extern "xsqlite_const_SQLITE_RANGE" int SQLITE_RANGE
+export extern "xsqlite_const_SQLITE_NOTADB" int SQLITE_NOTADB
+export extern "xsqlite_const_SQLITE_NOTICE" int SQLITE_NOTICE
+export extern "xsqlite_const_SQLITE_WARNING" int SQLITE_WARNING
+export extern "xsqlite_const_SQLITE_ROW" int SQLITE_ROW
+export extern "xsqlite_const_SQLITE_DONE" int SQLITE_DONE
+export extern "xsqlite_const_SQLITE_INTEGER" int SQLITE_INTEGER
+export extern "xsqlite_const_SQLITE_FLOAT" int SQLITE_FLOAT
+export extern "xsqlite_const_SQLITE_TEXT" int SQLITE_TEXT
+export extern "xsqlite_const_SQLITE_BLOB" int SQLITE_BLOB
+export extern "xsqlite_const_SQLITE_NULL" int SQLITE_NULL
+export extern "xsqlite_const_SQLITE_OPEN_READONLY" int SQLITE_OPEN_READONLY
+export extern "xsqlite_const_SQLITE_OPEN_READWRITE" int SQLITE_OPEN_READWRITE
+export extern "xsqlite_const_SQLITE_OPEN_CREATE" int SQLITE_OPEN_CREATE
+export extern "xsqlite_const_SQLITE_OPEN_URI" int SQLITE_OPEN_URI
+export extern "xsqlite_const_SQLITE_OPEN_MEMORY" int SQLITE_OPEN_MEMORY
+export extern "xsqlite_const_SQLITE_OPEN_NOMUTEX" int SQLITE_OPEN_NOMUTEX
+export extern "xsqlite_const_SQLITE_OPEN_FULLMUTEX" int SQLITE_OPEN_FULLMUTEX
+export extern "xsqlite_const_SQLITE_OPEN_SHAREDCACHE" int SQLITE_OPEN_SHAREDCACHE
+export extern "xsqlite_const_SQLITE_OPEN_PRIVATECACHE" int SQLITE_OPEN_PRIVATECACHE

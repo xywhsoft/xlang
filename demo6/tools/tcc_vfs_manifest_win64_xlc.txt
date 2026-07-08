@@ -8,7 +8,7 @@
 
 dir|include|%XL6_EMBED_TCC_DIST_X64%\include
 
-file|include/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h
+file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h
 file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST_X64%\lib\libtcc1.a
 file|lib/kernel32.def|%XL6_EMBED_TCC_DIST_X64%\lib\kernel32.def
 file|lib/msvcrt.def|%XL6_EMBED_TCC_DIST_X64%\lib\msvcrt.def

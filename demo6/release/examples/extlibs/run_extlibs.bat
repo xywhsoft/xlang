@@ -42,11 +42,11 @@ call :run_example release\examples\extlibs\sqlite.xl sqlite xsqlite3_open_native
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\pkg_math.xl pkg.math xpkg_math_add_one
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\volc_sts.xl volc.sts __xl6_import_volc_sts_assume_role_trn
+call :run_example release\examples\extlibs\volc_sts.xl volc.sts xl6_export_____xl6__import__volc__sts__assume__role__trn
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\volc_phone.xl volc.phone __xl6_import_volc_phone_product_body
+call :run_example release\examples\extlibs\volc_phone.xl volc.phone xl6_export_____xl6__import__volc__phone__product__body
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\mail_mime.xl mail.mime __xl6_import_mail_mime_build_json
+call :run_example release\examples\extlibs\mail_mime.xl mail.mime xl6_export_____xl6__import__mail__mime__build__json
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\mail_smtp.xl mail.smtp xmail_smtp_send_json_native
 if errorlevel 1 exit /b 1
@@ -58,17 +58,17 @@ call :run_example release\examples\extlibs\uia.xl uia x_uia_test_window_create
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\opencv.xl opencv opencv_capture_rect_native
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\onnxruntime.xl onnxruntime __xl6_import_onnxruntime_available
+call :run_example release\examples\extlibs\onnxruntime.xl onnxruntime xl6_export_____xl6__import__onnxruntime__available
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\dinov3.xl dinov3 __xl6_import_dinov3_version
+call :run_example release\examples\extlibs\dinov3.xl dinov3 xl6_export_____xl6__import__dinov3__version
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\xfeat.xl xfeat __xl6_import_xfeat_version
+call :run_example release\examples\extlibs\xfeat.xl xfeat xl6_export_____xl6__import__xfeat__version
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\rapidocr.xl rapidocr __xl6_import_rapidocr_available
+call :run_example release\examples\extlibs\rapidocr.xl rapidocr xl6_export_____xl6__import__rapidocr__available
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\ui_auto.xl ui.auto __xl6_import_ui_auto_test_window
+call :run_example release\examples\extlibs\ui_auto.xl ui.auto xl6_export_____xl6__import__ui__auto__test__window
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\redis.xl redis __xl6_import_redis_resp_encode3
+call :run_example release\examples\extlibs\redis.xl redis xl6_export_____xl6__import__redis__resp__encode3
 if errorlevel 1 exit /b 1
 
 echo DEMO6 extension library examples ok.

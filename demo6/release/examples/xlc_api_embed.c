@@ -31,6 +31,12 @@ int main(void)
         xlcDestroyContext(ctx);
         return 4;
     }
+    if ( xlcGetLastExitCode(ctx) != 0 ) {
+        fprintf(stderr, "unexpected xlc exit code: %d\n", xlcGetLastExitCode(ctx));
+        xlDestroyModule(module);
+        xlcDestroyContext(ctx);
+        return 5;
+    }
     xlDestroyModule(module);
     xlcDestroyContext(ctx);
     return 0;
@@ -143,6 +149,9 @@ int main(void)
     }
     if ( !xlcRun(ctx, 0, NULL) ) {
         return fail_xlc(ctx, "xlcRun");
+    }
+    if ( xlcGetLastExitCode(ctx) != 0 ) {
+        return fail_xlc(ctx, "xlcGetLastExitCode");
     }
     if ( !xlcAddSourceString(ctx, "__xlc_api_shared.xl", sharedSource) ) {
         return fail_xlc(ctx, "xlcAddSourceString shared");

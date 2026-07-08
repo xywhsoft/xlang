@@ -234,6 +234,10 @@ export func imread_flags(string path, int flags) as Image
 	return opencv_imread_flags(path, flags)
 end
 
+export func ImageFromHandle(point handle) as Image
+	return Image(handle)
+end
+
 export func imwrite(string path, Image image) as bool
 	return opencv_imwrite(path, image)
 end

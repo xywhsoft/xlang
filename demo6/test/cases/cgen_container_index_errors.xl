@@ -1,0 +1,13 @@
+bool caught = false
+
+array<int> xs = array[1]
+xs[0] = 7
+assert xs[0] == 7, "typed array in-range assignment should still work"
+
+try
+    xs[1] = 2
+catch e
+    caught = e.kind == "RangeError" and string.contains(e.message, "index")
+end
+
+assert caught, "typed array out-of-range assignment should raise RangeError"

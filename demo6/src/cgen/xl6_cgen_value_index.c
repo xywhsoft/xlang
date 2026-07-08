@@ -29,6 +29,8 @@ static int xl6CgenIndexKeyIsInteger(XL6_CgenContext* ctx, const XL6_AstNode* ind
     return result;
 }
 
+static void xl6CgenValueIndexRaiseFailure(XL6_CgenContext* ctx, const XL6_AstNode* at, const char* message);
+
 static void xl6CgenXValueDictGetExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const char* receiverName, const XL6_AstNode* index)
 {
     if ( xl6CgenExprStaticTypeIs(ctx, index, "string") ) {
@@ -118,8 +120,7 @@ static void xl6CgenTypedDictSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_As
     xl6CgenExpr(ctx, receiver);
     xl6OutputPrintf(ctx->out, ", xvoGetText(__xl6_dict_key_%d), 0, %s))) {\n", id, tempName != NULL ? tempName : "0");
     ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
+    xl6CgenValueIndexRaiseFailure(ctx, index, "dict index assignment failed");
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -132,6 +133,20 @@ static void xl6CgenTypedDictSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_As
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
+}
+
+static void xl6CgenValueIndexRaiseFailure(XL6_CgenContext* ctx, const XL6_AstNode* at, const char* message)
+{
+    xl6CgenIndent(ctx);
+    if ( ctx != NULL && ctx->needsErrorRuntime ) {
+        xl6OutputPrintf(ctx->out,
+                "xl6_error_raise(\"RangeError\", \"%s\", \"\", %d, %d);\n",
+                message != NULL ? message : "container index operation failed",
+                at != NULL ? at->line : 0,
+                at != NULL ? at->column : 0);
+    } else {
+        xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
+    }
 }
 
 static void xl6CgenXValueDictSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const XL6_AstNode* index, const char* tempName)
@@ -153,8 +168,7 @@ static void xl6CgenXValueDictSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_A
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName != NULL ? tempName : "0");
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
+    xl6CgenValueIndexRaiseFailure(ctx, index, "dict index assignment failed");
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -188,8 +202,7 @@ static void xl6CgenXValueIndexSetI64Stmt(XL6_CgenContext* ctx, const XL6_AstNode
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName != NULL ? tempName : "0");
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
+    xl6CgenValueIndexRaiseFailure(ctx, index, "array or list index assignment failed");
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -239,8 +252,7 @@ static void xl6CgenXValueIndexSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName != NULL ? tempName : "0");
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
+    xl6CgenValueIndexRaiseFailure(ctx, index, "container index assignment failed");
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);

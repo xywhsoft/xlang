@@ -78,6 +78,34 @@ function Invoke-Checked([string]$File, [string[]]$Arguments, [string]$Name)
     return $text
 }
 
+function Invoke-CheckedCleanToolEnv([string]$File, [string[]]$Arguments, [string]$Name)
+{
+    $names = @(
+        "XL6_TCC_INCLUDES",
+        "XL6_TCC_INCLUDES_WINAPI",
+        "XL6_TCC_SOURCE_INCLUDE",
+        "XL6_TCC_LIB_FLAGS",
+        "XL6_DEFAULT_LINKS",
+        "XL6_XL_DEFAULT_LINK_ARGS"
+    )
+    $saved = @{}
+
+    foreach ( $envName in $names ) {
+        $saved[$envName] = [Environment]::GetEnvironmentVariable($envName, "Process")
+        if ( $saved[$envName] -ne $null ) {
+            [Environment]::SetEnvironmentVariable($envName, $null, "Process")
+        }
+    }
+
+    try {
+        return Invoke-Checked -File $File -Arguments $Arguments -Name $Name
+    } finally {
+        foreach ( $envName in $names ) {
+            [Environment]::SetEnvironmentVariable($envName, $saved[$envName], "Process")
+        }
+    }
+}
+
 foreach ( $path in @($xlExe, $xlDef, $xlcDef, $xlDll, $xlcDll, $libtccHeader, $vfsHeader, $cExample) ) {
     if ( !(Test-Path -LiteralPath $path -PathType Leaf) ) {
         Add-Failure "required file missing: $path"
@@ -110,14 +138,14 @@ if ( $failures.Count -eq 0 ) {
         New-Item -ItemType Directory -Path $tmpDir | Out-Null
     }
 
-    $runText = Invoke-Checked -File $xlExe -Arguments @("run", $cExample) -Name "xl run C example"
+    $runText = Invoke-CheckedCleanToolEnv -File $xlExe -Arguments @("run", $cExample) -Name "xl run C example"
     if ( $runText.IndexOf("advanced=ok") -lt 0 ) {
         Add-Failure "xl run C example output missing advanced=ok"
     }
 
     $builtExe = Join-Path $tmpDir "stdlib_math_c_from_xl.exe"
     Remove-Item -LiteralPath $builtExe -Force -ErrorAction SilentlyContinue
-    Invoke-Checked -File $xlExe -Arguments @("build", $cExample, "-o", $builtExe) -Name "xl build C example" | Out-Null
+    Invoke-CheckedCleanToolEnv -File $xlExe -Arguments @("build", $cExample, "-o", $builtExe) -Name "xl build C example" | Out-Null
     if ( Test-Path -LiteralPath $builtExe -PathType Leaf ) {
         $builtText = Invoke-Checked -File $builtExe -Arguments @() -Name "built C example exe"
         if ( $builtText.IndexOf("advanced=ok") -lt 0 ) {

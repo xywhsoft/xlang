@@ -1,0 +1,8 @@
+var data = {"name": "xlang", "count": 2}
+
+assert dict.remove(data, "count") == true, "dict.remove should remove existing key"
+assert ("count" in data) == false, "dict.remove should update membership"
+assert dict.remove(data, "missing") == false, "dict.remove should report missing key"
+assert data["name"] == "xlang", "dict.remove should keep other values"
+
+println("stdlib dict ok")

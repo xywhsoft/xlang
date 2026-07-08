@@ -52,7 +52,7 @@ end
 
 func xfeat_release_session(point session_handle)
 	if session_handle != null then
-		InferenceSessionObject session = InferenceSessionObject(session_handle)
+		InferenceSessionObject session = onnxruntime.InferenceSessionFromHandle(session_handle)
 		session.release()
 	end
 end
@@ -71,7 +71,7 @@ func xfeat_extract_image(point session_handle, Image image, int stats_kind) as p
 	float t0 = xfeat_now_ms_native()
 	auto tensor = onnxruntime.TensorFromOpenCVResized(image.handle, resized_w, resized_h, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
 	float t1 = xfeat_now_ms_native()
-	InferenceSessionObject session = InferenceSessionObject(session_handle)
+	InferenceSessionObject session = onnxruntime.InferenceSessionFromHandle(session_handle)
 	RunResult result = session.run_tensor_fast("image", tensor, "[\"features\"]")
 	float t2 = xfeat_now_ms_native()
 	if result.valid() == false then

@@ -2,7 +2,7 @@
 setlocal
 cd /d %~dp0\..\..\..
 
-call tools\xl6_toolchain_env.bat
+call test\suites\common.bat
 if errorlevel 1 exit /b 1
 
 set LINKS=--link release\examples\feature_suite\host.c %XL6_XL_DEFAULT_LINK_ARGS%
