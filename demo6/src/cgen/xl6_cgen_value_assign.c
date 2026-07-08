@@ -25,9 +25,12 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
     const XL6_AstNode* right)
 {
     const XL6_AstNode* receiver;
+    const XL6_AstNode* index;
+    const XL6_AstNode* receiverConcrete;
     XL6_AstNode* receiverType;
     XL6_AstNode* itemType;
     const char* itemTypeName;
+    const char* receiverKind;
     const char* binaryOp;
     int id;
     char currentName[64];
@@ -35,6 +38,7 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
     char tempName[64];
 
     receiver = left != NULL && left->childCount > 0 ? left->children[0] : NULL;
+    index = left != NULL && left->childCount > 1 ? left->children[1] : NULL;
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
     if ( !xl6CgenExprUsesTypedContainerStorage(ctx, receiver) || !xl6CgenIsTypedContainerType(ctx, receiverType) ) {
         xl6AstFree(receiverType);
@@ -47,6 +51,68 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
     snprintf(currentName, sizeof(currentName), "__xl6_typed_index_current_%d", id);
     snprintf(rightName, sizeof(rightName), "__xl6_typed_index_right_%d", id);
     snprintf(tempName, sizeof(tempName), "__xl6_typed_index_assign_%d", id);
+    receiverConcrete = xl6CgenTypedContainerConcreteType(ctx, receiverType);
+    receiverKind = receiverConcrete != NULL ? receiverConcrete->text : NULL;
+
+    if ( xl6CTextEquals(op, "?=") ) {
+        if ( !xl6CTextEquals(receiverKind, "array") &&
+             !xl6CTextEquals(receiverKind, "list") &&
+             !xl6CTextEquals(receiverKind, "dict") ) {
+            xl6CgenError(ctx, left, "typed index ?= requires array, list or dict");
+            xl6AstFree(itemType);
+            xl6AstFree(receiverType);
+            return 1;
+        }
+        if ( xl6CTextEquals(receiverKind, "dict") &&
+             !xl6CgenExprStaticTypeIs(ctx, index, "string") ) {
+            xl6CgenError(ctx, index, "typed dict ?= key must be string");
+            xl6AstFree(itemType);
+            xl6AstFree(receiverType);
+            return 1;
+        }
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xvalue %s = xl6_xrt_typed_box_or_null(", currentName);
+        xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+        xl6OutputPuts(", ", ctx->out);
+        if ( xl6CTextEquals(receiverKind, "array") ) {
+            xl6OutputPuts("xl6_xrt_typed_array_get_at(", ctx->out);
+            xl6CgenExpr(ctx, receiver);
+            xl6OutputPuts(", (unsigned int)(", ctx->out);
+            xl6CgenExpr(ctx, index);
+            xl6OutputPuts("))", ctx->out);
+        } else if ( xl6CTextEquals(receiverKind, "list") ) {
+            xl6OutputPuts("xrtTypedListGet(", ctx->out);
+            xl6CgenExpr(ctx, receiver);
+            xl6OutputPuts(", (long long)(", ctx->out);
+            xl6CgenExpr(ctx, index);
+            xl6OutputPuts("))", ctx->out);
+        } else {
+            xl6CgenTypedDictGetRawExpr(ctx, receiver, index);
+        }
+        xl6OutputPuts(");\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s == 0 || xvoType(%s) == XL6_XVO_DT_NULL) {\n", currentName, currentName);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", currentName, currentName, currentName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xvalue %s = ", tempName);
+        xl6CgenXValueFromExpr(ctx, right);
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenIndexAssignTemp(ctx, left, tempName);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("} else {\n", ctx->out);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", currentName);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        xl6AstFree(itemType);
+        xl6AstFree(receiverType);
+        return 1;
+    }
 
     if ( xl6CTextEquals(itemTypeName, "string") ) {
         if ( !xl6CTextEquals(op, "+=") ) {
@@ -79,13 +145,6 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
         return 1;
     }
 
-    if ( xl6CTextEquals(op, "?=") ) {
-        xl6CgenError(ctx, left, "typed index ?= is not supported");
-        xl6AstFree(itemType);
-        xl6AstFree(receiverType);
-        return 1;
-    }
-
     if ( xl6CTextEquals(op, "**=") ) {
         if ( !xl6CgenIsIntegerTypeName(itemTypeName) || !xl6CgenExprIntPowKind(ctx, right) ) {
             xl6CgenError(ctx, left, "typed index **= only supports integer item and integer expression");
@@ -99,7 +158,7 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "long long %s = (long long)(", rightName);
-        xl6CgenExpr(ctx, right);
+        xl6CgenXValueAsI64Expr(ctx, right);
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateInt(xl6_int_pow_i64(%s, %s));\n", tempName, currentName, rightName);
@@ -131,7 +190,7 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "double %s = (double)(", rightName);
-        xl6CgenExpr(ctx, right);
+        xl6CgenXValueAsF64Expr(ctx, right);
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateFloat(%s %s %s);\n", tempName, currentName, binaryOp, rightName);
@@ -142,7 +201,7 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "long long %s = (long long)(", rightName);
-        xl6CgenExpr(ctx, right);
+        xl6CgenXValueAsI64Expr(ctx, right);
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateInt(%s %s %s);\n", tempName, currentName, binaryOp, rightName);
@@ -341,102 +400,6 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
     xl6AstFree(receiverType);
     return 1;
 }
-static void xl6CgenTypedContainerDestroyValue(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* cName)
-{
-    const XL6_AstNode* concreteType;
-    const char* typeName;
-
-    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
-    typeName = concreteType != NULL ? concreteType->text : NULL;
-    if ( xl6CTextEquals(typeName, "array") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedArrayDestroy(%s);\n", cName);
-    } else if ( xl6CTextEquals(typeName, "list") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedListDestroy(%s);\n", cName);
-    } else if ( xl6CTextEquals(typeName, "set") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedSetDestroy(%s);\n", cName);
-    } else if ( xl6CTextEquals(typeName, "dict") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedDictDestroy(%s);\n", cName);
-    } else {
-        xl6CgenError(ctx, typeNode, "typed container destroy requires array/list/set/dict");
-    }
-}
-
-static int xl6CgenTypedContainerMemberAssignStmt(
-    XL6_CgenContext* ctx,
-    const XL6_AstNode* left,
-    const XL6_AstNode* right,
-    const XL6_AstNode* fieldType)
-{
-    const XL6_AstNode* literal;
-    XL6_AstNode* fieldCanonical;
-    XL6_AstNode* rightType;
-    XL6_AstNode* memberFunctionType;
-    int moveReturn;
-    int id;
-    char targetPath[512];
-    char tempName[64];
-    char memberTempName[64];
-
-    if ( !xl6CgenIsTypedContainerType(ctx, fieldType) ) {
-        return 0;
-    }
-    if ( !xl6CgenSimpleAssignTargetPath(left, targetPath, sizeof(targetPath)) ) {
-        xl6CgenError(ctx, left, "typed container member assignment requires a direct class field target");
-        return 1;
-    }
-
-    literal = xl6CgenTypedContainerInitLiteral(ctx, fieldType, right);
-    fieldCanonical = xl6CgenCloneCanonicalTypeNode(ctx, fieldType);
-    rightType = literal == NULL ? xl6CgenCloneExprTypeForInference(ctx, right) : NULL;
-    moveReturn = literal == NULL && xl6CgenTypedContainerCanMoveFromExpr(ctx, fieldType, right);
-    if ( literal == NULL &&
-         (fieldCanonical == NULL || rightType == NULL || !xl6CgenTypeNodeEqual(fieldCanonical, rightType)) ) {
-        xl6CgenError(ctx, right, "typed container member assignment requires the same container type or literal");
-        xl6AstFree(fieldCanonical);
-        xl6AstFree(rightType);
-        return 1;
-    }
-
-    id = ctx->tempId++;
-    snprintf(tempName, sizeof(tempName), "__xl6_typed_member_assign_%d", id);
-    memberTempName[0] = '\0';
-    memberFunctionType = NULL;
-    if ( moveReturn ) {
-        memberFunctionType = xl6CgenCloneMemberFunctionCallTypeForStatementInvoke(ctx, right);
-        if ( memberFunctionType != NULL ) {
-            snprintf(memberTempName, sizeof(memberTempName), "__xl6_member_fn_stmt_%d", id);
-            xl6CgenEmitMemberFunctionStatementTemp(ctx, right, memberTempName);
-        }
-    }
-
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, fieldType), tempName);
-    if ( literal != NULL ) {
-        xl6CgenTypedContainerCreateExpr(ctx, fieldType);
-    } else if ( moveReturn ) {
-        if ( memberFunctionType != NULL ) {
-            xl6CgenMemberFunctionStatementInvokeExpr(ctx, right, memberFunctionType, memberTempName);
-        } else {
-            xl6CgenExpr(ctx, right);
-        }
-    } else {
-        xl6CgenTypedContainerCopyExpr(ctx, fieldType, right);
-    }
-    xl6OutputPuts(";\n", ctx->out);
-    xl6AstFree(memberFunctionType);
-    if ( literal != NULL ) {
-        xl6CgenTypedContainerFillFromLiteral(ctx, tempName, fieldType, right);
-    }
-    xl6CgenIndent(ctx);
-    xl6CgenTypedContainerDestroyValue(ctx, fieldType, targetPath);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = %s;\n", targetPath, tempName);
-
-    xl6AstFree(fieldCanonical);
-    xl6AstFree(rightType);
-    return 1;
-}
-
 static int xl6CgenAssignStaticBoolLikeType(const XL6_AstNode* typeNode)
 {
     const char* name;
@@ -755,6 +718,9 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             return;
         }
         xl6CgenIndexCompoundAssignStmt(ctx, left, op, right);
+        return;
+    }
+    if ( xl6CgenTypedContainerCompoundAssignStmt(ctx, left, op, right) ) {
         return;
     }
     if ( xl6CTextEquals(op, "=") && left->kind == XL6_AST_MEMBER ) {

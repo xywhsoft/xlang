@@ -586,12 +586,14 @@ set<int> empty = set<int>{}
 - `list[...]` 明确列表。
 - `dict{...}` 明确字典。
 - `set{...}` 明确集合。
-- 泛型容器使用静态元素类型。
+- 泛型前缀字面量可直接写作 `array<int>[1, 2]`、`list<string>[0: "a"]`、`set<int>{1, 2}`、`dict<int>{"a": 1}`。
+- 泛型容器使用静态元素类型，并在语义阶段检查成员写入、字面量元素和运算符两端类型。
 - `var` 可承载动态容器值。
 - 容器运行时依托 XRT/xvalue 基础设施。
 - typed container 可承载基础类型、class、native-backed class、union、function 值。
 - `list` 使用 int64 稀疏索引，字面量写作 `[index: value]`。
 - 容器支持索引读写、索引复合赋值和安全索引 `?[...]`。
+- `auto` 接收能推断为静态容器的表达式时，保持静态 typed-container 存储；需要动态容器时请显式使用 `var`。
 - 容器赋值和进入 `var` 时保持当前实现的复制/引用计数语义，避免裸 C 指针泄漏。
 
 容器成员 API：
@@ -603,6 +605,7 @@ a.append(5)
 a.insert(1, 99)
 a.remove(1)
 a.remove(0, 2)
+a.removeValue(99)
 var last = a.pop()
 var item = a.take(0)
 a.reserve(16)
@@ -626,20 +629,92 @@ bool exists = d.contains("a")
 var old = d.take("a")
 d.remove("a")
 d.clear()
+
+array<int> ta = array<int>[1, 2]
+ta.push(3)
+ta.insert(0, 0)
+bool taHas = ta.contains(2)
+int taIndex = ta.indexOf(3)
+bool taRemoved = ta.removeValue(2)
+int taItem = ta.take(0)
+int taLast = ta.pop()
+ta.reverse()
+ta.clear()
+
+list<string> tl = list<string>[0: "a", 2: "b"]
+bool tlHas = tl.contains("b")
+var tlOld = tl.take(2)
+tl.remove(0)
+tl.clear()
+
+set<int> ts = set<int>{1, 2}
+ts.add(3)
+bool tsHit = ts.contains(2)
+ts.remove(1)
+ts.clear()
+
+dict<int> td = dict<int>{"a": 1}
+bool tdExists = td.contains("a")
+var tdOld = td.take("a")
+td.remove("a")
+td.clear()
 ```
 
 成员 API 当前规则：
 
-- 动态 `array` 支持 `push(value)`、`append(value)`、`insert(index, value)`、`remove(index, count = 1)`、`pop()`、`take(index)`、`clear()`、`reserve(count)`、`swap(index1, index2)`、`contains(value)`。
+- 动态 `array` 支持 `push(value)`、`append(value)`、`insert(index, value)`、`remove(index, count = 1)`、`removeValue(value)`、`pop()`、`take(index)`、`clear()`、`reserve(count)`、`swap(index1, index2)`、`contains(value)`。
 - 动态 `list` 支持 `remove(index)`、`take(index)`、`clear()`、`contains(value)`。
 - 动态 `set` 支持 `add(value)`、`contains(value)`、`remove(value)`、`clear()`。
 - 动态 `dict` 支持 `contains(key)`、`remove(key)`、`take(key)`、`clear()`，`key` 当前为 `string`。
-- `array<T>` 支持 `push(value)`、`append(value)`、`remove(index, count = 1)`，并在语义阶段检查 `value` 是否匹配元素类型。
-- `list<T>` 支持 `remove(index)`。
-- `set<T>` 支持 `add(value)`、`contains(value)`、`remove(value)`，并在语义阶段检查 `value` 是否匹配元素类型。
-- `dict<T>` 支持 `contains(key)`、`remove(key)`，`key` 当前为 `string`。
+- `array<T>` 支持 `push(value)`、`append(value)`、`insert(index, value)`、`remove(index, count = 1)`、`removeValue(value)`、`pop()`、`take(index)`、`clear()`、`contains(value)`、`indexOf(value)`、`reverse()`。
+- `list<T>` 支持 `remove(index)`、`take(index)`、`clear()`、`contains(value)`。
+- `set<T>` 支持 `add(value)`、`contains(value)`、`remove(value)`、`clear()`。
+- `dict<T>` 支持 `contains(key)`、`remove(key)`、`take(key)`、`clear()`，`key` 当前为 `string`。
 - 上述成员 API 均调用 XRT/xvalue 或 XRT typed-container 能力，不在 xlang 侧重复实现容器算法。
-- 尚未开放的 typed-container 方法不是兼容缺口，而是等待 XRT 提供对应稳定公开 API 后再接入。
+- `array<T>.pop()` / `array<T>.take(index)` 对基础值元素（整数、浮点、`bool`、`string`、`time`、`point`）返回元素类型；复杂元素暂保持 `var` 返回，避免在表达式路径中隐式复制复杂对象。
+
+容器运算符：
+
+```xlang
+array<int> a = array<int>[1, 2]
+array<int> b = array<int>[3, 4]
+auto c = a + b
+a += b
+bool sameArray = a == c
+
+list<string> l1 = list<string>[0: "a"]
+list<string> l2 = list<string>[1: "b"]
+auto l3 = l1 + l2
+auto l4 = l3 - 0
+l1 += l2
+l1 -= 1
+
+dict<int> d1 = dict<int>{"a": 1}
+dict<int> d2 = dict<int>{"b": 2}
+auto d3 = d1 + d2
+auto d4 = d3 - "a"
+d1 += d2
+d1 -= "b"
+
+set<int> s1 = set<int>{1, 2, 3}
+set<int> s2 = set<int>{3, 4}
+auto su = s1 | s2
+auto si = s1 & s2
+auto sd = s1 - s2
+auto sx = s1 ^ s2
+bool subset = s1 <= su
+s1 |= s2
+s1 &= set<int>{3}
+s1 -= set<int>{4}
+s1 ^= set<int>{5}
+```
+
+- `array<T>` 支持 `+` 拼接、`+=` 原地追加、`==` / `!=` 结构相等比较。
+- `list<T>` 支持 `+` 合并、`- int` 返回删除索引后的新列表、`+=` 原地合并、`-= int` 原地删除索引、`==` / `!=`。
+- `dict<T>` 支持 `+` 合并、`- string` 返回删除 key 后的新字典、`+=` 原地合并、`-= string` 原地删除 key、`==` / `!=`、`key in dict`。
+- `set<T>` 支持 `|` 并集、`&` 交集、`-` 差集、`^` 对称差集，支持 `|=`、`&=`、`-=`、`^=` 原地更新。
+- `set<T>` 支持 `<=` 子集、`<` 真子集、`>=` 超集、`>` 真超集、`==` / `!=`。
+- 容器运算符目前只在相同容器种类和相同静态元素类型之间生效，不做隐式跨容器转换。
 
 for-in 示例：
 

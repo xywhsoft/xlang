@@ -153,7 +153,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_multi_assign_index.xl --emit build\test\cgen_multi_assign_index.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvoArraySetValue(values, (unsigned int)(0LL), __xl6_multi_index_" build\test\cgen_multi_assign_index.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(values, (unsigned int)(0LL), __xl6_multi_index_" build\test\cgen_multi_assign_index.c >nul
 if errorlevel 1 (
     echo cgen_multi_assign_index.c missing index target lowering.
     exit /b 1
@@ -197,9 +197,9 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_index_access.xl --emit build\test\cgen_index_access.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvoArrayGetValue(values, (unsigned int)(1LL))" build\test\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_typed_array_get_at(values, (unsigned int)(1LL))" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing array index lowering.
+    echo cgen_index_access.c missing typed array index lowering.
     exit /b 1
 )
 findstr /C:"xl6_xrt_array_index_retain_release(makeArray(), (long long)(1LL))" build\test\cgen_index_access.c >nul
@@ -227,14 +227,14 @@ if errorlevel 1 (
     echo cgen_index_access.c missing dynamic var key index helper.
     exit /b 1
 )
-findstr /C:"xvoListGetValue(sparse, (long long)(2LL))" build\test\cgen_index_access.c >nul
+findstr /C:"xrtTypedListGet(sparse, (long long)(2LL))" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing list index lowering.
+    echo cgen_index_access.c missing typed list index lowering.
     exit /b 1
 )
-findstr /C:"xvoTableGetValue(table, \"count\", 0)" build\test\cgen_index_access.c >nul
+findstr /C:"xrtTypedDictGet(table, \"count\", 0)" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing dict index lowering.
+    echo cgen_index_access.c missing typed dict index lowering.
     exit /b 1
 )
 findstr /C:"xvoTableGetValue(arg, \"retry\", 0)" build\test\cgen_index_access.c >nul
@@ -242,29 +242,29 @@ if errorlevel 1 (
     echo cgen_index_access.c missing dict vararg index lowering.
     exit /b 1
 )
-findstr /C:"xvoArraySetValue(values, (unsigned int)(1LL), __xl6_index_assign_" build\test\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(values, (unsigned int)(1LL), __xl6_index_assign_" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing array index assignment lowering.
+    echo cgen_index_access.c missing typed array index assignment lowering.
     exit /b 1
 )
-findstr /C:"xvoListSetValue(sparse, (long long)(2LL), __xl6_index_assign_" build\test\cgen_index_access.c >nul
+findstr /C:"xrtTypedListSetValue(sparse, (long long)(2LL), __xl6_index_assign_" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing list index assignment lowering.
+    echo cgen_index_access.c missing typed list index assignment lowering.
     exit /b 1
 )
-findstr /C:"xvoTableSetValue(table, \"count\", 0, __xl6_index_assign_" build\test\cgen_index_access.c >nul
+findstr /C:"xrtTypedDictSetValue(table, \"count\", 0, __xl6_index_assign_" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing dict index assignment lowering.
+    echo cgen_index_access.c missing typed dict index assignment lowering.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_index_current_" build\test\cgen_index_access.c >nul
+findstr /C:"long long __xl6_typed_index_current_" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing index compound current temp.
+    echo cgen_index_access.c missing typed index compound current temp.
     exit /b 1
 )
-findstr /C:"xvoCreateInt(xvoGetInt(__xl6_index_current_" build\test\cgen_index_access.c >nul
+findstr /C:"xvalue __xl6_typed_index_assign_" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing index compound int lowering.
+    echo cgen_index_access.c missing typed index compound int lowering.
     exit /b 1
 )
 findstr /C:"nc_probe_next_var()" build\test\cgen_index_access.c >nul
@@ -284,7 +284,7 @@ if not errorlevel 1 (
 )
 findstr /C:"if (xvoIsNull(__xl6_index_current_" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing index null assignment lowering.
+    echo cgen_index_access.c missing dynamic index null assignment lowering.
     exit /b 1
 )
 findstr /C:"xvoUnref(__xl6_index_current_" build\test\cgen_index_access.c >nul
@@ -299,14 +299,24 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_safe_index.xl --emit build\test\cgen_safe_index.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_index_safe_get_i64(values, (long long)(1LL))" build\test\cgen_safe_index.c >nul
+findstr /C:"xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(values, (unsigned int)(1LL)))" build\test\cgen_safe_index.c >nul
 if errorlevel 1 (
-    echo cgen_safe_index.c missing array safe index lowering.
+    echo cgen_safe_index.c missing typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_index_safe_get_key(table, \"count\")" build\test\cgen_safe_index.c >nul
+findstr /C:"xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedDictGet(table, \"count\", 0))" build\test\cgen_safe_index.c >nul
 if errorlevel 1 (
-    echo cgen_safe_index.c missing dict safe index lowering.
+    echo cgen_safe_index.c missing typed dict safe index lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_index_safe_get_i64(dynamicValues, (long long)(1LL))" build\test\cgen_safe_index.c >nul
+if errorlevel 1 (
+    echo cgen_safe_index.c missing dynamic array safe index lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_index_safe_get_key(dynamicTable, \"count\")" build\test\cgen_safe_index.c >nul
+if errorlevel 1 (
+    echo cgen_safe_index.c missing dynamic dict safe index lowering.
     exit /b 1
 )
 findstr /C:"xl6_xrt_index_safe_get_i64(missing, (long long)(0LL))" build\test\cgen_safe_index.c >nul
@@ -621,9 +631,19 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_safe_member.xl --emit build\test\cgen_safe_member.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_member_safe_length(values)" build\test\cgen_safe_member.c >nul
+findstr /C:"valuesLength = xvoCreateInt((long long)(xrtTypedArrayCount(values)))" build\test\cgen_safe_member.c >nul
 if errorlevel 1 (
-    echo cgen_safe_member.c missing array safe member lowering.
+    echo cgen_safe_member.c missing typed array safe member lowering.
+    exit /b 1
+)
+findstr /C:"tableLength = xvoCreateInt((long long)(xrtTypedDictCount(table)))" build\test\cgen_safe_member.c >nul
+if errorlevel 1 (
+    echo cgen_safe_member.c missing typed dict safe member lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_member_safe_length(dynamicValues)" build\test\cgen_safe_member.c >nul
+if errorlevel 1 (
+    echo cgen_safe_member.c missing dynamic array safe member lowering.
     exit /b 1
 )
 findstr /C:"xl6_xrt_member_safe_length(missing)" build\test\cgen_safe_member.c >nul
@@ -3076,19 +3096,9 @@ if not errorlevel 1 (
     echo sem_safe_member_unknown.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
-release\xl.exe check test\cases\sem_safe_member_typed_container.xl >nul 2> build\test\sem_safe_member_typed_container.err.txt
-if not errorlevel 1 (
-    echo sem_safe_member_typed_container.xl should fail.
-    exit /b 1
-)
-findstr /C:"safe member length receiver must be var or dynamic container" build\test\sem_safe_member_typed_container.err.txt >nul
+release\xl.exe check test\cases\sem_safe_member_typed_container.xl >nul
 if errorlevel 1 (
-    echo sem_safe_member_typed_container.xl missing expected diagnostic.
-    exit /b 1
-)
-findstr /C:"code generation error" build\test\sem_safe_member_typed_container.err.txt >nul
-if not errorlevel 1 (
-    echo sem_safe_member_typed_container.err.txt regressed to generic cgen diagnostic.
+    echo sem_safe_member_typed_container.xl should pass.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_safe_member_non_container.xl >nul 2> build\test\sem_safe_member_non_container.err.txt
@@ -3096,7 +3106,7 @@ if not errorlevel 1 (
     echo sem_safe_member_non_container.xl should fail.
     exit /b 1
 )
-findstr /C:"safe member length receiver must be var or dynamic container" build\test\sem_safe_member_non_container.err.txt >nul
+findstr /C:"safe member length receiver must be a container" build\test\sem_safe_member_non_container.err.txt >nul
 if errorlevel 1 (
     echo sem_safe_member_non_container.xl missing expected diagnostic.
     exit /b 1

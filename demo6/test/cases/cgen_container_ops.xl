@@ -1,0 +1,99 @@
+array<int> a = array<int>[1, 2]
+array<int> b = array<int>[3, 4]
+auto ab = a + b
+assert ab.length == 4, "array + should concatenate"
+assert ab[0] == 1, "array + should keep left values"
+assert ab[2] == 3, "array + should append right values"
+assert (a == b) == false, "array == should compare structure"
+a += b
+assert a.length == 4, "array += should extend in place"
+assert a.contains(4) == true, "typed array.contains should be available"
+assert a.indexOf(3) == 2, "typed array.indexOf should use zero-based index"
+a.insert(0, 0)
+assert a[0] == 0, "typed array.insert should use zero-based index"
+int taken = a.take(0)
+assert taken == 0, "typed array.take should remove and return typed value"
+assert a.removeValue(2) == true, "typed array.removeValue should remove first matching value"
+assert a.contains(2) == false, "typed array.removeValue should update membership"
+assert a.removeValue(99) == false, "typed array.removeValue should report missing value"
+a.reverse()
+assert a[0] == 4, "typed array.reverse should reverse values"
+int popped = a.pop()
+assert popped == 1, "typed array.pop should remove last typed value"
+a.clear()
+assert a.length == 0, "typed array.clear should empty array"
+
+var dyn = [1, 2, 3, 2]
+assert dyn.removeValue(2) == true, "var array.removeValue should remove first matching value"
+assert dyn.length == 3, "var array.removeValue should shrink array"
+assert int(dyn[1]) == 3, "var array.removeValue should preserve order after removed slot"
+assert dyn.removeValue(99) == false, "var array.removeValue should report missing value"
+
+array<string> names = array<string>["alpha", "beta"]
+string lastName = names.pop()
+assert lastName == "beta", "typed string array.pop should return string"
+string firstName = names.take(0)
+assert firstName == "alpha", "typed string array.take should return string"
+
+list<string> l1 = list<string>[0: "a", 2: "b"]
+list<string> l2 = list<string>[2: "B", 5: "c"]
+auto l3 = l1 + l2
+assert l3.length == 3, "list + should merge sparse keys"
+assert l3[2] == "B", "list + should let right side win"
+assert l3.contains("c") == true, "typed list.contains should scan values"
+auto l4 = l3 - 2
+assert l4.contains("B") == false, "list - int should remove key from result"
+l1 += l2
+assert l1[2] == "B", "list += should merge in place"
+l1 -= 0
+assert l1.contains("a") == false, "list -= int should remove key in place"
+assert string(l1.take(5)) == "c", "typed list.take should remove and return value"
+l1.clear()
+assert l1.length == 0, "typed list.clear should empty list"
+
+dict<int> d1 = dict<int>{"a": 1, "b": 2}
+dict<int> d2 = dict<int>{"b": 20, "c": 3}
+auto d3 = d1 + d2
+assert d3.length == 3, "dict + should merge keys"
+assert d3["b"] == 20, "dict + should let right side win"
+assert "c" in d3, "dict in should check key"
+auto d4 = d3 - "b"
+assert ("b" in d4) == false, "dict - string should remove key from result"
+d1 += d2
+assert d1["b"] == 20, "dict += should merge in place"
+d1 -= "a"
+assert ("a" in d1) == false, "dict -= string should remove key in place"
+assert int(d1.take("c")) == 3, "typed dict.take should remove and return value"
+d1.clear()
+assert d1.length == 0, "typed dict.clear should empty dict"
+
+set<int> s1 = set<int>{1, 2, 3}
+set<int> s2 = set<int>{3, 4}
+auto su = s1 | s2
+assert su.contains(1) == true and su.contains(4) == true, "set | should union values"
+auto si = s1 & s2
+assert si.length == 1 and si.contains(3) == true, "set & should intersect values"
+auto sd = s1 - s2
+assert sd.contains(1) == true and sd.contains(3) == false, "set - should subtract values"
+auto sx = s1 ^ s2
+assert sx.contains(1) == true and sx.contains(4) == true and sx.contains(3) == false, "set ^ should symmetric-diff values"
+assert s1 <= su, "set <= should check subset"
+assert s1 < su, "set < should check proper subset"
+assert su >= s1, "set >= should check superset"
+assert su > s1, "set > should check proper superset"
+assert (s1 == s2) == false, "set == should compare structure"
+s1 |= s2
+assert s1.contains(4) == true, "set |= should union in place"
+set<int> only3 = set<int>{3}
+s1 &= only3
+assert s1.length == 1 and s1.contains(3) == true, "set &= should intersect in place"
+set<int> remove3 = set<int>{3}
+s1 -= remove3
+assert s1.length == 0, "set -= should subtract in place"
+set<int> toggle = set<int>{7, 8}
+s1 ^= toggle
+assert s1.length == 2 and s1.contains(7) == true and s1.contains(8) == true, "set ^= should symmetric-diff in place"
+s1.clear()
+assert s1.length == 0, "typed set.clear should empty set"
+
+println("container ops ok")

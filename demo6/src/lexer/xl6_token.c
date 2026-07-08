@@ -87,6 +87,9 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_TK_SLASH_ASSIGN: return "SLASH_ASSIGN";
     case XL6_TK_PERCENT_ASSIGN: return "PERCENT_ASSIGN";
     case XL6_TK_POW_ASSIGN: return "POW_ASSIGN";
+    case XL6_TK_BIT_AND_ASSIGN: return "BIT_AND_ASSIGN";
+    case XL6_TK_BIT_OR_ASSIGN: return "BIT_OR_ASSIGN";
+    case XL6_TK_BIT_XOR_ASSIGN: return "BIT_XOR_ASSIGN";
     case XL6_TK_NULL_ASSIGN: return "NULL_ASSIGN";
     case XL6_TK_PLUS: return "PLUS";
     case XL6_TK_MINUS: return "MINUS";

@@ -79,6 +79,8 @@ static void xl6CgenEmitTypeConvertRuntime(XL6_Output* out)
     xl6OutputPuts("unsigned char* xvoToString(xvalue pVal, unsigned int* pSize);\n", out);
     xl6OutputPuts("void xvoUnref(xvalue pVal);\n\n", out);
 
+    xl6OutputPuts("#ifndef XL6_XRT_TAKE_CSTR_HELPERS\n", out);
+    xl6OutputPuts("#define XL6_XRT_TAKE_CSTR_HELPERS\n", out);
     xl6OutputPuts("static const char* xl6_xrt_temp_cstr(const char* value)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    size_t len;\n", out);
@@ -103,6 +105,7 @@ static void xl6CgenEmitTypeConvertRuntime(XL6_Output* out)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return text;\n", out);
     xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("#endif\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_hex_encode_text(const char* text, size_t size)\n", out);
     xl6OutputPuts("{\n", out);
@@ -138,6 +141,8 @@ static void xl6CgenEmitTypeConvertRuntime(XL6_Output* out)
     xl6OutputPuts("    return text;\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("#ifndef XL6_XRT_VALUE_STRING_HELPERS\n", out);
+    xl6OutputPuts("#define XL6_XRT_VALUE_STRING_HELPERS\n", out);
     xl6OutputPuts("static const char* xl6_xrt_value_to_string(xvalue value)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xl6_xrt_take_cstr((char*)xvoToString(value, 0));\n", out);
@@ -150,6 +155,7 @@ static void xl6CgenEmitTypeConvertRuntime(XL6_Output* out)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return text;\n", out);
     xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("#endif\n\n", out);
 
     xl6CgenEmitXValueReleaseConvertHelpers(out);
 }
@@ -347,7 +353,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("bool xvoSetClear(xvalue pSet);\n", out);
     xl6OutputPuts("bool xvoTableSetValue(xvalue pTbl, const void* key, unsigned int kl, xvalue pVal, bool bColloc);\n", out);
     xl6OutputPuts("bool xvoTableMerge(xvalue pTbl1, xvalue pTbl2, bool bReWrite);\n", out);
-    xl6OutputPuts("xvalue xvoTableTakeValue(xvalue pTbl, const char* key, unsigned int kl);\n", out);
+    xl6OutputPuts("xvalue xvoTableTakeValue(xvalue pTbl, str key, uint32 kl);\n", out);
     xl6OutputPuts("bool xvoTableClear(xvalue pTbl);\n", out);
     xl6OutputPuts("xvalue xvoArrayGetValue(xvalue pArr, unsigned int index);\n", out);
     xl6OutputPuts("xvalue xvoListGetValue(xvalue pList, long long index);\n", out);
@@ -373,8 +379,8 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("bool xrtTimeApprox(long long a, long long b);\n", out);
     xl6OutputPuts("bool xrtStrApprox(const char* s1, size_t len1, const char* s2, size_t len2);\n", out);
     xl6OutputPuts("bool xvoCollExists(xvalue pColl, xvalue pVal);\n", out);
-    xl6OutputPuts("bool xvoTableExists(xvalue pTbl, const char* key, unsigned int kl);\n", out);
-    xl6OutputPuts("bool xvoTableRemove(xvalue pTbl, const char* key, unsigned int kl);\n", out);
+    xl6OutputPuts("bool xvoTableExists(xvalue pTbl, str key, uint32 kl);\n", out);
+    xl6OutputPuts("bool xvoTableRemove(xvalue pTbl, str key, uint32 kl);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeNull(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeBool(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeInt(void);\n", out);
@@ -395,9 +401,16 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("void xrtTypedArrayDestroy(xtarray pArray);\n", out);
     xl6OutputPuts("void* xrtTypedArrayAppend(xtarray pArray, const void* pItem);\n", out);
     xl6OutputPuts("bool xrtTypedArrayAppendValue(xtarray pArray, xvalue pVal);\n", out);
+    xl6OutputPuts("bool xrtTypedArrayInsertValue(xtarray pArray, unsigned int iPos, xvalue pVal);\n", out);
+    xl6OutputPuts("xvalue xrtTypedArrayTakeValue(xtarray pArray, unsigned int iPos);\n", out);
+    xl6OutputPuts("xvalue xrtTypedArrayPopValue(xtarray pArray);\n", out);
     xl6OutputPuts("bool xrtTypedArraySetValue(xtarray pArray, unsigned int iPos, xvalue pVal);\n", out);
     xl6OutputPuts("void* xrtTypedArrayGet(xtarray pArray, unsigned int iPos);\n", out);
     xl6OutputPuts("bool xrtTypedArrayRemove(xtarray pArray, unsigned int iPos, unsigned int iCount);\n", out);
+    xl6OutputPuts("bool xrtTypedArrayClear(xtarray pArray);\n", out);
+    xl6OutputPuts("bool xrtTypedArrayReverse(xtarray pArray);\n", out);
+    xl6OutputPuts("long long xrtTypedArrayIndexOfValue(xtarray pArray, xvalue pVal);\n", out);
+    xl6OutputPuts("bool xrtTypedArrayContainsValue(xtarray pArray, xvalue pVal);\n", out);
     xl6OutputPuts("unsigned int xrtTypedArrayCount(xtarray pArray);\n", out);
     xl6OutputPuts("xtlist xrtTypedListCreate(const xrt_type_desc* pItemType, unsigned int iMode);\n", out);
     xl6OutputPuts("void xrtTypedListDestroy(xtlist pList);\n", out);

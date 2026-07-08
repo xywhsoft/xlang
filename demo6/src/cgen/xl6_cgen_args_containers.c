@@ -211,6 +211,86 @@ static int xl6CgenDictContainsKeyStmt(XL6_CgenContext* ctx, const XL6_AstNode* v
     return 1;
 }
 
+static int xl6CgenTypedContainerContainsExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* values,
+    const XL6_AstNode* item)
+{
+    const XL6_AstNode* concreteType;
+    const char* typeName;
+
+    if ( ctx == NULL || typeNode == NULL || values == NULL || item == NULL ||
+         !xl6CgenExprUsesTypedContainerStorage(ctx, values) ) {
+        return 0;
+    }
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( typeName == NULL ) {
+        return 0;
+    }
+
+    if ( xl6CTextEquals(typeName, "array") ) {
+        xl6OutputPuts("xl6_xrt_typed_array_contains_value_release(", ctx->out);
+        xl6CgenExpr(ctx, values);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenXValueFromExpr(ctx, item);
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+
+    if ( xl6CTextEquals(typeName, "list") ) {
+        xl6OutputPuts("xl6_xrt_typed_list_contains_value_release(", ctx->out);
+        xl6CgenExpr(ctx, values);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenXValueFromExpr(ctx, item);
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+
+    if ( xl6CTextEquals(typeName, "set") ) {
+        xl6OutputPuts("xl6_xrt_typed_set_contains_value_release(", ctx->out);
+        xl6CgenExpr(ctx, values);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenXValueFromExpr(ctx, item);
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+
+    if ( xl6CTextEquals(typeName, "dict") ) {
+        if ( !xl6CgenExprStaticTypeIs(ctx, item, "string") ) {
+            xl6CgenError(ctx, item, "dict membership requires a string key");
+            xl6OutputPuts("0", ctx->out);
+        } else {
+            xl6OutputPuts("xrtTypedDictExists(", ctx->out);
+            xl6CgenExpr(ctx, values);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, item);
+            xl6OutputPuts(", 0)", ctx->out);
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
+static int xl6CgenTypedContainerContainsStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* values,
+    const XL6_AstNode* item,
+    const char* targetName)
+{
+    if ( ctx == NULL || targetName == NULL ||
+         !xl6CgenTypedContainerContainsExpr(ctx, typeNode, values, item) ) {
+        return 0;
+    }
+
+    xl6OutputPutc(';', ctx->out);
+    return 1;
+}
+
 static int xl6CgenTryInExprStmt(XL6_CgenContext* ctx, const XL6_AstNode* node, const char* targetName)
 {
     const XL6_AstNode* left;
@@ -277,6 +357,19 @@ static int xl6CgenTryInExprStmt(XL6_CgenContext* ctx, const XL6_AstNode* node, c
             xl6OutputPuts(", 0, ", ctx->out);
             xl6CgenExpr(ctx, left);
             xl6OutputPuts(", 0, false) != 0);\n", ctx->out);
+        }
+        xl6AstFree(rightType);
+        return 1;
+    }
+
+    if ( xl6CgenIsTypedContainerType(ctx, rightType) &&
+         xl6CgenExprUsesTypedContainerStorage(ctx, right) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", targetName);
+        if ( xl6CgenTypedContainerContainsStmt(ctx, rightType, right, left, targetName) ) {
+            xl6OutputPutc('\n', ctx->out);
+        } else {
+            xl6OutputPuts("0;\n", ctx->out);
         }
         xl6AstFree(rightType);
         return 1;
@@ -352,6 +445,15 @@ static void xl6CgenInExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6OutputPuts(", 0, ", ctx->out);
             xl6CgenExpr(ctx, left);
             xl6OutputPuts(", 0, false) != 0)", ctx->out);
+        }
+        xl6AstFree(rightType);
+        return;
+    }
+
+    if ( xl6CgenIsTypedContainerType(ctx, rightType) &&
+         xl6CgenExprUsesTypedContainerStorage(ctx, right) ) {
+        if ( !xl6CgenTypedContainerContainsExpr(ctx, rightType, right, left) ) {
+            xl6OutputPuts("0", ctx->out);
         }
         xl6AstFree(rightType);
         return;

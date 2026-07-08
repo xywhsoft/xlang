@@ -115,6 +115,7 @@ static XL6_SemContainerKind xl6SemContainerKindFromType(XL6_SemContext* ctx, con
 static const XL6_AstNode* xl6SemContainerItemType(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static int xl6SemContainerMethodSupported(XL6_SemContainerKind kind, int typed, const char* memberName);
 static int xl6SemMemberIsContainerMethod(XL6_SemContext* ctx, const XL6_AstNode* typeNode, const char* memberName);
+static int xl6SemBinaryIsContainerOp(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemClassHasTypeParams(const XL6_AstNode* classNode);
 static int xl6SemClassHasCreate(const XL6_AstNode* classNode);
 static const XL6_AstNode* xl6SemTypeNodeGenericArgs(const XL6_AstNode* typeNode);
@@ -7629,6 +7630,9 @@ static int xl6SemCheckContainerMethodCall(XL6_SemContext* ctx, XL6_AstNode* node
         ok = xl6SemCheckContainerMethodArgCount(ctx, node, "array.insert expects index and value arguments", 2, 2) && ok;
         if ( ok ) {
             ok = xl6SemCheckIntArg(ctx, arg0, "array.insert index must be int") && ok;
+            if ( kind == XL6_SEM_CONTAINER_ARRAY ) {
+                ok = xl6SemCheckContainerMethodItemArg(ctx, receiverType, arg1, "array.insert value type mismatch") && ok;
+            }
         }
     } else if ( xl6TextEquals(callee->text, "remove") ) {
         if ( kind == XL6_SEM_CONTAINER_ARRAY || kind == XL6_SEM_CONTAINER_VAR ) {
@@ -7655,12 +7659,19 @@ static int xl6SemCheckContainerMethodCall(XL6_SemContext* ctx, XL6_AstNode* node
                 ok = xl6SemCheckContainerMethodStringArg(ctx, arg0, "dict.remove key must be string") && ok;
             }
         }
+    } else if ( xl6TextEquals(callee->text, "removeValue") ) {
+        ok = xl6SemCheckContainerMethodArgCount(ctx, node, "array.removeValue expects one value argument", 1, 1) && ok;
+        if ( ok && kind == XL6_SEM_CONTAINER_ARRAY ) {
+            ok = xl6SemCheckContainerMethodItemArg(ctx, receiverType, arg0, "array.removeValue value type mismatch") && ok;
+        }
     } else if ( xl6TextEquals(callee->text, "contains") ) {
         ok = xl6SemCheckContainerMethodArgCount(ctx, node, "container.contains expects one argument", 1, 1) && ok;
         if ( ok && kind == XL6_SEM_CONTAINER_DICT ) {
             ok = xl6SemCheckContainerMethodStringArg(ctx, arg0, "dict.contains key must be string") && ok;
-        } else if ( ok && kind == XL6_SEM_CONTAINER_SET ) {
-            ok = xl6SemCheckContainerMethodItemArg(ctx, receiverType, arg0, "set.contains value type mismatch") && ok;
+        } else if ( ok && (kind == XL6_SEM_CONTAINER_ARRAY ||
+                           kind == XL6_SEM_CONTAINER_LIST ||
+                           kind == XL6_SEM_CONTAINER_SET) ) {
+            ok = xl6SemCheckContainerMethodItemArg(ctx, receiverType, arg0, "container.contains value type mismatch") && ok;
         }
     } else if ( xl6TextEquals(callee->text, "add") ) {
         ok = xl6SemCheckContainerMethodArgCount(ctx, node, "set.add expects one value argument", 1, 1) && ok;
@@ -7687,6 +7698,13 @@ static int xl6SemCheckContainerMethodCall(XL6_SemContext* ctx, XL6_AstNode* node
             ok = xl6SemCheckIntArg(ctx, arg0, "array.swap first index must be int") && ok;
             ok = xl6SemCheckIntArg(ctx, arg1, "array.swap second index must be int") && ok;
         }
+    } else if ( xl6TextEquals(callee->text, "indexOf") ) {
+        ok = xl6SemCheckContainerMethodArgCount(ctx, node, "array.indexOf expects one value argument", 1, 1) && ok;
+        if ( ok && kind == XL6_SEM_CONTAINER_ARRAY ) {
+            ok = xl6SemCheckContainerMethodItemArg(ctx, receiverType, arg0, "array.indexOf value type mismatch") && ok;
+        }
+    } else if ( xl6TextEquals(callee->text, "reverse") ) {
+        ok = xl6SemCheckContainerMethodArgCount(ctx, node, "array.reverse expects no arguments", 0, 0) && ok;
     }
 
     xl6AstFree(receiverType);
@@ -8008,11 +8026,15 @@ static int xl6SemCheckGenericInstant(XL6_SemContext* ctx, XL6_AstNode* node)
 static int xl6SemCheckTypedLiteral(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_AstNode* literal;
+    XL6_AstNode* typeNode;
+    int ok;
 
     if ( node->childCount == 0 ) {
         return 1;
     }
     literal = node->children[0];
+    typeNode = node->childCount > 1 ? node->children[1] : NULL;
+    ok = 1;
 
     if ( xl6TextEquals(node->text, "array") ) {
         if ( literal->kind != XL6_AST_ARRAY_LITERAL ) {
@@ -8044,7 +8066,16 @@ static int xl6SemCheckTypedLiteral(XL6_SemContext* ctx, XL6_AstNode* node)
         return 0;
     }
 
-    return xl6SemCheckExpr(ctx, literal);
+    if ( typeNode != NULL ) {
+        if ( typeNode->kind != XL6_AST_TYPE || !xl6TextEquals(typeNode->text, node->text) ) {
+            xl6SemErrorNode(ctx, typeNode, "container generic literal prefix must match its container type");
+            ok = 0;
+        } else if ( !xl6SemCheckType(ctx, typeNode) ) {
+            ok = 0;
+        }
+    }
+
+    return xl6SemCheckExpr(ctx, literal) && ok;
 }
 
 static const char* xl6SemExprStaticTypeName(XL6_SemContext* ctx, XL6_AstNode* expr)
@@ -8264,14 +8295,37 @@ static const char* xl6SemExprStaticTypeName(XL6_SemContext* ctx, XL6_AstNode* ex
             if ( containerCallee->childCount > 0 ) {
                 XL6_AstNode* receiverType = xl6SemInferAutoTypeNode(ctx, containerCallee->children[0]);
                 int isContainerMethod = xl6SemMemberIsContainerMethod(ctx, receiverType, containerCallee->text);
-                xl6AstFree(receiverType);
                 if ( isContainerMethod ) {
                     if ( xl6TextEquals(containerCallee->text, "pop") ||
                          xl6TextEquals(containerCallee->text, "take") ) {
-                        return "var";
+                        int typed = 0;
+                        XL6_SemContainerKind kind = xl6SemContainerKindFromType(ctx, receiverType, &typed);
+                        const XL6_AstNode* itemType = (typed && kind == XL6_SEM_CONTAINER_ARRAY)
+                            ? xl6SemContainerItemType(ctx, receiverType)
+                            : NULL;
+                        const char* resultType = itemType != NULL
+                            ? xl6SemStaticTypeNameFromTypeNode(ctx, itemType)
+                            : NULL;
+                        if ( resultType != NULL &&
+                             !(xl6SemIsIntegerTypeName(resultType) ||
+                               xl6SemIsFloatTypeName(resultType) ||
+                               xl6SemIsBoolTypeName(resultType) ||
+                               xl6TextEquals(resultType, "string") ||
+                               xl6TextEquals(resultType, "time") ||
+                               xl6TextEquals(resultType, "point")) ) {
+                            resultType = NULL;
+                        }
+                        xl6AstFree(receiverType);
+                        return resultType != NULL ? resultType : "var";
                     }
+                    if ( xl6TextEquals(containerCallee->text, "indexOf") ) {
+                        xl6AstFree(receiverType);
+                        return "int";
+                    }
+                    xl6AstFree(receiverType);
                     return "bool";
                 }
+                xl6AstFree(receiverType);
             }
             XL6_AstNode* staticMethod = xl6SemResolveStaticClassFuncCall(ctx, expr, 0);
             if ( staticMethod != NULL && staticMethod->childCount > 2 ) {
@@ -9572,6 +9626,11 @@ static XL6_AstNode* xl6SemInferAutoTypeNode(XL6_SemContext* ctx, XL6_AstNode* ex
     if ( expr->kind == XL6_AST_TYPE_AS ) {
         return expr->childCount > 1 ? xl6SemCloneTypeNode(expr->children[1]) : NULL;
     }
+    if ( expr->kind == XL6_AST_TYPED_LITERAL &&
+         expr->childCount > 1 &&
+         expr->children[1] != NULL ) {
+        return xl6SemCloneTypeNode(expr->children[1]);
+    }
     if ( expr->kind == XL6_AST_INDEX || expr->kind == XL6_AST_SAFE_INDEX ) {
         XL6_AstNode* itemType = xl6SemCloneIndexedItemType(ctx, expr);
         if ( itemType != NULL ) {
@@ -9590,6 +9649,14 @@ static XL6_AstNode* xl6SemInferAutoTypeNode(XL6_SemContext* ctx, XL6_AstNode* ex
         returns = method != NULL && method->childCount > 2 ? method->children[2] : NULL;
         if ( returns != NULL && returns->childCount == 1 ) {
             return xl6SemCloneTypeNode(returns->children[0]);
+        }
+        if ( xl6SemBinaryIsContainerOp(ctx, expr) ) {
+            if ( xl6TextEquals(expr->text, "==") || xl6TextEquals(expr->text, "!=") ||
+                 xl6TextEquals(expr->text, "<") || xl6TextEquals(expr->text, "<=") ||
+                 xl6TextEquals(expr->text, ">") || xl6TextEquals(expr->text, ">=") ) {
+                return xl6AstNewText(XL6_AST_TYPE, "bool", 4, NULL);
+            }
+            return xl6SemInferAutoTypeNode(ctx, expr->children[0]);
         }
     }
     if ( expr->kind == XL6_AST_BINARY && expr->childCount > 1 ) {
@@ -10020,6 +10087,84 @@ static int xl6SemCompareAllowsTypeLiteral(const char* op)
     return xl6TextEquals(op, "==") || xl6TextEquals(op, "!=");
 }
 
+static int xl6SemBinaryIsContainerOp(XL6_SemContext* ctx, XL6_AstNode* node)
+{
+    XL6_AstNode* leftType;
+    XL6_AstNode* rightType;
+    const XL6_AstNode* leftConcrete;
+    const XL6_AstNode* rightConcrete;
+    XL6_SemContainerKind leftKind;
+    XL6_SemContainerKind rightKind;
+    int leftTyped;
+    int rightTyped;
+    int sameType;
+    const char* op;
+
+    if ( ctx == NULL || node == NULL || node->kind != XL6_AST_BINARY ||
+         node->childCount < 2 || node->text == NULL ) {
+        return 0;
+    }
+
+    op = node->text;
+    leftType = xl6SemInferAutoTypeNode(ctx, node->children[0]);
+    rightType = xl6SemInferAutoTypeNode(ctx, node->children[1]);
+    leftConcrete = xl6SemResolveAliasType(ctx, leftType);
+    rightConcrete = xl6SemResolveAliasType(ctx, rightType);
+    leftKind = xl6SemContainerKindFromType(ctx, leftConcrete, &leftTyped);
+    rightKind = xl6SemContainerKindFromType(ctx, rightConcrete, &rightTyped);
+    sameType = leftConcrete != NULL && rightConcrete != NULL &&
+               xl6SemTypeEquals(ctx, leftConcrete, rightConcrete);
+
+    if ( leftKind == XL6_SEM_CONTAINER_ARRAY && rightKind == XL6_SEM_CONTAINER_ARRAY &&
+         sameType && (xl6TextEquals(op, "+") || xl6TextEquals(op, "==") || xl6TextEquals(op, "!=")) ) {
+        xl6AstFree(leftType);
+        xl6AstFree(rightType);
+        return 1;
+    }
+    if ( leftKind == XL6_SEM_CONTAINER_LIST ) {
+        if ( rightKind == XL6_SEM_CONTAINER_LIST && sameType &&
+             (xl6TextEquals(op, "+") || xl6TextEquals(op, "==") || xl6TextEquals(op, "!=")) ) {
+            xl6AstFree(leftType);
+            xl6AstFree(rightType);
+            return 1;
+        }
+        if ( xl6TextEquals(op, "-") && rightConcrete != NULL &&
+             xl6SemIsIntegerTypeName(rightConcrete->text) ) {
+            xl6AstFree(leftType);
+            xl6AstFree(rightType);
+            return 1;
+        }
+    }
+    if ( leftKind == XL6_SEM_CONTAINER_DICT ) {
+        if ( rightKind == XL6_SEM_CONTAINER_DICT && sameType &&
+             (xl6TextEquals(op, "+") || xl6TextEquals(op, "==") || xl6TextEquals(op, "!=")) ) {
+            xl6AstFree(leftType);
+            xl6AstFree(rightType);
+            return 1;
+        }
+        if ( xl6TextEquals(op, "-") && rightConcrete != NULL &&
+             xl6TextEquals(rightConcrete->text, "string") ) {
+            xl6AstFree(leftType);
+            xl6AstFree(rightType);
+            return 1;
+        }
+    }
+    if ( leftKind == XL6_SEM_CONTAINER_SET && rightKind == XL6_SEM_CONTAINER_SET && sameType &&
+         (xl6TextEquals(op, "|") || xl6TextEquals(op, "&") ||
+          xl6TextEquals(op, "-") || xl6TextEquals(op, "^") ||
+          xl6TextEquals(op, "==") || xl6TextEquals(op, "!=") ||
+          xl6TextEquals(op, "<") || xl6TextEquals(op, "<=") ||
+          xl6TextEquals(op, ">") || xl6TextEquals(op, ">=")) ) {
+        xl6AstFree(leftType);
+        xl6AstFree(rightType);
+        return 1;
+    }
+
+    xl6AstFree(leftType);
+    xl6AstFree(rightType);
+    return 0;
+}
+
 static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     const char* leftType;
@@ -10027,8 +10172,10 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
     const char* protocolName;
     const XL6_AstNode* protocolMethod;
     int ok;
+    int containerOp;
 
     ok = xl6SemCheckChildrenExpr(ctx, node);
+    containerOp = xl6SemBinaryIsContainerOp(ctx, node);
     protocolName = node != NULL ? xl6SemBinaryProtocolName(node->text) : NULL;
     if ( node != NULL && node->childCount > 1 && xl6TextEquals(node->text, "in") ) {
         XL6_AstNode* arg = node->children[0];
@@ -10089,7 +10236,7 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
           xl6TextEquals(node->text, "*") || xl6TextEquals(node->text, "/")) ) {
         leftType = node->childCount > 0 ? xl6SemExprStaticTypeName(ctx, node->children[0]) : NULL;
         rightType = node->childCount > 1 ? xl6SemExprStaticTypeName(ctx, node->children[1]) : NULL;
-        if ( leftType != NULL && rightType != NULL ) {
+        if ( !containerOp && leftType != NULL && rightType != NULL ) {
             int stringConcatCandidate = xl6TextEquals(node->text, "+") &&
                                         (xl6TextEquals(leftType, "string") ||
                                          xl6TextEquals(rightType, "string"));
@@ -10121,7 +10268,7 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
           xl6TextEquals(node->text, "<<") || xl6TextEquals(node->text, ">>")) ) {
         leftType = node->childCount > 0 ? xl6SemExprStaticTypeName(ctx, node->children[0]) : NULL;
         rightType = node->childCount > 1 ? xl6SemExprStaticTypeName(ctx, node->children[1]) : NULL;
-        if ( leftType != NULL && rightType != NULL ) {
+        if ( !containerOp && leftType != NULL && rightType != NULL ) {
             if ( !xl6TextEquals(leftType, "var") && !xl6TextEquals(rightType, "var") &&
                  (!xl6SemIsIntegerTypeName(leftType) || !xl6SemIsIntegerTypeName(rightType)) ) {
                 xl6SemErrorNode(ctx, node, "integer operator operands must be integer");
@@ -10434,7 +10581,7 @@ static int xl6SemSafeMemberGenericIsVar(XL6_SemContext* ctx, const XL6_AstNode* 
     return itemType != NULL && xl6TextEquals(itemType->text, "var");
 }
 
-static int xl6SemSafeMemberLengthReceiverIsDynamic(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+static int xl6SemSafeMemberLengthReceiverIsContainer(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
 {
     const XL6_AstNode* concreteType;
     const char* name;
@@ -10451,7 +10598,7 @@ static int xl6SemSafeMemberLengthReceiverIsDynamic(XL6_SemContext* ctx, const XL
          !xl6SemIsDictTypeName(name) ) {
         return 0;
     }
-    return xl6SemSafeMemberGenericIsVar(ctx, concreteType);
+    return 1;
 }
 
 static int xl6SemSafeMemberKeyReceiverIsDynamic(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
@@ -10552,6 +10699,7 @@ static int xl6SemContainerMethodSupported(XL6_SemContainerKind kind, int typed, 
                xl6TextEquals(memberName, "append") ||
                xl6TextEquals(memberName, "insert") ||
                xl6TextEquals(memberName, "remove") ||
+               xl6TextEquals(memberName, "removeValue") ||
                xl6TextEquals(memberName, "pop") ||
                xl6TextEquals(memberName, "take") ||
                xl6TextEquals(memberName, "clear") ||
@@ -10564,12 +10712,21 @@ static int xl6SemContainerMethodSupported(XL6_SemContainerKind kind, int typed, 
         if ( typed ) {
             return xl6TextEquals(memberName, "push") ||
                    xl6TextEquals(memberName, "append") ||
-                   xl6TextEquals(memberName, "remove");
+                   xl6TextEquals(memberName, "insert") ||
+                   xl6TextEquals(memberName, "remove") ||
+                   xl6TextEquals(memberName, "removeValue") ||
+                   xl6TextEquals(memberName, "pop") ||
+                   xl6TextEquals(memberName, "take") ||
+                   xl6TextEquals(memberName, "clear") ||
+                   xl6TextEquals(memberName, "contains") ||
+                   xl6TextEquals(memberName, "indexOf") ||
+                   xl6TextEquals(memberName, "reverse");
         }
         return xl6TextEquals(memberName, "push") ||
                xl6TextEquals(memberName, "append") ||
                xl6TextEquals(memberName, "insert") ||
                xl6TextEquals(memberName, "remove") ||
+               xl6TextEquals(memberName, "removeValue") ||
                xl6TextEquals(memberName, "pop") ||
                xl6TextEquals(memberName, "take") ||
                xl6TextEquals(memberName, "clear") ||
@@ -10579,7 +10736,10 @@ static int xl6SemContainerMethodSupported(XL6_SemContainerKind kind, int typed, 
     }
     if ( kind == XL6_SEM_CONTAINER_LIST ) {
         if ( typed ) {
-            return xl6TextEquals(memberName, "remove");
+            return xl6TextEquals(memberName, "remove") ||
+                   xl6TextEquals(memberName, "take") ||
+                   xl6TextEquals(memberName, "clear") ||
+                   xl6TextEquals(memberName, "contains");
         }
         return xl6TextEquals(memberName, "remove") ||
                xl6TextEquals(memberName, "take") ||
@@ -10590,13 +10750,13 @@ static int xl6SemContainerMethodSupported(XL6_SemContainerKind kind, int typed, 
         return xl6TextEquals(memberName, "add") ||
                xl6TextEquals(memberName, "remove") ||
                xl6TextEquals(memberName, "contains") ||
-               (!typed && xl6TextEquals(memberName, "clear"));
+               xl6TextEquals(memberName, "clear");
     }
     if ( kind == XL6_SEM_CONTAINER_DICT ) {
         return xl6TextEquals(memberName, "remove") ||
                xl6TextEquals(memberName, "contains") ||
-               (!typed && xl6TextEquals(memberName, "take")) ||
-               (!typed && xl6TextEquals(memberName, "clear"));
+               xl6TextEquals(memberName, "take") ||
+               xl6TextEquals(memberName, "clear");
     }
     return 0;
 }
@@ -10628,8 +10788,8 @@ static int xl6SemCheckSafeMemberExpr(XL6_SemContext* ctx, XL6_AstNode* node)
     }
 
     if ( xl6TextEquals(node->text, "length") ) {
-        if ( !xl6SemSafeMemberLengthReceiverIsDynamic(ctx, receiverType) ) {
-            xl6SemErrorNode(ctx, receiver, "safe member length receiver must be var or dynamic container");
+        if ( !xl6SemSafeMemberLengthReceiverIsContainer(ctx, receiverType) ) {
+            xl6SemErrorNode(ctx, receiver, "safe member length receiver must be a container");
             ok = 0;
         }
     } else if ( !xl6SemSafeMemberKeyReceiverIsDynamic(ctx, receiverType) ) {
@@ -11129,6 +11289,87 @@ static void xl6SemCountMismatchError(
     xl6SemErrorNode(ctx, node, message);
 }
 
+static int xl6SemCheckContainerCompoundAssignTypes(
+    XL6_SemContext* ctx,
+    XL6_AstNode* node,
+    XL6_AstNode* left,
+    XL6_AstNode* right,
+    const char* op)
+{
+    XL6_AstNode* leftTypeNode;
+    XL6_AstNode* rightTypeNode;
+    const XL6_AstNode* leftConcrete;
+    const XL6_AstNode* rightConcrete;
+    XL6_SemContainerKind leftKind;
+    XL6_SemContainerKind rightKind;
+    const char* leftName;
+    const char* rightName;
+    int leftTyped;
+    int rightTyped;
+    int sameType;
+    int result;
+
+    if ( op == NULL || left == NULL || right == NULL ) {
+        return -1;
+    }
+
+    leftTypeNode = xl6SemInferAutoTypeNode(ctx, left);
+    rightTypeNode = xl6SemInferAutoTypeNode(ctx, right);
+    leftConcrete = xl6SemResolveAliasType(ctx, leftTypeNode);
+    rightConcrete = xl6SemResolveAliasType(ctx, rightTypeNode);
+    leftKind = xl6SemContainerKindFromType(ctx, leftConcrete, &leftTyped);
+    rightKind = xl6SemContainerKindFromType(ctx, rightConcrete, &rightTyped);
+    leftName = xl6SemDisplayTypeName(ctx, leftConcrete);
+    rightName = xl6SemDisplayTypeName(ctx, rightConcrete);
+    sameType = leftConcrete != NULL && rightConcrete != NULL &&
+               xl6SemTypeEquals(ctx, leftConcrete, rightConcrete);
+    result = -1;
+
+    if ( leftKind == XL6_SEM_CONTAINER_ARRAY ||
+         leftKind == XL6_SEM_CONTAINER_LIST ||
+         leftKind == XL6_SEM_CONTAINER_SET ||
+         leftKind == XL6_SEM_CONTAINER_DICT ) {
+        result = 0;
+        if ( !leftTyped ) {
+            xl6SemCompoundAssignError(ctx, node, "container compound assignment requires a static typed container", op, leftName, rightName);
+        } else if ( leftKind == XL6_SEM_CONTAINER_ARRAY ) {
+            if ( xl6TextEquals(op, "+=") && rightKind == XL6_SEM_CONTAINER_ARRAY && rightTyped && sameType ) {
+                result = 1;
+            } else {
+                xl6SemCompoundAssignError(ctx, node, "array compound assignment supports only += with the same array<T>", op, leftName, rightName);
+            }
+        } else if ( leftKind == XL6_SEM_CONTAINER_LIST ) {
+            if ( xl6TextEquals(op, "+=") && rightKind == XL6_SEM_CONTAINER_LIST && rightTyped && sameType ) {
+                result = 1;
+            } else if ( xl6TextEquals(op, "-=") && rightConcrete != NULL && xl6SemIsIntegerTypeName(rightConcrete->text) ) {
+                result = 1;
+            } else {
+                xl6SemCompoundAssignError(ctx, node, "list compound assignment supports += list<T> or -= int key", op, leftName, rightName);
+            }
+        } else if ( leftKind == XL6_SEM_CONTAINER_DICT ) {
+            if ( xl6TextEquals(op, "+=") && rightKind == XL6_SEM_CONTAINER_DICT && rightTyped && sameType ) {
+                result = 1;
+            } else if ( xl6TextEquals(op, "-=") && rightConcrete != NULL && xl6TextEquals(rightConcrete->text, "string") ) {
+                result = 1;
+            } else {
+                xl6SemCompoundAssignError(ctx, node, "dict compound assignment supports += dict<T> or -= string key", op, leftName, rightName);
+            }
+        } else if ( leftKind == XL6_SEM_CONTAINER_SET ) {
+            if ( (xl6TextEquals(op, "|=") || xl6TextEquals(op, "&=") ||
+                  xl6TextEquals(op, "-=") || xl6TextEquals(op, "^=")) &&
+                 rightKind == XL6_SEM_CONTAINER_SET && rightTyped && sameType ) {
+                result = 1;
+            } else {
+                xl6SemCompoundAssignError(ctx, node, "set compound assignment supports |= &= -= ^= with the same set<T>", op, leftName, rightName);
+            }
+        }
+    }
+
+    xl6AstFree(leftTypeNode);
+    xl6AstFree(rightTypeNode);
+    return result;
+}
+
 static int xl6SemCheckCompoundAssignTypes(
     XL6_SemContext* ctx,
     XL6_AstNode* node,
@@ -11142,6 +11383,7 @@ static int xl6SemCheckCompoundAssignTypes(
     int rightIsVar;
     int dynamicIndexTarget;
     int resultIsFloat;
+    int containerResult;
 
     if ( op == NULL || xl6TextEquals(op, "=") || xl6TextEquals(op, "?=") || right == NULL ) {
         return 1;
@@ -11151,6 +11393,11 @@ static int xl6SemCheckCompoundAssignTypes(
     rightType = right != NULL ? xl6SemExprStaticTypeName(ctx, right) : NULL;
     if ( leftType == NULL || rightType == NULL ) {
         return 1;
+    }
+
+    containerResult = xl6SemCheckContainerCompoundAssignTypes(ctx, node, left, right, op);
+    if ( containerResult >= 0 ) {
+        return containerResult;
     }
 
     leftIsVar = xl6TextEquals(leftType, "var");
@@ -11295,7 +11542,7 @@ static int xl6SemCheckDynamicMemberAssignTarget(XL6_SemContext* ctx, XL6_AstNode
     concreteType = xl6SemResolveAliasType(ctx, receiverType);
     typeName = concreteType != NULL ? concreteType->text : NULL;
     receiverDecl = concreteType != NULL ? xl6SemFindTypeDecl(ctx, concreteType->text) : NULL;
-    if ( xl6TextEquals(left->text, "length") && xl6SemSafeMemberLengthReceiverIsDynamic(ctx, receiverType) ) {
+    if ( xl6TextEquals(left->text, "length") && xl6SemSafeMemberLengthReceiverIsContainer(ctx, receiverType) ) {
         xl6SemErrorNode(ctx, left, "member length is read-only");
         ok = 0;
     } else if ( xl6SemSafeMemberKeyReceiverIsDynamic(ctx, receiverType) ) {

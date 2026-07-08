@@ -4363,7 +4363,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_json", "parseFile", "__xl_std_xrt_json_parse_file", "xrtParseJSON_File", xl6StdPathUnaryParams, 1, "var", NULL},
     {"__xrt_json", "stringify", "__xl_std_xrt_json_stringify", "xrtStringifyJSON", xl6StdXrtJsonStringifyParams, 3, "point", NULL},
     {"__xrt_json", "writeFile", "__xl_std_xrt_json_write_file", "xrtStringifyJSON_File", xl6StdXrtJsonWriteParams, 3, "c_int", NULL},
-    {"__xrt_value", "tableRemove", "__xl_std_xrt_table_remove", "xvoTableRemove", xl6StdXrtTableRemoveParams, 3, "c_bool", NULL},
+    {"__xrt_value", "tableRemove", "__xl_std_xrt_table_remove", "xl6_xrt_std_table_remove", xl6StdXrtTableRemoveParams, 3, "c_bool", NULL},
     {"__xrt_xson", "parse", "__xl_std_xrt_xson_parse", "xrtParseXSON", xl6StdXrtJsonParseParams, 2, "var", NULL},
     {"__xrt_xson", "valid", "__xl_std_xrt_xson_valid", "xrtXsonValid", xl6StdXrtXsonValidParams, 3, "c_bool", NULL},
     {"__xrt_xson", "parseFile", "__xl_std_xrt_xson_parse_file", "xrtParseXSON_File", xl6StdPathUnaryParams, 1, "var", NULL},

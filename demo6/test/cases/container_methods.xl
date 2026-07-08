@@ -16,6 +16,12 @@ assert int(arr[0]) == 5, "array.swap should move second value to first slot"
 assert arr.clear() == true, "array.clear should remove all values"
 assert arr.length == 0, "array.clear should update length"
 
+var arrByValue = [1, 2, 3, 2]
+assert arrByValue.removeValue(2) == true, "array.removeValue should remove by value"
+assert arrByValue.contains(2) == true, "array.removeValue should remove only first matching value"
+assert int(arrByValue[1]) == 3, "array.removeValue should preserve order after removed slot"
+assert arrByValue.removeValue(99) == false, "array.removeValue should report missing value"
+
 var lst = list[0: "a", 2: "b"]
 assert lst.contains("b") == true, "list.contains should scan values"
 assert lst.remove(0) == true, "list.remove should delete sparse key"
@@ -47,6 +53,10 @@ assert typedArr.remove(1) == true, "typed array.remove should use xlang zero-bas
 assert typedArr.length == 2, "typed array.remove should update length"
 assert typedArr[0] == 1, "typed array first value should stay"
 assert typedArr[1] == 3, "typed array removed middle value"
+assert typedArr.removeValue(1) == true, "typed array.removeValue should remove by value"
+assert typedArr.contains(1) == false, "typed array.removeValue should update membership"
+int typedPop = typedArr.pop()
+assert typedPop == 3, "typed array.pop should return element type"
 
 list<string> typedList = list[7: "keep", 9: "drop"]
 assert typedList.remove(9) == true, "typed list.remove should delete sparse key"

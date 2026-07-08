@@ -56,6 +56,7 @@ test\suites\02_language_frontend.bat
 - `cli`：CLI link/loadlib 用例。
 - `companion`：同名 C companion 用例。
 - `comments`：注释词法语法用例。
+- `container`：容器成员 API 和运算符补全用例。
 - `containers`：容器基础语义用例。
 - `control`：控制流用例。
 - `export`：xlang 导出 C ABI 用例。

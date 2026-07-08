@@ -140,9 +140,9 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("xvalue xvoTableGetValue(xvalue pTbl, const void* key, unsigned int kl);\n", out);
     xl6OutputPuts("bool xvoTableSetValue(xvalue pTbl, const void* key, unsigned int kl, xvalue pVal, bool bColloc);\n", out);
     xl6OutputPuts("bool xvoTableMerge(xvalue pTbl1, xvalue pTbl2, bool bReWrite);\n", out);
-    xl6OutputPuts("bool xvoTableExists(xvalue pTbl, const char* key, unsigned int kl);\n", out);
-    xl6OutputPuts("bool xvoTableRemove(xvalue pTbl, const char* key, unsigned int kl);\n", out);
-    xl6OutputPuts("xvalue xvoTableTakeValue(xvalue pTbl, const char* key, unsigned int kl);\n", out);
+    xl6OutputPuts("bool xvoTableExists(xvalue pTbl, str key, uint32 kl);\n", out);
+    xl6OutputPuts("bool xvoTableRemove(xvalue pTbl, str key, uint32 kl);\n", out);
+    xl6OutputPuts("xvalue xvoTableTakeValue(xvalue pTbl, str key, uint32 kl);\n", out);
     xl6OutputPuts("unsigned int xvoTableItemCount(xvalue pTbl);\n", out);
     xl6OutputPuts("bool xvoTableClear(xvalue pTbl);\n", out);
     xl6OutputPuts("int tcc_vfs_mount_memory(const char* path, const void* data, size_t size);\n", out);

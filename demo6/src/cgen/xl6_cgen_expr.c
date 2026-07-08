@@ -1,3 +1,144 @@
+static const char* xl6CgenTypedContainerEqualsFunc(const char* kind)
+{
+    if ( xl6CTextEquals(kind, "array") ) { return "xrtTypedArrayEquals"; }
+    if ( xl6CTextEquals(kind, "list") ) { return "xrtTypedListEquals"; }
+    if ( xl6CTextEquals(kind, "set") ) { return "xrtTypedSetEquals"; }
+    if ( xl6CTextEquals(kind, "dict") ) { return "xrtTypedDictEquals"; }
+    return NULL;
+}
+
+static int xl6CgenTypedContainerBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    XL6_AstNode* resultType;
+    XL6_AstNode* leftType;
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* left;
+    const XL6_AstNode* right;
+    const char* kind;
+    const char* op;
+    const char* eqFunc;
+
+    resultType = NULL;
+    if ( !xl6CgenTypedContainerBinaryInfo(ctx, node, &resultType, NULL) ) {
+        return 0;
+    }
+    xl6AstFree(resultType);
+
+    left = node->childCount > 0 ? node->children[0] : NULL;
+    right = node->childCount > 1 ? node->children[1] : NULL;
+    op = node->text != NULL ? node->text : "";
+    leftType = xl6CgenCloneExprTypeForInference(ctx, left);
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, leftType);
+    kind = concreteType != NULL ? concreteType->text : NULL;
+
+    if ( kind == NULL ) {
+        xl6AstFree(leftType);
+        return 0;
+    }
+
+    eqFunc = xl6CgenTypedContainerEqualsFunc(kind);
+    if ( eqFunc != NULL && (xl6CTextEquals(op, "==") || xl6CTextEquals(op, "!=")) ) {
+        if ( xl6CTextEquals(op, "!=") ) {
+            xl6OutputPuts("(!", ctx->out);
+        }
+        xl6OutputPuts(eqFunc, ctx->out);
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenExpr(ctx, left);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, right);
+        xl6OutputPutc(')', ctx->out);
+        if ( xl6CTextEquals(op, "!=") ) {
+            xl6OutputPutc(')', ctx->out);
+        }
+        xl6AstFree(leftType);
+        return 1;
+    }
+
+    if ( xl6CTextEquals(kind, "array") && xl6CTextEquals(op, "+") ) {
+        xl6OutputPuts("xrtTypedArrayConcat(", ctx->out);
+        xl6CgenExpr(ctx, left);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, right);
+        xl6OutputPutc(')', ctx->out);
+        xl6AstFree(leftType);
+        return 1;
+    }
+
+    if ( xl6CTextEquals(kind, "list") ) {
+        if ( xl6CTextEquals(op, "+") ) {
+            xl6OutputPuts("xl6_xrt_typed_list_concat(", ctx->out);
+            xl6CgenExpr(ctx, left);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, right);
+            xl6OutputPutc(')', ctx->out);
+            xl6AstFree(leftType);
+            return 1;
+        }
+        if ( xl6CTextEquals(op, "-") ) {
+            xl6OutputPuts("xl6_xrt_typed_list_without_key(", ctx->out);
+            xl6CgenExpr(ctx, left);
+            xl6OutputPuts(", (long long)(", ctx->out);
+            xl6CgenExpr(ctx, right);
+            xl6OutputPuts("))", ctx->out);
+            xl6AstFree(leftType);
+            return 1;
+        }
+    }
+
+    if ( xl6CTextEquals(kind, "dict") ) {
+        if ( xl6CTextEquals(op, "+") ) {
+            xl6OutputPuts("xl6_xrt_typed_dict_concat(", ctx->out);
+            xl6CgenExpr(ctx, left);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, right);
+            xl6OutputPutc(')', ctx->out);
+            xl6AstFree(leftType);
+            return 1;
+        }
+        if ( xl6CTextEquals(op, "-") ) {
+            xl6OutputPuts("xl6_xrt_typed_dict_without_key(", ctx->out);
+            xl6CgenExpr(ctx, left);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, right);
+            xl6OutputPuts(", 0)", ctx->out);
+            xl6AstFree(leftType);
+            return 1;
+        }
+    }
+
+    if ( xl6CTextEquals(kind, "set") ) {
+        if ( xl6CTextEquals(op, "|") || xl6CTextEquals(op, "&") ||
+             xl6CTextEquals(op, "-") || xl6CTextEquals(op, "^") ) {
+            if ( xl6CTextEquals(op, "|") ) { xl6OutputPuts("xrtTypedSetUnion(", ctx->out); }
+            else if ( xl6CTextEquals(op, "&") ) { xl6OutputPuts("xrtTypedSetIntersection(", ctx->out); }
+            else if ( xl6CTextEquals(op, "-") ) { xl6OutputPuts("xrtTypedSetDifference(", ctx->out); }
+            else { xl6OutputPuts("xrtTypedSetSymmetricDifference(", ctx->out); }
+            xl6CgenExpr(ctx, left);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, right);
+            xl6OutputPutc(')', ctx->out);
+            xl6AstFree(leftType);
+            return 1;
+        }
+        if ( xl6CTextEquals(op, "<") || xl6CTextEquals(op, "<=") ||
+             xl6CTextEquals(op, ">") || xl6CTextEquals(op, ">=") ) {
+            int mode = xl6CTextEquals(op, "<=") ? 0 :
+                       xl6CTextEquals(op, "<") ? 1 :
+                       xl6CTextEquals(op, ">=") ? 2 : 3;
+            xl6OutputPrintf(ctx->out, "xl6_xrt_typed_set_relation(");
+            xl6CgenExpr(ctx, left);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, right);
+            xl6OutputPrintf(ctx->out, ", %d)", mode);
+            xl6AstFree(leftType);
+            return 1;
+        }
+    }
+
+    xl6AstFree(leftType);
+    return 0;
+}
+
 static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     size_t replacementIndex;
@@ -104,7 +245,14 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenRuntimeTypeAsExpr(ctx, node);
         break;
     case XL6_AST_BINARY:
+        if ( xl6CgenBinaryPlusIsString(ctx, node) ) {
+            xl6CgenStringConcatExpr(ctx, node);
+            break;
+        }
         if ( xl6CgenClassProtocolBinaryExpr(ctx, node) ) {
+            break;
+        }
+        if ( xl6CgenTypedContainerBinaryExpr(ctx, node) ) {
             break;
         }
         if ( xl6CTextEquals(node->text, "~=") ) {
@@ -133,10 +281,6 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         }
         if ( xl6CTextEquals(node->text, "**") ) {
             xl6CgenPowExpr(ctx, node);
-            break;
-        }
-        if ( xl6CgenBinaryPlusIsString(ctx, node) ) {
-            xl6CgenStringConcatExpr(ctx, node);
             break;
         }
         if ( xl6CgenBinaryArithmeticIsXValue(ctx, node) ) {

@@ -246,6 +246,9 @@ FLOAT_B        {DIGIT}({DIGIT}|_)*[eE][+-]?{DIGIT}({DIGIT}|_)*
 "*="                               { xl6SetToken(yyscanner, XL6_TK_STAR_ASSIGN); return XL6_TK_STAR_ASSIGN; }
 "/="                               { xl6SetToken(yyscanner, XL6_TK_SLASH_ASSIGN); return XL6_TK_SLASH_ASSIGN; }
 "%="                               { xl6SetToken(yyscanner, XL6_TK_PERCENT_ASSIGN); return XL6_TK_PERCENT_ASSIGN; }
+"&="                               { xl6SetToken(yyscanner, XL6_TK_BIT_AND_ASSIGN); return XL6_TK_BIT_AND_ASSIGN; }
+"|="                               { xl6SetToken(yyscanner, XL6_TK_BIT_OR_ASSIGN); return XL6_TK_BIT_OR_ASSIGN; }
+"^="                               { xl6SetToken(yyscanner, XL6_TK_BIT_XOR_ASSIGN); return XL6_TK_BIT_XOR_ASSIGN; }
 "?="                               { xl6SetToken(yyscanner, XL6_TK_NULL_ASSIGN); return XL6_TK_NULL_ASSIGN; }
 "??"                               { xl6SetToken(yyscanner, XL6_TK_NULL_COALESCE); return XL6_TK_NULL_COALESCE; }
 "?."                               { xl6SetToken(yyscanner, XL6_TK_SAFE_DOT); return XL6_TK_SAFE_DOT; }
