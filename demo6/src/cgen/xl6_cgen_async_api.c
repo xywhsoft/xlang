@@ -531,6 +531,45 @@ static int xl6CgenSyncCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, co
     return 0;
 }
 
+static int xl6CgenSyncDefaultCtorExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, int line, int column)
+{
+    const char* typeName;
+
+    if ( ctx == NULL || typeNode == NULL || typeNode->text == NULL || !xl6CgenIsSyncHandleType(typeNode) ) {
+        return 0;
+    }
+    typeName = typeNode->text;
+    if ( xl6CTextEquals(typeName, "mutex") ) {
+        xl6OutputPrintf(ctx->out,
+                        "xl6_sync_require_handle(xrtMutexCreate(), \"mutex create failed\", \"\", %d, %d)",
+                        line,
+                        column);
+        return 1;
+    }
+    if ( xl6CTextEquals(typeName, "cond") ) {
+        xl6OutputPrintf(ctx->out,
+                        "xl6_sync_require_handle(xrtCondCreate(), \"cond create failed\", \"\", %d, %d)",
+                        line,
+                        column);
+        return 1;
+    }
+    if ( xl6CTextEquals(typeName, "rwlock") ) {
+        xl6OutputPrintf(ctx->out,
+                        "xl6_sync_require_handle(xrtRWLockCreate(), \"rwlock create failed\", \"\", %d, %d)",
+                        line,
+                        column);
+        return 1;
+    }
+    if ( xl6CTextEquals(typeName, "sem") ) {
+        xl6OutputPrintf(ctx->out,
+                        "xl6_sync_require_handle(xrtSemCreate(0u, 0x7fffffffu), \"sem create failed\", \"\", %d, %d)",
+                        line,
+                        column);
+        return 1;
+    }
+    return 0;
+}
+
 static void xl6CgenSyncReceiver(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
     if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {

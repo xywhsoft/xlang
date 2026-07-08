@@ -116,21 +116,17 @@ static int xl6CgenTypedContainerCompoundAssignStmt(
         return 0;
     }
 
-    ownedType = NULL;
-    if ( left->kind == XL6_AST_NAME ) {
-        targetType = xl6CgenFindVarType(ctx, left->text);
-    } else if ( left->kind == XL6_AST_MEMBER ) {
-        ownedType = xl6CgenCloneMemberFieldTypeForInference(ctx, left);
-        targetType = ownedType;
-    } else {
+    if ( left->kind != XL6_AST_NAME && left->kind != XL6_AST_MEMBER ) {
         return 0;
     }
+    ownedType = xl6CgenCloneExprTypeForInference(ctx, left);
+    targetType = ownedType;
 
     if ( !xl6CgenIsTypedContainerType(ctx, targetType) ) {
         xl6AstFree(ownedType);
         return 0;
     }
-    if ( !xl6CgenSimpleAssignTargetPath(left, targetPath, sizeof(targetPath)) ) {
+    if ( !xl6CgenSimpleAssignTargetPath(ctx, left, targetPath, sizeof(targetPath)) ) {
         xl6CgenError(ctx, left, "typed container compound assignment requires a direct variable or class field target");
         xl6AstFree(ownedType);
         return 1;
@@ -282,7 +278,7 @@ static int xl6CgenTypedContainerMemberAssignStmt(
     if ( !xl6CgenIsTypedContainerType(ctx, fieldType) ) {
         return 0;
     }
-    if ( !xl6CgenSimpleAssignTargetPath(left, targetPath, sizeof(targetPath)) ) {
+    if ( !xl6CgenSimpleAssignTargetPath(ctx, left, targetPath, sizeof(targetPath)) ) {
         xl6CgenError(ctx, left, "typed container member assignment requires a direct class field target");
         return 1;
     }

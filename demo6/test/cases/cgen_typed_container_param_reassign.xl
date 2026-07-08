@@ -1,0 +1,25 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func rewrite(array<int> values) as int
+    values = [1, 2, 3]
+    return values.length
+end
+
+func rewriteAfterSkippedBranch(array<int> values, bool replaceFirst) as int
+    if replaceFirst then
+        values = [4, 5]
+    end
+    values = [6, 7, 8, 9]
+    return values.length
+end
+
+array<int> source = [9]
+expect(rewrite(source), 3)
+expect(source.length, 1)
+expect(source[0], 9)
+expect(rewriteAfterSkippedBranch(source, false), 4)
+expect(source.length, 1)
+expect(source[0], 9)
+expect(rewriteAfterSkippedBranch(source, true), 4)
+expect(source.length, 1)
+expect(source[0], 9)

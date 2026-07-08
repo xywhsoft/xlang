@@ -271,7 +271,12 @@ static void xl6CgenEmitDefaultErrorReturn(XL6_CgenContext* ctx)
             xl6CgenFunctionReturnStructName(ctx, ctx->currentReturnParams, ctx->currentReturns);
         }
     } else {
-        xl6OutputPuts(xl6CgenTypeName(ctx, ctx->currentReturns->children[0]), ctx->out);
+        const XL6_AstNode* returnType = ctx->currentReturns->children[0];
+        if ( xl6CgenIsTypedContainerType(ctx, returnType) ) {
+            xl6OutputPuts(xl6CgenTypedContainerCType(ctx, returnType), ctx->out);
+        } else {
+            xl6OutputPuts(xl6CgenTypeName(ctx, returnType), ctx->out);
+        }
     }
     xl6OutputPuts(" __xl6_error_return;\n", ctx->out);
     xl6CgenIndent(ctx);

@@ -45,6 +45,21 @@ const char* xl6StdlibRandomClassSource =
     "end\n";
 
 const char* xl6StdlibBufferClassSource =
+    "class BufferIter\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_buffer_iter_wrap_handle\" create(point handle)\n"
+    "    extern \"xl6_xrt_buffer_iter_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_buffer_iter_has_next\" func hasNextNative() as bool\n"
+    "    extern \"xl6_xrt_buffer_iter_next\" func nextNative() as int\n"
+    "\n"
+    "    func __next__() as (bool, int)\n"
+    "        if not self.hasNextNative() then\n"
+    "            return false, 0\n"
+    "        end\n"
+    "        return true, self.nextNative()\n"
+    "    end\n"
+    "end\n"
+    "\n"
     "class Buffer\n"
     "    native point handle\n"
     "    extern \"xl6_xrt_buffer_create\" create()\n"
@@ -57,11 +72,17 @@ const char* xl6StdlibBufferClassSource =
     "    extern \"xl6_xrt_buffer_clear\" func clear() as bool\n"
     "    extern \"xl6_xrt_buffer_append_string\" func append(string text) as bool\n"
     "    extern \"xl6_xrt_buffer_append_bytes\" func appendBytes(string data, c_size size) as bool\n"
+    "    extern \"xl6_xrt_buffer_append_raw\" func appendRaw(point data, c_size size) as bool\n"
     "    extern \"xl6_xrt_buffer_append_byte\" func appendByte(int value) as bool\n"
     "    extern \"xl6_xrt_buffer_byte_at\" func byteAt(int index) as int\n"
     "    extern \"xl6_xrt_buffer_set_byte\" func setByte(int index, int value) as bool\n"
     "    extern \"xl6_xrt_buffer_text\" func textNative() as point\n"
     "    extern \"xl6_xrt_buffer_data\" func data() as point\n"
+    "    extern \"xl6_xrt_buffer_iter_create\" func iterNative() as point\n"
+    "\n"
+    "    func append(Buffer other) as bool\n"
+    "        return self.appendRaw(other.data(), c_size(other.len()))\n"
+    "    end\n"
     "\n"
     "    func text() as string\n"
     "        return __xl_std_runtime_take_cstr(self.textNative())\n"
@@ -77,6 +98,24 @@ const char* xl6StdlibBufferClassSource =
     "\n"
     "    func __setItem__(int index, int value)\n"
     "        self.setByte(index, value)\n"
+    "    end\n"
+    "\n"
+    "    func __iter__() as BufferIter\n"
+    "        return BufferIter(point(self.iterNative()))\n"
+    "    end\n"
+    "\n"
+    "    func __eq__(Buffer other) as bool\n"
+    "        if self.len() != other.len() then\n"
+    "            return false\n"
+    "        end\n"
+    "        int i = 0\n"
+    "        while i < self.len() do\n"
+    "            if self.byteAt(i) != other.byteAt(i) then\n"
+    "                return false\n"
+    "            end\n"
+    "            i += 1\n"
+    "        end\n"
+    "        return true\n"
     "    end\n"
     "end\n";
 
@@ -320,7 +359,7 @@ const char* xl6StdlibHttpServerClassSource =
     "\n"
     "    func bodyBytes() as Buffer\n"
     "        point handle = self.bodyBytesNative()\n"
-    "        return Buffer(handle)\n"
+    "        return Buffer(point(handle))\n"
     "    end\n"
     "\n"
     "    func contentType() as string\n"
@@ -357,7 +396,7 @@ const char* xl6StdlibHttpServerClassSource =
     "\n"
     "    func multipartBytes(int index) as Buffer\n"
     "        point handle = self.multipartBytesNative(index)\n"
-    "        return Buffer(handle)\n"
+    "        return Buffer(point(handle))\n"
     "    end\n"
     "\n"
     "    func multipartValue(string name) as string\n"
@@ -472,7 +511,7 @@ const char* xl6StdlibHttpClientClassSource =
     "\n"
     "    func bodyBytes() as Buffer\n"
     "        point handle = self.bodyBytesNative()\n"
-    "        return Buffer(handle)\n"
+    "        return Buffer(point(handle))\n"
     "    end\n"
     "end\n"
     "\n"
@@ -538,12 +577,12 @@ const char* xl6StdlibNetClassSource =
     "\n"
     "    func readBytes(int maxBytes = 0) as Buffer\n"
     "        point handle = self.readBytesNative(c_size(maxBytes))\n"
-    "        return Buffer(handle)\n"
+    "        return Buffer(point(handle))\n"
     "    end\n"
     "\n"
     "    func recvBytes(int timeoutMs = -1, int maxBytes = 0) as Buffer\n"
     "        point handle = self.recvBytesNative(c_size(maxBytes), timeoutMs)\n"
-    "        return Buffer(handle)\n"
+    "        return Buffer(point(handle))\n"
     "    end\n"
     "\n"
     "    func recvAsync(int timeoutMs = -1, int maxBytes = 0) as future<string>\n"
@@ -597,7 +636,7 @@ const char* xl6StdlibNetClassSource =
     "\n"
     "    func bytes() as Buffer\n"
     "        point handle = self.bytesNative()\n"
-    "        return Buffer(handle)\n"
+    "        return Buffer(point(handle))\n"
     "    end\n"
     "\n"
     "    func addr() as string\n"
@@ -657,6 +696,8 @@ const char* xl6StdlibFileClassSource =
     "    extern \"xl6_xrt_file_set_eof\" func setEOF() as bool\n"
     "    extern \"xl6_xrt_file_read_text\" func readNative(int size) as point\n"
     "    extern \"xl6_xrt_file_write_text\" func writeTextNative(string text, c_size size) as int\n"
+    "    extern \"xl6_xrt_file_read_bytes\" func readBytesNative(int size) as point\n"
+    "    extern \"xl6_xrt_file_write_bytes\" func writeBytesNative(point data, c_size size) as int\n"
     "\n"
     "    func seek(int offset, int whence = 0) as int\n"
     "        return self.seekNative(offset, whence)\n"
@@ -668,6 +709,14 @@ const char* xl6StdlibFileClassSource =
     "\n"
     "    func writeText(string text) as int\n"
     "        return self.writeTextNative(text, __xl_std_crt_strlen(text))\n"
+    "    end\n"
+    "\n"
+    "    func readBytes(int size = -1) as Buffer\n"
+    "        return Buffer(point(self.readBytesNative(size)))\n"
+    "    end\n"
+    "\n"
+    "    func writeBytes(Buffer data) as int\n"
+    "        return self.writeBytesNative(data.data(), c_size(data.len()))\n"
     "    end\n"
     "\n"
     "    func write(string text) as int\n"
@@ -1024,6 +1073,11 @@ static const XL6_StdlibParam xl6StdXrtIsUtf8Params[] = {
 
 static const XL6_StdlibParam xl6StdXrtIntFormatParams[] = {
     {"int", "value"},
+    {"string", "format"}
+};
+
+static const XL6_StdlibParam xl6StdXrtUIntFormatParams[] = {
+    {"uint64", "value"},
     {"string", "format"}
 };
 
@@ -1847,6 +1901,12 @@ static const XL6_StdlibParam xl6StdXrtFileReadTextParams[] = {
     {"point", "retSize"}
 };
 
+static const XL6_StdlibParam xl6StdRuntimeFileWriteBytesParams[] = {
+    {"string", "path"},
+    {"point", "data"},
+    {"c_size", "size"}
+};
+
 static const XL6_StdlibParam xl6StdFileCopyMoveParams[] = {
     {"string", "source"},
     {"string", "target"},
@@ -2160,8 +2220,28 @@ static const char xl6StdStringFormatIntBody[] =
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_int_format(value, format))\n"
     "end\n";
 
+static const char xl6StdStringFormatUIntBody[] =
+    "func __xl_std_string_format_uint(uint64 value, string format = \"\") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_uint_format(value, format))\n"
+    "end\n";
+
 static const char xl6StdStringFormatFloatBody[] =
     "func __xl_std_string_format_float(float value, string format = \"\") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_num_format(value, format))\n"
+    "end\n";
+
+static const char xl6StdStringFormatBodyInt[] =
+    "func __xl_std_string_format(int value, string format = \"\") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_int_format(value, format))\n"
+    "end\n";
+
+static const char xl6StdStringFormatBodyUInt[] =
+    "func __xl_std_string_format(uint64 value, string format = \"\") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_uint_format(value, format))\n"
+    "end\n";
+
+static const char xl6StdStringFormatBodyFloat[] =
+    "func __xl_std_string_format(float value, string format = \"\") as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_num_format(value, format))\n"
     "end\n";
 
@@ -2998,9 +3078,24 @@ static const char xl6StdFileAppendTextBody[] =
     "end\n";
 
 static const char xl6StdFileReadTextBody[] =
-    "func __xl_std_file_read_text(string path, int charset = 65001) as string\n"
+    "func __xl_std_file_read_text(string path, int charset = -2) as string\n"
     "    point retSize = null\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_file_read_text_strict(path, c_int(charset), retSize))\n"
+    "end\n";
+
+static const char xl6StdFileReadBytesBody[] =
+    "func __xl_std_file_read_bytes(string path) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_file_read_bytes(path)))\n"
+    "end\n";
+
+static const char xl6StdFileWriteBytesBody[] =
+    "func __xl_std_file_write_bytes(string path, Buffer data) as bool\n"
+    "    return __xl_std_runtime_file_write_bytes(path, data.data(), c_size(data.len()))\n"
+    "end\n";
+
+static const char xl6StdFileAppendBytesBody[] =
+    "func __xl_std_file_append_bytes(string path, Buffer data) as bool\n"
+    "    return __xl_std_runtime_file_append_bytes(path, data.data(), c_size(data.len()))\n"
     "end\n";
 
 static const char xl6StdFileCopyBody[] =
@@ -3055,7 +3150,7 @@ static const char xl6StdFileInfoBody[] =
     "end\n";
 
 static const char xl6StdFileOpenBody[] =
-    "func __xl_std_file_open(string filePath, bool readOnly = false, int charset = 65001) as File\n"
+    "func __xl_std_file_open(string filePath, bool readOnly = false, int charset = -2) as File\n"
     "    return File(filePath, readOnly, charset)\n"
     "end\n";
 
@@ -3246,7 +3341,7 @@ static const char xl6StdCodecHexEncodeBytesBody[] =
 
 static const char xl6StdCodecHexDecodeBytesBody[] =
     "func __xl_std_codec_hex_decode_bytes(string text) as Buffer\n"
-    "    return Buffer(__xl_std_xrt_buffer_from_hex(text, __xl_std_crt_strlen(text)))\n"
+    "    return Buffer(point(__xl_std_xrt_buffer_from_hex(text, __xl_std_crt_strlen(text))))\n"
     "end\n";
 
 static const char xl6StdCodecBase64EncodeBytesBody[] =
@@ -3256,7 +3351,7 @@ static const char xl6StdCodecBase64EncodeBytesBody[] =
 
 static const char xl6StdCodecBase64DecodeBytesBody[] =
     "func __xl_std_codec_base64_decode_bytes(string text) as Buffer\n"
-    "    return Buffer(__xl_std_xrt_buffer_from_base64(text, __xl_std_crt_strlen(text), null))\n"
+    "    return Buffer(point(__xl_std_xrt_buffer_from_base64(text, __xl_std_crt_strlen(text), null)))\n"
     "end\n";
 
 static const char xl6StdCodecPercentEncodeBody[] =
@@ -3306,7 +3401,7 @@ static const char xl6StdEncodingDetectBytesBody[] =
 
 static const char xl6StdEncodingToBytesBody[] =
     "func __xl_std_encoding_to_bytes(string text, int toCharset = 65001) as Buffer\n"
-    "    return Buffer(__xl_std_runtime_encoding_to_bytes(text, toCharset))\n"
+    "    return Buffer(point(__xl_std_runtime_encoding_to_bytes(text, toCharset)))\n"
     "end\n";
 
 static const char xl6StdEncodingFromBytesBody[] =
@@ -3316,7 +3411,7 @@ static const char xl6StdEncodingFromBytesBody[] =
 
 static const char xl6StdEncodingConvertBytesBody[] =
     "func __xl_std_encoding_convert_bytes(point data, c_size size, int fromCharset, int toCharset) as Buffer\n"
-    "    return Buffer(__xl_std_runtime_encoding_convert_bytes(data, size, fromCharset, toCharset))\n"
+    "    return Buffer(point(__xl_std_runtime_encoding_convert_bytes(data, size, fromCharset, toCharset)))\n"
     "end\n";
 
 static const char xl6StdEncodingNameBody[] =
@@ -3922,7 +4017,7 @@ static const char xl6StdHttpServerChunkTextBody[] =
 static const char xl6StdHttpServerChunkBytesBody[] =
     "func __xl_std_http_server_chunk_bytes(point data, int size) as Buffer\n"
     "    point handle = __xl_std_runtime_http_body_chunk_bytes(data, c_size(size))\n"
-    "    return Buffer(handle)\n"
+    "    return Buffer(point(handle))\n"
     "end\n";
 
 static const char xl6StdHttpRequestBody[] =
@@ -4086,6 +4181,9 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "stringSplitLines", "__xl_std_runtime_string_split_lines", "xl6_xrt_string_split_lines", xl6StdRuntimeStringTextParams, 1, "var", NULL},
     {"__xl_runtime", "stringStartsWith", "__xl_std_runtime_string_starts_with", "xl6_xrt_string_starts_with", xl6StdRuntimeStringEdgeParams, 5, "c_bool", NULL},
     {"__xl_runtime", "stringEndsWith", "__xl_std_runtime_string_ends_with", "xl6_xrt_string_ends_with", xl6StdRuntimeStringEdgeParams, 5, "c_bool", NULL},
+    {"__xl_runtime", "fileReadBytes", "__xl_std_runtime_file_read_bytes", "xl6_xrt_buffer_file_read_bytes", xl6StdPathUnaryParams, 1, "point", NULL},
+    {"__xl_runtime", "fileWriteBytes", "__xl_std_runtime_file_write_bytes", "xl6_xrt_buffer_file_write_bytes", xl6StdRuntimeFileWriteBytesParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "fileAppendBytes", "__xl_std_runtime_file_append_bytes", "xl6_xrt_buffer_file_append_bytes", xl6StdRuntimeFileWriteBytesParams, 3, "c_bool", NULL},
     {"__xl_runtime", "sha1Hex", "__xl_std_runtime_sha1_hex", "xl6_xrt_sha1_hex", xl6StdRuntimeCryptoTextParams, 2, "point", NULL},
     {"__xl_runtime", "sha256Hex", "__xl_std_runtime_sha256_hex", "xl6_xrt_sha256_hex", xl6StdRuntimeCryptoTextParams, 2, "point", NULL},
     {"__xl_runtime", "sha384Hex", "__xl_std_runtime_sha384_hex", "xl6_xrt_sha384_hex", xl6StdRuntimeCryptoTextParams, 2, "point", NULL},
@@ -4230,6 +4328,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_string", "strSim", "__xl_std_xrt_str_sim", "xrtStrSim", xl6StdXrtStrApproxParams, 4, "c_double", NULL},
     {"__xrt_string", "isUtf8", "__xl_std_xrt_is_utf8", "xrtIsUTF8", xl6StdXrtIsUtf8Params, 2, "c_bool", NULL},
     {"__xrt_string", "intFormat", "__xl_std_xrt_int_format", "xrtIntFormat", xl6StdXrtIntFormatParams, 2, "point", NULL},
+    {"__xrt_string", "uintFormat", "__xl_std_xrt_uint_format", "xrtUIntFormat", xl6StdXrtUIntFormatParams, 2, "point", NULL},
     {"__xrt_string", "numFormat", "__xl_std_xrt_num_format", "xrtNumFormat", xl6StdXrtNumFormatParams, 2, "point", NULL},
     {"__xrt_string", "lcase", "__xl_std_xrt_lcase", "xrtLCase", xl6StdXrtStringCaseParams, 3, "point", NULL},
     {"__xrt_string", "ucase", "__xl_std_xrt_ucase", "xrtUCase", xl6StdXrtStringCaseParams, 3, "point", NULL},
@@ -4459,7 +4558,11 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"string", "sim", "__xl_std_string_sim", NULL, NULL, 0, "float", xl6StdStringSimBody},
     {"string", "isUtf8", "__xl_std_string_is_utf8", NULL, NULL, 0, "bool", xl6StdStringIsUtf8Body},
     {"string", "formatInt", "__xl_std_string_format_int", NULL, NULL, 0, "string", xl6StdStringFormatIntBody},
+    {"string", "formatUInt", "__xl_std_string_format_uint", NULL, NULL, 0, "string", xl6StdStringFormatUIntBody},
     {"string", "formatFloat", "__xl_std_string_format_float", NULL, NULL, 0, "string", xl6StdStringFormatFloatBody},
+    {"string", "format", "__xl_std_string_format", NULL, NULL, 0, "string", xl6StdStringFormatBodyInt},
+    {"string", "format", "__xl_std_string_format", NULL, NULL, 0, "string", xl6StdStringFormatBodyUInt},
+    {"string", "format", "__xl_std_string_format", NULL, NULL, 0, "string", xl6StdStringFormatBodyFloat},
     {"string", "lower", "__xl_std_string_lower", NULL, NULL, 0, "string", xl6StdStringLowerBody},
     {"string", "upper", "__xl_std_string_upper", NULL, NULL, 0, "string", xl6StdStringUpperBody},
     {"string", "trim", "__xl_std_string_trim", NULL, NULL, 0, "string", xl6StdStringTrimBody},
@@ -4591,8 +4694,11 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"file", "accessTime", "__xl_std_file_access_time", NULL, NULL, 0, "time", xl6StdFileAccessTimeBody},
     {"file", "changeTime", "__xl_std_file_change_time", NULL, NULL, 0, "time", xl6StdFileChangeTimeBody},
     {"file", "readText", "__xl_std_file_read_text", NULL, xl6StdFileReadTextParams, 2, "string", xl6StdFileReadTextBody},
+    {"file", "readBytes", "__xl_std_file_read_bytes", NULL, NULL, 0, "Buffer", xl6StdFileReadBytesBody},
     {"file", "writeText", "__xl_std_file_write_text", NULL, NULL, 0, "bool", xl6StdFileWriteTextBody},
     {"file", "appendText", "__xl_std_file_append_text", NULL, NULL, 0, "bool", xl6StdFileAppendTextBody},
+    {"file", "writeBytes", "__xl_std_file_write_bytes", NULL, NULL, 0, "bool", xl6StdFileWriteBytesBody},
+    {"file", "appendBytes", "__xl_std_file_append_bytes", NULL, NULL, 0, "bool", xl6StdFileAppendBytesBody},
     {"file", "delete", "__xl_std_file_delete", NULL, NULL, 0, "bool", xl6StdFileDeleteBody},
     {"file", "copy", "__xl_std_file_copy", NULL, NULL, 0, "bool", xl6StdFileCopyBody},
     {"file", "move", "__xl_std_file_move", NULL, NULL, 0, "bool", xl6StdFileMoveBody},

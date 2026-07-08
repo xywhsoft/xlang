@@ -165,6 +165,89 @@ static const XL6_AstNode* xl6CgenFindClassFieldNode(XL6_CgenContext* ctx, const 
     return xl6CgenFindClassFieldNode(ctx, baseClass, fieldName);
 }
 
+static const XL6_AstNode* xl6CgenFindImplicitSelfFieldNode(XL6_CgenContext* ctx, const char* fieldName)
+{
+    if ( ctx == NULL || fieldName == NULL || ctx->currentClass == NULL ||
+         xl6CgenFindTrackedVarType(ctx, fieldName) != NULL ||
+         xl6CTextEquals(fieldName, "self") ||
+         xl6CTextEquals(fieldName, "base") ) {
+        return NULL;
+    }
+    return xl6CgenFindClassFieldNode(ctx, ctx->currentClass, fieldName);
+}
+
+static int xl6CgenImplicitSelfFieldPathRec(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const char* fieldName,
+    char* buffer,
+    size_t capacity,
+    const char* sep)
+{
+    const XL6_AstNode* base;
+    XL6_AstNode* baseClass;
+    char cField[256];
+    size_t len;
+
+    if ( ctx == NULL || classNode == NULL || fieldName == NULL ||
+         buffer == NULL || capacity == 0 || sep == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenFindDirectClassFieldNode(classNode, fieldName) != NULL ) {
+        xl6CgenCIdentText(cField, sizeof(cField), fieldName);
+        len = strlen(buffer);
+        return snprintf(buffer + len, capacity - len, "%s%s", sep, cField) > 0;
+    }
+
+    base = classNode->childCount > 0 ? classNode->children[0] : NULL;
+    if ( base == NULL || base->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    baseClass = xl6CgenFindClass(ctx, base->text);
+    if ( baseClass == NULL ) {
+        return 0;
+    }
+    len = strlen(buffer);
+    if ( snprintf(buffer + len, capacity - len, "->base") <= 0 ) {
+        return 0;
+    }
+    return xl6CgenImplicitSelfFieldPathRec(ctx, baseClass, fieldName, buffer, capacity, ".");
+}
+
+static int xl6CgenImplicitSelfFieldPath(XL6_CgenContext* ctx, const char* fieldName, char* buffer, size_t capacity)
+{
+    if ( buffer == NULL || capacity == 0 ) {
+        return 0;
+    }
+    buffer[0] = '\0';
+    if ( xl6CgenFindImplicitSelfFieldNode(ctx, fieldName) == NULL ) {
+        return 0;
+    }
+    if ( snprintf(buffer, capacity, "self") <= 0 ) {
+        return 0;
+    }
+    return xl6CgenImplicitSelfFieldPathRec(ctx, ctx->currentClass, fieldName, buffer, capacity, "->");
+}
+
+static int xl6CgenEmitImplicitSelfFieldReference(XL6_CgenContext* ctx, const char* fieldName)
+{
+    char path[512];
+
+    if ( !xl6CgenImplicitSelfFieldPath(ctx, fieldName, path, sizeof(path)) ) {
+        return 0;
+    }
+    xl6OutputPuts(path, ctx->out);
+    return 1;
+}
+
+static XL6_AstNode* xl6CgenCloneImplicitSelfFieldType(XL6_CgenContext* ctx, const char* fieldName)
+{
+    const XL6_AstNode* field;
+
+    field = xl6CgenFindImplicitSelfFieldNode(ctx, fieldName);
+    return field != NULL && field->childCount > 0 ? xl6CgenCloneCanonicalTypeNode(ctx, field->children[0]) : NULL;
+}
+
 static const XL6_AstNode* xl6CgenFindClassProtocolFunc(
     XL6_CgenContext* ctx,
     const XL6_AstNode* classNode,
@@ -244,6 +327,7 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
     const XL6_AstNode* prevArgs;
     XL6_AstNode* classNode;
     XL6_AstNode* result;
+    XL6_AstNode* ownedReceiverType;
 
     if ( ctx == NULL || member == NULL || member->kind != XL6_AST_MEMBER ) {
         return NULL;
@@ -263,6 +347,7 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
     }
 
     receiverType = NULL;
+    ownedReceiverType = NULL;
     if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX || receiver->kind == XL6_AST_CALL ) {
         receiverType = receiver->kind == XL6_AST_MEMBER
             ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
@@ -311,14 +396,18 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
     if ( xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
         classNode = (XL6_AstNode*)ctx->currentClass;
     } else {
-        receiverType = xl6CgenFindVarType(ctx, receiver->text);
+        ownedReceiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+        receiverType = ownedReceiverType;
         classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
     }
     if ( receiverType != NULL && xl6CgenIsUnionType(ctx, receiverType) ) {
         field = xl6CgenFindUnionFieldNode(xl6CgenFindUnion(ctx, receiverType->text), member->text);
-        return field != NULL && field->childCount > 0 ? xl6CgenCloneCanonicalTypeNode(ctx, field->children[0]) : NULL;
+        result = field != NULL && field->childCount > 0 ? xl6CgenCloneCanonicalTypeNode(ctx, field->children[0]) : NULL;
+        xl6AstFree((XL6_AstNode*)ownedReceiverType);
+        return result;
     }
     if ( classNode == NULL ) {
+        xl6AstFree((XL6_AstNode*)ownedReceiverType);
         return NULL;
     }
 
@@ -327,11 +416,17 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
         if ( xl6CTextEquals(member->text, "length") ) {
             result = xl6CgenCloneClassProtocolReturnType(ctx, receiverType != NULL ? receiverType : classNode, "__len__");
             if ( result != NULL ) {
+                xl6AstFree((XL6_AstNode*)ownedReceiverType);
                 return result;
             }
         }
-        if ( (result = xl6CgenCloneClassPropertyMemberType(ctx, member, NULL)) != NULL ) { return result; }
-        return xl6CgenCloneClassProtocolReturnType(ctx, receiverType != NULL ? receiverType : classNode, "__field__");
+        if ( (result = xl6CgenCloneClassPropertyMemberType(ctx, member, NULL)) != NULL ) {
+            xl6AstFree((XL6_AstNode*)ownedReceiverType);
+            return result;
+        }
+        result = xl6CgenCloneClassProtocolReturnType(ctx, receiverType != NULL ? receiverType : classNode, "__field__");
+        xl6AstFree((XL6_AstNode*)ownedReceiverType);
+        return result;
     }
 
     prevParams = ctx->currentGenericParams;
@@ -345,6 +440,7 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
 
     ctx->currentGenericParams = prevParams;
     ctx->currentGenericArgs = prevArgs;
+    xl6AstFree((XL6_AstNode*)ownedReceiverType);
     return result;
 }
 

@@ -164,3 +164,18 @@ assert nonblockingTryThreadCh.recvInto(nonblockingTryLater), "nonblocking tryRec
 assert nonblockingTryLater == 42, "nonblocking tryRecv later value mismatch"
 nonblockingTryThreadCh.close()
 assert nonblockingTryThreadCh.isClosed(), "nonblocking tryRecv channel close failed"
+
+channel<int> closeWakeCh = channel::<int>(1)
+auto closeWakeConsumer = func() as int
+    int got = 0
+    if closeWakeCh.recvInto(got) then
+        return got
+    end
+    return -1
+end
+
+thread closeWakeThread = thread(closeWakeConsumer)
+time.sleep(30)
+closeWakeCh.close()
+assert closeWakeThread.waitTimeout(2000), "blocking recv should wake after channel close"
+assert closeWakeThread.exitCode() == -1, "blocking recv after close should return false"

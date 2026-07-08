@@ -293,7 +293,7 @@ static void xl6CgenGenericClassFuncProto(XL6_CgenContext* ctx, const XL6_AstNode
         xl6CgenFuncReturnStructDecl(ctx, funcNode);
         xl6CgenFuncReturnStructName(ctx, funcNode);
     } else if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenFuncSingleReturnCType(ctx, funcNode), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
     }
@@ -784,7 +784,7 @@ static void xl6CgenNativeClassFuncProto(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6CgenError(ctx, returns, "native-backed class helper method cannot return multiple values");
     }
     if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenFuncSingleReturnCType(ctx, funcNode), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
     }

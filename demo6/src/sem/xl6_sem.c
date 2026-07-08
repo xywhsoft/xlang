@@ -86,6 +86,7 @@ static const char* xl6SemThreadCallResultTypeName(XL6_SemContext* ctx, XL6_AstNo
 static int xl6SemCheckSyncCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemSyncCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemTypeCanCopy(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
+static int xl6SemTypeCanBeBorrowedParam(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static int xl6SemFuncReturnsFreshOnlyValue(XL6_SemContext* ctx, const XL6_AstNode* func);
 static int xl6SemCheckCopyableExpr(XL6_SemContext* ctx, XL6_AstNode* expr, int allowFreshTypeValue, const char* message);
 static int xl6SemIsFutureLikeTypeName(const char* name);
@@ -1447,6 +1448,24 @@ static int xl6SemTypeCanCopyDepth(XL6_SemContext* ctx, const XL6_AstNode* typeNo
 static int xl6SemTypeCanCopy(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
 {
     return xl6SemTypeCanCopyDepth(ctx, typeNode, 0);
+}
+
+static int xl6SemTypeCanBeBorrowedParam(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concreteType;
+    const XL6_TypeInfo* typeInfo;
+
+    if ( xl6SemTypeCanCopy(ctx, typeNode) ) {
+        return 1;
+    }
+    concreteType = xl6SemResolveAliasType(ctx, typeNode);
+    if ( concreteType == NULL || concreteType->text == NULL ) {
+        return 1;
+    }
+    typeInfo = xl6TypeRegistryFind(&ctx->types, concreteType->text);
+    return typeInfo != NULL &&
+           typeInfo->kind == XL6_TYPE_CLASS &&
+           xl6SemClassDeclHasNativeHandle(ctx, typeInfo->decl);
 }
 
 static int xl6SemTypeRequiresFreshValue(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
@@ -12396,7 +12415,7 @@ static int xl6SemCheckFunc(XL6_SemContext* ctx, XL6_AstNode* node)
                     if ( !xl6SemCheckType(ctx, param->children[0]) ) {
                         ok = 0;
                     }
-                    if ( !isVararg && !xl6SemTypeCanCopy(ctx, param->children[0]) ) {
+                    if ( !isVararg && !xl6SemTypeCanBeBorrowedParam(ctx, param->children[0]) ) {
                         xl6SemErrorNode(ctx, param->children[0], "不可复制类型不能作为按值参数");
                         ok = 0;
                     }
@@ -12996,7 +13015,7 @@ static int xl6SemCheckParamListOnly(XL6_SemContext* ctx, XL6_AstNode* params, in
                 if ( !xl6SemCheckType(ctx, param->children[0]) ) {
                     ok = 0;
                 }
-                if ( !isVararg && !xl6SemTypeCanCopy(ctx, param->children[0]) ) {
+                if ( !isVararg && !xl6SemTypeCanBeBorrowedParam(ctx, param->children[0]) ) {
                     xl6SemErrorNode(ctx, param->children[0], "不可复制类型不能作为按值参数");
                     ok = 0;
                 }

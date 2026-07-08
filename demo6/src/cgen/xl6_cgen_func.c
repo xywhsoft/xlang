@@ -30,6 +30,7 @@ static void xl6CgenFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     } else {
         xl6CgenRegisterParamTypes(ctx, params);
     }
+    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
     body = node->childCount > 3 ? node->children[3] : NULL;
     if ( body != NULL ) {
         xl6CgenBlock(ctx, body);
@@ -79,6 +80,7 @@ static void xl6CgenExportFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     ctx->currentReturns = returns;
     ctx->currentReturnFunc = node;
     xl6CgenRegisterParamTypes(ctx, params);
+    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
     body = node->childCount > 3 ? node->children[3] : NULL;
     if ( body != NULL ) {
         xl6CgenBlock(ctx, body);

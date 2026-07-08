@@ -20,7 +20,15 @@ file.delete(badJson)
 file.delete(badXson)
 
 expect(file.exists(missingFile), 0)
-expectStr(file.readText(missingFile), "")
+bool missingReadCaught = false
+try
+    string missingText = file.readText(missingFile)
+catch e
+    if e.kind == "FileError" and string.contains(e.message, "does not exist") then
+        missingReadCaught = true
+    end
+end
+expect(missingReadCaught, 1)
 expect(file.copy(missingFile, missingCopy), 0)
 expect(file.move(missingFile, missingMove), 0)
 expect(file.delete(missingFile), 0)

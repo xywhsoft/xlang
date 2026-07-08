@@ -318,7 +318,7 @@ static void xl6CgenClassFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* class
         xl6CgenFuncReturnStructDecl(ctx, funcNode);
         xl6CgenFuncReturnStructName(ctx, funcNode);
     } else if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenFuncSingleReturnCType(ctx, funcNode), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
     }

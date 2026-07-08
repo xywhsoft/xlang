@@ -18,6 +18,7 @@ static void xl6CgenEmitRegexRuntime(XL6_Output* out)
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* p);\n", out);
     xl6OutputPuts("char* xrtCopyStr(const char* sText, size_t iSize);\n", out);
+    xl6OutputPuts("size_t xrtStrCharToBytePos(const char* sText, size_t iSize, size_t iCharIndex);\n", out);
     xl6OutputPuts("xvalue xvoCreateArray(void);\n", out);
     xl6OutputPuts("xvalue xvoCreateInt(long long iVal);\n", out);
     xl6OutputPuts("bool xvoArrayAppendValue(xvalue pArr, xvalue pVal, bool bColloc);\n", out);
@@ -78,6 +79,7 @@ static void xl6CgenEmitRegexRuntime(XL6_Output* out)
     xl6OutputPuts("void* xl6_xrt_regex_match_at(void* regex, const char* text, size_t textSize, size_t start)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( text == 0 ) { text = \"\"; textSize = 0; }\n", out);
+    xl6OutputPuts("    start = xrtStrCharToBytePos((char*)text, textSize, start);\n", out);
     xl6OutputPuts("    return xrtRegexFindMatchAt((xregex*)regex, text, textSize, start);\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -178,6 +180,7 @@ static void xl6CgenEmitRegexRuntime(XL6_Output* out)
     xl6OutputPuts("    xregexmatch* match;\n", out);
     xl6OutputPuts("    if ( text == 0 ) { text = \"\"; textSize = 0; }\n", out);
     xl6OutputPuts("    if ( pattern == 0 ) { pattern = \"\"; }\n", out);
+    xl6OutputPuts("    start = xrtStrCharToBytePos((char*)text, textSize, start);\n", out);
     xl6OutputPuts("    regex = xrtRegexCreateEx(pattern, 0, (xregexflags)flags);\n", out);
     xl6OutputPuts("    if ( regex == 0 ) { return 0; }\n", out);
     xl6OutputPuts("    match = xrtRegexFindMatchAt(regex, text, textSize, start);\n", out);

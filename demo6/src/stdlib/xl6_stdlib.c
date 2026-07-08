@@ -156,14 +156,34 @@ static int xl6StdlibNamespaceExists(const char* ns)
 
 static void xl6StdlibMarkFuncUsed(int* used, const char* ns, const char* name)
 {
-    size_t index;
+    size_t i;
 
     if ( used == NULL ) {
         return;
     }
-    if ( xl6StdlibFindFunc(ns, name, &index) != NULL ) {
-        used[index] = 1;
+    for ( i = 0; i < XL6_STDLIB_FUNC_COUNT; ++i ) {
+        if ( xl6StdlibTextEquals(xl6StdlibFuncs[i].ns, ns) &&
+             xl6StdlibTextEquals(xl6StdlibFuncs[i].name, name) ) {
+            used[i] = 1;
+        }
     }
+}
+
+static int xl6StdlibFuncUsed(const int* used, const char* ns, const char* name)
+{
+    size_t i;
+
+    if ( used == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < XL6_STDLIB_FUNC_COUNT; ++i ) {
+        if ( used[i] &&
+             xl6StdlibTextEquals(xl6StdlibFuncs[i].ns, ns) &&
+             xl6StdlibTextEquals(xl6StdlibFuncs[i].name, name) ) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 static void xl6StdlibApplyDeps(int* used)
@@ -248,8 +268,18 @@ static void xl6StdlibApplyDeps(int* used)
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
         xl6StdlibMarkFuncUsed(used, "__xrt_string", "intFormat");
     }
+    if ( xl6StdlibFindFunc("string", "formatUInt", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "uintFormat");
+    }
     if ( xl6StdlibFindFunc("string", "formatFloat", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "numFormat");
+    }
+    if ( xl6StdlibFuncUsed(used, "string", "format") ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "intFormat");
+        xl6StdlibMarkFuncUsed(used, "__xrt_string", "uintFormat");
         xl6StdlibMarkFuncUsed(used, "__xrt_string", "numFormat");
     }
     if ( xl6StdlibFindFunc("string", "lower", &index) != NULL && used[index] ) {
@@ -683,11 +713,20 @@ static void xl6StdlibApplyDeps(int* used)
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
         xl6StdlibMarkFuncUsed(used, "__xrt_file", "readTextStrict");
     }
+    if ( xl6StdlibFindFunc("file", "readBytes", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "fileReadBytes");
+    }
     if ( xl6StdlibFindFunc("file", "writeText", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_file", "writeAll");
     }
     if ( xl6StdlibFindFunc("file", "appendText", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_file", "append");
+    }
+    if ( xl6StdlibFindFunc("file", "writeBytes", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "fileWriteBytes");
+    }
+    if ( xl6StdlibFindFunc("file", "appendBytes", &index) != NULL && used[index] ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "fileAppendBytes");
     }
     if ( xl6StdlibFindFunc("file", "delete", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_file", "delete");
@@ -1547,7 +1586,7 @@ static int xl6StdlibRewriteRefs(XL6_AstNode* node, int* used, XL6_DiagList* diag
         XL6_AstNode* callee = node->children[0];
         const XL6_StdlibFunc* func = xl6StdlibFindFunc("", callee->text, &index);
         if ( func != NULL ) {
-            used[index] = 1;
+            xl6StdlibMarkFuncUsed(used, "", callee->text);
             xrtFree(callee->text);
             callee->text = xl6StdlibDupText(func->internalName);
             if ( callee->text == NULL ) {
@@ -1570,7 +1609,7 @@ static int xl6StdlibRewriteRefs(XL6_AstNode* node, int* used, XL6_DiagList* diag
             }
             const XL6_StdlibFunc* func = xl6StdlibFindFunc(ns, node->text, &index);
             if ( func != NULL ) {
-                used[index] = 1;
+                xl6StdlibMarkFuncUsed(used, ns, node->text);
                 xl6StdlibRewriteMemberToName(node, func->internalName);
                 return node->text != NULL;
             }
@@ -1631,6 +1670,15 @@ static int xl6StdlibNeedsBufferClass(const XL6_AstNode* root, const int* used)
         return 1;
     }
     if ( xl6StdlibFindFunc("encoding", "convertBytes", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("file", "readBytes", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("file", "writeBytes", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("file", "appendBytes", &index) != NULL && used[index] ) {
         return 1;
     }
     return xl6StdlibNodeUsesTypeName(root, "Buffer");
@@ -2015,9 +2063,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetClass = xl6StdlibNeedsNetClass(root, used);
     needsHttpServerClass = xl6StdlibNeedsHttpServerClass(root, used);
     needsHttpClientClass = xl6StdlibNeedsHttpClientClass(root, used);
-    needsBufferClass = xl6StdlibNeedsBufferClass(root, used) || needsNetClass || needsHttpServerClass || needsHttpClientClass;
     needsFileInfoClass = xl6StdlibNeedsFileInfoClass(root, used);
     needsFileClass = xl6StdlibNeedsFileClass(root, used);
+    needsBufferClass = xl6StdlibNeedsBufferClass(root, used) || needsNetClass || needsHttpServerClass || needsHttpClientClass || needsFileClass;
     needsRegexClass = xl6StdlibNeedsRegexClass(root, used);
     needsProcessClass = xl6StdlibNeedsProcessClass(root, used);
     needsLoggerClass = xl6StdlibNeedsLoggerClass(root, used);

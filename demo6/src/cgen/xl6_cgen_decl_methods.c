@@ -9,7 +9,9 @@ static void xl6CgenRegisterParamTypesEx(XL6_CgenContext* ctx, const XL6_AstNode*
         const XL6_AstNode* param = params->children[i];
         if ( param != NULL && param->childCount > 0 ) {
             if ( xl6CgenParamTypeUsesTypedContainerStorage(ctx, param->children[0]) ) {
-                xl6CgenAddVarTypeWithFlags(ctx, param->text, param->children[0], XL6_CGEN_VAR_TYPED_CONTAINER);
+                xl6CgenAddVarTypeWithFlags(ctx, param->text, param->children[0],
+                                           XL6_CGEN_VAR_TYPED_CONTAINER | XL6_CGEN_VAR_BORROWED);
+                xl6CgenAddTypedContainerParamCleanup(ctx, param->text, param->children[0]);
             } else {
                 xl6CgenAddVarType(ctx, param->text, param->children[0]);
             }
@@ -28,6 +30,29 @@ static void xl6CgenRegisterParamTypes(XL6_CgenContext* ctx, const XL6_AstNode* p
 static void xl6CgenRegisterBorrowedParamTypes(XL6_CgenContext* ctx, const XL6_AstNode* params)
 {
     xl6CgenRegisterParamTypesEx(ctx, params, 1);
+}
+
+static int xl6CgenBlockEndsWithReturn(const XL6_AstNode* block);
+
+static void xl6CgenEmitTypedContainerParamOwnerDecls(XL6_CgenContext* ctx, const XL6_AstNode* params)
+{
+    size_t i;
+
+    if ( ctx == NULL || params == NULL ) {
+        return;
+    }
+    for ( i = 0; i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+        char ownerName[512];
+
+        if ( param == NULL || param->childCount == 0 ||
+             !xl6CgenParamTypeUsesTypedContainerStorage(ctx, param->children[0]) ) {
+            continue;
+        }
+        xl6CgenTypedParamOwnerName(ownerName, sizeof(ownerName), param->text);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "int %s = 0;\n", ownerName);
+    }
 }
 
 static int xl6CgenNodeContainsBaseCtorCall(const XL6_AstNode* node)
@@ -224,11 +249,13 @@ static void xl6CgenClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* classNode,
     const XL6_AstNode* returns;
     const XL6_AstNode* params;
     size_t varMark;
+    size_t cleanupMark;
 
     xl6CgenClassFuncProto(ctx, classNode, funcNode);
     xl6OutputPuts("\n{\n", ctx->out);
     ctx->indent += 1;
     varMark = ctx->varCount;
+    cleanupMark = ctx->cleanupCount;
     prevClass = ctx->currentClass;
     prevReturnType = ctx->currentReturnType;
     prevReturnParams = ctx->currentReturnParams;
@@ -245,9 +272,14 @@ static void xl6CgenClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* classNode,
     ctx->currentReturns = returns;
     ctx->currentReturnFunc = funcNode;
     xl6CgenRegisterParamTypes(ctx, params);
+    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
     if ( funcNode->childCount > 3 ) {
         xl6CgenBlock(ctx, funcNode->children[3]);
     }
+    if ( !xl6CgenBlockEndsWithReturn(funcNode->childCount > 3 ? funcNode->children[3] : NULL) ) {
+        xl6CgenEmitCleanupsSince(ctx, cleanupMark);
+    }
+    xl6CgenFreeCleanupsSince(ctx, cleanupMark);
     ctx->currentReturnType = prevReturnType;
     ctx->currentReturnParams = prevReturnParams;
     ctx->currentReturns = prevReturns;
@@ -270,6 +302,7 @@ static void xl6CgenGenericClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* cla
     const XL6_AstNode* returns;
     const XL6_AstNode* params;
     size_t varMark;
+    size_t cleanupMark;
 
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
@@ -280,6 +313,7 @@ static void xl6CgenGenericClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* cla
     xl6OutputPuts("\n{\n", ctx->out);
     ctx->indent += 1;
     varMark = ctx->varCount;
+    cleanupMark = ctx->cleanupCount;
     prevClass = ctx->currentClass;
     prevReturnType = ctx->currentReturnType;
     prevReturnParams = ctx->currentReturnParams;
@@ -296,9 +330,14 @@ static void xl6CgenGenericClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* cla
     ctx->currentReturns = returns;
     ctx->currentReturnFunc = funcNode;
     xl6CgenRegisterParamTypes(ctx, params);
+    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
     if ( funcNode->childCount > 3 ) {
         xl6CgenBlock(ctx, funcNode->children[3]);
     }
+    if ( !xl6CgenBlockEndsWithReturn(funcNode->childCount > 3 ? funcNode->children[3] : NULL) ) {
+        xl6CgenEmitCleanupsSince(ctx, cleanupMark);
+    }
+    xl6CgenFreeCleanupsSince(ctx, cleanupMark);
     ctx->currentReturnType = prevReturnType;
     ctx->currentReturnParams = prevReturnParams;
     ctx->currentReturns = prevReturns;
@@ -320,6 +359,7 @@ static void xl6CgenGenericClassSpecial(XL6_CgenContext* ctx, const XL6_AstNode* 
     const XL6_AstNode* prevArgs;
     const XL6_AstNode* params;
     size_t varMark;
+    size_t cleanupMark;
 
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
@@ -330,6 +370,7 @@ static void xl6CgenGenericClassSpecial(XL6_CgenContext* ctx, const XL6_AstNode* 
     xl6OutputPuts("\n{\n", ctx->out);
     ctx->indent += 1;
     varMark = ctx->varCount;
+    cleanupMark = ctx->cleanupCount;
     prevClass = ctx->currentClass;
     prevReturnType = ctx->currentReturnType;
     ctx->currentClass = classNode;
@@ -337,12 +378,15 @@ static void xl6CgenGenericClassSpecial(XL6_CgenContext* ctx, const XL6_AstNode* 
     xl6CgenAddVarType(ctx, "self", typeNode);
     params = specialNode->childCount > 0 ? specialNode->children[0] : NULL;
     xl6CgenRegisterParamTypes(ctx, params);
+    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
     if ( specialNode->childCount > 1 ) {
         xl6CgenBlock(ctx, specialNode->children[1]);
     }
     if ( xl6CTextEquals(specialNode->text, "destroy") ) {
         xl6CgenEmitClassDestroyTail(ctx, classNode);
     }
+    xl6CgenEmitCleanupsSince(ctx, cleanupMark);
+    xl6CgenFreeCleanupsSince(ctx, cleanupMark);
     ctx->currentReturnType = prevReturnType;
     ctx->currentClass = prevClass;
     xl6CgenFreeVarsSince(ctx, varMark);
@@ -388,11 +432,13 @@ static void xl6CgenClassSpecial(XL6_CgenContext* ctx, const XL6_AstNode* classNo
     const XL6_AstNode* prevClass;
     const XL6_AstNode* params;
     size_t varMark;
+    size_t cleanupMark;
 
     xl6CgenClassSpecialProto(ctx, classNode, specialNode);
     xl6OutputPuts("\n{\n", ctx->out);
     ctx->indent += 1;
     varMark = ctx->varCount;
+    cleanupMark = ctx->cleanupCount;
     prevClass = ctx->currentClass;
     prevReturnType = ctx->currentReturnType;
     ctx->currentClass = classNode;
@@ -400,6 +446,7 @@ static void xl6CgenClassSpecial(XL6_CgenContext* ctx, const XL6_AstNode* classNo
     xl6CgenAddVarType(ctx, "self", classNode);
     params = specialNode->childCount > 0 ? specialNode->children[0] : NULL;
     xl6CgenRegisterParamTypes(ctx, params);
+    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
     if ( xl6CTextEquals(specialNode->text, "create") &&
          !xl6CgenNodeContainsBaseCtorCall(specialNode->childCount > 1 ? specialNode->children[1] : NULL) ) {
         xl6CgenEmitAutoBaseCreateForSelf(ctx, classNode, specialNode);
@@ -410,6 +457,8 @@ static void xl6CgenClassSpecial(XL6_CgenContext* ctx, const XL6_AstNode* classNo
     if ( xl6CTextEquals(specialNode->text, "destroy") ) {
         xl6CgenEmitClassDestroyTail(ctx, classNode);
     }
+    xl6CgenEmitCleanupsSince(ctx, cleanupMark);
+    xl6CgenFreeCleanupsSince(ctx, cleanupMark);
     ctx->currentReturnType = prevReturnType;
     ctx->currentClass = prevClass;
     xl6CgenFreeVarsSince(ctx, varMark);
@@ -523,6 +572,7 @@ static void xl6CgenClassExternSpecial(XL6_CgenContext* ctx, const XL6_AstNode* c
     const char* name;
     const XL6_AstNode* prevClass;
     size_t varMark;
+    size_t cleanupMark;
 
     params = xl6CgenCallableParams(specialNode);
     name = xl6CgenCallableName(specialNode);
@@ -531,10 +581,12 @@ static void xl6CgenClassExternSpecial(XL6_CgenContext* ctx, const XL6_AstNode* c
     xl6OutputPuts("\n{\n", ctx->out);
     ctx->indent += 1;
     varMark = ctx->varCount;
+    cleanupMark = ctx->cleanupCount;
     prevClass = ctx->currentClass;
     ctx->currentClass = classNode;
     xl6CgenAddVarType(ctx, "self", classNode);
     xl6CgenRegisterParamTypes(ctx, params);
+    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
 
     if ( xl6CTextEquals(name, "create") ) {
         xl6CgenEmitAutoBaseCreateForSelf(ctx, classNode, specialNode);
@@ -558,6 +610,8 @@ static void xl6CgenClassExternSpecial(XL6_CgenContext* ctx, const XL6_AstNode* c
         xl6OutputPuts("}\n", ctx->out);
         xl6CgenEmitClassDestroyTail(ctx, classNode);
     }
+    xl6CgenEmitCleanupsSince(ctx, cleanupMark);
+    xl6CgenFreeCleanupsSince(ctx, cleanupMark);
 
     ctx->currentClass = prevClass;
     xl6CgenFreeVarsSince(ctx, varMark);
@@ -766,6 +820,7 @@ static void xl6CgenNativeClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* cust
 
     xl6CgenAddVarType(ctx, "self", customNode);
     xl6CgenRegisterParamTypes(ctx, params);
+    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
     if ( body != NULL ) {
         xl6CgenBlock(ctx, body);
     }

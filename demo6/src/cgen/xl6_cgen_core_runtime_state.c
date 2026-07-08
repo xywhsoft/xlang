@@ -161,7 +161,16 @@ static int xl6CgenExprUsesTypedContainerStorage(XL6_CgenContext* ctx, const XL6_
     }
 
     if ( expr->kind == XL6_AST_NAME ) {
-        return (xl6CgenFindTrackedVarFlags(ctx, expr->text) & XL6_CGEN_VAR_TYPED_CONTAINER) != 0;
+        if ( (xl6CgenFindTrackedVarFlags(ctx, expr->text) & XL6_CGEN_VAR_TYPED_CONTAINER) != 0 ) {
+            return 1;
+        }
+        if ( xl6CgenFindTrackedVarType(ctx, expr->text) != NULL ) {
+            return 0;
+        }
+        inferredType = xl6CgenCloneImplicitSelfFieldType(ctx, expr->text);
+        result = xl6CgenIsTypedContainerType(ctx, inferredType);
+        xl6AstFree(inferredType);
+        return result;
     }
 
     /*

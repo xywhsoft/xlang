@@ -11,6 +11,7 @@ string copyPath = "examples_out/example_stdlib_file.copy.txt"
 string movePath = "examples_out/example_stdlib_file.move.txt"
 string renamePath = "examples_out/example_stdlib_file.renamed.txt"
 string replacePath = "examples_out/example_stdlib_file.replace.txt"
+string binaryPath = "examples_out/example_stdlib_file.bin"
 
 func probeFileStream(string path) as bool
     File stream = file.open(path, false)
@@ -53,11 +54,45 @@ func probeFileStream(string path) as bool
     return true
 end
 
+func probeFileBytes(string path) as bool
+    Buffer bytes = Buffer()
+    bytes.appendByte(0)
+    bytes.appendByte(65)
+    bytes.appendByte(255)
+    if not file.writeBytes(path, bytes) then
+        return false
+    end
+
+    Buffer read = file.readBytes(path)
+    if read.len() != 3 or read[0] != 0 or read[1] != 65 or read[2] != 255 then
+        return false
+    end
+
+    Buffer suffix = Buffer()
+    suffix.appendByte(66)
+    if not file.appendBytes(path, suffix) then
+        return false
+    end
+
+    Buffer appended = file.readBytes(path)
+    if appended.len() != 4 or appended[3] != 66 then
+        return false
+    end
+
+    File stream = file.open(path, true, encoding.binary)
+    Buffer firstTwo = stream.readBytes(2)
+    if firstTwo.len() != 2 or firstTwo[0] != 0 or firstTwo[1] != 65 then
+        return false
+    end
+    return true
+end
+
 file.delete(filePath)
 file.delete(copyPath)
 file.delete(movePath)
 file.delete(renamePath)
 file.delete(replacePath)
+file.delete(binaryPath)
 dir.delete(copyDir)
 dir.delete(movedDir)
 dir.delete(cleanDir)
@@ -112,6 +147,8 @@ bool renamed = file.rename(filePath, renamePath)
 bool replaceSeed = file.writeText(replacePath, "old")
 bool replaced = file.replace(renamePath, replacePath)
 bool restored = file.move(replacePath, filePath)
+bool binaryOk = probeFileBytes(binaryPath)
+bool binaryDeleted = file.delete(binaryPath)
 
 bool nestedWritten = file.writeText(nestedFile, "nested")
 bool dirEmpty = dir.empty(dirPath)
@@ -204,6 +241,8 @@ auto renamedText = renamed.toString()
 auto replaceSeedText = replaceSeed.toString()
 auto replacedText = replaced.toString()
 auto restoredText = restored.toString()
+auto binaryOkText = binaryOk.toString()
+auto binaryDeletedText = binaryDeleted.toString()
 auto nestedWrittenText = nestedWritten.toString()
 auto dirEmptyText = dirEmpty.toString()
 auto dirTopCountText = dirTopCount.toString()
@@ -279,6 +318,8 @@ assert(renamed)
 assert(replaceSeed)
 assert(replaced)
 assert(restored)
+assert(binaryOk)
+assert(binaryDeleted)
 assert(copied)
 assert(moved)
 assert(fileExists)

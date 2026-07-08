@@ -163,6 +163,9 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenFputsCIdent(ctx->out, node->text);
             break;
         }
+        if ( xl6CgenEmitImplicitSelfFieldReference(ctx, node->text) ) {
+            break;
+        }
         if ( xl6CgenFindTrackedVarType(ctx, node->text) == NULL ) {
             const XL6_AstNode* externalVar = xl6CgenFindExternalVar(ctx, node->text);
             if ( externalVar != NULL ) {
