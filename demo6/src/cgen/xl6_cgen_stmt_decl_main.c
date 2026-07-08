@@ -396,6 +396,14 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
     if ( initExpr != NULL && xl6CgenDeclTryTaskSpawnArgTempsInit(ctx, typeNode, cType, cName, initExpr) ) {
         return;
     }
+    if ( initExpr == NULL && xl6CgenIsSyncHandleType(typeNode) ) {
+        xl6OutputPrintf(ctx->out, "%s %s = ", cType, cName);
+        if ( !xl6CgenSyncDefaultCtorExpr(ctx, typeNode, node->line, node->column) ) {
+            xl6CgenDefaultValue(ctx, typeNode);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        return;
+    }
     if ( initExpr != NULL && xl6CgenDeclCanEmitCallArgTemp(ctx, typeNode, initExpr) ) {
         xl6OutputPrintf(ctx->out, "%s %s = ", cType, cName);
         xl6CgenDefaultValue(ctx, typeNode);

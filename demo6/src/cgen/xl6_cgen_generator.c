@@ -261,6 +261,7 @@ static void xl6CgenGeneratorWorker(XL6_CgenContext* ctx, const XL6_AstNode* node
     ctx->currentGeneratorHandleName = "__xl6_gen";
     ctx->currentErrorExitLabel = "__xl6_generator_error";
     xl6CgenRegisterParamTypes(ctx, params);
+    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
     if ( body != NULL ) {
         xl6CgenBlock(ctx, body);
     }

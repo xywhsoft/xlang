@@ -29,6 +29,17 @@ static unsigned int xl6CgenFindTrackedVarFlags(XL6_CgenContext* ctx, const char*
     return varInfo != NULL ? varInfo->flags : 0u;
 }
 
+static void xl6CgenTypedParamOwnerName(char* buffer, size_t capacity, const char* name)
+{
+    char cName[512];
+
+    if ( buffer == NULL || capacity == 0 ) {
+        return;
+    }
+    xl6CgenCIdentText(cName, sizeof(cName), name);
+    snprintf(buffer, capacity, "__xl6_typed_param_owned_%s", cName);
+}
+
 static const XL6_AstNode* xl6CgenFindVarType(XL6_CgenContext* ctx, const char* name)
 {
     const XL6_AstNode* typeNode;

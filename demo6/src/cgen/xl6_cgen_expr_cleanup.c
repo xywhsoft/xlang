@@ -105,6 +105,14 @@ static void xl6CgenAddTypedContainerCleanup(XL6_CgenContext* ctx, const char* na
     xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_TYPED_CONTAINER, typeNode, NULL);
 }
 
+static void xl6CgenAddTypedContainerParamCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode)
+{
+    if ( !xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+        return;
+    }
+    xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_TYPED_CONTAINER_PARAM, typeNode, NULL);
+}
+
 static void xl6CgenAddErrorCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode)
 {
     xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_ERROR, typeNode, NULL);
@@ -173,6 +181,22 @@ static void xl6CgenEmitOneCleanup(XL6_CgenContext* ctx, const XL6_CgenCleanup* c
         ctx->indent += 1;
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "xrtFree(%s);\n", cleanup->name);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = 0;\n", cleanup->name);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        return;
+    }
+    if ( cleanup->kind == XL6_CGEN_CLEANUP_TYPED_CONTAINER_PARAM ) {
+        char ownerName[512];
+
+        xl6CgenTypedParamOwnerName(ownerName, sizeof(ownerName), cleanup->name);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s && %s != 0) {\n", ownerName, cleanup->name);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6CgenTypedContainerDestroyValue(ctx, cleanup->typeNode, cleanup->name);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = 0;\n", cleanup->name);
         ctx->indent -= 1;

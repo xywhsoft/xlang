@@ -1445,6 +1445,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtUTF16to8);
     XL_ADD_XRT_SYMBOL(s, xrtStrUtf8CharSize);
     XL_ADD_XRT_SYMBOL(s, xrtStrCharLen);
+    XL_ADD_XRT_SYMBOL(s, xrtStrCharToBytePos);
     XL_ADD_XRT_SYMBOL(s, xrtFindStr);
     XL_ADD_XRT_SYMBOL(s, xrtStrIndexOf);
     XL_ADD_XRT_SYMBOL(s, xrtStrLastIndexOf);
@@ -1459,6 +1460,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtDetectCharset);
     XL_ADD_XRT_SYMBOL(s, xrtGetCharSize);
     XL_ADD_XRT_SYMBOL(s, xrtIntFormat);
+    XL_ADD_XRT_SYMBOL(s, xrtUIntFormat);
     XL_ADD_XRT_SYMBOL(s, xrtNumFormat);
     XL_ADD_XRT_SYMBOL(s, xrtLCase);
     XL_ADD_XRT_SYMBOL(s, xrtUCase);
@@ -1613,6 +1615,8 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtFileReadAll);
     XL_ADD_XRT_SYMBOL(s, xrtFileWriteAll);
     XL_ADD_XRT_SYMBOL(s, xrtFileAppend);
+    XL_ADD_XRT_SYMBOL(s, xrtFileGetAll);
+    XL_ADD_XRT_SYMBOL(s, xrtFilePutAll);
     XL_ADD_XRT_SYMBOL(s, xrtOpen);
     XL_ADD_XRT_SYMBOL(s, xrtClose);
     XL_ADD_XRT_SYMBOL(s, xrtSeek);

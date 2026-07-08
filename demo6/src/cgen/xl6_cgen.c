@@ -17,6 +17,7 @@
 #include "src/cgen/xl6_cgen_core_state.c"
 #include "src/cgen/xl6_cgen_core_types.c"
 #include "src/cgen/xl6_cgen_core_generics.c"
+static XL6_AstNode* xl6CgenCloneImplicitSelfFieldType(XL6_CgenContext* ctx, const char* fieldName);
 #include "src/cgen/xl6_cgen_core_runtime_state.c"
 #include "src/cgen/xl6_cgen_builtin_object.c"
 #include "src/cgen/xl6_cgen_type_infer_helpers.c"
@@ -29,6 +30,9 @@
 #include "src/cgen/xl6_cgen_loop_target.c"
 #include "src/cgen/xl6_cgen_function_value.c"
 #include "src/cgen/xl6_cgen_function_member.c"
+static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+static void xl6CgenTypedContainerStorageToXValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* storageName);
+static const XL6_AstNode* xl6CgenResolveClassCreateMode(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* call, int reportNoMatch);
 #include "src/cgen/xl6_cgen_args.c"
 #include "src/cgen/xl6_cgen_debug.c"
 #include "src/cgen/xl6_cgen_fstring.c"

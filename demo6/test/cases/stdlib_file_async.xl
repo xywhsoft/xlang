@@ -36,6 +36,14 @@ assert firstDone >= 0, "deleteAsync futures should work with task.whenAny"
 assert await anyDelete, "deleteAsync should delete source file"
 assert await anyDeleteMoved, "deleteAsync should delete moved file"
 
-assert await file.readTextAsync(missingPath) == "", "readTextAsync missing file should mirror readText empty result"
+bool missingReadCaught = false
+try
+    string missingText = await file.readTextAsync(missingPath)
+catch e
+    if string.contains(e.message, "does not exist") then
+        missingReadCaught = true
+    end
+end
+assert missingReadCaught, "readTextAsync missing file should reject with a future error"
 
 println("stdlib file async ok")

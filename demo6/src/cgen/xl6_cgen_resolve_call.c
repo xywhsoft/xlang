@@ -411,9 +411,18 @@ static const XL6_AstNode* xl6CgenResolveCallableInBodyExact(
     return xl6CgenResolveCallableInBodyMode(ctx, body, call, kind, name, -1, 0, reportNoMatch);
 }
 
+static const XL6_AstNode* xl6CgenResolveClassCreateMode(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* call,
+    int reportNoMatch)
+{
+    return xl6CgenResolveCallableInBody(ctx, xl6CgenClassBody(classNode), call, XL6_AST_CREATE, "create", reportNoMatch);
+}
+
 static const XL6_AstNode* xl6CgenResolveClassCreate(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* call)
 {
-    return xl6CgenResolveCallableInBody(ctx, xl6CgenClassBody(classNode), call, XL6_AST_CREATE, "create", 1);
+    return xl6CgenResolveClassCreateMode(ctx, classNode, call, 1);
 }
 
 static const XL6_AstNode* xl6CgenResolveClassFuncMode(

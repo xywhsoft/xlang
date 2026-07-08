@@ -146,6 +146,8 @@ static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6
 {
     const XL6_AstNode* callee;
     XL6_AstNode* func;
+    XL6_AstNode* inferredType;
+    int result;
 
     if ( expr == NULL || expr->kind != XL6_AST_CALL || expr->childCount == 0 ) {
         return 0;
@@ -157,18 +159,34 @@ static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6
     }
 
     if ( callee->kind == XL6_AST_NAME ) {
-        func = xl6CgenResolveCallFunc(ctx, expr, callee->text);
+        XL6_AstNode* inferredArgs = NULL;
+        func = xl6CgenResolveCallFuncInternal(ctx, expr, callee->text, &inferredArgs, 0);
+        xl6AstFree(inferredArgs);
         return xl6CgenFuncSingleReturnUsesTypedContainerStorage(ctx, func);
     }
 
     if ( callee->kind == XL6_AST_MEMBER ) {
         XL6_AstNode* functionType = xl6CgenCloneMemberFieldTypeForInference(ctx, callee);
-        int result = xl6CgenFunctionTypeSingleReturnUsesTypedContainerStorage(ctx, functionType);
+        result = xl6CgenFunctionTypeSingleReturnUsesTypedContainerStorage(ctx, functionType);
 
         xl6AstFree(functionType);
-        return result;
+        if ( result ) {
+            return 1;
+        }
     }
 
+    /*
+        这是一个无副作用兜底：成员函数和泛型实例化函数在部分路径下
+        不一定能从 callee 本身还原完整函数签名，但 call 表达式的整体
+        类型推断已经能给出 array<T>/list<T>/set<T>/dict<T>。只要它是
+        call 且结果是静态 typed container，就按“返回 storage”处理。
+    */
+    if ( callee->kind == XL6_AST_MEMBER ) {
+        inferredType = xl6CgenCloneExprTypeForInference(ctx, expr);
+        result = xl6CgenIsTypedContainerType(ctx, inferredType);
+        xl6AstFree(inferredType);
+        return result;
+    }
     return 0;
 }
 

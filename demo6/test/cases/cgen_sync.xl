@@ -157,3 +157,45 @@ auto autoUnlocked = am.unlock()
 
 assert autoLocked, "auto mutex lock failed"
 assert autoUnlocked, "auto mutex unlock failed"
+
+func probeLocalDefaultSync() as int
+    mutex localMutex
+    if not localMutex.lock() then return 10 end
+    if not localMutex.unlock() then return 11 end
+
+    rwlock localRw
+    if not localRw.writeLock() then return 12 end
+    if not localRw.writeUnlock() then return 13 end
+
+    sem localSem
+    if localSem.tryWait() then return 14 end
+    if not localSem.post() then return 15 end
+    if not localSem.waitTimeout(10) then return 16 end
+
+    cond localCond
+    if not localCond.signal() then return 17 end
+    return 0
+end
+
+assert probeLocalDefaultSync() == 0, "local default sync handles failed"
+
+mutex defaultMutex
+assert defaultMutex.lock(), "default mutex lock failed"
+assert defaultMutex.unlock(), "default mutex unlock failed"
+assert defaultMutex.tryLock(), "default mutex tryLock failed"
+assert defaultMutex.unlock(), "default mutex tryUnlock failed"
+
+sem defaultSem
+assert not defaultSem.tryWait(), "default sem should start empty"
+assert defaultSem.post(), "default sem post failed"
+assert defaultSem.waitTimeout(10), "default sem wait failed"
+
+cond defaultCond
+assert defaultCond.signal(), "default cond signal failed"
+assert defaultCond.broadcast(), "default cond broadcast failed"
+
+rwlock defaultRw
+assert defaultRw.readLock(), "default rwlock readLock failed"
+assert defaultRw.readUnlock(), "default rwlock readUnlock failed"
+assert defaultRw.writeLock(), "default rwlock writeLock failed"
+assert defaultRw.writeUnlock(), "default rwlock writeUnlock failed"

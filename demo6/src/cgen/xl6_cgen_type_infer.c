@@ -514,6 +514,12 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         if ( varType != NULL && !xl6CTextEquals(varType->text, "auto") ) {
             return xl6CgenCloneTypeNode(varType);
         }
+        {
+            XL6_AstNode* fieldType = xl6CgenCloneImplicitSelfFieldType(ctx, expr->text);
+            if ( fieldType != NULL ) {
+                return fieldType;
+            }
+        }
         if ( xl6CgenIsKnownTypeName(ctx, expr->text) ) {
             return xl6CgenNewSimpleType("type", expr);
         }

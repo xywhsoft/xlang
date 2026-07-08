@@ -1,4 +1,4 @@
-static int xl6CgenSimpleAssignTargetPath(const XL6_AstNode* left, char* buffer, size_t capacity)
+static int xl6CgenSimpleAssignTargetPath(XL6_CgenContext* ctx, const XL6_AstNode* left, char* buffer, size_t capacity)
 {
     char receiver[256];
     char field[256];
@@ -8,6 +8,9 @@ static int xl6CgenSimpleAssignTargetPath(const XL6_AstNode* left, char* buffer, 
         return 0;
     }
     if ( left->kind == XL6_AST_NAME ) {
+        if ( xl6CgenImplicitSelfFieldPath(ctx, left->text, buffer, capacity) ) {
+            return 1;
+        }
         xl6CgenCIdentText(buffer, capacity, left->text);
         return 1;
     }
@@ -27,7 +30,7 @@ static int xl6CgenSimpleAssignTargetPath(const XL6_AstNode* left, char* buffer, 
         return written > 0 && (size_t)written < capacity;
     }
 
-    if ( !xl6CgenSimpleAssignTargetPath(left->children[0], receiver, sizeof(receiver)) ) {
+    if ( !xl6CgenSimpleAssignTargetPath(ctx, left->children[0], receiver, sizeof(receiver)) ) {
         return 0;
     }
     written = snprintf(buffer, capacity, "%s.%s", receiver, field);
@@ -51,7 +54,7 @@ static int xl6CgenTryClassCtorAssignTarget(
     if ( !xl6CgenCallIsClassCtor(ctx, right, &ctorClass) ||
          targetClass == NULL ||
          !xl6CTextEquals(targetClass->text, ctorClass->text) ||
-         !xl6CgenSimpleAssignTargetPath(left, targetPath, sizeof(targetPath)) ) {
+         !xl6CgenSimpleAssignTargetPath(ctx, left, targetPath, sizeof(targetPath)) ) {
         return 0;
     }
 

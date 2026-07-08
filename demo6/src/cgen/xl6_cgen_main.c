@@ -746,6 +746,10 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
     if ( initExpr == NULL ) {
         if ( xl6CgenModuleGlobalUsesTypedContainerStorage(ctx, node, typeNode) ) {
             xl6CgenTypedContainerCreateExprMode(ctx, typeNode, "XRT_OBJMODE_SHARED");
+        } else if ( xl6CgenIsSyncHandleType(typeNode) ) {
+            if ( !xl6CgenSyncDefaultCtorExpr(ctx, typeNode, node->line, node->column) ) {
+                xl6CgenDefaultValue(ctx, typeNode);
+            }
         } else {
             xl6CgenDefaultValue(ctx, typeNode);
         }

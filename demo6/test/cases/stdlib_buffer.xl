@@ -8,22 +8,95 @@ expect(buf.length, 0)
 expect(buf.capacity(), 0)
 expect(buf.append("abc"), 1)
 expect(buf.appendByte(100), 1)
-expect(buf.appendByte(-1), 0)
-expect(buf.appendByte(256), 0)
+
+bool appendNegativeCaught = false
+try
+    buf.appendByte(-1)
+catch e
+    if e.kind == "ValueError" then
+        appendNegativeCaught = true
+    end
+end
+expect(appendNegativeCaught, 1)
+
+bool appendOverflowCaught = false
+try
+    buf.appendByte(256)
+catch e
+    if e.kind == "ValueError" then
+        appendOverflowCaught = true
+    end
+end
+expect(appendOverflowCaught, 1)
+
 expect(buf.len(), 4)
 expect(buf.length, 4)
 expect(buf.byteAt(0), 97)
 expect(buf.byteAt(3), 100)
-expect(buf.byteAt(-1), -1)
-expect(buf.byteAt(4), -1)
+
+bool readNegativeCaught = false
+try
+    buf.byteAt(-1)
+catch e
+    if e.kind == "RangeError" then
+        readNegativeCaught = true
+    end
+end
+expect(readNegativeCaught, 1)
+
+bool readOverflowCaught = false
+try
+    buf.byteAt(4)
+catch e
+    if e.kind == "RangeError" then
+        readOverflowCaught = true
+    end
+end
+expect(readOverflowCaught, 1)
+
 expect(buf[1], 98)
 buf[1] = 66
 expect(buf[1], 66)
 expect(buf.setByte(2, 67), 1)
-expect(buf.setByte(-1, 1), 0)
-expect(buf.setByte(99, 1), 0)
-expect(buf.setByte(0, 256), 0)
+
+bool writeNegativeCaught = false
+try
+    buf.setByte(-1, 1)
+catch e
+    if e.kind == "RangeError" then
+        writeNegativeCaught = true
+    end
+end
+expect(writeNegativeCaught, 1)
+
+bool writeOverflowCaught = false
+try
+    buf.setByte(99, 1)
+catch e
+    if e.kind == "RangeError" then
+        writeOverflowCaught = true
+    end
+end
+expect(writeOverflowCaught, 1)
+
+bool writeBadByteCaught = false
+try
+    buf.setByte(0, 256)
+catch e
+    if e.kind == "ValueError" then
+        writeBadByteCaught = true
+    end
+end
+expect(writeBadByteCaught, 1)
+
 expectStr(buf.text(), "aBCd")
+
+int sum = 0
+for item in buf
+    sum += item
+end
+expect(sum, 97 + 66 + 67 + 100)
+
 expect(buf.reserve(128), 1)
 expect(buf.capacity() >= 128, 1)
 expect(buf.clear(), 1)
@@ -35,3 +108,8 @@ expect(stepped.appendBytes("hello", c_size(2)), 1)
 expectStr(stepped.text(), "he")
 expect(stepped.appendBytes("ignored", c_size(0)), 1)
 expect(stepped.len(), 2)
+
+Buffer copied = Buffer()
+expect(copied.append(stepped), 1)
+expect(copied.len(), 2)
+expectStr(copied.text(), "he")

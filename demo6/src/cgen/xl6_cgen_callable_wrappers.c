@@ -51,6 +51,7 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
     ctx->currentReturns = returns;
     ctx->currentReturnFunc = NULL;
     xl6CgenRegisterParamTypes(ctx, params);
+    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
     xl6CgenRegisterAnonCaptureTypes(ctx, info);
     if ( info->captureCount > 0 ) {
         xl6CgenIndent(ctx);

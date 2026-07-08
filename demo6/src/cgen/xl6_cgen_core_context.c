@@ -5,6 +5,7 @@ typedef struct XL6_CgenVar {
 } XL6_CgenVar;
 
 #define XL6_CGEN_VAR_TYPED_CONTAINER 0x00000001u
+#define XL6_CGEN_VAR_BORROWED 0x00000002u
 
 typedef enum XL6_CgenCleanupKind {
     XL6_CGEN_CLEANUP_NATIVE_CLASS,
@@ -19,7 +20,8 @@ typedef enum XL6_CgenCleanupKind {
     XL6_CGEN_CLEANUP_TYPED_CONTAINER,
     XL6_CGEN_CLEANUP_ERROR,
     XL6_CGEN_CLEANUP_ITER_SNAPSHOT,
-    XL6_CGEN_CLEANUP_XRT_PTR
+    XL6_CGEN_CLEANUP_XRT_PTR,
+    XL6_CGEN_CLEANUP_TYPED_CONTAINER_PARAM
 } XL6_CgenCleanupKind;
 
 typedef struct XL6_CgenCleanup {
@@ -156,6 +158,7 @@ static void xl6CgenEmitGeneratorRuntime(XL6_Output* out);
 static void xl6CgenEmitDebugRuntime(XL6_Output* out);
 static void xl6CgenDebugProbe(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
+static int xl6CgenEmitClassCtorInto(XL6_CgenContext* ctx, const XL6_AstNode* call, const char* targetExpr);
 static void xl6CgenAsyncFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenAsyncFunc(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node);
@@ -175,7 +178,11 @@ static void xl6CgenAddGeneratorCleanup(XL6_CgenContext* ctx, const char* name, c
 static void xl6CgenEmitExceptionPropagate(XL6_CgenContext* ctx, const XL6_AstNode* at);
 static void xl6CgenXValueFromExprForTarget(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr);
 static int xl6CgenSyncCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);
+static int xl6CgenSyncDefaultCtorExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, int line, int column);
 static int xl6CgenSyncMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
+static void xl6CgenTypedParamOwnerName(char* buffer, size_t capacity, const char* name);
+static void xl6CgenAddTypedContainerParamCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode);
+static void xl6CgenTypedContainerDestroyValue(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* cName);
 
 static int xl6CTextEquals(const char* a, const char* b)
 {

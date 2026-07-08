@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-07-08 15:10:48
+    Generated: 2026-07-09 02:08:10
 
     MIT License
 
@@ -140,23 +140,6 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <limits.h>
-#if defined(__TINYC__)
-	#ifndef UINT32_C
-		#define UINT32_C(x) x ## U
-	#endif
-	#ifndef UINT64_C
-		#define UINT64_C(x) x ## ULL
-	#endif
-	#undef SIZE_MAX
-	#define SIZE_MAX ((size_t)-1)
-#endif
-#ifndef SIZE_MAX
-	#if defined(UINTPTR_MAX) && UINTPTR_MAX > 0xffffffffu
-		#define SIZE_MAX UINT64_MAX
-	#else
-		#define SIZE_MAX UINT32_MAX
-	#endif
-#endif
 #ifndef UNUSED_ATTR
 	#if defined(__GNUC__) || defined(__clang__)
 		#define UNUSED_ATTR __attribute__((unused))
@@ -2008,6 +1991,7 @@
 	XXAPI size_t xrtStrByteLen(str sText, size_t iSize);
 	XXAPI size_t xrtStrUtf8CharSize(str sText, size_t iSize, size_t iPos);
 	XXAPI size_t xrtStrCharLen(str sText, size_t iSize);
+	XXAPI size_t xrtStrCharToBytePos(str sText, size_t iSize, size_t iCharIndex);
 	
 	// 字符串转为小写（ bSrcRevise 为 false 时，需使用 xrtFree 释放内存 ）
 	XXAPI str xrtLCase(str sText, size_t iSize, bool bSrcRevise);
@@ -2090,6 +2074,8 @@
 	// 整数格式化（格式符: , 千分位 | 0N 前导零 | + 正号 | x/X 十六进制 | o 八进制 | b 二进制）（ 需使用 xrtFree 释放 ）
 	XXAPI str xrtIntFormat(int64 value, str format);
 	
+	// 无符号整数格式化（格式符同 xrtIntFormat）（ 需使用 xrtFree 释放 ）
+	XXAPI str xrtUIntFormat(uint64 value, str format);
 	// 浮点数格式化（格式符: , 千分位 | .N 小数位 | + 正号 | % 百分比）（ 需使用 xrtFree 释放 ）
 	XXAPI str xrtNumFormat(double value, str format);
 	
@@ -7302,11 +7288,11 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI void xrtTypedSetUnit(xtset pSet);
 	XXAPI bool xrtTypedSetAdd(xtset pSet, const ptr pItem);
 	XXAPI bool xrtTypedSetAddValue(xtset pSet, xvalue pVal);
-	XXAPI bool xrtTypedSetExistsValue(xtset pSet, xvalue pVal);
-	XXAPI bool xrtTypedSetRemoveValue(xtset pSet, xvalue pVal);
 	XXAPI ptr xrtTypedSetGet(xtset pSet, const ptr pItem);
 	XXAPI bool xrtTypedSetExists(xtset pSet, const ptr pItem);
 	XXAPI bool xrtTypedSetRemove(xtset pSet, const ptr pItem);
+	XXAPI bool xrtTypedSetExistsValue(xtset pSet, xvalue pVal);
+	XXAPI bool xrtTypedSetRemoveValue(xtset pSet, xvalue pVal);
 	XXAPI ptr xrtTypedSetItemAt(xtset pSet, uint32 iIndex);
 	XXAPI bool xrtTypedSetClear(xtset pSet);
 	XXAPI bool xrtTypedSetMerge(xtset pTarget, xtset pSource);
@@ -7355,7 +7341,6 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI ptr xrtSetGet(xset pSet, const ptr pItem);
 	XXAPI ptr xrtSetItemAt(xset pSet, uint32 iIndex);
 	XXAPI uint32 xrtSetCount(xset pSet);
-	XXAPI bool xrtSetClear(xset pSet);
 	XXAPI void xrtSetWalk(xset pSet, xset_each_proc procEach, ptr pArg);
 	XXAPI xset xrtSetClone(xset pSet);
 	XXAPI bool xrtSetMerge(xset pTarget, xset pSource);
@@ -7363,9 +7348,6 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI xset xrtSetIntersection(xset pLeft, xset pRight);
 	XXAPI xset xrtSetDifference(xset pLeft, xset pRight);
 	XXAPI xset xrtSetSymmetricDifference(xset pLeft, xset pRight);
-	XXAPI bool xrtSetIsSubset(xset pLeft, xset pRight, bool bProper);
-	XXAPI bool xrtSetIsSuperset(xset pLeft, xset pRight, bool bProper);
-	XXAPI bool xrtSetEquals(xset pLeft, xset pRight);
 	/* ------------------------------------ Value 函数库 ------------------------------------ */
 	/*
 		依赖项：
@@ -11929,6 +11911,14 @@ XXAPI size_t xrtStrCharLen(str sText, size_t iSize)
 	return iCount;
 }
 // 字符串转为小写（ bSrcRevise 为 FALSE 时，需使用 xrtFree 释放内存 ）
+XXAPI size_t xrtStrCharToBytePos(str sText, size_t iSize, size_t iCharIndex)
+{
+	iSize = __xrtStrByteSize(sText, iSize);
+	if ( sText == NULL || iSize == 0 || iCharIndex == 0 ) {
+		return 0;
+	}
+	return __xrtStrCharToByteOffset(sText, iSize, iCharIndex);
+}
 XXAPI str xrtLCase(str sText, size_t iSize, bool bSrcRevise)
 {
 	if ( sText == NULL ) { return xCore.sNull; }
@@ -13373,6 +13363,56 @@ XXAPI str xrtIntFormat(int64 value, str format)
 		out += numLen;
 	}
 	
+	*out = '\0';
+	return buffer;
+}
+// 无符号整数格式化
+XXAPI str xrtUIntFormat(uint64 value, str format)
+{
+	// 解析格式
+	XrtNumFmtOpts opts;
+	xrt_parse_format(format, &opts);
+	// 转换为字符串
+	char tmpBuf[96];
+	char* numStart;
+	int numLen;
+	if ( opts.base == 10 ) {
+		numLen = xrtU64ToStr(value, tmpBuf);
+		numStart = tmpBuf;
+	} else {
+		// 非十进制不显示符号，也不做千分位分隔
+		char* tmpEnd = tmpBuf + sizeof(tmpBuf);
+		numStart = xrt_u64_to_base(tmpEnd, value, opts.base, opts.uppercase);
+		numLen = (int)(tmpEnd - numStart);
+		opts.showSign = FALSE;
+		opts.thousands = FALSE;
+	}
+	// 计算所需总长度
+	int signLen = opts.showSign ? 1 : 0;
+	int digitLen = numLen;
+	if ( opts.thousands && digitLen > 3 ) {
+		digitLen += (digitLen - 1) / 3;
+	}
+	int padLen = (opts.width > digitLen) ? (opts.width - digitLen) : 0;
+	int totalLen = signLen + padLen + digitLen;
+	// 分配缓冲区
+	str buffer = xrtMalloc(totalLen + 1);
+	if ( buffer == NULL ) { return xCore.sNull; }
+	char* out = __xrt_str(buffer);
+	// 写入符号
+	if ( signLen ) {
+		*out++ = '+';
+	}
+	// 写入前导零
+	while ( padLen-- > 0 ) { *out++ = '0'; }
+	// 写入数字
+	if ( opts.thousands && numLen > 3 ) {
+		xrt_add_thousands(out, numStart, numLen);
+		out += digitLen;
+	} else {
+		memcpy(out, numStart, numLen);
+		out += numLen;
+	}
 	*out = '\0';
 	return buffer;
 }
@@ -17086,7 +17126,7 @@ XXAPI int xrtWeekday(xtime iTime)
 {
 	xtime iTimeAbs = llabs(iTime);
 	uint64 iDay = iTimeAbs / XRT_TIME_DAY;
-	return iDay % 7;
+	return (int)((iDay + 6) % 7);
 }
 // 获取时间是当年的第几天
 XXAPI int xrtDayOfYear(xtime iTime)
@@ -17174,7 +17214,7 @@ XXAPI void xrtDecodeSerial(xtime iTime, int64* pYear, int* pMonth, int* pDay, in
 	// 第五步：计算星期（总天数对7取余）
 	if ( pWeekday ) {
 		uint64 iDay = iTimeAbs / XRT_TIME_DAY;
-		*pWeekday = iDay % 7;
+		*pWeekday = (int)((iDay + 6) % 7);
 	}
 }
 // 获取当前日期 + 时间 （ 线程安全 ）
@@ -19624,11 +19664,104 @@ XXAPI bool xrtFileMove(str sSrc, str sDst, bool bReWrite)
 }
 // 删除文件
 // 原子重命名文件，不跨卷复制
+static int __xrtFilePathEqualsIgnoreAsciiCase(str sA, str sB)
+{
+	str sAbsA;
+	str sAbsB;
+	size_t i;
+	size_t iSizeA;
+	size_t iSizeB;
+	int bEqual = TRUE;
+	if ( sA == NULL || sB == NULL ) { return FALSE; }
+	sAbsA = xrtPathAbs(sA, 0);
+	sAbsB = xrtPathAbs(sB, 0);
+	if ( sAbsA == NULL || sAbsB == NULL ) {
+		xrtFree(sAbsA);
+		xrtFree(sAbsB);
+		return FALSE;
+	}
+	iSizeA = strlen((const char*)sAbsA);
+	iSizeB = strlen((const char*)sAbsB);
+	if ( iSizeA != iSizeB ) {
+		bEqual = FALSE;
+	} else {
+		for ( i = 0; i < iSizeA; ++i ) {
+			unsigned char ca = (unsigned char)sAbsA[i];
+			unsigned char cb = (unsigned char)sAbsB[i];
+			if ( ca == '/' ) { ca = '\\'; }
+			if ( cb == '/' ) { cb = '\\'; }
+			if ( ca >= 'A' && ca <= 'Z' ) { ca = (unsigned char)(ca - 'A' + 'a'); }
+			if ( cb >= 'A' && cb <= 'Z' ) { cb = (unsigned char)(cb - 'A' + 'a'); }
+			if ( ca != cb ) {
+				bEqual = FALSE;
+				break;
+			}
+		}
+	}
+	xrtFree(sAbsA);
+	xrtFree(sAbsB);
+	return bEqual;
+}
 XXAPI bool xrtFileRename(str sSrc, str sDst, bool bReWrite)
 {
-	if ( sSrc == NULL || sDst == NULL ) { return FALSE; }
-	if ( !bReWrite && xrtPathExists(sDst) ) { return FALSE; }
 	#if defined(_WIN32) || defined(_WIN64)
+		bool bSamePathIgnoreCase;
+	#endif
+	if ( sSrc == NULL || sDst == NULL ) { return FALSE; }
+	if ( !bReWrite && xrtPathExists(sDst) ) {
+		#if defined(_WIN32) || defined(_WIN64)
+			if ( !__xrtFilePathEqualsIgnoreAsciiCase(sSrc, sDst) ) { return FALSE; }
+		#else
+			return FALSE;
+		#endif
+	}
+	#if defined(_WIN32) || defined(_WIN64)
+		bSamePathIgnoreCase = __xrtFilePathEqualsIgnoreAsciiCase(sSrc, sDst);
+		if ( bSamePathIgnoreCase ) {
+			int i;
+			for ( i = 0; i < 16; ++i ) {
+				str sTmp = xrtPathRandom(sDst, 0, (str)".xrt-rename-tmp", 0, 8);
+				u16str sSrcW;
+				u16str sTmpW;
+				u16str sDstW;
+				BOOL bStep1;
+				BOOL bStep2;
+				if ( sTmp == NULL || sTmp[0] == 0 ) {
+					xrtFree(sTmp);
+					return FALSE;
+				}
+				if ( xrtPathExists(sTmp) ) {
+					xrtFree(sTmp);
+					continue;
+				}
+				sSrcW = xrtUTF8to16((u8str)sSrc, 0, NULL);
+				sTmpW = xrtUTF8to16((u8str)sTmp, 0, NULL);
+				sDstW = xrtUTF8to16((u8str)sDst, 0, NULL);
+				if ( sSrcW == NULL || sTmpW == NULL || sDstW == NULL ) {
+					xrtFree(sSrcW);
+					xrtFree(sTmpW);
+					xrtFree(sDstW);
+					xrtFree(sTmp);
+					return FALSE;
+				}
+				bStep1 = MoveFileExW((const wchar_t*)sSrcW, (const wchar_t*)sTmpW, MOVEFILE_WRITE_THROUGH);
+				bStep2 = FALSE;
+				if ( bStep1 ) {
+					bStep2 = MoveFileExW((const wchar_t*)sTmpW, (const wchar_t*)sDstW, MOVEFILE_WRITE_THROUGH);
+					if ( !bStep2 ) {
+						MoveFileExW((const wchar_t*)sTmpW, (const wchar_t*)sSrcW, MOVEFILE_WRITE_THROUGH);
+					}
+				}
+				xrtFree(sSrcW);
+				xrtFree(sTmpW);
+				xrtFree(sDstW);
+				xrtFree(sTmp);
+				if ( bStep1 && bStep2 ) {
+					return TRUE;
+				}
+			}
+			return FALSE;
+		}
 		u16str sSrcW = xrtUTF8to16((u8str)sSrc, 0, NULL);
 		u16str sDstW = xrtUTF8to16((u8str)sDst, 0, NULL);
 		DWORD iFlags = MOVEFILE_WRITE_THROUGH | (bReWrite ? MOVEFILE_REPLACE_EXISTING : 0);
@@ -23925,9 +24058,20 @@ static xqueue_result __xrtMPSCQWaitPopCore(xmpscqwait pQueue, ptr* ppItem, bool 
 				return XQUEUE_CLOSED;
 			}
 			else if ( bInfinite ) {
-				xrtSemWait(pQueue->hItems);
+				int iWaitRet = xrtSemWaitTimeout(pQueue->hItems, 50u);
 				__xrtQueueWaitAddLong(&pQueue->iWaiters, -1);
-				return __xrtMPSCQWaitPopWithToken(pQueue, ppItem);
+				if ( iWaitRet == XRT_WAIT_OK ) {
+					return __xrtMPSCQWaitPopWithToken(pQueue, ppItem);
+				}
+				else if ( iWaitRet == XRT_WAIT_TIMEOUT ) {
+					if ( __xrtMPSCQWaitIsClosedAndDrained(pQueue) ) {
+						return XQUEUE_CLOSED;
+					}
+					continue;
+				}
+				else {
+					return XQUEUE_ERROR;
+				}
 			}
 			else {
 				uint64 iNowMs = __xrtQueueWaitNowMs();
@@ -82881,24 +83025,26 @@ static int bbre_sset_is_memb(bbre_sset *s, bbre_uint pc)
   assert(pc < s->size);
   return s->sparse[pc] < s->dense_pc_size && s->dense_pc[s->sparse[pc]] == pc;
 }
-static void bbre_sset_add_internal(bbre_sset *s, bbre_uint pc)
+static int bbre_sset_add_internal(bbre_sset *s, bbre_uint pc)
 {
   assert(pc < s->size);
   assert(s->dense_pc_size < s->size);
   assert(pc);
-  assert(!bbre_sset_is_memb(s, pc));
+  if (bbre_sset_is_memb(s, pc))
+    return 0;
   s->dense_pc[s->dense_pc_size] = pc;
   s->sparse[pc] = s->dense_pc_size++;
-  return;
+  return 1;
 }
 static void bbre_sset_add_k(bbre_sset *s, bbre_uint pc)
 {
-  bbre_sset_add_internal(s, pc);
+  (void)bbre_sset_add_internal(s, pc);
   assert(s->dense_slot_size == 0);
 }
 static void bbre_sset_add_kv(bbre_sset *s, bbre_nfa_thrd spec)
 {
-  bbre_sset_add_internal(s, spec.pc);
+  if (!bbre_sset_add_internal(s, spec.pc))
+    return;
   s->dense_slot[s->dense_slot_size++] = spec.slot_hdl;
   /* ensure we're only calling one of k()/kv() on each generation of the sset */
   assert(s->dense_pc_size == s->dense_slot_size);
@@ -83142,7 +83288,6 @@ static int bbre_nfa_eps(bbre_exec *exec, size_t pos, bbre_assert_flag ass)
       /* fall through */
     case BBRE_OPCODE_RANGE:
       (void)(bbre_buf_pop(&exec->nfa.thrd_stk));
-      assert(!bbre_sset_is_memb(&exec->dst, thrd.pc));
       bbre_sset_add_kv(&exec->dst, thrd); /* this is a range or final match */
       break;
     case BBRE_OPCODE_SPLIT: {
@@ -83522,7 +83667,6 @@ static int bbre_dfa_eps(bbre_exec *exec, bbre_assert_flag ass)
       /* fall through */
     case BBRE_OPCODE_RANGE:
       (void)bbre_buf_pop(&exec->dfa.thrd_stk);
-      assert(!bbre_sset_is_memb(&exec->dst, pc));
       bbre_sset_add_k(&exec->dst, pc); /* this is a range or final match */
       break;
     case BBRE_OPCODE_SPLIT: {
@@ -83874,7 +84018,22 @@ static int64 __xrtRegexByteToCharIndex(const char *text, size_t text_size, size_
 {
   if (!text || byte_pos > text_size)
     return -1;
+  if (byte_pos == 0)
+    return 0;
   return (int64)xrtStrCharLen((str)text, byte_pos);
+}
+static str __xrtRegexCopyByteRange(const char *text, size_t size)
+{
+  str ret;
+  if (!text)
+    text = "";
+  if (size == 0) {
+    ret = (str)xrtMalloc(1);
+    if (ret)
+      ret[0] = 0;
+    return ret;
+  }
+  return xrtCopyStr((str)text, size);
 }
 static xregexmatch *__xrtRegexMatchCreate(const char *text, size_t text_size, int matched, xregexspan span)
 {
@@ -84191,14 +84350,14 @@ const char *xrtRegexMatchText(xregexmatch *match)
   if (!xrtRegexMatchOk(match))
     return NULL;
   if (match->match_text == NULL)
-    match->match_text = (char*)xrtCopyStr((str)(match->text + match->span.iBegin), match->span.iEnd - match->span.iBegin);
+    match->match_text = (char*)__xrtRegexCopyByteRange(match->text + match->span.iBegin, match->span.iEnd - match->span.iBegin);
   return match->match_text;
 }
 str xrtRegexMatchTextCopy(xregexmatch *match)
 {
   if (!xrtRegexMatchOk(match))
     return NULL;
-  return xrtCopyStr((str)(match->text + match->span.iBegin), match->span.iEnd - match->span.iBegin);
+  return __xrtRegexCopyByteRange(match->text + match->span.iBegin, match->span.iEnd - match->span.iBegin);
 }
 int xrtRegexSetBuilderCreate(xregexsetbuilder **pspec, const xregexalloc *palloc)
 {
@@ -87414,6 +87573,165 @@ static const xrt_type_desc __xvoSetValueType = {
 	.Ops = &__xvoSetValueOps,
 	.Extra = NULL
 };
+typedef struct {
+	str Key;
+	uint32 KeyLen;
+} xvo_table_order_item;
+typedef struct {
+	const xrt_type_desc* TypeDesc;
+	xarray Order;
+} xvo_table_extra;
+static xvo_table_extra* __xvoTableExtra(xvalue pTbl)
+{
+	if ( pTbl == NULL || pTbl->Type != XVO_DT_TABLE ) {
+		return NULL;
+	}
+	return (xvo_table_extra*)pTbl->vExtra;
+}
+static const xrt_type_desc* __xvoValueTypeDesc(xvalue pVal)
+{
+	xvo_table_extra* pExtra;
+	if ( pVal == NULL ) {
+		return NULL;
+	}
+	if ( pVal->Type == XVO_DT_TABLE ) {
+		pExtra = __xvoTableExtra(pVal);
+		return pExtra ? pExtra->TypeDesc : NULL;
+	}
+	return pVal->vTypeDesc;
+}
+static bool __xvoSetValueTypeDesc(xvalue pVal, const xrt_type_desc* pType)
+{
+	xvo_table_extra* pExtra;
+	if ( pVal == NULL ) {
+		return FALSE;
+	}
+	if ( pVal->Type == XVO_DT_TABLE ) {
+		pExtra = __xvoTableExtra(pVal);
+		if ( pExtra == NULL ) {
+			return FALSE;
+		}
+		pExtra->TypeDesc = pType;
+		return TRUE;
+	}
+	pVal->vTypeDesc = pType;
+	return TRUE;
+}
+static xarray __xvoTableOrder(xvalue pTbl)
+{
+	xvo_table_extra* pExtra = __xvoTableExtra(pTbl);
+	return pExtra ? pExtra->Order : NULL;
+}
+static bool __xvoTableOrderAppend(xvalue pTbl, str sKey, uint32 iKeyLen)
+{
+	xarray pOrder = __xvoTableOrder(pTbl);
+	xvo_table_order_item* pItem;
+	uint32 iPos;
+	str sCopy;
+	if ( pOrder == NULL ) {
+		return FALSE;
+	}
+	sCopy = xrtMalloc((size_t)iKeyLen + 1);
+	if ( sCopy == NULL ) {
+		return FALSE;
+	}
+	if ( iKeyLen > 0 && sKey != NULL ) {
+		memcpy(sCopy, sKey, iKeyLen);
+	}
+	sCopy[iKeyLen] = '\0';
+	iPos = xrtArrayAppend(pOrder, 1);
+	if ( iPos == 0 ) {
+		xrtFree(sCopy);
+		return FALSE;
+	}
+	pItem = (xvo_table_order_item*)xrtArrayGet_Unsafe(pOrder, iPos);
+	if ( pItem == NULL ) {
+		xrtFree(sCopy);
+		xrtArrayRemove(pOrder, iPos, 1);
+		return FALSE;
+	}
+	pItem->Key = sCopy;
+	pItem->KeyLen = iKeyLen;
+	return TRUE;
+}
+static bool __xvoTableOrderRemove(xvalue pTbl, str sKey, uint32 iKeyLen)
+{
+	xarray pOrder = __xvoTableOrder(pTbl);
+	uint32 i;
+	if ( pOrder == NULL ) {
+		return FALSE;
+	}
+	for ( i = 1; i <= pOrder->Count; ++i ) {
+		xvo_table_order_item* pItem = (xvo_table_order_item*)xrtArrayGet_Unsafe(pOrder, i);
+		if ( pItem != NULL &&
+			 pItem->KeyLen == iKeyLen &&
+			 memcmp(pItem->Key, sKey, iKeyLen) == 0 ) {
+			xrtFree(pItem->Key);
+			xrtArrayRemove(pOrder, i, 1);
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+static void __xvoTableOrderClear(xvalue pTbl)
+{
+	xarray pOrder = __xvoTableOrder(pTbl);
+	uint32 i;
+	if ( pOrder == NULL ) {
+		return;
+	}
+	for ( i = 1; i <= pOrder->Count; ++i ) {
+		xvo_table_order_item* pItem = (xvo_table_order_item*)xrtArrayGet_Unsafe(pOrder, i);
+		if ( pItem != NULL ) {
+			xrtFree(pItem->Key);
+			pItem->Key = NULL;
+			pItem->KeyLen = 0;
+		}
+	}
+	if ( pOrder->Count > 0 ) {
+		xrtArrayRemove(pOrder, 1, pOrder->Count);
+	}
+}
+static void __xvoTableExtraDestroy(xvalue pTbl)
+{
+	xvo_table_extra* pExtra = __xvoTableExtra(pTbl);
+	if ( pExtra == NULL ) {
+		return;
+	}
+	__xvoTableOrderClear(pTbl);
+	if ( pExtra->Order != NULL ) {
+		xrtArrayDestroy(pExtra->Order);
+	}
+	xrtFree(pExtra);
+	pTbl->vExtra = NULL;
+}
+static bool xvoTableWalkOrdered(xvalue pTbl, Dict_EachProc procEach, ptr pArg)
+{
+	xarray pOrder = __xvoTableOrder(pTbl);
+	uint32 i;
+	if ( pTbl == NULL || pTbl->Type != XVO_DT_TABLE || pOrder == NULL || procEach == NULL ) {
+		return FALSE;
+	}
+	for ( i = 1; i <= pOrder->Count; ++i ) {
+		xvo_table_order_item* pItem = (xvo_table_order_item*)xrtArrayGet_Unsafe(pOrder, i);
+		xvalue* ppVal;
+		Dict_Key tKey;
+		if ( pItem == NULL || pItem->Key == NULL ) {
+			continue;
+		}
+		ppVal = (xvalue*)xrtDictGet(pTbl->vTable, pItem->Key, pItem->KeyLen);
+		if ( ppVal == NULL ) {
+			continue;
+		}
+		tKey.Key = pItem->Key;
+		tKey.KeyLen = pItem->KeyLen;
+		tKey.Hash = 0;
+		if ( procEach(&tKey, ppVal, pArg) ) {
+			return TRUE;
+		}
+	}
+	return TRUE;
+}
 // 释放 record/class box
 static void __xvoDestroyRecordValue(xvalue pVal)
 {
@@ -87476,6 +87794,8 @@ static void __xvoDestroyValue(xvalue pVal)
 	} else if ( pVal->Type == XVO_DT_TABLE ) {
 		// 释放字典中所有值的引用
 		xrtDictWalk(pVal->vTable, (ptr)xvoTableClear_FreeProc, pVal->vTable);
+		// 释放字典插入顺序与类型描述扩展块
+		__xvoTableExtraDestroy(pVal);
 		// 销毁字典容器
 		(xrtDictDestroy)(pVal->vTable);
 	} else if ( pVal->Type == XVO_DT_FUNC ) {
@@ -87792,14 +88112,29 @@ XXAPI xvalue xvoCreateTableEx(uint32 iMode)
 	xvalue pVal = xrtMalloc(sizeof(xvalue_struct));
 	if ( pVal ) {
 		xdict objTbl = xrtDictCreate(sizeof(xvalue), iMode);
+		xvo_table_extra* pExtra;
 		if ( objTbl == NULL ) {
+			xrtFree(pVal);
+			return NULL;
+		}
+		pExtra = xrtMalloc(sizeof(xvo_table_extra));
+		if ( pExtra == NULL ) {
+			(xrtDictDestroy)(objTbl);
+			xrtFree(pVal);
+			return NULL;
+		}
+		pExtra->TypeDesc = NULL;
+		pExtra->Order = xrtArrayCreate(sizeof(xvo_table_order_item), iMode);
+		if ( pExtra->Order == NULL ) {
+			xrtFree(pExtra);
+			(xrtDictDestroy)(objTbl);
 			xrtFree(pVal);
 			return NULL;
 		}
 		xvoInitOwnedHeader_Inline(pVal, XVO_DT_TABLE, iMode);
 		pVal->Size = 0;
 		pVal->vTable = objTbl;
-		pVal->vTypeDesc = NULL;
+		pVal->vExtra = pExtra;
 	}
 	return pVal;
 }
@@ -89092,6 +89427,7 @@ XXAPI xvalue xvoTableGetValue(xvalue pTbl, const void* key, uint32 kl)
 XXAPI bool xvoTableSetValue(xvalue pTbl, const void* key, uint32 kl, xvalue pVal, bool bColloc)
 {
 	str sKey = (str)key;
+	bool bNewKey;
 	// 参数有效性检查
 	if ( (pTbl == NULL) || (pVal == NULL) ) {
 		return FALSE;
@@ -89110,10 +89446,17 @@ XXAPI bool xvoTableSetValue(xvalue pTbl, const void* key, uint32 kl, xvalue pVal
 	if ( !xvoPrepareStoreWithOwner_Inline(&pTbl->vTable->Owner, pVal) ) {
 		return FALSE;
 	}
+	bNewKey = !xrtDictExists(pTbl->vTable, sKey, kl);
+	if ( bNewKey && !__xvoTableOrderAppend(pTbl, sKey, kl) ) {
+		return FALSE;
+	}
 	// 写入字典并获取旧值
 	xvalue pOldVal = NULL;
 	int iRet = xrtDictSetPtr(pTbl->vTable, sKey, kl, pVal, (ptr*)&pOldVal);
 	if ( iRet == FALSE ) {
+		if ( bNewKey ) {
+			__xvoTableOrderRemove(pTbl, sKey, kl);
+		}
 		return FALSE;
 	}
 	// 释放旧值的引用
@@ -89128,45 +89471,41 @@ XXAPI bool xvoTableSetValue(xvalue pTbl, const void* key, uint32 kl, xvalue pVal
 }
 // Table 合并
 typedef struct {
-	xdict objTbl;
+	xvalue pTbl;
 	bool bFailed;
 } __xvoTableMergeCtx;
 // xvoTableMerge_RefProc 相关处理
 bool xvoTableMerge_RefProc(Dict_Key* pKey, xvalue* ppVal, __xvoTableMergeCtx* pCtx)
 {
-	bool bNew;
-	if ( !xvoPrepareStoreWithOwner_Inline(&pCtx->objTbl->Owner, *ppVal) ) {
+	if ( pKey == NULL || ppVal == NULL || pCtx == NULL || pCtx->pTbl == NULL ) {
+		if ( pCtx ) {
+			pCtx->bFailed = TRUE;
+		}
+		return TRUE;
+	}
+	if ( xrtDictExists(pCtx->pTbl->vTable, pKey->Key, pKey->KeyLen) ) {
+		return FALSE;
+	}
+	if ( !xvoTableSetValue(pCtx->pTbl, pKey->Key, pKey->KeyLen, *ppVal, FALSE) ) {
 		pCtx->bFailed = TRUE;
 		return TRUE;
 	}
-	xvalue* ppOldVal = xrtDictSetWithKey(pCtx->objTbl, pKey, &bNew);
-	if ( ppOldVal ) {
-		// 只转移之前没有的值
-		if ( bNew ) {
-			xvoAddRef_Inline(*ppVal);
-			ppOldVal[0] = *ppVal;
-		}
-	}
-	return pCtx->bFailed;
+	return FALSE;
 }
 // xvoTableMerge_RefProc_ReWrite 相关处理
 bool xvoTableMerge_RefProc_ReWrite(Dict_Key* pKey, xvalue* ppVal, __xvoTableMergeCtx* pCtx)
 {
-	bool bNew = FALSE;
-	if ( !xvoPrepareStoreWithOwner_Inline(&pCtx->objTbl->Owner, *ppVal) ) {
+	if ( pKey == NULL || ppVal == NULL || pCtx == NULL || pCtx->pTbl == NULL ) {
+		if ( pCtx ) {
+			pCtx->bFailed = TRUE;
+		}
+		return TRUE;
+	}
+	if ( !xvoTableSetValue(pCtx->pTbl, pKey->Key, pKey->KeyLen, *ppVal, FALSE) ) {
 		pCtx->bFailed = TRUE;
 		return TRUE;
 	}
-	xvalue* ppOldVal = xrtDictSetWithKey(pCtx->objTbl, pKey, &bNew);
-	if ( ppOldVal ) {
-		// 释放旧值
-		if ( bNew == FALSE ) {
-			xvoUnref(*ppOldVal);
-		}
-		xvoAddRef_Inline(*ppVal);
-		ppOldVal[0] = *ppVal;
-	}
-	return pCtx->bFailed;
+	return FALSE;
 }
 // xvoTableMerge 相关处理
 XXAPI bool xvoTableMerge(xvalue pTbl1, xvalue pTbl2, bool bReWrite)
@@ -89182,11 +89521,15 @@ XXAPI bool xvoTableMerge(xvalue pTbl1, xvalue pTbl2, bool bReWrite)
 		return FALSE;
 	}
 	memset(&tCtx, 0, sizeof(tCtx));
-	tCtx.objTbl = pTbl1->vTable;
+	tCtx.pTbl = pTbl1;
 	if ( bReWrite ) {
-		xrtDictWalk(pTbl2->vTable, (ptr)xvoTableMerge_RefProc_ReWrite, &tCtx);
+		if ( !xvoTableWalkOrdered(pTbl2, (ptr)xvoTableMerge_RefProc_ReWrite, &tCtx) ) {
+			xrtDictWalk(pTbl2->vTable, (ptr)xvoTableMerge_RefProc_ReWrite, &tCtx);
+		}
 	} else {
-		xrtDictWalk(pTbl2->vTable, (ptr)xvoTableMerge_RefProc, &tCtx);
+		if ( !xvoTableWalkOrdered(pTbl2, (ptr)xvoTableMerge_RefProc, &tCtx) ) {
+			xrtDictWalk(pTbl2->vTable, (ptr)xvoTableMerge_RefProc, &tCtx);
+		}
 	}
 	return tCtx.bFailed == FALSE;
 }
@@ -89199,7 +89542,10 @@ XXAPI bool xvoTableExists(xvalue pTbl, str key, uint32 kl)
 	if ( pTbl->Type != XVO_DT_TABLE ) {
 		return FALSE;
 	}
-	if ( (key != NULL) && (kl == 0) ) {
+	if ( key == NULL ) {
+		key = xCore.sNull;
+		kl = 0;
+	} else if ( kl == 0 ) {
 		kl = strlen(__xrt_cstr(key));
 	}
 	return xrtDictExists(pTbl->vTable, key, kl);
@@ -89213,11 +89559,15 @@ XXAPI bool xvoTableRemove(xvalue pTbl, str key, uint32 kl)
 	if ( pTbl->Type != XVO_DT_TABLE ) {
 		return FALSE;
 	}
-	if ( (key != NULL) && (kl == 0) ) {
+	if ( key == NULL ) {
+		key = xCore.sNull;
+		kl = 0;
+	} else if ( kl == 0 ) {
 		kl = strlen(__xrt_cstr(key));
 	}
 	xvalue pOldVal = xrtDictRemovePtr(pTbl->vTable, key, kl);
 	if ( pOldVal ) {
+		__xvoTableOrderRemove(pTbl, key, kl);
 		xvoUnref(pOldVal);
 		return TRUE;
 	} else {
@@ -89246,6 +89596,7 @@ XXAPI bool xvoTableClear(xvalue pTbl)
 	}
 	xrtDictWalk(pTbl->vTable, (ptr)xvoTableClear_FreeProc, pTbl);
 	xrtDictClear(pTbl->vTable);
+	__xvoTableOrderClear(pTbl);
 	return TRUE;
 }
 // xvoTableSetParent 相关处理
@@ -89370,8 +89721,7 @@ XXAPI bool xvoSetTypeDesc(xvalue pVal, const xrt_type_desc* pType)
 	if ( !__xvoCanBindTypeDesc(pVal, pType) ) {
 		return FALSE;
 	}
-	pVal->vTypeDesc = pType;
-	return TRUE;
+	return __xvoSetValueTypeDesc(pVal, pType);
 }
 // 获取动态值的精确运行时类型
 XXAPI const xrt_type_desc* xvoTypeDesc(xvalue pVal)
@@ -89380,8 +89730,9 @@ XXAPI const xrt_type_desc* xvoTypeDesc(xvalue pVal)
 		return xrtTypeNull();
 	}
 	if ( pVal->Type == XVO_DT_ARRAY || pVal->Type == XVO_DT_LIST || pVal->Type == XVO_DT_COLL || pVal->Type == XVO_DT_TABLE || pVal->Type == XVO_DT_CLASS || pVal->Type == XVO_DT_CUSTOM ) {
-		if ( (pVal->vTypeDesc != NULL) && __xvoCanBindTypeDesc(pVal, pVal->vTypeDesc) ) {
-			return pVal->vTypeDesc;
+		const xrt_type_desc* pType = __xvoValueTypeDesc(pVal);
+		if ( (pType != NULL) && __xvoCanBindTypeDesc(pVal, pType) ) {
+			return pType;
 		}
 	}
 	switch ( pVal->Type ) {
@@ -89458,11 +89809,15 @@ XXAPI xvalue xvoTableTakeValue(xvalue pTbl, str key, uint32 kl)
 	if ( pTbl->Type != XVO_DT_TABLE ) {
 		return &XVO_VALUE_NULL;
 	}
-	if ( (key != NULL) && (kl == 0) ) {
+	if ( key == NULL ) {
+		key = xCore.sNull;
+		kl = 0;
+	} else if ( kl == 0 ) {
 		kl = strlen(__xrt_cstr(key));
 	}
 	pOldVal = xrtDictRemovePtr(pTbl->vTable, key, kl);
 	if ( pOldVal ) {
+		__xvoTableOrderRemove(pTbl, key, kl);
 		return pOldVal;
 	} else {
 		return &XVO_VALUE_NULL;
@@ -89857,22 +90212,32 @@ bool xvoCopy_SetProc(const ptr pItem, xvalue pSet)
 	}
 	return FALSE;
 }
+typedef struct {
+	xvalue Target;
+	bool Failed;
+} xvo_table_copy_ctx;
 // xvoCopy_TableProc 相关处理
-bool xvoCopy_TableProc(Dict_Key* pKey, xvalue* ppVal, xdict objTbl)
+bool xvoCopy_TableProc(Dict_Key* pKey, xvalue* ppVal, xvo_table_copy_ctx* pCtx)
 {
+	if ( pKey == NULL || ppVal == NULL || pCtx == NULL || pCtx->Target == NULL ) {
+		if ( pCtx ) {
+			pCtx->Failed = TRUE;
+		}
+		return TRUE;
+	}
 	if ( (ppVal[0]->Type >= XVO_DT_ARRAY) ) {
 		// 复杂数据类型 - 直接引用
-		xvoAddRef_Inline(ppVal[0]);
-		xvalue* ppNTV = xrtDictSetWithKey(objTbl, pKey, NULL);
-		if ( ppNTV ) {
-			ppNTV[0] = ppVal[0];
+		if ( !xvoTableSetValue(pCtx->Target, pKey->Key, pKey->KeyLen, ppVal[0], FALSE) ) {
+			pCtx->Failed = TRUE;
+			return TRUE;
 		}
 	} else {
 		// 基础数据类型 - 创建新值
 		xvalue pItemCopy = xvoCopy(ppVal[0]);
-		xvalue* ppNTV = xrtDictSetWithKey(objTbl, pKey, NULL);
-		if ( ppNTV ) {
-			ppNTV[0] = pItemCopy;
+		if ( !xvoTableSetValue(pCtx->Target, pKey->Key, pKey->KeyLen, pItemCopy, TRUE) ) {
+			xvoUnref(pItemCopy);
+			pCtx->Failed = TRUE;
+			return TRUE;
 		}
 	}
 	return FALSE;
@@ -89930,10 +90295,15 @@ XXAPI xvalue xvoCopy(xvalue pVal)
 		return setRet;
 	} else if ( pVal->Type == XVO_DT_TABLE ) {
 		xvalue tblRet = xvoCreateTable();
-		if ( pVal->vTypeDesc != NULL ) {
-			xvoSetTypeDesc(tblRet, pVal->vTypeDesc);
+		const xrt_type_desc* pType = __xvoValueTypeDesc(pVal);
+		xvo_table_copy_ctx tCtx = {0};
+		if ( pType != NULL ) {
+			xvoSetTypeDesc(tblRet, pType);
 		}
-		xrtDictWalk(pVal->vTable, (ptr)xvoCopy_TableProc, tblRet->vTable);
+		tCtx.Target = tblRet;
+		if ( !xvoTableWalkOrdered(pVal, (ptr)xvoCopy_TableProc, &tCtx) ) {
+			xrtDictWalk(pVal->vTable, (ptr)xvoCopy_TableProc, &tCtx);
+		}
 		return tblRet;
 	} else if ( pVal->Type == XVO_DT_CLASS ) {
 		if ( pVal->vTypeDesc != NULL ) {
@@ -90004,12 +90374,19 @@ bool xvoDeepCopy_SetProc(const ptr pItem, xvalue pSet)
 	return FALSE;
 }
 // xvoDeepCopy_TableProc 相关处理
-bool xvoDeepCopy_TableProc(Dict_Key* pKey, xvalue* ppVal, xdict objTbl)
+bool xvoDeepCopy_TableProc(Dict_Key* pKey, xvalue* ppVal, xvo_table_copy_ctx* pCtx)
 {
+	if ( pKey == NULL || ppVal == NULL || pCtx == NULL || pCtx->Target == NULL ) {
+		if ( pCtx ) {
+			pCtx->Failed = TRUE;
+		}
+		return TRUE;
+	}
 	xvalue pItemCopy = xvoDeepCopy(ppVal[0]);
-	xvalue* ppNTV = xrtDictSetWithKey(objTbl, pKey, NULL);
-	if ( ppNTV ) {
-		ppNTV[0] = pItemCopy;
+	if ( !xvoTableSetValue(pCtx->Target, pKey->Key, pKey->KeyLen, pItemCopy, TRUE) ) {
+		xvoUnref(pItemCopy);
+		pCtx->Failed = TRUE;
+		return TRUE;
 	}
 	return FALSE;
 }
@@ -90059,10 +90436,15 @@ XXAPI xvalue xvoDeepCopy(xvalue pVal)
 		return setRet;
 	} else if ( pVal->Type == XVO_DT_TABLE ) {
 		xvalue tblRet = xvoCreateTable();
-		if ( pVal->vTypeDesc != NULL ) {
-			xvoSetTypeDesc(tblRet, pVal->vTypeDesc);
+		const xrt_type_desc* pType = __xvoValueTypeDesc(pVal);
+		xvo_table_copy_ctx tCtx = {0};
+		if ( pType != NULL ) {
+			xvoSetTypeDesc(tblRet, pType);
 		}
-		xrtDictWalk(pVal->vTable, (ptr)xvoDeepCopy_TableProc, tblRet->vTable);
+		tCtx.Target = tblRet;
+		if ( !xvoTableWalkOrdered(pVal, (ptr)xvoDeepCopy_TableProc, &tCtx) ) {
+			xrtDictWalk(pVal->vTable, (ptr)xvoDeepCopy_TableProc, &tCtx);
+		}
 		return tblRet;
 	} else if ( pVal->Type == XVO_DT_CLASS ) {
 		if ( pVal->vTypeDesc != NULL ) {
@@ -94796,7 +95178,9 @@ int xvo_private_Stringify_Table_Proc(Dict_Key* pKey, xvalue* ppVal, json_sax_pri
 void xvo_private_Stringify_Table(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey)
 {
 	xrtJsonPrintObject(handle, sKey, JSON_SAX_START);
-	xrtDictWalk(varVal->vTable, (void*)xvo_private_Stringify_Table_Proc, (void*)handle);
+	if ( !xvoTableWalkOrdered(varVal, (void*)xvo_private_Stringify_Table_Proc, (void*)handle) ) {
+		xrtDictWalk(varVal->vTable, (void*)xvo_private_Stringify_Table_Proc, (void*)handle);
+	}
 	xrtJsonPrintObject(handle, NULL, JSON_SAX_FINISH);
 }
 void xvo_private_Stringify_Value(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey)
@@ -96115,7 +96499,9 @@ static xson_write_result_t _xson_write_dict(xson_print_t* pPrint, xvalue varVal,
 	if ( _xson_print_append_char(pPrint, '{') == FALSE ) {
 		return XSON_WRITE_RESULT_FAIL;
 	}
-	xrtDictWalk(varVal->vTable, (ptr)_xson_write_dict_proc, &tCtx);
+	if ( !xvoTableWalkOrdered(varVal, (ptr)_xson_write_dict_proc, &tCtx) ) {
+		xrtDictWalk(varVal->vTable, (ptr)_xson_write_dict_proc, &tCtx);
+	}
 	if ( tCtx.bError ) {
 		return XSON_WRITE_RESULT_FAIL;
 	}

@@ -168,10 +168,12 @@ $consts = New-Object System.Collections.Generic.List[string]
 $failures = New-Object System.Collections.Generic.List[string]
 $paramArrayCounts = @{}
 $paramArrayMatches = [regex]::Matches($stdlib, '(?s)static const XL6_StdlibParam\s+(\w+)\[\]\s*=\s*\{(.*?)\};')
-$registrationMatches = [regex]::Matches($stdlib, '\{"([^"]+)",\s*"([^"]+)",\s*"([^"]+)",\s*("[^"]+"|NULL),\s*([^,]+),\s*([0-9]+),\s*"([^"]*)",')
+$registrationMatches = [regex]::Matches($stdlib, '\{"([^"]+)",\s*"([^"]+)",\s*"([^"]+)",\s*("[^"]+"|NULL),\s*([^,]+),\s*([0-9]+),\s*"([^"]*)",\s*([^,\}\s]+)')
 $constMatches = [regex]::Matches($stdlib, '\{"([^"]+)",\s*"([^"]+)",\s*XL6_AST_[A-Z_]+,\s*"([^"]+)"\}')
 $publicKeys = New-Object System.Collections.Generic.HashSet[string]
-$internalNames = New-Object System.Collections.Generic.HashSet[string]
+$publicFunctionKeys = New-Object System.Collections.Generic.HashSet[string]
+$publicFunctionSignatures = New-Object System.Collections.Generic.HashSet[string]
+$internalSignatures = New-Object System.Collections.Generic.HashSet[string]
 $cSymbols = New-Object System.Collections.Generic.HashSet[string]
 
 foreach ( $match in $paramArrayMatches ) {
@@ -194,12 +196,14 @@ foreach ( $match in $registrationMatches ) {
     $paramsName = $match.Groups[5].Value.Trim()
     $paramCount = [int]$match.Groups[6].Value
     $returnType = $match.Groups[7].Value
+    $bodyName = $match.Groups[8].Value
 
     if ( ! $internalName.StartsWith("__xl_std_") ) {
         Add-Failure $failures "stdlib internal name must start with __xl_std_: $ns.$name -> $internalName"
     }
-    if ( ! $internalNames.Add($internalName) ) {
-        Add-Failure $failures "duplicate stdlib internal name: $internalName"
+    $internalSignature = "$internalName|$paramsName|$paramCount|$returnType|$bodyName"
+    if ( ! $internalSignatures.Add($internalSignature) ) {
+        Add-Failure $failures "duplicate stdlib internal signature: $internalName"
     }
     if ( $returnType -eq "void" ) {
         Add-Failure $failures "stdlib return type must not use void keyword: $ns.$name"
@@ -228,9 +232,12 @@ foreach ( $match in $registrationMatches ) {
         }
 
         $key = if ( $ns -eq "" ) { $name } else { "$ns.$name" }
-        if ( ! $publicKeys.Add($key) ) {
-            Add-Failure $failures "duplicate public stdlib function: $key"
+        $publicSignature = "$key|$paramsName|$paramCount|$returnType|$bodyName"
+        if ( ! $publicFunctionSignatures.Add($publicSignature) ) {
+            Add-Failure $failures "duplicate public stdlib function signature: $key"
         }
+        $publicFunctionKeys.Add($key) | Out-Null
+        $publicKeys.Add($key) | Out-Null
         $funcs.Add($key)
     }
 }
@@ -253,13 +260,15 @@ foreach ( $match in $constMatches ) {
     }
 
     $key = "$ns.$name"
+    if ( $publicFunctionKeys.Contains($key) ) {
+        Add-Failure $failures "duplicate public stdlib symbol: $key"
+    }
     if ( ! $publicKeys.Add($key) ) {
         Add-Failure $failures "duplicate public stdlib symbol: $key"
     }
     $consts.Add($key)
 }
 
-$rawPublicFuncs = $funcs | Sort-Object
 $publicFuncs = $funcs | Sort-Object -Unique
 $publicConsts = $consts | Sort-Object -Unique
 $missingDocs = New-Object System.Collections.Generic.List[string]
@@ -300,10 +309,6 @@ foreach ( $const in $publicConsts ) {
 
 if ( $registrationMatches.Count -eq 0 ) {
     Add-Failure $failures "stdlib registration table entries not found"
-}
-
-if ( $rawPublicFuncs.Count -ne $publicFuncs.Count ) {
-    Add-Failure $failures "public stdlib function count mismatch after de-duplication"
 }
 
 if ( $failures.Count -ne 0 -or $missingDocs.Count -ne 0 -or $missingTests.Count -ne 0 -or $missingExamples.Count -ne 0 ) {

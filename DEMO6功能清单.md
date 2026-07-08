@@ -1202,16 +1202,16 @@ auto now = time.now()
 auto text = file.readText("data.txt")
 ```
 
-当前标准库公开函数为 406 个，另有标准库常量 46 个；全局输出入口 `print` / `println` 也默认进入环境（这两条因空命名空间未计入守门脚本 `check_stdlib_coverage.ps1` 的 406 公开计数，实际公开函数合计 408 个）。用户可直接调用的当前列表如下：
+当前标准库公开函数为 412 个，另有标准库常量 46 个；全局输出入口 `print` / `println` 也默认进入环境（这两条因空命名空间未计入守门脚本 `check_stdlib_coverage.ps1` 的 412 公开计数，实际公开函数合计 414 个）。用户可直接调用的当前列表如下：
 
 - 全局：`print`、`println`。
 - `math` 常量：`pi`、`tau`、`e`、`nan`、`inf`。
 - `math` 函数：`abs`、`acos`、`asin`、`atan`、`atan2`、`cbrt`、`ceil`、`clamp`、`cos`、`deg`、`exp`、`exp2`、`expm1`、`floor`、`fract`、`hypot`、`isFinite`、`isInf`、`isNaN`、`log`、`log10`、`log1p`、`log2`、`max`、`min`、`mod`、`pow`、`rad`、`round`、`sign`、`sin`、`sqrt`、`tan`、`trunc`。
-- `string`：`approx`、`byteAt`、`byteLen`、`charAt`、`chars`、`compare`、`contains`、`count`、`endsWith`、`equals`、`filter`、`formatFloat`、`formatInt`、`hasAny`、`indexOf`、`insert`、`isBlank`、`isEmpty`、`isUtf8`、`join`、`lastIndexOf`、`left`、`len`、`like`、`lower`、`ltrim`、`mid`、`padCenter`、`padLeft`、`padRight`、`remove`、`removeAt`、`repeat`、`replace`、`reverse`、`right`、`rtrim`、`sim`、`slice`、`split`、`splitLines`、`startsWith`、`trim`、`upper`、`bytes`。
-- `time`：`addDays`、`addHours`、`addMinutes`、`addMonths`、`addQuarters`、`addSeconds`、`addWeeks`、`addYears`、`approx`、`clock`、`datePart`、`dateString`、`day`、`dayOfYear`、`daysInMonth`、`daysInYear`、`diffDays`、`diffHours`、`diffMinutes`、`diffMonths`、`diffQuarters`、`diffSeconds`、`diffWeeks`、`diffYears`、`firstDayOfMonth`、`firstDayOfWeek`、`firstDayOfYear`、`format`、`formatPattern`、`fromDate`、`fromDateTime`、`fromTime`、`fromUnix`、`hour`、`inRange`、`isLeapYear`、`isSameDay`、`isSameMonth`、`isSameYear`、`lastDayOfMonth`、`lastDayOfWeek`、`lastDayOfYear`、`localToUTC`、`minute`、`month`、`now`、`nowUTC`、`parse`、`parsePattern`、`quarter`、`rangeOverlap`、`relative`、`second`、`sleep`、`timePart`、`timer`、`timeString`、`timezoneOffset`、`today`、`toUnix`、`tryParse`、`tryParsePattern`、`utcToLocal`、`weekday`、`weekOfMonth`、`weekOfYear`、`year`。
+- `string`：`approx`、`byteAt`、`byteLen`、`charAt`、`chars`、`compare`、`contains`、`count`、`endsWith`、`equals`、`filter`、`format`、`formatFloat`、`formatInt`、`formatUInt`、`hasAny`、`indexOf`、`insert`、`isBlank`、`isEmpty`、`isUtf8`、`join`、`lastIndexOf`、`left`、`len`、`like`、`lower`、`ltrim`、`mid`、`padCenter`、`padLeft`、`padRight`、`remove`、`removeAt`、`repeat`、`replace`、`reverse`、`right`、`rtrim`、`sim`、`slice`、`split`、`splitLines`、`startsWith`、`trim`、`upper`、`bytes`。
+- `time`：`addDays`、`addHours`、`addMinutes`、`addMonths`、`addQuarters`、`addSeconds`、`addWeeks`、`addYears`、`approx`、`clock`、`datePart`、`dateString`、`day`、`dayOfYear`、`daysInMonth`、`daysInYear`、`diffDays`、`diffHours`、`diffMinutes`、`diffMonths`、`diffQuarters`、`diffSeconds`、`diffWeeks`、`diffYears`、`firstDayOfMonth`、`firstDayOfWeek`、`firstDayOfYear`、`format`、`formatPattern`、`fromDate`、`fromDateTime`、`fromTime`、`fromUnix`、`hour`、`inRange`、`isLeapYear`、`isSameDay`、`isSameMonth`、`isSameYear`、`lastDayOfMonth`、`lastDayOfWeek`、`lastDayOfYear`、`localToUTC`、`minute`、`month`、`now`、`nowUTC`、`parse`、`parsePattern`、`quarter`、`rangeOverlap`、`relative`、`second`、`sleep`、`timePart`、`timer`、`timeString`、`timezoneOffset`、`today`、`toUnix`、`tryParse`、`tryParsePattern`、`utcToLocal`、`weekday`、`weekOfMonth`、`weekOfYear`、`year`。`weekday` 返回周日开头编码：`0=Sunday`、`1=Monday`、...、`6=Saturday`。
 - `random`：`range`、`seed`、`string`、`u32`、`u64`。
 - `path`：`abs`、`appDir`、`cwd`、`dir`、`exists`、`ext`、`home`、`isAbs`、`join`、`name`、`nameExt`、`normalize`、`random`、`rel`、`sep`、`setCwd`、`temp`、`withExt`、`withName`。
-- `file`：`accessTime`、`appendText`、`appendTextAsync`、`attr`、`changeTime`、`copy`、`copyAsync`、`delete`、`deleteAsync`、`exists`、`info`、`move`、`moveAsync`、`readText`、`readTextAsync`、`rename`、`replace`、`setAttr`、`setSize`、`size`、`touch`、`writeText`、`writeTextAsync`、`writeTextAtomic`。
+- `file`：`accessTime`、`appendBytes`、`appendText`、`appendTextAsync`、`attr`、`changeTime`、`copy`、`copyAsync`、`delete`、`deleteAsync`、`exists`、`info`、`move`、`moveAsync`、`readBytes`、`readText`、`readTextAsync`、`rename`、`replace`、`setAttr`、`setSize`、`size`、`touch`、`writeBytes`、`writeText`、`writeTextAsync`、`writeTextAtomic`。
 - `dir`：`copy`、`create`、`createAll`、`delete`、`dirs`、`exists`、`files`、`list`、`move`。
 - `json`：`parse`、`valid`、`read`、`stringify`、`write`。
 - `xson`：`parse`、`valid`、`read`、`stringify`、`write`。
@@ -1237,11 +1237,12 @@ auto text = file.readText("data.txt")
 
 常用默认参数：
 - `string.compare(left, right, ignoreCase = false)`、`string.equals(...)`、`string.contains(...)`、`string.indexOf(...)`、`string.lastIndexOf(...)`、`string.count(...)`、`string.startsWith(...)`、`string.endsWith(...)`、`string.like(...)`。
-- `string.formatInt(value, format = "")`、`string.formatFloat(value, format = "")`、`string.trim(text, chars = "")`、`string.ltrim(...)`、`string.rtrim(...)`、`string.slice(text, start, count = -1)`、`string.mid(text, start, count = -1)`。
+- `string.format(value, format = "")` 支持 `int`、`uint64`、`float` 重载；`string.formatInt(value, format = "")`、`string.formatUInt(value, format = "")`、`string.formatFloat(value, format = "")` 保留为显式类型入口；`string.trim(text, chars = "")`、`string.ltrim(...)`、`string.rtrim(...)`、`string.slice(text, start, count = -1)`、`string.mid(text, start, count = -1)`。
 - `string.join(values, sep = "")`、`string.padLeft(text, width, pad = " ")`、`string.padRight(text, width, pad = " ")`、`string.padCenter(text, width, pad = " ")`、`string.remove(text, part, ignoreCase = false)`。
 - `time.fromDateTime(year, month, day, hour = 0, minute = 0, second = 0)`、`time.firstDayOfWeek(value, startDay = 1)`、`time.lastDayOfWeek(value, startDay = 1)`、`time.format(value, format = 0)`。
 - `random.seed(seed, seq)`、`random.string(len = 16, chars = "")`、`path.join(first, second, third = "", fourth = "")`、`path.random(head = "", foot = "", len = 12)`。
-- `file.readText(path, charset = 65001)`、`file.writeText(path, text, charset = 65001)`、`file.writeTextAtomic(path, text, charset = 65001)`、`file.appendText(path, text, charset = 65001)`、`file.open(path, readOnly = false, charset = 65001)`。
+- `file.readText(path, charset = -2)`、`file.readTextAsync(path, charset = -2)` 默认自动识别文本编码并剥离 BOM；文件不存在、读失败、二进制 NUL 或转换后非 UTF-8 会抛 `FileError`。`file.writeText(path, text, charset = 65001)`、`file.writeTextAtomic(path, text, charset = 65001)`、`file.appendText(path, text, charset = 65001)` 仍默认 UTF-8 写入；`file.open(path, readOnly = false, charset = -2)` 默认自动识别，二进制流建议显式使用 `encoding.binary`。
+- `file.readBytes(path)` 返回 `Buffer`；`file.writeBytes(path, buffer)` 覆盖写入 Buffer 原始字节；`file.appendBytes(path, buffer)` 追加 Buffer 原始字节。
 - `file.copy(source, target, overwrite = true)`、`file.move(source, target, overwrite = true)`、`file.rename(source, target, overwrite = false)`。
 - `dir.list(path, recursive = false)`、`dir.files(path, recursive = false)`、`dir.dirs(path, recursive = false)`、`dir.count(path, recursive = false)`、`dir.size(path, recursive = true)`、`dir.glob(path, pattern = "*", recursive = false)`、`dir.entries(path, recursive = false)`、`dir.match(path, pattern = "*", recursive = false)`、`dir.walk(path, pattern = "*")`。
 - `json.stringify(value, pretty = false)`、`json.write(path, value, pretty = false)`、`xson.stringify(value, pretty = false)`、`xson.valid(text, ignoreUnsupported = false)`。
@@ -1291,6 +1292,8 @@ println(f.pos, f.size, f.eof, text)
 - `f.pos` 返回当前游标位置，`f.size` 返回文件末尾位置，`f.eof` 表示游标是否到达文件末尾。
 - `f.readText(size = -1)` 读取指定字节数；`-1` 表示从当前游标读取到文件末尾。
 - `f.writeText(text)` / `f.write(text)` 从当前游标写入 UTF-8 文本，返回写入字节数。
+- `f.readBytes(size = -1)` 从当前游标读取原始字节并返回 `Buffer`；二进制流应以 `file.open(path, true, encoding.binary)` 打开。
+- `f.writeBytes(buffer)` 从当前游标写入 Buffer 原始字节，返回写入字节数。
 - `f.setEOF()` 将文件截断到当前游标位置。
 
 目录结构化项：
@@ -1309,13 +1312,19 @@ Buffer 对象：
 Buffer buf = Buffer()
 buf.append("abc")
 buf.appendByte(100)
+buf[0] = 65
 int size = buf.len()
 string text = buf.text()
+for byte in buf
+    println(byte)
+end
 ```
 
 - `Buffer` 是 native-backed class，底层使用 XRT `xbuffer`，对象销毁时自动释放句柄。
-- `Buffer(step)` 可指定自增长步长；`reserve`、`clear`、`append`、`appendBytes`、`appendByte`、`byteAt`、`setByte`、`text`、`data`、`len`、`capacity` 已进入范例和回归。
-- `buf[index]` / `buf[index] = value` 通过 `__item__` / `__setItem__` 协议映射到字节读写。
+- `Buffer(step)` 可指定自增长步长；`reserve`、`clear`、`append`、`appendBytes`、`appendByte`、`byteAt`、`setByte`、`text`、`data`、`len`、`capacity`、`__len__`、`__item__`、`__setItem__`、`__iter__` 已进入范例和回归。
+- `buf[index]` / `buf[index] = value` 通过 `__item__` / `__setItem__` 协议映射到字节读写；越界抛 `RangeError`，字节值不在 `0..255` 抛 `ValueError`。
+- `for byte in buf` 按字节高效迭代，迭代值为 `int`。
+- `buf.text()` 只用于 UTF-8 文本缓冲；缓冲区包含中间 NUL 或非法 UTF-8 时抛 `BufferError`。二进制数据不要通过 `string` 承载，统一使用 `Buffer`。
 
 随机数对象：
 

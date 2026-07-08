@@ -90,7 +90,7 @@ static int xl6CgenTryNativeClassCtorBoxValue(
     }
 
     args = call->childCount > 1 ? call->children[1] : NULL;
-    createNode = xl6CgenResolveClassCreate(ctx, classNode, call);
+    createNode = xl6CgenResolveClassCreateMode(ctx, classNode, call, 0);
     if ( createNode != NULL ) {
         if ( createNode->kind != XL6_AST_NATIVE_EXTERN_SPECIAL ) {
             return 0;
@@ -117,6 +117,63 @@ static int xl6CgenTryNativeClassCtorBoxValue(
     }
 
     return 0;
+}
+
+static int xl6CgenTryClassCtorBoxXValue(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* call,
+    const char* cTypeName)
+{
+    char tempName[64];
+    char boxedName[64];
+    int id;
+
+    if ( ctx == NULL || classNode == NULL || call == NULL || cTypeName == NULL ||
+         call->kind != XL6_AST_CALL ||
+         xl6CgenClassIsPureNativeHandle(classNode) ||
+         xl6CgenClassHasTypeParams(classNode) ) {
+        return 0;
+    }
+
+    id = ctx->tempId++;
+    snprintf(tempName, sizeof(tempName), "__xl6_box_ctor_%d", id);
+    snprintf(boxedName, sizeof(boxedName), "__xl6_box_value_%d", id);
+
+    xl6OutputPuts("({\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s %s = {0};\n", cTypeName, tempName);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", boxedName);
+    xl6CgenEmitClassCtorInto(ctx, call, tempName);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if ( xl6_error_has() ) {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = xvoCreateNull();\n", boxedName);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("} else {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = ", boxedName);
+    xl6CgenBoxSymbol(ctx->out, cTypeName);
+    xl6OutputPrintf(ctx->out, "(%s);\n", tempName);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    if ( xl6CgenClassNeedsDestroy(ctx, classNode) ) {
+        xl6CgenIndent(ctx);
+        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
+        xl6OutputPrintf(ctx->out, "(&%s);\n", tempName);
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s;\n", boxedName);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("})", ctx->out);
+    return 1;
 }
 
 static const XL6_AstNode* xl6CgenFindArgForParam(const XL6_AstNode* args, const char* name, int index)
@@ -280,8 +337,12 @@ static int xl6CgenTypedContainerXValueFromExpr(XL6_CgenContext* ctx, const XL6_A
     const XL6_AstNode* itemType;
     XL6_AstNode* itemClass;
     const char* typeName;
+    int usesStorage;
+    int returnCall;
 
-    if ( !xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
+    usesStorage = xl6CgenExprUsesTypedContainerStorage(ctx, expr);
+    returnCall = !usesStorage && xl6CgenExprIsTypedContainerReturnCall(ctx, expr);
+    if ( !usesStorage && !returnCall ) {
         return 0;
     }
 
@@ -294,6 +355,44 @@ static int xl6CgenTypedContainerXValueFromExpr(XL6_CgenContext* ctx, const XL6_A
     if ( typeName == NULL || itemType == NULL ) {
         xl6CgenError(ctx, expr, "typed container boxing requires a concrete item type");
         xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6AstFree(rawTypeNode);
+        return 1;
+    }
+
+    if ( returnCall ) {
+        int id;
+        char storageName[64];
+        char valueName[64];
+
+        id = ctx->tempId++;
+        snprintf(storageName, sizeof(storageName), "__xl6_typed_box_storage_%d", id);
+        snprintf(valueName, sizeof(valueName), "__xl6_typed_box_value_%d", id);
+
+        xl6OutputPuts("({\n", ctx->out);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), storageName);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xvalue %s = ", valueName);
+        xl6CgenTypedContainerStorageToXValueExpr(ctx, typeNode, storageName);
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenIndent(ctx);
+        if ( xl6CTextEquals(typeName, "array") ) {
+            xl6OutputPrintf(ctx->out, "xrtTypedArrayDestroy(%s);\n", storageName);
+        } else if ( xl6CTextEquals(typeName, "list") ) {
+            xl6OutputPrintf(ctx->out, "xrtTypedListDestroy(%s);\n", storageName);
+        } else if ( xl6CTextEquals(typeName, "set") ) {
+            xl6OutputPrintf(ctx->out, "xrtTypedSetDestroy(%s);\n", storageName);
+        } else if ( xl6CTextEquals(typeName, "dict") ) {
+            xl6OutputPrintf(ctx->out, "xrtTypedDictDestroy(%s);\n", storageName);
+        }
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s;\n", valueName);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("})", ctx->out);
         xl6AstFree(rawTypeNode);
         return 1;
     }
@@ -416,8 +515,6 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         XL6_AstNode* ctorClass = NULL;
         int isCtor;
         xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), typeNode);
-        xl6CgenBoxSymbol(ctx->out, cTypeName);
-        xl6OutputPutc('(', ctx->out);
         isCtor = xl6CgenCallIsClassCtor(ctx, expr, &ctorClass);
         if ( !isCtor && expr->kind == XL6_AST_CALL && expr->childCount > 0 &&
              expr->children[0] != NULL && expr->children[0]->kind == XL6_AST_NAME &&
@@ -425,22 +522,22 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
             ctorClass = xl6CgenFindClass(ctx, typeNode->text);
             isCtor = ctorClass != NULL;
         }
-        if ( isCtor && ctorClass != NULL ) {
-            const XL6_AstNode* args = expr->childCount > 1 ? expr->children[1] : NULL;
+        if ( isCtor && ctorClass != NULL &&
+             xl6CgenTryClassCtorBoxXValue(ctx, ctorClass, expr, cTypeName) ) {
+            ;
+        } else {
+            xl6CgenBoxSymbol(ctx->out, cTypeName);
+            xl6OutputPutc('(', ctx->out);
             if ( xl6CgenTryNativeClassCtorBoxValue(ctx, ctorClass, expr, cTypeName) ) {
                 /* 纯 native handle class 保持直接装箱能力。 */
-            } else if ( xl6CgenResolveClassCreate(ctx, ctorClass, expr) != NULL ||
-                        (args != NULL && args->childCount > 0) ) {
-                xl6CgenError(ctx, expr, "class constructor with create/arguments cannot be boxed directly as var");
-                xl6OutputPrintf(ctx->out, "(%s){0}", cTypeName);
-            } else {
+            } else if ( isCtor && ctorClass != NULL ) {
                 xl6CgenDefaultClassSymbol(ctx->out, cTypeName);
                 xl6OutputPuts("()", ctx->out);
+            } else {
+                xl6CgenExpr(ctx, expr);
             }
-        } else {
-            xl6CgenExpr(ctx, expr);
+            xl6OutputPutc(')', ctx->out);
         }
-        xl6OutputPutc(')', ctx->out);
     } else if ( typeNode != NULL && xl6CgenIsUnionType(ctx, typeNode) ) {
         xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), typeNode->text);
         xl6CgenBoxSymbol(ctx->out, cTypeName);

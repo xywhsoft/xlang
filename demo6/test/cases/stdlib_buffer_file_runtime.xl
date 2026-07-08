@@ -1,0 +1,79 @@
+string binaryPath = "build/test/stdlib_buffer_file_runtime.bin"
+string missingPath = "build/test/stdlib_buffer_file_runtime.missing"
+
+file.delete(binaryPath)
+file.delete(missingPath)
+
+Buffer bytes = Buffer()
+assert bytes.appendByte(0), "Buffer.appendByte should accept NUL"
+assert bytes.appendByte(65), "Buffer.appendByte should accept ASCII bytes"
+assert bytes.appendByte(255), "Buffer.appendByte should accept 255"
+assert bytes.len() == 3, "Buffer.len should count raw bytes"
+assert bytes[0] == 0, "Buffer index should read byte 0"
+assert bytes[1] == 65, "Buffer index should read byte 1"
+assert bytes[2] == 255, "Buffer index should read byte 2"
+
+bool textRejected = false
+try
+    string text = bytes.text()
+catch e
+    if e.kind == "BufferError" and string.contains(e.message, "NUL") then
+        textRejected = true
+    end
+end
+assert textRejected, "Buffer.text should reject binary data containing NUL"
+
+int byteSum = 0
+for b in bytes
+    byteSum += b
+end
+assert byteSum == 320, "Buffer iterator should yield each byte"
+
+assert file.writeBytes(binaryPath, bytes), "file.writeBytes should write Buffer data"
+Buffer readBytes = file.readBytes(binaryPath)
+assert readBytes.len() == 3, "file.readBytes should preserve byte length"
+assert readBytes[0] == 0, "file.readBytes should preserve NUL"
+assert readBytes[1] == 65, "file.readBytes should preserve byte 65"
+assert readBytes[2] == 255, "file.readBytes should preserve byte 255"
+
+Buffer suffix = Buffer()
+assert suffix.appendByte(66), "Buffer.appendByte should build append payload"
+assert file.appendBytes(binaryPath, suffix), "file.appendBytes should append Buffer data"
+Buffer appended = file.readBytes(binaryPath)
+assert appended.len() == 4, "file.appendBytes should increase byte length"
+assert appended[3] == 66, "file.appendBytes should preserve appended byte"
+
+File stream = file.open(binaryPath, true, encoding.binary)
+Buffer firstTwo = stream.readBytes(2)
+assert firstTwo.len() == 2, "File.readBytes(size) should read requested bytes"
+assert firstTwo[0] == 0 and firstTwo[1] == 65, "File.readBytes(size) should preserve stream data"
+
+bool readTextRejected = false
+try
+    string textFile = file.readText(binaryPath)
+catch e
+    if e.kind == "FileError" and string.contains(e.message, "NUL") then
+        readTextRejected = true
+    end
+end
+assert readTextRejected, "file.readText should reject binary data containing NUL"
+
+bool missingRejected = false
+try
+    string missingText = file.readText(missingPath)
+catch e
+    if e.kind == "FileError" and string.contains(e.message, "does not exist") then
+        missingRejected = true
+    end
+end
+assert missingRejected, "file.readText should reject missing files"
+
+uint64 u = uint64(255)
+assert string.formatUInt(u, "X") == "FF", "string.formatUInt should format uint64"
+assert string.format(u, "X") == "FF", "string.format should dispatch uint64 overload"
+assert string.format(42, "04") == "0042", "string.format should dispatch int overload"
+assert string.format(0.125, ".1%") == "12.5%", "string.format should dispatch float overload"
+
+assert file.delete(binaryPath), "binary test file should be deleted"
+
+println("stdlib buffer/file runtime ok")

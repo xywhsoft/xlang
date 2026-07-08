@@ -7,6 +7,9 @@ echo Running DEMO6 suite: extended standard library...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=(Resolve-Path 'build\test').Path; for($i=0; $i -lt 20; $i++){ $left=@(Get-ChildItem -LiteralPath $root -Filter 'stdlib_*.exe' -File); if($left.Count -eq 0){ break }; foreach($f in $left){ Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue }; if($i -lt 19){ Start-Sleep -Milliseconds 250 } }; $left=@(Get-ChildItem -LiteralPath $root -Filter 'stdlib_*.exe' -File); if($left.Count -gt 0){ Write-Host 'stdlib test executables are still present before build.'; $left.FullName; exit 1 }"
 if errorlevel 1 exit /b 1
 
+release\xl.exe run test\cases\stdlib_buffer_file_runtime.xl
+if errorlevel 1 exit /b 1
+
 release\xl.exe run test\cases\stdlib_dev_codec_crypto_buffer_build.xl
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\stdlib_dev_codec_crypto_buffer_build.xl -o build\test\stdlib_dev_codec_crypto_buffer_build.exe

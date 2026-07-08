@@ -854,6 +854,7 @@ static void xl6CgenAsyncWorker(XL6_CgenContext* ctx, const XL6_AstNode* node)
     ctx->currentErrorExitLabel = "__xl6_async_error";
     ctx->currentAsyncWorker = 1;
     xl6CgenRegisterParamTypes(ctx, params);
+    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
     if ( body != NULL ) {
         xl6CgenBlock(ctx, body);
     }
