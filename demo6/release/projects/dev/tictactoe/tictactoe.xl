@@ -1,0 +1,443 @@
+// tictactoe - Tic-Tac-Toe (computer vs computer), verifies class + AI (minimax)
+//
+// 用法（无 stdin，全部计算机 vs 计算机）：
+//   tictactoe game              随机 AI (X) vs 随机 AI (O)，逐步打印棋盘
+//   tictactoe smart             随机 AI (X) vs 最优 AI (O, minimax)，逐步打印
+//   tictactoe tournament <N>    N 局锦标赛（随机 X vs 最优 O），统计胜率
+//   tictactoe analyze           用 minimax 遍历博弈树，统计所有可能局面总数
+//
+// 设计要点：
+//   - 棋盘用 array<int> 长度 9（0=空 1=X 2=O），用 Board class 封装
+//     （place / unset / checkWin / isFull / clone / render / signature 等）。
+//   - 最优 AI 用 negamax（minimax 的对称写法），在 self 上 make/undo，无需克隆。
+//   - analyze 用 clone() 生成子局面、set<string> 按棋盘签名去重，
+//     统计可达互异局面数（经典结果：5478）。
+//   - 随机种子固定，保证输出可复现。
+//
+// 已知限制绕过（见 README.md / BUGS.md）：
+//   - 方法名不能取 set / get（属性访问关键字）；故访问器叫 cell，清子叫 unset。
+
+set<string> visited = set<string>{}
+
+
+func playerName(int p) as string
+    if p == 1 then
+        return "X"
+    end
+    return "O"
+end
+
+
+class Board
+    array<int> cells
+
+    create()
+        self.cells = array[0, 0, 0, 0, 0, 0, 0, 0, 0]
+    end
+
+    func cell(int pos) as int
+        return self.cells[pos]
+    end
+
+    func place(int pos, int player)
+        self.cells[pos] = player
+    end
+
+    func unset(int pos)
+        self.cells[pos] = 0
+    end
+
+    // 判断一条线 (a,b,c) 是否三子连珠，返回胜者 1/2，否则 0。
+    func line(int a, int b, int c) as int
+        int va = self.cells[a]
+        int vb = self.cells[b]
+        int vc = self.cells[c]
+        if va != 0 then
+            if va == vb then
+                if vb == vc then
+                    return va
+                end
+            end
+        end
+        return 0
+    end
+
+    // 返回胜者 1/2，无胜者返回 0。
+    func checkWin() as int
+        int w = 0
+        w = self.line(0, 1, 2)
+        if w != 0 then
+            return w
+        end
+        w = self.line(3, 4, 5)
+        if w != 0 then
+            return w
+        end
+        w = self.line(6, 7, 8)
+        if w != 0 then
+            return w
+        end
+        w = self.line(0, 3, 6)
+        if w != 0 then
+            return w
+        end
+        w = self.line(1, 4, 7)
+        if w != 0 then
+            return w
+        end
+        w = self.line(2, 5, 8)
+        if w != 0 then
+            return w
+        end
+        w = self.line(0, 4, 8)
+        if w != 0 then
+            return w
+        end
+        w = self.line(2, 4, 6)
+        if w != 0 then
+            return w
+        end
+        return 0
+    end
+
+    func isFull() as bool
+        int i = 0
+        while i < 9 do
+            if self.cells[i] == 0 then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+
+    // 克隆当前棋盘（返回独立副本）。
+    func clone() as Board
+        Board b = Board()
+        int i = 0
+        while i < 9 do
+            b.cells[i] = self.cells[i]
+            i += 1
+        end
+        return b
+    end
+
+    // 棋盘的 9 位数字签名（用于去重）。
+    func signature() as string
+        string s = ""
+        int i = 0
+        while i < 9 do
+            s = s + string(self.cells[i])
+            i += 1
+        end
+        return s
+    end
+
+    func symbol(int v) as string
+        if v == 1 then
+            return "X"
+        elseif v == 2 then
+            return "O"
+        end
+        return "."
+    end
+
+    // 渲染棋盘为多行字符串（X / O / .）。
+    func render() as string
+        string out = ""
+        int row = 0
+        while row < 3 do
+            int base = row * 3
+            int v0 = self.cells[base]
+            int v1 = self.cells[base + 1]
+            int v2 = self.cells[base + 2]
+            string s0 = self.symbol(v0)
+            string s1 = self.symbol(v1)
+            string s2 = self.symbol(v2)
+            out = out + " " + s0 + " | " + s1 + " | " + s2
+            if row < 2 then
+                out = out + "\n"
+            end
+            row += 1
+        end
+        return out
+    end
+
+    // 打印棋盘（验证：class 方法内调用 println(self.render()) 正常）。
+    func showBoard()
+        println(self.render())
+    end
+
+    // 返回所有空格位置列表。
+    func emptyCells() as array<int>
+        array<int> result = array[]
+        int i = 0
+        while i < 9 do
+            if self.cells[i] == 0 then
+                result.push(i)
+            end
+            i += 1
+        end
+        return result
+    end
+
+    // 随机选择一个空格。
+    func randomMove() as int
+        array<int> empties = self.emptyCells()
+        int n = empties.length
+        if n == 0 then
+            return 0
+        end
+        int r = random.range(0, n - 1)
+        return empties[r]
+    end
+
+    // negamax：当前 player 在 self 上走子的最优分（+10 胜 / -10 负 / 0 平）。
+    // 在 self 上 make/undo，无需克隆。
+    func minimax(int player) as int
+        int winner = self.checkWin()
+        if winner == player then
+            return 10
+        end
+        if winner != 0 then
+            return -10
+        end
+        if self.isFull() then
+            return 0
+        end
+        int opponent = 3 - player
+        int best = -100
+        array<int> empties = self.emptyCells()
+        int k = 0
+        while k < empties.length do
+            int pos = empties[k]
+            self.cells[pos] = player
+            int score = 0 - self.minimax(opponent)
+            self.cells[pos] = 0
+            if score > best then
+                best = score
+            end
+            k += 1
+        end
+        return best
+    end
+
+    // 在 self 上为 player 选最优落子位置。
+    func bestMove(int player) as int
+        int opponent = 3 - player
+        int bestScore = -100
+        int bestPos = -1
+        array<int> empties = self.emptyCells()
+        int k = 0
+        while k < empties.length do
+            int pos = empties[k]
+            if bestPos == -1 then
+                bestPos = pos
+            end
+            self.cells[pos] = player
+            int score = 0 - self.minimax(opponent)
+            self.cells[pos] = 0
+            if score > bestScore then
+                bestScore = score
+                bestPos = pos
+            end
+            k += 1
+        end
+        return bestPos
+    end
+end
+
+
+// 从空棋盘 b 开始遍历博弈树，按签名去重填入全局 visited。
+func explore(Board b)
+    string sig = b.signature()
+    if sig in visited then
+        return
+    end
+    visited.add(sig)
+    if b.checkWin() != 0 then
+        return
+    end
+    if b.isFull() then
+        return
+    end
+    int xs = 0
+    int os = 0
+    int i = 0
+    while i < 9 do
+        int v = b.cell(i)
+        if v == 1 then
+            xs += 1
+        elseif v == 2 then
+            os += 1
+        end
+        i += 1
+    end
+    int nextPlayer = 1
+    if os < xs then
+        nextPlayer = 2
+    end
+    array<int> empties = b.emptyCells()
+    int k = 0
+    while k < empties.length do
+        int pos = empties[k]
+        Board child = b.clone()
+        child.place(pos, nextPlayer)
+        explore(child)
+        k += 1
+    end
+end
+
+
+// 跑一局：xStrat/oStrat = 0 随机 / 1 最优。verbose=true 时逐步打印。
+// 返回胜者 1/2，平局返回 0。
+func playGame(int xStrat, int oStrat, bool verbose) as int
+    Board b = Board()
+    int player = 1
+    int moves = 0
+    while moves < 9 do
+        int pos = 0
+        if player == 1 then
+            if xStrat == 0 then
+                pos = b.randomMove()
+            else
+                pos = b.bestMove(player)
+            end
+        else
+            if oStrat == 0 then
+                pos = b.randomMove()
+            else
+                pos = b.bestMove(player)
+            end
+        end
+        b.place(pos, player)
+        moves += 1
+        if verbose then
+            println("Move " + string(moves) + " (" + playerName(player) + "):")
+            b.showBoard()
+            println()
+        end
+        int w = b.checkWin()
+        if w != 0 then
+            if verbose then
+                println("Result: " + playerName(w) + " wins! (" + string(moves) + " moves)")
+                println()
+            end
+            return w
+        end
+        if b.isFull() then
+            if verbose then
+                println("Result: Draw! (" + string(moves) + " moves)")
+                println()
+            end
+            return 0
+        end
+        player = 3 - player
+    end
+    return 0
+end
+
+
+func cmdTournament(int N)
+    int xWins = 0
+    int oWins = 0
+    int draws = 0
+    int i = 0
+    while i < N do
+        int result = playGame(0, 1, false)
+        if result == 1 then
+            xWins += 1
+        elseif result == 2 then
+            oWins += 1
+        else
+            draws += 1
+        end
+        i += 1
+    end
+    println("Tournament: " + string(N) + " games  (X=random, O=smart minimax)")
+    println("  X wins : " + string(xWins))
+    println("  O wins : " + string(oWins))
+    println("  Draws  : " + string(draws))
+    if N > 0 then
+        float xRate = float(xWins) / float(N) * 100.0
+        float oRate = float(oWins) / float(N) * 100.0
+        float dRate = float(draws) / float(N) * 100.0
+        println("  X win rate: " + string(xRate) + "%")
+        println("  O win rate: " + string(oRate) + "%")
+        println("  Draw rate : " + string(dRate) + "%")
+    end
+end
+
+
+func cmdAnalyze()
+    Board root = Board()
+    explore(root)
+    int positions = visited.length
+    println("Tic-Tac-Toe analysis (minimax game-tree traversal)")
+    println("Distinct reachable positions: " + string(positions))
+    Board probe = Board()
+    int opt = probe.minimax(1)
+    string outcome = "Draw with optimal play"
+    if opt > 0 then
+        outcome = "X can force a win"
+    elseif opt < 0 then
+        outcome = "O can force a win"
+    end
+    println("Minimax value of empty board for X: " + string(opt) + "  (" + outcome + ")")
+    println("Theoretical max configurations (3^9): 19683")
+end
+
+
+func printUsage()
+    println("tictactoe - Tic-Tac-Toe (computer vs computer)")
+    println("Usage:")
+    println("  tictactoe game            random AI (X) vs random AI (O), print each move")
+    println("  tictactoe smart           random AI (X) vs optimal minimax AI (O)")
+    println("  tictactoe tournament <N>  N games, random vs smart, report win rates")
+    println("  tictactoe analyze         count reachable positions via minimax traversal")
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    // 固定随机种子，保证输出可复现。
+    random.seed(uint64(20260708), uint64(1))
+
+    string cmd = string(arg[1])
+
+    if cmd == "game" then
+        println("=== Game: Random (X) vs Random (O) ===")
+        println()
+        playGame(0, 0, true)
+        return 0
+    end
+
+    if cmd == "smart" then
+        println("=== Game: Random (X) vs Smart minimax (O) ===")
+        println()
+        playGame(0, 1, true)
+        return 0
+    end
+
+    if cmd == "tournament" then
+        if arg.length < 3 then
+            println("Error: 'tournament' needs <N>")
+            return 1
+        end
+        cmdTournament(int(arg[2]))
+        return 0
+    end
+
+    if cmd == "analyze" then
+        cmdAnalyze()
+        return 0
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

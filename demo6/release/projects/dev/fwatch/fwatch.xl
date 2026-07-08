@@ -1,0 +1,304 @@
+// fwatch - polling-based file change watcher
+//
+// Usage:
+//   fwatch [dir] [interval_ms=1000] [max_scans=10]
+//   fwatch -h | --help
+//
+// Polls <dir> every <interval_ms> milliseconds and reports file changes by
+// comparing each scan against the previous one. After <max_scans> scans the
+// tool exits cleanly (Ctrl+C also stops it at any time).
+//
+// Detected events:
+//   [ADDED]     a file present now but absent in the previous scan
+//   [REMOVED]   a file present previously but absent now
+//   [MODIFIED]  a file present in both whose size or modification time changed
+//   [RENAMED]   best-effort: a REMOVED + ADDED with identical size in the same
+//               scan are paired and reported as a single rename (the directory
+//               API exposes no inode / unique-id, so size is the only signal)
+//
+// Implementation notes:
+//   - Class methods access container fields with the explicit self.<field>
+//     prefix (paths.append, paths[i], paths.length).
+//   - dir.files(root, false) lists only top-level files (non-recursive).
+//   - file.info(path) gives .size and .changeTime; time.toUnix() flattens the
+//     time to an int for cheap == comparison.
+//   - Sleep granularity matches the spec: time.sleep takes milliseconds.
+
+
+// Snapshot of one scan: three parallel arrays keyed by position.
+class Snap
+    array<string> paths = array[]
+    array<int> sizes = array[]
+    array<int> mtimes = array[]
+
+    func add(string p, int sz, int mt)
+        self.paths.append(p)
+        self.sizes.append(sz)
+        self.mtimes.append(mt)
+    end
+
+    func count() as int
+        return self.paths.length
+    end
+
+    func pathAt(int i) as string
+        return self.paths[i]
+    end
+
+    func sizeAt(int i) as int
+        return self.sizes[i]
+    end
+
+    func mtimeAt(int i) as int
+        return self.mtimes[i]
+    end
+
+    // Linear search for <p>; returns its index or -1.
+    func find(string p) as int
+        int n = self.paths.length
+        int i = 0
+        while i < n do
+            if self.paths[i] == p then
+                return i
+            end
+            i += 1
+        end
+        return -1
+    end
+end
+
+
+func printUsage()
+    println("fwatch - polling file change watcher")
+    println("usage: fwatch [dir] [interval_ms=1000] [max_scans=10]")
+    println("options:")
+    println("  dir         directory to watch (default: current directory)")
+    println("  interval_ms poll interval in milliseconds (default: 1000)")
+    println("  max_scans   number of scans before exit (default: 10)")
+    println("events:")
+    println("  [ADDED] / [REMOVED] / [MODIFIED] / [RENAMED]")
+    println("examples:")
+    println("  fwatch projects\\dev")
+    println("  fwatch projects\\dev 500 4")
+end
+
+
+// Build a snapshot of all regular files directly under <root>.
+func buildSnap(string root) as Snap
+    Snap s = Snap()
+    array files = dir.files(root, false)
+    int n = files.length
+    int i = 0
+    while i < n do
+        string p = string(files[i])
+        FileInfo info = file.info(p)
+        if info.exists and info.isFile then
+            s.add(p, info.size, time.toUnix(info.changeTime))
+        end
+        i += 1
+    end
+    return s
+end
+
+
+func main(...) as int
+    string root = "."
+    int interval = 1000
+    int maxScans = 10
+
+    // -h / --help anywhere on the command line wins immediately.
+    int hi = 1
+    while hi < arg.length do
+        string ha = string(arg[hi])
+        if ha == "-h" or ha == "--help" then
+            printUsage()
+            return 0
+        end
+        hi += 1
+    end
+
+    if arg.length >= 2 then
+        root = string(arg[1])
+    end
+    if arg.length >= 3 then
+        try
+            interval = int(arg[2])
+        catch e
+            println("fwatch: invalid interval_ms: " + string(arg[2]))
+            return 1
+        end
+        if interval < 1 then
+            interval = 1
+        end
+    end
+    if arg.length >= 4 then
+        try
+            maxScans = int(arg[3])
+        catch e
+            println("fwatch: invalid max_scans: " + string(arg[3]))
+            return 1
+        end
+        if maxScans < 1 then
+            maxScans = 1
+        end
+    end
+
+    if not dir.exists(root) then
+        println("fwatch: directory not found: " + root)
+        return 1
+    end
+
+    println("Watching: " + root + " (every " + string(interval) + "ms)")
+
+    Snap prev = Snap()
+    bool havePrev = false
+
+    int scanNo = 0
+    while scanNo < maxScans do
+        scanNo += 1
+        Snap curr = buildSnap(root)
+
+        // ---- first scan: record the baseline ----
+        if not havePrev then
+            println("Scan " + string(scanNo) + ": " + string(curr.count()) + " files tracked")
+            prev = curr
+            havePrev = true
+            if scanNo < maxScans then
+                time.sleep(interval)
+            end
+            continue
+        end
+
+        // ---- diff current vs previous ----
+        array<string> addedPath = array[]
+        array<int> addedSize = array[]
+        array<string> removedPath = array[]
+        array<int> removedSize = array[]
+        array<string> modPath = array[]
+        array<int> modOldSize = array[]
+        array<int> modNewSize = array[]
+
+        // ADDED + MODIFIED: walk current, look up in previous.
+        int cn = curr.count()
+        int ci = 0
+        while ci < cn do
+            string p = curr.pathAt(ci)
+            int pi = prev.find(p)
+            if pi < 0 then
+                addedPath.append(p)
+                addedSize.append(curr.sizeAt(ci))
+            else
+                if curr.sizeAt(ci) != prev.sizeAt(pi) or curr.mtimeAt(ci) != prev.mtimeAt(pi) then
+                    modPath.append(p)
+                    modOldSize.append(prev.sizeAt(pi))
+                    modNewSize.append(curr.sizeAt(ci))
+                end
+            end
+            ci += 1
+        end
+
+        // REMOVED: walk previous, look up in current.
+        int pn = prev.count()
+        int pri = 0
+        while pri < pn do
+            string p = prev.pathAt(pri)
+            if curr.find(p) < 0 then
+                removedPath.append(p)
+                removedSize.append(prev.sizeAt(pri))
+            end
+            pri += 1
+        end
+
+        // ---- rename pairing (best-effort, by identical size) ----
+        // A removed file pairs with the first unmatched added file of the same
+        // size. Paired entries are blanked ("") so the ADDED/REMOVED emitters
+        // skip them. "" can never occur in a real listing, so it is a safe
+        // sentinel.
+        array<string> renFrom = array[]
+        array<string> renTo = array[]
+        int rn = removedPath.length
+        int an = addedPath.length
+        int rri = 0
+        while rri < rn do
+            string rName = removedPath[rri]
+            if rName != "" then
+                int rSize = removedSize[rri]
+                int matchAi = -1
+                int aj = 0
+                while aj < an do
+                    if addedPath[aj] != "" and addedSize[aj] == rSize then
+                        matchAi = aj
+                        break
+                    end
+                    aj += 1
+                end
+                if matchAi >= 0 then
+                    renFrom.append(rName)
+                    renTo.append(addedPath[matchAi])
+                    removedPath[rri] = ""
+                    addedPath[matchAi] = ""
+                end
+            end
+            rri += 1
+        end
+
+        // ---- count real events (excluding blanked/paired entries) ----
+        int addedReal = 0
+        int removedReal = 0
+        int ai = 0
+        while ai < an do
+            if addedPath[ai] != "" then
+                addedReal += 1
+            end
+            ai += 1
+        end
+        int ri = 0
+        while ri < rn do
+            if removedPath[ri] != "" then
+                removedReal += 1
+            end
+            ri += 1
+        end
+        int totalEvents = addedReal + removedReal + modPath.length + renFrom.length
+
+        if totalEvents == 0 then
+            println("Scan " + string(scanNo) + ": no changes")
+        else
+            string prefix = "Scan " + string(scanNo) + ": "
+            int ei = 0
+            while ei < renFrom.length do
+                println(prefix + "[RENAMED] " + renFrom[ei] + " → " + renTo[ei])
+                ei += 1
+            end
+            ei = 0
+            while ei < an do
+                if addedPath[ei] != "" then
+                    println(prefix + "[ADDED] " + addedPath[ei])
+                end
+                ei += 1
+            end
+            ei = 0
+            while ei < rn do
+                if removedPath[ei] != "" then
+                    println(prefix + "[REMOVED] " + removedPath[ei])
+                end
+                ei += 1
+            end
+            ei = 0
+            while ei < modPath.length do
+                println(prefix + "[MODIFIED] " + modPath[ei] + " (" + string(modOldSize[ei]) + " → " + string(modNewSize[ei]) + " bytes)")
+                ei += 1
+            end
+        end
+
+        // ---- rotate current into previous ----
+        prev = curr
+
+        if scanNo < maxScans then
+            time.sleep(interval)
+        end
+    end
+
+    println("Done after " + string(maxScans) + " scans.")
+    return 0
+end

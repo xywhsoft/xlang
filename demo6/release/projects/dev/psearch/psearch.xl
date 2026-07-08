@@ -1,0 +1,143 @@
+// psearch.xl - parallel file content searcher
+//
+// usage:
+//   psearch <pattern> <dir1> [dir2] [dir3] ...
+//
+// searches file CONTENTS across multiple directories in parallel.
+// one async task per directory; task.all waits for all of them.
+//
+// design notes (xlang constraint workarounds, see projects/dev/README.md):
+//   - await cannot be used inside `func main` (main is not async). So main
+//     parses argv into globals, then triggers an `async func runAll()` and
+//     blocks on its future via `.wait()`.
+//   - task.all requires a typed `array<future<T>>` (not a list, not var).
+//     we use a fixed cap (MAX_DIRS) with ternary entries; unused slots get a
+//     noop future. ternary IS short-circuit, so unused slots never touch
+//     their guarded globals.
+//   - B18: no stdin. args come from argv only.
+
+const int MAX_DIRS = 16
+
+string g_pattern
+int g_dirCount
+array<string> g_dirs = array[]
+
+// noop future fills unused task.all slots.
+async func noop() as int
+    return 0
+end
+
+// search one directory recursively for files whose content contains pattern.
+// prints each matching file path, returns the match count.
+async func searchDir(string dir, string pattern) as int
+    if not dir.exists(dir) then
+        println("[skip] not a dir:", dir)
+        return 0
+    end
+    int count = 0
+    array files = dir.files(dir, true)
+    int n = files.length
+    int i = 0
+    while i < n do
+        string path = string(files[i])
+        string text = ""
+        bool ok = true
+        try
+            text = file.readText(path)
+        catch e
+            ok = false
+        end
+        if ok then
+            if string.contains(text, pattern) then
+                println(path)
+                count += 1
+            end
+        end
+        i += 1
+    end
+    return count
+end
+
+// run all search tasks in parallel via task.all, print summary, return exit code.
+async func runAll(float startSec) as int
+    int c = g_dirCount
+    array<future<int>> jobs = array[
+        c > 0  ? searchDir(g_dirs[0],  g_pattern) : noop(),
+        c > 1  ? searchDir(g_dirs[1],  g_pattern) : noop(),
+        c > 2  ? searchDir(g_dirs[2],  g_pattern) : noop(),
+        c > 3  ? searchDir(g_dirs[3],  g_pattern) : noop(),
+        c > 4  ? searchDir(g_dirs[4],  g_pattern) : noop(),
+        c > 5  ? searchDir(g_dirs[5],  g_pattern) : noop(),
+        c > 6  ? searchDir(g_dirs[6],  g_pattern) : noop(),
+        c > 7  ? searchDir(g_dirs[7],  g_pattern) : noop(),
+        c > 8  ? searchDir(g_dirs[8],  g_pattern) : noop(),
+        c > 9  ? searchDir(g_dirs[9],  g_pattern) : noop(),
+        c > 10 ? searchDir(g_dirs[10], g_pattern) : noop(),
+        c > 11 ? searchDir(g_dirs[11], g_pattern) : noop(),
+        c > 12 ? searchDir(g_dirs[12], g_pattern) : noop(),
+        c > 13 ? searchDir(g_dirs[13], g_pattern) : noop(),
+        c > 14 ? searchDir(g_dirs[14], g_pattern) : noop(),
+        c > 15 ? searchDir(g_dirs[15], g_pattern) : noop()
+    ]
+    array<int> counts = await task.all(jobs)
+    int total = 0
+    int i = 0
+    while i < counts.length do
+        total += int(counts[i])
+        i += 1
+    end
+    float elapsed = time.timer() - startSec
+    int elapsedMs = int(elapsed * 1000.0)
+    println("------------------------------------------------------------")
+    println("pattern: " + g_pattern)
+    println("dirs:    " + string(g_dirCount))
+    println("matches: " + string(total) + " files")
+    println("time:    " + string(elapsedMs) + " ms (parallel via task.all)")
+    return 0
+end
+
+func main(...) as int
+    g_pattern = ""
+    g_dirCount = 0
+
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "-h" or a == "--help" then
+            println("usage: psearch <pattern> <dir1> [dir2] [dir3] ...")
+            println("  searches file contents across directories in parallel")
+            println("  limit: up to " + string(MAX_DIRS) + " directories")
+            return 0
+        else
+            if g_pattern == "" then
+                g_pattern = a
+            elseif g_dirCount < MAX_DIRS then
+                g_dirs.append(a)
+                g_dirCount += 1
+            else
+                println("psearch: too many dirs (max " + string(MAX_DIRS) + "), ignoring:", a)
+            end
+        end
+        i += 1
+    end
+
+    if g_pattern == "" then
+        println("psearch: missing pattern")
+        println("usage: psearch <pattern> <dir1> [dir2] [dir3] ...")
+        return 1
+    end
+    if g_dirCount == 0 then
+        println("psearch: missing directory")
+        println("usage: psearch <pattern> <dir1> [dir2] [dir3] ...")
+        return 1
+    end
+
+    float startSec = time.timer()
+    future<int> f = runAll(startSec)
+    bool ok = f.wait()
+    if not ok then
+        println("psearch: error:", f.error())
+        return 1
+    end
+    return 0
+end

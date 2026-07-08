@@ -1,0 +1,132 @@
+// jq.xl - 简化版 JSON 查询器 (类似 jq 的点路径表达式)
+//
+// 用法:
+//   jq <query> <file.json>     从文件读取 JSON 并按路径查询
+//   jq <query> -               stdin 模式 (当前 xlang stdlib 未提供 stdin 读取 API,
+//                              会提示改用文件, 见 README BUG 说明)
+//
+// 查询语法:
+//   .                          整个文档 (美化输出)
+//   *                          整个文档 (美化输出)
+//   .key                       对象字段
+//   .key.subkey                深层访问
+//   [0]                        数组元素
+//   .key[0].name               混合路径
+//
+// 输出规则:
+//   - 标量 (字符串/数字/布尔/null) 输出 JSON 文本 (字符串带引号, 与 jq 一致)
+//   - 容器 (对象/数组)            美化输出 (2 空格缩进)
+
+func printUsage()
+    println("Usage: jq <query> <file.json>")
+    println("       jq <query> -        (stdin mode: xlang stdlib 无 stdin API, 请改用文件)")
+    println("Query examples:")
+    println("  jq .name data.json")
+    println("  jq .tags[0] data.json")
+    println("  jq .author.name data.json")
+    println("  jq . data.json")
+end
+
+// 沿点路径表达式递归访问, 返回结果 var; 找不到的路径返回 null
+func queryPath(var current, string path) as var
+    int n = string.len(path)
+    var cur = current
+    int i = 0
+
+    while i < n do
+        string c = string.mid(path, i, 1)
+
+        if c == "." then
+            i += 1
+            string key = ""
+            while i < n do
+                string cc = string.mid(path, i, 1)
+                if cc == "." or cc == "[" then
+                    break
+                end
+                key = key + cc
+                i += 1
+            end
+            if key == "" then
+                // 单独的 "." 表示整个文档, 不再访问字段
+                break
+            end
+            cur = cur[key]
+        elseif c == "[" then
+            i += 1
+            string num = ""
+            while i < n do
+                string cc = string.mid(path, i, 1)
+                if cc == "]" then
+                    break
+                end
+                num = num + cc
+                i += 1
+            end
+            i += 1
+            int idx = int(num)
+            cur = cur[idx]
+        else
+            // 跳过无法识别的字符
+            i += 1
+        end
+    end
+
+    return cur
+end
+
+// 按结果类型选择输出形式: 容器美化, 标量紧凑 (字符串带引号)
+func emitResult(var result)
+    string compact = json.stringify(result)
+    if string.startsWith(compact, "{") or string.startsWith(compact, "[") then
+        // json.stringify pretty 默认用 TAB 缩进, 规范化为 2 空格
+        string pretty = string.replace(json.stringify(result, pretty = true), "\t", "  ")
+        println(pretty)
+    else
+        println(compact)
+    end
+end
+
+func main(...) as int
+    if arg.length < 3 then
+        printUsage()
+        return 1
+    end
+
+    string query = string(arg[1])
+    string source = string(arg[2])
+
+    // "*" 也表示整个文档, 归一化为 "."
+    if query == "*" then
+        query = "."
+    end
+
+    if source == "-" then
+        println("jq: stdin mode is not supported by current xlang stdlib; please pass a file path")
+        return 1
+    end
+
+    if not file.exists(source) then
+        println("jq: file not found:", source)
+        return 1
+    end
+
+    string text = file.readText(source)
+
+    if not json.valid(text) then
+        println("jq: invalid JSON in", source)
+        return 1
+    end
+
+    try
+        var doc = json.parse(text)
+        var result = queryPath(doc, query)
+        emitResult(result)
+        return 0
+    catch e
+        println("jq: error:", e.message)
+        return 1
+    end
+
+    return 0
+end

@@ -1,0 +1,185 @@
+// primes - 素数工具箱
+//
+// 用法：
+//   primes gen <n>          生成前 n 个素数（generator 实现）
+//   primes check <n>        检查 n 是否为素数
+//   primes factor <n>       质因数分解，返回因子数组
+//   primes range <a> <b>    列出 [a, b] 范围内所有素数
+//
+// 设计要点：
+//   - 素数生成使用 generator<int64> 流式产出。
+//   - isPrime 用试除到 sqrt(n)，支持 int64 大数。
+//   - factor 返回 array<int64>（动态生长）。
+
+// 判定单个整数是否为素数。
+func isPrime(int64 n) as bool
+    if n < 2 then
+        return false
+    end
+    if n < 4 then
+        return true
+    end
+    if n % 2 == 0 then
+        return false
+    end
+    if n % 3 == 0 then
+        return n == 3
+    end
+    int64 i = 5
+    int64 sq = i * i
+    while sq <= n do
+        if n % i == 0 then
+            return false
+        end
+        int64 j = i + 2
+        if n % j == 0 then
+            return false
+        end
+        i += 6
+        sq = i * i
+    end
+    return true
+end
+
+// 素数生成器：流式产出前 limit 个素数。
+func primeStream(int limit) as generator<int64>
+    int count = 0
+    int64 candidate = 2
+    while count < limit do
+        if isPrime(candidate) then
+            count += 1
+            yield candidate
+        end
+        candidate += 1
+    end
+end
+
+// 质因数分解：返回所有素因子（含重复），升序排列。
+func factorize(int64 n) as array<int64>
+    array<int64> result = array[]
+    int64 x = n
+    int64 d = 2
+    while x % d == 0 do
+        result.append(d)
+        x = x / d
+    end
+    d = 3
+    int64 dsq = d * d
+    while dsq <= x do
+        while x % d == 0 do
+            result.append(d)
+            x = x / d
+        end
+        d += 2
+        dsq = d * d
+    end
+    if x > 1 then
+        result.append(x)
+    end
+    return result
+end
+
+func printUsage()
+    println("primes - prime toolkit")
+    println("Usage:")
+    println("  primes gen <n>          generate first n primes")
+    println("  primes check <n>        check if n is prime")
+    println("  primes factor <n>       prime factorization")
+    println("  primes range <a> <b>    list primes in [a, b]")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "gen" then
+        if arg.length < 3 then
+            println("Error: 'gen' needs <n>")
+            return 1
+        end
+        int n = int(arg[2])
+        if n <= 0 then
+            println("Error: n must be positive")
+            return 1
+        end
+        int idx = 0
+        for p in primeStream(n)
+            idx += 1
+            println(idx, p)
+        end
+        return 0
+    end
+
+    if cmd == "check" then
+        if arg.length < 3 then
+            println("Error: 'check' needs <n>")
+            return 1
+        end
+        int64 n = int64(arg[2])
+        if isPrime(n) then
+            println(n, "is prime")
+        else
+            println(n, "is not prime")
+        end
+        return 0
+    end
+
+    if cmd == "factor" then
+        if arg.length < 3 then
+            println("Error: 'factor' needs <n>")
+            return 1
+        end
+        int64 n = int64(arg[2])
+        if n < 2 then
+            println("Error: n must be >= 2")
+            return 1
+        end
+        array<int64> fs = factorize(n)
+        print(n, "= ")
+        int i = 0
+        while i < fs.length do
+            if i > 0 then
+                print(" * ")
+            end
+            int64 f = fs[i]
+            print(f)
+            i += 1
+        end
+        println()
+        return 0
+    end
+
+    if cmd == "range" then
+        if arg.length < 4 then
+            println("Error: 'range' needs <a> <b>")
+            return 1
+        end
+        int64 a = int64(arg[2])
+        int64 b = int64(arg[3])
+        if a > b then
+            println("Error: a must be <= b")
+            return 1
+        end
+        int cnt = 0
+        int64 k = a
+        while k <= b do
+            if isPrime(k) then
+                print(k)
+                print(" ")
+                cnt += 1
+            end
+            k += 1
+        end
+        println()
+        println("count:", cnt)
+        return 0
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

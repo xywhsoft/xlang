@@ -1,0 +1,74 @@
+func isWhitespace(string c) as bool
+    if c == " " then
+        return true
+    end
+    if c == "\t" then
+        return true
+    end
+    if c == "\n" then
+        return true
+    end
+    if c == "\r" then
+        return true
+    end
+    if c == "\f" then
+        return true
+    end
+    if c == "\v" then
+        return true
+    end
+    return false
+end
+
+func countWords(string text) as int
+    int count = 0
+    bool inWord = false
+    for c in text
+        bool isSpace = isWhitespace(c)
+        if isSpace then
+            inWord = false
+        elseif not inWord then
+            inWord = true
+            count += 1
+        end
+    end
+    return count
+end
+
+func countNonAscii(string text) as int
+    int count = 0
+    for c in text
+        int blen = string.byteLen(c)
+        if blen > 1 then
+            count += 1
+        end
+    end
+    return count
+end
+
+func main(...) as int
+    int argLen = arg.length
+    if argLen < 2 then
+        println("用法: utf8count <文件路径>")
+        return 1
+    end
+    string path = string(arg[1])
+    if not file.exists(path) then
+        println("错误: 文件不存在 -", path)
+        return 2
+    end
+    string text = file.readText(path)
+    int charCount = string.len(text)
+    int byteCount = string.byteLen(text)
+    array lines = string.splitLines(text)
+    int lineCount = lines.length
+    int wordCount = countWords(text)
+    int nonAsciiCount = countNonAscii(text)
+    println("文件:", path)
+    println("字符数:", charCount)
+    println("字节数:", byteCount)
+    println("行数:", lineCount)
+    println("单词数:", wordCount)
+    println("非ASCII字符:", nonAsciiCount)
+    return 0
+end

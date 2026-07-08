@@ -1,0 +1,9 @@
+// calc.xl - a tiny calculator demo
+func add(int a, int b) as int
+    return a + b
+end
+
+func main(...) as int
+    println("1 + 2 =", add(1, 2))
+    return 0
+end

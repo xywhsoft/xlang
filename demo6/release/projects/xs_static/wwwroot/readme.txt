@@ -1,0 +1,1 @@
+xs_static static file root

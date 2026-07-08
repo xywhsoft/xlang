@@ -1,0 +1,177 @@
+// rxgrep.xl - 正则表达式提取器
+//
+// 用法:
+//   rxgrep <pattern> <file>              输出所有匹配行和每个匹配内容
+//   rxgrep <pattern> <file> -o           只输出匹配部分
+//   rxgrep <pattern> <file> -c           只统计匹配数
+//   rxgrep <pattern> <file> -n           带行号
+//   rxgrep <pattern> <file> -i           大小写不敏感
+//
+// 重点验证:
+//   - regex.compile(pattern, flags) 编译一次, 复用 Regex 对象
+//   - Regex.match(line) 和 Regex.match(line, charPos) 的对象化调用
+//   - RegexMatch 的 .ok / .start / .end / .byteStart / .byteEnd / .text
+//   - flags: regex.ignoreCase / multiline / dotAll / ungreedy
+//   - 同一行内迭代找全部匹配 (用 compiled.match(line, charPos) 推进 .end)
+//
+// 实现要点:
+//   - Regex 是 native-backed 不可复制类型, 不能按值传给函数, 故匹配逻辑内联在 main.
+//   - 收集每行匹配用 while + re.match(line, charPos); 空匹配 (start==end) 跳过并推进一位,
+//     否则会死循环.
+//   - re.match 的 startPos 形参是字符偏移, 故全程用 mm.end 推进.
+//   - -i 传 regex.ignoreCase; 注意交替组折叠后重复会触发引擎断言崩溃 (BUG-28, 不可 catch).
+//   - 读文件包 try/catch, 失败给出错误信息.
+
+func main(...) as int
+    string pattern = ""
+    string target = ""
+    bool hasPattern = false
+    bool hasTarget = false
+    bool onlyMatch = false       // -o
+    bool countOnly = false       // -c
+    bool showLine = false        // -n
+    bool ignoreCase = false      // -i
+
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "-o" or a == "--only-matching" then
+            onlyMatch = true
+        elseif a == "-c" or a == "--count" then
+            countOnly = true
+        elseif a == "-n" or a == "--line-number" then
+            showLine = true
+        elseif a == "-i" or a == "--ignore-case" then
+            ignoreCase = true
+        elseif a == "-h" or a == "--help" then
+            println("usage: rxgrep [options] <pattern> <file>")
+            println("  -o  only output matched parts")
+            println("  -c  count matches only")
+            println("  -n  print line numbers")
+            println("  -i  ignore case")
+            return 0
+        else
+            if not hasPattern then
+                pattern = a
+                hasPattern = true
+            elseif not hasTarget then
+                target = a
+                hasTarget = true
+            else
+                println("rxgrep: unexpected argument: " + a)
+                return 1
+            end
+        end
+        i += 1
+    end
+
+    if not hasPattern then
+        println("rxgrep: missing pattern")
+        println("usage: rxgrep [options] <pattern> <file>")
+        return 1
+    end
+    if not hasTarget then
+        println("rxgrep: missing file")
+        println("usage: rxgrep [options] <pattern> <file>")
+        return 1
+    end
+    if not file.exists(target) then
+        println("rxgrep: file not found: " + target)
+        return 1
+    end
+
+    // ===== 核心: regex.compile 编译一次 (重点验证对象) =====
+    int flags = 0
+    if ignoreCase then
+        flags = regex.ignoreCase
+    end
+    Regex re = regex.compile(pattern, flags)
+
+    string content = ""
+    bool readOk = true
+    string readErr = ""
+    try
+        content = file.readText(target)
+    catch e
+        readOk = false
+        readErr = e.message
+    end
+    if not readOk then
+        println("rxgrep: failed to read file: " + readErr)
+        return 1
+    end
+
+    array lines = string.splitLines(content)
+    int n = lines.length
+    int totalMatches = 0
+    int matchedLines = 0
+    string fileName = path.nameExt(target)
+
+    int li = 0
+    while li < n do
+        string line = string(lines[li])
+        int lineNo = li + 1
+        li += 1
+
+        // ===== 核心: 同一行内用 compiled.match(line, charPos) 迭代找全部匹配 =====
+        // Regex 不可按值传参, 这段逻辑必须内联.
+        int charPos = 0
+        int lineMatchCount = 0
+        int lineLen = string.len(line)
+        bool headerPrinted = false
+
+        while charPos <= lineLen do
+            RegexMatch mm = re.match(line, charPos)
+            if not mm.ok then
+                break
+            end
+
+            // 空匹配 (start==end): 跳过并推进一位, 防止死循环.
+            if mm.start == mm.end then
+                charPos = mm.end + 1
+                continue
+            end
+
+            lineMatchCount += 1
+            totalMatches += 1
+            string matchText = string(mm.text)
+
+            if not countOnly then
+                if onlyMatch then
+                    if showLine then
+                        println(fileName + ":" + string(lineNo) + ":" + matchText)
+                    else
+                        println(matchText)
+                    end
+                else
+                    if not headerPrinted then
+                        headerPrinted = true
+                        if showLine then
+                            println(fileName + ":" + string(lineNo) + ": " + line)
+                        else
+                            println(fileName + ": " + line)
+                        end
+                    end
+                    println("  match: " + matchText)
+                end
+            end
+
+            // 推进到本匹配末尾, 继续找下一个 (非重叠). 用 .end (字符偏移).
+            charPos = mm.end
+        end
+
+        if lineMatchCount > 0 then
+            matchedLines += 1
+            if not countOnly and not onlyMatch then
+                println("")
+            end
+        end
+    end
+
+    // 汇总
+    println("Found " + string(totalMatches) + " matches in " + string(matchedLines) + " lines.")
+    if totalMatches == 0 then
+        return 1
+    end
+    return 0
+end

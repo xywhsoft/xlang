@@ -1,0 +1,4 @@
+release/*.exe
+release/*.dll
+release/*.lib
+release/*.obj

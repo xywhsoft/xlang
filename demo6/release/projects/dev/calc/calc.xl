@@ -1,0 +1,327 @@
+// calc — 表达式计算器（递归下降解析器）
+// 支持: + - * / % ** () 一元负号 常量 pi/e 函数 sqrt abs sin cos ln log10
+// 用法: xl run calc.xl -- "1 + 2 * (3 - 1) ** 2"
+
+class Token
+    string kind = ""
+    float num = 0.0
+    string text = ""
+
+    create(string kind)
+        self.kind = kind
+        return
+    end
+end
+
+class Tokenizer
+    string src = ""
+    int pos = 0
+    int len = 0
+
+    create(string src)
+        self.src = src
+        self.len = string.len(src)
+        self.pos = 0
+        return
+    end
+
+    func isSpace(string c) as bool
+        return c == " " or c == "\t" or c == "\r" or c == "\n"
+    end
+
+    func isDigit(string c) as bool
+        return string.contains("0123456789", c)
+    end
+
+    func isAlpha(string c) as bool
+        return string.contains("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_", c)
+    end
+
+    func skipSpaces()
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if self.isSpace(c) then
+                self.pos += 1
+            else
+                return
+            end
+        end
+    end
+
+    func readNumber() as Token
+        string buf = ""
+        int dotCount = 0
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if self.isDigit(c) then
+                buf = buf + c
+                self.pos += 1
+            elseif c == "." and dotCount == 0 then
+                buf = buf + c
+                dotCount += 1
+                self.pos += 1
+            else
+                return self.makeNumber(buf)
+            end
+        end
+        return self.makeNumber(buf)
+    end
+
+    func makeNumber(string buf) as Token
+        Token t = Token("num")
+        t.num = float(buf)
+        t.text = buf
+        return t
+    end
+
+    func readIdent() as Token
+        string buf = ""
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if self.isAlpha(c) or self.isDigit(c) then
+                buf = buf + c
+                self.pos += 1
+            else
+                Token t = Token("ident")
+                t.text = buf
+                return t
+            end
+        end
+        Token t = Token("ident")
+        t.text = buf
+        return t
+    end
+
+    func nextToken() as Token
+        self.skipSpaces()
+        if self.pos >= self.len then
+            return Token("eof")
+        end
+        string c = string.charAt(self.src, self.pos)
+        if self.isDigit(c) or c == "." then
+            return self.readNumber()
+        end
+        if self.isAlpha(c) then
+            return self.readIdent()
+        end
+        if c == "+" or c == "-" or c == "/" or c == "%" or c == "(" or c == ")" then
+            self.pos += 1
+            return Token(c)
+        end
+        if c == "*" then
+            if self.pos + 1 < self.len then
+                string c2 = string.charAt(self.src, self.pos + 1)
+                if c2 == "*" then
+                    self.pos += 2
+                    return Token("**")
+                end
+            end
+            self.pos += 1
+            return Token("*")
+        end
+        throw "unexpected character: " + c
+    end
+end
+
+class Parser
+    Tokenizer tz
+    Token current
+
+    create(Tokenizer tz)
+        self.tz = tz
+        self.current = self.tz.nextToken()
+        return
+    end
+
+    func advance()
+        self.current = self.tz.nextToken()
+    end
+
+    func expect(string kind)
+        if self.current.kind != kind then
+            throw "expected '" + kind + "' but got '" + self.current.kind + "'"
+        end
+    end
+
+    func parseExpr() as float
+        float v = self.parseTerm()
+        while self.current.kind == "+" or self.current.kind == "-" do
+            string op = self.current.kind
+            self.advance()
+            float rhs = self.parseTerm()
+            if op == "+" then
+                v = v + rhs
+            else
+                v = v - rhs
+            end
+        end
+        return v
+    end
+
+    func parseTerm() as float
+        float v = self.parseUnary()
+        while self.current.kind == "*" or self.current.kind == "/" or self.current.kind == "%" do
+            string op = self.current.kind
+            self.advance()
+            float rhs = self.parseUnary()
+            if op == "*" then
+                v = v * rhs
+            elseif op == "/" then
+                if rhs == 0.0 then
+                    throw "division by zero"
+                end
+                v = v / rhs
+            else
+                if rhs == 0.0 then
+                    throw "modulo by zero"
+                end
+                v = math.mod(v, rhs)
+            end
+        end
+        return v
+    end
+
+    func parseUnary() as float
+        if self.current.kind == "-" then
+            self.advance()
+            float v = self.parseUnary()
+            return -v
+        end
+        if self.current.kind == "+" then
+            self.advance()
+            return self.parseUnary()
+        end
+        return self.parsePower()
+    end
+
+    func parsePower() as float
+        float base = self.parsePrimary()
+        if self.current.kind == "**" then
+            self.advance()
+            float exp = self.parseUnary()
+            return math.pow(base, exp)
+        end
+        return base
+    end
+
+    func parsePrimary() as float
+        Token t = self.current
+        if t.kind == "num" then
+            float v = t.num
+            self.advance()
+            return v
+        end
+        if t.kind == "ident" then
+            string name = t.text
+            self.advance()
+            if self.current.kind == "(" then
+                self.advance()
+                float arg = self.parseExpr()
+                self.expect(")")
+                self.advance()
+                return self.callFunc(name, arg)
+            end
+            return self.constValue(name)
+        end
+        if t.kind == "(" then
+            self.advance()
+            float v = self.parseExpr()
+            self.expect(")")
+            self.advance()
+            return v
+        end
+        if t.kind == "eof" then
+            throw "unexpected end of expression"
+        end
+        throw "unexpected token '" + t.kind + "'"
+    end
+
+    func constValue(string name) as float
+        if name == "pi" then
+            return math.pi
+        end
+        if name == "e" then
+            return math.e
+        end
+        throw "unknown constant: " + name
+    end
+
+    func callFunc(string name, float x) as float
+        if name == "sqrt" then
+            if x < 0.0 then
+                throw "sqrt of negative number"
+            end
+            return math.sqrt(x)
+        end
+        if name == "abs" then
+            return math.abs(x)
+        end
+        if name == "sin" then
+            return math.sin(x)
+        end
+        if name == "cos" then
+            return math.cos(x)
+        end
+        if name == "ln" then
+            if x <= 0.0 then
+                throw "ln of non-positive number"
+            end
+            return math.log(x)
+        end
+        if name == "log10" then
+            if x <= 0.0 then
+                throw "log10 of non-positive number"
+            end
+            return math.log10(x)
+        end
+        throw "unknown function: " + name
+    end
+
+    func parse() as float
+        float v = self.parseExpr()
+        if self.current.kind != "eof" then
+            throw "unexpected trailing token '" + self.current.kind + "'"
+        end
+        return v
+    end
+end
+
+func formatResult(float v) as string
+    if math.isNaN(v) then
+        return "nan"
+    end
+    if math.isInf(v) then
+        if v < 0.0 then
+            return "-inf"
+        end
+        return "inf"
+    end
+    if v == math.floor(v) and math.abs(v) < 1e15 then
+        return string(int(v))
+    end
+    return string(v)
+end
+
+func evaluate(string expr) as float
+    Tokenizer tz = Tokenizer(expr)
+    Parser p = Parser(tz)
+    return p.parse()
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        println("usage: calc \"<expression>\"")
+        println("operators: + - * / % ** ()  functions: sqrt abs sin cos ln log10  constants: pi e")
+        return 1
+    end
+    string expr = string(arg[1])
+    try
+        float result = evaluate(expr)
+        println(formatResult(result))
+        return 0
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+    return 0
+end

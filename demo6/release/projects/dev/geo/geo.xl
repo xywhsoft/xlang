@@ -1,0 +1,429 @@
+// geo - 几何计算器
+//
+// 用法：
+//   geo distance <x1> <y1> <x2> <y2>            两点欧氏距离
+//   geo circle area <r>                          圆面积
+//   geo circle perimeter <r>                     圆周长
+//   geo rect area <w> <h>                        矩形面积
+//   geo rect diagonal <w> <h>                    矩形对角线
+//   geo triangle area <a> <b> <c>                三角形面积（海伦公式）
+//   geo triangle type <a> <b> <c>                三角形类型
+//   geo angle <x1> <y1> <x2> <y2>               两向量夹角（度）
+//   geo polygon area <x1,y1> <x2,y2> ...        多边形面积（鞋带公式）
+//   geo selftest                                 内部自检
+//
+// 设计要点：
+//   - 用 class Point 封装平面点坐标，提供 distanceTo/dot/length 方法。
+//   - 数值计算全部走 math API（sqrt / pow / pi / sin / cos / hypot / acos / deg）。
+//   - 浮点比较用相对容差 approx，避免精度误判三角形类型。
+
+class Point
+    float x = 0.0
+    float y = 0.0
+
+    create(float x, float y)
+        self.x = x
+        self.y = y
+        return
+    end
+
+    // 到另一点的欧氏距离。
+    func distanceTo(Point other) as float
+        float dx = self.x - other.x
+        float dy = self.y - other.y
+        return math.hypot(dx, dy)
+    end
+
+    // 原点向量的长度。
+    func length() as float
+        return math.hypot(self.x, self.y)
+    end
+
+    // 与另一向量的点积。
+    func dot(Point other) as float
+        float tx = self.x * other.x
+        float ty = self.y * other.y
+        return tx + ty
+    end
+end
+
+// 相对容差浮点近似相等。
+func approx(float a, float b) as bool
+    float d = math.abs(a - b)
+    float m = math.max(math.abs(a), math.abs(b))
+    if m < 1.0 then
+        return d < 1e-9
+    end
+    return d <= 1e-9 * m
+end
+
+// 把数值格式化为短文本：整数显示为整数，否则保留 6 位小数。
+func formatNum(float v) as string
+    if math.isNaN(v) then
+        return "nan"
+    end
+    if math.isInf(v) then
+        if v < 0.0 then
+            return "-inf"
+        end
+        return "inf"
+    end
+    if v == math.floor(v) and math.abs(v) < 1e15 then
+        return string(int(v))
+    end
+    return string.formatFloat(v, ".6")
+end
+
+// 校验三条边能否构成合法三角形。
+func validTriangle(float a, float b, float c) as bool
+    if a <= 0.0 or b <= 0.0 or c <= 0.0 then
+        return false
+    end
+    if a + b <= c then
+        return false
+    end
+    if b + c <= a then
+        return false
+    end
+    if a + c <= b then
+        return false
+    end
+    return true
+end
+
+// 三角形分类：等边 / 等腰 / 直角 / 普通（等腰直角合并标注）。
+func triangleType(float a, float b, float c) as string
+    // 排序使 sa <= sb <= sc，便于直角判定。
+    float sa = a
+    float sb = b
+    float sc = c
+    if sa > sb then
+        float t = sa
+        sa = sb
+        sb = t
+    end
+    if sb > sc then
+        float t = sb
+        sb = sc
+        sc = t
+    end
+    if sa > sb then
+        float t = sa
+        sa = sb
+        sb = t
+    end
+
+    bool equilateral = approx(sa, sb) and approx(sb, sc)
+    bool isosceles = approx(sa, sb) or approx(sb, sc)
+    float lhs = sa * sa + sb * sb
+    float rhs = sc * sc
+    bool right = approx(lhs, rhs)
+
+    if equilateral then
+        return "equilateral"
+    end
+    if isosceles and right then
+        return "isosceles-right"
+    end
+    if isosceles then
+        return "isosceles"
+    end
+    if right then
+        return "right"
+    end
+    return "scalene"
+end
+
+// 解析 "x,y" 文本，把坐标写入 xs/ys 两个动态数组。
+// 注：带自定义 create 的 class 实例无法直接装箱进 var，因此多边形路径
+// 用两个 float 动态数组承载坐标，而不是 Point 数组。
+func pushPoint(var xs, var ys, string token)
+    array parts = string.split(token, ",")
+    if parts.length != 2 then
+        throw "invalid point '" + token + "', expected x,y"
+    end
+    float x = float(string.trim(string(parts[0])))
+    float y = float(string.trim(string(parts[1])))
+    xs.push(x)
+    ys.push(y)
+end
+
+// 鞋带公式计算多边形面积（xs/ys 为坐标动态数组，n 为顶点数）。
+func polygonArea(var xs, var ys, int n) as float
+    if n < 3 then
+        throw "polygon needs at least 3 points"
+    end
+    float sum2 = 0.0
+    int i = 0
+    while i < n do
+        int j = i + 1
+        if j == n then
+            j = 0
+        end
+        float xi = float(xs[i])
+        float yi = float(ys[i])
+        float xj = float(xs[j])
+        float yj = float(ys[j])
+        float term = xi * yj - xj * yi
+        sum2 = sum2 + term
+        i += 1
+    end
+    return math.abs(sum2) * 0.5
+end
+
+func requireArgs(int got, int need, string what) as bool
+    if got < need then
+        println("Error: '" + what + "' needs " + string(need - 1) + " argument(s)")
+        return false
+    end
+    return true
+end
+
+func printUsage()
+    println("geo - geometry calculator")
+    println("Usage:")
+    println("  geo distance <x1> <y1> <x2> <y2>          distance between two points")
+    println("  geo circle area <r>                        circle area")
+    println("  geo circle perimeter <r>                   circle perimeter")
+    println("  geo rect area <w> <h>                      rectangle area")
+    println("  geo rect diagonal <w> <h>                  rectangle diagonal")
+    println("  geo triangle area <a> <b> <c>              triangle area (Heron)")
+    println("  geo triangle type <a> <b> <c>              triangle type")
+    println("  geo angle <x1> <y1> <x2> <y2>             angle between vectors (deg)")
+    println("  geo polygon area <x1,y1> <x2,y2> ...      polygon area (shoelace)")
+    println("  geo selftest                               run internal checks")
+end
+
+func runSelftest()
+    // 两点距离：(0,0)->(3,4) = 5
+    Point o = Point(0.0, 0.0)
+    Point a = Point(3.0, 4.0)
+    assert o.distanceTo(a) ~= 5.0
+
+    // 圆面积 r=2 -> 4*pi
+    float circleArea = math.pi * 2.0 * 2.0
+    assert circleArea ~= 12.566370614359172
+
+    // 矩形对角线 3x4 -> 5
+    assert math.hypot(3.0, 4.0) ~= 5.0
+
+    // 海伦公式 3,4,5 -> 6
+    float s = (3.0 + 4.0 + 5.0) * 0.5
+    float heron = math.sqrt(s * (s - 3.0) * (s - 4.0) * (s - 5.0))
+    assert heron ~= 6.0
+
+    // 三角形分类
+    assert triangleType(3.0, 3.0, 3.0) == "equilateral"
+    assert triangleType(3.0, 3.0, 4.0) == "isosceles"
+    assert triangleType(3.0, 4.0, 5.0) == "right"
+    assert triangleType(1.0, 1.0, 1.4142135623730951) == "isosceles-right"
+    assert triangleType(2.0, 3.0, 4.0) == "scalene"
+
+    // 两向量夹角 (1,0)-(0,1) = 90 度
+    Point ex = Point(1.0, 0.0)
+    Point ey = Point(0.0, 1.0)
+    float l1 = ex.length()
+    float l2 = ey.length()
+    float cosv = ex.dot(ey) / (l1 * l2)
+    float ang = math.deg(math.acos(cosv))
+    assert ang ~= 90.0
+
+    // 多边形面积：单位正方形 (0,0)(1,0)(1,1)(0,1) = 1
+    var sxs = []
+    var sys = []
+    pushPoint(sxs, sys, "0,0")
+    pushPoint(sxs, sys, "1,0")
+    pushPoint(sxs, sys, "1,1")
+    pushPoint(sxs, sys, "0,1")
+    assert polygonArea(sxs, sys, 4) ~= 1.0
+
+    println("selftest ok")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    try
+        if cmd == "distance" then
+            if not requireArgs(arg.length, 6, "distance") then
+                return 1
+            else
+                float x1 = float(arg[2])
+                float y1 = float(arg[3])
+                float x2 = float(arg[4])
+                float y2 = float(arg[5])
+                Point p1 = Point(x1, y1)
+                Point p2 = Point(x2, y2)
+                println(formatNum(p1.distanceTo(p2)))
+            end
+        elseif cmd == "circle" then
+            if arg.length < 3 then
+                println("Error: 'circle' needs a subcommand (area|perimeter)")
+                return 1
+            else
+                string sub = string(arg[2])
+                if sub == "area" then
+                    if not requireArgs(arg.length, 4, "circle area") then
+                        return 1
+                    else
+                        float r = float(arg[3])
+                        if r < 0.0 then
+                            throw "radius must be >= 0"
+                        end
+                        println(formatNum(math.pi * r * r))
+                    end
+                elseif sub == "perimeter" then
+                    if not requireArgs(arg.length, 4, "circle perimeter") then
+                        return 1
+                    else
+                        float r = float(arg[3])
+                        if r < 0.0 then
+                            throw "radius must be >= 0"
+                        end
+                        println(formatNum(2.0 * math.pi * r))
+                    end
+                else
+                    println("Error: unknown circle subcommand '" + sub + "'")
+                    return 1
+                end
+            end
+        elseif cmd == "rect" then
+            if arg.length < 3 then
+                println("Error: 'rect' needs a subcommand (area|diagonal)")
+                return 1
+            else
+                string sub = string(arg[2])
+                if sub == "area" then
+                    if not requireArgs(arg.length, 5, "rect area") then
+                        return 1
+                    else
+                        float w = float(arg[3])
+                        float h = float(arg[4])
+                        if w < 0.0 or h < 0.0 then
+                            throw "sides must be >= 0"
+                        end
+                        println(formatNum(w * h))
+                    end
+                elseif sub == "diagonal" then
+                    if not requireArgs(arg.length, 5, "rect diagonal") then
+                        return 1
+                    else
+                        float w = float(arg[3])
+                        float h = float(arg[4])
+                        if w < 0.0 or h < 0.0 then
+                            throw "sides must be >= 0"
+                        end
+                        println(formatNum(math.hypot(w, h)))
+                    end
+                else
+                    println("Error: unknown rect subcommand '" + sub + "'")
+                    return 1
+                end
+            end
+        elseif cmd == "triangle" then
+            if arg.length < 3 then
+                println("Error: 'triangle' needs a subcommand (area|type)")
+                return 1
+            else
+                string sub = string(arg[2])
+                if sub == "area" then
+                    if not requireArgs(arg.length, 6, "triangle area") then
+                        return 1
+                    else
+                        float a = float(arg[3])
+                        float b = float(arg[4])
+                        float c = float(arg[5])
+                        if not validTriangle(a, b, c) then
+                            throw "not a valid triangle"
+                        end
+                        float s = (a + b + c) * 0.5
+                        float area = math.sqrt(s * (s - a) * (s - b) * (s - c))
+                        println(formatNum(area))
+                    end
+                elseif sub == "type" then
+                    if not requireArgs(arg.length, 6, "triangle type") then
+                        return 1
+                    else
+                        float a = float(arg[3])
+                        float b = float(arg[4])
+                        float c = float(arg[5])
+                        if not validTriangle(a, b, c) then
+                            throw "not a valid triangle"
+                        end
+                        println(triangleType(a, b, c))
+                    end
+                else
+                    println("Error: unknown triangle subcommand '" + sub + "'")
+                    return 1
+                end
+            end
+        elseif cmd == "angle" then
+            if not requireArgs(arg.length, 6, "angle") then
+                return 1
+            else
+                float x1 = float(arg[2])
+                float y1 = float(arg[3])
+                float x2 = float(arg[4])
+                float y2 = float(arg[5])
+                Point v1 = Point(x1, y1)
+                Point v2 = Point(x2, y2)
+                float l1 = v1.length()
+                float l2 = v2.length()
+                if l1 == 0.0 or l2 == 0.0 then
+                    throw "zero vector has no angle"
+                end
+                float cosv = v1.dot(v2) / (l1 * l2)
+                if cosv > 1.0 then
+                    cosv = 1.0
+                end
+                if cosv < -1.0 then
+                    cosv = -1.0
+                end
+                println(formatNum(math.deg(math.acos(cosv))))
+            end
+        elseif cmd == "polygon" then
+            if arg.length < 3 then
+                println("Error: 'polygon' needs a subcommand (area)")
+                return 1
+            else
+                string sub = string(arg[2])
+                if sub == "area" then
+                    int pointCount = arg.length - 3
+                    if pointCount < 3 then
+                        println("Error: 'polygon area' needs at least 3 points")
+                        return 1
+                    else
+                        var xs = []
+                        var ys = []
+                        int idx = 0
+                        while idx < pointCount do
+                            pushPoint(xs, ys, string(arg[idx + 3]))
+                            idx += 1
+                        end
+                        println(formatNum(polygonArea(xs, ys, pointCount)))
+                    end
+                else
+                    println("Error: unknown polygon subcommand '" + sub + "'")
+                    return 1
+                end
+            end
+        elseif cmd == "selftest" then
+            runSelftest()
+        else
+            println("Error: unknown command '" + cmd + "'")
+            printUsage()
+            return 1
+        end
+        return 0
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+
+    return 0
+end

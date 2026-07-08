@@ -1,0 +1,190 @@
+// passgen.xl - password / random string generator
+//
+// usage:
+//   passgen                     default 16-char strong password
+//   passgen <length>            password of given length
+//   passgen <length> --no-symbols
+//   passgen <length> --hex      HEX string via crypto.randomHex
+//   passgen <count> <length>    batch generate
+//   passgen --uuid              UUID v4 (random.u32 based)
+//   passgen --help | -h         show help
+
+func charsetLower() as string
+    return "abcdefghijklmnopqrstuvwxyz"
+end
+
+func charsetUpper() as string
+    return "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+end
+
+func charsetDigits() as string
+    return "0123456789"
+end
+
+func charsetSymbols() as string
+    return "!@#$%^&*()-_=+[]{};:,.<>?/"
+end
+
+func buildCharset(bool useSymbols) as string
+    string cs = charsetLower() + charsetUpper() + charsetDigits()
+    if useSymbols then
+        cs = cs + charsetSymbols()
+    end
+    return cs
+end
+
+func genPassword(int length, bool useSymbols) as string
+    if length <= 0 then
+        return ""
+    end
+    return random.string(length, buildCharset(useSymbols))
+end
+
+func genHex(int length) as string
+    if length <= 0 then
+        return ""
+    end
+    int nbytes = (length + 1) / 2
+    string hex = crypto.randomHex(nbytes)
+    return string.lower(string.left(hex, length))
+end
+
+func genUuid() as string
+    string all = string.formatInt(random.u32(), "x8") + string.formatInt(random.u32(), "x8") + string.formatInt(random.u32(), "x8") + string.formatInt(random.u32(), "x8")
+    string p1 = string.left(all, 8)
+    string p2 = string.mid(all, 8, 4)
+    string p3 = "4" + string.mid(all, 13, 3)
+    string p4 = "8" + string.mid(all, 17, 3)
+    string p5 = string.mid(all, 20, 12)
+    return p1 + "-" + p2 + "-" + p3 + "-" + p4 + "-" + p5
+end
+
+func assessStrength(string pw) as string
+    string lo = charsetLower()
+    string up = charsetUpper()
+    string dg = charsetDigits()
+    bool hasLower = false
+    bool hasUpper = false
+    bool hasDigit = false
+    bool hasSym = false
+    for c in pw
+        if string.contains(lo, c) then
+            hasLower = true
+        elseif string.contains(up, c) then
+            hasUpper = true
+        elseif string.contains(dg, c) then
+            hasDigit = true
+        else
+            hasSym = true
+        end
+    end
+    int categories = 0
+    if hasLower then categories = categories + 1 end
+    if hasUpper then categories = categories + 1 end
+    if hasDigit then categories = categories + 1 end
+    if hasSym then categories = categories + 1 end
+    string tag = "weak"
+    if categories >= 4 and string.len(pw) >= 16 then
+        tag = "strong"
+    elseif categories >= 3 then
+        tag = "medium"
+    elseif categories >= 2 then
+        tag = "fair"
+    end
+    string detail = ""
+    if hasLower then detail = detail + "lower " end
+    if hasUpper then detail = detail + "upper " end
+    if hasDigit then detail = detail + "digit " end
+    if hasSym then detail = detail + "symbol" end
+    return "[" + tag + "] " + string.formatInt(categories, "") + "/4 categories (" + detail + ")"
+end
+
+func printUsage()
+    println("passgen - password / random string generator")
+    println("")
+    println("usage:")
+    println("  passgen                  default 16-char strong password")
+    println("  passgen <length>         custom length")
+    println("  passgen <length> --no-symbols")
+    println("  passgen <length> --hex   HEX string (crypto.randomHex)")
+    println("  passgen <count> <length> batch generate")
+    println("  passgen --uuid           UUID v4 (random.u32 based)")
+    println("  passgen --help | -h      show this help")
+end
+
+func main(...) as int
+    int length = 16
+    int count = 1
+    bool useSymbols = true
+    bool hexMode = false
+    bool uuidMode = false
+    int pos1 = 0
+    bool hasPos1 = false
+    int pos2 = 0
+    bool hasPos2 = false
+
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "--no-symbols" then
+            useSymbols = false
+        elseif a == "--hex" then
+            hexMode = true
+        elseif a == "--uuid" then
+            uuidMode = true
+        elseif a == "--help" or a == "-h" then
+            printUsage()
+            return 0
+        elseif string.startsWith(a, "-") then
+            println("passgen: unknown option: " + a)
+            return 1
+        else
+            int n = int(a)
+            if not hasPos1 then
+                pos1 = n
+                hasPos1 = true
+            elseif not hasPos2 then
+                pos2 = n
+                hasPos2 = true
+            end
+        end
+        i += 1
+    end
+
+    if hasPos1 and hasPos2 then
+        count = pos1
+        length = pos2
+    elseif hasPos1 then
+        length = pos1
+    end
+
+    if count < 1 then
+        count = 1
+    end
+
+    if uuidMode then
+        for k in range(count)
+            println(genUuid())
+        end
+        return 0
+    end
+
+    if hexMode then
+        for k in range(count)
+            println(genHex(length))
+        end
+        return 0
+    end
+
+    string pw = ""
+    for k in range(count)
+        pw = genPassword(length, useSymbols)
+        if count > 1 then
+            println(pw + "  " + assessStrength(pw))
+        else
+            println(pw)
+            println(assessStrength(pw))
+        end
+    end
+    return 0
+end

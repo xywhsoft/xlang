@@ -1,0 +1,8 @@
+// report generator - second duplicate group
+func line(string label, int value) as string
+    return label + ": " + string(value)
+end
+func main(...) as int
+    println(line("total", 42))
+    return 0
+end

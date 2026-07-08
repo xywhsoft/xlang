@@ -1,0 +1,143 @@
+// tree.xl - 目录树打印工具 (类似 Windows tree / Linux tree)
+//
+// 用法:
+//   tree <path>        打印 path 下完整树形 (目录在前, 文件在后)
+//   tree <path> -d     只显示目录
+//   tree               默认当前目录
+//
+// 实现:
+//   - dir.entries(path, false) 非递归获取一层条目 (var 字典数组)
+//   - 就地选择排序: 目录优先, 同类按名称大小写不敏感升序
+//   - file.info(path).size 获取文件大小
+//   - 递归函数 walk 处理子目录, 用 prefix 字符串传递缩进上下文
+
+const string branchMid = "├── "
+const string branchEnd = "└── "
+const string contMid   = "│   "
+const string contEnd   = "    "
+
+func formatSize(int bytes) as string
+    if bytes < 1024 then
+        return string(bytes) + " B"
+    end
+    float kb = float(bytes) / 1024.0
+    if kb < 1024.0 then
+        return string.formatFloat(kb, ".1") + " KB"
+    end
+    float mb = kb / 1024.0
+    return string.formatFloat(mb, ".1") + " MB"
+end
+
+// 就地对 dir.entries 返回的 var 数组排序: 目录优先, 同类按 name 大小写不敏感升序
+func sortEntries(array raw)
+    int n = raw.length
+    int i = 0
+    while i < n do
+        int minIdx = i
+        int j = i + 1
+        while j < n do
+            var ej = raw[j]
+            var em = raw[minIdx]
+            bool ejDir = bool(ej["isDir"])
+            bool emDir = bool(em["isDir"])
+            bool less = false
+            if ejDir != emDir then
+                less = ejDir
+            else
+                string ejName = string.lower(string(ej["name"]))
+                string emName = string.lower(string(em["name"]))
+                less = string.compare(ejName, emName, false) < 0
+            end
+            if less then
+                minIdx = j
+            end
+            j += 1
+        end
+        if minIdx != i then
+            var tmp = raw[i]
+            raw[i] = raw[minIdx]
+            raw[minIdx] = tmp
+        end
+        i += 1
+    end
+end
+
+func walk(string basePath, string prefix, bool dirsOnly)
+    array raw = dir.entries(basePath, false)
+    sortEntries(raw)
+    int n = raw.length
+
+    // 先数出可见条目数, 以判断每个条目是否为同级最后一个
+    int visible = 0
+    int c = 0
+    while c < n do
+        var ec = raw[c]
+        bool isDir = bool(ec["isDir"])
+        if (not dirsOnly) or isDir then
+            visible += 1
+        end
+        c += 1
+    end
+
+    int printed = 0
+    int k = 0
+    while k < n do
+        var e = raw[k]
+        bool isDir = bool(e["isDir"])
+        bool show = (not dirsOnly) or isDir
+        if not show then
+            k += 1
+            continue
+        end
+
+        bool isLast = (printed == visible - 1)
+        string branch = isLast ? branchEnd : branchMid
+        string name = string(e["name"])
+        string line = prefix + branch + name
+
+        if not isDir then
+            string fp = string(e["path"])
+            FileInfo info = file.info(fp)
+            int sz = int(info.size)
+            line = line + "  (" + formatSize(sz) + ")"
+        end
+
+        println(line)
+
+        if isDir then
+            string childPrefix = prefix + (isLast ? contEnd : contMid)
+            walk(string(e["path"]), childPrefix, dirsOnly)
+        end
+
+        printed += 1
+        k += 1
+    end
+end
+
+func main(...) as int
+    string target = "."
+    bool dirsOnly = false
+
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "-d" or a == "--dirs" then
+            dirsOnly = true
+        elseif a == "-h" or a == "--help" then
+            println("usage: tree [path] [-d]")
+            return 0
+        else
+            target = a
+        end
+        i += 1
+    end
+
+    if not dir.exists(target) then
+        println("tree: path not found:", target)
+        return 1
+    end
+
+    println(target)
+    walk(target, "", dirsOnly)
+    return 0
+end

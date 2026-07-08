@@ -1,0 +1,147 @@
+// stats - 统计计算器
+// 对一组数字计算 Count/Sum/Mean/Median/Min/Max/Range/Variance/StdDev/SumSq。
+//
+// 用法:
+//   xl run stats.xl -- 1 2 3 4 5 6 7 8 9 10
+//   xl run stats.xl -- -f data.txt
+//
+// 数字一律按 float 收集 (list<float> + 索引赋值扩容)。
+// math 标准库没有 sum/mean，所有聚合手写循环。
+
+// 把 float 格式化为人类友好字符串：整数落点显示为整数，否则原样。
+func fmtNum(float v) as string
+    if v == math.floor(v) then
+        return string(int(v))
+    end
+    return string(v)
+end
+
+// 标签右补空格到 width=10，再拼值，保证列对齐。
+func line(string label, string value) as string
+    return string.padRight(label, 10) + value
+end
+
+// 选择排序 (原地, 升序)。
+func sortFloats(list<float> data)
+    int n = data.length
+    int i = 0
+    while i < n do
+        int minIdx = i
+        int j = i + 1
+        while j < n do
+            if data[j] < data[minIdx] then
+                minIdx = j
+            end
+            j += 1
+        end
+        if minIdx != i then
+            float tmp = data[i]
+            data[i] = data[minIdx]
+            data[minIdx] = tmp
+        end
+        i += 1
+    end
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        println("usage: stats <n1> <n2> ...")
+        println("       stats -f <file>")
+        return 1
+    end
+
+    list<float> data
+    int count = 0
+    string first = string(arg[1])
+
+    if first == "-f" then
+        if arg.length < 3 then
+            println("error: missing file path after -f")
+            return 1
+        end
+        string path = string(arg[2])
+        if not file.exists(path) then
+            println("error: file not found: " + path)
+            return 1
+        end
+        string text = file.readText(path)
+        array lines = string.splitLines(text)
+        int li = 0
+        while li < lines.length do
+            string s = string.trim(string(lines[li]))
+            if string.len(s) > 0 then
+                data[count] = float(s)
+                count += 1
+            end
+            li += 1
+        end
+    else
+        int ai = 1
+        while ai < arg.length do
+            data[count] = float(string(arg[ai]))
+            count += 1
+            ai += 1
+        end
+    end
+
+    if count == 0 then
+        println("error: no numbers to compute")
+        return 1
+    end
+
+    // --- 选择排序 (升序) ---
+    sortFloats(data)
+
+    // --- 聚合：sum / sumSq ---
+    float sum = 0.0
+    float sumSq = 0.0
+    int si = 0
+    while si < count do
+        float x = data[si]
+        sum += x
+        sumSq += x * x
+        si += 1
+    end
+
+    float nFloat = float(count)
+    float mean = sum / nFloat
+
+    // --- 方差 / 标准差 (总体方差，除以 n) ---
+    float varSum = 0.0
+    int vi = 0
+    while vi < count do
+        float diff = data[vi] - mean
+        varSum += diff * diff
+        vi += 1
+    end
+    float variance = varSum / nFloat
+    float stddev = math.sqrt(variance)
+
+    // --- min/max/range (已排序) ---
+    float minV = data[0]
+    float maxV = data[count - 1]
+    float range = maxV - minV
+
+    // --- median ---
+    float median = 0.0
+    int half = count / 2
+    if count % 2 == 1 then
+        median = data[half]
+    else
+        float lo = data[half - 1]
+        float hi = data[half]
+        median = (lo + hi) / 2.0
+    end
+
+    println(line("Count:",    string(count)))
+    println(line("Sum:",      fmtNum(sum)))
+    println(line("Mean:",     fmtNum(mean)))
+    println(line("Median:",   fmtNum(median)))
+    println(line("Min:",      fmtNum(minV)))
+    println(line("Max:",      fmtNum(maxV)))
+    println(line("Range:",    fmtNum(range)))
+    println(line("Variance:", fmtNum(variance)))
+    println(line("StdDev:",   fmtNum(stddev)))
+    println(line("SumSq:",    fmtNum(sumSq)))
+    return 0
+end

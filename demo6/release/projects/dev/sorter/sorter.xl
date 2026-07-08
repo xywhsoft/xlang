@@ -1,0 +1,357 @@
+// sorter - 数据排序去重工具
+//
+// 用法:
+//   sorter sort <file>            对文件每行按字符串升序排序
+//   sorter sort <file> -r         降序
+//   sorter sort <file> -n         按数值排序 (每行解析为 float)
+//   sorter sort <file> -n -r      数值降序
+//   sorter unique <file>          去重, 保留首次出现顺序
+//   sorter unique <file> -s       去重并升序排序
+//   sorter count <file>           统计每行出现次数, 按次数降序 (次数相同按首次出现顺序)
+//   sorter reverse <file>         反转行序
+//   sorter help                   显示帮助
+//
+// 设计要点:
+//   - 读取: file.readText + string.splitLines, 收集到 array<string>.
+//   - 排序: 选择排序 (原地), O(n^2); 数值模式预解析 float 键到并行数组, 排序时同步交换.
+//   - 去重: 顺序扫描 + array.contains, 保留首次出现顺序; -s 在去重后复用 sortStrings.
+//   - 统计: 先去重得到首次出现序的 unique 列表与并行 count, 再按 (count desc, ord asc)
+//     选择排序; ord 随元素一起交换, 保证同次数时稳定保持首次出现顺序.
+//   - 反转: 直接用 array.reverse 容器 API.
+//   - 结果一律输出到 stdout (Unix sort 风格), 便于管道与脚本消费.
+
+// 把任意 var 元素安全转成 string (splitLines 返回的是动态 array, 元素需转换).
+func toStr(var v) as string
+    return string(v)
+end
+
+// 读取文件全部非空处理: 返回每行的 array<string> (不去空行, 不去空白).
+// 注意: string.splitLines 把末尾换行当成"分隔符"而非"行终结符",
+// "a\nb\n" 会得到 ["a","b",""] (多一个尾部空串, 见 BUG-S1).
+// 这里按 Unix 行工具惯例丢掉恰好一个尾部空串, 使 "a\nb\n" 等价于两行.
+func loadLines(string path) as array<string>
+    string text = file.readText(path)
+    array raw = string.splitLines(text)
+    int n = raw.length
+    array<string> result = array[""]
+    result.remove(0)
+    int i = 0
+    while i < n do
+        result.push(toStr(raw[i]))
+        i += 1
+    end
+    if result.length > 0 then
+        if result[result.length - 1] == "" then
+            result.remove(result.length - 1)
+        end
+    end
+    return result
+end
+
+// 选择排序 (原地, 字符串比较). descending=true 时降序.
+func sortStrings(array<string> a, bool descending)
+    int n = a.length
+    int i = 0
+    while i < n do
+        int sel = i
+        int j = i + 1
+        while j < n do
+            bool swap = false
+            if descending then
+                // 降序: 找最大; a[j] > a[sel] 时选中
+                if string.compare(a[j], a[sel]) > 0 then
+                    swap = true
+                end
+            else
+                // 升序: 找最小; a[j] < a[sel] 时选中
+                if string.compare(a[j], a[sel]) < 0 then
+                    swap = true
+                end
+            end
+            if swap then
+                sel = j
+            end
+            j += 1
+        end
+        if sel != i then
+            string tmp = a[i]
+            a[i] = a[sel]
+            a[sel] = tmp
+        end
+        i += 1
+    end
+end
+
+// 把一行解析为 float; 解析失败返回 0.0 (与 sort -n 对非数字行的处理一致).
+func numKey(string s) as float
+    string t = string.trim(s)
+    if string.len(t) == 0 then
+        return 0.0
+    end
+    try
+        return float(t)
+    catch e
+        return 0.0
+    end
+end
+
+// 选择排序 (原地, 数值比较). descending=true 时降序. 预先把每行解析为 float 键.
+func sortNumeric(array<string> a, bool descending)
+    int n = a.length
+    // 预解析数值键, 避免在比较函数里重复 try/catch.
+    array<float> keys = array[0.0]
+    keys.remove(0)
+    int ki = 0
+    while ki < n do
+        keys.push(numKey(a[ki]))
+        ki += 1
+    end
+
+    int i = 0
+    while i < n do
+        int sel = i
+        int j = i + 1
+        while j < n do
+            bool swap = false
+            if descending then
+                if keys[j] > keys[sel] then
+                    swap = true
+                end
+            else
+                if keys[j] < keys[sel] then
+                    swap = true
+                end
+            end
+            if swap then
+                sel = j
+            end
+            j += 1
+        end
+        if sel != i then
+            // 行与键必须同步交换, 否则后续比较会错位.
+            string tmpS = a[i]
+            a[i] = a[sel]
+            a[sel] = tmpS
+            float tmpK = keys[i]
+            keys[i] = keys[sel]
+            keys[sel] = tmpK
+        end
+        i += 1
+    end
+end
+
+// 去重, 保留首次出现顺序. 用 array.contains 做线性查重.
+func dedupe(array<string> a) as array<string>
+    array<string> out = array[""]
+    out.remove(0)
+    int n = a.length
+    int i = 0
+    while i < n do
+        if not out.contains(a[i]) then
+            out.push(a[i])
+        end
+        i += 1
+    end
+    return out
+end
+
+// 把数组逐行打印到 stdout.
+func printLines(array<string> a)
+    int n = a.length
+    int i = 0
+    while i < n do
+        println(a[i])
+        i += 1
+    end
+end
+
+// 统计每行出现次数, 按 (count desc, 首次出现顺序 asc) 排序后输出.
+// 用并行三数组 (行/次数/原始序号) + 选择排序, ord 随元素交换保证稳定.
+func runCount(array<string> a)
+    int n = a.length
+    array<string> ul = array[""]
+    ul.remove(0)
+    array<int> cnt = array[0]
+    cnt.remove(0)
+    array<int> ord = array[0]
+    ord.remove(0)
+
+    int i = 0
+    while i < n do
+        int pos = -1
+        int k = 0
+        int m = ul.length
+        while k < m do
+            if string.equals(ul[k], a[i]) then
+                pos = k
+            end
+            k += 1
+        end
+        if pos >= 0 then
+            cnt[pos] = cnt[pos] + 1
+        else
+            ul.push(a[i])
+            cnt.push(1)
+            ord.push(ul.length - 1)
+        end
+        i += 1
+    end
+
+    // 选择排序: count 降序; 同 count 时 ord 小的 (更早出现) 在前.
+    int p = 0
+    int mm = ul.length
+    while p < mm do
+        int sel = p
+        int q = p + 1
+        while q < mm do
+            bool take = false
+            if cnt[q] > cnt[sel] then
+                take = true
+            elseif cnt[q] == cnt[sel] then
+                if ord[q] < ord[sel] then
+                    take = true
+                end
+            end
+            if take then
+                sel = q
+            end
+            q += 1
+        end
+        if sel != p then
+            string ts = ul[p]
+            ul[p] = ul[sel]
+            ul[sel] = ts
+            int tc = cnt[p]
+            cnt[p] = cnt[sel]
+            cnt[sel] = tc
+            int to = ord[p]
+            ord[p] = ord[sel]
+            ord[sel] = to
+        end
+        p += 1
+    end
+
+    // 计算最大计数位数, 用于右对齐.
+    int maxCount = 0
+    int r = 0
+    while r < mm do
+        if cnt[r] > maxCount then
+            maxCount = cnt[r]
+        end
+        r += 1
+    end
+    int width = string.len(string(maxCount))
+    if width < 4 then
+        width = 4
+    end
+
+    int w = 0
+    while w < mm do
+        println(string.padLeft(string(cnt[w]), width, " ") + " " + ul[w])
+        w += 1
+    end
+end
+
+func printUsage()
+    println("sorter - 数据排序去重工具")
+    println("用法:")
+    println("  sorter sort <file> [-r] [-n]   排序 (-r 降序, -n 数值)")
+    println("  sorter unique <file> [-s]      去重 (-s 去重并排序)")
+    println("  sorter count <file>            统计次数, 按次数降序")
+    println("  sorter reverse <file>          反转行序")
+    println("  sorter help                    显示本帮助")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    // reverse 只需要文件名, 不接受额外选项.
+    if cmd == "reverse" then
+        if arg.length < 3 then
+            println("sorter: reverse needs a file: sorter reverse <file>")
+            return 1
+        end
+        string path = string(arg[2])
+        if not file.exists(path) then
+            println("sorter: file not found: " + path)
+            return 1
+        end
+        array<string> lines = loadLines(path)
+        lines.reverse()
+        printLines(lines)
+        return 0
+    end
+
+    // sort / unique / count 都需要文件名, 后续参数为选项.
+    if cmd == "sort" or cmd == "unique" or cmd == "count" then
+        if arg.length < 3 then
+            println("sorter: " + cmd + " needs a file: sorter " + cmd + " <file> [options]")
+            return 1
+        end
+        string path = string(arg[2])
+        if not file.exists(path) then
+            println("sorter: file not found: " + path)
+            return 1
+        end
+
+        // 解析选项 (出现在第 3 个参数及之后).
+        bool desc = false
+        bool numeric = false
+        bool sortFlag = false
+        int oi = 3
+        while oi < arg.length do
+            string o = string(arg[oi])
+            if o == "-r" or o == "--reverse" then
+                desc = true
+            elseif o == "-n" or o == "--numeric" then
+                numeric = true
+            elseif o == "-s" or o == "--sort" then
+                sortFlag = true
+            else
+                println("sorter: unknown option: " + o)
+                return 1
+            end
+            oi += 1
+        end
+
+        array<string> lines = loadLines(path)
+
+        if cmd == "sort" then
+            if numeric then
+                sortNumeric(lines, desc)
+            else
+                sortStrings(lines, desc)
+            end
+            printLines(lines)
+            return 0
+        end
+
+        if cmd == "unique" then
+            array<string> u = dedupe(lines)
+            if sortFlag then
+                sortStrings(u, false)
+            end
+            printLines(u)
+            return 0
+        end
+
+        // cmd == "count"
+        runCount(lines)
+        return 0
+    end
+
+    println("sorter: unknown command: " + cmd)
+    println("")
+    printUsage()
+    return 1
+end

@@ -1,0 +1,304 @@
+// contacts - 通讯录管理器
+//
+// 用法：
+//   contacts add "张三" "13800138000" "zhangsan@test.com"
+//   contacts list
+//   contacts search "张"
+//   contacts delete 2
+//   contacts update 1 --name "李四" --phone "13900139000"
+//
+// 数据持久化到脚本/exe 同目录的 contacts.json。
+//
+// 设计说明：
+//   - Contact 用 class + derive value + derive json 定义。
+//   - 集合直接用 array<Contact> + json.stringify(items, pretty=true) 整体落盘。
+//   - 读回时用 json.parse 解析成 var 数组，逐项 json.parse::<Contact> 还原。
+//   - array<Contact> 作为函数参数与返回值正常传递。
+//   - array<Contact>.append / .remove(idx) 正常工作。
+
+class Contact
+    derive value
+    derive json
+
+    int id = 0
+    string name = ""
+    string phone = ""
+    string email = ""
+end
+
+
+// 数据文件路径：脚本/exe 同目录下的 contacts.json。
+func dataPath(string scriptPath) as string
+    return path.join(path.dir(scriptPath), "contacts.json")
+end
+
+
+// 从磁盘读取并还原成 array<Contact>；文件不存在/为空时返回空数组。
+func loadContacts(string path_) as array<Contact>
+    array<Contact> result = array[]
+    if not file.exists(path_) then
+        return result
+    end
+    string text = file.readText(path_)
+    if string.isEmpty(text) then
+        return result
+    end
+    var items = json.parse(text)
+    if items == null then
+        return result
+    end
+    int n = items.length
+    int i = 0
+    while i < n do
+        var elem = items[i]
+        Contact c = json.parse::<Contact>(json.stringify(elem))
+        result.append(c)
+        i += 1
+    end
+    return result
+end
+
+
+// 把 array<Contact> 整体序列化落盘。
+func saveContacts(string path_, array<Contact> items)
+    string jsonText = json.stringify(items, pretty = true)
+    // json pretty 默认用 TAB 缩进，统一替换成 2 空格更美观。
+    jsonText = string.replace(jsonText, "\t", "  ")
+    bool ok = file.writeText(path_, jsonText)
+    if not ok then
+        println("Error: failed to write " + path_)
+    end
+end
+
+
+// 生成下一个自增 id。
+func nextId(array<Contact> items) as int
+    int maxId = 0
+    int i = 0
+    int n = items.length
+    while i < n do
+        Contact c = items[i]
+        if c.id > maxId then
+            maxId = c.id
+        end
+        i += 1
+    end
+    return maxId + 1
+end
+
+
+// 按 id 查找下标，找不到返回 -1。
+func findById(array<Contact> items, int id) as int
+    int i = 0
+    int n = items.length
+    while i < n do
+        Contact c = items[i]
+        if c.id == id then
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+
+func cmdAdd(string scriptPath, string name, string phone, string email)
+    string path_ = dataPath(scriptPath)
+    array<Contact> items = loadContacts(path_)
+    int newId = nextId(items)
+
+    Contact c
+    c.id = newId
+    c.name = name
+    c.phone = phone
+    c.email = email
+
+    items.append(c)
+    saveContacts(path_, items)
+    println("Added #" + string(c.id) + ": " + c.name + " / " + c.phone + " / " + c.email)
+end
+
+
+func cmdList(string scriptPath)
+    string path_ = dataPath(scriptPath)
+    array<Contact> items = loadContacts(path_)
+
+    if items.length == 0 then
+        println("(no contacts)")
+        return
+    end
+
+    println(string(items.length) + " contact(s):")
+    int i = 0
+    int n = items.length
+    while i < n do
+        Contact c = items[i]
+        println("[" + string(c.id) + "] " + c.name + " | " + c.phone + " | " + c.email)
+        i += 1
+    end
+end
+
+
+func cmdSearch(string scriptPath, string query)
+    string path_ = dataPath(scriptPath)
+    array<Contact> items = loadContacts(path_)
+
+    int hits = 0
+    int i = 0
+    int n = items.length
+    while i < n do
+        Contact c = items[i]
+        bool match = false
+        if string.contains(c.name, query) then
+            match = true
+        end
+        if string.contains(c.phone, query) then
+            match = true
+        end
+        if string.contains(c.email, query) then
+            match = true
+        end
+        if match then
+            println("[" + string(c.id) + "] " + c.name + " | " + c.phone + " | " + c.email)
+            hits += 1
+        end
+        i += 1
+    end
+
+    if hits == 0 then
+        println("No matches for '" + query + "'.")
+    else
+        println(string(hits) + " match(es).")
+    end
+end
+
+
+func cmdDelete(string scriptPath, int id)
+    string path_ = dataPath(scriptPath)
+    array<Contact> items = loadContacts(path_)
+
+    int idx = findById(items, id)
+    if idx < 0 then
+        println("Error: no contact with id " + string(id))
+        return
+    end
+
+    items.remove(idx)
+    saveContacts(path_, items)
+    println("Deleted #" + string(id) + ".")
+end
+
+
+// 更新指定 id 的联系人；三个字段传入空串表示不改该字段。
+func cmdUpdate(string scriptPath, int id, string newName, string newPhone, string newEmail)
+    string path_ = dataPath(scriptPath)
+    array<Contact> items = loadContacts(path_)
+
+    int idx = findById(items, id)
+    if idx < 0 then
+        println("Error: no contact with id " + string(id))
+        return
+    end
+
+    Contact c = items[idx]
+    if not string.isEmpty(newName) then
+        c.name = newName
+    end
+    if not string.isEmpty(newPhone) then
+        c.phone = newPhone
+    end
+    if not string.isEmpty(newEmail) then
+        c.email = newEmail
+    end
+    items[idx] = c
+
+    saveContacts(path_, items)
+    println("Updated #" + string(c.id) + ": " + c.name + " / " + c.phone + " / " + c.email)
+end
+
+
+func printUsage()
+    println("Usage:")
+    println("  contacts add \"<name>\" \"<phone>\" \"<email>\"   add a contact")
+    println("  contacts list                                 list all contacts")
+    println("  contacts search \"<query>\"                     search name/phone/email")
+    println("  contacts delete <id>                          delete contact by id")
+    println("  contacts update <id> --name \"<n>\" --phone \"<p>\" --email \"<e>\"")
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string scriptPath = string(arg[0])
+    string command = string(arg[1])
+
+    if command == "add" then
+        if arg.length < 5 then
+            println("Error: 'add' needs name, phone and email arguments")
+            println("  contacts add \"<name>\" \"<phone>\" \"<email>\"")
+            return 1
+        end
+        cmdAdd(scriptPath, string(arg[2]), string(arg[3]), string(arg[4]))
+        return 0
+    end
+
+    if command == "list" then
+        cmdList(scriptPath)
+        return 0
+    end
+
+    if command == "search" then
+        if arg.length < 3 then
+            println("Error: 'search' needs a query argument")
+            return 1
+        end
+        cmdSearch(scriptPath, string(arg[2]))
+        return 0
+    end
+
+    if command == "delete" then
+        if arg.length < 3 then
+            println("Error: 'delete' needs an id argument")
+            return 1
+        end
+        cmdDelete(scriptPath, int(arg[2]))
+        return 0
+    end
+
+    if command == "update" then
+        if arg.length < 3 then
+            println("Error: 'update' needs an id argument")
+            return 1
+        end
+        int id = int(arg[2])
+        string newName = ""
+        string newPhone = ""
+        string newEmail = ""
+        int i = 3
+        while i < arg.length do
+            string flag = string(arg[i])
+            if flag == "--name" and i + 1 < arg.length then
+                newName = string(arg[i + 1])
+                i += 2
+            elseif flag == "--phone" and i + 1 < arg.length then
+                newPhone = string(arg[i + 1])
+                i += 2
+            elseif flag == "--email" and i + 1 < arg.length then
+                newEmail = string(arg[i + 1])
+                i += 2
+            else
+                i += 1
+            end
+        end
+        cmdUpdate(scriptPath, id, newName, newPhone, newEmail)
+        return 0
+    end
+
+    println("Error: unknown command '" + command + "'")
+    printUsage()
+    return 1
+end

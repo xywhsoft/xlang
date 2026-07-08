@@ -1,0 +1,13 @@
+banana
+apple
+cherry
+apple
+banana
+apple
+date
+10
+2
+1
+10
+2
+100

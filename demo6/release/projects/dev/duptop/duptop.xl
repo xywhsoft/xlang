@@ -1,0 +1,201 @@
+// duptop - disk usage top (按文件大小排序输出 TopN)
+//
+// 用法:
+//   duptop <path> [N=10]     扫描 path 下文件, 按大小降序输出 TopN
+//   duptop <path> -d         只统计目录大小 (每个子目录用 dir.size 汇总)
+//   duptop <path> -r         递归扫描所有子目录中的文件
+//   duptop <path> -d -r      递归列出所有层级的目录及其累计大小
+//   duptop <path> -n 20      显式指定 TopN
+//   duptop                    默认当前目录, N=10
+//
+// 设计要点:
+//   - dir.entries(path, recursive) 返回 var 字典数组, 已含 size/path/isFile/isDir 字段.
+//   - 用 array<string> + array<int64> 平行收集 (B2 已修复, 直接 append).
+//   - 部分选择排序: 只跑 min(N, count) 轮, 把最大的 N 个换到队首, O(N*count).
+//   - 目录模式用 dir.size(path) 重新汇总, 文件模式直接读 entries 的 size.
+//   - 路径显示用 path.rel 转成相对 root 的短路径, 失败时手工剥离前缀.
+
+// 把字节数格式化成人类可读尺寸 (B/KB/MB/GB), 保留 1 位小数.
+func formatSize(int64 bytes) as string
+    if bytes < 1024 then
+        return string(int(bytes)) + " B"
+    end
+    float kb = float(bytes) / 1024.0
+    if kb < 1024.0 then
+        return string.formatFloat(kb, ".1") + " KB"
+    end
+    float mb = kb / 1024.0
+    if mb < 1024.0 then
+        return string.formatFloat(mb, ".1") + " MB"
+    end
+    float gb = mb / 1024.0
+    return string.formatFloat(gb, ".1") + " GB"
+end
+
+// 判断字符串是否全为数字 (用于区分位置参数是 N 还是 path).
+func isAllDigits(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int i = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        if not string.contains("0123456789", c) then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+// 把 fullPath 转成相对 root 的显示路径 (如 calc\calc.exe).
+func relName(string root, string fullPath) as string
+    string rel = path.rel(root, fullPath)
+    if string.len(rel) > 0 and rel != "." then
+        if not path.isAbs(rel) then
+            return rel
+        end
+    end
+    // 回退: 规范化后手工剥离 root + 分隔符前缀.
+    string rootN = path.normalize(root)
+    string fullN = path.normalize(fullPath)
+    string prefix = rootN + path.sep()
+    if string.startsWith(fullN, prefix) then
+        int plen = string.len(prefix)
+        int rest = string.len(fullN) - plen
+        return string.mid(fullN, plen, rest)
+    end
+    return fullN
+end
+
+func printUsage()
+    println("duptop - disk usage top")
+    println("usage: duptop [path] [N=10] [-d] [-r]")
+    println("  -d           size directories instead of files")
+    println("  -r           scan recursively")
+    println("  -n <N>       explicit top N")
+    println("examples:")
+    println("  duptop projects\\dev 5")
+    println("  duptop examples -r")
+    println("  duptop . -d -r -n 20")
+end
+
+func main(...) as int
+    string target = "."
+    int topN = 10
+    bool dirsMode = false
+    bool recursive = false
+
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "-d" or a == "--dirs" then
+            dirsMode = true
+        elseif a == "-r" or a == "--recursive" then
+            recursive = true
+        elseif a == "-h" or a == "--help" then
+            printUsage()
+            return 0
+        elseif a == "-n" or a == "--n" then
+            i += 1
+            if i < arg.length then
+                topN = int(string(arg[i]))
+            end
+        elseif isAllDigits(a) then
+            topN = int(a)
+        else
+            target = a
+        end
+        i += 1
+    end
+
+    if topN < 1 then
+        topN = 10
+    end
+
+    if not dir.exists(target) then
+        println("duptop: path not found:", target)
+        return 1
+    end
+
+    // 收集目标条目 (B2 已修复: 直接用 array<T> + append).
+    array<string> paths = array[]
+    array<int64> sizes = array[]
+
+    array raw = dir.entries(target, recursive)
+    int n = raw.length
+    int k = 0
+    while k < n do
+        var e = raw[k]
+        bool isDir = bool(e["isDir"])
+        if isDir == dirsMode then
+            string p = string(e["path"])
+            int64 s = 0
+            if dirsMode then
+                s = int64(dir.size(p))
+            else
+                s = int64(e["size"])
+            end
+            paths.append(p)
+            sizes.append(s)
+        end
+        k += 1
+    end
+
+    int len = paths.length
+
+    // 部分选择排序 (降序): 只把前 limit 个位置排好, 其余保持原序.
+    int limit = topN
+    if limit > len then
+        limit = len
+    end
+    int a = 0
+    while a < limit do
+        int maxIdx = a
+        int64 maxSize = sizes[a]
+        int b = a + 1
+        while b < len do
+            int64 sb = sizes[b]
+            if sb > maxSize then
+                maxIdx = b
+                maxSize = sb
+            end
+            b += 1
+        end
+        if maxIdx != a then
+            string tp = paths[a]
+            paths[a] = paths[maxIdx]
+            paths[maxIdx] = tp
+            int64 ts = sizes[a]
+            sizes[a] = sizes[maxIdx]
+            sizes[maxIdx] = ts
+        end
+        a += 1
+    end
+
+    // 全量统计 (不止 TopN).
+    int64 totalSize = 0
+    int t = 0
+    while t < len do
+        totalSize += sizes[t]
+        t += 1
+    end
+
+    int shown = limit
+    string unit = dirsMode ? "dirs" : "files"
+    println("Top " + string(shown) + " largest " + unit + " in: " + target)
+    println(string.repeat("─", 50))
+    int p = 0
+    while p < shown do
+        int64 sz = sizes[p]
+        string disp = relName(target, paths[p])
+        string sizeStr = formatSize(sz)
+        string padded = string.padLeft(sizeStr, 10, " ")
+        string idx = string.padLeft(string(p + 1), 2, " ") + "."
+        println(idx + " " + padded + "  " + disp)
+        p += 1
+    end
+    println("Total: " + string(len) + " " + unit + ", " + formatSize(totalSize))
+    return 0
+end

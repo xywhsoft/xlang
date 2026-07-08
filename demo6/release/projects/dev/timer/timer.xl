@@ -1,0 +1,179 @@
+// timer：倒计时器 / 秒表 / 番茄钟 / 闹钟
+// 基于 demo6 标准库 time（time.sleep / time.now / time.hour/minute/second）。
+//
+// 用法：
+//   xl run projects/dev/timer/timer.xl countdown <seconds>
+//   xl run projects/dev/timer/timer.xl stopwatch <seconds>
+//   xl run projects/dev/timer/timer.xl pomodoro <workMinutes> <breakMinutes>
+//   xl run projects/dev/timer/timer.xl alarm <HH:MM:SS>
+
+func timerUsage()
+    println("timer usage:")
+    println("  timer countdown <seconds>          countdown from <seconds> to 0")
+    println("  timer stopwatch <seconds>          stopwatch for <seconds>")
+    println("  timer pomodoro <work> <break>      pomodoro: work N min, break M min")
+    println("  timer alarm <HH:MM:SS>             countdown to target wall-clock time")
+end
+
+// 把总秒数格式化为 MM:SS（支持超过 60 分时进位到更多位分钟）。
+func timerFormatMS(int total) as string
+    int safe = total < 0 ? 0 : total
+    int m = safe / 60
+    int s = safe % 60
+    return string.formatInt(m, "02") + ":" + string.formatInt(s, "02")
+end
+
+// 倒计时：每秒打印剩余时间，到 0 结束。
+func timerCountdown(int seconds)
+    if seconds <= 0 then
+        println("Countdown: 0 seconds")
+        println("00:00")
+        println("Time's up!")
+        return
+    end
+    println("Countdown: " + string(seconds) + " seconds")
+    int remain = seconds
+    while remain >= 0 do
+        println(timerFormatMS(remain))
+        if remain > 0 then
+            time.sleep(1000)
+        end
+        remain -= 1
+    end
+    println("Time's up!")
+end
+
+// 秒表：计时指定秒数，每秒打印已过时间。
+func timerStopwatch(int seconds)
+    if seconds <= 0 then
+        println("Stopwatch: 0 seconds")
+        println("00:00")
+        println("Done!")
+        return
+    end
+    println("Stopwatch: " + string(seconds) + " seconds")
+    int elapsed = 0
+    while elapsed < seconds do
+        time.sleep(1000)
+        elapsed += 1
+        println(timerFormatMS(elapsed))
+    end
+    println("Done!")
+end
+
+// 番茄钟：工作 N 分钟，休息 M 分钟。
+func timerPomodoro(int workMinutes, int breakMinutes)
+    println("Pomodoro: work " + string(workMinutes) + " min, break " + string(breakMinutes) + " min")
+    println("-- Work --")
+    int workSec = workMinutes * 60
+    int remain = workSec
+    while remain >= 0 do
+        println("Work " + timerFormatMS(remain))
+        if remain > 0 then
+            time.sleep(1000)
+        end
+        remain -= 1
+    end
+    println("Work done!")
+    println("-- Break --")
+    int breakSec = breakMinutes * 60
+    remain = breakSec
+    while remain >= 0 do
+        println("Break " + timerFormatMS(remain))
+        if remain > 0 then
+            time.sleep(1000)
+        end
+        remain -= 1
+    end
+    println("Break done!")
+end
+
+// 解析 HH:MM:SS，计算距离当前时刻的剩余秒数（已过则顺延到明天）。
+// 解析失败返回 -1。
+func timerAlarmSeconds(string target) as int
+    array parts = string.split(target, ":")
+    if parts.length != 3 then
+        return -1
+    end
+    int h = int(parts[0])
+    int m = int(parts[1])
+    int s = int(parts[2])
+    if h < 0 or h > 23 or m < 0 or m > 59 or s < 0 or s > 59 then
+        return -1
+    end
+    time now = time.now()
+    int nowSec = time.hour(now) * 3600 + time.minute(now) * 60 + time.second(now)
+    int targetSec = h * 3600 + m * 60 + s
+    int diff = targetSec - nowSec
+    if diff <= 0 then
+        diff += 86400
+    end
+    return diff
+end
+
+// 闹钟：倒计时到指定时刻。
+func timerAlarm(string target)
+    int diff = timerAlarmSeconds(target)
+    if diff < 0 then
+        println("Invalid time format: " + target + " (use HH:MM:SS)")
+        return
+    end
+    println("Alarm at " + target + " (in " + string(diff) + " seconds)")
+    int remain = diff
+    while remain >= 0 do
+        println(timerFormatMS(remain))
+        if remain > 0 then
+            time.sleep(1000)
+        end
+        remain -= 1
+    end
+    println("Alarm!")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        timerUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "countdown" then
+        if arg.length < 3 then
+            timerUsage()
+            return 1
+        end
+        timerCountdown(int(arg[2]))
+        return 0
+    end
+
+    if cmd == "stopwatch" then
+        if arg.length < 3 then
+            timerUsage()
+            return 1
+        end
+        timerStopwatch(int(arg[2]))
+        return 0
+    end
+
+    if cmd == "pomodoro" then
+        if arg.length < 4 then
+            timerUsage()
+            return 1
+        end
+        timerPomodoro(int(arg[2]), int(arg[3]))
+        return 0
+    end
+
+    if cmd == "alarm" then
+        if arg.length < 3 then
+            timerUsage()
+            return 1
+        end
+        timerAlarm(string(arg[2]))
+        return 0
+    end
+
+    timerUsage()
+    return 1
+end

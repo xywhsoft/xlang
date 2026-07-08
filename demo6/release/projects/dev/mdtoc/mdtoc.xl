@@ -1,0 +1,301 @@
+// mdtoc - Markdown 目录 (TOC) 生成器
+//
+// 用法：
+//   mdtoc <file.md>                       生成 TOC 并插入文件
+//   mdtoc <file.md> -o                    只把 TOC 输出到 stdout，不改文件
+//   mdtoc <file.md> --min-level 2         最小标题级别（默认 1）
+//   mdtoc <file.md> --max-level 3         最大标题级别（默认 6）
+//   mdtoc <file.md> --min-level 2 --max-level 3 -o
+//
+// 标题识别：以 `#` 开头，`#` 数量为级别（1~6），`#` 后须跟空格。
+// anchor 生成：小写化、空格转 `-`、移除其它特殊字符（保留字母、数字、CJK）。
+// 插入点：文件首个 `---`（frontmatter 结束符或分隔线）或空行之后；找不到则插到开头。
+
+// 由标题文本生成 GitHub 风格 anchor：
+//   小写 -> 空格转 '-' -> 丢弃非 [a-z0-9-] 的 ASCII -> 保留 CJK 等多字节字符。
+func makeAnchor(string text) as string
+    string s = string.lower(text)
+    array chs = string.chars(s)
+    string result = ""
+    int n = chs.length
+    int i = 0
+    while i < n do
+        string c = string(chs[i])
+        int b = string.byteAt(c, 0)
+        if b >= 128 then
+            // 非 ASCII（如中文），保留
+            result = result + c
+        elseif c == " " then
+            result = result + "-"
+        elseif (c >= "a" and c <= "z") or (c >= "0" and c <= "9") then
+            result = result + c
+        elseif c == "-" then
+            result = result + c
+        end
+        i = i + 1
+    end
+    return result
+end
+
+// 统计行首连续 `#` 数量。
+func countLeadingHash(string s) as int
+    int level = 0
+    int n = string.len(s)
+    while level < n do
+        if string.charAt(s, level) == "#" then
+            level = level + 1
+        else
+            break
+        end
+    end
+    return level
+end
+
+func printUsage()
+    println("Usage: mdtoc <file.md> [options]")
+    println("  -o, --stdout         print TOC to stdout, do not modify the file")
+    println("  --min-level <n>      minimum heading level to include (default 1)")
+    println("  --max-level <n>      maximum heading level to include (default 6)")
+    println("  -h, --help           show this help")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string filePath = string(arg[1])
+    int minLevel = 1
+    int maxLevel = 6
+    bool stdoutOnly = false
+    bool parseOk = true
+
+    int ai = 2
+    while ai < arg.length do
+        string a = string(arg[ai])
+        if a == "-o" or a == "--stdout" then
+            stdoutOnly = true
+        elseif a == "--min-level" then
+            if ai + 1 >= arg.length then
+                println("mdtoc: missing value after --min-level")
+                return 1
+            end
+            ai = ai + 1
+            parseOk = true
+            try
+                minLevel = int(string(arg[ai]))
+            catch pe
+                parseOk = false
+            end
+            if not parseOk then
+                println("mdtoc: invalid --min-level value: " + string(arg[ai]))
+                return 1
+            end
+        elseif a == "--max-level" then
+            if ai + 1 >= arg.length then
+                println("mdtoc: missing value after --max-level")
+                return 1
+            end
+            ai = ai + 1
+            parseOk = true
+            try
+                maxLevel = int(string(arg[ai]))
+            catch pe
+                parseOk = false
+            end
+            if not parseOk then
+                println("mdtoc: invalid --max-level value: " + string(arg[ai]))
+                return 1
+            end
+        elseif a == "-h" or a == "--help" then
+            printUsage()
+            return 0
+        else
+            println("mdtoc: unknown argument: " + a)
+            return 1
+        end
+        ai = ai + 1
+    end
+
+    // 级别边界归一化
+    if minLevel < 1 then
+        minLevel = 1
+    end
+    if maxLevel > 6 then
+        maxLevel = 6
+    end
+    if minLevel > maxLevel then
+        println("mdtoc: --min-level cannot be greater than --max-level")
+        return 1
+    end
+
+    if not file.exists(filePath) then
+        println("mdtoc: file not found: " + filePath)
+        return 1
+    end
+
+    string content = ""
+    bool readOk = true
+    string readErr = ""
+    try
+        content = file.readText(filePath)
+    catch re
+        readOk = false
+        readErr = re.message
+    end
+    if not readOk then
+        println("mdtoc: failed to read file: " + readErr)
+        return 1
+    end
+
+    array lines = string.splitLines(content)
+    int totalLines = lines.length
+    // BUG-S1 绕过：splitLines 把末尾换行当分隔符，会多出尾部空串。
+    // 不直接 remove，改用有效长度，避免对 splitLines 返回值做改动。
+    if totalLines > 0 then
+        if string(lines[totalLines - 1]) == "" then
+            totalLines = totalLines - 1
+        end
+    end
+
+    // 解析标题 -> 平行动态数组 (level, title)
+    array levels = []
+    array titles = []
+    int i = 0
+    while i < totalLines do
+        string line = string(lines[i])
+        string trimmed = string.trim(line)
+        if string.startsWith(trimmed, "#") then
+            int level = countLeadingHash(trimmed)
+            if level >= 1 and level <= 6 then
+                bool validHead = false
+                if level < string.len(trimmed) then
+                    if string.charAt(trimmed, level) == " " then
+                        validHead = true
+                    end
+                end
+                if validHead then
+                    string title = string.trim(string.slice(trimmed, level))
+                    // 跳过空标题，以及已存在的 "目录" 标题，避免重复运行时自我引用。
+                    if title != "" then
+                        if not (level == 2 and title == "目录") then
+                            levels.push(level)
+                            titles.push(title)
+                        end
+                    end
+                end
+            end
+        end
+        i = i + 1
+    end
+
+    // 生成 TOC 行
+    array tocLines = []
+    tocLines.push("## 目录")
+    int headCount = levels.length
+    int hi = 0
+    while hi < headCount do
+        int level = int(levels[hi])
+        string title = string(titles[hi])
+        if level >= minLevel and level <= maxLevel then
+            int depth = level - minLevel
+            string indent = string.repeat("  ", depth)
+            string anchor = makeAnchor(title)
+            tocLines.push(indent + "- [" + title + "](#" + anchor + ")")
+        end
+        hi = hi + 1
+    end
+
+    // -o：只输出到 stdout
+    if stdoutOnly then
+        int ti = 0
+        int tn = tocLines.length
+        while ti < tn do
+            println(string(tocLines[ti]))
+            ti = ti + 1
+        end
+        return 0
+    end
+
+    // 寻找插入点：frontmatter 闭合的 --- / 首个 --- 或空行 / 否则 0
+    int insertAt = 0
+    bool found = false
+    if totalLines > 0 then
+        if string.trim(string(lines[0])) == "---" then
+            int j = 1
+            while j < totalLines do
+                if string.trim(string(lines[j])) == "---" then
+                    insertAt = j + 1
+                    found = true
+                    break
+                end
+                j = j + 1
+            end
+        end
+    end
+    if not found then
+        int k = 0
+        while k < totalLines do
+            string lt = string.trim(string(lines[k]))
+            if lt == "" or lt == "---" then
+                insertAt = k + 1
+                found = true
+                break
+            end
+            k = k + 1
+        end
+    end
+
+    // 组装输出行：原 [0..insertAt) + (空行) + TOC + (空行) + 原 [insertAt..)
+    array outLines = []
+    int oi = 0
+    while oi < insertAt do
+        outLines.push(string(lines[oi]))
+        oi = oi + 1
+    end
+    // TOC 前若与上一行没有空行分隔，则补一个
+    if outLines.length > 0 then
+        if string(outLines[outLines.length - 1]) != "" then
+            outLines.push("")
+        end
+    end
+    int tli = 0
+    int tln = tocLines.length
+    while tli < tln do
+        outLines.push(string(tocLines[tli]))
+        tli = tli + 1
+    end
+    // TOC 后补一个空行，与后续内容分隔
+    outLines.push("")
+    while oi < totalLines do
+        outLines.push(string(lines[oi]))
+        oi = oi + 1
+    end
+
+    // 拼接文本
+    string newContent = ""
+    int on = outLines.length
+    int ox = 0
+    while ox < on do
+        newContent = newContent + string(outLines[ox]) + "\n"
+        ox = ox + 1
+    end
+
+    bool writeOk = true
+    string writeErr = ""
+    try
+        writeOk = file.writeText(filePath, newContent)
+    catch we
+        writeOk = false
+        writeErr = we.message
+    end
+    if not writeOk then
+        println("mdtoc: failed to write file: " + writeErr)
+        return 1
+    end
+
+    int entryCount = tocLines.length - 1
+    println("mdtoc: wrote TOC to " + filePath + " (" + string(entryCount) + " entries)")
+    return 0
+end

@@ -1,0 +1,367 @@
+// rename.xl - batch file rename tool
+//
+// Usage (default = dry-run preview; pass --do to actually rename):
+//   rename ext <dir> <old_ext> <new_ext> [--do]   change file extensions
+//   rename prefix <dir> <prefix> [--do]           add a prefix to every filename
+//   rename seq <dir> <pattern> <start> [--do]     sequential rename (file_001, ...)
+//   rename lower <dir> [--do]                     lowercase filenames
+//   rename replace <dir> <from> <to> [--do]       replace text in filenames
+//   rename help | -h | --help                     show this help
+//
+// --do may appear anywhere after the subcommand; without it the tool only
+// prints what it would do and changes nothing.
+//
+// Implementation notes:
+//   - dir.files(dir, false) lists top-level files only (non-recursive).
+//   - file.rename(old, new, false) renames; overwrite=false refuses to clobber.
+//   - path.dir / path.nameExt / path.name / path.ext / path.join drive path math.
+//   - string.lower / string.replace mutate the filename portion.
+//   - Files are processed in sorted (case-sensitive ascending) order so that
+//     `seq` numbering is deterministic across runs and filesystems.
+//
+// BUG workarounds (see projects/dev/README.md + BUGS.md):
+//   B20 - list<string> read aliases buffer on swap: sort operates on an
+//         int index list (array<int>, value-safe) and only READS paths[idx]
+//         (no write to the string list during sort), so no aliasing can occur.
+//
+// seq pattern grammar:
+//   {000}  -> sequence number zero-padded to width 3 (width = chars in braces)
+//   {n}    -> width 1 (no visible padding)
+//   {nn}   -> width 2
+//   (no braces) -> number appended to the tail of the pattern, no padding
+//   The original file extension is always preserved (only the base name is
+//   replaced). Examples:
+//     rename seq . file_{000} 1 --do   ->   file_001.txt, file_002.txt, ...
+//     rename seq . img_{n} 1 --do      ->   img_1.txt, img_2.txt, ...
+//     rename seq . item 5 --do         ->   item5.txt, item6.txt, ...
+
+func printUsage()
+    println("rename - batch file rename tool")
+    println("")
+    println("usage (default is dry-run preview; add --do to rename for real):")
+    println("  rename ext <dir> <old_ext> <new_ext> [--do]   change extensions")
+    println("  rename prefix <dir> <prefix> [--do]           add prefix to filenames")
+    println("  rename seq <dir> <pattern> <start> [--do]     sequential rename")
+    println("  rename lower <dir> [--do]                     lowercase filenames")
+    println("  rename replace <dir> <from> <to> [--do]       replace text in filenames")
+    println("  rename -h | --help | help                     show this help")
+    println("")
+    println("seq pattern: {000}=zero-pad width 3, {n}=no pad, none=append number.")
+    println("             original extension is preserved.")
+    println("examples:")
+    println("  rename ext projects\\dev\\rename\\testdata .txt .md")
+    println("  rename seq projects\\dev\\rename\\testdata file_{000} 1 --do")
+    println("  rename lower projects\\dev\\rename\\testdata --do")
+end
+
+// Strip leading dots from an extension token. ".txt"/"txt"/"..txt" -> "txt".
+func stripDot(string ext) as string
+    string e = ext
+    bool done = false
+    while not done do
+        if string.len(e) > 0 and string.startsWith(e, ".") then
+            e = string.slice(e, 1)
+        else
+            done = true
+        end
+    end
+    return e
+end
+
+// Normalize an extension token for case-insensitive matching: strip dots + lowercase.
+func normalizeExt(string ext) as string
+    return string.lower(stripDot(ext))
+end
+
+// Return true only if every character of s is an ASCII digit [0-9].
+func isAllDigits(string s) as bool
+    if string.len(s) == 0 then
+        return false
+    end
+    array chars = string.chars(s)
+    int n = chars.length
+    string digits = "0123456789"
+    int i = 0
+    while i < n do
+        string c = string(chars[i])
+        if not string.contains(digits, c) then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+// Expand a seq pattern for a given sequence number.
+//   {000}  -> zero-pad to width = count of chars inside braces
+//   {n}    -> width 1
+//   no braces -> append the bare number at the tail
+func expandSeq(string pattern, int value) as string
+    int plen = string.len(pattern)
+    string result = ""
+    bool found = false
+    int i = 0
+    while i < plen do
+        string ch = string.slice(pattern, i, 1)
+        if ch == "{" then
+            int j = i + 1
+            string inner = ""
+            bool closed = false
+            while j < plen do
+                string cj = string.slice(pattern, j, 1)
+                if cj == "}" then
+                    closed = true
+                    break
+                end
+                inner = inner + cj
+                j += 1
+            end
+            int width = string.len(inner)
+            string numStr = string(value)
+            if width > 0 then
+                numStr = string.padLeft(numStr, width, "0")
+            end
+            result = result + numStr
+            found = true
+            if closed then
+                i = j + 1
+            else
+                i = j
+            end
+        else
+            result = result + ch
+            i += 1
+        end
+    end
+    if not found then
+        result = result + string(value)
+    end
+    return result
+end
+
+// Print the rename line and (when not dry) call file.rename(old,new,false).
+// Returns 1 on success/would-do, -1 on rename failure. (Caller pre-filters
+// unchanged files, so a 0 skip is not produced here.)
+func commitRename(string oldPath, string newPath, bool dryRun) as int
+    println("  renaming: " + path.nameExt(oldPath) + " -> " + path.nameExt(newPath))
+    if dryRun then
+        return 1
+    end
+    bool ok = file.rename(oldPath, newPath, false)
+    if ok then
+        return 1
+    end
+    println("  ERROR: rename failed (target may exist): " + path.nameExt(oldPath) + " -> " + path.nameExt(newPath))
+    return -1
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    // Pass 1: peel off the global --do flag and help requests. Everything else
+    // is a positional (subcommand + its args).
+    bool doIt = false
+    array positionals = []
+    int k = 1
+    while k < arg.length do
+        string ak = string(arg[k])
+        if ak == "--do" then
+            doIt = true
+        elseif ak == "-h" or ak == "--help" or ak == "help" then
+            printUsage()
+            return 0
+        else
+            positionals.push(ak)
+        end
+        k += 1
+    end
+
+    if positionals.length == 0 then
+        printUsage()
+        return 1
+    end
+
+    string sub = string(positionals[0])
+    bool dryRun = not doIt
+
+    // subcommand-specific parameters (declared up front, filled per branch)
+    string target = ""
+    string oldExtClean = ""
+    string newExtClean = ""
+    string prefixVal = ""
+    string pattern = ""
+    int start = 1
+    string fromVal = ""
+    string toVal = ""
+
+    if sub == "ext" then
+        if positionals.length < 4 then
+            println("rename ext: needs <dir> <old_ext> <new_ext>")
+            return 1
+        end
+        target = string(positionals[1])
+        oldExtClean = normalizeExt(string(positionals[2]))
+        newExtClean = stripDot(string(positionals[3]))
+    elseif sub == "prefix" then
+        if positionals.length < 3 then
+            println("rename prefix: needs <dir> <prefix>")
+            return 1
+        end
+        target = string(positionals[1])
+        prefixVal = string(positionals[2])
+    elseif sub == "seq" then
+        if positionals.length < 4 then
+            println("rename seq: needs <dir> <pattern> <start>")
+            return 1
+        end
+        target = string(positionals[1])
+        pattern = string(positionals[2])
+        string startStr = string(positionals[3])
+        if not isAllDigits(startStr) then
+            println("rename seq: <start> must be a non-negative integer")
+            return 1
+        end
+        start = int(startStr)
+    elseif sub == "lower" then
+        if positionals.length < 2 then
+            println("rename lower: needs <dir>")
+            return 1
+        end
+        target = string(positionals[1])
+    elseif sub == "replace" then
+        if positionals.length < 4 then
+            println("rename replace: needs <dir> <from> <to>")
+            return 1
+        end
+        target = string(positionals[1])
+        fromVal = string(positionals[2])
+        toVal = string(positionals[3])
+    else
+        println("rename: unknown subcommand '" + sub + "'")
+        printUsage()
+        return 1
+    end
+
+    if not dir.exists(target) then
+        println("rename: directory not found: " + target)
+        return 1
+    end
+
+    if dryRun then
+        println("[dry-run preview - no files will be changed; pass --do to apply]")
+    else
+        println("[--do] applying changes")
+    end
+    println("Directory: " + target)
+
+    // ---- collect top-level files ----
+    array files = dir.files(target, false)
+    int count = files.length
+    if count == 0 then
+        println("No files found in " + target)
+        return 0
+    end
+
+    // ---- build index list and selection-sort it by path (case-sensitive) ----
+    // Sort an int index list, not the string list, to stay clear of BUG-20.
+    array<int> idx = array[]
+    int fi = 0
+    while fi < count do
+        idx.append(fi)
+        fi += 1
+    end
+    int a = 0
+    while a < count do
+        int best = a
+        int b = a + 1
+        while b < count do
+            string sb = string(files[idx[b]])
+            string sbest = string(files[idx[best]])
+            if string.compare(sb, sbest, false) < 0 then
+                best = b
+            end
+            b += 1
+        end
+        if best != a then
+            int tmp = idx[a]
+            idx[a] = idx[best]
+            idx[best] = tmp
+        end
+        a += 1
+    end
+
+    // ---- walk files in sorted order, dispatch per subcommand ----
+    int renamed = 0
+    int skipped = 0
+    int errors = 0
+    int seqNo = start
+    int pi = 0
+    while pi < count do
+        int realIdx = idx[pi]
+        string fp = string(files[realIdx])
+        string d = path.dir(fp)
+        string name = path.nameExt(fp)
+        string newName = name
+
+        if sub == "ext" then
+            string curExt = string.lower(path.ext(fp))
+            if curExt == oldExtClean then
+                if string.len(newExtClean) > 0 then
+                    newName = path.name(fp) + "." + newExtClean
+                else
+                    newName = path.name(fp)
+                end
+            end
+        elseif sub == "prefix" then
+            newName = prefixVal + name
+        elseif sub == "seq" then
+            string seqName = expandSeq(pattern, seqNo)
+            string extPart = path.ext(fp)
+            if string.len(extPart) > 0 then
+                newName = seqName + "." + extPart
+            else
+                newName = seqName
+            end
+            seqNo += 1
+        elseif sub == "lower" then
+            newName = string.lower(name)
+        elseif sub == "replace" then
+            newName = string.replace(name, fromVal, toVal)
+        end
+
+        if newName == name then
+            skipped += 1
+        else
+            string newPath = ""
+            if string.len(d) > 0 then
+                newPath = path.join(d, newName)
+            else
+                newPath = newName
+            end
+            int rc = commitRename(fp, newPath, dryRun)
+            if rc == 1 then
+                renamed += 1
+            elseif rc < 0 then
+                errors += 1
+            end
+        end
+        pi += 1
+    end
+
+    // ---- summary ----
+    if dryRun then
+        println("Done: " + string(renamed) + " files would be renamed.")
+    else
+        println("Done: " + string(renamed) + " files renamed.")
+    end
+    if skipped > 0 then
+        println("(" + string(skipped) + " files skipped, already match target)")
+    end
+    if errors > 0 then
+        println("(" + string(errors) + " errors)")
+    end
+    return 0
+end

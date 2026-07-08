@@ -1,0 +1,161 @@
+// grep.xl - 文件内容搜索工具
+//
+// 用法:
+//   grep <pattern> <file>              在单个文件中搜索
+//   grep <pattern> <dir> -r            递归搜索目录下所有文件
+//   grep -i <pattern> <file>           大小写不敏感
+//   grep -n <pattern> <file>           显示行号
+//   grep -c <pattern> <file>           只统计匹配行数
+//   grep -F <pattern> <file>           纯文本包含搜索 (不走正则, 适合特殊字符)
+//
+// 实现:
+//   - file.readText 读全文, string.splitLines 按行拆分
+//   - 默认 regex.isMatch 做模式匹配; -F 切到 string.contains 纯文本包含
+//   - -i 大小写不敏感: regex 模式传 regex.ignoreCase; 纯文本模式传 ignoreCase=true
+//   - 递归模式用 dir.files(dir, true) 取所有文件完整路径
+//   - 读文件包 try/catch, 二进制/无权限文件直接跳过
+
+// 判断一行是否命中. fixed=true 走纯文本 contains, 否则走 regex.isMatch
+func matchLine(string line, string pattern, bool ignoreCase, bool fixed) as bool
+    if fixed then
+        return string.contains(line, pattern, ignoreCase)
+    end
+    if ignoreCase then
+        return regex.isMatch(line, pattern, regex.ignoreCase)
+    end
+    return regex.isMatch(line, pattern)
+end
+
+// 在单个文件中搜索, 返回命中行数. 读失败返回 -1 让调用方跳过
+func searchFile(string filePath, string pattern, bool ignoreCase, bool fixed, bool showLine, bool countOnly) as int
+    if not file.exists(filePath) then
+        return -1
+    end
+
+    string content = ""
+    bool readOk = true
+    try
+        content = file.readText(filePath)
+    catch e
+        readOk = false
+    end
+    if not readOk then
+        return -1
+    end
+
+    array lines = string.splitLines(content)
+    int n = lines.length
+    int matches = 0
+    int i = 0
+    while i < n do
+        string line = string(lines[i])
+        if matchLine(line, pattern, ignoreCase, fixed) then
+            matches += 1
+            if not countOnly then
+                if showLine then
+                    println(filePath + ":" + string(i + 1) + ":" + line)
+                else
+                    println(filePath + ":" + line)
+                end
+            end
+        end
+        i += 1
+    end
+
+    if countOnly then
+        if matches > 0 then
+            println(filePath + ":" + string(matches))
+        end
+    end
+    return matches
+end
+
+func main(...) as int
+    string pattern = ""
+    string target = ""
+    bool recursive = false
+    bool ignoreCase = false
+    bool showLine = false
+    bool countOnly = false
+    bool fixed = false
+    bool hasPattern = false
+    bool hasTarget = false
+
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "-i" or a == "--ignore-case" then
+            ignoreCase = true
+        elseif a == "-n" or a == "--line-number" then
+            showLine = true
+        elseif a == "-c" or a == "--count" then
+            countOnly = true
+        elseif a == "-r" or a == "-R" or a == "--recursive" then
+            recursive = true
+        elseif a == "-F" or a == "--fixed-strings" then
+            fixed = true
+        elseif a == "-h" or a == "--help" then
+            println("usage: grep [options] <pattern> <file|dir>")
+            println("  -i  ignore case")
+            println("  -n  print line numbers")
+            println("  -c  count matching lines only")
+            println("  -r  recursive directory search")
+            println("  -F  fixed strings (literal, not regex)")
+            return 0
+        else
+            if not hasPattern then
+                pattern = a
+                hasPattern = true
+            elseif not hasTarget then
+                target = a
+                hasTarget = true
+            end
+        end
+        i += 1
+    end
+
+    if not hasPattern then
+        println("grep: missing pattern")
+        println("usage: grep [options] <pattern> <file|dir>")
+        return 1
+    end
+    if not hasTarget then
+        target = "."
+    end
+
+    int totalMatches = 0
+    int matchedFiles = 0
+
+    if file.exists(target) then
+        int m = searchFile(target, pattern, ignoreCase, fixed, showLine, countOnly)
+        if m >= 0 then
+            totalMatches += m
+            if m > 0 then
+                matchedFiles += 1
+            end
+        end
+    elseif dir.exists(target) then
+        array files = dir.files(target, recursive)
+        int n = files.length
+        int k = 0
+        while k < n do
+            string fp = string(files[k])
+            int m = searchFile(fp, pattern, ignoreCase, fixed, showLine, countOnly)
+            if m >= 0 then
+                totalMatches += m
+                if m > 0 then
+                    matchedFiles += 1
+                end
+            end
+            k += 1
+        end
+    else
+        println("grep: path not found:", target)
+        return 1
+    end
+
+    if not countOnly then
+        println("Found " + string(totalMatches) + " matches in " + string(matchedFiles) + " files")
+    end
+    return 0
+end

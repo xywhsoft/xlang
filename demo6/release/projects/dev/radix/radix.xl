@@ -1,0 +1,326 @@
+// radix - 进制转换器
+//
+// 用法：
+//   radix <value> <from_base> <to_base>      单值转换
+//   radix ascii <char>                       字符 -> ASCII 码
+//   radix chr <code>                         ASCII 码 -> 字符
+//   radix batch <from> <to> <v1> <v2> ...    批量转换
+//   radix probe                              探测 string.formatInt 行为
+//   radix -h | --help                        帮助
+//
+// 支持的进制：2、8、10、16
+//
+// 设计要点：
+//   - parseRadix 手写源进制解析（验证 *、+、字符串字节处理）。
+//   - formatRadix 手写目标进制格式化（验证 %、/ 截断除法，正确处理负数）。
+//   - formatBinaryBitwise 用 & 1、>> 1 逐位剥离（验证位运算）。
+//   - 同时调用 string.formatInt(value, format) 做交叉对照，发现 formatInt
+//     对负数非十进制格式丢符号的 BUG（见 BUGS.md）。
+//   - 输入 hex 大小写均可；输出 hex 统一大写。
+
+// 可打印 ASCII 表（码点 32..126），用于 chr 命令。
+// formatInt 的 "c" 不是字符格式，故用查表方式实现 code -> char。
+string ASCII_TABLE = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+
+// 单个字符字节值 -> 数码值；非法字符返回 -1。
+func byteToDigit(int b) as int
+    if b >= 48 and b <= 57 then
+        return b - 48
+    end
+    if b >= 65 and b <= 70 then
+        return b - 55
+    end
+    if b >= 97 and b <= 102 then
+        return b - 87
+    end
+    return -1
+end
+
+// 按源进制把字符串解析为 int64。支持前导 +/-，hex 大小写均可。
+// 非法字符或数码 >= base 时抛异常。
+func parseRadix(string s, int base) as int64
+    int n = string.len(s)
+    if n == 0 then
+        throw "empty value"
+    end
+    int i = 0
+    int sign = 1
+    int first = string.byteAt(s, 0)
+    if first == 45 then
+        sign = -1
+        i = 1
+    elseif first == 43 then
+        i = 1
+    end
+    if i == n then
+        throw "no digits after sign"
+    end
+    int64 result = 0
+    while i < n do
+        int b = string.byteAt(s, i)
+        int v = byteToDigit(b)
+        if v < 0 then
+            throw "invalid character '" + string.charAt(s, i) + "'"
+        end
+        if v >= base then
+            throw "digit " + string.charAt(s, i) + " not valid for base " + string.formatInt(base, "")
+        end
+        result = result * base + v
+        i += 1
+    end
+    return result * sign
+end
+
+// 把 int64 按指定进制格式化为字符串。
+// 利用 C 截断除法语义：x%base 与 x 同号，x/base 向 0 靠拢，
+// 因此对负数（含 INT64_MIN）无需取绝对值也不会溢出。
+func formatRadix(int64 value, int base) as string
+    if value == 0 then
+        return "0"
+    end
+    string digits = "0123456789ABCDEF"
+    string sign = ""
+    int64 x = value
+    if x < 0 then
+        sign = "-"
+    end
+    string buf = ""
+    while x != 0 do
+        int64 rem = x % base
+        int64 q = x / base
+        int ri = int(rem)
+        if ri < 0 then
+            ri = 0 - ri
+        end
+        buf = string.slice(digits, ri, 1) + buf
+        x = q
+    end
+    return sign + buf
+end
+
+// 用位运算（& 1、>> 1）逐位剥离，专门做二进制格式化。
+// 负数先转幅度；INT64_MIN 取幅度溢出，回退到硬编码串。
+func formatBinaryBitwise(int64 value) as string
+    if value == 0 then
+        return "0"
+    end
+    string sign = ""
+    int64 mag = value
+    if mag < 0 then
+        sign = "-"
+        mag = 0 - mag
+        if mag < 0 then
+            return "-1000000000000000000000000000000000000000000000000000000000000000"
+        end
+    end
+    string buf = ""
+    while mag != 0 do
+        int64 bit = mag & 1
+        if bit == 1 then
+            buf = "1" + buf
+        else
+            buf = "0" + buf
+        end
+        mag = mag >> 1
+    end
+    return sign + buf
+end
+
+// 校验进制是否在支持集合内。
+func validBase(int b) as bool
+    return b == 2 or b == 8 or b == 10 or b == 16
+end
+
+// 取目标进制对应的 string.formatInt format 串（用于交叉对照）。
+func formatTag(int base) as string
+    if base == 2 then
+        return "b"
+    end
+    if base == 8 then
+        return "o"
+    end
+    if base == 16 then
+        return "X"
+    end
+    return ""
+end
+
+func printUsage()
+    println("radix - base converter (2/8/10/16)")
+    println("Usage:")
+    println("  radix <value> <from_base> <to_base>      convert one value")
+    println("  radix ascii <char>                       char -> ASCII code")
+    println("  radix chr <code>                         ASCII code -> char")
+    println("  radix batch <from> <to> <v1> <v2> ...    batch convert")
+    println("  radix probe                              probe string.formatInt")
+    println("  radix -h | --help                        this help")
+    println("Examples:")
+    println("  radix 255 10 16        -> FF")
+    println("  radix FF 16 10         -> 255")
+    println("  radix 10101010 2 16    -> AA")
+    println("  radix 255 10 2         -> 11111111")
+    println("  radix 255 10 8         -> 377")
+    println("  radix ascii A          -> 65")
+    println("  radix chr 65           -> A")
+    println("  radix batch 10 16 1 2 3 4 5   -> 1,2,3,4,5")
+end
+
+// 核心转换单值：输出主结果，再用 formatInt 交叉对照。
+func cmdConvert(string value, int fromBase, int toBase) as int
+    int64 v = parseRadix(value, fromBase)
+    string mine = formatRadix(v, toBase)
+    if toBase == 2 then
+        mine = formatBinaryBitwise(v)
+    end
+    println(mine)
+    // 交叉对照 string.formatInt
+    string tag = formatTag(toBase)
+    string theirs = string.formatInt(v, tag)
+    if theirs != mine then
+        println("  [note] formatInt(v, \"" + tag + "\") = \"" + theirs + "\" ; hand-rolled = \"" + mine + "\"")
+    end
+    return 0
+end
+
+func cmdAscii(string s) as int
+    if string.len(s) == 0 then
+        println("Error: ascii needs a non-empty <char>")
+        return 1
+    end
+    string c = string.charAt(s, 0)
+    int b = string.byteAt(s, 0)
+    println("char='" + c + "'  decimal=" + string.formatInt(b, "") + "  hex=" + string.formatInt(b, "X") + "  binary=" + string.formatInt(b, "b"))
+    return 0
+end
+
+func cmdChr(string codeText) as int
+    int code = int(codeText)
+    if code < 32 or code > 126 then
+        println("code " + string.formatInt(code, "") + " is outside printable ASCII (32..126); no glyph")
+        return 0
+    end
+    string c = string.slice(ASCII_TABLE, code - 32, 1)
+    println(c)
+    return 0
+end
+
+func cmdProbe() as int
+    int64 v = 255
+    string fmts = ",x,X,o,b,B,c,C,08,08X,x4,4X,#x"
+    array fs = string.split(fmts, ",")
+    println("string.formatInt(255, format) behavior:")
+    int i = 0
+    while i < fs.length do
+        string f = string(fs[i])
+        string out = ""
+        try
+            out = string.formatInt(v, f)
+        catch e
+            out = "<err: " + e.message + ">"
+        end
+        println("  '" + f + "' -> '" + out + "'")
+        i += 1
+    end
+    println("negative handling (BUG: non-decimal drops sign):")
+    println("  formatInt(-255, \"\")  = '" + string.formatInt(-255, "") + "'")
+    println("  formatInt(-255, \"X\") = '" + string.formatInt(-255, "X") + "'")
+    println("  formatInt(-255, \"b\") = '" + string.formatInt(-255, "b") + "'")
+    println("int64 max:")
+    int64 big = 9223372036854775807
+    println("  formatInt(MAX, \"\")  = '" + string.formatInt(big, "") + "'")
+    println("  formatInt(MAX, \"X\") = '" + string.formatInt(big, "X") + "'")
+    return 0
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "probe" then
+        return cmdProbe()
+    end
+
+    if cmd == "ascii" then
+        if arg.length < 3 then
+            println("Error: 'ascii' needs <char>")
+            return 1
+        end
+        return cmdAscii(string(arg[2]))
+    end
+
+    if cmd == "chr" then
+        if arg.length < 3 then
+            println("Error: 'chr' needs <code>")
+            return 1
+        end
+        return cmdChr(string(arg[2]))
+    end
+
+    if cmd == "batch" then
+        if arg.length < 6 then
+            println("Error: 'batch' needs <from_base> <to_base> and at least one value")
+            return 1
+        end
+        int fromBase = int(arg[2])
+        int toBase = int(arg[3])
+        if not validBase(fromBase) or not validBase(toBase) then
+            println("Error: bases must be one of 2, 8, 10, 16")
+            return 1
+        end
+        string tag = formatTag(toBase)
+        string joined = ""
+        int k = 4
+        try
+            while k < arg.length do
+                string item = string(arg[k])
+                int64 v = parseRadix(item, fromBase)
+                string piece = formatRadix(v, toBase)
+                if toBase == 2 then
+                    piece = formatBinaryBitwise(v)
+                end
+                if k > 4 then
+                    joined = joined + ","
+                end
+                joined = joined + piece
+                k += 1
+            end
+            println(joined)
+            return 0
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+        return 0
+    end
+
+    // 默认：radix <value> <from_base> <to_base>
+    if arg.length < 4 then
+        println("Error: expected 'radix <value> <from_base> <to_base>'")
+        printUsage()
+        return 1
+    end
+    string value = string(arg[1])
+    int fromBase = int(arg[2])
+    int toBase = int(arg[3])
+    if not validBase(fromBase) or not validBase(toBase) then
+        println("Error: bases must be one of 2, 8, 10, 16")
+        return 1
+    end
+    try
+        int r = cmdConvert(value, fromBase, toBase)
+        return r
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+    return 0
+end

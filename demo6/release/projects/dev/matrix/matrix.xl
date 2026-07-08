@@ -1,0 +1,392 @@
+// matrix - 命令行矩阵运算器
+//
+// 用法：
+//   matrix identity <n>                          打印 n x n 单位矩阵
+//   matrix multiply "<a>" "<b>"                  矩阵乘法 a * b
+//   matrix transpose "<a>"                       矩阵转置
+//   matrix add "<a>" "<b>"                       矩阵加法 a + b
+//   matrix det "<a>"                             行列式（1x1 / 2x2 / 3x3）
+//
+// 矩阵文本格式: "1,2;3,4" 表示 [[1,2],[3,4]]，分号分行，逗号分列。
+//
+// 设计要点：
+//   - 用 class Matrix 封装行数、列数与一维 array<float> 数据。
+//   - 实现 __item__ / __setItem__ 多维索引协议：支持 m[row, col] 读写。
+//   - 实现 __mul__ / __add__ / __eq__ 运算符协议：支持 m1 * m2、m1 + m2、m1 == m2。
+//   - 方法 multiply/transpose/add/determinant 返回新 Matrix 实例。
+
+class Matrix
+    int rows = 0
+    int cols = 0
+    array<float> data = array[]
+
+    create(int rows, int cols)
+        self.rows = rows
+        self.cols = cols
+        self.data = array[]
+        int total = rows * cols
+        int i = 0
+        while i < total do
+            self.data.append(0.0)
+            i += 1
+        end
+    end
+
+    func idx(int row, int col) as int
+        int linear = row * self.cols + col
+        return linear
+    end
+
+    func at(int row, int col) as float
+        int p = self.idx(row, col)
+        return self.data[p]
+    end
+
+    func set(int row, int col, float val)
+        int p = self.idx(row, col)
+        self.data[p] = val
+    end
+
+    // __item__ 多维索引协议：m[row, col] 读取。
+    func __item__(int row, int col) as float
+        int p = self.idx(row, col)
+        return self.data[p]
+    end
+
+    // __setItem__ 多维索引协议：m[row, col] = val。
+    func __setItem__(int row, int col, float val)
+        int p = self.idx(row, col)
+        self.data[p] = val
+    end
+
+    func add(Matrix other) as Matrix
+        if self.rows != other.rows or self.cols != other.cols then
+            throw "matrix dimension mismatch in add"
+        end
+        Matrix result = Matrix(self.rows, self.cols)
+        int total = self.rows * self.cols
+        int i = 0
+        while i < total do
+            float lhs = self.data[i]
+            float rhs = other.data[i]
+            float sum = lhs + rhs
+            result.data[i] = sum
+            i += 1
+        end
+        return result
+    end
+
+    // __add__ 运算符协议：m1 + m2。
+    func __add__(Matrix other) as Matrix
+        return self.add(other)
+    end
+
+    func multiply(Matrix other) as Matrix
+        if self.cols != other.rows then
+            throw "matrix dimension mismatch in multiply"
+        end
+        Matrix result = Matrix(self.rows, other.cols)
+        int r = 0
+        while r < self.rows do
+            int c = 0
+            while c < other.cols do
+                float sum = 0.0
+                int k = 0
+                while k < self.cols do
+                    float a = self.at(r, k)
+                    float b = other.at(k, c)
+                    float prod = a * b
+                    sum = sum + prod
+                    k += 1
+                end
+                result.set(r, c, sum)
+                c += 1
+            end
+            r += 1
+        end
+        return result
+    end
+
+    // __mul__ 运算符协议：m1 * m2。
+    func __mul__(Matrix other) as Matrix
+        return self.multiply(other)
+    end
+
+    func transpose() as Matrix
+        Matrix result = Matrix(self.cols, self.rows)
+        int r = 0
+        while r < self.rows do
+            int c = 0
+            while c < self.cols do
+                result.set(c, r, self.at(r, c))
+                c += 1
+            end
+            r += 1
+        end
+        return result
+    end
+
+    func determinant() as float
+        if self.rows != self.cols then
+            throw "determinant requires square matrix"
+        end
+        if self.rows == 1 then
+            return self.at(0, 0)
+        end
+        if self.rows == 2 then
+            float a = self.at(0, 0)
+            float b = self.at(0, 1)
+            float c = self.at(1, 0)
+            float d = self.at(1, 1)
+            float term1 = a * d
+            float term2 = b * c
+            return term1 - term2
+        end
+        if self.rows == 3 then
+            float a = self.at(0, 0)
+            float b = self.at(0, 1)
+            float c = self.at(0, 2)
+            float d = self.at(1, 0)
+            float e = self.at(1, 1)
+            float f = self.at(1, 2)
+            float g = self.at(2, 0)
+            float h = self.at(2, 1)
+            float i = self.at(2, 2)
+            float sub1 = e * i - f * h
+            float sub2 = d * i - f * g
+            float sub3 = d * h - e * g
+            float t1 = a * sub1
+            float t2 = b * sub2
+            float t3 = c * sub3
+            return t1 - t2 + t3
+        end
+        throw "determinant only supports 1x1/2x2/3x3"
+    end
+
+    // __eq__ 比较协议：m1 == m2。
+    func __eq__(Matrix other) as bool
+        if self.rows != other.rows or self.cols != other.cols then
+            return false
+        end
+        int total = self.rows * self.cols
+        int i = 0
+        while i < total do
+            float lhs = self.data[i]
+            float rhs = other.data[i]
+            if lhs != rhs then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+end
+
+// 解析 "1,2;3,4" 格式矩阵文本为 Matrix 实例。
+func parseMatrix(string text) as Matrix
+    string trimmed = string.trim(text)
+    if string.isEmpty(trimmed) then
+        throw "empty matrix text"
+    end
+    array rawRows = string.split(trimmed, ";")
+    int rowCount = rawRows.length
+    string firstRowText = string(rawRows[0])
+    array firstCols = string.split(firstRowText, ",")
+    int colCount = firstCols.length
+    if colCount == 0 then
+        throw "empty matrix row"
+    end
+    Matrix m = Matrix(rowCount, colCount)
+    int r = 0
+    while r < rowCount do
+        string rowText = string(rawRows[r])
+        array cols = string.split(rowText, ",")
+        if cols.length != colCount then
+            throw "ragged matrix row"
+        end
+        int c = 0
+        while c < colCount do
+            string cellText = string.trim(string(cols[c]))
+            float v = float(cellText)
+            m.set(r, c, v)
+            c += 1
+        end
+        r += 1
+    end
+    return m
+end
+
+// 把单个数值格式化为短文本：整数显示为整数，否则保留 4 位小数。
+func formatNumber(float v) as string
+    if math.isNaN(v) then
+        return "nan"
+    end
+    if math.isInf(v) then
+        if v < 0.0 then
+            return "-inf"
+        end
+        return "inf"
+    end
+    if v == math.floor(v) and math.abs(v) < 1e15 then
+        return string(int(v))
+    end
+    return string.formatFloat(v, ".4")
+end
+
+// 把 Matrix 格式化为对齐的表格文本。
+func formatMatrix(Matrix m) as string
+    array<int> widths = array[]
+    int c = 0
+    while c < m.cols do
+        int maxW = 0
+        int r = 0
+        while r < m.rows do
+            string s = formatNumber(m.at(r, c))
+            int sl = string.len(s)
+            if sl > maxW then
+                maxW = sl
+            end
+            r += 1
+        end
+        widths.append(maxW)
+        c += 1
+    end
+
+    string out = ""
+    int r = 0
+    while r < m.rows do
+        out = out + "| "
+        int cc = 0
+        while cc < m.cols do
+            int w = widths[cc]
+            string s = formatNumber(m.at(r, cc))
+            out = out + string.padLeft(s, w, " ")
+            if cc + 1 < m.cols then
+                out = out + "  "
+            end
+            cc += 1
+        end
+        out = out + " |"
+        if r + 1 < m.rows then
+            out = out + "\n"
+        end
+        r += 1
+    end
+    return out
+end
+
+func printUsage()
+    println("matrix - command-line matrix calculator")
+    println("Usage:")
+    println("  matrix identity <n>              print n x n identity matrix")
+    println("  matrix multiply \"<a>\" \"<b>\"      matrix multiplication a * b")
+    println("  matrix transpose \"<a>\"           matrix transpose")
+    println("  matrix add \"<a>\" \"<b>\"           matrix addition a + b")
+    println("  matrix det \"<a>\"                 determinant (1x1/2x2/3x3)")
+    println("Matrix text format: \"1,2;3,4\" means [[1,2],[3,4]]")
+end
+
+func requireArgs(int got, int need, string cmd) as bool
+    if got < need then
+        println("Error: '" + cmd + "' needs " + string(need - 1) + " argument(s)")
+        return false
+    end
+    return true
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    try
+        if cmd == "identity" then
+            if not requireArgs(arg.length, 3, "identity") then
+                return 1
+            end
+            int n = int(arg[2])
+            if n <= 0 then
+                println("Error: n must be positive")
+                return 1
+            end
+            Matrix m = Matrix(n, n)
+            int i = 0
+            while i < n do
+                m.set(i, i, 1.0)
+                i += 1
+            end
+            println(formatMatrix(m))
+        elseif cmd == "multiply" then
+            if not requireArgs(arg.length, 4, "multiply") then
+                return 1
+            end
+            Matrix a = parseMatrix(string(arg[2]))
+            Matrix b = parseMatrix(string(arg[3]))
+            // 验证 __mul__ 运算符协议：a * b 等价于 a.multiply(b)
+            Matrix c = a * b
+            println(formatMatrix(c))
+        elseif cmd == "transpose" then
+            if not requireArgs(arg.length, 3, "transpose") then
+                return 1
+            end
+            Matrix a = parseMatrix(string(arg[2]))
+            Matrix t = a.transpose()
+            println(formatMatrix(t))
+        elseif cmd == "add" then
+            if not requireArgs(arg.length, 4, "add") then
+                return 1
+            end
+            Matrix a = parseMatrix(string(arg[2]))
+            Matrix b = parseMatrix(string(arg[3]))
+            // 验证 __add__ 运算符协议：a + b 等价于 a.add(b)
+            Matrix c = a + b
+            println(formatMatrix(c))
+        elseif cmd == "det" then
+            if not requireArgs(arg.length, 3, "det") then
+                return 1
+            end
+            Matrix a = parseMatrix(string(arg[2]))
+            float d = a.determinant()
+            println(formatNumber(d))
+        elseif cmd == "selftest" then
+            // 协议自检：验证 __item__ / __setItem__ / __mul__ / __add__ / __eq__。
+            Matrix a = parseMatrix("1,2;3,4")
+            // __item__ / __setItem__
+            a[0, 0] = 10.0
+            float got = a[1, 1]
+            if got != 4.0 then
+                throw "__item__ multi-dim read failed"
+            end
+            if a[0, 0] != 10.0 then
+                throw "__setItem__ multi-dim write failed"
+            end
+            // __add__
+            Matrix x = parseMatrix("1,2;3,4")
+            Matrix y = parseMatrix("5,6;7,8")
+            Matrix sum = x + y
+            Matrix expectedSum = parseMatrix("6,8;10,12")
+            if not (sum == expectedSum) then
+                throw "__add__ or __eq__ protocol failed"
+            end
+            // __mul__
+            Matrix p = x * y
+            Matrix expectedProd = parseMatrix("19,22;43,50")
+            if not (p == expectedProd) then
+                throw "__mul__ protocol failed"
+            end
+            println("selftest ok")
+        else
+            println("Error: unknown command '" + cmd + "'")
+            printUsage()
+            return 1
+        end
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+
+    return 0
+end

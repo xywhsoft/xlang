@@ -1,0 +1,192 @@
+// genid - ID 生成器
+//
+// 用法：
+//   genid xid                       生成一个 XID（32 字符）
+//   genid xid <count>               批量生成 XID
+//   genid uuid                      生成 UUID v4（random.u32 拼接）
+//   genid snowflake <machineId>     简化版 Snowflake ID（时间戳 + 机器ID + 序号）
+//   genid snowflake <machineId> <count>
+//                                   批量 Snowflake
+//   genid nanoid [len=21]           NanoID 风格随机串（URL-safe 字母表）
+//   genid sequential <start> <count>
+//                                   序列号（start, start+1, ...）
+//   genid help | -h | --help        显示本帮助
+//
+// 设计要点：
+//   - XID 直接走 XRT 原生 id.xid()。
+//   - UUID v4 用 4 个 random.u32() 拼成 32 个 hex，再钉死 version=4 / variant=8。
+//   - Snowflake 布局：41bit ms 时间戳 + 10bit machineId + 12bit seq，共 63bit。
+//     ms 时间戳来自 time.toUnix(nowUTC)（秒精度）+ time.timer() 的亚秒偏移。
+//     同 ms 内 seq 自增，溢出回绕到下一 ms。
+//   - NanoID 默认 64 字符 URL-safe 字母表（A-Za-z0-9_-），默认长度 21。
+//   - 所有 ID 输出到 stdout，一行一个。
+
+const string NANO_ALPHABET = "_-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const int    NANO_DEFAULT_LEN = 21
+const int64  SNOWFLAKE_EPOCH = 1700000000000   // 2023-11-14T22:13:20Z 作为自定义起点
+const int64  SNOWFLAKE_MAX_MACHINE = 1023      // 10 bit
+const int64  SNOWFLAKE_MAX_SEQ = 4095          // 12 bit
+
+// 当前毫秒时间戳（自定义 epoch 起的相对 ms）。
+func currentMs() as int64
+    int secs = time.toUnix(time.nowUTC())
+    int64 msBase = int64(secs) * int64(1000)
+    float t = time.timer() * 1000.0
+    int sub = int(t) % 1000
+    if sub < 0 then
+        sub = -sub
+    end
+    return msBase + int64(sub) - SNOWFLAKE_EPOCH
+end
+
+// 生成一个 UUID v4 字符串（8-4-4-4-12）。
+func genUuid() as string
+    string all = string.formatInt(random.u32(), "x8") + string.formatInt(random.u32(), "x8") + string.formatInt(random.u32(), "x8") + string.formatInt(random.u32(), "x8")
+    string p1 = string.left(all, 8)
+    string p2 = string.mid(all, 8, 4)
+    string p3 = "4" + string.mid(all, 13, 3)
+    string p4 = "8" + string.mid(all, 17, 3)
+    string p5 = string.mid(all, 20, 12)
+    return p1 + "-" + p2 + "-" + p3 + "-" + p4 + "-" + p5
+end
+
+// 批量生成 Snowflake ID，一行一个输出。
+func snowflakeBatch(int64 machineId, int count) as int
+    int64 lastMs = 0
+    int64 seq = 0
+    for k in range(count)
+        int64 ms = currentMs()
+        if ms <= lastMs then
+            seq = seq + int64(1)
+            if seq > SNOWFLAKE_MAX_SEQ then
+                seq = 0
+                lastMs = lastMs + int64(1)
+            end
+            ms = lastMs
+        else
+            lastMs = ms
+            seq = 0
+        end
+        int64 tsPart = lastMs << 22
+        if tsPart < 0 then
+            tsPart = 0
+        end
+        int64 id = tsPart | (machineId << 12) | seq
+        println(string(id))
+    end
+    return 0
+end
+
+func printUsage()
+    println("genid - ID generator")
+    println("Usage:")
+    println("  genid xid                       one XID (32 chars)")
+    println("  genid xid <count>               batch XID")
+    println("  genid uuid                      UUID v4 (random.u32 based)")
+    println("  genid snowflake <machineId>     simplified Snowflake ID")
+    println("  genid snowflake <machineId> <count>")
+    println("  genid nanoid [len=21]           NanoID-style URL-safe string")
+    println("  genid sequential <start> <count>")
+    println("  genid help | -h | --help        show this help")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "xid" then
+        int count = 1
+        if arg.length >= 3 then
+            count = int(arg[2])
+        end
+        if count < 1 then
+            println("Error: count must be >= 1")
+            return 1
+        end
+        for k in range(count)
+            println(id.xid())
+        end
+        return 0
+    end
+
+    if cmd == "uuid" then
+        int count = 1
+        if arg.length >= 3 then
+            count = int(arg[2])
+        end
+        if count < 1 then
+            println("Error: count must be >= 1")
+            return 1
+        end
+        for k in range(count)
+            println(genUuid())
+        end
+        return 0
+    end
+
+    if cmd == "snowflake" then
+        if arg.length < 3 then
+            println("Error: 'snowflake' needs <machineId>")
+            return 1
+        end
+        int64 machineId = int64(arg[2])
+        if machineId < 0 or machineId > SNOWFLAKE_MAX_MACHINE then
+            println("Error: machineId must be in [0, " + string(SNOWFLAKE_MAX_MACHINE) + "]")
+            return 1
+        end
+        int count = 1
+        if arg.length >= 4 then
+            count = int(arg[3])
+        end
+        if count < 1 then
+            println("Error: count must be >= 1")
+            return 1
+        end
+        return snowflakeBatch(machineId, count)
+    end
+
+    if cmd == "nanoid" then
+        int len = NANO_DEFAULT_LEN
+        if arg.length >= 3 then
+            len = int(arg[2])
+        end
+        if len < 1 then
+            println("Error: len must be >= 1")
+            return 1
+        end
+        println(random.string(len, NANO_ALPHABET))
+        return 0
+    end
+
+    if cmd == "sequential" then
+        if arg.length < 4 then
+            println("Error: 'sequential' needs <start> <count>")
+            return 1
+        end
+        int64 start = int64(arg[2])
+        int count = int(arg[3])
+        if count < 1 then
+            println("Error: count must be >= 1")
+            return 1
+        end
+        int64 v = start
+        for k in range(count)
+            println(string(v))
+            v = v + int64(1)
+        end
+        return 0
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

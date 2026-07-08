@@ -1,0 +1,203 @@
+// httpreq - HTTP 请求测试器（curl 简化版）
+//
+// 用法：
+//   httpreq <method> <url> [body] [options]
+//
+// method:  get / post / put / delete / patch / head / options（任意大小写）
+// options:
+//   -h <Name:Value>      自定义请求头，可重复（-H 同义）
+//   -t <ms>              超时毫秒，默认 10000
+//   --ct <contentType>   body 的 Content-Type，默认 text/plain; charset=utf-8
+//
+// 示例：
+//   httpreq get http://httpbin.org/get
+//   httpreq post http://httpbin.org/post '{"hello":"world"}'
+//   httpreq get http://httpbin.org/get -h X-Custom:abc -h Token:secret
+//   httpreq get http://example.com -t 5000
+//
+// 输出：状态行 + 常见响应头 + 分隔线 + 响应体。
+// 网络层失败（连接拒绝 / DNS / 超时）时 status()==0，输出错误并返回 1。
+//
+// 设计说明：
+//   - 统一走 HttpClientRequest 对象（支持自定义 header / 超时），
+//     不用 http.get/post 便捷函数（无法加 header）。
+//   - HttpClientResponse 在请求失败时仍返回对象，只是底层 handle 为空，
+//     此时 status()==0 / reason()=="" / contentLength()==-1。
+//   - int 拼接字符串必须显式 string(int)，不自动转换。
+
+const int DEFAULT_TIMEOUT = 10000
+const string SEPARATOR = "----------------------------------------"
+
+// 拆 "Name:Value" 为 name/value 两段（用 array<string>[0]/[1] 回传）。
+// 不把 HttpClientRequest 作参数传（native-backed class 不可按值复制）。
+func parseHeaderPair(string pair) as array<string>
+    array<string> out = array[]
+    int colon = string.indexOf(pair, ":")
+    if colon <= 0 then
+        out.append("")
+        out.append("")
+        return out
+    end
+    out.append(string.trim(string.left(pair, colon)))
+    out.append(string.trim(string.mid(pair, colon + 1)))
+    return out
+end
+
+// API 不支持枚举响应头，只能按名查询；以下在 main 内对 resp 实例
+// 直接调用 resp.header(name)（native-backed class 不能按值传给函数，
+// 只能在持有实例的作用域里以 self 方法形式调用）。
+
+func printUsage()
+    println("httpreq - HTTP request tester (curl-lite)")
+    println("Usage:")
+    println("  httpreq <method> <url> [body] [options]")
+    println("Methods: get post put delete patch head options")
+    println("Options:")
+    println("  -h <Name:Value>   custom request header (repeatable)")
+    println("  -t <ms>           timeout in milliseconds (default 10000)")
+    println("  --ct <type>       content-type for body (default text/plain; charset=utf-8)")
+    println("Examples:")
+    println("  httpreq get http://httpbin.org/get")
+    println("  httpreq post http://httpbin.org/post '{\"k\":1}'")
+    println("  httpreq get http://httpbin.org/get -h X-Test:abc -t 5000")
+end
+
+func main(...) as int
+    if arg.length < 3 then
+        printUsage()
+        return 1
+    end
+
+    string method = string.upper(string(arg[1]))
+    string url = ""
+    string body = ""
+    string contentType = "text/plain; charset=utf-8"
+    int timeoutMs = DEFAULT_TIMEOUT
+    bool hasBody = false
+    bool hasUrl = false
+
+    // headers 动态收集：array<string> + append
+    array<string> headers = array[]
+
+    int i = 2
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "-h" or a == "-H" then
+            if i + 1 >= arg.length then
+                println("Error: " + a + " requires a <Name:Value> argument")
+                return 1
+            end
+            headers.append(string(arg[i + 1]))
+            i += 2
+        elseif a == "-t" or a == "--timeout" then
+            if i + 1 >= arg.length then
+                println("Error: " + a + " requires <ms>")
+                return 1
+            end
+            int parsed = int(arg[i + 1])
+            if parsed <= 0 then
+                println("Error: timeout must be positive (got '" + string(arg[i + 1]) + "')")
+                return 1
+            end
+            timeoutMs = parsed
+            i += 2
+        elseif a == "--ct" or a == "--content-type" then
+            if i + 1 >= arg.length then
+                println("Error: " + a + " requires <type>")
+                return 1
+            end
+            contentType = string(arg[i + 1])
+            i += 2
+        elseif a == "--help" then
+            printUsage()
+            return 0
+        elseif not hasUrl then
+            url = a
+            hasUrl = true
+            i += 1
+        elseif not hasBody then
+            body = a
+            hasBody = true
+            i += 1
+        else
+            println("Error: unexpected argument '" + a + "'")
+            return 1
+        end
+    end
+
+    if not hasUrl or url == "" then
+        println("Error: missing <url>")
+        return 1
+    end
+    if not string.startsWith(url, "http://") and not string.startsWith(url, "https://") then
+        println("Error: url must start with http:// or https:// (got '" + url + "')")
+        return 1
+    end
+
+    HttpClientRequest req = HttpClientRequest(url)
+    req.method(method)
+    req.timeout(timeoutMs)
+
+    int h = 0
+    while h < headers.length do
+        string pair = headers[h]
+        array<string> kv = parseHeaderPair(pair)
+        string hname = kv[0]
+        string hval = kv[1]
+        if hname == "" then
+            println("Error: invalid header '" + pair + "', expected 'Name:Value'")
+            return 1
+        end
+        req.header(hname, hval)
+        h += 1
+    end
+
+    if hasBody and body != "" then
+        req.text(body, contentType)
+    end
+
+    HttpClientResponse resp = req.execute()
+
+    int code = resp.status()
+    if code == 0 then
+        println("Error: request failed (no HTTP response received).")
+        println("  url   : " + url)
+        println("  method: " + method)
+        println("  timeout: " + string(timeoutMs) + "ms")
+        println("  likely cause: connection refused, DNS failure, or timeout exceeded")
+        return 1
+    end
+
+    string reason = resp.reason()
+    if reason != "" then
+        println("HTTP/1.1 " + string(code) + " " + reason)
+    else
+        println("HTTP/1.1 " + string(code))
+    end
+
+    string hCt = resp.header("Content-Type")
+    if hCt != "" then
+        println("Content-Type: " + hCt)
+    end
+    string hCl = resp.header("Content-Length")
+    if hCl != "" then
+        println("Content-Length: " + hCl)
+    end
+    string hSv = resp.header("Server")
+    if hSv != "" then
+        println("Server: " + hSv)
+    end
+    string hDt = resp.header("Date")
+    if hDt != "" then
+        println("Date: " + hDt)
+    end
+
+    println(SEPARATOR)
+
+    string responseBody = resp.body()
+    if responseBody != "" then
+        println(responseBody)
+    end
+
+    return 0
+end

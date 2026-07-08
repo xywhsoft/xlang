@@ -1,0 +1,161 @@
+list<string> solutions
+
+func recordSolution(string expr)
+    if (expr in solutions) == false then
+        solutions[solutions.length] = expr
+    end
+end
+
+func applyOp(float x, float y, int op) as float
+    if op == 0 then
+        return x + y
+    elseif op == 1 then
+        return x - y
+    elseif op == 2 then
+        return x * y
+    end
+    if y == 0.0 then
+        return math.nan
+    end
+    return x / y
+end
+
+func opSym(int op) as string
+    if op == 0 then
+        return "+"
+    elseif op == 1 then
+        return "-"
+    elseif op == 2 then
+        return "*"
+    end
+    return "/"
+end
+
+func near24(float v) as bool
+    float diff = math.abs(v - 24.0)
+    if diff < 0.000001 then
+        return true
+    end
+    return false
+end
+
+func tryCombos(float v0, float v1, float v2, float v3)
+    string f0 = string(int(v0))
+    string f1 = string(int(v1))
+    string f2 = string(int(v2))
+    string f3 = string(int(v3))
+
+    int o1 = 0
+    while o1 < 4 do
+        int o2 = 0
+        while o2 < 4 do
+            int o3 = 0
+            while o3 < 4 do
+                string s1 = opSym(o1)
+                string s2 = opSym(o2)
+                string s3 = opSym(o3)
+                float val = 0.0
+                string expr = ""
+                float t1 = 0.0
+                float t2 = 0.0
+
+                t1 = applyOp(v0, v1, o1)
+                t2 = applyOp(t1, v2, o2)
+                val = applyOp(t2, v3, o3)
+                expr = "((" + f0 + " " + s1 + " " + f1 + ") " + s2 + " " + f2 + ") " + s3 + " " + f3
+                if near24(val) then
+                    recordSolution(expr)
+                end
+
+                t1 = applyOp(v1, v2, o2)
+                t2 = applyOp(v0, t1, o1)
+                val = applyOp(t2, v3, o3)
+                expr = "(" + f0 + " " + s1 + " " + "(" + f1 + " " + s2 + " " + f2 + ")) " + s3 + " " + f3
+                if near24(val) then
+                    recordSolution(expr)
+                end
+
+                t1 = applyOp(v0, v1, o1)
+                t2 = applyOp(v2, v3, o3)
+                val = applyOp(t1, t2, o2)
+                expr = "(" + f0 + " " + s1 + " " + f1 + ") " + s2 + " (" + f2 + " " + s3 + " " + f3 + ")"
+                if near24(val) then
+                    recordSolution(expr)
+                end
+
+                t1 = applyOp(v1, v2, o2)
+                t2 = applyOp(t1, v3, o3)
+                val = applyOp(v0, t2, o1)
+                expr = f0 + " " + s1 + " " + "((" + f1 + " " + s2 + " " + f2 + ") " + s3 + " " + f3 + ")"
+                if near24(val) then
+                    recordSolution(expr)
+                end
+
+                t1 = applyOp(v2, v3, o3)
+                t2 = applyOp(v1, t1, o2)
+                val = applyOp(v0, t2, o1)
+                expr = f0 + " " + s1 + " " + "(" + f1 + " " + s2 + " " + "(" + f2 + " " + s3 + " " + f3 + "))"
+                if near24(val) then
+                    recordSolution(expr)
+                end
+
+                o3 = o3 + 1
+            end
+            o2 = o2 + 1
+        end
+        o1 = o1 + 1
+    end
+end
+
+func solve(array<int> cards)
+    int p0 = 0
+    while p0 < 4 do
+        int p1 = 0
+        while p1 < 4 do
+            if p1 != p0 then
+                int p2 = 0
+                while p2 < 4 do
+                    if p2 != p0 and p2 != p1 then
+                        int p3 = 6 - p0 - p1 - p2
+                        float v0 = float(cards[p0])
+                        float v1 = float(cards[p1])
+                        float v2 = float(cards[p2])
+                        float v3 = float(cards[p3])
+                        tryCombos(v0, v1, v2, v3)
+                    end
+                    p2 = p2 + 1
+                end
+            end
+            p1 = p1 + 1
+        end
+        p0 = p0 + 1
+    end
+end
+
+func main(...) as int
+    if arg.length < 5 then
+        println("Usage: game24 <a> <b> <c> <d>")
+        println("Example: game24 3 3 8 8")
+        return 1
+    end
+
+    int c0 = int(arg[1])
+    int c1 = int(arg[2])
+    int c2 = int(arg[3])
+    int c3 = int(arg[4])
+
+    array<int> cards = array[c0, c1, c2, c3]
+
+    println("Cards:", c0, c1, c2, c3)
+
+    solve(cards)
+
+    int found = solutions.length
+    println("Solutions found:", found)
+    int i = 0
+    while i < found do
+        println("  ", solutions[i], " = 24")
+        i = i + 1
+    end
+    return 0
+end

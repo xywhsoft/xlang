@@ -1,0 +1,62 @@
+// jsonfmt - JSON 美化/压缩器
+//
+// 用法：
+//   jsonfmt pretty  <input.json> [output.json]   美化输出（缩进）
+//   jsonfmt compact <input.json> [output.json]   压缩输出（无空白）
+//
+// 不指定 output 时输出到 stdout。无效 JSON 报错并返回非零退出码。
+
+func printUsage()
+    println("Usage: jsonfmt <pretty|compact> <input.json> [output.json]")
+end
+
+func main(...) as int
+    if arg.length < 3 then
+        printUsage()
+        return 1
+    end
+
+    string mode = string(arg[1])
+    string inputPath = string(arg[2])
+
+    if mode != "pretty" and mode != "compact" then
+        println("Error: unknown mode '" + mode + "', expected 'pretty' or 'compact'")
+        return 1
+    end
+
+    if not file.exists(inputPath) then
+        println("Error: input file not found: " + inputPath)
+        return 1
+    end
+
+    string text = file.readText(inputPath)
+
+    if not json.valid(text) then
+        println("Error: invalid JSON in " + inputPath)
+        return 1
+    end
+
+    var value = json.parse(text)
+
+    string output
+    if mode == "pretty" then
+        // json.stringify pretty 默认用 TAB 缩进，规范化为 2 空格。
+        output = string.replace(json.stringify(value, pretty = true), "\t", "  ")
+    else
+        output = json.stringify(value)
+    end
+
+    if arg.length >= 4 then
+        string outputPath = string(arg[3])
+        bool ok = file.writeText(outputPath, output)
+        if not ok then
+            println("Error: failed to write " + outputPath)
+            return 1
+        end
+        println("Wrote " + outputPath)
+    else
+        println(output)
+    end
+
+    return 0
+end

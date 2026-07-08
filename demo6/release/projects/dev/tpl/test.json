@@ -1,0 +1,10 @@
+{
+    "title": "xlang",
+    "version": "6",
+    "show": true,
+    "items": ["alpha", "beta", "gamma"],
+    "users": [
+        {"name": "Ada"},
+        {"name": "Lin"}
+    ]
+}

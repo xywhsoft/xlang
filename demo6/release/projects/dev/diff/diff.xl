@@ -1,0 +1,376 @@
+// diff.xl - 文本行级 Diff 工具
+//
+// 用法:
+//   diff <file1> <file2>        行级 diff, 简单格式 (输出全部行)
+//   diff <file1> <file2> -u     unified diff 格式 (3 行上下文)
+//   diff <file1> <file2> -s     仅统计差异行数
+//   diff -h                     显示帮助
+//
+// 退出码: 0=两文件相同, 1=两文件不同, 2=出错
+//
+// 实现:
+//   - file.readText + string.splitLines 读取行
+//   - LCS (最长公共子序列) DP 做行级对齐, 回溯生成 same/del/add 操作序列
+//   - 简单格式: 全部行 + Summary; unified: 标准 @@ hunk (3 行上下文); -s: 仅 Summary
+//
+// 绕过 BUG-S1 (splitLines 尾部空串): toLines 丢掉恰好一个尾部空串
+
+// 把全文拆成行, 丢掉 splitLines 的尾部空串 (BUG-S1).
+func toLines(string content) as array<string>
+    array raw = string.splitLines(content)
+    int n = raw.length
+    array<string> result = array[""]
+    result.remove(0)
+    int i = 0
+    while i < n do
+        result.push(string(raw[i]))
+        i += 1
+    end
+    if result.length > 0 then
+        if result[result.length - 1] == "" then
+            result.remove(result.length - 1)
+        end
+    end
+    return result
+end
+
+// LCS diff: 填充 ops/oldNo/newNo/texts (正向顺序).
+// ops: 0=same 1=del 2=add; oldNo/newNo: 1-based 行号, 0 表示不适用.
+func computeDiff(array<string> a, array<string> b, array<int> ops, array<int> oldNo, array<int> newNo, array<string> texts)
+    int m = a.length
+    int n = b.length
+    int cols = n + 1
+    int total = (m + 1) * cols
+
+    // DP 表 (一维展开), 全 0 初始化
+    array<int> dp = array[0]
+    dp.remove(0)
+    int z = 0
+    while z < total do
+        dp.push(0)
+        z += 1
+    end
+
+    // 填表
+    int i = 1
+    while i <= m do
+        int j = 1
+        while j <= n do
+            if a[i - 1] == b[j - 1] then
+                dp[i * cols + j] = dp[(i - 1) * cols + (j - 1)] + 1
+            else
+                int up = dp[(i - 1) * cols + j]
+                int left = dp[i * cols + (j - 1)]
+                if up >= left then
+                    dp[i * cols + j] = up
+                else
+                    dp[i * cols + j] = left
+                end
+            end
+            j += 1
+        end
+        i += 1
+    end
+
+    // 回溯 (逆序收集, 最后翻转)
+    i = m
+    int j = n
+    while i > 0 or j > 0 do
+        if i > 0 then
+            if j > 0 then
+                if a[i - 1] == b[j - 1] then
+                    ops.push(0)
+                    oldNo.push(i)
+                    newNo.push(j)
+                    texts.push(a[i - 1])
+                    i -= 1
+                    j -= 1
+                elseif dp[(i - 1) * cols + j] > dp[i * cols + (j - 1)] then
+                    ops.push(1)
+                    oldNo.push(i)
+                    newNo.push(0)
+                    texts.push(a[i - 1])
+                    i -= 1
+                else
+                    ops.push(2)
+                    oldNo.push(0)
+                    newNo.push(j)
+                    texts.push(b[j - 1])
+                    j -= 1
+                end
+            else
+                // j == 0, i > 0: 只能是 del
+                ops.push(1)
+                oldNo.push(i)
+                newNo.push(0)
+                texts.push(a[i - 1])
+                i -= 1
+            end
+        else
+            // i == 0, j > 0: 只能是 add
+            ops.push(2)
+            oldNo.push(0)
+            newNo.push(j)
+            texts.push(b[j - 1])
+            j -= 1
+        end
+    end
+
+    // 翻转为正向
+    ops.reverse()
+    oldNo.reverse()
+    newNo.reverse()
+    texts.reverse()
+end
+
+// 简单格式: 头 + 全部行 + Summary
+func printSimple(string f1, string f2, array<int> ops, array<string> texts)
+    println("--- " + f1)
+    println("+++ " + f2)
+    println("")
+    int added = 0
+    int removed = 0
+    int unchanged = 0
+    int n = ops.length
+    int i = 0
+    while i < n do
+        if ops[i] == 0 then
+            println(" " + texts[i])
+            unchanged += 1
+        elseif ops[i] == 1 then
+            println("- " + texts[i])
+            removed += 1
+        else
+            println("+ " + texts[i])
+            added += 1
+        end
+        i += 1
+    end
+    println("")
+    println("Summary: +" + string(added) + " added, -" + string(removed) + " removed, " + string(unchanged) + " unchanged")
+end
+
+// unified diff: 标准 @@ -a,b +c,d @@ hunk, 3 行上下文
+func printUnified(string f1, string f2, array<int> ops, array<int> oldNo, array<int> newNo, array<string> texts)
+    println("--- " + f1)
+    println("+++ " + f2)
+
+    int total = ops.length
+    if total == 0 then
+        return
+    end
+
+    int context = 3
+
+    // 标记进入 hunk 的行: 变化行 +/- context
+    array<int> mark = array[0]
+    mark.remove(0)
+    int z = 0
+    while z < total do
+        mark.push(0)
+        z += 1
+    end
+    int zi = 0
+    while zi < total do
+        if ops[zi] != 0 then
+            int s = zi - context
+            if s < 0 then s = 0 end
+            int e = zi + context
+            if e >= total then e = total - 1 end
+            int k = s
+            while k <= e do
+                mark[k] = 1
+                k += 1
+            end
+        end
+        zi += 1
+    end
+
+    // 按连续标记段分组输出 hunk
+    int oldLine = 0
+    int newLine = 0
+    int i = 0
+    while i < total do
+        if mark[i] == 0 then
+            if ops[i] == 0 then
+                oldLine += 1
+                newLine += 1
+            elseif ops[i] == 1 then
+                oldLine += 1
+            else
+                newLine += 1
+            end
+            i += 1
+            continue
+        end
+
+        // hunk 起点的 old/new 行号
+        int hOldStart = 0
+        if ops[i] == 2 then
+            hOldStart = oldLine
+        else
+            hOldStart = oldLine + 1
+        end
+        int hNewStart = 0
+        if ops[i] == 1 then
+            hNewStart = newLine
+        else
+            hNewStart = newLine + 1
+        end
+
+        // 扫描连续标记段, 计算 old/new 行数
+        int j = i
+        int oldCount = 0
+        int newCount = 0
+        while j < total do
+            if mark[j] != 1 then
+                break
+            end
+            if ops[j] == 0 then
+                oldCount += 1
+                newCount += 1
+            elseif ops[j] == 1 then
+                oldCount += 1
+            else
+                newCount += 1
+            end
+            j += 1
+        end
+
+        // hunk header
+        println("@@ -" + string(hOldStart) + "," + string(oldCount) + " +" + string(hNewStart) + "," + string(newCount) + " @@")
+
+        // hunk 行并推进 old/new 计数
+        while i < j do
+            if ops[i] == 0 then
+                println(" " + texts[i])
+                oldLine += 1
+                newLine += 1
+            elseif ops[i] == 1 then
+                println("-" + texts[i])
+                oldLine += 1
+            else
+                println("+" + texts[i])
+                newLine += 1
+            end
+            i += 1
+        end
+    end
+end
+
+func printUsage()
+    println("diff - 文本行级 Diff 工具")
+    println("用法:")
+    println("  diff <file1> <file2>        行级 diff (简单格式, 输出全部行)")
+    println("  diff <file1> <file2> -u     unified diff 格式 (3 行上下文)")
+    println("  diff <file1> <file2> -s     仅统计差异行数")
+    println("  diff -h                     显示本帮助")
+    println("退出码: 0=相同, 1=不同, 2=出错")
+end
+
+func main(...) as int
+    array<string> paths = array[""]
+    paths.remove(0)
+    bool unified = false
+    bool stats = false
+
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "-u" or a == "--unified" then
+            unified = true
+        elseif a == "-s" or a == "--stat" then
+            stats = true
+        elseif a == "-h" or a == "--help" then
+            printUsage()
+            return 0
+        else
+            paths.push(a)
+        end
+        i += 1
+    end
+
+    if paths.length < 2 then
+        println("diff: need two file arguments")
+        println("usage: diff <file1> <file2> [-u|-s]")
+        return 2
+    end
+
+    string f1 = paths[0]
+    string f2 = paths[1]
+
+    if not file.exists(f1) then
+        println("diff: file not found: " + f1)
+        return 2
+    end
+    if not file.exists(f2) then
+        println("diff: file not found: " + f2)
+        return 2
+    end
+
+    string content1 = ""
+    bool ok1 = true
+    try
+        content1 = file.readText(f1)
+    catch e
+        ok1 = false
+    end
+    if not ok1 then
+        println("diff: cannot read: " + f1)
+        return 2
+    end
+
+    string content2 = ""
+    bool ok2 = true
+    try
+        content2 = file.readText(f2)
+    catch e
+        ok2 = false
+    end
+    if not ok2 then
+        println("diff: cannot read: " + f2)
+        return 2
+    end
+
+    array<string> linesA = toLines(content1)
+    array<string> linesB = toLines(content2)
+
+    array<int> ops = array[0]
+    ops.remove(0)
+    array<int> oldNo = array[0]
+    oldNo.remove(0)
+    array<int> newNo = array[0]
+    newNo.remove(0)
+    array<string> texts = array[""]
+    texts.remove(0)
+
+    computeDiff(linesA, linesB, ops, oldNo, newNo, texts)
+
+    // 统计变化行数 (用于退出码)
+    int added = 0
+    int removed = 0
+    int n = ops.length
+    int ci = 0
+    while ci < n do
+        if ops[ci] == 1 then
+            removed += 1
+        elseif ops[ci] == 2 then
+            added += 1
+        end
+        ci += 1
+    end
+
+    if stats then
+        int unchanged = n - added - removed
+        println("Summary: +" + string(added) + " added, -" + string(removed) + " removed, " + string(unchanged) + " unchanged")
+    elseif unified then
+        printUnified(f1, f2, ops, oldNo, newNo, texts)
+    else
+        printSimple(f1, f2, ops, texts)
+    end
+
+    if added == 0 and removed == 0 then
+        return 0
+    end
+    return 1
+end

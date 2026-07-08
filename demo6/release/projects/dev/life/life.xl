@@ -1,0 +1,250 @@
+// life - Conway's Game of Life (console edition)
+//
+// 用法：
+//   life glider   [generations=20]                           滑翔机
+//   life blinker  [generations=10]                           闪烁器
+//   life random   [width=40] [height=20] [generations=100]   随机
+//
+// 设计要点：
+//   - 用 array<int> 一维模拟 2D：grid[row*width+col]，0=死 1=活。
+//   - 边界采用环面（toroidal）环绕，保证滑翔机/闪烁器长期稳定。
+//   - 每代按 Conway 规则更新：
+//       活细胞邻居 == 2 或 3 -> 存活，否则死亡；
+//       死细胞邻居 == 3 -> 复活。
+//   - 输出用 '#'（活）和 '.'（死），每代之间打印分隔线、代数、人口数。
+
+// 创建一个 width*height 全死的网格。
+func makeGrid(int width, int height) as array<int>
+    int total = width * height
+    array<int> g = array[0]
+    int i = 1
+    while i < total do
+        g.push(0)
+        i += 1
+    end
+    return g
+end
+
+// 设置指定格子状态。
+func setCell(array<int> g, int width, int row, int col, int value)
+    g[row * width + col] = value
+end
+
+// 计算某坐标的活邻居数（环面环绕）。
+func countNeighbors(array<int> g, int width, int height, int row, int col) as int
+    int count = 0
+    int dr = -1
+    while dr <= 1 do
+        int dc = -1
+        while dc <= 1 do
+            if not (dr == 0 and dc == 0) then
+                int rr = row + dr
+                int cc = col + dc
+                if rr < 0 then
+                    rr = height - 1
+                end
+                if rr >= height then
+                    rr = 0
+                end
+                if cc < 0 then
+                    cc = width - 1
+                end
+                if cc >= width then
+                    cc = 0
+                end
+                count = count + g[rr * width + cc]
+            end
+            dc += 1
+        end
+        dr += 1
+    end
+    return count
+end
+
+// 按 Conway 规则推进一代，返回新网格。
+func step(array<int> g, int width, int height) as array<int>
+    array<int> next = makeGrid(width, height)
+    int row = 0
+    while row < height do
+        int col = 0
+        while col < width do
+            int idx = row * width + col
+            int alive = g[idx]
+            int n = countNeighbors(g, width, height, row, col)
+            int cell = 0
+            if alive == 1 then
+                if n == 2 or n == 3 then
+                    cell = 1
+                end
+            else
+                if n == 3 then
+                    cell = 1
+                end
+            end
+            next[idx] = cell
+            col += 1
+        end
+        row += 1
+    end
+    return next
+end
+
+// 统计人口数。
+func population(array<int> g) as int
+    int total = 0
+    int i = 0
+    while i < g.length do
+        total = total + g[i]
+        i += 1
+    end
+    return total
+end
+
+// 把网格渲染为多行字符串：'#' 活，'.' 死。
+func render(array<int> g, int width, int height) as string
+    string out = ""
+    int row = 0
+    while row < height do
+        string line = ""
+        int col = 0
+        while col < width do
+            if g[row * width + col] == 1 then
+                line = line + "#"
+            else
+                line = line + "."
+            end
+            col += 1
+        end
+        out = out + line
+        if row + 1 < height then
+            out = out + "\n"
+        end
+        row += 1
+    end
+    return out
+end
+
+// 在网格 (originRow, originCol) 处放置图案。coords 为相对坐标对，按行展开：
+// coords = [r0, c0, r1, c1, ...]。
+func placePattern(array<int> g, int width, int originRow, int originCol, array<int> coords)
+    int k = 0
+    while k + 1 < coords.length do
+        int r = originRow + coords[k]
+        int c = originCol + coords[k + 1]
+        setCell(g, width, r, c, 1)
+        k += 2
+    end
+end
+
+// 运行并打印 generations 代。
+func runLife(array<int> g, int width, int height, int generations)
+    int gen = 0
+    while gen <= generations do
+        int pop = population(g)
+        string bar = string.repeat("-", width)
+        println(bar)
+        println("generation " + string(gen) + "  population " + string(pop) + "  size " + string(width) + "x" + string(height))
+        println(render(g, width, height))
+        if gen < generations then
+            g = step(g, width, height)
+        end
+        gen += 1
+    end
+end
+
+func printUsage()
+    println("life - Conway's Game of Life (console)")
+    println("Usage:")
+    println("  life glider   [generations=20]                          glider pattern")
+    println("  life blinker  [generations=10]                          blinker pattern")
+    println("  life random   [width=40] [height=20] [generations=100]  random soup")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string mode = string(arg[1])
+
+    if mode == "glider" then
+        int generations = 20
+        if arg.length >= 3 then
+            generations = int(arg[2])
+        end
+        if generations < 0 then
+            println("Error: generations must be >= 0")
+            return 1
+        end
+        int width = 16
+        int height = 16
+        array<int> g = makeGrid(width, height)
+        // 滑翔机：(0,1)(1,2)(2,0)(2,1)(2,2)
+        array<int> coords = array[0, 1, 1, 2, 2, 0, 2, 1, 2, 2]
+        placePattern(g, width, 1, 1, coords)
+        runLife(g, width, height, generations)
+        return 0
+    end
+
+    if mode == "blinker" then
+        int generations = 10
+        if arg.length >= 3 then
+            generations = int(arg[2])
+        end
+        if generations < 0 then
+            println("Error: generations must be >= 0")
+            return 1
+        end
+        int width = 7
+        int height = 7
+        array<int> g = makeGrid(width, height)
+        // 水平三连：(0,0)(0,1)(0,2)
+        array<int> coords = array[0, 0, 0, 1, 0, 2]
+        placePattern(g, width, 3, 2, coords)
+        runLife(g, width, height, generations)
+        return 0
+    end
+
+    if mode == "random" then
+        int width = 40
+        int height = 20
+        int generations = 100
+        if arg.length >= 3 then
+            width = int(arg[2])
+        end
+        if arg.length >= 4 then
+            height = int(arg[3])
+        end
+        if arg.length >= 5 then
+            generations = int(arg[4])
+        end
+        if width < 3 or height < 3 then
+            println("Error: width and height must be >= 3")
+            return 1
+        end
+        if generations < 0 then
+            println("Error: generations must be >= 0")
+            return 1
+        end
+        array<int> g = makeGrid(width, height)
+        int row = 0
+        while row < height do
+            int col = 0
+            while col < width do
+                // 约 30% 初始密度
+                if random.range(0, 9) < 3 then
+                    setCell(g, width, row, col, 1)
+                end
+                col += 1
+            end
+            row += 1
+        end
+        runLife(g, width, height, generations)
+        return 0
+    end
+
+    println("Error: unknown mode '" + mode + "'")
+    printUsage()
+    return 1
+end

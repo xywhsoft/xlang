@@ -1,0 +1,135 @@
+// guess - 猜数字游戏（计算机猜，二分搜索策略）
+//
+// 由于 xlang 无 stdin API，本工具采用"计算机猜"模式：
+// 用户通过命令行参数指定目标数字，计算机展示二分搜索猜数过程。
+//
+// 用法：
+//   guess <number>          计算机猜 1-100 之间的 number，展示每一步
+//   guess <number> <max>    指定范围上限（范围 = 1..max）
+//   guess demo              随机生成 10 个数字，计算机逐一猜测并输出统计
+//
+// 设计要点：
+//   - 二分搜索：每步取中点 mid=(low+high)/2，据与 target 比较缩小区间。
+//   - 理论最优（最坏情况）猜测次数 = ceil(log2(N))，N 为范围内数字个数。
+//   - 用整数累乘实现 ceil(log2) 以避免浮点边界误差。
+//   - demo 模式统计平均猜测次数、最差情况，并与理论最优对比。
+
+// 计算 ceil(log2(n))：覆盖 n 个候选值所需的最少二分步数（最坏情况）。
+func optimalGuesses(int n) as int
+    if n <= 1 then
+        return 1
+    end
+    int k = 0
+    int p = 1
+    while p < n do
+        p = p * 2
+        k += 1
+    end
+    return k
+end
+
+// 对单个目标执行二分搜索，逐步打印，返回猜测次数。
+func bisect(int target, int lo, int hi) as int
+    println("Target: " + string(target) + " (range " + string(lo) + "-" + string(hi) + ")")
+    int count = 0
+    int low = lo
+    int high = hi
+    while low <= high do
+        count += 1
+        int mid = (low + high) / 2
+        if mid == target then
+            println("Guess " + string(count) + ": " + string(mid) + " -> CORRECT!")
+            return count
+        elseif mid < target then
+            println("Guess " + string(count) + ": " + string(mid) + " -> too low")
+            low = mid + 1
+        else
+            println("Guess " + string(count) + ": " + string(mid) + " -> too high")
+            high = mid - 1
+        end
+    end
+    // 理论不可达：target 必在 [lo, hi] 内，循环内必然命中。
+    return count
+end
+
+func printUsage()
+    println("guess - number guessing game (computer guesses via binary search)")
+    println("Usage:")
+    println("  guess <number>        computer guesses number in range 1-100")
+    println("  guess <number> <max>  specify range upper bound (range 1..max)")
+    println("  guess demo            run 10 random targets and show statistics")
+end
+
+func runDemo() as int
+    int lo = 1
+    int hi = 100
+    int n = hi - lo + 1
+    int optimal = optimalGuesses(n)
+    println("=== Demo: 10 random targets (range " + string(lo) + "-" + string(hi) + ") ===")
+    println("Theoretical optimal (worst case): " + string(optimal) + " guesses")
+    println()
+    int total = 0
+    int worst = 0
+    int rounds = 10
+    int i = 1
+    while i <= rounds do
+        int t = random.range(lo, hi)
+        println("[ " + string(i) + " ]")
+        int g = bisect(t, lo, hi)
+        println("Solved in " + string(g) + " guesses")
+        println()
+        total += g
+        if g > worst then
+            worst = g
+        end
+        i += 1
+    end
+    println("=== Statistics ===")
+    float avg = float(total) / float(rounds)
+    println("Targets       : " + string(rounds))
+    println("Total guesses : " + string(total))
+    println("Average       : " + string(avg))
+    println("Worst case    : " + string(worst) + " guesses")
+    println("Optimal bound : " + string(optimal) + " guesses")
+    if worst <= optimal then
+        println("Verdict       : all rounds within optimal bound")
+    else
+        println("Verdict       : worst case exceeded optimal (unexpected)")
+    end
+    return 0
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "demo" then
+        return runDemo()
+    end
+
+    // 数字模式：arg[1] = 目标数字，可选 arg[2] = 范围上限
+    int target = int(cmd)
+    int hi = 100
+    if arg.length >= 3 then
+        hi = int(string(arg[2]))
+    end
+    int lo = 1
+    if hi < 1 then
+        println("Error: range upper bound must be >= 1")
+        return 1
+    end
+    if target < lo or target > hi then
+        println("Error: target must be in [" + string(lo) + ", " + string(hi) + "]")
+        return 1
+    end
+
+    int used = bisect(target, lo, hi)
+    int rangeN = hi - lo + 1
+    int optimal = optimalGuesses(rangeN)
+    println("Solved in " + string(used) + " guesses (optimal: " + string(optimal) + " for range " + string(lo) + "-" + string(hi) + ")")
+    return 0
+end

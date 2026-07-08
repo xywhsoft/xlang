@@ -1,0 +1,207 @@
+// prodcon - producer/consumer concurrency demo (channel + thread)
+//
+// Usage:
+//   prodcon run [producers=3] [consumers=2] [items=10]
+//
+// Multiple producer threads feed integer items into a shared bounded
+// channel<int>; multiple consumer threads drain the same channel until it is
+// closed and empty. Verifies channel<T> + thread concurrency primitives.
+//
+// Design notes:
+//   - thread is a non-copyable resource, so it cannot live in array<thread> /
+//     list<thread> ("typed container item type must be copyable"). Producers
+//     and consumers are therefore spawned fire-and-forget and tracked through
+//     a global active-count polled under a mutex (main pre-seeds the counts
+//     before spawning, eliminating the startup race).
+//   - channel<T> only allows value types (int used here).
+//   - Item ids are handed out from a single shared counter under g_lock, so the
+//     total produced always equals `items` regardless of producer count.
+
+channel<int> g_ch
+mutex g_lock
+int g_nextItem = 1
+int g_totalItems = 10
+int g_sentCount = 0
+int g_recvCount = 0
+int g_activeProducers = 0
+int g_activeConsumers = 0
+
+func makeProducer(int id) as func() as int
+    return func() as int
+        int produced = 0
+        while true do
+            g_lock.lock()
+            int item = 0
+            if g_nextItem <= g_totalItems then
+                item = g_nextItem
+                g_nextItem = g_nextItem + 1
+            end
+            g_lock.unlock()
+            if item == 0 then
+                break
+            end
+            // channel.send is non-blocking (try-enqueue): returns false when the
+            // bounded buffer is full OR when the channel is closed. Retry on a
+            // full buffer; bail only if the channel was closed.
+            bool sent = false
+            while true do
+                if g_ch.send(item) then
+                    sent = true
+                    break
+                end
+                if g_ch.isClosed() then
+                    break
+                end
+                time.sleep(1)
+            end
+            if not sent then
+                break
+            end
+            produced = produced + 1
+            g_lock.lock()
+            g_sentCount = g_sentCount + 1
+            println("[P" + string(id) + "] sent " + string(item))
+            g_lock.unlock()
+            time.sleep(1)
+        end
+        g_lock.lock()
+        g_activeProducers = g_activeProducers - 1
+        g_lock.unlock()
+        return produced
+    end
+end
+
+func makeConsumer(int id) as func() as int
+    return func() as int
+        int consumed = 0
+        while true do
+            int v = 0
+            if g_ch.tryRecvInto(v) then
+                consumed = consumed + 1
+                g_lock.lock()
+                g_recvCount = g_recvCount + 1
+                println("[C" + string(id) + "] recv " + string(v))
+                g_lock.unlock()
+                time.sleep(1)
+            else
+                if g_ch.isClosed() and g_ch.count() == 0 then
+                    break
+                end
+                time.sleep(1)
+            end
+        end
+        g_lock.lock()
+        g_activeConsumers = g_activeConsumers - 1
+        g_lock.unlock()
+        return consumed
+    end
+end
+
+func readActive(int which) as int
+    g_lock.lock()
+    int v = 0
+    if which == 0 then
+        v = g_activeProducers
+    else
+        v = g_activeConsumers
+    end
+    g_lock.unlock()
+    return v
+end
+
+func printUsage()
+    println("prodcon - producer/consumer concurrency demo (channel + thread)")
+    println("Usage:")
+    println("  prodcon run [producers=3] [consumers=2] [items=10]")
+    println("Options:")
+    println("  producers   number of producer threads (default 3, must be > 0)")
+    println("  consumers   number of consumer threads (default 2, must be > 0)")
+    println("  items       total integer items to produce (default 10, must be > 0)")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+    if cmd != "run" then
+        println("Error: unknown command '" + cmd + "'")
+        printUsage()
+        return 1
+    end
+
+    int p = 3
+    int c = 2
+    int items = 10
+    int buffer = 4
+
+    if arg.length >= 3 then
+        p = int(arg[2])
+        if p <= 0 then
+            println("Error: producers must be a positive integer (got '" + string(arg[2]) + "')")
+            return 1
+        end
+    end
+    if arg.length >= 4 then
+        c = int(arg[3])
+        if c <= 0 then
+            println("Error: consumers must be a positive integer (got '" + string(arg[3]) + "')")
+            return 1
+        end
+    end
+    if arg.length >= 5 then
+        items = int(arg[4])
+        if items <= 0 then
+            println("Error: items must be a positive integer (got '" + string(arg[4]) + "')")
+            return 1
+        end
+    end
+
+    g_totalItems = items
+    g_ch = channel::<int>(buffer)
+    g_lock = mutex()
+    g_lock.lock()
+    g_activeProducers = p
+    g_activeConsumers = c
+    g_lock.unlock()
+
+    println("==== prodcon start ====")
+    println("producers:", p, " consumers:", c, " items:", items, " buffer:", buffer)
+    println("------------------------")
+
+    int i = 1
+    while i <= p do
+        thread(makeProducer(i))
+        i = i + 1
+    end
+    i = 1
+    while i <= c do
+        thread(makeConsumer(i))
+        i = i + 1
+    end
+
+    while readActive(0) > 0 do
+        time.sleep(5)
+    end
+    g_ch.close()
+    while readActive(1) > 0 do
+        time.sleep(5)
+    end
+
+    println("------------------------")
+    println("==== prodcon summary ====")
+    println("producers:    ", p)
+    println("consumers:    ", c)
+    println("items target: ", items)
+    println("sent total:   ", g_sentCount)
+    println("received total:", g_recvCount)
+
+    if g_sentCount == g_recvCount and g_sentCount == items then
+        println("RESULT: OK - all", items, "items produced and consumed")
+        return 0
+    end
+    println("RESULT: MISMATCH - sent", g_sentCount, "received", g_recvCount, "expected", items)
+    return 1
+end

@@ -1,0 +1,186 @@
+// codec.xl - Base64 / Hex / URL percent codec and crypto hash CLI
+//
+// usage:
+//   codec b64enc <text>            Base64 encode
+//   codec b64dec <base64>          Base64 decode
+//   codec hexenc <text>            HEX encode
+//   codec hexdec <hex>             HEX decode
+//   codec pctenc <text>            URL percent encode
+//   codec pctdec <text>            URL percent decode
+//   codec hash <algo> <text>       hash (sha1/sha256/sha384/sha512)
+//
+//   any text command accepts -f <file> to read input from a UTF-8 file:
+//   codec b64enc -f <file>
+//   codec hash sha256 -f <file>
+//
+//   codec --help | -h             show help
+//
+// ---------------------------------------------------------------------------
+// Implementation: all encoders/decoders use the codec standard library.
+//   hex:    codec.hexEncode / codec.hexDecode
+//   base64: codec.base64Encode / codec.base64Decode
+//   percent:codec.percentEncode / codec.percentDecode
+// (Earlier B14/B15/B16 workarounds that hand-rolled hex/base64/percent are no
+//  longer needed; the codec.* functions now work alongside crypto.* under both
+//  `xl run` and `xl build`.)
+// ---------------------------------------------------------------------------
+
+func readInput(bool fromFile, string fileSource, string inlineText) as string
+    if fromFile then
+        if not file.exists(fileSource) then
+            return ""
+        end
+        return file.readText(fileSource)
+    end
+    return inlineText
+end
+
+func doHash(string algo, string text) as string
+    if algo == "sha1" then
+        return crypto.sha1(text)
+    elseif algo == "sha256" then
+        return crypto.sha256(text)
+    elseif algo == "sha384" then
+        return crypto.sha384(text)
+    elseif algo == "sha512" then
+        return crypto.sha512(text)
+    end
+    return ""
+end
+
+func isKnownAlgo(string algo) as bool
+    return algo == "sha1" or algo == "sha256" or algo == "sha384" or algo == "sha512"
+end
+
+func isCodecCmd(string cmd) as bool
+    return cmd == "b64enc" or cmd == "b64dec" or cmd == "hexenc" or cmd == "hexdec" or cmd == "pctenc" or cmd == "pctdec"
+end
+
+func runCodec(string cmd, string input) as string
+    if cmd == "b64enc" then
+        return codec.base64Encode(input)
+    elseif cmd == "b64dec" then
+        return codec.base64Decode(input)
+    elseif cmd == "hexenc" then
+        return codec.hexEncode(input)
+    elseif cmd == "hexdec" then
+        return codec.hexDecode(input)
+    elseif cmd == "pctenc" then
+        return codec.percentEncode(input)
+    elseif cmd == "pctdec" then
+        return codec.percentDecode(input)
+    end
+    return ""
+end
+
+func printUsage()
+    println("codec - Base64 / Hex / URL percent codec and hash tool")
+    println("")
+    println("usage:")
+    println("  codec b64enc <text>          Base64 encode")
+    println("  codec b64dec <base64>        Base64 decode")
+    println("  codec hexenc <text>          HEX encode")
+    println("  codec hexdec <hex>           HEX decode")
+    println("  codec pctenc <text>          URL percent encode")
+    println("  codec pctdec <text>          URL percent decode")
+    println("  codec hash <algo> <text>     hash (sha1/sha256/sha384/sha512)")
+    println("")
+    println("  -f <file>                    read input from a UTF-8 file, e.g.")
+    println("  codec b64enc -f <file>")
+    println("  codec hash sha256 -f <file>")
+    println("")
+    println("  codec --help | -h            show this help")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "--help" or cmd == "-h" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    bool fromFile = false
+    string fileSource = ""
+    string p1 = ""
+    bool hasP1 = false
+    string p2 = ""
+    bool hasP2 = false
+
+    int i = 2
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "-f" or a == "--file" then
+            if i + 1 < arg.length then
+                fromFile = true
+                fileSource = string(arg[i + 1])
+                i += 2
+                continue
+            else
+                println("codec: -f requires a file path")
+                return 1
+            end
+        elseif string.startsWith(a, "-") and a != "-" then
+            println("codec: unknown option: " + a)
+            return 1
+        else
+            if not hasP1 then
+                p1 = a
+                hasP1 = true
+            elseif not hasP2 then
+                p2 = a
+                hasP2 = true
+            end
+        end
+        i += 1
+    end
+
+    if cmd == "hash" then
+        if not hasP1 then
+            println("codec hash: missing algorithm (sha1/sha256/sha384/sha512)")
+            return 1
+        end
+        string algo = p1
+        if not isKnownAlgo(algo) then
+            println("codec hash: unknown algorithm: " + algo)
+            println("  supported: sha1, sha256, sha384, sha512")
+            return 1
+        end
+        if not hasP2 and not fromFile then
+            println("codec hash: missing text")
+            return 1
+        end
+        if fromFile and not file.exists(fileSource) then
+            println("codec: file not found: " + fileSource)
+            return 1
+        end
+        string text = readInput(fromFile, fileSource, p2)
+        println(doHash(algo, text))
+        return 0
+    end
+
+    if not isCodecCmd(cmd) then
+        println("codec: unknown command: " + cmd)
+        printUsage()
+        return 1
+    end
+
+    if not hasP1 and not fromFile then
+        println("codec " + cmd + ": missing input text")
+        return 1
+    end
+
+    if fromFile and not file.exists(fileSource) then
+        println("codec: file not found: " + fileSource)
+        return 1
+    end
+
+    string input = readInput(fromFile, fileSource, p1)
+    println(runCodec(cmd, input))
+    return 0
+end

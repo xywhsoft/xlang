@@ -1,0 +1,182 @@
+// bench - 微型基准测试工具
+//
+// 用 time.timer() 前后取差，测量 xlang 各项基础操作的吞吐。
+//
+// 用法:
+//   xl run bench.xl loop [N]        空循环开销 (默认 N=1000000)
+//   xl run bench.xl math [N]        数学运算 (默认 N=1000000)
+//   xl run bench.xl string [N]      字符串拼接 (默认 N=100000)
+//   xl run bench.xl array [N]       数组 append (默认 N=100000)
+//   xl run bench.xl json [N]        JSON parse + stringify (默认 N=10000)
+//   xl run bench.xl all             依次运行全部 (使用各自默认 N)
+//
+// 输出: 总耗时(ms)、单次操作耗时(us)、每秒操作数(ops/sec)。
+//
+// 设计说明:
+//   - 每个 bench 函数只做「计时 + 循环」，结果通过 g_sink 累计，
+//     在程序末尾打印 checksum，避免死代码消除影响测量。
+//   - 计时使用 time.timer() (单调秒, float)，差值换算成 ms / us / ops。
+//   - 所有循环用 while + 计数器，保证循环体可空 (loop 项)。
+
+// 全局 checksum 汇聚，防止计算结果被优化掉。
+float g_sink = 0.0
+
+// 默认迭代次数。
+int DEF_LOOP = 1000000
+int DEF_MATH = 1000000
+int DEF_STRING = 100000
+int DEF_ARRAY = 100000
+int DEF_JSON = 10000
+
+func printUsage()
+    println("bench - xlang micro benchmark")
+    println("usage:")
+    println("  bench loop   [N]   empty loop overhead      (default " + string(DEF_LOOP) + ")")
+    println("  bench math   [N]   math operations          (default " + string(DEF_MATH) + ")")
+    println("  bench string [N]   string concatenation     (default " + string(DEF_STRING) + ")")
+    println("  bench array  [N]   array append             (default " + string(DEF_ARRAY) + ")")
+    println("  bench json   [N]   json parse + stringify   (default " + string(DEF_JSON) + ")")
+    println("  bench all          run all benchmarks")
+end
+
+// 打印一行结果: 名称、迭代数、耗时、单次耗时、吞吐。
+func report(string name, int n, float elapsed)
+    float ms = elapsed * 1000.0
+    float usPerOp = 0.0
+    float opsPerSec = 0.0
+    if elapsed > 0.0 then
+        usPerOp = elapsed * 1000000.0 / float(n)
+        opsPerSec = float(n) / elapsed
+    end
+    string line = "  "
+    line = line + string.padRight(name, 8)
+    line = line + "n=" + string.formatInt(n, ",")
+    line = line + "  time=" + string.formatFloat(ms, ".3") + " ms"
+    line = line + "  " + string.formatFloat(usPerOp, ".4") + " us/op"
+    line = line + "  " + string.formatInt(int(opsPerSec), ",") + " ops/sec"
+    println(line)
+end
+
+// ---- 各项 benchmark ----
+
+func benchLoop(int n) as float
+    float t0 = time.timer()
+    int i = 0
+    while i < n do
+        i += 1
+    end
+    float t1 = time.timer()
+    g_sink += float(i)
+    return t1 - t0
+end
+
+func benchMath(int n) as float
+    float acc = 0.0
+    float t0 = time.timer()
+    int i = 1
+    while i <= n do
+        float fi = float(i)
+        acc += math.sqrt(fi)
+        acc = math.sin(acc) + math.cos(fi) + math.log(fi + 1.0)
+        i += 1
+    end
+    float t1 = time.timer()
+    g_sink += acc
+    return t1 - t0
+end
+
+func benchString(int n) as float
+    string s = ""
+    float t0 = time.timer()
+    int i = 0
+    while i < n do
+        s = s + "x"
+        i += 1
+    end
+    float t1 = time.timer()
+    g_sink += float(string.len(s))
+    return t1 - t0
+end
+
+func benchArray(int n) as float
+    float t0 = time.timer()
+    array<int> a
+    int i = 0
+    while i < n do
+        a.append(i)
+        i += 1
+    end
+    float t1 = time.timer()
+    g_sink += float(a.length)
+    return t1 - t0
+end
+
+func benchJson(int n) as float
+    string sample = '{"name":"bench","index":42,"tags":["a","b","c"],"active":true,"score":3.14}'
+    float acc = 0.0
+    float t0 = time.timer()
+    int i = 0
+    while i < n do
+        var doc = json.parse(sample)
+        string out = json.stringify(doc)
+        acc += float(string.len(out))
+        i += 1
+    end
+    float t1 = time.timer()
+    g_sink += acc
+    return t1 - t0
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    println("xlang micro benchmark")
+    println("================================================================")
+
+    if cmd == "loop" then
+        int n = DEF_LOOP
+        if arg.length >= 3 then n = int(arg[2]) end
+        report("loop", n, benchLoop(n))
+    elseif cmd == "math" then
+        int n = DEF_MATH
+        if arg.length >= 3 then n = int(arg[2]) end
+        report("math", n, benchMath(n))
+    elseif cmd == "string" then
+        int n = DEF_STRING
+        if arg.length >= 3 then n = int(arg[2]) end
+        report("string", n, benchString(n))
+    elseif cmd == "array" then
+        int n = DEF_ARRAY
+        if arg.length >= 3 then n = int(arg[2]) end
+        report("array", n, benchArray(n))
+    elseif cmd == "json" then
+        int n = DEF_JSON
+        if arg.length >= 3 then n = int(arg[2]) end
+        report("json", n, benchJson(n))
+    elseif cmd == "all" then
+        report("loop", DEF_LOOP, benchLoop(DEF_LOOP))
+        report("math", DEF_MATH, benchMath(DEF_MATH))
+        report("string", DEF_STRING, benchString(DEF_STRING))
+        report("array", DEF_ARRAY, benchArray(DEF_ARRAY))
+        report("json", DEF_JSON, benchJson(DEF_JSON))
+    else
+        println("error: unknown command '" + cmd + "'")
+        println("")
+        printUsage()
+        return 1
+    end
+
+    println("================================================================")
+    println("checksum " + string.formatFloat(g_sink, ".3") + " (防优化累计值)")
+    return 0
+end

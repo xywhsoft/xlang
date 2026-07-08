@@ -1,0 +1,355 @@
+// config - JSON 配置文件管理器
+//
+// 用法：
+//   config get <key>                    读取配置值
+//   config set <key> <value>            设置配置值（自动识别 string/int/bool/float）
+//   config list                         列出所有配置
+//   config delete <key>                 删除配置项
+//   config import <json_file>           从 JSON 文件导入
+//   config export <json_file>           导出到 JSON 文件（pretty 输出）
+//   config selftest                     B1 探针：验证 derive json 单实例与容器内实例
+//
+// 配置文件默认在脚本/exe 同目录下的 app.json（即 projects/dev/config/app.json）。
+//
+// 设计说明：
+//   - 主路径用 `var` dict 承载配置数据（比 class derive json 灵活，避开 B1）。
+//   - 读：file.readText + json.parse → var dict。
+//   - 写：json.stringify(data, pretty=true) → TAB 转 2 空格（B10 后处理）→ file.writeText。
+//   - delete：重建新 dict 只复制其他 key。
+//   - 键序：var dict 迭代按 hash 序，list 按该序展示，已知限制。
+//   - selftest 子命令验证 derive json 单实例正常、容器内实例仍触发 B1。
+
+
+// ---- ConfigItem：仅用于 selftest 探测 B1 状态 ----
+class ConfigItem
+    derive value
+    derive json
+
+    string key = ""
+    string value = ""
+end
+
+
+// 解析数据文件路径：脚本/exe 同目录下的 app.json。
+func dataPath(string scriptPath) as string
+    return path.join(path.dir(scriptPath), "app.json")
+end
+
+
+// 读取磁盘 JSON 文本；文件不存在或为空时返回 "{}"。
+func loadRaw(string p) as string
+    if not file.exists(p) then
+        return "{}"
+    end
+    string text = file.readText(p)
+    if string.isEmpty(text) then
+        return "{}"
+    end
+    return text
+end
+
+
+// 把 JSON 文本落盘；pretty 输出并把 TAB 规范化为 2 空格（B10）。
+func saveRaw(string p, string jsonText)
+    bool ok = file.writeText(p, jsonText)
+    if not ok then
+        println("Error: failed to write " + p)
+    end
+end
+
+
+// 紧凑 JSON 文本 -> pretty 文本（2 空格缩进），文本级处理避免二次 round-trip。
+func prettyCompact(string compact) as string
+    string out = ""
+    int n = string.len(compact)
+    int indent = 0
+    int i = 0
+    string pad = "  "
+    while i < n do
+        string c = string.charAt(compact, i)
+        if c == "{" or c == "[" then
+            indent += 1
+            out = out + c + "\n" + string.repeat(pad, indent)
+        elseif c == "}" or c == "]" then
+            indent -= 1
+            out = out + "\n" + string.repeat(pad, indent) + c
+        elseif c == "," then
+            out = out + c + "\n" + string.repeat(pad, indent)
+        elseif c == ":" then
+            out = out + ": "
+        else
+            out = out + c
+        end
+        i += 1
+    end
+    return out
+end
+
+
+func isAllDigits(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int start = 0
+    if string.charAt(s, 0) == "-" then
+        start = 1
+        if n == 1 then
+            return false
+        end
+    end
+    int i = start
+    while i < n do
+        if not string.contains("0123456789", string.charAt(s, i)) then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+
+func isFloat(string s) as bool
+    if not string.contains(s, ".") then
+        return false
+    end
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int start = 0
+    if string.charAt(s, 0) == "-" then
+        start = 1
+    end
+    int i = start
+    bool sawDot = false
+    bool sawDigit = false
+    while i < n do
+        string c = string.charAt(s, i)
+        if c == "." then
+            if sawDot then
+                return false
+            end
+            sawDot = true
+        elseif string.contains("0123456789", c) then
+            sawDigit = true
+        else
+            return false
+        end
+        i += 1
+    end
+    return sawDigit
+end
+
+
+// 把 argv 文本解析为带类型的 var 值（bool/int/float/string 自动识别）。
+func parseValue(string s) as var
+    if s == "true" then
+        return true
+    end
+    if s == "false" then
+        return false
+    end
+    if isAllDigits(s) then
+        return int(s)
+    end
+    if isFloat(s) then
+        return float(s)
+    end
+    return s
+end
+
+
+func printUsage()
+    println("Usage:")
+    println("  config get <key>                read a config value")
+    println("  config set <key> <value>        set a config value (string/int/bool/float)")
+    println("  config list                     list all config entries")
+    println("  config delete <key>             delete a config entry")
+    println("  config import <json_file>       import entries from a JSON file")
+    println("  config export <json_file>       export entries to a JSON file (pretty)")
+    println("  config selftest                 probe derive-json B1 status")
+end
+
+
+// ---- selftest：探测 derive json 单实例与容器内实例 ----
+func cmdSelftest() as int
+    println("=== A. ConfigItem single-instance derive json ===")
+    ConfigItem item
+    item.key = "name"
+    item.value = "xlang"
+    string single = json.stringify(item)
+    println("stringify(item) = " + single)
+    ConfigItem back = json.parse::<ConfigItem>(single)
+    println("parse back: key=" + back.key + " value=" + string(back.value))
+
+    println("")
+    println("=== B. ConfigItem inside var array literal (B1 probe) ===")
+    ConfigItem a
+    a.key = "k1"
+    a.value = "v1"
+    ConfigItem b
+    b.key = "k2"
+    b.value = "v2"
+    var arr = [a, b]
+    println("stringify([a,b])  = " + json.stringify(arr))
+
+    println("")
+    println("=== C. ConfigItem as var-dict value (B1 probe) ===")
+    var bag = {}
+    bag["a"] = a
+    bag["b"] = b
+    println("stringify(bag)    = " + json.stringify(bag))
+
+    println("")
+    println("=== D. Manual per-item stringify (B1 workaround) ===")
+    println("manual array      = [" + json.stringify(a) + "," + json.stringify(b) + "]")
+
+    println("")
+    println("=== E. var dict json round-trip (main path) ===")
+    var d = json.parse('{"name":"xlang","version":6,"stable":true,"ratio":0.95}')
+    string rt = json.stringify(d)
+    println("stringify(dict)   = " + rt)
+    var d2 = json.parse(rt)
+    println("parse back keys:")
+    for k, v in d2
+        println("  " + string(k) + " = " + string(v))
+    end
+    return 0
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string scriptPath = string(arg[0])
+    string command = string(arg[1])
+    string cfgPath = dataPath(scriptPath)
+
+    if command == "selftest" then
+        return cmdSelftest()
+    end
+
+    if command == "set" then
+        if arg.length < 4 then
+            println("Error: 'set' needs <key> <value>")
+            return 1
+        end
+        string key = string(arg[2])
+        string valText = string(arg[3])
+        string raw = loadRaw(cfgPath)
+        var data = json.parse(raw)
+        var v = parseValue(valText)
+        data[key] = v
+        saveRaw(cfgPath, prettyCompact(json.stringify(data)))
+        println("Set " + key + " = " + string(v))
+        return 0
+    end
+
+    if command == "get" then
+        if arg.length < 3 then
+            println("Error: 'get' needs <key>")
+            return 1
+        end
+        string key = string(arg[2])
+        string raw = loadRaw(cfgPath)
+        var data = json.parse(raw)
+        bool found = false
+        for k, v in data
+            if string(k) == key then
+                println(string(v))
+                found = true
+            end
+        end
+        if not found then
+            println("Error: no such key: " + key)
+            return 1
+        end
+        return 0
+    end
+
+    if command == "list" then
+        string raw = loadRaw(cfgPath)
+        var data = json.parse(raw)
+        int count = 0
+        for k, v in data
+            println(string(k) + " = " + string(v))
+            count += 1
+        end
+        if count == 0 then
+            println("(empty)")
+        end
+        return 0
+    end
+
+    if command == "delete" then
+        if arg.length < 3 then
+            println("Error: 'delete' needs <key>")
+            return 1
+        end
+        string key = string(arg[2])
+        string raw = loadRaw(cfgPath)
+        var data = json.parse(raw)
+        bool found = false
+        var fresh = {}
+        for k, v in data
+            if string(k) == key then
+                found = true
+            else
+                fresh[k] = v
+            end
+        end
+        if not found then
+            println("Error: no such key: " + key)
+            return 1
+        end
+        saveRaw(cfgPath, prettyCompact(json.stringify(fresh)))
+        println("Deleted " + key)
+        return 0
+    end
+
+    if command == "import" then
+        if arg.length < 3 then
+            println("Error: 'import' needs <json_file>")
+            return 1
+        end
+        string srcPath = string(arg[2])
+        if not file.exists(srcPath) then
+            println("Error: source file not found: " + srcPath)
+            return 1
+        end
+        string text = file.readText(srcPath)
+        if not json.valid(text) then
+            println("Error: invalid JSON in " + srcPath)
+            return 1
+        end
+        var data = json.parse(text)
+        saveRaw(cfgPath, prettyCompact(json.stringify(data)))
+        println("Imported " + srcPath + " -> " + cfgPath)
+        return 0
+    end
+
+    if command == "export" then
+        if arg.length < 3 then
+            println("Error: 'export' needs <json_file>")
+            return 1
+        end
+        string dstPath = string(arg[2])
+        string raw = loadRaw(cfgPath)
+        var data = json.parse(raw)
+        bool ok = file.writeText(dstPath, prettyCompact(json.stringify(data)))
+        if not ok then
+            println("Error: failed to write " + dstPath)
+            return 1
+        end
+        println("Exported " + cfgPath + " -> " + dstPath)
+        return 0
+    end
+
+    println("Error: unknown command '" + command + "'")
+    printUsage()
+    return 1
+end

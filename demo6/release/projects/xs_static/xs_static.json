@@ -1,0 +1,8 @@
+{
+    "name": "xs_static",
+    "port": 8088,
+    "root": "projects/xs_static/wwwroot",
+    "staticMount": "/",
+    "durationMs": 0,
+    "verbose": true
+}

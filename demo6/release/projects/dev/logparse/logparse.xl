@@ -1,0 +1,230 @@
+// logparse.xl - 日志分析器
+//
+// 用法:
+//   logparse <file>                  分析整个日志文件
+//   logparse <file> -p <pattern>     只统计匹配 (regex) pattern 的行
+//
+// 输出:
+//   === Log Analysis: <name> ===
+//   Total lines / 各级别计数 / Top 错误消息 / 时间范围
+//
+// 实现:
+//   - file.readText + string.splitLines 按行读取
+//   - regex.match 提取时间戳和日志级别 (regex 无捕获组, .text 是整段匹配文本)
+//   - var dict 按级别计数 (counts[level] = counts[level] + 1 模式)
+//   - ERROR 行用 string.slice 截取消息, 按首冒号前缀归一化后统计, 取 Top N
+//   - regex 无捕获组: .text 取整段匹配, 消息靠 string.slice 截取。
+
+func main(...) as int
+    if arg.length < 2 then
+        println("usage: logparse <file> [-p <pattern>]")
+        println("  analyzes a log file and prints level / message / time statistics.")
+        println("  -p <pattern>   only count lines matching the regex pattern")
+        return 1
+    end
+
+    string filePath = string(arg[1])
+    string pattern = ""
+    bool usePattern = false
+
+    int ai = 2
+    while ai < arg.length do
+        string a = string(arg[ai])
+        if a == "-p" or a == "--pattern" then
+            if ai + 1 >= arg.length then
+                println("logparse: missing pattern after " + a)
+                return 1
+            end
+            pattern = string(arg[ai + 1])
+            usePattern = true
+            ai = ai + 2
+            continue
+        elseif a == "-h" or a == "--help" then
+            println("usage: logparse <file> [-p <pattern>]")
+            return 0
+        else
+            println("logparse: unknown argument: " + a)
+            return 1
+        end
+        ai = ai + 1
+    end
+
+    if not file.exists(filePath) then
+        println("logparse: file not found: " + filePath)
+        return 1
+    end
+
+    string content = ""
+    try
+        content = file.readText(filePath)
+    catch e
+        println("logparse: failed to read file: " + e.message)
+        return 1
+    end
+
+    array lines = string.splitLines(content)
+
+    var counts = {}
+    var errCounts = {}
+
+    int totalLines = 0
+    int matchedLines = 0
+    int errorLines = 0
+
+    string firstTime = ""
+    string lastTime = ""
+
+    Regex tsRegex = regex.compile("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}")
+    Regex lvlRegex = regex.compile("(INFO|DEBUG|WARN|ERROR|FATAL|TRACE)")
+
+    int n = lines.length
+    int i = 0
+    while i < n do
+        string line = string(lines[i])
+        i = i + 1
+
+        if string.trim(line) == "" then
+            continue
+        end
+        totalLines = totalLines + 1
+
+        if usePattern then
+            if not regex.isMatch(line, pattern) then
+                continue
+            end
+        end
+        matchedLines = matchedLines + 1
+
+        // 时间戳: regex.match 返回 RegexMatch, .text 是整段匹配
+        RegexMatch ts = tsRegex.match(line)
+        if ts.ok then
+            string t = string(ts.text)
+            if firstTime == "" then
+                firstTime = t
+            end
+            lastTime = t
+        end
+
+        // 日志级别: regex 交替组, .text 取整段匹配
+        string level = "OTHER"
+        int levelEnd = -1
+        RegexMatch lm = lvlRegex.match(line)
+        if lm.ok then
+            level = string(lm.text)
+            levelEnd = lm.end
+        end
+
+        // var dict 计数
+        var cv = counts[level]
+        if cv == null then
+            counts[level] = 1
+        else
+            counts[level] = int(cv) + 1
+        end
+
+        // ERROR 行: 提取消息, 按首冒号前缀归一化
+        if level == "ERROR" then
+            errorLines = errorLines + 1
+            string msg = ""
+            if levelEnd >= 0 then
+                msg = string.trim(string.slice(line, levelEnd))
+            else
+                msg = string.trim(line)
+            end
+            int colon = string.indexOf(msg, ":")
+            if colon >= 0 then
+                msg = string.trim(string.slice(msg, 0, colon))
+            end
+            if msg == "" then
+                msg = "(empty)"
+            end
+            var ev = errCounts[msg]
+            if ev == null then
+                errCounts[msg] = 1
+            else
+                errCounts[msg] = int(ev) + 1
+            end
+        end
+    end
+
+    // ===== 输出报告 =====
+    println("=== Log Analysis: " + path.nameExt(filePath) + " ===")
+
+    if usePattern then
+        println("Pattern filter: /" + pattern + "/")
+        println("Matched lines: " + string(matchedLines) + " / " + string(totalLines))
+    else
+        println("Total lines: " + string(totalLines))
+    end
+
+    println("By level:")
+
+    // 已知级别按固定顺序展示, 只打印出现过的
+    array levels = ["INFO", "DEBUG", "WARN", "ERROR", "FATAL", "TRACE", "OTHER"]
+    int lvlN = levels.length
+    int li = 0
+    while li < lvlN do
+        string lv = string(levels[li])
+        var cv = counts[lv]
+        if cv != null then
+            int c = int(cv)
+            println("  " + string.padRight(lv + ":", 8) + string.padLeft(string(c), 5))
+        end
+        li = li + 1
+    end
+
+    // Top 5 错误消息
+    println("Top 5 error messages:")
+    if errorLines == 0 then
+        println("  (none)")
+    else
+        // var dict -> 平行 list 排序 (dict 不能直接排序)
+        list<string> eKeys
+        list<int> eVals
+        int eCount = 0
+        for key, val in errCounts
+            eKeys[eCount] = string(key)
+            eVals[eCount] = int(val)
+            eCount = eCount + 1
+        end
+
+        // 冒泡排序: 按计数降序
+        int a = 0
+        while a < eCount do
+            int b = a + 1
+            while b < eCount do
+                if eVals[b] > eVals[a] then
+                    int tv = eVals[a]
+                    eVals[a] = eVals[b]
+                    eVals[b] = tv
+                    string tmp = eKeys[a]
+                    eKeys[a] = eKeys[b]
+                    eKeys[b] = tmp
+                end
+                b = b + 1
+            end
+            a = a + 1
+        end
+
+        int topMax = 5
+        if eCount < topMax then
+            topMax = eCount
+        end
+        int ti = 0
+        while ti < topMax do
+            string m = eKeys[ti]
+            int c = eVals[ti]
+            println("  \"" + m + "\":" + string.padLeft(string(c), 5))
+            ti = ti + 1
+        end
+    end
+
+    // 时间范围
+    if firstTime == "" then
+        println("Time range: (unknown)")
+    else
+        println("Time range: " + firstTime + " ~ " + lastTime)
+    end
+
+    return 0
+end

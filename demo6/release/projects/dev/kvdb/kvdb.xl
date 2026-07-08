@@ -1,0 +1,410 @@
+// kvdb - 简易 KV 数据库（类似简化版 Redis/LevelDB）
+//
+// 用法：
+//   kvdb set <key> <value>      设置键值（值自动识别 string/int/bool/float）
+//   kvdb get <key>              获取值
+//   kvdb delete <key>           删除键
+//   kvdb list                   列出所有键
+//   kvdb count                  键数量
+//   kvdb clear                  清空
+//   kvdb keys <pattern>         按通配符筛选键（如 user:*，语法同 string.like）
+//   kvdb export <file>          导出为 pretty JSON
+//   kvdb import <file>          从 JSON 导入（整体替换）
+//   kvdb incr <key>             整数自增（不存在则从 0 开始）
+//   kvdb search <text>          在所有值中搜索文本
+//
+// 数据持久化到脚本/exe 同目录的 kvdb.json，用 var dict + json。
+//
+// 设计说明：
+//   - 存储用 var dict，值支持 string/int/bool/float 四种基础类型。
+//   - 落盘用 json.stringify（compact 模式，保留键序，保证 list/keys 顺序稳定）。
+//   - 读取用 json.parse 还原成 var dict；类型由 JSON 词法保留。
+//   - 数据文件路径取自 arg[0]（脚本或 exe）所在目录，xl run 与 build 后的 exe 共享同一份 kvdb.json。
+//   - export 额外用 pretty 模式（TAB 缩进替换成 2 空格），便于人读。
+
+
+// 数据文件路径：脚本/exe 同目录下的 kvdb.json。
+func dataPath(string scriptPath) as string
+    return path.join(path.dir(scriptPath), "kvdb.json")
+end
+
+
+// 从磁盘读取 var dict；文件不存在/为空/非法时返回空 dict。
+func loadData(string path_) as var
+    var data = {}
+    if not file.exists(path_) then
+        return data
+    end
+    string text = file.readText(path_)
+    if string.isEmpty(text) then
+        return data
+    end
+    if not json.valid(text) then
+        return data
+    end
+    var parsed = json.parse(text)
+    if parsed == null then
+        return data
+    end
+    return parsed
+end
+
+
+// 把 var dict 以 compact JSON 落盘（compact 保留键序）。
+func saveData(string path_, var data)
+    string jsonText = json.stringify(data)
+    bool ok = file.writeText(path_, jsonText)
+    if not ok then
+        println("Error: failed to write " + path_)
+    end
+end
+
+
+// 判断字符串是否整数字面量（可选符号 + 纯数字）。
+func looksLikeInt(string s) as bool
+    if string.isEmpty(s) then
+        return false
+    end
+    int i = 0
+    int firstByte = string.byteAt(s, 0)
+    if firstByte == 45 or firstByte == 43 then
+        i = 1
+    end
+    if i >= string.len(s) then
+        return false
+    end
+    while i < string.len(s) do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+
+// 判断字符串是否浮点字面量（含 . 或 e/E，且至少出现一个数字）。
+func looksLikeFloat(string s) as bool
+    bool hasDot = string.contains(s, ".")
+    bool hasE = string.contains(s, "e") or string.contains(s, "E")
+    if not hasDot and not hasE then
+        return false
+    end
+    int i = 0
+    int firstByte = string.byteAt(s, 0)
+    if firstByte == 45 or firstByte == 43 then
+        i = 1
+    end
+    bool seenDigit = false
+    while i < string.len(s) do
+        int b = string.byteAt(s, i)
+        if b >= 48 and b <= 57 then
+            seenDigit = true
+        elseif b == 46 or b == 101 or b == 69 or b == 45 or b == 43 then
+            // '.', 'e', 'E', '-', '+' 在浮点字面量中允许
+        else
+            return false
+        end
+        i += 1
+    end
+    return seenDigit
+end
+
+
+// 把命令行传入的字符串值自动识别为 bool/int/float/string。
+func parseValue(string s) as var
+    if s == "true" then
+        return true
+    end
+    if s == "false" then
+        return false
+    end
+    if looksLikeInt(s) then
+        return int(s)
+    end
+    if looksLikeFloat(s) then
+        return float(s)
+    end
+    return s
+end
+
+
+// 把值格式化为展示用字符串（bool 强制输出 true/false，避免 1/0 歧义）。
+func valueToString(var v) as string
+    if type(v) == type(true) then
+        if bool(v) then
+            return "true"
+        end
+        return "false"
+    end
+    return string(v)
+end
+
+
+func cmdSet(string path_, string key, string rawValue)
+    var data = loadData(path_)
+    var val = parseValue(rawValue)
+    data[key] = val
+    saveData(path_, data)
+    println("OK " + key + "=" + valueToString(val))
+end
+
+
+func cmdGet(string path_, string key)
+    var data = loadData(path_)
+    if key in data then
+        println(valueToString(data[key]))
+    else
+        println("(nil)")
+    end
+end
+
+
+func cmdDelete(string path_, string key)
+    var data = loadData(path_)
+    if key in data then
+        data.remove(key)
+        saveData(path_, data)
+        println("OK (removed) " + key)
+    else
+        println("(nil) " + key)
+    end
+end
+
+
+func cmdList(string path_)
+    var data = loadData(path_)
+    if data.length == 0 then
+        println("(empty)")
+        return
+    end
+    for key, item in data
+        println(key)
+    end
+end
+
+
+func cmdCount(string path_)
+    var data = loadData(path_)
+    println(string(data.length))
+end
+
+
+func cmdClear(string path_)
+    var data = loadData(path_)
+    int n = data.length
+    var empty = {}
+    saveData(path_, empty)
+    println("OK cleared " + string(n) + " keys")
+end
+
+
+func cmdKeys(string path_, string pattern)
+    var data = loadData(path_)
+    int matches = 0
+    for key, item in data
+        if string.like(string(key), pattern) then
+            println(key)
+            matches += 1
+        end
+    end
+    if matches == 0 then
+        println("(no match)")
+    end
+end
+
+
+func cmdExport(string path_, string outFile) as int
+    var data = loadData(path_)
+    string text = json.stringify(data, pretty = true)
+    // json pretty 默认 TAB 缩进，统一替换成 2 空格更美观。
+    text = string.replace(text, "\t", "  ")
+    bool ok = file.writeText(outFile, text)
+    if not ok then
+        println("Error: failed to write " + outFile)
+        return 1
+    end
+    println("OK exported " + string(data.length) + " keys to " + outFile)
+    return 0
+end
+
+
+func cmdImport(string path_, string inFile) as int
+    if not file.exists(inFile) then
+        println("Error: file not found " + inFile)
+        return 1
+    end
+    string text = file.readText(inFile)
+    if not json.valid(text) then
+        println("Error: invalid JSON in " + inFile)
+        return 1
+    end
+    var parsed = json.parse(text)
+    if parsed == null then
+        println("Error: empty JSON in " + inFile)
+        return 1
+    end
+    saveData(path_, parsed)
+    println("OK imported " + string(parsed.length) + " keys from " + inFile)
+    return 0
+end
+
+
+func cmdIncr(string path_, string key)
+    var data = loadData(path_)
+    int cur = 0
+    if key in data then
+        cur = int(data[key])
+    end
+    cur += 1
+    data[key] = cur
+    saveData(path_, data)
+    println(key + "=" + string(cur))
+end
+
+
+func cmdSearch(string path_, string needle)
+    var data = loadData(path_)
+    int hits = 0
+    for key, item in data
+        string vs = valueToString(item)
+        if string.contains(vs, needle) then
+            println(string(key) + "=" + vs)
+            hits += 1
+        end
+    end
+    if hits == 0 then
+        println("(no match)")
+    end
+end
+
+
+func printUsage()
+    println("Usage: kvdb <command> [args]")
+    println("Commands:")
+    println("  set <key> <value>      set key to value (auto-typed: bool/int/float/string)")
+    println("  get <key>              get value")
+    println("  delete <key>           remove key")
+    println("  list                   list all keys")
+    println("  count                  number of keys")
+    println("  clear                  remove all keys")
+    println("  keys <pattern>         keys matching glob (e.g. user:*)")
+    println("  export <file>          export to pretty JSON")
+    println("  import <file>          import from JSON (replace)")
+    println("  incr <key>             integer increment (starts at 0)")
+    println("  search <text>          find values containing text")
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string scriptPath = string(arg[0])
+    string path_ = dataPath(scriptPath)
+    string command = string.lower(string(arg[1]))
+
+    if command == "set" then
+        if arg.length < 4 then
+            println("Error: 'set' needs <key> and <value>")
+            return 1
+        end
+        string key = string(arg[2])
+        // value 支持空格：把 arg[3] 起所有参数用空格拼回。
+        string rawValue = ""
+        int vi = 3
+        while vi < arg.length do
+            if string.isEmpty(rawValue) then
+                rawValue = string(arg[vi])
+            else
+                rawValue = rawValue + " " + string(arg[vi])
+            end
+            vi += 1
+        end
+        cmdSet(path_, key, rawValue)
+        return 0
+    end
+
+    if command == "get" then
+        if arg.length < 3 then
+            println("Error: 'get' needs <key>")
+            return 1
+        end
+        cmdGet(path_, string(arg[2]))
+        return 0
+    end
+
+    if command == "delete" then
+        if arg.length < 3 then
+            println("Error: 'delete' needs <key>")
+            return 1
+        end
+        cmdDelete(path_, string(arg[2]))
+        return 0
+    end
+
+    if command == "list" then
+        cmdList(path_)
+        return 0
+    end
+
+    if command == "count" then
+        cmdCount(path_)
+        return 0
+    end
+
+    if command == "clear" then
+        cmdClear(path_)
+        return 0
+    end
+
+    if command == "keys" then
+        if arg.length < 3 then
+            println("Error: 'keys' needs <pattern>")
+            return 1
+        end
+        cmdKeys(path_, string(arg[2]))
+        return 0
+    end
+
+    if command == "export" then
+        if arg.length < 3 then
+            println("Error: 'export' needs <file>")
+            return 1
+        end
+        return cmdExport(path_, string(arg[2]))
+    end
+
+    if command == "import" then
+        if arg.length < 3 then
+            println("Error: 'import' needs <file>")
+            return 1
+        end
+        return cmdImport(path_, string(arg[2]))
+    end
+
+    if command == "incr" then
+        if arg.length < 3 then
+            println("Error: 'incr' needs <key>")
+            return 1
+        end
+        cmdIncr(path_, string(arg[2]))
+        return 0
+    end
+
+    if command == "search" then
+        if arg.length < 3 then
+            println("Error: 'search' needs <text>")
+            return 1
+        end
+        cmdSearch(path_, string(arg[2]))
+        return 0
+    end
+
+    println("Error: unknown command '" + command + "'")
+    printUsage()
+    return 1
+end

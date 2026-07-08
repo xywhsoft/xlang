@@ -1,0 +1,242 @@
+// portscan - TCP port scanner
+//
+// Usage:
+//   portscan <host> [start=1] [end=1024] [timeout=200] [options]
+//
+// Options:
+//   -v, --verbose     print every port (OPEN and CLOSED); default: OPEN only
+//   --async           concurrent scan (batches of 8 via task.all)
+//   --allow-remote    allow non-local host (default: refuse; safety guard)
+//   -h, --help        show usage
+//
+// Examples:
+//   portscan 127.0.0.1 1 100 200
+//   portscan localhost 80 90 150 -v
+//   portscan 127.0.0.1 1 1024 200 --async
+//
+// Design notes (findings recorded in README.md / BUGS.md):
+//   * tcp.connect on failure returns a ZERO handle point (== default point).
+//     Success returns a non-zero handle. We compare the returned point to a
+//     default-initialized point to decide OPEN vs CLOSED.
+//   * `point is null` is ALWAYS false (even for a zero handle) and MUST NOT
+//     be used as the open/closed predicate.
+//   * TcpStream(p).send("") also works as a probe (false on null handle) but
+//     the point-comparison is side-effect-free and preferred.
+//   * await is only allowed in async func / top-level, NOT in func main. So
+//     the whole scan (sync + async paths) lives in `async func scanAll`;
+//     main parses args and blocks on future.wait() until it finishes.
+//   * futures cannot be stored in list<T> (codegen: "cannot pack into var"),
+//     and arrays are fixed-length, so concurrent batches use a fixed-size
+//     array literal of BATCH futures + task.all. BATCH=8 is a compile-time
+//     constant (cannot be a runtime arg).
+
+const int DEFAULT_START = 1
+const int DEFAULT_END = 1024
+const int DEFAULT_TIMEOUT = 200
+const int BATCH = 8
+
+point ZERO
+
+// scan state (globals so helpers can mutate without container passing; see B11/B12)
+int gOpen = 0
+int gClosed = 0
+bool gVerbose = false
+
+func isLocalHost(string host) as bool
+    if host == "127.0.0.1" then
+        return true
+    end
+    if host == "localhost" then
+        return true
+    end
+    if host == "::1" then
+        return true
+    end
+    return false
+end
+
+func printPort(int port, string status)
+    string portStr = string.padLeft(string(port), 5)
+    println("Port " + portStr + ": " + status)
+end
+
+func tally(int port, int result)
+    if result == 1 then
+        gOpen += 1
+        printPort(port, "OPEN")
+    else
+        gClosed += 1
+        if gVerbose then
+            printPort(port, "CLOSED")
+        end
+    end
+end
+
+// probe one TCP port: 1 = OPEN, 0 = CLOSED/filtered.
+async func probe(string host, int port, int timeout) as int
+    point p = tcp.connect(host, port, timeout)
+    if p == ZERO then
+        return 0
+    end
+    return 1
+end
+
+func usage()
+    println("portscan - TCP port scanner")
+    println("Usage: portscan <host> [start=1] [end=1024] [timeout=200] [options]")
+    println("Options:")
+    println("  -v, --verbose     print every port (default: OPEN only)")
+    println("  --async           concurrent scan (batches of 8)")
+    println("  --allow-remote    allow non-local host (safety guard off)")
+    println("  -h, --help        show this help")
+    println("Examples:")
+    println("  portscan 127.0.0.1 1 100 200")
+    println("  portscan 127.0.0.1 1 1024 200 --async")
+end
+
+// Whole scan (sync or async path). Header + per-port + footer all printed here.
+// async so that await is available for the --async path.
+async func scanAll(string host, int startPort, int endPort, int timeout, bool useAsync) as int
+    int count = endPort - startPort + 1
+    print("Scanning " + host + " ports " + string(startPort) + "-" + string(endPort) + "... ")
+    if useAsync then
+        println("[async x" + string(BATCH) + "]")
+    else
+        println("[sync]")
+    end
+
+    float t0 = time.timer()
+
+    if not useAsync then
+        int port = startPort
+        while port <= endPort do
+            point p = tcp.connect(host, port, timeout)
+            int result
+            if p == ZERO then
+                result = 0
+            else
+                result = 1
+            end
+            tally(port, result)
+            port += 1
+        end
+    else
+        int batches = (count + BATCH - 1) / BATCH
+        int b = 0
+        while b < batches do
+            int basePort = startPort + b * BATCH
+            // fire BATCH concurrent probes; out-of-range slots probe port 1
+            // (harmless) and are skipped at tally time.
+            future<int> f0 = probe(host, basePort + 0 <= endPort ? basePort + 0 : 1, timeout)
+            future<int> f1 = probe(host, basePort + 1 <= endPort ? basePort + 1 : 1, timeout)
+            future<int> f2 = probe(host, basePort + 2 <= endPort ? basePort + 2 : 1, timeout)
+            future<int> f3 = probe(host, basePort + 3 <= endPort ? basePort + 3 : 1, timeout)
+            future<int> f4 = probe(host, basePort + 4 <= endPort ? basePort + 4 : 1, timeout)
+            future<int> f5 = probe(host, basePort + 5 <= endPort ? basePort + 5 : 1, timeout)
+            future<int> f6 = probe(host, basePort + 6 <= endPort ? basePort + 6 : 1, timeout)
+            future<int> f7 = probe(host, basePort + 7 <= endPort ? basePort + 7 : 1, timeout)
+            array<future<int> > jobs = array[f0, f1, f2, f3, f4, f5, f6, f7]
+            array<int> results = await task.all(jobs)
+            if basePort + 0 <= endPort then tally(basePort + 0, results[0]) end
+            if basePort + 1 <= endPort then tally(basePort + 1, results[1]) end
+            if basePort + 2 <= endPort then tally(basePort + 2, results[2]) end
+            if basePort + 3 <= endPort then tally(basePort + 3, results[3]) end
+            if basePort + 4 <= endPort then tally(basePort + 4, results[4]) end
+            if basePort + 5 <= endPort then tally(basePort + 5, results[5]) end
+            if basePort + 6 <= endPort then tally(basePort + 6, results[6]) end
+            if basePort + 7 <= endPort then tally(basePort + 7, results[7]) end
+            b += 1
+        end
+    end
+
+    float t1 = time.timer()
+    float elapsed = t1 - t0
+    if elapsed < 0.0 then
+        elapsed = 0.0
+    end
+    println("Scan complete: " + string(gOpen) + " open, " + string(gClosed) + " closed, elapsed " + string.formatFloat(elapsed, ".2") + "s")
+    return 0
+end
+
+func main(...) as int
+    string host = ""
+    int startPort = DEFAULT_START
+    int endPort = DEFAULT_END
+    int timeout = DEFAULT_TIMEOUT
+    bool useAsync = false
+    bool allowRemote = false
+    bool haveHost = false
+    bool haveStart = false
+    bool haveEnd = false
+    bool haveTimeout = false
+
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "-h" or a == "--help" then
+            usage()
+            return 0
+        elseif a == "-v" or a == "--verbose" then
+            gVerbose = true
+            i += 1
+        elseif a == "--async" then
+            useAsync = true
+            i += 1
+        elseif a == "--allow-remote" then
+            allowRemote = true
+            i += 1
+        elseif not haveHost then
+            host = a
+            haveHost = true
+            i += 1
+        elseif not haveStart then
+            startPort = int(a)
+            haveStart = true
+            i += 1
+        elseif not haveEnd then
+            endPort = int(a)
+            haveEnd = true
+            i += 1
+        elseif not haveTimeout then
+            timeout = int(a)
+            haveTimeout = true
+            i += 1
+        else
+            println("Error: unexpected argument '" + a + "'")
+            return 1
+        end
+    end
+
+    if not haveHost or host == "" then
+        usage()
+        return 1
+    end
+
+    if startPort < 1 or startPort > 65535 then
+        println("Error: start port out of range (1-65535), got " + string(startPort))
+        return 1
+    end
+    if endPort < 1 or endPort > 65535 then
+        println("Error: end port out of range (1-65535), got " + string(endPort))
+        return 1
+    end
+    if startPort > endPort then
+        println("Error: start port must be <= end port")
+        return 1
+    end
+    if timeout <= 0 then
+        println("Error: timeout must be positive (got " + string(timeout) + ")")
+        return 1
+    end
+
+    if not isLocalHost(host) and not allowRemote then
+        println("Error: refusing non-local host '" + host + "'.")
+        println("  portscan is intended for localhost testing (127.0.0.1/localhost/::1).")
+        println("  Pass --allow-remote to override (only scan hosts you own or are permitted to).")
+        return 1
+    end
+
+    future<int> done = scanAll(host, startPort, endPort, timeout, useAsync)
+    done.wait()
+    return 0
+end

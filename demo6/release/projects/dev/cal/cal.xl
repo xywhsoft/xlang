@@ -1,0 +1,301 @@
+// cal - 日历工具
+//
+// 用法：
+//   cal                       当月日历
+//   cal <year> <month>        指定月份（例：cal 2026 7）
+//   cal year <year>           全年日历（3x4 网格）
+//   cal weekday <date>        某日是星期几（例：cal weekday 2026-07-08）
+//   cal help                  显示本帮助
+//
+// <date> 支持：2026-07-08、2026/7/8、20260708
+//
+// 说明：
+//   xlang 的 time.weekday() 返回周日开头编码：0=周日 1=周一 ... 6=周六。
+//   月份网格直接使用 weekday() 作为周日开头列号。
+//   月份网格每格 2 字符宽（右对齐），表头中文"日 一 二 三 四 五 六"。
+//   全年视图为对齐清晰改用英文缩写表头（Su Mo Tu We Th Fr Sa）。
+
+const int YEAR_TITLE_WIDTH = 64
+
+func isAllDigits(string s) as bool
+    if string.len(s) == 0 then
+        return false
+    end
+    for c in s
+        if c < "0" or c > "9" then
+            return false
+        end
+    end
+    return true
+end
+
+func intArg(string s) as (bool, int)
+    if not isAllDigits(s) then
+        return false, 0
+    end
+    return true, int(s)
+end
+
+func weekdayNameCN(int col) as string
+    if col == 0 then return "星期日" end
+    if col == 1 then return "星期一" end
+    if col == 2 then return "星期二" end
+    if col == 3 then return "星期三" end
+    if col == 4 then return "星期四" end
+    if col == 5 then return "星期五" end
+    return "星期六"
+end
+
+func weekdayNameEN(int col) as string
+    if col == 0 then return "Sunday" end
+    if col == 1 then return "Monday" end
+    if col == 2 then return "Tuesday" end
+    if col == 3 then return "Wednesday" end
+    if col == 4 then return "Thursday" end
+    if col == 5 then return "Friday" end
+    return "Saturday"
+end
+
+func monthNameEN(int m) as string
+    if m == 1 then return "January" end
+    if m == 2 then return "February" end
+    if m == 3 then return "March" end
+    if m == 4 then return "April" end
+    if m == 5 then return "May" end
+    if m == 6 then return "June" end
+    if m == 7 then return "July" end
+    if m == 8 then return "August" end
+    if m == 9 then return "September" end
+    if m == 10 then return "October" end
+    if m == 11 then return "November" end
+    return "December"
+end
+
+// 月初（1 号）在"周日开头"网格中的列号 0..6
+func firstDayColumn(int year, int month) as int
+    time first = time.fromDate(year, month, 1)
+    return time.weekday(first)
+end
+
+func weekRowCount(int offset, int dim) as int
+    int total = offset + dim
+    int rows = total / 7
+    if total % 7 != 0 then
+        rows = rows + 1
+    end
+    return rows
+end
+
+// 打印单月日历（中文表头）
+func printMonthCN(int year, int month)
+    string title = string(year) + "年 " + string(month) + "月"
+    println("     " + title)
+    println("日 一 二 三 四 五 六")
+    int dim = time.daysInMonth(year, month)
+    int offset = firstDayColumn(year, month)
+    int rows = weekRowCount(offset, dim)
+    int day = 1
+    int r = 0
+    while r < rows do
+        string line = ""
+        int col = 0
+        while col < 7 do
+            int pos = r * 7 + col
+            if pos < offset or day > dim then
+                line = line + "  "
+            else
+                line = line + string.padLeft(string(day), 2)
+                day = day + 1
+            end
+            if col < 6 then
+                line = line + " "
+            end
+            col = col + 1
+        end
+        println(string.rtrim(line))
+        r = r + 1
+    end
+    if month == 2 then
+        if time.isLeapYear(year) then
+            println("(闰年 29 天)")
+        else
+            println("(平年 28 天)")
+        end
+    end
+end
+
+// 生成单月的英文网格行（固定 8 行：标题 + 表头 + 6 周），用于全年并排
+func monthLinesEN(int year, int month) as array<string>
+    array<string> lines = array[]
+    string title = monthNameEN(month) + " " + string(year)
+    lines.append(string.padCenter(title, 20))
+    lines.append("Su Mo Tu We Th Fr Sa")
+    int dim = time.daysInMonth(year, month)
+    int offset = firstDayColumn(year, month)
+    int day = 1
+    int r = 0
+    while r < 6 do
+        string line = ""
+        int col = 0
+        while col < 7 do
+            int pos = r * 7 + col
+            if pos < offset or day > dim then
+                line = line + "  "
+            else
+                line = line + string.padLeft(string(day), 2)
+                day = day + 1
+            end
+            if col < 6 then
+                line = line + " "
+            end
+            col = col + 1
+        end
+        lines.append(line)
+        r = r + 1
+    end
+    return lines
+end
+
+// 全年日历，每行 3 个月并排
+func printYear(int year)
+    println(string.padCenter(string(year), YEAR_TITLE_WIDTH))
+    int row = 0
+    while row < 4 do
+        int m0 = row * 3 + 1
+        int m1 = m0 + 1
+        int m2 = m1 + 1
+        array<string> a = monthLinesEN(year, m0)
+        array<string> b = monthLinesEN(year, m1)
+        array<string> c = monthLinesEN(year, m2)
+        int i = 0
+        while i < 8 do
+            println(a[i] + "  " + b[i] + "  " + c[i])
+            i = i + 1
+        end
+        println("")
+        row = row + 1
+    end
+end
+
+func fromDateParts(string ys, string ms, string ds) as (bool, time)
+    if not isAllDigits(ys) then return false, time.fromDate(1970, 1, 1) end
+    if not isAllDigits(ms) then return false, time.fromDate(1970, 1, 1) end
+    if not isAllDigits(ds) then return false, time.fromDate(1970, 1, 1) end
+    int y = int(ys)
+    int m = int(ms)
+    int d = int(ds)
+    if m < 1 or m > 12 then return false, time.fromDate(1970, 1, 1) end
+    if d < 1 or d > 31 then return false, time.fromDate(1970, 1, 1) end
+    return true, time.fromDate(y, m, d)
+end
+
+func parseDate(string s) as (bool, time)
+    auto ok, t = time.tryParse(s)
+    if ok then
+        return true, t
+    end
+    auto p1 = string.split(s, "-")
+    if p1.length == 3 then
+        auto ok1, t1 = fromDateParts(string(p1[0]), string(p1[1]), string(p1[2]))
+        return ok1, t1
+    end
+    auto p2 = string.split(s, "/")
+    if p2.length == 3 then
+        auto ok2, t2 = fromDateParts(string(p2[0]), string(p2[1]), string(p2[2]))
+        return ok2, t2
+    end
+    if string.len(s) == 8 and isAllDigits(s) then
+        auto ok3, t3 = fromDateParts(string.mid(s, 0, 4), string.mid(s, 4, 2), string.mid(s, 6, 2))
+        return ok3, t3
+    end
+    return false, time.fromDate(1970, 1, 1)
+end
+
+func cmdWeekday(string s) as int
+    auto ok, t = parseDate(s)
+    if not ok then
+        println("Error: cannot parse date '" + s + "'")
+        println("Hint: use formats like 2026-07-08, 2026/7/8, or 20260708")
+        return 1
+    end
+    int y = time.year(t)
+    int m = time.month(t)
+    int d = time.day(t)
+    int wd = time.weekday(t)
+    int col = wd
+    println(string(y) + "-" + string(m) + "-" + string(d) + " 是 " + weekdayNameCN(col) + " (" + weekdayNameEN(col) + ")")
+    println("weekday()=" + string(wd) + "  (0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat)")
+    return 0
+end
+
+func printHelp()
+    println("cal - 日历工具")
+    println("用法:")
+    println("  cal                       当月日历")
+    println("  cal <year> <month>        指定月份（例: cal 2026 7）")
+    println("  cal year <year>           全年日历（3x4 网格）")
+    println("  cal weekday <date>        某日是星期几（例: cal weekday 2026-07-08）")
+    println("  cal help                  显示本帮助")
+    println("<date> 支持: 2026-07-08、2026/7/8、20260708")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        time now = time.today()
+        printMonthCN(time.year(now), time.month(now))
+        return 0
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printHelp()
+        return 0
+    end
+
+    if cmd == "year" then
+        if arg.length < 3 then
+            println("Error: 'year' 需要年份: cal year 2026")
+            return 1
+        end
+        auto okY, y = intArg(string(arg[2]))
+        if not okY or y < 1 or y > 9999 then
+            println("Error: 无效年份 '" + string(arg[2]) + "'")
+            return 1
+        end
+        printYear(y)
+        return 0
+    end
+
+    if cmd == "weekday" then
+        if arg.length < 3 then
+            println("Error: 'weekday' 需要日期: cal weekday 2026-07-08")
+            return 1
+        end
+        return cmdWeekday(string(arg[2]))
+    end
+
+    if arg.length >= 3 then
+        auto okY, y = intArg(cmd)
+        auto okM, m = intArg(string(arg[2]))
+        if not okY or not okM then
+            println("Error: 应为 'cal <year> <month>'，例: cal 2026 7")
+            println("运行 'cal help' 查看用法。")
+            return 1
+        end
+        if y < 1 or y > 9999 then
+            println("Error: 年份须在 1..9999")
+            return 1
+        end
+        if m < 1 or m > 12 then
+            println("Error: 月份须在 1..12")
+            return 1
+        end
+        printMonthCN(y, m)
+        return 0
+    end
+
+    println("Error: 未知命令 '" + cmd + "'")
+    printHelp()
+    return 1
+end

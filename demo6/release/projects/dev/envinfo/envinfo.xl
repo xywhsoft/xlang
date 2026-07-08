@@ -1,0 +1,139 @@
+// envinfo - 环境信息工具（简化版 uname / systeminfo）
+//
+// 用法：
+//   envinfo              显示全部环境信息
+//   envinfo all          显示全部环境信息
+//   envinfo paths        路径信息（cwd/appDir/home/temp/sep）
+//   envinfo time         时间信息（当前时间 / UTC / 时区）
+//   envinfo net          网络信息（主机名 / IP / MAC）
+//   envinfo help         显示本帮助
+//
+// 数据来源：path.* / time.* / net.* 标准库（XRT 提供）。
+// MAC 原始值为无分隔大写 HEX，本工具按 2 字节插入 '-' 以提升可读性。
+
+const int SECS_HOUR = 3600
+const int SECS_MIN = 60
+
+func pad(string label) as string
+    return "  " + string.padRight(label + ":", 10)
+end
+
+func formatMAC(string raw) as string
+    int n = string.len(raw)
+    if n == 0 then
+        return ""
+    end
+    string out = ""
+    int i = 0
+    while i < n do
+        if i > 0 then
+            out = out + "-"
+        end
+        int remain = n - i
+        int take = 2
+        if remain < 2 then
+            take = remain
+        end
+        out = out + string.slice(raw, i, take)
+        i += 2
+    end
+    return out
+end
+
+func formatTZ(int offset) as string
+    string sign = offset >= 0 ? "+" : "-"
+    int absOff = offset < 0 ? -offset : offset
+    int hours = absOff / SECS_HOUR
+    int mins = (absOff % SECS_HOUR) / SECS_MIN
+    string core = "UTC" + sign + string(hours)
+    if mins != 0 then
+        core = core + ":" + string.padLeft(string(mins), 2, "0")
+    end
+    return core + " (" + string(offset) + "s)"
+end
+
+func showPaths()
+    println("[Paths]")
+    println(pad("cwd") + path.cwd())
+    println(pad("appDir") + path.appDir())
+    println(pad("home") + path.home())
+    println(pad("temp") + path.temp())
+    println(pad("sep") + path.sep())
+    println("")
+end
+
+func showTime()
+    time local = time.now()
+    time utc = time.nowUTC()
+    int offset = time.timezoneOffset()
+    println("[Time]")
+    println(pad("now") + time.format(local))
+    println(pad("utc") + time.format(utc))
+    println(pad("timezone") + formatTZ(offset))
+    println("")
+end
+
+func showNet()
+    println("[Network]")
+    println(pad("hostname") + net.localName())
+    println(pad("localIP") + net.localIP())
+    println(pad("localMAC") + formatMAC(net.localMAC()))
+    println("")
+end
+
+func printUsage()
+    println("envinfo - environment info tool")
+    println("Usage:")
+    println("  envinfo              show all info")
+    println("  envinfo all          show all info")
+    println("  envinfo paths        path info (cwd/appDir/home/temp/sep)")
+    println("  envinfo time         time info (now/utc/timezone)")
+    println("  envinfo net          network info (hostname/IP/MAC)")
+    println("  envinfo help         show this help")
+end
+
+func main(...) as int
+    string cmd = "all"
+    if arg.length >= 2 then
+        cmd = string.lower(string(arg[1]))
+    end
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    bool doPaths = false
+    bool doTime = false
+    bool doNet = false
+
+    if cmd == "all" then
+        doPaths = true
+        doTime = true
+        doNet = true
+    elseif cmd == "paths" then
+        doPaths = true
+    elseif cmd == "time" then
+        doTime = true
+    elseif cmd == "net" then
+        doNet = true
+    else
+        println("Error: unknown command '" + cmd + "'")
+        println("")
+        printUsage()
+        return 1
+    end
+
+    println("=== Environment Info ===")
+    println("")
+    if doPaths then
+        showPaths()
+    end
+    if doTime then
+        showTime()
+    end
+    if doNet then
+        showNet()
+    end
+    return 0
+end

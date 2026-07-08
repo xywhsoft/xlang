@@ -1,0 +1,260 @@
+// tpl - template rendering tool (verifies std.template)
+//
+// Usage:
+//   tpl render      <template_file> <data.json> [output] [--bracket=STR]
+//   tpl render-text <template_string> <data.json> [--bracket=STR]
+//   tpl demo
+//
+// Templates use {$var} by default. Change delimiters with --bracket:
+//   --bracket={{}}   -> {{$var}}
+//   --bracket=<>     -> <$var>
+// The bracket string must have even length; the first half is the open
+// delimiter and the second half is the close delimiter.
+//
+// Template syntax (XRT xte engine):
+//   {$name}                            variable interpolation
+//   {$items[0]}                        array index interpolation
+//   {#if:flag}A{#else}B{#end}          conditional
+//   {#foreach:items}...{#end}          loop over array/dict; body sees
+//                                       __index__, __value__ (and __key__ for
+//                                       dicts); if an item is an object its
+//                                       fields are also in scope directly
+//
+// Data files are JSON; json.parse produces a var that feeds template.render.
+
+
+func printUsage()
+    println("tpl - template rendering tool")
+    println()
+    println("Usage:")
+    println("  tpl render      <template_file> <data.json> [output] [--bracket=STR]")
+    println("  tpl render-text <template_string> <data.json> [--bracket=STR]")
+    println("  tpl demo")
+    println()
+    println("Bracket examples: --bracket={{}}  --bracket=<>  (default {})")
+end
+
+
+// Scan args from index <start>. Bracket value is taken from a --bracket=STR
+// flag and returned; positional args are pushed into <pos>.
+func splitArgs(var args, int start, var pos) as string
+    string bracket = "{}"
+    int i = start
+    while i < args.length do
+        string a = string(args[i])
+        if string.startsWith(a, "--bracket=") then
+            bracket = string.slice(a, 10)
+        else
+            pos.push(a)
+        end
+        i = i + 1
+    end
+    return bracket
+end
+
+
+// Load and JSON-parse a data file. Throws on missing file or invalid JSON.
+func loadData(string dataPath) as var
+    if not file.exists(dataPath) then
+        throw "data file not found: " + dataPath
+    end
+    string text = file.readText(dataPath)
+    if not json.valid(text) then
+        throw "invalid JSON in " + dataPath
+    end
+    return json.parse(text)
+end
+
+
+// Emit the rendered string to stdout or to a file. Returns 0 on success,
+// 1 on write failure.
+func emitResult(string result, string output) as int
+    if output == "" then
+        print(result)
+        return 0
+    end
+    bool ok = file.writeText(output, result)
+    if not ok then
+        println("Error: failed to write " + output)
+        return 1
+    end
+    println("Wrote " + output)
+    return 0
+end
+
+
+// tpl render <template_file> <data.json> [output] [--bracket=STR]
+// Uses template.renderFile to read+render the template via the XRT UTF-8
+// file layer.
+func doRenderFile(string tplPath, string dataPath, string output, string bracket) as int
+    if not file.exists(tplPath) then
+        println("Error: template file not found: " + tplPath)
+        return 1
+    end
+
+    var data
+    try
+        data = loadData(dataPath)
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+
+    try
+        string result = template.renderFile(tplPath, data, bracket)
+        int r = emitResult(result, output)
+        return r
+    catch e
+        println("Error: render failed: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+
+// tpl render-text <template_string> <data.json> [--bracket=STR]
+// Uses the Template class (template.compile + render) to verify the
+// precompiled-object path.
+func doRenderText(string tplText, string dataPath, string bracket) as int
+    var data
+    try
+        data = loadData(dataPath)
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+
+    try
+        Template compiled = template.compile(tplText, bracket)
+        string result = compiled.render(data)
+        int r = emitResult(result, "")
+        return r
+    catch e
+        println("Error: render failed: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+
+// tpl demo - built-in template + data showcasing interpolation, conditional,
+// foreach and custom brackets. Exercises template.render, template.compile
+// (Template class) and the node/expr stats.
+func runDemo() as int
+    println("=== tpl demo: std.template showcase ===")
+    println()
+
+    var data = {
+        "title": "xlang",
+        "version": "6",
+        "show": true,
+        "items": ["alpha", "beta", "gamma"],
+        "users": [
+            {"name": "Ada"},
+            {"name": "Lin"}
+        ]
+    }
+
+    // [1] Simple variable interpolation via one-shot template.render.
+    string t1 = "Title: {$title} (v{$version})"
+    println("[1] scalar var       template: " + t1)
+    println("    => " + template.render(t1, data))
+    println()
+
+    // [2] Precompiled Template class: compile once, render many. Also read
+    //     diagnostic stats from the compiled object.
+    Template tpl = template.compile("<h1>{$title}</h1>")
+    println("[2] Template class   compile + render")
+    string r2 = tpl.render(data)
+    println("    => " + r2)
+    println("    stats: nodes=" + string(tpl.nodeCount) + " exprs=" + string(tpl.exprCount) + " args=" + string(tpl.argCount) + " pool=" + string(tpl.stringPoolSize))
+    println()
+
+    // [3] Conditional branch.
+    string t3 = "Visible: {#if:show}yes{#else}no{#end}"
+    println("[3] if/else          template: " + t3)
+    println("    => " + template.render(t3, data))
+    println()
+
+    // [4] foreach over an array of objects; item scope exposes fields.
+    string t4 = "Users: {#foreach:users}{$name}; {#end}"
+    println("[4] foreach objects  template: " + t4)
+    println("    => " + template.render(t4, data))
+    println()
+
+    // [5] foreach over an array of scalars. The engine binds the element to
+    //     __value__ and the position to __index__ (object items also expose
+    //     their fields directly, as in [4]).
+    string t5 = "Items: {#foreach:items}[{$__index__}:{$__value__}]{#end}"
+    println("[5] foreach scalars  template: " + t5)
+    println("    => " + template.render(t5, data))
+    println()
+
+    // [6] Array index interpolation (engine expression support probe).
+    string t6 = "First item: {$items[0]}"
+    println("[6] array index      template: " + t6)
+    try
+        println("    => " + template.render(t6, data))
+    catch e
+        println("    => (engine rejected: " + e.message + ")")
+    end
+    println()
+
+    // [7] Custom bracket {{}}.
+    string t7 = "Double brace: {{$title}}"
+    println("[7] bracket {{}}     template: " + t7)
+    println("    => " + template.render(t7, data, "{{}}"))
+    println()
+
+    // [8] Custom bracket <>.
+    string t8 = "Angle: <$title>"
+    println("[8] bracket <>       template: " + t8)
+    println("    => " + template.render(t8, data, "<>"))
+    println()
+
+    println("=== demo done ===")
+    return 0
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "demo" then
+        return runDemo()
+    elseif cmd == "render" then
+        var pos = []
+        string bracket = splitArgs(arg, 2, pos)
+        if pos.length < 2 then
+            println("Usage: tpl render <template_file> <data.json> [output] [--bracket=STR]")
+            return 1
+        end
+        string tplPath = string(pos[0])
+        string dataPath = string(pos[1])
+        string output = ""
+        if pos.length >= 3 then
+            output = string(pos[2])
+        end
+        return doRenderFile(tplPath, dataPath, output, bracket)
+    elseif cmd == "render-text" then
+        var pos = []
+        string bracket = splitArgs(arg, 2, pos)
+        if pos.length < 2 then
+            println("Usage: tpl render-text <template_string> <data.json> [--bracket=STR]")
+            return 1
+        end
+        string tplText = string(pos[0])
+        string dataPath = string(pos[1])
+        return doRenderText(tplText, dataPath, bracket)
+    else
+        println("Error: unknown command '" + cmd + "'")
+        println()
+        printUsage()
+        return 1
+    end
+end

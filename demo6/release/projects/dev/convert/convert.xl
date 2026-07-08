@@ -1,0 +1,303 @@
+// convert - 单位换算器
+//
+// 用法:
+//   convert <category> <value> <from> <to>     单位换算
+//   convert list                                列出所有支持的单位
+//   convert help | -h | --help                  显示本帮助
+//
+// 类别 category:
+//   len     长度    m / km / cm / mm / mile / ft / in
+//   weight  重量    kg / g / ton / lb / oz
+//   temp    温度    C / F / K      (摄氏 / 华氏 / 开尔文)
+//   data    数据    B / KB / MB / GB / TB     (1024 进制)
+//   speed   速度    m/s / km/h / mph
+//
+// 示例:
+//   convert len 1 mile km       -> 1.609344 km
+//   convert temp 100 C F        -> 212 F
+//   convert data 1024 MB GB     -> 1 GB
+//   convert weight 1 kg lb      -> 2.204623 lb
+//   convert speed 100 km/h mph  -> 62.137119 mph
+//
+// 设计:
+//   * 换算因子表用 dict<float> 存储，以一个"基准单位"为锚点 (len=m, weight=kg,
+//     data=B, speed=m/s)。线性换算: result = value * factor[from] / factor[to]。
+//   * 温度不是线性比例，单独经 Celsius 中转: from -> C -> to。
+//   * 输出数字用 fmtNum: 整数值显示为整数，否则保留 6 位小数并去掉尾随 0。
+//   * list 命令的分组顺序由硬编码字符串保证可读 (dict 迭代为哈希序，不适合展示)。
+
+// ---------------------------------------------------------------------------
+// 换算因子表 (dict<float>)，键 = 单位名，值 = 该单位换算到基准单位的倍数。
+// ---------------------------------------------------------------------------
+
+dict<float> lengthFactors = dict<float>{
+    "m": 1.0,
+    "km": 1000.0,
+    "cm": 0.01,
+    "mm": 0.001,
+    "mile": 1609.344,
+    "ft": 0.3048,
+    "in": 0.0254
+}
+
+dict<float> weightFactors = dict<float>{
+    "kg": 1.0,
+    "g": 0.001,
+    "ton": 1000.0,
+    "lb": 0.45359237,
+    "oz": 0.028349523125
+}
+
+dict<float> dataFactors = dict<float>{
+    "B": 1.0,
+    "KB": 1024.0,
+    "MB": 1048576.0,
+    "GB": 1073741824.0,
+    "TB": 1099511627776.0
+}
+
+dict<float> speedFactors = dict<float>{
+    "m/s": 1.0,
+    "km/h": 0.2777777777777778,
+    "mph": 0.44704
+}
+
+// ---------------------------------------------------------------------------
+// 数字工具
+// ---------------------------------------------------------------------------
+
+// 解析十进制数字字符串 (允许前导 + / -、单个小数点)，返回是否成功与浮点值。
+func parseNumber(string s) as (bool, float)
+    int n = string.len(s)
+    if n == 0 then
+        return false, 0.0
+    end
+    int start = 0
+    string c0 = string.charAt(s, 0)
+    if c0 == "-" or c0 == "+" then
+        start = 1
+    end
+    bool seenDigit = false
+    bool seenDot = false
+    int k = start
+    while k < n do
+        string c = string.charAt(s, k)
+        if c >= "0" and c <= "9" then
+            seenDigit = true
+        elseif c == "." and not seenDot then
+            seenDot = true
+        else
+            return false, 0.0
+        end
+        k += 1
+    end
+    if not seenDigit then
+        return false, 0.0
+    end
+    return true, float(s)
+end
+
+// 把浮点结果格式化为人类友好字符串:
+//   * nan / inf 特殊处理
+//   * 整数值 (且绝对值 < 1e15) 显示为整数
+//   * 其余保留 6 位小数，再去掉尾随 0 和孤立的小数点
+func fmtNum(float v) as string
+    if math.isNaN(v) then
+        return "nan"
+    end
+    if math.isInf(v) then
+        if v < 0.0 then
+            return "-inf"
+        end
+        return "inf"
+    end
+    if v == math.floor(v) and math.abs(v) < 1e15 then
+        return string(int(v))
+    end
+    string s = string.formatFloat(v, ".6")
+    s = string.rtrim(s, "0")
+    if string.right(s, 1) == "." then
+        s = string.left(s, string.len(s) - 1)
+    end
+    return s
+end
+
+// ---------------------------------------------------------------------------
+// 温度换算 (经 Celsius 中转)
+// ---------------------------------------------------------------------------
+
+func isTempUnit(string u) as bool
+    return u == "C" or u == "F" or u == "K"
+end
+
+// 任意温度单位 -> 摄氏度
+func toCelsius(float v, string unit) as float
+    if unit == "C" then
+        return v
+    end
+    if unit == "F" then
+        return (v - 32.0) * 5.0 / 9.0
+    end
+    // K
+    return v - 273.15
+end
+
+// 摄氏度 -> 任意温度单位
+func fromCelsius(float c, string unit) as float
+    if unit == "C" then
+        return c
+    end
+    if unit == "F" then
+        return c * 9.0 / 5.0 + 32.0
+    end
+    // K
+    return c + 273.15
+end
+
+// ---------------------------------------------------------------------------
+// 类别因子表查询
+// ---------------------------------------------------------------------------
+
+// 根据类别名取得对应的因子表。找不到返回默认空 dict<float>。
+func factorsOf(string category) as dict<float>
+    if category == "len" then
+        return lengthFactors
+    elseif category == "weight" then
+        return weightFactors
+    elseif category == "data" then
+        return dataFactors
+    elseif category == "speed" then
+        return speedFactors
+    end
+    dict<float> empty = dict<float>{}
+    return empty
+end
+
+// 线性换算处理: len / weight / data / speed
+func doLinear(string category, string valueStr, string from, string to) as int
+    auto okV, value = parseNumber(valueStr)
+    if not okV then
+        println("Error: 无效数字 '" + valueStr + "'")
+        return 1
+    end
+    dict<float> factors = factorsOf(category)
+    if not factors.contains(from) then
+        println("Error: 未知 " + category + " 单位 '" + from + "' (用 'convert list' 查看支持的单位)")
+        return 1
+    end
+    if not factors.contains(to) then
+        println("Error: 未知 " + category + " 单位 '" + to + "' (用 'convert list' 查看支持的单位)")
+        return 1
+    end
+    float baseVal = value * factors[from]
+    float result = baseVal / factors[to]
+    println(fmtNum(value) + " " + from + " = " + fmtNum(result) + " " + to)
+    return 0
+end
+
+// 温度换算处理
+func doTemp(string valueStr, string from, string to) as int
+    auto okV, value = parseNumber(valueStr)
+    if not okV then
+        println("Error: 无效数字 '" + valueStr + "'")
+        return 1
+    end
+    if not isTempUnit(from) then
+        println("Error: 未知 temp 单位 '" + from + "' (支持: C / F / K)")
+        return 1
+    end
+    if not isTempUnit(to) then
+        println("Error: 未知 temp 单位 '" + to + "' (支持: C / F / K)")
+        return 1
+    end
+    float c = toCelsius(value, from)
+    float result = fromCelsius(c, to)
+    println(fmtNum(value) + " " + from + " = " + fmtNum(result) + " " + to)
+    return 0
+end
+
+// ---------------------------------------------------------------------------
+// 帮助 / 列表
+// ---------------------------------------------------------------------------
+
+func printList()
+    println("convert - 支持的单位")
+    println("")
+    println("  length (len)    m / km / cm / mm / mile / ft / in")
+    println("  weight          kg / g / ton / lb / oz")
+    println("  temp            C / F / K   (摄氏 / 华氏 / 开尔文)")
+    println("  data            B / KB / MB / GB / TB   (1024 进制)")
+    println("  speed           m/s / km/h / mph")
+    println("")
+    println("用法: convert <category> <value> <from> <to>")
+    println("      convert list")
+end
+
+func printHelp()
+    println("convert - 单位换算器")
+    println("")
+    println("用法:")
+    println("  convert <category> <value> <from> <to>     单位换算")
+    println("  convert list                                列出所有支持的单位")
+    println("  convert help | -h | --help                  显示本帮助")
+    println("")
+    println("类别 category:")
+    println("  len     长度    m / km / cm / mm / mile / ft / in")
+    println("  weight  重量    kg / g / ton / lb / oz")
+    println("  temp    温度    C / F / K")
+    println("  data    数据    B / KB / MB / GB / TB   (1024 进制)")
+    println("  speed   速度    m/s / km/h / mph")
+    println("")
+    println("示例:")
+    println("  convert len 1 mile km")
+    println("  convert temp 100 C F")
+    println("  convert data 1024 MB GB")
+end
+
+// ---------------------------------------------------------------------------
+// 入口
+// ---------------------------------------------------------------------------
+
+func main(...) as int
+    if arg.length < 2 then
+        printHelp()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printHelp()
+        return 0
+    end
+
+    if cmd == "list" then
+        printList()
+        return 0
+    end
+
+    // 需要形如: convert <category> <value> <from> <to>
+    if arg.length < 5 then
+        println("Error: 参数不足。用法: convert <category> <value> <from> <to>")
+        println("示例: convert len 1 mile km")
+        println("运行 'convert help' 查看完整用法。")
+        return 1
+    end
+
+    string valueStr = string(arg[2])
+    string from = string(arg[3])
+    string to = string(arg[4])
+
+    if cmd == "temp" then
+        return doTemp(valueStr, from, to)
+    end
+
+    if cmd == "len" or cmd == "weight" or cmd == "data" or cmd == "speed" then
+        return doLinear(cmd, valueStr, from, to)
+    end
+
+    println("Error: 未知类别 '" + cmd + "'")
+    println("支持的类别: len / weight / temp / data / speed")
+    println("运行 'convert list' 查看具体单位。")
+    return 1
+end

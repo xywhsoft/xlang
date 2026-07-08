@@ -1,0 +1,195 @@
+// ts - 时间戳转换器
+//
+// 用法：
+//   ts now                         当前时间（本地 / UTC / Unix 时间戳）
+//   ts <unix>                      Unix 时间戳 -> 可读时间（如 ts 1700000000）
+//   ts <date>                      日期字符串 -> Unix 时间戳（如 ts "2026-01-01"）
+//   ts diff <t1> <t2>              计算两个时间差（天/时/分/秒），t 可为 unix 或日期
+//   ts fmt <unix> <pattern>        按 XRT 模式格式化 Unix 时间戳
+//   ts help                        显示本帮助
+//
+// 日期字符串：time.tryParse 接受的形式，如 2026-01-01、2026-01-01 00:00:00、09:30:00。
+// fmt pattern 占位符：yyyy 年；mm 月（出现在 h 后则为分钟）；mmm/mmmm 英文月份；
+//                     dd 日；hh 24 时；HH 12 时；nn 分钟；ss 秒；ap/AP 上下午；
+//                     w/ww/www 星期；q 季度。
+//
+// 时区语义说明（重要）：
+//   xlang 的 time 值是时区无关的"墙钟序列"。time.toUnix(t) = t - 1970-01-01 序列，
+//   即把墙钟当作 UTC 计算秒数；time.fromUnix(s) 的墙钟即为该 Unix 的 UTC 表示。
+//   因此本工具：
+//     - now 的 Unix 取 time.toUnix(time.nowUTC())，得到真实 Unix 秒；
+//     - fromUnix 的结果是 UTC 墙钟，本地显示用 time.utcToLocal 转换；
+//     - 用户输入的日期按"本地时区"解释为瞬间（time.localToUTC 后再 toUnix）。
+
+const int SECS_DAY = 86400
+const int SECS_HOUR = 3600
+const int SECS_MIN = 60
+
+func isAllDigits(string s) as bool
+    if string.len(s) == 0 then
+        return false
+    end
+    for c in s
+        if c < "0" or c > "9" then
+            return false
+        end
+    end
+    return true
+end
+
+func parseTimeArg(string s) as (bool, time)
+    if isAllDigits(s) then
+        return true, time.fromUnix(int(s))
+    end
+    auto ok, t = time.tryParse(s)
+    if ok then
+        return true, time.localToUTC(t)
+    end
+    return false, time.fromUnix(0)
+end
+
+func weekdayName(int w) as string
+    if w == 0 then return "Sunday" end
+    if w == 1 then return "Monday" end
+    if w == 2 then return "Tuesday" end
+    if w == 3 then return "Wednesday" end
+    if w == 4 then return "Thursday" end
+    if w == 5 then return "Friday" end
+    if w == 6 then return "Saturday" end
+    return "Unknown"
+end
+
+func cmdNow()
+    time local = time.now()
+    time utc = time.nowUTC()
+    int unix = time.toUnix(utc)
+    int offset = time.timezoneOffset()
+    int offH = offset / SECS_HOUR
+    int offM = (offset % SECS_HOUR) / SECS_MIN
+    string sign = offset >= 0 ? "+" : "-"
+    int absH = offH < 0 ? -offH : offH
+    int absM = offM < 0 ? -offM : offM
+    println("Local : " + time.format(local))
+    println("UTC   : " + time.format(utc))
+    println("Unix  : " + string(unix))
+    println("TZ    : UTC" + sign + string(absH) + ":" + string(absM))
+end
+
+func cmdFromUnix(int unix)
+    time utc = time.fromUnix(unix)
+    time local = time.utcToLocal(utc)
+    println("Input : " + string(unix))
+    println("UTC   : " + time.format(utc))
+    println("Local : " + time.format(local))
+    println("Day   : " + weekdayName(time.weekday(utc)))
+end
+
+func cmdFromDate(string s) as int
+    auto ok, t = time.tryParse(s)
+    if not ok then
+        println("Error: cannot parse date '" + s + "'")
+        println("Hint : expected e.g. 2026-01-01 or \"2026-01-01 00:00:00\"")
+        return 1
+    end
+    int unix = time.toUnix(time.localToUTC(t))
+    println("Input : " + s + "  (read as local)")
+    println("Local : " + time.format(t))
+    println("UTC   : " + time.format(time.localToUTC(t)))
+    println("Unix  : " + string(unix))
+    return 0
+end
+
+func cmdDiff(string a, string b) as int
+    auto okA, ta = parseTimeArg(a)
+    auto okB, tb = parseTimeArg(b)
+    if not okA then
+        println("Error: cannot parse '" + a + "' as unix or date")
+        return 1
+    end
+    if not okB then
+        println("Error: cannot parse '" + b + "' as unix or date")
+        return 1
+    end
+    int total = time.diffSeconds(ta, tb)
+    int abs = total < 0 ? -total : total
+    int days = abs / SECS_DAY
+    int rem = abs % SECS_DAY
+    int hours = rem / SECS_HOUR
+    rem = rem % SECS_HOUR
+    int mins = rem / SECS_MIN
+    int secs = rem % SECS_MIN
+    string sign = total < 0 ? "-" : "+"
+    println("From  : " + time.format(time.utcToLocal(ta)) + "  (local)")
+    println("To    : " + time.format(time.utcToLocal(tb)) + "  (local)")
+    println("Span  : " + sign + string(days) + "d " + string(hours) + "h " + string(mins) + "m " + string(secs) + "s")
+    println("Total : " + string(abs) + " seconds (" + string(total) + " signed)")
+    return 0
+end
+
+func cmdFmt(string unixStr, string pattern) as int
+    if not isAllDigits(unixStr) then
+        println("Error: fmt needs a Unix integer, got '" + unixStr + "'")
+        return 1
+    end
+    int unix = int(unixStr)
+    time utc = time.fromUnix(unix)
+    time local = time.utcToLocal(utc)
+    println("Unix    : " + string(unix))
+    println("Pattern : " + pattern)
+    println("UTC     : " + time.formatPattern(utc, pattern))
+    println("Local   : " + time.formatPattern(local, pattern))
+    return 0
+end
+
+func printUsage()
+    println("ts - timestamp converter")
+    println("Usage:")
+    println("  ts now                   current time (local/UTC/Unix)")
+    println("  ts <unix>                Unix -> readable (e.g. ts 1700000000)")
+    println("  ts <date>                date -> Unix (e.g. ts \"2026-01-01\")")
+    println("  ts diff <t1> <t2>        diff two times (t = unix or date)")
+    println("  ts fmt <unix> <pattern>  format Unix with pattern")
+    println("Patterns: yyyy mm dd hh HH nn ss ap w q  (mm after h = minute)")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "now" then
+        cmdNow()
+        return 0
+    end
+
+    if cmd == "diff" then
+        if arg.length < 4 then
+            println("Error: 'diff' needs two arguments: ts diff <t1> <t2>")
+            return 1
+        end
+        return cmdDiff(string(arg[2]), string(arg[3]))
+    end
+
+    if cmd == "fmt" then
+        if arg.length < 4 then
+            println("Error: 'fmt' needs <unix> <pattern>: ts fmt 1700000000 yyyy-mm-dd")
+            return 1
+        end
+        return cmdFmt(string(arg[2]), string(arg[3]))
+    end
+
+    if isAllDigits(cmd) then
+        cmdFromUnix(int(cmd))
+        return 0
+    end
+
+    return cmdFromDate(cmd)
+end

@@ -1,0 +1,229 @@
+// sudoku - 9x9 数独求解器（经典回溯算法）
+//
+// 用法：
+//   sudoku "<81位数字串>"        求解并打印完整解
+//   sudoku solve <input_file>    从文件读取 81 位数字串再求解
+//
+// 输入格式：81 位数字串，0 表示空格。例如：
+//   sudoku "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
+//
+// 设计要点：
+//   - class Sudoku 持有 array<int> data（长度 81，idx=row*9+col）。
+//   - 方法体内直接 self.data[i] 读写。
+//   - 回溯逻辑内联到递归方法 solve(pos)。
+
+class Sudoku
+    array<int> data = array[]
+
+    create()
+        self.data = array[]
+        int i = 0
+        while i < 81 do
+            self.data.append(0)
+            i += 1
+        end
+    end
+
+    // 从 81 位数字串加载棋盘。
+    func load(string s)
+        if string.len(s) < 81 then
+            throw "puzzle string must have 81 digits"
+        end
+        int i = 0
+        while i < 81 do
+            string ch = string.charAt(s, i)
+            int d = int(ch)
+            if d < 0 or d > 9 then
+                throw "invalid digit at position " + string(i)
+            end
+            self.data[i] = d
+            i += 1
+        end
+    end
+
+    // 判定在 pos 位置填 num 是否合法（行/列/3x3 宫不冲突）。
+    func isValid(int pos, int num) as bool
+        int row = pos / 9
+        int col = pos % 9
+        int i = 0
+        while i < 9 do
+            if self.data[row * 9 + i] == num then
+                return false
+            end
+            if self.data[i * 9 + col] == num then
+                return false
+            end
+            i += 1
+        end
+        int br = (row / 3) * 3
+        int bc = (col / 3) * 3
+        int r = 0
+        while r < 3 do
+            int c = 0
+            while c < 3 do
+                int rr = br + r
+                int cc = bc + c
+                if self.data[rr * 9 + cc] == num then
+                    return false
+                end
+                c += 1
+            end
+            r += 1
+        end
+        return true
+    end
+
+    // 递归回溯：从位置 pos 开始求解，成功返回 true。
+    func solve(int pos) as bool
+        if pos == 81 then
+            return true
+        end
+        if self.data[pos] != 0 then
+            return self.solve(pos + 1)
+        end
+        int n = 1
+        while n <= 9 do
+            if self.isValid(pos, n) then
+                self.data[pos] = n
+                if self.solve(pos + 1) then
+                    return true
+                end
+                self.data[pos] = 0
+            end
+            n += 1
+        end
+        return false
+    end
+
+    // 校验当前棋盘是否为一个合法完整解（无 0、行/列/宫均不冲突）。
+    func verify() as bool
+        int i = 0
+        while i < 81 do
+            if self.data[i] == 0 then
+                return false
+            end
+            i += 1
+        end
+        int row = 0
+        while row < 9 do
+            int col = 0
+            while col < 9 do
+                int num = self.data[row * 9 + col]
+                self.data[row * 9 + col] = 0
+                bool ok = self.isValid(row * 9 + col, num)
+                self.data[row * 9 + col] = num
+                if not ok then
+                    return false
+                end
+                col += 1
+            end
+            row += 1
+        end
+        return true
+    end
+
+    // 统计空格数。
+    func countEmpty() as int
+        int cnt = 0
+        int i = 0
+        while i < 81 do
+            if self.data[i] == 0 then
+                cnt += 1
+            end
+            i += 1
+        end
+        return cnt
+    end
+
+    func length() as int
+        return self.data.length
+    end
+
+    // 打印第 r 行（带 3x3 分隔）。
+    func printRow(int r)
+        int b = r * 9
+        int c = 0
+        while c < 9 do
+            print(self.data[b + c])
+            if c == 2 or c == 5 then
+                print(" | ")
+            elseif c < 8 then
+                print(" ")
+            end
+            c += 1
+        end
+        println()
+    end
+end
+
+func printUsage()
+    println("sudoku - 9x9 sudoku solver (backtracking)")
+    println("Usage:")
+    println("  sudoku \"<81 digits>\"        solve puzzle given as 81-digit string (0 = empty)")
+    println("  sudoku solve <input_file>   read 81-digit string from file and solve")
+    println("Example:")
+    println("  sudoku \"530070000600195000098000060800060003400803001700020006060000280000419005000080079\"")
+end
+
+// 从文件读取并清理出 81 位数字串（去除空白/换行）。
+func loadFromFile(string path) as string
+    if not file.exists(path) then
+        throw "file not found: " + path
+    end
+    string raw = file.readText(path)
+    string cleaned = string.filter(raw, " \t\r\n")
+    return cleaned
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    try
+        string puzzle = ""
+        if cmd == "solve" then
+            if arg.length < 3 then
+                println("Error: 'solve' needs <input_file>")
+                return 1
+            end
+            puzzle = loadFromFile(string(arg[2]))
+        else
+            puzzle = cmd
+        end
+
+        Sudoku g = Sudoku()
+        g.load(puzzle)
+        int empties = g.countEmpty()
+        println("Puzzle loaded: " + string(81 - empties) + " givens, " + string(empties) + " empty")
+        println()
+
+        if g.solve(0) then
+            if g.verify() then
+                println("Solved (verified valid):")
+            else
+                println("Solved (verification FAILED):")
+            end
+            println()
+            int rr = 0
+            while rr < 9 do
+                g.printRow(rr)
+                if rr == 2 or rr == 5 then
+                    println("------+-------+------")
+                end
+                rr += 1
+            end
+        else
+            println("No solution exists for this puzzle.")
+            return 1
+        end
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+
+    return 0
+end

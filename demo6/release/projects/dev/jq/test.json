@@ -1,0 +1,15 @@
+{
+    "name": "xlang",
+    "version": 6,
+    "stable": true,
+    "license": null,
+    "tags": ["a", "b", "c"],
+    "author": {
+        "name": "dev",
+        "email": "dev@example.com"
+    },
+    "modules": [
+        {"id": "core", "size": 1024},
+        {"id": "json", "size": 512}
+    ]
+}

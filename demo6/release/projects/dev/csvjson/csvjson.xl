@@ -1,0 +1,389 @@
+// csvjson - CSV <-> JSON converter
+//
+// Usage:
+//   csvjson tojson <input.csv> [output.json]   CSV -> JSON (first row = headers)
+//   csvjson tocsv  <input.json> [output.csv]   JSON -> CSV (array of objects)
+//
+// CSV quoting (RFC 4180-ish):
+//   - Fields with comma, double quote, CR or LF are wrapped in "...".
+//   - A literal " inside a quoted field is escaped as "".
+//   - Quoted fields may span newlines.
+//   - CR (\r) outside quotes is dropped; \n ends the record.
+//
+// Design notes:
+//   - CSV -> JSON builds compact JSON text by string concatenation (keys in
+//     CSV column order), then formats it with a text-level pretty-printer
+//     (prettyJson) that walks the text directly — never json.parse — so key
+//     order is preserved.
+//   - JSON -> CSV uses json.parse to read the array of objects and walks
+//     the first object's keys via `for key, val in <var dict>` to derive
+//     headers; values are coerced to strings via string(). Column order in
+//     this direction follows json.parse's iteration order and may differ
+//     from the input JSON key order.
+
+
+// Escape a string for use as a JSON string literal value.
+func jsonEscape(string s) as string
+    string out = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        if c == "\"" then
+            out = out + "\\\""
+        elseif c == "\\" then
+            out = out + "\\\\"
+        elseif c == "\n" then
+            out = out + "\\n"
+        elseif c == "\r" then
+            out = out + "\\r"
+        elseif c == "\t" then
+            out = out + "\\t"
+        else
+            out = out + c
+        end
+        i = i + 1
+    end
+    return out
+end
+
+
+// Quote a CSV field if it contains comma, double quote, CR or LF.
+// Inside quotes, each literal " is doubled.
+func csvQuote(string s) as string
+    bool need = string.contains(s, ",") or string.contains(s, "\"") or string.contains(s, "\n") or string.contains(s, "\r")
+    if not need then
+        return s
+    end
+    string escaped = string.replace(s, "\"", "\"\"")
+    return "\"" + escaped + "\""
+end
+
+
+// Convert CSV text into compact JSON array text.
+// First record becomes the header list; each subsequent record becomes an
+// object keyed by those headers. If a later record has more fields than the
+// header, the extras are stored under synthesized keys "col_<index>".
+func csvToJson(string text) as string
+    int n = string.len(text)
+    if n == 0 then
+        return "[]"
+    end
+
+    // Guarantee a trailing newline so end-of-record logic lives in one place.
+    string lastChar = string.charAt(text, n - 1)
+    if lastChar != "\n" then
+        text = text + "\n"
+        n = string.len(text)
+    end
+
+    string headersJson = "["
+    var headers = []
+    bool headersParsed = false
+
+    string output = "["
+    bool firstObj = true
+    string objText = ""
+
+    bool inQuotes = false
+    string field = ""
+    int fieldIndex = 0
+
+    int i = 0
+    while i < n do
+        string c = string.charAt(text, i)
+
+        if inQuotes then
+            if c == "\"" then
+                int nextI = i + 1
+                if nextI < n then
+                    string nc = string.charAt(text, nextI)
+                    if nc == "\"" then
+                        field = field + "\""
+                        i = i + 2
+                        continue
+                    end
+                end
+                inQuotes = false
+                i = i + 1
+                continue
+            else
+                field = field + c
+                i = i + 1
+                continue
+            end
+        end
+
+        if c == "\"" and string.isEmpty(field) then
+            inQuotes = true
+            i = i + 1
+            continue
+        elseif c == "," then
+            if not headersParsed then
+                if fieldIndex > 0 then
+                    headersJson = headersJson + ","
+                end
+                headersJson = headersJson + "\"" + jsonEscape(field) + "\""
+            else
+                if fieldIndex > 0 then
+                    objText = objText + ","
+                end
+                string key
+                if fieldIndex < headers.length then
+                    key = string(headers[fieldIndex])
+                else
+                    key = "col_" + string(fieldIndex)
+                end
+                objText = objText + "\"" + jsonEscape(key) + "\":\"" + jsonEscape(field) + "\""
+            end
+            field = ""
+            fieldIndex = fieldIndex + 1
+            i = i + 1
+            continue
+        elseif c == "\n" then
+            // finish last field of the row, then close the record
+            if not headersParsed then
+                if fieldIndex > 0 then
+                    headersJson = headersJson + ","
+                end
+                headersJson = headersJson + "\"" + jsonEscape(field) + "\""
+                headersJson = headersJson + "]"
+                headers = json.parse(headersJson)
+                headersParsed = true
+            else
+                if fieldIndex > 0 then
+                    objText = objText + ","
+                end
+                string key
+                if fieldIndex < headers.length then
+                    key = string(headers[fieldIndex])
+                else
+                    key = "col_" + string(fieldIndex)
+                end
+                objText = objText + "\"" + jsonEscape(key) + "\":\"" + jsonEscape(field) + "\""
+                if not firstObj then
+                    output = output + ","
+                end
+                output = output + "{" + objText + "}"
+                firstObj = false
+                objText = ""
+            end
+            field = ""
+            fieldIndex = 0
+            i = i + 1
+            continue
+        elseif c == "\r" then
+            // CR outside quotes is dropped; the following \n ends the record.
+            i = i + 1
+            continue
+        else
+            field = field + c
+            i = i + 1
+            continue
+        end
+    end
+
+    return output + "]"
+end
+
+
+// Convert a JSON array of objects to CSV text. The header row is derived from
+// the first object's keys, in iteration order. Returns "" on invalid JSON or
+// an empty array.
+func jsonToCsv(string text) as string
+    if not json.valid(text) then
+        return ""
+    end
+
+    var data = json.parse(text)
+    if data.length == 0 then
+        return ""
+    end
+
+    var first = data[0]
+
+    // Collect header keys from the first object as a JSON array text, then
+    // parse it back so we can index headers by position consistently.
+    string headersJson = "["
+    bool firstKey = true
+    for key, val in first
+        if not firstKey then
+            headersJson = headersJson + ","
+        end
+        headersJson = headersJson + "\"" + jsonEscape(string(key)) + "\""
+        firstKey = false
+    end
+    headersJson = headersJson + "]"
+
+    var headers = json.parse(headersJson)
+    int headerCount = headers.length
+
+    if headerCount == 0 then
+        return ""
+    end
+
+    // Header row.
+    string output = ""
+    int h = 0
+    while h < headerCount do
+        if h > 0 then
+            output = output + ","
+        end
+        output = output + csvQuote(string(headers[h]))
+        h = h + 1
+    end
+    output = output + "\n"
+
+    // Data rows. Missing keys coerce to empty strings via string(null).
+    int r = 0
+    while r < data.length do
+        var obj = data[r]
+        int h2 = 0
+        while h2 < headerCount do
+            if h2 > 0 then
+                output = output + ","
+            end
+            string key = string(headers[h2])
+            var v = obj[key]
+            output = output + csvQuote(string(v))
+            h2 = h2 + 1
+        end
+        output = output + "\n"
+        r = r + 1
+    end
+
+    return output
+end
+
+
+// Pretty-print compact JSON text with 2-space indent, preserving key order.
+// This walks the text directly rather than going through json.parse +
+// json.stringify, because json.parse uses a hash dict — round-tripping
+// through it would scramble CSV column order.
+func prettyJson(string compact) as string
+    string out = ""
+    int n = string.len(compact)
+    int indent = 0
+    bool inStr = false
+    int i = 0
+    while i < n do
+        string c = string.charAt(compact, i)
+        if inStr then
+            out = out + c
+            if c == "\\" then
+                int nextI = i + 1
+                if nextI < n then
+                    out = out + string.charAt(compact, nextI)
+                    i = i + 2
+                    continue
+                end
+            end
+            if c == "\"" then
+                inStr = false
+            end
+            i = i + 1
+            continue
+        end
+        if c == "\"" then
+            inStr = true
+            out = out + c
+            i = i + 1
+            continue
+        elseif c == "{" or c == "[" then
+            out = out + c
+            int nextI = i + 1
+            if nextI < n then
+                string nc = string.charAt(compact, nextI)
+                if nc != "}" and nc != "]" then
+                    indent = indent + 1
+                    out = out + "\n" + string.repeat("  ", indent)
+                end
+            end
+            i = i + 1
+            continue
+        elseif c == "}" or c == "]" then
+            int prevI = i - 1
+            if prevI >= 0 then
+                string pc = string.charAt(compact, prevI)
+                if pc != "{" and pc != "[" then
+                    indent = indent - 1
+                    out = out + "\n" + string.repeat("  ", indent)
+                end
+            end
+            out = out + c
+            i = i + 1
+            continue
+        elseif c == "," then
+            out = out + c
+            out = out + "\n" + string.repeat("  ", indent)
+            i = i + 1
+            continue
+        elseif c == ":" then
+            out = out + ": "
+            i = i + 1
+            continue
+        else
+            out = out + c
+            i = i + 1
+            continue
+        end
+    end
+    return out
+end
+
+
+func printUsage()
+    println("Usage:")
+    println("  csvjson tojson <input.csv> [output.json]   CSV -> JSON")
+    println("  csvjson tocsv  <input.json> [output.csv]   JSON -> CSV")
+end
+
+
+func main(...) as int
+    if arg.length < 3 then
+        printUsage()
+        return 1
+    end
+
+    string mode = string(arg[1])
+    string inputPath = string(arg[2])
+
+    if mode != "tojson" and mode != "tocsv" then
+        println("Error: unknown mode '" + mode + "'")
+        println("Expected 'tojson' or 'tocsv'")
+        return 1
+    end
+
+    if not file.exists(inputPath) then
+        println("Error: input file not found: " + inputPath)
+        return 1
+    end
+
+    string inputText = file.readText(inputPath)
+    string output
+
+    if mode == "tojson" then
+        string compact = csvToJson(inputText)
+        output = prettyJson(compact)
+    else
+        output = jsonToCsv(inputText)
+        if output == "" then
+            println("Error: invalid JSON or empty array in " + inputPath)
+            return 1
+        end
+    end
+
+    if arg.length >= 4 then
+        string outputPath = string(arg[3])
+        bool ok = file.writeText(outputPath, output)
+        if not ok then
+            println("Error: failed to write " + outputPath)
+            return 1
+        end
+        println("Wrote " + outputPath)
+    else
+        println(output)
+    end
+
+    return 0
+end

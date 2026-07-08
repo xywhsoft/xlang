@@ -1,0 +1,256 @@
+// dupfind - duplicate file detector
+//
+// Usage:
+//   dupfind <dir> [-r]      find content-identical files under <dir>
+//   dupfind <dir>           scan only top level of <dir>
+//   dupfind                 default to current directory
+//   dupfind -h              show help
+//
+// Algorithm (two-level filter):
+//   1. Collect every regular file via dir.entries(dir, recursive).
+//   2. Level 1: count size collisions (file.info / entries.size). Files with a
+//      unique size cannot be duplicates, so their hash is skipped entirely.
+//   3. Level 2: for files sharing a size, read content and compute crypto.sha256,
+//      then group by (size, sha). Same-size different-content files are split.
+//      Text files use file.readText + crypto.sha256; binary files (readText
+//      throws FileError on NUL / non-UTF-8) use file.readBytes + hex-encode +
+//      crypto.sha256 so binary duplicates are also detected.
+//   4. Emit every group with >= 2 members.
+//
+// Notes (see projects/dev/README.md):
+//   - All grouping logic is inlined into main; only scalar->scalar helpers are
+//     factored.
+//   - file.readText now auto-strips BOM and throws FileError on binary/missing,
+//     so text files are hashed via readText; binary files fall back to
+//     file.readBytes + codec.hexEncodeBytes + crypto.sha256.
+
+// Format a byte count as B/KB/MB/GB with one decimal place.
+func formatSize(int64 bytes) as string
+    if bytes < 1024 then
+        return string(int(bytes)) + " B"
+    end
+    float kb = float(bytes) / 1024.0
+    if kb < 1024.0 then
+        return string.formatFloat(kb, ".1") + " KB"
+    end
+    float mb = kb / 1024.0
+    if mb < 1024.0 then
+        return string.formatFloat(mb, ".1") + " MB"
+    end
+    float gb = mb / 1024.0
+    return string.formatFloat(gb, ".1") + " GB"
+end
+
+// Render fullPath relative to root for display (e.g. calc\calc.xl).
+func relName(string root, string fullPath) as string
+    string rel = path.rel(root, fullPath)
+    if string.len(rel) > 0 and rel != "." then
+        if not path.isAbs(rel) then
+            return rel
+        end
+    end
+    // Fallback: normalize and strip the root + separator prefix by hand.
+    string rootN = path.normalize(root)
+    string fullN = path.normalize(fullPath)
+    string prefix = rootN + path.sep()
+    if string.startsWith(fullN, prefix) then
+        int plen = string.len(prefix)
+        int rest = string.len(fullN) - plen
+        return string.mid(fullN, plen, rest)
+    end
+    return fullN
+end
+
+func printUsage()
+    println("dupfind - duplicate file detector")
+    println("usage: dupfind [dir] [-r]")
+    println("  -r   scan subdirectories recursively")
+    println("examples:")
+    println("  dupfind projects\\dev -r")
+    println("  dupfind .")
+end
+
+func main(...) as int
+    string target = "."
+    bool recursive = false
+
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "-r" or a == "-R" or a == "--recursive" then
+            recursive = true
+        elseif a == "-h" or a == "--help" then
+            printUsage()
+            return 0
+        else
+            target = a
+        end
+        i += 1
+    end
+
+    if not dir.exists(target) then
+        println("dupfind: path not found:", target)
+        return 1
+    end
+
+    println("Scanning " + target + " for duplicates...")
+    println("")
+
+    // ---- Phase 1: collect every regular file (path + size). ----
+    // B2 fixed: array<T> + append().
+    array<string> paths = array[]
+    array<int64> sizes = array[]
+
+    array raw = dir.entries(target, recursive)
+    int n = raw.length
+    int k = 0
+    while k < n do
+        var e = raw[k]
+        if bool(e["isFile"]) then
+            paths.append(string(e["path"]))
+            sizes.append(int64(e["size"]))
+        end
+        k += 1
+    end
+
+    int len = paths.length
+
+    if len < 2 then
+        println("Found 0 duplicate groups, 0 files can be deduplicated.")
+        return 0
+    end
+
+    // ---- Phase 2: size collision count per file (level-1 filter). ----
+    array<int> sizeHits = array[]
+    int c = 0
+    while c < len do
+        int64 cur = sizes[c]
+        int hits = 0
+        int d = 0
+        while d < len do
+            if sizes[d] == cur then
+                hits += 1
+            end
+            d += 1
+        end
+        sizeHits.append(hits)
+        c += 1
+    end
+
+    // ---- Phase 3: compute sha256 only for size-collision files. ----
+    // Unique-size files get an empty hash and are skipped during grouping.
+    // Text files: file.readText + crypto.sha256. Binary files (readText throws
+    // FileError on NUL / non-UTF-8): file.readBytes + hex-encode + sha256, so
+    // binary duplicates are detected too.
+    array<string> hashes = array[]
+    int h = 0
+    while h < len do
+        if sizeHits[h] >= 2 then
+            string hash = ""
+            bool hashed = false
+            try
+                string content = file.readText(paths[h])
+                hash = crypto.sha256(content)
+                hashed = true
+            catch e
+                // Not valid UTF-8 text (binary); fall through to readBytes.
+            end
+            if not hashed then
+                try
+                    Buffer buf = file.readBytes(paths[h])
+                    string hex = codec.hexEncodeBytes(buf.data(), c_size(buf.len()))
+                    hash = crypto.sha256(hex)
+                    hashed = true
+                catch e
+                    // Unreadable: give a path-unique sentinel so it never matches.
+                    hash = "UNREADABLE:" + paths[h]
+                end
+            end
+            hashes.append(hash)
+        else
+            hashes.append("")
+        end
+        h += 1
+    end
+
+    // ---- Phase 4: cluster by (size, sha) and emit groups with >= 2 members. ----
+    array<int> visited = array[]
+    int v = 0
+    while v < len do
+        visited.append(0)
+        v += 1
+    end
+
+    int groupCount = 0
+    int totalDupFiles = 0
+
+    int a = 0
+    while a < len do
+        if visited[a] == 1 then
+            a += 1
+            continue
+        end
+        if sizeHits[a] < 2 then
+            a += 1
+            continue
+        end
+
+        // Gather group members (same size AND same hash as a).
+        array<int> gIdx = array[]
+        gIdx.append(a)
+        visited[a] = 1
+
+        int b = a + 1
+        while b < len do
+            if visited[b] == 0 then
+                if sizes[b] == sizes[a] then
+                    if hashes[b] == hashes[a] then
+                        gIdx.append(b)
+                        visited[b] = 1
+                    end
+                end
+            end
+            b += 1
+        end
+
+        int gLen = gIdx.length
+
+        if gLen >= 2 then
+            groupCount += 1
+
+            // Compute max display-name width so columns line up.
+            int maxName = 0
+            int g = 0
+            while g < gLen do
+                string disp = relName(target, paths[gIdx[g]])
+                int dl = string.len(disp)
+                if dl > maxName then
+                    maxName = dl
+                end
+                g += 1
+            end
+
+            // crypto.sha256 emits uppercase HEX; lowercase to match spec style,
+            // show first 16 hex chars (8 bytes) as a short fingerprint.
+            string shortSha = string.lower(string.slice(hashes[a], 0, 16)) + "..."
+            println("Group " + string(groupCount) + " (SHA: " + shortSha + "):")
+
+            g = 0
+            while g < gLen do
+                int idx = gIdx[g]
+                string disp = relName(target, paths[idx])
+                string szStr = formatSize(sizes[idx])
+                string padded = string.padRight(disp, maxName, " ")
+                println("    " + padded + " " + szStr)
+                g += 1
+            end
+            println("")
+
+            totalDupFiles += gLen
+        end
+        a += 1
+    end
+
+    println("Found " + string(groupCount) + " duplicate groups, " + string(totalDupFiles) + " files can be deduplicated.")
+    return 0
+end

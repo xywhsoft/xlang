@@ -1,0 +1,166 @@
+// hashcalc.xl - string/file hash calculator
+//
+// usage:
+//   hashcalc <text>                  show all hashes (u32/u64/sha1/sha256/sha512)
+//   hashcalc <text> -a <algo>        show only one algorithm (bare value)
+//   hashcalc -f <file> [-a <algo>]   hash file content (text files only)
+//   hashcalc <text> -hmac <key>      append HMAC-SHA256 to the table
+//   hashcalc <text> -a hmac -hmac <key>   print HMAC-SHA256 only
+//   hashcalc --help | -h             show this help
+//
+// algorithms: u32, u64, sha1, sha256, sha512, hmac
+//
+// ---------------------------------------------------------------------------
+// Implementation notes:
+//  * hash.u64 returns uint64; string.formatUInt formats it directly as 16
+//    lowercase hex digits ("x16").
+//  * hash.u32 returns uint32 which always fits positive int64, so "x8" is safe.
+//  * crypto.sha*/hmacSha256 return UPPERCASE hex; we lowercase with string.lower
+//    to match conventional digest output (e.g. sha256("hello") = 2cf24dba...).
+// ---------------------------------------------------------------------------
+
+const int LABEL_WIDTH = 9
+
+func isKnownAlgo(string algo) as bool
+    return algo == "u32" or algo == "u64" or algo == "sha1" or algo == "sha256" or algo == "sha512" or algo == "hmac"
+end
+
+func computeAlgo(string algo, string text, string hmacKey) as string
+    if algo == "u32" then
+        return string.formatInt(hash.u32(text), "x8")
+    elseif algo == "u64" then
+        return string.formatUInt(hash.u64(text), "x16")
+    elseif algo == "sha1" then
+        return string.lower(crypto.sha1(text))
+    elseif algo == "sha256" then
+        return string.lower(crypto.sha256(text))
+    elseif algo == "sha512" then
+        return string.lower(crypto.sha512(text))
+    elseif algo == "hmac" then
+        return string.lower(crypto.hmacSha256(hmacKey, text))
+    end
+    return ""
+end
+
+func row(string label, string value) as string
+    return string.padRight(label, LABEL_WIDTH) + value
+end
+
+func printAll(string text, string hmacKey, bool hasHmac) as int
+    println("Input: \"" + text + "\"")
+    println(row("u32:", string.formatInt(hash.u32(text), "x8")))
+    println(row("u64:", string.formatUInt(hash.u64(text), "x16")))
+    println(row("sha1:", string.lower(crypto.sha1(text))))
+    println(row("sha256:", string.lower(crypto.sha256(text))))
+    println(row("sha512:", string.lower(crypto.sha512(text))))
+    if hasHmac then
+        println(row("hmac:", string.lower(crypto.hmacSha256(hmacKey, text))))
+    end
+    return 0
+end
+
+func printUsage()
+    println("hashcalc - string/file hash calculator")
+    println("")
+    println("usage:")
+    println("  hashcalc <text>                       show all hashes")
+    println("  hashcalc <text> -a <algo>             show only one algorithm")
+    println("  hashcalc -f <file> [-a <algo>]        hash file content (text files only)")
+    println("  hashcalc <text> -hmac <key>           append HMAC-SHA256")
+    println("  hashcalc <text> -a hmac -hmac <key>   print HMAC-SHA256 only")
+    println("  hashcalc --help | -h                  show this help")
+    println("")
+    println("algorithms: u32, u64, sha1, sha256, sha512, hmac")
+end
+
+func main(...) as int
+    string text = ""
+    bool hasText = false
+    bool fromFile = false
+    string fileSource = ""
+    string algo = ""
+    bool hasAlgo = false
+    string hmacKey = ""
+    bool hasHmac = false
+
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "--help" or a == "-h" then
+            printUsage()
+            return 0
+        elseif a == "-f" or a == "--file" then
+            if i + 1 < arg.length then
+                fromFile = true
+                fileSource = string(arg[i + 1])
+                i += 2
+                continue
+            else
+                println("hashcalc: -f requires a file path")
+                return 1
+            end
+        elseif a == "-a" or a == "--algo" then
+            if i + 1 < arg.length then
+                algo = string(arg[i + 1])
+                hasAlgo = true
+                i += 2
+                continue
+            else
+                println("hashcalc: -a requires an algorithm name")
+                return 1
+            end
+        elseif a == "-hmac" then
+            if i + 1 < arg.length then
+                hmacKey = string(arg[i + 1])
+                hasHmac = true
+                i += 2
+                continue
+            else
+                println("hashcalc: -hmac requires a key")
+                return 1
+            end
+        elseif string.startsWith(a, "-") and a != "-" then
+            println("hashcalc: unknown option: " + a)
+            return 1
+        else
+            if not hasText then
+                text = a
+                hasText = true
+            else
+                println("hashcalc: unexpected extra argument: " + a)
+                return 1
+            end
+        end
+        i += 1
+    end
+
+    if not hasText and not fromFile then
+        printUsage()
+        return 1
+    end
+
+    if fromFile then
+        if not file.exists(fileSource) then
+            println("hashcalc: file not found: " + fileSource)
+            return 1
+        end
+        text = file.readText(fileSource)
+        hasText = true
+    end
+
+    if hasAlgo then
+        if not isKnownAlgo(algo) then
+            println("hashcalc: unknown algorithm: " + algo)
+            println("  supported: u32, u64, sha1, sha256, sha512, hmac")
+            return 1
+        end
+        if algo == "hmac" and not hasHmac then
+            println("hashcalc: algorithm 'hmac' requires -hmac <key>")
+            return 1
+        end
+        println(computeAlgo(algo, text, hmacKey))
+        return 0
+    end
+
+    return printAll(text, hmacKey, hasHmac)
+end
