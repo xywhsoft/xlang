@@ -1,0 +1,12 @@
+bool caught = false
+
+try
+    string text = file.readText("build/test/file_read_text_binary.bin")
+    assert false, "file.readText should reject binary data instead of returning: " + text
+catch e
+    if e.kind == "FileError" and string.contains(e.message, "NUL") then
+        caught = true
+    end
+end
+
+assert caught, "file.readText should reject text containing NUL bytes"

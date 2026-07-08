@@ -82,6 +82,7 @@ int xlTccImpdef(const char* dllPath, const char* outputDef);
 
 const char* xlGetLastError(XL_Context* ctx);
 void xlClearLastError(XL_Context* ctx);
+int xlGetLastExitCode(XL_Context* ctx);
 ```
 
 编译版额外 API：
@@ -136,6 +137,7 @@ int xlcRun(XLC_Context* ctx, int argc, char** argv);
 XL_Context* xlcRuntimeContext(XLC_Context* ctx);
 const char* xlcGetLastError(XLC_Context* ctx);
 void xlcClearLastError(XLC_Context* ctx);
+int xlcGetLastExitCode(XLC_Context* ctx);
 ```
 
 `xlc.dll` owns compiler-library operations that are useful without CLI argument parsing: checking, token/AST/IR/ABI emission, C/header/debug-C emission, executable/debug-executable/shared-library output, in-process relocation, and direct run. `xl.exe` is responsible for command-line parsing and maps those commands onto these APIs.

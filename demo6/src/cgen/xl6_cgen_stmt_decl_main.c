@@ -105,9 +105,12 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         } else {
             xl6CgenClassTypeName(ctx->out, classNode->text);
         }
-        createNode = (initExpr != NULL && ctorClass != NULL) ?
+        if ( initExpr != NULL && ctorClass == NULL ) {
+            xl6CgenCallIsClassCtor(ctx, initExpr, &ctorClass);
+        }
+        createNode = (initExpr != NULL && ctorClass != NULL && xl6CTextEquals(ctorClass->text, classNode->text)) ?
                      xl6CgenResolveClassCreate(ctx, classNode, initExpr) :
-                     xl6CgenFindClassSpecial(classNode, "create");
+                     xl6CgenFindClassCreateCallableWithoutArgs(classNode);
         xl6OutputPrintf(ctx->out, " %s = {0};\n", cName);
         xl6CgenAddVarType(ctx, node->text, isGenericClass ? classTypeNode : classNode);
         xl6CgenAddClassCleanup(ctx, node->text, classNode, isGenericClass ? classTypeNode : NULL);
@@ -179,8 +182,37 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
                         !xl6CgenEmitNativeClassHandleBinding(ctx, classNode, cName, args) ) {
                 xl6CgenError(ctx, initExpr, "class constructor has arguments but no matching create method");
             }
+        } else if ( initExpr == NULL ) {
+            if ( createNode != NULL ) {
+                const XL6_AstNode* createParams;
+
+                /*
+                    C 风格声明 `T x` 也应完成对象构造。
+                    没有显式初始化表达式时，只允许调用无必选参数的 create，
+                    否则对象会落入“字段默认值已写、构造体未运行”的半初始化状态。
+                */
+                xl6CgenIndent(ctx);
+                if ( isGenericClass ) {
+                    ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+                    ctx->currentGenericArgs = classTypeNode->children[0];
+                    xl6CgenGenericClassCallableSymbol(ctx, classNode, classTypeNode, createNode);
+                } else {
+                    xl6CgenClassCallableSymbol(ctx, classNode, createNode);
+                }
+                xl6OutputPrintf(ctx->out, "(&%s", cName);
+                createParams = xl6CgenCallableParams(createNode);
+                if ( xl6CgenFixedParamCount(createParams) > 0 ) {
+                    xl6OutputPuts(", ", ctx->out);
+                    xl6CgenParamNodeArgs(ctx, createParams, NULL);
+                }
+                xl6OutputPuts(");\n", ctx->out);
+                ctx->currentGenericParams = prevParams;
+                ctx->currentGenericArgs = prevArgs;
+            } else if ( xl6CgenClassHasCreate(classNode) ) {
+                xl6CgenError(ctx, node, "class variable requires explicit constructor arguments");
+            }
         }
-        if ( !copyInit && createNode == NULL ) {
+        if ( !copyInit && createNode == NULL && !xl6CgenClassHasCreate(classNode) ) {
             xl6CgenEmitAutoBaseCreateForValue(ctx, classNode, cName, node);
         }
         return;

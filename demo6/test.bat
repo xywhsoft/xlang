@@ -10,10 +10,18 @@ call build.bat
 if errorlevel 1 exit /b 1
 
 if exist build\test (
-    powershell -NoProfile -ExecutionPolicy Bypass -File tools\clear_release_tmp_files.ps1 build\test
+    powershell -NoProfile -ExecutionPolicy Bypass -File tools\clear_test_artifacts.ps1 build\test
     if errorlevel 1 exit /b 1
 )
 if not exist build\test mkdir build\test
+if not exist build\test\__xl_runtime mkdir build\test\__xl_runtime
+copy /Y release\include\xl_runtime.h build\test\__xl_runtime\xl_runtime.h >nul
+if errorlevel 1 exit /b 1
+
+rem cgen output includes a private runtime path. The full regression prepares
+rem the same mirror as test\suites\common.bat before suite early-exit is enabled.
+set "XL6_TCC_INCLUDES=-Ibuild\test %XL6_TCC_INCLUDES%"
+set "XL6_TCC_INCLUDES_WINAPI=-Ibuild\test %XL6_TCC_INCLUDES_WINAPI%"
 
 call tools\bootstrap_tcc.bat
 if errorlevel 1 exit /b 1

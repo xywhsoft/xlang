@@ -834,6 +834,14 @@ if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\second_stage.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
 
+release\xl.exe run release\examples\top_level_main.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\top_level_main.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\top_level_main.out.txt'; if($lines.Count -lt 2 -or $lines[0] -ne 'top-level init' -or $lines[1] -ne 'main body'){ exit 1 }"
+if errorlevel 1 (
+    echo release\examples\top_level_main.xl output order failed.
+    exit /b 1
+)
+
 
 echo DEMO6 suite ok: language frontend and type semantics
 exit /b 0

@@ -1,182 +1,3 @@
-static int xl6CgenIndexKeyIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* index);
-static int xl6CgenIndexKeyIsInteger(XL6_CgenContext* ctx, const XL6_AstNode* index);
-static void xl6CgenXValueDictGetExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const char* receiverName, const XL6_AstNode* index);
-static void xl6CgenXValueSafeIndexGetExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const char* receiverName, const XL6_AstNode* index);
-static void xl6CgenTypedDictGetRawExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const XL6_AstNode* index);
-static void xl6CgenTypedDictSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const XL6_AstNode* index, const char* tempName);
-static void xl6CgenXValueDictSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const XL6_AstNode* index, const char* tempName);
-static void xl6CgenXValueIndexSetI64Stmt(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const XL6_AstNode* index, const char* tempName);
-static void xl6CgenXValueIndexSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const XL6_AstNode* index, const char* tempName);
-static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left, const char* tempName)
-{
-    const XL6_AstNode* receiver;
-    const XL6_AstNode* index;
-    XL6_AstNode* receiverType;
-
-    receiver = left != NULL && left->childCount > 0 ? left->children[0] : NULL;
-    index = left != NULL && left->childCount > 1 ? left->children[1] : NULL;
-    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-
-    if ( xl6CgenExprUsesTypedContainerStorage(ctx, receiver) && xl6CgenIsTypedContainerType(ctx, receiverType) ) {
-        const XL6_AstNode* concreteType = xl6CgenTypedContainerConcreteType(ctx, receiverType);
-        const char* typeName = concreteType != NULL ? concreteType->text : NULL;
-
-        if ( xl6CTextEquals(typeName, "dict") && !xl6CgenExprStaticTypeIs(ctx, index, "string") ) {
-            if ( xl6CgenIndexKeyIsXValue(ctx, index) ) {
-                xl6CgenTypedDictSetDynamicKeyStmt(ctx, receiver, index, tempName);
-            } else {
-                xl6CgenIndent(ctx);
-                xl6CgenError(ctx, index, "dict index key must be string or var string");
-                xl6OutputPuts("if (!false) {\n", ctx->out);
-                ctx->indent += 1;
-                xl6CgenIndent(ctx);
-                xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
-                ctx->indent -= 1;
-                xl6CgenIndent(ctx);
-                xl6OutputPuts("}\n", ctx->out);
-            }
-            xl6AstFree(receiverType);
-            return;
-        }
-
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("if (!", ctx->out);
-        if ( xl6CTextEquals(typeName, "array") ) {
-            xl6OutputPuts("xl6_xrt_typed_array_set_at(", ctx->out);
-            xl6CgenExpr(ctx, receiver);
-            xl6OutputPuts(", (unsigned int)(", ctx->out);
-            xl6CgenExpr(ctx, index);
-            xl6OutputPrintf(ctx->out, "), %s)", tempName != NULL ? tempName : "0");
-        } else if ( xl6CTextEquals(typeName, "list") ) {
-            xl6OutputPuts("xrtTypedListSetValue(", ctx->out);
-            xl6CgenExpr(ctx, receiver);
-            xl6OutputPuts(", (long long)(", ctx->out);
-            xl6CgenExpr(ctx, index);
-            xl6OutputPrintf(ctx->out, "), %s)", tempName != NULL ? tempName : "0");
-        } else if ( xl6CTextEquals(typeName, "dict") ) {
-            xl6OutputPuts("xrtTypedDictSetValue(", ctx->out);
-            xl6CgenExpr(ctx, receiver);
-            xl6OutputPuts(", ", ctx->out);
-            xl6CgenExpr(ctx, index);
-            xl6OutputPrintf(ctx->out, ", 0, %s)", tempName != NULL ? tempName : "0");
-        } else {
-            xl6CgenError(ctx, left, "typed container index assignment requires array, list or dict");
-            xl6OutputPuts("false", ctx->out);
-        }
-        xl6OutputPuts(") {\n", ctx->out);
-        ctx->indent += 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
-        ctx->indent -= 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("}\n", ctx->out);
-        if ( tempName != NULL ) {
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName);
-        }
-        xl6AstFree(receiverType);
-        return;
-    }
-
-    if ( xl6CgenIsDictXValueType(receiverType) && !xl6CgenExprStaticTypeIs(ctx, index, "string") ) {
-        if ( xl6CgenIndexKeyIsXValue(ctx, index) ) {
-            xl6CgenXValueDictSetDynamicKeyStmt(ctx, receiver, index, tempName);
-        } else {
-            xl6CgenIndent(ctx);
-            xl6CgenError(ctx, index, "dict index key must be string or var string");
-            xl6OutputPuts("if (false) {\n", ctx->out);
-            ctx->indent += 1;
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName != NULL ? tempName : "0");
-            ctx->indent -= 1;
-            xl6CgenIndent(ctx);
-            xl6OutputPuts("}\n", ctx->out);
-        }
-        xl6AstFree(receiverType);
-        return;
-    }
-
-    if ( receiverType != NULL && xl6CTextEquals(receiverType->text, "var") ) {
-        if ( xl6CgenExprStaticTypeIs(ctx, index, "string") ) {
-            xl6CgenIndent(ctx);
-            xl6OutputPuts("if ( !xvoTableSetValue(", ctx->out);
-            xl6CgenExpr(ctx, receiver);
-            xl6OutputPuts(", ", ctx->out);
-            xl6CgenExpr(ctx, index);
-            xl6OutputPrintf(ctx->out, ", 0, %s, true) && %s != 0 ) {\n", tempName != NULL ? tempName : "0", tempName != NULL ? tempName : "0");
-            ctx->indent += 1;
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName != NULL ? tempName : "0");
-            ctx->indent -= 1;
-            xl6CgenIndent(ctx);
-            xl6OutputPuts("}\n", ctx->out);
-        } else if ( xl6CgenIndexKeyIsXValue(ctx, index) ) {
-            xl6CgenXValueIndexSetDynamicKeyStmt(ctx, receiver, index, tempName);
-        } else if ( xl6CgenIndexKeyIsInteger(ctx, index) ) {
-            xl6CgenXValueIndexSetI64Stmt(ctx, receiver, index, tempName);
-        } else {
-            xl6CgenIndent(ctx);
-            xl6CgenError(ctx, index, "var container index key must be int, string or var");
-            xl6OutputPuts("if (false) {\n", ctx->out);
-            ctx->indent += 1;
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName != NULL ? tempName : "0");
-            ctx->indent -= 1;
-            xl6CgenIndent(ctx);
-            xl6OutputPuts("}\n", ctx->out);
-        }
-        xl6AstFree(receiverType);
-        return;
-    }
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("if ( !", ctx->out);
-    if ( xl6CgenIsArrayXValueType(receiverType) ) {
-        xl6OutputPuts("xvoArraySetValue(", ctx->out);
-        xl6CgenExpr(ctx, receiver);
-        xl6OutputPuts(", (unsigned int)(", ctx->out);
-        xl6CgenExpr(ctx, index);
-        xl6OutputPrintf(ctx->out, "), %s, true)", tempName != NULL ? tempName : "0");
-    } else if ( xl6CgenIsListXValueType(receiverType) ) {
-        xl6OutputPuts("xvoListSetValue(", ctx->out);
-        xl6CgenExpr(ctx, receiver);
-        xl6OutputPuts(", (long long)(", ctx->out);
-        xl6CgenExpr(ctx, index);
-        xl6OutputPrintf(ctx->out, "), %s, true)", tempName != NULL ? tempName : "0");
-    } else if ( xl6CgenIsDictXValueType(receiverType) ) {
-        xl6OutputPuts("xvoTableSetValue(", ctx->out);
-        xl6CgenExpr(ctx, receiver);
-        xl6OutputPuts(", ", ctx->out);
-        xl6CgenExpr(ctx, index);
-        xl6OutputPrintf(ctx->out, ", 0, %s, true)", tempName != NULL ? tempName : "0");
-    } else {
-        xl6CgenError(ctx, left, "dynamic index assignment receiver must be array, list or dict");
-        xl6OutputPuts("false", ctx->out);
-    }
-    xl6OutputPrintf(ctx->out, " && %s != 0 ) {\n", tempName != NULL ? tempName : "0");
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName != NULL ? tempName : "0");
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-
-    xl6AstFree(receiverType);
-}
-static void xl6CgenIndexAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right)
-{
-    int id;
-    char tempName[64];
-
-    id = ctx->tempId++;
-    snprintf(tempName, sizeof(tempName), "__xl6_index_assign_%d", id);
-
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue %s = ", tempName);
-    xl6CgenXValueFromExpr(ctx, right);
-    xl6OutputPuts(";\n", ctx->out);
-    xl6CgenIndexAssignTemp(ctx, left, tempName);
-}
-
 static const char* xl6CgenCompoundBinaryOp(const char* op)
 {
     if ( xl6CTextEquals(op, "+=") ) {
@@ -361,9 +182,7 @@ static void xl6CgenIndexCompoundAssignStmt(
     snprintf(tempName, sizeof(tempName), "__xl6_index_assign_%d", id);
 
     /*
-        xvoArrayGetValue/xvoListGetValue/xvoTableGetValue 返回容器内借用值。
-        current 只用于本语句内读旧值，不能 xvoUnref，否则会误减容器元素引用。
-    */
+        xvoArrayGetValue/xvoListGetValue/xvoTableGetValue 杩斿洖瀹瑰櫒鍐呭€熺敤鍊笺€?        current 鍙敤浜庢湰璇彞鍐呰鏃у€硷紝涓嶈兘 xvoUnref锛屽惁鍒欎細璇噺瀹瑰櫒鍏冪礌寮曠敤銆?    */
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "xvalue %s = ", currentName);
     xl6CgenIndexExpr(ctx, left);
@@ -394,7 +213,7 @@ static void xl6CgenIndexCompoundAssignStmt(
 
     binaryOp = xl6CgenCompoundBinaryOp(op);
     if ( binaryOp == NULL ) {
-        xl6CgenError(ctx, left, "当前 C 生成不支持该索引复合赋值运算符");
+        xl6CgenError(ctx, left, "褰撳墠 C 鐢熸垚涓嶆敮鎸佽绱㈠紩澶嶅悎璧嬪€艰繍绠楃");
         return;
     }
 
@@ -892,7 +711,7 @@ static int xl6CgenXValueMemberAssignStmt(
         xl6OutputPuts(";\n", ctx->out);
     }
 
-    /* var 字段拥有 xvalue 引用，替换前必须释放旧值。 */
+    /* var 瀛楁鎷ユ湁 xvalue 寮曠敤锛屾浛鎹㈠墠蹇呴』閲婃斁鏃у€笺€?*/
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", targetPath);
     ctx->indent += 1;
@@ -1246,7 +1065,7 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     }
     if ( xl6CTextEquals(op, "**=") ) {
         if ( !xl6CgenExprIntPowKind(ctx, left) || !xl6CgenExprIntPowKind(ctx, right) ) {
-            xl6CgenError(ctx, node, "当前 C 生成 **= 只支持整数表达式");
+            xl6CgenError(ctx, node, "褰撳墠 C 鐢熸垚 **= 鍙敮鎸佹暣鏁拌〃杈惧紡");
             return;
         }
         xl6CgenExpr(ctx, left);

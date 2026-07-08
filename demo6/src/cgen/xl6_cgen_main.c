@@ -428,12 +428,14 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
         emitted = xl6CgenDeclTryXValueArrayLiteralInit(ctx, typeNode, tempName, initExpr) ||
                   xl6CgenDeclTryXValueNullCoalesceInit(ctx, typeNode, tempName, initExpr) ||
                   xl6CgenDeclTryXValueBinaryInit(ctx, typeNode, tempName, initExpr) ||
-                  xl6CgenDeclTryXValueConditionalInit(ctx, typeNode, tempName, initExpr);
+                  xl6CgenDeclTryXValueConditionalInit(ctx, typeNode, tempName, initExpr) ||
+                  xl6CgenDeclTryTaskSpawnArgTempsInit(ctx, typeNode, "xvalue", tempName, initExpr);
     } else if ( !xl6CgenIsFunctionType(typeNode) ) {
         cType = xl6CgenTypeName(ctx, typeNode);
         emitted = xl6CgenDeclTryStaticNullCoalesceInit(ctx, typeNode, cType, tempName, initExpr) ||
                   xl6CgenDeclTryStaticXValueCompareInit(ctx, typeNode, cType, tempName, initExpr) ||
-                  xl6CgenDeclTryStaticXValueApproxInit(ctx, typeNode, cType, tempName, initExpr);
+                  xl6CgenDeclTryStaticXValueApproxInit(ctx, typeNode, cType, tempName, initExpr) ||
+                  xl6CgenDeclTryTaskSpawnArgTempsInit(ctx, typeNode, cType, tempName, initExpr);
         if ( !emitted && xl6CgenDeclCanEmitCallArgTemp(ctx, typeNode, initExpr) ) {
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s %s = ", cType, tempName);
@@ -619,7 +621,32 @@ static int xl6CgenEmitModuleGlobalClassInit(
     xl6CgenClassDefaultInitFields(ctx, classNode, cName);
 
     if ( initExpr == NULL ) {
-        xl6CgenEmitAutoBaseCreateForValue(ctx, classNode, cName, node);
+        createNode = xl6CgenFindClassCreateCallableWithoutArgs(classNode);
+        if ( createNode != NULL ) {
+            const XL6_AstNode* createParams;
+
+            /*
+                模块级 `T x` 和局部 `T x` 保持一致：
+                如果类声明了无必选参数的 create，就必须完成构造调用。
+            */
+            xl6CgenIndent(ctx);
+            if ( isGenericClass ) {
+                xl6CgenGenericClassCallableSymbol(ctx, classNode, classTypeNode, createNode);
+            } else {
+                xl6CgenClassCallableSymbol(ctx, classNode, createNode);
+            }
+            xl6OutputPrintf(ctx->out, "(&%s", cName);
+            createParams = xl6CgenCallableParams(createNode);
+            if ( xl6CgenFixedParamCount(createParams) > 0 ) {
+                xl6OutputPuts(", ", ctx->out);
+                xl6CgenParamNodeArgs(ctx, createParams, NULL);
+            }
+            xl6OutputPuts(");\n", ctx->out);
+        } else if ( xl6CgenClassHasCreate(classNode) ) {
+            xl6CgenError(ctx, node, "module global class variable requires explicit constructor arguments");
+        } else {
+            xl6CgenEmitAutoBaseCreateForValue(ctx, classNode, cName, node);
+        }
         ctx->currentGenericParams = prevParams;
         ctx->currentGenericArgs = prevArgs;
         return 1;

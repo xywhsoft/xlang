@@ -140,27 +140,32 @@ static void xl6CgenCollectAnonFuncsInFunc(XL6_CgenContext* ctx, const XL6_AstNod
 
 static void xl6CgenCollectAnonFuncs(XL6_CgenContext* ctx, const XL6_AstNode* root)
 {
-    XL6_CgenVar* scopeVars;
-    size_t scopeCount;
-    size_t scopeCapacity;
     size_t i;
 
-    scopeVars = NULL;
-    scopeCount = 0;
-    scopeCapacity = 0;
     if ( root == NULL ) {
         return;
     }
     for ( i = 0; i < root->childCount; ++i ) {
         const XL6_AstNode* node = root->children[i];
+        XL6_CgenVar* scopeVars;
+        size_t scopeCount;
+        size_t scopeCapacity;
+
         if ( node == NULL ) {
             continue;
         }
         if ( node->kind == XL6_AST_FUNC || node->kind == XL6_AST_EXPORT_FUNC ) {
             xl6CgenCollectAnonFuncsInFunc(ctx, node);
         } else {
+            /*
+             * 模块级变量是真正的全局变量，匿名函数应直接访问它们。
+             * 这里为每个顶层节点使用独立的局部表，避免把前一个模块级声明误当作按值捕获。
+             */
+            scopeVars = NULL;
+            scopeCount = 0;
+            scopeCapacity = 0;
             xl6CgenCollectAnonFuncsInNode(ctx, node, &scopeVars, &scopeCount, &scopeCapacity);
+            xrtFree(scopeVars);
         }
     }
-    xrtFree(scopeVars);
 }

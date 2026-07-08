@@ -25,6 +25,33 @@ class VarSlot
     var value = null
 end
 
+class TypedFieldBox
+    list<string> names = list[0: "alpha", 1: "beta"]
+
+    create()
+    end
+
+    func peek(int index) as string
+        return self.names[index]
+    end
+end
+
+class NoParenCreateBox
+    int value = 0
+
+    create()
+        self.value = 41
+    end
+end
+
+class OptionalNoParenCreateBox
+    int value = 0
+
+    create(int value = 9)
+        self.value = value
+    end
+end
+
 list<string> g_asyncNames = list[0: "alpha", 1: "beta"]
 
 async func asyncReadGlobalList(int index) as string
@@ -60,6 +87,15 @@ VarSlot slot
 slot.value = 2.5
 assert float(slot.value) == 2.5, "assigning scalar expression to var field should box value"
 
+TypedFieldBox typedFieldBox
+assert typedFieldBox.peek(1) == "beta", "class method typed list field read should preserve value"
+
+NoParenCreateBox noParenCreateBox
+assert noParenCreateBox.value == 41, "class declaration without initializer should call no-arg create"
+
+OptionalNoParenCreateBox optionalNoParenCreateBox
+assert optionalNoParenCreateBox.value == 9, "class declaration without initializer should call create defaults"
+
 var dynamic = json.parse("{}")
 dynamic["ratio"] = 0.75
 assert float(dynamic["ratio"]) == 0.75, "assigning scalar expression to var dict slot should box value"
@@ -67,4 +103,3 @@ assert float(dynamic["ratio"]) == 0.75, "assigning scalar expression to var dict
 future<string> asyncValue = asyncReadGlobalList(1)
 assert asyncValue.wait(), "async read of global typed list should complete"
 assert await asyncValue == "beta", "async read of global typed list should preserve element value"
-

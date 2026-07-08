@@ -1,6 +1,6 @@
 ﻿# P2 cleanup 与借用生命周期细则
 
-本文细化 `xl6_cgen_expr_support_base.c`。该分片不直接承担完整语法节点输出，但会决定生成 C 代码中的 retain/release、自动析构、cleanup 栈、break/continue 清理边界和借用判定，是当前 cgen 稳定性的核心辅助层之一。
+本文细化 `xl6_cgen_expr_support_base.c`、`xl6_cgen_expr_cleanup.c` 与 `xl6_cgen_loop_target.c`。这些分片不直接承担完整语法节点输出，但会决定生成 C 代码中的 retain/release、自动析构、cleanup 栈、break/continue 清理边界和借用判定，是当前 cgen 稳定性的核心辅助层之一。
 
 ## CGEN-CLEAN-001 C 符号输出时去掉字面量引号
 
@@ -452,7 +452,7 @@
 |---|---|
 | xlang 写法 | `mutex/sem/cond/rwlock` 作用域结束 |
 | 生成规则描述 | cleanup kind 为 sync 时，按类型名选择 `xrtMutexDestroy`、`xrtSemDestroy`、`xrtCondDestroy` 或 `xrtRWLockDestroy`；未知同步类型不输出释放。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:787` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:238` |
 | 对应生成的 C 代码 | `if (m != 0) { xrtMutexDestroy(m); m = 0; }` |
 | 中间形态伪代码 | `destroy = map sync type name; if destroy: emit destroy(handle); clear` |
 | 实现同等功能手写的 C 代码 | 手写 C 根据同步原语类型调用对应销毁函数。 |
@@ -464,7 +464,7 @@
 |---|---|
 | xlang 写法 | `custom` 局部变量作用域结束 |
 | 生成规则描述 | cleanup kind 为 custom 时再次查找 `destroy` 特殊成员；若变量 `.handle != 0`，调用映射 destroy 函数并将 handle 清零。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:815` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:266` |
 | 对应生成的 C 代码 | `if (x.handle != 0) { xxx_destroy(x.handle); x.handle = 0; }` |
 | 中间形态伪代码 | `destroy = find custom destroy; if handle: destroy(handle); clear handle` |
 | 实现同等功能手写的 C 代码 | 手写 C 调用 C 库 destroy 函数并清空句柄。 |
@@ -476,7 +476,7 @@
 |---|---|
 | xlang 写法 | `func f` 作用域结束 |
 | 生成规则描述 | cleanup kind 为 function 时，与 function path release 相同：仅当 `release` 和 `env` 均非空时释放环境，并清空 `env/release`。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:835` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:286` |
 | 对应生成的 C 代码 | `if (f.release != 0 && f.env != 0) { f.release(f.env); f.env = 0; f.release = 0; }` |
 | 中间形态伪代码 | `if cleanup FUNCTION: release function env and clear` |
 | 实现同等功能手写的 C 代码 | 手写 C 调用闭包 release 回调。 |
@@ -488,7 +488,7 @@
 |---|---|
 | xlang 写法 | `var v`、裸动态容器变量作用域结束 |
 | 生成规则描述 | cleanup kind 为 xvalue 时，若指针非空，调用 `xvoUnref` 并清零。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:851` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:302` |
 | 对应生成的 C 代码 | `if (v != 0) { xvoUnref(v); v = 0; }` |
 | 中间形态伪代码 | `if xvalue != 0: unref; clear` |
 | 实现同等功能手写的 C 代码 | 手写 C 对动态值调用 unref。 |
@@ -500,7 +500,7 @@
 |---|---|
 | xlang 写法 | `array<int>/list<T>/set<T>/dict<T>` 作用域结束 |
 | 生成规则描述 | cleanup kind 为 typed container 时，先取得容器具体类型，再按 `array/list/set/dict` 分别调用 `xrtTypedArrayDestroy`、`xrtTypedListDestroy`、`xrtTypedSetDestroy`、`xrtTypedDictDestroy`，最后将变量清零。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:865` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:316` |
 | 对应生成的 C 代码 | `if (a != 0) { xrtTypedArrayDestroy(a); a = 0; }` |
 | 中间形态伪代码 | `kind = typedContainerConcreteType; emit matching destroy; clear` |
 | 实现同等功能手写的 C 代码 | 手写 C 对每种 typed container 调用对应 destroy。 |
@@ -512,7 +512,7 @@
 |---|---|
 | xlang 写法 | `A a` 作用域结束，A 需要析构 |
 | 生成规则描述 | 若 cleanup 未被前面的特殊 kind 消费，且 class 递归判定需要析构，则输出 class destroy 调用。泛型 class 实例使用泛型 class 成员符号，非泛型 class 使用普通 class 成员符号。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:890` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:341` |
 | 对应生成的 C 代码 | `xl6_A_destroy(&a);` 或 `xl6_A__int_destroy(&a);` |
 | 中间形态伪代码 | `if classNeedsDestroy: emit genericDestroy or classDestroy(&name)` |
 | 实现同等功能手写的 C 代码 | 手写 C 显式调用结构体析构函数。 |
@@ -524,7 +524,7 @@
 |---|---|
 | xlang 写法 | `func b = a` |
 | 生成规则描述 | 对变量名先转为 C 标识符，再输出 retain 保护块。与路径 retain 不同，该规则输入是 xlang 名称而不是任意 C 路径。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:903` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:354` |
 | 对应生成的 C 代码 | `if (a.retain != 0 && a.env != 0) { a.retain(a.env); }` |
 | 中间形态伪代码 | `cName = cIdent(name); retain function cName` |
 | 实现同等功能手写的 C 代码 | 手写 C 对函数环境增加引用计数。 |
@@ -536,7 +536,7 @@
 |---|---|
 | xlang 写法 | `func f` 变量被覆盖或离开作用域 |
 | 生成规则描述 | 对变量名先转为 C 标识符，再输出 release 保护块。此函数只调用 release，不清空 env/release，通常用于赋值覆盖前的释放路径。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:918` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:369` |
 | 对应生成的 C 代码 | `if (f.release != 0 && f.env != 0) { f.release(f.env); }` |
 | 中间形态伪代码 | `cName = cIdent(name); if release/env: release(env)` |
 | 实现同等功能手写的 C 代码 | 手写 C 覆盖函数值前释放旧环境。 |
@@ -548,7 +548,7 @@
 |---|---|
 | xlang 写法 | `func b = a`、`func b = obj.cb`、`func b = await futureCb` |
 | 生成规则描述 | member 表达式通过成员字段类型推断判断是否是 function；await 表达式通过表达式类型推断判断是否是 function；name 表达式查变量类型。其他表达式不视为 function 借用。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:933` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:384` |
 | 对应生成的 C 代码 | 借用为真时后续生成 retain。 |
 | 中间形态伪代码 | `member/await/name -> infer or lookup type -> isFunctionType` |
 | 实现同等功能手写的 C 代码 | 手写 C 判断函数值是否来自共享闭包环境。 |
@@ -560,7 +560,7 @@
 |---|---|
 | xlang 写法 | `var b = obj.value`、`var b = v.member`、`var b = obj?.value` |
 | 生成规则描述 | member/safe member 的 `length` 永远不算 xvalue 借用。若 receiver 本身是 xvalue 家族，则递归判断 receiver 是否借用；safe member 不按静态字段借用处理；普通 member 会推断字段类型，字段类型是 xvalue 家族则判定为借用。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:959` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:417` |
 | 对应生成的 C 代码 | 借用为真时后续可能生成 `xvoRef` 一类保留逻辑。 |
 | 中间形态伪代码 | `member length -> false; receiver xvalue -> recurse; safe member -> false; field type xvalue -> true` |
 | 实现同等功能手写的 C 代码 | 手写 C 判断返回的是共享 xvalue 指针还是新对象。 |
@@ -572,7 +572,7 @@
 |---|---|
 | xlang 写法 | `var b = a[i]`、`var b = v` |
 | 生成规则描述 | index/safe index 若 receiver 使用 typed container storage，则不是 xvalue 借用；否则递归判断 receiver。name 表达式若自身使用 typed container storage，也不是 xvalue 借用；否则变量类型为 xvalue 家族时判定为借用。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:992` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:417` |
 | 对应生成的 C 代码 | 借用为真时需要 retain 动态值；typed container storage 则走值/元素规则。 |
 | 中间形态伪代码 | `index: if typed storage receiver false else recurse; name: if typed storage false else isXValueType(varType)` |
 | 实现同等功能手写的 C 代码 | 手写 C 按容器实现区分元素所有权。 |
@@ -584,7 +584,7 @@
 |---|---|
 | xlang 写法 | 作用域中连续声明多个需清理变量 |
 | 生成规则描述 | `xl6CgenEmitCleanupsSince` 从当前 cleanup 栈尾向 mark 逆序输出 cleanup。后声明的变量先释放，符合栈式生命周期和 C 局部对象析构顺序。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:1009` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:479` |
 | 对应生成的 C 代码 | `cleanup_c(); cleanup_b(); cleanup_a();` |
 | 中间形态伪代码 | `for i = count downto mark+1: emit cleanup[i-1]` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常在退出路径按反向顺序释放资源。 |
@@ -596,7 +596,7 @@
 |---|---|
 | xlang 写法 | `if/while/for/function` 作用域结束 |
 | 生成规则描述 | 作用域关闭时先输出 mark 之后的 cleanup，再释放这些 cleanup 元数据并回退栈计数。该函数是块级作用域稳定退出的统一入口。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:1021` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:491` |
 | 对应生成的 C 代码 | 生成该作用域内资源的释放语句，然后继续输出后续 C 代码。 |
 | 中间形态伪代码 | `emitCleanupsSince(mark); freeCleanupsSince(mark)` |
 | 实现同等功能手写的 C 代码 | 手写 C 在每个块出口显式释放资源。 |
@@ -608,7 +608,7 @@
 |---|---|
 | xlang 写法 | `while ... break ... continue ... end`、嵌套循环 |
 | 生成规则描述 | 进入循环时记录 break cleanup mark、continue cleanup mark、break label id 和 continue label id。数组容量从 8 起按 2 倍扩容，扩容失败报告 `out of memory while growing cgen loop target stack`。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:1027` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_loop_target.c:1` |
 | 对应生成的 C 代码 | 后续 `break`/`continue` 会先释放对应 mark 之后的资源，再 `goto xl6_break_N` 或 `goto xl6_continue_N`。 |
 | 中间形态伪代码 | `push {breakMark, continueMark, breakId, continueId}` |
 | 实现同等功能手写的 C 代码 | 手写 C 在每个 break/continue 前补局部资源释放。 |
@@ -620,7 +620,7 @@
 |---|---|
 | xlang 写法 | `break`、`break 2`、`continue`、嵌套循环结束 |
 | 生成规则描述 | 循环结束时弹出当前 loop target；按层级查找时，level 必须大于 0 且不超过栈深，索引为 `count - level`；cgen 结束时释放整块 loop target 数组并清空计数。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:1052` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_loop_target.c:26`、`demo6/src/cgen/xl6_cgen_loop_target.c:44` |
 | 对应生成的 C 代码 | `goto xl6_break_2;` 或 `goto xl6_continue_3;` 前会使用对应 target 的 cleanup mark。 |
 | 中间形态伪代码 | `pop current; target(level)=targets[count-level]; free all on finish` |
 | 实现同等功能手写的 C 代码 | 手写 C 为多层 break/continue 手动管理 label 和清理路径。 |

@@ -7,6 +7,13 @@ echo Running DEMO6 suite: extended standard library...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=(Resolve-Path 'build\test').Path; for($i=0; $i -lt 20; $i++){ $left=@(Get-ChildItem -LiteralPath $root -Filter 'stdlib_*.exe' -File); if($left.Count -eq 0){ break }; foreach($f in $left){ Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue }; if($i -lt 19){ Start-Sleep -Milliseconds 250 } }; $left=@(Get-ChildItem -LiteralPath $root -Filter 'stdlib_*.exe' -File); if($left.Count -gt 0){ Write-Host 'stdlib test executables are still present before build.'; $left.FullName; exit 1 }"
 if errorlevel 1 exit /b 1
 
+release\xl.exe run test\cases\stdlib_dev_codec_crypto_buffer_build.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_dev_codec_crypto_buffer_build.xl -o build\test\stdlib_dev_codec_crypto_buffer_build.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_dev_codec_crypto_buffer_build.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe check test\cases\stdlib_json.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_json.xl --emit build\test\stdlib_json.c
@@ -85,7 +92,7 @@ release\xl.exe check test\cases\stdlib_print.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_print.xl --emit build\test\stdlib_print.c
 if errorlevel 1 exit /b 1
-findstr /C:"#include <xl_runtime.h>" build\test\stdlib_print.c >nul
+findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\stdlib_print.c >nul
 if errorlevel 1 (
     echo stdlib_print.c missing xl_runtime.h include.
     exit /b 1
@@ -134,7 +141,7 @@ release\xl.exe check test\cases\stdlib_error_paths.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_error_paths.xl --emit build\test\stdlib_error_paths.c
 if errorlevel 1 exit /b 1
-findstr /C:"void* xrtFileReadAll" build\test\stdlib_error_paths.c >nul
+findstr /C:"char* xrtFileReadAll" build\test\stdlib_error_paths.c >nul
 if errorlevel 1 (
     echo stdlib_error_paths.c missing xrtFileReadAll extern prototype.
     exit /b 1
@@ -177,6 +184,11 @@ if errorlevel 1 (
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text = Get-Content -Raw -Encoding UTF8 'build\test\stdlib_error_paths.c'; if ($text -notmatch 'xrtFormUrlEncodedDecodeTo\([^\)]*\) \) \{\s*xrtFree\(outText\);\s*return xl6_query_empty_string\(\);') { Write-Host 'stdlib_error_paths.c missing query decode failure cleanup.'; exit 1 }; if ($text -notmatch 'if \( !xl6_url_parse_view\(base, baseSize, &baseUrl\) \) \{ return xl6_url_empty_string\(\); \}') { Write-Host 'stdlib_error_paths.c missing url resolve invalid base fallback.'; exit 1 }; if ($text -notmatch 'if \( result == 0 \) \{ return xl6_process_empty_string\(\); \}\s*outText = xl6_process_copy_bytes\(result->pStdout, result->iStdoutSize\);\s*xl6_xrt_process_result_destroy\(result\);\s*return outText;') { Write-Host 'stdlib_error_paths.c missing process exec result cleanup.'; exit 1 }; if ($text -notmatch 'bool ok = result != 0 && xrtProcessResultSuccess\(result\);\s*xl6_xrt_process_result_destroy\(result\);\s*return ok;') { Write-Host 'stdlib_error_paths.c missing process success result cleanup.'; exit 1 }"
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\stdlib_error_paths.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_error_paths.exe
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[System.IO.File]::WriteAllBytes('build\test\file_read_text_binary.bin', [byte[]](0x41,0x00,0x42,0x43))"
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_file_read_text_binary_reject.xl
 if errorlevel 1 exit /b 1
 build\test\stdlib_error_paths.exe > build\test\stdlib_error_paths.out.txt 2> build\test\stdlib_error_paths.err.txt
 if errorlevel 1 exit /b 1

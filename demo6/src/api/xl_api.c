@@ -207,6 +207,7 @@ XL_API int xlcGetLastExitCode(XLC_Context* ctx);
 
 typedef struct XL_CwdScope {
     int active;
+    int locked;
 #ifdef _WIN32
     wchar_t* oldDir;
 #else
@@ -258,6 +259,35 @@ static void xlApiUnlock(void)
 {
     LeaveCriticalSection(&xl__apiLock);
 }
+
+static CRITICAL_SECTION xl__cwdLock;
+static volatile LONG xl__cwdLockState = 0;
+
+static void xlCwdEnsureLock(void)
+{
+    LONG state;
+
+    state = InterlockedCompareExchange(&xl__cwdLockState, 1, 0);
+    if ( state == 0 ) {
+        InitializeCriticalSection(&xl__cwdLock);
+        InterlockedCompareExchange(&xl__cwdLockState, 2, 1);
+        return;
+    }
+    while ( xl__cwdLockState != 2 ) {
+        Sleep(0);
+    }
+}
+
+static void xlCwdLock(void)
+{
+    xlCwdEnsureLock();
+    EnterCriticalSection(&xl__cwdLock);
+}
+
+static void xlCwdUnlock(void)
+{
+    LeaveCriticalSection(&xl__cwdLock);
+}
 #else
 static pthread_mutex_t xl__apiLock;
 static pthread_once_t xl__apiLockOnce = PTHREAD_ONCE_INIT;
@@ -281,6 +311,30 @@ static void xlApiLock(void)
 static void xlApiUnlock(void)
 {
     pthread_mutex_unlock(&xl__apiLock);
+}
+
+static pthread_mutex_t xl__cwdLock;
+static pthread_once_t xl__cwdLockOnce = PTHREAD_ONCE_INIT;
+
+static void xlCwdInitLock(void)
+{
+    pthread_mutexattr_t attr;
+
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&xl__cwdLock, &attr);
+    pthread_mutexattr_destroy(&attr);
+}
+
+static void xlCwdLock(void)
+{
+    pthread_once(&xl__cwdLockOnce, xlCwdInitLock);
+    pthread_mutex_lock(&xl__cwdLock);
+}
+
+static void xlCwdUnlock(void)
+{
+    pthread_mutex_unlock(&xl__cwdLock);
 }
 #endif
 
@@ -762,6 +816,8 @@ static int xlContextAddLoadedLibrary(XL_Context* ctx, const char* path, XL_Loade
 
 static int xlEnterWorkDir(XL_Context* ctx, XL_CwdScope* scope)
 {
+    char* workDir;
+
     if ( scope == NULL ) {
         return 0;
     }
@@ -769,6 +825,20 @@ static int xlEnterWorkDir(XL_Context* ctx, XL_CwdScope* scope)
     if ( ctx == NULL || ctx->workDir == NULL || ctx->workDir[0] == '\0' ) {
         return 1;
     }
+    workDir = xlDupText(ctx->workDir);
+    if ( workDir == NULL ) {
+        xlSetError(ctx, "cannot allocate work dir snapshot");
+        return 0;
+    }
+    /*
+        进程 cwd 是全局状态。脚本执行期可以释放 API 锁以避免嵌套运行死锁，
+        但只要进入了 workDir，就必须用独立 cwd 锁保护到恢复 cwd 为止。
+        等待 cwd 锁时不能持有 API 锁，否则执行线程回收时会反向等待 API 锁。
+    */
+    xlApiUnlock();
+    xlCwdLock();
+    xlApiLock();
+    scope->locked = 1;
 #ifdef _WIN32
     {
         DWORD need;
@@ -778,11 +848,17 @@ static int xlEnterWorkDir(XL_Context* ctx, XL_CwdScope* scope)
         need = GetCurrentDirectoryW(0, NULL);
         if ( need == 0 ) {
             xlSetError(ctx, "cannot query current directory");
+            xrtFree(workDir);
+            xlCwdUnlock();
+            scope->locked = 0;
             return 0;
         }
         scope->oldDir = (wchar_t*)xrtMalloc(((size_t)need + 1) * sizeof(wchar_t));
         if ( scope->oldDir == NULL ) {
             xlSetError(ctx, "cannot allocate current directory buffer");
+            xrtFree(workDir);
+            xlCwdUnlock();
+            scope->locked = 0;
             return 0;
         }
         got = GetCurrentDirectoryW(need + 1, scope->oldDir);
@@ -790,17 +866,24 @@ static int xlEnterWorkDir(XL_Context* ctx, XL_CwdScope* scope)
             xrtFree(scope->oldDir);
             scope->oldDir = NULL;
             xlSetError(ctx, "cannot save current directory");
+            xrtFree(workDir);
+            xlCwdUnlock();
+            scope->locked = 0;
             return 0;
         }
-        workDirW = xrtUTF8to16((u8str)ctx->workDir, 0, NULL);
+        workDirW = xrtUTF8to16((u8str)workDir, 0, NULL);
         if ( workDirW == NULL || !SetCurrentDirectoryW((LPCWSTR)workDirW) ) {
             xrtFree(workDirW);
             xrtFree(scope->oldDir);
             scope->oldDir = NULL;
-            xlSetError2(ctx, "cannot enter work dir", ctx->workDir);
+            xlSetError2(ctx, "cannot enter work dir", workDir);
+            xrtFree(workDir);
+            xlCwdUnlock();
+            scope->locked = 0;
             return 0;
         }
         xrtFree(workDirW);
+        xrtFree(workDir);
         scope->active = 1;
         return 1;
     }
@@ -809,15 +892,22 @@ static int xlEnterWorkDir(XL_Context* ctx, XL_CwdScope* scope)
         char oldBuf[1024];
         if ( getcwd(oldBuf, sizeof(oldBuf)) == NULL ) {
             xlSetError(ctx, "cannot save current directory");
+            xrtFree(workDir);
+            xlCwdUnlock();
+            scope->locked = 0;
             return 0;
         }
         scope->oldDir = xlDupText(oldBuf);
-        if ( scope->oldDir == NULL || chdir(ctx->workDir) != 0 ) {
+        if ( scope->oldDir == NULL || chdir(workDir) != 0 ) {
             xrtFree(scope->oldDir);
             scope->oldDir = NULL;
-            xlSetError2(ctx, "cannot enter work dir", ctx->workDir);
+            xlSetError2(ctx, "cannot enter work dir", workDir);
+            xrtFree(workDir);
+            xlCwdUnlock();
+            scope->locked = 0;
             return 0;
         }
+        xrtFree(workDir);
         scope->active = 1;
         return 1;
     }
@@ -826,20 +916,25 @@ static int xlEnterWorkDir(XL_Context* ctx, XL_CwdScope* scope)
 
 static void xlLeaveWorkDir(XL_CwdScope* scope)
 {
-    if ( scope == NULL || !scope->active ) {
+    if ( scope == NULL ) {
         return;
     }
+    if ( scope->active ) {
 #ifdef _WIN32
-    if ( scope->oldDir != NULL ) {
-        SetCurrentDirectoryW(scope->oldDir);
-        xrtFree(scope->oldDir);
-    }
+        if ( scope->oldDir != NULL ) {
+            SetCurrentDirectoryW(scope->oldDir);
+            xrtFree(scope->oldDir);
+        }
 #else
-    if ( scope->oldDir != NULL ) {
-        chdir(scope->oldDir);
-        xrtFree(scope->oldDir);
-    }
+        if ( scope->oldDir != NULL ) {
+            chdir(scope->oldDir);
+            xrtFree(scope->oldDir);
+        }
 #endif
+    }
+    if ( scope->locked ) {
+        xlCwdUnlock();
+    }
     memset(scope, 0, sizeof(*scope));
 }
 
@@ -911,41 +1006,74 @@ static const char* xlEnvPathOrDefault(const char* name, const char* fallback)
 
 static const char* xlDefaultTccRootPath(void)
 {
+#ifdef XL_STATIC_TCC_VFS
+    return XL6_TCC_ROOT_PATH;
+#else
     return xlEnvPathOrDefault("XL6_TCC_ROOT", XL6_TCC_ROOT_PATH);
+#endif
 }
 
 static const char* xlDefaultTccIncludePath(void)
 {
+#ifdef XL_STATIC_TCC_VFS
+    return XL6_TCC_INCLUDE_PATH;
+#else
     return xlEnvPathOrDefault("XL6_TCC_INCLUDE", XL6_TCC_INCLUDE_PATH);
+#endif
 }
 
 static const char* xlDefaultTccWinIncludePath(void)
 {
+#ifdef XL_STATIC_TCC_VFS
+    return XL6_TCC_WIN_INCLUDE_PATH;
+#else
     return xlEnvPathOrDefault("XL6_TCC_WIN_INCLUDE", XL6_TCC_WIN_INCLUDE_PATH);
+#endif
 }
 
 static const char* xlDefaultTccWinapiIncludePath(void)
 {
+#ifdef XL_STATIC_TCC_VFS
+    return XL6_TCC_WINAPI_INCLUDE_PATH;
+#else
     return xlEnvPathOrDefault("XL6_TCC_WINAPI_INCLUDE", XL6_TCC_WINAPI_INCLUDE_PATH);
+#endif
 }
 
 static const char* xlDefaultTccLibPath(void)
 {
+#ifdef XL_STATIC_TCC_VFS
+    return XL6_TCC_LIB_PATH;
+#else
     return xlEnvPathOrDefault("XL6_TCC_LIB", XL6_TCC_LIB_PATH);
+#endif
 }
 
 static const char* xlDefaultTccLibtcc1Path(void)
 {
+#ifdef XL_STATIC_TCC_VFS
+    return XL6_TCC_LIBTCC1_PATH;
+#else
     return xlEnvPathOrDefault("XL6_TCC_LIBTCC1", XL6_TCC_LIBTCC1_PATH);
+#endif
 }
 
-static void xlAddDefaultTccRuntime(TCCState* s, XL_Context* ctx)
+static void xlAddDefaultTccRuntime(TCCState* s, XL_Context* ctx, int outputType)
 {
     const char* path;
 
     if ( s == NULL ) {
         return;
     }
+
+#ifdef XL_STATIC_TCC_VFS
+    if ( outputType == TCC_OUTPUT_MEMORY ) {
+        (void)xl__tcc.tcc_add_file(s, XL_TCC_VFS_LIBTCC1);
+        return;
+    }
+#else
+    (void)outputType;
+#endif
 
     path = ctx != NULL && ctx->tccLibtcc1Path != NULL && ctx->tccLibtcc1Path[0] != '\0' ?
            ctx->tccLibtcc1Path :
@@ -2185,10 +2313,11 @@ static void xlAddDefaultProjectToolchainPaths(TCCState* s)
 
 static void xlAddDefaultTccLinkLibraries(TCCState* s);
 
-static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s)
+static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s, int outputType)
 {
     size_t i;
     const char* tccLibPath;
+    const char* tccLibSearchPath;
 
     if ( s == NULL ) {
         xlSetError(ctx, "TCC state is empty");
@@ -2197,6 +2326,13 @@ static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s)
 
     tccLibPath = ctx != NULL && ctx->tccLibPath != NULL && ctx->tccLibPath[0] != '\0' ?
                  ctx->tccLibPath : xlDefaultTccRootPath();
+    tccLibSearchPath = ctx != NULL && ctx->tccLibSearchPath != NULL ? ctx->tccLibSearchPath : xlDefaultTccLibPath();
+#ifdef XL_STATIC_TCC_VFS
+    if ( outputType == TCC_OUTPUT_MEMORY ) {
+        tccLibPath = XL6_TCC_ROOT_PATH;
+        tccLibSearchPath = XL6_TCC_LIB_PATH;
+    }
+#endif
     xl__tcc.tcc_set_lib_path(s, tccLibPath);
     (void)xl__tcc.tcc_set_options(s, "-std=c11 -D_CRT_SECURE_NO_WARNINGS");
 #if !XL_ENABLE_EXE_COMPILER
@@ -2209,8 +2345,8 @@ static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s)
     (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccIncludePath != NULL ? ctx->tccIncludePath : xlDefaultTccIncludePath());
     (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccWinIncludePath != NULL ? ctx->tccWinIncludePath : xlDefaultTccWinIncludePath());
     (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccWinapiIncludePath != NULL ? ctx->tccWinapiIncludePath : xlDefaultTccWinapiIncludePath());
-    (void)xl__tcc.tcc_add_library_path(s, ctx != NULL && ctx->tccLibSearchPath != NULL ? ctx->tccLibSearchPath : xlDefaultTccLibPath());
-    xlAddDefaultTccRuntime(s, ctx);
+    (void)xl__tcc.tcc_add_library_path(s, tccLibSearchPath);
+    xlAddDefaultTccRuntime(s, ctx, outputType);
     xlAddDefaultTccLinkLibraries(s);
     for ( i = 0; ctx != NULL && i < ctx->includePaths.count; ++i ) {
         if ( xl__tcc.tcc_add_include_path(s, ctx->includePaths.items[i]) != 0 ) {
@@ -2245,7 +2381,7 @@ static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
         xl__tcc.tcc_delete(s);
         return NULL;
     }
-    if ( !xlConfigureTccStateEnvironment(ctx, s) ) {
+    if ( !xlConfigureTccStateEnvironment(ctx, s, outputType) ) {
         xl__tcc.tcc_delete(s);
         return NULL;
     }
@@ -3120,7 +3256,7 @@ static int xlCompileUnitToExternalOutputWithC(
     if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_MODULE_C, cText, "TCC compile failed") ) {
         goto cleanup;
     }
-    xlAddDefaultTccRuntime(s, ctx);
+    xlAddDefaultTccRuntime(s, ctx, outputType);
     for ( i = 0; i < unit->importDeps.cSources.count; ++i ) {
         if ( xl__tcc.tcc_add_file(s, unit->importDeps.cSources.items[i]) != 0 ) {
             if ( ctx->lastError == NULL ) {
@@ -4422,7 +4558,7 @@ XL_API int xlTccRegisterXrtEnvironment(TCCState* state)
     }
     xlApiLock();
     ok = xlEnsureTcc(NULL) &&
-         xlConfigureTccStateEnvironment(NULL, state) &&
+         xlConfigureTccStateEnvironment(NULL, state, TCC_OUTPUT_MEMORY) &&
          xlAddDefaultRuntimeSymbols(state);
     xlApiUnlock();
     return ok;
@@ -4438,7 +4574,7 @@ XL_API int xlTccRegisterContextEnvironment(XL_Context* ctx, TCCState* state)
     xlApiLock();
     xlClearLastErrorUnlocked(ctx);
     ok = xlEnsureTcc(ctx) &&
-         xlConfigureTccStateEnvironment(ctx, state) &&
+         xlConfigureTccStateEnvironment(ctx, state, TCC_OUTPUT_MEMORY) &&
          xlAddContextSymbols(ctx, state);
     xlApiUnlock();
     return ok;

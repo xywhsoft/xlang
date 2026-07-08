@@ -15,6 +15,8 @@ static void xl6CgenEmitFileRuntime(XL6_Output* out)
     xl6OutputPuts("bool xrtSetEOF(void* objFile);\n", out);
     xl6OutputPuts("char* xrtRead(void* objFile, size_t iSize, size_t* iRetSize);\n", out);
     xl6OutputPuts("size_t xrtWrite(void* objFile, const char* sText, size_t iSize);\n", out);
+    xl6OutputPuts("char* xrtFileReadAll(const char* sPath, int iCharset, size_t* pSize);\n", out);
+    xl6OutputPuts("bool xrtIsUTF8(const char* sText, size_t iSize);\n", out);
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* p);\n\n", out);
 
@@ -23,6 +25,43 @@ static void xl6CgenEmitFileRuntime(XL6_Output* out)
     xl6OutputPuts("    char* text = (char*)xrtMalloc(1u);\n", out);
     xl6OutputPuts("    if ( text != 0 ) { text[0] = '\\0'; }\n", out);
     xl6OutputPuts("    return text;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static int xl6_file_text_has_nul(const char* text, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t i;\n", out);
+    xl6OutputPuts("    if ( text == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    for ( i = 0u; i < size; ++i ) {\n", out);
+    xl6OutputPuts("        if ( text[i] == '\\0' ) { return 1; }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static char* xl6_file_require_text(char* text, size_t size, const char* api)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( text == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"FileError\", \"file text read failed\", api != 0 ? api : \"\", 0, 0);\n", out);
+    xl6OutputPuts("        return (char*)xl6_file_empty_result();\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( size > 0u && xl6_file_text_has_nul(text, size) ) {\n", out);
+    xl6OutputPuts("        xrtFree(text);\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"FileError\", \"file text contains NUL byte; use binary/Buffer API\", api != 0 ? api : \"\", 0, 0);\n", out);
+    xl6OutputPuts("        return (char*)xl6_file_empty_result();\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( size > 0u && !xrtIsUTF8(text, size) ) {\n", out);
+    xl6OutputPuts("        xrtFree(text);\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"FileError\", \"file text is not valid UTF-8 after charset conversion\", api != 0 ? api : \"\", 0, 0);\n", out);
+    xl6OutputPuts("        return (char*)xl6_file_empty_result();\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return text;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_file_read_text_strict(const char* path, int charset, void* retSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t size = 0u;\n", out);
+    xl6OutputPuts("    char* text = xrtFileReadAll(path != 0 ? path : \"\", charset, &size);\n", out);
+    xl6OutputPuts("    if ( retSize != 0 ) { *((size_t*)retSize) = size; }\n", out);
+    xl6OutputPuts("    return xl6_file_require_text(text, size, \"file.readText\");\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_file_open(const char* path, int readOnly, long long charset)\n", out);
@@ -77,7 +116,7 @@ static void xl6CgenEmitFileRuntime(XL6_Output* out)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( readSize == 0u ) { return xl6_file_empty_result(); }\n", out);
     xl6OutputPuts("    text = xrtRead(self, readSize, &retSize);\n", out);
-    xl6OutputPuts("    return text != 0 ? text : xl6_file_empty_result();\n", out);
+    xl6OutputPuts("    return xl6_file_require_text(text, retSize, \"File.readText\");\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("long long xl6_xrt_file_write_text(void* self, const char* text, size_t size)\n", out);

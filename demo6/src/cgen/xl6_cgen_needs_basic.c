@@ -547,6 +547,20 @@ static int xl6CgenNeedsBasicIsAsyncFileRuntimeCall(const XL6_AstNode* node)
            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_file_delete_async");
 }
 
+static int xl6CgenNeedsBasicIsFileRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_xrt_file_read_text_strict");
+}
+
 int xl6CgenNodeNeedsRangeContains(const XL6_AstNode* node)
 {
     size_t i;
@@ -1016,7 +1030,7 @@ int xl6CgenNodeNeedsFileRuntime(const XL6_AstNode* node)
     if ( node == NULL ) {
         return 0;
     }
-    if ( xl6CgenNeedsBasicIsFileClass(node) ) {
+    if ( xl6CgenNeedsBasicIsFileClass(node) || xl6CgenNeedsBasicIsFileRuntimeCall(node) ) {
         return 1;
     }
     for ( i = 0; i < node->childCount; ++i ) {

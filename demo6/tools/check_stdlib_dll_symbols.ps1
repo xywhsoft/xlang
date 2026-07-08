@@ -95,7 +95,7 @@ foreach ( $match in $xrtExportMatches ) {
 }
 
 foreach ( $symbol in $uniqueSymbols ) {
-    if ( $symbol.StartsWith("xrt") ) {
+    if ( $symbol.StartsWith("xrt") -or $symbol.StartsWith("xvo") ) {
         if ( ! $xrtExports.Contains($symbol) ) {
             $missingXrt.Add($symbol)
         }

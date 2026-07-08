@@ -149,11 +149,34 @@ static const XL6_AstNode* xl6CgenTypedContainerItemType(XL6_CgenContext* ctx, co
     return args != NULL && args->childCount == 1 ? args->children[0] : NULL;
 }
 
+static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+
 static int xl6CgenExprUsesTypedContainerStorage(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
-    return expr != NULL &&
-           expr->kind == XL6_AST_NAME &&
-           (xl6CgenFindTrackedVarFlags(ctx, expr->text) & XL6_CGEN_VAR_TYPED_CONTAINER) != 0;
+    XL6_AstNode* inferredType;
+    int result;
+
+    if ( expr == NULL ) {
+        return 0;
+    }
+
+    if ( expr->kind == XL6_AST_NAME ) {
+        return (xl6CgenFindTrackedVarFlags(ctx, expr->text) & XL6_CGEN_VAR_TYPED_CONTAINER) != 0;
+    }
+
+    /*
+     * 成员字段不会进入局部变量跟踪表，例如 self.names[i]。
+     * 这里使用类型推断补一层判断，让 class 字段中的 typed container
+     * 继续走 typed array/list/dict 的底层存储访问路径。
+     */
+    if ( expr->kind != XL6_AST_MEMBER ) {
+        return 0;
+    }
+
+    inferredType = xl6CgenCloneExprTypeForInference(ctx, expr);
+    result = xl6CgenIsTypedContainerType(ctx, inferredType);
+    xl6AstFree(inferredType);
+    return result;
 }
 
 static int xl6CgenHasRuntimeTypeDesc(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)

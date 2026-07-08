@@ -2999,7 +2999,8 @@ static const char xl6StdFileAppendTextBody[] =
 
 static const char xl6StdFileReadTextBody[] =
     "func __xl_std_file_read_text(string path, int charset = 65001) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_file_read_all(path, c_int(charset), null))\n"
+    "    point retSize = null\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_file_read_text_strict(path, c_int(charset), retSize))\n"
     "end\n";
 
 static const char xl6StdFileCopyBody[] =
@@ -4338,6 +4339,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_file", "writeAll", "__xl_std_xrt_file_write_all", "xrtFileWriteAll", xl6StdXrtFileWriteTextParams, 4, "c_int", NULL},
     {"__xrt_file", "append", "__xl_std_xrt_file_append", "xrtFileAppend", xl6StdXrtFileWriteTextParams, 4, "c_int", NULL},
     {"__xrt_file", "readAll", "__xl_std_xrt_file_read_all", "xrtFileReadAll", xl6StdXrtFileReadTextParams, 3, "point", NULL},
+    {"__xrt_file", "readTextStrict", "__xl_std_xrt_file_read_text_strict", "xl6_xrt_file_read_text_strict", xl6StdXrtFileReadTextParams, 3, "point", NULL},
     {"__xrt_file", "delete", "__xl_std_xrt_file_delete", "xrtFileDelete", xl6StdPathUnaryParams, 1, "c_bool", NULL},
     {"__xrt_file", "copy", "__xl_std_xrt_file_copy", "xrtFileCopy", xl6StdXrtFileCopyMoveParams, 3, "c_bool", NULL},
     {"__xrt_file", "move", "__xl_std_xrt_file_move", "xrtFileMove", xl6StdXrtFileCopyMoveParams, 3, "c_bool", NULL},
