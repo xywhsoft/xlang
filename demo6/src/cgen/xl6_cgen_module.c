@@ -74,7 +74,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasAsyncRuntime = xl6CgenNodeNeedsAsyncRuntime(root);
     hasTaskSpawn = xl6CgenNodeNeedsTaskSpawn(root);
     hasDynamicForInErrorRuntime = xl6CgenProgramNeedsDynamicForInErrorRuntime(&ctx, root);
-    hasErrorRuntime = xl6CgenNodeNeedsErrorRuntime(root) || hasAsyncRuntime || hasDynamicForInErrorRuntime;
+    hasErrorRuntime = xl6CgenNodeNeedsErrorRuntime(root) || hasAsyncRuntime || hasDynamicForInErrorRuntime || hasTypeConvertRuntime;
     hasCryptoRuntime = xl6CgenNodeNeedsCryptoRuntime(root);
     hasUrlRuntime = xl6CgenNodeNeedsUrlRuntime(root);
     hasQueryRuntime = xl6CgenNodeNeedsQueryRuntime(root);

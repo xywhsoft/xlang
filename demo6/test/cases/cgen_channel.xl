@@ -79,7 +79,7 @@ assert defaultCh.isClosed(), "channel close should be idempotent"
 channel<int> fullCh = channel::<int>(1)
 assert fullCh.send(10), "full channel first send failed"
 assert fullCh.send(11), "capacity-one channel should normalize to two slots"
-assert not fullCh.send(12), "full channel third send should fail"
+assert not fullCh.trySend(12), "full channel third trySend should fail"
 
 int fullValue = 0
 assert fullCh.recvInto(fullValue), "full channel receive failed"

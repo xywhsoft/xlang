@@ -1,0 +1,4 @@
+class BadNameMethod
+    func set()
+    end
+end

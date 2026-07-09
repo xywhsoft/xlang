@@ -80,6 +80,7 @@ static void xl6CgenEmitTypeConvertRuntime(XL6_Output* out)
     xl6OutputPuts("const char* xvoGetText(xvalue pVal);\n", out);
     xl6OutputPuts("unsigned char* xvoToString(xvalue pVal, unsigned int* pSize);\n", out);
     xl6OutputPuts("void xvoUnref(xvalue pVal);\n\n", out);
+    xl6OutputPuts("static void xl6_error_raise(const char* kind, const char* message, const char* file, int line, int column);\n\n", out);
 
     xl6OutputPuts("#ifndef XL6_STRICT_STRING_CONVERT_HELPERS\n", out);
     xl6OutputPuts("#define XL6_STRICT_STRING_CONVERT_HELPERS\n", out);
@@ -403,6 +404,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("bool xvoTableMerge(xvalue pTbl1, xvalue pTbl2, bool bReWrite);\n", out);
     xl6OutputPuts("xvalue xvoTableTakeValue(xvalue pTbl, str key, uint32 kl);\n", out);
     xl6OutputPuts("bool xvoTableClear(xvalue pTbl);\n", out);
+    xl6OutputPuts("bool xvoTableWalk(xvalue pTbl, Dict_EachProc procEach, void* pArg);\n", out);
     xl6OutputPuts("xvalue xvoArrayGetValue(xvalue pArr, unsigned int index);\n", out);
     xl6OutputPuts("xvalue xvoListGetValue(xvalue pList, long long index);\n", out);
     xl6OutputPuts("xvalue xvoTableGetValue(xvalue pTbl, const void* key, unsigned int kl);\n", out);
@@ -981,7 +983,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    dict = xvoGetTable(values);\n", out);
     xl6OutputPuts("    if ( dict != 0 ) {\n", out);
-    xl6OutputPuts("        xrtDictWalk(dict, xl6_xrt_dict_snapshot_each, snapshot);\n", out);
+    xl6OutputPuts("        xvoTableWalk(values, xl6_xrt_dict_snapshot_each, snapshot);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( snapshot->failed ) {\n", out);
     xl6OutputPuts("        xl6_xrt_iter_snapshot_free(snapshot);\n", out);

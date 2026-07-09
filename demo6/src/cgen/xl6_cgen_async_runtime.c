@@ -57,6 +57,7 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("void xrtChannelClose(xchannel pChannel);\n", out);
     xl6OutputPuts("unsigned int xrtChannelCount(xchannel pChannel);\n", out);
     xl6OutputPuts("bool xrtChannelIsClosed(xchannel pChannel);\n\n", out);
+    xl6OutputPuts("void xrtSleep(unsigned int ms);\n\n", out);
 
     xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
     xl6OutputPuts("void xvoAddRef(xvalue pVal);\n", out);
@@ -263,7 +264,7 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("    pOut->pfnFreeError = 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static bool xl6_channel_send_value(xchannel pChannel, const void* pValue, size_t iSize, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("static bool xl6_channel_send_value(xchannel pChannel, const void* pValue, size_t iSize, int bWait, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    void* pBox;\n", out);
     xl6OutputPuts("    xqueue_result iRet;\n", out);
@@ -277,8 +278,11 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("        return false;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    memcpy(pBox, pValue, iSize);\n", out);
-    xl6OutputPuts("    iRet = xrtChannelSend(pChannel, pBox);\n", out);
-    xl6OutputPuts("    if ( iRet == XQUEUE_OK ) { return true; }\n", out);
+    xl6OutputPuts("    do {\n", out);
+    xl6OutputPuts("        iRet = xrtChannelSend(pChannel, pBox);\n", out);
+    xl6OutputPuts("        if ( iRet == XQUEUE_OK ) { return true; }\n", out);
+    xl6OutputPuts("        if ( iRet == XQUEUE_FULL && bWait ) { xrtSleep(1u); }\n", out);
+    xl6OutputPuts("    } while ( iRet == XQUEUE_FULL && bWait );\n", out);
     xl6OutputPuts("    xrtFree(pBox);\n", out);
     xl6OutputPuts("    if ( iRet == XQUEUE_FULL || iRet == XQUEUE_CLOSED ) { return false; }\n", out);
     xl6OutputPuts("    xl6_error_raise(\"ChannelError\", \"channel send failed\", file, line, column);\n", out);

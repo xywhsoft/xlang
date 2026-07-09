@@ -2,13 +2,11 @@ extern "expect_i64" func expect(int actual, int expected)
 
 int array = 1
 int list = 2
-int set = 3
 int dict = 4
 int type = 5
 
 expect(array, 1)
 expect(list, 2)
-expect(set, 3)
 expect(dict, 4)
 expect(type, 5)
-expect(array + list + set + dict + type, 15)
+expect(array + list + dict + type, 12)

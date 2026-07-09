@@ -7953,6 +7953,8 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI uint32 xvoTableItemCount(xvalue pTbl);
 	// 清空表
 	XXAPI bool xvoTableClear(xvalue pTbl);
+	// 按插入顺序遍历表；若表没有顺序信息，则退回底层字典遍历
+	XXAPI bool xvoTableWalk(xvalue pTbl, Dict_EachProc procEach, ptr pArg);
 	// 设置表父节点
 	XXAPI bool xvoTableSetParent(xvalue pTbl, xvalue pParentTable);
 	
@@ -89597,6 +89599,19 @@ XXAPI bool xvoTableClear(xvalue pTbl)
 	xrtDictWalk(pTbl->vTable, (ptr)xvoTableClear_FreeProc, pTbl);
 	xrtDictClear(pTbl->vTable);
 	__xvoTableOrderClear(pTbl);
+	return TRUE;
+}
+
+// 按插入顺序遍历表；若表没有顺序信息，则退回底层字典遍历
+XXAPI bool xvoTableWalk(xvalue pTbl, Dict_EachProc procEach, ptr pArg)
+{
+	if ( pTbl == NULL || pTbl->Type != XVO_DT_TABLE || procEach == NULL ) {
+		return FALSE;
+	}
+	if ( xvoTableWalkOrdered(pTbl, procEach, pArg) ) {
+		return TRUE;
+	}
+	xrtDictWalk(pTbl->vTable, procEach, pArg);
 	return TRUE;
 }
 // xvoTableSetParent 相关处理

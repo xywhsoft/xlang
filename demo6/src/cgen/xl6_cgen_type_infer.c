@@ -232,6 +232,7 @@ static XL6_AstNode* xl6CgenChannelMethodType(XL6_CgenContext* ctx, const XL6_Ast
 
     result = NULL;
     if ( xl6CTextEquals(member->text, "send") ||
+         xl6CTextEquals(member->text, "trySend") ||
          xl6CTextEquals(member->text, "recvInto") ||
          xl6CTextEquals(member->text, "tryRecvInto") ||
          xl6CTextEquals(member->text, "isClosed") ) {

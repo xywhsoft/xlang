@@ -1625,6 +1625,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtEOF);
     XL_ADD_XRT_SYMBOL(s, xrtSetEOF);
     XL_ADD_XRT_SYMBOL(s, xrtRead);
+    XL_ADD_XRT_SYMBOL(s, xrtGet);
     XL_ADD_XRT_SYMBOL(s, xrtWrite);
     XL_ADD_XRT_SYMBOL(s, xrtFileDelete);
     XL_ADD_XRT_SYMBOL(s, xrtFileCopy);
@@ -2297,6 +2298,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoTableRemove);
     XL_ADD_XRT_SYMBOL(s, xvoTableTakeValue);
     XL_ADD_XRT_SYMBOL(s, xvoTableClear);
+    XL_ADD_XRT_SYMBOL(s, xvoTableWalk);
     XL_ADD_XRT_SYMBOL(s, xvoCollItemCount);
     XL_ADD_XRT_SYMBOL(s, xvoCollExists);
     XL_ADD_XRT_SYMBOL(s, xvoCollSetValue);

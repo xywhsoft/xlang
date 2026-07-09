@@ -122,7 +122,8 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
     arg = args != NULL && args->childCount == 1 ? args->children[0] : NULL;
     argExpr = arg != NULL && arg->childCount > 0 ? arg->children[0] : NULL;
 
-    if ( xl6CTextEquals(member->text, "send") ) {
+    if ( xl6CTextEquals(member->text, "send") ||
+         xl6CTextEquals(member->text, "trySend") ) {
         xl6OutputPuts("xl6_channel_send_value(", ctx->out);
         xl6CgenChannelReceiverExpr(ctx, receiver);
         xl6OutputPuts(", &(", ctx->out);
@@ -131,7 +132,11 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
         xl6CgenExpr(ctx, argExpr);
         xl6OutputPuts("}, sizeof(", ctx->out);
         xl6OutputPuts(cType, ctx->out);
-        xl6OutputPrintf(ctx->out, "), \"\", %d, %d)", member->line, member->column);
+        xl6OutputPrintf(ctx->out,
+                        "), %d, \"\", %d, %d)",
+                        xl6CTextEquals(member->text, "send") ? 1 : 0,
+                        member->line,
+                        member->column);
         return 1;
     }
 

@@ -141,6 +141,11 @@ and or not
 - `destroy`
 - `object` 不是保留字，它是标准库注入的普通基础类名。
 
+命名限制：
+
+- `get`、`let`、`set` 不允许作为变量名、参数名、字段名、属性名或方法名。
+- `get` / `let` 是属性声明关键字；`set` 是内置集合类型名，词法层仍是普通 token，但语义阶段拒绝声明为值符号。
+
 ## 4. 字面量
 
 整数：
@@ -672,6 +677,7 @@ td.clear()
 - `dict<T>` 支持 `contains(key)`、`remove(key)`、`take(key)`、`clear()`，`key` 当前为 `string`。
 - 上述成员 API 均调用 XRT/xvalue 或 XRT typed-container 能力，不在 xlang 侧重复实现容器算法。
 - `array<T>.pop()` / `array<T>.take(index)` 对基础值元素（整数、浮点、`bool`、`string`、`time`、`point`）返回元素类型；复杂元素暂保持 `var` 返回，避免在表达式路径中隐式复制复杂对象。
+- 动态 `dict` 保留插入顺序；`for key, value in dict` 与 `json.stringify(dict)` compact 输出都按插入/JSON 文档顺序遍历。删除 key 后，该 key 会从顺序表移除；再次写入同名 key 会按新的插入位置进入顺序。
 
 容器运算符：
 
@@ -1119,6 +1125,8 @@ ch.close()
 ```
 
 `channel<T>` 当前只允许 `bool`、整数、浮点、`time`、`point` 等可按值复制的元素类型。`string`、`var`、`class`、`func`、`generator<T>`、`array<int>` 这类静态容器等涉及所有权、动态值或 move-only 句柄的类型会在语义阶段拒绝，避免进入当前 `memcpy` 发送路径。
+
+`send(value)` 是阻塞发送：当 channel 已满但未关闭时会等待可写空间；channel 已关闭时返回 `false`。`trySend(value)` 是非阻塞发送：当 channel 已满或已关闭时立即返回 `false`。
 
 `recvInto(target)` 是阻塞接收，`tryRecvInto(target)` 是非阻塞接收；两者的 `target` 都是写入目标，必须是具名变量，不能是 `const`，不能是匿名函数外层只读捕获变量，并且类型必须等于 `channel<T>` 的元素类型。
 

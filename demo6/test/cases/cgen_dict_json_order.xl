@@ -1,0 +1,17 @@
+var d = {}
+d["user:1"] = "alice"
+d["count"] = 5
+d["pi"] = 3.14
+d["flag"] = true
+d["msg"] = "hello"
+
+string keys = ""
+for key, value in d
+    keys = keys + string(key) + " "
+end
+
+assert keys == "user:1 count pi flag msg ", "dict for-in should preserve insertion order: " + keys
+assert json.stringify(d) == '{"user:1":"alice","count":5,"pi":3.14,"flag":true,"msg":"hello"}', "dict compact json should preserve insertion order"
+
+var parsed = json.parse('{"user:1":"alice","count":5,"pi":3.14,"flag":true,"msg":"hello"}')
+assert json.stringify(parsed) == '{"user:1":"alice","count":5,"pi":3.14,"flag":true,"msg":"hello"}', "json parse compact stringify should preserve document order"
