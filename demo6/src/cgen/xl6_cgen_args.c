@@ -511,6 +511,10 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6OutputPuts("xl6_function_to_xvalue(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPutc(')', ctx->out);
+    } else if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "error") ) {
+        xl6OutputPuts("xvoCreateText((void*)xl6_error_message(", ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPuts("), 0, false)", ctx->out);
     } else if ( typeNode != NULL && xl6CgenIsClassType(ctx, typeNode) ) {
         XL6_AstNode* ctorClass = NULL;
         int isCtor;
@@ -931,9 +935,9 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
     } else if ( xl6CgenIsIntegerTypeName(target) ) {
         xl6OutputPrintf(ctx->out, "((%s)(", xl6CgenConvertCTypeName(target));
         if ( xl6CTextEquals(source, "string") ) {
-            xl6OutputPuts("xrtStrToI64(", ctx->out);
+            xl6OutputPrintf(ctx->out, "xl6_xrt_str_to_i64_checked(");
             xl6CgenExpr(ctx, arg);
-            xl6OutputPutc(')', ctx->out);
+            xl6OutputPrintf(ctx->out, ", \"\", %d, %d)", node->line, node->column);
         } else if ( xl6CTextEquals(source, "null") ) {
             xl6OutputPuts("0", ctx->out);
         } else {
@@ -943,9 +947,9 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
     } else if ( xl6CgenIsFloatTypeName(target) ) {
         xl6OutputPrintf(ctx->out, "((%s)(", xl6CgenConvertCTypeName(target));
         if ( xl6CTextEquals(source, "string") ) {
-            xl6OutputPuts("xrtStrToNum(", ctx->out);
+            xl6OutputPuts("xl6_xrt_str_to_f64_checked(", ctx->out);
             xl6CgenExpr(ctx, arg);
-            xl6OutputPutc(')', ctx->out);
+            xl6OutputPrintf(ctx->out, ", \"\", %d, %d)", node->line, node->column);
         } else if ( xl6CTextEquals(source, "null") ) {
             xl6OutputPuts("0", ctx->out);
         } else {

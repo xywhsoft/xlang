@@ -627,6 +627,13 @@ static int xl6ScopeNameIsOutsideBoundary(XL6_Scope* scope, XL6_Scope* boundary, 
     return 0;
 }
 
+static int xl6SemNameIsForbiddenIdentifier(const char* name)
+{
+    return xl6TextEquals(name, "get") ||
+           xl6TextEquals(name, "let") ||
+           xl6TextEquals(name, "set");
+}
+
 static int xl6ScopeAddTyped(XL6_SemContext* ctx, const XL6_AstNode* node, XL6_SymbolKind kind, XL6_AstNode* typeNode)
 {
     XL6_Symbol* oldSym;
@@ -639,6 +646,11 @@ static int xl6ScopeAddTyped(XL6_SemContext* ctx, const XL6_AstNode* node, XL6_Sy
     }
 
     scope = ctx->scope;
+    if ( xl6SemNameIsForbiddenIdentifier(node->text) ) {
+        xl6SemErrorNode(ctx, node, "get/let/set cannot be used as identifiers");
+        return 0;
+    }
+
     oldSym = xl6ScopeFindLocal(scope, node->text);
     if ( oldSym != NULL ) {
         xl6SemErrorNode(ctx, node, "同一作用域内重复声明");
@@ -5015,6 +5027,37 @@ static XL6_AstNode* xl6SemClonePropertyGetterType(
     return result;
 }
 
+static XL6_AstNode* xl6SemCloneClassMemberCallReturnType(XL6_SemContext* ctx, XL6_AstNode* call)
+{
+    XL6_AstNode* member;
+    XL6_AstNode* receiverType;
+    const XL6_AstNode* concreteType;
+    XL6_AstNode* classNode;
+    XL6_AstNode* func;
+    XL6_AstNode* result;
+
+    if ( call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
+        return NULL;
+    }
+    member = call->children[0];
+    if ( member == NULL || member->kind != XL6_AST_MEMBER || member->text == NULL ) {
+        return NULL;
+    }
+
+    receiverType = xl6SemCloneMemberReceiverType(ctx, member);
+    concreteType = xl6SemResolveAliasType(ctx, receiverType);
+    classNode = concreteType != NULL && concreteType->text != NULL ? xl6SemFindTypeDecl(ctx, concreteType->text) : NULL;
+    if ( classNode == NULL || classNode->kind != XL6_AST_CLASS ) {
+        xl6AstFree(receiverType);
+        return NULL;
+    }
+
+    func = xl6SemResolveClassFuncEx(ctx, call, classNode, member->text, 0);
+    result = xl6SemCloneClassCallableReturnType(ctx, concreteType, classNode, func);
+    xl6AstFree(receiverType);
+    return result;
+}
+
 static XL6_AstNode* xl6SemClonePropertyIndexGetterType(XL6_SemContext* ctx, XL6_AstNode* indexExpr, int report)
 {
     XL6_AstNode* receiver;
@@ -8354,6 +8397,14 @@ static const char* xl6SemExprStaticTypeName(XL6_SemContext* ctx, XL6_AstNode* ex
                 }
             }
             {
+            XL6_AstNode* classReturnType = xl6SemCloneClassMemberCallReturnType(ctx, expr);
+            if ( classReturnType != NULL ) {
+                const char* classReturnName = xl6SemStaticTypeNameFromTypeNode(ctx, classReturnType);
+                xl6AstFree(classReturnType);
+                return classReturnName;
+            }
+            }
+            {
             XL6_AstNode* memberType = xl6SemCloneMemberFieldType(ctx, expr->children[0]);
             if ( memberType != NULL && xl6TextEquals(memberType->text, "function") ) {
                 const XL6_AstNode* memberReturns = memberType->childCount > 1 ? memberType->children[1] : NULL;
@@ -8724,7 +8775,8 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
         return ok;
     }
 
-    if ( xl6TextEquals(member->text, "send") ) {
+    if ( xl6TextEquals(member->text, "send") ||
+         xl6TextEquals(member->text, "trySend") ) {
         XL6_AstNode* arg = argCount == 1 ? args->children[0] : NULL;
         XL6_AstNode* expr = arg != NULL && arg->childCount > 0 ? arg->children[0] : NULL;
         itemType = xl6SemCloneSingleGenericArgType(ctx, receiverType, "channel");
@@ -8821,6 +8873,7 @@ static const char* xl6SemChannelCallResultTypeName(XL6_SemContext* ctx, XL6_AstN
 
     result = NULL;
     if ( xl6TextEquals(member->text, "send") ||
+         xl6TextEquals(member->text, "trySend") ||
          xl6TextEquals(member->text, "recvInto") ||
          xl6TextEquals(member->text, "tryRecvInto") ||
          xl6TextEquals(member->text, "isClosed") ) {
@@ -13148,6 +13201,10 @@ static int xl6SemCheckField(XL6_SemContext* ctx, XL6_AstNode* field)
 
     ok = 1;
     defaultExpr = xl6SemFieldDefaultExpr(field);
+    if ( xl6SemNameIsForbiddenIdentifier(field != NULL ? field->text : NULL) ) {
+        xl6SemErrorNode(ctx, field, "get/let/set cannot be used as class field names");
+        ok = 0;
+    }
     if ( xl6SemIsSpecialName(field->text) ) {
         xl6SemErrorNode(ctx, field, "瀛楁鍚嶄笉鑳戒娇鐢?create 鎴?destroy");
         ok = 0;
@@ -13181,6 +13238,7 @@ static int xl6SemCheckField(XL6_SemContext* ctx, XL6_AstNode* field)
 
 static int xl6SemCheckPropertyMember(XL6_SemContext* ctx, XL6_AstNode* member)
 {
+    XL6_AstNode* nameNode;
     XL6_AstNode* params;
     const XL6_AstNode* returns;
     size_t i;
@@ -13191,6 +13249,11 @@ static int xl6SemCheckPropertyMember(XL6_SemContext* ctx, XL6_AstNode* member)
     }
 
     ok = xl6SemCheckFunc(ctx, member);
+    nameNode = member->childCount > 0 ? member->children[0] : NULL;
+    if ( nameNode != NULL && xl6SemNameIsForbiddenIdentifier(nameNode->text) ) {
+        xl6SemErrorNode(ctx, nameNode, "get/let/set cannot be used as property names");
+        ok = 0;
+    }
     params = (XL6_AstNode*)xl6SemCallableParams(member);
     returns = xl6SemCallableReturns(member);
 
@@ -14497,6 +14560,18 @@ static int xl6SemCheckClassMemberConflicts(XL6_SemContext* ctx, XL6_AstNode* typ
               member->kind == XL6_AST_NATIVE_EXTERN_FUNC) &&
              xl6SemIsSpecialName(name) ) {
             xl6SemErrorNode(ctx, member->children[0], "create/destroy must use the special declaration form");
+            ok = 0;
+        }
+        if ( member != NULL &&
+             (member->kind == XL6_AST_FIELD ||
+              member->kind == XL6_AST_FUNC ||
+              member->kind == XL6_AST_ASYNC_FUNC ||
+              member->kind == XL6_AST_EXPORT_FUNC ||
+              member->kind == XL6_AST_NATIVE_EXTERN_FUNC ||
+              member->kind == XL6_AST_GET ||
+              member->kind == XL6_AST_LET) &&
+             xl6SemNameIsForbiddenIdentifier(name) ) {
+            xl6SemErrorNode(ctx, member, "get/let/set cannot be used as class member names");
             ok = 0;
         }
         for ( j = i + 1; j < body->childCount; ++j ) {

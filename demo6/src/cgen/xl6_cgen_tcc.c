@@ -145,6 +145,7 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("xvalue xvoTableTakeValue(xvalue pTbl, str key, uint32 kl);\n", out);
     xl6OutputPuts("unsigned int xvoTableItemCount(xvalue pTbl);\n", out);
     xl6OutputPuts("bool xvoTableClear(xvalue pTbl);\n", out);
+    xl6OutputPuts("bool xvoTableWalk(xvalue pTbl, Dict_EachProc procEach, void* pArg);\n", out);
     xl6OutputPuts("int tcc_vfs_mount_memory(const char* path, const void* data, size_t size);\n", out);
     xl6OutputPuts("void tcc_vfs_clear_dynamic(void);\n\n", out);
 
@@ -240,6 +241,7 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoTableTakeValue);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoTableItemCount);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoTableClear);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoTableWalk);\n", out);
     xl6OutputPuts("#undef XL6_TCC_ADD_SYMBOL\n", out);
     xl6OutputPuts("    return 1;\n", out);
     xl6OutputPuts("}\n\n", out);

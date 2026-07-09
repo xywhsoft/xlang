@@ -847,6 +847,36 @@ if errorlevel 1 (
     echo sem_field_attr_bad_name.err.txt missing name option diagnostic.
     exit /b 1
 )
+release\xl.exe check test\cases\sem_forbidden_identifier_var.xl > build\test\sem_forbidden_identifier_var.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_forbidden_identifier_var.xl should fail.
+    exit /b 1
+)
+findstr /C:"get/let/set cannot be used" build\test\sem_forbidden_identifier_var.err.txt >nul
+if errorlevel 1 (
+    echo sem_forbidden_identifier_var.err.txt missing forbidden identifier diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_forbidden_identifier_method.xl > build\test\sem_forbidden_identifier_method.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_forbidden_identifier_method.xl should fail.
+    exit /b 1
+)
+findstr /C:"get/let/set cannot be used" build\test\sem_forbidden_identifier_method.err.txt >nul
+if errorlevel 1 (
+    echo sem_forbidden_identifier_method.err.txt missing forbidden method diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_forbidden_identifier_property.xl > build\test\sem_forbidden_identifier_property.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_forbidden_identifier_property.xl should fail.
+    exit /b 1
+)
+findstr /C:"get/let/set cannot be used" build\test\sem_forbidden_identifier_property.err.txt >nul
+if errorlevel 1 (
+    echo sem_forbidden_identifier_property.err.txt missing forbidden property diagnostic.
+    exit /b 1
+)
 release\xl.exe check release\examples\second_stage.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\second_stage.xl %XL6_XL_DEFAULT_LINK_ARGS%

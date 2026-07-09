@@ -803,7 +803,7 @@ assert not buffered.send(3), "closed channel send should fail"
 channel<int> full = channel::<int>(1)
 assert full.send(10), "full channel first send failed"
 assert full.send(11), "capacity-one channel should normalize to two slots"
-assert not full.send(12), "full channel third send should fail"
+assert not full.trySend(12), "full channel third trySend should fail"
 
 channel<int> crossThreadChannel = channel::<int>(4)
 auto channelProducer = func() as int

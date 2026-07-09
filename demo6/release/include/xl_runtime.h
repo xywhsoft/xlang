@@ -296,6 +296,7 @@ bool xvoTableExists(xvalue pTbl, str key, uint32 kl);
 bool xvoTableRemove(xvalue pTbl, str key, uint32 kl);
 xvalue xvoTableTakeValue(xvalue pTbl, str key, uint32 kl);
 bool xvoTableClear(xvalue pTbl);
+bool xvoTableWalk(xvalue pTbl, Dict_EachProc procEach, void* pArg);
 uint32 xvoTableItemCount(xvalue pTbl);
 xlist xvoGetList(xvalue pVal);
 xdict xvoGetTable(xvalue pVal);
@@ -1737,7 +1738,7 @@ static XL6_XrtIterSnapshot* xl6_xrt_dict_snapshot(xvalue values)
 {
     XL6_XrtIterSnapshot* snapshot = xl6_xrt_iter_snapshot_create();
     if ( snapshot == 0 ) { return 0; }
-    xrtDictWalk(xvoGetTable(values), xl6_xrt_dict_snapshot_each, snapshot);
+    xvoTableWalk(values, xl6_xrt_dict_snapshot_each, snapshot);
     if ( snapshot->failed ) {
         xl6_xrt_iter_snapshot_free(snapshot);
         return 0;

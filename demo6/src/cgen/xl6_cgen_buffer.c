@@ -21,7 +21,7 @@ static void xl6CgenEmitBufferRuntime(XL6_Output* out)
     xl6OutputPuts("void* xrtFileGetAll(const char* sPath, size_t* iRetSize);\n", out);
     xl6OutputPuts("int xrtFilePutAll(const char* sPath, void* pBuff, size_t iSize);\n", out);
     xl6OutputPuts("int xrtFileAppend(const char* sPath, const char* sText, size_t iSize, int iCharset);\n", out);
-    xl6OutputPuts("char* xrtRead(void* objFile, size_t iSize, size_t* iRetSize);\n", out);
+    xl6OutputPuts("void* xrtGet(void* objFile, size_t iSize, size_t* iRetSize);\n", out);
     xl6OutputPuts("size_t xrtWrite(void* objFile, const char* sText, size_t iSize);\n\n", out);
     xl6OutputPuts("size_t xrtTell(void* objFile);\n", out);
     xl6OutputPuts("size_t xrtGetEOF(void* objFile);\n\n", out);
@@ -304,7 +304,7 @@ static void xl6CgenEmitBufferRuntime(XL6_Output* out)
     xl6OutputPuts("    } else {\n", out);
     xl6OutputPuts("        readSize = (size_t)size;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    data = xrtRead(self, readSize, &retSize);\n", out);
+    xl6OutputPuts("    data = xrtGet(self, readSize, &retSize);\n", out);
     xl6OutputPuts("    return xl6_xrt_buffer_from_owned_bytes(data, retSize);\n", out);
     xl6OutputPuts("}\n\n", out);
 

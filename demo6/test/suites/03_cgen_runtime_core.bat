@@ -219,6 +219,8 @@ release\xl.exe run test\cases\cgen_issue_json_typed_class_array.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\cgen_issue_list_json_dict_remove_type.xl
 if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_dict_json_order.xl
+if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\stdlib_dict.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\stdlib_dict.xl
@@ -230,6 +232,12 @@ if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_dev_feedback_priority.xl -o build\test\cgen_dev_feedback_priority.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_dev_feedback_priority.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_dev_handfeel_regression.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_dev_handfeel_regression.xl -o build\test\cgen_dev_handfeel_regression.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_dev_handfeel_regression.exe
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File test\suites\check_cgen_issue_runtime.ps1
