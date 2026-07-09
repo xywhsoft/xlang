@@ -1,0 +1,5 @@
+extern "xl6_bad_native_add" func badNativeAdd(int a, int b) as int
+
+func main(...) as int
+    return badNativeAdd(20, 22)
+end

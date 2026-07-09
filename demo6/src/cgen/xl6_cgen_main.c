@@ -397,33 +397,47 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
                 xl6CgenEmitMemberFunctionStatementTemp(ctx, initExpr, memberTempName);
             }
         }
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), tempName);
-        if ( initByCopy ) {
-            xl6CgenTypedContainerCopyExprMode(ctx, typeNode, initExpr, "XRT_OBJMODE_SHARED");
-        } else if ( initByMove ) {
-            if ( memberFunctionType != NULL ) {
-                xl6CgenMemberFunctionStatementInvokeExpr(ctx, initExpr, memberFunctionType, memberTempName);
-            } else {
-                xl6CgenExpr(ctx, initExpr);
+        if ( initByMove &&
+             memberFunctionType == NULL &&
+             xl6CgenDeclCallExprArgsNeedCallArgTemps(ctx, initExpr) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), tempName);
+            xl6OutputPuts("0", ctx->out);
+            xl6OutputPuts(";\n", ctx->out);
+            if ( !xl6CgenDeclEmitTypedContainerCallExprWithArgTemps(ctx, typeNode, initExpr, tempName) ) {
+                xl6CgenError(ctx, initExpr, "module global typed container call argument lowering failed");
             }
-        } else {
-            xl6CgenTypedContainerCreateExprMode(ctx, typeNode, "XRT_OBJMODE_SHARED");
+            emitted = 1;
         }
-        xl6OutputPuts(";\n", ctx->out);
-        if ( !initByCopy && !initByMove ) {
-            XL6_CgenTaskSpawnArgTempScope taskScope;
-            int hasTaskScope;
-
-            hasTaskScope = initExpr != NULL &&
-                           xl6CgenTaskSpawnArgTempScopeBegin(ctx, initExpr, &taskScope);
-            xl6CgenTypedContainerFillFromLiteral(ctx, tempName, typeNode, initExpr);
-            if ( hasTaskScope ) {
-                xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
+        if ( !emitted ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), tempName);
+            if ( initByCopy ) {
+                xl6CgenTypedContainerCopyExprMode(ctx, typeNode, initExpr, "XRT_OBJMODE_SHARED");
+            } else if ( initByMove ) {
+                if ( memberFunctionType != NULL ) {
+                    xl6CgenMemberFunctionStatementInvokeExpr(ctx, initExpr, memberFunctionType, memberTempName);
+                } else {
+                    xl6CgenExpr(ctx, initExpr);
+                }
+            } else {
+                xl6CgenTypedContainerCreateExprMode(ctx, typeNode, "XRT_OBJMODE_SHARED");
             }
+            xl6OutputPuts(";\n", ctx->out);
+            if ( !initByCopy && !initByMove ) {
+                XL6_CgenTaskSpawnArgTempScope taskScope;
+                int hasTaskScope;
+
+                hasTaskScope = initExpr != NULL &&
+                               xl6CgenTaskSpawnArgTempScopeBegin(ctx, initExpr, &taskScope);
+                xl6CgenTypedContainerFillFromLiteral(ctx, tempName, typeNode, initExpr);
+                if ( hasTaskScope ) {
+                    xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
+                }
+            }
+            emitted = 1;
         }
         xl6AstFree(memberFunctionType);
-        emitted = 1;
     } else if ( xl6CgenIsXValueType(typeNode) ) {
         emitted = xl6CgenDeclTryXValueArrayLiteralInit(ctx, typeNode, tempName, initExpr) ||
                   xl6CgenDeclTryXValueNullCoalesceInit(ctx, typeNode, tempName, initExpr) ||
@@ -657,9 +671,25 @@ static int xl6CgenEmitModuleGlobalClassInit(
     if ( isGenericClass ) {
         ctorClassType = xl6CgenGenericClassCtorType(ctx, initExpr, &ctorClass);
         if ( ctorClassType == NULL ) {
+            XL6_AstNode* initType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
+            const XL6_AstNode* resolvedInitType = xl6CgenResolveAliasType(ctx, initType);
+            int sameType = resolvedInitType != NULL && xl6CgenTypeNodeEqual(classTypeNode, resolvedInitType);
+
+            if ( !sameType ) {
+                xl6AstFree(initType);
+                ctx->currentGenericParams = prevParams;
+                ctx->currentGenericArgs = prevArgs;
+                return 0;
+            }
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = ", cName);
+            xl6CgenExpr(ctx, initExpr);
+            xl6OutputPuts(";\n", ctx->out);
+            xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, classTypeNode, cName, initExpr);
+            xl6AstFree(initType);
             ctx->currentGenericParams = prevParams;
             ctx->currentGenericArgs = prevArgs;
-            return 0;
+            return 1;
         }
         if ( !xl6CgenTypeNodeEqual(classTypeNode, ctorClassType) ) {
             xl6CgenError(ctx, initExpr, "module global generic class constructor type does not match declared type");
@@ -670,9 +700,30 @@ static int xl6CgenEmitModuleGlobalClassInit(
         }
         xl6AstFree(ctorClassType);
     } else if ( !xl6CgenCallIsClassCtor(ctx, initExpr, &ctorClass) ) {
+        XL6_AstNode* initType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
+        const XL6_AstNode* resolvedInitType = xl6CgenResolveAliasType(ctx, initType);
+        int sameType = resolvedInitType != NULL && xl6CTextEquals(resolvedInitType->text, classNode->text);
+        int upcastInit = !sameType && xl6CgenExprNeedsClassUpcast(ctx, classTypeNode, initExpr, NULL, 0, NULL, NULL);
+
+        if ( !sameType && !upcastInit ) {
+            xl6AstFree(initType);
+            ctx->currentGenericParams = prevParams;
+            ctx->currentGenericArgs = prevArgs;
+            return 0;
+        }
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", cName);
+        if ( upcastInit ) {
+            xl6CgenClassUpcastExpr(ctx, classTypeNode, initExpr);
+        } else {
+            xl6CgenExpr(ctx, initExpr);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, classTypeNode, cName, initExpr);
+        xl6AstFree(initType);
         ctx->currentGenericParams = prevParams;
         ctx->currentGenericArgs = prevArgs;
-        return 0;
+        return 1;
     }
     if ( ctorClass == NULL || !xl6CTextEquals(ctorClass->text, classNode->text) ) {
         xl6CgenError(ctx, initExpr, "module global class constructor type does not match declared type");

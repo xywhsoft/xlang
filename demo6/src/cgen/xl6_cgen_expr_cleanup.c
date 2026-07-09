@@ -457,9 +457,8 @@ static int xl6CgenExprIsXValueBorrow(XL6_CgenContext* ctx, const XL6_AstNode* ex
         receiver = expr->childCount > 0 ? expr->children[0] : NULL;
         receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
         if ( xl6CgenIsXValueType(receiverType) ) {
-            result = xl6CgenExprIsXValueBorrow(ctx, receiver);
             xl6AstFree(receiverType);
-            return result;
+            return 0;
         }
         xl6AstFree(receiverType);
         if ( expr->kind == XL6_AST_SAFE_MEMBER ) {
@@ -473,9 +472,17 @@ static int xl6CgenExprIsXValueBorrow(XL6_CgenContext* ctx, const XL6_AstNode* ex
     }
     if ( expr->kind == XL6_AST_INDEX || expr->kind == XL6_AST_SAFE_INDEX ) {
         const XL6_AstNode* receiver = expr->childCount > 0 ? expr->children[0] : NULL;
+        const XL6_AstNode* index = expr->childCount > 1 ? expr->children[1] : NULL;
+        XL6_AstNode* receiverType;
         if ( xl6CgenExprUsesTypedContainerStorage(ctx, receiver) ) {
             return 0;
         }
+        receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+        if ( xl6CgenIsXValueType(receiverType) && xl6CgenExprStaticTypeIs(ctx, index, "string") ) {
+            xl6AstFree(receiverType);
+            return 0;
+        }
+        xl6AstFree(receiverType);
         return xl6CgenExprIsXValueBorrow(ctx, receiver);
     }
     if ( expr->kind == XL6_AST_AWAIT ) {

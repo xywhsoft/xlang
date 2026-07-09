@@ -19,6 +19,15 @@ static int xl6CgenDeclCallArgStaticBoolLikeType(const XL6_AstNode* typeNode)
     return xl6CgenIsBoolTypeName(typeName) || xl6CgenIsIntegerTypeName(typeName);
 }
 
+static void xl6CgenDeclCallArgTempDefaultValue(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    if ( xl6CgenIsXValueType(typeNode) || xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    xl6CgenDefaultValue(ctx, typeNode);
+}
+
 static int xl6CgenDeclCallArgTypeConvertName(XL6_CgenContext* ctx, const XL6_AstNode* expr, const char** outName)
 {
     const XL6_AstNode* callee;
@@ -59,6 +68,7 @@ static int xl6CgenDeclCanEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode
 static int xl6CgenDeclEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* cType, const char* cName, const XL6_AstNode* expr);
 static int xl6CgenDeclCallExprArgsNeedCallArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* expr);
 static int xl6CgenDeclEmitXValueCallExprWithArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr, const char* valueName);
+static int xl6CgenDeclEmitScalarCallExprWithArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr, const char* valueName);
 
 static int xl6CgenDeclStringConvertNeedsCallValueTemp(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
@@ -576,6 +586,11 @@ static int xl6CgenDeclCanEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode
           (expr->kind == XL6_AST_BINARY && xl6CTextEquals(expr->text, "in"))) ) {
         return 1;
     }
+    if ( xl6CgenDeclCallArgStaticScalarType(typeNode) &&
+         expr->kind == XL6_AST_CALL &&
+         xl6CgenDeclCallExprArgsNeedCallArgTemps(ctx, expr) ) {
+        return 1;
+    }
     if ( xl6CgenDeclStaticNullCoalesceCallArgMatches(ctx, typeNode, expr) ) {
         return 1;
     }
@@ -639,6 +654,12 @@ static int xl6CgenDeclEmitCallArgTemp(
         return 1;
     }
     if ( xl6CgenDeclCallArgStaticBoolLikeType(typeNode) && xl6CgenTryInExprStmt(ctx, expr, cName) ) {
+        return 1;
+    }
+    if ( xl6CgenDeclCallArgStaticScalarType(typeNode) &&
+         expr->kind == XL6_AST_CALL &&
+         xl6CgenDeclEmitScalarCallExprWithArgTemps(ctx, typeNode, expr, cName) ) {
+        (void)cType;
         return 1;
     }
     if ( xl6CgenDeclTryStaticNullCoalesceCallArgTemp(ctx, typeNode, cType, cName, expr) ) {
@@ -780,15 +801,11 @@ static void xl6CgenDeclEmitTaskSpawnArgTemps(XL6_CgenContext* ctx, XL6_CgenDeclC
         if ( !temps[i].active ) {
             continue;
         }
-        tempCType = xl6CgenTypeName(ctx, temps[i].typeNode);
+        tempCType = xl6CgenValueStorageCType(ctx, temps[i].typeNode);
         xl6CgenIndent(ctx);
         xl6OutputPuts(tempCType, ctx->out);
         xl6OutputPrintf(ctx->out, " %s = ", temps[i].name);
-        if ( xl6CgenIsXValueType(temps[i].typeNode) ) {
-            xl6OutputPuts("0", ctx->out);
-        } else {
-            xl6CgenDefaultValue(ctx, temps[i].typeNode);
-        }
+        xl6CgenDeclCallArgTempDefaultValue(ctx, temps[i].typeNode);
         xl6OutputPuts(";\n", ctx->out);
         if ( !xl6CgenDeclEmitCallArgTemp(ctx, temps[i].typeNode, tempCType, temps[i].name, temps[i].expr) ) {
             xl6CgenError(ctx, temps[i].expr, "task.spawn argument lowering failed");

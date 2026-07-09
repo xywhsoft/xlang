@@ -57,10 +57,11 @@ static void xl6CgenXValueDictGetExpr(XL6_CgenContext* ctx, const XL6_AstNode* re
 static void xl6CgenXValueSafeIndexGetExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const char* receiverName, const XL6_AstNode* index)
 {
     if ( xl6CgenExprStaticTypeIs(ctx, index, "string") ) {
-        xl6OutputPuts("xl6_xrt_index_safe_get_key(", ctx->out);
+        xl6OutputPuts("xl6_record_field_get_owned(", ctx->out);
         xl6CgenEmitIndexReceiverExpr(ctx, receiver, receiverName);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenExpr(ctx, index);
+        xl6OutputPuts(", 0", ctx->out);
         xl6OutputPutc(')', ctx->out);
         return;
     }
@@ -232,10 +233,12 @@ static void xl6CgenXValueIndexSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "bool __xl6_index_ok_%d = false;\n", id);
     xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "bool __xl6_index_value_moved_%d = false;\n", id);
+    xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (__xl6_index_key_%d != 0 && xvoType(__xl6_index_key_%d) == XL6_XVO_DT_TEXT) {\n", id, id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "__xl6_index_ok_%d = __xl6_index_type_%d == XL6_XVO_DT_TABLE && xvoTableSetValue(__xl6_index_values_%d, xvoGetText(__xl6_index_key_%d), 0, %s, true);\n", id, id, id, id, tempName != NULL ? tempName : "0");
+    xl6OutputPrintf(ctx->out, "__xl6_index_ok_%d = xl6_record_field_set_borrow(__xl6_index_values_%d, xvoGetText(__xl6_index_key_%d), %s);\n", id, id, id, tempName != NULL ? tempName : "0");
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("} else {\n", ctx->out);
@@ -244,6 +247,8 @@ static void xl6CgenXValueIndexSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_
     xl6OutputPrintf(ctx->out, "long long __xl6_index_i_%d = (__xl6_index_key_%d != 0 ? (long long)xvoGetInt(__xl6_index_key_%d) : 0);\n", id, id, id);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "__xl6_index_ok_%d = (__xl6_index_type_%d == XL6_XVO_DT_ARRAY && xvoArraySetValue(__xl6_index_values_%d, (unsigned int)__xl6_index_i_%d, %s, true)) || (__xl6_index_type_%d == XL6_XVO_DT_LIST && xvoListSetValue(__xl6_index_values_%d, __xl6_index_i_%d, %s, true));\n", id, id, id, id, tempName != NULL ? tempName : "0", id, id, id, tempName != NULL ? tempName : "0");
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_index_ok_%d) { __xl6_index_value_moved_%d = true; }\n", id, id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -252,12 +257,20 @@ static void xl6CgenXValueIndexSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName != NULL ? tempName : "0");
+    if ( tempName != NULL ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = 0;\n", tempName);
+    }
     xl6CgenValueIndexRaiseFailure(ctx, index, "container index assignment failed");
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (__xl6_index_key_%d != 0) { xvoUnref(__xl6_index_key_%d); }\n", id, id);
+    if ( tempName != NULL ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (!__xl6_index_value_moved_%d && %s != 0) { xvoUnref(%s); }\n", id, tempName, tempName);
+    }
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -310,10 +323,11 @@ static void xl6CgenDynamicIndexRetainReleaseExpr(XL6_CgenContext* ctx, const XL6
 {
     if ( node != NULL && node->kind == XL6_AST_SAFE_INDEX ) {
         if ( xl6CgenExprStaticTypeIs(ctx, index, "string") ) {
-            xl6OutputPuts("xl6_xrt_index_safe_get_key_retain_release(", ctx->out);
+            xl6OutputPuts("xl6_record_field_get_owned(", ctx->out);
             xl6CgenExpr(ctx, receiver);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, index);
+            xl6OutputPuts(", 1", ctx->out);
             xl6OutputPutc(')', ctx->out);
         } else if ( !xl6CgenIndexKeyIsXValue(ctx, index) ) {
             xl6OutputPuts("xl6_xrt_index_safe_get_i64_retain_release(", ctx->out);
@@ -361,10 +375,11 @@ static void xl6CgenDynamicIndexRetainReleaseExpr(XL6_CgenContext* ctx, const XL6
         }
     } else if ( receiverType != NULL && xl6CTextEquals(receiverType->text, "var") ) {
         if ( xl6CgenExprStaticTypeIs(ctx, index, "string") ) {
-            xl6OutputPuts("xl6_xrt_index_safe_get_key_retain_release(", ctx->out);
+            xl6OutputPuts("xl6_record_field_get_owned(", ctx->out);
             xl6CgenExpr(ctx, receiver);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, index);
+            xl6OutputPuts(", 1", ctx->out);
             xl6OutputPutc(')', ctx->out);
         } else if ( !xl6CgenIndexKeyIsXValue(ctx, index) ) {
             xl6OutputPuts("xl6_xrt_index_safe_get_i64_retain_release(", ctx->out);

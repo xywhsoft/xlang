@@ -92,6 +92,7 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         const XL6_AstNode* prevParams = ctx->currentGenericParams;
         const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
         int copyInit = 0;
+        int upcastInit = 0;
         if ( ctorClassType != NULL ) {
             xl6CgenOwnTypeNode(ctx, ctorClassType);
         }
@@ -128,6 +129,9 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
                 if ( sameType ) {
                     copyInit = 1;
+                } else if ( !isGenericClass && xl6CgenExprNeedsClassUpcast(ctx, classTypeNode, initExpr, NULL, 0, NULL, NULL) ) {
+                    copyInit = 1;
+                    upcastInit = 1;
                 } else {
                     xl6CgenError(ctx, initExpr, "class 变量只能使用同类型构造表达式或可复制同类型值初始化");
                 }
@@ -149,7 +153,9 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
             }
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s = ", cName);
-            if ( memberFunctionType != NULL ) {
+            if ( upcastInit ) {
+                xl6CgenClassUpcastExpr(ctx, classTypeNode, initExpr);
+            } else if ( memberFunctionType != NULL ) {
                 xl6CgenMemberFunctionStatementInvokeExpr(ctx, initExpr, memberFunctionType, memberTempName);
             } else {
                 xl6CgenExpr(ctx, initExpr);

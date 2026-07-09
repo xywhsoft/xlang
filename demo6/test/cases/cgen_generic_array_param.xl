@@ -1,0 +1,24 @@
+func lenOf<T>(array<T> items) as int
+    return items.length
+end
+
+func firstOf<T>(array<T> items) as T
+    return items[0]
+end
+
+func main(...) as int
+    array<int> xs = array<int>[10, 20, 30]
+    int n = lenOf::<int>(xs)
+    int first = firstOf::<int>(xs)
+    int literalN = lenOf::<int>([40, 50])
+    if n != 3 then
+        return 1
+    end
+    if first != 10 then
+        return 2
+    end
+    if literalN != 2 then
+        return 3
+    end
+    return 0
+end

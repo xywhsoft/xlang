@@ -112,7 +112,7 @@ static void xl6CgenClassCopyBuiltinHelper(XL6_CgenContext* ctx, const XL6_AstNod
         if ( deep ) {
             xl6CgenDeepCopyClassFunctionFields(ctx, classNode, "result");
         } else {
-            xl6CgenRetainClassFunctionFields(ctx, classNode, "result");
+            xl6CgenCopyClassFunctionFields(ctx, classNode, "result");
         }
     }
     if ( xl6CgenClassNeedsDestroy(ctx, classNode) ) {

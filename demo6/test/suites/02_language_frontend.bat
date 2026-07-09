@@ -747,6 +747,16 @@ if errorlevel 1 (
     echo sem_derive_unknown.err.txt missing derive diagnostic.
     exit /b 1
 )
+release\xl.exe check test\cases\sem_derive_reserved.xl > build\test\sem_derive_reserved.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_derive_reserved.xl should fail.
+    exit /b 1
+)
+findstr /C:"reserved but not implemented" build\test\sem_derive_reserved.err.txt >nul
+if errorlevel 1 (
+    echo sem_derive_reserved.err.txt missing reserved derive diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_derive_duplicate.xl > build\test\sem_derive_duplicate.err.txt 2>&1
 if not errorlevel 1 (
     echo sem_derive_duplicate.xl should fail.

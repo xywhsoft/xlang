@@ -375,6 +375,8 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
     const XL6_AstNode* receiver;
     XL6_AstNode* receiverType;
     int id;
+    int receiverBorrow;
+    char receiverName[64];
     char tempName[64];
 
     if ( left == NULL || left->kind != XL6_AST_MEMBER || left->text == NULL || left->childCount == 0 ) {
@@ -397,30 +399,49 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
         xl6AstFree(receiverType);
         return 1;
     }
-    if ( !xl6CgenExprIsXValueBorrow(ctx, receiver) ) {
-        xl6CgenError(ctx, left, "dynamic member assignment receiver must be a mutable var or dict value");
-        xl6AstFree(receiverType);
-        return 1;
-    }
 
     id = ctx->tempId++;
+    receiverBorrow = xl6CgenExprIsXValueBorrow(ctx, receiver);
+    receiverName[0] = '\0';
     snprintf(tempName, sizeof(tempName), "__xl6_member_assign_%d", id);
+    if ( !receiverBorrow ) {
+        snprintf(receiverName, sizeof(receiverName), "__xl6_member_receiver_%d", id);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xvalue %s = ", receiverName);
+        /*
+            嵌套动态字段赋值需要先把 receiver 固化为 owned xvalue。
+            例如 nested.inner.name = 1：inner 是从 nested 取出的字典对象，
+            写入 name 后立即释放这个临时引用，底层对象仍由 nested 持有。
+        */
+        xl6CgenXValueFromExpr(ctx, receiver);
+        xl6OutputPuts(";\n", ctx->out);
+    }
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "xvalue %s = ", tempName);
     xl6CgenXValueFromExpr(ctx, right);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("if ( !xvoTableSetValue(", ctx->out);
-    xl6CgenExpr(ctx, receiver);
+    xl6OutputPuts("if ( !xl6_record_field_set_borrow(", ctx->out);
+    if ( receiverBorrow ) {
+        xl6CgenExpr(ctx, receiver);
+    } else {
+        xl6OutputPuts(receiverName, ctx->out);
+    }
     xl6OutputPuts(", ", ctx->out);
     xl6CgenCStringLiteral(ctx->out, left->text);
-    xl6OutputPrintf(ctx->out, ", 0, %s, true) && %s != 0 ) {\n", tempName, tempName);
+    xl6OutputPrintf(ctx->out, ", %s) ) {\n", tempName);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName);
+    xl6OutputPuts("/* 动态成员写入失败沿用旧语义：释放右值，不额外抛错。 */\n", ctx->out);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if ( %s != 0 ) { xvoUnref(%s); }\n", tempName, tempName);
+    if ( !receiverBorrow ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if ( %s != 0 ) { xvoUnref(%s); }\n", receiverName, receiverName);
+    }
     xl6AstFree(receiverType);
     return 1;
 }
@@ -930,8 +951,9 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     if ( xl6CTextEquals(op, "=") && left->kind == XL6_AST_NAME ) {
         const XL6_AstNode* targetType = xl6CgenNameAssignTargetType(ctx, left->text);
         XL6_AstNode* classNode = xl6CgenClassNodeForType(ctx, targetType);
+        int upcastAssign = xl6CgenExprNeedsClassUpcast(ctx, targetType, right, NULL, 0, NULL, NULL);
 
-        if ( classNode != NULL && xl6CgenClassNeedsDestroy(ctx, classNode) ) {
+        if ( classNode != NULL && (upcastAssign || xl6CgenClassNeedsDestroy(ctx, classNode)) ) {
             int id = ctx->tempId++;
             char cName[512];
             char tempName[64];
@@ -947,7 +969,9 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             }
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypeName(ctx, targetType), tempName);
-            if ( memberFunctionType != NULL ) {
+            if ( upcastAssign ) {
+                xl6CgenClassUpcastExpr(ctx, targetType, right);
+            } else if ( memberFunctionType != NULL ) {
                 xl6CgenMemberFunctionStatementInvokeExpr(ctx, right, memberFunctionType, memberTempName);
             } else {
                 xl6CgenExpr(ctx, right);

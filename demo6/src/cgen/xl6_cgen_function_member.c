@@ -71,6 +71,68 @@ static void xl6CgenMemberFunctionStatementInvokeExpr(XL6_CgenContext* ctx,
     xl6CgenFunctionInvoke(ctx, tempName, functionType, args);
 }
 
+static int xl6CgenMemberIsClassMethodCallTarget(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member)
+{
+    const XL6_AstNode* receiver;
+    const XL6_AstNode* receiverType;
+    XL6_AstNode* ownedReceiverType;
+    const XL6_AstNode* classNode;
+    const XL6_AstNode* prevParams;
+    const XL6_AstNode* prevArgs;
+    const XL6_AstNode* method;
+
+    if ( ctx == NULL ||
+         call == NULL ||
+         member == NULL ||
+         member->kind != XL6_AST_MEMBER ||
+         member->text == NULL ||
+         member->childCount == 0 ) {
+        return 0;
+    }
+
+    receiver = member->children[0];
+    receiverType = NULL;
+    ownedReceiverType = NULL;
+    classNode = NULL;
+
+    if ( receiver != NULL &&
+         receiver->kind == XL6_AST_NAME &&
+         xl6CTextEquals(receiver->text, "self") &&
+         ctx->currentClass != NULL ) {
+        classNode = ctx->currentClass;
+    } else if ( receiver != NULL && receiver->kind == XL6_AST_MEMBER ) {
+        ownedReceiverType = xl6CgenCloneMemberFieldTypeForInference(ctx, receiver);
+        receiverType = ownedReceiverType;
+        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
+    } else if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
+        ownedReceiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+        receiverType = ownedReceiverType;
+        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
+    }
+
+    if ( classNode == NULL ) {
+        xl6AstFree(ownedReceiverType);
+        return 0;
+    }
+
+    /*
+     * 普通 class 方法优先于 function 字段和 __field__ 动态字段。
+     * 否则带 __field__ 的类中，self.method() 会先被推断成 var 字段调用，
+     * 真实方法永远没有机会进入 class method lowering。
+     */
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    if ( receiverType != NULL && receiverType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+        ctx->currentGenericArgs = receiverType->children[0];
+    }
+    method = xl6CgenResolveClassFunc(ctx, classNode, call, member->text, NULL);
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
+    xl6AstFree(ownedReceiverType);
+    return method != NULL;
+}
+
 static void xl6CgenFunctionInvoke(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* functionType, const XL6_AstNode* args)
 {
     const XL6_AstNode* paramTypes;
@@ -137,6 +199,10 @@ static int xl6CgenMemberFunctionInvoke(XL6_CgenContext* ctx, const XL6_AstNode* 
 {
     XL6_AstNode* functionType;
     const XL6_AstNode* args;
+
+    if ( xl6CgenMemberIsClassMethodCallTarget(ctx, call, member) ) {
+        return 0;
+    }
 
     functionType = xl6CgenCloneMemberFieldTypeForInference(ctx, member);
     if ( functionType == NULL ) {

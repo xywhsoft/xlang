@@ -1962,7 +1962,7 @@ if errorlevel 1 (
     echo cgen_call_scalar_arg_exprs.c missing scalar call argument temporary.
     exit /b 1
 )
-findstr /C:"xl6_xrt_value_to_i64_release(__xl6_call_value_" build\test\cgen_call_scalar_arg_exprs.c >nul
+findstr /C:"xl6_xrt_value_to_i64_release(__xl6_call_arg_" build\test\cgen_call_scalar_arg_exprs.c >nul
 if errorlevel 1 (
     echo cgen_call_scalar_arg_exprs.c missing dynamic scalar argument conversion.
     exit /b 1
@@ -2066,7 +2066,7 @@ if errorlevel 1 (
     echo cgen_var_return_exprs.c missing multi-return scalar logical lowering.
     exit /b 1
 )
-findstr /C:"__xl6_return_field_" build\test\cgen_var_return_exprs.c | findstr /C:"xl6_xrt_value_to_i64_release(__xl6_call_value_" >nul
+findstr /C:"__xl6_return_field_" build\test\cgen_var_return_exprs.c | findstr /C:"xl6_xrt_value_to_i64_release(__xl6_call_arg_" >nul
 if errorlevel 1 (
     echo cgen_var_return_exprs.c missing multi-return scalar conversion lowering.
     exit /b 1
@@ -2746,7 +2746,7 @@ if errorlevel 1 (
     echo cgen_var_values.c missing statement-level scalar call argument temporaries.
     exit /b 1
 )
-findstr /C:"__xl6_call_value_" build\test\cgen_var_values.c | findstr /C:"makeValue(40LL);" >nul
+findstr /C:"__xl6_call_arg_" build\test\cgen_var_values.c | findstr /C:"makeValue(40LL);" >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level dynamic conditional call argument path.
     exit /b 1

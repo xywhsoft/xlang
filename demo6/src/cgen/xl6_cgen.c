@@ -23,6 +23,7 @@ static XL6_AstNode* xl6CgenCloneImplicitSelfFieldType(XL6_CgenContext* ctx, cons
 #include "src/cgen/xl6_cgen_type_infer_helpers.c"
 #include "src/cgen/xl6_cgen_type_infer_literals.c"
 #include "src/cgen/xl6_cgen_type_infer.c"
+static const char* xl6CgenValueStorageCType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 #include "src/cgen/xl6_cgen_type_generic.c"
 #include "src/cgen/xl6_cgen_expr_support_types.c"
 #include "src/cgen/xl6_cgen_expr_support_base.c"
@@ -48,6 +49,7 @@ static const XL6_AstNode* xl6CgenResolveClassCreateMode(XL6_CgenContext* ctx, co
 #include "src/cgen/xl6_cgen_value_object.c"
 #include "src/cgen/xl6_cgen_value_object_member.c"
 #include "src/cgen/xl6_cgen_class_value_protocol.c"
+#include "src/cgen/xl6_cgen_record_field.c"
 #include "src/cgen/xl6_cgen_class_copy.c"
 #include "src/cgen/xl6_cgen_class_persistence.c"
 #include "src/cgen/xl6_cgen_class_protocol.c"

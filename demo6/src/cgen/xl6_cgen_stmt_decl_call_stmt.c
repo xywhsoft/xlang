@@ -119,7 +119,7 @@ static int xl6CgenTryKnownCallStatementWithScalarArgTemps(XL6_CgenContext* ctx, 
             continue;
         }
 
-        canonicalType = xl6CgenCloneCanonicalTypeNode(ctx, paramType);
+        canonicalType = xl6CgenCloneCanonicalTypeNode(ctx, xl6CgenSubstituteGenericType(ctx, paramType));
         if ( canonicalType == NULL ) {
             continue;
         }
@@ -155,11 +155,11 @@ static int xl6CgenTryKnownCallStatementWithScalarArgTemps(XL6_CgenContext* ctx, 
             continue;
         }
 
-        cType = xl6CgenTypeName(ctx, temps[i].typeNode);
+        cType = xl6CgenValueStorageCType(ctx, temps[i].typeNode);
         xl6CgenIndent(ctx);
         xl6OutputPuts(cType, ctx->out);
         xl6OutputPrintf(ctx->out, " %s = ", temps[i].name);
-        xl6CgenDefaultValue(ctx, temps[i].typeNode);
+        xl6CgenDeclCallArgTempDefaultValue(ctx, temps[i].typeNode);
         xl6OutputPuts(";\n", ctx->out);
         if ( !xl6CgenDeclEmitCallArgTemp(ctx, temps[i].typeNode, cType, temps[i].name, argExpr) ) {
             xl6CgenError(ctx, argExpr, "failed to lower scalar call argument temporary");

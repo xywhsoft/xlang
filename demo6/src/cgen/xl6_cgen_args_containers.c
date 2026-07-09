@@ -291,6 +291,78 @@ static int xl6CgenTypedContainerContainsStmt(
     return 1;
 }
 
+static int xl6CgenTypedContainerTempContainsExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* values,
+    const XL6_AstNode* item)
+{
+    const XL6_AstNode* concreteType;
+    const char* typeName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+
+    if ( xl6CTextEquals(typeName, "array") ) {
+        xl6CgenContainsXValueCallExpr(ctx, "xl6_xrt_array_contains", values, item);
+        return 1;
+    }
+    if ( xl6CTextEquals(typeName, "list") ) {
+        xl6CgenContainsXValueCallExpr(ctx, "xl6_xrt_list_contains", values, item);
+        return 1;
+    }
+    if ( xl6CTextEquals(typeName, "set") ) {
+        xl6CgenContainsXValueCallExpr(ctx, "xl6_xrt_set_contains", values, item);
+        return 1;
+    }
+    if ( xl6CTextEquals(typeName, "dict") ) {
+        if ( !xl6CgenExprStaticTypeIs(ctx, item, "string") ) {
+            xl6CgenError(ctx, item, "dict membership requires a string key");
+            xl6OutputPuts("0", ctx->out);
+        } else {
+            xl6CgenDictContainsKeyExpr(ctx, values, item);
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
+static int xl6CgenTypedContainerTempContainsStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* values,
+    const XL6_AstNode* item,
+    const char* targetName)
+{
+    const XL6_AstNode* concreteType;
+    const char* typeName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+
+    if ( xl6CTextEquals(typeName, "array") ) {
+        return xl6CgenContainsXValueCallStmt(ctx, "xl6_xrt_array_contains", values, item, targetName);
+    }
+    if ( xl6CTextEquals(typeName, "list") ) {
+        return xl6CgenContainsXValueCallStmt(ctx, "xl6_xrt_list_contains", values, item, targetName);
+    }
+    if ( xl6CTextEquals(typeName, "set") ) {
+        return xl6CgenContainsXValueCallStmt(ctx, "xl6_xrt_set_contains", values, item, targetName);
+    }
+    if ( xl6CTextEquals(typeName, "dict") ) {
+        if ( !xl6CgenExprStaticTypeIs(ctx, item, "string") ) {
+            xl6CgenError(ctx, item, "dict membership requires a string key");
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = 0;\n", targetName);
+            return 1;
+        }
+        return xl6CgenDictContainsKeyStmt(ctx, values, item, targetName);
+    }
+
+    return 0;
+}
+
 static int xl6CgenTryInExprStmt(XL6_CgenContext* ctx, const XL6_AstNode* node, const char* targetName)
 {
     const XL6_AstNode* left;
@@ -375,6 +447,13 @@ static int xl6CgenTryInExprStmt(XL6_CgenContext* ctx, const XL6_AstNode* node, c
         return 1;
     }
 
+    if ( xl6CgenIsTypedContainerType(ctx, rightType) ) {
+        if ( xl6CgenTypedContainerTempContainsStmt(ctx, rightType, right, left, targetName) ) {
+            xl6AstFree(rightType);
+            return 1;
+        }
+    }
+
     if ( xl6CgenIsArrayXValueType(rightType) ) {
         xl6AstFree(rightType);
         return xl6CgenContainsXValueCallStmt(ctx, "xl6_xrt_array_contains", right, left, targetName);
@@ -457,6 +536,13 @@ static void xl6CgenInExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         }
         xl6AstFree(rightType);
         return;
+    }
+
+    if ( xl6CgenIsTypedContainerType(ctx, rightType) ) {
+        if ( xl6CgenTypedContainerTempContainsExpr(ctx, rightType, right, left) ) {
+            xl6AstFree(rightType);
+            return;
+        }
     }
 
     if ( xl6CgenIsArrayXValueType(rightType) ) {
@@ -680,18 +766,28 @@ static void xl6CgenDictVarargExpr(XL6_CgenContext* ctx, const XL6_AstNode* param
 static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* param, const XL6_AstNode* expr)
 {
     const XL6_AstNode* targetType;
+    XL6_AstNode* canonicalType;
 
     targetType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
-    if ( targetType != NULL &&
-         xl6CgenIsTypedContainerType(ctx, targetType) &&
+    canonicalType = xl6CgenCloneCanonicalTypeNode(ctx, targetType);
+
+    if ( canonicalType != NULL &&
+         xl6CgenIsTypedContainerType(ctx, canonicalType) &&
          xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
-        xl6CgenFputsCIdent(ctx->out, expr->text);
+        xl6CgenExpr(ctx, expr);
+        xl6AstFree(canonicalType);
         return;
     }
-    if ( targetType != NULL && xl6CgenIsXValueType(targetType) ) {
-        xl6CgenXValueFromExprForTarget(ctx, targetType, expr);
+    if ( canonicalType != NULL && xl6CgenIsXValueType(canonicalType) ) {
+        xl6CgenXValueFromExprForTarget(ctx, canonicalType, expr);
+        xl6AstFree(canonicalType);
         return;
     }
+    if ( canonicalType != NULL && xl6CgenClassUpcastExpr(ctx, canonicalType, expr) ) {
+        xl6AstFree(canonicalType);
+        return;
+    }
+    xl6AstFree(canonicalType);
     xl6CgenExpr(ctx, expr);
 }
 

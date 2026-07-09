@@ -217,9 +217,9 @@ if errorlevel 1 (
     echo cgen_index_access.c missing dict temporary receiver helper.
     exit /b 1
 )
-findstr /C:"xl6_xrt_index_safe_get_key_retain_release(makeDynTable(), \"temp\")" build\test\cgen_index_access.c >nul
+findstr /C:"xl6_record_field_get_owned(makeDynTable(), \"temp\", 1)" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
-    echo cgen_index_access.c missing var temporary receiver key helper.
+    echo cgen_index_access.c missing var temporary receiver field helper.
     exit /b 1
 )
 findstr /C:"xl6_xrt_index_safe_get_var_key(dynTable, xl6_xrt_retain(dynKey))" build\test\cgen_index_access.c >nul
@@ -297,6 +297,12 @@ if errorlevel 1 exit /b 1
 build\test\cgen_index_access.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe run test\cases\cgen_generic_array_param.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\cgen_protocol_field_neg_compare.xl
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_safe_index.xl --emit build\test\cgen_safe_index.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(values, (unsigned int)(1LL)))" build\test\cgen_safe_index.c >nul
@@ -314,7 +320,7 @@ if errorlevel 1 (
     echo cgen_safe_index.c missing dynamic array safe index lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_index_safe_get_key(dynamicTable, \"count\")" build\test\cgen_safe_index.c >nul
+findstr /C:"xl6_record_field_get_owned(dynamicTable, \"count\", 0)" build\test\cgen_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_safe_index.c missing dynamic dict safe index lowering.
     exit /b 1
@@ -530,17 +536,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_dynamic_member_access.xl --emit build\test\cgen_dynamic_member_access.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_index_safe_get_key(obj," build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_record_field_get_owned(obj," build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing borrowed dynamic member access.
     exit /b 1
 )
-findstr /C:"xl6_xrt_index_safe_get_key_retain_release(makeObj()," build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_record_field_get_owned(makeObj()," build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing temporary dynamic member retain-release helper.
     exit /b 1
 )
-findstr /C:"xl6_xrt_index_safe_get_key_retain_release(xl6_xrt_index_safe_get_key_retain_release(makeObj()," build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_record_field_get_owned(xl6_record_field_get_owned(makeObj()," build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing nested temporary dynamic member retain-release helper.
     exit /b 1
@@ -555,12 +561,12 @@ if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing dynamic member assignment temporary.
     exit /b 1
 )
-findstr /C:"xvoTableSetValue(obj," build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_record_field_set_borrow(obj," build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing direct dynamic member assignment lowering.
     exit /b 1
 )
-findstr /C:"xvoTableSetValue(xl6_xrt_index_safe_get_key(nested," build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_record_field_set_borrow(__xl6_member_receiver_" build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing nested dynamic member assignment lowering.
     exit /b 1
@@ -1663,12 +1669,12 @@ if errorlevel 1 (
     echo cgen_generic_explicit_overload.c missing scalar explicit generic overload instance.
     exit /b 1
 )
-findstr /C:"long long xl_gen_pick__int__sig__array_of_int(xvalue values);" build\test\cgen_generic_explicit_overload.c >nul
+findstr /C:"long long xl_gen_pick__int__sig__array_of_int(xtarray values);" build\test\cgen_generic_explicit_overload.c >nul
 if errorlevel 1 (
     echo cgen_generic_explicit_overload.c missing array explicit generic overload instance.
     exit /b 1
 )
-findstr /C:"arrayValue = xl_gen_pick__int__sig__array_of_int(" build\test\cgen_generic_explicit_overload.c >nul
+findstr /C:"= xl_gen_pick__int__sig__array_of_int(__xl6_call_arg_" build\test\cgen_generic_explicit_overload.c >nul
 if errorlevel 1 (
     echo cgen_generic_explicit_overload.c should choose array explicit generic overload.
     exit /b 1
@@ -1751,32 +1757,32 @@ if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred choose instance.
     exit /b 1
 )
-findstr /C:"long long xl_gen_countArray__int(xvalue values);" build\test\cgen_generic_infer.c >nul
+findstr /C:"long long xl_gen_countArray__int(xtarray values);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred array generic instance.
     exit /b 1
 )
-findstr /C:"long long xl_gen_acceptList__string(xvalue values);" build\test\cgen_generic_infer.c >nul
+findstr /C:"long long xl_gen_acceptList__string(xtlist values);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred list generic instance.
     exit /b 1
 )
-findstr /C:"long long xl_gen_acceptSet__int(xvalue values);" build\test\cgen_generic_infer.c >nul
+findstr /C:"long long xl_gen_acceptSet__int(xtset values);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred set generic instance.
     exit /b 1
 )
-findstr /C:"long long xl_gen_countDict__int(xvalue values);" build\test\cgen_generic_infer.c >nul
+findstr /C:"long long xl_gen_countDict__int(xtdict values);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred dict generic instance.
     exit /b 1
 )
-findstr /C:"long long xl_gen_countNested__int(xvalue values);" build\test\cgen_generic_infer.c >nul
+findstr /C:"long long xl_gen_countNested__int(xtarray values);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred nested generic instance.
     exit /b 1
 )
-findstr /C:"xvalue xl_gen_identity__array_of_dict_of_int(xvalue value);" build\test\cgen_generic_infer.c >nul
+findstr /C:"xtarray xl_gen_identity__array_of_dict_of_int(xtarray value);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing explicit nested generic instance.
     exit /b 1
@@ -1806,7 +1812,7 @@ if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred call from auto variable.
     exit /b 1
 )
-findstr /C:"explicitNested = xl6_xrt_bind_type(xl_gen_identity__array_of_dict_of_int(" build\test\cgen_generic_infer.c >nul
+findstr /C:"explicitNested = __xl6_global_init_" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing explicit nested generic call.
     exit /b 1
@@ -2538,6 +2544,24 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\c_abi_types.exe
 if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\c_abi_mismatch_extern_header.xl --emit build\test\c_abi_mismatch_extern_header.c --emit-header build\test\c_abi_mismatch_extern_header.h
+if errorlevel 1 exit /b 1
+findstr /C:"int64_t xl6_bad_native_add(int64_t a, int64_t b);" build\test\c_abi_mismatch_extern_header.h >nul
+if errorlevel 1 (
+    echo c_abi_mismatch_extern_header.h missing extern prototype.
+    exit /b 1
+)
+release\xl.exe build test\cases\c_abi_mismatch_extern_header.xl test\cases\c_abi_mismatch_extern_header_host.c -o build\test\c_abi_mismatch_extern_header.exe > build\test\c_abi_mismatch_extern_header.out.txt 2> build\test\c_abi_mismatch_extern_header.err.txt
+if not errorlevel 1 (
+    echo c_abi_mismatch_extern_header should fail.
+    exit /b 1
+)
+findstr /C:"incompatible types for redefinition" build\test\c_abi_mismatch_extern_header.err.txt >nul
+if errorlevel 1 (
+    echo c_abi_mismatch_extern_header missing C ABI mismatch diagnostic.
+    exit /b 1
+)
 
 release\xl.exe cgen test\cases\cgen_extern_string_return.xl --emit build\test\cgen_extern_string_return.c
 if errorlevel 1 exit /b 1
@@ -3289,6 +3313,24 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe run test\cases\cgen_class_upcast_dispatch.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_class_equality_without_protocol.xl >nul 2> build\test\sem_class_equality_without_protocol.err.txt
+if not errorlevel 1 (
+    echo sem_class_equality_without_protocol.xl should fail.
+    exit /b 1
+)
+findstr /C:"class equality requires __eq__/__ne__ protocol" build\test\sem_class_equality_without_protocol.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_equality_without_protocol.err.txt missing class equality diagnostic.
+    exit /b 1
+)
+findstr /C:"code generation error" build\test\sem_class_equality_without_protocol.err.txt >nul
+if not errorlevel 1 (
+    echo sem_class_equality_without_protocol.err.txt regressed to generic cgen diagnostic.
+    exit /b 1
+)
 
 echo DEMO6 suite ok: OOP ABI export and interop
 exit /b 0

@@ -1,0 +1,7 @@
+class EqBox
+    int value
+end
+
+EqBox a
+EqBox b
+bool same = a == b

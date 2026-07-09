@@ -339,46 +339,73 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
 static int xl6CgenFuncSingleReturnUsesTypedContainerStorage(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
 {
     const XL6_AstNode* returns;
+    XL6_AstNode* returnType;
+    int result;
 
     if ( ctx == NULL || funcNode == NULL || funcNode->kind != XL6_AST_FUNC ) {
         return 0;
     }
-    if ( xl6CgenFuncIsGeneric(funcNode) ) {
+
+    returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
+    if ( returns == NULL || returns->childCount != 1 ) {
         return 0;
     }
 
-    returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
-    return returns != NULL &&
-           returns->childCount == 1 &&
-           xl6CgenIsTypedContainerType(ctx, returns->children[0]);
+    /*
+        泛型实例化时，T 可能已经替换成 array<int> 这类静态容器。
+        判断返回 ABI 前必须使用具体类型，否则声明会退回 xvalue。
+    */
+    returnType = xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0]);
+    result = xl6CgenIsTypedContainerType(ctx, returnType);
+    xl6AstFree(returnType);
+    return result;
 }
 
 static const char* xl6CgenFuncSingleReturnCType(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
 {
     const XL6_AstNode* returns;
+    XL6_AstNode* returnType;
+    const char* cType;
 
     if ( xl6CgenFuncSingleReturnUsesTypedContainerStorage(ctx, funcNode) ) {
         returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
-        return xl6CgenTypedContainerCType(ctx, returns->children[0]);
+        returnType = xl6CgenCloneCanonicalTypeNode(ctx, returns != NULL ? returns->children[0] : NULL);
+        cType = xl6CgenTypedContainerCType(ctx, returnType);
+        xl6AstFree(returnType);
+        return cType;
     }
 
     returns = funcNode != NULL && funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     if ( returns != NULL && returns->childCount == 1 ) {
-        return xl6CgenTypeName(ctx, returns->children[0]);
+        returnType = xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0]);
+        cType = xl6CgenTypeName(ctx, returnType);
+        xl6AstFree(returnType);
+        return cType;
     }
     return "void";
 }
 
 static int xl6CgenParamTypeUsesTypedContainerStorage(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
+    const XL6_AstNode* concreteType;
+
+    if ( ctx == NULL ||
+         typeNode == NULL ||
+         ctx->currentClass != NULL ||
+         ctx->currentNativeClass != NULL ||
+         ctx->currentAnonFunc != NULL ) {
+        return 0;
+    }
+
+    /*
+     * 泛型函数实例化时，array<T>/list<T>/set<T>/dict<T> 的 T 已经可以通过
+     * currentGenericParams/currentGenericArgs 替换成具体类型。只要替换后的
+     * 容器元素不是 var，就继续使用 XRT typed-container 句柄作为 ABI；
+     * 只有真正无法静态确定的容器才退回 xvalue。
+     */
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
     return ctx != NULL &&
-           typeNode != NULL &&
-           ctx->currentGenericParams == NULL &&
-           ctx->currentGenericArgs == NULL &&
-           ctx->currentClass == NULL &&
-           ctx->currentNativeClass == NULL &&
-           ctx->currentAnonFunc == NULL &&
-           xl6CgenIsTypedContainerType(ctx, typeNode);
+           concreteType != NULL;
 }
 
 static const char* xl6CgenParamCType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)

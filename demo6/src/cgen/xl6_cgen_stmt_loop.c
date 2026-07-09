@@ -115,10 +115,11 @@ static const XL6_AstNode* xl6CgenOwnSimpleType(XL6_CgenContext* ctx, const char*
     return typeNode;
 }
 
-static int xl6CgenIsForIterableType(const XL6_AstNode* typeNode)
+static int xl6CgenIsForIterableType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     return typeNode != NULL && typeNode->text != NULL &&
            (xl6CTextEquals(typeNode->text, "var") ||
+            xl6CgenIsTypedContainerType(ctx, typeNode) ||
             xl6CgenIsArrayXValueType(typeNode) ||
             xl6CgenIsListXValueType(typeNode) ||
             xl6CgenIsSetXValueType(typeNode) ||

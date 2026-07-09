@@ -112,17 +112,20 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
     if ( receiverType != NULL && xl6CTextEquals(receiverType->text, "var") ) {
         if ( xl6CgenExprStaticTypeIs(ctx, index, "string") ) {
             xl6CgenIndent(ctx);
-            xl6OutputPuts("if ( !xvoTableSetValue(", ctx->out);
+            xl6OutputPuts("if ( !xl6_record_field_set_borrow(", ctx->out);
             xl6CgenExpr(ctx, receiver);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, index);
-            xl6OutputPrintf(ctx->out, ", 0, %s, true) && %s != 0 ) {\n", tempName != NULL ? tempName : "0", tempName != NULL ? tempName : "0");
+            xl6OutputPrintf(ctx->out, ", %s) ) {\n", tempName != NULL ? tempName : "0");
             ctx->indent += 1;
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName != NULL ? tempName : "0");
+            xl6OutputPrintf(ctx->out, "if ( %s != 0 ) { xvoUnref(%s); }\n", tempName != NULL ? tempName : "0", tempName != NULL ? tempName : "0");
+            xl6CgenIndexAssignRaiseFailure(ctx, left, "container index assignment failed");
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "else if ( %s != 0 ) { xvoUnref(%s); }\n", tempName != NULL ? tempName : "0", tempName != NULL ? tempName : "0");
         } else if ( xl6CgenIndexKeyIsXValue(ctx, index) ) {
             xl6CgenXValueIndexSetDynamicKeyStmt(ctx, receiver, index, tempName);
         } else if ( xl6CgenIndexKeyIsInteger(ctx, index) ) {

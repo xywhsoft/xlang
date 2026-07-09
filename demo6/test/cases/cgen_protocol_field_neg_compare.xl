@@ -1,0 +1,94 @@
+class ProtoVec
+    float x = 0.0
+    float y = 0.0
+    var bag = {}
+
+    create(float x, float y)
+        self.x = x
+        self.y = y
+    end
+
+    func mag2() as float
+        return self.x * self.x + self.y * self.y
+    end
+
+    func __add__(ProtoVec other) as ProtoVec
+        return ProtoVec(self.x + other.x, self.y + other.y)
+    end
+
+    func __sub__(ProtoVec other) as ProtoVec
+        return ProtoVec(self.x - other.x, self.y - other.y)
+    end
+
+    func __mul__(ProtoVec other) as ProtoVec
+        return ProtoVec(self.x * other.x, self.y * other.y)
+    end
+
+    func __neg__() as ProtoVec
+        return ProtoVec(0.0 - self.x, 0.0 - self.y)
+    end
+
+    func __eq__(ProtoVec other) as bool
+        return self.x == other.x and self.y == other.y
+    end
+
+    func __lt__(ProtoVec other) as bool
+        return self.mag2() < other.mag2()
+    end
+
+    func __le__(ProtoVec other) as bool
+        return self.mag2() <= other.mag2()
+    end
+
+    func __gt__(ProtoVec other) as bool
+        return self.mag2() > other.mag2()
+    end
+
+    func __ge__(ProtoVec other) as bool
+        return self.mag2() >= other.mag2()
+    end
+
+    func __field__(string name) as var
+        if name == "magnitude" then
+            return math.sqrt(self.mag2())
+        end
+        if self.bag.contains(name) then
+            return self.bag[name]
+        end
+        return null
+    end
+
+    func __setField__(string name, var value)
+        self.bag[name] = value
+    end
+end
+
+func main(...) as int
+    ProtoVec a = ProtoVec(3.0, 4.0)
+    ProtoVec b = ProtoVec(1.0, 1.0)
+    ProtoVec c = -a
+
+    if not (b < a) then
+        return 1
+    end
+    if not (b <= a) then
+        return 2
+    end
+    if not (a > b) then
+        return 3
+    end
+    if not (a >= b) then
+        return 4
+    end
+    if float(a.magnitude) != 5.0 then
+        return 5
+    end
+    if c.x != -3.0 then
+        return 6
+    end
+    a.extra = 9
+    if int(a.extra) != 9 then
+        return 7
+    end
+    return 0
+end

@@ -12,7 +12,7 @@ static void xl6CgenForIn(XL6_CgenContext* ctx, const XL6_AstNode* node)
     }
 
     iterableType = xl6CgenCloneExprTypeForInference(ctx, node->children[1]);
-    if ( !xl6CgenIsForIterableType(iterableType) &&
+    if ( !xl6CgenIsForIterableType(ctx, iterableType) &&
          !xl6CgenIsClassProtocolIterableType(ctx, iterableType) ) {
         xl6CgenError(ctx, node->children[1], "for in right side must be range, string, array, list, set, dict, generator, var or class iterable protocol");
         xl6AstFree(iterableType);
