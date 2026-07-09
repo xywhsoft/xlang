@@ -554,6 +554,22 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
             xl6CgenClassAutoFromValueProto(ctx, classNode);
             xl6OutputPuts(";\n", ctx->out);
         }
+        if ( xl6CgenClassNeedsAutoDeriveProtocol(ctx, classNode, "string", "__toString__") ) {
+            xl6CgenClassAutoToStringProto(ctx, classNode);
+            xl6OutputPuts(";\n", ctx->out);
+        }
+        if ( xl6CgenClassNeedsAutoDeriveProtocol(ctx, classNode, "hash", "__hash__") ) {
+            xl6CgenClassAutoHashProto(ctx, classNode);
+            xl6OutputPuts(";\n", ctx->out);
+        }
+        if ( xl6CgenClassNeedsAutoDeriveProtocol(ctx, classNode, "equals", "__eq__") ) {
+            xl6CgenClassAutoEqualsProto(ctx, classNode, "__eq__");
+            xl6OutputPuts(";\n", ctx->out);
+        }
+        if ( xl6CgenClassNeedsAutoDeriveProtocol(ctx, classNode, "equals", "__ne__") ) {
+            xl6CgenClassAutoEqualsProto(ctx, classNode, "__ne__");
+            xl6OutputPuts(";\n", ctx->out);
+        }
         xl6CgenClassCopyBuiltinHelperProtos(ctx, classNode);
         xl6CgenClassPersistenceHelperProtos(ctx, classNode);
     }

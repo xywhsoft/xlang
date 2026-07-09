@@ -18,6 +18,71 @@ static const char* xl6CgenCompoundBinaryOp(const char* op)
     return NULL;
 }
 
+static const XL6_AstNode* xl6CgenNameAssignTargetType(XL6_CgenContext* ctx, const char* name);
+static void xl6CgenNameAssignTargetPath(XL6_CgenContext* ctx, const char* name, char* buffer, size_t capacity);
+
+static int xl6CgenClassProtocolCompoundAssignStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* left,
+    const char* op,
+    const XL6_AstNode* right)
+{
+    const char* binaryOp;
+    const char* protocolName;
+    const XL6_AstNode* classNode;
+    const XL6_AstNode* ownerClass;
+    const XL6_AstNode* method;
+    const XL6_AstNode* argType;
+    XL6_AstNode* receiverType;
+    XL6_AstNode* protocolCall;
+    const XL6_AstNode* targetType;
+    char cName[512];
+    char tempName[64];
+    int id;
+
+    if ( ctx == NULL || left == NULL || left->kind != XL6_AST_NAME || right == NULL ) {
+        return 0;
+    }
+    binaryOp = xl6CgenCompoundBinaryOp(op);
+    protocolName = binaryOp != NULL ? xl6CgenBinaryProtocolName(binaryOp) : NULL;
+    if ( protocolName == NULL ) {
+        return 0;
+    }
+
+    receiverType = NULL;
+    protocolCall = xl6CgenProtocolTempCallNew(left);
+    if ( protocolCall == NULL || !xl6CgenProtocolTempCallAddArg(protocolCall, right) ||
+         !xl6CgenResolveClassProtocolReceiverForCall(ctx, left, protocolName, protocolCall, &classNode, &ownerClass, &method, &receiverType) ) {
+        xl6CgenProtocolTempCallFree(protocolCall);
+        return 0;
+    }
+    xl6CgenProtocolTempCallFree(protocolCall);
+
+    targetType = xl6CgenNameAssignTargetType(ctx, left->text);
+    xl6CgenNameAssignTargetPath(ctx, left->text, cName, sizeof(cName));
+    id = ctx->tempId++;
+    snprintf(tempName, sizeof(tempName), "__xl6_class_compound_%d", id);
+
+    xl6CgenIndent(ctx);
+    xl6OutputPuts(xl6CgenTypeName(ctx, targetType), ctx->out);
+    xl6OutputPrintf(ctx->out, " %s = ", tempName);
+    argType = xl6CgenClassProtocolParamType(method, 0);
+    if ( xl6CgenClassProtocolCallPrefix(ctx, left, classNode, ownerClass, method, receiverType) ) {
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenClassProtocolExprArg(ctx, argType, right);
+        xl6OutputPutc(')', ctx->out);
+    } else {
+        xl6OutputPuts("{0}", ctx->out);
+    }
+    xl6OutputPuts(";\n", ctx->out);
+    xl6AstFree(receiverType);
+
+    xl6CgenReleaseClassFunctionFieldsForType(ctx, targetType, cName);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = %s;\n", cName, tempName);
+    return 1;
+}
+
 static const XL6_AstNode* xl6CgenNameAssignTargetType(XL6_CgenContext* ctx, const char* name)
 {
     const XL6_AstNode* targetType;
@@ -766,6 +831,9 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return;
     }
     if ( xl6CgenTypedContainerCompoundAssignStmt(ctx, left, op, right) ) {
+        return;
+    }
+    if ( !xl6CTextEquals(op, "=") && xl6CgenClassProtocolCompoundAssignStmt(ctx, left, op, right) ) {
         return;
     }
     if ( xl6CTextEquals(op, "=") && left->kind == XL6_AST_MEMBER ) {

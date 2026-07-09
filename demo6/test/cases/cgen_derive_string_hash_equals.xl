@@ -1,0 +1,32 @@
+class DeriveRecord
+    derive string
+    derive hash
+    derive equals
+
+    int id = 0
+    string name = ""
+    int transient @string(skip) @compare(skip) = 0
+
+    create(int id, string name, int transient)
+        self.id = id
+        self.name = name
+        self.transient = transient
+    end
+end
+
+DeriveRecord left = DeriveRecord(7, "alpha", 1)
+DeriveRecord same = DeriveRecord(7, "alpha", 99)
+DeriveRecord other = DeriveRecord(8, "alpha", 1)
+
+string text = string(left)
+assert string.contains(text, "DeriveRecord{"), "derive string should include class name"
+assert string.contains(text, "id=7"), "derive string should include int field"
+assert string.contains(text, "name="), "derive string should include string field"
+assert !string.contains(text, "transient"), "@string(skip) should omit field from derived string"
+
+string memberText = left.toString()
+assert memberText == text, "toString member sugar should use derived string protocol"
+
+assert left == same, "derive equals should compare non-skipped fields"
+assert !(left != same), "derive equals should generate matching __ne__"
+assert left != other, "derive equals should detect changed compared field"

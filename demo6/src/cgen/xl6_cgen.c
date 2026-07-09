@@ -34,6 +34,7 @@ static const char* xl6CgenValueStorageCType(XL6_CgenContext* ctx, const XL6_AstN
 static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6_AstNode* expr);
 static void xl6CgenTypedContainerStorageToXValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* storageName);
 static const XL6_AstNode* xl6CgenResolveClassCreateMode(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* call, int reportNoMatch);
+static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name);
 #include "src/cgen/xl6_cgen_args.c"
 #include "src/cgen/xl6_cgen_debug.c"
 #include "src/cgen/xl6_cgen_fstring.c"
@@ -52,6 +53,7 @@ static const XL6_AstNode* xl6CgenResolveClassCreateMode(XL6_CgenContext* ctx, co
 #include "src/cgen/xl6_cgen_record_field.c"
 #include "src/cgen/xl6_cgen_class_copy.c"
 #include "src/cgen/xl6_cgen_class_persistence.c"
+#include "src/cgen/xl6_cgen_class_derive_protocol.c"
 #include "src/cgen/xl6_cgen_class_protocol.c"
 #include "src/cgen/xl6_cgen_class_property.c"
 #include "src/cgen/xl6_cgen_assign_target.c"

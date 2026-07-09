@@ -1,0 +1,20 @@
+class Rows
+    int base = 0
+
+    create(int base)
+        self.base = base
+    end
+
+    func __item__(int row) as array<int>
+        return array[self.base + row, self.base + row + 10]
+    end
+end
+
+Rows rows = Rows(20)
+array<int> first = rows[1]
+array<int> second = rows[2]
+
+assert first.length == 2, "__item__ returning array<T> should preserve length"
+assert first[0] == 21, "__item__ returning array<T> should preserve first value"
+assert first[1] == 31, "__item__ returning array<T> should preserve second value"
+assert second[0] == 22, "repeated __item__ returning array<T> should own each result"

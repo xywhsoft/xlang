@@ -1,0 +1,22 @@
+class Meter
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+
+    func __add__(int delta) as Meter
+        return Meter(self.value + delta)
+    end
+
+    func __sub__(int delta) as Meter
+        return Meter(self.value - delta)
+    end
+end
+
+Meter value = Meter(10)
+value += 5
+assert value.value == 15, "class += should dispatch __add__"
+
+value -= 3
+assert value.value == 12, "class -= should dispatch __sub__"

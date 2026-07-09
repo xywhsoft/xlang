@@ -1,0 +1,10 @@
+func takeInt(int value) as int
+    return value + 1
+end
+
+func callWithVar(var value) as int
+    return takeInt(value)
+end
+
+var boxed = 41
+assert callWithVar(boxed) == 42, "var actual should match a unique typed overload candidate"

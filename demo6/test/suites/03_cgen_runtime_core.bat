@@ -233,6 +233,12 @@ release\xl.exe build test\cases\cgen_dev_feedback_priority.xl -o build\test\cgen
 if errorlevel 1 exit /b 1
 build\test\cgen_dev_feedback_priority.exe
 if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_overload_var_unique.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_overload_var_unique.xl -o build\test\cgen_overload_var_unique.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_overload_var_unique.exe
+if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\cgen_dev_handfeel_regression.xl
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_dev_handfeel_regression.xl -o build\test\cgen_dev_handfeel_regression.exe

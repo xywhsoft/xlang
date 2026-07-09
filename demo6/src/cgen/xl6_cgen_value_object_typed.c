@@ -223,6 +223,21 @@ static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6
     return 0;
 }
 
+static int xl6CgenExprIsTypedContainerProtocolIndexReturn(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* expr)
+{
+    if ( expr == NULL ||
+         (expr->kind != XL6_AST_INDEX && expr->kind != XL6_AST_SAFE_INDEX) ) {
+        return 0;
+    }
+    if ( !xl6CgenClassProtocolIndexHasGetter(ctx, expr) ) {
+        return 0;
+    }
+    return xl6CgenTypedContainerExprTypeMatches(ctx, typeNode, expr);
+}
+
 static int xl6CgenTypedContainerCanCopyFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr)
 {
     if ( initExpr == NULL || xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
@@ -257,6 +272,8 @@ static int xl6CgenTypedContainerCanMoveFromExpr(XL6_CgenContext* ctx, const XL6_
         if ( !xl6CgenAwaitExprReturnsOwnedTemporaryCtx(ctx, initExpr) ) {
             return 0;
         }
+    } else if ( xl6CgenExprIsTypedContainerProtocolIndexReturn(ctx, typeNode, initExpr) ) {
+        return 1;
     } else if ( !xl6CgenExprIsTypedContainerReturnCall(ctx, initExpr) ) {
         return 0;
     }

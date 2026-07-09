@@ -923,6 +923,49 @@ static void xl6CgenXValueScalarGetExpr(XL6_CgenContext* ctx, const char* cType, 
     xl6OutputPrintf(ctx->out, "((%s)0)", cType != NULL ? cType : "int");
 }
 
+static int xl6CgenClassToStringConversionExpr(XL6_CgenContext* ctx, const XL6_AstNode* arg, const XL6_AstNode* sourceType)
+{
+    const XL6_AstNode* concreteType;
+    XL6_AstNode* classNode;
+    const XL6_AstNode* method;
+
+    concreteType = xl6CgenResolveAliasType(ctx, sourceType);
+    classNode = concreteType != NULL && concreteType->text != NULL ? xl6CgenFindClass(ctx, concreteType->text) : NULL;
+    if ( classNode == NULL ) {
+        return 0;
+    }
+
+    method = xl6CgenFindClassFunc(classNode, "__toString__");
+    if ( method != NULL ) {
+        if ( xl6CgenClassProtocolCallPrefix(ctx, arg, classNode, classNode, method, sourceType) ) {
+            xl6OutputPutc(')', ctx->out);
+        } else {
+            xl6OutputPuts("\"\"", ctx->out);
+        }
+        return 1;
+    }
+    if ( !xl6CgenClassHasTypeParams(classNode) && xl6CgenClassHasDerive(classNode, "string") ) {
+        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "__toString__");
+        xl6OutputPutc('(', ctx->out);
+        if ( arg != NULL && arg->kind == XL6_AST_NAME &&
+             xl6CTextEquals(arg->text, "self") && ctx->currentClass != NULL ) {
+            xl6OutputPuts("self", ctx->out);
+        } else {
+            xl6OutputPutc('&', ctx->out);
+            if ( arg != NULL && arg->kind == XL6_AST_NAME ) {
+                xl6CgenNamedValueReference(ctx, arg->text);
+            } else {
+                xl6OutputPutc('(', ctx->out);
+                xl6CgenExpr(ctx, arg);
+                xl6OutputPutc(')', ctx->out);
+            }
+        }
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+    return 0;
+}
+
 static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* callee;
@@ -1027,6 +1070,8 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
             xl6OutputPuts("xl6_xrt_take_cstr((char*)xrtFormat(\"[point:%p]\", ", ctx->out);
             xl6CgenExpr(ctx, arg);
             xl6OutputPuts("))", ctx->out);
+        } else if ( xl6CgenClassToStringConversionExpr(ctx, arg, sourceType) ) {
+            ;
         } else {
             xl6CgenError(ctx, node, "当前 C 生成不支持转换为 string");
             xl6OutputPuts("\"\"", ctx->out);

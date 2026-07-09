@@ -580,11 +580,65 @@ static int xl6CgenNativeClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode*
     return 1;
 }
 
+static int xl6CgenImplicitClassToStringCall(XL6_CgenContext* ctx, const XL6_AstNode* member)
+{
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+    const XL6_AstNode* concreteType;
+    XL6_AstNode* classNode;
+    const XL6_AstNode* method;
+
+    receiver = member != NULL && member->childCount > 0 ? member->children[0] : NULL;
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    concreteType = xl6CgenResolveAliasType(ctx, receiverType);
+    classNode = concreteType != NULL && concreteType->text != NULL ? xl6CgenFindClass(ctx, concreteType->text) : NULL;
+    if ( classNode == NULL ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
+
+    method = xl6CgenFindClassFunc(classNode, "__toString__");
+    if ( method != NULL ) {
+        if ( xl6CgenClassProtocolCallPrefix(ctx, receiver, classNode, classNode, method, receiverType) ) {
+            xl6OutputPutc(')', ctx->out);
+        } else {
+            xl6OutputPuts("\"\"", ctx->out);
+        }
+        xl6AstFree(receiverType);
+        return 1;
+    }
+    if ( !xl6CgenClassHasTypeParams(classNode) && xl6CgenClassHasDerive(classNode, "string") ) {
+        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "__toString__");
+        xl6OutputPutc('(', ctx->out);
+        if ( receiver != NULL && receiver->kind == XL6_AST_NAME &&
+             xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
+            xl6OutputPuts("self", ctx->out);
+        } else {
+            xl6OutputPutc('&', ctx->out);
+            if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
+                xl6CgenNamedValueReference(ctx, receiver->text);
+            } else {
+                xl6OutputPutc('(', ctx->out);
+                xl6CgenExpr(ctx, receiver);
+                xl6OutputPutc(')', ctx->out);
+            }
+        }
+        xl6OutputPutc(')', ctx->out);
+        xl6AstFree(receiverType);
+        return 1;
+    }
+    xl6AstFree(receiverType);
+    return 0;
+}
+
 static void xl6CgenImplicitToStringCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member)
 {
     const XL6_AstNode* receiver;
 
     (void)call;
+    if ( xl6CgenImplicitClassToStringCall(ctx, member) ) {
+        return;
+    }
     receiver = member != NULL && member->childCount > 0 ? member->children[0] : NULL;
     xl6OutputPuts("xl6_xrt_value_to_string_release(", ctx->out);
     xl6CgenXValueFromExpr(ctx, receiver);

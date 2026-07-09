@@ -314,7 +314,7 @@ static void xl6CgenClassProtocolWrapperProto(
 
     returns = xl6CgenClassProtocolReturns(method);
     if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenValueStorageCType(ctx, returns->children[0]), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
     }
@@ -332,7 +332,7 @@ static void xl6CgenClassProtocolWrapperProto(
             if ( param == NULL || param->childCount == 0 || xl6CgenParamIsVararg(param) ) {
                 xl6OutputPuts("int ", ctx->out);
             } else {
-                xl6OutputPuts(xl6CgenTypeName(ctx, param->children[0]), ctx->out);
+                xl6OutputPuts(xl6CgenValueStorageCType(ctx, param->children[0]), ctx->out);
                 xl6OutputPutc(' ', ctx->out);
             }
             xl6OutputPrintf(ctx->out, "arg%u", (unsigned)i);
@@ -670,6 +670,9 @@ static int xl6CgenClassProtocolBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNod
     if ( protocolCall == NULL ||
          !xl6CgenResolveClassProtocolReceiverForCall(ctx, receiver, protocolName, protocolCall, &classNode, &ownerClass, &method, &receiverType) ) {
         xl6CgenProtocolTempCallFree(protocolCall);
+        if ( xl6CgenClassAutoEqualsBinaryExpr(ctx, receiver, arg, protocolName) ) {
+            return 1;
+        }
         return 0;
     }
     xl6CgenProtocolTempCallFree(protocolCall);
