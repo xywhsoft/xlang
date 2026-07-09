@@ -1,0 +1,1139 @@
+// chip8.xl - CHIP-8 virtual machine emulator
+//
+// usage:
+//   chip8 load <rom_file> [max_cycles=1000]   load & execute ROM, dump state
+//   chip8 disasm <rom_file>                    disassemble ROM opcodes
+//   chip8 test                                 built-in instruction tests
+//   chip8 demo                                 built-in C8 logo animation
+//   chip8 -h | --help                          this help
+//
+// Implementation / API coverage:
+//   * file.readBytes(path)    -> Buffer   (binary ROM read)
+//   * Buffer: len() / byteAt(i)             (8-bit memory fetch)
+//   * array<int> as 4096-byte VM memory, 64x32 1bpp display, 16 keys
+//   * class with array<int> fields + many small methods (no virtuals)
+//   * bitwise &, |, ^, <<, >>, & 0xFF masking, BCD, XOR sprite blit
+//   * random.range for RND instruction
+//
+// All 35 CHIP-8 opcodes implemented per Cowgod's reference:
+//   00E0 CLS / 00EE RET / 1nnn JP / 2nnn CALL / 3xkk SE / 4xkk SNE /
+//   5xy0 SE / 6xkk LD / 7xkk ADD / 8xy0..8xyE / 9xy0 SNE / Annn LD I /
+//   Bnnn JP V0 / Cxkk RND / Dxyn DRW / Ex9E SKP / ExA1 SKNP /
+//   Fx07/Fx0A/Fx15/Fx18/Fx1E/Fx29/Fx33/Fx55/Fx65.
+//
+// Note: xlang has no stdin, so Fx0A (wait-for-key) is emulated as a
+// no-op that returns key 0 the next cycle; ROMs that block on K will
+// see Vx = 0 instead of hanging.
+
+const int MEM_SIZE     = 4096
+const int REG_COUNT    = 16
+const int STACK_SIZE   = 16
+const int DISPLAY_W    = 64
+const int DISPLAY_H    = 32
+const int DISPLAY_SIZE = 64 * 32
+const int KEY_COUNT    = 16
+const int PROG_START   = 0x200
+const int FONT_START   = 0x50
+const int FONT_BYTES   = 5
+const int FONT_COUNT   = 16
+
+// Standard CHIP-8 hex font (0..F), each glyph is 4x5, stored as 5 bytes.
+array<int> FONT = array[
+    0xF0, 0x90, 0x90, 0x90, 0xF0,
+    0x20, 0x60, 0x20, 0x20, 0x70,
+    0xF0, 0x10, 0xF0, 0x80, 0xF0,
+    0xF0, 0x10, 0xF0, 0x10, 0xF0,
+    0x90, 0x90, 0xF0, 0x10, 0x10,
+    0xF0, 0x80, 0xF0, 0x10, 0xF0,
+    0xF0, 0x80, 0xF0, 0x90, 0xF0,
+    0xF0, 0x10, 0x20, 0x40, 0x40,
+    0xF0, 0x90, 0xF0, 0x90, 0xF0,
+    0xF0, 0x90, 0xF0, 0x10, 0xF0,
+    0xF0, 0x90, 0xF0, 0x90, 0x90,
+    0xE0, 0x90, 0xE0, 0x90, 0xE0,
+    0xF0, 0x80, 0x80, 0x80, 0xF0,
+    0xE0, 0x90, 0x90, 0x90, 0xE0,
+    0xF0, 0x80, 0xF0, 0x80, 0xF0,
+    0xF0, 0x80, 0xF0, 0x80, 0x80
+]
+
+// ---- build a zero-filled array<int> of length n ----
+func makeArray(int n, int initVal) as array<int>
+    array<int> a = array[initVal]
+    int i = 1
+    while i < n do
+        a.push(initVal)
+        i += 1
+    end
+    return a
+end
+
+// ---- build an empty-string-filled array<string> of length n ----
+func makeStrArray(int n) as array<string>
+    array<string> a = array[""]
+    int i = 1
+    while i < n do
+        a.push("")
+        i += 1
+    end
+    return a
+end
+
+// ---- expand an array of 16-bit opcodes into an array<int> of bytes ----
+func expandBytes(array<int> words) as array<int>
+    array<int> out = makeArray(words.length * 2, 0)
+    int i = 0
+    while i < words.length do
+        out[i * 2]     = (words[i] >> 8) & 0xFF
+        out[i * 2 + 1] = words[i] & 0xFF
+        i += 1
+    end
+    return out
+end
+
+// ---- 2-digit lowercase hex of a byte (0..255) ----
+func hexByte(int b) as string
+    return string.formatInt(b & 0xFF, "x2")
+end
+
+// ---- 4-digit uppercase hex of a 16-bit word ----
+func hexWord(int w) as string
+    return string.formatInt(w & 0xFFFF, "X4")
+end
+
+
+// ============================== CPU ==============================
+class Chip8
+    array<int> memory
+    array<int> vregs
+    int I
+    array<int> stack
+    int sp
+    int pc
+    array<int> gfx
+    int delayTimer
+    int soundTimer
+    array<int> keys
+    bool drawFlag
+    bool halted
+    int cycles
+
+    create()
+        self.memory     = makeArray(MEM_SIZE, 0)
+        self.vregs      = makeArray(REG_COUNT, 0)
+        self.I          = 0
+        self.stack      = makeArray(STACK_SIZE, 0)
+        self.sp         = 0
+        self.pc         = PROG_START
+        self.gfx        = makeArray(DISPLAY_SIZE, 0)
+        self.delayTimer = 0
+        self.soundTimer = 0
+        self.keys       = makeArray(KEY_COUNT, 0)
+        self.drawFlag   = false
+        self.halted     = false
+        self.cycles     = 0
+        self.loadFont()
+    end
+
+    // Burn the standard font into low memory.
+    func loadFont()
+        int i = 0
+        while i < FONT_COUNT * FONT_BYTES do
+            self.memory[FONT_START + i] = FONT[i]
+            i += 1
+        end
+    end
+
+    // CLS: blank the 64x32 framebuffer.
+    func cls()
+        int i = 0
+        while i < DISPLAY_SIZE do
+            self.gfx[i] = 0
+            i += 1
+        end
+        self.drawFlag = true
+    end
+
+    // DRW Vx,Vy,n: XOR-blit an n-row sprite (8 pixels wide) starting at
+    // memory[I]. Returns 1 if any pixel was erased (collision), else 0.
+    // Classic CHIP-8 clips pixels outside the 64x32 screen.
+    func draw(int vx, int vy, int n) as int
+        int x0 = vx & 0x3F
+        int y0 = vy & 0x1F
+        int collision = 0
+        int row = 0
+        while row < n do
+            int py = y0 + row
+            if py >= DISPLAY_H then
+                // clip rows below the screen
+                break
+            end
+            int spriteByte = self.memory[(self.I + row) & 0x0FFF]
+            int col = 0
+            while col < 8 do
+                int px = x0 + col
+                if px >= DISPLAY_W then
+                    // clip columns right of the screen
+                    break
+                end
+                int spriteBit = (spriteByte >> (7 - col)) & 1
+                if spriteBit == 1 then
+                    int idx = py * DISPLAY_W + px
+                    int cur = self.gfx[idx]
+                    if cur == 1 then
+                        collision = 1
+                    end
+                    self.gfx[idx] = cur ^ 1
+                end
+                col += 1
+            end
+            row += 1
+        end
+        self.drawFlag = true
+        return collision
+    end
+
+    // Execute exactly one instruction. Returns false if the CPU is halted.
+    func step() as bool
+        if self.halted then
+            return false
+        end
+
+        int hi = self.memory[self.pc & 0x0FFF]
+        int lo = self.memory[(self.pc + 1) & 0x0FFF]
+        int op = (hi << 8) | lo
+        self.pc = (self.pc + 2) & 0xFFFF
+        if self.pc >= MEM_SIZE then
+            self.pc = self.pc & 0x0FFF
+        end
+
+        int first = (op >> 12) & 0x0F
+        int x     = (op >> 8)  & 0x0F
+        int y     = (op >> 4)  & 0x0F
+        int n     = op & 0x000F
+        int nn    = op & 0x00FF
+        int nnn   = op & 0x0FFF
+
+        if first == 0x0 then
+            if op == 0x00E0 then
+                // CLS
+                self.cls()
+            elseif op == 0x00EE then
+                // RET
+                if self.sp > 0 then
+                    self.sp = self.sp - 1
+                    self.pc = self.stack[self.sp] & 0x0FFF
+                end
+            end
+        elseif first == 0x1 then
+            // 1nnn JP nnn
+            self.pc = nnn
+        elseif first == 0x2 then
+            // 2nnn CALL nnn
+            if self.sp < STACK_SIZE then
+                self.stack[self.sp] = self.pc
+                self.sp = self.sp + 1
+            end
+            self.pc = nnn
+        elseif first == 0x3 then
+            // 3xkk SE Vx, kk
+            if self.vregs[x] == nn then
+                self.pc = self.pc + 2
+            end
+        elseif first == 0x4 then
+            // 4xkk SNE Vx, kk
+            if self.vregs[x] != nn then
+                self.pc = self.pc + 2
+            end
+        elseif first == 0x5 then
+            // 5xy0 SE Vx, Vy
+            if n == 0 then
+                if self.vregs[x] == self.vregs[y] then
+                    self.pc = self.pc + 2
+                end
+            end
+        elseif first == 0x6 then
+            // 6xkk LD Vx, kk
+            self.vregs[x] = nn
+        elseif first == 0x7 then
+            // 7xkk ADD Vx, kk (no carry flag, wraps mod 256)
+            int r = self.vregs[x] + nn
+            self.vregs[x] = r & 0xFF
+        elseif first == 0x8 then
+            // 8xy?-? arithmetic / logic
+            int vx = self.vregs[x]
+            int vy = self.vregs[y]
+            if n == 0x0 then
+                // LD Vx, Vy
+                self.vregs[x] = vy
+            elseif n == 0x1 then
+                // OR Vx, Vy
+                self.vregs[x] = (vx | vy) & 0xFF
+            elseif n == 0x2 then
+                // AND Vx, Vy
+                self.vregs[x] = (vx & vy) & 0xFF
+            elseif n == 0x3 then
+                // XOR Vx, Vy
+                self.vregs[x] = (vx ^ vy) & 0xFF
+            elseif n == 0x4 then
+                // ADD Vx, Vy (+carry to VF)
+                int sum = vx + vy
+                self.vregs[x] = sum & 0xFF
+                if sum > 0xFF then
+                    self.vregs[0xF] = 1
+                else
+                    self.vregs[0xF] = 0
+                end
+            elseif n == 0x5 then
+                // SUB Vx, Vy (VF = NOT borrow)
+                if vx >= vy then
+                    self.vregs[0xF] = 1
+                else
+                    self.vregs[0xF] = 0
+                end
+                self.vregs[x] = (vx - vy) & 0xFF
+            elseif n == 0x6 then
+                // SHR Vx (VF = old LSB)
+                self.vregs[0xF] = vx & 1
+                self.vregs[x] = (vx >> 1) & 0xFF
+            elseif n == 0x7 then
+                // SUBN Vx, Vy (VF = NOT borrow, Vx = Vy - Vx)
+                if vy >= vx then
+                    self.vregs[0xF] = 1
+                else
+                    self.vregs[0xF] = 0
+                end
+                self.vregs[x] = (vy - vx) & 0xFF
+            elseif n == 0xE then
+                // SHL Vx (VF = old MSB)
+                self.vregs[0xF] = (vx >> 7) & 1
+                self.vregs[x] = (vx << 1) & 0xFF
+            end
+        elseif first == 0x9 then
+            // 9xy0 SNE Vx, Vy
+            if n == 0 then
+                if self.vregs[x] != self.vregs[y] then
+                    self.pc = self.pc + 2
+                end
+            end
+        elseif first == 0xA then
+            // Annn LD I, nnn
+            self.I = nnn
+        elseif first == 0xB then
+            // Bnnn JP V0, nnn
+            self.pc = (nnn + self.vregs[0]) & 0x0FFF
+        elseif first == 0xC then
+            // Cxkk RND Vx, kk
+            int rnd = random.range(0, 255)
+            self.vregs[x] = rnd & nn
+        elseif first == 0xD then
+            // Dxyn DRW Vx, Vy, n
+            self.vregs[0xF] = self.draw(self.vregs[x], self.vregs[y], n)
+        elseif first == 0xE then
+            // Ex9E SKP Vx / ExA1 SKNP Vx
+            if nn == 0x9E then
+                if self.keys[self.vregs[x] & 0xF] != 0 then
+                    self.pc = self.pc + 2
+                end
+            elseif nn == 0xA1 then
+                if self.keys[self.vregs[x] & 0xF] == 0 then
+                    self.pc = self.pc + 2
+                end
+            end
+        elseif first == 0xF then
+            // F-table
+            int vx2 = self.vregs[x]
+            if nn == 0x07 then
+                // LD Vx, DT
+                self.vregs[x] = self.delayTimer
+            elseif nn == 0x0A then
+                // LD Vx, K (no stdin: pretend key 0 was pressed)
+                self.vregs[x] = 0
+            elseif nn == 0x15 then
+                // LD DT, Vx
+                self.delayTimer = vx2
+            elseif nn == 0x18 then
+                // LD ST, Vx
+                self.soundTimer = vx2
+            elseif nn == 0x1E then
+                // ADD I, Vx
+                self.I = (self.I + vx2) & 0xFFFF
+            elseif nn == 0x29 then
+                // LD F, Vx (I = address of font glyph for Vx)
+                self.I = FONT_START + (vx2 & 0xF) * FONT_BYTES
+            elseif nn == 0x33 then
+                // LD B, Vx (BCD of Vx into I, I+1, I+2)
+                int val = vx2 & 0xFF
+                self.memory[self.I & 0x0FFF]     = val / 100
+                self.memory[(self.I + 1) & 0x0FFF] = (val / 10) % 10
+                self.memory[(self.I + 2) & 0x0FFF] = val % 10
+            elseif nn == 0x55 then
+                // LD [I], Vx (store V0..Vx; COSMAC VIP increments I)
+                int k = 0
+                while k <= x do
+                    self.memory[(self.I + k) & 0x0FFF] = self.vregs[k]
+                    k += 1
+                end
+                self.I = (self.I + x + 1) & 0xFFFF
+            elseif nn == 0x65 then
+                // LD Vx, [I] (load V0..Vx; COSMAC VIP increments I)
+                int k = 0
+                while k <= x do
+                    self.vregs[k] = self.memory[(self.I + k) & 0x0FFF]
+                    k += 1
+                end
+                self.I = (self.I + x + 1) & 0xFFFF
+            end
+        end
+
+        // tick timers once per instruction
+        if self.delayTimer > 0 then
+            self.delayTimer = self.delayTimer - 1
+        end
+        if self.soundTimer > 0 then
+            self.soundTimer = self.soundTimer - 1
+        end
+
+        self.cycles = self.cycles + 1
+        return true
+    end
+
+    // Run up to maxCycles instructions. Stops early on halt.
+    func run(int maxCycles)
+        int n = 0
+        while n < maxCycles do
+            if not self.step() then
+                break
+            end
+            n += 1
+        end
+    end
+
+    // ASCII render of the 64x32 framebuffer using '#' and ' '.
+    func render() as array<string>
+        array<string> lines = makeStrArray(DISPLAY_H)
+        int row = 0
+        while row < DISPLAY_H do
+            string line = ""
+            int col = 0
+            while col < DISPLAY_W do
+                if self.gfx[row * DISPLAY_W + col] == 1 then
+                    line = line + "#"
+                else
+                    line = line + " "
+                end
+                col += 1
+            end
+            lines[row] = line
+            row += 1
+        end
+        return lines
+    end
+end
+
+
+// ============================ ROM loaders (standalone) ============================
+// NOTE: these are standalone functions (not class methods) because xlang
+// class methods cannot safely take array<int> / Buffer parameters:
+//   - array<int> parameter `.length` / `[i]` -> "[checked] class field receiver is not a class value"
+//   - Buffer parameter -> tcc "invalid type" at C-gen
+// Standalone functions with (Chip8, array<int>|Buffer) params work fine.
+
+// Load program bytes (already expanded into array<int>) into cpu.memory at 0x200.
+func loadBytes(Chip8 cpu, array<int> prog)
+    int room = MEM_SIZE - PROG_START
+    int n = prog.length
+    if n > room then
+        n = room
+    end
+    int i = 0
+    while i < n do
+        cpu.memory[PROG_START + i] = prog[i] & 0xFF
+        i += 1
+    end
+end
+
+// Load program from a Buffer (file.readBytes result) into cpu.memory at 0x200.
+func loadBuffer(Chip8 cpu, Buffer buf)
+    int room = MEM_SIZE - PROG_START
+    int n = buf.len()
+    if n > room then
+        n = room
+    end
+    int i = 0
+    while i < n do
+        cpu.memory[PROG_START + i] = buf.byteAt(i)
+        i += 1
+    end
+end
+
+
+// ============================ disassembler ============================
+
+// Decode one 16-bit opcode to a human-readable mnemonic.
+func decodeOp(int op) as string
+    int first = (op >> 12) & 0x0F
+    int x     = (op >> 8)  & 0x0F
+    int y     = (op >> 4)  & 0x0F
+    int n     = op & 0x000F
+    int nn    = op & 0x00FF
+    int nnn   = op & 0x0FFF
+
+    if first == 0x0 then
+        if op == 0x00E0 then
+            return "CLS"
+        end
+        if op == 0x00EE then
+            return "RET"
+        end
+        return "SYS " + hexWord(nnn)
+    elseif first == 0x1 then
+        return "JP " + hexWord(nnn)
+    elseif first == 0x2 then
+        return "CALL " + hexWord(nnn)
+    elseif first == 0x3 then
+        return "SE  V" + string.formatInt(x, "X") + ", #" + hexByte(nn)
+    elseif first == 0x4 then
+        return "SNE V" + string.formatInt(x, "X") + ", #" + hexByte(nn)
+    elseif first == 0x5 then
+        if n == 0 then
+            return "SE  V" + string.formatInt(x, "X") + ", V" + string.formatInt(y, "X")
+        end
+        return "??? " + hexWord(op)
+    elseif first == 0x6 then
+        return "LD  V" + string.formatInt(x, "X") + ", #" + hexByte(nn)
+    elseif first == 0x7 then
+        return "ADD V" + string.formatInt(x, "X") + ", #" + hexByte(nn)
+    elseif first == 0x8 then
+        string name = ""
+        if n == 0x0 then
+            name = "LD"
+        elseif n == 0x1 then
+            name = "OR"
+        elseif n == 0x2 then
+            name = "AND"
+        elseif n == 0x3 then
+            name = "XOR"
+        elseif n == 0x4 then
+            name = "ADD"
+        elseif n == 0x5 then
+            name = "SUB"
+        elseif n == 0x6 then
+            name = "SHR"
+        elseif n == 0x7 then
+            name = "SUBN"
+        elseif n == 0xE then
+            name = "SHL"
+        else
+            return "??? " + hexWord(op)
+        end
+        return name + " V" + string.formatInt(x, "X") + ", V" + string.formatInt(y, "X")
+    elseif first == 0x9 then
+        if n == 0 then
+            return "SNE V" + string.formatInt(x, "X") + ", V" + string.formatInt(y, "X")
+        end
+        return "??? " + hexWord(op)
+    elseif first == 0xA then
+        return "LD  I, " + hexWord(nnn)
+    elseif first == 0xB then
+        return "JP  V0, " + hexWord(nnn)
+    elseif first == 0xC then
+        return "RND V" + string.formatInt(x, "X") + ", #" + hexByte(nn)
+    elseif first == 0xD then
+        return "DRW V" + string.formatInt(x, "X") + ", V" + string.formatInt(y, "X") + ", " + string.formatInt(n, "D")
+    elseif first == 0xE then
+        if nn == 0x9E then
+            return "SKP V" + string.formatInt(x, "X")
+        end
+        if nn == 0xA1 then
+            return "SKNP V" + string.formatInt(x, "X")
+        end
+        return "??? " + hexWord(op)
+    elseif first == 0xF then
+        if nn == 0x07 then
+            return "LD  V" + string.formatInt(x, "X") + ", DT"
+        end
+        if nn == 0x0A then
+            return "LD  V" + string.formatInt(x, "X") + ", K"
+        end
+        if nn == 0x15 then
+            return "LD  DT, V" + string.formatInt(x, "X")
+        end
+        if nn == 0x18 then
+            return "LD  ST, V" + string.formatInt(x, "X")
+        end
+        if nn == 0x1E then
+            return "ADD I, V" + string.formatInt(x, "X")
+        end
+        if nn == 0x29 then
+            return "LD  F, V" + string.formatInt(x, "X")
+        end
+        if nn == 0x33 then
+            return "LD  B, V" + string.formatInt(x, "X")
+        end
+        if nn == 0x55 then
+            return "LD  [I], V" + string.formatInt(x, "X")
+        end
+        if nn == 0x65 then
+            return "LD  V" + string.formatInt(x, "X") + ", [I]"
+        end
+        return "??? " + hexWord(op)
+    end
+    return "??? " + hexWord(op)
+end
+
+// Disassemble every opcode in a Buffer (the ROM file).
+func disasmBuffer(Buffer buf) as int
+    int n = buf.len()
+    int i = 0
+    int addr = PROG_START
+    while i + 1 < n do
+        int op = (buf.byteAt(i) << 8) | buf.byteAt(i + 1)
+        println(hexWord(addr) + ": " + hexWord(op) + "  " + decodeOp(op))
+        i += 2
+        addr += 2
+    end
+    if i < n then
+        // trailing odd byte
+        println(hexWord(addr) + ": " + hexByte(buf.byteAt(i)) + "  <trailing byte>")
+    end
+    return 0
+end
+
+
+// ============================ display helpers ============================
+
+func printDisplay(Chip8 cpu)
+    array<string> lines = cpu.render()
+    println("+" + string.repeat("-", DISPLAY_W) + "+")
+    int row = 0
+    while row < DISPLAY_H do
+        println("|" + lines[row] + "|")
+        row += 1
+    end
+    println("+" + string.repeat("-", DISPLAY_W) + "+")
+end
+
+// Register dump for `load` command.
+func dumpState(Chip8 cpu)
+    string line = "V "
+    int i = 0
+    while i < REG_COUNT do
+        line = line + hexByte(cpu.vregs[i]) + " "
+        i += 1
+    end
+    println(line)
+    println("I=" + hexWord(cpu.I) + " PC=" + hexWord(cpu.pc) + " SP=" + string(cpu.sp))
+    println("DT=" + string(cpu.delayTimer) + " ST=" + string(cpu.soundTimer) + " cycles=" + string(cpu.cycles))
+end
+
+
+// ============================ built-in tests ============================
+
+// Tiny assertion helper that prints PASS/FAIL.
+func check(string name, bool ok) as bool
+    if ok then
+        println("  [PASS] " + name)
+    else
+        println("  [FAIL] " + name)
+    end
+    return ok
+end
+
+// Run a single test: program in `prog` (array of 16-bit opcodes), execute
+// `cycles` steps, then return the CPU for the caller to inspect.
+func runProg(array<int> prog, int cycles) as Chip8
+    Chip8 cpu = Chip8()
+    loadBytes(cpu, expandBytes(prog))
+    cpu.run(cycles)
+    return cpu
+end
+
+// T1: LD Vx, kk + ADD Vx, kk (no-carry ADD).
+func testLoadAdd() as bool
+    println("[T1] LD / 7xkk ADD")
+    // 0x6005  LD V0, 5
+    // 0x700A  ADD V0, 10
+    // 0x1210  JP 0x210 (out of program -> spins harmlessly)
+    array<int> prog = array[0x6005, 0x700A, 0x1210]
+    Chip8 cpu = runProg(prog, 20)
+    bool ok = check("V0 == 15", cpu.vregs[0] == 15)
+    return ok
+end
+
+// T2: 8xy4 ADD Vx, Vy with carry.
+func testAddCarry() as bool
+    println("[T2] 8xy4 ADD Vx, Vy (carry)")
+    // 0x60C8  LD V0, 200
+    // 0x6164  LD V1, 100
+    // 0x8014  ADD V0, V1   -> 300 = 0x12C, V0=0x2C=44, VF=1
+    // 0x1210  JP 0x210
+    array<int> prog = array[0x60C8, 0x6164, 0x8014, 0x1210]
+    Chip8 cpu = runProg(prog, 20)
+    bool ok = check("V0 == 44", cpu.vregs[0] == 44)
+    ok = check("VF == 1 (carry)", cpu.vregs[0xF] == 1) and ok
+    return ok
+end
+
+// T3: 8xy5 SUB Vx, Vy (borrow case).
+func testSubBorrow() as bool
+    println("[T3] 8xy5 SUB Vx, Vy (borrow)")
+    // 0x600A  LD V0, 10
+    // 0x6114  LD V1, 20
+    // 0x8015  SUB V0, V1   -> 10-20=-10=0xF6=246, VF=0 (borrow)
+    array<int> prog = array[0x600A, 0x6114, 0x8015, 0x1210]
+    Chip8 cpu = runProg(prog, 20)
+    bool ok = check("V0 == 246 (10-20 mod 256)", cpu.vregs[0] == 246)
+    ok = check("VF == 0 (borrow)", cpu.vregs[0xF] == 0) and ok
+    return ok
+end
+
+// T4: 8xy7 SUBN Vx, Vy (Vx = Vy - Vx).
+func testSubn() as bool
+    println("[T4] 8xy7 SUBN Vx, Vy")
+    // 0x600A  LD V0, 10
+    // 0x6114  LD V1, 20
+    // 0x8017  SUBN V0, V1  -> 20-10=10, VF=1 (no borrow)
+    array<int> prog = array[0x600A, 0x6114, 0x8017, 0x1210]
+    Chip8 cpu = runProg(prog, 20)
+    bool ok = check("V0 == 10", cpu.vregs[0] == 10)
+    ok = check("VF == 1 (no borrow)", cpu.vregs[0xF] == 1) and ok
+    return ok
+end
+
+// T5: 8xy1/2/3 OR/AND/XOR.
+func testLogic() as bool
+    println("[T5] 8xy1 OR / 8xy2 AND / 8xy3 XOR")
+    // 0x60F0  LD V0, 0xF0
+    // 0x610F  LD V1, 0x0F
+    // 0x8011  OR  V0, V1   -> 0xFF
+    // 0x600F  LD V0, 0x0F
+    // 0x8012  AND V0, V1   -> 0x0F
+    // 0x60FF  LD V0, 0xFF
+    // 0x8013  XOR V0, V1   -> 0xF0
+    array<int> prog = array[0x60F0, 0x610F, 0x8011, 0x600F, 0x8012, 0x60FF, 0x8013, 0x1210]
+    Chip8 cpu = runProg(prog, 20)
+    bool ok = check("V0 == 0xF0 (after OR,AND,XOR)", cpu.vregs[0] == 0xF0)
+    return ok
+end
+
+// T6: 8xy6 SHR / 8xyE SHL.
+func testShift() as bool
+    println("[T6] 8xy6 SHR / 8xyE SHL")
+    // 0x6002  LD V0, 2
+    // 0x8006  SHR V0      -> V0=1, VF=0 (LSB was 0)
+    // 0x6003  LD V0, 3
+    // 0x8006  SHR V0      -> V0=1, VF=1 (LSB was 1)
+    // 0x6001  LD V0, 1
+    // 0x800E  SHL V0      -> V0=2, VF=0 (MSB was 0)
+    // 0x6080  LD V0, 0x80
+    // 0x800E  SHL V0      -> V0=0, VF=1 (MSB was 1)
+    array<int> prog = array[0x6002, 0x8006, 0x6003, 0x8006, 0x6001, 0x800E, 0x6080, 0x800E, 0x1210]
+    Chip8 cpu = runProg(prog, 30)
+    bool ok = check("V0 == 0 (0x80<<1)", cpu.vregs[0] == 0)
+    ok = check("VF == 1 (MSB was 1)", cpu.vregs[0xF] == 1) and ok
+    return ok
+end
+
+// T7: Annn LD I / 2nnn CALL / 00EE RET.
+func testCallRet() as bool
+    println("[T7] Annn LD I / 2nnn CALL / 00EE RET")
+    // 0x200: A300      LD I, 0x300
+    // 0x202: 2208      CALL 0x208
+    // 0x204: 1210      JP 0x210
+    // 0x206: 0000      padding
+    // 0x208: 7055      ADD V0, 0x55
+    // 0x20A: 00EE      RET
+    array<int> prog = array[0xA300, 0x2208, 0x1210, 0x0000, 0x7055, 0x00EE]
+    Chip8 cpu = runProg(prog, 20)
+    bool ok = check("I == 0x300", cpu.I == 0x300)
+    ok = check("V0 == 0x55 (sub returned)", cpu.vregs[0] == 0x55) and ok
+    ok = check("SP == 0 (balanced RET)", cpu.sp == 0) and ok
+    return ok
+end
+
+// T8: 3xkk SE / 4xkk SNE / 5xy0 SE / 9xy0 SNE skip behavior.
+func testSkip() as bool
+    println("[T8] 3xkk SE / 4xkk SNE / 5xy0 SE / 9xy0 SNE")
+    // 0x200: 6005      LD V0, 5
+    // 0x202: 6105      LD V1, 5
+    // 0x204: 3005      SE V0, 5   -> skip next (V0 == 5)
+    // 0x206: 60FF      LD V0, 0xFF   <-- skipped
+    // 0x208: 4005      SNE V0, 5  -> don't skip (V0 == 5)
+    // 0x20A: 61AA      LD V1, 0xAA   <-- executed
+    // 0x20C: 5000      SE V0, V0  -> skip next (equal)
+    // 0x20E: 60EE      LD V0, 0xEE   <-- skipped
+    // 0x210: 9000      SNE V0, V0 -> don't skip (equal)
+    // 0x212: 60DD      LD V0, 0xDD   <-- executed
+    // 0x214: 1210      JP 0x210
+    array<int> prog = array[
+        0x6005, 0x6105, 0x3005, 0x60FF, 0x4005, 0x61AA,
+        0x5000, 0x60EE, 0x9000, 0x60DD, 0x1210
+    ]
+    Chip8 cpu = runProg(prog, 30)
+    bool ok = check("V0 == 0xDD (final LD executed)", cpu.vregs[0] == 0xDD)
+    ok = check("V1 == 0xAA (intermediate LD executed)", cpu.vregs[1] == 0xAA) and ok
+    return ok
+end
+
+// T9: Cxkk RND. Run many times with mask 0 -> always 0; mask 0xFF -> [0,255].
+func testRnd() as bool
+    println("[T9] Cxkk RND")
+    bool okZero = true
+    bool okRange = true
+    int trial = 0
+    while trial < 50 do
+        // 0xC000  RND V0, 0x00   -> V0 always 0
+        // 0xC1FF  RND V1, 0xFF   -> V1 in [0,255]
+        // 0x1210  JP
+        array<int> prog = array[0xC000, 0xC1FF, 0x1210]
+        Chip8 cpu = runProg(prog, 10)
+        if cpu.vregs[0] != 0 then
+            okZero = false
+        end
+        if cpu.vregs[1] > 255 then
+            okRange = false
+        end
+        trial += 1
+    end
+    bool ok = check("RND & 0x00 == 0", okZero)
+    ok = check("RND & 0xFF in [0,255]", okRange) and ok
+    return ok
+end
+
+// T10: Fx55 LD [I], Vx then Fx65 LD Vx, [I] round-trip.
+func testStoreLoad() as bool
+    println("[T10] Fx55 LD [I], Vx / Fx65 LD Vx, [I]")
+    // 0x200: A300      LD I, 0x300
+    // 0x202: 6011      LD V0, 0x11
+    // 0x204: 6122      LD V1, 0x22
+    // 0x206: 6233      LD V2, 0x33
+    // 0x208: F255      LD [I], V2     -> mem[300]=11, mem[301]=22, mem[302]=33
+    // 0x20A: 6000      LD V0, 0
+    // 0x20C: 6100      LD V1, 0
+    // 0x20E: 6200      LD V2, 0
+    // 0x210: A300      LD I, 0x300
+    // 0x212: F265      LD V2, [I]     -> V0=11, V1=22, V2=33
+    // 0x214: 1210      JP 0x210
+    array<int> prog = array[
+        0xA300, 0x6011, 0x6122, 0x6233, 0xF255,
+        0x6000, 0x6100, 0x6200, 0xA300, 0xF265, 0x1210
+    ]
+    Chip8 cpu = runProg(prog, 30)
+    bool ok = check("V0 == 0x11 after reload", cpu.vregs[0] == 0x11)
+    ok = check("V1 == 0x22 after reload", cpu.vregs[1] == 0x22) and ok
+    ok = check("V2 == 0x33 after reload", cpu.vregs[2] == 0x33) and ok
+    ok = check("mem[0x300] == 0x11", cpu.memory[0x300] == 0x11) and ok
+    ok = check("mem[0x302] == 0x33", cpu.memory[0x302] == 0x33) and ok
+    return ok
+end
+
+// T11: Fx33 LD B, Vx (BCD).
+func testBCD() as bool
+    println("[T11] Fx33 LD B, Vx (BCD)")
+    // 0x200: A300      LD I, 0x300
+    // 0x202: 60FF      LD V0, 0xFF (255)
+    // 0x204: F033      LD B, V0   -> mem[300]=2, mem[301]=5, mem[302]=5
+    array<int> prog = array[0xA300, 0x60FF, 0xF033, 0x1210]
+    Chip8 cpu = runProg(prog, 20)
+    bool ok = check("mem[0x300] == 2 (hundreds)", cpu.memory[0x300] == 2)
+    ok = check("mem[0x301] == 5 (tens)", cpu.memory[0x301] == 5) and ok
+    ok = check("mem[0x302] == 5 (ones)", cpu.memory[0x302] == 5) and ok
+    return ok
+end
+
+// T12: Dxyn DRW + Fx29 LD F + 00E0 CLS.
+// Draw the font glyph for 'A' (index 10) and verify the well-known
+// 5-row bitmap lands in the framebuffer.
+func testDraw() as bool
+    println("[T12] Dxyn DRW / Fx29 LD F / 00E0 CLS")
+    // 0x200: 00E0      CLS
+    // 0x202: 620A      LD V2, 10   ('A')
+    // 0x204: F229      LD F, V2    -> I = FONT_START + 10*5 = 0x50+50 = 0x82
+    // 0x206: 6000      LD V0, 0    (x)
+    // 0x208: 6100      LD V1, 0    (y)
+    // 0x20A: D015      DRW V0, V1, 5
+    // 0x20C: 1210      JP 0x210
+    array<int> prog = array[0x00E0, 0x620A, 0xF229, 0x6000, 0x6100, 0xD015, 0x1210]
+    Chip8 cpu = runProg(prog, 20)
+
+    // 'A' font is 0xF0, 0x90, 0xF0, 0x90, 0x90.
+    // Row 0: 11110000 -> px 0..3 on
+    bool ok = check("pixel (0,0) on", cpu.gfx[0] == 1)
+    ok = check("pixel (3,0) on", cpu.gfx[3] == 1) and ok
+    ok = check("pixel (4,0) off (glyph only 4 wide)", cpu.gfx[4] == 0) and ok
+    // Row 1: 10010000 -> px 0 and 3 on
+    ok = check("pixel (0,1) on", cpu.gfx[64] == 1) and ok
+    ok = check("pixel (3,1) on", cpu.gfx[64 + 3] == 1) and ok
+    // Row 4: 10010000
+    ok = check("pixel (0,4) on", cpu.gfx[4 * 64] == 1) and ok
+    // drawFlag was set
+    ok = check("drawFlag set", cpu.drawFlag) and ok
+    return ok
+end
+
+// T13: Fx15 LD DT / Fx07 LD Vx,DT timer echo + Bnnn JP V0.
+func testTimer() as bool
+    println("[T13] Fx15 LD DT / Fx07 LD Vx,DT / Bnnn JP V0")
+    // 0x200: 6005      LD V0, 5
+    // 0x202: F015      LD DT, V0
+    // 0x204: F007      LD V0, DT   ; V0 = (5 decremented once by now)
+    // 0x206: 1210      JP 0x210
+    array<int> prog = array[0x6005, 0xF015, 0xF007, 0x1210]
+    Chip8 cpu = runProg(prog, 20)
+    // After F015: DT=5. step ticks DT to 4. F007 reads DT=4. Then tick to 3.
+    // Remaining ~16 cycles spin on 0x0000 (no-op) at 0x210, ticking DT down to 0.
+    bool ok = check("V0 == 4 (DT read after one tick)", cpu.vregs[0] == 4)
+    ok = check("DT fully decremented to 0", cpu.delayTimer == 0) and ok
+
+    // Bnnn: JP V0 + nnn
+    // 0x200: 6002      LD V0, 2
+    // 0x202: B200      JP V0, 0x200 -> PC = 0x200 + 2 = 0x202 (re-exec JP -> spin)
+    array<int> prog2 = array[0x6002, 0xB200]
+    Chip8 cpu2 = runProg(prog2, 10)
+    ok = check("Bnnn jumped to V0+nnn (PC at 0x202)", cpu2.pc == 0x202) and ok
+    return ok
+end
+
+func runAllTests() as int
+    println("=== CHIP-8 built-in tests ===")
+    bool allOk = true
+    allOk = testLoadAdd()    and allOk
+    allOk = testAddCarry()   and allOk
+    allOk = testSubBorrow()  and allOk
+    allOk = testSubn()       and allOk
+    allOk = testLogic()      and allOk
+    allOk = testShift()      and allOk
+    allOk = testCallRet()    and allOk
+    allOk = testSkip()       and allOk
+    allOk = testRnd()        and allOk
+    allOk = testStoreLoad()  and allOk
+    allOk = testBCD()        and allOk
+    allOk = testDraw()       and allOk
+    allOk = testTimer()      and allOk
+    println("===")
+    if allOk then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println("SOME TESTS FAILED")
+    return 1
+end
+
+
+// ============================ built-in demo ============================
+
+// Demo ROM: animates the "C8" logo scrolling vertically down the screen
+// (CLS each frame, draw C and 8 from the built-in font, advance y by 1).
+//
+// Layout:
+//   0x200: 00E0      CLS                 (initial clear)
+//   0x202: 6301      LD V3, 1            (y delta)
+//   0x204: 6101      LD V1, 1            (y)
+//   0x206: 6001      LD V0, 1            (x)
+//   loop (0x208):
+//   0x208: 00E0      CLS
+//   0x20A: 620C      LD V2, 12 ('C')
+//   0x20C: F229      LD F, V2
+//   0x20E: D015      DRW V0, V1, 5
+//   0x210: 6208      LD V2, 8  ('8')
+//   0x212: F229      LD F, V2
+//   0x214: D015      DRW V0, V1, 5
+//   0x216: 7005      ADD V0, 5           (advance x for next draw is undone
+//                                          because we want both stacked;
+//                                          but actually we want C at x=1 and
+//                                          8 at x=6 -> see real layout below)
+//
+// Rewritten simpler: C at fixed x=1, 8 at x=6, both same y, y advances 1/frame.
+func buildDemoRom() as array<int>
+    // Use words for clarity; addresses computed by hand.
+    // 0x200: 00E0  CLS
+    // 0x202: 6301  LD V3, 1            ; dy = 1
+    // 0x204: 6101  LD V1, 1            ; y  = 1
+    // 0x206: 6001  LD V0, 1            ; x  = 1 (C)
+    // 0x208: 6406  LD V4, 6            ; x8 = 6 (8)
+    // loop:
+    // 0x20A: 00E0  CLS
+    // 0x20C: 620C  LD V2, 12           ; 'C'
+    // 0x20E: F229  LD F, V2
+    // 0x210: D015  DRW V0, V1, 5
+    // 0x212: 6208  LD V2, 8            ; '8'
+    // 0x214: F229  LD F, V2
+    // 0x216: D415  DRW V4, V1, 5       ; x=V4, y=V1
+    // 0x218: 8134  ADD V1, V3          ; y += dy
+    // 0x21A: 411A  SNE V1, 26          ; if y == 26, fall through to reset
+    // 0x21C: 1204  JP 0x204            ; reset y to 1 (and re-init x)
+    // 0x21E: 120A  JP 0x20A            ; else loop frame
+    array<int> words = array[
+        0x00E0,
+        0x6301,
+        0x6101,
+        0x6001,
+        0x6406,
+        0x00E0,
+        0x620C,
+        0xF229,
+        0xD015,
+        0x6208,
+        0xF229,
+        0xD415,
+        0x8134,
+        0x411A,
+        0x1204,
+        0x120A
+    ]
+    return expandBytes(words)
+end
+
+func runDemo() as int
+    println("=== CHIP-8 demo: scrolling C8 logo ===")
+    array<int> romBytes = buildDemoRom()
+    // Each frame iteration is 10 instructions:
+    //   CLS, LD V2,C, LD F, DRW(C), LD V2,8, LD F, DRW(8), ADD V1, SNE, JP
+    // Setup is 5 cycles. Frame iter k starts at cycle 6+10(k-1).
+    // DRW(8) is instruction 7 of the iter -> at cycle 6+10(k-1)+6 = 12+10(k-1).
+    // We render right after DRW(8) so both C and 8 are visible.
+    // y == k during the draw (ADD V1 runs after, so V1 is still k here).
+    //   y= 1 -> cycles= 12    y= 8 -> cycles= 82
+    //   y=15 -> cycles=152    y=22 -> cycles=222
+    array<int> frameCycles = array[12, 82, 152, 222]
+    int fi = 0
+    while fi < frameCycles.length do
+        // fresh CPU each frame so we render at a deterministic y
+        Chip8 cpu = Chip8()
+        loadBytes(cpu, romBytes)
+        cpu.run(frameCycles[fi])
+        println("-- frame " + string(fi) + " (after " + string(frameCycles[fi]) + " cycles, y=" + string(cpu.vregs[1]) + ") --")
+        printDisplay(cpu)
+        println("")
+        fi += 1
+    end
+    return 0
+end
+
+
+// ============================ CLI ============================
+
+func looksInt(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int i = 0
+    if string.byteAt(s, 0) == 45 then
+        i = 1
+        if n == 1 then
+            return false
+        end
+    end
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+func printUsage()
+    println("chip8 - CHIP-8 virtual machine emulator")
+    println("")
+    println("usage:")
+    println("  chip8 load <rom_file> [max_cycles=1000]   load & execute ROM, dump state")
+    println("  chip8 disasm <rom_file>                    disassemble ROM opcodes")
+    println("  chip8 test                                 built-in instruction tests")
+    println("  chip8 demo                                 built-in C8 logo animation")
+    println("  chip8 -h | --help                          this help")
+end
+
+func cmdLoad(string path, int maxCycles) as int
+    if not file.exists(path) then
+        println("chip8: file not found: " + path)
+        return 1
+    end
+    Buffer buf = file.readBytes(path)
+    if buf.len() == 0 then
+        println("chip8: empty ROM: " + path)
+        return 1
+    end
+    Chip8 cpu = Chip8()
+    loadBuffer(cpu, buf)
+    println("; ROM: " + path + " (" + string(buf.len()) + " bytes)")
+    println("; running " + string(maxCycles) + " cycles...")
+    cpu.run(maxCycles)
+    println(";")
+    dumpState(cpu)
+    println("; display:")
+    printDisplay(cpu)
+    return 0
+end
+
+func cmdDisasm(string path) as int
+    if not file.exists(path) then
+        println("chip8: file not found: " + path)
+        return 1
+    end
+    Buffer buf = file.readBytes(path)
+    if buf.len() == 0 then
+        println("chip8: empty ROM: " + path)
+        return 1
+    end
+    println("; disassembly of " + path + " (" + string(buf.len()) + " bytes)")
+    return disasmBuffer(buf)
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return runAllTests()
+    end
+
+    if cmd == "demo" then
+        return runDemo()
+    end
+
+    if cmd == "disasm" then
+        if arg.length < 3 then
+            println("chip8: 'disasm' needs <rom_file>")
+            return 1
+        end
+        return cmdDisasm(string(arg[2]))
+    end
+
+    if cmd == "load" then
+        if arg.length < 3 then
+            println("chip8: 'load' needs <rom_file> [max_cycles]")
+            return 1
+        end
+        string path = string(arg[2])
+        int maxCycles = 1000
+        if arg.length >= 4 then
+            string c = string(arg[3])
+            if not looksInt(c) then
+                println("chip8: invalid max_cycles: " + c)
+                return 1
+            end
+            maxCycles = int(c)
+            if maxCycles < 0 then
+                maxCycles = 0
+            end
+        end
+        return cmdLoad(path, maxCycles)
+    end
+
+    println("chip8: unknown command: " + cmd)
+    printUsage()
+    return 1
+end

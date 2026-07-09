@@ -430,6 +430,9 @@ static XL6_AstNode* xl6CgenCloneClassProtocolReturnType(XL6_CgenContext* ctx, co
 static int xl6CgenClassProtocolMemberSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right);
 static int xl6CgenClassProtocolIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right);
 static int xl6CgenClassProtocolIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static int xl6CgenClassProtocolIndexHasGetter(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static int xl6CgenClassProtocolCallPrefix(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const XL6_AstNode* classNode, const XL6_AstNode* ownerClass, const XL6_AstNode* method, const XL6_AstNode* receiverType);
+static int xl6CgenResolveClassProtocolReceiverForCall(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const char* protocolName, const XL6_AstNode* call, const XL6_AstNode** outClass, const XL6_AstNode** outOwnerClass, const XL6_AstNode** outMethod, XL6_AstNode** outReceiverType);
 static XL6_AstNode* xl6CgenCloneStaticClassFieldType(XL6_CgenContext* ctx, const XL6_AstNode* member);
 static int xl6CgenStaticClassFieldExpr(XL6_CgenContext* ctx, const XL6_AstNode* member);
 static int xl6CgenStaticClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);

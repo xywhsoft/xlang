@@ -1,0 +1,1066 @@
+﻿// minizip.xl - LZ77/LZSS compression and file archiving tool
+//
+// Implements LZSS (LZ77 variant) compression with hash-chain match finding,
+// a custom MXA archive format, and CRC32 integrity checking.
+//
+// usage:
+//   minizip compress <input_file> <output.mxz>       compress single file
+//   minizip decompress <input.mxz> <output_file>     decompress single file
+//   minizip archive create <archive.mxz> <files...>  create multi-file archive
+//   minizip archive list <archive.mxz>               list archive contents
+//   minizip archive extract <archive.mxz>            extract all files
+//   minizip test <input_file>                        compress+decompress roundtrip
+//   minizip bench <input_file> [iterations=10]       performance benchmark
+//   minizip --help | -h                              show help
+//
+// ---------------------------------------------------------------------------
+// LZSS token format (flag-byte grouped, classic LZSS):
+//   Data is grouped into blocks of 8 tokens, preceded by 1 flag byte.
+//   Flag bit = 1 -> match token (2 bytes), bit = 0 -> literal token (1 byte).
+//   Match token: offset (12-bit, 1..4096) + length (4-bit, 3..18) = 2 bytes.
+//     byte0 = (offset-1) >> 4
+//     byte1 = ((offset-1) & 0x0F) << 4 | (length-3)
+//
+// MXA archive format:
+//   Header (8 bytes): "MXA" + version(1) + fileCount(uint16 LE) + reserved(2)
+//   Per file: nameLen(uint16 LE) + name(UTF-8) + method(1) +
+//             origSize(uint32 LE) + storedSize(uint32 LE) + CRC32(uint32 LE) +
+//             storedData(storedSize bytes)
+//   method: 0=stored(uncompressed), 1=LZSS compressed
+//
+// Implementation notes:
+//   * Buffer (native-backed class) cannot be returned from user functions
+//     (BUG-HD1). All Buffer usage is inlined in the calling function scope;
+//     functions that need Buffer receive it as a parameter.
+//   * Compressed data is stored/transferred in array<int> (basic type, safe
+//     to return/pass). Each element is a byte value 0..255.
+//   * LZ77 uses hash-chain match finding for practical speed (zlib-style).
+//   * CRC32 implemented manually: hash.* stdlib functions only accept
+//     strings, not binary data. hash.u64 is used for file-name fingerprinting.
+// ---------------------------------------------------------------------------
+
+// === LZSS parameters ===
+const int WINDOW_SIZE = 4096
+const int WINDOW_MASK = 4095
+const int MIN_MATCH = 3
+const int MAX_MATCH = 18               // MIN_MATCH + 15 (4-bit length field)
+const int HASH_SIZE = 8192
+const int HASH_MASK = 8191
+const int MAX_CHAIN = 256              // max hash-chain depth per match search
+
+// === Archive format constants ===
+const int ARCHIVE_VERSION = 1
+const int METHOD_STORED = 0
+const int METHOD_LZSS = 1
+
+// === Global CRC32 lookup table (initialized in main) ===
+array<int> gCrcTable = array[]
+
+// ===========================================================================
+// CRC32 (IEEE 802.3, polynomial 0xEDB88320)
+// ===========================================================================
+
+func initCrcTable()
+    int i = 0
+    while i < 256 do
+        int c = i
+        int j = 0
+        while j < 8 do
+            if (c & 1) != 0 then
+                c = (c >> 1) ^ 0xEDB88320
+            else
+                c = c >> 1
+            end
+            j += 1
+        end
+        gCrcTable.push(c)
+        i += 1
+    end
+end
+
+func crc32Buf(Buffer buf, int n) as int
+    int crc = 0xFFFFFFFF
+    int i = 0
+    while i < n do
+        int idx = (crc ^ buf.byteAt(i)) & 0xFF
+        crc = (crc >> 8) ^ gCrcTable[idx]
+        i += 1
+    end
+    return crc ^ 0xFFFFFFFF
+end
+
+func crc32Arr(array<int> data) as int
+    int crc = 0xFFFFFFFF
+    int n = data.length
+    int i = 0
+    while i < n do
+        int idx = (crc ^ data[i]) & 0xFF
+        crc = (crc >> 8) ^ gCrcTable[idx]
+        i += 1
+    end
+    return crc ^ 0xFFFFFFFF
+end
+
+// ===========================================================================
+// LZ77 / LZSS Compression
+// ===========================================================================
+
+func hash3(int b0, int b1, int b2) as int
+    return ((b0 << 10) ^ (b1 << 5) ^ b2) & HASH_MASK
+end
+
+// Compress Buffer -> array<int> (each int is one byte of compressed stream)
+func lz77Compress(Buffer input) as array<int>
+    int n = input.len()
+    array<int> out = array[]
+    if n == 0 then
+        return out
+    end
+
+    // Hash chain arrays for fast match finding
+    array<int> head = array[]
+    array<int> prevArr = array[]
+    int hi = 0
+    while hi < HASH_SIZE do
+        head.push(-1)
+        hi += 1
+    end
+    int pi = 0
+    while pi < WINDOW_SIZE do
+        prevArr.push(-1)
+        pi += 1
+    end
+
+    int pos = 0
+    while pos < n do
+        // Reserve flag byte slot; fill after block completes
+        int flagPos = out.length
+        out.push(0)
+        int flagByte = 0
+        int bits = 0
+
+        while bits < 8 and pos < n do
+            int bestOff = 0
+            int bestLen = 0
+
+            // Search for match if at least MIN_MATCH bytes remain
+            if pos + MIN_MATCH <= n then
+                int b0 = input.byteAt(pos)
+                int b1 = input.byteAt(pos + 1)
+                int b2 = input.byteAt(pos + 2)
+                int h = hash3(b0, b1, b2)
+                int candidate = head[h]
+                int chain = 0
+                int windowStart = pos - WINDOW_SIZE
+                int maxLen = MAX_MATCH
+                if pos + maxLen > n then
+                    maxLen = n - pos
+                end
+
+                while candidate >= 0 and candidate >= windowStart and chain < MAX_CHAIN do
+                    // Quick reject: if we already have a match, the byte
+                    // at candidate+bestLen must also match
+                    if bestLen > 0 then
+                        if input.byteAt(candidate + bestLen) != input.byteAt(pos + bestLen) then
+                            candidate = prevArr[candidate & WINDOW_MASK]
+                            chain += 1
+                            continue
+                        end
+                    end
+
+                    // Compare bytes
+                    int ml = 0
+                    while ml < maxLen and input.byteAt(candidate + ml) == input.byteAt(pos + ml) do
+                        ml += 1
+                    end
+
+                    if ml > bestLen then
+                        bestLen = ml
+                        bestOff = pos - candidate
+                        if ml >= maxLen then
+                            break
+                        end
+                    end
+
+                    candidate = prevArr[candidate & WINDOW_MASK]
+                    chain += 1
+                end
+            end
+
+            if bestLen >= MIN_MATCH then
+                // Match token
+                flagByte = (flagByte << 1) | 1
+                bits += 1
+                int offEnc = bestOff - 1
+                int lenEnc = bestLen - MIN_MATCH
+                out.push((offEnc >> 4) & 0xFF)
+                out.push(((offEnc & 0x0F) << 4) | (lenEnc & 0x0F))
+
+                // Insert hash entries for all matched positions
+                int ip = pos
+                while ip < pos + bestLen do
+                    if ip + MIN_MATCH <= n then
+                        int ih = hash3(input.byteAt(ip), input.byteAt(ip + 1), input.byteAt(ip + 2))
+                        prevArr[ip & WINDOW_MASK] = head[ih]
+                        head[ih] = ip
+                    end
+                    ip += 1
+                end
+
+                pos += bestLen
+            else
+                // Literal token
+                flagByte = flagByte << 1
+                bits += 1
+                out.push(input.byteAt(pos))
+
+                if pos + MIN_MATCH <= n then
+                    int h = hash3(input.byteAt(pos), input.byteAt(pos + 1), input.byteAt(pos + 2))
+                    prevArr[pos & WINDOW_MASK] = head[h]
+                    head[h] = pos
+                end
+
+                pos += 1
+            end
+        end
+
+        // Write flag byte (left-align if partial block)
+        if bits < 8 then
+            flagByte = flagByte << (8 - bits)
+        end
+        out[flagPos] = flagByte
+    end
+
+    return out
+end
+
+// ===========================================================================
+// LZ77 / LZSS Decompression
+// ===========================================================================
+
+func lz77Decompress(array<int> compressed, int originalSize) as array<int>
+    array<int> out = array[]
+    int ci = 0
+    int cn = compressed.length
+
+    while ci < cn and out.length < originalSize do
+        int flag = compressed[ci]
+        ci += 1
+        int bit = 7
+
+        while bit >= 0 and ci < cn and out.length < originalSize do
+            if ((flag >> bit) & 1) != 0 then
+                // Match token (2 bytes)
+                int b0 = compressed[ci]
+                int b1 = compressed[ci + 1]
+                ci += 2
+                int offEnc = (b0 << 4) | (b1 >> 4)
+                int lenEnc = b1 & 0x0F
+                int offset = offEnc + 1
+                int length = lenEnc + MIN_MATCH
+
+                int srcPos = out.length - offset
+                int k = 0
+                while k < length and out.length < originalSize do
+                    out.push(out[srcPos + k])
+                    k += 1
+                end
+            else
+                // Literal token (1 byte)
+                out.push(compressed[ci])
+                ci += 1
+            end
+            bit -= 1
+        end
+    end
+
+    return out
+end
+
+// ===========================================================================
+// Binary I/O helpers (Buffer is passed as parameter per BUG-HD1)
+// ===========================================================================
+
+func readU16(Buffer buf, int pos) as int
+    return buf.byteAt(pos) | (buf.byteAt(pos + 1) << 8)
+end
+
+func readU32(Buffer buf, int pos) as int
+    return buf.byteAt(pos) | (buf.byteAt(pos + 1) << 8) | (buf.byteAt(pos + 2) << 16) | (buf.byteAt(pos + 3) << 24)
+end
+
+func readName(Buffer buf, int pos, int nameLen) as string
+    Buffer nb = Buffer()
+    int i = 0
+    while i < nameLen do
+        nb.appendByte(buf.byteAt(pos + i))
+        i += 1
+    end
+    return nb.text()
+end
+
+func extractBytes(Buffer buf, int pos, int count) as array<int>
+    array<int> result = array[]
+    int i = 0
+    while i < count do
+        result.push(buf.byteAt(pos + i))
+        i += 1
+    end
+    return result
+end
+
+// ===========================================================================
+// Display helpers
+// ===========================================================================
+
+func methodName(int m) as string
+    if m == METHOD_LZSS then
+        return "lzss"
+    end
+    return "stored"
+end
+
+func formatSize(int bytes) as string
+    if bytes < 1024 then
+        return string(bytes) + " B"
+    elseif bytes < 1048576 then
+        return string.formatFloat(float(bytes) / 1024.0, ".2") + " KB"
+    end
+    return string.formatFloat(float(bytes) / 1048576.0, ".2") + " MB"
+end
+
+func formatRatio(int orig, int stored) as string
+    if stored == 0 or orig == 0 then
+        return "---"
+    end
+    float r = float(orig) / float(stored)
+    return string.formatFloat(r, ".2") + ":1"
+end
+
+func formatPct(int orig, int stored) as string
+    if orig == 0 then
+        return "---"
+    end
+    float p = float(stored) * 100.0 / float(orig)
+    return string.formatFloat(p, ".1") + "%"
+end
+
+func formatHex32(int val) as string
+    return string.formatInt(val, "x8")
+end
+
+// ===========================================================================
+// Archive builder: files -> array<int> (complete archive byte stream)
+// ===========================================================================
+
+func buildArchive(array<string> files) as array<int>
+    array<int> out = array[]
+
+    // Header
+    out.push(77)   // 'M'
+    out.push(88)   // 'X'
+    out.push(65)   // 'A'
+    out.push(ARCHIVE_VERSION)
+    int fileCount = files.length
+    out.push(fileCount & 0xFF)
+    out.push((fileCount >> 8) & 0xFF)
+    out.push(0)    // reserved
+    out.push(0)
+
+    int fi = 0
+    while fi < fileCount do
+        string filePath = files[fi]
+        Buffer data = file.readBytes(filePath)
+        int origSize = data.len()
+        int crc = crc32Buf(data, origSize)
+
+        // Compress
+        array<int> compressed = lz77Compress(data)
+        int compSize = compressed.length
+
+        // Choose method: use LZSS only if it actually saves space
+        int method = METHOD_LZSS
+        int storedSize = compSize
+        if compSize >= origSize then
+            method = METHOD_STORED
+            storedSize = origSize
+        end
+
+        // File name (base name only, UTF-8 bytes)
+        string name = path.nameExt(filePath)
+        int nameLen = string.byteLen(name)
+
+        // Name length (uint16 LE)
+        out.push(nameLen & 0xFF)
+        out.push((nameLen >> 8) & 0xFF)
+
+        // Name bytes
+        int ni = 0
+        while ni < nameLen do
+            out.push(string.byteAt(name, ni))
+            ni += 1
+        end
+
+        // Method
+        out.push(method)
+
+        // Original size (uint32 LE)
+        out.push(origSize & 0xFF)
+        out.push((origSize >> 8) & 0xFF)
+        out.push((origSize >> 16) & 0xFF)
+        out.push((origSize >> 24) & 0xFF)
+
+        // Stored size (uint32 LE)
+        out.push(storedSize & 0xFF)
+        out.push((storedSize >> 8) & 0xFF)
+        out.push((storedSize >> 16) & 0xFF)
+        out.push((storedSize >> 24) & 0xFF)
+
+        // CRC32 (uint32 LE)
+        out.push(crc & 0xFF)
+        out.push((crc >> 8) & 0xFF)
+        out.push((crc >> 16) & 0xFF)
+        out.push((crc >> 24) & 0xFF)
+
+        // Data bytes
+        if method == METHOD_LZSS then
+            int ci = 0
+            while ci < compSize do
+                out.push(compressed[ci])
+                ci += 1
+            end
+        else
+            // Stored: raw original bytes
+            int bi = 0
+            while bi < origSize do
+                out.push(data.byteAt(bi))
+                bi += 1
+            end
+        end
+
+        fi += 1
+    end
+
+    return out
+end
+
+// ===========================================================================
+// Command: compress <input_file> <output.mxz>
+// ===========================================================================
+
+func cmdCompress(string inputPath, string outputPath) as int
+    if not file.exists(inputPath) then
+        println("minizip: file not found: " + inputPath)
+        return 1
+    end
+
+    Buffer data = file.readBytes(inputPath)
+    int origSize = data.len()
+    int crc = crc32Buf(data, origSize)
+
+    array<int> compressed = lz77Compress(data)
+    int compSize = compressed.length
+
+    int method = METHOD_LZSS
+    int storedSize = compSize
+    if compSize >= origSize then
+        method = METHOD_STORED
+        storedSize = origSize
+    end
+
+    string name = path.nameExt(inputPath)
+    int nameLen = string.byteLen(name)
+
+    // Build archive array<int>
+    array<int> arch = array[]
+    arch.push(77)
+    arch.push(88)
+    arch.push(65)
+    arch.push(ARCHIVE_VERSION)
+    arch.push(1)    // file count low
+    arch.push(0)    // file count high
+    arch.push(0)    // reserved
+    arch.push(0)
+    arch.push(nameLen & 0xFF)
+    arch.push((nameLen >> 8) & 0xFF)
+    int ni = 0
+    while ni < nameLen do
+        arch.push(string.byteAt(name, ni))
+        ni += 1
+    end
+    arch.push(method)
+    arch.push(origSize & 0xFF)
+    arch.push((origSize >> 8) & 0xFF)
+    arch.push((origSize >> 16) & 0xFF)
+    arch.push((origSize >> 24) & 0xFF)
+    arch.push(storedSize & 0xFF)
+    arch.push((storedSize >> 8) & 0xFF)
+    arch.push((storedSize >> 16) & 0xFF)
+    arch.push((storedSize >> 24) & 0xFF)
+    arch.push(crc & 0xFF)
+    arch.push((crc >> 8) & 0xFF)
+    arch.push((crc >> 16) & 0xFF)
+    arch.push((crc >> 24) & 0xFF)
+    if method == METHOD_LZSS then
+        int ci = 0
+        while ci < compSize do
+            arch.push(compressed[ci])
+            ci += 1
+        end
+    else
+        int bi = 0
+        while bi < origSize do
+            arch.push(data.byteAt(bi))
+            bi += 1
+        end
+    end
+
+    // Write archive
+    Buffer outBuf = Buffer()
+    int oi = 0
+    while oi < arch.length do
+        outBuf.appendByte(arch[oi])
+        oi += 1
+    end
+    file.writeBytes(outputPath, outBuf)
+
+    println("minizip: " + inputPath + " -> " + outputPath)
+    println("  original:   " + formatSize(origSize) + " (" + string(origSize) + " bytes)")
+    println("  stored:     " + formatSize(storedSize) + " (" + string(storedSize) + " bytes)")
+    println("  ratio:      " + formatRatio(origSize, storedSize) + " (" + formatPct(origSize, storedSize) + ")")
+    println("  method:     " + methodName(method))
+    println("  CRC32:      " + formatHex32(crc))
+    return 0
+end
+
+// ===========================================================================
+// Command: decompress <input.mxz> <output_file>
+// ===========================================================================
+
+func cmdDecompress(string inputPath, string outputPath) as int
+    if not file.exists(inputPath) then
+        println("minizip: archive not found: " + inputPath)
+        return 1
+    end
+
+    Buffer buf = file.readBytes(inputPath)
+    int bn = buf.len()
+    if bn < 8 then
+        println("minizip: invalid archive (too small)")
+        return 1
+    end
+
+    // Verify magic
+    if buf.byteAt(0) != 77 or buf.byteAt(1) != 88 or buf.byteAt(2) != 65 then
+        println("minizip: not an MXA archive")
+        return 1
+    end
+
+    int ver = buf.byteAt(3)
+    int fileCount = readU16(buf, 4)
+    if fileCount < 1 then
+        println("minizip: archive contains no files")
+        return 1
+    end
+
+    // Parse first file entry
+    int pos = 8
+    int nameLen = readU16(buf, pos)
+    pos += 2
+    string name = readName(buf, pos, nameLen)
+    pos += nameLen
+    int method = buf.byteAt(pos)
+    pos += 1
+    int origSize = readU32(buf, pos)
+    pos += 4
+    int storedSize = readU32(buf, pos)
+    pos += 4
+    int crc = readU32(buf, pos)
+    pos += 4
+
+    // Extract and decompress
+    array<int> storedData = extractBytes(buf, pos, storedSize)
+    array<int> origData = array[]
+    if method == METHOD_LZSS then
+        origData = lz77Decompress(storedData, origSize)
+    else
+        origData = storedData
+    end
+
+    // Verify CRC
+    int actualCrc = crc32Arr(origData)
+    bool crcOk = (actualCrc == crc)
+
+    // Write output
+    Buffer outBuf = Buffer()
+    int oi = 0
+    while oi < origData.length do
+        outBuf.appendByte(origData[oi])
+        oi += 1
+    end
+    file.writeBytes(outputPath, outBuf)
+
+    println("minizip: " + inputPath + " -> " + outputPath)
+    println("  name:       " + name)
+    println("  method:     " + methodName(method))
+    println("  size:       " + formatSize(origSize) + " (" + string(origSize) + " bytes)")
+    println("  CRC32:      " + formatHex32(actualCrc) + "  " + (crcOk ? "[OK]" : "[MISMATCH]"))
+
+    if not crcOk then
+        println("minizip: CRC mismatch! Expected " + formatHex32(crc))
+        return 1
+    end
+    return 0
+end
+
+// ===========================================================================
+// Command: archive create <archive.mxz> <files...>
+// ===========================================================================
+
+func cmdArchiveCreate(string archivePath, array<string> files) as int
+    // Pre-validate all files exist
+    int fi = 0
+    while fi < files.length do
+        if not file.exists(files[fi]) then
+            println("minizip: file not found: " + files[fi])
+            return 1
+        end
+        fi += 1
+    end
+
+    array<int> arch = buildArchive(files)
+
+    Buffer outBuf = Buffer()
+    int oi = 0
+    while oi < arch.length do
+        outBuf.appendByte(arch[oi])
+        oi += 1
+    end
+    file.writeBytes(archivePath, outBuf)
+
+    // Report per-file stats by re-reading header from what we built
+    int pos = 8
+    int fileCount = files.length
+    int totalOrig = 0
+    int totalStored = 0
+
+    println("minizip: creating archive " + archivePath)
+    println("  " + string.padRight("#", 4) + string.padRight("name", 28) + string.padRight("method", 8) + string.padRight("original", 12) + string.padRight("stored", 12) + "ratio")
+
+    fi = 0
+    while fi < fileCount do
+        int nameLen = arch[pos] | (arch[pos + 1] << 8)
+        pos += 2
+        Buffer nb = Buffer()
+        int ni = 0
+        while ni < nameLen do
+            nb.appendByte(arch[pos + ni])
+            ni += 1
+        end
+        string nm = nb.text()
+        pos += nameLen
+        int method = arch[pos]
+        pos += 1
+        int origSize = arch[pos] | (arch[pos + 1] << 8) | (arch[pos + 2] << 16) | (arch[pos + 3] << 24)
+        pos += 4
+        int storedSize = arch[pos] | (arch[pos + 1] << 8) | (arch[pos + 2] << 16) | (arch[pos + 3] << 24)
+        pos += 4
+        int crc = arch[pos] | (arch[pos + 1] << 8) | (arch[pos + 2] << 16) | (arch[pos + 3] << 24)
+        pos += 4
+        pos += storedSize
+
+        totalOrig += origSize
+        totalStored += storedSize
+
+        println("  " + string.padRight(string(fi + 1), 4) + string.padRight(nm, 28) + string.padRight(methodName(method), 8) + string.padRight(string(origSize), 12) + string.padRight(string(storedSize), 12) + formatRatio(origSize, storedSize))
+        fi += 1
+    end
+
+    println("  " + string.padRight("", 4) + string.padRight("TOTAL", 28) + string.padRight("", 8) + string.padRight(string(totalOrig), 12) + string.padRight(string(totalStored), 12) + formatRatio(totalOrig, totalStored))
+    println("  files: " + string(fileCount))
+    return 0
+end
+
+// ===========================================================================
+// Command: archive list <archive.mxz>
+// ===========================================================================
+
+func cmdArchiveList(string archivePath) as int
+    if not file.exists(archivePath) then
+        println("minizip: archive not found: " + archivePath)
+        return 1
+    end
+
+    Buffer buf = file.readBytes(archivePath)
+    int bn = buf.len()
+    if bn < 8 then
+        println("minizip: invalid archive (too small)")
+        return 1
+    end
+
+    if buf.byteAt(0) != 77 or buf.byteAt(1) != 88 or buf.byteAt(2) != 65 then
+        println("minizip: not an MXA archive")
+        return 1
+    end
+
+    int ver = buf.byteAt(3)
+    int fileCount = readU16(buf, 4)
+    int pos = 8
+
+    println("minizip: archive " + archivePath)
+    println("  version: " + string(ver) + "  files: " + string(fileCount))
+    println("  " + string.padRight("#", 4) + string.padRight("name", 28) + string.padRight("method", 8) + string.padRight("original", 12) + string.padRight("stored", 12) + string.padRight("ratio", 10) + "CRC32")
+
+    int totalOrig = 0
+    int totalStored = 0
+    int fi = 0
+    while fi < fileCount do
+        int nameLen = readU16(buf, pos)
+        pos += 2
+        string nm = readName(buf, pos, nameLen)
+        pos += nameLen
+        int method = buf.byteAt(pos)
+        pos += 1
+        int origSize = readU32(buf, pos)
+        pos += 4
+        int storedSize = readU32(buf, pos)
+        pos += 4
+        int crc = readU32(buf, pos)
+        pos += 4
+        pos += storedSize
+
+        totalOrig += origSize
+        totalStored += storedSize
+
+        println("  " + string.padRight(string(fi + 1), 4) + string.padRight(nm, 28) + string.padRight(methodName(method), 8) + string.padRight(string(origSize), 12) + string.padRight(string(storedSize), 12) + string.padRight(formatRatio(origSize, storedSize), 10) + formatHex32(crc))
+        fi += 1
+    end
+
+    println("  " + string.padRight("", 4) + string.padRight("TOTAL", 28) + string.padRight("", 8) + string.padRight(string(totalOrig), 12) + string.padRight(string(totalStored), 12) + formatRatio(totalOrig, totalStored))
+    return 0
+end
+
+// ===========================================================================
+// Command: archive extract <archive.mxz>
+// ===========================================================================
+
+func cmdArchiveExtract(string archivePath) as int
+    if not file.exists(archivePath) then
+        println("minizip: archive not found: " + archivePath)
+        return 1
+    end
+
+    Buffer buf = file.readBytes(archivePath)
+    int bn = buf.len()
+    if bn < 8 then
+        println("minizip: invalid archive (too small)")
+        return 1
+    end
+
+    if buf.byteAt(0) != 77 or buf.byteAt(1) != 88 or buf.byteAt(2) != 65 then
+        println("minizip: not an MXA archive")
+        return 1
+    end
+
+    int fileCount = readU16(buf, 4)
+    int pos = 8
+
+    println("minizip: extracting from " + archivePath)
+    int extracted = 0
+    int fi = 0
+    while fi < fileCount do
+        int nameLen = readU16(buf, pos)
+        pos += 2
+        string nm = readName(buf, pos, nameLen)
+        pos += nameLen
+        int method = buf.byteAt(pos)
+        pos += 1
+        int origSize = readU32(buf, pos)
+        pos += 4
+        int storedSize = readU32(buf, pos)
+        pos += 4
+        int crc = readU32(buf, pos)
+        pos += 4
+
+        array<int> storedData = extractBytes(buf, pos, storedSize)
+        pos += storedSize
+
+        array<int> origData = array[]
+        if method == METHOD_LZSS then
+            origData = lz77Decompress(storedData, origSize)
+        else
+            origData = storedData
+        end
+
+        int actualCrc = crc32Arr(origData)
+        bool crcOk = (actualCrc == crc)
+
+        // Write file
+        Buffer outBuf = Buffer()
+        int oi = 0
+        while oi < origData.length do
+            outBuf.appendByte(origData[oi])
+            oi += 1
+        end
+        file.writeBytes(nm, outBuf)
+
+        println("  " + string.padRight(nm, 28) + string.padRight(string(origSize) + " bytes", 16) + (crcOk ? "[OK]" : "[CRC FAIL]"))
+        extracted += 1
+        fi += 1
+    end
+
+    println("  extracted: " + string(extracted) + " files")
+    return 0
+end
+
+// ===========================================================================
+// Command: test <input_file>  (compress + decompress roundtrip)
+// ===========================================================================
+
+func cmdTest(string inputPath) as int
+    if not file.exists(inputPath) then
+        println("minizip: file not found: " + inputPath)
+        return 1
+    end
+
+    Buffer data = file.readBytes(inputPath)
+    int origSize = data.len()
+    int origCrc = crc32Buf(data, origSize)
+
+    println("minizip: roundtrip test on " + inputPath)
+    println("  file:       " + formatSize(origSize) + " (" + string(origSize) + " bytes)")
+
+    // Compress
+    float t0 = time.timer()
+    array<int> compressed = lz77Compress(data)
+    float t1 = time.timer()
+    int compSize = compressed.length
+
+    println("  compressed: " + formatSize(compSize) + " (" + string(compSize) + " bytes)")
+    println("  ratio:      " + formatRatio(origSize, compSize) + " (" + formatPct(origSize, compSize) + ")")
+    println("  compress:   " + string.formatFloat((t1 - t0) * 1000.0, ".3") + " ms")
+
+    // Decompress
+    float t2 = time.timer()
+    array<int> decompressed = lz77Decompress(compressed, origSize)
+    float t3 = time.timer()
+
+    println("  decompress: " + string.formatFloat((t3 - t2) * 1000.0, ".3") + " ms")
+
+    // Verify roundtrip: byte-by-byte comparison
+    bool match = true
+    if decompressed.length != origSize then
+        match = false
+        println("  length mismatch: " + string(decompressed.length) + " vs " + string(origSize))
+    else
+        int i = 0
+        while i < origSize do
+            if decompressed[i] != data.byteAt(i) then
+                match = false
+                println("  byte mismatch at offset " + string(i) + ": " + string(decompressed[i]) + " vs " + string(data.byteAt(i)))
+                break
+            end
+            i += 1
+        end
+    end
+
+    int decompCrc = crc32Arr(decompressed)
+
+    println("  CRC32:      orig=" + formatHex32(origCrc) + "  decomp=" + formatHex32(decompCrc) + "  " + (origCrc == decompCrc ? "[MATCH]" : "[DIFF]"))
+    println("  roundtrip:  " + (match ? "PASS" : "FAIL"))
+
+    // File-name fingerprint using hash standard library
+    string baseName = path.nameExt(inputPath)
+    println("  hash.u64(name): " + string.formatUInt(hash.u64(baseName), "x16"))
+
+    if not match then
+        return 1
+    end
+    return 0
+end
+
+// ===========================================================================
+// Command: bench <input_file> [iterations=10]
+// ===========================================================================
+
+func cmdBench(string inputPath, int iterations) as int
+    if not file.exists(inputPath) then
+        println("minizip: file not found: " + inputPath)
+        return 1
+    end
+
+    Buffer data = file.readBytes(inputPath)
+    int origSize = data.len()
+
+    println("minizip: benchmark on " + inputPath)
+    println("  file:       " + formatSize(origSize) + " (" + string(origSize) + " bytes)")
+    println("  iterations: " + string(iterations))
+
+    // Warm up
+    array<int> warmCompressed = lz77Compress(data)
+    int compSize = warmCompressed.length
+
+    println("  compressed: " + formatSize(compSize) + " (" + string(compSize) + " bytes)")
+    println("  ratio:      " + formatRatio(origSize, compSize) + " (" + formatPct(origSize, compSize) + ")")
+    println("")
+
+    // Benchmark compress
+    float tStart = time.timer()
+    int ci = 0
+    while ci < iterations do
+        warmCompressed = lz77Compress(data)
+        ci += 1
+    end
+    float tEnd = time.timer()
+    float compTotal = tEnd - tStart
+    float compPerCall = compTotal / float(iterations)
+    float compMBps = 0.0
+    if compPerCall > 0.0 then
+        compMBps = float(origSize) / (compPerCall * 1048576.0)
+    end
+
+    // Benchmark decompress
+    tStart = time.timer()
+    int di = 0
+    while di < iterations do
+        array<int> dec = lz77Decompress(warmCompressed, origSize)
+        di += 1
+    end
+    tEnd = time.timer()
+    float decTotal = tEnd - tStart
+    float decPerCall = decTotal / float(iterations)
+    float decMBps = 0.0
+    if decPerCall > 0.0 then
+        decMBps = float(origSize) / (decPerCall * 1048576.0)
+    end
+
+    println("  compress:   " + string.formatFloat(compPerCall * 1000.0, ".3") + " ms/call  (" + string.formatFloat(compMBps, ".2") + " MB/s)")
+    println("  decompress: " + string.formatFloat(decPerCall * 1000.0, ".3") + " ms/call  (" + string.formatFloat(decMBps, ".2") + " MB/s)")
+    return 0
+end
+
+// ===========================================================================
+// Usage and main
+// ===========================================================================
+
+func printUsage()
+    println("minizip - LZ77 compression and file archiving tool")
+    println("")
+    println("usage:")
+    println("  minizip compress <input_file> <output.mxz>       compress single file")
+    println("  minizip decompress <input.mxz> <output_file>     decompress single file")
+    println("  minizip archive create <archive.mxz> <files...>  create multi-file archive")
+    println("  minizip archive list <archive.mxz>               list archive contents")
+    println("  minizip archive extract <archive.mxz>            extract all files")
+    println("  minizip test <input_file>                        compress+decompress roundtrip")
+    println("  minizip bench <input_file> [iterations=10]       performance benchmark")
+    println("  minizip --help | -h                              show this help")
+    println("")
+    println("algorithms: LZSS (LZ77 variant), window=4096, lookahead=18, min-match=3")
+end
+
+func looksInt(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int i = 0
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+func main(...) as int
+    initCrcTable()
+
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "--help" or cmd == "-h" or cmd == "help" then
+        printUsage()
+        return 0
+    elseif cmd == "compress" then
+        if arg.length < 4 then
+            println("minizip compress: requires <input_file> <output.mxz>")
+            return 1
+        end
+        return cmdCompress(string(arg[2]), string(arg[3]))
+    elseif cmd == "decompress" then
+        if arg.length < 4 then
+            println("minizip decompress: requires <input.mxz> <output_file>")
+            return 1
+        end
+        return cmdDecompress(string(arg[2]), string(arg[3]))
+    elseif cmd == "archive" then
+        if arg.length < 3 then
+            println("minizip archive: requires subcommand (create/list/extract)")
+            return 1
+        end
+        string sub = string(arg[2])
+        if sub == "create" then
+            if arg.length < 5 then
+                println("minizip archive create: requires <archive.mxz> <files...>")
+                return 1
+            end
+            array<string> files = array[]
+            int i = 4
+            while i < arg.length do
+                files.push(string(arg[i]))
+                i += 1
+            end
+            return cmdArchiveCreate(string(arg[3]), files)
+        elseif sub == "list" then
+            if arg.length < 4 then
+                println("minizip archive list: requires <archive.mxz>")
+                return 1
+            end
+            return cmdArchiveList(string(arg[3]))
+        elseif sub == "extract" then
+            if arg.length < 4 then
+                println("minizip archive extract: requires <archive.mxz>")
+                return 1
+            end
+            return cmdArchiveExtract(string(arg[3]))
+        else
+            println("minizip archive: unknown subcommand: " + sub)
+            return 1
+        end
+    elseif cmd == "test" then
+        if arg.length < 3 then
+            println("minizip test: requires <input_file>")
+            return 1
+        end
+        return cmdTest(string(arg[2]))
+    elseif cmd == "bench" then
+        if arg.length < 3 then
+            println("minizip bench: requires <input_file>")
+            return 1
+        end
+        int iters = 10
+        if arg.length >= 4 then
+            string it = string(arg[3])
+            if looksInt(it) then
+                iters = int(it)
+                if iters < 1 then
+                    iters = 1
+                end
+            end
+        end
+        return cmdBench(string(arg[2]), iters)
+    else
+        println("minizip: unknown command: " + cmd)
+        printUsage()
+        return 1
+    end
+
+    return 0
+end

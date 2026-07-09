@@ -1,0 +1,56 @@
+extern "winui_get_text" func wGetText(point ctrl) as string
+extern "winui_set_text" func wSetText(point ctrl, string text)
+
+class Edit
+    native point handle
+    extern "winui_edit_create" create(point parent, string text, int x, int y, int w, int h)
+    extern "winui_set_text"    func setText(string text)
+    extern "winui_get_text"    func getText() as string
+    func getHandle() as point
+        return self.handle
+    end
+end
+
+class Window
+    native point handle
+    extern "winui_window_create"  create(string title, int w, int h)
+    extern "winui_window_destroy" destroy()
+    func getHandle() as point
+        return self.handle
+    end
+end
+
+export "winui_on_button_click" func winui_on_button_click(int id) as int
+    return 0
+end
+
+func main(...) as int
+    Window win = Window("probe2", 200, 100)
+    Edit a = Edit(win.getHandle(), "first", 10, 10, 100, 20)
+    Edit b = Edit(win.getHandle(), "second", 10, 40, 100, 20)
+
+    // Case 1: read and print immediately, no intervening call.
+    string sa1 = a.getText()
+    println("case1 immediate: sa1 = \"" + sa1 + "\"  (want first)")
+
+    // Case 2: read a, THEN b, THEN print a.
+    string sa2 = a.getText()
+    string sb2 = b.getText()
+    println("case2 after 2nd call: sa2 = \"" + sa2 + "\"  (want first, got " + sa2 + ")")
+    println("case2 sb2 = \"" + sb2 + "\"  (want second)")
+
+    // Case 3: does forcing a concatenation at read time preserve the value?
+    string sa3 = "" + a.getText()
+    string sb3 = "" + b.getText()
+    println("case3 concat-prefixed: sa3 = \"" + sa3 + "\"  (want first)")
+    println("case3 sb3 = \"" + sb3 + "\"  (want second)")
+
+    // Case 4: store into a typed-container, then read back after another call.
+    array<string> arr = array<string>[]
+    arr.append(a.getText())
+    arr.append(b.getText())
+    println("case4 array: arr[0] = \"" + arr[0] + "\"  (want first)")
+    println("case4 array: arr[1] = \"" + arr[1] + "\"  (want second)")
+
+    return 0
+end

@@ -1,0 +1,1107 @@
+// dbengine - 内存 KV 数据库引擎
+//
+// 验证目标：复杂数据结构（嵌套 dict/list）、字段索引、TTL、事务快照、
+// JSON 持久化、HTTP API。全部用 var dict + json + time 实现。
+//
+// 命令行：
+//   dbengine                          内置自测（必须全部通过）
+//   dbengine run                      执行内置示例脚本（批量演示）
+//   dbengine run <script.dbs>         执行脚本文件（每行一条命令）
+//   dbengine serve [port]             HTTP API 模式（默认 18200）
+//
+// 查询语言（大小写不敏感）：
+//   GET key                           取值
+//   SET key value                     存值（value 自动识别类型）
+//   DELETE key                        删除键
+//   EXISTS key                        键是否存在
+//   KEYS pattern                      通配符匹配键（string.like 语法：* ?）
+//   FIND field=value                  按字段索引查找键集合
+//   COUNT                             键总数
+//   EXPIRE key seconds                设置 TTL（秒）
+//   TTL key                           查看剩余秒数（-1 无 TTL，-2 不存在/已过期）
+//   INCR key                          整数自增（不存在从 0 开始）
+//   TYPE key                          值类型（string/int/float/bool/list/dict/none）
+//   BEGIN                             开始事务（记录快照）
+//   COMMIT                            提交事务（丢弃快照）
+//   ROLLBACK                          回滚到快照
+//   SAVE file                         持久化到 JSON 文件
+//   LOAD file                         从 JSON 文件载入
+//   CLEAR                             清空全部数据
+//
+// value 类型识别（SET 时）：
+//   {...} / [...]        → JSON 解析为 dict / list
+//   "..."                → 引号字符串（支持 \" \\ \n \t \r 转义）
+//   true / false / null  → 布尔 / null
+//   纯数字                → int
+//   含 . 或 e/E          → float
+//   其它                  → 字符串
+//
+// 设计要点：
+//   - 主存储 gStore 为文件作用域 var dict；gTtl 存键→过期 unix 秒；gIndex 为
+//     字段倒排索引（field → value → 键集合，键集合用 dict 当 set）。
+//   - 索引在 SET dict 值时自动建立标量字段；DELETE/ROLLBACK 自动维护。
+//   - 事务快照用 json.parse(json.stringify(data)) 深拷贝（值语义独立）。
+//   - TTL 用 time.toUnix(time.now()) 取当前秒；每次命令前惰性清理过期键。
+//   - HTTP serve 模式：状态经磁盘文件跨越 native callback 边界（绕开 BUG-XB1），
+//     每个请求内 load → execute → store，execute 复用全局引擎。
+// ============================================================================
+
+// ---- 全局状态（run/test 模式直接使用；serve 模式每请求 load/store）----
+var gStore = {}        // key -> value（string/int/float/bool/list/dict）
+var gTtl = {}          // key -> 过期 unix 秒（int）
+var gIndex = {}        // field -> { valueStr -> { key -> true } }
+var gStoreSnap = {}    // 事务快照：store
+var gTtlSnap = {}      // 事务快照：ttl
+bool gInTx = false     // 是否在事务中
+
+const int DEFAULT_PORT = 18200
+
+
+// ============================================================================
+// 基础工具
+// ============================================================================
+
+func nowSec() as int
+    return time.toUnix(time.now())
+end
+
+
+// 深拷贝（事务快照、LOAD 独立副本）：json 往返产生值语义独立的新容器。
+func deepCopy(var d) as var
+    return json.parse(json.stringify(d))
+end
+
+
+// 判断 var 是否可作为索引标量。
+func isScalarIndexable(var v) as bool
+    if v is string then return true end
+    if v is int then return true end
+    if v is float then return true end
+    if v is bool then return true end
+    return false
+end
+
+
+// 值格式化为展示字符串（bool 强制 true/false；容器走 compact JSON）。
+func valueToString(var v) as string
+    if v is null then return "null" end
+    if v is bool then
+        if bool(v) then return "true" end
+        return "false"
+    end
+    if v is int then return string(int(v)) end
+    if v is float then return string(float(v)) end
+    if v is string then return string(v) end
+    if type(v) == type([]) then return json.stringify(v) end
+    if type(v) == type({}) then return json.stringify(v) end
+    return string(v)
+end
+
+
+func typeName(var v) as string
+    if v is null then return "none" end
+    if v is bool then return "bool" end
+    if v is int then return "int" end
+    if v is float then return "float" end
+    if v is string then return "string" end
+    if type(v) == type([]) then return "list" end
+    if type(v) == type({}) then return "dict" end
+    return "unknown"
+end
+
+
+// 判断是否整数字面量（可选符号 + 纯数字）。
+func looksLikeInt(string s) as bool
+    if string.isEmpty(s) then return false end
+    int i = 0
+    int firstByte = string.byteAt(s, 0)
+    if firstByte == 45 or firstByte == 43 then
+        i = 1
+    end
+    if i >= string.len(s) then return false end
+    while i < string.len(s) do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then return false end
+        i += 1
+    end
+    return true
+end
+
+
+// 判断是否浮点字面量（含 . 或 e/E，至少一个数字）。
+func looksLikeFloat(string s) as bool
+    bool hasDot = string.contains(s, ".")
+    bool hasE = string.contains(s, "e") or string.contains(s, "E")
+    if not hasDot and not hasE then return false end
+    int i = 0
+    int firstByte = string.byteAt(s, 0)
+    if firstByte == 45 or firstByte == 43 then
+        i = 1
+    end
+    bool seenDigit = false
+    while i < string.len(s) do
+        int b = string.byteAt(s, i)
+        if b >= 48 and b <= 57 then
+            seenDigit = true
+        elseif b == 46 or b == 101 or b == 69 or b == 45 or b == 43 then
+            // '.', 'e', 'E', '-', '+' 允许
+        else
+            return false
+        end
+        i += 1
+    end
+    return seenDigit
+end
+
+
+// 引号字符串反转义（\" \\ \n \t \r）。
+func unescapeString(string s) as string
+    string out = ""
+    int i = 0
+    int n = string.len(s)
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b == 92 then
+            i += 1
+            if i >= n then
+                out = out + "\\"
+                break
+            end
+            int b2 = string.byteAt(s, i)
+            if b2 == 110 then
+                out = out + "\n"
+            elseif b2 == 116 then
+                out = out + "\t"
+            elseif b2 == 114 then
+                out = out + "\r"
+            elseif b2 == 34 then
+                out = out + "\""
+            elseif b2 == 92 then
+                out = out + "\\"
+            else
+                out = out + "\\" + string.charAt(s, i)
+            end
+        else
+            out = out + string.charAt(s, i)
+        end
+        i += 1
+    end
+    return out
+end
+
+
+// 解析 SET 的值表达式为强类型 var。
+func parseSetValue(string raw) as var
+    string s = string.trim(raw)
+    if string.isEmpty(s) then return "" end
+    int first = string.byteAt(s, 0)
+    // JSON 对象 / 数组
+    if first == 123 or first == 91 then
+        if json.valid(s) then return json.parse(s) end
+        return s
+    end
+    // 引号字符串
+    if first == 34 then
+        int len = string.len(s)
+        if len >= 2 and string.byteAt(s, len - 1) == 34 then
+            return unescapeString(string.slice(s, 1, len - 2))
+        end
+        return s
+    end
+    if s == "true" then return true end
+    if s == "false" then return false end
+    if s == "null" then return null end
+    if looksLikeInt(s) then return int(s) end
+    if looksLikeFloat(s) then return float(s) end
+    return s
+end
+
+
+// 把字符串嵌入 JSON 文本（转义）。
+func jsonEscape(string s) as string
+    string out = ""
+    int i = 0
+    int n = string.len(s)
+    while i < n do
+        string c = string.charAt(s, i)
+        if c == "\"" then
+            out = out + "\\\""
+        elseif c == "\\" then
+            out = out + "\\\\"
+        elseif c == "\n" then
+            out = out + "\\n"
+        elseif c == "\r" then
+            out = out + "\\r"
+        elseif c == "\t" then
+            out = out + "\\t"
+        else
+            out = out + c
+        end
+        i += 1
+    end
+    return out
+end
+
+
+// 把 var 数组拼接成换行分隔的字符串。
+func joinLines(var arr) as string
+    string out = ""
+    int i = 0
+    while i < arr.length do
+        if i > 0 then out = out + "\n" end
+        out = out + string(arr[i])
+        i += 1
+    end
+    return out
+end
+
+
+// 按首个空白拆出 token 与剩余串。
+func firstToken(string s) as (string, string)
+    int sp = string.indexOf(s, " ")
+    if sp < 0 then
+        return string.trim(s), ""
+    end
+    string tok = string.trim(string.slice(s, 0, sp))
+    string rem = string.ltrim(string.slice(s, sp + 1, string.len(s) - sp - 1))
+    return tok, rem
+end
+
+
+// ============================================================================
+// TTL 清理
+// ============================================================================
+
+func purgeExpired()
+    int now = nowSec()
+    var expired = []
+    for key, exp in gTtl
+        if int(exp) <= now then
+            expired.append(key)
+        end
+    end
+    int i = 0
+    while i < expired.length do
+        string k = string(expired[i])
+        if k in gStore then
+            unindexKey(k, gStore[k])
+            gStore.remove(k)
+        end
+        gTtl.remove(k)
+        i += 1
+    end
+end
+
+
+// ============================================================================
+// 字段倒排索引
+// ============================================================================
+
+// 为某个键的 dict 值建立所有标量字段索引。
+func indexDictFields(string key, var dv)
+    for field, fv in dv
+        if not isScalarIndexable(fv) then continue end
+        string vs = valueToString(fv)
+        if not (field in gIndex) then gIndex[field] = {} end
+        var fmap = gIndex[field]
+        if not (vs in fmap) then fmap[vs] = {} end
+        fmap[vs][key] = true
+    end
+end
+
+
+// 移除某键在索引中的全部旧记录（oldVal 必须是该键被覆盖/删除前的旧值）。
+func unindexKey(string key, var oldVal)
+    if not (type(oldVal) == type({})) then return end
+    for field, fv in oldVal
+        if not (field in gIndex) then continue end
+        if not isScalarIndexable(fv) then continue end
+        string vs = valueToString(fv)
+        if vs in gIndex[field] then
+            var grp = gIndex[field][vs]
+            if key in grp then
+                grp.remove(key)
+            end
+            if grp.length == 0 then
+                gIndex[field].remove(vs)
+            end
+        end
+    end
+end
+
+
+// 从 gStore 重建整个索引。
+func reindexAll()
+    gIndex = {}
+    for key, val in gStore
+        if type(val) == type({}) then
+            indexDictFields(string(key), val)
+        end
+    end
+end
+
+
+// ============================================================================
+// 核心引擎：执行单条命令，返回结果字符串。
+// ============================================================================
+
+func execute(string line) as string
+    string trimmed = string.trim(line)
+    if string.isEmpty(trimmed) then return "" end
+    if string.startsWith(trimmed, "//") then return "" end
+
+    purgeExpired()
+
+    string cmd
+    string rest
+    cmd, rest = firstToken(trimmed)
+    cmd = string.lower(cmd)
+
+    // ---- SET ----
+    if cmd == "set" then
+        string key
+        string valRaw
+        key, valRaw = firstToken(rest)
+        if string.isEmpty(key) then return "(error) SET requires key" end
+        if key in gStore then
+            unindexKey(key, gStore[key])
+        end
+        var pv = parseSetValue(valRaw)
+        gStore[key] = pv
+        if type(pv) == type({}) then
+            indexDictFields(key, pv)
+        end
+        if key in gTtl then gTtl.remove(key) end
+        return "OK"
+    end
+
+    // ---- GET ----
+    if cmd == "get" then
+        string key
+        key, rest = firstToken(rest)
+        if string.isEmpty(key) then return "(error) GET requires key" end
+        if not (key in gStore) then return "(nil)" end
+        return valueToString(gStore[key])
+    end
+
+    // ---- DELETE ----
+    if cmd == "delete" then
+        string key
+        key, rest = firstToken(rest)
+        if not (key in gStore) then return "0" end
+        unindexKey(key, gStore[key])
+        gStore.remove(key)
+        if key in gTtl then gTtl.remove(key) end
+        return "1"
+    end
+
+    // ---- EXISTS ----
+    if cmd == "exists" then
+        string key
+        key, rest = firstToken(rest)
+        if key in gStore then return "1" end
+        return "0"
+    end
+
+    // ---- KEYS pattern ----
+    if cmd == "keys" then
+        string pattern = string.trim(rest)
+        if string.isEmpty(pattern) then pattern = "*" end
+        var matched = []
+        for k, v in gStore
+            if string.like(string(k), pattern) then
+                matched.append(k)
+            end
+        end
+        if matched.length == 0 then return "(empty)" end
+        return joinLines(matched)
+    end
+
+    // ---- FIND field=value ----
+    if cmd == "find" then
+        string q = string.trim(rest)
+        int eq = string.indexOf(q, "=")
+        if eq < 0 then return "(error) FIND requires field=value" end
+        string field = string.slice(q, 0, eq)
+        string val = string.slice(q, eq + 1, string.len(q) - eq - 1)
+        if not (field in gIndex) then return "(empty)" end
+        var fmap = gIndex[field]
+        if not (val in fmap) then return "(empty)" end
+        var grp = fmap[val]
+        var matched = []
+        for k, flag in grp
+            matched.append(k)
+        end
+        if matched.length == 0 then return "(empty)" end
+        return joinLines(matched)
+    end
+
+    // ---- COUNT ----
+    if cmd == "count" then
+        return string(gStore.length)
+    end
+
+    // ---- EXPIRE key seconds ----
+    if cmd == "expire" then
+        string key
+        string secs
+        key, secs = firstToken(rest)
+        if not (key in gStore) then return "0" end
+        int s = int(secs)
+        gTtl[key] = nowSec() + s
+        return "1"
+    end
+
+    // ---- TTL key ----
+    if cmd == "ttl" then
+        string key
+        key, rest = firstToken(rest)
+        if not (key in gStore) then return "-2" end
+        if not (key in gTtl) then return "-1" end
+        int remain = int(gTtl[key]) - nowSec()
+        if remain <= 0 then
+            unindexKey(key, gStore[key])
+            gStore.remove(key)
+            gTtl.remove(key)
+            return "-2"
+        end
+        return string(remain)
+    end
+
+    // ---- INCR key ----
+    if cmd == "incr" then
+        string key
+        key, rest = firstToken(rest)
+        int cur = 0
+        if key in gStore then
+            cur = int(gStore[key])
+        end
+        cur += 1
+        gStore[key] = cur
+        return string(cur)
+    end
+
+    // ---- TYPE key ----
+    if cmd == "type" then
+        string key
+        key, rest = firstToken(rest)
+        if not (key in gStore) then return "none" end
+        return typeName(gStore[key])
+    end
+
+    // ---- BEGIN / COMMIT / ROLLBACK ----
+    if cmd == "begin" then
+        gStoreSnap = deepCopy(gStore)
+        gTtlSnap = deepCopy(gTtl)
+        gInTx = true
+        return "OK"
+    end
+
+    if cmd == "commit" then
+        gStoreSnap = {}
+        gTtlSnap = {}
+        gInTx = false
+        return "OK"
+    end
+
+    if cmd == "rollback" then
+        if not gInTx then return "(error) no transaction" end
+        gStore = deepCopy(gStoreSnap)
+        gTtl = deepCopy(gTtlSnap)
+        gInTx = false
+        reindexAll()
+        return "OK"
+    end
+
+    // ---- SAVE / LOAD ----
+    if cmd == "save" then
+        string fname = string.trim(rest)
+        if string.isEmpty(fname) then return "(error) SAVE requires filename" end
+        var env = {}
+        env["store"] = gStore
+        env["ttl"] = gTtl
+        bool ok = file.writeText(fname, json.stringify(env))
+        if not ok then return "(error) failed to write " + fname end
+        return "OK saved " + string(gStore.length) + " keys to " + fname
+    end
+
+    if cmd == "load" then
+        string fname = string.trim(rest)
+        if string.isEmpty(fname) then return "(error) LOAD requires filename" end
+        if not file.exists(fname) then return "(error) file not found " + fname end
+        string text = file.readText(fname)
+        if not json.valid(text) then return "(error) invalid JSON in " + fname end
+        var env = json.parse(text)
+        var st = env["store"]
+        if st == null then st = {} end
+        var tl = env["ttl"]
+        if tl == null then tl = {} end
+        gStore = st
+        gTtl = tl
+        reindexAll()
+        return "OK loaded " + string(gStore.length) + " keys from " + fname
+    end
+
+    // ---- CLEAR ----
+    if cmd == "clear" then
+        int n = gStore.length
+        gStore = {}
+        gTtl = {}
+        gIndex = {}
+        gInTx = false
+        return "OK cleared " + string(n) + " keys"
+    end
+
+    return "(error) unknown command: " + cmd
+end
+
+
+// ============================================================================
+// 脚本执行 / 内置示例
+// ============================================================================
+
+// 执行脚本文件（每行一条命令），逐条打印非空结果。
+func runScript(string scriptPath) as int
+    if not file.exists(scriptPath) then
+        println("Error: script not found: " + scriptPath)
+        return 1
+    end
+    string text = file.readText(scriptPath)
+    array lines = string.splitLines(text)
+    // BUG-S1 绕过：splitLines 末尾换行多出一个空串，删一个。
+    if lines.length > 0 then
+        if string(lines[lines.length - 1]) == "" then
+            lines.remove(lines.length - 1)
+        end
+    end
+    int i = 0
+    while i < lines.length do
+        string ln = string(lines[i])
+        string out = execute(ln)
+        if not string.isEmpty(out) then
+            println("> " + ln)
+            println(out)
+            println("")
+        end
+        i += 1
+    end
+    return 0
+end
+
+
+// 内置示例脚本（无外部文件也能完整演示引擎能力）。
+func runDemo() as int
+    println("================ dbengine demo ================")
+    var cmds = []
+    cmds.append("CLEAR")
+    cmds.append("SET user:1 {\"name\":\"Alice\",\"age\":30}")
+    cmds.append("SET user:2 {\"name\":\"Bob\",\"age\":25}")
+    cmds.append("SET counter 0")
+    cmds.append("FIND name=Alice")
+    cmds.append("FIND age=25")
+    cmds.append("FIND name=Charlie")
+    cmds.append("KEYS user:*")
+    cmds.append("COUNT")
+    cmds.append("INCR counter")
+    cmds.append("INCR counter")
+    cmds.append("GET counter")
+    cmds.append("TYPE user:1")
+    cmds.append("TYPE counter")
+    cmds.append("EXPIRE user:2 3600")
+    cmds.append("TTL user:2")
+    cmds.append("TTL user:1")
+    cmds.append("BEGIN")
+    cmds.append("SET temp \"hello world\"")
+    cmds.append("GET temp")
+    cmds.append("ROLLBACK")
+    cmds.append("GET temp")
+    cmds.append("BEGIN")
+    cmds.append("SET perm 99")
+    cmds.append("COMMIT")
+    cmds.append("GET perm")
+    int i = 0
+    while i < cmds.length do
+        string ln = string(cmds[i])
+        string out = execute(ln)
+        println("> " + ln)
+        println(out)
+        println("")
+        i += 1
+    end
+    return 0
+end
+
+
+// ============================================================================
+// HTTP serve 模式（磁盘跨越 native callback 边界，绕开 BUG-XB1）
+// ============================================================================
+
+string gServeFile = ""    // serve 模式数据文件路径，main 中赋值
+
+// 从磁盘把状态装入全局（serve 模式每个请求开头调用）。
+func serveLoad(string dataFile)
+    if file.exists(dataFile) then
+        string text = file.readText(dataFile)
+        if json.valid(text) then
+            var env = json.parse(text)
+            var st = env["store"]
+            if st == null then st = {} end
+            var tl = env["ttl"]
+            if tl == null then tl = {} end
+            gStore = st
+            gTtl = tl
+            reindexAll()
+            return
+        end
+    end
+    gStore = {}
+    gTtl = {}
+    gIndex = {}
+end
+
+
+// 把全局状态落盘（serve 模式每个请求结尾调用）。
+func serveStore(string dataFile)
+    var env = {}
+    env["store"] = gStore
+    env["ttl"] = gTtl
+    file.writeText(dataFile, json.stringify(env))
+end
+
+
+func serveRoute(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.header("X-Engine", "xlang-dbengine")
+
+    string method = req.method()
+    string line = ""
+
+    if method == "POST" then
+        line = req.body()
+    else
+        line = req.queryValue("line")
+        if line == "" then
+            line = req.queryValue("q")
+        end
+    end
+
+    if string.isEmpty(line) then
+        return resp.jsonText("{\"ok\":false,\"error\":\"missing command (use ?line=... or POST body)\"}")
+    end
+
+    serveLoad(gServeFile)
+    string result = execute(line)
+    serveStore(gServeFile)
+
+    string body = "{\"ok\":true,\"result\":\"" + jsonEscape(result) + "\"}"
+    return resp.jsonText(body)
+end
+
+func(point, point) as bool serveHandler = serveRoute
+
+
+func serveError(int status, string message, point reqHandle, point respHandle) as bool
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.status(status)
+    string body = "{\"ok\":false,\"status\":" + status.toString() + ",\"error\":\"" + jsonEscape(message) + "\"}"
+    return resp.jsonText(body)
+end
+
+func(int, string, point, point) as bool serveErrorHandler = serveError
+
+
+func buildServer(int port) as point
+    point server = http.server.create(port, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 2)
+    http.server.getRequest(server, "/", serveHandler)
+    http.server.postRequest(server, "/", serveHandler)
+    http.server.getRequest(server, "/cmd", serveHandler)
+    http.server.postRequest(server, "/cmd", serveHandler)
+    http.server.error(server, serveErrorHandler)
+    return server
+end
+
+
+// ============================================================================
+// 内置自测
+// ============================================================================
+
+int gPass = 0
+int gFail = 0
+
+func check(bool cond, string label)
+    if cond then
+        gPass += 1
+        println("  [ PASS ] " + label)
+    else
+        gFail += 1
+        println("  [ FAIL ] " + label)
+    end
+end
+
+func checkD(bool cond, string label, string detail)
+    if cond then
+        gPass += 1
+        println("  [ PASS ] " + label)
+    else
+        gFail += 1
+        println("  [ FAIL ] " + label + "  " + detail)
+    end
+end
+
+func expectEq(string got, string want, string label)
+    check(got == want, label + "  got='" + got + "' want='" + want + "'")
+end
+
+func expectHas(string got, string needle, string label)
+    check(string.contains(got, needle), label + "  got='" + got + "'")
+end
+
+
+func resetState()
+    gStore = {}
+    gTtl = {}
+    gIndex = {}
+    gStoreSnap = {}
+    gTtlSnap = {}
+    gInTx = false
+end
+
+
+func testBasic()
+    println("[1] basic SET / GET / EXISTS / TYPE")
+    resetState()
+    expectEq(execute("SET user:1 {\"name\":\"Alice\",\"age\":30}"), "OK", "SET dict")
+    expectEq(execute("SET greeting \"hello world\""), "OK", "SET quoted string")
+    expectEq(execute("SET n 42"), "OK", "SET int")
+    expectEq(execute("SET pi 3.14"), "OK", "SET float")
+    expectEq(execute("SET flag true"), "OK", "SET bool")
+    expectEq(execute("SET lst [1,2,3]"), "OK", "SET list")
+
+    expectHas(execute("GET user:1"), "Alice", "GET dict has Alice")
+    expectHas(execute("GET user:1"), "30", "GET dict has age 30")
+    expectEq(execute("GET greeting"), "hello world", "GET quoted string unescaped")
+    expectEq(execute("GET n"), "42", "GET int")
+    expectEq(execute("GET pi"), "3.14", "GET float")
+    expectEq(execute("GET flag"), "true", "GET bool")
+    expectEq(execute("GET lst"), "[1,2,3]", "GET list")
+    expectEq(execute("GET nope"), "(nil)", "GET missing -> nil")
+
+    expectEq(execute("EXISTS user:1"), "1", "EXISTS present")
+    expectEq(execute("EXISTS nope"), "0", "EXISTS missing")
+    expectEq(execute("TYPE user:1"), "dict", "TYPE dict")
+    expectEq(execute("TYPE n"), "int", "TYPE int")
+    expectEq(execute("TYPE pi"), "float", "TYPE float")
+    expectEq(execute("TYPE greeting"), "string", "TYPE string")
+    expectEq(execute("TYPE flag"), "bool", "TYPE bool")
+    expectEq(execute("TYPE lst"), "list", "TYPE list")
+    expectEq(execute("TYPE nope"), "none", "TYPE missing -> none")
+end
+
+
+func testIndex()
+    println("[2] field index + FIND")
+    resetState()
+    execute("SET user:1 {\"name\":\"Alice\",\"age\":30}")
+    execute("SET user:2 {\"name\":\"Bob\",\"age\":25}")
+    execute("SET user:3 {\"name\":\"Alice\",\"age\":40}")
+    expectHas(execute("FIND name=Alice"), "user:1", "FIND name=Alice -> user:1")
+    expectHas(execute("FIND name=Alice"), "user:3", "FIND name=Alice -> user:3 (multi)")
+    expectEq(execute("FIND name=Bob"), "user:2", "FIND name=Bob -> user:2")
+    expectEq(execute("FIND age=25"), "user:2", "FIND age=25 (int field) -> user:2")
+    expectEq(execute("FIND name=Charlie"), "(empty)", "FIND name=Charlie -> empty")
+    expectEq(execute("FIND nosuch=1"), "(empty)", "FIND unknown field -> empty")
+
+    // 覆盖写：旧索引应被移除
+    execute("SET user:2 {\"name\":\"Bobby\",\"age\":26}")
+    expectEq(execute("FIND name=Bob"), "(empty)", "after overwrite, old name=Bob gone")
+    expectHas(execute("FIND name=Bobby"), "user:2", "after overwrite, new name=Bobby indexed")
+
+    // 删除：索引应被移除
+    execute("DELETE user:1")
+    expectEq(execute("FIND name=Alice"), "user:3", "after delete user:1, only user:3 remains")
+end
+
+
+func testKeysCount()
+    println("[3] KEYS glob + COUNT")
+    resetState()
+    execute("SET user:1 1")
+    execute("SET user:2 1")
+    execute("SET post:1 1")
+    string keysUser = execute("KEYS user:*")
+    expectHas(keysUser, "user:1", "KEYS user:* has user:1")
+    expectHas(keysUser, "user:2", "KEYS user:* has user:2")
+    check(not string.contains(keysUser, "post:1"), "KEYS user:* excludes post:1")
+    expectEq(execute("KEYS zz*"), "(empty)", "KEYS no match -> empty")
+    expectEq(execute("COUNT"), "3", "COUNT == 3")
+    execute("DELETE user:2")
+    expectEq(execute("COUNT"), "2", "COUNT after delete == 2")
+end
+
+
+func testIncr()
+    println("[4] INCR")
+    resetState()
+    expectEq(execute("INCR counter"), "1", "INCR new -> 1")
+    expectEq(execute("INCR counter"), "2", "INCR again -> 2")
+    expectEq(execute("INCR counter"), "3", "INCR again -> 3")
+    expectEq(execute("GET counter"), "3", "GET counter == 3")
+    expectEq(execute("TYPE counter"), "int", "TYPE counter == int")
+end
+
+
+func testTtl()
+    println("[5] TTL / EXPIRE")
+    resetState()
+    execute("SET temp 1")
+    execute("SET perm 1")
+    expectEq(execute("EXPIRE temp 100"), "1", "EXPIRE temp 100 -> 1")
+    expectEq(execute("EXPIRE nope 100"), "0", "EXPIRE missing -> 0")
+    expectEq(execute("TTL perm"), "-1", "TTL no-ttl key -> -1")
+    expectEq(execute("TTL nope"), "-2", "TTL missing -> -2")
+    // temp 剩余应在 90..100（命令间可能跨秒）
+    string remainStr = execute("TTL temp")
+    int remain = int(remainStr)
+    check(remain >= 90 and remain <= 100, "TTL temp in [90,100]  got=" + remainStr)
+
+    // EXPIRE 0 -> 立即过期，下条命令惰性清理
+    execute("SET ek 1")
+    execute("EXPIRE ek 0")
+    expectEq(execute("EXISTS ek"), "0", "EXPIRE 0 then EXISTS -> 0 (purged)")
+    expectEq(execute("GET ek"), "(nil)", "GET expired -> nil")
+
+    // SET 覆盖应清除 TTL
+    execute("SET tk 1")
+    execute("EXPIRE tk 100")
+    execute("SET tk 2")
+    expectEq(execute("TTL tk"), "-1", "SET overwrites -> TTL cleared")
+end
+
+
+func testTxn()
+    println("[6] transaction BEGIN / COMMIT / ROLLBACK")
+    resetState()
+    execute("SET x 1")
+    expectEq(execute("BEGIN"), "OK", "BEGIN")
+    execute("SET x 2")
+    execute("SET onlyintx 9")
+    expectEq(execute("GET x"), "2", "inside txn GET x == 2")
+    expectEq(execute("ROLLBACK"), "OK", "ROLLBACK")
+    expectEq(execute("GET x"), "1", "after ROLLBACK x restored to 1")
+    expectEq(execute("GET onlyintx"), "(nil)", "after ROLLBACK txn-only key gone")
+
+    // COMMIT 保留
+    expectEq(execute("BEGIN"), "OK", "BEGIN 2")
+    execute("SET y 42")
+    expectEq(execute("COMMIT"), "OK", "COMMIT")
+    expectEq(execute("GET y"), "42", "after COMMIT y persisted")
+
+    // ROLLBACK 无事务
+    resetState()
+    expectEq(execute("ROLLBACK"), "(error) no transaction", "ROLLBACK without txn -> error")
+
+    // ROLLBACK 后索引应与数据一致
+    resetState()
+    execute("SET user:1 {\"name\":\"Alice\"}")
+    execute("BEGIN")
+    execute("SET user:2 {\"name\":\"Bob\"}")
+    expectHas(execute("FIND name=Bob"), "user:2", "inside txn: FIND name=Bob")
+    execute("ROLLBACK")
+    expectEq(execute("FIND name=Bob"), "(empty)", "after ROLLBACK index consistent")
+    expectHas(execute("FIND name=Alice"), "user:1", "after ROLLBACK original index intact")
+end
+
+
+func testPersist(string tmpFile)
+    println("[7] SAVE / LOAD")
+    resetState()
+    execute("SET user:1 {\"name\":\"Alice\",\"age\":30}")
+    execute("SET counter 7")
+    execute("INCR counter")
+    string savedOut = execute("SAVE " + tmpFile)
+    expectHas(savedOut, "saved", "SAVE reports saved")
+    expectHas(savedOut, "2 keys", "SAVE counts keys")
+
+    // 清空再 LOAD，数据应完整还原
+    execute("CLEAR")
+    expectEq(execute("COUNT"), "0", "after CLEAR COUNT == 0")
+    string loadedOut = execute("LOAD " + tmpFile)
+    expectHas(loadedOut, "loaded", "LOAD reports loaded")
+    expectEq(execute("COUNT"), "2", "after LOAD COUNT == 2")
+    expectHas(execute("GET user:1"), "Alice", "after LOAD user:1 has Alice")
+    expectEq(execute("GET counter"), "8", "after LOAD counter == 8")
+    // LOAD 后索引可用
+    expectHas(execute("FIND name=Alice"), "user:1", "after LOAD index rebuilt")
+
+    // LOAD 缺失文件
+    expectHas(execute("LOAD no_such_file_xyz.json"), "error", "LOAD missing -> error")
+end
+
+
+func testServe(string scriptPath)
+    println("[8] HTTP serve mode (disk-backed, BUG-XB1 bypass)")
+    string dataFile = path.join(path.dir(scriptPath), ".serve_selftest.json")
+    // 干净起步
+    if file.exists(dataFile) then file.delete(dataFile) end
+    gServeFile = dataFile
+
+    point server = buildServer(0)
+    if server == null then
+        checkD(false, "serve: create server", "")
+        return
+    end
+    if not http.server.start(server) then
+        checkD(false, "serve: start server", "")
+        http.server.destroy(server)
+        return
+    end
+    int port = http.server.port(server)
+    string base = "http://127.0.0.1:" + port.toString()
+
+    // SET via POST
+    bool ok1 = false
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/cmd")
+        req.method("POST")
+        req.timeout(5000)
+        req.text("SET srv:a {\"k\":\"v\"}", "text/plain")
+        HttpClientResponse resp = req.execute()
+        ok1 = resp.status() == 200 and string.contains(resp.body(), "\"ok\":true")
+        checkD(ok1, "serve: POST SET returns ok", "status=" + resp.status().toString() + " body=" + resp.body())
+    end
+
+    // GET via query
+    bool ok2 = false
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/?line=GET%20srv:a")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        ok2 = resp.status() == 200 and string.contains(resp.body(), "v")
+        checkD(ok2, "serve: GET query returns value (persisted via disk)", "body=" + resp.body())
+    end
+
+    // INCR twice then GET (multi-request state via disk)
+    if true then
+        HttpClientRequest r1 = HttpClientRequest(base + "/cmd")
+        r1.method("POST"); r1.timeout(5000); r1.text("INCR cnt", "text/plain")
+        r1.execute()
+        HttpClientRequest r2 = HttpClientRequest(base + "/cmd")
+        r2.method("POST"); r2.timeout(5000); r2.text("INCR cnt", "text/plain")
+        r2.execute()
+        HttpClientRequest r3 = HttpClientRequest(base + "/?line=GET%20cnt")
+        r3.method("GET"); r3.timeout(5000)
+        HttpClientResponse resp = r3.execute()
+        checkD(string.contains(resp.body(), "2"), "serve: INCR x2 -> 2 across requests", "body=" + resp.body())
+    end
+
+    http.server.drain(server, 2000)
+    http.server.stop(server)
+    http.server.destroy(server)
+    if file.exists(dataFile) then file.delete(dataFile) end
+end
+
+
+func runSelfTest(string scriptPath) as int
+    println("")
+    println("================ dbengine self-test ================")
+    testBasic()
+    testIndex()
+    testKeysCount()
+    testIncr()
+    testTtl()
+    testTxn()
+
+    // SAVE/LOAD 用脚本同目录的临时文件，避免污染工作目录
+    string tmpFile = path.join(path.dir(scriptPath), ".selftest_data.json")
+    testPersist(tmpFile)
+    if file.exists(tmpFile) then file.delete(tmpFile) end
+
+    testServe(scriptPath)
+
+    println("")
+    println("------------------- summary -------------------")
+    println("passed: " + gPass.toString() + " / " + (gPass + gFail).toString())
+    println("failed: " + gFail.toString())
+    println("")
+    if gFail > 0 then return 1 end
+    return 0
+end
+
+
+// ============================================================================
+// main
+// ============================================================================
+
+func printUsage()
+    println("dbengine - in-memory KV database engine (xlang)")
+    println("Usage:")
+    println("  dbengine                run built-in self-test")
+    println("  dbengine run            run embedded demo script")
+    println("  dbengine run <file>     run a .dbs script (one command per line)")
+    println("  dbengine serve [port]   HTTP API mode (default port " + DEFAULT_PORT.toString() + ")")
+    println("")
+    println("Commands inside run/serve:")
+    println("  GET/SET/DELETE/EXISTS key, KEYS pattern, FIND field=value,")
+    println("  COUNT, EXPIRE key sec, TTL key, INCR key, TYPE key,")
+    println("  BEGIN/COMMIT/ROLLBACK, SAVE/LOAD file, CLEAR")
+end
+
+
+func main(...) as int
+    println("xlang dbengine - in-memory KV database engine")
+    println("")
+
+    if arg.length < 2 then
+        return runSelfTest(string(arg[0]))
+    end
+
+    string mode = string.lower(string(arg[1]))
+
+    if mode == "run" then
+        if arg.length >= 3 then
+            return runScript(string(arg[2]))
+        end
+        return runDemo()
+    end
+
+    if mode == "serve" then
+        int port = DEFAULT_PORT
+        if arg.length >= 3 then
+            int parsed = int(string(arg[2]))
+            if parsed > 0 then port = parsed end
+        end
+        gServeFile = path.join(path.dir(string(arg[0])), "dbengine.serve.json")
+        point server = buildServer(port)
+        if server == null then
+            println("FATAL: http.server.create returned null")
+            return 1
+        end
+        if not http.server.start(server) then
+            println("FATAL: http.server.start failed (port " + port.toString() + " busy?)")
+            http.server.destroy(server)
+            return 1
+        end
+        println("dbengine serving on http://127.0.0.1:" + port.toString())
+        println("data file: " + gServeFile)
+        println("press Ctrl+C to stop")
+        while true do
+            time.sleep(1000)
+            println("[stats] requestCount=" + http.server.requestCount(server).toString())
+        end
+    end
+
+    if mode == "test" then
+        return runSelfTest(string(arg[0]))
+    end
+
+    if mode == "-h" or mode == "--help" or mode == "help" then
+        printUsage()
+        return 0
+    end
+
+    println("Error: unknown mode '" + mode + "'")
+    printUsage()
+    return 1
+end

@@ -142,6 +142,39 @@ static void xl6CgenFreeCleanups(XL6_CgenContext* ctx)
     ctx->cleanupCapacity = 0;
 }
 
+static int xl6CgenNativeClassCleanupIsTracked(XL6_CgenContext* ctx, const char* name)
+{
+    char cName[512];
+    size_t i;
+
+    if ( ctx == NULL || name == NULL ) {
+        return 0;
+    }
+    xl6CgenCIdentText(cName, sizeof(cName), name);
+    for ( i = ctx->cleanupCount; i > 0; --i ) {
+        const XL6_CgenCleanup* cleanup = &ctx->cleanups[i - 1];
+        if ( cleanup->kind == XL6_CGEN_CLEANUP_NATIVE_CLASS &&
+             cleanup->name != NULL &&
+             xl6CTextEquals(cleanup->name, cName) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void xl6CgenClearMovedNativeClassReturnSource(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    char cName[512];
+
+    if ( expr == NULL || expr->kind != XL6_AST_NAME || expr->text == NULL ||
+         !xl6CgenNativeClassCleanupIsTracked(ctx, expr->text) ) {
+        return;
+    }
+    xl6CgenCIdentText(cName, sizeof(cName), expr->text);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s.handle = 0;\n", cName);
+}
+
 static void xl6CgenEmitOneCleanup(XL6_CgenContext* ctx, const XL6_CgenCleanup* cleanup)
 {
     const XL6_AstNode* destroyNode;

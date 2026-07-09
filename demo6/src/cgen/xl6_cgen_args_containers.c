@@ -763,6 +763,54 @@ static void xl6CgenDictVarargExpr(XL6_CgenContext* ctx, const XL6_AstNode* param
     xl6OutputPutc(')', ctx->out);
 }
 
+static int xl6CgenFixedParamXValueConvertArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr)
+{
+    XL6_AstNode* exprType;
+    const XL6_AstNode* sourceType;
+    const XL6_AstNode* concreteTarget;
+    const char* target;
+
+    if ( ctx == NULL || targetType == NULL || expr == NULL ) {
+        return 0;
+    }
+
+    exprType = xl6CgenCloneExprTypeForInference(ctx, expr);
+    sourceType = xl6CgenResolveAliasType(ctx, exprType);
+    concreteTarget = xl6CgenResolveAliasType(ctx, targetType);
+    target = concreteTarget != NULL ? concreteTarget->text : NULL;
+
+    if ( sourceType == NULL || !xl6CgenIsXValueType(sourceType) || target == NULL ) {
+        xl6AstFree(exprType);
+        return 0;
+    }
+
+    if ( xl6CgenIsIntegerTypeName(target) ) {
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetInt", expr);
+    } else if ( xl6CgenIsFloatTypeName(target) ) {
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetFloat", expr);
+    } else if ( xl6CgenIsBoolTypeName(target) ) {
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetBool", expr);
+    } else if ( xl6CTextEquals(target, "string") ) {
+        if ( xl6CgenExprIsXValueBorrow(ctx, expr) ) {
+            xl6OutputPuts("xl6_xrt_value_to_string(", ctx->out);
+        } else {
+            xl6OutputPuts("xl6_xrt_value_to_string_release(", ctx->out);
+        }
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPutc(')', ctx->out);
+    } else if ( xl6CTextEquals(target, "time") ) {
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetTime", expr);
+    } else if ( xl6CTextEquals(target, "point") ) {
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetPoint", expr);
+    } else {
+        xl6AstFree(exprType);
+        return 0;
+    }
+
+    xl6AstFree(exprType);
+    return 1;
+}
+
 static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* param, const XL6_AstNode* expr)
 {
     const XL6_AstNode* targetType;
@@ -784,6 +832,10 @@ static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* pa
         return;
     }
     if ( canonicalType != NULL && xl6CgenClassUpcastExpr(ctx, canonicalType, expr) ) {
+        xl6AstFree(canonicalType);
+        return;
+    }
+    if ( xl6CgenFixedParamXValueConvertArgExpr(ctx, canonicalType, expr) ) {
         xl6AstFree(canonicalType);
         return;
     }

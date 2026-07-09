@@ -1,0 +1,868 @@
+// jsonparse - 从零手写的 JSON 解析器（不依赖 json 标准库）
+//
+// 实现：词法分析器（Lexer）+ 递归下降解析器（Parser）+ 序列化器（Stringifier）
+// 数据模型用 var 动态类型构建 JSON 树（object→dict, array→[], 标量→基础类型）。
+//
+// 用法:
+//   jsonparse parse <file.json> [-p]      解析并重新输出（默认 compact，-p 为 pretty）
+//   jsonparse query <file.json> <path>    路径查询（.key.sub[0] 形式）
+//   jsonparse valid <file.json>           验证 JSON 合法性
+//   jsonparse roundtrip <file.json>       parse -> stringify -> parse 一致性验证
+//
+// 路径语法:
+//   .                  整个文档
+//   .key               对象字段
+//   .key.sub           深层字段
+//   [0]                数组下标
+//   .a[0].b            混合路径
+//
+// 符合 RFC 8259 子集：object/array/string/number/true/false/null，
+// 字符串转义 \" \\ \/ \b \f \n \r \t \uXXXX（含代理对），
+// 数字支持整数/浮点/负数/科学记数法。
+
+// ===== 通用辅助 =====
+
+func hexDigit(string c) as int
+    int b = string.byteAt(c, 0)
+    if b >= 48 and b <= 57 then
+        return b - 48
+    end
+    if b >= 65 and b <= 70 then
+        return b - 55
+    end
+    if b >= 97 and b <= 102 then
+        return b - 87
+    end
+    return -1
+end
+
+func hexByte(int v) as string
+    string d = "0123456789abcdef"
+    int hi = (v >> 4) & 0x0F
+    int lo = v & 0x0F
+    return string.charAt(d, hi) + string.charAt(d, lo)
+end
+
+// 把 4 位十六进制串解析为整数；非法字符返回 -1。
+func parseHex4(string h) as int
+    int v = 0
+    int i = 0
+    while i < 4 do
+        int d = hexDigit(string.charAt(h, i))
+        if d < 0 then
+            return -1
+        end
+        v = (v << 4) | d
+        i += 1
+    end
+    return v
+end
+
+// 把 Unicode 码点编码为 UTF-8 字符串。
+func codepointToUtf8(int cp) as string
+    Buffer buf = Buffer()
+    if cp < 0x80 then
+        buf.appendByte(cp)
+    elseif cp < 0x800 then
+        buf.appendByte(0xC0 | (cp >> 6))
+        buf.appendByte(0x80 | (cp & 0x3F))
+    elseif cp < 0x10000 then
+        buf.appendByte(0xE0 | (cp >> 12))
+        buf.appendByte(0x80 | ((cp >> 6) & 0x3F))
+        buf.appendByte(0x80 | (cp & 0x3F))
+    else
+        buf.appendByte(0xF0 | (cp >> 18))
+        buf.appendByte(0x80 | ((cp >> 12) & 0x3F))
+        buf.appendByte(0x80 | ((cp >> 6) & 0x3F))
+        buf.appendByte(0x80 | (cp & 0x3F))
+    end
+    return encoding.fromBytes(buf.data(), c_size(buf.len()), encoding.utf8)
+end
+
+func isSpace(string c) as bool
+    return c == " " or c == "\t" or c == "\r" or c == "\n"
+end
+
+func isDigit(string c) as bool
+    return c >= "0" and c <= "9"
+end
+
+
+// ===== Token =====
+
+class Token
+    derive value
+    string kind = ""      // lbrace/rbrace/lbracket/rbracket/colon/comma/string/number/lit/eof
+    string text = ""      // string token: 已解码内容; number token: 原始文本; lit: 字面量
+    int pos = 0           // 起始字节偏移，用于报错
+
+    create()
+        return
+    end
+end
+
+
+// ===== Lexer =====
+
+class Lexer
+    derive value
+    string src = ""
+    int len = 0
+    int pos = 0
+
+    create(string src)
+        self.src = src
+        self.len = string.len(src)
+        self.pos = 0
+        return
+    end
+
+    func errorAt(int p, string msg)
+        throw "json: char " + string(p) + ": " + msg
+    end
+
+    func skipSpaces()
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if isSpace(c) then
+                self.pos += 1
+            else
+                return
+            end
+        end
+    end
+
+    // 读取字符串字面量（调用者已消耗起始引号）。返回解码后的字符串内容。
+    func readStringBody(int openPos) as string
+        string out = ""
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if c == "\"" then
+                return out
+            end
+            if c == "\\" then
+                self.pos += 1
+                if self.pos >= self.len then
+                    self.errorAt(openPos, "unterminated escape in string")
+                end
+                string e = string.charAt(self.src, self.pos)
+                if e == "\"" then
+                    out = out + "\""
+                elseif e == "\\" then
+                    out = out + "\\"
+                elseif e == "/" then
+                    out = out + "/"
+                elseif e == "b" then
+                    out = out + "\b"
+                elseif e == "f" then
+                    out = out + "\f"
+                elseif e == "n" then
+                    out = out + "\n"
+                elseif e == "r" then
+                    out = out + "\r"
+                elseif e == "t" then
+                    out = out + "\t"
+                elseif e == "u" then
+                    self.pos += 1
+                    string hex = ""
+                    int h = 0
+                    while h < 4 do
+                        if self.pos + h >= self.len then
+                            self.errorAt(openPos, "incomplete \\u escape")
+                        end
+                        hex = hex + string.charAt(self.src, self.pos + h)
+                        h += 1
+                    end
+                    int cp = parseHex4(hex)
+                    if cp < 0 then
+                        self.errorAt(openPos, "invalid \\u escape: \\u" + hex)
+                    end
+                    self.pos += 3
+                    // 处理 UTF-16 代理对
+                    if cp >= 0xD800 and cp <= 0xDBFF then
+                        // 期望紧跟 \uXXXX 低代理
+                        if self.pos + 1 + 1 + 4 < self.len then
+                            int p2 = self.pos + 1
+                            if string.charAt(self.src, p2) == "\\" and string.charAt(self.src, p2 + 1) == "u" then
+                                string hex2 = ""
+                                int h2 = 0
+                                while h2 < 4 do
+                                    hex2 = hex2 + string.charAt(self.src, p2 + 2 + h2)
+                                    h2 += 1
+                                end
+                                int lo = parseHex4(hex2)
+                                if lo >= 0xDC00 and lo <= 0xDFFF then
+                                    int full = 0x10000 + ((cp - 0xD800) << 10) + (lo - 0xDC00)
+                                    out = out + codepointToUtf8(full)
+                                    self.pos += 6
+                                else
+                                    out = out + codepointToUtf8(cp)
+                                end
+                            else
+                                out = out + codepointToUtf8(cp)
+                            end
+                        else
+                            out = out + codepointToUtf8(cp)
+                        end
+                    else
+                        out = out + codepointToUtf8(cp)
+                    end
+                else
+                    self.errorAt(openPos, "invalid escape: \\" + e)
+                end
+                self.pos += 1
+            else
+                // RFC 8259: 控制字符 (U+0000~U+001F) 不得裸写
+                int blen = string.byteLen(c)
+                if blen == 1 then
+                    int code = string.byteAt(c, 0)
+                    if code < 0x20 then
+                        self.errorAt(openPos, "unescaped control char in string")
+                    end
+                end
+                out = out + c
+                self.pos += 1
+            end
+        end
+        self.errorAt(openPos, "unterminated string")
+        return ""
+    end
+
+    // 读取数字字面量并校验 RFC 8259 文法。返回原始文本。
+    func readNumber(int startPos) as string
+        int p = self.pos
+        // 可选负号
+        if p < self.len and string.charAt(self.src, p) == "-" then
+            p += 1
+        end
+        // 整数部分
+        if p >= self.len then
+            self.errorAt(startPos, "invalid number (no digits)")
+        end
+        string firstDigit = string.charAt(self.src, p)
+        if not isDigit(firstDigit) then
+            self.errorAt(startPos, "invalid number (no digits)")
+        end
+        if firstDigit == "0" then
+            p += 1
+            // 不能跟其他数字
+            if p < self.len and isDigit(string.charAt(self.src, p)) then
+                self.errorAt(startPos, "leading zero in number")
+            end
+        else
+            while p < self.len and isDigit(string.charAt(self.src, p)) do
+                p += 1
+            end
+        end
+        // 小数部分
+        if p < self.len and string.charAt(self.src, p) == "." then
+            p += 1
+            if p >= self.len or not isDigit(string.charAt(self.src, p)) then
+                self.errorAt(startPos, "invalid fraction (no digit after '.')")
+            end
+            while p < self.len and isDigit(string.charAt(self.src, p)) do
+                p += 1
+            end
+        end
+        // 指数部分
+        if p < self.len then
+            string ec = string.charAt(self.src, p)
+            if ec == "e" or ec == "E" then
+                p += 1
+                if p < self.len then
+                    string sign = string.charAt(self.src, p)
+                    if sign == "+" or sign == "-" then
+                        p += 1
+                    end
+                end
+                if p >= self.len or not isDigit(string.charAt(self.src, p)) then
+                    self.errorAt(startPos, "invalid exponent (no digits)")
+                end
+                while p < self.len and isDigit(string.charAt(self.src, p)) do
+                    p += 1
+                end
+            end
+        end
+        string text = string.slice(self.src, self.pos, p - self.pos)
+        self.pos = p
+        return text
+    end
+
+    // 读取字面量 true/false/null，校验完整匹配。
+    func readLit(string expected, int startPos) as string
+        int n = string.len(expected)
+        if self.pos + n > self.len then
+            self.errorAt(startPos, "invalid literal")
+        end
+        int i = 0
+        while i < n do
+            if string.charAt(self.src, self.pos + i) != string.charAt(expected, i) then
+                self.errorAt(startPos, "invalid literal (expected '" + expected + "')")
+            end
+            i += 1
+        end
+        self.pos += n
+        return expected
+    end
+
+    // 取下一个 token（跳过空白）。返回 eof 表示结束。
+    func next() as Token
+        self.skipSpaces()
+        Token t = Token()
+        t.pos = self.pos
+        if self.pos >= self.len then
+            t.kind = "eof"
+            return t
+        end
+        string c = string.charAt(self.src, self.pos)
+        if c == "{" then
+            self.pos += 1
+            t.kind = "lbrace"
+            return t
+        end
+        if c == "}" then
+            self.pos += 1
+            t.kind = "rbrace"
+            return t
+        end
+        if c == "[" then
+            self.pos += 1
+            t.kind = "lbracket"
+            return t
+        end
+        if c == "]" then
+            self.pos += 1
+            t.kind = "rbracket"
+            return t
+        end
+        if c == ":" then
+            self.pos += 1
+            t.kind = "colon"
+            return t
+        end
+        if c == "," then
+            self.pos += 1
+            t.kind = "comma"
+            return t
+        end
+        if c == "\"" then
+            self.pos += 1
+            string body = self.readStringBody(t.pos)
+            self.pos += 1
+            t.kind = "string"
+            t.text = body
+            return t
+        end
+        if c == "-" or isDigit(c) then
+            t.kind = "number"
+            t.text = self.readNumber(t.pos)
+            return t
+        end
+        if c == "t" then
+            t.kind = "lit"
+            t.text = self.readLit("true", t.pos)
+            return t
+        end
+        if c == "f" then
+            t.kind = "lit"
+            t.text = self.readLit("false", t.pos)
+            return t
+        end
+        if c == "n" then
+            t.kind = "lit"
+            t.text = self.readLit("null", t.pos)
+            return t
+        end
+        self.errorAt(t.pos, "unexpected character '" + c + "'")
+        return t
+    end
+end
+
+
+// ===== Parser =====
+
+class Parser
+    Lexer lex
+    Token cur
+
+    create(Lexer lex)
+        self.lex = lex
+        self.cur = self.lex.next()
+        return
+    end
+
+    func advance()
+        self.cur = self.lex.next()
+    end
+
+    func errorHere(string msg)
+        throw "json: char " + string(self.cur.pos) + ": " + msg
+    end
+
+    func expect(string kind, string what)
+        if self.cur.kind != kind then
+            self.errorHere("expected " + what + " but got '" + self.cur.kind + "'")
+        end
+    end
+
+    // 顶层：解析一个值后必须到达 eof。
+    func parse() as var
+        var v = self.parseValue()
+        if self.cur.kind != "eof" then
+            self.errorHere("unexpected trailing token '" + self.cur.kind + "'")
+        end
+        return v
+    end
+
+    func parseValue() as var
+        string k = self.cur.kind
+        if k == "lbrace" then
+            return self.parseObject()
+        end
+        if k == "lbracket" then
+            return self.parseArray()
+        end
+        if k == "string" then
+            string s = self.cur.text
+            self.advance()
+            return s
+        end
+        if k == "number" then
+            return self.parseNumberText(self.cur.text)
+        end
+        if k == "lit" then
+            string lit = self.cur.text
+            self.advance()
+            if lit == "true" then
+                return true
+            end
+            if lit == "false" then
+                return false
+            end
+            if lit == "null" then
+                return null
+            end
+            self.errorHere("unknown literal '" + lit + "'")
+            return null
+        end
+        if k == "eof" then
+            self.errorHere("unexpected end of input")
+        else
+            self.errorHere("unexpected token '" + k + "'")
+        end
+        return null
+    end
+
+    // 将数字文本转换为 int 或 float。含 '.'/e/E 视为 float。
+    func parseNumberText(string text) as var
+        bool isFloat = false
+        int i = 0
+        int n = string.len(text)
+        while i < n do
+            string c = string.charAt(text, i)
+            if c == "." or c == "e" or c == "E" then
+                isFloat = true
+                break
+            end
+            i += 1
+        end
+        self.advance()
+        if isFloat then
+            return float(text)
+        end
+        return int(text)
+    end
+
+    func parseObject() as var
+        var obj = {}
+        self.advance()
+        if self.cur.kind == "rbrace" then
+            self.advance()
+            return obj
+        end
+        bool first = true
+        while true do
+            if self.cur.kind == "rbrace" then
+                if not first then
+                    self.errorHere("trailing comma in object")
+                end
+                self.advance()
+                return obj
+            end
+            if self.cur.kind != "string" then
+                self.errorHere("expected string key in object")
+            end
+            string key = self.cur.text
+            self.advance()
+            self.expect("colon", "':'")
+            self.advance()
+            var val = self.parseValue()
+            obj[key] = val
+            first = false
+            if self.cur.kind == "comma" then
+                self.advance()
+            elseif self.cur.kind == "rbrace" then
+                self.advance()
+                return obj
+            else
+                self.errorHere("expected ',' or '}' in object")
+            end
+        end
+        return obj
+    end
+
+    func parseArray() as var
+        var arr = []
+        self.advance()
+        if self.cur.kind == "rbracket" then
+            self.advance()
+            return arr
+        end
+        bool first = true
+        while true do
+            if self.cur.kind == "rbracket" then
+                if not first then
+                    self.errorHere("trailing comma in array")
+                end
+                self.advance()
+                return arr
+            end
+            var val = self.parseValue()
+            arr.push(val)
+            first = false
+            if self.cur.kind == "comma" then
+                self.advance()
+            elseif self.cur.kind == "rbracket" then
+                self.advance()
+                return arr
+            else
+                self.errorHere("expected ',' or ']' in array")
+            end
+        end
+        return arr
+    end
+end
+
+
+// ===== Stringifier =====
+// 手工递归序列化 var 树，避免 json 标准库 pretty 模式的 TAB 缩进与键序重排问题。
+
+// 字符串转义为 JSON 字符串字面量（不含两侧引号）。
+func escapeString(string s) as string
+    string out = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        int blen = string.byteLen(c)
+        if c == "\"" then
+            out = out + "\\\""
+        elseif c == "\\" then
+            out = out + "\\\\"
+        elseif c == "\n" then
+            out = out + "\\n"
+        elseif c == "\r" then
+            out = out + "\\r"
+        elseif c == "\t" then
+            out = out + "\\t"
+        elseif c == "\b" then
+            out = out + "\\b"
+        elseif c == "\f" then
+            out = out + "\\f"
+        elseif blen == 1 then
+            int code = string.byteAt(c, 0)
+            if code < 0x20 then
+                out = out + "\\u00" + hexByte(code)
+            else
+                out = out + c
+            end
+        else
+            out = out + c
+        end
+        i += 1
+    end
+    return out
+end
+
+func quoteString(string s) as string
+    return "\"" + escapeString(s) + "\""
+end
+
+// 把数字文本格式化为 JSON number（规范小数/指数形式）。
+func numberToText(var v) as string
+    if v is float then
+        return string(float(v))
+    end
+    return string(int(v))
+end
+
+func stringifyValue(var v, bool pretty, int indent) as string
+    if v is null then
+        return "null"
+    end
+    if v is bool then
+        if bool(v) then
+            return "true"
+        end
+        return "false"
+    end
+    if v is int then
+        return string(int(v))
+    end
+    if v is float then
+        return string(float(v))
+    end
+    if v is string then
+        return quoteString(string(v))
+    end
+    if type(v) == type([]) then
+        int n = v.length
+        if n == 0 then
+            return "[]"
+        end
+        string pad = ""
+        if pretty then
+            pad = string.repeat("  ", indent)
+        end
+        string childPad = ""
+        if pretty then
+            childPad = string.repeat("  ", indent + 1)
+        end
+        string out = "["
+        int i = 0
+        while i < n do
+            if i > 0 then
+                out = out + ","
+            end
+            if pretty then
+                out = out + "\n" + childPad
+            end
+            out = out + stringifyValue(v[i], pretty, indent + 1)
+            i += 1
+        end
+        if pretty then
+            out = out + "\n" + pad
+        end
+        out = out + "]"
+        return out
+    end
+    if type(v) == type({}) then
+        int n = v.length
+        if n == 0 then
+            return "{}"
+        end
+        string pad = ""
+        if pretty then
+            pad = string.repeat("  ", indent)
+        end
+        string childPad = ""
+        if pretty then
+            childPad = string.repeat("  ", indent + 1)
+        end
+        string out = "{"
+        bool first = true
+        for key, val in v
+            if not first then
+                out = out + ","
+            end
+            first = false
+            if pretty then
+                out = out + "\n" + childPad
+            end
+            out = out + quoteString(string(key)) + ":"
+            if pretty then
+                out = out + " "
+            end
+            out = out + stringifyValue(val, pretty, indent + 1)
+        end
+        if pretty then
+            out = out + "\n" + pad
+        end
+        out = out + "}"
+        return out
+    end
+    return "null"
+end
+
+func stringify(var v, bool pretty) as string
+    return stringifyValue(v, pretty, 0)
+end
+
+
+// ===== 路径查询 =====
+// 支持 .key / [idx] 混合；"." 或空路径表示整个文档。
+
+func queryPath(var root, string path) as var
+    if path == "" or path == "." then
+        return root
+    end
+    var cur = root
+    int n = string.len(path)
+    int i = 0
+    while i < n do
+        string c = string.charAt(path, i)
+        if c == "." then
+            i += 1
+            string key = ""
+            while i < n do
+                string cc = string.charAt(path, i)
+                if cc == "." or cc == "[" then
+                    break
+                end
+                key = key + cc
+                i += 1
+            end
+            if key == "" then
+                break
+            end
+            cur = cur[key]
+        elseif c == "[" then
+            i += 1
+            string num = ""
+            while i < n do
+                string cc = string.charAt(path, i)
+                if cc == "]" then
+                    break
+                end
+                num = num + cc
+                i += 1
+            end
+            i += 1
+            int idx = int(num)
+            cur = cur[idx]
+        else
+            i += 1
+        end
+    end
+    return cur
+end
+
+
+// ===== 命令实现 =====
+
+func parseFile(string path) as var
+    if not file.exists(path) then
+        throw "file not found: " + path
+    end
+    string text = file.readText(path)
+    Lexer lex = Lexer(text)
+    Parser p = Parser(lex)
+    return p.parse()
+end
+
+func cmdParse(string path, bool pretty) as int
+    var v = parseFile(path)
+    println(stringify(v, pretty))
+    return 0
+end
+
+func cmdQuery(string path, string query) as int
+    var v = parseFile(path)
+    var result = queryPath(v, query)
+    println(stringify(result, true))
+    return 0
+end
+
+func cmdValid(string path) as int
+    if not file.exists(path) then
+        println("INVALID: file not found: " + path)
+        return 1
+    end
+    string text = file.readText(path)
+    try
+        Lexer lex = Lexer(text)
+        Parser p = Parser(lex)
+        p.parse()
+        println("VALID")
+        return 0
+    catch e
+        println("INVALID: " + e.message)
+        return 1
+    end
+    return 1
+end
+
+func cmdRoundtrip(string path) as int
+    var v = parseFile(path)
+    string once = stringify(v, false)
+    Lexer lex2 = Lexer(once)
+    Parser p2 = Parser(lex2)
+    var v2 = p2.parse()
+    string twice = stringify(v2, false)
+    if once == twice then
+        println("ROUNDTRIP OK")
+        return 0
+    end
+    println("ROUNDTRIP MISMATCH")
+    println("first:  " + once)
+    println("second: " + twice)
+    return 1
+end
+
+func printUsage()
+    println("Usage:")
+    println("  jsonparse parse <file.json> [-p]      parse and emit (compact, -p = pretty)")
+    println("  jsonparse query <file.json> <path>    query by path (.key.sub[0])")
+    println("  jsonparse valid <file.json>           validate JSON")
+    println("  jsonparse roundtrip <file.json>       parse -> stringify -> parse consistency")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    try
+        if cmd == "parse" then
+            if arg.length < 3 then
+                println("Error: 'parse' needs <file.json>")
+                return 1
+            end
+            string path = string(arg[2])
+            bool pretty = false
+            if arg.length >= 4 then
+                string flag = string(arg[3])
+                if flag == "-p" or flag == "--pretty" then
+                    pretty = true
+                end
+            end
+            return cmdParse(path, pretty)
+        end
+
+        if cmd == "query" then
+            if arg.length < 4 then
+                println("Error: 'query' needs <file.json> and <path>")
+                return 1
+            end
+            return cmdQuery(string(arg[2]), string(arg[3]))
+        end
+
+        if cmd == "valid" then
+            if arg.length < 3 then
+                println("Error: 'valid' needs <file.json>")
+                return 1
+            end
+            return cmdValid(string(arg[2]))
+        end
+
+        if cmd == "roundtrip" then
+            if arg.length < 3 then
+                println("Error: 'roundtrip' needs <file.json>")
+                return 1
+            end
+            return cmdRoundtrip(string(arg[2]))
+        end
+
+        println("Error: unknown command '" + cmd + "'")
+        printUsage()
+        return 1
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+
+    return 0
+end

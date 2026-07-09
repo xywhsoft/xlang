@@ -1,0 +1,39 @@
+// test_basic.xl - 基础算术、字符串、比较断言（全部通过）
+
+func test_integer_arith()
+    assertEqual(1 + 1, 2, "1+1=2")
+    assertEqual(7 * 6, 42, "7*6=42")
+    assertEqual(100 - 33, 67, "subtraction")
+    assertEqual(84 / 4, 21, "division")
+end
+
+func test_modulo()
+    assertEqual(17 % 5, 2)
+    assertNotEqual(17 % 5, 0)
+end
+
+func test_ordering()
+    assertTrue(3 < 5)
+    assertFalse(5 < 3)
+    assertTrue(10 >= 10)
+    assertTrue(10 <= 10)
+end
+
+func test_string_basics()
+    assertEqual(string.len("hello"), 5)
+    assertEqual("foo" + "bar", "foobar")
+    assertContains("hello world", "world")
+    assertNotEqual("abc", "abd")
+end
+
+func test_equality_types()
+    assertEqual(1, 1)
+    assertEqual("x", "x")
+    assertEqual(true, true)
+    assertNotEqual(true, false)
+end
+
+func test_array_contains()
+    assertContains([1, 2, 3, 4], 3)
+    assertContains(["a", "b", "c"], "b")
+end

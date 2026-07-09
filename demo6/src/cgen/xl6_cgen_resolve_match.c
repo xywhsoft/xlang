@@ -100,6 +100,10 @@ static int xl6CgenExprParamMatchCost(XL6_CgenContext* ctx, const XL6_AstNode* ex
             xl6AstFree(exprType);
             return 80;
         }
+        if ( xl6CTextEquals(exprTypeName, "var") ) {
+            xl6AstFree(exprType);
+            return 90;
+        }
         if ( xl6CgenCanSafeWidenTypeName(exprTypeName, targetType) ) {
             result = (xl6CgenIsFloatTypeName(targetType) &&
                       (xl6CgenIsIntegerTypeName(exprTypeName) || xl6CgenIsBoolTypeName(exprTypeName))) ? 20 : 10;

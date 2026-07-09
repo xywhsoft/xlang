@@ -2,6 +2,7 @@ static void xl6CgenEmitEncodingRuntime(XL6_Output* out)
 {
     xl6OutputPuts("#ifndef XL6_ENCODING_RUNTIME\n", out);
     xl6OutputPuts("#define XL6_ENCODING_RUNTIME\n", out);
+    xl6OutputPuts("#include <string.h>\n", out);
 
     xl6OutputPuts("#ifndef XL6_XBUFFER_TYPEDEF\n", out);
     xl6OutputPuts("#define XL6_XBUFFER_TYPEDEF\n", out);
@@ -48,6 +49,35 @@ static void xl6CgenEmitEncodingRuntime(XL6_Output* out)
     xl6OutputPuts("static int xl6_encoding_is_convertible(int charset)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return charset >= 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static const unsigned char* xl6_encoding_bom_bytes(int charset, size_t* outSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    static const unsigned char utf8[] = {0xEFu, 0xBBu, 0xBFu};\n", out);
+    xl6OutputPuts("    static const unsigned char utf16le[] = {0xFFu, 0xFEu};\n", out);
+    xl6OutputPuts("    static const unsigned char utf16be[] = {0xFEu, 0xFFu};\n", out);
+    xl6OutputPuts("    static const unsigned char utf32le[] = {0xFFu, 0xFEu, 0x00u, 0x00u};\n", out);
+    xl6OutputPuts("    static const unsigned char utf32be[] = {0x00u, 0x00u, 0xFEu, 0xFFu};\n", out);
+    xl6OutputPuts("    if ( outSize != 0 ) { *outSize = 0u; }\n", out);
+    xl6OutputPuts("    switch ( charset & XRT_MASK_BOM ) {\n", out);
+    xl6OutputPuts("    case XRT_CP_UTF8: if ( outSize != 0 ) { *outSize = sizeof(utf8); } return utf8;\n", out);
+    xl6OutputPuts("    case XRT_CP_UTF16: if ( outSize != 0 ) { *outSize = sizeof(utf16le); } return utf16le;\n", out);
+    xl6OutputPuts("    case XRT_CP_UTF16_BE: if ( outSize != 0 ) { *outSize = sizeof(utf16be); } return utf16be;\n", out);
+    xl6OutputPuts("    case XRT_CP_UTF32: if ( outSize != 0 ) { *outSize = sizeof(utf32le); } return utf32le;\n", out);
+    xl6OutputPuts("    case XRT_CP_UTF32_BE: if ( outSize != 0 ) { *outSize = sizeof(utf32be); } return utf32be;\n", out);
+    xl6OutputPuts("    default: return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void xl6_encoding_skip_bom(const void** data, size_t* byteSize, int charset)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t bomSize = 0u;\n", out);
+    xl6OutputPuts("    const unsigned char* bom = xl6_encoding_bom_bytes(charset, &bomSize);\n", out);
+    xl6OutputPuts("    const unsigned char* bytes = data != 0 ? (const unsigned char*)(*data) : 0;\n", out);
+    xl6OutputPuts("    if ( bytes != 0 && byteSize != 0 && bom != 0 && bomSize > 0u && *byteSize >= bomSize && memcmp(bytes, bom, bomSize) == 0 ) {\n", out);
+    xl6OutputPuts("        *data = bytes + bomSize;\n", out);
+    xl6OutputPuts("        *byteSize -= bomSize;\n", out);
+    xl6OutputPuts("    }\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static size_t xl6_encoding_units_from_bytes(size_t byteSize, int charset)\n", out);
@@ -121,6 +151,29 @@ static void xl6CgenEmitEncodingRuntime(XL6_Output* out)
     xl6OutputPuts("    return buf;\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("static xbuffer xl6_encoding_buffer_from_bytes_with_bom(const void* data, size_t byteSize, int charsetWithBom)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xbuffer buf;\n", out);
+    xl6OutputPuts("    size_t bomSize = 0u;\n", out);
+    xl6OutputPuts("    const unsigned char* bom = xl6_encoding_bom_bytes(charsetWithBom, &bomSize);\n", out);
+    xl6OutputPuts("    if ( byteSize > 4294967295u || bomSize > 4294967295u || byteSize + bomSize > 4294967295u ) {\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    buf = xl6_encoding_empty_buffer();\n", out);
+    xl6OutputPuts("    if ( buf == 0 ) {\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( bom != 0 && bomSize > 0u && !xrtBufferAppend(buf, (void*)bom, (unsigned int)bomSize, 0u) ) {\n", out);
+    xl6OutputPuts("        xrtBufferDestroy(buf);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( byteSize > 0u && (data == 0 || !xrtBufferAppend(buf, (void*)data, (unsigned int)byteSize, 0u)) ) {\n", out);
+    xl6OutputPuts("        xrtBufferDestroy(buf);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return buf;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("long long xl6_xrt_encoding_char_size(long long charset)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return (long long)xrtGetCharSize(xl6_encoding_charset(charset));\n", out);
@@ -160,28 +213,33 @@ static void xl6CgenEmitEncodingRuntime(XL6_Output* out)
 
     xl6OutputPuts("void* xl6_xrt_encoding_convert_bytes(void* data, size_t byteSize, long long fromCharset, long long toCharset)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    int fromCP = xl6_encoding_charset(fromCharset);\n", out);
-    xl6OutputPuts("    int toCP = xl6_encoding_charset(toCharset);\n", out);
+    xl6OutputPuts("    int fromRaw = xl6_encoding_charset(fromCharset);\n", out);
+    xl6OutputPuts("    int toRaw = xl6_encoding_charset(toCharset);\n", out);
+    xl6OutputPuts("    int fromCP = fromRaw & XRT_MASK_BOM;\n", out);
+    xl6OutputPuts("    int toCP = toRaw & XRT_MASK_BOM;\n", out);
     xl6OutputPuts("    size_t inputUnits;\n", out);
     xl6OutputPuts("    void* converted;\n", out);
     xl6OutputPuts("    size_t outputBytes;\n", out);
     xl6OutputPuts("    xbuffer buf;\n", out);
+    xl6OutputPuts("    const void* inputData = data;\n", out);
+    xl6OutputPuts("    size_t inputBytes = byteSize;\n", out);
     xl6OutputPuts("    if ( byteSize == 0u ) {\n", out);
-    xl6OutputPuts("        return xl6_encoding_empty_buffer();\n", out);
+    xl6OutputPuts("        return (toRaw & XRT_CP_BOM) ? xl6_encoding_buffer_from_bytes_with_bom(0, 0u, toRaw) : xl6_encoding_empty_buffer();\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( data == 0 || !xl6_encoding_is_convertible(fromCP) || !xl6_encoding_is_convertible(toCP) ) {\n", out);
     xl6OutputPuts("        return xl6_encoding_empty_buffer();\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    inputUnits = xl6_encoding_units_from_bytes(byteSize, fromCP);\n", out);
+    xl6OutputPuts("    xl6_encoding_skip_bom(&inputData, &inputBytes, fromRaw);\n", out);
+    xl6OutputPuts("    inputUnits = xl6_encoding_units_from_bytes(inputBytes, fromCP);\n", out);
     xl6OutputPuts("    if ( inputUnits == (size_t)-1 ) {\n", out);
     xl6OutputPuts("        return xl6_encoding_empty_buffer();\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    converted = xrtConvCharset((void*)data, inputUnits, fromCP, toCP, 0);\n", out);
+    xl6OutputPuts("    converted = xrtConvCharset((void*)inputData, inputUnits, fromCP, toCP, 0);\n", out);
     xl6OutputPuts("    if ( converted == 0 ) {\n", out);
     xl6OutputPuts("        return xl6_encoding_empty_buffer();\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    outputBytes = xl6_encoding_byte_len(converted, toCP);\n", out);
-    xl6OutputPuts("    buf = xl6_encoding_buffer_from_bytes(converted, outputBytes);\n", out);
+    xl6OutputPuts("    buf = (toRaw & XRT_CP_BOM) ? xl6_encoding_buffer_from_bytes_with_bom(converted, outputBytes, toRaw) : xl6_encoding_buffer_from_bytes(converted, outputBytes);\n", out);
     xl6OutputPuts("    xrtFree(converted);\n", out);
     xl6OutputPuts("    return buf;\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -196,20 +254,24 @@ static void xl6CgenEmitEncodingRuntime(XL6_Output* out)
 
     xl6OutputPuts("void* xl6_xrt_encoding_from_bytes(void* data, size_t byteSize, long long fromCharset)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    int fromCP = xl6_encoding_charset(fromCharset);\n", out);
+    xl6OutputPuts("    int fromRaw = xl6_encoding_charset(fromCharset);\n", out);
+    xl6OutputPuts("    int fromCP = fromRaw & XRT_MASK_BOM;\n", out);
     xl6OutputPuts("    size_t inputUnits;\n", out);
     xl6OutputPuts("    void* converted;\n", out);
+    xl6OutputPuts("    const void* inputData = data;\n", out);
+    xl6OutputPuts("    size_t inputBytes = byteSize;\n", out);
     xl6OutputPuts("    if ( byteSize == 0u ) {\n", out);
     xl6OutputPuts("        return xrtCopyStr(\"\", 0u);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( data == 0 || !xl6_encoding_is_convertible(fromCP) ) {\n", out);
     xl6OutputPuts("        return xrtCopyStr(\"\", 0u);\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    inputUnits = xl6_encoding_units_from_bytes(byteSize, fromCP);\n", out);
+    xl6OutputPuts("    xl6_encoding_skip_bom(&inputData, &inputBytes, fromRaw);\n", out);
+    xl6OutputPuts("    inputUnits = xl6_encoding_units_from_bytes(inputBytes, fromCP);\n", out);
     xl6OutputPuts("    if ( inputUnits == (size_t)-1 ) {\n", out);
     xl6OutputPuts("        return xrtCopyStr(\"\", 0u);\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    converted = xrtConvCharset((void*)data, inputUnits, fromCP, XRT_CP_UTF8, 0);\n", out);
+    xl6OutputPuts("    converted = xrtConvCharset((void*)inputData, inputUnits, fromCP, XRT_CP_UTF8, 0);\n", out);
     xl6OutputPuts("    return converted != 0 ? converted : xrtCopyStr(\"\", 0u);\n", out);
     xl6OutputPuts("}\n\n", out);
 

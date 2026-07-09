@@ -1,0 +1,211 @@
+// winui.xl - Win32 GUI verification tool via C-mixing + native-backed class.
+//
+// Wraps a subset of the Win32 API (User32) into four native-backed classes
+// (Window / Label / Button / Edit) and standalone externs. Demonstrates:
+//   1. extern C functions returning/accepting point (HWND) and string
+//   2. native-backed class with create/destroy/func mapping to C handle
+//   3. multiple classes sharing the same C symbol (winui_set_text/get_text)
+//   4. C -> xlang reverse callback (winui_on_button_click) fired from the
+//      WndProc while the message loop runs inside a C function
+//   5. headless self-test mode that exercises every API without blocking
+//
+// Build / run together with winui_native.c:
+//   xl run   winui.xl winui_native.c -- --headless
+//   xl build winui.xl winui_native.c -o winui.exe --link User32 --link Gdi32
+//   winui.exe               (GUI mode)
+//   winui.exe --headless    (self-test, no GUI blocking)
+
+// ===== Standalone externs (used outside the class wrappers) ==============
+extern "winui_message_loop" func winui_message_loop() as int
+extern "winui_sleep"        func winui_sleep(int ms)
+extern "winui_message_box"  func winui_message_box(point hwnd, string text, string title, int flags) as int
+extern "winui_get_text"     func winui_get_text(point ctrl) as string
+extern "winui_set_text"     func winui_set_text(point ctrl, string text)
+
+// ===== native-backed class: Window ======================================
+class Window
+    native point handle
+
+    extern "winui_window_create"  create(string title, int w, int h)
+    extern "winui_window_destroy" destroy()
+    extern "winui_window_show"    func show()
+
+    func messageBox(string text, string title, int flags) as int
+        return winui_message_box(self.handle, text, title, flags)
+    end
+
+    func runMessageLoop() as int
+        return winui_message_loop()
+    end
+
+    func getHandle() as point
+        return self.handle
+    end
+end
+
+// ===== native-backed class: Label =======================================
+class Label
+    native point handle
+
+    extern "winui_label_create" create(point parent, string text, int x, int y, int w, int h)
+    extern "winui_set_text"     func setText(string text)
+    extern "winui_get_text"     func getText() as string
+
+    func getHandle() as point
+        return self.handle
+    end
+end
+
+// ===== native-backed class: Button ======================================
+class Button
+    native point handle
+
+    extern "winui_button_create" create(point parent, string text, int x, int y, int w, int h, int id)
+    extern "winui_set_text"      func setText(string text)
+    extern "winui_get_text"      func getText() as string
+
+    func getHandle() as point
+        return self.handle
+    end
+end
+
+// ===== native-backed class: Edit ========================================
+class Edit
+    native point handle
+
+    extern "winui_edit_create" create(point parent, string text, int x, int y, int w, int h)
+    extern "winui_set_text"    func setText(string text)
+    extern "winui_get_text"    func getText() as string
+
+    func getHandle() as point
+        return self.handle
+    end
+end
+
+// ===== Globals shared with the C -> xlang click callback ================
+point gMainHwnd
+point gEditHandle
+int   gClickCount = 0
+bool  gHeadless = false
+
+// Exported to C: the WndProc calls this on WM_COMMAND from button id >= 1000.
+// Round trip: C WndProc -> xlang export -> xlang reads edit -> C MessageBox.
+export "winui_on_button_click" func winui_on_button_click(int id) as int
+    gClickCount += 1
+    string text = winui_get_text(gEditHandle)
+    if gHeadless then
+        println("  [callback] button " + string(id) + " clicked, edit text: \"" + text + "\"")
+    else
+        winui_message_box(gMainHwnd, "You typed: " + text, "Button Clicked", 0)
+    end
+    return 0
+end
+
+// ===== Test helpers =====================================================
+func check(string label, bool cond) as int
+    if cond then
+        println("  [ok] " + label)
+        return 0
+    end
+    println("  [FAIL] " + label)
+    return 1
+end
+
+// ===== Headless self-test ===============================================
+// Exercises every API except the blocking MessageBox / message loop.
+func runHeadless() as int
+    println("=== winui headless self-test ===")
+    int fails = 0
+
+    println("[1] native-backed Window class (hidden)")
+    Window win = Window("winui headless", 320, 200)
+    fails += check("Window handle non-null", win.getHandle() != null)
+    gMainHwnd = win.getHandle()
+
+    println("[2] native-backed Label")
+    Label lbl = Label(win.getHandle(), "Name:", 10, 10, 80, 22)
+    fails += check("Label handle non-null", lbl.getHandle() != null)
+    fails += check("Label getText initial", lbl.getText() == "Name:")
+
+    println("[3] native-backed Edit + setText/getText round trip")
+    Edit ed = Edit(win.getHandle(), "hello", 100, 10, 200, 22)
+    fails += check("Edit handle non-null", ed.getHandle() != null)
+    gEditHandle = ed.getHandle()
+    fails += check("Edit getText initial", ed.getText() == "hello")
+    ed.setText("xlang-win32")
+    fails += check("Edit getText after setText", ed.getText() == "xlang-win32")
+
+    println("[4] native-backed Button")
+    Button btn = Button(win.getHandle(), "Click me", 100, 44, 120, 28, 1000)
+    fails += check("Button handle non-null", btn.getHandle() != null)
+    fails += check("Button getText initial", btn.getText() == "Click me")
+    btn.setText("Clicked!")
+    fails += check("Button getText after setText", btn.getText() == "Clicked!")
+
+    println("[5] standalone extern winui_get_text on raw point handle")
+    fails += check("free winui_get_text(edit)", winui_get_text(ed.getHandle()) == "xlang-win32")
+    winui_set_text(ed.getHandle(), "from-free-extern")
+    fails += check("free winui_set_text then get", ed.getText() == "from-free-extern")
+
+    println("[6] C -> xlang callback (direct invoke, headless path)")
+    int before = gClickCount
+    int rc = winui_on_button_click(1000)
+    fails += check("callback return code 0", rc == 0)
+    fails += check("gClickCount incremented", gClickCount == before + 1)
+
+    println("[7] standalone extern winui_sleep")
+    winui_sleep(1)
+    fails += check("winui_sleep(1) returned", true)
+
+    println("[8] Window destroy (automatic scope-end destroy also runs)")
+    win.show()
+    winui_sleep(1)
+    // explicit destroy is also valid; native-backed class auto-destroys at scope end
+    // but we keep the instance alive until after the assertion so the handle stays valid.
+
+    println("=== winui headless done: " + string(fails) + " failure(s) ===")
+    if fails == 0 then
+        println("ALL CHECKS PASSED")
+    end
+    return fails
+end
+
+// ===== GUI mode =========================================================
+func runGui() as int
+    println("=== winui GUI mode ===")
+    println("Creating window and controls...")
+
+    Window win = Window("winui - xlang native-backed class demo", 420, 180)
+    gMainHwnd = win.getHandle()
+
+    Label lbl = Label(gMainHwnd, "Enter your name:", 10, 12, 130, 22)
+    Edit  ed  = Edit(gMainHwnd, "xlang", 150, 10, 250, 24)
+    gEditHandle = ed.getHandle()
+
+    Button btn = Button(gMainHwnd, "Say Hi", 150, 44, 120, 30, 1000)
+    Button btn2 = Button(gMainHwnd, "Quit", 280, 44, 120, 30, 1001)
+
+    println("Showing window. Click 'Say Hi' to trigger the C -> xlang callback.")
+    win.show()
+
+    println("Entering message loop (blocks until window closed)...")
+    int code = win.runMessageLoop()
+    println("Message loop exited with code " + string(code) + ", click count " + string(gClickCount))
+    return code
+end
+
+// ===== main =============================================================
+func main(...) as int
+    bool headless = false
+    for a in arg
+        if string(a) == "--headless" then
+            headless = true
+        end
+    end
+
+    gHeadless = headless
+    if headless then
+        return runHeadless()
+    end
+    return runGui()
+end

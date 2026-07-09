@@ -1,0 +1,61 @@
+// test_assertions.xl - 验证 xtest 自身断言库的每个函数（全部通过；含一个 skip 演示）
+
+func test_assert_null()
+    var nothing = null
+    assertNull(nothing)
+    assertNotNull(0)
+    assertNotNull("")
+    assertNotNull(42)
+end
+
+func test_assert_in_range()
+    assertInRange(5, 1, 10)
+    assertInRange(1, 1, 10)
+    assertInRange(10, 1, 10)
+    assertInRange(7.5, 0.0, 10.0)
+end
+
+func test_approx_equal()
+    approxEqual(0.1 + 0.2, 0.3, 0.0001, "float epsilon")
+    approxEqual(3.14159, 3.14159, 0.0)
+    approxEqual(1.0, 1.5, 0.6, "within tolerance")
+end
+
+func test_assert_throws()
+    var boom = func() as int
+        throw "kaboom"
+        return 0
+    end
+    assertThrows(boom)
+    // 直接抛断言失败 -> assertThrows 应捕获
+    var fail = func() as int
+        assertEqual(1, 2, "intentional")
+        return 0
+    end
+    assertThrows(fail)
+end
+
+func test_assert_not_equal()
+    assertNotEqual(1, 2)
+    assertNotEqual("left", "right")
+    assertNotEqual([1, 2], [3, 4])
+end
+
+func test_message_is_optional()
+    // 这些调用都不传 message，应正常工作
+    assertEqual(2 + 2, 4)
+    assertTrue(5 > 1)
+    assertFalse(1 > 5)
+    assertContains("abcdef", "cde")
+end
+
+func test_skip_demo()
+    // 演示 skip：跳过的测试不计入失败
+    skip("this test is intentionally skipped (demo)")
+end
+
+func test_format_coverage()
+    // 间接覆盖 xtestFormat 的各类型分支（通过断言失败路径不可达时无副作用）
+    assertTrue(true)
+    assertNotNull("non-empty string")
+end

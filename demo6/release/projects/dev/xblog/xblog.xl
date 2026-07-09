@@ -1,0 +1,1231 @@
+// xblog - 一个用 xlang 编写的小型博客引擎
+//
+// 用法：
+//   xblog                -> self-test：启动 server、自发自收跑测试用例、报告后退出
+//   xblog serve [port]   -> 常驻模式，监听 port（默认 18200）
+//
+// 验证范围：
+//   1. http.server 路由（GET/POST/PUT/DELETE + {slug} 路径参数）
+//   2. template 标准库渲染 HTML（list / post / archive / search 四套模板）
+//   3. 手写 Markdown -> HTML 渲染器（标题/段落/粗体/斜体/代码/链接/图片/列表/分隔线）
+//   4. JSON 文件持久化（posts.json）+ 手工拼接 JSON 文本保序
+//   5. 静态文件服务（/static/style.css）
+//   6. REST API：GET/POST/PUT/DELETE /api/posts[/{slug}]
+//   7. 搜索 /search?q=xxx
+//
+// 设计约束（来自 dev/README）：
+//   * native-backed class（HttpRequest/HttpResponse/HttpClientRequest/
+//     HttpClientResponse/Buffer）不能按值传给函数。route handler 和 self-test
+//     中的 HTTP client 操作全部内联。纯字符串/数据处理的 Markdown 渲染、
+//     JSON 拼接、模板数据构造可以拆成普通函数。
+//   * json pretty 模式会 hash 重排键序（BUG-K1），需要保序时手工拼接 JSON 文本。
+//   * string.splitLines 末尾换行产生空串（BUG-S1），用末元素判空收缩长度。
+//   * `#` 不是注释（开启时间字面量），注释统一用 `//`。
+
+
+const int DEFAULT_PORT = 18200
+
+
+// ============================================================
+// 全局状态
+// ============================================================
+string gBase = ""
+string gScriptDir = ""
+string gPostsPath = ""
+string gStaticDir = ""
+string gListTpl = ""
+string gPostTpl = ""
+string gArchiveTpl = ""
+string gSearchTpl = ""
+
+
+// ============================================================
+// 字符串 / HTML 工具
+// ============================================================
+
+// HTML 转义：& < > 三种字符。先替换 & 避免二次转义。
+func escapeHtml(string text) as string
+    string s = string.replace(text, "&", "&amp;")
+    s = string.replace(s, "<", "&lt;")
+    s = string.replace(s, ">", "&gt;")
+    return s
+end
+
+
+// 在 text 中查找 token，从 offset from 开始扫描。找到返回起始下标，否则 -1。
+func findFrom(string text, string token, int from) as int
+    int n = string.len(text)
+    int tn = string.len(token)
+    if tn == 0 or from < 0 or from >= n then
+        return -1
+    end
+    int last = n - tn
+    int i = from
+    while i <= last do
+        bool match = true
+        int j = 0
+        while j < tn do
+            if string.charAt(text, i + j) != string.charAt(token, j) then
+                match = false
+                break
+            end
+            j = j + 1
+        end
+        if match then
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+
+// 字符串是否整数字面量（用于解析 ordered list 的序号）。
+func isDigit(string c) as bool
+    return c >= "0" and c <= "9"
+end
+
+
+// ============================================================
+// Markdown 渲染
+// ============================================================
+
+// 行内元素：bold / italic / inline code / link / image。
+// 输入文本先做 HTML 转义；输出包含 HTML 标签。
+func mdInline(string text) as string
+    string s = escapeHtml(text)
+    string out = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        bool matched = false
+        string c0 = string.charAt(s, i)
+        string c1 = ""
+        if i + 1 < n then
+            c1 = string.charAt(s, i + 1)
+        end
+
+        // **bold**  (必须先于 *italic*)
+        if not matched then
+            if c0 == "*" and c1 == "*" then
+                int close = findFrom(s, "**", i + 2)
+                if close > 0 then
+                    string inner = string.slice(s, i + 2, close - i - 2)
+                    out = out + "<strong>" + inner + "</strong>"
+                    i = close + 2
+                    matched = true
+                end
+            end
+        end
+
+        // `inline code`
+        if not matched then
+            if c0 == "`" then
+                int close = findFrom(s, "`", i + 1)
+                if close > 0 then
+                    string inner = string.slice(s, i + 1, close - i - 1)
+                    out = out + "<code>" + inner + "</code>"
+                    i = close + 1
+                    matched = true
+                end
+            end
+        end
+
+        // *italic*
+        if not matched then
+            if c0 == "*" then
+                int close = findFrom(s, "*", i + 1)
+                if close > 0 then
+                    string inner = string.slice(s, i + 1, close - i - 1)
+                    out = out + "<em>" + inner + "</em>"
+                    i = close + 1
+                    matched = true
+                end
+            end
+        end
+
+        // ![alt](url)  image
+        if not matched then
+            if c0 == "!" and c1 == "[" then
+                int bracketClose = findFrom(s, "]", i + 2)
+                if bracketClose > 0 and bracketClose + 1 < n then
+                    if string.charAt(s, bracketClose + 1) == "(" then
+                        int parenClose = findFrom(s, ")", bracketClose + 2)
+                        if parenClose > 0 then
+                            string alt = string.slice(s, i + 2, bracketClose - i - 2)
+                            string url = string.slice(s, bracketClose + 2, parenClose - bracketClose - 2)
+                            out = out + "<img src=\"" + url + "\" alt=\"" + alt + "\">"
+                            i = parenClose + 1
+                            matched = true
+                        end
+                    end
+                end
+            end
+        end
+
+        // [text](url)  link
+        if not matched then
+            if c0 == "[" then
+                int bracketClose = findFrom(s, "]", i + 1)
+                if bracketClose > 0 and bracketClose + 1 < n then
+                    if string.charAt(s, bracketClose + 1) == "(" then
+                        int parenClose = findFrom(s, ")", bracketClose + 2)
+                        if parenClose > 0 then
+                            string linkText = string.slice(s, i + 1, bracketClose - i - 1)
+                            string url = string.slice(s, bracketClose + 2, parenClose - bracketClose - 2)
+                            out = out + "<a href=\"" + url + "\">" + linkText + "</a>"
+                            i = parenClose + 1
+                            matched = true
+                        end
+                    end
+                end
+            end
+        end
+
+        if not matched then
+            out = out + c0
+            i = i + 1
+        end
+    end
+    return out
+end
+
+
+// 关闭当前块级元素的开口标签。
+func closeBlockTag(string block) as string
+    if block == "p" then
+        return "</p>\n"
+    elseif block == "ul" then
+        return "</ul>\n"
+    elseif block == "ol" then
+        return "</ol>\n"
+    elseif block == "code" then
+        return "</code></pre>\n"
+    end
+    return ""
+end
+
+
+// 块级 Markdown -> HTML。逐行扫描状态机。
+// 支持块：代码围栏 ```、#/##/### 标题、--- 分隔线、无序/有序列表、段落。
+func renderMarkdown(string md) as string
+    array lines = string.splitLines(md)
+    int totalLines = lines.length
+    // BUG-S1 绕过：splitLines 末尾换行多出空串
+    if totalLines > 0 then
+        if string(lines[totalLines - 1]) == "" then
+            totalLines = totalLines - 1
+        end
+    end
+
+    string html = ""
+    string openBlock = ""    // "", "p", "ul", "ol", "code"
+
+    int i = 0
+    while i < totalLines do
+        string line = string(lines[i])
+        string trimmed = string.trim(line)
+
+        // 在代码块内：原样输出（仅 HTML 转义），直到 ``` 结束
+        if openBlock == "code" then
+            if string.startsWith(trimmed, "```") then
+                html = html + "</code></pre>\n"
+                openBlock = ""
+            else
+                html = html + escapeHtml(line) + "\n"
+            end
+            i = i + 1
+            continue
+        end
+
+        // 开启代码块
+        if string.startsWith(trimmed, "```") then
+            if openBlock != "" then
+                html = html + closeBlockTag(openBlock)
+                openBlock = ""
+            end
+            html = html + "<pre><code>"
+            openBlock = "code"
+            i = i + 1
+            continue
+        end
+
+        // 空行：关闭当前非代码块
+        if trimmed == "" then
+            if openBlock != "" then
+                html = html + closeBlockTag(openBlock)
+                openBlock = ""
+            end
+            i = i + 1
+            continue
+        end
+
+        // 标题 #..######
+        if string.startsWith(trimmed, "#") then
+            int level = 0
+            while level < string.len(trimmed) and string.charAt(trimmed, level) == "#" do
+                level = level + 1
+            end
+            if level >= 1 and level <= 6 then
+                if level < string.len(trimmed) and string.charAt(trimmed, level) == " " then
+                    if openBlock != "" then
+                        html = html + closeBlockTag(openBlock)
+                        openBlock = ""
+                    end
+                    string title = string.trim(string.slice(trimmed, level + 1))
+                    string lv = level.toString()
+                    html = html + "<h" + lv + ">" + mdInline(title) + "</h" + lv + ">\n"
+                    i = i + 1
+                    continue
+                end
+            end
+        end
+
+        // 分隔线
+        if trimmed == "---" or trimmed == "***" or trimmed == "___" then
+            if openBlock != "" then
+                html = html + closeBlockTag(openBlock)
+                openBlock = ""
+            end
+            html = html + "<hr>\n"
+            i = i + 1
+            continue
+        end
+
+        // 无序列表项 - 或 * 后跟空格
+        if string.startsWith(trimmed, "- ") or string.startsWith(trimmed, "* ") then
+            if openBlock == "p" then
+                html = html + "</p>\n"
+                openBlock = ""
+            end
+            if openBlock != "ul" then
+                html = html + "<ul>\n"
+                openBlock = "ul"
+            end
+            string item = string.trim(string.slice(trimmed, 2))
+            html = html + "<li>" + mdInline(item) + "</li>\n"
+            i = i + 1
+            continue
+        end
+
+        // 有序列表项 数字.空格
+        bool isOrdered = false
+        string orderedItem = ""
+        if string.len(trimmed) >= 3 then
+            if isDigit(string.charAt(trimmed, 0)) then
+                int dotPos = string.indexOf(trimmed, ". ")
+                if dotPos > 0 then
+                    isOrdered = true
+                    orderedItem = string.trim(string.slice(trimmed, dotPos + 2))
+                end
+            end
+        end
+        if isOrdered then
+            if openBlock == "p" then
+                html = html + "</p>\n"
+                openBlock = ""
+            end
+            if openBlock != "ol" then
+                html = html + "<ol>\n"
+                openBlock = "ol"
+            end
+            html = html + "<li>" + mdInline(orderedItem) + "</li>\n"
+            i = i + 1
+            continue
+        end
+
+        // 段落文本
+        if openBlock == "ul" or openBlock == "ol" then
+            html = html + closeBlockTag(openBlock)
+            openBlock = ""
+        end
+        if openBlock == "p" then
+            html = html + " " + mdInline(trimmed)
+        else
+            html = html + "<p>" + mdInline(trimmed)
+            openBlock = "p"
+        end
+        i = i + 1
+    end
+
+    // 文件结束时关闭未闭合的块
+    if openBlock != "" then
+        html = html + closeBlockTag(openBlock)
+    end
+
+    return html
+end
+
+
+// ============================================================
+// JSON 输出（手工拼接，保证键序）
+// ============================================================
+
+// JSON 字符串转义
+func jsonString(string s) as string
+    string out = "\""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        if c == "\"" then
+            out = out + "\\\""
+        elseif c == "\\" then
+            out = out + "\\\\"
+        elseif c == "\n" then
+            out = out + "\\n"
+        elseif c == "\r" then
+            out = out + "\\r"
+        elseif c == "\t" then
+            out = out + "\\t"
+        else
+            out = out + c
+        end
+        i = i + 1
+    end
+    return out + "\""
+end
+
+
+// var 数组（字符串元素）-> JSON 数组文本
+func tagsToJsonArray(var tags) as string
+    if tags == null then
+        return "[]"
+    end
+    int n = tags.length
+    if n == 0 then
+        return "[]"
+    end
+    string out = "["
+    int i = 0
+    while i < n do
+        if i > 0 then
+            out = out + ","
+        end
+        out = out + jsonString(string(tags[i]))
+        i = i + 1
+    end
+    return out + "]"
+end
+
+
+// 单篇 post dict -> JSON 文本，键序：slug,title,date,tags,content
+func postToJson(var post) as string
+    string slug = string(post["slug"])
+    string title = string(post["title"])
+    string date = string(post["date"])
+    string content = string(post["content"])
+    return "{\"slug\":" + jsonString(slug) + ",\"title\":" + jsonString(title) + ",\"date\":" + jsonString(date) + ",\"tags\":" + tagsToJsonArray(post["tags"]) + ",\"content\":" + jsonString(content) + "}"
+end
+
+
+// 所有 post -> JSON 数组文本
+func postsToJson(var posts) as string
+    int n = posts.length
+    if n == 0 then
+        return "[]"
+    end
+    string out = "["
+    int i = 0
+    while i < n do
+        if i > 0 then
+            out = out + ","
+        end
+        out = out + postToJson(posts[i])
+        i = i + 1
+    end
+    return out + "]"
+end
+
+
+// ============================================================
+// 存储 / CRUD（纯数据操作，不涉及 native-backed class）
+// ============================================================
+
+// 从 posts.json 读取；文件不存在/非法返回空数组。
+func loadPosts(string path_) as var
+    var data = []
+    if not file.exists(path_) then
+        return data
+    end
+    string text = file.readText(path_)
+    if not json.valid(text) then
+        return data
+    end
+    var root = json.parse(text)
+    if root == null then
+        return data
+    end
+    if not ("posts" in root) then
+        return data
+    end
+    var arr = root["posts"]
+    if arr == null then
+        return data
+    end
+    return arr
+end
+
+
+// 把 posts 数组写回 posts.json（compact 保序 JSON）。
+func savePosts(string path_, var posts)
+    string text = "{\"posts\":" + postsToJson(posts) + "}"
+    bool ok = file.writeText(path_, text)
+    if not ok then
+        println("WARN: failed to write " + path_)
+    end
+end
+
+
+// 找指定 slug 在数组中的下标；不存在返回 -1。
+func findPostIndex(var posts, string slug) as int
+    int n = posts.length
+    int i = 0
+    while i < n do
+        var p = posts[i]
+        if string(p["slug"]) == slug then
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+
+// 把 var tags 数组拼成 "a, b, c" 形式。
+func joinTags(var tags) as string
+    if tags == null then
+        return ""
+    end
+    int n = tags.length
+    if n == 0 then
+        return ""
+    end
+    string out = ""
+    int i = 0
+    while i < n do
+        if i > 0 then
+            out = out + ", "
+        end
+        out = out + string(tags[i])
+        i = i + 1
+    end
+    return out
+end
+
+
+// ============================================================
+// 模板数据构造
+// ============================================================
+
+// 列表/归档/搜索都用同样的 post 摘要数组。
+func buildListData(var posts, string query) as var
+    var data = {}
+    var postList = []
+    int n = posts.length
+    int i = 0
+    while i < n do
+        var p = posts[i]
+        var item = {}
+        item["slug"] = p["slug"]
+        item["title"] = p["title"]
+        item["date"] = p["date"]
+        postList.push(item)
+        i = i + 1
+    end
+    data["posts"] = postList
+    data["hasPosts"] = postList.length > 0
+    data["count"] = postList.length.toString()
+    data["query"] = query
+    return data
+end
+
+
+// 文章详情页数据：title / date / tagsText / contentHtml
+func buildPostData(var post) as var
+    var data = {}
+    data["title"] = post["title"]
+    data["date"] = post["date"]
+    data["tagsText"] = joinTags(post["tags"])
+    string md = string(post["content"])
+    data["contentHtml"] = renderMarkdown(md)
+    return data
+end
+
+
+// ============================================================
+// 当前日期 YYYY-MM-DD
+// ============================================================
+func today() as string
+    return time.formatPattern(time.now(), "yyyy-mm-dd")
+end
+
+
+// ============================================================
+// HTTP 路由 handler（HttpRequest/HttpResponse 必须内联）
+//
+// 设计取舍：每次请求都重新 loadPosts() 从磁盘读取。
+// 之所以不缓存到全局 var 数组，是因为发现一个 xlang BUG ——
+// 文件作用域的 `var gPosts = []` 在被 push 填充后，从 main 直接
+// 访问 gPosts[0] 完全正常；但 HTTP 回调 route handler 里
+// gPosts.length 返回正确值，gPosts[i] 却返回空（元素引用丢失），
+// 字符串全局变量在同一回调里则完全正常。怀疑是 native callback
+// 上下文里 var 数组元素的某种 marshalling 缺陷（见 BUGS.md XB1）。
+// 绕过：每次请求 loadPosts 拿到一个 *局部* var，局部 var 访问正常。
+// ============================================================
+func route(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+
+    resp.header("X-Server", "xlang-xblog")
+
+    string method = req.method()
+    string path = req.path()
+
+    // GET / -> 首页（文章列表）
+    if method == "GET" and path == "/" then
+        var posts = loadPosts(gPostsPath)
+        var data = buildListData(posts, "")
+        string html = template.render(gListTpl, data)
+        return resp.text(html, "text/html; charset=utf-8")
+    end
+
+    // GET /archive -> 归档页
+    if method == "GET" and path == "/archive" then
+        var posts = loadPosts(gPostsPath)
+        var data = buildListData(posts, "")
+        string html = template.render(gArchiveTpl, data)
+        return resp.text(html, "text/html; charset=utf-8")
+    end
+
+    // GET /post/{slug} -> 文章详情
+    if method == "GET" and string.startsWith(path, "/post/") then
+        string slug = req.param("slug")
+        var posts = loadPosts(gPostsPath)
+        int idx = findPostIndex(posts, slug)
+        if idx < 0 then
+            resp.status(404)
+            return resp.text("<html><body><h1>404</h1><p>post not found: " + escapeHtml(slug) + "</p><p><a href=\"/\">Home</a></p></body></html>", "text/html; charset=utf-8")
+        end
+        var data = buildPostData(posts[idx])
+        string html = template.render(gPostTpl, data)
+        return resp.text(html, "text/html; charset=utf-8")
+    end
+
+    // GET /api/posts -> 所有文章 JSON
+    if method == "GET" and path == "/api/posts" then
+        var posts = loadPosts(gPostsPath)
+        return resp.jsonText(postsToJson(posts))
+    end
+
+    // GET /api/posts/{slug} -> 单篇 JSON
+    if method == "GET" and string.startsWith(path, "/api/posts/") then
+        string slug = req.param("slug")
+        var posts = loadPosts(gPostsPath)
+        int idx = findPostIndex(posts, slug)
+        if idx < 0 then
+            resp.status(404)
+            return resp.jsonText("{\"error\":\"not found\",\"slug\":\"" + slug + "\"}")
+        end
+        return resp.jsonText(postToJson(posts[idx]))
+    end
+
+    // POST /api/posts -> 新建文章
+    if method == "POST" and path == "/api/posts" then
+        string body = req.body()
+        if not json.valid(body) then
+            resp.status(400)
+            return resp.jsonText("{\"error\":\"invalid json body\"}")
+        end
+        var newPost = json.parse(body)
+        if not ("slug" in newPost) or not ("title" in newPost) or not ("content" in newPost) then
+            resp.status(400)
+            return resp.jsonText("{\"error\":\"missing required fields: slug, title, content\"}")
+        end
+        string slug = string(newPost["slug"])
+        var posts = loadPosts(gPostsPath)
+        if findPostIndex(posts, slug) >= 0 then
+            resp.status(409)
+            return resp.jsonText("{\"error\":\"slug already exists\",\"slug\":\"" + slug + "\"}")
+        end
+        if not ("date" in newPost) then
+            newPost["date"] = today()
+        end
+        if not ("tags" in newPost) then
+            newPost["tags"] = []
+        end
+        posts.push(newPost)
+        savePosts(gPostsPath, posts)
+        resp.status(201)
+        return resp.jsonText(postToJson(newPost))
+    end
+
+    // PUT /api/posts/{slug} -> 编辑现有文章
+    if method == "PUT" and string.startsWith(path, "/api/posts/") then
+        string slug = req.param("slug")
+        var posts = loadPosts(gPostsPath)
+        int idx = findPostIndex(posts, slug)
+        if idx < 0 then
+            resp.status(404)
+            return resp.jsonText("{\"error\":\"not found\",\"slug\":\"" + slug + "\"}")
+        end
+        string body = req.body()
+        if not json.valid(body) then
+            resp.status(400)
+            return resp.jsonText("{\"error\":\"invalid json body\"}")
+        end
+        var update = json.parse(body)
+        var existing = posts[idx]
+        if "title" in update then
+            existing["title"] = update["title"]
+        end
+        if "content" in update then
+            existing["content"] = update["content"]
+        end
+        if "date" in update then
+            existing["date"] = update["date"]
+        end
+        if "tags" in update then
+            existing["tags"] = update["tags"]
+        end
+        posts[idx] = existing
+        savePosts(gPostsPath, posts)
+        return resp.jsonText(postToJson(existing))
+    end
+
+    // DELETE /api/posts/{slug} -> 删除文章
+    if method == "DELETE" and string.startsWith(path, "/api/posts/") then
+        string slug = req.param("slug")
+        var posts = loadPosts(gPostsPath)
+        int idx = findPostIndex(posts, slug)
+        if idx < 0 then
+            resp.status(404)
+            return resp.jsonText("{\"error\":\"not found\",\"slug\":\"" + slug + "\"}")
+        end
+        var newArr = []
+        int n = posts.length
+        int k = 0
+        while k < n do
+            if k != idx then
+                newArr.push(posts[k])
+            end
+            k = k + 1
+        end
+        savePosts(gPostsPath, newArr)
+        return resp.jsonText("{\"deleted\":true,\"slug\":\"" + slug + "\"}")
+    end
+
+    // GET /search?q=xxx -> 搜索
+    if method == "GET" and path == "/search" then
+        string q = req.queryValue("q")
+        if q == "" then
+            q = req.query()
+        end
+        var posts = loadPosts(gPostsPath)
+        var matches = []
+        int n = posts.length
+        int i = 0
+        while i < n do
+            var p = posts[i]
+            string title = string(p["title"])
+            string content = string(p["content"])
+            if string.contains(title, q) or string.contains(content, q) then
+                matches.push(p)
+            end
+            i = i + 1
+        end
+        var data = buildListData(matches, q)
+        string html = template.render(gSearchTpl, data)
+        return resp.text(html, "text/html; charset=utf-8")
+    end
+
+    // 未匹配的兜底
+    resp.status(404)
+    return resp.text("not found: " + method + " " + path, "text/plain; charset=utf-8")
+end
+
+func(point, point) as bool requestHandler = route
+
+
+// 错误处理器：xweb 自身（如未注册路由）触发的 404/500 等
+func errorPage(int status, string message, point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.status(status)
+    resp.header("X-Error-Path", req.path())
+    string body = "{\"status\":" + status.toString() + ",\"message\":\"" + message + "\",\"path\":\"" + req.path() + "\"}"
+    return resp.jsonText(body)
+end
+
+func(int, string, point, point) as bool errorHandler = errorPage
+
+
+// ============================================================
+// server 构建：注册全部路由 + 静态目录 + 错误处理器
+// ============================================================
+func buildServer(int port) as point
+    point server = http.server.create(port, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 1)
+
+    http.server.getRequest(server, "/", requestHandler)
+    http.server.getRequest(server, "/archive", requestHandler)
+    http.server.getRequest(server, "/post/{slug}", requestHandler)
+    http.server.getRequest(server, "/search", requestHandler)
+    http.server.getRequest(server, "/api/posts", requestHandler)
+    http.server.getRequest(server, "/api/posts/{slug}", requestHandler)
+    http.server.postRequest(server, "/api/posts", requestHandler)
+    http.server.routeRequest(server, "PUT", "/api/posts/{slug}", requestHandler)
+    http.server.routeRequest(server, "DELETE", "/api/posts/{slug}", requestHandler)
+
+    http.server.static(server, "/static", gStaticDir)
+
+    http.server.error(server, errorHandler)
+
+    return server
+end
+
+
+// ============================================================
+// self-test 统计
+// ============================================================
+int gPassed = 0
+int gFailed = 0
+
+func check(bool cond, string name, string detail)
+    if cond then
+        gPassed = gPassed + 1
+        println("[ PASS ] " + name)
+    else
+        gFailed = gFailed + 1
+        println("[ FAIL ] " + name + "  " + detail)
+    end
+end
+
+func expectStatus(int got, int want, string name)
+    check(got == want, name, "got status " + got.toString() + " want " + want.toString())
+end
+
+
+// ============================================================
+// Markdown 单元测试（不依赖 server，启动时直接跑）
+// ============================================================
+func runMarkdownUnitTests()
+    println("")
+    println("================ markdown unit tests ================")
+
+    string md1 = "# Hello\n\nThis is **bold** and *italic*."
+    string html1 = renderMarkdown(md1)
+    check(string.contains(html1, "<h1>Hello</h1>"), "md.h1", "html=" + html1)
+    check(string.contains(html1, "<strong>bold</strong>"), "md.bold", "html=" + html1)
+    check(string.contains(html1, "<em>italic</em>"), "md.italic", "html=" + html1)
+
+    string md2 = "## Sub\n\nInline `code here`.\n\n```\nfunc f() as int\n    return 0\nend\n```"
+    string html2 = renderMarkdown(md2)
+    check(string.contains(html2, "<h2>Sub</h2>"), "md.h2", "html=" + html2)
+    check(string.contains(html2, "<code>code here</code>"), "md.inline-code", "html=" + html2)
+    check(string.contains(html2, "<pre><code>"), "md.code-block-open", "html=" + html2)
+    check(string.contains(html2, "func f()"), "md.code-block-content-preserved", "html=" + html2)
+    check(string.contains(html2, "</code></pre>"), "md.code-block-close", "html=" + html2)
+
+    string md3 = "- one\n- two\n- three"
+    string html3 = renderMarkdown(md3)
+    check(string.contains(html3, "<ul>"), "md.ul-open", "html=" + html3)
+    check(string.contains(html3, "<li>one</li>"), "md.ul-item1", "html=" + html3)
+    check(string.contains(html3, "<li>three</li>"), "md.ul-item3", "html=" + html3)
+    check(string.contains(html3, "</ul>"), "md.ul-close", "html=" + html3)
+
+    string md4 = "1. first\n2. second"
+    string html4 = renderMarkdown(md4)
+    check(string.contains(html4, "<ol>"), "md.ol-open", "html=" + html4)
+    check(string.contains(html4, "<li>first</li>"), "md.ol-item1", "html=" + html4)
+    check(string.contains(html4, "</ol>"), "md.ol-close", "html=" + html4)
+
+    string md5 = "[click](https://xlang.dev) and ![pic](https://xlang.dev/a.png)"
+    string html5 = renderMarkdown(md5)
+    check(string.contains(html5, "<a href=\"https://xlang.dev\">click</a>"), "md.link", "html=" + html5)
+    check(string.contains(html5, "<img src=\"https://xlang.dev/a.png\" alt=\"pic\">"), "md.image", "html=" + html5)
+
+    string md6 = "para1\n\npara2\n\n---\n\nafter hr"
+    string html6 = renderMarkdown(md6)
+    check(string.contains(html6, "<p>para1</p>"), "md.para1", "html=" + html6)
+    check(string.contains(html6, "<p>para2</p>"), "md.para2", "html=" + html6)
+    check(string.contains(html6, "<hr>"), "md.hr", "html=" + html6)
+    check(string.contains(html6, "<p>after hr</p>"), "md.para-after-hr", "html=" + html6)
+
+    // HTML 转义：原始 < > & 应被转义，不引入未授权 HTML
+    string md7 = "<script>alert(1)</script> & stuff"
+    string html7 = renderMarkdown(md7)
+    check(string.contains(html7, "&lt;script&gt;"), "md.escape-lt-gt", "html=" + html7)
+    check(string.contains(html7, "&amp; stuff"), "md.escape-amp", "html=" + html7)
+    check(not string.contains(html7, "<script>"), "md.no-raw-script", "html=" + html7)
+
+    println("")
+end
+
+
+// ============================================================
+// HTTP self-test：用 HttpClientRequest 反向打自己的 server。
+// 每个 case 内联；用 if true then ... end 制造独立作用域避免变量重名。
+// ============================================================
+func runHttpSelfTest(int port) as int
+    gBase = "http://127.0.0.1:" + port.toString()
+
+    println("")
+    println("================ xblog http self-test ================")
+    println("base url: " + gBase)
+    println("")
+
+    // case 1: GET / -> 200 + 首页 HTML
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "1. GET / status")
+        string body = resp.body()
+        check(string.contains(body, "xBlog"), "1. body has xBlog title", "body=" + body)
+        check(string.contains(body, "/post/hello-world"), "1. body links to hello-world", "body=" + body)
+        check(string.contains(body, "/static/style.css"), "1. body links stylesheet", "body=" + body)
+    end
+
+    // case 2: GET /post/hello-world -> 200 + 渲染后的 markdown
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/post/hello-world")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "2. GET /post/hello-world status")
+        string body = resp.body()
+        check(string.contains(body, "<h1>Hello World</h1>"), "2. body has h1", "body=" + body)
+        check(string.contains(body, "<strong>xBlog</strong>"), "2. body has bold", "body=" + body)
+        check(string.contains(body, "<em>xlang</em>"), "2. body has italic", "body=" + body)
+        check(string.contains(body, "<pre><code>"), "2. body has code block", "body=" + body)
+        check(string.contains(body, "<ul>"), "2. body has ul", "body=" + body)
+        check(string.contains(body, "<a href=\"https://github.com/anomalyco/opencode\">xlang repo</a>"), "2. body has link", "body=" + body)
+    end
+
+    // case 3: GET /post/nonexistent -> 404
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/post/no-such-slug")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 404, "3. GET /post/no-such-slug 404")
+    end
+
+    // case 4: GET /archive -> 200 + Archive
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/archive")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "4. GET /archive status")
+        check(string.contains(resp.body(), "Archive"), "4. body has Archive", "body=" + resp.body())
+    end
+
+    // case 5: GET /api/posts -> 200 + JSON 数组
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/api/posts")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "5. GET /api/posts status")
+        string body = resp.body()
+        check(string.contains(body, "hello-world"), "5. body has hello-world", "body=" + body)
+        check(string.contains(body, "markdown-demo"), "5. body has markdown-demo", "body=" + body)
+        check(string.startsWith(body, "["), "5. body is JSON array", "body=" + body)
+        check(resp.header("Content-Type") == "application/json; charset=utf-8", "5. content-type json", "ct=" + resp.header("Content-Type"))
+    end
+
+    // case 6: GET /api/posts/hello-world -> 200 + 单篇 JSON
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/api/posts/hello-world")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "6. GET /api/posts/hello-world status")
+        string body = resp.body()
+        check(string.startsWith(body, "{\"slug\":\"hello-world\""), "6. body starts with slug", "body=" + body)
+        check(string.contains(body, "\"title\":\"Hello World\""), "6. body has title", "body=" + body)
+        check(string.contains(body, "\"tags\":[\"intro\",\"welcome\"]"), "6. body has tags array", "body=" + body)
+    end
+
+    // case 7: POST /api/posts -> 201 + 新建
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/api/posts")
+        req.method("POST")
+        req.timeout(5000)
+        req.text("{\"slug\":\"test-post\",\"title\":\"Test Post\",\"tags\":[\"test\"],\"content\":\"# Test\n\nSome **content**.\"}", "application/json")
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 201, "7. POST /api/posts status 201")
+        string body = resp.body()
+        check(string.contains(body, "\"slug\":\"test-post\""), "7. body has new slug", "body=" + body)
+    end
+
+    // case 8: GET /api/posts/test-post -> 200，验证刚刚创建
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/api/posts/test-post")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "8. GET new post status")
+        check(string.contains(resp.body(), "Test Post"), "8. body has Test Post", "body=" + resp.body())
+    end
+
+    // case 9: POST /api/posts 重复 slug -> 409
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/api/posts")
+        req.method("POST")
+        req.timeout(5000)
+        req.text("{\"slug\":\"test-post\",\"title\":\"Dup\",\"content\":\"x\"}", "application/json")
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 409, "9. POST duplicate slug 409")
+    end
+
+    // case 10: POST /api/posts 缺字段 -> 400
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/api/posts")
+        req.method("POST")
+        req.timeout(5000)
+        req.text("{\"slug\":\"incomplete\"}", "application/json")
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 400, "10. POST missing fields 400")
+    end
+
+    // case 11: PUT /api/posts/test-post -> 编辑
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/api/posts/test-post")
+        req.method("PUT")
+        req.timeout(5000)
+        req.text("{\"title\":\"Updated Title\",\"content\":\"new content\"}", "application/json")
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "11. PUT /api/posts/test-post status")
+        string body = resp.body()
+        check(string.contains(body, "Updated Title"), "11. body has updated title", "body=" + body)
+        check(string.contains(body, "new content"), "11. body has updated content", "body=" + body)
+    end
+
+    // case 12: DELETE /api/posts/test-post -> 200 删除
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/api/posts/test-post")
+        req.method("DELETE")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "12. DELETE test-post status")
+        check(string.contains(resp.body(), "\"deleted\":true"), "12. body deleted true", "body=" + resp.body())
+    end
+
+    // case 13: GET /api/posts/test-post -> 404，已删除
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/api/posts/test-post")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 404, "13. GET deleted post 404")
+    end
+
+    // case 14: GET /search?q=Markdown -> 200 + 匹配
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/search?q=Markdown")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "14. GET /search status")
+        string body = resp.body()
+        check(string.contains(body, "Markdown Features Demo"), "14. body matches markdown-demo", "body=" + body)
+    end
+
+    // case 15: GET /search?q=nonexistentterm -> 200 + 无匹配
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/search?q=zzzznotfound")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "15. GET /search no-match status")
+        check(string.contains(resp.body(), "No matches"), "15. body says no matches", "body=" + resp.body())
+    end
+
+    // case 16: GET /static/style.css -> 200 + CSS
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/static/style.css")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "16. GET /static/style.css status")
+        check(string.contains(resp.body(), "font-family"), "16. body has font-family", "body=" + resp.body())
+        check(resp.header("ETag") != "", "16. ETag present", "ETag=" + resp.header("ETag"))
+    end
+
+    // case 17: 未注册路由 /random -> 404（xweb 兜底，进入 error handler）
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/totally-random-path")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 404, "17. unknown path 404")
+        check(resp.header("X-Error-Path") == "/totally-random-path", "17. X-Error-Path set", "X-Error-Path=" + resp.header("X-Error-Path"))
+    end
+
+    println("")
+    println("------------------- summary -------------------")
+    println("passed: " + gPassed.toString() + " / " + (gPassed + gFailed).toString())
+    println("failed: " + gFailed.toString())
+    println("")
+
+    if gFailed > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ============================================================
+// 加载模板文本到全局（启动一次）
+// ============================================================
+func loadTemplates(string tplDir) as bool
+    string listPath = path.join(tplDir, "list.html")
+    string postPath = path.join(tplDir, "post.html")
+    string archivePath = path.join(tplDir, "archive.html")
+    string searchPath = path.join(tplDir, "search.html")
+
+    if not file.exists(listPath) then
+        println("ERROR: missing template " + listPath)
+        return false
+    end
+    if not file.exists(postPath) then
+        println("ERROR: missing template " + postPath)
+        return false
+    end
+    if not file.exists(archivePath) then
+        println("ERROR: missing template " + archivePath)
+        return false
+    end
+    if not file.exists(searchPath) then
+        println("ERROR: missing template " + searchPath)
+        return false
+    end
+
+    gListTpl = file.readText(listPath)
+    gPostTpl = file.readText(postPath)
+    gArchiveTpl = file.readText(archivePath)
+    gSearchTpl = file.readText(searchPath)
+    return true
+end
+
+
+// ============================================================
+// 入口
+// ============================================================
+func main(...) as int
+    println("xlang xblog - tiny blog engine")
+    println("")
+
+    string scriptPath = string(arg[0])
+    gScriptDir = path.dir(scriptPath)
+    gPostsPath = path.join(gScriptDir, "posts.json")
+    gStaticDir = path.join(gScriptDir, "static")
+
+    // 先跑 markdown 单元测试（不依赖 server）
+    runMarkdownUnitTests()
+
+    // 加载模板与数据
+    if not loadTemplates(path.join(gScriptDir, "templates")) then
+        return 1
+    end
+    var seed = loadPosts(gPostsPath)
+    println("loaded " + string(seed.length) + " posts from " + gPostsPath)
+
+    // 备份 posts.json，self-test 会新建/删除一篇，结束后恢复
+    string backupPath = path.join(gScriptDir, "posts.json.bak")
+    bool hasBackup = file.exists(gPostsPath)
+    if hasBackup then
+        file.writeText(backupPath, file.readText(gPostsPath))
+    end
+
+    string mode = "selftest"
+    int port = DEFAULT_PORT
+    if arg.length >= 2 then
+        string a1 = string(arg[1])
+        if a1 == "serve" then
+            mode = "serve"
+        elseif a1 == "selftest" then
+            mode = "selftest"
+        elseif a1 == "-h" or a1 == "--help" then
+            println("Usage:")
+            println("  xblog               run self-test (start server, fire requests, restore data, exit)")
+            println("  xblog serve [port]  serve forever (default port " + DEFAULT_PORT.toString() + ")")
+            return 0
+        else
+            int parsed = int(a1)
+            if parsed > 0 then
+                port = parsed
+            end
+        end
+    end
+    if arg.length >= 3 and mode == "serve" then
+        int parsed = int(string(arg[2]))
+        if parsed > 0 then
+            port = parsed
+        end
+    end
+
+    int rc = 0
+    if mode == "selftest" then
+        point server = buildServer(0)
+        if server == null then
+            println("FATAL: http.server.create returned null")
+            if hasBackup then
+                file.writeText(gPostsPath, file.readText(backupPath))
+                file.delete(backupPath)
+            end
+            return 1
+        end
+        if not http.server.start(server) then
+            println("FATAL: http.server.start failed")
+            http.server.destroy(server)
+            if hasBackup then
+                file.writeText(gPostsPath, file.readText(backupPath))
+                file.delete(backupPath)
+            end
+            return 1
+        end
+        int boundPort = http.server.port(server)
+        println("server started on 127.0.0.1:" + boundPort.toString())
+        time.sleep(200)
+
+        rc = runHttpSelfTest(boundPort)
+
+        println("post-test requestCount=" + http.server.requestCount(server).toString())
+        if not http.server.drain(server, 2000) then
+            println("WARN: drain timed out, forcing stop")
+        end
+        http.server.stop(server)
+        http.server.destroy(server)
+        println("server stopped & destroyed")
+
+        // 恢复原始 posts.json（self-test 期间被改写过）
+        if hasBackup then
+            file.writeText(gPostsPath, file.readText(backupPath))
+            file.delete(backupPath)
+            println("restored posts.json from backup")
+        end
+        return rc
+    end
+
+    // serve 模式
+    point server = buildServer(port)
+    if server == null then
+        println("FATAL: http.server.create returned null")
+        return 1
+    end
+    if not http.server.start(server) then
+        println("FATAL: http.server.start failed (port " + port.toString() + " busy?)")
+        http.server.destroy(server)
+        return 1
+    end
+    println("listening on http://127.0.0.1:" + port.toString())
+    println("press Ctrl+C to stop")
+    while true do
+        time.sleep(5000)
+        println("[stats] requestCount=" + http.server.requestCount(server).toString() + " connectionCount=" + http.server.connectionCount(server).toString())
+    end
+end

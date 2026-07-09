@@ -219,7 +219,9 @@ static int xl6SemFieldAttrNameIsValid(const char* name)
 {
     return xl6TextEquals(name, "json") ||
            xl6TextEquals(name, "xson") ||
-           xl6TextEquals(name, "persist");
+           xl6TextEquals(name, "persist") ||
+           xl6TextEquals(name, "string") ||
+           xl6TextEquals(name, "compare");
 }
 
 static int xl6SemFieldAttrAppliesToFormat(const XL6_AstNode* attr, const char* format)
@@ -296,6 +298,7 @@ static void xl6SemCollectFieldAttrConfig(
 
 static int xl6SemCheckFieldAttrArgs(XL6_SemContext* ctx, const XL6_AstNode* attr)
 {
+    int compareLike;
     int seenName;
     int seenSkip;
     int seenInclude;
@@ -314,6 +317,7 @@ static int xl6SemCheckFieldAttrArgs(XL6_SemContext* ctx, const XL6_AstNode* attr
     if ( attr == NULL || attr->kind != XL6_AST_FIELD_ATTR ) {
         return 1;
     }
+    compareLike = xl6TextEquals(attr->text, "string") || xl6TextEquals(attr->text, "compare");
     for ( i = 0; i < attr->childCount; ++i ) {
         const XL6_AstNode* arg = attr->children[i];
         const XL6_AstNode* key;
@@ -323,6 +327,11 @@ static int xl6SemCheckFieldAttrArgs(XL6_SemContext* ctx, const XL6_AstNode* attr
             continue;
         }
         if ( arg->kind == XL6_AST_STRING ) {
+            if ( compareLike ) {
+                xl6SemErrorNode(ctx, arg, "field derive annotation only supports skip");
+                ok = 0;
+                continue;
+            }
             if ( seenName ) {
                 xl6SemErrorNode(ctx, arg, "field persistence annotation has duplicate name option");
                 ok = 0;
@@ -334,8 +343,18 @@ static int xl6SemCheckFieldAttrArgs(XL6_SemContext* ctx, const XL6_AstNode* attr
             if ( xl6TextEquals(arg->text, "skip") ) {
                 seenSkip += 1;
             } else if ( xl6TextEquals(arg->text, "include") ) {
+                if ( compareLike ) {
+                    xl6SemErrorNode(ctx, arg, "field derive annotation only supports skip");
+                    ok = 0;
+                    continue;
+                }
                 seenInclude += 1;
             } else if ( xl6TextEquals(arg->text, "required") ) {
+                if ( compareLike ) {
+                    xl6SemErrorNode(ctx, arg, "field derive annotation only supports skip");
+                    ok = 0;
+                    continue;
+                }
                 seenRequired += 1;
             } else {
                 xl6SemErrorNode(ctx, arg, "unknown field persistence annotation option");
@@ -344,7 +363,7 @@ static int xl6SemCheckFieldAttrArgs(XL6_SemContext* ctx, const XL6_AstNode* attr
             continue;
         }
         if ( arg->kind != XL6_AST_KEY_VALUE || arg->childCount < 2 ) {
-            xl6SemErrorNode(ctx, arg, "invalid field persistence annotation option");
+            xl6SemErrorNode(ctx, arg, compareLike ? "field derive annotation only supports skip" : "invalid field persistence annotation option");
             ok = 0;
             continue;
         }
@@ -352,7 +371,12 @@ static int xl6SemCheckFieldAttrArgs(XL6_SemContext* ctx, const XL6_AstNode* attr
         key = arg->children[0];
         value = arg->children[1];
         if ( key == NULL || value == NULL ) {
-            xl6SemErrorNode(ctx, arg, "invalid field persistence annotation option");
+            xl6SemErrorNode(ctx, arg, compareLike ? "field derive annotation only supports skip" : "invalid field persistence annotation option");
+            ok = 0;
+            continue;
+        }
+        if ( compareLike ) {
+            xl6SemErrorNode(ctx, key, "field derive annotation only supports skip");
             ok = 0;
             continue;
         }
@@ -399,6 +423,8 @@ static int xl6SemCheckFieldAttrs(XL6_SemContext* ctx, const XL6_AstNode* field)
     int seenJson;
     int seenXson;
     int seenPersist;
+    int seenString;
+    int seenCompare;
     int ok;
     size_t i;
 
@@ -414,6 +440,8 @@ static int xl6SemCheckFieldAttrs(XL6_SemContext* ctx, const XL6_AstNode* field)
     seenJson = 0;
     seenXson = 0;
     seenPersist = 0;
+    seenString = 0;
+    seenCompare = 0;
     ok = 1;
     for ( i = 1; i < field->childCount; ++i ) {
         const XL6_AstNode* attr = field->children[i];
@@ -431,13 +459,17 @@ static int xl6SemCheckFieldAttrs(XL6_SemContext* ctx, const XL6_AstNode* field)
             seenXson += 1;
         } else if ( xl6TextEquals(attr->text, "persist") ) {
             seenPersist += 1;
+        } else if ( xl6TextEquals(attr->text, "string") ) {
+            seenString += 1;
+        } else if ( xl6TextEquals(attr->text, "compare") ) {
+            seenCompare += 1;
         }
         if ( !xl6SemCheckFieldAttrArgs(ctx, attr) ) {
             ok = 0;
         }
     }
 
-    if ( seenJson > 1 || seenXson > 1 || seenPersist > 1 ) {
+    if ( seenJson > 1 || seenXson > 1 || seenPersist > 1 || seenString > 1 || seenCompare > 1 ) {
         xl6SemErrorNode(ctx, field, "duplicate field persistence annotation");
         ok = 0;
     }
@@ -3434,6 +3466,9 @@ static int xl6SemExprParamMatchCost(XL6_SemContext* ctx, const XL6_AstNode* expr
 
     if ( exprType == NULL ) {
         return 0;
+    }
+    if ( xl6TextEquals(exprType, "var") ) {
+        return 90;
     }
     if ( !xl6SemNameIsRegisteredType(ctx, exprType) && xl6SemFindTypeParam(ctx, exprType) == NULL ) {
         return 0;
@@ -6579,6 +6614,8 @@ static int xl6SemCheckTypeCall(XL6_SemContext* ctx, XL6_AstNode* call)
     return 1;
 }
 
+static int xl6SemExprHasClassToString(XL6_SemContext* ctx, XL6_AstNode* expr);
+
 static int xl6SemCheckTypeConvertCall(XL6_SemContext* ctx, XL6_AstNode* call)
 {
     XL6_AstNode* callee;
@@ -6611,6 +6648,9 @@ static int xl6SemCheckTypeConvertCall(XL6_SemContext* ctx, XL6_AstNode* call)
         xl6SemVarBoxMismatchError(ctx, argExpr, "璇ヨ〃杈惧紡涓嶈兘瑁呭叆 var");
         return 0;
     }
+    if ( xl6TextEquals(callee->text, "string") && xl6SemExprHasClassToString(ctx, argExpr) ) {
+        return 1;
+    }
     if ( !xl6SemCanConvertType(sourceType, callee->text) ) {
         xl6SemConversionMismatchError(ctx, argExpr, callee->text, sourceType);
         return 0;
@@ -6638,6 +6678,27 @@ static int xl6SemTypeNameHasImplicitToString(const char* name)
            xl6TextEquals(name, "point");
 }
 
+static int xl6SemExprHasClassToString(XL6_SemContext* ctx, XL6_AstNode* expr)
+{
+    XL6_AstNode* typeNode;
+    const XL6_AstNode* concreteType;
+    XL6_AstNode* classNode;
+    int result;
+
+    if ( ctx == NULL || expr == NULL ) {
+        return 0;
+    }
+    typeNode = xl6SemInferAutoTypeNode(ctx, expr);
+    concreteType = xl6SemResolveAliasType(ctx, typeNode);
+    classNode = concreteType != NULL && concreteType->text != NULL ? xl6SemFindTypeDecl(ctx, concreteType->text) : NULL;
+    result = classNode != NULL &&
+             classNode->kind == XL6_AST_CLASS &&
+             ((!xl6SemClassHasTypeParams(classNode) && xl6SemClassDeclHasDerive(classNode, "string")) ||
+              xl6SemFindProtocolMethodForExprArgs(ctx, expr, "__toString__", NULL, 0, 0) != NULL);
+    xl6AstFree(typeNode);
+    return result;
+}
+
 static int xl6SemExprIsVarValue(XL6_SemContext* ctx, XL6_AstNode* expr)
 {
     XL6_Symbol* sym;
@@ -6657,7 +6718,8 @@ static int xl6SemExprHasImplicitToString(XL6_SemContext* ctx, XL6_AstNode* expr)
         return 1;
     }
     typeName = xl6SemExprStaticTypeName(ctx, expr);
-    return xl6SemTypeNameHasImplicitToString(typeName);
+    return xl6SemTypeNameHasImplicitToString(typeName) ||
+           xl6SemExprHasClassToString(ctx, expr);
 }
 
 static int xl6SemIsImplicitToStringCall(XL6_SemContext* ctx, XL6_AstNode* node)
@@ -7819,6 +7881,12 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
     int memberCallOk;
     XL6_AstNode* func;
     XL6_Symbol* sym;
+
+    if ( xl6SemIsImplicitToStringCall(ctx, node) ) {
+        XL6_AstNode* callee = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+        XL6_AstNode* receiver = callee != NULL && callee->childCount > 0 ? callee->children[0] : NULL;
+        return receiver != NULL ? xl6SemCheckExpr(ctx, receiver) : 1;
+    }
 
     ok = xl6SemIsPersistenceGenericCallNode(node) ?
          xl6SemCheckChildrenExprFrom(ctx, node, 1) :
@@ -10052,6 +10120,48 @@ static int xl6SemCheckCopyableExpr(XL6_SemContext* ctx, XL6_AstNode* expr, int a
     return ok;
 }
 
+static int xl6SemCurrentFunctionParamName(XL6_SemContext* ctx, const char* name)
+{
+    XL6_AstNode* params;
+    size_t i;
+
+    if ( ctx == NULL || ctx->currentFunction == NULL || name == NULL ) {
+        return 0;
+    }
+    params = ctx->currentFunction->childCount > 1 ? ctx->currentFunction->children[1] : NULL;
+    for ( i = 0; params != NULL && i < params->childCount; ++i ) {
+        XL6_AstNode* param = params->children[i];
+        if ( param != NULL && param->text != NULL && xl6TextEquals(param->text, name) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int xl6SemExprCanMoveValueOnReturn(XL6_SemContext* ctx, XL6_AstNode* expr, const XL6_AstNode* returnType)
+{
+    XL6_Symbol* sym;
+    XL6_AstNode* exprType;
+    int result;
+
+    if ( ctx == NULL || expr == NULL || expr->kind != XL6_AST_NAME || expr->text == NULL || returnType == NULL ) {
+        return 0;
+    }
+    if ( xl6TextEquals(expr->text, "self") || xl6SemCurrentFunctionParamName(ctx, expr->text) ) {
+        return 0;
+    }
+    sym = xl6ScopeFind(ctx->scope, expr->text);
+    if ( sym == NULL || sym->kind != XL6_SYM_VALUE ) {
+        return 0;
+    }
+    exprType = xl6SemInferAutoTypeNode(ctx, expr);
+    result = exprType != NULL &&
+             xl6SemTypeRequiresFreshValue(ctx, returnType) &&
+             xl6SemTypeEquals(ctx, exprType, returnType);
+    xl6AstFree(exprType);
+    return result;
+}
+
 static int xl6SemCheckBoolExpr(XL6_SemContext* ctx, XL6_AstNode* expr, const char* message)
 {
     const char* typeName;
@@ -10123,6 +10233,64 @@ static const char* xl6SemBinaryProtocolName(const char* op)
         return "__approx__";
     }
     return NULL;
+}
+
+static const char* xl6SemCompoundAssignBinaryOp(const char* op)
+{
+    if ( xl6TextEquals(op, "+=") ) { return "+"; }
+    if ( xl6TextEquals(op, "-=") ) { return "-"; }
+    if ( xl6TextEquals(op, "*=") ) { return "*"; }
+    if ( xl6TextEquals(op, "/=") ) { return "/"; }
+    if ( xl6TextEquals(op, "%=") ) { return "%"; }
+    return NULL;
+}
+
+static int xl6SemCompoundAssignUsesClassProtocol(
+    XL6_SemContext* ctx,
+    XL6_AstNode* left,
+    XL6_AstNode* right,
+    const char* op)
+{
+    const char* binaryOp;
+    const char* protocolName;
+    XL6_AstNode* arg;
+    const XL6_AstNode* method;
+
+    if ( ctx == NULL || left == NULL || right == NULL || op == NULL ) {
+        return 0;
+    }
+    binaryOp = xl6SemCompoundAssignBinaryOp(op);
+    protocolName = binaryOp != NULL ? xl6SemBinaryProtocolName(binaryOp) : NULL;
+    if ( protocolName == NULL ) {
+        return 0;
+    }
+    arg = right;
+    method = xl6SemFindProtocolMethodForExprArgs(ctx, left, protocolName, &arg, 1, 1);
+    return method != NULL;
+}
+
+static int xl6SemExprClassHasDeriveEquals(XL6_SemContext* ctx, XL6_AstNode* left, XL6_AstNode* right)
+{
+    XL6_AstNode* leftType;
+    XL6_AstNode* rightType;
+    const XL6_AstNode* concreteLeft;
+    XL6_AstNode* classNode;
+    int result;
+
+    if ( ctx == NULL || left == NULL || right == NULL ) {
+        return 0;
+    }
+    leftType = xl6SemInferAutoTypeNode(ctx, left);
+    rightType = xl6SemInferAutoTypeNode(ctx, right);
+    concreteLeft = xl6SemResolveAliasType(ctx, leftType);
+    classNode = concreteLeft != NULL && concreteLeft->text != NULL ? xl6SemFindTypeDecl(ctx, concreteLeft->text) : NULL;
+    result = classNode != NULL &&
+             classNode->kind == XL6_AST_CLASS &&
+             xl6SemClassDeclHasDerive(classNode, "equals") &&
+             xl6SemTypeEquals(ctx, leftType, rightType);
+    xl6AstFree(leftType);
+    xl6AstFree(rightType);
+    return result;
 }
 
 static int xl6SemCheckUnaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
@@ -10324,7 +10492,8 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
         if ( leftType != NULL && rightType != NULL &&
              xl6SemTypeNameIsClassValue(ctx, leftType) &&
              xl6SemTypeNameIsClassValue(ctx, rightType) &&
-             xl6SemFindProtocolMethodForExpr(ctx, node->children[0], protocolName) == NULL ) {
+             xl6SemFindProtocolMethodForExpr(ctx, node->children[0], protocolName) == NULL &&
+             !xl6SemExprClassHasDeriveEquals(ctx, node->children[0], node->children[1]) ) {
             xl6SemErrorNode(ctx, node, "class equality requires __eq__/__ne__ protocol");
             ok = 0;
         }
@@ -11542,6 +11711,10 @@ static int xl6SemCheckCompoundAssignTypes(
     }
 
     if ( dynamicIndexTarget && !xl6TextEquals(op, "**=") ) {
+        return 1;
+    }
+
+    if ( xl6SemCompoundAssignUsesClassProtocol(ctx, left, right, op) ) {
         return 1;
     }
 
@@ -14744,13 +14917,6 @@ static int xl6SemCheckDeriveList(XL6_SemContext* ctx, XL6_AstNode* body)
             ok = 0;
             continue;
         }
-        if ( xl6TextEquals(member->text, "string") ||
-             xl6TextEquals(member->text, "hash") ||
-             xl6TextEquals(member->text, "equals") ) {
-            xl6SemErrorNode(ctx, member, "derive string/hash/equals is reserved but not implemented in demo6");
-            ok = 0;
-            continue;
-        }
         if ( seen[index] ) {
             xl6SemErrorNode(ctx, member, "閲嶅 derive 鑳藉姏澹版槑");
             ok = 0;
@@ -15392,6 +15558,7 @@ static int xl6SemCheckReturnStmt(XL6_SemContext* ctx, XL6_AstNode* node)
                     xl6SemExprStaticTypeName(ctx, node->children[i]));
                 ok = 0;
             } else if ( xl6SemTypeRequiresFreshValue(ctx, ctx->currentReturns->children[i]) &&
+                        !xl6SemExprCanMoveValueOnReturn(ctx, node->children[i], ctx->currentReturns->children[i]) &&
                         !xl6SemCheckCopyableExpr(
                             ctx,
                             node->children[i],

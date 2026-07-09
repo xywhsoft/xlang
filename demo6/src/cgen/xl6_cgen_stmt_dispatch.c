@@ -583,6 +583,7 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 }
                 snprintf(returnName, sizeof(returnName), "__xl6_return_%d", id);
                 xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, ctx->currentReturnType, returnName, node->children[0]);
+                xl6CgenClearMovedNativeClassReturnSource(ctx, node->children[0]);
             }
             xl6CgenEmitCleanupsSince(ctx, 0);
             xl6CgenIndent(ctx);

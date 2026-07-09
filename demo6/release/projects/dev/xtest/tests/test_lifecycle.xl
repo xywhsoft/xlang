@@ -1,0 +1,36 @@
+// test_lifecycle.xl - 验证 setup/teardown 在每个测试前后执行
+
+int g_lifecycleSetup = 0
+int g_lifecycleTeardown = 0
+int g_stateValue = 0
+
+func setup()
+    g_lifecycleSetup = g_lifecycleSetup + 1
+    g_stateValue = 100
+end
+
+func teardown()
+    g_lifecycleTeardown = g_lifecycleTeardown + 1
+    g_stateValue = 0
+end
+
+func test_setup_runs_first()
+    // setup 应已把 stateValue 置为 100
+    assertEqual(g_stateValue, 100, "setup should initialize state")
+end
+
+func test_setup_runs_again()
+    // 第二个测试：setup 应再次运行
+    assertEqual(g_stateValue, 100, "setup runs before each test")
+    g_stateValue = 200
+end
+
+func test_setup_count_grows()
+    // 第三个测试：setup 至少运行过 3 次（本测试之前）
+    assertTrue(g_lifecycleSetup >= 3, "setup ran before each test")
+end
+
+func test_state_isolated()
+    // 即使上个测试改了 stateValue，setup 应已重置
+    assertEqual(g_stateValue, 100, "each test gets fresh state from setup")
+end

@@ -960,6 +960,18 @@ if errorlevel 1 exit /b 1
 build\test\cgen_native_class_field.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_native_class_return_move.xl --emit build\test\cgen_native_class_return_move.c
+if errorlevel 1 exit /b 1
+findstr /C:"box.handle = 0;" build\test\cgen_native_class_return_move.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_return_move.c missing moved native class return source clear.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_return_move.c test\cases\cgen_class_custom_field_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_return_move.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_native_class_return_move.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_native_class_property.xl --emit build\test\cgen_native_class_property.c
 if errorlevel 1 exit /b 1
 findstr /C:"long long native_property_get_value(void* self);" build\test\cgen_native_class_property.c >nul
@@ -1209,6 +1221,42 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_protocol_ops.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_protocol_ops.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_protocol_ops.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_protocol_compound_assign.xl --emit build\test\cgen_protocol_compound_assign.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_Meter______add____(&value, 5LL)" build\test\cgen_protocol_compound_assign.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_compound_assign.c missing class += protocol call.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_protocol_compound_assign.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_protocol_compound_assign.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_protocol_compound_assign.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_protocol_item_typed_array_return.xl --emit build\test\cgen_protocol_item_typed_array_return.c
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_protocol_item_typed_array_return.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_protocol_item_typed_array_return.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_protocol_item_typed_array_return.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_derive_string_hash_equals.xl --emit build\test\cgen_derive_string_hash_equals.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_DeriveRecord______toString____" build\test\cgen_derive_string_hash_equals.c >nul
+if errorlevel 1 (
+    echo cgen_derive_string_hash_equals.c missing derived string protocol.
+    exit /b 1
+)
+findstr /C:"xl_class_DeriveRecord______hash____" build\test\cgen_derive_string_hash_equals.c >nul
+if errorlevel 1 (
+    echo cgen_derive_string_hash_equals.c missing derived hash protocol.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_derive_string_hash_equals.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_derive_string_hash_equals.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_derive_string_hash_equals.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_protocol_overload_index.xl --emit build\test\cgen_protocol_overload_index.c

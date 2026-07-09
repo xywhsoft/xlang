@@ -1,0 +1,1008 @@
+// xlint - xlang lint 工具（用 xlang 分析 xlang 自身代码）
+//
+// 通过 `xl parse <file.xl> --format json` 取 AST，递归遍历应用规则：
+//   no-while-without-do  while 必须带 do（源码扫描，捕获无法解析的坏代码）
+//   no-undefined-var     变量使用前必须声明
+//   consistent-naming    变量 snake_case / 类名 PascalCase
+//   no-magic-numbers     未命名的魔法数字（可配置阈值，默认 >= 100）
+//   require-doc          公开函数（模块级 func，除 main）应有 #doc
+//   max-function-length  函数体不超过 N 行（默认 80）
+//   no-deep-nesting      if/while/for/try 嵌套不超过 N 层（默认 5）
+//   unused-variable      声明但未使用的局部变量
+//
+// 用法：
+//   xl run  projects\dev\xlint\xlint.xl <file.xl|dir> [-r] [--format json]
+//          [--rule <name>] [--threshold <n>] [--config <path>] [--strict]
+//
+// 退出码：默认 0（lint 发现不影响工具退出）；加 --strict 时发现任何 issue 返回 1。
+
+// ===== Issue =====
+
+class Issue
+    string file
+    int line
+    int column
+    string rule
+    string severity
+    string message
+    create(string file, int line, int column, string rule, string severity, string message)
+        self.file = file
+        self.line = line
+        self.column = column
+        self.rule = rule
+        self.severity = severity
+        self.message = message
+    end
+end
+
+class Local
+    string name
+    int line
+    create(string name, int line)
+        self.name = name
+        self.line = line
+    end
+end
+
+// ===== 全局状态 =====
+
+string g_xl
+string g_curFile
+array<Issue> g_issues
+set<string> g_enabledRules
+set<string> g_builtins
+int g_maxMagic
+int g_maxFuncLen
+int g_maxNesting
+set<string> g_decl
+array<Local> g_locals
+
+func resetState()
+    g_issues = array[]
+    g_enabledRules = set<string>{}
+    g_decl = set<string>{}
+    g_locals = array[]
+    g_maxMagic = 100
+    g_maxFuncLen = 80
+    g_maxNesting = 5
+end
+
+func initBuiltins()
+    g_builtins.add("print")
+    g_builtins.add("println")
+    g_builtins.add("self")
+    g_builtins.add("base")
+    g_builtins.add("arg")
+    g_builtins.add("create")
+    g_builtins.add("destroy")
+    g_builtins.add("copy")
+    g_builtins.add("clone")
+    g_builtins.add("deepcopy")
+    g_builtins.add("range")
+    g_builtins.add("int")
+    g_builtins.add("int8")
+    g_builtins.add("uint8")
+    g_builtins.add("int16")
+    g_builtins.add("uint16")
+    g_builtins.add("int32")
+    g_builtins.add("uint32")
+    g_builtins.add("int64")
+    g_builtins.add("uint64")
+    g_builtins.add("float")
+    g_builtins.add("float32")
+    g_builtins.add("float64")
+    g_builtins.add("c_size")
+    g_builtins.add("string")
+    g_builtins.add("bool")
+    g_builtins.add("var")
+    g_builtins.add("auto")
+    g_builtins.add("time")
+    g_builtins.add("point")
+    g_builtins.add("type")
+    g_builtins.add("Buffer")
+    g_builtins.add("set")
+    g_builtins.add("list")
+    g_builtins.add("dict")
+    g_builtins.add("array")
+    g_builtins.add("object")
+    g_builtins.add("future")
+    g_builtins.add("generator")
+    g_builtins.add("channel")
+    g_builtins.add("thread")
+    g_builtins.add("mutex")
+    g_builtins.add("sem")
+    g_builtins.add("cond")
+    g_builtins.add("rwlock")
+    g_builtins.add("task")
+    g_builtins.add("math")
+    g_builtins.add("random")
+    g_builtins.add("path")
+    g_builtins.add("file")
+    g_builtins.add("dir")
+    g_builtins.add("json")
+    g_builtins.add("xson")
+    g_builtins.add("codec")
+    g_builtins.add("encoding")
+    g_builtins.add("hash")
+    g_builtins.add("crypto")
+    g_builtins.add("id")
+    g_builtins.add("net")
+    g_builtins.add("tcp")
+    g_builtins.add("udp")
+    g_builtins.add("url")
+    g_builtins.add("query")
+    g_builtins.add("regex")
+    g_builtins.add("process")
+    g_builtins.add("log")
+    g_builtins.add("template")
+    g_builtins.add("http")
+    g_builtins.add("ProcessResult")
+    g_builtins.add("PipelineResult")
+    g_builtins.add("Process")
+    g_builtins.add("Logger")
+    g_builtins.add("Template")
+    g_builtins.add("HttpRequest")
+    g_builtins.add("HttpResponse")
+    g_builtins.add("HttpClientRequest")
+    g_builtins.add("HttpClientResponse")
+    g_builtins.add("PipeStage")
+    g_builtins.add("true")
+    g_builtins.add("false")
+    g_builtins.add("null")
+end
+
+func ruleOn(string name) as bool
+    return g_enabledRules.contains(name)
+end
+
+func enable(string name, bool on)
+    if on then
+        g_enabledRules.add(name)
+    end
+end
+
+// ===== AST 节点辅助 =====
+
+func nodeKind(var n) as string
+    var k = n["kind"]
+    if k is string then
+        return string(k)
+    end
+    return ""
+end
+
+func nodeText(var n) as string
+    var t = n["text"]
+    if t is string then
+        return string(t)
+    end
+    return ""
+end
+
+func nodeLine(var n) as int
+    var l = n["line"]
+    if l is int then
+        return int(l)
+    end
+    return 0
+end
+
+func nodeColumn(var n) as int
+    var c = n["column"]
+    if c is int then
+        return int(c)
+    end
+    return 0
+end
+
+func childrenOf(var n) as var
+    var ch = n["children"]
+    if ch is array then
+        return ch
+    end
+    return []
+end
+
+func getChild(var n, string kind) as var
+    var ch = n["children"]
+    if ch is array then
+        for c in ch
+            var ck = c["kind"]
+            if ck is string then
+                if string(ck) == kind then
+                    return c
+                end
+            end
+        end
+    end
+    return null
+end
+
+func funcName(var node) as string
+    var nm = getChild(node, "name")
+    if nm is null then
+        return ""
+    end
+    return nodeText(nm)
+end
+
+func maxLine(var n) as int
+    int m = 0
+    var sn = [n]
+    while sn.length > 0 do
+        int last = sn.length - 1
+        var node = sn[last]
+        sn.remove(last)
+        var l = node["line"]
+        if l is int then
+            int li = int(l)
+            if li > m then
+                m = li
+            end
+        end
+        var ch = childrenOf(node)
+        for c in ch
+            sn.push(c)
+        end
+    end
+    return m
+end
+
+// ===== Issue 收集 =====
+
+func addIssue(int line, int column, string rule, string severity, string message)
+    g_issues.push(Issue(g_curFile, line, column, rule, severity, message))
+end
+
+func issueLess(Issue a, Issue b) as bool
+    if a.file != b.file then
+        return a.file < b.file
+    end
+    if a.line != b.line then
+        return a.line < b.line
+    end
+    return a.rule < b.rule
+end
+
+func sortIssues()
+    int n = g_issues.length
+    int a = 0
+    while a < n do
+        int best = a
+        int b = a + 1
+        while b < n do
+            if issueLess(g_issues[b], g_issues[best]) then
+                best = b
+            end
+            b += 1
+        end
+        if best != a then
+            Issue tmp = g_issues[a]
+            g_issues[a] = g_issues[best]
+            g_issues[best] = tmp
+        end
+        a += 1
+    end
+end
+
+// ===== 命名判定 =====
+
+func isAsciiIdent(string name) as bool
+    return regex.isMatch(name, "^[A-Za-z0-9_]+$")
+end
+
+func isSnake(string name) as bool
+    return regex.isMatch(name, "^[a-z_][a-z0-9_]*$")
+end
+
+func isScreaming(string name) as bool
+    return regex.isMatch(name, "^[A-Z_][A-Z0-9_]*$")
+end
+
+func isPascal(string name) as bool
+    return regex.isMatch(name, "^[A-Z][A-Za-z0-9]*$")
+end
+
+func startsLower(string name) as bool
+    if string.len(name) == 0 then
+        return false
+    end
+    return regex.isMatch(string.mid(name, 0, 1), "^[a-z]$")
+end
+
+func startsUnderscore(string name) as bool
+    if string.len(name) == 0 then
+        return false
+    end
+    return string.mid(name, 0, 1) == "_"
+end
+
+// ===== 规则：no-while-without-do（源码扫描） =====
+
+func containsWord(string s, string w) as bool
+    return regex.isMatch(s, "\\b" + w + "\\b")
+end
+
+func checkWhileDo(array<string> lines)
+    int i = 0
+    while i < lines.length do
+        string raw = lines[i]
+        int cpos = string.indexOf(raw, "//")
+        string code = raw
+        if cpos >= 0 then
+            code = string.left(raw, cpos)
+        end
+        if containsWord(code, "while") and not containsWord(code, "do") then
+            // 多行 while 条件：向后看最多 4 行是否出现独立的 do
+            bool seen = false
+            int j = i + 1
+            int stop = i + 4
+            if stop >= lines.length then
+                stop = lines.length - 1
+            end
+            while j <= stop do
+                string raw2 = lines[j]
+                int cp2 = string.indexOf(raw2, "//")
+                string code2 = raw2
+                if cp2 >= 0 then
+                    code2 = string.left(raw2, cp2)
+                end
+                if containsWord(code2, "do") then
+                    seen = true
+                    break
+                end
+                j += 1
+            end
+            if not seen then
+                addIssue(i + 1, 1, "no-while-without-do", "error", "'while' without 'do'")
+            end
+        end
+        i += 1
+    end
+end
+
+// ===== 合并遍历 A：gatherDeclared + consistent-naming + no-magic-numbers + max-function-length + no-deep-nesting =====
+
+func isPlainInt(string raw) as bool
+    return regex.isMatch(raw, "^[0-9]+$")
+end
+
+func isPlainFloat(string raw) as bool
+    return regex.isMatch(raw, "^[0-9][0-9.]*([eE][-+]?[0-9]+)?$")
+end
+
+func passA(var root, int depth0, bool skip0)
+    int skipint0 = 0
+    if skip0 then
+        skipint0 = 1
+    end
+    var sn = [root]
+    var sd = [depth0]
+    var ss = [skipint0]
+    while sn.length > 0 do
+        int last = sn.length - 1
+        var node = sn[last]
+        int depth = int(sd[last])
+        bool magicSkip = int(ss[last]) != 0
+        sn.remove(last)
+        sd.remove(last)
+        ss.remove(last)
+        string k = nodeKind(node)
+
+        // ---- gatherDeclared（供 passB 的 no-undefined-var 使用）----
+    if k == "var_decl" or k == "const_decl" or k == "param" or k == "field" then
+        string dn = nodeText(node)
+        if string.len(dn) > 0 then
+            g_decl.add(dn)
+        end
+    end
+    if k == "for_targets" then
+        string dn = nodeText(node)
+        if string.len(dn) > 0 then
+            g_decl.add(dn)
+        end
+        var fch = childrenOf(node)
+        for fc in fch
+            if nodeKind(fc) == "name" then
+                g_decl.add(nodeText(fc))
+            end
+        end
+    end
+    if k == "func" or k == "export_func" or k == "get" or k == "let" or k == "catch" then
+        string dn = funcName(node)
+        if string.len(dn) > 0 then
+            g_decl.add(dn)
+        end
+    end
+    if k == "class" then
+        string dn = nodeText(node)
+        if string.len(dn) > 0 then
+            g_decl.add(dn)
+        end
+    end
+
+    // ---- consistent-naming ----
+    if ruleOn("consistent-naming") then
+        if k == "var_decl" or k == "const_decl" or k == "field" or k == "param" or k == "for_targets" then
+            string nm = nodeText(node)
+            if isAsciiIdent(nm) then
+                bool okn = isSnake(nm)
+                if k == "var_decl" or k == "const_decl" then
+                    okn = isSnake(nm) or isScreaming(nm)
+                end
+                if not okn then
+                    addIssue(nodeLine(node), nodeColumn(node), "consistent-naming", "warning", "name '" + nm + "' should be snake_case")
+                end
+            end
+        end
+        if k == "class" then
+            string nm = nodeText(node)
+            if isAsciiIdent(nm) and not isPascal(nm) then
+                addIssue(nodeLine(node), nodeColumn(node), "consistent-naming", "warning", "class '" + nm + "' should be PascalCase")
+            end
+        end
+        if k == "func" or k == "export_func" then
+            string nm = funcName(node)
+            if nm != "main" and isAsciiIdent(nm) and not isSnake(nm) then
+                addIssue(nodeLine(node), nodeColumn(node), "consistent-naming", "warning", "function '" + nm + "' should be snake_case")
+            end
+        end
+    end
+
+    // ---- no-magic-numbers ----
+    if ruleOn("no-magic-numbers") then
+        if k == "int" and not magicSkip then
+            string raw = nodeText(node)
+            if isPlainInt(raw) then
+                int val = int(raw)
+                if val >= g_maxMagic then
+                    addIssue(nodeLine(node), nodeColumn(node), "no-magic-numbers", "warning", "magic number " + raw + " (>= " + string(g_maxMagic) + ")")
+                end
+            end
+        end
+        if k == "float" and not magicSkip then
+            string raw = nodeText(node)
+            if isPlainFloat(raw) then
+                float val = float(raw)
+                if val >= g_maxMagic then
+                    addIssue(nodeLine(node), nodeColumn(node), "no-magic-numbers", "warning", "magic number " + raw + " (>= " + string(g_maxMagic) + ")")
+                end
+            end
+        end
+    end
+
+    // ---- max-function-length ----
+    if ruleOn("max-function-length") then
+        if k == "func" or k == "export_func" then
+            int start = nodeLine(node)
+            int endLine = maxLine(node)
+            int flen = endLine - start
+            if start > 0 and flen > g_maxFuncLen then
+                string nm = funcName(node)
+                addIssue(start, 1, "max-function-length", "warning", "function '" + nm + "' is " + string(flen) + " lines (max " + string(g_maxFuncLen) + ")")
+            end
+        end
+    end
+
+    // ---- no-deep-nesting（同时决定子节点遍历深度）----
+        bool isCtrl = k == "if" or k == "while" or k == "for" or k == "do_while" or k == "try"
+        int childDepth = depth
+        if isCtrl then
+            childDepth = depth + 1
+            if ruleOn("no-deep-nesting") and childDepth > g_maxNesting then
+                addIssue(nodeLine(node), 1, "no-deep-nesting", "warning", k + " nesting depth " + string(childDepth) + " exceeds " + string(g_maxNesting))
+            end
+        end
+
+        // ---- 压栈子节点（迭代 + 全 var 栈，避免递归/typed-array 泄漏）----
+        if k == "var_decl" or k == "const_decl" then
+            var ch = childrenOf(node)
+            int idx = 0
+            for c in ch
+                int csi = 0
+                if magicSkip or idx >= 1 then
+                    csi = 1
+                end
+                sn.push(c)
+                sd.push(childDepth)
+                ss.push(csi)
+                idx += 1
+            end
+        else
+            var ch = childrenOf(node)
+            int msi = 0
+            if magicSkip then
+                msi = 1
+            end
+            for c in ch
+                sn.push(c)
+                sd.push(childDepth)
+                ss.push(msi)
+            end
+        end
+    end
+end
+
+// ===== 规则：require-doc（仅模块级公开函数） =====
+
+func checkDoc(var root)
+    var ch = root["children"]
+    if not (ch is array) then
+        return
+    end
+    for c in ch
+        string k = nodeKind(c)
+        if k == "func" or k == "export_func" then
+            string name = funcName(c)
+            if name == "main" then
+                continue
+            end
+            var doc = c["doc"]
+            if doc is null then
+                addIssue(nodeLine(c), 1, "require-doc", "info", "public function '" + name + "' has no #doc")
+            end
+        end
+    end
+end
+
+// ===== 合并遍历 B：no-undefined-var + unused-variable =====
+
+func passB(var root)
+    var sn = [root]
+    while sn.length > 0 do
+        int last = sn.length - 1
+        var node = sn[last]
+        sn.remove(last)
+        string k = nodeKind(node)
+
+        if ruleOn("no-undefined-var") and k == "name" then
+            string name = nodeText(node)
+            if startsLower(name) then
+                bool known = g_decl.contains(name) or g_builtins.contains(name)
+                if not known then
+                    addIssue(nodeLine(node), nodeColumn(node), "no-undefined-var", "error", "possibly undefined variable '" + name + "'")
+                end
+            end
+        end
+
+        if ruleOn("unused-variable") and (k == "func" or k == "export_func") then
+            var blk = getChild(node, "block")
+            if not (blk is null) then
+                g_locals = array[]
+                collectLocals(blk)
+                for loc in g_locals
+                    if startsUnderscore(loc.name) then
+                        continue
+                    end
+                    if countNameUses(blk, loc.name) == 0 then
+                        addIssue(loc.line, 1, "unused-variable", "warning", "unused variable '" + loc.name + "'")
+                    end
+                end
+            end
+        end
+
+        var ch = childrenOf(node)
+        for c in ch
+            sn.push(c)
+        end
+    end
+end
+
+// ===== unused-variable 辅助 =====
+
+func collectLocals(var blk)
+    var sn = [blk]
+    while sn.length > 0 do
+        int last = sn.length - 1
+        var node = sn[last]
+        sn.remove(last)
+        string k = nodeKind(node)
+        if k == "func" or k == "export_func" then
+            continue
+        end
+        if k == "var_decl" then
+            g_locals.push(Local(nodeText(node), nodeLine(node)))
+        end
+        var ch = childrenOf(node)
+        for c in ch
+            sn.push(c)
+        end
+    end
+end
+
+func countNameUses(var blk, string name) as int
+    int cnt = 0
+    var sn = [blk]
+    while sn.length > 0 do
+        int last = sn.length - 1
+        var node = sn[last]
+        sn.remove(last)
+        string k = nodeKind(node)
+        if k == "name" and nodeText(node) == name then
+            cnt += 1
+        end
+        var ch = childrenOf(node)
+        for c in ch
+            sn.push(c)
+        end
+    end
+    return cnt
+end
+
+// ===== 文件级 lint =====
+
+func splitLinesSafe(string s) as array<string>
+    var tmp = string.splitLines(s)
+    array<string> ls = []
+    for line in tmp
+        ls.push(string(line))
+    end
+    if ls.length > 0 then
+        if ls[ls.length - 1] == "" then
+            ls.remove(ls.length - 1)
+        end
+    end
+    return ls
+end
+
+func lintFile(string file)
+    g_curFile = file
+    if not file.exists(file) then
+        addIssue(0, 0, "xlint", "error", "file not found: " + file)
+        return
+    end
+
+    string src = file.readText(file)
+    array<string> lines = splitLinesSafe(src)
+
+    if ruleOn("no-while-without-do") then
+        checkWhileDo(lines)
+    end
+
+    if string.len(g_xl) == 0 then
+        addIssue(0, 0, "xlint", "error", "xl.exe not found; AST-based rules skipped")
+        return
+    end
+
+    bool needAst = ruleOn("consistent-naming") or ruleOn("no-magic-numbers") or ruleOn("require-doc") or ruleOn("max-function-length") or ruleOn("no-deep-nesting") or ruleOn("no-undefined-var") or ruleOn("unused-variable")
+    if not needAst then
+        return
+    end
+
+    string absFile = path.abs(file)
+    string cmd = g_xl + " parse " + absFile + " --format json"
+    ProcessResult r = process.run(cmd, 60000)
+    if not r.success or string.len(string.trim(r.stdout)) == 0 then
+        addIssue(1, 1, "xlint", "error", "xl parse failed: " + string.trim(r.stderr))
+        return
+    end
+
+    var root = null
+    try
+        root = json.parse(r.stdout)
+    catch e
+        addIssue(1, 1, "xlint", "error", "AST JSON parse failed: " + e.message)
+        return
+    end
+
+    g_decl = set<string>{}
+    passA(root, 0, false)
+    if ruleOn("require-doc") then
+        checkDoc(root)
+    end
+    passB(root)
+end
+
+// ===== 配置 =====
+
+func cfgRule(var cfg, string name, bool def) as bool
+    if cfg is null then
+        return def
+    end
+    var rules = cfg["rules"]
+    if rules is null then
+        return def
+    end
+    var v = rules[name]
+    if v is null then
+        return def
+    end
+    string s = string(v)
+    if s == "off" then
+        return false
+    end
+    if s == "on" then
+        return true
+    end
+    return def
+end
+
+func cfgThreshold(var cfg, string key, int def) as int
+    if cfg is null then
+        return def
+    end
+    var th = cfg["thresholds"]
+    if th is null then
+        return def
+    end
+    var v = th[key]
+    if v is null then
+        return def
+    end
+    return int(v)
+end
+
+func loadConfig(string target, string override) as var
+    if string.len(override) > 0 and file.exists(override) then
+        string txt0 = file.readText(override)
+        if json.valid(txt0) then
+            return json.parse(txt0)
+        end
+    end
+    array<string> cands = []
+    cands.push(path.cwd())
+    if file.exists(target) then
+        cands.push(path.dir(target))
+    elseif dir.exists(target) then
+        cands.push(target)
+    end
+    for c in cands
+        string p = path.join(c, ".xlintrc.json")
+        if file.exists(p) then
+            string txt = file.readText(p)
+            if json.valid(txt) then
+                return json.parse(txt)
+            end
+        end
+    end
+    return null
+end
+
+// ===== 目标收集 =====
+
+func collectFiles(string target, bool recursive) as array<string>
+    array<string> result = []
+    if file.exists(target) then
+        result.push(target)
+        return result
+    end
+    if not dir.exists(target) then
+        return result
+    end
+    var fs = dir.files(target, recursive)
+    for f in fs
+        string p = string(f)
+        if string.lower(path.ext(p)) == "xl" then
+            result.push(p)
+        end
+    end
+    return result
+end
+
+// ===== 定位 xl.exe =====
+
+func findXl() as string
+    string c1 = path.join(path.cwd(), "xl.exe")
+    if file.exists(c1) then
+        return c1
+    end
+    string c2 = path.join(path.appDir(), "xl.exe")
+    if file.exists(c2) then
+        return c2
+    end
+    string c3 = path.join(path.appDir(), "..", "..", "..")
+    c3 = path.join(c3, "xl.exe")
+    if file.exists(c3) then
+        return c3
+    end
+    return ""
+end
+
+// ===== 报告 =====
+
+func printUsage()
+    println("xlint - xlang lint tool")
+    println("")
+    println("Usage:")
+    println("  xlint <file.xl>                 lint a single file")
+    println("  xlint <dir> -r                  lint a directory recursively")
+    println("  xlint <file.xl> --format json   JSON report")
+    println("  xlint <file.xl> --rule <name>   run a single rule")
+    println("  xlint <file.xl> --threshold <n> set no-magic-numbers threshold")
+    println("  xlint <file.xl> --config <path> use config file")
+    println("  xlint <file.xl> --strict        exit non-zero on findings")
+    println("")
+    println("Rules:")
+    println("  no-while-without-do   no-undefined-var   consistent-naming")
+    println("  no-magic-numbers      require-doc        max-function-length")
+    println("  no-deep-nesting       unused-variable")
+    println("")
+    println("Config: .xlintrc.json with {\"rules\":{...},\"thresholds\":{...}}")
+end
+
+func reportText()
+    string curFile = ""
+    for iss in g_issues
+        if iss.file != curFile then
+            curFile = iss.file
+            println(curFile + ":")
+        end
+        println("  " + string(iss.line) + ":" + string(iss.column) + "  " + iss.severity + "  " + iss.rule + "  " + iss.message)
+    end
+    println("")
+    println("total: " + string(g_issues.length) + " issue(s)")
+end
+
+func reportJson()
+    array<var> arr = []
+    for iss in g_issues
+        var d = {}
+        d["file"] = iss.file
+        d["line"] = iss.line
+        d["column"] = iss.column
+        d["rule"] = iss.rule
+        d["severity"] = iss.severity
+        d["message"] = iss.message
+        arr.push(d)
+    end
+    println(json.stringify(arr))
+end
+
+// ===== 子进程命令构造（fan-out 多文件）=====
+
+func childCmd(string file, string arg0) as string
+    if string.endsWith(string.lower(arg0), ".exe") then
+        return arg0 + " " + file + " --format json --no-banner"
+    end
+    return g_xl + " run " + arg0 + " -- " + file + " --format json --no-banner"
+end
+
+// ===== 入口 =====
+
+func main(...) as int
+    resetState()
+    initBuiltins()
+
+    if arg.length < 2 then
+        printUsage()
+        return 0
+    end
+
+    string target = ""
+    bool recursive = false
+    string fmt = "text"
+    string onlyRule = ""
+    string configPath = ""
+    int cliMagic = -1
+    bool strict = false
+    bool noBanner = false
+
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "-r" then
+            recursive = true
+        elseif a == "--format" then
+            if i + 1 < arg.length then
+                i += 1
+                fmt = string(arg[i])
+            end
+        elseif a == "--rule" then
+            if i + 1 < arg.length then
+                i += 1
+                onlyRule = string(arg[i])
+            end
+        elseif a == "--threshold" then
+            if i + 1 < arg.length then
+                i += 1
+                cliMagic = int(string(arg[i]))
+            end
+        elseif a == "--config" then
+            if i + 1 < arg.length then
+                i += 1
+                configPath = string(arg[i])
+            end
+        elseif a == "--strict" then
+            strict = true
+        elseif a == "--no-banner" then
+            noBanner = true
+        elseif a == "-h" or a == "--help" then
+            printUsage()
+            return 0
+        else
+            if target == "" then
+                target = a
+            end
+        end
+        i += 1
+    end
+
+    if target == "" then
+        printUsage()
+        return 0
+    end
+
+    g_xl = findXl()
+
+    var cfg = loadConfig(target, configPath)
+
+    enable("no-while-without-do", cfgRule(cfg, "no-while-without-do", true))
+    enable("no-undefined-var", cfgRule(cfg, "no-undefined-var", true))
+    enable("consistent-naming", cfgRule(cfg, "consistent-naming", true))
+    enable("no-magic-numbers", cfgRule(cfg, "no-magic-numbers", true))
+    enable("require-doc", cfgRule(cfg, "require-doc", true))
+    enable("max-function-length", cfgRule(cfg, "max-function-length", true))
+    enable("no-deep-nesting", cfgRule(cfg, "no-deep-nesting", true))
+    enable("unused-variable", cfgRule(cfg, "unused-variable", true))
+
+    g_maxMagic = cfgThreshold(cfg, "no-magic-numbers", 100)
+    g_maxFuncLen = cfgThreshold(cfg, "max-function-length", 80)
+    g_maxNesting = cfgThreshold(cfg, "no-deep-nesting", 5)
+    if cliMagic >= 0 then
+        g_maxMagic = cliMagic
+    end
+
+    if onlyRule != "" then
+        g_enabledRules = set<string>{}
+        g_enabledRules.add(onlyRule)
+    end
+
+    if not noBanner and fmt != "json" then
+        if string.len(g_xl) > 0 then
+            println("(xl.exe: " + g_xl + ")")
+        else
+            println("(xl.exe not found; only source-based rules will run)")
+        end
+        println("")
+    end
+
+    array<string> files = collectFiles(target, recursive)
+    if files.length == 0 then
+        println("xlint: no .xl files found at '" + target + "'")
+        return 0
+    end
+
+    // 多文件时采用 fan-out：每文件一个短命子进程，规避 xlang 运行时在
+    // 单进程内累积大量 var AST 造成的逐步变慢。
+    if files.length > 1 then
+        string arg0 = ""
+        if arg.length > 0 then
+            arg0 = string(arg[0])
+        end
+        for f in files
+            g_curFile = f
+            string cmd = childCmd(f, arg0)
+            ProcessResult cr = process.run(cmd, 120000)
+            string out = string.trim(cr.stdout)
+            if cr.success and string.len(out) > 0 then
+                try
+                    var arr = json.parse(out)
+                    if arr is array then
+                        for d in arr
+                            g_issues.push(Issue(string(d["file"]), int(d["line"]), int(d["column"]), string(d["rule"]), string(d["severity"]), string(d["message"])))
+                        end
+                    end
+                catch ce
+                    addIssue(0, 0, "xlint", "error", "child failed for " + f + ": " + ce.message)
+                end
+            else
+                addIssue(0, 0, "xlint", "error", "child run failed for " + f)
+            end
+        end
+    else
+        lintFile(files[0])
+    end
+
+    sortIssues()
+
+    if fmt == "json" then
+        reportJson()
+    else
+        reportText()
+    end
+
+    if strict and g_issues.length > 0 then
+        return 1
+    end
+    return 0
+end

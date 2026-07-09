@@ -1,0 +1,1077 @@
+// xtest.xl - xlang 测试框架（类 minitest/JUnit）
+//
+// 提供：断言库（运行时注入到每个测试文件）、测试发现、测试运行、setup/teardown、
+//       彩色 / JSON 报告、可选多线程并发。
+//
+// 用法（在 release 目录下）：
+//   xl run projects\dev\xtest\xtest.xl run <test_file.xl>
+//   xl run projects\dev\xtest\xtest.xl run <dir> -r
+//   xl run projects\dev\xtest\xtest.xl run <dir> -r --filter pattern
+//   xl run projects\dev\xtest\xtest.xl run <dir> --format json
+//   xl run projects\dev\xtest\xtest.xl run <dir> -r --jobs 4
+//   xl run projects\dev\xtest\xtest.xl selftest
+//   xl run projects\dev\xtest\xtest.xl list <dir> -r
+//
+// 构建后：
+//   xtest run <...>          xtest selftest          xtest list <...>
+//
+// 工作原理：
+//   断言库（xtest_assert.xl）的源码由运行器读入，在运行每个测试文件时被拼到生成
+//   的 harness 前面，使得测试文件能以全局函数形式调用 assertEqual/assertThrows
+//   等。harness 用 `xl parse` 提取 test_ 函数名（失败则回退到正则扫描），生成
+//   「按名分派 + main 驱动循环」，用 try/catch 捕获断言失败（throw 字符串）与
+//   跳过（throw 带 [XTEST_SKIP] 前缀的字符串），最后输出一行
+//   __XTEST_RESULT__<json> 供运行器解析聚合。
+//
+// 退出码：全部通过 EXIT=0；存在失败/错误 EXIT=1。
+
+// ===== 全局状态 =====
+
+string g_xl
+string g_assertSrc
+string g_filter
+int g_timeout
+string g_tempDir
+bool g_saveTemps
+bool g_color
+string g_format
+string g_scriptPath
+
+array<TestRec> g_results = []
+mutex g_mu
+int g_nextIdx
+array<string> g_files = []
+
+// 颜色（ANSI）
+string C_RESET
+string C_BOLD
+string C_GREEN
+string C_RED
+string C_YELLOW
+string C_CYAN
+string C_GRAY
+
+// 跳过前缀（与 xtest_assert.xl 保持一致）
+string SKIP_PREFIX
+
+// ===== 数据类型 =====
+
+class TestRec
+    string file
+    string name
+    string status
+    string message
+    float durationMs
+    create(string file, string name, string status, string message, float durationMs)
+        self.file = file
+        self.name = name
+        self.status = status
+        self.message = message
+        self.durationMs = durationMs
+    end
+end
+
+class ParseInfo
+    array<string> tests
+    bool hasSetup
+    bool hasTeardown
+    bool hasMain
+    bool ok
+    create()
+        self.tests = []
+        self.hasSetup = false
+        self.hasTeardown = false
+        self.hasMain = false
+        self.ok = false
+    end
+end
+
+// ===== harness 模板（运行时 string.replace 填充动态部分）=====
+
+string HARNESS_TEMPLATE
+HARNESS_TEMPLATE = """
+// xtest auto-generated harness - DO NOT EDIT
+// source: __PATH__
+
+__ASSERTLIB__
+
+// ===== user test file (__PATH__) =====
+__TESTSRC__
+
+// ===== generated runner =====
+func xtestCallByName(string name) as bool
+__DISPATCH__
+    return false
+end
+
+func main(...) as int
+    array<string> xtestNames = __NAMES__
+    string xtestFile = r"__PATH__"
+    int xtestPassed = 0
+    int xtestFailed = 0
+    int xtestSkipped = 0
+    array<var> xtestResults = []
+    for xtestName in xtestNames
+        float xtestT0 = time.timer()
+        string xtestStatus = "pass"
+        string xtestMsg = ""
+        try
+__SETUPCALL__
+            bool xtestKnown = xtestCallByName(xtestName)
+            if not xtestKnown then
+                xtestStatus = "skip"
+                xtestMsg = "test function not found"
+            end
+        catch e
+            string xtestEm = e.message + ""
+            if xtestIsSkip(xtestEm) then
+                xtestStatus = "skip"
+                xtestMsg = xtestSkipReason(xtestEm)
+            else
+                xtestStatus = "fail"
+                xtestMsg = xtestEm
+            end
+__FINALLY__
+        float xtestMs = (time.timer() - xtestT0) * 1000.0
+        if xtestStatus == "pass" then
+            xtestPassed = xtestPassed + 1
+        elseif xtestStatus == "fail" then
+            xtestFailed = xtestFailed + 1
+        else
+            xtestSkipped = xtestSkipped + 1
+        end
+        var xtestR = {}
+        xtestR["name"] = xtestName
+        xtestR["status"] = xtestStatus
+        xtestR["message"] = xtestMsg
+        xtestR["duration_ms"] = xtestMs
+        xtestResults.push(xtestR)
+    end
+    var xtestSum = {}
+    xtestSum["file"] = xtestFile
+    xtestSum["total"] = xtestNames.length
+    xtestSum["passed"] = xtestPassed
+    xtestSum["failed"] = xtestFailed
+    xtestSum["skipped"] = xtestSkipped
+    xtestSum["tests"] = xtestResults
+    println("__XTEST_RESULT__" + json.stringify(xtestSum))
+    if xtestFailed > 0 then
+        return 1
+    end
+    return 0
+end
+"""
+
+// ===== 定位 xl.exe =====
+
+func findXl() as string
+    array<string> cands = []
+    cands.push(path.join(path.appDir(), "xl.exe"))
+    cands.push(path.join(path.cwd(), "xl.exe"))
+    string a0 = g_scriptPath
+    if string.len(a0) > 0 then
+        cands.push(path.join(path.join(path.dir(a0), "..", "..", ".."), "xl.exe"))
+        cands.push(path.join(path.dir(a0), "xl.exe"))
+    end
+    for c in cands
+        if file.exists(c) then
+            return c
+        end
+    end
+    return ""
+end
+
+// ===== 加载断言库 =====
+
+func loadAssertLib() as string
+    array<string> cands = []
+    string a0 = g_scriptPath
+    if string.len(a0) > 0 then
+        cands.push(path.join(path.dir(a0), "xtest_assert.xl"))
+    end
+    cands.push(path.join(path.cwd(), "xtest_assert.xl"))
+    cands.push(path.join(path.join(path.cwd(), "projects", "dev", "xtest"), "xtest_assert.xl"))
+    cands.push(path.join(path.join(path.appDir(), "projects", "dev", "xtest"), "xtest_assert.xl"))
+    for c in cands
+        if file.exists(c) then
+            return file.readText(c)
+        end
+    end
+    return ""
+end
+
+// ===== 测试文件发现 =====
+
+func collectTestFiles(string target, bool recursive) as array<string>
+    array<string> result = []
+    if file.exists(target) then
+        result.push(target)
+        return result
+    end
+    if not dir.exists(target) then
+        return result
+    end
+    var fs = dir.files(target, recursive)
+    for f in fs
+        string p = string(f)
+        string nm = path.name(p)
+        if string.lower(path.ext(p)) == "xl" then
+            if string.startsWith(nm, "test_") then
+                result.push(p)
+            end
+        end
+    end
+    // 简单选择排序，保证输出稳定
+    int n = result.length
+    int a = 0
+    while a < n do
+        int best = a
+        int b = a + 1
+        while b < n do
+            if result[b] < result[best] then
+                best = b
+            end
+            b += 1
+        end
+        if best != a then
+            string tmp = result[a]
+            result[a] = result[best]
+            result[best] = tmp
+        end
+        a += 1
+    end
+    return result
+end
+
+func setFiles(string target, bool recursive)
+    // 注意：不能对全局容器做 g_files = collectTestFiles(...) 形式的重新绑定——
+    // 在 main 中重绑定后，工作线程访问该全局会崩溃（xlang 已知限制）。
+    // 只能 clear + push（就地修改）。
+    array<string> discovered = collectTestFiles(target, recursive)
+    g_files.clear()
+    for f in discovered
+        g_files.push(f)
+    end
+end
+
+func matchesFilter(string name, string filter) as bool
+    if string.len(filter) == 0 then
+        return true
+    end
+    string ln = string.lower(name)
+    string lf = string.lower(filter)
+    if string.contains(ln, lf) then
+        return true
+    end
+    return false
+end
+
+// ===== AST 节点辅助 =====
+
+func nodeKind(var n) as string
+    var k = n["kind"]
+    if k is string then
+        return string(k)
+    end
+    return ""
+end
+
+func funcNameOf(var node) as string
+    var ch = node["children"]
+    if ch is array then
+        for c in ch
+            if nodeKind(c) == "name" then
+                var t = c["text"]
+                if t is string then
+                    return string(t)
+                end
+            end
+        end
+    end
+    return ""
+end
+
+func walkModule(var root) as ParseInfo
+    ParseInfo info = ParseInfo()
+    var ch = root["children"]
+    if not (ch is array) then
+        return info
+    end
+    for node in ch
+        string k = nodeKind(node)
+        if k == "func" or k == "export_func" then
+            string nm = funcNameOf(node)
+            if string.len(nm) == 0 then
+                continue
+            end
+            if nm == "main" then
+                info.hasMain = true
+            elseif nm == "setup" then
+                info.hasSetup = true
+            elseif nm == "teardown" then
+                info.hasTeardown = true
+            elseif string.startsWith(nm, "test_") then
+                info.tests.push(nm)
+            end
+        end
+    end
+    return info
+end
+
+// ===== 正则回退：源码扫描提取 test_ 函数 =====
+
+func firstTokenAfterFunc(string line) as string
+    // line 形如 "[export] func name(...)"，提取 name
+    string t = string.trim(line)
+    if string.startsWith(t, "export ") then
+        t = string.mid(t, 7, string.len(t))
+    end
+    if not string.startsWith(t, "func ") then
+        return ""
+    end
+    t = string.mid(t, 5, string.len(t))
+    t = string.trim(t)
+    int paren = string.indexOf(t, "(")
+    if paren <= 0 then
+        return ""
+    end
+    return string.trim(string.mid(t, 0, paren))
+end
+
+func regexScan(string src) as ParseInfo
+    ParseInfo info = ParseInfo()
+    var lines = string.splitLines(src)
+    for line in lines
+        string s = string(line)
+        int cpos = string.indexOf(s, "//")
+        string code = s
+        if cpos >= 0 then
+            code = string.mid(s, 0, cpos)
+        end
+        string nm = firstTokenAfterFunc(code)
+        if string.len(nm) == 0 then
+            continue
+        end
+        if nm == "main" then
+            info.hasMain = true
+        elseif nm == "setup" then
+            info.hasSetup = true
+        elseif nm == "teardown" then
+            info.hasTeardown = true
+        elseif string.startsWith(nm, "test_") then
+            info.tests.push(nm)
+        end
+    end
+    return info
+end
+
+func extractFuncs(string filePath, string src) as ParseInfo
+    if string.len(g_xl) > 0 then
+        string cmd = g_xl + " parse " + filePath + " --format json"
+        ProcessResult r = process.run(cmd, 20000)
+        string out = string.trim(r.stdout)
+        if r.success and string.len(out) > 0 then
+            try
+                var root = json.parse(out)
+                ParseInfo info = walkModule(root)
+                info.ok = true
+                return info
+            catch e
+                // 落到正则回退
+            end
+        end
+    end
+    return regexScan(src)
+end
+
+// ===== harness 生成 =====
+
+func buildNamesLiteral(array<string> tests) as string
+    string s = "["
+    int i = 0
+    while i < tests.length do
+        if i > 0 then
+            s = s + ", "
+        end
+        s = s + "\"" + tests[i] + "\""
+        i += 1
+    end
+    s = s + "]"
+    return s
+end
+
+func buildDispatch(array<string> tests) as string
+    string s = ""
+    for t in tests
+        s = s + "    if name == \"" + t + "\" then\n"
+        s = s + "        " + t + "()\n"
+        s = s + "        return true\n"
+        s = s + "    end\n"
+    end
+    return s
+end
+
+func buildHarness(string filePath, string src, array<string> tests, bool hasSetup, bool hasTeardown) as string
+    string setupCall = ""
+    if hasSetup then
+        setupCall = "            setup()\n"
+    end
+    string finallyBlock = "        end\n"
+    if hasTeardown then
+        finallyBlock = "        finally\n            teardown()\n        end\n"
+    end
+    string h = HARNESS_TEMPLATE
+    h = string.replace(h, "__ASSERTLIB__", g_assertSrc)
+    h = string.replace(h, "__TESTSRC__", src)
+    h = string.replace(h, "__DISPATCH__", buildDispatch(tests))
+    h = string.replace(h, "__NAMES__", buildNamesLiteral(tests))
+    h = string.replace(h, "__SETUPCALL__", setupCall)
+    h = string.replace(h, "__FINALLY__", finallyBlock)
+    h = string.replace(h, "__PATH__", filePath)
+    return h
+end
+
+// ===== 结果收集（线程安全）=====
+
+func appendRec(string file, string name, string status, string message, float durationMs)
+    g_mu.lock()
+    g_results.push(TestRec(file, name, status, message, durationMs))
+    g_mu.unlock()
+end
+
+func appendRecs(string file, array<TestRec> recs)
+    g_mu.lock()
+    for r in recs
+        g_results.push(r)
+    end
+    g_mu.unlock()
+end
+
+func truncateMsg(string s, int maxLen) as string
+    string cleaned = string.replace(s, "\n", " ")
+    cleaned = string.replace(cleaned, "\r", " ")
+    if string.len(cleaned) > maxLen then
+        cleaned = string.mid(cleaned, 0, maxLen) + "..."
+    end
+    return cleaned
+end
+
+// 从子进程 stdout 提取 __XTEST_RESULT__ 行的 JSON
+func extractResultJson(string outText) as string
+    var lines = string.splitLines(outText)
+    for line in lines
+        string s = string(line)
+        if string.startsWith(s, "__XTEST_RESULT__") then
+            return string.mid(s, string.len("__XTEST_RESULT__"), string.len(s))
+        end
+    end
+    return ""
+end
+
+// ===== 处理单个测试文件（核心）=====
+
+func processFile(string filePath, int idx)
+    array<TestRec> recs = []
+    float ft0 = time.timer()
+    float fileMs = 0.0
+    try
+        string src = file.readText(filePath)
+        ParseInfo info = extractFuncs(filePath, src)
+        if info.hasMain then
+            recs.push(TestRec(filePath, "<file>", "error", "test file defines main() - remove it; xtest provides the harness main", 0.0))
+            appendRecs(filePath, recs)
+            return
+        end
+        // 应用 filter
+        array<string> tests = []
+        for t in info.tests
+            if matchesFilter(t, g_filter) then
+                tests.push(t)
+            end
+        end
+        if tests.length == 0 then
+            recs.push(TestRec(filePath, "<file>", "skip", "no test_ functions matched filter '" + g_filter + "'", 0.0))
+            appendRecs(filePath, recs)
+            return
+        end
+        string harness = buildHarness(filePath, src, tests, info.hasSetup, info.hasTeardown)
+        string harnessPath = path.join(g_tempDir, "h_" + string(idx) + ".xl")
+        file.writeText(harnessPath, harness)
+        string cmd = g_xl + " run " + harnessPath
+        ProcessResult r = process.run(cmd, g_timeout)
+        fileMs = (time.timer() - ft0) * 1000.0
+        string jsonStr = extractResultJson(r.stdout)
+        if string.len(jsonStr) > 0 then
+            try
+                var sum = json.parse(jsonStr)
+                var ts = sum["tests"]
+                if ts is array then
+                    for tt in ts
+                        string nm = string(tt["name"])
+                        string st = string(tt["status"])
+                        string msg = ""
+                        var mv = tt["message"]
+                        if mv is string then
+                            msg = string(mv)
+                        end
+                        float dms = 0.0
+                        var dv = tt["duration_ms"]
+                        if dv is float then
+                            dms = float(dv)
+                        elseif dv is int then
+                            dms = float(int(dv))
+                        end
+                        recs.push(TestRec(filePath, nm, st, msg, dms))
+                    end
+                end
+            catch pe
+                recs.push(TestRec(filePath, "<file>", "error", "failed to parse harness result: " + pe.message, fileMs))
+            end
+        else
+            // harness 编译失败或崩溃
+            string detail = string.trim(r.stderr)
+            if string.len(detail) == 0 then
+                detail = string.trim(r.stdout)
+            end
+            recs.push(TestRec(filePath, "<file>", "error", "harness failed to produce result: " + truncateMsg(detail, 300), fileMs))
+        end
+    catch e
+        fileMs = (time.timer() - ft0) * 1000.0
+        recs.push(TestRec(filePath, "<file>", "error", "runner exception: " + e.message, fileMs))
+    end
+    appendRecs(filePath, recs)
+end
+
+// ===== worker（线程入口：func() as int）=====
+
+func xtestWorker() as int
+    while true do
+        g_mu.lock()
+        int idx = g_nextIdx
+        g_nextIdx = g_nextIdx + 1
+        g_mu.unlock()
+        if idx >= g_files.length then
+            return 0
+        end
+        processFile(g_files[idx], idx)
+    end
+    return 0
+end
+
+func runAll(int jobs)
+    g_nextIdx = 0
+    int nj = jobs
+    if nj > g_files.length then
+        nj = g_files.length
+    end
+    if nj > 8 then
+        nj = 8
+    end
+    if nj <= 1 then
+        xtestWorker()
+        return
+    end
+    thread t1
+    thread t2
+    thread t3
+    thread t4
+    thread t5
+    thread t6
+    thread t7
+    thread t8
+    if nj >= 1 then t1 = thread(xtestWorker) end
+    if nj >= 2 then t2 = thread(xtestWorker) end
+    if nj >= 3 then t3 = thread(xtestWorker) end
+    if nj >= 4 then t4 = thread(xtestWorker) end
+    if nj >= 5 then t5 = thread(xtestWorker) end
+    if nj >= 6 then t6 = thread(xtestWorker) end
+    if nj >= 7 then t7 = thread(xtestWorker) end
+    if nj >= 8 then t8 = thread(xtestWorker) end
+    if nj >= 1 then t1.wait() end
+    if nj >= 2 then t2.wait() end
+    if nj >= 3 then t3.wait() end
+    if nj >= 4 then t4.wait() end
+    if nj >= 5 then t5.wait() end
+    if nj >= 6 then t6.wait() end
+    if nj >= 7 then t7.wait() end
+    if nj >= 8 then t8.wait() end
+end
+
+// ===== 排序 =====
+
+func recLess(TestRec a, TestRec b) as bool
+    if a.file != b.file then
+        return a.file < b.file
+    end
+    return a.name < b.name
+end
+
+func sortResults()
+    int n = g_results.length
+    int a = 0
+    while a < n do
+        int best = a
+        int b = a + 1
+        while b < n do
+            if recLess(g_results[b], g_results[best]) then
+                best = b
+            end
+            b += 1
+        end
+        if best != a then
+            TestRec tmp = g_results[a]
+            g_results[a] = g_results[best]
+            g_results[best] = tmp
+        end
+        a += 1
+    end
+end
+
+// ===== 统计 =====
+
+func countStatus(string status) as int
+    int c = 0
+    for r in g_results
+        if r.status == status then
+            c += 1
+        end
+    end
+    return c
+end
+
+func totalDuration() as float
+    float t = 0.0
+    for r in g_results
+        t = t + r.durationMs
+    end
+    return t
+end
+
+// ===== 报告：文本（彩色）=====
+
+func colorOn(string code, string text) as string
+    if g_color then
+        return code + text + C_RESET
+    end
+    return text
+end
+
+func statusLabel(string status) as string
+    if status == "pass" then
+        return colorOn(C_GREEN, "  ok  ")
+    end
+    if status == "fail" then
+        return colorOn(C_RED, " FAIL ")
+    end
+    if status == "skip" then
+        return colorOn(C_YELLOW, " SKIP ")
+    end
+    return colorOn(C_RED, "ERROR ")
+end
+
+func fmtMs(float ms) as string
+    return string.formatFloat(ms, ".3") + "ms"
+end
+
+func padRight(string s, int width) as string
+    string out = s
+    int n = string.len(s)
+    while n < width do
+        out = out + " "
+        n += 1
+    end
+    return out
+end
+
+func reportText()
+    // 按 file 分组输出
+    string curFile = ""
+    for r in g_results
+        if r.file != curFile then
+            curFile = r.file
+            println("")
+            println(colorOn(C_BOLD, "[FILE] ") + curFile)
+        end
+        if r.name == "<file>" then
+            // 文件级错误/跳过
+            println("  " + statusLabel(r.status) + " " + truncateMsg(r.message, 200))
+        else
+            println("  " + statusLabel(r.status) + " " + padRight(r.name, 34) + colorOn(C_GRAY, fmtMs(r.durationMs)))
+            if string.len(r.message) > 0 then
+                println("          " + colorOn(C_GRAY, truncateMsg(r.message, 200)))
+            end
+        end
+    end
+    int total = g_results.length
+    int passed = countStatus("pass")
+    int failed = countStatus("fail")
+    int skipped = countStatus("skip")
+    int errors = countStatus("error")
+    string bar = "========================================"
+    println("")
+    println(colorOn(C_BOLD, bar))
+    string line = "total: " + string(total) + "  "
+    line = line + colorOn(C_GREEN, "passed: " + string(passed)) + "  "
+    line = line + colorOn(C_RED, "failed: " + string(failed)) + "  "
+    line = line + colorOn(C_YELLOW, "skipped: " + string(skipped)) + "  "
+    line = line + colorOn(C_RED, "errors: " + string(errors))
+    println(line)
+    println("duration: " + fmtMs(totalDuration()))
+    string verdict
+    if failed > 0 or errors > 0 then
+        verdict = colorOn(C_RED, "RESULT: FAIL")
+    else
+        verdict = colorOn(C_GREEN, "RESULT: PASS")
+    end
+    println(verdict)
+    println(colorOn(C_BOLD, bar))
+end
+
+// ===== 报告：JSON =====
+
+func reportJson()
+    var testsArr = []
+    for r in g_results
+        var d = {}
+        d["file"] = r.file
+        d["name"] = r.name
+        d["status"] = r.status
+        d["message"] = r.message
+        d["duration_ms"] = r.durationMs
+        testsArr.push(d)
+    end
+    var sum = {}
+    sum["total"] = g_results.length
+    sum["passed"] = countStatus("pass")
+    sum["failed"] = countStatus("fail")
+    sum["skipped"] = countStatus("skip")
+    sum["errors"] = countStatus("error")
+    sum["duration_ms"] = totalDuration()
+    sum["tests"] = testsArr
+    if failedCountForJson() > 0 then
+        sum["result"] = "FAIL"
+    else
+        sum["result"] = "PASS"
+    end
+    println(json.stringify(sum))
+end
+
+func failedCountForJson() as int
+    return countStatus("fail") + countStatus("error")
+end
+
+// ===== 临时目录 =====
+
+func makeTempDir() as string
+    string base = path.join(path.temp(), "xtest_cache")
+    dir.createAll(base)
+    return base
+end
+
+func cleanupTempDir()
+    if g_saveTemps then
+        return
+    end
+    if string.len(g_tempDir) > 0 then
+        try
+            dir.delete(g_tempDir)
+        catch e
+        end
+    end
+end
+
+// ===== selftest =====
+
+func selftestDir() as string
+    array<string> cands = []
+    string a0 = g_scriptPath
+    if string.len(a0) > 0 then
+        cands.push(path.join(path.dir(a0), "tests"))
+    end
+    cands.push(path.join(path.join(path.cwd(), "projects", "dev", "xtest"), "tests"))
+    cands.push(path.join(path.cwd(), "tests"))
+    cands.push(path.join(path.join(path.appDir(), "projects", "dev", "xtest"), "tests"))
+    for c in cands
+        if dir.exists(c) then
+            return c
+        end
+    end
+    return ""
+end
+
+func runSelftest() as int
+    string td = selftestDir()
+    if string.len(td) == 0 then
+        println("xtest: selftest tests/ directory not found")
+        return 1
+    end
+    setFiles(td, true)
+    if g_files.length == 0 then
+        println("xtest: no selftest files found in " + td)
+        return 1
+    end
+    println(colorOn(C_BOLD, "xtest selftest") + " (" + string(g_files.length) + " file(s))")
+    int rc = executeRun(1)
+    return rc
+end
+
+// ===== 执行入口（发现后运行 + 报告）=====
+
+func executeRun(int jobs) as int
+    g_tempDir = makeTempDir()
+    runAll(jobs)
+    cleanupTempDir()
+    if g_saveTemps then
+        println("(saved harness files: " + g_tempDir + ")")
+    end
+    sortResults()
+    if g_format == "json" then
+        reportJson()
+    else
+        reportText()
+    end
+    if countStatus("fail") > 0 or countStatus("error") > 0 then
+        return 1
+    end
+    return 0
+end
+
+// ===== list 子命令 =====
+
+func runList(string target, bool recursive) as int
+    setFiles(target, recursive)
+    if g_files.length == 0 then
+        println("xtest: no test files found at '" + target + "'")
+        return 0
+    end
+    println("xtest: " + string(g_files.length) + " file(s)")
+    int total = 0
+    for f in g_files
+        println("")
+        println(f + ":")
+        string src = ""
+        try
+            src = file.readText(f)
+        catch e
+            println("  (read error: " + e.message + ")")
+            continue
+        end
+        ParseInfo info = extractFuncs(f, src)
+        if info.hasMain then
+            println("  [warning] file defines main() - will be rejected at run time")
+        end
+        if info.hasSetup then
+            println("  setup")
+        end
+        if info.hasTeardown then
+            println("  teardown")
+        end
+        for t in info.tests
+            if matchesFilter(t, g_filter) then
+                println("  " + t)
+                total += 1
+            end
+        end
+    end
+    println("")
+    println("total: " + string(total) + " test(s)")
+    return 0
+end
+
+// ===== 用法 =====
+
+func printUsage()
+    println("xtest - xlang test framework")
+    println("")
+    println("Usage:")
+    println("  xtest run <test_file.xl>              run a single test file")
+    println("  xtest run <dir> [-r]                 run tests in a directory (recursive with -r)")
+    println("  xtest run <target> --filter <pat>    run only tests whose name contains <pat>")
+    println("  xtest run <target> --format json     JSON report (for CI)")
+    println("  xtest run <target> --jobs <N>        run up to N files concurrently (max 8)")
+    println("  xtest run <target> --timeout <ms>    per-file timeout (default 30000)")
+    println("  xtest run <target> --no-color        disable ANSI colors")
+    println("  xtest run <target> --save-temps      keep generated harness files")
+    println("  xtest list <target> [-r]             list discovered tests without running")
+    println("  xtest selftest                       run xtest's own bundled tests")
+    println("  xtest -h | --help                    show this help")
+    println("")
+    println("Assertions available in test files (no import needed; injected by runner):")
+    println("  assertEqual(actual, expected, message=\"\")")
+    println("  assertNotEqual(actual, expected, message=\"\")")
+    println("  assertTrue(condition, message=\"\")")
+    println("  assertFalse(condition, message=\"\")")
+    println("  assertNull(value, message=\"\")")
+    println("  assertNotNull(value, message=\"\")")
+    println("  assertContains(haystack, needle, message=\"\")")
+    println("  assertThrows(func block, message=\"\")")
+    println("  assertInRange(value, low, high, message=\"\")")
+    println("  approxEqual(actual, expected, tolerance, message=\"\")")
+    println("  skip(reason)")
+    println("")
+    println("Test file convention: filename starts with test_; defines func test_*();")
+    println("optional setup()/teardown() run before/after each test; do NOT define main().")
+end
+
+// ===== 初始化全局 =====
+
+func initState()
+    g_results.clear()
+    g_files.clear()
+    g_nextIdx = 0
+    g_filter = ""
+    g_timeout = 30000
+    g_saveTemps = false
+    g_color = true
+    g_format = "text"
+    g_tempDir = ""
+    g_scriptPath = ""
+    SKIP_PREFIX = "[XTEST_SKIP]"
+    C_RESET = "\x1b[0m"
+    C_BOLD = "\x1b[1m"
+    C_GREEN = "\x1b[32m"
+    C_RED = "\x1b[31m"
+    C_YELLOW = "\x1b[33m"
+    C_CYAN = "\x1b[36m"
+    C_GRAY = "\x1b[90m"
+end
+
+// ===== main =====
+
+func main(...) as int
+    initState()
+    g_scriptPath = ""
+    if arg.length > 0 then
+        g_scriptPath = string(arg[0])
+    end
+
+    if arg.length < 2 then
+        printUsage()
+        return 0
+    end
+
+    string sub = string(arg[1])
+
+    if sub == "-h" or sub == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if sub == "selftest" then
+        g_xl = findXl()
+        g_assertSrc = loadAssertLib()
+        if string.len(g_assertSrc) == 0 then
+            println("xtest: xtest_assert.xl not found (needed to inject assertions)")
+            return 1
+        end
+        if string.len(g_xl) == 0 then
+            println("xtest: xl.exe not found (needed to run test harnesses)")
+            return 1
+        end
+        return runSelftest()
+    end
+
+    if sub == "list" then
+        g_xl = findXl()
+        string target = ""
+        bool recursive = false
+        int i = 2
+        while i < arg.length do
+            string a = string(arg[i])
+            if a == "-r" then
+                recursive = true
+            elseif a == "--filter" then
+                if i + 1 < arg.length then
+                    i += 1
+                    g_filter = string(arg[i])
+                end
+            elseif a == "--no-color" then
+                g_color = false
+            elseif target == "" then
+                target = a
+            end
+            i += 1
+        end
+        if target == "" then
+            println("xtest list: missing target")
+            return 1
+        end
+        return runList(target, recursive)
+    end
+
+    if sub == "run" then
+        g_xl = findXl()
+        g_assertSrc = loadAssertLib()
+        if string.len(g_assertSrc) == 0 then
+            println("xtest: xtest_assert.xl not found (needed to inject assertions)")
+            return 1
+        end
+        if string.len(g_xl) == 0 then
+            println("xtest: xl.exe not found (needed to run test harnesses)")
+            return 1
+        end
+        string target = ""
+        bool recursive = false
+        int jobs = 1
+        int i = 2
+        while i < arg.length do
+            string a = string(arg[i])
+            if a == "-r" then
+                recursive = true
+            elseif a == "--filter" then
+                if i + 1 < arg.length then
+                    i += 1
+                    g_filter = string(arg[i])
+                end
+            elseif a == "--format" then
+                if i + 1 < arg.length then
+                    i += 1
+                    g_format = string(arg[i])
+                end
+            elseif a == "--jobs" then
+                if i + 1 < arg.length then
+                    i += 1
+                    jobs = int(string(arg[i]))
+                end
+            elseif a == "--timeout" then
+                if i + 1 < arg.length then
+                    i += 1
+                    g_timeout = int(string(arg[i]))
+                end
+            elseif a == "--no-color" then
+                g_color = false
+            elseif a == "--color" then
+                g_color = true
+            elseif a == "--save-temps" then
+                g_saveTemps = true
+            elseif a == "-h" or a == "--help" then
+                printUsage()
+                return 0
+            elseif target == "" then
+                target = a
+            end
+            i += 1
+        end
+        if target == "" then
+            println("xtest run: missing target")
+            return 1
+        end
+        if jobs < 1 then
+            jobs = 1
+        end
+        setFiles(target, recursive)
+        if g_files.length == 0 then
+            println("xtest: no test files found at '" + target + "'")
+            return 0
+        end
+        if g_color and g_format != "json" then
+            println(colorOn(C_BOLD, "xtest") + ": " + string(g_files.length) + " file(s)")
+        end
+        return executeRun(jobs)
+    end
+
+    println("xtest: unknown command '" + sub + "'")
+    println("")
+    printUsage()
+    return 1
+end

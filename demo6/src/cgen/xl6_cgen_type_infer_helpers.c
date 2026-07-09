@@ -48,17 +48,23 @@ static XL6_AstNode* xl6CgenNewSimpleType(const char* name, const XL6_AstNode* at
 static int xl6CgenTypeHasImplicitToString(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     const char* name;
+    XL6_AstNode* classNode;
 
-    (void)ctx;
     name = typeNode != NULL ? typeNode->text : NULL;
-    return xl6CTextEquals(name, "null") ||
-           xl6CTextEquals(name, "var") ||
-           xl6CTextEquals(name, "bool") ||
-           xl6CgenIsIntegerTypeName(name) ||
-           xl6CgenIsFloatTypeName(name) ||
-           xl6CTextEquals(name, "string") ||
-           xl6CTextEquals(name, "time") ||
-           xl6CTextEquals(name, "point");
+    if ( xl6CTextEquals(name, "null") ||
+         xl6CTextEquals(name, "var") ||
+         xl6CTextEquals(name, "bool") ||
+         xl6CgenIsIntegerTypeName(name) ||
+         xl6CgenIsFloatTypeName(name) ||
+         xl6CTextEquals(name, "string") ||
+         xl6CTextEquals(name, "time") ||
+         xl6CTextEquals(name, "point") ) {
+        return 1;
+    }
+    classNode = name != NULL ? xl6CgenFindClass(ctx, name) : NULL;
+    return classNode != NULL &&
+           ((!xl6CgenClassHasTypeParams(classNode) && xl6CgenClassHasDerive(classNode, "string")) ||
+            xl6CgenFindClassFunc(classNode, "__toString__") != NULL);
 }
 
 static int xl6CgenIsToStringMemberCallSyntax(const XL6_AstNode* node)

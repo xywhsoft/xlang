@@ -1,0 +1,54 @@
+// Probe: does xlang copy a C-returned const char*, or alias the static buffer?
+// If copy: after two getText calls, the first returned string must be unchanged.
+extern "winui_get_text"   func wGetText(point ctrl) as string
+extern "winui_set_text"   func wSetText(point ctrl, string text)
+extern "winui_sleep"      func wSleep(int ms)
+
+// winui_native.c's WndProc references this export; any .xl linked with it
+// must provide the symbol or TCC fails with "unresolved reference".
+export "winui_on_button_click" func winui_on_button_click(int id) as int
+    return 0
+end
+
+class Edit
+    native point handle
+    extern "winui_edit_create" create(point parent, string text, int x, int y, int w, int h)
+    extern "winui_set_text"    func setText(string text)
+    extern "winui_get_text"    func getText() as string
+    func getHandle() as point
+        return self.handle
+    end
+end
+
+class Window
+    native point handle
+    extern "winui_window_create"  create(string title, int w, int h)
+    extern "winui_window_destroy" destroy()
+    func getHandle() as point
+        return self.handle
+    end
+end
+
+func main(...) as int
+    Window win = Window("probe", 200, 100)
+    Edit a = Edit(win.getHandle(), "first", 10, 10, 100, 20)
+    Edit b = Edit(win.getHandle(), "second", 10, 40, 100, 20)
+
+    // Grab text from a, then from b. C side's g_text_buf is overwritten by the
+    // second call. If xlang aliased the buffer, sa would now read "second".
+    string sa = a.getText()
+    string sb = b.getText()
+    println("sa = \"" + sa + "\"  (want \"first\")")
+    println("sb = \"" + sb + "\"  (want \"second\")")
+
+    // Also via free extern returning string, used in concatenation immediately.
+    string combo = "[" + wGetText(a.getHandle()) + "|" + wGetText(b.getHandle()) + "]"
+    println("combo = " + combo + "  (want [first|second])")
+
+    if sa == "first" and sb == "second" then
+        println("PASS: string returns are independent copies")
+        return 0
+    end
+    println("FAIL: string return aliased the C static buffer")
+    return 1
+end

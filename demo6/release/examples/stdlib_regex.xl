@@ -38,12 +38,12 @@ require("lazy",
     missing.end == -1 and
     type(missingText) == null)
 
-RegexSet set = regex.set(["[0-9]+", "ready"], regex.ignoreCase)
-array indexes = set.matches("READY 2026")
+RegexSet regexSet = regex.set(["[0-9]+", "ready"], regex.ignoreCase)
+array indexes = regexSet.matches("READY 2026")
 require("set",
-    set.isMatch("READY") and
-    set.first("READY") == 1 and
-    set.first("code 2026") == 0 and
+    regexSet.isMatch("READY") and
+    regexSet.first("READY") == 1 and
+    regexSet.first("code 2026") == 0 and
     indexes.length == 2 and
     (int(indexes[0]) == 0 or int(indexes[1]) == 0) and
     (int(indexes[0]) == 1 or int(indexes[1]) == 1))

@@ -734,6 +734,18 @@ static void xl6CgenClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* classNo
         }
         xl6CgenClassAutoFromValueProtocol(ctx, classNode);
     }
+    if ( xl6CgenClassNeedsAutoDeriveProtocol(ctx, classNode, "string", "__toString__") ) {
+        xl6CgenClassAutoToStringProtocol(ctx, classNode);
+    }
+    if ( xl6CgenClassNeedsAutoDeriveProtocol(ctx, classNode, "hash", "__hash__") ) {
+        xl6CgenClassAutoHashProtocol(ctx, classNode);
+    }
+    if ( xl6CgenClassNeedsAutoDeriveProtocol(ctx, classNode, "equals", "__eq__") ) {
+        xl6CgenClassAutoEqualsBody(ctx, classNode, 0);
+    }
+    if ( xl6CgenClassNeedsAutoDeriveProtocol(ctx, classNode, "equals", "__ne__") ) {
+        xl6CgenClassAutoEqualsBody(ctx, classNode, 1);
+    }
     xl6CgenClassCopyBuiltinHelpers(ctx, classNode);
     xl6CgenClassPersistenceHelpers(ctx, classNode);
 }

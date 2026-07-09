@@ -8,7 +8,7 @@
 - 发现 BUG 和手感不正确的地方，记录到 `BUGS.md`。
 - 工具本身要能跑、能用，不是玩具占位。
 
-## 工具列表（65 个）
+## 工具列表（67 个）
 
 | 批次 | 工具 | 覆盖领域 |
 |---|---|---|
@@ -18,6 +18,9 @@
 | 4 | guess, contacts, rxgrep, rename, cal, prodcon, bench, life | random/derive json/regex/file/time/channel/benchmark/2D array |
 | 5 | hashcalc, genid, envinfo, sorter, convert, geo, tpl, mdtoc, diff, bigint, timer, tictactoe, fwatch, crawl, kvdb | hash/id/env/sort/unit-convert/geometry/template/markdown/diff/bigint/timer/AI/file-watch/crawler/KV-store |
 | 6 | cmix, gstack, vops, deepclone, props, overload, unionbits, dynobj, shapes, fstr, fileserver, encconv, syncdemo, racedemo, hexdump, abidemo, pkgdemo, docgen | C混编/泛型/运算符协议/derive/属性/重载/union/动态字段/继承/f-string/HTTP-server/encoding/sync原语/task高级/Buffer-File/ABI/import-package/文档注释 |
+| 7 | raytrace | 继承多态+运算符协议+递归性能（光线追踪渲染器） |
+| 8 | chip8 | 二进制/指令解码/模拟循环（CHIP-8 虚拟机） |
+| 9 | xtest | 测试框架（断言库/测试发现/运行/setup-teardown/报告/并发） |
 
 ## 目录约定
 
@@ -77,11 +80,11 @@ xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<to
 
 ## 正向验证通过的能力
 
-以下能力经过 65 个工具的实战验证，可放心使用：
+以下能力经过 66 个工具的实战验证，可放心使用：
 
 - **语法**：f-string/rf-string、多行字符串、raw string、时间字面量、`#doc/#end` 文档注释
 - **类型系统**：泛型函数/泛型 class/泛型约束/泛型迭代协议、union 类型、typedef、is/as 类型判断
-- **容器**：array 全套方法 + `+` 拼接、list 稀疏索引、set/dict（含 remove）、`Type<T>[...]` 构造
+- **容器**：array 全套方法 + `+` 拼接、list 稀疏索引、set/dict（含 remove）、`Type<T>[...]` 构造、**`array<var>` 承载多态 class 实例 + `as Base` 还原 vtable 派发**
 - **OOP**：class 继承链、base 调用、public/private/protected、static、virtual/override/final、vtable 动态派发、隐式向上转型、var 装箱 vtable 保留、属性 get/let（零维/多维/virtual）、方法重载/构造重载
 - **运算符协议**：`__add__/__sub__/__mul__/__div__/__mod__/__pow__`、`__neg__/__pos__/__not__/__bitNot__`、`__eq__/__ne__/__lt__/__le__/__gt__/__ge__/__approx__`、`__item__/__setItem__`（多维）、`__contains__/__call__/__len__/__iter__/__next__/__field__/__setField__`
 - **derive**：copy/clone/moveOnly（冲突检查）/value/json/xson + 字段注解 @json/@persist/omit
@@ -90,6 +93,7 @@ xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<to
 - **C 混编**：extern 函数/变量、export C ABI、native-backed class、.xl+.c 混合构建、xl abi dump、import/package/扩展库
 - **标准库**：string/math/time/random/path/file/dir/json/xson/codec/hash/crypto/regex/url/query/process/log/template/encoding/net/tcp/udp/http（client+server 全套）
 - **try/catch/finally**（含 catch 内 return）、throw、assert、多返回值+解构
+- **计算密集型**：raytrace（光线追踪）渲染 100×75×5 抗锯齿递归图像 < 0.4s（约 10 万根光线/秒，每像素递归 25 层上限）
 - **其他**：UTF-8 全链路（文件名/argv/输出）、xl run 精确返回码、build exe UTF-8 argv
 
 ## BUG 记录

@@ -1,0 +1,1231 @@
+﻿// xregex — 从零手写的正则表达式引擎（不使用 regex 标准库）
+//
+// 用法:
+//   xregex match   <pattern> <text>            是否匹配（搜索语义，支持 ^ $ 锚点）
+//   xregex find    <pattern> <text>            查找全部非重叠匹配
+//   xregex replace <pattern> <text> <repl>     替换（repl 支持 $0..$9, $$）
+//   xregex groups  <pattern> <text>            显示首次匹配的捕获组
+//   xregex test                               内置测试套件
+//
+// 架构:
+//   1. Parser  —— 递归下降解析器，正则字符串 -> AST（var dict 节点树）
+//   2. Compiler —— Thompson NFA 构造，AST -> 字节码程序（gProg 全局 var 数组）
+//                  指令: CHAR / ANY / CLASS / SAVE / JMP / SPLIT / ASSERT / MATCH
+//   3. Matcher —— 递归回溯 VM：直线指令迭代推进，SPLIT 两个出口递归回溯
+//
+// 实现要点（避坑）:
+//   - BUG-JP1: 不把 class 作为另一 class 的成员字段。Parser 只有原始类型字段；
+//     AST/程序/类表全部用全局 var dict 数组承载。
+//   - BUG-XL1: typed 容器按值传参不回传，故匹配所需的可变状态（程序、文本、
+//     捕获位置）全部放全局，函数只传原始类型 (int/bool/string)。
+//   - BUG-XL3: 不用 is 作标识符。
+//   - BUG-RT5: 避开 stdlib 命名空间（math/dir/path/time）作局部变量名。
+//   - BUG-M1: 不用 int() 解析 {n,m} 数字，手写逐字符解析。
+//   - 不使用 regex 标准库，全程手写解析、NFA 构造、回溯匹配。
+
+// ===== 操作码 =====
+int OP_CHAR = 1
+int OP_ANY = 2
+int OP_CLASS = 3
+int OP_SAVE = 4
+int OP_JMP = 5
+int OP_SPLIT = 6
+int OP_MATCH = 7
+int OP_ASSERT_BOL = 8
+int OP_ASSERT_EOL = 9
+int OP_ASSERT_WB = 10
+int OP_ASSERT_NWB = 11
+
+// ===== 全局运行状态 =====
+var gProg = []
+var gClasses = []
+string gText = ""
+int gTextLen = 0
+var gSaves = []
+int gGroupCount = 0
+
+// ===== 工具函数 =====
+func emitOp(int op, string a, int b, int x, int y) as int
+    gProg.push({"op":op, "a":a, "b":b, "x":x, "y":y})
+    return gProg.length - 1
+end
+
+func isDigitChar(string c) as bool
+    return c >= "0" and c <= "9"
+end
+
+func isWordChar(string c) as bool
+    return string.contains("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_", c)
+end
+
+func isSpaceChar(string c) as bool
+    if c == " " then
+        return true
+    end
+    if c == "\t" then
+        return true
+    end
+    if c == "\n" then
+        return true
+    end
+    if c == "\r" then
+        return true
+    end
+    if c == "\f" then
+        return true
+    end
+    if c == "\v" then
+        return true
+    end
+    return false
+end
+
+func predMatch(string name, string c) as bool
+    if name == "digit" then
+        return isDigitChar(c)
+    end
+    if name == "word" then
+        return isWordChar(c)
+    end
+    if name == "space" then
+        return isSpaceChar(c)
+    end
+    return false
+end
+
+func classMatch(int ci, string c) as bool
+    var cls = gClasses[ci]
+    bool neg = bool(cls["neg"])
+    var items = cls["items"]
+    int k = 0
+    bool any = false
+    while k < items.length do
+        var it = items[k]
+        string kind = string(it["kind"])
+        bool m = false
+        if kind == "range" then
+            string lo = string(it["lo"])
+            string hi = string(it["hi"])
+            if c >= lo and c <= hi then
+                m = true
+            end
+        elseif kind == "pred" then
+            m = predMatch(string(it["name"]), c)
+            if bool(it["neg"]) then
+                m = not m
+            end
+        end
+        if m then
+            any = true
+            k = items.length
+        else
+            k += 1
+        end
+    end
+    if neg then
+        return not any
+    end
+    return any
+end
+
+// ===== Parser：正则字符串 -> AST =====
+class Parser
+    string src = ""
+    int pos = 0
+    int len = 0
+    int groupCount = 0
+
+    create(string s)
+        self.src = s
+        self.len = string.len(s)
+        self.pos = 0
+        self.groupCount = 0
+        return
+    end
+
+    func peek() as string
+        if self.pos >= self.len then
+            return ""
+        end
+        return string.charAt(self.src, self.pos)
+    end
+
+    func peek2() as string
+        if self.pos + 1 >= self.len then
+            return ""
+        end
+        return string.charAt(self.src, self.pos + 1)
+    end
+
+    func nextChar() as string
+        if self.pos >= self.len then
+            return ""
+        end
+        string c = string.charAt(self.src, self.pos)
+        self.pos += 1
+        return c
+    end
+
+    func eat(string c)
+        if self.peek() != c then
+            throw "expected '" + c + "' at position " + string(self.pos)
+        end
+        self.pos += 1
+    end
+
+    func parseDigits(string d) as int
+        string digits = "0123456789"
+        int v = 0
+        int i = 0
+        while i < string.len(d) do
+            string ch = string.charAt(d, i)
+            v = v * 10 + string.indexOf(digits, ch)
+            i += 1
+        end
+        return v
+    end
+
+    func parse() as var
+        var node = self.parseAlt()
+        if self.pos < self.len then
+            throw "unexpected '" + self.peek() + "' at position " + string(self.pos)
+        end
+        return node
+    end
+
+    func parseAlt() as var
+        var left = self.parseConcat()
+        while self.peek() == "|" do
+            self.pos += 1
+            var right = self.parseConcat()
+            left = {"type":"alt", "left":left, "right":right}
+        end
+        return left
+    end
+
+    func parseConcat() as var
+        var items = []
+        while true do
+            string c = self.peek()
+            if c == "" then
+                break
+            end
+            if c == "|" or c == ")" then
+                break
+            end
+            var q = self.parseQuantified()
+            items.push(q)
+        end
+        if items.length == 0 then
+            return {"type":"empty"}
+        end
+        if items.length == 1 then
+            return items[0]
+        end
+        return {"type":"seq", "items":items}
+    end
+
+    func parseQuantified() as var
+        var atom = self.parseAtom()
+        string c = self.peek()
+        bool hasQ = true
+        if c == "*" then
+            self.pos += 1
+            atom = {"type":"repeat", "child":atom, "min":0, "max":-1, "greedy":true}
+        elseif c == "+" then
+            self.pos += 1
+            atom = {"type":"repeat", "child":atom, "min":1, "max":-1, "greedy":true}
+        elseif c == "?" then
+            self.pos += 1
+            atom = {"type":"repeat", "child":atom, "min":0, "max":1, "greedy":true}
+        elseif c == "{" then
+            var rr = self.tryParseBrace(atom)
+            if bool(rr["ok"]) then
+                atom = rr["node"]
+            else
+                hasQ = false
+            end
+        else
+            hasQ = false
+        end
+        if hasQ then
+            if self.peek() == "?" then
+                self.pos += 1
+                atom["greedy"] = false
+            end
+        end
+        return atom
+    end
+
+    func tryParseBrace(var atom) as var
+        int savePos = self.pos
+        self.pos += 1
+        bool sawComma = false
+        bool hasMin = false
+        int mn = 0
+        int mx = 0
+        string d = ""
+        while true do
+            string c = self.peek()
+            if isDigitChar(c) then
+                d = d + c
+                self.pos += 1
+            else
+                break
+            end
+        end
+        if d != "" then
+            mn = self.parseDigits(d)
+            hasMin = true
+        end
+        if self.peek() == "," then
+            sawComma = true
+            self.pos += 1
+            d = ""
+            while true do
+                string c = self.peek()
+                if isDigitChar(c) then
+                    d = d + c
+                    self.pos += 1
+                else
+                    break
+                end
+            end
+            if d != "" then
+                mx = self.parseDigits(d)
+            else
+                mx = -1
+            end
+        end
+        if self.peek() != "}" then
+            self.pos = savePos
+            return {"ok":false}
+        end
+        self.pos += 1
+        if not sawComma then
+            if not hasMin then
+                self.pos = savePos
+                return {"ok":false}
+            end
+            mx = mn
+        end
+        if mx != -1 and mx < mn then
+            int tmp = mn
+            mn = mx
+            mx = tmp
+        end
+        return {"ok":true, "node":{"type":"repeat", "child":atom, "min":mn, "max":mx, "greedy":true}}
+    end
+
+    func parseAtom() as var
+        string c = self.peek()
+        if c == "" then
+            return {"type":"empty"}
+        end
+        if c == "(" then
+            return self.parseGroup()
+        end
+        if c == "[" then
+            return self.parseClass()
+        end
+        if c == "." then
+            self.pos += 1
+            return {"type":"any"}
+        end
+        if c == "^" then
+            self.pos += 1
+            return {"type":"anchor", "kind":"bol"}
+        end
+        if c == "$" then
+            self.pos += 1
+            return {"type":"anchor", "kind":"eol"}
+        end
+        if c == "\\" then
+            return self.parseEscape()
+        end
+        if c == "*" or c == "+" or c == "?" or c == ")" or c == "|" then
+            throw "unexpected '" + c + "' at position " + string(self.pos)
+        end
+        self.pos += 1
+        return {"type":"char", "ch":c}
+    end
+
+    func parseGroup() as var
+        self.eat("(")
+        bool capture = true
+        if self.peek() == "?" then
+            if self.peek2() == ":" then
+                self.pos += 2
+                capture = false
+            else
+                throw "unsupported group syntax at position " + string(self.pos)
+            end
+        end
+        int idx = 0
+        if capture then
+            self.groupCount += 1
+            idx = self.groupCount
+        end
+        var child = self.parseAlt()
+        self.eat(")")
+        return {"type":"group", "child":child, "capture":capture, "index":idx}
+    end
+
+    func parseClass() as var
+        self.eat("[")
+        bool neg = false
+        if self.peek() == "^" then
+            neg = true
+            self.pos += 1
+        end
+        var items = []
+        bool first = true
+        while true do
+            string c = self.peek()
+            if c == "" then
+                throw "unterminated character class"
+            end
+            if c == "]" and not first then
+                break
+            end
+            first = false
+            var item = self.parseClassItem()
+            if bool(item["single"]) then
+                if self.peek() == "-" then
+                    string afterDash = self.peek2()
+                    if afterDash != "" and afterDash != "]" then
+                        self.pos += 1
+                        var hi = self.parseClassItem()
+                        if bool(hi["single"]) then
+                            items.push({"kind":"range", "lo":string(item["ch"]), "hi":string(hi["ch"])})
+                        else
+                            items.push({"kind":"range", "lo":string(item["ch"]), "hi":string(item["ch"])})
+                            items.push({"kind":"range", "lo":"-", "hi":"-"})
+                            int pi = 0
+                            var pitems = hi["items"]
+                            while pi < pitems.length do
+                                items.push(pitems[pi])
+                                pi += 1
+                            end
+                        end
+                    else
+                        items.push({"kind":"range", "lo":string(item["ch"]), "hi":string(item["ch"])})
+                    end
+                else
+                    items.push({"kind":"range", "lo":string(item["ch"]), "hi":string(item["ch"])})
+                end
+            else
+                var pitems = item["items"]
+                int pi = 0
+                while pi < pitems.length do
+                    items.push(pitems[pi])
+                    pi += 1
+                end
+            end
+        end
+        self.eat("]")
+        return {"type":"class", "neg":neg, "items":items}
+    end
+
+    func parseClassItem() as var
+        string c = self.peek()
+        if c == "\\" then
+            self.pos += 1
+            string e = self.nextChar()
+            if e == "" then
+                throw "trailing backslash in class"
+            end
+            if e == "d" then
+                return {"single":false, "items":[{"kind":"range","lo":"0","hi":"9"}]}
+            end
+            if e == "D" then
+                return {"single":false, "items":[{"kind":"pred","name":"digit","neg":true}]}
+            end
+            if e == "w" then
+                return {"single":false, "items":[{"kind":"range","lo":"a","hi":"z"},{"kind":"range","lo":"A","hi":"Z"},{"kind":"range","lo":"0","hi":"9"},{"kind":"range","lo":"_","hi":"_"}]}
+            end
+            if e == "W" then
+                return {"single":false, "items":[{"kind":"pred","name":"word","neg":true}]}
+            end
+            if e == "s" then
+                return {"single":false, "items":[{"kind":"pred","name":"space","neg":false}]}
+            end
+            if e == "S" then
+                return {"single":false, "items":[{"kind":"pred","name":"space","neg":true}]}
+            end
+            string ch = self.escapeLiteral(e)
+            return {"single":true, "ch":ch}
+        end
+        self.pos += 1
+        return {"single":true, "ch":c}
+    end
+
+    func parseEscape() as var
+        self.pos += 1
+        string e = self.nextChar()
+        if e == "" then
+            throw "trailing backslash"
+        end
+        if e == "d" then
+            return {"type":"class", "neg":false, "items":[{"kind":"range","lo":"0","hi":"9"}]}
+        end
+        if e == "D" then
+            return {"type":"class", "neg":true, "items":[{"kind":"pred","name":"digit","neg":false}]}
+        end
+        if e == "w" then
+            return {"type":"class", "neg":false, "items":[{"kind":"range","lo":"a","hi":"z"},{"kind":"range","lo":"A","hi":"Z"},{"kind":"range","lo":"0","hi":"9"},{"kind":"range","lo":"_","hi":"_"}]}
+        end
+        if e == "W" then
+            return {"type":"class", "neg":true, "items":[{"kind":"pred","name":"word","neg":false}]}
+        end
+        if e == "s" then
+            return {"type":"class", "neg":false, "items":[{"kind":"pred","name":"space","neg":false}]}
+        end
+        if e == "S" then
+            return {"type":"class", "neg":true, "items":[{"kind":"pred","name":"space","neg":false}]}
+        end
+        if e == "b" then
+            return {"type":"boundary", "neg":false}
+        end
+        if e == "B" then
+            return {"type":"boundary", "neg":true}
+        end
+        if e == "n" then
+            return {"type":"char", "ch":"\n"}
+        end
+        if e == "t" then
+            return {"type":"char", "ch":"\t"}
+        end
+        if e == "r" then
+            return {"type":"char", "ch":"\r"}
+        end
+        if e == "f" then
+            return {"type":"char", "ch":"\f"}
+        end
+        if e == "v" then
+            return {"type":"char", "ch":"\v"}
+        end
+        return {"type":"char", "ch":e}
+    end
+
+    func escapeLiteral(string e) as string
+        if e == "n" then
+            return "\n"
+        end
+        if e == "t" then
+            return "\t"
+        end
+        if e == "r" then
+            return "\r"
+        end
+        if e == "f" then
+            return "\f"
+        end
+        if e == "v" then
+            return "\v"
+        end
+        return e
+    end
+end
+
+// ===== Compiler：AST -> 字节码程序（Thompson NFA 构造）=====
+func compilePattern(var ast)
+    gProg = []
+    gClasses = []
+    emitOp(OP_SAVE, "", 0, 0, 0)
+    compile(ast)
+    emitOp(OP_SAVE, "", 1, 0, 0)
+    emitOp(OP_MATCH, "", 0, 0, 0)
+end
+
+func compile(var node)
+    string t = string(node["type"])
+    if t == "empty" then
+        return
+    end
+    if t == "char" then
+        emitOp(OP_CHAR, string(node["ch"]), 0, 0, 0)
+        return
+    end
+    if t == "any" then
+        emitOp(OP_ANY, "", 0, 0, 0)
+        return
+    end
+    if t == "class" then
+        int ci = gClasses.length
+        gClasses.push(node)
+        emitOp(OP_CLASS, "", ci, 0, 0)
+        return
+    end
+    if t == "anchor" then
+        if string(node["kind"]) == "bol" then
+            emitOp(OP_ASSERT_BOL, "", 0, 0, 0)
+        else
+            emitOp(OP_ASSERT_EOL, "", 0, 0, 0)
+        end
+        return
+    end
+    if t == "boundary" then
+        if bool(node["neg"]) then
+            emitOp(OP_ASSERT_NWB, "", 0, 0, 0)
+        else
+            emitOp(OP_ASSERT_WB, "", 0, 0, 0)
+        end
+        return
+    end
+    if t == "seq" then
+        var items = node["items"]
+        int k = 0
+        while k < items.length do
+            compile(items[k])
+            k += 1
+        end
+        return
+    end
+    if t == "alt" then
+        int splitPc = emitOp(OP_SPLIT, "", 0, 0, 0)
+        int l1 = gProg.length
+        compile(node["left"])
+        int jmpPc = emitOp(OP_JMP, "", 0, 0, 0)
+        int l2 = gProg.length
+        compile(node["right"])
+        int l3 = gProg.length
+        gProg[splitPc]["x"] = l1
+        gProg[splitPc]["y"] = l2
+        gProg[jmpPc]["b"] = l3
+        return
+    end
+    if t == "repeat" then
+        compileRepeat(node)
+        return
+    end
+    if t == "group" then
+        if bool(node["capture"]) then
+            int idx = int(node["index"])
+            emitOp(OP_SAVE, "", 2 * idx, 0, 0)
+            compile(node["child"])
+            emitOp(OP_SAVE, "", 2 * idx + 1, 0, 0)
+        else
+            compile(node["child"])
+        end
+        return
+    end
+    throw "unknown AST node type: " + t
+end
+
+func compileRepeat(var node)
+    var child = node["child"]
+    int mn = int(node["min"])
+    int mx = int(node["max"])
+    bool greedy = bool(node["greedy"])
+    int i = 0
+    while i < mn do
+        compile(child)
+        i += 1
+    end
+    if mx == -1 then
+        int l1 = gProg.length
+        int splitPc = emitOp(OP_SPLIT, "", 0, 0, 0)
+        int l2 = gProg.length
+        compile(child)
+        int jmpPc = emitOp(OP_JMP, "", 0, 0, 0)
+        int l3 = gProg.length
+        if greedy then
+            gProg[splitPc]["x"] = l2
+            gProg[splitPc]["y"] = l3
+        else
+            gProg[splitPc]["x"] = l3
+            gProg[splitPc]["y"] = l2
+        end
+        gProg[jmpPc]["b"] = l1
+    else
+        int extra = mx - mn
+        int j = 0
+        while j < extra do
+            int splitPc = emitOp(OP_SPLIT, "", 0, 0, 0)
+            int l2 = gProg.length
+            compile(child)
+            int l3 = gProg.length
+            if greedy then
+                gProg[splitPc]["x"] = l2
+                gProg[splitPc]["y"] = l3
+            else
+                gProg[splitPc]["x"] = l3
+                gProg[splitPc]["y"] = l2
+            end
+            j += 1
+        end
+    end
+end
+
+// ===== Matcher：递归回溯 VM =====
+
+func resetSaves()
+    gSaves = []
+    int total = 2 * (gGroupCount + 1)
+    int i = 0
+    while i < total do
+        gSaves.push(-1)
+        i += 1
+    end
+end
+
+func run(int startPc, int startPos) as bool
+    int pc = startPc
+    int pos = startPos
+    while true do
+        var ins = gProg[pc]
+        int op = int(ins["op"])
+        if op == OP_MATCH then
+            return true
+        elseif op == OP_CHAR then
+            if pos < gTextLen and string.charAt(gText, pos) == string(ins["a"]) then
+                pc += 1
+                pos += 1
+            else
+                return false
+            end
+        elseif op == OP_ANY then
+            if pos < gTextLen and string.charAt(gText, pos) != "\n" then
+                pc += 1
+                pos += 1
+            else
+                return false
+            end
+        elseif op == OP_CLASS then
+            if pos < gTextLen and classMatch(int(ins["b"]), string.charAt(gText, pos)) then
+                pc += 1
+                pos += 1
+            else
+                return false
+            end
+        elseif op == OP_SAVE then
+            gSaves[int(ins["b"])] = pos
+            pc += 1
+        elseif op == OP_JMP then
+            pc = int(ins["b"])
+        elseif op == OP_SPLIT then
+            // 回溯时恢复捕获位置：失败的分支可能已写入 SAVE，
+            // 必须还原到分支尝试前，否则重复组会读到上一个失败迭代的脏值。
+            if gGroupCount > 0 then
+                var snap = copySaves()
+                if run(int(ins["x"]), pos) then
+                    return true
+                end
+                int si = 0
+                while si < snap.length do
+                    gSaves[si] = snap[si]
+                    si += 1
+                end
+            else
+                if run(int(ins["x"]), pos) then
+                    return true
+                end
+            end
+            pc = int(ins["y"])
+        elseif op == OP_ASSERT_BOL then
+            bool ok = false
+            if pos == 0 then
+                ok = true
+            elseif pos <= gTextLen and string.charAt(gText, pos - 1) == "\n" then
+                ok = true
+            end
+            if ok then
+                pc += 1
+            else
+                return false
+            end
+        elseif op == OP_ASSERT_EOL then
+            bool ok = false
+            if pos == gTextLen then
+                ok = true
+            elseif pos < gTextLen and string.charAt(gText, pos) == "\n" then
+                ok = true
+            end
+            if ok then
+                pc += 1
+            else
+                return false
+            end
+        elseif op == OP_ASSERT_WB then
+            if atWordBoundary(pos) then
+                pc += 1
+            else
+                return false
+            end
+        elseif op == OP_ASSERT_NWB then
+            if not atWordBoundary(pos) then
+                pc += 1
+            else
+                return false
+            end
+        else
+            throw "unknown opcode: " + string(op)
+        end
+    end
+end
+
+func atWordBoundary(int pos) as bool
+    bool before = false
+    if pos > 0 then
+        before = isWordChar(string.charAt(gText, pos - 1))
+    end
+    bool after = false
+    if pos < gTextLen then
+        after = isWordChar(string.charAt(gText, pos))
+    end
+    return before != after
+end
+
+func copySaves() as var
+    var cp = []
+    int i = 0
+    while i < gSaves.length do
+        cp.push(gSaves[i])
+        i += 1
+    end
+    return cp
+end
+
+func search(string text, int startPos) as bool
+    gText = text
+    gTextLen = string.len(text)
+    int p = startPos
+    while p <= gTextLen do
+        resetSaves()
+        if run(0, p) then
+            return true
+        end
+        p += 1
+    end
+    return false
+end
+
+func findAll(string text) as var
+    gText = text
+    gTextLen = string.len(text)
+    var results = []
+    int p = 0
+    while p <= gTextLen do
+        resetSaves()
+        if run(0, p) then
+            int s = int(gSaves[0])
+            int e = int(gSaves[1])
+            var m = {"start":s, "end":e, "text":string.slice(text, s, e - s)}
+            var grps = []
+            int gi = 1
+            while gi <= gGroupCount do
+                int gs = int(gSaves[2 * gi])
+                int ge = int(gSaves[2 * gi + 1])
+                if gs >= 0 and ge >= gs then
+                    grps.push(string.slice(text, gs, ge - gs))
+                else
+                    grps.push("")
+                end
+                gi += 1
+            end
+            m["groups"] = grps
+            results.push(m)
+            if e > s then
+                p = e
+            else
+                p += 1
+            end
+        else
+            p += 1
+        end
+    end
+    return results
+end
+
+func expandRepl(string repl, string text) as string
+    string r = ""
+    int i = 0
+    int n = string.len(repl)
+    while i < n do
+        string c = string.charAt(repl, i)
+        if c == "$" and i + 1 < n then
+            string c2 = string.charAt(repl, i + 1)
+            if c2 == "$" then
+                r = r + "$"
+                i += 2
+            elseif isDigitChar(c2) then
+                int gi = string.indexOf("0123456789", c2)
+                if gi == 0 then
+                    int s = int(gSaves[0])
+                    int e = int(gSaves[1])
+                    r = r + string.slice(text, s, e - s)
+                else
+                    if gi <= gGroupCount then
+                        int gs = int(gSaves[2 * gi])
+                        int ge = int(gSaves[2 * gi + 1])
+                        if gs >= 0 and ge >= gs then
+                            r = r + string.slice(text, gs, ge - gs)
+                        end
+                    end
+                end
+                i += 2
+            else
+                r = r + c
+                i += 1
+            end
+        else
+            r = r + c
+            i += 1
+        end
+    end
+    return r
+end
+
+func doReplace(string text, string repl) as string
+    gText = text
+    gTextLen = string.len(text)
+    string out = ""
+    int p = 0
+    int lastAppend = 0
+    while p <= gTextLen do
+        resetSaves()
+        if run(0, p) then
+            int s = int(gSaves[0])
+            int e = int(gSaves[1])
+            out = out + string.slice(text, lastAppend, s - lastAppend)
+            out = out + expandRepl(repl, text)
+            lastAppend = e
+            if e > s then
+                p = e
+            else
+                p += 1
+            end
+        else
+            p += 1
+        end
+    end
+    out = out + string.slice(text, lastAppend, gTextLen - lastAppend)
+    return out
+end
+
+func firstGroups(string text) as var
+    gText = text
+    gTextLen = string.len(text)
+    var grps = []
+    if not search(text, 0) then
+        return grps
+    end
+    int gi = 1
+    while gi <= gGroupCount do
+        int gs = int(gSaves[2 * gi])
+        int ge = int(gSaves[2 * gi + 1])
+        if gs >= 0 and ge >= gs then
+            grps.push(string.slice(text, gs, ge - gs))
+        else
+            grps.push("")
+        end
+        gi += 1
+    end
+    return grps
+end
+
+func compilePat(string pat) as bool
+    try
+        Parser p = Parser(pat)
+        var ast = p.parse()
+        gGroupCount = p.groupCount
+        compilePattern(ast)
+        return true
+    catch e
+        println("xregex: parse error: " + e.message)
+        return false
+    end
+end
+
+// ===== 命令处理 =====
+func cmdMatch(string txt) as int
+    bool ok = search(txt, 0)
+    if ok then
+        println("true")
+        if gGroupCount > 0 then
+            var grps = firstGroups(txt)
+            println("groups: [" + joinStr(grps, ", ") + "]")
+        end
+        return 0
+    end
+    println("false")
+    return 1
+end
+
+func cmdFind(string txt) as int
+    var results = findAll(txt)
+    if results.length == 0 then
+        println("(no match)")
+        return 1
+    end
+    int i = 0
+    while i < results.length do
+        var m = results[i]
+        string line = string(m["text"])
+        if gGroupCount > 0 then
+            line = line + "  groups:[" + joinStr(m["groups"], ", ") + "]"
+        end
+        println(line)
+        i += 1
+    end
+    println("found " + string(results.length) + " match(es)")
+    return 0
+end
+
+func cmdReplace(string txt, string repl) as int
+    string out = doReplace(txt, repl)
+    println(out)
+    return 0
+end
+
+func cmdGroups(string txt) as int
+    var grps = firstGroups(txt)
+    if grps.length == 0 then
+        println("(no match)")
+        return 1
+    end
+    int i = 0
+    while i < grps.length do
+        println("group " + string(i + 1) + ": " + string(grps[i]))
+        i += 1
+    end
+    return 0
+end
+
+func joinStr(var arr, string sep) as string
+    string r = ""
+    int i = 0
+    while i < arr.length do
+        if i > 0 then
+            r = r + sep
+        end
+        r = r + string(arr[i])
+        i += 1
+    end
+    return r
+end
+
+func printUsage()
+    println("xregex - hand-written regular expression engine")
+    println("usage:")
+    println("  xregex match   <pattern> <text>")
+    println("  xregex find    <pattern> <text>")
+    println("  xregex replace <pattern> <text> <repl>")
+    println("  xregex groups  <pattern> <text>")
+    println("  xregex test")
+    println("supported: literals [a-z] [^0-9] [abc] \\d \\w \\s \\D \\W \\S . * + ? {n} {n,} {n,m}")
+    println("           ^ $ (...) (?:...) a|b \\. \\* \\\\ ... lazy *? +? ??")
+end
+
+// ===== 内置测试套件 =====
+int gFailCount = 0
+
+func check(string label, bool ok)
+    if ok then
+        println("  PASS  " + label)
+    else
+        println("  FAIL  " + label)
+        gFailCount += 1
+    end
+end
+
+func tMatch(string pat, string txt, bool expect) as bool
+    if not compilePat(pat) then
+        return false
+    end
+    bool got = search(txt, 0)
+    return got == expect
+end
+
+func tGroup(string pat, string txt, int gidx, string expect) as bool
+    if not compilePat(pat) then
+        return false
+    end
+    var grps = firstGroups(txt)
+    if grps.length == 0 then
+        return expect == ""
+    end
+    if gidx > grps.length then
+        return expect == ""
+    end
+    return string(grps[gidx - 1]) == expect
+end
+
+func tFind(string pat, string txt, string expectJoined) as bool
+    if not compilePat(pat) then
+        return false
+    end
+    var results = findAll(txt)
+    var texts = []
+    int i = 0
+    while i < results.length do
+        texts.push(results[i]["text"])
+        i += 1
+    end
+    return joinStr(texts, ",") == expectJoined
+end
+
+func tReplace(string pat, string txt, string repl, string expect) as bool
+    if not compilePat(pat) then
+        return false
+    end
+    return doReplace(txt, repl) == expect
+end
+
+func runTests() as int
+    println("=== xregex test suite ===")
+    gFailCount = 0
+
+    println("[literals & anchors]")
+    check("abc matches abc", tMatch("abc", "abc", true))
+    check("abc no match xyz", tMatch("abc", "xyz", false))
+    check("abc found in xabcx", tMatch("abc", "xabcx", true))
+    check("^abc anchors start", tMatch("^abc", "abc", true))
+    check("^abc no mid match", tMatch("^abc", "xabc", false))
+    check("abc$ anchors end", tMatch("abc$", "xabc", true))
+    check("abc$ no early end", tMatch("abc$", "abcx", false))
+    check("^abc$ exact", tMatch("^abc$", "abc", true))
+    check("^abc$ reject extra", tMatch("^abc$", "abcd", false))
+
+    println("[character classes]")
+    check("[abc] b", tMatch("[abc]", "b", true))
+    check("[abc] d", tMatch("[abc]", "d", false))
+    check("[a-z] m", tMatch("[a-z]", "m", true))
+    check("[a-z] 5", tMatch("[a-z]", "5", false))
+    check("[^0-9] a", tMatch("[^0-9]", "a", true))
+    check("[^0-9] 5", tMatch("[^0-9]", "5", false))
+    check("[a-zA-Z0-9_] _", tMatch("[a-zA-Z0-9_]", "_", true))
+
+    println("[predefined classes]")
+    check("\\\\d digit", tMatch("\\d", "5", true))
+    check("\\\\d letter", tMatch("\\d", "a", false))
+    check("\\\\w underscore", tMatch("\\w", "_", true))
+    check("\\\\W digit false", tMatch("\\W", "7", false))
+    check("\\\\s space", tMatch("\\s", " ", true))
+    check("\\\\S space false", tMatch("\\S", " ", false))
+    check(". matches any", tMatch(".", "x", true))
+    check(". no newline", tMatch(".", "\n", false))
+
+    println("[quantifiers]")
+    check("a* empty ok", tMatch("a*", "", true))
+    check("a+ needs one", tMatch("a+", "", false))
+    check("a+ one", tMatch("a+", "a", true))
+    check("a{3} exact", tMatch("a{3}", "aaa", true))
+    check("a{3} short", tMatch("a{3}", "aa", false))
+    check("a{2,} enough", tMatch("a{2,}", "aaaa", true))
+    check("a{2,} short", tMatch("a{2,}", "a", false))
+    check("a{2,4} ok", tMatch("a{2,4}", "aaa", true))
+    check("a{2,4}b too many", tMatch("a{2,4}b", "aaaaab", true))
+
+    println("[alternation]")
+    check("a|b a", tMatch("a|b", "a", true))
+    check("a|b b", tMatch("a|b", "b", true))
+    check("a|b c", tMatch("a|b", "c", false))
+    check("cat|dog", tMatch("cat|dog", "dog", true))
+
+    println("[groups]")
+    check("a(b|c)d -> b", tGroup("a(b|c)d", "abd", 1, "b"))
+    check("a(b|c)d -> c", tGroup("a(b|c)d", "acd", 1, "c"))
+    check("a(b|c)d reject e", tMatch("a(b|c)d", "aed", false))
+    check("non-cap (?:ab)+", tMatch("(?:ab)+", "abab", true))
+    check("nested (a(b)c)", tGroup("(a(b)c)", "abc", 2, "b"))
+    check("(\\d+)-(\\d+)", tGroup("(\\d+)-(\\d+)", "12-34", 2, "34"))
+
+    println("[escapes]")
+    check("\\\\. literal dot", tMatch("a\\.b", "a.b", true))
+    check("\\\\. not a", tMatch("a\\.b", "axb", false))
+    check("\\\\* literal star", tMatch("a\\*", "a*", true))
+    check("backslash literal", tMatch("a\\\\b", "a\\b", true))
+
+    println("[find all]")
+    check("\\\\d+ in abc123def456", tFind("\\d+", "abc123def456", "123,456"))
+    check("[a-z]+ in 1a2bc3", tFind("[a-z]+", "1a2bc3", "a,bc"))
+    check(". all chars", tFind(".", "ab", "a,b"))
+
+    println("[replace]")
+    check("[aeiou] hello *", tReplace("[aeiou]", "hello", "*", "h*ll*"))
+    check("\\\\d -> #", tReplace("\\d", "a1b2", "#", "a#b#"))
+    check("$1 backref", tReplace("(\\w+)@(\\w+)", "ab@cd", "$2-$1", "cd-ab"))
+
+    println("[spec examples]")
+    check("spec: a(b|c)d abd true", tMatch("a(b|c)d", "abd", true))
+    check("spec: \\d+ find", tFind("\\d+", "abc123def456", "123,456"))
+    check("spec: [aeiou] hello *", tReplace("[aeiou]", "hello", "*", "h*ll*"))
+    check("spec: email pattern", tMatch("^[\\w]+@[\\w]+\\.[a-z]+$", "user@example.com", true))
+
+    println("[greedy vs lazy]")
+    check("greedy <.*> eats all", tFind("<.*>", "<a><b>", "<a><b>"))
+    check("lazy <.*?> step", tFind("<.*?>", "<a><b>", "<a>,<b>"))
+
+    println("[repeated group captures]")
+    check("(a)+ last iter", tGroup("(a)+", "aaa", 1, "a"))
+    check("(\\w)+ last iter", tGroup("(\\w)+", "abc", 1, "c"))
+    check("(ab)+ last pair", tGroup("(ab)+", "ababab", 1, "ab"))
+    check("(\\d) on 12345", tGroup("(\\d)", "12345", 1, "1"))
+
+    println("[deep recursion / backtracking stress]")
+    bool deepOk = false
+    if compilePat("\\w+") then
+        string big = string.repeat("a", 500)
+        bool dr = search(big, 0)
+        deepOk = dr
+    end
+    check("\\w+ on 500 chars (recursion depth)", deepOk)
+    bool catOk = false
+    if compilePat("(a+)+b") then
+        catOk = not search("aaaaaaaaaa", 0)
+    end
+    check("(a+)+b no-trailing-b rejects", catOk)
+
+    println("=== result: " + string(gFailCount) + " failure(s) ===")
+    if gFailCount == 0 then
+        return 0
+    end
+    return 1
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+    string cmd = string(arg[1])
+    if cmd == "test" then
+        return runTests()
+    end
+    if cmd == "match" or cmd == "find" or cmd == "groups" then
+        if arg.length < 4 then
+            println("xregex: '" + cmd + "' needs <pattern> <text>")
+            return 1
+        end
+        string pat = string(arg[2])
+        string txt = string(arg[3])
+        if not compilePat(pat) then
+            return 1
+        end
+        if cmd == "match" then
+            return cmdMatch(txt)
+        elseif cmd == "find" then
+            return cmdFind(txt)
+        else
+            return cmdGroups(txt)
+        end
+    end
+    if cmd == "replace" then
+        if arg.length < 5 then
+            println("xregex: 'replace' needs <pattern> <text> <repl>")
+            return 1
+        end
+        string pat = string(arg[2])
+        string txt = string(arg[3])
+        string repl = string(arg[4])
+        if not compilePat(pat) then
+            return 1
+        end
+        return cmdReplace(txt, repl)
+    end
+    println("xregex: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

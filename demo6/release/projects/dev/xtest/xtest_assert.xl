@@ -1,0 +1,157 @@
+// xtest_assert.xl - xtest 断言库（参考副本）
+//
+// 这是 xtest 运行器的断言库源码的「单文件参考副本」。xtest.xl 内部会内嵌
+// 一份完全相同的内容，在运行每个测试文件时把它拼到生成的 harness 前面，使
+// 得测试文件可以直接以「全局函数」形式调用 assertEqual / assertThrows 等。
+//
+// 设计要点：
+//   - 失败机制：throw 一个字符串（xlang 的 throw 只接受 string）。
+//   - 跳过机制：throw 一个带 "[XTEST_SKIP]" 前缀的字符串，harness 据此区分。
+//   - 所有断言的「值参数」都用 var，使其能接受 int/float/string/bool/container。
+//   - message 参数都带默认空串，故 assertEqual(a,b) 与 assertEqual(a,b,"msg") 均可。
+//   - 规避 [checked] 限制：动态 var 比较只能直接放进 if 条件（`if a==b then`），
+//     不能写成 `not (a==b)` 也不能赋值给 bool 再判断。故断言内部一律采用
+//     「相等则提前 return，否则落到尾部失败」的写法。
+
+// ===== 失败 / 跳过 内部机制 =====
+
+func xtestFail(string msg)
+    throw msg
+end
+
+func skip(string reason)
+    throw "[XTEST_SKIP]" + reason
+end
+
+func xtestIsSkip(string msg) as bool
+    return string.startsWith(msg, "[XTEST_SKIP]")
+end
+
+func xtestSkipReason(string msg) as string
+    int p = string.len("[XTEST_SKIP]")
+    return string.mid(msg, p, string.len(msg))
+end
+
+// 把任意 var 值格式化为适合放入错误信息的字符串。
+func xtestFormat(var v) as string
+    if v is null then
+        return "null"
+    end
+    if v is string then
+        return "\"" + string(v) + "\""
+    end
+    if v is bool then
+        return string(v)
+    end
+    if v is array then
+        return json.stringify(v)
+    end
+    if v is dict then
+        return json.stringify(v)
+    end
+    return string(v)
+end
+
+func xtestMsg(string defaultMsg, string message) as string
+    if string.len(message) > 0 then
+        return message
+    end
+    return defaultMsg
+end
+
+// ===== 断言 API =====
+
+func assertEqual(var actual, var expected, string message = "")
+    if actual == expected then
+        return
+    end
+    string d = xtestMsg("assertEqual failed", message)
+    xtestFail(d + " (expected " + xtestFormat(expected) + ", got " + xtestFormat(actual) + ")")
+end
+
+func assertNotEqual(var actual, var expected, string message = "")
+    if actual == expected then
+        string d = xtestMsg("assertNotEqual failed", message)
+        xtestFail(d + " (both values were " + xtestFormat(actual) + ")")
+    end
+end
+
+func assertTrue(var condition, string message = "")
+    if condition then
+        return
+    end
+    xtestFail(xtestMsg("assertTrue failed (condition is falsy)", message) + " (got " + xtestFormat(condition) + ")")
+end
+
+func assertFalse(var condition, string message = "")
+    if condition then
+        xtestFail(xtestMsg("assertFalse failed (condition is truthy)", message) + " (got " + xtestFormat(condition) + ")")
+    end
+end
+
+func assertNull(var value, string message = "")
+    if value is null then
+        return
+    end
+    xtestFail(xtestMsg("assertNull failed", message) + " (got " + xtestFormat(value) + ")")
+end
+
+func assertNotNull(var value, string message = "")
+    if value is null then
+        xtestFail(xtestMsg("assertNotNull failed (value is null)", message))
+    end
+end
+
+func assertContains(var haystack, var needle, string message = "")
+    bool found = false
+    if haystack is string then
+        found = string.contains(string(haystack), string(needle))
+    elseif haystack is array then
+        for item in haystack
+            if item == needle then
+                found = true
+            end
+        end
+    else
+        xtestFail(xtestMsg("assertContains: haystack must be string or array", message) + " (got " + xtestFormat(haystack) + ")")
+    end
+    if found then
+        return
+    end
+    xtestFail(xtestMsg("assertContains failed", message) + " (needle " + xtestFormat(needle) + " not in " + xtestFormat(haystack) + ")")
+end
+
+func assertThrows(var block, string message = "")
+    try
+        block()
+    catch e
+        return
+    end
+    xtestFail(xtestMsg("assertThrows failed: expected an exception but none was thrown", message))
+end
+
+func assertInRange(var value, var low, var high, string message = "")
+    if value >= low then
+        if value <= high then
+            return
+        end
+    end
+    xtestFail(xtestMsg("assertInRange failed", message) + " (" + xtestFormat(value) + " not in [" + xtestFormat(low) + ", " + xtestFormat(high) + "])")
+end
+
+func approxEqual(var actual, var expected, var tolerance, string message = "")
+    float a = float(actual)
+    float e = float(expected)
+    float t = float(tolerance)
+    if t < 0.0 then
+        t = 0.0 - t
+    end
+    float diff = a - e
+    if diff < 0.0 then
+        diff = 0.0 - diff
+    end
+    if diff <= t then
+        return
+    end
+    xtestFail(xtestMsg("approxEqual failed", message) + " (|" + string.formatFloat(a, ".6") + " - " + string.formatFloat(e, ".6") + "| = " + string.formatFloat(diff, ".6") + " > tolerance " + string.formatFloat(t, ".6") + ")")
+end
