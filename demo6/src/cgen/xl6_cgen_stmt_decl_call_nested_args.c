@@ -126,7 +126,12 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
             continue;
         }
 
-        tempType = xl6CgenCloneCanonicalTypeNode(ctx, paramType);
+        /*
+            显式/推断泛型调用收集实参临时量时，参数类型必须先替换 T。
+            否则 array<T> + [1, 2] 会被当成未定型容器，调用点就会退回
+            动态 xvalue 字面量，传给 xtarray 形参后在运行期崩溃。
+        */
+        tempType = xl6CgenCloneCanonicalTypeNode(ctx, xl6CgenSubstituteGenericType(ctx, paramType));
         if ( tempType != NULL && xl6CgenDeclCanEmitCallArgTemp(ctx, tempType, argExpr) ) {
             if ( !xl6CgenDeclCallArgTempAppend(ctx, temps, count, capacity, argExpr, tempType, "__xl6_call_arg_", "out of memory while preparing nested call argument temporaries") ) {
                 xl6AstFree(inferredArgs);
@@ -263,10 +268,10 @@ static int xl6CgenDeclEmitXValueCallExprWithArgTemps(
     for ( i = 0; i < tempCount; ++i ) {
         const char* tempCType;
 
-        tempCType = xl6CgenTypeName(ctx, temps[i].typeNode);
+        tempCType = xl6CgenValueStorageCType(ctx, temps[i].typeNode);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s %s = ", tempCType, temps[i].name);
-        xl6CgenDefaultValue(ctx, temps[i].typeNode);
+        xl6CgenDeclCallArgTempDefaultValue(ctx, temps[i].typeNode);
         xl6OutputPuts(";\n", ctx->out);
         if ( !xl6CgenDeclEmitCallArgTemp(ctx, temps[i].typeNode, tempCType, temps[i].name, temps[i].expr) ) {
             xl6CgenError(ctx, temps[i].expr, "nested call argument lowering failed");
@@ -327,16 +332,86 @@ static int xl6CgenDeclEmitTypedContainerCallExprWithArgTemps(
     }
 
     for ( i = 0; i < tempCount; ++i ) {
-        const char* tempCType = xl6CgenTypeName(ctx, temps[i].typeNode);
+        const char* tempCType = xl6CgenValueStorageCType(ctx, temps[i].typeNode);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s %s = ", tempCType, temps[i].name);
-        xl6CgenDefaultValue(ctx, temps[i].typeNode);
+        xl6CgenDeclCallArgTempDefaultValue(ctx, temps[i].typeNode);
         xl6OutputPuts(";\n", ctx->out);
         if ( !xl6CgenDeclEmitCallArgTemp(ctx, temps[i].typeNode, tempCType, temps[i].name, temps[i].expr) ) {
             xl6CgenError(ctx, temps[i].expr, "nested typed container call argument lowering failed");
         }
     }
 
+    prevExprReplacements = ctx->exprReplacements;
+    prevExprReplacementCount = ctx->exprReplacementCount;
+    ctx->exprReplacements = replacements;
+    ctx->exprReplacementCount = (size_t)tempCount;
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = ", valueName);
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPuts(";\n", ctx->out);
+
+    ctx->exprReplacements = prevExprReplacements;
+    ctx->exprReplacementCount = prevExprReplacementCount;
+    xl6CgenDeclDestroyCallArgTemps(ctx, temps, tempCount);
+    xrtFree(replacements);
+    xl6CgenDeclFreeCallArgTemps(temps, tempCount);
+    return 1;
+}
+
+static int xl6CgenDeclEmitScalarCallExprWithArgTemps(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* targetType,
+    const XL6_AstNode* expr,
+    const char* valueName)
+{
+    XL6_CgenDeclCallArgTemp* temps;
+    XL6_CgenExprReplacement* replacements;
+    const XL6_CgenExprReplacement* prevExprReplacements;
+    size_t prevExprReplacementCount;
+    int tempCount;
+    int tempCapacity;
+    int i;
+
+    if ( ctx == NULL || targetType == NULL || expr == NULL || valueName == NULL ||
+         !xl6CgenDeclCallArgStaticScalarType(targetType) ||
+         expr->kind != XL6_AST_CALL ) {
+        return 0;
+    }
+
+    temps = NULL;
+    replacements = NULL;
+    tempCount = 0;
+    tempCapacity = 0;
+    xl6CgenDeclCollectCallExprArgTemps(ctx, expr, &temps, &tempCount, &tempCapacity);
+    if ( tempCount <= 0 ) {
+        xl6CgenDeclFreeCallArgTemps(temps, tempCount);
+        return 0;
+    }
+
+    replacements = xl6CgenDeclCreateCallArgReplacements(ctx, temps, tempCount, tempCount);
+    if ( replacements == NULL ) {
+        xl6CgenDeclFreeCallArgTemps(temps, tempCount);
+        return 0;
+    }
+
+    for ( i = 0; i < tempCount; ++i ) {
+        const char* tempCType = xl6CgenValueStorageCType(ctx, temps[i].typeNode);
+
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s %s = ", tempCType, temps[i].name);
+        xl6CgenDeclCallArgTempDefaultValue(ctx, temps[i].typeNode);
+        xl6OutputPuts(";\n", ctx->out);
+        if ( !xl6CgenDeclEmitCallArgTemp(ctx, temps[i].typeNode, tempCType, temps[i].name, temps[i].expr) ) {
+            xl6CgenError(ctx, temps[i].expr, "nested scalar call argument lowering failed");
+        }
+    }
+
+    /*
+        标量返回值本身不需要特殊包装；真正需要语句级 lowering 的是调用实参。
+        这里复用表达式替换表，确保 array<T> 字面量等参数按形参类型先落到临时量。
+    */
     prevExprReplacements = ctx->exprReplacements;
     prevExprReplacementCount = ctx->exprReplacementCount;
     ctx->exprReplacements = replacements;

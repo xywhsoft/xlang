@@ -1,0 +1,214 @@
+// racedemo - task high-level API verification tool
+//
+// Verifies the task.* advanced API surface declared in DEMO6功能清单 第13节:
+//   - task.race:   first completer wins; losers get canceled; winner stays awaitable
+//   - task.spawn:  build an async task from a func value (plain func, closure)
+//   - task.cancel: cancel a pending future; cancel of completed returns false
+//   - async exception propagation: throw inside async -> await side catches
+//   - repeated await of a completed future returns the same value
+//   - race loser cancellation: pending loser future enters cancel state
+//
+// await in xlang is only allowed at top level / inside async func, so the whole
+// test battery runs at top level via an `async func runAll()` driver. A regular
+// `func main(...) as int` reads the global pass/fail counters (set during top
+// level execution that runs before main) and returns the process exit code.
+
+// ---- worker async/func values ------------------------------------------------
+
+async func slowTask(int delayMs, int result) as int
+    time.sleep(delayMs)
+    return result
+end
+
+async func okTask(int result) as int
+    return result
+end
+
+async func failTask(string msg) as int
+    throw msg
+    return 0
+end
+
+func plainAdd(int a, int b) as int
+    return a + b
+end
+
+func plainFail(string msg) as int
+    throw msg
+    return 0
+end
+
+func makeAdder(int base) as func(int) as int
+    return func(int v) as int
+        return base + v
+    end
+end
+
+// ---- pass/fail bookkeeping ---------------------------------------------------
+
+int g_pass = 0
+int g_fail = 0
+
+func check(string name, bool ok)
+    if ok then
+        println("  [PASS] " + name)
+        g_pass = g_pass + 1
+    else
+        println("  [FAIL] " + name)
+        g_fail = g_fail + 1
+    end
+end
+
+func expectCanceled(string name, int got) as bool
+    if got == 1 then
+        check(name, true)
+        return true
+    end
+    check(name, false)
+    return false
+end
+
+// ---- main test driver --------------------------------------------------------
+
+async func runAll()
+    // TEST 1: task.race - first completer wins
+    println("[test 1] task.race: first completer wins")
+    future<int> r1a = slowTask(200, 1)
+    future<int> r1b = slowTask(50, 2)
+    int winner = await task.race([r1a, r1b])
+    check("race winner is 2 (50ms beats 200ms)", winner == 2)
+    int winnerAgain = await r1b
+    check("race winner future stays awaitable", winnerAgain == 2)
+
+    // TEST 2: task.spawn - from func value and closure
+    println("[test 2] task.spawn: from func value")
+    func(int, int) as int addJob = plainAdd
+    int spawned = await task.spawn(addJob, 20, 22)
+    check("task.spawn plain add(20,22)==42", spawned == 42)
+    func(int) as int adder40 = makeAdder(40)
+    int spawnedClosure = await task.spawn(adder40, 2)
+    check("task.spawn closure makeAdder(40)(2)==42", spawnedClosure == 42)
+
+    // TEST 3: task.cancel - pending future becomes canceled
+    println("[test 3] task.cancel: pending future")
+    future<int> c = slowTask(500, 99)
+    bool cancelResult = task.cancel(c)
+    check("task.cancel pending returns true", cancelResult)
+    int cState = 0
+    try
+        int cv = await c
+        cState = cv
+    catch e
+        if e.message == "future cancel requested." then
+            cState = 1
+        end
+    end
+    expectCanceled("await canceled future throws cancel", cState)
+
+    // TEST 3b: task.cancel of an already-completed future returns false
+    future<int> cd = okTask(7)
+    int cdVal = await cd
+    bool cdCancel = task.cancel(cd)
+    check("task.cancel completed returns false (value 7)", cdVal == 7 and not cdCancel)
+
+    // TEST 4: async exception propagation to await side
+    println("[test 4] async exception propagation")
+    future<int> fe = failTask("async boom")
+    int feState = 0
+    try
+        int fev = await fe
+        feState = fev
+    catch e
+        if e.message == "async boom" then
+            feState = 1
+        end
+    end
+    check("async throw propagates to await", feState == 1)
+    // failed future repeated await keeps the original error
+    int feState2 = 0
+    try
+        int fev2 = await fe
+        feState2 = fev2
+    catch e
+        if e.message == "async boom" then
+            feState2 = 1
+        end
+    end
+    check("failed future repeated await keeps error", feState2 == 1)
+
+    // TEST 5: repeated await of completed future returns the same value
+    println("[test 5] repeated await returns same result")
+    future<int> ra = slowTask(40, 7)
+    int ra1 = await ra
+    int ra2 = await ra
+    int ra3 = await ra
+    check("repeated await yields 7 three times", ra1 == 7 and ra2 == 7 and ra3 == 7)
+
+    // TEST 6: task.race loser cancellation
+    println("[test 6] task.race loser cancellation")
+    future<int> lw = slowTask(40, 5)
+    future<int> ll = slowTask(300, 6)
+    int lv = await task.race([lw, ll])
+    check("race winner value is 5", lv == 5)
+    int loserState = 0
+    try
+        int llv = await ll
+        loserState = llv
+    catch e
+        if e.message == "future cancel requested." then
+            loserState = 1
+        end
+    end
+    expectCanceled("race loser future is canceled", loserState)
+    int lwAgain = await lw
+    check("race winner re-awaitable after loser cancel", lwAgain == 5)
+
+    // TEST 7: task.spawn failure propagation
+    println("[test 7] task.spawn failure propagation")
+    func(string) as int failJob = plainFail
+    future<int> sf = task.spawn(failJob, "spawn boom")
+    int sfState = 0
+    try
+        int sfv = await sf
+        sfState = sfv
+    catch e
+        if e.message == "spawn boom" then
+            sfState = 1
+        end
+    end
+    check("task.spawn throw propagates to await", sfState == 1)
+
+    // TEST 8: task.race rejects an empty future array
+    println("[test 8] task.race rejects empty array")
+    array<future<int>> emptyJobs
+    int erState = 0
+    try
+        int erv = await task.race(emptyJobs)
+        erState = erv
+    catch e
+        if e.message == "task.race requires a non-empty future array" then
+            erState = 1
+        end
+    end
+    check("task.race rejects empty array", erState == 1)
+end
+
+// ---- entry point -------------------------------------------------------------
+
+println("==== racedemo start ====")
+println("verifying task.race / task.spawn / task.cancel / async-throw")
+println("------------------------------------------------")
+
+await runAll()
+
+func main(...) as int
+    println("------------------------------------------------")
+    println("==== racedemo summary ====")
+    println("passed:", g_pass, " failed:", g_fail)
+    if g_fail == 0 then
+        println("RESULT: OK - all task API checks passed")
+        return 0
+    end
+    println("RESULT: FAIL -", g_fail, "check(s) failed")
+    return 1
+end

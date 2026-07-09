@@ -224,13 +224,15 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
     case XL6_AST_MEMBER:
         if ( !xl6CgenStaticClassFieldExpr(ctx, node) &&
              !xl6CgenErrorMemberAccess(ctx, node) &&
+             !xl6CgenTypedContainerMemberAccess(ctx, node) &&
              !xl6CgenXValueMemberAccess(ctx, node) &&
              !xl6CgenUnionFieldAccess(ctx, node) ) {
             xl6CgenClassFieldAccess(ctx, node);
         }
         break;
     case XL6_AST_SAFE_MEMBER:
-        if ( !xl6CgenSafeXValueMemberAccess(ctx, node) ) {
+        if ( !xl6CgenSafeTypedContainerMemberAccess(ctx, node) &&
+             !xl6CgenSafeXValueMemberAccess(ctx, node) ) {
             xl6CgenError(ctx, node, "当前 C 生成安全成员访问只支持容器 length");
             xl6OutputPuts("0", ctx->out);
         }

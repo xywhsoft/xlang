@@ -144,6 +144,11 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
     const XL6_AstNode* body;
     size_t i;
 
+    if ( xl6CgenClassHasLocalVirtualSlots(classNode) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("if (self->__xl6_self_ref != 0) { xvoUnref(self->__xl6_self_ref); self->__xl6_self_ref = 0; }\n", ctx->out);
+    }
+
     body = xl6CgenClassBody(classNode);
     if ( body == NULL ) {
         return;
@@ -514,7 +519,7 @@ static void xl6CgenClassAutoCopyProtocol(XL6_CgenContext* ctx, const XL6_AstNode
     if ( deep ) {
         xl6CgenDeepCopyClassFunctionFields(ctx, classNode, "value");
     } else {
-        xl6CgenRetainClassFunctionFields(ctx, classNode, "value");
+        xl6CgenCopyClassFunctionFields(ctx, classNode, "value");
     }
     xl6CgenIndent(ctx);
     xl6OutputPuts("return value;\n", ctx->out);

@@ -1,0 +1,39 @@
+// probe2.xl - characterize the int-vs-int32 ABI trap and export const.
+// Run: xl run probe2.xl probe2_c.c
+
+// C function returns a value > 2^31 to expose truncation if types mismatch.
+extern "p2_big_id"      func bigIdInt(int x) as int       // WRONG: C uses int
+extern "p2_big_id32"    func bigIdInt32(int32 x) as int32 // correct: C uses int
+extern "p2_wide"        func wideId(int64 x) as int64     // C uses long long
+
+export "p2_const_val" const int CONST_VAL = 7
+export "p2_counter2"  int counter2 = 0
+
+func main(...) as int
+    int fails = 0
+    println("--- export const read ---")
+    println("CONST_VAL = " + string(CONST_VAL))
+    if CONST_VAL != 7 then fails += 1 end
+
+    // bigId is 0x41414141 + x. As native int (32-bit) it is 1094795585.
+    int64 viaInt   = bigIdInt(0)
+    int32 viaInt32 = bigIdInt32(0)
+    int64 viaWide  = wideId(0)
+    println("bigIdInt(0)   [declared `as int`]    = " + string(viaInt))
+    println("bigIdInt32(0) [declared `as int32`]  = " + string(int(viaInt32)))
+    println("wideId(0)     [declared `as int64`]  = " + string(viaWide))
+    if viaInt32 != 1094795585 then fails += 1 end
+    if viaWide  != 1094795585 then fails += 1 end
+
+    // Input-direction truncation: passing 2^33 + 5 to a C `int` param.
+    // C reads only the low 32 bits (5). Declared `as int` (int64) the high
+    // bits are delivered but silently dropped by the C callee -- no diagnostic.
+    int64 big = 8589934597   // 0x2_0000_0005 = 2^33 + 5
+    int64 echoed   = bigIdInt(big)    // declared int -> C int param
+    int64 echoedW  = wideId(big)      // declared int64 -> C long long param
+    println("bigIdInt(2^33+5) [as int]   = " + string(echoed) + "  (C saw low32+0x41414141)")
+    println("wideId(2^33+5)   [as int64] = " + string(echoedW))
+
+    println("PROBE2 FAILS = " + string(fails))
+    return fails
+end

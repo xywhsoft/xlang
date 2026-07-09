@@ -1,0 +1,83 @@
+# deepclone - derive 全套验证工具
+
+验证 xlang 全部 `derive` 能力。对每一项给出 PASS / FAIL 报告。
+
+## 运行
+
+```bat
+cd /d D:\GIT\x-lang\demo6\release
+xl run  projects\dev\deepclone\deepclone.xl
+xl build projects\dev\deepclone\deepclone.xl -o projects\dev\deepclone\deepclone.exe
+```
+
+两条路径均 EXIT=0。当前用例数：**58 PASS / 0 FAIL**。
+
+## 覆盖矩阵
+
+| derive | 声明 | 运行能力 | 备注 |
+|---|---|---|---|
+| `copy`        | OK | `copy(obj)` 浅拷贝 + 字段隔离 | 已实现 |
+| `clone`       | OK | `clone(obj)` 深拷贝 + 字段隔离 | 已实现 |
+| `moveOnly`    | OK | 独立声明合法；与 copy/clone 冲突被语义阶段拦截 | 已实现 |
+| `value`       | OK | 经 `json` / `xson` 往返验证 `__toValue__/__fromValue__` | 已实现 |
+| `json`        | OK | `json.stringify` / `json.parse::<Product>` | 已实现 |
+| `xson`        | OK | `xson.stringify` / `xson.parse::<Product>` | 已实现 |
+| `string`      | OK | **不生成代码**；只能手写 `__toString__` | BUG-D2 |
+| `hash`        | OK | **不生成代码**；只能手写字段哈希 | BUG-D2 |
+| `equals`      | OK | **不生成代码**；只能手写 `__eq__/__ne__` | BUG-D2 |
+
+字段级注解（全部已实现）：
+
+| 注解 | 效果 |
+|---|---|
+| `@json("created_at")`     | 仅 JSON 侧重命名字段 |
+| `@persist(name="x")`      | JSON/XSON 通用字段名 |
+| `@persist(skip)`          | 跳过持久化（两侧生效） |
+| `@json(omit=empty)`       | 空串字段不输出 |
+| `@xson(omit=null)`        | null 值字段不输出 |
+
+## 测试类
+
+```xlang
+class Product
+    derive copy
+    derive clone
+    derive value
+    derive json
+    derive xson
+    derive string      // no-op
+    derive hash        // no-op
+    derive equals      // no-op
+
+    int id = 0
+    string name = ""
+    float price = 0.0
+    string createdAt @json("created_at") @persist(name="createdAt") = ""
+    string internalNote @persist(skip) = ""
+    string memo @json(omit=empty) @xson(omit=null) = ""
+
+    // 因 BUG-D2 derive 不生成，以下协议方法全部手写兜底
+    func __eq__(Product other) as bool ...
+    func __ne__(Product other) as bool ...
+    func __toString__() as string ...
+    func hashByFields() as uint64 ...
+end
+```
+
+## derive moveOnly 冲突检查
+
+`derive moveOnly` 与 `derive copy` 或 `derive clone` 同列会被语义阶段拦截：
+
+```xlang
+class Bad
+    derive copy
+    derive moveOnly     // [sem] derive moveOnly 不能与 derive copy 或 derive clone 同时使用
+end
+```
+
+实测 `xl check` 与 `xl run` 均返回 EXIT=1 并定位到对应行。因非法源码无法内联进本工具
+（会破坏 EXIT=0 基线），冲突复现保留在本 README 中作为独立用例。
+
+## 发现的 BUG
+
+详见 `dev/BUGS.md` 中 `BUG-D2`、`手感-D1` 两条。

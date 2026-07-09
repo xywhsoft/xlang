@@ -893,7 +893,8 @@ int xl6CgenEmitHeader(XL6_Output* out, XL6_AstNode* root, const char* guardName,
 
     for ( i = 0; i < root->childCount; ++i ) {
         const XL6_AstNode* node = root->children[i];
-        if ( node != NULL && node->kind == XL6_AST_EXPORT_FUNC ) {
+        if ( node != NULL &&
+             (node->kind == XL6_AST_EXPORT_FUNC || node->kind == XL6_AST_EXTERN_FUNC) ) {
             xl6CgenHeaderExportFuncProto(out, root, node);
         } else if ( node != NULL && node->kind == XL6_AST_CLASS ) {
             xl6CgenHeaderClassExportFuncProtos(out, root, node);
@@ -902,7 +903,9 @@ int xl6CgenEmitHeader(XL6_Output* out, XL6_AstNode* root, const char* guardName,
     for ( i = 0; i < root->childCount; ++i ) {
         const XL6_AstNode* node = root->children[i];
         if ( node != NULL &&
-             (node->kind == XL6_AST_EXPORT_VAR || node->kind == XL6_AST_EXPORT_CONST) &&
+             (node->kind == XL6_AST_EXTERN_VAR ||
+              node->kind == XL6_AST_EXPORT_VAR ||
+              node->kind == XL6_AST_EXPORT_CONST) &&
              node->text != NULL && node->text[0] != '\0' ) {
             xl6CgenHeaderExportVarDecl(out, root, node);
         }

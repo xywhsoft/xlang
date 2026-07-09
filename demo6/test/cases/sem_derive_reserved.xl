@@ -1,0 +1,3 @@
+class BadReservedDerive
+    derive string
+end

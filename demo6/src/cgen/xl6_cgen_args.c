@@ -1,5 +1,10 @@
 ﻿static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* args);
 static int xl6CgenNativeClassCtorHasPointBindingArgs(const XL6_AstNode* args);
+static void xl6CgenArrayLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static void xl6CgenListLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static void xl6CgenSetLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static void xl6CgenDictLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static void xl6CgenTypedLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 
 static int xl6CgenParamIsVararg(const XL6_AstNode* param)
 {
@@ -458,6 +463,35 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6OutputPuts("xvoCreateNull()", ctx->out);
         return;
     }
+
+    /*
+        普通容器字面量写入 var 时固定生成动态 xvalue 容器。
+        array<int> 这类显式静态泛型容器仍由 typed-container 路径处理。
+    */
+    if ( expr->kind == XL6_AST_ARRAY_LITERAL ) {
+        xl6CgenArrayLiteralExpr(ctx, expr);
+        return;
+    }
+    if ( expr->kind == XL6_AST_LIST_LITERAL ) {
+        xl6CgenListLiteralExpr(ctx, expr);
+        return;
+    }
+    if ( expr->kind == XL6_AST_SET_LITERAL ) {
+        xl6CgenSetLiteralExpr(ctx, expr);
+        return;
+    }
+    if ( expr->kind == XL6_AST_DICT_LITERAL ) {
+        xl6CgenDictLiteralExpr(ctx, expr);
+        return;
+    }
+    if ( expr->kind == XL6_AST_TYPED_LITERAL &&
+         (expr->childCount <= 1 || expr->children[1] == NULL) &&
+         (xl6CTextEquals(expr->text, "array") || xl6CTextEquals(expr->text, "list") ||
+          xl6CTextEquals(expr->text, "set") || xl6CTextEquals(expr->text, "dict")) ) {
+        xl6CgenTypedLiteralExpr(ctx, expr);
+        return;
+    }
+
     if ( xl6CgenTypedContainerXValueFromExpr(ctx, expr) ) {
         return;
     }

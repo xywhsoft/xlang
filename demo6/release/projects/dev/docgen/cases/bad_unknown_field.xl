@@ -1,0 +1,12 @@
+// negative case: unknown doc field
+// expected: [sem] #doc 未知字段
+#doc
+summary:
+    Not a recognized field.
+#end
+func bad()
+end
+
+func main(...) as int
+    return 0
+end

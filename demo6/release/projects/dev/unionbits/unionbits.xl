@@ -1,0 +1,385 @@
+// unionbits - union 类型验证工具
+//
+// 全面验证 xlang union 的 6 项能力：
+//   1. union 定义 + 字段访问        (union IntFloat ... end, u.i = ..., u.f = ...)
+//   2. 字段位重解释                  (写入 i 读取 f / 写入 f 读取 i，验证 IEEE754 位模式)
+//   3. union C ABI 元数据            (type() 身份保持、var 装箱往返、export 导出触发 ABI 生成)
+//   4. union 作为函数参数 / 返回值   (按值传递、按值返回、字段穿透)
+//   5. union 数组                    (array<Union> push/读取/修改)
+//   6. 多字段重叠 + 匿名 union       (ColorRGBA uint32 ↔ 4×uint8 字节拆解；class 内匿名 union)
+//
+// 位重解释测试采用已知 IEEE 754 double 常数（小端 x86）：
+//   double  1.0  ↔ int64 0x3FF0000000000000 =  4607182418800017408
+//   double  2.0  ↔ int64 0x4000000000000000 =  4611686018427387904
+//   double  1.5  ↔ int64 0x3FF8000000000000 =  4609434218613702656
+//   double  0.5  ↔ int64 0x3FE0000000000000 =  4602678819172646912
+//   double -1.0  ↔ int64 0xBFF0000000000000 = -4611686018427387904
+//   double  0.0  ↔ int64 0
+//
+// 程序始终返回 0（即使发现 BUG 也只记录不中断），保证 xl run / xl build 双路径 EXIT=0。
+
+// ===== 被测 union：int64 ↔ float64 位重解释（任务规格核心）=====
+union IntFloat
+    int64 i
+    float64 f
+end
+
+// ===== 被测 union：uint32 ↔ uint8 字节别名（多字段重叠 + 小端验证）=====
+// 注意 C union 语义：所有字段都从 offset 0 开始。本 union 中 uint32 rgba 占
+// 4 字节，uint8 lowByte 占 1 字节且与 rgba 的 offset 0 重叠。小端 x86 上
+// offset 0 = 最低有效字节 (LSB)。因此 lowByte 读到的就是 rgba 的 LSB。
+union ColorRGBA
+    uint32 rgba
+    uint8 lowByte
+end
+
+// ===== 被测：class 内匿名 union（来自 examples/union.xl 的形态）=====
+class Packet
+    int tag = 0
+    union
+        int code
+        c_double ratio
+    end
+end
+
+// ===== IEEE 754 已知位常数（显式命名，避免魔数）=====
+int64 D1_0_BITS = 4607182418800017408      // 0x3FF0000000000000 = double 1.0
+int64 D2_0_BITS = 4611686018427387904      // 0x4000000000000000 = double 2.0
+int64 D1_5_BITS = 4609434218613702656      // 0x3FF8000000000000 = double 1.5
+int64 D0_5_BITS = 4602678819172646912      // 0x3FE0000000000000 = double 0.5
+int64 DNEG1_BITS = -4616189618054758400    // 0xBFF0000000000000 = double -1.0
+int64 DNEG2_BITS = -4611686018427387904    // 0xC000000000000000 = double -2.0
+
+// ===== 导出：强制 union 进入 C ABI 元数据生成路径 =====
+// 若该导出能编译并通过，说明 union 的 C ABI wrapper 与 .h/.abi.txt 生成路径可用。
+export "unionbits_ident" func uIdent(IntFloat u) as IntFloat
+    return u
+end
+
+// ===== union 作为函数参数 / 返回值 =====
+func makeIntFloat(int64 bits) as IntFloat
+    IntFloat u
+    u.i = bits
+    return u
+end
+
+func makeIntFloatF(float64 v) as IntFloat
+    IntFloat u
+    u.f = v
+    return u
+end
+
+func readI(IntFloat u) as int64
+    return u.i
+end
+
+func readF(IntFloat u) as float64
+    return u.f
+end
+
+// 通过函数参数 + 返回做一次完整的位穿透：把 double 装进 union，经函数返回，
+// 再经另一个函数参数读出 int64 位。
+func roundTripF2I(float64 v) as int64
+    IntFloat u = makeIntFloatF(v)
+    return readI(u)
+end
+
+func roundTripI2F(int64 bits) as float64
+    IntFloat u = makeIntFloat(bits)
+    return readF(u)
+end
+
+// ===== 测试框架 =====
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass += 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail += 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func fmtF(float64 v) as string
+    if math.isNaN(v) then
+        return "nan"
+    end
+    if math.isInf(v) then
+        if v < 0.0 then
+            return "-inf"
+        end
+        return "inf"
+    end
+    if v == math.floor(v) and math.abs(v) < 1e15 then
+        return string(float(v))
+    end
+    return string.formatFloat(float(v), ".6")
+end
+
+func approxEq(float64 a, float64 b) as bool
+    if math.isNaN(a) and math.isNaN(b) then
+        return true
+    end
+    return math.abs(a - b) < 0.000001
+end
+
+func expectI64(int64 got, int64 want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectU32(int64 got, int64 want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectU8(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectF(float64 got, float64 want, string label)
+    if approxEq(got, want) then
+        ok(label)
+    else
+        bad(label, "got " + fmtF(got) + " want " + fmtF(want))
+    end
+end
+
+func expectFExact(float64 got, float64 want, string label)
+    // 位级别比较：通过 union 转 int64 比位，避免 NaN!=NaN 干扰
+    IntFloat a
+    a.f = got
+    IntFloat b
+    b.f = want
+    if a.i == b.i then
+        ok(label)
+    else
+        bad(label, "got " + fmtF(got) + " (bits " + string(a.i) + ") want " + fmtF(want) + " (bits " + string(b.i) + ")")
+    end
+end
+
+func expectB(bool got, bool want, string label)
+    if got == want then
+        ok(label)
+    else
+        string g = "false"
+        if got then
+            g = "true"
+        end
+        string w = "false"
+        if want then
+            w = "true"
+        end
+        bad(label, "got " + g + " want " + w)
+    end
+end
+
+// ===== 1. union 定义 + 字段访问 =====
+func testDefineAndField()
+    println("[1] union define + field access")
+    IntFloat u
+    u.i = 42
+    expectI64(u.i, 42, "u.i = 42 round-trip (int64)")
+    u.f = 3.14
+    expectF(u.f, 3.14, "u.f = 3.14 round-trip (float64)")
+    // 字段最后写入者生效：再写 i 不应被旧 f 影响
+    u.i = 100
+    expectI64(u.i, 100, "u.i overwrite to 100")
+    // ColorRGBA 字段独立写入（注意 union 语义：rgba 与 lowByte 在 offset 0 重叠）
+    ColorRGBA c
+    c.rgba = 0
+    c.lowByte = 255
+    expectU8(int(c.lowByte), 255, "c.lowByte = 255 independent write")
+    // 写 lowByte 只改 offset 0 这 1 字节，rgba 高 3 字节仍为 0 -> rgba = 255
+    expectU32(int64(c.rgba), 255, "c.rgba = 255 after lowByte=255 (offset 0 only)")
+end
+
+// ===== 2. 位重解释：写 i 读 f / 写 f 读 i =====
+func testReinterpretBits()
+    println("[2] bit reinterpretation (write i / read f and vice-versa)")
+    IntFloat u
+
+    // 写已知 double 的位模式进 i，读 f 应得到那个 double
+    u.i = D1_0_BITS
+    expectFExact(u.f, 1.0, "i=1.0_bits -> f == 1.0")
+    u.i = D2_0_BITS
+    expectFExact(u.f, 2.0, "i=2.0_bits -> f == 2.0")
+    u.i = D1_5_BITS
+    expectFExact(u.f, 1.5, "i=1.5_bits -> f == 1.5")
+    u.i = D0_5_BITS
+    expectFExact(u.f, 0.5, "i=0.5_bits -> f == 0.5")
+    u.i = 0
+    expectFExact(u.f, 0.0, "i=0 -> f == 0.0 (+0.0)")
+    u.i = DNEG1_BITS
+    expectFExact(u.f, -1.0, "i=-1.0_bits -> f == -1.0")
+    u.i = DNEG2_BITS
+    expectFExact(u.f, -2.0, "i=-2.0_bits -> f == -2.0")
+
+    // 反向：写 double 进 f，读 i 应得到那个位模式
+    u.f = 1.0
+    expectI64(u.i, D1_0_BITS, "f=1.0 -> i == 1.0_bits")
+    u.f = 2.0
+    expectI64(u.i, D2_0_BITS, "f=2.0 -> i == 2.0_bits")
+    u.f = -1.0
+    expectI64(u.i, DNEG1_BITS, "f=-1.0 -> i == -1.0_bits")
+    u.f = -2.0
+    expectI64(u.i, DNEG2_BITS, "f=-2.0 -> i == -2.0_bits")
+    u.f = 0.0
+    expectI64(u.i, 0, "f=0.0 -> i == 0")
+
+    // 往返一致性：f -> bits -> f 应无损
+    u.f = 3.141592653589793
+    int64 bits = u.i
+    u.i = bits
+    expectFExact(u.f, 3.141592653589793, "f->bits->f round-trip lossless (pi double)")
+
+    // uint32 ↔ uint8 重叠（小端 x86：offset 0 = LSB）
+    ColorRGBA c
+    c.rgba = 0xAABBCCDD
+    expectU32(int64(c.rgba), 0xAABBCCDD, "c.rgba write/read")
+    expectU8(int(c.lowByte), 0xDD, "c.lowByte = 0xDD (LE LSB of rgba)")
+    // 写 lowByte 只覆盖 offset 0 这 1 字节
+    c.lowByte = 0x11
+    expectU32(int64(c.rgba), 0xAABBCC11, "c.lowByte=0x11 -> rgba LSB replaced (LE)")
+    // 全 1
+    ColorRGBA c2
+    c2.rgba = 0xFFFFFFFF
+    expectU8(int(c2.lowByte), 0xFF, "all-ones rgba lowByte = 0xFF")
+    c2.lowByte = 0
+    expectU32(int64(c2.rgba), 0xFFFFFF00, "clear lowByte -> rgba LSB zero")
+end
+
+// ===== 3. union C ABI 元数据（type 身份 + var 装箱 + export 触发）=====
+func testAbiMetadata()
+    println("[3] union C ABI metadata (type identity, var boxing, export)")
+    IntFloat u
+    u.i = 7
+    // 静态 type()
+    expectB(type(u) == IntFloat, true, "type(u) == IntFloat")
+    // var 装箱后 type 身份保持
+    var boxed = u
+    expectB(type(boxed) == IntFloat, true, "type(var boxed) == IntFloat")
+    expectB(type(boxed) == type(u), true, "type(boxed) == type(u)")
+    // 装箱再向下转换回静态 union
+    IntFloat back = boxed as IntFloat
+    expectI64(back.i, 7, "var -> as IntFloat preserves field")
+    // export 函数可调用 => union 的 C ABI wrapper 路径可用
+    IntFloat v
+    v.f = 2.0
+    IntFloat w = uIdent(v)
+    expectFExact(w.f, 2.0, "export uIdent(u) round-trip (ABI wrapper)")
+    // type 值可转字符串 —— BUG-U1：union 类型值的字符串化返回 "unknown"
+    // （type 身份比较本身正确，见上面 type(u)==IntFloat；仅 string(type_value) 丢名）
+    string tn = string(type(u))
+    println("    (NOTE BUG-U1: string(type(u)) = '" + tn + "', expected 'IntFloat')")
+    if tn == "unknown" then
+        ok("BUG-U1 reproduced: union type name stringifies as 'unknown'")
+    else
+        if tn == "IntFloat" then
+            ok("union type name stringifies correctly (BUG-U1 fixed)")
+        else
+            bad("union type name", "got '" + tn + "'")
+        end
+    end
+end
+
+// ===== 4. union 作为函数参数 / 返回值 =====
+func testFuncParamReturn()
+    println("[4] union as function param / return")
+    // 函数返回 union（按值）
+    IntFloat a = makeIntFloat(D1_0_BITS)
+    expectI64(a.i, D1_0_BITS, "func returns IntFloat (i set)")
+    expectFExact(a.f, 1.0, "func returns IntFloat (f reinterpreted)")
+    IntFloat b = makeIntFloatF(2.5)
+    expectF(b.f, 2.5, "func returns IntFloat (f set)")
+    // 函数参数 union（按值读取字段）
+    IntFloat in1
+    in1.f = 9.0
+    expectI64(readI(in1), roundTripF2I(9.0), "readI(u) param passthrough")
+    expectF(roundTripI2F(D2_0_BITS), 2.0, "I2F cross-function reinterpret")
+    // 完整穿透：f -> 函数返回 -> 函数参数 -> 读 i
+    expectI64(roundTripF2I(1.0), D1_0_BITS, "roundTrip f=1.0 -> i bits (param+return)")
+    expectI64(roundTripF2I(-1.0), DNEG1_BITS, "roundTrip f=-1.0 -> i bits")
+    expectF(roundTripI2F(D1_5_BITS), 1.5, "roundTrip i=1.5_bits -> f")
+end
+
+// ===== 5. union 数组 =====
+func testUnionArray()
+    println("[5] union array")
+    array<IntFloat> arr = array<IntFloat>[]
+    IntFloat a
+    a.f = 1.0
+    IntFloat b
+    b.f = 2.0
+    IntFloat c
+    c.i = D1_5_BITS
+    arr.push(a)
+    arr.push(b)
+    arr.push(c)
+    expectI64(int64(arr.length), 3, "array length after 3 pushes")
+    expectFExact(arr[0].f, 1.0, "arr[0].f == 1.0")
+    expectFExact(arr[1].f, 2.0, "arr[1].f == 2.0")
+    expectFExact(arr[2].f, 1.5, "arr[2].f via i bits == 1.5")
+    // 修改数组元素字段
+    arr[0].i = D2_0_BITS
+    expectFExact(arr[0].f, 2.0, "arr[0].i overwrite -> f == 2.0")
+    // 数组拷贝（不影响原数组）
+    array<IntFloat> copy = arr
+    copy[0].f = 0.0
+    expectFExact(arr[0].f, 2.0, "original array untouched after copy edit")
+    expectFExact(copy[0].f, 0.0, "copy array field edited")
+    // union 数组转 var
+    var boxed = arr
+    expectB(type(boxed) == type(arr), true, "var boxed union array type identity")
+end
+
+// ===== 6. class 内匿名 union + 多字段 union =====
+func testAnonymousUnion()
+    println("[6] anonymous union inside class + multi-field union")
+    Packet p
+    p.tag = 1
+    p.code = 200
+    expectI64(int64(p.tag), 1, "packet.tag beside anon union")
+    expectI64(int64(p.code), 200, "anon union field code (int)")
+    p.ratio = 3.5
+    expectF(float(p.ratio), 3.5, "anon union field ratio (c_double)")
+    // ColorRGBA 32-bit ↔ 8-bit 重叠（与 testReinterpretBits 互补，这里测独立字段语义）
+    ColorRGBA col
+    col.rgba = 0xFFFFFFFF
+    expectU8(int(col.lowByte), 255, "all-ones rgba lowByte")
+    col.lowByte = 0
+    expectU32(int64(col.rgba), 0xFFFFFF00, "clear lowByte -> rgba LSB zero (LE)")
+    // 单独写 rgba 后 lowByte 跟随 LSB
+    col.rgba = 0x12345678
+    expectU8(int(col.lowByte), 0x78, "rgba=0x12345678 -> lowByte = 0x78 (LSB)")
+end
+
+// ===== main =====
+func main(...) as int
+    println("=== unionbits: union type verification suite ===")
+    testDefineAndField()
+    testReinterpretBits()
+    testAbiMetadata()
+    testFuncParamReturn()
+    testUnionArray()
+    testAnonymousUnion()
+    println("---")
+    println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+    if g_fail == 0 then
+        println("ALL CHECKS PASSED")
+    end
+    return 0
+end

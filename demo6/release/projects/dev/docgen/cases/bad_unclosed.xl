@@ -1,0 +1,9 @@
+// negative case: #doc without #end
+// expected: [parse] 未闭合的 #doc 文档块
+#doc
+desc:
+    Missing the closing #end marker.
+
+func main(...) as int
+    return 0
+end

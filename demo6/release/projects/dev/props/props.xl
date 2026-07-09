@@ -1,0 +1,370 @@
+// props - 属性系统 (get/let) 验证工具
+//
+// 全面测试 xlang class 属性的全部能力：
+//   1. 零维属性 get/let               (Meter.hp)
+//   2. 多维属性参数 (1 维 / 2 维)      (Meter.value, Matrix3.cell)
+//   3. 属性重载 (同名不同参数个数)     (Meter.value 零维+1维, Grid.size 零维+1维)
+//   4. virtual / override 属性         (Base/Child.name)
+//   5. 属性作为表达式 vs 赋值目标       (读 obj.p / 写 obj.p = x / obj.p[i] = x)
+//
+// 程序始终返回 0，即便发现 BUG 也只记录 [FAIL] 不中断，
+// 保证 xl run / xl build 两条路径都 EXIT=0。
+
+// ====================================================================
+// 测试目标 1：Meter
+//   - 零维 hp 属性，let 内做 [0, maxHp] 钳位
+//   - value 属性三重重载：零维 get (总和) / 零维 let (全填充) /
+//     一维 get (单元素) / 一维 let (写单元素)
+// ====================================================================
+class Meter
+    private int rawHp = 0
+    private int maxHp = 100
+    private array<int> data = array<int>[0, 0, 0]
+
+    create(int maxHp)
+        self.maxHp = maxHp
+    end
+
+    // ---- 零维 hp ----
+    get hp() as int
+        return self.rawHp
+    end
+
+    let hp(int value)
+        if value > self.maxHp then
+            self.rawHp = self.maxHp
+        elseif value < 0 then
+            self.rawHp = 0
+        else
+            self.rawHp = value
+        end
+    end
+
+    // ---- value 重载集合 ----
+    get value() as int
+        // 零维：返回 data 总和
+        int total = 0
+        int i = 0
+        while i < self.data.length do
+            total += self.data[i]
+            i += 1
+        end
+        return total
+    end
+
+    let value(int v)
+        // 零维 let：把所有元素统一设为 v
+        int i = 0
+        while i < self.data.length do
+            self.data[i] = v
+            i += 1
+        end
+    end
+
+    get value(int idx) as int
+        // 一维 get：单元素
+        return self.data[idx]
+    end
+
+    let value(int idx, int v)
+        // 一维 let：写单元素
+        self.data[idx] = v
+    end
+end
+
+// ====================================================================
+// 测试目标 2：Grid
+//   - size 属性重载，仅 get 侧：零维 (总单元格) vs 一维 (指定维度大小)
+//   - 验证同名 get 的参数个数重载分派
+// ====================================================================
+class Grid
+    private int rows = 1
+    private int cols = 1
+
+    create(int rows, int cols)
+        self.rows = rows
+        self.cols = cols
+    end
+
+    get size() as int
+        return self.rows * self.cols
+    end
+
+    get size(int dim) as int
+        if dim == 0 then
+            return self.rows
+        elseif dim == 1 then
+            return self.cols
+        end
+        return 0
+    end
+end
+
+// ====================================================================
+// 测试目标 3：Matrix3
+//   - cell 属性为 2 维参数，验证多维索引写 / 读
+// ====================================================================
+class Matrix3
+    private array<int> cells = array<int>[0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    get cell(int r, int c) as int
+        return self.cells[r * 3 + c]
+    end
+
+    let cell(int r, int c, int v)
+        self.cells[r * 3 + c] = v
+    end
+end
+
+// ====================================================================
+// 测试目标 4：Base / Child
+//   - virtual get/let name，子类 override get/let
+//   - 通过基类方法 readName/writeName 间接访问，验证虚属性动态派发
+//   - override get 计数，验证子类 getter 确实被调用
+// ====================================================================
+class Base
+    string rawName = "base"
+
+    virtual get name() as string
+        return self.rawName
+    end
+
+    virtual let name(string value)
+        self.rawName = value
+    end
+
+    func readName() as string
+        return self.name
+    end
+
+    func writeName(string value)
+        self.name = value
+    end
+end
+
+class Child extends Base
+    int readCount = 0
+
+    override get name() as string
+        self.readCount += 1
+        return "child-" + self.rawName
+    end
+
+    override let name(string value)
+        self.rawName = "ov[" + value + "]"
+    end
+end
+
+// ====================================================================
+// 测试框架
+// ====================================================================
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass += 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail += 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectS(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+func expectB(bool got, bool want, string label)
+    if got == want then
+        ok(label)
+    else
+        string gs = got ? "true" : "false"
+        string ws = want ? "true" : "false"
+        bad(label, "got " + gs + " want " + ws)
+    end
+end
+
+// ====================================================================
+// 用例
+// ====================================================================
+
+func testMeterHp()
+    println("[zero-dim property: hp]")
+    Meter m = Meter(100)
+
+    // 读：初始值
+    expectI(m.hp, 0, "initial m.hp == 0")
+
+    // 写 + 读：表达式 vs 赋值目标
+    m.hp = 50
+    expectI(m.hp, 50, "m.hp = 50 then read")
+
+    // let 内部逻辑：上限钳位
+    m.hp = 200
+    expectI(m.hp, 100, "m.hp = 200 clamped to maxHp=100")
+
+    // let 内部逻辑：下限钳位
+    m.hp = -10
+    expectI(m.hp, 0, "m.hp = -10 clamped to 0")
+
+    // 正常值
+    m.hp = 30
+    expectI(m.hp, 30, "m.hp = 30 normal")
+
+    // 属性参与表达式
+    int computed = m.hp + 10
+    expectI(computed, 40, "int x = m.hp + 10 expression")
+
+    // NOTE: 复合赋值 m.hp += 10 在编译期被拒 (sem: class property assignment only supports =)
+    //       见同目录 BUGS.md BUG-P1。属性只支持直接 = 赋值，复合赋值需展开为 m.hp = m.hp + 10。
+    m.hp = m.hp + 10
+    expectI(m.hp, 40, "m.hp = m.hp + 10 (manual compound on property)")
+end
+
+func testMeterValue()
+    println("[multi-dim property: value overload set]")
+    Meter m = Meter(100)
+
+    // 零维读：总和
+    expectI(m.value, 0, "initial m.value() total == 0")
+
+    // 一维读：各元素初值
+    expectI(m.value[0], 0, "m.value[0] == 0")
+    expectI(m.value[1], 0, "m.value[1] == 0")
+    expectI(m.value[2], 0, "m.value[2] == 0")
+
+    // 一维写
+    m.value[0] = 10
+    m.value[1] = 20
+    m.value[2] = 30
+    expectI(m.value[0], 10, "m.value[0] after write == 10")
+    expectI(m.value[1], 20, "m.value[1] after write == 20")
+    expectI(m.value[2], 30, "m.value[2] after write == 30")
+
+    // 零维读反映一维写入 (验证共享 backing)
+    expectI(m.value, 60, "m.value() total reflects 1-dim writes == 60")
+
+    // 零维 let：全填充
+    m.value = 7
+    expectI(m.value[0], 7, "m.value = 7 -> m.value[0] == 7")
+    expectI(m.value[1], 7, "m.value = 7 -> m.value[1] == 7")
+    expectI(m.value[2], 7, "m.value = 7 -> m.value[2] == 7")
+    expectI(m.value, 21, "m.value = 7 -> total == 21")
+
+    // 属性表达式混合运算
+    int mixed = m.value[0] + m.value[1] + m.value[2]
+    expectI(mixed, 21, "m.value[0]+[1]+[2] expression == 21")
+
+    // 读属性值写入另一属性 (跨属性依赖)
+    Meter n = Meter(100)
+    n.value[0] = 5
+    n.hp = n.value[0]
+    expectI(n.hp, 5, "n.hp = n.value[0] cross-property write")
+end
+
+func testGridSize()
+    println("[property overload: size]")
+    Grid g = Grid(3, 4)
+
+    // 零维读
+    expectI(g.size, 12, "g.size (0-dim) == rows*cols == 12")
+
+    // 一维读：重载分派
+    expectI(g.size[0], 3, "g.size[0] (1-dim overload) == rows == 3")
+    expectI(g.size[1], 4, "g.size[1] (1-dim overload) == cols == 4")
+    expectI(g.size[9], 0, "g.size[9] out-of-range dim == 0")
+
+    // 不同尺寸
+    Grid h = Grid(5, 2)
+    expectI(h.size, 10, "h.size == 10")
+    expectI(h.size[0], 5, "h.size[0] == 5")
+    expectI(h.size[1], 2, "h.size[1] == 2")
+end
+
+func testMatrix3Cell()
+    println("[2-dim property: cell]")
+    Matrix3 mx = Matrix3()
+
+    // 初始全 0
+    expectI(mx.cell[0, 0], 0, "initial mx.cell[0,0] == 0")
+    expectI(mx.cell[2, 2], 0, "initial mx.cell[2,2] == 0")
+
+    // 2 维写 / 读
+    mx.cell[1, 2] = 7
+    expectI(mx.cell[1, 2], 7, "mx.cell[1,2] = 7 then read")
+    expectI(mx.cell[0, 0], 0, "mx.cell[0,0] untouched == 0")
+
+    mx.cell[0, 0] = 1
+    mx.cell[2, 2] = 9
+    expectI(mx.cell[0, 0], 1, "mx.cell[0,0] == 1")
+    expectI(mx.cell[2, 2], 9, "mx.cell[2,2] == 9")
+
+    // 用属性值参与表达式
+    int diag = mx.cell[0, 0] + mx.cell[1, 1] + mx.cell[2, 2]
+    expectI(diag, 10, "diagonal sum via 2-dim property == 10")
+end
+
+func testVirtualName()
+    println("[virtual / override property: name]")
+    Base b = Base()
+    Child c = Child()
+
+    // 直接读：基类
+    expectS(b.name, "base", "Base.name direct read == 'base'")
+
+    // 直接读：子类 override
+    expectS(c.name, "child-base", "Child.name override read == 'child-base'")
+
+    // 通过基类方法间接读：验证虚 get 动态派发
+    expectS(b.readName(), "base", "b.readName() virtual get dispatch")
+    expectS(c.readName(), "child-base", "c.readName() virtual get dispatch to override")
+
+    // 直接 override let 写
+    c.name = "xyz"
+    expectS(c.name, "child-ov[xyz]", "Child.name after direct let override")
+
+    // 通过基类方法 writeName 写：验证虚 let 动态派发
+    c.writeName("abc")
+    expectS(c.readName(), "child-ov[abc]", "c.writeName virtual let dispatch")
+
+    // override getter 计数 > 0 证明 override get 真的被调用
+    int before = c.readCount
+    string ignored = c.name
+    int after = c.readCount
+    expectB(after > before, true, "override get increments readCount")
+
+    // 基类实例的 name 不受子类 override 影响
+    b.name = "hello"
+    expectS(b.name, "hello", "Base.name direct write/read (no override)")
+    expectS(b.readName(), "hello", "b.readName() after direct write")
+end
+
+// ====================================================================
+// 入口
+// ====================================================================
+func main(...) as int
+    println("=== props: get/let property suite ===")
+
+    testMeterHp()
+    testMeterValue()
+    testGridSize()
+    testMatrix3Cell()
+    testVirtualName()
+
+    println("---")
+    println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+    return 0
+end

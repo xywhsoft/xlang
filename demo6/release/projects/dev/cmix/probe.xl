@@ -1,0 +1,79 @@
+// probe.xl - edge-case probes for C interop bugs.
+// Run: xl run probe.xl probe_c.c
+
+// non-const C global, declared plain extern (not export extern)
+extern "probe_rw" int probeRw
+
+extern "probe_get_rw"        func getRw() as int
+extern "probe_set_rw"        func setRw(int v)
+extern "probe_read_xhits"    func readXhits() as int
+extern "probe_read_xlang_sum" func readXlangSum(int a, int b) as int
+
+export "probe_xhits" int xhits = 0
+
+export "probe_xadd" func xadd(int a, int b) as int
+    return a + b
+end
+
+// native-backed class with a MIXED regular xlang field + method
+class MixedCounter
+    native point handle
+    int tag = 0
+
+    extern "probe_mcounter_open"   create(int seed)
+    extern "probe_mcounter_close"  destroy()
+    extern "probe_mcounter_add"    func add(int value) as int
+
+    func doubleTag() as int
+        self.tag = self.tag + 1
+        return self.tag
+    end
+end
+
+func main(...) as int
+    int fails = 0
+    println("--- probe A: plain extern variable write-through ---")
+    // initial value is 11 (set in C)
+    println("probeRw initial = " + string(probeRw))
+    if probeRw != 11 then fails += 1 end
+    probeRw = 99
+    println("probeRw after =99 = " + string(probeRw))
+    // does the C function see the xlang write?
+    int cSide = getRw()
+    println("getRw() sees = " + string(cSide))
+    if cSide != 99 then fails += 1 end
+
+    println("--- probe B: C reads xlang-exported variable ---")
+    xhits = 55
+    int fromC = readXhits()
+    println("C readXhits() = " + string(fromC))
+    if fromC != 55 then fails += 1 end
+
+    println("--- probe C: C calls xlang-exported function ---")
+    int sumViaC = readXlangSum(20, 22)
+    println("C readXlangSum(20,22) = " + string(sumViaC))
+    if sumViaC != 42 then fails += 1 end
+
+    println("--- probe D: native-backed class with mixed xlang field/method ---")
+    MixedCounter mc = MixedCounter(10)
+    int v1 = mc.add(5)
+    int v2 = mc.add(5)
+    println("mc.add(5) x2 = " + string(v1) + " " + string(v2))
+    if v1 != 15 or v2 != 20 then fails += 1 end
+    int t1 = mc.doubleTag()
+    int t2 = mc.doubleTag()
+    println("mc.doubleTag() x2 = " + string(t1) + " " + string(t2))
+    if t1 != 1 or t2 != 2 then fails += 1 end
+
+    println("--- probe E: two native-backed instances isolation ---")
+    MixedCounter a = MixedCounter(100)
+    MixedCounter b = MixedCounter(200)
+    int av = a.add(1)
+    int bv = b.add(1)
+    int av2 = a.add(1)
+    println("a.add(1)=" + string(av) + " b.add(1)=" + string(bv) + " a.add(1)=" + string(av2))
+    if av != 101 or bv != 201 or av2 != 102 then fails += 1 end
+
+    println("PROBE FAILS = " + string(fails))
+    return fails
+end

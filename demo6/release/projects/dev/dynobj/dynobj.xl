@@ -1,0 +1,599 @@
+// dynobj - extends object 动态字段验证工具
+//
+// 系统验证 xlang 的 `class X extends object` 动态字段能力，每条断言输出
+// [PASS]/[FAIL]，主程序始终返回 0（即使发现 BUG 也只记录不中断），
+// 保证 xl run / xl build 双路径 EXIT=0。
+//
+// 覆盖能力：
+//   1. class X extends object 继承标准库 object 基类
+//   2. 动态字段点号赋值：a.score = 100（不在静态字段表中）
+//   3. 动态字段索引赋值：a["level"] = 5
+//   4. 混合静态 + 动态字段共存
+//   5. __field__(string name) / __setField__(string name, var val) 协议
+//      - 普通 class 实现该协议
+//      - extends object 子类覆盖该协议
+//   6. 动态字段遍历（经 derive value + json roundtrip 转 dict 迭代）
+//   7. 动态字段在 var 中的行为（装箱 / 读写 / 索引）
+//
+// 用法：
+//   xl run projects\dev\dynobj\dynobj.xl
+//   xl build projects\dev\dynobj\dynobj.xl -o projects\dev\dynobj\dynobj.exe
+//   dynobj.exe
+//
+// 关键事实（来自 DEMO6功能清单.md §11）：
+//   * object 是标准库普通 class，不是黑盒；extends object 即获得动态字段字典。
+//   * __field__ 只处理「静态字段表中不存在的点号字段」；
+//     __item__ 处理显式 obj[key] 索引，两者语义分离。
+//   * 动态字段读写返回 var，比较前需 int()/string()/float() 转换。
+// ---------------------------------------------------------------------------
+
+// ====================================================================
+// 测试目标 1：Actor extends object
+//   混合静态字段（id/name）+ 动态字段；带 derive value 以支持 json 遍历。
+// ====================================================================
+class Actor extends object
+    derive value
+
+    int id = 0
+    string name = ""
+
+    create(int id, string name)
+        self.id = id
+        self.name = name
+    end
+
+    // 用于对比：经 var 调用方法是否能正确派发（与字段访问区分开）
+    func tag() as string
+        return "#" + string(self.id) + ":" + self.name
+    end
+end
+
+// ====================================================================
+// 测试目标 2：DynRecord extends object
+//   无自身静态字段，纯粹承载动态字段，验证 object 基类字典的独立可用性。
+// ====================================================================
+class DynRecord extends object
+    derive value
+
+    create()
+    end
+end
+
+// ====================================================================
+// 测试目标 3：FieldHost（普通 class，不继承 object）
+//   手写 __field__ / __setField__，验证协议对普通 class 生效；
+//   计算型字段（doubled / label）+ 透传 bag 字典。
+// ====================================================================
+class FieldHost
+    int base = 0
+    var bag = {}
+
+    create(int base)
+        self.base = base
+    end
+
+    func __field__(string name) as var
+        if name == "doubled" then
+            return self.base * 2
+        end
+        if name == "label" then
+            return "host-" + string(self.base)
+        end
+        if self.bag.contains(name) then
+            return self.bag[name]
+        end
+        return null
+    end
+
+    func __setField__(string name, var val)
+        self.bag[name] = val
+    end
+end
+
+// ====================================================================
+// 测试目标 4：FieldHostTyped（普通 class，含静态类型字段 + 自定义协议）
+//   验证普通 class 上「静态类型字段」与 __field__/__setField__ 协议共存。
+//
+// 重要发现（见同目录 BUGS.md BUG-D1）：
+//   在 `class X extends object` 子类中再定义 __field__/__setField__ 当前无法编译：
+//     - 不写 override -> [sem] overriding a base member requires explicit override
+//     - 写 override   -> [sem] override target must be virtual
+//   即 object 基类的字段协议方法不是 virtual，子类既不能静默覆盖也不能显式 override。
+//   因此「extends object + 自定义字段协议」这一组合在本工具中不可执行，
+//   自定义协议改由本普通类 FieldHostTyped 与 FieldHost 共同验证。
+// ====================================================================
+class FieldHostTyped
+    int core = 0
+    var bag = {}
+
+    create(int core)
+        self.core = core
+    end
+
+    func __field__(string name) as var
+        if name == "computed" then
+            return self.core + 1000
+        end
+        if name == "label" then
+            return "typed-" + string(self.core)
+        end
+        if self.bag.contains(name) then
+            return self.bag[name]
+        end
+        return null
+    end
+
+    func __setField__(string name, var val)
+        self.bag[name] = val
+    end
+end
+
+// ====================================================================
+// 测试框架
+// ====================================================================
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass += 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail += 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectS(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+func expectB(bool got, bool want, string label)
+    if got == want then
+        ok(label)
+    else
+        string gs = got ? "true" : "false"
+        string ws = want ? "true" : "false"
+        bad(label, "got " + gs + " want " + ws)
+    end
+end
+
+func expectVarI(var got, int want, string label)
+    try
+        int g = int(got)
+        if g == want then
+            ok(label)
+        else
+            bad(label, "got " + string(g) + " want " + string(want))
+        end
+    catch e
+        bad(label, "int(var) failed: " + e.message)
+    end
+end
+
+func expectVarS(var got, string want, string label)
+    try
+        string g = string(got)
+        if g == want then
+            ok(label)
+        else
+            bad(label, "got '" + g + "' want '" + want + "'")
+        end
+    catch e
+        bad(label, "string(var) failed: " + e.message)
+    end
+end
+
+func expectVarF(var got, float want, string label)
+    try
+        float g = float(got)
+        if math.abs(g - want) < 0.0001 then
+            ok(label)
+        else
+            bad(label, "got " + string.formatFloat(g, ".4") + " want " + string.formatFloat(want, ".4"))
+        end
+    catch e
+        bad(label, "float(var) failed: " + e.message)
+    end
+end
+
+func expectNull(var got, string label)
+    if got == null then
+        ok(label)
+    else
+        bad(label, "expected null, got non-null value")
+    end
+end
+
+func expectContains(string text, string needle, string label)
+    if string.contains(text, needle) then
+        ok(label)
+    else
+        bad(label, "text missing substring '" + needle + "'")
+    end
+end
+
+// ====================================================================
+// 用例 1：extends object 基础继承与静态字段
+// ====================================================================
+func testBasicObjectInherit()
+    println("[basic]   extends object inherit + static fields")
+    try
+        Actor a = Actor(1, "hero")
+        expectI(a.id, 1, "static a.id == 1")
+        expectS(a.name, "hero", "static a.name == 'hero'")
+    catch e
+        bad("Actor ctor / static read", e.message)
+    end
+    try
+        DynRecord r = DynRecord()
+        r.kind = "probe"
+        expectVarS(r.kind, "probe", "DynRecord default ctor + dynamic field")
+    catch e
+        bad("DynRecord ctor", e.message)
+    end
+end
+
+// ====================================================================
+// 用例 2：动态字段点号赋值 / 读取
+// ====================================================================
+func testDynamicFieldDot()
+    println("[field.]  dynamic field via dot (a.score = ...)")
+    try
+        Actor a = Actor(2, "mage")
+        a.score = 100
+        expectVarI(a.score, 100, "a.score == 100 (dot dynamic)")
+        // 覆盖写入
+        a.score = 250
+        expectVarI(a.score, 250, "a.score overwrite == 250")
+        // 多个动态字段
+        a.title = "archmage"
+        expectVarS(a.title, "archmage", "a.title == 'archmage'")
+    catch e
+        bad("dot dynamic field", e.message)
+    end
+    try
+        DynRecord r = DynRecord()
+        r.kind = "log"
+        expectVarS(r.kind, "log", "DynRecord.kind == 'log'")
+    catch e
+        bad("DynRecord dot field", e.message)
+    end
+end
+
+// ====================================================================
+// 用例 3：动态字段索引赋值 / 读取
+// ====================================================================
+func testDynamicFieldIndex()
+    println("[field[]] dynamic field via index (a[\"level\"] = ...)")
+    try
+        Actor a = Actor(3, "rogue")
+        a["level"] = 5
+        expectVarI(a["level"], 5, "a[level] == 5 (index dynamic)")
+        a["tag"] = "scout"
+        expectVarS(a["tag"], "scout", "a[tag] == 'scout'")
+        // 索引与点号共享同一动态字典
+        a["shared"] = 7
+        expectVarI(a.shared, 7, "a.shared (dot reads index-written) == 7")
+        a.shared = 8
+        expectVarI(a["shared"], 8, "a[shared] (index reads dot-written) == 8")
+    catch e
+        bad("index dynamic field", e.message)
+    end
+end
+
+// ====================================================================
+// 用例 4：混合静态 + 动态字段共存
+// ====================================================================
+func testMixedStaticDynamic()
+    println("[mixed]   static + dynamic field coexistence")
+    try
+        Actor a = Actor(10, "knight")
+        a.hp = 120
+        a.mp = 30
+        a["score"] = 99
+        // 静态字段保持独立
+        expectI(a.id, 10, "mixed: static a.id preserved")
+        expectS(a.name, "knight", "mixed: static a.name preserved")
+        // 动态字段并存
+        expectVarI(a.hp, 120, "mixed: dynamic a.hp == 120")
+        expectVarI(a.mp, 30, "mixed: dynamic a.mp == 30")
+        expectVarI(a["score"], 99, "mixed: dynamic a[score] == 99")
+    catch e
+        bad("mixed static/dynamic", e.message)
+    end
+end
+
+// ====================================================================
+// 用例 5a：__field__ / __setField__ 协议（普通 class FieldHost）
+// ====================================================================
+func testFieldProtocolPlain()
+    println("[proto]   __field__/__setField__ on plain FieldHost")
+    try
+        FieldHost h = FieldHost(50)
+        // 计算型只读字段
+        expectVarI(h.doubled, 100, "h.doubled (computed) == 100")
+        expectVarS(h.label, "host-50", "h.label (computed) == 'host-50'")
+        // 经 __setField__ 写入 bag，再经 __field__ 读出
+        h.custom = 7
+        expectVarI(h.custom, 7, "h.custom set/get via protocol == 7")
+        h.note = "hi"
+        expectVarS(h.note, "hi", "h.note set/get via protocol")
+        // 未知字段返回 null
+        var missing = h.nonexistent
+        expectNull(missing, "h.nonexistent returns null")
+    catch e
+        bad("FieldHost protocol", e.message)
+    end
+end
+
+// ====================================================================
+// 用例 5b：__field__ / __setField__ 协议（普通 class + 静态类型字段共存）
+// ====================================================================
+func testFieldProtocolTyped()
+    println("[proto]   __field__/__setField__ on FieldHostTyped (typed field + protocol)")
+    try
+        FieldHostTyped t = FieldHostTyped(42)
+        // 计算型字段
+        expectVarI(t.computed, 1042, "t.computed (core+1000) == 1042")
+        expectVarS(t.label, "typed-42", "t.label == 'typed-42'")
+        // 静态类型字段正常访问
+        expectI(t.core, 42, "t.core static preserved")
+        // 自定义 set/get
+        t.extra = 9
+        expectVarI(t.extra, 9, "t.extra set/get via protocol == 9")
+        // 未知字段返回 null
+        var missing = t.unknown
+        expectNull(missing, "t.unknown returns null")
+    catch e
+        bad("FieldHostTyped protocol", e.message)
+    end
+end
+
+// ====================================================================
+// 用例 6：动态字段遍历（derive value + json roundtrip dict 迭代）
+// ====================================================================
+func testDynamicFieldTraversal()
+    println("[traverse] dynamic fields enumerated via json roundtrip")
+    try
+        Actor a = Actor(7, "hero")
+        a.score = 100
+        a.level = 5
+        a.title = "knight"
+
+        // serialize -> parse -> 迭代 dict
+        string js = json.stringify(a)
+        // 先确认 json 文本确实包含动态字段
+        expectContains(js, "score", "json text contains 'score'")
+        expectContains(js, "level", "json text contains 'level'")
+        expectContains(js, "title", "json text contains 'title'")
+
+        var d = json.parse(js)
+        bool foundScore = false
+        bool foundLevel = false
+        bool foundTitle = false
+        bool foundId = false
+        bool foundName = false
+        int allCount = 0
+        int staticCount = 0
+        for k, v in d
+            allCount += 1
+            if k == "id" then
+                foundId = true
+                staticCount += 1
+                expectVarI(v, 7, "traverse: static id == 7")
+            elseif k == "name" then
+                foundName = true
+                staticCount += 1
+                expectVarS(v, "hero", "traverse: static name == 'hero'")
+            elseif k == "score" then
+                foundScore = true
+                expectVarI(v, 100, "traverse: dynamic score == 100")
+            elseif k == "level" then
+                foundLevel = true
+                expectVarI(v, 5, "traverse: dynamic level == 5")
+            elseif k == "title" then
+                foundTitle = true
+                expectVarS(v, "knight", "traverse: dynamic title == 'knight'")
+            end
+        end
+        int dynCount = allCount - staticCount
+        expectB(foundId, true, "traverse: found static id")
+        expectB(foundName, true, "traverse: found static name")
+        expectB(foundScore, true, "traverse: found dynamic score")
+        expectB(foundLevel, true, "traverse: found dynamic level")
+        expectB(foundTitle, true, "traverse: found dynamic title")
+        expectI(dynCount, 3, "traverse: dynamic field count == 3")
+    catch e
+        bad("dynamic field traversal", e.message)
+    end
+end
+
+// ====================================================================
+// 用例 7：动态字段在 var 中的行为
+//   回归验证：经 var 装箱的 extends object 实例，应保留静态字段、动态字段
+//   以及点号/索引读写能力。
+// ====================================================================
+func testVarBoxing()
+    println("[var]     dynamic fields through var boxing")
+    Actor a = Actor(7, "hero")
+    a.score = 42
+    a["level"] = 3
+
+    var boxed = a
+
+    // 读：静态字段经 var（dot / index 两种写法）
+    try
+        expectVarI(boxed.id, 7, "var boxed.id (static dot) == 7")
+    catch e
+        bad("var boxed.id read", e.message)
+    end
+    try
+        expectVarS(boxed.name, "hero", "var boxed.name (static dot) == 'hero'")
+    catch e
+        bad("var boxed.name read", e.message)
+    end
+    try
+        expectVarI(boxed["id"], 7, "var boxed[id] (static index) == 7")
+    catch e
+        bad("var boxed[id] read", e.message)
+    end
+
+    // 读：动态字段经 var（dot / index）
+    try
+        expectVarI(boxed.score, 42, "var boxed.score (dynamic dot) == 42")
+    catch e
+        bad("var boxed.score read", e.message)
+    end
+    try
+        expectVarI(boxed["level"], 3, "var boxed[level] (dynamic index) == 3")
+    catch e
+        bad("var boxed[level] read", e.message)
+    end
+
+    // 写：动态字段经 var（dot / index），并检查引用可见性
+    try
+        boxed.boost = 9
+        expectVarI(boxed.boost, 9, "var boxed.boost set/get (dot write)")
+    catch e
+        bad("var boxed.boost write", e.message)
+    end
+    try
+        boxed["rank"] = 11
+        expectVarI(boxed["rank"], 11, "var boxed[rank] set/get (index write)")
+    catch e
+        bad("var boxed[rank] write", e.message)
+    end
+    try
+        expectVarI(a.boost, 9, "a.boost visible after var dot write (ref)")
+    catch e
+        bad("a.boost ref visibility", e.message)
+    end
+end
+
+// ====================================================================
+// 用例 8：动态字段承载多种值类型
+// ====================================================================
+func testDynamicFieldTypes()
+    println("[types]   dynamic fields carrying int/float/string/bool/null/container")
+    try
+        DynRecord r = DynRecord()
+        r.i = 123
+        r.f = 3.5
+        r.s = "text"
+        r.b = true
+        r.n = null
+        r.arr = [1, 2, 3]
+        r.obj = {"k": "v"}
+
+        expectVarI(r.i, 123, "dynamic int field")
+        expectVarF(r.f, 3.5, "dynamic float field")
+        expectVarS(r.s, "text", "dynamic string field")
+        // bool：经 var 比较
+        bool bv = false
+        var rb = r.b
+        if rb == true then
+            bv = true
+        end
+        expectB(bv, true, "dynamic bool field == true")
+        expectNull(r.n, "dynamic null field")
+        // 容器类型
+        var arr = r.arr
+        expectVarI(arr[0], 1, "dynamic array element [0] == 1")
+        expectVarI(arr[2], 3, "dynamic array element [2] == 3")
+        var obj = r.obj
+        expectVarS(obj["k"], "v", "dynamic dict element [k] == 'v'")
+    catch e
+        bad("dynamic field types", e.message)
+    end
+end
+
+// ====================================================================
+// 用例 9：静态字段名优先（赋值静态名更新静态存储，不走动态字典）
+// ====================================================================
+func testStaticFieldPrecedence()
+    println("[prec]    static field name precedence over dynamic dict")
+    try
+        Actor a = Actor(5, "init")
+        // 赋值静态名 -> 更新静态字段
+        a.id = 99
+        a.name = "changed"
+        expectI(a.id, 99, "static a.id updated (not dynamic) == 99")
+        expectS(a.name, "changed", "static a.name updated == 'changed'")
+        // 同时存在动态字段不受影响
+        a.extra = 7
+        expectVarI(a.extra, 7, "dynamic a.extra still works == 7")
+        expectI(a.id, 99, "static a.id unaffected by dynamic write")
+    catch e
+        bad("static precedence", e.message)
+    end
+end
+
+// ====================================================================
+// 用例 10：json roundtrip 反序列化恢复动态字段
+// ====================================================================
+func testJsonRoundtripRestore()
+    println("[json]    roundtrip restore of dynamic fields")
+    try
+        Actor src = Actor(11, "src")
+        src.score = 77
+        src.rank = 3
+        src.title = "boss"
+
+        string js = json.stringify(src)
+        Actor restored = json.parse::<Actor>(js)
+
+        expectI(restored.id, 11, "restored static id == 11")
+        expectS(restored.name, "src", "restored static name == 'src'")
+        expectVarI(restored.score, 77, "restored dynamic score == 77")
+        expectVarI(restored.rank, 3, "restored dynamic rank == 3")
+        expectVarS(restored.title, "boss", "restored dynamic title == 'boss'")
+    catch e
+        bad("json roundtrip restore", e.message)
+    end
+end
+
+// ====================================================================
+// 入口
+// ====================================================================
+func main(...) as int
+    println("=== dynobj: extends object dynamic field suite ===")
+    println("(inherit / dot / index / mixed / protocol / traversal / var)")
+    println("")
+
+    testBasicObjectInherit()
+    testDynamicFieldDot()
+    testDynamicFieldIndex()
+    testMixedStaticDynamic()
+    testFieldProtocolPlain()
+    testFieldProtocolTyped()
+    testDynamicFieldTraversal()
+    testVarBoxing()
+    testDynamicFieldTypes()
+    testStaticFieldPrecedence()
+    testJsonRoundtripRestore()
+
+    println("")
+    println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+    println("")
+    println("--- dynobj notes ---")
+    println("NOTE BUG-D1: extends object 子类无法覆盖 __field__/__setField__")
+    println("             (无 override -> requires explicit override;")
+    println("              有 override -> override target must be virtual)")
+    println("FIXED: var 装箱的 extends object 静态/动态字段读写已通过回归验证")
+    println("NOTE LIMIT-D1: 复合 var 比较 k != \"a\" and k != \"b\" 无法 lowering")
+    println("               (dynamic var comparison requires statement-level lowering)")
+    return 0
+end

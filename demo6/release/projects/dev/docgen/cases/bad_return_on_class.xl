@@ -1,0 +1,16 @@
+// negative case: return field on a class declaration
+// expected: [sem] #doc return 字段只能用于有返回值的函数声明
+#doc
+desc:
+    Classes do not return values.
+return instance:
+    Not valid.
+#end
+class C
+    create()
+    end
+end
+
+func main(...) as int
+    return 0
+end

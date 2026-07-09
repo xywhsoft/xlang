@@ -1010,6 +1010,7 @@ static int xl6SemCheckPropertyAssignTarget(XL6_SemContext* ctx, XL6_AstNode* lef
 static const char* xl6SemMemberName(const XL6_AstNode* node);
 static int xl6SemCheckProtocolMember(XL6_SemContext* ctx, XL6_AstNode* member);
 static int xl6SemCheckPropertyMember(XL6_SemContext* ctx, XL6_AstNode* member);
+static int xl6SemTypeNameIsClassValue(XL6_SemContext* ctx, const char* typeName);
 static XL6_AstNode* xl6SemOwnedSimpleType(XL6_SemContext* ctx, const char* typeName, const XL6_AstNode* at);
 
 static int xl6SemParamIsArrayVararg(const XL6_AstNode* param)
@@ -2215,6 +2216,27 @@ static int xl6SemTypeIsOrExtendsClass(XL6_SemContext* ctx, const XL6_AstNode* ty
     return 0;
 }
 
+static int xl6SemTypeCanUpcastClass(XL6_SemContext* ctx, const XL6_AstNode* valueType, const XL6_AstNode* targetType)
+{
+    const XL6_AstNode* concreteTarget;
+    const XL6_TypeInfo* targetInfo;
+    const char* targetName;
+
+    concreteTarget = xl6SemResolveAliasType(ctx, targetType);
+    targetName = concreteTarget != NULL ? concreteTarget->text : NULL;
+    if ( valueType == NULL || targetName == NULL ) {
+        return 0;
+    }
+
+    targetInfo = xl6TypeRegistryFind(&ctx->types, targetName);
+    if ( targetInfo == NULL || targetInfo->kind != XL6_TYPE_CLASS ) {
+        return 0;
+    }
+
+    return !xl6SemTypeEquals(ctx, valueType, concreteTarget) &&
+           xl6SemTypeIsOrExtendsClass(ctx, valueType, targetName);
+}
+
 static int xl6SemTypeSatisfiesGenericConstraint(
     XL6_SemContext* ctx,
     const XL6_AstNode* typeArg,
@@ -3403,6 +3425,10 @@ static int xl6SemExprParamMatchCost(XL6_SemContext* ctx, const XL6_AstNode* expr
             xl6AstFree(exprTypeNode);
             return 0;
         }
+        if ( xl6SemTypeCanUpcastClass(ctx, exprTypeNode, typeNode) ) {
+            xl6AstFree(exprTypeNode);
+            return 15;
+        }
         xl6AstFree(exprTypeNode);
     }
 
@@ -3415,6 +3441,14 @@ static int xl6SemExprParamMatchCost(XL6_SemContext* ctx, const XL6_AstNode* expr
 
     if ( xl6TextEquals(exprType, targetType) ) {
         return 0;
+    }
+    {
+        XL6_AstNode* exprNameType = xl6AstNewText(XL6_AST_TYPE, exprType, strlen(exprType), NULL);
+        int canUpcast = xl6SemTypeCanUpcastClass(ctx, exprNameType, typeNode);
+        xl6AstFree(exprNameType);
+        if ( canUpcast ) {
+            return 15;
+        }
     }
     if ( xl6TextEquals(exprType, "null") && xl6TextEquals(targetType, "point") ) {
         return 5;
@@ -5645,7 +5679,8 @@ static int xl6SemCheckRuntimeTypeExpr(XL6_SemContext* ctx, XL6_AstNode* node, in
     concreteSourceType = xl6SemResolveAliasType(ctx, sourceType);
     if ( concreteSourceType != NULL &&
          !xl6TextEquals(concreteSourceType->text, "var") &&
-         !xl6SemTypeEquals(ctx, concreteSourceType, target) ) {
+         !xl6SemTypeEquals(ctx, concreteSourceType, target) &&
+         !xl6SemTypeCanUpcastClass(ctx, concreteSourceType, target) ) {
         xl6SemErrorNode(ctx, value, "as 鐨勬簮琛ㄨ揪寮忓繀椤绘槸 var锛屾垨宸茬粡鏄洰鏍囩被鍨");
         ok = 0;
     }
@@ -10282,6 +10317,18 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
             }
         }
     }
+    if ( node != NULL && node->childCount > 1 &&
+         (xl6TextEquals(node->text, "==") || xl6TextEquals(node->text, "!=")) ) {
+        leftType = xl6SemExprStaticTypeName(ctx, node->children[0]);
+        rightType = xl6SemExprStaticTypeName(ctx, node->children[1]);
+        if ( leftType != NULL && rightType != NULL &&
+             xl6SemTypeNameIsClassValue(ctx, leftType) &&
+             xl6SemTypeNameIsClassValue(ctx, rightType) &&
+             xl6SemFindProtocolMethodForExpr(ctx, node->children[0], protocolName) == NULL ) {
+            xl6SemErrorNode(ctx, node, "class equality requires __eq__/__ne__ protocol");
+            ok = 0;
+        }
+    }
     if ( node != NULL && (xl6TextEquals(node->text, "and") || xl6TextEquals(node->text, "or")) ) {
         if ( node->childCount > 0 && !xl6SemCheckBoolExpr(ctx, node->children[0], "逻辑运算左操作数必须是 bool") ) {
             ok = 0;
@@ -11167,6 +11214,9 @@ static int xl6SemTypeCanAssignFromType(XL6_SemContext* ctx, const XL6_AstNode* v
         return xl6SemTypeCanBoxToVar(ctx, valueType);
     }
     if ( xl6TextEquals(valueType->text, "null") && xl6TextEquals(targetType->text, "point") ) {
+        return 1;
+    }
+    if ( xl6SemTypeCanUpcastClass(ctx, valueType, targetType) ) {
         return 1;
     }
     return xl6SemTypeEquals(ctx, valueType, targetType);
@@ -14694,6 +14744,13 @@ static int xl6SemCheckDeriveList(XL6_SemContext* ctx, XL6_AstNode* body)
             ok = 0;
             continue;
         }
+        if ( xl6TextEquals(member->text, "string") ||
+             xl6TextEquals(member->text, "hash") ||
+             xl6TextEquals(member->text, "equals") ) {
+            xl6SemErrorNode(ctx, member, "derive string/hash/equals is reserved but not implemented in demo6");
+            ok = 0;
+            continue;
+        }
         if ( seen[index] ) {
             xl6SemErrorNode(ctx, member, "閲嶅 derive 鑳藉姏澹版槑");
             ok = 0;
@@ -15155,6 +15212,17 @@ static int xl6SemTypeIsClassValue(XL6_SemContext* ctx, const XL6_AstNode* typeNo
         return 0;
     }
     typeInfo = xl6TypeRegistryFind(&ctx->types, concreteType->text);
+    return typeInfo != NULL && typeInfo->kind == XL6_TYPE_CLASS;
+}
+
+static int xl6SemTypeNameIsClassValue(XL6_SemContext* ctx, const char* typeName)
+{
+    const XL6_TypeInfo* typeInfo;
+
+    if ( ctx == NULL || typeName == NULL ) {
+        return 0;
+    }
+    typeInfo = xl6TypeRegistryFind(&ctx->types, typeName);
     return typeInfo != NULL && typeInfo->kind == XL6_TYPE_CLASS;
 }
 

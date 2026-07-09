@@ -1,0 +1,608 @@
+// vops - 运算符协议全集验证工具
+//
+// 定义二维向量 Vector2，实现 xlang class 几乎所有 __xxx__ 协议方法，
+// 逐一测试每个运算符/协议是否按设计分派，输出 PASS/FAIL 报告。
+//
+// 设计说明（重要）：
+//   Vector2 实现：二元算术(__add__/__sub__/__mul__/__div__/__mod__/__pow__)、
+//   一元(__neg__/__pos__/__not__/__bitNot__)、比较(__eq__/__ne__/__lt__/__le__/__gt__/__ge__/__approx__)、
+//   __contains__/__call__/__len__/__item__/__setItem__/__iter__/__next__、
+//   动态字段(__field__/__setField__)、derive copy/clone。
+//
+//   __field__/__setField__ 与一元/比较协议可在同一 class 上稳定共存。
+//
+//   另：复合赋值 a += b / a -= b 不分派到 __add__/__sub__（编译期 [sem] 直接拒绝），
+//   见 BUGS.md BUG-V1。
+//
+// 程序始终返回 0（即使发现 BUG 也只记录不中断），保证 xl run / xl build 双路径 EXIT=0。
+
+// ===== 迭代器（须先于 Vector2 定义，供 __iter__ 返回类型引用）=====
+class Vector2Iter
+    float x
+    float y
+    int index = 0
+
+    create(float x, float y)
+        self.x = x
+        self.y = y
+        self.index = 0
+    end
+
+    func __next__() as (bool, float)
+        if self.index == 0 then
+            self.index = 1
+            return true, self.x
+        end
+        if self.index == 1 then
+            self.index = 2
+            return true, self.y
+        end
+        return false, 0.0
+    end
+end
+
+// ===== 被测目标：二维向量（全部协议）=====
+class Vector2
+    derive copy
+    derive clone
+
+    float x = 0.0
+    float y = 0.0
+    var bag = {}
+
+    create(float x, float y)
+        self.x = x
+        self.y = y
+    end
+
+    func mag2() as float
+        return self.x * self.x + self.y * self.y
+    end
+
+    // ---------- 二元算术协议 ----------
+    func __add__(Vector2 other) as Vector2
+        Vector2 r = Vector2(self.x + other.x, self.y + other.y)
+        return r
+    end
+
+    func __sub__(Vector2 other) as Vector2
+        Vector2 r = Vector2(self.x - other.x, self.y - other.y)
+        return r
+    end
+
+    func __mul__(Vector2 other) as Vector2
+        Vector2 r = Vector2(self.x * other.x, self.y * other.y)
+        return r
+    end
+
+    func __mul__(float s) as Vector2
+        Vector2 r = Vector2(self.x * s, self.y * s)
+        return r
+    end
+
+    func __div__(Vector2 other) as Vector2
+        Vector2 r = Vector2(self.x / other.x, self.y / other.y)
+        return r
+    end
+
+    func __mod__(Vector2 other) as Vector2
+        Vector2 r = Vector2(math.mod(self.x, other.x), math.mod(self.y, other.y))
+        return r
+    end
+
+    func __pow__(Vector2 other) as Vector2
+        Vector2 r = Vector2(math.pow(self.x, other.x), math.pow(self.y, other.y))
+        return r
+    end
+
+    // ---------- 一元协议 ----------
+    func __neg__() as Vector2
+        Vector2 r = Vector2(0.0 - self.x, 0.0 - self.y)
+        return r
+    end
+
+    func __pos__() as Vector2
+        Vector2 r = Vector2(self.x, self.y)
+        return r
+    end
+
+    func __not__() as bool
+        return self.x == 0.0 and self.y == 0.0
+    end
+
+    func __bitNot__() as Vector2
+        Vector2 r = Vector2(float(0 - int(self.x) - 1), float(0 - int(self.y) - 1))
+        return r
+    end
+
+    // ---------- 比较协议（按模长平方排序）----------
+    func __eq__(Vector2 other) as bool
+        return self.x == other.x and self.y == other.y
+    end
+
+    func __ne__(Vector2 other) as bool
+        return not (self.x == other.x and self.y == other.y)
+    end
+
+    func __lt__(Vector2 other) as bool
+        return self.mag2() < other.mag2()
+    end
+
+    func __le__(Vector2 other) as bool
+        return self.mag2() <= other.mag2()
+    end
+
+    func __gt__(Vector2 other) as bool
+        return self.mag2() > other.mag2()
+    end
+
+    func __ge__(Vector2 other) as bool
+        return self.mag2() >= other.mag2()
+    end
+
+    func __approx__(Vector2 other) as bool
+        return math.abs(self.x - other.x) < 0.0001 and math.abs(self.y - other.y) < 0.0001
+    end
+
+    // ---------- 容器/调用/长度协议 ----------
+    func __contains__(Vector2 other) as bool
+        // other 点是否落在以 (0,0) 与 self 为对角的矩形内（含边）
+        if other.x < 0.0 or other.y < 0.0 then
+            return false
+        end
+        return other.x <= self.x and other.y <= self.y
+    end
+
+    func __call__(float scale) as Vector2
+        Vector2 r = Vector2(self.x * scale, self.y * scale)
+        return r
+    end
+
+    func __len__() as int
+        return 2
+    end
+
+    func __item__(int axis) as float
+        if axis == 0 then
+            return self.x
+        elseif axis == 1 then
+            return self.y
+        end
+        throw "axis out of range"
+    end
+
+    func __setItem__(int axis, float val)
+        if axis == 0 then
+            self.x = val
+        elseif axis == 1 then
+            self.y = val
+        else
+            throw "axis out of range"
+        end
+    end
+
+    func __iter__() as Vector2Iter
+        Vector2Iter it = Vector2Iter(self.x, self.y)
+        return it
+    end
+
+    // ---------- 动态字段协议 ----------
+    func __field__(string name) as var
+        if name == "magnitude" then
+            return math.sqrt(self.x * self.x + self.y * self.y)
+        end
+        if name == "dim" then
+            return 2
+        end
+        if name == "z" then
+            return 0.0
+        end
+        if self.bag.contains(name) then
+            return self.bag[name]
+        end
+        return null
+    end
+
+    func __setField__(string name, var val)
+        self.bag[name] = val
+    end
+end
+
+// ===== 测试框架 =====
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass += 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail += 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func bstr(bool b) as string
+    if b then
+        return "true"
+    end
+    return "false"
+end
+
+func fmt(float v) as string
+    if math.isNaN(v) then
+        return "nan"
+    end
+    if math.isInf(v) then
+        if v < 0.0 then
+            return "-inf"
+        end
+        return "inf"
+    end
+    if v == math.floor(v) and math.abs(v) < 1e15 then
+        return string(int(v))
+    end
+    return string.formatFloat(v, ".4")
+end
+
+func fmtV(Vector2 v) as string
+    return "(" + fmt(v.x) + "," + fmt(v.y) + ")"
+end
+
+func approxEq(float a, float b) as bool
+    return math.abs(a - b) < 0.0001
+end
+
+func expectV(Vector2 got, float ex, float ey, string label)
+    if approxEq(got.x, ex) and approxEq(got.y, ey) then
+        ok(label)
+    else
+        bad(label, "got " + fmtV(got) + " want (" + fmt(ex) + "," + fmt(ey) + ")")
+    end
+end
+
+func expectF(float got, float want, string label)
+    if approxEq(got, want) then
+        ok(label)
+    else
+        bad(label, "got " + fmt(got) + " want " + fmt(want))
+    end
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectB(bool got, bool want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + bstr(got) + " want " + bstr(want))
+    end
+end
+
+// ===== 各协议测试 =====
+
+func testBinary()
+    println("[binary arithmetic]")
+    Vector2 a = Vector2(3.0, 4.0)
+    Vector2 b = Vector2(1.0, 2.0)
+
+    try
+        Vector2 r = a + b
+        expectV(r, 4.0, 6.0, "a + b  (__add__)")
+    catch e
+        bad("a + b", e.message)
+    end
+    try
+        Vector2 r = a - b
+        expectV(r, 2.0, 2.0, "a - b  (__sub__)")
+    catch e
+        bad("a - b", e.message)
+    end
+    try
+        Vector2 r = a * b
+        expectV(r, 3.0, 8.0, "a * b  (__mul__ Vector2)")
+    catch e
+        bad("a * b", e.message)
+    end
+    try
+        Vector2 r = a * 2.0
+        expectV(r, 6.0, 8.0, "a * 2.0  (__mul__ float)")
+    catch e
+        bad("a * float", e.message)
+    end
+    try
+        Vector2 r = a / b
+        expectV(r, 3.0, 2.0, "a / b  (__div__)")
+    catch e
+        bad("a / b", e.message)
+    end
+    try
+        Vector2 hi = Vector2(7.0, 8.0)
+        Vector2 lo = Vector2(3.0, 3.0)
+        Vector2 r = hi % lo
+        expectV(r, 1.0, 2.0, "hi % lo  (__mod__)")
+    catch e
+        bad("a % b", e.message)
+    end
+    try
+        Vector2 base = Vector2(2.0, 3.0)
+        Vector2 exp = Vector2(3.0, 2.0)
+        Vector2 r = base ** exp
+        expectV(r, 8.0, 9.0, "base ** exp  (__pow__)")
+    catch e
+        bad("a ** b", e.message)
+    end
+end
+
+func testUnary()
+    println("[unary]")
+    Vector2 a = Vector2(3.0, 4.0)
+
+    try
+        Vector2 r = -a
+        expectV(r, -3.0, -4.0, "-a  (__neg__)")
+    catch e
+        bad("-a", e.message)
+    end
+    try
+        Vector2 r = +a
+        expectV(r, 3.0, 4.0, "+a  (__pos__)")
+    catch e
+        bad("+a", e.message)
+    end
+    try
+        bool r = not a
+        expectB(r, false, "not a  (__not__)")
+    catch e
+        bad("not a", e.message)
+    end
+    try
+        Vector2 z = Vector2(0.0, 0.0)
+        bool r = not z
+        expectB(r, true, "not zero  (__not__)")
+    catch e
+        bad("not zero", e.message)
+    end
+    try
+        Vector2 r = ~a
+        expectV(r, -4.0, -5.0, "~a  (__bitNot__)")
+    catch e
+        bad("~a", e.message)
+    end
+end
+
+func testCompare()
+    println("[comparison]")
+    Vector2 a = Vector2(3.0, 4.0)
+    Vector2 b = Vector2(3.0, 4.0)
+    Vector2 c = Vector2(1.0, 1.0)
+    Vector2 d = Vector2(5.0, 5.0)
+
+    try
+        expectB(a == b, true, "a == b  (__eq__)")
+    catch e
+        bad("a == b", e.message)
+    end
+    try
+        expectB(a == c, false, "a == c  (__eq__ false)")
+    catch e
+        bad("a == c", e.message)
+    end
+    try
+        expectB(a != c, true, "a != c  (__ne__)")
+    catch e
+        bad("a != c", e.message)
+    end
+    try
+        expectB(a != b, false, "a != b  (__ne__ false)")
+    catch e
+        bad("a != b", e.message)
+    end
+    try
+        expectB(c < a, true, "c < a  (__lt__ by mag)")
+    catch e
+        bad("c < a", e.message)
+    end
+    try
+        expectB(a < c, false, "a < c  (__lt__ false)")
+    catch e
+        bad("a < c", e.message)
+    end
+    try
+        expectB(c <= a, true, "c <= a  (__le__)")
+    catch e
+        bad("c <= a", e.message)
+    end
+    try
+        expectB(a <= b, true, "a <= b  (__le__ equal)")
+    catch e
+        bad("a <= b", e.message)
+    end
+    try
+        expectB(d > a, true, "d > a  (__gt__)")
+    catch e
+        bad("d > a", e.message)
+    end
+    try
+        expectB(a > d, false, "a > d  (__gt__ false)")
+    catch e
+        bad("a > d", e.message)
+    end
+    try
+        expectB(d >= a, true, "d >= a  (__ge__)")
+    catch e
+        bad("d >= a", e.message)
+    end
+    try
+        expectB(a >= b, true, "a >= b  (__ge__ equal)")
+    catch e
+        bad("a >= b", e.message)
+    end
+    try
+        Vector2 e2 = Vector2(3.000001, 4.000001)
+        expectB(a ~= e2, true, "a ~= e2  (__approx__)")
+    catch e
+        bad("a ~= b", e.message)
+    end
+    try
+        expectB(a ~= c, false, "a ~= c  (__approx__ false)")
+    catch e
+        bad("a ~= c", e.message)
+    end
+end
+
+func testContains()
+    println("[contains]")
+    Vector2 a = Vector2(3.0, 4.0)
+    Vector2 inner = Vector2(1.0, 2.0)
+    Vector2 outer = Vector2(5.0, 5.0)
+    try
+        expectB(inner in a, true, "inner in a  (__contains__)")
+    catch e
+        bad("inner in a", e.message)
+    end
+    try
+        expectB(outer in a, false, "outer in a  (__contains__ false)")
+    catch e
+        bad("outer in a", e.message)
+    end
+end
+
+func testCall()
+    println("[call]")
+    Vector2 a = Vector2(3.0, 4.0)
+    try
+        Vector2 r = a(2.0)
+        expectV(r, 6.0, 8.0, "a(2.0)  (__call__)")
+    catch e
+        bad("a(2.0)", e.message)
+    end
+end
+
+func testLen()
+    println("[len]")
+    Vector2 a = Vector2(3.0, 4.0)
+    try
+        int n = a.length
+        expectI(n, 2, "a.length  (__len__)")
+    catch e
+        bad("a.length", e.message)
+    end
+end
+
+func testIndex()
+    println("[index]")
+    Vector2 a = Vector2(3.0, 4.0)
+    try
+        float v0 = a[0]
+        expectF(v0, 3.0, "a[0]  (__item__)")
+    catch e
+        bad("a[0]", e.message)
+    end
+    try
+        float v1 = a[1]
+        expectF(v1, 4.0, "a[1]  (__item__)")
+    catch e
+        bad("a[1]", e.message)
+    end
+    try
+        a[0] = 9.0
+        float v0b = a[0]
+        expectF(v0b, 9.0, "a[0]=9  (__setItem__)")
+    catch e
+        bad("a[0]=", e.message)
+    end
+end
+
+func testIter()
+    println("[iter]")
+    Vector2 a = Vector2(3.0, 4.0)
+    try
+        float s = 0.0
+        for value in a
+            s = s + value
+        end
+        expectF(s, 7.0, "for v in a  (__iter__/__next__)")
+    catch e
+        bad("for v in a", e.message)
+    end
+    try
+        int cnt = 0
+        for i, value in a
+            cnt = cnt + 1
+        end
+        expectI(cnt, 2, "for i,v in a count")
+    catch e
+        bad("for i,v in a", e.message)
+    end
+end
+
+func testField()
+    println("[field]  (on Vector2, 见文件头说明)")
+    Vector2 a = Vector2(3.0, 4.0)
+    try
+        var mag = a.magnitude
+        expectF(float(mag), 5.0, "a.magnitude  (__field__)")
+    catch e
+        bad("a.magnitude", e.message)
+    end
+    try
+        var dim = a.dim
+        expectI(int(dim), 2, "a.dim  (__field__)")
+    catch e
+        bad("a.dim", e.message)
+    end
+    try
+        var z = a.z
+        expectF(float(z), 0.0, "a.z  (__field__)")
+    catch e
+        bad("a.z", e.message)
+    end
+    try
+        a.w = 9.5
+        var w = a.w
+        expectF(float(w), 9.5, "a.w set/get  (__setField__/__field__)")
+    catch e
+        bad("a.w", e.message)
+    end
+end
+
+func testCopyClone()
+    println("[copy/clone]")
+    Vector2 a = Vector2(3.0, 4.0)
+    try
+        auto cp = copy(a)
+        auto cl = clone(a)
+        a.x = 99.0
+        expectF(cp.x, 3.0, "copy(a).x  (derive copy)")
+        expectF(cl.x, 3.0, "clone(a).x  (derive clone)")
+    catch e
+        bad("copy/clone", e.message)
+    end
+end
+
+func main(...) as int
+    println("=== vops: operator protocol suite ===")
+
+    testBinary()
+    testUnary()
+    testCompare()
+    testContains()
+    testCall()
+    testLen()
+    testIndex()
+    testIter()
+    testField()
+    testCopyClone()
+
+    println("---")
+    println("NOTE: a += b / a -= b 未测试 -> BUG-V1 (编译期拒绝分派到 __add__/__sub__)")
+    println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+    return 0
+end

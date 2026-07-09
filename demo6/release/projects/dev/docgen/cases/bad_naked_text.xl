@@ -1,0 +1,11 @@
+// negative case: naked text inside doc block
+// expected: [sem] #doc 存在未知字段或未归属字段的裸文本
+#doc
+This line is not under any field.
+#end
+func bad()
+end
+
+func main(...) as int
+    return 0
+end

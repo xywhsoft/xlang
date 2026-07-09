@@ -1,0 +1,18 @@
+// srclib.xl - source import 模块（与 pkgdemo.xl 同目录）
+//
+// source import 要求导出符号走 C ABI bridge，因此使用
+//   export "c_symbol" func name(...) as T
+// 形式。同名的 srclib.c 由 import 解析器自动作为 companion 加入编译。
+
+// 由同目录 srclib.c 中的 C 函数实现（同名 companion 自动编译）
+extern "xl6_pkgdemo_srclib_native_inc" func nativeInc(int v) as int
+extern "xl6_pkgdemo_srclib_native_base" func nativeBase() as int
+
+// export "c_sym" func：source import 的标准导出形式
+export "xl6_pkgdemo_srclib_inc" func inc(int v) as int
+    return nativeInc(v)
+end
+
+export "xl6_pkgdemo_srclib_base" func base() as int
+    return nativeBase()
+end

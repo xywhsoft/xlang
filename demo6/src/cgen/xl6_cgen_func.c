@@ -7,6 +7,7 @@ static void xl6CgenFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     const XL6_AstNode* returns;
     const XL6_AstNode* params;
     const XL6_AstNode* body;
+    XL6_AstNode* concreteReturnType;
     size_t varMark;
     size_t cleanupMark;
 
@@ -20,7 +21,12 @@ static void xl6CgenFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     prevReturns = ctx->currentReturns;
     prevReturnFunc = ctx->currentReturnFunc;
     returns = node->childCount > 2 ? node->children[2] : NULL;
-    ctx->currentReturnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
+    concreteReturnType = returns != NULL && returns->childCount == 1
+        ? xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0])
+        : NULL;
+    ctx->currentReturnType = concreteReturnType != NULL
+        ? concreteReturnType
+        : (returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL);
     params = node->childCount > 1 ? node->children[1] : NULL;
     ctx->currentReturnParams = params;
     ctx->currentReturns = returns;
@@ -47,6 +53,7 @@ static void xl6CgenFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     ctx->currentReturnParams = prevReturnParams;
     ctx->currentReturns = prevReturns;
     ctx->currentReturnFunc = prevReturnFunc;
+    xl6AstFree(concreteReturnType);
     xl6CgenFreeVarsSince(ctx, varMark);
     ctx->indent -= 1;
     xl6OutputPuts("}\n\n", ctx->out);
@@ -61,6 +68,7 @@ static void xl6CgenExportFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     const XL6_AstNode* returns;
     const XL6_AstNode* params;
     const XL6_AstNode* body;
+    XL6_AstNode* concreteReturnType;
     size_t varMark;
     size_t cleanupMark;
 
@@ -74,7 +82,12 @@ static void xl6CgenExportFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     prevReturns = ctx->currentReturns;
     prevReturnFunc = ctx->currentReturnFunc;
     returns = node->childCount > 2 ? node->children[2] : NULL;
-    ctx->currentReturnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
+    concreteReturnType = returns != NULL && returns->childCount == 1
+        ? xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0])
+        : NULL;
+    ctx->currentReturnType = concreteReturnType != NULL
+        ? concreteReturnType
+        : (returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL);
     params = node->childCount > 1 ? node->children[1] : NULL;
     ctx->currentReturnParams = params;
     ctx->currentReturns = returns;
@@ -93,6 +106,7 @@ static void xl6CgenExportFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     ctx->currentReturnParams = prevReturnParams;
     ctx->currentReturns = prevReturns;
     ctx->currentReturnFunc = prevReturnFunc;
+    xl6AstFree(concreteReturnType);
     xl6CgenFreeVarsSince(ctx, varMark);
     ctx->indent -= 1;
     xl6OutputPuts("}\n\n", ctx->out);

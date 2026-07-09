@@ -1,0 +1,14 @@
+// negative case: return field on a void function
+// expected: [sem] #doc return 字段只能用于有返回值的函数声明
+#doc
+desc:
+    Function has no return value.
+return result:
+    Nothing to return.
+#end
+func bad()
+end
+
+func main(...) as int
+    return 0
+end

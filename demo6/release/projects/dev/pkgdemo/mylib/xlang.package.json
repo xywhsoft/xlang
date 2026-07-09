@@ -1,0 +1,28 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "mylib",
+    "version":  "1.0.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-dev-package",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+
+                                  ],
+                     "xlSources":  [
+                                       "mylib.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies": [
+
+                     ],
+    "native":  {
+                   "singleton":  false
+               }
+}

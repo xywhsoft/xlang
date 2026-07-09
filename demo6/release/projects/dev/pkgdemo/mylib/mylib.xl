@@ -1,0 +1,28 @@
+// mylib.xl - package 源码（export func / var / const）
+//
+// package 导出符号不需要写 C symbol 字符串，直接用
+//   export func name(...) as T
+//   export Type name = value
+//   export const Type name = value
+// import 桥会把这些声明改名为内部符号并合并进主编译单元。
+//
+// 同名的 mylib.c（与本文件同目录）由 import 解析器自动作为
+// companion 加入编译，无需在 manifest 的 cSources 中声明。
+
+// 由同目录 mylib.c 中的 C 函数实现（同名 companion 自动编译）
+extern "xl6_pkgdemo_mylib_native_magic" func nativeMagic(int v) as int
+
+// export func —— 跨 package 可被 mylib.libAdd 访问
+export func libAdd(int a, int b) as int
+    return a + b
+end
+
+export func libMagic(int v) as int
+    return nativeMagic(v)
+end
+
+// export var —— package 导出变量
+export string libVersion = "1.0.0"
+
+// export const —— package 导出常量
+export const int LIB_MAGIC = 42

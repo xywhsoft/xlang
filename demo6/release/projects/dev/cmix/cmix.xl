@@ -1,0 +1,208 @@
+// cmix.xl - C-mixing verification tool.
+//
+// Exercises every documented C interop path in DEMO6:
+//   1. extern "c_fn"  func name(...) as T        -- declare & call C function
+//   2. extern "c_var" Type name                   -- read C global variable
+//   3. export "c_sym" func name(...) as int       -- export xlang fn to C ABI
+//   4. export "c_sym" int name = value            -- export xlang variable
+//   5. export extern "c_var" Type name            -- re-export C global as pkg
+//   6. native-backed class wrapping a C handle    -- create/destroy/func
+//   7. C -> xlang callback (C side calls export)  -- reverse direction
+//
+// Build/run together with cmix_native.c:
+//   xl run   cmix.xl cmix_native.c
+//   xl build cmix.xl cmix_native.c -o cmix.exe
+
+// ===== 1. extern C functions (simple math) ==============================
+// xlang `int` maps to C int64_t; C functions use long long to match.
+extern "cmix_add"        func cAdd(int a, int b) as int
+extern "cmix_mul"        func cMul(int a, int b) as int
+extern "cmix_max"        func cMax(int a, int b) as int
+extern "cmix_average"    func cAverage(int a, int b) as float
+extern "cmix_square_ll"  func cSquareLL(int64 x) as int64
+
+// C ABI type path: xlang `int32`/`c_int` maps to native C int (32-bit).
+// This is the correct type for calling real libc/C functions (cf. c_hello.xl).
+extern "cmix_native_add" func cNativeAdd(int32 a, int32 b) as int32
+extern "cmix_native_mul" func cNativeMul(c_int a, c_int b) as c_int
+
+// ===== 2. extern C variable (read-only on xlang side, storage owned by C)
+extern "cmix_magic" int cMagic
+
+// ===== 3. export xlang functions to C ABI ===============================
+// (also called from cmix_native.c via cmix_callback_demo / cmix_callback_chain)
+export "cmix_xlang_double" func xDouble(int x) as int
+    return x * 2
+end
+
+export "cmix_xlang_triple" func xTriple(int x) as int
+    return x * 3
+end
+
+export "cmix_xlang_sum" func xSum(int a, int b) as int
+    return a + b
+end
+
+// ===== 4. export xlang variable to C ABI ================================
+export "cmix_exported_hits" int xHits = 0
+
+// ===== 5. export extern: re-export a C global as a package symbol =======
+//         (storage owned by C's cmix_counter; xlang reads/writes through it)
+export extern "cmix_counter" int hostCounter
+
+// C functions that call back into the xlang exports above.
+extern "cmix_callback_demo"  func cCallbackDemo(int x) as int
+extern "cmix_callback_chain" func cCallbackChain(int x) as int
+
+// ===== 6. native-backed class wrapping the opaque C counter handle ======
+class Counter
+    native point handle
+
+    extern "cmix_counter_open"   create(int seed)
+    extern "cmix_counter_close"  destroy()
+    extern "cmix_counter_add"    func add(int value) as int
+    extern "cmix_counter_value"  func value() as int
+    extern "cmix_counter_ops"    func ops() as int
+    extern "cmix_counter_reset"  func reset(int seed)
+end
+
+// ===== harness helpers ==================================================
+func check(string label, int got, int want) as int
+    if got == want then
+        println("  [ok] " + label)
+        return 0
+    end
+    println("  [FAIL] " + label + " got=" + string(got) + " want=" + string(want))
+    return 1
+end
+
+func checkFloat(string label, float got, float want) as int
+    if math.abs(got - want) < 0.0001 then
+        println("  [ok] " + label)
+        return 0
+    end
+    println("  [FAIL] " + label)
+    return 1
+end
+
+func checkStr(string label, string got, string want) as int
+    if got == want then
+        println("  [ok] " + label)
+        return 0
+    end
+    println("  [FAIL] " + label + " got=" + got + " want=" + want)
+    return 1
+end
+
+// ===== section runners ==================================================
+func testExternFunctions() as int
+    println("[1] extern C functions")
+    int fails = 0
+    fails += check("cAdd(20,22)", cAdd(20, 22), 42)
+    fails += check("cMul(6,7)", cMul(6, 7), 42)
+    fails += check("cMax(7,9)", cMax(7, 9), 9)
+    fails += checkFloat("cAverage(10,30)", cAverage(10, 30), 20.0)
+    fails += check("cSquareLL(1000000)", int(cSquareLL(1000000)), 1000000000000)
+    // C ABI type path: int32 / c_int map to native 32-bit C int
+    fails += check("cNativeAdd(20,22)", int(cNativeAdd(20, 22)), 42)
+    fails += check("cNativeMul(6,7)", int(cNativeMul(6, 7)), 42)
+    return fails
+end
+
+func testExternVariable() as int
+    println("[2] extern C variable")
+    int fails = 0
+    fails += check("cMagic == 7", cMagic, 7)
+    // use the C global in an expression
+    int combined = cAdd(cMagic, cMagic)
+    fails += check("cAdd(cMagic,cMagic)", combined, 14)
+    return fails
+end
+
+func testExportExternGlobal() as int
+    println("[5] export extern C global (read+write through C storage)")
+    int fails = 0
+    // initial value is 100 (set in cmix_native.c)
+    fails += check("hostCounter initial", hostCounter, 100)
+    // write through the re-exported symbol -> C storage must change
+    hostCounter = 250
+    fails += check("hostCounter after =250", hostCounter, 250)
+    // bump and re-read
+    hostCounter += cMagic
+    fails += check("hostCounter += cMagic", hostCounter, 257)
+    return fails
+end
+
+func testExportedVariable() as int
+    println("[4] export xlang variable")
+    int fails = 0
+    fails += check("xHits initial", xHits, 0)
+    xHits = 41
+    fails += check("xHits after =41", xHits, 41)
+    xHits += 1
+    fails += check("xHits after +=1", xHits, 42)
+    return fails
+end
+
+func testExportsCallableFromC() as int
+    println("[3][7] C -> xlang callback")
+    int fails = 0
+    // direct call of the exported xlang fn from xlang side
+    fails += check("xDouble(21)", xDouble(21), 42)
+    // call the C function that itself calls back into xlang
+    // cmix_callback_demo(20) == xDouble(20) + 1 == 41
+    fails += check("cCallbackDemo(20)", cCallbackDemo(20), 41)
+    // cmix_callback_chain(10):
+    //   once = xDouble(10) = 20
+    //   twice = xTriple(20) = 60
+    //   return once + twice = 80
+    fails += check("cCallbackChain(10)", cCallbackChain(10), 80)
+    return fails
+end
+
+func testNativeBackedClass() as int
+    println("[6] native-backed class (opaque C handle)")
+    int fails = 0
+    Counter ctr = Counter(40)
+    fails += check("ctr.value() after open(40)", ctr.value(), 40)
+    fails += check("ctr.add(2)", ctr.add(2), 42)
+    fails += check("ctr.add(8)", ctr.add(8), 50)
+    fails += check("ctr.ops()", ctr.ops(), 2)
+    ctr.reset(0)
+    fails += check("ctr.value() after reset(0)", ctr.value(), 0)
+    fails += check("ctr.ops() after reset", ctr.ops(), 0)
+    fails += check("ctr.add(100)", ctr.add(100), 100)
+    // destroy happens automatically at end of scope; we just return.
+    return fails
+end
+
+func testMixedLifetime() as int
+    println("[*] mixed: native class + exported var + C global")
+    int fails = 0
+    Counter ctr = Counter(hostCounter)
+    ctr.add(xHits)
+    // hostCounter was 257, xHits was 42 -> value 299
+    fails += check("ctr seeded from hostCounter+xHits", ctr.value(), 299)
+    // export the result back into the C global
+    hostCounter = ctr.value()
+    fails += check("hostCounter <- ctr.value()", hostCounter, 299)
+    return fails
+end
+
+// ===== main =============================================================
+func main(...) as int
+    println("=== cmix: xlang <-> C interop verification ===")
+    int total = 0
+    total += testExternFunctions()
+    total += testExternVariable()
+    total += testExportExternGlobal()
+    total += testExportedVariable()
+    total += testExportsCallableFromC()
+    total += testNativeBackedClass()
+    total += testMixedLifetime()
+    println("=== cmix done: " + string(total) + " failure(s) ===")
+    if total == 0 then
+        println("ALL CHECKS PASSED")
+    end
+    return total
+end

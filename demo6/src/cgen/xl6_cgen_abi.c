@@ -621,6 +621,167 @@ static void xl6CgenEmitRuntimeTypeDescDependencyProto(XL6_CgenContext* ctx, cons
     xl6OutputPuts("(void);\n", ctx->out);
 }
 
+static void xl6CgenEmitRuntimeXValueTypeOps(XL6_CgenContext* ctx)
+{
+    XL6_Output* out;
+
+    if ( ctx == NULL || ctx->out == NULL || ctx->runtimeTypeDescCount == 0 ) {
+        return;
+    }
+
+    out = ctx->out;
+    xl6OutputPuts("#ifndef XL6_RUNTIME_XVALUE_TYPE_OPS\n", out);
+    xl6OutputPuts("#define XL6_RUNTIME_XVALUE_TYPE_OPS\n", out);
+    xl6OutputPuts("static void xl6_runtime_xvalue_init(void* pObj)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( pObj != 0 ) {\n", out);
+    xl6OutputPuts("        *(xvalue*)pObj = xvoCreateNull();\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void xl6_runtime_xvalue_copy(void* pDst, const void* pSrc)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xvalue value = pSrc != 0 ? *(xvalue const*)pSrc : 0;\n", out);
+    xl6OutputPuts("    if ( pDst != 0 ) {\n", out);
+    xl6OutputPuts("        *(xvalue*)pDst = value != 0 ? xvoCopy(value) : xvoCreateNull();\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void xl6_runtime_xvalue_move(void* pDst, void* pSrc)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( pDst != 0 ) {\n", out);
+    xl6OutputPuts("        *(xvalue*)pDst = pSrc != 0 ? *(xvalue*)pSrc : 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( pSrc != 0 ) {\n", out);
+    xl6OutputPuts("        *(xvalue*)pSrc = 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void xl6_runtime_xvalue_drop(void* pObj)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xvalue value;\n", out);
+    xl6OutputPuts("    if ( pObj == 0 ) {\n", out);
+    xl6OutputPuts("        return;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    value = *(xvalue*)pObj;\n", out);
+    xl6OutputPuts("    if ( value != 0 ) {\n", out);
+    xl6OutputPuts("        xvoUnref(value);\n", out);
+    xl6OutputPuts("        *(xvalue*)pObj = 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static int xl6_runtime_xvalue_compare_text(xvalue left, xvalue right)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    uint32 leftSize = 0;\n", out);
+    xl6OutputPuts("    uint32 rightSize = 0;\n", out);
+    xl6OutputPuts("    str leftText = xvoToString(left, &leftSize);\n", out);
+    xl6OutputPuts("    str rightText = xvoToString(right, &rightSize);\n", out);
+    xl6OutputPuts("    uint32 minSize = leftSize < rightSize ? leftSize : rightSize;\n", out);
+    xl6OutputPuts("    int result = minSize > 0 ? memcmp(leftText, rightText, minSize) : 0;\n", out);
+    xl6OutputPuts("    if ( result == 0 ) {\n", out);
+    xl6OutputPuts("        result = (leftSize > rightSize) - (leftSize < rightSize);\n", out);
+    xl6OutputPuts("    } else {\n", out);
+    xl6OutputPuts("        result = result > 0 ? 1 : -1;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( leftText != 0 ) { xrtFree(leftText); }\n", out);
+    xl6OutputPuts("    if ( rightText != 0 ) { xrtFree(rightText); }\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static int xl6_runtime_xvalue_compare(const void* pA, const void* pB)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xvalue left = pA != 0 ? *(xvalue const*)pA : 0;\n", out);
+    xl6OutputPuts("    xvalue right = pB != 0 ? *(xvalue const*)pB : 0;\n", out);
+    xl6OutputPuts("    const xrt_type_desc* leftType;\n", out);
+    xl6OutputPuts("    const xrt_type_desc* rightType;\n", out);
+    xl6OutputPuts("    int cmp;\n", out);
+    xl6OutputPuts("    if ( left == right ) {\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    leftType = xvoTypeDesc(left);\n", out);
+    xl6OutputPuts("    rightType = xvoTypeDesc(right);\n", out);
+    xl6OutputPuts("    if ( !xrtTypeSame(leftType, rightType) ) {\n", out);
+    xl6OutputPuts("        unsigned long long leftId = leftType != 0 ? (unsigned long long)leftType->TypeId : 0ULL;\n", out);
+    xl6OutputPuts("        unsigned long long rightId = rightType != 0 ? (unsigned long long)rightType->TypeId : 0ULL;\n", out);
+    xl6OutputPuts("        if ( leftId != rightId ) {\n", out);
+    xl6OutputPuts("            return (leftId > rightId) - (leftId < rightId);\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    cmp = xvoBasicCompare(left, right);\n", out);
+    xl6OutputPuts("    if ( cmp != 2 ) {\n", out);
+    xl6OutputPuts("        return cmp;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return xl6_runtime_xvalue_compare_text(left, right);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static uint64 xl6_runtime_xvalue_hash(const void* pObj)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xvalue value = pObj != 0 ? *(xvalue const*)pObj : 0;\n", out);
+    xl6OutputPuts("    const xrt_type_desc* type = xvoTypeDesc(value);\n", out);
+    xl6OutputPuts("    uint64 seed = type != 0 ? (uint64)type->TypeId : 0ULL;\n", out);
+    xl6OutputPuts("    uint32 textSize = 0;\n", out);
+    xl6OutputPuts("    str text = xvoToString(value, &textSize);\n", out);
+    xl6OutputPuts("    uint64 result = xrtHash64(&seed, sizeof(seed));\n", out);
+    xl6OutputPuts("    if ( text != 0 && textSize > 0 ) {\n", out);
+    xl6OutputPuts("        result ^= xrtHash64(text, textSize);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( text != 0 ) { xrtFree(text); }\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static str xl6_runtime_xvalue_to_string(const void* pObj, uint32* pSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xvalue value = pObj != 0 ? *(xvalue const*)pObj : 0;\n", out);
+    xl6OutputPuts("    return xvoToString(value, pSize);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static xvalue xl6_runtime_xvalue_box(const void* pObj, const xrt_type_desc* pType)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xvalue value = pObj != 0 ? *(xvalue const*)pObj : 0;\n", out);
+    xl6OutputPuts("    xvalue boxed = value != 0 ? xvoCopy(value) : xvoCreateNull();\n", out);
+    xl6OutputPuts("    if ( boxed != 0 && pType != 0 ) {\n", out);
+    xl6OutputPuts("        (void)xvoSetTypeDesc(boxed, pType);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return boxed;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static bool xl6_runtime_xvalue_unbox(xvalue value, void* pOut, const xrt_type_desc* pType)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    const xrt_type_desc* actual;\n", out);
+    xl6OutputPuts("    xvalue copy;\n", out);
+    xl6OutputPuts("    if ( pOut == 0 ) {\n", out);
+    xl6OutputPuts("        return false;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( value == 0 || xvoIsNull(value) ) {\n", out);
+    xl6OutputPuts("        *(xvalue*)pOut = xvoCreateNull();\n", out);
+    xl6OutputPuts("        return true;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    actual = xvoTypeDesc(value);\n", out);
+    xl6OutputPuts("    if ( pType != 0 && !xrtTypeSame(actual, pType) ) {\n", out);
+    xl6OutputPuts("        return false;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    copy = xvoCopy(value);\n", out);
+    xl6OutputPuts("    if ( copy != 0 && pType != 0 ) {\n", out);
+    xl6OutputPuts("        (void)xvoSetTypeDesc(copy, pType);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    *(xvalue*)pOut = copy != 0 ? copy : xvoCreateNull();\n", out);
+    xl6OutputPuts("    return true;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static const xrt_type_ops xl6_runtime_xvalue_ops = {\n", out);
+    xl6OutputPuts("    xl6_runtime_xvalue_init,\n", out);
+    xl6OutputPuts("    xl6_runtime_xvalue_copy,\n", out);
+    xl6OutputPuts("    xl6_runtime_xvalue_move,\n", out);
+    xl6OutputPuts("    xl6_runtime_xvalue_drop,\n", out);
+    xl6OutputPuts("    xl6_runtime_xvalue_compare,\n", out);
+    xl6OutputPuts("    xl6_runtime_xvalue_hash,\n", out);
+    xl6OutputPuts("    xl6_runtime_xvalue_to_string,\n", out);
+    xl6OutputPuts("    xl6_runtime_xvalue_box,\n", out);
+    xl6OutputPuts("    xl6_runtime_xvalue_unbox\n", out);
+    xl6OutputPuts("};\n", out);
+    xl6OutputPuts("#endif\n\n", out);
+}
+
 static void xl6CgenEmitRuntimeTypeDesc(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     char typeText[512];
@@ -651,7 +812,7 @@ static void xl6CgenEmitRuntimeTypeDesc(XL6_CgenContext* ctx, const XL6_AstNode* 
     xl6OutputPuts("        6u,\n", ctx->out);
     xl6OutputPuts("        sizeof(void*),\n", ctx->out);
     xl6OutputPuts("        sizeof(void*),\n", ctx->out);
-    xl6OutputPuts("        0,\n", ctx->out);
+    xl6OutputPuts("        &xl6_runtime_xvalue_ops,\n", ctx->out);
     xl6OutputPuts("        0,\n", ctx->out);
     xl6OutputPuts((args != NULL && args->childCount > 0) ? "        &generic\n" : "        0\n", ctx->out);
     xl6OutputPuts("    };\n", ctx->out);
@@ -683,6 +844,7 @@ static void xl6CgenEmitRuntimeTypeDescs(XL6_CgenContext* ctx)
     }
     if ( ctx->runtimeTypeDescCount > 0 ) {
         xl6OutputPutc('\n', ctx->out);
+        xl6CgenEmitRuntimeXValueTypeOps(ctx);
     }
     for ( i = 0; i < ctx->runtimeTypeDescCount; ++i ) {
         xl6CgenEmitRuntimeTypeDesc(ctx, ctx->runtimeTypeDescs[i].typeNode);

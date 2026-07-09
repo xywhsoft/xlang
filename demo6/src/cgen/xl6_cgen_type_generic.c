@@ -603,7 +603,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
     case XL6_AST_DICT_LITERAL:
     case XL6_AST_TYPED_LITERAL: {
         XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
-        const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : "xvalue";
+        const char* cType = typeNode != NULL ? xl6CgenValueStorageCType(ctx, typeNode) : "xvalue";
         xl6AstFree(typeNode);
         return cType;
     }
@@ -611,7 +611,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         return "XL6_Function";
     case XL6_AST_AWAIT: {
         XL6_AstNode* typeNode = xl6CgenCloneAwaitResultType(ctx, expr);
-        const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : "int";
+        const char* cType = typeNode != NULL ? xl6CgenValueStorageCType(ctx, typeNode) : "int";
         xl6AstFree(typeNode);
         return cType;
     }
@@ -633,7 +633,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         break;
     case XL6_AST_UNARY: {
         XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
-        const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : NULL;
+        const char* cType = typeNode != NULL ? xl6CgenValueStorageCType(ctx, typeNode) : NULL;
         xl6AstFree(typeNode);
         if ( cType != NULL ) {
             return cType;
@@ -646,7 +646,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         }
         if ( xl6CTextEquals(expr->text, "??") ) {
             XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
-            const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : "int";
+            const char* cType = typeNode != NULL ? xl6CgenValueStorageCType(ctx, typeNode) : "int";
             xl6AstFree(typeNode);
             return cType;
         }
@@ -658,7 +658,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         }
         {
             XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
-            const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : NULL;
+            const char* cType = typeNode != NULL ? xl6CgenValueStorageCType(ctx, typeNode) : NULL;
             xl6AstFree(typeNode);
             if ( cType != NULL ) {
                 return cType;
@@ -667,7 +667,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         break;
     case XL6_AST_CONDITIONAL: {
         XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
-        const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : "xvalue";
+        const char* cType = typeNode != NULL ? xl6CgenValueStorageCType(ctx, typeNode) : "xvalue";
         xl6AstFree(typeNode);
         return cType;
     }
@@ -687,7 +687,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         }
         {
             XL6_AstNode* typeNode = xl6CgenCloneMemberFieldTypeForInference(ctx, expr);
-            const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : NULL;
+            const char* cType = typeNode != NULL ? xl6CgenValueStorageCType(ctx, typeNode) : NULL;
             xl6AstFree(typeNode);
             if ( cType != NULL ) {
                 return cType;
@@ -708,7 +708,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
     case XL6_AST_INDEX:
     case XL6_AST_SAFE_INDEX: {
         XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
-        const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : "xvalue";
+        const char* cType = typeNode != NULL ? xl6CgenValueStorageCType(ctx, typeNode) : "xvalue";
         xl6AstFree(typeNode);
         return cType;
     }
@@ -758,7 +758,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
              xl6CgenIsCopyBuiltinName(expr->children[0]->text) &&
              !xl6CgenCopyBuiltinNameIsShadowed(ctx, expr->children[0]->text) ) {
             XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
-            const char* cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : NULL;
+            const char* cType = typeNode != NULL ? xl6CgenValueStorageCType(ctx, typeNode) : NULL;
             xl6AstFree(typeNode);
             if ( cType != NULL ) {
                 return cType;
@@ -831,7 +831,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
 
                     ctx->currentGenericParams = xl6CgenFuncTypeParams(func);
                     ctx->currentGenericArgs = typeArgs;
-                    cType = xl6CgenTypeName(ctx, func->children[2]->children[0]);
+                    cType = xl6CgenValueStorageCType(ctx, func->children[2]->children[0]);
                     ctx->currentGenericParams = prevParams;
                     ctx->currentGenericArgs = prevArgs;
                     return cType;
@@ -845,7 +845,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
 
                 ctx->currentGenericParams = xl6CgenFuncTypeParams(func);
                 ctx->currentGenericArgs = typeArgs;
-                cType = xl6CgenTypeName(ctx, func->children[2]->children[0]);
+                cType = xl6CgenValueStorageCType(ctx, func->children[2]->children[0]);
                 ctx->currentGenericParams = prevParams;
                 ctx->currentGenericArgs = prevArgs;
                 return cType;
@@ -859,7 +859,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
                     return "xvalue";
                 }
                 if ( functionReturns != NULL && functionReturns->childCount == 1 ) {
-                    return xl6CgenTypeName(ctx, functionReturns->children[0]);
+                    return xl6CgenValueStorageCType(ctx, functionReturns->children[0]);
                 }
             }
             if ( functionVarType != NULL && xl6CTextEquals(functionVarType->text, "var") ) {
@@ -883,7 +883,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
 
                     ctx->currentGenericParams = xl6CgenFuncTypeParams(func);
                     ctx->currentGenericArgs = inferredArgs;
-                    cType = xl6CgenTypeName(ctx, func->children[2]->children[0]);
+                    cType = xl6CgenValueStorageCType(ctx, func->children[2]->children[0]);
                     ctx->currentGenericParams = prevParams;
                     ctx->currentGenericArgs = prevArgs;
                     xl6AstFree(inferredArgs);
@@ -900,14 +900,14 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
 
                     ctx->currentGenericParams = xl6CgenFuncTypeParams(func);
                     ctx->currentGenericArgs = inferredArgs;
-                    cType = xl6CgenTypeName(ctx, func->children[2]->children[0]);
+                    cType = xl6CgenValueStorageCType(ctx, func->children[2]->children[0]);
                     ctx->currentGenericParams = prevParams;
                     ctx->currentGenericArgs = prevArgs;
                     xl6AstFree(inferredArgs);
                     return cType;
                 }
                 xl6AstFree(inferredArgs);
-                return xl6CgenTypeName(ctx, func->children[2]->children[0]);
+                return xl6CgenValueStorageCType(ctx, func->children[2]->children[0]);
             }
             xl6AstFree(inferredArgs);
         } else if ( expr->childCount > 0 && expr->children[0]->kind == XL6_AST_MEMBER ) {
@@ -927,7 +927,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
                         return "xvalue";
                     }
                     if ( functionReturns != NULL && functionReturns->childCount == 1 ) {
-                        const char* cType = xl6CgenTypeName(ctx, functionReturns->children[0]);
+                        const char* cType = xl6CgenValueStorageCType(ctx, functionReturns->children[0]);
                         xl6AstFree(memberType);
                         return cType;
                     }
@@ -949,7 +949,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
                 returns = method != NULL && method->childCount > 2 ? method->children[2] : NULL;
             }
             if ( returns != NULL && returns->childCount == 1 ) {
-                return xl6CgenTypeName(ctx, returns->children[0]);
+                return xl6CgenValueStorageCType(ctx, returns->children[0]);
             }
             if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
                 const XL6_AstNode* classDecl;
@@ -969,7 +969,7 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
                     method = xl6CgenResolveClassFunc(ctx, classDecl, expr, member->text, NULL);
                     returns = method != NULL && method->childCount > 2 ? method->children[2] : NULL;
                     if ( returns != NULL && returns->childCount == 1 ) {
-                        const char* cType = xl6CgenTypeName(ctx, returns->children[0]);
+                        const char* cType = xl6CgenValueStorageCType(ctx, returns->children[0]);
                         ctx->currentGenericParams = prevParams;
                         ctx->currentGenericArgs = prevArgs;
                         return cType;

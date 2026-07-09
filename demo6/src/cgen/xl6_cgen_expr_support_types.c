@@ -53,26 +53,47 @@ static int xl6CgenTypeContainsFunctionType(const XL6_AstNode* typeNode)
     return 0;
 }
 
+static int xl6CgenContainerIsDynamicXValueType(const XL6_AstNode* typeNode, const char* name, const char* legacyName)
+{
+    const XL6_AstNode* args;
+
+    if ( typeNode == NULL || typeNode->text == NULL || name == NULL ) {
+        return 0;
+    }
+    if ( legacyName != NULL && xl6CTextEquals(typeNode->text, legacyName) ) {
+        return 1;
+    }
+    if ( !xl6CTextEquals(typeNode->text, name) ) {
+        return 0;
+    }
+
+    /*
+        array/list/set/dict 不带泛型参数时才是动态 xvalue 容器。
+        一旦写成 array<int> 这类静态泛型容器，就必须走 XRT typed-container 存储。
+    */
+    args = xl6CgenTypeNodeGenericArgs(typeNode);
+    return args == NULL ||
+           args->childCount == 0 ||
+           (args->childCount == 1 && args->children[0] != NULL &&
+            args->children[0]->text != NULL && xl6CTextEquals(args->children[0]->text, "var"));
+}
+
 static int xl6CgenIsArrayXValueType(const XL6_AstNode* typeNode)
 {
-    return typeNode != NULL && typeNode->text != NULL &&
-           (xl6CTextEquals(typeNode->text, "array") || xl6CTextEquals(typeNode->text, "array<var>"));
+    return xl6CgenContainerIsDynamicXValueType(typeNode, "array", "array<var>");
 }
 
 static int xl6CgenIsListXValueType(const XL6_AstNode* typeNode)
 {
-    return typeNode != NULL && typeNode->text != NULL &&
-           (xl6CTextEquals(typeNode->text, "list") || xl6CTextEquals(typeNode->text, "list<var>"));
+    return xl6CgenContainerIsDynamicXValueType(typeNode, "list", "list<var>");
 }
 
 static int xl6CgenIsSetXValueType(const XL6_AstNode* typeNode)
 {
-    return typeNode != NULL && typeNode->text != NULL &&
-           (xl6CTextEquals(typeNode->text, "set") || xl6CTextEquals(typeNode->text, "set<var>"));
+    return xl6CgenContainerIsDynamicXValueType(typeNode, "set", "set<var>");
 }
 
 static int xl6CgenIsDictXValueType(const XL6_AstNode* typeNode)
 {
-    return typeNode != NULL && typeNode->text != NULL &&
-           (xl6CTextEquals(typeNode->text, "dict") || xl6CTextEquals(typeNode->text, "dict<var>"));
+    return xl6CgenContainerIsDynamicXValueType(typeNode, "dict", "dict<var>");
 }

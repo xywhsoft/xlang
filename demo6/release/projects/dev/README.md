@@ -1,6 +1,6 @@
 # dev 实战验证项目群
 
-本目录通过编写一批真实可用的小工具，持续验证 xlang 语言能力、发现 BUG 和手感问题。
+本目录通过编写真实可用的小工具，持续验证 xlang 语言能力、发现 BUG 和手感问题。
 
 ## 目标
 
@@ -8,15 +8,24 @@
 - 发现 BUG 和手感不正确的地方，记录到 `BUGS.md`。
 - 工具本身要能跑、能用，不是玩具占位。
 
-## 目录约定
+## 工具列表（65 个）
 
-每个工具一个子目录：
+| 批次 | 工具 | 覆盖领域 |
+|---|---|---|
+| 1 | utf8count, jsonfmt, calc, primes, tree, passgen, ts, todo | string/json/math/generator/file/random/time/derive json |
+| 2 | duptop, jq, httpreq, csvjson, matrix, grep, codec, stats | dir/http/CSV/泛型class/regex/codec/statistics |
+| 3 | psearch, portscan, sudoku, dupfind, logparse, game24, radix, config | async/TCP/回溯/hash/regex/combinatorics/bitops/持久化 |
+| 4 | guess, contacts, rxgrep, rename, cal, prodcon, bench, life | random/derive json/regex/file/time/channel/benchmark/2D array |
+| 5 | hashcalc, genid, envinfo, sorter, convert, geo, tpl, mdtoc, diff, bigint, timer, tictactoe, fwatch, crawl, kvdb | hash/id/env/sort/unit-convert/geometry/template/markdown/diff/bigint/timer/AI/file-watch/crawler/KV-store |
+| 6 | cmix, gstack, vops, deepclone, props, overload, unionbits, dynobj, shapes, fstr, fileserver, encconv, syncdemo, racedemo, hexdump, abidemo, pkgdemo, docgen | C混编/泛型/运算符协议/derive/属性/重载/union/动态字段/继承/f-string/HTTP-server/encoding/sync原语/task高级/Buffer-File/ABI/import-package/文档注释 |
+
+## 目录约定
 
 ```
 dev/<tool_name>/
     <tool_name>.xl      主源码
-    README.md           说明（可选，有 BUG 时必写）
-    *.c                 C companion（如需 native-backed class）
+    README.md           说明（可选）
+    *.c                 C companion（如需 C 混编）
 ```
 
 ## 运行与验证
@@ -27,77 +36,62 @@ xl run projects\dev\<tool_name>\<tool_name>.xl
 xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<tool_name>.exe
 ```
 
-每个工具必须同时通过 `xl run` 和 `xl build` 两条路径。
+每个工具通过 `xl run` 和 `xl build` 两条路径验证。
 
-## xlang 关键语法速查（开发时务必遵守）
+## xlang 关键语法速查
 
 - 输出：`print(args...)` 不加换行；`println(args...)` 加换行。参数间自动加空格。
 - 函数返回类型用 `as`，不是 `->`：`func f(int a) as int`。
 - 语句分隔：换行或 `;`。`()`/`[]`/`{}` 内可换行。
 - 控制流：`if ... then ... elseif ... else ... end`；`for x in ... ... end`（**无 `do`**）；`while cond do ... end`（**必须有 `do`**）；`do ... while cond`。
 - 类型：`var` = 动态类型；`auto` = 类型推断；无 `void`。
-- 容器字面量：`[1,2,3]` = array；`{}` = dict；`array[...]`/`list[...]`/`dict{...}`/`set{...}` 显式。
-- 转换：`int(expr)`、`float(expr)`、`string(expr)` 等构造函数，不是 `as`。
-- `as` 是运行时类型检查向下转换（checked downcast），不是数值转换。
-- 字符串拼接用 `+`。
-- 已知限制：函数参数内的数组元素二元表达式可能需要先提取到变量。
+- 容器：`[1,2,3]` = array；`{}` = dict；`array<int>[1,2,3]`/`set<int>{1,2}`/`list[0: 1]`/`dict<int>{"a":1}` 显式构造。
+- array 方法：`append/push/pop/insert/remove/removeValue/contains/indexOf/clear/reverse`，`array + array` 拼接。
+- dict 方法：`d.remove(key)` / `dict.remove(d, key)`。
+- 转换：`int(expr)`、`float(expr)`、`string(expr)` 等构造函数。`uint64` 格式化用 `string.formatUInt(v, format)`。
+- `as` 是运行时类型检查向下转换，不是数值转换。
+- 字符串拼接用 `+`。f-string：`f"hello {name}"`，`rf"c:\{name}"`。
 - 标准 API 入口参考：`D:\GIT\x-lang\DEMO6功能清单.md` 第 14 节。
 - 范例参考：`D:\GIT\x-lang\demo6\release\examples\` 下的 `.xl` 文件。
 
-## 已确认 BUG 与绕过方式（第 1 批发现，修复中）
+## 当前限制
 
-## 已修复 BUG（不再需要绕过，以下能力已正常）
+以下为**设计限制**或**暂未修复的 BUG**，开发时需注意：
 
-以下 BUG 均已修复并通过验证，**可以直接使用对应写法**：
+| 限制 | 说明 | 绕过方式 |
+|---|---|---|
+| **无 stdin API** | 不能从控制台读输入 | 用命令行参数驱动 |
+| **native-backed class 不可按值传参/返回已有值** | 带 destroy 的不可复制资源（设计决策） | 操作逻辑内联；可作参数传入、可 `return T()` 临时构造 |
+| **json pretty 用 TAB 缩进** | XRT 底层未提供配置机制 | `string.replace(s, "\t", "  ")` |
+| **json pretty 键序可能 hash 重排** | compact 模式保序，pretty 模式可能重排 | 需要保序时手工拼接 JSON 文本 |
+| **`string.splitLines` 尾部空串** | `"a\nb\n"` 返回 3 行 | 末元素为 `""` 时 remove 一个 |
+| **`int("abc")` 静默返回 0** | 不抛异常 | 自行逐字符校验 |
+| **`auto` 无法从 `pop()` 推断** | 用显式类型 | `int p = a.pop()` |
+| **list 无 append** | int64 稀疏存储 | `li[index] = value` |
+| **`#` 不是注释** | `//` 才是注释 | `#` 开启时间字面量 |
+| **复合赋值 `+=` 不派发 class 协议** | `[sem] numeric compound assignment` | 展开为 `a = a + b` |
+| **`derive string/hash/equals` 未实现** | 编译期明确拒绝 | 手写 `__eq__`/`__toString__` 等 |
+| **`__item__` 返回 `array<T>` 崩溃** | 运行期 0xC0000005 | 避免协议方法返回 typed 容器 |
+| **属性零维+一维重载不工作** | `get x()` + `get x(int)` 冲突 | 使用不同属性名 |
+| **`var` 实参传给重载函数失败** | `[sem] 没有匹配的函数重载` | 先 `int(v)` / `float(v)` 显式转换 |
 
-- derive json 序列化容器内 class 实例 ✅
-- array append/push/insert/remove/removeValue/contains/indexOf/clear/reverse/pop ✅
-- array `+` array 拼接 ✅
-- `Type<T>[...]` / `Type<T>{...}` 构造表达式（`array<int>[1,2,3]`、`set<int>{1,2}`）✅
-- `dict.remove(d, key)` / `d.remove(key)` ✅
-- `list<T>` json.stringify ✅
-- try/catch 内 return/break/continue ✅
-- 数组元素二元表达式在函数参数内 ✅
-- `type(expr)` 可进 println / string() ✅
-- xl run 透传 main 精确返回码 ✅
-- build exe 支持 UTF-8 argv ✅
-- class 方法体内读取 list/array 字段返回正确值 ✅
-- 容器（array/list）作函数参数正常传递 ✅
-- `func f(var d)` 可绑定 array 实参 ✅
-- Buffer/codec.percent/hex 在 build 正常 ✅
-- async 函数内读全局容器 ✅
-- `func f() as var` 可 `return float(...)` ✅
-- list<string> swap 不再别名缓冲 ✅
-- `string.formatInt` 负数非十进制保留符号 ✅
-- `T x`（无括号）触发无参 `create()` ✅
-- `json.parse` compact 模式保留键序 ✅
-- json key order in compact stringify ✅
+## 正向验证通过的能力
 
-## 仍需注意的限制
+以下能力经过 65 个工具的实战验证，可放心使用：
 
-| 限制 | 说明 |
-|---|---|
-| **无 stdin API** | 交互式工具用命令行参数驱动，不能从控制台读输入 |
-| **native-backed class 不可按值传参** | 设计决策：带 destroy 的不可复制资源；操作逻辑内联到单函数 |
-| **json pretty 用 TAB 缩进** | XRT 底层未提供配置机制；需 2 空格时 `string.replace(s,"\t","  ")` |
-| **json pretty 键序可能 hash 重排** | compact 模式保序，pretty 模式仍可能重排 |
-| **`string.pop()` 链接错误** | `xl6_xrt_value_to_string_release` 未解析；int/float pop 正常 |
-| **auto 无法从 pop() 推断** | `auto p = a.pop()` 报错；用显式类型 `int p = a.pop()` |
-| **list 无 append** | list 是 int64 稀疏存储，用 `li[index] = value` 扩容 |
-| **`#` 不是注释** | `//` 才是注释；`#` 开启时间字面量 |
-
-**正向验证通过**（可放心使用）：class 递归方法、generator、异常 throw/catch（含 return）、derive json（含容器）、random/crypto/math/time/string/dir/file/regex API、UTF-8 文件名、递归函数、var 字典字段访问、class 运算符/索引/属性协议、async/await/task.all、TCP/HTTP 网络、HttpClientRequest 全流程、float 全精度、`while cond do ... end`。
+- **语法**：f-string/rf-string、多行字符串、raw string、时间字面量、`#doc/#end` 文档注释
+- **类型系统**：泛型函数/泛型 class/泛型约束/泛型迭代协议、union 类型、typedef、is/as 类型判断
+- **容器**：array 全套方法 + `+` 拼接、list 稀疏索引、set/dict（含 remove）、`Type<T>[...]` 构造
+- **OOP**：class 继承链、base 调用、public/private/protected、static、virtual/override/final、vtable 动态派发、隐式向上转型、var 装箱 vtable 保留、属性 get/let（零维/多维/virtual）、方法重载/构造重载
+- **运算符协议**：`__add__/__sub__/__mul__/__div__/__mod__/__pow__`、`__neg__/__pos__/__not__/__bitNot__`、`__eq__/__ne__/__lt__/__le__/__gt__/__ge__/__approx__`、`__item__/__setItem__`（多维）、`__contains__/__call__/__len__/__iter__/__next__/__field__/__setField__`
+- **derive**：copy/clone/moveOnly（冲突检查）/value/json/xson + 字段注解 @json/@persist/omit
+- **持久化**：json/xson stringify/parse（含容器内 class）、字段级注解
+- **并发**：async/await、future、task.all/race/spawn/cancel、generator/yield、channel（send/recvInto/tryRecvInto/close）、thread、mutex/sem/cond/rwlock
+- **C 混编**：extern 函数/变量、export C ABI、native-backed class、.xl+.c 混合构建、xl abi dump、import/package/扩展库
+- **标准库**：string/math/time/random/path/file/dir/json/xson/codec/hash/crypto/regex/url/query/process/log/template/encoding/net/tcp/udp/http（client+server 全套）
+- **try/catch/finally**（含 catch 内 return）、throw、assert、多返回值+解构
+- **其他**：UTF-8 全链路（文件名/argv/输出）、xl run 精确返回码、build exe UTF-8 argv
 
 ## BUG 记录
 
-所有发现的 BUG / 手感问题统一记录到 `BUGS.md`，格式：
-
-```
-### BUG-<编号>: <简短标题>
-- 工具：<tool_name>
-- 复现：<最小复现代码或步骤>
-- 现象：<实际行为>
-- 期望：<期望行为>
-- 绕过：<当前用的绕过方式>
-- 严重度：高/中/低
-```
+未修复的 BUG 和设计限制统一记录在 `BUGS.md`。

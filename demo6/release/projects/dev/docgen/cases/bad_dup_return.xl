@@ -1,0 +1,17 @@
+// negative case: duplicate return doc
+// expected: [sem] #doc param/return 字段不能重复描述同一个名称
+#doc
+desc:
+    Two returns with the same name.
+return result:
+    First.
+return result:
+    Second.
+#end
+func bad() as int
+    return 1
+end
+
+func main(...) as int
+    return 0
+end

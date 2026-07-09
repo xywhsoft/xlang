@@ -1,0 +1,16 @@
+// negative case: duplicate param doc
+// expected: [sem] #doc param/return 字段不能重复描述同一个名称
+#doc
+desc:
+    Two params with the same name.
+param value:
+    First.
+param value:
+    Second.
+#end
+func bad(int value)
+end
+
+func main(...) as int
+    return 0
+end

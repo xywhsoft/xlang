@@ -1,0 +1,24 @@
+class DispatchBase
+    virtual func value() as int
+        return 1
+    end
+end
+
+class DispatchDerived extends DispatchBase
+    override func value() as int
+        return 2
+    end
+end
+
+func takeBase(DispatchBase value) as int
+    return value.value()
+end
+
+DispatchDerived derived
+DispatchBase direct = derived
+assert direct.value() == 2, "implicit upcast should keep vtable dispatch"
+assert takeBase(derived) == 2, "parameter upcast should keep vtable dispatch"
+
+var boxed = derived
+DispatchBase unboxed = boxed as DispatchBase
+assert unboxed.value() == 2, "var as base should keep vtable dispatch"

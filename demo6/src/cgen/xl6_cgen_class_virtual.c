@@ -56,6 +56,11 @@ static void xl6CgenVirtualTableFieldName(XL6_Output* out, const XL6_AstNode* own
     xl6CgenFputsEncodedText(out, ownerClass != NULL ? ownerClass->text : "_");
 }
 
+static void xl6CgenVirtualSelfRefFieldName(XL6_Output* out)
+{
+    xl6OutputPuts("__xl6_self_ref", out);
+}
+
 static void xl6CgenVirtualSlotName(XL6_CgenContext* ctx, const XL6_AstNode* member)
 {
     const XL6_AstNode* params;
@@ -293,6 +298,127 @@ static void xl6CgenVirtualFunctionPointerDecl(
     xl6OutputPuts(")", ctx->out);
 }
 
+static int xl6CgenVirtualReturnIsVoid(const XL6_AstNode* member)
+{
+    const XL6_AstNode* returns;
+
+    returns = member != NULL && member->childCount > 2 ? member->children[2] : NULL;
+    return returns == NULL || returns->childCount == 0;
+}
+
+static void xl6CgenVirtualWrapperName(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* slotOwnerClass,
+    const XL6_AstNode* dynamicClass,
+    const XL6_AstNode* slot)
+{
+    xl6OutputPuts("xl6_vwrap_", ctx->out);
+    xl6CgenFputsEncodedText(ctx->out, slotOwnerClass != NULL ? slotOwnerClass->text : "_");
+    xl6OutputPuts("__", ctx->out);
+    xl6CgenFputsEncodedText(ctx->out, dynamicClass != NULL ? dynamicClass->text : "_");
+    xl6OutputPuts("__", ctx->out);
+    xl6CgenVirtualSlotName(ctx, slot);
+}
+
+static void xl6CgenVirtualWrapperCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* params)
+{
+    size_t i;
+
+    for ( i = 0; params != NULL && i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : "_");
+    }
+}
+
+static void xl6CgenVirtualWrapperDeclForSlot(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* dynamicClass,
+    const XL6_AstNode* slotOwnerClass,
+    const XL6_AstNode* slot,
+    const XL6_AstNode* implOwner,
+    const XL6_AstNode* impl)
+{
+    const XL6_AstNode* params;
+
+    if ( ctx == NULL || dynamicClass == NULL || slotOwnerClass == NULL ||
+         slot == NULL || implOwner == NULL || impl == NULL ||
+         implOwner == slotOwnerClass ) {
+        return;
+    }
+
+    params = xl6CgenCallableParams(slot);
+    xl6OutputPuts("static ", ctx->out);
+    xl6CgenVirtualReturnType(ctx, slot);
+    xl6OutputPutc(' ', ctx->out);
+    xl6CgenVirtualWrapperName(ctx, slotOwnerClass, dynamicClass, slot);
+    xl6OutputPutc('(', ctx->out);
+    xl6CgenClassParamListEx(ctx, slotOwnerClass, params, 1);
+    xl6OutputPuts(")\n{\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6CgenClassTypeName(ctx->out, implOwner->text);
+    xl6OutputPuts("* actual = (", ctx->out);
+    xl6CgenClassTypeName(ctx->out, implOwner->text);
+    xl6OutputPuts("*)self;\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if ( self != 0 && self->", ctx->out);
+    xl6CgenVirtualSelfRefFieldName(ctx->out);
+    xl6OutputPuts(" != 0 ) {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("void* data = xvoGetRecordData(self->", ctx->out);
+    xl6CgenVirtualSelfRefFieldName(ctx->out);
+    xl6OutputPuts(");\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if ( data != 0 ) { actual = (", ctx->out);
+    xl6CgenClassTypeName(ctx->out, implOwner->text);
+    xl6OutputPuts("*)data; }\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    if ( !xl6CgenVirtualReturnIsVoid(slot) ) {
+        xl6OutputPuts("return ", ctx->out);
+    }
+    xl6CgenClassCallableSymbol(ctx, implOwner, impl);
+    xl6OutputPuts("(actual", ctx->out);
+    xl6CgenVirtualWrapperCallArgs(ctx, params);
+    xl6OutputPuts(");\n", ctx->out);
+    ctx->indent -= 1;
+    xl6OutputPuts("}\n\n", ctx->out);
+}
+
+static void xl6CgenVirtualWrapperDeclsForOwner(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* dynamicClass,
+    const XL6_AstNode* slotOwnerClass)
+{
+    const XL6_AstNode* body;
+    size_t i;
+
+    if ( !xl6CgenClassHasLocalVirtualSlots(slotOwnerClass) ) {
+        return;
+    }
+
+    body = xl6CgenClassBody(slotOwnerClass);
+    for ( i = 0; body != NULL && i < body->childCount; ++i ) {
+        const XL6_AstNode* slot = body->children[i];
+        const XL6_AstNode* implOwner;
+        const XL6_AstNode* impl;
+
+        if ( !xl6CgenVirtualMemberIsSlot(slot) ) {
+            continue;
+        }
+        implOwner = NULL;
+        impl = xl6CgenFindVirtualImplementation(ctx, dynamicClass, slot, &implOwner);
+        if ( impl == NULL || implOwner == NULL ) {
+            continue;
+        }
+        xl6CgenVirtualWrapperDeclForSlot(ctx, dynamicClass, slotOwnerClass, slot, implOwner, impl);
+    }
+}
+
 static void xl6CgenVirtualFieldDecl(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
 {
     if ( !xl6CgenClassHasLocalVirtualSlots(classNode) ) {
@@ -302,6 +428,9 @@ static void xl6CgenVirtualFieldDecl(XL6_CgenContext* ctx, const XL6_AstNode* cla
     xl6CgenVirtualTableTypeName(ctx->out, classNode);
     xl6OutputPuts("* ", ctx->out);
     xl6CgenVirtualTableFieldName(ctx->out, classNode);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6OutputPuts("    xvalue ", ctx->out);
+    xl6CgenVirtualSelfRefFieldName(ctx->out);
     xl6OutputPuts(";\n", ctx->out);
 }
 
@@ -343,6 +472,8 @@ static void xl6CgenVirtualTableObjectDeclForOwner(
         return;
     }
 
+    xl6CgenVirtualWrapperDeclsForOwner(ctx, dynamicClass, slotOwnerClass);
+
     xl6OutputPuts("static const struct ", ctx->out);
     xl6CgenVirtualTableTypeName(ctx->out, slotOwnerClass);
     xl6OutputPutc(' ', ctx->out);
@@ -369,11 +500,10 @@ static void xl6CgenVirtualTableObjectDeclForOwner(
         xl6CgenVirtualSlotName(ctx, slot);
         xl6OutputPuts(" = ", ctx->out);
         if ( implOwner != slotOwnerClass ) {
-            xl6OutputPutc('(', ctx->out);
-            xl6CgenVirtualFunctionPointerType(ctx, slotOwnerClass, slot);
-            xl6OutputPutc(')', ctx->out);
+            xl6CgenVirtualWrapperName(ctx, slotOwnerClass, dynamicClass, slot);
+        } else {
+            xl6CgenClassCallableSymbol(ctx, implOwner, impl);
         }
-        xl6CgenClassCallableSymbol(ctx, implOwner, impl);
         xl6OutputPuts(",\n", ctx->out);
         wrote = 1;
     }
@@ -432,6 +562,11 @@ static void xl6CgenClassInitVTablesForChain(
     xl6OutputPuts(" = &", ctx->out);
     xl6CgenVirtualTableObjectName(ctx->out, classNode, dynamicClass);
     xl6OutputPuts(";\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts(varPath, ctx->out);
+    xl6OutputPutc('.', ctx->out);
+    xl6CgenVirtualSelfRefFieldName(ctx->out);
+    xl6OutputPuts(" = 0;\n", ctx->out);
 }
 
 static void xl6CgenClassInitVTables(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* varPath)

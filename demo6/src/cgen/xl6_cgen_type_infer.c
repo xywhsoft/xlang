@@ -765,6 +765,14 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             }
             return isDynamicKey ? xl6CgenNewSimpleType("var", expr) : NULL;
         }
+        if ( expr->text != NULL &&
+             xl6CTextEquals(expr->text, "length") &&
+             expr->childCount > 0 &&
+             xl6CgenExprUsesTypedContainerStorage(ctx, expr->children[0]) &&
+             xl6CgenIsTypedContainerType(ctx, receiverType) ) {
+            xl6AstFree(receiverType);
+            return xl6CgenNewSimpleType("int", expr);
+        }
         xl6AstFree(receiverType);
         {
             XL6_AstNode* fieldType = xl6CgenCloneMemberFieldTypeForInference(ctx, expr);
@@ -780,6 +788,14 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
             int isAllowed = isLength || xl6CgenMemberKeyReceiverIsDynamic(ctx, receiverType);
             xl6AstFree(receiverType);
             return isAllowed ? xl6CgenNewSimpleType("var", expr) : NULL;
+        }
+        if ( expr->text != NULL &&
+             xl6CTextEquals(expr->text, "length") &&
+             expr->childCount > 0 &&
+             xl6CgenExprUsesTypedContainerStorage(ctx, expr->children[0]) &&
+             xl6CgenIsTypedContainerType(ctx, receiverType) ) {
+            xl6AstFree(receiverType);
+            return xl6CgenNewSimpleType("var", expr);
         }
         xl6AstFree(receiverType);
         return NULL;

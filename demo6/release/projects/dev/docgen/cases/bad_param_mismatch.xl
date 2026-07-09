@@ -1,0 +1,14 @@
+// negative case: param doc name not in function signature
+// expected: [sem] #doc param 字段必须对应目标声明中的参数
+#doc
+desc:
+    Param name does not match.
+param missing:
+    No such parameter.
+#end
+func bad(int value)
+end
+
+func main(...) as int
+    return 0
+end

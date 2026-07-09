@@ -1,4 +1,5 @@
 static void xl6CgenEmitRuntimeTypeCastHelpers(XL6_CgenContext* ctx);
+static void xl6CgenEmitRuntimeTypeClassRecordCastHelper(XL6_CgenContext* ctx, const XL6_AstNode* targetType);
 
 static int xl6CgenNodeNeedsRuntimeTypeOps(const XL6_AstNode* node)
 {
@@ -227,6 +228,16 @@ static void xl6CgenEmitRuntimeTypeRecordCastHelper(XL6_CgenContext* ctx, const X
         return;
     }
 
+    if ( xl6CgenIsClassType(ctx, concreteTarget) &&
+         !xl6CgenIsNativeBackedClassType(ctx, concreteTarget) ) {
+        cType = xl6CgenTypeName(ctx, concreteTarget);
+        xl6OutputPrintf(ctx->out, "#ifndef XL6_RUNTIME_AS_HELPER_%s\n", cType);
+        xl6OutputPrintf(ctx->out, "#define XL6_RUNTIME_AS_HELPER_%s\n", cType);
+        xl6CgenEmitRuntimeTypeClassRecordCastHelper(ctx, concreteTarget);
+        xl6OutputPuts("#endif\n\n", ctx->out);
+        return;
+    }
+
     cType = xl6CgenTypeName(ctx, concreteTarget);
     xl6OutputPrintf(ctx->out, "#ifndef XL6_RUNTIME_AS_HELPER_%s\n", cType);
     xl6OutputPrintf(ctx->out, "#define XL6_RUNTIME_AS_HELPER_%s\n", cType);
@@ -266,6 +277,107 @@ static void xl6CgenEmitRuntimeTypeCastHelpers(XL6_CgenContext* ctx)
         return;
     }
     xl6CgenEmitRuntimeTypeCastHelpersForNode(ctx, ctx->root);
+}
+
+static void xl6CgenEmitRuntimeTypeClassUpcastCase(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* targetClass,
+    const XL6_AstNode* actualClass,
+    const char* targetCType,
+    const char* basePath)
+{
+    char actualCType[512];
+    int prevIndent;
+
+    if ( ctx == NULL || targetClass == NULL || actualClass == NULL ||
+         targetCType == NULL || basePath == NULL ) {
+        return;
+    }
+
+    xl6CgenClassTypeRefName(actualCType, sizeof(actualCType), actualClass);
+    xl6OutputPuts("    if (xrtTypeSame(actual, ", ctx->out);
+    xl6CgenEmitRuntimeTypeClassDescRef(ctx, actualClass);
+    xl6OutputPuts(")) {\n", ctx->out);
+    xl6OutputPuts("        const ", ctx->out);
+    xl6OutputPuts(actualCType, ctx->out);
+    xl6OutputPuts("* source = (const ", ctx->out);
+    xl6OutputPuts(actualCType, ctx->out);
+    xl6OutputPuts("*)data;\n", ctx->out);
+    xl6OutputPuts("        *outValue = source", ctx->out);
+    if ( basePath[0] == '.' ) {
+        xl6OutputPuts("->", ctx->out);
+        xl6OutputPuts(basePath + 1, ctx->out);
+    } else {
+        xl6OutputPuts(basePath, ctx->out);
+    }
+    xl6OutputPuts(";\n", ctx->out);
+
+    prevIndent = ctx->indent;
+    ctx->indent = 2;
+    xl6CgenClassClearVirtualSelfRefs(ctx, targetClass, "(*outValue)");
+    xl6CgenRetainClassFunctionFields(ctx, targetClass, "(*outValue)");
+    if ( xl6CgenClassHasVirtualSlotsInChain(ctx, targetClass) ) {
+        xl6CgenClassAssignVirtualSelfRefs(ctx, targetClass, "(*outValue)", "value");
+    }
+    ctx->indent = prevIndent;
+
+    xl6OutputPuts("        ok = true;\n", ctx->out);
+    xl6OutputPuts("    }\n", ctx->out);
+}
+
+static void xl6CgenEmitRuntimeTypeClassRecordCastHelper(XL6_CgenContext* ctx, const XL6_AstNode* targetType)
+{
+    XL6_AstNode* targetClass;
+    char targetCType[512];
+    size_t i;
+
+    targetClass = xl6CgenClassNodeForType(ctx, targetType);
+    if ( ctx == NULL || ctx->root == NULL || targetClass == NULL || xl6CgenClassHasTypeParams(targetClass) ) {
+        return;
+    }
+
+    xl6CgenClassTypeRefName(targetCType, sizeof(targetCType), targetType);
+    xl6OutputPrintf(ctx->out, "static bool xl6_runtime_value_as_class_%s(xvalue value, %s* outValue, bool release)\n", targetCType, targetCType);
+    xl6OutputPuts("{\n", ctx->out);
+    xl6OutputPuts("    const xrt_type_desc* actual = xl6_runtime_value_type_desc(value);\n", ctx->out);
+    xl6OutputPuts("    const void* data = xvoGetRecordData(value);\n", ctx->out);
+    xl6OutputPuts("    bool ok = false;\n", ctx->out);
+    xl6OutputPuts("    if (outValue != 0 && data != 0) {\n", ctx->out);
+    xl6OutputPuts("        if (xrtTypeSame(actual, ", ctx->out);
+    xl6CgenEmitRuntimeTypeClassDescRef(ctx, targetClass);
+    xl6OutputPuts(")) {\n", ctx->out);
+    xl6OutputPrintf(ctx->out, "            xl6_type_copy_%s(outValue, data);\n", targetCType);
+    xl6OutputPuts("            ok = true;\n", ctx->out);
+    xl6OutputPuts("        }\n", ctx->out);
+    xl6OutputPuts("    }\n", ctx->out);
+    xl6OutputPuts("    if (!ok && outValue != 0 && data != 0) {\n", ctx->out);
+    for ( i = 0; i < ctx->root->childCount; ++i ) {
+        const XL6_AstNode* node = ctx->root->children[i];
+        char basePath[256];
+
+        if ( node == NULL || node->kind != XL6_AST_CLASS ||
+             node == targetClass ||
+             xl6CgenClassHasTypeParams(node) ) {
+            continue;
+        }
+        basePath[0] = '\0';
+        if ( !xl6CgenClassBasePath(ctx, node, targetClass, basePath, sizeof(basePath)) ||
+             basePath[0] == '\0' ) {
+            continue;
+        }
+        xl6CgenEmitRuntimeTypeClassUpcastCase(ctx, targetClass, node, targetCType, basePath);
+    }
+    xl6OutputPuts("    }\n", ctx->out);
+    xl6OutputPuts("    if (release && value != 0) { xvoUnref(value); }\n", ctx->out);
+    xl6OutputPuts("    return ok;\n", ctx->out);
+    xl6OutputPuts("}\n\n", ctx->out);
+
+    xl6OutputPrintf(ctx->out, "static %s xl6_runtime_value_as_%s(xvalue value, bool release)\n", targetCType, targetCType);
+    xl6OutputPuts("{\n", ctx->out);
+    xl6OutputPrintf(ctx->out, "    %s result = {0};\n", targetCType);
+    xl6OutputPrintf(ctx->out, "    if (!xl6_runtime_value_as_class_%s(value, &result, release)) { xl6_runtime_fatal(4); }\n", targetCType);
+    xl6OutputPuts("    return result;\n", ctx->out);
+    xl6OutputPuts("}\n", ctx->out);
 }
 
 static int xl6CgenRuntimeTypeStaticIs(XL6_CgenContext* ctx, const XL6_AstNode* valueType, const XL6_AstNode* targetType)
@@ -424,6 +536,13 @@ static void xl6CgenRuntimeTypeAsExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
          !xl6CgenIsXValueType(concreteValueType) &&
          xl6CgenTypeNodeEqual(concreteValueType, concreteTarget) ) {
         xl6CgenExpr(ctx, value);
+        xl6AstFree(valueType);
+        return;
+    }
+
+    if ( concreteValueType != NULL && concreteTarget != NULL &&
+         !xl6CgenIsXValueType(concreteValueType) &&
+         xl6CgenClassUpcastExpr(ctx, concreteTarget, value) ) {
         xl6AstFree(valueType);
         return;
     }

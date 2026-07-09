@@ -1,0 +1,608 @@
+﻿// fileserver - HTTP server 深度验证工具
+//
+// 用法：
+//   fileserver                -> self-test：启动 server、自发自收跑测试用例、报告后退出
+//   fileserver serve [port]   -> 常驻模式，监听 port（默认 18100）
+//
+// 验证范围：
+//   1. 基本路由  http.server.get/post/any + getRequest/postRequest
+//   2. 路由模式  静态段、{id} 变量段、尾部 *
+//   3. 静态文件  http.server.static (ETag / 304 / Range / 206)
+//   4. HttpRequest method/path/query/header/cookie/body/bodyBytes
+//   5. HttpResponse status/header/cookie/text/jsonText/redirect/file
+//   6. app 体系  app() / setApp / reloadApp / host 虚拟主机
+//   7. 流式响应  resp.start/write/finish
+//   8. 错误处理器  http.server.error
+//   9. MIME 类型  http.server.mimeByPath
+//  10. 连接统计   requestCount / connectionCount
+//
+// 设计约束（来自 README "仍需注意的限制"）：
+//   * native-backed class（HttpRequest / HttpResponse / HttpClientRequest /
+//     HttpClientResponse / Buffer）不能按值传给函数，操作逻辑全部内联到
+//     handler 或 main 中。
+//   * xlang 没有 bare block scope（只有 do...while），所以多个相互独立
+//     的 HttpClientRequest 测试用例用 `if true then ... end` 包起来制造
+//     互相隔离的局部变量作用域，避免重复声明 req/resp。
+
+const int DEFAULT_PORT = 18100
+
+// ----- 统计 self-test 用 -----
+int gPassed = 0
+int gFailed = 0
+string gBase = ""
+
+func check(bool cond, string name, string detail)
+    if cond then
+        gPassed += 1
+        println("[ PASS ] " + name)
+    else
+        gFailed += 1
+        println("[ FAIL ] " + name + "  " + detail)
+    end
+end
+
+func expectStatus(int got, int want, string name)
+    check(got == want, name, "got status " + got.toString() + " want " + want.toString())
+end
+
+// ============================================================
+// 路由 handler：对象化路由（HttpRequest / HttpResponse 必须内联使用）
+// ============================================================
+
+// 单一集中式 request handler。按 method/path 分发。
+func route(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+
+    resp.header("X-Server", "xlang-fileserver")
+
+    string method = req.method()
+    string path = req.path()
+
+    // GET / -> 欢迎页（HTML）
+    if method == "GET" and path == "/" then
+        string html = "<html><head><title>xlang fileserver</title></head>"
+        html = html + "<body><h1>xlang fileserver</h1>"
+        html = html + "<ul><li>GET /api/items</li><li>GET /api/items/{id}</li>"
+        html = html + "<li>POST /api/items</li><li>/static/index.txt</li>"
+        html = html + "<li>GET /redirect</li><li>GET /stream</li>"
+        html = html + "<li>GET /cookieset</li><li>GET /cookieread</li>"
+        html = html + "<li>GET /headers</li><li>GET /query</li>"
+        html = html + "<li>GET /wildcard/* (任意路径)</li></ul></body></html>"
+        return resp.text(html, "text/html; charset=utf-8")
+    end
+
+    // GET /api/items -> JSON 数组
+    if method == "GET" and path == "/api/items" then
+        return resp.jsonText("[{\"id\":1,\"name\":\"alpha\"},{\"id\":2,\"name\":\"beta\"}]")
+    end
+
+    // GET /api/items/{id} -> JSON 单项（路径参数）
+    if method == "GET" and string.startsWith(path, "/api/items/") then
+        string id = req.param("id")
+        string body = "{\"id\":" + id + ",\"name\":\"item-" + id + "\"}"
+        return resp.jsonText(body)
+    end
+
+    // POST /api/items -> 读取 body，返回 echo
+    if method == "POST" and path == "/api/items" then
+        string ct = req.contentType()
+        string body = req.body()
+        string out = "{\"echo\":" + body + ",\"method\":\"" + method + "\",\"ct\":\"" + ct + "\"}"
+        return resp.jsonText(out)
+    end
+
+    // GET /redirect -> 跳转 /
+    if method == "GET" and path == "/redirect" then
+        return resp.redirect("/", 302)
+    end
+
+    // GET /stream -> 流式响应
+    if method == "GET" and path == "/stream" then
+        resp.header("Content-Type", "text/plain; charset=utf-8")
+        if not resp.start() then
+            return false
+        end
+        resp.write("chunk-1\n")
+        resp.write("chunk-2\n")
+        resp.write("chunk-3\n")
+        return resp.finish()
+    end
+
+    // GET /cookieset -> 写 cookie
+    if method == "GET" and path == "/cookieset" then
+        int flags = http.server.cookieHttpOnly
+        resp.cookie("sid", "session-xyz", "/", 3600, http.server.sameSiteLax, flags)
+        resp.cookie("pref", "dark", "/", -1, http.server.sameSiteUnspecified, 0)
+        return resp.text("cookies set")
+    end
+
+    // GET /cookieread -> 读 cookie（带 sid 时回显，否则提示未设置）
+    if method == "GET" and path == "/cookieread" then
+        string sid = req.cookie("sid")
+        string pref = req.cookie("pref")
+        if sid == "" then
+            return resp.jsonText("{\"hasSid\":false}")
+        end
+        return resp.jsonText("{\"hasSid\":true,\"sid\":\"" + sid + "\",\"pref\":\"" + pref + "\"}")
+    end
+
+    // GET /headers -> 反射请求头（取若干常见头）
+    if method == "GET" and path == "/headers" then
+        string host = req.header("Host")
+        string ua = req.header("User-Agent")
+        string xTest = req.header("X-Test")
+        string body = "{\"host\":\"" + host + "\",\"ua\":\"" + ua + "\",\"x-test\":\"" + xTest + "\",\"headerCount\":" + req.headerCount().toString() + "}"
+        return resp.jsonText(body)
+    end
+
+    // GET /query -> 反射 query 参数
+    if method == "GET" and path == "/query" then
+        string q = req.query()
+        string foo = req.queryValue("foo")
+        string baz = req.queryValue("baz")
+        string body = "{\"raw\":\"" + q + "\",\"foo\":\"" + foo + "\",\"baz\":\"" + baz + "\",\"count\":" + req.queryCount().toString() + "}"
+        return resp.jsonText(body)
+    end
+
+    // POST /echo-bytes -> 二进制 body 回显（用 bodyData/bodySize）
+    if method == "POST" and path == "/echo-bytes" then
+        return resp.body(req.bodyData(), c_size(req.bodySize()), "application/octet-stream")
+    end
+
+    // GET /status/{code} -> 自定义状态码
+    if method == "GET" and string.startsWith(path, "/status/") then
+        string code = req.param("code")
+        int c = int(code)
+        resp.status(c)
+        return resp.text("status " + code)
+    end
+
+    // GET /error -> 主动 return false 触发错误处理器
+    if method == "GET" and path == "/error" then
+        return false
+    end
+
+    // GET /wildcard/* -> 通配符路由（覆盖尾部 * 匹配）
+    if method == "GET" and string.startsWith(path, "/wildcard/") then
+        int pc = req.paramCount()
+        int pi = 0
+        while pi < pc do
+            resp.addHeader("X-Wild-Param-" + pi.toString(), req.paramName(pi) + "=" + req.paramValue(pi))
+            pi += 1
+        end
+        return resp.text("wildcard path=" + path + " paramCount=" + pc.toString())
+    end
+
+    // GET /file -> 用 resp.file() 直接返回磁盘文件
+    if method == "GET" and path == "/file" then
+        return resp.file("projects/dev/fileserver/static_root/index.txt")
+    end
+
+    // 兜底：交给错误处理器
+    return false
+end
+
+func(point, point) as bool requestHandler = route
+
+// legacy 四参 handler（用于验证 http.server.any 的字符串型路由）
+func legacyAny(string method, string path, string query, string body) as string
+    return "any-handler: " + method + " " + path
+end
+
+func(string, string, string, string) as string legacyHandler = legacyAny
+
+// 错误处理器：在响应里加 X-Error-Path 头
+func errorPage(int status, string message, point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.status(status)
+    resp.header("X-Error-Path", req.path())
+    string body = "{\"status\":" + status.toString() + ",\"message\":\"" + message + "\",\"path\":\"" + req.path() + "\"}"
+    return resp.jsonText(body)
+end
+
+func(int, string, point, point) as bool errorHandler = errorPage
+
+// ============================================================
+// app 体系（独立 app + 虚拟主机）：
+// app 的 request handler 单独定义，验证 appGetRequest / host 虚拟主机绑定。
+// ============================================================
+func appRoute(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.header("X-App", "vhost")
+    return resp.text("vhost app path=" + req.path())
+end
+
+func(point, point) as bool appRequestHandler = appRoute
+
+// ============================================================
+// buildServer: 构造 server 句柄 + 注册全部路由 + 静态目录 + app 体系
+// ============================================================
+func buildServer(int port) as point
+    point server = http.server.create(port, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 2)
+
+    http.server.getRequest(server, "/", requestHandler)
+    http.server.getRequest(server, "/api/items", requestHandler)
+    http.server.getRequest(server, "/api/items/{id}", requestHandler)
+    http.server.postRequest(server, "/api/items", requestHandler)
+    http.server.getRequest(server, "/redirect", requestHandler)
+    http.server.getRequest(server, "/stream", requestHandler)
+    http.server.getRequest(server, "/cookieset", requestHandler)
+    http.server.getRequest(server, "/cookieread", requestHandler)
+    http.server.getRequest(server, "/headers", requestHandler)
+    http.server.getRequest(server, "/query", requestHandler)
+    http.server.postRequest(server, "/echo-bytes", requestHandler)
+    http.server.getRequest(server, "/status/{code}", requestHandler)
+    http.server.getRequest(server, "/error", requestHandler)
+    http.server.getRequest(server, "/file", requestHandler)
+    http.server.getRequest(server, "/wildcard/*", requestHandler)
+
+    // any() 演示：legacy 四参 handler 注册到 /any
+    http.server.any(server, "/any", legacyHandler)
+
+    // 静态文件服务
+    http.server.static(server, "/static", "projects/dev/fileserver/static_root")
+
+    // app 体系：独立 app + 虚拟主机
+    point vhostApp = http.server.app()
+    http.server.appGetRequest(vhostApp, "/", appRequestHandler)
+    http.server.appGetRequest(vhostApp, "/{any}", appRequestHandler)
+    http.server.host(server, "vhost.local", vhostApp)
+
+    // 错误处理器
+    http.server.error(server, errorHandler)
+
+    return server
+end
+
+// ============================================================
+// self-test：用 HttpClientRequest 反向打自己的 server。
+// native-backed class 不能跨函数传参，所以每个 case 内联，
+// 用 `if true then ... end` 制造独立作用域避免变量名重复。
+// ============================================================
+func runSelfTest(int port) as int
+    gBase = "http://127.0.0.1:" + port.toString()
+
+    println("")
+    println("================ fileserver self-test ================")
+    println("base url: " + gBase)
+    println("")
+
+    // ---- case 1: GET / -> 200 + HTML
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/")
+        req.method("GET")
+        req.timeout(5000)
+        req.header("X-Test", "selftest")
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "1. GET / status")
+        check(resp.header("X-Server") == "xlang-fileserver", "1. GET / X-Server header", "got " + resp.header("X-Server"))
+        check(string.contains(resp.body(), "xlang fileserver"), "1. GET / body has title", "body=" + resp.body())
+    end
+
+    // ---- case 2: GET /api/items -> JSON 数组
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/api/items")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "2. GET /api/items status")
+        check(string.contains(resp.body(), "alpha"), "2. items has alpha", "body=" + resp.body())
+        check(string.contains(resp.body(), "beta"), "2. items has beta", "body=" + resp.body())
+        check(resp.header("Content-Type") == "application/json; charset=utf-8", "2. items Content-Type json", "ct=" + resp.header("Content-Type"))
+    end
+
+    // ---- case 3: GET /api/items/{id} -> 路径参数 42
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/api/items/42")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "3. GET /api/items/42 status")
+        check(string.contains(resp.body(), "\"id\":42"), "3. body has id=42", "body=" + resp.body())
+        check(string.contains(resp.body(), "item-42"), "3. body has item-42", "body=" + resp.body())
+    end
+
+    // ---- case 4: POST /api/items -> echo body
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/api/items")
+        req.method("POST")
+        req.timeout(5000)
+        req.text("{\"name\":\"gamma\"}", "application/json")
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "4. POST /api/items status")
+        check(string.contains(resp.body(), "gamma"), "4. echo has gamma", "body=" + resp.body())
+        check(string.contains(resp.body(), "\"method\":\"POST\""), "4. echo method POST", "body=" + resp.body())
+    end
+
+    // ---- case 5: GET /redirect -> 302
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/redirect")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 302, "5. GET /redirect status 302")
+        check(resp.header("Location") == "/", "5. redirect Location=/", "Location=" + resp.header("Location"))
+    end
+
+    // ---- case 6: GET /stream -> 流式 chunked
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/stream")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "6. GET /stream status")
+        string body = resp.body()
+        check(string.contains(body, "chunk-1") and string.contains(body, "chunk-3"), "6. stream body chunks", "body=" + body)
+    end
+
+    // ---- case 7: GET /cookieset -> Set-Cookie
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/cookieset")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "7. GET /cookieset status")
+        check(string.contains(resp.header("Set-Cookie"), "sid=session-xyz"), "7. Set-Cookie sid", "Set-Cookie=" + resp.header("Set-Cookie"))
+    end
+
+    // ---- case 8: GET /cookieread 带 cookie
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/cookieread")
+        req.method("GET")
+        req.timeout(5000)
+        req.header("Cookie", "sid=session-xyz; pref=dark")
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "8. GET /cookieread status")
+        check(string.contains(resp.body(), "session-xyz"), "8. body has sid", "body=" + resp.body())
+        check(string.contains(resp.body(), "dark"), "8. body has pref=dark", "body=" + resp.body())
+    end
+
+    // ---- case 9: GET /cookieread 不带 cookie -> hasSid:false
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/cookieread")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "9. GET /cookieread (no cookie) status")
+        check(string.contains(resp.body(), "\"hasSid\":false"), "9. hasSid false", "body=" + resp.body())
+    end
+
+    // ---- case 10: GET /headers -> 反射自定义头
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/headers")
+        req.method("GET")
+        req.timeout(5000)
+        req.header("X-Test", "headerval")
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "10. GET /headers status")
+        check(string.contains(resp.body(), "headerval"), "10. body reflects X-Test", "body=" + resp.body())
+    end
+
+    // ---- case 11: GET /query?foo=bar&baz=qux
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/query?foo=bar&baz=qux")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "11. GET /query status")
+        check(string.contains(resp.body(), "\"foo\":\"bar\""), "11. query foo=bar", "body=" + resp.body())
+        check(string.contains(resp.body(), "\"baz\":\"qux\""), "11. query baz=qux", "body=" + resp.body())
+    end
+
+    // ---- case 12: GET /wildcard/abc/def -> 通配符
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/wildcard/abc/def")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "12. GET /wildcard/abc/def status")
+        check(string.contains(resp.body(), "wildcard"), "12. body wildcard", "body=" + resp.body())
+    end
+
+    // ---- case 13: 静态文件 /static/index.txt
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/static/index.txt")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "13. GET /static/index.txt status")
+        check(string.contains(resp.body(), "hello from xlang static"), "13. body hello", "body=" + resp.body())
+        string etag = resp.header("ETag")
+        check(etag != "", "13. ETag present", "ETag=" + etag)
+        check(resp.header("Accept-Ranges") == "bytes", "13. Accept-Ranges bytes", "Accept-Ranges=" + resp.header("Accept-Ranges"))
+    end
+
+    // ---- case 14: 静态文件 If-None-Match -> 304
+    if true then
+        HttpClientRequest r1 = HttpClientRequest(gBase + "/static/index.txt")
+        r1.method("GET")
+        r1.timeout(5000)
+        HttpClientResponse first = r1.execute()
+        string etag = first.header("ETag")
+        if etag == "" then
+            check(false, "14. 304 path prerequisite (ETag empty)", "")
+        else
+            HttpClientRequest req = HttpClientRequest(gBase + "/static/index.txt")
+            req.method("GET")
+            req.timeout(5000)
+            req.header("If-None-Match", etag)
+            HttpClientResponse resp = req.execute()
+            expectStatus(resp.status(), 304, "14. If-None-Match -> 304")
+        end
+    end
+
+    // ---- case 15: 静态文件 Range -> 206
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/static/index.txt")
+        req.method("GET")
+        req.timeout(5000)
+        req.header("Range", "bytes=0-4")
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 206, "15. Range -> 206")
+        check(resp.header("Content-Range") != "", "15. Content-Range present", "Content-Range=" + resp.header("Content-Range"))
+        check(resp.header("Content-Length") == "5", "15. Content-Length 5", "CL=" + resp.header("Content-Length"))
+    end
+
+    // ---- case 16: 错误处理器 /error -> 触发 error handler
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/error")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        bool okStatus = resp.status() == 500 or resp.status() == 400
+        check(okStatus, "16. /error triggers error handler (status=" + resp.status().toString() + ")", "status=" + resp.status().toString())
+        check(resp.header("X-Error-Path") == "/error", "16. X-Error-Path=/error", "X-Error-Path=" + resp.header("X-Error-Path"))
+    end
+
+    // ---- case 17: 404 兜底 -> 错误处理器
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/no-such-path")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 404, "17. /no-such-path -> 404")
+        check(resp.header("X-Error-Path") == "/no-such-path", "17. 404 X-Error-Path", "X-Error-Path=" + resp.header("X-Error-Path"))
+    end
+
+    // ---- case 18: 自定义状态码 /status/418
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/status/418")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 418, "18. /status/418 custom code")
+    end
+
+    // ---- case 19: 二进制 body 回显 /echo-bytes（用 req.body 字符串形式发 octet-stream）
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/echo-bytes")
+        req.method("POST")
+        req.timeout(5000)
+        req.body("abc", c_size(3), "application/octet-stream")
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "19. POST /echo-bytes status")
+        check(resp.contentLength() == 3, "19. echo-bytes len 3", "CL=" + resp.contentLength().toString())
+    end
+
+    // ---- case 20: resp.file() 直接返回磁盘文件
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/file")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "20. GET /file status")
+        check(string.contains(resp.body(), "hello from xlang static"), "20. file body", "body=" + resp.body())
+    end
+
+    // ---- case 21: any() 注册的 legacy handler /any
+    if true then
+        HttpClientRequest req = HttpClientRequest(gBase + "/any")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        expectStatus(resp.status(), 200, "21. GET /any (any-handler) status")
+        check(string.contains(resp.body(), "any-handler"), "21. any-handler body", "body=" + resp.body())
+    end
+
+    println("")
+    println("------------------- summary -------------------")
+    println("passed: " + gPassed.toString() + " / " + (gPassed + gFailed).toString())
+    println("failed: " + gFailed.toString())
+    println("")
+
+    if gFailed > 0 then
+        return 1
+    end
+    return 0
+end
+
+// ============================================================
+// main
+// ============================================================
+func main(...) as int
+    println("xlang fileserver - HTTP server deep verification tool")
+    println("mimeByPath(.json) = " + http.server.mimeByPath("a.json"))
+    println("mimeByPath(.html) = " + http.server.mimeByPath("a.html"))
+    println("mimeByPath(.png)  = " + http.server.mimeByPath("a.png"))
+    println("mimeByPath(.txt)  = " + http.server.mimeByPath("a.txt"))
+    println("")
+
+    string mode = "selftest"
+    int port = DEFAULT_PORT
+    if arg.length >= 2 then
+        string a1 = string(arg[1])
+        if a1 == "serve" then
+            mode = "serve"
+        elseif a1 == "selftest" then
+            mode = "selftest"
+        elseif a1 == "-h" or a1 == "--help" then
+            println("Usage:")
+            println("  fileserver               run self-test (start server, fire requests, exit)")
+            println("  fileserver serve [port]  serve forever (default port " + DEFAULT_PORT.toString() + ")")
+            return 0
+        else
+            int parsed = int(a1)
+            if parsed > 0 then
+                port = parsed
+            end
+        end
+    end
+    if arg.length >= 3 and mode == "serve" then
+        int parsed = int(string(arg[2]))
+        if parsed > 0 then
+            port = parsed
+        end
+    end
+
+    if mode == "selftest" then
+        point server = buildServer(0)
+        if server == null then
+            println("FATAL: http.server.create returned null")
+            return 1
+        end
+        if not http.server.start(server) then
+            println("FATAL: http.server.start failed")
+            http.server.destroy(server)
+            return 1
+        end
+        int boundPort = http.server.port(server)
+        println("server started on 127.0.0.1:" + boundPort.toString())
+        println("requestCount=" + http.server.requestCount(server).toString() + " connectionCount=" + http.server.connectionCount(server).toString())
+
+        time.sleep(200)
+
+        int rc = runSelfTest(boundPort)
+
+        println("post-test requestCount=" + http.server.requestCount(server).toString())
+        println("post-test connectionCount=" + http.server.connectionCount(server).toString())
+
+        if not http.server.drain(server, 2000) then
+            println("WARN: drain timed out, forcing stop")
+        end
+        http.server.stop(server)
+        http.server.destroy(server)
+        println("server stopped & destroyed")
+        return rc
+    end
+
+    // serve 模式
+    point server = buildServer(port)
+    if server == null then
+        println("FATAL: http.server.create returned null")
+        return 1
+    end
+    if not http.server.start(server) then
+        println("FATAL: http.server.start failed (port " + port.toString() + " busy?)")
+        http.server.destroy(server)
+        return 1
+    end
+    println("listening on http://127.0.0.1:" + port.toString())
+    println("press Ctrl+C to stop")
+    while true do
+        time.sleep(1000)
+        println("[stats] requestCount=" + http.server.requestCount(server).toString() + " connectionCount=" + http.server.connectionCount(server).toString())
+    end
+end

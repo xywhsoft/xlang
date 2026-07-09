@@ -1,0 +1,664 @@
+// encconv.xl - 编码转换验证工具
+//
+// 双重职责：
+//   1. 用 selftest 系统验证 encoding 标准库的全部能力（detect / detectBytes /
+//      toBytes / fromBytes / convertBytes / charSize / isUtf8 / isUtf8Bytes /
+//      name / 编码常量 / BOM / UTF-8 ↔ UTF-16 中文往返）。
+//   2. 提供一组实用 CLI 子命令，把 encoding 库真正「用起来」。
+//
+// 用法:
+//   encconv selftest                        运行 encoding API 全量自测
+//   encconv names                           列出所有编码常量与名称
+//   encconv detect <text>                   检测文本编码
+//   encconv detect-file <path>              检测文件字节流的编码
+//   encconv to <text> <charset>             文本 -> 字节 (HEX 展示)
+//   encconv from <hex> <charset>            HEX 字节 -> 文本
+//   encconv conv <hex> <from> <to>          字节编码互转 (HEX 输出)
+//   encconv utf16 <text>                    UTF-8 文本 -> UTF-16 字节
+//   encconv fromutf16 <hex>                 UTF-16 字节 -> UTF-8 文本
+//   encconv file <path> <from> <to> [-o out]  文件级编码转换
+//   encconv help | -h | --help              显示本帮助
+//
+// 支持的 charset 名（parseCharset 接受，大小写不敏感）:
+//   utf-8 / utf-16 / utf-16be / utf-32 / utf-32be / binary / oem / auto
+//
+// ---------------------------------------------------------------------------
+// 设计要点：
+//   - Buffer 是 native-backed 不可复制类，所有 Buffer 操作内联在使用它的
+//     函数体内（不通过函数参数传递 Buffer）。每个 selftest 用例因此独立成函数。
+//   - 字节视图函数统一用 (buf.data(), c_size(buf.len())) 形式调用，与
+//     examples/stdlib_encoding.xl 保持一致。
+//   - 字节序列的可读展示统一走 codec.hexEncodeBytes；hex 解码走
+//     codec.hexDecodeBytes，二者都已验证可用。
+// ---------------------------------------------------------------------------
+
+// ============================================================
+// 辅助：帮助 / charset 名解析 / PASS|FAIL 标签
+// ============================================================
+
+func printHelp()
+    println("encconv - 编码转换验证工具")
+    println("")
+    println("用法:")
+    println("  encconv selftest                          运行 encoding API 全量自测")
+    println("  encconv names                             列出所有编码常量与名称")
+    println("  encconv detect <text>                     检测文本编码")
+    println("  encconv detect-file <path>                检测文件字节流的编码")
+    println("  encconv to <text> <charset>               文本 -> 字节 (HEX 展示)")
+    println("  encconv from <hex> <charset>              HEX 字节 -> 文本")
+    println("  encconv conv <hex> <from> <to>            字节编码互转 (HEX 输出)")
+    println("  encconv utf16 <text>                      UTF-8 文本 -> UTF-16 字节")
+    println("  encconv fromutf16 <hex>                   UTF-16 字节 -> UTF-8 文本")
+    println("  encconv file <path> <from> <to> [-o out]  文件级编码转换")
+    println("  encconv help | -h | --help                显示本帮助")
+    println("")
+    println("支持的 charset: utf-8 / utf-16 / utf-16be / utf-32 / utf-32be / binary / oem / auto")
+end
+
+func isKnownCharsetName(string name) as bool
+    string n = string.lower(name)
+    if n == "utf-8" or n == "utf8" then
+        return true
+    end
+    if n == "utf-16" or n == "utf16" then
+        return true
+    end
+    if n == "utf-16be" or n == "utf16be" then
+        return true
+    end
+    if n == "utf-32" or n == "utf32" then
+        return true
+    end
+    if n == "utf-32be" or n == "utf32be" then
+        return true
+    end
+    if n == "binary" then
+        return true
+    end
+    if n == "oem" then
+        return true
+    end
+    if n == "auto" or n == "auto-detect" then
+        return true
+    end
+    return false
+end
+
+func parseCharset(string name) as int
+    string n = string.lower(name)
+    if n == "utf-8" or n == "utf8" then
+        return encoding.utf8
+    end
+    if n == "utf-16" or n == "utf16" then
+        return encoding.utf16
+    end
+    if n == "utf-16be" or n == "utf16be" then
+        return encoding.utf16BE
+    end
+    if n == "utf-32" or n == "utf32" then
+        return encoding.utf32
+    end
+    if n == "utf-32be" or n == "utf32be" then
+        return encoding.utf32BE
+    end
+    if n == "binary" then
+        return encoding.binary
+    end
+    if n == "oem" then
+        return encoding.oem
+    end
+    if n == "auto" or n == "auto-detect" then
+        return encoding.autoDetect
+    end
+    return encoding.utf8
+end
+
+func pf(bool ok) as string
+    if ok then
+        return "PASS"
+    end
+    return "FAIL"
+end
+
+func pf2(bool ok) as string
+    if ok then
+        return "  [PASS] "
+    end
+    return "  [FAIL] "
+end
+
+// ============================================================
+// selftest 用例（每个用例独立成函数，Buffer 操作内联）
+// ============================================================
+
+// 用例 1: encoding.name 全部常量
+func testConstants() as bool
+    if encoding.name(encoding.utf8) != "utf-8" then
+        return false
+    end
+    if encoding.name(encoding.utf16) != "utf-16" then
+        return false
+    end
+    if encoding.name(encoding.utf16BE) != "utf-16be" then
+        return false
+    end
+    if encoding.name(encoding.utf32) != "utf-32" then
+        return false
+    end
+    if encoding.name(encoding.utf32BE) != "utf-32be" then
+        return false
+    end
+    if encoding.name(encoding.binary) != "binary" then
+        return false
+    end
+    if encoding.name(encoding.autoDetect) != "auto" then
+        return false
+    end
+    return true
+end
+
+// 用例 2: encoding.charSize
+func testCharSize() as bool
+    if encoding.charSize(encoding.utf32) != 4 then
+        return false
+    end
+    if encoding.charSize(encoding.utf16) != 2 then
+        return false
+    end
+    if encoding.charSize(encoding.utf8) != 1 then
+        return false
+    end
+    return true
+end
+
+// 用例 3: encoding.bom 与 utf8 组合（name 仍报 utf-8）
+func testBomName() as bool
+    return encoding.name(encoding.utf8 + encoding.bom) == "utf-8"
+end
+
+// 用例 4: encoding.isUtf8 / detect 文本路径
+func testDetectText() as bool
+    string text = "A你好"
+    if not encoding.isUtf8(text) then
+        return false
+    end
+    if encoding.detect(text) != encoding.utf8 then
+        return false
+    end
+    return true
+end
+
+// 用例 5: encoding.isUtf8Bytes / detectBytes 字节路径（非法字节 -> oem）
+func testDetectInvalidBytes() as bool
+    Buffer invalid = Buffer()
+    if not invalid.appendByte(255) then
+        return false
+    end
+    if encoding.isUtf8Bytes(invalid.data(), c_size(invalid.len())) then
+        return false
+    end
+    if encoding.detectBytes(invalid.data(), c_size(invalid.len())) != encoding.oem then
+        return false
+    end
+    return true
+end
+
+// 用例 6: toBytes / fromBytes UTF-16 往返（examples 原例）
+func testUtf16RoundTrip() as bool
+    string text = "A你好"
+    Buffer utf16 = encoding.toBytes(text, encoding.utf16)
+    if utf16.len() != 6 then
+        return false
+    end
+    string restored = encoding.fromBytes(utf16.data(), c_size(utf16.len()), encoding.utf16)
+    if restored != text then
+        return false
+    end
+    return true
+end
+
+// 用例 7: convertBytes UTF-16 -> UTF-8（examples 原例）
+func testConvertBytes() as bool
+    string text = "A你好"
+    Buffer utf16 = encoding.toBytes(text, encoding.utf16)
+    Buffer utf8 = encoding.convertBytes(utf16.data(), c_size(utf16.len()), encoding.utf16, encoding.utf8)
+    if utf8.text() != text then
+        return false
+    end
+    return true
+end
+
+// 用例 8: UTF-8 字节自洽（toBytes=utf8 / fromBytes=utf8）
+func testUtf8Identity() as bool
+    string text = "你好"
+    Buffer utf8 = encoding.toBytes(text, encoding.utf8)
+    if utf8.len() != 6 then
+        return false
+    end
+    if utf8.text() != text then
+        return false
+    end
+    string restored = encoding.fromBytes(utf8.data(), c_size(utf8.len()), encoding.utf8)
+    if restored != text then
+        return false
+    end
+    return true
+end
+
+// 用例 9: UTF-32 往返
+func testUtf32RoundTrip() as bool
+    string text = "ABC你好"
+    Buffer utf32 = encoding.toBytes(text, encoding.utf32)
+    if utf32.len() != 20 then
+        return false
+    end
+    string restored = encoding.fromBytes(utf32.data(), c_size(utf32.len()), encoding.utf32)
+    if restored != text then
+        return false
+    end
+    return true
+end
+
+// 用例 10: UTF-8 ↔ UTF-16 中文长串往返 + convertBytes 反向回 UTF-8
+func testChineseUtf8Utf16() as bool
+    string chinese = "你好世界Hello世界"
+    Buffer utf16 = encoding.toBytes(chinese, encoding.utf16)
+    string restored = encoding.fromBytes(utf16.data(), c_size(utf16.len()), encoding.utf16)
+    if chinese != restored then
+        return false
+    end
+    Buffer utf8 = encoding.convertBytes(utf16.data(), c_size(utf16.len()), encoding.utf16, encoding.utf8)
+    if utf8.text() != chinese then
+        return false
+    end
+    // 6 个中文 + 5 个 ASCII = 11 字符，UTF-16 每字符 2 字节 = 22 字节
+    if utf16.len() != 22 then
+        return false
+    end
+    return true
+end
+
+// 用例 11: UTF-16 LE 与 BE 字节序差异 + 双向往返
+func testUtf16BeVsLe() as bool
+    string text = "AB"
+    Buffer le = encoding.toBytes(text, encoding.utf16)
+    Buffer be = encoding.toBytes(text, encoding.utf16BE)
+    if le.len() != 4 or be.len() != 4 then
+        return false
+    end
+    // 'A' = U+0041: LE -> 41 00, BE -> 00 41
+    if le.byteAt(0) != 0x41 or le.byteAt(1) != 0x00 then
+        return false
+    end
+    if be.byteAt(0) != 0x00 or be.byteAt(1) != 0x41 then
+        return false
+    end
+    string rle = encoding.fromBytes(le.data(), c_size(le.len()), encoding.utf16)
+    string rbe = encoding.fromBytes(be.data(), c_size(be.len()), encoding.utf16BE)
+    if rle != text or rbe != text then
+        return false
+    end
+    return true
+end
+
+// 用例 12: 跨编码 convertBytes（UTF-32 -> UTF-8 / UTF-32 -> UTF-16）
+func testCrossCharsetConvert() as bool
+    string text = "X"
+    Buffer utf32 = encoding.toBytes(text, encoding.utf32)
+    Buffer utf8 = encoding.convertBytes(utf32.data(), c_size(utf32.len()), encoding.utf32, encoding.utf8)
+    if utf8.text() != text then
+        return false
+    end
+    if utf8.len() != 1 then
+        return false
+    end
+    Buffer utf16 = encoding.convertBytes(utf32.data(), c_size(utf32.len()), encoding.utf32, encoding.utf16)
+    if utf16.len() != 2 then
+        return false
+    end
+    return true
+end
+
+// 用例 13: detectBytes / isUtf8Bytes 对合法 UTF-8 字节流的识别
+//   （与用例 5 的「非法字节 -> oem」互补：合法 UTF-8 字节应被识别为 utf8）
+//   注：toBytes(charset + encoding.bom) 存在返回空缓冲的 BUG（见 BUGS.md
+//   BUG-E1），故本用例只测无 BOM 的合法字节流。
+func testDetectValidUtf8Bytes() as bool
+    string text = "你好"
+    Buffer utf8 = encoding.toBytes(text, encoding.utf8)
+    if encoding.detectBytes(utf8.data(), c_size(utf8.len())) != encoding.utf8 then
+        return false
+    end
+    if not encoding.isUtf8Bytes(utf8.data(), c_size(utf8.len())) then
+        return false
+    end
+    return true
+end
+
+// ============================================================
+// selftest 主入口
+// ============================================================
+
+func runSelfTest() as int
+    println("=== encconv self-test: encoding 标准库 ===")
+    int total = 0
+    int pass = 0
+
+    total += 1
+    bool r1 = testConstants()
+    println(pf2(r1) + string(total) + ". encoding.name 全部常量")
+    if r1 then
+        pass += 1
+    end
+
+    total += 1
+    bool r2 = testCharSize()
+    println(pf2(r2) + string(total) + ". encoding.charSize (utf8=1/utf16=2/utf32=4)")
+    if r2 then
+        pass += 1
+    end
+
+    total += 1
+    bool r3 = testBomName()
+    println(pf2(r3) + string(total) + ". encoding.name(utf8+bom) 仍为 utf-8")
+    if r3 then
+        pass += 1
+    end
+
+    total += 1
+    bool r4 = testDetectText()
+    println(pf2(r4) + string(total) + ". encoding.isUtf8/detect 文本路径")
+    if r4 then
+        pass += 1
+    end
+
+    total += 1
+    bool r5 = testDetectInvalidBytes()
+    println(pf2(r5) + string(total) + ". encoding.isUtf8Bytes/detectBytes (0xFF -> oem)")
+    if r5 then
+        pass += 1
+    end
+
+    total += 1
+    bool r6 = testUtf16RoundTrip()
+    println(pf2(r6) + string(total) + ". toBytes/fromBytes UTF-16 往返")
+    if r6 then
+        pass += 1
+    end
+
+    total += 1
+    bool r7 = testConvertBytes()
+    println(pf2(r7) + string(total) + ". convertBytes UTF-16 -> UTF-8")
+    if r7 then
+        pass += 1
+    end
+
+    total += 1
+    bool r8 = testUtf8Identity()
+    println(pf2(r8) + string(total) + ". UTF-8 字节自洽 (toBytes/fromBytes utf8)")
+    if r8 then
+        pass += 1
+    end
+
+    total += 1
+    bool r9 = testUtf32RoundTrip()
+    println(pf2(r9) + string(total) + ". UTF-32 往返")
+    if r9 then
+        pass += 1
+    end
+
+    total += 1
+    bool r10 = testChineseUtf8Utf16()
+    println(pf2(r10) + string(total) + ". UTF-8 <-> UTF-16 中文长串往返")
+    if r10 then
+        pass += 1
+    end
+
+    total += 1
+    bool r11 = testUtf16BeVsLe()
+    println(pf2(r11) + string(total) + ". UTF-16 LE/BE 字节序差异")
+    if r11 then
+        pass += 1
+    end
+
+    total += 1
+    bool r12 = testCrossCharsetConvert()
+    println(pf2(r12) + string(total) + ". 跨编码 convertBytes (utf32->utf8/utf16)")
+    if r12 then
+        pass += 1
+    end
+
+    total += 1
+    bool r13 = testDetectValidUtf8Bytes()
+    println(pf2(r13) + string(total) + ". detectBytes/isUtf8Bytes 合法 UTF-8 字节 -> utf8")
+    if r13 then
+        pass += 1
+    end
+
+    println("=== " + string(pass) + "/" + string(total) + " passed ===")
+    if pass == total then
+        return 0
+    end
+    return 1
+end
+
+// ============================================================
+// names 子命令：列出编码常量
+// ============================================================
+
+func showNames()
+    println("charset          codepoint      name")
+    println("utf8             " + string(encoding.utf8) + "             '" + encoding.name(encoding.utf8) + "'")
+    println("utf16            " + string(encoding.utf16) + "             '" + encoding.name(encoding.utf16) + "'")
+    println("utf16BE          " + string(encoding.utf16BE) + "             '" + encoding.name(encoding.utf16BE) + "'")
+    println("utf32            " + string(encoding.utf32) + "             '" + encoding.name(encoding.utf32) + "'")
+    println("utf32BE          " + string(encoding.utf32BE) + "             '" + encoding.name(encoding.utf32BE) + "'")
+    println("binary           " + string(encoding.binary) + "             '" + encoding.name(encoding.binary) + "'")
+    println("oem              " + string(encoding.oem) + "             '" + encoding.name(encoding.oem) + "'")
+    println("autoDetect       " + string(encoding.autoDetect) + "             '" + encoding.name(encoding.autoDetect) + "'")
+    println("bom (flag)       " + string(encoding.bom))
+    println("utf8 + bom       " + string(encoding.utf8 + encoding.bom) + "             '" + encoding.name(encoding.utf8 + encoding.bom) + "'")
+end
+
+// ============================================================
+// 入口
+// ============================================================
+
+func main(...) as int
+    if arg.length < 2 then
+        printHelp()
+        return 0
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printHelp()
+        return 0
+    end
+
+    if cmd == "selftest" then
+        return runSelfTest()
+    end
+
+    if cmd == "names" then
+        showNames()
+        return 0
+    end
+
+    if cmd == "detect" then
+        if arg.length < 3 then
+            println("encconv detect: 缺少 <text>")
+            return 1
+        end
+        string text = string(arg[2])
+        int cs = encoding.detect(text)
+        bool valid = encoding.isUtf8(text)
+        println("text:    " + text)
+        println("detect:  " + encoding.name(cs) + " (" + string(cs) + ")")
+        println("isUtf8:  " + string(valid))
+        return 0
+    end
+
+    if cmd == "detect-file" then
+        if arg.length < 3 then
+            println("encconv detect-file: 缺少 <path>")
+            return 1
+        end
+        string path = string(arg[2])
+        if not file.exists(path) then
+            println("encconv: 文件不存在 - " + path)
+            return 1
+        end
+        Buffer data = file.readBytes(path)
+        int cs = encoding.detectBytes(data.data(), c_size(data.len()))
+        bool valid = encoding.isUtf8Bytes(data.data(), c_size(data.len()))
+        println("file:    " + path)
+        println("size:    " + string(data.len()) + " bytes")
+        println("detect:  " + encoding.name(cs) + " (" + string(cs) + ")")
+        println("isUtf8:  " + string(valid))
+        return 0
+    end
+
+    if cmd == "to" then
+        if arg.length < 4 then
+            println("encconv to: 缺少 <text> <charset>")
+            return 1
+        end
+        string text = string(arg[2])
+        string csName = string(arg[3])
+        if not isKnownCharsetName(csName) then
+            println("encconv: 未知 charset '" + csName + "'")
+            return 1
+        end
+        int cs = parseCharset(csName)
+        Buffer bytes = encoding.toBytes(text, cs)
+        string hex = codec.hexEncodeBytes(bytes.data(), c_size(bytes.len()))
+        println("charset: " + encoding.name(cs))
+        println("bytes:   " + string(bytes.len()))
+        println("hex:     " + hex)
+        return 0
+    end
+
+    if cmd == "from" then
+        if arg.length < 4 then
+            println("encconv from: 缺少 <hex> <charset>")
+            return 1
+        end
+        string hex = string(arg[2])
+        string csName = string(arg[3])
+        if not isKnownCharsetName(csName) then
+            println("encconv: 未知 charset '" + csName + "'")
+            return 1
+        end
+        int cs = parseCharset(csName)
+        Buffer bytes = codec.hexDecodeBytes(hex)
+        string text = encoding.fromBytes(bytes.data(), c_size(bytes.len()), cs)
+        println("charset: " + encoding.name(cs))
+        println("bytes:   " + string(bytes.len()))
+        println("text:    " + text)
+        return 0
+    end
+
+    if cmd == "conv" then
+        if arg.length < 5 then
+            println("encconv conv: 缺少 <hex> <from> <to>")
+            return 1
+        end
+        string hex = string(arg[2])
+        string fromName = string(arg[3])
+        string toName = string(arg[4])
+        if not isKnownCharsetName(fromName) or not isKnownCharsetName(toName) then
+            println("encconv: 未知 charset (from=" + fromName + " to=" + toName + ")")
+            return 1
+        end
+        int fromCs = parseCharset(fromName)
+        int toCs = parseCharset(toName)
+        Buffer bytes = codec.hexDecodeBytes(hex)
+        Buffer out = encoding.convertBytes(bytes.data(), c_size(bytes.len()), fromCs, toCs)
+        string hexOut = codec.hexEncodeBytes(out.data(), c_size(out.len()))
+        println(fromName + " -> " + toName)
+        println("in  (" + string(bytes.len()) + " B): " + hex)
+        println("out (" + string(out.len()) + " B): " + hexOut)
+        if toCs == encoding.utf8 then
+            println("text: " + out.text())
+        end
+        return 0
+    end
+
+    if cmd == "utf16" then
+        if arg.length < 3 then
+            println("encconv utf16: 缺少 <text>")
+            return 1
+        end
+        string text = string(arg[2])
+        Buffer utf16 = encoding.toBytes(text, encoding.utf16)
+        string hex = codec.hexEncodeBytes(utf16.data(), c_size(utf16.len()))
+        println("text:    " + text)
+        println("units:   " + string(utf16.len() / 2) + " code units")
+        println("bytes:   " + string(utf16.len()))
+        println("hex:     " + hex)
+        return 0
+    end
+
+    if cmd == "fromutf16" then
+        if arg.length < 3 then
+            println("encconv fromutf16: 缺少 <hex>")
+            return 1
+        end
+        string hex = string(arg[2])
+        Buffer bytes = codec.hexDecodeBytes(hex)
+        string text = encoding.fromBytes(bytes.data(), c_size(bytes.len()), encoding.utf16)
+        println("bytes:   " + string(bytes.len()))
+        println("hex:     " + hex)
+        println("text:    " + text)
+        return 0
+    end
+
+    if cmd == "file" then
+        if arg.length < 5 then
+            println("encconv file: 缺少 <path> <from> <to>")
+            return 1
+        end
+        string path = string(arg[2])
+        string fromName = string(arg[3])
+        string toName = string(arg[4])
+        string outPath = ""
+        bool hasOut = false
+        if arg.length >= 7 then
+            string flag = string(arg[5])
+            if flag == "-o" or flag == "--output" then
+                outPath = string(arg[6])
+                hasOut = true
+            end
+        end
+        if not file.exists(path) then
+            println("encconv: 文件不存在 - " + path)
+            return 1
+        end
+        if not isKnownCharsetName(fromName) or not isKnownCharsetName(toName) then
+            println("encconv: 未知 charset (from=" + fromName + " to=" + toName + ")")
+            return 1
+        end
+        int fromCs = parseCharset(fromName)
+        int toCs = parseCharset(toName)
+        Buffer data = file.readBytes(path)
+        Buffer out = encoding.convertBytes(data.data(), c_size(data.len()), fromCs, toCs)
+        int outLen = out.len()
+        if hasOut then
+            file.writeBytes(outPath, out)
+            println("written: " + outPath + " (" + string(outLen) + " bytes, " + toName + ")")
+        else
+            if toCs == encoding.utf8 then
+                println(out.text())
+            else
+                println(codec.hexEncodeBytes(out.data(), c_size(out.len())))
+            end
+        end
+        return 0
+    end
+
+    println("encconv: 未知命令 '" + cmd + "'")
+    printHelp()
+    return 1
+end

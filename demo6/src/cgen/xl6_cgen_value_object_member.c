@@ -1,18 +1,10 @@
 static void xl6CgenXValueMemberKeyExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const char* key)
 {
-    if ( xl6CgenExprIsXValueBorrow(ctx, receiver) ) {
-        xl6OutputPuts("xl6_xrt_index_safe_get_key(", ctx->out);
-        xl6CgenExpr(ctx, receiver);
-        xl6OutputPuts(", ", ctx->out);
-        xl6CgenCStringLiteral(ctx->out, key);
-        xl6OutputPutc(')', ctx->out);
-        return;
-    }
-
-    xl6OutputPuts("xl6_xrt_index_safe_get_key_retain_release(", ctx->out);
+    xl6OutputPuts("xl6_record_field_get_owned(", ctx->out);
     xl6CgenExpr(ctx, receiver);
     xl6OutputPuts(", ", ctx->out);
     xl6CgenCStringLiteral(ctx->out, key);
+    xl6OutputPuts(xl6CgenExprIsXValueBorrow(ctx, receiver) ? ", 0" : ", 1", ctx->out);
     xl6OutputPutc(')', ctx->out);
 }
 
@@ -68,6 +60,56 @@ static void xl6CgenXValueMemberLengthExpr(XL6_CgenContext* ctx, const XL6_AstNod
     xl6OutputPuts("xl6_xrt_member_length_release(", ctx->out);
     xl6CgenExpr(ctx, receiver);
     xl6OutputPutc(')', ctx->out);
+}
+
+static int xl6CgenTypedContainerMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode* member)
+{
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+
+    if ( member == NULL || member->text == NULL || member->childCount == 0 ) {
+        return 0;
+    }
+    if ( !xl6CTextEquals(member->text, "length") ) {
+        return 0;
+    }
+
+    receiver = member->children[0];
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    if ( !xl6CgenExprUsesTypedContainerStorage(ctx, receiver) ||
+         !xl6CgenIsTypedContainerType(ctx, receiverType) ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
+
+    xl6CgenXValueMemberLengthExpr(ctx, receiver, receiverType);
+    xl6AstFree(receiverType);
+    return 1;
+}
+
+static int xl6CgenSafeTypedContainerMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode* member)
+{
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+
+    if ( member == NULL || member->text == NULL || member->childCount == 0 ||
+         !xl6CTextEquals(member->text, "length") ) {
+        return 0;
+    }
+
+    receiver = member->children[0];
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    if ( !xl6CgenExprUsesTypedContainerStorage(ctx, receiver) ||
+         !xl6CgenIsTypedContainerType(ctx, receiverType) ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
+
+    xl6OutputPuts("xvoCreateInt((long long)(", ctx->out);
+    xl6CgenXValueMemberLengthExpr(ctx, receiver, receiverType);
+    xl6OutputPuts("))", ctx->out);
+    xl6AstFree(receiverType);
+    return 1;
 }
 
 static int xl6CgenXValueMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode* member)

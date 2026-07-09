@@ -457,6 +457,9 @@ static int xl6CgenClassNeedsDestroy(XL6_CgenContext* ctx, const XL6_AstNode* cla
     if ( xl6CgenClassHasDestroy(classNode) ) {
         return 1;
     }
+    if ( xl6CgenClassHasLocalVirtualSlots(classNode) ) {
+        return 1;
+    }
 
     body = xl6CgenClassBody(classNode);
     if ( body != NULL ) {
@@ -625,7 +628,8 @@ static void xl6CgenClassFunctionFieldRefs(
     const XL6_AstNode* classNode,
     const char* valuePath,
     int retain,
-    int deep)
+    int deep,
+    int copyXValue)
 {
     const XL6_AstNode* body;
     const XL6_AstNode* base;
@@ -636,13 +640,25 @@ static void xl6CgenClassFunctionFieldRefs(
         return;
     }
 
+    if ( xl6CgenClassHasLocalVirtualSlots(classNode) ) {
+        char selfRefPath[512];
+
+        snprintf(selfRefPath, sizeof(selfRefPath), "%s.__xl6_self_ref", valuePath);
+        xl6CgenIndent(ctx);
+        if ( retain ) {
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoAddRef(%s); }\n", selfRefPath, selfRefPath);
+        } else {
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", selfRefPath, selfRefPath, selfRefPath);
+        }
+    }
+
     base = classNode->childCount > 0 ? classNode->children[0] : NULL;
     if ( base != NULL && base->kind == XL6_AST_NAME ) {
         char basePath[512];
 
         baseClass = xl6CgenFindClass(ctx, base->text);
         snprintf(basePath, sizeof(basePath), "%s.base", valuePath);
-        xl6CgenClassFunctionFieldRefs(ctx, baseClass, basePath, retain, deep);
+        xl6CgenClassFunctionFieldRefs(ctx, baseClass, basePath, retain, deep, copyXValue);
     }
 
     body = xl6CgenClassBody(classNode);
@@ -669,7 +685,8 @@ static void xl6CgenClassFunctionFieldRefs(
         if ( xl6CgenIsXValueType(typeNode) ) {
             xl6CgenIndent(ctx);
             if ( retain ) {
-                xl6OutputPrintf(ctx->out, "%s = %s(%s);\n", fieldPath, deep ? "xvoDeepCopy" : "xvoCopy", fieldPath);
+                const char* copyFunc = deep ? "xvoDeepCopy" : (copyXValue ? "xvoCopy" : "xl6_xrt_retain");
+                xl6OutputPrintf(ctx->out, "%s = %s(%s);\n", fieldPath, copyFunc, fieldPath);
             } else {
                 xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", fieldPath, fieldPath, fieldPath);
             }
@@ -685,24 +702,104 @@ static void xl6CgenClassFunctionFieldRefs(
         }
         nestedClass = xl6CgenFindClass(ctx, typeNode != NULL ? typeNode->text : NULL);
         if ( nestedClass != NULL ) {
-            xl6CgenClassFunctionFieldRefs(ctx, nestedClass, fieldPath, retain, deep);
+            xl6CgenClassFunctionFieldRefs(ctx, nestedClass, fieldPath, retain, deep, copyXValue);
         }
     }
 }
 
 static void xl6CgenRetainClassFunctionFields(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* valuePath)
 {
-    xl6CgenClassFunctionFieldRefs(ctx, classNode, valuePath, 1, 0);
+    xl6CgenClassFunctionFieldRefs(ctx, classNode, valuePath, 1, 0, 0);
+}
+
+static void xl6CgenCopyClassFunctionFields(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* valuePath)
+{
+    /*
+        copy() 是值级拷贝：var 容器字段需要复制容器对象，不能仅增加引用。
+        普通 retain 路径仍保持共享引用，用于返回/赋值等所有权修正。
+    */
+    xl6CgenClassFunctionFieldRefs(ctx, classNode, valuePath, 1, 0, 1);
 }
 
 static void xl6CgenDeepCopyClassFunctionFields(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* valuePath)
 {
-    xl6CgenClassFunctionFieldRefs(ctx, classNode, valuePath, 1, 1);
+    xl6CgenClassFunctionFieldRefs(ctx, classNode, valuePath, 1, 1, 0);
 }
 
 static void xl6CgenReleaseClassFunctionFields(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* valuePath)
 {
-    xl6CgenClassFunctionFieldRefs(ctx, classNode, valuePath, 0, 0);
+    xl6CgenClassFunctionFieldRefs(ctx, classNode, valuePath, 0, 0, 0);
+}
+
+static int xl6CgenClassHasVirtualSlotsInChain(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
+{
+    const XL6_AstNode* base;
+    XL6_AstNode* baseClass;
+
+    if ( classNode == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenClassHasLocalVirtualSlots(classNode) ) {
+        return 1;
+    }
+    base = classNode->childCount > 0 ? classNode->children[0] : NULL;
+    if ( base == NULL || base->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    baseClass = xl6CgenFindClass(ctx, base->text);
+    return xl6CgenClassHasVirtualSlotsInChain(ctx, baseClass);
+}
+
+static void xl6CgenClassClearVirtualSelfRefs(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* valuePath)
+{
+    const XL6_AstNode* base;
+    XL6_AstNode* baseClass;
+    char basePath[512];
+
+    if ( ctx == NULL || classNode == NULL || valuePath == NULL ) {
+        return;
+    }
+
+    base = classNode->childCount > 0 ? classNode->children[0] : NULL;
+    if ( base != NULL && base->kind == XL6_AST_NAME ) {
+        baseClass = xl6CgenFindClass(ctx, base->text);
+        snprintf(basePath, sizeof(basePath), "%s.base", valuePath);
+        xl6CgenClassClearVirtualSelfRefs(ctx, baseClass, basePath);
+    }
+
+    if ( xl6CgenClassHasLocalVirtualSlots(classNode) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s.__xl6_self_ref = 0;\n", valuePath);
+    }
+}
+
+static void xl6CgenClassAssignVirtualSelfRefs(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const char* valuePath,
+    const char* refName)
+{
+    const XL6_AstNode* base;
+    XL6_AstNode* baseClass;
+    char basePath[512];
+
+    if ( ctx == NULL || classNode == NULL || valuePath == NULL || refName == NULL ) {
+        return;
+    }
+
+    base = classNode->childCount > 0 ? classNode->children[0] : NULL;
+    if ( base != NULL && base->kind == XL6_AST_NAME ) {
+        baseClass = xl6CgenFindClass(ctx, base->text);
+        snprintf(basePath, sizeof(basePath), "%s.base", valuePath);
+        xl6CgenClassAssignVirtualSelfRefs(ctx, baseClass, basePath, refName);
+    }
+
+    if ( xl6CgenClassHasLocalVirtualSlots(classNode) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s.__xl6_self_ref = %s;\n", valuePath, refName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s.__xl6_self_ref != 0) { xvoAddRef(%s.__xl6_self_ref); }\n", valuePath, valuePath);
+    }
 }
 
 static XL6_AstNode* xl6CgenClassNodeForType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
@@ -719,6 +816,191 @@ static XL6_AstNode* xl6CgenClassNodeForType(XL6_CgenContext* ctx, const XL6_AstN
         return NULL;
     }
     return xl6CgenFindClass(ctx, resolvedType->text);
+}
+
+static int xl6CgenClassUpcastPath(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* fromClass,
+    const XL6_AstNode* targetClass,
+    char* buffer,
+    size_t capacity)
+{
+    XL6_AstNode* baseClass;
+    size_t len;
+
+    if ( buffer == NULL || capacity == 0 || fromClass == NULL || targetClass == NULL ) {
+        return 0;
+    }
+    if ( xl6CTextEquals(fromClass->text, targetClass->text) ) {
+        return 1;
+    }
+
+    baseClass = xl6CgenBaseClass(ctx, fromClass);
+    if ( baseClass == NULL ) {
+        return 0;
+    }
+
+    len = strlen(buffer);
+    if ( len + 5 >= capacity ) {
+        return 0;
+    }
+    memcpy(buffer + len, ".base", 6);
+    if ( xl6CTextEquals(baseClass->text, targetClass->text) ) {
+        return 1;
+    }
+    return xl6CgenClassUpcastPath(ctx, baseClass, targetClass, buffer, capacity);
+}
+
+static int xl6CgenExprNeedsClassUpcast(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* targetType,
+    const XL6_AstNode* expr,
+    char* basePath,
+    size_t basePathSize,
+    XL6_AstNode** outExprType,
+    XL6_AstNode** outTargetType)
+{
+    XL6_AstNode* exprType;
+    XL6_AstNode* targetCanonical;
+    const XL6_AstNode* concreteExprType;
+    const XL6_AstNode* concreteTargetType;
+    XL6_AstNode* fromClass;
+    XL6_AstNode* targetClass;
+    char localBasePath[256];
+    char* pathBuffer;
+    size_t pathCapacity;
+    int ok;
+
+    if ( outExprType != NULL ) {
+        *outExprType = NULL;
+    }
+    if ( outTargetType != NULL ) {
+        *outTargetType = NULL;
+    }
+    pathBuffer = basePath != NULL && basePathSize > 0 ? basePath : localBasePath;
+    pathCapacity = basePath != NULL && basePathSize > 0 ? basePathSize : sizeof(localBasePath);
+    pathBuffer[0] = '\0';
+    if ( ctx == NULL || targetType == NULL || expr == NULL ) {
+        return 0;
+    }
+
+    exprType = xl6CgenCloneExprTypeForInference(ctx, expr);
+    targetCanonical = xl6CgenCloneCanonicalTypeNode(ctx, targetType);
+    concreteExprType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, exprType));
+    concreteTargetType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, targetCanonical));
+    fromClass = xl6CgenClassNodeForType(ctx, concreteExprType);
+    targetClass = xl6CgenClassNodeForType(ctx, concreteTargetType);
+
+    ok = fromClass != NULL &&
+         targetClass != NULL &&
+         !xl6CTextEquals(fromClass->text, targetClass->text) &&
+         xl6CgenClassUpcastPath(ctx, fromClass, targetClass, pathBuffer, pathCapacity) &&
+         pathBuffer[0] != '\0';
+
+    if ( ok && outExprType != NULL ) {
+        *outExprType = exprType;
+    } else {
+        xl6AstFree(exprType);
+    }
+    if ( ok && outTargetType != NULL ) {
+        *outTargetType = targetCanonical;
+    } else {
+        xl6AstFree(targetCanonical);
+    }
+    return ok;
+}
+
+static int xl6CgenClassUpcastExpr(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr)
+{
+    char basePath[256];
+    XL6_AstNode* exprType;
+    XL6_AstNode* targetCanonical;
+    XL6_AstNode* fromClass;
+    XL6_AstNode* targetClass;
+    int targetHasVirtualSlots;
+    int fromNeedsDestroy;
+    int targetNeedsDestroy;
+
+    exprType = NULL;
+    targetCanonical = NULL;
+    if ( !xl6CgenExprNeedsClassUpcast(ctx, targetType, expr, basePath, sizeof(basePath), &exprType, &targetCanonical) ) {
+        return 0;
+    }
+
+    fromClass = xl6CgenClassNodeForType(ctx, exprType);
+    targetClass = xl6CgenClassNodeForType(ctx, targetCanonical);
+    targetHasVirtualSlots = targetClass != NULL && xl6CgenClassHasVirtualSlotsInChain(ctx, targetClass);
+    fromNeedsDestroy = fromClass != NULL && xl6CgenClassNeedsDestroy(ctx, fromClass);
+    targetNeedsDestroy = targetClass != NULL && xl6CgenClassNeedsDestroy(ctx, targetClass);
+
+    if ( expr->kind == XL6_AST_CALL || targetHasVirtualSlots ) {
+        char tempName[64];
+        char resultName[64];
+        char refName[64];
+        int id = ctx->tempId++;
+
+        snprintf(tempName, sizeof(tempName), "__xl6_upcast_tmp_%d", id);
+        snprintf(resultName, sizeof(resultName), "__xl6_upcast_value_%d", id);
+        snprintf(refName, sizeof(refName), "__xl6_upcast_ref_%d", id);
+        xl6OutputPuts("({\n", ctx->out);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, exprType), tempName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, targetCanonical), resultName);
+        if ( targetHasVirtualSlots ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", refName);
+        }
+        if ( expr->kind == XL6_AST_CALL ) {
+            xl6CgenEmitClassCtorInto(ctx, expr, tempName);
+        } else {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = ", tempName);
+            xl6CgenExpr(ctx, expr);
+            xl6OutputPuts(";\n", ctx->out);
+            if ( fromNeedsDestroy ) {
+                xl6CgenRetainClassFunctionFields(ctx, fromClass, tempName);
+            }
+        }
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = %s%s;\n", resultName, tempName, basePath);
+        if ( targetNeedsDestroy ) {
+            xl6CgenClassClearVirtualSelfRefs(ctx, targetClass, resultName);
+            xl6CgenRetainClassFunctionFields(ctx, targetClass, resultName);
+        }
+        if ( targetHasVirtualSlots ) {
+            char sourceCTypeName[512];
+
+            xl6CgenClassTypeRefName(sourceCTypeName, sizeof(sourceCTypeName), exprType);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = ", refName);
+            xl6CgenBoxSymbol(ctx->out, sourceCTypeName);
+            xl6OutputPrintf(ctx->out, "(%s);\n", tempName);
+            xl6CgenClassAssignVirtualSelfRefs(ctx, targetClass, resultName, refName);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", refName, refName);
+        }
+        if ( fromNeedsDestroy ) {
+            xl6CgenIndent(ctx);
+            xl6CgenClassMemberSymbol(ctx->out, fromClass->text, "destroy");
+            xl6OutputPrintf(ctx->out, "(&%s);\n", tempName);
+        }
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s;\n", resultName);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("})", ctx->out);
+    } else {
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPuts(")", ctx->out);
+        xl6OutputPuts(basePath, ctx->out);
+    }
+
+    xl6AstFree(exprType);
+    xl6AstFree(targetCanonical);
+    return 1;
 }
 
 static int xl6CgenClassNeedsAutoCopyProtocol(

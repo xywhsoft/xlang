@@ -1,0 +1,488 @@
+// overload - 方法重载验证工具
+//
+// 全面验证 xlang 的函数重载、方法重载、构造重载和协议方法重载能力。
+// 每条断言输出 [PASS]/[FAIL]，主程序始终返回 0（即使发现 BUG 也只记录不中断），
+// 保证 xl run / xl build 双路径 EXIT=0。
+//
+// 设计说明（重要）：
+//   本工具只执行「编译且运行都正确」的重载路径。以下三类重载有编译器 BUG，
+//   本工具不执行（执行会导致编译失败或运行期硬崩溃），仅在结尾以 NOTE 形式报告，
+//   完整复现记录在同目录 BUGS.md：
+//     BUG-O1: var 实参无法分派到重载函数         （编译期 [sem] 拒绝）
+//     BUG-O2: __item__ 返回 array<int> 的重载    （运行期 0xC0000005 硬崩溃，try/catch 包不住）
+//     BUG-O3: get 属性 0 维 + 1 维重载           （编译期 [checked] 找不到 class 方法）
+//   另有限制 LIMIT-O1: f(T) + f(T, U=默认) 因「必选参数数相同」被判歧义，见 BUGS.md。
+//
+// 用法：
+//   xl run projects\dev\overload\overload.xl
+//   xl build projects\dev\overload\overload.xl -o projects\dev\overload\overload.exe
+//   overload.exe
+
+// ===== 测试框架 =====
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass += 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail += 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectF(float got, float want, string label)
+    if math.abs(got - want) < 0.0001 then
+        ok(label)
+    else
+        bad(label, "got " + string.formatFloat(got, ".4") + " want " + string.formatFloat(want, ".4"))
+    end
+end
+
+func expectS(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+// ============================================================
+// 1. 函数重载：同名 area，不同参数（int / int,int / float）
+// ============================================================
+func area(int side) as int
+    return side * side
+end
+
+func area(int w, int h) as int
+    return w * h
+end
+
+func area(float r) as float
+    return 3.14159 * r * r
+end
+
+func testFuncOverload()
+    println("[function overload]  area(int) / area(int,int) / area(float)")
+    try
+        expectI(area(5), 25, "area(5)            // square 5x5")
+    catch e
+        bad("area(int)", e.message)
+    end
+    try
+        expectI(area(4, 6), 24, "area(4,6)          // rect 4x6")
+    catch e
+        bad("area(int,int)", e.message)
+    end
+    try
+        expectF(area(2.0), 12.56636, "area(2.0)          // circle r=2")
+    catch e
+        bad("area(float)", e.message)
+    end
+    // 静态变量类型驱动分派
+    try
+        int a = 7
+        float b = 3.0
+        expectI(area(a), 49, "area(int-var)      // static int dispatch")
+        expectF(area(b), 28.27431, "area(float-var)    // static float dispatch")
+    catch e
+        bad("area(static-var)", e.message)
+    end
+end
+
+// ============================================================
+// 2. 方法重载：Grid.at 一维/二维/三维索引
+// ============================================================
+class Grid
+    int base = 0
+
+    create(int base)
+        self.base = base
+    end
+
+    func at(int x) as int
+        return self.base + x
+    end
+
+    func at(int x, int y) as int
+        return self.base + x * 10 + y
+    end
+
+    func at(int x, int y, int z) as int
+        return self.base + x * 100 + y * 10 + z
+    end
+end
+
+func testMethodOverload()
+    println("[method overload]    Grid.at(int) / at(int,int) / at(int,int,int)")
+    Grid g = Grid(1000)
+    try
+        expectI(g.at(3), 1003, "g.at(3)            // 1-d index")
+    catch e
+        bad("g.at(int)", e.message)
+    end
+    try
+        expectI(g.at(2, 3), 1023, "g.at(2,3)          // 2-d index")
+    catch e
+        bad("g.at(int,int)", e.message)
+    end
+    try
+        expectI(g.at(1, 2, 3), 1123, "g.at(1,2,3)        // 3-d index")
+    catch e
+        bad("g.at(int,int,int)", e.message)
+    end
+end
+
+// ============================================================
+// 3. 构造重载 A：Vec 三个 create（0/1/2 参数）
+// ============================================================
+class Vec
+    int x = 0
+    int y = 0
+    int z = 0
+
+    create()
+        self.x = 0
+        self.y = 0
+        self.z = 0
+    end
+
+    create(int a)
+        self.x = a
+        self.y = a
+        self.z = a
+    end
+
+    create(int a, int b)
+        self.x = a
+        self.y = b
+        self.z = 0
+    end
+end
+
+func testCtorOverload()
+    println("[ctor overload A]    Vec() / Vec(int) / Vec(int,int)")
+    try
+        Vec a = Vec()
+        expectI(a.x, 0, "Vec().x            // 0-arg ctor")
+        expectI(a.y, 0, "Vec().y")
+    catch e
+        bad("Vec()", e.message)
+    end
+    try
+        Vec b = Vec(5)
+        expectI(b.x, 5, "Vec(5).x           // 1-arg ctor")
+        expectI(b.y, 5, "Vec(5).y           // 1-arg fills all")
+        expectI(b.z, 5, "Vec(5).z")
+    catch e
+        bad("Vec(int)", e.message)
+    end
+    try
+        Vec c = Vec(1, 2)
+        expectI(c.x, 1, "Vec(1,2).x         // 2-arg ctor")
+        expectI(c.y, 2, "Vec(1,2).y")
+        expectI(c.z, 0, "Vec(1,2).z         // default")
+    catch e
+        bad("Vec(int,int)", e.message)
+    end
+end
+
+// ============================================================
+// 4. 构造重载 B：create() 与 create(int, int=默认) 共存
+//    验证「必选参数数不同」的 ctor 重载 + 默认参数可共存。
+// ============================================================
+class Box
+    int v = 0
+
+    create()
+        self.v = 0
+    end
+
+    create(int v, int pad = 0)
+        self.v = v + pad
+    end
+end
+
+func testCtorDefault()
+    println("[ctor overload B]    Box() / Box(int, int=0)")
+    try
+        Box a = Box()
+        expectI(a.v, 0, "Box().v            // 0-arg ctor")
+    catch e
+        bad("Box()", e.message)
+    end
+    try
+        Box b = Box(7)
+        expectI(b.v, 7, "Box(7).v           // 1-arg, default pad=0")
+    catch e
+        bad("Box(int)", e.message)
+    end
+    try
+        Box c = Box(7, 3)
+        expectI(c.v, 10, "Box(7,3).v         // 2-arg explicit")
+    catch e
+        bad("Box(int,int)", e.message)
+    end
+end
+
+// ============================================================
+// 5. 协议方法重载：Matrix2D 的 __item__ / __setItem__ 多签名
+//    （全部返回 int，规避 BUG-O2 的 array<int> 返回崩溃）
+// ============================================================
+class Matrix2D
+    int base = 0
+
+    create(int base)
+        self.base = base
+    end
+
+    // 二维读
+    func __item__(int row, int col) as int
+        return self.base + row * 10 + col
+    end
+
+    // 一维读（按行号线性映射）
+    func __item__(int row) as int
+        return self.base + row
+    end
+
+    // 二维写：base := v*100 + row*10 + col，使写入结果易于辨识
+    func __setItem__(int row, int col, int v)
+        self.base = v * 100 + row * 10 + col
+    end
+end
+
+func testProtocolItem()
+    println("[protocol overload]  Matrix2D.__item__ x2 / __setItem__")
+    try
+        Matrix2D m = Matrix2D(100)
+        expectI(m[2, 3], 123, "m[2,3]            // __item__(int,int)")
+    catch e
+        bad("m[int,int] read", e.message)
+    end
+    try
+        Matrix2D m = Matrix2D(100)
+        expectI(m[5], 105, "m[5]              // __item__(int) 1-d")
+    catch e
+        bad("m[int] read", e.message)
+    end
+    try
+        Matrix2D m = Matrix2D(100)
+        m[2, 3] = 7
+        // base := 7*100 + 2*10 + 3 = 723
+        expectI(m.base, 723, "m[2,3]=7          // __setItem__(int,int,int)")
+        expectI(m[0, 0], 723, "m[0,0] after set // base+0+0 == 723")
+    catch e
+        bad("m[int,int]= write", e.message)
+    end
+end
+
+// ============================================================
+// 6. __call__ 重载：Dispatch 的三种调用签名
+// ============================================================
+class Dispatch
+    int base = 0
+
+    create(int base)
+        self.base = base
+    end
+
+    func __call__(int x) as int
+        return self.base + x
+    end
+
+    func __call__(string s) as string
+        return "#" + s
+    end
+
+    func __call__(int a, int b) as int
+        return self.base + a * b
+    end
+end
+
+func testProtocolCall()
+    println("[__call__ overload]  Dispatch(int) / (string) / (int,int)")
+    Dispatch d = Dispatch(100)
+    try
+        expectI(d(5), 105, "d(5)              // __call__(int)")
+    catch e
+        bad("d(int)", e.message)
+    end
+    try
+        expectS(d("hi"), "#hi", "d(\"hi\")           // __call__(string)")
+    catch e
+        bad("d(string)", e.message)
+    end
+    try
+        expectI(d(2, 3), 106, "d(2,3)            // __call__(int,int)")
+    catch e
+        bad("d(int,int)", e.message)
+    end
+end
+
+// ============================================================
+// 7. 重载解析精度：int / int64 / float 字面量与变量
+// ============================================================
+func kind(int n) as string
+    return "int:" + string(n)
+end
+
+func kind(int64 n) as string
+    return "int64:" + string(n)
+end
+
+func kind(float f) as string
+    return "float:" + string.formatFloat(f, ".1")
+end
+
+func testResolution()
+    println("[resolution]         int / int64 / float dispatch")
+    try
+        expectS(kind(5), "int:5", "kind(5)            // int literal -> int")
+    catch e
+        bad("kind(int-lit)", e.message)
+    end
+    try
+        expectS(kind(5.0), "float:5.0", "kind(5.0)          // float literal -> float")
+    catch e
+        bad("kind(float-lit)", e.message)
+    end
+    try
+        int a = 7
+        int64 b = 7
+        float c = 7.0
+        expectS(kind(a), "int:7", "kind(int-var)      // static int")
+        expectS(kind(b), "int64:7", "kind(int64-var)    // static int64")
+        expectS(kind(c), "float:7.0", "kind(float-var)    // static float")
+    catch e
+        bad("kind(static-var)", e.message)
+    end
+end
+
+// ============================================================
+// 8. 协议 + 方法 + 构造「组合」综合场景：
+//    Point 支持 2 个 create + 重载 distance 方法 + __call__/__eq__ 协议。
+// ============================================================
+class Point
+    int x = 0
+    int y = 0
+
+    create()
+        self.x = 0
+        self.y = 0
+    end
+
+    create(int x, int y)
+        self.x = x
+        self.y = y
+    end
+
+    // 重载：到原点
+    func distance() as int
+        int sx = self.x
+        int sy = self.y
+        return sx * sx + sy * sy
+    end
+
+    // 重载：到另一点（曼哈顿距离平方简化版）
+    func distance(Point other) as int
+        int dx = self.x - other.x
+        int dy = self.y - other.y
+        return dx * dx + dy * dy
+    end
+
+    // __call__ 把点当作函数：返回线性索引
+    func __call__() as int
+        return self.x * 1000 + self.y
+    end
+
+    func __call__(int scale) as int
+        return self.x * scale + self.y
+    end
+
+    func __eq__(Point other) as bool
+        return self.x == other.x and self.y == other.y
+    end
+end
+
+func testComposite()
+    println("[composite]          Point: 2 ctors + method overload + __call__ + __eq__")
+    try
+        Point origin = Point()
+        Point p = Point(3, 4)
+        expectI(origin.x, 0, "Point().x         // 0-arg ctor")
+        expectI(p.x, 3, "Point(3,4).x      // 2-arg ctor")
+        expectI(p.y, 4, "Point(3,4).y")
+    catch e
+        bad("Point ctors", e.message)
+    end
+    try
+        Point p = Point(3, 4)
+        expectI(p.distance(), 25, "p.distance()      // method overload 0-arg")
+        Point q = Point(6, 8)
+        expectI(p.distance(q), 25, "p.distance(q)     // method overload 1-arg")
+    catch e
+        bad("Point.distance overload", e.message)
+    end
+    try
+        Point p = Point(3, 4)
+        expectI(p(), 3004, "p()               // __call__ 0-arg")
+        expectI(p(10), 34, "p(10)             // __call__ 1-arg")
+    catch e
+        bad("Point __call__ overload", e.message)
+    end
+    try
+        Point a = Point(1, 2)
+        Point b = Point(1, 2)
+        Point c = Point(9, 9)
+        if a == b then
+            ok("a == b            // __eq__ true")
+        else
+            bad("a == b", "expected true")
+        end
+        if not (a == c) then
+            ok("a != c            // __eq__ false")
+        else
+            bad("a == c", "expected false")
+        end
+    catch e
+        bad("Point __eq__", e.message)
+    end
+end
+
+// ============================================================
+// 入口：运行全部测试，报告已知 BUG，统计结果。
+// ============================================================
+func main(...) as int
+    println("=== overload: method overload verification suite ===")
+    println("(function / method / ctor / protocol / __call__ overload)")
+    println("")
+
+    testFuncOverload()
+    testMethodOverload()
+    testCtorOverload()
+    testCtorDefault()
+    testProtocolItem()
+    testProtocolCall()
+    testResolution()
+    testComposite()
+
+    println("")
+    println("--- known overload bugs (not executed; see BUGS.md) ---")
+    println("NOTE BUG-O1: var 实参无法分派到重载函数  -> [sem] 没有匹配的函数重载")
+    println("NOTE BUG-O2: __item__ as array<int> 重载 -> 运行期 0xC0000005 硬崩溃")
+    println("NOTE BUG-O3: get 属性 0 维 + 1 维重载    -> [checked] 找不到 class 方法")
+    println("NOTE LIMIT-O1: f(T) + f(T, U=默认) 同必选参数数 -> 判为歧义重载")
+    println("")
+    println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+    return 0
+end

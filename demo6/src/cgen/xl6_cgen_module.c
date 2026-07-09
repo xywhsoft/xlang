@@ -268,6 +268,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasXValueRuntime && xl6CgenNodeNeedsRuntimeTypeOps(root) ) {
         xl6CgenEmitRuntimeTypeHelpers(&ctx);
     }
+    if ( hasXValueRuntime ) {
+        xl6CgenEmitRecordFieldHelpers(&ctx);
+    }
     for ( i = 0; i < root->childCount; ++i ) {
         if ( (root->children[i]->kind == XL6_AST_FUNC || root->children[i]->kind == XL6_AST_EXPORT_FUNC) &&
              !xl6CgenFuncIsGeneric(root->children[i]) &&

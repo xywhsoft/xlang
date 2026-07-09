@@ -72,6 +72,20 @@ static int xl6CgenExprParamMatchCost(XL6_CgenContext* ctx, const XL6_AstNode* ex
             xl6AstFree(exprType);
             return 0;
         }
+        if ( xl6CgenIsClassType(ctx, exprType) && xl6CgenIsClassType(ctx, paramType) ) {
+            XL6_AstNode* fromClass = xl6CgenClassNodeForType(ctx, exprType);
+            XL6_AstNode* targetClass = xl6CgenClassNodeForType(ctx, paramType);
+            char basePath[256];
+
+            basePath[0] = '\0';
+            if ( fromClass != NULL &&
+                 targetClass != NULL &&
+                 !xl6CTextEquals(fromClass->text, targetClass->text) &&
+                 xl6CgenClassUpcastPath(ctx, fromClass, targetClass, basePath, sizeof(basePath)) ) {
+                xl6AstFree(exprType);
+                return 15;
+            }
+        }
         if ( exprTypeName != NULL &&
              exprType->childCount > 0 &&
              paramType->childCount == 0 &&

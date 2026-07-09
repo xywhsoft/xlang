@@ -1,0 +1,18 @@
+// negative case: param field on a class declaration
+// expected: [sem] #doc param 字段必须对应目标声明中的参数
+#doc
+desc:
+    Class has no parameter list itself.
+param x:
+    Cannot describe constructor param here.
+#end
+class C
+    int x = 0
+    create(int x)
+        self.x = x
+    end
+end
+
+func main(...) as int
+    return 0
+end

@@ -1,0 +1,393 @@
+// syncdemo - synchronization primitives verification (sem / cond / rwlock)
+//
+// Usage:
+//   syncdemo              run all scenarios
+//   syncdemo all          run all scenarios
+//   syncdemo sem          run semaphore scenario only
+//   syncdemo cond         run condition variable scenario only
+//   syncdemo rwlock       run read-write lock scenario only
+//   syncdemo list         list available scenarios
+//
+// Exercises the full sem / cond / rwlock API surface across real worker
+// threads, with time.sleep controlled timing, and reports PASS/FAIL per
+// assertion plus a summary. Exits 0 only when every assertion passes.
+//
+// API surface covered (see DEMO6功能清单.md section 13):
+//   sem(initial, max)  .post() .wait() .tryWait() .waitTimeout(ms)
+//                      .postMultiple(n)
+//   cond()             .wait(mutex) .waitTimeout(mutex, ms) .signal()
+//                      .broadcast()
+//   rwlock()           .readLock() .readUnlock() .tryReadLock()
+//                      .writeLock() .writeUnlock() .tryWriteLock()
+//                      .downgrade() .upgrade()
+//   mutex()            .lock() .unlock()
+//   thread(func)       .wait() .waitTimeout(ms) .exitCode()
+//
+// Design notes:
+//   - thread is a non-copyable resource, so worker threads are kept in named
+//     local variables (never in array<thread>/list<thread>). Each scenario
+//     uses a small, fixed number of worker threads.
+//   - sync method receivers must be named variables, so single-threaded basic
+//     probes use named locals; cross-thread scenarios use module-level handles
+//     captured by worker closures (the proven concurrency.xl pattern).
+//   - cond rendezvous uses a mutex-guarded "parked" counter: because a waiter
+//     bumps the counter while holding the mutex and then enters cond.wait()
+//     (which atomically releases that mutex), the main thread observing the
+//     counter under the same mutex is guaranteed all waiters are parked, which
+//     eliminates lost-wakeup races without an extra ready-sem.
+//   - blocking sem.wait() is exercised cross-thread (producer posts, consumer
+//     blocks until each post arrives); a hang there is itself a failure signal.
+
+// ---- result bookkeeping ----
+mutex g_log = mutex()
+int g_pass = 0
+int g_fail = 0
+
+func check(bool ok, string label)
+    g_log.lock()
+    if ok then
+        g_pass = g_pass + 1
+        println("  [PASS] ", label)
+    else
+        g_fail = g_fail + 1
+        println("  [FAIL] ", label)
+    end
+    g_log.unlock()
+end
+
+func beginScenario(string title)
+    println("")
+    println("=== ", title, " ===")
+end
+
+// ---- sem scenario handles ----
+sem g_semGate = sem(0, 10)
+sem g_semTimeout = sem(0, 1)
+mutex g_semAux = mutex()
+int g_semProduced = 0
+const int SEM_ITEMS = 5
+
+// producer: posts SEM_ITEMS tokens into g_semGate, spacing them out so the
+// consumer's blocking wait() actually has to block between posts.
+auto g_semProducer = func() as int
+    int i = 0
+    while i < SEM_ITEMS do
+        g_semGate.post()
+        g_semAux.lock()
+        g_semProduced = g_semProduced + 1
+        g_semAux.unlock()
+        time.sleep(10)
+        i = i + 1
+    end
+    return g_semProduced
+end
+
+// delayed poster: sleeps then posts once, to prove waitTimeout blocks until
+// signaled rather than returning instantly.
+auto g_semDelayedPost = func() as int
+    time.sleep(30)
+    g_semTimeout.post()
+    return 1
+end
+
+func runSem()
+    beginScenario("sem (semaphore)")
+
+    // 1. basic counting, single-threaded: sem(0, max).
+    sem s = sem(0, 3)
+    check(not s.tryWait(), "sem.tryWait on empty returns false")
+    check(s.post(), "sem.post #1 returns true")
+    check(s.post(), "sem.post #2 returns true")
+    check(s.tryWait(), "sem.tryWait after posts returns true (drain one)")
+    check(s.tryWait(), "sem.tryWait drains remaining")
+    check(not s.tryWait(), "sem.tryWait after full drain returns false")
+
+    // 2. post on full (initial == max) must fail.
+    sem full = sem(2, 2)
+    check(not full.post(), "sem.post on full (initial=max=2) returns false")
+    check(full.waitTimeout(10), "sem.waitTimeout drains one after full")
+    check(full.post(), "sem.post after drain returns true")
+
+    // 3. waitTimeout times out when no post arrives.
+    sem empty = sem(0, 1)
+    check(not empty.waitTimeout(60), "sem.waitTimeout on empty returns false (timeout)")
+
+    // 4. waitTimeout succeeds once a delayed post arrives (cross-thread).
+    thread dp = thread(g_semDelayedPost)
+    check(g_semTimeout.waitTimeout(2000), "sem.waitTimeout succeeds after delayed post")
+    check(dp.wait(), "sem delayed-post thread wait ok")
+    check(dp.exitCode() == 1, "sem delayed-post thread exit code")
+
+    // 5. postMultiple batch semantics.
+    sem multi = sem(0, 4)
+    check(multi.postMultiple(3), "sem.postMultiple(3) within capacity")
+    check(multi.tryWait(), "sem.tryWait after postMultiple #1")
+    check(multi.tryWait(), "sem.tryWait after postMultiple #2")
+    check(multi.tryWait(), "sem.tryWait after postMultiple #3")
+    check(not multi.tryWait(), "sem.tryWait after postMultiple drained")
+    check(not multi.postMultiple(5), "sem.postMultiple overflow (5>max=4) returns false")
+    check(not multi.tryWait(), "sem.postMultiple overflow left count unchanged")
+
+    // 6. cross-thread producer/consumer using blocking wait().
+    g_semGate = sem(0, 10)
+    g_semProduced = 0
+    thread prod = thread(g_semProducer)
+    int consumed = 0
+    while consumed < SEM_ITEMS do
+        g_semGate.wait()
+        consumed = consumed + 1
+    end
+    check(prod.wait(), "sem producer thread wait ok")
+    check(prod.exitCode() == SEM_ITEMS, "sem producer thread exit code")
+    check(g_semProduced == SEM_ITEMS, "sem producer posted expected count")
+    check(consumed == SEM_ITEMS, "sem blocking wait() consumed all produced")
+end
+
+// ---- cond scenario handles ----
+cond g_cond = cond()
+mutex g_condMutex = mutex()
+int g_condFlag = 0       // predicate guarded by g_condMutex
+int g_condParked = 0     // waiters that have entered cond.wait (under mutex)
+int g_condWoke = 0       // waiters that observed the flag and awoke (under mutex)
+
+// waiter: bumps parked under the mutex, then loops on the predicate inside
+// cond.wait. Returns 1 once it consumed the wakeup.
+auto g_condWaiter = func() as int
+    g_condMutex.lock()
+    g_condParked = g_condParked + 1
+    while g_condFlag == 0 do
+        g_cond.wait(g_condMutex)
+    end
+    g_condWoke = g_condWoke + 1
+    g_condMutex.unlock()
+    return 1
+end
+
+// spin (under the mutex) until n waiters report parked.
+func waitForParked(int n) as bool
+    int tries = 0
+    while tries < 500 do
+        g_condMutex.lock()
+        bool ready = g_condParked >= n
+        g_condMutex.unlock()
+        if ready then
+            return true
+        end
+        time.sleep(2)
+        tries = tries + 1
+    end
+    return false
+end
+
+func resetCondCounters()
+    g_condFlag = 0
+    g_condParked = 0
+    g_condWoke = 0
+end
+
+func runCond()
+    beginScenario("cond (condition variable + mutex)")
+
+    // 1. waitTimeout times out when no signal arrives.
+    cond c = cond()
+    mutex m = mutex()
+    m.lock()
+    check(not c.waitTimeout(m, 50), "cond.waitTimeout returns false on timeout")
+    m.unlock()
+
+    // 2. signal wakes exactly one waiting thread.
+    resetCondCounters()
+    thread w = thread(g_condWaiter)
+    check(waitForParked(1), "cond waiter parked in cond.wait")
+    g_condMutex.lock()
+    g_condFlag = 1
+    check(g_cond.signal(), "cond.signal returns true")
+    g_condMutex.unlock()
+    check(w.wait(), "cond signal waiter thread wait ok")
+    check(w.exitCode() == 1, "cond signal waiter exit code")
+    check(g_condWoke == 1, "cond.signal woke exactly one waiter")
+
+    // 3. broadcast wakes all waiting threads.
+    resetCondCounters()
+    thread w1 = thread(g_condWaiter)
+    thread w2 = thread(g_condWaiter)
+    thread w3 = thread(g_condWaiter)
+    check(waitForParked(3), "cond 3 waiters parked in cond.wait")
+    g_condMutex.lock()
+    g_condFlag = 1
+    check(g_cond.broadcast(), "cond.broadcast returns true")
+    g_condMutex.unlock()
+    check(w1.wait(), "cond broadcast waiter #1 wait ok")
+    check(w2.wait(), "cond broadcast waiter #2 wait ok")
+    check(w3.wait(), "cond broadcast waiter #3 wait ok")
+    check(w1.exitCode() == 1 and w2.exitCode() == 1 and w3.exitCode() == 1, "cond broadcast all waiters exited cleanly")
+    check(g_condWoke == 3, "cond.broadcast woke all 3 waiters")
+end
+
+// ---- rwlock scenario handles ----
+rwlock g_rwConc = rwlock()
+rwlock g_rwWriter = rwlock()
+rwlock g_rwDown = rwlock()
+mutex g_rwAux = mutex()
+int g_activeReaders = 0
+int g_maxConcurrentReaders = 0
+
+// concurrent reader: takes read lock, records concurrency, holds long enough
+// to force overlap with the sibling reader.
+auto g_rwReader = func() as int
+    g_rwConc.readLock()
+    g_rwAux.lock()
+    g_activeReaders = g_activeReaders + 1
+    if g_activeReaders > g_maxConcurrentReaders then
+        g_maxConcurrentReaders = g_activeReaders
+    end
+    g_rwAux.unlock()
+    time.sleep(40)
+    g_rwAux.lock()
+    g_activeReaders = g_activeReaders - 1
+    g_rwAux.unlock()
+    g_rwConc.readUnlock()
+    return 1
+end
+
+// reader probe for the writer-exclusive test: busy-tries tryReadLock until the
+// writer releases, returns how many times it was blocked.
+auto g_rwWriterProbe = func() as int
+    int fails = 0
+    bool got = false
+    while fails < 300 do
+        if g_rwWriter.tryReadLock() then
+            got = true
+            break
+        end
+        fails = fails + 1
+        time.sleep(1)
+    end
+    if got then
+        g_rwWriter.readUnlock()
+    end
+    return fails
+end
+
+// downgrade flow: writeLock -> (probe reader blocked) -> downgrade -> (probe
+// writer blocked) -> readUnlock. Sentinel exit 29 on full success.
+auto g_rwDowngrade = func() as int
+    if not g_rwDown.writeLock() then
+        return 10
+    end
+    if g_rwDown.tryReadLock() then
+        g_rwDown.readUnlock()
+        g_rwDown.writeUnlock()
+        return 11
+    end
+    if not g_rwDown.downgrade() then
+        g_rwDown.writeUnlock()
+        return 12
+    end
+    if g_rwDown.tryWriteLock() then
+        g_rwDown.writeUnlock()
+        return 13
+    end
+    if not g_rwDown.readUnlock() then
+        return 14
+    end
+    return 29
+end
+
+func runRwlock()
+    beginScenario("rwlock (read-write lock)")
+
+    // 1. basic read/write mutual exclusion, single-threaded probes.
+    rwlock rb = rwlock()
+    check(rb.readLock(), "rwlock.readLock ok")
+    check(not rb.tryWriteLock(), "rwlock writer blocked while read-held")
+    rb.readUnlock()
+    check(rb.tryWriteLock(), "rwlock.tryWriteLock ok after read release")
+    rb.writeUnlock()
+    check(rb.writeLock(), "rwlock.writeLock ok")
+    check(not rb.tryReadLock(), "rwlock reader blocked while write-held")
+    check(not rb.tryWriteLock(), "rwlock second writer blocked while write-held")
+    rb.writeUnlock()
+
+    // 2. concurrent readers coexist; a writer is blocked while they hold.
+    g_activeReaders = 0
+    g_maxConcurrentReaders = 0
+    thread r1 = thread(g_rwReader)
+    thread r2 = thread(g_rwReader)
+    time.sleep(20)
+    check(not g_rwConc.tryWriteLock(), "rwlock writer blocked while 2 readers hold")
+    check(g_rwConc.tryReadLock(), "rwlock 3rd reader (main) can join concurrent readers")
+    g_rwConc.readUnlock()
+    check(r1.wait(), "rwlock reader #1 wait ok")
+    check(r2.wait(), "rwlock reader #2 wait ok")
+    check(r1.exitCode() == 1 and r2.exitCode() == 1, "rwlock readers exited cleanly")
+    check(g_maxConcurrentReaders >= 2, "rwlock observed >=2 concurrent readers")
+    check(g_activeReaders == 0, "rwlock all readers released")
+    check(g_rwConc.tryWriteLock(), "rwlock writer ok after readers release")
+    g_rwConc.writeUnlock()
+
+    // 3. writer-exclusive: writer holds, a reader probe is blocked until release.
+    g_rwWriter.writeLock()
+    thread wp = thread(g_rwWriterProbe)
+    time.sleep(30)
+    g_rwWriter.writeUnlock()
+    check(wp.wait(), "rwlock writer-probe thread wait ok")
+    check(wp.exitCode() > 0, "rwlock reader blocked while writer held (fails>0)")
+
+    // 4. downgrade: write lock -> read lock (write->read transition).
+    thread dt = thread(g_rwDowngrade)
+    check(dt.wait(), "rwlock downgrade worker wait ok")
+    check(dt.exitCode() == 29, "rwlock writeLock->downgrade->readUnlock flow ok")
+    check(g_rwDown.tryWriteLock(), "rwlock fully released after downgrade worker")
+    g_rwDown.writeUnlock()
+
+    // 5. upgrade: read lock -> write lock (read->write transition).
+    rwlock ru = rwlock()
+    check(ru.readLock(), "rwlock upgrade: readLock ok")
+    check(ru.upgrade(), "rwlock upgrade: read->write ok")
+    check(not ru.tryReadLock(), "rwlock reader blocked after upgrade")
+    ru.writeUnlock()
+    check(not ru.upgrade(), "rwlock upgrade without read lock returns false")
+end
+
+func main(...) as int
+    println("syncdemo - synchronization primitives verification (sem / cond / rwlock)")
+    println("threads + time.sleep controlled timing")
+
+    string scenario = "all"
+    if arg.length >= 2 then
+        scenario = string(arg[1])
+    end
+
+    if scenario == "list" then
+        println("scenarios: sem, cond, rwlock, all")
+        return 0
+    end
+
+    bool runAll = (scenario == "all")
+    if runAll or scenario == "sem" then
+        runSem()
+    end
+    if runAll or scenario == "cond" then
+        runCond()
+    end
+    if runAll or scenario == "rwlock" then
+        runRwlock()
+    end
+
+    if not runAll and scenario != "sem" and scenario != "cond" and scenario != "rwlock" then
+        println("unknown scenario: " + scenario)
+        println("usage: syncdemo [all|sem|cond|rwlock|list]")
+        return 1
+    end
+
+    println("")
+    println("=== summary ===")
+    println("passed:", g_pass, " failed:", g_fail)
+    if g_fail == 0 then
+        println("RESULT: OK - all", g_pass, "sync primitive assertions passed")
+        return 0
+    end
+    println("RESULT: FAIL -", g_fail, "assertion(s) failed")
+    return 1
+end

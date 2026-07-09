@@ -1,0 +1,241 @@
+// fstr - f-string 语法验证工具
+//
+// 全面测试 xlang f-string 能力。合法用例逐条断言 [PASS]/[FAIL]；
+// 非法用例通过 xl.exe parse 子进程验证编译器报错。
+// 工具自身只含合法 f-string，xl run / xl build 双路径 EXIT=0。
+//
+// 覆盖能力：
+//   1.  基本插值          f"hello {name}"
+//   2.  表达式插值        f"{1 + 2}" / f"{a * b}"
+//   3.  字段访问          f"{obj.field}"
+//   4.  方法调用          f"{string.upper(name)}" / f"{obj.method()}"
+//   5.  {{ }} 字面大括号  f"literal {{braces}}"
+//   6.  raw f-string      rf"c:\tmp\{name}.txt"
+//   7.  多行 f-string     f"""..."""
+//   8.  嵌套大括号        f"{d['key']}" / f'{d["key"]}'
+//   9.  f-string 三元     f"{x > 0 ? 'pos' : 'neg'}"
+//   10. 空表达式报错      f"{}"
+//   11. 未闭合大括号报错  f"{name"
+//
+// 用法：
+//   xl run  projects\dev\fstr\fstr.xl
+//   xl build projects\dev\fstr\fstr.xl -o projects\dev\fstr\fstr.exe
+//
+// 关键事实（DEMO6功能清单.md §4）：
+//   * f-string 支持 {expr} 表达式插值，支持 {{ / }} 字面大括号和 rf raw f-string。
+//   * raw f-string 插值表达式仍会解析，普通转义不处理。
+//   * 空表达式、未闭合大括号、错误大括号配对会产生解析错误。
+// ---------------------------------------------------------------------------
+
+// ====================================================================
+// 测试目标：class 用于字段访问和方法调用测试
+// ====================================================================
+class Vec
+    int x = 0
+    int y = 0
+
+    create(int x, int y)
+        self.x = x
+        self.y = y
+    end
+
+    func sum() as int
+        return self.x + self.y
+    end
+end
+
+// ====================================================================
+// 测试框架
+// ====================================================================
+int g_pass = 0
+int g_fail = 0
+string g_xl = ""
+
+func ok(string label)
+    g_pass += 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail += 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectS(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+// 定位 xl.exe：优先 cwd（xl run 的调用目录），其次 appDir
+func findXl() as string
+    string c1 = path.join(path.cwd(), "xl.exe")
+    if file.exists(c1) then
+        return c1
+    end
+    string c2 = path.join(path.appDir(), "xl.exe")
+    if file.exists(c2) then
+        return c2
+    end
+    return ""
+end
+
+// 将 snippet 写入临时 .xl 文件，调用 xl parse，验证编译失败且报错含 expectedDiag
+func negativeCheck(string label, string snippet, string expectedDiag)
+    if string.len(g_xl) == 0 then
+        println("  [SKIP] " + label + " (xl.exe not found)")
+        return
+    end
+
+    string tmpDir = path.join(path.temp(), "fstr_neg")
+    if not dir.exists(tmpDir) then
+        dir.createAll(tmpDir)
+    end
+
+    string safeName = "neg_" + string(g_pass) + "_" + string(g_fail) + ".xl"
+    string filePath = path.join(tmpDir, safeName)
+    file.writeText(filePath, snippet + "\n")
+
+    string cmd = g_xl + " parse " + filePath
+    ProcessResult r = process.run(cmd, 15000)
+
+    file.delete(filePath)
+
+    if r.exitCode == 0 then
+        bad(label, "expected compile error but xl parse succeeded")
+    elseif string.contains(r.stderr, expectedDiag) then
+        ok(label + " (rejected correctly)")
+    else
+        bad(label, "rejected but diagnostic mismatch: " + string.trim(r.stderr))
+    end
+end
+
+// ====================================================================
+// 合法 f-string 能力测试
+// ====================================================================
+func testBasicInterp()
+    println("[1] basic interpolation")
+    string name = "xlang"
+    expectS(f"hello {name}", "hello xlang", "f\"hello {name}\"")
+end
+
+func testExprInterp()
+    println("[2] expression interpolation")
+    expectS(f"{1 + 2}", "3", "f\"{1 + 2}\"")
+    int a = 6
+    int b = 7
+    expectS(f"{a * b}", "42", "f\"{a * b}\"")
+    expectS(f"{a}+{b}={a + b}", "6+7=13", "f\"{a}+{b}={a+b}\"")
+end
+
+func testFieldAccess()
+    println("[3] field access")
+    Vec v = Vec(3, 4)
+    expectS(f"({v.x}, {v.y})", "(3, 4)", "f\"({v.x}, {v.y})\"")
+end
+
+func testMethodCall()
+    println("[4] method call")
+    string name = "xlang"
+    expectS(f"{string.upper(name)}", "XLANG", "f\"{string.upper(name)}\"")
+    Vec v = Vec(3, 4)
+    expectS(f"{v.sum()}", "7", "f\"{v.sum()}\"")
+end
+
+func testLiteralBraces()
+    println("[5] literal braces {{ }}")
+    string name = "xlang"
+    expectS(f"literal {{braces}}", "literal {braces}", "f\"literal {{braces}}\"")
+    expectS(f"obj={{{name}}}", "obj={xlang}", "f\"obj={{{name}}}\"")
+end
+
+func testRawFstring()
+    println("[6] raw f-string (rf prefix)")
+    string name = "xlang"
+    expectS(rf"c:\tmp\{name}.txt", "c:\\tmp\\xlang.txt", "rf\"c:\\tmp\\{name}.txt\"")
+end
+
+func testMultiline()
+    println("[7] multi-line f-string (triple-quote)")
+    int version = 6
+    string name = "xlang"
+    string multi = f"""line {version}
+{name}"""
+    expectS(multi, "line 6\n" + name, "f\"\"\"line {version}\\n{name}\"\"\"")
+end
+
+func testNestedBraces()
+    println("[8] nested braces (dict index with inner quotes)")
+    var d = {"lang": "xlang", "ver": "6"}
+    expectS(f"{d['lang']}", "xlang", "f\"{d['lang']}\" (sq inside dq)")
+    expectS(f'{d["ver"]}', "6", "f'{d[\"ver\"]}' (dq inside sq)")
+end
+
+func testTernary()
+    println("[9] ternary in f-string")
+    int x = 5
+    expectS(f"{x > 0 ? 'pos' : 'neg'}", "pos", "ternary true branch")
+    int y = -1
+    expectS(f"{y > 0 ? 'pos' : 'neg'}", "neg", "ternary false branch")
+end
+
+func testTypes()
+    println("[10] type interpolation (int/bool/float)")
+    int n = 42
+    bool flag = true
+    float pi = 3.14
+    expectS(f"n={n}", "n=42", "int interpolation")
+    expectS(f"flag={flag}", "flag=true", "bool interpolation")
+    expectS(f"pi={pi}", "pi=3.14", "float interpolation")
+end
+
+func testComplex()
+    println("[11] combined complex f-string")
+    string name = "xlang"
+    int version = 6
+    Vec v = Vec(3, 4)
+    expectS(f"{name} v{version}: {v.x}*{v.y}={v.x * v.y}", "xlang v6: 3*4=12", "complex mixed")
+end
+
+// ====================================================================
+// 非法 f-string 用例测试（编译器应报错）
+// ====================================================================
+func testNegatives()
+    println("[12] invalid f-string cases (must produce compile errors)")
+    negativeCheck("empty expr f\"{}\"", "auto text = f\"hello {}\"", "不能为空")
+    negativeCheck("unclosed brace f\"{name\"", "auto name = \"x\"\nauto text = f\"hello {name\"", "未闭合")
+    negativeCheck("lone close brace f\"}\"", "auto text = f\"hello }\"", "单独的 }")
+end
+
+// ====================================================================
+// 入口
+// ====================================================================
+func main(...) as int
+    println("=== fstr: f-string syntax validation ===")
+    println("")
+
+    g_xl = findXl()
+
+    testBasicInterp()
+    testExprInterp()
+    testFieldAccess()
+    testMethodCall()
+    testLiteralBraces()
+    testRawFstring()
+    testMultiline()
+    testNestedBraces()
+    testTernary()
+    testTypes()
+    testComplex()
+    testNegatives()
+
+    println("")
+    println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+
+    if g_fail > 0 then
+        return 1
+    end
+    return 0
+end

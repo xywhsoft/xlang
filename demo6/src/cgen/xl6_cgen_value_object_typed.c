@@ -160,9 +160,42 @@ static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6
 
     if ( callee->kind == XL6_AST_NAME ) {
         XL6_AstNode* inferredArgs = NULL;
+        const XL6_AstNode* prevParams;
+        const XL6_AstNode* prevArgs;
+
         func = xl6CgenResolveCallFuncInternal(ctx, expr, callee->text, &inferredArgs, 0);
+        prevParams = ctx->currentGenericParams;
+        prevArgs = ctx->currentGenericArgs;
+        if ( func != NULL && xl6CgenFuncIsGeneric(func) && inferredArgs != NULL ) {
+            ctx->currentGenericParams = xl6CgenFuncTypeParams(func);
+            ctx->currentGenericArgs = inferredArgs;
+        }
+        result = xl6CgenFuncSingleReturnUsesTypedContainerStorage(ctx, func);
+        ctx->currentGenericParams = prevParams;
+        ctx->currentGenericArgs = prevArgs;
         xl6AstFree(inferredArgs);
-        return xl6CgenFuncSingleReturnUsesTypedContainerStorage(ctx, func);
+        return result;
+    }
+
+    if ( callee->kind == XL6_AST_GENERIC_INSTANT && callee->childCount > 1 ) {
+        const XL6_AstNode* nameNode = callee->children[0];
+        const XL6_AstNode* typeArgs = callee->children[1];
+        const XL6_AstNode* prevParams;
+        const XL6_AstNode* prevArgs;
+
+        func = nameNode != NULL && nameNode->kind == XL6_AST_NAME
+            ? xl6CgenResolveExplicitGenericCallFunc(ctx, expr, nameNode->text, typeArgs, 0)
+            : NULL;
+        prevParams = ctx->currentGenericParams;
+        prevArgs = ctx->currentGenericArgs;
+        if ( func != NULL && typeArgs != NULL ) {
+            ctx->currentGenericParams = xl6CgenFuncTypeParams(func);
+            ctx->currentGenericArgs = typeArgs;
+        }
+        result = xl6CgenFuncSingleReturnUsesTypedContainerStorage(ctx, func);
+        ctx->currentGenericParams = prevParams;
+        ctx->currentGenericArgs = prevArgs;
+        return result;
     }
 
     if ( callee->kind == XL6_AST_MEMBER ) {
