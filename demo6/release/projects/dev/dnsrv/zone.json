@@ -1,0 +1,20 @@
+{
+    "example.com": {
+        "A": ["93.184.216.34"],
+        "MX": ["10 mail.example.com"],
+        "TXT": ["v=spf1 -all"]
+    },
+    "www.example.com": {
+        "CNAME": ["example.com"]
+    },
+    "mail.example.com": {
+        "A": ["93.184.216.35"]
+    },
+    "api.example.com": {
+        "A": ["203.0.113.10", "203.0.113.11"],
+        "TXT": ["service=api", "env=production"]
+    },
+    "docs.example.com": {
+        "CNAME": ["api.example.com"]
+    }
+}

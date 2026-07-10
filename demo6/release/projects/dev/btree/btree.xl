@@ -1,0 +1,1140 @@
+// btree - B+树索引引擎 (order m=4)
+//
+// 用法：
+//   btree test       内置自测：插入 200 键，验证 查找/范围/删除/序列化（始终 EXIT=0）
+//   btree dump       构造示例树并打印结构（leaf 链 + internal 层级）
+//   btree help       打印用法
+//
+// 设计要点（结合 dev/README.md 与 BUGS.md）：
+//   - 阶 m=4：internal 最多 4 子（3 键），leaf 最多 3 键。
+//     leaf 下限 = 2 键，internal 下限 = 1 键（2 子）；root 可更少。
+//   - 节点用单一 BPlusTreeNode class（leaf 标志区分 leaf/internal）——组合而非继承，
+//     规避 BUG-RT1/RT2/RT3（typed Base 字段/array<Base>/返回带 virtual 的 class 致 vtable 切片/崩溃）。
+//   - 节点池：BPlusTree.nodes 为 var 数组（index = node id）；节点按 id 引用。
+//     var 数组承载 class 实例 + as 还原是 README 记录的已验证能力。
+//   - 值语义：getNode 取出的是副本，修改后用 setNode 写回（探针已确认 write-back 持久）。
+//   - 递归用 var 数组承载 split 结果（[upKey, newRightId]），避免 var dict 在递归中触发 BUG-LP1。
+//   - class 继承：BPlusTree extends IndexEngine（virtual engineKind + base() + describe），
+//     始终以具体 BPlusTree 实例调用，不从函数返回带 virtual 的实例（BUG-RT3）。
+//   - 序列化：手动遍历节点池构造 var 结构 + json.stringify（compact 保序，规避 BUG-K1 pretty 重排）；
+//     另演示 BPlusTreeNode 的 derive json 单节点往返。
+//   - 复合赋值 += 仅用于标量；不派发 class 协议（BUG-V1），运算符协议本工具不涉及。
+
+const int ORDER = 4       // 最大子节点数
+const int MAX_KEYS = 3    // ORDER - 1
+const int MIN_LEAF = 2    // ORDER / 2（leaf 下限）
+const int MIN_INTERNAL = 1 // ORDER/2 - 1（internal 下限）
+
+
+// ============================================================================
+// 只读顶层辅助函数（避免 BUG-C1：class 方法不宜接收 array<int> 形参）
+// ============================================================================
+
+// 在有序 array<int> 中找 key 的下标，找不到返回 -1。
+func indexOfKey(array<int> keys, int key) as int
+    int i = 0
+    int n = keys.length
+    while i < n do
+        if keys[i] == key then
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+// 返回 key 应插入的有序位置（第一个 > key 的位置；即 lower_bound 风格：稳定插入）。
+func lowerBound(array<int> keys, int key) as int
+    int i = 0
+    int n = keys.length
+    while i < n do
+        if keys[i] >= key then
+            return i
+        end
+        i = i + 1
+    end
+    return n
+end
+
+// 把 array<int> 格式化为 "[1,2,3]" 文本。
+func intArrayToStr(array<int> a) as string
+    string s = "["
+    int i = 0
+    int n = a.length
+    while i < n do
+        if i > 0 then
+            s = s + ","
+        end
+        s = s + string(a[i])
+        i = i + 1
+    end
+    return s + "]"
+end
+
+// 返回 internal 节点应下沉到的子节点下标：第一个 keys[i] > key 的 i，否则末子。
+func childIndexToDescend(array<int> keys, int key) as int
+    int i = 0
+    int n = keys.length
+    while i < n do
+        if key < keys[i] then
+            return i
+        end
+        i = i + 1
+    end
+    return n
+end
+
+
+// ============================================================================
+// BPlusTreeNode — 单一节点 class（leaf 标志区分），derive value/json
+// ============================================================================
+
+class BPlusTreeNode
+    derive value
+    derive json
+
+    bool leaf = true
+    array<int> keys = array[]       // leaf: 键；internal: 分隔键
+    array<int> vals = array[]       // leaf: 与 keys 平行的值；internal 不用
+    array<int> children = array[]   // internal: 子节点 id；leaf 不用
+    int next = -1                   // leaf: 右兄弟叶 id；internal 不用
+
+    create()
+        self.leaf = true
+        self.keys = array[]
+        self.vals = array[]
+        self.children = array[]
+        self.next = -1
+    end
+end
+
+
+// ============================================================================
+// IndexEngine — 抽象索引基类（演示继承 + virtual + base()）
+// ============================================================================
+
+class IndexEngine
+    derive value
+
+    string name = "index"
+    int opCount = 0        // 累计操作次数（insert+delete+find）
+
+    create(string name)
+        self.name = name
+    end
+
+    virtual func engineKind() as string
+        return "generic"
+    end
+
+    func describe() as string
+        string k = self.engineKind()
+        return k + ":" + self.name + " ops=" + string(self.opCount)
+    end
+end
+
+
+// ============================================================================
+// BPlusTree — B+树引擎（节点池 + root id）
+// ============================================================================
+
+class BPlusTree extends IndexEngine
+    derive value
+
+    var nodes = []         // 节点池：var 数组，index = node id
+    int rootId = 0
+    int keyCount = 0
+
+    create(string name)
+        base(name)
+        self.nodes = []
+        BPlusTreeNode r = BPlusTreeNode()    // 空叶根
+        self.nodes.push(r)
+        self.rootId = 0
+        self.keyCount = 0
+    end
+
+    override func engineKind() as string
+        return "bplus"
+    end
+
+    // ---- 节点池访问（值语义 write-back）----
+
+    func getNode(int id) as BPlusTreeNode
+        var v = self.nodes[id]
+        BPlusTreeNode n = v as BPlusTreeNode
+        return n
+    end
+
+    func setNode(int id, BPlusTreeNode n)
+        self.nodes[id] = n
+    end
+
+    func allocNode(BPlusTreeNode n) as int
+        self.nodes.push(n)
+        int nid = self.nodes.length
+        nid = nid - 1
+        return nid
+    end
+
+    func nodeCount() as int
+        int n = self.nodes.length
+        return n
+    end
+
+    func minKeysFor(bool leaf) as int
+        if leaf then
+            return MIN_LEAF
+        end
+        return MIN_INTERNAL
+    end
+
+    // ---- 查找 ----
+
+    func find(int key) as int
+        self.opCount = self.opCount + 1
+        int curId = self.rootId
+        bool done = false
+        while not done do
+            BPlusTreeNode n = self.getNode(curId)
+            if n.leaf then
+                int pos = indexOfKey(n.keys, key)
+                if pos < 0 then
+                    return -1
+                end
+                int vv = n.vals[pos]
+                return vv
+            end
+            int ci = childIndexToDescend(n.keys, key)
+            int nc = n.children.length
+            if ci >= nc then
+                ci = nc - 1
+            end
+            curId = int(n.children[ci])
+        end
+        return -1
+    end
+
+    func contains(int key) as bool
+        int v = self.find(key)
+        if v < 0 then
+            return false
+        end
+        return true
+    end
+
+    // ---- 插入 ----
+
+    // 在 id 子树插入 (key,val)；返回 var 数组：
+    //   [] 表示未分裂；[upKey, newRightId] 表示本层分裂，需上推。
+    func insertInto(int id, int key, int val) as var
+        BPlusTreeNode n = self.getNode(id)
+        if n.leaf then
+            int pos = indexOfKey(n.keys, key)
+            if pos >= 0 then
+                // 已存在：覆盖值，不分裂
+                n.vals[pos] = val
+                self.setNode(id, n)
+                return []
+            end
+            int ip = lowerBound(n.keys, key)
+            n.keys.insert(ip, key)
+            n.vals.insert(ip, val)
+            int lenk = n.keys.length
+            if lenk <= MAX_KEYS then
+                self.setNode(id, n)
+                return []
+            end
+            // 叶分裂
+            int mid = lenk / 2
+            BPlusTreeNode right = BPlusTreeNode()
+            right.leaf = true
+            int i = mid
+            while i < lenk do
+                right.keys.push(n.keys[i])
+                right.vals.push(n.vals[i])
+                i = i + 1
+            end
+            // 裁剪 n 为左半
+            while n.keys.length > mid do
+                n.keys.remove(n.keys.length - 1)
+                n.vals.remove(n.vals.length - 1)
+            end
+            int upKey = right.keys[0]
+            right.next = n.next
+            int rightId = self.allocNode(right)
+            n.next = rightId
+            self.setNode(id, n)
+            var ret = [upKey, rightId]
+            return ret
+        end
+
+        // internal：下沉到合适子节点
+        int ci = childIndexToDescend(n.keys, key)
+        int nc = n.children.length
+        if ci >= nc then
+            ci = nc - 1
+        end
+        int childId = int(n.children[ci])
+        var split = self.insertInto(childId, key, val)
+        int sl = split.length
+        if sl == 0 then
+            return []
+        end
+
+        // 子节点分裂：把 upKey/rightId 插入本 internal
+        int upKey = int(split[0])
+        int newChild = int(split[1])
+        int ip = lowerBound(n.keys, upKey)
+        n.keys.insert(ip, upKey)
+        n.children.insert(ip + 1, newChild)
+        int lenk = n.keys.length
+        if lenk <= MAX_KEYS then
+            self.setNode(id, n)
+            return []
+        end
+
+        // internal 分裂
+        int mid = lenk / 2
+        int pushKey = n.keys[mid]
+        BPlusTreeNode rightI = BPlusTreeNode()
+        rightI.leaf = false
+        // 右半 keys: mid+1 .. end
+        int j = mid + 1
+        while j < lenk do
+            rightI.keys.push(n.keys[j])
+            j = j + 1
+        end
+        // 右半 children: mid+1 .. end
+        int jlen = lenk + 1
+        int c = mid + 1
+        while c < jlen do
+            rightI.children.push(n.children[c])
+            c = c + 1
+        end
+        // 裁剪 n：keys 保留 0..mid-1，children 保留 0..mid
+        while n.keys.length > mid do
+            n.keys.remove(n.keys.length - 1)
+        end
+        while n.children.length > mid + 1 do
+            n.children.remove(n.children.length - 1)
+        end
+        int rightId2 = self.allocNode(rightI)
+        self.setNode(id, n)
+        var ret2 = [pushKey, rightId2]
+        return ret2
+    end
+
+    // 公开插入：返回 true=新增，false=已存在（覆盖值）
+    func insert(int key, int val) as bool
+        self.opCount = self.opCount + 1
+        bool existed = self.contains(key)
+        var split = self.insertInto(self.rootId, key, val)
+        int sl = split.length
+        if sl > 0 then
+            int upKey = int(split[0])
+            int rightId = int(split[1])
+            BPlusTreeNode newRoot = BPlusTreeNode()
+            newRoot.leaf = false
+            newRoot.keys.push(upKey)
+            newRoot.children.push(self.rootId)
+            newRoot.children.push(rightId)
+            int nrid = self.allocNode(newRoot)
+            self.rootId = nrid
+        end
+        if not existed then
+            self.keyCount = self.keyCount + 1
+            return true
+        end
+        return false
+    end
+
+    // ---- 删除 ----
+
+    // 从 id 子树删除 key；返回 true=找到并删除。下溢由调用方（父层）检测本子节点尺寸处理。
+    func deleteFrom(int id, int key) as bool
+        BPlusTreeNode n = self.getNode(id)
+        if n.leaf then
+            int pos = indexOfKey(n.keys, key)
+            if pos < 0 then
+                return false
+            end
+            n.keys.remove(pos)
+            n.vals.remove(pos)
+            self.setNode(id, n)
+            return true
+        end
+        // internal
+        int ci = childIndexToDescend(n.keys, key)
+        int nc = n.children.length
+        if ci >= nc then
+            ci = nc - 1
+        end
+        int childId = int(n.children[ci])
+        bool found = self.deleteFrom(childId, key)
+        if not found then
+            return false
+        end
+        BPlusTreeNode child = self.getNode(childId)
+        int mk = self.minKeysFor(child.leaf)
+        int clen = child.keys.length
+        if clen < mk then
+            self.rebalanceAt(id, ci)
+        end
+        return true
+    end
+
+    // 对 parentId 的第 childIdx 个子节点做再平衡（借/并）
+    func rebalanceAt(int parentId, int childIdx)
+        BPlusTreeNode p = self.getNode(parentId)
+        int cId = int(p.children[childIdx])
+        BPlusTreeNode c = self.getNode(cId)
+        int mk = self.minKeysFor(c.leaf)
+
+        // 1) 尝试向左兄弟借
+        if childIdx > 0 then
+            int leftId = int(p.children[childIdx - 1])
+            BPlusTreeNode left = self.getNode(leftId)
+            int llen = left.keys.length
+            if llen > mk then
+                if c.leaf then
+                    int lk = left.keys[llen - 1]
+                    int lv = left.vals[llen - 1]
+                    left.keys.remove(llen - 1)
+                    left.vals.remove(llen - 1)
+                    c.keys.insert(0, lk)
+                    c.vals.insert(0, lv)
+                    p.keys[childIdx - 1] = c.keys[0]
+                else
+                    int sep = p.keys[childIdx - 1]
+                    c.keys.insert(0, sep)
+                    int lc = left.children[llen]
+                    c.children.insert(0, lc)
+                    left.children.remove(llen)
+                    p.keys[childIdx - 1] = left.keys[llen - 1]
+                    left.keys.remove(llen - 1)
+                end
+                self.setNode(leftId, left)
+                self.setNode(cId, c)
+                self.setNode(parentId, p)
+                return
+            end
+        end
+
+        // 2) 尝试向右兄弟借
+        int pcnt = p.children.length
+        if childIdx < pcnt - 1 then
+            int rightId = int(p.children[childIdx + 1])
+            BPlusTreeNode right = self.getNode(rightId)
+            int rlen = right.keys.length
+            if rlen > mk then
+                if c.leaf then
+                    int rk = right.keys[0]
+                    int rv = right.vals[0]
+                    right.keys.remove(0)
+                    right.vals.remove(0)
+                    c.keys.push(rk)
+                    c.vals.push(rv)
+                    p.keys[childIdx] = right.keys[0]
+                else
+                    int sep = p.keys[childIdx]
+                    c.keys.push(sep)
+                    int rc = right.children[0]
+                    c.children.push(rc)
+                    right.children.remove(0)
+                    p.keys[childIdx] = right.keys[0]
+                    right.keys.remove(0)
+                end
+                self.setNode(rightId, right)
+                self.setNode(cId, c)
+                self.setNode(parentId, p)
+                return
+            end
+        end
+
+        // 3) 合并：优先并入左兄弟，否则并入右兄弟
+        if childIdx > 0 then
+            self.mergeNodes(parentId, childIdx - 1)
+        else
+            self.mergeNodes(parentId, childIdx)
+        end
+    end
+
+    // 合并 parentId 的第 leftIdx 与 leftIdx+1 两个子节点（并入左侧），删除父分隔键与右子指针。
+    func mergeNodes(int parentId, int leftIdx)
+        BPlusTreeNode p = self.getNode(parentId)
+        int leftId = int(p.children[leftIdx])
+        int rightId = int(p.children[leftIdx + 1])
+        BPlusTreeNode left = self.getNode(leftId)
+        BPlusTreeNode right = self.getNode(rightId)
+        if left.leaf then
+            int i = 0
+            int rn = right.keys.length
+            while i < rn do
+                left.keys.push(right.keys[i])
+                left.vals.push(right.vals[i])
+                i = i + 1
+            end
+            left.next = right.next
+        else
+            int sep = p.keys[leftIdx]
+            left.keys.push(sep)
+            int i = 0
+            int rn = right.keys.length
+            while i < rn do
+                left.keys.push(right.keys[i])
+                i = i + 1
+            end
+            int j = 0
+            int rcn = right.children.length
+            while j < rcn do
+                left.children.push(right.children[j])
+                j = j + 1
+            end
+        end
+        p.keys.remove(leftIdx)
+        p.children.remove(leftIdx + 1)
+        self.setNode(leftId, left)
+        self.setNode(parentId, p)
+    end
+
+    // 公开删除：返回 true=删除成功，false=不存在
+    func delete(int key) as bool
+        self.opCount = self.opCount + 1
+        bool found = self.deleteFrom(self.rootId, key)
+        if not found then
+            return false
+        end
+        self.keyCount = self.keyCount - 1
+        BPlusTreeNode root = self.getNode(self.rootId)
+        if not root.leaf then
+            int rlen = root.keys.length
+            if rlen == 0 then
+                // 塌缩：唯一子节点成为新根
+                int onlyChild = int(root.children[0])
+                self.rootId = onlyChild
+            end
+        end
+        return true
+    end
+
+    // ---- 范围查询 [lo, hi]（沿叶链扫描，升序）----
+    func range(int lo, int hi) as var
+        var result = []
+        int curId = self.rootId
+        BPlusTreeNode n = self.getNode(curId)
+        bool isLeaf = n.leaf
+        while not isLeaf do
+            int ci = childIndexToDescend(n.keys, lo)
+            int nc = n.children.length
+            if ci >= nc then
+                ci = nc - 1
+            end
+            curId = int(n.children[ci])
+            n = self.getNode(curId)
+            isLeaf = n.leaf
+        end
+        bool stop = false
+        while not stop do
+            int i = 0
+            int kn = n.keys.length
+            while i < kn do
+                int k = n.keys[i]
+                if k > hi then
+                    stop = true
+                    i = kn
+                elseif k >= lo then
+                    result.push(k)
+                end
+                i = i + 1
+            end
+            if not stop then
+                if n.next < 0 then
+                    stop = true
+                else
+                    curId = n.next
+                    n = self.getNode(curId)
+                end
+            end
+        end
+        return result
+    end
+
+    // 范围查询返回 [key,val] 对数组（演示值传递）
+    func rangeEntries(int lo, int hi) as var
+        var result = []
+        int curId = self.rootId
+        BPlusTreeNode n = self.getNode(curId)
+        bool isLeaf = n.leaf
+        while not isLeaf do
+            int ci = childIndexToDescend(n.keys, lo)
+            int nc = n.children.length
+            if ci >= nc then
+                ci = nc - 1
+            end
+            curId = int(n.children[ci])
+            n = self.getNode(curId)
+            isLeaf = n.leaf
+        end
+        bool stop = false
+        while not stop do
+            int i = 0
+            int kn = n.keys.length
+            while i < kn do
+                int k = n.keys[i]
+                if k > hi then
+                    stop = true
+                    i = kn
+                elseif k >= lo then
+                    var pair = [k, n.vals[i]]
+                    result.push(pair)
+                end
+                i = i + 1
+            end
+            if not stop then
+                if n.next < 0 then
+                    stop = true
+                else
+                    curId = n.next
+                    n = self.getNode(curId)
+                end
+            end
+        end
+        return result
+    end
+
+    // ---- 全键升序收集（沿叶链）----
+    func allKeys() as var
+        var result = []
+        int curId = self.rootId
+        BPlusTreeNode n = self.getNode(curId)
+        bool isLeaf = n.leaf
+        while not isLeaf do
+            curId = int(n.children[0])
+            n = self.getNode(curId)
+            isLeaf = n.leaf
+        end
+        bool stop = false
+        while not stop do
+            int i = 0
+            int kn = n.keys.length
+            while i < kn do
+                result.push(n.keys[i])
+                i = i + 1
+            end
+            if n.next < 0 then
+                stop = true
+            else
+                curId = n.next
+                n = self.getNode(curId)
+            end
+        end
+        return result
+    end
+
+    // ---- 树深度 ----
+    func depth() as int
+        int d = 0
+        int curId = self.rootId
+        bool stop = false
+        while not stop do
+            BPlusTreeNode n = self.getNode(curId)
+            if n.leaf then
+                stop = true
+            else
+                curId = int(n.children[0])
+            end
+            d = d + 1
+        end
+        return d
+    end
+
+    // ---- 序列化到 JSON（手动遍历，compact 保序）----
+    func serialize() as string
+        var out = {}
+        out["name"] = self.name
+        out["order"] = ORDER
+        out["rootId"] = self.rootId
+        out["keyCount"] = self.keyCount
+        var ns = []
+        int total = self.nodes.length
+        int i = 0
+        while i < total do
+            BPlusTreeNode n = self.getNode(i)
+            var nd = {}
+            nd["leaf"] = n.leaf
+            var ks = []
+            int ki = 0
+            int kn = n.keys.length
+            while ki < kn do
+                ks.push(n.keys[ki])
+                ki = ki + 1
+            end
+            nd["keys"] = ks
+            var vs = []
+            int vi = 0
+            int vn = n.vals.length
+            while vi < vn do
+                vs.push(n.vals[vi])
+                vi = vi + 1
+            end
+            nd["vals"] = vs
+            var cs = []
+            int ci = 0
+            int cn = n.children.length
+            while ci < cn do
+                cs.push(n.children[ci])
+                ci = ci + 1
+            end
+            nd["children"] = cs
+            nd["next"] = n.next
+            ns.push(nd)
+            i = i + 1
+        end
+        out["nodes"] = ns
+        return json.stringify(out)
+    end
+
+    // 从 JSON 文本重建（替换当前内容）
+    func deserialize(string text) as bool
+        var data = json.parse(text)
+        if data == null then
+            return false
+        end
+        self.name = string(data["name"])
+        self.rootId = int(data["rootId"])
+        self.keyCount = int(data["keyCount"])
+        self.nodes = []
+        var ns = data["nodes"]
+        int total = ns.length
+        int i = 0
+        while i < total do
+            var nd = ns[i]
+            BPlusTreeNode n = BPlusTreeNode()
+            n.leaf = bool(nd["leaf"])
+            var ks = nd["keys"]
+            int kn = ks.length
+            int ki = 0
+            while ki < kn do
+                n.keys.push(int(ks[ki]))
+                ki = ki + 1
+            end
+            var vs = nd["vals"]
+            int vn = vs.length
+            int vi = 0
+            while vi < vn do
+                n.vals.push(int(vs[vi]))
+                vi = vi + 1
+            end
+            var cs = nd["children"]
+            int cn = cs.length
+            int ci = 0
+            while ci < cn do
+                n.children.push(int(cs[ci]))
+                ci = ci + 1
+            end
+            n.next = int(nd["next"])
+            self.nodes.push(n)
+            i = i + 1
+        end
+        return true
+    end
+
+    // ---- 打印树结构（递归，缩进）----
+    func dumpNode(int id, int depth)
+        BPlusTreeNode n = self.getNode(id)
+        string pad = ""
+        int d = 0
+        while d < depth do
+            pad = pad + "  "
+            d = d + 1
+        end
+        string typ = "INT "
+        if n.leaf then
+            typ = "LEAF"
+        end
+        string line = pad + "[" + string(id) + "] " + typ + " keys=" + intArrayToStr(n.keys)
+        if n.leaf then
+            line = line + " vals=" + intArrayToStr(n.vals) + " next=" + string(n.next)
+        else
+            line = line + " children=" + intArrayToStr(n.children)
+        end
+        println(line)
+        if not n.leaf then
+            int i = 0
+            int cn = n.children.length
+            while i < cn do
+                int cid = int(n.children[i])
+                self.dumpNode(cid, depth + 1)
+                i = i + 1
+            end
+        end
+    end
+
+    func dump()
+        println("BPlusTree name=" + self.name + " keyCount=" + string(self.keyCount) +
+                " nodeCount=" + string(self.nodes.length) + " depth=" + string(self.depth()))
+        self.dumpNode(self.rootId, 0)
+    end
+end
+
+
+// ============================================================================
+// 测试框架
+// ============================================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass = g_pass + 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail = g_fail + 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectTrue(bool got, string label)
+    if got then
+        ok(label)
+    else
+        bad(label, "expected true, got false")
+    end
+end
+
+func expectFalse(bool got, string label)
+    if got then
+        bad(label, "expected false, got true")
+    else
+        ok(label)
+    end
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+// 校验 var 数组是否升序（用于范围/全键结果）
+func isAscending(var arr) as bool
+    int n = arr.length
+    int i = 1
+    while i < n do
+        int a = int(arr[i - 1])
+        int b = int(arr[i])
+        if b < a then
+            return false
+        end
+        i = i + 1
+    end
+    return true
+end
+
+
+// 简单 LCG 生成 1..n 的伪随机排列（确定性，便于复现）
+func shuffledRange(int n) as var
+    var arr = []
+    int i = 1
+    while i <= n do
+        arr.push(i)
+        i = i + 1
+    end
+    int seed = 987654321
+    int j = n - 1
+    while j > 0 do
+        seed = seed * 1103515245 + 12345
+        seed = seed % 2147483647
+        if seed < 0 then
+            seed = -seed
+        end
+        int k = seed % (j + 1)
+        int ta = int(arr[j])
+        int tb = int(arr[k])
+        arr[j] = tb
+        arr[k] = ta
+        j = j - 1
+    end
+    return arr
+end
+
+
+// ============================================================================
+// 命令实现
+// ============================================================================
+
+func cmdTest() as int
+    println("=== btree self-test (order=4, 200 keys) ===")
+
+    BPlusTree tree = BPlusTree("idx_main")
+
+    // ---- 继承/virtual 基线 ----
+    expectS(tree.engineKind(), "bplus", "virtual engineKind dispatch")
+    expectS(tree.describe(), "bplus:idx_main ops=0", "base+override describe")
+
+    // ---- 大规模插入 ----
+    int N = 200
+    var order = shuffledRange(N)
+    int inserted = 0
+    int ii = 0
+    while ii < N do
+        int k = int(order[ii])
+        bool isNew = tree.insert(k, k * 10 + 1)
+        if isNew then
+            inserted = inserted + 1
+        end
+        ii = ii + 1
+    end
+    expectI(inserted, N, "insert 200 new keys")
+    expectI(tree.keyCount, N, "keyCount after insert")
+
+    // 重复插入同一个键应返回 false（覆盖值）
+    bool dup = tree.insert(50, 999)
+    expectFalse(dup, "duplicate insert returns false")
+    expectI(tree.find(50), 999, "duplicate insert overwrote value")
+
+    // ---- 查找：全部命中 ----
+    int findHits = 0
+    int fi = 1
+    while fi <= N do
+        int v = tree.find(fi)
+        if v >= 0 then
+            findHits = findHits + 1
+        end
+        fi = fi + 1
+    end
+    expectI(findHits, N, "find all 200 keys present")
+
+    // 未插入的键应 miss
+    expectI(tree.find(1001), -1, "find missing key 1001")
+    expectI(tree.find(0), -1, "find missing key 0")
+    expectI(tree.find(-5), -1, "find missing key -5")
+    expectFalse(tree.contains(9999), "contains missing 9999")
+
+    // 值正确性抽样
+    expectI(tree.find(1), 11, "value of key=1")
+    expectI(tree.find(100), 1001, "value of key=100 (overwritten? no)")
+
+    // ---- 范围查询 ----
+    var r1 = tree.range(45, 55)
+    expectI(r1.length, 11, "range [45,55] count = 11")
+    expectTrue(isAscending(r1), "range [45,55] ascending")
+    // 第一个应 = 45，最后 = 55
+    if r1.length == 11 then
+        expectI(int(r1[0]), 45, "range[45,55] first = 45")
+        expectI(int(r1[10]), 55, "range[45,55] last = 55")
+    end
+
+    var r2 = tree.range(1, 10)
+    expectI(r2.length, 10, "range [1,10] count = 10")
+
+    var r3 = tree.range(195, 300)
+    expectI(r3.length, 6, "range [195,300] count = 6 (195..200)")
+
+    var rEmpty = tree.range(500, 600)
+    expectI(rEmpty.length, 0, "range empty window")
+
+    // rangeEntries 值正确性
+    var re = tree.rangeEntries(60, 62)
+    if re.length == 3 then
+        expectI(int(re[0][0]), 60, "rangeEntries[0].key=60")
+        expectI(int(re[0][1]), 601, "rangeEntries[0].val=601")
+    end
+
+    // ---- 全键升序 + 总数 ----
+    var all = tree.allKeys()
+    expectI(all.length, N, "allKeys total = 200")
+    expectTrue(isAscending(all), "allKeys ascending (leaf chain ordered)")
+
+    // ---- 深度合理性（order 4，200 键 → 深度 >= 3）----
+    int dep = tree.depth()
+    if dep >= 3 then
+        ok("depth >= 3 (got " + string(dep) + ")")
+    else
+        bad("depth >= 3", "got " + string(dep))
+    end
+
+    // ---- 序列化往返 ----
+    string js = tree.serialize()
+    bool hasName = string.contains(js, "idx_main")
+    expectTrue(hasName, "serialize text contains tree name")
+
+    BPlusTree tree2 = BPlusTree("restored")
+    bool loaded = tree2.deserialize(js)
+    expectTrue(loaded, "deserialize returns true")
+    expectI(tree2.keyCount, N, "restored keyCount = 200")
+    expectI(tree2.depth(), dep, "restored depth matches")
+
+    int restoreHits = 0
+    int ri = 1
+    while ri <= N do
+        if tree2.find(ri) >= 0 then
+            restoreHits = restoreHits + 1
+        end
+        ri = ri + 1
+    end
+    expectI(restoreHits, N, "restored tree finds all 200")
+    expectI(tree2.find(50), 999, "restored value of key=50 = 999")
+    var rRestored = tree2.range(45, 55)
+    expectI(rRestored.length, 11, "restored range [45,55] = 11")
+
+    // ---- derive json 单节点往返演示 ----
+    BPlusTreeNode sample = BPlusTreeNode()
+    sample.leaf = false
+    sample.keys.push(10)
+    sample.keys.push(20)
+    sample.children.push(1)
+    sample.children.push(2)
+    sample.children.push(3)
+    string nodeJson = json.stringify(sample)
+    BPlusTreeNode back = json.parse::<BPlusTreeNode>(nodeJson)
+    expectFalse(back.leaf, "derive json: parsed internal node leaf=false")
+    expectI(back.keys.length, 2, "derive json: parsed keys len=2")
+    expectI(back.children[2], 3, "derive json: parsed children[2]=3")
+
+    // ---- 删除：删掉全部偶数键 ----
+    int delCount = 0
+    int di = 1
+    while di <= N do
+        if di % 2 == 0 then
+            bool removed = tree.delete(di)
+            if removed then
+                delCount = delCount + 1
+            end
+        end
+        di = di + 1
+    end
+    expectI(delCount, 100, "delete 100 even keys")
+    expectI(tree.keyCount, 100, "keyCount after delete = 100")
+
+    // 偶数已 gone
+    int evenMiss = 0
+    int ei = 2
+    while ei <= N do
+        if tree.find(ei) < 0 then
+            evenMiss = evenMiss + 1
+        end
+        ei = ei + 2
+    end
+    expectI(evenMiss, 100, "all even keys now missing")
+
+    // 奇数仍在
+    int oddHit = 0
+    int oi = 1
+    while oi <= N do
+        if tree.find(oi) >= 0 then
+            oddHit = oddHit + 1
+        end
+        oi = oi + 2
+    end
+    expectI(oddHit, 100, "all odd keys still present")
+
+    // 删除后范围查询
+    var rAfter = tree.range(1, 10)
+    expectI(rAfter.length, 5, "range [1,10] after even-delete = 5 (odd)")
+    if rAfter.length == 5 then
+        expectI(int(rAfter[0]), 1, "range[1,10] first = 1")
+        expectI(int(rAfter[4]), 9, "range[1,10] last = 9")
+    end
+
+    // 再删剩余奇数 → 树空
+    int dii = 1
+    while dii <= N do
+        tree.delete(dii)
+        dii = dii + 2
+    end
+    expectI(tree.keyCount, 0, "keyCount=0 after deleting all")
+    expectI(tree.find(1), -1, "find key=1 on empty tree")
+
+    // 删空后再插入，验证树仍可用
+    bool reNew = tree.insert(42, 420)
+    expectTrue(reNew, "re-insert into cleared tree")
+    expectI(tree.find(42), 420, "re-inserted key findable")
+
+    // ---- 不存在的键删除应返回 false ----
+    expectFalse(tree.delete(7777), "delete missing key returns false")
+
+    println("=== results: " + string(g_pass) + " passed, " + string(g_fail) + " failed ===")
+    return 0
+end
+
+func expectS(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+
+func cmdDump() as int
+    println("=== btree dump (sample tree) ===")
+    BPlusTree tree = BPlusTree("demo")
+    var ord = shuffledRange(40)
+    int i = 0
+    while i < ord.length do
+        int k = int(ord[i])
+        tree.insert(k, k * 10)
+        i = i + 1
+    end
+    tree.dump()
+    println("--- leaf chain order (allKeys) ---")
+    var all = tree.allKeys()
+    println(intArrayToStrVar(all))
+    println("--- serialize (compact, first 240 chars) ---")
+    string js = tree.serialize()
+    string head = string.mid(js, 0, 240)
+    println(head + " ...")
+    return 0
+end
+
+// var 数组转 [1,2,3] 文本（dump 用）
+func intArrayToStrVar(var a) as string
+    string s = "["
+    int n = a.length
+    int i = 0
+    while i < n do
+        if i > 0 then
+            s = s + ","
+        end
+        s = s + string(int(a[i]))
+        i = i + 1
+    end
+    return s + "]"
+end
+
+
+func printUsage()
+    println("btree - B+Tree index engine (order m=4)")
+    println("usage: btree <command>")
+    println("commands:")
+    println("  test       self-test: insert 200 keys, verify find/range/delete/serialize")
+    println("  dump       build sample tree and print structure")
+    println("  help       show this help")
+end
+
+
+func main(...) as int
+    string command = ""
+    if arg.length >= 2 then
+        command = string.lower(string(arg[1]))
+    end
+
+    if command == "test" then
+        return cmdTest()
+    end
+    if command == "dump" then
+        return cmdDump()
+    end
+    if command == "help" or command == "--help" or command == "-h" then
+        printUsage()
+        return 0
+    end
+
+    printUsage()
+    return 0
+end

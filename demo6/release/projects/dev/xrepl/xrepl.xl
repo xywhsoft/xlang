@@ -1,0 +1,525 @@
+// xrepl.xl - xlang 交互式 REPL（批量脚本模式）
+//
+// 由于 xlang 无 stdin API，本工具采用「批量脚本模式」模拟交互式 REPL：
+// 读取一个 .xrepl 文件（每行一条表达式/语句），逐行执行并把结果打印出来。
+//
+// 用法（在 release 目录下）：
+//   xl run projects\dev\xrepl\xrepl.xl <script.xrepl>     执行一个 .xrepl 脚本
+//   xl run projects\dev\xrepl\xrepl.xl test               运行内置自测示例
+//   xl run projects\dev\xrepl\xrepl.xl -h | --help        显示帮助
+//
+// 构建后：
+//   xrepl <script.xrepl>          xrepl test          xrepl -h
+//
+// 工作原理：
+//   * 变量持久化：维护一个不断增长的「前缀程序」（已成功执行的语句源码）。
+//     执行第 N 行时，生成 = 前缀 + 当前行，写入临时 .xl 文件后 `xl run`。
+//     由于每次都从头重放已积累的语句，前一条语句定义的变量/函数在后一条可用。
+//   * 表达式自动打印：识别为「表达式」的行会被包成 println(expr)；
+//     识别为「声明/赋值/控制流」的行原样执行（不额外打印）。
+//   * 输出去重：前缀程序重放会重复产生历史输出，通过缓存「前缀输出」并取增量
+//     （stdout 末尾段）实现只显示当前行的新输出。
+//   * 命令历史：每条执行的逻辑行追加写入 xrepl_history.txt。
+//
+// 退出码：全部成功 EXIT=0；存在编译/运行错误 EXIT=1。
+
+// ===== 全局状态 =====
+
+string g_xl              // xl.exe 完整路径
+string g_scriptPath      // 本工具脚本路径（argv[0]）
+string g_tempDir         // 临时 .xl 文件目录
+string g_histFile        // 历史记录文件路径
+
+string g_prefix          // 已成功执行语句拼成的源码（执行形态）
+string g_prefixOut       // 前缀程序运行后的完整 stdout（用于增量提取）
+
+// 行分类常量
+int K_SKIP
+int K_EXPR
+int K_STMT
+
+// ===== 初始化 =====
+
+func initState()
+    g_xl = ""
+    g_scriptPath = ""
+    g_tempDir = ""
+    g_histFile = ""
+    g_prefix = ""
+    g_prefixOut = ""
+    K_SKIP = 0
+    K_EXPR = 1
+    K_STMT = 2
+end
+
+// ===== xl.exe 定位 =====
+
+func findXl() as string
+    array<string> cands = []
+    cands.push(path.join(path.appDir(), "xl.exe"))
+    cands.push(path.join(path.cwd(), "xl.exe"))
+    if string.len(g_scriptPath) > 0 then
+        cands.push(path.join(path.join(path.dir(g_scriptPath), "..", "..", ".."), "xl.exe"))
+        cands.push(path.join(path.dir(g_scriptPath), "xl.exe"))
+    end
+    for c in cands
+        if file.exists(c) then
+            return c
+        end
+    end
+    return ""
+end
+
+func findHistFile() as string
+    if string.len(g_scriptPath) > 0 then
+        return path.join(path.dir(g_scriptPath), "xrepl_history.txt")
+    end
+    return path.join(path.cwd(), "xrepl_history.txt")
+end
+
+func makeTempDir() as string
+    string base = path.join(path.temp(), "xrepl_cache")
+    dir.createAll(base)
+    return base
+end
+
+func cleanupTempDir()
+    if string.len(g_tempDir) > 0 then
+        try
+            dir.delete(g_tempDir)
+        catch e
+        end
+    end
+end
+
+// ===== 字符辅助 =====
+
+func isDigitByte(int b) as bool
+    return b >= 48 and b <= 57
+end
+
+func isIdentStart(int b) as bool
+    return (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 95
+end
+
+func isIdentByte(int b) as bool
+    return (b >= 48 and b <= 57) or (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 95
+end
+
+// 跳过开头的标识符与紧随的空白，返回其后下标（用于判断 type-keyword 后是否跟变量名）
+func skipIdentAndSpaces(string t) as int
+    int n = string.len(t)
+    int i = 0
+    while i < n and isIdentByte(string.byteAt(t, i)) do
+        i += 1
+    end
+    while i < n and (string.byteAt(t, i) == 32 or string.byteAt(t, i) == 9) do
+        i += 1
+    end
+    return i
+end
+
+func firstWord(string t) as string
+    int n = string.len(t)
+    int i = 0
+    while i < n and isIdentByte(string.byteAt(t, i)) do
+        i += 1
+    end
+    if i == 0 then
+        return ""
+    end
+    return string.mid(t, 0, i)
+end
+
+// 表达式中是否存在「顶层赋值 =」（跳过字符串与行注释，排除 ==/!=/<=/>=/+= 等）
+func hasAssign(string s) as bool
+    int n = string.len(s)
+    int i = 0
+    bool inStr = false
+    while i < n do
+        int b = string.byteAt(s, i)
+        if inStr then
+            if b == 92 then
+                i += 2
+            elseif b == 34 then
+                inStr = false
+                i += 1
+            else
+                i += 1
+            end
+        else
+            if b == 34 then
+                inStr = true
+                i += 1
+            elseif b == 47 and i + 1 < n and string.byteAt(s, i + 1) == 47 then
+                return false
+            elseif b == 61 then
+                int next = 0
+                if i + 1 < n then
+                    next = string.byteAt(s, i + 1)
+                end
+                int prev = 0
+                if i > 0 then
+                    prev = string.byteAt(s, i - 1)
+                end
+                if next == 61 then
+                    i += 2
+                elseif prev == 33 or prev == 60 or prev == 62 or prev == 43 or prev == 45 or prev == 42 or prev == 47 or prev == 37 or prev == 38 or prev == 124 or prev == 94 or prev == 126 then
+                    i += 1
+                else
+                    return true
+                end
+            else
+                i += 1
+            end
+        end
+    end
+    return false
+end
+
+// 行分类：0=跳过(空/注释) 1=表达式 2=语句(声明/赋值/控制流/print)
+func classify(string line) as int
+    string t = string.trim(line)
+    if string.len(t) == 0 then
+        return K_SKIP
+    end
+    if string.startsWith(t, "//") then
+        return K_SKIP
+    end
+    string w = firstWord(t)
+    // 自带输出的语句
+    if w == "print" or w == "println" then
+        return K_STMT
+    end
+    // 控制流 / 定义关键字
+    if w == "func" or w == "class" or w == "typedef" or w == "if" or w == "elseif" or w == "else" or w == "for" or w == "while" or w == "do" or w == "try" or w == "return" or w == "break" or w == "continue" or w == "throw" or w == "end" or w == "then" then
+        return K_STMT
+    end
+    // 类型关键字声明：auto/var/int/float/string/bool/uint64 X = ...
+    // 注意 string.upper(...) / int(5) 这类不是声明，需判断关键字后是否跟标识符
+    if w == "auto" or w == "var" or w == "int" or w == "float" or w == "string" or w == "bool" or w == "uint64" then
+        int idx = skipIdentAndSpaces(t)
+        int c = 0
+        if idx < string.len(t) then
+            c = string.byteAt(t, idx)
+        end
+        if isIdentStart(c) then
+            return K_STMT
+        end
+        // 否则可能是表达式（int(5)/string.len(...)），落到下方判断
+    end
+    // 泛型容器声明
+    if string.startsWith(t, "array<") or string.startsWith(t, "dict<") or string.startsWith(t, "set<") or string.startsWith(t, "list<") then
+        return K_STMT
+    end
+    // 赋值
+    if hasAssign(t) then
+        return K_STMT
+    end
+    return K_EXPR
+end
+
+// ===== 逻辑行读取（支持括号续行与 end 块续行）=====
+
+// 计算字符串的「括号深度」（正=未闭合），跳过字符串字面量与 // 注释
+func bracketDepthOf(string s) as int
+    int n = string.len(s)
+    int i = 0
+    int d = 0
+    bool inStr = false
+    while i < n do
+        int b = string.byteAt(s, i)
+        if inStr then
+            if b == 92 then
+                i += 2
+            elseif b == 34 then
+                inStr = false
+                i += 1
+            else
+                i += 1
+            end
+        else
+            if b == 34 then
+                inStr = true
+                i += 1
+            elseif b == 47 and i + 1 < n and string.byteAt(s, i + 1) == 47 then
+                while i < n and string.byteAt(s, i) != 10 do
+                    i += 1
+                end
+            elseif b == 40 or b == 91 or b == 123 then
+                d += 1
+                i += 1
+            elseif b == 41 or b == 93 or b == 125 then
+                d -= 1
+                i += 1
+            else
+                i += 1
+            end
+        end
+    end
+    return d
+end
+
+// 计算字符串的「块深度」= (func/class/typedef/if/for/while/try 出现次数) - (end 出现次数)
+// 用于把多行块（func...end / if...end）合并为一个逻辑行
+func blockDepthOf(string s) as int
+    int n = string.len(s)
+    int i = 0
+    int depth = 0
+    bool inStr = false
+    while i < n do
+        int b = string.byteAt(s, i)
+        if inStr then
+            if b == 92 then
+                i += 2
+            elseif b == 34 then
+                inStr = false
+                i += 1
+            else
+                i += 1
+            end
+        else
+            if b == 34 then
+                inStr = true
+                i += 1
+            elseif b == 47 and i + 1 < n and string.byteAt(s, i + 1) == 47 then
+                while i < n and string.byteAt(s, i) != 10 do
+                    i += 1
+                end
+            elseif isIdentStart(b) then
+                int start = i
+                while i < n and isIdentByte(string.byteAt(s, i)) do
+                    i += 1
+                end
+                string word = string.mid(s, start, i - start)
+                if word == "func" or word == "class" or word == "typedef" or word == "if" or word == "for" or word == "while" or word == "try" then
+                    depth += 1
+                elseif word == "end" then
+                    depth -= 1
+                end
+            else
+                i += 1
+            end
+        end
+    end
+    return depth
+end
+
+// 把源码按「逻辑行」切分：括号未闭合或块未闭合时跨物理行续接
+func readLogicalLines(string src) as array<string>
+    var raw = string.splitLines(src)
+    array<string> lines = []
+    for r in raw
+        lines.push(string(r))
+    end
+    // BUG-S1 规避：splitLines 末尾可能多出空串
+    if lines.length > 0 then
+        if lines[lines.length - 1] == "" then
+            lines.remove(lines.length - 1)
+        end
+    end
+    array<string> result = []
+    string buf = ""
+    int i = 0
+    while i < lines.length do
+        string line = lines[i]
+        if string.len(buf) == 0 then
+            buf = line
+        else
+            buf = buf + "\n" + line
+        end
+        int bd = bracketDepthOf(buf)
+        int kd = blockDepthOf(buf)
+        if bd <= 0 and kd <= 0 then
+            result.push(buf)
+            buf = ""
+        end
+        i += 1
+    end
+    if string.len(string.trim(buf)) > 0 then
+        result.push(buf)
+    end
+    return result
+end
+
+// ===== 历史记录 =====
+
+func logHistory(string line)
+    if string.len(g_histFile) == 0 then
+        return
+    end
+    try
+        file.appendText(g_histFile, line + "\n")
+    catch e
+    end
+end
+
+// ===== 核心：执行一条逻辑行 =====
+
+// 返回 true=成功，false=编译/运行错误
+func evalLine(string line) as bool
+    string t = string.trim(line)
+    int kind = classify(t)
+    if kind == K_SKIP then
+        return true
+    end
+    // 回显提示符
+    println("> " + t)
+    // 构造当前行代码（表达式包成 println）
+    string code
+    if kind == K_EXPR then
+        code = "println(" + t + ")"
+    else
+        code = t
+    end
+    // 拼接前缀
+    string full
+    if string.len(g_prefix) > 0 then
+        full = g_prefix + "\n" + code
+    else
+        full = code
+    end
+    // 写临时文件并运行（必须以换行结尾，否则 xl 解析最后一条语句会报语法错误）
+    string tp = path.join(g_tempDir, "line.xl")
+    file.writeText(tp, full + "\n")
+    string cmd = g_xl + " run " + tp
+    ProcessResult r = process.run(cmd, 20000)
+    if r.exitCode == 0 then
+        string out = r.stdout
+        // 增量提取：去掉前缀输出，只保留当前行新增的输出
+        string delta = string.mid(out, string.len(g_prefixOut), string.len(out))
+        // 子进程 stdout 在 Windows 上是 CRLF；若直接 print 会触发文本模式二次翻译，
+        // 产生多余空行。这里先把 \r 去掉，统一为 LF。
+        delta = string.replace(delta, "\r", "")
+        if string.len(delta) > 0 then
+            // 若当前行输出不以换行结尾，补一个换行以保证下一条提示符独占一行
+            int lastByte = string.byteAt(delta, string.len(delta) - 1)
+            if lastByte != 10 then
+                delta = delta + "\n"
+            end
+            print(delta)
+        end
+        // 更新前缀与前缀输出
+        g_prefix = full
+        g_prefixOut = out
+        return true
+    end
+    // 错误：显示诊断信息（把临时路径替换为 <repl> 便于阅读）
+    string err = string.trim(r.stderr)
+    if string.len(err) == 0 then
+        err = string.trim(r.stdout)
+    end
+    err = string.replace(err, tp, "<repl>")
+    println(err)
+    return false
+end
+
+// ===== 命令 =====
+
+func cmdRun(string xreplPath) as int
+    if not file.exists(xreplPath) then
+        println("xrepl: file not found: " + xreplPath)
+        return 1
+    end
+    string src = file.readText(xreplPath)
+    array<string> lines = readLogicalLines(src)
+    if lines.length == 0 then
+        println("xrepl: no statements in " + xreplPath)
+        return 0
+    end
+    g_tempDir = makeTempDir()
+    int i = 0
+    int fails = 0
+    while i < lines.length do
+        logHistory(lines[i])
+        if not evalLine(lines[i]) then
+            fails += 1
+        end
+        i += 1
+    end
+    cleanupTempDir()
+    println("---")
+    println("xrepl: " + string(lines.length) + " statement(s), " + string(fails) + " error(s)")
+    if fails > 0 then
+        return 1
+    end
+    return 0
+end
+
+func cmdTest() as int
+    // 内置自测示例（使用合法 xlang：字符串长度用 string.len，字符串无 .length 属性）
+    string demo
+    demo = "1 + 2\n"
+    demo = demo + "string.len(\"hello\")\n"
+    demo = demo + "auto x = [1,2,3]\n"
+    demo = demo + "x.length\n"
+    demo = demo + "string.upper(\"abc\")\n"
+    array<string> lines = readLogicalLines(demo)
+    g_tempDir = makeTempDir()
+    int i = 0
+    int fails = 0
+    while i < lines.length do
+        logHistory(lines[i])
+        if not evalLine(lines[i]) then
+            fails += 1
+        end
+        i += 1
+    end
+    cleanupTempDir()
+    println("---")
+    println("xrepl: self-test " + string(lines.length) + " statement(s), " + string(fails) + " error(s)")
+    if fails > 0 then
+        return 1
+    end
+    return 0
+end
+
+func printUsage()
+    println("xrepl - xlang interactive REPL (batch script mode)")
+    println("")
+    println("usage:")
+    println("  xrepl <script.xrepl>     execute a .xrepl script line by line")
+    println("  xrepl test               run the built-in self-test example")
+    println("  xrepl -h | --help        show this help")
+    println("")
+    println(".xrepl format: one expression / statement per physical line.")
+    println("  - expression results are auto-printed (wrapped in println)")
+    println("  - declarations / assignments / control flow run silently")
+    println("  - variables persist across lines (the program is replayed)")
+    println("  - unclosed brackets or blocks (func/if/for/...end) span multiple lines")
+    println("")
+    println("example .xrepl:")
+    println("  1 + 2")
+    println("  string.len(\"hello\")")
+    println("  auto x = [1,2,3]")
+    println("  x.length")
+    println("  string.upper(\"abc\")")
+end
+
+// ===== main =====
+
+func main(...) as int
+    initState()
+    if arg.length > 0 then
+        g_scriptPath = string(arg[0])
+    end
+    g_histFile = findHistFile()
+    if arg.length < 2 then
+        printUsage()
+        return 0
+    end
+    string sub = string(arg[1])
+    if sub == "-h" or sub == "--help" then
+        printUsage()
+        return 0
+    end
+    g_xl = findXl()
+    if string.len(g_xl) == 0 then
+        println("xrepl: xl.exe not found (place me in the release dir or рядом with xl.exe)")
+        return 1
+    end
+    if sub == "test" then
+        return cmdTest()
+    end
+    return cmdRun(sub)
+end

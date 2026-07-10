@@ -195,8 +195,8 @@ static void xl6StdlibApplyDeps(int* used)
     }
 
     /*
-        round 鍦ㄦ棫 MSVCRT/TCC 鐜娌℃湁绋冲畾绗﹀彿銆?
-        杩欓噷鎶婂畠瀹炵幇涓?xlang helper锛屽苟鑷姩娉ㄥ叆 floor/ceil 渚濊禆銆?
+        round 在旧 MSVCRT/TCC 环境没有稳定符号。
+        这里将它实现为 xlang helper，并自动注入 floor/ceil 依赖。
     */
     if ( xl6StdlibFindFunc("math", "round", &index) != NULL && used[index] ) {
         xl6StdlibMarkFuncUsed(used, "math", "floor");
@@ -1523,7 +1523,7 @@ static void xl6StdlibRewriteMemberToName(XL6_AstNode* node, const char* name)
         return;
     }
 
-    /* 閲婃斁鍘熸垚鍛樿闂粨鏋勶紝淇濈暀鑺傜偣浣嶇疆鐢ㄤ簬璇婃柇銆?*/
+    /* 释放原成员访问结果，保留节点位置用于诊断。 */
     for ( i = 0; i < node->childCount; ++i ) {
         xl6AstFree(node->children[i]);
     }
@@ -1580,7 +1580,7 @@ static int xl6StdlibRewriteRefs(XL6_AstNode* node, int* used, XL6_DiagList* diag
     size_t i;
     int ok;
 
-    /* 鍏ㄥ眬鏍囧噯搴撳嚱鏁帮細print(...) -> __xl_std_print(...)銆?*/
+    /* 全局标准库函数：print(...) -> __xl_std_print(...)。 */
     if ( node != NULL && node->kind == XL6_AST_CALL && node->childCount > 0 &&
          node->children[0] != NULL && node->children[0]->kind == XL6_AST_NAME ) {
         XL6_AstNode* callee = node->children[0];
@@ -1599,7 +1599,7 @@ static int xl6StdlibRewriteRefs(XL6_AstNode* node, int* used, XL6_DiagList* diag
         return 1;
     }
 
-    /* 鏍囧噯搴撳懡鍚嶇┖闂达細math.log -> __xl_std_math_log銆?*/
+    /* 标准库命名空间：math.log -> __xl_std_math_log。 */
     if ( node->kind == XL6_AST_MEMBER && node->childCount > 0 && node->children[0] != NULL ) {
         if ( xl6StdlibReceiverPath(node->children[0], ns, sizeof(ns)) ) {
             const XL6_StdlibConst* constant = xl6StdlibFindConst(ns, node->text);
@@ -2090,7 +2090,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     xl6StdlibApplyDeps(used);
 
-    /* 鍙负瀹為檯鐢ㄥ埌鐨勬爣鍑嗗簱鍑芥暟娉ㄥ叆 extern 澹版槑銆?*/
+    /* 只为实际使用的标准库函数注入 extern 声明。 */
     xl6StdlibBuilderInit(&builder);
     xl6StdlibBuilderAppend(&builder, xl6StdlibCoreClassSource);
     if ( needsRandomClass ) {

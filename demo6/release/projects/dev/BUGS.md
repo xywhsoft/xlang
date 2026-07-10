@@ -319,10 +319,22 @@
   fill(d)
   println(d.contains("x"))   // false（期望 true）
   ```
-- 现象：`array<T>` / `set<T>` / `array<Local>` 等静态容器作为函数参数时被**整体按值拷贝**，函数内的 `push`/`add`/`remove` 不会影响调用方的容器。
-- 注意：这与「变量是值语义」一致，但对习惯了引用容器（Python list / JS array）的用户极反直觉；`array<var>` / `var` 容器同样是值拷贝。
-- 绕过：用全局容器（函数直接访问全局，xlint 已采用），或让函数 `return` 新容器由调用方赋值。
-- 严重度：中（设计语义，但容易踩）
+- 现象：`array<T>` / `set<T>` / `list<T>` / `array<Local>` 等**静态（typed）容器**作为函数参数时被**整体按值拷贝**，函数内的 `push`/`add`/`remove`/`[i]=` 不会影响调用方的容器。
+- 重要更正（logagg 验证）：原条目称「`array<var>` / `var` 容器同样是值拷贝」——**这是错误的**。实测 `var` dict 与 `var` array 作为函数参数是**按引用传递**（写回传播、被调方也能读到调用方既有状态）：
+  ```xlang
+  func mutate(var d)
+      d["fromFunc"] = 99
+      d["seeded"] = int(d["seeded"]) + 5      // 读到调用方写入的 10
+  end
+  var d = {}
+  d["seeded"] = 10
+  mutate(d)
+  println(int(d["fromFunc"]))   // 99（写回可见）
+  println(int(d["seeded"]))     // 15（读+写都生效）
+  ```
+  即：需要「helper 函数就地修改容器并回传」时，**用 `var` 容器参数是安全且可用的**；只有 typed 容器（`array<T>`/`set<T>`/`list<T>`）才被值拷贝。
+- 绕过：typed 容器用全局变量（函数直接访问全局，xlint 已采用），或让函数 `return` 新容器由调用方赋值；或改用 `var` 容器作参数（logagg 早期版本误把 list<T> 当输出参数导致写回丢失，改为内联或 var 容器后正常）。
+- 严重度：中（设计语义，但容易踩；注意 typed 与 var 行为不同）
 
 ### BUG-XL2: 长时间运行的单进程持续泄漏/变慢（json.parse 大树 + 容器累积 + 递归遍历）
 - 工具：xlint（递归 lint 整个 dev 目录）
@@ -456,7 +468,254 @@
 - 4. **动态 var 比较只能直接放进 `if` 条件**：`if not (a == b) then` 和 `bool eq = a == var`（a/b 为 var）→ `[checked] dynamic var comparison requires statement-level lowering`。绕过：用「相等则提前 return、否则落到失败」的早返回写法，或嵌套 `if`（`if a>=low then if a<=high then ... end end`）替代 `not`/`and` 组合。注意：`if a == b then`（直接作条件）合法。
 - 严重度：低（均有清晰绕过；其中 #4 与 BUG-RT4 同族「statement-level lowering」限制）
 
-## 设计限制（不予修复）
+### BUG-LP1: var dict 在递归计算中分配会触发**二次方** GC 劣化；var 数组不受影响
+- 工具：lisp（Lisp 解释器）
+- 复现：
+  ```xlang
+  // 在递归调用中每次分配一个 dict（模拟解释器的环境帧）
+  func fakefib(int n, var env) as int
+      if n < 2 then return n end
+      var d = {}
+      d["n"] = n
+      d["%up"] = env
+      return fakefib(n - 1, d) + fakefib(n - 2, d)
+  end
+  ```
+- 现象（实测，单进程内）：
+  - dict 版：`fakefib(15)` 9.5ms（4.8µs/调用）→ `fakefib(20)` 1081ms（49µs/调用）→ `fakefib(22)` **11200ms（196µs/调用）**。每调用成本随累计分配数**线性增长**，总耗时随调用数**二次方增长**。
+  - 对照：**同样模式但用 var 数组**（`var d = [n, env]`）分配：`fib(25)`（242785 次调用）仅 **111ms（0.46µs/调用）**，完全线性，无劣化。
+  - 对照：纯循环里分配 70 万个 dict（无递归引用链）只需 1.77s，**不劣化**。劣化仅在「递归调用 + 每帧 dict 形成引用图」时出现。
+  - 推测根因：XRT 的 dict GC（疑似 mark-sweep，非精确 refcount）在递归释放带引用图的 dict 帧时，每轮扫描成本随堆中未回收对象数增长，导致 O(n²)。var 数组走不同 GC 路径，不受影响。
+- 影响 lisp 解释器：最初用 var dict 表示词法环境（每函数调用 1 个 dict），fib(25)（3M 次 eval 调用、24 万次 dict 分配）预估 >7 分钟不可用；实际 fib(22) 已需 25s。
+- 绕过（lisp 已采用）：**用 var 数组代替 dict 表示环境**——`env = [parent, key1, val1, key2, val2, ...]`，线性扫描查找（后向，保证 shadow 正确）。改用数组后 fib(25) 降至 **~8s**，fib(22) 从 25s 降至 2s。
+- 通用建议：在**递归 / 高频调用路径上避免创建 var dict**；需要键值结构时用扁平 var 数组（key/val 交替）+ 线性查找替代。仅在低频路径（如一次性配置、JSON 装载）使用 dict。
+- 严重度：**高**（静默、二次方劣化；任何「递归中分配 dict」的程序——解释器、AST 遍历、回溯搜索——都会踩）
+
+### BUG-CE1: `var + string` 字符串拼接产生乱码（静默数据损坏）
+- 工具：csvengine
+- 复现（最小）：
+  ```xlang
+  var g = "a."
+  string key = "id"
+  string k1 = g + key          // → "D"  （len=1，乱码）
+  string k2 = string(g) + key  // → "a.id"（正确）
+  string g2 = "a."
+  string k3 = g2 + key         // → "a.id"（正确）
+  ```
+- 现象：用 `+` 把一个 **`var` 类型**（即使其运行时值是 string）与一个 `string` 拼接时，结果不是字符串拼接，而是一个**长度异常的乱码串**（本例 `"a." + "id"` → `"D"`）。每次运行乱码内容可能不同（疑似读取了未初始化/错误的内存并按某种编码截断）。
+- 边界：
+  - `string + string` 正确。
+  - `string(var) + string` 正确（显式构造强制 owned string）。
+  - 仅当左操作数（或任一操作数）的**静态类型是 `var`** 时触发；静态 `string` 不受影响。
+  - 编译期无任何诊断；运行期不抛异常；结果静默错误。
+- 影响 csvengine：JOIN 时行 dict 的 key 由 `key = gAlias + key` 构造（gAlias 原声明为 `var`），导致所有「`alias.col`」键塌缩成同一个乱码键，JOIN 退化为笛卡尔积且取值全空。最初表现为「JOIN 输出全空 / 全部匹配」。
+- 绕过（csvengine 已采用）：把会被拼接到 string 的变量声明为静态 `string`（`string gAlias = ""`），或在拼接处 `string(v) + ...` 强制 owned string。
+- 推测根因：`+` 在左操作数为 `var` 时未按 string 派发，而是走到数值/原始字节相加路径，把 string 内部指针/长度当成数值运算，产生悬空截断串。
+- 严重度：**高**（静默数据损坏；`var` 是动态类型主推用法，拼接极常见；无警告）
+- 状态：未修复
+
+### BUG-JP2: var 数组负数下标返回 null（不支持 Python/JS 风格的 `arr[-1]`）
+- 工具：jsonpath
+- 复现：
+  ```xlang
+  var arr = [10, 20, 30]
+  var x = arr[-1]        // → null（期望 30）
+  var y = arr[3]         // → null（越界，与负数同表现）
+  ```
+- 现象：对 `var` 数组使用负数下标 `arr[-1]` 不会取倒数第一个元素，而是返回 `null`（与正数越界 `arr[len]` 表现一致）。习惯 Python `list[-1]` / JS `arr.at(-1)` 的用户会得到静默的空值。
+- 边界：typed 容器（`array<T>`）负数下标行为未在本工具中测试；`var` 数组确定受影响。
+- 绕过（jsonpath 已采用）：在取值前手工把负数下标归一化为非负——`if idx < 0 then real = len + idx end`，再判 `0 <= real < len`。
+- 严重度：低（清晰绕过；但「静默返回 null」对动态语言用户反直觉）
+- 状态：未修复
+
+### BUG-AC1: `channel<string>` 不支持——只允许 bool/整数/浮点/time/point
+- 工具：actorsys
+- 复现：`channel<string> ch = channel::<string>(64)` → `[sem] channel<T> 当前只支持 bool、整数、浮点、time、point 等可按值复制的元素类型`
+- 现象：`channel<T>` 的泛型参数被限制为值类型，**string 被排除**，尽管 xlang 的 string 本身是不可变值类型（与 int 同属值语义）。
+- 影响：Actor 模型 / 消息队列中极常见的「字符串消息邮箱」模式不可用；只能用 `channel<int>` + 整数编码协议代替。
+- 绕过（actorsys 已采用）：全部 Actor 邮箱使用 `channel<int>`，消息协议为整数编码（正数 = payload，MSG_STOP=-1，MSG_FAIL=-2，MSG_RESET=-3）。需要传字符串消息时编码为 int 或用外部全局 `array<string>` + channel 通知。
+- 严重度：中（限制并发编程的表达力，但有清晰的整数编码绕过）
+- 状态：未修复
+
+### BUG-RAS1: `set`/`get`/`let` 不能作为 class 成员方法名
+- 工具：rasterizer
+- 复现：
+  ```xlang
+  class Mat4
+      array<float> m = array[]
+      func set(int row, int col, float val)      // <- [sem] get/let/set cannot be used as class member names
+          self.m[row*4+col] = val
+      end
+  end
+  ```
+- 现象：class 内任何名为 `set` / `get` / `let` 的成员方法（即使不是属性语法）在编译期被拒。`set` 是极常见的 setter 命名（矩阵/容器/缓冲写入），易踩。
+- 边界：字段名 `set` 同样被拒；`get`/`let` 是属性关键字，连同普通方法名一起被保留。
+- 绕过：改用其它方法名（如 `setCell` / `put` / `write`），或直接 `self.m[i] = v` 内联。
+- 严重度：低（清晰错误信息，一行改名绕过；但 `set` 命名直觉性强）
+- 状态：未修复
+
+### BUG-FTP1: accept 之后服务端的「首次 send」静默丢失
+- 工具：ftpserver
+- 复现：
+  ```xlang
+  point lp = tcp.listen(0, "127.0.0.1", 4)
+  TcpServer srv = TcpServer(lp)
+  point cp = tcp.connect("127.0.0.1", srv.port(), 3000)
+  TcpStream client = TcpStream(cp)
+  point ap = srv.accept(3000)
+  TcpStream peer = TcpStream(ap)
+  bool ok = peer.send("220 hi\r\n")   // -> false，对端 client 收不到任何字节
+  peer.drain(2000)                     // 仍然收不到
+  ```
+- 现象：`TcpServer.accept()` 返回后，服务端 socket 的**第一次** `send` / `sendBytes` 返回 `false` 且字节从未到达对端；`drain` 也救不回来。对照：connect 侧（客户端）首次 `send` 正常，只有「刚 accept 出来的服务端 socket 首发」触发。
+- 触发面：所有「服务端先开口」的行协议 —— FTP `220 Welcome`、SMTP `220 greeting`、POP3 `+OK` 等。后续 send（首发被重试或时间推移后）正常。
+- 绕过（ftpserver 已采用）：发送时重试循环 `while not ok do ok = s.send(text); time.sleep(5) end`（~5ms 间隔、约 30 次，~80–100ms 内落地）。见 `sendRetry` / `sendBytesRetry`。
+- 严重度：高（静默丢数据；任何 server-speaks-first 协议首发踩坑，无明显警告）
+- 状态：未修复
+
+### BUG-FTP2: `TcpStream.close()` 是 abortive 关闭，丢弃未 ACK 的发送缓冲
+- 工具：ftpserver
+- 复现：
+  ```xlang
+  // connector 发送后立即 close；accepted 侧并发 recvBytes 收到 0 字节
+  client.sendBytes(payload.data(), c_size(payload.len()))
+  client.drain(3000)
+  client.close()                       // -> 对端 peer 收到 0 字节（数据被 RST 丢弃）
+  ```
+- 现象：
+  - `close()` 对仍有未确认发送缓冲的 socket 做**abortive 关闭**（发 RST / 直接丢缓冲），而非 graceful（先 flush 再 FIN）。
+  - `drain(timeout)` 只等**本地**发送缓冲排空（交给 OS），**不等对端 ACK / 收到**；所以 `send + drain + close` 仍可能在 close 时丢数据。
+  - 连接器（connector）侧 close 和 accepted 侧 close 都受影响；并发读取的对端尤其容易拿到 0 字节。
+- 触发面：所有用「close 作为 EOF 信号」的传输模型 —— FTP STOR/RETR/LIST、HTTP chunked、任何「发完即关」协议。
+- 绕过（ftpserver 已采用）：`drain` 之后、`close` 之前 `time.sleep(DATA_CLOSE_DELAY)`（~300ms，小文件足够），让内核先把字节投递到对端 recv 缓冲。`recvBytes(idle_timeout)` 在对端存活但静默时也会按超时返回 len 0（已验证），可作为不依赖 close 的 EOF 判定。无 `shutdown(SHUT_WR)` 之类的半关闭 API 可用。
+- 严重度：高（静默数据损坏；close-for-EOF 是 TCP 标准模式）
+- 状态：未修复
+
+### BUG-FTP3: native-backed class 不可「二次包装」同一 point（堆破坏）
+- 工具：ftpserver
+- 复现：
+  ```xlang
+  point ap = srv.accept(3000)
+  if true then
+      TcpStream peer = TcpStream(ap)
+      peer.send("first")
+  end                                    // peer 离开作用域 -> destroy
+  if true then
+      TcpStream peer2 = TcpStream(ap)     // 同一 point 再包一次
+      peer2.send("second")
+  end                                    // -> 0xC0000374 STATUS_HEAP_CORRUPTION
+  ```
+- 现象：用同一个 `point` 句柄**第二次** `TcpStream(p)`（或 `TcpServer(p)`）构造，运行期触发堆破坏（`0xC0000374`），首次 send 直接返回 false。
+- 正向确认（同一 session 另一发现）：`TcpStream` 作为函数参数按值传入是**安全**的（句柄在调用后仍可用，后续 send 正常）—— 这与 BUG-HD1「作函数参数传入 OK」一致，修正了设计限制表里「native-backed class 不可按值传参」的过宽表述（真正禁止的是 return 已有具名值，不是 param 传入）。所以 ftpserver 的 `sendLine(TcpStream s, ...)` / `recvLine(...)` 这类 helper 合法。
+- 绕过（ftpserver 已采用）：每个 accept/connect 返回的 point **只包装一次**，在该句柄的整个生命周期内只构造一个 TcpStream；PASV 复用单一 session listener（`dataListener`），不在每次 PASV 重建。
+- 严重度：高（致命崩溃；复用句柄包装是自然的「按需重建 wrapper」直觉）
+- 状态：未修复
+
+### BUG-DN1: `for _, _ in dict` 触发重复声明错误
+- 工具：dnsrv
+- 复现：`for _, _ in g_zone do ... end` → `[sem] 同一作用域内重复声明`
+- 现象：在 `for k, v in dict` 解构中，key 和 value 都用 `_` 丢弃时，编译器报同一作用域内重复声明 `_`
+- 期望：`_` 作为通配符应允许多次出现（Python `for _, _ in d.items()` 合法）
+- 绕过：至少给 key 或 value 一个具名变量（如 `for k, _ in dict`）
+- 严重度：低
+- 状态：未修复
+
+### BUG-CL1: 多值返回丢弃 `array<int>`（typed 容器返回空）
+- 工具：cryptolab
+- 复现：
+  ```xlang
+  func makeArr(int n) as (array<int>, int)
+      array<int> a = array[n]
+      int i = 1
+      while i < n do a.push(i); i += 1 end
+      return a, n
+  end
+  array<int> r; int v
+  r, v = makeArr(5)
+  println(r.length)   // 0（期望 5）
+  println(v)          // 5（正确）
+  ```
+- 现象：函数返回 `(array<int>, T)` 或 `(array<int>, array<int>)` 时，`array<int>` 分量在调用方
+  拿到的是**空数组**（length=0），而标量分量（int/bool 等）返回正确。仅影响 typed 容器
+  （`array<T>`），不影响标量多值返回。
+- 边界：
+  - 单值返回 `array<int>` 完全正常。
+  - 标量 + 标量的多值返回正常（如 `return a, b` 其中 a/b 是 int）。
+  - `var` 容器的多值返回未测试（可能也受影响）。
+- 绕过（cryptolab 已采用）：将 typed 容器作为**唯一返回值**，其余返回值通过**全局变量**传递
+  （如 `g_nr` / `g_tag` / `g_auth`），或拆分为两次调用。
+- 严重度：**高**（静默数据丢失；typed 容器多值返回是常见模式；无编译期警告）
+- 状态：未修复
+
+### BUG-CL2: 顶层函数名与 C 标准库名冲突（tcc 链接报错）
+- 工具：cryptolab
+- 复现：`func xtime(int b) as int ... end` →
+  `tcc: __xlvfs__/module.c:643: error: incompatible types for redefinition of 'xtime'`
+- 现象：xlang 将顶层函数名直接作为 C 函数名生成。若函数名与 C 标准库已有的函数/宏重名
+  （如 `xtime`、`stime`、`drand48` 等），tcc 在链接阶段报「类型不兼容的重定义」。
+- 边界：与 BUG-XT4 #2（形参名不能用 C 保留标识符）同族，但此处影响的是**顶层函数名**而非
+  形参名。xlang 目前不检测函数名与 C 标准库的冲突。
+- 绕过：改用非保留名（如将 AES 的 `xtime` 改为 `mul2`）。
+- 严重度：低（清晰错误信息，一行改名绕过；但函数名直觉性可能受影响）
+- 状态：未修复
+
+### BUG-XR1: 源文件必须以换行结尾，否则最后一条语句解析失败
+- 工具：xrepl
+- 复现：
+  ```xlang
+  // 文件内容恰好是 `println(1 + 2)`（14 字节，无尾换行）
+  file.writeText("a.xl", "println(1 + 2)")
+  // xl run a.xl
+  // → a.xl:1:14: [parse] 语法错误（定位在行尾 `)`）
+  ```
+- 现象：源文件最后一条语句后若**没有换行符**，词法/解析阶段无法刷新最后一个 token，
+  报 `[parse] 语法错误` 并把光标定位在行尾（如 `)` ）。只有当文件以 `\n`（或 `\r\n`）
+  结尾时才正常解析。
+- 边界：用 PowerShell `Set-Content` / 编辑器保存的文件通常自动追加尾换行，故大多数
+  手写源码不受影响；但用 `file.writeText(path, code)` 程序化生成且不加 `\n` 时必踩。
+- 绕过（xrepl 已采用）：写文件时统一 `file.writeText(path, code + "\n")`。
+- 严重度：中（程序化生成源码的场景常见；错误信息不直观——看起来像语法错实则是缺尾换行）
+- 状态：未修复
+
+### BUG-XR2: `print()` / `println()` 对含 CRLF 的字符串二次翻译，产生多余空行
+- 工具：xrepl
+- 复现：
+  ```xlang
+  // 子进程 stdout 在 Windows 上是 CRLF
+  ProcessResult r = process.run("xl.exe run sub.xl", 10000)
+  print(r.stdout)          // r.stdout = "3\r\n"
+  // 实际输出到管道/文件的是 "3\r\n\r\n"（多一个换行），表现为多一个空行
+  ```
+- 现象：xlang 的 stdout 走 C 运行时**文本模式**，会把字符串里的 `\n` 翻译成 `\r\n`。
+  当被打印的字符串本身已经包含 `\r\n`（典型来源：`process.run` 捕获的子进程 stdout、
+  或 `file.readText` 读入的 CRLF 文件），`\n` 被再次翻译为 `\r\n`，得到 `\r\r\n`，
+  在终端/重定向文件中表现为**多出一个空行**。
+- 边界：
+  - 源码字面量 `print("3\n")`（只有 LF）→ 输出 `3\r\n`（正常，一次翻译）。
+  - `print(capturedStdout)`（含 CRLF）→ 输出多一个空行（二次翻译）。
+  - 不崩溃，仅静默多出空白，易误判为逻辑错误。
+- 绕过（xrepl 已采用）：打印前 `string.replace(s, "\r", "")` 去掉 CR，统一为 LF，
+  再由文本模式统一翻译为 CRLF。
+- 严重度：低（Windows 专属；有清晰绕过；但「回显子进程输出」是常见模式，易踩）
+- 状态：未修复
+
+### BUG-SM1: `time.timezoneOffset()` 返回秒，文档却标注「分钟」
+- 工具：smtpcli
+- 复现：
+  ```xlang
+  int tz = time.timezoneOffset()    // 系统时区 UTC+8
+  println(string(tz))               // -> 28800（8*3600）
+  ```
+- 现象：`标准库设计.md` / 功能清单均标注 `time.timezoneOffset()` 返回「当前本地时区偏移**分钟数**」，
+  实测返回**秒**（UTC+8 → 28800；若是分钟应为 480）。直接拿来当分钟算会得到荒谬的偏移
+  （如 RFC 2822 日期头部写成 `+48000` 而非 `+0800`）。
+- 边界：返回值本身是「本地时间 − UTC」的有符号秒数；符号正确（东区正、西区负）；
+  仅文档/单位描述错误，非数值错误。
+- 绕过（smtpcli 已采用）：按秒使用——`tzH = tzAbs / 3600`，`tzM = (tzAbs - tzH*3600) / 60`。
+- 严重度：中（静默错误；时区相关代码极常见；文档误导，无编译期警告）
+- 状态：未修复
+
+
 
 | 限制 | 说明 |
 |---|---|
@@ -467,3 +726,5 @@
 | list 无 append | int64 稀疏存储，用 `li[index] = value` |
 | `#` 不是注释 | `//` 才是注释；`#` 开启时间字面量 |
 | `auto` 无法从 `pop()` 推断 | 用显式类型 `int p = a.pop()` |
+| 字符串无 `.length` 属性 | 用 `string.len(s)`；`.length` 仅用于 array/容器变量 |
+| 字面量不能作 `.` 接收者 | `"x".method()` / `[1,2,3].length` 非法；先赋值给变量再访问 |

@@ -1,0 +1,652 @@
+// actorsys - Actor model framework (message passing + supervision tree)
+//
+// Usage:
+//   actorsys test    Create actor hierarchy, send messages, verify state,
+//                    test failure recovery (restart / resume / stop).
+//
+// Architecture:
+//
+//   root (supervisor, idx=0)
+//   +-- counter  (idx=1, channel<int>)   strategy=RESTART
+//   +-- echo     (idx=2, channel<int>)   strategy=RESUME
+//   +-- pool     (supervisor, idx=3)
+//       +-- worker0 (idx=4, channel<int>) strategy=RESTART
+//       +-- worker1 (idx=5, channel<int>) strategy=RESTART
+//       +-- worker2 (idx=6, channel<int>) strategy=STOP
+//
+// Each actor has:
+//   - A mailbox (channel<int>) for async message delivery.
+//   - A dedicated thread that loops: receive -> process -> update state.
+//   - Private state stored in the global registry (g_stateVal[]).
+//
+// Message protocol (all via channel<int>):
+//   MSG_STOP(-1)  graceful stop; MSG_FAIL(-2) simulate failure;
+//   MSG_RESET(-3) zero state; positive N = actor-specific payload.
+//
+// Supervision:
+//   Parent threads periodically scan children. On child failure the parent
+//   applies its strategy: RESTART (drain+reset+respawn), RESUME (drain+keep
+//   state+respawn), or STOP (mark permanently stopped).
+//
+// xlang constraints worked around:
+//   - channel<T> only supports value types (int/bool/float); no string.
+//     All mailboxes are channel<int> with an int message protocol.
+//   - channel<T> and thread are non-copyable; cannot be stored in typed
+//     arrays. Mailboxes are pre-declared global channels; threads are
+//     fire-and-forget (spawned via thread(closure), not stored).
+//   - Global containers accessed by worker threads must be initialized at
+//     declaration and never re-bound (BUG-XT3). Registry uses parallel
+//     global arrays (array[]) populated via push() before threads spawn.
+//   - Actor threads capture their slot index (int, by value) via a closure
+//     factory makeActorBody(idx), mirroring the proven prodcon pattern.
+
+// ============================== constants ==================================
+
+int KIND_SUPERVISOR = 1
+int KIND_COUNTER = 2
+int KIND_ECHO = 3
+int KIND_WORKER = 4
+
+int STATUS_RUNNING = 0
+int STATUS_OK = 1
+int STATUS_FAILED = 2
+int STATUS_STOPPED = 3
+
+int STRATEGY_RESTART = 1
+int STRATEGY_RESUME = 2
+int STRATEGY_STOP = 3
+
+int MSG_STOP = -1
+int MSG_FAIL = -2
+int MSG_RESET = -3
+
+// ============================== mailboxes ==================================
+// Pre-declared global channels (non-copyable, cannot be stored in arrays).
+// One channel<int> per actor slot: idx 0..6 -> g_imb0..g_imb6.
+
+channel<int> g_imb0 = channel::<int>(64)
+channel<int> g_imb1 = channel::<int>(64)
+channel<int> g_imb2 = channel::<int>(64)
+channel<int> g_imb3 = channel::<int>(64)
+channel<int> g_imb4 = channel::<int>(64)
+channel<int> g_imb5 = channel::<int>(64)
+channel<int> g_imb6 = channel::<int>(64)
+
+// ============================== registry ===================================
+// Parallel global arrays, one element per actor slot. Initialized at
+// declaration (array[]) and populated via push() before any thread starts.
+
+mutex g_lock = mutex()
+
+array<string> g_name = array[]
+array<int> g_kind = array[]
+array<int> g_parent = array[]
+array<int> g_strategy = array[]
+array<int> g_status = array[]
+array<int> g_restarts = array[]
+array<int> g_stateVal = array[]
+array<int> g_msgsHandled = array[]
+int g_totalActors = 0
+int g_activeThreads = 0
+
+int g_pass = 0
+int g_fail = 0
+
+// ============================== registry setup =============================
+
+func regActor(string name, int kind, int parent, int strategy)
+    g_name.push(name)
+    g_kind.push(kind)
+    g_parent.push(parent)
+    g_strategy.push(strategy)
+    g_status.push(STATUS_RUNNING)
+    g_restarts.push(0)
+    g_stateVal.push(0)
+    g_msgsHandled.push(0)
+end
+
+func setupRegistry()
+    regActor("root",    KIND_SUPERVISOR, -1, STRATEGY_RESTART)
+    regActor("counter", KIND_COUNTER,     0, STRATEGY_RESTART)
+    regActor("echo",    KIND_ECHO,        0, STRATEGY_RESUME)
+    regActor("pool",    KIND_SUPERVISOR,  0, STRATEGY_RESTART)
+    regActor("worker0", KIND_WORKER,      3, STRATEGY_RESTART)
+    regActor("worker1", KIND_WORKER,      3, STRATEGY_RESTART)
+    regActor("worker2", KIND_WORKER,      3, STRATEGY_STOP)
+    int n = g_name.length
+    g_totalActors = n
+end
+
+// ============================== mailbox dispatch ===========================
+// Since channels cannot be indexed, route by actor slot via if-chains.
+
+func tell(int idx, int msg) as bool
+    // actor.tell(message) - async send (fire-and-forget)
+    if idx == 0 then return g_imb0.send(msg) end
+    if idx == 1 then return g_imb1.send(msg) end
+    if idx == 2 then return g_imb2.send(msg) end
+    if idx == 3 then return g_imb3.send(msg) end
+    if idx == 4 then return g_imb4.send(msg) end
+    if idx == 5 then return g_imb5.send(msg) end
+    if idx == 6 then return g_imb6.send(msg) end
+    return false
+end
+
+func tryRecv(int idx) as (bool, int)
+    int v = 0
+    bool ok = false
+    if idx == 0 then
+        ok = g_imb0.tryRecvInto(v)
+    elseif idx == 1 then
+        ok = g_imb1.tryRecvInto(v)
+    elseif idx == 2 then
+        ok = g_imb2.tryRecvInto(v)
+    elseif idx == 3 then
+        ok = g_imb3.tryRecvInto(v)
+    elseif idx == 4 then
+        ok = g_imb4.tryRecvInto(v)
+    elseif idx == 5 then
+        ok = g_imb5.tryRecvInto(v)
+    elseif idx == 6 then
+        ok = g_imb6.tryRecvInto(v)
+    end
+    return ok, v
+end
+
+func recv(int idx) as (bool, int)
+    int v = 0
+    bool ok = false
+    if idx == 0 then
+        ok = g_imb0.recvInto(v)
+    elseif idx == 1 then
+        ok = g_imb1.recvInto(v)
+    elseif idx == 2 then
+        ok = g_imb2.recvInto(v)
+    elseif idx == 3 then
+        ok = g_imb3.recvInto(v)
+    elseif idx == 4 then
+        ok = g_imb4.recvInto(v)
+    elseif idx == 5 then
+        ok = g_imb5.recvInto(v)
+    elseif idx == 6 then
+        ok = g_imb6.recvInto(v)
+    end
+    return ok, v
+end
+
+func drainMailbox(int idx)
+    bool more = true
+    while more do
+        bool ok = false
+        int v = 0
+        ok, v = tryRecv(idx)
+        more = ok
+    end
+end
+
+// ============================== actor bodies ==============================
+
+// Counter: increments internal value by the message amount. RESET clears it.
+func counterBody(int idx) as int
+    while true do
+        bool ok = false
+        int msg = 0
+        ok, msg = recv(idx)
+        if not ok then
+            return 0
+        end
+        if msg == MSG_STOP then
+            return 0
+        elseif msg == MSG_FAIL then
+            return 2
+        elseif msg == MSG_RESET then
+            g_stateVal[idx] = 0
+            g_msgsHandled[idx] = g_msgsHandled[idx] + 1
+        elseif msg > 0 then
+            g_stateVal[idx] = g_stateVal[idx] + msg
+            g_msgsHandled[idx] = g_msgsHandled[idx] + 1
+        end
+    end
+    return 0
+end
+
+// Echo: stores the last received positive value as its state.
+func echoBody(int idx) as int
+    while true do
+        bool ok = false
+        int msg = 0
+        ok, msg = recv(idx)
+        if not ok then
+            return 0
+        end
+        if msg == MSG_STOP then
+            return 0
+        elseif msg == MSG_FAIL then
+            return 2
+        elseif msg == MSG_RESET then
+            g_stateVal[idx] = 0
+            g_msgsHandled[idx] = g_msgsHandled[idx] + 1
+        elseif msg > 0 then
+            g_stateVal[idx] = msg
+            g_msgsHandled[idx] = g_msgsHandled[idx] + 1
+        end
+    end
+    return 0
+end
+
+// Worker: squares each positive message and accumulates the result.
+func workerBody(int idx) as int
+    while true do
+        bool ok = false
+        int msg = 0
+        ok, msg = recv(idx)
+        if not ok then
+            return 0
+        end
+        if msg == MSG_STOP then
+            return 0
+        elseif msg == MSG_FAIL then
+            return 2
+        elseif msg > 0 then
+            int result = msg * msg
+            g_stateVal[idx] = g_stateVal[idx] + result
+            g_msgsHandled[idx] = g_msgsHandled[idx] + 1
+        end
+    end
+    return 0
+end
+
+// Find the rr-th active worker child of parentIdx (round-robin). Returns -1
+// if no eligible worker is found. Workers are contiguous by registration.
+func pickWorker(int parentIdx, int rr) as int
+    int first = -1
+    int count = 0
+    int i = 0
+    while i < g_totalActors do
+        if g_parent[i] == parentIdx and g_kind[i] == KIND_WORKER then
+            if g_status[i] != STATUS_STOPPED then
+                if first < 0 then
+                    first = i
+                end
+                count = count + 1
+            end
+        end
+        i = i + 1
+    end
+    if count == 0 then
+        return -1
+    end
+    return first + (rr % count)
+end
+
+// Supervisor: receives work and forwards round-robin to worker children.
+// When idle (no message), monitors children for failures.
+func supervisorBody(int idx) as int
+    int rr = 0
+    while true do
+        bool ok = false
+        int msg = 0
+        ok, msg = tryRecv(idx)
+        if ok then
+            if msg == MSG_STOP then
+                stopChildren(idx)
+                return 0
+            elseif msg == MSG_FAIL then
+                return 2
+            else
+                int target = pickWorker(idx, rr)
+                rr = rr + 1
+                if target >= 0 then
+                    tell(target, msg)
+                end
+                g_msgsHandled[idx] = g_msgsHandled[idx] + 1
+            end
+        else
+            monitorChildren(idx)
+            time.sleep(1)
+        end
+    end
+    return 0
+end
+
+// Recursively send STOP to all children of parentIdx (graceful shutdown).
+func stopChildren(int parentIdx)
+    int i = 0
+    while i < g_totalActors do
+        if g_parent[i] == parentIdx then
+            tell(i, MSG_STOP)
+        end
+        i = i + 1
+    end
+end
+
+// ============================== supervision ===============================
+
+// Scan children of parentIdx; snapshot any that have FAILED, then apply
+// the child's configured strategy. Snapshot+release-lock avoids holding
+// the registry lock while spawning threads.
+func monitorChildren(int parentIdx)
+    g_lock.lock()
+    array<int> failed
+    int i = 0
+    while i < g_totalActors do
+        if g_parent[i] == parentIdx and g_status[i] == STATUS_FAILED then
+            failed.push(i)
+        end
+        i = i + 1
+    end
+    g_lock.unlock()
+    int j = 0
+    while j < failed.length do
+        int cidx = failed[j]
+        int strat = g_strategy[cidx]
+        applyStrategy(cidx, strat)
+        j = j + 1
+    end
+end
+
+func applyStrategy(int idx, int strategy)
+    if strategy == STRATEGY_RESTART then
+        restartActor(idx)
+    elseif strategy == STRATEGY_RESUME then
+        resumeActor(idx)
+    elseif strategy == STRATEGY_STOP then
+        g_status[idx] = STATUS_STOPPED
+    end
+end
+
+// RESTART: drain pending messages, reset state, respawn thread.
+func restartActor(int idx)
+    drainMailbox(idx)
+    g_restarts[idx] = g_restarts[idx] + 1
+    g_stateVal[idx] = 0
+    g_status[idx] = STATUS_RUNNING
+    spawnThread(idx)
+end
+
+// RESUME: drain pending messages, keep state, respawn thread.
+func resumeActor(int idx)
+    drainMailbox(idx)
+    g_restarts[idx] = g_restarts[idx] + 1
+    g_status[idx] = STATUS_RUNNING
+    spawnThread(idx)
+end
+
+// ============================== spawning ==================================
+
+// Dispatch to the appropriate actor body based on kind. Catches unexpected
+// exceptions so the thread exits cleanly with STATUS_FAILED.
+func actorBody(int idx) as int
+    try
+        int k = g_kind[idx]
+        int rc = 0
+        if k == KIND_SUPERVISOR then
+            rc = supervisorBody(idx)
+        elseif k == KIND_COUNTER then
+            rc = counterBody(idx)
+        elseif k == KIND_ECHO then
+            rc = echoBody(idx)
+        elseif k == KIND_WORKER then
+            rc = workerBody(idx)
+        end
+        if rc == 0 then
+            g_status[idx] = STATUS_OK
+        else
+            g_status[idx] = STATUS_FAILED
+        end
+        return rc
+    catch e
+        g_status[idx] = STATUS_FAILED
+        return 2
+    end
+end
+
+// Closure factory: captures idx (int, by value) for the thread. Tracks the
+// active-thread count so the main thread can wait for full shutdown.
+func makeActorBody(int idx) as func() as int
+    return func() as int
+        g_lock.lock()
+        g_activeThreads = g_activeThreads + 1
+        g_lock.unlock()
+        int rc = actorBody(idx)
+        g_lock.lock()
+        g_activeThreads = g_activeThreads - 1
+        g_lock.unlock()
+        return rc
+    end
+end
+
+func spawnThread(int idx)
+    thread(makeActorBody(idx))
+end
+
+func spawnAll()
+    int i = 0
+    while i < g_totalActors do
+        spawnThread(i)
+        i = i + 1
+    end
+end
+
+// ============================== test helpers ==============================
+
+func waitForHandled(int idx, int expected, int timeoutMs) as bool
+    int waited = 0
+    while waited < timeoutMs do
+        if g_msgsHandled[idx] >= expected then
+            return true
+        end
+        time.sleep(2)
+        waited = waited + 2
+    end
+    return false
+end
+
+func waitForRestart(int idx, int baseline, int timeoutMs) as bool
+    int waited = 0
+    while waited < timeoutMs do
+        if g_restarts[idx] > baseline then
+            return true
+        end
+        time.sleep(2)
+        waited = waited + 2
+    end
+    return false
+end
+
+func waitForStatus(int idx, int expected, int timeoutMs) as bool
+    int waited = 0
+    while waited < timeoutMs do
+        if g_status[idx] == expected then
+            return true
+        end
+        time.sleep(2)
+        waited = waited + 2
+    end
+    return false
+end
+
+func check(string name, bool ok)
+    if ok then
+        println("  [PASS] " + name)
+        g_pass = g_pass + 1
+    else
+        println("  [FAIL] " + name)
+        g_fail = g_fail + 1
+    end
+end
+
+func waitForAllActive(int timeoutMs) as bool
+    int waited = 0
+    while waited < timeoutMs do
+        g_lock.lock()
+        int active = g_activeThreads
+        g_lock.unlock()
+        if active >= g_totalActors then
+            return true
+        end
+        time.sleep(2)
+        waited = waited + 2
+    end
+    return false
+end
+
+// ============================== tests =====================================
+
+func runTests() as int
+    println("==== actorsys test start ====")
+    println("actors:", g_totalActors, "(root supervisor + counter / echo / pool + 3 workers)")
+    println("------------------------------------------------")
+
+    // TEST 1: Counter - INC / RESET via channel<int>
+    println("[test 1] counter: INC / RESET")
+    tell(1, MSG_RESET)
+    tell(1, 5)
+    tell(1, 10)
+    tell(1, 3)
+    check("counter processed 4 messages (reset + 3 incs)", waitForHandled(1, 4, 2000))
+    check("counter state == 18 (5 + 10 + 3)", g_stateVal[1] == 18)
+
+    // TEST 2: Echo - store last value
+    println("[test 2] echo: store last message value")
+    tell(2, 100)
+    tell(2, 200)
+    check("echo processed 2 messages", waitForHandled(2, 2, 2000))
+    check("echo last == 200", g_stateVal[2] == 200)
+
+    // TEST 3: Worker Pool - distribute work round-robin
+    println("[test 3] worker pool: distribute work (round-robin)")
+    tell(3, 3)
+    tell(3, 4)
+    tell(3, 5)
+    check("pool forwarded 3 work items", waitForHandled(3, 3, 2000))
+    check("worker0 processed (3^2 = 9)", waitForHandled(4, 1, 2000))
+    check("worker1 processed (4^2 = 16)", waitForHandled(5, 1, 2000))
+    check("worker2 processed (5^2 = 25)", waitForHandled(6, 1, 2000))
+    int poolTotal = g_stateVal[4] + g_stateVal[5] + g_stateVal[6]
+    check("workers total == 50 (9 + 16 + 25)", poolTotal == 50)
+
+    // TEST 4: Supervision - counter restart
+    println("[test 4] supervision: counter restart (strategy = RESTART)")
+    int rstBefore = g_restarts[1]
+    tell(1, MSG_FAIL)
+    check("root detected failure and restarted counter", waitForRestart(1, rstBefore, 3000))
+    check("counter state reset to 0 after restart", g_stateVal[1] == 0)
+    int h4 = g_msgsHandled[1]
+    tell(1, 7)
+    check("counter alive after restart (processed INC 7)", waitForHandled(1, h4 + 1, 2000))
+    check("counter state == 7", g_stateVal[1] == 7)
+
+    // TEST 5: Supervision - echo resume
+    println("[test 5] supervision: echo resume (strategy = RESUME)")
+    int echoRst = g_restarts[2]
+    int echoH0 = g_msgsHandled[2]
+    tell(2, 777)
+    waitForHandled(2, echoH0 + 1, 2000)
+    tell(2, MSG_FAIL)
+    check("root detected failure and resumed echo", waitForRestart(2, echoRst, 3000))
+    check("echo state preserved across resume (777)", g_stateVal[2] == 777)
+    tell(2, 999)
+    check("echo alive after resume", waitForHandled(2, echoH0 + 2, 2000))
+    check("echo state == 999", g_stateVal[2] == 999)
+
+    // TEST 6: Supervision - worker2 stop
+    println("[test 6] supervision: worker2 stop (strategy = STOP)")
+    int w2rst = g_restarts[6]
+    tell(6, MSG_FAIL)
+    check("pool stopped worker2 permanently", waitForStatus(6, STATUS_STOPPED, 3000))
+    check("worker2 restart count unchanged (STOP does not respawn)", g_restarts[6] == w2rst)
+
+    // TEST 7: Message reliability - 50 messages
+    println("[test 7] message reliability: 50 messages to counter")
+    int cH0 = g_msgsHandled[1]
+    tell(1, MSG_RESET)
+    waitForHandled(1, cH0 + 1, 2000)
+    int cH1 = g_msgsHandled[1]
+    int i = 0
+    while i < 50 do
+        tell(1, 1)
+        i = i + 1
+    end
+    check("all 50 messages delivered and handled", waitForHandled(1, cH1 + 50, 5000))
+    check("counter state == 50 (50 x INC 1)", g_stateVal[1] == 50)
+
+    println("------------------------------------------------")
+    println("==== actorsys summary ====")
+    println("passed:", g_pass, " failed:", g_fail)
+    println("restarts:  counter=" + string(g_restarts[1]) +
+            "  echo=" + string(g_restarts[2]) +
+            "  worker0=" + string(g_restarts[4]) +
+            "  worker1=" + string(g_restarts[5]) +
+            "  worker2=" + string(g_restarts[6]))
+
+    if g_fail == 0 then
+        println("RESULT: OK - actor system verification passed")
+        return 0
+    end
+    println("RESULT: FAIL -", g_fail, "check(s) failed")
+    return 1
+end
+
+// ============================== shutdown ==================================
+
+func shutdown()
+    tell(0, MSG_STOP)
+    int waited = 0
+    while waited < 5000 do
+        g_lock.lock()
+        int active = g_activeThreads
+        g_lock.unlock()
+        if active <= 0 then
+            return
+        end
+        time.sleep(5)
+        waited = waited + 5
+    end
+    println("WARNING: shutdown timed out, active threads:", g_activeThreads)
+end
+
+// ============================== usage / main ==============================
+
+func printUsage()
+    println("actorsys - Actor model framework (message passing + supervision tree)")
+    println("Usage:")
+    println("  actorsys test    Run actor system verification")
+    println("Features:")
+    println("  - Actor mailboxes via channel<int>")
+    println("  - Supervision strategies: restart / resume / stop")
+    println("  - Built-in actors: Counter, Echo, Worker Pool")
+end
+
+// ============================== module-level setup ========================
+// Runs before main: populate the actor registry (push, never rebind).
+
+setupRegistry()
+
+// ============================== entry point ===============================
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+    if cmd != "test" then
+        println("Error: unknown command '" + cmd + "'")
+        printUsage()
+        return 1
+    end
+
+    spawnAll()
+    if not waitForAllActive(2000) then
+        println("ERROR: not all actor threads started")
+        shutdown()
+        return 1
+    end
+
+    int rc = runTests()
+
+    shutdown()
+    return rc
+end

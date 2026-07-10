@@ -1,4 +1,4 @@
-﻿static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
+static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 static void xl6CgenNativeExternProto(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* member);
 
 static int xl6CgenGenericClassMemberHasSignatureTypes(const XL6_AstNode* member)
@@ -266,7 +266,7 @@ static void xl6CgenGenericClassParamList(XL6_CgenContext* ctx, const XL6_AstNode
         xl6OutputPuts(", ", ctx->out);
         if ( param->childCount == 0 || xl6CTextEquals(param->children[0]->text, "array<var>") ||
              xl6CTextEquals(param->children[0]->text, "dict<var>") ) {
-            xl6CgenError(ctx, param, "娉涘瀷 class 鏂规硶鏆備笉鏀寔鍙彉鍙傛暟");
+            xl6CgenError(ctx, param, "泛型 class 方法暂不支持可变参数");
             xl6OutputPuts("int ", ctx->out);
         } else {
             xl6OutputPuts(xl6CgenTypeName(ctx, param->children[0]), ctx->out);

@@ -1,0 +1,1540 @@
+// jsonpath - JSONPath 查询引擎
+//
+// 用法:
+//   jsonpath query <file.json> "<path>"     对 JSON 文件执行 JSONPath 查询
+//   jsonpath test                            运行内置自检（经典 goessner 示例）
+//   jsonpath help                            显示帮助
+//
+// 支持的 JSONPath 语法:
+//   $                          根节点
+//   $.key                      点访问子节点
+//   $['key'] / $["key"]        括号访问子节点
+//   $[idx]                     数组下标（支持负数，如 $[-1] 表示倒数第一个）
+//   $[start:end]               数组切片（可省略：$[1:], $[:3], $[-2:]）
+//   $[*]  /  $.*               通配符（数组所有元素 / 对象所有值）
+//   $..key                     递归下降：任意深度的 key 子节点
+//   $..[idx]                   递归下降 + 下标
+//   $..*                       递归下降通配（所有后代节点）
+//   $[?(expr)]                 过滤表达式
+//   $[idx1,idx2,...]           多下标
+//   $['a','b']                 多键
+//
+// 过滤表达式:
+//   @                          当前节点
+//   @.field                    当前节点的字段
+//   @.a.b[0]                   嵌套路径
+//   $.store.bicycle.price      从根开始的路径
+//   < > <= >= == !=            比较（数值或字符串）
+//   &&  ||                     逻辑与/或
+//   !                           逻辑非
+//   ( ... )                    分组
+//   @.field                    存在性测试（字段存在即为真）
+//   示例: @.price < 10 && @.category == "fiction"
+//
+// 输出规则:
+//   - 0 个匹配：打印 []
+//   - 1 个匹配：直接打印该值（容器美化，标量紧凑）
+//   - 多个匹配：打印为 JSON 数组（美化）
+//
+// 设计说明:
+//   - 路径解析为 segment 列表（var dict），逐段应用产生候选集合。
+//   - 递归下降用 var 数组 + 局部 push 累积，不在递归热路径分配 dict。
+//   - 过滤表达式编译为 AST（var dict 树），对每个候选元素求值。
+//   - 序列化手工实现（避免 json 库 TAB 缩进 / 键序重排问题）。
+
+// ============================================================================
+// Missing 哨兵：标记路径解析失败（区别于合法的 JSON null 值）
+// ============================================================================
+
+class Missing
+    derive value
+end
+
+var MISSING = Missing()
+
+func isMissing(var v) as bool
+    if v is Missing then return true end
+    return false
+end
+
+// ============================================================================
+// 类型判定
+// ============================================================================
+
+func isArr(var v) as bool
+    if type(v) == type([]) then return true end
+    return false
+end
+
+func isDict(var v) as bool
+    if type(v) == type({}) then return true end
+    return false
+end
+
+func isNum(var v) as bool
+    if v is int then return true end
+    if v is float then return true end
+    return false
+end
+
+func toFloat(var v) as float
+    if v is int then return float(int(v)) end
+    return float(v)
+end
+
+// ============================================================================
+// Stringifier（手工序列化 var 树）
+// ============================================================================
+
+func hexByte(int v) as string
+    string d = "0123456789abcdef"
+    int hi = (v >> 4) & 0x0F
+    int lo = v & 0x0F
+    return string.charAt(d, hi) + string.charAt(d, lo)
+end
+
+func escapeStr(string s) as string
+    string out = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        int blen = string.byteLen(c)
+        if c == "\"" then
+            out = out + "\\\""
+        elseif c == "\\" then
+            out = out + "\\\\"
+        elseif c == "\n" then
+            out = out + "\\n"
+        elseif c == "\r" then
+            out = out + "\\r"
+        elseif c == "\t" then
+            out = out + "\\t"
+        elseif c == "\b" then
+            out = out + "\\b"
+        elseif c == "\f" then
+            out = out + "\\f"
+        elseif blen == 1 then
+            int code = string.byteAt(c, 0)
+            if code < 0x20 then
+                out = out + "\\u00" + hexByte(code)
+            else
+                out = out + c
+            end
+        else
+            out = out + c
+        end
+        i += 1
+    end
+    return out
+end
+
+func quoteStr(string s) as string
+    return "\"" + escapeStr(s) + "\""
+end
+
+func stringifyValue(var v, bool pretty, int indent) as string
+    if v is null then return "null" end
+    if v is bool then
+        if bool(v) then return "true" end
+        return "false"
+    end
+    if v is int then return string(int(v)) end
+    if v is float then return string(float(v)) end
+    if v is string then return quoteStr(string(v)) end
+    if isArr(v) then
+        int n = v.length
+        if n == 0 then return "[]" end
+        string pad = ""
+        if pretty then pad = string.repeat("  ", indent) end
+        string childPad = ""
+        if pretty then childPad = string.repeat("  ", indent + 1) end
+        string out = "["
+        int i = 0
+        while i < n do
+            if i > 0 then out = out + "," end
+            if pretty then out = out + "\n" + childPad end
+            out = out + stringifyValue(v[i], pretty, indent + 1)
+            i += 1
+        end
+        if pretty then out = out + "\n" + pad end
+        return out + "]"
+    end
+    if isDict(v) then
+        int n = v.length
+        if n == 0 then return "{}" end
+        string pad = ""
+        if pretty then pad = string.repeat("  ", indent) end
+        string childPad = ""
+        if pretty then childPad = string.repeat("  ", indent + 1) end
+        string out = "{"
+        bool first = true
+        for key, val in v
+            if not first then out = out + "," end
+            first = false
+            if pretty then out = out + "\n" + childPad end
+            out = out + quoteStr(string(key)) + ":"
+            if pretty then out = out + " " end
+            out = out + stringifyValue(val, pretty, indent + 1)
+        end
+        if pretty then out = out + "\n" + pad end
+        return out + "}"
+    end
+    return "null"
+end
+
+func stringify(var v, bool pretty) as string
+    return stringifyValue(v, pretty, 0)
+end
+
+// ============================================================================
+// 路径解析器：把 "$.a.b[0]" 解析为 segment 列表
+// ============================================================================
+// segment 表示为 var dict:
+//   {"kind":"root"}
+//   {"kind":"child", "name":"key"}
+//   {"kind":"index", "idx": 0}
+//   {"kind":"slice", "start": s, "end": e, "hasStart": bool, "hasEnd": bool}
+//   {"kind":"wildcard"}
+//   {"kind":"recursive"}            递归下降标记：展开当前候选集为自身+所有后代
+//   {"kind":"filter", "ast": <ast>}
+//   {"kind":"multindex", "idxs": [...]}
+//   {"kind":"multchild", "names": [...]}
+
+class PathParser
+    derive value
+    string src = ""
+    int len = 0
+    int pos = 0
+
+    create(string s)
+        self.src = s
+        self.len = string.len(s)
+        self.pos = 0
+        return
+    end
+
+    func error(string msg)
+        throw "jsonpath: char " + string(self.pos) + ": " + msg
+    end
+
+    func skipWs()
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if c == " " or c == "\t" then
+                self.pos += 1
+            else
+                return
+            end
+        end
+    end
+
+    func atEnd() as bool
+        if self.pos >= self.len then return true end
+        return false
+    end
+
+    func peek() as string
+        if self.pos >= self.len then return "" end
+        return string.charAt(self.src, self.pos)
+    end
+
+    // 主入口：解析完整路径，返回 segment 列表（var array）
+    func parse() as var
+        var segs = []
+        if self.len == 0 then return segs end
+        string first = string.charAt(self.src, 0)
+        if first == "$" or first == "@" then
+            segs.push({"kind": "root"})
+            self.pos = 1
+        end
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if c == "." then
+                self.parseDot(segs)
+            elseif c == "[" then
+                self.parseBracket(segs)
+            else
+                self.error("unexpected '" + c + "' in path (expected '.' or '[')")
+            end
+        end
+        return segs
+    end
+
+    // 处理 . 开头：.key / .* / ..key / ..* / ..[...]
+    func parseDot(var segs)
+        // 检查是否为 ..（递归下降）
+        if self.pos + 1 < self.len then
+            if string.charAt(self.src, self.pos + 1) == "." then
+                self.pos += 2
+                segs.push({"kind": "recursive"})
+                if self.atEnd() then
+                    self.error("'..' must be followed by a segment")
+                end
+                string c = self.peek()
+                if c == "*" then
+                    segs.push({"kind": "wildcard"})
+                    self.pos += 1
+                elseif c == "[" then
+                    self.parseBracket(segs)
+                else
+                    self.parseChildName(segs)
+                end
+                return
+            end
+        end
+        // 单点
+        self.pos += 1
+        if self.atEnd() then
+            self.error("'.' must be followed by a name or '*'")
+        end
+        string c = self.peek()
+        if c == "*" then
+            segs.push({"kind": "wildcard"})
+            self.pos += 1
+            return
+        end
+        self.parseChildName(segs)
+    end
+
+    // 读取裸标识符作为 child 段
+    func parseChildName(var segs)
+        string name = ""
+        bool any = false
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if c == "." or c == "[" then break end
+            name = name + c
+            any = true
+            self.pos += 1
+        end
+        if not any then
+            self.error("empty child name after '.'")
+        end
+        segs.push({"kind": "child", "name": name})
+    end
+
+    // 期望并消耗 ']'
+    func expectClose()
+        self.skipWs()
+        if self.atEnd() then
+            self.error("expected ']' but reached end of path")
+        end
+        if string.charAt(self.src, self.pos) != "]" then
+            self.error("expected ']' but got '" + string.charAt(self.src, self.pos) + "'")
+        end
+        self.pos += 1
+    end
+
+    // 读取带引号的字符串键（返回键内容，消耗闭合引号）
+    func readQuotedKey() as string
+        string quote = self.peek()
+        self.pos += 1
+        string key = ""
+        while not self.atEnd() do
+            string c = string.charAt(self.src, self.pos)
+            if c == quote then
+                self.pos += 1
+                return key
+            end
+            key = key + c
+            self.pos += 1
+        end
+        self.error("unterminated string key in bracket")
+        return ""
+    end
+
+    // 处理 [ 开头的段
+    func parseBracket(var segs)
+        // self.pos 指向 '['
+        self.pos += 1
+        self.skipWs()
+        if self.atEnd() then
+            self.error("unterminated '['")
+        end
+        string c = self.peek()
+        if c == "*" then
+            // [*]
+            self.pos += 1
+            self.expectClose()
+            segs.push({"kind": "wildcard"})
+            return
+        end
+        if c == "?" then
+            // [?(expr)]
+            self.pos += 1
+            self.skipWs()
+            if self.atEnd() or self.peek() != "(" then
+                self.error("expected '(' after '?' in filter")
+            end
+            self.pos += 1
+            // 提取括号内表达式文本（处理嵌套括号）
+            int depth = 1
+            int startExpr = self.pos
+            while self.pos < self.len do
+                string cc = string.charAt(self.src, self.pos)
+                if cc == "(" then
+                    depth += 1
+                elseif cc == ")" then
+                    depth -= 1
+                    if depth == 0 then break end
+                end
+                self.pos += 1
+            end
+            if self.pos >= self.len then
+                self.error("unterminated filter expression '('")
+            end
+            string exprText = string.slice(self.src, startExpr, self.pos - startExpr)
+            self.pos += 1
+            self.expectClose()
+            var ast = parseFilter(exprText)
+            segs.push({"kind": "filter", "ast": ast})
+            return
+        end
+        if c == "'" or c == "\"" then
+            // ['key'] / ["key"] / ['a','b']
+            var names = []
+            names.push(self.readQuotedKey())
+            self.skipWs()
+            while not self.atEnd() do
+                string nc = self.peek()
+                if nc == "," then
+                    self.pos += 1
+                    self.skipWs()
+                    if self.atEnd() then break end
+                    string q2 = self.peek()
+                    if q2 != "'" and q2 != "\"" then
+                        self.error("expected quoted string after ',' in bracket")
+                    end
+                    names.push(self.readQuotedKey())
+                    self.skipWs()
+                elseif nc == "]" then
+                    break
+                else
+                    break
+                end
+            end
+            self.expectClose()
+            if names.length == 1 then
+                segs.push({"kind": "child", "name": string(names[0])})
+            else
+                segs.push({"kind": "multchild", "names": names})
+            end
+            return
+        end
+        // 数字：下标 / 切片 / 多下标
+        string body = ""
+        while not self.atEnd() do
+            string cc = self.peek()
+            if cc == "]" then break end
+            body = body + cc
+            self.pos += 1
+        end
+        self.expectClose()
+        body = string.trim(body)
+        if string.len(body) == 0 then
+            self.error("empty bracket content")
+        end
+        if string.contains(body, ":") then
+            // 切片
+            int colon = string.indexOf(body, ":")
+            string left = string.trim(string.slice(body, 0, colon))
+            string right = string.trim(string.slice(body, colon + 1))
+            int startv = 0
+            bool hasStart = false
+            int endv = 0
+            bool hasEnd = false
+            if string.len(left) > 0 then
+                startv = int(left)
+                hasStart = true
+            end
+            if string.len(right) > 0 then
+                endv = int(right)
+                hasEnd = true
+            end
+            segs.push({"kind": "slice", "start": startv, "end": endv, "hasStart": hasStart, "hasEnd": hasEnd})
+        elseif string.contains(body, ",") then
+            // 多下标
+            var idxs = []
+            string cur = ""
+            int bi = 0
+            int bn = string.len(body)
+            while bi < bn do
+                string ch = string.charAt(body, bi)
+                if ch == "," then
+                    cur = string.trim(cur)
+                    if string.len(cur) > 0 then idxs.push(int(cur)) end
+                    cur = ""
+                else
+                    cur = cur + ch
+                end
+                bi += 1
+            end
+            cur = string.trim(cur)
+            if string.len(cur) > 0 then idxs.push(int(cur)) end
+            segs.push({"kind": "multindex", "idxs": idxs})
+        else
+            // 单下标
+            segs.push({"kind": "index", "idx": int(body)})
+        end
+    end
+end
+
+// 对外入口：规范化路径（允许省略 $）并解析
+func parsePath(string p) as var
+    if string.len(p) > 0 then
+        string first = string.charAt(p, 0)
+        if first != "$" and first != "@" and first != "." and first != "[" then
+            p = "$." + p
+        end
+    end
+    PathParser pp = PathParser(p)
+    return pp.parse()
+end
+
+// ============================================================================
+// 过滤表达式解析器（递归下降，生成 AST）
+// ============================================================================
+// AST 节点（var dict）:
+//   布尔表达式:
+//     {"t":"or",  "l":<bool>, "r":<bool>}
+//     {"t":"and", "l":<bool>, "r":<bool>}
+//     {"t":"not", "x":<bool>}
+//     {"t":"cmp", "left":<val>, "right":<val>, "op":"<"}
+//     {"t":"exists", "v":<val>}
+//   值表达式:
+//     {"t":"path", "steps":[<step>...], "fromRoot": bool}
+//     {"t":"num",  "v": <int/float>}
+//     {"t":"str",  "v": <string>}
+//     {"t":"bool", "v": <bool>}
+//     {"t":"null"}
+//   路径步骤 step（var dict）:
+//     {"kind":"f", "name":"price"}    字段访问
+//     {"kind":"i", "idx": 0}          下标
+
+class FParser
+    derive value
+    string src = ""
+    int len = 0
+    int pos = 0
+
+    create(string s)
+        self.src = s
+        self.len = string.len(s)
+        self.pos = 0
+        return
+    end
+
+    func error(string msg)
+        throw "jsonpath filter: char " + string(self.pos) + ": " + msg
+    end
+
+    func skipWs()
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if c == " " or c == "\t" or c == "\n" or c == "\r" then
+                self.pos += 1
+            else
+                return
+            end
+        end
+    end
+
+    func atEnd() as bool
+        if self.pos >= self.len then return true end
+        return false
+    end
+
+    func peek() as string
+        if self.pos >= self.len then return "" end
+        return string.charAt(self.src, self.pos)
+    end
+
+    func peek2() as string
+        if self.pos + 1 >= self.len then return "" end
+        return string.charAt(self.src, self.pos + 1)
+    end
+
+    // 入口：解析完整布尔表达式
+    func parseExpr() as var
+        var node = self.parseOr()
+        self.skipWs()
+        if not self.atEnd() then
+            self.error("unexpected trailing '" + self.peek() + "' in filter")
+        end
+        return node
+    end
+
+    // or 层（最低优先级）
+    func parseOr() as var
+        var left = self.parseAnd()
+        self.skipWs()
+        while not self.atEnd() do
+            if self.peek() == "|" and self.peek2() == "|" then
+                self.pos += 2
+                var right = self.parseAnd()
+                var node = {"t": "or", "l": left, "r": right}
+                left = node
+                self.skipWs()
+            else
+                break
+            end
+        end
+        return left
+    end
+
+    // and 层
+    func parseAnd() as var
+        var left = self.parseNot()
+        self.skipWs()
+        while not self.atEnd() do
+            if self.peek() == "&" and self.peek2() == "&" then
+                self.pos += 2
+                var right = self.parseNot()
+                var node = {"t": "and", "l": left, "r": right}
+                left = node
+                self.skipWs()
+            else
+                break
+            end
+        end
+        return left
+    end
+
+    // not 层
+    func parseNot() as var
+        self.skipWs()
+        if not self.atEnd() and self.peek() == "!" then
+            // 确认不是 != （!= 由比较层处理）
+            if self.peek2() != "=" then
+                self.pos += 1
+                var operand = self.parseNot()
+                return {"t": "not", "x": operand}
+            end
+        end
+        return self.parseComparison()
+    end
+
+    // 比较层：值 (cmpop 值)?  或  值（存在性测试）
+    func parseComparison() as var
+        var left = self.parseValue()
+        self.skipWs()
+        if self.atEnd() then
+            return {"t": "exists", "v": left}
+        end
+        string op = self.tryCmpOp()
+        if string.len(op) == 0 then
+            return {"t": "exists", "v": left}
+        end
+        var right = self.parseValue()
+        return {"t": "cmp", "left": left, "right": right, "op": op}
+    end
+
+    // 尝试读取比较运算符，返回 "" 表示不是比较符
+    func tryCmpOp() as string
+        if self.atEnd() then return "" end
+        string c = self.peek()
+        string c2 = self.peek2()
+        if c == "<" and c2 == "=" then
+            self.pos += 2
+            return "<="
+        end
+        if c == ">" and c2 == "=" then
+            self.pos += 2
+            return ">="
+        end
+        if c == "!" and c2 == "=" then
+            self.pos += 2
+            return "!="
+        end
+        if c == "=" and c2 == "=" then
+            self.pos += 2
+            return "=="
+        end
+        if c == "<" then
+            self.pos += 1
+            return "<"
+        end
+        if c == ">" then
+            self.pos += 1
+            return ">"
+        end
+        return ""
+    end
+
+    // 值：分组 / 路径 / 字面量
+    func parseValue() as var
+        self.skipWs()
+        if self.atEnd() then
+            self.error("expected a value in filter")
+        end
+        string c = self.peek()
+        if c == "(" then
+            self.pos += 1
+            var inner = self.parseOr()
+            self.skipWs()
+            if self.atEnd() or self.peek() != ")" then
+                self.error("expected ')' in filter grouping")
+            end
+            self.pos += 1
+            return inner
+        end
+        if c == "@" or c == "$" then
+            return self.parsePathValue()
+        end
+        if c == "\"" or c == "'" then
+            return self.parseStringLit()
+        end
+        if c == "-" or c == "." or (c >= "0" and c <= "9") then
+            return self.parseNumberLit()
+        end
+        // true / false / null 标识符
+        if (c >= "a" and c <= "z") or (c >= "A" and c <= "Z") then
+            return self.parseIdentLit()
+        end
+        self.error("unexpected '" + c + "' in filter value")
+        return {"t": "null"}
+    end
+
+    // 解析 @.a.b[0] 或 $.a.b 形式的路径值
+    func parsePathValue() as var
+        string root0 = self.peek()
+        bool fromRoot = false
+        if root0 == "$" then
+            fromRoot = true
+        end
+        self.pos += 1
+        var steps = []
+        bool ok = true
+        while ok do
+            if self.atEnd() then break end
+            string c = self.peek()
+            if c == "." then
+                self.pos += 1
+                // 读取字段名
+                string name = ""
+                bool anyName = false
+                while not self.atEnd() do
+                    string cc = self.peek()
+                    if cc == "." or cc == "[" then break end
+                    // 遇到运算符/逻辑符则停止
+                    if cc == "<" or cc == ">" or cc == "=" or cc == "!" then break end
+                    if cc == ")" or cc == "&" or cc == "|" then break end
+                    if cc == " " or cc == "\t" then break end
+                    name = name + cc
+                    anyName = true
+                    self.pos += 1
+                end
+                if not anyName then
+                    self.error("expected field name after '.' in filter path")
+                end
+                var step = {"kind": "f", "name": name}
+                steps.push(step)
+            elseif c == "[" then
+                self.pos += 1
+                self.skipWs()
+                // 支持 ['key'] 和 [数字]
+                if not self.atEnd() then
+                    string cc = self.peek()
+                    if cc == "'" or cc == "\"" then
+                        string q = cc
+                        self.pos += 1
+                        string k = ""
+                        while not self.atEnd() do
+                            string ch = self.peek()
+                            if ch == q then break end
+                            k = k + ch
+                            self.pos += 1
+                        end
+                        if self.atEnd() then
+                            self.error("unterminated string in filter path index")
+                        end
+                        self.pos += 1
+                        self.skipWs()
+                        if self.atEnd() or self.peek() != "]" then
+                            self.error("expected ']' after string index in filter path")
+                        end
+                        self.pos += 1
+                        steps.push({"kind": "f", "name": k})
+                    else
+                        string num = ""
+                        while not self.atEnd() do
+                            string ch = self.peek()
+                            if ch == "]" then break end
+                            num = num + ch
+                            self.pos += 1
+                        end
+                        if self.atEnd() then
+                            self.error("unterminated '[' in filter path")
+                        end
+                        self.pos += 1
+                        steps.push({"kind": "i", "idx": int(string.trim(num))})
+                    end
+                end
+            else
+                break
+            end
+        end
+        return {"t": "path", "steps": steps, "fromRoot": fromRoot}
+    end
+
+    func parseStringLit() as var
+        string q = self.peek()
+        self.pos += 1
+        string s = ""
+        while not self.atEnd() do
+            string c = self.peek()
+            if c == q then
+                self.pos += 1
+                return {"t": "str", "v": s}
+            end
+            if c == "\\" then
+                self.pos += 1
+                if self.atEnd() then break end
+                string e = self.peek()
+                if e == "n" then
+                    s = s + "\n"
+                elseif e == "t" then
+                    s = s + "\t"
+                elseif e == "r" then
+                    s = s + "\r"
+                elseif e == "\"" then
+                    s = s + "\""
+                elseif e == "'" then
+                    s = s + "'"
+                elseif e == "\\" then
+                    s = s + "\\"
+                else
+                    s = s + e
+                end
+                self.pos += 1
+            else
+                s = s + c
+                self.pos += 1
+            end
+        end
+        self.error("unterminated string literal in filter")
+        return {"t": "str", "v": ""}
+    end
+
+    func parseNumberLit() as var
+        int startp = self.pos
+        if not self.atEnd() and self.peek() == "-" then
+            self.pos += 1
+        end
+        while not self.atEnd() do
+            string c = self.peek()
+            if c >= "0" and c <= "9" then
+                self.pos += 1
+            else
+                break
+            end
+        end
+        bool isFloat = false
+        if not self.atEnd() and self.peek() == "." then
+            isFloat = true
+            self.pos += 1
+            while not self.atEnd() do
+                string c = self.peek()
+                if c >= "0" and c <= "9" then
+                    self.pos += 1
+                else
+                    break
+                end
+            end
+        end
+        if not self.atEnd() then
+            string c = self.peek()
+            if c == "e" or c == "E" then
+                isFloat = true
+                self.pos += 1
+                if not self.atEnd() then
+                    string sign = self.peek()
+                    if sign == "+" or sign == "-" then
+                        self.pos += 1
+                    end
+                end
+                while not self.atEnd() do
+                    string cc = self.peek()
+                    if cc >= "0" and cc <= "9" then
+                        self.pos += 1
+                    else
+                        break
+                    end
+                end
+            end
+        end
+        string text = string.slice(self.src, startp, self.pos - startp)
+        if isFloat then
+            return {"t": "num", "v": float(text)}
+        end
+        return {"t": "num", "v": int(text)}
+    end
+
+    func parseIdentLit() as var
+        int startp = self.pos
+        while not self.atEnd() do
+            string c = self.peek()
+            if (c >= "a" and c <= "z") or (c >= "A" and c <= "Z") or (c >= "0" and c <= "9") or c == "_" then
+                self.pos += 1
+            else
+                break
+            end
+        end
+        string word = string.slice(self.src, startp, self.pos - startp)
+        if word == "true" then return {"t": "bool", "v": true} end
+        if word == "false" then return {"t": "bool", "v": false} end
+        if word == "null" then return {"t": "null"} end
+        self.error("unknown identifier '" + word + "' in filter (expected true/false/null)")
+        return {"t": "null"}
+    end
+end
+
+func parseFilter(string src) as var
+    FParser fp = FParser(src)
+    return fp.parseExpr()
+end
+
+// ============================================================================
+// 路径求值
+// ============================================================================
+
+// 解析值路径步骤：在 current（或 root）上逐步访问。失败返回 MISSING。
+func resolveValue(var current, var root, var steps) as var
+    var cur = current
+    if steps.length == 0 then
+        return cur
+    end
+    int i = 0
+    int n = steps.length
+    while i < n do
+        var step = steps[i]
+        string kind = string(step["kind"])
+        if kind == "f" then
+            string name = string(step["name"])
+            if not isDict(cur) then return MISSING end
+            if not cur.contains(name) then return MISSING end
+            cur = cur[name]
+        elseif kind == "i" then
+            int idx = int(step["idx"])
+            if not isArr(cur) then return MISSING end
+            int alen = cur.length
+            if idx < 0 then
+                idx = alen + idx
+            end
+            if idx < 0 or idx >= alen then return MISSING end
+            cur = cur[idx]
+        else
+            return MISSING
+        end
+        i += 1
+    end
+    return cur
+end
+
+// 递归下降：把 node 自身和所有后代收集到 out（var 数组）。
+// 不在递归帧分配 dict，只用局部 push。
+func collectAll(var node, var out)
+    out.push(node)
+    if isArr(node) then
+        int i = 0
+        int n = node.length
+        while i < n do
+            collectAll(node[i], out)
+            i += 1
+        end
+    elseif isDict(node) then
+        for key, val in node
+            collectAll(val, out)
+        end
+    end
+end
+
+// 对单个候选节点应用单下标段，结果 push 到 out
+func applyIndex(int idx, var node, var out)
+    if not isArr(node) then return end
+    int n = node.length
+    int real = idx
+    if idx < 0 then
+        real = n + idx
+    end
+    if real < 0 or real >= n then return end
+    out.push(node[real])
+end
+
+// 应用切片段
+func applySlice(int startv, int endv, bool hasStart, bool hasEnd, var node, var out)
+    if not isArr(node) then return end
+    int n = node.length
+    int realStart = 0
+    int realEnd = n
+    if hasStart then
+        realStart = startv
+        if realStart < 0 then
+            realStart = n + realStart
+        end
+        if realStart < 0 then realStart = 0 end
+        if realStart > n then realStart = n end
+    end
+    if hasEnd then
+        realEnd = endv
+        if realEnd < 0 then
+            realEnd = n + realEnd
+        end
+        if realEnd < 0 then realEnd = 0 end
+        if realEnd > n then realEnd = n end
+    end
+    int i = realStart
+    while i < realEnd do
+        out.push(node[i])
+        i += 1
+    end
+end
+
+// 应用单个 segment 到单个节点，结果 push 到 out
+func applySegment(var node, var seg, var root, var out)
+    string kind = string(seg["kind"])
+    if kind == "root" then
+        out.push(root)
+        return
+    end
+    if kind == "child" then
+        string name = string(seg["name"])
+        if isDict(node) then
+            if node.contains(name) then
+                out.push(node[name])
+            end
+        end
+        return
+    end
+    if kind == "index" then
+        int idx = int(seg["idx"])
+        applyIndex(idx, node, out)
+        return
+    end
+    if kind == "wildcard" then
+        if isArr(node) then
+            int i = 0
+            int n = node.length
+            while i < n do
+                out.push(node[i])
+                i += 1
+            end
+        elseif isDict(node) then
+            for key, val in node
+                out.push(val)
+            end
+        end
+        return
+    end
+    if kind == "slice" then
+        int startv = int(seg["start"])
+        int endv = int(seg["end"])
+        bool hasStart = bool(seg["hasStart"])
+        bool hasEnd = bool(seg["hasEnd"])
+        applySlice(startv, endv, hasStart, hasEnd, node, out)
+        return
+    end
+    if kind == "multindex" then
+        var idxs = seg["idxs"]
+        int i = 0
+        int n = idxs.length
+        while i < n do
+            applyIndex(int(idxs[i]), node, out)
+            i += 1
+        end
+        return
+    end
+    if kind == "multchild" then
+        var names = seg["names"]
+        if isDict(node) then
+            int i = 0
+            int n = names.length
+            while i < n do
+                string nm = string(names[i])
+                if node.contains(nm) then
+                    out.push(node[nm])
+                end
+                i += 1
+            end
+        end
+        return
+    end
+    if kind == "filter" then
+        var ast = seg["ast"]
+        if isArr(node) then
+            int i = 0
+            int n = node.length
+            while i < n do
+                if evalFilter(ast, node[i], root) then
+                    out.push(node[i])
+                end
+                i += 1
+            end
+        elseif isDict(node) then
+            for key, val in node
+                if evalFilter(ast, val, root) then
+                    out.push(val)
+                end
+            end
+        end
+        return
+    end
+end
+
+// 对整条路径求值，返回匹配结果列表（var 数组）
+func evalPath(var root, var segs) as var
+    var current = []
+    current.push(root)
+    int i = 0
+    int n = segs.length
+    while i < n do
+        var seg = segs[i]
+        string kind = string(seg["kind"])
+        if kind == "recursive" then
+            // 展开当前候选集为「自身 + 所有后代」
+            var expanded = []
+            int ci = 0
+            int cn = current.length
+            while ci < cn do
+                collectAll(current[ci], expanded)
+                ci += 1
+            end
+            current = expanded
+        else
+            var next = []
+            int ci = 0
+            int cn = current.length
+            while ci < cn do
+                applySegment(current[ci], seg, root, next)
+                ci += 1
+            end
+            current = next
+        end
+        i += 1
+    end
+    return current
+end
+
+// ============================================================================
+// 过滤表达式求值
+// ============================================================================
+
+// 求值值表达式，返回 var（或 MISSING）
+func evalValue(var vnode, var current, var root) as var
+    string t = string(vnode["t"])
+    if t == "path" then
+        var steps = vnode["steps"]
+        bool fromRoot = bool(vnode["fromRoot"])
+        if fromRoot then
+            return resolveValue(root, root, steps)
+        end
+        return resolveValue(current, root, steps)
+    end
+    if t == "num" then
+        return vnode["v"]
+    end
+    if t == "str" then
+        return vnode["v"]
+    end
+    if t == "bool" then
+        return vnode["v"]
+    end
+    if t == "null" then
+        return null
+    end
+    return MISSING
+end
+
+// 比较求值
+func evalCmp(var left, var right, string op) as bool
+    if op == "==" then
+        if isMissing(left) then return false end
+        if isMissing(right) then return false end
+        if left == right then return true end
+        return false
+    end
+    if op == "!=" then
+        if isMissing(left) then return true end
+        if isMissing(right) then return true end
+        if left == right then return false end
+        return true
+    end
+    // 以下为数值比较，要求双方都是数值
+    if isMissing(left) then return false end
+    if isMissing(right) then return false end
+    if not isNum(left) then return false end
+    if not isNum(right) then return false end
+    float lf = toFloat(left)
+    float rf = toFloat(right)
+    if op == "<" then
+        if lf < rf then return true end
+        return false
+    end
+    if op == "<=" then
+        if lf <= rf then return true end
+        return false
+    end
+    if op == ">" then
+        if lf > rf then return true end
+        return false
+    end
+    if op == ">=" then
+        if lf >= rf then return true end
+        return false
+    end
+    return false
+end
+
+// 求值布尔表达式
+func evalFilter(var ast, var current, var root) as bool
+    string t = string(ast["t"])
+    if t == "or" then
+        if evalFilter(ast["l"], current, root) then return true end
+        return evalFilter(ast["r"], current, root)
+    end
+    if t == "and" then
+        if not evalFilter(ast["l"], current, root) then return false end
+        return evalFilter(ast["r"], current, root)
+    end
+    if t == "not" then
+        if evalFilter(ast["x"], current, root) then return false end
+        return true
+    end
+    if t == "cmp" then
+        var left = evalValue(ast["left"], current, root)
+        var right = evalValue(ast["right"], current, root)
+        string op = string(ast["op"])
+        return evalCmp(left, right, op)
+    end
+    if t == "exists" then
+        var v = evalValue(ast["v"], current, root)
+        if isMissing(v) then return false end
+        return true
+    end
+    return false
+end
+
+// ============================================================================
+// 输出
+// ============================================================================
+
+func emitResult(var results)
+    int n = results.length
+    if n == 0 then
+        println("[]")
+        return
+    end
+    if n == 1 then
+        var r = results[0]
+        string compact = stringify(r, false)
+        if string.startsWith(compact, "{") or string.startsWith(compact, "[") then
+            println(stringify(r, true))
+        else
+            println(compact)
+        end
+        return
+    end
+    println(stringify(results, true))
+end
+
+// ============================================================================
+// 命令实现
+// ============================================================================
+
+func loadDoc(string path) as var
+    if not file.exists(path) then
+        throw "file not found: " + path
+    end
+    string text = file.readText(path)
+    if not json.valid(text) then
+        throw "invalid JSON in " + path
+    end
+    return json.parse(text)
+end
+
+func cmdQuery(string path, string query) as int
+    var doc = loadDoc(path)
+    var segs = parsePath(query)
+    var results = evalPath(doc, segs)
+    emitResult(results)
+    return 0
+end
+
+func printHelp()
+    println("jsonpath - JSONPath query engine")
+    println("")
+    println("Usage:")
+    println("  jsonpath query <file.json> \"<path>\"    run a JSONPath query")
+    println("  jsonpath test                            run built-in self-tests")
+    println("  jsonpath help                            show this help")
+    println("")
+    println("Path syntax:")
+    println("  $                 root")
+    println("  $.key             child by name")
+    println("  $['key']          child by name (bracket)")
+    println("  $[0] / $[-1]      array index (negative = from end)")
+    println("  $[1:3] / $[:2]    array slice")
+    println("  $[*] / $.*        wildcard (all elements / all values)")
+    println("  $..key            recursive descent")
+    println("  $..*              all descendants")
+    println("  $[?(expr)]        filter expression")
+    println("  $[0,1,2]          multiple indices")
+    println("")
+    println("Filter expressions:")
+    println("  @                 current node")
+    println("  @.field           current node field")
+    println("  @.a.b[0]          nested path")
+    println("  $.x.y             root-relative path")
+    println("  < > <= >= == !=   comparisons")
+    println("  && || !           logical and / or / not")
+    println("  @.field           existence test (field present)")
+    println("")
+    println("Examples:")
+    println("  jsonpath query store.json \"$.store.book[0].title\"")
+    println("  jsonpath query store.json \"$..author\"")
+    println("  jsonpath query store.json \"$.store.book[?(@.price<10)]\"")
+end
+
+// ============================================================================
+// 内置自检
+// ============================================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass = g_pass + 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail = g_fail + 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+// 取结果中所有指定字段的值（用于断言）
+func pluck(var results, string field) as var
+    var out = []
+    int i = 0
+    int n = results.length
+    while i < n do
+        var item = results[i]
+        if isDict(item) then
+            if item.contains(field) then
+                out.push(item[field])
+            end
+        end
+        i += 1
+    end
+    return out
+end
+
+// 断言结果数量
+func expectCount(var results, int want, string label)
+    int got = results.length
+    if got == want then
+        ok(label)
+    else
+        bad(label, "expected " + string(want) + " results, got " + string(got))
+    end
+end
+
+// 断言结果集包含某字符串值
+func expectContainsStr(var results, string want, string label)
+    bool found = false
+    int i = 0
+    int n = results.length
+    while i < n do
+        var item = results[i]
+        if item == want then
+            found = true
+        end
+        i += 1
+    end
+    if found then
+        ok(label)
+    else
+        bad(label, "result set does not contain \"" + want + "\"")
+    end
+end
+
+// 断言结果集中存在某 price（数值）
+func expectContainsNum(var results, float want, string label)
+    bool found = false
+    int i = 0
+    int n = results.length
+    while i < n do
+        var item = results[i]
+        if isNum(item) then
+            float f = toFloat(item)
+            if f == want then
+                found = true
+            end
+        end
+        i += 1
+    end
+    if found then
+        ok(label)
+    else
+        bad(label, "result set does not contain price " + string(want))
+    end
+end
+
+func runQuery(var doc, string path) as var
+    var segs = parsePath(path)
+    return evalPath(doc, segs)
+end
+
+func cmdTest() as int
+    string jsonText = "{ \"store\": {"
+    jsonText = jsonText + "  \"book\": ["
+    jsonText = jsonText + "    { \"category\": \"reference\", \"author\": \"Nigel Rees\", \"title\": \"Sayings of the Century\", \"price\": 8.95 },"
+    jsonText = jsonText + "    { \"category\": \"fiction\", \"author\": \"Evelyn Waugh\", \"title\": \"Sword of Honour\", \"price\": 12.99 },"
+    jsonText = jsonText + "    { \"category\": \"fiction\", \"author\": \"Herman Melville\", \"title\": \"Moby Dick\", \"isbn\": \"0-553-21311-3\", \"price\": 8.99 },"
+    jsonText = jsonText + "    { \"category\": \"fiction\", \"author\": \"J. R. R. Tolkien\", \"title\": \"The Lord of the Rings\", \"isbn\": \"0-395-19395-8\", \"price\": 22.99 }"
+    jsonText = jsonText + "  ],"
+    jsonText = jsonText + "  \"bicycle\": { \"color\": \"red\", \"price\": 19.95 }"
+    jsonText = jsonText + "}}"
+    var doc = json.parse(jsonText)
+
+    println("=== jsonpath self-test ===")
+    println("")
+
+    // 1. 点路径
+    var r1 = runQuery(doc, "$.store.book[0].title")
+    expectCount(r1, 1, "1. $.store.book[0].title → 1 result")
+    expectContainsStr(r1, "Sayings of the Century", "1. title == 'Sayings of the Century'")
+
+    // 2. 递归下降
+    var r2 = runQuery(doc, "$..author")
+    expectCount(r2, 4, "2. $..author → 4 authors")
+    expectContainsStr(r2, "Nigel Rees", "2. has Nigel Rees")
+    expectContainsStr(r2, "J. R. R. Tolkien", "2. has J. R. R. Tolkien")
+
+    // 3. 通配符 + 字段
+    var r3 = runQuery(doc, "$.store.book[*].author")
+    expectCount(r3, 4, "3. $.store.book[*].author → 4 authors")
+
+    // 4. 对象通配
+    var r4 = runQuery(doc, "$.store.*")
+    expectCount(r4, 2, "4. $.store.* → 2 (book array + bicycle)")
+
+    // 5. 递归下降取 price
+    var r5 = runQuery(doc, "$..price")
+    expectCount(r5, 5, "5. $..price → 5 prices (4 books + bicycle)")
+    expectContainsNum(r5, 8.95, "5. has 8.95")
+    expectContainsNum(r5, 19.95, "5. has 19.95")
+
+    // 6. 过滤：有 isbn
+    var r6 = runQuery(doc, "$.store.book[?(@.isbn)]")
+    expectCount(r6, 2, "6. book[?(@.isbn)] → 2 books")
+
+    // 7. 过滤：price < 10
+    var r7 = runQuery(doc, "$.store.book[?(@.price<10)]")
+    expectCount(r7, 2, "7. book[?(@.price<10)] → 2 books")
+    expectContainsNum(pluck(r7, "price"), 8.95, "7. has price 8.95")
+    expectContainsNum(pluck(r7, "price"), 8.99, "7. has price 8.99")
+
+    // 8. 过滤：category == fiction
+    var r8 = runQuery(doc, "$.store.book[?(@.category==\"fiction\")]")
+    expectCount(r8, 3, "8. book[?(@.category==\"fiction\")] → 3 books")
+
+    // 9. 过滤：逻辑与
+    var r9 = runQuery(doc, "$.store.book[?(@.price<10 && @.category==\"reference\")]")
+    expectCount(r9, 1, "9. price<10 && category==reference → 1 book")
+    expectContainsStr(pluck(r9, "title"), "Sayings of the Century", "9. is 'Sayings of the Century'")
+
+    // 10. 递归下降 + 下标
+    var r10 = runQuery(doc, "$..book[2]")
+    expectCount(r10, 1, "10. $..book[2] → 1 book (Moby Dick)")
+    expectContainsStr(pluck(r10, "title"), "Moby Dick", "10. is 'Moby Dick'")
+
+    // 11. 负数下标
+    var r11 = runQuery(doc, "$.store.book[-1]")
+    expectCount(r11, 1, "11. $..book[-1] → 1 book (last)")
+    expectContainsStr(pluck(r11, "title"), "The Lord of the Rings", "11. is 'The Lord of the Rings'")
+
+    // 12. 切片
+    var r12 = runQuery(doc, "$.store.book[0:2]")
+    expectCount(r12, 2, "12. $..book[0:2] → 2 books")
+
+    // 13. 过滤：逻辑或
+    var r13 = runQuery(doc, "$.store.book[?(@.price<10 || @.price>20)]")
+    expectCount(r13, 3, "13. price<10 || price>20 → 3 books")
+
+    // 14. 过滤：逻辑非
+    var r14 = runQuery(doc, "$.store.book[?(!@.isbn)]")
+    expectCount(r14, 2, "14. !@.isbn → 2 books without isbn")
+
+    // 15. 括号字符串键
+    var r15 = runQuery(doc, "$['store']['book'][0]['title']")
+    expectCount(r15, 1, "15. $['store']['book'][0]['title'] → 1 result")
+    expectContainsStr(r15, "Sayings of the Century", "15. bracket-notation title")
+
+    // 16. 递归下降 + 过滤
+    var r16 = runQuery(doc, "$..book[?(@.price>9)]")
+    expectCount(r16, 2, "16. $..book[?(@.price>9)] → 2 books")
+
+    // 17. 多下标
+    var r17 = runQuery(doc, "$.store.book[0,2]")
+    expectCount(r17, 2, "17. book[0,2] → 2 books")
+
+    // 18. 根路径过滤
+    var r18 = runQuery(doc, "$.store.book[?(@.price < $.store.bicycle.price)]")
+    expectCount(r18, 3, "18. price < bicycle.price (19.95) → 3 books")
+
+    println("")
+    println("=== results: " + string(g_pass) + " passed, " + string(g_fail) + " failed ===")
+    if g_fail == 0 then
+        return 0
+    end
+    return 1
+end
+
+// ============================================================================
+// 入口
+// ============================================================================
+
+func main(...) as int
+    if arg.length < 2 then
+        printHelp()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "query" then
+        if arg.length < 4 then
+            println("Error: 'query' needs <file.json> and <path>")
+            println("  example: jsonpath query store.json \"$.store.book[0].title\"")
+            return 1
+        end
+        string fpath = string(arg[2])
+        string query = string(arg[3])
+        try
+            return cmdQuery(fpath, query)
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+
+    if cmd == "test" then
+        try
+            return cmdTest()
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+
+    if cmd == "help" or cmd == "--help" or cmd == "-h" then
+        printHelp()
+        return 0
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    println("Run 'jsonpath help' for usage.")
+    return 1
+end

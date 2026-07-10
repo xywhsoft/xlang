@@ -1,0 +1,31 @@
+func   messy(  int a ,int b)as int
+    if a>b then
+    return  a-b
+    else
+    return a+b
+    end
+end
+
+class   Point
+int x=0
+int y=0
+create(int x,int y)
+self.x=x
+self.y=y
+end
+func   len( )as int
+return self.x*self.x+self.y*self.y
+end
+end
+
+func main(...) as int
+int n=10
+int s=0
+for i in range(0,n)
+s=s+i
+end
+while n>0 do
+n=n-1
+end
+return 0
+end

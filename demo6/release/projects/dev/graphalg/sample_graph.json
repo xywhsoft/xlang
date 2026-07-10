@@ -1,0 +1,17 @@
+{
+  "directed": false,
+  "nodes": ["A", "B", "C", "D", "E", "F"],
+  "edges": [
+    {"from": "A", "to": "B", "weight": 1.0},
+    {"from": "A", "to": "D", "weight": 3.0},
+    {"from": "B", "to": "C", "weight": 5.0},
+    {"from": "B", "to": "E", "weight": 2.0},
+    {"from": "C", "to": "F", "weight": 1.0},
+    {"from": "D", "to": "E", "weight": 4.0},
+    {"from": "E", "to": "F", "weight": 2.0}
+  ],
+  "coords": {
+    "A": [0, 0], "B": [1, 0], "C": [2, 0],
+    "D": [0, 1], "E": [1, 1], "F": [2, 1]
+  }
+}

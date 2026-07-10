@@ -1,0 +1,1173 @@
+// imgcodecs.xl - BMP/PPM image codec + filter processor
+//
+// usage:
+//   imgcodecs info   <file>                   print format / dims / channel stats
+//   imgcodecs convert <in> <out>              decode <in>, re-encode to <out>
+//                                             (.bmp / .ppm=P6 supported as output)
+//   imgcodecs filter  <in> <filter> <out>     decode <in>, apply filter, write <out>
+//   imgcodecs test                              built-in round-trip + filter self-test
+//   imgcodecs -h | --help                       this help
+//
+// filters (optional ":param" adjusts strength):
+//   gray | grayscale          luminance grayscale (0.299/0.587/0.114)
+//   invert | negate           channel invert (255 - c)
+//   brightness[:delta]        brightness shift (default +40, range -255..255)
+//   contrast[:factor100]      contrast scale (default 130 = 1.3x)
+//   blur | boxblur            3x3 box blur (edge-replicated)
+//   sharpen[:amount]          unsharp mask (default amount 1)
+//   sobel | edge              Sobel edge magnitude on luminance
+//
+// ---------------------------------------------------------------------------
+// Implementation / API coverage (压测点):
+//   * file.readBytes(path) -> Buffer     binary BMP/PPM read
+//   * Buffer byteAt / len                 byte-by-byte header + pixel parsing
+//   * file.writeBytes(path, Buffer)       binary BMP/PPM write (built from array<int>)
+//   * Image class (derive value)          width/height/pixels(array<int> RGB triples)
+//   * pixel-processing large loops        width*height*3 iterations per filter
+//   * little-endian u32/u16 codec helpers (shift/mask over Buffer bytes)
+//   * 3x3 convolution kernels (box / sharpen / Sobel) with edge replication
+//
+// BUG workarounds applied (see dev/BUGS.md):
+//   * BUG-HD1  : native-backed Buffer cannot be RETURNED from a function as a
+//                named value. BMP/PPM binary output is built into array<int>
+//                (returnable) then converted to Buffer in the caller.
+//                Buffer is only ever PASSED AS A PARAMETER (bmpDecode/ppmDecode).
+//   * BUG-C1   : class methods cannot safely take array<int> / Buffer params.
+//                All codec decode functions are STANDALONE funcs taking Buffer;
+//                filters are Image METHODS operating on self.pixels (own field).
+//   * BUG-C2   : never `return self.field.length`; compute into a local first.
+//   * BUG-XL1  : typed array<int> params are value-copied -> appends lost.
+//                No helper appends to a passed array<int>; BMP header bytes are
+//                appended inline to the local array.
+//   * BUG-JP1  : Image has `derive value` (it has an array<int> field; matches
+//                the rasterizer Mesh/Mat4 pattern).
+//   * BUG-RT3  : Image has NO virtual methods -> safe to return from functions.
+//   * BUG-M1   : int("abc") silently returns 0 -> manual digit validation.
+//   * BUG-S1   : string.splitLines trailing empty -> trimmed when used.
+//   * BUG-V1/P1: no `+=` on class fields/properties; expanded to `a = a + b`.
+// ---------------------------------------------------------------------------
+
+// =====================================================================
+// small numeric helpers
+// =====================================================================
+
+func clampByte(int v) as int
+    if v < 0 then
+        return 0
+    end
+    if v > 255 then
+        return 255
+    end
+    return v
+end
+
+func clampi(int v, int lo, int hi) as int
+    if v < lo then
+        return lo
+    end
+    if v > hi then
+        return hi
+    end
+    return v
+end
+
+// manual positive-integer parser (BUG-M1: int("abc") returns 0 silently)
+func parsePosInt(string s) as int
+    s = string.trim(s)
+    int n = string.len(s)
+    if n == 0 then
+        return 0
+    end
+    int i = 0
+    while i < n do
+        int c = string.byteAt(s, i)
+        if c < 48 or c > 57 then
+            return 0
+        end
+        i = i + 1
+    end
+    return int(s)
+end
+
+func hasSuffixI(string s, string suf) as bool
+    int sl = string.len(s)
+    int fl = string.len(suf)
+    if fl > sl then
+        return false
+    end
+    int start = sl - fl
+    int i = 0
+    while i < fl do
+        int a = string.byteAt(s, start + i)
+        int b = string.byteAt(suf, i)
+        if a >= 65 and a <= 90 then
+            a = a + 32
+        end
+        if b >= 65 and b <= 90 then
+            b = b + 32
+        end
+        if a != b then
+            return false
+        end
+        i = i + 1
+    end
+    return true
+end
+
+// =====================================================================
+// little-endian readers over a Buffer (Buffer as param per BUG-HD1)
+// =====================================================================
+
+func readU32LE(Buffer buf, int off) as int
+    int b0 = buf.byteAt(off)
+    int b1 = buf.byteAt(off + 1)
+    int b2 = buf.byteAt(off + 2)
+    int b3 = buf.byteAt(off + 3)
+    return b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)
+end
+
+func readU16LE(Buffer buf, int off) as int
+    int b0 = buf.byteAt(off)
+    int b1 = buf.byteAt(off + 1)
+    return b0 | (b1 << 8)
+end
+
+func readI32LE(Buffer buf, int off) as int
+    int v = readU32LE(buf, off)
+    if v >= 2147483648 then
+        v = v - 4294967296
+    end
+    return v
+end
+
+// =====================================================================
+// Image: width / height / pixels (array<int> of RGB triples, len = w*h*3)
+//   derive value (BUG-JP1: class with array field needs it).
+//   No virtual methods (BUG-RT3: safe to return from functions).
+// =====================================================================
+
+class Image
+    derive value
+    int width = 0
+    int height = 0
+    array<int> pixels = array[]
+
+    create(int w, int h)
+        self.width = w
+        self.height = h
+        int total = w * h * 3
+        int i = 0
+        while i < total do
+            self.pixels.append(0)
+            i = i + 1
+        end
+    end
+
+    func setPixel(int x, int y, int r, int g, int b)
+        int idx = (y * self.width + x) * 3
+        self.pixels[idx] = r
+        self.pixels[idx + 1] = g
+        self.pixels[idx + 2] = b
+    end
+
+    func getPixel(int x, int y) as (int, int, int)
+        int idx = (y * self.width + x) * 3
+        return self.pixels[idx], self.pixels[idx + 1], self.pixels[idx + 2]
+    end
+
+    // edge-replicated sample (used by convolution filters)
+    func sampleClamped(int x, int y) as (int, int, int)
+        if x < 0 then
+            x = 0
+        end
+        if x >= self.width then
+            x = self.width - 1
+        end
+        if y < 0 then
+            y = 0
+        end
+        if y >= self.height then
+            y = self.height - 1
+        end
+        int idx = (y * self.width + x) * 3
+        return self.pixels[idx], self.pixels[idx + 1], self.pixels[idx + 2]
+    end
+
+    func pixelCount() as int
+        int n = self.width * self.height
+        return n
+    end
+
+    // ---- grayscale: luminance weights 0.299/0.587/0.114 (fixed-point) ----
+    func grayscale() as Image
+        Image out = Image(self.width, self.height)
+        int n = self.pixelCount()
+        int i = 0
+        while i < n do
+            int idx = i * 3
+            int r = self.pixels[idx]
+            int g = self.pixels[idx + 1]
+            int b = self.pixels[idx + 2]
+            int gray = (r * 299 + g * 587 + b * 114) / 1000
+            out.pixels[idx] = gray
+            out.pixels[idx + 1] = gray
+            out.pixels[idx + 2] = gray
+            i = i + 1
+        end
+        return out
+    end
+
+    // ---- invert: 255 - c per channel ----
+    func invert() as Image
+        Image out = Image(self.width, self.height)
+        int n = self.pixelCount() * 3
+        int i = 0
+        while i < n do
+            out.pixels[i] = 255 - self.pixels[i]
+            i = i + 1
+        end
+        return out
+    end
+
+    // ---- brightness/contrast: new = (c-128)*contrast + 128 + brightness ----
+    //   brightness : -255..255 additive
+    //   contrast100: factor * 100 (e.g. 130 = 1.3x); 100 = unchanged
+    func brightnessContrast(int brightness, int contrast100) as Image
+        Image out = Image(self.width, self.height)
+        float cf = float(contrast100) / 100.0
+        int n = self.pixelCount()
+        int i = 0
+        while i < n do
+            int idx = i * 3
+            int r = self.pixels[idx]
+            int g = self.pixels[idx + 1]
+            int b = self.pixels[idx + 2]
+            int nr = clampByte(int((float(r) - 128.0) * cf + 128.0 + float(brightness)))
+            int ng = clampByte(int((float(g) - 128.0) * cf + 128.0 + float(brightness)))
+            int nb = clampByte(int((float(b) - 128.0) * cf + 128.0 + float(brightness)))
+            out.pixels[idx] = nr
+            out.pixels[idx + 1] = ng
+            out.pixels[idx + 2] = nb
+            i = i + 1
+        end
+        return out
+    end
+
+    // ---- box blur 3x3 (edge-replicated, integer average) ----
+    func boxBlur() as Image
+        Image out = Image(self.width, self.height)
+        int w = self.width
+        int h = self.height
+        int y = 0
+        while y < h do
+            int x = 0
+            while x < w do
+                int sr = 0
+                int sg = 0
+                int sb = 0
+                int dy = -1
+                while dy <= 1 do
+                    int dx = -1
+                    while dx <= 1 do
+                        int pr
+                        int pg
+                        int pb
+                        pr, pg, pb = self.sampleClamped(x + dx, y + dy)
+                        sr = sr + pr
+                        sg = sg + pg
+                        sb = sb + pb
+                        dx = dx + 1
+                    end
+                    dy = dy + 1
+                end
+                int idx = (y * w + x) * 3
+                out.pixels[idx] = sr / 9
+                out.pixels[idx + 1] = sg / 9
+                out.pixels[idx + 2] = sb / 9
+                x = x + 1
+            end
+            y = y + 1
+        end
+        return out
+    end
+
+    // ---- sharpen via unsharp mask: out = orig + amount*(orig - blur) ----
+    func sharpen(int amount) as Image
+        Image blur = self.boxBlur()
+        Image out = Image(self.width, self.height)
+        int n = self.pixelCount() * 3
+        int i = 0
+        while i < n do
+            int o = self.pixels[i]
+            int bf = blur.pixels[i]
+            int v = o + amount * (o - bf)
+            out.pixels[i] = clampByte(v)
+            i = i + 1
+        end
+        return out
+    end
+
+    // ---- Sobel edge magnitude on luminance ----
+    //   Kx = [-1 0 1; -2 0 2; -1 0 1], Ky = [-1 -2 -1; 0 0 0; 1 2 1]
+    //   mag = clamp(sqrt(gx*gx + gy*gy))
+    func sobel() as Image
+        Image out = Image(self.width, self.height)
+        int w = self.width
+        int h = self.height
+        array<int> kx = array[-1, 0, 1, -2, 0, 2, -1, 0, 1]
+        array<int> ky = array[-1, -2, -1, 0, 0, 0, 1, 2, 1]
+        int y = 0
+        while y < h do
+            int x = 0
+            while x < w do
+                int gx = 0
+                int gy = 0
+                int ki = 0
+                int dy = -1
+                while dy <= 1 do
+                    int dx = -1
+                    while dx <= 1 do
+                        int pr
+                        int pg
+                        int pb
+                        pr, pg, pb = self.sampleClamped(x + dx, y + dy)
+                        int lum = (pr * 299 + pg * 587 + pb * 114) / 1000
+                        gx = gx + kx[ki] * lum
+                        gy = gy + ky[ki] * lum
+                        ki = ki + 1
+                        dx = dx + 1
+                    end
+                    dy = dy + 1
+                end
+                int mag2 = gx * gx + gy * gy
+                int mag = clampByte(int(math.sqrt(float(mag2))))
+                int idx = (y * w + x) * 3
+                out.pixels[idx] = mag
+                out.pixels[idx + 1] = mag
+                out.pixels[idx + 2] = mag
+                x = x + 1
+            end
+            y = y + 1
+        end
+        return out
+    end
+end
+
+// =====================================================================
+// BMP codec (24-bit BGR, BI_RGB, bottom-up or top-down)
+//   decode takes Buffer as param (BUG-HD1); returns Image (safe, no virtuals).
+//   encode builds array<int> of raw bytes (returnable; converted to Buffer
+//   by the caller) because helpers cannot append to a passed array<int>
+//   (BUG-XL1 value-copy) -> header bytes are appended inline.
+// =====================================================================
+
+func bmpDecode(Buffer buf) as Image
+    int n = buf.len()
+    if n < 54 then
+        throw "BMP: file too short for header"
+    end
+    if buf.byteAt(0) != 66 or buf.byteAt(1) != 77 then
+        throw "BMP: bad magic (expected 'BM')"
+    end
+    int dataOffset = readU32LE(buf, 10)
+    int headerSize = readU32LE(buf, 14)
+    int w = readI32LE(buf, 18)
+    int hRaw = readI32LE(buf, 22)
+    bool topDown = false
+    int h = hRaw
+    if h < 0 then
+        topDown = true
+        h = 0 - h
+    end
+    int bpp = readU16LE(buf, 28)
+    int compression = readU32LE(buf, 30)
+    if bpp != 24 then
+        throw "BMP: only 24-bit supported (got " + string(bpp) + ")"
+    end
+    if compression != 0 then
+        throw "BMP: only BI_RGB (uncompressed) supported"
+    end
+    if w <= 0 or h <= 0 then
+        throw "BMP: bad dimensions"
+    end
+    if dataOffset < 54 then
+        dataOffset = 54
+    end
+    int rowSize = ((w * 3 + 3) / 4) * 4
+    Image img = Image(w, h)
+    int y = 0
+    while y < h do
+        int srcY = y
+        if topDown then
+            srcY = y
+        else
+            srcY = h - 1 - y
+        end
+        int rowStart = dataOffset + srcY * rowSize
+        int x = 0
+        while x < w do
+            int off = rowStart + x * 3
+            int b = buf.byteAt(off)
+            int g = buf.byteAt(off + 1)
+            int r = buf.byteAt(off + 2)
+            int idx = (y * w + x) * 3
+            img.pixels[idx] = r
+            img.pixels[idx + 1] = g
+            img.pixels[idx + 2] = b
+            x = x + 1
+        end
+        y = y + 1
+    end
+    return img
+end
+
+// build BMP raw bytes into a local array<int> (header inlined due to BUG-XL1)
+func bmpEncodeBytes(Image img) as array<int>
+    int w = img.width
+    int h = img.height
+    int rowSize = ((w * 3 + 3) / 4) * 4
+    int padding = rowSize - w * 3
+    int pixelDataSize = rowSize * h
+    int fileSize = 54 + pixelDataSize
+
+    array<int> b = array[]
+    // -- BITMAPFILEHEADER (14 bytes) --
+    b.append(66)            // 'B'
+    b.append(77)            // 'M'
+    b.append(fileSize & 0xFF)
+    b.append((fileSize >> 8) & 0xFF)
+    b.append((fileSize >> 16) & 0xFF)
+    b.append((fileSize >> 24) & 0xFF)
+    b.append(0)             // reserved
+    b.append(0)
+    b.append(0)
+    b.append(0)
+    b.append(54)            // data offset
+    b.append(0)
+    b.append(0)
+    b.append(0)
+    // -- BITMAPINFOHEADER (40 bytes) --
+    b.append(40)            // header size
+    b.append(0)
+    b.append(0)
+    b.append(0)
+    b.append(w & 0xFF)
+    b.append((w >> 8) & 0xFF)
+    b.append((w >> 16) & 0xFF)
+    b.append((w >> 24) & 0xFF)
+    b.append(h & 0xFF)
+    b.append((h >> 8) & 0xFF)
+    b.append((h >> 16) & 0xFF)
+    b.append((h >> 24) & 0xFF)
+    b.append(1)             // planes
+    b.append(0)
+    b.append(24)            // bits per pixel
+    b.append(0)
+    b.append(0)             // compression = BI_RGB
+    b.append(0)
+    b.append(0)
+    b.append(0)
+    b.append(pixelDataSize & 0xFF)
+    b.append((pixelDataSize >> 8) & 0xFF)
+    b.append((pixelDataSize >> 16) & 0xFF)
+    b.append((pixelDataSize >> 24) & 0xFF)
+    b.append(19)            // x pixels/meter = 2835 (0x0B13)
+    b.append(11)
+    b.append(0)
+    b.append(0)
+    b.append(19)            // y pixels/meter = 2835
+    b.append(11)
+    b.append(0)
+    b.append(0)
+    b.append(0)             // colors used
+    b.append(0)
+    b.append(0)
+    b.append(0)
+    b.append(0)             // important colors
+    b.append(0)
+    b.append(0)
+    b.append(0)
+    // -- pixel data: rows bottom-up, BGR, 4-byte row padding --
+    int y = h - 1
+    while y >= 0 do
+        int x = 0
+        while x < w do
+            int idx = (y * w + x) * 3
+            b.append(img.pixels[idx + 2])     // B
+            b.append(img.pixels[idx + 1])     // G
+            b.append(img.pixels[idx])         // R
+            x = x + 1
+        end
+        int p = 0
+        while p < padding do
+            b.append(0)
+            p = p + 1
+        end
+        y = y - 1
+    end
+    return b
+end
+
+// =====================================================================
+// PPM codec (P3 ASCII + P6 binary), parsed byte-by-byte over a Buffer
+// =====================================================================
+
+// skip whitespace and #-comments; return new position
+func ppmSkipWsComments(Buffer buf, int pos) as int
+    int n = buf.len()
+    while pos < n do
+        int c = buf.byteAt(pos)
+        if c == 35 then
+            // comment until end of line
+            while pos < n do
+                int cc = buf.byteAt(pos)
+                if cc == 10 or cc == 13 then
+                    break
+                end
+                pos = pos + 1
+            end
+        elseif c == 32 or c == 9 or c == 10 or c == 13 then
+            pos = pos + 1
+        else
+            break
+        end
+    end
+    return pos
+end
+
+// read a positive decimal integer token; return (value, newPos)
+func ppmReadInt(Buffer buf, int pos) as (int, int)
+    pos = ppmSkipWsComments(buf, pos)
+    int n = buf.len()
+    int val = 0
+    while pos < n do
+        int c = buf.byteAt(pos)
+        if c >= 48 and c <= 57 then
+            val = val * 10 + (c - 48)
+            pos = pos + 1
+        else
+            break
+        end
+    end
+    return val, pos
+end
+
+// decode P3 or P6 from a Buffer (auto-detect by magic)
+func ppmDecode(Buffer buf) as Image
+    int n = buf.len()
+    if n < 2 then
+        throw "PPM: too short"
+    end
+    int m0 = buf.byteAt(0)
+    int m1 = buf.byteAt(1)
+    bool isP6 = false
+    if m0 == 80 and m1 == 54 then
+        isP6 = true
+    elseif m0 == 80 and m1 == 51 then
+        isP6 = false
+    else
+        throw "PPM: bad magic (expected P3 or P6)"
+    end
+    int pos = 2
+    int w
+    int h
+    int maxval
+    w, pos = ppmReadInt(buf, pos)
+    h, pos = ppmReadInt(buf, pos)
+    maxval, pos = ppmReadInt(buf, pos)
+    if w <= 0 or h <= 0 then
+        throw "PPM: bad dimensions"
+    end
+    if maxval != 255 then
+        throw "PPM: only maxval 255 supported (got " + string(maxval) + ")"
+    end
+    if isP6 then
+        // exactly one whitespace separates maxval from binary data
+        pos = pos + 1
+    end
+    Image img = Image(w, h)
+    int total = w * h
+    if isP6 then
+        int i = 0
+        while i < total do
+            int idx = i * 3
+            img.pixels[idx] = buf.byteAt(pos)
+            img.pixels[idx + 1] = buf.byteAt(pos + 1)
+            img.pixels[idx + 2] = buf.byteAt(pos + 2)
+            pos = pos + 3
+            i = i + 1
+        end
+    else
+        int i = 0
+        while i < total do
+            int r
+            int g
+            int b
+            r, pos = ppmReadInt(buf, pos)
+            g, pos = ppmReadInt(buf, pos)
+            b, pos = ppmReadInt(buf, pos)
+            int idx = i * 3
+            img.pixels[idx] = r
+            img.pixels[idx + 1] = g
+            img.pixels[idx + 2] = b
+            i = i + 1
+        end
+    end
+    return img
+end
+
+// encode to P3 ASCII text
+func ppmEncodeP3(Image img) as string
+    array<string> lines = array[]
+    lines.append("P3")
+    lines.append(string(img.width) + " " + string(img.height))
+    lines.append("255")
+    int y = 0
+    while y < img.height do
+        string rowLine = ""
+        int x = 0
+        while x < img.width do
+            int idx = (y * img.width + x) * 3
+            if x > 0 then
+                rowLine = rowLine + " "
+            end
+            rowLine = rowLine + string(img.pixels[idx]) + " " + string(img.pixels[idx + 1]) + " " + string(img.pixels[idx + 2])
+            x = x + 1
+        end
+        lines.append(rowLine)
+        y = y + 1
+    end
+    return string.join(lines, "\n") + "\n"
+end
+
+// encode to P6 binary raw bytes (header ASCII + binary RGB payload)
+func ppmEncodeP6Bytes(Image img) as array<int>
+    array<int> b = array[]
+    string hdr = "P6\n" + string(img.width) + " " + string(img.height) + "\n255\n"
+    int hl = string.len(hdr)
+    int i = 0
+    while i < hl do
+        b.append(string.byteAt(hdr, i))
+        i = i + 1
+    end
+    int total = img.width * img.height
+    int p = 0
+    while p < total do
+        int idx = p * 3
+        b.append(img.pixels[idx])
+        b.append(img.pixels[idx + 1])
+        b.append(img.pixels[idx + 2])
+        p = p + 1
+    end
+    return b
+end
+
+// =====================================================================
+// format dispatch
+// =====================================================================
+
+func detectFormat(Buffer buf) as string
+    int n = buf.len()
+    if n >= 2 then
+        int m0 = buf.byteAt(0)
+        int m1 = buf.byteAt(1)
+        if m0 == 66 and m1 == 77 then
+            return "BMP"
+        end
+        if m0 == 80 and m1 == 54 then
+            return "PPM-P6"
+        end
+        if m0 == 80 and m1 == 51 then
+            return "PPM-P3"
+        end
+    end
+    return "unknown"
+end
+
+// load any supported format by magic bytes (not extension)
+func loadImage(string path) as Image
+    Buffer buf = file.readBytes(path)
+    int n = buf.len()
+    if n >= 2 then
+        int m0 = buf.byteAt(0)
+        int m1 = buf.byteAt(1)
+        if m0 == 66 and m1 == 77 then
+            return bmpDecode(buf)
+        end
+        if m0 == 80 and (m1 == 51 or m1 == 54) then
+            return ppmDecode(buf)
+        end
+    end
+    throw "unknown image format: " + path
+end
+
+// save by output extension; returns bytes written
+func saveImage(Image img, string path) as int
+    if hasSuffixI(path, ".bmp") then
+        array<int> bytes = bmpEncodeBytes(img)
+        Buffer buf = Buffer()
+        int i = 0
+        while i < bytes.length do
+            buf.appendByte(bytes[i])
+            i = i + 1
+        end
+        bool ok = file.writeBytes(path, buf)
+        if not ok then
+            throw "failed to write: " + path
+        end
+        return bytes.length
+    end
+    if hasSuffixI(path, ".ppm") or hasSuffixI(path, ".pnm") then
+        // default to binary P6
+        array<int> bytes = ppmEncodeP6Bytes(img)
+        Buffer buf = Buffer()
+        int i = 0
+        while i < bytes.length do
+            buf.appendByte(bytes[i])
+            i = i + 1
+        end
+        bool ok = file.writeBytes(path, buf)
+        if not ok then
+            throw "failed to write: " + path
+        end
+        return bytes.length
+    end
+    // unknown ext: fall back to ASCII P3 text
+    string text = ppmEncodeP3(img)
+    bool ok2 = file.writeText(path, text)
+    if not ok2 then
+        throw "failed to write: " + path
+    end
+    return string.len(text)
+end
+
+// =====================================================================
+// filter dispatch (returns a new filtered Image)
+// =====================================================================
+
+func applyFilter(Image img, string filterSpec) as Image
+    string fname = filterSpec
+    int fparam = 0
+    int colon = string.indexOf(filterSpec, ":")
+    bool hasParam = false
+    if colon >= 0 then
+        fname = string.slice(filterSpec, 0, colon)
+        fparam = parsePosInt(string.slice(filterSpec, colon + 1))
+        hasParam = true
+    end
+    if fname == "gray" or fname == "grayscale" then
+        return img.grayscale()
+    end
+    if fname == "invert" or fname == "negate" then
+        return img.invert()
+    end
+    if fname == "brightness" then
+        int delta = 40
+        if hasParam then
+            delta = fparam
+        end
+        return img.brightnessContrast(delta, 100)
+    end
+    if fname == "contrast" then
+        int cf = 130
+        if hasParam then
+            cf = fparam
+        end
+        return img.brightnessContrast(0, cf)
+    end
+    if fname == "blur" or fname == "boxblur" then
+        return img.boxBlur()
+    end
+    if fname == "sharpen" then
+        int amt = 1
+        if hasParam then
+            amt = fparam
+        end
+        if amt < 1 then
+            amt = 1
+        end
+        return img.sharpen(amt)
+    end
+    if fname == "sobel" or fname == "edge" then
+        return img.sobel()
+    end
+    throw "unknown filter: " + fname
+end
+
+func filterList() as string
+    return "gray|grayscale, invert|negate, brightness[:delta], contrast[:factor100], blur|boxblur, sharpen[:amount], sobel|edge"
+end
+
+// =====================================================================
+// pixel-exact comparison (round-trip verification)
+// =====================================================================
+
+func imagesEqual(Image a, Image b) as bool
+    if a.width != b.width or a.height != b.height then
+        return false
+    end
+    int n = a.width * a.height * 3
+    int i = 0
+    while i < n do
+        if a.pixels[i] != b.pixels[i] then
+            return false
+        end
+        i = i + 1
+    end
+    return true
+end
+
+// =====================================================================
+// commands
+// =====================================================================
+
+func cmdInfo(string path) as int
+    if not file.exists(path) then
+        println("imgcodecs: file not found: " + path)
+        return 1
+    end
+    Buffer buf = file.readBytes(path)
+    int n = buf.len()
+    string fmt = detectFormat(buf)
+    if fmt == "unknown" then
+        println("imgcodecs: unrecognized image format: " + path)
+        return 1
+    end
+    Image img = loadImage(path)
+    println("file:    " + path)
+    println("size:    " + string.formatInt(n, ",") + " bytes")
+    println("format:  " + fmt)
+    println("dims:    " + string(img.width) + " x " + string(img.height) + " (" + string.formatInt(img.pixelCount(), ",") + " pixels)")
+    // channel statistics
+    int total = img.pixelCount()
+    int rmin = 255
+    int rmax = 0
+    int rsum = 0
+    int gmin = 255
+    int gmax = 0
+    int gsum = 0
+    int bmin = 255
+    int bmax = 0
+    int bsum = 0
+    int i = 0
+    while i < total do
+        int idx = i * 3
+        int r = img.pixels[idx]
+        int g = img.pixels[idx + 1]
+        int b = img.pixels[idx + 2]
+        if r < rmin then
+            rmin = r
+        end
+        if r > rmax then
+            rmax = r
+        end
+        rsum = rsum + r
+        if g < gmin then
+            gmin = g
+        end
+        if g > gmax then
+            gmax = g
+        end
+        gsum = gsum + g
+        if b < bmin then
+            bmin = b
+        end
+        if b > bmax then
+            bmax = b
+        end
+        bsum = bsum + b
+        i = i + 1
+    end
+    float rav = float(rsum) / float(total)
+    float gav = float(gsum) / float(total)
+    float bav = float(bsum) / float(total)
+    println("R:       " + string(rmin) + ".." + string(rmax) + "  avg " + string.formatFloat(rav, ".1"))
+    println("G:       " + string(gmin) + ".." + string(gmax) + "  avg " + string.formatFloat(gav, ".1"))
+    println("B:       " + string(bmin) + ".." + string(bmax) + "  avg " + string.formatFloat(bav, ".1"))
+    return 0
+end
+
+func cmdConvert(string inPath, string outPath) as int
+    if not file.exists(inPath) then
+        println("imgcodecs: input not found: " + inPath)
+        return 1
+    end
+    Image img = loadImage(inPath)
+    int wrote = saveImage(img, outPath)
+    println("[convert] " + inPath + " (" + string(img.width) + "x" + string(img.height) + ") -> " + outPath)
+    println("[convert] wrote " + string.formatInt(wrote, ",") + " bytes")
+    return 0
+end
+
+func cmdFilter(string inPath, string filterSpec, string outPath) as int
+    if not file.exists(inPath) then
+        println("imgcodecs: input not found: " + inPath)
+        return 1
+    end
+    Image img = loadImage(inPath)
+    Image out = applyFilter(img, filterSpec)
+    int wrote = saveImage(out, outPath)
+    println("[filter]  " + inPath + " (" + string(img.width) + "x" + string(img.height) + ") --" + filterSpec + "--> " + outPath)
+    println("[filter]  wrote " + string.formatInt(wrote, ",") + " bytes")
+    return 0
+end
+
+// =====================================================================
+// self-test: build a gradient image, round-trip all 3 formats, run filters
+// =====================================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func check(bool cond, string name)
+    if cond then
+        g_pass = g_pass + 1
+        println("  [PASS] " + name)
+    else
+        g_fail = g_fail + 1
+        println("  [FAIL] " + name)
+    end
+end
+
+// build a small distinguishable gradient image
+func buildTestImage(int w, int h) as Image
+    Image img = Image(w, h)
+    int y = 0
+    while y < h do
+        int x = 0
+        while x < w do
+            int r = clampByte(x * 60)
+            int g = clampByte(y * 90)
+            int b = clampByte((x + y) * 30)
+            img.setPixel(x, y, r, g, b)
+            x = x + 1
+        end
+        y = y + 1
+    end
+    return img
+end
+
+func writeBytesToFile(string path, array<int> bytes) as bool
+    Buffer buf = Buffer()
+    int i = 0
+    while i < bytes.length do
+        buf.appendByte(bytes[i])
+        i = i + 1
+    end
+    return file.writeBytes(path, buf)
+end
+
+func cmdTest() as int
+    println("imgcodecs self-test")
+    println("================================================================")
+
+    int w = 6
+    int h = 4
+    Image src = buildTestImage(w, h)
+    check(src.width == w and src.height == h, "gradient image built " + string(w) + "x" + string(h))
+
+    string tmpDir = path.temp()
+    string pP3 = path.join(tmpDir, "imgcodecs_test_p3.ppm")
+    string pP6 = path.join(tmpDir, "imgcodecs_test_p6.ppm")
+    string pBmp = path.join(tmpDir, "imgcodecs_test.bmp")
+
+    // ---- [1] PPM P3 round-trip (ASCII) ----
+    println("[1] PPM P3 round-trip")
+    bool ok3 = file.writeText(pP3, ppmEncodeP3(src))
+    check(ok3, "P3 written to " + pP3)
+    Image rt3 = loadImage(pP3)
+    check(detectFormat(file.readBytes(pP3)) == "PPM-P3", "P3 magic detected")
+    check(imagesEqual(src, rt3), "P3 round-trip pixel-exact")
+
+    // ---- [2] PPM P6 round-trip (binary) ----
+    println("[2] PPM P6 round-trip")
+    array<int> p6bytes = ppmEncodeP6Bytes(src)
+    bool ok6 = writeBytesToFile(pP6, p6bytes)
+    check(ok6, "P6 written to " + pP6)
+    Image rt6 = loadImage(pP6)
+    check(detectFormat(file.readBytes(pP6)) == "PPM-P6", "P6 magic detected")
+    check(imagesEqual(src, rt6), "P6 round-trip pixel-exact")
+
+    // ---- [3] BMP round-trip (24-bit) ----
+    println("[3] BMP round-trip")
+    array<int> bmpBytes = bmpEncodeBytes(src)
+    bool okB = writeBytesToFile(pBmp, bmpBytes)
+    check(okB, "BMP written to " + pBmp)
+    Buffer bmpBuf = file.readBytes(pBmp)
+    check(detectFormat(bmpBuf) == "BMP", "BMP magic detected")
+    Image rtB = loadImage(pBmp)
+    check(imagesEqual(src, rtB), "BMP round-trip pixel-exact")
+
+    // verify BMP header geometry
+    check(readU32LE(bmpBuf, 10) == 54, "BMP dataOffset == 54")
+    check(readI32LE(bmpBuf, 18) == w, "BMP width field")
+    check(readI32LE(bmpBuf, 22) == h, "BMP height field (bottom-up positive)")
+    check(readU16LE(bmpBuf, 28) == 24, "BMP bpp == 24")
+    int expRowSize = ((w * 3 + 3) / 4) * 4
+    int expFileSize = 54 + expRowSize * h
+    check(readU32LE(bmpBuf, 2) == expFileSize, "BMP fileSize field")
+
+    // ---- [4] cross-format convert ----
+    println("[4] cross-format convert")
+    // BMP -> PPM P6
+    int n1 = saveImage(rtB, pP6)
+    Image rtB2p6 = loadImage(pP6)
+    check(imagesEqual(src, rtB2p6), "BMP->PPM-P6 pixel-exact")
+    // PPM P3 -> BMP
+    int n2 = saveImage(rt3, pBmp)
+    Image rtP3toB = loadImage(pBmp)
+    check(imagesEqual(src, rtP3toB), "PPM-P3->BMP pixel-exact")
+
+    // ---- [5] filters ----
+    println("[5] filters")
+    Image gray = src.grayscale()
+    check(gray.width == w and gray.height == h, "grayscale dims preserved")
+    bool grayOk = true
+    int gi = 0
+    while gi < gray.pixelCount() do
+        int r = gray.pixels[gi * 3]
+        int g = gray.pixels[gi * 3 + 1]
+        int b = gray.pixels[gi * 3 + 2]
+        if r != g or g != b then
+            grayOk = false
+        end
+        int er = src.pixels[gi * 3]
+        int eg = src.pixels[gi * 3 + 1]
+        int eb = src.pixels[gi * 3 + 2]
+        int exp = (er * 299 + eg * 587 + eb * 114) / 1000
+        if r != exp then
+            grayOk = false
+        end
+        gi = gi + 1
+    end
+    check(grayOk, "grayscale produces luminance (r==g==b)")
+
+    Image inv = src.invert()
+    bool invOk = true
+    int ii = 0
+    while ii < inv.pixelCount() * 3 do
+        if inv.pixels[ii] != 255 - src.pixels[ii] then
+            invOk = false
+        end
+        ii = ii + 1
+    end
+    check(invOk, "invert produces 255-c")
+
+    Image bright = src.brightnessContrast(50, 100)
+    check(bright.width == w and bright.height == h, "brightness dims preserved")
+    // brightness +50 on a 0 channel -> 128 (clamp of 0-128+0+50 = -78 -> 0)... check center pixel raised
+    int br0 = src.pixels[0]
+    int br1 = bright.pixels[0]
+    check(br1 >= br0 or br1 == 255, "brightness raises or clamps channel")
+
+    Image blur = src.boxBlur()
+    check(blur.width == w and blur.height == h, "boxblur dims preserved")
+    // blur of a smooth gradient stays within source extrema
+    bool blurRangeOk = true
+    int bi = 0
+    while bi < blur.pixelCount() * 3 do
+        if blur.pixels[bi] < 0 or blur.pixels[bi] > 255 then
+            blurRangeOk = false
+        end
+        bi = bi + 1
+    end
+    check(blurRangeOk, "boxblur output in [0,255]")
+
+    Image sharp = src.sharpen(1)
+    check(sharp.width == w and sharp.height == h, "sharpen dims preserved")
+
+    Image edge = src.sobel()
+    check(edge.width == w and edge.height == h, "sobel dims preserved")
+    bool edgeGrayOk = true
+    int ei = 0
+    while ei < edge.pixelCount() do
+        if edge.pixels[ei * 3] != edge.pixels[ei * 3 + 1] or edge.pixels[ei * 3 + 1] != edge.pixels[ei * 3 + 2] then
+            edgeGrayOk = false
+        end
+        ei = ei + 1
+    end
+    check(edgeGrayOk, "sobel output is grayscale (r==g==b)")
+
+    // ---- [6] filter CLI via applyFilter ----
+    println("[6] applyFilter dispatch")
+    Image af = applyFilter(src, "brightness:30")
+    check(af.width == w, "applyFilter brightness:30")
+    Image af2 = applyFilter(src, "contrast:150")
+    check(af2.width == w, "applyFilter contrast:150")
+    Image af3 = applyFilter(src, "sharpen:2")
+    check(af3.width == w, "applyFilter sharpen:2")
+
+    // ---- [7] write a filtered output to disk via the real path ----
+    println("[7] end-to-end filtered write")
+    string pOut = path.join(tmpDir, "imgcodecs_test_edge.bmp")
+    int wrote = saveImage(src.sobel(), pOut)
+    check(wrote > 0 and file.exists(pOut), "sobel result written to BMP")
+    Image reloaded = loadImage(pOut)
+    check(reloaded.width == w and reloaded.height == h, "filtered BMP reloads")
+
+    // ---- cleanup ----
+    file.delete(pP3)
+    file.delete(pP6)
+    file.delete(pBmp)
+    file.delete(pOut)
+
+    println("================================================================")
+    println("result: " + string(g_pass) + " passed, " + string(g_fail) + " failed")
+    if g_fail > 0 then
+        return 1
+    end
+    return 0
+end
+
+func printUsage()
+    println("imgcodecs - BMP/PPM image codec + filter processor")
+    println("usage:")
+    println("  imgcodecs info   <file>                   print format / dims / stats")
+    println("  imgcodecs convert <in> <out>             re-encode (.bmp / .ppm=P6)")
+    println("  imgcodecs filter  <in> <filter> <out>    decode, filter, write")
+    println("  imgcodecs test                             self-test (round-trips + filters)")
+    println("  imgcodecs -h | --help                      this help")
+    println("filters: " + filterList())
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+    string cmd = string(arg[1])
+    try
+        if cmd == "-h" or cmd == "--help" or cmd == "help" then
+            printUsage()
+            return 0
+        elseif cmd == "info" then
+            if arg.length < 3 then
+                println("imgcodecs: info requires <file>")
+                return 1
+            end
+            return cmdInfo(string(arg[2]))
+        elseif cmd == "convert" then
+            if arg.length < 4 then
+                println("imgcodecs: convert requires <in> <out>")
+                return 1
+            end
+            return cmdConvert(string(arg[2]), string(arg[3]))
+        elseif cmd == "filter" then
+            if arg.length < 5 then
+                println("imgcodecs: filter requires <in> <filter> <out>")
+                return 1
+            end
+            return cmdFilter(string(arg[2]), string(arg[3]), string(arg[4]))
+        elseif cmd == "test" then
+            return cmdTest()
+        else
+            println("imgcodecs: unknown command '" + cmd + "'")
+            printUsage()
+            return 1
+        end
+    catch e
+        println("imgcodecs: error: " + e.message)
+        return 1
+    end
+    return 0
+end

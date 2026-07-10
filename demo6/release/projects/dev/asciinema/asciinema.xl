@@ -1,0 +1,923 @@
+// asciinema - terminal session recorder/player (VT100/ANSI + frame animation)
+//
+// 用法：
+//   asciinema play <file.cast> [--speed 2x] [--pause] [--no-clear]
+//       按时间戳重放 asciicast v2 录制：维护虚拟终端缓冲，逐帧渲染。
+//       --speed Nx   倍速播放（默认 1x，数字越大越快）。
+//       --pause      每帧之间额外停顿 300ms（便于阅读；因无 stdin，不能用按键步进）。
+//       --no-clear    帧分隔模式（打印帧编号+时间戳），不使用 ESC 清屏动画。
+//   asciinema info <file.cast>
+//       显示录制元信息：尺寸/时长/事件数/字节数。
+//   asciinema test
+//       运行 VT100 解析器自测 + 内存演示回放（不依赖文件）。
+//
+// 设计要点：
+//   - 解析 asciicast v2（JSON Lines）：首行 header 对象，其后每行 [time,"o"|"i","data"]。
+//   - 虚拟终端缓冲：array<string> 一维模拟二维（row*width+col），每格一个字符。
+//   - VT100/ANSI 状态机解析 ESC：CSI 序列（光标移动/清屏/清行/SGR 等）、
+//     OSC（跳过）、ESC 单字符（DECSC/DECRC/RI/IND 等）、控制字符（CR/LF/BS/TAB/BEL）。
+//   - SGR（\033[...m）颜色序列被解析消费但**不渲染颜色**，仅保留可见文本。
+//   - 帧渲染：按事件时间戳与 wall clock 同步（time.timer 单调秒 + time.sleep 毫秒）。
+
+// CSI 序列的 final 字节范围 0x40-0x7E（@ A-Z [ \ ] ^ _ ` a-z { | } ~）
+string CSI_FINAL = "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+string APP_VERSION = "1.0"
+
+
+// ============================================================================
+// 虚拟终端 Term
+// ============================================================================
+
+class Term
+    int width
+    int height
+    array<string> cells        // width*height，每元素为单字符
+    int curRow                 // 光标行（0-based）
+    int curCol                 // 光标列（0-based）
+    int savedRow               // DECSC 保存行
+    int savedCol               // DECSC 保存列
+    int parseMode              // 0=NORMAL 1=ESC 2=CSI 3=OSC 4=CHARSET
+    string csiBuf              // CSI/OSC 参数累积缓冲
+
+    create(int w, int h)
+        self.width = w
+        self.height = h
+        self.curRow = 0
+        self.curCol = 0
+        self.savedRow = 0
+        self.savedCol = 0
+        self.parseMode = 0
+        self.csiBuf = ""
+        self.cells = array[]
+        int total = w * h
+        int i = 0
+        while i < total do
+            self.cells.push(" ")
+            i += 1
+        end
+    end
+
+    // ---- 光标约束 ----
+    func clampCursor()
+        if self.curRow < 0 then self.curRow = 0 end
+        if self.curCol < 0 then self.curCol = 0 end
+        if self.curRow >= self.height then self.curRow = self.height - 1 end
+        if self.curCol >= self.width then self.curCol = self.width - 1 end
+    end
+
+    // ---- 单字符写入（含自动换行） ----
+    func put(string c)
+        if self.curCol >= self.width then
+            self.curCol = 0
+            self.curRow = self.curRow + 1
+        end
+        if self.curRow >= self.height then self.curRow = self.height - 1 end
+        if self.curRow < 0 then self.curRow = 0 end
+        self.cells[self.curRow * self.width + self.curCol] = c
+        self.curCol = self.curCol + 1
+    end
+
+    // ---- 换行（带滚动） ----
+    func lineFeed()
+        if self.curRow >= self.height - 1 then
+            self.scrollUp()
+            self.curRow = self.height - 1
+        else
+            self.curRow = self.curRow + 1
+        end
+    end
+
+    func scrollUp()
+        int row = 0
+        while row < self.height - 1 do
+            int srcRow = row + 1
+            int col = 0
+            while col < self.width do
+                self.cells[row * self.width + col] = self.cells[srcRow * self.width + col]
+                col += 1
+            end
+            row += 1
+        end
+        int col = 0
+        int base = (self.height - 1) * self.width
+        while col < self.width do
+            self.cells[base + col] = " "
+            col += 1
+        end
+    end
+
+    // ---- 清屏 / 清行 ----
+    func clearAll()
+        int total = self.width * self.height
+        int i = 0
+        while i < total do
+            self.cells[i] = " "
+            i += 1
+        end
+    end
+
+    func clearFromCursor()
+        // 当前行从光标到行尾
+        int base = self.curRow * self.width
+        int col = self.curCol
+        while col < self.width do
+            self.cells[base + col] = " "
+            col += 1
+        end
+        // 下方所有行整行清
+        int row = self.curRow + 1
+        while row < self.height do
+            int b = row * self.width
+            int c = 0
+            while c < self.width do
+                self.cells[b + c] = " "
+                c += 1
+            end
+            row += 1
+        end
+    end
+
+    func clearToCursor()
+        // 上方所有行整行清
+        int row = 0
+        while row < self.curRow do
+            int b = row * self.width
+            int c = 0
+            while c < self.width do
+                self.cells[b + c] = " "
+                c += 1
+            end
+            row += 1
+        end
+        // 当前行从开头到光标
+        int base = self.curRow * self.width
+        int col = 0
+        while col <= self.curCol and col < self.width do
+            self.cells[base + col] = " "
+            col += 1
+        end
+    end
+
+    func clearLineMode(int mode)
+        int base = self.curRow * self.width
+        if mode == 0 then
+            int col = self.curCol
+            while col < self.width do
+                self.cells[base + col] = " "
+                col += 1
+            end
+        elseif mode == 1 then
+            int col = 0
+            while col <= self.curCol and col < self.width do
+                self.cells[base + col] = " "
+                col += 1
+            end
+        elseif mode == 2 then
+            int col = 0
+            while col < self.width do
+                self.cells[base + col] = " "
+                col += 1
+            end
+        end
+    end
+
+    // ---- 字符/行 插入删除 ----
+    func deleteChars(int count)
+        if count < 1 then count = 1 end
+        int base = self.curRow * self.width
+        int dst = self.curCol
+        while dst + count < self.width do
+            self.cells[base + dst] = self.cells[base + dst + count]
+            dst += 1
+        end
+        int b = self.width - count
+        while b < self.width do
+            self.cells[base + b] = " "
+            b += 1
+        end
+    end
+
+    func insertChars(int count)
+        if count < 1 then count = 1 end
+        int base = self.curRow * self.width
+        int src = self.width - count - 1
+        while src >= self.curCol do
+            self.cells[base + src + count] = self.cells[base + src]
+            src -= 1
+        end
+        int c = self.curCol
+        while c < self.curCol + count and c < self.width do
+            self.cells[base + c] = " "
+            c += 1
+        end
+    end
+
+    func deleteLines(int count)
+        if count < 1 then count = 1 end
+        int row = self.curRow
+        while row + count < self.height do
+            int srcRow = row + count
+            int col = 0
+            while col < self.width do
+                self.cells[row * self.width + col] = self.cells[srcRow * self.width + col]
+                col += 1
+            end
+            row += 1
+        end
+        int r = self.height - count
+        while r < self.height do
+            int col = 0
+            while col < self.width do
+                self.cells[r * self.width + col] = " "
+                col += 1
+            end
+            r += 1
+        end
+    end
+
+    func insertLines(int count)
+        if count < 1 then count = 1 end
+        int row = self.height - 1
+        while row >= self.curRow + count do
+            int srcRow = row - count
+            int col = 0
+            while col < self.width do
+                self.cells[row * self.width + col] = self.cells[srcRow * self.width + col]
+                col += 1
+            end
+            row -= 1
+        end
+        int r = self.curRow
+        while r < self.curRow + count and r < self.height do
+            int col = 0
+            while col < self.width do
+                self.cells[r * self.width + col] = " "
+                col += 1
+            end
+            r += 1
+        end
+    end
+
+    // ---- CSI 参数解析 ----
+    func csiParam(string params, int idx, int def) as int
+        if params == "" then return def end
+        array parts = string.split(params, ";")
+        if idx >= parts.length then return def end
+        string s = string(parts[idx])
+        if s == "" then return def end
+        return int(s)
+    end
+
+    // ---- CSI 分发 ----
+    func csi(string params, string final)
+        // 私有序列（?25h 隐藏光标等）——忽略
+        if string.startsWith(params, "?") then
+            return
+        end
+        int n1 = self.csiParam(params, 0, 1)
+        int n2 = self.csiParam(params, 1, 1)
+        // J/K 的 mode 缺省为 0（与光标移动缺省 1 不同）
+        int clearMode = self.csiParam(params, 0, 0)
+        if final == "H" or final == "f" then
+            self.curRow = n1 - 1
+            self.curCol = n2 - 1
+            self.clampCursor()
+        elseif final == "A" then
+            self.curRow = self.curRow - n1
+            self.clampCursor()
+        elseif final == "B" then
+            self.curRow = self.curRow + n1
+            self.clampCursor()
+        elseif final == "C" then
+            self.curCol = self.curCol + n1
+            self.clampCursor()
+        elseif final == "D" then
+            self.curCol = self.curCol - n1
+            self.clampCursor()
+        elseif final == "E" then
+            self.curRow = self.curRow + n1
+            self.curCol = 0
+            self.clampCursor()
+        elseif final == "F" then
+            self.curRow = self.curRow - n1
+            self.curCol = 0
+            self.clampCursor()
+        elseif final == "G" or final == "`" then
+            self.curCol = n1 - 1
+            self.clampCursor()
+        elseif final == "d" then
+            self.curRow = n1 - 1
+            self.clampCursor()
+        elseif final == "J" then
+            if clearMode == 2 or clearMode == 3 then
+                self.clearAll()
+            elseif clearMode == 0 then
+                self.clearFromCursor()
+            elseif clearMode == 1 then
+                self.clearToCursor()
+            end
+        elseif final == "K" then
+            self.clearLineMode(clearMode)
+        elseif final == "s" then
+            self.savedRow = self.curRow
+            self.savedCol = self.curCol
+        elseif final == "u" then
+            self.curRow = self.savedRow
+            self.curCol = self.savedCol
+        elseif final == "@" then
+            self.insertChars(n1)
+        elseif final == "P" then
+            self.deleteChars(n1)
+        elseif final == "L" then
+            self.insertLines(n1)
+        elseif final == "M" then
+            self.deleteLines(n1)
+        elseif final == "m" then
+            // SGR 颜色——解析消费，不渲染
+        elseif final == "h" or final == "l" then
+            // 模式设置/复位——忽略
+        else
+            // 其他未识别 final——忽略
+        end
+    end
+
+    // ---- 状态机：单字符投喂 ----
+    func feedChar(string c)
+        if self.parseMode == 0 then
+            // NORMAL
+            if c == "\033" then
+                self.parseMode = 1
+            elseif c == "\r" then
+                self.curCol = 0
+            elseif c == "\n" then
+                self.lineFeed()
+            elseif c == "\b" then
+                if self.curCol > 0 then self.curCol = self.curCol - 1 end
+            elseif c == "\t" then
+                int next = (self.curCol / 8 + 1) * 8
+                if next >= self.width then next = self.width - 1 end
+                self.curCol = next
+            elseif c == "\007" then
+                // BEL 铃——忽略
+            else
+                self.put(c)
+            end
+        elseif self.parseMode == 1 then
+            // ESC 已见
+            if c == "[" then
+                self.parseMode = 2
+                self.csiBuf = ""
+            elseif c == "]" then
+                self.parseMode = 3
+                self.csiBuf = ""
+            elseif c == "(" or c == ")" or c == "*" or c == "+" or c == "-" or c == "." or c == "/" then
+                self.parseMode = 4
+            elseif c == "7" then
+                self.savedRow = self.curRow
+                self.savedCol = self.curCol
+                self.parseMode = 0
+            elseif c == "8" then
+                self.curRow = self.savedRow
+                self.curCol = self.savedCol
+                self.parseMode = 0
+            elseif c == "M" then
+                // RI 逆向换行
+                if self.curRow > 0 then self.curRow = self.curRow - 1 end
+                self.parseMode = 0
+            elseif c == "D" then
+                // IND 索引（下行）
+                self.lineFeed()
+                self.parseMode = 0
+            elseif c == "E" then
+                // NEL 下一行
+                self.curCol = 0
+                self.lineFeed()
+                self.parseMode = 0
+            elseif c == "c" then
+                // RIS 全复位
+                self.clearAll()
+                self.curRow = 0
+                self.curCol = 0
+                self.savedRow = 0
+                self.savedCol = 0
+                self.parseMode = 0
+            else
+                self.parseMode = 0
+            end
+        elseif self.parseMode == 2 then
+            // CSI：累积参数直到 final 字节
+            if string.contains(CSI_FINAL, c) then
+                self.csi(self.csiBuf, c)
+                self.parseMode = 0
+                self.csiBuf = ""
+            else
+                self.csiBuf = self.csiBuf + c
+            end
+        elseif self.parseMode == 3 then
+            // OSC：直到 BEL（\007）结束
+            if c == "\007" then
+                self.parseMode = 0
+                self.csiBuf = ""
+            else
+                self.csiBuf = self.csiBuf + c
+            end
+        elseif self.parseMode == 4 then
+            // 字符集指示符——消费一个字符即回 NORMAL
+            self.parseMode = 0
+        end
+    end
+
+    // ---- 投喂整段数据 ----
+    func feed(string data)
+        for c in data
+            self.feedChar(c)
+        end
+    end
+
+    // ---- 渲染单行（去除右侧控制） ----
+    func rowText(int row) as string
+        if row < 0 or row >= self.height then return "" end
+        string line = ""
+        int col = 0
+        int base = row * self.width
+        while col < self.width do
+            line = line + self.cells[base + col]
+            col += 1
+        end
+        return line
+    end
+
+    // ---- 渲染整个屏幕 ----
+    func render() as string
+        string out = ""
+        int row = 0
+        while row < self.height do
+            out = out + self.rowText(row)
+            out = out + "\n"
+            row += 1
+        end
+        return out
+    end
+end
+
+
+// ============================================================================
+// 辅助函数
+// ============================================================================
+
+// 解析 "--speed 2x" 中的数值
+func parseSpeed(string s) as float
+    string num = s
+    if string.endsWith(s, "x") or string.endsWith(s, "X") then
+        num = string.left(s, string.len(s) - 1)
+    end
+    float v = float(num)
+    if v <= 0.0 then v = 1.0 end
+    return v
+end
+
+
+// ============================================================================
+// info 命令：显示录制元信息
+// ============================================================================
+
+func cmdInfo(string path) as int
+    if not file.exists(path) then
+        println("Error: file not found: " + path)
+        return 1
+    end
+    string content = file.readText(path)
+    array lines = string.splitLines(content)
+    if lines.length == 0 then
+        println("Error: empty file: " + path)
+        return 1
+    end
+
+    var header
+    int width = 80
+    int height = 24
+    try
+        header = json.parse(string(lines[0]))
+        width = int(header["width"])
+        height = int(header["height"])
+    catch e
+        println("Error: invalid asciicast header (not JSON)")
+        return 1
+    end
+    if width < 1 then width = 80 end
+    if height < 1 then height = 24 end
+
+    float duration = 0.0
+    int outEvents = 0
+    int inEvents = 0
+    int outBytes = 0
+    int parseErrors = 0
+    int i = 1
+    while i < lines.length do
+        string ln = string(lines[i])
+        if ln != "" then
+            try
+                var ev = json.parse(ln)
+                float t = float(ev[0])
+                string stream = string(ev[1])
+                string data = string(ev[2])
+                if t > duration then duration = t end
+                if stream == "o" then
+                    outEvents += 1
+                    outBytes += string.byteLen(data)
+                elseif stream == "i" then
+                    inEvents += 1
+                end
+            catch e2
+                parseErrors += 1
+            end
+        end
+        i += 1
+    end
+
+    println("File:        " + path)
+    if header.contains("version") then
+        println("Version:     " + string(header["version"]))
+    else
+        println("Version:     (missing)")
+    end
+    println("Size:        " + string(width) + " cols x " + string(height) + " rows")
+    if header.contains("title") then
+        println("Title:       " + string(header["title"]))
+    end
+    if header.contains("timestamp") then
+        int ts = int(header["timestamp"])
+        if ts > 0 then
+            time moment = time.fromUnix(ts)
+            println("Timestamp:   " + string(ts) + " (" + time.format(moment) + ")")
+        end
+    end
+    if header.contains("env") then
+        var env = header["env"]
+        if env.contains("TERM") then
+            println("TERM:        " + string(env["TERM"]))
+        end
+        if env.contains("SHELL") then
+            println("SHELL:       " + string(env["SHELL"]))
+        end
+    end
+    println("Duration:    " + string.format(duration, ".3") + "s")
+    println("Output:      " + string(outEvents) + " events / " + string(outBytes) + " bytes")
+    println("Input:       " + string(inEvents) + " events")
+    if parseErrors > 0 then
+        println("ParseErrors: " + string(parseErrors) + " lines")
+    end
+    return 0
+end
+
+
+// ============================================================================
+// play 命令：按时间戳重放
+// ============================================================================
+
+func cmdPlay(string path, float speed, bool pauseMode, bool noClear) as int
+    if not file.exists(path) then
+        println("Error: file not found: " + path)
+        return 1
+    end
+    string content = file.readText(path)
+    array lines = string.splitLines(content)
+    if lines.length == 0 then
+        println("Error: empty file: " + path)
+        return 1
+    end
+
+    var header
+    int width = 80
+    int height = 24
+    try
+        header = json.parse(string(lines[0]))
+        width = int(header["width"])
+        height = int(header["height"])
+    catch e
+        println("Error: invalid asciicast header (not JSON)")
+        return 1
+    end
+    if width < 1 then width = 80 end
+    if width > 240 then width = 240 end
+    if height < 1 then height = 24 end
+    if height > 80 then height = 80 end
+
+    Term term = Term(width, height)
+    string speedStr = string.format(speed, ".2")
+    println("asciinema play  " + path)
+    println("terminal: " + string(width) + "x" + string(height) + "  speed: " + speedStr + "x  pause: " + string(pauseMode))
+
+    float startWall = time.timer()
+    float lastTime = 0.0
+    int frames = 0
+    int outEvents = 0
+    int i = 1
+    while i < lines.length do
+        string ln = string(lines[i])
+        if ln != "" then
+            try
+                var ev = json.parse(ln)
+                float t = float(ev[0])
+                string stream = string(ev[1])
+                string data = string(ev[2])
+                if t > lastTime then lastTime = t end
+                if stream == "o" then
+                    outEvents += 1
+                    float target = t / speed
+                    float now = time.timer() - startWall
+                    if target > now then
+                        float waitSec = target - now
+                        float msF = waitSec * 1000.0
+                        int waitMs = int(msF)
+                        if waitMs > 0 then
+                            time.sleep(waitMs)
+                        end
+                    end
+                    term.feed(data)
+                    if noClear then
+                        println("--- frame " + string(frames) + "  t=" + string.format(t, ".3") + "s ---")
+                        print(term.render())
+                        println()
+                    else
+                        print("\033[H\033[2J")
+                        print(term.render())
+                    end
+                    frames += 1
+                    if pauseMode then
+                        time.sleep(300)
+                    end
+                end
+            catch e2
+                // 跳过无法解析的事件行
+            end
+        end
+        i += 1
+    end
+
+    if noClear then
+        println("== playback complete: " + string(frames) + " frames / " + string(outEvents) + " output events / " + string.format(lastTime, ".2") + "s ==")
+    else
+        print("\033[H\033[2J")
+        print(term.render())
+        println("== playback complete: " + string(frames) + " frames ==")
+    end
+    return 0
+end
+
+
+// ============================================================================
+// test 命令：解析器自测 + 内存演示
+// ============================================================================
+
+func checkStr(string label, string actual, string expected) as bool
+    if actual == expected then
+        println("  [PASS] " + label)
+        return true
+    end
+    println("  [FAIL] " + label)
+    println("    expected: [" + expected + "]")
+    println("    actual:   [" + actual + "]")
+    return false
+end
+
+func checkInt(string label, int actual, int expected) as bool
+    if actual == expected then
+        println("  [PASS] " + label)
+        return true
+    end
+    println("  [FAIL] " + label)
+    println("    expected: " + string(expected))
+    println("    actual:   " + string(actual))
+    return false
+end
+
+func runSelfTest() as int
+    int fails = 0
+
+    // 1. 纯文本写入
+    Term t1 = Term(12, 3)
+    t1.feed("hello")
+    if not checkStr("plain text on row 0", t1.rowText(0), "hello       ") then fails += 1 end
+    if not checkInt("cursor col after 'hello'", t1.curCol, 5) then fails += 1 end
+
+    // 2. CR + LF
+    Term t2 = Term(12, 3)
+    t2.feed("ab\r\ncd")
+    if not checkStr("CR+LF keeps row 0", t2.rowText(0), "ab          ") then fails += 1 end
+    if not checkStr("CR+LF writes row 1", t2.rowText(1), "cd          ") then fails += 1 end
+
+    // 3. SGR 颜色被剥离、文本保留
+    Term t3 = Term(20, 2)
+    t3.feed("\033[31mRED\033[0m\033[32m green\033[0m")
+    if not checkStr("SGR stripped, text kept", t3.rowText(0), "RED green           ") then fails += 1 end
+
+    // 4. 光标定位 H（1-based -> 0-based）
+    Term t4 = Term(20, 6)
+    t4.feed("\033[3;5Hx")
+    if not checkStr("H positions char on row 3", t4.rowText(2), "    x               ") then fails += 1 end
+    if not checkInt("cursor row after H", t4.curRow, 2) then fails += 1 end
+    if not checkInt("cursor col after H+char", t4.curCol, 5) then fails += 1 end
+
+    // 5. 清屏 2J
+    Term t5 = Term(10, 3)
+    t5.feed("abcdefghij")
+    t5.feed("\033[2J")
+    if not checkStr("2J clears screen row 0", t5.rowText(0), "          ") then fails += 1 end
+    if not checkStr("2J clears screen row 1", t5.rowText(1), "          ") then fails += 1 end
+
+    // 6. 清行 K
+    Term t6 = Term(12, 3)
+    t6.feed("hello world")
+    t6.feed("\033[1;1H\033[K")
+    if not checkStr("K clears line from cursor", t6.rowText(0), "            ") then fails += 1 end
+
+    // 7. 光标移动 A/B/C/D
+    Term t7 = Term(10, 5)
+    t7.feed("\033[3;5H")
+    if not checkInt("initial cursor row", t7.curRow, 2) then fails += 1 end
+    if not checkInt("initial cursor col", t7.curCol, 4) then fails += 1 end
+    t7.feed("\033[A")
+    if not checkInt("cursor up (A)", t7.curRow, 1) then fails += 1 end
+    t7.feed("\033[2B")
+    if not checkInt("cursor down 2 (B)", t7.curRow, 3) then fails += 1 end
+    t7.feed("\033[2C")
+    if not checkInt("cursor right 2 (C)", t7.curCol, 6) then fails += 1 end
+    t7.feed("\033[3D")
+    if not checkInt("cursor left 3 (D)", t7.curCol, 3) then fails += 1 end
+
+    // 8. 退格
+    Term t8 = Term(10, 2)
+    t8.feed("abcd\b\bXY")
+    if not checkStr("backspace + overwrite", t8.rowText(0), "abXY      ") then fails += 1 end
+
+    // 9. 制表符
+    Term t9 = Term(20, 2)
+    t9.feed("a\tb")
+    if not checkStr("tab to col 8", t9.rowText(0), "a       b           ") then fails += 1 end
+
+    // 10. 保存/恢复光标（DECSC s / DECRC u）
+    Term t10 = Term(10, 5)
+    t10.feed("\033[3;5H\033[s\033[1;1H\033[u")
+    if not checkInt("save/restore cursor row", t10.curRow, 2) then fails += 1 end
+    if not checkInt("save/restore cursor col", t10.curCol, 4) then fails += 1 end
+
+    // 11. 自动换行
+    Term t11 = Term(5, 3)
+    t11.feed("abcdef")
+    if not checkStr("autowrap row 0", t11.rowText(0), "abcde") then fails += 1 end
+    if not checkStr("autowrap row 1", t11.rowText(1), "f    ") then fails += 1 end
+
+    // 12. 满屏滚动
+    Term t12 = Term(5, 2)
+    t12.feed("aaaaa\r\nbbbbb\r\nc")
+    if not checkStr("scroll drops top row", t12.rowText(0), "bbbbb") then fails += 1 end
+    if not checkStr("scroll new bottom row", t12.rowText(1), "c    ") then fails += 1 end
+
+    // 13. OSC 序列被跳过
+    Term t13 = Term(15, 2)
+    t13.feed("\033]0;window title\007visible")
+    if not checkStr("OSC skipped, text kept", t13.rowText(0), "visible        ") then fails += 1 end
+
+    // 14. 字符删除 DCH
+    Term t14 = Term(10, 2)
+    t14.feed("ABCDEFG")
+    t14.feed("\033[1;3H\033[2P")
+    if not checkStr("DCH deletes 2 chars", t14.rowText(0), "ABEFG     ") then fails += 1 end
+
+    return fails
+end
+
+func printFrame(Term term, string label)
+    println("--- " + label + " ---")
+    print(term.render())
+    println()
+end
+
+func runDemo()
+    Term term = Term(50, 14)
+    printFrame(term, "step 0: blank terminal")
+    term.feed("\033[2J\033[H")
+    printFrame(term, "step 1: clear screen (2J) + cursor home (H)")
+    term.feed("asciinema terminal emulator - frame demo\r\n")
+    printFrame(term, "step 2: write title")
+    term.feed("\033[31mRED\u001b[32m GREEN \u001b[34mBLUE\u001b[0m (colors parsed, not rendered)\r\n")
+    printFrame(term, "step 3: colored text -> SGR stripped, visible text kept")
+    term.feed("\r\n")
+    term.feed("cursor jump -> vertical word below:\r\n")
+    term.feed("\033[6;20HJ")
+    term.feed("\033[7;20HU")
+    term.feed("\033[8;20HM")
+    term.feed("\033[9;20HP")
+    printFrame(term, "step 4: cursor positioning (CUP) spells JUMP")
+    term.feed("\033[11;1Hwill be cleared ----->\r\n")
+    printFrame(term, "step 5: text before clear-line")
+    term.feed("\033[11;1H\033[K")
+    printFrame(term, "step 6: clear-line (K) erases row 11 from cursor")
+    term.feed("\033[13;1Hplayback complete.\r\n")
+    printFrame(term, "step 7: final frame")
+end
+
+func cmdTest() as int
+    println("asciinema " + APP_VERSION + " - self test")
+    println("================================")
+    int fails = runSelfTest()
+    println("================================")
+    if fails > 0 then
+        println(string(fails) + " check(s) FAILED")
+        return 1
+    end
+    println("all checks passed")
+    println()
+    println("in-memory demo playback (VT100 frame animation)")
+    println("==============================================")
+    runDemo()
+    return 0
+end
+
+
+// ============================================================================
+// 用法
+// ============================================================================
+
+func printUsage()
+    println("asciinema " + APP_VERSION + " - terminal session player (VT100/ANSI + frame animation)")
+    println()
+    println("Usage:")
+    println("  asciinema play <file.cast> [--speed Nx] [--pause] [--no-clear]")
+    println("      Replay an asciicast v2 recording through a virtual terminal.")
+    println("      --speed Nx    playback speed multiplier (default 1x).")
+    println("      --pause       add 300ms delay between frames for readability.")
+    println("      --no-clear    frame-dump mode (no live ESC screen clear).")
+    println()
+    println("  asciinema info <file.cast>")
+    println("      Show recording metadata (size, duration, event counts).")
+    println()
+    println("  asciinema test")
+    println("      Run VT100 parser self-tests and an in-memory demo playback.")
+end
+
+
+// ============================================================================
+// main
+// ============================================================================
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "play" then
+        if arg.length < 3 then
+            println("Error: 'play' requires a file path")
+            println("  asciinema play <file.cast> [--speed Nx] [--pause] [--no-clear]")
+            return 1
+        end
+        string path = string(arg[2])
+        float speed = 1.0
+        bool pauseMode = false
+        bool noClear = false
+        int ai = 3
+        while ai < arg.length do
+            string a = string(arg[ai])
+            if a == "--speed" and ai + 1 < arg.length then
+                speed = parseSpeed(string(arg[ai + 1]))
+                ai += 2
+            elseif a == "--pause" then
+                pauseMode = true
+                ai += 1
+            elseif a == "--no-clear" then
+                noClear = true
+                ai += 1
+            else
+                ai += 1
+            end
+        end
+        return cmdPlay(path, speed, pauseMode, noClear)
+    end
+
+    if cmd == "info" then
+        if arg.length < 3 then
+            println("Error: 'info' requires a file path")
+            return 1
+        end
+        return cmdInfo(string(arg[2]))
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    if cmd == "--help" or cmd == "-h" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    println()
+    printUsage()
+    return 1
+end

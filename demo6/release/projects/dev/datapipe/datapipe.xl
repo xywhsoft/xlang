@@ -1,0 +1,2216 @@
+// datapipe - composable data pipeline framework
+//
+// Pipeline stages:  Source -> Filter -> Map -> Reduce(aggregate) -> Sink
+//                    plus Sort and Join available anywhere in the chain.
+//
+// Because xlang function values cannot be passed around, the framework is
+// driven by a pipeline description (JSON) plus a global operation registry:
+// each step is {"op": <name>, ...} and a central dispatcher maps the op name
+// to its handler. The registry (gOpRegistry) lists every known op; runPipeline
+// is the single dispatch site.
+//
+// Usage:
+//   datapipe run <pipeline.json> [input.csv|input.json] [csv|json|table|tsv]
+//   datapipe test
+//   datapipe ops
+//
+// Stress surface exercised: heavy string parsing (CSV char parser + two
+// expression tokenizers), var dict row operations, iterative merge sort,
+// and streaming aggregation.
+//
+// Design avoids known xlang traps (see dev/BUGS.md):
+//   - no var dict allocated inside recursion (filter/compute eval is read-only
+//     recursion; sorting is iterative bottom-up merge sort);
+//   - all string concatenation uses statically-typed `string` operands (the
+//     left side is never a bare `var`, avoiding BUG-CE1); cells are funneled
+//     through string(...) before joining;
+//   - dynamic `is` checks are lowered to a bool local before `not`;
+//   - `+=` is never used (expanded to `x = x + 1` style).
+
+
+// ============================================================================
+// value / number helpers
+// ============================================================================
+
+func isAlphaByte(int b) as bool
+    if b >= 65 and b <= 90 then return true end
+    if b >= 97 and b <= 122 then return true end
+    if b == 95 then return true end
+    return false
+end
+
+
+func isDigitByte(int b) as bool
+    if b >= 48 and b <= 57 then return true end
+    return false
+end
+
+
+func looksLikeInt(string s) as bool
+    if string.isEmpty(s) then return false end
+    int i = 0
+    int firstByte = string.byteAt(s, 0)
+    if firstByte == 45 or firstByte == 43 then
+        i = 1
+    end
+    if i >= string.len(s) then return false end
+    while i < string.len(s) do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then return false end
+        i = i + 1
+    end
+    return true
+end
+
+
+func looksLikeFloat(string s) as bool
+    bool hasDot = string.contains(s, ".")
+    bool hasE = string.contains(s, "e") or string.contains(s, "E")
+    if not hasDot and not hasE then return false end
+    int i = 0
+    int firstByte = string.byteAt(s, 0)
+    if firstByte == 45 or firstByte == 43 then
+        i = 1
+    end
+    bool seenDigit = false
+    while i < string.len(s) do
+        int b = string.byteAt(s, i)
+        if b >= 48 and b <= 57 then
+            seenDigit = true
+        elseif b == 46 or b == 101 or b == 69 or b == 45 or b == 43 then
+            // '.', 'e', 'E', '-', '+' allowed
+        else
+            return false
+        end
+        i = i + 1
+    end
+    return seenDigit
+end
+
+
+func isNumeric(string s) as bool
+    if looksLikeInt(s) then return true end
+    if looksLikeFloat(s) then return true end
+    return false
+end
+
+
+func floatOrZero(string s) as float
+    if looksLikeFloat(s) then return float(s) end
+    if looksLikeInt(s) then return float(s) end
+    return 0.0
+end
+
+
+// render a float so whole numbers drop the trailing .0
+func fmtNum(float v) as string
+    if v == math.floor(v) then
+        return string(int(v))
+    end
+    return string(v)
+end
+
+
+// compare two cell strings: numeric if both numeric, else lexicographic
+func compareCells(string a, string b) as int
+    if isNumeric(a) and isNumeric(b) then
+        float fa = float(a)
+        float fb = float(b)
+        if fa < fb then return -1 end
+        if fa > fb then return 1 end
+        return 0
+    end
+    return string.compare(a, b, false)
+end
+
+
+// ============================================================================
+// Expression tokenizer + parser registry
+//   Shared tokenizer feeds two grammars:
+//     - filter : comparison (AND/OR, parentheses)
+//     - compute: arithmetic (+ - * /, parentheses)
+//   Parser state lives in globals gTok / gTokPos; parse happens once per step
+//   (before any per-row loop), eval is read-only recursion over the AST.
+// ============================================================================
+
+var gTok = []
+int gTokPos = 0
+
+
+// token: {"t": id|num|str|op|paren|eof, "v": value}
+func tokenizeExpr(string s) as var
+    var toks = []
+    int n = string.len(s)
+    int i = 0
+    string lastType = ""
+    while i < n do
+        int b = string.byteAt(s, i)
+        // whitespace
+        if b == 32 or b == 9 or b == 10 or b == 13 then
+            i = i + 1
+            continue
+        end
+        // string literal " or '
+        if b == 34 or b == 39 then
+            int q = b
+            i = i + 1
+            string collected = ""
+            while i < n do
+                int cb = string.byteAt(s, i)
+                if cb == q then
+                    i = i + 1
+                    break
+                end
+                collected = collected + string.charAt(s, i)
+                i = i + 1
+            end
+            var tk = {}
+            tk["t"] = "str"
+            tk["v"] = collected
+            toks.append(tk)
+            lastType = "str"
+            continue
+        end
+        // number, possibly signed (sign only right after op/paren/start)
+        bool signOk = false
+        if b == 45 then
+            if i + 1 < n then
+                if isDigitByte(string.byteAt(s, i + 1)) then
+                    if lastType == "" or lastType == "op" or lastType == "paren" then
+                        signOk = true
+                    end
+                end
+            end
+        end
+        if isDigitByte(b) or signOk then
+            int start = i
+            if b == 45 then
+                i = i + 1
+            end
+            while i < n do
+                if isDigitByte(string.byteAt(s, i)) then
+                    i = i + 1
+                else
+                    break
+                end
+            end
+            if i < n then
+                if string.byteAt(s, i) == 46 then
+                    i = i + 1
+                    while i < n do
+                        if isDigitByte(string.byteAt(s, i)) then
+                            i = i + 1
+                        else
+                            break
+                        end
+                    end
+                end
+            end
+            string num = string.slice(s, start, i - start)
+            var tk = {}
+            tk["t"] = "num"
+            tk["v"] = num
+            toks.append(tk)
+            lastType = "num"
+            continue
+        end
+        // two-char comparison ops
+        if b == 33 and i + 1 < n then
+            if string.byteAt(s, i + 1) == 61 then
+                var tk = {}; tk["t"] = "op"; tk["v"] = "!="; toks.append(tk)
+                i = i + 2; lastType = "op"; continue
+            end
+        end
+        if b == 62 and i + 1 < n then
+            if string.byteAt(s, i + 1) == 61 then
+                var tk = {}; tk["t"] = "op"; tk["v"] = ">="; toks.append(tk)
+                i = i + 2; lastType = "op"; continue
+            end
+        end
+        if b == 60 and i + 1 < n then
+            if string.byteAt(s, i + 1) == 61 then
+                var tk = {}; tk["t"] = "op"; tk["v"] = "<="; toks.append(tk)
+                i = i + 2; lastType = "op"; continue
+            end
+        end
+        // single-char ops: = > < + - * /
+        if b == 61 then
+            var tk = {}; tk["t"] = "op"; tk["v"] = "="; toks.append(tk)
+            i = i + 1; lastType = "op"; continue
+        end
+        if b == 62 then
+            var tk = {}; tk["t"] = "op"; tk["v"] = ">"; toks.append(tk)
+            i = i + 1; lastType = "op"; continue
+        end
+        if b == 60 then
+            var tk = {}; tk["t"] = "op"; tk["v"] = "<"; toks.append(tk)
+            i = i + 1; lastType = "op"; continue
+        end
+        if b == 43 or b == 45 or b == 42 or b == 47 then
+            string opv = string.charAt(s, i)
+            var tk = {}; tk["t"] = "op"; tk["v"] = opv; toks.append(tk)
+            i = i + 1; lastType = "op"; continue
+        end
+        // parentheses
+        if b == 40 or b == 41 then
+            string pv = string.charAt(s, i)
+            var tk = {}; tk["t"] = "paren"; tk["v"] = pv; toks.append(tk)
+            i = i + 1; lastType = "paren"; continue
+        end
+        // identifier
+        if isAlphaByte(b) then
+            int start2 = i
+            while i < n do
+                int cb = string.byteAt(s, i)
+                if isAlphaByte(cb) or isDigitByte(cb) then
+                    i = i + 1
+                else
+                    break
+                end
+            end
+            string ident = string.slice(s, start2, i - start2)
+            var tk = {}
+            tk["t"] = "id"
+            tk["v"] = ident
+            toks.append(tk)
+            lastType = "id"
+            continue
+        end
+        // unknown char: skip
+        i = i + 1
+    end
+    return toks
+end
+
+
+func tokCur() as var
+    if gTokPos < gTok.length then
+        return gTok[gTokPos]
+    end
+    var eof = {}
+    eof["t"] = "eof"
+    eof["v"] = ""
+    return eof
+end
+
+
+func tokAdv() as var
+    var t = tokCur()
+    gTokPos = gTokPos + 1
+    return t
+end
+
+
+func tokIsIdKw(string kw) as bool
+    var t = tokCur()
+    if string(t["t"]) != "id" then return false end
+    if string.upper(string(t["v"])) == kw then return true end
+    return false
+end
+
+
+func tokIsOp(string opv) as bool
+    var t = tokCur()
+    if string(t["t"]) != "op" then return false end
+    if string(t["v"]) == opv then return true end
+    return false
+end
+
+
+func tokIsParen(string p) as bool
+    var t = tokCur()
+    if string(t["t"]) != "paren" then return false end
+    if string(t["v"]) == p then return true end
+    return false
+end
+
+
+// ---- filter grammar ----
+
+func parseOperand() as var
+    var t = tokCur()
+    if string(t["t"]) == "num" then
+        tokAdv()
+        var n = {}
+        n["kind"] = "lit"
+        n["v"] = string(t["v"])
+        return n
+    end
+    if string(t["t"]) == "str" then
+        tokAdv()
+        var n = {}
+        n["kind"] = "lit"
+        n["v"] = string(t["v"])
+        return n
+    end
+    if string(t["t"]) == "id" then
+        tokAdv()
+        var n = {}
+        n["kind"] = "col"
+        n["v"] = string(t["v"])
+        return n
+    end
+    tokAdv()
+    var n2 = {}
+    n2["kind"] = "lit"
+    n2["v"] = string(t["v"])
+    return n2
+end
+
+
+func parseComparison() as var
+    var left = parseOperand()
+    string opv = "="
+    if string(tokCur()["t"]) == "op" then
+        opv = string(tokCur()["v"])
+        tokAdv()
+    end
+    var right = parseOperand()
+    var node = {}
+    node["type"] = "cmp"
+    node["l"] = left
+    node["op"] = opv
+    node["r"] = right
+    return node
+end
+
+
+func parseFilterAtom() as var
+    if tokIsParen("(") then
+        tokAdv()
+        var e = parseFilterOr()
+        if tokIsParen(")") then
+            tokAdv()
+        end
+        return e
+    end
+    return parseComparison()
+end
+
+
+func parseFilterAnd() as var
+    var left = parseFilterAtom()
+    while tokIsIdKw("AND") do
+        tokAdv()
+        var right = parseFilterAtom()
+        var node = {}
+        node["type"] = "and"
+        node["l"] = left
+        node["r"] = right
+        left = node
+    end
+    return left
+end
+
+
+func parseFilterOr() as var
+    var left = parseFilterAnd()
+    while tokIsIdKw("OR") do
+        tokAdv()
+        var right = parseFilterAnd()
+        var node = {}
+        node["type"] = "or"
+        node["l"] = left
+        node["r"] = right
+        left = node
+    end
+    return left
+end
+
+
+func parseFilter(string exprText) as var
+    gTok = tokenizeExpr(exprText)
+    gTokPos = 0
+    if gTok.length == 0 then
+        var triv = {}
+        triv["type"] = "true"
+        return triv
+    end
+    return parseFilterOr()
+end
+
+
+func operandValue(var node, var row) as string
+    if string(node["kind"]) == "col" then
+        return getCell(row, string(node["v"]))
+    end
+    return string(node["v"])
+end
+
+
+// read-only recursion over a small AST: safe (no per-frame dict alloc)
+func evalFilter(var node, var row) as bool
+    if node == null then return true end
+    string nt = string(node["type"])
+    if nt == "true" then return true end
+    if nt == "and" then
+        bool a = evalFilter(node["l"], row)
+        if not a then return false end
+        return evalFilter(node["r"], row)
+    end
+    if nt == "or" then
+        bool a = evalFilter(node["l"], row)
+        if a then return true end
+        return evalFilter(node["r"], row)
+    end
+    if nt == "cmp" then
+        string av = operandValue(node["l"], row)
+        string bv = operandValue(node["r"], row)
+        string opv = string(node["op"])
+        int c = compareCells(av, bv)
+        if opv == "=" then return c == 0 end
+        if opv == "!=" then return c != 0 end
+        if opv == ">" then return c > 0 end
+        if opv == ">=" then return c >= 0 end
+        if opv == "<" then return c < 0 end
+        if opv == "<=" then return c <= 0 end
+        return false
+    end
+    return false
+end
+
+
+// ---- compute (arithmetic) grammar ----
+
+func parseComputeFactor() as var
+    var t = tokCur()
+    if string(t["t"]) == "num" then
+        tokAdv()
+        var n = {}
+        n["kind"] = "num"
+        n["v"] = string(t["v"])
+        return n
+    end
+    if string(t["t"]) == "id" then
+        tokAdv()
+        var n = {}
+        n["kind"] = "col"
+        n["v"] = string(t["v"])
+        return n
+    end
+    if tokIsParen("(") then
+        tokAdv()
+        var e = parseComputeAdd()
+        if tokIsParen(")") then
+            tokAdv()
+        end
+        return e
+    end
+    tokAdv()
+    var n2 = {}
+    n2["kind"] = "num"
+    n2["v"] = "0"
+    return n2
+end
+
+
+func parseComputeMul() as var
+    var left = parseComputeFactor()
+    while tokIsOp("*") or tokIsOp("/") do
+        string opv = string(tokCur()["v"])
+        tokAdv()
+        var right = parseComputeFactor()
+        var node = {}
+        node["kind"] = "bin"
+        node["op"] = opv
+        node["l"] = left
+        node["r"] = right
+        left = node
+    end
+    return left
+end
+
+
+func parseComputeAdd() as var
+    var left = parseComputeMul()
+    while tokIsOp("+") or tokIsOp("-") do
+        string opv = string(tokCur()["v"])
+        tokAdv()
+        var right = parseComputeMul()
+        var node = {}
+        node["kind"] = "bin"
+        node["op"] = opv
+        node["l"] = left
+        node["r"] = right
+        left = node
+    end
+    return left
+end
+
+
+func parseCompute(string exprText) as var
+    gTok = tokenizeExpr(exprText)
+    gTokPos = 0
+    return parseComputeAdd()
+end
+
+
+func evalArith(var node, var row) as float
+    string kind = string(node["kind"])
+    if kind == "num" then
+        return floatOrZero(string(node["v"]))
+    end
+    if kind == "col" then
+        return floatOrZero(getCell(row, string(node["v"])))
+    end
+    if kind == "bin" then
+        float lv = evalArith(node["l"], row)
+        float rv = evalArith(node["r"], row)
+        string opv = string(node["op"])
+        if opv == "+" then return lv + rv end
+        if opv == "-" then return lv - rv end
+        if opv == "*" then return lv * rv end
+        if opv == "/" then
+            if rv == 0.0 then return 0.0 end
+            return lv / rv
+        end
+        return 0.0
+    end
+    return 0.0
+end
+
+
+// ============================================================================
+// Pipeline state (globals). Rows are var dicts (colname -> value).
+//   gHeaders tracks column order for stable output.
+// ============================================================================
+
+var gHeaders = []
+var gRows = []
+string gFormat = ""
+string gFormatOverride = ""
+
+
+func getCell(var row, string col) as string
+    if col in row then
+        return string(row[col])
+    end
+    return ""
+end
+
+
+func copyRow(var src) as var
+    var d = {}
+    for k, v in src
+        d[k] = v
+    end
+    return d
+end
+
+
+func headerEnsure(string name)
+    int i = 0
+    while i < gHeaders.length do
+        if string(gHeaders[i]) == name then return end
+        i = i + 1
+    end
+    gHeaders.append(name)
+end
+
+
+func headerRename(string oldn, string newn)
+    int i = 0
+    while i < gHeaders.length do
+        if string(gHeaders[i]) == oldn then
+            gHeaders[i] = newn
+            return
+        end
+        i = i + 1
+    end
+    gHeaders.append(newn)
+end
+
+
+func headerRemove(string name)
+    int i = 0
+    while i < gHeaders.length do
+        if string(gHeaders[i]) == name then
+            gHeaders.remove(i)
+            return
+        end
+        i = i + 1
+    end
+end
+
+
+func buildRows(var headers, var data) as var
+    var rows = []
+    int r = 0
+    while r < data.length do
+        var row = {}
+        int c = 0
+        while c < headers.length do
+            row[string(headers[c])] = string(data[r][c])
+            c = c + 1
+        end
+        rows.append(row)
+        r = r + 1
+    end
+    return rows
+end
+
+
+// ============================================================================
+// Source loaders
+// ============================================================================
+
+// char-by-char CSV parser (quoted fields, "" escape, cross-line fields, CR drop)
+func parseCsv(string text, string delim) as var
+    var rows = []
+    int n = string.len(text)
+    if n == 0 then
+        return rows
+    end
+    int delimByte = string.byteAt(delim, 0)
+    string lastChar = string.charAt(text, n - 1)
+    if lastChar != "\n" then
+        text = text + "\n"
+        n = string.len(text)
+    end
+
+    var fields = []
+    string field = ""
+    bool inQuotes = false
+    bool headersDone = false
+    int i = 0
+
+    while i < n do
+        int b = string.byteAt(text, i)
+        if inQuotes then
+            if b == 34 then
+                if i + 1 < n then
+                    if string.byteAt(text, i + 1) == 34 then
+                        field = field + "\""
+                        i = i + 2
+                        continue
+                    end
+                end
+                inQuotes = false
+                i = i + 1
+                continue
+            end
+            field = field + string.charAt(text, i)
+            i = i + 1
+            continue
+        end
+        if b == 34 and string.isEmpty(field) then
+            inQuotes = true
+            i = i + 1
+            continue
+        end
+        if b == delimByte then
+            fields.append(field)
+            field = ""
+            i = i + 1
+            continue
+        end
+        if b == 10 then
+            fields.append(field)
+            if not headersDone then
+                gHeaders = fields
+                headersDone = true
+            else
+                var d = {}
+                int fi = 0
+                while fi < fields.length and fi < gHeaders.length do
+                    d[string(gHeaders[fi])] = string(fields[fi])
+                    fi = fi + 1
+                end
+                rows.append(d)
+            end
+            fields = []
+            field = ""
+            i = i + 1
+            continue
+        end
+        if b == 13 then
+            i = i + 1
+            continue
+        end
+        field = field + string.charAt(text, i)
+        i = i + 1
+    end
+    return rows
+end
+
+
+func loadJsonRows(string text) as var
+    var data = json.parse(text)
+    var rows = []
+    var headers = []
+    var seen = {}
+    bool dataIsArr = data is array
+    bool dataIsDict = data is dict
+    if dataIsArr then
+        int i = 0
+        while i < data.length do
+            var elem = data[i]
+            var r = {}
+            bool elemIsDict = elem is dict
+            if elemIsDict then
+                for k, v in elem
+                    string kk = string(k)
+                    r[kk] = v
+                    if not (kk in seen) then
+                        seen[kk] = true
+                        headers.append(kk)
+                    end
+                end
+            end
+            rows.append(r)
+            i = i + 1
+        end
+    elseif dataIsDict then
+        var r = {}
+        for k, v in data
+            string kk = string(k)
+            r[kk] = v
+            if not (kk in seen) then
+                seen[kk] = true
+                headers.append(kk)
+            end
+        end
+        rows.append(r)
+    end
+    gHeaders = headers
+    return rows
+end
+
+
+func loadDataFile(string fpath) as var
+    if not file.exists(fpath) then
+        println("datapipe: file not found: " + fpath)
+        return []
+    end
+    string text = file.readText(fpath)
+    string low = string.lower(fpath)
+    if string.endsWith(low, ".json") then
+        return loadJsonRows(text)
+    end
+    string delim = ","
+    if string.endsWith(low, ".tsv") then
+        delim = "\t"
+    end
+    return parseCsv(text, delim)
+end
+
+
+// ============================================================================
+// Operation handlers
+//   Each takes the current row-set + step config, returns the new row-set.
+//   Header order is maintained in gHeaders as a side effect.
+// ============================================================================
+
+func opSource(var step) as var
+    if "file" in step then
+        return loadDataFile(string(step["file"]))
+    end
+    if "data" in step then
+        var data = step["data"]
+        var rows = []
+        var headers = []
+        var seen = {}
+        bool dataIsArr = data is array
+        if dataIsArr then
+            int i = 0
+            while i < data.length do
+                var elem = data[i]
+                var r = {}
+                bool elemIsDict = elem is dict
+                if elemIsDict then
+                    for k, v in elem
+                        string kk = string(k)
+                        r[kk] = v
+                        if not (kk in seen) then
+                            seen[kk] = true
+                            headers.append(kk)
+                        end
+                    end
+                end
+                rows.append(r)
+                i = i + 1
+            end
+        end
+        gHeaders = headers
+        return rows
+    end
+    return []
+end
+
+
+func opFilter(var rows, var step) as var
+    var ast = parseFilter(string(step["expr"]))
+    var out = []
+    int i = 0
+    while i < rows.length do
+        bool keep = evalFilter(ast, rows[i])
+        if keep then
+            out.append(rows[i])
+        end
+        i = i + 1
+    end
+    return out
+end
+
+
+func opMap(var rows, var step) as var
+    bool hasFields = "fields" in step
+    bool hasCopy = "copy" in step
+    bool hasCompute = "compute" in step
+    bool hasRename = "rename" in step
+    bool hasDrop = "drop" in step
+
+    // pre-parse compute expressions once
+    var computeKeys = []
+    var computeAsts = []
+    if hasCompute then
+        var comp = step["compute"]
+        for k, v in comp
+            computeKeys.append(string(k))
+            computeAsts.append(parseCompute(string(v)))
+        end
+    end
+
+    // header pass (once)
+    if hasFields then
+        for k, v in step["fields"]
+            headerEnsure(string(k))
+        end
+    end
+    if hasCopy then
+        for k, v in step["copy"]
+            headerEnsure(string(k))
+        end
+    end
+    int ci2 = 0
+    while ci2 < computeKeys.length do
+        headerEnsure(string(computeKeys[ci2]))
+        ci2 = ci2 + 1
+    end
+    if hasRename then
+        for k, v in step["rename"]
+            headerRename(string(k), string(v))
+        end
+    end
+    if hasDrop then
+        for col in step["drop"]
+            headerRemove(string(col))
+        end
+    end
+
+    // row pass
+    var out = []
+    int i = 0
+    while i < rows.length do
+        var r = copyRow(rows[i])
+        if hasFields then
+            for k, v in step["fields"]
+                r[string(k)] = v
+            end
+        end
+        if hasCopy then
+            for k, v in step["copy"]
+                r[string(k)] = getCell(r, string(v))
+            end
+        end
+        if hasCompute then
+            int ci = 0
+            while ci < computeKeys.length do
+                string kn = string(computeKeys[ci])
+                float val = evalArith(computeAsts[ci], r)
+                r[kn] = fmtNum(val)
+                ci = ci + 1
+            end
+        end
+        if hasRename then
+            for k, v in step["rename"]
+                string oldn = string(k)
+                string newn = string(v)
+                if oldn in r then
+                    r[newn] = r[oldn]
+                    if oldn != newn then
+                        r.remove(oldn)
+                    end
+                end
+            end
+        end
+        if hasDrop then
+            for col in step["drop"]
+                string cn = string(col)
+                if cn in r then
+                    r.remove(cn)
+                end
+            end
+        end
+        out.append(r)
+        i = i + 1
+    end
+    return out
+end
+
+
+func parseAggSpec(string specRaw) as var
+    string spec = string.replace(specRaw, " ", "")
+    string up = string.upper(spec)
+    var info = {}
+    info["func"] = "COUNT"
+    info["arg"] = "*"
+    if up == "COUNT" or up == "COUNT(*)" then
+        return info
+    end
+    int lp = string.indexOf(up, "(")
+    int rp = string.lastIndexOf(up, ")")
+    if lp > 0 and rp > lp then
+        info["func"] = string.slice(up, 0, lp)
+        info["arg"] = string.slice(spec, lp + 1, rp - lp - 1)
+        return info
+    end
+    info["func"] = up
+    info["arg"] = "*"
+    return info
+end
+
+
+func opGroup(var rows, var step) as var
+    var byRaw = step["by"]
+    var byCols = []
+    bool byIsArr = byRaw is array
+    if byRaw != null then
+        if byIsArr then
+            for c in byRaw
+                byCols.append(string(c))
+            end
+        else
+            byCols.append(string(byRaw))
+        end
+    end
+
+    var aggRaw = step["agg"]
+    var aggNames = []
+    var aggSpecs = []
+    if aggRaw != null then
+        for k, v in aggRaw
+            aggNames.append(string(k))
+            aggSpecs.append(parseAggSpec(string(v)))
+        end
+    end
+
+    var groupOrder = []
+    var groups = {}
+    int ri = 0
+    while ri < rows.length do
+        var row = rows[ri]
+        string gkey = ""
+        var gvals = []
+        bool first = true
+        int bi = 0
+        while bi < byCols.length do
+            string cv = getCell(row, string(byCols[bi]))
+            gvals.append(cv)
+            if first then
+                first = false
+            else
+                gkey = gkey + "\x01"
+            end
+            gkey = gkey + cv
+            bi = bi + 1
+        end
+
+        var rec
+        if gkey in groups then
+            rec = groups[gkey]
+        else
+            rec = {}
+            rec["gvals"] = gvals
+            rec["count"] = 0
+            var sums = []
+            var ncnts = []
+            var ecnts = []
+            var mins = []
+            var maxs = []
+            int ai = 0
+            while ai < aggNames.length do
+                sums.append(0.0)
+                ncnts.append(0)
+                ecnts.append(0)
+                mins.append("")
+                maxs.append("")
+                ai = ai + 1
+            end
+            rec["sums"] = sums
+            rec["ncnts"] = ncnts
+            rec["ecnts"] = ecnts
+            rec["mins"] = mins
+            rec["maxs"] = maxs
+            groups[gkey] = rec
+            groupOrder.append(gkey)
+        end
+
+        rec["count"] = int(rec["count"]) + 1
+        var sums = rec["sums"]
+        var ncnts = rec["ncnts"]
+        var ecnts = rec["ecnts"]
+        var mins = rec["mins"]
+        var maxs = rec["maxs"]
+        int ai2 = 0
+        while ai2 < aggNames.length do
+            var sp = aggSpecs[ai2]
+            string fn = string(sp["func"])
+            string arg = string(sp["arg"])
+            if arg != "*" then
+                string cell = getCell(row, arg)
+                if not string.isEmpty(cell) then
+                    ecnts[ai2] = int(ecnts[ai2]) + 1
+                end
+                if isNumeric(cell) then
+                    float fv = float(cell)
+                    sums[ai2] = float(sums[ai2]) + fv
+                    ncnts[ai2] = int(ncnts[ai2]) + 1
+                end
+                if string(mins[ai2]) == "" then
+                    mins[ai2] = cell
+                elseif compareCells(cell, string(mins[ai2])) < 0 then
+                    mins[ai2] = cell
+                end
+                if string(maxs[ai2]) == "" then
+                    maxs[ai2] = cell
+                elseif compareCells(cell, string(maxs[ai2])) > 0 then
+                    maxs[ai2] = cell
+                end
+            end
+            ai2 = ai2 + 1
+        end
+        ri = ri + 1
+    end
+
+    // new headers: group cols then agg output names
+    var newHeaders = []
+    int bi2 = 0
+    while bi2 < byCols.length do
+        newHeaders.append(string(byCols[bi2]))
+        bi2 = bi2 + 1
+    end
+    int an = 0
+    while an < aggNames.length do
+        newHeaders.append(string(aggNames[an]))
+        an = an + 1
+    end
+    gHeaders = newHeaders
+
+    var out = []
+    int gi = 0
+    while gi < groupOrder.length do
+        string key = string(groupOrder[gi])
+        var rec = groups[key]
+        var orow = {}
+        int bi3 = 0
+        while bi3 < byCols.length do
+            orow[string(byCols[bi3])] = string(rec["gvals"][bi3])
+            bi3 = bi3 + 1
+        end
+        var sums = rec["sums"]
+        var ncnts = rec["ncnts"]
+        var ecnts = rec["ecnts"]
+        var mins = rec["mins"]
+        var maxs = rec["maxs"]
+        int cnt = int(rec["count"])
+        int ai3 = 0
+        while ai3 < aggNames.length do
+            var sp = aggSpecs[ai3]
+            string fn = string(sp["func"])
+            string arg = string(sp["arg"])
+            string outname = string(aggNames[ai3])
+            string val = ""
+            if fn == "COUNT" then
+                if arg == "*" then
+                    val = string(cnt)
+                else
+                    val = string(int(ecnts[ai3]))
+                end
+            elseif fn == "SUM" then
+                val = fmtNum(float(sums[ai3]))
+            elseif fn == "AVG" then
+                int c = int(ncnts[ai3])
+                if c > 0 then
+                    val = fmtNum(float(sums[ai3]) / float(c))
+                else
+                    val = "0"
+                end
+            elseif fn == "MIN" then
+                val = string(mins[ai3])
+            elseif fn == "MAX" then
+                val = string(maxs[ai3])
+            end
+            orow[outname] = val
+            ai3 = ai3 + 1
+        end
+        out.append(orow)
+        gi = gi + 1
+    end
+    return out
+end
+
+
+func cmpRows(var a, var b, var byCols, var descFlags) as int
+    int i = 0
+    while i < byCols.length do
+        string col = string(byCols[i])
+        int c = compareCells(getCell(a, col), getCell(b, col))
+        if bool(descFlags[i]) then
+            c = 0 - c
+        end
+        if c != 0 then
+            return c
+        end
+        i = i + 1
+    end
+    return 0
+end
+
+
+// iterative bottom-up merge sort (no recursion -> no GC pressure)
+func mergeSortRows(var arr, var byCols, var descFlags) as var
+    int nn = arr.length
+    if nn <= 1 then
+        return arr
+    end
+    var src = arr
+    int width = 1
+    while width < nn do
+        var dst = []
+        int idx = 0
+        while idx < nn do
+            int left = idx
+            int mid = idx + width
+            if mid > nn then
+                mid = nn
+            end
+            int right = idx + width + width
+            if right > nn then
+                right = nn
+            end
+            int p = left
+            int q = mid
+            while p < mid and q < right do
+                int c = cmpRows(src[p], src[q], byCols, descFlags)
+                if c <= 0 then
+                    dst.append(src[p])
+                    p = p + 1
+                else
+                    dst.append(src[q])
+                    q = q + 1
+                end
+            end
+            while p < mid do
+                dst.append(src[p])
+                p = p + 1
+            end
+            while q < right do
+                dst.append(src[q])
+                q = q + 1
+            end
+            idx = right
+        end
+        src = dst
+        width = width + width
+    end
+    return src
+end
+
+
+func opSort(var rows, var step) as var
+    var byRaw = step["by"]
+    if byRaw == null then
+        return rows
+    end
+    var byCols = []
+    bool byIsArr = byRaw is array
+    if byIsArr then
+        for c in byRaw
+            byCols.append(string(c))
+        end
+    else
+        byCols.append(string(byRaw))
+    end
+
+    var descRaw = step["desc"]
+    var descFlags = []
+    int bi = 0
+    while bi < byCols.length do
+        bool d = false
+        bool descIsArr = descRaw is array
+        if descIsArr then
+            if bi < descRaw.length then
+                d = bool(descRaw[bi])
+            end
+        else
+            if descRaw != null then
+                d = bool(descRaw)
+            end
+        end
+        descFlags.append(d)
+        bi = bi + 1
+    end
+    return mergeSortRows(rows, byCols, descFlags)
+end
+
+
+func opJoin(var rows, var step) as var
+    string rfile = string(step["file"])
+    string lcol = string(step["left"])
+    string rcol = string(step["right"])
+    string prefix = ""
+    if "prefix" in step then
+        prefix = string(step["prefix"])
+    end
+    string jtype = "inner"
+    if "type" in step then
+        jtype = string.lower(string(step["type"]))
+    end
+
+    var savedHeaders = gHeaders
+    var rrows = loadDataFile(rfile)
+    var rightHeaders = gHeaders
+    gHeaders = savedHeaders
+
+    // hash index: right-key -> array of right rows
+    var index = {}
+    int ri = 0
+    while ri < rrows.length do
+        string k = getCell(rrows[ri], rcol)
+        if k in index then
+            index[k].append(rrows[ri])
+        else
+            var lst = []
+            lst.append(rrows[ri])
+            index[k] = lst
+        end
+        ri = ri + 1
+    end
+
+    int hi = 0
+    while hi < rightHeaders.length do
+        string cn = string(rightHeaders[hi])
+        headerEnsure(prefix + cn)
+        hi = hi + 1
+    end
+
+    var out = []
+    int li = 0
+    while li < rows.length do
+        var lrow = rows[li]
+        string k = getCell(lrow, lcol)
+        bool matched = false
+        if k in index then
+            var lst = index[k]
+            int mj = 0
+            while mj < lst.length do
+                var merged = copyRow(lrow)
+                var rrow = lst[mj]
+                int ci = 0
+                while ci < rightHeaders.length do
+                    string cn = string(rightHeaders[ci])
+                    merged[prefix + cn] = getCell(rrow, cn)
+                    ci = ci + 1
+                end
+                out.append(merged)
+                matched = true
+                mj = mj + 1
+            end
+        end
+        if not matched and jtype == "left" then
+            var merged = copyRow(lrow)
+            int ci2 = 0
+            while ci2 < rightHeaders.length do
+                string cn = string(rightHeaders[ci2])
+                merged[prefix + cn] = ""
+                ci2 = ci2 + 1
+            end
+            out.append(merged)
+        end
+        li = li + 1
+    end
+    return out
+end
+
+
+// ============================================================================
+// Global operation registry
+//   xlang cannot store function values, so the registry is a name -> docs map
+//   used for validation/listing; runPipeline is the single dispatch site that
+//   binds each registered name to its handler.
+// ============================================================================
+
+var gOpRegistry = {}
+
+
+func initOps()
+    gOpRegistry = {}
+    gOpRegistry["source"] = "load data from {file | data:[...]}"
+    gOpRegistry["filter"] = "keep rows where expr is true"
+    gOpRegistry["map"] = "fields / copy / compute / rename / drop"
+    gOpRegistry["group"] = "group by cols + aggregate (COUNT/SUM/AVG/MIN/MAX)"
+    gOpRegistry["sort"] = "order by cols (asc/desc, multi-key)"
+    gOpRegistry["join"] = "merge another file on left=right (inner/left)"
+    gOpRegistry["sink"] = "declare output format"
+end
+
+
+func listOps()
+    println("registered operations:")
+    for name, desc in gOpRegistry
+        println("  " + string(name) + "  - " + string(desc))
+    end
+end
+
+
+// ============================================================================
+// Output formatters
+// ============================================================================
+
+func csvQuote(string s) as string
+    bool need = string.contains(s, ",") or string.contains(s, "\"") or string.contains(s, "\n") or string.contains(s, "\r") or string.contains(s, "\t")
+    if not need then
+        return s
+    end
+    string escaped = string.replace(s, "\"", "\"\"")
+    return "\"" + escaped + "\""
+end
+
+
+func jsonEscape(string s) as string
+    string out = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        if c == "\"" then
+            out = out + "\\\""
+        elseif c == "\\" then
+            out = out + "\\\\"
+        elseif c == "\n" then
+            out = out + "\\n"
+        elseif c == "\r" then
+            out = out + "\\r"
+        elseif c == "\t" then
+            out = out + "\\t"
+        else
+            out = out + c
+        end
+        i = i + 1
+    end
+    return out
+end
+
+
+func formatCsv(var headers, var grid, string delim) as string
+    string out = ""
+    int h = 0
+    while h < headers.length do
+        if h > 0 then
+            out = out + delim
+        end
+        out = out + csvQuote(string(headers[h]))
+        h = h + 1
+    end
+    out = out + "\n"
+    int r = 0
+    while r < grid.length do
+        var row = grid[r]
+        int c = 0
+        while c < row.length do
+            if c > 0 then
+                out = out + delim
+            end
+            out = out + csvQuote(string(row[c]))
+            c = c + 1
+        end
+        out = out + "\n"
+        r = r + 1
+    end
+    return out
+end
+
+
+func prettyJson(string compact) as string
+    string out = ""
+    int n = string.len(compact)
+    int indent = 0
+    bool inStr = false
+    int i = 0
+    while i < n do
+        string c = string.charAt(compact, i)
+        if inStr then
+            out = out + c
+            if c == "\\" then
+                if i + 1 < n then
+                    out = out + string.charAt(compact, i + 1)
+                    i = i + 2
+                    continue
+                end
+            end
+            if c == "\"" then
+                inStr = false
+            end
+            i = i + 1
+            continue
+        end
+        if c == "\"" then
+            inStr = true
+            out = out + c
+            i = i + 1
+            continue
+        elseif c == "{" or c == "[" then
+            out = out + c
+            if i + 1 < n then
+                string nc = string.charAt(compact, i + 1)
+                if nc != "}" and nc != "]" then
+                    indent = indent + 1
+                    out = out + "\n" + string.repeat("  ", indent)
+                end
+            end
+            i = i + 1
+            continue
+        elseif c == "}" or c == "]" then
+            if i - 1 >= 0 then
+                string pc = string.charAt(compact, i - 1)
+                if pc != "{" and pc != "[" then
+                    indent = indent - 1
+                    out = out + "\n" + string.repeat("  ", indent)
+                end
+            end
+            out = out + c
+            i = i + 1
+            continue
+        elseif c == "," then
+            out = out + c
+            out = out + "\n" + string.repeat("  ", indent)
+            i = i + 1
+            continue
+        elseif c == ":" then
+            out = out + ": "
+            i = i + 1
+            continue
+        else
+            out = out + c
+            i = i + 1
+            continue
+        end
+    end
+    return out
+end
+
+
+// build compact JSON text preserving header order, then pretty-print
+func formatJson(var headers, var grid) as string
+    string compact = "["
+    int r = 0
+    while r < grid.length do
+        var row = grid[r]
+        if r > 0 then
+            compact = compact + ","
+        end
+        compact = compact + "{"
+        int c = 0
+        while c < headers.length do
+            if c > 0 then
+                compact = compact + ","
+            end
+            compact = compact + "\"" + jsonEscape(string(headers[c])) + "\":\"" + jsonEscape(string(row[c])) + "\""
+            c = c + 1
+        end
+        compact = compact + "}"
+        r = r + 1
+    end
+    compact = compact + "]"
+    return prettyJson(compact)
+end
+
+
+func formatTable(var headers, var grid) as string
+    int nc = headers.length
+    var widths = []
+    int ci = 0
+    while ci < nc do
+        widths.append(string.len(string(headers[ci])))
+        ci = ci + 1
+    end
+    int r = 0
+    while r < grid.length do
+        var row = grid[r]
+        int c = 0
+        while c < nc and c < row.length do
+            int wl = string.len(string(row[c]))
+            if wl > int(widths[c]) then
+                widths[c] = wl
+            end
+            c = c + 1
+        end
+        r = r + 1
+    end
+    string sep = ""
+    int c2 = 0
+    while c2 < nc do
+        if c2 > 0 then
+            sep = sep + "+"
+        end
+        sep = sep + string.repeat("-", int(widths[c2]) + 2)
+        c2 = c2 + 1
+    end
+    string out = sep + "\n"
+    int c3 = 0
+    while c3 < nc do
+        if c3 > 0 then
+            out = out + "|"
+        end
+        out = out + " " + string.padRight(string(headers[c3]), int(widths[c3])) + " "
+        c3 = c3 + 1
+    end
+    out = out + "\n" + sep + "\n"
+    int r2 = 0
+    while r2 < grid.length do
+        var row = grid[r2]
+        int c4 = 0
+        while c4 < nc do
+            if c4 > 0 then
+                out = out + "|"
+            end
+            string cellv = ""
+            if c4 < row.length then
+                cellv = string(row[c4])
+            end
+            out = out + " " + string.padRight(cellv, int(widths[c4])) + " "
+            c4 = c4 + 1
+        end
+        out = out + "\n"
+        r2 = r2 + 1
+    end
+    out = out + sep + "\n"
+    return out
+end
+
+
+func formatOutput(string fmt) as string
+    var grid = []
+    int ri = 0
+    while ri < gRows.length do
+        var row = gRows[ri]
+        var line = []
+        int ci = 0
+        while ci < gHeaders.length do
+            line.append(getCell(row, string(gHeaders[ci])))
+            ci = ci + 1
+        end
+        grid.append(line)
+        ri = ri + 1
+    end
+    if fmt == "json" then
+        return formatJson(gHeaders, grid)
+    end
+    if fmt == "csv" then
+        return formatCsv(gHeaders, grid, ",")
+    end
+    if fmt == "tsv" then
+        return formatCsv(gHeaders, grid, "\t")
+    end
+    return formatTable(gHeaders, grid)
+end
+
+
+// ============================================================================
+// Pipeline runner
+// ============================================================================
+
+func resetState()
+    gHeaders = []
+    gRows = []
+    gFormat = ""
+    gFormatOverride = ""
+    gTok = []
+    gTokPos = 0
+end
+
+
+func runPipeline(var pipeline, var rows) as string
+    var steps = pipeline["steps"]
+    if steps == null then
+        return "error: pipeline has no 'steps' array"
+    end
+    bool stepsOk = steps is array
+    if not stepsOk then
+        return "error: 'steps' must be an array"
+    end
+
+    string sinkFormat = ""
+    int si = 0
+    while si < steps.length do
+        var step = steps[si]
+        string op = string(step["op"])
+        if op == "source" then
+            rows = opSource(step)
+        elseif op == "filter" then
+            rows = opFilter(rows, step)
+        elseif op == "map" then
+            rows = opMap(rows, step)
+        elseif op == "group" then
+            rows = opGroup(rows, step)
+        elseif op == "sort" then
+            rows = opSort(rows, step)
+        elseif op == "join" then
+            rows = opJoin(rows, step)
+        elseif op == "sink" then
+            if "format" in step then
+                sinkFormat = string.lower(string(step["format"]))
+            end
+        else
+            println("datapipe: warning: unknown op '" + op + "'")
+        end
+        si = si + 1
+    end
+
+    gRows = rows
+    string fmt = ""
+    if not string.isEmpty(gFormatOverride) then
+        fmt = gFormatOverride
+    elseif not string.isEmpty(sinkFormat) then
+        fmt = sinkFormat
+    else
+        fmt = "table"
+    end
+    gFormat = fmt
+    return formatOutput(fmt)
+end
+
+
+func executeRun(string pipePath, string inputPath, string fmtOverride) as string
+    resetState()
+    if not file.exists(pipePath) then
+        return "error: pipeline file not found: " + pipePath
+    end
+    string ptext = file.readText(pipePath)
+    if not json.valid(ptext) then
+        return "error: pipeline JSON invalid: " + pipePath
+    end
+    var pipeline = json.parse(ptext)
+    var rows = []
+    gHeaders = []
+    if not string.isEmpty(inputPath) then
+        rows = loadDataFile(inputPath)
+    end
+    gFormatOverride = fmtOverride
+    return runPipeline(pipeline, rows)
+end
+
+
+// ============================================================================
+// Self-test
+// ============================================================================
+
+int gPass = 0
+int gFail = 0
+
+
+func check(bool cond, string label)
+    if cond then
+        gPass = gPass + 1
+        println("  [ PASS ] " + label)
+    else
+        gFail = gFail + 1
+        println("  [ FAIL ] " + label)
+    end
+end
+
+
+func firstLine(string s) as string
+    int nl = string.indexOf(s, "\n")
+    if nl < 0 then
+        return s
+    end
+    return string.slice(s, 0, nl)
+end
+
+
+func testParse()
+    println("[source] CSV parsing: quotes, escapes, cross-line fields")
+    resetState()
+    string t = "a,b,c\n1,2,3\n\"x,y\",\"he said \"\"hi\"\"\",\"z\"\n"
+    var rows = parseCsv(t, ",")
+    check(gHeaders.length == 3, "3 headers  got=" + string(gHeaders.length))
+    check(string(gHeaders[0]) == "a", "header a")
+    check(rows.length == 2, "row count == 2  got=" + string(rows.length))
+    check(getCell(rows[0], "a") == "1", "r0 a=1")
+    check(getCell(rows[1], "a") == "x,y", "quoted comma field")
+    check(getCell(rows[1], "b") == "he said \"hi\"", "escaped quote field")
+end
+
+
+func testJsonLoad()
+    println("[source] JSON loading (array of objects)")
+    resetState()
+    string t = "[{\"name\":\"Alice\",\"age\":30},{\"name\":\"Bob\",\"age\":25}]"
+    var rows = loadJsonRows(t)
+    check(rows.length == 2, "2 rows  got=" + string(rows.length))
+    check(getCell(rows[0], "name") == "Alice", "json name Alice")
+    check(getCell(rows[0], "age") == "30", "json age 30 -> string")
+    check(getCell(rows[1], "name") == "Bob", "json name Bob")
+end
+
+
+func testFilter()
+    println("[filter] comparison + AND/OR + parentheses")
+    var headers = ["name", "age", "dept"]
+    var data = [
+        ["Alice", "30", "eng"],
+        ["Bob", "25", "eng"],
+        ["Carol", "40", "sales"]
+    ]
+    gHeaders = headers
+    var rows = buildRows(headers, data)
+
+    var s1 = {}
+    s1["op"] = "filter"
+    s1["expr"] = "age > 28"
+    var r1 = opFilter(rows, s1)
+    check(r1.length == 2, "age>28 -> 2 rows  got=" + string(r1.length))
+    check(getCell(r1[0], "name") == "Alice", "first is Alice")
+    check(getCell(r1[1], "name") == "Carol", "second is Carol")
+
+    var s2 = {}
+    s2["op"] = "filter"
+    s2["expr"] = "dept = \"eng\" AND age >= 30"
+    var r2 = opFilter(rows, s2)
+    check(r2.length == 1, "eng AND age>=30 -> 1  got=" + string(r2.length))
+    check(getCell(r2[0], "name") == "Alice", "only Alice")
+
+    var s3 = {}
+    s3["op"] = "filter"
+    s3["expr"] = "age < 26 OR age > 38"
+    var r3 = opFilter(rows, s3)
+    check(r3.length == 2, "OR -> 2  got=" + string(r3.length))
+
+    var s4 = {}
+    s4["op"] = "filter"
+    s4["expr"] = "(age > 20 AND age < 35) OR dept = \"sales\""
+    var r4 = opFilter(rows, s4)
+    check(r4.length == 3, "paren expr -> 3  got=" + string(r4.length))
+
+    var s5 = {}
+    s5["op"] = "filter"
+    s5["expr"] = "dept != \"eng\""
+    var r5 = opFilter(rows, s5)
+    check(r5.length == 1, "!= eng -> 1  got=" + string(r5.length))
+    check(getCell(r5[0], "name") == "Carol", "Carol only")
+end
+
+
+func testMap()
+    println("[map] fields / copy / compute / rename / drop")
+    var headers = ["name", "age", "salary"]
+    var data = [["Alice", "30", "100"], ["Bob", "25", "90"]]
+    gHeaders = headers
+    var rows = buildRows(headers, data)
+
+    var s1 = {}
+    s1["op"] = "map"
+    var flds = {}
+    flds["category"] = "adult"
+    flds["bonus"] = 50
+    s1["fields"] = flds
+    var comp = {}
+    comp["total"] = "salary + bonus"
+    s1["compute"] = comp
+    var r1 = opMap(rows, s1)
+    check(getCell(r1[0], "category") == "adult", "fields constant string")
+    check(getCell(r1[0], "bonus") == "50", "fields numeric -> string")
+    check(getCell(r1[0], "total") == "150", "compute salary+bonus=150  got=" + getCell(r1[0], "total"))
+    check(getCell(r1[1], "total") == "140", "compute bob 90+50=140  got=" + getCell(r1[1], "total"))
+
+    // copy then arithmetic chain
+    gHeaders = ["v"]
+    var rows2 = buildRows(gHeaders, [["10"]])
+    var s2 = {}
+    s2["op"] = "map"
+    var cp = {}
+    cp["doubled"] = "v"
+    s2["copy"] = cp
+    var comp2 = {}
+    comp2["quad"] = "doubled * 2 + 1"
+    s2["compute"] = comp2
+    var r2 = opMap(rows2, s2)
+    check(getCell(r2[0], "doubled") == "10", "copy v->doubled")
+    check(getCell(r2[0], "quad") == "21", "compute 10*2+1=21  got=" + getCell(r2[0], "quad"))
+
+    // rename + drop
+    gHeaders = ["name", "age", "salary"]
+    var rows3 = buildRows(gHeaders, [["Alice", "30", "100"]])
+    var s3 = {}
+    s3["op"] = "map"
+    var rn = {}
+    rn["salary"] = "wage"
+    s3["rename"] = rn
+    s3["drop"] = ["age"]
+    var r3 = opMap(rows3, s3)
+    check(getCell(r3[0], "wage") == "100", "rename salary->wage")
+    check(getCell(r3[0], "salary") == "", "old salary removed from row")
+    check(getCell(r3[0], "age") == "", "dropped age")
+    bool hasWage = false
+    bool hasAge = false
+    int hi = 0
+    while hi < gHeaders.length do
+        if string(gHeaders[hi]) == "wage" then hasWage = true end
+        if string(gHeaders[hi]) == "age" then hasAge = true end
+        hi = hi + 1
+    end
+    check(hasWage, "header wage present")
+    check(not hasAge, "header age removed")
+end
+
+
+func testGroup()
+    println("[group] COUNT / SUM / AVG / MIN / MAX")
+    var headers = ["name", "dept", "salary", "age"]
+    var data = [
+        ["Alice", "eng", "100", "30"],
+        ["Bob", "eng", "90", "25"],
+        ["Carol", "sales", "200", "40"],
+        ["Dave", "sales", "180", "35"]
+    ]
+    gHeaders = headers
+    var rows = buildRows(headers, data)
+
+    var s1 = {}
+    s1["op"] = "group"
+    s1["by"] = "dept"
+    var agg = {}
+    agg["cnt"] = "COUNT"
+    agg["total_sal"] = "SUM(salary)"
+    agg["avg_age"] = "AVG(age)"
+    agg["min_age"] = "MIN(age)"
+    agg["max_sal"] = "MAX(salary)"
+    s1["agg"] = agg
+    var r1 = opGroup(rows, s1)
+    check(r1.length == 2, "two groups  got=" + string(r1.length))
+    var eng = r1[0]
+    if getCell(r1[1], "dept") == "eng" then
+        eng = r1[1]
+    end
+    check(getCell(eng, "dept") == "eng", "group key eng")
+    check(getCell(eng, "cnt") == "2", "eng count 2")
+    check(getCell(eng, "total_sal") == "190", "eng sum salary 190  got=" + getCell(eng, "total_sal"))
+    check(getCell(eng, "avg_age") == "27.5", "eng avg age 27.5  got=" + getCell(eng, "avg_age"))
+    check(getCell(eng, "min_age") == "25", "eng min age 25")
+    check(getCell(eng, "max_sal") == "100", "eng max salary 100")
+
+    // whole-table aggregate (no by)
+    gHeaders = headers
+    var rows2 = buildRows(headers, data)
+    var s2 = {}
+    s2["op"] = "group"
+    var agg2 = {}
+    agg2["n"] = "COUNT"
+    agg2["sumage"] = "SUM(age)"
+    s2["agg"] = agg2
+    var r2 = opGroup(rows2, s2)
+    check(r2.length == 1, "whole-table -> 1 row  got=" + string(r2.length))
+    check(getCell(r2[0], "n") == "4", "total count 4")
+    check(getCell(r2[0], "sumage") == "130", "total sum age 130")
+
+    // COUNT(col) counts non-empty
+    gHeaders = ["k", "v"]
+    var rows3 = buildRows(gHeaders, [["a", "1"], ["a", ""], ["a", "3"]])
+    var s3 = {}
+    s3["op"] = "group"
+    s3["by"] = "k"
+    var agg3 = {}
+    agg3["all"] = "COUNT"
+    agg3["filled"] = "COUNT(v)"
+    s3["agg"] = agg3
+    var r3 = opGroup(rows3, s3)
+    check(getCell(r3[0], "all") == "3", "COUNT == 3")
+    check(getCell(r3[0], "filled") == "2", "COUNT(v) non-empty == 2  got=" + getCell(r3[0], "filled"))
+end
+
+
+func testSort()
+    println("[sort] asc / desc / multi-key stable")
+    var headers = ["name", "age", "dept"]
+    var data = [["A", "30", "eng"], ["B", "25", "eng"], ["C", "40", "sales"], ["D", "25", "sales"]]
+    gHeaders = headers
+    var rows = buildRows(headers, data)
+
+    var sAsc = {}
+    sAsc["op"] = "sort"
+    sAsc["by"] = "age"
+    sAsc["desc"] = false
+    var rAsc = opSort(rows, sAsc)
+    check(getCell(rAsc[0], "age") == "25", "asc first age 25")
+    check(getCell(rAsc[rAsc.length - 1], "age") == "40", "asc last age 40")
+
+    var sDesc = {}
+    sDesc["op"] = "sort"
+    sDesc["by"] = "age"
+    sDesc["desc"] = true
+    var rDesc = opSort(rows, sDesc)
+    check(getCell(rDesc[0], "age") == "40", "desc first age 40")
+    check(getCell(rDesc[rDesc.length - 1], "age") == "25", "desc last age 25")
+
+    // multi-key: dept asc, age desc
+    var sMulti = {}
+    sMulti["op"] = "sort"
+    sMulti["by"] = ["dept", "age"]
+    sMulti["desc"] = [false, true]
+    var rMulti = opSort(rows, sMulti)
+    check(getCell(rMulti[0], "dept") == "eng", "multi first dept eng")
+    check(getCell(rMulti[0], "age") == "30", "multi eng first age 30 (desc)")
+    check(getCell(rMulti[rMulti.length - 1], "dept") == "sales", "multi last dept sales")
+    check(getCell(rMulti[rMulti.length - 1], "age") == "25", "multi sales last age 25 (desc)")
+end
+
+
+func testJoin(string tmpDir)
+    println("[join] inner + left, hash-indexed")
+    string rpath = path.join(tmpDir, "_dp_dept.csv")
+    file.writeText(rpath, "dept_id,dept_name,budget\n10,Engineering,1000\n20,Sales,500\n")
+
+    var headers = ["id", "name", "dept_id"]
+    var data = [["1", "Alice", "10"], ["2", "Bob", "20"], ["3", "Carol", "10"], ["4", "Dave", "99"]]
+    gHeaders = headers
+    var rows = buildRows(headers, data)
+
+    var s1 = {}
+    s1["op"] = "join"
+    s1["file"] = rpath
+    s1["left"] = "dept_id"
+    s1["right"] = "dept_id"
+    s1["prefix"] = "d_"
+    var r1 = opJoin(rows, s1)
+    check(r1.length == 3, "inner join -> 3 matched  got=" + string(r1.length))
+    check(getCell(r1[0], "name") == "Alice", "first matched Alice")
+    check(getCell(r1[0], "d_dept_name") == "Engineering", "Alice -> Engineering")
+    check(getCell(r1[0], "d_budget") == "1000", "Alice budget 1000")
+
+    gHeaders = headers
+    var rows2 = buildRows(headers, data)
+    var s2 = {}
+    s2["op"] = "join"
+    s2["file"] = rpath
+    s2["left"] = "dept_id"
+    s2["right"] = "dept_id"
+    s2["prefix"] = "d_"
+    s2["type"] = "left"
+    var r2 = opJoin(rows2, s2)
+    check(r2.length == 4, "left join -> 4 rows  got=" + string(r2.length))
+    check(getCell(r2[r2.length - 1], "name") == "Dave", "left join last is Dave")
+    check(getCell(r2[r2.length - 1], "d_dept_name") == "", "Dave unmatched -> empty right cols")
+
+    file.delete(rpath)
+end
+
+
+func testSink()
+    println("[sink] output formats csv / json / table")
+    gHeaders = ["name", "age"]
+    gRows = buildRows(gHeaders, [["Alice", "30"], ["Bob", "25"]])
+
+    string csv = formatOutput("csv")
+    check(string.contains(csv, "name,age"), "csv header")
+    check(string.contains(csv, "Alice,30"), "csv row Alice")
+
+    string js = formatOutput("json")
+    check(string.contains(js, "\"name\""), "json name key")
+    check(string.contains(js, "\"Alice\""), "json alice value")
+
+    string tbl = formatOutput("table")
+    check(string.contains(tbl, "Alice"), "table has Alice")
+    check(string.contains(tbl, "-+-") or string.contains(tbl, "----"), "table separator present")
+end
+
+
+func testEnd2End(string tmpDir)
+    println("[e2e] pipeline.json end-to-end (filter -> map -> group -> sort -> sink)")
+    string pipePath = path.join(tmpDir, "_dp_pipe.json")
+    string inPath = path.join(tmpDir, "_dp_in.csv")
+    string pipeJson = "{\"steps\":["
+    pipeJson = pipeJson + "{\"op\":\"filter\",\"expr\":\"age > 25\"},"
+    pipeJson = pipeJson + "{\"op\":\"map\",\"fields\":{\"tag\":\"senior\"}},"
+    pipeJson = pipeJson + "{\"op\":\"group\",\"by\":\"dept\",\"agg\":{\"cnt\":\"COUNT\",\"avg_age\":\"AVG(age)\"}},"
+    pipeJson = pipeJson + "{\"op\":\"sort\",\"by\":\"avg_age\",\"desc\":true},"
+    pipeJson = pipeJson + "{\"op\":\"sink\",\"format\":\"csv\"}"
+    pipeJson = pipeJson + "]}"
+    file.writeText(pipePath, pipeJson)
+    file.writeText(inPath, "name,age,dept\nAlice,30,eng\nBob,25,eng\nCarol,40,sales\nDave,35,sales\n")
+
+    string out = executeRun(pipePath, inPath, "")
+    check(string.contains(out, "dept,cnt,avg_age"), "e2e csv header  first line: " + firstLine(out))
+    // filter age>25 keeps Alice(30),Carol(40),Dave(35); eng={Alice} cnt1 avg30; sales={Carol,Dave} cnt2 avg37.5
+    check(string.contains(out, "sales,2,37.5"), "e2e sales row  got=" + out)
+    check(string.contains(out, "eng,1,30"), "e2e eng row  got=" + out)
+
+    // format override on CLI beats sink
+    string outJson = executeRun(pipePath, inPath, "json")
+    check(string.contains(outJson, "\"avg_age\""), "override to json works")
+
+    file.delete(pipePath)
+    file.delete(inPath)
+end
+
+
+func testStress()
+    println("[stress] 3000 rows: parse -> filter -> map(compute) -> group -> sort")
+    string t = "id,dept,val\n"
+    int i = 0
+    while i < 3000 do
+        string dp = "eng"
+        if i - (i / 2) * 2 == 0 then
+            dp = "sales"
+        end
+        t = t + string(i) + "," + dp + "," + string(i * 3) + "\n"
+        i = i + 1
+    end
+    resetState()
+    var rows = parseCsv(t, ",")
+    check(rows.length == 3000, "parsed 3000 rows  got=" + string(rows.length))
+
+    var fstep = {}
+    fstep["op"] = "filter"
+    fstep["expr"] = "val > 5000"
+    rows = opFilter(rows, fstep)
+    check(rows.length > 0, "filter kept rows  got=" + string(rows.length))
+
+    var mstep = {}
+    mstep["op"] = "map"
+    var mc = {}
+    mc["dbl"] = "val * 2"
+    mstep["compute"] = mc
+    rows = opMap(rows, mstep)
+    check(getCell(rows[0], "dbl") != "", "compute produced dbl column")
+
+    var gstep = {}
+    gstep["op"] = "group"
+    gstep["by"] = "dept"
+    var ga = {}
+    ga["cnt"] = "COUNT"
+    ga["sumval"] = "SUM(val)"
+    ga["avgdbl"] = "AVG(dbl)"
+    gstep["agg"] = ga
+    rows = opGroup(rows, gstep)
+    check(rows.length == 2, "group -> 2 depts  got=" + string(rows.length))
+
+    var sstep = {}
+    sstep["op"] = "sort"
+    sstep["by"] = "sumval"
+    sstep["desc"] = true
+    rows = opSort(rows, sstep)
+    check(rows.length == 2, "sorted 2 groups")
+    float s0 = float(getCell(rows[0], "sumval"))
+    float s1 = float(getCell(rows[1], "sumval"))
+    check(s0 >= s1, "sort desc: sumval[0]>=sumval[1]  got " + string(s0) + " vs " + string(s1))
+    println("  stress ok: top dept sumval=" + getCell(rows[0], "sumval") + "  cnt=" + getCell(rows[0], "cnt"))
+end
+
+
+func runSelfTest(string scriptPath) as int
+    println("")
+    println("================ datapipe self-test ================")
+    string tmpDir = path.dir(scriptPath)
+    testParse()
+    testJsonLoad()
+    testFilter()
+    testMap()
+    testGroup()
+    testSort()
+    testJoin(tmpDir)
+    testSink()
+    testEnd2End(tmpDir)
+    testStress()
+    println("")
+    println("------------------- summary -------------------")
+    println("passed: " + string(gPass) + " / " + string(gPass + gFail))
+    println("failed: " + string(gFail))
+    println("")
+    if gFail > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ============================================================================
+// main
+// ============================================================================
+
+func printUsage()
+    println("Usage:")
+    println("  datapipe run <pipeline.json> [input.csv|input.json] [csv|json|table|tsv]")
+    println("  datapipe test")
+    println("  datapipe ops")
+    println("")
+    println("Pipeline stages (applied in the order listed):")
+    println("  source  load data from {file | data:[...]}")
+    println("  filter  keep rows where 'expr' is true  (= != > >= < <=, AND/OR, parentheses)")
+    println("  map     fields / copy / compute(+ - * /) / rename / drop")
+    println("  group   group by cols + aggregate (COUNT / SUM / AVG / MIN / MAX)")
+    println("  sort    order by cols (asc/desc, multi-key)")
+    println("  join    merge another file on left=right key (inner/left, prefix)")
+    println("  sink    declare output format")
+    println("")
+    println("Example pipeline.json:")
+    println("  {\"steps\":[")
+    println("    {\"op\":\"filter\", \"expr\":\"age > 25\"},")
+    println("    {\"op\":\"map\", \"fields\":{\"category\":\"senior\"}},")
+    println("    {\"op\":\"group\", \"by\":\"dept\", \"agg\":{\"cnt\":\"COUNT\",\"avg\":\"AVG(salary)\"}},")
+    println("    {\"op\":\"sort\", \"by\":\"avg\", \"desc\":true},")
+    println("    {\"op\":\"sink\", \"format\":\"csv\"}")
+    println("  ]}")
+end
+
+
+func main(...) as int
+    println("xlang datapipe - composable data pipeline (Source -> Filter -> Map -> Reduce -> Sink)")
+    println("")
+    initOps()
+
+    if arg.length < 2 then
+        return runSelfTest(string(arg[0]))
+    end
+
+    string mode = string.lower(string(arg[1]))
+
+    if mode == "test" then
+        return runSelfTest(string(arg[0]))
+    end
+
+    if mode == "ops" then
+        listOps()
+        return 0
+    end
+
+    if mode == "run" then
+        if arg.length < 3 then
+            println("Error: run requires <pipeline.json>")
+            printUsage()
+            return 1
+        end
+        string pipePath = string(arg[2])
+        string inputPath = ""
+        if arg.length >= 4 then
+            inputPath = string(arg[3])
+        end
+        string fmtOverride = ""
+        if arg.length >= 5 then
+            fmtOverride = string.lower(string(arg[4]))
+        end
+        string out = executeRun(pipePath, inputPath, fmtOverride)
+        println(out)
+        return 0
+    end
+
+    if mode == "-h" or mode == "--help" or mode == "help" then
+        printUsage()
+        return 0
+    end
+
+    println("Error: unknown mode '" + mode + "'")
+    printUsage()
+    return 1
+end

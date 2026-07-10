@@ -84,7 +84,7 @@ static XL6_AstNode* xl6CgenResolveCallFuncInternal(
         xl6AstFree(fixedArgs);
         xl6AstFree(varargArgs);
         if ( report ) {
-            xl6CgenError(ctx, call, "閲嶈浇璋冪敤瀛樺湪姝т箟锛屽綋鍓?C 鐢熸垚鏃犳硶閫夋嫨鍞竴鍑芥暟");
+            xl6CgenError(ctx, call, "重载调用存在歧义，C 生成无法选择唯一函数");
         }
         return NULL;
     }
@@ -101,7 +101,7 @@ static XL6_AstNode* xl6CgenResolveCallFuncInternal(
     xl6AstFree(varargArgs);
     if ( varargBestCount > 1 ) {
         if ( report ) {
-            xl6CgenError(ctx, call, "閲嶈浇璋冪敤瀛樺湪姝т箟锛屽綋鍓?C 鐢熸垚鏃犳硶閫夋嫨鍞竴鍑芥暟");
+            xl6CgenError(ctx, call, "重载调用存在歧义，C 生成无法选择唯一函数");
         }
     } else if ( report ) {
         xl6CgenError(ctx, call, "找不到匹配的重载函数");
@@ -193,7 +193,7 @@ static XL6_AstNode* xl6CgenResolveExplicitGenericCallFunc(
         if ( varargBestCount > 1 ) {
             xl6CgenError(ctx, call, "鏄惧紡娉涘瀷函数调用存在重载歧义");
         } else {
-            xl6CgenError(ctx, call, "鎵句笉鍒板尮閰嶇殑鏄惧紡娉涘瀷鍑芥暟閲嶈浇");
+            xl6CgenError(ctx, call, "找不到匹配的显式泛型函数重载");
         }
     }
     return NULL;
@@ -270,14 +270,14 @@ static XL6_AstNode* xl6CgenResolveCallFunc(XL6_CgenContext* ctx, const XL6_AstNo
         return fixedMatch;
     }
     if ( fixedBestCount > 1 ) {
-        xl6CgenError(ctx, call, "閲嶈浇璋冪敤瀛樺湪姝т箟锛屽綋鍓?C 鐢熸垚鏃犳硶閫夋嫨鍞竴鍑芥暟");
+        xl6CgenError(ctx, call, "重载调用存在歧义，C 生成无法选择唯一函数");
         return NULL;
     }
     if ( varargBestCount == 1 ) {
         return varargMatch;
     }
     if ( varargBestCount > 1 ) {
-        xl6CgenError(ctx, call, "閲嶈浇璋冪敤瀛樺湪姝т箟锛屽綋鍓?C 鐢熸垚鏃犳硶閫夋嫨鍞竴鍑芥暟");
+        xl6CgenError(ctx, call, "重载调用存在歧义，C 生成无法选择唯一函数");
     } else {
         xl6CgenError(ctx, call, "找不到匹配的重载函数");
     }
@@ -325,9 +325,10 @@ static const XL6_AstNode* xl6CgenResolveCallableInBodyMode(
         int kindMatches;
 
         /*
-            class 璋冪敤瑙ｆ瀽闇€瑕佹妸鏅€氭垚鍛樸€佸鍑烘垚鍛樺拰 native-backed class
-            鐨?extern 鎴愬憳瑙嗕负鍚屼竴缁勫彲璋冪敤鍊欓€夈€傝繖閲岀殑 alias 鏄粺涓€
-            class 鍩哄骇鍚庣殑鎴愬憳褰㈡€佸綊涓€锛屼笉鏄棫 custom 璇硶鍏煎銆?        */
+            class 调用解析需要把普通成员、导出成员和 native-backed class
+            的 extern 成员视为同一组可调用候选。这里的 alias 用于统一
+            class 基座后的成员形态，不是旧 custom 语法兼容。
+        */
         kindMatches = member != NULL &&
                       (member->kind == kind ||
                        (includeClassCallableAliases &&
@@ -375,16 +376,16 @@ static const XL6_AstNode* xl6CgenResolveCallableInBodyMode(
         return fixedMatch;
     }
     if ( fixedBestCount > 1 ) {
-        xl6CgenError(ctx, call, "鎴愬憳璋冪敤瀛樺湪閲嶈浇姝т箟锛屽綋鍓?C 鐢熸垚鏃犳硶閫夋嫨鍞竴鎴愬憳");
+        xl6CgenError(ctx, call, "成员调用存在重载歧义，C 生成无法选择唯一成员");
         return NULL;
     }
     if ( varargBestCount == 1 ) {
         return varargMatch;
     }
     if ( varargBestCount > 1 ) {
-        xl6CgenError(ctx, call, "鎴愬憳璋冪敤瀛樺湪閲嶈浇姝т箟锛屽綋鍓?C 鐢熸垚鏃犳硶閫夋嫨鍞竴鎴愬憳");
+        xl6CgenError(ctx, call, "成员调用存在重载歧义，C 生成无法选择唯一成员");
     } else if ( candidateCount > 0 && reportNoMatch ) {
-        xl6CgenError(ctx, call, "鎵句笉鍒板尮閰嶇殑鎴愬憳閲嶈浇");
+        xl6CgenError(ctx, call, "找不到匹配的成员重载");
     }
     return NULL;
 }

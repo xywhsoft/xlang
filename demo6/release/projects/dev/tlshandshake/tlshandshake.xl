@@ -1,0 +1,873 @@
+// tlshandshake - TLS 1.2 handshake state machine simulator
+//
+// Usage:
+//   tlshandshake simulate    Full TLS 1.2 handshake (all 8 messages + key derivation)
+//   tlshandshake resume      Session resumption demo (full handshake then abbreviated)
+//   tlshandshake test        Run assertion suite
+//
+// Simulates the TLS 1.2 handshake message flow and state transitions WITHOUT
+// performing real network I/O or public-key cryptography. Key material is derived
+// via a faithful PRF (RFC 5246 P_hash / HMAC-SHA256) built on crypto.hmacSha256,
+// producing deterministic demonstration values.
+//
+// State machine (class hierarchy):
+//   HandshakeState (abstract base: virtual name/typeNum/abbr/direction/describe)
+//     -> ClientHelloState
+//     -> ServerHelloState
+//     -> CertificateState
+//     -> ServerKeyExchangeState
+//     -> ServerHelloDoneState
+//     -> ClientKeyExchangeState
+//     -> ChangeCipherSpecState
+//     -> FinishedState
+//     -> EstablishedState
+//
+// xlang constraints worked around:
+//   - class param shallow-copy loses scalar writes (BUG-XT2): the engine mutates
+//     self.ctx (field access, never a param); state describe() methods are READ-ONLY
+//     on ctx (shallow copy of same values is harmless for reads).
+//   - array<Base> silently drops derived (BUG-RT1): vtable polymorphism test uses a
+//     var array + `as HandshakeState` downcast (vtable preserved per shapes.xl SH1).
+//   - returning a class-with-virtual from a function loses vtable (BUG-RT3): every
+//     state instance is constructed locally at its use site, never returned.
+//   - var + string garbles (BUG-CE1): all hex values stored as typed `string`.
+//   - `return self.field.length` rejected (BUG-C2): cached into a local int first.
+//   - class method cannot safely receive array<T> param (BUG-C1): describe() reads
+//     only scalar string/int fields from ctx (cipher lists are pre-joined to a string
+//     field by the engine before dispatch).
+//   - program always returns 0 (EXIT=0 for xl run / xl build).
+
+// ============================== constants ==================================
+
+int ST_CLIENT_HELLO       = 1
+int ST_SERVER_HELLO       = 2
+int ST_CERTIFICATE        = 3
+int ST_SERVER_KEY_EXCHANGE = 4
+int ST_SERVER_HELLO_DONE  = 5
+int ST_CLIENT_KEY_EXCHANGE = 6
+int ST_CHANGE_CIPHER_SPEC = 7
+int ST_FINISHED           = 8
+int ST_ESTABLISHED        = 9
+
+int TLS_VERSION_12 = 0x0303
+
+// ============================== cipher suites ==============================
+
+func serverCipherPreference() as array<string>
+    return array["0xC02F", "0xC030", "0x009C", "0x009D", "0xC027"]
+end
+
+func defaultClientCiphers() as array<string>
+    return array["0x009C", "0xC02F", "0x009D", "0xC030", "0xC027"]
+end
+
+func cipherName(string id) as string
+    if id == "0x009C" then return "TLS_RSA_WITH_AES_128_GCM_SHA256" end
+    if id == "0x009D" then return "TLS_RSA_WITH_AES_256_GCM_SHA384" end
+    if id == "0xC027" then return "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256" end
+    if id == "0xC02F" then return "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256" end
+    if id == "0xC030" then return "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384" end
+    return "UNKNOWN"
+end
+
+// Server-preference cipher negotiation: iterate server list, pick first that
+// the client also offered. Returns "" if no overlap (handshake would fail).
+func negotiateCipher(array<string> clientOffered) as string
+    array<string> serverPref = serverCipherPreference()
+    for pref in serverPref
+        for offered in clientOffered
+            if pref == offered then
+                return pref
+            end
+        end
+    end
+    return ""
+end
+
+func joinCiphers(array<string> ciphers) as string
+    string s = ""
+    int i = 0
+    while i < ciphers.length do
+        if i > 0 then s = s + " " end
+        s = s + ciphers[i]
+        i = i + 1
+    end
+    return s
+end
+
+// ============================== PRF (RFC 5246) =============================
+// P_hash(secret, seed) = HMAC(secret, A(1)+seed) + HMAC(secret, A(2)+seed) + ...
+//   A(0) = seed, A(i) = HMAC(secret, A(i-1))
+// PRF(secret, label, seed) = P_hash(secret, label + seed)
+// Output is truncated to outBytes; returns uppercase hex (2 hex chars per byte).
+
+func tlsPRF(string secret, string label, string seed, int outBytes) as string
+    string fullSeed = label + seed
+    string result = ""
+    string a = fullSeed
+    int produced = 0
+    while produced < outBytes do
+        a = crypto.hmacSha256(secret, a)
+        string block = crypto.hmacSha256(secret, a + fullSeed)
+        result = result + block
+        produced = produced + 32
+    end
+    return string.left(result, outBytes * 2)
+end
+
+// ============================== TlsContext =================================
+// Pure data holder (no virtual methods). Safe to pass-by-value for READS;
+// the engine mutates it only through field access on self (never via param).
+
+class TlsContext
+    derive value
+    int version
+    string clientRandom
+    string serverRandom
+    string sessionId
+    string sni
+    string cipherListStr
+    string selectedCipher
+    string dhCurve
+    string dhServerPublic
+    string dhClientPublic
+    string preMasterSecret
+    string masterSecret
+    string keyBlock
+    string clientWriteKey
+    string serverWriteKey
+    string clientWriteIv
+    string serverWriteIv
+    string clientVerifyData
+    string serverVerifyData
+    string handshakeHash
+    int certCount
+    int state
+    bool resumed
+    array<string> clientCiphers
+    array<string> certChain
+
+    create()
+        self.version = TLS_VERSION_12
+        self.clientRandom = ""
+        self.serverRandom = ""
+        self.sessionId = ""
+        self.sni = ""
+        self.cipherListStr = ""
+        self.selectedCipher = ""
+        self.dhCurve = "secp256r1"
+        self.dhServerPublic = ""
+        self.dhClientPublic = ""
+        self.preMasterSecret = ""
+        self.masterSecret = ""
+        self.keyBlock = ""
+        self.clientWriteKey = ""
+        self.serverWriteKey = ""
+        self.clientWriteIv = ""
+        self.serverWriteIv = ""
+        self.clientVerifyData = ""
+        self.serverVerifyData = ""
+        self.handshakeHash = ""
+        self.certCount = 0
+        self.state = 0
+        self.resumed = false
+        self.clientCiphers = array[]
+        self.certChain = array[]
+    end
+
+    func stateName() as string
+        int s = self.state
+        if s == ST_CLIENT_HELLO then return "CLIENT_HELLO" end
+        if s == ST_SERVER_HELLO then return "SERVER_HELLO" end
+        if s == ST_CERTIFICATE then return "CERTIFICATE" end
+        if s == ST_SERVER_KEY_EXCHANGE then return "SERVER_KEY_EXCHANGE" end
+        if s == ST_SERVER_HELLO_DONE then return "SERVER_HELLO_DONE" end
+        if s == ST_CLIENT_KEY_EXCHANGE then return "CLIENT_KEY_EXCHANGE" end
+        if s == ST_CHANGE_CIPHER_SPEC then return "CHANGE_CIPHER_SPEC" end
+        if s == ST_FINISHED then return "FINISHED" end
+        if s == ST_ESTABLISHED then return "ESTABLISHED" end
+        return "IDLE"
+    end
+end
+
+// ============================== state classes ==============================
+
+class HandshakeState
+    virtual func name() as string
+        return "HandshakeState"
+    end
+    virtual func typeNum() as int
+        return 0
+    end
+    virtual func abbr() as string
+        return "??"
+    end
+    virtual func direction() as string
+        return "-"
+    end
+    virtual func describe(TlsContext ctx) as string
+        return "HandshakeState"
+    end
+end
+
+class ClientHelloState extends HandshakeState
+    override func name() as string
+        return "ClientHello"
+    end
+    override func typeNum() as int
+        return ST_CLIENT_HELLO
+    end
+    override func abbr() as string
+        return "CH"
+    end
+    override func direction() as string
+        return "C->S"
+    end
+    override func describe(TlsContext ctx) as string
+        return "ClientHello(ver=0x0303,random=" + ctx.clientRandom + ",session_id=,ciphers=[" + ctx.cipherListStr + "],sni=" + ctx.sni + ")"
+    end
+end
+
+class ServerHelloState extends HandshakeState
+    override func name() as string
+        return "ServerHello"
+    end
+    override func typeNum() as int
+        return ST_SERVER_HELLO
+    end
+    override func abbr() as string
+        return "SH"
+    end
+    override func direction() as string
+        return "S->C"
+    end
+    override func describe(TlsContext ctx) as string
+        return "ServerHello(ver=0x0303,random=" + ctx.serverRandom + ",session_id=" + ctx.sessionId + ",cipher=" + ctx.selectedCipher + ")"
+    end
+end
+
+class CertificateState extends HandshakeState
+    override func name() as string
+        return "Certificate"
+    end
+    override func typeNum() as int
+        return ST_CERTIFICATE
+    end
+    override func abbr() as string
+        return "CERT"
+    end
+    override func direction() as string
+        return "S->C"
+    end
+    override func describe(TlsContext ctx) as string
+        return "Certificate(chain_len=" + string(ctx.certCount) + ")"
+    end
+end
+
+class ServerKeyExchangeState extends HandshakeState
+    override func name() as string
+        return "ServerKeyExchange"
+    end
+    override func typeNum() as int
+        return ST_SERVER_KEY_EXCHANGE
+    end
+    override func abbr() as string
+        return "SKE"
+    end
+    override func direction() as string
+        return "S->C"
+    end
+    override func describe(TlsContext ctx) as string
+        return "ServerKeyExchange(ecdh,curve=" + ctx.dhCurve + ",server_pub=" + ctx.dhServerPublic + ")"
+    end
+end
+
+class ServerHelloDoneState extends HandshakeState
+    override func name() as string
+        return "ServerHelloDone"
+    end
+    override func typeNum() as int
+        return ST_SERVER_HELLO_DONE
+    end
+    override func abbr() as string
+        return "SHD"
+    end
+    override func direction() as string
+        return "S->C"
+    end
+    override func describe(TlsContext ctx) as string
+        return "ServerHelloDone()"
+    end
+end
+
+class ClientKeyExchangeState extends HandshakeState
+    override func name() as string
+        return "ClientKeyExchange"
+    end
+    override func typeNum() as int
+        return ST_CLIENT_KEY_EXCHANGE
+    end
+    override func abbr() as string
+        return "CKE"
+    end
+    override func direction() as string
+        return "C->S"
+    end
+    override func describe(TlsContext ctx) as string
+        return "ClientKeyExchange(ecdh,client_pub=" + ctx.dhClientPublic + ")"
+    end
+end
+
+class ChangeCipherSpecState extends HandshakeState
+    override func name() as string
+        return "ChangeCipherSpec"
+    end
+    override func typeNum() as int
+        return ST_CHANGE_CIPHER_SPEC
+    end
+    override func abbr() as string
+        return "CCS"
+    end
+    override func direction() as string
+        return "C->S"
+    end
+    override func describe(TlsContext ctx) as string
+        return "ChangeCipherSpec()"
+    end
+end
+
+class FinishedState extends HandshakeState
+    override func name() as string
+        return "Finished"
+    end
+    override func typeNum() as int
+        return ST_FINISHED
+    end
+    override func abbr() as string
+        return "FIN"
+    end
+    override func direction() as string
+        return "C->S"
+    end
+    override func describe(TlsContext ctx) as string
+        return "Finished(verify_data=" + ctx.clientVerifyData + ")"
+    end
+end
+
+class EstablishedState extends HandshakeState
+    override func name() as string
+        return "Established"
+    end
+    override func typeNum() as int
+        return ST_ESTABLISHED
+    end
+    override func abbr() as string
+        return "EST"
+    end
+    override func direction() as string
+        return "-"
+    end
+    override func describe(TlsContext ctx) as string
+        return "Established(cipher=" + ctx.selectedCipher + ")"
+    end
+end
+
+// ============================== engine =====================================
+
+class HandshakeEngine
+    TlsContext ctx
+    array<string> transcript
+    string savedSessionId
+    string savedMasterSecret
+
+    create()
+        self.ctx = TlsContext()
+        self.transcript = array[]
+        self.savedSessionId = ""
+        self.savedMasterSecret = ""
+    end
+
+    func setClientOfferings(string sni, var ciphers)
+        self.ctx.sni = sni
+        for c in ciphers
+            self.ctx.clientCiphers.push(string(c))
+        end
+        self.ctx.cipherListStr = joinCiphers(self.ctx.clientCiphers)
+    end
+
+    // ---- individual handshake steps (mutate self.ctx via field access) ----
+
+    func stepClientHello()
+        self.ctx.state = ST_CLIENT_HELLO
+        self.ctx.clientRandom = crypto.randomHex(32)
+        ClientHelloState st = ClientHelloState()
+        self.transcript.push(st.describe(self.ctx))
+    end
+
+    func stepServerHello(bool resume)
+        self.ctx.state = ST_SERVER_HELLO
+        self.ctx.serverRandom = crypto.randomHex(32)
+        if resume then
+            self.ctx.sessionId = self.savedSessionId
+        else
+            self.ctx.sessionId = crypto.randomHex(16)
+        end
+        self.ctx.selectedCipher = negotiateCipher(self.ctx.clientCiphers)
+        self.ctx.resumed = resume
+        ServerHelloState st = ServerHelloState()
+        self.transcript.push(st.describe(self.ctx))
+    end
+
+    func stepCertificate()
+        self.ctx.state = ST_CERTIFICATE
+        self.ctx.certChain.push("CN=Example Root CA,O=Example Org")
+        self.ctx.certChain.push("CN=Example Intermediate CA,O=Example Org")
+        self.ctx.certChain.push("CN=" + self.ctx.sni + ",O=Example Org")
+        int n = self.ctx.certChain.length
+        self.ctx.certCount = n
+        CertificateState st = CertificateState()
+        self.transcript.push(st.describe(self.ctx))
+    end
+
+    func stepServerKeyExchange()
+        self.ctx.state = ST_SERVER_KEY_EXCHANGE
+        self.ctx.dhServerPublic = crypto.randomHex(32)
+        ServerKeyExchangeState st = ServerKeyExchangeState()
+        self.transcript.push(st.describe(self.ctx))
+    end
+
+    func stepServerHelloDone()
+        self.ctx.state = ST_SERVER_HELLO_DONE
+        ServerHelloDoneState st = ServerHelloDoneState()
+        self.transcript.push(st.describe(self.ctx))
+    end
+
+    func stepClientKeyExchange()
+        self.ctx.state = ST_CLIENT_KEY_EXCHANGE
+        self.ctx.dhClientPublic = crypto.randomHex(32)
+        ClientKeyExchangeState st = ClientKeyExchangeState()
+        self.transcript.push(st.describe(self.ctx))
+    end
+
+    func derivePreMasterSecret()
+        self.ctx.preMasterSecret = crypto.randomHex(48)
+    end
+
+    func deriveKeys()
+        string cr = self.ctx.clientRandom
+        string sr = self.ctx.serverRandom
+        self.ctx.masterSecret = tlsPRF(self.ctx.preMasterSecret, "master secret", cr + sr, 48)
+        self.ctx.keyBlock = tlsPRF(self.ctx.masterSecret, "key expansion", sr + cr, 40)
+        self.ctx.clientWriteKey = string.left(self.ctx.keyBlock, 32)
+        self.ctx.serverWriteKey = string.mid(self.ctx.keyBlock, 32, 32)
+        self.ctx.clientWriteIv = string.mid(self.ctx.keyBlock, 64, 8)
+        self.ctx.serverWriteIv = string.mid(self.ctx.keyBlock, 72, 8)
+        // handshake transcript hash for Finished verify_data
+        string concat = ""
+        for msg in self.transcript
+            concat = concat + msg
+        end
+        self.ctx.handshakeHash = crypto.sha256(concat)
+        self.ctx.clientVerifyData = tlsPRF(self.ctx.masterSecret, "client finished", self.ctx.handshakeHash, 12)
+        self.ctx.serverVerifyData = tlsPRF(self.ctx.masterSecret, "server finished", self.ctx.handshakeHash, 12)
+    end
+
+    func stepChangeCipherSpec(bool fromClient)
+        self.ctx.state = ST_CHANGE_CIPHER_SPEC
+        ChangeCipherSpecState st = ChangeCipherSpecState()
+        self.transcript.push(st.describe(self.ctx))
+    end
+
+    func stepFinished(bool fromClient)
+        self.ctx.state = ST_FINISHED
+        FinishedState st = FinishedState()
+        self.transcript.push(st.describe(self.ctx))
+    end
+
+    func stepEstablished()
+        self.ctx.state = ST_ESTABLISHED
+    end
+
+    // ---- full handshake driver ----
+
+    func runFullHandshake()
+        self.stepClientHello()
+        self.stepServerHello(false)
+        self.stepCertificate()
+        self.stepServerKeyExchange()
+        self.stepServerHelloDone()
+        self.stepClientKeyExchange()
+        self.derivePreMasterSecret()
+        self.deriveKeys()
+        self.stepChangeCipherSpec(true)
+        self.stepFinished(true)
+        self.stepChangeCipherSpec(false)
+        self.stepFinished(false)
+        self.stepEstablished()
+        // save session for resumption
+        self.savedSessionId = self.ctx.sessionId
+        self.savedMasterSecret = self.ctx.masterSecret
+    end
+
+    // ---- abbreviated handshake (session resumption) ----
+
+    func runResumedHandshake()
+        self.ctx.state = 0
+        self.stepClientHello()
+        // client signals it wants to resume by including the saved session id
+        self.ctx.sessionId = self.savedSessionId
+        self.stepServerHello(true)
+        // abbreviated: skip Certificate / ServerKeyExchange / ServerHelloDone / ClientKeyExchange
+        self.ctx.preMasterSecret = ""
+        // reuse saved master secret
+        self.ctx.masterSecret = self.savedMasterSecret
+        self.ctx.keyBlock = tlsPRF(self.ctx.masterSecret, "key expansion", self.ctx.serverRandom + self.ctx.clientRandom, 40)
+        self.ctx.clientWriteKey = string.left(self.ctx.keyBlock, 32)
+        self.ctx.serverWriteKey = string.mid(self.ctx.keyBlock, 32, 32)
+        self.ctx.clientWriteIv = string.mid(self.ctx.keyBlock, 64, 8)
+        self.ctx.serverWriteIv = string.mid(self.ctx.keyBlock, 72, 8)
+        string concat = ""
+        for msg in self.transcript
+            concat = concat + msg
+        end
+        self.ctx.handshakeHash = crypto.sha256(concat)
+        self.ctx.clientVerifyData = tlsPRF(self.ctx.masterSecret, "client finished", self.ctx.handshakeHash, 12)
+        self.ctx.serverVerifyData = tlsPRF(self.ctx.masterSecret, "server finished", self.ctx.handshakeHash, 12)
+        self.stepChangeCipherSpec(true)
+        self.stepFinished(true)
+        self.stepChangeCipherSpec(false)
+        self.stepFinished(false)
+        self.stepEstablished()
+    end
+
+    func resetTranscript()
+        self.transcript = array[]
+    end
+end
+
+// ============================== output =====================================
+
+func bar()
+    println("------------------------------------------------------------")
+end
+
+func doubleBar()
+    println("============================================================")
+end
+
+func printSimulate(HandshakeEngine eng)
+    TlsContext ctx = eng.ctx
+    doubleBar()
+    println(" TLS 1.2 Handshake Simulation")
+    doubleBar()
+    println("SNI: " + ctx.sni)
+    println("Client offered cipher suites:")
+    int i = 0
+    while i < ctx.clientCiphers.length do
+        println("  " + ctx.clientCiphers[i] + " " + cipherName(ctx.clientCiphers[i]))
+        i = i + 1
+    end
+    bar()
+    println("[1] ClientHello (C->S)")
+    println("    version         : TLS 1.2 (0x0303)")
+    println("    client_random   : " + ctx.clientRandom)
+    println("    session_id      : (empty)")
+    println("    cipher_suites   : " + ctx.cipherListStr)
+    println("    server_name     : " + ctx.sni)
+    println("[2] ServerHello (S->C)")
+    println("    version         : TLS 1.2 (0x0303)")
+    println("    server_random   : " + ctx.serverRandom)
+    println("    session_id      : " + ctx.sessionId)
+    println("    cipher_suite    : " + ctx.selectedCipher + " " + cipherName(ctx.selectedCipher))
+    println("[3] Certificate (S->C)")
+    println("    chain_length    : " + string(ctx.certCount))
+    int j = 0
+    while j < ctx.certChain.length do
+        println("    [" + string(j) + "] " + ctx.certChain[j] + " sha256=" + string.left(crypto.sha256(ctx.certChain[j]), 16) + "...")
+        j = j + 1
+    end
+    println("[4] ServerKeyExchange (S->C)")
+    println("    key_exchange    : ECDHE")
+    println("    curve           : " + ctx.dhCurve)
+    println("    server_pub      : " + ctx.dhServerPublic)
+    println("[5] ServerHelloDone (S->C)")
+    println("[6] ClientKeyExchange (C->S)")
+    println("    client_pub      : " + ctx.dhClientPublic)
+    println("    >>> pre_master_secret derived from ECDHE shared secret")
+    bar()
+    println(" Key Derivation (PRF = HMAC-SHA256, RFC 5246)")
+    bar()
+    println("    pre_master_secret : " + ctx.preMasterSecret)
+    println("    master_secret     = PRF(pms, \"master secret\", CR+SR)")
+    println("                      = " + ctx.masterSecret)
+    println("                                        (" + string(string.len(ctx.masterSecret) / 2) + " bytes)")
+    println("    key_block         = PRF(ms, \"key expansion\", SR+CR)")
+    println("      client_write_key : " + ctx.clientWriteKey)
+    println("      server_write_key : " + ctx.serverWriteKey)
+    println("      client_write_iv  : " + ctx.clientWriteIv)
+    println("      server_write_iv  : " + ctx.serverWriteIv)
+    bar()
+    println("[7] ChangeCipherSpec (C->S)")
+    println("    >>> client switches to encrypted records")
+    println("[8] Finished (C->S)")
+    println("    verify_data = PRF(ms, \"client finished\", SHA256(transcript))")
+    println("                = " + ctx.clientVerifyData + "  (" + string(string.len(ctx.clientVerifyData) / 2) + " bytes)")
+    println("[9] ChangeCipherSpec (S->C)")
+    println("    >>> server switches to encrypted records")
+    println("[10] Finished (S->C)")
+    println("    verify_data = PRF(ms, \"server finished\", SHA256(transcript))")
+    println("                = " + ctx.serverVerifyData + "  (" + string(string.len(ctx.serverVerifyData) / 2) + " bytes)")
+    doubleBar()
+    println(" STATE: ESTABLISHED  (negotiated " + cipherName(ctx.selectedCipher) + ")")
+    doubleBar()
+end
+
+func printResume(HandshakeEngine eng)
+    TlsContext ctx = eng.ctx
+    doubleBar()
+    println(" TLS 1.2 Session Resumption (abbreviated handshake)")
+    doubleBar()
+    println("Session ticket from prior full handshake:")
+    println("    session_id      : " + eng.savedSessionId)
+    println("    master_secret   : " + eng.savedMasterSecret)
+    bar()
+    println("[1] ClientHello (C->S)")
+    println("    version         : TLS 1.2 (0x0303)")
+    println("    client_random   : " + ctx.clientRandom)
+    println("    session_id      : " + ctx.sessionId + "  (resumption ticket)")
+    println("    cipher_suites   : " + ctx.cipherListStr)
+    println("[2] ServerHello (S->C)")
+    println("    version         : TLS 1.2 (0x0303)")
+    println("    server_random   : " + ctx.serverRandom)
+    println("    session_id      : " + ctx.sessionId + "  (server accepted resumption)")
+    println("    cipher_suite    : " + ctx.selectedCipher + " " + cipherName(ctx.selectedCipher))
+    println("    >>> abbreviated: Certificate / ServerKeyExchange / ServerHelloDone SKIPPED")
+    bar()
+    println(" Key Derivation (reusing saved master_secret)")
+    bar()
+    println("    master_secret     = " + ctx.masterSecret + "  (reused)")
+    println("    key_block         = PRF(ms, \"key expansion\", SR+CR)")
+    println("      client_write_key : " + ctx.clientWriteKey)
+    println("      server_write_key : " + ctx.serverWriteKey)
+    bar()
+    println("[3] ChangeCipherSpec (C->S)")
+    println("[4] Finished (C->S)")
+    println("    verify_data = " + ctx.clientVerifyData)
+    println("[5] ChangeCipherSpec (S->C)")
+    println("[6] Finished (S->C)")
+    println("    verify_data = " + ctx.serverVerifyData)
+    doubleBar()
+    println(" STATE: ESTABLISHED (resumed session)")
+    doubleBar()
+end
+
+// ============================== test harness ===============================
+
+int g_pass = 0
+int g_fail = 0
+
+func check(string label, bool ok)
+    if ok then
+        g_pass = g_pass + 1
+        println("  [PASS] " + label)
+    else
+        g_fail = g_fail + 1
+        println("  [FAIL] " + label)
+    end
+end
+
+func runTests()
+    println("==== tlshandshake test suite ====")
+    println("")
+
+    // ---- TEST 1: full handshake reaches ESTABLISHED ----
+    println("[1] full handshake state machine")
+    HandshakeEngine eng = HandshakeEngine()
+    eng.setClientOfferings("www.example.com", defaultClientCiphers())
+    eng.runFullHandshake()
+    check("final state is ESTABLISHED", eng.ctx.state == ST_ESTABLISHED)
+    check("selected cipher non-empty", eng.ctx.selectedCipher != "")
+    int transcriptLen = eng.transcript.length
+    check("transcript has 8+ messages (6 HS + 2 CCS + 2 FIN = 10)", transcriptLen >= 10)
+
+    // ---- TEST 2: cipher suite negotiation ----
+    println("")
+    println("[2] cipher suite negotiation (server preference)")
+    string picked = negotiateCipher(defaultClientCiphers())
+    check("server picks 0xC02F (top server pref offered by client)", picked == "0xC02F")
+    array<string> narrowClient = array["0x009C", "0x009D"]
+    string picked2 = negotiateCipher(narrowClient)
+    check("narrow client -> server picks 0x009C", picked2 == "0x009C")
+    array<string> noOverlap = array["0xFFFF"]
+    string picked3 = negotiateCipher(noOverlap)
+    check("no overlap -> empty (handshake would fail)", picked3 == "")
+
+    // ---- TEST 3: key derivation lengths ----
+    println("")
+    println("[3] key derivation output sizes")
+    check("master_secret is 48 bytes (96 hex)", string.len(eng.ctx.masterSecret) == 96)
+    check("client_verify_data is 12 bytes (24 hex)", string.len(eng.ctx.clientVerifyData) == 24)
+    check("server_verify_data is 12 bytes (24 hex)", string.len(eng.ctx.serverVerifyData) == 24)
+    check("client_write_key is 16 bytes (32 hex)", string.len(eng.ctx.clientWriteKey) == 32)
+    check("server_write_key is 16 bytes (32 hex)", string.len(eng.ctx.serverWriteKey) == 32)
+    check("key_block slices do not overlap (ckey != skey)", eng.ctx.clientWriteKey != eng.ctx.serverWriteKey)
+
+    // ---- TEST 4: PRF determinism ----
+    println("")
+    println("[4] PRF determinism (same inputs -> same output)")
+    string p1 = tlsPRF("secret-key", "master secret", "seed-data", 48)
+    string p2 = tlsPRF("secret-key", "master secret", "seed-data", 48)
+    check("PRF(secret,label,seed) is deterministic", p1 == p2)
+    string p3 = tlsPRF("secret-key", "master secret", "different-seed", 48)
+    check("PRF changes when seed changes", p1 != p3)
+    string p4 = tlsPRF("different-secret", "master secret", "seed-data", 48)
+    check("PRF changes when secret changes", p1 != p4)
+    check("PRF output is 96 hex chars for 48 bytes", string.len(p1) == 96)
+
+    // ---- TEST 5: PRF matches RFC 5246 P_hash structure ----
+    println("")
+    println("[5] PRF P_hash structure (HMAC-SHA256 expansion)")
+    // P_hash block 1 = HMAC(secret, HMAC(secret, label+seed) + label+seed)
+    string seed = "master secret" + "abc"
+    string a1 = crypto.hmacSha256("s", seed)
+    string block1 = crypto.hmacSha256("s", a1 + seed)
+    string prfOut = tlsPRF("s", "master secret", "abc", 32)
+    check("first PRF block matches HMAC(secret, A(1)+seed)", string.left(prfOut, 64) == block1)
+
+    // ---- TEST 6: vtable dispatch via var array (BUG-RT1 workaround) ----
+    println("")
+    println("[6] vtable dispatch: 9 state subclasses via var array + as HandshakeState")
+    var states = []
+    states.push(ClientHelloState())
+    states.push(ServerHelloState())
+    states.push(CertificateState())
+    states.push(ServerKeyExchangeState())
+    states.push(ServerHelloDoneState())
+    states.push(ClientKeyExchangeState())
+    states.push(ChangeCipherSpecState())
+    states.push(FinishedState())
+    states.push(EstablishedState())
+    int dispatchCount = 0
+    bool allDistinct = true
+    array<string> seenNames = array[]
+    for st in states
+        HandshakeState hs = st as HandshakeState
+        string nm = hs.name()
+        dispatchCount = dispatchCount + 1
+        int k = 0
+        while k < seenNames.length do
+            if seenNames[k] == nm then
+                allDistinct = false
+            end
+            k = k + 1
+        end
+        seenNames.push(nm)
+    end
+    check("all 9 virtual name() calls dispatched", dispatchCount == 9)
+    check("all 9 names are distinct", allDistinct)
+    // verify specific typeNum dispatch
+    HandshakeState first = states[0] as HandshakeState
+    check("states[0].typeNum() == ST_CLIENT_HELLO", first.typeNum() == ST_CLIENT_HELLO)
+    HandshakeState last = states[8] as HandshakeState
+    check("states[8].typeNum() == ST_ESTABLISHED", last.typeNum() == ST_ESTABLISHED)
+
+    // ---- TEST 7: describe() virtual dispatch reads ctx ----
+    println("")
+    println("[7] describe() virtual dispatch reads shared context")
+    HandshakeState ch = ClientHelloState()
+    string desc = ch.describe(eng.ctx)
+    check("ClientHello describe includes client_random", string.contains(desc, eng.ctx.clientRandom))
+    check("ClientHello describe includes sni", string.contains(desc, "www.example.com"))
+    HandshakeState sh = ServerHelloState()
+    string desc2 = sh.describe(eng.ctx)
+    check("ServerHello describe includes selected cipher", string.contains(desc2, eng.ctx.selectedCipher))
+
+    // ---- TEST 8: upcast preserves vtable (Shape s = Circle pattern) ----
+    println("")
+    println("[8] upcast preserves vtable dispatch")
+    ServerHelloState concrete = ServerHelloState()
+    HandshakeState up = concrete
+    check("upcast HandshakeState.name() -> ServerHello", up.name() == "ServerHello")
+    check("upcast HandshakeState.abbr() -> SH", up.abbr() == "SH")
+
+    // ---- TEST 9: session resumption reuses master secret ----
+    println("")
+    println("[9] session resumption reuses master_secret")
+    string fullMs = eng.savedMasterSecret
+    string fullSid = eng.savedSessionId
+    eng.resetTranscript()
+    eng.runResumedHandshake()
+    check("resumed handshake reaches ESTABLISHED", eng.ctx.state == ST_ESTABLISHED)
+    check("master_secret reused from full handshake", eng.ctx.masterSecret == fullMs)
+    check("session_id matches saved ticket", eng.ctx.sessionId == fullSid)
+    int resumeTranscript = eng.transcript.length
+    check("abbreviated transcript shorter than full (4 HS msgs)", resumeTranscript < 10)
+    check("resumed verify_data is 12 bytes", string.len(eng.ctx.clientVerifyData) == 24)
+
+    // ---- summary ----
+    println("")
+    println("------------------------------------------------------------")
+    println("passed: " + string(g_pass) + "  failed: " + string(g_fail))
+    if g_fail == 0 then
+        println("RESULT: ALL TESTS PASSED")
+    else
+        println("RESULT: " + string(g_fail) + " TEST(S) FAILED")
+    end
+end
+
+// ============================== entry point ================================
+
+func printUsage()
+    println("tlshandshake - TLS 1.2 handshake state machine simulator")
+    println("Usage:")
+    println("  tlshandshake simulate    Full TLS 1.2 handshake (8 messages + key derivation)")
+    println("  tlshandshake resume      Session resumption demo (full then abbreviated)")
+    println("  tlshandshake test        Run assertion suite")
+    println("")
+    println("Features:")
+    println("  - Full handshake: ClientHello -> ServerHello -> Certificate ->")
+    println("    ServerKeyExchange -> ServerHelloDone -> ClientKeyExchange ->")
+    println("    ChangeCipherSpec -> Finished (both directions)")
+    println("  - Class-based state machine (9 states, virtual dispatch)")
+    println("  - Cipher suite negotiation (server-preference selection)")
+    println("  - Key derivation via RFC 5246 PRF (HMAC-SHA256 P_hash)")
+    println("  - Session resumption (abbreviated handshake, master_secret reuse)")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 0
+    end
+    string cmd = string(arg[1])
+    if cmd == "simulate" then
+        HandshakeEngine eng = HandshakeEngine()
+        eng.setClientOfferings("www.example.com", defaultClientCiphers())
+        eng.runFullHandshake()
+        printSimulate(eng)
+        return 0
+    end
+    if cmd == "resume" then
+        HandshakeEngine eng = HandshakeEngine()
+        eng.setClientOfferings("www.example.com", defaultClientCiphers())
+        eng.runFullHandshake()
+        println("")
+        println(">>> Phase 1: Full handshake to establish session <<<")
+        println("")
+        printSimulate(eng)
+        println("")
+        println(">>> Phase 2: Abbreviated handshake (session resumption) <<<")
+        println("")
+        eng.resetTranscript()
+        eng.runResumedHandshake()
+        printResume(eng)
+        return 0
+    end
+    if cmd == "test" then
+        runTests()
+        return 0
+    end
+    println("Error: unknown command '" + cmd + "'")
+    printUsage()
+    return 0
+end

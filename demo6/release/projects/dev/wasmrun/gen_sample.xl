@@ -1,0 +1,188 @@
+// gen_sample.xl - generate a sample .wasm file for testing wasmrun
+// Builds: module with add(a,b)=a+b exported as "add" and "main",
+// plus a recursive fib exported as "fib".
+
+func VT_I32() as int
+    return 0x7f
+end
+
+func bByte(var b, int v)
+    b.push(v & 0xFF)
+end
+
+func bU32(var b, int v)
+    int val = v
+    while true do
+        int c = val & 0x7f
+        val = val >> 7
+        if val != 0 then
+            b.push(c | 0x80)
+        else
+            b.push(c)
+            break
+        end
+    end
+end
+
+func bS32(var b, int v)
+    int val = v
+    while true do
+        int c = val & 0x7f
+        val = val >> 7
+        bool signBit = (c & 0x40) != 0
+        if (val == 0 and not signBit) or (val == -1 and signBit) then
+            b.push(c)
+            break
+        else
+            b.push(c | 0x80)
+        end
+    end
+end
+
+func bName(var b, string s)
+    int n = string.len(s)
+    bU32(b, n)
+    int i = 0
+    while i < n do
+        b.push(string.byteAt(s, i))
+        i += 1
+    end
+end
+
+func bHeader(var b)
+    b.push(0x00); b.push(0x61); b.push(0x73); b.push(0x6d)
+    b.push(0x01); b.push(0x00); b.push(0x00); b.push(0x00)
+end
+
+func bAppend(var dst, var src)
+    var s = src
+    for x in s
+        dst.push(int(x))
+    end
+end
+
+func bSection(var b, int id, var payload)
+    b.push(id)
+    bU32(b, payload.length)
+    bAppend(b, payload)
+end
+
+func main(...) as int
+    string outPath = "projects/dev/wasmrun/sample.wasm"
+    if arg.length >= 2 then
+        outPath = string(arg[1])
+    end
+
+    // type 0: (i32, i32) -> i32 ; type 1: (i32) -> i32 ; type 2: () -> i32
+    var types = [
+        [[VT_I32(), VT_I32()], [VT_I32()]],
+        [[VT_I32()], [VT_I32()]],
+        [[], [VT_I32()]]
+    ]
+    var funcTypes = [0, 1, 2]
+    var exports = [["add", 0, 0], ["fib", 0, 1], ["main", 0, 2]]
+
+    // add(a, b): return a + b
+    var addBody = []
+    addBody.push(0x20); bU32(addBody, 0)   // local.get 0
+    addBody.push(0x20); bU32(addBody, 1)   // local.get 1
+    addBody.push(0x6a)                     // i32.add
+    addBody.push(0x0b)                     // end
+
+    // fib(n): if n < 2 then 1 else fib(n-1) + fib(n-2)
+    var fibBody = []
+    fibBody.push(0x20); bU32(fibBody, 0)   // local.get 0
+    fibBody.push(0x41); bS32(fibBody, 2)   // i32.const 2
+    fibBody.push(0x48)                     // i32.lt_s
+    fibBody.push(0x04); fibBody.push(0x7f) // if (result i32)
+    fibBody.push(0x41); bS32(fibBody, 1)   // i32.const 1
+    fibBody.push(0x05)                     // else
+    fibBody.push(0x20); bU32(fibBody, 0)
+    fibBody.push(0x41); bS32(fibBody, 1)
+    fibBody.push(0x6b)                     // sub
+    fibBody.push(0x10); bU32(fibBody, 1)   // call fib
+    fibBody.push(0x20); bU32(fibBody, 0)
+    fibBody.push(0x41); bS32(fibBody, 2)
+    fibBody.push(0x6b)
+    fibBody.push(0x10); bU32(fibBody, 1)   // call fib
+    fibBody.push(0x6a)                     // add
+    fibBody.push(0x0b)                     // end if
+    fibBody.push(0x0b)                     // end func
+
+    // main(): return fib(10)
+    var mainBody = []
+    mainBody.push(0x41); bS32(mainBody, 10)
+    mainBody.push(0x10); bU32(mainBody, 1) // call fib
+    mainBody.push(0x0b)
+
+    var codes = [[[], addBody], [[], fibBody], [[], mainBody]]
+    var m = []
+    bHeader(m)
+    // type section
+    var ts = []
+    bU32(ts, types.length)
+    var tIter = types
+    for t in tIter
+        bByte(ts, 0x60)
+        var params = t[0]
+        var results = t[1]
+        bU32(ts, params.length)
+        var pIter = params
+        for p in pIter
+            bByte(ts, int(p))
+        end
+        bU32(ts, results.length)
+        var rIter = results
+        for r in rIter
+            bByte(ts, int(r))
+        end
+    end
+    bSection(m, 1, ts)
+    // func section
+    var fs = []
+    bU32(fs, funcTypes.length)
+    var fIter = funcTypes
+    for ft in fIter
+        bU32(fs, int(ft))
+    end
+    bSection(m, 3, fs)
+    // export section
+    var es = []
+    bU32(es, exports.length)
+    var eIter = exports
+    for e in eIter
+        bName(es, string(e[0]))
+        bByte(es, int(e[1]))
+        bU32(es, int(e[2]))
+    end
+    bSection(m, 7, es)
+    // code section
+    var cs = []
+    bU32(cs, codes.length)
+    var cIter = codes
+    for c in cIter
+        var localTypes = c[0]
+        var instrs = c[1]
+        var body = []
+        bU32(body, localTypes.length)
+        var ltIter = localTypes
+        for lt in ltIter
+            bU32(body, 1)
+            bByte(body, int(lt))
+        end
+        bAppend(body, instrs)
+        bU32(cs, body.length)
+        bAppend(cs, body)
+    end
+    bSection(m, 10, cs)
+
+    // Write to file as raw bytes
+    Buffer buf = Buffer()
+    var mIter = m
+    for x in mIter
+        buf.appendByte(int(x))
+    end
+    file.writeBytes(outPath, buf)
+    println("wrote " + string(buf.len()) + " bytes to " + outPath)
+    return 0
+end

@@ -1,0 +1,1770 @@
+// basic.xl - 一个用 xlang 编写的 BASIC 语言解释器
+//
+// 用法:
+//   basic                       运行内置测试套件（Fibonacci 前 10 项等）
+//   basic run <file.bas>        逐行执行一个 .bas 文件
+//   basic test                  运行内置测试套件
+//   basic -h | --help           显示帮助
+//
+// 本工具验证 xlang 的以下能力:
+//   * 按行词法分析 + 递归下降表达式求值（每条语句即时编译/执行）
+//   * 行号驱动的程序计数器：GOTO / GOSUB / RETURN / IF...THEN 跳转
+//   * FOR...NEXT 循环（含 STEP、零次迭代、结构化 NEXT 匹配）
+//   * 动态类型变量（int / float / string）+ DIM 一维数组
+//   * var 扁平数组承载变量表与数组表（规避 dict 在递归中的 GC 二次方劣化）
+//   * UTF-8 安全的 CHR$ 编码（Buffer + encoding.fromBytes）
+//
+// 支持的语句:
+//   PRINT expr_list       分号(;)直接拼接、逗号(,)对齐到 14 列制表位、尾部分号/逗号抑制换行
+//   [LET] var = expr      标量赋值（LET 可省略）
+//   [LET] A(i) = expr     数组元素赋值
+//   IF expr THEN line [ELSE line]
+//   FOR v = a TO b [STEP s] ... NEXT [v]
+//   GOTO line / GOSUB line / RETURN
+//   DIM var(size) [, var(size)...]
+//   REM ... / END / STOP
+//
+// 表达式: + - * / MOD、比较 = <> < > <= >=、AND OR NOT、括号、字符串 + 拼接
+// 内建函数: ABS INT SQR LEN LEFT$ RIGHT$ MID$ CHR$ ASC（名后缀 $ 可省略）
+// 比较与逻辑运算结果遵循经典 BASIC：真=-1，假=0
+
+
+const int STEP_LIMIT = 50000000   // 防御性步数上限，避免死循环挂起
+
+
+// ====================== 字节分类辅助 ======================
+
+func isIdentStart(int b) as bool
+    if b >= 65 and b <= 90 then
+        return true
+    end
+    if b >= 97 and b <= 122 then
+        return true
+    end
+    if b == 95 then
+        return true
+    end
+    return false
+end
+
+func isIdentByte(int b) as bool
+    if isIdentStart(b) then
+        return true
+    end
+    if b >= 48 and b <= 57 then
+        return true
+    end
+    if b == 36 then
+        return true
+    end
+    return false
+end
+
+
+// ====================== Token ======================
+
+class Tok
+    derive value
+    string kind = ""
+    string text = ""
+    float num = 0.0
+    int inum = 0
+    bool isInt = false
+
+    create(string kind)
+        self.kind = kind
+        return
+    end
+end
+
+
+// ====================== 词法分析（单语句字符串 -> array<Tok>） ======================
+
+func tokenize(string s) as array<Tok>
+    array<Tok> toks = array[]
+    int i = 0
+    int n = string.len(s)
+    while i < n do
+        int b = string.byteAt(s, i)
+
+        // 跳过空白（空格 32、制表 9、回车 13）
+        if b == 32 or b == 9 or b == 13 then
+            i += 1
+            continue
+        end
+
+        // 字符串字面量
+        if b == 34 then
+            i += 1
+            string txt = ""
+            while i < n do
+                int bb = string.byteAt(s, i)
+                if bb == 34 then
+                    // "" 转义为一个字面引号
+                    if i + 1 < n and string.byteAt(s, i + 1) == 34 then
+                        txt = txt + "\""
+                        i += 2
+                        continue
+                    end
+                    i += 1
+                    break
+                end
+                txt = txt + string.charAt(s, i)
+                i += 1
+            end
+            Tok t = Tok("str")
+            t.text = txt
+            toks.push(t)
+            continue
+        end
+
+        // 数字字面量（含 . 与 e/E 科学计数）
+        if (b >= 48 and b <= 57) or b == 46 then
+            string num = ""
+            bool hasDot = false
+            bool hasE = false
+            while i < n do
+                int bb = string.byteAt(s, i)
+                if bb >= 48 and bb <= 57 then
+                    num = num + string.charAt(s, i)
+                    i += 1
+                elseif bb == 46 and not hasDot and not hasE then
+                    num = num + "."
+                    hasDot = true
+                    i += 1
+                elseif (bb == 69 or bb == 101) and not hasE then
+                    num = num + "e"
+                    hasE = true
+                    i += 1
+                    if i < n then
+                        int sb = string.byteAt(s, i)
+                        if sb == 43 or sb == 45 then
+                            num = num + string.charAt(s, i)
+                            i += 1
+                        end
+                    end
+                else
+                    break
+                end
+            end
+            Tok t = Tok("num")
+            if hasDot or hasE then
+                t.isInt = false
+                t.num = float(num)
+            else
+                t.isInt = true
+                t.inum = int(num)
+            end
+            t.text = num
+            toks.push(t)
+            continue
+        end
+
+        // 标识符（关键字 / 变量名 / 函数名）
+        if isIdentStart(b) then
+            string id = ""
+            while i < n do
+                int bb = string.byteAt(s, i)
+                if isIdentByte(bb) then
+                    id = id + string.charAt(s, i)
+                    i += 1
+                else
+                    break
+                end
+            end
+            Tok t = Tok("ident")
+            t.text = id
+            toks.push(t)
+            continue
+        end
+
+        // 比较运算符（双字符优先）
+        if b == 60 then
+            if i + 1 < n then
+                int b2 = string.byteAt(s, i + 1)
+                if b2 == 62 then
+                    toks.push(Tok("<>"))
+                    i += 2
+                    continue
+                end
+                if b2 == 61 then
+                    toks.push(Tok("<="))
+                    i += 2
+                    continue
+                end
+            end
+            toks.push(Tok("<"))
+            i += 1
+            continue
+        end
+        if b == 62 then
+            if i + 1 < n and string.byteAt(s, i + 1) == 61 then
+                toks.push(Tok(">="))
+                i += 2
+                continue
+            end
+            toks.push(Tok(">"))
+            i += 1
+            continue
+        end
+
+        // 单字符运算符与分隔符: + - * / ( ) , ; =
+        if b == 43 or b == 45 or b == 42 or b == 47 or b == 40 or b == 41 or b == 44 or b == 59 or b == 61 then
+            toks.push(Tok(string.charAt(s, i)))
+            i += 1
+            continue
+        end
+
+        // 其余字符（含 ':' 多语句分隔符）不支持
+        throw "BASIC: 不支持的字符 '" + string.charAt(s, i) + "'"
+    end
+    return toks
+end
+
+
+// 取语句的首关键字（大写），用于 FOR/NEXT 结构匹配。不抛异常。
+func leadingKw(string stmt) as string
+    int i = 0
+    int n = string.len(stmt)
+    while i < n do
+        int b = string.byteAt(stmt, i)
+        if b == 32 or b == 9 or b == 13 then
+            i += 1
+        else
+            break
+        end
+    end
+    string w = ""
+    while i < n do
+        int b = string.byteAt(stmt, i)
+        if isIdentByte(b) then
+            w = w + string.charAt(stmt, i)
+            i += 1
+        else
+            break
+        end
+    end
+    return string.upper(w)
+end
+
+
+// CHR$: 把 Unicode 码点编码为 UTF-8 字节再解码为字符串。
+func chrCodepoint(int cp) as string
+    if cp < 0 then
+        throw "BASIC: CHR$ 参数不能为负"
+    end
+    Buffer buf = Buffer()
+    if cp < 128 then
+        buf.appendByte(cp)
+    elseif cp < 2048 then
+        buf.appendByte(192 | (cp >> 6))
+        buf.appendByte(128 | (cp & 63))
+    elseif cp < 65536 then
+        buf.appendByte(224 | (cp >> 12))
+        buf.appendByte(128 | ((cp >> 6) & 63))
+        buf.appendByte(128 | (cp & 63))
+    else
+        buf.appendByte(240 | (cp >> 18))
+        buf.appendByte(128 | ((cp >> 12) & 63))
+        buf.appendByte(128 | ((cp >> 6) & 63))
+        buf.appendByte(128 | (cp & 63))
+    end
+    return encoding.fromBytes(buf.data(), c_size(buf.len()), encoding.utf8)
+end
+
+
+// ====================== 解释器 ======================
+
+class Interp
+    array<int> lineNos
+    array<string> stmts
+    array<string> firstKws
+    var vars
+    var arrays
+    var forStack
+    var gosubStack
+    array<Tok> toks
+    int tpos
+    Tok eofTok
+    int pc
+    bool jumped
+    bool stopped
+    bool capture
+    var outBuf
+
+    create()
+        self.lineNos = array[]
+        self.stmts = array[]
+        self.firstKws = array[]
+        self.vars = []
+        self.arrays = []
+        self.forStack = []
+        self.gosubStack = []
+        self.toks = array[]
+        self.tpos = 0
+        self.eofTok = Tok("eof")
+        self.pc = 0
+        self.jumped = false
+        self.stopped = false
+        self.capture = false
+        self.outBuf = ""
+        return
+    end
+
+
+    // ---------- 程序加载 ----------
+
+    func lineNoExists(int lineNo) as bool
+        int i = 0
+        int n = self.lineNos.length
+        while i < n do
+            if self.lineNos[i] == lineNo then
+                return true
+            end
+            i += 1
+        end
+        return false
+    end
+
+    // 把源码解析为带行号的程序；空行跳过；无行号行自动编号。
+    func load(string src)
+        self.lineNos = array[]
+        self.stmts = array[]
+        self.firstKws = array[]
+        array lines = string.splitLines(src)
+        int count = lines.length
+        int nextAuto = 1
+        int i = 0
+        while i < count do
+            string raw = string(lines[i])
+            int rn = string.len(raw)
+            // 跳过前导空白
+            int p = 0
+            while p < rn do
+                int b = string.byteAt(raw, p)
+                if b == 32 or b == 9 then
+                    p += 1
+                else
+                    break
+                end
+            end
+            if p >= rn then
+                // 空白行
+                i += 1
+                continue
+            end
+            // 读前导数字（行号）
+            int q = p
+            while q < rn do
+                int b = string.byteAt(raw, q)
+                if b >= 48 and b <= 57 then
+                    q += 1
+                else
+                    break
+                end
+            end
+            int lineNo
+            string stmt
+            if q > p then
+                lineNo = int(string.slice(raw, p, q - p))
+                p = q
+                while p < rn do
+                    int b = string.byteAt(raw, p)
+                    if b == 32 or b == 9 then
+                        p += 1
+                    else
+                        break
+                    end
+                end
+                stmt = string.slice(raw, p)
+                nextAuto = lineNo + 1
+            else
+                stmt = string.slice(raw, p)
+                lineNo = nextAuto
+                while self.lineNoExists(lineNo) do
+                    lineNo += 1
+                end
+                nextAuto = lineNo + 1
+            end
+            self.lineNos.push(lineNo)
+            self.stmts.push(stmt)
+            self.firstKws.push(leadingKw(stmt))
+            i += 1
+        end
+        // 按行号升序排序三张并行表（兼容非升序输入）
+        int n = self.lineNos.length
+        int a = 0
+        while a < n - 1 do
+            int best = a
+            int b = a + 1
+            while b < n do
+                if self.lineNos[b] < self.lineNos[best] then
+                    best = b
+                end
+                b += 1
+            end
+            if best != a then
+                int tNo = self.lineNos[a]
+                self.lineNos[a] = self.lineNos[best]
+                self.lineNos[best] = tNo
+                string tSt = self.stmts[a]
+                self.stmts[a] = self.stmts[best]
+                self.stmts[best] = tSt
+                string tKw = self.firstKws[a]
+                self.firstKws[a] = self.firstKws[best]
+                self.firstKws[best] = tKw
+            end
+            a += 1
+        end
+    end
+
+
+    // ---------- 二分查找行号 -> 索引 ----------
+
+    func findLineIndex(int lineNo) as int
+        int lo = 0
+        int hi = self.lineNos.length - 1
+        while lo <= hi do
+            int mid = (lo + hi) / 2
+            int mv = self.lineNos[mid]
+            if mv == lineNo then
+                return mid
+            end
+            if mv < lineNo then
+                lo = mid + 1
+            else
+                hi = mid - 1
+            end
+        end
+        return -1
+    end
+
+    func gotoLine(int lineNo)
+        int idx = self.findLineIndex(lineNo)
+        if idx < 0 then
+            throw "BASIC: 未定义的行号 " + string(lineNo)
+        end
+        self.pc = idx
+        self.jumped = true
+    end
+
+    // 从 fromIdx 起按 FOR/NEXT 结构深度查找匹配的 NEXT 行索引。
+    func findMatchingNext(int fromIdx) as int
+        int depth = 0
+        int i = fromIdx
+        int n = self.firstKws.length
+        while i < n do
+            string kw = self.firstKws[i]
+            if kw == "FOR" then
+                depth += 1
+            elseif kw == "NEXT" then
+                if depth == 0 then
+                    return i
+                end
+                depth -= 1
+            end
+            i += 1
+        end
+        throw "BASIC: FOR 没有匹配的 NEXT"
+    end
+
+
+    // ---------- 游标 ----------
+
+    func peek() as Tok
+        if self.tpos < self.toks.length then
+            return self.toks[self.tpos]
+        end
+        return self.eofTok
+    end
+
+    func curKind() as string
+        return self.peek().kind
+    end
+
+    func curIsKw(string kw) as bool
+        Tok t = self.peek()
+        if t.kind != "ident" then
+            return false
+        end
+        return string.upper(t.text) == kw
+    end
+
+    func advance()
+        self.tpos += 1
+    end
+
+    func eat(string kind)
+        if self.peek().kind != kind then
+            throw "BASIC: 期望 '" + kind + "' 但遇到 '" + self.peek().kind + "'"
+        end
+        self.tpos += 1
+    end
+
+    func eatKw(string kw)
+        if not self.curIsKw(kw) then
+            throw "BASIC: 期望 " + kw
+        end
+        self.tpos += 1
+    end
+
+    func parseLineNumber() as int
+        Tok t = self.peek()
+        if t.kind != "num" then
+            throw "BASIC: 期望行号"
+        end
+        self.advance()
+        if t.isInt then
+            return t.inum
+        end
+        return int(t.num)
+    end
+
+
+    // ---------- 数值/类型辅助 ----------
+
+    func toF(var v) as float
+        if v is int then
+            return float(int(v))
+        end
+        if v is float then
+            return float(v)
+        end
+        throw "BASIC: 需要数值"
+    end
+
+    func toInt(var v) as int
+        if v is int then
+            return int(v)
+        end
+        if v is float then
+            return int(float(v))
+        end
+        throw "BASIC: 需要整数"
+    end
+
+    func truthy(var v) as bool
+        if v is int then
+            return int(v) != 0
+        end
+        if v is float then
+            return float(v) != 0.0
+        end
+        if v is string then
+            return string.len(string(v)) > 0
+        end
+        throw "BASIC: 无法判定真值"
+    end
+
+    func numAdd(var a, var b) as var
+        if a is int and b is int then
+            return int(a) + int(b)
+        end
+        return self.toF(a) + self.toF(b)
+    end
+
+    func numSub(var a, var b) as var
+        if a is int and b is int then
+            return int(a) - int(b)
+        end
+        return self.toF(a) - self.toF(b)
+    end
+
+    func numMul(var a, var b) as var
+        if a is int and b is int then
+            return int(a) * int(b)
+        end
+        return self.toF(a) * self.toF(b)
+    end
+
+    func numDiv(var a, var b) as var
+        float fb = self.toF(b)
+        if fb == 0.0 then
+            throw "BASIC: 除以零"
+        end
+        return self.toF(a) / fb
+    end
+
+    func numMod(var a, var b) as var
+        int ia = self.toInt(a)
+        int ib = self.toInt(b)
+        if ib == 0 then
+            throw "BASIC: MOD 除以零"
+        end
+        return ia % ib
+    end
+
+    func numNeg(var v) as var
+        if v is int then
+            return -int(v)
+        end
+        if v is float then
+            return -float(v)
+        end
+        throw "BASIC: 需要数值"
+    end
+
+    func reqStr(var v) as string
+        if v is string then
+            return string(v)
+        end
+        throw "BASIC: 需要字符串"
+    end
+
+    // PRINT / 测试用的值格式化。
+    func formatVal(var v) as string
+        if v is int then
+            return string(int(v))
+        end
+        if v is float then
+            float f = float(v)
+            if math.isNaN(f) then
+                return "nan"
+            end
+            if math.isInf(f) then
+                if f < 0.0 then
+                    return "-inf"
+                end
+                return "inf"
+            end
+            if math.abs(f) < 1e15 and f == math.floor(f) then
+                return string(int(f))
+            end
+            return string(f)
+        end
+        if v is string then
+            return string(v)
+        end
+        if v is null then
+            return ""
+        end
+        return string(v)
+    end
+
+
+    // ---------- 变量与数组（扁平 var 数组，key/val 交替）----------
+
+    func getVar(string name) as var
+        int i = 0
+        int n = self.vars.length
+        while i < n do
+            if string(self.vars[i]) == name then
+                return self.vars[i + 1]
+            end
+            i += 2
+        end
+        if string.endsWith(name, "$") then
+            return ""
+        end
+        return 0
+    end
+
+    func setVar(string name, var val)
+        int i = 0
+        int n = self.vars.length
+        while i < n do
+            if string(self.vars[i]) == name then
+                self.vars[i + 1] = val
+                return
+            end
+            i += 2
+        end
+        self.vars.push(name)
+        self.vars.push(val)
+    end
+
+    func makeDefaultArray(string name, int count) as var
+        var a = []
+        bool isStr = string.endsWith(name, "$")
+        int i = 0
+        while i < count do
+            if isStr then
+                a.push("")
+            else
+                a.push(0)
+            end
+            i += 1
+        end
+        return a
+    end
+
+    func ensureArray(string name, int count)
+        int i = 0
+        int n = self.arrays.length
+        while i < n do
+            if string(self.arrays[i]) == name then
+                self.arrays[i + 1] = self.makeDefaultArray(name, count)
+                return
+            end
+            i += 2
+        end
+        self.arrays.push(name)
+        self.arrays.push(self.makeDefaultArray(name, count))
+    end
+
+    func findArray(string name) as int
+        int i = 0
+        int n = self.arrays.length
+        while i < n do
+            if string(self.arrays[i]) == name then
+                return i
+            end
+            i += 2
+        end
+        return -1
+    end
+
+    func getArrayEl(string name, int idx) as var
+        int pos = self.findArray(name)
+        if pos < 0 then
+            int cnt = 11
+            if idx >= cnt then
+                cnt = idx + 1
+            end
+            self.arrays.push(name)
+            self.arrays.push(self.makeDefaultArray(name, cnt))
+            pos = self.arrays.length - 2
+        end
+        var arr = self.arrays[pos + 1]
+        if idx < 0 or idx >= arr.length then
+            throw "BASIC: 数组下标越界 " + name + "(" + string(idx) + ")"
+        end
+        return arr[idx]
+    end
+
+    func setArrayEl(string name, int idx, var val)
+        int pos = self.findArray(name)
+        if pos < 0 then
+            int cnt = 11
+            if idx >= cnt then
+                cnt = idx + 1
+            end
+            self.arrays.push(name)
+            self.arrays.push(self.makeDefaultArray(name, cnt))
+            pos = self.arrays.length - 2
+        end
+        var arr = self.arrays[pos + 1]
+        if idx < 0 or idx >= arr.length then
+            throw "BASIC: 数组下标越界 " + name + "(" + string(idx) + ")"
+        end
+        arr[idx] = val
+    end
+
+
+    // ---------- 输出（支持捕获模式）----------
+
+    func emit(string s)
+        if self.capture then
+            self.outBuf = self.outBuf + s
+        else
+            print(s)
+        end
+    end
+
+    func emitNL()
+        if self.capture then
+            self.outBuf = self.outBuf + "\n"
+        else
+            println("")
+        end
+    end
+
+
+    // ---------- 表达式求值（递归下降）----------
+
+    func parseOr() as var
+        var v = self.parseAnd()
+        while self.curIsKw("OR") do
+            self.advance()
+            var r = self.parseAnd()
+            if self.truthy(v) or self.truthy(r) then
+                v = -1
+            else
+                v = 0
+            end
+        end
+        return v
+    end
+
+    func parseAnd() as var
+        var v = self.parseNot()
+        while self.curIsKw("AND") do
+            self.advance()
+            var r = self.parseNot()
+            if self.truthy(v) and self.truthy(r) then
+                v = -1
+            else
+                v = 0
+            end
+        end
+        return v
+    end
+
+    func parseNot() as var
+        if self.curIsKw("NOT") then
+            self.advance()
+            var v = self.parseNot()
+            if self.truthy(v) then
+                return 0
+            end
+            return -1
+        end
+        return self.parseCmp()
+    end
+
+    func compareVal(var a, string op, var b) as int
+        int sign
+        if a is string and b is string then
+            int c = string.compare(string(a), string(b), false)
+            if c < 0 then
+                sign = -1
+            elseif c > 0 then
+                sign = 1
+            else
+                sign = 0
+            end
+        else
+            if not ((a is int or a is float) and (b is int or b is float)) then
+                throw "BASIC: 比较运算类型不匹配"
+            end
+            float fa = self.toF(a)
+            float fb = self.toF(b)
+            if fa < fb then
+                sign = -1
+            elseif fa > fb then
+                sign = 1
+            else
+                sign = 0
+            end
+        end
+        if op == "=" then
+            if sign == 0 then
+                return -1
+            end
+            return 0
+        end
+        if op == "<>" then
+            if sign != 0 then
+                return -1
+            end
+            return 0
+        end
+        if op == "<" then
+            if sign < 0 then
+                return -1
+            end
+            return 0
+        end
+        if op == ">" then
+            if sign > 0 then
+                return -1
+            end
+            return 0
+        end
+        if op == "<=" then
+            if sign <= 0 then
+                return -1
+            end
+            return 0
+        end
+        if op == ">=" then
+            if sign >= 0 then
+                return -1
+            end
+            return 0
+        end
+        throw "BASIC: 未知比较运算 " + op
+    end
+
+    func parseCmp() as var
+        var v = self.parseAdd()
+        while true do
+            string k = self.curKind()
+            if k == "=" or k == "<>" or k == "<=" or k == ">=" or k == "<" or k == ">" then
+                self.advance()
+                var r = self.parseAdd()
+                v = self.compareVal(v, k, r)
+            else
+                break
+            end
+        end
+        return v
+    end
+
+    func parseAdd() as var
+        var v = self.parseMul()
+        while self.curKind() == "+" or self.curKind() == "-" do
+            string k = self.curKind()
+            self.advance()
+            var r = self.parseMul()
+            if k == "+" then
+                if v is string and r is string then
+                    v = string(v) + string(r)
+                else
+                    v = self.numAdd(v, r)
+                end
+            else
+                v = self.numSub(v, r)
+            end
+        end
+        return v
+    end
+
+    func parseMul() as var
+        var v = self.parseUnary()
+        while true do
+            string k = self.curKind()
+            if k == "*" then
+                self.advance()
+                var r = self.parseUnary()
+                v = self.numMul(v, r)
+            elseif k == "/" then
+                self.advance()
+                var r = self.parseUnary()
+                v = self.numDiv(v, r)
+            elseif self.curIsKw("MOD") then
+                self.advance()
+                var r = self.parseUnary()
+                v = self.numMod(v, r)
+            else
+                break
+            end
+        end
+        return v
+    end
+
+    func parseUnary() as var
+        if self.curKind() == "-" then
+            self.advance()
+            return self.numNeg(self.parseUnary())
+        end
+        if self.curKind() == "+" then
+            self.advance()
+            return self.parseUnary()
+        end
+        return self.parsePrimary()
+    end
+
+    func isBuiltin(string up) as bool
+        string base = up
+        if string.endsWith(up, "$") then
+            base = string.left(up, string.len(up) - 1)
+        end
+        if base == "ABS" then
+            return true
+        end
+        if base == "INT" then
+            return true
+        end
+        if base == "SQR" then
+            return true
+        end
+        if base == "LEN" then
+            return true
+        end
+        if base == "LEFT" then
+            return true
+        end
+        if base == "RIGHT" then
+            return true
+        end
+        if base == "MID" then
+            return true
+        end
+        if base == "CHR" then
+            return true
+        end
+        if base == "ASC" then
+            return true
+        end
+        return false
+    end
+
+    func callBuiltin(string up, var args) as var
+        string base = up
+        if string.endsWith(up, "$") then
+            base = string.left(up, string.len(up) - 1)
+        end
+        int na = args.length
+
+        if base == "ABS" then
+            if na != 1 then
+                throw "BASIC: ABS 需要 1 个参数"
+            end
+            var x = args[0]
+            if x is int then
+                int xi = int(x)
+                if xi < 0 then
+                    return -xi
+                end
+                return xi
+            end
+            return math.abs(self.toF(x))
+        end
+        if base == "INT" then
+            if na != 1 then
+                throw "BASIC: INT 需要 1 个参数"
+            end
+            return int(math.floor(self.toF(args[0])))
+        end
+        if base == "SQR" then
+            if na != 1 then
+                throw "BASIC: SQR 需要 1 个参数"
+            end
+            float x = self.toF(args[0])
+            if x < 0.0 then
+                throw "BASIC: SQR 负数"
+            end
+            return math.sqrt(x)
+        end
+        if base == "LEN" then
+            if na != 1 then
+                throw "BASIC: LEN 需要 1 个参数"
+            end
+            return string.len(self.reqStr(args[0]))
+        end
+        if base == "LEFT" then
+            if na != 2 then
+                throw "BASIC: LEFT$ 需要 2 个参数"
+            end
+            int cnt = self.toInt(args[1])
+            if cnt < 0 then
+                cnt = 0
+            end
+            return string.left(self.reqStr(args[0]), cnt)
+        end
+        if base == "RIGHT" then
+            if na != 2 then
+                throw "BASIC: RIGHT$ 需要 2 个参数"
+            end
+            int cnt = self.toInt(args[1])
+            if cnt < 0 then
+                cnt = 0
+            end
+            return string.right(self.reqStr(args[0]), cnt)
+        end
+        if base == "MID" then
+            if na != 2 and na != 3 then
+                throw "BASIC: MID$ 需要 2 或 3 个参数"
+            end
+            int start = self.toInt(args[1])
+            if start < 1 then
+                start = 1
+            end
+            if na == 3 then
+                int cnt = self.toInt(args[2])
+                if cnt < 0 then
+                    cnt = 0
+                end
+                return string.mid(self.reqStr(args[0]), start - 1, cnt)
+            end
+            return string.slice(self.reqStr(args[0]), start - 1)
+        end
+        if base == "CHR" then
+            if na != 1 then
+                throw "BASIC: CHR$ 需要 1 个参数"
+            end
+            return chrCodepoint(self.toInt(args[0]))
+        end
+        if base == "ASC" then
+            if na != 1 then
+                throw "BASIC: ASC 需要 1 个参数"
+            end
+            string s = self.reqStr(args[0])
+            if string.len(s) == 0 then
+                throw "BASIC: ASC 空字符串"
+            end
+            return string.byteAt(s, 0)
+        end
+        throw "BASIC: 未知函数 " + up
+    end
+
+    func parsePrimary() as var
+        Tok t = self.peek()
+        if t.kind == "num" then
+            self.advance()
+            if t.isInt then
+                return t.inum
+            end
+            return t.num
+        end
+        if t.kind == "str" then
+            self.advance()
+            return t.text
+        end
+        if t.kind == "(" then
+            self.advance()
+            var v = self.parseOr()
+            self.eat(")")
+            return v
+        end
+        if t.kind == "ident" then
+            string name = t.text
+            string up = string.upper(name)
+            self.advance()
+            if self.curKind() == "(" then
+                if self.isBuiltin(up) then
+                    self.advance()
+                    var args = []
+                    if self.curKind() != ")" then
+                        args.push(self.parseOr())
+                        while self.curKind() == "," do
+                            self.advance()
+                            args.push(self.parseOr())
+                        end
+                    end
+                    self.eat(")")
+                    return self.callBuiltin(up, args)
+                end
+                self.advance()
+                var idxV = self.parseOr()
+                self.eat(")")
+                return self.getArrayEl(name, self.toInt(idxV))
+            end
+            return self.getVar(name)
+        end
+        throw "BASIC: 意外的 token '" + t.text + "'"
+    end
+
+
+    // ---------- 语句执行 ----------
+
+    func execStmt()
+        if self.toks.length == 0 then
+            return
+        end
+        Tok first = self.toks[0]
+        if first.kind == "ident" then
+            string kw = string.upper(first.text)
+            if kw == "REM" then
+                return
+            end
+            if kw == "PRINT" then
+                self.advance()
+                self.doPrint()
+                return
+            end
+            if kw == "LET" then
+                self.advance()
+                self.doAssign()
+                return
+            end
+            if kw == "IF" then
+                self.advance()
+                self.doIf()
+                return
+            end
+            if kw == "FOR" then
+                self.advance()
+                self.doFor()
+                return
+            end
+            if kw == "NEXT" then
+                self.advance()
+                self.doNext()
+                return
+            end
+            if kw == "GOTO" then
+                self.advance()
+                self.gotoLine(self.parseLineNumber())
+                return
+            end
+            if kw == "GOSUB" then
+                self.advance()
+                self.doGosub()
+                return
+            end
+            if kw == "RETURN" then
+                self.advance()
+                self.doReturn()
+                return
+            end
+            if kw == "DIM" then
+                self.advance()
+                self.doDim()
+                return
+            end
+            if kw == "END" or kw == "STOP" then
+                self.advance()
+                self.stopped = true
+                return
+            end
+            // 隐式 LET
+            self.doAssign()
+            return
+        end
+        throw "BASIC: 语法错误，意外的 token '" + first.text + "'"
+    end
+
+    func doAssign()
+        Tok t = self.peek()
+        if t.kind != "ident" then
+            throw "BASIC: 期望变量名"
+        end
+        string name = t.text
+        self.advance()
+        if self.curKind() == "(" then
+            self.advance()
+            var idxV = self.parseOr()
+            self.eat(")")
+            self.eat("=")
+            var val = self.parseOr()
+            self.setArrayEl(name, self.toInt(idxV), val)
+        else
+            self.eat("=")
+            var val = self.parseOr()
+            self.setVar(name, val)
+        end
+    end
+
+    func doPrint()
+        if self.curKind() == "eof" then
+            self.emitNL()
+            return
+        end
+        bool suppress = false
+        int col = 0
+        while self.curKind() != "eof" do
+            if self.curKind() == ";" then
+                self.advance()
+                if self.curKind() == "eof" then
+                    suppress = true
+                    break
+                end
+                continue
+            end
+            if self.curKind() == "," then
+                self.advance()
+                int tgt = (col / 14 + 1) * 14
+                while col < tgt do
+                    self.emit(" ")
+                    col += 1
+                end
+                if self.curKind() == "eof" then
+                    suppress = true
+                    break
+                end
+                continue
+            end
+            var v = self.parseOr()
+            string s = self.formatVal(v)
+            self.emit(s)
+            col += string.len(s)
+        end
+        if not suppress then
+            self.emitNL()
+        end
+    end
+
+    func doIf()
+        var cond = self.parseOr()
+        self.eatKw("THEN")
+        int thenLine = self.parseLineNumber()
+        if self.truthy(cond) then
+            self.gotoLine(thenLine)
+        else
+            if self.curIsKw("ELSE") then
+                self.advance()
+                self.gotoLine(self.parseLineNumber())
+            end
+        end
+    end
+
+    func doFor()
+        Tok t = self.peek()
+        if t.kind != "ident" then
+            throw "BASIC: FOR 期望变量"
+        end
+        string loopVar = t.text
+        self.advance()
+        self.eat("=")
+        var startV = self.parseOr()
+        self.eatKw("TO")
+        var limitV = self.parseOr()
+        var stepV = 1
+        if self.curIsKw("STEP") then
+            self.advance()
+            stepV = self.parseOr()
+        end
+        self.setVar(loopVar, startV)
+        int bodyIdx = self.pc + 1
+        int endIdx = self.findMatchingNext(self.pc + 1)
+        float startF = self.toF(startV)
+        float limitF = self.toF(limitV)
+        float stepF = self.toF(stepV)
+        bool term
+        if stepF >= 0.0 then
+            term = startF > limitF
+        else
+            term = startF < limitF
+        end
+        if term then
+            self.pc = endIdx + 1
+            self.jumped = true
+        else
+            self.forStack.push(loopVar)
+            self.forStack.push(limitV)
+            self.forStack.push(stepV)
+            self.forStack.push(bodyIdx)
+        end
+    end
+
+    func doNext()
+        if self.curKind() == "ident" then
+            self.advance()
+        end
+        if self.forStack.length < 4 then
+            throw "BASIC: NEXT 没有 FOR"
+        end
+        int base = self.forStack.length - 4
+        string fv = string(self.forStack[base])
+        var limitV = self.forStack[base + 1]
+        var stepV = self.forStack[base + 2]
+        int bodyIdx = int(self.forStack[base + 3])
+        var cur = self.numAdd(self.getVar(fv), stepV)
+        self.setVar(fv, cur)
+        float curF = self.toF(cur)
+        float limitF = self.toF(limitV)
+        float stepF = self.toF(stepV)
+        bool done
+        if stepF >= 0.0 then
+            done = curF > limitF
+        else
+            done = curF < limitF
+        end
+        if done then
+            // 循环结束：弹出帧，越过 NEXT 继续执行
+            self.forStack.pop()
+            self.forStack.pop()
+            self.forStack.pop()
+            self.forStack.pop()
+        else
+            // 继续循环：保留帧，跳回循环体起点
+            self.pc = bodyIdx
+            self.jumped = true
+        end
+    end
+
+    func doGosub()
+        int ln = self.parseLineNumber()
+        self.gosubStack.push(self.pc + 1)
+        self.gotoLine(ln)
+    end
+
+    func doReturn()
+        if self.gosubStack.length == 0 then
+            throw "BASIC: RETURN 没有 GOSUB"
+        end
+        self.pc = int(self.gosubStack.pop())
+        self.jumped = true
+    end
+
+    func doDim()
+        while true do
+            Tok t = self.peek()
+            if t.kind != "ident" then
+                throw "BASIC: DIM 期望数组名"
+            end
+            string name = t.text
+            self.advance()
+            self.eat("(")
+            var szV = self.parseOr()
+            self.eat(")")
+            self.ensureArray(name, self.toInt(szV) + 1)
+            if self.curKind() == "," then
+                self.advance()
+                continue
+            end
+            break
+        end
+    end
+
+
+    // ---------- 主运行循环 ----------
+
+    func run() as int
+        self.pc = 0
+        self.jumped = false
+        self.stopped = false
+        int nlines = self.stmts.length
+        int steps = 0
+        while self.pc < nlines and not self.stopped do
+            // REM 行不分词（注释可能含任意字符），直接跳过
+            if self.firstKws[self.pc] == "REM" then
+                self.toks = array[]
+            else
+                self.toks = tokenize(self.stmts[self.pc])
+            end
+            self.tpos = 0
+            self.jumped = false
+            try
+                self.execStmt()
+            catch e
+                println("BASIC: 行 " + string(self.lineNos[self.pc]) + " 错误: " + e.message)
+                return 1
+            end
+            steps += 1
+            if steps > STEP_LIMIT then
+                println("BASIC: 步数超限（疑似死循环）")
+                return 1
+            end
+            if not self.stopped and not self.jumped then
+                self.pc += 1
+            end
+        end
+        return 0
+    end
+
+    // 把单个表达式字符串求值并返回（供测试用）。
+    func evalString(string expr) as var
+        self.toks = tokenize(expr)
+        self.tpos = 0
+        return self.parseOr()
+    end
+
+    func evalFmt(string expr) as string
+        return self.formatVal(self.evalString(expr))
+    end
+end
+
+
+// ====================== 命令行 ======================
+
+func printUsage()
+    println("basic - BASIC 语言解释器（用 xlang 编写）")
+    println("")
+    println("用法:")
+    println("  basic                     运行内置测试套件")
+    println("  basic run <file.bas>      执行一个 .bas 文件")
+    println("  basic test                运行内置测试套件")
+    println("  basic -h | --help         显示本帮助")
+end
+
+func cmdRun(string path) as int
+    if not file.exists(path) then
+        println("basic: 文件不存在: " + path)
+        return 1
+    end
+    string src = file.readText(path)
+    Interp im = Interp()
+    im.load(src)
+    return im.run()
+end
+
+
+// ====================== 内置测试套件 ======================
+
+string FIB_SRC = """10 REM Fibonacci 前 10 项
+20 A = 0
+30 B = 1
+40 FOR I = 1 TO 10
+50 IF I = 1 THEN 80
+60 PRINT " ";
+80 PRINT A;
+90 T = A + B
+100 A = B
+110 B = T
+120 NEXT I
+130 PRINT
+140 END
+"""
+
+string GOSUB_SRC = """10 REM gosub 演示
+20 GOSUB 100
+30 PRINT "back"
+40 END
+100 PRINT "in sub"
+110 RETURN
+"""
+
+string DIM_SRC = """10 REM 数组演示
+20 DIM A(5)
+30 FOR I = 0 TO 5
+40 A(I) = I * I
+50 NEXT I
+60 FOR J = 0 TO 5
+70 PRINT A(J)
+80 NEXT J
+90 END
+"""
+
+string NESTED_SRC = """10 REM 嵌套循环
+20 FOR I = 1 TO 3
+30 FOR J = 1 TO 3
+40 PRINT I * J
+50 NEXT J
+60 NEXT I
+70 END
+"""
+
+string STRFUNC_SRC = """10 REM 字符串函数
+20 S$ = "hello"
+30 PRINT LEN(S$)
+40 PRINT LEFT$(S$, 3)
+50 PRINT RIGHT$(S$, 2)
+60 PRINT MID$(S$, 2, 3)
+70 PRINT CHR(65); CHR(66); CHR(67)
+80 PRINT ASC("A")
+90 END
+"""
+
+string GOTOIF_SRC = """10 REM GOTO + IF 计数
+20 N = 1
+30 IF N > 5 THEN 90
+40 PRINT N
+50 N = N + 1
+60 GOTO 30
+90 PRINT "done"
+100 END
+"""
+
+func checkStr(string label, string got, string expected) as bool
+    if got == expected then
+        println("PASS  " + label)
+        return true
+    end
+    println("FAIL  " + label)
+    println("        期望: '" + expected + "'")
+    println("        实际: '" + got + "'")
+    return false
+end
+
+// 运行一段 .bas 源码（捕获输出），返回输出字符串。
+func runProg(string src) as string
+    Interp im = Interp()
+    im.capture = true
+    im.load(src)
+    im.run()
+    return string(im.outBuf)
+end
+
+func cmdTest() as int
+    println("=== basic 内置测试套件 ===")
+    int passed = 0
+    int failed = 0
+
+    try
+        Interp em = Interp()
+
+        // ---- 算术与优先级 ----
+        if checkStr("算术 2 + 3 * 4", em.evalFmt("2 + 3 * 4"), "14") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("括号 (2 + 3) * 4", em.evalFmt("(2 + 3) * 4"), "20") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("左结合 10 - 2 - 3", em.evalFmt("10 - 2 - 3"), "5") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("MOD 17 MOD 5", em.evalFmt("17 MOD 5"), "2") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("整除 6 / 2", em.evalFmt("6 / 2"), "3") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("实除 7 / 2", em.evalFmt("7 / 2"), "3.5") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("一元负号 -5 + 8", em.evalFmt("-5 + 8"), "3") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("复合 2 * (3 + 4) - 1", em.evalFmt("2 * (3 + 4) - 1"), "13") then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 比较与逻辑（真=-1，假=0）----
+        if checkStr("比较 2 > 1", em.evalFmt("2 > 1"), "-1") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("比较 2 < 1", em.evalFmt("2 < 1"), "0") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("相等 3 = 3", em.evalFmt("3 = 3"), "-1") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("不等 3 <> 3", em.evalFmt("3 <> 3"), "0") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("NOT 0", em.evalFmt("NOT 0"), "-1") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("AND", em.evalFmt("1 = 1 AND 2 = 2"), "-1") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("OR", em.evalFmt("1 = 1 OR 5 = 4"), "-1") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("字符串相等", em.evalFmt("\"abc\" = \"abc\""), "-1") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("字符串拼接", em.evalFmt("\"foo\" + \"bar\""), "foobar") then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 内建函数 ----
+        if checkStr("ABS(-7)", em.evalFmt("ABS(-7)"), "7") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("INT(3.7)", em.evalFmt("INT(3.7)"), "3") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("SQR(16)", em.evalFmt("SQR(16)"), "4") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("LEN(hello)", em.evalFmt("LEN(\"hello\")"), "5") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("LEFT$", em.evalFmt("LEFT$(\"hello\", 3)"), "hel") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("RIGHT$", em.evalFmt("RIGHT$(\"hello\", 2)"), "lo") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("MID$ 3 参数", em.evalFmt("MID$(\"hello\", 2, 3)"), "ell") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("MID$ 2 参数", em.evalFmt("MID$(\"hello\", 2)"), "ello") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("CHR$ 65", em.evalFmt("CHR(65)"), "A") then
+            passed += 1
+        else
+            failed += 1
+        end
+        if checkStr("ASC(A)", em.evalFmt("ASC(\"A\")"), "65") then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 程序：Fibonacci 前 10 项（规格示例）----
+        if checkStr("Fibonacci 程序", runProg(FIB_SRC), "0 1 1 2 3 5 8 13 21 34\n") then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 程序：GOSUB / RETURN ----
+        if checkStr("GOSUB/RETURN", runProg(GOSUB_SRC), "in sub\nback\n") then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 程序：DIM 数组 ----
+        if checkStr("DIM 数组", runProg(DIM_SRC), "0\n1\n4\n9\n16\n25\n") then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 程序：嵌套 FOR ----
+        if checkStr("嵌套 FOR", runProg(NESTED_SRC), "1\n2\n3\n2\n4\n6\n3\n6\n9\n") then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 程序：字符串函数 ----
+        if checkStr("字符串函数程序", runProg(STRFUNC_SRC), "5\nhel\nlo\nell\nABC\n65\n") then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 程序：GOTO + IF 计数 ----
+        if checkStr("GOTO + IF", runProg(GOTOIF_SRC), "1\n2\n3\n4\n5\ndone\n") then
+            passed += 1
+        else
+            failed += 1
+        end
+
+    catch e
+        println("测试过程中抛出异常: " + e.message)
+        failed += 1
+    end
+
+    println("----------------------------------------------------------------")
+    println("总计: " + string(passed + failed) + "  通过: " + string(passed) + "  失败: " + string(failed))
+    if failed == 0 then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println("SOME TESTS FAILED")
+    return 1
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        return cmdTest()
+    end
+    string cmd = string(arg[1])
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+    if cmd == "test" then
+        return cmdTest()
+    end
+    if cmd == "run" then
+        if arg.length < 3 then
+            println("basic: 'run' 需要 <file.bas>")
+            return 1
+        end
+        return cmdRun(string(arg[2]))
+    end
+    println("basic: 未知命令: " + cmd)
+    printUsage()
+    return 1
+end

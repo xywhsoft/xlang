@@ -1,0 +1,1754 @@
+// lisp.xl - 一个用 xlang 编写的 Lisp/Scheme 解释器
+//
+// 用法:
+//   lisp run <file.lisp>     执行一个 .lisp 文件
+//   lisp test                运行内置测试套件
+//   lisp -h | --help         显示帮助
+//
+// 本工具验证 xlang 的以下能力:
+//   * 递归下降 Reader（解析 S-表达式、quote、字面量、注释）
+//   * 递归求值器 eval(expr, env)
+//   * 词法闭包（lambda 捕获环境，var dict 链式查找）
+//   * 深递归（factorial 20、fibonacci 25）
+//   * var 动态类型承载所有 Lisp 值（int/float/string/bool/nil/symbol/list/closure）
+//
+// 数据模型:
+//   nil          -> null
+//   整数/浮点    -> int / float
+//   字符串       -> string
+//   布尔         -> bool (#t/#f)
+//   符号         -> Sym 类实例
+//   列表         -> var 数组（空列表用 null 表示）
+//   闭包         -> Closure 类实例
+//   内建函数     -> Builtin 类实例（按 name 派发）
+//   环境         -> var 数组 [parent, k1, v1, k2, v2, ...]（线性查找）
+
+
+// ====================== 数字字面量辅助 ======================
+
+func isDigitByte(int b) as bool
+    return b >= 48 and b <= 57
+end
+
+// 判断字符串是否为合法（可带符号的）十进制整数。
+func isIntLit(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int i = 0
+    int b0 = string.byteAt(s, 0)
+    if b0 == 45 or b0 == 43 then
+        i = 1
+        if n == 1 then
+            return false
+        end
+    end
+    while i < n do
+        if not isDigitByte(string.byteAt(s, i)) then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+// 判断字符串是否为浮点字面量（含 '.' ，数字结构宽松校验）。
+func isFloatLit(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    bool hasDot = false
+    bool hasDigit = false
+    int i = 0
+    int b0 = string.byteAt(s, 0)
+    if b0 == 45 or b0 == 43 then
+        i = 1
+    end
+    while i < n do
+        int b = string.byteAt(s, i)
+        if isDigitByte(b) then
+            hasDigit = true
+        elseif b == 46 then
+            if hasDot then
+                return false
+            end
+            hasDot = true
+        elseif b == 101 or b == 69 then
+            i += 1
+            if i < n then
+                int b2 = string.byteAt(s, i)
+                if b2 == 43 or b2 == 45 then
+                    i += 1
+                end
+            end
+        else
+            return false
+        end
+        i += 1
+    end
+    return hasDot and hasDigit
+end
+
+// 将裸 token 分类为 nil/#t/#f/整数/浮点/符号。
+func classifyAtom(string tok) as var
+    if tok == "nil" then
+        return null
+    end
+    if tok == "#t" then
+        return true
+    end
+    if tok == "#f" then
+        return false
+    end
+    if isIntLit(tok) then
+        return int(tok)
+    end
+    if isFloatLit(tok) then
+        return float(tok)
+    end
+    return Sym(tok)
+end
+
+
+// ====================== Lisp 值类型 ======================
+
+// 符号：裸标识符。
+class Sym
+    derive value
+    string name = ""
+    create(string n)
+        self.name = n
+        return
+    end
+end
+
+// 闭包：参数名表 + 函数体表达式列表 + 捕获环境。
+class Closure
+    derive value
+    var params = null
+    var body = null
+    var env = null
+    create(var p, var b, var e)
+        self.params = p
+        self.body = b
+        self.env = e
+        return
+    end
+end
+
+// 内建函数：仅存 name，由 applyBuiltin 派发。
+class Builtin
+    derive value
+    string name = ""
+    create(string n)
+        self.name = n
+        return
+    end
+end
+
+
+// ====================== Reader（递归下降 S-表达式解析器） ======================
+
+class Reader
+    derive value
+    string src = ""
+    int pos = 0
+    int len = 0
+    create(string s)
+        self.src = s
+        self.pos = 0
+        self.len = string.len(s)
+        return
+    end
+
+    // 跳过空白与 ; 行注释。
+    func skipWs()
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if c == " " or c == "\t" or c == "\r" or c == "\n" then
+                self.pos += 1
+            elseif c == ";" then
+                while self.pos < self.len do
+                    string cc = string.charAt(self.src, self.pos)
+                    if cc == "\n" then
+                        break
+                    end
+                    self.pos += 1
+                end
+            else
+                return
+            end
+        end
+    end
+
+    func atDelim(string c) as bool
+        if c == " " or c == "\t" or c == "\r" or c == "\n" then
+            return true
+        end
+        if c == "(" or c == ")" or c == "[" or c == "]" then
+            return true
+        end
+        if c == ";" or c == "'" or c == "\"" or c == "`" then
+            return true
+        end
+        return false
+    end
+
+    // 读取一个字符串字面量（调用者已定位到起始引号）。返回解码后内容。
+    func readString() as var
+        self.pos += 1
+        string out = ""
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if c == "\"" then
+                self.pos += 1
+                return out
+            end
+            if c == "\\" then
+                self.pos += 1
+                if self.pos >= self.len then
+                    throw "lisp: unterminated string"
+                end
+                string e = string.charAt(self.src, self.pos)
+                if e == "n" then
+                    out = out + "\n"
+                elseif e == "t" then
+                    out = out + "\t"
+                elseif e == "r" then
+                    out = out + "\r"
+                elseif e == "\\" then
+                    out = out + "\\"
+                elseif e == "\"" then
+                    out = out + "\""
+                else
+                    out = out + e
+                end
+                self.pos += 1
+            else
+                out = out + c
+                self.pos += 1
+            end
+        end
+        throw "lisp: unterminated string"
+    end
+
+    // 读取一个原子 token 并分类。
+    func readAtom() as var
+        string tok = ""
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if self.atDelim(c) then
+                break
+            end
+            tok = tok + c
+            self.pos += 1
+        end
+        return classifyAtom(tok)
+    end
+
+    // 读取一个列表（已消耗起始 '('）。空列表返回 null（即 nil）。
+    func readList() as var
+        var items = []
+        while true do
+            self.skipWs()
+            if self.pos >= self.len then
+                throw "lisp: unexpected EOF in list"
+            end
+            string c = string.charAt(self.src, self.pos)
+            if c == ")" or c == "]" then
+                self.pos += 1
+                if items.length == 0 then
+                    return null
+                end
+                return items
+            end
+            var e = self.readExpr()
+            items.push(e)
+        end
+        return items
+    end
+
+    // 读取一个表达式。
+    func readExpr() as var
+        self.skipWs()
+        if self.pos >= self.len then
+            throw "lisp: unexpected EOF"
+        end
+        string c = string.charAt(self.src, self.pos)
+        if c == "(" or c == "[" then
+            self.pos += 1
+            return self.readList()
+        end
+        if c == ")" or c == "]" then
+            throw "lisp: unexpected '" + c + "'"
+        end
+        if c == "'" then
+            self.pos += 1
+            var e = self.readExpr()
+            var lst = []
+            lst.push(Sym("quote"))
+            lst.push(e)
+            return lst
+        end
+        if c == "`" then
+            self.pos += 1
+            var e = self.readExpr()
+            var lst = []
+            lst.push(Sym("quote"))
+            lst.push(e)
+            return lst
+        end
+        if c == "\"" then
+            return self.readString()
+        end
+        return self.readAtom()
+    end
+
+    // 读取全部顶层表达式，返回一个 var 数组。
+    func readAll() as var
+        var forms = []
+        while true do
+            self.skipWs()
+            if self.pos >= self.len then
+                break
+            end
+            var form = self.readExpr()
+            forms.push(form)
+        end
+        return forms
+    end
+end
+
+
+// ====================== 环境 ======================
+// 环境用 var 数组表示（避免 dict 的 GC 二次方劣化 —— 见 BUGS）。
+// 布局：env = [parent, key1, val1, key2, val2, ...]
+//   env[0]           = 父环境（或 null）
+//   env[1],env[2]    = 第一对 (key, value)
+//   env[3],env[4]    = 第二对 (key, value)
+//   ...
+// 查找从每帧末尾向前扫描（后入先出，保证 shadow / 重定义正确）。
+// var 数组以引用共享方式传递，故在函数内就地修改对调用方可见。
+
+func envChild(var parent) as var
+    var e = [parent]
+    return e
+end
+
+// 向上查找变量；找不到抛异常。
+func envLookup(var env, string name) as var
+    var e = env
+    while e is array<var> do
+        int len = e.length
+        int i = len - 2
+        while i >= 1 do
+            if e[i] == name then
+                return e[i + 1]
+            end
+            i -= 2
+        end
+        e = e[0]
+    end
+    throw "lisp: unbound symbol: " + name
+end
+
+// set!：找到已有绑定并更新；找不到抛异常。
+func envSet(var env, string name, var val)
+    var e = env
+    while e is array<var> do
+        int len = e.length
+        int i = len - 2
+        while i >= 1 do
+            if e[i] == name then
+                e[i + 1] = val
+                return
+            end
+            i -= 2
+        end
+        e = e[0]
+    end
+    throw "lisp: set!: unbound symbol: " + name
+end
+
+func makeGlobalEnv() as var
+    var g = [null]
+    g.push("+")
+    g.push(Builtin("+"))
+    g.push("-")
+    g.push(Builtin("-"))
+    g.push("*")
+    g.push(Builtin("*"))
+    g.push("/")
+    g.push(Builtin("/"))
+    g.push("=")
+    g.push(Builtin("="))
+    g.push("<")
+    g.push(Builtin("<"))
+    g.push(">")
+    g.push(Builtin(">"))
+    g.push("<=")
+    g.push(Builtin("<="))
+    g.push(">=")
+    g.push(Builtin(">="))
+    g.push("car")
+    g.push(Builtin("car"))
+    g.push("cdr")
+    g.push(Builtin("cdr"))
+    g.push("cons")
+    g.push(Builtin("cons"))
+    g.push("list")
+    g.push(Builtin("list"))
+    g.push("null?")
+    g.push(Builtin("null?"))
+    g.push("pair?")
+    g.push(Builtin("pair?"))
+    g.push("number?")
+    g.push(Builtin("number?"))
+    g.push("display")
+    g.push(Builtin("display"))
+    g.push("newline")
+    g.push(Builtin("newline"))
+    g.push("map")
+    g.push(Builtin("map"))
+    g.push("filter")
+    g.push(Builtin("filter"))
+    g.push("reduce")
+    g.push(Builtin("reduce"))
+    g.push("length")
+    g.push(Builtin("length"))
+    g.push("append")
+    g.push(Builtin("append"))
+    g.push("reverse")
+    g.push(Builtin("reverse"))
+    g.push("not")
+    g.push(Builtin("not"))
+    g.push("eq?")
+    g.push(Builtin("eq?"))
+    g.push("equal?")
+    g.push(Builtin("equal?"))
+    g.push("boolean?")
+    g.push(Builtin("boolean?"))
+    g.push("string?")
+    g.push(Builtin("string?"))
+    g.push("symbol?")
+    g.push(Builtin("symbol?"))
+    g.push("zero?")
+    g.push(Builtin("zero?"))
+    return g
+end
+
+
+// ====================== 显示 / 序列化 ======================
+
+func quoteStr(string s) as string
+    string out = "\""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        if c == "\"" then
+            out = out + "\\\""
+        elseif c == "\\" then
+            out = out + "\\\\"
+        elseif c == "\n" then
+            out = out + "\\n"
+        elseif c == "\t" then
+            out = out + "\\t"
+        elseif c == "\r" then
+            out = out + "\\r"
+        else
+            out = out + c
+        end
+        i += 1
+    end
+    out = out + "\""
+    return out
+end
+
+func listToStr(var lst, bool useWrite) as string
+    int n = lst.length
+    if n == 0 then
+        return "nil"
+    end
+    string out = "("
+    int i = 0
+    while i < n do
+        if i > 0 then
+            out = out + " "
+        end
+        out = out + displayStr(lst[i], useWrite)
+        i += 1
+    end
+    out = out + ")"
+    return out
+end
+
+// 将 Lisp 值转为字符串。useWrite=true 时字符串带引号（write 语义）。
+func displayStr(var v, bool useWrite) as string
+    if v is null then
+        return "nil"
+    end
+    if v is bool then
+        if bool(v) then
+            return "#t"
+        end
+        return "#f"
+    end
+    if v is int then
+        return string(int(v))
+    end
+    if v is float then
+        return string(float(v))
+    end
+    if v is string then
+        string s = string(v)
+        if useWrite then
+            return quoteStr(s)
+        end
+        return s
+    end
+    if v is Sym then
+        Sym s = v as Sym
+        return s.name
+    end
+    if v is Closure then
+        return "#<closure>"
+    end
+    if v is Builtin then
+        Builtin b = v as Builtin
+        return "#<builtin:" + b.name + ">"
+    end
+    if v is array<var> then
+        return listToStr(v, useWrite)
+    end
+    return "#<unknown>"
+end
+
+
+// ====================== 求值器 ======================
+
+func isTruthy(var v) as bool
+    if v is bool then
+        if bool(v) then
+            return true
+        end
+        return false
+    end
+    return true
+end
+
+// 求值序列中 [start,end) 的表达式，返回最后一个值。
+func evalSeq(var seq, int start, int endIdx, var env) as var
+    var result = null
+    int i = start
+    while i < endIdx do
+        result = eval(seq[i], env)
+        i += 1
+    end
+    return result
+end
+
+// 从参数名表（Sym 列表）+ 函数体 + 捕获环境构造闭包。
+func makeClosure(var paramsRaw, var body, var env) as var
+    var names = []
+    int i = 0
+    int n = 0
+    if paramsRaw is array<var> then
+        n = paramsRaw.length
+    end
+    while i < n do
+        Sym p = paramsRaw[i] as Sym
+        names.push(p.name)
+        i += 1
+    end
+    Closure c = Closure(names, body, env)
+    return c
+end
+
+func evalIf(var expr, var env) as var
+    var test = eval(expr[1], env)
+    if isTruthy(test) then
+        return eval(expr[2], env)
+    end
+    if expr.length > 3 then
+        return eval(expr[3], env)
+    end
+    return null
+end
+
+func evalDefine(var expr, var env) as var
+    var target = expr[1]
+    if target is Sym then
+        Sym t = target as Sym
+        var val = eval(expr[2], env)
+        env.push(t.name)
+        env.push(val)
+        return null
+    end
+    // (define (name args...) body...)
+    if target is array<var> then
+        Sym fname = target[0] as Sym
+        var pnames = []
+        int j = 1
+        int tn = target.length
+        while j < tn do
+            pnames.push(target[j])
+            j += 1
+        end
+        var body = []
+        int k = 2
+        int en = expr.length
+        while k < en do
+            body.push(expr[k])
+            k += 1
+        end
+        var lam = makeClosure(pnames, body, env)
+        env.push(fname.name)
+        env.push(lam)
+        return null
+    end
+    throw "lisp: define: bad form"
+end
+
+func evalSet(var expr, var env) as var
+    Sym s = expr[1] as Sym
+    var val = eval(expr[2], env)
+    envSet(env, s.name, val)
+    return null
+end
+
+func evalLambda(var expr, var env) as var
+    var paramsRaw = expr[1]
+    var body = []
+    int k = 2
+    int n = expr.length
+    while k < n do
+        body.push(expr[k])
+        k += 1
+    end
+    return makeClosure(paramsRaw, body, env)
+end
+
+func evalLet(var expr, var env) as var
+    var bindings = expr[1]
+    var newEnv = envChild(env)
+    int nb = 0
+    if bindings is array<var> then
+        nb = bindings.length
+    end
+    int b = 0
+    while b < nb do
+        var binding = bindings[b]
+        Sym vn = binding[0] as Sym
+        var vv = eval(binding[1], env)
+        newEnv.push(vn.name)
+        newEnv.push(vv)
+        b += 1
+    end
+    return evalSeq(expr, 2, expr.length, newEnv)
+end
+
+func evalCond(var expr, var env) as var
+    int c = 1
+    int n = expr.length
+    while c < n do
+        var clause = expr[c]
+        var test = clause[0]
+        bool isElse = false
+        if test is Sym then
+            Sym ts = test as Sym
+            if ts.name == "else" then
+                isElse = true
+            end
+        end
+        if isElse then
+            return evalSeq(clause, 1, clause.length, env)
+        end
+        var tv = eval(test, env)
+        if isTruthy(tv) then
+            if clause.length > 1 then
+                return evalSeq(clause, 1, clause.length, env)
+            end
+            return tv
+        end
+        c += 1
+    end
+    return null
+end
+
+func evalAnd(var expr, var env) as var
+    int n = expr.length
+    if n == 1 then
+        return true
+    end
+    var result = true
+    int i = 1
+    while i < n do
+        result = eval(expr[i], env)
+        if isTruthy(result) then
+            // 继续
+        else
+            return false
+        end
+        i += 1
+    end
+    return result
+end
+
+func evalOr(var expr, var env) as var
+    int n = expr.length
+    int i = 1
+    while i < n do
+        var result = eval(expr[i], env)
+        if isTruthy(result) then
+            return result
+        end
+        i += 1
+    end
+    return false
+end
+
+// 核心：递归求值。热路径：先判断列表（函数调用）与符号（变量引用）。
+func eval(var expr, var env) as var
+    // 列表：特殊形式或函数应用（执行期最高频）
+    if expr is array<var> then
+        int n = expr.length
+        if n == 0 then
+            return null
+        end
+        var head = expr[0]
+        if head is Sym then
+            Sym h = head as Sym
+            string name = h.name
+            if name == "quote" then
+                return expr[1]
+            end
+            if name == "if" then
+                return evalIf(expr, env)
+            end
+            if name == "define" then
+                return evalDefine(expr, env)
+            end
+            if name == "set!" then
+                return evalSet(expr, env)
+            end
+            if name == "lambda" then
+                return evalLambda(expr, env)
+            end
+            if name == "let" then
+                return evalLet(expr, env)
+            end
+            if name == "begin" then
+                return evalSeq(expr, 1, expr.length, env)
+            end
+            if name == "cond" then
+                return evalCond(expr, env)
+            end
+            if name == "and" then
+                return evalAnd(expr, env)
+            end
+            if name == "or" then
+                return evalOr(expr, env)
+            end
+        end
+        // 函数应用：先求值函数位置
+        var fn = eval(head, env)
+        // 闭包快速路径：直接把实参求值进调用环境，省去 args 数组
+        if fn is Closure then
+            Closure c = fn as Closure
+            var callEnv = envChild(c.env)
+            var params = c.params
+            int np = params.length
+            int ai = 1
+            int pi = 0
+            while pi < np do
+                string pname = string(params[pi])
+                if ai < n then
+                    callEnv.push(pname)
+                    callEnv.push(eval(expr[ai], env))
+                else
+                    callEnv.push(pname)
+                    callEnv.push(null)
+                end
+                pi += 1
+                ai += 1
+            end
+            return evalSeq(c.body, 0, c.body.length, callEnv)
+        end
+        if fn is Builtin then
+            Builtin b = fn as Builtin
+            var args = []
+            int i = 1
+            while i < n do
+                args.push(eval(expr[i], env))
+                i += 1
+            end
+            return applyBuiltin(b.name, args)
+        end
+        throw "lisp: not callable: " + displayStr(fn, true)
+    end
+    // 符号：变量查找
+    if expr is Sym then
+        Sym s = expr as Sym
+        return envLookup(env, s.name)
+    end
+    // 自求值类型
+    if expr is int then
+        return expr
+    end
+    if expr is null then
+        return expr
+    end
+    if expr is string then
+        return expr
+    end
+    if expr is bool then
+        return expr
+    end
+    if expr is float then
+        return expr
+    end
+    if expr is Builtin then
+        return expr
+    end
+    if expr is Closure then
+        return expr
+    end
+    throw "lisp: cannot evaluate expression"
+end
+
+
+// ====================== apply / 内建函数 ======================
+
+func applyClosure(Closure c, var args) as var
+    var callEnv = envChild(c.env)
+    var params = c.params
+    int np = params.length
+    int na = args.length
+    int i = 0
+    while i < np do
+        string pname = string(params[i])
+        if i < na then
+            callEnv.push(pname)
+            callEnv.push(args[i])
+        else
+            callEnv.push(pname)
+            callEnv.push(null)
+        end
+        i += 1
+    end
+    return evalSeq(c.body, 0, c.body.length, callEnv)
+end
+
+func apply(var fn, var args) as var
+    if fn is Closure then
+        Closure c = fn as Closure
+        return applyClosure(c, args)
+    end
+    if fn is Builtin then
+        Builtin b = fn as Builtin
+        return applyBuiltin(b.name, args)
+    end
+    throw "lisp: not callable: " + displayStr(fn, true)
+end
+
+// 数值辅助：var -> float（调用者保证 v 为数值）。
+func toFloat(var v) as float
+    if v is int then
+        return float(int(v))
+    end
+    return float(v)
+end
+
+// 校验全部实参为数值；返回是否全为 int（遇非数值抛异常）。
+func argsAllInt(var args, string op) as bool
+    bool allInt = true
+    int n = args.length
+    int i = 0
+    while i < n do
+        var a = args[i]
+        if a is int then
+            // ok
+        elseif a is float then
+            allInt = false
+        else
+            throw "lisp: " + op + ": not a number: " + displayStr(a, true)
+        end
+        i += 1
+    end
+    return allInt
+end
+
+// 两数值比较，返回 -1/0/1（调用者保证为数值）。
+func numCompare(var a, var b) as int
+    if a is int then
+        if b is int then
+            int ia = int(a)
+            int ib = int(b)
+            if ia < ib then
+                return -1
+            end
+            if ia > ib then
+                return 1
+            end
+            return 0
+        end
+    end
+    float fa = toFloat(a)
+    float fb = toFloat(b)
+    if fa < fb then
+        return -1
+    end
+    if fa > fb then
+        return 1
+    end
+    return 0
+end
+
+// 深相等：数值按值、字符串按值、列表递归、nil 相等。
+func deepEqual(var a, var b) as bool
+    if a is null then
+        if b is null then
+            return true
+        end
+        return false
+    end
+    if b is null then
+        return false
+    end
+    if a is int then
+        if b is int then
+            if int(a) == int(b) then
+                return true
+            end
+            return false
+        end
+        return false
+    end
+    if a is float then
+        if b is float then
+            if float(a) == float(b) then
+                return true
+            end
+            return false
+        end
+        return false
+    end
+    if a is bool then
+        if b is bool then
+            if bool(a) == bool(b) then
+                return true
+            end
+            return false
+        end
+        return false
+    end
+    if a is string then
+        if b is string then
+            if string(a) == string(b) then
+                return true
+            end
+            return false
+        end
+        return false
+    end
+    if a is Sym then
+        if b is Sym then
+            Sym sa = a as Sym
+            Sym sb = b as Sym
+            if sa.name == sb.name then
+                return true
+            end
+            return false
+        end
+        return false
+    end
+    if a is array<var> then
+        if b is array<var> then
+            int na = a.length
+            int nb = b.length
+            if na != nb then
+                return false
+            end
+            int i = 0
+            while i < na do
+                if not deepEqual(a[i], b[i]) then
+                    return false
+                end
+                i += 1
+            end
+            return true
+        end
+        return false
+    end
+    return false
+end
+
+// 内建函数总派发。
+func applyBuiltin(string name, var args) as var
+    int n = args.length
+
+    if name == "+" then
+        if argsAllInt(args, "+") then
+            int sum = 0
+            int i = 0
+            while i < n do
+                sum = sum + int(args[i])
+                i += 1
+            end
+            return sum
+        end
+        float fsum = 0.0
+        int i = 0
+        while i < n do
+            fsum = fsum + toFloat(args[i])
+            i += 1
+        end
+        return fsum
+    end
+
+    if name == "-" then
+        if n == 0 then
+            return 0
+        end
+        if argsAllInt(args, "-") then
+            if n == 1 then
+                return -int(args[0])
+            end
+            int acc = int(args[0])
+            int i = 1
+            while i < n do
+                acc = acc - int(args[i])
+                i += 1
+            end
+            return acc
+        end
+        if n == 1 then
+            return -toFloat(args[0])
+        end
+        float facc = toFloat(args[0])
+        int i = 1
+        while i < n do
+            facc = facc - toFloat(args[i])
+            i += 1
+        end
+        return facc
+    end
+
+    if name == "*" then
+        if argsAllInt(args, "*") then
+            int prod = 1
+            int i = 0
+            while i < n do
+                prod = prod * int(args[i])
+                i += 1
+            end
+            return prod
+        end
+        float fprod = 1.0
+        int i = 0
+        while i < n do
+            fprod = fprod * toFloat(args[i])
+            i += 1
+        end
+        return fprod
+    end
+
+    if name == "/" then
+        if n == 0 then
+            throw "lisp: /: needs at least 1 arg"
+        end
+        argsAllInt(args, "/")
+        if n == 1 then
+            return 1.0 / toFloat(args[0])
+        end
+        float facc = toFloat(args[0])
+        int i = 1
+        while i < n do
+            float d = toFloat(args[i])
+            facc = facc / d
+            i += 1
+        end
+        return facc
+    end
+
+    if name == "=" then
+        if n < 2 then
+            return true
+        end
+        argsAllInt(args, "=")
+        int i = 1
+        while i < n do
+            if numCompare(args[0], args[i]) != 0 then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+
+    if name == "<" then
+        argsAllInt(args, "<")
+        int i = 0
+        while i < n - 1 do
+            if numCompare(args[i], args[i + 1]) >= 0 then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+
+    if name == ">" then
+        argsAllInt(args, ">")
+        int i = 0
+        while i < n - 1 do
+            if numCompare(args[i], args[i + 1]) <= 0 then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+
+    if name == "<=" then
+        argsAllInt(args, "<=")
+        int i = 0
+        while i < n - 1 do
+            if numCompare(args[i], args[i + 1]) > 0 then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+
+    if name == ">=" then
+        argsAllInt(args, ">=")
+        int i = 0
+        while i < n - 1 do
+            if numCompare(args[i], args[i + 1]) < 0 then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+
+    if name == "zero?" then
+        if n < 1 then
+            return false
+        end
+        var z = args[0]
+        if z is int then
+            if int(z) == 0 then
+                return true
+            end
+            return false
+        end
+        if z is float then
+            if float(z) == 0.0 then
+                return true
+            end
+            return false
+        end
+        return false
+    end
+
+    if name == "car" then
+        if n < 1 then
+            throw "lisp: car: needs 1 arg"
+        end
+        var lst = args[0]
+        if lst is array<var> then
+            if lst.length == 0 then
+                throw "lisp: car: empty list"
+            end
+            return lst[0]
+        end
+        throw "lisp: car: not a pair"
+    end
+
+    if name == "cdr" then
+        if n < 1 then
+            throw "lisp: cdr: needs 1 arg"
+        end
+        var lst = args[0]
+        if lst is array<var> then
+            int m = lst.length
+            if m == 0 then
+                throw "lisp: cdr: empty list"
+            end
+            if m == 1 then
+                return null
+            end
+            var rest = []
+            int i = 1
+            while i < m do
+                rest.push(lst[i])
+                i += 1
+            end
+            return rest
+        end
+        throw "lisp: cdr: not a pair"
+    end
+
+    if name == "cons" then
+        if n < 2 then
+            throw "lisp: cons: needs 2 args"
+        end
+        var x = args[0]
+        var lst = args[1]
+        var nl = []
+        nl.push(x)
+        if lst is array<var> then
+            int m = lst.length
+            int i = 0
+            while i < m do
+                nl.push(lst[i])
+                i += 1
+            end
+        end
+        return nl
+    end
+
+    if name == "list" then
+        if n == 0 then
+            return null
+        end
+        return args
+    end
+
+    if name == "null?" then
+        var v = args[0]
+        if v is null then
+            return true
+        end
+        if v is array<var> then
+            if v.length == 0 then
+                return true
+            end
+        end
+        return false
+    end
+
+    if name == "pair?" then
+        var v = args[0]
+        if v is array<var> then
+            if v.length > 0 then
+                return true
+            end
+        end
+        return false
+    end
+
+    if name == "number?" then
+        var v = args[0]
+        if v is int then
+            return true
+        end
+        if v is float then
+            return true
+        end
+        return false
+    end
+
+    if name == "boolean?" then
+        var v = args[0]
+        if v is bool then
+            return true
+        end
+        return false
+    end
+
+    if name == "string?" then
+        var v = args[0]
+        if v is string then
+            return true
+        end
+        return false
+    end
+
+    if name == "symbol?" then
+        var v = args[0]
+        if v is Sym then
+            return true
+        end
+        return false
+    end
+
+    if name == "not" then
+        var v = args[0]
+        if isTruthy(v) then
+            return false
+        end
+        return true
+    end
+
+    if name == "eq?" then
+        var a = args[0]
+        var b = args[1]
+        if a is Sym then
+            if b is Sym then
+                Sym sa = a as Sym
+                Sym sb = b as Sym
+                if sa.name == sb.name then
+                    return true
+                end
+            end
+            return false
+        end
+        return deepEqual(a, b)
+    end
+
+    if name == "equal?" then
+        return deepEqual(args[0], args[1])
+    end
+
+    if name == "display" then
+        if n < 1 then
+            println("")
+        else
+            println(displayStr(args[0], false))
+        end
+        return null
+    end
+
+    if name == "newline" then
+        println("")
+        return null
+    end
+
+    if name == "length" then
+        var v = args[0]
+        if v is null then
+            return 0
+        end
+        if v is array<var> then
+            int m = v.length
+            return m
+        end
+        throw "lisp: length: not a list"
+    end
+
+    if name == "append" then
+        var out = []
+        int i = 0
+        while i < n do
+            var a = args[i]
+            if a is array<var> then
+                int m = a.length
+                int j = 0
+                while j < m do
+                    out.push(a[j])
+                    j += 1
+                end
+            elseif a is null then
+                // 跳过 nil
+            else
+                throw "lisp: append: not a list"
+            end
+            i += 1
+        end
+        if out.length == 0 then
+            return null
+        end
+        return out
+    end
+
+    if name == "reverse" then
+        var lst = args[0]
+        if lst is null then
+            return null
+        end
+        if lst is array<var> then
+            int m = lst.length
+            var out = []
+            int i = m - 1
+            while i >= 0 do
+                out.push(lst[i])
+                i -= 1
+            end
+            return out
+        end
+        throw "lisp: reverse: not a list"
+    end
+
+    if name == "map" then
+        if n < 2 then
+            throw "lisp: map: needs f and lst"
+        end
+        var f = args[0]
+        var lst = args[1]
+        if lst is null then
+            return null
+        end
+        if lst is array<var> then
+            var out = []
+            int m = lst.length
+            int i = 0
+            while i < m do
+                var one = []
+                one.push(lst[i])
+                out.push(apply(f, one))
+                i += 1
+            end
+            return out
+        end
+        throw "lisp: map: not a list"
+    end
+
+    if name == "filter" then
+        if n < 2 then
+            throw "lisp: filter: needs f and lst"
+        end
+        var f = args[0]
+        var lst = args[1]
+        if lst is null then
+            return null
+        end
+        if lst is array<var> then
+            var out = []
+            int m = lst.length
+            int i = 0
+            while i < m do
+                var one = []
+                one.push(lst[i])
+                var keep = apply(f, one)
+                if isTruthy(keep) then
+                    out.push(lst[i])
+                end
+                i += 1
+            end
+            return out
+        end
+        throw "lisp: filter: not a list"
+    end
+
+    if name == "reduce" then
+        // (reduce f init lst) 从左折叠
+        if n < 3 then
+            throw "lisp: reduce: needs f init lst"
+        end
+        var f = args[0]
+        var acc = args[1]
+        var lst = args[2]
+        if lst is array<var> then
+            int m = lst.length
+            int i = 0
+            while i < m do
+                var two = []
+                two.push(acc)
+                two.push(lst[i])
+                acc = apply(f, two)
+                i += 1
+            end
+        end
+        return acc
+    end
+
+    throw "lisp: unknown builtin: " + name
+end
+
+
+// ====================== 命令行 ======================
+
+func printUsage()
+    println("lisp - Lisp/Scheme interpreter (written in xlang)")
+    println("")
+    println("usage:")
+    println("  lisp run <file.lisp>     execute a .lisp file")
+    println("  lisp test                run built-in test suite")
+    println("  lisp -h | --help         show this help")
+end
+
+// 执行源码字符串中的全部顶层形式。
+func runSource(string src, var env)
+    Reader r = Reader(src)
+    var forms = r.readAll()
+    int n = forms.length
+    int i = 0
+    while i < n do
+        eval(forms[i], env)
+        i += 1
+    end
+end
+
+func cmdRun(string path) as int
+    if not file.exists(path) then
+        println("lisp: file not found: " + path)
+        return 1
+    end
+    string src = file.readText(path)
+    var env = makeGlobalEnv()
+    try
+        runSource(src, env)
+    catch e
+        println("lisp: error: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+// 求值单个表达式字符串，返回结果。
+func evalOne(string src, var env) as var
+    Reader r = Reader(src)
+    var forms = r.readAll()
+    if forms.length == 0 then
+        return null
+    end
+    return eval(forms[0], env)
+end
+
+// 校验：求值 src，把结果 displayStr 与 expected 比较，打印 PASS/FAIL。
+func runCheck(string label, string src, string expected, var env) as bool
+    var r = evalOne(src, env)
+    string got = displayStr(r, false)
+    if got == expected then
+        println("PASS  " + label + "  => " + got)
+        return true
+    end
+    println("FAIL  " + label + "  expected '" + expected + "'  got '" + got + "'")
+    return false
+end
+
+func cmdTest() as int
+    println("=== lisp built-in test suite ===")
+    var env = makeGlobalEnv()
+    int passed = 0
+    int failed = 0
+
+    try
+        // ---- 基本算术与特殊形式 ----
+        if runCheck("(+ 1 2 3)", "(+ 1 2 3)", "6", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("(* 2 3 4)", "(* 2 3 4)", "24", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("(- 10 3 2)", "(- 10 3 2)", "5", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("nested if", "(if (< 1 2) 100 200)", "100", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("quote list", "(quote (a b c))", "(a b c)", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("begin", "(begin 1 2 3)", "3", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- define / 闭包 ----
+        runSource("(define x 42)", env)
+        if runCheck("define var", "x", "42", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        runSource("(define (square n) (* n n))", env)
+        if runCheck("square 9", "(square 9)", "81", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        runSource("(define (make-adder n) (lambda (x) (+ x n)))", env)
+        if runCheck("closure capture", "((make-adder 10) 5)", "15", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- let / cond / and / or ----
+        if runCheck("let", "(let ((a 1) (b 2)) (+ a b))", "3", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("cond true", "(cond ((= 1 2) 'a) ((= 1 1) 'b) (else 'c))", "b", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("cond else", "(cond ((= 1 2) 'a) (else 'c))", "c", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("and short-circuit", "(and 1 2 3)", "3", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("or short-circuit", "(or #f 7 9)", "7", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 列表操作 ----
+        if runCheck("cons", "(cons 1 (cons 2 nil))", "(1 2)", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("car", "(car '(10 20 30))", "10", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("cdr", "(cdr '(10 20 30))", "(20 30)", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("length", "(length '(1 2 3 4 5))", "5", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("append", "(append '(1 2) '(3 4) '(5))", "(1 2 3 4 5)", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("reverse", "(reverse '(1 2 3))", "(3 2 1)", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("null? nil", "(null? nil)", "#t", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("null? nonempty", "(null? '(1))", "#f", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 内建 map / filter / reduce ----
+        if runCheck("builtin map", "(map (lambda (x) (* x x)) (list 1 2 3 4 5))", "(1 4 9 16 25)", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("filter", "(filter (lambda (x) (> x 2)) '(1 2 3 4 5))", "(3 4 5)", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("reduce", "(reduce (lambda (a b) (+ a b)) 0 '(1 2 3 4 5))", "15", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 规格示例：递归 factorial + 用户自定义 map ----
+        runSource("(define (factorial n) (if (= n 0) 1 (* n (factorial (- n 1)))))", env)
+        if runCheck("factorial 10", "(factorial 10)", "3628800", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        runSource("(define (map f lst) (if (null? lst) nil (cons (f (car lst)) (map f (cdr lst)))))", env)
+        if runCheck("user map squares", "(map (lambda (x) (* x x)) '(1 2 3 4 5))", "(1 4 9 16 25)", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 压测：深递归 ----
+        runSource("(define (fib n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2)))))", env)
+        float t0 = time.timer()
+        if runCheck("factorial 20", "(factorial 20)", "2432902008176640000", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if runCheck("fibonacci 25", "(fib 25)", "75025", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        float t1 = time.timer()
+        println("; stress (fact20 + fib25) took " + string.formatFloat((t1 - t0) * 1000.0, ".3") + " ms")
+
+        // ---- set! 与闭包状态（make-counter）----
+        runSource("(define (make-counter) (define n 0) (lambda () (set! n (+ n 1)) n))", env)
+        if runCheck("counter first", "((make-counter))", "1", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+        runSource("(define c (make-counter))", env)
+        runSource("(c)", env)
+        runSource("(c)", env)
+        if runCheck("counter third", "(c)", "3", env) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+    catch e
+        println("ERROR during test: " + e.message)
+        failed += 1
+    end
+
+    println("----------------------------------------------------------------")
+    println("total: " + string(passed + failed) + "  passed: " + string(passed) + "  failed: " + string(failed))
+    if failed == 0 then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println("SOME TESTS FAILED")
+    return 1
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    if cmd == "run" then
+        if arg.length < 3 then
+            println("lisp: 'run' needs <file.lisp>")
+            return 1
+        end
+        return cmdRun(string(arg[2]))
+    end
+
+    println("lisp: unknown command: " + cmd)
+    printUsage()
+    return 1
+end

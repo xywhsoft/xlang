@@ -591,7 +591,10 @@ static XL6_AstNode* xl6PWithFlags(XL6_AstNode* node, unsigned int flags)
 %nonassoc KW_THEN.
 %nonassoc KW_ELSE.
 /*
-    杩欓噷涓嶆槸鏃ц娉曞吋瀹瑰洖閫€锛岃€屾槸涓婁笅鏂囧叧閿瓧鏈哄埗銆?    杩欎簺璇嶅湪 class 鎴愬憳淇グ绗︺€乶ative-backed class 绛夌壒瀹氫綅缃湁璇箟锛?    绂诲紑杩欎簺浣嶇疆鍚庯紝浠嶅彲浣滀负鏅€氭爣璇嗙浜ょ粰 IDENT 瑙勫垯澶勭悊銆?*/
+    这里不是旧语法兼容回退，而是上下文关键字机制。
+    这些词在 class 成员修饰符、native-backed class 等特定位置具有语义；
+    离开这些位置后，仍可作为普通标识符交给 IDENT 规则处理。
+*/
 %fallback IDENT KW_PUBLIC KW_PRIVATE KW_PROTECTED KW_STATIC KW_OVERRIDE KW_FINAL KW_VIRTUAL KW_NATIVE.
 %right FAT_ARROW.
 %right QUESTION.
@@ -642,7 +645,7 @@ item_base(A) ::= class_decl(B). { A = B; }
 item_base(A) ::= union_decl(B). { A = B; }
 item_base(A) ::= stmt(B). { A = B; }
 item(A) ::= TOK_ERROR(E). {
-    xl6PDiag(ctx, &E, "褰撳墠璇硶浣嶇疆涓嶆敮鎸佽 token");
+    xl6PDiag(ctx, &E, "当前语法位置不支持该 token");
     A = xl6AstNew(XL6_AST_LIST, NULL);
 }
 

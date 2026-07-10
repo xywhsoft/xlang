@@ -1,0 +1,671 @@
+// merkletree - 完全二叉 Merkle 哈希树（SHA-256）
+//
+// 用法：
+//   merkletree test     内置自测：8 叶子树，验证 构造/证明/验证/更新/一致性（始终 EXIT=0）
+//   merkletree dump     构造示例 8 叶子树并打印层级结构 + 证明样本
+//   merkletree help     打印用法
+//
+// 设计要点（结合 dev/README.md 与 BUGS.md）：
+//   - 完全二叉树用 heap 布局存于 array<string>：
+//       leafCount 个叶子（2 的幂），nodeCount = 2*leafCount - 1。
+//       根 hashes[0]；节点 i 的左子 = 2i+1，右子 = 2i+2，父 = (i-1)/2。
+//       叶子落在 [leafCount-1 .. 2*leafCount-2]。
+//     单一扁平数组避免 var dict 在递归中触发 BUG-LP1（递归热路径用 typed array）。
+//   - 叶子哈希 = sha256(数据块)；内部哈希 = sha256(左哈希 + 右哈希)（hex 串拼接）。
+//     crypto.sha256 返回大写 hex，统一 string.lower 输出。
+//   - Merkle 证明（membership proof）：从叶子走父链，每层记录 [兄弟哈希, 方向]。
+//     方向 dir=1 表示兄弟在右（当前是左子，验证时 h=H(h+sib)）；
+//           dir=0 表示兄弟在左（当前是右子，验证时 h=H(sib+h)）。
+//   - 验证证明：仅用 leafHash + proof + rootHash，不需要整棵树（核心特性）。
+//     verifyProof 设为顶层函数（不在 class 内），规避 BUG-C1（class 方法接收容器形参受限）。
+//   - 递归哈希：buildNode(node) 递归计算子树哈希并写回 self.hashes[node]，
+//     压测「递归 + crypto 密集调用」；updateLeaf 沿父链迭代重算（O(log n)）。
+//   - 继承/virtual：MerkleTree extends HashTree（virtual algorithmName + base()），
+//     始终在调用方直接 new 实例，不从函数返回带 virtual 的 class（BUG-RT3）。
+//   - 复合赋值 += 仅用于标量（BUG-V1）；不派发 class 运算符协议。
+//   - 字符串拼接两边的静态类型都是 string（避免 BUG-CE1：var + string 乱码）。
+
+const string EMPTY_LEAF_DATA = ""
+
+
+// ============================================================================
+// 顶层哈希辅助（纯函数，避开 class 方法容器形参限制）
+// ============================================================================
+
+// 单块 SHA-256 → 小写 hex。
+func hashStr(string s) as string
+    return string.lower(crypto.sha256(s))
+end
+
+// 两段 hex 串拼接后 SHA-256 → 小写 hex。a/b 静态类型均为 string，避开 BUG-CE1。
+func hashPair(string a, string b) as string
+    return string.lower(crypto.sha256(a + b))
+end
+
+// 返回不小于 n 的最小 2 的幂。
+func nextPow2(int n) as int
+    if n <= 1 then
+        return 1
+    end
+    int p = 1
+    while p < n do
+        p = p * 2
+    end
+    return p
+end
+
+func isPow2(int n) as bool
+    if n < 1 then
+        return false
+    end
+    int x = n
+    while x > 1 do
+        if x % 2 != 0 then
+            return false
+        end
+        x = x / 2
+    end
+    return true
+end
+
+
+// ============================================================================
+// 验证 Merkle 证明（顶层函数，无需整棵树）
+//   leafHash : 叶子块哈希
+//   proof    : getProof 返回的 var 数组，元素为 [兄弟哈希(string), 方向(int)]
+//               方向 1 = 兄弟在右（h=H(h+sib)）；0 = 兄弟在左（h=H(sib+h)）
+//   rootHash : 声称的根哈希
+// 返回 true 当且仅当按路径重算得到 rootHash。
+// ============================================================================
+
+func verifyProof(string leafHash, var proof, string rootHash) as bool
+    string h = leafHash
+    int n = proof.length
+    int i = 0
+    while i < n do
+        var entry = proof[i]
+        string sib = string(entry[0])
+        int dir = int(entry[1])
+        if dir == 1 then
+            h = hashPair(h, sib)
+        else
+            h = hashPair(sib, h)
+        end
+        i = i + 1
+    end
+    if h == rootHash then
+        return true
+    end
+    return false
+end
+
+
+// ============================================================================
+// HashTree — 抽象基类（演示继承 + virtual + base()）
+// ============================================================================
+
+class HashTree
+    derive value
+
+    string name = "hashtree"
+    int opCount = 0        // 累计操作次数（build/update/setLeaf）
+
+    create(string name)
+        self.name = name
+    end
+
+    virtual func algorithmName() as string
+        return "generic"
+    end
+
+    func describe() as string
+        return self.algorithmName() + ":" + self.name + " ops=" + string(self.opCount)
+    end
+end
+
+
+// ============================================================================
+// MerkleTree — 完全二叉 Merkle 哈希树
+// ============================================================================
+
+class MerkleTree extends HashTree
+    derive value
+
+    array<string> hashes = array[]    // heap 布局：根 hashes[0]
+    array<string> data = array[]      // 叶子原始数据块（仅 leafCount 个）
+    int leafCount = 0                 // 叶子数（2 的幂）
+    int nodeCount = 0                 // 总节点数 = 2*leafCount - 1
+    string emptyLeafHash = ""         // sha256("") 缓存，用于补齐空叶
+
+    create(int requestedLeaves)
+        base("merkletree")
+        int lc = nextPow2(requestedLeaves)
+        self.leafCount = lc
+        self.nodeCount = 2 * lc - 1
+        self.hashes = array[]
+        self.data = array[]
+        int i = 0
+        while i < self.nodeCount do
+            self.hashes.push("")
+            i = i + 1
+        end
+        int j = 0
+        while j < lc do
+            self.data.push("")
+            j = j + 1
+        end
+        self.emptyLeafHash = hashStr(EMPTY_LEAF_DATA)
+        int k = 0
+        while k < lc do
+            self.hashes[lc - 1 + k] = self.emptyLeafHash
+            k = k + 1
+        end
+    end
+
+    override func algorithmName() as string
+        return "sha256-merkle"
+    end
+
+    // ---- 叶子数据写入 ----
+
+    // 设置第 idx 个叶子的原始数据块（不立即重算内部节点；build() 时统一计算）。
+    func setLeaf(int idx, string block)
+        self.opCount = self.opCount + 1
+        self.data[idx] = block
+        self.hashes[self.leafCount - 1 + idx] = hashStr(block)
+    end
+
+    func leafData(int idx) as string
+        return self.data[idx]
+    end
+
+    func leafHash(int idx) as string
+        return self.hashes[self.leafCount - 1 + idx]
+    end
+
+    func rootHash() as string
+        return self.hashes[0]
+    end
+
+    func leafOffset() as int
+        return self.leafCount - 1
+    end
+
+    // ---- 递归构建（压测：递归 + crypto 密集调用）----
+    //   计算以 node 为根的子树哈希，写回 self.hashes[node] 并返回。
+    //   叶子（无子节点）直接返回已存哈希；内部节点 = H(左 + 右)。
+    func buildNode(int node) as string
+        int left = 2 * node + 1
+        if left >= self.nodeCount then
+            return self.hashes[node]
+        end
+        int right = 2 * node + 2
+        string lh = self.buildNode(left)
+        string rh = self.buildNode(right)
+        string h = hashPair(lh, rh)
+        self.hashes[node] = h
+        return h
+    end
+
+    // 公开构建：递归自顶向下，返回根哈希。
+    func build() as string
+        self.opCount = self.opCount + 1
+        return self.buildNode(0)
+    end
+
+    // ---- Merkle 证明（membership proof）----
+    //   给定叶子索引，返回从叶子到根的兄弟哈希路径。
+    //   每条 = [兄弟哈希, 方向]：方向 1=兄弟在右，0=兄弟在左。
+    func getProof(int leafIdx) as var
+        var proof = []
+        int node = self.leafCount - 1 + leafIdx
+        while node > 0 do
+            int parent = (node - 1) / 2
+            int sib
+            int dir
+            if node % 2 == 1 then
+                // 当前是左子，兄弟在右
+                sib = node + 1
+                dir = 1
+            else
+                // 当前是右子，兄弟在左
+                sib = node - 1
+                dir = 0
+            end
+            var entry = [self.hashes[sib], dir]
+            proof.push(entry)
+            node = parent
+        end
+        return proof
+    end
+
+    // 证明路径长度（= 树高 = log2(leafCount)）。
+    func proofLength(int leafIdx) as int
+        var p = self.getProof(leafIdx)
+        int n = p.length
+        return n
+    end
+
+    // ---- 数据更新：更新叶子并沿父链重算（O(log n) 迭代）----
+    func updateLeaf(int idx, string newBlock)
+        self.opCount = self.opCount + 1
+        self.data[idx] = newBlock
+        int node = self.leafCount - 1 + idx
+        self.hashes[node] = hashStr(newBlock)
+        while node > 0 do
+            int parent = (node - 1) / 2
+            int left = 2 * parent + 1
+            int right = 2 * parent + 2
+            string lh = self.hashes[left]
+            string rh = self.hashes[right]
+            self.hashes[parent] = hashPair(lh, rh)
+            node = parent
+        end
+    end
+
+    // ---- 树高（根=0 层；叶子层 = log2(leafCount)）----
+    func height() as int
+        int h = 0
+        int lc = self.leafCount
+        while lc > 1 do
+            h = h + 1
+            lc = lc / 2
+        end
+        return h
+    end
+
+    // ---- 序列化（手动遍历，compact 保序，规避 BUG-K1 pretty 重排）----
+    func serialize() as string
+        var out = {}
+        out["algorithm"] = self.algorithmName()
+        out["name"] = self.name
+        out["leafCount"] = self.leafCount
+        out["nodeCount"] = self.nodeCount
+        out["root"] = self.hashes[0]
+        var hs = []
+        int i = 0
+        while i < self.nodeCount do
+            hs.push(self.hashes[i])
+            i = i + 1
+        end
+        out["hashes"] = hs
+        var ds = []
+        int j = 0
+        while j < self.leafCount do
+            ds.push(self.data[j])
+            j = j + 1
+        end
+        out["data"] = ds
+        return json.stringify(out)
+    end
+
+    // 从 serialize() 文本重建（替换当前内容）。
+    func deserialize(string text) as bool
+        var data2 = json.parse(text)
+        if data2 == null then
+            return false
+        end
+        self.leafCount = int(data2["leafCount"])
+        self.nodeCount = int(data2["nodeCount"])
+        var hs = data2["hashes"]
+        self.hashes = array[]
+        int hn = hs.length
+        int i = 0
+        while i < hn do
+            self.hashes.push(string(hs[i]))
+            i = i + 1
+        end
+        var ds = data2["data"]
+        self.data = array[]
+        int dn = ds.length
+        int j = 0
+        while j < dn do
+            self.data.push(string(ds[j]))
+            j = j + 1
+        end
+        self.emptyLeafHash = hashStr(EMPTY_LEAF_DATA)
+        return true
+    end
+
+    // ---- 打印层级结构 ----
+    func dump()
+        int h = self.height()
+        int level = 0
+        while level <= h do
+            int start = (1 << level) - 1
+            int cnt = 1 << level
+            string label = "L" + string(level)
+            if level == 0 then
+                label = "L0(root)"
+            elseif level == h then
+                label = "L" + string(level) + "(leaves)"
+            end
+            string line = label + ":"
+            int i = 0
+            while i < cnt do
+                int idx = start + i
+                if idx < self.nodeCount then
+                    string hh = self.hashes[idx]
+                    string short = string.mid(hh, 0, 8)
+                    line = line + " " + short
+                end
+                i = i + 1
+            end
+            println(line)
+            level = level + 1
+        end
+        println("root(64) = " + self.hashes[0])
+    end
+end
+
+
+// ============================================================================
+// 测试框架
+// ============================================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass = g_pass + 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail = g_fail + 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectTrue(bool got, string label)
+    if got then
+        ok(label)
+    else
+        bad(label, "expected true, got false")
+    end
+end
+
+func expectFalse(bool got, string label)
+    if got then
+        bad(label, "expected false, got true")
+    else
+        ok(label)
+    end
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectS(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+
+// ============================================================================
+// 命令实现
+// ============================================================================
+
+func cmdTest() as int
+    println("=== merkletree self-test (8 leaves, sha256) ===")
+
+    // ---- crypto KAT：sha256("hello") 已知答案 ----
+    expectS(hashStr("hello"),
+            "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+            "sha256('hello') known-answer")
+    expectS(hashStr(""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "sha256('') known-answer")
+    expectS(hashPair("aa", "bb"),
+            string.lower(crypto.sha256("aabb")),
+            "hashPair concatenation")
+
+    // ---- 继承 / virtual 基线 ----
+    MerkleTree tree = MerkleTree(8)
+    expectS(tree.algorithmName(), "sha256-merkle", "virtual algorithmName dispatch")
+    expectTrue(string.contains(tree.describe(), "sha256-merkle:merkletree"), "base+override describe")
+
+    // ---- 结构正确性 ----
+    expectI(tree.leafCount, 8, "leafCount = 8 (already pow2)")
+    expectI(tree.nodeCount, 15, "nodeCount = 2*8 - 1 = 15")
+    expectI(tree.height(), 3, "height = log2(8) = 3")
+    expectTrue(isPow2(tree.leafCount), "leafCount is power of 2")
+
+    // 非幂2请求应向上取整
+    MerkleTree t5 = MerkleTree(5)
+    expectI(t5.leafCount, 8, "requested 5 -> leafCount rounded to 8")
+    expectI(t5.nodeCount, 15, "rounded nodeCount = 15")
+
+    // ---- 填充 8 个叶子数据块 ----
+    array<string> blocks = array[
+        "tx:alice->bob:10",
+        "tx:bob->carol:5",
+        "tx:carol->dave:3",
+        "tx:dave->eve:7",
+        "tx:eve->alice:2",
+        "tx:frank->bob:11",
+        "tx:grace->heidi:9",
+        "tx:ivan->alice:4"
+    ]
+    int bi = 0
+    while bi < 8 do
+        tree.setLeaf(bi, blocks[bi])
+        bi = bi + 1
+    end
+
+    // 叶子哈希应等于独立计算的 sha256
+    expectS(tree.leafHash(0), hashStr("tx:alice->bob:10"), "leafHash(0) matches sha256(block0)")
+    expectS(tree.leafHash(3), hashStr("tx:dave->eve:7"), "leafHash(3) matches sha256(block3)")
+
+    // ---- 构建（递归）----
+    string root0 = tree.build()
+    expectS(tree.rootHash(), root0, "rootHash() == build() return")
+    println("  root0 = " + root0)
+    expectI(string.len(root0), 64, "root hash is 64 hex chars")
+    expectTrue(tree.opCount > 0, "opCount incremented after build")
+
+    // 重复 build 应得到同一根（确定性）
+    string root0b = tree.build()
+    expectS(root0b, root0, "rebuild yields identical root (deterministic)")
+
+    // ---- 证明生成：路径长度 = 树高 ----
+    int pl3 = tree.proofLength(3)
+    expectI(pl3, 3, "proof length for leaf 3 = height 3")
+    expectI(tree.proofLength(0), 3, "proof length for leaf 0 = height 3")
+    expectI(tree.proofLength(7), 3, "proof length for leaf 7 = height 3")
+
+    // ---- 证明验证：每个叶子都能验证到根 ----
+    int verifyHits = 0
+    int vi = 0
+    while vi < 8 do
+        var proof = tree.getProof(vi)
+        bool good = verifyProof(tree.leafHash(vi), proof, tree.rootHash())
+        if good then
+            verifyHits = verifyHits + 1
+        end
+        vi = vi + 1
+    end
+    expectI(verifyHits, 8, "all 8 leaf proofs verify against root")
+
+    // 单点验证（手工）
+    var proof5 = tree.getProof(5)
+    expectTrue(verifyProof(tree.leafHash(5), proof5, tree.rootHash()),
+               "verifyProof leaf 5 against root")
+
+    // ---- 篡改检测：错误叶子哈希应验证失败 ----
+    var proof0 = tree.getProof(0)
+    string fakeLeaf = hashStr("tampered:block0")
+    expectFalse(verifyProof(fakeLeaf, proof0, tree.rootHash()),
+                "fake leaf hash fails verification (tamper detect)")
+    // 错误根
+    expectFalse(verifyProof(tree.leafHash(0), proof0, hashStr("bogus root")),
+                "legit leaf + legit proof vs bogus root fails")
+    // 证明用于别的叶子（hash 不匹配）应失败
+    expectFalse(verifyProof(tree.leafHash(7), proof0, tree.rootHash()),
+                "leaf 7 hash with leaf 0 proof fails")
+
+    // ---- 证明可独立验证（不依赖整棵树）：用 root + proof 复核 ----
+    // 模拟「轻节点」：只持有 root0，不持有 hashes[]。
+    string lightRoot = root0
+    var p2 = tree.getProof(2)
+    expectTrue(verifyProof(tree.leafHash(2), p2, lightRoot),
+               "light client verifies leaf 2 with root + proof only")
+
+    // ---- 数据更新：更新单个叶子，沿路径重算 ----
+    string rootBefore = tree.rootHash()
+    tree.updateLeaf(3, "tx:dave->eve:9999")
+    string rootAfter = tree.rootHash()
+    expectFalse(rootAfter == rootBefore, "root changed after leaf 3 update")
+    expectS(tree.leafHash(3), hashStr("tx:dave->eve:9999"), "leaf 3 hash updated")
+    expectS(tree.leafData(3), "tx:dave->eve:9999", "leaf 3 data updated")
+
+    // 更新后：叶子 3 的新证明应验证到新根
+    var proof3new = tree.getProof(3)
+    expectTrue(verifyProof(tree.leafHash(3), proof3new, tree.rootHash()),
+               "updated leaf 3 proof verifies against new root")
+
+    // 更新后：叶子 3 的【旧证明】对【新根】应失败（路径上根侧哈希已变）
+    //   注意：旧证明里的兄弟哈希本身没变（兄弟叶子没动），但叶子的哈希变了，
+    //   所以用【旧叶子哈希】+ 旧证明会重算出旧根，必然 != 新根。
+    expectFalse(verifyProof(hashStr("tx:dave->eve:7"), proof3new, tree.rootHash()),
+                "old leaf hash + new proof fails against new root")
+
+    // 更新后：未受影响路径上的叶子（如 0）证明仍应验证到新根
+    //   （叶子 0 与叶子 3 仅在根处汇合，根以下的左/右子树各自独立；
+    //    叶子 3 在右半，叶子 0 在左半，左半完全不变。）
+    var proof0After = tree.getProof(0)
+    expectTrue(verifyProof(tree.leafHash(0), proof0After, tree.rootHash()),
+               "unchanged leaf 0 still verifies after leaf 3 update")
+
+    // ---- 一致性：连续更新多个叶子，根单调变化、所有证明始终自洽 ----
+    string prev = tree.rootHash()
+    int changes = 0
+    int ci = 0
+    while ci < 8 do
+        tree.updateLeaf(ci, "rev2:block" + string(ci))
+        string now = tree.rootHash()
+        if now != prev then
+            changes = changes + 1
+        end
+        prev = now
+        // 每次更新后，所有叶子证明都应验证到当前根
+        int allOk = 0
+        int li = 0
+        while li < 8 do
+            var pp = tree.getProof(li)
+            if verifyProof(tree.leafHash(li), pp, tree.rootHash()) then
+                allOk = allOk + 1
+            end
+            li = li + 1
+        end
+        if allOk != 8 then
+            bad("consistency after updating leaf " + string(ci), "only " + string(allOk) + "/8 verified")
+            return 1
+        end
+        ci = ci + 1
+    end
+    expectI(changes, 8, "each of 8 updates changes the root")
+    expectTrue(prev == tree.rootHash(), "final root stable")
+
+    // ---- 序列化往返 ----
+    string js = tree.serialize()
+    expectTrue(string.contains(js, "sha256-merkle"), "serialize contains algorithm")
+    expectTrue(string.contains(js, tree.rootHash()), "serialize contains current root")
+    MerkleTree restored = MerkleTree(8)
+    bool loaded = restored.deserialize(js)
+    expectTrue(loaded, "deserialize returns true")
+    expectS(restored.rootHash(), tree.rootHash(), "restored root matches")
+    expectS(restored.leafHash(0), tree.leafHash(0), "restored leafHash(0) matches")
+    expectS(restored.leafData(7), "rev2:block7", "restored leafData(7) matches")
+    // 反序列化后证明仍可验证
+    var rp = restored.getProof(4)
+    expectTrue(verifyProof(restored.leafHash(4), rp, restored.rootHash()),
+               "restored tree proof verifies")
+
+    // ---- 恢复原数据再验证一遍（确认 update 不破坏树结构）----
+    tree.updateLeaf(3, "tx:dave->eve:7")
+    expectS(tree.leafHash(3), hashStr("tx:dave->eve:7"), "leaf 3 restored to original block")
+    // 此时根应回到... 不一定等于 root0，因为其它叶子已被 rev2 改过；
+    // 这里只验证叶子 3 自身的哈希正确即可（结构未损）。
+
+    println("=== results: " + string(g_pass) + " passed, " + string(g_fail) + " failed ===")
+    if g_fail == 0 then
+        return 0
+    end
+    return 1
+end
+
+
+func cmdDump() as int
+    println("=== merkletree dump (8-leaf sample) ===")
+    MerkleTree tree = MerkleTree(8)
+    int i = 0
+    while i < 8 do
+        tree.setLeaf(i, "block-" + string(i))
+        i = i + 1
+    end
+    string root = tree.build()
+    println("describe    = " + tree.describe())
+    println("leafCount   = " + string(tree.leafCount))
+    println("nodeCount   = " + string(tree.nodeCount))
+    println("height      = " + string(tree.height()))
+    println("--- levels (hash prefix = first 8 hex chars) ---")
+    tree.dump()
+    println("--- proof for leaf 3 ---")
+    var proof = tree.getProof(3)
+    int n = proof.length
+    int k = 0
+    while k < n do
+        var e = proof[k]
+        string sib = string(e[0])
+        int dir = int(e[1])
+        string side = "left "
+        if dir == 1 then
+            side = "right"
+        end
+        println("  step " + string(k) + " sibling(" + side + ") = " + string.mid(sib, 0, 16) + "...")
+        k = k + 1
+    end
+    bool good = verifyProof(tree.leafHash(3), proof, root)
+    println("verifyProof(leaf3) = " + string(good))
+    return 0
+end
+
+
+func printUsage()
+    println("merkletree - SHA-256 Merkle hash tree (full binary)")
+    println("usage: merkletree <command>")
+    println("commands:")
+    println("  test       self-test: 8-leaf tree, build/prove/verify/update/consistency")
+    println("  dump       build sample tree, print levels and a proof sample")
+    println("  help       show this help")
+end
+
+
+func main(...) as int
+    string command = ""
+    if arg.length >= 2 then
+        command = string.lower(string(arg[1]))
+    end
+
+    if command == "test" then
+        return cmdTest()
+    end
+    if command == "dump" then
+        return cmdDump()
+    end
+    if command == "help" or command == "--help" or command == "-h" then
+        printUsage()
+        return 0
+    end
+
+    printUsage()
+    return 0
+end

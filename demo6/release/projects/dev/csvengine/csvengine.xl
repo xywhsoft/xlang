@@ -1,0 +1,2164 @@
+// csvengine - CSV/TSV streaming parser + SQL-like query engine
+//
+// Usage:
+//   csvengine query  <file.csv> "<SQL>" [csv|json|table]
+//   csvengine convert <file.csv> [json|table|csv]
+//   csvengine stats   <file.csv>
+//   csvengine test
+//
+// SQL supported:
+//   SELECT * FROM data WHERE col > 100
+//   SELECT name, age FROM data WHERE age > 25 ORDER BY age DESC
+//   SELECT dept, COUNT(*) FROM data GROUP BY dept
+//   SELECT a.name, b.salary FROM emp a JOIN dept b ON a.dept = b.id
+//   aggregates: COUNT/SUM/AVG/MIN/MAX ; WHERE: = != > >= < <= (AND/OR)
+//
+// Design:
+//   - CSV parser is char-by-char (handles quoted fields, "" escape, cross-line
+//     fields, CR drop). For single-table WHERE queries it streams: only rows
+//     passing WHERE are retained, so a selective filter never materializes the
+//     whole file. ORDER/GROUP/JOIN naturally require holding matching rows.
+//   - Query plan: parse SQL -> load+filter main table (or full load for JOIN)
+//     -> join -> group/aggregate -> order -> project -> format.
+//   - Rows are var dicts (colname -> string). Single-table keys are bare column
+//     names; under JOIN, keys become "<alias>.<col>" and unqualified references
+//     are resolved by suffix search.
+//   - Avoids known xlang traps: no var dict allocation inside recursion (WHERE
+//     eval is read-only recursion); typed array<T> params avoided (globals used);
+//     dynamic var comparisons kept inline in `if`; math.abs(int) replaced by
+//     manual sign.
+
+
+// ============================================================================
+// value / number helpers
+// ============================================================================
+
+func looksLikeInt(string s) as bool
+    if string.isEmpty(s) then return false end
+    int i = 0
+    int firstByte = string.byteAt(s, 0)
+    if firstByte == 45 or firstByte == 43 then
+        i = 1
+    end
+    if i >= string.len(s) then return false end
+    while i < string.len(s) do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then return false end
+        i = i + 1
+    end
+    return true
+end
+
+
+func looksLikeFloat(string s) as bool
+    bool hasDot = string.contains(s, ".")
+    bool hasE = string.contains(s, "e") or string.contains(s, "E")
+    if not hasDot and not hasE then return false end
+    int i = 0
+    int firstByte = string.byteAt(s, 0)
+    if firstByte == 45 or firstByte == 43 then
+        i = 1
+    end
+    bool seenDigit = false
+    while i < string.len(s) do
+        int b = string.byteAt(s, i)
+        if b >= 48 and b <= 57 then
+            seenDigit = true
+        elseif b == 46 or b == 101 or b == 69 or b == 45 or b == 43 then
+            // '.', 'e', 'E', '-', '+' allowed
+        else
+            return false
+        end
+        i = i + 1
+    end
+    return seenDigit
+end
+
+
+func isNumeric(string s) as bool
+    if looksLikeInt(s) then return true end
+    if looksLikeFloat(s) then return true end
+    return false
+end
+
+
+func floatOrZero(string s) as float
+    if looksLikeFloat(s) then return float(s) end
+    if looksLikeInt(s) then return float(s) end
+    return 0.0
+end
+
+
+// format a float so whole numbers render without trailing .0
+func fmtNum(float v) as string
+    if v == math.floor(v) then
+        return string(int(v))
+    end
+    return string(v)
+end
+
+
+// compare two cell strings: numeric if both numeric, else lexicographic.
+func compareCells(string a, string b) as int
+    if isNumeric(a) and isNumeric(b) then
+        float fa = float(a)
+        float fb = float(b)
+        if fa < fb then return -1 end
+        if fa > fb then return 1 end
+        return 0
+    end
+    return string.compare(a, b, false)
+end
+
+
+// ============================================================================
+// SQL tokenizer
+// ============================================================================
+
+func isAlphaByte(int b) as bool
+    if b >= 65 and b <= 90 then return true end
+    if b >= 97 and b <= 122 then return true end
+    if b == 95 then return true end
+    return false
+end
+
+
+func isDigitByte(int b) as bool
+    if b >= 48 and b <= 57 then return true end
+    return false
+end
+
+
+// tokens are dicts: {"t": type, "v": value}
+//   type in id|num|str|op|punct ; id may contain '.' (qualified names)
+func tokenize(string s) as var
+    var toks = []
+    int n = string.len(s)
+    int i = 0
+    string lastType = ""
+    while i < n do
+        int b = string.byteAt(s, i)
+        // whitespace
+        if b == 32 or b == 9 or b == 10 or b == 13 then
+            i = i + 1
+            continue
+        end
+        // string literal " or '
+        if b == 34 or b == 39 then
+            int quote = b
+            i = i + 1
+            string collected = ""
+            while i < n do
+                int cb = string.byteAt(s, i)
+                if cb == quote then
+                    i = i + 1
+                    break
+                end
+                collected = collected + string.charAt(s, i)
+                i = i + 1
+            end
+            var tk = {}
+            tk["t"] = "str"
+            tk["v"] = collected
+            toks.append(tk)
+            lastType = "str"
+            continue
+        end
+        // number, possibly signed (sign only right after op/punct/start)
+        bool signOk = false
+        if b == 45 then
+            if i + 1 < n then
+                if isDigitByte(string.byteAt(s, i + 1)) then
+                    if lastType == "" or lastType == "op" or lastType == "punct" then
+                        signOk = true
+                    end
+                end
+            end
+        end
+        if isDigitByte(b) or signOk then
+            int start = i
+            if b == 45 then
+                i = i + 1
+            end
+            while i < n do
+                if isDigitByte(string.byteAt(s, i)) then
+                    i = i + 1
+                else
+                    break
+                end
+            end
+            if i < n then
+                if string.byteAt(s, i) == 46 then
+                    i = i + 1
+                    while i < n do
+                        if isDigitByte(string.byteAt(s, i)) then
+                            i = i + 1
+                        else
+                            break
+                        end
+                    end
+                end
+            end
+            string num = string.slice(s, start, i - start)
+            var tk = {}
+            tk["t"] = "num"
+            tk["v"] = num
+            toks.append(tk)
+            lastType = "num"
+            continue
+        end
+        // two-char operators
+        if b == 33 and i + 1 < n then
+            if string.byteAt(s, i + 1) == 61 then
+                var tk = {}; tk["t"] = "op"; tk["v"] = "!="; toks.append(tk)
+                i = i + 2; lastType = "op"; continue
+            end
+        end
+        if b == 62 and i + 1 < n then
+            if string.byteAt(s, i + 1) == 61 then
+                var tk = {}; tk["t"] = "op"; tk["v"] = ">="; toks.append(tk)
+                i = i + 2; lastType = "op"; continue
+            end
+        end
+        if b == 60 and i + 1 < n then
+            if string.byteAt(s, i + 1) == 61 then
+                var tk = {}; tk["t"] = "op"; tk["v"] = "<="; toks.append(tk)
+                i = i + 2; lastType = "op"; continue
+            elseif string.byteAt(s, i + 1) == 62 then
+                var tk = {}; tk["t"] = "op"; tk["v"] = "!="; toks.append(tk)
+                i = i + 2; lastType = "op"; continue
+            end
+        end
+        if b == 61 and i + 1 < n then
+            if string.byteAt(s, i + 1) == 61 then
+                var tk = {}; tk["t"] = "op"; tk["v"] = "="; toks.append(tk)
+                i = i + 2; lastType = "op"; continue
+            end
+        end
+        // single-char operators
+        if b == 61 then
+            var tk = {}; tk["t"] = "op"; tk["v"] = "="; toks.append(tk)
+            i = i + 1; lastType = "op"; continue
+        end
+        if b == 62 then
+            var tk = {}; tk["t"] = "op"; tk["v"] = ">"; toks.append(tk)
+            i = i + 1; lastType = "op"; continue
+        end
+        if b == 60 then
+            var tk = {}; tk["t"] = "op"; tk["v"] = "<"; toks.append(tk)
+            i = i + 1; lastType = "op"; continue
+        end
+        // punctuation
+        if b == 40 or b == 41 or b == 44 or b == 42 then
+            string pv = string.charAt(s, i)
+            var tk = {}; tk["t"] = "punct"; tk["v"] = pv; toks.append(tk)
+            i = i + 1; lastType = "punct"; continue
+        end
+        // identifier [A-Za-z_][A-Za-z0-9_]* possibly with .qualifier
+        if isAlphaByte(b) then
+            int start2 = i
+            while i < n do
+                int cb = string.byteAt(s, i)
+                if isAlphaByte(cb) or isDigitByte(cb) then
+                    i = i + 1
+                elseif cb == 46 then
+                    i = i + 1
+                else
+                    break
+                end
+            end
+            string ident = string.slice(s, start2, i - start2)
+            var tk = {}
+            tk["t"] = "id"
+            tk["v"] = ident
+            toks.append(tk)
+            lastType = "id"
+            continue
+        end
+        // unknown char: skip
+        i = i + 1
+    end
+    return toks
+end
+
+
+// ============================================================================
+// SQL parser (recursive descent). AST is var dicts.
+// ============================================================================
+
+var gPTokens = []
+int gPPos = 0
+
+
+func pkUpper(var tok, string kw) as bool
+    if tok == null then return false end
+    if string(tok["t"]) != "id" then return false end
+    if string.upper(string(tok["v"])) == kw then return true end
+    return false
+end
+
+
+func curTok() as var
+    if gPPos < gPTokens.length then
+        return gPTokens[gPPos]
+    end
+    var eof = {}
+    eof["t"] = "eof"
+    eof["v"] = ""
+    return eof
+end
+
+
+func advance() as var
+    var t = curTok()
+    gPPos = gPPos + 1
+    return t
+end
+
+
+func isKw(string kw) as bool
+    return pkUpper(curTok(), kw)
+end
+
+
+func expectKw(string kw) as bool
+    if isKw(kw) then
+        advance()
+        return true
+    end
+    return false
+end
+
+
+func expectPunct(string p) as bool
+    var t = curTok()
+    if string(t["t"]) == "punct" and string(t["v"]) == p then
+        advance()
+        return true
+    end
+    return false
+end
+
+
+func parseTableRef() as (string, string)
+    var t = curTok()
+    string name = string(t["v"])
+    advance()
+    string alias = ""
+    if pkUpper(curTok(), "AS") then
+        advance()
+        var at = curTok()
+        alias = string(at["v"])
+        advance()
+    elseif string(curTok()["t"]) == "id" then
+        if not isKw("WHERE") and not isKw("JOIN") and not isKw("GROUP") and not isKw("ORDER") and not isKw("ON") then
+            alias = string(curTok()["v"])
+            advance()
+        end
+    end
+    if string.isEmpty(alias) then
+        alias = name
+    end
+    return name, alias
+end
+
+
+// parse a qualified column reference (id token)
+func parseColRef() as string
+    var t = curTok()
+    if string(t["t"]) == "id" then
+        advance()
+        return string(t["v"])
+    end
+    return ""
+end
+
+
+func parseAggItem(string funcName) as var
+    expectPunct("(")
+    string arg = "*"
+    var t = curTok()
+    if string(t["t"]) == "punct" and string(t["v"]) == "*" then
+        advance()
+        arg = "*"
+    elseif string(t["t"]) == "id" then
+        advance()
+        arg = string(t["v"])
+    end
+    expectPunct(")")
+    string alias = ""
+    if pkUpper(curTok(), "AS") then
+        advance()
+        alias = string(curTok()["v"])
+        advance()
+    end
+    var item = {}
+    item["kind"] = "agg"
+    item["func"] = string.upper(funcName)
+    item["arg"] = arg
+    item["alias"] = alias
+    return item
+end
+
+
+func parseSelectItem() as var
+    var t = curTok()
+    if string(t["t"]) == "punct" and string(t["v"]) == "*" then
+        advance()
+        var item = {}
+        item["kind"] = "star"
+        return item
+    end
+    if string(t["t"]) == "id" then
+        string name = string(t["v"])
+        string up = string.upper(name)
+        if up == "COUNT" or up == "SUM" or up == "AVG" or up == "MIN" or up == "MAX" then
+            advance()
+            return parseAggItem(up)
+        end
+        advance()
+        string alias = ""
+        if pkUpper(curTok(), "AS") then
+            advance()
+            alias = string(curTok()["v"])
+            advance()
+        end
+        var item = {}
+        item["kind"] = "col"
+        item["col"] = name
+        item["alias"] = alias
+        return item
+    end
+    advance()
+    var bad = {}
+    bad["kind"] = "col"
+    bad["col"] = string(t["v"])
+    bad["alias"] = ""
+    return bad
+end
+
+
+func parseSelectList() as var
+    var items = []
+    items.append(parseSelectItem())
+    while true do
+        var t = curTok()
+        if string(t["t"]) == "punct" and string(t["v"]) == "," then
+            advance()
+            items.append(parseSelectItem())
+        else
+            break
+        end
+    end
+    return items
+end
+
+
+func parseAtom() as var
+    if expectPunct("(") then
+        var inner = parseOrExpr()
+        expectPunct(")")
+        return inner
+    end
+    string col = parseColRef()
+    var t = curTok()
+    string op = "="
+    if string(t["t"]) == "op" then
+        op = string(t["v"])
+        advance()
+    end
+    var vt = advance()
+    string val = string(vt["v"])
+    bool isnum = isNumeric(val)
+    if string(vt["t"]) == "num" then
+        isnum = true
+    end
+    var node = {}
+    node["type"] = "cmp"
+    node["col"] = col
+    node["op"] = op
+    node["val"] = val
+    node["isnum"] = isnum
+    return node
+end
+
+
+func parseAndExpr() as var
+    var left = parseAtom()
+    while isKw("AND") do
+        advance()
+        var right = parseAtom()
+        var node = {}
+        node["type"] = "and"
+        node["l"] = left
+        node["r"] = right
+        left = node
+    end
+    return left
+end
+
+
+func parseOrExpr() as var
+    var left = parseAndExpr()
+    while isKw("OR") do
+        advance()
+        var right = parseAndExpr()
+        var node = {}
+        node["type"] = "or"
+        node["l"] = left
+        node["r"] = right
+        left = node
+    end
+    return left
+end
+
+
+func parseGroupBy() as var
+    var cols = []
+    cols.append(parseColRef())
+    while true do
+        var t = curTok()
+        if string(t["t"]) == "punct" and string(t["v"]) == "," then
+            advance()
+            cols.append(parseColRef())
+        else
+            break
+        end
+    end
+    return cols
+end
+
+
+func parseOrderBy() as var
+    var specs = []
+    while true do
+        string col = parseColRef()
+        bool desc = false
+        if isKw("DESC") then
+            advance()
+            desc = true
+        elseif isKw("ASC") then
+            advance()
+            desc = false
+        end
+        var sp = {}
+        sp["col"] = col
+        sp["desc"] = desc
+        specs.append(sp)
+        var t = curTok()
+        if string(t["t"]) == "punct" and string(t["v"]) == "," then
+            advance()
+        else
+            break
+        end
+    end
+    return specs
+end
+
+
+func parseSql(string sql) as var
+    gPTokens = tokenize(sql)
+    gPPos = 0
+    var q = {}
+    if not expectKw("SELECT") then
+        q["error"] = "expected SELECT"
+        return q
+    end
+    q["select"] = parseSelectList()
+    if not expectKw("FROM") then
+        q["error"] = "expected FROM"
+        return q
+    end
+    string fromName
+    string fromAlias
+    fromName, fromAlias = parseTableRef()
+    q["from"] = fromName
+    q["fromalias"] = fromAlias
+    var joins = []
+    while isKw("JOIN") do
+        advance()
+        string jname
+        string jalias
+        jname, jalias = parseTableRef()
+        if not expectKw("ON") then
+            q["error"] = "expected ON in JOIN"
+            return q
+        end
+        string lcol = parseColRef()
+        var t = curTok()
+        if string(t["t"]) == "op" then
+            advance()
+        end
+        string rcol = parseColRef()
+        var j = {}
+        j["table"] = jname
+        j["alias"] = jalias
+        j["lcol"] = lcol
+        j["rcol"] = rcol
+        joins.append(j)
+    end
+    q["joins"] = joins
+    q["where"] = null
+    if isKw("WHERE") then
+        advance()
+        q["where"] = parseOrExpr()
+    end
+    q["groupby"] = []
+    if isKw("GROUP") then
+        advance()
+        if expectKw("BY") then
+            q["groupby"] = parseGroupBy()
+        end
+    end
+    q["orderby"] = []
+    if isKw("ORDER") then
+        advance()
+        if expectKw("BY") then
+            q["orderby"] = parseOrderBy()
+        end
+    end
+    return q
+end
+
+
+// ============================================================================
+// Cell access + WHERE evaluation (read-only recursion; no dict alloc per frame)
+// ============================================================================
+
+func getCell(var row, string col) as string
+    if col in row then
+        return string(row[col])
+    end
+    int dot = string.indexOf(col, ".")
+    if dot >= 0 then
+        string last = string.slice(col, dot + 1, string.len(col) - dot - 1)
+        if last in row then
+            return string(row[last])
+        end
+    end
+    string suffix = "." + col
+    for k, v in row
+        if string.endsWith(string(k), suffix) then
+            return string(v)
+        end
+    end
+    return ""
+end
+
+
+func evalCmp(string cell, string op, string val) as bool
+    int c = compareCells(cell, val)
+    if op == "=" then
+        if c == 0 then return true end
+        return false
+    end
+    if op == "!=" then
+        if c != 0 then return true end
+        return false
+    end
+    if op == ">" then
+        if c > 0 then return true end
+        return false
+    end
+    if op == ">=" then
+        if c >= 0 then return true end
+        return false
+    end
+    if op == "<" then
+        if c < 0 then return true end
+        return false
+    end
+    if op == "<=" then
+        if c <= 0 then return true end
+        return false
+    end
+    return false
+end
+
+
+func evalWhere(var node, var row) as bool
+    if node == null then
+        return true
+    end
+    string nt = string(node["type"])
+    if nt == "and" then
+        bool a = evalWhere(node["l"], row)
+        if not a then
+            return false
+        end
+        return evalWhere(node["r"], row)
+    end
+    if nt == "or" then
+        bool a = evalWhere(node["l"], row)
+        if a then
+            return true
+        end
+        return evalWhere(node["r"], row)
+    end
+    if nt == "cmp" then
+        string col = string(node["col"])
+        string op = string(node["op"])
+        string val = string(node["val"])
+        string cell = getCell(row, col)
+        return evalCmp(cell, op, val)
+    end
+    return false
+end
+
+
+// ============================================================================
+// CSV streaming parser. Fills globals gTarget / gHeaders.
+//   gAlias        : "" for bare keys, "<alias>." for qualified keys (JOIN)
+//   gApplyFilter  : if true, only rows passing gWhereExpr are appended
+// ============================================================================
+
+var gHeaders = []
+var gTarget = []
+string gAlias = ""
+bool gApplyFilter = false
+bool gHasWhere = false
+var gWhereExpr = null
+
+// accumulated matching rows (single-table filtered result, or JOIN result)
+var gRows = []
+
+
+func parseCsvStream(string text, string delim)
+    int n = string.len(text)
+    if n == 0 then
+        return
+    end
+    int delimByte = string.byteAt(delim, 0)
+    // ensure terminator
+    string lastChar = string.charAt(text, n - 1)
+    if lastChar != "\n" then
+        text = text + "\n"
+        n = string.len(text)
+    end
+
+    var fields = []
+    string field = ""
+    bool inQuotes = false
+    bool headersDone = false
+    int i = 0
+
+    while i < n do
+        int b = string.byteAt(text, i)
+        if inQuotes then
+            if b == 34 then
+                if i + 1 < n then
+                    if string.byteAt(text, i + 1) == 34 then
+                        field = field + "\""
+                        i = i + 2
+                        continue
+                    end
+                end
+                inQuotes = false
+                i = i + 1
+                continue
+            end
+            field = field + string.charAt(text, i)
+            i = i + 1
+            continue
+        end
+        if b == 34 and string.isEmpty(field) then
+            inQuotes = true
+            i = i + 1
+            continue
+        end
+        if b == delimByte then
+            fields.append(field)
+            field = ""
+            i = i + 1
+            continue
+        end
+        if b == 10 then
+            fields.append(field)
+            // finish record
+            if not headersDone then
+                gHeaders = fields
+                headersDone = true
+            else
+                var d = {}
+                int fi = 0
+                while fi < fields.length and fi < gHeaders.length do
+                    string key = string(gHeaders[fi])
+                    if string.isEmpty(gAlias) then
+                        // bare key
+                    else
+                        key = gAlias + key
+                    end
+                    d[key] = string(fields[fi])
+                    fi = fi + 1
+                end
+                bool pass = true
+                if gApplyFilter then
+                    if gHasWhere then
+                        pass = evalWhere(gWhereExpr, d)
+                    end
+                end
+                if pass then
+                    gTarget.append(d)
+                end
+            end
+            fields = []
+            field = ""
+            i = i + 1
+            continue
+        end
+        if b == 13 then
+            i = i + 1
+            continue
+        end
+        field = field + string.charAt(text, i)
+        i = i + 1
+    end
+end
+
+
+func mergeDicts(var a, var b) as var
+    var m = {}
+    for k, v in a
+        m[k] = v
+    end
+    for k, v in b
+        m[k] = v
+    end
+    return m
+end
+
+
+// ============================================================================
+// Sorting (iterative bottom-up merge sort, no recursion)
+// ============================================================================
+
+func cmpDicts(var a, var b, var orderby) as int
+    int si = 0
+    while si < orderby.length do
+        var sp = orderby[si]
+        string col = string(sp["col"])
+        bool desc = bool(sp["desc"])
+        int c = compareCells(getCell(a, col), getCell(b, col))
+        if desc then
+            c = 0 - c
+        end
+        if c != 0 then
+            return c
+        end
+        si = si + 1
+    end
+    return 0
+end
+
+
+func mergeSortDicts(var arr, var orderby) as var
+    int nn = arr.length
+    if nn <= 1 then
+        return arr
+    end
+    var src = arr
+    int width = 1
+    while width < nn do
+        var dst = []
+        int idx = 0
+        while idx < nn do
+            int left = idx
+            int mid = idx + width
+            if mid > nn then
+                mid = nn
+            end
+            int right = idx + width + width
+            if right > nn then
+                right = nn
+            end
+            int p = left
+            int q = mid
+            while p < mid and q < right do
+                int c = cmpDicts(src[p], src[q], orderby)
+                if c <= 0 then
+                    dst.append(src[p])
+                    p = p + 1
+                else
+                    dst.append(src[q])
+                    q = q + 1
+                end
+            end
+            while p < mid do
+                dst.append(src[p])
+                p = p + 1
+            end
+            while q < right do
+                dst.append(src[q])
+                q = q + 1
+            end
+            idx = right
+        end
+        src = dst
+        width = width + width
+    end
+    return src
+end
+
+
+// sort output rows (var arrays of strings) by a single column index
+func cmpOutRows(var a, var b, int col, bool desc) as int
+    int c = compareCells(string(a[col]), string(b[col]))
+    if desc then
+        c = 0 - c
+    end
+    return c
+end
+
+
+func mergeSortOutRows(var arr, int col, bool desc) as var
+    int nn = arr.length
+    if nn <= 1 then
+        return arr
+    end
+    var src = arr
+    int width = 1
+    while width < nn do
+        var dst = []
+        int idx = 0
+        while idx < nn do
+            int left = idx
+            int mid = idx + width
+            if mid > nn then
+                mid = nn
+            end
+            int right = idx + width + width
+            if right > nn then
+                right = nn
+            end
+            int p = left
+            int q = mid
+            while p < mid and q < right do
+                int c = cmpOutRows(src[p], src[q], col, desc)
+                if c <= 0 then
+                    dst.append(src[p])
+                    p = p + 1
+                else
+                    dst.append(src[q])
+                    q = q + 1
+                end
+            end
+            while p < mid do
+                dst.append(src[p])
+                p = p + 1
+            end
+            while q < right do
+                dst.append(src[q])
+                q = q + 1
+            end
+            idx = right
+        end
+        src = dst
+        width = width + width
+    end
+    return src
+end
+
+
+// ============================================================================
+// Output header building + projection
+// ============================================================================
+
+func colShortName(string col) as string
+    int dot = string.lastIndexOf(col, ".")
+    if dot >= 0 then
+        return string.slice(col, dot + 1, string.len(col) - dot - 1)
+    end
+    return col
+end
+
+
+func buildOutHeaders(var q) as var
+    var sels = q["select"]
+    var headers = []
+    int si = 0
+    while si < sels.length do
+        var item = sels[si]
+        string kind = string(item["kind"])
+        if kind == "star" then
+            int hi = 0
+            while hi < gHeaders.length do
+                headers.append(colShortName(string(gHeaders[hi])))
+                hi = hi + 1
+            end
+        elseif kind == "col" then
+            string alias = string(item["alias"])
+            if string.isEmpty(alias) then
+                headers.append(colShortName(string(item["col"])))
+            else
+                headers.append(alias)
+            end
+        elseif kind == "agg" then
+            string alias = string(item["alias"])
+            if string.isEmpty(alias) then
+                headers.append(string(item["func"]) + "(" + string(item["arg"]) + ")")
+            else
+                headers.append(alias)
+            end
+        end
+        si = si + 1
+    end
+    return headers
+end
+
+
+func selectHasAgg(var q) as bool
+    var sels = q["select"]
+    int si = 0
+    while si < sels.length do
+        if string(sels[si]["kind"]) == "agg" then
+            return true
+        end
+        si = si + 1
+    end
+    return false
+end
+
+
+// ============================================================================
+// Aggregation / grouping
+// ============================================================================
+
+// group record layout:
+//   gcols: var array of group-column values (parallel to groupby list)
+//   count: int (rows in group, for COUNT(*))
+//   sum : { col -> float }
+//   ncnt: { col -> int  }  numeric value count, for AVG
+//   min : { col -> string }
+//   max : { col -> string }
+var gGroupOrder = []
+var gGroups = {}
+
+
+func newGroupRecord(var groupby, var row) as var
+    var rec = {}
+    var gcols = []
+    int gi = 0
+    while gi < groupby.length do
+        string gc = string(groupby[gi])
+        gcols.append(getCell(row, gc))
+        gi = gi + 1
+    end
+    rec["gcols"] = gcols
+    rec["count"] = 0
+    rec["sum"] = {}
+    rec["ncnt"] = {}
+    rec["min"] = {}
+    rec["max"] = {}
+    return rec
+end
+
+
+func groupKeyOf(var groupby, var row) as string
+    string key = ""
+    int gi = 0
+    bool first = true
+    while gi < groupby.length do
+        if first then
+            first = false
+        else
+            key = key + "\x01"
+        end
+        key = key + getCell(row, string(groupby[gi]))
+        gi = gi + 1
+    end
+    return key
+end
+
+
+func updateAggregates(var rec, var q, var row)
+    rec["count"] = int(rec["count"]) + 1
+    var sels = q["select"]
+    int si = 0
+    while si < sels.length do
+        var item = sels[si]
+        if string(item["kind"]) == "agg" then
+            string fn = string(item["func"])
+            string arg = string(item["arg"])
+            if arg == "*" then
+                si = si + 1
+                continue
+            end
+            string cell = getCell(row, arg)
+            var sums = rec["sum"]
+            var ncnts = rec["ncnt"]
+            var mins = rec["min"]
+            var maxs = rec["max"]
+            if isNumeric(cell) then
+                float fv = float(cell)
+                if arg in sums then
+                    sums[arg] = float(sums[arg]) + fv
+                else
+                    sums[arg] = fv
+                end
+                if arg in ncnts then
+                    ncnts[arg] = int(ncnts[arg]) + 1
+                else
+                    ncnts[arg] = 1
+                end
+            end
+            if arg in mins then
+                if compareCells(cell, string(mins[arg])) < 0 then
+                    mins[arg] = cell
+                end
+            else
+                mins[arg] = cell
+            end
+            if arg in maxs then
+                if compareCells(cell, string(maxs[arg])) > 0 then
+                    maxs[arg] = cell
+                end
+            else
+                maxs[arg] = cell
+            end
+        end
+        si = si + 1
+    end
+end
+
+
+func buildGroups(var q)
+    var groupby = q["groupby"]
+    gGroupOrder = []
+    gGroups = {}
+    int ri = 0
+    while ri < gRows.length do
+        var row = gRows[ri]
+        string key = groupKeyOf(groupby, row)
+        var rec
+        if key in gGroups then
+            rec = gGroups[key]
+        else
+            rec = newGroupRecord(groupby, row)
+            gGroups[key] = rec
+            gGroupOrder.append(key)
+        end
+        updateAggregates(rec, q, row)
+        ri = ri + 1
+    end
+end
+
+
+// project one grouped output row
+func projectGroup(var rec, var q) as var
+    var sels = q["select"]
+    var out = []
+    var groupby = q["groupby"]
+    int si = 0
+    while si < sels.length do
+        var item = sels[si]
+        string kind = string(item["kind"])
+        if kind == "col" then
+            string col = string(item["col"])
+            string short = colShortName(col)
+            int gi = 0
+            bool found = false
+            while gi < groupby.length do
+                if colShortName(string(groupby[gi])) == short then
+                    out.append(string(rec["gcols"][gi]))
+                    found = true
+                    break
+                end
+                gi = gi + 1
+            end
+            if not found then
+                out.append("")
+            end
+        elseif kind == "agg" then
+            string fn = string(item["func"])
+            string arg = string(item["arg"])
+            if fn == "COUNT" then
+                out.append(string(int(rec["count"])))
+            elseif fn == "SUM" then
+                var sums = rec["sum"]
+                if arg in sums then
+                    out.append(fmtNum(float(sums[arg])))
+                else
+                    out.append("0")
+                end
+            elseif fn == "AVG" then
+                var sums = rec["sum"]
+                var ncnts = rec["ncnt"]
+                if arg in ncnts then
+                    int cnt = int(ncnts[arg])
+                    if cnt > 0 then
+                        out.append(fmtNum(float(sums[arg]) / float(cnt)))
+                    else
+                        out.append("0")
+                    end
+                else
+                    out.append("0")
+                end
+            elseif fn == "MIN" then
+                var mins = rec["min"]
+                if arg in mins then
+                    out.append(string(mins[arg]))
+                else
+                    out.append("")
+                end
+            elseif fn == "MAX" then
+                var maxs = rec["max"]
+                if arg in maxs then
+                    out.append(string(maxs[arg]))
+                else
+                    out.append("")
+                end
+            else
+                out.append("")
+            end
+        end
+        si = si + 1
+    end
+    return out
+end
+
+
+// project one plain (non-grouped) output row
+func projectRow(var row, var q) as var
+    var sels = q["select"]
+    var out = []
+    int si = 0
+    while si < sels.length do
+        var item = sels[si]
+        string kind = string(item["kind"])
+        if kind == "star" then
+            int hi = 0
+            while hi < gHeaders.length do
+                string h = string(gHeaders[hi])
+                out.append(getCell(row, h))
+                hi = hi + 1
+            end
+        elseif kind == "col" then
+            out.append(getCell(row, string(item["col"])))
+        else
+            out.append("")
+        end
+        si = si + 1
+    end
+    return out
+end
+
+
+// ============================================================================
+// Query execution
+// ============================================================================
+
+func resetExecState()
+    gHeaders = []
+    gTarget = []
+    gAlias = ""
+    gApplyFilter = false
+    gHasWhere = false
+    gWhereExpr = null
+    gRows = []
+    gGroupOrder = []
+    gGroups = {}
+end
+
+
+func delimForFile(string fname) as string
+    if string.endsWith(string.lower(fname), ".tsv") then
+        return "\t"
+    end
+    return ","
+end
+
+
+// run a parsed query; returns (outHeaders, outRows) via globals gOutHeaders/gOutRows
+var gOutHeaders = []
+var gOutRows = []
+
+
+func runQuery(var q, string mainText, string mainDir, string mainBase, string mainFile) as string
+    if "error" in q then
+        return "query error: " + string(q["error"])
+    end
+
+    var joins = q["joins"]
+    var whereNode = q["where"]
+    gHasWhere = false
+    if whereNode != null then
+        gHasWhere = true
+    end
+
+    int jn = joins.length
+    if jn == 0 then
+        // single-table streaming filter
+        gAlias = ""
+        gApplyFilter = true
+        gWhereExpr = whereNode
+        gTarget = gRows
+        parseCsvStream(mainText, delimForFile(mainFile))
+    else
+        // load main fully (qualified by FROM alias)
+        gAlias = string(q["fromalias"]) + "."
+        gApplyFilter = false
+        gTarget = []
+        parseCsvStream(mainText, delimForFile(mainFile))
+        var mainRows = gTarget
+        // load + join each right table
+        var combined = mainRows
+        int ji = 0
+        while ji < jn do
+            var j = joins[ji]
+            string jname = string(j["table"])
+            string jpath = path.join(mainDir, jname + ".csv")
+            string jtext = ""
+            if file.exists(jpath) then
+                jtext = file.readText(jpath)
+            end
+            gAlias = string(j["alias"]) + "."
+            gApplyFilter = false
+            gTarget = []
+            parseCsvStream(jtext, delimForFile(jpath))
+            var rightRows = gTarget
+            string lcol = string(j["lcol"])
+            string rcol = string(j["rcol"])
+            var next = []
+            int li = 0
+            while li < combined.length do
+                int ri = 0
+                while ri < rightRows.length do
+                    var merged = mergeDicts(combined[li], rightRows[ri])
+                    int c = compareCells(getCell(merged, lcol), getCell(merged, rcol))
+                    if c == 0 then
+                        bool pass = true
+                        if gHasWhere then
+                            pass = evalWhere(whereNode, merged)
+                        end
+                        if pass then
+                            next.append(merged)
+                        end
+                    end
+                    ri = ri + 1
+                end
+                li = li + 1
+            end
+            combined = next
+            ji = ji + 1
+        end
+        gRows = combined
+        gAlias = ""
+    end
+
+    bool grouped = false
+    if selectHasAgg(q) then
+        grouped = true
+    end
+    if q["groupby"] != null then
+        if q["groupby"].length > 0 then
+            grouped = true
+        end
+    end
+
+    var outHeaders = buildOutHeaders(q)
+    var outRows = []
+
+    if grouped then
+        buildGroups(q)
+        int gi = 0
+        while gi < gGroupOrder.length do
+            string key = string(gGroupOrder[gi])
+            var rec = gGroups[key]
+            outRows.append(projectGroup(rec, q))
+            gi = gi + 1
+        end
+    else
+        if q["orderby"] != null then
+            if q["orderby"].length > 0 then
+                gRows = mergeSortDicts(gRows, q["orderby"])
+            end
+        end
+        int ri = 0
+        while ri < gRows.length do
+            outRows.append(projectRow(gRows[ri], q))
+            ri = ri + 1
+        end
+    end
+
+    gOutHeaders = outHeaders
+    gOutRows = outRows
+    return ""
+end
+
+
+// ============================================================================
+// Output formatters
+// ============================================================================
+
+func csvQuote(string s) as string
+    bool need = string.contains(s, ",") or string.contains(s, "\"") or string.contains(s, "\n") or string.contains(s, "\r") or string.contains(s, "\t")
+    if not need then
+        return s
+    end
+    string escaped = string.replace(s, "\"", "\"\"")
+    return "\"" + escaped + "\""
+end
+
+
+func jsonEscape(string s) as string
+    string out = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        if c == "\"" then
+            out = out + "\\\""
+        elseif c == "\\" then
+            out = out + "\\\\"
+        elseif c == "\n" then
+            out = out + "\\n"
+        elseif c == "\r" then
+            out = out + "\\r"
+        elseif c == "\t" then
+            out = out + "\\t"
+        else
+            out = out + c
+        end
+        i = i + 1
+    end
+    return out
+end
+
+
+func formatCsv(var headers, var rows, string delim) as string
+    string out = ""
+    int h = 0
+    while h < headers.length do
+        if h > 0 then
+            out = out + delim
+        end
+        out = out + csvQuote(string(headers[h]))
+        h = h + 1
+    end
+    out = out + "\n"
+    int r = 0
+    while r < rows.length do
+        var row = rows[r]
+        int c = 0
+        while c < row.length do
+            if c > 0 then
+                out = out + delim
+            end
+            out = out + csvQuote(string(row[c]))
+            c = c + 1
+        end
+        out = out + "\n"
+        r = r + 1
+    end
+    return out
+end
+
+
+// build compact JSON array text preserving header/column order, then pretty
+func formatJson(var headers, var rows) as string
+    string compact = "["
+    int r = 0
+    while r < rows.length do
+        var row = rows[r]
+        if r > 0 then
+            compact = compact + ","
+        end
+        compact = compact + "{"
+        int c = 0
+        while c < headers.length do
+            if c > 0 then
+                compact = compact + ","
+            end
+            compact = compact + "\"" + jsonEscape(string(headers[c])) + "\":\"" + jsonEscape(string(row[c])) + "\""
+            c = c + 1
+        end
+        compact = compact + "}"
+        r = r + 1
+    end
+    compact = compact + "]"
+    return prettyJson(compact)
+end
+
+
+func prettyJson(string compact) as string
+    string out = ""
+    int n = string.len(compact)
+    int indent = 0
+    bool inStr = false
+    int i = 0
+    while i < n do
+        string c = string.charAt(compact, i)
+        if inStr then
+            out = out + c
+            if c == "\\" then
+                if i + 1 < n then
+                    out = out + string.charAt(compact, i + 1)
+                    i = i + 2
+                    continue
+                end
+            end
+            if c == "\"" then
+                inStr = false
+            end
+            i = i + 1
+            continue
+        end
+        if c == "\"" then
+            inStr = true
+            out = out + c
+            i = i + 1
+            continue
+        elseif c == "{" or c == "[" then
+            out = out + c
+            if i + 1 < n then
+                string nc = string.charAt(compact, i + 1)
+                if nc != "}" and nc != "]" then
+                    indent = indent + 1
+                    out = out + "\n" + string.repeat("  ", indent)
+                end
+            end
+            i = i + 1
+            continue
+        elseif c == "}" or c == "]" then
+            if i - 1 >= 0 then
+                string pc = string.charAt(compact, i - 1)
+                if pc != "{" and pc != "[" then
+                    indent = indent - 1
+                    out = out + "\n" + string.repeat("  ", indent)
+                end
+            end
+            out = out + c
+            i = i + 1
+            continue
+        elseif c == "," then
+            out = out + c
+            out = out + "\n" + string.repeat("  ", indent)
+            i = i + 1
+            continue
+        elseif c == ":" then
+            out = out + ": "
+            i = i + 1
+            continue
+        else
+            out = out + c
+            i = i + 1
+            continue
+        end
+    end
+    return out
+end
+
+
+func formatTable(var headers, var rows) as string
+    int nc = headers.length
+    var widths = []
+    int ci = 0
+    while ci < nc do
+        widths.append(string.len(string(headers[ci])))
+        ci = ci + 1
+    end
+    int r = 0
+    while r < rows.length do
+        var row = rows[r]
+        int c = 0
+        while c < nc and c < row.length do
+            int wl = string.len(string(row[c]))
+            if wl > int(widths[c]) then
+                widths[c] = wl
+            end
+            c = c + 1
+        end
+        r = r + 1
+    end
+    string sep = ""
+    int c2 = 0
+    while c2 < nc do
+        if c2 > 0 then
+            sep = sep + "+"
+        end
+        sep = sep + string.repeat("-", int(widths[c2]) + 2)
+        c2 = c2 + 1
+    end
+    string out = sep + "\n"
+    int c3 = 0
+    while c3 < nc do
+        if c3 > 0 then
+            out = out + "|"
+        end
+        out = out + " " + string.padRight(string(headers[c3]), int(widths[c3])) + " "
+        c3 = c3 + 1
+    end
+    out = out + "\n" + sep + "\n"
+    int r2 = 0
+    while r2 < rows.length do
+        var row = rows[r2]
+        int c4 = 0
+        while c4 < nc do
+            if c4 > 0 then
+                out = out + "|"
+            end
+            string cellv = ""
+            if c4 < row.length then
+                cellv = string(row[c4])
+            end
+            out = out + " " + string.padRight(cellv, int(widths[c4])) + " "
+            c4 = c4 + 1
+        end
+        out = out + "\n"
+        r2 = r2 + 1
+    end
+    out = out + sep + "\n"
+    return out
+end
+
+
+func formatOutput(string format, string mainFile) as string
+    if format == "json" then
+        return formatJson(gOutHeaders, gOutRows)
+    end
+    if format == "csv" then
+        return formatCsv(gOutHeaders, gOutRows, delimForFile(mainFile))
+    end
+    if format == "tsv" then
+        return formatCsv(gOutHeaders, gOutRows, "\t")
+    end
+    return formatTable(gOutHeaders, gOutRows)
+end
+
+
+// high level: parse sql, load file, execute, format
+func executeQueryText(string mainText, string mainDir, string mainBase, string mainFile, string sql, string format) as string
+    resetExecState()
+    var q = parseSql(sql)
+    string err = runQuery(q, mainText, mainDir, mainBase, mainFile)
+    if not string.isEmpty(err) then
+        return err
+    end
+    return formatOutput(format, mainFile)
+end
+
+
+// ============================================================================
+// stats
+// ============================================================================
+
+func columnStats(string text, string delim) as string
+    resetExecState()
+    gAlias = ""
+    gApplyFilter = false
+    gTarget = []
+    parseCsvStream(text, delim)
+    gRows = gTarget
+    int nc = gHeaders.length
+    int nr = gRows.length
+
+    var colTypes = []
+    var colUnique = {}
+    var colMin = {}
+    var colMax = {}
+    var colEmpty = []
+    int ci = 0
+    while ci < nc do
+        colTypes.append("unknown")
+        colEmpty.append(0)
+        ci = ci + 1
+    end
+
+    int ri = 0
+    while ri < nr do
+        var row = gRows[ri]
+        int c = 0
+        while c < nc do
+            string h = string(gHeaders[c])
+            string v = ""
+            if h in row then
+                v = string(row[h])
+            end
+            if string.isEmpty(v) then
+                colEmpty[c] = int(colEmpty[c]) + 1
+            else
+                string ct = string(colTypes[c])
+                if ct == "unknown" then
+                    if isNumeric(v) then
+                        if string.contains(v, ".") or string.contains(v, "e") or string.contains(v, "E") then
+                            colTypes[c] = "float"
+                        else
+                            colTypes[c] = "int"
+                        end
+                    else
+                        colTypes[c] = "string"
+                    end
+                elseif ct == "int" then
+                    if not looksLikeInt(v) then
+                        if looksLikeFloat(v) then
+                            colTypes[c] = "float"
+                        else
+                            colTypes[c] = "string"
+                        end
+                    end
+                elseif ct == "float" then
+                    if not isNumeric(v) then
+                        colTypes[c] = "string"
+                    end
+                end
+                // unique
+                string ukey = h + "\x01" + v
+                colUnique[ukey] = true
+                // min/max
+                if h in colMin then
+                    if compareCells(v, string(colMin[h])) < 0 then
+                        colMin[h] = v
+                    end
+                else
+                    colMin[h] = v
+                end
+                if h in colMax then
+                    if compareCells(v, string(colMax[h])) > 0 then
+                        colMax[h] = v
+                    end
+                else
+                    colMax[h] = v
+                end
+            end
+            c = c + 1
+        end
+        ri = ri + 1
+    end
+
+    // count unique per column
+    var uniqCount = []
+    int cc = 0
+    while cc < nc do
+        uniqCount.append(0)
+        cc = cc + 1
+    end
+    for uk, flag in colUnique
+        int bar = string.indexOf(string(uk), "\x01")
+        if bar > 0 then
+            string hname = string.slice(string(uk), 0, bar)
+            int idx = 0
+            while idx < nc do
+                if string(gHeaders[idx]) == hname then
+                    uniqCount[idx] = int(uniqCount[idx]) + 1
+                    break
+                end
+                idx = idx + 1
+            end
+        end
+    end
+
+    string out = ""
+    out = out + "rows: " + string(nr) + "  columns: " + string(nc) + "\n"
+    out = out + string.repeat("-", 64) + "\n"
+    int c2 = 0
+    while c2 < nc do
+        string h = string(gHeaders[c2])
+        string t = string(colTypes[c2])
+        string mn = ""
+        string mx = ""
+        if h in colMin then
+            mn = string(colMin[h])
+        end
+        if h in colMax then
+            mx = string(colMax[h])
+        end
+        out = out + string.padRight(h, 16) + " " + string.padRight(t, 8)
+        out = out + "uniq=" + string.padRight(string(int(uniqCount[c2])), 8)
+        out = out + "empty=" + string.padRight(string(int(colEmpty[c2])), 6)
+        out = out + "min=" + string.padRight(mn, 14)
+        out = out + "max=" + mx
+        out = out + "\n"
+        c2 = c2 + 1
+    end
+    return out
+end
+
+
+// ============================================================================
+// self-test
+// ============================================================================
+
+int gPass = 0
+int gFail = 0
+
+
+func check(bool cond, string label)
+    if cond then
+        gPass = gPass + 1
+        println("  [ PASS ] " + label)
+    else
+        gFail = gFail + 1
+        println("  [ FAIL ] " + label)
+    end
+end
+
+
+func checkHas(string got, string needle, string label)
+    check(string.contains(got, needle), label + "  (missing '" + needle + "')")
+end
+
+
+func checkNotHas(string got, string needle, string label)
+    check(not string.contains(got, needle), label + "  (unexpected '" + needle + "')")
+end
+
+
+func checkEq(string got, string want, string label)
+    check(got == want, label + "  got='" + got + "' want='" + want + "'")
+end
+
+
+func testParse()
+    println("[1] CSV parsing: quotes, escapes, cross-line fields")
+    string t = "a,b,c\n1,2,3\n\"x,y\",\"he said \"\"hi\"\"\",\"line1\nline2\"\n"
+    resetExecState()
+    gAlias = ""
+    gApplyFilter = false
+    gTarget = []
+    parseCsvStream(t, ",")
+    gRows = gTarget
+    checkEq(string(gHeaders[0]), "a", "header a")
+    checkEq(string(gHeaders[1]), "b", "header b")
+    checkEq(string(gHeaders[2]), "c", "header c")
+    check(gRows.length == 2, "row count == 2  got=" + string(gRows.length))
+    var r0 = gRows[0]
+    checkEq(string(r0["a"]), "1", "r0 a=1")
+    checkEq(string(r0["b"]), "2", "r0 b=2")
+    var r1 = gRows[1]
+    checkEq(string(r1["a"]), "x,y", "quoted comma field")
+    checkEq(string(r1["b"]), "he said \"hi\"", "escaped quote field")
+    checkEq(string(r1["c"]), "line1\nline2", "cross-line field")
+end
+
+
+func testSelectWhere()
+    println("[2] SELECT * / WHERE / projection")
+    string t = "name,age,dept\nAlice,30,eng\nBob,25,eng\nCarol,40,sales\nDave,35,sales\n"
+    string out = executeQueryText(t, "", "data", "data.csv", "SELECT * FROM data WHERE age > 28", "table")
+    checkHas(out, "Alice", "WHERE age>28 has Alice")
+    checkNotHas(out, "Bob", "WHERE age>28 excludes Bob (25)")
+    checkHas(out, "Carol", "WHERE age>28 has Carol")
+    checkHas(out, "Dave", "WHERE age>28 has Dave")
+
+    string out2 = executeQueryText(t, "", "data", "data.csv", "SELECT name, age FROM data WHERE age > 25", "csv")
+    checkHas(out2, "name,age", "csv header")
+    checkHas(out2, "Alice,30", "csv row Alice")
+    checkNotHas(out2, "Bob,25", "csv excludes Bob")
+end
+
+
+func testWhereOps()
+    println("[3] WHERE operators + AND/OR")
+    string t = "name,age,dept\nAlice,30,eng\nBob,25,eng\nCarol,40,sales\n"
+    checkHas(executeQueryText(t, "", "data", "data.csv", "SELECT name FROM data WHERE dept = \"eng\"", "csv"), "Alice", "= eng Alice")
+    checkHas(executeQueryText(t, "", "data", "data.csv", "SELECT name FROM data WHERE dept = \"eng\"", "csv"), "Bob", "= eng Bob")
+    checkNotHas(executeQueryText(t, "", "data", "data.csv", "SELECT name FROM data WHERE dept = \"eng\"", "csv"), "Carol", "= eng excludes Carol")
+    checkHas(executeQueryText(t, "", "data", "data.csv", "SELECT name FROM data WHERE age >= 30 AND dept = \"sales\"", "csv"), "Carol", "AND Carol")
+    checkHas(executeQueryText(t, "", "data", "data.csv", "SELECT name FROM data WHERE age < 26 OR age > 38", "table"), "Bob", "OR Bob")
+    checkHas(executeQueryText(t, "", "data", "data.csv", "SELECT name FROM data WHERE age < 26 OR age > 38", "table"), "Carol", "OR Carol")
+    checkNotHas(executeQueryText(t, "", "data", "data.csv", "SELECT name FROM data WHERE age != 30", "csv"), "Alice", "!= 30 excludes Alice(30)")
+end
+
+
+func testOrderBy()
+    println("[4] ORDER BY ASC/DESC")
+    string t = "name,age\nA,30\nB,25\nC,40\n"
+    string asc = executeQueryText(t, "", "data", "data.csv", "SELECT name FROM data ORDER BY age ASC", "csv")
+    checkHas(asc, "name", "asc header")
+    // first data line should be B(25)
+    var lines = string.splitLines(asc)
+    if lines.length > 0 then
+        if string(lines[lines.length - 1]) == "" then
+            lines.remove(lines.length - 1)
+        end
+    end
+    check(string(lines[1]) == "B", "ORDER BY age ASC first=B  got=" + string(lines[1]))
+    string desc = executeQueryText(t, "", "data", "data.csv", "SELECT name FROM data ORDER BY age DESC", "csv")
+    var dlines = string.splitLines(desc)
+    if dlines.length > 0 then
+        if string(dlines[dlines.length - 1]) == "" then
+            dlines.remove(dlines.length - 1)
+        end
+    end
+    check(string(dlines[1]) == "C", "ORDER BY age DESC first=C  got=" + string(dlines[1]))
+end
+
+
+func testGroupAgg()
+    println("[5] GROUP BY + aggregates")
+    string t = "name,age,salary,dept\nAlice,30,100,eng\nBob,25,90,eng\nCarol,40,200,sales\nDave,35,180,sales\n"
+    string out = executeQueryText(t, "", "data", "data.csv", "SELECT dept, COUNT(*) FROM data GROUP BY dept", "csv")
+    checkHas(out, "dept,COUNT(*)", "group header")
+    checkHas(out, "eng,2", "eng count 2")
+    checkHas(out, "sales,2", "sales count 2")
+
+    string out2 = executeQueryText(t, "", "data", "data.csv", "SELECT dept, SUM(salary), AVG(age), MIN(age), MAX(age) FROM data GROUP BY dept", "csv")
+    checkHas(out2, "eng,190,27.5,25,30", "eng agg row (sum190 avg27.5 min25 max30)")
+    checkHas(out2, "sales,380,37.5,35,40", "sales agg row")
+
+    // whole-table aggregate (no GROUP BY)
+    string out3 = executeQueryText(t, "", "data", "data.csv", "SELECT COUNT(*) FROM data", "csv")
+    checkHas(out3, "COUNT(*)", "count header")
+    checkHas(out3, "4", "total count 4")
+
+    // AVG formatting: whole numbers render without .0
+    string out4 = executeQueryText(t, "", "data", "data.csv", "SELECT SUM(age) FROM data", "csv")
+    checkHas(out4, "130", "sum age 130")
+end
+
+
+func testJoin(string tmpDir)
+    println("[6] JOIN")
+    string empPath = path.join(tmpDir, "emp.csv")
+    string deptPath = path.join(tmpDir, "dept.csv")
+    string empText = "id,name,dept\n1,Alice,10\n2,Bob,20\n3,Carol,10\n"
+    string deptText = "id,name,salary\n10,Engineering,100\n20,Sales,80\n"
+    file.writeText(empPath, empText)
+    file.writeText(deptPath, deptText)
+
+    string out = executeQueryText(empText, tmpDir, "emp", "emp.csv", "SELECT a.name, b.salary FROM emp a JOIN dept b ON a.dept = b.id", "csv")
+    checkHas(out, "name,salary", "join header (short names)")
+    checkHas(out, "Alice,100", "Alice dept10 -> 100")
+    checkHas(out, "Bob,80", "Bob dept20 -> 80")
+    checkHas(out, "Carol,100", "Carol dept10 -> 100")
+    checkNotHas(out, "Charlie", "no phantom rows")
+
+    // JOIN + WHERE
+    string out2 = executeQueryText(empText, tmpDir, "emp", "emp.csv", "SELECT a.name FROM emp a JOIN dept b ON a.dept = b.id WHERE b.salary > 90", "csv")
+    checkHas(out2, "Alice", "join+where Alice")
+    checkHas(out2, "Carol", "join+where Carol")
+    checkNotHas(out2, "Bob", "join+where excludes Bob(80)")
+
+    file.delete(empPath)
+    file.delete(deptPath)
+end
+
+
+func testConvert()
+    println("[7] convert CSV -> JSON / table")
+    string t = "name,age\nAlice,30\nBob,25\n"
+    string js = formatJsonWithConvert(t, "data.csv")
+    checkHas(js, "\"name\"", "json has name key")
+    checkHas(js, "\"Alice\"", "json has Alice")
+    checkHas(js, "\"age\"", "json has age key")
+    checkHas(js, "30", "json has 30")
+end
+
+
+func formatJsonWithConvert(string text, string mainFile) as string
+    resetExecState()
+    gAlias = ""
+    gApplyFilter = false
+    gTarget = []
+    parseCsvStream(text, delimForFile(mainFile))
+    gRows = gTarget
+    var headers = gHeaders
+    var rows = []
+    int ri = 0
+    while ri < gRows.length do
+        var row = gRows[ri]
+        var out = []
+        int hi = 0
+        while hi < headers.length do
+            out.append(string(row[string(headers[hi])]))
+            hi = hi + 1
+        end
+        rows.append(out)
+        ri = ri + 1
+    end
+    gOutHeaders = headers
+    gOutRows = rows
+    return formatJson(headers, rows)
+end
+
+
+func testStats()
+    println("[8] stats")
+    string t = "name,age,score\nAlice,30,9.5\nBob,25,8.0\nCarol,30,7.5\n"
+    string out = columnStats(t, ",")
+    checkHas(out, "rows: 3", "stats row count")
+    checkHas(out, "age", "stats age col")
+    checkHas(out, "int", "stats int type detected")
+    checkHas(out, "float", "stats float type detected")
+    checkHas(out, "string", "stats string type detected")
+    checkHas(out, "uniq=2", "stats age unique=2 (30,25)")
+end
+
+
+func testLargeStream()
+    println("[9] large-file streaming (1k rows, selective WHERE + ORDER BY)")
+    string t = "id,val\n"
+    int i = 0
+    while i < 1000 do
+        t = t + string(i) + "," + string(i * 2) + "\n"
+        i = i + 1
+    end
+    string out = executeQueryText(t, "", "data", "data.csv", "SELECT COUNT(*) FROM data WHERE val > 1990", "csv")
+    // val = i*2 > 1990 means i > 995 -> i in {996..999} = 4 rows
+    checkHas(out, "4", "stream count val>1990 == 4")
+    check(gRows.length <= 5, "stream kept only matching rows")
+
+    // ordered by val desc -> first data row should be 999,1998
+    string out2 = executeQueryText(t, "", "data", "data.csv", "SELECT id, val FROM data ORDER BY val DESC", "csv")
+    var lines = string.splitLines(out2)
+    if lines.length > 0 then
+        if string(lines[lines.length - 1]) == "" then
+            lines.remove(lines.length - 1)
+        end
+    end
+    check(string(lines[1]) == "999,1998", "ORDER BY val DESC first=999,1998  got=" + string(lines[1]))
+end
+
+
+func runSelfTest(string scriptPath) as int
+    println("")
+    println("================ csvengine self-test ================")
+    string tmpDir = path.dir(scriptPath)
+    testParse()
+    testSelectWhere()
+    testWhereOps()
+    testOrderBy()
+    testGroupAgg()
+    testJoin(tmpDir)
+    testConvert()
+    testStats()
+    testLargeStream()
+    println("")
+    println("------------------- summary -------------------")
+    println("passed: " + string(gPass) + " / " + string(gPass + gFail))
+    println("failed: " + string(gFail))
+    println("")
+    if gFail > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ============================================================================
+// main
+// ============================================================================
+
+func printUsage()
+    println("csvengine - CSV/TSV streaming parser + SQL-like query engine")
+    println("Usage:")
+    println("  csvengine query   <file.csv> \"<SQL>\" [csv|json|table|tsv]")
+    println("  csvengine convert <file.csv> [json|table|csv|tsv]")
+    println("  csvengine stats   <file.csv>")
+    println("  csvengine test")
+    println("")
+    println("SQL examples:")
+    println("  SELECT * FROM data WHERE col > 100")
+    println("  SELECT name, age FROM data WHERE age > 25 ORDER BY age DESC")
+    println("  SELECT dept, COUNT(*) FROM data GROUP BY dept")
+    println("  SELECT a.name, b.salary FROM emp a JOIN dept b ON a.dept = b.id")
+    println("  aggregates: COUNT SUM AVG MIN MAX ; WHERE: = != > >= < <= AND OR")
+end
+
+
+func main(...) as int
+    println("xlang csvengine - CSV/TSV query engine")
+    println("")
+
+    if arg.length < 2 then
+        return runSelfTest(string(arg[0]))
+    end
+
+    string mode = string.lower(string(arg[1]))
+
+    if mode == "test" then
+        return runSelfTest(string(arg[0]))
+    end
+
+    if mode == "query" then
+        if arg.length < 4 then
+            println("Error: query requires <file> and \"<SQL>\"")
+            printUsage()
+            return 1
+        end
+        string fpath = string(arg[2])
+        string sql = string(arg[3])
+        string format = "table"
+        if arg.length >= 5 then
+            format = string.lower(string(arg[4]))
+        end
+        if not file.exists(fpath) then
+            println("Error: file not found: " + fpath)
+            return 1
+        end
+        string text = file.readText(fpath)
+        string out = executeQueryText(text, path.dir(fpath), path.name(fpath), fpath, sql, format)
+        println(out)
+        return 0
+    end
+
+    if mode == "convert" then
+        if arg.length < 3 then
+            println("Error: convert requires <file>")
+            printUsage()
+            return 1
+        end
+        string fpath = string(arg[2])
+        string format = "json"
+        if arg.length >= 4 then
+            format = string.lower(string(arg[3]))
+        end
+        if not file.exists(fpath) then
+            println("Error: file not found: " + fpath)
+            return 1
+        end
+        string text = file.readText(fpath)
+        string delim = delimForFile(fpath)
+        resetExecState()
+        gAlias = ""
+        gApplyFilter = false
+        gTarget = []
+        parseCsvStream(text, delim)
+        gRows = gTarget
+        var headers = gHeaders
+        var rows = []
+        int ri = 0
+        while ri < gRows.length do
+            var row = gRows[ri]
+            var out = []
+            int hi = 0
+            while hi < headers.length do
+                out.append(getCell(row, string(headers[hi])))
+                hi = hi + 1
+            end
+            rows.append(out)
+            ri = ri + 1
+        end
+        gOutHeaders = headers
+        gOutRows = rows
+        string out2 = formatOutput(format, fpath)
+        println(out2)
+        return 0
+    end
+
+    if mode == "stats" then
+        if arg.length < 3 then
+            println("Error: stats requires <file>")
+            printUsage()
+            return 1
+        end
+        string fpath = string(arg[2])
+        if not file.exists(fpath) then
+            println("Error: file not found: " + fpath)
+            return 1
+        end
+        string text = file.readText(fpath)
+        string out = columnStats(text, delimForFile(fpath))
+        println(out)
+        return 0
+    end
+
+    if mode == "-h" or mode == "--help" or mode == "help" then
+        printUsage()
+        return 0
+    end
+
+    println("Error: unknown mode '" + mode + "'")
+    printUsage()
+    return 1
+end

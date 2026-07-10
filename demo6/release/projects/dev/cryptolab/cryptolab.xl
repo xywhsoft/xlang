@@ -1,0 +1,1438 @@
+// cryptolab.xl - AES-128/192/256 with ECB/CBC/CTR/GCM (from-scratch, no crypto.AES)
+//
+// usage:
+//   cryptolab encrypt ecb  <key_hex> <data_hex>
+//   cryptolab decrypt ecb  <key_hex> <data_hex>
+//   cryptolab encrypt cbc  <key_hex> <iv_hex>  <data_hex>
+//   cryptolab decrypt cbc  <key_hex> <iv_hex>  <data_hex>
+//   cryptolab encrypt ctr  <key_hex> <iv_hex>  <data_hex>
+//   cryptolab decrypt ctr  <key_hex> <iv_hex>  <data_hex>
+//   cryptolab encrypt gcm  <key_hex> <iv_hex>  <plaintext_hex> [aad_hex]
+//   cryptolab decrypt gcm  <key_hex> <iv_hex>  <ciphertext_hex> <tag_hex> [aad_hex]
+//   cryptolab test                              FIPS-197 + NIST GCM test vectors
+//   cryptolab -h | --help                       this help
+//
+// Design:
+//   * AES core implemented from scratch: S-Box generated via GF(2^8) multiplicative
+//     inverse + affine transform; full key expansion; AddRoundKey/SubBytes/ShiftRows/
+//     MixColumns and their inverses; single-block encrypt/decrypt.
+//   * Key sizes: 16 (AES-128) / 24 (AES-192) / 32 (AES-256) bytes.
+//   * Modes: ECB, CBC (PKCS#7), CTR (full 16-byte big-endian counter), GCM
+//     (GHASH + GCTR + 128-bit tag).
+//   * State stored in array<int> (each element 0..255). Heavy bit-ops, table lookup,
+//     GF multiplications, array loops -- exercises the language on crypto workloads.
+//   * All transforms are standalone functions (the chip8 pattern): avoids BUG-C1
+//     (class methods can't take array<int> params). Functions take array<int> args
+//     and return new/modified array<int>; the value-copy semantics of typed arrays
+//     means reads from params are safe, and returning the result propagates changes.
+//
+// Verified against:
+//   FIPS-197 Appendices B, C.1, C.2, C.3 (single-block AES-128/192/256)
+//   NIST GCM Test Vectors (McGrew & Viega) Test Cases 1,2,3,4 (AES-128)
+//                                                       13,14,15,16 (AES-256)
+
+const int NB = 4
+
+// ---- array helpers ----
+
+func makeArray(int n, int v) as array<int>
+    if n <= 0 then
+        return array[]
+    end
+    array<int> a = array[v]
+    int i = 1
+    while i < n do
+        a.push(v)
+        i += 1
+    end
+    return a
+end
+
+func sub(array<int> arr, int start, int len) as array<int>
+    array<int> out = makeArray(len, 0)
+    int i = 0
+    while i < len do
+        out[i] = arr[start + i]
+        i += 1
+    end
+    return out
+end
+
+func copyArray(array<int> src) as array<int>
+    return sub(src, 0, src.length)
+end
+
+func concat(array<int> a, array<int> b) as array<int>
+    array<int> out = makeArray(a.length + b.length, 0)
+    int i = 0
+    while i < a.length do
+        out[i] = a[i]
+        i += 1
+    end
+    int j = 0
+    while j < b.length do
+        out[a.length + j] = b[j]
+        j += 1
+    end
+    return out
+end
+
+func xorArrays(array<int> a, array<int> b) as array<int>
+    int n = a.length
+    if b.length < n then
+        n = b.length
+    end
+    array<int> out = makeArray(n, 0)
+    int i = 0
+    while i < n do
+        out[i] = a[i] ^ b[i]
+        i += 1
+    end
+    return out
+end
+
+func arrEquals(array<int> a, array<int> b) as bool
+    if a.length != b.length then
+        return false
+    end
+    int i = 0
+    while i < a.length do
+        if a[i] != b[i] then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+
+// ======================== GF(2^8) arithmetic ========================
+
+// Multiply two bytes in GF(2^8) with AES reduction polynomial x^8+x^4+x^3+x+1 (0x11B).
+// Russian-peasant algorithm; result always 0..255.
+func gmul8(int a, int b) as int
+    int r = 0
+    int i = 0
+    while i < 8 do
+        if (b & 1) != 0 then
+            r = r ^ a
+        end
+        bool carry = (a & 0x80) != 0
+        a = (a << 1) & 0xFF
+        if carry then
+            a = a ^ 0x1B
+        end
+        b = b >> 1
+        i += 1
+    end
+    return r & 0xFF
+end
+
+// Multiply by 2 in GF(2^8) (the "xtime" operation).
+func mul2(int b) as int
+    int x = (b << 1) & 0xFF
+    if (b & 0x80) != 0 then
+        x = x ^ 0x1B
+    end
+    return x
+end
+
+// Multiply by 3 in GF(2^8) = 2*b XOR b.
+func mul3(int b) as int
+    return mul2(b) ^ b
+end
+
+
+// ======================== S-Box generation ========================
+
+// Circular left shift of a byte by n bits (within 8 bits).
+func rotl8(int b, int n) as int
+    n = n & 7
+    return ((b << n) | (b >> (8 - n))) & 0xFF
+end
+
+// Find multiplicative inverse of b in GF(2^8) (0 maps to 0).
+// Brute-force: find x in 1..255 with gmul8(b,x)==1.
+func gfInverse(int b) as int
+    if b == 0 then
+        return 0
+    end
+    int x = 1
+    while x < 256 do
+        if gmul8(b, x) == 1 then
+            return x
+        end
+        x += 1
+    end
+    return 0
+end
+
+// Build the 256-entry AES S-Box via multiplicative inverse + affine transform.
+func buildSbox() as array<int>
+    array<int> s = makeArray(256, 0)
+    int p = 0
+    while p < 256 do
+        int inv = gfInverse(p)
+        // affine transform: s = inv ^ rotl(inv,1) ^ rotl(inv,2) ^ rotl(inv,3) ^ rotl(inv,4) ^ 0x63
+        int af = inv ^ rotl8(inv, 1) ^ rotl8(inv, 2) ^ rotl8(inv, 3) ^ rotl8(inv, 4) ^ 0x63
+        s[p] = af & 0xFF
+        p += 1
+    end
+    return s
+end
+
+// Build inverse S-Box: invSbox[sbox[i]] = i.
+func buildInvSbox(array<int> sbox) as array<int>
+    array<int> inv = makeArray(256, 0)
+    int i = 0
+    while i < 256 do
+        inv[sbox[i]] = i
+        i += 1
+    end
+    return inv
+end
+
+
+// ======================== Key expansion ========================
+
+// Round constants (Rcon[i] byte for i=1..10; rc[0] unused).
+array<int> RCON = array[0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
+
+// Determine round count from key length.
+func roundCount(int keyLen) as int
+    if keyLen == 16 then
+        return 10
+    elseif keyLen == 24 then
+        return 12
+    elseif keyLen == 32 then
+        return 14
+    end
+    return -1
+end
+
+// Expand the cipher key into a flat byte schedule of length 16*(Nr+1).
+// Layout: round r uses bytes [r*16 .. r*16+15]; byte index = word*4 + byteInWord.
+// Round count is stored in global g_nr (avoids multi-value return of typed array).
+func expandKey(array<int> key) as array<int>
+    int nk = key.length / 4
+    g_nr = roundCount(key.length)
+    int totalWords = NB * (g_nr + 1)
+    array<int> w = makeArray(totalWords * 4, 0)
+
+    // copy original key
+    int i = 0
+    while i < key.length do
+        w[i] = key[i]
+        i += 1
+    end
+
+    int word = nk
+    while word < totalWords do
+        // temp = w[word-1] (4 bytes)
+        int t0 = w[(word - 1) * 4]
+        int t1 = w[(word - 1) * 4 + 1]
+        int t2 = w[(word - 1) * 4 + 2]
+        int t3 = w[(word - 1) * 4 + 3]
+
+        if word % nk == 0 then
+            // RotWord
+            int tmp = t0
+            t0 = t1
+            t1 = t2
+            t2 = t3
+            t3 = tmp
+            // SubWord
+            t0 = SBOX[t0]
+            t1 = SBOX[t1]
+            t2 = SBOX[t2]
+            t3 = SBOX[t3]
+            // XOR Rcon
+            t0 = t0 ^ RCON[word / nk]
+        elseif nk > 6 and word % nk == 4 then
+            // SubWord only (AES-256)
+            t0 = SBOX[t0]
+            t1 = SBOX[t1]
+            t2 = SBOX[t2]
+            t3 = SBOX[t3]
+        end
+
+        w[word * 4]     = w[(word - nk) * 4]     ^ t0
+        w[word * 4 + 1] = w[(word - nk) * 4 + 1] ^ t1
+        w[word * 4 + 2] = w[(word - nk) * 4 + 2] ^ t2
+        w[word * 4 + 3] = w[(word - nk) * 4 + 3] ^ t3
+        word += 1
+    end
+
+    return w
+end
+
+
+// ======================== Block transforms ========================
+// State is 16 bytes in column-major order:
+//   col0 = [s0,s1,s2,s3], col1 = [s4,s5,s6,s7], col2 = [s8,s9,s10,s11], col3 = [s12,s13,s14,s15]
+// i.e. s[row + 4*col].
+
+func addRoundKey(array<int> state, array<int> rk, int round) as array<int>
+    array<int> s = copyArray(state)
+    int i = 0
+    while i < 16 do
+        s[i] = s[i] ^ rk[round * 16 + i]
+        i += 1
+    end
+    return s
+end
+
+func subBytes(array<int> state) as array<int>
+    array<int> s = copyArray(state)
+    int i = 0
+    while i < 16 do
+        s[i] = SBOX[s[i]]
+        i += 1
+    end
+    return s
+end
+
+func invSubBytes(array<int> state) as array<int>
+    array<int> s = copyArray(state)
+    int i = 0
+    while i < 16 do
+        s[i] = INV_SBOX[s[i]]
+        i += 1
+    end
+    return s
+end
+
+func shiftRows(array<int> state) as array<int>
+    array<int> s = makeArray(16, 0)
+    int row = 0
+    while row < 4 do
+        int col = 0
+        while col < 4 do
+            // new[row + 4*col] = old[row + 4*((col + row) mod 4)]
+            s[row + 4 * col] = state[row + 4 * ((col + row) % 4)]
+            col += 1
+        end
+        row += 1
+    end
+    return s
+end
+
+func invShiftRows(array<int> state) as array<int>
+    array<int> s = makeArray(16, 0)
+    int row = 0
+    while row < 4 do
+        int col = 0
+        while col < 4 do
+            // new[row + 4*col] = old[row + 4*((col - row + 4) mod 4)]
+            s[row + 4 * col] = state[row + 4 * ((col - row + 4) % 4)]
+            col += 1
+        end
+        row += 1
+    end
+    return s
+end
+
+func mixColumns(array<int> state) as array<int>
+    array<int> s = makeArray(16, 0)
+    int col = 0
+    while col < 4 do
+        int s0 = state[4 * col]
+        int s1 = state[4 * col + 1]
+        int s2 = state[4 * col + 2]
+        int s3 = state[4 * col + 3]
+        s[4 * col]     = (mul2(s0) ^ mul3(s1) ^ s2 ^ s3) & 0xFF
+        s[4 * col + 1] = (s0 ^ mul2(s1) ^ mul3(s2) ^ s3) & 0xFF
+        s[4 * col + 2] = (s0 ^ s1 ^ mul2(s2) ^ mul3(s3)) & 0xFF
+        s[4 * col + 3] = (mul3(s0) ^ s1 ^ s2 ^ mul2(s3)) & 0xFF
+        col += 1
+    end
+    return s
+end
+
+func invMixColumns(array<int> state) as array<int>
+    array<int> s = makeArray(16, 0)
+    int col = 0
+    while col < 4 do
+        int s0 = state[4 * col]
+        int s1 = state[4 * col + 1]
+        int s2 = state[4 * col + 2]
+        int s3 = state[4 * col + 3]
+        s[4 * col]     = (gmul8(s0, 14) ^ gmul8(s1, 11) ^ gmul8(s2, 13) ^ gmul8(s3, 9)) & 0xFF
+        s[4 * col + 1] = (gmul8(s0, 9) ^ gmul8(s1, 14) ^ gmul8(s2, 11) ^ gmul8(s3, 13)) & 0xFF
+        s[4 * col + 2] = (gmul8(s0, 13) ^ gmul8(s1, 9) ^ gmul8(s2, 14) ^ gmul8(s3, 11)) & 0xFF
+        s[4 * col + 3] = (gmul8(s0, 11) ^ gmul8(s1, 13) ^ gmul8(s2, 9) ^ gmul8(s3, 14)) & 0xFF
+        col += 1
+    end
+    return s
+end
+
+
+// ======================== Single-block encrypt / decrypt ========================
+
+func encryptBlock(array<int> block, array<int> rk, int nr) as array<int>
+    array<int> s = addRoundKey(block, rk, 0)
+    int round = 1
+    while round < nr do
+        s = subBytes(s)
+        s = shiftRows(s)
+        s = mixColumns(s)
+        s = addRoundKey(s, rk, round)
+        round += 1
+    end
+    s = subBytes(s)
+    s = shiftRows(s)
+    s = addRoundKey(s, rk, nr)
+    return s
+end
+
+func decryptBlock(array<int> block, array<int> rk, int nr) as array<int>
+    array<int> s = addRoundKey(block, rk, nr)
+    int round = nr - 1
+    while round >= 1 do
+        s = invShiftRows(s)
+        s = invSubBytes(s)
+        s = addRoundKey(s, rk, round)
+        s = invMixColumns(s)
+        round -= 1
+    end
+    s = invShiftRows(s)
+    s = invSubBytes(s)
+    s = addRoundKey(s, rk, 0)
+    return s
+end
+
+
+// ======================== Modes of operation ========================
+
+// ---- ECB ----
+
+func ecbEncrypt(array<int> pt, array<int> rk, int nr) as array<int>
+    int n = pt.length
+    if n % 16 != 0 then
+        throw "ECB requires block-aligned data (multiple of 16 bytes)"
+    end
+    array<int> out = makeArray(n, 0)
+    int off = 0
+    while off < n do
+        array<int> blk = sub(pt, off, 16)
+        array<int> ct = encryptBlock(blk, rk, nr)
+        int i = 0
+        while i < 16 do
+            out[off + i] = ct[i]
+            i += 1
+        end
+        off += 16
+    end
+    return out
+end
+
+func ecbDecrypt(array<int> ct, array<int> rk, int nr) as array<int>
+    int n = ct.length
+    if n % 16 != 0 then
+        throw "ECB requires block-aligned data (multiple of 16 bytes)"
+    end
+    array<int> out = makeArray(n, 0)
+    int off = 0
+    while off < n do
+        array<int> blk = sub(ct, off, 16)
+        array<int> pt = decryptBlock(blk, rk, nr)
+        int i = 0
+        while i < 16 do
+            out[off + i] = pt[i]
+            i += 1
+        end
+        off += 16
+    end
+    return out
+end
+
+
+// ---- PKCS#7 padding ----
+
+func pkcs7Pad(array<int> data) as array<int>
+    int n = data.length
+    int padLen = 16 - (n % 16)
+    if padLen == 0 then
+        padLen = 16
+    end
+    array<int> out = makeArray(n + padLen, 0)
+    int i = 0
+    while i < n do
+        out[i] = data[i]
+        i += 1
+    end
+    while i < n + padLen do
+        out[i] = padLen
+        i += 1
+    end
+    return out
+end
+
+func pkcs7Unpad(array<int> data) as array<int>
+    int n = data.length
+    if n == 0 or n % 16 != 0 then
+        throw "invalid PKCS#7 padding: bad length"
+    end
+    int padLen = data[n - 1]
+    if padLen < 1 or padLen > 16 then
+        throw "invalid PKCS#7 padding: bad pad byte"
+    end
+    int i = n - padLen
+    while i < n do
+        if data[i] != padLen then
+            throw "invalid PKCS#7 padding: inconsistent"
+        end
+        i += 1
+    end
+    return sub(data, 0, n - padLen)
+end
+
+
+// ---- CBC ----
+
+func cbcEncrypt(array<int> pt, array<int> iv, array<int> rk, int nr) as array<int>
+    array<int> padded = pkcs7Pad(pt)
+    int n = padded.length
+    array<int> out = makeArray(n, 0)
+    array<int> prev = copyArray(iv)
+    int off = 0
+    while off < n do
+        array<int> blk = sub(padded, off, 16)
+        blk = xorArrays(blk, prev)
+        array<int> ct = encryptBlock(blk, rk, nr)
+        int i = 0
+        while i < 16 do
+            out[off + i] = ct[i]
+            prev[i] = ct[i]
+            i += 1
+        end
+        off += 16
+    end
+    return out
+end
+
+func cbcDecrypt(array<int> ct, array<int> iv, array<int> rk, int nr) as array<int>
+    int n = ct.length
+    if n % 16 != 0 then
+        throw "CBC requires block-aligned ciphertext"
+    end
+    array<int> padded = makeArray(n, 0)
+    array<int> prev = copyArray(iv)
+    int off = 0
+    while off < n do
+        array<int> blk = sub(ct, off, 16)
+        array<int> dec = decryptBlock(blk, rk, nr)
+        dec = xorArrays(dec, prev)
+        int i = 0
+        while i < 16 do
+            padded[off + i] = dec[i]
+            prev[i] = blk[i]
+            i += 1
+        end
+        off += 16
+    end
+    return pkcs7Unpad(padded)
+end
+
+
+// ---- CTR (full 16-byte big-endian counter) ----
+
+// Increment a 16-byte counter by 1 (big-endian, full width).
+func incCounter(array<int> ctr) as array<int>
+    array<int> c = copyArray(ctr)
+    int i = 15
+    while i >= 0 do
+        c[i] = (c[i] + 1) & 0xFF
+        if c[i] != 0 then
+            break
+        end
+        i -= 1
+    end
+    return c
+end
+
+func ctrXor(array<int> data, array<int> iv, array<int> rk, int nr) as array<int>
+    int n = data.length
+    array<int> out = makeArray(n, 0)
+    array<int> counter = copyArray(iv)
+    int off = 0
+    while off < n do
+        array<int> ks = encryptBlock(counter, rk, nr)
+        int chunk = 16
+        if off + chunk > n then
+            chunk = n - off
+        end
+        int i = 0
+        while i < chunk do
+            out[off + i] = data[off + i] ^ ks[i]
+            i += 1
+        end
+        counter = incCounter(counter)
+        off += 16
+    end
+    return out
+end
+
+
+// ======================== GCM ========================
+
+// GF(2^128) multiplication for GHASH (bit-by-bit, MSB-first).
+// X and H are 16-byte arrays. Returns X * H in GF(2^128) with
+// reduction polynomial 1 + x + x^2 + x^7 + x^128.
+func ghashMul(array<int> X, array<int> H) as array<int>
+    array<int> Z = makeArray(16, 0)
+    array<int> v = copyArray(H)
+    int i = 0
+    while i < 128 do
+        // bit i of X: byte i/8, bit position (7 - i%8) [leftmost = bit 0]
+        int byteIdx = i / 8
+        int bitIdx = 7 - (i % 8)
+        if ((X[byteIdx] >> bitIdx) & 1) != 0 then
+            int j = 0
+            while j < 16 do
+                Z[j] = Z[j] ^ v[j]
+                j += 1
+            end
+        end
+        // shift v right by 1 (toward byte 15)
+        int lsb = v[15] & 1
+        int j = 15
+        while j > 0 do
+            v[j] = (v[j] >> 1) | ((v[j - 1] & 1) << 7)
+            j -= 1
+        end
+        v[0] = v[0] >> 1
+        if lsb != 0 then
+            v[0] = v[0] ^ 0xE1
+        end
+        i += 1
+    end
+    return Z
+end
+
+// Process GHASH over a sequence of full/partial 16-byte blocks.
+// Updates Y = GHASH(Y, block, H) for each block in data[0..len).
+func ghashBlocks(array<int> Y, array<int> data, int dataLen, array<int> H) as array<int>
+    array<int> y = copyArray(Y)
+    int off = 0
+    while off < dataLen do
+        int chunk = 16
+        if off + chunk > dataLen then
+            chunk = dataLen - off
+        end
+        array<int> block = makeArray(16, 0)
+        int i = 0
+        while i < chunk do
+            block[i] = data[off + i]
+            i += 1
+        end
+        // Y = (Y XOR block) * H
+        int j = 0
+        while j < 16 do
+            y[j] = y[j] ^ block[j]
+            j += 1
+        end
+        y = ghashMul(y, H)
+        off += 16
+    end
+    return y
+end
+
+// Increment the rightmost 32 bits of a 16-byte block (big-endian), per GCM.
+func inc32(array<int> block) as array<int>
+    array<int> b = copyArray(block)
+    // increment bytes 12..15 as a 32-bit big-endian counter
+    int i = 15
+    while i >= 12 do
+        b[i] = (b[i] + 1) & 0xFF
+        if b[i] != 0 then
+            break
+        end
+        i -= 1
+    end
+    return b
+end
+
+// GCTR: counter-mode keystream starting from ICB, using inc32 per block.
+func gctr(array<int> data, array<int> icb, array<int> rk, int nr) as array<int>
+    int n = data.length
+    if n == 0 then
+        return makeArray(0, 0)
+    end
+    array<int> out = makeArray(n, 0)
+    array<int> cb = copyArray(icb)
+    int off = 0
+    while off < n do
+        array<int> ks = encryptBlock(cb, rk, nr)
+        int chunk = 16
+        if off + chunk > n then
+            chunk = n - off
+        end
+        int i = 0
+        while i < chunk do
+            out[off + i] = data[off + i] ^ ks[i]
+            i += 1
+        end
+        cb = inc32(cb)
+        off += 16
+    end
+    return out
+end
+
+// Compute the GHASH tag input S over AAD and ciphertext.
+// S = GHASH_H(A || pad || C || pad || [lenA]_64 || [lenC]_64)
+func ghashTagInput(array<int> aad, array<int> ct, array<int> H) as array<int>
+    array<int> y = makeArray(16, 0)
+    y = ghashBlocks(y, aad, aad.length, H)
+    y = ghashBlocks(y, ct, ct.length, H)
+    // length block: 64-bit big-endian bit-lengths of A and C
+    int64 lenABits = aad.length * 8
+    int64 lenCBits = ct.length * 8
+    array<int> lenBlock = makeArray(16, 0)
+    int i = 7
+    while i >= 0 do
+        lenBlock[i] = int((lenABits >> ((7 - i) * 8)) & 0xFF)
+        lenBlock[8 + i] = int((lenCBits >> ((7 - i) * 8)) & 0xFF)
+        i -= 1
+    end
+    // Y = (Y XOR lenBlock) * H
+    int j = 0
+    while j < 16 do
+        y[j] = y[j] ^ lenBlock[j]
+        j += 1
+    end
+    y = ghashMul(y, H)
+    return y
+end
+
+// Build the pre-counter block J0 from IV.
+// If IV is 96 bits (12 bytes): J0 = IV || 0x00000001.
+// Otherwise: J0 = GHASH_H(IV || pad || [0]_64 || [len(IV)]_64).
+func buildJ0(array<int> iv, array<int> H) as array<int>
+    if iv.length == 12 then
+        array<int> j0 = makeArray(16, 0)
+        int i = 0
+        while i < 12 do
+            j0[i] = iv[i]
+            i += 1
+        end
+        j0[15] = 1
+        return j0
+    end
+    array<int> y = makeArray(16, 0)
+    y = ghashBlocks(y, iv, iv.length, H)
+    array<int> lenBlock = makeArray(16, 0)
+    int64 lenIVBits = iv.length * 8
+    int i = 7
+    while i >= 0 do
+        lenBlock[8 + i] = int((lenIVBits >> ((7 - i) * 8)) & 0xFF)
+        i -= 1
+    end
+    int j = 0
+    while j < 16 do
+        y[j] = y[j] ^ lenBlock[j]
+        j += 1
+    end
+    y = ghashMul(y, H)
+    return y
+end
+
+// GCM encrypt: returns (ciphertext, tag).
+// GCM encrypt: returns ciphertext; tag stored in global g_tag.
+func gcmEncrypt(array<int> pt, array<int> iv, array<int> aad, array<int> rk, int nr) as array<int>
+    // H = AES-Encrypt(0^128)
+    array<int> zero = makeArray(16, 0)
+    array<int> H = encryptBlock(zero, rk, nr)
+    // J0
+    array<int> j0 = buildJ0(iv, H)
+    // ciphertext = GCTR(inc32(J0), P)
+    array<int> icb = inc32(j0)
+    array<int> ct = gctr(pt, icb, rk, nr)
+    // S = GHASH(H, A, C)
+    array<int> s = ghashTagInput(aad, ct, H)
+    // T = GCTR(J0, S) (first 16 bytes; tag is always 128-bit here)
+    g_tag = gctr(s, j0, rk, nr)
+    return ct
+end
+
+// GCM decrypt: returns plaintext; auth result stored in global g_auth.
+// If auth fails, returns empty array and g_auth = false.
+func gcmDecrypt(array<int> ct, array<int> tag, array<int> iv, array<int> aad, array<int> rk, int nr) as array<int>
+    array<int> zero = makeArray(16, 0)
+    array<int> H = encryptBlock(zero, rk, nr)
+    array<int> j0 = buildJ0(iv, H)
+    // recompute expected tag first
+    array<int> s = ghashTagInput(aad, ct, H)
+    array<int> expectedTag = gctr(s, j0, rk, nr)
+    g_auth = arrEquals(tag, expectedTag)
+    if not g_auth then
+        return makeArray(0, 0)
+    end
+    array<int> icb = inc32(j0)
+    array<int> pt = gctr(ct, icb, rk, nr)
+    return pt
+end
+
+
+// ======================== Hex codec ========================
+
+func hexVal(int c) as int
+    if c >= 48 and c <= 57 then
+        return c - 48
+    end
+    if c >= 65 and c <= 70 then
+        return c - 55
+    end
+    if c >= 97 and c <= 102 then
+        return c - 87
+    end
+    return -1
+end
+
+func parseHex(string s) as array<int>
+    string h = s
+    if string.len(h) % 2 != 0 then
+        throw "hex string must have even length"
+    end
+    int n = string.len(h) / 2
+    array<int> out = makeArray(n, 0)
+    int i = 0
+    while i < n do
+        int hi = hexVal(string.byteAt(h, i * 2))
+        int lo = hexVal(string.byteAt(h, i * 2 + 1))
+        if hi < 0 or lo < 0 then
+            throw "invalid hex character in '" + h + "'"
+        end
+        out[i] = (hi << 4) | lo
+        i += 1
+    end
+    return out
+end
+
+string HEX_DIGITS = "0123456789abcdef"
+
+func toHexByte(int b) as string
+    int hi = (b >> 4) & 0xF
+    int lo = b & 0xF
+    return string.slice(HEX_DIGITS, hi, 1) + string.slice(HEX_DIGITS, lo, 1)
+end
+
+func toHex(array<int> bytes) as string
+    string out = ""
+    int i = 0
+    while i < bytes.length do
+        out = out + toHexByte(bytes[i] & 0xFF)
+        i += 1
+    end
+    return out
+end
+
+
+// ======================== Global S-Box / InvS-Box ========================
+
+array<int> SBOX = []
+array<int> INV_SBOX = []
+
+// Globals to avoid multi-value return of typed arrays (xlang drops array<int>
+// in multi-value returns — verified by probe). expandKey sets g_nr; gcmEncrypt
+// sets g_tag; gcmDecrypt sets g_auth.
+int g_nr = 0
+array<int> g_tag = []
+bool g_auth = false
+
+func initSbox()
+    SBOX = buildSbox()
+    INV_SBOX = buildInvSbox(SBOX)
+end
+
+
+// ======================== Test vectors ========================
+
+func checkBlock(string label, string keyHex, string ptHex, string expectHex) as bool
+    array<int> key = parseHex(keyHex)
+    array<int> rk = expandKey(key)
+    int nr = g_nr
+    array<int> pt = parseHex(ptHex)
+    array<int> ct = encryptBlock(pt, rk, nr)
+    string got = toHex(ct)
+    if got != expectHex then
+        println("  FAIL " + label)
+        println("    got  " + got)
+        println("    want " + expectHex)
+        return false
+    end
+    // verify round-trip decrypt
+    array<int> back = decryptBlock(ct, rk, nr)
+    string backHex = toHex(back)
+    if backHex != ptHex then
+        println("  FAIL " + label + " (decrypt round-trip)")
+        println("    got  " + backHex)
+        println("    want " + ptHex)
+        return false
+    end
+    println("  PASS " + label + "  " + got)
+    return true
+end
+
+func checkGcm(string label, string keyHex, string ivHex, string aadHex, string ptHex, string expectCTHex, string expectTagHex) as bool
+    array<int> key = parseHex(keyHex)
+    array<int> rk = expandKey(key)
+    int nr = g_nr
+    array<int> iv = parseHex(ivHex)
+    array<int> aad = parseHex(aadHex)
+    array<int> pt = parseHex(ptHex)
+    array<int> ct = gcmEncrypt(pt, iv, aad, rk, nr)
+    array<int> tag = g_tag
+    string gotCT = toHex(ct)
+    string gotTag = toHex(tag)
+    bool ok = true
+    if gotCT != expectCTHex then
+        println("  FAIL " + label + " (ciphertext)")
+        println("    got  " + gotCT)
+        println("    want " + expectCTHex)
+        ok = false
+    end
+    if gotTag != expectTagHex then
+        println("  FAIL " + label + " (tag)")
+        println("    got  " + gotTag)
+        println("    want " + expectTagHex)
+        ok = false
+    end
+    if ok then
+        println("  PASS " + label + "  ct=" + gotCT + "  tag=" + gotTag)
+    end
+    // verify round-trip decrypt
+    if ok then
+        array<int> ptBack = gcmDecrypt(ct, tag, iv, aad, rk, nr)
+        bool auth = g_auth
+        if not auth then
+            println("  FAIL " + label + " (decrypt auth)")
+            ok = false
+        elseif toHex(ptBack) != ptHex then
+            println("  FAIL " + label + " (decrypt plaintext)")
+            println("    got  " + toHex(ptBack))
+            println("    want " + ptHex)
+            ok = false
+        end
+    end
+    return ok
+end
+
+func checkGcmAuth(string label, string keyHex, string ivHex, string aadHex, string ctHex, string tagHex) as bool
+    array<int> key = parseHex(keyHex)
+    array<int> rk = expandKey(key)
+    int nr = g_nr
+    array<int> iv = parseHex(ivHex)
+    array<int> aad = parseHex(aadHex)
+    array<int> ct = parseHex(ctHex)
+    array<int> tag = parseHex(tagHex)
+    gcmDecrypt(ct, tag, iv, aad, rk, nr)
+    bool auth = g_auth
+    if auth then
+        println("  FAIL " + label + " (expected auth failure but got success)")
+        return false
+    end
+    println("  PASS " + label + "  (auth correctly rejected)")
+    return true
+end
+
+func checkSboxKnown() as bool
+    // Spot-check a few well-known S-Box entries (FIPS-197 Figure 7).
+    if SBOX[0x00] != 0x63 then
+        println("  FAIL sbox[0x00] = " + string.formatInt(SBOX[0x00], "x2") + ", want 63")
+        return false
+    end
+    if SBOX[0x10] != 0xca then
+        println("  FAIL sbox[0x10] = " + string.formatInt(SBOX[0x10], "x2") + ", want ca")
+        return false
+    end
+    if SBOX[0x53] != 0xed then
+        println("  FAIL sbox[0x53] = " + string.formatInt(SBOX[0x53], "x2") + ", want ed")
+        return false
+    end
+    if SBOX[0xff] != 0x16 then
+        println("  FAIL sbox[0xff] = " + string.formatInt(SBOX[0xff], "x2") + ", want 16")
+        return false
+    end
+    // verify inverse property: invSbox[sbox[i]] == i for all i
+    int i = 0
+    while i < 256 do
+        if INV_SBOX[SBOX[i]] != i then
+            println("  FAIL invSbox[sbox[" + string.formatInt(i, "x2") + "]] mismatch")
+            return false
+        end
+        i += 1
+    end
+    println("  PASS S-Box/InvS-Box generation (incl. full inverse property)")
+    return true
+end
+
+func checkKeyExpansion() as bool
+    // FIPS-197 AES-128 key expansion (Appendix A.1) first expanded words:
+    // key 2b7e1516 28aed2a6 abf71588 09cf4f3c
+    // w[4] = a0fafe17, w[5] = 88542cb1 ...
+    array<int> key = parseHex("2b7e151628aed2a6abf7158809cf4f3c")
+    array<int> rk = expandKey(key)
+    int nr = g_nr
+    // w[4] bytes should be a0 fa fe 17
+    if not (rk[16] == 0xa0 and rk[17] == 0xfa and rk[18] == 0xfe and rk[19] == 0x17) then
+        println("  FAIL AES-128 key expansion w[4]")
+        println("    got " + toHexByte(rk[16]) + toHexByte(rk[17]) + toHexByte(rk[18]) + toHexByte(rk[19]))
+        println("    want a0fafe17")
+        return false
+    end
+    // w[5] bytes should be 88 54 2c b1
+    if not (rk[20] == 0x88 and rk[21] == 0x54 and rk[22] == 0x2c and rk[23] == 0xb1) then
+        println("  FAIL AES-128 key expansion w[5]")
+        return false
+    end
+    // w[6] = 23a33939
+    if not (rk[24] == 0x23 and rk[25] == 0xa3 and rk[26] == 0x39 and rk[27] == 0x39) then
+        println("  FAIL AES-128 key expansion w[6]")
+        return false
+    end
+    // w[7] = 2a6c7605
+    if not (rk[28] == 0x2a and rk[29] == 0x6c and rk[30] == 0x76 and rk[31] == 0x05) then
+        println("  FAIL AES-128 key expansion w[7]")
+        return false
+    end
+    // last round key w[43] should be b6628b9b
+    if rk.length != 176 then
+        println("  FAIL AES-128 round key length = " + string(rk.length) + ", want 176")
+        return false
+    end
+    println("  PASS AES-128 key expansion (Appendix A.1: w[4..7] = a0fafe17 88542cb1 23a33939 2a6c7605)")
+    return true
+end
+
+func runTests() as int
+    int passed = 0
+    int failed = 0
+
+    println("=== S-Box / GF(2^8) ===")
+    if checkSboxKnown() then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("=== Key Expansion ===")
+    if checkKeyExpansion() then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("=== FIPS-197 Block Cipher ===")
+    // AES-128 Appendix B
+    if checkBlock("AES-128 FIPS-197 B",
+        "2b7e151628aed2a6abf7158809cf4f3c",
+        "3243f6a8885a308d313198a2e0370734",
+        "3925841d02dc09fbdc118597196a0b32") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // AES-128 Appendix C.1
+    if checkBlock("AES-128 FIPS-197 C.1",
+        "000102030405060708090a0b0c0d0e0f",
+        "00112233445566778899aabbccddeeff",
+        "69c4e0d86a7b0430d8cdb78070b4c55a") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // AES-192 Appendix C.2
+    if checkBlock("AES-192 FIPS-197 C.2",
+        "000102030405060708090a0b0c0d0e0f1011121314151617",
+        "00112233445566778899aabbccddeeff",
+        "dda97ca4864cdfe06eaf70a0ec0d7191") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // AES-256 Appendix C.3
+    if checkBlock("AES-256 FIPS-197 C.3",
+        "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "00112233445566778899aabbccddeeff",
+        "8ea2b7ca516745bfeafc49904b496089") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("=== NIST GCM Test Vectors (AES-128) ===")
+    // Test Case 1: empty plaintext
+    if checkGcm("GCM TC1 (empty)",
+        "00000000000000000000000000000000",
+        "000000000000000000000000",
+        "",
+        "",
+        "",
+        "58e2fccefa7e3061367f1d57a4e7455a") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // Test Case 2: one zero block
+    if checkGcm("GCM TC2 (one block)",
+        "00000000000000000000000000000000",
+        "000000000000000000000000",
+        "",
+        "00000000000000000000000000000000",
+        "0388dace60b6a392f328c2b971b2fe78",
+        "ab6e47d42cec13bdf53a67b21257bddf") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // Test Case 3: 60-byte plaintext, no AAD
+    if checkGcm("GCM TC3 (60B, no AAD)",
+        "feffe9928665731c6d6a8f9467308308",
+        "cafebabefacedbaddecaf888",
+        "",
+        "d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39",
+        "42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091",
+        "cc15abcc191161501aabab46b8fbac85") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // Test Case 4: 60-byte plaintext with AAD
+    if checkGcm("GCM TC4 (60B, with AAD)",
+        "feffe9928665731c6d6a8f9467308308",
+        "cafebabefacedbaddecaf888",
+        "feedfacedeadbeeffeedfacedeadbeefabaddad2",
+        "d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39",
+        "42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091",
+        "5bc94fbc3221a5db94fae95ae7121a47") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("=== NIST GCM Test Vectors (AES-256) ===")
+    // Test Case 13: empty plaintext
+    if checkGcm("GCM TC13 AES-256 (empty)",
+        "0000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000",
+        "",
+        "",
+        "",
+        "530f8afbc74536b9a963b4f1c4cb738b") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // Test Case 14: one zero block
+    if checkGcm("GCM TC14 AES-256 (one block)",
+        "0000000000000000000000000000000000000000000000000000000000000000",
+        "000000000000000000000000",
+        "",
+        "00000000000000000000000000000000",
+        "cea7403d4d606b6e074ec5d3baf39d18",
+        "d0d1c8a799996bf0265b98b5d48ab919") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // Test Case 15: AES-256, 60-byte plaintext, no AAD
+    if checkGcm("GCM TC15 AES-256 (60B)",
+        "feffe9928665731c6d6a8f9467308308feffe9928665731c6d6a8f9467308308",
+        "cafebabefacedbaddecaf888",
+        "",
+        "d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39",
+        "522dc1f099567d07f47f37a32a84427d643a8cdcbfe5c0c97598a2bd2555d1aa8cb08e48590dbb3da7b08b1056828838c5f61e6393ba7a0abcc9f662",
+        "eb9f796c8d356fc31a8433884b696f4f") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // Test Case 16: AES-256, 60-byte plaintext with AAD
+    if checkGcm("GCM TC16 AES-256 (60B, with AAD)",
+        "feffe9928665731c6d6a8f9467308308feffe9928665731c6d6a8f9467308308",
+        "cafebabefacedbaddecaf888",
+        "feedfacedeadbeeffeedfacedeadbeefabaddad2",
+        "d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39",
+        "522dc1f099567d07f47f37a32a84427d643a8cdcbfe5c0c97598a2bd2555d1aa8cb08e48590dbb3da7b08b1056828838c5f61e6393ba7a0abcc9f662",
+        "76fc6ece0f4e1768cddf8853bb2d551b") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("=== GCM Authentication Failure ===")
+    if checkGcmAuth("GCM auth-fail (tampered tag)",
+        "feffe9928665731c6d6a8f9467308308",
+        "cafebabefacedbaddecaf888",
+        "",
+        "42831ec2217774244b7221b784d0d49ce3aa212f2c02a4e035c17e2329aca12e21d514b25466931c7d8f6a5aac84aa051ba30b396a0aac973d58e091",
+        "cc15abcc191161501aabab46b8fbac86") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("=== Round-trip (CBC / CTR / ECB) ===")
+    // CBC round-trip with random-ish data
+    bool rtOk = true
+    array<int> cbcKey = parseHex("000102030405060708090a0b0c0d0e0f")
+    array<int> cbcRk = expandKey(cbcKey)
+    int cbcNr = g_nr
+    array<int> cbcIv = parseHex("0f0e0d0c0b0a09080706050403020100")
+    array<int> msg = parseHex("48656c6c6f2c20576f726c6421") // "Hello, World!"
+    array<int> cbcCt = cbcEncrypt(msg, cbcIv, cbcRk, cbcNr)
+    array<int> cbcPt = cbcDecrypt(cbcCt, cbcIv, cbcRk, cbcNr)
+    if not arrEquals(cbcPt, msg) then
+        println("  FAIL CBC round-trip")
+        rtOk = false
+    end
+    // CTR round-trip (non-block-aligned)
+    array<int> ctrCt = ctrXor(msg, cbcIv, cbcRk, cbcNr)
+    array<int> ctrPt = ctrXor(ctrCt, cbcIv, cbcRk, cbcNr)
+    if not arrEquals(ctrPt, msg) then
+        println("  FAIL CTR round-trip")
+        rtOk = false
+    end
+    // ECB with padding round-trip
+    array<int> ecbCt = ecbEncrypt(pkcs7Pad(msg), cbcRk, cbcNr)
+    array<int> ecbPt = pkcs7Unpad(ecbDecrypt(ecbCt, cbcRk, cbcNr))
+    if not arrEquals(ecbPt, msg) then
+        println("  FAIL ECB round-trip")
+        rtOk = false
+    end
+    if rtOk then
+        println("  PASS CBC / CTR / ECB+PKCS#7 round-trip")
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("")
+    println("========================================")
+    println("PASSED " + string(passed) + " / FAILED " + string(failed))
+    println("========================================")
+    if failed > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ======================== CLI ========================
+
+func printUsage()
+    println("cryptolab - AES-128/192/256 with ECB/CBC/CTR/GCM (from scratch)")
+    println("")
+    println("usage:")
+    println("  cryptolab encrypt ecb  <key_hex> <data_hex>")
+    println("  cryptolab decrypt ecb  <key_hex> <data_hex>")
+    println("  cryptolab encrypt cbc  <key_hex> <iv_hex>  <data_hex>")
+    println("  cryptolab decrypt cbc  <key_hex> <iv_hex>  <data_hex>")
+    println("  cryptolab encrypt ctr  <key_hex> <iv_hex>  <data_hex>")
+    println("  cryptolab decrypt ctr  <key_hex> <iv_hex>  <data_hex>")
+    println("  cryptolab encrypt gcm  <key_hex> <iv_hex>  <plaintext_hex> [aad_hex]")
+    println("  cryptolab decrypt gcm  <key_hex> <iv_hex>  <ct_hex> <tag_hex> [aad_hex]")
+    println("  cryptolab test                              run FIPS-197 + NIST GCM vectors")
+    println("  cryptolab sbox                              dump S-Box / InvS-Box (first 32)")
+    println("  cryptolab -h | --help                       this help")
+    println("")
+    println("key sizes: 16 bytes (AES-128), 24 (AES-192), 32 (AES-256)")
+    println("GCM tag is always 128 bits; IV should be 12 bytes (96 bits)")
+    println("CBC/ECB use PKCS#7 padding; CTR/GCM are stream modes (any length)")
+end
+
+func validKeyLen(int n) as bool
+    return n == 16 or n == 24 or n == 32
+end
+
+func main(...) as int
+    initSbox()
+
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return runTests()
+    end
+
+    if cmd == "sbox" then
+        println("S-Box (first 32):")
+        int row = 0
+        while row < 2 do
+            string line = ""
+            int col = 0
+            while col < 16 do
+                line = line + toHexByte(SBOX[row * 16 + col]) + " "
+                col += 1
+            end
+            println(line)
+            row += 1
+        end
+        println("InvS-Box (first 32):")
+        row = 0
+        while row < 2 do
+            string line = ""
+            int col = 0
+            while col < 16 do
+                line = line + toHexByte(INV_SBOX[row * 16 + col]) + " "
+                col += 1
+            end
+            println(line)
+            row += 1
+        end
+        return 0
+    end
+
+    if cmd != "encrypt" and cmd != "decrypt" then
+        println("cryptolab: unknown command '" + cmd + "'")
+        printUsage()
+        return 1
+    end
+
+    if arg.length < 4 then
+        println("cryptolab: '" + cmd + "' needs <mode> <key_hex> ...")
+        return 1
+    end
+
+    string mode = string(arg[2])
+    if mode != "ecb" and mode != "cbc" and mode != "ctr" and mode != "gcm" then
+        println("cryptolab: unknown mode '" + mode + "' (expected ecb/cbc/ctr/gcm)")
+        return 1
+    end
+
+    try
+        // ---- ECB: encrypt/decrypt ecb <key> <data> ----
+        if mode == "ecb" then
+            if arg.length < 5 then
+                println("cryptolab: ecb needs <key_hex> <data_hex>")
+                return 1
+            end
+            array<int> key = parseHex(string(arg[3]))
+            if not validKeyLen(key.length) then
+                println("cryptolab: key must be 16/24/32 bytes, got " + string(key.length))
+                return 1
+            end
+            array<int> data = parseHex(string(arg[4]))
+            array<int> rk = expandKey(key)
+            int nr = g_nr
+            if cmd == "encrypt" then
+                if data.length == 0 then
+                    println("")
+                    return 0
+                end
+                array<int> padded = pkcs7Pad(data)
+                array<int> ct = ecbEncrypt(padded, rk, nr)
+                println(toHex(ct))
+            else
+                if data.length == 0 then
+                    println("")
+                    return 0
+                end
+                array<int> pt = pkcs7Unpad(ecbDecrypt(data, rk, nr))
+                println(toHex(pt))
+            end
+            return 0
+        end
+
+        // ---- CBC / CTR / GCM all need IV ----
+        if arg.length < 6 then
+            println("cryptolab: " + mode + " needs <key_hex> <iv_hex> <data_hex> ...")
+            return 1
+        end
+
+        array<int> key = parseHex(string(arg[3]))
+        if not validKeyLen(key.length) then
+            println("cryptolab: key must be 16/24/32 bytes, got " + string(key.length))
+            return 1
+        end
+        array<int> iv = parseHex(string(arg[4]))
+        array<int> rk = expandKey(key)
+        int nr = g_nr
+
+        if mode == "cbc" then
+            if iv.length != 16 then
+                println("cryptolab: CBC IV must be 16 bytes, got " + string(iv.length))
+                return 1
+            end
+            array<int> data = parseHex(string(arg[5]))
+            if cmd == "encrypt" then
+                array<int> ct = cbcEncrypt(data, iv, rk, nr)
+                println(toHex(ct))
+            else
+                array<int> pt = cbcDecrypt(data, iv, rk, nr)
+                println(toHex(pt))
+            end
+            return 0
+        end
+
+        if mode == "ctr" then
+            if iv.length != 16 then
+                println("cryptolab: CTR IV (initial counter) must be 16 bytes, got " + string(iv.length))
+                return 1
+            end
+            array<int> data = parseHex(string(arg[5]))
+            array<int> out = ctrXor(data, iv, rk, nr)
+            println(toHex(out))
+            return 0
+        end
+
+        // ---- GCM ----
+        if cmd == "encrypt" then
+            // encrypt gcm <key> <iv> <plaintext> [aad]
+            array<int> pt = parseHex(string(arg[5]))
+            array<int> aad = makeArray(0, 0)
+            if arg.length >= 7 then
+                aad = parseHex(string(arg[6]))
+            end
+            array<int> ct = gcmEncrypt(pt, iv, aad, rk, nr)
+            array<int> tag = g_tag
+            println("ciphertext: " + toHex(ct))
+            println("tag:        " + toHex(tag))
+            return 0
+        else
+            // decrypt gcm <key> <iv> <ciphertext> <tag> [aad]
+            if arg.length < 7 then
+                println("cryptolab: gcm decrypt needs <key_hex> <iv_hex> <ct_hex> <tag_hex> [aad_hex]")
+                return 1
+            end
+            array<int> ct = parseHex(string(arg[5]))
+            array<int> tag = parseHex(string(arg[6]))
+            array<int> aad = makeArray(0, 0)
+            if arg.length >= 8 then
+                aad = parseHex(string(arg[7]))
+            end
+            array<int> pt = gcmDecrypt(ct, tag, iv, aad, rk, nr)
+            bool auth = g_auth
+            if not auth then
+                println("AUTHENTICATION FAILED (tag mismatch)")
+                return 1
+            end
+            println("plaintext:  " + toHex(pt))
+            return 0
+        end
+    catch e
+        println("cryptolab: error: " + e.message)
+        return 1
+    end
+
+    return 0
+end

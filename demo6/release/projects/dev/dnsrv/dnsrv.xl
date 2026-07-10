@@ -1,0 +1,1087 @@
+// dnsrv - DNS server / resolver
+//
+// Usage:
+//   dnsrv                               -> self-test (boot server + client, report)
+//   dnsrv test                          -> same self-test
+//   dnsrv serve <port> <zone.json>      -> serve forever on port (default 5353)
+//   dnsrv query <domain> <type> [srv] [port]
+//                                       -> send UDP DNS query to srv:port (default 127.0.0.1:5353)
+//   dnsrv -h | --help                   -> usage
+//
+// Supports DNS record types: A (1), CNAME (5), MX (15), TXT (16).
+//
+// Zone JSON format:
+//   {
+//     "example.com": {
+//       "A":     ["93.184.216.34"],
+//       "MX":    ["10 mail.example.com"],
+//       "TXT":   ["v=spf1 -all"]
+//     },
+//     "www.example.com": {
+//       "CNAME": ["example.com"]
+//     }
+//   }
+//
+// Stress points exercised:
+//   * UDP binary protocol: dnsrv uses udp.bind + UdpSocket + UdpPacket for
+//     connectionless request/response.
+//   * Buffer read/write: DNS messages are big-endian binary. We manually
+//     encode/decode 16-bit and 32-bit fields, length-prefixed labels, and
+//     compression pointers using Buffer.appendByte / Buffer.byteAt.
+//   * Byte-order handling: DNS is network byte order (big-endian); xlang int
+//     is used with explicit shifts and masks.
+//
+// Design constraints honored (see dev/README.md + dev/BUGS.md):
+//   * BUG-HD1: never return Buffer from a function. All Buffer-building
+//     helpers receive the target Buffer as a parameter (global functions
+//     accept native-backed class params fine; only class methods cannot).
+//   * BUG-C1: no class methods with Buffer/array params. All DNS helpers are
+//     global functions.
+//   * BUG-CE1: never `var + string`. Every value drawn from a var container
+//     is coerced with string(...) / int(...) before concatenation.
+//   * BUG-XT3: global containers (g_zone, g_cache) are initialized at
+//     declaration and only modified in-place (clear + key-assign), never
+//     rebound with `g = ...`.
+//   * portscan BUG: `point is null` is always false; we compare against a
+//     default-initialized `point ZERO` to detect failed recv.
+//   * BUG-S1 / int(): defensive parsing of arg strings.
+
+const int TYPE_A     = 1
+const int TYPE_CNAME = 5
+const int TYPE_MX    = 15
+const int TYPE_TXT   = 16
+
+const int DEFAULT_TTL     = 300
+const int CACHE_TTL       = 300
+const int RECV_TIMEOUT    = 5000
+const int SERVE_TIMEOUT   = 1000
+const int DEFAULT_PORT    = 5353
+
+point ZERO
+
+var g_zone  = {}
+var g_cache = {}
+
+int g_testPort   = 0
+int g_passed     = 0
+int g_failed     = 0
+int g_cacheHits  = 0
+bool g_verbose   = true
+
+
+// ============================================================
+// usage
+// ============================================================
+func usage()
+    println("dnsrv - DNS server / resolver")
+    println("")
+    println("  dnsrv                               run self-test")
+    println("  dnsrv test                          run self-test")
+    println("  dnsrv serve <port> <zone.json>      serve UDP DNS on <port>")
+    println("  dnsrv query <domain> <type> [srv] [port]")
+    println("                                       query DNS server (default 127.0.0.1:5353)")
+    println("  dnsrv -h | --help                   this message")
+    println("")
+    println("Record types: A, CNAME, MX, TXT")
+end
+
+
+// ============================================================
+// utility
+// ============================================================
+func normalizeDomain(string d) as string
+    string s = string.lower(d)
+    if string.len(s) > 0 then
+        if string.right(s, 1) == "." then
+            s = string.left(s, string.len(s) - 1)
+        end
+    end
+    return s
+end
+
+func toHex2(int v) as string
+    string hexChars = "0123456789abcdef"
+    int hi = (v >> 4) & 0xF
+    int lo = v & 0xF
+    return string.charAt(hexChars, hi) + string.charAt(hexChars, lo)
+end
+
+func toHex4(int v) as string
+    return toHex2((v >> 8) & 0xFF) + toHex2(v & 0xFF)
+end
+
+func dnsTypeName(int qtype) as string
+    if qtype == TYPE_A then return "A" end
+    if qtype == TYPE_CNAME then return "CNAME" end
+    if qtype == TYPE_MX then return "MX" end
+    if qtype == TYPE_TXT then return "TXT" end
+    return "TYPE" + qtype.toString()
+end
+
+func dnsTypeFromName(string s) as int
+    string u = string.upper(s)
+    if u == "A" then return TYPE_A end
+    if u == "CNAME" then return TYPE_CNAME end
+    if u == "MX" then return TYPE_MX end
+    if u == "TXT" then return TYPE_TXT end
+    return 0
+end
+
+
+// ============================================================
+// zone management (in-place only; BUG-XT3)
+// ============================================================
+func zoneLoad(string path) as bool
+    if not file.exists(path) then
+        println("ERROR: zone file not found: " + path)
+        return false
+    end
+    string text = file.readText(path)
+    if not json.valid(text) then
+        println("ERROR: zone file is not valid JSON: " + path)
+        return false
+    end
+    var raw = json.parse(text)
+    g_zone.clear()
+    for k, v in raw
+        string domain = normalizeDomain(string(k))
+        g_zone[domain] = v
+    end
+    int n = 0
+    for k, _ in g_zone
+        n += 1
+    end
+    println("zone loaded: " + n.toString() + " domains from " + path)
+    return true
+end
+
+func zoneBuildTest()
+    g_zone.clear()
+
+    var aRecs = {}
+    aRecs["A"] = ["10.0.0.1", "10.0.0.2"]
+    g_zone["a.test.local"] = aRecs
+
+    var cnameRecs = {}
+    cnameRecs["CNAME"] = ["a.test.local"]
+    g_zone["cname.test.local"] = cnameRecs
+
+    var mxRecs = {}
+    mxRecs["MX"] = ["10 mail.test.local"]
+    mxRecs["TXT"] = ["mx handler"]
+    g_zone["mx.test.local"] = mxRecs
+
+    var txtRecs = {}
+    txtRecs["TXT"] = ["hello dns world"]
+    g_zone["txt.test.local"] = txtRecs
+
+    var mailRecs = {}
+    mailRecs["A"] = ["10.0.0.25"]
+    g_zone["mail.test.local"] = mailRecs
+
+    var multiRecs = {}
+    multiRecs["A"] = ["192.168.1.1", "192.168.1.2", "192.168.1.3"]
+    g_zone["multi.test.local"] = multiRecs
+end
+
+func zoneSummary() as int
+    int n = 0
+    for k, _ in g_zone
+        n += 1
+    end
+    return n
+end
+
+
+// ============================================================
+// binary helpers (big-endian)
+// ============================================================
+func writeU16(Buffer buf, int v)
+    buf.appendByte((v >> 8) & 0xFF)
+    buf.appendByte(v & 0xFF)
+end
+
+func writeU32(Buffer buf, int v)
+    buf.appendByte((v >> 24) & 0xFF)
+    buf.appendByte((v >> 16) & 0xFF)
+    buf.appendByte((v >> 8) & 0xFF)
+    buf.appendByte(v & 0xFF)
+end
+
+func readU16(Buffer buf, int off) as int
+    return (buf.byteAt(off) << 8) | buf.byteAt(off + 1)
+end
+
+func readU32(Buffer buf, int off) as int
+    return (buf.byteAt(off) << 24) | (buf.byteAt(off + 1) << 16) | (buf.byteAt(off + 2) << 8) | buf.byteAt(off + 3)
+end
+
+
+// ============================================================
+// DNS name encoding / decoding
+// ============================================================
+func writeName(Buffer buf, string name)
+    string n = name
+    if string.len(n) > 0 then
+        if string.right(n, 1) == "." then
+            n = string.left(n, string.len(n) - 1)
+        end
+    end
+    if n == "" then
+        buf.appendByte(0)
+        return
+    end
+    array parts = string.split(n, ".")
+    for p in parts
+        string label = string(p)
+        if string.len(label) == 0 then continue end
+        array labelBytes = string.bytes(label)
+        int lbLen = labelBytes.length
+        if lbLen > 255 then lbLen = 255 end
+        buf.appendByte(lbLen)
+        int j = 0
+        while j < lbLen do
+            buf.appendByte(int(labelBytes[j]))
+            j += 1
+        end
+    end
+    buf.appendByte(0)
+end
+
+func readName(Buffer buf, int offset) as (string, int)
+    string name = ""
+    int pos = offset
+    bool jumped = false
+    int afterPtr = offset
+    int safety = 0
+    while safety < 128 do
+        safety += 1
+        if pos < 0 or pos >= buf.len() then break end
+        int b = buf.byteAt(pos)
+        if b == 0 then
+            pos += 1
+            if not jumped then afterPtr = pos end
+            break
+        end
+        if (b & 0xC0) == 0xC0 then
+            if pos + 1 >= buf.len() then break end
+            int ptr = ((b & 0x3F) << 8) | buf.byteAt(pos + 1)
+            if not jumped then afterPtr = pos + 2 end
+            jumped = true
+            pos = ptr
+        else
+            int labelLen = b
+            pos += 1
+            if pos + labelLen > buf.len() then break end
+            if name != "" then name = name + "." end
+            Buffer lbl = Buffer()
+            int j = 0
+            while j < labelLen do
+                lbl.appendByte(buf.byteAt(pos + j))
+                j += 1
+            end
+            name = name + lbl.text()
+            pos += labelLen
+        end
+    end
+    return name, afterPtr
+end
+
+
+// ============================================================
+// RDATA writers
+// ============================================================
+func writeIPv4(Buffer buf, string ip) as bool
+    array parts = string.split(ip, ".")
+    if parts.length != 4 then return false end
+    int i = 0
+    while i < 4 do
+        int octet = int(string(parts[i]))
+        if octet < 0 or octet > 255 then return false end
+        buf.appendByte(octet)
+        i += 1
+    end
+    return true
+end
+
+func writeMx(Buffer buf, string mxStr)
+    int pref = 10
+    string exchange = ""
+    array parts = string.split(mxStr, " ")
+    if parts.length >= 1 then
+        pref = int(string(parts[0]))
+    end
+    if parts.length >= 2 then
+        exchange = string(parts[1])
+    end
+    writeU16(buf, pref)
+    writeName(buf, exchange)
+end
+
+func writeTxt(Buffer buf, string txt)
+    array txtBytes = string.bytes(txt)
+    int len = txtBytes.length
+    if len > 255 then len = 255 end
+    buf.appendByte(len)
+    int j = 0
+    while j < len do
+        buf.appendByte(int(txtBytes[j]))
+        j += 1
+    end
+end
+
+
+// ============================================================
+// answer record writer
+// ============================================================
+func writeAnswerRecord(Buffer buf, int rtype, int ttl, string rdata)
+    // NAME: compression pointer to offset 12 (question name in the response)
+    buf.appendByte(0xC0)
+    buf.appendByte(0x0C)
+
+    // TYPE
+    writeU16(buf, rtype)
+    // CLASS = IN
+    writeU16(buf, 1)
+    // TTL
+    writeU32(buf, ttl)
+
+    // Build RDATA in temp buffer so we know length first
+    Buffer rd = Buffer()
+    if rtype == TYPE_A then
+        writeIPv4(rd, rdata)
+    elseif rtype == TYPE_CNAME then
+        writeName(rd, rdata)
+    elseif rtype == TYPE_MX then
+        writeMx(rd, rdata)
+    elseif rtype == TYPE_TXT then
+        writeTxt(rd, rdata)
+    end
+
+    // RDLENGTH
+    writeU16(buf, rd.len())
+
+    // RDATA bytes
+    int i = 0
+    while i < rd.len() do
+        buf.appendByte(rd.byteAt(i))
+        i += 1
+    end
+end
+
+
+// ============================================================
+// collect answers for a query into a Buffer; return count
+// ============================================================
+func collectAnswers(Buffer ans, string lowerDomain, int qtype) as int
+    int count = 0
+    var domainRecs = g_zone[lowerDomain]
+    if domainRecs == null then return 0 end
+
+    // CNAME chase: if domain has CNAME, include CNAME and (for A queries)
+    // the target's A records.
+    var cnames = domainRecs["CNAME"]
+    if cnames != null then
+        int cnLen = cnames.length
+        if cnLen > 0 then
+            string cnameTarget = string(cnames[0])
+            writeAnswerRecord(ans, TYPE_CNAME, DEFAULT_TTL, cnameTarget)
+            count += 1
+            if qtype == TYPE_A then
+                string targetLower = normalizeDomain(cnameTarget)
+                var targetRecs = g_zone[targetLower]
+                if targetRecs != null then
+                    var targetA = targetRecs["A"]
+                    if targetA != null then
+                        for rec in targetA
+                            writeAnswerRecord(ans, TYPE_A, DEFAULT_TTL, string(rec))
+                            count += 1
+                        end
+                    end
+                end
+            end
+            return count
+        end
+    end
+
+    // No CNAME, look up the requested type directly
+    string typeKey = dnsTypeName(qtype)
+    var recs = domainRecs[typeKey]
+    if recs == null then return 0 end
+    for rec in recs
+        writeAnswerRecord(ans, qtype, DEFAULT_TTL, string(rec))
+        count += 1
+    end
+    return count
+end
+
+
+// ============================================================
+// query builder
+// ============================================================
+func buildQuery(Buffer buf, int id, string domain, int qtype)
+    writeU16(buf, id)
+    writeU16(buf, 0x0100)    // flags: RD=1 (recursion desired)
+    writeU16(buf, 1)         // QDCOUNT
+    writeU16(buf, 0)         // ANCOUNT
+    writeU16(buf, 0)         // NSCOUNT
+    writeU16(buf, 0)         // ARCOUNT
+    writeName(buf, domain)
+    writeU16(buf, qtype)
+    writeU16(buf, 1)         // QCLASS = IN
+end
+
+
+// ============================================================
+// handle a DNS query: parse request, build response into resp Buffer
+// ============================================================
+func handleQuery(Buffer req, Buffer resp)
+    if req.len() < 12 then
+        writeU16(resp, 0)
+        writeU16(resp, 0x8002)   // QR=1, RCODE=2 (FORMERR)
+        writeU16(resp, 0)
+        writeU16(resp, 0)
+        writeU16(resp, 0)
+        writeU16(resp, 0)
+        return
+    end
+
+    int id = readU16(req, 0)
+
+    // Parse question
+    string qDomain
+    int afterName
+    qDomain, afterName = readName(req, 12)
+    if afterName + 4 > req.len() then
+        writeU16(resp, id)
+        writeU16(resp, 0x8002)
+        writeU16(resp, 0)
+        writeU16(resp, 0)
+        writeU16(resp, 0)
+        writeU16(resp, 0)
+        return
+    end
+    int qtype = readU16(req, afterName)
+    int qclass = readU16(req, afterName + 2)
+
+    string lowerDomain = normalizeDomain(qDomain)
+    string cacheKey = lowerDomain + ":" + dnsTypeName(qtype)
+
+    // Check cache
+    int now = time.toUnix(time.now())
+    var cached = g_cache[cacheKey]
+    if cached != null then
+        int cachedTime = int(cached["time"])
+        if now - cachedTime <= CACHE_TTL then
+            g_cacheHits = g_cacheHits + 1
+            writeU16(resp, id)
+            var cachedBytes = cached["data"]
+            for b in cachedBytes
+                resp.appendByte(int(b))
+            end
+            return
+        end
+    end
+
+    // Cache miss: look up zone
+    Buffer answers = Buffer()
+    int ancount = 0
+    int rcode = 0
+
+    var domainRecs = g_zone[lowerDomain]
+    if domainRecs == null then
+        rcode = 3   // NXDOMAIN
+    else
+        ancount = collectAnswers(answers, lowerDomain, qtype)
+    end
+
+    // Build header
+    int flags = 0x8180 | rcode   // QR=1 AA=1 RD=1 RA=1 | RCODE
+    writeU16(resp, id)
+    writeU16(resp, flags)
+    writeU16(resp, 1)            // QDCOUNT
+    writeU16(resp, ancount)
+    writeU16(resp, 0)            // NSCOUNT
+    writeU16(resp, 0)            // ARCOUNT
+
+    // Echo question
+    writeName(resp, qDomain)
+    writeU16(resp, qtype)
+    writeU16(resp, qclass)
+
+    // Copy answer bytes
+    int i = 0
+    while i < answers.len() do
+        resp.appendByte(answers.byteAt(i))
+        i += 1
+    end
+
+    // Store in cache (everything after the 2-byte ID)
+    var cacheArr = []
+    int ci = 2
+    while ci < resp.len() do
+        cacheArr.append(resp.byteAt(ci))
+        ci += 1
+    end
+    g_cache[cacheKey] = {"data": cacheArr, "time": now}
+end
+
+
+// ============================================================
+// response parser / pretty printer (for the `query` command)
+// ============================================================
+func formatIPv4(Buffer buf, int off) as string
+    return buf.byteAt(off).toString() + "." + buf.byteAt(off + 1).toString() + "." + buf.byteAt(off + 2).toString() + "." + buf.byteAt(off + 3).toString()
+end
+
+func rcodeName(int rc) as string
+    if rc == 0 then return "NOERROR" end
+    if rc == 1 then return "FORMERR" end
+    if rc == 2 then return "SERVFAIL" end
+    if rc == 3 then return "NXDOMAIN" end
+    if rc == 5 then return "REFUSED" end
+    return "RCODE=" + rc.toString()
+end
+
+func parseAndPrintResponse(Buffer buf)
+    if buf.len() < 12 then
+        println("ERROR: response too short (" + buf.len().toString() + " bytes)")
+        return
+    end
+    int id    = readU16(buf, 0)
+    int flags = readU16(buf, 2)
+    int qd    = readU16(buf, 4)
+    int an    = readU16(buf, 6)
+    int ns    = readU16(buf, 8)
+    int ar    = readU16(buf, 10)
+
+    int qr    = (flags >> 15) & 1
+    int rcode = flags & 0x0F
+
+    println("id=0x" + toHex4(id) + "  flags=0x" + toHex4(flags) + "  rcode=" + rcodeName(rcode))
+    println("question=" + qd.toString() + "  answer=" + an.toString() + "  authority=" + ns.toString() + "  additional=" + ar.toString())
+
+    // Skip question section
+    int pos = 12
+    int qi = 0
+    while qi < qd do
+        string qName
+        int afterQ
+        qName, afterQ = readName(buf, pos)
+        pos = afterQ + 4    // skip QTYPE(2) + QCLASS(2)
+        qi += 1
+    end
+
+    if an == 0 then
+        println("(no answers)")
+        return
+    end
+
+    println("answers:")
+    int ai = 0
+    while ai < an do
+        string aName
+        int afterAName
+        aName, afterAName = readName(buf, pos)
+        int aType  = readU16(buf, afterAName)
+        int aClass = readU16(buf, afterAName + 2)
+        int aTtl   = readU32(buf, afterAName + 4)
+        int aRdlen = readU16(buf, afterAName + 8)
+        int rdataStart = afterAName + 10
+
+        string typeStr = dnsTypeName(aType)
+        string dataStr = ""
+
+        if aType == TYPE_A then
+            if aRdlen >= 4 then
+                dataStr = formatIPv4(buf, rdataStart)
+            end
+        elseif aType == TYPE_CNAME then
+            string cname
+            int _
+            cname, _ = readName(buf, rdataStart)
+            dataStr = cname
+        elseif aType == TYPE_MX then
+            if aRdlen >= 3 then
+                int pref = readU16(buf, rdataStart)
+                string exch
+                int _
+                exch, _ = readName(buf, rdataStart + 2)
+                dataStr = pref.toString() + " " + exch
+            end
+        elseif aType == TYPE_TXT then
+            int tip = rdataStart
+            int tend = rdataStart + aRdlen
+            string txt = ""
+            while tip < tend do
+                int slen = buf.byteAt(tip)
+                tip += 1
+                Buffer tb = Buffer()
+                int tj = 0
+                while tj < slen and tip < tend do
+                    tb.appendByte(buf.byteAt(tip))
+                    tip += 1
+                    tj += 1
+                end
+                if txt != "" then txt = txt + " " end
+                txt = txt + tb.text()
+            end
+            dataStr = "\"" + txt + "\""
+        else
+            dataStr = "(" + aRdlen.toString() + " bytes)"
+        end
+
+        println("  " + aName + "  " + aTtl.toString() + "  IN  " + typeStr + "  " + dataStr)
+
+        pos = rdataStart + aRdlen
+        ai += 1
+    end
+end
+
+
+// ============================================================
+// server loop
+// ============================================================
+func serverLoop(UdpSocket sock, int maxRequests, int timeoutMs) as int
+    int count = 0
+    int idleRounds = 0
+    while maxRequests <= 0 or count < maxRequests do
+        point pktHandle = sock.recv(timeoutMs)
+        if pktHandle == ZERO then
+            if maxRequests > 0 then
+                idleRounds += 1
+                if idleRounds > 5 then break end
+            end
+            continue
+        end
+        idleRounds = 0
+
+        UdpPacket packet = UdpPacket(pktHandle)
+        Buffer reqBytes = packet.bytes()
+        string clientAddr = packet.addr()
+        int clientPort = packet.port()
+
+        Buffer resp = Buffer()
+        handleQuery(reqBytes, resp)
+
+        bool sent = sock.sendBytes(clientAddr, uint16(clientPort), resp.data(), c_size(resp.len()))
+        if g_verbose then
+            println("  [server] " + clientAddr + ":" + clientPort.toString() + "  " + resp.len().toString() + " bytes sent=" + sent.toString())
+        end
+        count += 1
+    end
+    return count
+end
+
+
+// ============================================================
+// self-test helpers
+// ============================================================
+func dnsCheck(Buffer resp, int expectedId, int expectedRcode, int expectedAncount, string label) as bool
+    bool ok = true
+    string detail = ""
+
+    if resp.len() < 12 then
+        ok = false
+        detail = "response too short (" + resp.len().toString() + " bytes)"
+    else
+        int gotId  = readU16(resp, 0)
+        int gotFl  = readU16(resp, 2)
+        int gotRc  = gotFl & 0x0F
+        int gotAn  = readU16(resp, 6)
+
+        if gotId != expectedId then
+            ok = false
+            detail = detail + " id=" + gotId.toString() + "(exp " + expectedId.toString() + ")"
+        end
+        if gotRc != expectedRcode then
+            ok = false
+            detail = detail + " rcode=" + gotRc.toString() + "(exp " + expectedRcode.toString() + ")"
+        end
+        if gotAn != expectedAncount then
+            ok = false
+            detail = detail + " ancount=" + gotAn.toString() + "(exp " + expectedAncount.toString() + ")"
+        end
+    end
+
+    if ok then
+        g_passed = g_passed + 1
+        if g_verbose then println("  PASS " + label) end
+    else
+        g_failed = g_failed + 1
+        println("  FAIL " + label + " : " + detail)
+    end
+    return ok
+end
+
+func dnsCheckAData(Buffer resp, int answerIdx, string expectedIP, string label) as bool
+    if resp.len() < 12 then
+        g_failed = g_failed + 1
+        println("  FAIL " + label + " : resp too short")
+        return false
+    end
+    int qd = readU16(resp, 4)
+    int an = readU16(resp, 6)
+    if answerIdx >= an then
+        g_failed = g_failed + 1
+        println("  FAIL " + label + " : answer index out of range")
+        return false
+    end
+
+    // skip question
+    int pos = 12
+    int qi = 0
+    while qi < qd do
+        string _
+        int afterQ
+        _, afterQ = readName(resp, pos)
+        pos = afterQ + 4
+        qi += 1
+    end
+
+    // skip to desired answer
+    int ai = 0
+    while ai <= answerIdx do
+        string aName
+        int afterAName
+        aName, afterAName = readName(resp, pos)
+        int aType = readU16(resp, afterAName)
+        int aRdlen = readU16(resp, afterAName + 8)
+        int rdataStart = afterAName + 10
+        if ai == answerIdx then
+            if aType != TYPE_A then
+                g_failed = g_failed + 1
+                println("  FAIL " + label + " : expected A got " + dnsTypeName(aType))
+                return false
+            end
+            string ip = formatIPv4(resp, rdataStart)
+            if ip == expectedIP then
+                g_passed = g_passed + 1
+                if g_verbose then println("  PASS " + label) end
+                return true
+            else
+                g_failed = g_failed + 1
+                println("  FAIL " + label + " : ip=" + ip + " (exp " + expectedIP + ")")
+                return false
+            end
+        end
+        pos = rdataStart + aRdlen
+        ai += 1
+    end
+    g_failed = g_failed + 1
+    println("  FAIL " + label + " : unreachable")
+    return false
+end
+
+
+// ============================================================
+// self-test client (runs in a worker thread)
+// ============================================================
+func runClientTest() as int
+    time.sleep(200)   // let server enter recv
+
+    point cp = udp.bind(0, "127.0.0.1")
+    if cp == ZERO then
+        println("FATAL: client udp.bind failed")
+        return 1
+    end
+    UdpSocket client = UdpSocket(cp)
+    int serverPort = g_testPort
+
+    int nextId = 0x1000
+    int expectedQueries = 8
+
+    // 1. A record query
+    nextId += 1
+    Buffer q1 = Buffer()
+    buildQuery(q1, nextId, "a.test.local", TYPE_A)
+    client.sendBytes("127.0.0.1", uint16(serverPort), q1.data(), c_size(q1.len()))
+    point rp1 = client.recv(5000)
+    if rp1 == ZERO then
+        g_failed = g_failed + 1
+        println("  FAIL test1_A: no response")
+    else
+        UdpPacket p1 = UdpPacket(rp1)
+        Buffer r1 = p1.bytes()
+        dnsCheck(r1, nextId, 0, 2, "test1_A_basic")
+        dnsCheckAData(r1, 0, "10.0.0.1", "test1_A_data1")
+        dnsCheckAData(r1, 1, "10.0.0.2", "test1_A_data2")
+    end
+
+    // 2. CNAME -> A chase
+    nextId += 1
+    Buffer q2 = Buffer()
+    buildQuery(q2, nextId, "cname.test.local", TYPE_A)
+    client.sendBytes("127.0.0.1", uint16(serverPort), q2.data(), c_size(q2.len()))
+    point rp2 = client.recv(5000)
+    if rp2 == ZERO then
+        g_failed = g_failed + 1
+        println("  FAIL test2_CNAME_chase: no response")
+    else
+        UdpPacket p2 = UdpPacket(rp2)
+        Buffer r2 = p2.bytes()
+        dnsCheck(r2, nextId, 0, 3, "test2_CNAME_chase")
+    end
+
+    // 3. CNAME direct
+    nextId += 1
+    Buffer q3 = Buffer()
+    buildQuery(q3, nextId, "cname.test.local", TYPE_CNAME)
+    client.sendBytes("127.0.0.1", uint16(serverPort), q3.data(), c_size(q3.len()))
+    point rp3 = client.recv(5000)
+    if rp3 == ZERO then
+        g_failed = g_failed + 1
+        println("  FAIL test3_CNAME_direct: no response")
+    else
+        UdpPacket p3 = UdpPacket(rp3)
+        Buffer r3 = p3.bytes()
+        dnsCheck(r3, nextId, 0, 1, "test3_CNAME_direct")
+    end
+
+    // 4. MX query
+    nextId += 1
+    Buffer q4 = Buffer()
+    buildQuery(q4, nextId, "mx.test.local", TYPE_MX)
+    client.sendBytes("127.0.0.1", uint16(serverPort), q4.data(), c_size(q4.len()))
+    point rp4 = client.recv(5000)
+    if rp4 == ZERO then
+        g_failed = g_failed + 1
+        println("  FAIL test4_MX: no response")
+    else
+        UdpPacket p4 = UdpPacket(rp4)
+        Buffer r4 = p4.bytes()
+        dnsCheck(r4, nextId, 0, 1, "test4_MX")
+    end
+
+    // 5. TXT query
+    nextId += 1
+    Buffer q5 = Buffer()
+    buildQuery(q5, nextId, "txt.test.local", TYPE_TXT)
+    client.sendBytes("127.0.0.1", uint16(serverPort), q5.data(), c_size(q5.len()))
+    point rp5 = client.recv(5000)
+    if rp5 == ZERO then
+        g_failed = g_failed + 1
+        println("  FAIL test5_TXT: no response")
+    else
+        UdpPacket p5 = UdpPacket(rp5)
+        Buffer r5 = p5.bytes()
+        dnsCheck(r5, nextId, 0, 1, "test5_TXT")
+    end
+
+    // 6. NXDOMAIN
+    nextId += 1
+    Buffer q6 = Buffer()
+    buildQuery(q6, nextId, "nx.test.local", TYPE_A)
+    client.sendBytes("127.0.0.1", uint16(serverPort), q6.data(), c_size(q6.len()))
+    point rp6 = client.recv(5000)
+    if rp6 == ZERO then
+        g_failed = g_failed + 1
+        println("  FAIL test6_NXDOMAIN: no response")
+    else
+        UdpPacket p6 = UdpPacket(rp6)
+        Buffer r6 = p6.bytes()
+        dnsCheck(r6, nextId, 3, 0, "test6_NXDOMAIN")
+    end
+
+    // 7. Case-insensitivity
+    nextId += 1
+    Buffer q7 = Buffer()
+    buildQuery(q7, nextId, "A.TEST.LOCAL", TYPE_A)
+    client.sendBytes("127.0.0.1", uint16(serverPort), q7.data(), c_size(q7.len()))
+    point rp7 = client.recv(5000)
+    if rp7 == ZERO then
+        g_failed = g_failed + 1
+        println("  FAIL test7_caseinsensitive: no response")
+    else
+        UdpPacket p7 = UdpPacket(rp7)
+        Buffer r7 = p7.bytes()
+        dnsCheck(r7, nextId, 0, 2, "test7_caseinsensitive")
+    end
+
+    // 8. Cache hit: repeat the first A query
+    nextId += 1
+    Buffer q8 = Buffer()
+    buildQuery(q8, nextId, "a.test.local", TYPE_A)
+    client.sendBytes("127.0.0.1", uint16(serverPort), q8.data(), c_size(q8.len()))
+    point rp8 = client.recv(5000)
+    if rp8 == ZERO then
+        g_failed = g_failed + 1
+        println("  FAIL test8_cache: no response")
+    else
+        UdpPacket p8 = UdpPacket(rp8)
+        Buffer r8 = p8.bytes()
+        dnsCheck(r8, nextId, 0, 2, "test8_cache_response")
+    end
+
+    return 0
+end
+
+
+// ============================================================
+// serve mode
+// ============================================================
+func serveMode(int port, string zonePath) as int
+    if not zoneLoad(zonePath) then
+        return 1
+    end
+    int domainCount = zoneSummary()
+    println("zone: " + domainCount.toString() + " domains loaded")
+
+    point lp = udp.bind(port, "127.0.0.1")
+    if lp == ZERO then
+        println("FATAL: cannot bind 127.0.0.1:" + port.toString())
+        return 1
+    end
+    UdpSocket sock = UdpSocket(lp)
+    int bound = sock.port()
+    println("DNS server listening on 127.0.0.1:" + bound.toString())
+    println("press Ctrl+C to stop")
+    println("")
+
+    g_verbose = true
+    int handled = serverLoop(sock, 0, SERVE_TIMEOUT)
+    println("server stopped after " + handled.toString() + " queries")
+    return 0
+end
+
+
+// ============================================================
+// query mode
+// ============================================================
+func queryMode(string domain, string typeStr, string serverHost, int serverPort) as int
+    int qtype = dnsTypeFromName(typeStr)
+    if qtype == 0 then
+        println("ERROR: unknown record type '" + typeStr + "'. Supported: A, CNAME, MX, TXT")
+        return 1
+    end
+
+    point cp = udp.bind(0, "127.0.0.1")
+    if cp == ZERO then
+        println("ERROR: cannot create UDP socket")
+        return 1
+    end
+    UdpSocket sock = UdpSocket(cp)
+
+    int qid = 0x1234
+    Buffer q = Buffer()
+    buildQuery(q, qid, domain, qtype)
+
+    println("DNS Query: " + domain + " " + dnsTypeName(qtype) + " -> " + serverHost + ":" + serverPort.toString())
+    bool sent = sock.sendBytes(serverHost, uint16(serverPort), q.data(), c_size(q.len()))
+    if not sent then
+        println("ERROR: send failed")
+        return 1
+    end
+
+    point rp = sock.recv(5000)
+    if rp == ZERO then
+        println("ERROR: no response within 5s")
+        return 1
+    end
+
+    UdpPacket pkt = UdpPacket(rp)
+    Buffer respBytes = pkt.bytes()
+    println("Response (" + respBytes.len().toString() + " bytes) from " + pkt.addr() + ":" + pkt.port().toString())
+    parseAndPrintResponse(respBytes)
+    return 0
+end
+
+
+// ============================================================
+// main
+// ============================================================
+func main(...) as int
+    println("xlang dnsrv - DNS server / resolver")
+    println("")
+
+    string mode = "test"
+    int port = DEFAULT_PORT
+    string zonePath = ""
+    string queryDomain = ""
+    string queryType = "A"
+    string queryServer = "127.0.0.1"
+    int queryPort = DEFAULT_PORT
+
+    if arg.length >= 2 then
+        string a1 = string(arg[1])
+        if a1 == "-h" or a1 == "--help" then
+            usage()
+            return 0
+        elseif a1 == "serve" then
+            mode = "serve"
+        elseif a1 == "query" then
+            mode = "query"
+        elseif a1 == "test" then
+            mode = "test"
+        end
+    end
+
+    if mode == "serve" then
+        if arg.length >= 3 then
+            int pp = int(string(arg[2]))
+            if pp > 0 then port = pp end
+        end
+        if arg.length >= 4 then
+            zonePath = string(arg[3])
+        end
+        if zonePath == "" then
+            println("ERROR: zone file required")
+            println("  dnsrv serve <port> <zone.json>")
+            return 1
+        end
+        return serveMode(port, zonePath)
+    end
+
+    if mode == "query" then
+        if arg.length >= 3 then queryDomain = string(arg[2]) end
+        if arg.length >= 4 then queryType = string(arg[3]) end
+        if arg.length >= 5 then queryServer = string(arg[4]) end
+        if arg.length >= 6 then
+            int qp = int(string(arg[5]))
+            if qp > 0 then queryPort = qp end
+        end
+        if queryDomain == "" then
+            println("ERROR: domain required")
+            println("  dnsrv query <domain> <type> [server] [port]")
+            return 1
+        end
+        return queryMode(queryDomain, queryType, queryServer, queryPort)
+    end
+
+    // ---- self-test mode ----
+    println("building test zone...")
+    zoneBuildTest()
+    println("zone: " + zoneSummary().toString() + " domains")
+    g_cache.clear()
+
+    point lp = udp.bind(0, "127.0.0.1")
+    if lp == ZERO then
+        println("FATAL: udp.bind failed")
+        return 1
+    end
+    UdpSocket srvSock = UdpSocket(lp)
+    g_testPort = srvSock.port()
+    println("test server on 127.0.0.1:" + g_testPort.toString())
+
+    g_verbose = true
+    thread clientThread = thread(runClientTest)
+
+    int handled = serverLoop(srvSock, 8, RECV_TIMEOUT)
+    println("server handled " + handled.toString() + " queries, cache hits=" + g_cacheHits.toString())
+
+    clientThread.wait()
+
+    println("")
+    println("results: " + g_passed.toString() + " passed, " + g_failed.toString() + " failed, cache hits=" + g_cacheHits.toString())
+    if g_cacheHits < 1 then
+        println("WARNING: expected at least 1 cache hit")
+        g_failed = g_failed + 1
+    end
+
+    if g_failed > 0 then
+        println("SELF-TEST FAILED: " + g_failed.toString() + " failure(s)")
+        return 1
+    end
+    println("SELF-TEST PASSED")
+    return 0
+end

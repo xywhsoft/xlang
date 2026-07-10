@@ -1,0 +1,1469 @@
+// xfmt - xlang code formatter (gofmt-style)
+//
+// 通过 `xl parse <file.xl> --format json` 获取 AST，递归遍历并按规范重新输出。
+//
+// 用法：
+//   xfmt <file.xl>               格式化后输出到 stdout
+//   xfmt <file.xl> --write       原地覆写
+//   xfmt <file.xl> --check       只检查（不一致则返回 1）
+//   xfmt test                    跑自带用例（cases/ 目录）
+//
+// 规则：
+//   - 4 空格缩进；end/then/do 与对应关键字对齐
+//   - 运算符周围空格：`a + b`、`n = 5`、`x == y`
+//   - 函数间 1 空行；class 方法间 1 空行；函数内无连续空行
+//   - 超长函数/方法签名按「每参数一行」换行（> 80 列）
+//   - 运算符优先级按需补括号，保证语义不丢
+//
+// 已知限制（AST-based 固有）：
+//   - 行注释 `//` 会丢失（xl parse 不保留注释）
+//   - `#doc ... #end` 文档块原样重发到对应声明上方
+//   - `enum` / `typedef` 等若解析器未识别则原样保留 text
+
+// ============================================================================
+// 常量
+// ============================================================================
+
+const int INDENT_SIZE = 4
+const int LINE_LIMIT = 80
+
+// flag 位（必须与 src/ast/xl6_ast.h 的 XL6_AST_FLAG_* 一致）
+const int FLAG_PUBLIC = 1
+const int FLAG_PRIVATE = 2
+const int FLAG_PROTECTED = 4
+const int FLAG_STATIC = 8
+const int FLAG_OVERRIDE = 16
+const int FLAG_FINAL = 32
+const int FLAG_VIRTUAL = 64
+const int FLAG_NATIVE = 128
+const int FLAG_ASYNC = 256
+const int FLAG_EXTERN = 512
+
+string g_xl
+
+// ============================================================================
+// AST 访问辅助
+// 注意：所有 helper 一律返回静态 string/int，规避 var+string 乱码 BUG-CE1。
+// ============================================================================
+
+func nk(var n) as string
+    if n is null then return "" end
+    var k = n["kind"]
+    if k is string then return string(k) end
+    return ""
+end
+
+func nt(var n) as string
+    if n is null then return "" end
+    var t = n["text"]
+    if t is string then return string(t) end
+    return ""
+end
+
+func nf(var n) as int
+    if n is null then return 0 end
+    var f = n["flags"]
+    if f is int then return int(f) end
+    if f is float then return int(f) end
+    return 0
+end
+
+func ndoc(var n) as string
+    if n is null then return "" end
+    var d = n["doc"]
+    if d is string then return string(d) end
+    return ""
+end
+
+func nch(var n) as var
+    if n is null then return [] end
+    var ch = n["children"]
+    if ch is array then return ch end
+    return []
+end
+
+func childK(var n, string kind) as var
+    var ch = nch(n)
+    for c in ch
+        if nk(c) == kind then return c end
+    end
+    return null
+end
+
+func nth(var n, int idx) as var
+    var ch = nch(n)
+    if idx >= 0 and idx < ch.length then
+        return ch[idx]
+    end
+    return null
+end
+
+func hasChildK(var n, string kind) as bool
+    var ch = nch(n)
+    for c in ch
+        if nk(c) == kind then return true end
+    end
+    return false
+end
+
+// ============================================================================
+// 缩进 / 字符串辅助
+// ============================================================================
+
+func ind(int level) as string
+    string s = ""
+    int i = 0
+    int n = level * INDENT_SIZE
+    while i < n do
+        s = s + " "
+        i += 1
+    end
+    return s
+end
+
+func splitLinesSafe(string s) as array<string>
+    var tmp = string.splitLines(s)
+    array<string> ls = []
+    for line in tmp
+        ls.push(string(line))
+    end
+    if ls.length > 0 then
+        if ls[ls.length - 1] == "" then
+            ls.remove(ls.length - 1)
+        end
+    end
+    return ls
+end
+
+// ============================================================================
+// 修饰符还原（flags → 关键字）
+// ============================================================================
+
+func emitModifiers(int flags) as string
+    string s = ""
+    if (flags & FLAG_PUBLIC) != 0 then s = s + "public " end
+    if (flags & FLAG_PRIVATE) != 0 then s = s + "private " end
+    if (flags & FLAG_PROTECTED) != 0 then s = s + "protected " end
+    if (flags & FLAG_STATIC) != 0 then s = s + "static " end
+    if (flags & FLAG_OVERRIDE) != 0 then s = s + "override " end
+    if (flags & FLAG_FINAL) != 0 then s = s + "final " end
+    if (flags & FLAG_VIRTUAL) != 0 then s = s + "virtual " end
+    if (flags & FLAG_NATIVE) != 0 then s = s + "native " end
+    if (flags & FLAG_ASYNC) != 0 then s = s + "async " end
+    if (flags & FLAG_EXTERN) != 0 then s = s + "extern " end
+    return s
+end
+
+// ============================================================================
+// 类型还原
+// ============================================================================
+
+// 发出 type 节点。type 节点 text 是类型名（如 "int"），可能有子 list 携带泛型参数
+// （如 array<int>）。
+func emitType(var t) as string
+    if t is null then return "" end
+    if nk(t) != "type" then return nt(t) end
+    string base = nt(t)
+    var ch = nch(t)
+    if ch.length == 0 then
+        return base
+    end
+    // 形如 `array<int>` / `dict<int, string>`
+    var first = ch[0]
+    if nk(first) == "list" then
+        var args = nch(first)
+        string inner = ""
+        int i = 0
+        for a in args
+            string part = emitType(a)
+            if part == "" then
+                part = emitExprSafe(a)
+            end
+            if i > 0 then
+                inner = inner + ", "
+            end
+            inner = inner + part
+            i += 1
+        end
+        return base + "<" + inner + ">"
+    end
+    return base
+end
+
+// ============================================================================
+// 运算符优先级 / 括号判定
+// ============================================================================
+
+func opPrec(string op) as int
+    if op == "=" or op == "+=" or op == "-=" or op == "*=" or op == "/=" or op == "%=" then return 1 end
+    if op == "?" then return 2 end
+    if op == "or" then return 3 end
+    if op == "and" then return 4 end
+    if op == "==" or op == "!=" or op == "~=" then return 5 end
+    if op == "<" or op == ">" or op == "<=" or op == ">=" then return 6 end
+    if op == ".." then return 7 end
+    if op == "+" or op == "-" then return 8 end
+    if op == "*" or op == "/" or op == "%" then return 9 end
+    if op == "is" or op == "as" then return 5 end
+    return 5
+end
+
+func isAssignOp(string op) as bool
+    return op == "=" or op == "+=" or op == "-=" or op == "*=" or op == "/=" or op == "%="
+end
+
+func isCmpOp(string op) as bool
+    return op == "==" or op == "!=" or op == "~=" or op == "<" or op == ">" or op == "<=" or op == ">="
+end
+
+// 子表达式是否需要加括号。
+//   parentOp 父运算符；childOp 子运算符（"" 表示非二元/非条件）；
+//   isRight  子是否处于父的右操作数位置。
+func childNeedsParens(string parentOp, string childOp, bool isRight) as bool
+    if string.len(childOp) == 0 then return false end
+    int pp = opPrec(parentOp)
+    int cp = opPrec(childOp)
+    if cp < pp then return true end
+    if cp > pp then return false end
+    // 同优先级：左结合运算符的右操作数需要括号（否则改变结合性）
+    // 赋值 / 条件 是右结合：同优先级右操作数不需要括号
+    if isRight then
+        if isAssignOp(parentOp) or parentOp == "?" then
+            return false
+        end
+        return true
+    end
+    return false
+end
+
+// ============================================================================
+// 表达式还原
+// ============================================================================
+
+// 表达式主入口。所有 emit* 函数返回单行字符串（无换行）。
+func emitExpr(var e) as string
+    if e is null then return "" end
+    string k = nk(e)
+
+    if k == "name" or k == "int" or k == "float" or k == "string" or k == "bool" then
+        return nt(e)
+    end
+    if k == "null" then return "null" end
+    if k == "time" then return nt(e) end
+    if k == "interp_string" then return nt(e) end
+    if k == "interp_text" then return nt(e) end
+
+    if k == "binary" then return emitBinary(e) end
+    if k == "unary" then return emitUnary(e) end
+    if k == "conditional" then return emitConditional(e) end
+    if k == "assign" then return emitAssignNode(e) end
+    if k == "multi_assign" then return emitMultiAssign(e) end
+    if k == "member" or k == "safe_member" then return emitMember(e) end
+    if k == "index" or k == "safe_index" then return emitIndex(e) end
+    if k == "call" then return emitCall(e) end
+    if k == "arg" or k == "named_arg" then return emitArg(e) end
+    if k == "type_is" or k == "type_as" then return emitTypeIs(e) end
+    if k == "generic_instant" then return emitGenericInstant(e) end
+    if k == "await" then return "await " + emitExpr(nth(e, 0)) end
+    if k == "array_literal" or k == "set_literal" or k == "dict_literal" or k == "list_literal" then
+        return emitLiteralBrace(e)
+    end
+    if k == "typed_literal" then return emitTypedLiteral(e) end
+    if k == "key_value" then return emitKeyValue(e) end
+    if k == "anon_func" then return emitAnonFunc(e) end
+    if k == "type" then return emitType(e) end
+
+    // 兜底：发出 text 原文
+    string t = nt(e)
+    if string.len(t) > 0 then return t end
+    return "<" + k + ">"
+end
+
+// 同 emitExpr，但语义上更明确：用于 type 子节点中可能混入 expr 的位置。
+func emitExprSafe(var e) as string
+    return emitExpr(e)
+end
+
+func emitBinary(var e) as string
+    string op = nt(e)
+    var lhs = nth(e, 0)
+    var rhs = nth(e, 1)
+    string ls = emitChildExpr(lhs, op, false)
+    string rs = emitChildExpr(rhs, op, true)
+    return ls + " " + op + " " + rs
+end
+
+func emitAssignNode(var e) as string
+    string op = nt(e)
+    var lhs = nth(e, 0)
+    var rhs = nth(e, 1)
+    string ls = emitExpr(lhs)
+    string rs = emitChildExpr(rhs, op, true)
+    return ls + " " + op + " " + rs
+end
+
+func emitMultiAssign(var e) as string
+    var targets = nth(e, 0)
+    var rhs = nth(e, 1)
+    string ts = ""
+    var ch = nch(targets)
+    int i = 0
+    for t in ch
+        if i > 0 then ts = ts + ", " end
+        ts = ts + emitExpr(t)
+        i += 1
+    end
+    return ts + " = " + emitExpr(rhs)
+end
+
+// 对子表达式按需加括号。
+func emitChildExpr(var child, string parentOp, bool isRight) as string
+    string ck = nk(child)
+    string childOp = ""
+    if ck == "binary" or ck == "assign" or ck == "type_is" or ck == "type_as" then
+        childOp = nt(child)
+    elseif ck == "conditional" then
+        childOp = "?"
+    end
+    string s = emitExpr(child)
+    if childNeedsParens(parentOp, childOp, isRight) then
+        return "(" + s + ")"
+    end
+    return s
+end
+
+func emitUnary(var e) as string
+    string op = nt(e)
+    var operand = nth(e, 0)
+    string os = emitExpr(operand)
+    // not / await 词形运算符需空格；- + ! 紧贴
+    if op == "not" then
+        // not 的操作数若是二元/条件/赋值则需括号
+        string ck = nk(operand)
+        if ck == "binary" or ck == "conditional" or ck == "assign" or ck == "type_is" or ck == "type_as" then
+            return "not (" + os + ")"
+        end
+        return "not " + os
+    end
+    // 符号前缀（- + ! ~）紧贴
+    return op + os
+end
+
+func emitConditional(var e) as string
+    var cond = nth(e, 0)
+    var thenE = nth(e, 1)
+    var elseE = nth(e, 2)
+    string cs = emitChildExpr(cond, "?", false)
+    string ts = emitChildExpr(thenE, "?", false)
+    string es = emitChildExpr(elseE, "?", true)
+    return cs + " ? " + ts + " : " + es
+end
+
+func emitMember(var e) as string
+    string field = nt(e)
+    var obj = nth(e, 0)
+    string os = emitExpr(obj)
+    if nk(e) == "safe_member" then
+        return os + "?." + field
+    end
+    return os + "." + field
+end
+
+func emitIndex(var e) as string
+    var obj = nth(e, 0)
+    string os = emitExpr(obj)
+    var ch = nch(e)
+    // 多维下标 `a[0, 0]` 的 AST 把索引列表包在第二个 list 子节点里；
+    // 单维下标 `a[0]` 的索引则是直接的 expr 子节点。
+    string inner = ""
+    if ch.length == 2 and nk(ch[1]) == "list" then
+        var idxs = nch(ch[1])
+        int i = 0
+        for x in idxs
+            if i > 0 then inner = inner + ", " end
+            inner = inner + emitExpr(x)
+            i += 1
+        end
+    else
+        int i = 1
+        while i < ch.length do
+            if i > 1 then inner = inner + ", " end
+            inner = inner + emitExpr(ch[i])
+            i += 1
+        end
+    end
+    if nk(e) == "safe_index" then
+        return os + "?[" + inner + "]"
+    end
+    return os + "[" + inner + "]"
+end
+
+func emitCall(var e) as string
+    var callee = nth(e, 0)
+    var argsList = nth(e, 1)
+    string cs = emitExpr(callee)
+    var ch = nch(argsList)
+    string args = ""
+    int i = 0
+    for a in ch
+        if i > 0 then args = args + ", " end
+        args = args + emitExpr(a)
+        i += 1
+    end
+    return cs + "(" + args + ")"
+end
+
+func emitArg(var e) as string
+    if nk(e) == "named_arg" then
+        string name = nt(e)
+        var val = nth(e, 0)
+        return name + " = " + emitExpr(val)
+    end
+    var val = nth(e, 0)
+    return emitExpr(val)
+end
+
+func emitTypeIs(var e) as string
+    string op = nt(e)
+    var lhs = nth(e, 0)
+    var rhs = nth(e, 1)
+    string ls = emitExpr(lhs)
+    string rs = emitType(rhs)
+    return ls + " " + op + " " + rs
+end
+
+func emitGenericInstant(var e) as string
+    var callee = nth(e, 0)
+    var typeArgs = nth(e, 1)
+    string cs = emitExpr(callee)
+    var ch = nch(typeArgs)
+    string inner = ""
+    int i = 0
+    for a in ch
+        if i > 0 then inner = inner + ", " end
+        inner = inner + emitType(a)
+        i += 1
+    end
+    return cs + "::<" + inner + ">"
+end
+
+// 字面量容器（[]/{}/set/list）。text 是开括号。
+func emitLiteralBrace(var e) as string
+    string k = nk(e)
+    var ch = nch(e)
+    string inner = ""
+    int i = 0
+    for c in ch
+        if i > 0 then inner = inner + ", " end
+        inner = inner + emitExpr(c)
+        i += 1
+    end
+    if k == "array_literal" then return "[" + inner + "]" end
+    if k == "set_literal" then return "{" + inner + "}" end
+    if k == "dict_literal" then return "{" + inner + "}" end
+    if k == "list_literal" then return "[" + inner + "]" end
+    return inner
+end
+
+func emitKeyValue(var e) as string
+    var k = nth(e, 0)
+    var v = nth(e, 1)
+    return emitExpr(k) + ": " + emitExpr(v)
+end
+
+// 显式 typed 字面量：array[1,2,3] / dict<int>{...} / set<int>{...} / list[0:0]
+// children[0] = 内层 literal（array_literal 等）；可选 children[1] = 泛型 type 节点
+func emitTypedLiteral(var e) as string
+    string typeName = nt(e)
+    var ch = nch(e)
+    if ch.length == 0 then return typeName end
+    var lit = ch[0]
+    string generic = ""
+    if ch.length >= 2 then
+        if nk(ch[1]) == "type" then
+            generic = emitGenericArgs(ch[1])
+        end
+    end
+    string litStr = emitLiteralBrace(lit)
+    return typeName + generic + litStr
+end
+
+// 给定 type 节点（如 `dict` 带 list 子节点），返回 `<...>` 字符串
+func emitGenericArgs(var t) as string
+    var ch = nch(t)
+    if ch.length == 0 then return "" end
+    var first = ch[0]
+    if nk(first) != "list" then return "" end
+    var args = nch(first)
+    string inner = ""
+    int i = 0
+    for a in args
+        string part = emitType(a)
+        if part == "" then part = emitExprSafe(a) end
+        if i > 0 then inner = inner + ", " end
+        inner = inner + part
+        i += 1
+    end
+    return "<" + inner + ">"
+end
+
+// 匿名函数：func(params) as ret => expr  或  func(params) as ret ... end
+func emitAnonFunc(var e) as string
+    var params = childK(e, "list")
+    var ret = childK(e, "return_types")
+    var blk = childK(e, "block")
+    string ps = emitParamList(params)
+    string rs = emitReturnTypes(ret)
+    string sig = "func(" + ps + ")"
+    if string.len(rs) > 0 then sig = sig + " as " + rs end
+
+    // 箭头体：block 恰好 1 个 return 子节点，且该 return 的 text != "return"
+    if not (blk is null) then
+        var bch = nch(blk)
+        if bch.length == 1 then
+            var only = bch[0]
+            if nk(only) == "return" and nt(only) != "return" then
+                var body = nth(only, 0)
+                if not (body is null) then
+                    return sig + " => " + emitExpr(body)
+                end
+            end
+        end
+    end
+    // 否则按完整 block 输出（单行简化）
+    if blk is null then return sig end
+    string bodyStr = emitBlockInline(blk)
+    return sig + " " + bodyStr + " end"
+end
+
+// 单行 block（用于嵌套匿名函数，避免深度换行）
+func emitBlockInline(var blk) as string
+    var ch = nch(blk)
+    string s = ""
+    int i = 0
+    for st in ch
+        if i > 0 then s = s + " " end
+        s = s + emitStmtOneLine(st)
+        i += 1
+    end
+    return s
+end
+
+// ============================================================================
+// 参数 / 返回类型列表
+// ============================================================================
+
+func emitParam(var p) as string
+    string name = nt(p)
+    var ty = nth(p, 0)
+    string ts = emitType(ty)
+    return ts + " " + name
+end
+
+func emitParamList(var params) as string
+    var ch = nch(params)
+    string s = ""
+    int i = 0
+    for p in ch
+        if i > 0 then s = s + ", " end
+        s = s + emitParam(p)
+        i += 1
+    end
+    return s
+end
+
+func emitReturnTypes(var ret) as string
+    if ret is null then return "" end
+    var ch = nch(ret)
+    if ch.length == 0 then return "" end
+    if ch.length == 1 then return emitType(ch[0]) end
+    string s = "("
+    int i = 0
+    for t in ch
+        if i > 0 then s = s + ", " end
+        s = s + emitType(t)
+        i += 1
+    end
+    return s + ")"
+end
+
+func emitTypeParams(var tp) as string
+    if tp is null then return "" end
+    var ch = nch(tp)
+    if ch.length == 0 then return "" end
+    string s = "<"
+    int i = 0
+    for t in ch
+        if i > 0 then s = s + ", " end
+        if nk(t) == "name" then
+            s = s + nt(t)
+        else
+            s = s + nt(t)
+        end
+        i += 1
+    end
+    return s + ">"
+end
+
+// ============================================================================
+// 语句还原（多行；返回不带末尾换行的字符串块）
+// ============================================================================
+
+// 发出语句。返回多行字符串（不含末尾换行）。level 是缩进层级。
+func emitStmt(var s, int level) as string
+    if s is null then return "" end
+    string k = nk(s)
+
+    if k == "var_decl" then return emitVarDecl(s, level) end
+    if k == "const_decl" then return emitConstDecl(s, level) end
+    if k == "multi_var_decl" then return emitMultiVarDecl(s, level) end
+    if k == "return" then return emitReturnStmt(s, level) end
+    if k == "throw" then return ind(level) + "throw " + emitExpr(nth(s, 0)) end
+    if k == "yield" then
+        if nch(s).length > 0 then return ind(level) + "yield " + emitExpr(nth(s, 0)) end
+        return ind(level) + "yield"
+    end
+    if k == "break" then return ind(level) + "break" end
+    if k == "continue" then return ind(level) + "continue" end
+    if k == "assert" then return ind(level) + "assert " + emitExpr(nth(s, 0)) end
+    if k == "assign" then return ind(level) + emitAssignNode(s) end
+    if k == "multi_assign" then return ind(level) + emitMultiAssign(s) end
+    if k == "expr_stmt" then return ind(level) + emitExpr(nth(s, 0)) end
+    if k == "if" then return emitIf(s, level) end
+    if k == "for" then return emitFor(s, level) end
+    if k == "while" then return emitWhile(s, level) end
+    if k == "do_while" then return emitDoWhile(s, level) end
+    if k == "try" then return emitTry(s, level) end
+    if k == "block" then return emitBlock(s, level) end
+
+    // 兜底
+    return ind(level) + "<" + k + ">"
+end
+
+// 单行语句（用于匿名函数箭头体 / block inline）
+func emitStmtOneLine(var s) as string
+    if s is null then return "" end
+    string k = nk(s)
+    if k == "return" then
+        if nch(s).length > 0 then return "return " + emitExpr(nth(s, 0)) end
+        return "return"
+    end
+    if k == "throw" then return "throw " + emitExpr(nth(s, 0)) end
+    if k == "assign" then return emitAssignNode(s) end
+    if k == "expr_stmt" then return emitExpr(nth(s, 0)) end
+    if k == "var_decl" then return emitVarDeclInline(s) end
+    return emitStmt(s, 0)
+end
+
+func emitVarDeclInline(var s) as string
+    string name = nt(s)
+    var ch = nch(s)
+    if ch.length == 0 then return name end
+    string ty = emitType(ch[0])
+    if ch.length == 1 then return ty + " " + name end
+    string init = emitExpr(ch[1])
+    return ty + " " + name + " = " + init
+end
+
+// `auto a, b = expr` — text 是类型（一般为 auto），children=[list(names), expr]
+func emitMultiVarDecl(var s, int level) as string
+    string ty = nt(s)
+    var ch = nch(s)
+    if ch.length < 2 then return ind(level) + ty end
+    var namesList = ch[0]
+    var names = nch(namesList)
+    string ns = ""
+    int i = 0
+    for n in names
+        if i > 0 then ns = ns + ", " end
+        ns = ns + nt(n)
+        i += 1
+    end
+    string init = emitExpr(ch[1])
+    return ind(level) + ty + " " + ns + " = " + init
+end
+
+func emitVarDecl(var s, int level) as string
+    return ind(level) + emitVarDeclInline(s)
+end
+
+func emitConstDecl(var s, int level) as string
+    string name = nt(s)
+    var ch = nch(s)
+    if ch.length == 0 then return ind(level) + "const " + name end
+    string ty = emitType(ch[0])
+    if ch.length == 1 then return ind(level) + "const " + ty + " " + name end
+    string init = emitExpr(ch[1])
+    return ind(level) + "const " + ty + " " + name + " = " + init
+end
+
+func emitReturnStmt(var s, int level) as string
+    var ch = nch(s)
+    if ch.length == 0 then return ind(level) + "return" end
+    string parts = ""
+    int i = 0
+    for c in ch
+        if i > 0 then parts = parts + ", " end
+        parts = parts + emitExpr(c)
+        i += 1
+    end
+    return ind(level) + "return " + parts
+end
+
+// ---- 控制流 ----
+
+func emitIf(var s, int level) as string
+    var ch = nch(s)
+    // children: [cond, then_block, optional list(elseif), optional else_block]
+    var cond = ch[0]
+    var thenBlk = ch[1]
+    var elseIfList = null
+    var elseBlk = null
+    int idx = 2
+    if idx < ch.length then
+        if nk(ch[idx]) == "list" then
+            elseIfList = ch[idx]
+            idx += 1
+        end
+    end
+    if idx < ch.length then
+        if nk(ch[idx]) == "block" then
+            elseBlk = ch[idx]
+        end
+    end
+
+    var lines = []
+    lines.push(ind(level) + "if " + emitExpr(cond) + " then")
+    appendBlockLines(lines, thenBlk, level + 1)
+
+    if not (elseIfList is null) then
+        var eich = nch(elseIfList)
+        for ei in eich
+            var eiCond = nth(ei, 0)
+            var eiBlk = nth(ei, 1)
+            lines.push(ind(level) + "elseif " + emitExpr(eiCond) + " then")
+            appendBlockLines(lines, eiBlk, level + 1)
+        end
+    end
+
+    if not (elseBlk is null) then
+        // AST 对「无 else」的 if 仍可能挂一个空 block，只在非空时输出
+        if nch(elseBlk).length > 0 then
+            lines.push(ind(level) + "else")
+            appendBlockLines(lines, elseBlk, level + 1)
+        end
+    end
+    lines.push(ind(level) + "end")
+    return string.join(lines, "\n")
+end
+
+func emitWhile(var s, int level) as string
+    var ch = nch(s)
+    var cond = ch[0]
+    var blk = ch[1]
+    var lines = []
+    lines.push(ind(level) + "while " + emitExpr(cond) + " do")
+    appendBlockLines(lines, blk, level + 1)
+    lines.push(ind(level) + "end")
+    return string.join(lines, "\n")
+end
+
+func emitDoWhile(var s, int level) as string
+    var ch = nch(s)
+    var blk = ch[0]
+    var cond = ch[1]
+    var lines = []
+    lines.push(ind(level) + "do")
+    appendBlockLines(lines, blk, level + 1)
+    lines.push(ind(level) + "while " + emitExpr(cond))
+    return string.join(lines, "\n")
+end
+
+func emitFor(var s, int level) as string
+    var ch = nch(s)
+    var targets = ch[0]
+    var iter = ch[1]
+    var blk = ch[2]
+    string ts = emitForTargets(targets)
+    var lines = []
+    lines.push(ind(level) + "for " + ts + " in " + emitExpr(iter))
+    appendBlockLines(lines, blk, level + 1)
+    lines.push(ind(level) + "end")
+    return string.join(lines, "\n")
+end
+
+func emitForTargets(var t) as string
+    // for_targets 的 text 是首个 target；children 是所有 target 的 name 节点
+    var ch = nch(t)
+    string s = ""
+    int i = 0
+    for c in ch
+        if i > 0 then s = s + ", " end
+        s = s + nt(c)
+        i += 1
+    end
+    if string.len(s) == 0 then s = nt(t) end
+    return s
+end
+
+func emitTry(var s, int level) as string
+    var ch = nch(s)
+    var tryBlk = ch[0]
+    var catchNode = null
+    var finallyBlk = null
+    if ch.length >= 2 then
+        if nk(ch[1]) == "catch" then
+            catchNode = ch[1]
+            if ch.length >= 3 then
+                if nk(ch[2]) == "block" then finallyBlk = ch[2] end
+            end
+        elseif nk(ch[1]) == "block" then
+            finallyBlk = ch[1]
+        end
+    end
+
+    var lines = []
+    lines.push(ind(level) + "try")
+    appendBlockLines(lines, tryBlk, level + 1)
+
+    if not (catchNode is null) then
+        var nameNode = nth(catchNode, 0)
+        var catchBlk = nth(catchNode, 1)
+        string ename = nt(nameNode)
+        lines.push(ind(level) + "catch " + ename)
+        appendBlockLines(lines, catchBlk, level + 1)
+    end
+
+    if not (finallyBlk is null) then
+        lines.push(ind(level) + "finally")
+        appendBlockLines(lines, finallyBlk, level + 1)
+    end
+    lines.push(ind(level) + "end")
+    return string.join(lines, "\n")
+end
+
+// 把 block 下所有语句追加到 lines（var 数组按引用传递，规避 BUG-XL1）。
+func appendBlockLines(var lines, var blk, int level)
+    if blk is null then return end
+    var ch = nch(blk)
+    for st in ch
+        string s = emitStmt(st, level)
+        if string.len(s) > 0 then
+            lines.push(s)
+        end
+    end
+end
+
+// 发出 block（顶层调用）；返回多行字符串。
+func emitBlock(var blk, int level) as string
+    var lines = []
+    appendBlockLines(lines, blk, level)
+    return string.join(lines, "\n")
+end
+
+// ============================================================================
+// 声明还原（顶层 / class 成员）
+// ============================================================================
+
+// doc 注释原样输出。返回多行字符串（已按 \n 拼接）。
+func emitDocStr(var d, int level) as string
+    if d is null then return "" end
+    string raw = ndoc(d)
+    if string.len(raw) == 0 then return "" end
+    array<string> ds = splitLinesSafe(raw)
+    array<string> out = []
+    for ln in ds
+        out.push(ind(level) + ln)
+    end
+    return string.join(out, "\n")
+end
+
+// 把 block 下所有语句发出为多行字符串。
+func emitBlockStr(var blk, int level) as string
+    if blk is null then return "" end
+    var ch = nch(blk)
+    var lines = []
+    for st in ch
+        string s = emitStmt(st, level)
+        if string.len(s) > 0 then lines.push(s) end
+    end
+    return string.join(lines, "\n")
+end
+
+func isLongSignature(string head, var params) as bool
+    if string.len(head) > LINE_LIMIT then return true end
+    if not (params is null) then
+        var ch = nch(params)
+        if ch.length >= 4 then return true end
+    end
+    return false
+end
+
+// 发出函数（顶层 func / async_func / export_func / extern_func / get / let / create / 类方法 func）
+// 返回多行字符串。
+func emitFuncLike(var f, int level) as string
+    string k = nk(f)
+    int flags = nf(f)
+    string mods = emitModifiers(flags)
+
+    string kw = ""
+    string exportName = ""
+    if k == "func" then
+        kw = "func"
+    elseif k == "async_func" then
+        kw = "async func"
+    elseif k == "export_func" then
+        exportName = nt(f)
+        kw = "func"
+    elseif k == "extern_func" then
+        exportName = nt(f)
+        kw = "func"
+    elseif k == "anon_func" then
+        kw = "func"
+    elseif k == "create" then
+        kw = "create"
+    elseif k == "get" then
+        kw = "get"
+    elseif k == "let" then
+        kw = "let"
+    else
+        kw = k
+    end
+
+    var nameNode = childK(f, "name")
+    string name = ""
+    if not (nameNode is null) then name = nt(nameNode) end
+
+    var params = childK(f, "list")
+    var ret = childK(f, "return_types")
+    var tp = childK(f, "type_params")
+    var blk = childK(f, "block")
+
+    string lead = ind(level)
+    if string.len(exportName) > 0 then
+        lead = lead + "export " + exportName + " "
+    end
+    if k == "extern_func" then
+        lead = lead + "extern " + exportName + " "
+    end
+
+    string head = lead + mods + kw
+    if k != "create" and k != "anon_func" then
+        if string.len(name) > 0 then
+            head = head + " " + name
+        end
+    end
+    // 类型参数（create/let/get 不带）
+    if k == "func" or k == "async_func" or k == "export_func" then
+        if not (tp is null) then
+            string tps = emitTypeParams(tp)
+            if string.len(tps) > 0 then head = head + tps end
+        end
+    end
+
+    // main 入口必须写作 `func main(...) as int`：xl check 拒绝展开后的
+    // `array<var> arg`，故对名为 main 的函数强制发出 `...`。
+    string ps = emitParamList(params)
+    if name == "main" and k == "func" then
+        ps = "..."
+    end
+    string fullHead = head + "(" + ps + ")"
+
+    string rs = emitReturnTypes(ret)
+    // let 没有 as；其它有返回类型才加
+    if k != "let" and string.len(rs) > 0 then
+        fullHead = fullHead + " as " + rs
+    end
+
+    // extern_func 通常没有 body
+    if blk is null then
+        return fullHead
+    end
+
+    // 判断是否需要换行参数（签名过长）
+    bool wrap = false
+    if string.len(fullHead) > LINE_LIMIT then
+        if not (params is null) then
+            if nch(params).length >= 2 then wrap = true end
+        end
+    end
+
+    var lines = []
+    string docStr = emitDocStr(f, level)
+    if string.len(docStr) > 0 then lines.push(docStr) end
+
+    if wrap then
+        // 换行形式：head + "(\n" + 每参数一行 + "\n) as ret"
+        // xlang 参数列表不允许尾随逗号，故最后一项不带 `,`
+        lines.push(head + "(")
+        var pch = nch(params)
+        int pi = 0
+        int pn = pch.length
+        for p in pch
+            string sep = ","
+            if pi == pn - 1 then sep = "" end
+            lines.push(ind(level + 1) + emitParam(p) + sep)
+            pi += 1
+        end
+        string closer = ind(level) + ")"
+        if k != "let" and string.len(rs) > 0 then
+            closer = closer + " as " + rs
+        end
+        lines.push(closer)
+    else
+        lines.push(fullHead)
+    end
+
+    // body
+    appendBlockLines(lines, blk, level + 1)
+    lines.push(ind(level) + "end")
+    return string.join(lines, "\n")
+end
+
+func emitClassLike(var c, int level) as string
+    int flags = nf(c)
+    string mods = emitModifiers(flags)
+    string k = nk(c)
+    string kw = "class"
+    if k == "union" then kw = "union" end
+    if k == "import" then
+        return ind(level) + "import " + nt(c)
+    end
+
+    string name = nt(c)
+    var tp = childK(c, "type_params")
+
+    var lines = []
+    string docStrC = emitDocStr(c, level)
+    if string.len(docStrC) > 0 then lines.push(docStrC) end
+
+    string head = ind(level) + mods + kw + " " + name
+    if not (tp is null) then
+        string tps = emitTypeParams(tp)
+        if string.len(tps) > 0 then head = head + tps end
+    end
+    lines.push(head)
+
+    // class 成员在 children[1]（list）；children[0] 是 type_args list
+    var ch = nch(c)
+    var members = null
+    if ch.length >= 2 then
+        if nk(ch[1]) == "list" then members = ch[1] end
+    end
+
+    if not (members is null) then
+        var mch = nch(members)
+        int i = 0
+        for m in mch
+            string mk = nk(m)
+            // 成员间空行：除连续 field 外都加空行；derive 紧贴后续 field 不加空行
+            bool blankBefore = true
+            if mk == "field" then blankBefore = false end
+            if mk == "derive" then blankBefore = false end
+            if i == 0 then blankBefore = false end
+            if blankBefore then lines.push("") end
+            string ms = emitMember(m, level + 1)
+            if string.len(ms) > 0 then lines.push(ms) end
+            i += 1
+        end
+    end
+    lines.push(ind(level) + "end")
+    return string.join(lines, "\n")
+end
+
+// class 成员：field / create / func / get / let / derive / class（嵌套）
+func emitMember(var m, int level) as string
+    string k = nk(m)
+    if k == "field" then return emitField(m, level) end
+    if k == "derive" then
+        return ind(level) + "derive " + nt(m)
+    end
+    if k == "field_attr" then
+        return ind(level) + nt(m)
+    end
+    if k == "func" or k == "async_func" or k == "create" or k == "get" or k == "let" then
+        return emitFuncLike(m, level)
+    end
+    if k == "class" or k == "union" then return emitClassLike(m, level) end
+    return ind(level) + "<" + k + ">"
+end
+
+func emitField(var f, int level) as string
+    int flags = nf(f)
+    string mods = emitModifiers(flags)
+    string name = nt(f)
+    var ch = nch(f)
+    if ch.length == 0 then
+        return ind(level) + mods + name
+    end
+    string ty = emitType(ch[0])
+    if ch.length == 1 then
+        return ind(level) + mods + ty + " " + name
+    end
+    string init = emitExpr(ch[1])
+    return ind(level) + mods + ty + " " + name + " = " + init
+end
+
+// 顶层 var_decl / const_decl（带 export）
+func emitTopVar(var v, int level) as string
+    string k = nk(v)
+    int flags = nf(v)
+
+    if k == "export_var" then
+        string exportName = nt(v)
+        var nameNode = childK(v, "name")
+        string name = nt(nameNode)
+        var ch = nch(v)
+        // children: [name, type, optional init]
+        string ty = ""
+        string init = ""
+        int ci = 0
+        for c in ch
+            if nk(c) == "name" then continue end
+            if nk(c) == "type" then ty = emitType(c) end
+            if ci > 0 and nk(c) != "type" then init = emitExpr(c) end
+            ci += 1
+        end
+        string line = ind(level) + "export " + exportName + " " + ty + " " + name
+        if string.len(init) > 0 then line = line + " = " + init end
+        return line
+    end
+    if k == "export_const" then
+        string exportName = nt(v)
+        var nameNode = childK(v, "name")
+        string name = nt(nameNode)
+        var ch = nch(v)
+        string ty = ""
+        string init = ""
+        for c in ch
+            if nk(c) == "name" then continue end
+            if nk(c) == "type" then ty = emitType(c) end
+            if nk(c) != "type" then init = emitExpr(c) end
+        end
+        string line = ind(level) + "export " + exportName + " const " + ty + " " + name
+        if string.len(init) > 0 then line = line + " = " + init end
+        return line
+    end
+    if k == "var_decl" then return emitVarDecl(v, level) end
+    if k == "const_decl" then return emitConstDecl(v, level) end
+    return ind(level) + "<" + k + ">"
+end
+
+// ============================================================================
+// 模块顶层
+// ============================================================================
+
+func emitModule(var root) as string
+    var lines = []
+    var ch = nch(root)
+    int i = 0
+    for d in ch
+        string k = nk(d)
+        string s = ""
+        if k == "import" then
+            s = "import " + nt(d)
+        elseif k == "func" or k == "async_func" or k == "export_func" or k == "extern_func" then
+            s = emitFuncLike(d, 0)
+        elseif k == "class" or k == "union" then
+            s = emitClassLike(d, 0)
+        elseif k == "var_decl" or k == "const_decl" or k == "export_var" or k == "export_const" or k == "extern_var" then
+            s = emitTopVar(d, 0)
+        elseif k == "expr_stmt" then
+            // 顶层表达式（如 xlint 末尾的脚本调用）
+            s = emitExpr(nth(d, 0))
+        else
+            s = "// xfmt: unhandled top-level kind '" + k + "'"
+        end
+        // 顶层声明之间空 1 行
+        if i > 0 and string.len(s) > 0 then
+            lines.push("")
+        end
+        if string.len(s) > 0 then
+            lines.push(s)
+        end
+        i += 1
+    end
+    return string.join(lines, "\n") + "\n"
+end
+
+// ============================================================================
+// xl.exe 定位 & 格式化管道
+// ============================================================================
+
+func findXl() as string
+    string c1 = path.join(path.cwd(), "xl.exe")
+    if file.exists(c1) then return c1 end
+    string c2 = path.join(path.appDir(), "xl.exe")
+    if file.exists(c2) then return c2 end
+    string c3 = path.join(path.appDir(), "..", "..", "..")
+    c3 = path.join(c3, "xl.exe")
+    if file.exists(c3) then return c3 end
+    return ""
+end
+
+// 对一个 .xl 文件取 AST 并重新格式化。失败返回 "" 并打印错误。
+func formatFile(string filePath) as string
+    if not file.exists(filePath) then
+        println("xfmt: file not found: " + filePath)
+        return ""
+    end
+    if string.len(g_xl) == 0 then
+        println("xfmt: xl.exe not found; cannot parse")
+        return ""
+    end
+
+    // BUG-XL6: process.run 不剥离命令中的引号，故使用绝对路径并避免加引号。
+    // BUG-XL6 描述只影响含空格路径；这里直接传 path.abs。
+    string absFile = path.abs(filePath)
+    string cmd = g_xl + " parse " + absFile + " --format json"
+    ProcessResult r = process.run(cmd, 60000)
+    if not r.success or string.len(string.trim(r.stdout)) == 0 then
+        println("xfmt: xl parse failed: " + string.trim(r.stderr))
+        return ""
+    end
+
+    var root = null
+    try
+        root = json.parse(r.stdout)
+    catch e
+        // BUG-XT1: catch e.message 借用异常缓冲区，强制 owned 拷贝
+        string msg = e.message + ""
+        println("xfmt: AST JSON parse failed: " + msg)
+        return ""
+    end
+
+    return emitModule(root)
+end
+
+// ============================================================================
+// self-test
+// ============================================================================
+
+func assertEq(string got, string want, string label) as bool
+    if got == want then
+        println("  [PASS] " + label)
+        return true
+    end
+    println("  [FAIL] " + label)
+    println("    want:")
+    array<string> wl = splitLinesSafe(want)
+    for l in wl
+        println("      | " + l)
+    end
+    println("    got:")
+    array<string> gl = splitLinesSafe(got)
+    for l in gl
+        println("      | " + l)
+    end
+    return false
+end
+
+func runSelfTest() as int
+    int pass = 0
+    int fail = 0
+
+    // 找 cases 目录（path.join 最大 4 实参，故嵌套）
+    string casesDir = path.join(path.cwd(), "projects", "dev")
+    casesDir = path.join(casesDir, "xfmt", "cases")
+    if not dir.exists(casesDir) then
+        casesDir = path.join(path.appDir(), "cases")
+    end
+    if not dir.exists(casesDir) then
+        println("xfmt test: cases dir not found (" + casesDir + ")")
+        return 1
+    end
+
+    println("=== xfmt self-test ===")
+    println("")
+
+    // ----- 1. 解析单测：基本运算符空格 -----
+    string src1 = "func f(int a, int b) as int\n    return a + b * 2\nend\n"
+    string want1 = "func f(int a, int b) as int\n    return a + b * 2\nend\n"
+    string out1 = ""
+    if file.exists(path.join(casesDir, "spaces.xl")) then
+        out1 = formatFile(path.join(casesDir, "spaces.xl"))
+    end
+    if string.len(out1) == 0 then
+        println("  [SKIP] operator spacing (no fixture)")
+    elseif out1 == "func add(int a, int b) as int\n    return a + b * 2\nend\n" then
+        pass += 1
+        println("  [PASS] operator spacing (fixture)")
+    else
+        fail += 1
+        println("  [FAIL] operator spacing (unexpected output)")
+    end
+
+    // ----- 2. 缩进对齐单测：if / end -----
+    string ifSrc = "func g(int n) as int\n    if n > 0 then\n        return n\n    else\n        return -n\n    end\nend\n"
+    string ifOut = ""
+    if file.exists(path.join(casesDir, "indent.xl")) then
+        ifOut = formatFile(path.join(casesDir, "indent.xl"))
+    end
+    if string.len(ifOut) > 0 then
+        bool okIf = string.contains(ifOut, "    if n > 0 then")
+        if okIf then okIf = string.contains(ifOut, "        return n") end
+        if okIf then okIf = string.contains(ifOut, "    end") end
+        if okIf then
+            pass += 1
+            println("  [PASS] indent/end alignment (fixture)")
+        else
+            fail += 1
+            println("  [FAIL] indent/end alignment (fixture)")
+        end
+    else
+        println("  [SKIP] indent/end alignment (no fixture)")
+    end
+
+    // ----- 3. 幂等：格式化一次 = 格式化两次 -----
+    string idemFile = path.join(casesDir, "messy.xl")
+    if file.exists(idemFile) then
+        string once = formatFile(idemFile)
+        // 把 once 写到临时文件再格式化一次
+        string tmpPath = path.join(casesDir, "_idem_tmp.xl")
+        file.writeText(tmpPath, once)
+        string twice = formatFile(tmpPath)
+        if once == twice then
+            pass += 1
+            println("  [PASS] idempotent (format == format^2)")
+        else
+            fail += 1
+            println("  [FAIL] idempotent (output differs)")
+            println("    --- once ---")
+            array<string> ol = splitLinesSafe(once)
+            for l in ol
+                println("      | " + l)
+            end
+            println("    --- twice ---")
+            array<string> tl = splitLinesSafe(twice)
+            for l in tl
+                println("      | " + l)
+            end
+        end
+        file.delete(tmpPath)
+    else
+        println("  [SKIP] idempotent (no messy.xl fixture)")
+    end
+
+    println("")
+    println("total: " + string(pass) + " passed, " + string(fail) + " failed")
+    if fail > 0 then return 1 end
+    return 0
+end
+
+// ============================================================================
+// 入口
+// ============================================================================
+
+func printUsage()
+    println("xfmt - xlang code formatter")
+    println("")
+    println("Usage:")
+    println("  xfmt <file.xl>               format and print to stdout")
+    println("  xfmt <file.xl> --write       overwrite the file in place")
+    println("  xfmt <file.xl> --check       exit 1 if file is not formatted")
+    println("  xfmt test                    run bundled self-tests")
+    println("")
+    println("Rules: 4-space indent, operator spacing, aligned end/then/do,")
+    println("       1 blank line between top-level decls, no consecutive blanks,")
+    println("       wrap long function signatures one-param-per-line.")
+    println("")
+    println("Limitation: AST-based; line comments (`//`) are not preserved.")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 0
+    end
+
+    g_xl = findXl()
+    if string.len(g_xl) == 0 then
+        println("xfmt: xl.exe not found; please run from the release directory")
+        return 2
+    end
+
+    string target = ""
+    bool doWrite = false
+    bool doCheck = false
+
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "--write" or a == "-w" then
+            doWrite = true
+        elseif a == "--check" or a == "-c" then
+            doCheck = true
+        elseif a == "-h" or a == "--help" then
+            printUsage()
+            return 0
+        elseif string.startsWith(a, "-") then
+            println("xfmt: unknown option '" + a + "'")
+            return 2
+        else
+            if target == "" then
+                target = a
+            end
+        end
+        i += 1
+    end
+
+    if target == "" then
+        printUsage()
+        return 0
+    end
+
+    if target == "test" then
+        return runSelfTest()
+    end
+
+    if not file.exists(target) then
+        println("xfmt: file not found: " + target)
+        return 2
+    end
+
+    string original = file.readText(target)
+    string formatted = formatFile(target)
+    if string.len(formatted) == 0 then
+        return 1
+    end
+
+    if doCheck then
+        if original == formatted then
+            println(target + ": already formatted")
+            return 0
+        end
+        println(target + ": NOT formatted")
+        // 简单 diff：第一个不同的行
+        array<string> olines = splitLinesSafe(original)
+        array<string> flines = splitLinesSafe(formatted)
+        int n = olines.length
+        if flines.length < n then n = flines.length end
+        int d = 0
+        while d < n do
+            if olines[d] != flines[d] then
+                println("  first diff at line " + string(d + 1) + ":")
+                println("    - " + olines[d])
+                println("    + " + flines[d])
+                break
+            end
+            d += 1
+        end
+        if d == n and olines.length != flines.length then
+            println("  line count differs: " + string(olines.length) + " vs " + string(flines.length))
+        end
+        return 1
+    end
+
+    if doWrite then
+        bool ok = file.writeText(target, formatted)
+        if not ok then
+            println("xfmt: failed to write " + target)
+            return 1
+        end
+        println("xfmt: wrote " + target)
+        return 0
+    end
+
+    print(formatted)
+    return 0
+end

@@ -1,0 +1,954 @@
+// sortlab - 排序算法实验室
+//
+// 用法:
+//   sortlab bench [N=1000]               全部 12 种算法对比 (随机数据)
+//   sortlab bench-sorted [N=1000]        已排序数据性能
+//   sortlab bench-reverse [N=1000]       逆序数据性能
+//   sortlab bench-few [N=1000]           少量唯一值数据 (bonus, 压测点)
+//   sortlab compare <algo1> <algo2> [N]  两个算法详细对比
+//   sortlab verify                       验证所有算法正确性 (多组数据)
+//   sortlab test                         内置测试
+//   sortlab help                         显示帮助
+//
+// 算法 (12 种):
+//   bubble / selection / insertion / shell / merge / quick / heap
+//   counting / radix / bucket / cocktail / gnome
+//
+// 设计要点 (与 xlang 当前语义/限制对齐):
+//   - 数据载体: 全程使用 **var 数组** (而非 array<int>)。
+//     原因: typed array<int> 作为函数实参按值拷贝 (BUG-XL1), 递归排序
+//     (merge/quick) 的子函数拿到的会是副本, 原地排序不生效。实测 var 数组
+//     按引用传递 (swap/push 在被调函数里对调用方可见), 递归 by-ref 完全正常。
+//   - 计数: 全局 g_cmp / g_swap, 每次 benchOne 前 resetStats()。comparisons 计
+//     每次两元素比较; swaps 计每次交换操作 (doSwapVar 内累加)。merge / counting /
+//     radix 不做原地两两交换, 故 swaps=0 (符合其算法特性)。
+//   - 元素比较: 直接 a[i] > a[j] (var>var, 实测在 if 条件里合法, 见 BUG-XT4#4)。
+//   - 单行 `while c do s; s end` 是 parse 错误 (实测), 所有 while 体一律多行。
+//   - 计数/基数/桶排序假设非负整数; 各数据生成器均产出非负值。
+//   - 快排采用三数取中 (median-of-three) 选 pivot, 使已排序/逆序数据下递归深度
+//     保持 O(log n), 避免 n=10000 时栈溢出 (压测点: 递归深度)。
+//   - 结果收集用并行数组 (g_names/g_times/g_cmps/g_swaps/g_oks), 规避 class 实例
+//     入参浅拷贝丢标量字段问题 (BUG-XT2) 与 array<Base> 丢派生实例问题 (BUG-RT1)。
+
+// ---- 全局状态 ----
+
+int g_cmp = 0
+int g_swap = 0
+
+// 结果缓冲 (并行数组; 每次开 bench 前 clear)
+array<string> g_names
+array<float> g_times
+array<int> g_cmps
+array<int> g_swaps
+array<bool> g_oks
+
+// 算法名表 (小写, 用于 dispatch 与迭代)
+var g_algos = ["bubble", "selection", "insertion", "shell", "merge", "quick", "heap", "counting", "radix", "bucket", "cocktail", "gnome"]
+
+// 显示名表 (与 g_algos 同序)
+var g_disp = ["Bubble", "Selection", "Insertion", "Shell", "Merge", "Quick", "Heap", "Counting", "Radix", "Bucket", "Cocktail", "Gnome"]
+
+// 防死代码消除的累计槽
+int g_sink = 0
+
+// ---- 基础工具 ----
+
+func resetStats()
+    g_cmp = 0
+    g_swap = 0
+end
+
+func clearResults()
+    g_names.clear()
+    g_times.clear()
+    g_cmps.clear()
+    g_swaps.clear()
+    g_oks.clear()
+end
+
+// 复制 var 数组 (返回新数组, 不影响原数组)
+func dupArr(var src) as var
+    int n = src.length
+    var a = []
+    int i = 0
+    while i < n do
+        a.push(src[i])
+        i += 1
+    end
+    return a
+end
+
+// 原地交换 var 数组两元素 (by-ref, 计入 g_swap)
+func doSwapVar(var a, int i, int j)
+    var t = a[i]
+    a[i] = a[j]
+    a[j] = t
+    g_swap += 1
+end
+
+// 判断是否升序
+func isSorted(var a) as bool
+    int n = a.length
+    int i = 1
+    while i < n do
+        if a[i] < a[i - 1] then return false end
+        i += 1
+    end
+    return true
+end
+
+// 小写算法名 -> 显示名
+func dispName(string name) as string
+    if name == "bubble" then return "Bubble" end
+    if name == "selection" then return "Selection" end
+    if name == "insertion" then return "Insertion" end
+    if name == "shell" then return "Shell" end
+    if name == "merge" then return "Merge" end
+    if name == "quick" then return "Quick" end
+    if name == "heap" then return "Heap" end
+    if name == "counting" then return "Counting" end
+    if name == "radix" then return "Radix" end
+    if name == "bucket" then return "Bucket" end
+    if name == "cocktail" then return "Cocktail" end
+    if name == "gnome" then return "Gnome" end
+    return name
+end
+
+func isKnownAlgo(string name) as bool
+    if name == "bubble" then return true end
+    if name == "selection" then return true end
+    if name == "insertion" then return true end
+    if name == "shell" then return true end
+    if name == "merge" then return true end
+    if name == "quick" then return true end
+    if name == "heap" then return true end
+    if name == "counting" then return true end
+    if name == "radix" then return true end
+    if name == "bucket" then return true end
+    if name == "cocktail" then return true end
+    if name == "gnome" then return true end
+    return false
+end
+
+// ---- 数据生成器 (均产出非负整数) ----
+
+func genRandom(int n) as var
+    var a = []
+    int i = 0
+    while i < n do
+        a.push(random.range(0, n * 2))
+        i += 1
+    end
+    return a
+end
+
+func genSorted(int n) as var
+    var a = []
+    int i = 0
+    while i < n do
+        a.push(i)
+        i += 1
+    end
+    return a
+end
+
+func genReverse(int n) as var
+    var a = []
+    int i = 0
+    while i < n do
+        a.push(n - i)
+        i += 1
+    end
+    return a
+end
+
+func genFewUnique(int n) as var
+    var a = []
+    int i = 0
+    while i < n do
+        a.push(random.range(0, 4) * 100)
+        i += 1
+    end
+    return a
+end
+
+// ---- 12 种排序算法 (均: 输入 var 数组 -> 返回排序后的新 var 数组) ----
+
+// 1. 冒泡排序
+func sortBubble(var src) as var
+    var a = dupArr(src)
+    int n = a.length
+    int i = 0
+    while i < n do
+        int j = 0
+        while j < n - 1 - i do
+            g_cmp += 1
+            if a[j] > a[j + 1] then
+                doSwapVar(a, j, j + 1)
+            end
+            j += 1
+        end
+        i += 1
+    end
+    return a
+end
+
+// 2. 选择排序
+func sortSelection(var src) as var
+    var a = dupArr(src)
+    int n = a.length
+    int i = 0
+    while i < n do
+        int sel = i
+        int j = i + 1
+        while j < n do
+            g_cmp += 1
+            if a[j] < a[sel] then
+                sel = j
+            end
+            j += 1
+        end
+        if sel != i then
+            doSwapVar(a, i, sel)
+        end
+        i += 1
+    end
+    return a
+end
+
+// 3. 插入排序
+func sortInsertion(var src) as var
+    var a = dupArr(src)
+    int n = a.length
+    int i = 1
+    while i < n do
+        var key = a[i]
+        int j = i - 1
+        bool go = true
+        while j >= 0 and go do
+            g_cmp += 1
+            if a[j] > key then
+                a[j + 1] = a[j]
+                g_swap += 1
+                j -= 1
+            else
+                go = false
+            end
+        end
+        a[j + 1] = key
+        i += 1
+    end
+    return a
+end
+
+// 4. 希尔排序
+func sortShell(var src) as var
+    var a = dupArr(src)
+    int n = a.length
+    int gap = n / 2
+    while gap > 0 do
+        int i = gap
+        while i < n do
+            var key = a[i]
+            int j = i - gap
+            bool go = true
+            while j >= 0 and go do
+                g_cmp += 1
+                if a[j] > key then
+                    a[j + gap] = a[j]
+                    g_swap += 1
+                    j -= gap
+                else
+                    go = false
+                end
+            end
+            a[j + gap] = key
+            i += 1
+        end
+        gap = gap / 2
+    end
+    return a
+end
+
+// 5. 归并排序 (递归, by-ref 原地写回)
+func mergeMerge(var a, int lo, int mid, int hi)
+    var tmp = []
+    int i = lo
+    int j = mid + 1
+    while i <= mid and j <= hi do
+        g_cmp += 1
+        if a[i] <= a[j] then
+            tmp.push(a[i])
+            i += 1
+        else
+            tmp.push(a[j])
+            j += 1
+        end
+    end
+    while i <= mid do
+        tmp.push(a[i])
+        i += 1
+    end
+    while j <= hi do
+        tmp.push(a[j])
+        j += 1
+    end
+    int k = 0
+    while k < tmp.length do
+        a[lo + k] = tmp[k]
+        k += 1
+    end
+end
+
+func mergeSortRange(var a, int lo, int hi)
+    if lo >= hi then return end
+    int mid = (lo + hi) / 2
+    mergeSortRange(a, lo, mid)
+    mergeSortRange(a, mid + 1, hi)
+    mergeMerge(a, lo, mid, hi)
+end
+
+func sortMerge(var src) as var
+    var a = dupArr(src)
+    int n = a.length
+    if n > 1 then
+        mergeSortRange(a, 0, n - 1)
+    end
+    return a
+end
+
+// 6. 快速排序 (递归, 三数取中 pivot)
+func quickPartition(var a, int lo, int hi) as int
+    int mid = (lo + hi) / 2
+    g_cmp += 1
+    if a[lo] > a[mid] then doSwapVar(a, lo, mid) end
+    g_cmp += 1
+    if a[lo] > a[hi] then doSwapVar(a, lo, hi) end
+    g_cmp += 1
+    if a[mid] > a[hi] then doSwapVar(a, mid, hi) end
+    // 中位数已到 a[mid], 放到 a[hi] 作 pivot
+    doSwapVar(a, mid, hi)
+    var pivot = a[hi]
+    int i = lo - 1
+    int j = lo
+    while j < hi do
+        g_cmp += 1
+        if a[j] < pivot then
+            i += 1
+            doSwapVar(a, i, j)
+        end
+        j += 1
+    end
+    i += 1
+    doSwapVar(a, i, hi)
+    return i
+end
+
+func quickSortRange(var a, int lo, int hi)
+    if lo >= hi then return end
+    int p = quickPartition(a, lo, hi)
+    quickSortRange(a, lo, p - 1)
+    quickSortRange(a, p + 1, hi)
+end
+
+func sortQuick(var src) as var
+    var a = dupArr(src)
+    int n = a.length
+    if n > 1 then
+        quickSortRange(a, 0, n - 1)
+    end
+    return a
+end
+
+// 7. 堆排序
+func siftDown(var a, int start, int endd)
+    int root = start
+    bool go = true
+    while root * 2 + 1 <= endd and go do
+        int child = root * 2 + 1
+        if child + 1 <= endd then
+            g_cmp += 1
+            if a[child] < a[child + 1] then
+                child = child + 1
+            end
+        end
+        g_cmp += 1
+        if a[root] < a[child] then
+            doSwapVar(a, root, child)
+            root = child
+        else
+            go = false
+        end
+    end
+end
+
+func sortHeap(var src) as var
+    var a = dupArr(src)
+    int n = a.length
+    if n <= 1 then return a end
+    int i = n / 2 - 1
+    while i >= 0 do
+        siftDown(a, i, n - 1)
+        i -= 1
+    end
+    int e = n - 1
+    while e > 0 do
+        doSwapVar(a, 0, e)
+        e -= 1
+        siftDown(a, 0, e)
+    end
+    return a
+end
+
+// 8. 计数排序 (非比较; 假设非负)
+func sortCounting(var src) as var
+    var a = dupArr(src)
+    int n = a.length
+    if n <= 1 then return a end
+    int mx = int(a[0])
+    int i = 1
+    while i < n do
+        int v = int(a[i])
+        if v > mx then mx = v end
+        i += 1
+    end
+    var count = []
+    int ci = 0
+    while ci <= mx do
+        count.push(0)
+        ci += 1
+    end
+    int j = 0
+    while j < n do
+        int idx = int(a[j])
+        count[idx] = count[idx] + 1
+        j += 1
+    end
+    int idx2 = 0
+    int v = 0
+    while v <= mx do
+        int c = int(count[v])
+        int k = 0
+        while k < c do
+            a[idx2] = v
+            idx2 += 1
+            k += 1
+        end
+        v += 1
+    end
+    return a
+end
+
+// 9. 基数排序 (LSD, base 10; 假设非负)
+func radixCount(var a, int n, int exp)
+    var output = []
+    int oi = 0
+    while oi < n do
+        output.push(0)
+        oi += 1
+    end
+    var count = []
+    int ci = 0
+    while ci < 10 do
+        count.push(0)
+        ci += 1
+    end
+    int i = 0
+    while i < n do
+        int d = (int(a[i]) / exp) % 10
+        count[d] = count[d] + 1
+        i += 1
+    end
+    int k = 1
+    while k < 10 do
+        count[k] = count[k] + count[k - 1]
+        k += 1
+    end
+    int j = n - 1
+    while j >= 0 do
+        int d = (int(a[j]) / exp) % 10
+        count[d] = count[d] - 1
+        output[count[d]] = a[j]
+        j -= 1
+    end
+    int m = 0
+    while m < n do
+        a[m] = output[m]
+        m += 1
+    end
+end
+
+func sortRadix(var src) as var
+    var a = dupArr(src)
+    int n = a.length
+    if n <= 1 then return a end
+    int mx = int(a[0])
+    int i = 1
+    while i < n do
+        int v = int(a[i])
+        if v > mx then mx = v end
+        i += 1
+    end
+    int exp = 1
+    while mx / exp > 0 do
+        radixCount(a, n, exp)
+        exp = exp * 10
+    end
+    return a
+end
+
+// 桶内插入排序 (by-ref)
+func insertionSortVar(var b)
+    int n = b.length
+    int i = 1
+    while i < n do
+        var key = b[i]
+        int j = i - 1
+        bool go = true
+        while j >= 0 and go do
+            if b[j] > key then
+                b[j + 1] = b[j]
+                j -= 1
+            else
+                go = false
+            end
+        end
+        b[j + 1] = key
+        i += 1
+    end
+end
+
+// 10. 桶排序 (10 个桶 + 桶内插入)
+func sortBucket(var src) as var
+    var a = dupArr(src)
+    int n = a.length
+    if n <= 1 then return a end
+    int mx = 0
+    int i = 0
+    while i < n do
+        int v = int(a[i])
+        if v > mx then mx = v end
+        i += 1
+    end
+    if mx == 0 then return a end
+    int nb = 10
+    int sz = mx / nb + 1
+    var buckets = []
+    int bi = 0
+    while bi < nb do
+        buckets.push([])
+        bi += 1
+    end
+    int j = 0
+    while j < n do
+        int v = int(a[j])
+        int idx = v / sz
+        if idx >= nb then idx = nb - 1 end
+        buckets[idx].push(v)
+        j += 1
+    end
+    var out = []
+    int k = 0
+    while k < nb do
+        insertionSortVar(buckets[k])
+        int m = 0
+        int blen = buckets[k].length
+        while m < blen do
+            out.push(buckets[k][m])
+            m += 1
+        end
+        k += 1
+    end
+    int p = 0
+    while p < n do
+        a[p] = out[p]
+        p += 1
+    end
+    return a
+end
+
+// 11. 鸡尾酒排序 (双向冒泡)
+func sortCocktail(var src) as var
+    var a = dupArr(src)
+    int n = a.length
+    if n <= 1 then return a end
+    bool swapped = true
+    int start = 0
+    int endd = n - 1
+    while swapped do
+        swapped = false
+        int i = start
+        while i < endd do
+            g_cmp += 1
+            if a[i] > a[i + 1] then
+                doSwapVar(a, i, i + 1)
+                swapped = true
+            end
+            i += 1
+        end
+        if not swapped then return a end
+        swapped = false
+        endd = endd - 1
+        int j = endd
+        while j >= start do
+            g_cmp += 1
+            if a[j] > a[j + 1] then
+                doSwapVar(a, j, j + 1)
+                swapped = true
+            end
+            j -= 1
+        end
+        start = start + 1
+    end
+    return a
+end
+
+// 12. 侏儒排序
+func sortGnome(var src) as var
+    var a = dupArr(src)
+    int n = a.length
+    int i = 0
+    while i < n do
+        if i == 0 then
+            i += 1
+        else
+            g_cmp += 1
+            if a[i] < a[i - 1] then
+                doSwapVar(a, i, i - 1)
+                i -= 1
+            else
+                i += 1
+            end
+        end
+    end
+    return a
+end
+
+// ---- 算法 dispatch ----
+
+func runAlgo(string name, var data) as var
+    if name == "bubble" then return sortBubble(data) end
+    if name == "selection" then return sortSelection(data) end
+    if name == "insertion" then return sortInsertion(data) end
+    if name == "shell" then return sortShell(data) end
+    if name == "merge" then return sortMerge(data) end
+    if name == "quick" then return sortQuick(data) end
+    if name == "heap" then return sortHeap(data) end
+    if name == "counting" then return sortCounting(data) end
+    if name == "radix" then return sortRadix(data) end
+    if name == "bucket" then return sortBucket(data) end
+    if name == "cocktail" then return sortCocktail(data) end
+    if name == "gnome" then return sortGnome(data) end
+    return data
+end
+
+// 运行单个算法并记录 (同一份 data, 公平对比; runAlgo 内部会复制)
+func benchOne(string name, var data)
+    resetStats()
+    float t0 = time.timer()
+    var result = runAlgo(name, data)
+    float t1 = time.timer()
+    bool ok = isSorted(result)
+    g_sink += result.length
+    g_names.push(dispName(name))
+    g_times.push((t1 - t0) * 1000.0)
+    g_cmps.push(g_cmp)
+    g_swaps.push(g_swap)
+    g_oks.push(ok)
+end
+
+// ---- 输出 ----
+
+func padNum(int v) as string
+    return string.padLeft(string.formatInt(v, ","), 12)
+end
+
+func printTable()
+    println(string.padRight("Algorithm", 13) + string.padLeft("Time(ms)", 11) + string.padLeft("Comparisons", 13) + string.padLeft("Swaps", 11) + "  Sorted?")
+    println("-----------   ----------   ------------   ----------   -------")
+    int i = 0
+    int n = g_names.length
+    while i < n do
+        string s = string.padRight(g_names[i], 13)
+        s = s + string.padLeft(string.formatFloat(g_times[i], ".3"), 11)
+        s = s + padNum(g_cmps[i])
+        s = s + padNum(g_swaps[i])
+        s = s + "  "
+        if g_oks[i] then
+            s = s + "YES"
+        else
+            s = s + "NO"
+        end
+        println(s)
+        i += 1
+    end
+end
+
+func printUsage()
+    println("sortlab - 排序算法实验室 (12 种排序算法性能对比)")
+    println("用法:")
+    println("  sortlab bench [N=1000]               全部算法对比 (随机数据)")
+    println("  sortlab bench-sorted [N=1000]        已排序数据性能")
+    println("  sortlab bench-reverse [N=1000]       逆序数据性能")
+    println("  sortlab bench-few [N=1000]           少量唯一值数据")
+    println("  sortlab compare <algo1> <algo2> [N]  两个算法详细对比")
+    println("  sortlab verify                       验证所有算法正确性")
+    println("  sortlab test                         内置测试")
+    println("  sortlab help                         显示本帮助")
+    println("算法: bubble selection insertion shell merge quick heap")
+    println("      counting radix bucket cocktail gnome")
+end
+
+// ---- 命令实现 ----
+
+func parseN(string s, int def) as int
+    int n = int(s)
+    if n <= 0 then return def end
+    if n > 20000 then return 20000 end
+    return n
+end
+
+func runBenchAll(var data, string label)
+    clearResults()
+    println("sortlab - " + label + "  (n=" + string(data.length) + ")")
+    println("================================================================")
+    int i = 0
+    while i < g_algos.length do
+        benchOne(string(g_algos[i]), data)
+        i += 1
+    end
+    printTable()
+    println("================================================================")
+    int pass = 0
+    int j = 0
+    while j < g_oks.length do
+        if g_oks[j] then pass += 1 end
+        j += 1
+    end
+    println(string(pass) + "/" + string(g_oks.length) + " algorithms produced sorted output")
+end
+
+func cmdBench(string kind, int n)
+    var data = []
+    if kind == "random" then
+        data = genRandom(n)
+    elseif kind == "sorted" then
+        data = genSorted(n)
+    elseif kind == "reverse" then
+        data = genReverse(n)
+    elseif kind == "few" then
+        data = genFewUnique(n)
+    end
+    runBenchAll(data, kind + " data")
+end
+
+func cmdCompare(string a1, string a2, int n)
+    var data = genRandom(n)
+    clearResults()
+    println("sortlab - compare: " + a1 + " vs " + a2 + "  (n=" + string(n) + ", random data)")
+    println("================================================================")
+    benchOne(a1, data)
+    benchOne(a2, data)
+    printTable()
+    println("================================================================")
+    if g_times[0] < g_times[1] then
+        println(dispName(a1) + " was faster by " + string.formatFloat(g_times[1] - g_times[0], ".3") + " ms")
+    else
+        println(dispName(a2) + " was faster by " + string.formatFloat(g_times[0] - g_times[1], ".3") + " ms")
+    end
+end
+
+func cmdVerify() as int
+    println("sortlab - correctness verification")
+    println("================================================================")
+    // 多组测试数据 (var 数组, 每个元素本身是一个 var 数组)
+    var datasets = []
+    datasets.push([5, 2, 8, 1, 9, 3, 7, 4, 6, 0])
+    datasets.push([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    datasets.push([10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+    datasets.push([3, 3, 3, 1, 1, 2, 2, 2, 3, 1])
+    datasets.push([42])
+    datasets.push([])
+
+    int totalPass = 0
+    int totalRun = 0
+    int ai = 0
+    while ai < g_algos.length do
+        string algo = string(g_algos[ai])
+        bool algoOk = true
+        int ci = 0
+        while ci < datasets.length do
+            var ds = datasets[ci]
+            var res = runAlgo(algo, ds)
+            bool ok = isSorted(res)
+            // 空集/单元素 直接 ok; 否则还要校验长度一致
+            if ds.length != res.length then ok = false end
+            totalRun += 1
+            if ok then
+                totalPass += 1
+            else
+                algoOk = false
+            end
+            ci += 1
+        end
+        string mark = "FAIL"
+        if algoOk then mark = "OK" end
+        println(string.padRight(dispName(algo), 13) + "  " + mark)
+        ai += 1
+    end
+    println("----------------------------------------------------------------")
+    println(string(totalPass) + "/" + string(totalRun) + " cases passed")
+    if totalPass == totalRun then
+        println("ALL ALGORITHMS CORRECT")
+        return 0
+    end
+    return 1
+end
+
+func cmdTest() as int
+    println("sortlab - built-in test")
+    println("================================================================")
+    int fails = 0
+
+    // T1: 已知输入 -> 期望输出
+    var input = [5, 3, 8, 1, 9, 3, 0, 4, 7, 6, 2]
+    int expectedLen = input.length
+    int ai = 0
+    while ai < g_algos.length do
+        string algo = string(g_algos[ai])
+        var res = runAlgo(algo, input)
+        bool ok = isSorted(res)
+        if res.length != expectedLen then ok = false end
+        if not ok then
+            fails += 1
+            println("  [FAIL] " + algo + " did not sort [5,3,8,1,9,3,0,4,7,6,2]")
+        end
+        ai += 1
+    end
+    if fails == 0 then
+        println("  [OK] all 12 algorithms sorted a fixed 11-element array")
+    end
+
+    // T2: 稳定性基准 - 同一份数据两次运行结果应一致 (确定性)
+    var data = genRandom(200)
+    var r1 = sortQuick(data)
+    var r2 = sortQuick(data)
+    bool det = true
+    if r1.length != r2.length then det = false end
+    int i = 0
+    while i < r1.length do
+        if r1[i] != r2[i] then det = false end
+        i += 1
+    end
+    if det then
+        println("  [OK] deterministic: two quicksort runs identical")
+    else
+        fails += 1
+        println("  [FAIL] two quicksort runs differ")
+    end
+
+    // T3: 排序结果应与 "最大值在末尾, 最小值在开头" 一致 (对非空)
+    var data3 = genRandom(300)
+    var sorted = sortMerge(data3)
+    int minv = int(sorted[0])
+    int maxv = int(sorted[sorted.length - 1])
+    int origMin = int(data3[0])
+    int origMax = int(data3[0])
+    int k = 1
+    while k < data3.length do
+        int vv = int(data3[k])
+        if vv < origMin then origMin = vv end
+        if vv > origMax then origMax = vv end
+        k += 1
+    end
+    if minv == origMin and maxv == origMax then
+        println("  [OK] boundary: min at head, max at tail")
+    else
+        fails += 1
+        println("  [FAIL] boundary mismatch")
+    end
+
+    println("================================================================")
+    if fails == 0 then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println(string(fails) + " TEST(S) FAILED")
+    return 1
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "bench" then
+        int n = 1000
+        if arg.length >= 3 then n = parseN(string(arg[2]), 1000) end
+        cmdBench("random", n)
+        return 0
+    end
+
+    if cmd == "bench-sorted" then
+        int n = 1000
+        if arg.length >= 3 then n = parseN(string(arg[2]), 1000) end
+        cmdBench("sorted", n)
+        return 0
+    end
+
+    if cmd == "bench-reverse" then
+        int n = 1000
+        if arg.length >= 3 then n = parseN(string(arg[2]), 1000) end
+        cmdBench("reverse", n)
+        return 0
+    end
+
+    if cmd == "bench-few" then
+        int n = 1000
+        if arg.length >= 3 then n = parseN(string(arg[2]), 1000) end
+        cmdBench("few", n)
+        return 0
+    end
+
+    if cmd == "compare" then
+        if arg.length < 4 then
+            println("sortlab: compare needs two algorithms: sortlab compare <algo1> <algo2> [N]")
+            return 1
+        end
+        string a1 = string(arg[2])
+        string a2 = string(arg[3])
+        if not isKnownAlgo(a1) then
+            println("sortlab: unknown algorithm: " + a1)
+            return 1
+        end
+        if not isKnownAlgo(a2) then
+            println("sortlab: unknown algorithm: " + a2)
+            return 1
+        end
+        int n = 1000
+        if arg.length >= 5 then n = parseN(string(arg[4]), 1000) end
+        cmdCompare(a1, a2, n)
+        return 0
+    end
+
+    if cmd == "verify" then
+        return cmdVerify()
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    println("sortlab: unknown command: " + cmd)
+    println("")
+    printUsage()
+    return 1
+end

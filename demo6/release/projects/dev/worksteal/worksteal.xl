@@ -1,0 +1,633 @@
+// worksteal - Work-Stealing thread pool (mutex + rwlock + cond)
+//
+// Usage:
+//   worksteal test [workers=4] [tasks=100]
+//
+// N worker threads, each with its own local deque. Tasks are submitted by ID
+// onto the submit worker's deque TAIL. The owning worker drains its own deque
+// from the TAIL (LIFO, cache-warm, depth-first); idle
+// workers STEAL from the HEAD of other workers' deques (FIFO from the
+// stealer's view). This is the classic Cilk / ForkJoinPool scheduling model.
+//
+// Concurrency primitives exercised TOGETHER:
+//   - mutex:  one mutex per worker deque (g_mu0..g_mu7). Every push/pop/steal
+//             takes the per-queue mutex, so owner and stealers never corrupt a
+//             deque. (Lock ordering: only one per-queue mutex is ever held at
+//             a time; g_parkMu is never held at the same time as a queue
+//             mutex, so there is no deadlock cycle.)
+//   - rwlock: guards the global dispatch table g_taskKind (write-locked during
+//             setup, read-locked concurrently by every worker during
+//             dispatch - the canonical read-heavy rwlock pattern).
+//   - cond:   idle workers park on g_parkCond + g_parkMu when no work is
+//             available; submit() signals one waiter, shutdown() broadcasts.
+//
+// Since xlang function values cannot be stored / dispatched, the pool uses a
+// task-ID + global dispatch-table pattern:
+//   submit(int taskId) -> enqueues the integer task ID onto the submit worker
+//   worker dequeues ID  -> dispatch(taskId) looks up kind in g_taskKind and
+//                          records the result under g_resMu
+//
+// xlang constraints worked around:
+//   - thread / mutex / cond are non-copyable, so they cannot live in typed
+//     arrays. Workers are spawned fire-and-forget (prodcon / actorsys pattern)
+//     and tracked via g_activeWorkers polled under g_parkMu. Each worker deque
+//     is a named global mutex + named global array<int>, dispatched by an
+//     if-chain on the worker index (the actorsys mailbox-dispatch pattern).
+//   - Global containers shared with worker threads are initialized at the
+//     declaration site and only modified in place (push / index assign),
+//     never re-bound (BUG-XT3).
+
+// ============================== constants =================================
+
+const int MAX_WORKERS = 8
+
+int KIND_ECHO = 0       // record execution only
+int KIND_DOUBLE = 1     // result = id * 2
+int KIND_SQUARE = 2     // result = id * id
+
+// ===================== per-worker deques (named) ==========================
+// Non-copyable mutexes and array<int> deques, one per slot. Accessed via
+// if-chain dispatch (cannot index non-copyable globals).
+
+mutex g_mu0 = mutex()
+mutex g_mu1 = mutex()
+mutex g_mu2 = mutex()
+mutex g_mu3 = mutex()
+mutex g_mu4 = mutex()
+mutex g_mu5 = mutex()
+mutex g_mu6 = mutex()
+mutex g_mu7 = mutex()
+
+array<int> g_q0 = array[]
+array<int> g_q1 = array[]
+array<int> g_q2 = array[]
+array<int> g_q3 = array[]
+array<int> g_q4 = array[]
+array<int> g_q5 = array[]
+array<int> g_q6 = array[]
+array<int> g_q7 = array[]
+
+// ===================== coordination primitives ============================
+
+mutex g_parkMu = mutex()        // guards pool state below + cond
+cond g_parkCond = cond()        // idle workers wait here
+rwlock g_tableRw = rwlock()     // guards dispatch table g_taskKind
+mutex g_resMu = mutex()         // guards results (g_executed/g_results/...)
+
+// ---- pool state (under g_parkMu) ----
+int g_workerCount = 4
+int g_activeWorkers = 0
+int g_totalPending = 0          // total tasks sitting in all deques combined
+int g_submitWorker = 0          // external submissions land on this worker
+bool g_shutdown = false
+
+// ---- dispatch table (under g_tableRw) ----
+// g_taskKind[id] = KIND_*; indexed by task id (1..N), slot 0 unused.
+array<int> g_taskKind = array[]
+
+// ---- results (under g_resMu) ----
+array<bool> g_executed = array[]        // g_executed[id] = true once dispatched
+array<int> g_results = array[]          // computed result for DOUBLE / SQUARE
+int g_doneCount = 0
+bool g_duplicateSeen = false
+int g_stealCount = 0            // diagnostic: successful steals
+int g_localCount = 0            // diagnostic: successful local pops
+
+// ---- pass/fail bookkeeping (single-threaded test driver only) ----
+int g_pass = 0
+int g_fail = 0
+
+// ===================== per-worker deque dispatch =========================
+// Route push / pop-local / steal-head to the named globals for slot `idx`.
+
+// Owner pushes to the deque TAIL (LIFO end for the owner).
+func dequePush(int idx, int taskId)
+    if idx == 0 then
+        g_mu0.lock(); g_q0.push(taskId); g_mu0.unlock()
+        return
+    end
+    if idx == 1 then
+        g_mu1.lock(); g_q1.push(taskId); g_mu1.unlock()
+        return
+    end
+    if idx == 2 then
+        g_mu2.lock(); g_q2.push(taskId); g_mu2.unlock()
+        return
+    end
+    if idx == 3 then
+        g_mu3.lock(); g_q3.push(taskId); g_mu3.unlock()
+        return
+    end
+    if idx == 4 then
+        g_mu4.lock(); g_q4.push(taskId); g_mu4.unlock()
+        return
+    end
+    if idx == 5 then
+        g_mu5.lock(); g_q5.push(taskId); g_mu5.unlock()
+        return
+    end
+    if idx == 6 then
+        g_mu6.lock(); g_q6.push(taskId); g_mu6.unlock()
+        return
+    end
+    if idx == 7 then
+        g_mu7.lock(); g_q7.push(taskId); g_mu7.unlock()
+        return
+    end
+end
+
+// Owner pops from its own deque TAIL. Returns (ok, task).
+func popLocal(int idx) as (bool, int)
+    bool ok = false
+    int task = 0
+    if idx == 0 then
+        g_mu0.lock()
+        if g_q0.length > 0 then
+            task = g_q0.pop(); ok = true
+        end
+        g_mu0.unlock()
+    elseif idx == 1 then
+        g_mu1.lock()
+        if g_q1.length > 0 then
+            task = g_q1.pop(); ok = true
+        end
+        g_mu1.unlock()
+    elseif idx == 2 then
+        g_mu2.lock()
+        if g_q2.length > 0 then
+            task = g_q2.pop(); ok = true
+        end
+        g_mu2.unlock()
+    elseif idx == 3 then
+        g_mu3.lock()
+        if g_q3.length > 0 then
+            task = g_q3.pop(); ok = true
+        end
+        g_mu3.unlock()
+    elseif idx == 4 then
+        g_mu4.lock()
+        if g_q4.length > 0 then
+            task = g_q4.pop(); ok = true
+        end
+        g_mu4.unlock()
+    elseif idx == 5 then
+        g_mu5.lock()
+        if g_q5.length > 0 then
+            task = g_q5.pop(); ok = true
+        end
+        g_mu5.unlock()
+    elseif idx == 6 then
+        g_mu6.lock()
+        if g_q6.length > 0 then
+            task = g_q6.pop(); ok = true
+        end
+        g_mu6.unlock()
+    elseif idx == 7 then
+        g_mu7.lock()
+        if g_q7.length > 0 then
+            task = g_q7.pop(); ok = true
+        end
+        g_mu7.unlock()
+    end
+    return ok, task
+end
+
+// Stealer steals from the HEAD of worker fromIdx's deque. Returns (ok, task).
+func stealHead(int fromIdx) as (bool, int)
+    bool ok = false
+    int task = 0
+    if fromIdx == 0 then
+        g_mu0.lock()
+        if g_q0.length > 0 then
+            task = g_q0[0]; g_q0.remove(0); ok = true
+        end
+        g_mu0.unlock()
+    elseif fromIdx == 1 then
+        g_mu1.lock()
+        if g_q1.length > 0 then
+            task = g_q1[0]; g_q1.remove(0); ok = true
+        end
+        g_mu1.unlock()
+    elseif fromIdx == 2 then
+        g_mu2.lock()
+        if g_q2.length > 0 then
+            task = g_q2[0]; g_q2.remove(0); ok = true
+        end
+        g_mu2.unlock()
+    elseif fromIdx == 3 then
+        g_mu3.lock()
+        if g_q3.length > 0 then
+            task = g_q3[0]; g_q3.remove(0); ok = true
+        end
+        g_mu3.unlock()
+    elseif fromIdx == 4 then
+        g_mu4.lock()
+        if g_q4.length > 0 then
+            task = g_q4[0]; g_q4.remove(0); ok = true
+        end
+        g_mu4.unlock()
+    elseif fromIdx == 5 then
+        g_mu5.lock()
+        if g_q5.length > 0 then
+            task = g_q5[0]; g_q5.remove(0); ok = true
+        end
+        g_mu5.unlock()
+    elseif fromIdx == 6 then
+        g_mu6.lock()
+        if g_q6.length > 0 then
+            task = g_q6[0]; g_q6.remove(0); ok = true
+        end
+        g_mu6.unlock()
+    elseif fromIdx == 7 then
+        g_mu7.lock()
+        if g_q7.length > 0 then
+            task = g_q7[0]; g_q7.remove(0); ok = true
+        end
+        g_mu7.unlock()
+    end
+    return ok, task
+end
+
+// ============================ dispatch table ==============================
+
+// Lookup task kind under a read lock (many concurrent worker readers).
+func lookupKind(int taskId) as int
+    g_tableRw.readLock()
+    int k = g_taskKind[taskId]
+    g_tableRw.readUnlock()
+    return k
+end
+
+// ============================== results ==================================
+
+// Record one task's outcome under g_resMu. Detects duplicate execution.
+func recordResult(int taskId, int kind, int computed)
+    g_resMu.lock()
+    if g_executed[taskId] then
+        g_duplicateSeen = true
+        g_resMu.unlock()
+        return
+    end
+    g_executed[taskId] = true
+    if kind == KIND_DOUBLE or kind == KIND_SQUARE then
+        g_results[taskId] = computed
+    end
+    g_doneCount = g_doneCount + 1
+    g_resMu.unlock()
+end
+
+// Dispatch a dequeued task ID: look up its kind, do the work, record result.
+func dispatch(int taskId)
+    int kind = lookupKind(taskId)
+    int computed = 0
+    if kind == KIND_DOUBLE then
+        computed = taskId * 2
+    elseif kind == KIND_SQUARE then
+        computed = taskId * taskId
+    end
+    // simulate real work so timing skew drives stealing
+    time.sleep(1)
+    recordResult(taskId, kind, computed)
+end
+
+// ============================== worker loop ==============================
+
+func workerLoop(int idx) as int
+    g_parkMu.lock()
+    g_activeWorkers = g_activeWorkers + 1
+    g_parkMu.unlock()
+
+    while true do
+        bool ok = false
+        int task = 0
+
+        // 1. try own deque TAIL first (LIFO, local, cache-warm)
+        ok, task = popLocal(idx)
+        if ok then
+            g_resMu.lock()
+            g_localCount = g_localCount + 1
+            g_resMu.unlock()
+        end
+
+        // 2. own empty -> steal from each other worker's HEAD (round-robin
+        //    starting just after self, to spread steal pressure)
+        if not ok then
+            int t = 0
+            while t < g_workerCount do
+                int victim = (idx + 1 + t)
+                if victim >= g_workerCount then
+                    victim = victim - g_workerCount
+                end
+                if victim != idx then
+                    ok, task = stealHead(victim)
+                    if ok then
+                        g_resMu.lock()
+                        g_stealCount = g_stealCount + 1
+                        g_resMu.unlock()
+                        break
+                    end
+                end
+                t = t + 1
+            end
+        end
+
+        if ok then
+            // got a task: account for it, then run it
+            g_parkMu.lock()
+            g_totalPending = g_totalPending - 1
+            g_parkMu.unlock()
+            dispatch(task)
+        else
+            // no work anywhere: park or exit
+            g_parkMu.lock()
+            if g_shutdown and g_totalPending == 0 then
+                g_parkMu.unlock()
+                break
+            end
+            if g_totalPending == 0 then
+                g_parkCond.wait(g_parkMu)
+            end
+            g_parkMu.unlock()
+        end
+    end
+
+    g_parkMu.lock()
+    g_activeWorkers = g_activeWorkers - 1
+    // wake another parked worker so shutdown broadcast propagates even if
+    // multiple workers raced into wait on a single signal
+    g_parkCond.signal()
+    g_parkMu.unlock()
+    return 0
+end
+
+// Closure factory: captures worker index (int, by value).
+func makeWorker(int idx) as func() as int
+    return func() as int
+        return workerLoop(idx)
+    end
+end
+
+// ============================== pool API =================================
+
+// submit(taskId): enqueue a task ID onto the submit worker's deque tail and
+// wake one parked worker. External submissions all funnel onto one worker
+// (g_submitWorker); idle workers then steal from it, which is the canonical
+// work-stealing submission model and guarantees the steal path is exercised.
+func submit(int taskId) as bool
+    g_parkMu.lock()
+    int target = g_submitWorker
+    g_totalPending = g_totalPending + 1
+    g_parkCond.signal()
+    g_parkMu.unlock()
+    dequePush(target, taskId)
+    return true
+end
+
+// shutdown(): stop accepting work, wake everyone, wait for full drain.
+func shutdown()
+    g_parkMu.lock()
+    g_shutdown = true
+    g_parkCond.broadcast()
+    g_parkMu.unlock()
+    int waited = 0
+    while waited < 10000 do
+        g_parkMu.lock()
+        int active = g_activeWorkers
+        g_parkMu.unlock()
+        if active <= 0 then
+            return
+        end
+        time.sleep(2)
+        waited = waited + 2
+    end
+end
+
+// Spawn `n` fire-and-forget worker threads (threads are non-copyable and
+// cannot be stored in an array, so they are tracked only via g_activeWorkers).
+func spawnWorkers(int n)
+    int i = 0
+    while i < n do
+        thread(makeWorker(i))
+        i = i + 1
+    end
+end
+
+func waitForActive(int n, int timeoutMs) as bool
+    int waited = 0
+    while waited < timeoutMs do
+        g_parkMu.lock()
+        int a = g_activeWorkers
+        g_parkMu.unlock()
+        if a >= n then
+            return true
+        end
+        time.sleep(2)
+        waited = waited + 2
+    end
+    return false
+end
+
+func waitForDone(int expected, int timeoutMs) as bool
+    int waited = 0
+    while waited < timeoutMs do
+        g_resMu.lock()
+        int d = g_doneCount
+        g_resMu.unlock()
+        if d >= expected then
+            return true
+        end
+        time.sleep(3)
+        waited = waited + 3
+    end
+    return false
+end
+
+// ============================== test harness =============================
+
+func check(string name, bool ok)
+    if ok then
+        println("  [PASS] " + name)
+        g_pass = g_pass + 1
+    else
+        println("  [FAIL] " + name)
+        g_fail = g_fail + 1
+    end
+end
+
+// Populate the dispatch table (write-locked) and the result slot arrays.
+// taskId 1..N, slot 0 unused. Kinds cycled so all three appear.
+func setupTasks(int taskCount)
+    g_tableRw.writeLock()
+    g_taskKind.push(0)
+    g_executed.push(false)
+    g_results.push(0)
+    int i = 1
+    while i <= taskCount do
+        int k = KIND_ECHO
+        int m = i % 3
+        if m == 0 then
+            k = KIND_SQUARE
+        elseif m == 2 then
+            k = KIND_DOUBLE
+        end
+        g_taskKind.push(k)
+        g_executed.push(false)
+        g_results.push(0)
+        i = i + 1
+    end
+    g_tableRw.writeUnlock()
+end
+
+func runTest(int workers, int taskCount) as int
+    println("==== worksteal test start ====")
+    println("workers:", workers, " tasks:", taskCount)
+    println("dispatch kinds: ECHO / DOUBLE(id*2) / SQUARE(id*id)")
+    println("------------------------------------------------")
+
+    g_workerCount = workers
+    setupTasks(taskCount)
+
+    // pre-seed active count so the startup wait is race-free (prodcon pattern)
+    spawnWorkers(workers)
+    if not waitForActive(workers, 3000) then
+        println("ERROR: workers did not start")
+        shutdown()
+        return 1
+    end
+
+    // submit all tasks
+    float t0 = time.timer()
+    int i = 1
+    while i <= taskCount do
+        submit(i)
+        i = i + 1
+    end
+    float t1 = time.timer()
+
+    // wait for all to complete
+    bool done = waitForDone(taskCount, 15000)
+    float t2 = time.timer()
+    check("all " + string(taskCount) + " tasks executed within timeout", done)
+
+    // shutdown before reading results so no worker is mid-dispatch
+    shutdown()
+
+    // ---- verification ----
+    g_resMu.lock()
+    int doneCount = g_doneCount
+    bool dup = g_duplicateSeen
+    int steals = g_stealCount
+    int locals = g_localCount
+    g_resMu.unlock()
+
+    check("doneCount == " + string(taskCount) + " (no loss)", doneCount == taskCount)
+    check("no duplicate task execution", not dup)
+
+    // every task id ran exactly once
+    int missing = 0
+    int j = 1
+    while j <= taskCount do
+        if not g_executed[j] then
+            missing = missing + 1
+        end
+        j = j + 1
+    end
+    check("no missing task id (all g_executed set)", missing == 0)
+
+    // computed results correct per kind (re-read table; read-only now)
+    int badResults = 0
+    int p = 1
+    while p <= taskCount do
+        int kind = g_taskKind[p]
+        if kind == KIND_DOUBLE then
+            if g_results[p] != p * 2 then
+                badResults = badResults + 1
+            end
+        elseif kind == KIND_SQUARE then
+            if g_results[p] != p * p then
+                badResults = badResults + 1
+            end
+        end
+        p = p + 1
+    end
+    check("dispatch results correct (DOUBLE / SQUARE)", badResults == 0)
+
+    println("------------------------------------------------")
+    println("==== worksteal summary ====")
+    println("workers:       ", workers)
+    println("tasks:         ", taskCount)
+    println("local pops:    ", locals)
+    println("steals:        ", steals)
+    println("doneCount:     ", doneCount)
+    println("duplicates:    ", dup)
+    println("missing:       ", missing)
+    println("submit time:   ", string.formatFloat((t1 - t0) * 1000.0, ".2"), "ms")
+    println("total time:    ", string.formatFloat((t2 - t0) * 1000.0, ".2"), "ms")
+    check("stealing actually occurred (steals > 0)", workers == 1 or steals > 0)
+
+    println("passed:", g_pass, " failed:", g_fail)
+    if g_fail == 0 then
+        println("RESULT: OK - work-stealing pool verified")
+        return 0
+    end
+    println("RESULT: FAIL -", g_fail, "check(s) failed")
+    return 1
+end
+
+// ============================== usage / main =============================
+
+func printUsage()
+    println("worksteal - Work-Stealing thread pool (mutex + rwlock + cond)")
+    println("Usage:")
+    println("  worksteal test [workers=4] [tasks=100]")
+    println("Options:")
+    println("  workers   number of worker threads (default 4, max " + string(MAX_WORKERS) + ")")
+    println("  tasks     number of tasks to submit (default 100)")
+    println("Model:")
+    println("  - each worker has its own deque guarded by a mutex")
+    println("  - owner drains its deque from the tail (LIFO)")
+    println("  - idle workers steal from the head of others (FIFO)")
+    println("  - idle workers park on a cond var; submit signals, shutdown broadcasts")
+    println("  - task IDs dispatch through a rwlock-guarded global table")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+    if cmd != "test" then
+        if cmd == "-h" or cmd == "--help" or cmd == "help" then
+            printUsage()
+            return 0
+        end
+        println("Error: unknown command '" + cmd + "'")
+        printUsage()
+        return 1
+    end
+
+    int workers = 4
+    int tasks = 100
+    if arg.length >= 3 then
+        workers = int(arg[2])
+        if workers <= 0 then
+            println("Error: workers must be a positive integer (got '" + string(arg[2]) + "')")
+            return 1
+        end
+        if workers > MAX_WORKERS then
+            println("Error: workers must be <= " + string(MAX_WORKERS) + " (got " + string(workers) + ")")
+            return 1
+        end
+    end
+    if arg.length >= 4 then
+        tasks = int(arg[3])
+        if tasks <= 0 then
+            println("Error: tasks must be a positive integer (got '" + string(arg[3]) + "')")
+            return 1
+        end
+    end
+
+    return runTest(workers, tasks)
+end

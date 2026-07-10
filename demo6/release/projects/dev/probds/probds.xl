@@ -1,0 +1,749 @@
+// probds.xl - 概率数据结构集合 (Bloom Filter + Count-Min Sketch + HyperLogLog)
+//
+// 用法:
+//   probds test              验证三种结构正确性 + 误判率
+//   probds bench [N=1000000] 大规模数据性能压测
+//   probds help | -h         显示帮助
+//
+// 压测点:
+//   * 位运算: Bloom 位压缩 (word = idx>>5, bit = idx&31, |= 1<<bit)；
+//             HLL leading-zero 计数 (逐位扫描)。
+//   * 大量 hash 调用: 每条 key 至少 k 次 hash.u64WithSeed。
+//   * array<int> 大规模读写: 三种结构的核心数组 (10^4 ~ 10^6 量级)。
+//
+// 设计要点 (与 xlang 当前语义/限制对齐):
+//   - 数据载体: 三种结构均为 class，核心数组是 array<int> 字段，方法经 self.field
+//     读写 (避开 BUG-C1: class 方法不能安全接收 array<int> 形参；BUG-C2: 不能直接
+//     return self.field.length —— 全部先落到局部 int 再用)。
+//   - 哈希: 用 hash.u64WithSeed(key, uint64(seed)) 做 double hashing。seed 取两个
+//     不相关的 64-bit 常数；h2==0 时强制为 1 避免退化。
+//   - Bloom 位压缩按 32-bit word (mask 1<<0..1<<31 全为正, 避开 int 符号位陷阱)。
+//   - int 在 xlang 中为 64-bit (probe 验证 1<<31/1<<32 均为正)。
+//   - 测试数据全确定性: 字符串模板 "key-{i}" + 固定 random.seed, 保证 xl run 与
+//     built exe 输出一致。
+//   - 误判率: 实测 false-positive rate 与理论 (1-e^(-kn/m))^k 对照。
+//   - HLL 基数估算含小范围修正 (E <= 2.5m 且有零寄存器时用 m*ln(m/V))。
+
+// ---- 双哈希 seed (64-bit 黄金分割常数, 保证 h1/h2 不相关) ----
+uint64 SEED_H1 = uint64(0x9E3779B97F4A7C15)
+uint64 SEED_H2 = uint64(0xD1B54A32D192ED03)
+
+// ===========================================================================
+// Bloom Filter
+// ===========================================================================
+
+class BloomFilter
+    array<int> bits       // 位压缩数组, 每个 int 存 32 位
+    int mBits             // 总位数
+    int kHash             // 哈希函数个数
+    int nWords            // word 数 = ceil(mBits/32)
+    int count             // 已插入元素数
+
+    // 按期望容量与误判率构造。
+    // m = ceil(-n * ln(p) / ln(2)^2);  k = round(m/n * ln(2))
+    create(int capacity, float fpRate)
+        float ln2 = math.log(2.0)
+        float ln2sq = ln2 * ln2
+        float lnP = math.log(fpRate)
+        int m = int(float(capacity) * (0.0 - lnP) / ln2sq) + 1
+        if m < 32 then m = 32 end
+        int k = int(float(m) / float(capacity) * ln2 + 0.5)
+        if k < 1 then k = 1 end
+        if k > 30 then k = 30 end
+        self.mBits = m
+        self.kHash = k
+        self.nWords = (m + 31) / 32
+        self.count = 0
+        self.bits = []
+        int i = 0
+        while i < self.nWords do
+            self.bits.append(0)
+            i += 1
+        end
+    end
+
+    func setBit(int idx)
+        int word = idx >> 5
+        int bit = idx & 31
+        int v = self.bits[word]
+        self.bits[word] = v | (1 << bit)
+    end
+
+    func getBit(int idx) as bool
+        int word = idx >> 5
+        int bit = idx & 31
+        int v = self.bits[word]
+        return (v & (1 << bit)) != 0
+    end
+
+    // 用 double hashing 计算 k 个位下标并写入。h_i = (h1 + i*h2) mod m
+    func add(string key)
+        uint64 mm = uint64(self.mBits)
+        uint64 h1 = hash.u64WithSeed(key, SEED_H1)
+        uint64 h2 = hash.u64WithSeed(key, SEED_H2)
+        if h2 == 0 then
+            h2 = 1
+        end
+        int i = 0
+        while i < self.kHash do
+            uint64 pos = (h1 + uint64(i) * h2) % mm
+            int idx = int(pos)
+            self.setBit(idx)
+            i += 1
+        end
+        self.count = self.count + 1
+    end
+
+    // 任一位为 0 => 一定不存在 (无假阴性)
+    func contains(string key) as bool
+        uint64 mm = uint64(self.mBits)
+        uint64 h1 = hash.u64WithSeed(key, SEED_H1)
+        uint64 h2 = hash.u64WithSeed(key, SEED_H2)
+        if h2 == 0 then
+            h2 = 1
+        end
+        int i = 0
+        while i < self.kHash do
+            uint64 pos = (h1 + uint64(i) * h2) % mm
+            int idx = int(pos)
+            if not self.getBit(idx) then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+
+    // 理论误判率: (1 - e^(-kn/m))^k
+    func estimatedFPR() as float
+        float kf = float(self.kHash)
+        float nf = float(self.count)
+        float mf = float(self.mBits)
+        float x = 0.0 - kf * nf / mf
+        float e = math.exp(x)
+        float inner = 1.0 - e
+        if inner < 0.0 then inner = 0.0 end
+        float r = 1.0
+        int i = 0
+        while i < self.kHash do
+            r = r * inner
+            i += 1
+        end
+        return r
+    end
+
+    func stats() as string
+        int nz = 0
+        int i = 0
+        while i < self.nWords do
+            if self.bits[i] != 0 then nz += 1 end
+            i += 1
+        end
+        string s = "BloomFilter m=" + string(self.mBits) + " k=" + string(self.kHash)
+        s = s + " words=" + string(self.nWords) + " count=" + string(self.count)
+        s = s + " nonzeroWords=" + string(nz)
+        s = s + " estFPR=" + string.formatFloat(self.estimatedFPR(), ".6")
+        return s
+    end
+end
+
+// ===========================================================================
+// Count-Min Sketch
+// ===========================================================================
+
+class CountMinSketch
+    array<int> counters    // depth*width 扁平存储
+    int depth              // 行数 (哈希函数数)
+    int width             // 列数
+    int total             // 所有 update 的 count 累计
+    array<string> seenKeys // 已见 key (heavy hitters 用)
+    bool tracking          // 是否跟踪 key 集合
+
+    create(int depth, int width)
+        self.depth = depth
+        self.width = width
+        self.total = 0
+        self.tracking = false
+        self.counters = []
+        self.seenKeys = []
+        int n = depth * width
+        int i = 0
+        while i < n do
+            self.counters.append(0)
+            i += 1
+        end
+    end
+
+    func enableTracking()
+        self.tracking = true
+    end
+
+    // row r 用 seed = r+1 的哈希; idx = hash % width
+    func update(string key, int c)
+        int base = 0
+        int r = 0
+        while r < self.depth do
+            uint64 h = hash.u64WithSeed(key, uint64(r + 1))
+            int idx = int(h % uint64(self.width))
+            int p = base + idx
+            int v = self.counters[p]
+            self.counters[p] = v + c
+            base = base + self.width
+            r += 1
+        end
+        self.total = self.total + c
+        if self.tracking then
+            if not self.seenKeys.contains(key) then
+                self.seenKeys.append(key)
+            end
+        end
+    end
+
+    // 估计值 = min over rows (上界, 永远 >= 真实值)
+    func estimate(string key) as int
+        int base = 0
+        int best = 0
+        int r = 0
+        while r < self.depth do
+            uint64 h = hash.u64WithSeed(key, uint64(r + 1))
+            int idx = int(h % uint64(self.width))
+            int v = self.counters[base + idx]
+            if r == 0 then
+                best = v
+            elseif v < best then
+                best = v
+            end
+            base = base + self.width
+            r += 1
+        end
+        return best
+    end
+
+    // 返回 heavy hitters (估计值 >= threshold 的 key), 按估计值降序
+    func heavyHitters(int threshold) as array<string>
+        array<string> keys
+        array<int> vals
+        int i = 0
+        int n = self.seenKeys.length
+        while i < n do
+            string k = self.seenKeys[i]
+            int est = self.estimate(k)
+            if est >= threshold then
+                keys.append(k)
+                vals.append(est)
+            end
+            i += 1
+        end
+        // 选择排序 (按 val 降序)
+        int m = keys.length
+        int a = 0
+        while a < m do
+            int best = a
+            int b = a + 1
+            while b < m do
+                if vals[b] > vals[best] then best = b end
+                b += 1
+            end
+            if best != a then
+                string tk = keys[a]; keys[a] = keys[best]; keys[best] = tk
+                int tv = vals[a]; vals[a] = vals[best]; vals[best] = tv
+            end
+            a += 1
+        end
+        return keys
+    end
+
+    func stats() as string
+        string s = "CountMinSketch depth=" + string(self.depth)
+        s = s + " width=" + string(self.width)
+        s = s + " cells=" + string(self.depth * self.width)
+        s = s + " total=" + string(self.total)
+        int sk = self.seenKeys.length
+        s = s + " seenKeys=" + string(sk)
+        return s
+    end
+end
+
+// ===========================================================================
+// HyperLogLog
+// ===========================================================================
+
+// 计算 width-bit 窗口内的 leading-zero+1 (即最左 1 的位置, 从 1 编号)
+func hllRho(uint64 w, int width) as int
+    if w == 0 then
+        return width + 1
+    end
+    int b = width - 1
+    while b >= 0 do
+        uint64 mask = uint64(1) << b
+        if (w & mask) != 0 then
+            return width - b
+        end
+        b -= 1
+    end
+    return width + 1
+end
+
+class HyperLogLog
+    array<int> regs       // 寄存器数组, 长度 m = 2^p
+    int p                 // 精度参数 (index 位数)
+    int m                 // 寄存器数 = 2^p
+    int wBits             // 剩余位数 = 64 - p
+    uint64 wMask          // 低 (64-p) 位掩码 (用于提取 w 窗口)
+
+    create(int p)
+        self.p = p
+        int mm = 1
+        int i = 0
+        while i < p do
+            mm = mm * 2
+            i += 1
+        end
+        self.m = mm
+        self.wBits = 64 - p
+        // 低 wBits 位掩码: (1 << wBits) - 1。int 在 xlang 是 64-bit, 1<<50 安全。
+        int maskBits = 1
+        int k = 0
+        while k < self.wBits do
+            maskBits = maskBits * 2
+            k += 1
+        end
+        self.wMask = uint64(maskBits - 1)
+        self.regs = []
+        int j = 0
+        while j < self.m do
+            self.regs.append(0)
+            j += 1
+        end
+    end
+
+    // idx = hash 的高 p 位 = hash >> (64-p); w = 低 (64-p) 位
+    func add(uint64 h)
+        int shift = self.wBits
+        int idx = int(h >> shift)
+        uint64 w = h & self.wMask
+        int r = hllRho(w, self.wBits)
+        int cur = self.regs[idx]
+        if r > cur then
+            self.regs[idx] = r
+        end
+    end
+
+    // 用字符串 key 的 u64 哈希加入
+    func addKey(string key)
+        self.add(hash.u64(key))
+    end
+
+    // 2^(-r) via math.pow
+    func pow2neg(int r) as float
+        return 1.0 / math.pow(2.0, float(r))
+    end
+
+    // 基数估算 (含小范围修正)
+    func count() as float
+        float alpha = 0.7213 / (1.0 + 1.079 / float(self.m))
+        float s = 0.0
+        int zeros = 0
+        int i = 0
+        while i < self.m do
+            int r = self.regs[i]
+            s = s + self.pow2neg(r)
+            if r == 0 then zeros += 1 end
+            i += 1
+        end
+        float m2 = float(self.m)
+        float est = alpha * m2 * m2 / s
+        // 小范围修正
+        if est <= 2.5 * m2 and zeros > 0 then
+            est = m2 * math.log(m2 / float(zeros))
+        end
+        return est
+    end
+
+    // 合并另一个 HLL (per-register max)
+    func merge(HyperLogLog other)
+        int i = 0
+        while i < self.m do
+            int ov = other.regs[i]
+            int cv = self.regs[i]
+            if ov > cv then
+                self.regs[i] = ov
+            end
+            i += 1
+        end
+    end
+
+    func stats() as string
+        int zeros = 0
+        int i = 0
+        while i < self.m do
+            if self.regs[i] == 0 then zeros += 1 end
+            i += 1
+        end
+        string s = "HyperLogLog p=" + string(self.p) + " m=" + string(self.m)
+        s = s + " zeroRegs=" + string(zeros)
+        s = s + " estimate=" + string.formatFloat(self.count(), ".1")
+        return s
+    end
+end
+
+// ===========================================================================
+// 辅助: 生成确定性 key
+// ===========================================================================
+
+func makeKey(int i) as string
+    return "key-" + string(i)
+end
+
+func makeKey2(string prefix, int i) as string
+    return prefix + "-" + string(i)
+end
+
+// ===========================================================================
+// test 命令: 验证三种结构正确性 + 误判率
+// ===========================================================================
+
+int g_fail = 0
+
+func check(bool cond, string label)
+    if cond then
+        println("  [OK]   " + label)
+    else
+        println("  [FAIL] " + label)
+        g_fail = g_fail + 1
+    end
+end
+
+func section(string title)
+    println("")
+    println("=== " + title + " ===")
+end
+
+func testBloom() as int
+    section("Bloom Filter")
+    int cap = 10000
+    BloomFilter bf = BloomFilter(cap, 0.01)
+    println("  " + bf.stats())
+
+    // 插入 10000 个 key
+    int i = 0
+    while i < cap do
+        bf.add(makeKey2("in", i))
+        i += 1
+    end
+    println("  inserted " + string(bf.count) + " keys")
+    println("  " + bf.stats())
+
+    // 验证: 已插入的 key 全部命中 (无假阴性)
+    int falseNeg = 0
+    int j = 0
+    while j < cap do
+        if not bf.contains(makeKey2("in", j)) then falseNeg += 1 end
+        j += 1
+    end
+    check(falseNeg == 0, "no false negatives: 0/" + string(falseNeg))
+
+    // 验证: 未插入的 key 测量假阳性率
+    int falsePos = 0
+    int k = 0
+    while k < cap do
+        if bf.contains(makeKey2("out", k)) then falsePos += 1 end
+        k += 1
+    end
+    float measuredFPR = float(falsePos) / float(cap)
+    float theoryFPR = bf.estimatedFPR()
+    println("  measured FPR = " + string(falsePos) + "/" + string(cap) + " = " + string.formatFloat(measuredFPR, ".5"))
+    println("  theory   FPR = " + string.formatFloat(theoryFPR, ".5"))
+    // 实测应在理论值附近 (允许 3x 容差, 概率结构有方差)
+    check(measuredFPR < theoryFPR * 3.0, "FPR within 3x of theory")
+    check(measuredFPR > 0.0, "some false positives observed (Bloom is probabilistic)")
+
+    // 重复 add 不影响 (幂等)
+    bf.add(makeKey2("in", 0))
+    check(bf.contains(makeKey2("in", 0)), "re-add keeps key present")
+    return 0
+end
+
+func testCMS() as int
+    section("Count-Min Sketch")
+    CountMinSketch cms = CountMinSketch(5, 10000)
+    cms.enableTracking()
+    println("  " + cms.stats())
+
+    // 已知计数: key-i 出现 (i % 100 + 1) 次
+    int n = 5000
+    int i = 0
+    while i < n do
+        int c = (i % 100) + 1
+        cms.update(makeKey(i), c)
+        i += 1
+    end
+    println("  updated " + string(n) + " keys")
+    println("  " + cms.stats())
+
+    // estimate >= 真实值 (永远上界)
+    // key-50 真实计数 = 51; key-99 真实 = 100
+    int e50 = cms.estimate(makeKey(50))
+    int e99 = cms.estimate(makeKey(99))
+    int eMissing = cms.estimate(makeKey2("missing", 0))
+    println("  estimate(key-50) = " + string(e50) + " (true=51)")
+    println("  estimate(key-99) = " + string(e99) + " (true=100)")
+    println("  estimate(missing) = " + string(eMissing) + " (true=0)")
+    check(e50 >= 51, "estimate(key-50) >= true count (51)")
+    check(e99 >= 100, "estimate(key-99) >= true count (100)")
+    check(e99 - 100 < 50, "estimate(key-99) overestimate < 50 (within bounds)")
+    check(eMissing == 0, "estimate(missing key) == 0")
+
+    // heavy hitters: 阈值 80, 应包含 key-79..key-99 (true count 80..100)
+    // 注意 CMS 是概率结构: 碰撞会让某些低计数 key 的估计被抬高, 故不保证排序后
+    // 第一个就是真实计数最高的 key-99; 但 key-99 估计必 >= 100, 一定在列表里。
+    array<string> hh = cms.heavyHitters(80)
+    int topEst = cms.estimate(hh[0])
+    bool has99 = hh.contains(makeKey(99))
+    println("  heavy hitters (>=80): " + string(hh.length) + " keys; top=" + hh[0] + " est=" + string(topEst))
+    check(hh.length >= 20, "heavy hitters count >= 20 (true counts 80..100)")
+    check(has99, "key-99 (true count 100) present in heavy hitters")
+    check(topEst < 200, "top estimate bounded (< 200, no runaway inflation)")
+
+    // 重复 update 累加
+    cms.update(makeKey(50), 10)
+    int e50b = cms.estimate(makeKey(50))
+    check(e50b >= 61, "after +10, estimate(key-50) >= 61")
+    return 0
+end
+
+func testHLL() as int
+    section("HyperLogLog")
+    HyperLogLog hll = HyperLogLog(14)
+    println("  " + hll.stats())
+
+    // 加入 10000 个不同 key 的哈希
+    int n = 10000
+    int i = 0
+    while i < n do
+        hll.addKey(makeKey(i))
+        i += 1
+    end
+    float est = hll.count()
+    println("  after " + string(n) + " distinct keys, estimate = " + string.formatFloat(est, ".1"))
+    // HLL 标准误差 ~0.8% (p=14); 10% 容差非常宽松
+    float err = (est - float(n)) / float(n)
+    if err < 0.0 then err = 0.0 - err end
+    check(err < 0.10, "cardinality estimate within 10% (actual err=" + string.formatFloat(err * 100.0, ".2") + "%)")
+
+    // 重复加入相同 key 不改变基数
+    int j = 0
+    while j < n do
+        hll.addKey(makeKey(j))
+        j += 1
+    end
+    float est2 = hll.count()
+    check(int(est2) == int(est), "duplicates do not change cardinality")
+
+    // merge 测试: 两个各 5000 不同 key 的 HLL 合并后 ≈ 10000
+    HyperLogLog a = HyperLogLog(14)
+    HyperLogLog b = HyperLogLog(14)
+    int x = 0
+    while x < 5000 do
+        a.addKey(makeKey2("a", x))
+        x += 1
+    end
+    int y = 0
+    while y < 5000 do
+        b.addKey(makeKey2("b", y))
+        y += 1
+    end
+    float ea = a.count()
+    float eb = b.count()
+    a.merge(b)
+    float em = a.count()
+    println("  merge: A=" + string.formatFloat(ea, ".0") + " B=" + string.formatFloat(eb, ".0") + " merged=" + string.formatFloat(em, ".0"))
+    float merr = (em - 10000.0) / 10000.0
+    if merr < 0.0 then merr = 0.0 - merr end
+    check(merr < 0.10, "merged cardinality within 10% of 10000")
+    return 0
+end
+
+func cmdTest() as int
+    println("probds - correctness verification")
+    println("================================================================")
+    g_fail = 0
+    testBloom()
+    testCMS()
+    testHLL()
+    println("================================================================")
+    if g_fail == 0 then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println(string(g_fail) + " CHECK(S) FAILED")
+    return 1
+end
+
+// ===========================================================================
+// bench 命令: 大规模数据性能压测
+// ===========================================================================
+
+float g_sink = 0.0
+
+func reportMs(string name, int n, float elapsed)
+    float ms = elapsed * 1000.0
+    float usPerOp = 0.0
+    float opsPerSec = 0.0
+    if elapsed > 0.0 then
+        usPerOp = elapsed * 1000000.0 / float(n)
+        opsPerSec = float(n) / elapsed
+    end
+    string line = "  " + string.padRight(name, 22)
+    line = line + "n=" + string.formatInt(n, ",")
+    line = line + "  time=" + string.formatFloat(ms, ".1") + " ms"
+    line = line + "  " + string.formatFloat(usPerOp, ".3") + " us/op"
+    line = line + "  " + string.formatInt(int(opsPerSec), ",") + " ops/sec"
+    println(line)
+end
+
+func benchBloom(int n) as float
+    BloomFilter bf = BloomFilter(n, 0.01)
+    // 预热: 先插入
+    float t0 = time.timer()
+    int i = 0
+    while i < n do
+        bf.add(makeKey(i))
+        i += 1
+    end
+    float t1 = time.timer()
+    reportMs("Bloom.add", n, t1 - t0)
+    // contains (hit)
+    float t2 = time.timer()
+    int hits = 0
+    int j = 0
+    while j < n do
+        if bf.contains(makeKey(j)) then hits += 1 end
+        j += 1
+    end
+    float t3 = time.timer()
+    reportMs("Bloom.contains(hit)", n, t3 - t2)
+    // contains (miss)
+    float t4 = time.timer()
+    int miss = 0
+    int k = 0
+    while k < n do
+        if bf.contains(makeKey2("miss", k)) then miss += 1 end
+        k += 1
+    end
+    float t5 = time.timer()
+    reportMs("Bloom.contains(miss)", n, t5 - t4)
+    g_sink = g_sink + float(hits) + float(miss) + bf.estimatedFPR()
+    println("  [stats] " + bf.stats())
+    return t5 - t0
+end
+
+func benchCMS(int n) as float
+    CountMinSketch cms = CountMinSketch(5, 20000)
+    float t0 = time.timer()
+    int i = 0
+    while i < n do
+        cms.update(makeKey(i), 1)
+        i += 1
+    end
+    float t1 = time.timer()
+    reportMs("CMS.update", n, t1 - t0)
+    float t2 = time.timer()
+    int sum = 0
+    int j = 0
+    while j < n do
+        sum += cms.estimate(makeKey(j))
+        j += 1
+    end
+    float t3 = time.timer()
+    reportMs("CMS.estimate", n, t3 - t2)
+    g_sink = g_sink + float(sum) + float(cms.total)
+    println("  [stats] " + cms.stats())
+    return t3 - t0
+end
+
+func benchHLL(int n) as float
+    HyperLogLog hll = HyperLogLog(14)
+    float t0 = time.timer()
+    int i = 0
+    while i < n do
+        hll.addKey(makeKey(i))
+        i += 1
+    end
+    float t1 = time.timer()
+    reportMs("HLL.addKey", n, t1 - t0)
+    float t2 = time.timer()
+    float est = hll.count()
+    float t3 = time.timer()
+    reportMs("HLL.count", 1, t3 - t2)
+    g_sink = g_sink + est
+    int nz = hll.m
+    int z = 0
+    int k = 0
+    while k < nz do
+        if hll.regs[k] == 0 then z += 1 end
+        k += 1
+    end
+    println("  [stats] " + hll.stats() + " estimate=" + string.formatFloat(est, ".0") + " zeroRegs=" + string(z))
+    return t3 - t0
+end
+
+func cmdBench(int n) as int
+    println("probds - benchmark (n=" + string.formatInt(n, ",") + " per structure)")
+    println("================================================================")
+    benchBloom(n)
+    println("----------------------------------------------------------------")
+    benchCMS(n)
+    println("----------------------------------------------------------------")
+    benchHLL(n)
+    println("================================================================")
+    println("checksum " + string.formatFloat(g_sink, ".3"))
+    return 0
+end
+
+// ===========================================================================
+// main
+// ===========================================================================
+
+func printUsage()
+    println("probds - probabilistic data structures (Bloom + CountMin + HyperLogLog)")
+    println("usage:")
+    println("  probds test              verify correctness + measure error rates")
+    println("  probds bench [N]         large-scale performance benchmark (default N=1000000)")
+    println("  probds help | -h         show this help")
+end
+
+func main(...) as int
+    // 固定随机种子, 保证 xl run 与 built exe 输出一致
+    random.seed(uint64(20260710), uint64(1))
+
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    if cmd == "bench" then
+        int n = 1000000
+        if arg.length >= 3 then
+            n = int(arg[2])
+            if n < 1 then n = 1000000 end
+        end
+        return cmdBench(n)
+    end
+
+    println("probds: unknown command: " + cmd)
+    println("")
+    printUsage()
+    return 1
+end

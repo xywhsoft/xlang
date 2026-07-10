@@ -1,0 +1,32 @@
+// example.xrepl - xrepl 演示脚本
+// 变量持久化、表达式、声明、函数定义、控制流、错误处理
+
+1 + 2
+auto a = 10
+auto b = 20
+a + b
+a * b
+auto s = "hello"
+string.len(s)
+string.upper(s)
+auto arr = [1, 2, 3, 4, 5]
+arr.length
+arr[0] + arr[4]
+
+func square(int n) as int
+    return n * n
+end
+
+square(6)
+square(a)
+
+auto total = 0
+for x in arr
+    total = total + x
+end
+println("sum = " + string(total))
+
+string.lower("XYZ")
+
+// 这一行会报错：字符串没有 .length 属性（应用 string.len）
+"oops".length

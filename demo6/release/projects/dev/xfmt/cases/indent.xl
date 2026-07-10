@@ -1,0 +1,7 @@
+func g(int n) as int
+    if n > 0 then
+        return n
+    else
+        return -n
+    end
+end

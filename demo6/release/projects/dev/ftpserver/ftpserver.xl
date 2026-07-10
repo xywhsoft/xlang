@@ -1,0 +1,956 @@
+// ftpserver - minimal but real FTP server (command channel + PASV data channel)
+//
+// Usage:
+//   ftpserver                        -> self-test (boot server + simulate client, report)
+//   ftpserver test                   -> same self-test
+//   ftpserver serve <port> [rootdir] -> serve forever on port (default 12121)
+//   ftpserver -h | --help            -> usage
+//
+// Implements (RFC 959 subset):
+//   USER / PASS / QUIT / PWD / CWD / CDUP / LIST / RETR / STOR / DELE / MKD /
+//   RMD / TYPE / SYST / NOOP / PASV
+//
+// Stress points exercised:
+//   * TCP dual connection: blocking command channel + per-transfer PASV data channel.
+//   * FTP protocol state machine: connected -> USER -> PASS(auth) -> commands -> QUIT.
+//   * File I/O: LIST (dir.entries), RETR (file.readBytes), STOR (file.writeBytes),
+//     DELE/MKD/RMD, with virtual-path root confinement.
+//
+// Design constraints honored (see dev/README.md "当前限制" + dev/BUGS.md):
+//   * TcpStream/TcpServer are native-backed. Verified this session that a
+//     TcpStream CAN be passed by value to a helper (the handle survives the
+//     call; BUG-HD1's "作函数参数传入 OK" holds) — so sendLine/recvLine/
+//     sendBytesRetry take TcpStream directly. However a class must NEVER be
+//     re-wrapped twice from the same point: probing showed that double-wrapping
+//     the same handle corrupts the XRT heap (0xC0000374). So each accepted
+//     handle is wrapped exactly once, for its whole lifetime.
+//   * PASV data channel: ONE persistent TcpServer listener per client session,
+//     created up front and reused for every transfer. PASV just reports its
+//     port; the actual accept happens lazily when LIST/RETR/STOR arrives (by
+//     then the client has connected). This avoids (a) re-wrap heap corruption
+//     from recreating the listener per PASV, and (b) starving the command
+//     channel by blocking in accept inside the PASV handler.
+//   * BUG-FTP1 (found this session): a server's FIRST stream.send/sendBytes
+//     immediately after TcpServer.accept() returns false and the bytes are
+//     lost (the peer never sees them). A short retry loop (5ms gaps, ~30 tries)
+//     reliably lands the send. Hits the FTP "220 welcome" path (server speaks
+//     first) and every server->client data transfer. See sendRetry /
+//     sendBytesRetry.
+//   * BUG-FTP2 (found this session): TcpStream.close() is ABORTIVE — it
+//     discards the socket's not-yet-acked send buffer (RST). drain() only waits
+//     for the local buffer to empty into the OS, NOT for peer receipt, so
+//     send+drain+close can still lose data at the peer. Worked around with a
+//     short DATA_CLOSE_DELAY sleep after drain, before close, so the kernel
+//     delivers the bytes first. Affects every transfer that uses
+//     close-as-EOF (the standard TCP pattern).
+//   * BUG-CE1: never `var + string`. All reply builders use string(...) coercion
+//     before concatenation.
+//   * BUG-RT5: no local variable shadows stdlib namespaces (dir/path/time/file).
+//   * BUG-XT3: global mutable scalars only (gRootDir, gTestPort, gPassed, gFailed);
+//     no global containers are rebound at runtime.
+//   * BUG-S1 / int(): defensive parsing of the 227 reply and command verbs.
+
+const int DEFAULT_PORT = 12121
+const int CMD_RECV_TIMEOUT = 60000      // command-channel idle read timeout
+const int PASV_ACCEPT_TIMEOUT = 15000   // wait for client to connect data port
+const int DATA_RECV_TIMEOUT = 30000     // STOR: per-chunk read timeout
+const int CLIENT_RECV_TIMEOUT = 8000    // self-test client read timeout
+const int SEND_RETRY_TRIES = 30         // first-send-after-accept retry count
+const int SEND_RETRY_GAP = 5            // ms between send retries
+const int DATA_CLOSE_DELAY = 300        // ms: let OS deliver data before abortive close
+                                         // (XRT close() is abortive and discards unacked
+                                         // send buffer; a short sleep lets the receiver
+                                         // drain the kernel buffer first. BUG-FTP2.)
+
+point ZERO                             // default-initialized point; failed connect/accept returns this
+
+// ---- global scalars (safe across threads; BUG-XT3 only hits containers) ----
+string gRootDir = ""                   // absolute filesystem root, set once before serving
+int gTestPort = 0                      // port the self-test server listens on
+string gTestRoot = ""                  // temp root used by self-test
+int gPassed = 0
+int gFailed = 0
+bool gVerbose = true
+
+
+// ============================================================
+// self-test accounting
+// ============================================================
+func check(bool cond, string name, string detail)
+    if cond then
+        gPassed = gPassed + 1
+        if gVerbose then
+            println("  [ PASS ] " + name)
+        end
+    else
+        gFailed = gFailed + 1
+        println("  [ FAIL ] " + name + "  " + detail)
+    end
+end
+
+
+// ============================================================
+// pure string / path helpers (no native-backed classes)
+// ============================================================
+
+// Resolve an FTP virtual path (cwd + arg) to a normalized virtual path rooted
+// at "/". ".." is clamped at the root so it can never escape (defense-in-depth
+// with the later root-prefix check). Examples:
+//   cwd="/a", arg="b"      -> "/a/b"
+//   cwd="/a/b", arg=".."   -> "/a"
+//   cwd="/a", arg="/x/y"   -> "/x/y"
+//   cwd="/", arg="../esc"  -> "/esc"   (clamped)
+func resolveVirtual(string cwd, string arg) as string
+    string base
+    if string.startsWith(arg, "/") then
+        base = arg
+    elseif cwd == "/" then
+        base = "/" + arg
+    else
+        base = cwd + "/" + arg
+    end
+    var parts = string.split(base, "/")
+    var segs = []
+    int i = 0
+    while i < parts.length do
+        string seg = string(parts[i])
+        if seg == "" or seg == "." then
+            // skip empty (leading/double slash) and "."
+        elseif seg == ".." then
+            int n = segs.length
+            if n > 0 then
+                segs.remove(n - 1)
+            end
+        else
+            segs.push(seg)
+        end
+        i = i + 1
+    end
+    string result = ""
+    int j = 0
+    while j < segs.length do
+        result = result + "/" + string(segs[j])
+        j = j + 1
+    end
+    if result == "" then
+        return "/"
+    end
+    return result
+end
+
+// Map a virtual path to a filesystem path under rootAbs.
+func virtualToFs(string rootAbs, string vpath) as string
+    if vpath == "/" then
+        return rootAbs
+    end
+    int vlen = string.len(vpath)
+    string rel = string.slice(vpath, 1, vlen - 1)
+    return path.join(rootAbs, rel)
+end
+
+// Defense-in-depth: ensure fs path is still under root after normalization.
+func underRoot(string rootAbs, string fsPath) as bool
+    string norm = path.normalize(fsPath)
+    return string.startsWith(norm, rootAbs)
+end
+
+// Format an FTP directory listing (ls -l-ish) from dir.entries.
+func formatList(string fsDir) as string
+    var entries = dir.entries(fsDir, false)
+    string result = ""
+    int i = 0
+    while i < entries.length do
+        var e = entries[i]
+        string name = string(e["name"])
+        bool isDir = bool(e["isDir"])
+        int sz = int(e["size"])
+        string typ = isDir ? "d" : "-"
+        string perm = isDir ? "rwxr-xr-x" : "rw-r--r--"
+        string szStr = string.padLeft(string(sz), 10, " ")
+        string line = typ + perm + " 1 ftp ftp " + szStr + " Jan 01 00:00 " + name
+        result = result + line + "\r\n"
+        i = i + 1
+    end
+    return result
+end
+
+// Parse "227 Entering Passive Mode (h1,h2,h3,h4,p1,p2)." -> port number.
+func parsePasvPort(string reply) as int
+    int lp = string.indexOf(reply, "(")
+    int rp = string.indexOf(reply, ")")
+    if lp < 0 or rp < 0 or rp <= lp then
+        return 0
+    end
+    string inner = string.slice(reply, lp + 1, rp - (lp + 1))
+    var nums = string.split(inner, ",")
+    if nums.length < 6 then
+        return 0
+    end
+    int p1 = int(nums[4])
+    int p2 = int(nums[5])
+    return p1 * 256 + p2
+end
+
+
+// ============================================================
+// TcpStream helpers (TcpStream passed by param; verified safe —
+// the underlying handle survives the call, see probe notes in header)
+// ============================================================
+
+// Retry-send raw text (no CRLF appended). Works around BUG-FTP1 (first send
+// after accept is dropped) and transient full-buffer false returns.
+func sendRetry(TcpStream s, string text) as bool
+    int tries = 0
+    bool ok = false
+    while tries < SEND_RETRY_TRIES and not ok do
+        ok = s.send(text)
+        if not ok then
+            time.sleep(SEND_RETRY_GAP)
+        end
+        tries = tries + 1
+    end
+    if ok then
+        s.drain(5000)
+    end
+    return ok
+end
+
+// Send a single FTP reply line (appends CRLF).
+func sendLine(TcpStream s, string text) as bool
+    return sendRetry(s, text + "\r\n")
+end
+
+// Retry-send raw bytes (for RETR over the data channel).
+func sendBytesRetry(TcpStream s, point data, c_size size) as bool
+    int tries = 0
+    bool ok = false
+    while tries < SEND_RETRY_TRIES and not ok do
+        ok = s.sendBytes(data, size)
+        if not ok then
+            time.sleep(SEND_RETRY_GAP)
+        end
+        tries = tries + 1
+    end
+    if ok then
+        s.drain(15000)
+    end
+    return ok
+end
+
+// Read one CRLF-terminated line. Returns (line, newInbuf, ok).
+// On disconnect/timeout returns ("", inbuf, false).
+func recvLine(TcpStream s, string inbuf, int timeoutMs) as (string, string, bool)
+    while true do
+        int eol = string.indexOf(inbuf, "\r\n")
+        if eol >= 0 then
+            int blen = string.len(inbuf)
+            string line = string.slice(inbuf, 0, eol)
+            string rest = string.slice(inbuf, eol + 2, blen - (eol + 2))
+            return line, rest, true
+        end
+        string chunk = s.recv(timeoutMs)
+        if chunk == "" then
+            return "", inbuf, false
+        end
+        inbuf = inbuf + chunk
+    end
+    return "", inbuf, false
+end
+
+// Convenience: send a command and read its single-line reply.
+func cmdExchange(TcpStream s, string inbuf, string command) as (string, string, bool)
+    if not sendLine(s, command) then
+        return "", inbuf, false
+    end
+    string reply
+    string nb
+    bool ok
+    reply, nb, ok = recvLine(s, inbuf, CLIENT_RECV_TIMEOUT)
+    return reply, nb, ok
+end
+
+
+// ============================================================
+// SERVER: per-client session. point handle passed in; TcpStream
+// constructed exactly once here and used inline for the whole session.
+// ============================================================
+func handleClient(point clientHandle, string peerAddr) as int
+    TcpStream client = TcpStream(clientHandle)
+    string inbuf = ""
+    bool authenticated = false
+    string username = ""
+    string cwd = "/"
+    string typeMode = "I"
+
+    // One persistent passive-mode data listener per client session, created up
+    // front and reused for every PASV transfer. This avoids both (a) the XRT
+    // heap corruption that happens when a TcpServer is re-wrapped over the same
+    // point, and (b) the eager-accept deadlock where blocking in accept inside
+    // the PASV handler starves the command channel. The client connects to
+    // dataListenPort after each PASV; we accept lazily at transfer time, by
+    // which point the client has already connected.
+    point dlp = tcp.listen(0, "127.0.0.1", 4)
+    TcpServer dataListener = TcpServer(dlp)
+    int dataListenPort = dataListener.port()
+    bool dataPending = false        // PASV sent; client should be (connecting to) data port
+
+    // Server speaks first: "220 welcome". This is a first-send-after-accept and
+    // needs the retry loop inside sendLine (BUG-FTP1).
+    if not sendLine(client, "220 xlang FTP server ready.") then
+        return 1
+    end
+    if gVerbose then
+        println("[ftp] " + peerAddr + " connected (data port " + dataListenPort.toString() + ")")
+    end
+
+    while true do
+        string line = ""
+        string nb = ""
+        bool got = false
+        line, nb, got = recvLine(client, inbuf, CMD_RECV_TIMEOUT)
+        inbuf = nb
+        if not got then
+            // client disconnected or idle-timed-out
+            break
+        end
+
+        // split verb + arg on first space
+        string verb = ""
+        string argStr = ""
+        int sp = string.indexOf(line, " ")
+        if sp < 0 then
+            verb = string.upper(string.trim(line))
+        else
+            int llen = string.len(line)
+            verb = string.upper(string.trim(string.slice(line, 0, sp)))
+            argStr = string.trim(string.slice(line, sp + 1, llen - (sp + 1)))
+        end
+
+        if verb == "" then
+            // empty line, ignore
+        elseif verb == "QUIT" then
+            sendLine(client, "221 Goodbye.")
+            break
+        elseif verb == "NOOP" then
+            sendLine(client, "200 NOOP ok.")
+        elseif verb == "SYST" then
+            sendLine(client, "215 UNIX Type: L8")
+        elseif verb == "TYPE" then
+            string t = string.upper(argStr)
+            if string.startsWith(t, "A") then
+                typeMode = "A"
+                sendLine(client, "200 Type set to A.")
+            elseif string.startsWith(t, "I") or string.startsWith(t, "L") then
+                typeMode = "I"
+                sendLine(client, "200 Type set to I.")
+            else
+                sendLine(client, "504 Unsupported type.")
+            end
+        elseif verb == "USER" then
+            username = argStr
+            if username == "" then
+                sendLine(client, "501 Username required.")
+            else
+                sendLine(client, "331 Please specify the password.")
+            end
+        elseif verb == "PASS" then
+            if username == "" then
+                sendLine(client, "503 Login with USER first.")
+            elseif username == "anonymous" or username == "ftp" then
+                authenticated = true
+                sendLine(client, "230 Login successful.")
+            elseif username == "admin" and argStr == "admin" then
+                authenticated = true
+                sendLine(client, "230 Login successful.")
+            else
+                sendLine(client, "530 Login incorrect.")
+            end
+        elseif not authenticated then
+            sendLine(client, "530 Not logged in.")
+        elseif verb == "PWD" then
+            sendLine(client, "257 \"" + cwd + "\" is the current directory.")
+        elseif verb == "CWD" or verb == "CDUP" then
+            string vp = cwd
+            if verb == "CDUP" then
+                vp = resolveVirtual(cwd, "..")
+            else
+                vp = resolveVirtual(cwd, argStr)
+            end
+            string fp = virtualToFs(gRootDir, vp)
+            if dir.exists(fp) and underRoot(gRootDir, fp) then
+                cwd = vp
+                sendLine(client, "250 Directory changed to " + vp + ".")
+            else
+                sendLine(client, "550 Failed to change directory.")
+            end
+        elseif verb == "PASV" then
+            // Report the session data-listener port. The client connects to it
+            // right after reading 227; we accept lazily when the transfer
+            // command (LIST/RETR/STOR) arrives. We must NOT block in accept
+            // here, otherwise the command channel starves (BUG-FTP3, found this
+            // session: eager accept in PASV deadlocks the control connection).
+            int p1 = dataListenPort / 256
+            int p2 = dataListenPort % 256
+            string msg = "227 Entering Passive Mode (127,0,0,1," + p1.toString() + "," + p2.toString() + ")."
+            sendLine(client, msg)
+            dataPending = true
+        elseif verb == "LIST" then
+            if not dataPending then
+                sendLine(client, "425 Use PASV first.")
+            else
+                dataPending = false
+                // Lazily accept the connection the client opened after PASV.
+                point dcp = dataListener.accept(PASV_ACCEPT_TIMEOUT)
+                if dcp == ZERO then
+                    sendLine(client, "425 Cannot open data connection.")
+                else
+                    TcpStream dataStream = TcpStream(dcp)
+                    string vp = cwd
+                    if argStr != "" then
+                        vp = resolveVirtual(cwd, argStr)
+                    end
+                    string fp = virtualToFs(gRootDir, vp)
+                    if not (dir.exists(fp) and underRoot(gRootDir, fp)) then
+                        sendLine(client, "550 No such directory.")
+                    else
+                        sendLine(client, "150 Here comes the directory listing.")
+                        string listing = formatList(fp)
+                        sendRetry(dataStream, listing)
+                        time.sleep(DATA_CLOSE_DELAY)
+                        sendLine(client, "226 Directory send OK.")
+                    end
+                    dataStream.close()
+                end
+            end
+        elseif verb == "RETR" then
+            if not dataPending then
+                sendLine(client, "425 Use PASV first.")
+            elseif argStr == "" then
+                sendLine(client, "501 Missing filename.")
+            else
+                dataPending = false
+                point dcp = dataListener.accept(PASV_ACCEPT_TIMEOUT)
+                if dcp == ZERO then
+                    sendLine(client, "425 Cannot open data connection.")
+                else
+                    TcpStream dataStream = TcpStream(dcp)
+                    string vp = resolveVirtual(cwd, argStr)
+                    string fp = virtualToFs(gRootDir, vp)
+                    if not (file.exists(fp) and underRoot(gRootDir, fp)) then
+                        sendLine(client, "550 Failed to open file.")
+                    else
+                        sendLine(client, "150 Opening BINARY mode data connection.")
+                        Buffer fileBytes = file.readBytes(fp)
+                        sendBytesRetry(dataStream, fileBytes.data(), c_size(fileBytes.len()))
+                        time.sleep(DATA_CLOSE_DELAY)
+                        sendLine(client, "226 Transfer complete.")
+                    end
+                    dataStream.close()
+                end
+            end
+        elseif verb == "STOR" then
+            if not dataPending then
+                sendLine(client, "425 Use PASV first.")
+            elseif argStr == "" then
+                sendLine(client, "501 Missing filename.")
+            else
+                dataPending = false
+                point dcp = dataListener.accept(PASV_ACCEPT_TIMEOUT)
+                if dcp == ZERO then
+                    sendLine(client, "425 Cannot open data connection.")
+                else
+                    TcpStream dataStream = TcpStream(dcp)
+                    string vp = resolveVirtual(cwd, argStr)
+                    string fp = virtualToFs(gRootDir, vp)
+                    if not underRoot(gRootDir, fp) then
+                        sendLine(client, "550 Permission denied.")
+                    elseif dir.exists(fp) then
+                        sendLine(client, "550 Cannot overwrite directory.")
+                    else
+                        sendLine(client, "150 Ok to send data.")
+                        Buffer all = Buffer()
+                        while true do
+                            Buffer chunk = dataStream.recvBytes(DATA_RECV_TIMEOUT)
+                            int clen = chunk.len()
+                            if clen == 0 then
+                                break
+                            end
+                            // Buffer.appendBytes takes (string, c_size); copy byte-wise.
+                            int bi = 0
+                            while bi < clen do
+                                all.appendByte(chunk[bi])
+                                bi = bi + 1
+                            end
+                        end
+                        file.writeBytes(fp, all)
+                        sendLine(client, "226 Transfer complete.")
+                    end
+                    dataStream.close()
+                end
+            end
+        elseif verb == "DELE" then
+            string vp = resolveVirtual(cwd, argStr)
+            string fp = virtualToFs(gRootDir, vp)
+            if file.exists(fp) and underRoot(gRootDir, fp) then
+                if file.delete(fp) then
+                    sendLine(client, "250 File deleted.")
+                else
+                    sendLine(client, "550 Delete failed.")
+                end
+            else
+                sendLine(client, "550 No such file.")
+            end
+        elseif verb == "MKD" then
+            string vp = resolveVirtual(cwd, argStr)
+            string fp = virtualToFs(gRootDir, vp)
+            if not underRoot(gRootDir, fp) then
+                sendLine(client, "550 Permission denied.")
+            elseif dir.exists(fp) then
+                sendLine(client, "550 Already exists.")
+            elseif dir.create(fp) then
+                sendLine(client, "257 \"" + vp + "\" created.")
+            else
+                sendLine(client, "550 Cannot create directory.")
+            end
+        elseif verb == "RMD" then
+            string vp = resolveVirtual(cwd, argStr)
+            string fp = virtualToFs(gRootDir, vp)
+            if not (dir.exists(fp) and underRoot(gRootDir, fp)) then
+                sendLine(client, "550 No such directory.")
+            elseif dir.clean(fp) and dir.delete(fp) then
+                sendLine(client, "250 Directory removed.")
+            else
+                sendLine(client, "550 Cannot remove directory.")
+            end
+        else
+            sendLine(client, "502 Command not implemented.")
+        end
+    end
+
+    if gVerbose then
+        println("[ftp] " + peerAddr + " disconnected")
+    end
+    return 0
+end
+
+
+// ============================================================
+// SELF-TEST: a minimal FTP client that drives the server above.
+// Runs in a worker thread; the server accept loop runs in main.
+// All client TcpStream usage is inline; each data transfer is a
+// self-contained `if true then ... end` block.
+// ============================================================
+func runClientTest() as int
+    // retry-connect: the server thread may not have called listen() yet
+    point cp = ZERO
+    int attempts = 0
+    while cp == ZERO and attempts < 50 do
+        cp = tcp.connect("127.0.0.1", gTestPort, 2000)
+        if cp == ZERO then
+            time.sleep(50)
+        end
+        attempts = attempts + 1
+    end
+    if cp == ZERO then
+        println("  [ FAIL ] client could not connect to server (port " + gTestPort.toString() + ")")
+        gFailed = gFailed + 1
+        return 1
+    end
+
+    TcpStream cmd = TcpStream(cp)
+    string inbuf = ""
+    string reply = ""
+    string nb = ""
+    bool ok = false
+
+    println("")
+    println("================ ftpserver self-test ================")
+    println("connecting to 127.0.0.1:" + gTestPort.toString() + " root=" + gTestRoot)
+
+    // ---- read 220 welcome ----
+    reply, nb, ok = recvLine(cmd, inbuf, CLIENT_RECV_TIMEOUT)
+    inbuf = nb
+    check(ok and string.startsWith(reply, "220"), "1. read 220 welcome", "reply=" + reply)
+
+    // ---- SYST ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "SYST")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "215"), "2. SYST", "reply=" + reply)
+
+    // ---- NOOP ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "NOOP")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "200"), "3. NOOP", "reply=" + reply)
+
+    // ---- command-before-auth rejected ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "PWD")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "530"), "4. PWD before auth -> 530", "reply=" + reply)
+
+    // ---- USER / PASS (anonymous) ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "USER anonymous")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "331"), "5. USER anonymous -> 331", "reply=" + reply)
+    reply, nb, ok = cmdExchange(cmd, inbuf, "PASS anon@")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "230"), "6. PASS -> 230 login", "reply=" + reply)
+
+    // ---- bad login on a second imagined session would need reconnect; test
+    //      wrong PASS path by checking the 530 branch indirectly via unknown user
+    //      is not feasible without reconnect, so skip. ----
+
+    // ---- PWD (now authenticated) ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "PWD")
+    inbuf = nb
+    check(ok and string.contains(reply, "/"), "7. PWD after auth", "reply=" + reply)
+
+    // ---- TYPE I / TYPE A ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "TYPE I")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "200"), "8. TYPE I", "reply=" + reply)
+    reply, nb, ok = cmdExchange(cmd, inbuf, "TYPE A")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "200"), "9. TYPE A", "reply=" + reply)
+
+    // ---- MKD / CWD / PWD / CDUP ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "MKD sub")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "257"), "10. MKD sub", "reply=" + reply)
+    reply, nb, ok = cmdExchange(cmd, inbuf, "CWD sub")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "250"), "11. CWD sub", "reply=" + reply)
+    reply, nb, ok = cmdExchange(cmd, inbuf, "PWD")
+    inbuf = nb
+    check(ok and string.contains(reply, "/sub"), "12. PWD in sub", "reply=" + reply)
+    reply, nb, ok = cmdExchange(cmd, inbuf, "CDUP")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "250"), "13. CDUP", "reply=" + reply)
+    reply, nb, ok = cmdExchange(cmd, inbuf, "PWD")
+    inbuf = nb
+    check(not string.contains(reply, "/sub"), "14. PWD back at root", "reply=" + reply)
+
+    // ---- root confinement: CWD ../../.. should clamp at / ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "CWD ../../..")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "250"), "15. CWD ../../.. clamped", "reply=" + reply)
+    reply, nb, ok = cmdExchange(cmd, inbuf, "PWD")
+    inbuf = nb
+    check(string.contains(reply, "\"/\""), "16. still at root after escape attempt", "reply=" + reply)
+
+    // ---- RETR pre-seeded hello.txt via PASV data channel ----
+    if true then
+        string r; string n2; bool o
+        r, n2, o = cmdExchange(cmd, inbuf, "PASV")
+        inbuf = n2
+        check(o and string.startsWith(r, "227"), "17. PASV", "reply=" + r)
+        int dp = parsePasvPort(r)
+        check(dp > 0, "17b. parse 227 port", "port=" + dp.toString())
+        point dcp = tcp.connect("127.0.0.1", dp, 5000)
+        check(dcp != ZERO, "17c. connect data channel", "")
+        TcpStream data = TcpStream(dcp)
+        r, n2, o = cmdExchange(cmd, inbuf, "RETR hello.txt")
+        inbuf = n2
+        check(o and string.startsWith(r, "150"), "18. RETR hello.txt -> 150", "reply=" + r)
+        Buffer got = Buffer()
+        while true do
+            Buffer d = data.recvBytes(5000)
+            int dl = d.len()
+            if dl == 0 then
+                break
+            end
+            int bi = 0
+            while bi < dl do
+                got.appendByte(d[bi])
+                bi = bi + 1
+            end
+        end
+        data.close()
+        r, n2, o = recvLine(cmd, inbuf, CLIENT_RECV_TIMEOUT)
+        inbuf = n2
+        check(o and string.startsWith(r, "226"), "19. RETR -> 226", "reply=" + r)
+        check(string.contains(got.text(), "hello ftp"), "20. RETR content matches", "got='" + got.text() + "'")
+    end
+
+    // ---- RETR without PASV -> 425 (data conn guard) ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "RETR nope.txt")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "425"), "21. RETR without PASV -> 425", "reply=" + reply)
+
+    // ---- STOR upload.txt, then RETR it back (round-trip) ----
+    if true then
+        string r; string n2; bool o
+        r, n2, o = cmdExchange(cmd, inbuf, "PASV")
+        inbuf = n2
+        check(o and string.startsWith(r, "227"), "22. PASV (STOR)", "reply=" + r)
+        int dp = parsePasvPort(r)
+        point dcp = tcp.connect("127.0.0.1", dp, 5000)
+        check(dcp != ZERO, "22b. connect data channel", "")
+        TcpStream data = TcpStream(dcp)
+        r, n2, o = cmdExchange(cmd, inbuf, "STOR upload.txt")
+        inbuf = n2
+        check(o and string.startsWith(r, "150"), "23. STOR upload.txt -> 150", "reply=" + r)
+        // client sends known bytes then closes data socket to signal EOF.
+        // Sleep before close: XRT close() is abortive and would discard the
+        // just-buffered send (BUG-FTP2).
+        Buffer payload = Buffer()
+        payload.append("uploaded by ftp server!")
+        bool sent = data.sendBytes(payload.data(), c_size(payload.len()))
+        data.drain(5000)
+        time.sleep(DATA_CLOSE_DELAY)
+        data.close()
+        check(sent, "23b. client sendBytes", "")
+        r, n2, o = recvLine(cmd, inbuf, CLIENT_RECV_TIMEOUT)
+        inbuf = n2
+        check(o and string.startsWith(r, "226"), "24. STOR -> 226", "reply=" + r)
+        // verify file landed on disk
+        string upath = virtualToFs(gTestRoot, "/upload.txt")
+        check(file.exists(upath), "24b. STOR file exists on disk", "path=" + upath)
+        check(file.readText(upath) == "uploaded by ftp server!", "24c. STOR disk content matches", "got='" + file.readText(upath) + "'")
+    end
+
+    // ---- RETR the just-uploaded file via a fresh PASV ----
+    if true then
+        string r; string n2; bool o
+        r, n2, o = cmdExchange(cmd, inbuf, "PASV")
+        inbuf = n2
+        check(o and string.startsWith(r, "227"), "25. PASV (RETR upload)", "reply=" + r)
+        int dp = parsePasvPort(r)
+        point dcp = tcp.connect("127.0.0.1", dp, 5000)
+        TcpStream data = TcpStream(dcp)
+        r, n2, o = cmdExchange(cmd, inbuf, "RETR upload.txt")
+        inbuf = n2
+        check(o and string.startsWith(r, "150"), "26. RETR upload.txt -> 150", "reply=" + r)
+        Buffer got = Buffer()
+        while true do
+            Buffer d = data.recvBytes(5000)
+            int dl = d.len()
+            if dl == 0 then
+                break
+            end
+            int bi = 0
+            while bi < dl do
+                got.appendByte(d[bi])
+                bi = bi + 1
+            end
+        end
+        data.close()
+        r, n2, o = recvLine(cmd, inbuf, CLIENT_RECV_TIMEOUT)
+        inbuf = n2
+        check(o and string.startsWith(r, "226"), "27. RETR upload -> 226", "reply=" + r)
+        check(got.text() == "uploaded by ftp server!", "28. RETR upload round-trip matches", "got='" + got.text() + "'")
+    end
+
+    // ---- LIST root via PASV (should include hello.txt + upload.txt) ----
+    if true then
+        string r; string n2; bool o
+        r, n2, o = cmdExchange(cmd, inbuf, "PASV")
+        inbuf = n2
+        check(o and string.startsWith(r, "227"), "29. PASV (LIST)", "reply=" + r)
+        int dp = parsePasvPort(r)
+        point dcp = tcp.connect("127.0.0.1", dp, 5000)
+        TcpStream data = TcpStream(dcp)
+        r, n2, o = cmdExchange(cmd, inbuf, "LIST")
+        inbuf = n2
+        check(o and string.startsWith(r, "150"), "30. LIST -> 150", "reply=" + r)
+        Buffer listing = Buffer()
+        while true do
+            Buffer d = data.recvBytes(5000)
+            int dl = d.len()
+            if dl == 0 then
+                break
+            end
+            int bi = 0
+            while bi < dl do
+                listing.appendByte(d[bi])
+                bi = bi + 1
+            end
+        end
+        data.close()
+        r, n2, o = recvLine(cmd, inbuf, CLIENT_RECV_TIMEOUT)
+        inbuf = n2
+        check(o and string.startsWith(r, "226"), "31. LIST -> 226", "reply=" + r)
+        string lt = listing.text()
+        check(string.contains(lt, "hello.txt"), "32. LIST contains hello.txt", "listing=" + lt)
+        check(string.contains(lt, "upload.txt"), "33. LIST contains upload.txt", "listing=" + lt)
+        check(string.contains(lt, "sub"), "34. LIST contains sub dir", "listing=" + lt)
+    end
+
+    // ---- DELE upload.txt ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "DELE upload.txt")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "250"), "35. DELE upload.txt", "reply=" + reply)
+    check(not file.exists(virtualToFs(gTestRoot, "/upload.txt")), "35b. DELE removed from disk", "")
+
+    // ---- DELE missing -> 550 ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "DELE ghost.txt")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "550"), "36. DELE missing -> 550", "reply=" + reply)
+
+    // ---- RMD sub ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "RMD sub")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "250"), "37. RMD sub", "reply=" + reply)
+    check(not dir.exists(virtualToFs(gTestRoot, "/sub")), "37b. RMD removed from disk", "")
+
+    // ---- unknown command -> 502 ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "FROBNICATE x")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "502"), "38. unknown cmd -> 502", "reply=" + reply)
+
+    // ---- QUIT -> 221 ----
+    reply, nb, ok = cmdExchange(cmd, inbuf, "QUIT")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "221"), "39. QUIT -> 221", "reply=" + reply)
+
+    println("")
+    println("------------------- summary -------------------")
+    println("passed: " + gPassed.toString() + " / " + (gPassed + gFailed).toString())
+    println("failed: " + gFailed.toString())
+    println("")
+
+    if gFailed > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ============================================================
+// self-test root setup / cleanup
+// ============================================================
+func setupTestRoot(string root) as bool
+    dir.delete(root)
+    if not dir.createAll(root) then
+        return false
+    end
+    file.writeText(path.join(root, "hello.txt"), "hello ftp")
+    return true
+end
+
+func cleanupTestRoot(string root)
+    dir.clean(root)
+    dir.delete(root)
+end
+
+
+// ============================================================
+// main
+// ============================================================
+func usage()
+    println("ftpserver - minimal FTP server (PASV)")
+    println("Usage:")
+    println("  ftpserver                       run self-test (boot server + simulate client)")
+    println("  ftpserver test                  same as above")
+    println("  ftpserver serve <port> [rootdir]")
+    println("                                 serve forever (default port " + DEFAULT_PORT.toString() + ")")
+    println("  ftpserver -h | --help           show this help")
+    println("Auth: anonymous/ftp (any password) or admin/admin.")
+    println("Note: PASV data connections are bound to 127.0.0.1 (localhost use).")
+end
+
+func main(...) as int
+    println("xlang ftpserver - TCP command + PASV data channel FTP server")
+    println("")
+
+    string mode = "test"
+    int port = DEFAULT_PORT
+    string rootArg = ""
+
+    if arg.length >= 2 then
+        string a1 = string(arg[1])
+        if a1 == "-h" or a1 == "--help" then
+            usage()
+            return 0
+        elseif a1 == "serve" then
+            mode = "serve"
+        elseif a1 == "test" then
+            mode = "test"
+        end
+    end
+
+    if mode == "serve" then
+        // ftpserver serve <port> [rootdir]
+        if arg.length >= 3 then
+            int pp = int(string(arg[2]))
+            if pp > 0 then
+                port = pp
+            end
+        end
+        if arg.length >= 4 then
+            rootArg = string(arg[3])
+        end
+        if rootArg == "" then
+            rootArg = "ftproot"
+        end
+        gRootDir = path.abs(rootArg)
+        if not dir.exists(gRootDir) then
+            dir.createAll(gRootDir)
+        end
+        gVerbose = true
+
+        point lp = tcp.listen(port, "127.0.0.1", 16)
+        if lp == ZERO then
+            println("FATAL: cannot listen on 127.0.0.1:" + port.toString())
+            return 1
+        end
+        TcpServer srv = TcpServer(lp)
+        int bound = srv.port()
+        println("FTP server listening on 127.0.0.1:" + bound.toString())
+        println("root: " + gRootDir)
+        println("users: anonymous/ftp (any pw), admin/admin")
+        println("press Ctrl+C to stop")
+        println("")
+        while true do
+            point ch = srv.accept(-1)
+            if ch != ZERO then
+                handleClient(ch, "client")
+            end
+        end
+        return 0
+    end
+
+    // ---- self-test mode ----
+    // Use the OS temp dir so the test is self-contained and cwd-independent.
+    gTestRoot = path.join(path.temp(), "xlang_ftpserver_test")
+    if not setupTestRoot(gTestRoot) then
+        println("FATAL: cannot create test root " + gTestRoot)
+        return 1
+    end
+    gRootDir = gTestRoot
+    gVerbose = true
+
+    point lp = tcp.listen(0, "127.0.0.1", 4)
+    if lp == ZERO then
+        println("FATAL: tcp.listen failed")
+        cleanupTestRoot(gTestRoot)
+        return 1
+    end
+    TcpServer srv = TcpServer(lp)
+    gTestPort = srv.port()
+    println("test server listening on 127.0.0.1:" + gTestPort.toString())
+    println("test root: " + gTestRoot)
+
+    // client runs in a worker thread; server accepts the single client in main.
+    thread clientThread = thread(runClientTest)
+
+    point ch = srv.accept(60000)
+    int rc = 0
+    if ch != ZERO then
+        rc = handleClient(ch, "selftest-client")
+    else
+        println("FATAL: no client connected within 60s")
+        gFailed = gFailed + 1
+    end
+
+    clientThread.wait()
+
+    cleanupTestRoot(gTestRoot)
+    println("test root cleaned: " + gTestRoot)
+
+    if gFailed > 0 then
+        println("SELF-TEST FAILED: " + gFailed.toString() + " failure(s)")
+        return 1
+    end
+    println("SELF-TEST PASSED")
+    return 0
+end

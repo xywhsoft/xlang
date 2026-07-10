@@ -1,0 +1,1025 @@
+// searcheng - 全文搜索引擎（倒排索引 + TF-IDF）
+//
+// 用法:
+//   searcheng index <dir>        索引目录下所有 .txt 文件（递归）
+//   searcheng search <query>     搜索（支持布尔/短语）
+//   searcheng stats              索引统计
+//   searcheng test               内置测试（索引 14 文档，验证查询）
+//
+// 查询语法:
+//   单词:        searcheng search fox
+//   布尔 AND:    searcheng search "fox AND dog"
+//   布尔 OR:     searcheng search "fox OR cat"
+//   布尔 NOT:    searcheng search "fox NOT dog"
+//   短语:        searcheng search "\"brown fox\""
+//   组合:        searcheng search "(python OR java) NOT slow"
+//   中文:        searcheng search 机器         （按字分词，连续字=短语）
+//   默认词间关系为 AND；AND/OR/NOT 必须全大写。
+//
+// 设计说明（与 xlang 当前语义/限制对齐）:
+//   - 数据载体: 全程 var 容器。typed array<T> 作函数实参按值拷贝（BUG-XL1），
+//     故索引/查询集/词表均用 var dict 与 var array。
+//   - 嵌套 dict 写入: 采用「取值→改→写回」模式（var ref/ copy 语义两端都安全）。
+//   - 倒排索引结构: dict<string, dict<string, array<int>>>  term -> doc -> [positions]。
+//   - 持久化: json.stringify 落盘到 searcheng.idx.json；search/stats 启动时 json.parse 读回。
+//   - 分词: string.chars 遍历 UTF-8 字符；ASCII 连续字母数字成词，非 ASCII（中文等）
+//     每字一词；统一小写；去英文停用词。位置基于去停用词后的序号，保证短语连续性。
+//   - 查询解析: 递归下降（OR < AND < NOT < primary），递归深度=表达式嵌套层数（浅），
+//     不触发 BUG-LP1（dict 递归二次方 GC 仅在深递归每帧分配 dict 时出现）。
+//   - 打分: tf * log(N/df)，多词查询对结果文档累加各词得分后按分降序排列。
+//     NOT 操作数也计入评分表，但因结果集已排除不含该词的文档，tf=0 不影响分数。
+
+
+// ==================== 全局状态 ====================
+
+var gIndex = {}          // term -> { doc -> [positions] }
+var gDocLens = {}        // doc -> 非停用词 token 数
+int gDocCount = 0        // 文档总数
+var gStop = {}           // 停用词表 { word: true }
+
+string gIndexPath = ""   // 索引落盘路径
+
+// 查询解析状态（单线程，递归下降共享）
+var gQToks = []          // query token 流
+int gQPos = 0            // 当前 token 下标
+array<string> gQTerms    // 评分用正向词表（去重）
+
+
+// ==================== 停用词 ====================
+
+func initStopwords()
+    string list = "a an the is are was were be been being am do does did have has had will would shall should can could may might must to of in on at by for with from into onto upon about as it its this that these those there here i you he she we they them him her us me my your his our their if when where why how what which who whom so up out over off"
+    var words = string.split(list, " ")
+    int n = words.length
+    int i = 0
+    while i < n do
+        gStop[string(words[i])] = true
+        i += 1
+    end
+end
+
+
+// ==================== 分词器 ====================
+
+// 文本 -> 小写化、去停用词后的 token 数组。
+// 英文: 连续字母/数字成词；中文等非 ASCII: 每个字符独立成词。
+func tokenize(string text) as var
+    string low = string.lower(text)
+    array chs = string.chars(low)
+    int n = chs.length
+    var tokens = []
+    string cur = ""
+    int i = 0
+    while i < n do
+        string c = string(chs[i])
+        int b = string.byteAt(c, 0)
+        if b >= 128 then
+            // 非 ASCII（中文等）：先冲刷当前英文词，再单字成词
+            if string.len(cur) > 0 then
+                pushIfKeep(tokens, cur)
+                cur = ""
+            end
+            pushIfKeep(tokens, c)
+        elseif (c >= "a" and c <= "z") or (c >= "0" and c <= "9") then
+            cur = cur + c
+        else
+            // 空白 / 标点：分隔
+            if string.len(cur) > 0 then
+                pushIfKeep(tokens, cur)
+                cur = ""
+            end
+        end
+        i += 1
+    end
+    if string.len(cur) > 0 then
+        pushIfKeep(tokens, cur)
+    end
+    return tokens
+end
+
+
+func pushIfKeep(var tokens, string tok)
+    if string.len(tok) == 0 then return end
+    if tok in gStop then return end
+    tokens.push(tok)
+end
+
+
+// ==================== 索引操作 ====================
+
+func clearIndex()
+    gIndex = {}
+    gDocLens = {}
+    gDocCount = 0
+end
+
+
+// 把一篇文档加入全局倒排索引。重复文档名跳过。
+func addDocument(string docName, string text)
+    if docName in gDocLens then return end
+    var tokens = tokenize(text)
+    var docPostings = {}
+    int pos = 0
+    int n = tokens.length
+    int i = 0
+    while i < n do
+        string tok = string(tokens[i])
+        var arr
+        if tok in docPostings then
+            arr = docPostings[tok]
+        else
+            arr = []
+        end
+        arr.push(pos)
+        docPostings[tok] = arr
+        pos += 1
+        i += 1
+    end
+    gDocLens[docName] = pos
+    gDocCount += 1
+    // 合并到全局索引（取值→改→写回，规避 ref/copy 歧义）
+    for term, positions in docPostings
+        var inner
+        if term in gIndex then
+            inner = gIndex[term]
+        else
+            inner = {}
+        end
+        inner[docName] = positions
+        gIndex[term] = inner
+    end
+end
+
+
+func saveIndex(string p) as bool
+    var data = {}
+    data["docCount"] = gDocCount
+    data["docLens"] = gDocLens
+    data["index"] = gIndex
+    string text = json.stringify(data)
+    bool ok = file.writeText(p, text)
+    return ok
+end
+
+
+// 从磁盘读取索引到全局。文件不存在/非法返回 false。
+func loadIndex(string p) as bool
+    if not file.exists(p) then return false end
+    string text = ""
+    bool readOk = true
+    try
+        text = file.readText(p)
+    catch e
+        readOk = false
+    end
+    if not readOk then return false end
+    if string.isEmpty(text) then return false end
+    if not json.valid(text) then return false end
+    var data = json.parse(text)
+    if data == null then return false end
+    gDocCount = int(data["docCount"])
+    gDocLens = data["docLens"]
+    gIndex = data["index"]
+    return true
+end
+
+
+// ==================== 查询词法分析 ====================
+
+// 把查询串切分为 token 流。
+// token 形式: {"type": "TERM"|"PHRASE"|"AND"|"OR"|"NOT"|"LP"|"RP", "value": ...}
+// 短语用双引号包围；非 ASCII 连续字（如中文词）经 tokenize 拆为多 token 后按短语处理。
+func lexQuery(string q) as var
+    var toks = []
+    array chs = string.chars(q)
+    int n = chs.length
+    int i = 0
+    while i < n do
+        string c = string(chs[i])
+        int b = string.byteAt(c, 0)
+        if b == 32 or b == 9 then
+            i += 1
+        elseif b == 34 then
+            // 双引号 -> 短语
+            i += 1
+            string phrase = ""
+            while i < n do
+                string cc = string(chs[i])
+                if string.byteAt(cc, 0) == 34 then break end
+                phrase = phrase + cc
+                i += 1
+            end
+            if i < n then i += 1 end
+            var t = {}
+            t["type"] = "PHRASE"
+            t["value"] = phrase
+            toks.push(t)
+        elseif b == 40 then
+            var t = {}
+            t["type"] = "LP"
+            toks.push(t)
+            i += 1
+        elseif b == 41 then
+            var t = {}
+            t["type"] = "RP"
+            toks.push(t)
+            i += 1
+        else
+            // 读一个裸词（到空白/引号/括号为止）
+            string word = ""
+            while i < n do
+                string cc = string(chs[i])
+                int bb = string.byteAt(cc, 0)
+                if bb == 32 or bb == 9 or bb == 34 or bb == 40 or bb == 41 then break end
+                word = word + cc
+                i += 1
+            end
+            // 布尔算符（全大写才识别）
+            if word == "AND" then
+                var t = {}
+                t["type"] = "AND"
+                toks.push(t)
+            elseif word == "OR" then
+                var t = {}
+                t["type"] = "OR"
+                toks.push(t)
+            elseif word == "NOT" then
+                var t = {}
+                t["type"] = "NOT"
+                toks.push(t)
+            else
+                // 经 tokenize 决定是单 term 还是短语（中文连续字拆为多 token -> 短语）
+                var sub = tokenize(word)
+                int sn = sub.length
+                if sn == 0 then
+                    // 全为停用词或空，跳过
+                elseif sn == 1 then
+                    var t = {}
+                    t["type"] = "TERM"
+                    t["value"] = string(sub[0])
+                    toks.push(t)
+                else
+                    var t = {}
+                    t["type"] = "PHRASE"
+                    t["value"] = word
+                    toks.push(t)
+                end
+            end
+        end
+    end
+    return toks
+end
+
+
+// ==================== 集合运算（doc 集合 = var dict{doc:true}）====================
+
+func allDocs() as var
+    var result = {}
+    for doc, len in gDocLens
+        result[doc] = true
+    end
+    return result
+end
+
+
+func setIntersect(var a, var b) as var
+    var result = {}
+    for doc, v in a
+        if doc in b then
+            result[doc] = true
+        end
+    end
+    return result
+end
+
+
+func setUnion(var a, var b) as var
+    var result = {}
+    for doc, v in a
+        result[doc] = true
+    end
+    for doc, v in b
+        result[doc] = true
+    end
+    return result
+end
+
+
+func setComplement(var s) as var
+    var result = {}
+    for doc, len in gDocLens
+        if doc in s then
+            // 在集合中，跳过
+        else
+            result[doc] = true
+        end
+    end
+    return result
+end
+
+
+func setEquals(var a, var b) as bool
+    if a.length != b.length then return false end
+    for doc, v in a
+        if doc in b then
+            // ok
+        else
+            return false
+        end
+    end
+    return true
+end
+
+
+// 位置数组中是否包含某位置（短语连续性校验用）。
+func posContains(var positions, int target) as bool
+    int n = positions.length
+    int i = 0
+    while i < n do
+        if int(positions[i]) == target then return true end
+        i += 1
+    end
+    return false
+end
+
+
+// ==================== 查询求值（递归下降）====================
+// 优先级: OR < AND < NOT < primary
+// 返回 doc 集合 var dict{doc:true}；副作用: 向 gQTerms 累积评分词。
+
+func evalPrimary() as var
+    if gQPos >= gQToks.length then return {} end
+    var tok = gQToks[gQPos]
+    string ty = string(tok["type"])
+
+    if ty == "LP" then
+        gQPos += 1
+        var r = evalOr()
+        if gQPos < gQToks.length then
+            if string(gQToks[gQPos]["type"]) == "RP" then
+                gQPos += 1
+            end
+        end
+        return r
+    end
+
+    if ty == "PHRASE" then
+        gQPos += 1
+        string phrase = string(tok["value"])
+        var words = tokenize(phrase)
+        int wn = words.length
+        int w = 0
+        while w < wn do
+            addUniqueTerm(string(words[w]))
+            w += 1
+        end
+        return evalPhrase(words)
+    end
+
+    if ty == "TERM" then
+        gQPos += 1
+        string term = string(tok["value"])
+        addUniqueTerm(term)
+        return evalTerm(term)
+    end
+
+    // 非预期 token（算符出现在 primary 位）-> 跳过
+    gQPos += 1
+    return {}
+end
+
+
+func evalTerm(string term) as var
+    var result = {}
+    if term in gIndex then
+        var postings = gIndex[term]
+        for doc, positions in postings
+            result[doc] = true
+        end
+    end
+    return result
+end
+
+
+// 短语匹配：words 连续出现在同一文档中。
+func evalPhrase(var words) as var
+    var result = {}
+    int wn = words.length
+    if wn == 0 then return result end
+    string first = string(words[0])
+    if first in gIndex then
+        // 逐文档检查
+        var firstPostings = gIndex[first]
+        for doc, positions in firstPostings
+            bool matched = phraseInDoc(words, doc)
+            if matched then
+                result[doc] = true
+            end
+        end
+    end
+    return result
+end
+
+
+// 在指定文档里检查 words 是否连续出现。
+func phraseInDoc(var words, string doc) as bool
+    int wn = words.length
+    if wn == 0 then return false end
+    string first = string(words[0])
+    if first in gIndex then
+        if doc in gIndex[first] then
+            // ok
+        else
+            return false
+        end
+    else
+        return false
+    end
+    var startPos = gIndex[first][doc]
+    int pn = startPos.length
+    int pi = 0
+    while pi < pn do
+        int start = int(startPos[pi])
+        bool ok = true
+        int k = 1
+        while k < wn do
+            string wk = string(words[k])
+            if wk in gIndex then
+                if doc in gIndex[wk] then
+                    var dpost = gIndex[wk][doc]
+                    if posContains(dpost, start + k) then
+                        // 连续命中
+                    else
+                        ok = false
+                    end
+                else
+                    ok = false
+                end
+            else
+                ok = false
+            end
+            k += 1
+        end
+        if ok then return true end
+        pi += 1
+    end
+    return false
+end
+
+
+func evalNotExpr() as var
+    if gQPos >= gQToks.length then return {} end
+    var tok = gQToks[gQPos]
+    string ty = string(tok["type"])
+    if ty == "NOT" then
+        gQPos += 1
+        var operand = evalNotExpr()
+        return setComplement(operand)
+    end
+    return evalPrimary()
+end
+
+
+func evalAndExpr() as var
+    var left = evalNotExpr()
+    bool go = true
+    while go do
+        if gQPos >= gQToks.length then
+            go = false
+        else
+            string ty = string(gQToks[gQPos]["type"])
+            if ty == "AND" then
+                gQPos += 1
+                var right = evalNotExpr()
+                left = setIntersect(left, right)
+            elseif ty == "TERM" or ty == "PHRASE" or ty == "NOT" or ty == "LP" then
+                // 隐式 AND
+                var right = evalNotExpr()
+                left = setIntersect(left, right)
+            else
+                go = false
+            end
+        end
+    end
+    return left
+end
+
+
+func evalOr() as var
+    var left = evalAndExpr()
+    bool go = true
+    while go do
+        if gQPos >= gQToks.length then
+            go = false
+        else
+            string ty = string(gQToks[gQPos]["type"])
+            if ty == "OR" then
+                gQPos += 1
+                var right = evalAndExpr()
+                left = setUnion(left, right)
+            else
+                go = false
+            end
+        end
+    end
+    return left
+end
+
+
+func addUniqueTerm(string t)
+    int n = gQTerms.length
+    int i = 0
+    while i < n do
+        if gQTerms[i] == t then return end
+        i += 1
+    end
+    gQTerms.push(t)
+end
+
+
+// 执行完整查询，返回 doc 集合并填充 gQTerms。
+func runQuery(string q) as var
+    gQToks = lexQuery(q)
+    gQPos = 0
+    gQTerms.clear()
+    return evalOr()
+end
+
+
+// ==================== TF-IDF 打分 ====================
+
+// term 在 doc 中的 tf-idf: tf * log(N/df)
+func tfidf(string term, string doc) as float
+    if term in gIndex then
+        // 继续
+    else
+        return 0.0
+    end
+    var postings = gIndex[term]
+    if doc in postings then
+        // 继续
+    else
+        return 0.0
+    end
+    int tf = postings[doc].length
+    int df = postings.length
+    if df <= 0 then return 0.0 end
+    if gDocCount <= 0 then return 0.0 end
+    float idf = math.log(float(gDocCount) / float(df))
+    return float(tf) * idf
+end
+
+
+// 对结果文档按累计 tf-idf 打分。
+func scoreDoc(string doc) as float
+    float score = 0.0
+    int n = gQTerms.length
+    int i = 0
+    while i < n do
+        score = score + tfidf(gQTerms[i], doc)
+        i += 1
+    end
+    return score
+end
+
+
+// 把 [score, doc] 对按 score 降序插入排序。
+func sortPairsDesc(var pairs) as var
+    int n = pairs.length
+    int i = 1
+    while i < n do
+        var key = pairs[i]
+        float keyScore = float(key[0])
+        int j = i - 1
+        bool go = true
+        while j >= 0 and go do
+            if float(pairs[j][0]) < keyScore then
+                pairs[j + 1] = pairs[j]
+                j -= 1
+            else
+                go = false
+            end
+        end
+        pairs[j + 1] = key
+        i += 1
+    end
+    return pairs
+end
+
+
+// ==================== 命令实现 ====================
+
+func cmdIndex(string dirPath) as int
+    if dir.exists(dirPath) then
+        // ok
+    else
+        println("Error: directory not found: " + dirPath)
+        return 1
+    end
+    clearIndex()
+    var files = dir.files(dirPath, true)
+    int n = files.length
+    int i = 0
+    int indexed = 0
+    while i < n do
+        string fp = string(files[i])
+        if string.endsWith(string.lower(fp), ".txt") then
+            string content = ""
+            bool readOk = true
+            try
+                content = file.readText(fp)
+            catch e
+                readOk = false
+            end
+            if readOk then
+                string docName = path.nameExt(fp)
+                addDocument(docName, content)
+                indexed += 1
+            end
+        end
+        i += 1
+    end
+    bool saved = saveIndex(gIndexPath)
+    if saved then
+        // ok
+    else
+        println("Warning: failed to save index to " + gIndexPath)
+    end
+    println("searcheng: indexed " + string(indexed) + " .txt file(s) from " + dirPath)
+    println("  documents : " + string(gDocCount))
+    println("  terms     : " + string(gIndex.length))
+    int postings = 0
+    for term, post in gIndex
+        postings = postings + post.length
+    end
+    println("  postings  : " + string(postings))
+    return 0
+end
+
+
+func cmdSearch(string queryStr) as int
+    if string.isEmpty(queryStr) then
+        println("Error: empty query")
+        return 1
+    end
+    bool loaded = loadIndex(gIndexPath)
+    if loaded then
+        // ok
+    else
+        println("Error: no index found. Run 'searcheng index <dir>' first.")
+        return 1
+    end
+    var docSet = runQuery(queryStr)
+    var pairs = []
+    for doc, v in docSet
+        float sc = scoreDoc(doc)
+        pairs.push([sc, doc])
+    end
+    sortPairsDesc(pairs)
+
+    int total = pairs.length
+    println("searcheng: \"" + queryStr + "\"  ->  " + string(total) + " result(s) in " + string(gDocCount) + " doc(s)")
+    println("----------------------------------------------------------------")
+    int i = 0
+    while i < total do
+        string doc = string(pairs[i][1])
+        float sc = float(pairs[i][0])
+        string rank = string.padLeft(string(i + 1), 3)
+        string scoreStr = string.padLeft(string.formatFloat(sc, ".4"), 9)
+        println("  " + rank + ".  " + string.padRight(doc, 26) + " score=" + scoreStr)
+        i += 1
+    end
+    if total == 0 then
+        println("  (no matches)")
+    end
+    return 0
+end
+
+
+func cmdStats() as int
+    bool loaded = loadIndex(gIndexPath)
+    if loaded then
+        // ok
+    else
+        println("Error: no index found. Run 'searcheng index <dir>' first.")
+        return 1
+    end
+    println("searcheng - index statistics")
+    println("================================================================")
+    println("  documents      : " + string(gDocCount))
+    println("  unique terms   : " + string(gIndex.length))
+    int postings = 0
+    int sumDf = 0
+    for term, post in gIndex
+        int df = post.length
+        postings = postings + df
+        sumDf = sumDf + df
+    end
+    println("  total postings : " + string(postings))
+    float avgPost = 0.0
+    if gIndex.length > 0 then
+        avgPost = float(postings) / float(gIndex.length)
+    end
+    println("  avg df         : " + string.formatFloat(avgPost, ".2"))
+    // 平均文档长度
+    int totalLen = 0
+    for doc, len in gDocLens
+        totalLen = totalLen + int(len)
+    end
+    float avgLen = 0.0
+    if gDocCount > 0 then
+        avgLen = float(totalLen) / float(gDocCount)
+    end
+    println("  avg doc tokens : " + string.formatFloat(avgLen, ".1"))
+    println("----------------------------------------------------------------")
+    // 词频 Top 10（按 df 降序）
+    var pairs = []
+    for term, post in gIndex
+        pairs.push([post.length, term])
+    end
+    sortPairsDesc(pairs)
+    println("  Top terms by document frequency:")
+    int show = pairs.length
+    if show > 10 then show = 10 end
+    int i = 0
+    while i < show do
+        int df = int(pairs[i][0])
+        string term = string(pairs[i][1])
+        println("    " + string.padLeft(string(i + 1), 2) + ". " + string.padRight(term, 22) + " df=" + string(df))
+        i += 1
+    end
+    println("================================================================")
+    return 0
+end
+
+
+// ==================== 内置测试 ====================
+
+func buildTestCorpus()
+    clearIndex()
+    addDocument("doc01", "The quick brown fox jumps over the lazy dog")
+    addDocument("doc02", "Machine learning models enable deep learning applications in artificial intelligence")
+    addDocument("doc03", "Python is a popular programming language for data science")
+    addDocument("doc04", "The brown dog plays in the garden")
+    addDocument("doc05", "Deep learning neural networks for image recognition")
+    addDocument("doc06", "Search engines use inverted index and tf-idf scoring")
+    addDocument("doc07", "Information retrieval is the foundation of search")
+    addDocument("doc08", "The lazy cat sleeps all day long")
+    addDocument("doc09", "Natural language processing enables text analysis")
+    addDocument("doc10", "Database systems store and query large datasets")
+    addDocument("doc11", "机器学习是人工智能的一个分支")
+    addDocument("doc12", "搜索引擎使用倒排索引技术")
+    addDocument("doc13", "A red fox lives in the forest")
+    addDocument("doc14", "Programming in Python is fun and powerful")
+end
+
+
+// 把变长 doc 名打包成 {name:true} 集合。
+func setOf(...) as var
+    var s = {}
+    int i = 0
+    while i < arg.length do
+        s[string(arg[i])] = true
+        i += 1
+    end
+    return s
+end
+
+
+func setStr(var s) as string
+    var keys = []
+    for doc, v in s
+        keys.push(doc)
+    end
+    sortStringsAsc(keys)
+    string r = "{"
+    int n = keys.length
+    int i = 0
+    while i < n do
+        if i > 0 then r = r + ", " end
+        r = r + string(keys[i])
+        i += 1
+    end
+    r = r + "}"
+    return r
+end
+
+
+func sortStringsAsc(var keys)
+    int n = keys.length
+    int i = 1
+    while i < n do
+        string key = string(keys[i])
+        int j = i - 1
+        bool go = true
+        while j >= 0 and go do
+            if string(keys[j]) > key then
+                keys[j + 1] = keys[j]
+                j -= 1
+            else
+                go = false
+            end
+        end
+        keys[j + 1] = key
+        i += 1
+    end
+end
+
+
+// 断言：查询结果 doc 集合应等于期望。返回 0=通过 1=失败。
+func expectDocs(string q, var expected, string label) as int
+    var actual = runQuery(q)
+    bool ok = setEquals(actual, expected)
+    if ok then
+        println("  [OK]   " + label + "   query: " + q)
+        return 0
+    end
+    println("  [FAIL] " + label + "   query: " + q)
+    println("         expected: " + setStr(expected))
+    println("         actual  : " + setStr(actual))
+    return 1
+end
+
+
+func cmdTest() as int
+    println("searcheng - built-in test")
+    println("================================================================")
+    initStopwords()
+    buildTestCorpus()
+    println("  indexed " + string(gDocCount) + " test documents, " + string(gIndex.length) + " unique terms")
+    println("----------------------------------------------------------------")
+    int fails = 0
+
+    // --- 布尔 / 词条查询 ---
+    fails += expectDocs("fox", setOf("doc01", "doc13"), "single term (en)")
+    fails += expectDocs("FOX", setOf("doc01", "doc13"), "case insensitive")
+    fails += expectDocs("fox AND dog", setOf("doc01"), "boolean AND")
+    fails += expectDocs("fox OR dog", setOf("doc01", "doc04", "doc13"), "boolean OR")
+    fails += expectDocs("fox NOT dog", setOf("doc13"), "boolean NOT")
+    fails += expectDocs("learning", setOf("doc02", "doc05"), "term across docs")
+    fails += expectDocs("python", setOf("doc03", "doc14"), "term across docs 2")
+    fails += expectDocs("machine", setOf("doc02"), "rare term single doc")
+    fails += expectDocs("search", setOf("doc06", "doc07"), "shared stem")
+    fails += expectDocs("xyznotexist", setOf(), "no match -> empty")
+
+    // --- 隐式 AND ---
+    fails += expectDocs("python programming", setOf("doc03", "doc14"), "implicit AND (both have both)")
+
+    // --- 括号组合 ---
+    fails += expectDocs("(fox OR cat) NOT dog", setOf("doc08", "doc13"), "grouped expr")
+
+    // --- 短语查询 ---
+    fails += expectDocs("\"brown fox\"", setOf("doc01"), "phrase en (consecutive)")
+    fails += expectDocs("\"fox jumps\"", setOf("doc01"), "phrase en 2")
+    fails += expectDocs("\"fox dog\"", setOf(), "phrase non-consecutive -> no match")
+
+    // --- 中文（按字分词，连续字=短语）---
+    fails += expectDocs("机器", setOf("doc11"), "chinese phrase (2 chars)")
+    fails += expectDocs("搜索", setOf("doc12"), "chinese phrase (2 chars) 2")
+    fails += expectDocs("机", setOf("doc11"), "chinese single char")
+
+    // --- TF-IDF 打分验证 ---
+    // doc02 含 learning 两次(tf=2)，doc05 含一次(tf=1)；搜索 learning 应 doc02 排第一。
+    var learningSet = runQuery("learning")
+    var pairs = []
+    for doc, v in learningSet
+        pairs.push([scoreDoc(doc), doc])
+    end
+    sortPairsDesc(pairs)
+    if pairs.length >= 2 then
+        if string(pairs[0][1]) == "doc02" then
+            println("  [OK]   tf-idf ranking       query: learning  (doc02 tf=2 ranks above doc05 tf=1)")
+        else
+            println("  [FAIL] tf-idf ranking       expected doc02 first, got " + string(pairs[0][1]))
+            fails += 1
+        end
+    else
+        println("  [FAIL] tf-idf ranking       learning should match >=2 docs")
+        fails += 1
+    end
+
+    // 罕见词 idf 应高于常见词（控制变量：tf 均为 1）
+    // machine: df=1, tf=1 in doc02 -> idf=log(14)
+    // python : df=2, tf=1 in doc03 -> idf=log(14/2)=log(7)
+    var machinePairs = []
+    var mSet = runQuery("machine")
+    for doc, v in mSet
+        machinePairs.push([scoreDoc(doc), doc])
+    end
+    var pythonPairs = []
+    var pSet = runQuery("python")
+    for doc, v in pSet
+        pythonPairs.push([scoreDoc(doc), doc])
+    end
+    if machinePairs.length > 0 and pythonPairs.length > 0 then
+        float machineScore = float(machinePairs[0][0])
+        float pythonScore = float(pythonPairs[0][0])
+        if machineScore > pythonScore then
+            println("  [OK]   idf weighting        rare (machine df=1) tf=1 scores higher than common (python df=2) tf=1")
+        else
+            println("  [FAIL] idf weighting        machine=" + string.formatFloat(machineScore, ".4") + " python=" + string.formatFloat(pythonScore, ".4"))
+            fails += 1
+        end
+    else
+        println("  [FAIL] idf weighting        missing test terms")
+        fails += 1
+    end
+
+    println("================================================================")
+    // 索引统计校验
+    if gDocCount == 14 then
+        println("  [OK]   doc count = 14")
+    else
+        println("  [FAIL] doc count expected 14, got " + string(gDocCount))
+        fails += 1
+    end
+    if gIndex.length > 40 then
+        println("  [OK]   term count = " + string(gIndex.length) + " (>40, reasonable)")
+    else
+        println("  [FAIL] term count too low: " + string(gIndex.length))
+        fails += 1
+    end
+
+    println("================================================================")
+    if fails == 0 then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println(string(fails) + " TEST(S) FAILED")
+    return 1
+end
+
+
+func printUsage()
+    println("searcheng - 全文搜索引擎（倒排索引 + TF-IDF）")
+    println("用法:")
+    println("  searcheng index <dir>        索引目录下所有 .txt 文件")
+    println("  searcheng search <query>     搜索（支持 AND/OR/NOT、短语、中文）")
+    println("  searcheng stats              索引统计")
+    println("  searcheng test               内置测试")
+    println("查询示例:")
+    println("  searcheng search fox")
+    println("  searcheng search \"fox AND dog\"")
+    println("  searcheng search \"fox OR cat\"")
+    println("  searcheng search \"fox NOT dog\"")
+    println("  searcheng search \"\\\"brown fox\\\"\"     (短语)")
+    println("  searcheng search 机器                 (中文)")
+end
+
+
+func main(...) as int
+    initStopwords()
+    string scriptPath = string(arg[0])
+    gIndexPath = path.join(path.dir(scriptPath), "searcheng.idx.json")
+
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "index" then
+        if arg.length < 3 then
+            println("Error: 'index' needs <dir>")
+            return 1
+        end
+        return cmdIndex(string(arg[2]))
+    end
+
+    if cmd == "search" then
+        if arg.length < 3 then
+            println("Error: 'search' needs <query>")
+            return 1
+        end
+        // 合并多参数为单个查询串（允许不加引号的查询）
+        string q = ""
+        int i = 2
+        while i < arg.length do
+            if string.isEmpty(q) then
+                q = string(arg[i])
+            else
+                q = q + " " + string(arg[i])
+            end
+            i += 1
+        end
+        return cmdSearch(q)
+    end
+
+    if cmd == "stats" then
+        return cmdStats()
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

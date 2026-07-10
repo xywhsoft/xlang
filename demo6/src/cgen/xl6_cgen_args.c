@@ -1,4 +1,4 @@
-﻿static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* args);
+static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* args);
 static int xl6CgenNativeClassCtorHasPointBindingArgs(const XL6_AstNode* args);
 static void xl6CgenArrayLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenListLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
@@ -309,7 +309,7 @@ static void xl6CgenStringLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
 
     text = node != NULL ? node->text : NULL;
     if ( !xl6CgenStringLiteralParts(text, &start, &end, &raw) ) {
-        xl6CgenError(ctx, node, "瀛楃涓插瓧闈㈤噺鏍煎紡鏃犳晥");
+        xl6CgenError(ctx, node, "字符串字面量格式无效");
         xl6OutputPuts("\"\"", ctx->out);
         return;
     }
@@ -1137,7 +1137,7 @@ static void xl6CgenNullCoalesceExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
     }
 
     if ( leftType == NULL || rightType == NULL || !xl6CgenTypeNodeEqual(leftType, rightType) ) {
-        xl6CgenError(ctx, node, "褰撳墠 C 鐢熸垚 ?? 涓や晶蹇呴』鏄悓涓€闈欐€佺被鍨嬶紝鎴栧乏渚т负 null/var");
+        xl6CgenError(ctx, node, "当前 C 生成 ?? 两侧必须是同一静态类型，或左侧为 null/var");
         xl6OutputPuts("0", ctx->out);
         xl6AstFree(leftType);
         xl6AstFree(rightType);

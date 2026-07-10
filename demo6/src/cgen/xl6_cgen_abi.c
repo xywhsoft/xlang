@@ -522,7 +522,7 @@ static void xl6CgenEmitFunctionSigObjectForPrefix(XL6_CgenContext* ctx, const ch
     nameSize = (unsigned int)strlen(name);
     flags = xl6CgenFunctionSigFlags(params, paramCount, includeVararg);
 
-    /* 绛惧悕鍏冩暟鎹寘鍚繍琛屾椂绫诲瀷鎸囬拡锛岄渶瑕佸湪 make 鍑芥暟鍐呮寜闇€濉厖銆?*/
+    /* 签名元数据包含运行时类型指针，需要在 make 函数内按需填充。 */
     if ( actualParamCount > 0 ) {
         xl6CgenFunctionSigIndent(ctx);
         xl6OutputPrintf(ctx->out, "static xrt_func_param %s_params[%uu];\n", localName, actualParamCount);

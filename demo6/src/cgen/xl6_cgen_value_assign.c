@@ -330,7 +330,9 @@ static void xl6CgenIndexCompoundAssignStmt(
     snprintf(tempName, sizeof(tempName), "__xl6_index_assign_%d", id);
 
     /*
-        xvoArrayGetValue/xvoListGetValue/xvoTableGetValue 杩斿洖瀹瑰櫒鍐呭€熺敤鍊笺€?        current 鍙敤浜庢湰璇彞鍐呰鏃у€硷紝涓嶈兘 xvoUnref锛屽惁鍒欎細璇噺瀹瑰櫒鍏冪礌寮曠敤銆?    */
+        xvoArrayGetValue/xvoListGetValue/xvoTableGetValue 返回容器内借用值。
+        current 只用于本语句内读取旧值，不能 xvoUnref，否则会误减容器元素引用。
+    */
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "xvalue %s = ", currentName);
     xl6CgenIndexExpr(ctx, left);
@@ -361,7 +363,7 @@ static void xl6CgenIndexCompoundAssignStmt(
 
     binaryOp = xl6CgenCompoundBinaryOp(op);
     if ( binaryOp == NULL ) {
-        xl6CgenError(ctx, left, "褰撳墠 C 鐢熸垚涓嶆敮鎸佽绱㈠紩澶嶅悎璧嬪€艰繍绠楃");
+        xl6CgenError(ctx, left, "当前 C 生成不支持该索引复合赋值运算符");
         return;
     }
 
@@ -784,7 +786,7 @@ static int xl6CgenXValueMemberAssignStmt(
         xl6OutputPuts(";\n", ctx->out);
     }
 
-    /* var 瀛楁鎷ユ湁 xvalue 寮曠敤锛屾浛鎹㈠墠蹇呴』閲婃斁鏃у€笺€?*/
+    /* var 字段拥有 xvalue 引用，替换前必须释放旧值。 */
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", targetPath);
     ctx->indent += 1;
@@ -1169,7 +1171,7 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     }
     if ( xl6CTextEquals(op, "**=") ) {
         if ( !xl6CgenExprIntPowKind(ctx, left) || !xl6CgenExprIntPowKind(ctx, right) ) {
-            xl6CgenError(ctx, node, "褰撳墠 C 鐢熸垚 **= 鍙敮鎸佹暣鏁拌〃杈惧紡");
+            xl6CgenError(ctx, node, "当前 C 生成 **= 只支持整数表达式");
             return;
         }
         xl6CgenExpr(ctx, left);

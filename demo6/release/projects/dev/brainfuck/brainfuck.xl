@@ -1,0 +1,550 @@
+// brainfuck.xl - Brainfuck interpreter + optimizing compiler
+//
+// usage:
+//   brainfuck run <file.bf>              interpret & run a .bf file
+//   brainfuck opt <file.bf>              optimize then run
+//   brainfuck bench <file.bf> [N=10]     perf compare (interp vs opt)
+//   brainfuck hello                      built-in Hello World
+//   brainfuck sierpinski                 built-in Sierpinski triangle
+//   brainfuck disasm <file.bf>           disassemble optimized ops
+//   brainfuck -h | --help                this help
+//
+// What this exercises in xlang:
+//   * array<int> as 30000-byte tape + random access in a tight loop
+//   * deep nested loops (5+ levels of [ ]) resolved via a precomputed
+//     bracket jump table (stack-based pairing)
+//   * a single interleaved array<int> stream for the optimizer
+//     (op,arg pairs at code[2k]/code[2k+1]); multi-return of
+//     array<int> containers was found to silently drop on the caller
+//     side, so the two streams are packed into one -- see BUG-BF1)
+//   * Buffer + encoding.fromBytes for byte -> string output (BUG-HD2
+//     makes string.formatInt(n,"c") unusable, so output is buffered as
+//     raw bytes and decoded once at the end)
+//   * time.timer() for benchmark timing
+
+const int MEM_SIZE = 30000
+
+// optimized opcodes
+const int OP_ADD  = 1   // args = signed delta to current cell
+const int OP_MOVE = 2   // args = signed data-pointer delta
+const int OP_ZERO = 3   // mem[dp] = 0   (peephole for [-] / [+])
+const int OP_OUT  = 4   // emit mem[dp] as a byte
+const int OP_IN   = 5   // read a byte (no stdin -> 0)
+const int OP_JZ   = 6   // if mem[dp]==0 -> pc = arg (paired JNZ index)
+const int OP_JNZ  = 7   // if mem[dp]!=0 -> pc = arg (paired JZ index)
+
+// ASCII codes of the 8 BF instructions (everything else is a comment).
+const int C_PLUS  = 43
+const int C_MINUS = 45
+const int C_GT    = 62
+const int C_LT    = 60
+const int C_DOT   = 46
+const int C_COMMA = 44
+const int C_LBRA   = 91
+const int C_RBRA   = 93
+
+// ---- canonical "Hello World!\n" ----
+string HELLO_SRC = "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>."
+
+// ---- Sierpinski triangle ----
+// 8-row Sierpinski via the bitwise rule (cell at (row,col) is '*' when
+// (row & col) == 0, else ' '). setup builds three constant cells
+// ('*' 42, ' ' 32, '\n' 10); the body emits the pattern cell-by-cell.
+string SIERP_SRC = "++++++[>+++++++>++++<<-]>>++++++++>++++++++++<<.>><<.>><<.>><<.>><<.>><<.>><<.>><<.>>.<<.>><.><<.>><.><<.>><.><<.>><.>.<<.>><<.>><.><.><<.>><<.>><.><.>.<<.>><.><.><.><<.>><.><.><.>.<<.>><<.>><<.>><<.>><.><.><.><.>.<<.>><.><<.>><.><.><.><.><.>.<<.>><<.>><.><.><.><.><.><.>.<<.>><.><.><.><.><.><.><.>."
+
+
+// ====================== helpers ======================
+
+// build a zero-filled array<int> of length n.
+func makeArray(int n, int initVal) as array<int>
+    array<int> a = array[initVal]
+    int i = 1
+    while i < n do
+        a.push(initVal)
+        i += 1
+    end
+    return a
+end
+
+// is the string a valid (optionally signed) decimal integer?
+func looksInt(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int i = 0
+    if string.byteAt(s, 0) == 45 then
+        i = 1
+        if n == 1 then
+            return false
+        end
+    end
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+// convert an xlang string into an array<int> of byte values.
+func stringToBytes(string s) as array<int>
+    int n = string.len(s)
+    if n == 0 then
+        array<int> e = []
+        return e
+    end
+    array<int> a = array[string.byteAt(s, 0)]
+    int i = 1
+    while i < n do
+        a.push(string.byteAt(s, i))
+        i += 1
+    end
+    return a
+end
+
+
+// ====================== interpreter ======================
+
+// precompute bracket pairs: for every '[' return index of matching ']'
+// and vice versa; non-bracket positions get -1. Stack-based.
+func buildJumpTable(array<int> prog) as array<int>
+    int n = prog.length
+    array<int> jt = makeArray(n, -1)
+    array<int> stack = []
+    int i = 0
+    while i < n do
+        int c = prog[i]
+        if c == C_LBRA then
+            stack.push(i)
+        elseif c == C_RBRA then
+            if stack.length > 0 then
+                int openIdx = stack.pop()
+                jt[openIdx] = i
+                jt[i] = openIdx
+            end
+        end
+        i += 1
+    end
+    return jt
+end
+
+// run a program with the naive char-by-char interpreter.
+// returns the output as a string.
+func interp(array<int> prog) as string
+    int n = prog.length
+    array<int> mem = makeArray(MEM_SIZE, 0)
+    array<int> jt = buildJumpTable(prog)
+    int dp = 0
+    int ip = 0
+    Buffer out = Buffer()
+    while ip < n do
+        int c = prog[ip]
+        if c == C_PLUS then
+            mem[dp] = (mem[dp] + 1) & 0xFF
+        elseif c == C_MINUS then
+            mem[dp] = (mem[dp] - 1) & 0xFF
+        elseif c == C_GT then
+            dp += 1
+            if dp >= MEM_SIZE then
+                dp = MEM_SIZE - 1
+            end
+        elseif c == C_LT then
+            dp -= 1
+            if dp < 0 then
+                dp = 0
+            end
+        elseif c == C_DOT then
+            out.appendByte(mem[dp])
+        elseif c == C_COMMA then
+            mem[dp] = 0
+        elseif c == C_LBRA then
+            if mem[dp] == 0 then
+                ip = jt[ip]
+            end
+        elseif c == C_RBRA then
+            if mem[dp] != 0 then
+                ip = jt[ip]
+            end
+        end
+        ip += 1
+    end
+    return encoding.fromBytes(out.data(), c_size(out.len()), encoding.utf8)
+end
+
+
+// ====================== optimizer ======================
+//
+// fold a BF program into a single flat code array. each instruction is
+// encoded as a (op, arg) pair at consecutive indices, so instruction k
+// lives at code[2k] (op) and code[2k+1] (arg). the run loop steps the
+// program counter by 2.
+//
+//   +++        -> ADD 3
+//   --- >> >   -> ADD -3 ; MOVE 3
+//   [-] or [+] -> ZERO
+//   [ / ]      -> JZ / JNZ ; args hold byte offsets of the paired site.
+//
+// (a single interleaved array is used instead of two parallel arrays
+// because multi-return of array<int> containers does not currently
+// marshal back to the caller -- the receiver silently stays empty.)
+func optimize(array<int> prog) as array<int>
+    int n = prog.length
+    array<int> code = []
+    array<int> bstack = []   // byte offsets of pending JZ (code[2k])
+
+    int i = 0
+    while i < n do
+        int c = prog[i]
+
+        if c == C_PLUS or c == C_MINUS then
+            int net = 0
+            while i < n do
+                int cc = prog[i]
+                if cc == C_PLUS then
+                    net += 1
+                elseif cc == C_MINUS then
+                    net -= 1
+                else
+                    break
+                end
+                i += 1
+            end
+            code.push(OP_ADD)
+            code.push(net)
+
+        elseif c == C_GT or c == C_LT then
+            int net = 0
+            while i < n do
+                int cc = prog[i]
+                if cc == C_GT then
+                    net += 1
+                elseif cc == C_LT then
+                    net -= 1
+                else
+                    break
+                end
+                i += 1
+            end
+            code.push(OP_MOVE)
+            code.push(net)
+
+        elseif c == C_DOT then
+            code.push(OP_OUT)
+            code.push(0)
+            i += 1
+
+        elseif c == C_COMMA then
+            code.push(OP_IN)
+            code.push(0)
+            i += 1
+
+        elseif c == C_LBRA then
+            // peephole: [-] or [+] -> ZERO
+            if i + 2 < n and prog[i + 1] == C_MINUS and prog[i + 2] == C_RBRA then
+                code.push(OP_ZERO)
+                code.push(0)
+                i += 3
+            elseif i + 2 < n and prog[i + 1] == C_PLUS and prog[i + 2] == C_RBRA then
+                code.push(OP_ZERO)
+                code.push(0)
+                i += 3
+            else
+                int jzOff = code.length
+                code.push(OP_JZ)
+                code.push(0)        // patched at the matching ']'
+                bstack.push(jzOff)
+                i += 1
+            end
+
+        elseif c == C_RBRA then
+            if bstack.length > 0 then
+                int jzOff = bstack.pop()
+                int jnzOff = code.length
+                code.push(OP_JNZ)
+                code.push(jzOff)
+                code[jzOff + 1] = jnzOff
+            end
+            i += 1
+
+        else
+            // comment / whitespace -> ignore
+            i += 1
+        end
+    end
+
+    return code
+end
+
+// run an optimized code array. pc steps by 2: op=code[pc], arg=code[pc+1].
+func runOptimized(array<int> code) as string
+    int n = code.length
+    array<int> mem = makeArray(MEM_SIZE, 0)
+    int dp = 0
+    int pc = 0
+    Buffer out = Buffer()
+    while pc < n do
+        int op = code[pc]
+        int arg = code[pc + 1]
+        if op == OP_ADD then
+            mem[dp] = (mem[dp] + arg) & 0xFF
+        elseif op == OP_MOVE then
+            dp += arg
+            if dp < 0 then
+                dp = 0
+            elseif dp >= MEM_SIZE then
+                dp = MEM_SIZE - 1
+            end
+        elseif op == OP_ZERO then
+            mem[dp] = 0
+        elseif op == OP_OUT then
+            out.appendByte(mem[dp])
+        elseif op == OP_IN then
+            mem[dp] = 0
+        elseif op == OP_JZ then
+            if mem[dp] == 0 then
+                pc = arg
+            end
+        elseif op == OP_JNZ then
+            if mem[dp] != 0 then
+                pc = arg
+            end
+        end
+        pc += 2
+    end
+    return encoding.fromBytes(out.data(), c_size(out.len()), encoding.utf8)
+end
+
+// human-readable name of an optimized opcode (for disasm).
+func opName(int op) as string
+    if op == OP_ADD then
+        return "ADD"
+    elseif op == OP_MOVE then
+        return "MOVE"
+    elseif op == OP_ZERO then
+        return "ZERO"
+    elseif op == OP_OUT then
+        return "OUT"
+    elseif op == OP_IN then
+        return "IN"
+    elseif op == OP_JZ then
+        return "JZ"
+    elseif op == OP_JNZ then
+        return "JNZ"
+    end
+    return "??"
+end
+
+
+// ====================== CLI commands ======================
+
+func printUsage()
+    println("brainfuck - interpreter + optimizing compiler")
+    println("")
+    println("usage:")
+    println("  brainfuck run <file.bf>              interpret & run")
+    println("  brainfuck opt <file.bf>              optimize then run")
+    println("  brainfuck bench <file.bf> [N=10]     perf compare (interp vs opt)")
+    println("  brainfuck hello                      built-in Hello World")
+    println("  brainfuck sierpinski                 built-in Sierpinski triangle")
+    println("  brainfuck disasm <file.bf>           disassemble optimized ops")
+    println("  brainfuck -h | --help                this help")
+end
+
+func readProg(string path) as array<int>
+    string src = file.readText(path)
+    return stringToBytes(src)
+end
+
+func cmdRun(string path) as int
+    if not file.exists(path) then
+        println("brainfuck: file not found: " + path)
+        return 1
+    end
+    array<int> prog = readProg(path)
+    println("; interp mode  src=" + string(prog.length) + " bytes")
+    string out = interp(prog)
+    print(out)
+    return 0
+end
+
+func cmdOpt(string path) as int
+    if not file.exists(path) then
+        println("brainfuck: file not found: " + path)
+        return 1
+    end
+    array<int> prog = readProg(path)
+    array<int> code = optimize(prog)
+    println("; opt mode  src=" + string(prog.length) + " bytes  ops=" + string(code.length / 2))
+    string out = runOptimized(code)
+    print(out)
+    return 0
+end
+
+func cmdHello() as int
+    array<int> prog = stringToBytes(HELLO_SRC)
+    println("; built-in Hello World (interp)")
+    string out = interp(prog)
+    print(out)
+    return 0
+end
+
+func cmdSierpinski() as int
+    array<int> prog = stringToBytes(SIERP_SRC)
+    println("; built-in Sierpinski triangle (interp)")
+    string out = interp(prog)
+    print(out)
+    return 0
+end
+
+func cmdDisasm(string path) as int
+    if not file.exists(path) then
+        println("brainfuck: file not found: " + path)
+        return 1
+    end
+    array<int> prog = readProg(path)
+    array<int> code = optimize(prog)
+    int numOps = code.length / 2
+    println("; disasm of " + path + "  (" + string(prog.length) + " src bytes -> " + string(numOps) + " ops)")
+    int k = 0
+    while k < numOps do
+        int op = code[k * 2]
+        int arg = code[k * 2 + 1]
+        string name = opName(op)
+        string line = string.formatInt(k, "D5") + ": " + string.padRight(name, 5) + " " + string.formatInt(arg, "")
+        println(line)
+        k += 1
+    end
+    return 0
+end
+
+func cmdBench(string path, int rounds) as int
+    if not file.exists(path) then
+        println("brainfuck: file not found: " + path)
+        return 1
+    end
+    array<int> prog = readProg(path)
+    array<int> code = optimize(prog)
+    int numOps = code.length / 2
+    println("; bench  src=" + string(prog.length) + " bytes  ops=" + string(numOps) + "  rounds=" + string(rounds))
+    println("; (verifying interp == opt ...)")
+    string refOut = interp(prog)
+    string optOut = runOptimized(code)
+    if refOut == optOut then
+        println(";   OK: outputs match (" + string(string.len(refOut)) + " bytes)")
+    else
+        println(";   MISMATCH! interp=" + string(string.len(refOut)) + " bytes  opt=" + string(string.len(optOut)) + " bytes")
+    end
+
+    float t0 = time.timer()
+    int r = 0
+    while r < rounds do
+        refOut = interp(prog)
+        r += 1
+    end
+    float t1 = time.timer()
+    float interpTime = t1 - t0
+
+    t0 = time.timer()
+    r = 0
+    while r < rounds do
+        optOut = runOptimized(code)
+        r += 1
+    end
+    t1 = time.timer()
+    float optTime = t1 - t0
+
+    float interpPer = interpTime / float(rounds)
+    float optPer = optTime / float(rounds)
+    float speedup = 0.0
+    if optPer > 0.0 then
+        speedup = interpPer / optPer
+    end
+    println("; ----------------------------------------------------------------")
+    println(";  interp : " + string.formatFloat(interpTime * 1000.0, ".3") + " ms total  " + string.formatFloat(interpPer * 1000.0, ".4") + " ms/run")
+    println(";  opt    : " + string.formatFloat(optTime * 1000.0, ".3") + " ms total  " + string.formatFloat(optPer * 1000.0, ".4") + " ms/run")
+    println(";  speedup: " + string.formatFloat(speedup, ".3") + "x")
+    println("; ----------------------------------------------------------------")
+    println(";  sample output (" + string(string.len(refOut)) + " bytes):")
+    if string.len(refOut) <= 200 then
+        print(refOut)
+    else
+        print(string.mid(refOut, 0, 200))
+        println(" ...[truncated]")
+    end
+    return 0
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "hello" then
+        return cmdHello()
+    end
+
+    if cmd == "sierpinski" then
+        return cmdSierpinski()
+    end
+
+    if cmd == "run" then
+        if arg.length < 3 then
+            println("brainfuck: 'run' needs <file.bf>")
+            return 1
+        end
+        return cmdRun(string(arg[2]))
+    end
+
+    if cmd == "opt" then
+        if arg.length < 3 then
+            println("brainfuck: 'opt' needs <file.bf>")
+            return 1
+        end
+        return cmdOpt(string(arg[2]))
+    end
+
+    if cmd == "disasm" then
+        if arg.length < 3 then
+            println("brainfuck: 'disasm' needs <file.bf>")
+            return 1
+        end
+        return cmdDisasm(string(arg[2]))
+    end
+
+    if cmd == "bench" then
+        if arg.length < 3 then
+            println("brainfuck: 'bench' needs <file.bf> [N]")
+            return 1
+        end
+        string path = string(arg[2])
+        int rounds = 10
+        if arg.length >= 4 then
+            string rs = string(arg[3])
+            if not looksInt(rs) then
+                println("brainfuck: invalid N: " + rs)
+                return 1
+            end
+            rounds = int(rs)
+            if rounds < 1 then
+                rounds = 1
+            end
+        end
+        return cmdBench(path, rounds)
+    end
+
+    println("brainfuck: unknown command: " + cmd)
+    printUsage()
+    return 1
+end

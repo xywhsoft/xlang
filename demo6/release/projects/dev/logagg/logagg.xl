@@ -1,0 +1,818 @@
+// logagg - log aggregation & analysis platform
+//
+// Usage:
+//   logagg analyze <dir>            scan *.log under <dir>, print report + timeline + alerts
+//   logagg serve <port> [dir]       HTTP API server on <port>, analyzing [dir] (default: samples)
+//   logagg test                     generate sample logs, analyze, self-verify, cleanup
+//   logagg -h | --help
+//
+// HTTP API (serve mode):
+//   GET /                index page (endpoint list)
+//   GET /api/stats       level counts + hourly buckets + alerts + time range
+//   GET /api/errors      top N error messages (json array)
+//   GET /api/timeline    ascii hourly bar chart (text/plain)
+//   GET /api/refresh     re-scan watched dir and rebuild aggregates
+//
+// Stress points covered:
+//   * regex-heavy     - timestamp + level extraction per line (regex.compile + .match)
+//   * dict statistics - level / hourly / per-minute / error-message counting via var dict
+//   * time windows    - hourly buckets for chart, per-minute buckets for alerting
+//   * HTTP API        - http.server full route table + JSON responses
+//
+// Design notes (BUG-aware):
+//   * Globals reachable from HTTP callbacks are kept as `string` only. Per BUG-XB1 a
+//     file-scope `var` container loses its elements when read inside a native C
+//     callback, while string/int globals stay intact. So analyzeDir() renders every
+//     aggregate into owned JSON/text strings and writes them into string globals;
+//     the route handler just forwards those strings. /api/refresh re-runs analyzeDir
+//     (local var dicts never cross the callback boundary as containers, only the
+//     resulting strings do).
+//   * No var/string `+` pitfall (BUG-CE1): every value concatenated into a report is
+//     first forced to a static `string` (via string(...) or .toString()).
+//   * No recursion on var dict (BUG-LP1): all counting is plain linear loops.
+//   * No local name clashes with stdlib namespaces (BUG-RT5): locals use logDir /
+//     logPath / tsText / hourKey etc., never bare `dir`/`path`/`time`/`file`/`json`.
+//   * `array xs = dir.glob(...)` untyped initializer (BUG-XL5), iterated by index.
+//   * JSON built by hand to preserve key order (BUG-K1); pretty mode is not used.
+
+
+const int DEFAULT_PORT = 18200
+const int TOP_N = 10
+const int ALERT_ERR_PER_MIN = 10
+const int CHART_WIDTH = 40
+
+
+// ---- globals consumed by HTTP callbacks (string-only, BUG-XB1 safe) ----
+string gWatchDir = "."
+string gStatsJson = "{}"
+string gErrorsJson = "[]"
+string gTimelineText = "(no data)"
+string gSummary = ""
+int gFileCount = 0
+int gTotalLines = 0
+
+// ---- self-test counters (module-level; nested funcs not supported) ----
+int gPassed = 0
+int gFailed = 0
+
+
+func check(bool cond, string name, string detail)
+    if cond then
+        gPassed = gPassed + 1
+        println("[ PASS ] " + name)
+    else
+        gFailed = gFailed + 1
+        println("[ FAIL ] " + name + "  " + detail)
+    end
+end
+
+
+// Escape a string for embedding into a JSON text literal.
+func jsonEscape(string s) as string
+    s = string.replace(s, "\\", "\\\\")
+    s = string.replace(s, "\"", "\\\"")
+    s = string.replace(s, "\n", "\\n")
+    s = string.replace(s, "\r", "\\r")
+    s = string.replace(s, "\t", "\\t")
+    return s
+end
+
+
+// Render an ascii bar chart for hourly buckets. Read-only on its args, so the
+// var/list by-value copy semantics (BUG-XL1) are harmless here. Buckets are
+// keyed "YYYY-MM-DD HH" which sort lexicographically == chronologically.
+func renderTimeline(var hourly, list<string> sortedKeys, int keyCount) as string
+    if keyCount == 0 then
+        return "(no timestamps parsed)"
+    end
+
+    int maxV = 0
+    int i = 0
+    while i < keyCount do
+        int c = int(hourly[sortedKeys[i]])
+        if c > maxV then
+            maxV = c
+        end
+        i = i + 1
+    end
+
+    string out = "Hourly volume (bar = #" + CHART_WIDTH.toString() + " max):\n"
+    i = 0
+    while i < keyCount do
+        string hk = sortedKeys[i]
+        int c = int(hourly[hk])
+        int bars = 0
+        if maxV > 0 then
+            bars = (c * CHART_WIDTH) / maxV
+        end
+        if bars < 1 and c > 0 then
+            bars = 1
+        end
+        string bar = ""
+        int j = 0
+        while j < bars do
+            bar = bar + "#"
+            j = j + 1
+        end
+        out = out + "  " + hk + "  " + string.padLeft(bar, CHART_WIDTH) + "  " + string(c) + "\n"
+        i = i + 1
+    end
+    return out
+end
+
+
+// Core: scan all *.log files under logDir, parse, aggregate, and publish the
+// results into the string globals (gStatsJson / gErrorsJson / gTimelineText /
+// gSummary). Returns total parsed line count.
+//
+// All var-dict increments and dict->list sorts are INLINED here (not factored
+// into helpers) because var/typed containers passed to functions are copied by
+// value (BUG-XL1) so writes would be lost, and repeated var-dict param calls
+// were observed to hard-crash the process (EXIT=3).
+func analyzeDir(string logDir) as int
+    var levelCounts = {}
+    var hourly = {}
+    var perMin = {}
+    var errCounts = {}
+
+    int totalLines = 0
+    int parsedLines = 0
+    int errorLines = 0
+    string firstTs = ""
+    string lastTs = ""
+
+    Regex tsRegex = regex.compile("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}")
+    Regex lvlRegex = regex.compile("(INFO|DEBUG|WARN|ERROR|FATAL|TRACE)")
+
+    array logFiles = dir.glob(logDir, "*.log", true)
+    int fileCount = logFiles.length
+
+    int fi = 0
+    while fi < fileCount do
+        string logPath = string(logFiles[fi])
+        fi = fi + 1
+
+        string content = ""
+        try
+            content = file.readText(logPath)
+        catch e
+            continue
+        end
+
+        array lines = string.splitLines(content)
+        // BUG-S1: splitLines keeps a trailing "" for a trailing newline; drop it.
+        int lineCount = lines.length
+        if lineCount > 0 then
+            if string(lines[lineCount - 1]) == "" then
+                lineCount = lineCount - 1
+            end
+        end
+
+        int li = 0
+        while li < lineCount do
+            string line = string(lines[li])
+            li = li + 1
+
+            if string.trim(line) == "" then
+                continue
+            end
+            totalLines = totalLines + 1
+
+            // timestamp + hourly volume bucket (inlined tally)
+            string tsText = ""
+            RegexMatch ts = tsRegex.match(line)
+            if ts.ok then
+                tsText = string(ts.text)
+                parsedLines = parsedLines + 1
+                if firstTs == "" then
+                    firstTs = tsText
+                end
+                lastTs = tsText
+                string hk = string.slice(tsText, 0, 13)
+                var hv = hourly[hk]
+                if hv == null then
+                    hourly[hk] = 1
+                else
+                    hourly[hk] = int(hv) + 1
+                end
+            end
+
+            // level (regex alternation; .text is the whole match) + inlined tally
+            string level = "OTHER"
+            int levelEnd = -1
+            RegexMatch lm = lvlRegex.match(line)
+            if lm.ok then
+                level = string(lm.text)
+                levelEnd = lm.end
+            end
+            var lcv = levelCounts[level]
+            if lcv == null then
+                levelCounts[level] = 1
+            else
+                levelCounts[level] = int(lcv) + 1
+            end
+
+            // error/fatal message normalization: text after level token, cut at
+            // first colon to group repeats (same approach as logparse).
+            if level == "ERROR" or level == "FATAL" then
+                errorLines = errorLines + 1
+                // per-minute ERROR/FATAL tally drives the alert rule
+                if tsText != "" then
+                    string mk = string.slice(tsText, 0, 16)
+                    var mv = perMin[mk]
+                    if mv == null then
+                        perMin[mk] = 1
+                    else
+                        perMin[mk] = int(mv) + 1
+                    end
+                end
+                string msg = ""
+                if levelEnd >= 0 then
+                    msg = string.trim(string.slice(line, levelEnd))
+                else
+                    msg = string.trim(line)
+                end
+                int colon = string.indexOf(msg, ":")
+                if colon >= 0 then
+                    msg = string.trim(string.slice(msg, 0, colon))
+                end
+                if msg == "" then
+                    msg = "(empty)"
+                end
+                var ev = errCounts[msg]
+                if ev == null then
+                    errCounts[msg] = 1
+                else
+                    errCounts[msg] = int(ev) + 1
+                end
+            end
+        end
+    end
+
+    gFileCount = fileCount
+    gTotalLines = totalLines
+
+    // ---- copy var dicts into local typed lists + sort (inlined; no helper) ----
+    // hourly, by key ascending (lexicographic == chronological)
+    list<string> hourKeys
+    list<int> hourVals
+    int hourCount = 0
+    for k, v in hourly
+        hourKeys[hourCount] = string(k)
+        hourVals[hourCount] = int(v)
+        hourCount = hourCount + 1
+    end
+    int a = 0
+    while a < hourCount do
+        int b = a + 1
+        while b < hourCount do
+            if hourKeys[b] < hourKeys[a] then
+                string tk = hourKeys[a]
+                hourKeys[a] = hourKeys[b]
+                hourKeys[b] = tk
+                int tv = hourVals[a]
+                hourVals[a] = hourVals[b]
+                hourVals[b] = tv
+            end
+            b = b + 1
+        end
+        a = a + 1
+    end
+
+    // per-minute, by key ascending
+    list<string> minKeys
+    list<int> minVals
+    int minCount = 0
+    for k, v in perMin
+        minKeys[minCount] = string(k)
+        minVals[minCount] = int(v)
+        minCount = minCount + 1
+    end
+    a = 0
+    while a < minCount do
+        int b = a + 1
+        while b < minCount do
+            if minKeys[b] < minKeys[a] then
+                string tk = minKeys[a]
+                minKeys[a] = minKeys[b]
+                minKeys[b] = tk
+                int tv = minVals[a]
+                minVals[a] = minVals[b]
+                minVals[b] = tv
+            end
+            b = b + 1
+        end
+        a = a + 1
+    end
+
+    // errors, by value descending
+    list<string> errKeys
+    list<int> errVals
+    int errCount = 0
+    for k, v in errCounts
+        errKeys[errCount] = string(k)
+        errVals[errCount] = int(v)
+        errCount = errCount + 1
+    end
+    a = 0
+    while a < errCount do
+        int b = a + 1
+        while b < errCount do
+            if errVals[b] > errVals[a] then
+                int tv = errVals[a]
+                errVals[a] = errVals[b]
+                errVals[b] = tv
+                string tk = errKeys[a]
+                errKeys[a] = errKeys[b]
+                errKeys[b] = tk
+            end
+            b = b + 1
+        end
+        a = a + 1
+    end
+
+    // ---- alerts: per-minute ERROR/FATAL windows crossing the threshold ----
+    list<string> alertWin
+    list<int> alertCnt
+    int alertCount = 0
+    int mi = 0
+    while mi < minCount do
+        if minVals[mi] >= ALERT_ERR_PER_MIN then
+            alertWin[alertCount] = minKeys[mi]
+            alertCnt[alertCount] = minVals[mi]
+            alertCount = alertCount + 1
+        end
+        mi = mi + 1
+    end
+
+    string scannedAt = time.format(time.now())
+
+    // ---- gStatsJson (hand-built, ordered) ----
+    string sj = "{"
+    sj = sj + "\"scannedAt\":\"" + jsonEscape(scannedAt) + "\","
+    sj = sj + "\"logDir\":\"" + jsonEscape(logDir) + "\","
+    sj = sj + "\"files\":" + fileCount.toString() + ","
+    sj = sj + "\"totalLines\":" + totalLines.toString() + ","
+    sj = sj + "\"parsedLines\":" + parsedLines.toString() + ","
+    sj = sj + "\"errorLines\":" + errorLines.toString() + ","
+
+    sj = sj + "\"byLevel\":{"
+    array knownLevels = ["ERROR", "FATAL", "WARN", "INFO", "DEBUG", "TRACE", "OTHER"]
+    int firstLvl = 1
+    int kli = 0
+    while kli < knownLevels.length do
+        string lv = string(knownLevels[kli])
+        var cv = levelCounts[lv]
+        if cv != null then
+            if firstLvl == 0 then
+                sj = sj + ","
+            end
+            firstLvl = 0
+            sj = sj + "\"" + lv + "\":" + int(cv).toString()
+        end
+        kli = kli + 1
+    end
+    sj = sj + "},"
+
+    sj = sj + "\"hourlyBuckets\":{"
+    int firstH = 1
+    int hi = 0
+    while hi < hourCount do
+        if firstH == 0 then
+            sj = sj + ","
+        end
+        firstH = 0
+        sj = sj + "\"" + jsonEscape(hourKeys[hi]) + "\":" + hourVals[hi].toString()
+        hi = hi + 1
+    end
+    sj = sj + "},"
+
+    sj = sj + "\"alerts\":["
+    int firstA = 1
+    int ai = 0
+    while ai < alertCount do
+        if firstA == 0 then
+            sj = sj + ","
+        end
+        firstA = 0
+        sj = sj + "{\"window\":\"" + jsonEscape(alertWin[ai]) + "\","
+        sj = sj + "\"count\":" + alertCnt[ai].toString() + ","
+        sj = sj + "\"threshold\":" + ALERT_ERR_PER_MIN.toString() + "}"
+        ai = ai + 1
+    end
+    sj = sj + "],"
+
+    string timeRange = "(unknown)"
+    if firstTs != "" then
+        timeRange = firstTs + " ~ " + lastTs
+    end
+    sj = sj + "\"timeRange\":\"" + jsonEscape(timeRange) + "\""
+    sj = sj + "}"
+    gStatsJson = sj
+
+    // ---- gErrorsJson (top N) ----
+    string ej = "["
+    int topMax = TOP_N
+    if errCount < topMax then
+        topMax = errCount
+    end
+    int ei = 0
+    while ei < topMax do
+        if ei > 0 then
+            ej = ej + ","
+        end
+        ej = ej + "{\"message\":\"" + jsonEscape(errKeys[ei]) + "\","
+        ej = ej + "\"count\":" + errVals[ei].toString() + "}"
+        ei = ei + 1
+    end
+    ej = ej + "]"
+    gErrorsJson = ej
+
+    // ---- timeline ----
+    gTimelineText = renderTimeline(hourly, hourKeys, hourCount)
+
+    // ---- human-readable summary ----
+    string rep = "=== logagg analysis: " + logDir + " ===\n"
+    rep = rep + "scanned at : " + scannedAt + "\n"
+    rep = rep + "log files  : " + fileCount.toString() + "\n"
+    rep = rep + "total lines: " + totalLines.toString()
+    rep = rep + "  (parsed: " + parsedLines.toString() + ", errors: " + errorLines.toString() + ")\n"
+    rep = rep + "time range : " + timeRange + "\n"
+    rep = rep + "\nby level:\n"
+    kli = 0
+    while kli < knownLevels.length do
+        string lv = string(knownLevels[kli])
+        var cv = levelCounts[lv]
+        if cv != null then
+            int c = int(cv)
+            rep = rep + "  " + string.padRight(lv + ":", 8) + string.padLeft(string(c), 6) + "\n"
+        end
+        kli = kli + 1
+    end
+
+    rep = rep + "\ntop " + TOP_N.toString() + " error/fatal messages:\n"
+    if errCount == 0 then
+        rep = rep + "  (none)\n"
+    else
+        ei = 0
+        while ei < topMax do
+            rep = rep + "  " + string.padLeft(string(errVals[ei]), 5) + "  " + errKeys[ei] + "\n"
+            ei = ei + 1
+        end
+    end
+
+    rep = rep + "\nalerts (>= " + ALERT_ERR_PER_MIN.toString() + " errors/min):\n"
+    if alertCount == 0 then
+        rep = rep + "  (none)\n"
+    else
+        ai = 0
+        while ai < alertCount do
+            rep = rep + "  [" + alertWin[ai] + "]  " + alertCnt[ai].toString() + " errors\n"
+            ai = ai + 1
+        end
+    end
+
+    rep = rep + "\n" + gTimelineText
+    gSummary = rep
+
+    return totalLines
+end
+
+
+// ============================================================
+// HTTP route handler. Reads only string globals (BUG-XB1 safe).
+// ============================================================
+func route(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+
+    resp.header("X-Server", "xlang-logagg")
+
+    string method = req.method()
+    string p = req.path()
+
+    if method == "GET" and p == "/" then
+        string html = "<html><head><title>logagg</title></head><body>"
+        html = html + "<h1>logagg - log aggregation &amp; analysis</h1>"
+        html = html + "<p>watching: <code>" + gWatchDir + "</code></p>"
+        html = html + "<ul>"
+        html = html + "<li><a href=\"/api/stats\">/api/stats</a> - level counts, hourly buckets, alerts</li>"
+        html = html + "<li><a href=\"/api/errors\">/api/errors</a> - top error messages</li>"
+        html = html + "<li><a href=\"/api/timeline\">/api/timeline</a> - ascii bar chart</li>"
+        html = html + "<li><a href=\"/api/refresh\">/api/refresh</a> - re-scan watched dir</li>"
+        html = html + "</ul></body></html>"
+        return resp.text(html, "text/html; charset=utf-8")
+    end
+
+    if method == "GET" and p == "/api/stats" then
+        return resp.jsonText(gStatsJson)
+    end
+
+    if method == "GET" and p == "/api/errors" then
+        return resp.jsonText(gErrorsJson)
+    end
+
+    if method == "GET" and p == "/api/timeline" then
+        return resp.text(gTimelineText, "text/plain; charset=utf-8")
+    end
+
+    if method == "GET" and p == "/api/refresh" then
+        analyzeDir(gWatchDir)
+        string msg = "{\"refreshed\":true,\"files\":" + gFileCount.toString()
+        msg = msg + ",\"totalLines\":" + gTotalLines.toString() + "}"
+        return resp.jsonText(msg)
+    end
+
+    resp.status(404)
+    return resp.text("not found", "text/plain; charset=utf-8")
+end
+
+func(point, point) as bool requestHandler = route
+
+
+func buildServer(int port) as point
+    point server = http.server.create(port, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 2)
+    http.server.getRequest(server, "/", requestHandler)
+    http.server.getRequest(server, "/api/stats", requestHandler)
+    http.server.getRequest(server, "/api/errors", requestHandler)
+    http.server.getRequest(server, "/api/timeline", requestHandler)
+    http.server.getRequest(server, "/api/refresh", requestHandler)
+    return server
+end
+
+
+// ============================================================
+// self-test: generate controlled logs, verify aggregates.
+// ============================================================
+func runSelfTest() as int
+    gPassed = 0
+    gFailed = 0
+
+    string testDir = path.join("projects", "dev", "logagg", "_selftest_logs")
+    dir.ensureEmpty(testDir)
+
+    // ---- app1.log: 20 INFO, 5 WARN, 12 ERROR in same minute (triggers alert) ----
+    string app1 = ""
+    int i = 0
+    while i < 20 do
+        app1 = app1 + "2026-07-10 09:00:" + string.formatInt(i % 60, "02") + " INFO request served ok\n"
+        i = i + 1
+    end
+    i = 0
+    while i < 5 do
+        app1 = app1 + "2026-07-10 09:01:" + string.formatInt(i, "02") + " WARN slow query " + i.toString() + "ms\n"
+        i = i + 1
+    end
+    // 12 errors in minute 09:05 -> alert (threshold 10)
+    i = 0
+    while i < 12 do
+        app1 = app1 + "2026-07-10 09:05:" + string.formatInt(i, "02") + " ERROR db connection failed: timeout\n"
+        i = i + 1
+    end
+    app1 = app1 + "2026-07-10 09:05:30 ERROR auth token expired: user42\n"
+    app1 = app1 + "2026-07-10 10:20:00 INFO rotation\n"
+    file.writeText(path.join(testDir, "app1.log"), app1)
+
+    // ---- app2.log: deeper dir (recursive glob), more levels ----
+    string nested = path.join(testDir, "sub")
+    dir.createAll(nested)
+    string app2 = ""
+    app2 = app2 + "2026-07-10 09:00:00 DEBUG init\n"
+    app2 = app2 + "2026-07-10 09:00:01 TRACE trace-event\n"
+    app2 = app2 + "2026-07-10 09:05:10 ERROR db connection failed: refused\n"
+    app2 = app2 + "2026-07-10 09:05:11 FATAL disk full: /data\n"
+    app2 = app2 + "2026-07-10 11:45:00 INFO done\n"
+    file.writeText(path.join(nested, "app2.log"), app2)
+
+    // a non-.log file must be ignored by the glob
+    file.writeText(path.join(testDir, "notes.txt"), "2026-07-10 09:00:00 ERROR should be ignored\n")
+
+    println("")
+    println("================ logagg self-test ================")
+    println("test dir: " + testDir)
+    println("")
+
+    analyzeDir(testDir)
+
+    // stats json round-trips through json.parse
+    var stats = json.parse(gStatsJson)
+    int files = int(stats["files"])
+    int total = int(stats["totalLines"])
+    int parsed = int(stats["parsedLines"])
+    var byLevel = stats["byLevel"]
+    int errCnt = int(byLevel["ERROR"])
+    int fatalCnt = int(byLevel["FATAL"])
+    int warnCnt = int(byLevel["WARN"])
+    int infoCnt = int(byLevel["INFO"])
+
+    check(gFileCount == 2, "1. glob finds exactly 2 .log files (recursive, excludes .txt)", "got " + gFileCount.toString())
+    check(total == 44, "2. total lines counted (app1=39 + app2=5)", "got " + total.toString())
+    check(parsed == 44, "3. every line parsed a timestamp", "got " + parsed.toString())
+    check(errCnt == 14, "4. ERROR count = 13 in app1 + 1 in app2", "got " + errCnt.toString())
+    check(fatalCnt == 1, "5. FATAL count = 1 in app2", "got " + fatalCnt.toString())
+    check(warnCnt == 5, "6. WARN count = 5", "got " + warnCnt.toString())
+    check(infoCnt == 22, "7. INFO count = 21 in app1 + 1 in app2", "got " + infoCnt.toString())
+
+    var alerts = stats["alerts"]
+    int alertLen = alerts.length
+    check(alertLen == 1, "8. one alert window (09:05 has 15 err/fatal >= 10)", "alerts.length=" + alertLen.toString())
+    if alertLen == 1 then
+        var a0 = alerts[0]
+        string win = string(a0["window"])
+        int cnt = int(a0["count"])
+        check(win == "2026-07-10 09:05", "9. alert window is 09:05", "got " + win)
+        check(cnt == 15, "10. alert count = 13(app1) + 1 err + 1 fatal(app2) = 15", "got " + cnt.toString())
+    end
+
+    var errs = json.parse(gErrorsJson)
+    var e0 = errs[0]
+    string topMsg = string(e0["message"])
+    int topCnt = int(e0["count"])
+    check(topMsg == "db connection failed", "11. top error message grouped by colon prefix", "got \"" + topMsg + "\"")
+    check(topCnt == 13, "12. top error count = 12(app1 timeout) + 1(app2 refused)", "got " + topCnt.toString())
+
+    // hourly buckets: 09, 10, 11 should each appear
+    var buckets = stats["hourlyBuckets"]
+    int bucketLen = buckets.length
+    check(bucketLen >= 3, "13. >= 3 hourly buckets present", "len=" + bucketLen.toString())
+    check(string.contains(gTimelineText, "2026-07-10 09"), "14. timeline contains hour 09", "")
+    check(string.contains(gTimelineText, "#") == false or string.contains(gTimelineText, "###"), "15. timeline drew bars", "")
+
+    check(string.contains(gSummary, "time range : 2026-07-10 09:00:00 ~ 2026-07-10 11:45:00"), "16. summary time range correct", "")
+
+    // ---- HTTP API smoke test over loopback ----
+    point server = buildServer(0)
+    if server == null then
+        check(false, "17. http.server.create", "null")
+    else
+        if not http.server.start(server) then
+            check(false, "17. http.server.start", "failed")
+        else
+            int boundPort = http.server.port(server)
+            string base = "http://127.0.0.1:" + boundPort.toString()
+            time.sleep(150)
+
+            // GET /api/stats
+            HttpClientRequest req1 = HttpClientRequest(base + "/api/stats")
+            req1.method("GET")
+            req1.timeout(5000)
+            HttpClientResponse resp1 = req1.execute()
+            check(resp1.status() == 200, "17. GET /api/stats status", "got " + resp1.status().toString())
+            check(resp1.header("Content-Type") == "application/json; charset=utf-8", "18. stats content-type json", resp1.header("Content-Type"))
+            check(string.contains(resp1.body(), "\"byLevel\""), "19. stats body has byLevel", resp1.body())
+            check(string.contains(resp1.body(), "\"alerts\""), "20. stats body has alerts", "")
+
+            // GET /api/errors
+            HttpClientRequest req2 = HttpClientRequest(base + "/api/errors")
+            req2.method("GET")
+            req2.timeout(5000)
+            HttpClientResponse resp2 = req2.execute()
+            check(resp2.status() == 200, "21. GET /api/errors status", "")
+            check(string.contains(resp2.body(), "db connection failed"), "22. errors body has top message", resp2.body())
+
+            // GET /api/timeline
+            HttpClientRequest req3 = HttpClientRequest(base + "/api/timeline")
+            req3.method("GET")
+            req3.timeout(5000)
+            HttpClientResponse resp3 = req3.execute()
+            check(resp3.status() == 200, "23. GET /api/timeline status", "")
+            check(string.contains(resp3.body(), "Hourly volume"), "24. timeline body has header", resp3.body())
+
+            // GET /api/refresh
+            HttpClientRequest req4 = HttpClientRequest(base + "/api/refresh")
+            req4.method("GET")
+            req4.timeout(5000)
+            HttpClientResponse resp4 = req4.execute()
+            check(resp4.status() == 200, "25. GET /api/refresh status", "")
+            check(string.contains(resp4.body(), "\"refreshed\":true"), "26. refresh body ok", resp4.body())
+
+            // GET / -> HTML
+            HttpClientRequest req5 = HttpClientRequest(base + "/")
+            req5.method("GET")
+            req5.timeout(5000)
+            HttpClientResponse resp5 = req5.execute()
+            check(resp5.status() == 200, "27. GET / status", "")
+            check(string.contains(resp5.body(), "logagg"), "28. index body has title", "")
+
+            // unknown route -> 404
+            HttpClientRequest req6 = HttpClientRequest(base + "/nope")
+            req6.method("GET")
+            req6.timeout(5000)
+            HttpClientResponse resp6 = req6.execute()
+            check(resp6.status() == 404, "29. unknown route -> 404", "got " + resp6.status().toString())
+
+            http.server.drain(server, 2000)
+            http.server.stop(server)
+        end
+        http.server.destroy(server)
+    end
+
+    // cleanup
+    dir.clean(testDir)
+    dir.delete(testDir)
+
+    println("")
+    println("------------------- summary -------------------")
+    println("passed: " + gPassed.toString() + " / " + (gPassed + gFailed).toString())
+    println("failed: " + gFailed.toString())
+    println("")
+
+    if gFailed > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+func printUsage()
+    println("logagg - log aggregation & analysis platform")
+    println("usage:")
+    println("  logagg analyze <dir>          scan *.log under <dir>, print report")
+    println("  logagg serve <port> [dir]     HTTP API server (default dir: samples)")
+    println("  logagg test                   generate sample logs & self-verify")
+    println("options:")
+    println("  -h, --help                    show this help")
+    println("HTTP API (serve mode):")
+    println("  GET /api/stats     level counts, hourly buckets, alerts")
+    println("  GET /api/errors    top N error messages")
+    println("  GET /api/timeline  ascii hourly bar chart")
+    println("  GET /api/refresh   re-scan watched dir")
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return runSelfTest()
+    end
+
+    if cmd == "analyze" then
+        if arg.length < 3 then
+            println("logagg analyze: missing <dir>")
+            return 1
+        end
+        string logDir = string(arg[2])
+        if not dir.exists(logDir) then
+            println("logagg: directory not found: " + logDir)
+            return 1
+        end
+        gWatchDir = logDir
+        analyzeDir(logDir)
+        print(gSummary)
+        return 0
+    end
+
+    if cmd == "serve" then
+        if arg.length < 3 then
+            println("logagg serve: missing <port>")
+            return 1
+        end
+        int port = int(string(arg[2]))
+        if port <= 0 then
+            println("logagg serve: invalid port: " + string(arg[2]))
+            return 1
+        end
+        string logDir = path.join("projects", "dev", "logagg", "samples")
+        if arg.length >= 4 then
+            logDir = string(arg[3])
+        end
+        if not dir.exists(logDir) then
+            println("logagg serve: watched dir not found: " + logDir + " (creating empty)")
+            dir.createAll(logDir)
+        end
+        gWatchDir = logDir
+        analyzeDir(logDir)
+        println("logagg serving on http://127.0.0.1:" + port.toString() + "  (watching: " + logDir + ")")
+        point server = buildServer(port)
+        if server == null then
+            println("FATAL: http.server.create returned null")
+            return 1
+        end
+        if not http.server.start(server) then
+            println("FATAL: http.server.start failed (port " + port.toString() + " busy?)")
+            http.server.destroy(server)
+            return 1
+        end
+        println("endpoints: /api/stats /api/errors /api/timeline /api/refresh")
+        println("press Ctrl+C to stop")
+        while true do
+            time.sleep(5000)
+            println("[stats] requestCount=" + http.server.requestCount(server).toString())
+        end
+    end
+
+    println("logagg: unknown command: " + cmd)
+    printUsage()
+    return 1
+end

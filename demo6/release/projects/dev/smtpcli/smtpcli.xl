@@ -1,0 +1,971 @@
+// smtpcli - SMTP client (send email via raw TCP)
+//
+// Usage:
+//   smtpcli send --host <host> --port <port> --from <addr> --to <addr>
+//                --subject <text> --body <text>
+//                [--user <user> --pass <pass>]
+//                [--cc <addr>] [--attach <file>]...
+//                [--heloname <name>] [--timeout <ms>]
+//   smtpcli test                        self-test (boot local SMTP server, send mail, verify)
+//   smtpcli -h | --help
+//
+// Implements (RFC 5321 / RFC 2045 subset):
+//   * Raw TCP SMTP protocol: connect -> 220 -> EHLO -> 250 (multiline) ->
+//     (AUTH LOGIN base64) -> MAIL FROM -> 250 -> RCPT TO -> 250 ->
+//     DATA -> 354 -> MIME body + CRLF.CRLF -> 250 -> QUIT -> 221
+//   * AUTH LOGIN with Base64 username/password (codec.base64Encode)
+//   * MIME message construction (From/To/Cc/Subject/Date/MIME-Version/
+//     Content-Type + body), with RFC 2047 encoded-word subject for non-ASCII
+//   * File attachments (Base64 encoded, wrapped at 76 cols, multipart/mixed)
+//   * Dot-stuffing for DATA body transparency (lines starting with '.')
+//
+// Stress points: TCP protocol state machine, Base64, string processing, MIME.
+//
+// Design constraints honored (see dev/README.md "当前限制" + dev/BUGS.md):
+//   * BUG-FTP1: accept 之后服务端首次 send 静默丢失。self-test 的内置 test
+//     server 的 220 greeting 以及每条 server 回复都走 sendRetry 重试。
+//   * BUG-FTP2: TcpStream.close() abortive。QUIT/221 交换后 time.sleep 再 close。
+//   * BUG-FTP3: 每个 point 只包装一次 TcpStream，整个生命周期复用。
+//   * BUG-CE1: 不用 var + string。所有拼接用 string 类型变量 / string(v) 强转。
+//   * BUG-RT5: 局部变量名不与 stdlib 命名空间冲突（避免 dir/path/time/file 等）。
+//   * BUG-M1: int() 失败返回 0，端口手工校验。
+//   * BUG-S1: splitLines 尾部空串——本工具用 string.split 自行处理换行。
+
+const int DEFAULT_TIMEOUT = 15000
+const int SEND_RETRY_TRIES = 40
+const int SEND_RETRY_GAP = 5
+const int QUIT_CLOSE_DELAY = 200
+const int B64_LINE_WIDTH = 76
+const string BOUNDARY = "----=_XLANGSMTPCLI_6F3A9B21_4C7E"
+
+point ZERO
+
+// ============================================================
+// self-test accounting + server/client shared state
+// (global scalars only — safe across threads, BUG-XT3 only hits containers)
+// ============================================================
+int gPassed = 0
+int gFailed = 0
+
+string gReceivedMail = ""        // raw DATA payload the test server collected
+string gReceivedFrom = ""        // MAIL FROM arg
+string gReceivedTo = ""          // RCPT TO arg
+string gReceivedEhlo = ""        // EHLO line
+string gReceivedAuthUser = ""    // decoded AUTH LOGIN username
+bool gServerAccepted = false
+
+
+func check(bool cond, string name, string detail)
+    if cond then
+        gPassed = gPassed + 1
+        println("  [ PASS ] " + name)
+    else
+        gFailed = gFailed + 1
+        println("  [ FAIL ] " + name + "  " + detail)
+    end
+end
+
+
+// ============================================================
+// TCP / SMTP wire helpers (TcpStream passed by param; verified safe —
+// the underlying handle survives the call, see BUG-FTP3 note in ftpserver)
+// ============================================================
+
+// Retry-send raw text (no CRLF appended). Works around BUG-FTP1 (first send
+// after accept is dropped) and transient full-buffer false returns.
+func sendRetry(TcpStream s, string text) as bool
+    int tries = 0
+    bool ok = false
+    while tries < SEND_RETRY_TRIES and not ok do
+        ok = s.send(text)
+        if not ok then
+            time.sleep(SEND_RETRY_GAP)
+        end
+        tries = tries + 1
+    end
+    if ok then
+        s.drain(DEFAULT_TIMEOUT)
+    end
+    return ok
+end
+
+// Send a single CRLF-terminated line.
+func sendLine(TcpStream s, string text) as bool
+    return sendRetry(s, text + "\r\n")
+end
+
+// Read one CRLF-terminated line. Returns (line, newInbuf, ok).
+// On disconnect/timeout returns ("", inbuf, false).
+func recvLine(TcpStream s, string inbuf, int timeoutMs) as (string, string, bool)
+    while true do
+        int eol = string.indexOf(inbuf, "\r\n")
+        if eol >= 0 then
+            int blen = string.len(inbuf)
+            string line = string.slice(inbuf, 0, eol)
+            string rest = string.slice(inbuf, eol + 2, blen - (eol + 2))
+            return line, rest, true
+        end
+        string chunk = s.recv(timeoutMs)
+        if chunk == "" then
+            return "", inbuf, false
+        end
+        inbuf = inbuf + chunk
+    end
+    return "", inbuf, false
+end
+
+// Read a complete SMTP reply (handles multiline "250-... 250 ...").
+// SMTP reply format: <3-digit code><space or dash><text>. A dash means more
+// lines follow; a space means this is the final line. Returns concatenated
+// reply text (lines joined by \r\n) + updated inbuf + ok.
+func recvReply(TcpStream s, string inbuf, int timeoutMs) as (string, string, bool)
+    string allLines = ""
+    while true do
+        string line
+        string nb
+        bool ok
+        line, nb, ok = recvLine(s, inbuf, timeoutMs)
+        inbuf = nb
+        if not ok then
+            return allLines, inbuf, false
+        end
+        if allLines == "" then
+            allLines = line
+        else
+            allLines = allLines + "\r\n" + line
+        end
+        if string.len(line) >= 4 then
+            string sep = string.slice(line, 3, 1)
+            if sep != "-" then
+                return allLines, inbuf, true
+            end
+        else
+            return allLines, inbuf, true
+        end
+    end
+    return allLines, inbuf, false
+end
+
+// Send a command (CRLF-terminated) then read its full reply.
+func cmdExchange(TcpStream s, string inbuf, string command) as (string, string, bool)
+    if not sendLine(s, command) then
+        return "", inbuf, false
+    end
+    return recvReply(s, inbuf, DEFAULT_TIMEOUT)
+end
+
+// Read DATA payload until the "<CRLF>.<CRLF>" terminator.
+// Returns the message content (without terminator), updated inbuf, ok.
+func recvDataTerminator(TcpStream s, string inbuf, int timeoutMs) as (string, string, bool)
+    while true do
+        int dot = string.indexOf(inbuf, "\r\n.\r\n")
+        if dot >= 0 then
+            string data = string.slice(inbuf, 0, dot)
+            int blen = string.len(inbuf)
+            string rest = string.slice(inbuf, dot + 5, blen - (dot + 5))
+            return data, rest, true
+        end
+        // handle leading-dot edge: message empty / starts with ".\r\n"
+        if inbuf == ".\r\n" then
+            return "", "", true
+        end
+        string chunk = s.recv(timeoutMs)
+        if chunk == "" then
+            return "", inbuf, false
+        end
+        inbuf = inbuf + chunk
+    end
+    return "", inbuf, false
+end
+
+
+// ============================================================
+// pure string / MIME helpers (no native-backed classes)
+// ============================================================
+
+// RFC 2822 date: "Thu, 10 Jul 2026 12:00:00 +0800"
+func rfc2822Date() as string
+    time now = time.now()
+    int wd = time.weekday(now)
+    string dayNames = "SunMonTueWedThuFriSat"
+    string monthNames = "JanFebMarAprMayJunJulAugSepOctNovDec"
+    string dn = string.slice(dayNames, wd * 3, 3)
+    int mon = time.month(now)
+    string mn = string.slice(monthNames, (mon - 1) * 3, 3)
+    int tzOff = time.timezoneOffset()
+    // NOTE: time.timezoneOffset() returns SECONDS despite the docs claiming
+    // minutes (probed: UTC+8 -> 28800, not 480). Divide by 3600/60 accordingly.
+    int tzSign = 1
+    int tzAbs = tzOff
+    if tzOff < 0 then
+        tzSign = -1
+        tzAbs = -tzOff
+    end
+    int tzH = tzAbs / 3600
+    int tzM = (tzAbs - tzH * 3600) / 60
+    string signStr = "+"
+    if tzSign < 0 then
+        signStr = "-"
+    end
+    string tzStr = signStr + string.padLeft(string(tzH), 2, "0") + string.padLeft(string(tzM), 2, "0")
+    return dn + ", " + string.padLeft(string(time.day(now)), 2, "0") + " " + mn + " " + string(time.year(now)) + " " + string.padLeft(string(time.hour(now)), 2, "0") + ":" + string.padLeft(string(time.minute(now)), 2, "0") + ":" + string.padLeft(string(time.second(now)), 2, "0") + " " + tzStr
+end
+
+func isAscii(string s) as bool
+    array bytes = string.bytes(s)
+    int i = 0
+    while i < bytes.length do
+        if int(bytes[i]) > 127 then
+            return false
+        end
+        i = i + 1
+    end
+    return true
+end
+
+// Wrap a base64 blob into 76-column lines joined by CRLF.
+func wrapBase64Lines(string b64) as string
+    string out = ""
+    int total = string.len(b64)
+    int i = 0
+    while i < total do
+        int remaining = total - i
+        int take = B64_LINE_WIDTH
+        if remaining < take then
+            take = remaining
+        end
+        if out != "" then
+            out = out + "\r\n"
+        end
+        out = out + string.slice(b64, i, take)
+        i = i + take
+    end
+    return out
+end
+
+// Normalize all line endings to CRLF.
+func normalizeCrlf(string text) as string
+    string s = string.replace(text, "\r\n", "\n")
+    s = string.replace(s, "\n", "\r\n")
+    return s
+end
+
+// Build a single attachment part (read file, base64-encode, wrap).
+// Returns "" (and sets nothing) if the file cannot be read.
+func buildAttachmentPart(string filePath) as string
+    if not file.exists(filePath) then
+        return ""
+    end
+    Buffer data = file.readBytes(filePath)
+    string b64 = codec.base64EncodeBytes(data.data(), c_size(data.len()))
+    string wrapped = wrapBase64Lines(b64)
+    string fname = path.nameExt(filePath)
+    string part = "--" + BOUNDARY + "\r\n"
+    part = part + "Content-Type: application/octet-stream; name=\"" + fname + "\"\r\n"
+    part = part + "Content-Transfer-Encoding: base64\r\n"
+    part = part + "Content-Disposition: attachment; filename=\"" + fname + "\"\r\n"
+    part = part + "\r\n"
+    part = part + wrapped + "\r\n"
+    return part
+end
+
+// Build a complete MIME message.
+// fromHeader/toHeader/ccHeader: as-is for headers (may be "Name <addr>")
+// attachments: array of file paths (may be empty)
+func buildEmail(string fromHeader, string toHeader, string ccHeader, string subject, string dateStr, string body, array<string> attachments) as string
+    bool hasAttach = attachments.length > 0
+    string headers = ""
+    headers = headers + "From: " + fromHeader + "\r\n"
+    headers = headers + "To: " + toHeader + "\r\n"
+    if ccHeader != "" then
+        headers = headers + "Cc: " + ccHeader + "\r\n"
+    end
+    if isAscii(subject) then
+        headers = headers + "Subject: " + subject + "\r\n"
+    else
+        headers = headers + "Subject: =?UTF-8?B?" + codec.base64Encode(subject) + "?=\r\n"
+    end
+    headers = headers + "Date: " + dateStr + "\r\n"
+    headers = headers + "MIME-Version: 1.0\r\n"
+    if not hasAttach then
+        headers = headers + "Content-Type: text/plain; charset=utf-8\r\n"
+        headers = headers + "Content-Transfer-Encoding: 8bit\r\n"
+        headers = headers + "\r\n"
+        return headers + body
+    end
+    headers = headers + "Content-Type: multipart/mixed; boundary=\"" + BOUNDARY + "\"\r\n"
+    headers = headers + "\r\n"
+    string msg = headers
+    msg = msg + "This is a multi-part message in MIME format.\r\n"
+    msg = msg + "--" + BOUNDARY + "\r\n"
+    msg = msg + "Content-Type: text/plain; charset=utf-8\r\n"
+    msg = msg + "Content-Transfer-Encoding: 8bit\r\n"
+    msg = msg + "\r\n"
+    msg = msg + body + "\r\n"
+    int i = 0
+    while i < attachments.length do
+        string fp = attachments[i]
+        string part = buildAttachmentPart(fp)
+        if part != "" then
+            msg = msg + part
+        end
+        i = i + 1
+    end
+    msg = msg + "--" + BOUNDARY + "--\r\n"
+    return msg
+end
+
+// Prepare the DATA payload: ensure CRLF endings, ensure trailing CRLF,
+// dot-stuff every line starting with '.', append "<CRLF>.<CRLF>" terminator.
+func prepareDataPayload(string message) as string
+    string payload = normalizeCrlf(message)
+    if not string.endsWith(payload, "\r\n") then
+        payload = payload + "\r\n"
+    end
+    array lines = string.split(payload, "\r\n")
+    int n = lines.length
+    if n > 0 and string(lines[n - 1]) == "" then
+        lines.remove(n - 1)
+        n = n - 1
+    end
+    string out = ""
+    int i = 0
+    while i < n do
+        string ln = string(lines[i])
+        if string.startsWith(ln, ".") then
+            ln = "." + ln
+        end
+        if i > 0 then
+            out = out + "\r\n"
+        end
+        out = out + ln
+        i = i + 1
+    end
+    return out + "\r\n.\r\n"
+end
+
+// Extract "<addr>" for SMTP envelope commands from a display header value.
+// "Name <a@b>" -> "<a@b>"; "a@b" -> "<a@b>".
+func smtpAddr(string display) as string
+    int lt = string.indexOf(display, "<")
+    int gt = string.indexOf(display, ">")
+    if lt >= 0 and gt > lt then
+        return string.slice(display, lt, gt - lt + 1)
+    end
+    return "<" + string.trim(display) + ">"
+end
+
+
+// ============================================================
+// SMTP client: full send flow. Returns 0 on success, non-zero on error.
+// All client TcpStream usage is inline (native-backed class, BUG-FTP3).
+// ============================================================
+func smtpSend(string host, int port, string heloName, string fromAddr, string toAddrs, string ccAddrs, string user, string pass, string subject, string body, array<string> attachments, int timeoutMs, bool useAuth) as int
+    point cp = tcp.connect(host, port, timeoutMs)
+    if cp == ZERO then
+        println("Error: cannot connect to " + host + ":" + string(port))
+        return 3
+    end
+    TcpStream sock = TcpStream(cp)
+    string inbuf = ""
+    string reply
+    string nb
+    bool ok
+
+    // ---- read 220 greeting ----
+    reply, nb, ok = recvReply(sock, inbuf, timeoutMs)
+    inbuf = nb
+    if not ok or not string.startsWith(reply, "220") then
+        println("Error: expected 220 greeting, got: " + reply)
+        return 4
+    end
+
+    // ---- EHLO ----
+    reply, nb, ok = cmdExchange(sock, inbuf, "EHLO " + heloName)
+    inbuf = nb
+    if not ok or not string.startsWith(reply, "250") then
+        // try HELO fallback
+        reply, nb, ok = cmdExchange(sock, inbuf, "HELO " + heloName)
+        inbuf = nb
+        if not ok or not string.startsWith(reply, "250") then
+            println("Error: EHLO/HELO failed: " + reply)
+            return 5
+        end
+    end
+    bool serverHasAuth = string.contains(reply, "AUTH") or string.contains(reply, "auth")
+
+    // ---- AUTH LOGIN (if requested and server supports it) ----
+    if useAuth and user != "" then
+        if not serverHasAuth then
+            println("Error: server does not advertise AUTH but credentials given")
+            return 6
+        end
+        // AUTH LOGIN
+        reply, nb, ok = cmdExchange(sock, inbuf, "AUTH LOGIN")
+        inbuf = nb
+        if not ok or not string.startsWith(reply, "334") then
+            println("Error: AUTH LOGIN rejected: " + reply)
+            return 7
+        end
+        // username
+        reply, nb, ok = cmdExchange(sock, inbuf, codec.base64Encode(user))
+        inbuf = nb
+        if not ok or not string.startsWith(reply, "334") then
+            println("Error: AUTH LOGIN username rejected: " + reply)
+            return 8
+        end
+        // password
+        reply, nb, ok = cmdExchange(sock, inbuf, codec.base64Encode(pass))
+        inbuf = nb
+        if not ok or not string.startsWith(reply, "235") then
+            println("Error: AUTH LOGIN password rejected: " + reply)
+            return 9
+        end
+    end
+
+    // ---- MAIL FROM ----
+    reply, nb, ok = cmdExchange(sock, inbuf, "MAIL FROM:" + smtpAddr(fromAddr))
+    inbuf = nb
+    if not ok or not string.startsWith(reply, "250") then
+        println("Error: MAIL FROM rejected: " + reply)
+        return 10
+    end
+
+    // ---- RCPT TO (one or more, comma separated) ----
+    var rcpts = string.split(toAddrs, ",")
+    int r = 0
+    while r < rcpts.length do
+        string one = string.trim(string(rcpts[r]))
+        if one != "" then
+            reply, nb, ok = cmdExchange(sock, inbuf, "RCPT TO:" + smtpAddr(one))
+            inbuf = nb
+            if not ok or not string.startsWith(reply, "250") then
+                println("Error: RCPT TO " + one + " rejected: " + reply)
+                return 11
+            end
+        end
+        r = r + 1
+    end
+    if ccAddrs != "" then
+        var ccs = string.split(ccAddrs, ",")
+        int c = 0
+        while c < ccs.length do
+            string one = string.trim(string(ccs[c]))
+            if one != "" then
+                reply, nb, ok = cmdExchange(sock, inbuf, "RCPT TO:" + smtpAddr(one))
+                inbuf = nb
+                if not ok or not string.startsWith(reply, "250") then
+                    println("Error: RCPT TO (cc) " + one + " rejected: " + reply)
+                    return 12
+                end
+            end
+            c = c + 1
+        end
+    end
+
+    // ---- DATA ----
+    reply, nb, ok = cmdExchange(sock, inbuf, "DATA")
+    inbuf = nb
+    if not ok or not string.startsWith(reply, "354") then
+        println("Error: DATA rejected: " + reply)
+        return 13
+    end
+
+    string msg = buildEmail(fromAddr, toAddrs, ccAddrs, subject, rfc2822Date(), body, attachments)
+    string payload = prepareDataPayload(msg)
+    if not sendRetry(sock, payload) then
+        println("Error: failed to send message body")
+        return 14
+    end
+
+    reply, nb, ok = recvReply(sock, inbuf, timeoutMs)
+    inbuf = nb
+    if not ok or not string.startsWith(reply, "250") then
+        println("Error: message body rejected: " + reply)
+        return 15
+    end
+
+    // ---- QUIT ----
+    reply, nb, ok = cmdExchange(sock, inbuf, "QUIT")
+    if not ok or not string.startsWith(reply, "221") then
+        println("Warning: QUIT did not return 221: " + reply)
+    end
+    // BUG-FTP2: close is abortive; small sleep lets the 221 ACK land first.
+    time.sleep(QUIT_CLOSE_DELAY)
+    sock.close()
+
+    println("Mail sent: " + string(rcpts.length) + " recipient(s), " + string(attachments.length) + " attachment(s).")
+    return 0
+end
+
+
+// ============================================================
+// TEST SERVER: minimal SMTP server for self-test verification.
+// Handles ONE client then returns. Records what it received into globals.
+// ============================================================
+func handleSmtpClient(point clientHandle) as int
+    TcpStream peer = TcpStream(clientHandle)
+    string inbuf = ""
+    string reply
+    string nb
+    bool ok
+    gServerAccepted = true
+
+    // 220 greeting (BUG-FTP1: first send after accept needs retry via sendLine)
+    if not sendLine(peer, "220 xlang test SMTP ready") then
+        return 1
+    end
+
+    // command loop
+    bool authed = false
+    while true do
+        reply, nb, ok = recvLine(peer, inbuf, 30000)
+        inbuf = nb
+        if not ok then
+            return 2
+        end
+        string upper = string.upper(reply)
+
+        if string.startsWith(upper, "EHLO") or string.startsWith(upper, "HELO") then
+            gReceivedEhlo = reply
+            if not sendLine(peer, "250-localhost greets you") then return 3 end
+            if not sendLine(peer, "250-SIZE 10240000") then return 3 end
+            if not sendLine(peer, "250-AUTH LOGIN PLAIN") then return 3 end
+            if not sendLine(peer, "250 OK") then return 3 end
+        elseif string.startsWith(upper, "AUTH LOGIN") then
+            // challenge username (base64 "Username:")
+            if not sendLine(peer, "334 VXNlcm5hbWU6") then return 4 end
+            reply, nb, ok = recvLine(peer, inbuf, 30000)
+            inbuf = nb
+            if not ok then return 4 end
+            gReceivedAuthUser = codec.base64Decode(reply)
+            // challenge password (base64 "Password:")
+            if not sendLine(peer, "334 UGFzc3dvcmQ6") then return 4 end
+            reply, nb, ok = recvLine(peer, inbuf, 30000)
+            inbuf = nb
+            if not ok then return 4 end
+            authed = true
+            if not sendLine(peer, "235 2.7.0 Authentication successful") then return 4 end
+        elseif string.startsWith(upper, "MAIL FROM:") then
+            int ml = string.len("MAIL FROM:")
+            gReceivedFrom = string.trim(string.slice(reply, ml, string.len(reply) - ml))
+            if not sendLine(peer, "250 2.1.0 OK") then return 5 end
+        elseif string.startsWith(upper, "RCPT TO:") then
+            int ml = string.len("RCPT TO:")
+            gReceivedTo = string.trim(string.slice(reply, ml, string.len(reply) - ml))
+            if not sendLine(peer, "250 2.1.5 OK") then return 6 end
+        elseif string.startsWith(upper, "DATA") then
+            if not sendLine(peer, "354 Start mail input; end with <CRLF>.<CRLF>") then return 7 end
+            string mailData
+            mailData, nb, ok = recvDataTerminator(peer, inbuf, 30000)
+            inbuf = nb
+            if not ok then return 7 end
+            gReceivedMail = mailData
+            if not sendLine(peer, "250 2.0.0 OK: queued as TEST0001") then return 8 end
+        elseif string.startsWith(upper, "QUIT") then
+            sendLine(peer, "221 2.0.0 Bye")
+            time.sleep(QUIT_CLOSE_DELAY)
+            peer.close()
+            return 0
+        elseif string.startsWith(upper, "RSET") then
+            if not sendLine(peer, "250 OK") then return 9 end
+        elseif string.startsWith(upper, "NOOP") then
+            if not sendLine(peer, "250 OK") then return 9 end
+        else
+            if not sendLine(peer, "500 Command unrecognized") then return 9 end
+        end
+    end
+    return 0
+end
+
+
+// ============================================================
+// SELF-TEST client: exercises the full SMTP client against the local server.
+// Runs in main; server runs in a worker thread (closure captures port).
+// ============================================================
+func runSelfTest(int port) as int
+    string attachFile = path.join(path.temp(), "xlang_smtpcli_test_attach.bin")
+
+    // retry-connect: the server thread may not have called accept yet
+    point cp = ZERO
+    int attempts = 0
+    while cp == ZERO and attempts < 60 do
+        cp = tcp.connect("127.0.0.1", port, 2000)
+        if cp == ZERO then
+            time.sleep(50)
+        end
+        attempts = attempts + 1
+    end
+    if cp == ZERO then
+        check(false, "0. connect to test server", "could not connect on port " + string(port))
+        return 1
+    end
+
+    TcpStream sock = TcpStream(cp)
+    string inbuf = ""
+    string reply
+    string nb
+    bool ok
+
+    println("")
+    println("================ smtpcli self-test ================")
+    println("connecting to 127.0.0.1:" + string(port))
+
+    // ---- 1. read 220 greeting ----
+    reply, nb, ok = recvReply(sock, inbuf, 10000)
+    inbuf = nb
+    check(ok and string.startsWith(reply, "220"), "1. read 220 greeting", "reply=" + reply)
+
+    // ---- 2. EHLO + multiline 250 reply ----
+    reply, nb, ok = cmdExchange(sock, inbuf, "EHLO client.xlang.local")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "250"), "2. EHLO -> 250", "reply=" + reply)
+    check(string.contains(reply, "AUTH LOGIN"), "2b. EHLO advertises AUTH LOGIN", "reply=" + reply)
+    check(string.contains(reply, "250 OK"), "2c. EHLO final line is '250 OK'", "reply=" + reply)
+
+    // ---- 3. AUTH LOGIN base64 challenge/response ----
+    reply, nb, ok = cmdExchange(sock, inbuf, "AUTH LOGIN")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "334"), "3. AUTH LOGIN -> 334 challenge", "reply=" + reply)
+    reply, nb, ok = cmdExchange(sock, inbuf, codec.base64Encode("testuser"))
+    inbuf = nb
+    check(ok and string.startsWith(reply, "334"), "4. username -> 334 password challenge", "reply=" + reply)
+    reply, nb, ok = cmdExchange(sock, inbuf, codec.base64Encode("s3cr3t"))
+    inbuf = nb
+    check(ok and string.startsWith(reply, "235"), "5. password -> 235 authenticated", "reply=" + reply)
+
+    // ---- 6. MAIL FROM / RCPT TO ----
+    reply, nb, ok = cmdExchange(sock, inbuf, "MAIL FROM:<sender@example.com>")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "250"), "6. MAIL FROM -> 250", "reply=" + reply)
+    reply, nb, ok = cmdExchange(sock, inbuf, "RCPT TO:<recipient@example.com>")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "250"), "7. RCPT TO -> 250", "reply=" + reply)
+
+    // ---- 8. DATA + MIME multipart body with attachment ----
+    reply, nb, ok = cmdExchange(sock, inbuf, "DATA")
+    inbuf = nb
+    check(ok and string.startsWith(reply, "354"), "8. DATA -> 354", "reply=" + reply)
+
+    string attachBody = "Hello attachment bytes 12345!"
+    Buffer attachBuf = Buffer()
+    attachBuf.append(attachBody)
+    file.writeBytes(attachFile, attachBuf)
+    string expectedB64 = codec.base64Encode(attachBody)
+
+    array<string> atts = array[attachFile]
+    string body = "Hello SMTP.\r\nThis is a test email from xlang smtpcli.\r\n..secret line that needs dot-stuffing"
+    string msg = buildEmail("Alice <sender@example.com>", "recipient@example.com", "", "Täst Sübjëct 中文", rfc2822Date(), body, atts)
+    string payload = prepareDataPayload(msg)
+    bool sent = sendRetry(sock, payload)
+    check(sent, "9. send DATA payload", "")
+    reply, nb, ok = recvReply(sock, inbuf, 10000)
+    inbuf = nb
+    check(ok and string.startsWith(reply, "250"), "10. DATA accepted -> 250", "reply=" + reply)
+
+    // ---- 11. QUIT ----
+    reply, nb, ok = cmdExchange(sock, inbuf, "QUIT")
+    check(ok and string.startsWith(reply, "221"), "11. QUIT -> 221", "reply=" + reply)
+    time.sleep(QUIT_CLOSE_DELAY)
+    sock.close()
+
+    // ---- verify what the server received ----
+    check(gReceivedEhlo == "EHLO client.xlang.local", "12. server saw EHLO line", "got='" + gReceivedEhlo + "'")
+    check(gReceivedFrom == "<sender@example.com>", "13. server saw MAIL FROM", "got='" + gReceivedFrom + "'")
+    check(gReceivedTo == "<recipient@example.com>", "14. server saw RCPT TO", "got='" + gReceivedTo + "'")
+    check(gReceivedAuthUser == "testuser", "15. AUTH LOGIN decoded username", "got='" + gReceivedAuthUser + "'")
+    check(gServerAccepted, "16. server accepted connection", "")
+
+    // MIME structure checks on the received mail
+    check(string.contains(gReceivedMail, "From: Alice <sender@example.com>"), "17. mail From header", "mail=" + gReceivedMail)
+    check(string.contains(gReceivedMail, "To: recipient@example.com"), "18. mail To header", "mail=" + gReceivedMail)
+    check(string.contains(gReceivedMail, "Subject: =?UTF-8?B?"), "19. non-ASCII subject encoded-word", "mail=" + gReceivedMail)
+    check(string.contains(gReceivedMail, "Date: "), "20. mail Date header", "mail=" + gReceivedMail)
+    check(string.contains(gReceivedMail, "MIME-Version: 1.0"), "21. MIME-Version header", "mail=" + gReceivedMail)
+    check(string.contains(gReceivedMail, "Content-Type: multipart/mixed"), "22. multipart/mixed", "mail=" + gReceivedMail)
+    check(string.contains(gReceivedMail, "boundary=\"" + BOUNDARY + "\""), "23. boundary marker", "mail=" + gReceivedMail)
+    check(string.contains(gReceivedMail, "Content-Transfer-Encoding: base64"), "24. attachment base64 transfer-encoding", "mail=" + gReceivedMail)
+    check(string.contains(gReceivedMail, expectedB64), "25. attachment base64 content present", "expected b64=" + expectedB64)
+    check(string.contains(gReceivedMail, "filename=\"xlang_smtpcli_test_attach.bin\""), "26. attachment filename", "mail=" + gReceivedMail)
+    check(string.contains(gReceivedMail, "Hello SMTP."), "27. body text present", "mail=" + gReceivedMail)
+
+    // dot-stuffing: original ".secret line..." was stuffed to "..secret line..." on the wire
+    check(string.contains(gReceivedMail, "..secret line that needs dot-stuffing"), "28. dot-stuffing applied on wire", "mail=" + gReceivedMail)
+    // encoded subject round-trips through base64
+    string subjectB64 = codec.base64Encode("Täst Sübjëct 中文")
+    string decodedSubject = codec.base64Decode(subjectB64)
+    check(decodedSubject == "Täst Sübjëct 中文", "29. non-ASCII subject base64 round-trip", "decoded='" + decodedSubject + "'")
+    check(string.contains(msg, "Subject: =?UTF-8?B?"), "30. built message has encoded subject", "")
+
+    file.delete(attachFile)
+
+    println("")
+    println("------------------- summary -------------------")
+    println("passed: " + string(gPassed) + " / " + string(gPassed + gFailed))
+    println("failed: " + string(gFailed))
+    println("")
+    if gFailed > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ============================================================
+// main
+// ============================================================
+func usage()
+    println("smtpcli - SMTP client (send email via raw TCP)")
+    println("")
+    println("Usage:")
+    println("  smtpcli send --host <host> --port <port> --from <addr> --to <addr>")
+    println("               --subject <text> --body <text>")
+    println("               [--user <user> --pass <pass>]")
+    println("               [--cc <addr>]  (repeatable)")
+    println("               [--attach <file>]  (repeatable)")
+    println("               [--heloname <name>]  (default: localhost)")
+    println("               [--timeout <ms>]  (default: 15000)")
+    println("  smtpcli test                 self-test (local server + client round-trip)")
+    println("  smtpcli -h | --help          show this help")
+    println("")
+    println("Examples:")
+    println("  smtpcli send --host smtp.example.com --port 587 --from me@a.com \\")
+    println("               --to you@b.com --subject Hi --body \"Hello there\"")
+    println("  smtpcli send --host mail.a.com --port 25 --from a@x --to b@y \\")
+    println("               --subject Report --body see-file --attach report.csv")
+end
+
+// Validate that a string is a plausible positive integer (BUG-M1 defense).
+func parsePositiveInt(string s) as int
+    if s == "" then
+        return -1
+    end
+    int n = 0
+    int i = 0
+    while i < string.len(s) do
+        string ch = string.slice(s, i, 1)
+        if ch < "0" or ch > "9" then
+            return -1
+        end
+        n = n * 10 + (int(string.byteAt(s, i)) - 48)
+        i = i + 1
+    end
+    return n
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        usage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        usage()
+        return 0
+    end
+
+    if cmd == "test" then
+        // boot local SMTP server on an ephemeral port. The TcpServer is
+        // native-backed (cannot be captured by value into a closure), so we
+        // follow ftpserver's pattern: accept in main, run the CLIENT (which
+        // only needs the bound port — a plain int) in a worker thread.
+        point lp = tcp.listen(0, "127.0.0.1", 4)
+        if lp == ZERO then
+            println("FATAL: tcp.listen failed")
+            return 1
+        end
+        TcpServer srv = TcpServer(lp)
+        int boundPort = srv.port()
+        println("test SMTP server listening on 127.0.0.1:" + string(boundPort))
+
+        // client + checks run in a worker thread; captures only boundPort (int).
+        func() as int clientRunner
+        clientRunner = func() as int
+            return runSelfTest(boundPort)
+        end
+        thread clientThread = thread(clientRunner)
+
+        time.sleep(200)
+
+        point ch = srv.accept(60000)
+        if ch != ZERO then
+            handleSmtpClient(ch)
+        else
+            println("FATAL: no client connected within 60s")
+            gFailed = gFailed + 1
+        end
+
+        clientThread.wait()
+
+        if gFailed > 0 then
+            return 1
+        end
+        return 0
+    end
+
+    if cmd != "send" then
+        println("Error: unknown command '" + cmd + "'")
+        usage()
+        return 1
+    end
+
+    // ---- send mode: flag-based arg parsing ----
+    string host = ""
+    int port = 0
+    string fromAddr = ""
+    string toAddrs = ""
+    string ccAddrs = ""
+    string subject = ""
+    string body = ""
+    string user = ""
+    string pass = ""
+    string heloName = "localhost"
+    int timeoutMs = DEFAULT_TIMEOUT
+    array<string> attachments = array[]
+    bool useAuth = false
+
+    int i = 2
+    while i < arg.length do
+        string a = string(arg[i])
+        if a == "--host" then
+            if i + 1 >= arg.length then
+                println("Error: --host requires a value")
+                return 1
+            end
+            host = string(arg[i + 1])
+            i = i + 2
+        elseif a == "--port" then
+            if i + 1 >= arg.length then
+                println("Error: --port requires a value")
+                return 1
+            end
+            int parsed = parsePositiveInt(string(arg[i + 1]))
+            if parsed <= 0 then
+                println("Error: --port must be a positive integer (got '" + string(arg[i + 1]) + "')")
+                return 1
+            end
+            port = parsed
+            i = i + 2
+        elseif a == "--from" then
+            if i + 1 >= arg.length then
+                println("Error: --from requires a value")
+                return 1
+            end
+            fromAddr = string(arg[i + 1])
+            i = i + 2
+        elseif a == "--to" then
+            if i + 1 >= arg.length then
+                println("Error: --to requires a value")
+                return 1
+            end
+            if toAddrs == "" then
+                toAddrs = string(arg[i + 1])
+            else
+                toAddrs = toAddrs + "," + string(arg[i + 1])
+            end
+            i = i + 2
+        elseif a == "--cc" then
+            if i + 1 >= arg.length then
+                println("Error: --cc requires a value")
+                return 1
+            end
+            if ccAddrs == "" then
+                ccAddrs = string(arg[i + 1])
+            else
+                ccAddrs = ccAddrs + "," + string(arg[i + 1])
+            end
+            i = i + 2
+        elseif a == "--subject" then
+            if i + 1 >= arg.length then
+                println("Error: --subject requires a value")
+                return 1
+            end
+            subject = string(arg[i + 1])
+            i = i + 2
+        elseif a == "--body" then
+            if i + 1 >= arg.length then
+                println("Error: --body requires a value")
+                return 1
+            end
+            body = string(arg[i + 1])
+            i = i + 2
+        elseif a == "--user" then
+            if i + 1 >= arg.length then
+                println("Error: --user requires a value")
+                return 1
+            end
+            user = string(arg[i + 1])
+            useAuth = true
+            i = i + 2
+        elseif a == "--pass" then
+            if i + 1 >= arg.length then
+                println("Error: --pass requires a value")
+                return 1
+            end
+            pass = string(arg[i + 1])
+            i = i + 2
+        elseif a == "--heloname" then
+            if i + 1 >= arg.length then
+                println("Error: --heloname requires a value")
+                return 1
+            end
+            heloName = string(arg[i + 1])
+            i = i + 2
+        elseif a == "--timeout" then
+            if i + 1 >= arg.length then
+                println("Error: --timeout requires a value")
+                return 1
+            end
+            int parsed = parsePositiveInt(string(arg[i + 1]))
+            if parsed <= 0 then
+                println("Error: --timeout must be a positive integer")
+                return 1
+            end
+            timeoutMs = parsed
+            i = i + 2
+        elseif a == "--attach" then
+            if i + 1 >= arg.length then
+                println("Error: --attach requires a file path")
+                return 1
+            end
+            string fp = string(arg[i + 1])
+            if not file.exists(fp) then
+                println("Error: attachment file not found: " + fp)
+                return 1
+            end
+            attachments.append(fp)
+            i = i + 2
+        elseif a == "-h" or a == "--help" then
+            usage()
+            return 0
+        else
+            println("Error: unknown option '" + a + "'")
+            return 1
+        end
+    end
+
+    if host == "" then
+        println("Error: --host is required")
+        return 1
+    end
+    if port == 0 then
+        println("Error: --port is required")
+        return 1
+    end
+    if fromAddr == "" then
+        println("Error: --from is required")
+        return 1
+    end
+    if toAddrs == "" then
+        println("Error: --to is required")
+        return 1
+    end
+    if useAuth and pass == "" then
+        println("Error: --user given but --pass missing")
+        return 1
+    end
+
+    return smtpSend(host, port, heloName, fromAddr, toAddrs, ccAddrs, user, pass, subject, body, attachments, timeoutMs, useAuth)
+end

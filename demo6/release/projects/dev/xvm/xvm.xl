@@ -1,0 +1,1105 @@
+// xvm.xl - Stack-based bytecode virtual machine with assembler / disassembler / debugger
+//
+// usage:
+//   xvm run <file.asm>                assemble & execute
+//   xvm asm  <file.asm> -o out.xb     assemble only, write bytecode file
+//   xvm disasm <file.xb>              disassemble bytecode file
+//   xvm debug <file.asm>              single-step trace mode
+//   xvm test                          built-in self-test program
+//   xvm -h | --help                   this help
+//
+// Instruction set (31 opcodes):
+//   stack:   PUSH n  POP  DUP  SWAP  OVER
+//   arith:   ADD  SUB  MUL  DIV  MOD  NEG
+//   cmp:     EQ  NE  LT  LE  GT  GE
+//   logic:   AND  OR  NOT
+//   flow:    JMP label  JZ label  JNZ label  CALL label  RET
+//   memory:  LOAD slot  STORE slot
+//   io:      PRINT  PRINTLN  READ
+//   term:    HALT
+//
+// Bytecode model:
+//   Flat array<int> of cells. Each instruction is 1 cell (opcode) optionally
+//   followed by 1 cell (operand). The instruction pointer (ip) indexes cells.
+//   Labels resolve to cell addresses in pass 2 of the assembler.
+//
+// .xb file format (text):
+//   line 1: magic "XVMBC1"
+//   each remaining line: one integer cell (opcode or operand)
+//
+// Design notes / BUG workarounds:
+//   * No stdin API -> READ instruction returns 0 (reads from an optional
+//     input queue that can only be filled programmatically).
+//   * Class methods cannot safely receive array<int> params (BUG-C1) ->
+//     the VM loads bytecode in its constructor via a local copy loop;
+//     execution only touches self.* fields (indexed read/write works fine).
+//   * `return self.field.length` rejected (BUG-C2) -> cache into int local.
+//   * `#` is not a comment -> use `//` in xlang source and `;` in asm source.
+
+
+// ======================== Opcodes ========================
+
+const int OP_HALT    = 0
+const int OP_PUSH    = 1
+const int OP_POP     = 2
+const int OP_DUP     = 3
+const int OP_SWAP    = 4
+const int OP_OVER    = 5
+const int OP_ADD     = 6
+const int OP_SUB     = 7
+const int OP_MUL     = 8
+const int OP_DIV     = 9
+const int OP_MOD     = 10
+const int OP_NEG     = 11
+const int OP_EQ      = 12
+const int OP_NE      = 13
+const int OP_LT      = 14
+const int OP_LE      = 15
+const int OP_GT      = 16
+const int OP_GE      = 17
+const int OP_AND     = 18
+const int OP_OR      = 19
+const int OP_NOT     = 20
+const int OP_JMP     = 21
+const int OP_JZ      = 22
+const int OP_JNZ     = 23
+const int OP_CALL    = 24
+const int OP_RET     = 25
+const int OP_LOAD    = 26
+const int OP_STORE   = 27
+const int OP_PRINT   = 28
+const int OP_PRINTLN = 29
+const int OP_READ    = 30
+
+const int NUM_OPS = 31
+
+// Runtime limits.
+const int STACK_MAX  = 4096
+const int CALL_MAX   = 1024
+const int SLOT_COUNT = 256
+
+// Parallel opcode metadata tables.
+array<string> gNames = array[
+    "HALT", "PUSH", "POP", "DUP", "SWAP", "OVER",
+    "ADD", "SUB", "MUL", "DIV", "MOD", "NEG",
+    "EQ", "NE", "LT", "LE", "GT", "GE",
+    "AND", "OR", "NOT",
+    "JMP", "JZ", "JNZ", "CALL", "RET",
+    "LOAD", "STORE",
+    "PRINT", "PRINTLN", "READ"
+]
+
+// 1 = instruction takes one integer operand cell, 0 = no operand.
+array<int> gHasOperand = array[
+    0, 1, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0,
+    1, 1, 1, 1, 0,
+    1, 1,
+    0, 0, 0
+]
+
+
+// ======================== helpers ========================
+
+// Build a zero-filled array<int> of length n.
+func makeArray(int n, int initVal) as array<int>
+    array<int> a = array[]
+    if n <= 0 then
+        return a
+    end
+    int i = 0
+    while i < n do
+        a.push(initVal)
+        i += 1
+    end
+    return a
+end
+
+// Uppercase ASCII letters in s (for case-insensitive mnemonic lookup).
+func toUpper(string s) as string
+    string out = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b >= 97 and b <= 122 then
+            out = out + string.charAt("ABCDEFGHIJKLMNOPQRSTUVWXYZ", b - 97)
+        else
+            out = out + string.charAt(s, i)
+        end
+        i += 1
+    end
+    return out
+end
+
+// Validate that s is a decimal integer (optionally signed).
+func looksInt(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int i = 0
+    if string.byteAt(s, 0) == 45 then
+        i = 1
+        if n == 1 then
+            return false
+        end
+    end
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+// Look up an opcode by uppercased mnemonic; -1 if not found.
+func opNameToCode(string name) as int
+    string up = toUpper(name)
+    int i = 0
+    while i < NUM_OPS do
+        if gNames[i] == up then
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+// Split a string on whitespace, dropping empty tokens.
+func tokenize(string line) as array<string>
+    array<string> tokens = array[]
+    int n = string.len(line)
+    int i = 0
+    string cur = ""
+    while i < n do
+        string c = string.charAt(line, i)
+        if c == " " or c == "\t" or c == "\r" or c == "\n" then
+            if string.len(cur) > 0 then
+                tokens.push(cur)
+                cur = ""
+            end
+        else
+            cur = cur + c
+        end
+        i += 1
+    end
+    if string.len(cur) > 0 then
+        tokens.push(cur)
+    end
+    return tokens
+end
+
+// Strip a trailing ";" comment from a line.
+func stripComment(string line) as string
+    int n = string.len(line)
+    int i = 0
+    while i < n do
+        if string.charAt(line, i) == ";" then
+            return string.mid(line, 0, i)
+        end
+        i += 1
+    end
+    return line
+end
+
+// Find a label's address by name; -1 if not defined.
+func findLabel(array<string> names, array<int> addrs, string name) as int
+    int i = 0
+    int n = names.length
+    while i < n do
+        if names[i] == name then
+            return addrs[i]
+        end
+        i += 1
+    end
+    return -1
+end
+
+
+// ======================== assembler ========================
+
+string gAsmError
+
+// Two-pass assembler: text source -> array<int> bytecode.
+// On failure, returns an empty array and sets gAsmError.
+func assemble(string src) as array<int>
+    array<int> result = array[]
+    gAsmError = ""
+
+    var rawLines = string.splitLines(src)
+    int numLines = rawLines.length
+    // BUG-S1: splitLines may append a trailing empty string.
+    if numLines > 0 then
+        string lastRaw = string(rawLines[numLines - 1])
+        if string.len(string.trim(lastRaw)) == 0 then
+            numLines = numLines - 1
+        end
+    end
+
+    // Pass 1: parse lines into instruction list + collect label addresses.
+    array<string> instrMnem = array[]
+    array<string> instrOperand = array[]
+    array<int> instrLine = array[]
+    array<string> labelNames = array[]
+    array<int> labelAddrs = array[]
+
+    int addr = 0
+    int li = 0
+    while li < numLines do
+        string raw = string(rawLines[li])
+        string body = stripComment(raw)
+        array<string> tokens = tokenize(body)
+        int nt = tokens.length
+        int ti = 0
+        while ti < nt do
+            string tok = tokens[ti]
+            int tokLen = string.len(tok)
+            // label definition: "name:"
+            if string.byteAt(tok, tokLen - 1) == 58 then
+                string lbl = string.mid(tok, 0, tokLen - 1)
+                if findLabel(labelNames, labelAddrs, lbl) >= 0 then
+                    gAsmError = "line " + string(li + 1) + ": duplicate label '" + lbl + "'"
+                    return array[]
+                end
+                labelNames.push(lbl)
+                labelAddrs.push(addr)
+                ti += 1
+            else
+                string mnem = toUpper(tok)
+                int opcode = opNameToCode(mnem)
+                if opcode < 0 then
+                    gAsmError = "line " + string(li + 1) + ": unknown instruction '" + tok + "'"
+                    return array[]
+                end
+                string operand = ""
+                if gHasOperand[opcode] != 0 then
+                    if ti + 1 >= nt then
+                        gAsmError = "line " + string(li + 1) + ": '" + mnem + "' expects an operand"
+                        return array[]
+                    end
+                    ti += 1
+                    operand = tokens[ti]
+                end
+                instrMnem.push(mnem)
+                instrOperand.push(operand)
+                instrLine.push(li + 1)
+                addr += 1
+                if gHasOperand[opcode] != 0 then
+                    addr += 1
+                end
+                ti += 1
+            end
+        end
+        li += 1
+    end
+
+    // Pass 2: emit bytecode, resolving labels.
+    int ii = 0
+    int ni = instrMnem.length
+    while ii < ni do
+        string mnem = instrMnem[ii]
+        string operand = instrOperand[ii]
+        int opcode = opNameToCode(mnem)
+        result.push(opcode)
+        if gHasOperand[opcode] != 0 then
+            int val = 0
+            if opcode == OP_PUSH or opcode == OP_LOAD or opcode == OP_STORE then
+                if not looksInt(operand) then
+                    gAsmError = "line " + string(instrLine[ii]) + ": '" + mnem + "' expects an integer, got '" + operand + "'"
+                    return array[]
+                end
+                val = int(operand)
+            else
+                // JMP / JZ / JNZ / CALL: label reference or numeric address.
+                int target = findLabel(labelNames, labelAddrs, operand)
+                if target >= 0 then
+                    val = target
+                elseif looksInt(operand) then
+                    val = int(operand)
+                else
+                    gAsmError = "line " + string(instrLine[ii]) + ": unknown label '" + operand + "'"
+                    return array[]
+                end
+            end
+            result.push(val)
+        end
+        ii += 1
+    end
+
+    return result
+end
+
+
+// ======================== bytecode file I/O ========================
+
+const string BC_MAGIC = "XVMBC1"
+
+func writeBytecode(string path, array<int> code) as bool
+    string text = BC_MAGIC + "\n"
+    int n = code.length
+    int i = 0
+    while i < n do
+        text = text + string(code[i]) + "\n"
+        i += 1
+    end
+    return file.writeText(path, text)
+end
+
+func readBytecode(string path) as array<int>
+    array<int> result = array[]
+    if not file.exists(path) then
+        gAsmError = "file not found: " + path
+        return result
+    end
+    string text = file.readText(path)
+    if string.len(text) == 0 then
+        gAsmError = "empty bytecode file: " + path
+        return result
+    end
+    var lines = string.splitLines(text)
+    int n = lines.length
+    if n == 0 then
+        gAsmError = "no magic line in bytecode file"
+        return result
+    end
+    if string.trim(string(lines[0])) != BC_MAGIC then
+        gAsmError = "bad bytecode magic (expected " + BC_MAGIC + ")"
+        return result
+    end
+    int i = 1
+    while i < n do
+        string s = string.trim(string(lines[i]))
+        if string.len(s) > 0 then
+            if not looksInt(s) then
+                gAsmError = "bad cell at line " + string(i + 1) + ": '" + s + "'"
+                return array[]
+            end
+            result.push(int(s))
+        end
+        i += 1
+    end
+    return result
+end
+
+
+// ======================== disassembler ========================
+
+// Decode bytecode cells into human-readable assembly text.
+func disassembleCode(array<int> code) as string
+    string out = ""
+    int n = code.length
+    int p = 0
+    while p < n do
+        int op = code[p]
+        string name = "UNK" + string(op)
+        int hasOp = 0
+        if op >= 0 and op < NUM_OPS then
+            name = gNames[op]
+            hasOp = gHasOperand[op]
+        end
+        // right-align address in 4 chars for readability
+        string addrStr = string(p)
+        while string.len(addrStr) < 4 do
+            addrStr = " " + addrStr
+        end
+        out = out + addrStr + ":  " + name
+        p += 1
+        if hasOp != 0 then
+            if p < n then
+                out = out + " " + string(code[p])
+                p += 1
+            else
+                out = out + " <missing operand>"
+            end
+        end
+        out = out + "\n"
+    end
+    return out
+end
+
+
+// ======================== virtual machine ========================
+
+class VM
+    array<int> code
+    int codeLen
+    array<int> stack
+    array<int> callStack
+    array<int> slots
+    array<int> inputQ
+    int inputHead
+    int ip
+    int sp
+    int csp
+    bool halted
+    string error
+    int steps
+    int maxSteps
+
+    create(string src)
+        array<int> bc = assemble(src)
+        int cn = bc.length
+        self.code = makeArray(cn, 0)
+        int ci = 0
+        while ci < cn do
+            self.code[ci] = bc[ci]
+            ci += 1
+        end
+        self.codeLen = cn
+        self.stack = makeArray(STACK_MAX, 0)
+        self.callStack = makeArray(CALL_MAX, 0)
+        self.slots = makeArray(SLOT_COUNT, 0)
+        self.inputQ = array[]
+        self.inputHead = 0
+        self.ip = 0
+        self.sp = 0
+        self.csp = 0
+        self.halted = false
+        self.error = gAsmError
+        if string.len(gAsmError) > 0 then
+            self.halted = true
+        end
+        self.steps = 0
+        self.maxSteps = 2000000
+    end
+
+    func pushInput(int v)
+        self.inputQ.push(v)
+    end
+
+    func pushVal(int v)
+        if self.sp >= STACK_MAX then
+            self.halted = true
+            self.error = "stack overflow"
+            return
+        end
+        self.stack[self.sp] = v
+        self.sp = self.sp + 1
+    end
+
+    func popVal() as int
+        if self.sp <= 0 then
+            self.halted = true
+            self.error = "stack underflow"
+            return 0
+        end
+        self.sp = self.sp - 1
+        return self.stack[self.sp]
+    end
+
+    // Execute exactly one instruction. Returns false if the VM has halted.
+    func step() as bool
+        if self.halted then
+            return false
+        end
+        self.steps = self.steps + 1
+        if self.steps > self.maxSteps then
+            self.halted = true
+            self.error = "max steps (" + string(self.maxSteps) + ") exceeded"
+            return false
+        end
+        if self.ip < 0 or self.ip >= self.codeLen then
+            self.halted = true
+            self.error = "ip out of range: " + string(self.ip)
+            return false
+        end
+
+        int op = self.code[self.ip]
+        self.ip = self.ip + 1
+
+        if op == OP_HALT then
+            self.halted = true
+            return false
+        elseif op == OP_PUSH then
+            int val = self.code[self.ip]
+            self.ip = self.ip + 1
+            self.pushVal(val)
+        elseif op == OP_POP then
+            self.popVal()
+        elseif op == OP_DUP then
+            if self.sp <= 0 then
+                self.halted = true
+                self.error = "stack underflow at DUP"
+                return false
+            end
+            int v = self.stack[self.sp - 1]
+            self.pushVal(v)
+        elseif op == OP_SWAP then
+            if self.sp < 2 then
+                self.halted = true
+                self.error = "stack underflow at SWAP"
+                return false
+            end
+            int a = self.stack[self.sp - 1]
+            int b = self.stack[self.sp - 2]
+            self.stack[self.sp - 1] = b
+            self.stack[self.sp - 2] = a
+        elseif op == OP_OVER then
+            if self.sp < 2 then
+                self.halted = true
+                self.error = "stack underflow at OVER"
+                return false
+            end
+            int v = self.stack[self.sp - 2]
+            self.pushVal(v)
+        elseif op == OP_ADD then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            self.pushVal(a + b)
+        elseif op == OP_SUB then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            self.pushVal(a - b)
+        elseif op == OP_MUL then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            self.pushVal(a * b)
+        elseif op == OP_DIV then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            if b == 0 then
+                self.halted = true
+                self.error = "division by zero"
+                return false
+            end
+            self.pushVal(a / b)
+        elseif op == OP_MOD then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            if b == 0 then
+                self.halted = true
+                self.error = "modulo by zero"
+                return false
+            end
+            self.pushVal(a % b)
+        elseif op == OP_NEG then
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            self.pushVal(0 - a)
+        elseif op == OP_EQ then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            if a == b then
+                self.pushVal(1)
+            else
+                self.pushVal(0)
+            end
+        elseif op == OP_NE then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            if a != b then
+                self.pushVal(1)
+            else
+                self.pushVal(0)
+            end
+        elseif op == OP_LT then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            if a < b then
+                self.pushVal(1)
+            else
+                self.pushVal(0)
+            end
+        elseif op == OP_LE then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            if a <= b then
+                self.pushVal(1)
+            else
+                self.pushVal(0)
+            end
+        elseif op == OP_GT then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            if a > b then
+                self.pushVal(1)
+            else
+                self.pushVal(0)
+            end
+        elseif op == OP_GE then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            if a >= b then
+                self.pushVal(1)
+            else
+                self.pushVal(0)
+            end
+        elseif op == OP_AND then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            int r = 0
+            if a != 0 and b != 0 then
+                r = 1
+            end
+            self.pushVal(r)
+        elseif op == OP_OR then
+            int b = self.popVal()
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            int r = 0
+            if a != 0 or b != 0 then
+                r = 1
+            end
+            self.pushVal(r)
+        elseif op == OP_NOT then
+            int a = self.popVal()
+            if self.halted then
+                return false
+            end
+            int r = 0
+            if a == 0 then
+                r = 1
+            end
+            self.pushVal(r)
+        elseif op == OP_JMP then
+            int target = self.code[self.ip]
+            self.ip = target
+        elseif op == OP_JZ then
+            int target = self.code[self.ip]
+            self.ip = self.ip + 1
+            int v = self.popVal()
+            if self.halted then
+                return false
+            end
+            if v == 0 then
+                self.ip = target
+            end
+        elseif op == OP_JNZ then
+            int target = self.code[self.ip]
+            self.ip = self.ip + 1
+            int v = self.popVal()
+            if self.halted then
+                return false
+            end
+            if v != 0 then
+                self.ip = target
+            end
+        elseif op == OP_CALL then
+            int target = self.code[self.ip]
+            self.ip = self.ip + 1
+            if self.csp >= CALL_MAX then
+                self.halted = true
+                self.error = "call stack overflow"
+                return false
+            end
+            self.callStack[self.csp] = self.ip
+            self.csp = self.csp + 1
+            self.ip = target
+        elseif op == OP_RET then
+            if self.csp <= 0 then
+                self.halted = true
+                self.error = "call stack underflow at RET"
+                return false
+            end
+            self.csp = self.csp - 1
+            self.ip = self.callStack[self.csp]
+        elseif op == OP_LOAD then
+            int slot = self.code[self.ip]
+            self.ip = self.ip + 1
+            if slot < 0 or slot >= SLOT_COUNT then
+                self.halted = true
+                self.error = "slot index out of range: " + string(slot)
+                return false
+            end
+            self.pushVal(self.slots[slot])
+        elseif op == OP_STORE then
+            int slot = self.code[self.ip]
+            self.ip = self.ip + 1
+            if slot < 0 or slot >= SLOT_COUNT then
+                self.halted = true
+                self.error = "slot index out of range: " + string(slot)
+                return false
+            end
+            int v = self.popVal()
+            if self.halted then
+                return false
+            end
+            self.slots[slot] = v
+        elseif op == OP_PRINT then
+            int v = self.popVal()
+            if self.halted then
+                return false
+            end
+            print(v)
+        elseif op == OP_PRINTLN then
+            int v = self.popVal()
+            if self.halted then
+                return false
+            end
+            println(v)
+        elseif op == OP_READ then
+            int val = 0
+            if self.inputHead < self.inputQ.length then
+                val = self.inputQ[self.inputHead]
+                self.inputHead = self.inputHead + 1
+            end
+            self.pushVal(val)
+        else
+            self.halted = true
+            self.error = "unknown opcode: " + string(op)
+            return false
+        end
+        return true
+    end
+
+    // Run until halted. Returns 0 on clean halt, 1 on error.
+    func run() as int
+        while not self.halted do
+            self.step()
+        end
+        if string.len(self.error) > 0 then
+            return 1
+        end
+        return 0
+    end
+
+    // Snapshot the value stack as "[ a b c ]".
+    func dumpStack() as string
+        string out = "["
+        int i = 0
+        while i < self.sp do
+            if i > 0 then
+                out = out + " "
+            end
+            out = out + string(self.stack[i])
+            i += 1
+        end
+        out = out + "]"
+        return out
+    end
+
+    // Disassemble the loaded program (reads self.code).
+    func disassemble() as string
+        string out = ""
+        int n = self.codeLen
+        int p = 0
+        while p < n do
+            int op = self.code[p]
+            string name = "UNK" + string(op)
+            int hasOp = 0
+            if op >= 0 and op < NUM_OPS then
+                name = gNames[op]
+                hasOp = gHasOperand[op]
+            end
+            string addrStr = string(p)
+            while string.len(addrStr) < 4 do
+                addrStr = " " + addrStr
+            end
+            out = out + addrStr + ":  " + name
+            p += 1
+            if hasOp != 0 then
+                if p < n then
+                    out = out + " " + string(self.code[p])
+                    p += 1
+                else
+                    out = out + " <missing operand>"
+                end
+            end
+            out = out + "\n"
+        end
+        return out
+    end
+end
+
+
+// ======================== debugger ========================
+
+// Decode one instruction at address `at` for trace output.
+func traceAt(VM vm, int at) as string
+    string s = "?"
+    if at < 0 or at >= vm.codeLen then
+        return "<ip=" + string(at) + " out of range>"
+    end
+    int op = vm.code[at]
+    string name = "UNK" + string(op)
+    int hasOp = 0
+    if op >= 0 and op < NUM_OPS then
+        name = gNames[op]
+        hasOp = gHasOperand[op]
+    end
+    s = name
+    if hasOp != 0 and at + 1 < vm.codeLen then
+        s = s + " " + string(vm.code[at + 1])
+    end
+    return s
+end
+
+func cmdDebug(string asmPath) as int
+    if not file.exists(asmPath) then
+        println("xvm: file not found: " + asmPath)
+        return 1
+    end
+    string src = file.readText(asmPath)
+    VM vm = VM(src)
+    if vm.halted and string.len(vm.error) > 0 then
+        println("xvm: assembly error: " + vm.error)
+        return 1
+    end
+    println("=== xvm debug: " + string(vm.codeLen) + " code cells ===")
+    println("--- disassembly ---")
+    print(vm.disassemble())
+    println("--- trace ---")
+    int maxTrace = 500
+    int count = 0
+    while not vm.halted and count < maxTrace do
+        int curIp = vm.ip
+        string instr = traceAt(vm, curIp)
+        vm.step()
+        string ipStr = string(curIp)
+        while string.len(ipStr) < 4 do
+            ipStr = " " + ipStr
+        end
+        print(ipStr + "  " + instr + "  ->  stack=" + vm.dumpStack())
+        if vm.halted then
+            println("  [HALTED]")
+        else
+            println("")
+        end
+        count += 1
+    end
+    if count >= maxTrace and not vm.halted then
+        println("... trace limit (" + string(maxTrace) + " steps) reached, stopping")
+    end
+    println("--- final state ---")
+    println("ip=" + string(vm.ip) + " sp=" + string(vm.sp) + " csp=" + string(vm.csp) + " steps=" + string(vm.steps))
+    if string.len(vm.error) > 0 then
+        println("error: " + vm.error)
+        return 1
+    end
+    return 0
+end
+
+
+// ======================== built-in test program ========================
+
+string TEST_SRC
+TEST_SRC = """
+; compute 1+2+...+10 = 55
+    PUSH 0
+    STORE 0
+    PUSH 1
+    STORE 1
+loop:
+    LOAD 1
+    PUSH 10
+    LE
+    JZ done
+    LOAD 0
+    LOAD 1
+    ADD
+    STORE 0
+    LOAD 1
+    PUSH 1
+    ADD
+    STORE 1
+    JMP loop
+done:
+    LOAD 0
+    PRINT
+    HALT
+"""
+
+func runTest() as int
+    println("=== xvm built-in test: sum 1..10 (expect 55) ===")
+    VM vm = VM(TEST_SRC)
+    if vm.halted and string.len(vm.error) > 0 then
+        println("xvm: assembly error: " + vm.error)
+        return 1
+    end
+    int rc = vm.run()
+    println("")
+    if rc != 0 then
+        println("xvm: runtime error: " + vm.error)
+        return rc
+    end
+    println("--- bytecode ---")
+    print(vm.disassemble())
+    return 0
+end
+
+
+// ======================== CLI ========================
+
+func printUsage()
+    println("xvm - stack-based bytecode virtual machine")
+    println("")
+    println("usage:")
+    println("  xvm run <file.asm>                assemble & execute")
+    println("  xvm asm  <file.asm> -o out.xb     assemble only, write bytecode file")
+    println("  xvm disasm <file.xb>              disassemble bytecode file")
+    println("  xvm debug <file.asm>              single-step trace mode")
+    println("  xvm test                          built-in self-test program")
+    println("  xvm -h | --help                   this help")
+    println("")
+    println("instruction set: PUSH POP DUP SWAP OVER ADD SUB MUL DIV MOD NEG")
+    println("  EQ NE LT LE GT GE AND OR NOT JMP JZ JNZ CALL RET LOAD STORE")
+    println("  PRINT PRINTLN READ HALT")
+end
+
+func cmdRun(string asmPath) as int
+    if not file.exists(asmPath) then
+        println("xvm: file not found: " + asmPath)
+        return 1
+    end
+    string src = file.readText(asmPath)
+    VM vm = VM(src)
+    if vm.halted and string.len(vm.error) > 0 then
+        println("xvm: assembly error: " + vm.error)
+        return 1
+    end
+    int rc = vm.run()
+    if rc != 0 then
+        println("")
+        println("xvm: runtime error: " + vm.error)
+        return rc
+    end
+    return 0
+end
+
+func cmdAsm(string asmPath, string outPath) as int
+    if not file.exists(asmPath) then
+        println("xvm: file not found: " + asmPath)
+        return 1
+    end
+    string src = file.readText(asmPath)
+    array<int> code = assemble(src)
+    if string.len(gAsmError) > 0 then
+        println("xvm: assembly error: " + gAsmError)
+        return 1
+    end
+    bool ok = writeBytecode(outPath, code)
+    if not ok then
+        println("xvm: failed to write: " + outPath)
+        return 1
+    end
+    println("xvm: assembled " + string(code.length) + " cells -> " + outPath)
+    return 0
+end
+
+func cmdDisasm(string xbPath) as int
+    array<int> code = readBytecode(xbPath)
+    if string.len(gAsmError) > 0 then
+        println("xvm: " + gAsmError)
+        return 1
+    end
+    println("; disassembly of " + xbPath + " (" + string(code.length) + " cells)")
+    print(disassembleCode(code))
+    return 0
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return runTest()
+    end
+
+    if cmd == "run" then
+        if arg.length < 3 then
+            println("xvm: 'run' needs <file.asm>")
+            return 1
+        end
+        return cmdRun(string(arg[2]))
+    end
+
+    if cmd == "asm" then
+        if arg.length < 3 then
+            println("xvm: 'asm' needs <file.asm> [-o out.xb]")
+            return 1
+        end
+        string asmPath = string(arg[2])
+        string outPath = "out.xb"
+        int ai = 3
+        while ai < arg.length do
+            string a = string(arg[ai])
+            if a == "-o" or a == "--output" then
+                if ai + 1 < arg.length then
+                    ai += 1
+                    outPath = string(arg[ai])
+                else
+                    println("xvm: '-o' needs a path")
+                    return 1
+                end
+            else
+                outPath = a
+            end
+            ai += 1
+        end
+        return cmdAsm(asmPath, outPath)
+    end
+
+    if cmd == "disasm" then
+        if arg.length < 3 then
+            println("xvm: 'disasm' needs <file.xb>")
+            return 1
+        end
+        return cmdDisasm(string(arg[2]))
+    end
+
+    if cmd == "debug" then
+        if arg.length < 3 then
+            println("xvm: 'debug' needs <file.asm>")
+            return 1
+        end
+        return cmdDebug(string(arg[2]))
+    end
+
+    println("xvm: unknown command: " + cmd)
+    printUsage()
+    return 1
+end

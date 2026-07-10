@@ -1,0 +1,2291 @@
+// wasmrun.xl - WebAssembly i32 subset interpreter
+//
+// Usage:
+//   wasmrun run <file.wasm>              execute _start or main export
+//   wasmrun disasm <file.wasm>           disassemble code section
+//   wasmrun test                         run built-in test suite
+//   wasmrun -h | --help                  show help
+//
+// Implements a subset of WebAssembly 1.0 (MVP):
+//   * Binary module format: magic/version + type/function/global/export/code
+//     sections (other sections are skipped).
+//   * i32 instruction subset:
+//     - constants : i32.const
+//     - stack ops : drop, select
+//     - compare   : i32.eqz, i32.eq, i32.ne, i32.lt_s, i32.gt_s,
+//                   i32.le_s, i32.ge_s  (+ unsigned variants parsed)
+//     - arithmetic: i32.add, i32.sub, i32.mul, i32.div_s, i32.rem_s,
+//                   i32.and, i32.or, i32.xor, i32.shl, i32.shr_s
+//     - control   : block, loop, if, else, end, br, br_if, return, call
+//     - variables : local.get, local.set, local.tee, global.get, global.set
+//   * Structured control flow via pre-computed block/end + else matching.
+//   * Per-call value stack and label stack; recursive invoke() for call.
+//
+// Limitations (documented):
+//   * Block type assumed single-byte (void 0x40 / value 0x7f/0x7e/0x7d/0x7c
+//     or type index 0..63). Multi-byte s33 blocktypes not supported.
+//   * i64/f32/f64 value types parsed in signatures but not executed.
+//   * Multi-result functions unsupported (invoke returns single int).
+//   * No imports, no memory, no tables, no br_table.
+
+// ============================== Constants ==============================
+
+const int SEC_TYPE   = 1
+const int SEC_FUNC   = 3
+const int SEC_GLOBAL = 6
+const int SEC_EXPORT = 7
+const int SEC_CODE   = 10
+
+const int VT_I32 = 0x7f
+const int VT_I64 = 0x7e
+const int VT_F32 = 0x7d
+const int VT_F64 = 0x7c
+
+const int STACK_MAX = 512
+const int LABEL_MAX = 128
+
+
+// ============================== LEB128 readers ==============================
+// Both return (value, nextPos). Unsigned and signed 32-bit variants.
+
+func readU32Leb(array<int> b, int pos) as (int, int)
+    int result = 0
+    int shift = 0
+    int p = pos
+    int n = b.length
+    while p < n do
+        int by = b[p]
+        p += 1
+        result = result | ((by & 0x7f) << shift)
+        if (by & 0x80) == 0 then
+            return result, p
+        end
+        shift += 7
+        if shift >= 35 then
+            return result, p
+        end
+    end
+    return result, p
+end
+
+func readS32Leb(array<int> b, int pos) as (int, int)
+    int result = 0
+    int shift = 0
+    int p = pos
+    int by = 0
+    int n = b.length
+    while p < n do
+        by = b[p]
+        p += 1
+        result = result | ((by & 0x7f) << shift)
+        shift += 7
+        if (by & 0x80) == 0 then
+            break
+        end
+        if shift >= 35 then
+            break
+        end
+    end
+    if shift < 32 and (by & 0x40) != 0 then
+        result = result | (-1 << shift)
+    end
+    return result, p
+end
+
+
+// ============================== Module storage ==============================
+
+class Module
+    array<int> typeParamCnt   = array[]
+    array<int> typeParamOff   = array[]
+    array<int> typeParams     = array[]
+    array<int> typeResultCnt  = array[]
+    array<int> typeResultOff  = array[]
+    array<int> typeResults    = array[]
+
+    array<int> funcTypeIdx    = array[]
+    array<int> funcNParams    = array[]
+    array<int> funcNResults   = array[]
+    array<int> funcNLocals    = array[]
+    array<int> funcNTotal     = array[]
+    array<int> funcCodeOff    = array[]
+    array<int> funcCodeLen    = array[]
+    array<int> codeBytes      = array[]
+
+    array<int> matchEnd       = array[]
+    array<int> matchElse      = array[]
+
+    array<string> exportNames  = array[]
+    array<int> exportKinds     = array[]
+    array<int> exportIndices   = array[]
+
+    array<int> globalTypes     = array[]
+    array<int> globalMut       = array[]
+    array<int> globalValues    = array[]
+
+    bool valid   = false
+    string error = ""
+
+    create()
+    end
+end
+
+Module gMod = Module()
+
+func modError(string msg)
+    gMod.valid = false
+    gMod.error = msg
+end
+
+func resetModule()
+    gMod.typeParamCnt.clear()
+    gMod.typeParamOff.clear()
+    gMod.typeParams.clear()
+    gMod.typeResultCnt.clear()
+    gMod.typeResultOff.clear()
+    gMod.typeResults.clear()
+    gMod.funcTypeIdx.clear()
+    gMod.funcNParams.clear()
+    gMod.funcNResults.clear()
+    gMod.funcNLocals.clear()
+    gMod.funcNTotal.clear()
+    gMod.funcCodeOff.clear()
+    gMod.funcCodeLen.clear()
+    gMod.codeBytes.clear()
+    gMod.matchEnd.clear()
+    gMod.matchElse.clear()
+    gMod.exportNames.clear()
+    gMod.exportKinds.clear()
+    gMod.exportIndices.clear()
+    gMod.globalTypes.clear()
+    gMod.globalMut.clear()
+    gMod.globalValues.clear()
+    gMod.valid = false
+    gMod.error = ""
+end
+
+
+// ============================== Helpers ==============================
+
+func makeArray(int n, int initVal) as array<int>
+    if n <= 0 then
+        return array[]
+    end
+    array<int> a = array[initVal]
+    int i = 1
+    while i < n do
+        a.push(initVal)
+        i += 1
+    end
+    return a
+end
+
+func varToIntArray(var v) as array<int>
+    array<int> r = array[]
+    var tmp = v
+    for x in tmp
+        r.push(int(x))
+    end
+    return r
+end
+
+func bufferToBytes(Buffer buf) as array<int>
+    int n = buf.len()
+    array<int> r = array[]
+    int i = 0
+    while i < n do
+        r.push(buf.byteAt(i))
+        i += 1
+    end
+    return r
+end
+
+func hex2(int b) as string
+    return string.formatInt(b & 0xFF, "x2")
+end
+
+
+// ============================== Parser ==============================
+
+func parseTypeSec(array<int> b, int start, int endPos) as bool
+    auto count, p = readU32Leb(b, start)
+    int i = 0
+    while i < count do
+        if p >= endPos then
+            modError("type sec: truncated")
+            return false
+        end
+        int tag = b[p]
+        p += 1
+        if tag != 0x60 then
+            modError("type sec: expected functype 0x60")
+            return false
+        end
+        int paramOff = gMod.typeParams.length
+        auto pcnt, p2 = readU32Leb(b, p)
+        p = p2
+        int j = 0
+        while j < pcnt do
+            if p >= endPos then
+                modError("type sec: param truncated")
+                return false
+            end
+            gMod.typeParams.push(b[p])
+            p += 1
+            j += 1
+        end
+        int resOff = gMod.typeResults.length
+        auto rcnt, p3 = readU32Leb(b, p)
+        p = p3
+        j = 0
+        while j < rcnt do
+            if p >= endPos then
+                modError("type sec: result truncated")
+                return false
+            end
+            gMod.typeResults.push(b[p])
+            p += 1
+            j += 1
+        end
+        gMod.typeParamCnt.push(pcnt)
+        gMod.typeParamOff.push(paramOff)
+        gMod.typeResultCnt.push(rcnt)
+        gMod.typeResultOff.push(resOff)
+        i += 1
+    end
+    return true
+end
+
+func parseFuncSec(array<int> b, int start, int endPos) as bool
+    auto count, p = readU32Leb(b, start)
+    int i = 0
+    while i < count do
+        if p >= endPos then
+            modError("func sec: truncated")
+            return false
+        end
+        auto tidx, p2 = readU32Leb(b, p)
+        p = p2
+        if tidx >= gMod.typeParamCnt.length then
+            modError("func sec: type index out of range")
+            return false
+        end
+        gMod.funcTypeIdx.push(tidx)
+        gMod.funcNParams.push(gMod.typeParamCnt[tidx])
+        gMod.funcNResults.push(gMod.typeResultCnt[tidx])
+        i += 1
+    end
+    return true
+end
+
+func parseExportSec(array<int> b, int start, int endPos) as bool
+    auto count, p = readU32Leb(b, start)
+    int i = 0
+    while i < count do
+        if p >= endPos then
+            modError("export sec: truncated")
+            return false
+        end
+        auto nameLen, p2 = readU32Leb(b, p)
+        p = p2
+        if p + nameLen > endPos then
+            modError("export sec: name truncated")
+            return false
+        end
+        // Build name via Buffer (BUG-HD2: string.formatInt "c" doesn't format as char)
+        Buffer nameBuf = Buffer()
+        int j = 0
+        while j < nameLen do
+            nameBuf.appendByte(b[p])
+            p += 1
+            j += 1
+        end
+        string name = nameBuf.text()
+        if p + 1 > endPos then
+            modError("export sec: kind truncated")
+            return false
+        end
+        int kind = b[p]
+        p += 1
+        auto idx, p3 = readU32Leb(b, p)
+        p = p3
+        gMod.exportNames.push(name)
+        gMod.exportKinds.push(kind)
+        gMod.exportIndices.push(idx)
+        i += 1
+    end
+    return true
+end
+
+func parseGlobalSec(array<int> b, int start, int endPos) as bool
+    auto count, p = readU32Leb(b, start)
+    int i = 0
+    while i < count do
+        if p + 2 > endPos then
+            modError("global sec: truncated")
+            return false
+        end
+        int vt = b[p]
+        p += 1
+        int mut = b[p]
+        p += 1
+        int value = 0
+        if p < endPos then
+            int op = b[p]
+            p += 1
+            if op == 0x41 then
+                auto v, p2 = readS32Leb(b, p)
+                p = p2
+                value = v
+            end
+            if p < endPos and b[p] == 0x0b then
+                p += 1
+            end
+        end
+        gMod.globalTypes.push(vt)
+        gMod.globalMut.push(mut)
+        gMod.globalValues.push(value)
+        i += 1
+    end
+    return true
+end
+
+func parseCodeSec(array<int> b, int start, int endPos) as bool
+    auto count, p = readU32Leb(b, start)
+    if count != gMod.funcTypeIdx.length then
+        modError("code sec: count mismatch with func sec")
+        return false
+    end
+    int i = 0
+    while i < count do
+        if p >= endPos then
+            modError("code sec: truncated")
+            return false
+        end
+        auto bodySize, p2 = readU32Leb(b, p)
+        p = p2
+        int bodyEnd = p + bodySize
+        if bodyEnd > endPos then
+            modError("code sec: body overflow")
+            return false
+        end
+        auto localDecls, p3 = readU32Leb(b, p)
+        p = p3
+        int nLocals = 0
+        int d = 0
+        while d < localDecls do
+            if p + 2 > bodyEnd then
+                modError("code sec: local decl truncated")
+                return false
+            end
+            auto rep, p4 = readU32Leb(b, p)
+            p = p4
+            p += 1
+            nLocals += rep
+            d += 1
+        end
+        int codeLen = bodyEnd - p
+        int codeOff = gMod.codeBytes.length
+        int k = 0
+        while k < codeLen do
+            gMod.codeBytes.push(b[p + k])
+            k += 1
+        end
+        gMod.funcCodeOff.push(codeOff)
+        gMod.funcCodeLen.push(codeLen)
+        gMod.funcNLocals.push(nLocals)
+        gMod.funcNTotal.push(gMod.funcNParams[i] + nLocals)
+        p = bodyEnd
+        i += 1
+    end
+    return true
+end
+
+func parseModule(array<int> b) as bool
+    resetModule()
+    int n = b.length
+    if n < 8 then
+        modError("module too short")
+        return false
+    end
+    if b[0] != 0x00 or b[1] != 0x61 or b[2] != 0x73 or b[3] != 0x6d then
+        modError("bad magic (expected \\0asm)")
+        return false
+    end
+    if b[4] != 1 or b[5] != 0 or b[6] != 0 or b[7] != 0 then
+        modError("unsupported version")
+        return false
+    end
+    int p = 8
+    while p < n do
+        int secId = b[p]
+        auto secSize, bodyStart = readU32Leb(b, p + 1)
+        p = bodyStart
+        int secEnd = p + secSize
+        if secEnd > n then
+            modError("section " + string(secId) + " overflows module")
+            return false
+        end
+        if secId == SEC_TYPE then
+            if not parseTypeSec(b, p, secEnd) then
+                return false
+            end
+        elseif secId == SEC_FUNC then
+            if not parseFuncSec(b, p, secEnd) then
+                return false
+            end
+        elseif secId == SEC_GLOBAL then
+            if not parseGlobalSec(b, p, secEnd) then
+                return false
+            end
+        elseif secId == SEC_EXPORT then
+            if not parseExportSec(b, p, secEnd) then
+                return false
+            end
+        elseif secId == SEC_CODE then
+            if not parseCodeSec(b, p, secEnd) then
+                return false
+            end
+        end
+        p = secEnd
+    end
+
+    int totalCode = gMod.codeBytes.length
+    while gMod.matchEnd.length < totalCode do
+        gMod.matchEnd.push(-1)
+    end
+    while gMod.matchElse.length < totalCode do
+        gMod.matchElse.push(-1)
+    end
+    int fi = 0
+    while fi < gMod.funcTypeIdx.length do
+        analyzeControlFlow(fi)
+        fi += 1
+    end
+
+    gMod.valid = true
+    return true
+end
+
+
+// ============================== Control-flow analysis ==============================
+
+func skipInstrOperands(array<int> b, int opPc) as int
+    int op = b[opPc]
+    int p = opPc + 1
+    if op == 0x02 or op == 0x03 or op == 0x04 then
+        p += 1
+    elseif op == 0x0c or op == 0x0d then
+        auto dummy, np = readU32Leb(b, p)
+        p = np
+    elseif op == 0x10 then
+        auto dummy, np = readU32Leb(b, p)
+        p = np
+    elseif op == 0x20 or op == 0x21 or op == 0x22 or op == 0x23 or op == 0x24 then
+        auto dummy, np = readU32Leb(b, p)
+        p = np
+    elseif op == 0x41 then
+        auto dummy, np = readS32Leb(b, p)
+        p = np
+    end
+    return p
+end
+
+func analyzeControlFlow(int fi)
+    int codeOff = gMod.funcCodeOff[fi]
+    int codeLen = gMod.funcCodeLen[fi]
+    int absEnd = codeOff + codeLen
+
+    int i = codeOff
+    while i < absEnd do
+        gMod.matchEnd[i] = -1
+        gMod.matchElse[i] = -1
+        i += 1
+    end
+
+    array<int> stk = array[]
+    int pc = codeOff
+    while pc < absEnd do
+        int op = gMod.codeBytes[pc]
+        int openerPc = pc
+        pc += 1
+        if op == 0x02 or op == 0x03 or op == 0x04 then
+            pc += 1
+            stk.push(openerPc)
+        elseif op == 0x05 then
+            if stk.length > 0 then
+                int ifPc = stk[stk.length - 1]
+                gMod.matchElse[ifPc] = openerPc
+            end
+        elseif op == 0x0b then
+            if stk.length > 0 then
+                int opener = stk.pop()
+                gMod.matchEnd[opener] = openerPc
+                if gMod.matchElse[opener] >= 0 then
+                    gMod.matchEnd[gMod.matchElse[opener]] = openerPc
+                end
+            end
+        else
+            pc = skipInstrOperands(gMod.codeBytes, openerPc)
+        end
+    end
+end
+
+
+// ============================== Disassembler ==============================
+
+func blocktypeName(int bt) as string
+    if bt == 0x40 then
+        return "void"
+    end
+    if bt == 0x7f then
+        return "(result i32)"
+    end
+    if bt == 0x7e then
+        return "(result i64)"
+    end
+    if bt == 0x7d then
+        return "(result f32)"
+    end
+    if bt == 0x7c then
+        return "(result f64)"
+    end
+    return "(type " + string(bt) + ")"
+end
+
+func valtypeName(int vt) as string
+    if vt == 0x7f then
+        return "i32"
+    end
+    if vt == 0x7e then
+        return "i64"
+    end
+    if vt == 0x7d then
+        return "f32"
+    end
+    if vt == 0x7c then
+        return "f64"
+    end
+    return "?"
+end
+
+func disasmInstr(array<int> b, int pc) as (string, int)
+    int op = b[pc]
+    int p = pc + 1
+    string s = ""
+    if op == 0x00 then
+        s = "unreachable"
+    elseif op == 0x01 then
+        s = "nop"
+    elseif op == 0x02 then
+        int bt = b[p]
+        p += 1
+        s = "block " + blocktypeName(bt)
+    elseif op == 0x03 then
+        int bt = b[p]
+        p += 1
+        s = "loop " + blocktypeName(bt)
+    elseif op == 0x04 then
+        int bt = b[p]
+        p += 1
+        s = "if " + blocktypeName(bt)
+    elseif op == 0x05 then
+        s = "else"
+    elseif op == 0x0b then
+        s = "end"
+    elseif op == 0x0c then
+        auto l, np = readU32Leb(b, p)
+        p = np
+        s = "br " + string(l)
+    elseif op == 0x0d then
+        auto l, np = readU32Leb(b, p)
+        p = np
+        s = "br_if " + string(l)
+    elseif op == 0x0f then
+        s = "return"
+    elseif op == 0x10 then
+        auto f, np = readU32Leb(b, p)
+        p = np
+        s = "call " + string(f)
+    elseif op == 0x1a then
+        s = "drop"
+    elseif op == 0x1b then
+        s = "select"
+    elseif op == 0x20 then
+        auto l, np = readU32Leb(b, p)
+        p = np
+        s = "local.get " + string(l)
+    elseif op == 0x21 then
+        auto l, np = readU32Leb(b, p)
+        p = np
+        s = "local.set " + string(l)
+    elseif op == 0x22 then
+        auto l, np = readU32Leb(b, p)
+        p = np
+        s = "local.tee " + string(l)
+    elseif op == 0x23 then
+        auto l, np = readU32Leb(b, p)
+        p = np
+        s = "global.get " + string(l)
+    elseif op == 0x24 then
+        auto l, np = readU32Leb(b, p)
+        p = np
+        s = "global.set " + string(l)
+    elseif op == 0x41 then
+        auto v, np = readS32Leb(b, p)
+        p = np
+        s = "i32.const " + string(v)
+    elseif op == 0x45 then
+        s = "i32.eqz"
+    elseif op == 0x46 then
+        s = "i32.eq"
+    elseif op == 0x47 then
+        s = "i32.ne"
+    elseif op == 0x48 then
+        s = "i32.lt_s"
+    elseif op == 0x49 then
+        s = "i32.lt_u"
+    elseif op == 0x4a then
+        s = "i32.gt_s"
+    elseif op == 0x4b then
+        s = "i32.gt_u"
+    elseif op == 0x4c then
+        s = "i32.le_s"
+    elseif op == 0x4d then
+        s = "i32.le_u"
+    elseif op == 0x4e then
+        s = "i32.ge_s"
+    elseif op == 0x4f then
+        s = "i32.ge_u"
+    elseif op == 0x6a then
+        s = "i32.add"
+    elseif op == 0x6b then
+        s = "i32.sub"
+    elseif op == 0x6c then
+        s = "i32.mul"
+    elseif op == 0x6d then
+        s = "i32.div_s"
+    elseif op == 0x6e then
+        s = "i32.div_u"
+    elseif op == 0x6f then
+        s = "i32.rem_s"
+    elseif op == 0x70 then
+        s = "i32.rem_u"
+    elseif op == 0x71 then
+        s = "i32.and"
+    elseif op == 0x72 then
+        s = "i32.or"
+    elseif op == 0x73 then
+        s = "i32.xor"
+    elseif op == 0x74 then
+        s = "i32.shl"
+    elseif op == 0x75 then
+        s = "i32.shr_s"
+    elseif op == 0x76 then
+        s = "i32.shr_u"
+    else
+        s = "db 0x" + hex2(op)
+    end
+    return s, p
+end
+
+func typeSignatureString(int tidx) as string
+    string sig = "("
+    int pcnt = gMod.typeParamCnt[tidx]
+    int poff = gMod.typeParamOff[tidx]
+    int j = 0
+    while j < pcnt do
+        if j > 0 then
+            sig = sig + ", "
+        end
+        sig = sig + valtypeName(gMod.typeParams[poff + j])
+        j += 1
+    end
+    sig = sig + ") -> "
+    int rcnt = gMod.typeResultCnt[tidx]
+    int roff = gMod.typeResultOff[tidx]
+    if rcnt == 0 then
+        sig = sig + "void"
+    else
+        j = 0
+        while j < rcnt do
+            if j > 0 then
+                sig = sig + ", "
+            end
+            sig = sig + valtypeName(gMod.typeResults[roff + j])
+            j += 1
+        end
+    end
+    return sig
+end
+
+func disasmModule() as int
+    println("; module: types=" + string(gMod.typeParamCnt.length) +
+            " funcs=" + string(gMod.funcTypeIdx.length) +
+            " exports=" + string(gMod.exportNames.length) +
+            " globals=" + string(gMod.globalTypes.length))
+
+    if gMod.typeParamCnt.length > 0 then
+        println("; types:")
+        int i = 0
+        while i < gMod.typeParamCnt.length do
+            println(";   type " + string(i) + ": " + typeSignatureString(i))
+            i += 1
+        end
+    end
+
+    if gMod.funcTypeIdx.length > 0 then
+        println("; functions:")
+        int i = 0
+        while i < gMod.funcTypeIdx.length do
+            println(";   func " + string(i) + ": type=" + string(gMod.funcTypeIdx[i]) +
+                    " params=" + string(gMod.funcNParams[i]) +
+                    " locals=" + string(gMod.funcNLocals[i]) +
+                    " results=" + string(gMod.funcNResults[i]) +
+                    " code_size=" + string(gMod.funcCodeLen[i]))
+            i += 1
+        end
+    end
+
+    if gMod.exportNames.length > 0 then
+        println("; exports:")
+        int i = 0
+        while i < gMod.exportNames.length do
+            string kind = "?"
+            if gMod.exportKinds[i] == 0 then
+                kind = "func"
+            elseif gMod.exportKinds[i] == 1 then
+                kind = "table"
+            elseif gMod.exportKinds[i] == 2 then
+                kind = "mem"
+            elseif gMod.exportKinds[i] == 3 then
+                kind = "global"
+            end
+            println(";   \"" + gMod.exportNames[i] + "\" -> " + kind + " " + string(gMod.exportIndices[i]))
+            i += 1
+        end
+    end
+
+    if gMod.globalTypes.length > 0 then
+        println("; globals:")
+        int i = 0
+        while i < gMod.globalTypes.length do
+            string m = ""
+            if gMod.globalMut[i] != 0 then
+                m = "mut "
+            end
+            println(";   global " + string(i) + ": " + m + valtypeName(gMod.globalTypes[i]) +
+                    " = " + string(gMod.globalValues[i]))
+            i += 1
+        end
+    end
+
+    if gMod.funcTypeIdx.length > 0 then
+        println("; code:")
+        int fi = 0
+        while fi < gMod.funcTypeIdx.length do
+            println("  func " + string(fi) + " (" + typeSignatureString(gMod.funcTypeIdx[fi]) + "):")
+            int codeOff = gMod.funcCodeOff[fi]
+            int codeLen = gMod.funcCodeLen[fi]
+            int pc = codeOff
+            int absEnd = codeOff + codeLen
+            while pc < absEnd do
+                int instrStart = pc
+                auto text, nextPc = disasmInstr(gMod.codeBytes, pc)
+                pc = nextPc
+                string hexPart = ""
+                int k = instrStart
+                while k < pc do
+                    hexPart = hexPart + hex2(gMod.codeBytes[k])
+                    if k < pc - 1 then
+                        hexPart = hexPart + " "
+                    end
+                    k += 1
+                end
+                while string.len(hexPart) < 12 do
+                    hexPart = hexPart + " "
+                end
+                println("    " + string.formatInt(instrStart - codeOff, "X4") + ": " + hexPart + " " + text)
+            end
+            fi += 1
+        end
+    end
+    return 0
+end
+
+
+// ============================== Interpreter ==============================
+
+func blockArity(int bt) as int
+    if bt == 0x40 then
+        return 0
+    end
+    if bt == 0x7f or bt == 0x7e or bt == 0x7d or bt == 0x7c then
+        return 1
+    end
+    if bt <= 0x3f and bt < gMod.typeResultCnt.length then
+        return gMod.typeResultCnt[bt]
+    end
+    return 0
+end
+
+func findExportAny(string name) as int
+    int i = 0
+    while i < gMod.exportNames.length do
+        if gMod.exportNames[i] == name then
+            return gMod.exportIndices[i]
+        end
+        i += 1
+    end
+    return -1
+end
+
+func invoke(int funcIdx, array<int> args) as int
+    if funcIdx < 0 or funcIdx >= gMod.funcTypeIdx.length then
+        throw "wasmrun: invalid function index " + string(funcIdx)
+    end
+    int typeIdx = gMod.funcTypeIdx[funcIdx]
+    int nParams = gMod.funcNParams[funcIdx]
+    int nResults = gMod.funcNResults[funcIdx]
+    int nTotalLocals = gMod.funcNTotal[funcIdx]
+    int codeOff = gMod.funcCodeOff[funcIdx]
+    int codeLen = gMod.funcCodeLen[funcIdx]
+    int absEnd = codeOff + codeLen
+
+    array<int> locals = makeArray(nTotalLocals, 0)
+    int ai = 0
+    while ai < nParams and ai < args.length do
+        locals[ai] = args[ai]
+        ai += 1
+    end
+
+    array<int> stack = makeArray(STACK_MAX, 0)
+    int sp = 0
+    array<int> lblTarget = makeArray(LABEL_MAX, 0)
+    array<int> lblHeight = makeArray(LABEL_MAX, 0)
+    array<int> lblArity = makeArray(LABEL_MAX, 0)
+    array<int> lblIsLoop = makeArray(LABEL_MAX, 0)
+    int lp = 0
+
+    int pc = codeOff
+    bool done = false
+
+    while not done do
+        if pc >= absEnd then
+            break
+        end
+        int op = gMod.codeBytes[pc]
+        int openerPc = pc
+        pc += 1
+
+        if op == 0x00 then
+            throw "wasmrun: unreachable trap"
+        elseif op == 0x01 then
+            // nop
+        elseif op == 0x02 or op == 0x03 then
+            int bt = gMod.codeBytes[pc]
+            pc += 1
+            int arity = blockArity(bt)
+            int isLoop = 0
+            if op == 0x03 then
+                isLoop = 1
+            end
+            int target = 0
+            if isLoop != 0 then
+                target = openerPc + 2
+            else
+                target = gMod.matchEnd[openerPc] + 1
+            end
+            lblTarget[lp] = target
+            lblHeight[lp] = sp
+            lblArity[lp] = arity
+            lblIsLoop[lp] = isLoop
+            lp += 1
+        elseif op == 0x04 then
+            int bt = gMod.codeBytes[pc]
+            pc += 1
+            int arity = blockArity(bt)
+            sp -= 1
+            int cond = stack[sp]
+            int endTarget = gMod.matchEnd[openerPc] + 1
+            if cond != 0 then
+                lblTarget[lp] = endTarget
+                lblHeight[lp] = sp
+                lblArity[lp] = arity
+                lblIsLoop[lp] = 0
+                lp += 1
+            else
+                int elsePos = gMod.matchElse[openerPc]
+                if elsePos >= 0 then
+                    pc = elsePos + 1
+                    lblTarget[lp] = endTarget
+                    lblHeight[lp] = sp
+                    lblArity[lp] = arity
+                    lblIsLoop[lp] = 0
+                    lp += 1
+                else
+                    pc = endTarget
+                end
+            end
+        elseif op == 0x05 then
+            // else (reached naturally = if-true finished; skip else body)
+            int endPc = gMod.matchEnd[openerPc]
+            pc = endPc + 1
+            lp -= 1
+        elseif op == 0x0b then
+            if lp > 0 then
+                lp -= 1
+            else
+                done = true
+            end
+        elseif op == 0x0c then
+            auto L, np = readU32Leb(gMod.codeBytes, pc)
+            pc = np
+            int targetIdx = lp - 1 - L
+            if targetIdx < 0 then
+                throw "wasmrun: br label out of range"
+            end
+            int arity = lblArity[targetIdx]
+            int height = lblHeight[targetIdx]
+            int src = sp - arity
+            int k = 0
+            while k < arity do
+                stack[height + k] = stack[src + k]
+                k += 1
+            end
+            sp = height + arity
+            if lblIsLoop[targetIdx] != 0 then
+                lp = lp - L
+            else
+                lp = lp - L - 1
+            end
+            pc = lblTarget[targetIdx]
+        elseif op == 0x0d then
+            auto L, np = readU32Leb(gMod.codeBytes, pc)
+            pc = np
+            sp -= 1
+            int cond = stack[sp]
+            if cond != 0 then
+                int targetIdx = lp - 1 - L
+                if targetIdx < 0 then
+                    throw "wasmrun: br_if label out of range"
+                end
+                int arity = lblArity[targetIdx]
+                int height = lblHeight[targetIdx]
+                int src = sp - arity
+                int k = 0
+                while k < arity do
+                    stack[height + k] = stack[src + k]
+                    k += 1
+                end
+                sp = height + arity
+                if lblIsLoop[targetIdx] != 0 then
+                    lp = lp - L
+                else
+                    lp = lp - L - 1
+                end
+                pc = lblTarget[targetIdx]
+            end
+        elseif op == 0x0f then
+            done = true
+        elseif op == 0x10 then
+            auto fidx, np = readU32Leb(gMod.codeBytes, pc)
+            pc = np
+            if fidx < 0 or fidx >= gMod.funcTypeIdx.length then
+                throw "wasmrun: call invalid func idx"
+            end
+            int calleeNParams = gMod.funcNParams[fidx]
+            int calleeNResults = gMod.funcNResults[fidx]
+            array<int> callArgs = makeArray(calleeNParams, 0)
+            int k = 0
+            while k < calleeNParams do
+                callArgs[calleeNParams - 1 - k] = stack[sp - 1 - k]
+                k += 1
+            end
+            sp = sp - calleeNParams
+            int rv = invoke(fidx, callArgs)
+            if calleeNResults > 0 then
+                stack[sp] = rv
+                sp += 1
+            end
+        elseif op == 0x1a then
+            sp -= 1
+        elseif op == 0x1b then
+            sp -= 1
+            int c = stack[sp]
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            if c != 0 then
+                stack[sp] = x
+            else
+                stack[sp] = y
+            end
+            sp += 1
+        elseif op == 0x20 then
+            auto idx, np = readU32Leb(gMod.codeBytes, pc)
+            pc = np
+            stack[sp] = locals[idx]
+            sp += 1
+        elseif op == 0x21 then
+            auto idx, np = readU32Leb(gMod.codeBytes, pc)
+            pc = np
+            sp -= 1
+            locals[idx] = stack[sp]
+        elseif op == 0x22 then
+            auto idx, np = readU32Leb(gMod.codeBytes, pc)
+            pc = np
+            locals[idx] = stack[sp - 1]
+        elseif op == 0x23 then
+            auto idx, np = readU32Leb(gMod.codeBytes, pc)
+            pc = np
+            stack[sp] = gMod.globalValues[idx]
+            sp += 1
+        elseif op == 0x24 then
+            auto idx, np = readU32Leb(gMod.codeBytes, pc)
+            pc = np
+            sp -= 1
+            gMod.globalValues[idx] = stack[sp]
+        elseif op == 0x41 then
+            auto v, np = readS32Leb(gMod.codeBytes, pc)
+            pc = np
+            stack[sp] = v
+            sp += 1
+        elseif op == 0x45 then
+            sp -= 1
+            if stack[sp] == 0 then
+                stack[sp] = 1
+            else
+                stack[sp] = 0
+            end
+            sp += 1
+        elseif op == 0x46 then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            if x == y then
+                stack[sp] = 1
+            else
+                stack[sp] = 0
+            end
+            sp += 1
+        elseif op == 0x47 then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            if x != y then
+                stack[sp] = 1
+            else
+                stack[sp] = 0
+            end
+            sp += 1
+        elseif op == 0x48 then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            if x < y then
+                stack[sp] = 1
+            else
+                stack[sp] = 0
+            end
+            sp += 1
+        elseif op == 0x49 then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            bool lt = false
+            if x >= 0 and y >= 0 then
+                lt = x < y
+            elseif x < 0 and y >= 0 then
+                lt = false
+            elseif x >= 0 and y < 0 then
+                lt = true
+            else
+                lt = x < y
+            end
+            stack[sp] = lt ? 1 : 0
+            sp += 1
+        elseif op == 0x4a then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            if x > y then
+                stack[sp] = 1
+            else
+                stack[sp] = 0
+            end
+            sp += 1
+        elseif op == 0x4b then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            bool gt = false
+            if x >= 0 and y >= 0 then
+                gt = x > y
+            elseif x < 0 and y >= 0 then
+                gt = true
+            elseif x >= 0 and y < 0 then
+                gt = false
+            else
+                gt = x > y
+            end
+            stack[sp] = gt ? 1 : 0
+            sp += 1
+        elseif op == 0x4c then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            if x <= y then
+                stack[sp] = 1
+            else
+                stack[sp] = 0
+            end
+            sp += 1
+        elseif op == 0x4d then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            bool le = false
+            if x >= 0 and y >= 0 then
+                le = x <= y
+            elseif x < 0 and y >= 0 then
+                le = false
+            elseif x >= 0 and y < 0 then
+                le = true
+            else
+                le = x <= y
+            end
+            stack[sp] = le ? 1 : 0
+            sp += 1
+        elseif op == 0x4e then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            if x >= y then
+                stack[sp] = 1
+            else
+                stack[sp] = 0
+            end
+            sp += 1
+        elseif op == 0x4f then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            bool ge = false
+            if x >= 0 and y >= 0 then
+                ge = x >= y
+            elseif x < 0 and y >= 0 then
+                ge = true
+            elseif x >= 0 and y < 0 then
+                ge = false
+            else
+                ge = x >= y
+            end
+            stack[sp] = ge ? 1 : 0
+            sp += 1
+        elseif op == 0x6a then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            stack[sp] = x + y
+            sp += 1
+        elseif op == 0x6b then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            stack[sp] = x - y
+            sp += 1
+        elseif op == 0x6c then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            stack[sp] = x * y
+            sp += 1
+        elseif op == 0x6d then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            if y == 0 then
+                throw "wasmrun: i32.div_s by zero"
+            end
+            if x == -2147483648 and y == -1 then
+                throw "wasmrun: i32.div_s overflow (INT_MIN / -1)"
+            end
+            stack[sp] = x / y
+            sp += 1
+        elseif op == 0x6e then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            if y == 0 then
+                throw "wasmrun: i32.div_u by zero"
+            end
+            float ux = float(x)
+            float uy = float(y)
+            if x < 0 then
+                ux = float(x) + 4294967296.0
+            end
+            if y < 0 then
+                uy = float(y) + 4294967296.0
+            end
+            float rq = ux / uy
+            stack[sp] = int(rq)
+            sp += 1
+        elseif op == 0x6f then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            if y == 0 then
+                throw "wasmrun: i32.rem_s by zero"
+            end
+            if x == -2147483648 and y == -1 then
+                stack[sp] = 0
+            else
+                stack[sp] = x % y
+            end
+            sp += 1
+        elseif op == 0x70 then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            if y == 0 then
+                throw "wasmrun: i32.rem_u by zero"
+            end
+            float ux = float(x)
+            float uy = float(y)
+            if x < 0 then
+                ux = float(x) + 4294967296.0
+            end
+            if y < 0 then
+                uy = float(y) + 4294967296.0
+            end
+            float q = ux / uy
+            float r = ux - (float(int(q)) * uy)
+            stack[sp] = int(r)
+            sp += 1
+        elseif op == 0x71 then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            stack[sp] = x & y
+            sp += 1
+        elseif op == 0x72 then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            stack[sp] = x | y
+            sp += 1
+        elseif op == 0x73 then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            stack[sp] = x ^ y
+            sp += 1
+        elseif op == 0x74 then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            stack[sp] = x << (y & 31)
+            sp += 1
+        elseif op == 0x75 then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            stack[sp] = x >> (y & 31)
+            sp += 1
+        elseif op == 0x76 then
+            sp -= 1
+            int y = stack[sp]
+            sp -= 1
+            int x = stack[sp]
+            int sh = y & 31
+            if sh == 0 then
+                stack[sp] = x
+            else
+                int high = (x >> 31) & 1
+                int low = x & 0x7FFFFFFF
+                int highPart = high << (31 - sh)
+                int lowPart = low >> sh
+                stack[sp] = highPart | lowPart
+            end
+            sp += 1
+        else
+            throw "wasmrun: unsupported opcode 0x" + hex2(op) + " at pc=" + string(openerPc)
+        end
+    end
+
+    if nResults == 0 then
+        return 0
+    end
+    if sp >= 1 then
+        return stack[sp - 1]
+    end
+    return 0
+end
+
+
+// ============================== Byte builder helpers (for tests) ==============================
+
+func bByte(var b, int v)
+    b.push(v & 0xFF)
+end
+
+func bU32(var b, int v)
+    int val = v
+    while true do
+        int c = val & 0x7f
+        val = val >> 7
+        if val != 0 then
+            b.push(c | 0x80)
+        else
+            b.push(c)
+            break
+        end
+    end
+end
+
+func bS32(var b, int v)
+    int val = v
+    while true do
+        int c = val & 0x7f
+        val = val >> 7
+        bool signBit = (c & 0x40) != 0
+        if (val == 0 and not signBit) or (val == -1 and signBit) then
+            b.push(c)
+            break
+        else
+            b.push(c | 0x80)
+        end
+    end
+end
+
+func bName(var b, string s)
+    int n = string.len(s)
+    bU32(b, n)
+    int i = 0
+    while i < n do
+        b.push(string.byteAt(s, i))
+        i += 1
+    end
+end
+
+func bHeader(var b)
+    b.push(0x00)
+    b.push(0x61)
+    b.push(0x73)
+    b.push(0x6d)
+    b.push(0x01)
+    b.push(0x00)
+    b.push(0x00)
+    b.push(0x00)
+end
+
+func bAppend(var dst, var src)
+    var s = src
+    for x in s
+        dst.push(int(x))
+    end
+end
+
+func bSection(var b, int id, var payload)
+    b.push(id)
+    bU32(b, payload.length)
+    bAppend(b, payload)
+end
+
+func emitConst(var b, int v)
+    b.push(0x41)
+    bS32(b, v)
+end
+func emitLocalGet(var b, int i)
+    b.push(0x20)
+    bU32(b, i)
+end
+func emitLocalSet(var b, int i)
+    b.push(0x21)
+    bU32(b, i)
+end
+func emitLocalTee(var b, int i)
+    b.push(0x22)
+    bU32(b, i)
+end
+func emitGlobalGet(var b, int i)
+    b.push(0x23)
+    bU32(b, i)
+end
+func emitGlobalSet(var b, int i)
+    b.push(0x24)
+    bU32(b, i)
+end
+func emitBr(var b, int l)
+    b.push(0x0c)
+    bU32(b, l)
+end
+func emitBrIf(var b, int l)
+    b.push(0x0d)
+    bU32(b, l)
+end
+func emitCall(var b, int f)
+    b.push(0x10)
+    bU32(b, f)
+end
+func emitBlock(var b, int bt)
+    b.push(0x02)
+    b.push(bt)
+end
+func emitLoop(var b, int bt)
+    b.push(0x03)
+    b.push(bt)
+end
+func emitIf(var b, int bt)
+    b.push(0x04)
+    b.push(bt)
+end
+func emitElse(var b)
+    b.push(0x05)
+end
+func emitEnd(var b)
+    b.push(0x0b)
+end
+func emitOp(var b, int op)
+    b.push(op)
+end
+
+func buildModule(var types, var funcTypes, var exports, var globals, var codes) as var
+    var b = []
+    bHeader(b)
+
+    if types.length > 0 then
+        var ts = []
+        bU32(ts, types.length)
+        var tsIter = types
+        for t in tsIter
+            bByte(ts, 0x60)
+            var params = t[0]
+            var results = t[1]
+            bU32(ts, params.length)
+            var pIter = params
+            for p in pIter
+                bByte(ts, int(p))
+            end
+            bU32(ts, results.length)
+            var rIter = results
+            for r in rIter
+                bByte(ts, int(r))
+            end
+        end
+        bSection(b, SEC_TYPE, ts)
+    end
+
+    if funcTypes.length > 0 then
+        var fs = []
+        bU32(fs, funcTypes.length)
+        var ftIter = funcTypes
+        for ft in ftIter
+            bU32(fs, int(ft))
+        end
+        bSection(b, SEC_FUNC, fs)
+    end
+
+    if globals.length > 0 then
+        var gs = []
+        bU32(gs, globals.length)
+        var gIter = globals
+        for g in gIter
+            bByte(gs, int(g[0]))
+            bByte(gs, int(g[1]))
+            bByte(gs, 0x41)
+            bS32(gs, int(g[2]))
+            bByte(gs, 0x0b)
+        end
+        bSection(b, SEC_GLOBAL, gs)
+    end
+
+    if exports.length > 0 then
+        var es = []
+        bU32(es, exports.length)
+        var eIter = exports
+        for e in eIter
+            bName(es, string(e[0]))
+            bByte(es, int(e[1]))
+            bU32(es, int(e[2]))
+        end
+        bSection(b, SEC_EXPORT, es)
+    end
+
+    if codes.length > 0 then
+        var cs = []
+        bU32(cs, codes.length)
+        var cIter = codes
+        for c in cIter
+            var localTypes = c[0]
+            var instrs = c[1]
+            var body = []
+            bU32(body, localTypes.length)
+            var ltIter = localTypes
+            for lt in ltIter
+                bU32(body, 1)
+                bByte(body, int(lt))
+            end
+            bAppend(body, instrs)
+            bU32(cs, body.length)
+            bAppend(cs, body)
+        end
+        bSection(b, SEC_CODE, cs)
+    end
+
+    return b
+end
+
+func parseBuiltModule(var moduleBytes, string label) as bool
+    array<int> bs = varToIntArray(moduleBytes)
+    if not parseModule(bs) then
+        println("  [parse-fail] " + label + ": " + gMod.error)
+        return false
+    end
+    return true
+end
+
+func invokeExport1(string name, int a) as int
+    int fidx = findExportAny(name)
+    if fidx < 0 then
+        return -999999
+    end
+    array<int> args = array[a]
+    return invoke(fidx, args)
+end
+
+func invokeExport0(string name) as int
+    int fidx = findExportAny(name)
+    if fidx < 0 then
+        return -999999
+    end
+    array<int> args = array[]
+    return invoke(fidx, args)
+end
+
+func invokeExport2(string name, int a, int b2) as int
+    int fidx = findExportAny(name)
+    if fidx < 0 then
+        return -999999
+    end
+    array<int> args = array[a, b2]
+    return invoke(fidx, args)
+end
+
+
+// ============================== Built-in tests ==============================
+
+func check(string name, bool ok) as bool
+    if ok then
+        println("  [PASS] " + name)
+    else
+        println("  [FAIL] " + name)
+    end
+    return ok
+end
+
+func testConst() as bool
+    println("[T1] i32.const / function return")
+    var types = [[[], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["main", 0, 0]]
+    var instrs = []
+    emitConst(instrs, 42)
+    emitEnd(instrs)
+    var codes = [[[], instrs]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T1") then
+        return false
+    end
+    int rv = invokeExport0("main")
+    return check("main() == 42", rv == 42)
+end
+
+func testArith() as bool
+    println("[T2] i32.add / sub / mul")
+    var types = [[[], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["main", 0, 0]]
+    var instrs = []
+    emitConst(instrs, 10)
+    emitConst(instrs, 20)
+    emitOp(instrs, 0x6a)
+    emitConst(instrs, 3)
+    emitOp(instrs, 0x6c)
+    emitConst(instrs, 8)
+    emitOp(instrs, 0x6b)
+    emitEnd(instrs)
+    var codes = [[[], instrs]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T2") then
+        return false
+    end
+    int rv = invokeExport0("main")
+    return check("(10+20)*3-8 == 82", rv == 82)
+end
+
+func testCompare() as bool
+    println("[T3] i32.eq/ne/lt_s/gt_s/le_s/ge_s")
+    var types = [[[], [VT_I32]]]
+    var funcTypes = [0, 0, 0, 0, 0, 0]
+    var exports = [["eqT", 0, 0], ["neT", 0, 1], ["ltT", 0, 2], ["gtT", 0, 3], ["leT", 0, 4], ["geT", 0, 5]]
+    var codes = []
+    var iEq = []
+    emitConst(iEq, 5)
+    emitConst(iEq, 5)
+    emitOp(iEq, 0x46)
+    emitEnd(iEq)
+    var iNe = []
+    emitConst(iNe, 5)
+    emitConst(iNe, 7)
+    emitOp(iNe, 0x47)
+    emitEnd(iNe)
+    var iLt = []
+    emitConst(iLt, 3)
+    emitConst(iLt, 8)
+    emitOp(iLt, 0x48)
+    emitEnd(iLt)
+    var iGt = []
+    emitConst(iGt, 9)
+    emitConst(iGt, 4)
+    emitOp(iGt, 0x4a)
+    emitEnd(iGt)
+    var iLe = []
+    emitConst(iLe, 7)
+    emitConst(iLe, 7)
+    emitOp(iLe, 0x4c)
+    emitEnd(iLe)
+    var iGe = []
+    emitConst(iGe, 6)
+    emitConst(iGe, 6)
+    emitOp(iGe, 0x4e)
+    emitEnd(iGe)
+    codes.push([[], iEq])
+    codes.push([[], iNe])
+    codes.push([[], iLt])
+    codes.push([[], iGt])
+    codes.push([[], iLe])
+    codes.push([[], iGe])
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T3") then
+        return false
+    end
+    bool ok = true
+    ok = check("eq 5==5 -> 1", invokeExport0("eqT") == 1) and ok
+    ok = check("ne 5!=7 -> 1", invokeExport0("neT") == 1) and ok
+    ok = check("lt 3<8 -> 1", invokeExport0("ltT") == 1) and ok
+    ok = check("gt 9>4 -> 1", invokeExport0("gtT") == 1) and ok
+    ok = check("le 7<=7 -> 1", invokeExport0("leT") == 1) and ok
+    ok = check("ge 6>=6 -> 1", invokeExport0("geT") == 1) and ok
+    return ok
+end
+
+func testLocals() as bool
+    println("[T4] local.get / local.set / local.tee")
+    var types = [[[VT_I32], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["add1", 0, 0]]
+    var instrs = []
+    emitLocalGet(instrs, 0)
+    emitConst(instrs, 1)
+    emitOp(instrs, 0x6a)
+    emitEnd(instrs)
+    var codes = [[[], instrs]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T4") then
+        return false
+    end
+    bool ok = check("add1(41) == 42", invokeExport1("add1", 41) == 42)
+    ok = check("add1(0) == 1", invokeExport1("add1", 0) == 1) and ok
+    ok = check("add1(-5) == -4", invokeExport1("add1", -5) == -4) and ok
+    return ok
+end
+
+func testLocalTee() as bool
+    println("[T4b] local.tee + declared locals")
+    var types = [[[VT_I32], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["tee100", 0, 0]]
+    var instrs = []
+    emitLocalGet(instrs, 0)
+    emitLocalTee(instrs, 1)
+    emitConst(instrs, 100)
+    emitOp(instrs, 0x6a)
+    emitEnd(instrs)
+    var localTypes = [VT_I32]
+    var codes = [[localTypes, instrs]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T4b") then
+        return false
+    end
+    return check("tee100(7) == 107", invokeExport1("tee100", 7) == 107)
+end
+
+func testCall() as bool
+    println("[T5] call")
+    var types = [[[VT_I32, VT_I32], [VT_I32]], [[], [VT_I32]]]
+    var funcTypes = [0, 1]
+    var exports = [["main", 0, 1], ["add", 0, 0]]
+    var addBody = []
+    emitLocalGet(addBody, 0)
+    emitLocalGet(addBody, 1)
+    emitOp(addBody, 0x6a)
+    emitEnd(addBody)
+    var mainBody = []
+    emitConst(mainBody, 15)
+    emitConst(mainBody, 27)
+    emitCall(mainBody, 0)
+    emitEnd(mainBody)
+    var codes = [[[], addBody], [[], mainBody]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T5") then
+        return false
+    end
+    bool ok = check("add(15,27) == 42", invokeExport2("add", 15, 27) == 42)
+    ok = check("main() == 42 (calls add)", invokeExport0("main") == 42) and ok
+    return ok
+end
+
+func testLoop() as bool
+    println("[T6] block / loop / br / br_if (iterative sum)")
+    var types = [[[VT_I32], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["sumTo", 0, 0]]
+    var b = []
+    emitBlock(b, 0x40)
+    emitLoop(b, 0x40)
+    emitLocalGet(b, 1)
+    emitConst(b, 1)
+    emitOp(b, 0x6a)
+    emitLocalTee(b, 1)
+    emitLocalGet(b, 0)
+    emitOp(b, 0x4a)
+    emitBrIf(b, 1)
+    emitLocalGet(b, 2)
+    emitLocalGet(b, 1)
+    emitOp(b, 0x6a)
+    emitLocalSet(b, 2)
+    emitBr(b, 0)
+    emitEnd(b)
+    emitEnd(b)
+    emitLocalGet(b, 2)
+    emitEnd(b)
+    var localTypes = [VT_I32, VT_I32]
+    var codes = [[localTypes, b]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T6") then
+        return false
+    end
+    bool ok = check("sumTo(10) == 55", invokeExport1("sumTo", 10) == 55)
+    ok = check("sumTo(100) == 5050", invokeExport1("sumTo", 100) == 5050) and ok
+    ok = check("sumTo(0) == 0", invokeExport1("sumTo", 0) == 0) and ok
+    ok = check("sumTo(1) == 1", invokeExport1("sumTo", 1) == 1) and ok
+    return ok
+end
+
+func testIfElse() as bool
+    println("[T7] if / else (with i32 result)")
+    var types = [[[VT_I32], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["abs", 0, 0]]
+    var b = []
+    emitLocalGet(b, 0)
+    emitConst(b, 0)
+    emitOp(b, 0x48)
+    emitIf(b, VT_I32)
+    emitConst(b, 0)
+    emitLocalGet(b, 0)
+    emitOp(b, 0x6b)
+    emitElse(b)
+    emitLocalGet(b, 0)
+    emitEnd(b)
+    emitEnd(b)
+    var codes = [[[], b]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T7") then
+        return false
+    end
+    bool ok = check("abs(5) == 5", invokeExport1("abs", 5) == 5)
+    ok = check("abs(-5) == 5", invokeExport1("abs", -5) == 5) and ok
+    ok = check("abs(0) == 0", invokeExport1("abs", 0) == 0) and ok
+    ok = check("abs(-100) == 100", invokeExport1("abs", -100) == 100) and ok
+    return ok
+end
+
+func testRecurse() as bool
+    println("[T8] call recursion (fibonacci)")
+    var types = [[[VT_I32], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["fib", 0, 0]]
+    var b = []
+    emitLocalGet(b, 0)
+    emitConst(b, 2)
+    emitOp(b, 0x48)
+    emitIf(b, VT_I32)
+    emitConst(b, 1)
+    emitElse(b)
+    emitLocalGet(b, 0)
+    emitConst(b, 1)
+    emitOp(b, 0x6b)
+    emitCall(b, 0)
+    emitLocalGet(b, 0)
+    emitConst(b, 2)
+    emitOp(b, 0x6b)
+    emitCall(b, 0)
+    emitOp(b, 0x6a)
+    emitEnd(b)
+    emitEnd(b)
+    var codes = [[[], b]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T8") then
+        return false
+    end
+    bool ok = check("fib(0) == 1", invokeExport1("fib", 0) == 1)
+    ok = check("fib(1) == 1", invokeExport1("fib", 1) == 1) and ok
+    ok = check("fib(5) == 8", invokeExport1("fib", 5) == 8) and ok
+    ok = check("fib(10) == 89", invokeExport1("fib", 10) == 89) and ok
+    ok = check("fib(15) == 987", invokeExport1("fib", 15) == 987) and ok
+    return ok
+end
+
+func testStackOps() as bool
+    println("[T9] drop / select")
+    var types = [[[], [VT_I32]]]
+    var funcTypes = [0, 0, 0]
+    var exports = [["dropFirst", 0, 0], ["selT", 0, 1], ["selF", 0, 2]]
+    var iDrop = []
+    emitConst(iDrop, 11)
+    emitConst(iDrop, 22)
+    emitOp(iDrop, 0x1a)
+    emitEnd(iDrop)
+    var iSelT = []
+    emitConst(iSelT, 10)
+    emitConst(iSelT, 20)
+    emitConst(iSelT, 1)
+    emitOp(iSelT, 0x1b)
+    emitEnd(iSelT)
+    var iSelF = []
+    emitConst(iSelF, 10)
+    emitConst(iSelF, 20)
+    emitConst(iSelF, 0)
+    emitOp(iSelF, 0x1b)
+    emitEnd(iSelF)
+    var codes = [[[], iDrop], [[], iSelT], [[], iSelF]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T9") then
+        return false
+    end
+    bool ok = check("drop(11,22) -> 11", invokeExport0("dropFirst") == 11)
+    ok = check("select(10,20,1) -> 10", invokeExport0("selT") == 10) and ok
+    ok = check("select(10,20,0) -> 20", invokeExport0("selF") == 20) and ok
+    return ok
+end
+
+func testGlobals() as bool
+    println("[T10] global.get / global.set (mutable global counter)")
+    var types = [[[], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["bump", 0, 0]]
+    var globals = [[VT_I32, 1, 0]]
+    var b = []
+    emitGlobalGet(b, 0)
+    emitConst(b, 1)
+    emitOp(b, 0x6a)
+    emitGlobalSet(b, 0)
+    emitGlobalGet(b, 0)
+    emitEnd(b)
+    var codes = [[[], b]]
+    var m = buildModule(types, funcTypes, exports, globals, codes)
+    if not parseBuiltModule(m, "T10") then
+        return false
+    end
+    bool ok = check("bump() #1 == 1", invokeExport0("bump") == 1)
+    ok = check("bump() #2 == 2", invokeExport0("bump") == 2) and ok
+    ok = check("bump() #3 == 3", invokeExport0("bump") == 3) and ok
+    return ok
+end
+
+func testBitOps() as bool
+    println("[T11] i32.and / or / xor / shl / shr_s")
+    var types = [[[VT_I32, VT_I32], [VT_I32]]]
+    var funcTypes = [0, 0, 0, 0, 0]
+    var exports = [["andAB", 0, 0], ["orAB", 0, 1], ["xorAB", 0, 2], ["shlA", 0, 3], ["shrA", 0, 4]]
+    var codes = []
+    var iAnd = []
+    emitLocalGet(iAnd, 0)
+    emitLocalGet(iAnd, 1)
+    emitOp(iAnd, 0x71)
+    emitEnd(iAnd)
+    var iOr = []
+    emitLocalGet(iOr, 0)
+    emitLocalGet(iOr, 1)
+    emitOp(iOr, 0x72)
+    emitEnd(iOr)
+    var iXor = []
+    emitLocalGet(iXor, 0)
+    emitLocalGet(iXor, 1)
+    emitOp(iXor, 0x73)
+    emitEnd(iXor)
+    var iShl = []
+    emitLocalGet(iShl, 0)
+    emitConst(iShl, 4)
+    emitOp(iShl, 0x74)
+    emitEnd(iShl)
+    var iShr = []
+    emitLocalGet(iShr, 0)
+    emitConst(iShr, 2)
+    emitOp(iShr, 0x75)
+    emitEnd(iShr)
+    codes.push([[], iAnd])
+    codes.push([[], iOr])
+    codes.push([[], iXor])
+    codes.push([[], iShl])
+    codes.push([[], iShr])
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T11") then
+        return false
+    end
+    bool ok = check("0xF0 & 0x3C == 0x30", invokeExport2("andAB", 0xF0, 0x3C) == 0x30)
+    ok = check("0xF0 | 0x0F == 0xFF", invokeExport2("orAB", 0xF0, 0x0F) == 0xFF) and ok
+    ok = check("0xFF ^ 0x0F == 0xF0", invokeExport2("xorAB", 0xFF, 0x0F) == 0xF0) and ok
+    ok = check("1 << 4 == 16", invokeExport2("shlA", 1, 0) == 16) and ok
+    ok = check("64 >> 2 == 16", invokeExport2("shrA", 64, 0) == 16) and ok
+    ok = check("-16 >> 2 == -4 (arithmetic)", invokeExport2("shrA", -16, 0) == -4) and ok
+    return ok
+end
+
+func testDivRem() as bool
+    println("[T12] i32.div_s / i32.rem_s")
+    var types = [[[VT_I32, VT_I32], [VT_I32]]]
+    var funcTypes = [0, 0]
+    var exports = [["div_s", 0, 0], ["rem_s", 0, 1]]
+    var iDiv = []
+    emitLocalGet(iDiv, 0)
+    emitLocalGet(iDiv, 1)
+    emitOp(iDiv, 0x6d)
+    emitEnd(iDiv)
+    var iRem = []
+    emitLocalGet(iRem, 0)
+    emitLocalGet(iRem, 1)
+    emitOp(iRem, 0x6f)
+    emitEnd(iRem)
+    var codes = [[[], iDiv], [[], iRem]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T12") then
+        return false
+    end
+    bool ok = check("20 / 6 == 3", invokeExport2("div_s", 20, 6) == 3)
+    ok = check("20 % 6 == 2", invokeExport2("rem_s", 20, 6) == 2) and ok
+    ok = check("-20 / 6 == -3 (trunc toward 0)", invokeExport2("div_s", -20, 6) == -3) and ok
+    ok = check("-20 % 6 == -2", invokeExport2("rem_s", -20, 6) == -2) and ok
+    ok = check("20 / -6 == -3", invokeExport2("div_s", 20, -6) == -3) and ok
+    return ok
+end
+
+func testEqz() as bool
+    println("[T13] i32.eqz")
+    var types = [[[VT_I32], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["eqz", 0, 0]]
+    var b = []
+    emitLocalGet(b, 0)
+    emitOp(b, 0x45)
+    emitEnd(b)
+    var codes = [[[], b]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T13") then
+        return false
+    end
+    bool ok = check("eqz(0) == 1", invokeExport1("eqz", 0) == 1)
+    ok = check("eqz(5) == 0", invokeExport1("eqz", 5) == 0) and ok
+    return ok
+end
+
+func testTrap() as bool
+    println("[T14] trap on div_s by zero")
+    var types = [[[VT_I32, VT_I32], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["div_s", 0, 0]]
+    var b = []
+    emitLocalGet(b, 0)
+    emitLocalGet(b, 1)
+    emitOp(b, 0x6d)
+    emitEnd(b)
+    var codes = [[[], b]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T14") then
+        return false
+    end
+    bool trapped = false
+    try
+        invokeExport2("div_s", 1, 0)
+    catch e
+        trapped = true
+    end
+    return check("div by zero traps", trapped)
+end
+
+func testFactorial() as bool
+    println("[T15] factorial (loop + mul)")
+    var types = [[[VT_I32], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["fact", 0, 0]]
+    var b = []
+    emitConst(b, 1)
+    emitLocalSet(b, 1)
+    emitConst(b, 1)
+    emitLocalSet(b, 2)
+    emitBlock(b, 0x40)
+    emitLoop(b, 0x40)
+    emitLocalGet(b, 2)
+    emitConst(b, 1)
+    emitOp(b, 0x6a)
+    emitLocalTee(b, 2)
+    emitLocalGet(b, 0)
+    emitOp(b, 0x4a)
+    emitBrIf(b, 1)
+    emitLocalGet(b, 1)
+    emitLocalGet(b, 2)
+    emitOp(b, 0x6c)
+    emitLocalSet(b, 1)
+    emitBr(b, 0)
+    emitEnd(b)
+    emitEnd(b)
+    emitLocalGet(b, 1)
+    emitEnd(b)
+    var localTypes = [VT_I32, VT_I32]
+    var codes = [[localTypes, b]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T15") then
+        return false
+    end
+    bool ok = check("fact(1) == 1", invokeExport1("fact", 1) == 1)
+    ok = check("fact(5) == 120", invokeExport1("fact", 5) == 120) and ok
+    ok = check("fact(7) == 5040", invokeExport1("fact", 7) == 5040) and ok
+    ok = check("fact(10) == 3628800", invokeExport1("fact", 10) == 3628800) and ok
+    return ok
+end
+
+func testNestedIf() as bool
+    println("[T16] nested if / sign classifier")
+    var types = [[[VT_I32], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["sign", 0, 0]]
+    var b = []
+    emitLocalGet(b, 0)
+    emitConst(b, 0)
+    emitOp(b, 0x48)         // lt_s
+    emitIf(b, VT_I32)
+    emitConst(b, -1)
+    emitElse(b)
+    emitLocalGet(b, 0)
+    emitConst(b, 0)
+    emitOp(b, 0x4a)         // gt_s
+    emitIf(b, VT_I32)
+    emitConst(b, 1)
+    emitElse(b)
+    emitConst(b, 0)
+    emitEnd(b)
+    emitEnd(b)
+    emitEnd(b)
+    var codes = [[[], b]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T16") then
+        return false
+    end
+    bool ok = check("sign(-7) == -1", invokeExport1("sign", -7) == -1)
+    ok = check("sign(0) == 0", invokeExport1("sign", 0) == 0) and ok
+    ok = check("sign(42) == 1", invokeExport1("sign", 42) == 1) and ok
+    return ok
+end
+
+func testDisasm() as bool
+    println("[T17] disasm module state")
+    var types = [[[], [VT_I32]]]
+    var funcTypes = [0]
+    var exports = [["main", 0, 0]]
+    var instrs = []
+    emitConst(instrs, 10)
+    emitConst(instrs, 20)
+    emitOp(instrs, 0x6a)
+    emitConst(instrs, 3)
+    emitOp(instrs, 0x6c)
+    emitEnd(instrs)
+    var codes = [[[], instrs]]
+    var m = buildModule(types, funcTypes, exports, [], codes)
+    if not parseBuiltModule(m, "T17") then
+        return false
+    end
+    bool ok = check("module valid for disasm", gMod.valid)
+    ok = check("1 function parsed", gMod.funcTypeIdx.length == 1) and ok
+    ok = check("1 export parsed", gMod.exportNames.length == 1) and ok
+    ok = check("export name is 'main'", gMod.exportNames[0] == "main") and ok
+    return ok
+end
+
+func runAllTests() as int
+    println("=== wasmrun built-in tests ===")
+    bool allOk = true
+    allOk = testConst()      and allOk
+    allOk = testArith()      and allOk
+    allOk = testCompare()    and allOk
+    allOk = testLocals()     and allOk
+    allOk = testLocalTee()   and allOk
+    allOk = testCall()       and allOk
+    allOk = testLoop()       and allOk
+    allOk = testIfElse()     and allOk
+    allOk = testRecurse()    and allOk
+    allOk = testStackOps()   and allOk
+    allOk = testGlobals()    and allOk
+    allOk = testBitOps()     and allOk
+    allOk = testDivRem()     and allOk
+    allOk = testEqz()        and allOk
+    allOk = testTrap()       and allOk
+    allOk = testFactorial()  and allOk
+    allOk = testNestedIf()   and allOk
+    allOk = testDisasm()     and allOk
+    println("===")
+    if allOk then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println("SOME TESTS FAILED")
+    return 1
+end
+
+
+// ============================== CLI ==============================
+
+func printUsage()
+    println("wasmrun - WebAssembly i32 subset interpreter")
+    println("")
+    println("usage:")
+    println("  wasmrun run <file.wasm>              execute _start or main export")
+    println("  wasmrun disasm <file.wasm>           disassemble code section")
+    println("  wasmrun test                         run built-in test suite")
+    println("  wasmrun -h | --help                  this help")
+end
+
+func cmdRun(string path) as int
+    if not file.exists(path) then
+        println("wasmrun: file not found: " + path)
+        return 1
+    end
+    Buffer buf = file.readBytes(path)
+    if buf.len() == 0 then
+        println("wasmrun: empty file: " + path)
+        return 1
+    end
+    array<int> bs = bufferToBytes(buf)
+    resetModule()
+    if not parseModule(bs) then
+        println("wasmrun: parse error: " + gMod.error)
+        return 1
+    end
+    int fidx = findExportAny("_start")
+    if fidx < 0 then
+        fidx = findExportAny("main")
+    end
+    if fidx < 0 then
+        println("wasmrun: no _start or main export found")
+        println("available exports:")
+        int i = 0
+        while i < gMod.exportNames.length do
+            println("  " + gMod.exportNames[i])
+            i += 1
+        end
+        return 1
+    end
+    int rv = 0
+    try
+        array<int> args = array[]
+        rv = invoke(fidx, args)
+    catch e
+        println("wasmrun: trap: " + e.message)
+        return 1
+    end
+    println("wasmrun: " + path + " returned " + string(rv))
+    return rv
+end
+
+func cmdDisasm(string path) as int
+    if not file.exists(path) then
+        println("wasmrun: file not found: " + path)
+        return 1
+    end
+    Buffer buf = file.readBytes(path)
+    if buf.len() == 0 then
+        println("wasmrun: empty file: " + path)
+        return 1
+    end
+    array<int> bs = bufferToBytes(buf)
+    resetModule()
+    if not parseModule(bs) then
+        println("wasmrun: parse error: " + gMod.error)
+        return 1
+    end
+    println("; " + path + " (" + string(bs.length) + " bytes)")
+    return disasmModule()
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return runAllTests()
+    end
+
+    if cmd == "run" then
+        if arg.length < 3 then
+            println("wasmrun: 'run' needs <file.wasm>")
+            return 1
+        end
+        return cmdRun(string(arg[2]))
+    end
+
+    if cmd == "disasm" then
+        if arg.length < 3 then
+            println("wasmrun: 'disasm' needs <file.wasm>")
+            return 1
+        end
+        return cmdDisasm(string(arg[2]))
+    end
+
+    println("wasmrun: unknown command: " + cmd)
+    printUsage()
+    return 1
+end

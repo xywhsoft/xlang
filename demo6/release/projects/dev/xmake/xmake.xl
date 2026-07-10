@@ -1,0 +1,930 @@
+// xmake.xl - xlang 构建系统（类 make：依赖图 DAG + 拓扑排序 + 增量编译 + 并行）
+//
+// 读取 JSON 构建规则文件 build.xmk，按依赖关系构建有向无环图（DAG），
+// 拓扑排序确定执行顺序，分层并行执行无依赖关系的规则；通过比较 input/output
+// 文件修改时间实现增量编译（跳过未变化的规则）；用 process.run 执行命令。
+//
+// 用法（在 release 目录下）：
+//   xl run projects\dev\xmake\xmake.xl <target>
+//   xl run projects\dev\xmake\xmake.xl -j 4 <target>
+//   xl run projects\dev\xmake\xmake.xl clean
+//   xl run projects\dev\xmake\xmake.xl test
+//   xl run projects\dev\xmake\xmake.xl list
+//   xl run projects\dev\xmake\xmake.xl -f my.xmk -C src <target>
+//
+// 构建后：
+//   xmake <target>     xmake -j 4 <target>     xmake clean     xmake test
+//
+// build.xmk 格式：
+//   {
+//     "rules": {
+//       "compile": {"cmd":"tcc -c src.c -o src.o","inputs":["src.c"],"output":"src.o"},
+//       "link":    {"cmd":"tcc src.o -o app.exe","inputs":["src.o"],
+//                   "output":"app.exe","deps":["compile"]}
+//     },
+//     "default": "link"
+//   }
+//
+// 命令：xmake <target> / xmake -j 4 <target> / xmake clean / xmake test
+// 退出码：全部成功 EXIT=0；存在失败 EXIT=1。
+// 裸运行（无参数）= 自检（演示 DAG/并行/增量/process.run 全链路）。
+
+
+// ===== 规则定义（只读数据，构建期不被修改）=====
+
+class Rule
+    string name
+    string cmd
+    array<string> inputs = array[]
+    string output
+    array<string> depNames = array[]
+end
+
+
+// ===== ANSI 颜色 =====
+
+string C_RESET
+string C_BOLD
+string C_GREEN
+string C_RED
+string C_YELLOW
+string C_CYAN
+string C_GRAY
+bool g_color
+
+
+// ===== 全局配置 =====
+
+string g_buildFile
+string g_defaultTarget
+string g_scriptPath
+string g_chdir
+int g_jobs
+int g_timeout
+
+
+// ===== 规则表与构建状态（全局容器在声明处初始化，仅 clear+push 就地修改）=====
+
+array<Rule> g_allRules = []
+array<Rule> g_plan = []
+array<string> g_result = []
+array<string> g_line = []
+array<int> g_levels = []
+int g_maxLevel
+
+// 分层并行执行状态
+array<int> g_levelTasks = []
+int g_nextTask
+int g_levelFailed
+int g_cntOk
+int g_cntSkip
+int g_cntFail
+
+mutex g_mu
+
+
+// ===== 颜色辅助 =====
+
+func colorOn(string code, string text) as string
+    if g_color then
+        return code + text + C_RESET
+    end
+    return text
+end
+
+func cBold(string s) as string
+    return colorOn(C_BOLD, s)
+end
+
+func cGreen(string s) as string
+    return colorOn(C_GREEN, s)
+end
+
+func cRed(string s) as string
+    return colorOn(C_RED, s)
+end
+
+func cYellow(string s) as string
+    return colorOn(C_YELLOW, s)
+end
+
+func cCyan(string s) as string
+    return colorOn(C_CYAN, s)
+end
+
+
+// ===== 文本辅助 =====
+
+func fmtMs(float ms) as string
+    return string.formatFloat(ms, ".3") + "ms"
+end
+
+func truncate(string s, int maxLen) as string
+    string c = string.replace(s, "\n", " ")
+    c = string.replace(c, "\r", " ")
+    if string.len(c) > maxLen then
+        c = string.mid(c, 0, maxLen) + "..."
+    end
+    return c
+end
+
+
+// ===== 加载 build.xmk =====
+
+func allRuleByName(string name) as int
+    int i = 0
+    while i < g_allRules.length do
+        if g_allRules[i].name == name then
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+func loadBuildFile(string bp) as bool
+    g_allRules.clear()
+    g_defaultTarget = ""
+    if not file.exists(bp) then
+        println(cRed("xmake: build file not found: ") + bp)
+        return false
+    end
+    string text = file.readText(bp)
+    var root
+    try
+        root = json.parse(text)
+    catch e
+        println(cRed("xmake: failed to parse ") + bp + ": " + e.message)
+        return false
+    end
+    var rulesV = root["rules"]
+    try
+        for name, body in rulesV
+            Rule r = Rule()
+            r.name = string(name) + ""
+            var cmdV = body["cmd"]
+            if cmdV is string then
+                r.cmd = string(cmdV) + ""
+            end
+            var inV = body["inputs"]
+            if inV is array then
+                for f in inV
+                    r.inputs.push(string(f) + "")
+                end
+            end
+            var outV = body["output"]
+            if outV is string then
+                r.output = string(outV) + ""
+            end
+            var depV = body["deps"]
+            if depV is array then
+                for d in depV
+                    r.depNames.push(string(d) + "")
+                end
+            end
+            g_allRules.push(r)
+        end
+    catch e
+        println(cRed("xmake: malformed 'rules' in ") + bp + ": " + e.message)
+        return false
+    end
+    var dv = root["default"]
+    if dv is string then
+        g_defaultTarget = string(dv) + ""
+    end
+    if g_allRules.length == 0 then
+        println(cRed("xmake: no rules defined in ") + bp)
+        return false
+    end
+    if string.len(g_defaultTarget) == 0 then
+        g_defaultTarget = g_allRules[0].name
+    end
+    return true
+end
+
+
+// ===== 列出目标 =====
+
+func listTargets()
+    println(cBold("xmake: available targets") + " (build file: " + g_buildFile + ")")
+    for r in g_allRules
+        string line = "  " + cCyan(r.name)
+        if string.len(r.output) > 0 then
+            line = line + "  -> " + r.output
+        end
+        if r.depNames.length > 0 then
+            line = line + "  deps:[" + string.join(r.depNames, ", ") + "]"
+        end
+        if r.name == g_defaultTarget then
+            line = line + "  " + cYellow("[default]")
+        end
+        println(line)
+    end
+end
+
+
+// ===== 依赖图：可达集 + 拓扑排序（Kahn）=====
+
+func dependsOn(string ruleName, string depName) as bool
+    int ri = allRuleByName(ruleName)
+    if ri < 0 then
+        return false
+    end
+    for d in g_allRules[ri].depNames
+        if d == depName then
+            return true
+        end
+    end
+    return false
+end
+
+func computePlan(string target) as bool
+    g_plan.clear()
+    g_result.clear()
+    g_line.clear()
+    g_levels.clear()
+    g_maxLevel = 0
+    if g_allRules.length == 0 then
+        println(cRed("xmake: no rules loaded"))
+        return false
+    end
+    if allRuleByName(target) < 0 then
+        println(cRed("xmake: unknown target '") + target + "'")
+        return false
+    end
+
+    // BFS：从 target 出发收集所有可达规则
+    array<string> reach = []
+    reach.push(target)
+    int head = 0
+    while head < reach.length do
+        string cur = reach[head]
+        head += 1
+        Rule cr = g_allRules[allRuleByName(cur)]
+        for dep in cr.depNames
+            if allRuleByName(dep) < 0 then
+                println(cRed("xmake: rule '") + cur + "' depends on unknown rule '" + dep + "'")
+                return false
+            end
+            if not reach.contains(dep) then
+                reach.push(dep)
+            end
+        end
+    end
+
+    int n = reach.length
+
+    // 入度：仅统计在可达集中的依赖
+    array<int> indeg = []
+    int k = 0
+    while k < n do
+        indeg.push(0)
+        k += 1
+    end
+    k = 0
+    while k < n do
+        Rule cr = g_allRules[allRuleByName(reach[k])]
+        for dep in cr.depNames
+            if reach.contains(dep) then
+                indeg[k] = indeg[k] + 1
+            end
+        end
+        k += 1
+    end
+
+    // Kahn 拓扑排序
+    array<int> order = []
+    array<int> q = []
+    k = 0
+    while k < n do
+        if indeg[k] == 0 then
+            q.push(k)
+        end
+        k += 1
+    end
+    int qh = 0
+    while qh < q.length do
+        int cur = q[qh]
+        qh += 1
+        order.push(cur)
+        int j = 0
+        while j < n do
+            if dependsOn(reach[j], reach[cur]) then
+                indeg[j] = indeg[j] - 1
+                if indeg[j] == 0 then
+                    q.push(j)
+                end
+            end
+            j += 1
+        end
+    end
+    if order.length != n then
+        println(cRed("xmake: cyclic dependency detected for target '") + target + "'")
+        return false
+    end
+
+    // 按拓扑序填充 plan
+    k = 0
+    while k < n do
+        g_plan.push(g_allRules[allRuleByName(reach[order[k]])])
+        g_result.push("")
+        g_line.push("")
+        k += 1
+    end
+    return true
+end
+
+
+func planIndexOf(string name) as int
+    int i = 0
+    while i < g_plan.length do
+        if g_plan[i].name == name then
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+// 分层：level[r] = 0 若无依赖；否则 = max(level[deps]) + 1。
+// plan 已是拓扑序，故依赖的下标一定小于当前，可一遍扫完。
+func computeLevels()
+    int n = g_plan.length
+    g_levels.clear()
+    int k = 0
+    while k < n do
+        g_levels.push(0)
+        k += 1
+    end
+    int maxL = 0
+    k = 0
+    while k < n do
+        int ml = 0
+        Rule r = g_plan[k]
+        for dep in r.depNames
+            int di = planIndexOf(dep)
+            if di >= 0 then
+                if g_levels[di] + 1 > ml then
+                    ml = g_levels[di] + 1
+                end
+            end
+        end
+        g_levels[k] = ml
+        if ml > maxL then
+            maxL = ml
+        end
+        k += 1
+    end
+    g_maxLevel = maxL
+end
+
+
+// ===== 增量编译：比较 input/output 修改时间 =====
+
+func needsRebuild(Rule r) as bool
+    if string.len(r.output) == 0 then
+        return true
+    end
+    FileInfo oinfo = file.info(r.output)
+    if not oinfo.exists then
+        return true
+    end
+    int outM = time.toUnix(oinfo.changeTime)
+    for f in r.inputs
+        FileInfo iinfo = file.info(f)
+        if not iinfo.exists then
+            return true
+        end
+        int inM = time.toUnix(iinfo.changeTime)
+        if inM > outM then
+            return true
+        end
+    end
+    return false
+end
+
+
+// ===== 执行单条规则（返回 code 与输出行：0 skip / 1 ok / 2 fail / 3 phony）=====
+
+func buildOne(int idx) as (int, string)
+    Rule r = g_plan[idx]
+    if string.len(r.cmd) == 0 then
+        return 3, "  " + cYellow("[phony]") + " " + r.name
+    end
+    if not needsRebuild(r) then
+        return 0, "  " + cCyan("[skip ]") + " " + r.name + "  (up-to-date)"
+    end
+    float t0 = time.timer()
+    ProcessResult res = process.run(r.cmd, g_timeout)
+    float ms = (time.timer() - t0) * 1000.0
+    if res.success then
+        return 1, "  " + cGreen("[ ok  ]") + " " + r.name + "  (" + fmtMs(ms) + ")"
+    end
+    string err = string.trim(res.stderr + "")
+    if string.len(err) == 0 then
+        err = string.trim(res.stdout + "")
+    end
+    return 2, "  " + cRed("[fail ]") + " " + r.name + " : " + truncate(err, 160)
+end
+
+func codeStr(int code) as string
+    if code == 0 then
+        return "skip"
+    end
+    if code == 2 then
+        return "fail"
+    end
+    return "ok"
+end
+
+
+// ===== worker（线程入口：从当前层的任务队列取规则执行）=====
+
+func levelWorker() as int
+    while true do
+        g_mu.lock()
+        int t = g_nextTask
+        g_nextTask = g_nextTask + 1
+        g_mu.unlock()
+        if t >= g_levelTasks.length then
+            return 0
+        end
+        int idx = g_levelTasks[t]
+        int code = 0
+        string line = ""
+        code, line = buildOne(idx)
+        g_mu.lock()
+        g_result[idx] = codeStr(code)
+        g_line[idx] = line
+        if code == 0 then
+            g_cntSkip = g_cntSkip + 1
+        elseif code == 2 then
+            g_cntFail = g_cntFail + 1
+            g_levelFailed = 1
+        else
+            g_cntOk = g_cntOk + 1
+        end
+        g_mu.unlock()
+    end
+    return 0
+end
+
+
+// ===== 执行一层（层内并行，最多 -j 个线程，上限 8）=====
+
+func runLevel(array<int> taskIdx) as bool
+    g_levelTasks.clear()
+    for t in taskIdx
+        g_levelTasks.push(t)
+    end
+    g_nextTask = 0
+    g_levelFailed = 0
+    int n = g_levelTasks.length
+    int nj = g_jobs
+    if nj > n then
+        nj = n
+    end
+    if nj > 8 then
+        nj = 8
+    end
+    if nj <= 1 then
+        levelWorker()
+    else
+        thread t1
+        thread t2
+        thread t3
+        thread t4
+        thread t5
+        thread t6
+        thread t7
+        thread t8
+        if nj >= 1 then t1 = thread(levelWorker) end
+        if nj >= 2 then t2 = thread(levelWorker) end
+        if nj >= 3 then t3 = thread(levelWorker) end
+        if nj >= 4 then t4 = thread(levelWorker) end
+        if nj >= 5 then t5 = thread(levelWorker) end
+        if nj >= 6 then t6 = thread(levelWorker) end
+        if nj >= 7 then t7 = thread(levelWorker) end
+        if nj >= 8 then t8 = thread(levelWorker) end
+        if nj >= 1 then t1.wait() end
+        if nj >= 2 then t2.wait() end
+        if nj >= 3 then t3.wait() end
+        if nj >= 4 then t4.wait() end
+        if nj >= 5 then t5.wait() end
+        if nj >= 6 then t6.wait() end
+        if nj >= 7 then t7.wait() end
+        if nj >= 8 then t8.wait() end
+    end
+    // 线程汇合后按原任务顺序输出（干净、有序、无交错）
+    for t in taskIdx
+        println(g_line[t])
+    end
+    return g_levelFailed == 0
+end
+
+
+// ===== 构建驱动 =====
+
+func printSummary()
+    string verdict
+    if g_cntFail > 0 then
+        verdict = cRed("FAILED")
+    else
+        verdict = cGreen("OK")
+    end
+    println(cBold("xmake: ") + string(g_cntOk) + " built, " + string(g_cntSkip) + " skipped, " + string(g_cntFail) + " failed  [" + verdict + "]")
+end
+
+func executeBuild(string target) as int
+    g_cntOk = 0
+    g_cntSkip = 0
+    g_cntFail = 0
+    if not computePlan(target) then
+        return 1
+    end
+    computeLevels()
+    int n = g_plan.length
+    if n == 0 then
+        println("xmake: nothing to do for '" + target + "'")
+        return 0
+    end
+    println(cBold("xmake: ") + "building '" + cCyan(target) + "' (" + string(n) + " rules, " + string(g_maxLevel + 1) + " levels, -j" + string(g_jobs) + ")")
+    int lv = 0
+    while lv <= g_maxLevel do
+        array<int> tasks = []
+        int i = 0
+        while i < n do
+            if g_levels[i] == lv then
+                tasks.push(i)
+            end
+            i += 1
+        end
+        if tasks.length > 0 then
+            if not runLevel(tasks) then
+                println(cRed("xmake: build stopped (rule failed at layer " + string(lv) + ")"))
+                printSummary()
+                return 1
+            end
+        end
+        lv += 1
+    end
+    printSummary()
+    return 0
+end
+
+
+// ===== clean =====
+
+func doClean() as int
+    int removed = 0
+    int missing = 0
+    for r in g_allRules
+        if string.len(r.output) > 0 then
+            if file.exists(r.output) then
+                try
+                    file.delete(r.output)
+                    println("  " + cYellow("[rm  ]") + " " + r.output)
+                    removed += 1
+                catch e
+                    println("  " + cRed("[warn]") + " could not delete " + r.output + ": " + e.message)
+                end
+            else
+                missing += 1
+            end
+        end
+    end
+    println(cBold("xmake: ") + "removed " + string(removed) + " file(s), " + string(missing) + " already absent")
+    return 0
+end
+
+
+// ===== 自检（演示 DAG/拓扑排序/并行/增量/process.run 全链路）=====
+
+func writeSampleBuildFile()
+    var compileA = {}
+    compileA["cmd"] = "cmd /c copy /y a.c a.o"
+    compileA["inputs"] = ["a.c"]
+    compileA["output"] = "a.o"
+    var compileB = {}
+    compileB["cmd"] = "cmd /c copy /y b.c b.o"
+    compileB["inputs"] = ["b.c"]
+    compileB["output"] = "b.o"
+    var compileMain = {}
+    compileMain["cmd"] = "cmd /c copy /y main.c main.o"
+    compileMain["inputs"] = ["main.c"]
+    compileMain["output"] = "main.o"
+    var linkRule = {}
+    linkRule["cmd"] = "cmd /c type a.o b.o main.o > app.exe"
+    linkRule["inputs"] = ["a.o", "b.o", "main.o"]
+    linkRule["output"] = "app.exe"
+    linkRule["deps"] = ["compile_a", "compile_b", "compile_main"]
+    var rules = {}
+    rules["compile_a"] = compileA
+    rules["compile_b"] = compileB
+    rules["compile_main"] = compileMain
+    rules["link"] = linkRule
+    var root = {}
+    root["rules"] = rules
+    root["default"] = "link"
+    file.writeText("build.xmk", json.stringify(root, true))
+end
+
+func planResult(string name) as int
+    int idx = planIndexOf(name)
+    if idx < 0 then
+        return -1
+    end
+    string s = g_result[idx]
+    if s == "ok" then
+        return 1
+    end
+    if s == "skip" then
+        return 0
+    end
+    if s == "fail" then
+        return 2
+    end
+    return -1
+end
+
+func runSelftest() as int
+    println(cBold("=== xmake self-test ==="))
+    string oldCwd = path.cwd()
+    string td = path.join(path.temp(), "xmake_selftest")
+    if dir.exists(td) then
+        try
+            dir.delete(td)
+        catch e
+        end
+    end
+    dir.createAll(td)
+    path.setCwd(td)
+
+    int pass = 0
+    int fail = 0
+
+    file.writeText("a.c", "// module A\nint a_data = 1;\n")
+    file.writeText("b.c", "// module B\nint b_data = 2;\n")
+    file.writeText("main.c", "// main\nint main(void){return 0;}\n")
+    writeSampleBuildFile()
+
+    if not loadBuildFile(path.join(td, "build.xmk")) then
+        println(cRed("  [fail] could not load generated build.xmk"))
+        path.setCwd(oldCwd)
+        return 1
+    end
+
+    // [1] 初次构建（串行，期望 4 条规则全部执行）
+    g_jobs = 1
+    println(cCyan("[1] initial build 'link' (serial, expect 4 runs)"))
+    int rc1 = executeBuild("link")
+    if rc1 == 0 and file.exists("a.o") and file.exists("b.o") and file.exists("main.o") and file.exists("app.exe") then
+        if g_cntOk == 4 and g_cntSkip == 0 then
+            println(cGreen("  [pass] built all 4 outputs"))
+            pass += 1
+        else
+            println(cRed("  [fail] counts: built=" + string(g_cntOk) + " skip=" + string(g_cntSkip)))
+            fail += 1
+        end
+    else
+        println(cRed("  [fail] initial build rc=") + string(rc1) + ", outputs missing")
+        fail += 1
+    end
+
+    // [2] 增量重建（期望 4 条全部跳过）
+    println(cCyan("[2] rebuild 'link' (expect 4 skips)"))
+    int rc2 = executeBuild("link")
+    if rc2 == 0 and g_cntSkip == 4 and g_cntOk == 0 then
+        println(cGreen("  [pass] incremental rebuild skipped all up-to-date rules"))
+        pass += 1
+    else
+        println(cRed("  [fail] expected 4 skip / 0 built, got skip=") + string(g_cntSkip) + " built=" + string(g_cntOk))
+        fail += 1
+    end
+
+    // [3] 触碰 a.c -> 仅 compile_a + link 重建
+    println(cCyan("[3] touch a.c, rebuild 'link' (expect compile_a + link only)"))
+    time.sleep(1100)
+    file.writeText("a.c", "// module A v2\nint a_data = 10;\n")
+    int rc3 = executeBuild("link")
+    int ra = planResult("compile_a")
+    int rb = planResult("compile_b")
+    int rm = planResult("compile_main")
+    int rl = planResult("link")
+    if ra == 1 and rl == 1 and rb == 0 and rm == 0 then
+        println(cGreen("  [pass] partial rebuild: compile_a + link rebuilt, others skipped"))
+        pass += 1
+    else
+        println(cRed("  [fail] a=") + string(ra) + " b=" + string(rb) + " main=" + string(rm) + " link=" + string(rl))
+        fail += 1
+    end
+
+    // [4] clean
+    println(cCyan("[4] clean"))
+    doClean()
+    if not file.exists("app.exe") and not file.exists("a.o") and not file.exists("b.o") and not file.exists("main.o") then
+        println(cGreen("  [pass] clean removed all outputs"))
+        pass += 1
+    else
+        println(cRed("  [fail] clean left files behind"))
+        fail += 1
+    end
+
+    // [5] 并行构建 -j 4（3 个独立 compile 并行，再 link）
+    g_jobs = 4
+    println(cCyan("[5] parallel build 'link' -j 4 (expect 4 runs)"))
+    int rc5 = executeBuild("link")
+    if rc5 == 0 and file.exists("app.exe") and g_cntOk == 4 then
+        println(cGreen("  [pass] parallel -j 4 built all"))
+        pass += 1
+    else
+        println(cRed("  [fail] parallel build rc=") + string(rc5) + " built=" + string(g_cntOk))
+        fail += 1
+    end
+
+    path.setCwd(oldCwd)
+    try
+        dir.delete(td)
+    catch e
+    end
+
+    println("")
+    println(cBold("=== xmake self-test: " + string(pass) + " passed, " + string(fail) + " failed ==="))
+    if fail > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ===== 用法 =====
+
+func printUsage()
+    println(cBold("xmake") + " - xlang build system (DAG + incremental + parallel)")
+    println("")
+    println("Usage:")
+    println("  xmake [options] <target>     build <target> (or default target if omitted)")
+    println("  xmake clean                  remove all rule outputs")
+    println("  xmake test                   run built-in self-test")
+    println("  xmake list                   list available targets")
+    println("  xmake -h | --help            show this help")
+    println("")
+    println("Options:")
+    println("  -j <N>         parallel jobs (default 1, max 8)")
+    println("  -f <file>      build file (default build.xmk)")
+    println("  -C <dir>       change to directory before building")
+    println("  --timeout <ms> per-command timeout (default 60000)")
+    println("  --no-color     disable ANSI colors")
+    println("")
+    println("Rule file (build.xmk) format:")
+    println("  {")
+    println("    \"rules\": {")
+    println("      \"compile\": {\"cmd\":\"tcc -c src.c -o src.o\",\"inputs\":[\"src.c\"],\"output\":\"src.o\"},")
+    println("      \"link\": {\"cmd\":\"tcc src.o -o app.exe\",\"inputs\":[\"src.o\"],")
+    println("                \"output\":\"app.exe\",\"deps\":[\"compile\"]}")
+    println("    },")
+    println("    \"default\": \"link\"")
+    println("  }")
+    println("")
+    println("A rule is rebuilt when its output is missing or any input is newer.")
+    println("Rules with no dependencies on each other run in parallel within a layer.")
+end
+
+
+// ===== 初始化全局 =====
+
+func initState()
+    g_buildFile = ""
+    g_defaultTarget = ""
+    g_scriptPath = ""
+    g_chdir = ""
+    g_jobs = 1
+    g_timeout = 60000
+    g_color = true
+    g_allRules.clear()
+    g_plan.clear()
+    g_result.clear()
+    g_line.clear()
+    g_levels.clear()
+    g_levelTasks.clear()
+    g_maxLevel = 0
+    g_nextTask = 0
+    g_levelFailed = 0
+    g_cntOk = 0
+    g_cntSkip = 0
+    g_cntFail = 0
+    C_RESET = "\x1b[0m"
+    C_BOLD = "\x1b[1m"
+    C_GREEN = "\x1b[32m"
+    C_RED = "\x1b[31m"
+    C_YELLOW = "\x1b[33m"
+    C_CYAN = "\x1b[36m"
+    C_GRAY = "\x1b[90m"
+end
+
+
+// ===== main =====
+
+func main(...) as int
+    initState()
+    if arg.length > 0 then
+        g_scriptPath = string(arg[0]) + ""
+    end
+
+    string sub = ""
+    string target = ""
+    int i = 1
+    while i < arg.length do
+        string a = string(arg[i]) + ""
+        if a == "-h" or a == "--help" or a == "help" then
+            sub = "help"
+        elseif a == "clean" then
+            sub = "clean"
+        elseif a == "test" then
+            sub = "test"
+        elseif a == "list" then
+            sub = "list"
+        elseif a == "-j" then
+            if i + 1 < arg.length then
+                i += 1
+                g_jobs = int(string(arg[i]))
+            end
+        elseif string.startsWith(a, "-j") and string.len(a) > 2 then
+            g_jobs = int(string.mid(a, 2, string.len(a)))
+        elseif a == "-f" or a == "--file" then
+            if i + 1 < arg.length then
+                i += 1
+                g_buildFile = string(arg[i]) + ""
+            end
+        elseif a == "-C" or a == "--directory" then
+            if i + 1 < arg.length then
+                i += 1
+                g_chdir = string(arg[i]) + ""
+            end
+        elseif a == "--no-color" then
+            g_color = false
+        elseif a == "--timeout" then
+            if i + 1 < arg.length then
+                i += 1
+                g_timeout = int(string(arg[i]))
+            end
+        elseif string.startsWith(a, "-") and string.len(a) > 1 then
+            // 未知 flag，忽略
+        else
+            if string.len(target) == 0 then
+                target = a
+            end
+        end
+        i += 1
+    end
+    if g_jobs < 1 then
+        g_jobs = 1
+    end
+
+    // 裸运行（无参数）= 自检，演示完整构建链路并保证 EXIT=0
+    if arg.length < 2 and sub == "" then
+        return runSelftest()
+    end
+
+    if sub == "help" then
+        printUsage()
+        return 0
+    end
+    if sub == "test" then
+        return runSelftest()
+    end
+
+    if string.len(g_chdir) > 0 then
+        if not dir.exists(g_chdir) then
+            println(cRed("xmake: directory not found: ") + g_chdir)
+            return 1
+        end
+        path.setCwd(g_chdir)
+    end
+    if string.len(g_buildFile) == 0 then
+        g_buildFile = "build.xmk"
+    end
+
+    if sub == "list" then
+        if not loadBuildFile(g_buildFile) then
+            return 1
+        end
+        listTargets()
+        return 0
+    end
+    if sub == "clean" then
+        if not loadBuildFile(g_buildFile) then
+            return 1
+        end
+        return doClean()
+    end
+
+    // 默认：构建目标
+    if not loadBuildFile(g_buildFile) then
+        return 1
+    end
+    if string.len(target) == 0 then
+        target = g_defaultTarget
+    end
+    return executeBuild(target)
+end

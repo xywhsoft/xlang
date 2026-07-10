@@ -1,0 +1,1517 @@
+﻿// graphalg - 图算法库
+//
+// 用法：
+//   graphalg dijkstra <graph.json> <from> <to>   Dijkstra 最短路径
+//   graphalg astar    <graph.json> <from> <to>   A* 寻路（需要 coords）
+//   graphalg mst      <graph.json>               最小生成树（Kruskal + 并查集）
+//   graphalg prim     <graph.json>               最小生成树（Prim + 优先队列）
+//   graphalg bfs      <graph.json> <start>       广度优先遍历
+//   graphalg dfs      <graph.json> <start>       深度优先遍历
+//   graphalg topo     <graph.json>               拓扑排序（有向图）
+//   graphalg connected <graph.json> <a> <b>      连通性判断（并查集）
+//   graphalg test                                 内置测试
+//   graphalg sample  <out.json>                  生成示例图
+//
+// 图 JSON 格式（两种均可）：
+//
+//   格式 A — 邻接表（dict<string, var>，每项 = {邻居: 权重}）：
+//     {
+//       "A": {"B": 1.0, "C": 3.0},
+//       "B": {"C": 5.0},
+//       "C": {}
+//     }
+//     可选顶层 "directed": true 表示有向图（默认无向）。
+//     邻接表格式下，文件中列出的边即实际边（不会自动补反向）。
+//
+//   格式 B — 结构化（带 nodes/edges/coords）：
+//     {
+//       "directed": false,
+//       "nodes": ["A", "B", "C"],
+//       "edges": [
+//         {"from": "A", "to": "B", "weight": 1.0},
+//         {"from": "A", "to": "C", "weight": 3.0}
+//       ],
+//       "coords": {"A": [0,0], "B": [1,0], "C": [2,0]}
+//     }
+//     结构化格式下，directed=false 时 addEdge 自动补反向边。
+//     coords 为 A* 启发函数提供坐标（可选）。
+//
+// 设计要点：
+//   - 手写 MinHeap 优先队列（array<float> + array<string> 双轨）。
+//   - 手写 UnionFind 并查集（路径压缩 + 按 rank 合并）。
+//   - Graph class 封装邻接表（dict<string, var>）、坐标表、有向标志。
+//   - 全部算法用迭代实现（避免递归 + var dict 触发 BUG-LP1 二次方劣化）。
+//   - 复合赋值 += 不派发 class 协议（BUG-V1/P1），展开为 a = a + b。
+//   - 不使用 set/get/let 作 class 方法名（编译器拒绝）。
+
+
+// ============================================================
+// MinHeap — 手写最小堆优先队列（Dijkstra / A* / Prim 使用）
+// 存储 (key, val) 对，按 key 升序 pop。
+// ============================================================
+
+class MinHeap
+    derive value
+    array<float> keys = array[]
+    array<string> vals = array[]
+
+    create()
+        self.keys = array[]
+        self.vals = array[]
+    end
+
+    func size() as int
+        int n = self.keys.length
+        return n
+    end
+
+    func empty() as bool
+        int n = self.keys.length
+        return n == 0
+    end
+
+    func push(float k, string v)
+        self.keys.append(k)
+        self.vals.append(v)
+        int last = self.keys.length - 1
+        self.siftUp(last)
+    end
+
+    func siftUp(int idx)
+        int i = idx
+        while i > 0 do
+            int parent = (i - 1) / 2
+            if self.keys[i] < self.keys[parent] then
+                float tk = self.keys[i]
+                string tv = self.vals[i]
+                self.keys[i] = self.keys[parent]
+                self.vals[i] = self.vals[parent]
+                self.keys[parent] = tk
+                self.vals[parent] = tv
+                i = parent
+            else
+                return
+            end
+        end
+    end
+
+    func siftDown(int idx)
+        int i = idx
+        int n = self.keys.length
+        bool done = false
+        while not done do
+            int l = 2 * i + 1
+            int r = 2 * i + 2
+            int smallest = i
+            if l < n and self.keys[l] < self.keys[smallest] then
+                smallest = l
+            end
+            if r < n and self.keys[r] < self.keys[smallest] then
+                smallest = r
+            end
+            if smallest != i then
+                float tk = self.keys[i]
+                string tv = self.vals[i]
+                self.keys[i] = self.keys[smallest]
+                self.vals[i] = self.vals[smallest]
+                self.keys[smallest] = tk
+                self.vals[smallest] = tv
+                i = smallest
+            else
+                done = true
+            end
+        end
+    end
+
+    func pop() as string
+        string top = self.vals[0]
+        int last = self.keys.length - 1
+        if last == 0 then
+            self.keys.remove(0)
+            self.vals.remove(0)
+        else
+            self.keys[0] = self.keys[last]
+            self.vals[0] = self.vals[last]
+            self.keys.remove(last)
+            self.vals.remove(last)
+            self.siftDown(0)
+        end
+        return top
+    end
+
+    func peekKey() as float
+        return self.keys[0]
+    end
+end
+
+
+// ============================================================
+// UnionFind — 并查集（路径压缩 + 按 rank 合并）
+// Kruskal MST / 连通性判断使用。
+// ============================================================
+
+class UnionFind
+    derive value
+    var parent = {}
+    var rank_ = {}
+
+    create()
+        self.parent = {}
+        self.rank_ = {}
+    end
+
+    func add(string x)
+        if not self.parent.contains(x) then
+            self.parent[x] = x
+            self.rank_[x] = 0
+        end
+    end
+
+    func find(string x) as string
+        if not self.parent.contains(x) then
+            self.add(x)
+        end
+        var trail = []
+        string cur = x
+        bool reachedRoot = false
+        while not reachedRoot do
+            string p = string(self.parent[cur])
+            if p == cur then
+                reachedRoot = true
+            else
+                trail.push(cur)
+                cur = p
+            end
+        end
+        int i = 0
+        int n = trail.length
+        while i < n do
+            self.parent[trail[i]] = cur
+            i = i + 1
+        end
+        return cur
+    end
+
+    func unite(string a, string b) as bool
+        string ra = self.find(a)
+        string rb = self.find(b)
+        if ra == rb then
+            return false
+        end
+        int raRank = int(self.rank_[ra])
+        int rbRank = int(self.rank_[rb])
+        if raRank < rbRank then
+            self.parent[ra] = rb
+        elseif raRank > rbRank then
+            self.parent[rb] = ra
+        else
+            self.parent[rb] = ra
+            self.rank_[ra] = raRank + 1
+        end
+        return true
+    end
+
+    func connected(string a, string b) as bool
+        string ra = self.find(a)
+        string rb = self.find(b)
+        return ra == rb
+    end
+end
+
+
+// ============================================================
+// Graph — 邻接表图（dict<string, var>）
+// ============================================================
+
+class Graph
+    derive value
+    var adj = {}
+    var coords = {}
+    bool directed = false
+
+    create()
+        self.adj = {}
+        self.coords = {}
+        self.directed = false
+    end
+
+    create(bool dir)
+        self.adj = {}
+        self.coords = {}
+        self.directed = dir
+    end
+
+    func addNode(string n)
+        if not self.adj.contains(n) then
+            self.adj[n] = {}
+        end
+    end
+
+    func addEdge(string u, string v, float w)
+        self.addNode(u)
+        self.addNode(v)
+        var uAdj = self.adj[u]
+        uAdj[v] = w
+        if not self.directed then
+            var vAdj = self.adj[v]
+            vAdj[u] = w
+        end
+    end
+
+    func setCoord(string n, float x, float y)
+        self.addNode(n)
+        var c = [x, y]
+        self.coords[n] = c
+    end
+
+    func hasNode(string n) as bool
+        return self.adj.contains(n)
+    end
+
+    func nodeCount() as int
+        int count = 0
+        for k, v in self.adj
+            count = count + 1
+        end
+        return count
+    end
+
+    func edgeCount() as int
+        int count = 0
+        for k, nbrs in self.adj
+            for n2, w in nbrs
+                count = count + 1
+            end
+        end
+        if not self.directed then
+            count = count / 2
+        end
+        return count
+    end
+
+    func nodeList() as var
+        var result = []
+        for k, v in self.adj
+            result.push(k)
+        end
+        return result
+    end
+
+    // ------------------------------------------------
+    // BFS 广度优先遍历（迭代，队列实现）
+    // ------------------------------------------------
+    func bfs(string src) as var
+        if not self.adj.contains(src) then
+            throw "source node not found: " + src
+        end
+        var visited = {}
+        var queue = [src]
+        visited[src] = true
+        var order = []
+        int head = 0
+        while head < queue.length do
+            string u = string(queue[head])
+            head = head + 1
+            order.push(u)
+            var uAdj = self.adj[u]
+            for v, w in uAdj
+                if not visited.contains(v) then
+                    visited[v] = true
+                    queue.push(v)
+                end
+            end
+        end
+        return order
+    end
+
+    // ------------------------------------------------
+    // DFS 深度优先遍历（迭代，栈实现）
+    // ------------------------------------------------
+    func dfs(string src) as var
+        if not self.adj.contains(src) then
+            throw "source node not found: " + src
+        end
+        var visited = {}
+        var stack = [src]
+        var order = []
+        while stack.length > 0 do
+            int last = stack.length - 1
+            string u = string(stack[last])
+            stack.remove(last)
+            if visited.contains(u) then
+                continue
+            end
+            visited[u] = true
+            order.push(u)
+            var uAdj = self.adj[u]
+            var nbrs = []
+            for v, w in uAdj
+                nbrs.push(v)
+            end
+            int i = nbrs.length - 1
+            while i >= 0 do
+                stack.push(nbrs[i])
+                i = i - 1
+            end
+        end
+        return order
+    end
+
+    // ------------------------------------------------
+    // Dijkstra 最短路径（MinHeap 优先队列）
+    // 返回 (距离, 路径数组)；不可达距离 = -1。
+    // ------------------------------------------------
+    func dijkstra(string src, string dst) as (float, var)
+        if not self.adj.contains(src) then
+            throw "source node not found: " + src
+        end
+        if not self.adj.contains(dst) then
+            throw "target node not found: " + dst
+        end
+
+        var dist = {}
+        var prev = {}
+        var finalized = {}
+
+        for node, nbrs in self.adj
+            dist[node] = 1e18
+        end
+        dist[src] = 0.0
+
+        MinHeap pq = MinHeap()
+        pq.push(0.0, src)
+
+        while not pq.empty() do
+            string u = pq.pop()
+            if finalized.contains(u) then
+                continue
+            end
+            finalized[u] = true
+            if u == dst then
+                break
+            end
+            float du = float(dist[u])
+            var uAdj = self.adj[u]
+            for v, w in uAdj
+                float fw = float(w)
+                float nd = du + fw
+                if not dist.contains(v) then
+                    dist[v] = 1e18
+                end
+                float dv = float(dist[v])
+                if nd < dv then
+                    dist[v] = nd
+                    prev[v] = u
+                    pq.push(nd, string(v))
+                end
+            end
+        end
+
+        if not finalized.contains(dst) then
+            return -1.0, []
+        end
+
+        var route = []
+        string cur = dst
+        bool walkedSrc = false
+        while not walkedSrc do
+            route.push(cur)
+            if cur == src then
+                walkedSrc = true
+            else
+                cur = string(prev[cur])
+            end
+        end
+        var rev = []
+        int i = route.length - 1
+        while i >= 0 do
+            rev.push(route[i])
+            i = i - 1
+        end
+        return float(dist[dst]), rev
+    end
+
+    // ------------------------------------------------
+    // A* 寻路（MinHeap + 欧几里得启发）
+    // 需要 coords 提供坐标；无坐标退化为 Dijkstra。
+    // ------------------------------------------------
+    func astar(string src, string dst) as (float, var)
+        if not self.adj.contains(src) then
+            throw "source node not found: " + src
+        end
+        if not self.adj.contains(dst) then
+            throw "target node not found: " + dst
+        end
+
+        float dstX = 0.0
+        float dstY = 0.0
+        bool hasCoords = self.coords.contains(dst)
+        if hasCoords then
+            var dc = self.coords[dst]
+            dstX = float(dc[0])
+            dstY = float(dc[1])
+        end
+
+        var gScore = {}
+        var prev = {}
+        var finalized = {}
+
+        for node, nbrs in self.adj
+            gScore[node] = 1e18
+        end
+        gScore[src] = 0.0
+
+        float h0 = 0.0
+        if hasCoords and self.coords.contains(src) then
+            var sc = self.coords[src]
+            float sx = float(sc[0])
+            float sy = float(sc[1])
+            float ddx = sx - dstX
+            float ddy = sy - dstY
+            h0 = math.sqrt(ddx * ddx + ddy * ddy)
+        end
+
+        MinHeap pq = MinHeap()
+        pq.push(h0, src)
+
+        while not pq.empty() do
+            string u = pq.pop()
+            if finalized.contains(u) then
+                continue
+            end
+            finalized[u] = true
+            if u == dst then
+                break
+            end
+            float gu = float(gScore[u])
+            var uAdj = self.adj[u]
+            for v, w in uAdj
+                float fw = float(w)
+                float tentative = gu + fw
+                if not gScore.contains(v) then
+                    gScore[v] = 1e18
+                end
+                float gv = float(gScore[v])
+                if tentative < gv then
+                    gScore[v] = tentative
+                    prev[v] = u
+                    float h = 0.0
+                    if hasCoords and self.coords.contains(v) then
+                        var vc = self.coords[v]
+                        float vx = float(vc[0])
+                        float vy = float(vc[1])
+                        float ex = vx - dstX
+                        float ey = vy - dstY
+                        h = math.sqrt(ex * ex + ey * ey)
+                    end
+                    pq.push(tentative + h, string(v))
+                end
+            end
+        end
+
+        if not finalized.contains(dst) then
+            return -1.0, []
+        end
+
+        var route = []
+        string cur = dst
+        bool walkedSrc = false
+        while not walkedSrc do
+            route.push(cur)
+            if cur == src then
+                walkedSrc = true
+            else
+                cur = string(prev[cur])
+            end
+        end
+        var rev = []
+        int i = route.length - 1
+        while i >= 0 do
+            rev.push(route[i])
+            i = i - 1
+        end
+        return float(gScore[dst]), rev
+    end
+
+    // ------------------------------------------------
+    // Prim 最小生成树（MinHeap 优先队列）
+    // 返回 (总权重, 边数组)。
+    // ------------------------------------------------
+    func primMST() as (float, var)
+        if self.directed then
+            throw "MST requires undirected graph"
+        end
+        var nodes = self.nodeList()
+        int n = nodes.length
+        if n == 0 then
+            return 0.0, []
+        end
+
+        var inTree = {}
+        var dist = {}
+        var link = {}
+
+        int i = 0
+        while i < n do
+            dist[nodes[i]] = 1e18
+            i = i + 1
+        end
+
+        string start = string(nodes[0])
+        dist[start] = 0.0
+        link[start] = start
+
+        MinHeap pq = MinHeap()
+        pq.push(0.0, start)
+
+        float total = 0.0
+        var edges = []
+
+        while not pq.empty() do
+            string u = pq.pop()
+            if inTree.contains(u) then
+                continue
+            end
+            inTree[u] = true
+            float du = float(dist[u])
+            total = total + du
+            string lu = string(link[u])
+            if u != lu then
+                var e = [lu, u, du]
+                edges.push(e)
+            end
+            var uAdj = self.adj[u]
+            for v, w in uAdj
+                float fw = float(w)
+                if not dist.contains(v) then
+                    dist[v] = 1e18
+                end
+                float dv = float(dist[v])
+                if not inTree.contains(v) and fw < dv then
+                    dist[v] = fw
+                    link[v] = u
+                    pq.push(fw, string(v))
+                end
+            end
+        end
+
+        return total, edges
+    end
+
+    // ------------------------------------------------
+    // Kruskal 最小生成树（排序 + UnionFind 并查集）
+    // 返回 (总权重, 边数组)。
+    // ------------------------------------------------
+    func kruskalMST() as (float, var)
+        if self.directed then
+            throw "MST requires undirected graph"
+        end
+
+        array<float> ew = array[]
+        array<string> eu = array[]
+        array<string> ev = array[]
+        var seen = {}
+
+        for u, nbrs in self.adj
+            for v, w in nbrs
+                string su = string(u)
+                string sv = string(v)
+                string k1 = su + "|" + sv
+                string k2 = sv + "|" + su
+                if seen.contains(k1) or seen.contains(k2) then
+                    continue
+                end
+                seen[k1] = true
+                ew.append(float(w))
+                eu.append(su)
+                ev.append(sv)
+            end
+        end
+
+        int m = ew.length
+        int i = 0
+        while i < m do
+            int minIdx = i
+            int j = i + 1
+            while j < m do
+                if ew[j] < ew[minIdx] then
+                    minIdx = j
+                end
+                j = j + 1
+            end
+            if minIdx != i then
+                float tw = ew[i]
+                string tu = eu[i]
+                string tv = ev[i]
+                ew[i] = ew[minIdx]
+                eu[i] = eu[minIdx]
+                ev[i] = ev[minIdx]
+                ew[minIdx] = tw
+                eu[minIdx] = tu
+                ev[minIdx] = tv
+            end
+            i = i + 1
+        end
+
+        UnionFind uf = UnionFind()
+        for node, nbrs in self.adj
+            uf.add(string(node))
+        end
+
+        float total = 0.0
+        var edges = []
+        int k = 0
+        while k < m do
+            string a = eu[k]
+            string b = ev[k]
+            if not uf.connected(a, b) then
+                uf.unite(a, b)
+                total = total + ew[k]
+                var e = [a, b, ew[k]]
+                edges.push(e)
+            end
+            k = k + 1
+        end
+
+        return total, edges
+    end
+
+    // ------------------------------------------------
+    // 拓扑排序（Kahn 算法，迭代）
+    // 返回 (排序数组, 是否成功)；有环则成功 = false。
+    // ------------------------------------------------
+    func topoSort() as (var, bool)
+        var indeg = {}
+        for node, nbrs in self.adj
+            if not indeg.contains(node) then
+                indeg[node] = 0
+            end
+            for v, w in nbrs
+                int cur = 0
+                if indeg.contains(v) then
+                    cur = int(indeg[v])
+                end
+                indeg[v] = cur + 1
+            end
+        end
+
+        var queue = []
+        for node, d in indeg
+            if int(d) == 0 then
+                queue.push(node)
+            end
+        end
+
+        var result = []
+        int head = 0
+        while head < queue.length do
+            string u = string(queue[head])
+            head = head + 1
+            result.push(u)
+            var uAdj = self.adj[u]
+            for v, w in uAdj
+                int nd = int(indeg[v]) - 1
+                indeg[v] = nd
+                if nd == 0 then
+                    queue.push(v)
+                end
+            end
+        end
+
+        int resultCount = result.length
+        int nodeTotal = 0
+        for node, d in indeg
+            nodeTotal = nodeTotal + 1
+        end
+
+        if resultCount != nodeTotal then
+            return result, false
+        end
+        return result, true
+    end
+
+    // ------------------------------------------------
+    // 连通性判断（UnionFind）
+    // ------------------------------------------------
+    func connected(string a, string b) as bool
+        UnionFind uf = UnionFind()
+        for node, nbrs in self.adj
+            uf.add(string(node))
+        end
+        for node, nbrs in self.adj
+            string su = string(node)
+            for v, w in nbrs
+                uf.unite(su, string(v))
+            end
+        end
+        return uf.connected(a, b)
+    end
+end
+
+
+// ============================================================
+// JSON 加载器
+// ============================================================
+
+func loadGraphJSON(string text) as Graph
+    var raw = json.parse(text)
+    if raw == null then
+        throw "invalid graph JSON"
+    end
+
+    bool directed = false
+    if raw.contains("directed") then
+        directed = bool(raw["directed"])
+    end
+
+    Graph g = Graph(directed)
+
+    bool structured = raw.contains("edges")
+
+    if structured then
+        var edgesField = raw["edges"]
+        if raw.contains("nodes") then
+            var nodesField = raw["nodes"]
+            int ni = 0
+            int nn = nodesField.length
+            while ni < nn do
+                g.addNode(string(nodesField[ni]))
+                ni = ni + 1
+            end
+        end
+        int ei = 0
+        int en = edgesField.length
+        while ei < en do
+            var edge = edgesField[ei]
+            string u = string(edge["from"])
+            string v = string(edge["to"])
+            float w = 1.0
+            if edge.contains("weight") then
+                w = float(edge["weight"])
+            end
+            g.addEdge(u, v, w)
+            ei = ei + 1
+        end
+        if raw.contains("coords") then
+            var coordsField = raw["coords"]
+            for node, coord in coordsField
+                g.setCoord(string(node), float(coord[0]), float(coord[1]))
+            end
+        end
+    else
+        for node, nbrs in raw
+            string nodeName = string(node)
+            if nodeName == "directed" or nodeName == "coords" then
+                continue
+            end
+            g.addNode(nodeName)
+            var nodeAdj = {}
+            for nbr, w in nbrs
+                nodeAdj[string(nbr)] = float(w)
+            end
+            g.adj[nodeName] = nodeAdj
+        end
+        if raw.contains("coords") then
+            var coordsField = raw["coords"]
+            for node, coord in coordsField
+                g.setCoord(string(node), float(coord[0]), float(coord[1]))
+            end
+        end
+    end
+
+    return g
+end
+
+
+func loadGraphFile(string path_) as Graph
+    if not file.exists(path_) then
+        throw "file not found: " + path_
+    end
+    string text = file.readText(path_)
+    if string.isEmpty(text) then
+        throw "empty graph file: " + path_
+    end
+    return loadGraphJSON(text)
+end
+
+
+// ============================================================
+// 图构造器（测试 / 压测用）
+// ============================================================
+
+func makeGrid(int rows, int cols) as Graph
+    Graph g = Graph(false)
+    int r = 0
+    while r < rows do
+        int c = 0
+        while c < cols do
+            string name = string(r) + "," + string(c)
+            g.setCoord(name, float(c), float(r))
+            c = c + 1
+        end
+        r = r + 1
+    end
+    r = 0
+    while r < rows do
+        int c = 0
+        while c < cols do
+            string here = string(r) + "," + string(c)
+            if c + 1 < cols then
+                string right = string(r) + "," + string(c + 1)
+                g.addEdge(here, right, 1.0)
+            end
+            if r + 1 < rows then
+                string down = string(r + 1) + "," + string(c)
+                g.addEdge(here, down, 1.0)
+            end
+            c = c + 1
+        end
+        r = r + 1
+    end
+    return g
+end
+
+
+func makeSampleGraph() as Graph
+    Graph g = Graph(false)
+    g.addEdge("A", "B", 1.0)
+    g.addEdge("A", "D", 3.0)
+    g.addEdge("B", "C", 5.0)
+    g.addEdge("B", "E", 2.0)
+    g.addEdge("C", "F", 1.0)
+    g.addEdge("D", "E", 4.0)
+    g.addEdge("E", "F", 2.0)
+    g.setCoord("A", 0.0, 0.0)
+    g.setCoord("B", 1.0, 0.0)
+    g.setCoord("C", 2.0, 0.0)
+    g.setCoord("D", 0.0, 1.0)
+    g.setCoord("E", 1.0, 1.0)
+    g.setCoord("F", 2.0, 1.0)
+    return g
+end
+
+
+func makeDAG() as Graph
+    Graph g = Graph(true)
+    g.addEdge("A", "B", 1.0)
+    g.addEdge("A", "C", 1.0)
+    g.addEdge("B", "D", 1.0)
+    g.addEdge("B", "C", 1.0)
+    g.addEdge("C", "D", 1.0)
+    g.addNode("E")
+    return g
+end
+
+
+// ============================================================
+// 输出格式化
+// ============================================================
+
+func fmtDist(float f) as string
+    if f < 0.0 then
+        return "unreachable"
+    end
+    if f == math.floor(f) then
+        int whole = int(f)
+        return string(whole)
+    end
+    return string.formatFloat(f, ".4")
+end
+
+func fmtPath(var route) as string
+    if route.length == 0 then
+        return "(no path)"
+    end
+    string s = ""
+    int i = 0
+    int n = route.length
+    while i < n do
+        if i > 0 then
+            s = s + " -> "
+        end
+        s = s + string(route[i])
+        i = i + 1
+    end
+    return s
+end
+
+func printEdges(var edges)
+    int i = 0
+    int n = edges.length
+    while i < n do
+        var e = edges[i]
+        println("  " + string(e[0]) + " -- " + string(e[1]) + "  (w=" + fmtDist(float(e[2])) + ")")
+        i = i + 1
+    end
+end
+
+
+// ============================================================
+// 内置测试
+// ============================================================
+
+func expectFloat(string label, float got, float want, var fails) as bool
+    float diff = got - want
+    if diff < 0.0 then
+        diff = 0.0 - diff
+    end
+    if diff > 0.001 then
+        string msg = "FAIL " + label + ": got " + string(got) + ", want " + string(want)
+        fails.push(msg)
+        return false
+    end
+    println("  ok   " + label + " = " + fmtDist(got))
+    return true
+end
+
+func expectInt(string label, int got, int want, var fails) as bool
+    if got != want then
+        string msg = "FAIL " + label + ": got " + string(got) + ", want " + string(want)
+        fails.push(msg)
+        return false
+    end
+    println("  ok   " + label + " = " + string(got))
+    return true
+end
+
+func expectBool(string label, bool got, bool want, var fails) as bool
+    if got != want then
+        string msg = "FAIL " + label + ": got " + string(got) + ", want " + string(want)
+        fails.push(msg)
+        return false
+    end
+    println("  ok   " + label + " = " + string(got))
+    return true
+end
+
+func expectStr(string label, string got, string want, var fails) as bool
+    if got != want then
+        string msg = "FAIL " + label + ": got '" + got + "', want '" + want + "'"
+        fails.push(msg)
+        return false
+    end
+    println("  ok   " + label + " = '" + got + "'")
+    return true
+end
+
+
+func testMinHeap(var fails)
+    println("[1] MinHeap 优先队列")
+    MinHeap h = MinHeap()
+    expectBool("heap empty initially", h.empty(), true, fails)
+
+    h.push(5.0, "e")
+    h.push(2.0, "b")
+    h.push(8.0, "h")
+    h.push(1.0, "a")
+    h.push(4.0, "d")
+    h.push(9.0, "i")
+    h.push(3.0, "c")
+
+    expectInt("heap size after pushes", h.size(), 7, fails)
+    expectBool("heap not empty", h.empty(), false, fails)
+
+    string order = ""
+    int count = 0
+    while not h.empty() do
+        string v = h.pop()
+        order = order + v
+        count = count + 1
+    end
+    expectStr("heap pop ascending order", order, "abcdehi", fails)
+    expectInt("heap popped count", count, 7, fails)
+end
+
+
+func testUnionFind(var fails)
+    println("[2] UnionFind 并查集")
+    UnionFind uf = UnionFind()
+    uf.add("A")
+    uf.add("B")
+    uf.add("C")
+    uf.add("D")
+
+    expectBool("A-B not connected", uf.connected("A", "B"), false, fails)
+    uf.unite("A", "B")
+    expectBool("A-B connected after union", uf.connected("A", "B"), true, fails)
+    uf.unite("C", "D")
+    expectBool("C-D connected", uf.connected("C", "D"), true, fails)
+    expectBool("A-C not connected", uf.connected("A", "C"), false, fails)
+    uf.unite("A", "C")
+    expectBool("A-D transitive", uf.connected("A", "D"), true, fails)
+    expectBool("B-D transitive", uf.connected("B", "D"), true, fails)
+
+    UnionFind uf2 = UnionFind()
+    uf2.add("x")
+    uf2.add("y")
+    uf2.add("z")
+    uf2.add("w")
+    uf2.unite("x", "y")
+    uf2.unite("z", "w")
+    uf2.unite("y", "z")
+    expectBool("x-w after chain union", uf2.connected("x", "w"), true, fails)
+end
+
+
+func testBFS(var fails)
+    println("[3] BFS 广度优先遍历")
+    Graph g = makeSampleGraph()
+
+    var order = g.bfs("A")
+    expectInt("bfs visited count", order.length, 6, fails)
+
+    var first = order[0]
+    expectStr("bfs first node", string(first), "A", fails)
+
+    var dist = {}
+    dist["A"] = 0
+    int i = 0
+    while i < order.length do
+        dist[order[i]] = i
+        i = i + 1
+    end
+    int bIdx = int(dist["B"])
+    int dIdx = int(dist["D"])
+    expectBool("bfs B visited early", bIdx <= 2, true, fails)
+    expectBool("bfs D visited early", dIdx <= 2, true, fails)
+end
+
+
+func testDFS(var fails)
+    println("[4] DFS 深度优先遍历")
+    Graph g = makeSampleGraph()
+
+    var order = g.dfs("A")
+    expectInt("dfs visited count", order.length, 6, fails)
+
+    var first = order[0]
+    expectStr("dfs first node", string(first), "A", fails)
+
+    bool seenF = false
+    int i = 0
+    while i < order.length do
+        if string(order[i]) == "F" then
+            seenF = true
+        end
+        i = i + 1
+    end
+    expectBool("dfs reached F", seenF, true, fails)
+end
+
+
+func testDijkstra(var fails)
+    println("[5] Dijkstra 最短路径")
+    Graph g = makeSampleGraph()
+
+    float dist = 0.0
+    var route = []
+    dist, route = g.dijkstra("A", "F")
+    expectFloat("dijkstra A->F distance", dist, 5.0, fails)
+    expectInt("dijkstra A->F hop count", route.length, 4, fails)
+    expectStr("dijkstra A->F start", string(route[0]), "A", fails)
+    var lastElem = route[route.length - 1]
+    expectStr("dijkstra A->F end", string(lastElem), "F", fails)
+
+    dist, route = g.dijkstra("A", "C")
+    expectFloat("dijkstra A->C distance", dist, 6.0, fails)
+
+    dist, route = g.dijkstra("A", "A")
+    expectFloat("dijkstra A->A distance", dist, 0.0, fails)
+    expectInt("dijkstra A->A path len", route.length, 1, fails)
+
+    dist, route = g.dijkstra("F", "A")
+    expectFloat("dijkstra F->A distance", dist, 5.0, fails)
+end
+
+
+func testAStar(var fails)
+    println("[6] A* 寻路")
+    Graph g = makeSampleGraph()
+
+    float dist = 0.0
+    var route = []
+    dist, route = g.astar("A", "F")
+    expectFloat("astar A->F distance", dist, 5.0, fails)
+    expectInt("astar A->F path len", route.length, 4, fails)
+
+    Graph grid = makeGrid(5, 5)
+    dist, route = grid.astar("0,0", "4,4")
+    expectFloat("astar 5x5 grid diagonal distance", dist, 8.0, fails)
+    expectInt("astar 5x5 grid path nodes", route.length, 9, fails)
+
+    dist, route = grid.astar("0,0", "0,4")
+    expectFloat("astar grid horizontal distance", dist, 4.0, fails)
+end
+
+
+func testMST(var fails)
+    println("[7] 最小生成树")
+    Graph g = makeSampleGraph()
+
+    float primTotal = 0.0
+    var primEdges = []
+    primTotal, primEdges = g.primMST()
+    expectFloat("prim MST total weight", primTotal, 9.0, fails)
+    expectInt("prim MST edge count", primEdges.length, 5, fails)
+
+    float kruskalTotal = 0.0
+    var kruskalEdges = []
+    kruskalTotal, kruskalEdges = g.kruskalMST()
+    expectFloat("kruskal MST total weight", kruskalTotal, 9.0, fails)
+    expectInt("kruskal MST edge count", kruskalEdges.length, 5, fails)
+
+    expectFloat("prim == kruskal total", kruskalTotal, primTotal, fails)
+end
+
+
+func testTopoSort(var fails)
+    println("[8] 拓扑排序")
+    Graph dag = makeDAG()
+
+    var order = []
+    bool ok = false
+    order, ok = dag.topoSort()
+    expectBool("topo sort success (DAG)", ok, true, fails)
+    expectInt("topo sorted count", order.length, 5, fails)
+
+    var pos = {}
+    int i = 0
+    while i < order.length do
+        pos[order[i]] = i
+        i = i + 1
+    end
+    int pa = int(pos["A"])
+    int pb = int(pos["B"])
+    int pc = int(pos["C"])
+    int pd = int(pos["D"])
+    expectBool("topo A before B", pa < pb, true, fails)
+    expectBool("topo A before C", pa < pc, true, fails)
+    expectBool("topo B before D", pb < pd, true, fails)
+    expectBool("topo C before D", pc < pd, true, fails)
+
+    Graph cyclic = Graph(true)
+    cyclic.addEdge("X", "Y", 1.0)
+    cyclic.addEdge("Y", "Z", 1.0)
+    cyclic.addEdge("Z", "X", 1.0)
+    order, ok = cyclic.topoSort()
+    expectBool("topo sort detects cycle", ok, false, fails)
+end
+
+
+func testConnectivity(var fails)
+    println("[9] 连通性判断")
+    Graph g = makeSampleGraph()
+    expectBool("A-F connected (undirected)", g.connected("A", "F"), true, fails)
+    expectBool("A-E connected", g.connected("A", "E"), true, fails)
+
+    Graph g2 = Graph(false)
+    g2.addEdge("A", "B", 1.0)
+    g2.addEdge("C", "D", 1.0)
+    expectBool("A-C disconnected", g2.connected("A", "C"), false, fails)
+    expectBool("A-B connected", g2.connected("A", "B"), true, fails)
+end
+
+
+func testStressLarge(var fails)
+    println("[10] 压测：大规模图（15x15 = 225 节点）")
+    int rows = 15
+    int cols = 15
+    Graph grid = makeGrid(rows, cols)
+    int expectedNodes = rows * cols
+    expectInt("grid node count", grid.nodeCount(), expectedNodes, fails)
+
+    float dist = 0.0
+    var route = []
+    dist, route = grid.dijkstra("0,0", "14,14")
+    expectFloat("grid dijkstra diagonal distance", dist, 28.0, fails)
+    expectInt("grid dijkstra path nodes", route.length, 29, fails)
+
+    float mstTotal = 0.0
+    var mstEdges = []
+    mstTotal, mstEdges = grid.kruskalMST()
+    int expectedMstEdges = expectedNodes - 1
+    expectFloat("grid kruskal MST total weight", mstTotal, float(expectedMstEdges), fails)
+    expectInt("grid kruskal MST edge count", mstEdges.length, expectedMstEdges, fails)
+
+    float primTotal = 0.0
+    var primEdges = []
+    primTotal, primEdges = grid.primMST()
+    expectFloat("grid prim MST total weight", primTotal, float(expectedMstEdges), fails)
+
+    var bfsOrder = grid.bfs("0,0")
+    expectInt("grid bfs visited count", bfsOrder.length, expectedNodes, fails)
+
+    var dfsOrder = grid.dfs("0,0")
+    expectInt("grid dfs visited count", dfsOrder.length, expectedNodes, fails)
+
+    println("  info  edge count = " + string(grid.edgeCount()))
+end
+
+
+func testJSONRoundtrip(var fails)
+    println("[11] JSON 加载（两种格式）")
+
+    string adjJson = '{"A":{"B":1.0,"D":3.0},"B":{"A":1.0,"C":5.0,"E":2.0},"C":{"B":5.0,"F":1.0},"D":{"A":3.0,"E":4.0},"E":{"B":2.0,"D":4.0,"F":2.0},"F":{"C":1.0,"E":2.0}}'
+    Graph g1 = loadGraphJSON(adjJson)
+    expectInt("adjacency-format node count", g1.nodeCount(), 6, fails)
+    float d1 = 0.0
+    var p1 = []
+    d1, p1 = g1.dijkstra("A", "F")
+    expectFloat("adjacency-format dijkstra A->F", d1, 5.0, fails)
+
+    string structJson = '{"directed":false,"nodes":["A","B","C"],"edges":[{"from":"A","to":"B","weight":1.0},{"from":"B","to":"C","weight":2.0}],"coords":{"A":[0,0],"B":[1,0],"C":[2,0]}}'
+    Graph g2 = loadGraphJSON(structJson)
+    expectInt("structured-format node count", g2.nodeCount(), 3, fails)
+    float d2 = 0.0
+    var p2 = []
+    d2, p2 = g2.dijkstra("A", "C")
+    expectFloat("structured-format dijkstra A->C", d2, 3.0, fails)
+    float d3 = 0.0
+    var p3 = []
+    d3, p3 = g2.astar("A", "C")
+    expectFloat("structured-format astar A->C", d3, 3.0, fails)
+end
+
+
+func runTests() as int
+    println("=========================================")
+    println("graphalg 内置测试")
+    println("=========================================")
+    println("")
+
+    var fails = []
+
+    testMinHeap(fails)
+    testUnionFind(fails)
+    testBFS(fails)
+    testDFS(fails)
+    testDijkstra(fails)
+    testAStar(fails)
+    testMST(fails)
+    testTopoSort(fails)
+    testConnectivity(fails)
+    testStressLarge(fails)
+    testJSONRoundtrip(fails)
+
+    println("")
+    println("=========================================")
+    int failCount = fails.length
+    if failCount == 0 then
+        println("ALL TESTS PASSED")
+    else
+        println(string(failCount) + " TEST(S) FAILED:")
+        int i = 0
+        while i < failCount do
+            println("  " + string(fails[i]))
+            i = i + 1
+        end
+    end
+    println("=========================================")
+    if failCount == 0 then
+        return 0
+    end
+    return 1
+end
+
+
+// ============================================================
+// 示例图输出
+// ============================================================
+
+func writeSampleGraph(string outPath)
+    string jsonText = "{\n"
+    jsonText = jsonText + "  \"directed\": false,\n"
+    jsonText = jsonText + "  \"nodes\": [\"A\", \"B\", \"C\", \"D\", \"E\", \"F\"],\n"
+    jsonText = jsonText + "  \"edges\": [\n"
+    jsonText = jsonText + "    {\"from\": \"A\", \"to\": \"B\", \"weight\": 1.0},\n"
+    jsonText = jsonText + "    {\"from\": \"A\", \"to\": \"D\", \"weight\": 3.0},\n"
+    jsonText = jsonText + "    {\"from\": \"B\", \"to\": \"C\", \"weight\": 5.0},\n"
+    jsonText = jsonText + "    {\"from\": \"B\", \"to\": \"E\", \"weight\": 2.0},\n"
+    jsonText = jsonText + "    {\"from\": \"C\", \"to\": \"F\", \"weight\": 1.0},\n"
+    jsonText = jsonText + "    {\"from\": \"D\", \"to\": \"E\", \"weight\": 4.0},\n"
+    jsonText = jsonText + "    {\"from\": \"E\", \"to\": \"F\", \"weight\": 2.0}\n"
+    jsonText = jsonText + "  ],\n"
+    jsonText = jsonText + "  \"coords\": {\n"
+    jsonText = jsonText + "    \"A\": [0, 0], \"B\": [1, 0], \"C\": [2, 0],\n"
+    jsonText = jsonText + "    \"D\": [0, 1], \"E\": [1, 1], \"F\": [2, 1]\n"
+    jsonText = jsonText + "  }\n"
+    jsonText = jsonText + "}\n"
+    bool ok = file.writeText(outPath, jsonText)
+    if ok then
+        println("sample graph written to " + outPath)
+    else
+        println("error: failed to write " + outPath)
+    end
+end
+
+
+// ============================================================
+// CLI
+// ============================================================
+
+func printUsage()
+    println("graphalg - graph algorithm library")
+    println("Usage:")
+    println("  graphalg dijkstra  <graph.json> <from> <to>   Dijkstra shortest path")
+    println("  graphalg astar     <graph.json> <from> <to>   A* pathfinding")
+    println("  graphalg mst       <graph.json>               MST (Kruskal + union-find)")
+    println("  graphalg prim      <graph.json>               MST (Prim + min-heap)")
+    println("  graphalg bfs       <graph.json> <start>       BFS traversal")
+    println("  graphalg dfs       <graph.json> <start>       DFS traversal")
+    println("  graphalg topo      <graph.json>               topological sort")
+    println("  graphalg connected <graph.json> <a> <b>       connectivity check")
+    println("  graphalg test                                 built-in test suite")
+    println("  graphalg sample   <out.json>                  write sample graph JSON")
+end
+
+func requireArgs(int got, int need, string cmd) as bool
+    if got < need then
+        println("Error: '" + cmd + "' needs " + string(need - 1) + " argument(s)")
+        return false
+    end
+    return true
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "test" then
+        return runTests()
+    end
+
+    if cmd == "sample" then
+        if not requireArgs(arg.length, 3, "sample") then
+            return 1
+        end
+        writeSampleGraph(string(arg[2]))
+        return 0
+    end
+
+    try
+        if cmd == "bfs" then
+            if not requireArgs(arg.length, 4, "bfs") then
+                return 1
+            end
+            Graph g = loadGraphFile(string(arg[2]))
+            var order = g.bfs(string(arg[3]))
+            println("BFS from " + string(arg[3]) + " (" + string(order.length) + " nodes):")
+            println("  " + fmtPath(order))
+            return 0
+        end
+
+        if cmd == "dfs" then
+            if not requireArgs(arg.length, 4, "dfs") then
+                return 1
+            end
+            Graph g = loadGraphFile(string(arg[2]))
+            var order = g.dfs(string(arg[3]))
+            println("DFS from " + string(arg[3]) + " (" + string(order.length) + " nodes):")
+            println("  " + fmtPath(order))
+            return 0
+        end
+
+        if cmd == "dijkstra" then
+            if not requireArgs(arg.length, 5, "dijkstra") then
+                return 1
+            end
+            Graph g = loadGraphFile(string(arg[2]))
+            float dist = 0.0
+            var route = []
+            dist, route = g.dijkstra(string(arg[3]), string(arg[4]))
+            println("Dijkstra " + string(arg[3]) + " -> " + string(arg[4]) + ":")
+            println("  distance: " + fmtDist(dist))
+            println("  path:     " + fmtPath(route))
+            return 0
+        end
+
+        if cmd == "astar" then
+            if not requireArgs(arg.length, 5, "astar") then
+                return 1
+            end
+            Graph g = loadGraphFile(string(arg[2]))
+            float dist = 0.0
+            var route = []
+            dist, route = g.astar(string(arg[3]), string(arg[4]))
+            println("A* " + string(arg[3]) + " -> " + string(arg[4]) + ":")
+            println("  distance: " + fmtDist(dist))
+            println("  path:     " + fmtPath(route))
+            return 0
+        end
+
+        if cmd == "mst" then
+            if not requireArgs(arg.length, 3, "mst") then
+                return 1
+            end
+            Graph g = loadGraphFile(string(arg[2]))
+            float total = 0.0
+            var edges = []
+            total, edges = g.kruskalMST()
+            println("MST (Kruskal + union-find):")
+            println("  total weight: " + fmtDist(total))
+            println("  edges (" + string(edges.length) + "):")
+            printEdges(edges)
+            return 0
+        end
+
+        if cmd == "prim" then
+            if not requireArgs(arg.length, 3, "prim") then
+                return 1
+            end
+            Graph g = loadGraphFile(string(arg[2]))
+            float total = 0.0
+            var edges = []
+            total, edges = g.primMST()
+            println("MST (Prim + min-heap):")
+            println("  total weight: " + fmtDist(total))
+            println("  edges (" + string(edges.length) + "):")
+            printEdges(edges)
+            return 0
+        end
+
+        if cmd == "topo" then
+            if not requireArgs(arg.length, 3, "topo") then
+                return 1
+            end
+            Graph g = loadGraphFile(string(arg[2]))
+            var order = []
+            bool ok = false
+            order, ok = g.topoSort()
+            if not ok then
+                println("Topological sort: CYCLE DETECTED (not a DAG)")
+                println("  partial order: " + fmtPath(order))
+                return 1
+            end
+            println("Topological sort (" + string(order.length) + " nodes):")
+            println("  " + fmtPath(order))
+            return 0
+        end
+
+        if cmd == "connected" then
+            if not requireArgs(arg.length, 5, "connected") then
+                return 1
+            end
+            Graph g = loadGraphFile(string(arg[2]))
+            bool conn = g.connected(string(arg[3]), string(arg[4]))
+            if conn then
+                println(string(arg[3]) + " and " + string(arg[4]) + " are CONNECTED")
+            else
+                println(string(arg[3]) + " and " + string(arg[4]) + " are NOT connected")
+            end
+            return 0
+        end
+
+        println("Error: unknown command '" + cmd + "'")
+        printUsage()
+        return 1
+    catch e
+        string msg = e.message + ""
+        println("Error: " + msg)
+        return 1
+    end
+end
