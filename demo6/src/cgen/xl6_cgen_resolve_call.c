@@ -592,6 +592,36 @@ static int xl6CgenCallIsClassCtor(XL6_CgenContext* ctx, const XL6_AstNode* expr,
     return 1;
 }
 
+/*
+    没有 create 的 native-backed class 直接绑定 point。
+    有 destroy 时，命名 point 是唯一所有权令牌：取走句柄并立即清空源变量。
+    函数返回等临时表达式没有可清空的源槽，直接接管其结果。
+*/
+static void xl6CgenNativeBackedPointBindingValue(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* argExpr)
+{
+    XL6_AstNode* argType;
+    const XL6_AstNode* concreteArgType;
+    int movePoint;
+
+    argType = xl6CgenCloneExprTypeForInference(ctx, argExpr);
+    concreteArgType = xl6CgenResolveAliasType(ctx, argType);
+    movePoint = xl6CgenNativeBackedClassHasDestroy(classNode) &&
+                argExpr != NULL && argExpr->kind == XL6_AST_NAME &&
+                concreteArgType != NULL && xl6CTextEquals(concreteArgType->text, "point");
+
+    if ( movePoint ) {
+        xl6OutputPuts("xl6_point_take((void**)&(", ctx->out);
+        xl6CgenExpr(ctx, argExpr);
+        xl6OutputPuts("))", ctx->out);
+    } else {
+        xl6CgenExpr(ctx, argExpr);
+    }
+    xl6AstFree(argType);
+}
+
 static int xl6CgenClassBasePath(XL6_CgenContext* ctx, const XL6_AstNode* fromClass, const XL6_AstNode* targetClass, char* buffer, size_t capacity)
 {
     XL6_AstNode* baseClass;
@@ -631,7 +661,7 @@ static void xl6CgenNativeBackedCtorValue(XL6_CgenContext* ctx, const XL6_AstNode
     }
 
     if ( args != NULL && args->childCount == 1 && args->children[0] != NULL && args->children[0]->childCount > 0 ) {
-        xl6CgenExpr(ctx, args->children[0]->children[0]);
+        xl6CgenNativeBackedPointBindingValue(ctx, customNode, args->children[0]->children[0]);
         return;
     }
 

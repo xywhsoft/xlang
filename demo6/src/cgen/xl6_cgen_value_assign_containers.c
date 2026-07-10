@@ -270,6 +270,7 @@ static int xl6CgenTypedContainerMemberAssignStmt(
     XL6_AstNode* rightType;
     XL6_AstNode* memberFunctionType;
     int moveReturn;
+    int importDynamic;
     int id;
     char targetPath[512];
     char tempName[64];
@@ -287,7 +288,8 @@ static int xl6CgenTypedContainerMemberAssignStmt(
     fieldCanonical = xl6CgenCloneCanonicalTypeNode(ctx, fieldType);
     rightType = literal == NULL ? xl6CgenCloneExprTypeForInference(ctx, right) : NULL;
     moveReturn = literal == NULL && xl6CgenTypedContainerCanMoveFromExpr(ctx, fieldType, right);
-    if ( literal == NULL &&
+    importDynamic = literal == NULL && xl6CgenTypedContainerCanImportDynamicExpr(ctx, fieldType, right);
+    if ( literal == NULL && !importDynamic &&
          (fieldCanonical == NULL || rightType == NULL || !xl6CgenTypeNodeEqual(fieldCanonical, rightType)) ) {
         xl6CgenError(ctx, right, "typed container member assignment requires the same container type or literal");
         xl6AstFree(fieldCanonical);
@@ -317,10 +319,15 @@ static int xl6CgenTypedContainerMemberAssignStmt(
         } else {
             xl6CgenExpr(ctx, right);
         }
+    } else if ( importDynamic ) {
+        xl6CgenTypedContainerImportDynamicExpr(ctx, fieldType, right);
     } else {
         xl6CgenTypedContainerCopyExpr(ctx, fieldType, right);
     }
     xl6OutputPuts(";\n", ctx->out);
+    if ( importDynamic ) {
+        xl6CgenTypedContainerImportCheckStmt(ctx, tempName, right);
+    }
     xl6AstFree(memberFunctionType);
     if ( literal != NULL ) {
         xl6CgenTypedContainerFillFromLiteral(ctx, tempName, fieldType, right);

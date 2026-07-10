@@ -1,0 +1,70 @@
+string globalText = "global"
+
+func rewrite(string text) as string
+    int index = 0
+    while index < 3 do
+        text = text + string(index)
+        index += 1
+    end
+    return text
+end
+
+func pair(string seed) as (string, string)
+    return seed + "-left", seed + "-right"
+end
+
+func makeAppender() as func(string) as string
+    string state = "prefix-"
+    return func(string part) as string
+        return state + part
+    end
+end
+
+func labels() as generator<string>
+    string value = ""
+    int index = 0
+    while index < 3 do
+        value = "g" + string(index)
+        yield value
+        index += 1
+    end
+end
+
+string rewritten = rewrite("value-")
+assert rewritten == "value-012", "string parameter reassignment must own its value"
+
+auto left, right = pair("first")
+assert left == "first-left"
+assert right == "first-right"
+left, right = pair("second")
+assert left == "second-left"
+assert right == "second-right"
+
+func(string) as string append = makeAppender()
+assert append("A") == "prefix-A"
+assert append("B") == "prefix-B"
+
+string generated = ""
+for part in labels()
+    generated += part
+end
+assert generated == "g0g1g2", "generator string values must survive resume boundaries"
+
+dict<int> scores = dict{"alpha": 1, "beta": 2}
+string keys = ""
+for key, score in scores
+    keys += key + string(score)
+end
+assert keys == "alpha1beta2" or keys == "beta2alpha1"
+
+int whileIndex = 0
+while whileIndex < 2 do
+    globalText = "while-" + string(whileIndex)
+    whileIndex += 1
+end
+assert globalText == "while-1"
+
+do
+    globalText = globalText + "-done"
+while false
+assert globalText == "while-1-done"

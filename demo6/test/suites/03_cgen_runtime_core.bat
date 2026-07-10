@@ -1,8 +1,32 @@
-﻿@echo off
+@echo off
 setlocal
 call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: core C generation and runtime...
+
+release\xl.exe cgen test\cases\cgen_array_negative_index.xl --emit build\test\cgen_array_negative_index.c
+if errorlevel 1 exit /b 1
+findstr /C:"xvoIndexSetI64" build\test\cgen_array_negative_index.c >nul
+if errorlevel 1 (
+    echo cgen_array_negative_index.c missing signed array write helper.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_array_get_at(typedValues, (long long)((-1LL)))" build\test\cgen_array_negative_index.c >nul
+if errorlevel 1 (
+    echo cgen_array_negative_index.c missing signed typed array read.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_array_resolve_index" release\include\xl_runtime.h >nul
+if errorlevel 1 (
+    echo xl_runtime.h missing typed array negative index resolver.
+    exit /b 1
+)
+release\xl.exe run test\cases\cgen_array_negative_index.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_array_negative_index.xl -o build\test\cgen_array_negative_index.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_array_negative_index.exe
+if errorlevel 1 exit /b 1
 
 release\xl.exe ir release\examples\hello.xl > build\test\hello.xlir
 if errorlevel 1 exit /b 1
@@ -189,7 +213,7 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\cgen_basic.xl --emit build\test\cgen_basic.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long add(long long a, long long b);" build\test\cgen_basic.c >nul
+findstr /C:"long long xl_fn_add(long long a, long long b);" build\test\cgen_basic.c >nul
 if errorlevel 1 (
     echo cgen_basic.c missing add prototype.
     exit /b 1
@@ -215,6 +239,78 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe run test\cases\cgen_issue_dynamic_array_concat.xl
 if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_multi_return_typed_containers.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_multi_return_typed_containers.xl -o build\test\cgen_multi_return_typed_containers.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_multi_return_typed_containers.exe
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_multi_return_typed_containers.xl --emit build\test\cgen_multi_return_typed_containers.c
+if errorlevel 1 exit /b 1
+findstr /C:"xtarray value0;" build\test\cgen_multi_return_typed_containers.c >nul
+if errorlevel 1 exit /b 1
+findstr /C:"xtlist value1;" build\test\cgen_multi_return_typed_containers.c >nul
+if errorlevel 1 exit /b 1
+findstr /C:"xtset value2;" build\test\cgen_multi_return_typed_containers.c >nul
+if errorlevel 1 exit /b 1
+findstr /C:"xtdict value3;" build\test\cgen_multi_return_typed_containers.c >nul
+if errorlevel 1 exit /b 1
+findstr /C:"xrtTypedArrayDestroy(__xl6_multi_" build\test\cgen_multi_return_typed_containers.c >nul
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\cgen_dynamic_to_typed_containers.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_dynamic_to_typed_containers.xl --emit build\test\cgen_dynamic_to_typed_containers.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_typed_array_from_value_release(" build\test\cgen_dynamic_to_typed_containers.c >nul
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_typed_list_from_value_release(" build\test\cgen_dynamic_to_typed_containers.c >nul
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_typed_set_from_value_release(" build\test\cgen_dynamic_to_typed_containers.c >nul
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_typed_dict_from_value_release(" build\test\cgen_dynamic_to_typed_containers.c >nul
+if errorlevel 1 exit /b 1
+findstr /C:"XRT_OBJMODE_SHARED" build\test\cgen_dynamic_to_typed_containers.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_to_typed_containers.c missing shared module-global import.
+    exit /b 1
+)
+findstr /C:"dynamic container contains an incompatible value" build\test\cgen_dynamic_to_typed_containers.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_to_typed_containers.c missing checked conversion error path.
+    exit /b 1
+)
+release\xl.exe run test\cases\cgen_dynamic_to_typed_containers.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_dynamic_to_typed_containers.xl -o build\test\cgen_dynamic_to_typed_containers.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_dynamic_to_typed_containers.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_var_string_concat.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_var_string_concat.xl -o build\test\cgen_var_string_concat.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_var_string_concat.exe
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\sem_var_to_concrete_implicit.xl >nul 2> build\test\sem_var_to_concrete_implicit.err.txt
+if not errorlevel 1 (
+    echo sem_var_to_concrete_implicit.xl should fail.
+    exit /b 1
+)
+findstr /C:"target string, value var" build\test\sem_var_to_concrete_implicit.err.txt >nul
+if errorlevel 1 (
+    echo sem_var_to_concrete_implicit.err.txt missing var-to-concrete diagnostic context.
+    exit /b 1
+)
+powershell -NoProfile -Command "$m = Select-String -LiteralPath 'build\test\sem_var_to_concrete_implicit.err.txt' -SimpleMatch 'target string, value var'; if ($m.Count -ne 3) { exit 1 }"
+if errorlevel 1 (
+    echo sem_var_to_concrete_implicit.err.txt should cover declaration, assignment and return.
+    exit /b 1
+)
+findstr /C:"dynamic var argument requires explicit 'as Type' conversion before overload resolution" build\test\sem_var_to_concrete_implicit.err.txt >nul
+if errorlevel 1 (
+    echo sem_var_to_concrete_implicit.err.txt missing explicit-conversion call diagnostic.
+    exit /b 1
+)
 release\xl.exe run test\cases\cgen_issue_json_typed_class_array.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\cgen_issue_list_json_dict_remove_type.xl
@@ -256,7 +352,7 @@ if errorlevel 1 (
     echo cgen_default_init.c missing int default init.
     exit /b 1
 )
-findstr /C:"name = \"\";" build\test\cgen_default_init.c >nul
+findstr /C:"name = xrtCopyStr(\"\", 0u);" build\test\cgen_default_init.c >nul
 if errorlevel 1 (
     echo cgen_default_init.c missing string default init.
     exit /b 1
@@ -575,12 +671,12 @@ if not errorlevel 1 (
     echo sem_multi_member_assign_type.xl should fail.
     exit /b 1
 )
-findstr /C:"multi-return assignment type does not match member/index target type" build\test\sem_multi_member_assign_type.err.txt >nul
+findstr /C:"multi-return assignment item 1 type mismatch" build\test\sem_multi_member_assign_type.err.txt >nul
 if errorlevel 1 (
     echo sem_multi_member_assign_type.xl missing multi-return member assignment mismatch diagnostic.
     exit /b 1
 )
-findstr /C:"target int, value string" build\test\sem_multi_member_assign_type.err.txt >nul
+findstr /C:"target int, return string" build\test\sem_multi_member_assign_type.err.txt >nul
 if errorlevel 1 (
     echo sem_multi_member_assign_type.xl missing multi-return member assignment type context.
     exit /b 1
@@ -767,9 +863,9 @@ if errorlevel 1 (
     echo cgen_containers.c missing prefixed array statement-level append.
     exit /b 1
 )
-findstr /C:"prefixedDict = xl6_xrt_dict_varargs(1" build\test\cgen_containers.c >nul
+findstr /C:"prefixedDict = xl6_xrt_move_to_shared(xl6_xrt_dict_varargs(1" build\test\cgen_containers.c >nul
 if errorlevel 1 (
-    echo cgen_containers.c missing prefixed dict expression fallback.
+    echo cgen_containers.c missing shared prefixed dict publication.
     exit /b 1
 )
 findstr /C:"xrtTypedArrayCreate(xrtTypeInt()" build\test\cgen_containers.c >nul
@@ -899,17 +995,17 @@ if errorlevel 1 (
     echo cgen_static_typed_containers.c missing language bool typed dict for-in normalization.
     exit /b 1
 )
-findstr /C:"char* __xl6_typed_key_copy_" build\test\cgen_static_typed_containers.c >nul
+findstr /C:"const char* key = xrtCopyStr(__xl6_typed_key_" build\test\cgen_static_typed_containers.c >nul
 if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing typed dict key copy buffer.
+    echo cgen_static_typed_containers.c missing typed dict key value copy.
     exit /b 1
 )
-findstr /C:"memcpy(__xl6_typed_key_copy_" build\test\cgen_static_typed_containers.c >nul
+findstr /C:"__xl6_typed_key_len_" build\test\cgen_static_typed_containers.c >nul
 if errorlevel 1 (
     echo cgen_static_typed_containers.c missing typed dict key length copy.
     exit /b 1
 )
-findstr /C:"xrtFree(__xl6_typed_key_copy_" build\test\cgen_static_typed_containers.c >nul
+findstr /C:"xrtFree((void*)key);" build\test\cgen_static_typed_containers.c >nul
 if errorlevel 1 (
     echo cgen_static_typed_containers.c missing typed dict key cleanup.
     exit /b 1
@@ -925,17 +1021,17 @@ release\xl.exe run test\cases\cgen_typed_container_for_in_returned.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_typed_container_for_in_returned.xl --emit build\test\cgen_typed_container_for_in_returned.c
 if errorlevel 1 exit /b 1
-findstr /C:"xtarray makeValues(void)" build\test\cgen_typed_container_for_in_returned.c >nul
+findstr /C:"xtarray xl_fn_makeValues(void)" build\test\cgen_typed_container_for_in_returned.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed array return ABI.
     exit /b 1
 )
-findstr /C:"xvalue makeValues(void)" build\test\cgen_typed_container_for_in_returned.c >nul
+findstr /C:"xvalue xl_fn_makeValues(void)" build\test\cgen_typed_container_for_in_returned.c >nul
 if not errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c regressed to xvalue array return.
     exit /b 1
 )
-findstr /C:"static xtarray xl6_fnvalue_makeValues_invoke" build\test\cgen_typed_container_for_in_returned.c >nul
+findstr /C:"static xtarray xl6_fnvalue_xl_fn_makeValues_invoke" build\test\cgen_typed_container_for_in_returned.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed function value invoke ABI.
     exit /b 1
@@ -1015,57 +1111,57 @@ if not errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c should not directly dereference typed dict for-in item.
     exit /b 1
 )
-findstr /C:"char* __xl6_typed_key_copy_" build\test\cgen_typed_container_for_in_returned.c >nul
+findstr /C:"const char* key = xrtCopyStr(__xl6_typed_key_" build\test\cgen_typed_container_for_in_returned.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_for_in_returned.c missing typed dict key copy buffer.
+    echo cgen_typed_container_for_in_returned.c missing typed dict key value copy.
     exit /b 1
 )
-findstr /C:"memcpy(__xl6_typed_key_copy_" build\test\cgen_typed_container_for_in_returned.c >nul
+findstr /C:"__xl6_typed_key_len_" build\test\cgen_typed_container_for_in_returned.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key length copy.
     exit /b 1
 )
-findstr /C:"xrtFree(__xl6_typed_key_copy_" build\test\cgen_typed_container_for_in_returned.c >nul
+findstr /C:"xrtFree((void*)key);" build\test\cgen_typed_container_for_in_returned.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtFree\(__xl6_typed_key_copy_(\d+)\);\s*__xl6_typed_key_copy_\1\s*=\s*0;\s*}\s*goto __xl6_continue_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'if \(key != 0\) \{\s*xrtFree\(\(void\*\)key\);\s*key = 0;\s*}\s*goto __xl6_continue_\d+;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before continue.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtFree\(__xl6_typed_key_copy_(\d+)\);\s*__xl6_typed_key_copy_\1\s*=\s*0;\s*}\s*if \(__xl6_typed_iter_\1 != 0\) \{\s*xrtTypedDictDestroy\(__xl6_typed_iter_\1\);\s*__xl6_typed_iter_\1 = 0;\s*}\s*goto __xl6_try_catch_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typed dict loop boom[\s\S]*?if \(key != 0\) \{[\s\S]*?xrtFree\(\(void\*\)key\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?goto __xl6_try_catch_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before throw catch.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtFree\(__xl6_typed_key_copy_(\d+)\);\s*__xl6_typed_key_copy_\1\s*=\s*0;\s*}\s*if \(__xl6_typed_iter_\1 != 0\) \{\s*xrtTypedDictDestroy\(__xl6_typed_iter_\1\);\s*__xl6_typed_iter_\1 = 0;\s*}\s*goto __xl6_break_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'if \(key != 0\) \{\s*xrtFree\(\(void\*\)key\);\s*key = 0;\s*}\s*if \(__xl6_typed_iter_(\d+) != 0\) \{\s*xrtTypedDictDestroy\(__xl6_typed_iter_\1\);\s*__xl6_typed_iter_\1 = 0;\s*}\s*goto __xl6_break_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before break.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = score;\s*if \(__xl6_typed_key_copy_(\d+) != 0\) \{\s*xrtFree\(__xl6_typed_key_copy_\2\);\s*__xl6_typed_key_copy_\2\s*=\s*0;\s*}\s*if \(__xl6_typed_iter_\2 != 0\) \{\s*xrtTypedDictDestroy\(__xl6_typed_iter_\2\);\s*__xl6_typed_iter_\2 = 0;\s*}\s*return __xl6_return_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = score;[\s\S]*?if \(key != 0\) \{[\s\S]*?xrtFree\(\(void\*\)key\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before return.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'nestedDictTotal = \(\(nestedDictTotal \+ \(outerScore \* 10LL\)\) \+ innerScore\);[\s\S]*?if \(__xl6_typed_key_copy_(\d+) != 0\) \{[\s\S]*?xrtFree\(__xl6_typed_key_copy_\1\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\1\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'nestedDictTotal = \(\(nestedDictTotal \+ \(outerScore \* 10LL\)\) \+ innerScore\);[\s\S]*?if \(innerKey != 0\) \{[\s\S]*?xrtFree\(\(void\*\)innerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing nested typed dict inner cleanup before break.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = \(outerScore \+ innerScore\);[\s\S]*?xrtFree\(__xl6_typed_key_copy_(\d+)\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\2\);[\s\S]*?xrtFree\(__xl6_typed_key_copy_(\d+)\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\3\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = \(outerScore \+ innerScore\);[\s\S]*?xrtFree\(\(void\*\)innerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?xrtFree\(\(void\*\)outerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing nested typed dict inner and outer cleanup before return.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_error_raise\(\"Error\", \"nested typed dict loop boom\"[\s\S]*?xrtFree\(__xl6_typed_key_copy_(\d+)\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\1\);[\s\S]*?xrtFree\(__xl6_typed_key_copy_(\d+)\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\2\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_error_raise\(\"Error\", \"nested typed dict loop boom\"[\s\S]*?xrtFree\(\(void\*\)innerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?xrtFree\(\(void\*\)outerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing nested typed dict inner and outer cleanup before throw.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'const char\* __xl6_return_(\d+) = xl6_xrt_str_dup\(name\);\s*if \(__xl6_typed_iter_(\d+) != 0\) \{\s*xrtTypedListDestroy\(__xl6_typed_iter_\2\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'const char\* __xl6_return_(\d+) = xrtCopyStr\(name, 0u\);[\s\S]*?xrtFree\(\(void\*\)name\);[\s\S]*?xrtTypedListDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?return xrtTempStringTake\(\(char\*\)__xl6_return_\1, 0u\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed list string copy before return cleanup.
     exit /b 1
@@ -1080,7 +1176,7 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed list cleanup before throw catch.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = id;\s*if \(__xl6_typed_iter_(\d+) != 0\) \{\s*xrtTypedSetDestroy\(__xl6_typed_iter_\2\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = id;[\s\S]*?if \(__xl6_typed_iter_(\d+) != 0\) \{\s*xrtTypedSetDestroy\(__xl6_typed_iter_\2\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed set cleanup before return.
     exit /b 1
@@ -1095,7 +1191,7 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed set cleanup before throw catch.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = value;\s*if \(__xl6_typed_iter_(\d+) != 0\) \{\s*xrtTypedArrayDestroy\(__xl6_typed_iter_\2\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = value;[\s\S]*?if \(__xl6_typed_iter_(\d+) != 0\) \{\s*xrtTypedArrayDestroy\(__xl6_typed_iter_\2\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup before return.
     exit /b 1
@@ -1235,12 +1331,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_copy_objects_functions.xl --emit build\test\cgen_typed_container_copy_objects_functions.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeFunction(), funcs, XRT_OBJMODE_LOCAL)" build\test\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeFunction(), funcs, XRT_OBJMODE_SHARED)" build\test\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed function array copy.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Class_FnBox(), boxes, XRT_OBJMODE_LOCAL)" build\test\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_copy_mode(xl6_type_desc_XL_Class_FnBox(), boxes, XRT_OBJMODE_SHARED)" build\test\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed class array copy.
     exit /b 1
@@ -1749,12 +1845,12 @@ if errorlevel 1 (
     echo cgen_string_concat.c missing string runtime trim macro.
     exit /b 1
 )
-findstr /C:"joined = xl6_xrt_str_concat" build\test\cgen_string_concat.c >nul
+findstr /C:"joined = xrtCopyStr(xl6_xrt_str_concat" build\test\cgen_string_concat.c >nul
 if errorlevel 1 (
     echo cgen_string_concat.c missing string concat declaration.
     exit /b 1
 )
-findstr /C:"joined = xl6_xrt_str_concat(joined, \"!\");" build\test\cgen_string_concat.c >nul
+findstr /C:"char* __xl6_string_value_" build\test\cgen_string_concat.c >nul
 if errorlevel 1 (
     echo cgen_string_concat.c missing string += lowering.
     exit /b 1
@@ -1903,7 +1999,7 @@ release\xl.exe check test\cases\cgen_auto_inference_matrix.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_auto_inference_matrix.xl --emit build\test\cgen_auto_inference_matrix.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_auto_inference_matrix.c'; $checks=@('long long literalInt;','double literalFloat;','int literalBool;','const char* literalString;','xtarray inferredArray;','xtlist inferredList;','xtdict inferredDict;','typedArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedArray','typedListItem = xl6_xrt_str_dup((*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(typedList','typedDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(typedDict','missingTypedItem = xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(typedArray','inferredArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(inferredArray','inferredListItem = xl6_xrt_str_dup((*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(inferredList','inferredDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(inferredDict','XL_Class_MatrixBox box;','box = makeBox(7LL,','fieldValue = box.value;','fieldText = box.label;','methodValue = xl_class_MatrixBox__getValue(&box);','fn = makeAdder(10LL);','long long fnResult;','callResult = add(fieldValue, methodValue);','futureValue = doubleAsync(6LL);','long long awaitedValue;','autoCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','sent = xl6_channel_send_value(autoCh','received = xl6_channel_recv_into(autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_auto_inference_matrix.c'; $checks=@('long long literalInt;','double literalFloat;','int literalBool;','const char* literalString;','xtarray inferredArray;','xtlist inferredList;','xtdict inferredDict;','typedArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedArray','typedListItem = xrtCopyStr(xl6_xrt_str_dup((*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(typedList','typedDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(typedDict','missingTypedItem = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(typedArray','inferredArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(inferredArray','inferredListItem = xrtCopyStr(xl6_xrt_str_dup((*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(inferredList','inferredDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(inferredDict','XL_Class_MatrixBox box;','box = xl_fn_makeBox(7LL,','fieldValue = box.value;','fieldText = xrtCopyStr(box.label, 0u);','methodValue = xl_class_MatrixBox__getValue(&box);','fn = xl_fn_makeAdder(10LL);','long long fnResult;','callResult = xl_fn_add(fieldValue, methodValue);','futureValue = xl_fn_doubleAsync(6LL);','long long awaitedValue;','autoCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','sent = xl6_channel_send_value(autoCh','received = xl6_channel_recv_into(autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_auto_inference_matrix.xl test\cases\cgen_class_host.c -o build\test\cgen_auto_inference_matrix.exe
 if errorlevel 1 exit /b 1
@@ -1919,9 +2015,19 @@ if errorlevel 1 (
     echo cgen_call_var_arg_exprs.c missing var call argument temporary.
     exit /b 1
 )
-findstr /C:"record_xvalue(__xl6_call_arg_" build\test\cgen_call_var_arg_exprs.c >nul
+findstr /C:"xl6_extcall_xl_fn_record(__xl6_call_arg_" build\test\cgen_call_var_arg_exprs.c >nul
 if errorlevel 1 (
-    echo cgen_call_var_arg_exprs.c missing call argument replacement.
+    echo cgen_call_var_arg_exprs.c missing owned extern call argument handoff.
+    exit /b 1
+)
+findstr /C:"if (value != 0) { xvoUnref(value); }" build\test\cgen_call_var_arg_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_call_var_arg_exprs.c missing borrowed C ABI wrapper cleanup.
+    exit /b 1
+)
+findstr /C:"xl_fn_sumNamed(xl6_xrt_retain(__xl6_arg_0), xl6_xrt_retain(__xl6_arg_1))" build\test\cgen_call_var_arg_exprs.c >nul
+if errorlevel 1 (
+    echo cgen_call_var_arg_exprs.c missing dynamic call owned-parameter bridge.
     exit /b 1
 )
 findstr /C:"__xl6_call_arg_" build\test\cgen_call_var_arg_exprs.c | findstr /C:"xl6_xrt_basic_binary(__xl6_bin_left_" >nul
@@ -1957,6 +2063,22 @@ if not errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_call_var_arg_exprs.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_call_var_arg_exprs.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_call_var_arg_exprs.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\perf_var_recursive_alloc.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\perf_var_recursive_alloc.xl --emit build\test\perf_var_recursive_alloc.c
+if errorlevel 1 exit /b 1
+findstr /C:"xvoUnref(parent);" build\test\perf_var_recursive_alloc.c >nul
+if errorlevel 1 (
+    echo perf_var_recursive_alloc.c missing fixed var parameter cleanup.
+    exit /b 1
+)
+release\xl.exe build test\cases\perf_var_recursive_alloc.xl -o build\test\perf_var_recursive_alloc.exe
+if errorlevel 1 exit /b 1
+build\test\perf_var_recursive_alloc.exe array 18 >nul
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$psi=[Diagnostics.ProcessStartInfo]::new(); $psi.FileName=(Resolve-Path 'build\test\perf_var_recursive_alloc.exe').Path; $psi.Arguments='dict 23'; $psi.UseShellExecute=$false; $psi.RedirectStandardOutput=$true; $p=[Diagnostics.Process]::Start($psi); if(-not $p.WaitForExit(10000)){ try{$p.Kill()}catch{}; Write-Host 'recursive var dict benchmark regressed past 10 seconds.'; exit 124 }; $out=$p.StandardOutput.ReadToEnd().Trim(); if($p.ExitCode -ne 0 -or $out -ne '28657'){ Write-Host ('recursive var dict benchmark failed: '+$out); exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\cgen_call_scalar_arg_exprs.xl
@@ -2247,12 +2369,12 @@ if errorlevel 1 (
     echo cgen_var_values.c missing var null initialization.
     exit /b 1
 )
-findstr /C:"number = xvoCreateInt((long long)(123LL));" build\test\cgen_var_values.c >nul
+findstr /C:"number = xl6_xrt_move_to_shared(xvoCreateInt((long long)(123LL)));" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing int var boxing.
     exit /b 1
 )
-findstr /C:"moment = xvoCreateTime((long long)(xrtStrToTime(" build\test\cgen_var_values.c >nul
+findstr /C:"moment = xl6_xrt_move_to_shared(xvoCreateTime((long long)(xrtStrToTime(" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing time var boxing.
     exit /b 1
@@ -2829,12 +2951,12 @@ if errorlevel 1 (
     echo cgen_var_runtime_objects.c missing overflow multi-return xcall result.
     exit /b 1
 )
-findstr /C:"xl6_fnvalue_pairDefault_arity1_xcall" build\test\cgen_var_runtime_objects.c >nul
+findstr /C:"xl6_fnvalue_xl_fn_pairDefault_arity1_xcall" build\test\cgen_var_runtime_objects.c >nul
 if errorlevel 1 (
     echo cgen_var_runtime_objects.c missing optional multi-return adapter xcall.
     exit /b 1
 )
-findstr /C:"xl6_fnvalue_totalDefault_arity0_vararg_xcall" build\test\cgen_var_runtime_objects.c >nul
+findstr /C:"xl6_fnvalue_xl_fn_totalDefault_arity0_vararg_xcall" build\test\cgen_var_runtime_objects.c >nul
 if errorlevel 1 (
     echo cgen_var_runtime_objects.c missing optional vararg adapter xcall.
     exit /b 1
@@ -3108,6 +3230,22 @@ if errorlevel 1 exit /b 1
 build\test\cgen_closure.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\cgen_closure_class_ctor_scope.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_closure_class_ctor_scope.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_closure_class_ctor_scope.xl --emit build\test\cgen_closure_class_ctor_scope.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_Box__create(&box, input);" build\test\cgen_closure_class_ctor_scope.c >nul
+if errorlevel 1 (
+    echo cgen_closure_class_ctor_scope.c should construct class values inside the closure invoke body.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_closure_class_ctor_scope.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_closure_class_ctor_scope.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_closure_class_ctor_scope.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_closure_resource_capture.xl --emit build\test\cgen_closure_resource_capture.c
 if errorlevel 1 exit /b 1
 findstr /C:"__env->values = xl6_xrt_retain(values);" build\test\cgen_closure_resource_capture.c >nul
@@ -3182,7 +3320,7 @@ if errorlevel 1 (
     echo cgen_function_bare_call.c missing erased function argument type check.
     exit /b 1
 )
-findstr /C:"value = xl6_function_call_var(add, 2" build\test\cgen_function_bare_call.c >nul
+findstr /C:"value = xl6_xrt_move_to_shared(xl6_function_call_var(add, 2" build\test\cgen_function_bare_call.c >nul
 if errorlevel 1 (
     echo cgen_function_bare_call.c missing bare function call lowering.
     exit /b 1
@@ -3204,37 +3342,37 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_function_named_value.xl --emit build\test\cgen_function_named_value.c
 if errorlevel 1 exit /b 1
-findstr /C:"static long long xl6_fnvalue_add_invoke(void* __xl6_env, long long left, long long right)" build\test\cgen_function_named_value.c >nul
+findstr /C:"static long long xl6_fnvalue_xl_fn_add_invoke(void* __xl6_env, long long left, long long right)" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing named function typed wrapper.
     exit /b 1
 )
-findstr /C:"static xvalue xl6_fnvalue_add_invoke_var(void* __xl6_env, int __xl6_argc, xvalue* __xl6_argv)" build\test\cgen_function_named_value.c >nul
+findstr /C:"static xvalue xl6_fnvalue_xl_fn_add_invoke_var(void* __xl6_env, int __xl6_argc, xvalue* __xl6_argv)" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing named function erased wrapper.
     exit /b 1
 )
-findstr /C:"typed = xl6_fnvalue_add_make();" build\test\cgen_function_named_value.c >nul
+findstr /C:"typed = xl6_fnvalue_xl_fn_add_make();" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing typed function value init.
     exit /b 1
 )
-findstr /C:"erased = xl6_fnvalue_add_make();" build\test\cgen_function_named_value.c >nul
+findstr /C:"erased = xl6_fnvalue_xl_fn_add_make();" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing bare function value init.
     exit /b 1
 )
-findstr /C:"oneDefault = xl6_fnvalue_addDefault_arity1_make();" build\test\cgen_function_named_value.c >nul
+findstr /C:"oneDefault = xl6_fnvalue_xl_fn_addDefault_arity1_make();" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing optional parameter function adapter.
     exit /b 1
 )
-findstr /C:"variadicDefault = xl6_fnvalue_totalDefault_arity0_vararg_make();" build\test\cgen_function_named_value.c >nul
+findstr /C:"variadicDefault = xl6_fnvalue_xl_fn_totalDefault_arity0_vararg_make();" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing optional vararg function adapter.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_function_named_value.c',[System.Text.Encoding]::UTF8); if($text.IndexOf('mixedPicker = (chooseMixedPicker ? xl6_function_copy_value(borrowedMixedPicker) : makePicker(200LL));') -lt 0 -or $text.IndexOf('XL6_Function __xl6_function_assign_') -lt 0 -or $text.IndexOf('= (chooseMixedPicker ? xl6_function_copy_value(borrowedMixedPicker) : makePicker(300LL));') -lt 0){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_function_named_value.c',[System.Text.Encoding]::UTF8); if($text.IndexOf('mixedPicker = (chooseMixedPicker ? xl6_function_copy_value(borrowedMixedPicker) : xl_fn_makePicker(200LL));') -lt 0 -or $text.IndexOf('XL6_Function __xl6_function_assign_') -lt 0 -or $text.IndexOf('= (chooseMixedPicker ? xl6_function_copy_value(borrowedMixedPicker) : xl_fn_makePicker(300LL));') -lt 0){ exit 1 }"
 if errorlevel 1 (
     echo cgen_function_named_value.c missing mixed conditional function value branch copy.
     exit /b 1
@@ -3376,7 +3514,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_extern_function_value.xl --emit build\test\cgen_extern_function_value.c
 if errorlevel 1 exit /b 1
-findstr /C:"static long long xl6_fnvalue_cadd_invoke(void* __xl6_env, long long left, long long right)" build\test\cgen_extern_function_value.c >nul
+findstr /C:"static long long xl6_fnvalue_xl_fn_cadd_invoke(void* __xl6_env, long long left, long long right)" build\test\cgen_extern_function_value.c >nul
 if errorlevel 1 (
     echo cgen_extern_function_value.c missing extern function typed wrapper.
     exit /b 1
@@ -3386,7 +3524,7 @@ if errorlevel 1 (
     echo cgen_extern_function_value.c missing native extern target call.
     exit /b 1
 )
-findstr /C:"xl6_fnvalue_cadd_xcall" build\test\cgen_extern_function_value.c >nul
+findstr /C:"xl6_fnvalue_xl_fn_cadd_xcall" build\test\cgen_extern_function_value.c >nul
 if errorlevel 1 (
     echo cgen_extern_function_value.c missing extern function xcall adapter.
     exit /b 1
@@ -3408,12 +3546,12 @@ if errorlevel 1 (
     echo cgen_function_multi_return.c missing function multi-return struct.
     exit /b 1
 )
-findstr /C:"pairFn = xl6_fnvalue_pair_make();" build\test\cgen_function_multi_return.c >nul
+findstr /C:"pairFn = xl6_fnvalue_xl_fn_pair_make();" build\test\cgen_function_multi_return.c >nul
 if errorlevel 1 (
     echo cgen_function_multi_return.c missing multi-return named function value.
     exit /b 1
 )
-findstr /C:"defaultFn = xl6_fnvalue_pairDefault_arity1_make();" build\test\cgen_function_multi_return.c >nul
+findstr /C:"defaultFn = xl6_fnvalue_xl_fn_pairDefault_arity1_make();" build\test\cgen_function_multi_return.c >nul
 if errorlevel 1 (
     echo cgen_function_multi_return.c missing multi-return optional adapter.
     exit /b 1
@@ -3537,32 +3675,32 @@ if not errorlevel 1 (
     echo cgen_member_function_class_return.c should not use GNU statement expressions for class-return member function calls.
     exit /b 1
 )
-findstr /C:"madeText = xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"madeText = xrtCopyStr(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing string-return member function declaration conversion.
     exit /b 1
 )
-findstr /C:"textArgValue = textScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"textArgValue = xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing string-return member function call argument conversion.
     exit /b 1
 )
-findstr /C:"textNestedValue = (textScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"textNestedValue = (xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing nested string-return member function argument conversion.
     exit /b 1
 )
-findstr /C:"textTwoArgValue = joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"textTwoArgValue = xl_fn_joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing two string-return member function argument conversions.
     exit /b 1
 )
-findstr /C:"namedTextArgValue = textScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"namedTextArgValue = xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named string-return member function argument conversion.
     exit /b 1
 )
-findstr /C:"namedTextTwoArgValue = joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"namedTextTwoArgValue = xl_fn_joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing reordered named string-return member function argument conversions.
     exit /b 1
@@ -3572,7 +3710,7 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named string-return member function runtime assertion.
     exit /b 1
 )
-findstr /C:"xl6_xrt_str_dup(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"xrtCopyStr(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing discarded string-return member function conversion.
     exit /b 1
@@ -3617,12 +3755,12 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing class argument temporary.
     exit /b 1
 )
-findstr /C:"storePayload(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"xl_fn_storePayload(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing expression-statement class argument call.
     exit /b 1
 )
-findstr /C:"nestedArgumentValue = (readPayload(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"nestedArgumentValue = (xl_fn_readPayload(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing nested expression class argument temporary.
     exit /b 1
@@ -3632,47 +3770,47 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing nested expression class argument expectation.
     exit /b 1
 )
-findstr /C:"expect_i64((readPayload(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"expect_i64((xl_fn_readPayload(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing extern nested expression class argument temporary.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'twoArgumentValue\s*=\s*sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'twoArgumentValue\s*=\s*xl_fn_sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing two temporary class arguments with reverse cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'expect_i64\(sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\),\s*270LL\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'expect_i64\(xl_fn_sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\),\s*270LL\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing extern two temporary class arguments with reverse cleanup.
     exit /b 1
 )
-findstr /C:"namedArgumentValue = readPayload(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"namedArgumentValue = xl_fn_readPayload(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named class argument temporary.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'storePayload\((__xl6_class_arg_\d+),\s*160LL\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_fn_storePayload\((__xl6_class_arg_\d+),\s*160LL\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named expression-statement class argument temporary.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedTwoArgumentValue\s*=\s*sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedTwoArgumentValue\s*=\s*xl_fn_sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named two temporary class arguments with reverse cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'expect_i64\(sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\),\s*390LL\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'expect_i64\(xl_fn_sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\),\s*390LL\);\s*xl_class_Payload__destroy\(&\1\);\s*xl_class_Payload__destroy\(&\2\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing reordered named two temporary class arguments with reverse cleanup.
     exit /b 1
 )
-findstr /C:"expect_i64((readPayload(((maker.make.signature" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"expect_i64((xl_fn_readPayload(((maker.make.signature" build\test\cgen_member_function_class_return.c >nul
 if not errorlevel 1 (
     echo cgen_member_function_class_return.c should not inline class-return member function values in extern nested calls.
     exit /b 1
 )
-findstr /C:"readPayload(({ XL6_Function __xl6_member_fn_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"xl_fn_readPayload(({ XL6_Function __xl6_member_fn_" build\test\cgen_member_function_class_return.c >nul
 if not errorlevel 1 (
     echo cgen_member_function_class_return.c should not use GNU statement expressions in nested class argument calls.
     exit /b 1
@@ -3738,7 +3876,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_function_adapter_dedupe.xl --emit build\test\cgen_function_adapter_dedupe.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_function_adapter_dedupe.c' -Raw; if(([regex]::Matches($t, 'static XL6_Function xl6_fnvalue_addDefault_arity1_make\(void\)\s*\{')).Count -ne 1){exit 1}; if(([regex]::Matches($t, 'static long long xl6_fnvalue_addDefault_arity1_invoke\(')).Count -ne 1){exit 2}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_function_adapter_dedupe.c' -Raw; if(([regex]::Matches($t, 'static XL6_Function xl6_fnvalue_xl_fn_addDefault_arity1_make\(void\)\s*\{')).Count -ne 1){exit 1}; if(([regex]::Matches($t, 'static long long xl6_fnvalue_xl_fn_addDefault_arity1_invoke\(')).Count -ne 1){exit 2}"
 if errorlevel 1 (
     echo cgen_function_adapter_dedupe.c duplicated default-arg adapter.
     exit /b 1
@@ -3750,17 +3888,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\call_defaults.xl --emit build\test\call_defaults.c
 if errorlevel 1 exit /b 1
-findstr /C:"first = add(1LL, 1LL, 2LL);" build\test\call_defaults.c >nul
+findstr /C:"first = xl_fn_add(1LL, 1LL, 2LL);" build\test\call_defaults.c >nul
 if errorlevel 1 (
     echo call_defaults.c missing default arguments.
     exit /b 1
 )
-findstr /C:"second = add(1LL, 1LL, 4LL);" build\test\call_defaults.c >nul
+findstr /C:"second = xl_fn_add(1LL, 1LL, 4LL);" build\test\call_defaults.c >nul
 if errorlevel 1 (
     echo call_defaults.c missing named argument reorder.
     exit /b 1
 )
-findstr /C:"third = add(1LL, 2LL, 3LL);" build\test\call_defaults.c >nul
+findstr /C:"third = xl_fn_add(1LL, 2LL, 3LL);" build\test\call_defaults.c >nul
 if errorlevel 1 (
     echo call_defaults.c missing all named arguments.
     exit /b 1
@@ -3814,6 +3952,37 @@ if not errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_assert_dynamic_condition.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_assert_dynamic_condition.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_assert_dynamic_condition.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_var_comparison_expressions.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_var_comparison_expressions.xl --emit build\test\cgen_var_comparison_expressions.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_basic_equal_release(" build\test\cgen_var_comparison_expressions.c >nul
+if errorlevel 1 (
+    echo cgen_var_comparison_expressions.c missing expression-level equality ownership handoff.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_basic_order_release(" build\test\cgen_var_comparison_expressions.c >nul
+if errorlevel 1 (
+    echo cgen_var_comparison_expressions.c missing expression-level ordering ownership handoff.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_basic_approx_release(" build\test\cgen_var_comparison_expressions.c >nul
+if errorlevel 1 (
+    echo cgen_var_comparison_expressions.c missing expression-level approximate ownership handoff.
+    exit /b 1
+)
+findstr /C:"dynamic var comparison requires statement-level lowering" build\test\cgen_var_comparison_expressions.c >nul
+if not errorlevel 1 (
+    echo cgen_var_comparison_expressions.c retained the old statement-only comparison fallback.
+    exit /b 1
+)
+release\xl.exe run test\cases\cgen_var_comparison_expressions.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_var_comparison_expressions.xl -o build\test\cgen_var_comparison_expressions.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_var_comparison_expressions.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_range_step_runtime_zero.xl --emit build\test\cgen_range_step_runtime_zero.c
@@ -4459,6 +4628,26 @@ release\xl.exe build test\cases\stdlib_net_tcp_udp.xl -o build\test\stdlib_net_t
 if errorlevel 1 exit /b 1
 build\test\stdlib_net_tcp_udp.exe
 if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\stdlib_tcp_lifecycle.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_tcp_lifecycle.xl --emit build\test\stdlib_tcp_lifecycle.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_point_take((void**)&(clientHandle))" build\test\stdlib_tcp_lifecycle.c >nul
+if errorlevel 1 (
+    echo stdlib_tcp_lifecycle.c missing TcpStream ownership transfer.
+    exit /b 1
+)
+findstr /C:"xrtNetTcpStreamClose(client.handle);" build\test\stdlib_tcp_lifecycle.c >nul
+if errorlevel 1 (
+    echo stdlib_tcp_lifecycle.c missing graceful close call.
+    exit /b 1
+)
+release\xl.exe build test\cases\stdlib_tcp_lifecycle.xl -o build\test\stdlib_tcp_lifecycle.exe
+if errorlevel 1 exit /b 1
+for /L %%I in (1,1,5) do (
+    build\test\stdlib_tcp_lifecycle.exe > build\test\stdlib_tcp_lifecycle_%%I.out.txt
+    if errorlevel 1 exit /b 1
+)
 release\xl.exe run release\examples\stdlib_net_tcp_udp.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_net_tcp_udp_xlang.out.txt
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_net_tcp_udp_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_net_tcp_udp_c.exe
@@ -4659,6 +4848,250 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_file_meta.exe
 if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_loop_fstring_needs.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_loop_fstring_needs.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_loop_fstring_needs.xl --emit build\test\cgen_loop_fstring_needs.c
+if errorlevel 1 exit /b 1
+findstr /C:"static const char* xl6_xrt_i64_to_string" build\test\cgen_loop_fstring_needs.c >nul
+if errorlevel 1 (
+    echo cgen_loop_fstring_needs.c missing typed-loop f-string conversion runtime.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_i64_to_string((long long)(value))" build\test\cgen_loop_fstring_needs.c >nul
+if errorlevel 1 (
+    echo cgen_loop_fstring_needs.c missing typed-loop f-string conversion.
+    exit /b 1
+)
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_loop_fstring_needs.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_loop_fstring_needs.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_loop_fstring_needs.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_generator_fstring_needs.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_generator_fstring_needs.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_generator_fstring_needs.xl --emit build\test\cgen_generator_fstring_needs.c
+if errorlevel 1 exit /b 1
+findstr /C:"static const char* xl6_xrt_i64_to_string" build\test\cgen_generator_fstring_needs.c >nul
+if errorlevel 1 (
+    echo cgen_generator_fstring_needs.c missing generator-loop f-string conversion runtime.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_i64_to_string((long long)(index))" build\test\cgen_generator_fstring_needs.c >nul
+if errorlevel 1 (
+    echo cgen_generator_fstring_needs.c missing generator index f-string conversion.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_i64_to_string((long long)(value))" build\test\cgen_generator_fstring_needs.c >nul
+if errorlevel 1 (
+    echo cgen_generator_fstring_needs.c missing generator value f-string conversion.
+    exit /b 1
+)
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generator_fstring_needs.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generator_fstring_needs.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_generator_fstring_needs.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_class_string_ownership.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_class_string_ownership.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_class_string_ownership.xl --emit build\test\cgen_class_string_ownership.c
+if errorlevel 1 exit /b 1
+findstr /C:"xrtTempScope __xl6_temp_scope_" build\test\cgen_class_string_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_class_string_ownership.c missing nested XRT temporary scope.
+    exit /b 1
+)
+findstr /C:"return xrtTempStringTake((char*)__xl6_return_" build\test\cgen_class_string_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_class_string_ownership.c missing returned string promotion.
+    exit /b 1
+)
+findstr /C:".text = xrtCopyStr(" build\test\cgen_class_string_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_class_string_ownership.c missing owned class string copy.
+    exit /b 1
+)
+findstr /C:"xrtFree((void*)self->text); self->text = 0;" build\test\cgen_class_string_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_class_string_ownership.c missing class string destruction.
+    exit /b 1
+)
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_string_ownership.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_string_ownership.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_class_string_ownership.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_closure_ownership.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_closure_ownership.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_closure_ownership.xl --emit build\test\cgen_closure_ownership.c
+if errorlevel 1 exit /b 1
+findstr /C:"static const char* xl6_xrt_i64_to_string" build\test\cgen_closure_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_closure_ownership.c missing captured-value conversion runtime.
+    exit /b 1
+)
+findstr /C:"xtarray values;" build\test\cgen_closure_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_closure_ownership.c missing static typed-container capture storage.
+    exit /b 1
+)
+findstr /C:"__env->values = xl6_xrt_typed_array_copy_mode" build\test\cgen_closure_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_closure_ownership.c missing shared typed-container capture copy.
+    exit /b 1
+)
+findstr /C:"__env->prefix = xrtCopyStr(prefix, 0u);" build\test\cgen_closure_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_closure_ownership.c missing owned string capture copy.
+    exit /b 1
+)
+findstr /C:"__env->dynamicValue = xl6_xrt_retain(dynamicValue);" build\test\cgen_closure_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_closure_ownership.c missing retained var capture.
+    exit /b 1
+)
+findstr /C:"__env->box = xl_class_ClosureBox______xl6__copy__value(box, 1);" build\test\cgen_closure_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_closure_ownership.c missing owned class capture copy.
+    exit /b 1
+)
+findstr /C:"__env->box.text" build\test\cgen_closure_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_closure_ownership.c missing captured class receiver rewrite.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayDestroy(__env->values);" build\test\cgen_closure_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_closure_ownership.c missing typed-container capture destruction.
+    exit /b 1
+)
+findstr /C:"xl_class_ClosureBox__destroy(&__env->box);" build\test\cgen_closure_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_closure_ownership.c missing class capture destruction.
+    exit /b 1
+)
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_closure_ownership.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_closure_ownership.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_closure_ownership.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_string_value_ownership.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_string_value_ownership.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_string_value_ownership.xl --emit build\test\cgen_string_value_ownership.c
+if errorlevel 1 exit /b 1
+findstr /C:"text = xrtCopyStr(text != 0 ? text : \"\", 0u);" build\test\cgen_string_value_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_string_value_ownership.c missing owned string parameter copy.
+    exit /b 1
+)
+findstr /C:"globalText = xrtCopyStr(\"global\", 0u);" build\test\cgen_string_value_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_string_value_ownership.c missing owned module string initialization.
+    exit /b 1
+)
+findstr /C:"char* __xl6_string_assign_" build\test\cgen_string_value_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_string_value_ownership.c missing copy-before-release string assignment.
+    exit /b 1
+)
+findstr /C:"char* __xl6_multi_string_value_" build\test\cgen_string_value_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_string_value_ownership.c missing owned multi-return string assignment.
+    exit /b 1
+)
+findstr /C:"part = xrtCopyStr(part, 0u);" build\test\cgen_string_value_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_string_value_ownership.c missing generator string value copy.
+    exit /b 1
+)
+findstr /C:"xrtFree((void*)globalText);" build\test\cgen_string_value_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_string_value_ownership.c missing module string cleanup.
+    exit /b 1
+)
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_string_value_ownership.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_string_value_ownership.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_string_value_ownership.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_contextual_identifiers.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_contextual_identifiers.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_contextual_identifiers.xl --emit build\test\cgen_contextual_identifiers.c
+if errorlevel 1 exit /b 1
+findstr /C:"long long xl_fn_xtime(long long xl_kw_stdout, long long xl_kw_errno)" build\test\cgen_contextual_identifiers.c >nul
+if errorlevel 1 (
+    echo cgen_contextual_identifiers.c missing private function symbol or protected C macro parameters.
+    exit /b 1
+)
+findstr /C:"xvalue __xl6_discard_" build\test\cgen_contextual_identifiers.c >nul
+if errorlevel 1 (
+    echo cgen_contextual_identifiers.c missing independent discard slots.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_path_join(const char* first, const char* second, xvalue rest)" build\test\cgen_contextual_identifiers.c >nul
+if errorlevel 1 (
+    echo cgen_contextual_identifiers.c missing variadic path.join runtime.
+    exit /b 1
+)
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_contextual_identifiers.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_contextual_identifiers.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_contextual_identifiers.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\cgen_stdout_crlf.xl > build\test\cgen_stdout_crlf.out.bin
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$actual=[System.IO.File]::ReadAllBytes('build\test\cgen_stdout_crlf.out.bin');$expected=[System.Text.Encoding]::UTF8.GetBytes(\"first`r`nsecond`r`n\");if($actual.Length -ne $expected.Length){exit 1};for($i=0;$i -lt $actual.Length;$i++){if($actual[$i] -ne $expected[$i]){exit 1}}"
+if errorlevel 1 (
+    echo print must preserve an existing CRLF byte sequence exactly once.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\cgen_json_recursive_lifecycle.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_json_recursive_lifecycle.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_json_recursive_lifecycle.xl -o build\test\cgen_json_recursive_lifecycle.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_json_recursive_lifecycle.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\perf_var_recursive_alloc.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\perf_var_recursive_alloc.xl -- dict 20 20
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_typed_container_param_reassign.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_typed_container_param_reassign.xl --emit build\test\cgen_typed_container_param_reassign.c
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_typed_container_param_reassign.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_typed_container_param_reassign.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_typed_container_param_reassign.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\perf_json_ast_lifecycle.xl
+if errorlevel 1 exit /b 1
+release\xl.exe parse test\cases\perf_json_ast_lifecycle.xl --format json > build\test\perf_json_ast_input.json
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\perf_json_ast_lifecycle.xl -- build\test\perf_json_ast_input.json 3 > build\test\perf_json_ast_lifecycle.out
+if errorlevel 1 exit /b 1
+findstr /B /C:"total " build\test\perf_json_ast_lifecycle.out >nul
+if errorlevel 1 (
+    echo perf_json_ast_lifecycle.xl missing total summary.
+    exit /b 1
+)
 
 
 echo DEMO6 suite ok: core C generation and runtime

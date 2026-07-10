@@ -1,0 +1,38 @@
+class ReturnBase
+    virtual func value() as int
+        return 1
+    end
+end
+
+class ReturnDerived extends ReturnBase
+    int extra = 0
+
+    create(int extra)
+        self.extra = extra
+    end
+
+    override func value() as int
+        return self.extra + 10
+    end
+end
+
+func makeNamed(int extra) as ReturnDerived
+    ReturnDerived value = ReturnDerived(extra)
+    return value
+end
+
+func makeTemporary(int extra) as ReturnDerived
+    return ReturnDerived(extra)
+end
+
+ReturnDerived named = makeNamed(5)
+assert named.extra == 5, "named class return should preserve derived fields"
+assert named.value() == 15, "named class return should preserve vtable"
+
+ReturnDerived temporary = makeTemporary(7)
+assert temporary.value() == 17, "temporary class return should preserve vtable"
+
+var boxed = makeNamed(9)
+ReturnDerived unboxed = boxed as ReturnDerived
+assert unboxed.extra == 9, "boxed returned class should preserve derived fields"
+assert unboxed.value() == 19, "boxed returned class should preserve vtable"

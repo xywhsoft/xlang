@@ -3,6 +3,7 @@ extern "expect_i64" func expect(int actual, int expected)
 expect(math.sqrt(9.0) ~= 3.0, 1)
 expect(math.pow(2.0, 8.0) ~= 256.0, 1)
 expect(math.abs(-3.5) ~= 3.5, 1)
+expect(math.abs(-7), 7)
 
 expect(math.sin(0.0) ~= 0.0, 1)
 expect(math.cos(0.0) ~= 1.0, 1)

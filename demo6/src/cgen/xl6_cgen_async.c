@@ -9,6 +9,14 @@ static const XL6_AstNode* xl6CgenAsyncResultType(const XL6_AstNode* node)
     return returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
 }
 
+static const char* xl6CgenAsyncParamCType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+        return xl6CgenTypedContainerCType(ctx, typeNode);
+    }
+    return xl6CgenTypeName(ctx, typeNode);
+}
+
 static void xl6CgenAsyncWorkerSymbol(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     xl6OutputPuts("xl_async_worker_", ctx->out);
@@ -46,7 +54,7 @@ static void xl6CgenAsyncEmitParamList(XL6_CgenContext* ctx, const XL6_AstNode* p
             xl6CgenError(ctx, param, "async 函数参数缺少类型");
             xl6OutputPuts("int ", ctx->out);
         } else {
-            xl6OutputPuts(xl6CgenTypeName(ctx, param->children[0]), ctx->out);
+            xl6OutputPuts(xl6CgenAsyncParamCType(ctx, param->children[0]), ctx->out);
             xl6OutputPutc(' ', ctx->out);
         }
         xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);

@@ -45,6 +45,87 @@ static void xl6CgenDeclCollectCallExprArgTemps(
     int* count,
     int* capacity);
 
+static int xl6CgenDeclExprHasReplacement(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    size_t i;
+
+    if ( ctx == NULL || expr == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < ctx->exprReplacementCount; ++i ) {
+        if ( ctx->exprReplacements[i].expr == expr && ctx->exprReplacements[i].cName != NULL ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int xl6CgenDeclCallArgumentNeedsTemp(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* expr)
+{
+    if ( xl6CgenDeclExprHasReplacement(ctx, expr) ) {
+        return 0;
+    }
+    if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+        /*
+            typed container 参数传递的是 XRT 对象句柄。具名变量、成员和索引都是借用值，
+            直接传递即可让被调函数的就地修改对调用方可见；只有字面量和拥有型返回值
+            需要先物化，并在调用结束后释放临时句柄。
+        */
+        return xl6CgenTypedContainerInitLiteral(ctx, typeNode, expr) != NULL ||
+               xl6CgenTypedContainerCanMoveFromExpr(ctx, typeNode, expr) ||
+               xl6CgenTypedContainerCanImportDynamicExpr(ctx, typeNode, expr);
+    }
+    return xl6CgenDeclCanEmitCallArgTemp(ctx, typeNode, expr);
+}
+
+/*
+    一个标量表达式中可以嵌套任意层调用。调用节点由上面的收集器完整处理，
+    其他节点按源码顺序递归，保证实参物化顺序和表达式求值顺序一致。
+*/
+static void xl6CgenDeclCollectExprCallArgTemps(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* expr,
+    XL6_CgenDeclCallArgTemp** temps,
+    int* count,
+    int* capacity)
+{
+    size_t i;
+
+    if ( ctx == NULL || expr == NULL || xl6CgenDeclExprHasReplacement(ctx, expr) ) {
+        return;
+    }
+    if ( expr->kind == XL6_AST_CALL ) {
+        xl6CgenDeclCollectCallExprArgTemps(ctx, expr, temps, count, capacity);
+        return;
+    }
+    for ( i = 0; i < expr->childCount; ++i ) {
+        xl6CgenDeclCollectExprCallArgTemps(ctx, expr->children[i], temps, count, capacity);
+    }
+}
+
+static int xl6CgenDeclExprNeedsCallArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    XL6_CgenDeclCallArgTemp* temps;
+    int tempCount;
+    int tempCapacity;
+    int savedTempId;
+
+    if ( ctx == NULL || expr == NULL || xl6CgenDeclExprHasReplacement(ctx, expr) ) {
+        return 0;
+    }
+    temps = NULL;
+    tempCount = 0;
+    tempCapacity = 0;
+    savedTempId = ctx->tempId;
+    xl6CgenDeclCollectExprCallArgTemps(ctx, expr, &temps, &tempCount, &tempCapacity);
+    ctx->tempId = savedTempId;
+    xl6CgenDeclFreeCallArgTemps(temps, tempCapacity);
+    return tempCount > 0;
+}
+
 static int xl6CgenDeclCollectKnownCallExprArgTemps(
     XL6_CgenContext* ctx,
     const XL6_AstNode* expr,
@@ -57,7 +138,11 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
     const XL6_AstNode* params;
     const XL6_AstNode* prevParams;
     const XL6_AstNode* prevArgs;
+    const XL6_AstNode* prevClass;
+    const XL6_AstNode* ownerClass;
     XL6_AstNode* inferredArgs;
+    XL6_AstNode* receiverType;
+    XL6_AstNode* classNode;
     XL6_AstNode* func;
     int fixedCount;
     int i;
@@ -71,6 +156,10 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
     func = NULL;
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
+    prevClass = ctx->currentClass;
+    receiverType = NULL;
+    classNode = NULL;
+    ownerClass = NULL;
 
     if ( callee != NULL && callee->kind == XL6_AST_GENERIC_INSTANT ) {
         const XL6_AstNode* nameNode = callee->childCount > 0 ? callee->children[0] : NULL;
@@ -97,12 +186,52 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
                 ctx->currentGenericArgs = inferredArgs;
             }
         }
+    } else if ( callee != NULL && callee->kind == XL6_AST_MEMBER &&
+                callee->text != NULL && callee->childCount > 0 ) {
+        const XL6_AstNode* receiver = callee->children[0];
+
+        classNode = xl6CgenClassDeclFromTypeMemberReceiver(ctx, callee);
+        if ( classNode != NULL ) {
+            func = (XL6_AstNode*)xl6CgenResolveStaticClassFunc(
+                ctx,
+                classNode,
+                expr,
+                callee->text,
+                &ownerClass);
+        } else {
+            if ( receiver != NULL && receiver->kind == XL6_AST_NAME &&
+                 xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
+                classNode = (XL6_AstNode*)ctx->currentClass;
+            } else {
+                receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+                classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
+            }
+            if ( classNode != NULL ) {
+                if ( receiverType != NULL && receiverType->childCount > 0 &&
+                     xl6CgenClassHasTypeParams(classNode) ) {
+                    ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+                    ctx->currentGenericArgs = receiverType->children[0];
+                }
+                ctx->currentClass = classNode;
+                func = (XL6_AstNode*)xl6CgenResolveClassFunc(
+                    ctx,
+                    classNode,
+                    expr,
+                    callee->text,
+                    &ownerClass);
+                if ( ownerClass != NULL ) {
+                    ctx->currentClass = ownerClass;
+                }
+            }
+        }
     }
 
     if ( func == NULL ) {
         xl6AstFree(inferredArgs);
+        xl6AstFree(receiverType);
         ctx->currentGenericParams = prevParams;
         ctx->currentGenericArgs = prevArgs;
+        ctx->currentClass = prevClass;
         return 0;
     }
 
@@ -110,8 +239,10 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
     fixedCount = xl6CgenFixedParamCount(params);
     if ( params == NULL || params->childCount > (size_t)fixedCount ) {
         xl6AstFree(inferredArgs);
+        xl6AstFree(receiverType);
         ctx->currentGenericParams = prevParams;
         ctx->currentGenericArgs = prevArgs;
+        ctx->currentClass = prevClass;
         return 0;
     }
 
@@ -132,11 +263,13 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
             动态 xvalue 字面量，传给 xtarray 形参后在运行期崩溃。
         */
         tempType = xl6CgenCloneCanonicalTypeNode(ctx, xl6CgenSubstituteGenericType(ctx, paramType));
-        if ( tempType != NULL && xl6CgenDeclCanEmitCallArgTemp(ctx, tempType, argExpr) ) {
+        if ( tempType != NULL && xl6CgenDeclCallArgumentNeedsTemp(ctx, tempType, argExpr) ) {
             if ( !xl6CgenDeclCallArgTempAppend(ctx, temps, count, capacity, argExpr, tempType, "__xl6_call_arg_", "out of memory while preparing nested call argument temporaries") ) {
                 xl6AstFree(inferredArgs);
+                xl6AstFree(receiverType);
                 ctx->currentGenericParams = prevParams;
                 ctx->currentGenericArgs = prevArgs;
+                ctx->currentClass = prevClass;
                 return 1;
             }
             continue;
@@ -146,8 +279,10 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
     }
 
     xl6AstFree(inferredArgs);
+    xl6AstFree(receiverType);
     ctx->currentGenericParams = prevParams;
     ctx->currentGenericArgs = prevArgs;
+    ctx->currentClass = prevClass;
     return 1;
 }
 
@@ -181,6 +316,9 @@ static void xl6CgenDeclCollectCallExprArgTemps(
         if ( argExpr == NULL ) {
             continue;
         }
+        if ( xl6CgenDeclExprHasReplacement(ctx, argExpr) ) {
+            continue;
+        }
 
         tempType = xl6CgenNewSimpleType("var", argExpr);
         if ( tempType != NULL && xl6CgenDeclCanEmitCallArgTemp(ctx, tempType, argExpr) ) {
@@ -201,23 +339,10 @@ static void xl6CgenDeclCollectCallExprArgTemps(
 
 static int xl6CgenDeclCallExprArgsNeedCallArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
-    XL6_CgenDeclCallArgTemp* temps;
-    int tempCount;
-    int tempCapacity;
-    int savedTempId;
-
     if ( ctx == NULL || expr == NULL || expr->kind != XL6_AST_CALL ) {
         return 0;
     }
-
-    temps = NULL;
-    tempCount = 0;
-    tempCapacity = 0;
-    savedTempId = ctx->tempId;
-    xl6CgenDeclCollectCallExprArgTemps(ctx, expr, &temps, &tempCount, &tempCapacity);
-    ctx->tempId = savedTempId;
-    xl6CgenDeclFreeCallArgTemps(temps, tempCount);
-    return tempCount > 0;
+    return xl6CgenDeclExprNeedsCallArgTemps(ctx, expr);
 }
 
 static void xl6CgenDeclDestroyCallArgTemps(XL6_CgenContext* ctx, XL6_CgenDeclCallArgTemp* temps, int count)
@@ -235,6 +360,54 @@ static void xl6CgenDeclDestroyCallArgTemps(XL6_CgenContext* ctx, XL6_CgenDeclCal
     }
 }
 
+/*
+    replacement 表允许语句级 lowering 互相嵌套。当前层放在前面，保证更精确的
+    局部替换优先；外层 task/class 等临时值继续保留，不能被当前层静默覆盖。
+*/
+static XL6_CgenExprReplacement* xl6CgenDeclMergeExprReplacements(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* expr,
+    XL6_CgenExprReplacement* own,
+    size_t ownCount,
+    size_t* totalCount)
+{
+    XL6_CgenExprReplacement* merged;
+    size_t previousCount;
+
+    if ( totalCount != NULL ) {
+        *totalCount = 0;
+    }
+    if ( ctx == NULL || own == NULL || ownCount == 0 ) {
+        xrtFree(own);
+        return NULL;
+    }
+    previousCount = ctx->exprReplacementCount;
+    if ( previousCount == 0 ) {
+        if ( totalCount != NULL ) {
+            *totalCount = ownCount;
+        }
+        return own;
+    }
+
+    merged = (XL6_CgenExprReplacement*)xrtMalloc(
+        (ownCount + previousCount) * sizeof(XL6_CgenExprReplacement));
+    if ( merged == NULL ) {
+        xrtFree(own);
+        xl6CgenError(ctx, expr, "out of memory while nesting expression temporaries");
+        return NULL;
+    }
+    memcpy(merged, own, ownCount * sizeof(XL6_CgenExprReplacement));
+    memcpy(
+        merged + ownCount,
+        ctx->exprReplacements,
+        previousCount * sizeof(XL6_CgenExprReplacement));
+    xrtFree(own);
+    if ( totalCount != NULL ) {
+        *totalCount = ownCount + previousCount;
+    }
+    return merged;
+}
+
 static int xl6CgenDeclEmitXValueCallExprWithArgTemps(
     XL6_CgenContext* ctx,
     const XL6_AstNode* targetType,
@@ -245,6 +418,7 @@ static int xl6CgenDeclEmitXValueCallExprWithArgTemps(
     XL6_CgenExprReplacement* replacements;
     const XL6_CgenExprReplacement* prevExprReplacements;
     size_t prevExprReplacementCount;
+    size_t replacementCount;
     int tempCount;
     int tempCapacity;
     int i;
@@ -253,13 +427,23 @@ static int xl6CgenDeclEmitXValueCallExprWithArgTemps(
     replacements = NULL;
     tempCount = 0;
     tempCapacity = 0;
-    xl6CgenDeclCollectCallExprArgTemps(ctx, expr, &temps, &tempCount, &tempCapacity);
+    xl6CgenDeclCollectExprCallArgTemps(ctx, expr, &temps, &tempCount, &tempCapacity);
     if ( tempCount <= 0 ) {
         xl6CgenDeclFreeCallArgTemps(temps, tempCount);
         return 0;
     }
 
     replacements = xl6CgenDeclCreateCallArgReplacements(ctx, temps, tempCount, tempCount);
+    if ( replacements == NULL ) {
+        xl6CgenDeclFreeCallArgTemps(temps, tempCount);
+        return 0;
+    }
+    replacements = xl6CgenDeclMergeExprReplacements(
+        ctx,
+        expr,
+        replacements,
+        (size_t)tempCount,
+        &replacementCount);
     if ( replacements == NULL ) {
         xl6CgenDeclFreeCallArgTemps(temps, tempCount);
         return 0;
@@ -281,7 +465,7 @@ static int xl6CgenDeclEmitXValueCallExprWithArgTemps(
     prevExprReplacements = ctx->exprReplacements;
     prevExprReplacementCount = ctx->exprReplacementCount;
     ctx->exprReplacements = replacements;
-    ctx->exprReplacementCount = (size_t)tempCount;
+    ctx->exprReplacementCount = replacementCount;
 
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s = ", valueName);
@@ -306,6 +490,7 @@ static int xl6CgenDeclEmitTypedContainerCallExprWithArgTemps(
     XL6_CgenExprReplacement* replacements;
     const XL6_CgenExprReplacement* prevExprReplacements;
     size_t prevExprReplacementCount;
+    size_t replacementCount;
     int tempCount;
     int tempCapacity;
     int i;
@@ -330,6 +515,16 @@ static int xl6CgenDeclEmitTypedContainerCallExprWithArgTemps(
         xl6CgenDeclFreeCallArgTemps(temps, tempCount);
         return 0;
     }
+    replacements = xl6CgenDeclMergeExprReplacements(
+        ctx,
+        expr,
+        replacements,
+        (size_t)tempCount,
+        &replacementCount);
+    if ( replacements == NULL ) {
+        xl6CgenDeclFreeCallArgTemps(temps, tempCount);
+        return 0;
+    }
 
     for ( i = 0; i < tempCount; ++i ) {
         const char* tempCType = xl6CgenValueStorageCType(ctx, temps[i].typeNode);
@@ -345,7 +540,7 @@ static int xl6CgenDeclEmitTypedContainerCallExprWithArgTemps(
     prevExprReplacements = ctx->exprReplacements;
     prevExprReplacementCount = ctx->exprReplacementCount;
     ctx->exprReplacements = replacements;
-    ctx->exprReplacementCount = (size_t)tempCount;
+    ctx->exprReplacementCount = replacementCount;
 
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s = ", valueName);
@@ -370,13 +565,13 @@ static int xl6CgenDeclEmitScalarCallExprWithArgTemps(
     XL6_CgenExprReplacement* replacements;
     const XL6_CgenExprReplacement* prevExprReplacements;
     size_t prevExprReplacementCount;
+    size_t replacementCount;
     int tempCount;
     int tempCapacity;
     int i;
 
     if ( ctx == NULL || targetType == NULL || expr == NULL || valueName == NULL ||
-         !xl6CgenDeclCallArgStaticScalarType(targetType) ||
-         expr->kind != XL6_AST_CALL ) {
+         !xl6CgenDeclCallArgStaticScalarType(targetType) ) {
         return 0;
     }
 
@@ -384,13 +579,23 @@ static int xl6CgenDeclEmitScalarCallExprWithArgTemps(
     replacements = NULL;
     tempCount = 0;
     tempCapacity = 0;
-    xl6CgenDeclCollectCallExprArgTemps(ctx, expr, &temps, &tempCount, &tempCapacity);
+    xl6CgenDeclCollectExprCallArgTemps(ctx, expr, &temps, &tempCount, &tempCapacity);
     if ( tempCount <= 0 ) {
         xl6CgenDeclFreeCallArgTemps(temps, tempCount);
         return 0;
     }
 
     replacements = xl6CgenDeclCreateCallArgReplacements(ctx, temps, tempCount, tempCount);
+    if ( replacements == NULL ) {
+        xl6CgenDeclFreeCallArgTemps(temps, tempCount);
+        return 0;
+    }
+    replacements = xl6CgenDeclMergeExprReplacements(
+        ctx,
+        expr,
+        replacements,
+        (size_t)tempCount,
+        &replacementCount);
     if ( replacements == NULL ) {
         xl6CgenDeclFreeCallArgTemps(temps, tempCount);
         return 0;
@@ -415,7 +620,7 @@ static int xl6CgenDeclEmitScalarCallExprWithArgTemps(
     prevExprReplacements = ctx->exprReplacements;
     prevExprReplacementCount = ctx->exprReplacementCount;
     ctx->exprReplacements = replacements;
-    ctx->exprReplacementCount = (size_t)tempCount;
+    ctx->exprReplacementCount = replacementCount;
 
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s = ", valueName);

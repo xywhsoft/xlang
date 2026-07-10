@@ -39,6 +39,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int hasTccRuntime;
     int hasXlangRuntime;
     int hasTaskSpawn;
+    int hasPointMove;
     int needsObjectClass;
     const XL6_AstNode* mainFunc;
 
@@ -73,6 +74,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasTimeRuntime = xl6CgenNodeNeedsTimeRuntime(root);
     hasAsyncRuntime = xl6CgenNodeNeedsAsyncRuntime(root);
     hasTaskSpawn = xl6CgenNodeNeedsTaskSpawn(root);
+    hasPointMove = xl6CgenNodeNeedsPointMove(&ctx, root);
     hasDynamicForInErrorRuntime = xl6CgenProgramNeedsDynamicForInErrorRuntime(&ctx, root);
     hasErrorRuntime = xl6CgenNodeNeedsErrorRuntime(root) || hasAsyncRuntime || hasDynamicForInErrorRuntime || hasTypeConvertRuntime;
     hasCryptoRuntime = xl6CgenNodeNeedsCryptoRuntime(root);
@@ -148,6 +150,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     xl6OutputPuts("typedef intptr_t xl6_ssize_t;\n\n", out);
     xl6OutputPuts("#define XL_RUNTIME_NEED_LIFECYCLE 1\n", out);
+    if ( hasPointMove ) {
+        xl6OutputPuts("#define XL_RUNTIME_NEED_POINT_MOVE 1\n", out);
+    }
     if ( hasStringRuntime ) {
         xl6OutputPuts("#define XL_RUNTIME_NEED_STRING 1\n", out);
     }
@@ -162,6 +167,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         使用专用 VFS 路径，避免 release/include 下的外部残留文件覆盖内置版本。
     */
     xl6OutputPuts("#include <__xl_runtime/xl_runtime.h>\n\n", out);
+    xl6CgenEmitTempScopeRuntime(out);
     if ( ctx.debugMode ) {
         xl6CgenEmitDebugRuntime(out);
     }
@@ -252,11 +258,48 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( xl6CgenNodeNeedsRangeContains(root) ) {
         xl6CgenEmitRangeContainsHelper(out);
     }
+    xl6CgenClassForwardDecls(&ctx, root);
     xl6CgenCollectGenericClassDecls(&ctx, root);
 
     for ( i = 0; i < root->childCount; ++i ) {
         if ( root->children[i]->kind == XL6_AST_UNION ) {
             xl6CgenUnionDecls(&ctx, root->children[i]);
+        }
+    }
+
+    /*
+        class 默认字段初始化会被写入默认构造 helper，而该 helper 早于普通函数定义。
+        单返回值函数不依赖多返回值结构体，可在 class 结构体前向声明之后安全提前声明。
+    */
+    for ( i = 0; i < root->childCount; ++i ) {
+        const XL6_AstNode* child = root->children[i];
+        const XL6_AstNode* returns;
+
+        if ( child == NULL ) {
+            continue;
+        }
+        returns = child->childCount > 2 ? child->children[2] : NULL;
+        if ( returns != NULL && returns->childCount > 1 ) {
+            continue;
+        }
+        if ( child->kind == XL6_AST_FUNC &&
+             !xl6CgenFuncIsGeneric(child) &&
+             !xl6CgenIsPrintIntrinsicFunc(child) ) {
+            xl6CgenFuncProto(&ctx, child);
+            xl6OutputPuts(";\n", out);
+        } else if ( child->kind == XL6_AST_ASYNC_FUNC && !xl6CgenFuncIsGeneric(child) ) {
+            if ( xl6CgenFuncReturnsGenerator(&ctx, child) ) {
+                xl6CgenFuncProto(&ctx, child);
+            } else {
+                xl6CgenAsyncFuncProto(&ctx, child);
+            }
+            xl6OutputPuts(";\n", out);
+        } else if ( child->kind == XL6_AST_EXPORT_FUNC ) {
+            xl6CgenExportInternalProto(&ctx, child);
+            xl6OutputPuts(";\n", out);
+        } else if ( child->kind == XL6_AST_EXTERN_FUNC && !xl6CgenIsRuntimeHeaderExtern(child) ) {
+            xl6CgenExternFuncProto(&ctx, child);
+            xl6OutputPuts(";\n", out);
         }
     }
     for ( i = 0; i < root->childCount; ++i ) {
@@ -270,6 +313,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     if ( hasXValueRuntime ) {
         xl6CgenEmitRecordFieldHelpers(&ctx);
+        xl6CgenEmitProgramTypeNameHelper(&ctx);
     }
     for ( i = 0; i < root->childCount; ++i ) {
         if ( (root->children[i]->kind == XL6_AST_FUNC || root->children[i]->kind == XL6_AST_EXPORT_FUNC) &&
@@ -295,6 +339,10 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         if ( root->children[i]->kind == XL6_AST_EXTERN_FUNC ) {
             if ( !xl6CgenIsRuntimeHeaderExtern(root->children[i]) ) {
                 xl6CgenExternFuncProto(&ctx, root->children[i]);
+                xl6OutputPuts(";\n", out);
+            }
+            if ( xl6CgenExternCallNeedsWrapper(&ctx, root->children[i]) ) {
+                xl6CgenExternCallWrapperProto(&ctx, root->children[i]);
                 xl6OutputPuts(";\n", out);
             }
         } else if ( root->children[i]->kind == XL6_AST_EXTERN_VAR ) {
@@ -346,6 +394,12 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     xl6CgenEmitModuleGlobalDecls(&ctx, root);
     if ( root->childCount > 0 ) {
         xl6OutputPutc('\n', out);
+    }
+
+    for ( i = 0; i < root->childCount; ++i ) {
+        if ( root->children[i]->kind == XL6_AST_EXTERN_FUNC ) {
+            xl6CgenExternCallWrapper(&ctx, root->children[i]);
+        }
     }
 
     if ( hasFunctionRuntime || hasTaskSpawn || hasFunctionVarRuntime ) {

@@ -1,0 +1,36 @@
+func messages(string prefix, int count) as generator<string>
+    string suffix = "-owned-"
+    for index in range(count)
+        yield prefix + suffix + string(index)
+    end
+end
+
+string source = "frame"
+generator<string> pending = messages(source, 3)
+source = "changed"
+
+string first = ""
+for value in pending
+    first = value
+    break
+end
+assert first == "frame-owned-0", "generator frame must own string parameters"
+
+int closedState = 0
+try
+    for value in pending
+        closedState += 1
+    end
+    closedState = 100
+catch e
+    if e.message == "iterate null generator" then
+        closedState = 42
+    end
+end
+assert closedState == 42, "breaking a string generator must cancel and close it"
+
+string all = ""
+for value in messages("all", 3)
+    all += value + ";"
+end
+assert all == "all-owned-0;all-owned-1;all-owned-2;"

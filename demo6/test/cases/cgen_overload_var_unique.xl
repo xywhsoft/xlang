@@ -3,8 +3,8 @@ func takeInt(int value) as int
 end
 
 func callWithVar(var value) as int
-    return takeInt(value)
+    return takeInt(value as int)
 end
 
 var boxed = 41
-assert callWithVar(boxed) == 42, "var actual should match a unique typed overload candidate"
+assert callWithVar(boxed) == 42, "explicit runtime conversion should select the typed overload"

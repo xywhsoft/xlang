@@ -964,6 +964,8 @@ static void xl6ParserMarkGenericDeclTypeLt(XL6_ParseTokenStream* stream)
 static int xl6ParserReadTokens(XL6_Lexer* lexer, XL6_ParseTokenStream* stream, XL6_DiagList* diags)
 {
     XL6_Token token;
+    XL6_Token eofToken;
+    XL6_Token separator;
 
     for (;;) {
         token = xl6LexerNext(lexer);
@@ -978,6 +980,25 @@ static int xl6ParserReadTokens(XL6_Lexer* lexer, XL6_ParseTokenStream* stream, X
         }
         if ( token.kind == XL6_TK_EOF ) {
             break;
+        }
+    }
+
+    /*
+     * EOF 和换行一样可以结束最后一条语句。词法器只报告真实源码中的
+     * 换行，因此这里在 EOF 前补一个逻辑分隔符，避免要求源文件必须
+     * 以换行结尾。这个分隔符只存在于 parser token 流，不修改源码。
+     */
+    if ( stream->count >= 2 && stream->tokens[stream->count - 2].kind != XL6_TK_SEP ) {
+        eofToken = stream->tokens[stream->count - 1];
+        stream->count -= 1;
+        separator = eofToken;
+        separator.kind = XL6_TK_SEP;
+        separator.message[0] = '\0';
+        if ( !xl6ParseTokenStreamAppend(stream, &separator) ||
+             !xl6ParseTokenStreamAppend(stream, &eofToken) ) {
+            xl6DiagAdd(diags, eofToken.startLine, eofToken.startColumn,
+                       "内存不足，无法补齐文件末尾语句分隔符");
+            return 0;
         }
     }
 

@@ -280,6 +280,100 @@ static int xl6CgenTypedContainerCanMoveFromExpr(XL6_CgenContext* ctx, const XL6_
     return xl6CgenTypedContainerExprTypeMatches(ctx, typeNode, initExpr);
 }
 
+/*
+    动态容器和静态泛型容器共享 array/list/set/dict 四种基础形态，
+    但只有目标元素类型明确时才允许执行逐项安全解箱。普通 var 不参与隐式转换。
+*/
+static int xl6CgenTypedContainerCanImportDynamicExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* initExpr)
+{
+    const XL6_AstNode* targetType;
+    XL6_AstNode* exprType;
+    int result;
+
+    if ( initExpr == NULL || !xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+        return 0;
+    }
+    targetType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    exprType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
+    result = targetType != NULL &&
+             exprType != NULL &&
+             xl6CgenIsXValueType(exprType) &&
+             !xl6CTextEquals(exprType->text, "var") &&
+             xl6CTextEquals(targetType->text, exprType->text);
+    xl6AstFree(exprType);
+    return result;
+}
+
+static void xl6CgenTypedContainerImportDynamicExprMode(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* expr,
+    const char* mode)
+{
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* itemType;
+    const char* typeName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    itemType = xl6CgenTypedContainerItemType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( xl6CTextEquals(typeName, "array") ) {
+        xl6OutputPuts("xl6_xrt_typed_array_from_value_release(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "list") ) {
+        xl6OutputPuts("xl6_xrt_typed_list_from_value_release(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "set") ) {
+        xl6OutputPuts("xl6_xrt_typed_set_from_value_release(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "dict") ) {
+        xl6OutputPuts("xl6_xrt_typed_dict_from_value_release(", ctx->out);
+    } else {
+        xl6CgenError(ctx, expr, "dynamic container import requires array/list/set/dict");
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+    xl6OutputPuts(", ", ctx->out);
+    xl6CgenXValueFromExpr(ctx, expr);
+    xl6OutputPuts(", ", ctx->out);
+    xl6OutputPuts(mode != NULL ? mode : "XRT_OBJMODE_LOCAL", ctx->out);
+    xl6OutputPutc(')', ctx->out);
+}
+
+static void xl6CgenTypedContainerImportDynamicExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* expr)
+{
+    xl6CgenTypedContainerImportDynamicExprMode(ctx, typeNode, expr, "XRT_OBJMODE_LOCAL");
+}
+
+static void xl6CgenEmitExceptionPropagate(XL6_CgenContext* ctx, const XL6_AstNode* node);
+
+static void xl6CgenTypedContainerImportCheckStmt(
+    XL6_CgenContext* ctx,
+    const char* cName,
+    const XL6_AstNode* at)
+{
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (%s == 0) {\n", cName != NULL ? cName : "0");
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    if ( ctx->needsErrorRuntime ) {
+        xl6OutputPrintf(ctx->out,
+                        "xl6_error_raise(\"TypeError\", \"dynamic container contains an incompatible value\", \"\", %d, %d);\n",
+                        at != NULL ? at->line : 0,
+                        at != NULL ? at->column : 0);
+        xl6CgenEmitExceptionPropagate(ctx, at);
+    } else {
+        xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
+    }
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+}
+
 static void xl6CgenTypedContainerCopyExprMode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr, const char* mode)
 {
     const XL6_AstNode* concreteType;
@@ -306,6 +400,41 @@ static void xl6CgenTypedContainerCopyExprMode(XL6_CgenContext* ctx, const XL6_As
     xl6CgenEmitXrtTypeDescRef(ctx, itemType);
     xl6OutputPuts(", ", ctx->out);
     xl6CgenExpr(ctx, expr);
+    xl6OutputPuts(", ", ctx->out);
+    xl6OutputPuts(mode != NULL ? mode : "XRT_OBJMODE_LOCAL", ctx->out);
+    xl6OutputPutc(')', ctx->out);
+}
+
+
+// 已经求值到 C 临时变量的容器，也必须能按目标对象模式复制
+static void xl6CgenTypedContainerCopyCExprMode(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cExpr,
+    const char* mode)
+{
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* itemType;
+    const char* typeName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    itemType = xl6CgenTypedContainerItemType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( xl6CTextEquals(typeName, "array") ) {
+        xl6OutputPuts("xl6_xrt_typed_array_copy_mode(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "list") ) {
+        xl6OutputPuts("xl6_xrt_typed_list_copy_mode(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "set") ) {
+        xl6OutputPuts("xl6_xrt_typed_set_copy_mode(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "dict") ) {
+        xl6OutputPuts("xl6_xrt_typed_dict_copy_mode(", ctx->out);
+    } else {
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    xl6CgenEmitXrtTypeDescRef(ctx, itemType);
+    xl6OutputPuts(", ", ctx->out);
+    xl6OutputPuts(cExpr != NULL ? cExpr : "0", ctx->out);
     xl6OutputPuts(", ", ctx->out);
     xl6OutputPuts(mode != NULL ? mode : "XRT_OBJMODE_LOCAL", ctx->out);
     xl6OutputPutc(')', ctx->out);

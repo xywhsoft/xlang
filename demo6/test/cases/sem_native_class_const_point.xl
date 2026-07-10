@@ -1,0 +1,11 @@
+class OwningPoint
+    native point handle
+    extern "borrowed_box_close" destroy()
+end
+
+extern "make_borrowed_box" func makeBox(int value) as point
+
+func invalidTransfer()
+    const point handle = makeBox(1)
+    OwningPoint value = OwningPoint(handle)
+end

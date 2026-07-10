@@ -4,9 +4,11 @@ static void xl6CgenEmitGeneratorRuntime(XL6_Output* out)
     xl6OutputPuts("#define XL6_GENERATOR_TYPEDEF\n", out);
     xl6OutputPuts("typedef struct xcoro_struct* xcoro;\n", out);
     xl6OutputPuts("typedef void (*xl6_xco_entry)(void* pParam);\n", out);
+    xl6OutputPuts("typedef void (*xl6_gen_frame_free_fn)(void* frame);\n", out);
     xl6OutputPuts("typedef struct XL6_Generator {\n", out);
     xl6OutputPuts("    xcoro co;\n", out);
     xl6OutputPuts("    void* frame;\n", out);
+    xl6OutputPuts("    xl6_gen_frame_free_fn frameFree;\n", out);
     xl6OutputPuts("    void* value;\n", out);
     xl6OutputPuts("    XL6_Error* error;\n", out);
     xl6OutputPuts("    size_t valueSize;\n", out);
@@ -14,29 +16,44 @@ static void xl6CgenEmitGeneratorRuntime(XL6_Output* out)
     xl6OutputPuts("    int done;\n", out);
     xl6OutputPuts("} XL6_Generator;\n", out);
     xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("#ifndef XRT_CO_READY\n", out);
+    xl6OutputPuts("#define XRT_CO_READY 0\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("#ifndef XRT_CO_SUSPENDED\n", out);
+    xl6OutputPuts("#define XRT_CO_SUSPENDED 2\n", out);
+    xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("#ifndef XRT_CO_DEAD\n", out);
     xl6OutputPuts("#define XRT_CO_DEAD 3\n", out);
     xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("xcoro xrtCoCreate(xl6_xco_entry pfnEntry, void* pParam, size_t iStackSize);\n", out);
     xl6OutputPuts("void xrtCoDestroy(xcoro pCo);\n", out);
     xl6OutputPuts("bool xrtCoResume(xcoro pCo);\n", out);
+    xl6OutputPuts("bool xrtCoCancel(xcoro pCo);\n", out);
     xl6OutputPuts("void xrtCoYield(void);\n", out);
+    xl6OutputPuts("bool xrtCoIsCancelRequested(void);\n", out);
     xl6OutputPuts("int xrtCoGetState(xcoro pCo);\n\n", out);
 
-    xl6OutputPuts("static XL6_Generator* xl6_generator_create(size_t valueSize, void* frame, xl6_xco_entry entry)\n", out);
+    xl6OutputPuts("static void xl6_generator_free_frame(void* frame, xl6_gen_frame_free_fn frameFree)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( frame == 0 ) { return; }\n", out);
+    xl6OutputPuts("    if ( frameFree != 0 ) { frameFree(frame); } else { xrtFree(frame); }\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static XL6_Generator* xl6_generator_create(size_t valueSize, void* frame, xl6_gen_frame_free_fn frameFree, xl6_xco_entry entry)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_Generator* gen;\n", out);
-    xl6OutputPuts("    if ( valueSize == 0 || entry == 0 ) { xrtFree(frame); return 0; }\n", out);
+    xl6OutputPuts("    if ( valueSize == 0 || entry == 0 ) { xl6_generator_free_frame(frame, frameFree); return 0; }\n", out);
     xl6OutputPuts("    gen = (XL6_Generator*)xrtMalloc(sizeof(XL6_Generator));\n", out);
-    xl6OutputPuts("    if ( gen == 0 ) { xrtFree(frame); return 0; }\n", out);
+    xl6OutputPuts("    if ( gen == 0 ) { xl6_generator_free_frame(frame, frameFree); return 0; }\n", out);
     xl6OutputPuts("    memset(gen, 0, sizeof(XL6_Generator));\n", out);
     xl6OutputPuts("    gen->value = xrtMalloc(valueSize);\n", out);
-    xl6OutputPuts("    if ( gen->value == 0 ) { xrtFree(frame); xrtFree(gen); return 0; }\n", out);
+    xl6OutputPuts("    if ( gen->value == 0 ) { xl6_generator_free_frame(frame, frameFree); xrtFree(gen); return 0; }\n", out);
     xl6OutputPuts("    memset(gen->value, 0, valueSize);\n", out);
     xl6OutputPuts("    gen->valueSize = valueSize;\n", out);
     xl6OutputPuts("    gen->frame = frame;\n", out);
+    xl6OutputPuts("    gen->frameFree = frameFree;\n", out);
     xl6OutputPuts("    gen->co = xrtCoCreate(entry, gen, 0);\n", out);
-    xl6OutputPuts("    if ( gen->co == 0 ) { xrtFree(gen->value); xrtFree(frame); xrtFree(gen); return 0; }\n", out);
+    xl6OutputPuts("    if ( gen->co == 0 ) { xrtFree(gen->value); xl6_generator_free_frame(frame, frameFree); xrtFree(gen); return 0; }\n", out);
     xl6OutputPuts("    return gen;\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -58,10 +75,17 @@ static void xl6CgenEmitGeneratorRuntime(XL6_Output* out)
     xl6OutputPuts("static void xl6_generator_destroy(XL6_Generator* gen)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( gen == 0 ) { return; }\n", out);
-    xl6OutputPuts("    if ( gen->co != 0 ) { xrtCoDestroy(gen->co); gen->co = 0; }\n", out);
+    xl6OutputPuts("    if ( gen->co != 0 && xrtCoGetState(gen->co) == XRT_CO_SUSPENDED ) {\n", out);
+    xl6OutputPuts("        if ( xrtCoCancel(gen->co) ) { (void)xrtCoResume(gen->co); }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( gen->co != 0 && (xrtCoGetState(gen->co) == XRT_CO_READY || xrtCoGetState(gen->co) == XRT_CO_DEAD) ) {\n", out);
+    xl6OutputPuts("        xrtCoDestroy(gen->co);\n", out);
+    xl6OutputPuts("        gen->co = 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( gen->co != 0 ) { return; }\n", out);
     xl6OutputPuts("    if ( gen->value != 0 ) { xrtFree(gen->value); gen->value = 0; }\n", out);
     xl6OutputPuts("    if ( gen->error != 0 ) { xl6_error_free(gen->error); gen->error = 0; }\n", out);
-    xl6OutputPuts("    if ( gen->frame != 0 ) { xrtFree(gen->frame); gen->frame = 0; }\n", out);
+    xl6OutputPuts("    if ( gen->frame != 0 ) { xl6_generator_free_frame(gen->frame, gen->frameFree); gen->frame = 0; gen->frameFree = 0; }\n", out);
     xl6OutputPuts("    xrtFree(gen);\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -70,15 +94,16 @@ static void xl6CgenEmitGeneratorRuntime(XL6_Output* out)
     xl6OutputPuts("    return gen != 0 ? gen->frame : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static void xl6_generator_yield_copy(XL6_Generator* gen, const void* value, size_t valueSize, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("static bool xl6_generator_yield_copy(XL6_Generator* gen, const void* value, size_t valueSize, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( gen == 0 || value == 0 || gen->value == 0 || gen->valueSize != valueSize ) {\n", out);
     xl6OutputPuts("        xl6_error_raise(\"GeneratorError\", \"invalid generator yield\", file, line, column);\n", out);
-    xl6OutputPuts("        return;\n", out);
+    xl6OutputPuts("        return false;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    memcpy(gen->value, value, valueSize);\n", out);
     xl6OutputPuts("    gen->hasValue = 1;\n", out);
     xl6OutputPuts("    xrtCoYield();\n", out);
+    xl6OutputPuts("    return !xrtCoIsCancelRequested();\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static bool xl6_generator_next(XL6_Generator* gen, const char* file, int line, int column)\n", out);
@@ -174,6 +199,12 @@ static void xl6CgenGeneratorFrameName(XL6_CgenContext* ctx, const XL6_AstNode* n
     xl6CgenFuncSymbol(ctx, node);
 }
 
+static void xl6CgenGeneratorFrameFreeSymbol(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    xl6OutputPuts("xl_gen_frame_free_", ctx->out);
+    xl6CgenFuncSymbol(ctx, node);
+}
+
 static void xl6CgenGeneratorFrameDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* params = xl6CgenGeneratorParams(node);
@@ -198,6 +229,49 @@ static void xl6CgenGeneratorFrameDecl(XL6_CgenContext* ctx, const XL6_AstNode* n
     xl6OutputPuts("} ", ctx->out);
     xl6CgenGeneratorFrameName(ctx, node);
     xl6OutputPuts(";\n\n", ctx->out);
+}
+
+static void xl6CgenGeneratorFrameFreeFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* params = xl6CgenGeneratorParams(node);
+    size_t i;
+
+    if ( params == NULL || params->childCount == 0 ) {
+        return;
+    }
+
+    xl6OutputPuts("static void ", ctx->out);
+    xl6CgenGeneratorFrameFreeSymbol(ctx, node);
+    xl6OutputPuts("(void* frame)\n{\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6CgenGeneratorFrameName(ctx, node);
+    xl6OutputPuts("* value = (", ctx->out);
+    xl6CgenGeneratorFrameName(ctx, node);
+    xl6OutputPuts("*)frame;\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if ( value == 0 ) { return; }\n", ctx->out);
+
+    for ( i = 0; i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+        const XL6_AstNode* typeNode = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
+        char fieldName[512];
+
+        if ( !xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+            continue;
+        }
+        xl6CgenCIdentText(fieldName, sizeof(fieldName), param->text);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out,
+                        "if ( value->%s != 0 ) { xrtFree((void*)value->%s); value->%s = 0; }\n",
+                        fieldName,
+                        fieldName,
+                        fieldName);
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("xrtFree(value);\n", ctx->out);
+    ctx->indent -= 1;
+    xl6OutputPuts("}\n\n", ctx->out);
 }
 
 static void xl6CgenGeneratorWorker(XL6_CgenContext* ctx, const XL6_AstNode* node, const XL6_AstNode* itemType)
@@ -261,7 +335,8 @@ static void xl6CgenGeneratorWorker(XL6_CgenContext* ctx, const XL6_AstNode* node
     ctx->currentGeneratorHandleName = "__xl6_gen";
     ctx->currentErrorExitLabel = "__xl6_generator_error";
     xl6CgenRegisterParamTypes(ctx, params);
-    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
+    xl6CgenEmitManagedParamOwners(ctx, params);
+    xl6CgenBeginTempScope(ctx, node);
     if ( body != NULL ) {
         xl6CgenBlock(ctx, body);
     }
@@ -306,6 +381,7 @@ static void xl6CgenGeneratorFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     itemCType = xl6CgenTypeName(ctx, itemType);
 
     xl6CgenGeneratorFrameDecl(ctx, node);
+    xl6CgenGeneratorFrameFreeFunc(ctx, node);
     xl6CgenGeneratorWorker(ctx, node, itemType);
 
     xl6CgenFuncProto(ctx, node);
@@ -322,15 +398,32 @@ static void xl6CgenGeneratorFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6OutputPuts("));\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPuts("if ( __xl6_frame == 0 ) { return 0; }\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("memset(__xl6_frame, 0, sizeof(*__xl6_frame));\n", ctx->out);
         for ( i = 0; i < params->childCount; ++i ) {
             const XL6_AstNode* param = params->children[i];
+            const XL6_AstNode* typeNode = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
+            char fieldName[512];
 
+            xl6CgenCIdentText(fieldName, sizeof(fieldName), param != NULL ? param->text : NULL);
             xl6CgenIndent(ctx);
-            xl6OutputPuts("__xl6_frame->", ctx->out);
-            xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
-            xl6OutputPuts(" = ", ctx->out);
-            xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
+            xl6OutputPrintf(ctx->out, "__xl6_frame->%s = ", fieldName);
+            if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+                xl6OutputPuts("xrtCopyStr(", ctx->out);
+                xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
+                xl6OutputPuts(" != 0 ? ", ctx->out);
+                xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
+                xl6OutputPuts(" : \"\", 0u)", ctx->out);
+            } else {
+                xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
+            }
             xl6OutputPuts(";\n", ctx->out);
+            if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(ctx->out, "if ( __xl6_frame->%s == 0 ) { ", fieldName);
+                xl6CgenGeneratorFrameFreeSymbol(ctx, node);
+                xl6OutputPuts("(__xl6_frame); return 0; }\n", ctx->out);
+            }
         }
     }
 
@@ -340,6 +433,12 @@ static void xl6CgenGeneratorFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6OutputPuts("), ", ctx->out);
     if ( params != NULL && params->childCount > 0 ) {
         xl6OutputPuts("__xl6_frame", ctx->out);
+    } else {
+        xl6OutputPuts("0", ctx->out);
+    }
+    xl6OutputPuts(", ", ctx->out);
+    if ( params != NULL && params->childCount > 0 ) {
+        xl6CgenGeneratorFrameFreeSymbol(ctx, node);
     } else {
         xl6OutputPuts("0", ctx->out);
     }
@@ -375,7 +474,7 @@ static void xl6CgenYieldStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     hasTaskScope = xl6CgenTaskSpawnArgTempScopeBegin(ctx, expr, &taskScope);
 
     xl6CgenIndent(ctx);
-    xl6OutputPuts("xl6_generator_yield_copy(", ctx->out);
+    xl6OutputPuts("if (!xl6_generator_yield_copy(", ctx->out);
     xl6OutputPuts(ctx->currentGeneratorHandleName, ctx->out);
     xl6OutputPuts(", &(", ctx->out);
     xl6OutputPuts(cType, ctx->out);
@@ -383,9 +482,16 @@ static void xl6CgenYieldStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6CgenExpr(ctx, expr);
     xl6OutputPuts("}, sizeof(", ctx->out);
     xl6OutputPuts(cType, ctx->out);
-    xl6OutputPrintf(ctx->out, "), \"\", %d, %d);\n", node->line, node->column);
+    xl6OutputPrintf(ctx->out, "), \"\", %d, %d)) {\n", node->line, node->column);
     if ( hasTaskScope ) {
         xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
     }
+    ctx->indent += 1;
+    xl6CgenEmitCleanupsSince(ctx, 0);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("return;\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
     xl6CgenEmitExceptionPropagate(ctx, node);
 }

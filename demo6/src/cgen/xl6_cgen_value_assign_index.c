@@ -58,7 +58,7 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
         if ( xl6CTextEquals(typeName, "array") ) {
             xl6OutputPuts("xl6_xrt_typed_array_set_at(", ctx->out);
             xl6CgenExpr(ctx, receiver);
-            xl6OutputPuts(", (unsigned int)(", ctx->out);
+            xl6OutputPuts(", (long long)(", ctx->out);
             xl6CgenExpr(ctx, index);
             xl6OutputPrintf(ctx->out, "), %s)", tempName != NULL ? tempName : "0");
         } else if ( xl6CTextEquals(typeName, "list") ) {
@@ -147,9 +147,9 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
     xl6CgenIndent(ctx);
     xl6OutputPuts("if ( !", ctx->out);
     if ( xl6CgenIsArrayXValueType(receiverType) ) {
-        xl6OutputPuts("xvoArraySetValue(", ctx->out);
+        xl6OutputPuts("xvoIndexSetI64(", ctx->out);
         xl6CgenExpr(ctx, receiver);
-        xl6OutputPuts(", (unsigned int)(", ctx->out);
+        xl6OutputPuts(", (long long)(", ctx->out);
         xl6CgenExpr(ctx, index);
         xl6OutputPrintf(ctx->out, "), %s, true)", tempName != NULL ? tempName : "0");
     } else if ( xl6CgenIsListXValueType(receiverType) ) {

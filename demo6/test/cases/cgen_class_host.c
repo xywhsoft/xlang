@@ -6,7 +6,6 @@ typedef struct xvalue_struct* xvalue;
 
 xvalue xvoCreateInt(long long iVal);
 long long xvoGetInt(xvalue pVal);
-void xvoUnref(xvalue pVal);
 
 static long long g_nc_probe_count = 0;
 static long long g_recorded_xvalue = 0;
@@ -52,7 +51,6 @@ long long nc_probe_count(void)
 void record_xvalue(xvalue value)
 {
     g_recorded_xvalue = xvoGetInt(value);
-    xvoUnref(value);
 }
 
 long long recorded_xvalue(void)

@@ -1,0 +1,88 @@
+// 动态容器可在目标元素类型明确时安全导入静态泛型容器。
+
+func makeArray() as array
+    return [1, 2, 3]
+end
+
+func makeList() as list
+    return [2: "two", 9: "nine"]
+end
+
+func makeSet() as set
+    return {4, 5, 6}
+end
+
+func makeDict() as dict
+    return {"a": 10, "b": 20}
+end
+
+func makeBadArray() as array
+    return ["not-an-int"]
+end
+
+func sum(array<int> items) as int
+    int total = 0
+    for value in items
+        total += value
+    end
+    return total
+end
+
+array<int> globalValues = makeArray()
+
+class Holder
+    array<int> values = makeArray()
+end
+
+func main(...) as int
+    array<int> values = makeArray()
+    list<string> sparse = makeList()
+    set<int> unique = makeSet()
+    dict<int> table = makeDict()
+
+    assert values.length == 3 and values[2] == 3, "dynamic array import failed"
+    assert sparse.length == 2 and sparse[9] == "nine", "dynamic list import failed"
+    assert unique.length == 3 and 5 in unique, "dynamic set import failed"
+    assert table.length == 2 and table["b"] == 20, "dynamic dict import failed"
+    assert globalValues.length == 3 and globalValues[0] == 1, "module global dynamic import failed"
+
+    Holder holder = Holder()
+    assert holder.values.length == 3 and holder.values[1] == 2, "class field dynamic import failed"
+    holder.values = makeArray()
+    assert holder.values.length == 3 and holder.values[2] == 3, "class field dynamic assignment failed"
+
+    values = makeArray()
+    assert values.length == 3 and values[0] == 1, "dynamic container assignment failed"
+    assert sum(makeArray()) == 6, "dynamic container call argument import failed"
+
+    array<string> lines = string.splitLines("alpha\nbeta")
+    assert lines.length == 2 and lines[0] == "alpha" and lines[1] == "beta", "stdlib dynamic array import failed"
+
+    bool caught = false
+    try
+        values = makeBadArray()
+    catch e
+        caught = e.kind == "TypeError"
+    end
+    assert caught, "incompatible dynamic element must raise TypeError"
+    assert values.length == 3 and values[0] == 1, "failed conversion must preserve assignment target"
+
+    caught = false
+    try
+        array<int> invalid = makeBadArray()
+        assert invalid.length == 0, "invalid declaration must not continue"
+    catch e
+        caught = e.kind == "TypeError"
+    end
+    assert caught, "incompatible dynamic declaration must raise TypeError"
+
+    caught = false
+    try
+        holder.values = makeBadArray()
+    catch e
+        caught = e.kind == "TypeError"
+    end
+    assert caught, "incompatible dynamic member assignment must raise TypeError"
+    assert holder.values.length == 3 and holder.values[2] == 3, "failed member conversion must preserve target"
+    return 0
+end

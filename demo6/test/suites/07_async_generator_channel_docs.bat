@@ -13,7 +13,7 @@ if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_async_class_conditional_await.xl --emit build\test\cgen_async_class_conditional_await.c
 if errorlevel 1 exit /b 1
 
-findstr /C:"xl6_future_await_class_conditionalAwaitBoxAsync_release" build\test\cgen_async_class_conditional_await.c >nul
+findstr /C:"xl6_future_await_class_xl_fn_conditionalAwaitBoxAsync_release" build\test\cgen_async_class_conditional_await.c >nul
 if errorlevel 1 (
     echo cgen_async_class_conditional_await.c missing class await release helper.
     exit /b 1
@@ -77,7 +77,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-findstr /C:"xl6_future_await_i64_release(failAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_future_await_i64_release(xl_fn_failAsync()" build\test\cgen_async_exception_propagation.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing owned temporary future await release.
     exit /b 1
@@ -95,13 +95,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-findstr /C:"xl6_future_await_void_release(failVoidAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_future_await_void_release(xl_fn_failVoidAsync()" build\test\cgen_async_exception_propagation.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed void await release.
     exit /b 1
 )
 
-findstr /C:"failedStringValueA = xl6_future_await_cstr_copy(failedString" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedStringValueA = xrtCopyStr(xl6_future_await_cstr_copy(failedString" build\test\cgen_async_exception_propagation.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed string first await copy.
     exit /b 1
@@ -113,7 +113,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-findstr /C:"failedStringValueB = xl6_future_await_cstr_copy(failedString" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedStringValueB = xrtCopyStr(xl6_future_await_cstr_copy(failedString" build\test\cgen_async_exception_propagation.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed string repeated await copy.
     exit /b 1
@@ -293,37 +293,37 @@ if errorlevel 1 (
     exit /b 1
 )
 
-findstr /C:"tempStringValue = xl6_future_await_cstr_release(failStringAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"tempStringValue = xrtCopyStr(xl6_future_await_cstr_release(xl_fn_failStringAsync()" build\test\cgen_async_exception_propagation.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed string await release.
     exit /b 1
 )
 
-findstr /C:"tempItemsValue = xl6_future_await_handle_release(failItemsAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"tempItemsValue = xl6_future_await_handle_release(xl_fn_failItemsAsync()" build\test\cgen_async_exception_propagation.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed typed array await release.
     exit /b 1
 )
 
-findstr /C:"tempListValue = xl6_future_await_handle_release(failListAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"tempListValue = xl6_future_await_handle_release(xl_fn_failListAsync()" build\test\cgen_async_exception_propagation.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed typed list await release.
     exit /b 1
 )
 
-findstr /C:"tempSetValue = xl6_future_await_handle_release(failSetAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"tempSetValue = xl6_future_await_handle_release(xl_fn_failSetAsync()" build\test\cgen_async_exception_propagation.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed typed set await release.
     exit /b 1
 )
 
-findstr /C:"tempDictValue = xl6_future_await_handle_release(failDictAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"tempDictValue = xl6_future_await_handle_release(xl_fn_failDictAsync()" build\test\cgen_async_exception_propagation.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed typed dict await release.
     exit /b 1
 )
 
-findstr /C:"static int xl_async_worker_asyncFinallyCatchAsync" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"static int xl_async_worker_xl_fn_asyncFinallyCatchAsync" build\test\cgen_async_exception_propagation.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing async finally worker.
     exit /b 1
@@ -1552,22 +1552,22 @@ for /L %%I in (1,1,5) do (
 release\xl.exe cgen test\cases\cgen_async_generator.xl --emit build\test\cgen_async_generator.c
 if errorlevel 1 exit /b 1
 
-findstr /C:"XL6_Generator* stream" build\test\cgen_async_generator.c >nul
+findstr /C:"XL6_Generator* xl_fn_stream" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing generator return symbol for async func.
     exit /b 1
 )
-findstr /C:"xl_gen_worker_stream" build\test\cgen_async_generator.c >nul
+findstr /C:"xl_gen_worker_xl_fn_stream" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing async generator worker.
     exit /b 1
 )
-findstr /C:"xl_gen_worker_brokenEarly" build\test\cgen_async_generator.c >nul
+findstr /C:"xl_gen_worker_xl_fn_brokenEarly" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing async generator early-error worker.
     exit /b 1
 )
-findstr /C:"xl_gen_worker_emptyStream" build\test\cgen_async_generator.c >nul
+findstr /C:"xl_gen_worker_xl_fn_emptyStream" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing async generator empty worker.
     exit /b 1
@@ -1582,7 +1582,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing for-await generator iteration.
     exit /b 1
 )
-findstr /C:"savedStream = stream(30LL);" build\test\cgen_async_generator.c >nul
+findstr /C:"savedStream = xl_fn_stream(30LL);" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator value.
     exit /b 1
@@ -1592,7 +1592,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator move-to-iterator lowering.
     exit /b 1
 )
-findstr /C:"savedBroken = broken();" build\test\cgen_async_generator.c >nul
+findstr /C:"savedBroken = xl_fn_broken();" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator error source.
     exit /b 1
@@ -1602,7 +1602,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator error propagation lowering.
     exit /b 1
 )
-findstr /C:"savedBrokenEarly = brokenEarly();" build\test\cgen_async_generator.c >nul
+findstr /C:"savedBrokenEarly = xl_fn_brokenEarly();" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator early-error source.
     exit /b 1
@@ -1612,7 +1612,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator early-error propagation lowering.
     exit /b 1
 )
-findstr /C:"savedEmpty = emptyStream();" build\test\cgen_async_generator.c >nul
+findstr /C:"savedEmpty = xl_fn_emptyStream();" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing saved empty async generator source.
     exit /b 1
@@ -1622,7 +1622,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing saved empty async generator iterator cleanup lowering.
     exit /b 1
 )
-findstr /C:"savedIndexed = indexedStream();" build\test\cgen_async_generator.c >nul
+findstr /C:"savedIndexed = xl_fn_indexedStream();" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator indexed source.
     exit /b 1
@@ -1637,7 +1637,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator second-pass rejection after break.
     exit /b 1
 )
-findstr /C:"savedIndexedContinue = indexedStream();" build\test\cgen_async_generator.c >nul
+findstr /C:"savedIndexedContinue = xl_fn_indexedStream();" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator continue source.
     exit /b 1
@@ -1652,17 +1652,17 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator second-pass rejection after continue/break.
     exit /b 1
 )
-findstr /C:"XL6_Generator* returnEarlyStream(void)" build\test\cgen_async_generator.c >nul
+findstr /C:"XL6_Generator* xl_fn_returnEarlyStream(void)" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing return-early async generator symbol.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_returnEarlyStream[\s\S]*?xl6_generator_yield_copy[\s\S]*?addAsync\(0LL, 5LL\)[\s\S]*?return;[\s\S]*?addAsync\(0LL, 50LL\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_returnEarlyStream[\s\S]*?xl6_generator_yield_copy[\s\S]*?xl_fn_addAsync\(0LL, 5LL\)[\s\S]*?return;[\s\S]*?xl_fn_addAsync\(0LL, 50LL\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing return-early async generator worker lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnEarly = returnEarlyStream\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnEarly;\s*savedReturnEarly = 0;[\s\S]*?savedReturnEarlyCount = \(savedReturnEarlyCount \+ 1LL\);[\s\S]*?savedReturnEarlyTotal = \(savedReturnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnEarly = xl_fn_returnEarlyStream\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnEarly;\s*savedReturnEarly = 0;[\s\S]*?savedReturnEarlyCount = \(savedReturnEarlyCount \+ 1LL\);[\s\S]*?savedReturnEarlyTotal = \(savedReturnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing saved return-early async generator consumption lowering.
     exit /b 1
@@ -1672,22 +1672,22 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing saved return-early async generator second-pass rejection.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'returnEarlyCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = returnEarlyStream\(\);[\s\S]*?returnEarlyCount = \(returnEarlyCount \+ 1LL\);[\s\S]*?returnEarlyTotal = \(returnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnEarlyCount == 1LL[\s\S]*?returnEarlyTotal == 5LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'returnEarlyCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = xl_fn_returnEarlyStream\(\);[\s\S]*?returnEarlyCount = \(returnEarlyCount \+ 1LL\);[\s\S]*?returnEarlyTotal = \(returnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnEarlyCount == 1LL[\s\S]*?returnEarlyTotal == 5LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing temporary return-early async generator lowering.
     exit /b 1
 )
-findstr /C:"XL6_Generator* returnBeforeYieldStream(void)" build\test\cgen_async_generator.c >nul
+findstr /C:"XL6_Generator* xl_fn_returnBeforeYieldStream(void)" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing return-before-yield async generator symbol.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_returnBeforeYieldStream[\s\S]*?\{\s*XL6_Generator\* __xl6_gen = \(XL6_Generator\*\)__xl6_arg;\s*return;[\s\S]*?addAsync\(0LL, 60LL\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_returnBeforeYieldStream[\s\S]*?\{\s*XL6_Generator\* __xl6_gen = \(XL6_Generator\*\)__xl6_arg;[\s\S]*?xrtTempScopeEnd\(&__xl6_temp_scope_\d+\);\s*return;[\s\S]*?xl_fn_addAsync\(0LL, 60LL\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing return-before-yield async generator worker lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnBeforeYield = returnBeforeYieldStream\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnBeforeYield;\s*savedReturnBeforeYield = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?savedReturnBeforeYieldCount = \(savedReturnBeforeYieldCount \+ 1LL\);[\s\S]*?savedReturnBeforeYieldTotal = \(savedReturnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnBeforeYieldCount == 0LL[\s\S]*?savedReturnBeforeYieldTotal == 0LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnBeforeYield = xl_fn_returnBeforeYieldStream\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnBeforeYield;\s*savedReturnBeforeYield = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?savedReturnBeforeYieldCount = \(savedReturnBeforeYieldCount \+ 1LL\);[\s\S]*?savedReturnBeforeYieldTotal = \(savedReturnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnBeforeYieldCount == 0LL[\s\S]*?savedReturnBeforeYieldTotal == 0LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing saved return-before-yield async generator empty consumption lowering.
     exit /b 1
@@ -1697,27 +1697,27 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing saved return-before-yield async generator second-pass rejection.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'returnBeforeYieldCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = returnBeforeYieldStream\(\);[\s\S]*?returnBeforeYieldCount = \(returnBeforeYieldCount \+ 1LL\);[\s\S]*?returnBeforeYieldTotal = \(returnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnBeforeYieldCount == 0LL[\s\S]*?returnBeforeYieldTotal == 0LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'returnBeforeYieldCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = xl_fn_returnBeforeYieldStream\(\);[\s\S]*?returnBeforeYieldCount = \(returnBeforeYieldCount \+ 1LL\);[\s\S]*?returnBeforeYieldTotal = \(returnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnBeforeYieldCount == 0LL[\s\S]*?returnBeforeYieldTotal == 0LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing temporary return-before-yield async generator lowering.
     exit /b 1
 )
-findstr /C:"XL6_Generator* plainStream(void)" build\test\cgen_async_generator.c >nul
+findstr /C:"XL6_Generator* xl_fn_plainStream(void)" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing ordinary generator symbol for for-await.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_plainStream[\s\S]*?xl6_generator_yield_copy[\s\S]*?\(long long\)\{7LL\}[\s\S]*?xl6_generator_yield_copy[\s\S]*?\(long long\)\{8LL\}'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_plainStream[\s\S]*?xl6_generator_yield_copy[\s\S]*?\(long long\)\{7LL\}[\s\S]*?xl6_generator_yield_copy[\s\S]*?\(long long\)\{8LL\}'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing ordinary generator worker for for-await.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'plainAwaitTotal = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = plainStream\(\);[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?plainAwaitTotal = \(plainAwaitTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?plainAwaitTotal == 15LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'plainAwaitTotal = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = xl_fn_plainStream\(\);[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?plainAwaitTotal = \(plainAwaitTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?plainAwaitTotal == 15LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing for-await ordinary generator temporary consumption lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedPlainAwait = plainStream\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedPlainAwait;\s*savedPlainAwait = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long plainIndex = __xl6_gen_index_\1;[\s\S]*?long long plainValue = 0;[\s\S]*?xl6_generator_value_into\(__xl6_gen_iter_\1, &plainValue,[\s\S]*?savedPlainAwaitWeighted = \(\(savedPlainAwaitWeighted \+ \(plainIndex \* 100LL\)\) \+ plainValue\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedPlainAwaitWeighted == 115LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedPlainAwait = xl_fn_plainStream\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedPlainAwait;\s*savedPlainAwait = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long plainIndex = __xl6_gen_index_\1;[\s\S]*?long long plainValue = 0;[\s\S]*?xl6_generator_value_into\(__xl6_gen_iter_\1, &plainValue,[\s\S]*?savedPlainAwaitWeighted = \(\(savedPlainAwaitWeighted \+ \(plainIndex \* 100LL\)\) \+ plainValue\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedPlainAwaitWeighted == 115LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing for-await saved ordinary generator index/value lowering.
     exit /b 1
@@ -1727,7 +1727,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing for-await ordinary generator second-pass rejection.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedPlainAwaitBreak = plainStream\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedPlainAwaitBreak;\s*savedPlainAwaitBreak = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long plainBreakIndex = __xl6_gen_index_\1;[\s\S]*?long long plainBreakValue = 0;[\s\S]*?if \(\(plainBreakIndex == 0LL\)\) \{[\s\S]*?goto __xl6_continue_\1;[\s\S]*?savedPlainAwaitBreakTotal = \(\(savedPlainAwaitBreakTotal \+ \(plainBreakIndex \* 100LL\)\) \+ plainBreakValue\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\);[\s\S]*?goto __xl6_break_\1;[\s\S]*?__xl6_continue_\1:[\s\S]*?__xl6_gen_index_\1 \+= 1;[\s\S]*?savedPlainAwaitBreakTotal == 108LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedPlainAwaitBreak = xl_fn_plainStream\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedPlainAwaitBreak;\s*savedPlainAwaitBreak = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long plainBreakIndex = __xl6_gen_index_\1;[\s\S]*?long long plainBreakValue = 0;[\s\S]*?if \(\(plainBreakIndex == 0LL\)\) \{[\s\S]*?goto __xl6_continue_\1;[\s\S]*?savedPlainAwaitBreakTotal = \(\(savedPlainAwaitBreakTotal \+ \(plainBreakIndex \* 100LL\)\) \+ plainBreakValue\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\);[\s\S]*?goto __xl6_break_\1;[\s\S]*?__xl6_continue_\1:[\s\S]*?__xl6_gen_index_\1 \+= 1;[\s\S]*?savedPlainAwaitBreakTotal == 108LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing for-await ordinary generator continue/break cleanup.
     exit /b 1
@@ -1742,7 +1742,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing async generator null diagnostic.
     exit /b 1
 )
-findstr /C:"consumedAsync = stream(40LL);" build\test\cgen_async_generator.c >nul
+findstr /C:"consumedAsync = xl_fn_stream(40LL);" build\test\cgen_async_generator.c >nul
 if errorlevel 1 (
     echo cgen_async_generator.c missing consumed async generator source.
     exit /b 1
@@ -1767,7 +1767,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing null async generator rejection.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_gen_worker_indexedStream[\s\S]*?xl6_future_await_i64_release[\s\S]*?xl6_generator_yield_copy'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_gen_worker_xl_fn_indexedStream[\s\S]*?xl6_future_await_i64_release[\s\S]*?xl6_generator_yield_copy'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing indexed async generator await-yield worker.
     exit /b 1
@@ -1915,22 +1915,22 @@ if errorlevel 1 (
     echo cgen_generator.c missing generator worker error capture.
     exit /b 1
 )
-findstr /C:"xl_gen_worker_brokenEarly" build\test\cgen_generator.c >nul
+findstr /C:"xl_gen_worker_xl_fn_brokenEarly" build\test\cgen_generator.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing generator early-error worker.
     exit /b 1
 )
-findstr /C:"xl_gen_worker_emptyNums" build\test\cgen_generator.c >nul
+findstr /C:"xl_gen_worker_xl_fn_emptyNums" build\test\cgen_generator.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing empty generator worker.
     exit /b 1
 )
-findstr /C:"xl_gen_worker_toggles" build\test\cgen_generator.c >nul
+findstr /C:"xl_gen_worker_xl_fn_toggles" build\test\cgen_generator.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing bool generator worker.
     exit /b 1
 )
-findstr /C:"xl_gen_worker_weights" build\test\cgen_generator.c >nul
+findstr /C:"xl_gen_worker_xl_fn_weights" build\test\cgen_generator.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing float generator worker.
     exit /b 1
@@ -1950,12 +1950,12 @@ if errorlevel 1 (
     echo cgen_generator.c missing generator null diagnostic.
     exit /b 1
 )
-findstr /C:"savedBreakGen = nums(3LL);" build\test\cgen_generator.c >nul
+findstr /C:"savedBreakGen = xl_fn_nums(3LL);" build\test\cgen_generator.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing saved break generator source.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedBreakGen = nums\(3LL\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBreakGen;\s*savedBreakGen = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long index = __xl6_gen_index_\1;[\s\S]*?long long item = 0;[\s\S]*?if \(\(index == 0LL\)\) \{[\s\S]*?goto __xl6_continue_\1;[\s\S]*?savedBreakTotal = \(\(savedBreakTotal \+ \(index \* 100LL\)\) \+ item\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\);[\s\S]*?goto __xl6_break_\1;[\s\S]*?__xl6_continue_\1:[\s\S]*?__xl6_gen_index_\1 \+= 1;[\s\S]*?savedBreakTotal == 102LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedBreakGen = xl_fn_nums\(3LL\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBreakGen;\s*savedBreakGen = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long index = __xl6_gen_index_\1;[\s\S]*?long long item = 0;[\s\S]*?if \(\(index == 0LL\)\) \{[\s\S]*?goto __xl6_continue_\1;[\s\S]*?savedBreakTotal = \(\(savedBreakTotal \+ \(index \* 100LL\)\) \+ item\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\);[\s\S]*?goto __xl6_break_\1;[\s\S]*?__xl6_continue_\1:[\s\S]*?__xl6_gen_index_\1 \+= 1;[\s\S]*?savedBreakTotal == 102LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing saved generator continue/break cleanup.
     exit /b 1
@@ -1965,7 +1965,7 @@ if errorlevel 1 (
     echo cgen_generator.c missing saved generator break second-pass rejection.
     exit /b 1
 )
-findstr /C:"consumedGen = nums(1LL);" build\test\cgen_generator.c >nul
+findstr /C:"consumedGen = xl_fn_nums(1LL);" build\test\cgen_generator.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing consumed generator source.
     exit /b 1
@@ -1990,17 +1990,17 @@ if errorlevel 1 (
     echo cgen_generator.c missing null generator rejection.
     exit /b 1
 )
-findstr /C:"XL6_Generator* returnEarlyNums(void)" build\test\cgen_generator.c >nul
+findstr /C:"XL6_Generator* xl_fn_returnEarlyNums(void)" build\test\cgen_generator.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing return-early generator function.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_returnEarlyNums[\s\S]*?xl6_generator_yield_copy[\s\S]*?\{5LL\}[\s\S]*?return;[\s\S]*?\{50LL\}'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_returnEarlyNums[\s\S]*?xl6_generator_yield_copy[\s\S]*?\{5LL\}[\s\S]*?return;[\s\S]*?\{50LL\}'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing return-early generator worker shape.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnEarlyNums = returnEarlyNums\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnEarlyNums;\s*savedReturnEarlyNums = 0;[\s\S]*?savedReturnEarlyCount = \(savedReturnEarlyCount \+ 1LL\);[\s\S]*?savedReturnEarlyTotal = \(savedReturnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnEarlyCount == 1LL[\s\S]*?savedReturnEarlyTotal == 5LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnEarlyNums = xl_fn_returnEarlyNums\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnEarlyNums;\s*savedReturnEarlyNums = 0;[\s\S]*?savedReturnEarlyCount = \(savedReturnEarlyCount \+ 1LL\);[\s\S]*?savedReturnEarlyTotal = \(savedReturnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnEarlyCount == 1LL[\s\S]*?savedReturnEarlyTotal == 5LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing saved return-early generator move lowering.
     exit /b 1
@@ -2010,22 +2010,22 @@ if errorlevel 1 (
     echo cgen_generator.c missing saved return-early generator second-pass rejection.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'returnEarlyCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = returnEarlyNums\(\);[\s\S]*?returnEarlyCount = \(returnEarlyCount \+ 1LL\);[\s\S]*?returnEarlyTotal = \(returnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnEarlyCount == 1LL[\s\S]*?returnEarlyTotal == 5LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'returnEarlyCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = xl_fn_returnEarlyNums\(\);[\s\S]*?returnEarlyCount = \(returnEarlyCount \+ 1LL\);[\s\S]*?returnEarlyTotal = \(returnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnEarlyCount == 1LL[\s\S]*?returnEarlyTotal == 5LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing temporary return-early generator lowering.
     exit /b 1
 )
-findstr /C:"XL6_Generator* returnBeforeYieldNums(void)" build\test\cgen_generator.c >nul
+findstr /C:"XL6_Generator* xl_fn_returnBeforeYieldNums(void)" build\test\cgen_generator.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing pre-yield return generator function.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_returnBeforeYieldNums[\s\S]*?\{\s*XL6_Generator\* __xl6_gen = \(XL6_Generator\*\)__xl6_arg;\s*return;[\s\S]*?\{60LL\}'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_returnBeforeYieldNums[\s\S]*?\{\s*XL6_Generator\* __xl6_gen = \(XL6_Generator\*\)__xl6_arg;[\s\S]*?xrtTempScopeEnd\(&__xl6_temp_scope_\d+\);\s*return;[\s\S]*?\{60LL\}'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing pre-yield return generator worker shape.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnBeforeYieldNums = returnBeforeYieldNums\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnBeforeYieldNums;\s*savedReturnBeforeYieldNums = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?savedReturnBeforeYieldCount = \(savedReturnBeforeYieldCount \+ 1LL\);[\s\S]*?savedReturnBeforeYieldTotal = \(savedReturnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnBeforeYieldCount == 0LL[\s\S]*?savedReturnBeforeYieldTotal == 0LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnBeforeYieldNums = xl_fn_returnBeforeYieldNums\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnBeforeYieldNums;\s*savedReturnBeforeYieldNums = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?savedReturnBeforeYieldCount = \(savedReturnBeforeYieldCount \+ 1LL\);[\s\S]*?savedReturnBeforeYieldTotal = \(savedReturnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnBeforeYieldCount == 0LL[\s\S]*?savedReturnBeforeYieldTotal == 0LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing saved pre-yield return generator move lowering.
     exit /b 1
@@ -2035,7 +2035,7 @@ if errorlevel 1 (
     echo cgen_generator.c missing saved pre-yield return generator second-pass rejection.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'returnBeforeYieldCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = returnBeforeYieldNums\(\);[\s\S]*?returnBeforeYieldCount = \(returnBeforeYieldCount \+ 1LL\);[\s\S]*?returnBeforeYieldTotal = \(returnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnBeforeYieldCount == 0LL[\s\S]*?returnBeforeYieldTotal == 0LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'returnBeforeYieldCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = xl_fn_returnBeforeYieldNums\(\);[\s\S]*?returnBeforeYieldCount = \(returnBeforeYieldCount \+ 1LL\);[\s\S]*?returnBeforeYieldTotal = \(returnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnBeforeYieldCount == 0LL[\s\S]*?returnBeforeYieldTotal == 0LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing temporary pre-yield return generator lowering.
     exit /b 1
@@ -2107,16 +2107,31 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generator_string_element.xl >nul 2> build\test\sem_generator_string_element.err.txt
-if not errorlevel 1 (
-    echo sem_generator_string_element.xl should fail.
-    exit /b 1
-)
-findstr /C:"generator<T>" build\test\sem_generator_string_element.err.txt >nul
+release\xl.exe check test\cases\cgen_generator_string_resource.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_generator_string_resource.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_generator_string_resource.xl --emit build\test\cgen_generator_string_resource.c
+if errorlevel 1 exit /b 1
+findstr /C:"__xl6_frame->prefix = xrtCopyStr(prefix != 0 ? prefix : \"\", 0u);" build\test\cgen_generator_string_resource.c >nul
 if errorlevel 1 (
-    echo sem_generator_string_element.xl missing generator element diagnostic.
+    echo cgen_generator_string_resource.c missing owned generator string frame copy.
     exit /b 1
 )
+findstr /C:"xl_gen_frame_free_xl_fn_messages" build\test\cgen_generator_string_resource.c >nul
+if errorlevel 1 (
+    echo cgen_generator_string_resource.c missing generator frame destructor.
+    exit /b 1
+)
+findstr /C:"if ( xrtCoCancel(gen->co) ) { (void)xrtCoResume(gen->co); }" build\test\cgen_generator_string_resource.c >nul
+if errorlevel 1 (
+    echo cgen_generator_string_resource.c missing suspended generator cancellation.
+    exit /b 1
+)
+"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generator_string_resource.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generator_string_resource.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_generator_string_resource.exe
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_generator_var_element.xl >nul 2> build\test\sem_generator_var_element.err.txt
 if not errorlevel 1 (
@@ -2159,22 +2174,6 @@ if not errorlevel 1 (
 findstr /C:"generator<T>" build\test\sem_generator_function_element.err.txt >nul
 if errorlevel 1 (
     echo sem_generator_function_element.xl missing generator element diagnostic.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_generator_string_param.xl >nul 2> build\test\sem_generator_string_param.err.txt
-if not errorlevel 1 (
-    echo sem_generator_string_param.xl should fail.
-    exit /b 1
-)
-findstr /C:"generator" build\test\sem_generator_string_param.err.txt >nul
-if errorlevel 1 (
-    echo sem_generator_string_param.xl missing generator string parameter diagnostic.
-    exit /b 1
-)
-findstr /C:"bool" build\test\sem_generator_string_param.err.txt >nul
-if errorlevel 1 (
-    echo sem_generator_string_param.xl missing generator string parameter type boundary.
     exit /b 1
 )
 
@@ -2337,14 +2336,32 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_channel_string_element.xl >nul 2> build\test\sem_channel_string_element.err.txt
-if not errorlevel 1 (
-    echo sem_channel_string_element.xl should fail.
+release\xl.exe run test\cases\cgen_channel_string.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_channel_string.xl -o build\test\cgen_channel_string.exe
+if errorlevel 1 exit /b 1
+for /L %%I in (1,1,5) do (
+    build\test\cgen_channel_string.exe >nul
+    if errorlevel 1 (
+        echo cgen_channel_string.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
+release\xl.exe cgen test\cases\cgen_channel_string.xl --emit build\test\cgen_channel_string.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_channel_send_string" build\test\cgen_channel_string.c >nul
+if errorlevel 1 (
+    echo cgen_channel_string.c missing string send copy helper.
     exit /b 1
 )
-findstr /C:"channel<T>" build\test\sem_channel_string_element.err.txt >nul
+findstr /C:"xl6_channel_recv_string" build\test\cgen_channel_string.c >nul
 if errorlevel 1 (
-    echo sem_channel_string_element.xl missing channel element diagnostic.
+    echo cgen_channel_string.c missing string receive copy helper.
+    exit /b 1
+)
+findstr /C:"xl6_channel_destroy(pendingCh)" build\test\cgen_channel_string.c >nul
+if errorlevel 1 (
+    echo cgen_channel_string.c missing buffered message cleanup.
     exit /b 1
 )
 

@@ -72,6 +72,8 @@ static int xl6CgenClassPropertyResolve(
     const XL6_AstNode* ownerClass;
     const XL6_AstNode* method;
     XL6_AstNode* call;
+    const XL6_AstNode* prevParams;
+    const XL6_AstNode* prevArgs;
 
     if ( outClass != NULL ) {
         *outClass = NULL;
@@ -107,8 +109,16 @@ static int xl6CgenClassPropertyResolve(
         return 0;
     }
 
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    if ( concreteType != NULL && concreteType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+        ctx->currentGenericArgs = concreteType->children[0];
+    }
     ownerClass = NULL;
     method = xl6CgenResolveClassProperty(ctx, classNode, call, member->text, kind, &ownerClass);
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
     if ( method == NULL ) {
         xl6CgenProtocolTempCallFree(call);
         xl6AstFree(receiverType);
@@ -143,18 +153,47 @@ static int xl6CgenClassPropertyResolve(
 static XL6_AstNode* xl6CgenCloneClassPropertyMemberType(XL6_CgenContext* ctx, const XL6_AstNode* member, const XL6_AstNode* indexNode)
 {
     const XL6_AstNode* classNode;
+    const XL6_AstNode* ownerClass;
     const XL6_AstNode* method;
     const XL6_AstNode* returns;
+    const XL6_AstNode* prevParams;
+    const XL6_AstNode* prevArgs;
+    XL6_AstNode* receiverType;
+    XL6_AstNode* result;
 
-    if ( !xl6CgenClassPropertyResolve(ctx, member, indexNode, NULL, XL6_AST_GET, &classNode, NULL, &method, NULL, NULL) ) {
+    receiverType = NULL;
+    if ( !xl6CgenClassPropertyResolve(
+             ctx,
+             member,
+             indexNode,
+             NULL,
+             XL6_AST_GET,
+             &classNode,
+             &ownerClass,
+             &method,
+             &receiverType,
+             NULL) ) {
         return NULL;
     }
-    (void)classNode;
     returns = method != NULL && method->childCount > 2 ? method->children[2] : NULL;
     if ( returns == NULL || returns->childCount != 1 ) {
+        xl6AstFree(receiverType);
         return NULL;
     }
-    return xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0]);
+
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    if ( receiverType != NULL && receiverType->childCount > 0 &&
+         ownerClass != NULL && xl6CgenClassHasTypeParams(ownerClass) ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(ownerClass);
+        ctx->currentGenericArgs = receiverType->children[0];
+    }
+    result = xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0]);
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
+    xl6AstFree(receiverType);
+    (void)classNode;
+    return result;
 }
 
 static int xl6CgenClassPropertyEmitSelf(

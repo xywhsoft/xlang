@@ -247,8 +247,8 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `A a`，其中 `A` 有 destroy、基类/字段需要析构或 function 字段 |
-| 生成规则描述 | 只有 class 递归判定为需要析构时，才注册 `XL6_CGEN_CLEANUP_CLASS`；同时保存 classTypeNode，以便泛型 class 生成正确的实例化 destroy 符号。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:600` |
+| 生成规则描述 | 只有 class 递归判定为需要析构时，才注册 `XL6_CGEN_CLEANUP_CLASS`；同时保存 classTypeNode，以便泛型 class 生成正确的实例化 destroy 符号。普通或泛型 class 值参数建立 owned copy 后也进入同一 cleanup 路径，native-backed class 句柄不在这里做值复制。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:36`、`demo6/src/cgen/xl6_cgen_decl_methods.c:41` |
 | 对应生成的 C 代码 | `xl6_A_destroy(&a);` 或泛型 class 的实例化 destroy。 |
 | 中间形态伪代码 | `if classNeedsDestroy(class): add cleanup CLASS with classTypeNode` |
 | 实现同等功能手写的 C 代码 | 手写 C 按类型显式调用析构函数。 |
@@ -511,8 +511,8 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `A a` 作用域结束，A 需要析构 |
-| 生成规则描述 | 若 cleanup 未被前面的特殊 kind 消费，且 class 递归判定需要析构，则输出 class destroy 调用。泛型 class 实例使用泛型 class 成员符号，非泛型 class 使用普通 class 成员符号。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:341` |
+| 生成规则描述 | 若 cleanup 未被前面的特殊 kind 消费，且 class 递归判定需要析构，则输出 class destroy 调用。泛型 class 实例使用泛型 class 成员符号，非泛型 class 使用普通 class 成员符号；这同样释放函数入口为 class 值参数建立的独立 owned copy。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:450` |
 | 对应生成的 C 代码 | `xl6_A_destroy(&a);` 或 `xl6_A__int_destroy(&a);` |
 | 中间形态伪代码 | `if classNeedsDestroy: emit genericDestroy or classDestroy(&name)` |
 | 实现同等功能手写的 C 代码 | 手写 C 显式调用结构体析构函数。 |

@@ -22,6 +22,11 @@ func viewOnly()
     point handle = makeBox(77)
     auto box = ViewOnly(handle)
     expect(box.value(), 77)
+    if handle != null then
+        expect(1, 1)
+    else
+        expect(0, 1)
+    end
 end
 
 func copyOpenOnly()

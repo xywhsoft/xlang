@@ -6,7 +6,14 @@ func addVar(var value) as int
     return int(value) + 1
 end
 
+func sumSpawnItems(array<int> items) as int
+    return items[0] + items[1]
+end
+
 func(var) as int varArgJob = addVar
 
 string fstringDynamicSpawn = f"value={await task.spawn(varArgJob, true ? makeSpawnValue(40) : makeSpawnValue(0))}"
 assert fstringDynamicSpawn == "value=41", "task.spawn dynamic var argument should lower inside f-string interpolation"
+
+string fstringNestedTemps = f"sum={sumSpawnItems([20, 22])}, value={await task.spawn(varArgJob, true ? makeSpawnValue(40) : makeSpawnValue(0))}"
+assert fstringNestedTemps == "sum=42, value=41", "ordinary and task.spawn argument temporaries should compose inside f-string interpolation"

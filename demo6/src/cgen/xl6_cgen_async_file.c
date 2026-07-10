@@ -38,16 +38,6 @@ static void xl6CgenEmitAsyncFileRuntime(XL6_Output* out)
     xl6OutputPuts("    xrtFree(arg);\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static void xl6_async_file_free_string_box(void* pValue)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    const char** value = (const char**)pValue;\n", out);
-    xl6OutputPuts("    if ( value != 0 && *value != 0 ) {\n", out);
-    xl6OutputPuts("        xrtFree((void*)*value);\n", out);
-    xl6OutputPuts("        *value = 0;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    xrtFree(pValue);\n", out);
-    xl6OutputPuts("}\n\n", out);
-
     xl6OutputPuts("static int xl6_async_file_result_error(xfuture_result* pOut, const char* message)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( pOut == 0 ) { return -1; }\n", out);
@@ -94,7 +84,7 @@ static void xl6CgenEmitAsyncFileRuntime(XL6_Output* out)
     xl6OutputPuts("    pOut->pValue = value;\n", out);
     xl6OutputPuts("    pOut->sError = 0;\n", out);
     xl6OutputPuts("    pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE;\n", out);
-    xl6OutputPuts("    pOut->pfnFreeValue = xl6_async_file_free_string_box;\n", out);
+    xl6OutputPuts("    pOut->pfnFreeValue = xl6_async_free_string_value;\n", out);
     xl6OutputPuts("    pOut->pfnFreeError = 0;\n", out);
     xl6OutputPuts("    return 0;\n", out);
     xl6OutputPuts("}\n\n", out);

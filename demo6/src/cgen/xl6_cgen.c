@@ -15,6 +15,8 @@
 #include "src/cgen/xl6_cgen_core_names.c"
 #include "src/cgen/xl6_cgen_core_lookup.c"
 #include "src/cgen/xl6_cgen_core_state.c"
+static const XL6_AstNode* xl6CgenTypedContainerConcreteType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
+static const char* xl6CgenTypedContainerCType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 #include "src/cgen/xl6_cgen_core_types.c"
 #include "src/cgen/xl6_cgen_core_generics.c"
 static XL6_AstNode* xl6CgenCloneImplicitSelfFieldType(XL6_CgenContext* ctx, const char* fieldName);
@@ -27,6 +29,7 @@ static const char* xl6CgenValueStorageCType(XL6_CgenContext* ctx, const XL6_AstN
 #include "src/cgen/xl6_cgen_type_generic.c"
 #include "src/cgen/xl6_cgen_expr_support_types.c"
 #include "src/cgen/xl6_cgen_expr_support_base.c"
+#include "src/cgen/xl6_cgen_extern_call.c"
 #include "src/cgen/xl6_cgen_expr_cleanup.c"
 #include "src/cgen/xl6_cgen_loop_target.c"
 #include "src/cgen/xl6_cgen_function_value.c"
@@ -56,6 +59,11 @@ static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name);
 #include "src/cgen/xl6_cgen_class_derive_protocol.c"
 #include "src/cgen/xl6_cgen_class_protocol.c"
 #include "src/cgen/xl6_cgen_class_property.c"
+static int xl6CgenClassPropertyCompoundAssignStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* left,
+    const char* op,
+    const XL6_AstNode* right);
 #include "src/cgen/xl6_cgen_assign_target.c"
 #include "src/cgen/xl6_cgen_assign_numeric.c"
 #include "src/cgen/xl6_cgen_value_assign_index.c"
@@ -72,6 +80,7 @@ static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name);
 #include "src/cgen/xl6_cgen_stmt_decl_call_arg_scope.c"
 #include "src/cgen/xl6_cgen_stmt_decl_main.c"
 #include "src/cgen/xl6_cgen_stmt_multi.c"
+#include "src/cgen/xl6_cgen_class_property_compound.c"
 #include "src/cgen/xl6_cgen_stmt_branch.c"
 #include "src/cgen/xl6_cgen_stmt_loop_while.c"
 #include "src/cgen/xl6_cgen_stmt_loop.c"

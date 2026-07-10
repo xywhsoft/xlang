@@ -31,6 +31,84 @@ static void xl6CgenRecordFieldSelfBaseAddressExpr(XL6_CgenContext* ctx, const ch
     xl6CgenRecordFieldSelfBaseExpr(ctx, basePath);
 }
 
+/*
+ * 动态字段桥接需要保留字段本身的运行时类型，不能借用持久化协议。
+ * class 字段在这里装箱为 record；JSON/XSON 转换只由显式持久化入口负责。
+ */
+static int xl6CgenRecordFieldClassCType(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    char* cTypeName,
+    size_t cTypeNameSize)
+{
+    const XL6_AstNode* concreteType;
+
+    if ( ctx == NULL || typeNode == NULL || cTypeName == NULL || cTypeNameSize == 0 ) {
+        return 0;
+    }
+    concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
+    if ( concreteType == NULL || !xl6CgenIsClassType(ctx, concreteType) ) {
+        return 0;
+    }
+    xl6CgenClassTypeRefName(cTypeName, cTypeNameSize, concreteType);
+    return cTypeName[0] != '\0';
+}
+
+static void xl6CgenRecordFieldValueExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* valuePath)
+{
+    char cTypeName[512];
+
+    cTypeName[0] = '\0';
+    if ( xl6CgenRecordFieldClassCType(ctx, typeNode, cTypeName, sizeof(cTypeName)) ) {
+        xl6OutputPuts("xrtTypeBoxValue(", ctx->out);
+        xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+        xl6OutputPuts("(), &", ctx->out);
+        xl6OutputPuts(valuePath, ctx->out);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+    xl6CgenClassValueExpr(ctx, typeNode, valuePath);
+}
+
+static void xl6CgenRecordFieldAssignFromValue(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* targetPath,
+    const char* valuePath,
+    const char* okName)
+{
+    char cTypeName[512];
+
+    cTypeName[0] = '\0';
+    if ( xl6CgenRecordFieldClassCType(ctx, typeNode, cTypeName, sizeof(cTypeName)) ) {
+        int id = ctx->tempId++;
+
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s __xl6_record_field_value_%d = {0};\n", cTypeName, id);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("if ( !xrtTypeUnboxValue(", ctx->out);
+        xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+        xl6OutputPrintf(ctx->out, "(), %s, &__xl6_record_field_value_%d) ) { %s = 0; } else {\n", valuePath, id, okName);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("xrtTypeDropValue(", ctx->out);
+        xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+        xl6OutputPuts("(), &", ctx->out);
+        xl6OutputPuts(targetPath, ctx->out);
+        xl6OutputPuts(");\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = __xl6_record_field_value_%d;\n", targetPath, id);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        return;
+    }
+    xl6CgenClassAssignFromValue(ctx, typeNode, targetPath, valuePath, okName, NULL);
+}
+
 static int xl6CgenRecordFieldStaticGetCase(
     XL6_CgenContext* ctx,
     const XL6_AstNode* classNode,
@@ -51,7 +129,7 @@ static int xl6CgenRecordFieldStaticGetCase(
     xl6CgenCStringLiteral(ctx->out, field->text);
     xl6OutputPuts(") == 0 ) {\n", ctx->out);
     xl6OutputPuts("            result = ", ctx->out);
-    xl6CgenClassValueExpr(ctx, fieldType, fieldPath);
+    xl6CgenRecordFieldValueExpr(ctx, fieldType, fieldPath);
     xl6OutputPuts(";\n", ctx->out);
     xl6OutputPuts("            goto done;\n", ctx->out);
     xl6OutputPuts("        }\n", ctx->out);
@@ -81,7 +159,7 @@ static int xl6CgenRecordFieldStaticSetCase(
     xl6OutputPuts("            int ok = 1;\n", ctx->out);
     prevIndent = ctx->indent;
     ctx->indent = 3;
-    xl6CgenClassAssignFromValue(ctx, fieldType, fieldPath, "value", "ok", NULL);
+    xl6CgenRecordFieldAssignFromValue(ctx, fieldType, fieldPath, "value", "ok");
     ctx->indent = prevIndent;
     xl6OutputPuts("            return ok != 0;\n", ctx->out);
     xl6OutputPuts("        }\n", ctx->out);

@@ -1,0 +1,42 @@
+class ClosureBox
+    derive copy
+
+    string text = ""
+
+    create(string text)
+        self.text = text
+    end
+end
+
+func makeMultiplierForClosure(int factor) as func(int) as int
+    return func(int value) as int
+        return value * factor
+    end
+end
+
+func makeFormatter(
+    string prefix,
+    var dynamicValue,
+    array<int> values,
+    func(int) as int transform,
+    ClosureBox box
+) as func(int) as string
+    return func(int index) as string
+        int selected = values[index]
+        int transformed = transform(index)
+        return prefix + ":" + string(dynamicValue) + ":" + string(selected) + ":" + string(transformed) + ":" + box.text
+    end
+end
+
+func createFormatter() as func(int) as string
+    string prefix = "owned"
+    var dynamicValue = 5
+    array<int> values = array<int>[10, 20, 30]
+    func(int) as int transform = makeMultiplierForClosure(4)
+    ClosureBox box = ClosureBox("box")
+    return makeFormatter(prefix, dynamicValue, values, transform, box)
+end
+
+func(int) as string formatter = createFormatter()
+assert formatter(1) == "owned:5:20:4:box"
+assert formatter(2) == "owned:5:30:8:box"

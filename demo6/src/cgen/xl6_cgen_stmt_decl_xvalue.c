@@ -20,10 +20,7 @@ static void xl6CgenDeclEmitXValueExprInit(
         return;
     }
 
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue %s = ", cName);
-    xl6CgenXValueFromExprForTarget(ctx, typeNode, initExpr);
-    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenXValueLocalInitStmt(ctx, typeNode, cName, initExpr);
 }
 
 static void xl6CgenDeclEmitXValueExprAssign(
@@ -45,8 +42,5 @@ static void xl6CgenDeclEmitXValueExprAssign(
         return;
     }
 
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = ", cName);
-    xl6CgenXValueFromExprForTarget(ctx, typeNode, initExpr);
-    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenXValueAssignStmt(ctx, typeNode, cName, initExpr);
 }

@@ -1,9 +1,27 @@
+int destroyCount = 0
+
 class Resource
+    int value
+
+    create(int initial)
+        self.value = initial
+    end
+
     destroy()
+        destroyCount += 1
     end
 end
 
 func make() as Resource
-    Resource value = Resource()
+    Resource value = Resource(7)
     return value
 end
+
+func verifyMovedReturn()
+    Resource value = make()
+    assert value.value == 7, "moved class return lost fields"
+    assert destroyCount == 0, "moved local class was destroyed before caller received it"
+end
+
+verifyMovedReturn()
+assert destroyCount == 1, "moved class return should be destroyed exactly once"

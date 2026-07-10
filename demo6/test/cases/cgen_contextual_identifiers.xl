@@ -1,0 +1,46 @@
+func xtime(int stdout, int errno) as int
+    return stdout + errno
+end
+
+class KeywordFields
+    int get = 1
+    int let = 2
+    int set = 3
+
+    func total() as int
+        return self.get + self.let + self.set
+    end
+end
+
+class KeywordMethods
+    func get() as int
+        return 4
+    end
+
+    func let() as int
+        return 5
+    end
+
+    func set() as int
+        return 6
+    end
+end
+
+assert(xtime(7, 8) == 15)
+
+KeywordFields fields = KeywordFields()
+assert(fields.total() == 6)
+
+KeywordMethods methods = KeywordMethods()
+assert(methods.get() + methods.let() + methods.set() == 15)
+
+var values = {"left": 1, "right": 2}
+int count = 0
+for _, _ in values
+    count += 1
+end
+assert(count == 2)
+
+string manyParts = path.join("root", "one", "two", "three", "four", "five")
+string nestedParts = path.join(path.join(path.join(path.join(path.join("root", "one"), "two"), "three"), "four"), "five")
+assert(manyParts == nestedParts)

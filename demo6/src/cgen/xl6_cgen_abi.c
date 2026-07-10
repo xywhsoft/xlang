@@ -224,7 +224,7 @@ static void xl6CgenFunctionReturnStructDeclForId(XL6_CgenContext* ctx, const XL6
     xl6OutputPuts(" {\n", ctx->out);
     for ( i = 0; i < returns->childCount; ++i ) {
         xl6OutputPuts("    ", ctx->out);
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[i]), ctx->out);
+        xl6OutputPuts(xl6CgenValueStorageCType(ctx, returns->children[i]), ctx->out);
         xl6OutputPrintf(ctx->out, " value%u;\n", (unsigned)i);
     }
     xl6OutputPuts("} ", ctx->out);

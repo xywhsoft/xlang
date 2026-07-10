@@ -63,7 +63,9 @@ static int xl6CgenIsCReservedIdent(const char* text)
         "auto", "break", "case", "char", "const", "continue", "default", "do", "double",
         "else", "enum", "extern", "float", "for", "goto", "if", "inline", "int", "long",
         "register", "restrict", "return", "short", "signed", "sizeof", "static", "struct",
-        "switch", "typedef", "union", "unsigned", "void", "volatile", "while"
+        "switch", "typedef", "union", "unsigned", "void", "volatile", "while",
+        /* TCC/CRT 常以宏暴露这些名字，不能让宏改写生成的局部标识符。 */
+        "errno", "stdin", "stdout", "stderr"
     };
     size_t i;
 

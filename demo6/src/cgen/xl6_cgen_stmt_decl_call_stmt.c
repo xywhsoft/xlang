@@ -123,7 +123,7 @@ static int xl6CgenTryKnownCallStatementWithScalarArgTemps(XL6_CgenContext* ctx, 
         if ( canonicalType == NULL ) {
             continue;
         }
-        if ( !xl6CgenDeclCanEmitCallArgTemp(ctx, canonicalType, argExpr) ) {
+        if ( !xl6CgenDeclCallArgumentNeedsTemp(ctx, canonicalType, argExpr) ) {
             xl6AstFree(canonicalType);
             continue;
         }
@@ -272,11 +272,21 @@ static int xl6CgenTryKnownCallStatementWithClassArgTemps(XL6_CgenContext* ctx, c
         }
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, temps[i].valueType), temps[i].valueName);
-        xl6CgenEmitMemberFunctionStatementTemp(ctx, argExpr, temps[i].functionName);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = ", temps[i].valueName);
-        xl6CgenMemberFunctionStatementInvokeExpr(ctx, argExpr, temps[i].functionType, temps[i].functionName);
-        xl6OutputPuts(";\n", ctx->out);
+        if ( temps[i].isConstructor ) {
+            if ( !xl6CgenEmitClassCtorInto(ctx, argExpr, temps[i].valueName) ) {
+                xl6CgenError(ctx, argExpr, "class argument constructor lowering failed");
+            }
+        } else if ( temps[i].isUpcast ) {
+            if ( !xl6CgenClassUpcastStmt(ctx, temps[i].valueType, argExpr, temps[i].valueName) ) {
+                xl6CgenError(ctx, argExpr, "class argument upcast lowering failed");
+            }
+        } else {
+            xl6CgenEmitMemberFunctionStatementTemp(ctx, argExpr, temps[i].functionName);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = ", temps[i].valueName);
+            xl6CgenMemberFunctionStatementInvokeExpr(ctx, argExpr, temps[i].functionType, temps[i].functionName);
+            xl6OutputPuts(";\n", ctx->out);
+        }
     }
 
     xl6CgenIndent(ctx);

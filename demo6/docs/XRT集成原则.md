@@ -171,3 +171,23 @@ xrtSplit(...);
 - 是否避免改变 xlang 侧调用代码。
 
 这条原则是 DEMO6 稳定性和长期维护性的硬约束。
+
+## 8. 动态值的线程发布
+
+文件作用域 `var`、静态泛型容器以及 class 拥有的动态字段可能被 thread、task 或 native callback 访问，
+因此初始化和重绑定都必须在发布边界进入 `XRT_OBJMODE_SHARED`，不能在某个回调入口临时修补。
+
+XRT 提供以下模式化复制 API：
+
+```c
+xvalue xvoCopyEx(xvalue value, uint32 mode);
+xvalue xvoDeepCopyEx(xvalue value, uint32 mode);
+```
+
+- `XRT_OBJMODE_LOCAL` 保持原有 copy/deep-copy 语义。
+- `XRT_OBJMODE_SHARED` 递归创建共享 array/list/set/dict 根，并将标量值头切换为原子引用计数模式。
+- 向共享 xvalue 容器写入本地复合值时，XRT 自动创建共享图副本；array/list/set/dict 的公开写入 API 使用同一规则。
+- 共享发布不会替用户消除数据竞争；多个线程写同一对象时仍必须使用 mutex/rwlock 等同步原语。
+- 当前共享值图最多允许 256 层容器嵌套；循环引用会以发布失败结束，不会无限递归。
+
+生成代码通过内部 `xl6_xrt_move_to_shared` 完成拥有权转移，原本地临时值在共享副本建立后立即释放。

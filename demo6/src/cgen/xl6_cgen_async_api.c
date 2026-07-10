@@ -84,6 +84,7 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
     const XL6_AstNode* arg;
     const XL6_AstNode* argExpr;
     const char* cType;
+    int isString;
 
     if ( call == NULL || member == NULL || member->kind != XL6_AST_MEMBER ) {
         return 0;
@@ -118,12 +119,25 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
 
     itemType = xl6CgenChannelElementType(receiverType);
     cType = itemType != NULL ? xl6CgenTypeName(ctx, itemType) : "int";
+    isString = itemType != NULL && xl6CTextEquals(cType, "const char*");
     args = call->childCount > 1 ? call->children[1] : NULL;
     arg = args != NULL && args->childCount == 1 ? args->children[0] : NULL;
     argExpr = arg != NULL && arg->childCount > 0 ? arg->children[0] : NULL;
 
     if ( xl6CTextEquals(member->text, "send") ||
          xl6CTextEquals(member->text, "trySend") ) {
+        if ( isString ) {
+            xl6OutputPuts("xl6_channel_send_string(", ctx->out);
+            xl6CgenChannelReceiverExpr(ctx, receiver);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, argExpr);
+            xl6OutputPrintf(ctx->out,
+                            ", %d, \"\", %d, %d)",
+                            xl6CTextEquals(member->text, "send") ? 1 : 0,
+                            member->line,
+                            member->column);
+            return 1;
+        }
         xl6OutputPuts("xl6_channel_send_value(", ctx->out);
         xl6CgenChannelReceiverExpr(ctx, receiver);
         xl6OutputPuts(", &(", ctx->out);
@@ -142,6 +156,17 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
 
     if ( xl6CTextEquals(member->text, "recvInto") ||
          xl6CTextEquals(member->text, "tryRecvInto") ) {
+        if ( isString ) {
+            xl6OutputPuts("xl6_channel_recv_string(", ctx->out);
+            xl6CgenChannelReceiverExpr(ctx, receiver);
+            xl6OutputPuts(", &", ctx->out);
+            xl6CgenFputsCIdent(ctx->out, argExpr->text);
+            xl6OutputPrintf(ctx->out, ", %d, \"\", %d, %d)",
+                            xl6CTextEquals(member->text, "recvInto") ? 1 : 0,
+                            member->line,
+                            member->column);
+            return 1;
+        }
         xl6OutputPuts("xl6_channel_recv_into(", ctx->out);
         xl6CgenChannelReceiverExpr(ctx, receiver);
         xl6OutputPuts(", &", ctx->out);

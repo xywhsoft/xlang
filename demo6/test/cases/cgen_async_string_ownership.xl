@@ -1,0 +1,14 @@
+async func greetOwned(string name) as string
+    time.sleep(10)
+    return "hello " + name
+end
+
+string temporary = await greetOwned("temporary-" + string(7))
+assert temporary == "hello temporary-7"
+
+future<string> named = greetOwned("named-" + string(9))
+string first = await named
+string second = await named
+
+assert first == "hello named-9"
+assert second == "hello named-9"

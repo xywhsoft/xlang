@@ -67,19 +67,19 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `func inc(int n)` / `self.value += n` |
-| 生成规则描述 | 方法体生成前设置 `currentClass`、`currentReturnType`，并把 `self` 注册为当前 class 类型。参数类型进入变量类型表，方法体按普通 block 输出；结束后恢复上下文并释放本方法作用域的变量类型记录。 |
-| 生成器文件名和行号 | `xl6_cgen_decl_methods.c:197`、`xl6_cgen_decl_methods.c:205`、`xl6_cgen_decl_methods.c:217` |
+| 生成规则描述 | 方法体生成前设置 `currentClass`、`currentReturnType`，并把 `self` 注册为当前 class 类型。参数类型进入变量类型表；普通 class 值参数若包含 owned 字段，会从传入的浅 C 值建立独立 owned copy 并注册作用域清理，避免被调函数修改或释放调用方字段；native-backed class 不进入这条复制路径。方法体结束后恢复上下文并释放本方法作用域的变量类型记录。 |
+| 生成器文件名和行号 | `xl6_cgen_decl_methods.c:41`、`xl6_cgen_decl_methods.c:339`、`xl6_cgen_decl_methods.c:398` |
 | 对应生成的 C 代码 | `long long xl_class_Counter__inc(XL_Class_Counter* self, long long n) { self->value += n; return self->value; }` |
 | 中间形态伪代码 | `enterMethod(class); addVar("self", class); emitBlock(body); leaveMethod()` |
 | 实现同等功能手写的 C 代码 | 手写 C 直接使用 `self->field`，但需要人工维护返回类型和 cleanup。 |
-| 额外依赖的封装代码 | 变量类型表、cleanup 栈；无额外运行时 helper。 |
+| 额外依赖的封装代码 | 变量类型表、cleanup 栈；拥有字段的 class 值参数依赖 class copy/destroy helper。 |
 
 ## CGEN-CLS-007 泛型 class 方法体上下文
 
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `class Box<T>` / `func set(T value)` |
-| 生成规则描述 | 泛型方法体生成时同时设置当前 class 和当前泛型参数/实参映射，`self` 注册为具体实例类型。方法体内所有 `T` 类型都会通过当前泛型上下文替换为实际类型。 |
+| 生成规则描述 | 泛型方法体生成时同时设置当前 class 和当前泛型参数/实参映射，`self` 注册为具体实例类型。方法体内所有 `T` 类型都会通过当前泛型上下文替换为实际类型；泛型 class 值参数的 owned 字段也按具体类型实参复制并在作用域结束时清理。 |
 | 生成器文件名和行号 | `xl6_cgen_decl_methods.c:227`、`xl6_cgen_decl_methods.c:235`、`xl6_cgen_decl_methods.c:249` |
 | 对应生成的 C 代码 | `void xl_class_Box__int__set(XL_Class_Box__int* self, long long value) { self->value = value; }` |
 | 中间形态伪代码 | `enterGeneric(Box<T>, [int]); self: Box<int>; emitBlock()` |

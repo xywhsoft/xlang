@@ -105,6 +105,14 @@ static void xl6CgenAddTypedContainerCleanup(XL6_CgenContext* ctx, const char* na
     xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_TYPED_CONTAINER, typeNode, NULL);
 }
 
+static void xl6CgenAddStringCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode)
+{
+    if ( !xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+        return;
+    }
+    xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_STRING, typeNode, NULL);
+}
+
 static void xl6CgenAddTypedContainerParamCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode)
 {
     if ( !xl6CgenIsTypedContainerType(ctx, typeNode) ) {
@@ -116,6 +124,19 @@ static void xl6CgenAddTypedContainerParamCleanup(XL6_CgenContext* ctx, const cha
 static void xl6CgenAddErrorCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode)
 {
     xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_ERROR, typeNode, NULL);
+}
+
+static void xl6CgenBeginTempScope(XL6_CgenContext* ctx, const XL6_AstNode* atNode)
+{
+    char name[64];
+
+    if ( ctx == NULL || atNode == NULL ) {
+        return;
+    }
+    snprintf(name, sizeof(name), "__xl6_temp_scope_%d", ctx->tempId++);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xrtTempScope %s = xrtTempScopeBegin();\n", name);
+    xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_TEMP_SCOPE, atNode, NULL);
 }
 
 static void xl6CgenFreeCleanupsSince(XL6_CgenContext* ctx, size_t mark)
@@ -154,6 +175,26 @@ static int xl6CgenNativeClassCleanupIsTracked(XL6_CgenContext* ctx, const char* 
     for ( i = ctx->cleanupCount; i > 0; --i ) {
         const XL6_CgenCleanup* cleanup = &ctx->cleanups[i - 1];
         if ( cleanup->kind == XL6_CGEN_CLEANUP_NATIVE_CLASS &&
+             cleanup->name != NULL &&
+             xl6CTextEquals(cleanup->name, cName) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int xl6CgenClassCleanupIsTracked(XL6_CgenContext* ctx, const char* name)
+{
+    char cName[512];
+    size_t i;
+
+    if ( ctx == NULL || name == NULL ) {
+        return 0;
+    }
+    xl6CgenCIdentText(cName, sizeof(cName), name);
+    for ( i = ctx->cleanupCount; i > 0; --i ) {
+        const XL6_CgenCleanup* cleanup = &ctx->cleanups[i - 1];
+        if ( cleanup->kind == XL6_CGEN_CLEANUP_CLASS &&
              cleanup->name != NULL &&
              xl6CTextEquals(cleanup->name, cName) ) {
             return 1;
@@ -221,6 +262,24 @@ static void xl6CgenEmitOneCleanup(XL6_CgenContext* ctx, const XL6_CgenCleanup* c
         xl6OutputPuts("}\n", ctx->out);
         return;
     }
+    if ( cleanup->kind == XL6_CGEN_CLEANUP_STRING ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", cleanup->name);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xrtFree((void*)%s);\n", cleanup->name);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = 0;\n", cleanup->name);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        return;
+    }
+    if ( cleanup->kind == XL6_CGEN_CLEANUP_TEMP_SCOPE ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xrtTempScopeEnd(&%s);\n", cleanup->name);
+        return;
+    }
     if ( cleanup->kind == XL6_CGEN_CLEANUP_TYPED_CONTAINER_PARAM ) {
         char ownerName[512];
 
@@ -258,7 +317,7 @@ static void xl6CgenEmitOneCleanup(XL6_CgenContext* ctx, const XL6_CgenCleanup* c
         xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", cleanup->name);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xrtChannelDestroy(%s);\n", cleanup->name);
+        xl6OutputPrintf(ctx->out, "xl6_channel_destroy(%s);\n", cleanup->name);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = 0;\n", cleanup->name);
         ctx->indent -= 1;
@@ -540,7 +599,7 @@ static int xl6CgenExprIsXValueBorrow(XL6_CgenContext* ctx, const XL6_AstNode* ex
     return xl6CgenIsXValueType(typeNode);
 }
 
-static void xl6CgenEmitCleanupsSince(XL6_CgenContext* ctx, size_t mark)
+static void xl6CgenEmitCleanupsSinceExcept(XL6_CgenContext* ctx, size_t mark, const char* skipName)
 {
     size_t i;
 
@@ -548,8 +607,17 @@ static void xl6CgenEmitCleanupsSince(XL6_CgenContext* ctx, size_t mark)
         return;
     }
     for ( i = ctx->cleanupCount; i > mark; --i ) {
-        xl6CgenEmitOneCleanup(ctx, &ctx->cleanups[i - 1]);
+        const XL6_CgenCleanup* cleanup = &ctx->cleanups[i - 1];
+        if ( skipName != NULL && cleanup->name != NULL && xl6CTextEquals(cleanup->name, skipName) ) {
+            continue;
+        }
+        xl6CgenEmitOneCleanup(ctx, cleanup);
     }
+}
+
+static void xl6CgenEmitCleanupsSince(XL6_CgenContext* ctx, size_t mark)
+{
+    xl6CgenEmitCleanupsSinceExcept(ctx, mark, NULL);
 }
 
 static void xl6CgenCloseScope(XL6_CgenContext* ctx, size_t mark)

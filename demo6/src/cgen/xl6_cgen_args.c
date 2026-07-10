@@ -130,10 +130,6 @@ static int xl6CgenTryClassCtorBoxXValue(
     const XL6_AstNode* call,
     const char* cTypeName)
 {
-    char tempName[64];
-    char boxedName[64];
-    int id;
-
     if ( ctx == NULL || classNode == NULL || call == NULL || cTypeName == NULL ||
          call->kind != XL6_AST_CALL ||
          xl6CgenClassIsPureNativeHandle(classNode) ||
@@ -141,43 +137,13 @@ static int xl6CgenTryClassCtorBoxXValue(
         return 0;
     }
 
-    id = ctx->tempId++;
-    snprintf(tempName, sizeof(tempName), "__xl6_box_ctor_%d", id);
-    snprintf(boxedName, sizeof(boxedName), "__xl6_box_value_%d", id);
-
-    xl6OutputPuts("({\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s %s = {0};\n", cTypeName, tempName);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", boxedName);
-    xl6CgenEmitClassCtorInto(ctx, call, tempName);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("if ( xl6_error_has() ) {\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = xvoCreateNull();\n", boxedName);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("} else {\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = ", boxedName);
-    xl6CgenBoxSymbol(ctx->out, cTypeName);
-    xl6OutputPrintf(ctx->out, "(%s);\n", tempName);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    if ( xl6CgenClassNeedsDestroy(ctx, classNode) ) {
-        xl6CgenIndent(ctx);
-        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
-        xl6OutputPrintf(ctx->out, "(&%s);\n", tempName);
-    }
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s;\n", boxedName);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("})", ctx->out);
+    /*
+        构造、装箱和析构必须由语句级路径完成。
+        到达这里说明调用方漏掉了临时量 lowering，直接报代码生成错误，
+        不再用 GNU statement expression 隐式兜底。
+    */
+    xl6CgenError(ctx, call, "class constructor boxing requires statement-level lowering");
+    xl6OutputPuts("xvoCreateNull()", ctx->out);
     return 1;
 }
 
@@ -365,39 +331,8 @@ static int xl6CgenTypedContainerXValueFromExpr(XL6_CgenContext* ctx, const XL6_A
     }
 
     if ( returnCall ) {
-        int id;
-        char storageName[64];
-        char valueName[64];
-
-        id = ctx->tempId++;
-        snprintf(storageName, sizeof(storageName), "__xl6_typed_box_storage_%d", id);
-        snprintf(valueName, sizeof(valueName), "__xl6_typed_box_value_%d", id);
-
-        xl6OutputPuts("({\n", ctx->out);
-        ctx->indent += 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), storageName);
-        xl6CgenExpr(ctx, expr);
-        xl6OutputPuts(";\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = ", valueName);
-        xl6CgenTypedContainerStorageToXValueExpr(ctx, typeNode, storageName);
-        xl6OutputPuts(";\n", ctx->out);
-        xl6CgenIndent(ctx);
-        if ( xl6CTextEquals(typeName, "array") ) {
-            xl6OutputPrintf(ctx->out, "xrtTypedArrayDestroy(%s);\n", storageName);
-        } else if ( xl6CTextEquals(typeName, "list") ) {
-            xl6OutputPrintf(ctx->out, "xrtTypedListDestroy(%s);\n", storageName);
-        } else if ( xl6CTextEquals(typeName, "set") ) {
-            xl6OutputPrintf(ctx->out, "xrtTypedSetDestroy(%s);\n", storageName);
-        } else if ( xl6CTextEquals(typeName, "dict") ) {
-            xl6OutputPrintf(ctx->out, "xrtTypedDictDestroy(%s);\n", storageName);
-        }
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s;\n", valueName);
-        ctx->indent -= 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("})", ctx->out);
+        xl6CgenError(ctx, expr, "typed container return boxing requires statement-level lowering");
+        xl6OutputPuts("xvoCreateNull()", ctx->out);
         xl6AstFree(rawTypeNode);
         return 1;
     }
@@ -454,6 +389,8 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
     XL6_AstNode* rawTypeNode;
     const XL6_AstNode* typeNode;
     char cTypeName[512];
+    int hasReplacement;
+    size_t replacementIndex;
 
     if ( expr == NULL ) {
         xl6OutputPuts("xvoCreateNull()", ctx->out);
@@ -462,6 +399,14 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
     if ( expr->kind == XL6_AST_NULL ) {
         xl6OutputPuts("xvoCreateNull()", ctx->out);
         return;
+    }
+    hasReplacement = 0;
+    for ( replacementIndex = 0; replacementIndex < ctx->exprReplacementCount; ++replacementIndex ) {
+        if ( ctx->exprReplacements[replacementIndex].expr == expr &&
+             ctx->exprReplacements[replacementIndex].cName != NULL ) {
+            hasReplacement = 1;
+            break;
+        }
     }
 
     /*
@@ -520,7 +465,7 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("))", ctx->out);
     } else if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "type") ) {
-        xl6OutputPuts("xvoCreateText((void*)xl6_xrt_type_name_from_id((unsigned long long)(", ctx->out);
+        xl6OutputPuts("xvoCreateText((void*)xl6_program_type_name_from_id((unsigned long long)(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts(")), 0, false)", ctx->out);
     } else if ( typeNode != NULL &&
@@ -553,8 +498,8 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         XL6_AstNode* ctorClass = NULL;
         int isCtor;
         xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), typeNode);
-        isCtor = xl6CgenCallIsClassCtor(ctx, expr, &ctorClass);
-        if ( !isCtor && expr->kind == XL6_AST_CALL && expr->childCount > 0 &&
+        isCtor = !hasReplacement && xl6CgenCallIsClassCtor(ctx, expr, &ctorClass);
+        if ( !hasReplacement && !isCtor && expr->kind == XL6_AST_CALL && expr->childCount > 0 &&
              expr->children[0] != NULL && expr->children[0]->kind == XL6_AST_NAME &&
              xl6CTextEquals(expr->children[0]->text, typeNode->text) ) {
             ctorClass = xl6CgenFindClass(ctx, typeNode->text);
@@ -588,8 +533,8 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6CgenNativeBackedTypeRefName(cTypeName, sizeof(cTypeName), typeNode->text);
         xl6CgenBoxSymbol(ctx->out, cTypeName);
         xl6OutputPutc('(', ctx->out);
-        isCtor = xl6CgenCallIsNativeBackedCtor(ctx, expr, &ctorCustom);
-        if ( !isCtor && expr->kind == XL6_AST_CALL && expr->childCount > 0 &&
+        isCtor = !hasReplacement && xl6CgenCallIsNativeBackedCtor(ctx, expr, &ctorCustom);
+        if ( !hasReplacement && !isCtor && expr->kind == XL6_AST_CALL && expr->childCount > 0 &&
              expr->children[0] != NULL && expr->children[0]->kind == XL6_AST_NAME &&
              xl6CTextEquals(expr->children[0]->text, typeNode->text) ) {
             ctorCustom = xl6CgenFindNativeBackedClass(ctx, typeNode->text);
@@ -643,8 +588,18 @@ static int xl6CgenConditionalIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* n
 
 static void xl6CgenXValueConditionalExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    xl6CgenError(ctx, node, "dynamic var conditional expression requires statement-level lowering");
-    xl6OutputPuts("xvoCreateNull()", ctx->out);
+    if ( node == NULL || node->childCount < 3 ) {
+        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        return;
+    }
+
+    xl6OutputPutc('(', ctx->out);
+    xl6CgenConditionExpr(ctx, node->children[0]);
+    xl6OutputPuts(" ? ", ctx->out);
+    xl6CgenXValueFromExpr(ctx, node->children[1]);
+    xl6OutputPuts(" : ", ctx->out);
+    xl6CgenXValueFromExpr(ctx, node->children[2]);
+    xl6OutputPutc(')', ctx->out);
 }
 
 static int xl6CgenBinaryCompareOpIsXValue(const char* op)
@@ -695,8 +650,31 @@ static int xl6CgenXValueOrderMode(const char* op)
 
 static void xl6CgenXValueCompareExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    xl6CgenError(ctx, node, "dynamic var comparison requires statement-level lowering");
-    xl6OutputPuts("0", ctx->out);
+    if ( node == NULL || node->childCount < 2 ) {
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+
+    if ( xl6CTextEquals(node->text, "==") || xl6CTextEquals(node->text, "!=") ) {
+        if ( xl6CTextEquals(node->text, "!=") ) {
+            xl6OutputPuts("(!", ctx->out);
+        }
+        xl6OutputPuts("xl6_xrt_basic_equal_release(", ctx->out);
+        xl6CgenXValueFromExpr(ctx, node->children[0]);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenXValueFromExpr(ctx, node->children[1]);
+        xl6OutputPutc(')', ctx->out);
+        if ( xl6CTextEquals(node->text, "!=") ) {
+            xl6OutputPutc(')', ctx->out);
+        }
+        return;
+    }
+
+    xl6OutputPuts("xl6_xrt_basic_order_release(", ctx->out);
+    xl6CgenXValueFromExpr(ctx, node->children[0]);
+    xl6OutputPuts(", ", ctx->out);
+    xl6CgenXValueFromExpr(ctx, node->children[1]);
+    xl6OutputPrintf(ctx->out, ", %d)", xl6CgenXValueOrderMode(node->text));
 }
 static int xl6CgenBinaryApproxIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
@@ -719,8 +697,16 @@ static int xl6CgenBinaryApproxIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* 
 
 static void xl6CgenXValueApproxExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    xl6CgenError(ctx, node, "dynamic var approximate comparison requires statement-level lowering");
-    xl6OutputPuts("0", ctx->out);
+    if ( node == NULL || node->childCount < 2 ) {
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+
+    xl6OutputPuts("xl6_xrt_basic_approx_release(", ctx->out);
+    xl6CgenXValueFromExpr(ctx, node->children[0]);
+    xl6OutputPuts(", ", ctx->out);
+    xl6CgenXValueFromExpr(ctx, node->children[1]);
+    xl6OutputPutc(')', ctx->out);
 }
 static int xl6CgenBinaryArithmeticOpIsXValue(const char* op)
 {
@@ -868,8 +854,16 @@ static int xl6CgenBinaryLogicalIsXValue(XL6_CgenContext* ctx, const XL6_AstNode*
 
 static void xl6CgenXValueLogicalExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    xl6CgenError(ctx, node, "dynamic var logical expression requires statement-level lowering");
-    xl6OutputPuts("0", ctx->out);
+    if ( node == NULL || node->childCount < 2 ) {
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+
+    xl6OutputPutc('(', ctx->out);
+    xl6CgenConditionExpr(ctx, node->children[0]);
+    xl6OutputPuts(xl6CTextEquals(node->text, "and") ? " && " : " || ", ctx->out);
+    xl6CgenConditionExpr(ctx, node->children[1]);
+    xl6OutputPutc(')', ctx->out);
 }
 static const XL6_AstNode* xl6CgenTypeConvertArg(const XL6_AstNode* node)
 {
@@ -1059,7 +1053,7 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
             xl6CgenExpr(ctx, arg);
             xl6OutputPuts(" ? \"true\" : \"false\")", ctx->out);
         } else if ( xl6CTextEquals(source, "type") ) {
-            xl6OutputPuts("xl6_xrt_type_name_from_id((unsigned long long)(", ctx->out);
+            xl6OutputPuts("xl6_program_type_name_from_id((unsigned long long)(", ctx->out);
             xl6CgenExpr(ctx, arg);
             xl6OutputPuts("))", ctx->out);
         } else if ( xl6CTextEquals(source, "time") ) {

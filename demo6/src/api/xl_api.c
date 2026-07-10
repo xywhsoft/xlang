@@ -1417,6 +1417,10 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtFree);
     XL_ADD_XRT_SYMBOL(s, xrtTempMemory);
     XL_ADD_XRT_SYMBOL(s, xrtFreeTempMemory);
+    XL_ADD_XRT_SYMBOL(s, xrtTempScopeBegin);
+    XL_ADD_XRT_SYMBOL(s, xrtTempScopeEnd);
+    XL_ADD_XRT_SYMBOL(s, xrtTempScopeEndString);
+    XL_ADD_XRT_SYMBOL(s, xrtTempStringTake);
     XL_ADD_XRT_SYMBOL(s, xrtBufferCreate);
     XL_ADD_XRT_SYMBOL(s, xrtBufferFrom);
     XL_ADD_XRT_SYMBOL(s, xrtBufferFromHex);
@@ -1813,6 +1817,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypeUnboxValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypeDropValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedArrayFromValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayInit);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayUnit);
@@ -1835,6 +1840,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayEquals);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayItemType);
     XL_ADD_XRT_SYMBOL(s, xrtTypedListCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedListFromValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedListDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtTypedListInit);
     XL_ADD_XRT_SYMBOL(s, xrtTypedListUnit);
@@ -1852,6 +1858,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypedListEquals);
     XL_ADD_XRT_SYMBOL(s, xrtTypedListItemType);
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedSetFromValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetInit);
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetUnit);
@@ -1876,6 +1883,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetItemAt);
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetItemType);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedDictFromValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictInit);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictUnit);
@@ -1971,8 +1979,10 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtThreadGetCurrentId);
     XL_ADD_XRT_SYMBOL(s, xrtCoCreate);
     XL_ADD_XRT_SYMBOL(s, xrtCoDestroy);
+    XL_ADD_XRT_SYMBOL(s, xrtCoCancel);
     XL_ADD_XRT_SYMBOL(s, xrtCoResume);
     XL_ADD_XRT_SYMBOL(s, xrtCoYield);
+    XL_ADD_XRT_SYMBOL(s, xrtCoIsCancelRequested);
     XL_ADD_XRT_SYMBOL(s, xrtCoGetState);
     XL_ADD_XRT_SYMBOL(s, xrtClearError);
     XL_ADD_XRT_SYMBOL(s, xrtGetError);
@@ -2248,6 +2258,8 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoUnref);
     XL_ADD_XRT_SYMBOL(s, xvoCopy);
     XL_ADD_XRT_SYMBOL(s, xvoDeepCopy);
+    XL_ADD_XRT_SYMBOL(s, xvoCopyEx);
+    XL_ADD_XRT_SYMBOL(s, xvoDeepCopyEx);
     XL_ADD_XRT_SYMBOL(s, xvoType);
     XL_ADD_XRT_SYMBOL(s, xvoTypeDesc);
     XL_ADD_XRT_SYMBOL(s, xvoIsNull);
@@ -2306,6 +2318,7 @@ static int xlAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoBasicEqual);
     XL_ADD_XRT_SYMBOL(s, xvoValueTruthy);
     XL_ADD_XRT_SYMBOL(s, xvoIndexGetI64);
+    XL_ADD_XRT_SYMBOL(s, xvoIndexSetI64);
     XL_ADD_XRT_SYMBOL(s, xvoIndexGetKey);
     XL_ADD_XRT_SYMBOL(s, xvoIndexGetValue);
     XL_ADD_XRT_SYMBOL(s, xvoValueContains);

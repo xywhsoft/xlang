@@ -1,3 +1,0 @@
-func bad() as generator<string>
-    yield "x"
-end

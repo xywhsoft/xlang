@@ -72,7 +72,7 @@ if not errorlevel 1 (
     echo sem_multi_assign_type_mismatch.xl should fail.
     exit /b 1
 )
-findstr /C:"target int, value string" build\test\sem_multi_assign_type_mismatch.err.txt >nul
+findstr /C:"target int, return string" build\test\sem_multi_assign_type_mismatch.err.txt >nul
 if errorlevel 1 (
     echo sem_multi_assign_type_mismatch.xl missing multi-return variable assignment type context.
     exit /b 1
@@ -390,9 +390,9 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_noncopyable_custom_param.xl >nul 2> build\test\sem_noncopyable_custom_param.err.txt
-if not errorlevel 1 (
-    echo sem_noncopyable_custom_param.xl should fail.
+release\xl.exe check test\cases\sem_noncopyable_custom_param.xl
+if errorlevel 1 (
+    echo native-backed class borrowed parameter declaration should pass.
     exit /b 1
 )
 
@@ -402,11 +402,14 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_noncopyable_return.xl >nul 2> build\test\sem_noncopyable_return.err.txt
-if not errorlevel 1 (
-    echo sem_noncopyable_return.xl should fail.
-    exit /b 1
-)
+release\xl.exe check test\cases\sem_noncopyable_return.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\sem_noncopyable_return.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\sem_noncopyable_return.xl -o build\test\sem_noncopyable_return.exe
+if errorlevel 1 exit /b 1
+build\test\sem_noncopyable_return.exe
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_typed_container_noncopyable_custom.xl >nul 2> build\test\sem_typed_container_noncopyable_custom.err.txt
 if not errorlevel 1 (
@@ -1273,6 +1276,16 @@ if errorlevel 1 (
     echo cgen_exceptions.c missing error runtime raise.
     exit /b 1
 )
+release\xl.exe run test\cases\cgen_error_member_lifetime.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_error_member_lifetime.xl -o build\test\cgen_error_member_lifetime.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_error_member_lifetime.exe
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_error_member_lifetime.xl --emit build\test\cgen_error_member_lifetime.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_error_text_copy" build\test\cgen_error_member_lifetime.c >nul
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\cgen_loop_exception_propagation.xl
 if errorlevel 1 exit /b 1
@@ -1314,6 +1327,32 @@ if errorlevel 1 (
 
 release\xl.exe check test\cases\cgen_channel.xl
 if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_global_shared_publish.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\cgen_global_shared_publish.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe build test\cases\cgen_global_shared_publish.xl -o build\test\cgen_global_shared_publish.exe
+if errorlevel 1 exit /b 1
+
+for /L %%I in (1,1,5) do (
+    build\test\cgen_global_shared_publish.exe
+    if errorlevel 1 (
+        echo cgen_global_shared_publish.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
+
+release\xl.exe cgen test\cases\cgen_global_shared_publish.xl --emit build\test\cgen_global_shared_publish.c
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_global_shared_publish.c',[System.Text.Encoding]::UTF8); $checks=@('gPublished = __xl6_global_init_','xl6_xrt_move_to_shared(__xl6_global_init_','__xl6_assign_','XRT_OBJMODE_SHARED','__xl6_typed_container_source_','gStore.posts = xl6_xrt_move_to_shared(gStore.posts)','__xl6_class_shared_'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_global_shared_publish.c missing '+$p); exit 1 } }"
+if errorlevel 1 (
+    echo cgen_global_shared_publish.c missing shared publication lowering.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\cgen_sync.xl
 if errorlevel 1 exit /b 1
@@ -1590,22 +1629,22 @@ if errorlevel 1 (
     echo cgen_thread.c missing thread release helper.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('slow = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_slowWorker_make(), 0','slowImmediate = (xrtThreadWaitTimeout(slow, 0LL) == 0)','!slowImmediate','slowWaited = (xrtThreadWaitTimeout(slow, 2000LL) == 0)','slowCode = (int)xrtThreadGetExitCode(slow)','slowRepeatedWait = (xrtThreadWait(slow), true)','slowCodeAgain = (int)xrtThreadGetExitCode(slow)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('slow = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_xl_fn_slowWorker_make(), 0','slowImmediate = (xrtThreadWaitTimeout(slow, 0LL) == 0)','!slowImmediate','slowWaited = (xrtThreadWaitTimeout(slow, 2000LL) == 0)','slowCode = (int)xrtThreadGetExitCode(slow)','slowRepeatedWait = (xrtThreadWait(slow), true)','slowCodeAgain = (int)xrtThreadGetExitCode(slow)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_thread.c missing waitTimeout timeout/completed-state guard lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('conditionalBorrowedThread = xl6_thread_require_handle(xl6_thread_start((chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight), 1','conditionalBorrowedThreadAgain = xl6_thread_require_handle(xl6_thread_start((chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight), 1','mixedThreadOwned = xl6_thread_require_handle(xl6_thread_start((chooseMixedThread ? xl6_function_copy_value(mixedThreadSource) : makeThreadWorker(16LL)), 0','mixedThreadBorrowed = xl6_thread_require_handle(xl6_thread_start((chooseMixedThread ? xl6_function_copy_value(mixedThreadSource) : makeThreadWorker(17LL)), 0','conditionalMemberThread = xl6_thread_require_handle(xl6_thread_start((chooseThreadMember ? threadBox.op : threadBoxAlt.op), 1','borrowedThreadRight.signature ==','borrowedThreadLeft.signature ==','mixedThreadSource.signature ==','xl6_function_call_var(threadBoxAlt.op, 0)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('conditionalBorrowedThread = xl6_thread_require_handle(xl6_thread_start((chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight), 1','conditionalBorrowedThreadAgain = xl6_thread_require_handle(xl6_thread_start((chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight), 1','mixedThreadOwned = xl6_thread_require_handle(xl6_thread_start((chooseMixedThread ? xl6_function_copy_value(mixedThreadSource) : xl_fn_makeThreadWorker(16LL)), 0','mixedThreadBorrowed = xl6_thread_require_handle(xl6_thread_start((chooseMixedThread ? xl6_function_copy_value(mixedThreadSource) : xl_fn_makeThreadWorker(17LL)), 0','conditionalMemberThread = xl6_thread_require_handle(xl6_thread_start((chooseThreadMember ? threadBox.op : threadBoxAlt.op), 1','borrowedThreadRight.signature ==','borrowedThreadLeft.signature ==','mixedThreadSource.signature ==','xl6_function_call_var(threadBoxAlt.op, 0)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_thread.c missing borrowed conditional thread callable ownership guard.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('capturedReceiverThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_worker_make(), 0','void* capturedReceiverThread;','xrtThreadWait(capturedReceiverThread), true','(int)xrtThreadGetExitCode(capturedReceiverThread)','threadJoiner = xl6_anon_','_make()'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('capturedReceiverThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_xl_fn_worker_make(), 0','void* capturedReceiverThread;','xrtThreadWait(capturedReceiverThread), true','(int)xrtThreadGetExitCode(capturedReceiverThread)','threadJoiner = xl6_anon_','_make()'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_thread.c missing captured thread receiver guard lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('capturedTimedThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_monitorSlowWorker_make(), 0','capturedStopThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_slowWorker_make(), 0','_make()','xrtThreadWaitTimeout(capturedTimedThread, 0LL) == 0','xrtThreadGetState(capturedTimedThread)','xrtThreadWaitTimeout(capturedTimedThread, 2000LL) == 0','(int)xrtThreadGetExitCode(capturedTimedThread)','xrtThreadStop(capturedStopThread), true','xrtThreadWait(capturedStopThread), true'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('capturedTimedThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_xl_fn_monitorSlowWorker_make(), 0','capturedStopThread = xl6_thread_require_handle(xl6_thread_start(xl6_fnvalue_xl_fn_slowWorker_make(), 0','_make()','xrtThreadWaitTimeout(capturedTimedThread, 0LL) == 0','xrtThreadGetState(capturedTimedThread)','xrtThreadWaitTimeout(capturedTimedThread, 2000LL) == 0','(int)xrtThreadGetExitCode(capturedTimedThread)','xrtThreadStop(capturedStopThread), true','xrtThreadWait(capturedStopThread), true'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_thread.c missing captured thread waitTimeout/state/stop guard lowering.
     exit /b 1
@@ -1746,6 +1785,47 @@ for /L %%I in (1,1,3) do (
     )
 )
 
+release\xl.exe check test\cases\cgen_async_string_ownership.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_async_string_ownership.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_async_param_ownership.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_async_param_ownership.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_async_param_ownership.xl -o build\test\cgen_async_param_ownership.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_async_param_ownership.exe
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_async_param_ownership.xl --emit build\test\cgen_async_param_ownership.c
+if errorlevel 1 exit /b 1
+findstr /C:"xtarray values;" build\test\cgen_async_param_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_async_param_ownership.c missing static typed-container frame storage.
+    exit /b 1
+)
+findstr /C:"__xl6_args->dynamicValue = xl6_xrt_retain(dynamicValue);" build\test\cgen_async_param_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_async_param_ownership.c missing owned var argument frame copy.
+    exit /b 1
+)
+findstr /C:"__xl6_args->values = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), values, XRT_OBJMODE_SHARED);" build\test\cgen_async_param_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_async_param_ownership.c missing owned typed-array argument frame copy.
+    exit /b 1
+)
+findstr /C:"__xl6_args->box = xl_class_AsyncParamBox______xl6__copy__value(box, 1);" build\test\cgen_async_param_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_async_param_ownership.c missing owned class argument frame copy.
+    exit /b 1
+)
+findstr /C:"__xl6_typed_param_owned_values = 1;" build\test\cgen_async_param_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_async_param_ownership.c missing worker typed-array ownership transfer.
+    exit /b 1
+)
+
 release\xl.exe cgen test\cases\cgen_async.xl --emit build\test\cgen_async.c
 if errorlevel 1 exit /b 1
 
@@ -1794,7 +1874,7 @@ if errorlevel 1 (
     echo cgen_async.c missing async class function-field retain.
     exit /b 1
 )
-findstr /C:"pOut->pfnFreeValue = xl_async_result_free_makeBoxAsync" build\test\cgen_async.c >nul
+findstr /C:"pOut->pfnFreeValue = xl_async_result_free_xl_fn_makeBoxAsync" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing async class result free hook.
     exit /b 1
@@ -1849,17 +1929,17 @@ if errorlevel 1 (
     echo cgen_async.c missing auto await class cleanup.
     exit /b 1
 )
-findstr /C:"temporaryValue = xl6_future_await_i64_release(addAsync(8LL, 9LL)" build\test\cgen_async.c >nul
+findstr /C:"temporaryValue = xl6_future_await_i64_release(xl_fn_addAsync(8LL, 9LL)" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await scalar release helper.
     exit /b 1
 )
-findstr /C:"xl6_future_await_void_release(doneAsync()" build\test\cgen_async.c >nul
+findstr /C:"xl6_future_await_void_release(xl_fn_doneAsync()" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await void release helper.
     exit /b 1
 )
-findstr /C:"temporaryFn = xl6_future_await_function_release(makeAdderAsync(60LL)" build\test\cgen_async.c >nul
+findstr /C:"temporaryFn = xl6_future_await_function_release(xl_fn_makeAdderAsync(60LL)" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await function release helper.
     exit /b 1
@@ -1869,12 +1949,12 @@ if errorlevel 1 (
     echo cgen_async.c missing temporary await xvalue release helper.
     exit /b 1
 )
-findstr /C:"awaitedVar = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(varFuture" build\test\cgen_async.c >nul
+findstr /C:"awaitedVar = xl6_xrt_move_to_shared(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(varFuture" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing borrowed await xvalue retain.
     exit /b 1
 )
-findstr /C:"temporaryVar = xl6_future_await_xvalue_release(makeVarAsync(130LL)" build\test\cgen_async.c >nul
+findstr /C:"temporaryVar = xl6_xrt_move_to_shared(xl6_future_await_xvalue_release(xl_fn_makeVarAsync(130LL)" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await xvalue helper call.
     exit /b 1
@@ -1884,47 +1964,47 @@ if errorlevel 1 (
     echo cgen_async.c missing conditional await future add-ref helper.
     exit /b 1
 )
-findstr /C:"conditionalAwaitBorrowed = xl6_future_await_i64_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalAwaitSource) : addAsync(310LL, 1LL))" build\test\cgen_async.c >nul
+findstr /C:"conditionalAwaitBorrowed = xl6_future_await_i64_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalAwaitSource) : xl_fn_addAsync(310LL, 1LL))" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed scalar normalization.
     exit /b 1
 )
-findstr /C:"conditionalAwaitOwned = xl6_future_await_i64_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalAwaitSource) : addAsync(320LL, 1LL))" build\test\cgen_async.c >nul
+findstr /C:"conditionalAwaitOwned = xl6_future_await_i64_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalAwaitSource) : xl_fn_addAsync(320LL, 1LL))" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await owned scalar normalization.
     exit /b 1
 )
-findstr /C:"xl6_future_await_void_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalVoidSource) : doneAsync())" build\test\cgen_async.c >nul
+findstr /C:"xl6_future_await_void_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalVoidSource) : xl_fn_doneAsync())" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await void normalization.
     exit /b 1
 )
-findstr /C:"conditionalVarBorrowed = xl6_future_await_xvalue_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalVarSource) : makeVarAsync(340LL))" build\test\cgen_async.c >nul
+findstr /C:"conditionalVarBorrowed = xl6_xrt_move_to_shared(xl6_future_await_xvalue_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalVarSource) : xl_fn_makeVarAsync(340LL))" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed var normalization.
     exit /b 1
 )
-findstr /C:"conditionalFnBorrowed = xl6_future_await_function_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalFnSource) : makeAdderAsync(370LL))" build\test\cgen_async.c >nul
+findstr /C:"conditionalFnBorrowed = xl6_future_await_function_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalFnSource) : xl_fn_makeAdderAsync(370LL))" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed function normalization.
     exit /b 1
 )
-findstr /C:"conditionalBoxBorrowed = (chooseConditionalAwait ? xl6_future_await_class_makeBoxAsync_release(xl6_future_add_ref_if_needed(conditionalBoxSource)" build\test\cgen_async.c >nul
+findstr /C:"conditionalBoxBorrowed = (chooseConditionalAwait ? xl6_future_await_class_xl_fn_makeBoxAsync_release(xl6_future_add_ref_if_needed(conditionalBoxSource)" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed class release helper.
     exit /b 1
 )
-findstr /C:": xl6_future_await_class_makeBoxAsync_release(makeBoxAsync(395LL)" build\test\cgen_async.c >nul
+findstr /C:": xl6_future_await_class_xl_fn_makeBoxAsync_release(xl_fn_makeBoxAsync(395LL)" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await owned class release helper.
     exit /b 1
 )
-findstr /C:"conditionalGreetingBorrowed = (chooseConditionalGreeting ? xl6_future_await_cstr_copy(conditionalGreetingSource" build\test\cgen_async.c >nul
+findstr /C:"conditionalGreetingBorrowed = xrtCopyStr((chooseConditionalGreeting ? xl6_future_await_cstr_copy(conditionalGreetingSource" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed string copy.
     exit /b 1
 )
-findstr /C:": xl6_future_await_cstr_release(greetAsync(" build\test\cgen_async.c >nul
+findstr /C:": xl6_future_await_cstr_release(xl_fn_greetAsync(" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await owned string release.
     exit /b 1
@@ -1934,7 +2014,7 @@ if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed typed array copy.
     exit /b 1
 )
-findstr /C:": (xtarray)xl6_future_await_handle_release(slowMakeItemsAsync()" build\test\cgen_async.c >nul
+findstr /C:": (xtarray)xl6_future_await_handle_release(xl_fn_slowMakeItemsAsync()" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await owned typed array release.
     exit /b 1
@@ -1944,7 +2024,7 @@ if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed typed list copy.
     exit /b 1
 )
-findstr /C:": (xtlist)xl6_future_await_handle_release(slowMakeListAsync()" build\test\cgen_async.c >nul
+findstr /C:": (xtlist)xl6_future_await_handle_release(xl_fn_slowMakeListAsync()" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await owned typed list release.
     exit /b 1
@@ -1954,7 +2034,7 @@ if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed typed set copy.
     exit /b 1
 )
-findstr /C:": (xtset)xl6_future_await_handle_release(slowMakeSetAsync()" build\test\cgen_async.c >nul
+findstr /C:": (xtset)xl6_future_await_handle_release(xl_fn_slowMakeSetAsync()" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await owned typed set release.
     exit /b 1
@@ -1964,12 +2044,12 @@ if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed typed dict copy.
     exit /b 1
 )
-findstr /C:": (xtdict)xl6_future_await_handle_release(slowMakeDictAsync()" build\test\cgen_async.c >nul
+findstr /C:": (xtdict)xl6_future_await_handle_release(xl_fn_slowMakeDictAsync()" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await owned typed dict release.
     exit /b 1
 )
-findstr /C:"conditionalMissingAwaitValue = xl6_future_await_i64_release((chooseConditionalMissingAwait ? addAsync(390LL, 1LL) : xl6_future_add_ref_if_needed(conditionalMissingAwait))" build\test\cgen_async.c >nul
+findstr /C:"conditionalMissingAwaitValue = xl6_future_await_i64_release((chooseConditionalMissingAwait ? xl_fn_addAsync(390LL, 1LL) : xl6_future_add_ref_if_needed(conditionalMissingAwait))" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await null branch normalization.
     exit /b 1
@@ -1979,17 +2059,17 @@ if errorlevel 1 (
     echo cgen_async.c missing named string await copy helper.
     exit /b 1
 )
-findstr /C:"temporaryGreeting = xl6_future_await_cstr_release(greetAsync(" build\test\cgen_async.c >nul
+findstr /C:"temporaryGreeting = xrtCopyStr(xl6_future_await_cstr_release(xl_fn_greetAsync(" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await string release helper call.
     exit /b 1
 )
-findstr /C:"namedGreetingA = xl6_future_await_cstr_copy(greetingFuture" build\test\cgen_async.c >nul
+findstr /C:"namedGreetingA = xrtCopyStr(xl6_future_await_cstr_copy(greetingFuture" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing first named future string copy.
     exit /b 1
 )
-findstr /C:"namedGreetingB = xl6_future_await_cstr_copy(greetingFuture" build\test\cgen_async.c >nul
+findstr /C:"namedGreetingB = xrtCopyStr(xl6_future_await_cstr_copy(greetingFuture" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing second named future string copy.
     exit /b 1
@@ -2064,7 +2144,7 @@ if errorlevel 1 (
     echo cgen_async.c should pass completed async var future cancel as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelVar = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(varFuture" build\test\cgen_async.c >nul
+findstr /C:"postCancelVar = xl6_xrt_move_to_shared(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(varFuture" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c should keep completed async var future awaitable after cancel.
     exit /b 1
@@ -2074,7 +2154,7 @@ if errorlevel 1 (
     echo cgen_async.c should pass completed async string future cancel as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelGreeting = xl6_future_await_cstr_copy(greetingFuture" build\test\cgen_async.c >nul
+findstr /C:"postCancelGreeting = xrtCopyStr(xl6_future_await_cstr_copy(greetingFuture" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c should keep completed async string future awaitable after cancel.
     exit /b 1
@@ -2094,7 +2174,7 @@ if errorlevel 1 (
     echo cgen_async.c missing null int future await path.
     exit /b 1
 )
-findstr /C:"missingAwaitStringValue = xl6_future_await_cstr_copy(missingAwaitString" build\test\cgen_async.c >nul
+findstr /C:"missingAwaitStringValue = xrtCopyStr(xl6_future_await_cstr_copy(missingAwaitString" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null string future await path.
     exit /b 1
@@ -2234,7 +2314,7 @@ if errorlevel 1 (
     echo cgen_async.c missing null typed array future await assertion.
     exit /b 1
 )
-findstr /C:"pendingAsyncInt = slowAddAsync(40LL, 2LL);" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncInt = xl_fn_slowAddAsync(40LL, 2LL);" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing pending async int cancel fixture.
     exit /b 1
@@ -2259,7 +2339,7 @@ if errorlevel 1 (
     echo cgen_async.c should keep pending async int future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingAsyncString = slowGreetAsync(\"pending\");" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncString = xl_fn_slowGreetAsync(\"pending\");" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing pending async string cancel fixture.
     exit /b 1
@@ -2269,12 +2349,12 @@ if errorlevel 1 (
     echo cgen_async.c should cancel pending async string future as borrowed.
     exit /b 1
 )
-findstr /C:"pendingAsyncStringValueA = xl6_future_await_cstr_copy(pendingAsyncString" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncStringValueA = xrtCopyStr(xl6_future_await_cstr_copy(pendingAsyncString" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing first string await after pending async cancel.
     exit /b 1
 )
-findstr /C:"pendingAsyncStringValueB = xl6_future_await_cstr_copy(pendingAsyncString" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncStringValueB = xrtCopyStr(xl6_future_await_cstr_copy(pendingAsyncString" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing late string await after pending async worker completion.
     exit /b 1
@@ -2284,7 +2364,7 @@ if errorlevel 1 (
     echo cgen_async.c should keep pending async string future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingAsyncBool = slowFlipAsync(1);" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncBool = xl_fn_slowFlipAsync(1);" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing pending async bool cancel fixture.
     exit /b 1
@@ -2309,7 +2389,7 @@ if errorlevel 1 (
     echo cgen_async.c should keep pending async bool future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingAsyncFloat = slowHalfAsync(1.5);" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncFloat = xl_fn_slowHalfAsync(1.5);" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing pending async float cancel fixture.
     exit /b 1
@@ -2334,7 +2414,7 @@ if errorlevel 1 (
     echo cgen_async.c should keep pending async float future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingAsyncVoid = slowDoneAsync();" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncVoid = xl_fn_slowDoneAsync();" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing pending async void cancel fixture.
     exit /b 1
@@ -2354,7 +2434,7 @@ if errorlevel 1 (
     echo cgen_async.c should keep pending async void future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingAsyncVar = slowMakeVarAsync(150LL);" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncVar = xl_fn_slowMakeVarAsync(150LL);" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing pending async var cancel fixture.
     exit /b 1
@@ -2379,7 +2459,7 @@ if errorlevel 1 (
     echo cgen_async.c should keep pending async var future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingAsyncFn = slowMakeAdderAsync(160LL);" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncFn = xl_fn_slowMakeAdderAsync(160LL);" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing pending async function cancel fixture.
     exit /b 1
@@ -2409,7 +2489,7 @@ if errorlevel 1 (
     echo cgen_async.c should keep pending async function future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingAsyncBox = slowMakeBoxAsync(170LL);" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncBox = xl_fn_slowMakeBoxAsync(170LL);" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing pending async class cancel fixture.
     exit /b 1
@@ -2439,7 +2519,7 @@ if errorlevel 1 (
     echo cgen_async.c should keep pending async class future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingAsyncItems = slowMakeItemsAsync();" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncItems = xl_fn_slowMakeItemsAsync();" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing pending async typed array cancel fixture.
     exit /b 1
@@ -2464,7 +2544,7 @@ if errorlevel 1 (
     echo cgen_async.c should keep pending async typed array future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingAsyncList = slowMakeListAsync();" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncList = xl_fn_slowMakeListAsync();" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing pending async typed list cancel fixture.
     exit /b 1
@@ -2489,7 +2569,7 @@ if errorlevel 1 (
     echo cgen_async.c should keep pending async typed list future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingAsyncSet = slowMakeSetAsync();" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncSet = xl_fn_slowMakeSetAsync();" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing pending async typed set cancel fixture.
     exit /b 1
@@ -2514,7 +2594,7 @@ if errorlevel 1 (
     echo cgen_async.c should keep pending async typed set future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingAsyncDict = slowMakeDictAsync();" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncDict = xl_fn_slowMakeDictAsync();" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing pending async typed dict cancel fixture.
     exit /b 1
@@ -2539,12 +2619,32 @@ if errorlevel 1 (
     echo cgen_async.c should keep pending async typed dict future canceled after worker completes.
     exit /b 1
 )
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async.c',[System.Text.Encoding]::UTF8); $hs=$text.IndexOf('static void* xl6_future_await_handle_release'); $he=$text.IndexOf('static int xl6_future_await_void_release',$hs); $ss=$text.IndexOf('static const char* xl6_future_await_cstr_release'); $se=$text.IndexOf('static const char* xl6_future_await_cstr_copy',$ss); if($hs -lt 0 -or $he -le $hs -or $ss -lt 0 -or $se -le $ss){exit 1}; $handle=$text.Substring($hs,$he-$hs); $string=$text.Substring($ss,$se-$ss); if($handle.Contains('xrtTempStringTake') -or -not $handle.Contains('return result;') -or -not $string.Contains('xrtTempStringTake((char*)result, 0)')){exit 1}"
+if errorlevel 1 (
+    echo cgen_async.c has invalid handle/string await ownership separation.
+    exit /b 1
+)
+findstr /C:"__xl6_args->name = xrtCopyStr(name, 0u);" build\test\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing owned string argument frame copy.
+    exit /b 1
+)
+findstr /C:"const char* name = xrtTempStringTake((char*)__xl6_args->name, 0u);" build\test\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing worker string argument ownership transfer.
+    exit /b 1
+)
+findstr /C:"pOut->pfnFreeValue = xl6_async_free_string_value;" build\test\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing owned async string result destructor.
+    exit /b 1
+)
 findstr /C:"*(const char**)value = 0;" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary string await detach.
     exit /b 1
 )
-findstr /C:"xl6_future_await_handle_release(makeItemsAsync()" build\test\cgen_async.c >nul
+findstr /C:"xl6_future_await_handle_release(xl_fn_makeItemsAsync()" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await typed container helper call.
     exit /b 1
@@ -2584,7 +2684,7 @@ if errorlevel 1 (
     echo cgen_async.c missing typed container async shared copy.
     exit /b 1
 )
-findstr /C:"itemsFuture = makeItemsAsync();" build\test\cgen_async.c >nul
+findstr /C:"itemsFuture = xl_fn_makeItemsAsync();" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing named future typed container fixture.
     exit /b 1
@@ -2684,12 +2784,12 @@ if not errorlevel 1 (
     echo cgen_async.c should not use statement expression for temporary void await.
     exit /b 1
 )
-findstr /C:"static XL_Class_AsyncBox xl6_future_await_class_makeBoxAsync_release" build\test\cgen_async.c >nul
+findstr /C:"static XL_Class_AsyncBox xl6_future_await_class_xl_fn_makeBoxAsync_release" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await class release helper.
     exit /b 1
 )
-findstr /C:"temporaryBox = xl6_future_await_class_makeBoxAsync_release(makeBoxAsync(110LL)" build\test\cgen_async.c >nul
+findstr /C:"temporaryBox = xl6_future_await_class_xl_fn_makeBoxAsync_release(xl_fn_makeBoxAsync(110LL)" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await class helper call.
     exit /b 1

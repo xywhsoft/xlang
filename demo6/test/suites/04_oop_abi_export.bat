@@ -6,14 +6,19 @@ echo Running DEMO6 suite: OOP ABI export and interop...
 
 release\xl.exe cgen test\cases\control_flow_do_while.xl --emit build\test\control_flow_do_while.c
 if errorlevel 1 exit /b 1
-findstr /C:"do {" build\test\control_flow_do_while.c >nul
+findstr /C:"while (1) {" build\test\control_flow_do_while.c >nul
 if errorlevel 1 (
-    echo control_flow_do_while.c missing do loop.
+    echo control_flow_do_while.c missing canonical loop.
     exit /b 1
 )
-findstr /C:"} while ((value < 3LL));" build\test\control_flow_do_while.c >nul
+findstr /C:"if (!(value < 3LL)) {" build\test\control_flow_do_while.c >nul
 if errorlevel 1 (
-    echo control_flow_do_while.c missing while condition.
+    echo control_flow_do_while.c missing tail condition.
+    exit /b 1
+)
+findstr /C:"break;" build\test\control_flow_do_while.c >nul
+if errorlevel 1 (
+    echo control_flow_do_while.c missing tail break.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\control_flow_do_while.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\control_flow_do_while.exe
@@ -102,12 +107,12 @@ for /L %%I in (1,1,3) do (
 
 release\xl.exe cgen test\cases\cgen_named_args.xl --emit build\test\cgen_named_args.c
 if errorlevel 1 exit /b 1
-findstr /C:"expect_i64(add(1LL, 1LL, 2LL), 4LL);" build\test\cgen_named_args.c >nul
+findstr /C:"expect_i64(xl_fn_add(1LL, 1LL, 2LL), 4LL);" build\test\cgen_named_args.c >nul
 if errorlevel 1 (
     echo cgen_named_args.c missing default argument lowering.
     exit /b 1
 )
-findstr /C:"expect_i64(add(1LL, 1LL, 4LL), 6LL);" build\test\cgen_named_args.c >nul
+findstr /C:"expect_i64(xl_fn_add(1LL, 1LL, 4LL), 6LL);" build\test\cgen_named_args.c >nul
 if errorlevel 1 (
     echo cgen_named_args.c missing named default lowering.
     exit /b 1
@@ -141,7 +146,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_multi_return_struct_dedupe.xl --emit build\test\cgen_multi_return_struct_dedupe.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_multi_return_struct_dedupe.c' -Raw; if(([regex]::Matches($t, 'typedef struct XL6_Function_Return_[0-9A-F]+')).Count -ne 1){exit 1}; if($t -match 'XL6_Return_leftPair'){exit 2}; if($t -match 'XL6_Return_rightPair'){exit 3}; if(([regex]::Matches($t, 'XL6_Function_Return_[0-9A-F]+ leftPair\(void\);')).Count -ne 1){exit 4}; if(([regex]::Matches($t, 'XL6_Function_Return_[0-9A-F]+ rightPair\(void\);')).Count -ne 1){exit 5}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_multi_return_struct_dedupe.c' -Raw; if(([regex]::Matches($t, 'typedef struct XL6_Function_Return_[0-9A-F]+')).Count -ne 1){exit 1}; if($t -match 'XL6_Return_leftPair'){exit 2}; if($t -match 'XL6_Return_rightPair'){exit 3}; if(([regex]::Matches($t, 'XL6_Function_Return_[0-9A-F]+ xl_fn_leftPair\(void\);')).Count -ne 1){exit 4}; if(([regex]::Matches($t, 'XL6_Function_Return_[0-9A-F]+ xl_fn_rightPair\(void\);')).Count -ne 1){exit 5}"
 if errorlevel 1 (
     echo cgen_multi_return_struct_dedupe.c should reuse one signature return struct.
     exit /b 1
@@ -153,7 +158,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_multi_assign_index.xl --emit build\test\cgen_multi_assign_index.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_array_set_at(values, (unsigned int)(0LL), __xl6_multi_index_" build\test\cgen_multi_assign_index.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(values, (long long)(0LL), __xl6_multi_index_" build\test\cgen_multi_assign_index.c >nul
 if errorlevel 1 (
     echo cgen_multi_assign_index.c missing index target lowering.
     exit /b 1
@@ -197,27 +202,27 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_index_access.xl --emit build\test\cgen_index_access.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_array_get_at(values, (unsigned int)(1LL))" build\test\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_typed_array_get_at(values, (long long)(1LL))" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing typed array index lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_array_index_retain_release(makeArray(), (long long)(1LL))" build\test\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_array_index_retain_release(xl_fn_makeArray(), (long long)(1LL))" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing array temporary receiver helper.
     exit /b 1
 )
-findstr /C:"xl6_xrt_index_safe_get_i64_retain_release(makeDynArray(), (long long)(0LL))" build\test\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_index_safe_get_i64_retain_release(xl_fn_makeDynArray(), (long long)(0LL))" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing var temporary receiver numeric helper.
     exit /b 1
 )
-findstr /C:"xl6_xrt_dict_get_key_retain_release(makeTable(), \"temp\")" build\test\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_dict_get_key_retain_release(xl_fn_makeTable(), \"temp\")" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing dict temporary receiver helper.
     exit /b 1
 )
-findstr /C:"xl6_record_field_get_owned(makeDynTable(), \"temp\", 1)" build\test\cgen_index_access.c >nul
+findstr /C:"xl6_record_field_get_owned(xl_fn_makeDynTable(), \"temp\", 1)" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing var temporary receiver field helper.
     exit /b 1
@@ -242,7 +247,7 @@ if errorlevel 1 (
     echo cgen_index_access.c missing dict vararg index lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_set_at(values, (unsigned int)(1LL), __xl6_index_assign_" build\test\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(values, (long long)(1LL), __xl6_index_assign_" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing typed array index assignment lowering.
     exit /b 1
@@ -305,7 +310,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_safe_index.xl --emit build\test\cgen_safe_index.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(values, (unsigned int)(1LL)))" build\test\cgen_safe_index.c >nul
+findstr /C:"xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(values, (long long)(1LL)))" build\test\cgen_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_safe_index.c missing typed array safe index lowering.
     exit /b 1
@@ -387,17 +392,17 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing typed dict safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeValue = xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(values" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"maybeValue = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(values" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing auto typed array safe index as xvalue.
     exit /b 1
 )
-findstr /C:"missingName = xl6_xrt_typed_box_or_null(xrtTypeString(), xrtTypedListGet(names" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"missingName = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeString(), xrtTypedListGet(names" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing auto typed list safe index as xvalue.
     exit /b 1
 )
-findstr /C:"missingScore = xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedDictGet(scores" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"missingScore = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedDictGet(scores" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing auto typed dict safe index as xvalue.
     exit /b 1
@@ -439,42 +444,42 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_safe_index_objects_functions.xl --emit build\test\cgen_typed_container_safe_index_objects_functions.c
 if errorlevel 1 exit /b 1
-findstr /C:"maybePair = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xl6_xrt_typed_array_get_at(pairs" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybePair = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xl6_xrt_typed_array_get_at(pairs" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"maybePayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xl6_xrt_typed_array_get_at(payloads" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybePayload = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xl6_xrt_typed_array_get_at(payloads" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xl6_xrt_typed_array_get_at(natives" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeNative = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xl6_xrt_typed_array_get_at(natives" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeFn = xl6_xrt_typed_box_or_null(xrtTypeFunction(), xl6_xrt_typed_array_get_at(funcs" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeFn = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeFunction(), xl6_xrt_typed_array_get_at(funcs" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeListPair = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xrtTypedListGet(pairList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeListPair = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xrtTypedListGet(pairList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeListPayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedListGet(payloadList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeListPayload = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedListGet(payloadList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeListNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xrtTypedListGet(nativeList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeListNative = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xrtTypedListGet(nativeList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeListFn = xl6_xrt_typed_box_or_null(xrtTypeFunction(), xrtTypedListGet(funcList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeListFn = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeFunction(), xrtTypedListGet(funcList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function typed list safe index lowering.
     exit /b 1
@@ -484,12 +489,12 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed dict dynamic safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeDictPayload = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedDictGet(payloadDict" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeDictPayload = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedDictGet(payloadDict" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed dict safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeDictNative = xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xrtTypedDictGet(nativeDict" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeDictNative = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xrtTypedDictGet(nativeDict" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed dict safe index lowering.
     exit /b 1
@@ -541,12 +546,12 @@ if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing borrowed dynamic member access.
     exit /b 1
 )
-findstr /C:"xl6_record_field_get_owned(makeObj()," build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_record_field_get_owned(xl_fn_makeObj()," build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing temporary dynamic member retain-release helper.
     exit /b 1
 )
-findstr /C:"xl6_record_field_get_owned(xl6_record_field_get_owned(makeObj()," build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_record_field_get_owned(xl6_record_field_get_owned(xl_fn_makeObj()," build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing nested temporary dynamic member retain-release helper.
     exit /b 1
@@ -605,27 +610,27 @@ release\xl.exe check test\cases\cgen_dynamic_container_param.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_dynamic_container_param.xl --emit build\test\cgen_dynamic_container_param.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue take(xvalue values)" build\test\cgen_dynamic_container_param.c >nul
+findstr /C:"xvalue xl_fn_take(xvalue values)" build\test\cgen_dynamic_container_param.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_container_param.c missing dynamic array parameter lowering.
     exit /b 1
 )
-findstr /C:"xvalue choose(xvalue values)" build\test\cgen_dynamic_container_param.c >nul
+findstr /C:"xvalue xl_fn_choose(xvalue values)" build\test\cgen_dynamic_container_param.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_container_param.c missing dynamic dict parameter lowering.
     exit /b 1
 )
-findstr /C:"xvoArrayGetValue(values, (unsigned int)(0LL))" build\test\cgen_dynamic_container_param.c >nul
+findstr /C:"xvoIndexGetI64(values, (long long)(0LL))" build\test\cgen_dynamic_container_param.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_container_param.c missing dynamic array index return.
     exit /b 1
 )
-findstr /C:"direct = take(xl6_xrt_array_varargs(2," build\test\cgen_dynamic_container_param.c >nul
+findstr /C:"xl_fn_take(xl6_xrt_array_varargs(2," build\test\cgen_dynamic_container_param.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_container_param.c missing dynamic array literal argument.
     exit /b 1
 )
-findstr /C:"named = choose(xl6_xrt_dict_varargs(1," build\test\cgen_dynamic_container_param.c >nul
+findstr /C:"xl_fn_choose(xl6_xrt_dict_varargs(1," build\test\cgen_dynamic_container_param.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_container_param.c missing dynamic dict literal argument.
     exit /b 1
@@ -637,12 +642,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_safe_member.xl --emit build\test\cgen_safe_member.c
 if errorlevel 1 exit /b 1
-findstr /C:"valuesLength = xvoCreateInt((long long)(xrtTypedArrayCount(values)))" build\test\cgen_safe_member.c >nul
+findstr /C:"valuesLength = xl6_xrt_move_to_shared(xvoCreateInt((long long)(xrtTypedArrayCount(values))))" build\test\cgen_safe_member.c >nul
 if errorlevel 1 (
     echo cgen_safe_member.c missing typed array safe member lowering.
     exit /b 1
 )
-findstr /C:"tableLength = xvoCreateInt((long long)(xrtTypedDictCount(table)))" build\test\cgen_safe_member.c >nul
+findstr /C:"tableLength = xl6_xrt_move_to_shared(xvoCreateInt((long long)(xrtTypedDictCount(table))))" build\test\cgen_safe_member.c >nul
 if errorlevel 1 (
     echo cgen_safe_member.c missing typed dict safe member lowering.
     exit /b 1
@@ -657,12 +662,12 @@ if errorlevel 1 (
     echo cgen_safe_member.c missing null safe member lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_member_safe_length_release(makeArray())" build\test\cgen_safe_member.c >nul
+findstr /C:"xl6_xrt_member_safe_length_release(xl_fn_makeArray())" build\test\cgen_safe_member.c >nul
 if errorlevel 1 (
     echo cgen_safe_member.c missing temporary array safe member release helper.
     exit /b 1
 )
-findstr /C:"xl6_xrt_member_safe_length_release(makeDynArray())" build\test\cgen_safe_member.c >nul
+findstr /C:"xl6_xrt_member_safe_length_release(xl_fn_makeDynArray())" build\test\cgen_safe_member.c >nul
 if errorlevel 1 (
     echo cgen_safe_member.c missing temporary dynamic safe member release helper.
     exit /b 1
@@ -780,7 +785,7 @@ if errorlevel 1 (
     echo cgen_null_coalesce.c missing single-evaluation null coalesce lowering.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_nc_" build\test\cgen_null_coalesce.c | findstr /C:"nc_probe_next_var();" >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -LiteralPath 'build\test\cgen_null_coalesce.c' -Raw -Encoding UTF8; if($t -notmatch 'xvalue __xl6_nc_\d+ = 0;' -or ([regex]::Matches($t, '__xl6_nc_\d+ = nc_probe_next_var\(\);')).Count -ne 1){exit 1}"
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing var null coalesce left temporary.
     exit /b 1
@@ -830,7 +835,7 @@ if not errorlevel 1 (
     echo cgen_null_coalesce.c still uses call argument null coalesce statement expression.
     exit /b 1
 )
-findstr /C:"literal = xvoCreateInt((long long)(7LL));" build\test\cgen_null_coalesce.c >nul
+findstr /C:"literal = xl6_xrt_move_to_shared(xvoCreateInt((long long)(7LL)));" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing literal null coalesce boxing.
     exit /b 1
@@ -874,7 +879,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_custom.xl --emit build\test\cgen_custom.c
 if errorlevel 1 exit /b 1
-findstr /C:"typedef struct XL_Class_Counter {" build\test\cgen_custom.c >nul
+findstr /C:"struct XL_Class_Counter {" build\test\cgen_custom.c >nul
 if errorlevel 1 (
     echo cgen_custom.c missing native-backed class handle struct.
     exit /b 1
@@ -928,9 +933,29 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_native_class_bind_point.xl --emit build\test\cgen_native_class_bind_point.c
 if errorlevel 1 exit /b 1
-findstr /C:"box.handle = raw;" build\test\cgen_native_class_bind_point.c >nul
+findstr /C:"#define XL_RUNTIME_NEED_POINT_MOVE 1" build\test\cgen_native_class_bind_point.c >nul
 if errorlevel 1 (
-    echo cgen_native_class_bind_point.c missing native point binding.
+    echo cgen_native_class_bind_point.c missing native point move runtime gate.
+    exit /b 1
+)
+findstr /C:"box.handle = xl6_point_take((void**)&(raw));" build\test\cgen_native_class_bind_point.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_bind_point.c missing owning native point transfer.
+    exit /b 1
+)
+findstr /C:"empty.handle = xl6_point_take((void**)&(raw));" build\test\cgen_native_class_bind_point.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_bind_point.c missing repeated empty point transfer.
+    exit /b 1
+)
+powershell -NoProfile -Command "$count=(Select-String -Path 'build\test\cgen_native_class_bind_point.c' -SimpleMatch 'xl6_point_take((void**)&(raw))').Count; if ($count -lt 3) { exit 1 }"
+if errorlevel 1 (
+    echo cgen_native_class_bind_point.c missing nested argument point transfer.
+    exit /b 1
+)
+findstr /C:"if (empty.handle != 0)" build\test\cgen_native_class_bind_point.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_bind_point.c missing null-safe destroy guard.
     exit /b 1
 )
 findstr /C:"borrowed_box_close(self->handle);" build\test\cgen_native_class_bind_point.c >nul
@@ -1055,6 +1080,11 @@ if errorlevel 1 (
     echo cgen_custom_ownership.c missing view-only point binding.
     exit /b 1
 )
+findstr /C:"xl6_point_take((void**)&(handle))" build\test\cgen_custom_ownership.c >nul
+if not errorlevel 1 (
+    echo cgen_custom_ownership.c must not consume a non-owning view handle.
+    exit /b 1
+)
 findstr /C:"borrowed_box_close" build\test\cgen_custom_ownership.c >nul
 if not errorlevel 1 (
     echo cgen_custom_ownership.c should not emit destroy without destroy mapping.
@@ -1079,7 +1109,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_class.xl --emit build\test\cgen_class.c
 if errorlevel 1 exit /b 1
-findstr /C:"typedef struct XL_Class_Point {" build\test\cgen_class.c >nul
+findstr /C:"struct XL_Class_Point {" build\test\cgen_class.c >nul
 if errorlevel 1 (
     echo cgen_class.c missing class struct.
     exit /b 1
@@ -1191,9 +1221,14 @@ if errorlevel 1 (
     echo cgen_object_protocol.c missing object item protocol setter call.
     exit /b 1
 )
-findstr /C:"xvoUnref(__xl6_protocol_value_" build\test\cgen_object_protocol.c >nul
+findstr /C:"xvoUnref(value);" build\test\cgen_object_protocol.c >nul
 if errorlevel 1 (
-    echo cgen_object_protocol.c missing protocol value cleanup.
+    echo cgen_object_protocol.c missing callee-owned protocol value cleanup.
+    exit /b 1
+)
+findstr /C:"xvoUnref(__xl6_protocol_value_" build\test\cgen_object_protocol.c >nul
+if not errorlevel 1 (
+    echo cgen_object_protocol.c releases a transferred protocol value twice.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_object_protocol.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_object_protocol.exe
@@ -1311,6 +1346,67 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_property_get_let.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_property_get_let.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_property_get_let.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_class_property_compound_managed.xl --emit build\test\cgen_class_property_compound_managed.c
+if errorlevel 1 exit /b 1
+findstr /C:"__xl6_property_current_" build\test\cgen_class_property_compound_managed.c >nul
+if errorlevel 1 (
+    echo cgen_class_property_compound_managed.c missing property read-modify-write temporary.
+    exit /b 1
+)
+findstr /C:"xl_class_Score______add____(&__xl6_property_current_" build\test\cgen_class_property_compound_managed.c >nul
+if errorlevel 1 (
+    echo cgen_class_property_compound_managed.c missing class protocol compound call.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_property_compound_managed.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_property_compound_managed.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_class_property_compound_managed.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_nested_class_constructor.xl --emit build\test\cgen_nested_class_constructor.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_Ray__create(&direct, __xl6_class_arg_" build\test\cgen_nested_class_constructor.c >nul
+if errorlevel 1 (
+    echo cgen_nested_class_constructor.c missing nested global constructor temporaries.
+    exit /b 1
+)
+findstr /C:".value1 = (XL_Class_Ray){0};" build\test\cgen_nested_class_constructor.c >nul
+if errorlevel 1 (
+    echo cgen_nested_class_constructor.c missing multi-return class construction.
+    exit /b 1
+)
+findstr /C:"xl_class_Box__Vec3__create(&boxed, __xl6_class_arg_" build\test\cgen_nested_class_constructor.c >nul
+if errorlevel 1 (
+    echo cgen_nested_class_constructor.c missing generic class nested constructor lowering.
+    exit /b 1
+)
+findstr /C:"XL_Class_Ray __xl6_async_return_" build\test\cgen_nested_class_constructor.c >nul
+if errorlevel 1 (
+    echo cgen_nested_class_constructor.c missing async class constructor lowering.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_nested_class_constructor.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_nested_class_constructor.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_nested_class_constructor.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_stdlib_namespace_shadow.xl --emit build\test\cgen_stdlib_namespace_shadow.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_Vec__nearZero(&dir)" build\test\cgen_stdlib_namespace_shadow.c >nul
+if errorlevel 1 (
+    echo cgen_stdlib_namespace_shadow.c did not preserve the local dir receiver.
+    exit /b 1
+)
+findstr /C:"__xl_std_path_join" build\test\cgen_stdlib_namespace_shadow.c >nul
+if errorlevel 1 (
+    echo cgen_stdlib_namespace_shadow.c lost the unshadowed stdlib namespace call.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_stdlib_namespace_shadow.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_stdlib_namespace_shadow.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_stdlib_namespace_shadow.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_protocol_complex_receiver.xl --emit build\test\cgen_protocol_complex_receiver.c
@@ -1488,7 +1584,7 @@ if errorlevel 1 (
 )
 release\xl.exe cgen test\cases\cgen_unicode_identifiers.xl --emit build\test\cgen_unicode_identifiers.c
 if errorlevel 1 exit /b 1
-findstr /C:"typedef struct XL_Class__u70B9_ {" build\test\cgen_unicode_identifiers.c >nul
+findstr /C:"struct XL_Class__u70B9_ {" build\test\cgen_unicode_identifiers.c >nul
 if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded class type.
     exit /b 1
@@ -1498,12 +1594,12 @@ if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded class field.
     exit /b 1
 )
-findstr /C:"long long xl_fn__u52A0__u4E00___int(" build\test\cgen_unicode_identifiers.c >nul
+findstr /C:"long long xl_fn__u52A0__u4E00_(" build\test\cgen_unicode_identifiers.c >nul
 if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded function symbol.
     exit /b 1
 )
-findstr /C:"long long xl_fn__u52A0__u4E00___int(long long _u6570__u503C_)" build\test\cgen_unicode_identifiers.c >nul
+findstr /C:"long long xl_fn__u52A0__u4E00_(long long _u6570__u503C_)" build\test\cgen_unicode_identifiers.c >nul
 if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded function parameter.
     exit /b 1
@@ -1513,7 +1609,7 @@ if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded class method symbol.
     exit /b 1
 )
-findstr /C:"_u7ED3__u679C_ = xl_fn__u52A0__u4E00___int(41LL);" build\test\cgen_unicode_identifiers.c >nul
+findstr /C:"_u7ED3__u679C_ = xl_fn__u52A0__u4E00_(41LL);" build\test\cgen_unicode_identifiers.c >nul
 if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded local variable.
     exit /b 1
@@ -1618,7 +1714,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_custom_field_method.xl --emit build\test\cgen_custom_field_method.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long __xl6_return_0 = native_box_value(self->box.handle);" build\test\cgen_custom_field_method.c >nul
+findstr /C:"= native_box_value(self->box.handle);" build\test\cgen_custom_field_method.c >nul
 if errorlevel 1 (
     echo cgen_custom_field_method.c missing native-backed class field method call.
     exit /b 1
@@ -1688,7 +1784,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_overload_priority.xl --emit build\test\cgen_generic_overload_priority.c
 if errorlevel 1 exit /b 1
-findstr /C:"expect_i64(choose(1LL), 10LL);" build\test\cgen_generic_overload_priority.c >nul
+findstr /C:"expect_i64(xl_fn_choose(1LL), 10LL);" build\test\cgen_generic_overload_priority.c >nul
 if errorlevel 1 (
     echo cgen_generic_overload_priority.c should prefer exact non-generic overload.
     exit /b 1
@@ -1766,7 +1862,7 @@ if errorlevel 1 (
     echo cgen_generic_function.c missing int generic call.
     exit /b 1
 )
-findstr /C:"text = xl_gen_identity__string(\"ok\");" build\test\cgen_generic_function.c >nul
+findstr /C:"text = xrtCopyStr(xl_gen_identity__string(\"ok\"), 0u);" build\test\cgen_generic_function.c >nul
 if errorlevel 1 (
     echo cgen_generic_function.c missing string generic call.
     exit /b 1
@@ -1845,7 +1941,7 @@ if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred int call.
     exit /b 1
 )
-findstr /C:"text = xl_gen_identity__string(\"ok\");" build\test\cgen_generic_infer.c >nul
+findstr /C:"text = xrtCopyStr(xl_gen_identity__string(\"ok\"), 0u);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred string call.
     exit /b 1
@@ -2126,7 +2222,7 @@ if errorlevel 1 (
     echo cgen_generic_class_methods.c missing generic class method prototype.
     exit /b 1
 )
-findstr /C:"long long __xl6_return_0 = self->value;" build\test\cgen_generic_class_methods.c >nul
+findstr /C:"= self->value;" build\test\cgen_generic_class_methods.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_methods.c missing generic class method body.
     exit /b 1
@@ -2373,7 +2469,7 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\cgen_main_case_sensitive.xl --emit build\test\cgen_main_case_sensitive.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_case_sensitive.c' -Raw; if($t -match 'xlang_main'){exit 1}; if($t -match 'int main\('){exit 2}; if($t -notmatch 'long long Main\(xvalue arg\)'){exit 3}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_case_sensitive.c' -Raw; if($t -match 'xlang_main'){exit 1}; if($t -match 'int main\('){exit 2}; if($t -notmatch 'long long xl_fn_Main\(xvalue arg\)'){exit 3}"
 if errorlevel 1 (
     echo cgen_main_case_sensitive.c should treat Main as a normal function.
     exit /b 1
@@ -2382,7 +2478,7 @@ release\xl.exe check test\cases\cgen_main_case_sensitive_script.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_main_case_sensitive_script.xl --emit build\test\cgen_main_case_sensitive_script.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_case_sensitive_script.c' -Raw; if($t -notmatch 'int xlang_main\(xvalue arg\)'){exit 1}; if($t -notmatch 'int main\('){exit 2}; if($t -notmatch 'long long Main\(xvalue arg\)'){exit 3}; if($t -notmatch 'expect_i64\(1LL, 1LL\);'){exit 4}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_case_sensitive_script.c' -Raw; if($t -notmatch 'int xlang_main\(xvalue arg\)'){exit 1}; if($t -notmatch 'int main\('){exit 2}; if($t -notmatch 'long long xl_fn_Main\(xvalue arg\)'){exit 3}; if($t -notmatch 'expect_i64\(1LL, 1LL\);'){exit 4}"
 if errorlevel 1 (
     echo cgen_main_case_sensitive_script.c should treat Main as normal function and top-level code as script main.
     exit /b 1
@@ -3051,7 +3147,7 @@ if errorlevel 1 (
     echo export_vars.c missing export const definition.
     exit /b 1
 )
-findstr /C:"long long __xl6_return_0 = (xl6_counter + xl6_version);" build\test\export_vars.c >nul
+findstr /C:"= (xl6_counter + xl6_version);" build\test\export_vars.c >nul
 if errorlevel 1 (
     echo export_vars.c missing export var read inside wrapper target.
     exit /b 1
@@ -3078,6 +3174,16 @@ if errorlevel 1 exit /b 1
 findstr /C:"packageCounter" build\test\export_package_vars.h >nul
 if not errorlevel 1 (
     echo export_package_vars.h should not expose package-only export variable.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_external_string_copy(native_shared_text(" build\test\cgen_extern_string_return.c >nul
+if errorlevel 1 (
+    echo cgen_extern_string_return.c missing stable extern string copy.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_external_string_copy(native_text_shared(" build\test\cgen_extern_string_return.c >nul
+if errorlevel 1 (
+    echo cgen_extern_string_return.c missing stable native member string copy.
     exit /b 1
 )
 
@@ -3361,7 +3467,27 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\cgen_class_upcast_dispatch.xl
+release\xl.exe check test\cases\sem_class_implicit_upcast.xl >nul 2>build\test\sem_class_implicit_upcast.err.txt
+if not errorlevel 1 (
+    echo sem_class_implicit_upcast.xl should fail.
+    exit /b 1
+)
+powershell -NoProfile -Command "$count=(Select-String -Path 'build\test\sem_class_implicit_upcast.err.txt' -SimpleMatch 'target UpcastBase, value UpcastDerived').Count; if ($count -ne 4) { exit 1 }"
+if errorlevel 1 (
+    echo sem_class_implicit_upcast.err.txt should contain four slicing diagnostics.
+    exit /b 1
+)
+
+release\xl.exe cgen test\cases\cgen_class_virtual_return_move.xl --emit build\test\cgen_class_virtual_return_move.c
+if errorlevel 1 exit /b 1
+findstr /C:"return __xl6_return_" build\test\cgen_class_virtual_return_move.c >nul
+if errorlevel 1 (
+    echo cgen_class_virtual_return_move.c missing materialized class return.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_virtual_return_move.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_virtual_return_move.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_class_virtual_return_move.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_class_equality_without_protocol.xl >nul 2> build\test\sem_class_equality_without_protocol.err.txt
@@ -3379,6 +3505,102 @@ if not errorlevel 1 (
     echo sem_class_equality_without_protocol.err.txt regressed to generic cgen diagnostic.
     exit /b 1
 )
+
+release\xl.exe cgen test\cases\cgen_class_field_and_container_param.xl --emit build\test\cgen_class_field_and_container_param.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_missing_to_value" build\test\cgen_class_field_and_container_param.c >nul
+if not errorlevel 1 (
+    echo cgen_class_field_and_container_param.c should box nested class fields as records.
+    exit /b 1
+)
+findstr /C:"xl6_missing_from_value" build\test\cgen_class_field_and_container_param.c >nul
+if not errorlevel 1 (
+    echo cgen_class_field_and_container_param.c should unbox nested class fields as records.
+    exit /b 1
+)
+powershell -NoProfile -Command "$lines=Get-Content -LiteralPath 'build\test\cgen_class_field_and_container_param.c'; $forward=($lines | Select-String -SimpleMatch 'typedef struct XL_Class_Buffer XL_Class_Buffer;' | Select-Object -First 1).LineNumber; $proto=($lines | Select-String -SimpleMatch 'xl_class_ContainerParamBox__bufferLength' | Select-Object -First 1).LineNumber; $layout=($lines | Select-String -SimpleMatch 'struct XL_Class_Buffer {' | Select-Object -First 1).LineNumber; if (!$forward -or !$proto -or !$layout -or $forward -ge $proto -or $proto -ge $layout) { exit 1 }"
+if errorlevel 1 (
+    echo cgen_class_field_and_container_param.c has invalid class declaration ordering.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_field_and_container_param.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_field_and_container_param.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_class_field_and_container_param.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_typed_container_param_mutation.xl --emit build\test\cgen_typed_container_param_mutation.c
+if errorlevel 1 exit /b 1
+findstr /C:"mutateArray(arrayValue);" build\test\cgen_typed_container_param_mutation.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_param_mutation.c should borrow named typed-container arguments.
+    exit /b 1
+)
+findstr /C:"mutateArray(store.values);" build\test\cgen_typed_container_param_mutation.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_param_mutation.c should borrow typed-container field arguments.
+    exit /b 1
+)
+findstr /C:"consumeArray(xl6_xrt_array_varargs" build\test\cgen_typed_container_param_mutation.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_param_mutation.c passed a dynamic literal to a static container parameter.
+    exit /b 1
+)
+findstr /C:"nestedValue = (xl_fn_consumeArray(__xl6_call_arg_" build\test\cgen_typed_container_param_mutation.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_param_mutation.c missing nested assignment argument lowering.
+    exit /b 1
+)
+findstr /C:"xrtTypedArrayDestroy(__xl6_call_arg_" build\test\cgen_typed_container_param_mutation.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_param_mutation.c missing owned call argument cleanup.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_typed_container_param_mutation.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_typed_container_param_mutation.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_typed_container_param_mutation.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_native_class_const_point.xl >nul 2> build\test\sem_native_class_const_point.err.txt
+if not errorlevel 1 (
+    echo sem_native_class_const_point.xl should reject ownership transfer from const point.
+    exit /b 1
+)
+findstr /C:"owning native-backed class cannot consume a const point handle" build\test\sem_native_class_const_point.err.txt >nul
+if errorlevel 1 (
+    echo sem_native_class_const_point.xl missing const ownership diagnostic.
+    exit /b 1
+)
+
+release\xl.exe cgen test\cases\cgen_class_param_value_ownership.xl --emit build\test\cgen_class_param_value_ownership.c
+if errorlevel 1 exit /b 1
+findstr /C:"box = xl_class_ValueBox______xl6__copy__value(box, 1);" build\test\cgen_class_param_value_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_class_param_value_ownership.c missing class parameter ownership copy.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_param_value_ownership.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_param_value_ownership.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_class_param_value_ownership.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_export_typed_container_abi.xl --emit build\test\cgen_export_typed_container_abi.c --emit-header build\test\cgen_export_typed_container_abi.h
+if errorlevel 1 exit /b 1
+findstr /C:"xtarray values" build\test\cgen_export_typed_container_abi.c >nul
+if errorlevel 1 (
+    echo cgen_export_typed_container_abi.c missing static container ABI.
+    exit /b 1
+)
+findstr /C:"xl6_export_sumInternal(xvalue values)" build\test\cgen_export_typed_container_abi.c >nul
+if not errorlevel 1 (
+    echo cgen_export_typed_container_abi.c regressed to dynamic container ABI.
+    exit /b 1
+)
+"%XL6_BOOTSTRAP_CC%" -std=c11 -Werror=incompatible-pointer-types -Ibuild\test -fsyntax-only build\test\cgen_export_typed_container_abi.c
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_export_typed_container_abi.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_export_typed_container_abi.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_export_typed_container_abi.exe
+if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: OOP ABI export and interop
 exit /b 0

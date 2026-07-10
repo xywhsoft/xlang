@@ -1,8 +1,0 @@
-class BadNameProperty
-    get get() as int
-        return 1
-    end
-
-    let let(int value)
-    end
-end

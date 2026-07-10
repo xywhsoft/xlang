@@ -67,6 +67,7 @@ static int xl6CgenDeclCanEmitXValueCallValueTemp(XL6_CgenContext* ctx, const XL6
 static int xl6CgenDeclCanEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr);
 static int xl6CgenDeclEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* cType, const char* cName, const XL6_AstNode* expr);
 static int xl6CgenDeclCallExprArgsNeedCallArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+static int xl6CgenDeclExprNeedsCallArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* expr);
 static int xl6CgenDeclEmitXValueCallExprWithArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr, const char* valueName);
 static int xl6CgenDeclEmitScalarCallExprWithArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr, const char* valueName);
 
@@ -88,6 +89,9 @@ static int xl6CgenDeclCanEmitXValueCallValueTemp(XL6_CgenContext* ctx, const XL6
 {
     if ( expr == NULL ) {
         return 0;
+    }
+    if ( xl6CgenXValueExprNeedsSpecialStmt(ctx, expr) ) {
+        return 1;
     }
     if ( xl6CgenDeclIsNullCoalesceExpr(expr) ) {
         XL6_AstNode* leftType;
@@ -118,8 +122,14 @@ static int xl6CgenDeclEmitXValueCallValueTemp(
 {
     int id;
 
-    if ( ctx == NULL || targetType == NULL || expr == NULL || valueName == NULL ||
-         !xl6CgenDeclCanEmitXValueCallValueTemp(ctx, expr) ) {
+    if ( ctx == NULL || targetType == NULL || expr == NULL || valueName == NULL ) {
+        return 0;
+    }
+
+    if ( xl6CgenXValueExprNeedsSpecialStmt(ctx, expr) ) {
+        return xl6CgenTrySpecialXValueAssignStmt(ctx, targetType, valueName, expr);
+    }
+    if ( !xl6CgenDeclCanEmitXValueCallValueTemp(ctx, expr) ) {
         return 0;
     }
 
@@ -569,7 +579,8 @@ static int xl6CgenDeclCanEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode
     if ( xl6CgenIsTypedContainerType(ctx, typeNode) &&
          (xl6CgenTypedContainerInitLiteral(ctx, typeNode, expr) != NULL ||
           xl6CgenTypedContainerCanCopyFromExpr(ctx, typeNode, expr) ||
-          xl6CgenTypedContainerCanMoveFromExpr(ctx, typeNode, expr)) ) {
+          xl6CgenTypedContainerCanMoveFromExpr(ctx, typeNode, expr) ||
+          xl6CgenTypedContainerCanImportDynamicExpr(ctx, typeNode, expr)) ) {
         return 1;
     }
     if ( xl6CgenDeclCanEmitMemberFunctionTempReceiverCallTemp(ctx, typeNode, expr) ) {
@@ -587,8 +598,7 @@ static int xl6CgenDeclCanEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode
         return 1;
     }
     if ( xl6CgenDeclCallArgStaticScalarType(typeNode) &&
-         expr->kind == XL6_AST_CALL &&
-         xl6CgenDeclCallExprArgsNeedCallArgTemps(ctx, expr) ) {
+         xl6CgenDeclExprNeedsCallArgTemps(ctx, expr) ) {
         return 1;
     }
     if ( xl6CgenDeclStaticNullCoalesceCallArgMatches(ctx, typeNode, expr) ) {
@@ -615,8 +625,10 @@ static int xl6CgenDeclEmitCallArgTemp(
     if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
         int initByCopy = xl6CgenTypedContainerCanCopyFromExpr(ctx, typeNode, expr);
         int initByMove = xl6CgenTypedContainerCanMoveFromExpr(ctx, typeNode, expr);
+        int initByImport = xl6CgenTypedContainerCanImportDynamicExpr(ctx, typeNode, expr);
 
-        if ( xl6CgenTypedContainerInitLiteral(ctx, typeNode, expr) == NULL && !initByCopy && !initByMove ) {
+        if ( xl6CgenTypedContainerInitLiteral(ctx, typeNode, expr) == NULL &&
+             !initByCopy && !initByMove && !initByImport ) {
             return 0;
         }
         xl6CgenIndent(ctx);
@@ -625,11 +637,16 @@ static int xl6CgenDeclEmitCallArgTemp(
             xl6CgenTypedContainerCopyExpr(ctx, typeNode, expr);
         } else if ( initByMove ) {
             xl6CgenExpr(ctx, expr);
+        } else if ( initByImport ) {
+            xl6CgenTypedContainerImportDynamicExpr(ctx, typeNode, expr);
         } else {
             xl6CgenTypedContainerCreateExpr(ctx, typeNode);
         }
         xl6OutputPuts(";\n", ctx->out);
-        if ( !initByCopy && !initByMove ) {
+        if ( initByImport ) {
+            xl6CgenTypedContainerImportCheckStmt(ctx, cName, expr);
+        }
+        if ( !initByCopy && !initByMove && !initByImport ) {
             xl6CgenTypedContainerFillFromLiteral(ctx, cName, typeNode, expr);
         }
         (void)cType;
@@ -657,7 +674,6 @@ static int xl6CgenDeclEmitCallArgTemp(
         return 1;
     }
     if ( xl6CgenDeclCallArgStaticScalarType(typeNode) &&
-         expr->kind == XL6_AST_CALL &&
          xl6CgenDeclEmitScalarCallExprWithArgTemps(ctx, typeNode, expr, cName) ) {
         (void)cType;
         return 1;
@@ -818,6 +834,9 @@ static int xl6CgenTaskSpawnArgTempScopeBegin(
     const XL6_AstNode* expr,
     XL6_CgenTaskSpawnArgTempScope* scope)
 {
+    XL6_CgenExprReplacement* ownReplacements;
+    size_t replacementCount;
+
     if ( scope == NULL ) {
         return 0;
     }
@@ -833,7 +852,23 @@ static int xl6CgenTaskSpawnArgTempScopeBegin(
         return 0;
     }
 
-    scope->replacements = xl6CgenDeclCreateCallArgReplacements(ctx, scope->temps, scope->tempCapacity, scope->tempCount);
+    ownReplacements = xl6CgenDeclCreateCallArgReplacements(
+        ctx,
+        scope->temps,
+        scope->tempCapacity,
+        scope->tempCount);
+    if ( ownReplacements == NULL ) {
+        xl6CgenDeclFreeCallArgTemps(scope->temps, scope->tempCapacity);
+        memset(scope, 0, sizeof(*scope));
+        return 0;
+    }
+
+    scope->replacements = xl6CgenDeclMergeExprReplacements(
+        ctx,
+        expr,
+        ownReplacements,
+        (size_t)scope->tempCount,
+        &replacementCount);
     if ( scope->replacements == NULL ) {
         xl6CgenDeclFreeCallArgTemps(scope->temps, scope->tempCapacity);
         memset(scope, 0, sizeof(*scope));
@@ -844,7 +879,7 @@ static int xl6CgenTaskSpawnArgTempScopeBegin(
     scope->prevExprReplacements = ctx->exprReplacements;
     scope->prevExprReplacementCount = ctx->exprReplacementCount;
     ctx->exprReplacements = scope->replacements;
-    ctx->exprReplacementCount = (size_t)scope->tempCount;
+    ctx->exprReplacementCount = replacementCount;
     scope->active = 1;
     return 1;
 }
@@ -873,6 +908,7 @@ static int xl6CgenDeclTryTaskSpawnArgTempsInit(
     XL6_CgenExprReplacement* replacements;
     const XL6_CgenExprReplacement* prevExprReplacements;
     size_t prevExprReplacementCount;
+    size_t replacementCount;
     int tempCount;
     int tempCapacity;
 
@@ -895,6 +931,16 @@ static int xl6CgenDeclTryTaskSpawnArgTempsInit(
         xl6CgenDeclFreeCallArgTemps(temps, tempCapacity);
         return 0;
     }
+    replacements = xl6CgenDeclMergeExprReplacements(
+        ctx,
+        initExpr,
+        replacements,
+        (size_t)tempCount,
+        &replacementCount);
+    if ( replacements == NULL ) {
+        xl6CgenDeclFreeCallArgTemps(temps, tempCapacity);
+        return 0;
+    }
 
     xl6OutputPuts(cType, ctx->out);
     xl6OutputPrintf(ctx->out, " %s = ", cName);
@@ -910,7 +956,7 @@ static int xl6CgenDeclTryTaskSpawnArgTempsInit(
     prevExprReplacements = ctx->exprReplacements;
     prevExprReplacementCount = ctx->exprReplacementCount;
     ctx->exprReplacements = replacements;
-    ctx->exprReplacementCount = (size_t)tempCount;
+    ctx->exprReplacementCount = replacementCount;
 
     /*
         task.spawn 的实参预求值只解决副作用顺序问题。

@@ -1,5 +1,25 @@
 extern "native_text" func nativeText() as string
+extern "native_shared_text" func nativeSharedText(int which) as string
 extern "expect_i64" func expect(int actual, int expected)
+
+class NativeText
+    native point handle
+
+    extern "native_text_open" create()
+    extern "native_text_close" destroy()
+    extern "native_text_shared" func shared(int which) as string
+end
 
 string text = nativeText()
 expect(text == "native text", 1)
+
+string first = nativeSharedText(1)
+string second = nativeSharedText(2)
+expect(first == "first", 1)
+expect(second == "second", 1)
+
+NativeText native = NativeText()
+string memberFirst = native.shared(1)
+string memberSecond = native.shared(2)
+expect(memberFirst == "member first", 1)
+expect(memberSecond == "member second", 1)

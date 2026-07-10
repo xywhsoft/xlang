@@ -98,11 +98,20 @@ static const XL6_AstNode* xl6CgenNameAssignTargetType(XL6_CgenContext* ctx, cons
 
 static void xl6CgenNameAssignTargetPath(XL6_CgenContext* ctx, const char* name, char* buffer, size_t capacity)
 {
+    const XL6_AstNode* externalVar;
+
     if ( buffer == NULL || capacity == 0 ) {
         return;
     }
     if ( xl6CgenImplicitSelfFieldPath(ctx, name, buffer, capacity) ) {
         return;
+    }
+    if ( xl6CgenFindTrackedVarType(ctx, name) == NULL ) {
+        externalVar = xl6CgenFindExternalVar(ctx, name);
+        if ( externalVar != NULL ) {
+            xl6CgenExternalVarStorageNameText(buffer, capacity, externalVar);
+            return;
+        }
     }
     xl6CgenCIdentText(buffer, capacity, name);
 }
@@ -166,7 +175,7 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
         if ( xl6CTextEquals(receiverKind, "array") ) {
             xl6OutputPuts("xl6_xrt_typed_array_get_at(", ctx->out);
             xl6CgenExpr(ctx, receiver);
-            xl6OutputPuts(", (unsigned int)(", ctx->out);
+            xl6OutputPuts(", (long long)(", ctx->out);
             xl6CgenExpr(ctx, index);
             xl6OutputPuts("))", ctx->out);
         } else if ( xl6CTextEquals(receiverKind, "list") ) {
@@ -512,293 +521,7 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
     xl6AstFree(receiverType);
     return 1;
 }
-static int xl6CgenAssignStaticBoolLikeType(const XL6_AstNode* typeNode)
-{
-    const char* name;
-
-    if ( typeNode == NULL || typeNode->text == NULL ) {
-        return 0;
-    }
-
-    name = typeNode->text;
-    return xl6CgenIsBoolTypeName(name) ||
-           xl6CTextEquals(name, "int") ||
-           xl6CTextEquals(name, "int8") ||
-           xl6CTextEquals(name, "uint8") ||
-           xl6CTextEquals(name, "int16") ||
-           xl6CTextEquals(name, "uint16") ||
-           xl6CTextEquals(name, "int32") ||
-           xl6CTextEquals(name, "uint32") ||
-           xl6CTextEquals(name, "int64") ||
-           xl6CTextEquals(name, "uint64");
-}
-
-static void xl6CgenAssignEmitXValueTempCleanup(XL6_CgenContext* ctx, const char* prefix, int id)
-{
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (__xl6_%s_left_%d != 0) {\n", prefix, id);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_%s_left_%d);\n", prefix, id);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (__xl6_%s_right_%d != 0) {\n", prefix, id);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_%s_right_%d);\n", prefix, id);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-}
-
-static int xl6CgenAssignTryXValueBinaryStmt(
-    XL6_CgenContext* ctx,
-    const XL6_AstNode* targetType,
-    const XL6_AstNode* right,
-    int id)
-{
-    const XL6_AstNode* leftExpr;
-    const XL6_AstNode* rightExpr;
-
-    if ( ctx == NULL || targetType == NULL ||
-         right == NULL || right->kind != XL6_AST_BINARY || right->childCount < 2 ||
-         !xl6CgenBinaryArithmeticIsXValue(ctx, right) ) {
-        return 0;
-    }
-
-    leftExpr = right->children[0];
-    rightExpr = right->children[1];
-
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_assign_%d = 0;\n", id);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("{\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_bin_left_%d = ", id);
-    xl6CgenXValueFromExprForTarget(ctx, targetType, leftExpr);
-    xl6OutputPuts(";\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_bin_right_%d = ", id);
-    xl6CgenXValueFromExprForTarget(ctx, targetType, rightExpr);
-    xl6OutputPuts(";\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out,
-                    "__xl6_assign_%d = xl6_xrt_basic_binary(__xl6_bin_left_%d, __xl6_bin_right_%d, %d);\n",
-                    id,
-                    id,
-                    id,
-                    xl6CgenXValueBinaryMode(right->text));
-    xl6CgenAssignEmitXValueTempCleanup(ctx, "bin", id);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    return 1;
-}
-
-static int xl6CgenAssignTryXValueConditionalStmt(
-    XL6_CgenContext* ctx,
-    const XL6_AstNode* targetType,
-    const XL6_AstNode* right,
-    int id)
-{
-    const XL6_AstNode* cond;
-    const XL6_AstNode* thenExpr;
-    const XL6_AstNode* elseExpr;
-
-    if ( ctx == NULL || targetType == NULL ||
-         right == NULL || right->kind != XL6_AST_CONDITIONAL || right->childCount < 3 ||
-         !xl6CgenConditionalIsXValue(ctx, right) ) {
-        return 0;
-    }
-
-    cond = right->children[0];
-    thenExpr = right->children[1];
-    elseExpr = right->children[2];
-
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_assign_%d = 0;\n", id);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("{\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("if (", ctx->out);
-    xl6CgenConditionExpr(ctx, cond);
-    xl6OutputPuts(") {\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "__xl6_assign_%d = ", id);
-    xl6CgenXValueFromExprForTarget(ctx, targetType, thenExpr);
-    xl6OutputPuts(";\n", ctx->out);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("} else {\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "__xl6_assign_%d = ", id);
-    xl6CgenXValueFromExprForTarget(ctx, targetType, elseExpr);
-    xl6OutputPuts(";\n", ctx->out);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    return 1;
-}
-
-static int xl6CgenAssignTryStaticXValueCompareStmt(
-    XL6_CgenContext* ctx,
-    const XL6_AstNode* targetType,
-    const char* cType,
-    const char* cName,
-    const XL6_AstNode* right)
-{
-    const XL6_AstNode* leftExpr;
-    const XL6_AstNode* rightExpr;
-    int id;
-    int equalMode;
-    int negate;
-
-    if ( ctx == NULL || targetType == NULL || cType == NULL || cName == NULL ||
-         right == NULL || right->kind != XL6_AST_BINARY || right->childCount < 2 ||
-         !xl6CgenAssignStaticBoolLikeType(targetType) ||
-         !xl6CgenBinaryCompareIsXValue(ctx, right) ) {
-        return 0;
-    }
-
-    leftExpr = right->children[0];
-    rightExpr = right->children[1];
-    id = ctx->tempId++;
-    equalMode = xl6CTextEquals(right->text, "==") || xl6CTextEquals(right->text, "!=");
-    negate = xl6CTextEquals(right->text, "!=");
-
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("{\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_cmp_left_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, leftExpr);
-    xl6OutputPuts(";\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_cmp_right_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, rightExpr);
-    xl6OutputPuts(";\n", ctx->out);
-    xl6CgenIndent(ctx);
-    if ( equalMode ) {
-        xl6OutputPrintf(ctx->out,
-                        "int __xl6_cmp_result_%d = xl6_xrt_basic_equal(__xl6_cmp_left_%d, __xl6_cmp_right_%d);\n",
-                        id,
-                        id,
-                        id);
-    } else {
-        xl6OutputPrintf(ctx->out,
-                        "int __xl6_cmp_result_%d = xl6_xrt_basic_order(__xl6_cmp_left_%d, __xl6_cmp_right_%d, %d);\n",
-                        id,
-                        id,
-                        id,
-                        xl6CgenXValueOrderMode(right->text));
-    }
-    xl6CgenAssignEmitXValueTempCleanup(ctx, "cmp", id);
-    xl6CgenIndent(ctx);
-    if ( negate ) {
-        xl6OutputPrintf(ctx->out, "%s = (%s)(!__xl6_cmp_result_%d);\n", cName, cType, id);
-    } else {
-        xl6OutputPrintf(ctx->out, "%s = (%s)(__xl6_cmp_result_%d);\n", cName, cType, id);
-    }
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    return 1;
-}
-
-static int xl6CgenAssignTryStaticXValueApproxStmt(
-    XL6_CgenContext* ctx,
-    const XL6_AstNode* targetType,
-    const char* cType,
-    const char* cName,
-    const XL6_AstNode* right)
-{
-    const XL6_AstNode* leftExpr;
-    const XL6_AstNode* rightExpr;
-    int id;
-
-    if ( ctx == NULL || targetType == NULL || cType == NULL || cName == NULL ||
-         right == NULL || right->kind != XL6_AST_BINARY || right->childCount < 2 ||
-         !xl6CgenAssignStaticBoolLikeType(targetType) ||
-         !xl6CgenBinaryApproxIsXValue(ctx, right) ) {
-        return 0;
-    }
-
-    leftExpr = right->children[0];
-    rightExpr = right->children[1];
-    id = ctx->tempId++;
-
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("{\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_approx_left_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, leftExpr);
-    xl6OutputPuts(";\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_approx_right_%d = ", id);
-    xl6CgenXValueFromExpr(ctx, rightExpr);
-    xl6OutputPuts(";\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out,
-                    "int __xl6_approx_result_%d = xl6_xrt_basic_approx(__xl6_approx_left_%d, __xl6_approx_right_%d);\n",
-                    id,
-                    id,
-                    id);
-    xl6CgenAssignEmitXValueTempCleanup(ctx, "approx", id);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = (%s)(__xl6_approx_result_%d);\n", cName, cType, id);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    return 1;
-}
-
-static int xl6CgenXValueMemberAssignStmt(
-    XL6_CgenContext* ctx,
-    const XL6_AstNode* left,
-    const XL6_AstNode* right,
-    const XL6_AstNode* targetType)
-{
-    int id;
-    char targetPath[512];
-
-    if ( ctx == NULL || left == NULL || right == NULL || !xl6CgenIsXValueType(targetType) ) {
-        return 0;
-    }
-        if ( !xl6CgenSimpleAssignTargetPath(ctx, left, targetPath, sizeof(targetPath)) ) {
-        xl6CgenError(ctx, left, "var member assignment requires a direct field target");
-        return 1;
-    }
-
-    id = ctx->tempId++;
-    xl6CgenIndent(ctx);
-    if ( !xl6CgenAssignTryXValueConditionalStmt(ctx, targetType, right, id) &&
-         !xl6CgenAssignTryXValueBinaryStmt(ctx, targetType, right, id) ) {
-        xl6OutputPrintf(ctx->out, "xvalue __xl6_assign_%d = ", id);
-        xl6CgenXValueFromExprForTarget(ctx, targetType, right);
-        xl6OutputPuts(";\n", ctx->out);
-    }
-
-    /* var 字段拥有 xvalue 引用，替换前必须释放旧值。 */
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", targetPath);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", targetPath);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = __xl6_assign_%d;\n", targetPath, id);
-    return 1;
-}
+#include "xl6_cgen_value_assign_xvalue.c"
 
 static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
@@ -815,6 +538,9 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return;
     }
     if ( left->kind == XL6_AST_INDEX ) {
+        if ( !xl6CTextEquals(op, "=") && xl6CgenClassPropertyCompoundAssignStmt(ctx, left, op, right) ) {
+            return;
+        }
         if ( xl6CTextEquals(op, "=") && xl6CgenClassPropertyIndexSetStmt(ctx, left, right) ) {
             return;
         }
@@ -830,6 +556,10 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             return;
         }
         xl6CgenIndexCompoundAssignStmt(ctx, left, op, right);
+        return;
+    }
+    if ( !xl6CTextEquals(op, "=") && left->kind == XL6_AST_MEMBER &&
+         xl6CgenClassPropertyCompoundAssignStmt(ctx, left, op, right) ) {
         return;
     }
     if ( xl6CgenTypedContainerCompoundAssignStmt(ctx, left, op, right) ) {
@@ -860,6 +590,28 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         }
         fieldType = xl6CgenCloneMemberFieldTypeForInference(ctx, left);
         if ( fieldType == NULL && xl6CgenDynamicMemberAssignStmt(ctx, left, right) ) {
+            return;
+        }
+        if ( xl6CgenIsStringTypeNode(ctx, fieldType) ) {
+            int id = ctx->tempId++;
+            char slotName[64];
+            char valueName[64];
+
+            snprintf(slotName, sizeof(slotName), "__xl6_string_field_slot_%d", id);
+            snprintf(valueName, sizeof(valueName), "__xl6_string_field_value_%d", id);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "const char** %s = &(", slotName);
+            xl6CgenExpr(ctx, left);
+            xl6OutputPuts(");\n", ctx->out);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "char* %s = xrtCopyStr(", valueName);
+            xl6CgenExpr(ctx, right);
+            xl6OutputPuts(", 0u);\n", ctx->out);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "xrtFree((void*)*%s);\n", slotName);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "*%s = %s;\n", slotName, valueName);
+            xl6AstFree(fieldType);
             return;
         }
         if ( xl6CgenTypedContainerMemberAssignStmt(ctx, left, right, fieldType) ) {
@@ -946,15 +698,18 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         XL6_AstNode* targetCanonical = xl6CgenCloneCanonicalTypeNode(ctx, targetType);
         XL6_AstNode* rightType = literal == NULL ? xl6CgenCloneExprTypeForInference(ctx, right) : NULL;
         int moveReturn = literal == NULL && xl6CgenTypedContainerCanMoveFromExpr(ctx, targetType, right);
+        int importDynamic = literal == NULL && xl6CgenTypedContainerCanImportDynamicExpr(ctx, targetType, right);
         unsigned int targetFlags = xl6CgenFindTrackedVarFlags(ctx, left->text);
         int targetBorrowed = (targetFlags & XL6_CGEN_VAR_BORROWED) != 0;
+        int targetShared = (targetFlags & XL6_CGEN_VAR_MODULE_GLOBAL) != 0;
         int id = ctx->tempId++;
         char cName[512];
         char tempName[64];
+        char sourceName[64];
         char memberTempName[64];
         XL6_AstNode* memberFunctionType;
 
-        if ( literal == NULL &&
+        if ( literal == NULL && !importDynamic &&
              (targetCanonical == NULL || rightType == NULL || !xl6CgenTypeNodeEqual(targetCanonical, rightType)) ) {
             xl6CgenError(ctx, right, "typed container assignment requires the same container type or literal");
             xl6AstFree(targetCanonical);
@@ -963,6 +718,7 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         }
         xl6CgenNameAssignTargetPath(ctx, left->text, cName, sizeof(cName));
         snprintf(tempName, sizeof(tempName), "__xl6_typed_container_assign_%d", id);
+        snprintf(sourceName, sizeof(sourceName), "__xl6_typed_container_source_%d", id);
         memberTempName[0] = '\0';
         memberFunctionType = NULL;
         if ( moveReturn ) {
@@ -972,20 +728,52 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6CgenEmitMemberFunctionStatementTemp(ctx, right, memberTempName);
             }
         }
+        if ( moveReturn && targetShared ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, targetType), sourceName);
+            if ( memberFunctionType != NULL ) {
+                xl6CgenMemberFunctionStatementInvokeExpr(ctx, right, memberFunctionType, memberTempName);
+            } else {
+                xl6CgenExpr(ctx, right);
+            }
+            xl6OutputPuts(";\n", ctx->out);
+        }
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, targetType), tempName);
         if ( literal != NULL ) {
-            xl6CgenTypedContainerCreateExpr(ctx, targetType);
+            xl6CgenTypedContainerCreateExprMode(
+                ctx,
+                targetType,
+                targetShared ? "XRT_OBJMODE_SHARED" : "XRT_OBJMODE_LOCAL");
+        } else if ( moveReturn && targetShared ) {
+            xl6CgenTypedContainerCopyCExprMode(ctx, targetType, sourceName, "XRT_OBJMODE_SHARED");
         } else if ( moveReturn ) {
             if ( memberFunctionType != NULL ) {
                 xl6CgenMemberFunctionStatementInvokeExpr(ctx, right, memberFunctionType, memberTempName);
             } else {
                 xl6CgenExpr(ctx, right);
             }
+        } else if ( importDynamic ) {
+            xl6CgenTypedContainerImportDynamicExprMode(
+                ctx,
+                targetType,
+                right,
+                targetShared ? "XRT_OBJMODE_SHARED" : "XRT_OBJMODE_LOCAL");
         } else {
-            xl6CgenTypedContainerCopyExpr(ctx, targetType, right);
+            xl6CgenTypedContainerCopyExprMode(
+                ctx,
+                targetType,
+                right,
+                targetShared ? "XRT_OBJMODE_SHARED" : "XRT_OBJMODE_LOCAL");
         }
         xl6OutputPuts(";\n", ctx->out);
+        if ( importDynamic ) {
+            xl6CgenTypedContainerImportCheckStmt(ctx, tempName, right);
+        }
+        if ( moveReturn && targetShared ) {
+            xl6CgenIndent(ctx);
+            xl6CgenTypedContainerDestroyValue(ctx, targetType, sourceName);
+        }
         xl6AstFree(memberFunctionType);
         if ( literal != NULL ) {
             xl6CgenTypedContainerFillFromLiteral(ctx, tempName, targetType, right);
@@ -1038,20 +826,31 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6CgenEmitMemberFunctionStatementTemp(ctx, right, memberTempName);
             }
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypeName(ctx, targetType), tempName);
+            xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, targetType), tempName);
             if ( upcastAssign ) {
-                xl6CgenClassUpcastExpr(ctx, targetType, right);
+                if ( !xl6CgenClassUpcastStmt(ctx, targetType, right, tempName) ) {
+                    xl6CgenError(ctx, right, "class assignment upcast lowering failed");
+                }
             } else if ( memberFunctionType != NULL ) {
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(ctx->out, "%s = ", tempName);
                 xl6CgenMemberFunctionStatementInvokeExpr(ctx, right, memberFunctionType, memberTempName);
+                xl6OutputPuts(";\n", ctx->out);
+                xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, targetType, tempName, right);
             } else {
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(ctx->out, "%s = ", tempName);
                 xl6CgenExpr(ctx, right);
+                xl6OutputPuts(";\n", ctx->out);
+                xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, targetType, tempName, right);
             }
-            xl6OutputPuts(";\n", ctx->out);
-            xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, targetType, tempName, right);
             xl6AstFree(memberFunctionType);
             xl6CgenReleaseClassFunctionFieldsForType(ctx, targetType, cName);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s = %s;\n", cName, tempName);
+            if ( (xl6CgenFindTrackedVarFlags(ctx, left->text) & XL6_CGEN_VAR_MODULE_GLOBAL) != 0 ) {
+                xl6CgenModuleGlobalClassPublishShared(ctx, targetType, cName);
+            }
             return;
         }
     }
@@ -1082,15 +881,22 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         int id = ctx->tempId++;
         char cName[512];
         const XL6_AstNode* targetType = xl6CgenNameAssignTargetType(ctx, left->text);
+        int targetShared = (xl6CgenFindTrackedVarFlags(ctx, left->text) & XL6_CGEN_VAR_MODULE_GLOBAL) != 0;
 
         xl6CgenNameAssignTargetPath(ctx, left->text, cName, sizeof(cName));
 
-        xl6CgenIndent(ctx);
         if ( !xl6CgenAssignTryXValueConditionalStmt(ctx, targetType, right, id) &&
              !xl6CgenAssignTryXValueBinaryStmt(ctx, targetType, right, id) ) {
-            xl6OutputPrintf(ctx->out, "xvalue __xl6_assign_%d = ", id);
-            xl6CgenXValueFromExprForTarget(ctx, targetType, right);
-            xl6OutputPuts(";\n", ctx->out);
+            char assignName[64];
+            snprintf(assignName, sizeof(assignName), "__xl6_assign_%d", id);
+            xl6CgenXValueLocalInitStmt(ctx, targetType, assignName, right);
+        }
+        if ( targetShared ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out,
+                            "__xl6_assign_%d = xl6_xrt_move_to_shared(__xl6_assign_%d);\n",
+                            id,
+                            id);
         }
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", cName);
@@ -1102,6 +908,26 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6OutputPuts("}\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = __xl6_assign_%d;\n", cName, id);
+        return;
+    }
+    if ( xl6CTextEquals(op, "=") && left->kind == XL6_AST_NAME &&
+         xl6CgenIsStringTypeNode(ctx, xl6CgenNameAssignTargetType(ctx, left->text)) ) {
+        int id = ctx->tempId++;
+        char cName[512];
+
+        xl6CgenNameAssignTargetPath(ctx, left->text, cName, sizeof(cName));
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "char* __xl6_string_assign_%d = xrtCopyStr(", id);
+        xl6CgenExpr(ctx, right);
+        xl6OutputPuts(", 0u);\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out,
+                        "if (__xl6_string_assign_%d == 0) { xl6_runtime_fatal(3); }\n",
+                        id);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xrtFree((void*)%s);\n", cName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = __xl6_string_assign_%d;\n", cName, id);
         return;
     }
 
@@ -1125,14 +951,23 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             int id = ctx->tempId++;
             char cName[512];
             const XL6_AstNode* targetType = xl6CgenNameAssignTargetType(ctx, left->text);
+            int targetShared = (xl6CgenFindTrackedVarFlags(ctx, left->text) & XL6_CGEN_VAR_MODULE_GLOBAL) != 0;
 
             xl6CgenNameAssignTargetPath(ctx, left->text, cName, sizeof(cName));
             xl6OutputPrintf(ctx->out, "if (xvoIsNull(%s)) {\n", cName);
             ctx->indent += 1;
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvalue __xl6_assign_%d = ", id);
-            xl6CgenXValueFromExprForTarget(ctx, targetType, right);
-            xl6OutputPuts(";\n", ctx->out);
+            {
+                char assignName[64];
+                snprintf(assignName, sizeof(assignName), "__xl6_assign_%d", id);
+                xl6CgenXValueLocalInitStmt(ctx, targetType, assignName, right);
+            }
+            if ( targetShared ) {
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(ctx->out,
+                                "__xl6_assign_%d = xl6_xrt_move_to_shared(__xl6_assign_%d);\n",
+                                id,
+                                id);
+            }
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", cName);
             ctx->indent += 1;
@@ -1161,12 +996,24 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     if ( xl6CTextEquals(op, "+=") &&
          xl6CgenExprStaticTypeIs(ctx, left, "string") &&
          xl6CgenExprStaticTypeIs(ctx, right, "string") ) {
+        int id = ctx->tempId++;
+
+        xl6OutputPrintf(ctx->out, "const char** __xl6_string_slot_%d = &(", id);
         xl6CgenExpr(ctx, left);
-        xl6OutputPuts(" = xl6_xrt_str_concat(", ctx->out);
-        xl6CgenExpr(ctx, left);
-        xl6OutputPuts(", ", ctx->out);
-        xl6CgenExpr(ctx, right);
         xl6OutputPuts(");\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out,
+                        "char* __xl6_string_value_%d = xrtCopyStr(xl6_xrt_str_concat(*__xl6_string_slot_%d, ",
+                        id,
+                        id);
+        xl6CgenExpr(ctx, right);
+        xl6OutputPuts("), 0u);\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (__xl6_string_value_%d == 0) { xl6_runtime_fatal(3); }\n", id);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xrtFree((void*)*__xl6_string_slot_%d);\n", id);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "*__xl6_string_slot_%d = __xl6_string_value_%d;\n", id, id);
         return;
     }
     if ( xl6CTextEquals(op, "**=") ) {

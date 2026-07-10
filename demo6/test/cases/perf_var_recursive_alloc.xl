@@ -1,0 +1,39 @@
+func fibDict(int n, var parent) as int
+    if n < 2 then
+        return n
+    end
+
+    var frame = {}
+    frame["n"] = n
+    frame["parent"] = parent
+    return fibDict(n - 1, frame) + fibDict(n - 2, frame)
+end
+
+func fibArray(int n, var parent) as int
+    if n < 2 then
+        return n
+    end
+
+    var frame = [n, parent]
+    return fibArray(n - 1, frame) + fibArray(n - 2, frame)
+end
+
+func main(...) as int
+    string mode = arg.length > 1 ? string(arg[1]) : "dict"
+    int n = arg.length > 2 ? int(arg[2]) : 20
+    int repeats = arg.length > 3 ? int(arg[3]) : 1
+    int result = 0
+    int index = 0
+
+    while index < repeats do
+        if mode == "array" then
+            result = fibArray(n, null)
+        else
+            result = fibDict(n, null)
+        end
+        index += 1
+    end
+
+    println(result)
+    return 0
+end

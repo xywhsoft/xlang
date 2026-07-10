@@ -83,6 +83,10 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
     if ( node->kind == XL6_AST_INTERP_STRING ) {
         return 1;
     }
+    if ( node->kind == XL6_AST_CALL &&
+         (xl6CgenCallIsExternalStringReturn(ctx, node) || xl6CgenExprStaticTypeIs(ctx, node, "string")) ) {
+        return 1;
+    }
     if ( xl6CgenBinaryPlusIsString(ctx, node) ) {
         return 1;
     }
@@ -129,12 +133,14 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
         const XL6_AstNode* params = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 0 : 1)
                                         ? node->children[node->kind == XL6_AST_ANON_FUNC ? 0 : 1]
                                         : NULL;
-        const XL6_AstNode* returns = node->kind == XL6_AST_ANON_FUNC
-                                         ? NULL
-                                         : (node->childCount > 2 ? node->children[2] : NULL);
-        const XL6_AstNode* body = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 1 : 3)
-                                      ? node->children[node->kind == XL6_AST_ANON_FUNC ? 1 : 3]
+        const XL6_AstNode* returns = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 1 : 2)
+                                         ? node->children[node->kind == XL6_AST_ANON_FUNC ? 1 : 2]
+                                         : NULL;
+        const XL6_AstNode* body = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 2 : 3)
+                                      ? node->children[node->kind == XL6_AST_ANON_FUNC ? 2 : 3]
                                       : NULL;
+        XL6_CgenAnonFunc* anonInfo = node->kind == XL6_AST_ANON_FUNC ? xl6CgenFindAnonFuncInfo(ctx, node) : NULL;
+        const XL6_CgenAnonFunc* prevAnon = ctx->currentAnonFunc;
         size_t varMark = ctx->varCount;
         size_t cleanupMark = ctx->cleanupCount;
         int result;
@@ -150,7 +156,10 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
         }
         returnNeedsString = xl6CgenNeedsReturnListHasString(ctx, returns);
         xl6CgenRegisterParamTypes(ctx, params);
+        ctx->currentAnonFunc = anonInfo;
+        xl6CgenRegisterAnonCaptureTypes(ctx, anonInfo);
         result = returnNeedsString || xl6CgenNodeNeedsStringRuntime(ctx, body);
+        ctx->currentAnonFunc = prevAnon;
         xl6CgenFreeCleanupsSince(ctx, cleanupMark);
         xl6CgenFreeVarsSince(ctx, varMark);
         return result;
@@ -342,9 +351,11 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
         const XL6_AstNode* params = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 0 : 1)
                                         ? node->children[node->kind == XL6_AST_ANON_FUNC ? 0 : 1]
                                         : NULL;
-        const XL6_AstNode* body = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 1 : 3)
-                                      ? node->children[node->kind == XL6_AST_ANON_FUNC ? 1 : 3]
+        const XL6_AstNode* body = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 2 : 3)
+                                      ? node->children[node->kind == XL6_AST_ANON_FUNC ? 2 : 3]
                                       : NULL;
+        XL6_CgenAnonFunc* anonInfo = node->kind == XL6_AST_ANON_FUNC ? xl6CgenFindAnonFuncInfo(ctx, node) : NULL;
+        const XL6_CgenAnonFunc* prevAnon = ctx->currentAnonFunc;
         size_t varMark = ctx->varCount;
         size_t cleanupMark = ctx->cleanupCount;
         int result;
@@ -358,7 +369,10 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
             xl6CgenAddVarType(ctx, "self", ctx->currentNativeClass);
         }
         xl6CgenRegisterParamTypes(ctx, params);
+        ctx->currentAnonFunc = anonInfo;
+        xl6CgenRegisterAnonCaptureTypes(ctx, anonInfo);
         result = xl6CgenNodeNeedsTypeConvertRuntime(ctx, body);
+        ctx->currentAnonFunc = prevAnon;
         xl6CgenFreeCleanupsSince(ctx, cleanupMark);
         xl6CgenFreeVarsSince(ctx, varMark);
         return result;
@@ -395,7 +409,9 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
         iterableType = xl6CgenCloneExprTypeForInference(ctx, iterable);
         if ( targets != NULL ) {
             for ( i = 0; i < targets->childCount; ++i ) {
-                const char* typeName = xl6CgenForTargetTypeName(iterableType, i, targets->childCount);
+                const char* typeName = xl6CgenIsRangeCall(iterable)
+                    ? "int"
+                    : xl6CgenForTargetTypeName(ctx, iterableType, i, targets->childCount);
                 xl6CgenRegisterLoopTargetType(ctx, targets->children[i], typeName);
             }
         }
@@ -466,6 +482,26 @@ static int xl6CgenProgramNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6
     return 0;
 }
 
+static int xl6CgenNodeNeedsPointMove(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( ctx == NULL || node == NULL ) {
+        return 0;
+    }
+    if ( node->kind == XL6_AST_CLASS &&
+         xl6CgenClassHasNativeHandle(node) &&
+         xl6CgenNativeBackedClassHasDestroy(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsPointMove(ctx, node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int xl6CgenNodeNeedsDynamicForInErrorRuntime(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     size_t i;
@@ -500,6 +536,8 @@ static int xl6CgenNodeNeedsDynamicForInErrorRuntime(XL6_CgenContext* ctx, const 
         const XL6_AstNode* body = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 2 : 3)
                                       ? node->children[node->kind == XL6_AST_ANON_FUNC ? 2 : 3]
                                       : NULL;
+        XL6_CgenAnonFunc* anonInfo = node->kind == XL6_AST_ANON_FUNC ? xl6CgenFindAnonFuncInfo(ctx, node) : NULL;
+        const XL6_CgenAnonFunc* prevAnon = ctx->currentAnonFunc;
         size_t varMark = ctx->varCount;
         size_t cleanupMark = ctx->cleanupCount;
         int result;
@@ -513,7 +551,10 @@ static int xl6CgenNodeNeedsDynamicForInErrorRuntime(XL6_CgenContext* ctx, const 
             xl6CgenAddVarType(ctx, "self", ctx->currentNativeClass);
         }
         xl6CgenRegisterParamTypes(ctx, params);
+        ctx->currentAnonFunc = anonInfo;
+        xl6CgenRegisterAnonCaptureTypes(ctx, anonInfo);
         result = xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, body);
+        ctx->currentAnonFunc = prevAnon;
         xl6CgenFreeCleanupsSince(ctx, cleanupMark);
         xl6CgenFreeVarsSince(ctx, varMark);
         return result;
@@ -554,7 +595,9 @@ static int xl6CgenNodeNeedsDynamicForInErrorRuntime(XL6_CgenContext* ctx, const 
         }
         if ( targets != NULL ) {
             for ( i = 0; i < targets->childCount; ++i ) {
-                const char* typeName = xl6CgenForTargetTypeName(iterableType, i, targets->childCount);
+                const char* typeName = xl6CgenIsRangeCall(iterable)
+                    ? "int"
+                    : xl6CgenForTargetTypeName(ctx, iterableType, i, targets->childCount);
                 xl6CgenRegisterLoopTargetType(ctx, targets->children[i], typeName);
             }
         }
@@ -699,6 +742,8 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
         const XL6_AstNode* body = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 2 : 3)
                                       ? node->children[node->kind == XL6_AST_ANON_FUNC ? 2 : 3]
                                       : NULL;
+        XL6_CgenAnonFunc* anonInfo = node->kind == XL6_AST_ANON_FUNC ? xl6CgenFindAnonFuncInfo(ctx, node) : NULL;
+        const XL6_CgenAnonFunc* prevAnon = ctx->currentAnonFunc;
         size_t varMark = ctx->varCount;
         size_t cleanupMark = ctx->cleanupCount;
         int result;
@@ -712,7 +757,10 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
             xl6CgenAddVarType(ctx, "self", ctx->currentNativeClass);
         }
         xl6CgenRegisterParamTypes(ctx, params);
+        ctx->currentAnonFunc = anonInfo;
+        xl6CgenRegisterAnonCaptureTypes(ctx, anonInfo);
         result = xl6CgenNodeNeedsFunctionVarRuntime(ctx, body);
+        ctx->currentAnonFunc = prevAnon;
         xl6CgenFreeCleanupsSince(ctx, cleanupMark);
         xl6CgenFreeVarsSince(ctx, varMark);
         return result;
@@ -749,7 +797,9 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
         iterableType = xl6CgenCloneExprTypeForInference(ctx, iterable);
         if ( targets != NULL ) {
             for ( i = 0; i < targets->childCount; ++i ) {
-                const char* typeName = xl6CgenForTargetTypeName(iterableType, i, targets->childCount);
+                const char* typeName = xl6CgenIsRangeCall(iterable)
+                    ? "int"
+                    : xl6CgenForTargetTypeName(ctx, iterableType, i, targets->childCount);
                 xl6CgenRegisterLoopTargetType(ctx, targets->children[i], typeName);
             }
         }

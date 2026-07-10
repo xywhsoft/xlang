@@ -1,0 +1,85 @@
+class LifecycleIssue
+    int iteration
+    string message
+
+    create(int iteration, string message)
+        self.iteration = iteration
+        self.message = message
+    end
+end
+
+
+func buildTreeJson(int depth) as string
+    if depth == 0 then
+        return "{\"kind\":\"leaf\",\"line\":1,\"children\":[]}"
+    end
+
+    string child = buildTreeJson(depth - 1)
+    return ("{\"kind\":\"node\",\"line\":" + string(depth) +
+        ",\"children\":[" + child + "," + child + "]}")
+end
+
+
+func treeNodeCount(var node) as int
+    int count = 1
+    var children = node["children"]
+
+    if children is array then
+        for child in children
+            count += treeNodeCount(child)
+        end
+    end
+    return count
+end
+
+
+func expectedTreeNodeCount(int depth) as int
+    int count = 1
+    int level = 0
+
+    while level <= depth do
+        if level > 0 then
+            count = count * 2 + 1
+        end
+        level += 1
+    end
+    return count
+end
+
+
+func exerciseTypedStacks(int count)
+    array<int> values = []
+    array<bool> flags = []
+    int index = 0
+
+    while index < count do
+        values.push(index)
+        flags.push(index % 2 == 0)
+        index += 1
+    end
+    while values.length > 0 do
+        values.remove(values.length - 1)
+        flags.remove(flags.length - 1)
+    end
+    assert values.length == 0 and flags.length == 0, "typed stacks must be empty"
+end
+
+
+string source = buildTreeJson(8)
+int expected = expectedTreeNodeCount(8)
+array<LifecycleIssue> issues = []
+int iteration = 0
+
+while iteration < 40 do
+    var root = json.parse(source)
+    int actual = treeNodeCount(root)
+    assert actual == expected, "recursive JSON tree traversal failed"
+    exerciseTypedStacks(64)
+    issues.push(LifecycleIssue(iteration, "checked:" + string(actual)))
+    iteration += 1
+end
+
+assert issues.length == 40, "class result accumulation failed"
+assert issues[0].message == "checked:511", "first accumulated result mismatch"
+assert issues[-1].iteration == 39, "last accumulated result mismatch"
+println("json recursive lifecycle ok")

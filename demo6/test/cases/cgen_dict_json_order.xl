@@ -12,6 +12,16 @@ end
 
 assert keys == "user:1 count pi flag msg ", "dict for-in should preserve insertion order: " + keys
 assert json.stringify(d) == '{"user:1":"alice","count":5,"pi":3.14,"flag":true,"msg":"hello"}', "dict compact json should preserve insertion order"
+string pretty = json.stringify(d, true)
+assert string.indexOf(pretty, '"user:1"') < string.indexOf(pretty, '"count"'), "dict pretty json should preserve user/count order"
+assert string.indexOf(pretty, '"count"') < string.indexOf(pretty, '"pi"'), "dict pretty json should preserve count/pi order"
+assert string.indexOf(pretty, '"pi"') < string.indexOf(pretty, '"flag"'), "dict pretty json should preserve pi/flag order"
+assert string.indexOf(pretty, '"flag"') < string.indexOf(pretty, '"msg"'), "dict pretty json should preserve flag/msg order"
 
 var parsed = json.parse('{"user:1":"alice","count":5,"pi":3.14,"flag":true,"msg":"hello"}')
 assert json.stringify(parsed) == '{"user:1":"alice","count":5,"pi":3.14,"flag":true,"msg":"hello"}', "json parse compact stringify should preserve document order"
+string parsedPretty = json.stringify(parsed, true)
+assert string.indexOf(parsedPretty, '"user:1"') < string.indexOf(parsedPretty, '"count"'), "parsed pretty json should preserve document order"
+assert string.indexOf(parsedPretty, '"count"') < string.indexOf(parsedPretty, '"pi"'), "parsed pretty json should preserve document order"
+assert string.indexOf(parsedPretty, '"pi"') < string.indexOf(parsedPretty, '"flag"'), "parsed pretty json should preserve document order"
+assert string.indexOf(parsedPretty, '"flag"') < string.indexOf(parsedPretty, '"msg"'), "parsed pretty json should preserve document order"

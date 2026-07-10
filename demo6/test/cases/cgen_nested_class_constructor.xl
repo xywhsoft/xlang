@@ -1,0 +1,69 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class Vec3
+    int x
+    int y
+    int z
+
+    create(int x, int y, int z)
+        self.x = x
+        self.y = y
+        self.z = z
+    end
+end
+
+class Ray
+    Vec3 origin
+    Vec3 direction
+
+    create(Vec3 origin, Vec3 direction)
+        self.origin = origin
+        self.direction = direction
+    end
+end
+
+class Box<T>
+    T value
+
+    create(T value)
+        self.value = value
+    end
+end
+
+func score(Ray ray) as int
+    return ray.origin.x + ray.direction.y
+end
+
+func makeRay() as Ray
+    return Ray(Vec3(3, 4, 5), Vec3(6, 7, 8))
+end
+
+func makePair() as (bool, Ray)
+    return true, Ray(Vec3(9, 10, 11), Vec3(12, 13, 14))
+end
+
+async func makeRayAsync() as Ray
+    return Ray(Vec3(15, 16, 17), Vec3(18, 19, 20))
+end
+
+Ray direct = Ray(Vec3(1, 2, 3), Vec3(4, 5, 6))
+expect(score(direct), 6)
+expect(score(Ray(Vec3(10, 20, 30), Vec3(40, 50, 60))), 60)
+
+Ray single = makeRay()
+expect(score(single), 10)
+
+bool ok
+Ray pair = Ray(Vec3(0, 0, 0), Vec3(0, 0, 0))
+ok, pair = makePair()
+assert ok, "multi-return constructor flag failed"
+expect(score(pair), 22)
+
+future<Ray> asyncFuture = makeRayAsync()
+Ray asyncRay = await asyncFuture
+expect(score(asyncRay), 34)
+
+Box<Vec3> boxed = Box::<Vec3>(Vec3(21, 22, 23))
+expect(boxed.value.x, 21)
+
+println("nested class constructor ok")

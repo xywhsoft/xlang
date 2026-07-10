@@ -1,3 +1,10 @@
+int propertyIndexCalls = 0
+
+func propertyIndex(int value) as int
+    propertyIndexCalls += 1
+    return value
+end
+
 class Player
     int base = 10
 
@@ -53,6 +60,34 @@ end
 player.hp[2, 4] = 5
 if player.hp != 29 then
     throw "property multi-dimension let failed"
+end
+
+player.hp += 3
+if player.hp != 32 then
+    throw "property compound assignment failed"
+end
+
+player.hp[propertyIndex(2)] += 5
+if propertyIndexCalls != 1 then
+    throw "property compound index must be evaluated once"
+end
+if player.hp != 41 then
+    throw "property one-dimension compound assignment failed"
+end
+
+propertyIndexCalls = 0
+player.hp[propertyIndex(1), propertyIndex(2)] += 1
+if propertyIndexCalls != 2 then
+    throw "each property compound dimension must be evaluated once"
+end
+if player.hp != 66 then
+    throw "property multi-dimension compound assignment failed"
+end
+
+array<Player> players = array[player]
+players[0].hp += 4
+if players[0].hp != 70 then
+    throw "property compound assignment on indexed receiver failed"
 end
 
 println("class property ok")

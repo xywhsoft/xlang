@@ -9,6 +9,7 @@ Payload p
 expect(p.i, 0)
 p.i = 42
 expect(p.i, 42)
+expect(string(type(p)) == "Payload", 1)
 p.d = 3.0
 expect(int(p.d), 3)
 
@@ -35,3 +36,7 @@ end
 Envelope e
 e.payload.i = 9
 expect(e.payload.i, 9)
+expect(string(type(e)) == "Envelope", 1)
+
+array<Payload> payloads = [p]
+expect(string(type(payloads)) == "array<Payload>", 1)

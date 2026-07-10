@@ -1,0 +1,11 @@
+func numbers() as generator<int>
+    yield 7
+    yield 42
+end
+
+string result = ""
+for index, value in numbers()
+    result = result + f"{index}:{value};"
+end
+
+assert result == "0:7;1:42;", "generator loop values should enable f-string conversion runtime"

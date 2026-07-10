@@ -1,0 +1,33 @@
+class UpcastBase
+    virtual func value() as int
+        return 1
+    end
+end
+
+class UpcastDerived extends UpcastBase
+    int extra = 2
+
+    override func value() as int
+        return self.extra
+    end
+end
+
+class UpcastHolder
+    UpcastBase item
+end
+
+func takeBase(UpcastBase value) as int
+    return value.value()
+end
+
+UpcastDerived derived
+
+// Base 的按值存储无法容纳 Derived 新增字段，三种入口都必须拒绝切片。
+UpcastBase direct = derived
+takeBase(derived)
+
+array<UpcastBase> values = array[]
+values.append(derived)
+
+UpcastHolder holder
+holder.item = derived

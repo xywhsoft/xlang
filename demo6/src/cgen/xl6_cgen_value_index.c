@@ -195,7 +195,7 @@ static void xl6CgenXValueIndexSetI64Stmt(XL6_CgenContext* ctx, const XL6_AstNode
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "int __xl6_index_type_%d = (__xl6_index_values_%d != 0 ? xvoType(__xl6_index_values_%d) : 0);\n", id, id, id);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (!((__xl6_index_type_%d == XL6_XVO_DT_ARRAY && xvoArraySetValue(__xl6_index_values_%d, (unsigned int)(", id, id);
+    xl6OutputPrintf(ctx->out, "if (!((__xl6_index_type_%d == XL6_XVO_DT_ARRAY && xvoIndexSetI64(__xl6_index_values_%d, (long long)(", id, id);
     xl6CgenExpr(ctx, index);
     xl6OutputPrintf(ctx->out, "), %s, true)) || (__xl6_index_type_%d == XL6_XVO_DT_LIST && xvoListSetValue(__xl6_index_values_%d, (long long)(", tempName != NULL ? tempName : "0", id, id);
     xl6CgenExpr(ctx, index);
@@ -246,7 +246,7 @@ static void xl6CgenXValueIndexSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "long long __xl6_index_i_%d = (__xl6_index_key_%d != 0 ? (long long)xvoGetInt(__xl6_index_key_%d) : 0);\n", id, id, id);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "__xl6_index_ok_%d = (__xl6_index_type_%d == XL6_XVO_DT_ARRAY && xvoArraySetValue(__xl6_index_values_%d, (unsigned int)__xl6_index_i_%d, %s, true)) || (__xl6_index_type_%d == XL6_XVO_DT_LIST && xvoListSetValue(__xl6_index_values_%d, __xl6_index_i_%d, %s, true));\n", id, id, id, id, tempName != NULL ? tempName : "0", id, id, id, tempName != NULL ? tempName : "0");
+    xl6OutputPrintf(ctx->out, "__xl6_index_ok_%d = (__xl6_index_type_%d == XL6_XVO_DT_ARRAY && xvoIndexSetI64(__xl6_index_values_%d, __xl6_index_i_%d, %s, true)) || (__xl6_index_type_%d == XL6_XVO_DT_LIST && xvoListSetValue(__xl6_index_values_%d, __xl6_index_i_%d, %s, true));\n", id, id, id, id, tempName != NULL ? tempName : "0", id, id, id, tempName != NULL ? tempName : "0");
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (__xl6_index_ok_%d) { __xl6_index_value_moved_%d = true; }\n", id, id);
     ctx->indent -= 1;
@@ -298,9 +298,9 @@ static void xl6CgenDynamicIndexBorrowExpr(XL6_CgenContext* ctx, const XL6_AstNod
     if ( node != NULL && node->kind == XL6_AST_SAFE_INDEX ) {
         xl6CgenXValueSafeIndexGetExpr(ctx, receiver, receiverName, index);
     } else if ( xl6CgenIsArrayXValueType(receiverType) ) {
-        xl6OutputPuts("xvoArrayGetValue(", ctx->out);
+        xl6OutputPuts("xvoIndexGetI64(", ctx->out);
         xl6CgenEmitIndexReceiverExpr(ctx, receiver, receiverName);
-        xl6OutputPuts(", (unsigned int)(", ctx->out);
+        xl6OutputPuts(", (long long)(", ctx->out);
         xl6CgenExpr(ctx, index);
         xl6OutputPuts("))", ctx->out);
     } else if ( xl6CgenIsListXValueType(receiverType) ) {
@@ -436,7 +436,7 @@ static void xl6CgenIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             if ( xl6CTextEquals(typeName, "array") ) {
                 xl6OutputPuts("xl6_xrt_typed_array_get_at(", ctx->out);
                 xl6CgenExpr(ctx, receiver);
-                xl6OutputPuts(", (unsigned int)(", ctx->out);
+                xl6OutputPuts(", (long long)(", ctx->out);
                 xl6CgenExpr(ctx, index);
                 xl6OutputPuts("))", ctx->out);
             } else if ( xl6CTextEquals(typeName, "list") ) {
@@ -465,7 +465,7 @@ static void xl6CgenIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6OutputPuts("*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(", ctx->out);
             }
             xl6CgenExpr(ctx, receiver);
-            xl6OutputPuts(", (unsigned int)(", ctx->out);
+            xl6OutputPuts(", (long long)(", ctx->out);
             xl6CgenExpr(ctx, index);
             xl6OutputPuts((itemIsLanguageBool || itemIsString) ? ")))))" : "))))", ctx->out);
         } else if ( xl6CTextEquals(typeName, "list") ) {

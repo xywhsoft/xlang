@@ -37,6 +37,16 @@ $badTokens = @(
     [string][char]0xfffd,
     (Join-CodePoints @(0x951f, 0x65a4, 0x62f7))
 )
+$sourceMojibakeTokens = @(
+    (Join-CodePoints @(0x6d93, 0x5d88, 0x5158)),
+    (Join-CodePoints @(0x7eeb, 0x8bf2, 0x7037)),
+    (Join-CodePoints @(0x9359, 0x509b, 0x669f)),
+    (Join-CodePoints @(0x93c3, 0x72b3, 0x7876)),
+    (Join-CodePoints @(0x6769, 0x6b13, 0x5677)),
+    (Join-CodePoints @(0x748b, 0x51aa, 0x6564)),
+    (Join-CodePoints @(0x701b, 0x6941, 0xe18c)),
+    (Join-CodePoints @(0x9350, 0x546d, 0x74e8))
+)
 
 function Add-Failure($message)
 {
@@ -83,6 +93,8 @@ $files = @(
 foreach ( $file in $files ) {
     $bytes = [System.IO.File]::ReadAllBytes($file.FullName)
     $text = $null
+    $relative = $file.FullName.Substring($Root.Length).TrimStart("\", "/").Replace("\", "/")
+    $isHandwrittenSource = $relative.StartsWith("src/", [System.StringComparison]::OrdinalIgnoreCase)
 
     try {
         $text = $strictUtf8.GetString($bytes)
@@ -97,6 +109,14 @@ foreach ( $file in $files ) {
             if ( $lines[$i].Contains($token) ) {
                 Add-Failure ("mojibake token in {0}:{1}: {2}" -f $file.FullName, ($i + 1), $lines[$i].Trim())
                 break
+            }
+        }
+        if ( $isHandwrittenSource ) {
+            foreach ( $token in $sourceMojibakeTokens ) {
+                if ( $lines[$i].Contains($token) ) {
+                    Add-Failure ("misdecoded UTF-8 text in {0}:{1}: {2}" -f $file.FullName, ($i + 1), $lines[$i].Trim())
+                    break
+                }
             }
         }
     }
