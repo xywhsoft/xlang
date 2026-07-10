@@ -1,6 +1,33 @@
 static void xl6CgenGenericClassDecl(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 static void xl6CgenNativeExternProto(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* member);
 
+/*
+ * 方法签名可以引用源码顺序中稍后声明的 class。先统一声明类型名，
+ * 再输出完整布局，避免标准库注入顺序或互相引用的方法签名污染 C ABI。
+ */
+static void xl6CgenClassForwardDecls(XL6_CgenContext* ctx, const XL6_AstNode* root)
+{
+    size_t i;
+
+    if ( ctx == NULL || root == NULL ) {
+        return;
+    }
+    for ( i = 0; i < root->childCount; ++i ) {
+        const XL6_AstNode* classNode = root->children[i];
+
+        if ( classNode == NULL || classNode->kind != XL6_AST_CLASS ||
+             classNode->text == NULL || xl6CgenClassHasTypeParams(classNode) ) {
+            continue;
+        }
+        xl6OutputPuts("typedef struct ", ctx->out);
+        xl6CgenClassTypeName(ctx->out, classNode->text);
+        xl6OutputPutc(' ', ctx->out);
+        xl6CgenClassTypeName(ctx->out, classNode->text);
+        xl6OutputPuts(";\n", ctx->out);
+    }
+    xl6OutputPutc('\n', ctx->out);
+}
+
 static int xl6CgenGenericClassMemberHasSignatureTypes(const XL6_AstNode* member)
 {
     return member != NULL &&
@@ -434,7 +461,7 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
         }
     }
 
-    xl6OutputPuts("typedef struct ", ctx->out);
+    xl6OutputPuts("struct ", ctx->out);
     xl6CgenClassTypeName(ctx->out, classNode->text);
     xl6OutputPuts(" {\n", ctx->out);
     fieldCount = 0;
@@ -475,9 +502,7 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
     if ( fieldCount == 0 ) {
         xl6OutputPuts("    int __xl6_empty;\n", ctx->out);
     }
-    xl6OutputPuts("} ", ctx->out);
-    xl6CgenClassTypeName(ctx->out, classNode->text);
-    xl6OutputPuts(";\n", ctx->out);
+    xl6OutputPuts("};\n", ctx->out);
 
     xl6CgenStaticClassFieldDecls(ctx, classNode);
 
@@ -637,6 +662,7 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
             const XL6_AstNode* literal = xl6CgenTypedContainerInitLiteral(ctx, fieldType, initExpr);
             int initByCopy = initExpr != NULL && literal == NULL && xl6CgenTypedContainerCanCopyFromExpr(ctx, fieldType, initExpr);
             int initByMove = initExpr != NULL && literal == NULL && xl6CgenTypedContainerCanMoveFromExpr(ctx, fieldType, initExpr);
+            int initByImport = initExpr != NULL && literal == NULL && xl6CgenTypedContainerCanImportDynamicExpr(ctx, fieldType, initExpr);
 
             xl6CgenIndent(ctx);
             xl6OutputPuts(fieldPath, ctx->out);
@@ -645,16 +671,29 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
                 xl6CgenTypedContainerCopyExpr(ctx, fieldType, initExpr);
             } else if ( initByMove ) {
                 xl6CgenExpr(ctx, initExpr);
+            } else if ( initByImport ) {
+                xl6CgenTypedContainerImportDynamicExpr(ctx, fieldType, initExpr);
             } else {
                 xl6CgenTypedContainerCreateExpr(ctx, fieldType);
             }
             xl6OutputPuts(";\n", ctx->out);
-            if ( !initByCopy && !initByMove ) {
+            if ( initByImport ) {
+                xl6CgenTypedContainerImportCheckStmt(ctx, fieldPath, initExpr);
+            }
+            if ( !initByCopy && !initByMove && !initByImport ) {
                 xl6CgenTypedContainerFillFromLiteral(ctx, fieldPath, fieldType, initExpr);
             }
             continue;
         }
         if ( initExpr == NULL ) {
+            continue;
+        }
+        if ( xl6CgenIsStringTypeNode(ctx, fieldType) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPuts(fieldPath, ctx->out);
+            xl6OutputPuts(" = xrtCopyStr(", ctx->out);
+            xl6CgenExpr(ctx, initExpr);
+            xl6OutputPuts(", 0u);\n", ctx->out);
             continue;
         }
         if ( fieldCustom != NULL && xl6CgenCallIsNativeBackedCtor(ctx, initExpr, &ctorCustom) ) {
@@ -687,6 +726,102 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
         xl6CgenExpr(ctx, initExpr);
         xl6OutputPuts(";\n", ctx->out);
     }
+}
+
+
+/*
+	模块全局 class 会跨线程发布。class 本体仍保持零额外头部的 C 结构体布局，
+	这里只把其中拥有的动态值和 typed 容器切换为共享根，并递归处理值成员。
+*/
+static void xl6CgenClassPublishSharedFields(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const char* varPath)
+{
+    const XL6_AstNode* base;
+    const XL6_AstNode* body;
+    XL6_AstNode* baseClass;
+    char basePath[512];
+    size_t i;
+
+    if ( ctx == NULL || classNode == NULL || varPath == NULL ) {
+        return;
+    }
+    base = classNode->childCount > 0 ? classNode->children[0] : NULL;
+    if ( base != NULL && base->kind == XL6_AST_NAME ) {
+        baseClass = xl6CgenFindClass(ctx, base->text);
+        if ( baseClass != NULL ) {
+            snprintf(basePath, sizeof(basePath), "%s.base", varPath);
+            xl6CgenClassPublishSharedFields(ctx, baseClass, basePath);
+        }
+    }
+
+    body = classNode->childCount > 1 ? classNode->children[1] : NULL;
+    for ( i = 0; body != NULL && i < body->childCount; ++i ) {
+        const XL6_AstNode* field = body->children[i];
+        const XL6_AstNode* fieldType;
+        XL6_AstNode* fieldClass;
+        char fieldPath[512];
+
+        if ( !xl6CgenIsInstanceField(field) || field->childCount == 0 ) {
+            continue;
+        }
+        fieldType = field->children[0];
+        snprintf(fieldPath, sizeof(fieldPath), "%s.", varPath);
+        xl6CgenCIdentText(
+            fieldPath + strlen(fieldPath),
+            sizeof(fieldPath) - strlen(fieldPath),
+            field->text);
+
+        if ( xl6CgenIsXValueType(fieldType) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = xl6_xrt_move_to_shared(%s);\n", fieldPath, fieldPath);
+            continue;
+        }
+        if ( xl6CgenIsTypedContainerType(ctx, fieldType) ) {
+            char tempName[64];
+
+            snprintf(tempName, sizeof(tempName), "__xl6_class_shared_%d", ctx->tempId++);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, fieldType), tempName);
+            xl6CgenTypedContainerCopyCExprMode(ctx, fieldType, fieldPath, "XRT_OBJMODE_SHARED");
+            xl6OutputPuts(";\n", ctx->out);
+            xl6CgenIndent(ctx);
+            xl6CgenTypedContainerDestroyValue(ctx, fieldType, fieldPath);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = %s;\n", fieldPath, tempName);
+            continue;
+        }
+        fieldClass = xl6CgenClassNodeForType(ctx, fieldType);
+        if ( fieldClass != NULL && xl6CgenFindNativeBackedClass(ctx, fieldClass->text) == NULL ) {
+            xl6CgenClassPublishSharedFields(ctx, fieldClass, fieldPath);
+        }
+    }
+}
+
+
+static void xl6CgenModuleGlobalClassPublishShared(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* varPath)
+{
+    XL6_AstNode* classNode;
+    const XL6_AstNode* prevParams;
+    const XL6_AstNode* prevArgs;
+
+    classNode = xl6CgenClassNodeForType(ctx, typeNode);
+    if ( classNode == NULL ) {
+        return;
+    }
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    if ( typeNode != NULL && typeNode->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+        ctx->currentGenericArgs = typeNode->children[0];
+    }
+    xl6CgenClassPublishSharedFields(ctx, classNode, varPath);
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
 }
 
 static void xl6CgenNativeParamList(XL6_CgenContext* ctx, const XL6_AstNode* params, int includeSelf)

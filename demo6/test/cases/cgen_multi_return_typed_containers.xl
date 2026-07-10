@@ -1,0 +1,32 @@
+func makeContainers() as (array<int>, list<int>, set<int>, dict<int>, int)
+    array<int> values = array[1, 2, 3]
+    list<int> sparse = list[2: 20, 5: 50]
+    set<int> unique = set{7, 8}
+    dict<int> table = dict{"answer": 42}
+    return values, sparse, unique, table, 9
+end
+
+// 多值声明直接取得返回结构体各字段的所有权。
+auto values, sparse, unique, table, marker = makeContainers()
+assert values.length == 3 and values[2] == 3, "multi-return typed array declaration failed"
+assert sparse.length == 2 and sparse[5] == 50, "multi-return typed list declaration failed"
+assert unique.length == 2 and 8 in unique, "multi-return typed set declaration failed"
+assert table.length == 1 and table["answer"] == 42, "multi-return typed dict declaration failed"
+assert marker == 9, "multi-return scalar field failed"
+
+// 多值赋值必须释放旧容器，再移动新的返回值。
+array<int> assignedValues = array[99]
+list<int> assignedSparse = list[0: 99]
+set<int> assignedUnique = set{99}
+dict<int> assignedTable = dict{"old": 99}
+int assignedMarker = 0
+assignedValues, assignedSparse, assignedUnique, assignedTable, assignedMarker = makeContainers()
+assert assignedValues.length == 3 and assignedValues[0] == 1, "multi-return typed array assignment failed"
+assert assignedSparse.length == 2 and assignedSparse[2] == 20, "multi-return typed list assignment failed"
+assert assignedUnique.length == 2 and 7 in assignedUnique, "multi-return typed set assignment failed"
+assert assignedTable.length == 1 and assignedTable["answer"] == 42, "multi-return typed dict assignment failed"
+assert assignedMarker == 9, "multi-return scalar assignment failed"
+
+// 丢弃托管返回项时也必须释放其所有权。
+auto _, _, _, _, discardedMarker = makeContainers()
+assert discardedMarker == 9, "discarded typed multi-return fields corrupted scalar result"

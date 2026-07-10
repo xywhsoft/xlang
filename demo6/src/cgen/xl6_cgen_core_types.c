@@ -324,6 +324,12 @@ static int xl6CgenIsXValueTypeName(const char* name)
            xl6CTextEquals(name, "dict");
 }
 
+static int xl6CgenIsStringTypeNode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    typeNode = xl6CgenResolveAliasType(ctx, typeNode);
+    return typeNode != NULL && xl6CTextEquals(typeNode->text, "string");
+}
+
 static int xl6CgenIsBuiltinConvertTypeName(const char* name)
 {
     return xl6CgenIsIntegerTypeName(name) || xl6CgenIsFloatTypeName(name) ||
@@ -635,6 +641,9 @@ static const char* xl6CgenCAbiTypeName(XL6_CgenContext* ctx, const XL6_AstNode* 
     }
     if ( xl6CTextEquals(typeNode->text, "point") ) {
         return "void*";
+    }
+    if ( xl6CgenTypedContainerConcreteType(ctx, typeNode) != NULL ) {
+        return xl6CgenTypedContainerCType(ctx, typeNode);
     }
     return xl6CgenTypeName(ctx, typeNode);
 }

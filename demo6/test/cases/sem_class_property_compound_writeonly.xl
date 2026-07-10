@@ -1,0 +1,10 @@
+class WriteOnly
+    int value = 1
+
+    let item(int value)
+        self.value = value
+    end
+end
+
+WriteOnly value = WriteOnly()
+value.item += 1

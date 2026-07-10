@@ -1,0 +1,12 @@
+// util.xl - depends on left
+export func name() as string
+    return "util"
+end
+
+export func version() as string
+    return "1.0.0"
+end
+
+export func helper() as string
+    return "util-helper"
+end

@@ -91,12 +91,12 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass named task.all futures as borrowed.
     exit /b 1
 )
-findstr /C:"addAsync(10LL, 1LL), 1, addAsync(20LL, 2LL), 1" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_addAsync(10LL, 1LL), 1, xl_fn_addAsync(20LL, 2LL), 1" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should pass temporary task.all futures as owned.
     exit /b 1
 )
-findstr /C:"addAsync(9LL, 1LL), 1, addAsync(20LL, 2LL), 1" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_addAsync(9LL, 1LL), 1, xl_fn_addAsync(20LL, 2LL), 1" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should pass temporary task.race futures as owned.
     exit /b 1
@@ -511,7 +511,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing completed-canceled typed-array task.race winner repeated cancel assertion.
     exit /b 1
 )
-findstr /C:"slowRaceAsync(401LL), 1, fastRaceAsync(402LL), 1" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_slowRaceAsync(401LL), 1, xl_fn_fastRaceAsync(402LL), 1" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep task.all literal input order with slow first.
     exit /b 1
@@ -831,7 +831,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing late temporary duplicate task.all source await.
     exit /b 1
 )
-findstr /C:"repeatCancelFuture = slowRaceAsync(206LL)" build\test\cgen_task_api.c >nul
+findstr /C:"repeatCancelFuture = xl_fn_slowRaceAsync(206LL)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing direct async repeated cancel fixture.
     exit /b 1
@@ -1111,17 +1111,17 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel named pending typed-array string task.all group as borrowed.
     exit /b 1
 )
-findstr /C:"pendingStringAllLeftValue = xl6_future_await_cstr_copy(pendingStringAllLeft" build\test\cgen_task_api.c >nul
+findstr /C:"pendingStringAllLeftValue = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringAllLeft" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array string task.all left source await.
     exit /b 1
 )
-findstr /C:"pendingStringAllRightValue = xl6_future_await_cstr_copy(pendingStringAllRight" build\test\cgen_task_api.c >nul
+findstr /C:"pendingStringAllRightValue = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringAllRight" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array string task.all right source await.
     exit /b 1
 )
-findstr /C:"pendingStringAllLateValue = xl6_future_await_cstr_copy(pendingStringAllLeft" build\test\cgen_task_api.c >nul
+findstr /C:"pendingStringAllLateValue = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringAllLeft" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing late canceled typed-array string task.all source await.
     exit /b 1
@@ -1141,17 +1141,17 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel named pending typed-array string task.race group as borrowed.
     exit /b 1
 )
-findstr /C:"pendingStringRaceLeftValue = xl6_future_await_cstr_copy(pendingStringRaceLeft" build\test\cgen_task_api.c >nul
+findstr /C:"pendingStringRaceLeftValue = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringRaceLeft" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array string task.race left source await.
     exit /b 1
 )
-findstr /C:"pendingStringRaceRightValue = xl6_future_await_cstr_copy(pendingStringRaceRight" build\test\cgen_task_api.c >nul
+findstr /C:"pendingStringRaceRightValue = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringRaceRight" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array string task.race right source await.
     exit /b 1
 )
-findstr /C:"pendingStringRaceLateValue = xl6_future_await_cstr_copy(pendingStringRaceLeft" build\test\cgen_task_api.c >nul
+findstr /C:"pendingStringRaceLateValue = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringRaceLeft" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing late canceled typed-array string task.race source await.
     exit /b 1
@@ -1581,7 +1581,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass named task.cancel future as borrowed.
     exit /b 1
 )
-findstr /C:"cancelTemporaryAsync = xl6_task_cancel_value(addAsync(50LL, 6LL), 1)" build\test\cgen_task_api.c >nul
+findstr /C:"cancelTemporaryAsync = xl6_task_cancel_value(xl_fn_addAsync(50LL, 6LL), 1)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should release temporary async future after task.cancel.
     exit /b 1
@@ -1591,7 +1591,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel temporary task.all future through ownership helper.
     exit /b 1
 )
-findstr /C:"addAsync(60LL, 1LL), 1, addAsync(70LL, 2LL), 1), 1)" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_addAsync(60LL, 1LL), 1, xl_fn_addAsync(70LL, 2LL), 1), 1)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should release temporary task.all future after task.cancel.
     exit /b 1
@@ -1601,7 +1601,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel temporary task.race future through ownership helper.
     exit /b 1
 )
-findstr /C:"addAsync(80LL, 1LL), 1, addAsync(90LL, 2LL), 1), 1)" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_addAsync(80LL, 1LL), 1, xl_fn_addAsync(90LL, 2LL), 1), 1)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should release temporary task.race future after task.cancel.
     exit /b 1
@@ -1651,7 +1651,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel temporary bool task.all future through ownership helper.
     exit /b 1
 )
-findstr /C:"flipAsync(1), 1, flipAsync(0), 1), 1)" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_flipAsync(1), 1, xl_fn_flipAsync(0), 1), 1)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should release temporary bool task.all/race source futures after task.cancel.
     exit /b 1
@@ -1676,7 +1676,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel temporary float task.all future through ownership helper.
     exit /b 1
 )
-findstr /C:"addHalfAsync(9.5), 1, addHalfAsync(10.5), 1), 1)" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_addHalfAsync(9.5), 1, xl_fn_addHalfAsync(10.5), 1), 1)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should release temporary float task.all source futures after task.cancel.
     exit /b 1
@@ -1686,7 +1686,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel temporary float task.race future through ownership helper.
     exit /b 1
 )
-findstr /C:"addHalfAsync(11.5), 1, addHalfAsync(12.5), 1), 1)" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_addHalfAsync(11.5), 1, xl_fn_addHalfAsync(12.5), 1), 1)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should release temporary float task.race source futures after task.cancel.
     exit /b 1
@@ -1706,7 +1706,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed future descriptor.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xfuture\* (__xl6_typed_future_\d+) = addAsync\(11LL, 1LL\);\s*if \(!xrtTypedArrayAppend\([^,]+, &\1\)\) \{[\s\S]*?xFutureRelease\(\1\);[\s\S]*?xl6_runtime_fatal\(3\);[\s\S]*?\} else \{[\s\S]*?xFutureRelease\(\1\);' -or $text -notmatch 'xfuture\* (__xl6_typed_future_\d+) = addAsync\(40LL, 1LL\);\s*if \(!xrtTypedArrayAppend\([^,]+, &\1\)\) \{[\s\S]*?xFutureRelease\(\1\);[\s\S]*?xl6_runtime_fatal\(3\);[\s\S]*?\} else \{[\s\S]*?xFutureRelease\(\1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xfuture\* (__xl6_typed_future_\d+) = xl_fn_addAsync\(11LL, 1LL\);\s*if \(!xrtTypedArrayAppend\([^,]+, &\1\)\) \{[\s\S]*?xFutureRelease\(\1\);[\s\S]*?xl6_runtime_fatal\(3\);[\s\S]*?\} else \{[\s\S]*?xFutureRelease\(\1\);' -or $text -notmatch 'xfuture\* (__xl6_typed_future_\d+) = xl_fn_addAsync\(40LL, 1LL\);\s*if \(!xrtTypedArrayAppend\([^,]+, &\1\)\) \{[\s\S]*?xFutureRelease\(\1\);[\s\S]*?xl6_runtime_fatal\(3\);[\s\S]*?\} else \{[\s\S]*?xFutureRelease\(\1\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing direct-call typed future append cleanup.
     exit /b 1
@@ -1731,7 +1731,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing task.all string aggregation path.
     exit /b 1
 )
-findstr /C:"stringRace = xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_api.c >nul
+findstr /C:"stringRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race string await path.
     exit /b 1
@@ -1946,12 +1946,12 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass completed named string task.race future cancel as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelNamedStringRaceValue = xl6_future_await_cstr_copy(namedStringRaceFuture" build\test\cgen_task_api.c >nul
+findstr /C:"postCancelNamedStringRaceValue = xrtCopyStr(xl6_future_await_cstr_copy(namedStringRaceFuture" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep completed named string task.race future awaitable after cancel.
     exit /b 1
 )
-findstr /C:"typedStringRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(stringRaceJobs)" build\test\cgen_task_api.c >nul
+findstr /C:"typedStringRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(stringRaceJobs)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race typed string array path.
     exit /b 1
@@ -1981,7 +1981,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array completed string task.race future path.
     exit /b 1
 )
-findstr /C:"typedStringRaceCompletedB = xl6_future_await_cstr_copy(typedStringRaceCompletedFuture" build\test\cgen_task_api.c >nul
+findstr /C:"typedStringRaceCompletedB = xrtCopyStr(xl6_future_await_cstr_copy(typedStringRaceCompletedFuture" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for typed-array completed string task.race future.
     exit /b 1
@@ -1991,7 +1991,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel typed-array completed string task.race future as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelTypedStringRaceCompleted = xl6_future_await_cstr_copy(typedStringRaceCompletedFuture" build\test\cgen_task_api.c >nul
+findstr /C:"postCancelTypedStringRaceCompleted = xrtCopyStr(xl6_future_await_cstr_copy(typedStringRaceCompletedFuture" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep typed-array completed string task.race awaitable after cancel.
     exit /b 1
@@ -2131,7 +2131,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing task.all fast-failure slow-source fixture.
     exit /b 1
 )
-findstr /C:"failAsync(), 1, allFailureSlowSource, 0" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_failAsync(), 1, allFailureSlowSource, 0" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should pass task.all failed temporary as owned and slow source as borrowed.
     exit /b 1
@@ -2171,7 +2171,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing task.race fast-failure slow-loser fixture.
     exit /b 1
 )
-findstr /C:"failAsync(), 1, raceFailureSlowLoser, 0" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_failAsync(), 1, raceFailureSlowLoser, 0" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should pass task.race failed temporary as owned and slow loser as borrowed.
     exit /b 1
@@ -2296,7 +2296,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing failed class task.race group.
     exit /b 1
 )
-findstr /C:"failTaskBoxAsync(), 1, taskBoxRaceFailureSlowLoser, 0" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_failTaskBoxAsync(), 1, taskBoxRaceFailureSlowLoser, 0" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should pass failed class race temporary as owned and loser as borrowed.
     exit /b 1
@@ -2326,7 +2326,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing failed function task.race group.
     exit /b 1
 )
-findstr /C:"failTaskAdderAsync(), 1, taskFuncRaceFailureSlowLoser, 0" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_failTaskAdderAsync(), 1, taskFuncRaceFailureSlowLoser, 0" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should pass failed function race temporary as owned and loser as borrowed.
     exit /b 1
@@ -2461,7 +2461,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing failed typed-array string task.all await.
     exit /b 1
 )
-findstr /C:"failedStringRace = xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_api.c >nul
+findstr /C:"failedStringRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing failed string task.race temporary release await.
     exit /b 1
@@ -2471,7 +2471,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing failed string task.race named future fixture.
     exit /b 1
 )
-findstr /C:"firstFailedStringRace = xl6_future_await_cstr_copy(repeatedFailedStringRace" build\test\cgen_task_api.c >nul
+findstr /C:"firstFailedStringRace = xrtCopyStr(xl6_future_await_cstr_copy(repeatedFailedStringRace" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing failed string task.race first await copy.
     exit /b 1
@@ -2481,12 +2481,12 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass failed string task.race cancel as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelFailedStringRace = xl6_future_await_cstr_copy(repeatedFailedStringRace" build\test\cgen_task_api.c >nul
+findstr /C:"postCancelFailedStringRace = xrtCopyStr(xl6_future_await_cstr_copy(repeatedFailedStringRace" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep failed string task.race awaitable after cancel.
     exit /b 1
 )
-findstr /C:"failedTypedStringRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(failedStringRaceJobs)" build\test\cgen_task_api.c >nul
+findstr /C:"failedTypedStringRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(failedStringRaceJobs)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing failed typed-array string task.race await.
     exit /b 1
@@ -2666,7 +2666,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing task.all empty string typed-array path.
     exit /b 1
 )
-findstr /C:"emptyStringRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(emptyStringJobs)" build\test\cgen_task_api.c >nul
+findstr /C:"emptyStringRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(emptyStringJobs)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race empty string typed-array path.
     exit /b 1
@@ -2681,7 +2681,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing task.all default string typed-array path.
     exit /b 1
 )
-findstr /C:"defaultStringRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(defaultStringJobs)" build\test\cgen_task_api.c >nul
+findstr /C:"defaultStringRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(defaultStringJobs)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race default string typed-array path.
     exit /b 1
@@ -2861,7 +2861,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed string task.all null source path.
     exit /b 1
 )
-findstr /C:"nullStringRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(nullStringJobs)" build\test\cgen_task_api.c >nul
+findstr /C:"nullStringRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(nullStringJobs)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed string task.race null source path.
     exit /b 1
@@ -2961,7 +2961,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed function task.race null source assertion.
     exit /b 1
 )
-findstr /C:"typedMixedAllSource = addAsync(160LL, 1LL)" build\test\cgen_task_api.c >nul
+findstr /C:"typedMixedAllSource = xl_fn_addAsync(160LL, 1LL)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array mixed task.all source fixture.
     exit /b 1
@@ -2981,7 +2981,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array mixed task.all source value assertion.
     exit /b 1
 )
-findstr /C:"typedMixedRaceSource = addAsync(170LL, 1LL)" build\test\cgen_task_api.c >nul
+findstr /C:"typedMixedRaceSource = xl_fn_addAsync(170LL, 1LL)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array mixed task.race source fixture.
     exit /b 1
@@ -3001,7 +3001,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array mixed task.race source value assertion.
     exit /b 1
 )
-findstr /C:"nullFirstAllSource = addAsync(180LL, 1LL)" build\test\cgen_task_api.c >nul
+findstr /C:"nullFirstAllSource = xl_fn_addAsync(180LL, 1LL)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array null-first task.all source fixture.
     exit /b 1
@@ -3021,7 +3021,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array null-first task.all source value assertion.
     exit /b 1
 )
-findstr /C:"nullFirstRaceSource = addAsync(190LL, 1LL)" build\test\cgen_task_api.c >nul
+findstr /C:"nullFirstRaceSource = xl_fn_addAsync(190LL, 1LL)" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array null-first task.race source fixture.
     exit /b 1
@@ -3041,12 +3041,12 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array null-first task.race source value assertion.
     exit /b 1
 )
-findstr /C:"addAsync(140LL, 1LL), 1, missingFuture, 0" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_addAsync(140LL, 1LL), 1, missingFuture, 0" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should release owned task.all literal input before null future failure.
     exit /b 1
 )
-findstr /C:"addAsync(150LL, 1LL), 1, missingFuture, 0" build\test\cgen_task_api.c >nul
+findstr /C:"xl_fn_addAsync(150LL, 1LL), 1, missingFuture, 0" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should release owned task.race literal input before null future failure.
     exit /b 1
@@ -3056,17 +3056,17 @@ if errorlevel 1 (
     echo cgen_task_api.c missing safe future add-ref helper for conditional future arguments.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalCancelBorrowed\s*=\s*xl6_task_cancel_value\(\(chooseConditionalFuture \? xl6_future_add_ref_if_needed\(conditionalCancelSource\) : addAsync\(210LL, 1LL\)\), 1\)' -or $text -notmatch 'conditionalCancelOwned\s*=\s*xl6_task_cancel_value\(\(chooseConditionalFuture \? xl6_future_add_ref_if_needed\(conditionalCancelSource\) : addAsync\(220LL, 1LL\)\), 1\)' -or $text -notmatch 'conditionalCancelMissing\s*=\s*xl6_task_cancel_value\(\(chooseConditionalFuture \? addAsync\(230LL, 1LL\) : xl6_future_add_ref_if_needed\(conditionalMissingFuture\)\), 1\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalCancelBorrowed\s*=\s*xl6_task_cancel_value\(\(chooseConditionalFuture \? xl6_future_add_ref_if_needed\(conditionalCancelSource\) : xl_fn_addAsync\(210LL, 1LL\)\), 1\)' -or $text -notmatch 'conditionalCancelOwned\s*=\s*xl6_task_cancel_value\(\(chooseConditionalFuture \? xl6_future_add_ref_if_needed\(conditionalCancelSource\) : xl_fn_addAsync\(220LL, 1LL\)\), 1\)' -or $text -notmatch 'conditionalCancelMissing\s*=\s*xl6_task_cancel_value\(\(chooseConditionalFuture \? xl_fn_addAsync\(230LL, 1LL\) : xl6_future_add_ref_if_needed\(conditionalMissingFuture\)\), 1\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing conditional future task.cancel ownership normalization.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?\(chooseConditionalAll \? xl6_future_add_ref_if_needed\(conditionalAllSource\) : addAsync\(250LL, 1LL\)\), 1,[\s\S]*?\(0 \? xl6_future_add_ref_if_needed\(conditionalAllSource\) : addAsync\(260LL, 1LL\)\), 1' -or $text -notmatch 'xl6_future_await_i64_release\(xl6_task_race_values\([\s\S]*?\(chooseConditionalRace \? xl6_future_add_ref_if_needed\(conditionalRaceSource\) : addAsync\(280LL, 1LL\)\), 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?\(chooseConditionalAll \? xl6_future_add_ref_if_needed\(conditionalAllSource\) : xl_fn_addAsync\(250LL, 1LL\)\), 1,[\s\S]*?\(0 \? xl6_future_add_ref_if_needed\(conditionalAllSource\) : xl_fn_addAsync\(260LL, 1LL\)\), 1' -or $text -notmatch 'xl6_future_await_i64_release\(xl6_task_race_values\([\s\S]*?\(chooseConditionalRace \? xl6_future_add_ref_if_needed\(conditionalRaceSource\) : xl_fn_addAsync\(280LL, 1LL\)\), 1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing conditional future task.all/race ownership normalization.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalAll \? xl6_future_add_ref_if_needed\(typedConditionalAllSource\) : addAsync\(320LL, 1LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalAllSource\) : addAsync\(330LL, 1LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalAllJobs\), xrtTypeInt\(\)' -or $text -notmatch 'chooseTypedConditionalRace \? xl6_future_add_ref_if_needed\(typedConditionalRaceSource\) : addAsync\(350LL, 1LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_i64_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalRaceJobs\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalAll \? xl6_future_add_ref_if_needed\(typedConditionalAllSource\) : xl_fn_addAsync\(320LL, 1LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalAllSource\) : xl_fn_addAsync\(330LL, 1LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalAllJobs\), xrtTypeInt\(\)' -or $text -notmatch 'chooseTypedConditionalRace \? xl6_future_add_ref_if_needed\(typedConditionalRaceSource\) : xl_fn_addAsync\(350LL, 1LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_i64_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalRaceJobs\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array conditional future ownership normalization.
     exit /b 1
@@ -3076,12 +3076,12 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array future append failure cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalBoolAll \? xl6_future_add_ref_if_needed\(typedConditionalBoolAllSource\) : flipAsync\(1\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalBoolAllSource\) : flipAsync\(0\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalBoolAllJobs\), xrtTypeBool\(\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalBoolRace \? xl6_future_add_ref_if_needed\(typedConditionalBoolRaceSource\) : flipAsync\(1\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_i32_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalBoolRaceJobs\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalBoolAll \? xl6_future_add_ref_if_needed\(typedConditionalBoolAllSource\) : xl_fn_flipAsync\(1\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalBoolAllSource\) : xl_fn_flipAsync\(0\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalBoolAllJobs\), xrtTypeBool\(\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalBoolRace \? xl6_future_add_ref_if_needed\(typedConditionalBoolRaceSource\) : xl_fn_flipAsync\(1\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_i32_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalBoolRaceJobs\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array conditional bool future ownership normalization.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalFloatAll \? xl6_future_add_ref_if_needed\(typedConditionalFloatAllSource\) : addHalfAsync\(420\.5\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalFloatAllSource\) : addHalfAsync\(430\.5\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalFloatAllJobs\), xrtTypeFloat\(\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalFloatRace \? xl6_future_add_ref_if_needed\(typedConditionalFloatRaceSource\) : addHalfAsync\(450\.5\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_f64_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalFloatRaceJobs\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalFloatAll \? xl6_future_add_ref_if_needed\(typedConditionalFloatAllSource\) : xl_fn_addHalfAsync\(420\.5\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalFloatAllSource\) : xl_fn_addHalfAsync\(430\.5\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalFloatAllJobs\), xrtTypeFloat\(\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalFloatRace \? xl6_future_add_ref_if_needed\(typedConditionalFloatRaceSource\) : xl_fn_addHalfAsync\(450\.5\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_f64_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalFloatRaceJobs\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array conditional float future ownership normalization.
     exit /b 1
@@ -3091,17 +3091,17 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array scalar future append failure cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalStringAll \? xl6_future_add_ref_if_needed\(typedConditionalStringAllSource\) : greetAsync\([^)]*typed-cond-string-all-alt[^)]*\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalStringAllSource\) : greetAsync\([^)]*typed-cond-string-all-owned[^)]*\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalStringAllJobs\), xrtTypeString\(\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalStringRace \? xl6_future_add_ref_if_needed\(typedConditionalStringRaceSource\) : greetAsync\([^)]*typed-cond-string-race-owned[^)]*\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_cstr_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalStringRaceJobs\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalStringAll \? xl6_future_add_ref_if_needed\(typedConditionalStringAllSource\) : xl_fn_greetAsync\([^)]*typed-cond-string-all-alt[^)]*\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalStringAllSource\) : xl_fn_greetAsync\([^)]*typed-cond-string-all-owned[^)]*\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalStringAllJobs\), xrtTypeString\(\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalStringRace \? xl6_future_add_ref_if_needed\(typedConditionalStringRaceSource\) : xl_fn_greetAsync\([^)]*typed-cond-string-race-owned[^)]*\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_cstr_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalStringRaceJobs\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array conditional string future ownership normalization.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalTaskBoxAll \? xl6_future_add_ref_if_needed\(typedConditionalTaskBoxAllSource\) : makeTaskBox\(720LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalTaskBoxAllSource\) : makeTaskBox\(730LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalTaskBoxAllJobs\), xl6_type_desc_XL_Class_TaskBox\(\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalTaskBoxRace \? xl6_future_add_ref_if_needed\(typedConditionalTaskBoxRaceSource\) : makeTaskBox\(750LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_task_race_from_array\(\(xtarray\)\(typedConditionalTaskBoxRaceJobs\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalTaskBoxAll \? xl6_future_add_ref_if_needed\(typedConditionalTaskBoxAllSource\) : xl_fn_makeTaskBox\(720LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalTaskBoxAllSource\) : xl_fn_makeTaskBox\(730LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalTaskBoxAllJobs\), xl6_type_desc_XL_Class_TaskBox\(\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalTaskBoxRace \? xl6_future_add_ref_if_needed\(typedConditionalTaskBoxRaceSource\) : xl_fn_makeTaskBox\(750LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_task_race_from_array\(\(xtarray\)\(typedConditionalTaskBoxRaceJobs\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array conditional class future ownership normalization.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalTaskFuncAll \? xl6_future_add_ref_if_needed\(typedConditionalTaskFuncAllSource\) : makeTaskAdder\(770LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalTaskFuncAllSource\) : makeTaskAdder\(780LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalTaskFuncAllJobs\), xrtTypeFunction\(\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalTaskFuncRace \? xl6_future_add_ref_if_needed\(typedConditionalTaskFuncRaceSource\) : makeTaskAdder\(800LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_task_race_from_array\(\(xtarray\)\(typedConditionalTaskFuncRaceJobs\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalTaskFuncAll \? xl6_future_add_ref_if_needed\(typedConditionalTaskFuncAllSource\) : xl_fn_makeTaskAdder\(770LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalTaskFuncAllSource\) : xl_fn_makeTaskAdder\(780LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalTaskFuncAllJobs\), xrtTypeFunction\(\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalTaskFuncRace \? xl6_future_add_ref_if_needed\(typedConditionalTaskFuncRaceSource\) : xl_fn_makeTaskAdder\(800LL\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_task_race_from_array\(\(xtarray\)\(typedConditionalTaskFuncRaceJobs\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array conditional function future ownership normalization.
     exit /b 1
@@ -3111,7 +3111,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array resource future append failure cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?\(chooseConditionalNull \? addAsync\(290LL, 1LL\) : xl6_future_add_ref_if_needed\(conditionalNullLiteralFuture\)\), 1' -or $text -notmatch 'xl6_future_await_i64_release\(xl6_task_race_values\([\s\S]*?\(chooseConditionalNull \? addAsync\(300LL, 1LL\) : xl6_future_add_ref_if_needed\(conditionalNullLiteralFuture\)\), 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?\(chooseConditionalNull \? xl_fn_addAsync\(290LL, 1LL\) : xl6_future_add_ref_if_needed\(conditionalNullLiteralFuture\)\), 1' -or $text -notmatch 'xl6_future_await_i64_release\(xl6_task_race_values\([\s\S]*?\(chooseConditionalNull \? xl_fn_addAsync\(300LL, 1LL\) : xl6_future_add_ref_if_needed\(conditionalNullLiteralFuture\)\), 1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing conditional null future literal normalization.
     exit /b 1
@@ -3126,17 +3126,17 @@ if errorlevel 1 (
     echo cgen_task_api.c missing future await release ownership query.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_values\(xrtTypeString\(\),[\s\S]*?\(chooseConditionalStringAll \? xl6_future_add_ref_if_needed\(conditionalStringAllSource\) : greetAsync\([\s\S]*?\), 1,[\s\S]*?\(0 \? xl6_future_add_ref_if_needed\(conditionalStringAllSource\) : greetAsync\([\s\S]*?\), 1' -or $text -notmatch 'xl6_future_await_cstr_release\(xl6_task_race_values\([\s\S]*?\(chooseConditionalStringRace \? xl6_future_add_ref_if_needed\(conditionalStringRaceSource\) : greetAsync\([\s\S]*?\), 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); $checks=@('xl6_future_await_handle_release(xl6_task_all_values(xrtTypeString()', '(chooseConditionalStringAll ? xl6_future_add_ref_if_needed(conditionalStringAllSource) : xl_fn_greetAsync(', '(0 ? xl6_future_add_ref_if_needed(conditionalStringAllSource) : xl_fn_greetAsync(', 'xl6_future_await_cstr_release(xl6_task_race_values(', '(chooseConditionalStringRace ? xl6_future_add_ref_if_needed(conditionalStringRaceSource) : xl_fn_greetAsync('); foreach($s in $checks){ if(-not $text.Contains($s)){ exit 1 } }"
 if errorlevel 1 (
     echo cgen_task_api.c missing conditional string task.all/race resource ownership normalization.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalTaskBoxAllFuture\s*=\s*xl6_task_all_values\(xl6_type_desc_XL_Class_TaskBox\(\),[\s\S]*?\(chooseConditionalTaskBoxAll \? xl6_future_add_ref_if_needed\(conditionalTaskBoxAllSource\) : makeTaskBox\(620LL\)\), 1,[\s\S]*?\(0 \? xl6_future_add_ref_if_needed\(conditionalTaskBoxAllSource\) : makeTaskBox\(630LL\)\), 1' -or $text -notmatch 'xl6_task_race_values\([\s\S]*?\(chooseConditionalTaskBoxRace \? xl6_future_add_ref_if_needed\(conditionalTaskBoxRaceSource\) : makeTaskBox\(650LL\)\), 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalTaskBoxAllFuture\s*=\s*xl6_task_all_values\(xl6_type_desc_XL_Class_TaskBox\(\),[\s\S]*?\(chooseConditionalTaskBoxAll \? xl6_future_add_ref_if_needed\(conditionalTaskBoxAllSource\) : xl_fn_makeTaskBox\(620LL\)\), 1,[\s\S]*?\(0 \? xl6_future_add_ref_if_needed\(conditionalTaskBoxAllSource\) : xl_fn_makeTaskBox\(630LL\)\), 1' -or $text -notmatch 'xl6_task_race_values\([\s\S]*?\(chooseConditionalTaskBoxRace \? xl6_future_add_ref_if_needed\(conditionalTaskBoxRaceSource\) : xl_fn_makeTaskBox\(650LL\)\), 1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing conditional class task.all/race resource ownership normalization.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_values\(xrtTypeFunction\(\),[\s\S]*?\(chooseConditionalTaskFuncAll \? xl6_future_add_ref_if_needed\(conditionalTaskFuncAllSource\) : makeTaskAdder\(670LL\)\), 1,[\s\S]*?\(0 \? xl6_future_add_ref_if_needed\(conditionalTaskFuncAllSource\) : makeTaskAdder\(680LL\)\), 1' -or $text -notmatch 'xl6_future_await_function_release\(xl6_task_race_values\([\s\S]*?\(chooseConditionalTaskFuncRace \? xl6_future_add_ref_if_needed\(conditionalTaskFuncRaceSource\) : makeTaskAdder\(700LL\)\), 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_values\(xrtTypeFunction\(\),[\s\S]*?\(chooseConditionalTaskFuncAll \? xl6_future_add_ref_if_needed\(conditionalTaskFuncAllSource\) : xl_fn_makeTaskAdder\(670LL\)\), 1,[\s\S]*?\(0 \? xl6_future_add_ref_if_needed\(conditionalTaskFuncAllSource\) : xl_fn_makeTaskAdder\(680LL\)\), 1' -or $text -notmatch 'xl6_future_await_function_release\(xl6_task_race_values\([\s\S]*?\(chooseConditionalTaskFuncRace \? xl6_future_add_ref_if_needed\(conditionalTaskFuncRaceSource\) : xl_fn_makeTaskAdder\(700LL\)\), 1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing conditional function task.all/race resource ownership normalization.
     exit /b 1
@@ -3269,7 +3269,7 @@ if errorlevel 1 (
     echo cgen_task_spawn_range_contains.c missing range contains helper.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn_range_contains.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_task_arg_[\s\S]*?makeSpawnValue\(0LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -notmatch 'makeSpawnValue\(2LL\)[\s\S]*?makeSpawnValue\(1LL\)[\s\S]*?xl6_xrt_basic_binary[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -notmatch 'xl6_xrt_retain\(emptySpawnArg\)[\s\S]*?makeSpawnValue\(0LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -notmatch 'xl6_range_contains_i64'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn_range_contains.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_task_arg_[\s\S]*?xl_fn_makeSpawnValue\(0LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -notmatch 'xl_fn_makeSpawnValue\(2LL\)[\s\S]*?xl_fn_makeSpawnValue\(1LL\)[\s\S]*?xl6_xrt_basic_binary[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -notmatch 'xl6_xrt_retain\(emptySpawnArg\)[\s\S]*?xl_fn_makeSpawnValue\(0LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -notmatch 'xl6_range_contains_i64'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn_range_contains.c missing lowered range-contains task.spawn arguments.
     exit /b 1
@@ -3286,9 +3286,14 @@ if errorlevel 1 (
     echo cgen_task_spawn_fstring.c missing f-string join helper.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn_fstring.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_task_arg_[\s\S]*?makeSpawnValue\(40LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -notmatch 'xl6_xrt_fstr_join'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn_fstring.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_task_arg_[\s\S]*?xl_fn_makeSpawnValue\(40LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -notmatch 'xl6_xrt_fstr_join'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn_fstring.c missing lowered f-string task.spawn argument.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn_fstring.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xtarray\s+(__xl6_call_arg_\d+)\s*=\s*0;[\s\S]*?sumSpawnItems\(\1\)[\s\S]*?xrtTypedArrayDestroy\(\1\)' -or $text -notmatch 'xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -match 'xvalue\s+__xl6_call_arg_'){ exit 1 }"
+if errorlevel 1 (
+    echo cgen_task_spawn_fstring.c missing nested ordinary/task.spawn replacement composition.
     exit /b 1
 )
 
@@ -3523,7 +3528,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing failed no-return task.race fixture.
     exit /b 1
 )
-findstr /C:"defaultJob = xl6_fnvalue_addDefault_arity1_make();" build\test\cgen_task_spawn.c >nul
+findstr /C:"defaultJob = xl6_fnvalue_xl_fn_addDefault_arity1_make();" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing optional-parameter adapter task.spawn case.
     exit /b 1
@@ -3578,7 +3583,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing empty string function value task.spawn fixture.
     exit /b 1
 )
-findstr /C:"missingStringJobValue = xl6_future_await_cstr_release(xl6_task_spawn_values(missingStringJob, xrtTypeString()" build\test\cgen_task_spawn.c >nul
+findstr /C:"missingStringJobValue = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_spawn_values(missingStringJob, xrtTypeString()" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing empty string function value task.spawn call.
     exit /b 1
@@ -3638,17 +3643,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep completed task.spawn int future awaitable after cancel.
     exit /b 1
 )
-findstr /C:"directClosureValue = xl6_future_await_i64_release(xl6_task_spawn_values(makeAdder(40LL)" build\test\cgen_task_spawn.c >nul
+findstr /C:"directClosureValue = xl6_future_await_i64_release(xl6_task_spawn_values(xl_fn_makeAdder(40LL)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing direct closure expression task.spawn await.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(makeAdder\(40LL\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 37, 0, 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(xl_fn_makeAdder\(40LL\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 37, 0, 1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should consume owned direct closure function values for task.spawn.
     exit /b 1
 )
-findstr /C:"directClosureFuture = xl6_task_spawn_values(makeAdder(41LL)" build\test\cgen_task_spawn.c >nul
+findstr /C:"directClosureFuture = xl6_task_spawn_values(xl_fn_makeAdder(41LL)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing direct closure expression named future.
     exit /b 1
@@ -3678,7 +3683,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed future array for direct closure task.all.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(makeAdder(50LL)" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_spawn_values(xl_fn_makeAdder(50LL)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing first direct closure task.all source.
     exit /b 1
@@ -3703,22 +3708,22 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing literal task.race await for direct closure future.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(makeAdder(70LL)" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_spawn_values(xl_fn_makeAdder(70LL)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing direct closure task.race source.
     exit /b 1
 )
-findstr /C:"awaitedClosureValue = xl6_future_await_i64_release(xl6_task_spawn_values(xl6_future_await_function_release(makeAsyncAdder(80LL)" build\test\cgen_task_spawn.c >nul
+findstr /C:"awaitedClosureValue = xl6_future_await_i64_release(xl6_task_spawn_values(xl6_future_await_function_release(xl_fn_makeAsyncAdder(80LL)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing awaited closure expression task.spawn await.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(xl6_future_await_function_release\(makeAsyncAdder\(80LL\), [^,]*, \d+, 44\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 38, 0, 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(xl6_future_await_function_release\(xl_fn_makeAsyncAdder\(80LL\), [^,]*, \d+, 44\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 38, 0, 1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should consume owned awaited closure function values for task.spawn.
     exit /b 1
 )
-findstr /C:"awaitedClosureFuture = xl6_task_spawn_values(xl6_future_await_function_release(makeAsyncAdder(81LL)" build\test\cgen_task_spawn.c >nul
+findstr /C:"awaitedClosureFuture = xl6_task_spawn_values(xl6_future_await_function_release(xl_fn_makeAsyncAdder(81LL)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing awaited closure expression named future.
     exit /b 1
@@ -3748,7 +3753,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed future array for awaited closure task.all.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(xl6_future_await_function_release(makeAsyncAdder(90LL)" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_spawn_values(xl6_future_await_function_release(xl_fn_makeAsyncAdder(90LL)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing first awaited closure task.all source.
     exit /b 1
@@ -3768,17 +3773,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing literal task.race await for awaited closure future.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(xl6_future_await_function_release(makeAsyncAdder(110LL)" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_spawn_values(xl6_future_await_function_release(xl_fn_makeAsyncAdder(110LL)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing awaited closure task.race source.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(1 \? makeAdder\(150LL\) : makeAdder\(160LL\)\)' -or $text -notmatch 'conditionalClosureFuture\s*=\s*xl6_task_spawn_values\(\(chooseFirstClosure \? makeAdder\(150LL\) : makeAdder\(160LL\)\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'xl6_future_await_i64_release\(xl6_task_race_values[\s\S]*?xl6_task_spawn_values\(\(1 \? makeAdder\(210LL\) : makeAdder\(220LL\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionalClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(1 \? xl_fn_makeAdder\(150LL\) : xl_fn_makeAdder\(160LL\)\)' -or $text -notmatch 'conditionalClosureFuture\s*=\s*xl6_task_spawn_values\(\(chooseFirstClosure \? xl_fn_makeAdder\(150LL\) : xl_fn_makeAdder\(160LL\)\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'xl6_future_await_i64_release\(xl6_task_race_values[\s\S]*?xl6_task_spawn_values\(\(1 \? xl_fn_makeAdder\(210LL\) : xl_fn_makeAdder\(220LL\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing conditional closure task.spawn source.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(\(1 \? makeAdder\(150LL\) : makeAdder\(160LL\)\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 42, 0, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseFirstClosure \? makeAdder\(150LL\) : makeAdder\(160LL\)\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 45, 0, 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(\(1 \? xl_fn_makeAdder\(150LL\) : xl_fn_makeAdder\(160LL\)\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 42, 0, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseFirstClosure \? xl_fn_makeAdder\(150LL\) : xl_fn_makeAdder\(160LL\)\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 45, 0, 1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should consume owned conditional closure function values for task.spawn.
     exit /b 1
@@ -3793,12 +3798,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should retain borrowed conditional closure function values for task.spawn.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'mixedTaskOwnedClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(chooseMixedTaskClosure \? xl6_function_copy_value\(mixedTaskClosureSource\) : makeAdder\(270LL\)\)' -or $text -notmatch 'mixedTaskBorrowedClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(chooseMixedTaskClosure \? xl6_function_copy_value\(mixedTaskClosureSource\) : makeAdder\(280LL\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'mixedTaskOwnedClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(chooseMixedTaskClosure \? xl6_function_copy_value\(mixedTaskClosureSource\) : xl_fn_makeAdder\(270LL\)\)' -or $text -notmatch 'mixedTaskBorrowedClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(chooseMixedTaskClosure \? xl6_function_copy_value\(mixedTaskClosureSource\) : xl_fn_makeAdder\(280LL\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing mixed conditional closure branch copy for task.spawn.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(\(chooseMixedTaskClosure \? xl6_function_copy_value\(mixedTaskClosureSource\) : makeAdder\(270LL\)\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 45, 0, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseMixedTaskClosure \? xl6_function_copy_value\(mixedTaskClosureSource\) : makeAdder\(280LL\)\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 48, 0, 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(\(chooseMixedTaskClosure \? xl6_function_copy_value\(mixedTaskClosureSource\) : xl_fn_makeAdder\(270LL\)\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 45, 0, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseMixedTaskClosure \? xl6_function_copy_value\(mixedTaskClosureSource\) : xl_fn_makeAdder\(280LL\)\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 48, 0, 1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should consume normalized mixed conditional function values for task.spawn.
     exit /b 1
@@ -4023,7 +4028,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should pass borrowed string null source to task aggregation.
     exit /b 1
 )
-findstr /C:"nullSpawnStringRace = xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_spawn.c >nul
+findstr /C:"nullSpawnStringRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing string task.race null source fixture over task.spawn.
     exit /b 1
@@ -4053,7 +4058,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing owned string task.spawn source after null source for task.all.
     exit /b 1
 )
-findstr /C:"nullFirstSpawnStringRace = xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_spawn.c >nul
+findstr /C:"nullFirstSpawnStringRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing string null-first task.race fixture over owned task.spawn.
     exit /b 1
@@ -4143,7 +4148,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing float task.race null source assertion.
     exit /b 1
 )
-findstr /C:"failedStringValue = xl6_future_await_cstr_release(xl6_task_spawn_values(throwingStringJob" build\test\cgen_task_spawn.c >nul
+findstr /C:"failedStringValue = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_spawn_values(throwingStringJob" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed string task.spawn temporary future await.
     exit /b 1
@@ -4153,7 +4158,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing failed string task.spawn future fixture.
     exit /b 1
 )
-findstr /C:"firstFailedString = xl6_future_await_cstr_copy(repeatedFailedStringSpawn" build\test\cgen_task_spawn.c >nul
+findstr /C:"firstFailedString = xrtCopyStr(xl6_future_await_cstr_copy(repeatedFailedStringSpawn" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed string task.spawn named future first await.
     exit /b 1
@@ -4163,7 +4168,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should pass failed string task.spawn future cancel as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelFailedString = xl6_future_await_cstr_copy(repeatedFailedStringSpawn" build\test\cgen_task_spawn.c >nul
+findstr /C:"postCancelFailedString = xrtCopyStr(xl6_future_await_cstr_copy(repeatedFailedStringSpawn" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep failed string task.spawn future awaitable after cancel.
     exit /b 1
@@ -4223,12 +4228,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing named string task.spawn future initialization.
     exit /b 1
 )
-findstr /C:"namedGreetA = xl6_future_await_cstr_copy(namedGreetFuture" build\test\cgen_task_spawn.c >nul
+findstr /C:"namedGreetA = xrtCopyStr(xl6_future_await_cstr_copy(namedGreetFuture" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing named task.spawn string first await copy.
     exit /b 1
 )
-findstr /C:"namedGreetB = xl6_future_await_cstr_copy(namedGreetFuture" build\test\cgen_task_spawn.c >nul
+findstr /C:"namedGreetB = xrtCopyStr(xl6_future_await_cstr_copy(namedGreetFuture" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing named task.spawn string repeated await copy.
     exit /b 1
@@ -4238,7 +4243,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing completed string task.spawn cancel guard.
     exit /b 1
 )
-findstr /C:"postCancelNamedGreet = xl6_future_await_cstr_copy(namedGreetFuture" build\test\cgen_task_spawn.c >nul
+findstr /C:"postCancelNamedGreet = xrtCopyStr(xl6_future_await_cstr_copy(namedGreetFuture" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep completed string task.spawn future awaitable after cancel.
     exit /b 1
@@ -4253,12 +4258,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should cancel pending string task.spawn future as borrowed.
     exit /b 1
 )
-findstr /C:"pendingStringSpawnValueA = xl6_future_await_cstr_copy(pendingStringSpawn" build\test\cgen_task_spawn.c >nul
+findstr /C:"pendingStringSpawnValueA = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringSpawn" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing first string await after pending task.spawn cancel.
     exit /b 1
 )
-findstr /C:"pendingStringSpawnValueB = xl6_future_await_cstr_copy(pendingStringSpawn" build\test\cgen_task_spawn.c >nul
+findstr /C:"pendingStringSpawnValueB = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringSpawn" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing late string await after pending task.spawn worker completion.
     exit /b 1
@@ -4288,12 +4293,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should await pending string task.all group as canceled.
     exit /b 1
 )
-findstr /C:"pendingStringAllLeftValueA = xl6_future_await_cstr_copy(pendingStringAllLeft" build\test\cgen_task_spawn.c >nul
+findstr /C:"pendingStringAllLeftValueA = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringAllLeft" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing first string task.all source await after group cancel.
     exit /b 1
 )
-findstr /C:"pendingStringAllLeftValueB = xl6_future_await_cstr_copy(pendingStringAllLeft" build\test\cgen_task_spawn.c >nul
+findstr /C:"pendingStringAllLeftValueB = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringAllLeft" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing late string task.all source await after worker completion.
     exit /b 1
@@ -4323,12 +4328,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should await pending string task.race group as canceled.
     exit /b 1
 )
-findstr /C:"pendingStringRaceLeftValueA = xl6_future_await_cstr_copy(pendingStringRaceLeft" build\test\cgen_task_spawn.c >nul
+findstr /C:"pendingStringRaceLeftValueA = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringRaceLeft" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing first string task.race source await after group cancel.
     exit /b 1
 )
-findstr /C:"pendingStringRaceLeftValueB = xl6_future_await_cstr_copy(pendingStringRaceLeft" build\test\cgen_task_spawn.c >nul
+findstr /C:"pendingStringRaceLeftValueB = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringRaceLeft" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing late string task.race source await after worker completion.
     exit /b 1
@@ -4588,7 +4593,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn empty array vararg argv bridge.
     exit /b 1
 )
-findstr /C:"variadicDefaultJob = xl6_fnvalue_totalDefault_arity0_vararg_make();" build\test\cgen_task_spawn.c >nul
+findstr /C:"variadicDefaultJob = xl6_fnvalue_xl_fn_totalDefault_arity0_vararg_make();" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing zero-fixed variadic optional adapter task.spawn case.
     exit /b 1
@@ -4653,7 +4658,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing completed zero-fixed variadic task.spawn cancel guard.
     exit /b 1
 )
-findstr /C:"slowVariadicJob = xl6_fnvalue_slowSumVariadic_make();" build\test\cgen_task_spawn.c >nul
+findstr /C:"slowVariadicJob = xl6_fnvalue_xl_fn_slowSumVariadic_make();" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing pending variadic task.spawn function value.
     exit /b 1
@@ -4683,7 +4688,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep pending variadic task.spawn canceled after worker completes.
     exit /b 1
 )
-findstr /C:"slowVariadicDefaultJob = xl6_fnvalue_slowTotalDefault_arity0_vararg_make();" build\test\cgen_task_spawn.c >nul
+findstr /C:"slowVariadicDefaultJob = xl6_fnvalue_xl_fn_slowTotalDefault_arity0_vararg_make();" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing pending zero-fixed variadic task.spawn adapter.
     exit /b 1
@@ -4948,7 +4953,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing string task.spawn source for task aggregation.
     exit /b 1
 )
-findstr /C:"spawnStringRaceValue = xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_spawn.c >nul
+findstr /C:"spawnStringRaceValue = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing string task.race over task.spawn futures.
     exit /b 1
@@ -4993,7 +4998,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing failed string task.spawn source for task aggregation.
     exit /b 1
 )
-findstr /C:"failedStringSpawnRace = xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_spawn.c >nul
+findstr /C:"failedStringSpawnRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed string task.race over task.spawn futures.
     exit /b 1
@@ -5033,7 +5038,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"spawnStringTypedRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(spawnStringRaceJobs)" build\test\cgen_task_spawn.c >nul
+findstr /C:"spawnStringTypedRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(spawnStringRaceJobs)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.race over task.spawn futures.
     exit /b 1
@@ -5083,7 +5088,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first int task.all error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnAllTail = (*(long long*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnAllJobs, (unsigned int)(1LL))))" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedNullFirstSpawnAllTail = (*(long long*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnAllJobs, (long long)(1LL))))" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first int task.all source.
     exit /b 1
@@ -5118,7 +5123,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first int task.race error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnRaceTail = (*(long long*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnRaceJobs, (unsigned int)(1LL))))" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedNullFirstSpawnRaceTail = (*(long long*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnRaceJobs, (long long)(1LL))))" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first int task.race source.
     exit /b 1
@@ -5158,7 +5163,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first string task.all error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnStringAllTail = xl6_future_await_cstr_copy((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnStringAllJobs, (unsigned int)(1LL))))" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedNullFirstSpawnStringAllTail = xrtCopyStr(xl6_future_await_cstr_copy((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnStringAllJobs, (long long)(1LL))))" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first string task.all source.
     exit /b 1
@@ -5178,7 +5183,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first string task.race payload.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnStringRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(typedNullFirstSpawnStringRaceJobs)" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedNullFirstSpawnStringRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(typedNullFirstSpawnStringRaceJobs)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first string task.race await over task.spawn futures.
     exit /b 1
@@ -5193,7 +5198,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first string task.race error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnStringRaceTail = xl6_future_await_cstr_copy((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnStringRaceJobs, (unsigned int)(1LL))))" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedNullFirstSpawnStringRaceTail = xrtCopyStr(xl6_future_await_cstr_copy((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnStringRaceJobs, (long long)(1LL))))" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first string task.race source.
     exit /b 1
@@ -5223,7 +5228,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first bool task.all error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnBoolAllTail = (*(int*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnBoolAllJobs, (unsigned int)(1LL))))" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedNullFirstSpawnBoolAllTail = (*(int*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnBoolAllJobs, (long long)(1LL))))" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first bool task.all source.
     exit /b 1
@@ -5253,7 +5258,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first bool task.race error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnBoolRaceTail = (*(int*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnBoolRaceJobs, (unsigned int)(1LL))))" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedNullFirstSpawnBoolRaceTail = (*(int*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnBoolRaceJobs, (long long)(1LL))))" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first bool task.race source.
     exit /b 1
@@ -5283,7 +5288,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first float task.all error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnFloatAllTail = (*(double*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnFloatAllJobs, (unsigned int)(1LL))))" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedNullFirstSpawnFloatAllTail = (*(double*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnFloatAllJobs, (long long)(1LL))))" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first float task.all source.
     exit /b 1
@@ -5313,7 +5318,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first float task.race error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnFloatRaceTail = (*(double*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnFloatRaceJobs, (unsigned int)(1LL))))" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedNullFirstSpawnFloatRaceTail = (*(double*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnFloatRaceJobs, (long long)(1LL))))" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first float task.race source.
     exit /b 1
@@ -5388,7 +5393,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array completed string task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"spawnStringRaceCompletedB = xl6_future_await_cstr_copy(spawnStringRaceCompletedFuture" build\test\cgen_task_spawn.c >nul
+findstr /C:"spawnStringRaceCompletedB = xrtCopyStr(xl6_future_await_cstr_copy(spawnStringRaceCompletedFuture" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing repeated await for typed-array completed string task.race over task.spawn futures.
     exit /b 1
@@ -5398,7 +5403,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array completed string task.race over task.spawn futures as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelSpawnStringRaceCompleted = xl6_future_await_cstr_copy(spawnStringRaceCompletedFuture" build\test\cgen_task_spawn.c >nul
+findstr /C:"postCancelSpawnStringRaceCompleted = xrtCopyStr(xl6_future_await_cstr_copy(spawnStringRaceCompletedFuture" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array completed string task.race over task.spawn futures awaitable after cancel.
     exit /b 1
@@ -5488,7 +5493,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array string task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"failedStringSpawnTypedRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(failedStringSpawnRaceJobs)" build\test\cgen_task_spawn.c >nul
+findstr /C:"failedStringSpawnTypedRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(failedStringSpawnRaceJobs)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array string task.race over task.spawn futures.
     exit /b 1
@@ -5503,7 +5508,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should pass slow string task.spawn source as borrowed to task.all fast-failure fixture.
     exit /b 1
 )
-findstr /C:"spawnStringAllFailureSlowValue = xl6_future_await_cstr_copy(spawnStringAllFailureSlowSource" build\test\cgen_task_spawn.c >nul
+findstr /C:"spawnStringAllFailureSlowValue = xrtCopyStr(xl6_future_await_cstr_copy(spawnStringAllFailureSlowSource" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep slow string task.spawn source awaitable after task.all failure.
     exit /b 1
@@ -5518,7 +5523,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.all fast-failure group await.
     exit /b 1
 )
-findstr /C:"typedSpawnStringAllFailureSlowValue = xl6_future_await_cstr_copy(typedSpawnStringAllFailureSlowSource" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedSpawnStringAllFailureSlowValue = xrtCopyStr(xl6_future_await_cstr_copy(typedSpawnStringAllFailureSlowSource" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array slow string task.spawn source awaitable after task.all failure.
     exit /b 1
@@ -5538,7 +5543,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should pass slow string task.spawn loser as borrowed to task.race fast-failure fixture.
     exit /b 1
 )
-findstr /C:"spawnStringRaceFailureLoserValueB = xl6_future_await_cstr_copy(spawnStringRaceFailureSlowLoser" build\test\cgen_task_spawn.c >nul
+findstr /C:"spawnStringRaceFailureLoserValueB = xrtCopyStr(xl6_future_await_cstr_copy(spawnStringRaceFailureSlowLoser" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing repeated await for canceled string task.spawn race loser.
     exit /b 1
@@ -5553,17 +5558,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.race fast-failure over task.spawn fixture.
     exit /b 1
 )
-findstr /C:"typedSpawnStringRaceFailureValue = xl6_future_await_cstr_copy(typedSpawnStringRaceFailureGroup" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedSpawnStringRaceFailureValue = xrtCopyStr(xl6_future_await_cstr_copy(typedSpawnStringRaceFailureGroup" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.race fast-failure group await.
     exit /b 1
 )
-findstr /C:"typedSpawnStringRaceFailureLoserValueA = xl6_future_await_cstr_copy(typedSpawnStringRaceFailureSlowLoser" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedSpawnStringRaceFailureLoserValueA = xrtCopyStr(xl6_future_await_cstr_copy(typedSpawnStringRaceFailureSlowLoser" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing first await for canceled typed-array string task.spawn race loser.
     exit /b 1
 )
-findstr /C:"typedSpawnStringRaceFailureLoserValueB = xl6_future_await_cstr_copy(typedSpawnStringRaceFailureSlowLoser" build\test\cgen_task_spawn.c >nul
+findstr /C:"typedSpawnStringRaceFailureLoserValueB = xrtCopyStr(xl6_future_await_cstr_copy(typedSpawnStringRaceFailureSlowLoser" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing repeated await for canceled typed-array string task.spawn race loser.
     exit /b 1
@@ -5728,27 +5733,27 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered null-coalesce var task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'scoreSpawnResult\(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_fn_scoreSpawnResult\(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered positional call-argument task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'combineSpawnResult\(1LL,\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_fn_combineSpawnResult\(1LL,\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered named call-argument task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'conditionDynamicSpawnCount[\s\S]*?__xl6_task_arg_[\s\S]*?if \(\(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('conditionDynamicSpawnCount = 0LL;'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch 'xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?__xl6_if_cond_\d+ = \(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?\1\)[\s\S]*?if \(__xl6_if_cond_\d+\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered if-condition task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'whileDynamicSpawnCount[\s\S]*?while \(1\)[\s\S]*?__xl6_task_arg_[\s\S]*?if \(!\(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('whileDynamicSpawnCount = 0LL;'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch 'while \(1\)[\s\S]*?xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?__xl6_while_cond_\d+ = \(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?\1\)[\s\S]*?if \(!__xl6_while_cond_\d+\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered while-condition task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'doDynamicSpawnCount[\s\S]*?while \(1\)[\s\S]*?__xl6_task_arg_[\s\S]*?if \(!\(\(doDynamicSpawnCount < 2LL\) && \(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('doDynamicSpawnCount = 0LL;'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(250000,$text.Length-$idx)); if($slice -notmatch 'while \(1\)[\s\S]*?xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?__xl6_do_cond_\d+ = \(\(doDynamicSpawnCount < 2LL\) && \(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?\1\)[\s\S]*?if \(!__xl6_do_cond_\d+\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered do-while-condition task.spawn argument.
     exit /b 1
@@ -5783,27 +5788,27 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered expression-statement task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_task_arg_[\s\S]*?makeSpawnValue\(221LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_[\s\S]*?task\.spawn dynamic var argument should lower inside assert conditions'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_fn_makeSpawnValue(221LL)'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-1000); $slice=$text.Substring($start,[Math]::Min(8000,$text.Length-$start)); if($slice -notmatch 'xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?xl_fn_makeSpawnValue\(221LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?\1[\s\S]*?task\.spawn dynamic var argument should lower inside assert conditions'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered assert-condition task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_task_arg_[\s\S]*?makeSpawnValue\(401LL\)[\s\S]*?xl6_error_raise\(\x22AssertError\x22,[\s\S]*?xl6_task_spawn_values\(varMessageJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_fn_makeSpawnValue(401LL)'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-1000); $slice=$text.Substring($start,[Math]::Min(8000,$text.Length-$start)); if($slice -notmatch 'xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?xl_fn_makeSpawnValue\(401LL\)[\s\S]*?xl6_error_raise\(\x22AssertError\x22,[\s\S]*?xl6_task_spawn_values\(varMessageJob,[\s\S]*?\1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered assert-message task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_task_arg_[\s\S]*?makeSpawnValue\(301LL\)[\s\S]*?xl6_error_raise\(\x22Error\x22,[\s\S]*?xl6_task_spawn_values\(varMessageJob,[\s\S]*?__xl6_task_arg_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_fn_makeSpawnValue(301LL)'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-1000); $slice=$text.Substring($start,[Math]::Min(8000,$text.Length-$start)); if($slice -notmatch 'xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?xl_fn_makeSpawnValue\(301LL\)[\s\S]*?xl6_error_raise\(\x22Error\x22,[\s\S]*?xl6_task_spawn_values\(varMessageJob,[\s\S]*?\1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered throw-expression task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_gen_worker_dynamicSpawnStream[\s\S]*?__xl6_task_arg_[\s\S]*?xl6_task_spawn_values\(job,[\s\S]*?__xl6_task_arg_[\s\S]*?xl6_generator_yield_copy'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('static void xl_gen_worker_xl_fn_dynamicSpawnStream('); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(20000,$text.Length-$idx)); if($slice -notmatch 'xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?xl6_generator_yield_copy\([^;]*xl6_task_spawn_values\(job,[\s\S]*?\1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered yield-expression task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('rangeDynamicSpawnTotal'); if($idx -lt 0){exit 1}; $rangeIdx=$text.IndexOf('long long __xl6_range_start_', $idx); if($rangeIdx -lt 0){exit 1}; $start=[Math]::Max($idx, $rangeIdx-4000); $slice=$text.Substring($start,[Math]::Min(40000,$text.Length-$start)); if($slice -notmatch '__xl6_task_arg_[\s\S]*?makeSpawnValue\(0LL\)[\s\S]*?long long __xl6_range_start_\d+\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch 'makeSpawnValue\(2LL\)[\s\S]*?makeSpawnValue\(1LL\)[\s\S]*?long long __xl6_range_stop_\d+\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch 'xl6_xrt_retain\(emptySpawnArg\)[\s\S]*?makeSpawnValue\(0LL\)[\s\S]*?long long __xl6_range_step_\d+\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch 'for \(long long __xl6_range_value_\d+ = __xl6_range_start_\d+;[\s\S]*?rangeDynamicSpawnTotal = \(rangeDynamicSpawnTotal \+ i\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('rangeDynamicSpawnTotal'); if($idx -lt 0){exit 1}; $rangeIdx=$text.IndexOf('long long __xl6_range_start_', $idx); if($rangeIdx -lt 0){exit 1}; $start=[Math]::Max($idx, $rangeIdx-4000); $slice=$text.Substring($start,[Math]::Min(40000,$text.Length-$start)); if($slice -notmatch '__xl6_task_arg_[\s\S]*?xl_fn_makeSpawnValue\(0LL\)[\s\S]*?long long __xl6_range_start_\d+\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch 'xl_fn_makeSpawnValue\(2LL\)[\s\S]*?xl_fn_makeSpawnValue\(1LL\)[\s\S]*?long long __xl6_range_stop_\d+\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch 'xl6_xrt_retain\(emptySpawnArg\)[\s\S]*?xl_fn_makeSpawnValue\(0LL\)[\s\S]*?long long __xl6_range_step_\d+\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch 'for \(long long __xl6_range_value_\d+ = __xl6_range_start_\d+;[\s\S]*?rangeDynamicSpawnTotal = \(rangeDynamicSpawnTotal \+ i\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered range-boundary task.spawn arguments.
     exit /b 1
@@ -5818,17 +5823,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered safe-index-read task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('safeIndexDynamicSpawnFallback = __xl6_global_init_'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-3000); $slice=$text.Substring($start,[Math]::Min(10000,$text.Length-$start)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xl6_xrt_typed_box_or_null\(xrtTypeInt\(\), xl6_xrt_typed_array_get_at\(indexDynamicSpawnValues' -or $slice -notmatch 'xvoIsNull\(__xl6_nc_' -or $slice -notmatch 'xvoCreateInt\(\(long long\)\(88LL\)\)' -or $slice -notmatch 'xl6_xrt_value_to_i64_release\(__xl6_call_value_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('safeIndexDynamicSpawnFallback = __xl6_global_init_'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-3000); $slice=$text.Substring($start,[Math]::Min(10000,$text.Length-$start)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xl6_xrt_typed_box_or_null\(xrtTypeInt\(\), xl6_xrt_typed_array_get_at\(indexDynamicSpawnValues' -or $slice -notmatch 'xvoIsNull\(__xl6_nc_' -or $slice -notmatch 'xvoCreateInt\(\(long long\)\(88LL\)\)' -or $slice -notmatch 'xl6_xrt_value_to_i64_release\(__xl6_call_arg_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered safe-index fallback task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('iterableDynamicSpawnArrayTotal = 0LL'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(120000,$text.Length-$idx)); $checks=@('__xl6_task_arg_','makeSpawnValue(2LL)','makeDynamicSpawnArray(xl6_future_await_i64_release(xl6_task_spawn_values(varArgJob','xtarray __xl6_typed_iter_'); foreach($p in $checks){ if($slice.IndexOf($p) -lt 0){ exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('iterableDynamicSpawnArrayTotal = 0LL'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(120000,$text.Length-$idx)); $checks=@('__xl6_task_arg_','xl_fn_makeSpawnValue(2LL)','xl_fn_makeDynamicSpawnArray(xl6_future_await_i64_release(xl6_task_spawn_values(varArgJob','xtarray __xl6_typed_iter_'); foreach($p in $checks){ if($slice.IndexOf($p) -lt 0){ exit 1 } }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered typed-container iterable task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('iterableDynamicSpawnGeneratorTotal = 0LL'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(120000,$text.Length-$idx)); $checks=@('__xl6_task_arg_','xl6_xrt_basic_binary','makeDynamicSpawnGenerator(xl6_future_await_i64_release(xl6_task_spawn_values(varArgJob','XL6_Generator* __xl6_gen_iter_'); foreach($p in $checks){ if($slice.IndexOf($p) -lt 0){ exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('iterableDynamicSpawnGeneratorTotal = 0LL'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(120000,$text.Length-$idx)); $checks=@('__xl6_task_arg_','xl6_xrt_basic_binary','xl_fn_makeDynamicSpawnGenerator(xl6_future_await_i64_release(xl6_task_spawn_values(varArgJob','XL6_Generator* __xl6_gen_iter_'); foreach($p in $checks){ if($slice.IndexOf($p) -lt 0){ exit 1 } }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered generator iterable task.spawn argument.
     exit /b 1
@@ -5848,17 +5853,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered typed-array task.race task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_async_worker_makeTypedDynamicSpawnAllValues'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xrtTypedArrayAppendValue\(__xl6_async_return_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_async_worker_xl_fn_makeTypedDynamicSpawnAllValues'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xrtTypedArrayAppendValue\(__xl6_async_return_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered async typed-array return task.spawn arguments.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_async_worker_makeTypedDynamicSpawnAwaitValues'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(5000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xrtTypedArrayAppendValue\(__xl6_async_return_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_async_worker_xl_fn_makeTypedDynamicSpawnAwaitValues'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(5000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xrtTypedArrayAppendValue\(__xl6_async_return_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered async typed-array return awaited task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'mixedTailBorrowedFuture\s*=\s*xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : makeAdder\(520LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'mixedTailOwnedFuture\s*=\s*xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : makeAdder\(530LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : makeAdder\(540LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(0 \? xl6_function_copy_value\(mixedTailClosureSource\) : makeAdder\(550LL\)\)[\s\S]*?, 0, 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'mixedTailBorrowedFuture\s*=\s*xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : xl_fn_makeAdder\(520LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'mixedTailOwnedFuture\s*=\s*xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : xl_fn_makeAdder\(530LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : xl_fn_makeAdder\(540LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(0 \? xl6_function_copy_value\(mixedTailClosureSource\) : xl_fn_makeAdder\(550LL\)\)[\s\S]*?, 0, 1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing mixed conditional future/all callable normalization.
     exit /b 1
@@ -5868,7 +5873,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing pending closure task.spawn cancel/source-callable lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureAllLeft\s*=\s*xl6_task_spawn_values\(pendingClosureAllSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'pendingClosureAllGroup\s*=\s*xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?pendingClosureAllLeft, 0, xl6_task_spawn_values\(makeSleepyAdder\(620LL\), xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureAllGroup, 0\)' -or $text -notmatch 'pendingClosureAllGroupState = 42LL' -or $text -notmatch 'pendingClosureAllLeftStateA = 42LL' -or $text -notmatch 'pendingClosureAllLeftStateB = 42LL' -or $text -notmatch 'pendingClosureAllSource\.signature[\s\S]*?== 610LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureAllLeft\s*=\s*xl6_task_spawn_values\(pendingClosureAllSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'pendingClosureAllGroup\s*=\s*xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?pendingClosureAllLeft, 0, xl6_task_spawn_values\(xl_fn_makeSleepyAdder\(620LL\), xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureAllGroup, 0\)' -or $text -notmatch 'pendingClosureAllGroupState = 42LL' -or $text -notmatch 'pendingClosureAllLeftStateA = 42LL' -or $text -notmatch 'pendingClosureAllLeftStateB = 42LL' -or $text -notmatch 'pendingClosureAllSource\.signature[\s\S]*?== 610LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing pending closure task.all cancel/source-callable lowering.
     exit /b 1
@@ -5893,7 +5898,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing successful typed-array task.all closure group repeated/cancel/post-cancel lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureRaceLeft\s*=\s*xl6_task_spawn_values\(pendingClosureRaceSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'pendingClosureRaceGroup\s*=\s*xl6_task_race_values\([\s\S]*?pendingClosureRaceLeft, 0, xl6_task_spawn_values\(makeSleepyAdder\(640LL\), xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureRaceGroup, 0\)' -or $text -notmatch 'pendingClosureRaceGroupState = 42LL' -or $text -notmatch 'pendingClosureRaceLeftStateA = 42LL' -or $text -notmatch 'pendingClosureRaceLeftStateB = 42LL' -or $text -notmatch 'pendingClosureRaceSource\.signature[\s\S]*?== 630LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureRaceLeft\s*=\s*xl6_task_spawn_values\(pendingClosureRaceSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'pendingClosureRaceGroup\s*=\s*xl6_task_race_values\([\s\S]*?pendingClosureRaceLeft, 0, xl6_task_spawn_values\(xl_fn_makeSleepyAdder\(640LL\), xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureRaceGroup, 0\)' -or $text -notmatch 'pendingClosureRaceGroupState = 42LL' -or $text -notmatch 'pendingClosureRaceLeftStateA = 42LL' -or $text -notmatch 'pendingClosureRaceLeftStateB = 42LL' -or $text -notmatch 'pendingClosureRaceSource\.signature[\s\S]*?== 630LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing pending closure task.race cancel/source-callable lowering.
     exit /b 1

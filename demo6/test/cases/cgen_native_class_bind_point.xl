@@ -9,12 +9,34 @@ extern "make_borrowed_box" func makeBox(int value) as point
 extern "borrowed_close_count" func closeCount() as int
 extern "expect_i64" func expect(int actual, int expected)
 
+func consume(BorrowedBox box)
+    expect(box.value(), 91)
+end
+
 func exercise()
     point raw = makeBox(77)
     BorrowedBox box = BorrowedBox(raw)
+    if raw == null then
+        expect(1, 1)
+    else
+        expect(0, 1)
+    end
+    BorrowedBox empty = BorrowedBox(raw)
     expect(box.value(), 77)
     expect(closeCount(), 0)
 end
 
+func nestedTransfer()
+    point raw = makeBox(91)
+    consume(BorrowedBox(raw))
+    if raw == null then
+        expect(1, 1)
+    else
+        expect(0, 1)
+    end
+end
+
 exercise()
 expect(closeCount(), 1)
+nestedTransfer()
+expect(closeCount(), 2)

@@ -867,6 +867,9 @@ static int xl6CgenClassProtocolMemberSetStmt(XL6_CgenContext* ctx, const XL6_Ast
     xl6CgenIndent(ctx);
     if ( !xl6CgenClassProtocolCallPrefix(ctx, receiver, classNode, ownerClass, method, receiverType) ) {
         xl6AstFree(receiverType);
+        if ( valueIsXValue ) {
+            xl6CgenClassProtocolTempCleanup(ctx, valueTemp);
+        }
         return 1;
     }
     xl6AstFree(receiverType);
@@ -879,9 +882,6 @@ static int xl6CgenClassProtocolMemberSetStmt(XL6_CgenContext* ctx, const XL6_Ast
         xl6CgenClassProtocolExprArg(ctx, valueType, right);
     }
     xl6OutputPuts(");\n", ctx->out);
-    if ( valueIsXValue ) {
-        xl6CgenClassProtocolTempCleanup(ctx, valueTemp);
-    }
     return 1;
 }
 
@@ -1004,6 +1004,12 @@ static int xl6CgenClassProtocolIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstN
     xl6CgenIndent(ctx);
     if ( !xl6CgenClassProtocolCallPrefix(ctx, receiver, classNode, ownerClass, method, receiverType) ) {
         xl6AstFree(receiverType);
+        if ( valueIsXValue ) {
+            xl6CgenClassProtocolTempCleanup(ctx, valueTemp);
+        }
+        if ( keyIsXValue ) {
+            xl6CgenClassProtocolTempCleanup(ctx, keyTemp);
+        }
         return 1;
     }
     xl6AstFree(receiverType);
@@ -1024,12 +1030,6 @@ static int xl6CgenClassProtocolIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstN
         xl6CgenClassProtocolExprArg(ctx, valueType, right);
     }
     xl6OutputPuts(");\n", ctx->out);
-    if ( valueIsXValue ) {
-        xl6CgenClassProtocolTempCleanup(ctx, valueTemp);
-    }
-    if ( keyIsXValue ) {
-        xl6CgenClassProtocolTempCleanup(ctx, keyTemp);
-    }
     return 1;
 }
 

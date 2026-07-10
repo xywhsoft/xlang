@@ -335,6 +335,18 @@ static int xl6CgenPersistenceWriteName(const char* name, const char** outFormat)
     return 0;
 }
 
+static void xl6CgenPersistenceCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* call, const char* name)
+{
+    XL6_AstNode* func = xl6CgenFindFunc(ctx, name);
+
+    if ( func == NULL ) {
+        xl6CgenError(ctx, call, "class persistence helper function is unavailable");
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    xl6CgenCallableTargetSymbol(ctx, func);
+}
+
 static const XL6_AstNode* xl6CgenPersistenceCallArg(const XL6_AstNode* node, const char* name, size_t index)
 {
     const XL6_AstNode* args;
@@ -471,7 +483,7 @@ static int xl6CgenPersistenceGenericCall(XL6_CgenContext* ctx, const XL6_AstNode
 
     xl6CgenClassPersistenceFromValueHelperSymbol(ctx->out, classNode);
     xl6OutputPutc('(', ctx->out);
-    xl6OutputPuts(nameNode->text, ctx->out);
+    xl6CgenPersistenceCallableSymbol(ctx, node, nameNode->text);
     xl6OutputPutc('(', ctx->out);
     xl6CgenExpr(ctx, textArg);
     xl6OutputPuts("), ", ctx->out);
@@ -548,7 +560,7 @@ static int xl6CgenPersistenceStdlibCall(XL6_CgenContext* ctx, const XL6_AstNode*
         pathExpr = xl6CgenPersistenceCallArg(node, "path", 0);
         xl6CgenClassPersistenceFormatHelperSymbol(ctx->out, classNode, format, 1);
         xl6OutputPutc('(', ctx->out);
-        xl6OutputPuts(funcName, ctx->out);
+        xl6CgenPersistenceCallableSymbol(ctx, node, funcName);
         xl6OutputPuts(", ", ctx->out);
         if ( pathExpr != NULL ) {
             xl6CgenExpr(ctx, pathExpr);
@@ -567,7 +579,7 @@ static int xl6CgenPersistenceStdlibCall(XL6_CgenContext* ctx, const XL6_AstNode*
     } else {
         xl6CgenClassPersistenceFormatHelperSymbol(ctx->out, classNode, format, 0);
         xl6OutputPutc('(', ctx->out);
-        xl6OutputPuts(funcName, ctx->out);
+        xl6CgenPersistenceCallableSymbol(ctx, node, funcName);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenClassCopySourceExpr(ctx, valueExpr);
         xl6OutputPuts(", ", ctx->out);

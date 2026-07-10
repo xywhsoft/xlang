@@ -1,0 +1,26 @@
+channel<string> textCh = channel::<string>(4)
+
+string source = "hello"
+assert textCh.send(source), "string channel send failed"
+source = "changed"
+
+string received = "old"
+assert textCh.recvInto(received), "string channel recv failed"
+assert received == "hello", "string channel must copy the sent value"
+
+assert textCh.trySend("你好"), "UTF-8 string channel send failed"
+assert textCh.tryRecvInto(received), "UTF-8 string channel recv failed"
+assert received == "你好", "UTF-8 string channel value mismatch"
+
+assert textCh.send("before close"), "buffered string send failed"
+textCh.close()
+assert textCh.recvInto(received), "closed string channel must drain buffered value"
+assert received == "before close", "closed string channel buffered value mismatch"
+assert not textCh.tryRecvInto(received), "drained string channel should be empty"
+assert not textCh.send("after close"), "closed string channel send should fail"
+
+// 留下一条未消费消息，验证作用域清理会释放消息 box。
+channel<string> pendingCh = channel::<string>(2)
+assert pendingCh.send("pending"), "pending string send failed"
+
+println("channel string ok")

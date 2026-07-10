@@ -1,0 +1,833 @@
+// anneal - 通用模拟退火（SA）求解器
+//
+// 用法：
+//   anneal tsp    <cities.json> [iters=20000]       最短回路（2-opt 反转邻域）
+//   anneal color  <graph.json> <k> [iters=20000]    最小冲突着色（随机改色）
+//   anneal func   [D=5] [iters=20000]              Rastrigin 函数极小值
+//   anneal test                                    自检：TSP 6 城市 + 图着色验证
+//
+// 设计要点：
+//   - 通用 SA 引擎 saRun(...)：初始解 → 邻域扰动 → Metropolis 准则
+//       ΔE <= 0 必接受；ΔE > 0 时以 exp(-ΔE/T) 的概率接受
+//       → 指数冷却 T := T*α → 直到 T <= Tmin 终止。
+//   - 引擎对状态类型透明：状态用 var 承载（array<int> 排列/着色，或 array<float> 向量）。
+//   - 每个问题模块提供 4 个策略闭包：initFn / energyFn / neighborFn / cloneFn。
+//     neighborFn 永远构造全新数组返回，绝不就地修改输入（故 best=cloneFn(state) 快照安全）。
+//   - 引擎始终“最小化” energy：TSP 的 energy=回路长；着色的 energy=冲突边数；
+//     函数优化的 energy=Rastrigin 值（全局最小 0 在原点）。
+//   - 全局变量 gCurrentTemp 由引擎每温阶发布，连续问题的 neighborFn 可据此缩放步长。
+//   - 随机源用 random.u32()/random.range()；种子固定，xl run 与 built exe 输出一致。
+//
+// 重要语义（见 dev/README.md 限制表）：
+//   - typed array 赋值是值拷贝；var 装箱数组按引用，故快照一律走 cloneFn 重建新数组。
+//   - 复合赋值 += 对 int/float 原语正常工作。
+
+// ============================================================
+// 随机辅助
+// ============================================================
+
+// 返回 [0, 1) 内的 float，取 random.u32 全精度（32 位）。
+func randFloat() as float
+    return float(random.u32()) / 4294967296.0
+end
+
+// 返回 [lo, hi) 内的 float。
+func randFloatRange(float lo, float hi) as float
+    return lo + (hi - lo) * randFloat()
+end
+
+// 标准正态分布抽样（Box-Muller），用于连续变异。
+func randGauss() as float
+    float u1 = randFloat()
+    if u1 < 0.0001 then
+        u1 = 0.0001
+    end
+    float u2 = randFloat()
+    float r = math.sqrt(-2.0 * math.log(u1))
+    return r * math.cos(2.0 * math.pi * u2)
+end
+
+// ============================================================
+// SA 配置 / 结果
+// ============================================================
+
+class SAConfig
+    float T0 = 100.0
+    float Tmin = 0.001
+    float alpha = 0.97
+    int itersPerTemp = 100
+end
+
+class SAResult
+    var state = array[]
+    float energy = 0.0
+    int iters = 0
+    int accepts = 0
+    float tEnd = 0.0
+end
+
+// 引擎发布当前温度，供连续问题的 neighborFn 缩放步长（离散问题可忽略）。
+float gCurrentTemp = 0.0
+
+// ============================================================
+// 通用 SA 引擎
+// ============================================================
+
+//   initFn()          -> 随机生成一个初始状态
+//   energyFn(s)       -> 计算能量（越小越好）
+//   neighborFn(s)     -> 构造并返回一个扰动的“全新”状态（不改输入）
+//   cloneFn(s)        -> 深拷贝状态（用于命中新最优时的快照）
+func saRun(SAConfig cfg,
+           func initFn,
+           func(var) as float energyFn,
+           func neighborFn,
+           func(var) as var cloneFn,
+           bool verbose) as SAResult
+
+    var state = initFn()
+    float e = energyFn(state)
+    var best = cloneFn(state)
+    float bestE = e
+    float T = cfg.T0
+    gCurrentTemp = T
+    int iters = 0
+    int accepts = 0
+    int step = 0
+
+    while T > cfg.Tmin do
+        int i = 0
+        int stepAccepts = 0
+        while i < cfg.itersPerTemp do
+            var cand = neighborFn(state)
+            float eCand = energyFn(cand)
+            float dE = eCand - e
+            bool ok = false
+            // Metropolis 准则：ΔE<=0 必接受；否则以 exp(-ΔE/T) 概率接受。
+            if dE <= 0.0 then
+                ok = true
+            else
+                float p = math.exp(-dE / T)
+                if randFloat() < p then
+                    ok = true
+                end
+            end
+            if ok then
+                state = cand
+                e = eCand
+                accepts += 1
+                stepAccepts += 1
+                if e < bestE then
+                    best = cloneFn(state)
+                    bestE = e
+                end
+            end
+            iters += 1
+            i += 1
+        end
+        // 指数冷却
+        T = T * cfg.alpha
+        gCurrentTemp = T
+        step += 1
+        if verbose then
+            if step % 25 == 1 or T <= cfg.Tmin then
+                float rate = float(stepAccepts) / float(cfg.itersPerTemp)
+                println("  T=" + string.formatFloat(T, ".5") +
+                        "  cur=" + string.formatFloat(e, ".5") +
+                        "  best=" + string.formatFloat(bestE, ".5") +
+                        "  accept=" + string.formatFloat(rate, ".3"))
+            end
+        end
+    end
+
+    SAResult r = SAResult()
+    r.state = best
+    r.energy = bestE
+    r.iters = iters
+    r.accepts = accepts
+    r.tEnd = T
+    return r
+end
+
+// 由“总迭代数”反推冷却计划：把 totalIters 均摊到若干温阶，
+// 取 alpha=(Tmin/T0)^(1/steps) 使最后温阶恰好降到 Tmin。
+func makeSchedule(int totalIters, float T0, float Tmin, int perStep) as SAConfig
+    SAConfig cfg = SAConfig()
+    cfg.T0 = T0
+    cfg.Tmin = Tmin
+    int steps = totalIters / perStep
+    if steps < 10 then
+        steps = 10
+    end
+    cfg.alpha = math.pow(Tmin / T0, 1.0 / float(steps))
+    cfg.itersPerTemp = perStep
+    return cfg
+end
+
+// ============================================================
+// 公用工具
+// ============================================================
+
+// 由扁平坐标 [x0,y0,x1,y1,...] 构造 n*n 距离矩阵（扁平）。
+func buildDistMatrix(array<float> coords, int n) as array<float>
+    array<float> dist = array[]
+    int total = n * n
+    int z = 0
+    while z < total do
+        dist.push(0.0)
+        z += 1
+    end
+    int i = 0
+    while i < n do
+        int j = 0
+        while j < n do
+            float dx = coords[i * 2] - coords[j * 2]
+            float dy = coords[i * 2 + 1] - coords[j * 2 + 1]
+            dist[i * n + j] = math.sqrt(dx * dx + dy * dy)
+            j += 1
+        end
+        i += 1
+    end
+    return dist
+end
+
+// 给定排列状态，计算回路总长（含回到起点）。
+func tourLength(var c, array<float> dist, int n) as float
+    float total = 0.0
+    int k = 0
+    while k < n do
+        int a = int(c[k])
+        int b = int(c[(k + 1) % n])
+        total += dist[a * n + b]
+        k += 1
+    end
+    return total
+end
+
+// 判断状态是否为 0..n-1 的合法排列。
+func isValidPermutation(var c, int n) as bool
+    array<int> seen = array[]
+    int z = 0
+    while z < n do
+        seen.push(0)
+        z += 1
+    end
+    int i = 0
+    while i < n do
+        int v = int(c[i])
+        if v < 0 or v >= n then
+            return false
+        end
+        if seen[v] == 1 then
+            return false
+        end
+        seen[v] = 1
+        i += 1
+    end
+    return true
+end
+
+func printRoute(var c, int n)
+    print("  route: ")
+    int i = 0
+    while i < n do
+        if i > 0 then
+            print(" -> ")
+        end
+        print(int(c[i]))
+        i += 1
+    end
+    print(" -> ")
+    print(int(c[0]))
+    println()
+end
+
+func printVector(var c)
+    print("  x = [")
+    int i = 0
+    int n = c.length
+    while i < n do
+        if i > 0 then
+            print(", ")
+        end
+        print(string.formatFloat(float(c[i]), ".4"))
+        i += 1
+    end
+    println("]")
+end
+
+// 用 var 颜色向量与 typed 边数组复核冲突边数（自检/汇报用）。
+func countConflictsVar(var colors, array<int> edges) as int
+    int m = edges.length / 2
+    int conflicts = 0
+    int i = 0
+    while i < m do
+        int u = edges[i * 2]
+        int v = edges[i * 2 + 1]
+        if int(colors[u]) == int(colors[v]) then
+            conflicts += 1
+        end
+        i += 1
+    end
+    return conflicts
+end
+
+// ============================================================
+// JSON 加载
+// ============================================================
+
+//   支持三种城市格式：
+//     [[x,y],[x,y],...]                      裸数组
+//     {"cities":[[x,y],...]}                 带键
+//     {"cities":[{"x":..,"y":..},...]}       对象数组
+func loadCities(string path) as array<float>
+    if not file.exists(path) then
+        throw "file not found: " + path
+    end
+    string text = file.readText(path)
+    var root = json.parse(text)
+    if root == null then
+        throw "invalid JSON: " + path
+    end
+    var cities = root
+    if root.contains("cities") then
+        cities = root["cities"]
+    end
+    int n = cities.length
+    if n < 2 then
+        throw "need at least 2 cities, got " + string(n)
+    end
+    array<float> coords = array[]
+    int i = 0
+    while i < n do
+        var item = cities[i]
+        float x = 0.0
+        float y = 0.0
+        if item.contains("x") then
+            x = float(item["x"])
+            y = float(item["y"])
+        else
+            x = float(item[0])
+            y = float(item[1])
+        end
+        coords.push(x)
+        coords.push(y)
+        i += 1
+    end
+    return coords
+end
+
+//   图格式：{"edges":[[u,v],...]}  或裸 [[u,v],...]。
+//   返回扁平边数组 [u0,v0,u1,v1,...]。
+func loadGraph(string path) as array<int>
+    if not file.exists(path) then
+        throw "file not found: " + path
+    end
+    string text = file.readText(path)
+    var root = json.parse(text)
+    if root == null then
+        throw "invalid JSON: " + path
+    end
+    var edges = root
+    if root.contains("edges") then
+        edges = root["edges"]
+    end
+    array<int> result = array[]
+    int n = edges.length
+    if n < 1 then
+        throw "need at least 1 edge, got " + string(n)
+    end
+    int i = 0
+    while i < n do
+        var ee = edges[i]
+        result.push(int(ee[0]))
+        result.push(int(ee[1]))
+        i += 1
+    end
+    return result
+end
+
+func countVertices(array<int> edges) as int
+    int maxV = -1
+    int m = edges.length / 2
+    int i = 0
+    while i < m do
+        if edges[i * 2] > maxV then
+            maxV = edges[i * 2]
+        end
+        if edges[i * 2 + 1] > maxV then
+            maxV = edges[i * 2 + 1]
+        end
+        i += 1
+    end
+    return maxV + 1
+end
+
+// ============================================================
+// 暴力最优 TSP（小规模，用于 test 比对）
+// ============================================================
+
+float gBestLen
+
+func bfRec(array<float> dist, int n, int startCity, int prev, int count, float curLen, array<int> visited)
+    if count == n then
+        float total = curLen + dist[prev * n + startCity]
+        if total < gBestLen then
+            gBestLen = total
+        end
+        return
+    end
+    int k = 0
+    while k < n do
+        if visited[k] == 0 then
+            visited[k] = 1
+            bfRec(dist, n, startCity, k, count + 1, curLen + dist[prev * n + k], visited)
+            visited[k] = 0
+        end
+        k += 1
+    end
+end
+
+func bruteForceTSP(array<float> coords, int n) as float
+    array<float> dist = buildDistMatrix(coords, n)
+    array<int> visited = array[]
+    int i = 0
+    while i < n do
+        visited.push(0)
+        i += 1
+    end
+    visited[0] = 1
+    gBestLen = 1.0e18
+    bfRec(dist, n, 0, 0, 1, 0.0, visited)
+    return gBestLen
+end
+
+// ============================================================
+// 问题模块 1：TSP（排列状态，2-opt 反转邻域）
+// ============================================================
+
+func runTSP(array<float> coords, int ncities, SAConfig cfg, bool verbose) as SAResult
+    int n = ncities
+    array<float> dist = buildDistMatrix(coords, n)
+
+    // 随机排列初始化（Fisher-Yates 洗牌）
+    func initFn = func() as var
+        array<int> perm = array[]
+        int i = 0
+        while i < n do
+            perm.push(i)
+            i += 1
+        end
+        int s = n - 1
+        while s > 0 do
+            int r = random.range(0, s)
+            int tmp = perm[s]
+            perm[s] = perm[r]
+            perm[r] = tmp
+            s -= 1
+        end
+        return perm
+    end
+
+    func(var) as float energyFn = func(var c) as float
+        return tourLength(c, dist, n)
+    end
+
+    // 2-opt：复制排列，反转 [i, j] 段（等价于断两条边重连）。
+    func neighborFn = func(var c) as var
+        array<int> child = array[]
+        int k = 0
+        while k < n do
+            child.push(int(c[k]))
+            k += 1
+        end
+        int i = random.range(0, n - 2)
+        int j = random.range(i + 1, n - 1)
+        while i < j do
+            int tmp = child[i]
+            child[i] = child[j]
+            child[j] = tmp
+            i += 1
+            j -= 1
+        end
+        return child
+    end
+
+    func(var) as var cloneFn = func(var c) as var
+        array<int> child = array[]
+        int k = 0
+        while k < n do
+            child.push(int(c[k]))
+            k += 1
+        end
+        return child
+    end
+
+    return saRun(cfg, initFn, energyFn, neighborFn, cloneFn, verbose)
+end
+
+// ============================================================
+// 问题模块 2：图着色（颜色向量，随机改色邻域）
+// ============================================================
+
+func runColoring(array<int> edges, int nverts, int kcolors, SAConfig cfg, bool verbose) as SAResult
+    int n = nverts
+    int k = kcolors
+
+    func initFn = func() as var
+        array<int> cols = array[]
+        int i = 0
+        while i < n do
+            cols.push(random.range(0, k - 1))
+            i += 1
+        end
+        return cols
+    end
+
+    func(var) as float energyFn = func(var c) as float
+        int conflicts = 0
+        int m = edges.length / 2
+        int i = 0
+        while i < m do
+            int u = edges[i * 2]
+            int v = edges[i * 2 + 1]
+            if int(c[u]) == int(c[v]) then
+                conflicts += 1
+            end
+            i += 1
+        end
+        return float(conflicts)
+    end
+
+    // 随机改色：挑一个顶点，换成另一个不同的颜色。
+    func neighborFn = func(var c) as var
+        array<int> child = array[]
+        int i = 0
+        while i < n do
+            child.push(int(c[i]))
+            i += 1
+        end
+        int v = random.range(0, n - 1)
+        int old = child[v]
+        int nc = old
+        while nc == old do
+            nc = random.range(0, k - 1)
+        end
+        child[v] = nc
+        return child
+    end
+
+    func(var) as var cloneFn = func(var c) as var
+        array<int> child = array[]
+        int i = 0
+        while i < n do
+            child.push(int(c[i]))
+            i += 1
+        end
+        return child
+    end
+
+    return saRun(cfg, initFn, energyFn, neighborFn, cloneFn, verbose)
+end
+
+// ============================================================
+// 问题模块 3：函数极值（Rastrigin 极小化，全局最小 0 在原点）
+// ============================================================
+
+func runFunc(int dim, float lo, float hi, SAConfig cfg, bool verbose) as SAResult
+    int D = dim
+    float lower = lo
+    float upper = hi
+    float span = hi - lo
+    float t0 = cfg.T0
+
+    func initFn = func() as var
+        array<float> x = array[]
+        int i = 0
+        while i < D do
+            x.push(randFloatRange(lower, upper))
+            i += 1
+        end
+        return x
+    end
+
+    // Rastrigin：f(x)=A*D + Σ(x_i² − A·cos(2π·x_i))，A=10。
+    func(var) as float energyFn = func(var c) as float
+        float s = 10.0 * float(D)
+        int i = 0
+        while i < D do
+            float x = float(c[i])
+            s += x * x - 10.0 * math.cos(2.0 * math.pi * x)
+            i += 1
+        end
+        return s
+    end
+
+    // 单维高斯扰动；步长随温度收缩（高温大步探索，低温小步精修）。
+    func neighborFn = func(var c) as var
+        array<float> child = array[]
+        int i = 0
+        while i < D do
+            child.push(float(c[i]))
+            i += 1
+        end
+        int d = random.range(0, D - 1)
+        float frac = math.sqrt(gCurrentTemp / t0)
+        if frac < 0.01 then
+            frac = 0.01
+        end
+        float step = span * 0.1 * frac
+        float v = child[d] + randGauss() * step
+        if v < lower then
+            v = lower
+        end
+        if v > upper then
+            v = upper
+        end
+        child[d] = v
+        return child
+    end
+
+    func(var) as var cloneFn = func(var c) as var
+        array<float> child = array[]
+        int i = 0
+        while i < D do
+            child.push(float(c[i]))
+            i += 1
+        end
+        return child
+    end
+
+    return saRun(cfg, initFn, energyFn, neighborFn, cloneFn, verbose)
+end
+
+// ============================================================
+// 自检
+// ============================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func pass(string name)
+    g_pass += 1
+    println("[ PASS ] " + name)
+end
+
+func fail(string name, string detail)
+    g_fail += 1
+    println("[ FAIL ] " + name + " : " + detail)
+end
+
+func runTests() as int
+    println("=== anneal self-test ===")
+
+    // ---- TSP 6 城市：与暴力最优比对 ----
+    array<float> coords = array[
+        0.0, 0.0,
+        10.0, 0.0,
+        10.0, 10.0,
+        0.0, 10.0,
+        5.0, 2.0,
+        5.0, 8.0
+    ]
+    int tn = 6
+    float optimal = bruteForceTSP(coords, tn)
+    SAConfig tcfg = makeSchedule(30000, 100.0, 0.001, 100)
+    SAResult tr = runTSP(coords, tn, tcfg, false)
+    array<float> tdist = buildDistMatrix(coords, tn)
+    float saLen = tourLength(tr.state, tdist, tn)
+    bool valid = isValidPermutation(tr.state, tn)
+    println("TSP n=" + string(tn) +
+            "  brute-optimal=" + string.formatFloat(optimal, ".4") +
+            "  SA-len=" + string.formatFloat(saLen, ".4") +
+            "  valid=" + string(valid) +
+            "  iters=" + string(tr.iters))
+    if not valid then
+        fail("TSP route validity", "best tour is not a valid permutation")
+    else
+        pass("TSP route is a valid permutation")
+    end
+    if saLen <= optimal * 1.1 then
+        pass("TSP SA within 1.1x of optimum")
+    else
+        fail("TSP quality", "SA=" + string(saLen) + " optimal=" + string(optimal))
+    end
+
+    // ---- 图着色：6 顶点 3-可着色图，期望 0 冲突 ----
+    // 两个三角（0-1-2, 3-4-5）加 3 条连接边（0-3, 1-4, 2-5），色数=3。
+    array<int> edges = array[
+        0, 1,  1, 2,  2, 0,
+        3, 4,  4, 5,  5, 3,
+        0, 3,  1, 4,  2, 5
+    ]
+    int nv = 6
+    int kcolors = 3
+    SAConfig ccfg = makeSchedule(20000, 10.0, 0.001, 100)
+    SAResult cr = runColoring(edges, nv, kcolors, ccfg, false)
+    int conflicts = countConflictsVar(cr.state, edges)
+    println("Coloring vertices=" + string(nv) +
+            "  colors=" + string(kcolors) +
+            "  conflicts=" + string(conflicts) +
+            "  energy=" + string.formatFloat(cr.energy, ".0") +
+            "  iters=" + string(cr.iters))
+    if conflicts == 0 then
+        pass("Graph coloring reaches 0 conflicts")
+    else
+        fail("Graph coloring", "conflicts=" + string(conflicts) + " expected 0")
+    end
+
+    println("")
+    println(string(g_pass) + " passed, " + string(g_fail) + " failed")
+    if g_fail > 0 then
+        return 1
+    end
+    return 0
+end
+
+// ============================================================
+// 入口
+// ============================================================
+
+func printUsage()
+    println("anneal - generic simulated-annealing solver")
+    println("Usage:")
+    println("  anneal tsp    <cities.json> [iters=20000]       shortest tour (2-opt)")
+    println("  anneal color  <graph.json> <k> [iters=20000]    min-conflict k-coloring")
+    println("  anneal func   [D=5] [iters=20000]              minimize Rastrigin function")
+    println("  anneal test                                    self-test")
+    println("Cities JSON: [[x,y],...] | {\"cities\":[[x,y],...]} | {\"cities\":[{\"x\":0,\"y\":0}]}")
+    println("Graph JSON:  {\"edges\":[[u,v],...]}  (vertices derived from max index)")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    // 固定种子，保证 xl run 与 built exe 输出一致。
+    random.seed(uint64(20260710), uint64(1))
+
+    if cmd == "test" then
+        return runTests()
+    end
+
+    if cmd == "tsp" then
+        if arg.length < 3 then
+            println("Error: 'tsp' needs <cities.json>")
+            return 1
+        end
+        string path = string(arg[2])
+        int totalIters = 20000
+        if arg.length >= 4 then
+            totalIters = int(arg[3])
+        end
+        if totalIters < 1000 then
+            totalIters = 1000
+        end
+        array<float> coords = array[]
+        try
+            coords = loadCities(path)
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+        int n = coords.length / 2
+        if n < 3 then
+            println("Error: need at least 3 cities, got " + string(n))
+            return 1
+        end
+        SAConfig cfg = makeSchedule(totalIters, 100.0, 0.001, 100)
+        println("TSP  cities=" + string(n) + "  iters=" + string(totalIters))
+        SAResult r = runTSP(coords, n, cfg, true)
+        array<float> dist = buildDistMatrix(coords, n)
+        float len = tourLength(r.state, dist, n)
+        println("Best tour length: " + string.formatFloat(len, ".4") +
+                "  (iters=" + string(r.iters) + ", accepts=" + string(r.accepts) + ")")
+        printRoute(r.state, n)
+        return 0
+    end
+
+    if cmd == "color" then
+        if arg.length < 4 then
+            println("Error: 'color' needs <graph.json> <k>")
+            return 1
+        end
+        string path = string(arg[2])
+        int kcolors = int(arg[3])
+        if kcolors < 2 then
+            println("Error: k must be >= 2")
+            return 1
+        end
+        int totalIters = 20000
+        if arg.length >= 5 then
+            totalIters = int(arg[4])
+        end
+        if totalIters < 1000 then
+            totalIters = 1000
+        end
+        array<int> edges = array[]
+        try
+            edges = loadGraph(path)
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+        int nv = countVertices(edges)
+        if nv < 2 then
+            println("Error: need at least 2 vertices, got " + string(nv))
+            return 1
+        end
+        SAConfig cfg = makeSchedule(totalIters, 10.0, 0.001, 100)
+        println("Coloring  vertices=" + string(nv) +
+                "  colors=" + string(kcolors) +
+                "  edges=" + string(edges.length / 2) +
+                "  iters=" + string(totalIters))
+        SAResult r = runColoring(edges, nv, kcolors, cfg, true)
+        int conflicts = countConflictsVar(r.state, edges)
+        println("Best conflicts: " + string(conflicts) +
+                "  (iters=" + string(r.iters) + ", accepts=" + string(r.accepts) + ")")
+        print("  colors: [")
+        int i = 0
+        while i < nv do
+            if i > 0 then
+                print(", ")
+            end
+            print(int(r.state[i]))
+            i += 1
+        end
+        println("]")
+        return 0
+    end
+
+    if cmd == "func" then
+        int D = 5
+        int totalIters = 20000
+        if arg.length >= 3 then
+            D = int(arg[2])
+        end
+        if arg.length >= 4 then
+            totalIters = int(arg[3])
+        end
+        if D < 1 then
+            println("Error: D must be >= 1")
+            return 1
+        end
+        if totalIters < 1000 then
+            totalIters = 1000
+        end
+        SAConfig cfg = makeSchedule(totalIters, 100.0, 0.001, 100)
+        println("FuncOpt  Rastrigin  D=" + string(D) +
+                "  xi in [-5.12, 5.12]  iters=" + string(totalIters))
+        SAResult r = runFunc(D, -5.12, 5.12, cfg, true)
+        println("Best f(x): " + string.formatFloat(r.energy, ".6") +
+                "  (iters=" + string(r.iters) + ", accepts=" + string(r.accepts) + ")")
+        printVector(r.state)
+        return 0
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

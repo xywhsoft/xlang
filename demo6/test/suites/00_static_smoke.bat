@@ -42,7 +42,7 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $m = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Select-String -SimpleMatch '({ XL6_Function'; if ($m) { Write-Host 'src cgen contains stale XL6_Function statement-expression fallback.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $files = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Where-Object { $_.Name -ne 'xl6_cgen_async_runtime.c' }; $m = $files | Select-String -SimpleMatch 'xFutureRequestCancel'; if ($m) { Write-Host 'src cgen emits direct future cancel outside async runtime helper.'; exit 1 }"
+powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $allowed = @('xl6_cgen_async_runtime.c', 'xl6_cgen_async_runtime_await.c'); $files = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Where-Object { $allowed -notcontains $_.Name }; $m = $files | Select-String -SimpleMatch 'xFutureRequestCancel'; if ($m) { Write-Host 'src cgen emits direct future cancel outside async runtime helpers.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cgen_statement_expr_allowlist.ps1

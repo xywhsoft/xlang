@@ -64,14 +64,18 @@ xlint.exe <file.xl|dir> [options]
 
 - `process.run("xl parse <abs> --format json")` 取 AST JSON → `json.parse` 成 `var` 树。
 - **两次迭代遍历**（`passA` 收集声明 + 命名/魔法数/函数长度/嵌套；`passB` 未定义变量/未用变量）。
-- **fan-out**：多文件时主进程对每个文件起一个短命子进程做单文件 lint（输出 JSON），主进程聚合。
-  这是规避 xlang 运行时在单进程内累积大量 var AST 逐步变慢的必要手段（见 `../BUGS.md` BUG-XL2）：
-  92 文件从 >15min 降到 ~21s。
+- 多文件检查在单个 xlint 进程内顺序执行，不再通过短命子进程 fan-out 规避运行时问题。
+- 每个文件完成后释放 AST、遍历栈和诊断临时值；XRT 的临时区与复合值生命周期已完成公共修复。
+- 同一源码树连续运行会产生稳定排序的确定性结果，便于 CI 做报告哈希和差异比较。
 
 ## 验证
 
 ```bat
 xl run  projects\dev\xlint\xlint.xl                       :: EXIT=0（用法）
 xl build projects\dev\xlint\xlint.xl -o projects\dev\xlint\xlint.exe   :: EXIT=0
-xlint.exe projects\dev -r                                  :: 92 文件 ~21s, EXIT=0
+xlint.exe projects\dev -r --format json > xlint-report.json
 ```
+
+当前发布验收快照：174 个 `.xl` 源文件，165 个文件产生诊断，共 9421 个 issue，
+JSON 报告 1,547,715 字节，单进程约 27 秒。连续两次运行的 SHA-256 均为
+`EFE19798D760BF56DED86E86110DDDE66BE7D228F029B42C433F6681D74A6176`。

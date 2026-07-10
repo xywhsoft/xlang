@@ -1,0 +1,737 @@
+// svggen - SVG graphic generator
+//
+// Usage:
+//   svggen chart bar  <data.json> <out.svg>   bar chart from JSON
+//   svggen chart pie  <data.json> <out.svg>   pie chart from JSON
+//   svggen chart line <data.json> <out.svg>   line chart from JSON
+//   svggen demo  [out.svg]                    colorful composite scene
+//   svggen test  [out.svg]                    primitive + style test sheet
+//
+// SVG XML is built purely by string concatenation ("<tag ... />"). All
+// numeric coordinates go through fmtNum so whole numbers render as "120"
+// instead of "120.00". JSON data is read through var dict indexing after
+// json.parse.
+//
+// Accepted JSON data shapes:
+//   { "title": "...", "labels": ["A","B"], "values": [10,20] }
+//   { "title": "...", "items": [ {"label":"A","value":10}, ... ] }
+//   [ {"label":"A","value":10}, {"name":"B","value":20} ]
+// Optional "width" / "height" override the default 720x420 canvas.
+
+
+// ---------------------------------------------------------------- fmtNum
+// Format a float for SVG attributes: whole numbers -> integer text,
+// otherwise 2 decimals with trailing zeros stripped. NaN/Inf -> "0".
+func fmtNum(float v) as string
+    if math.isNaN(v) or math.isInf(v) then
+        return "0"
+    end
+    if v == math.floor(v) and math.abs(v) < 1e15 then
+        return string(int(v))
+    end
+    string s = string.formatFloat(v, ".2")
+    if string.contains(s, ".") then
+        while string.endsWith(s, "0") do
+            s = string.slice(s, 0, string.len(s) - 1)
+        end
+        if string.endsWith(s, ".") then
+            s = string.slice(s, 0, string.len(s) - 1)
+        end
+    end
+    return s
+end
+
+
+// ---------------------------------------------------------------- xmlEscape
+// Escape text for safe inclusion in SVG XML text content / attributes.
+func xmlEscape(string s) as string
+    string out = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        if c == "&" then
+            out = out + "&amp;"
+        elseif c == "<" then
+            out = out + "&lt;"
+        elseif c == ">" then
+            out = out + "&gt;"
+        elseif c == "\"" then
+            out = out + "&quot;"
+        elseif c == "'" then
+            out = out + "&apos;"
+        else
+            out = out + c
+        end
+        i = i + 1
+    end
+    return out
+end
+
+
+// ---------------------------------------------------------------- toFloat
+// Coerce a possibly-null var to float; missing -> 0.0 (avoids float(null)).
+func toFloat(var v) as float
+    string s = string(v)
+    if s == "" then
+        return 0.0
+    end
+    return float(v)
+end
+
+
+// ---------------------------------------------------------------- palette
+// Deterministic 10-color palette, cycling by index.
+func palette(int i) as string
+    var colors = ["#4C72B0", "#DD8452", "#55A467", "#C44E52", "#8172B3", "#937860", "#DA8BC3", "#7F7F7F", "#CCB974", "#64B5CD"]
+    int n = colors.length
+    int idx = i % n
+    if idx < 0 then
+        idx = idx + n
+    end
+    return string(colors[idx])
+end
+
+
+// ---------------------------------------------------------------- niceCeil
+// Round a max value up to a "nice" 1/2/2.5/5/10 scale for clean axis ticks.
+func niceCeil(float v) as float
+    if v <= 0.0 then
+        return 1.0
+    end
+    float e = math.floor(math.log10(v))
+    float pow10 = math.pow(10.0, e)
+    float f = v / pow10
+    float nf
+    if f <= 1.0 then
+        nf = 1.0
+    elseif f <= 2.0 then
+        nf = 2.0
+    elseif f <= 2.5 then
+        nf = 2.5
+    elseif f <= 5.0 then
+        nf = 5.0
+    else
+        nf = 10.0
+    end
+    return nf * pow10
+end
+
+
+// ============================================================ SVG elements
+// Each builder emits a single element with the four style attributes
+// fill / stroke / stroke-width / opacity directly on the tag.
+
+func svgRect(float x, float y, float w, float h, string fill, string stroke, float sw, float op) as string
+    return "<rect x=\"" + fmtNum(x) + "\" y=\"" + fmtNum(y) + "\" width=\"" + fmtNum(w) + "\" height=\"" + fmtNum(h) + "\" fill=\"" + fill + "\" stroke=\"" + stroke + "\" stroke-width=\"" + fmtNum(sw) + "\" opacity=\"" + fmtNum(op) + "\" />"
+end
+
+func svgCircle(float cx, float cy, float r, string fill, string stroke, float sw, float op) as string
+    return "<circle cx=\"" + fmtNum(cx) + "\" cy=\"" + fmtNum(cy) + "\" r=\"" + fmtNum(r) + "\" fill=\"" + fill + "\" stroke=\"" + stroke + "\" stroke-width=\"" + fmtNum(sw) + "\" opacity=\"" + fmtNum(op) + "\" />"
+end
+
+func svgEllipse(float cx, float cy, float rx, float ry, string fill, string stroke, float sw, float op) as string
+    return "<ellipse cx=\"" + fmtNum(cx) + "\" cy=\"" + fmtNum(cy) + "\" rx=\"" + fmtNum(rx) + "\" ry=\"" + fmtNum(ry) + "\" fill=\"" + fill + "\" stroke=\"" + stroke + "\" stroke-width=\"" + fmtNum(sw) + "\" opacity=\"" + fmtNum(op) + "\" />"
+end
+
+func svgLine(float x1, float y1, float x2, float y2, string stroke, float sw, float op) as string
+    return "<line x1=\"" + fmtNum(x1) + "\" y1=\"" + fmtNum(y1) + "\" x2=\"" + fmtNum(x2) + "\" y2=\"" + fmtNum(y2) + "\" stroke=\"" + stroke + "\" stroke-width=\"" + fmtNum(sw) + "\" opacity=\"" + fmtNum(op) + "\" />"
+end
+
+func svgPolygon(string points, string fill, string stroke, float sw, float op) as string
+    return "<polygon points=\"" + points + "\" fill=\"" + fill + "\" stroke=\"" + stroke + "\" stroke-width=\"" + fmtNum(sw) + "\" opacity=\"" + fmtNum(op) + "\" />"
+end
+
+func svgPolyline(string points, string fill, string stroke, float sw, float op) as string
+    return "<polyline points=\"" + points + "\" fill=\"" + fill + "\" stroke=\"" + stroke + "\" stroke-width=\"" + fmtNum(sw) + "\" opacity=\"" + fmtNum(op) + "\" />"
+end
+
+func svgPath(string d, string fill, string stroke, float sw, float op) as string
+    return "<path d=\"" + d + "\" fill=\"" + fill + "\" stroke=\"" + stroke + "\" stroke-width=\"" + fmtNum(sw) + "\" opacity=\"" + fmtNum(op) + "\" />"
+end
+
+func svgText(float x, float y, string text, string fill, float size, string anchor) as string
+    return "<text x=\"" + fmtNum(x) + "\" y=\"" + fmtNum(y) + "\" font-family=\"sans-serif\" font-size=\"" + fmtNum(size) + "\" text-anchor=\"" + anchor + "\" fill=\"" + fill + "\">" + xmlEscape(text) + "</text>"
+end
+
+
+// ---------------------------------------------------------------- svgWrap
+// Wrap a body of elements in a standalone SVG document.
+func svgWrap(float w, float h, string body) as string
+    string s = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    s = s + "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + fmtNum(w) + "\" height=\"" + fmtNum(h) + "\" viewBox=\"0 0 " + fmtNum(w) + " " + fmtNum(h) + "\">\n"
+    s = s + body
+    s = s + "</svg>\n"
+    return s
+end
+
+
+// ---------------------------------------------------------------- arcPath
+// Build a pie-slice path "M cx,cy L x0,y0 A r r 0 large 1 x1,y1 Z" for the
+// angular range [a0Deg, a1Deg] (degrees, SVG screen coords: +y down).
+func arcPath(float cx, float cy, float r, float a0Deg, float a1Deg) as string
+    float a0 = math.rad(a0Deg)
+    float a1 = math.rad(a1Deg)
+    float x0 = cx + r * math.cos(a0)
+    float y0 = cy + r * math.sin(a0)
+    float x1 = cx + r * math.cos(a1)
+    float y1 = cy + r * math.sin(a1)
+    int large = 0
+    if (a1Deg - a0Deg) > 180.0 then
+        large = 1
+    end
+    string d = "M " + fmtNum(cx) + " " + fmtNum(cy)
+    d = d + " L " + fmtNum(x0) + " " + fmtNum(y0)
+    d = d + " A " + fmtNum(r) + " " + fmtNum(r) + " 0 " + string(large) + " 1 " + fmtNum(x1) + " " + fmtNum(y1)
+    d = d + " Z"
+    return d
+end
+
+
+// ============================================================ data loading
+// Normalize parsed JSON (array or object) into a config dict with keys:
+//   title (string), width (float), height (float),
+//   labels (var array), values (var array)
+// Presence of missing keys is detected via string(v) == "" (json null -> "").
+func loadChartData(var data) as var
+    var labels = []
+    var values = []
+    string title = "Chart"
+    float cw = 720.0
+    float ch = 420.0
+
+    string probe = json.stringify(data)
+
+    if string.startsWith(probe, "[") then
+        // Array of records: [{"label":..,"value":..}, ...]
+        int n = data.length
+        int i = 0
+        while i < n do
+            var item = data[i]
+            string lab = string(item["label"])
+            if lab == "" then
+                lab = string(item["name"])
+            end
+            if lab == "" then
+                lab = "#" + string(i + 1)
+            end
+            labels.push(lab)
+            values.push(toFloat(item["value"]))
+            i = i + 1
+        end
+    else
+        // Object form.
+        string t = string(data["title"])
+        if t != "" then
+            title = t
+        end
+        if string(data["width"]) != "" then
+            cw = float(data["width"])
+        end
+        if string(data["height"]) != "" then
+            ch = float(data["height"])
+        end
+
+        if string(data["values"]) != "" then
+            // Parallel arrays: {"labels":[..], "values":[..]}
+            var vls = data["values"]
+            var lbs = data["labels"]
+            bool hasLabels = (string(lbs) != "")
+            int n = vls.length
+            int i = 0
+            while i < n do
+                string lab = ""
+                if hasLabels then
+                    lab = string(lbs[i])
+                end
+                if lab == "" then
+                    lab = "#" + string(i + 1)
+                end
+                values.push(toFloat(vls[i]))
+                labels.push(lab)
+                i = i + 1
+            end
+        elseif string(data["items"]) != "" then
+            // Item records nested under "items".
+            var items = data["items"]
+            int n = items.length
+            int i = 0
+            while i < n do
+                var item = items[i]
+                string lab = string(item["label"])
+                if lab == "" then
+                    lab = string(item["name"])
+                end
+                if lab == "" then
+                    lab = "#" + string(i + 1)
+                end
+                labels.push(lab)
+                values.push(toFloat(item["value"]))
+                i = i + 1
+            end
+        end
+    end
+
+    var cfg = {"title": title, "width": cw, "height": ch, "labels": labels, "values": values}
+    return cfg
+end
+
+
+// ============================================================ bar chart
+func genBar(var cfg) as string
+    var labels = cfg["labels"]
+    var values = cfg["values"]
+    float cw = float(cfg["width"])
+    float ch = float(cfg["height"])
+    string title = string(cfg["title"])
+    int n = values.length
+
+    float marginL = 60.0
+    float marginR = 30.0
+    float marginT = 50.0
+    float marginB = 60.0
+    float plotW = cw - marginL - marginR
+    float plotH = ch - marginT - marginB
+    float baseY = marginT + plotH
+
+    float maxVal = 0.0
+    int i = 0
+    while i < n do
+        float v = float(values[i])
+        if v > maxVal then
+            maxVal = v
+        end
+        i = i + 1
+    end
+    if maxVal <= 0.0 then
+        maxVal = 1.0
+    end
+    maxVal = niceCeil(maxVal)
+
+    string svg = ""
+    svg = svg + svgRect(0.0, 0.0, cw, ch, "#ffffff", "none", 0.0, 1.0) + "\n"
+    svg = svg + svgText(cw / 2.0, 30.0, title, "#222222", 18.0, "middle") + "\n"
+
+    // gridlines + y tick labels
+    int ticks = 5
+    int t = 0
+    while t <= ticks do
+        float frac = float(t) / float(ticks)
+        float y = marginT + plotH - frac * plotH
+        svg = svg + svgLine(marginL, y, marginL + plotW, y, "#eeeeee", 1.0, 1.0) + "\n"
+        svg = svg + svgText(marginL - 8.0, y + 4.0, fmtNum(frac * maxVal), "#888888", 10.0, "end") + "\n"
+        t = t + 1
+    end
+
+    // axes
+    svg = svg + svgLine(marginL, marginT, marginL, baseY, "#999999", 1.0, 1.0) + "\n"
+    svg = svg + svgLine(marginL, baseY, marginL + plotW, baseY, "#999999", 1.0, 1.0) + "\n"
+
+    // bars
+    float gap = 10.0
+    float barW = (plotW - float(n + 1) * gap) / float(n)
+    if barW < 2.0 then
+        barW = 2.0
+    end
+    i = 0
+    while i < n do
+        float v = float(values[i])
+        float vdraw = v
+        if vdraw < 0.0 then
+            vdraw = 0.0
+        end
+        float bh = (vdraw / maxVal) * plotH
+        float bx = marginL + gap + float(i) * (barW + gap)
+        float by = baseY - bh
+        svg = svg + svgRect(bx, by, barW, bh, palette(i), "#ffffff", 1.0, 1.0) + "\n"
+        svg = svg + svgText(bx + barW / 2.0, by - 6.0, fmtNum(v), "#333333", 11.0, "middle") + "\n"
+        svg = svg + svgText(bx + barW / 2.0, baseY + 18.0, string(labels[i]), "#444444", 11.0, "middle") + "\n"
+        i = i + 1
+    end
+
+    return svgWrap(cw, ch, svg)
+end
+
+
+// ============================================================ pie chart
+func genPie(var cfg) as string
+    var labels = cfg["labels"]
+    var values = cfg["values"]
+    float cw = float(cfg["width"])
+    float ch = float(cfg["height"])
+    string title = string(cfg["title"])
+    int n = values.length
+
+    float total = 0.0
+    int i = 0
+    while i < n do
+        float v = float(values[i])
+        if v > 0.0 then
+            total = total + v
+        end
+        i = i + 1
+    end
+    if total <= 0.0 then
+        total = 1.0
+    end
+
+    float cx = cw / 2.0
+    float cy = ch / 2.0 + 15.0
+    float r = math.min(cw, ch) / 2.0 - 70.0
+    if r < 30.0 then
+        r = 30.0
+    end
+
+    string svg = ""
+    svg = svg + svgRect(0.0, 0.0, cw, ch, "#ffffff", "none", 0.0, 1.0) + "\n"
+    svg = svg + svgText(cw / 2.0, 30.0, title, "#222222", 18.0, "middle") + "\n"
+
+    float start = -90.0
+    i = 0
+    while i < n do
+        float v = float(values[i])
+        if v < 0.0 then
+            v = 0.0
+        end
+        float frac = v / total
+        float sweep = frac * 360.0
+        float endAng = start + sweep
+        string col = palette(i)
+        if sweep >= 359.999 then
+            svg = svg + svgCircle(cx, cy, r, col, "#ffffff", 2.0, 1.0) + "\n"
+        else
+            svg = svg + svgPath(arcPath(cx, cy, r, start, endAng), col, "#ffffff", 2.0, 1.0) + "\n"
+        end
+        // percentage label at slice midpoint
+        float mid = (start + endAng) / 2.0
+        float lr = r * 0.62
+        float am = math.rad(mid)
+        float lx = cx + lr * math.cos(am)
+        float ly = cy + lr * math.sin(am)
+        svg = svg + svgText(lx, ly + 4.0, string(labels[i]) + " " + fmtNum(frac * 100.0) + "%", "#ffffff", 11.0, "middle") + "\n"
+        start = endAng
+        i = i + 1
+    end
+
+    return svgWrap(cw, ch, svg)
+end
+
+
+// ============================================================ line chart
+func genLine(var cfg) as string
+    var labels = cfg["labels"]
+    var values = cfg["values"]
+    float cw = float(cfg["width"])
+    float ch = float(cfg["height"])
+    string title = string(cfg["title"])
+    int n = values.length
+
+    float marginL = 60.0
+    float marginR = 30.0
+    float marginT = 50.0
+    float marginB = 60.0
+    float plotW = cw - marginL - marginR
+    float plotH = ch - marginT - marginB
+    float baseY = marginT + plotH
+
+    float maxVal = 0.0
+    int i = 0
+    while i < n do
+        float v = float(values[i])
+        if v > maxVal then
+            maxVal = v
+        end
+        i = i + 1
+    end
+    if maxVal <= 0.0 then
+        maxVal = 1.0
+    end
+    maxVal = niceCeil(maxVal)
+
+    string svg = ""
+    svg = svg + svgRect(0.0, 0.0, cw, ch, "#ffffff", "none", 0.0, 1.0) + "\n"
+    svg = svg + svgText(cw / 2.0, 30.0, title, "#222222", 18.0, "middle") + "\n"
+
+    int ticks = 5
+    int t = 0
+    while t <= ticks do
+        float frac = float(t) / float(ticks)
+        float y = marginT + plotH - frac * plotH
+        svg = svg + svgLine(marginL, y, marginL + plotW, y, "#eeeeee", 1.0, 1.0) + "\n"
+        svg = svg + svgText(marginL - 8.0, y + 4.0, fmtNum(frac * maxVal), "#888888", 10.0, "end") + "\n"
+        t = t + 1
+    end
+    svg = svg + svgLine(marginL, marginT, marginL, baseY, "#999999", 1.0, 1.0) + "\n"
+    svg = svg + svgLine(marginL, baseY, marginL + plotW, baseY, "#999999", 1.0, 1.0) + "\n"
+
+    // resolve point coordinates
+    var xs = []
+    var ys = []
+    i = 0
+    while i < n do
+        float x
+        if n == 1 then
+            x = marginL + plotW / 2.0
+        else
+            x = marginL + float(i) * (plotW / float(n - 1))
+        end
+        float v = float(values[i])
+        if v < 0.0 then
+            v = 0.0
+        end
+        float y = baseY - (v / maxVal) * plotH
+        xs.push(x)
+        ys.push(y)
+        i = i + 1
+    end
+
+    // area fill under the line
+    if n >= 2 then
+        string area = "M " + fmtNum(float(xs[0])) + " " + fmtNum(baseY)
+        i = 0
+        while i < n do
+            area = area + " L " + fmtNum(float(xs[i])) + " " + fmtNum(float(ys[i]))
+            i = i + 1
+        end
+        area = area + " L " + fmtNum(float(xs[n - 1])) + " " + fmtNum(baseY) + " Z"
+        svg = svg + svgPath(area, palette(0), "none", 0.0, 0.15) + "\n"
+
+        // the line itself
+        string ld = "M " + fmtNum(float(xs[0])) + " " + fmtNum(float(ys[0]))
+        i = 1
+        while i < n do
+            ld = ld + " L " + fmtNum(float(xs[i])) + " " + fmtNum(float(ys[i]))
+            i = i + 1
+        end
+        svg = svg + svgPath(ld, "none", palette(0), 2.5, 1.0) + "\n"
+    end
+
+    // markers + value / category labels
+    i = 0
+    while i < n do
+        float x = float(xs[i])
+        float y = float(ys[i])
+        svg = svg + svgCircle(x, y, 4.0, palette(0), "#ffffff", 1.5, 1.0) + "\n"
+        svg = svg + svgText(x, y - 10.0, fmtNum(float(values[i])), "#333333", 10.0, "middle") + "\n"
+        svg = svg + svgText(x, baseY + 18.0, string(labels[i]), "#444444", 11.0, "middle") + "\n"
+        i = i + 1
+    end
+
+    return svgWrap(cw, ch, svg)
+end
+
+
+// ============================================================ demo scene
+// Colorful composite combining every primitive and the style attributes.
+func genDemo() as string
+    float w = 800.0
+    float h = 500.0
+    string svg = ""
+
+    // sky
+    svg = svg + svgRect(0.0, 0.0, w, h, "#87CEEB", "none", 0.0, 1.0) + "\n"
+
+    // sun + rays
+    float sx = 650.0
+    float sy = 100.0
+    svg = svg + svgCircle(sx, sy, 45.0, "#FFD700", "#FFA500", 2.0, 0.9) + "\n"
+    int r = 0
+    while r < 12 do
+        float ang = math.rad(float(r) * 30.0)
+        float x1 = sx + 55.0 * math.cos(ang)
+        float y1 = sy + 55.0 * math.sin(ang)
+        float x2 = sx + 80.0 * math.cos(ang)
+        float y2 = sy + 80.0 * math.sin(ang)
+        svg = svg + svgLine(x1, y1, x2, y2, "#FFA500", 3.0, 0.8) + "\n"
+        r = r + 1
+    end
+
+    // clouds (semi-transparent)
+    svg = svg + svgCircle(150.0, 90.0, 30.0, "#ffffff", "none", 0.0, 0.85) + "\n"
+    svg = svg + svgCircle(190.0, 80.0, 35.0, "#ffffff", "none", 0.0, 0.85) + "\n"
+    svg = svg + svgCircle(230.0, 95.0, 28.0, "#ffffff", "none", 0.0, 0.85) + "\n"
+
+    // ground
+    svg = svg + svgRect(0.0, 380.0, w, 120.0, "#7CFC00", "none", 0.0, 1.0) + "\n"
+
+    // house
+    svg = svg + svgRect(300.0, 280.0, 200.0, 120.0, "#F4A460", "#8B4513", 2.0, 1.0) + "\n"
+    svg = svg + svgPolygon("290,280 400,200 510,280", "#8B0000", "#5A0000", 2.0, 1.0) + "\n"
+    svg = svg + svgRect(370.0, 330.0, 50.0, 70.0, "#654321", "none", 0.0, 1.0) + "\n"
+    svg = svg + svgRect(320.0, 300.0, 35.0, 35.0, "#87CEFA", "#4682B4", 1.5, 1.0) + "\n"
+    svg = svg + svgRect(455.0, 300.0, 35.0, 35.0, "#87CEFA", "#4682B4", 1.5, 1.0) + "\n"
+
+    // tree
+    svg = svg + svgRect(120.0, 320.0, 24.0, 80.0, "#8B4513", "none", 0.0, 1.0) + "\n"
+    svg = svg + svgCircle(132.0, 300.0, 45.0, "#228B22", "#006400", 2.0, 1.0) + "\n"
+    svg = svg + svgCircle(100.0, 320.0, 30.0, "#2E8B57", "#006400", 2.0, 1.0) + "\n"
+    svg = svg + svgCircle(165.0, 320.0, 32.0, "#2E8B57", "#006400", 2.0, 1.0) + "\n"
+
+    // river (quadratic bezier wave path)
+    string d = "M 0 450 Q 100 430 200 450 T 400 450 T 600 450 T 800 450"
+    svg = svg + svgPath(d, "none", "#1E90FF", 4.0, 0.9) + "\n"
+
+    // titles
+    svg = svg + svgText(w / 2.0, 50.0, "xlang SVG Demo", "#ffffff", 28.0, "middle") + "\n"
+    svg = svg + svgText(w / 2.0, 470.0, "rect / circle / line / polygon / path / text", "#333333", 13.0, "middle") + "\n"
+
+    return svgWrap(w, h, svg)
+end
+
+
+// ============================================================ test sheet
+// Render every primitive and each style attribute with labels, so the
+// generated file doubles as a visual regression reference.
+func genTest() as string
+    float w = 760.0
+    float h = 480.0
+    string svg = ""
+    svg = svg + svgRect(0.0, 0.0, w, h, "#fafafa", "#cccccc", 1.0, 1.0) + "\n"
+    svg = svg + svgText(w / 2.0, 32.0, "SVG Primitive Test", "#222222", 20.0, "middle") + "\n"
+
+    // rect (solid) + overlapping translucent rect (opacity)
+    svg = svg + svgRect(40.0, 70.0, 120.0, 80.0, "#4C72B0", "#222222", 3.0, 1.0) + "\n"
+    svg = svg + svgRect(70.0, 95.0, 120.0, 80.0, "#DD8452", "none", 0.0, 0.4) + "\n"
+    svg = svg + svgText(100.0, 175.0, "rect + opacity", "#444444", 12.0, "middle") + "\n"
+
+    // circle
+    svg = svg + svgCircle(330.0, 110.0, 45.0, "#55A467", "#222222", 2.0, 1.0) + "\n"
+    svg = svg + svgText(330.0, 175.0, "circle", "#444444", 12.0, "middle") + "\n"
+
+    // ellipse
+    svg = svg + svgEllipse(560.0, 110.0, 60.0, 38.0, "#CCB974", "#222222", 2.0, 1.0) + "\n"
+    svg = svg + svgText(560.0, 175.0, "ellipse", "#444444", 12.0, "middle") + "\n"
+
+    // line (varied stroke-width)
+    svg = svg + svgLine(420.0, 200.0, 700.0, 230.0, "#C44E52", 4.0, 1.0) + "\n"
+    svg = svg + svgLine(420.0, 215.0, 700.0, 245.0, "#C44E52", 2.0, 0.6) + "\n"
+    svg = svg + svgText(560.0, 265.0, "line (stroke-width / opacity)", "#444444", 12.0, "middle") + "\n"
+
+    // polygon (triangle)
+    svg = svg + svgPolygon("100,290 60,370 160,370", "#8172B3", "#222222", 2.0, 1.0) + "\n"
+    svg = svg + svgText(110.0, 395.0, "polygon", "#444444", 12.0, "middle") + "\n"
+
+    // path (cubic bezier curve)
+    string d = "M 260 370 C 310 290, 410 290, 460 370"
+    svg = svg + svgPath(d, "none", "#937860", 3.0, 1.0) + "\n"
+    svg = svg + svgText(360.0, 395.0, "path", "#444444", 12.0, "middle") + "\n"
+
+    // text sizing
+    svg = svg + svgText(620.0, 330.0, "Text", "#DA8BC3", 26.0, "middle") + "\n"
+    svg = svg + svgText(620.0, 360.0, "fill / stroke / sw / opacity", "#666666", 12.0, "middle") + "\n"
+
+    // palette swatches
+    int k = 0
+    while k < 10 do
+        svg = svg + svgRect(40.0 + float(k) * 68.0, 415.0, 60.0, 35.0, palette(k), "#333333", 1.0, 1.0) + "\n"
+        k = k + 1
+    end
+    svg = svg + svgText(w / 2.0, 468.0, "palette", "#666666", 11.0, "middle") + "\n"
+
+    return svgWrap(w, h, svg)
+end
+
+
+// ============================================================ output / cli
+func emit(string svg, string outPath) as int
+    if outPath == "" then
+        print(svg)
+        return 0
+    end
+    bool ok = file.writeText(outPath, svg)
+    if not ok then
+        println("Error: failed to write " + outPath)
+        return 1
+    end
+    println("Wrote " + outPath + " (" + string(string.byteLen(svg)) + " bytes)")
+    return 0
+end
+
+
+func printUsage()
+    println("svggen - SVG graphic generator")
+    println()
+    println("Usage:")
+    println("  svggen chart bar  <data.json> <out.svg>   bar chart from JSON")
+    println("  svggen chart pie  <data.json> <out.svg>   pie chart from JSON")
+    println("  svggen chart line <data.json> <out.svg>   line chart from JSON")
+    println("  svggen demo  [out.svg]                    colorful composite scene")
+    println("  svggen test  [out.svg]                    primitive + style test sheet")
+    println()
+    println("JSON data shapes accepted:")
+    println("  {\"title\":.., \"labels\":[..], \"values\":[..]}")
+    println("  {\"title\":.., \"items\":[{\"label\":.., \"value\":..}, ...]}")
+    println("  [{\"label\":.., \"value\":..}, ...]")
+    println("  optional \"width\" / \"height\" override the 720x420 default")
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "demo" then
+        string out = ""
+        if arg.length >= 3 then
+            out = string(arg[2])
+        end
+        return emit(genDemo(), out)
+    elseif cmd == "test" then
+        string out = ""
+        if arg.length >= 3 then
+            out = string(arg[2])
+        end
+        return emit(genTest(), out)
+    elseif cmd == "chart" then
+        if arg.length < 5 then
+            println("Usage: svggen chart <bar|pie|line> <data.json> <out.svg>")
+            return 1
+        end
+        string kind = string(arg[2])
+        string dataPath = string(arg[3])
+        string outPath = string(arg[4])
+
+        if kind != "bar" and kind != "pie" and kind != "line" then
+            println("Error: unknown chart type '" + kind + "' (expected bar|pie|line)")
+            return 1
+        end
+        if not file.exists(dataPath) then
+            println("Error: data file not found: " + dataPath)
+            return 1
+        end
+
+        string text = file.readText(dataPath)
+        if not json.valid(text) then
+            println("Error: invalid JSON in " + dataPath)
+            return 1
+        end
+
+        var data = json.parse(text)
+        var cfg = loadChartData(data)
+        var vals = cfg["values"]
+        if vals.length == 0 then
+            println("Error: no data values found")
+            println("Expected 'values' array, 'items' array, or array of {label,value}")
+            return 1
+        end
+
+        string svg
+        if kind == "bar" then
+            svg = genBar(cfg)
+        elseif kind == "pie" then
+            svg = genPie(cfg)
+        else
+            svg = genLine(cfg)
+        end
+        return emit(svg, outPath)
+    else
+        println("Error: unknown command '" + cmd + "'")
+        println()
+        printUsage()
+        return 1
+    end
+end

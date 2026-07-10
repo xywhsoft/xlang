@@ -74,72 +74,7 @@ static void xl6CgenTypedContainerLocalDestroyStmt(XL6_CgenContext* ctx, const XL
     } else {
         xl6CgenError(ctx, typeNode, "typed container destroy requires array/list/set/dict");
     }
-}
-
-static int xl6CgenTypedContainerNestedLiteralValueStmt(
-    XL6_CgenContext* ctx,
-    const XL6_AstNode* targetType,
-    const char* valueName,
-    const XL6_AstNode* valueExpr)
-{
-    int id;
-    char storageName[64];
-
-    if ( !xl6CgenIsTypedContainerType(ctx, targetType) ||
-         xl6CgenTypedContainerInitLiteral(ctx, targetType, valueExpr) == NULL ) {
-        return 0;
-    }
-
-    id = ctx->tempId++;
-    snprintf(storageName, sizeof(storageName), "__xl6_nested_container_%d", id);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, targetType), storageName);
-    xl6CgenTypedContainerCreateExpr(ctx, targetType);
-    xl6OutputPuts(";\n", ctx->out);
-    xl6CgenTypedContainerFillFromLiteral(ctx, storageName, targetType, valueExpr);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue %s = ", valueName);
-    xl6CgenTypedContainerStorageToXValueExpr(ctx, targetType, storageName);
-    xl6OutputPuts(";\n", ctx->out);
-    xl6CgenTypedContainerLocalDestroyStmt(ctx, targetType, storageName);
-    return 1;
-}
-
-static void xl6CgenTypedContainerValueStmt(
-    XL6_CgenContext* ctx,
-    const char* cName,
-    const char* callPrefix,
-    const XL6_AstNode* itemType,
-    const XL6_AstNode* valueExpr)
-{
-    int id;
-    char valueName[64];
-
-    id = ctx->tempId++;
-    snprintf(valueName, sizeof(valueName), "__xl6_typed_value_%d", id);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("{\n", ctx->out);
-    ctx->indent += 1;
-    if ( !xl6CgenTypedContainerNestedLiteralValueStmt(ctx, itemType, valueName, valueExpr) ) {
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = ", valueName);
-        xl6CgenXValueFromExprForTarget(ctx, itemType, valueExpr);
-        xl6OutputPuts(";\n", ctx->out);
-    }
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (!%s%s, %s)) {\n", callPrefix, cName, valueName);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", valueName);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-}
+#include "xl6_cgen_value_object_xvalue_stmt.c"
 
 static int xl6CgenTypedFutureExprIsOwnedDirect(const XL6_AstNode* valueExpr)
 {
@@ -269,11 +204,10 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
             xl6CgenIndent(ctx);
             xl6OutputPuts("{\n", ctx->out);
             ctx->indent += 1;
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", valueName);
             if ( !xl6CgenTypedContainerNestedLiteralValueStmt(ctx, itemType, valueName, value) ) {
-                xl6CgenIndent(ctx);
-                xl6OutputPrintf(ctx->out, "xvalue %s = ", valueName);
-                xl6CgenXValueFromExprForTarget(ctx, itemType, value);
-                xl6OutputPuts(";\n", ctx->out);
+                xl6CgenXValueAssignStmt(ctx, itemType, valueName, value);
             }
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "if (!xrtTypedListSetValue(%s, (long long)(", cName);
@@ -311,11 +245,10 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
             xl6CgenIndent(ctx);
             xl6OutputPuts("{\n", ctx->out);
             ctx->indent += 1;
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", valueName);
             if ( !xl6CgenTypedContainerNestedLiteralValueStmt(ctx, itemType, valueName, value) ) {
-                xl6CgenIndent(ctx);
-                xl6OutputPrintf(ctx->out, "xvalue %s = ", valueName);
-                xl6CgenXValueFromExprForTarget(ctx, itemType, value);
-                xl6OutputPuts(";\n", ctx->out);
+                xl6CgenXValueAssignStmt(ctx, itemType, valueName, value);
             }
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "if (!xrtTypedDictSetValue(%s, ", cName);
@@ -342,7 +275,8 @@ static int xl6CgenFuncSingleReturnUsesTypedContainerStorage(XL6_CgenContext* ctx
     XL6_AstNode* returnType;
     int result;
 
-    if ( ctx == NULL || funcNode == NULL || funcNode->kind != XL6_AST_FUNC ) {
+    if ( ctx == NULL || funcNode == NULL ||
+         (funcNode->kind != XL6_AST_FUNC && funcNode->kind != XL6_AST_GET) ) {
         return 0;
     }
 
@@ -391,9 +325,7 @@ static int xl6CgenParamTypeUsesTypedContainerStorage(XL6_CgenContext* ctx, const
 
     if ( ctx == NULL ||
          typeNode == NULL ||
-         ctx->currentClass != NULL ||
-         ctx->currentNativeClass != NULL ||
-         ctx->currentAnonFunc != NULL ) {
+         ctx->currentNativeClass != NULL ) {
         return 0;
     }
 
@@ -476,6 +408,11 @@ static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name)
     if ( ctx == NULL || name == NULL ) {
         return;
     }
+    if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, name) >= 0 ) {
+        xl6OutputPuts("__env->", ctx->out);
+        xl6CgenFputsCIdent(ctx->out, name);
+        return;
+    }
     if ( xl6CgenEmitImplicitSelfFieldReference(ctx, name) ) {
         return;
     }
@@ -531,6 +468,7 @@ static int xl6CgenNativeClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode*
     const XL6_AstNode* params;
     const XL6_AstNode* args;
     const char* receiverName;
+    int copyExternString;
 
     receiver = member->childCount > 0 ? member->children[0] : NULL;
     if ( receiver == NULL || (receiver->kind != XL6_AST_NAME && receiver->kind != XL6_AST_MEMBER) ) {
@@ -559,6 +497,10 @@ static int xl6CgenNativeClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode*
         return 1;
     }
 
+    copyExternString = externMethod != NULL && xl6CgenCallableReturnsString(ctx, externMethod);
+    if ( copyExternString ) {
+        xl6OutputPuts("xl6_xrt_external_string_copy(", ctx->out);
+    }
     if ( helperMethod != NULL ) {
         xl6CgenClassCallableSymbol(ctx, customNode, method);
     } else {
@@ -577,7 +519,41 @@ static int xl6CgenNativeClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6CgenKnownCallArgs(ctx, method, args);
     }
     xl6OutputPutc(')', ctx->out);
+    if ( copyExternString ) {
+        xl6OutputPutc(')', ctx->out);
+    }
     return 1;
+}
+
+static int xl6CgenCallIsExternalStringReturn(XL6_CgenContext* ctx, const XL6_AstNode* call)
+{
+    const XL6_AstNode* callee;
+
+    if ( ctx == NULL || call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
+        return 0;
+    }
+    callee = call->children[0];
+    if ( callee == NULL ) {
+        return 0;
+    }
+    if ( callee->kind == XL6_AST_NAME ) {
+        return xl6CgenCallableReturnsString(ctx, xl6CgenFindExternFunc(ctx, callee->text));
+    }
+    if ( callee->kind == XL6_AST_MEMBER && callee->childCount > 0 ) {
+        const XL6_AstNode* receiver = callee->children[0];
+        XL6_AstNode* receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+        const XL6_AstNode* nativeClass = receiverType != NULL
+            ? xl6CgenFindNativeBackedClass(ctx, receiverType->text)
+            : NULL;
+        const XL6_AstNode* method = nativeClass != NULL
+            ? xl6CgenResolveNativeExternFunc(ctx, nativeClass, call, callee->text)
+            : NULL;
+        int result = xl6CgenCallableReturnsString(ctx, method);
+
+        xl6AstFree(receiverType);
+        return result;
+    }
+    return 0;
 }
 
 static int xl6CgenImplicitClassToStringCall(XL6_CgenContext* ctx, const XL6_AstNode* member)
@@ -808,7 +784,7 @@ static int xl6CgenEmitNativeClassHandleBinding(XL6_CgenContext* ctx, const XL6_A
     xl6CgenIndent(ctx);
     xl6OutputPuts(varPath != NULL ? varPath : "self", ctx->out);
     xl6OutputPuts(".handle = ", ctx->out);
-    xl6CgenExpr(ctx, arg->children[0]);
+    xl6CgenNativeBackedPointBindingValue(ctx, classNode, arg->children[0]);
     xl6OutputPuts(";\n", ctx->out);
     return 1;
 }
@@ -818,28 +794,50 @@ static int xl6CgenEmitClassCtorInto(XL6_CgenContext* ctx, const XL6_AstNode* cal
     const XL6_AstNode* callee;
     const XL6_AstNode* args;
     XL6_AstNode* classNode;
+    XL6_AstNode* ownedClassType;
+    const XL6_AstNode* classType;
     const XL6_AstNode* createNode;
+    const XL6_AstNode* params;
+    const XL6_AstNode* prevParams;
+    const XL6_AstNode* prevArgs;
     char selfExpr[256];
     int canNativeHandleBind;
+    int isGeneric;
 
     if ( ctx == NULL || call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 || targetExpr == NULL ) {
         return 0;
     }
 
     callee = call->children[0];
-    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
-        return 0;
-    }
-
-    classNode = xl6CgenFindClass(ctx, callee->text);
-    if ( classNode == NULL ) {
-        return 0;
-    }
-    if ( xl6CgenClassHasTypeParams(classNode) ) {
+    classNode = NULL;
+    ownedClassType = NULL;
+    classType = NULL;
+    isGeneric = 0;
+    if ( callee != NULL && callee->kind == XL6_AST_NAME ) {
+        classNode = xl6CgenFindClass(ctx, callee->text);
+        if ( classNode == NULL || xl6CgenClassHasTypeParams(classNode) ) {
+            return 0;
+        }
+        classType = classNode;
+    } else if ( callee != NULL && callee->kind == XL6_AST_GENERIC_INSTANT ) {
+        ownedClassType = xl6CgenGenericClassCtorType(ctx, call, &classNode);
+        if ( ownedClassType == NULL || classNode == NULL ) {
+            xl6AstFree(ownedClassType);
+            return 0;
+        }
+        classType = ownedClassType;
+        isGeneric = 1;
+    } else {
         return 0;
     }
 
     args = call->childCount > 1 ? call->children[1] : NULL;
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    if ( isGeneric ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+        ctx->currentGenericArgs = classType->children[0];
+    }
     canNativeHandleBind = xl6CgenClassHasNativeHandle(classNode) &&
                           xl6CgenNativeClassCtorHasPointBindingArgs(args);
     createNode = xl6CgenResolveClassCreateMode(ctx, classNode, call, !canNativeHandleBind);
@@ -847,14 +845,26 @@ static int xl6CgenEmitClassCtorInto(XL6_CgenContext* ctx, const XL6_AstNode* cal
     xl6CgenIndent(ctx);
     xl6OutputPuts(targetExpr, ctx->out);
     xl6OutputPuts(" = (", ctx->out);
-    xl6OutputPuts(xl6CgenTypeName(ctx, classNode), ctx->out);
+    xl6OutputPuts(xl6CgenTypeName(ctx, classType), ctx->out);
     xl6OutputPuts("){0};\n", ctx->out);
 
     xl6CgenClassDefaultInitFields(ctx, classNode, targetExpr);
     if ( createNode != NULL ) {
         snprintf(selfExpr, sizeof(selfExpr), "&%s", targetExpr);
         xl6CgenIndent(ctx);
-        xl6CgenEmitClassCreateCall(ctx, classNode, createNode, selfExpr, args);
+        if ( isGeneric ) {
+            xl6CgenGenericClassCallableSymbol(ctx, classNode, classType, createNode);
+            xl6OutputPutc('(', ctx->out);
+            xl6OutputPuts(selfExpr, ctx->out);
+            params = xl6CgenCallableParams(createNode);
+            if ( xl6CgenFixedParamCount(params) > 0 ) {
+                xl6OutputPuts(", ", ctx->out);
+                xl6CgenParamNodeArgs(ctx, params, args);
+            }
+            xl6OutputPutc(')', ctx->out);
+        } else {
+            xl6CgenEmitClassCreateCall(ctx, classNode, createNode, selfExpr, args);
+        }
         xl6OutputPuts(";\n", ctx->out);
     } else {
         if ( args != NULL && args->childCount > 0 &&
@@ -863,6 +873,9 @@ static int xl6CgenEmitClassCtorInto(XL6_CgenContext* ctx, const XL6_AstNode* cal
         }
         xl6CgenEmitAutoBaseCreateForValue(ctx, classNode, targetExpr, call);
     }
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
+    xl6AstFree(ownedClassType);
     return 1;
 }
 

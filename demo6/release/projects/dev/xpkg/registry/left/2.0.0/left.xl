@@ -1,0 +1,12 @@
+// left.xl - leaf dependency package (v2.0.0 - breaking change)
+export func name() as string
+    return "left"
+end
+
+export func version() as string
+    return "2.0.0"
+end
+
+export func value() as int
+    return 200
+end

@@ -1,0 +1,626 @@
+// cpusched - CPU 调度器模拟器
+//
+// 用法:
+//   cpusched test                 内置 5 进程测试集, 依次运行全部 5 种算法
+//   cpusched test -q 4            指定 Round Robin 时间片 quantum=4 (默认 2)
+//   cpusched compare              5 种算法同数据集对比表
+//   cpusched compare -q 3         对比表使用指定时间片
+//   cpusched help                 显示帮助
+//
+// 调度算法 (每种均输出 ASCII 甘特图 + 平均等待/周转/响应时间):
+//   1. FCFS      先来先服务 (非抢占)
+//   2. SJF       短作业优先 (非抢占, 按 burst 选)
+//   3. SRTF      最短剩余时间优先 (抢占, 按 remaining 选)
+//   4. Round Robin 时间片轮转 (quantum 可配, 抢占)
+//   5. Priority  优先级调度 (非抢占, 数字越小优先级越高)
+//
+// 设计要点:
+//   - class Process 承载进程属性, 每个算法独立 clone 一份再模拟, 互不污染.
+//   - 甘特图用 per-timestep 数组 (gantt[t] = 该时刻运行的 pid, 0=空闲),
+//     渲染时压缩相同 pid 连续段成 |P1|P2|P1| 形式, 第二行对齐时间轴.
+//   - FCFS/SJF/Priority 同属非抢占, 复用 scheduleNonPreemptive + pickMin(mode);
+//     SRTF 与 RR 各自独立实现 (按 tick 选 / 就绪队列轮转).
+//   - 选进程 tie-break 统一为 (主键, arrival, pid), 保证输出确定可复现.
+//   - 输出全部走 stdout, 不依赖控制台输入 (xlang 当前无 stdin API).
+
+// ============================================================
+// class Process: 进程属性集合
+//   required: pid/arrival/burst/priority/remaining/waitTime/turnaround/responseTime
+//   辅助字段: startTime/completionTime
+//   remaining 初值 = burst, 随调度递减; responseTime 初值 -1 表示尚未响应.
+// ============================================================
+class Process
+    int pid = 0
+    int arrival = 0
+    int burst = 0
+    int priority = 0
+    int remaining = 0
+    int waitTime = 0
+    int turnaround = 0
+    int responseTime = -1
+    int startTime = -1
+    int completionTime = 0
+
+    create(int pid, int arrival, int burst, int priority)
+        self.pid = pid
+        self.arrival = arrival
+        self.burst = burst
+        self.priority = priority
+        self.remaining = burst
+    end
+end
+
+
+// ============================================================
+// class ScheduleResult: 一次调度的完整结果
+//   gantt[t]  = t 时刻运行的 pid (0=空闲)
+//   procs     = 模拟结束后的进程快照 (含 wait/turnaround/response/completion)
+//   avg*      = 三项均值
+// ============================================================
+class ScheduleResult
+    array<int> gantt = array[]
+    array<Process> procs = array[]
+    float avgWait = 0.0
+    float avgTurnaround = 0.0
+    float avgResponse = 0.0
+
+    // 由模拟结束后的进程数组填充均值, 并保存进程快照引用.
+    func fill(array<Process> p)
+        self.procs = p
+        int n = p.length
+        float sw = 0.0
+        float st = 0.0
+        float sr = 0.0
+        int i = 0
+        while i < n do
+            sw = sw + float(p[i].waitTime)
+            st = st + float(p[i].turnaround)
+            sr = sr + float(p[i].responseTime)
+            i += 1
+        end
+        float fn = float(n)
+        self.avgWait = sw / fn
+        self.avgTurnaround = st / fn
+        self.avgResponse = sr / fn
+    end
+end
+
+
+// ============================================================
+// 进程集合克隆 (深拷贝: 每个 Process 重新构造, 重置调度派生字段)
+// ============================================================
+func cloneProcess(Process src) as Process
+    Process p = Process(src.pid, src.arrival, src.burst, src.priority)
+    // create 已将 remaining 置为 burst; waitTime/turnaround/responseTime/
+    // startTime/completionTime 均为类默认初值, 无需再设.
+    return p
+end
+
+func cloneAll(array<Process> src) as array<Process>
+    array<Process> out = array[]
+    int i = 0
+    while i < src.length do
+        out.append(cloneProcess(src[i]))
+        i += 1
+    end
+    return out
+end
+
+
+// ============================================================
+// pickMin: 在时刻 t 已就绪 (arrival<=t 且 remaining>0) 的进程中,
+//   按 mode 指定的主键选最小者; tie-break = (主键, arrival, pid).
+//   mode: 0=SJF(burst) 1=SRTF(remaining) 2=Priority(priority) 3=FCFS(arrival)
+//   返回选中的下标, 无就绪进程返回 -1.
+// ============================================================
+func pickMin(array<Process> p, int t, int mode) as int
+    int n = p.length
+    int sel = -1
+    int selKey = 0
+    int i = 0
+    while i < n do
+        if p[i].arrival <= t and p[i].remaining > 0 then
+            int key = 0
+            if mode == 0 then
+                key = p[i].burst
+            elseif mode == 1 then
+                key = p[i].remaining
+            elseif mode == 2 then
+                key = p[i].priority
+            else
+                key = p[i].arrival
+            end
+            if sel == -1 then
+                sel = i
+                selKey = key
+            else
+                bool better = false
+                if key < selKey then
+                    better = true
+                elseif key == selKey then
+                    if p[i].arrival < p[sel].arrival then
+                        better = true
+                    elseif p[i].arrival == p[sel].arrival and p[i].pid < p[sel].pid then
+                        better = true
+                    end
+                end
+                if better then
+                    sel = i
+                    selKey = key
+                end
+            end
+        end
+        i += 1
+    end
+    return sel
+end
+
+
+// ============================================================
+// 非抢占调度器: FCFS / SJF / Priority 共用.
+//   每次从就绪集选一个进程, 一次性运行到完成; 无就绪则空闲一拍.
+// ============================================================
+func scheduleNonPreemptive(array<Process> src, int mode) as ScheduleResult
+    array<Process> p = cloneAll(src)
+    ScheduleResult res = ScheduleResult()
+    int n = p.length
+    int t = 0
+    int completed = 0
+    while completed < n do
+        int sel = pickMin(p, t, mode)
+        if sel < 0 then
+            res.gantt.append(0)
+            t += 1
+            continue
+        end
+        if p[sel].responseTime < 0 then
+            p[sel].responseTime = t - p[sel].arrival
+        end
+        p[sel].startTime = t
+        int rem = p[sel].remaining
+        int k = 0
+        while k < rem do
+            res.gantt.append(p[sel].pid)
+            t += 1
+            k += 1
+        end
+        p[sel].remaining = 0
+        p[sel].completionTime = t
+        p[sel].turnaround = t - p[sel].arrival
+        p[sel].waitTime = p[sel].turnaround - p[sel].burst
+        completed += 1
+    end
+    res.fill(p)
+    return res
+end
+
+func scheduleFCFS(array<Process> src) as ScheduleResult
+    return scheduleNonPreemptive(src, 3)
+end
+
+func scheduleSJF(array<Process> src) as ScheduleResult
+    return scheduleNonPreemptive(src, 0)
+end
+
+func schedulePriority(array<Process> src) as ScheduleResult
+    return scheduleNonPreemptive(src, 2)
+end
+
+
+// ============================================================
+// SRTF: 抢占式最短剩余时间优先.
+//   每一拍重新选 remaining 最小的就绪进程运行 1 单位, 可被更短者抢占.
+// ============================================================
+func scheduleSRTF(array<Process> src) as ScheduleResult
+    array<Process> p = cloneAll(src)
+    ScheduleResult res = ScheduleResult()
+    int n = p.length
+    int t = 0
+    int completed = 0
+    while completed < n do
+        int sel = pickMin(p, t, 1)
+        if sel < 0 then
+            res.gantt.append(0)
+            t += 1
+            continue
+        end
+        if p[sel].responseTime < 0 then
+            p[sel].responseTime = t - p[sel].arrival
+            p[sel].startTime = t
+        end
+        res.gantt.append(p[sel].pid)
+        p[sel].remaining -= 1
+        t += 1
+        if p[sel].remaining == 0 then
+            p[sel].completionTime = t
+            p[sel].turnaround = t - p[sel].arrival
+            p[sel].waitTime = p[sel].turnaround - p[sel].burst
+            completed += 1
+        end
+    end
+    res.fill(p)
+    return res
+end
+
+
+// ============================================================
+// Round Robin: 时间片轮转 (抢占).
+//   就绪队列 FIFO; 进程出队后运行 min(quantum, remaining) 拍;
+//   运行期间新到达的进程先于被抢占者入队 (标准约定).
+// ============================================================
+func scheduleRR(array<Process> src, int quantum) as ScheduleResult
+    array<Process> p = cloneAll(src)
+    ScheduleResult res = ScheduleResult()
+    int n = p.length
+    int t = 0
+    int completed = 0
+    array<int> queue = array[]
+    int head = 0
+    array<bool> queued = array[]
+    int qi = 0
+    while qi < n do
+        queued.append(false)
+        qi += 1
+    end
+    while completed < n do
+        enqueueArrived(p, t, queued, queue)
+        if head >= queue.length then
+            res.gantt.append(0)
+            t += 1
+            continue
+        end
+        int sel = queue[head]
+        head += 1
+        if p[sel].responseTime < 0 then
+            p[sel].responseTime = t - p[sel].arrival
+            p[sel].startTime = t
+        end
+        int run = quantum
+        if p[sel].remaining < run then
+            run = p[sel].remaining
+        end
+        int k = 0
+        while k < run do
+            res.gantt.append(p[sel].pid)
+            p[sel].remaining -= 1
+            t += 1
+            k += 1
+        end
+        // 本时间片内新到达者先入队, 再把未完成的当前进程重新排到队尾.
+        enqueueArrived(p, t, queued, queue)
+        if p[sel].remaining == 0 then
+            p[sel].completionTime = t
+            p[sel].turnaround = t - p[sel].arrival
+            p[sel].waitTime = p[sel].turnaround - p[sel].burst
+            completed += 1
+        else
+            queue.append(sel)
+        end
+    end
+    res.fill(p)
+    return res
+end
+
+
+// 把所有 arrival<=t 且尚未入队的进程, 按 (arrival, pid) 排序后追加到就绪队列.
+func enqueueArrived(array<Process> p, int t, array<bool> queued, array<int> queue)
+    int n = p.length
+    array<int> cand = array[]
+    int i = 0
+    while i < n do
+        if not queued[i] and p[i].arrival <= t then
+            cand.append(i)
+        end
+        i += 1
+    end
+    // 候选按 (arrival asc, pid asc) 选择排序, 保证 RR 入队顺序确定.
+    int cn = cand.length
+    int a = 0
+    while a < cn do
+        int best = a
+        int b = a + 1
+        while b < cn do
+            int bi = cand[b]
+            int bb = cand[best]
+            bool take = false
+            if p[bi].arrival < p[bb].arrival then
+                take = true
+            elseif p[bi].arrival == p[bb].arrival and p[bi].pid < p[bb].pid then
+                take = true
+            end
+            if take then
+                best = b
+            end
+            b += 1
+        end
+        if best != a then
+            int tmp = cand[a]
+            cand[a] = cand[best]
+            cand[best] = tmp
+        end
+        a += 1
+    end
+    int ci = 0
+    while ci < cn do
+        int idx = cand[ci]
+        queue.append(idx)
+        queued[idx] = true
+        ci += 1
+    end
+end
+
+
+// ============================================================
+// 渲染: 甘特图 / 进程表 / 单算法报告
+// ============================================================
+
+// pid -> 甘特图标签 (0 表示空闲, 显示 "id").
+func pidLabel(int pid) as string
+    if pid == 0 then
+        return "id"
+    end
+    return "P" + string(pid)
+end
+
+// 把 per-timestep 的 gantt 数组渲染成两行 ASCII:
+//   第 1 行: |P1|P2|P1|   (相同 pid 连续段压缩为一个块)
+//   第 2 行: 时间轴, 数字对齐在每个块的左边界 "|" 下方.
+// 单元宽度 W 取 max(标签宽, 结束时间位数, 2), 保证多位时间不溢出.
+func renderGantt(array<int> gantt) as string
+    int n = gantt.length
+    if n == 0 then
+        return "(empty gantt)"
+    end
+    array<int> segStart = array[]
+    array<int> segPid = array[]
+    int i = 0
+    while i < n do
+        int pid = gantt[i]
+        int start = i
+        i += 1
+        while i < n do
+            if gantt[i] != pid then
+                break
+            end
+            i += 1
+        end
+        segStart.append(start)
+        segPid.append(pid)
+    end
+    int end_ = n
+    int W = 2
+    int si = 0
+    while si < segPid.length do
+        int labLen = string.len(pidLabel(segPid[si]))
+        if labLen > W then
+            W = labLen
+        end
+        si += 1
+    end
+    int endLen = string.len(string(end_))
+    if endLen > W then
+        W = endLen
+    end
+    string bar = ""
+    int bi = 0
+    while bi < segPid.length do
+        bar = bar + "|" + string.padRight(pidLabel(segPid[bi]), W)
+        bi += 1
+    end
+    bar = bar + "|"
+    string axis = ""
+    int ai2 = 0
+    while ai2 < segStart.length do
+        axis = axis + string.padRight(string(segStart[ai2]), W + 1)
+        ai2 += 1
+    end
+    axis = axis + string(end_)
+    return bar + "\n" + axis
+end
+
+func fmt2(float v) as string
+    return string.formatFloat(v, ".2")
+end
+
+// 打印进程明细表.
+func printProcessTable(array<Process> p)
+    println(string.padRight("PID", 6) + string.padRight("Arrival", 9) + string.padRight("Burst", 7) + string.padRight("Priority", 9) + string.padRight("Wait", 7) + string.padRight("Turnaround", 12) + string.padRight("Response", 10) + string.padRight("Completion", 11))
+    int i = 0
+    while i < p.length do
+        Process c = p[i]
+        println(string.padRight("P" + string(c.pid), 6) + string.padRight(string(c.arrival), 9) + string.padRight(string(c.burst), 7) + string.padRight(string(c.priority), 9) + string.padRight(string(c.waitTime), 7) + string.padRight(string(c.turnaround), 12) + string.padRight(string(c.responseTime), 10) + string.padRight(string(c.completionTime), 11))
+        i += 1
+    end
+end
+
+// 打印单个算法的完整报告: 标题 + 进程表 + 甘特图 + 三项均值.
+func showResult(string title, ScheduleResult res)
+    println(string.repeat("=", 22) + " " + title + " " + string.repeat("=", 22))
+    printProcessTable(res.procs)
+    println("Gantt chart:")
+    println(renderGantt(res.gantt))
+    println("Avg Wait=" + fmt2(res.avgWait) + "  Avg Turnaround=" + fmt2(res.avgTurnaround) + "  Avg Response=" + fmt2(res.avgResponse))
+    println("")
+end
+
+
+// ============================================================
+// 测试数据集 & 命令实现
+// ============================================================
+
+// 内置 5 进程测试集 (arrival 单调递增, 保证无初始空闲; 各算法输出差异明显).
+func makeTestSet() as array<Process>
+    array<Process> a = array[]
+    a.append(Process(1, 0, 5, 2))
+    a.append(Process(2, 1, 3, 1))
+    a.append(Process(3, 2, 1, 4))
+    a.append(Process(4, 3, 2, 3))
+    a.append(Process(5, 4, 3, 2))
+    return a
+end
+
+// cpusched test: 依次展示 5 种算法的完整报告.
+func runTest(int quantum)
+    array<Process> base = makeTestSet()
+    println("CPU Scheduler Simulator - test set (5 processes, RR quantum=" + string(quantum) + ")")
+    println("Processes: P1(a0,b5,pr2) P2(a1,b3,pr1) P3(a2,b1,pr4) P4(a3,b2,pr3) P5(a4,b3,pr2)")
+    println("")
+    showResult("1. FCFS (First-Come First-Served)", scheduleFCFS(base))
+    showResult("2. SJF (Shortest Job First, non-preemptive)", scheduleSJF(base))
+    showResult("3. SRTF (Shortest Remaining Time First, preemptive)", scheduleSRTF(base))
+    showResult("4. Round Robin (quantum=" + string(quantum) + ")", scheduleRR(base, quantum))
+    showResult("5. Priority (non-preemptive, lower=higher)", schedulePriority(base))
+end
+
+// cpusched compare: 5 种算法同数据集对比表.
+func printCompareRow(string name, ScheduleResult r)
+    println(string.padRight(name, 14) + string.padLeft(fmt2(r.avgWait), 10) + string.padLeft(fmt2(r.avgTurnaround), 15) + string.padLeft(fmt2(r.avgResponse), 13))
+end
+
+func runCompare(int quantum)
+    array<Process> base = makeTestSet()
+    ScheduleResult r1 = scheduleFCFS(base)
+    ScheduleResult r2 = scheduleSJF(base)
+    ScheduleResult r3 = scheduleSRTF(base)
+    ScheduleResult r4 = scheduleRR(base, quantum)
+    ScheduleResult r5 = schedulePriority(base)
+    println("CPU Scheduler Comparison (5 processes, RR quantum=" + string(quantum) + ")")
+    println(string.repeat("-", 52))
+    println(string.padRight("Algorithm", 14) + string.padLeft("AvgWait", 10) + string.padLeft("AvgTurnaround", 15) + string.padLeft("AvgResponse", 13))
+    println(string.repeat("-", 52))
+    printCompareRow("FCFS", r1)
+    printCompareRow("SJF", r2)
+    printCompareRow("SRTF", r3)
+    printCompareRow("RR(q=" + string(quantum) + ")", r4)
+    printCompareRow("Priority", r5)
+    println(string.repeat("-", 52))
+    println("Best AvgWait      : " + bestWaitName(r1, r2, r3, r4, r5))
+    println("Best AvgTurnaround: " + bestTurnaroundName(r1, r2, r3, r4, r5))
+    println("Best AvgResponse  : " + bestResponseName(r1, r2, r3, r4, r5))
+end
+
+// 在 5 个结果中挑某项均值最优 (最小) 的算法名.
+func bestWaitName(ScheduleResult r1, ScheduleResult r2, ScheduleResult r3, ScheduleResult r4, ScheduleResult r5) as string
+    string name = "FCFS"
+    float best = r1.avgWait
+    if r2.avgWait < best then
+        name = "SJF"
+        best = r2.avgWait
+    end
+    if r3.avgWait < best then
+        name = "SRTF"
+        best = r3.avgWait
+    end
+    if r4.avgWait < best then
+        name = "RR"
+        best = r4.avgWait
+    end
+    if r5.avgWait < best then
+        name = "Priority"
+        best = r5.avgWait
+    end
+    return name + " (" + fmt2(best) + ")"
+end
+
+func bestTurnaroundName(ScheduleResult r1, ScheduleResult r2, ScheduleResult r3, ScheduleResult r4, ScheduleResult r5) as string
+    string name = "FCFS"
+    float best = r1.avgTurnaround
+    if r2.avgTurnaround < best then
+        name = "SJF"
+        best = r2.avgTurnaround
+    end
+    if r3.avgTurnaround < best then
+        name = "SRTF"
+        best = r3.avgTurnaround
+    end
+    if r4.avgTurnaround < best then
+        name = "RR"
+        best = r4.avgTurnaround
+    end
+    if r5.avgTurnaround < best then
+        name = "Priority"
+        best = r5.avgTurnaround
+    end
+    return name + " (" + fmt2(best) + ")"
+end
+
+func bestResponseName(ScheduleResult r1, ScheduleResult r2, ScheduleResult r3, ScheduleResult r4, ScheduleResult r5) as string
+    string name = "FCFS"
+    float best = r1.avgResponse
+    if r2.avgResponse < best then
+        name = "SJF"
+        best = r2.avgResponse
+    end
+    if r3.avgResponse < best then
+        name = "SRTF"
+        best = r3.avgResponse
+    end
+    if r4.avgResponse < best then
+        name = "RR"
+        best = r4.avgResponse
+    end
+    if r5.avgResponse < best then
+        name = "Priority"
+        best = r5.avgResponse
+    end
+    return name + " (" + fmt2(best) + ")"
+end
+
+
+// ============================================================
+// CLI 入口
+// ============================================================
+func printUsage()
+    println("cpusched - CPU 调度器模拟器")
+    println("用法:")
+    println("  cpusched test [-q N]      内置 5 进程测试全部 5 种算法 (N=RR 时间片, 默认 2)")
+    println("  cpusched compare [-q N]   5 种算法对比表")
+    println("  cpusched help             显示本帮助")
+    println("算法: FCFS / SJF / SRTF(抢占) / Round Robin / Priority(非抢占, 数字越小优先级越高)")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+    string cmd = string(arg[1])
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+    if cmd == "test" or cmd == "compare" then
+        // 解析可选 -q/--quantum (位置从 arg[2] 起); 解析失败直接返回.
+        int q = 2
+        int ai = 2
+        while ai < arg.length do
+            string o = string(arg[ai])
+            if o == "-q" or o == "--quantum" then
+                if ai + 1 >= arg.length then
+                    println("cpusched: -q needs an integer value")
+                    return 1
+                end
+                ai += 1
+                q = int(string(arg[ai]))
+                if q < 1 then
+                    println("cpusched: quantum must be >= 1")
+                    return 1
+                end
+            else
+                println("cpusched: unknown option: " + o)
+                return 1
+            end
+            ai += 1
+        end
+        if cmd == "test" then
+            runTest(q)
+        else
+            runCompare(q)
+        end
+        return 0
+    end
+    println("cpusched: unknown command: " + cmd)
+    println("")
+    printUsage()
+    return 1
+end

@@ -1,0 +1,596 @@
+// websocket.xl - WebSocket protocol: handshake (Sec-WebSocket-Accept) + frame codec
+//
+// usage:
+//   websocket handshake <key>              compute Sec-WebSocket-Accept for <key>
+//   websocket request   <host> <path> <key>  print client HTTP Upgrade request
+//   websocket accept    <key>              print server 101 Switching Protocols response
+//   websocket test                          frame codec roundtrip + handshake verify
+//   websocket -h | --help                    show this help
+//
+// Implementation notes (see dev/README.md constraints):
+//   * Handshake:  crypto.sha1(key + GUID) -> hex string -> codec.hexDecodeBytes
+//                 -> raw 20 bytes -> codec.base64EncodeBytes.  (base64EncodeBytes is
+//                 the binary variant of codec.base64Encode; the SHA-1 digest is raw
+//                 bytes, not valid UTF-8, so the *Bytes form is required.)
+//   * Frames:     Buffer-based, all binary work inlined inside helpers that RECEIVE
+//                 a Buffer by parameter and never RETURN one (native-backed-class
+//                 rule). Frame metadata from parsing is reported via globals, the
+//                 same convention cryptolab uses.
+//   * Opcodes:    text(1) / binary(2) / close(8) / ping(9) / pong(10); cont(0).
+//   * Length:     7-bit / 16-bit (126) / 64-bit (127) all parsed and emitted.
+//   * Masking:    client->server frames are XOR-masked; server->client are not.
+//                 copyPayload() unmasks; appendClientFrame() masks on write.
+//   * RFC 6455 sec 4.2.2 handshake vector and sec 5.7 framing are honoured.
+
+// ======================== Constants ========================
+
+const string WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+const int OP_CONT  = 0
+const int OP_TEXT  = 1
+const int OP_BIN   = 2
+const int OP_CLOSE = 8
+const int OP_PING  = 9
+const int OP_PONG  = 10
+
+
+// ======================== Handshake ========================
+
+// Sec-WebSocket-Accept = Base64(SHA1(Sec-WebSocket-Key + GUID)).
+func computeAccept(string key) as string
+    string hex = crypto.sha1(key + WS_GUID)
+    Buffer raw = codec.hexDecodeBytes(hex)
+    return codec.base64EncodeBytes(raw.data(), c_size(raw.len()))
+end
+
+// Client -> server HTTP Upgrade request.
+func buildUpgradeRequest(string host, string path, string key) as string
+    string s = ""
+    s = s + "GET " + path + " HTTP/1.1\r\n"
+    s = s + "Host: " + host + "\r\n"
+    s = s + "Upgrade: websocket\r\n"
+    s = s + "Connection: Upgrade\r\n"
+    s = s + "Sec-WebSocket-Key: " + key + "\r\n"
+    s = s + "Sec-WebSocket-Version: 13\r\n"
+    s = s + "\r\n"
+    return s
+end
+
+// Server -> client 101 Switching Protocols response.
+func buildAcceptResponse(string key) as string
+    string s = ""
+    s = s + "HTTP/1.1 101 Switching Protocols\r\n"
+    s = s + "Upgrade: websocket\r\n"
+    s = s + "Connection: Upgrade\r\n"
+    s = s + "Sec-WebSocket-Accept: " + computeAccept(key) + "\r\n"
+    s = s + "\r\n"
+    return s
+end
+
+
+// ======================== Frame parsing (globals) ========================
+// parseFrameHeader() fills the g_* fields; copyPayload() consumes them.  Globals
+// avoid returning typed/binary payloads across functions (the cryptolab pattern).
+
+bool  g_fin          = false
+int   g_opcode       = 0
+bool  g_masked       = false
+int64 g_payloadLen   = 0
+int   g_headerLen    = 0
+int   g_maskOffset   = -1
+int   g_payloadOffset = 0
+
+// Parse the frame header at `offset`.  Returns the payload-start offset on
+// success (== g_payloadOffset), or -1 if the buffer lacks a complete header
+// (caller should wait for / append more bytes).
+func parseFrameHeader(Buffer buf, int offset) as int
+    int total = buf.len()
+    if offset + 2 > total then
+        return -1
+    end
+    int b0 = buf.byteAt(offset)
+    int b1 = buf.byteAt(offset + 1)
+    g_fin    = (b0 & 0x80) != 0
+    g_opcode = b0 & 0x0F
+    g_masked = (b1 & 0x80) != 0
+    int lenField = b1 & 0x7F
+    int idx = offset + 2
+    if lenField < 126 then
+        g_payloadLen = int64(lenField)
+    elseif lenField == 126 then
+        if idx + 2 > total then
+            return -1
+        end
+        int hi = buf.byteAt(idx)
+        int lo = buf.byteAt(idx + 1)
+        g_payloadLen = int64((hi << 8) | lo)
+        idx = idx + 2
+    else  // 127 -> 64-bit length
+        if idx + 8 > total then
+            return -1
+        end
+        int64 L = 0
+        int k = 0
+        while k < 8 do
+            L = (L << 8) | int64(buf.byteAt(idx + k) & 0xFF)
+            k += 1
+        end
+        g_payloadLen = L
+        idx = idx + 8
+    end
+    if g_masked then
+        if idx + 4 > total then
+            return -1
+        end
+        g_maskOffset = idx
+        idx = idx + 4
+    else
+        g_maskOffset = -1
+    end
+    g_payloadOffset = idx
+    g_headerLen = idx - offset
+    return idx
+end
+
+// Copy the last-parsed frame's payload into `out` (appended), applying the XOR
+// mask when the frame is masked.  Verifies payload bytes are present.
+func copyPayload(Buffer buf, Buffer out) as bool
+    int64 L = g_payloadLen
+    if int64(g_payloadOffset) + L > int64(buf.len()) then
+        return false
+    end
+    int base = g_payloadOffset
+    int i = 0
+    if g_masked then
+        int m0 = buf.byteAt(g_maskOffset)
+        int m1 = buf.byteAt(g_maskOffset + 1)
+        int m2 = buf.byteAt(g_maskOffset + 2)
+        int m3 = buf.byteAt(g_maskOffset + 3)
+        while int64(i) < L do
+            int b = buf.byteAt(base + i)
+            int j = i & 3
+            if j == 0 then
+                b = b ^ m0
+            elseif j == 1 then
+                b = b ^ m1
+            elseif j == 2 then
+                b = b ^ m2
+            else
+                b = b ^ m3
+            end
+            out.appendByte(b & 0xFF)
+            i += 1
+        end
+    else
+        while int64(i) < L do
+            out.appendByte(buf.byteAt(base + i) & 0xFF)
+            i += 1
+        end
+    end
+    return true
+end
+
+
+// ======================== Frame construction ========================
+// All builders APPEND to a caller-owned `out` Buffer (passed by reference); none
+// returns a Buffer.
+
+// Server -> client frame: FIN/opcode, NO mask.
+func appendServerFrame(Buffer out, int opcode, bool fin, Buffer payload)
+    int b0 = opcode & 0x0F
+    if fin then
+        b0 = b0 | 0x80
+    end
+    out.appendByte(b0)
+    int n = payload.len()
+    if n < 126 then
+        out.appendByte(n)                 // no MASK bit for server frames
+    elseif n <= 0xFFFF then
+        out.appendByte(126)
+        out.appendByte((n >> 8) & 0xFF)
+        out.appendByte(n & 0xFF)
+    else
+        out.appendByte(127)
+        out.appendByte(0)
+        out.appendByte(0)
+        out.appendByte(0)
+        out.appendByte(0)
+        out.appendByte((n >> 24) & 0xFF)
+        out.appendByte((n >> 16) & 0xFF)
+        out.appendByte((n >> 8) & 0xFF)
+        out.appendByte(n & 0xFF)
+    end
+    int i = 0
+    while i < n do
+        out.appendByte(payload.byteAt(i) & 0xFF)
+        i += 1
+    end
+end
+
+// Client -> server frame: FIN/opcode, WITH mask (maskKey must be 4 bytes).
+func appendClientFrame(Buffer out, int opcode, bool fin, Buffer payload, array<int> maskKey)
+    int b0 = opcode & 0x0F
+    if fin then
+        b0 = b0 | 0x80
+    end
+    out.appendByte(b0)
+    int n = payload.len()
+    if n < 126 then
+        out.appendByte(n | 0x80)          // MASK bit set
+    elseif n <= 0xFFFF then
+        out.appendByte(126 | 0x80)
+        out.appendByte((n >> 8) & 0xFF)
+        out.appendByte(n & 0xFF)
+    else
+        out.appendByte(127 | 0x80)
+        out.appendByte(0)
+        out.appendByte(0)
+        out.appendByte(0)
+        out.appendByte(0)
+        out.appendByte((n >> 24) & 0xFF)
+        out.appendByte((n >> 16) & 0xFF)
+        out.appendByte((n >> 8) & 0xFF)
+        out.appendByte(n & 0xFF)
+    end
+    out.appendByte(maskKey[0] & 0xFF)
+    out.appendByte(maskKey[1] & 0xFF)
+    out.appendByte(maskKey[2] & 0xFF)
+    out.appendByte(maskKey[3] & 0xFF)
+    int i = 0
+    while i < n do
+        int b = (payload.byteAt(i) ^ maskKey[i & 3]) & 0xFF
+        out.appendByte(b)
+        i += 1
+    end
+end
+
+
+// ======================== Helpers ========================
+
+// Build a Buffer holding `n` copies of byte `b`.
+func makeRepeatByte(int b, int n) as string
+    Buffer p = Buffer()
+    int i = 0
+    while i < n do
+        p.appendByte(b)
+        i += 1
+    end
+    return p.text()
+end
+
+// Hex string of a Buffer's contents (for diagnostics).
+func bufHex(Buffer buf) as string
+    return codec.hexEncodeBytes(buf.data(), c_size(buf.len()))
+end
+
+
+// ======================== Tests ========================
+
+func check(string label, bool cond) as bool
+    if cond then
+        println("  PASS " + label)
+        return true
+    end
+    println("  FAIL " + label)
+    return false
+end
+
+func runTests() as int
+    int passed = 0
+    int failed = 0
+
+    // ---------- Handshake (RFC 6455 sec 4.2.2 example) ----------
+    println("=== Handshake: Sec-WebSocket-Accept ===")
+    string key = "dGhlIHNhbXBsZSBub25jZQ=="
+    string accept = computeAccept(key)
+    if check("computeAccept == RFC vector", accept == "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=") then
+        passed += 1
+    else
+        println("        got  " + accept)
+        println("        want s3pPLMBiTxaQ9kYGzzhZRbK+xOo=")
+        failed += 1
+    end
+
+    string req = buildUpgradeRequest("example.com", "/chat", key)
+    bool reqOk = string.contains(req, "GET /chat HTTP/1.1")
+    reqOk = reqOk and string.contains(req, "Upgrade: websocket")
+    reqOk = reqOk and string.contains(req, "Connection: Upgrade")
+    reqOk = reqOk and string.contains(req, "Sec-WebSocket-Key: " + key)
+    reqOk = reqOk and string.contains(req, "Sec-WebSocket-Version: 13")
+    reqOk = reqOk and string.contains(req, "\r\n\r\n")
+    if check("buildUpgradeRequest headers", reqOk) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    string resp = buildAcceptResponse(key)
+    bool respOk = string.contains(resp, "HTTP/1.1 101 Switching Protocols")
+    respOk = respOk and string.contains(resp, "Upgrade: websocket")
+    respOk = respOk and string.contains(resp, "Sec-WebSocket-Accept: " + accept)
+    respOk = respOk and string.contains(resp, "\r\n\r\n")
+    if check("buildAcceptResponse headers", respOk) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // ---------- 7-bit length, masked (client->server roundtrip) ----------
+    println("=== Frame: 7-bit length, masked (client->server) ===")
+    array<int> mKey = array[0x12, 0x34, 0x56, 0x78]
+    Buffer hello = Buffer()
+    hello.append("Hello")
+    Buffer cf = Buffer()
+    appendClientFrame(cf, OP_TEXT, true, hello, mKey)
+    // expected: 81 85 12 34 56 78 (5a 51 3a 14 7d)  -- masked "Hello"
+    if check("client frame byte layout", bufHex(cf) == "8185123456785a513a147d") then
+        passed += 1
+    else
+        println("        got  " + bufHex(cf))
+        failed += 1
+    end
+    int p = parseFrameHeader(cf, 0)
+    bool ok7 = true
+    if p < 0 then
+        ok7 = false
+    else
+        ok7 = ok7 and g_fin
+        ok7 = ok7 and g_opcode == OP_TEXT
+        ok7 = ok7 and g_masked
+        ok7 = ok7 and g_payloadLen == 5
+        ok7 = ok7 and g_headerLen == 8
+        ok7 = ok7 and g_maskOffset == 2
+        ok7 = ok7 and g_payloadOffset == 6
+    end
+    if check("parse masked frame header", ok7) then
+        passed += 1
+    else
+        failed += 1
+    end
+    Buffer unmasked = Buffer()
+    bool got = copyPayload(cf, unmasked)
+    if check("unmask payload == Hello", got and unmasked.text() == "Hello") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // ---------- 7-bit length, unmasked (server->client) ----------
+    println("=== Frame: 7-bit length, unmasked (server->client) ===")
+    Buffer sf = Buffer()
+    appendServerFrame(sf, OP_TEXT, true, hello)
+    if check("server frame byte layout", bufHex(sf) == "810548656c6c6f") then
+        passed += 1
+    else
+        println("        got  " + bufHex(sf))
+        failed += 1
+    end
+    p = parseFrameHeader(sf, 0)
+    bool okS = p >= 0 and g_fin and g_opcode == OP_TEXT and not g_masked
+    okS = okS and g_payloadLen == 5 and g_headerLen == 2 and g_maskOffset == -1
+    okS = okS and g_payloadOffset == 2
+    if check("parse unmasked server frame header", okS) then
+        passed += 1
+    else
+        failed += 1
+    end
+    Buffer pl = Buffer()
+    copyPayload(sf, pl)
+    if check("server payload == Hello", pl.text() == "Hello") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // ---------- 16-bit length (126 path) ----------
+    println("=== Frame: 16-bit length (len = 126) ===")
+    Buffer big = Buffer()
+    big.append(makeRepeatByte(0x78, 126))     // 126 'x'
+    Buffer bf = Buffer()
+    appendServerFrame(bf, OP_BIN, true, big)
+    p = parseFrameHeader(bf, 0)
+    bool ok16 = p >= 0 and g_opcode == OP_BIN and not g_masked
+    ok16 = ok16 and g_payloadLen == 126 and g_headerLen == 4 and g_payloadOffset == 4
+    // first two header bytes: 82 (FIN+binary), 7e (126)
+    ok16 = ok16 and bf.byteAt(0) == 0x82 and bf.byteAt(1) == 0x7E
+    ok16 = ok16 and bf.byteAt(2) == 0x00 and bf.byteAt(3) == 0x7E
+    if check("16-bit length encoding + parse", ok16) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // ---------- 64-bit length (127 path, small declared value) ----------
+    println("=== Frame: 64-bit length (127 path) ===")
+    Buffer qf = Buffer()
+    qf.appendByte(0x81)                        // FIN + text
+    qf.appendByte(0x7F)                        // 127, no mask
+    qf.appendByte(0)
+    qf.appendByte(0)
+    qf.appendByte(0)
+    qf.appendByte(0)
+    qf.appendByte(0)
+    qf.appendByte(0)
+    qf.appendByte(0)
+    qf.appendByte(3)                           // declared length = 3
+    qf.append("abc")
+    p = parseFrameHeader(qf, 0)
+    bool ok64 = p >= 0 and g_opcode == OP_TEXT and not g_masked
+    ok64 = ok64 and g_payloadLen == 3 and g_headerLen == 10 and g_payloadOffset == 10
+    Buffer qpl = Buffer()
+    copyPayload(qf, qpl)
+    ok64 = ok64 and qpl.text() == "abc"
+    if check("64-bit length parse (len=3)", ok64) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // ---------- Control frames: ping / pong / close ----------
+    println("=== Frame: control opcodes ping/pong/close ===")
+    Buffer empty = Buffer()
+    Buffer ctrl = Buffer()
+    appendServerFrame(ctrl, OP_PING, true, empty)
+    appendServerFrame(ctrl, OP_PONG, true, empty)
+    appendServerFrame(ctrl, OP_CLOSE, true, empty)
+    int off = 0
+    bool okCtrl = true
+    p = parseFrameHeader(ctrl, off)
+    if p < 0 or not (g_fin and g_opcode == OP_PING) then
+        okCtrl = false
+    end
+    off = p + int(g_payloadLen)
+    if okCtrl then
+        p = parseFrameHeader(ctrl, off)
+        if p < 0 or not (g_fin and g_opcode == OP_PONG) then
+            okCtrl = false
+        end
+    end
+    off = p + int(g_payloadLen)
+    if okCtrl then
+        p = parseFrameHeader(ctrl, off)
+        if p < 0 or not (g_fin and g_opcode == OP_CLOSE) then
+            okCtrl = false
+        end
+    end
+    if check("ping(9)/pong(10)/close(8) sequential parse", okCtrl) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // ---------- Fragmented message reassembly ----------
+    println("=== Frame: fragmented message reassembly ===")
+    // Client sends "Hello!" as: [FIN=0,text,"Hel"] [FIN=0,cont,"lo"] [FIN=1,cont,"!"]
+    Buffer frag = Buffer()
+    Buffer part1 = Buffer()
+    part1.append("Hel")
+    Buffer part2 = Buffer()
+    part2.append("lo")
+    Buffer part3 = Buffer()
+    part3.append("!")
+    appendClientFrame(frag, OP_TEXT, false, part1, mKey)
+    appendClientFrame(frag, OP_CONT, false, part2, mKey)
+    appendClientFrame(frag, OP_CONT, true,  part3, mKey)
+    // reassemble
+    Buffer reassembled = Buffer()
+    int pos = 0
+    bool fragOk = true
+    int firstOp = -1
+    int lastOp = -1
+    bool sawFin = false
+    while pos < frag.len() do
+        p = parseFrameHeader(frag, pos)
+        if p < 0 then
+            fragOk = false
+            break
+        end
+        bool ok = copyPayload(frag, reassembled)
+        if not ok then
+            fragOk = false
+            break
+        end
+        if firstOp == -1 then
+            firstOp = g_opcode
+        end
+        lastOp = g_opcode
+        sawFin = g_fin
+        pos = g_payloadOffset + int(g_payloadLen)
+        if g_fin then
+            break
+        end
+    end
+    bool fragExpect = fragOk and firstOp == OP_TEXT and lastOp == OP_CONT and sawFin
+    fragExpect = fragExpect and reassembled.text() == "Hello!"
+    if check("3-fragment reassembly == Hello!", fragExpect) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // ---------- Incomplete-frame rejection ----------
+    println("=== Frame: incomplete header rejected ===")
+    Buffer inc = Buffer()
+    inc.appendByte(0x82)
+    inc.appendByte(0x7F)                       // promises 8 length bytes, but only 2 follow
+    inc.appendByte(0x00)
+    inc.appendByte(0x00)
+    p = parseFrameHeader(inc, 0)
+    if check("incomplete 64-bit header -> -1", p == -1) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("")
+    println("========================================")
+    println("PASSED " + string(passed) + " / FAILED " + string(failed))
+    println("========================================")
+    if failed > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ======================== CLI ========================
+
+func printUsage()
+    println("websocket - WebSocket handshake + frame codec")
+    println("")
+    println("usage:")
+    println("  websocket handshake <key>                compute Sec-WebSocket-Accept for <key>")
+    println("  websocket request   <host> <path> <key>  print client HTTP Upgrade request")
+    println("  websocket accept    <key>                print server 101 Switching Protocols response")
+    println("  websocket test                           frame codec roundtrip + handshake verify")
+    println("  websocket -h | --help                    show this help")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return runTests()
+    end
+
+    if cmd == "handshake" then
+        if arg.length < 3 then
+            println("websocket handshake: missing <key>")
+            return 1
+        end
+        println(computeAccept(string(arg[2])))
+        return 0
+    end
+
+    if cmd == "accept" then
+        if arg.length < 3 then
+            println("websocket accept: missing <key>")
+            return 1
+        end
+        print(buildAcceptResponse(string(arg[2])))
+        return 0
+    end
+
+    if cmd == "request" then
+        if arg.length < 5 then
+            println("websocket request: needs <host> <path> <key>")
+            return 1
+        end
+        print(buildUpgradeRequest(string(arg[2]), string(arg[3]), string(arg[4])))
+        return 0
+    end
+
+    println("websocket: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

@@ -1,0 +1,20 @@
+var messages = []
+string lastMessage = ""
+string lastKind = ""
+
+for i in range(0, 64)
+    try
+        throw "failure detail"
+    catch e
+        // error 文本属性离开 catch 后仍必须有效。
+        lastMessage = e.message
+        lastKind = e.kind
+        messages.append(e.message)
+    end
+end
+
+assert lastMessage == "failure detail", "caught error message should outlive catch object"
+assert lastKind == "Error", "caught error kind should outlive catch object"
+assert messages.length == 64, "caught error messages should remain storable"
+assert messages[0] == "failure detail", "first stored error message was corrupted"
+assert messages[63] == "failure detail", "last stored error message was corrupted"

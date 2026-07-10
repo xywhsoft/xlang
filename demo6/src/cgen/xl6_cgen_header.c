@@ -233,6 +233,14 @@ static const XL6_AstNode* xl6CgenHeaderFindClass(const XL6_AstNode* root, const 
     return NULL;
 }
 
+static int xl6CgenHeaderClassHasTypeParams(const XL6_AstNode* classNode)
+{
+    const XL6_AstNode* typeParams;
+
+    typeParams = classNode != NULL && classNode->childCount > 2 ? classNode->children[2] : NULL;
+    return typeParams != NULL && typeParams->childCount > 0;
+}
+
 static const XL6_AstNode* xl6CgenHeaderResolveAliasType(const XL6_AstNode* root, const XL6_AstNode* typeNode)
 {
     int guard;
@@ -597,6 +605,14 @@ static void xl6CgenHeaderClassDecl(
          emittedClasses == NULL || emittedClassCount == NULL ) {
         return;
     }
+    /*
+        开放泛型 class 没有单一 C 布局，不能把类型参数 T 退化成 void 字段。
+        当前 C ABI 明确禁止泛型 class 导出；具体实例布局由生成模块内部持有，
+        因此自动注入给辅助 C 源的头文件只跳过开放模板，不伪造兼容结构。
+    */
+    if ( xl6CgenHeaderClassHasTypeParams(node) ) {
+        return;
+    }
     if ( xl6CgenHeaderNameListed(emittedClasses, *emittedClassCount, node->text) ) {
         return;
     }
@@ -783,6 +799,9 @@ static void xl6CgenHeaderClassExportFuncProtos(XL6_Output* out, const XL6_AstNod
     const XL6_AstNode* body;
     size_t i;
 
+    if ( xl6CgenHeaderClassHasTypeParams(classNode) ) {
+        return;
+    }
     body = classNode != NULL && classNode->childCount > 1 ? classNode->children[1] : NULL;
     for ( i = 0; body != NULL && i < body->childCount; ++i ) {
         const XL6_AstNode* member = body->children[i];

@@ -1,0 +1,40 @@
+class AsyncParamBox
+    derive copy
+
+    string text = ""
+
+    create(string text)
+        self.text = text
+    end
+end
+
+func makeMultiplier(int factor) as func(int) as int
+    return func(int value) as int
+        return value * factor
+    end
+end
+
+async func inspectOwnedParams(
+    var dynamicValue,
+    array<int> values,
+    func(int) as int transform,
+    AsyncParamBox box
+) as string
+    time.sleep(20)
+    return string(dynamicValue) + ":" + string(values[1]) + ":" + string(transform(4)) + ":" + box.text
+end
+
+func startInspect() as future<string>
+    array<int> values = array<int>[6, 7]
+    return inspectOwnedParams(
+        5,
+        values,
+        makeMultiplier(3),
+        AsyncParamBox("owned")
+    )
+end
+
+future<string> pending = startInspect()
+
+string result = await pending
+assert result == "5:7:12:owned"

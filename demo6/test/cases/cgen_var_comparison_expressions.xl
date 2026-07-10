@@ -1,0 +1,66 @@
+// var 比较必须是完整表达式，不能只在声明或赋值语句中生效。
+
+int sideEffects = 0
+
+func dynamic(int value) as var
+    return value
+end
+
+func mark(int digit, bool value) as var
+    sideEffects = sideEffects * 10 + digit
+    return value
+end
+
+func accept(bool value) as bool
+    return value
+end
+
+func compareInReturn(var left, var right) as bool
+    return left <= right
+end
+
+var ten = 10
+var twenty = 20
+var tenAgain = 10
+
+bool equalValue = ten == tenAgain
+bool notEqualValue = ten != twenty
+bool lessValue = ten < twenty
+bool lessEqualValue = ten <= tenAgain
+bool greaterValue = twenty > ten
+bool greaterEqualValue = twenty >= tenAgain
+
+assert equalValue and notEqualValue, "var equality expression failed"
+assert lessValue and lessEqualValue, "var lower-order expression failed"
+assert greaterValue and greaterEqualValue, "var upper-order expression failed"
+assert not (ten == twenty), "nested var comparison under not failed"
+assert accept(ten == tenAgain), "var comparison as a function argument failed"
+assert compareInReturn(ten, twenty), "var comparison as a return expression failed"
+
+bool assigned = false
+assigned = (ten != twenty) and (ten < twenty)
+assert assigned, "nested var comparison assignment failed"
+
+var textLeft = "Hello"
+var textRight = "Hello"
+var oneFloat = 1.0
+assert textLeft ~= textRight, "var approximate string comparison failed"
+assert oneFloat ~= 1, "mixed var/concrete approximate comparison failed"
+bool nestedApprox = (textLeft ~= textRight) ? true : false
+assert nestedApprox, "nested var approximate expression failed"
+
+// 逻辑表达式必须保持短路，未执行的右操作数不能产生副作用。
+sideEffects = 0
+bool andValue = mark(1, false) and mark(2, true)
+assert not andValue and sideEffects == 1, "dynamic and must short-circuit"
+
+sideEffects = 0
+bool orValue = mark(3, true) or mark(4, false)
+assert orValue and sideEffects == 3, "dynamic or must short-circuit"
+
+// 三目表达式只拥有被选中的 var 分支，并可继续参与其他表达式。
+var selected = true ? dynamic(30) : dynamic(40)
+assert selected == 30, "dynamic conditional true branch failed"
+selected = false ? dynamic(50) : dynamic(60)
+assert selected == 60, "dynamic conditional false branch failed"
+assert (true ? dynamic(7) : dynamic(8)) == 7, "nested dynamic conditional comparison failed"

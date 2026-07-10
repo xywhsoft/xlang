@@ -1,0 +1,473 @@
+// xpkg — xlang 简易包管理器
+// 只写代码不运行。不修改编译器源码。
+// 用法：xl run xpkg.xl -- init|install|list|tree|test
+
+import json
+
+// ============================================================
+// 语义版本
+// ============================================================
+
+func parseSemver(string v) as (int, int, int)
+    array parts = string.split(v, ".")
+    int maj = int(string(parts[0]))
+    int min = 0
+    int pat = 0
+    if parts.length >= 3 then
+        min = int(string(parts[1]))
+        pat = int(string(parts[2]))
+    elseif parts.length >= 2 then
+        min = int(string(parts[1]))
+    end
+    return maj, min, pat
+end
+
+func cmpVer(string a, string b) as int
+    int aMaj, aMin, aPat
+    int bMaj, bMin, bPat
+    aMaj, aMin, aPat = parseSemver(a)
+    bMaj, bMin, bPat = parseSemver(b)
+    if aMaj != bMaj then return aMaj - bMaj end
+    if aMin != bMin then return aMin - bMin end
+    return aPat - bPat
+end
+
+func matchRange(string version, string range) as bool
+    string r = string.trim(range)
+    if r == "*" then return true end
+
+    int rm, rn, rp
+    rm, rn, rp = parseSemver(version)
+
+    if string.startsWith(r, "^") then
+        string target = string.mid(r, 1, string.len(r) - 1)
+        int tm, tn, tp
+        tm, tn, tp = parseSemver(target)
+        if rm != tm then return false end
+        if rm == 0 then
+            if rn < tn then return false end
+            if rn == tn and rp < tp then return false end
+        else
+            if rn < tn then return false end
+            if rn == tn and rp < tp then return false end
+        end
+        return true
+    end
+
+    if string.startsWith(r, "~") then
+        string target = string.mid(r, 1, string.len(r) - 1)
+        int tm, tn, tp
+        tm, tn, tp = parseSemver(target)
+        if rm != tm then return false end
+        if rn != tn then return false end
+        if rp < tp then return false end
+        return true
+    end
+
+    if string.startsWith(r, ">=") then
+        string target = string.trim(string.mid(r, 2, string.len(r) - 2))
+        if cmpVer(version, target) >= 0 then return true end
+        return false
+    end
+
+    if cmpVer(version, r) == 0 then return true end
+    return false
+end
+
+func bestVersion(array<string> versions, string range) as string
+    string best = ""
+    int i = 0
+    while i < versions.length do
+        string v = string(versions[i])
+        if matchRange(v, range) then
+            if best == "" or cmpVer(v, best) > 0 then
+                best = v
+            end
+        end
+        i += 1
+    end
+    return best
+end
+
+// ============================================================
+// 包注册表（模拟）
+// ============================================================
+
+var g_registry = {}
+var g_installed = {}
+string g_rootDir = ""
+
+func initRegistry(string regPath)
+    g_registry = {}
+    if not dir.exists(regPath) then return end
+    array pkgs = dir.list(regPath, false)
+    int i = 0
+    while i < pkgs.length do
+        string pkgDir = string(pkgs[i])
+        if dir.exists(pkgDir) then
+            array versions = dir.list(pkgDir, false)
+            int j = 0
+            string pkgName = path.name(pkgDir)
+            var verList = []
+            while j < versions.length do
+                string verDir = string(versions[j])
+                string manifestPath = path.join(verDir, "xpkg.json")
+                if file.exists(manifestPath) then
+                    string text = file.readText(manifestPath)
+                    if json.valid(text) then
+                        var manifest = json.parse(text)
+                        string ver = string(manifest["version"])
+                        verList.append(ver)
+                        string regKey = pkgName + "@" + ver
+                        g_registry[regKey] = manifest
+                    end
+                end
+                j += 1
+            end
+            if verList.length > 0 then
+                g_registry[pkgName + ":versions"] = verList
+            end
+        end
+        i += 1
+    end
+end
+
+func getVersions(string pkgName) as array<string>
+    var v = g_registry[pkgName + ":versions"]
+    if v == null then return [] end
+    return v
+end
+
+func getManifest(string pkgName, string version) as var
+    return g_registry[pkgName + "@" + version]
+end
+
+// ============================================================
+// 依赖解析
+// ============================================================
+
+array<string> g_resolvedNames = []
+array<string> g_resolvedVersions = []
+array<string> g_resolvedDeps = []
+int g_resolveCount = 0
+
+func resolveDeps(var deps, string parentName)
+    if deps == null then return end
+    int n = 0
+    var keys = []
+    for k, v in deps
+        keys.append(k)
+        n += 1
+    end
+    int i = 0
+    while i < n do
+        string depName = string(keys[i])
+        string range = string(deps[depName])
+        array<string> versions = getVersions(depName)
+        string chosen = bestVersion(versions, range)
+        if chosen == "" then
+            string regPath = path.join(g_rootDir, "registry")
+            throw "package not found: " + depName + " " + range + " (searched " + regPath + ")"
+        end
+        int existing = findInstalled(depName)
+        if existing >= 0 then
+            if string(g_resolvedVersions[existing]) != chosen then
+                throw "version conflict: " + depName + " need " + chosen + " but " + string(g_resolvedVersions[existing]) + " already installed"
+            end
+        else
+            g_resolvedNames.append(depName)
+            g_resolvedVersions.append(chosen)
+            g_resolvedDeps.append(parentName)
+            g_resolveCount += 1
+            var manifest = getManifest(depName, chosen)
+            if manifest != null then
+                var subDeps = manifest["deps"]
+                resolveDeps(subDeps, depName)
+            end
+        end
+        i += 1
+    end
+end
+
+func findInstalled(string name) as int
+    int i = 0
+    while i < g_resolvedNames.length do
+        if string(g_resolvedNames[i]) == name then return i end
+        i += 1
+    end
+    return -1
+end
+
+func topoSort() as array<string>
+    int n = g_resolvedNames.length
+    array<int> visited = []
+    array<string> order = []
+    int i = 0
+    while i < n do visited.append(0); i += 1 end
+    i = 0
+    while i < n do
+        if visited[i] == 0 then
+            topoVisit(i, visited, order)
+        end
+        i += 1
+    end
+    return order
+end
+
+func topoVisit(int idx, array<int> visited, array<string> order)
+    if visited[idx] == 1 then return end
+    if visited[idx] == 2 then return end
+    visited[idx] = 1
+    string parent = string(g_resolvedDeps[idx])
+    if parent != "" and parent != "root" then
+        int pi = findInstalled(parent)
+        if pi >= 0 then
+            topoVisit(pi, visited, order)
+        end
+    end
+    visited[idx] = 2
+    order.append(string(g_resolvedNames[idx]) + "@" + string(g_resolvedVersions[idx]))
+end
+
+// ============================================================
+// 命令
+// ============================================================
+
+func cmdInit() as int
+    string p = path.join(g_rootDir, "xpkg.json")
+    string content = '{\n  "name": "myapp",\n  "version": "1.0.0",\n  "deps": {}\n}\n'
+    file.writeText(p, content)
+    println("Created xpkg.json")
+    return 0
+end
+
+func cmdInstall() as int
+    string manifestPath = path.join(g_rootDir, "xpkg.json")
+    if not file.exists(manifestPath) then
+        println("Error: xpkg.json not found. Run 'xpkg init' first.")
+        return 1
+    end
+    string text = file.readText(manifestPath)
+    if not json.valid(text) then
+        println("Error: invalid xpkg.json")
+        return 1
+    end
+    var manifest = json.parse(text)
+    var deps = manifest["deps"]
+
+    g_resolvedNames = []
+    g_resolvedVersions = []
+    g_resolvedDeps = []
+    g_resolveCount = 0
+
+    try
+        resolveDeps(deps, "root")
+    catch e
+        println("Install failed:", e.message)
+        return 1
+    end
+
+    array<string> order = topoSort()
+
+    println("Resolved", g_resolveCount, "packages:")
+    int i = 0
+    while i < order.length do
+        println("  " + string(order[i]))
+        i += 1
+    end
+
+    string lockContent = "{\n"
+    lockContent = lockContent + '  "packages": [\n'
+    i = 0
+    while i < g_resolvedNames.length do
+        string comma = i < g_resolvedNames.length - 1 ? "," : ""
+        lockContent = lockContent + '    {"name":"' + string(g_resolvedNames[i]) + '","version":"' + string(g_resolvedVersions[i]) + '"}' + comma + '\n'
+        i += 1
+    end
+    lockContent = lockContent + "  ]\n}\n"
+    file.writeText(path.join(g_rootDir, "xpkg.lock"), lockContent)
+    println("Wrote xpkg.lock")
+    return 0
+end
+
+func cmdList() as int
+    string lockPath = path.join(g_rootDir, "xpkg.lock")
+    if not file.exists(lockPath) then
+        println("No xpkg.lock found. Run 'xpkg install' first.")
+        return 1
+    end
+    string text = file.readText(lockPath)
+    var lock = json.parse(text)
+    var pkgs = lock["packages"]
+    if pkgs == null then
+        println("No packages installed.")
+        return 0
+    end
+    int n = pkgs.length
+    println("Installed packages (" + string(n) + "):")
+    int i = 0
+    while i < n do
+        var pkg = pkgs[i]
+        println("  " + string(pkg["name"]) + " @ " + string(pkg["version"]))
+        i += 1
+    end
+    return 0
+end
+
+func cmdTree() as int
+    if g_resolvedNames.length == 0 then
+        string lockPath = path.join(g_rootDir, "xpkg.lock")
+        if not file.exists(lockPath) then
+            println("No xpkg.lock found.")
+            return 1
+        end
+        string text = file.readText(lockPath)
+        var lock = json.parse(text)
+        var pkgs = lock["packages"]
+        if pkgs == null then return 0 end
+        int n = pkgs.length
+        int i = 0
+        while i < n do
+            var pkg = pkgs[i]
+            println(string(pkg["name"]) + "@" + string(pkg["version"]))
+            i += 1
+        end
+        return 0
+    end
+    int i = 0
+    while i < g_resolvedNames.length do
+        string parent = string(g_resolvedDeps[i])
+        string prefix = parent == "root" ? "" : "  (via " + parent + ")"
+        println("  " + string(g_resolvedNames[i]) + "@" + string(g_resolvedVersions[i]) + prefix)
+        i += 1
+    end
+    return 0
+end
+
+func cmdTest() as int
+    println("=== xpkg self-test ===")
+
+    // 语义版本匹配
+    bool ok1 = matchRange("1.5.3", "^1.0.0")
+    bool ok2 = matchRange("2.0.0", "^1.0.0")
+    bool ok3 = matchRange("1.2.5", "~1.2.0")
+    bool ok4 = matchRange("1.3.0", "~1.2.0")
+    bool ok5 = matchRange("3.0.0", ">=2.0.0")
+    bool ok6 = matchRange("1.0.0", "*")
+    println("[1] ^1.0.0 matches 1.5.3:", ok1 ? "PASS" : "FAIL")
+    println("[2] ^1.0.0 rejects 2.0.0:", not ok2 ? "PASS" : "FAIL")
+    println("[3] ~1.2.0 matches 1.2.5:", ok3 ? "PASS" : "FAIL")
+    println("[4] ~1.2.0 rejects 1.3.0:", not ok4 ? "PASS" : "FAIL")
+    println("[5] >=2.0.0 matches 3.0.0:", ok5 ? "PASS" : "FAIL")
+    println("[6] * matches anything:", ok6 ? "PASS" : "FAIL")
+
+    // 版本比较
+    int c1 = cmpVer("1.0.0", "1.0.1")
+    int c2 = cmpVer("2.0.0", "1.9.9")
+    println("[7] cmp 1.0.0 < 1.0.1:", c1 < 0 ? "PASS" : "FAIL")
+    println("[8] cmp 2.0.0 > 1.9.9:", c2 > 0 ? "PASS" : "FAIL")
+
+    // bestVersion
+    array<string> vers = ["1.0.0", "1.2.0", "1.5.0", "2.0.0"]
+    string best = bestVersion(vers, "^1.0.0")
+    println("[9] best ^1.0.0 from [1.0,1.2,1.5,2.0]:", best == "1.5.0" ? "PASS" : "FAIL", "(" + best + ")")
+
+    string best2 = bestVersion(vers, "~1.2.0")
+    println("[10] best ~1.2.0:", best2 == "1.2.0" ? "PASS" : "FAIL", "(" + best2 + ")")
+
+    // 依赖解析（模拟 registry 数据）
+    g_registry = {}
+    var v1 = []
+    v1.append("1.0.0")
+    v1.append("1.5.0")
+    g_registry["utils:versions"] = v1
+    var utilManifest = {"name": "utils", "version": "1.5.0", "deps": {}}
+    g_registry["utils@1.0.0"] = {"name": "utils", "version": "1.0.0", "deps": {}}
+    g_registry["utils@1.5.0"] = utilManifest
+
+    var v2 = []
+    v2.append("2.1.0")
+    g_registry["json:versions"] = v2
+    g_registry["json@2.1.0"] = {"name": "json", "version": "2.1.0", "deps": {"utils": "^1.0.0"}}
+
+    g_resolvedNames = []
+    g_resolvedVersions = []
+    g_resolvedDeps = []
+    g_resolveCount = 0
+
+    var testDeps = {"utils": "^1.0.0", "json": "~2.1.0"}
+    try
+        resolveDeps(testDeps, "root")
+        println("[11] resolve 2 deps (+ transitive):", g_resolveCount == 2 ? "PASS" : "FAIL", "(" + string(g_resolveCount) + ")")
+        bool hasUtils = findInstalled("utils") >= 0
+        bool hasJson = findInstalled("json") >= 0
+        println("[12] utils installed:", hasUtils ? "PASS" : "FAIL")
+        println("[13] json installed:", hasJson ? "PASS" : "FAIL")
+    catch e
+        println("[11] resolve FAILED:", e.message)
+    end
+
+    // 冲突检测
+    g_resolvedNames = []
+    g_resolvedVersions = []
+    g_resolvedDeps = []
+    g_resolveCount = 0
+    var conflictDeps = {"a": "^1.0.0", "b": "^1.0.0"}
+    g_registry["a:versions"] = ["1.0.0"]
+    g_registry["a@1.0.0"] = {"name": "a", "version": "1.0.0", "deps": {"shared": "1.0.0"}}
+    g_registry["b:versions"] = ["1.0.0"]
+    g_registry["b@1.0.0"] = {"name": "b", "version": "1.0.0", "deps": {"shared": "2.0.0"}}
+    g_registry["shared:versions"] = ["1.0.0", "2.0.0"]
+    g_registry["shared@1.0.0"] = {"name": "shared", "version": "1.0.0", "deps": {}}
+    g_registry["shared@2.0.0"] = {"name": "shared", "version": "2.0.0", "deps": {}}
+    try
+        resolveDeps(conflictDeps, "root")
+        println("[14] conflict detection: FAIL (should have thrown)")
+    catch e
+        bool isConflict = string.contains(e.message, "conflict")
+        println("[14] conflict detected:", isConflict ? "PASS" : "FAIL", "(" + e.message + ")")
+    end
+
+    println("=== test complete ===")
+    return 0
+end
+
+// ============================================================
+// 主入口
+// ============================================================
+
+func main(...) as int
+    g_rootDir = path.appDir()
+    if arg.length >= 2 then g_rootDir = string(arg[1]) end
+
+    if arg.length < 2 then
+        println("xpkg — xlang package manager")
+        println("")
+        println("Usage: xpkg <command> [args]")
+        println("")
+        println("Commands:")
+        println("  init       Create xpkg.json")
+        println("  install    Resolve and install dependencies")
+        println("  list       List installed packages")
+        println("  tree       Show dependency tree")
+        println("  test       Run self-test")
+        return 0
+    end
+
+    string cmd = string.lower(string(arg[1]))
+
+    string regPath = path.join(g_rootDir, "registry")
+    initRegistry(regPath)
+
+    if cmd == "init" then return cmdInit()
+    elseif cmd == "install" then return cmdInstall()
+    elseif cmd == "list" then return cmdList()
+    elseif cmd == "tree" then return cmdTree()
+    elseif cmd == "test" then
+        g_rootDir = "."
+        return cmdTest()
+    else
+        println("Unknown command:", cmd)
+        return 1
+    end
+end

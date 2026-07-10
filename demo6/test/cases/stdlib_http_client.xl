@@ -1,3 +1,5 @@
+var sharedHttpReplies = []
+
 func requireLine(string name, bool ok)
     assert ok, name
     println(name + "=ok")
@@ -9,7 +11,7 @@ func route(point reqHandle, point respHandle) as bool
 
     if req.method() == "GET" and req.path() == "/hello" then
         resp.header("X-Reply", "hello")
-        return resp.text("client hello")
+        return resp.text(string(sharedHttpReplies[0]["body"]))
     end
 
     if req.method() == "POST" and req.path() == "/echo" then
@@ -26,6 +28,7 @@ func route(point reqHandle, point respHandle) as bool
 end
 
 func(point, point) as bool handler = route
+sharedHttpReplies.push({"body": "client hello"})
 point server = http.server.create(0, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 1)
 http.server.getRequest(server, "/hello", handler)
 http.server.postRequest(server, "/echo", handler)

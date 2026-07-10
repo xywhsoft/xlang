@@ -1,0 +1,23 @@
+var dynamicValues = [10, 20, 30]
+assert int(dynamicValues[-1]) == 30, "dynamic array -1 should read the last item"
+assert int(dynamicValues[-3]) == 10, "dynamic array -length should read the first item"
+assert dynamicValues?[-4] == null, "dynamic array index before -length should be missing"
+dynamicValues[-2] = 99
+assert int(dynamicValues[1]) == 99, "dynamic array negative write should update the matching item"
+
+array untypedValues = [40, 50, 60]
+assert int(untypedValues[-1]) == 60, "array negative read should use sequence semantics"
+untypedValues[-3] = 41
+assert int(untypedValues[0]) == 41, "array negative write should use sequence semantics"
+
+array<int> typedValues = array[70, 80, 90]
+assert typedValues[-1] == 90, "typed array negative read should use sequence semantics"
+assert int(typedValues?[-3]) == 70, "typed array safe negative read should use sequence semantics"
+assert typedValues?[-4] == null, "typed array safe out-of-range read should return null"
+typedValues[-2] = 88
+assert typedValues[1] == 88, "typed array negative write should update the matching item"
+
+list<int> sparse = list[-1: 7]
+assert sparse[-1] == 7, "list negative keys should remain sparse int64 keys"
+sparse[-2] = 8
+assert sparse[-2] == 8, "list negative writes should not use array tail semantics"

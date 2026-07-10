@@ -1,0 +1,8 @@
+array<int> values = [7, 42]
+string result = ""
+
+for value in values
+    result = result + f"{value}"
+end
+
+assert result == "742", "typed container loop values should enable f-string conversion runtime"

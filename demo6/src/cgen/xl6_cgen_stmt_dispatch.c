@@ -114,9 +114,9 @@ static int xl6CgenReturnTrySingleValueStmt(
     concreteReturnType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, returnType));
     if ( concreteReturnType != NULL && xl6CTextEquals(concreteReturnType->text, "string") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "const char* %s = xl6_xrt_str_dup(", returnName);
+        xl6OutputPrintf(ctx->out, "const char* %s = xrtCopyStr(", returnName);
         xl6CgenExpr(ctx, expr);
-        xl6OutputPuts(");\n", ctx->out);
+        xl6OutputPuts(", 0u);\n", ctx->out);
         return 1;
     }
 
@@ -144,6 +144,42 @@ static int xl6CgenReturnTrySingleValueStmt(
     }
 
     return 0;
+}
+
+static void xl6CgenPrepareMultiStringReturns(XL6_CgenContext* ctx, int returnId)
+{
+    size_t i;
+
+    if ( ctx == NULL || ctx->currentReturns == NULL || ctx->currentReturns->childCount <= 1 ) {
+        return;
+    }
+    for ( i = 0; i < ctx->currentReturns->childCount; ++i ) {
+        if ( !xl6CgenIsStringTypeNode(ctx, ctx->currentReturns->children[i]) ) {
+            continue;
+        }
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out,
+                        "__xl6_return_%d.value%u = xrtCopyStr(__xl6_return_%d.value%u, 0u);\n",
+                        returnId, (unsigned)i, returnId, (unsigned)i);
+    }
+}
+
+static void xl6CgenPromoteMultiStringReturns(XL6_CgenContext* ctx, int returnId)
+{
+    size_t i;
+
+    if ( ctx == NULL || ctx->currentReturns == NULL || ctx->currentReturns->childCount <= 1 ) {
+        return;
+    }
+    for ( i = 0; i < ctx->currentReturns->childCount; ++i ) {
+        if ( !xl6CgenIsStringTypeNode(ctx, ctx->currentReturns->children[i]) ) {
+            continue;
+        }
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out,
+                        "__xl6_return_%d.value%u = xrtTempStringTake((char*)__xl6_return_%d.value%u, 0u);\n",
+                        returnId, (unsigned)i, returnId, (unsigned)i);
+    }
 }
 
 static int xl6CgenReturnCanMultiXValueFieldStmt(
@@ -206,6 +242,28 @@ static int xl6CgenReturnTryMultiXValueFieldStmt(
 
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s = %s;\n", returnField, tempName);
+    return 1;
+}
+
+static int xl6CgenReturnTryMultiTypedContainerFieldStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* returnType,
+    const char* returnField,
+    const XL6_AstNode* expr)
+{
+    if ( ctx == NULL || returnType == NULL || returnField == NULL || expr == NULL ||
+         !xl6CgenIsTypedContainerType(ctx, returnType) ) {
+        return 0;
+    }
+
+    /* 返回结构体取得独立所有权，函数局部值仍由原作用域正常释放。 */
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = ", returnField);
+    xl6CgenTypedContainerValueFromExpr(ctx, returnType, expr);
+    xl6OutputPuts(";\n", ctx->out);
+    if ( xl6CgenTypedContainerInitLiteral(ctx, returnType, expr) != NULL ) {
+        xl6CgenTypedContainerFillFromLiteral(ctx, returnField, returnType, expr);
+    }
     return 1;
 }
 
@@ -372,6 +430,9 @@ static int xl6CgenTryPrintIntrinsicStatement(XL6_CgenContext* ctx, const XL6_Ast
 
 static void xl6CgenExprStatementBody(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
+    XL6_CgenClassExprTempScope classScope;
+    int hasClassScope;
+
     if ( expr != NULL && xl6CgenTryPrintIntrinsicStatement(ctx, expr) ) {
         return;
     }
@@ -381,10 +442,17 @@ static void xl6CgenExprStatementBody(XL6_CgenContext* ctx, const XL6_AstNode* ex
     if ( expr != NULL && xl6CgenTryKnownCallStatementWithScalarArgTemps(ctx, expr) ) {
         return;
     }
+    hasClassScope = expr != NULL && xl6CgenClassExprTempScopeBegin(ctx, expr, &classScope);
     if ( expr != NULL && xl6CgenTryMemberFunctionStatementInvoke(ctx, expr) ) {
+        if ( hasClassScope ) {
+            xl6CgenClassExprTempScopeEnd(ctx, &classScope);
+        }
         return;
     }
     if ( expr != NULL && xl6CgenTryDiscardExpressionStatement(ctx, expr) ) {
+        if ( hasClassScope ) {
+            xl6CgenClassExprTempScopeEnd(ctx, &classScope);
+        }
         return;
     }
 
@@ -393,11 +461,17 @@ static void xl6CgenExprStatementBody(XL6_CgenContext* ctx, const XL6_AstNode* ex
         xl6CgenExpr(ctx, expr);
     }
     xl6OutputPuts(";\n", ctx->out);
+    if ( hasClassScope ) {
+        xl6CgenClassExprTempScopeEnd(ctx, &classScope);
+    }
 }
 
 static int xl6CgenTryAssignWithTaskSpawnArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     XL6_CgenTaskSpawnArgTempScope scope;
+    XL6_CgenCallArgTempScope callScope;
+    const XL6_AstNode* right;
+    int hasCallScope;
 
     if ( ctx == NULL || node == NULL || node->kind != XL6_AST_ASSIGN || node->childCount < 2 ) {
         return 0;
@@ -407,8 +481,33 @@ static int xl6CgenTryAssignWithTaskSpawnArgTemps(XL6_CgenContext* ctx, const XL6
         return 0;
     }
 
+    right = node->children[1];
+    hasCallScope = right != NULL && right->kind != XL6_AST_CALL &&
+                   xl6CgenCallArgTempScopeBegin(ctx, right, &callScope);
     xl6CgenAssignStmt(ctx, node);
+    if ( hasCallScope ) {
+        xl6CgenCallArgTempScopeEnd(ctx, &callScope);
+    }
     xl6CgenTaskSpawnArgTempScopeEnd(ctx, &scope);
+    return 1;
+}
+
+static int xl6CgenTryAssignWithNestedCallArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    XL6_CgenCallArgTempScope scope;
+    const XL6_AstNode* right;
+
+    if ( ctx == NULL || node == NULL || node->kind != XL6_AST_ASSIGN || node->childCount < 2 ) {
+        return 0;
+    }
+    right = node->children[1];
+    if ( right == NULL || right->kind == XL6_AST_CALL ||
+         !xl6CgenCallArgTempScopeBegin(ctx, right, &scope) ) {
+        return 0;
+    }
+
+    xl6CgenAssignStmt(ctx, node);
+    xl6CgenCallArgTempScopeEnd(ctx, &scope);
     return 1;
 }
 
@@ -469,7 +568,8 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenEmitExceptionPropagate(ctx, node);
         break;
     case XL6_AST_ASSIGN:
-        if ( !xl6CgenTryAssignWithTaskSpawnArgTemps(ctx, node) ) {
+        if ( !xl6CgenTryAssignWithTaskSpawnArgTemps(ctx, node) &&
+             !xl6CgenTryAssignWithNestedCallArgTemps(ctx, node) ) {
             xl6CgenAssignStmt(ctx, node);
         }
         xl6CgenEmitExceptionPropagate(ctx, node);
@@ -496,6 +596,13 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         if ( node->childCount > 0 ) {
             int id = ctx->tempId++;
             char returnName[64];
+            char movedCleanupName[512];
+            XL6_CgenClassExprTempScope returnArgScope;
+            int hasReturnArgScope;
+
+            movedCleanupName[0] = '\0';
+            hasReturnArgScope = node->childCount == 1 &&
+                                xl6CgenClassExprTempScopeBegin(ctx, node->children[0], &returnArgScope);
 
             if ( ctx->currentReturns != NULL && ctx->currentReturns->childCount > 1 &&
                  node->childCount == 1 &&
@@ -513,21 +620,50 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6OutputPrintf(ctx->out, " __xl6_return_%d;\n", id);
                 for ( i = 0; i < node->childCount; ++i ) {
                     const XL6_AstNode* retType = ctx->currentReturns->children[i];
+                    XL6_CgenClassExprTempScope fieldArgScope;
+                    int hasFieldArgScope;
                     char returnValuePath[96];
 
                     snprintf(returnValuePath, sizeof(returnValuePath), "__xl6_return_%d.value%u", id, (unsigned)i);
-                    if ( !xl6CgenReturnTryMultiXValueFieldStmt(ctx, retType, returnValuePath, node->children[i]) &&
+                    hasFieldArgScope = xl6CgenClassExprTempScopeBegin(ctx, node->children[i], &fieldArgScope);
+                    if ( !xl6CgenReturnTryMultiTypedContainerFieldStmt(ctx, retType, returnValuePath, node->children[i]) &&
+                         !xl6CgenReturnTryMultiXValueFieldStmt(ctx, retType, returnValuePath, node->children[i]) &&
                          !xl6CgenReturnTryMultiScalarFieldStmt(ctx, retType, returnValuePath, node->children[i]) ) {
-                        xl6CgenIndent(ctx);
-                        xl6OutputPrintf(ctx->out, "%s = ", returnValuePath);
-                        if ( xl6CgenIsXValueType(retType) ) {
-                            xl6CgenXValueFromExprForTarget(ctx, retType, node->children[i]);
-                        } else if ( xl6CgenIsFunctionType(retType) ) {
-                            xl6CgenFunctionValueExpr(ctx, node->children[i], retType);
-                        } else {
-                            xl6CgenExpr(ctx, node->children[i]);
+                        XL6_AstNode* returnClass = xl6CgenClassNodeForType(ctx, retType);
+                        XL6_AstNode* ctorClass = NULL;
+                        XL6_AstNode* genericCtorType = NULL;
+                        int isClassCtor = xl6CgenCallIsClassCtor(ctx, node->children[i], &ctorClass);
+                        int emittedCtor;
+
+                        if ( !isClassCtor ) {
+                            genericCtorType = xl6CgenGenericClassCtorType(ctx, node->children[i], &ctorClass);
+                            isClassCtor = genericCtorType != NULL;
                         }
-                        xl6OutputPuts(";\n", ctx->out);
+                        emittedCtor = returnClass != NULL &&
+                                      isClassCtor &&
+                                      ctorClass != NULL &&
+                                      xl6CTextEquals(returnClass->text, ctorClass->text) &&
+                                      xl6CgenEmitClassCtorInto(ctx, node->children[i], returnValuePath);
+                        xl6AstFree(genericCtorType);
+
+                        if ( emittedCtor ) {
+                            ;
+                        } else if ( xl6CgenIsXValueType(retType) ) {
+                            xl6CgenIndent(ctx);
+                            xl6OutputPrintf(ctx->out, "%s = ", returnValuePath);
+                            xl6CgenXValueFromExprForTarget(ctx, retType, node->children[i]);
+                            xl6OutputPuts(";\n", ctx->out);
+                        } else if ( xl6CgenIsFunctionType(retType) ) {
+                            xl6CgenIndent(ctx);
+                            xl6OutputPrintf(ctx->out, "%s = ", returnValuePath);
+                            xl6CgenFunctionValueExpr(ctx, node->children[i], retType);
+                            xl6OutputPuts(";\n", ctx->out);
+                        } else {
+                            xl6CgenIndent(ctx);
+                            xl6OutputPrintf(ctx->out, "%s = ", returnValuePath);
+                            xl6CgenExpr(ctx, node->children[i]);
+                            xl6OutputPuts(";\n", ctx->out);
+                        }
                     }
                     if ( xl6CgenIsFunctionType(retType) && xl6CgenExprIsFunctionBorrow(ctx, node->children[i]) ) {
                         xl6CgenIndent(ctx);
@@ -542,6 +678,9 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                         xl6OutputPuts("}\n", ctx->out);
                     }
                     xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, retType, returnValuePath, node->children[i]);
+                    if ( hasFieldArgScope ) {
+                        xl6CgenClassExprTempScopeEnd(ctx, &fieldArgScope);
+                    }
                 }
             } else if ( ctx->currentReturnType != NULL &&
                         xl6CgenFuncSingleReturnUsesTypedContainerStorage(ctx, ctx->currentReturnFunc) ) {
@@ -584,10 +723,30 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 snprintf(returnName, sizeof(returnName), "__xl6_return_%d", id);
                 xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, ctx->currentReturnType, returnName, node->children[0]);
                 xl6CgenClearMovedNativeClassReturnSource(ctx, node->children[0]);
+                if ( node->children[0] != NULL &&
+                     node->children[0]->kind == XL6_AST_NAME &&
+                     xl6CgenClassCleanupIsTracked(ctx, node->children[0]->text) ) {
+                    xl6CgenCIdentText(movedCleanupName, sizeof(movedCleanupName), node->children[0]->text);
+                }
             }
-            xl6CgenEmitCleanupsSince(ctx, 0);
+            if ( hasReturnArgScope ) {
+                xl6CgenClassExprTempScopeEnd(ctx, &returnArgScope);
+            }
+            xl6CgenPrepareMultiStringReturns(ctx, id);
+            xl6CgenEmitCleanupsSinceExcept(
+                ctx,
+                0,
+                movedCleanupName[0] != '\0' ? movedCleanupName : NULL);
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "return __xl6_return_%d;\n", id);
+            if ( ctx->currentReturns != NULL && ctx->currentReturns->childCount > 1 ) {
+                xl6CgenPromoteMultiStringReturns(ctx, id);
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(ctx->out, "return __xl6_return_%d;\n", id);
+            } else if ( xl6CgenIsStringTypeNode(ctx, ctx->currentReturnType) ) {
+                xl6OutputPrintf(ctx->out, "return xrtTempStringTake((char*)__xl6_return_%d, 0u);\n", id);
+            } else {
+                xl6OutputPrintf(ctx->out, "return __xl6_return_%d;\n", id);
+            }
         } else {
             xl6CgenEmitCleanupsSince(ctx, 0);
             xl6CgenIndent(ctx);

@@ -1,0 +1,41 @@
+class ValueBox
+    string text
+
+    create(string value)
+        self.text = value
+    end
+end
+
+class GenericValueBox<T>
+    T value
+    string text
+
+    create(T value, string text)
+        self.value = value
+        self.text = text
+    end
+end
+
+func mutateValue(ValueBox box, string value) as string
+    box.text = value
+    return box.text
+end
+
+func mutateGeneric(GenericValueBox<int> box, string value) as string
+    box.value = box.value + 1
+    box.text = value
+    return box.text
+end
+
+ValueBox source = ValueBox("source")
+GenericValueBox<int> genericSource = GenericValueBox::<int>(7, "generic-source")
+
+for i in range(0, 64)
+    assert mutateValue(source, "local") == "local", "class value parameter mutation failed"
+    assert source.text == "source", "class value parameter changed caller ownership"
+    assert mutateGeneric(genericSource, "generic-local") == "generic-local", "generic class value parameter mutation failed"
+    assert genericSource.value == 7, "generic class value parameter changed caller scalar field"
+    assert genericSource.text == "generic-source", "generic class value parameter changed caller ownership"
+end
+
+println("class parameter value ownership ok")

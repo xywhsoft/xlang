@@ -1,0 +1,886 @@
+// dhkeyex - Diffie-Hellman 密钥交换模拟（大整数用十进制字符串模拟）
+//
+// 用法：
+//   dhkeyex simulate [p] [g]       DH 密钥交换全流程演示（默认大素数 2^61-1, g=2）
+//   dhkeyex mitm    [p] [g]        中间人攻击演示（Eve 拦截替换公钥）
+//   dhkeyex test                    小参数验证（p=23, g=5）+ 大数自检
+//
+// 设计要点：
+//   - 大整数以十进制字符串存储（可选前导 +/-），不依赖 int64。
+//   - 加/减/乘为字符串逐位竖式；模用长除法逐位求商（参考 rsalab.xl）。
+//   - 模幂 bigModPow 用快速幂（平方求幂），指数按 /2 右移逐位处理。
+//   - Miller-Rabin 使用确定性见证集 [2,3,5,...,37]，对 n < 3.3e24 结果精确。
+//   - DH 流程：Alice 选私钥 a → A=g^a mod p；Bob 选私钥 b → B=g^b mod p；
+//     共享密钥 Alice=B^a mod p, Bob=A^b mod p，由 (g^b)^a=(g^a)^b=g^(ab) 保证一致。
+//   - MITM：Eve 拦截 A/B 后用自己的公钥替换，Alice/Bob 各与 Eve 建立不同密钥。
+
+// ============================================================
+// 数字字符串工具（adapted from rsalab.xl）
+// ============================================================
+
+func rawDigits(string s) as string
+    int n = string.len(s)
+    if n == 0 then
+        return s
+    end
+    string c0 = string.charAt(s, 0)
+    if c0 == "-" or c0 == "+" then
+        return string.slice(s, 1)
+    end
+    return s
+end
+
+func signOf(string s) as int
+    if string.len(s) > 0 and string.charAt(s, 0) == "-" then
+        return -1
+    end
+    return 1
+end
+
+func stripLeadZeros(string body) as string
+    int n = string.len(body)
+    int i = 0
+    while i < n do
+        if string.charAt(body, i) != "0" then
+            break
+        end
+        i += 1
+    end
+    string digits = string.slice(body, i)
+    if digits == "" then
+        return "0"
+    end
+    return digits
+end
+
+func normalize(string s) as string
+    int sign = signOf(s)
+    string digits = stripLeadZeros(rawDigits(s))
+    if digits == "0" then
+        return "0"
+    end
+    if sign < 0 then
+        return "-" + digits
+    end
+    return digits
+end
+
+func isValidNumber(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int start = 0
+    string c0 = string.charAt(s, 0)
+    if c0 == "-" or c0 == "+" then
+        start = 1
+        if n == 1 then
+            return false
+        end
+    end
+    int i = start
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+func applySign(int sign, string mag) as string
+    if mag == "0" then
+        return "0"
+    end
+    if sign < 0 then
+        return "-" + mag
+    end
+    return mag
+end
+
+// ============================================================
+// 无符号运算
+// ============================================================
+
+func cmpAbs(string a, string b) as int
+    int la = string.len(a)
+    int lb = string.len(b)
+    if la > lb then
+        return 1
+    end
+    if la < lb then
+        return -1
+    end
+    int i = 0
+    while i < la do
+        int da = string.byteAt(a, i) - 48
+        int db = string.byteAt(b, i) - 48
+        if da > db then
+            return 1
+        end
+        if da < db then
+            return -1
+        end
+        i += 1
+    end
+    return 0
+end
+
+func addAbs(string a, string b) as string
+    string ra = string.reverse(a)
+    string rb = string.reverse(b)
+    int la = string.len(ra)
+    int lb = string.len(rb)
+    int n = la
+    if lb > n then
+        n = lb
+    end
+    string out = ""
+    int carry = 0
+    int i = 0
+    while i < n do
+        int da = 0
+        int db = 0
+        if i < la then
+            da = string.byteAt(ra, i) - 48
+        end
+        if i < lb then
+            db = string.byteAt(rb, i) - 48
+        end
+        int sum = da + db + carry
+        carry = sum / 10
+        out = out + string.charAt("0123456789", sum - carry * 10)
+        i += 1
+    end
+    if carry > 0 then
+        out = out + "1"
+    end
+    return string.reverse(out)
+end
+
+func subAbs(string a, string b) as string
+    string ra = string.reverse(a)
+    string rb = string.reverse(b)
+    int la = string.len(ra)
+    int lb = string.len(rb)
+    string out = ""
+    int borrow = 0
+    int i = 0
+    while i < la do
+        int da = string.byteAt(ra, i) - 48
+        int db = 0
+        if i < lb then
+            db = string.byteAt(rb, i) - 48
+        end
+        int diff = da - db - borrow
+        if diff < 0 then
+            diff = diff + 10
+            borrow = 1
+        else
+            borrow = 0
+        end
+        out = out + string.charAt("0123456789", diff)
+        i += 1
+    end
+    return stripLeadZeros(string.reverse(out))
+end
+
+func mulDigit(string a, int d) as string
+    if d == 0 then
+        return "0"
+    end
+    string ra = string.reverse(a)
+    int la = string.len(ra)
+    string out = ""
+    int carry = 0
+    int i = 0
+    while i < la do
+        int da = string.byteAt(ra, i) - 48
+        int prod = da * d + carry
+        carry = prod / 10
+        out = out + string.charAt("0123456789", prod - carry * 10)
+        i += 1
+    end
+    while carry > 0 do
+        int m = carry % 10
+        out = out + string.charAt("0123456789", m)
+        carry = carry / 10
+    end
+    return string.reverse(out)
+end
+
+func mulAbs(string a, string b) as string
+    if a == "0" or b == "0" then
+        return "0"
+    end
+    string rb = string.reverse(b)
+    int lb = string.len(rb)
+    string result = "0"
+    int j = 0
+    while j < lb do
+        int db = string.byteAt(rb, j) - 48
+        string row = mulDigit(a, db)
+        if row != "0" then
+            if j > 0 then
+                row = row + string.repeat("0", j)
+            end
+            result = addAbs(result, row)
+        end
+        j += 1
+    end
+    return result
+end
+
+// ============================================================
+// 带符号运算
+// ============================================================
+
+func bigAdd(string a, string b) as string
+    string na = normalize(a)
+    string nb = normalize(b)
+    int sa = signOf(na)
+    string da = rawDigits(na)
+    int sb = signOf(nb)
+    string db = rawDigits(nb)
+    if sa == sb then
+        return applySign(sa, addAbs(da, db))
+    end
+    int c = cmpAbs(da, db)
+    if c == 0 then
+        return "0"
+    end
+    if c > 0 then
+        return applySign(sa, subAbs(da, db))
+    end
+    return applySign(sb, subAbs(db, da))
+end
+
+func bigSub(string a, string b) as string
+    string nb = normalize(b)
+    if nb == "0" then
+        return normalize(a)
+    end
+    if string.charAt(nb, 0) == "-" then
+        return bigAdd(a, string.slice(nb, 1))
+    end
+    return bigAdd(a, "-" + nb)
+end
+
+func bigMul(string a, string b) as string
+    string na = normalize(a)
+    string nb = normalize(b)
+    int sa = signOf(na)
+    string da = rawDigits(na)
+    int sb = signOf(nb)
+    string db = rawDigits(nb)
+    int sign = sa * sb
+    return applySign(sign, mulAbs(da, db))
+end
+
+// ============================================================
+// 除法 / 取模
+// ============================================================
+
+func divmodAbs(string a, string b) as (string, string)
+    if cmpAbs(a, b) < 0 then
+        return "0", a
+    end
+    string rem = "0"
+    string quot = ""
+    int la = string.len(a)
+    int i = 0
+    while i < la do
+        int d = string.byteAt(a, i) - 48
+        rem = stripLeadZeros(rem + string.charAt("0123456789", d))
+        int q = 0
+        int k = 9
+        while k >= 1 do
+            if cmpAbs(mulDigit(b, k), rem) <= 0 then
+                q = k
+                break
+            end
+            k -= 1
+        end
+        quot = quot + string.charAt("0123456789", q)
+        if q > 0 then
+            rem = subAbs(rem, mulDigit(b, q))
+        end
+        i += 1
+    end
+    return stripLeadZeros(quot), stripLeadZeros(rem)
+end
+
+func bigDiv(string a, string b) as string
+    auto q, _ = divmodAbs(rawDigits(normalize(a)), rawDigits(normalize(b)))
+    return q
+end
+
+func bigMod(string a, string m) as string
+    string na = normalize(a)
+    string nm = normalize(m)
+    if nm == "0" then
+        throw "bigMod: modulo by zero"
+    end
+    int sign = signOf(na)
+    string mag = rawDigits(na)
+    if mag == "0" then
+        return "0"
+    end
+    auto _, r = divmodAbs(mag, nm)
+    if sign < 0 and r != "0" then
+        r = subAbs(nm, r)
+    end
+    return r
+end
+
+// ============================================================
+// 除 2 / 奇偶
+// ============================================================
+
+func div2(string a) as string
+    string out = ""
+    int rem = 0
+    int n = string.len(a)
+    int i = 0
+    while i < n do
+        int d = string.byteAt(a, i) - 48 + rem * 10
+        out = out + string.charAt("0123456789", d / 2)
+        rem = d % 2
+        i += 1
+    end
+    return stripLeadZeros(out)
+end
+
+func isEven(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return true
+    end
+    int ld = string.byteAt(s, n - 1) - 48
+    return ld % 2 == 0
+end
+
+func isOdd(string s) as bool
+    return isEven(s) == false
+end
+
+// ============================================================
+// 模幂（快速幂）—— DH 核心
+// ============================================================
+
+// base^exp mod m，全部非负大数；按 exp 的二进制位平方求幂。
+func bigModPow(string base, string exp, string mod) as string
+    string m = normalize(mod)
+    if m == "0" then
+        throw "bigModPow: modulo by zero"
+    end
+    if m == "1" then
+        return "0"
+    end
+    string result = "1"
+    string b = bigMod(base, m)
+    string e = normalize(exp)
+    while e != "0" do
+        if isOdd(e) then
+            result = bigMod(bigMul(result, b), m)
+        end
+        e = div2(e)
+        if e != "0" then
+            b = bigMod(bigMul(b, b), m)
+        end
+    end
+    return bigMod(result, m)
+end
+
+func bigGcd(string a, string b) as string
+    string x = normalize(a)
+    string y = normalize(b)
+    while y != "0" do
+        string r = bigMod(x, y)
+        x = y
+        y = r
+    end
+    return x
+end
+
+// ============================================================
+// Miller-Rabin 素性检验
+// ============================================================
+
+func millerRabin(string n) as bool
+    string nn = normalize(n)
+    if cmpAbs(nn, "2") < 0 then
+        return false
+    end
+    if nn == "2" then
+        return true
+    end
+    if isEven(nn) then
+        return false
+    end
+    if nn == "3" then
+        return true
+    end
+    string n1 = bigSub(nn, "1")
+    string d = n1
+    int r = 0
+    while isEven(d) do
+        d = div2(d)
+        r += 1
+    end
+    array<string> witnesses = array["2", "3", "5", "7", "11", "13", "17", "19", "23", "29", "31", "37"]
+    for a in witnesses
+        if cmpAbs(nn, a) <= 0 then
+            continue
+        end
+        string x = bigModPow(a, d, nn)
+        if x == "1" or x == n1 then
+            continue
+        end
+        bool composite = true
+        int j = 0
+        while j < r - 1 do
+            x = bigModPow(x, "2", nn)
+            if x == n1 then
+                composite = false
+                break
+            end
+            j += 1
+        end
+        if composite then
+            return false
+        end
+    end
+    return true
+end
+
+// ============================================================
+// 随机大数生成
+// ============================================================
+
+const string DIGITS = "0123456789"
+
+// 生成 ndigits 位随机十进制正整数字符串（首位 1-9 避免过小）。
+func randDigits(int ndigits) as string
+    if ndigits <= 0 then
+        return "0"
+    end
+    string s = string.charAt(DIGITS, random.range(1, 9))
+    int i = 1
+    while i < ndigits do
+        s = s + string.charAt(DIGITS, random.range(0, 9))
+        i += 1
+    end
+    return s
+end
+
+// 生成 DH 私钥：[2, p-2] 区间内的随机大数。
+func dhGenPrivate(string p) as string
+    string upper = bigSub(p, "2")
+    int nd = string.len(p)
+    string r = "0"
+    int tries = 0
+    // 采样直到落在 [2, p-2] 内（拒绝采样）
+    while true do
+        r = randDigits(nd)
+        if cmpAbs(r, upper) <= 0 and cmpAbs(r, "2") >= 0 then
+            break
+        end
+        tries += 1
+        if tries > 1000 then
+            // 兜底：直接取模
+            r = bigAdd(bigMod(randDigits(nd), bigSub(upper, "1")), "2")
+            break
+        end
+    end
+    return r
+end
+
+// ============================================================
+// DH 核心函数
+// ============================================================
+
+// Alice/Bob 公钥计算：A = g^priv mod p
+func dhPublicKey(string g, string priv, string p) as string
+    return bigModPow(g, priv, p)
+end
+
+// 共享密钥计算：s = peerPublic^priv mod p
+func dhSharedSecret(string peerPublic, string priv, string p) as string
+    return bigModPow(peerPublic, priv, p)
+end
+
+// ============================================================
+// 输出辅助
+// ============================================================
+
+func printBar(string title)
+    println("============================================================")
+    println(title)
+    println("============================================================")
+end
+
+// 截断显示大数（超过 60 字符只显示首尾）
+func truncShow(string s) as string
+    int n = string.len(s)
+    if n <= 60 then
+        return s
+    end
+    return string.left(s, 30) + "..." + string.right(s, 24) + " (" + string(n) + " digits)"
+end
+
+// label 已含缩进；println 自动在参数间加空格，故 label 不带尾空格。
+func fullOrTrunc(string label, string value)
+    int n = string.len(value)
+    if n <= 60 then
+        println(label, "=", value)
+    else
+        println(label, "=", truncShow(value))
+    end
+end
+
+// ============================================================
+// 命令：simulate —— 正常密钥交换流程
+// ============================================================
+
+func cmdSimulate(string p, string g) as int
+    printBar("=== Diffie-Hellman Key Exchange Simulation ===")
+    println()
+
+    // --- DH 参数 ---
+    println("[1] DH Parameters")
+    int pdigits = string.len(p)
+    println("  prime p =", truncShow(p), "(" + string(pdigits) + " digits)")
+    println("  generator g =", g)
+
+    // 验证 p 的素性
+    bool prime = millerRabin(p)
+    if prime then
+        println("  primality (Miller-Rabin): PRIME")
+    else
+        println("  primality (Miller-Rabin): COMPOSITE (warning: insecure!)")
+    end
+
+    // 检查 g 的阶：g^(p-1) mod p 应为 1（Fermat 小定理）
+    string orderCheck = bigModPow(g, bigSub(p, "1"), p)
+    if orderCheck == "1" then
+        println("  g^(p-1) mod p = 1  (generator check: OK)")
+    else
+        println("  g^(p-1) mod p =", orderCheck, "(anomalous)")
+    end
+    println()
+
+    // --- Alice ---
+    println("[2] Alice")
+    string a = dhGenPrivate(p)
+    string A = dhPublicKey(g, a, p)
+    fullOrTrunc("  private a", a)
+    fullOrTrunc("  public  A = g^a mod p", A)
+    println()
+
+    // --- Bob ---
+    println("[3] Bob")
+    string b = dhGenPrivate(p)
+    string B = dhPublicKey(g, b, p)
+    fullOrTrunc("  private b", b)
+    fullOrTrunc("  public  B = g^b mod p", B)
+    println()
+
+    // --- 交换 + 共享密钥 ---
+    println("[4] Key Exchange")
+    println("  Alice <- B (from Bob)")
+    println("  Bob   <- A (from Alice)")
+    println()
+
+    string sAlice = dhSharedSecret(B, a, p)
+    string sBob = dhSharedSecret(A, b, p)
+
+    println("[5] Shared Secret Computation")
+    fullOrTrunc("  Alice: B^a mod p", sAlice)
+    fullOrTrunc("  Bob:   A^b mod p", sBob)
+    println()
+
+    // --- 结果 ---
+    println("[6] Result")
+    if sAlice == sBob then
+        println("  MATCH: YES  (Alice and Bob share the same secret key)")
+        println("  shared secret =", truncShow(sAlice))
+        println()
+        println("  Math: (g^b)^a mod p = (g^a)^b mod p = g^(a*b) mod p")
+        println("  An eavesdropper seeing A, B, g, p cannot derive g^(ab)")
+        println("  without solving the discrete logarithm problem.")
+    else
+        println("  MATCH: NO  (something went wrong!)")
+    end
+
+    return 0
+end
+
+// ============================================================
+// 命令：mitm —— 中间人攻击演示
+// ============================================================
+
+func cmdMitm(string p, string g) as int
+    printBar("=== Diffie-Hellman Man-In-The-Middle Attack ===")
+    println()
+
+    println("[1] DH Parameters")
+    println("  prime p =", truncShow(p))
+    println("  generator g =", g)
+    println()
+
+    // --- Alice & Bob 各自生成密钥对 ---
+    println("[2] Alice generates key pair")
+    string a = dhGenPrivate(p)
+    string A = dhPublicKey(g, a, p)
+    fullOrTrunc("  private a", a)
+    fullOrTrunc("  public  A", A)
+    println()
+
+    println("[3] Bob generates key pair")
+    string b = dhGenPrivate(p)
+    string B = dhPublicKey(g, b, p)
+    fullOrTrunc("  private b", b)
+    fullOrTrunc("  public  B", B)
+    println()
+
+    // --- Eve 生成两组密钥对 ---
+    println("[4] Eve generates TWO key pairs (to attack both sides)")
+    string eB = dhGenPrivate(p)
+    string EveB = dhPublicKey(g, eB, p)
+    string eA = dhGenPrivate(p)
+    string EveA = dhPublicKey(g, eA, p)
+    fullOrTrunc("  Eve->Alice:  private eB", eB)
+    fullOrTrunc("               public EveB = g^eB mod p", EveB)
+    fullOrTrunc("  Eve->Bob:    private eA", eA)
+    fullOrTrunc("               public EveA = g^eA mod p", EveA)
+    println()
+
+    // --- 拦截替换 ---
+    println("[5] Interception & Replacement")
+    println("  Alice sends A --> [Eve intercepts]")
+    println("  Bob   sends B --> [Eve intercepts]")
+    println("  Eve sends EveB --> Alice   (pretending to be Bob)")
+    println("  Eve sends EveA --> Bob     (pretending to be Alice)")
+    println()
+
+    // --- 计算共享密钥 ---
+    println("[6] Shared Secret Computation")
+    string aliceSecret = dhSharedSecret(EveB, a, p)
+    string eveWithAlice = dhSharedSecret(A, eB, p)
+    string bobSecret = dhSharedSecret(EveA, b, p)
+    string eveWithBob = dhSharedSecret(B, eA, p)
+
+    fullOrTrunc("  Alice: EveB^a mod p", aliceSecret)
+    fullOrTrunc("  Eve:   A^eB mod p", eveWithAlice)
+    println("  ---")
+    fullOrTrunc("  Bob:   EveA^b mod p", bobSecret)
+    fullOrTrunc("  Eve:   B^eA mod p", eveWithBob)
+    println()
+
+    // --- 结果 ---
+    println("[7] Result")
+    bool aliceOk = aliceSecret == eveWithAlice
+    bool bobOk = bobSecret == eveWithBob
+    bool mismatch = aliceSecret != bobSecret
+
+    if aliceOk then
+        println("  Eve can read Alice's traffic: YES  (secret matched)")
+    else
+        println("  Eve can read Alice's traffic: NO")
+    end
+    if bobOk then
+        println("  Eve can read Bob's traffic:   YES  (secret matched)")
+    else
+        println("  Eve can read Bob's traffic:   NO")
+    end
+    if mismatch then
+        println("  Alice's secret != Bob's secret: ATTACK SUCCESSFUL")
+        println("  --> Without authentication, Alice and Bob are unaware")
+        println("      that they share keys with Eve, not with each other.")
+    else
+        println("  Alice's secret == Bob's secret: attack failed")
+    end
+
+    return 0
+end
+
+// ============================================================
+// 命令：test —— 小参数验证 + 大数自检
+// ============================================================
+
+func assertStr(string label, string got, string want)
+    if got != want then
+        println("  FAIL:", label, "got=", got, "want=", want)
+        throw "test failed: " + label
+    end
+    println("  OK:", label, "=", got)
+end
+
+func assertBool(string label, bool got, bool want)
+    if got != want then
+        println("  FAIL:", label, "got=", got, "want=", want)
+        throw "test failed: " + label
+    end
+    println("  OK:", label)
+end
+
+func cmdTest() as int
+    printBar("=== DH Small Parameter Validation ===")
+    println()
+
+    // --- 大数基础运算 ---
+    println("[1] Big Integer Arithmetic")
+    assertStr("bigAdd", bigAdd("99999999999999999999", "1"), "100000000000000000000")
+    assertStr("bigSub", bigSub("100000000000000000000", "1"), "99999999999999999999")
+    assertStr("bigMul", bigMul("12345678901234567890", "98765432109876543210"), "1219326311370217952237463801111263526900")
+    assertStr("bigMod", bigMod("100000000000000000000", "7"), "2")
+    assertStr("bigModPow 2^10 mod 1000", bigModPow("2", "10", "1000"), "24")
+    println()
+
+    // --- 小参数 DH ---
+    // 经典教学用例 p=23, g=5
+    // a=6  -> A = 5^6  mod 23 = 8
+    // b=15 -> B = 5^15 mod 23 = 19
+    // shared = B^a mod p = A^b mod p = 2
+    println("[2] DH Key Exchange (p=23, g=5)")
+    string p = "23"
+    string g = "5"
+    string a = "6"
+    string b = "15"
+    string A = dhPublicKey(g, a, p)
+    string B = dhPublicKey(g, b, p)
+    assertStr("Alice A = 5^6 mod 23", A, "8")
+    assertStr("Bob   B = 5^15 mod 23", B, "19")
+
+    string sAlice = dhSharedSecret(B, a, p)
+    string sBob = dhSharedSecret(A, b, p)
+    assertStr("Alice B^6 mod 23", sAlice, "2")
+    assertStr("Bob   A^15 mod 23", sBob, "2")
+    if sAlice == sBob then
+        println("  >>> Shared secret matches:", sAlice)
+    else
+        println("  FAIL: secrets do not match")
+        throw "DH shared secret mismatch"
+    end
+    println()
+
+    // --- 小参数 MITM ---
+    // Eve: eA=4 -> EveA=5^4 mod 23=4 (发给 Bob)
+    //      eB=11-> EveB=5^11 mod 23=22(发给 Alice)
+    // Alice 算 EveB^6 mod 23 = 1 ; Eve 算 A^11 mod 23 = 1  (匹配)
+    // Bob   算 EveA^15 mod 23 = 3 ; Eve 算 B^4 mod 23 = 3  (匹配)
+    // Alice(1) != Bob(3) -> 中间人攻击成功
+    println("[3] MITM Attack (p=23, g=5)")
+    string eA = "4"
+    string eB = "11"
+    string EveA = dhPublicKey(g, eA, p)
+    string EveB = dhPublicKey(g, eB, p)
+    assertStr("EveA = 5^4 mod 23", EveA, "4")
+    assertStr("EveB = 5^11 mod 23", EveB, "22")
+
+    string aliceSec = dhSharedSecret(EveB, a, p)
+    string eveSecA = dhSharedSecret(A, eB, p)
+    string bobSec = dhSharedSecret(EveA, b, p)
+    string eveSecB = dhSharedSecret(B, eA, p)
+    assertStr("Alice: EveB^6 mod 23", aliceSec, "1")
+    assertStr("Eve:   A^11 mod 23", eveSecA, "1")
+    assertStr("Bob:   EveA^15 mod 23", bobSec, "3")
+    assertStr("Eve:   B^4 mod 23", eveSecB, "3")
+
+    if aliceSec == eveSecA and bobSec == eveSecB and aliceSec != bobSec then
+        println("  >>> MITM confirmed: Alice(" + aliceSec + ") != Bob(" + bobSec + ")")
+        println("      Eve knows BOTH secrets. Attack successful.")
+    else
+        println("  FAIL: MITM conditions not met")
+        throw "MITM test failed"
+    end
+    println()
+
+    // --- 素性检验 ---
+    println("[4] Miller-Rabin Primality")
+    assertBool("23 is prime", millerRabin("23"), true)
+    assertBool("22 is composite", millerRabin("22"), false)
+    assertBool("2^61-1 is prime", millerRabin("2305843009213693951"), true)
+    assertBool("561 is composite (Carmichael)", millerRabin("561"), false)
+    println()
+
+    println("All tests passed.")
+    return 0
+end
+
+// ============================================================
+// main
+// ============================================================
+
+// 默认大素数：p = 2^61 - 1 = 2305843009213693951（Mersenne prime M61）
+const string DEFAULT_P = "2305843009213693951"
+const string DEFAULT_G = "2"
+
+func printUsage()
+    println("dhkeyex - Diffie-Hellman Key Exchange Simulation")
+    println("Usage:")
+    println("  dhkeyex simulate [p] [g]    DH key exchange demo (default: 2^61-1, g=2)")
+    println("  dhkeyex mitm     [p] [g]    Man-in-the-middle attack demo")
+    println("  dhkeyex test                 Small-parameter validation (p=23,g=5)")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "simulate" or cmd == "mitm" then
+        string p = DEFAULT_P
+        string g = DEFAULT_G
+        if arg.length >= 3 then
+            if isValidNumber(string(arg[2])) == false then
+                println("Error: invalid prime p = '" + string(arg[2]) + "'")
+                return 1
+            end
+            p = normalize(string(arg[2]))
+        end
+        if arg.length >= 4 then
+            if isValidNumber(string(arg[3])) == false then
+                println("Error: invalid generator g = '" + string(arg[3]) + "'")
+                return 1
+            end
+            g = normalize(string(arg[3]))
+        end
+        if cmpAbs(g, "1") <= 0 then
+            println("Error: generator g must be >= 2")
+            return 1
+        end
+        if cmpAbs(p, "3") < 0 then
+            println("Error: prime p must be >= 3")
+            return 1
+        end
+        try
+            if cmd == "simulate" then
+                return cmdSimulate(p, g)
+            else
+                return cmdMitm(p, g)
+            end
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+
+    if cmd == "test" then
+        try
+            return cmdTest()
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

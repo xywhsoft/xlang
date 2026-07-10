@@ -1,0 +1,14 @@
+func takeString(string value)
+end
+
+func badReturn(var value) as string
+    return value
+end
+
+var dynamicValue = "text"
+string declaredValue = dynamicValue
+
+string assignedValue = ""
+assignedValue = dynamicValue
+
+takeString(dynamicValue)

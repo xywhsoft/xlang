@@ -1,0 +1,12 @@
+// right.xl - depends on left (v1.2.0)
+export func name() as string
+    return "right"
+end
+
+export func version() as string
+    return "1.2.0"
+end
+
+export func combine(int a, int b) as int
+    return a + b + 12
+end

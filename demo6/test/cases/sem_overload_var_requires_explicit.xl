@@ -1,0 +1,10 @@
+func select(int value) as int
+    return 1
+end
+
+func select(float value) as int
+    return 2
+end
+
+var value = 1
+int result = select(value)

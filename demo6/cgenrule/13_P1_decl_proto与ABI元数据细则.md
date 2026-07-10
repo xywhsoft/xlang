@@ -18,13 +18,13 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `export func pair() (int, string)` |
-| 生成规则描述 | export 函数会生成一个 xlang 内部函数原型，内部原型保留 xlang 的返回模型：多返回值仍返回结构体，单返回值返回内部 C 类型。它用于 xlang 代码自身调用，不直接暴露给 C ABI。 |
-| 生成器文件名和行号 | `xl6_cgen_decl_proto.c:45`、`xl6_cgen_decl_proto.c:51`、`xl6_cgen_module.c:178` |
-| 对应生成的 C 代码 | `XL6_Function_Return_ABCD xl_export_internal_pair(void);` |
+| xlang 写法 | `export func sum(array<int> values) as int` / `export func pair() (int, string)` |
+| 生成规则描述 | export 函数会生成一个 xlang 内部函数原型，内部原型保留 xlang 的参数和返回模型：静态泛型容器参数使用 `xtarray` / `xtlist` / `xtset` / `xtdict`，不能退化为 `xvalue`；多返回值仍返回结构体，单返回值返回内部 C 类型。它用于 xlang 代码自身和 package 模块调用，不直接暴露给 C ABI。显式 C export 的类型限制由 wrapper 规则单独检查。 |
+| 生成器文件名和行号 | `xl6_cgen_decl_proto.c:39`、`xl6_cgen_decl_proto.c:81`、`xl6_cgen_module.c:178` |
+| 对应生成的 C 代码 | `long long xl_export_internal_sum(xtarray values);` / `XL6_Function_Return_ABCD xl_export_internal_pair(void);` |
 | 中间形态伪代码 | `export func -> internalSymbol(params) returns xlangReturnShape` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常会写一个内部实现函数，再由导出 wrapper 转换 ABI。 |
-| 额外依赖的封装代码 | export wrapper；多返回结构体。 |
+| 额外依赖的封装代码 | export wrapper；多返回结构体；静态泛型容器类型和元素操作 helper。 |
 
 ## CGEN-ABI-003 export C ABI wrapper 原型
 

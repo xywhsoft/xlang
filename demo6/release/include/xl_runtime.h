@@ -247,6 +247,8 @@ void xvoAddRef(xvalue pVal);
 void xvoUnref(xvalue pVal);
 xvalue xvoCopy(xvalue pVal);
 xvalue xvoDeepCopy(xvalue pVal);
+xvalue xvoCopyEx(xvalue pVal, uint32 iMode);
+xvalue xvoDeepCopyEx(xvalue pVal, uint32 iMode);
 int xvoType(xvalue pVal);
 bool xvoIsNull(xvalue pVal);
 bool xvoGetBool(xvalue pVal);
@@ -304,6 +306,7 @@ bool xvoBasicEqual(xvalue pLeft, xvalue pRight);
 int xvoBasicCompare(xvalue pLeft, xvalue pRight);
 bool xvoValueTruthy(xvalue pVal);
 xvalue xvoIndexGetI64(xvalue pVal, int64 iIndex);
+bool xvoIndexSetI64(xvalue pVal, int64 iIndex, xvalue pItem, bool bColloc);
 xvalue xvoIndexGetKey(xvalue pVal, str sKey, uint32 iKeySize);
 xvalue xvoIndexGetValue(xvalue pVal, xvalue pKey);
 bool xvoValueContains(xvalue pValues, xvalue pItem);
@@ -312,6 +315,7 @@ void xrtListWalk(xlist objList, List_EachProc procEach, ptr pArg);
 void xrtDictWalk(xdict objHT, Dict_EachProc procEach, ptr pArg);
 
 xtarray xrtTypedArrayCreate(const xrt_type_desc* pItemType, uint32 iMode);
+xtarray xrtTypedArrayFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
 void xrtTypedArrayDestroy(xtarray pArray);
 ptr xrtTypedArrayAppend(xtarray pArray, const void* pItem);
 bool xrtTypedArrayAppendValue(xtarray pArray, xvalue pVal);
@@ -330,6 +334,7 @@ xtarray xrtTypedArrayConcat(xtarray pA, xtarray pB);
 bool xrtTypedArrayEquals(xtarray pA, xtarray pB);
 uint32 xrtTypedArrayCount(xtarray pArray);
 xtlist xrtTypedListCreate(const xrt_type_desc* pItemType, uint32 iMode);
+xtlist xrtTypedListFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
 void xrtTypedListDestroy(xtlist pList);
 bool xrtTypedListSetValue(xtlist pList, int64 iKey, xvalue pVal);
 ptr xrtTypedListGet(xtlist pList, int64 iKey);
@@ -343,6 +348,7 @@ xtlist xrtTypedListClone(xtlist pList);
 bool xrtTypedListEquals(xtlist pA, xtlist pB);
 uint32 xrtTypedListCount(xtlist pList);
 xtset xrtTypedSetCreate(const xrt_type_desc* pItemType, uint32 iMode);
+xtset xrtTypedSetFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
 void xrtTypedSetDestroy(xtset pSet);
 bool xrtTypedSetAddValue(xtset pSet, xvalue pVal);
 bool xrtTypedSetExists(xtset pSet, const void* pItem);
@@ -362,6 +368,7 @@ ptr xrtTypedSetItemAt(xtset pSet, uint32 iIndex);
 uint32 xrtTypedSetCount(xtset pSet);
 const xrt_type_desc* xrtTypedSetItemType(xtset pSet);
 xtdict xrtTypedDictCreate(const xrt_type_desc* pItemType, uint32 iMode);
+xtdict xrtTypedDictFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
 void xrtTypedDictDestroy(xtdict pDict);
 bool xrtTypedDictSetValue(xtdict pDict, const void* sKey, uint32 iKeyLen, xvalue pVal);
 ptr xrtTypedDictGet(xtdict pDict, const void* sKey, uint32 iKeyLen);
@@ -408,6 +415,20 @@ static xvalue xl6_xrt_value_copy_release(xvalue value, int deep)
         xvoUnref(value);
     }
     return result;
+}
+#endif
+
+#ifdef XL_RUNTIME_NEED_POINT_MOVE
+static void* xl6_point_take(void** slot)
+{
+    void* value;
+
+    if ( slot == 0 ) {
+        return 0;
+    }
+    value = *slot;
+    *slot = 0;
+    return value;
 }
 #endif
 
@@ -516,6 +537,27 @@ static char* xl6_xrt_str_concat(const char* left, const char* right)
     return (char*)xrtStrConcat((str)left, (str)right);
 }
 
+/*
+    C 函数返回的字符串可能指向静态缓冲区。
+    跨过 extern 边界时复制到线程临时内存，避免后续 C 调用改写已有 xlang 值。
+*/
+static const char* xl6_xrt_external_string_copy(const char* value)
+{
+    size_t len;
+    char* text;
+
+    if ( value == 0 ) {
+        return "";
+    }
+    len = strlen(value);
+    text = (char*)xrtTempMemory(len + 1);
+    if ( text == 0 ) {
+        return "";
+    }
+    memcpy(text, value, len + 1);
+    return text;
+}
+
 static char* xl6_xrt_fstr_join(int count, ...)
 {
     va_list ap;
@@ -559,6 +601,15 @@ static char* xl6_xrt_fstr_join(int count, ...)
 #endif
 
 #ifdef XL_RUNTIME_NEED_XVALUE
+static xvalue xl6_xrt_move_to_shared(xvalue value)
+{
+    xvalue result = xvoDeepCopyEx(value, XRT_OBJMODE_SHARED);
+    if ( value != 0 ) {
+        xvoUnref(value);
+    }
+    return result;
+}
+
 static uint64 xl6_xrt_type_name_id(const char* name, uint32 size)
 {
     uint64 hash = 1469598103934665603ULL;
@@ -705,7 +756,7 @@ static xvalue xl6_xrt_null_release(xvalue values)
 
 static xvalue xl6_xrt_array_index_retain_release(xvalue values, int64 index)
 {
-    xvalue result = xl6_xrt_retain(xvoArrayGetValue(values, (uint32)index));
+    xvalue result = xl6_xrt_retain(xvoIndexGetI64(values, index));
     if ( values != 0 ) { xvoUnref(values); }
     return result;
 }
@@ -841,6 +892,31 @@ static int xl6_xrt_basic_order(xvalue left, xvalue right, int op)
     if ( op == 1 ) { return cmp <= 0; }
     if ( op == 2 ) { return cmp > 0; }
     return cmp >= 0;
+}
+
+/* 比较表达式接收拥有型参数，并在计算结束后统一归还所有权。 */
+static int xl6_xrt_basic_equal_release(xvalue left, xvalue right)
+{
+    int result = xl6_xrt_basic_equal(left, right);
+    if ( left != 0 ) { xvoUnref(left); }
+    if ( right != 0 ) { xvoUnref(right); }
+    return result;
+}
+
+static int xl6_xrt_basic_approx_release(xvalue left, xvalue right)
+{
+    int result = xl6_xrt_basic_approx(left, right);
+    if ( left != 0 ) { xvoUnref(left); }
+    if ( right != 0 ) { xvoUnref(right); }
+    return result;
+}
+
+static int xl6_xrt_basic_order_release(xvalue left, xvalue right, int op)
+{
+    int result = xl6_xrt_basic_order(left, right, op);
+    if ( left != 0 ) { xvoUnref(left); }
+    if ( right != 0 ) { xvoUnref(right); }
+    return result;
 }
 
 static xvalue xl6_xrt_value_text_concat(xvalue left, xvalue right)
@@ -1473,6 +1549,34 @@ static xvalue xl6_xrt_typed_box_or_null(const xrt_type_desc* type, const void* i
     return xrtTypeBoxValue(type, item);
 }
 
+static xtarray xl6_xrt_typed_array_from_value_release(const xrt_type_desc* type, xvalue value, uint32 mode)
+{
+    xtarray result = xrtTypedArrayFromValue(value, type, mode);
+    if ( value != 0 ) { xvoUnref(value); }
+    return result;
+}
+
+static xtlist xl6_xrt_typed_list_from_value_release(const xrt_type_desc* type, xvalue value, uint32 mode)
+{
+    xtlist result = xrtTypedListFromValue(value, type, mode);
+    if ( value != 0 ) { xvoUnref(value); }
+    return result;
+}
+
+static xtset xl6_xrt_typed_set_from_value_release(const xrt_type_desc* type, xvalue value, uint32 mode)
+{
+    xtset result = xrtTypedSetFromValue(value, type, mode);
+    if ( value != 0 ) { xvoUnref(value); }
+    return result;
+}
+
+static xtdict xl6_xrt_typed_dict_from_value_release(const xrt_type_desc* type, xvalue value, uint32 mode)
+{
+    xtdict result = xrtTypedDictFromValue(value, type, mode);
+    if ( value != 0 ) { xvoUnref(value); }
+    return result;
+}
+
 typedef xvalue (*xl6_xrt_typed_item_box_fn)(void* item);
 
 static void* xl6_xrt_typed_require_item(void* item)
@@ -1481,9 +1585,25 @@ static void* xl6_xrt_typed_require_item(void* item)
     return item;
 }
 
-static void* xl6_xrt_typed_array_get_at(xtarray values, uint32 index)
+static bool xl6_xrt_typed_array_resolve_index(xtarray values, int64 index, uint32* resolved)
 {
-    return xrtTypedArrayGet(values, index + 1u);
+    uint32 count;
+    if ( values == 0 || resolved == 0 ) { return false; }
+    if ( index < 0 ) {
+        count = xrtTypedArrayCount(values);
+        if ( index < -(int64)count ) { return false; }
+        index += (int64)count;
+    }
+    if ( index < 0 || (uint64)index > 0xFFFFFFFFULL ) { return false; }
+    *resolved = (uint32)index;
+    return true;
+}
+
+static void* xl6_xrt_typed_array_get_at(xtarray values, int64 index)
+{
+    uint32 resolved;
+    return xl6_xrt_typed_array_resolve_index(values, index, &resolved) ?
+        xrtTypedArrayGet(values, resolved + 1u) : 0;
 }
 
 static xvalue xl6_xrt_typed_array_to_xvalue_map(xtarray values, xl6_xrt_typed_item_box_fn box)
@@ -1504,9 +1624,11 @@ static xvalue xl6_xrt_typed_array_to_xvalue_map(xtarray values, xl6_xrt_typed_it
     return result;
 }
 
-static bool xl6_xrt_typed_array_set_at(xtarray values, uint32 index, xvalue value)
+static bool xl6_xrt_typed_array_set_at(xtarray values, int64 index, xvalue value)
 {
-    return xrtTypedArraySetValue(values, index + 1u, value);
+    uint32 resolved;
+    return xl6_xrt_typed_array_resolve_index(values, index, &resolved) &&
+        xrtTypedArraySetValue(values, resolved + 1u, value);
 }
 
 static xvalue xl6_xrt_typed_array_to_xvalue(const xrt_type_desc* type, xtarray values)

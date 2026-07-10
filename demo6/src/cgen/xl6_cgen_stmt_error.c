@@ -51,6 +51,7 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("#include <string.h>\n", out);
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* pMem);\n\n", out);
+    xl6OutputPuts("void* xrtTempMemory(size_t iSize);\n\n", out);
     xl6OutputPuts("#ifndef XL6_ERROR_TYPEDEF\n", out);
     xl6OutputPuts("#define XL6_ERROR_TYPEDEF\n", out);
     xl6OutputPuts("typedef struct XL6_Error XL6_Error;\n", out);
@@ -208,9 +209,23 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    xl6_error_set_active(error);\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("static const char* xl6_error_kind(XL6_Error* error) { return error != 0 && error->kind != 0 ? error->kind : \"\"; }\n", out);
-    xl6OutputPuts("static const char* xl6_error_message(XL6_Error* error) { return error != 0 && error->message != 0 ? error->message : \"\"; }\n", out);
-    xl6OutputPuts("static const char* xl6_error_file(XL6_Error* error) { return error != 0 && error->file != 0 ? error->file : \"\"; }\n", out);
+    xl6OutputPuts("static const char* xl6_error_text_copy(const char* text)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t len = text != 0 ? strlen(text) : 0;\n", out);
+    xl6OutputPuts("    char* copy;\n\n", out);
+    xl6OutputPuts("    if ( len == 0 ) {\n", out);
+    xl6OutputPuts("        return \"\";\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    copy = (char*)xrtTempMemory(len + 1);\n", out);
+    xl6OutputPuts("    if ( copy == 0 ) {\n", out);
+    xl6OutputPuts("        return \"\";\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    memcpy(copy, text, len + 1);\n", out);
+    xl6OutputPuts("    return copy;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static const char* xl6_error_kind(XL6_Error* error) { return xl6_error_text_copy(error != 0 ? error->kind : 0); }\n", out);
+    xl6OutputPuts("static const char* xl6_error_message(XL6_Error* error) { return xl6_error_text_copy(error != 0 ? error->message : 0); }\n", out);
+    xl6OutputPuts("static const char* xl6_error_file(XL6_Error* error) { return xl6_error_text_copy(error != 0 ? error->file : 0); }\n", out);
     xl6OutputPuts("static int xl6_error_line(XL6_Error* error) { return error != 0 ? error->line : 0; }\n", out);
     xl6OutputPuts("static int xl6_error_column(XL6_Error* error) { return error != 0 ? error->column : 0; }\n\n", out);
 

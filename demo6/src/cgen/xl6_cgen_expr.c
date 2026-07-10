@@ -361,6 +361,7 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         if ( node->childCount > 0 ) {
             const XL6_AstNode* callee = node->children[0];
             XL6_AstNode* knownFunc = NULL;
+            int copyExternString = 0;
             if ( callee->kind == XL6_AST_MEMBER ) {
                 if ( xl6CgenPersistenceStdlibCall(ctx, node) ) {
                     ;
@@ -495,7 +496,15 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 }
                 if ( externFunc != NULL ) {
                     knownFunc = externFunc;
-                    xl6CgenCStringSymbol(ctx->out, externFunc->text);
+                    copyExternString = xl6CgenCallableReturnsString(ctx, externFunc);
+                    if ( copyExternString ) {
+                        xl6OutputPuts("xl6_xrt_external_string_copy(", ctx->out);
+                    }
+                    if ( xl6CgenExternCallNeedsWrapper(ctx, externFunc) ) {
+                        xl6CgenExternCallWrapperSymbol(ctx, externFunc);
+                    } else {
+                        xl6CgenCStringSymbol(ctx->out, externFunc->text);
+                    }
                 } else if ( exportFunc != NULL && xl6CgenExportFuncOverloadCount(ctx, callee->text) <= 1 ) {
                     knownFunc = exportFunc;
                     xl6CgenExportInternalSymbol(ctx, exportFunc);
@@ -546,6 +555,9 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 }
             }
             xl6OutputPutc(')', ctx->out);
+            if ( copyExternString ) {
+                xl6OutputPutc(')', ctx->out);
+            }
             break;
         }
         xl6OutputPuts("()", ctx->out);
@@ -731,7 +743,14 @@ static void xl6CgenRegisterAnonCaptureTypes(XL6_CgenContext* ctx, const XL6_Cgen
         return;
     }
     for ( i = 0; i < info->captureCount; ++i ) {
-        xl6CgenAddVarType(ctx, info->captures[i].name, info->captures[i].type);
+        if ( xl6CgenParamTypeUsesTypedContainerStorage(ctx, info->captures[i].type) ) {
+            xl6CgenAddVarTypeWithFlags(ctx,
+                                       info->captures[i].name,
+                                       info->captures[i].type,
+                                       XL6_CGEN_VAR_TYPED_CONTAINER | XL6_CGEN_VAR_BORROWED);
+        } else {
+            xl6CgenAddVarType(ctx, info->captures[i].name, info->captures[i].type);
+        }
     }
 }
 

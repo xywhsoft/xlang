@@ -182,7 +182,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_context_keyword_function.xl --emit build\test\cgen_context_keyword_function.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_fn_static__void" build\test\cgen_context_keyword_function.c >nul
+findstr /C:"xl_fn_static(void)" build\test\cgen_context_keyword_function.c >nul
 if errorlevel 1 (
     echo cgen_context_keyword_function.c missing escaped static function symbol.
     exit /b 1
@@ -194,7 +194,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_unicode_identifiers.xl --emit build\test\cgen_unicode_identifiers.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_fn__u52A0__u4E00___int" build\test\cgen_unicode_identifiers.c >nul
+findstr /C:"xl_fn__u52A0__u4E00_(long long" build\test\cgen_unicode_identifiers.c >nul
 if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded unicode function name.
     exit /b 1
@@ -525,6 +525,26 @@ release\xl.exe parse test\cases\overload_varargs.xl > build\test\overload_vararg
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\overload_varargs.xl
 if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\sem_overload_var_requires_explicit.xl > build\test\sem_overload_var_requires_explicit.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_overload_var_requires_explicit.xl should fail.
+    exit /b 1
+)
+findstr /C:"dynamic var argument requires explicit 'as Type' conversion before overload resolution" build\test\sem_overload_var_requires_explicit.err.txt >nul
+if errorlevel 1 (
+    echo sem_overload_var_requires_explicit.err.txt missing explicit conversion diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_multi_return_type_diagnostic.xl > build\test\sem_multi_return_type_diagnostic.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_multi_return_type_diagnostic.xl should fail.
+    exit /b 1
+)
+findstr /C:"multi-return assignment item 2 type mismatch: target Color, return Ray; targets (bool, Color, Ray), returns (bool, Ray, Color)" build\test\sem_multi_return_type_diagnostic.err.txt >nul
+if errorlevel 1 (
+    echo sem_multi_return_type_diagnostic.err.txt missing ordered signature diagnostic.
+    exit /b 1
+)
 
 release\xl.exe parse test\cases\function_types.xl > build\test\function_types.ast.txt
 if errorlevel 1 exit /b 1
@@ -655,6 +675,56 @@ if errorlevel 1 (
     echo sem_class_property_readonly.err.txt missing readonly property diagnostic.
     exit /b 1
 )
+release\xl.exe check test\cases\sem_class_property_compound_readonly.xl > build\test\sem_class_property_compound_readonly.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_class_property_compound_readonly.xl should fail.
+    exit /b 1
+)
+findstr /C:"class property compound assignment requires matching let" build\test\sem_class_property_compound_readonly.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_property_compound_readonly.err.txt missing readonly compound property diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_class_property_compound_writeonly.xl > build\test\sem_class_property_compound_writeonly.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_class_property_compound_writeonly.xl should fail.
+    exit /b 1
+)
+findstr /C:"class property compound assignment requires matching get" build\test\sem_class_property_compound_writeonly.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_property_compound_writeonly.err.txt missing writeonly compound property diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_class_property_compound_setter_type.xl > build\test\sem_class_property_compound_setter_type.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_class_property_compound_setter_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"class property compound assignment requires matching let" build\test\sem_class_property_compound_setter_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_property_compound_setter_type.err.txt missing setter type diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_class_property_null_coalesce_assign.xl > build\test\sem_class_property_null_coalesce_assign.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_class_property_null_coalesce_assign.xl should fail.
+    exit /b 1
+)
+findstr /C:"class property does not support ?=" build\test\sem_class_property_null_coalesce_assign.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_property_null_coalesce_assign.err.txt missing null-coalescing property diagnostic.
+    exit /b 1
+)
+release\xl.exe check test\cases\sem_class_property_compound_narrowing.xl > build\test\sem_class_property_compound_narrowing.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_class_property_compound_narrowing.xl should fail.
+    exit /b 1
+)
+findstr /C:"compound assignment result type does not match target type" build\test\sem_class_property_compound_narrowing.err.txt >nul
+if errorlevel 1 (
+    echo sem_class_property_compound_narrowing.err.txt missing compound narrowing diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\sem_protocol_field_key_type.xl > build\test\sem_protocol_field_key_type.err.txt 2>&1
 if not errorlevel 1 (
     echo sem_protocol_field_key_type.xl should fail.
@@ -745,16 +815,6 @@ if not errorlevel 1 (
 findstr /C:"derive" build\test\sem_derive_unknown.err.txt >nul
 if errorlevel 1 (
     echo sem_derive_unknown.err.txt missing derive diagnostic.
-    exit /b 1
-)
-release\xl.exe check test\cases\sem_derive_reserved.xl > build\test\sem_derive_reserved.err.txt 2>&1
-if not errorlevel 1 (
-    echo sem_derive_reserved.xl should fail.
-    exit /b 1
-)
-findstr /C:"reserved but not implemented" build\test\sem_derive_reserved.err.txt >nul
-if errorlevel 1 (
-    echo sem_derive_reserved.err.txt missing reserved derive diagnostic.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_derive_duplicate.xl > build\test\sem_derive_duplicate.err.txt 2>&1
@@ -857,34 +917,21 @@ if errorlevel 1 (
     echo sem_field_attr_bad_name.err.txt missing name option diagnostic.
     exit /b 1
 )
-release\xl.exe check test\cases\sem_forbidden_identifier_var.xl > build\test\sem_forbidden_identifier_var.err.txt 2>&1
-if not errorlevel 1 (
-    echo sem_forbidden_identifier_var.xl should fail.
-    exit /b 1
-)
-findstr /C:"get/let/set cannot be used" build\test\sem_forbidden_identifier_var.err.txt >nul
+release\xl.exe check test\cases\cgen_contextual_identifiers.xl
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[System.IO.File]::WriteAllText('build\test\source_without_final_newline.xl','println(1 + 2)',(New-Object System.Text.UTF8Encoding($false)))"
+if errorlevel 1 exit /b 1
+release\xl.exe check build\test\source_without_final_newline.xl
 if errorlevel 1 (
-    echo sem_forbidden_identifier_var.err.txt missing forbidden identifier diagnostic.
+    echo source without final newline should pass parser.
     exit /b 1
 )
-release\xl.exe check test\cases\sem_forbidden_identifier_method.xl > build\test\sem_forbidden_identifier_method.err.txt 2>&1
-if not errorlevel 1 (
-    echo sem_forbidden_identifier_method.xl should fail.
-    exit /b 1
-)
-findstr /C:"get/let/set cannot be used" build\test\sem_forbidden_identifier_method.err.txt >nul
+release\xl.exe run build\test\source_without_final_newline.xl > build\test\source_without_final_newline.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\source_without_final_newline.out.txt'); if($text.TrimEnd([char[]]@([char]13,[char]10)) -ne '3'){ exit 1 }"
 if errorlevel 1 (
-    echo sem_forbidden_identifier_method.err.txt missing forbidden method diagnostic.
-    exit /b 1
-)
-release\xl.exe check test\cases\sem_forbidden_identifier_property.xl > build\test\sem_forbidden_identifier_property.err.txt 2>&1
-if not errorlevel 1 (
-    echo sem_forbidden_identifier_property.xl should fail.
-    exit /b 1
-)
-findstr /C:"get/let/set cannot be used" build\test\sem_forbidden_identifier_property.err.txt >nul
-if errorlevel 1 (
-    echo sem_forbidden_identifier_property.err.txt missing forbidden property diagnostic.
+    echo source without final newline produced unexpected output.
     exit /b 1
 )
 release\xl.exe check release\examples\second_stage.xl

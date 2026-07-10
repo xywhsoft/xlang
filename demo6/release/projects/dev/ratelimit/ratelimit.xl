@@ -1,0 +1,661 @@
+// ratelimit - rate limiting gateway (token bucket / sliding window / leaky bucket)
+//
+// Usage:
+//   ratelimit test
+//       Correctness tests for all three algorithms + per-client counters.
+//   ratelimit bench [clients=10] [reqs=100]
+//       Concurrent stress: N real threads each fire M requests; verifies the
+//       mutex-protected counters stay consistent (no lost / double updates).
+//   ratelimit serve <port> [algo=token] [rate=10]
+//       HTTP rate-limiting gateway. Over-limit requests return HTTP 429.
+//       Client identity = X-Client header, falling back to remote IP.
+//
+// Algorithms:
+//   token    Token Bucket   - tokens refill at <rate>/sec; each request costs 1.
+//   sliding  Sliding Window - allows <capacity> requests per rolling 1s window.
+//   leaky    Leaky Bucket   - queue drains at <rate>/sec; rejects when full.
+//
+// Design notes (xlang constraints worked around, see dev/README.md):
+//   - mutex is native-backed / non-copyable, so it lives as a module-level
+//     global (g_mu), NOT inside the class. Every RateLimiter mutation locks
+//     g_mu internally (the proven worksteal / actorsys / syncdemo idiom).
+//   - The single RateLimiter instance is a module-level global; XRT publishes
+//     it as a shared root reachable from worker threads and the HTTP server's
+//     request threads.
+//   - Per-client state is kept in parallel typed arrays (clients / cTokens /
+//     cLast / cLevel / cWinCount / cWin) keyed by client slot index. The
+//     sliding-window timestamps live in a flat cWin buffer of `capacity`
+//     floats per client, pruned in place under the lock.
+//   - Worker threads are spawned fire-and-forget (a bare `thread(closure)`
+//     statement) and tracked via a g_done counter polled under g_doneMu,
+//     matching the worksteal pool pattern (threads are non-copyable, so they
+//     cannot be stored in an array).
+//   - Time source is time.timer() (monotonic seconds) * 1000 -> milliseconds.
+
+// ============================== shared state ===============================
+
+mutex g_mu = mutex()        // guards all RateLimiter state
+RateLimiter g_rl            // the single shared limiter (configured per command)
+
+// test bookkeeping
+int g_pass = 0
+int g_fail = 0
+
+func check(bool ok, string label)
+    if ok then
+        g_pass = g_pass + 1
+        println("  [PASS] " + label)
+    else
+        g_fail = g_fail + 1
+        println("  [FAIL] " + label)
+    end
+end
+
+func nowMs() as float
+    return time.timer() * 1000.0
+end
+
+// ============================== RateLimiter ================================
+
+class RateLimiter
+    string algo = "token"
+    int capacity = 10
+    int rate = 10
+    int windowMs = 1000
+
+    // single (anonymous) bucket state
+    float tokens = 0
+    float lastMs = 0
+    float level = 0
+    array<float> stamps = array[]
+
+    // per-client state (parallel arrays, keyed by client slot index)
+    array<string> clients = array[]
+    array<float> cTokens = array[]
+    array<float> cLast = array[]
+    array<float> cLevel = array[]
+    array<int> cWinCount = array[]
+    array<float> cWin = array[]
+
+    // stats
+    int allowed = 0
+    int blocked = 0
+
+    func configure(string a, int cap, int r)
+        g_mu.lock()
+        if cap < 1 then cap = 1 end
+        if r < 0 then r = 0 end
+        algo = a
+        capacity = cap
+        rate = r
+        windowMs = 1000
+        tokens = float(cap)
+        lastMs = 0
+        level = 0
+        stamps.clear()
+        clients.clear()
+        cTokens.clear()
+        cLast.clear()
+        cLevel.clear()
+        cWinCount.clear()
+        cWin.clear()
+        allowed = 0
+        blocked = 0
+        g_mu.unlock()
+    end
+
+    // find an existing client slot, or create a new one with fresh state.
+    func clientIndex(string id) as int
+        int i = 0
+        while i < clients.length do
+            if clients[i] == id then
+                return i
+            end
+            i = i + 1
+        end
+        clients.append(id)
+        cTokens.append(float(capacity))
+        cLast.append(0)
+        cLevel.append(0)
+        cWinCount.append(0)
+        int s = 0
+        while s < capacity do
+            cWin.append(0.0)
+            s = s + 1
+        end
+        return clients.length - 1
+    end
+
+    // ---- anonymous (single shared) bucket ----
+    func allow() as bool
+        g_mu.lock()
+        float now = nowMs()
+        bool ok = false
+        if algo == "token" then
+            ok = takeToken(now)
+        elseif algo == "leaky" then
+            ok = takeLeaky(now)
+        else
+            ok = takeSliding(now)
+        end
+        if ok then
+            allowed = allowed + 1
+        else
+            blocked = blocked + 1
+        end
+        g_mu.unlock()
+        return ok
+    end
+
+    // ---- per-client bucket ----
+    func allowClient(string id) as bool
+        g_mu.lock()
+        int ci = clientIndex(id)
+        float now = nowMs()
+        bool ok = false
+        if algo == "token" then
+            ok = takeTokenClient(ci, now)
+        elseif algo == "leaky" then
+            ok = takeLeakyClient(ci, now)
+        else
+            ok = takeSlidingClient(ci, now)
+        end
+        if ok then
+            allowed = allowed + 1
+        else
+            blocked = blocked + 1
+        end
+        g_mu.unlock()
+        return ok
+    end
+
+    // ---- token bucket ----
+    func takeToken(float now) as bool
+        if lastMs == 0 then
+            tokens = float(capacity)
+            lastMs = now
+        end
+        float elapsed = now - lastMs
+        if elapsed > 0 then
+            tokens = tokens + elapsed * float(rate) / 1000.0
+            if tokens > float(capacity) then tokens = float(capacity) end
+            lastMs = now
+        end
+        if tokens >= 1.0 then
+            tokens = tokens - 1.0
+            return true
+        end
+        return false
+    end
+
+    func takeTokenClient(int ci, float now) as bool
+        if cLast[ci] == 0 then
+            cTokens[ci] = float(capacity)
+            cLast[ci] = now
+        end
+        float elapsed = now - cLast[ci]
+        if elapsed > 0 then
+            float tk = cTokens[ci] + elapsed * float(rate) / 1000.0
+            if tk > float(capacity) then tk = float(capacity) end
+            cTokens[ci] = tk
+            cLast[ci] = now
+        end
+        if cTokens[ci] >= 1.0 then
+            cTokens[ci] = cTokens[ci] - 1.0
+            return true
+        end
+        return false
+    end
+
+    // ---- leaky bucket ----
+    func takeLeaky(float now) as bool
+        if lastMs == 0 then lastMs = now end
+        float elapsed = now - lastMs
+        if elapsed > 0 then
+            level = level - elapsed * float(rate) / 1000.0
+            if level < 0 then level = 0 end
+            lastMs = now
+        end
+        if level + 1.0 <= float(capacity) then
+            level = level + 1.0
+            return true
+        end
+        return false
+    end
+
+    func takeLeakyClient(int ci, float now) as bool
+        if cLast[ci] == 0 then cLast[ci] = now end
+        float elapsed = now - cLast[ci]
+        if elapsed > 0 then
+            float lv = cLevel[ci] - elapsed * float(rate) / 1000.0
+            if lv < 0 then lv = 0 end
+            cLevel[ci] = lv
+            cLast[ci] = now
+        end
+        if cLevel[ci] + 1.0 <= float(capacity) then
+            cLevel[ci] = cLevel[ci] + 1.0
+            return true
+        end
+        return false
+    end
+
+    // ---- sliding window ----
+    func takeSliding(float now) as bool
+        float deadline = now - float(windowMs)
+        int w = 0
+        int r = 0
+        while r < stamps.length do
+            float t = stamps[r]
+            if t > deadline then
+                if w != r then stamps[w] = t end
+                w = w + 1
+            end
+            r = r + 1
+        end
+        if stamps.length > w then
+            stamps.remove(w, stamps.length - w)
+        end
+        if w < capacity then
+            stamps.append(now)
+            return true
+        end
+        return false
+    end
+
+    func takeSlidingClient(int ci, float now) as bool
+        int base = ci * capacity
+        int cnt = cWinCount[ci]
+        float deadline = now - float(windowMs)
+        int w = 0
+        int r = 0
+        while r < cnt do
+            float t = cWin[base + r]
+            if t > deadline then
+                cWin[base + w] = t
+                w = w + 1
+            end
+            r = r + 1
+        end
+        cWinCount[ci] = w
+        if w < capacity then
+            cWin[base + w] = now
+            cWinCount[ci] = w + 1
+            return true
+        end
+        return false
+    end
+
+    func stats() as (int, int)
+        g_mu.lock()
+        int a = allowed
+        int b = blocked
+        g_mu.unlock()
+        return a, b
+    end
+
+    func clientCount() as int
+        g_mu.lock()
+        int n = clients.length
+        g_mu.unlock()
+        return n
+    end
+end
+
+// ============================== test command ===============================
+
+func runTokenTests()
+    println("")
+    println("=== token bucket ===")
+
+    // rate=0 -> no refill: exactly <capacity> pass, then everything blocks.
+    g_rl.configure("token", 5, 0)
+    int passed = 0
+    int i = 0
+    while i < 7 do
+        if g_rl.allow() then passed = passed + 1 end
+        i = i + 1
+    end
+    check(passed == 5, f"token: exactly capacity(5) allowed with rate=0 (passed={passed})")
+    check(not g_rl.allow(), "token: empty bucket rejects subsequent request")
+
+    // refill: cap=3, rate=20/sec (1 token / 50ms). Drain, wait, expect a refill
+    // bounded by capacity.
+    g_rl.configure("token", 3, 20)
+    int j = 0
+    while j < 3 do
+        g_rl.allow()
+        j = j + 1
+    end
+    check(not g_rl.allow(), "token: bucket empty immediately after draining")
+    time.sleep(120)
+    int after = 0
+    int k = 0
+    while k < 10 do
+        if g_rl.allow() then after = after + 1 end
+        k = k + 1
+    end
+    check(after >= 2 and after <= 3, f"token: refilled within [2,3] after 120ms (after={after})")
+end
+
+func runSlidingTests()
+    println("")
+    println("=== sliding window ===")
+
+    // capacity=5 in a rolling 1s window.
+    g_rl.configure("sliding", 5, 5)
+    int passed = 0
+    int i = 0
+    while i < 7 do
+        if g_rl.allow() then passed = passed + 1 end
+        i = i + 1
+    end
+    check(passed == 5, f"sliding: 5 allowed in current window (passed={passed})")
+    check(not g_rl.allow(), "sliding: 6th request blocked within window")
+
+    // once the 1s window has slid past, fresh requests are allowed again.
+    time.sleep(1100)
+    int after = 0
+    i = 0
+    while i < 3 do
+        if g_rl.allow() then after = after + 1 end
+        i = i + 1
+    end
+    check(after == 3, f"sliding: allowed again after window slid 1100ms (after={after})")
+end
+
+func runLeakyTests()
+    println("")
+    println("=== leaky bucket ===")
+
+    // rate=0 -> no outflow: queue fills to capacity, then rejects.
+    g_rl.configure("leaky", 5, 0)
+    int passed = 0
+    int i = 0
+    while i < 7 do
+        if g_rl.allow() then passed = passed + 1 end
+        i = i + 1
+    end
+    check(passed == 5, f"leaky: capacity(5) fills with rate=0 (passed={passed})")
+    check(not g_rl.allow(), "leaky: full queue rejects")
+
+    // outflow: cap=3, rate=100/sec. Fill, wait for drain, expect bounded refill.
+    g_rl.configure("leaky", 3, 100)
+    int j = 0
+    while j < 3 do
+        g_rl.allow()
+        j = j + 1
+    end
+    check(not g_rl.allow(), "leaky: full immediately after filling")
+    time.sleep(50)
+    int after = 0
+    i = 0
+    while i < 6 do
+        if g_rl.allow() then after = after + 1 end
+        i = i + 1
+    end
+    check(after >= 1 and after <= 3, f"leaky: drained then refilled within [1,3] (after={after})")
+end
+
+func runMultiClientTests()
+    println("")
+    println("=== multi-client (independent counters) ===")
+
+    // token, 2 tokens per client, no refill.
+    g_rl.configure("token", 2, 0)
+    bool a1 = g_rl.allowClient("alice")
+    bool a2 = g_rl.allowClient("alice")
+    bool a3 = g_rl.allowClient("alice")
+    bool b1 = g_rl.allowClient("bob")
+    bool b2 = g_rl.allowClient("bob")
+    bool b3 = g_rl.allowClient("bob")
+    check(a1 and a2 and not a3, "multi-client/token: alice gets exactly 2")
+    check(b1 and b2 and not b3, "multi-client/token: bob independently gets exactly 2")
+    check(g_rl.clientCount() == 2, f"multi-client/token: 2 clients tracked (count={g_rl.clientCount()})")
+
+    // sliding window per client.
+    g_rl.configure("sliding", 3, 3)
+    int ai = 0
+    int i = 0
+    while i < 5 do
+        if g_rl.allowClient("alice") then ai = ai + 1 end
+        i = i + 1
+    end
+    int bi = 0
+    i = 0
+    while i < 5 do
+        if g_rl.allowClient("bob") then bi = bi + 1 end
+        i = i + 1
+    end
+    check(ai == 3 and bi == 3, f"multi-client/sliding: independent per client (alice={ai} bob={bi})")
+end
+
+// ============================== bench command ==============================
+
+mutex g_doneMu = mutex()
+int g_done = 0
+
+// closure factory: captures client index + request count by value, references
+// the shared limiter + completion counter via globals.
+func makeBenchWorker(int ci, int reqs) as func() as int
+    return func() as int
+        string cname = "c" + ci.toString()
+        int i = 0
+        while i < reqs do
+            g_rl.allowClient(cname)
+            i = i + 1
+        end
+        g_doneMu.lock()
+        g_done = g_done + 1
+        g_doneMu.unlock()
+        return 0
+    end
+end
+
+func runBench(int clients, int reqs)
+    println("bench - concurrent rate limit stress")
+    println("  clients:", clients, " reqs/client:", reqs, " algo: token cap=10 rate=10")
+    println("  invariant: allowed + blocked == clients * reqs (no lost updates)")
+
+    g_rl.configure("token", 10, 10)
+    g_done = 0
+
+    // spawn fire-and-forget worker threads (non-copyable, not stored).
+    int c = 0
+    while c < clients do
+        thread(makeBenchWorker(c, reqs))
+        c = c + 1
+    end
+
+    // wait for all workers to finish (poll the completion counter).
+    int waited = 0
+    while waited < 30000 do
+        g_doneMu.lock()
+        int d = g_done
+        g_doneMu.unlock()
+        if d >= clients then
+            break
+        end
+        time.sleep(5)
+        waited = waited + 5
+    end
+
+    int allowed = 0
+    int blocked = 0
+    allowed, blocked = g_rl.stats()
+    int total = allowed + blocked
+    int expected = clients * reqs
+
+    println("  done threads :", g_done, "/", clients)
+    println("  total events :", total, "(expected", expected, ")")
+    println("  allowed      :", allowed)
+    println("  blocked      :", blocked)
+    println("  clients seen :", g_rl.clientCount())
+
+    check(g_done == clients, f"bench: all workers completed ({g_done}/{clients})")
+    check(total == expected, f"bench: no lost updates total==clients*reqs (total={total} expected={expected})")
+    check(allowed + blocked == total, "bench: allowed+blocked == total")
+    check(g_rl.clientCount() == clients, f"bench: all clients registered (count={g_rl.clientCount()})")
+    int maxAllowed = clients * (10 + 5)
+    check(allowed <= maxAllowed, f"bench: per-client cap roughly respected (allowed={allowed} <= {maxAllowed})")
+end
+
+// ============================== serve command ==============================
+
+string g_algoName = "token"
+int g_limit = 10
+
+func gwHandler(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+
+    string client = req.header("X-Client")
+    if string.len(client) == 0 then
+        client = req.remoteAddr()
+    end
+
+    resp.header("X-RateLimit-Algo", g_algoName)
+    resp.header("X-RateLimit-Limit", g_limit.toString())
+
+    if g_rl.allowClient(client) then
+        resp.header("X-RateLimit-Allowed", "yes")
+        return resp.text("ok\n", "text/plain; charset=utf-8")
+    end
+    resp.status(429)
+    resp.header("Retry-After", "1")
+    resp.header("X-RateLimit-Allowed", "no")
+    return resp.text("429 rate limit exceeded\n", "text/plain; charset=utf-8")
+end
+
+func(point, point) as bool gwHandlerFn = gwHandler
+
+func runServe(int port, string algo, int rate)
+    println("ratelimit gateway")
+    println("  port :", port)
+    println("  algo :", algo)
+    println("  rate :", rate, "/sec  capacity:", rate)
+
+    g_algoName = algo
+    g_limit = rate
+    g_rl.configure(algo, rate, rate)
+
+    point server = http.server.create(port, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 1)
+    http.server.anyRequest(server, "/*", gwHandlerFn)
+
+    if not http.server.start(server) then
+        println("ERROR: failed to start HTTP server on port", port)
+        http.server.destroy(server)
+        return
+    end
+
+    int boundPort = http.server.port(server)
+    println("  listening on http://127.0.0.1:" + boundPort.toString())
+    println("")
+
+    // self-demo: fire (rate + 5) requests as client "demo" and count 200 vs 429.
+    int demo = rate + 5
+    println("  self-demo: firing", demo, "requests as client 'demo'...")
+    time.sleep(200)
+
+    int okCount = 0
+    int rejectCount = 0
+    string url = "http://127.0.0.1:" + boundPort.toString() + "/"
+    int i = 0
+    while i < demo do
+        HttpClientRequest hreq = HttpClientRequest(url)
+        hreq.method("GET")
+        hreq.timeout(3000)
+        hreq.header("X-Client", "demo")
+        HttpClientResponse hresp = hreq.execute()
+        if hresp.status() == 200 then
+            okCount = okCount + 1
+        else
+            rejectCount = rejectCount + 1
+        end
+        i = i + 1
+    end
+    println("  self-demo result: 200 =", okCount, " 429 =", rejectCount)
+    int allowed = 0
+    int blocked = 0
+    allowed, blocked = g_rl.stats()
+    println("  gateway stats    : allowed =", allowed, " blocked =", blocked)
+    println("")
+    println("  serving forever (Ctrl+C to stop). examples:")
+    println("    curl -i -H \"X-Client: alice\" " + url)
+    while true do
+        time.sleep(1000)
+    end
+end
+
+// ============================== entry point ================================
+
+func printUsage()
+    println("ratelimit - rate limiting gateway")
+    println("usage:")
+    println("  ratelimit test")
+    println("      correctness tests: token bucket / sliding window / leaky bucket + multi-client")
+    println("  ratelimit bench [clients=10] [reqs=100]")
+    println("      concurrent stress test across N real threads")
+    println("  ratelimit serve <port> [algo=token] [rate=10]")
+    println("      HTTP gateway; over-limit -> 429. algo: token | sliding | leaky")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "test" then
+        runTokenTests()
+        runSlidingTests()
+        runLeakyTests()
+        runMultiClientTests()
+        println("")
+        println("=== ratelimit test summary ===")
+        println("passed:", g_pass, " failed:", g_fail)
+        if g_fail == 0 then
+            println("RESULT: OK - all", g_pass, "rate limiter assertions passed")
+            return 0
+        end
+        println("RESULT: FAIL -", g_fail, "assertion(s) failed")
+        return 1
+    elseif cmd == "bench" then
+        int clients = 10
+        int reqs = 100
+        if arg.length >= 3 then clients = int(arg[2]) end
+        if arg.length >= 4 then reqs = int(arg[3]) end
+        if clients < 1 then clients = 1 end
+        if reqs < 1 then reqs = 1 end
+        runBench(clients, reqs)
+        println("")
+        println("=== bench summary ===")
+        println("passed:", g_pass, " failed:", g_fail)
+        if g_fail == 0 then
+            return 0
+        end
+        return 1
+    elseif cmd == "serve" then
+        if arg.length < 3 then
+            println("usage: ratelimit serve <port> [algo=token] [rate=10]")
+            return 1
+        end
+        int port = int(arg[2])
+        string algo = "token"
+        int rate = 10
+        if arg.length >= 4 then algo = string(arg[3]) end
+        if arg.length >= 5 then rate = int(arg[4]) end
+        if algo != "token" and algo != "sliding" and algo != "leaky" then
+            println("unknown algo:", algo, "(use token | sliding | leaky)")
+            return 1
+        end
+        if rate < 1 then rate = 1 end
+        runServe(port, algo, rate)
+        return 0
+    else
+        println("unknown command:", cmd)
+        printUsage()
+        return 1
+    end
+end

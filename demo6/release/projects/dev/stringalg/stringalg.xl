@@ -1,0 +1,832 @@
+// stringalg - 字符串算法库
+//
+// 用法:
+//   stringalg match <algo> <pattern> <text>   模式匹配, 打印所有出现位置
+//                                             algo: kmp / bm / rk / z
+//                                                  (boyer-moore / rabin-karp 也可)
+//   stringalg edit-dist <a> <b>               Levenshtein 编辑距离
+//   stringalg lcs <a> <b>                     最长公共子序列 (长度 + 串)
+//   stringalg suffix-array <text>             朴素后缀数组
+//   stringalg z <text>                        Z 数组
+//   stringalg fail <pattern>                  KMP 失败函数
+//   stringalg test                            内置测试
+//   stringalg help                            显示帮助
+//
+// 算法 (7 种):
+//   1. KMP          失败函数 + 搜索        O(n+m)
+//   2. Boyer-Moore  坏字符表 + 搜索         (bad-character heuristic)
+//   3. Rabin-Karp   滚动哈希 + 搜索         (mod prime, 带显式校验)
+//   4. Z-algorithm  Z 数组 + 搜索           (pat#text 拼接, # 用 -1 哨兵)
+//   5. Levenshtein  编辑距离 DP             O(nm), array<int> 一维展开
+//   6. LCS          最长公共子序列 DP        O(nm), 回溯重建
+//   7. Suffix Array 朴素排序构造            插入排序 + 后缀逐字节比较
+//
+// 设计要点 (与 xlang 当前语义/限制对齐):
+//   - 字节载体: 全程用 string.bytes(s) 取 UTF-8 字节为 array<int>,
+//     所有算法工作在字节序列上; 对 ASCII 文本字节偏移 == 字符偏移。
+//   - 全局函数 (非 class 方法): 规避 class 方法不能安全接收 array<int> 的问题。
+//   - array<int> 实参按值拷贝 (BUG-XL1): 本库所有算法对输入 array<int> 仅读
+//     不写, 返回新数组, 值拷贝不影响正确性。
+//   - DP 用 array<int>: 一维展开 dp[i*cols+j], 仿 diff.xl / life.xl 模式。
+//   - Rabin-Karp: int64 乘法不会溢出 (byte*prime^... 每步取模); 负数取模后 +prime 修正。
+//   - Z 搜索: 拼接 pat + [-1] + text, 哨兵 -1 不等于任何 0..255 字节, 正确终止。
+//   - 后缀数组: g_suf 全局持有当前字节串, suffixCompare 仅读全局, 避免每次比较拷贝整串。
+//   - 串重建: string.formatInt(byte, "c") 逐字节转 UTF-8 字符 (ASCII 正确)。
+
+// ---- 全局状态 (后缀数组比较用) ----
+array<int> g_suf
+
+// ============================================================
+// 字节工具
+// ============================================================
+
+func toBytes(string s) as array<int>
+    return string.bytes(s)
+end
+
+// 从字节偏移 start 起取 count 个字节, 还原为字符串 (逐字节 formatInt "c")
+func bytesToText(array<int> b, int start, int count) as string
+    string out = ""
+    int i = start
+    int endd = start + count
+    while i < endd and i < b.length do
+        out = out + string.formatInt(b[i], "c")
+        i += 1
+    end
+    return out
+end
+
+func bytesToString(array<int> b) as string
+    return bytesToText(b, 0, b.length)
+end
+
+func fmtArr(array<int> a) as string
+    string s = "["
+    int i = 0
+    while i < a.length do
+        if i > 0 then s = s + ", " end
+        s = s + string(a[i])
+        i += 1
+    end
+    return s + "]"
+end
+
+func eqIntArr(array<int> a, array<int> b) as bool
+    if a.length != b.length then return false end
+    int i = 0
+    while i < a.length do
+        if a[i] != b[i] then return false end
+        i += 1
+    end
+    return true
+end
+
+// ============================================================
+// 1. KMP - 失败函数 + 搜索
+// ============================================================
+
+// 失败函数 fail[q]: pat[0..q] 的最长相等真前后缀长度
+func kmpFailFunc(array<int> pat) as array<int>
+    int m = pat.length
+    array<int> fail = array[]
+    int i = 0
+    while i < m do
+        fail.push(0)
+        i += 1
+    end
+    int k = 0
+    int q = 1
+    while q < m do
+        while k > 0 and pat[k] != pat[q] do
+            k = fail[k - 1]
+        end
+        if pat[k] == pat[q] then
+            k += 1
+        end
+        fail[q] = k
+        q += 1
+    end
+    return fail
+end
+
+// 返回所有匹配的起始字节偏移
+func kmpSearch(array<int> pat, array<int> text) as array<int>
+    array<int> result = array[]
+    int m = pat.length
+    int n = text.length
+    if m == 0 or m > n then return result end
+    array<int> fail = kmpFailFunc(pat)
+    int q = 0
+    int i = 0
+    while i < n do
+        while q > 0 and pat[q] != text[i] do
+            q = fail[q - 1]
+        end
+        if pat[q] == text[i] then
+            q += 1
+        end
+        if q == m then
+            result.push(i - m + 1)
+            q = fail[q - 1]
+        end
+        i += 1
+    end
+    return result
+end
+
+// ============================================================
+// 2. Boyer-Moore - 坏字符表 + 搜索
+// ============================================================
+
+// 坏字符表: 256 项, 每项 = 该字节在 pat 中的最右下标, 不存在为 -1
+func bmBadCharTable(array<int> pat) as array<int>
+    array<int> t = array[]
+    int i = 0
+    while i < 256 do
+        t.push(-1)
+        i += 1
+    end
+    int j = 0
+    while j < pat.length do
+        t[pat[j]] = j
+        j += 1
+    end
+    return t
+end
+
+// 坏字符启发式搜索 (galil 省略, 仅 bad-character shift)
+func bmSearch(array<int> pat, array<int> text) as array<int>
+    array<int> result = array[]
+    int m = pat.length
+    int n = text.length
+    if m == 0 or m > n then return result end
+    array<int> bad = bmBadCharTable(pat)
+    int s = 0
+    while s <= n - m do
+        int j = m - 1
+        while j >= 0 and pat[j] == text[s + j] do
+            j -= 1
+        end
+        if j < 0 then
+            result.push(s)
+            int shift = 1
+            if s + m < n then
+                shift = m - bad[text[s + m]]
+                if shift < 1 then shift = 1 end
+            end
+            s = s + shift
+        else
+            int shift = j - bad[text[s + j]]
+            if shift < 1 then shift = 1 end
+            s = s + shift
+        end
+    end
+    return result
+end
+
+// ============================================================
+// 3. Rabin-Karp - 滚动哈希 + 搜索
+// ============================================================
+
+func rkSearch(array<int> pat, array<int> text) as array<int>
+    array<int> result = array[]
+    int m = pat.length
+    int n = text.length
+    if m == 0 or m > n then return result end
+    int base = 256
+    int prime = 1000000007
+    // base^(m-1) mod prime
+    int h = 1
+    int i = 0
+    while i < m - 1 do
+        h = (h * base) % prime
+        i += 1
+    end
+    // 初始哈希: 模式串 + 首窗口
+    int hp = 0
+    int ht = 0
+    int k = 0
+    while k < m do
+        hp = (hp * base + pat[k]) % prime
+        ht = (ht * base + text[k]) % prime
+        k += 1
+    end
+    int s = 0
+    while s <= n - m do
+        if hp == ht then
+            // 显式逐字节校验, 排除哈希碰撞
+            bool ok = true
+            int j = 0
+            while j < m do
+                if pat[j] != text[s + j] then
+                    ok = false
+                end
+                j += 1
+            end
+            if ok then
+                result.push(s)
+            end
+        end
+        if s < n - m then
+            ht = (ht - text[s] * h) % prime
+            if ht < 0 then ht = ht + prime end
+            ht = (ht * base + text[s + m]) % prime
+        end
+        s += 1
+    end
+    return result
+end
+
+// ============================================================
+// 4. Z-algorithm - Z 数组 + 搜索
+// ============================================================
+
+// z[i] = s[i..] 与 s 的最长公共前缀长度; z[0] = n
+func zCompute(array<int> s) as array<int>
+    int n = s.length
+    array<int> z = array[]
+    int i = 0
+    while i < n do
+        z.push(0)
+        i += 1
+    end
+    if n == 0 then return z end
+    z[0] = n
+    int l = 0
+    int r = 0
+    int k = 1
+    while k < n do
+        if k < r then
+            int v = z[k - l]
+            if r - k < v then
+                v = r - k
+            end
+            z[k] = v
+        end
+        while k + z[k] < n and s[z[k]] == s[k + z[k]] do
+            z[k] += 1
+        end
+        if k + z[k] > r then
+            l = k
+            r = k + z[k]
+        end
+        k += 1
+    end
+    return z
+end
+
+// 拼接 pat + [-1] + text, Z 值 == m 处即为匹配
+func zSearch(array<int> pat, array<int> text) as array<int>
+    array<int> result = array[]
+    int m = pat.length
+    int n = text.length
+    if m == 0 or m > n then return result end
+    array<int> combined = array[]
+    int i = 0
+    while i < m do
+        combined.push(pat[i])
+        i += 1
+    end
+    combined.push(-1)
+    int j = 0
+    while j < n do
+        combined.push(text[j])
+        j += 1
+    end
+    array<int> z = zCompute(combined)
+    int k = m + 1
+    while k < z.length do
+        if z[k] == m then
+            result.push(k - m - 1)
+        end
+        k += 1
+    end
+    return result
+end
+
+// ============================================================
+// 5. Levenshtein 编辑距离 (DP)
+// ============================================================
+
+func levenshtein(array<int> a, array<int> b) as int
+    int m = a.length
+    int n = b.length
+    int cols = n + 1
+    int total = (m + 1) * cols
+    array<int> dp = array[]
+    int z = 0
+    while z < total do
+        dp.push(0)
+        z += 1
+    end
+    // 首行: 0..n
+    int j = 0
+    while j <= n do
+        dp[j] = j
+        j += 1
+    end
+    // 首列: 0..m
+    int i = 1
+    while i <= m do
+        dp[i * cols] = i
+        i += 1
+    end
+    // 填表
+    int ii = 1
+    while ii <= m do
+        int jj = 1
+        while jj <= n do
+            int cost = 1
+            if a[ii - 1] == b[jj - 1] then
+                cost = 0
+            end
+            int del = dp[(ii - 1) * cols + jj] + 1
+            int ins = dp[ii * cols + (jj - 1)] + 1
+            int sub = dp[(ii - 1) * cols + (jj - 1)] + cost
+            int best = del
+            if ins < best then best = ins end
+            if sub < best then best = sub end
+            dp[ii * cols + jj] = best
+            jj += 1
+        end
+        ii += 1
+    end
+    return dp[m * cols + n]
+end
+
+// ============================================================
+// 6. 最长公共子序列 LCS (DP) - 表 + 长度 + 回溯重建
+// ============================================================
+
+// 返回 DP 表 (一维展开, 维度 (m+1)*(n+1))
+func lcsBuildTable(array<int> a, array<int> b) as array<int>
+    int m = a.length
+    int n = b.length
+    int cols = n + 1
+    int total = (m + 1) * cols
+    array<int> dp = array[]
+    int z = 0
+    while z < total do
+        dp.push(0)
+        z += 1
+    end
+    int i = 1
+    while i <= m do
+        int j = 1
+        while j <= n do
+            if a[i - 1] == b[j - 1] then
+                dp[i * cols + j] = dp[(i - 1) * cols + (j - 1)] + 1
+            else
+                int up = dp[(i - 1) * cols + j]
+                int left = dp[i * cols + (j - 1)]
+                if up >= left then
+                    dp[i * cols + j] = up
+                else
+                    dp[i * cols + j] = left
+                end
+            end
+            j += 1
+        end
+        i += 1
+    end
+    return dp
+end
+
+func lcsLength(array<int> a, array<int> b) as int
+    int m = a.length
+    int n = b.length
+    array<int> dp = lcsBuildTable(a, b)
+    return dp[m * (n + 1) + n]
+end
+
+// 回溯重建 LCS 字节序列 (正序)
+func lcsBytes(array<int> a, array<int> b) as array<int>
+    int m = a.length
+    int n = b.length
+    int cols = n + 1
+    array<int> dp = lcsBuildTable(a, b)
+    array<int> result = array[]
+    int ii = m
+    int jj = n
+    while ii > 0 and jj > 0 do
+        if a[ii - 1] == b[jj - 1] then
+            result.push(a[ii - 1])
+            ii -= 1
+            jj -= 1
+        elseif dp[(ii - 1) * cols + jj] > dp[ii * cols + (jj - 1)] then
+            ii -= 1
+        else
+            jj -= 1
+        end
+    end
+    result.reverse()
+    return result
+end
+
+// ============================================================
+// 7. 后缀数组 - 朴素排序构造
+// ============================================================
+
+// 比较 g_suf 从 i / j 起的后缀: <0 -> i小, 0 -> 相等, >0 -> i大
+func suffixCompare(int i, int j) as int
+    int n = g_suf.length
+    while i < n and j < n do
+        if g_suf[i] < g_suf[j] then return -1 end
+        if g_suf[i] > g_suf[j] then return 1 end
+        i += 1
+        j += 1
+    end
+    if i >= n and j >= n then return 0 end
+    if i >= n then return -1 end
+    return 1
+end
+
+// 朴素构造: 对 [0..n-1] 按后缀字典序插入排序
+func suffixArray(array<int> s) as array<int>
+    g_suf = s
+    int n = s.length
+    array<int> sa = array[]
+    int i = 0
+    while i < n do
+        sa.push(i)
+        i += 1
+    end
+    int k = 1
+    while k < n do
+        int key = sa[k]
+        int p = k - 1
+        bool go = true
+        while p >= 0 and go do
+            if suffixCompare(sa[p], key) > 0 then
+                sa[p + 1] = sa[p]
+                p -= 1
+            else
+                go = false
+            end
+        end
+        sa[p + 1] = key
+        k += 1
+    end
+    return sa
+end
+
+// ============================================================
+// 算法 dispatch
+// ============================================================
+
+func isKnownAlgo(string name) as bool
+    if name == "kmp" then return true end
+    if name == "bm" then return true end
+    if name == "boyer-moore" then return true end
+    if name == "rk" then return true end
+    if name == "rabin-karp" then return true end
+    if name == "z" then return true end
+    return false
+end
+
+func searchDispatch(string algo, array<int> pat, array<int> text) as array<int>
+    if algo == "kmp" then return kmpSearch(pat, text) end
+    if algo == "bm" then return bmSearch(pat, text) end
+    if algo == "boyer-moore" then return bmSearch(pat, text) end
+    if algo == "rk" then return rkSearch(pat, text) end
+    if algo == "rabin-karp" then return rkSearch(pat, text) end
+    if algo == "z" then return zSearch(pat, text) end
+    return array[]
+end
+
+// ============================================================
+// 输出
+// ============================================================
+
+func printUsage()
+    println("stringalg - 字符串算法库 (7 种算法)")
+    println("用法:")
+    println("  stringalg match <algo> <pattern> <text>   模式匹配 (algo: kmp bm rk z)")
+    println("  stringalg edit-dist <a> <b>               Levenshtein 编辑距离")
+    println("  stringalg lcs <a> <b>                     最长公共子序列 (长度 + 串)")
+    println("  stringalg suffix-array <text>             朴素后缀数组")
+    println("  stringalg z <text>                        Z 数组")
+    println("  stringalg fail <pattern>                  KMP 失败函数")
+    println("  stringalg test                            内置测试")
+    println("  stringalg help                            显示本帮助")
+    println("算法:")
+    println("  kmp            KMP 模式匹配 (失败函数)")
+    println("  bm / boyer-moore  Boyer-Moore (坏字符表)")
+    println("  rk / rabin-karp   Rabin-Karp (滚动哈希)")
+    println("  z              Z-algorithm (Z 数组)")
+end
+
+// ============================================================
+// 命令实现
+// ============================================================
+
+func cmdMatch(string algo, string pattern, string text) as int
+    array<int> pat = toBytes(pattern)
+    array<int> txt = toBytes(text)
+    array<int> result = searchDispatch(algo, pat, txt)
+    println("algo=" + algo + "  pattern=" + pattern + "  text=" + text)
+    println("text length=" + string(txt.length) + ", pattern length=" + string(pat.length))
+    if result.length == 0 then
+        println("no match")
+        return 1
+    end
+    println("matches: " + string(result.length) + "  at " + fmtArr(result))
+    int i = 0
+    while i < result.length do
+        int pos = result[i]
+        println("  [" + string(pos) + "]  " + bytesToText(txt, pos, pat.length))
+        i += 1
+    end
+    return 0
+end
+
+func cmdEditDist(string a, string b) as int
+    array<int> ba = toBytes(a)
+    array<int> bb = toBytes(b)
+    int d = levenshtein(ba, bb)
+    println("edit-dist \"" + a + "\" \"" + b + "\" = " + string(d))
+    return 0
+end
+
+func cmdLcs(string a, string b) as int
+    array<int> ba = toBytes(a)
+    array<int> bb = toBytes(b)
+    int L = lcsLength(ba, bb)
+    array<int> lcs = lcsBytes(ba, bb)
+    println("LCS \"" + a + "\" \"" + b + "\"")
+    println("  length = " + string(L))
+    println("  lcs    = " + bytesToString(lcs))
+    return 0
+end
+
+func cmdSuffixArray(string text) as int
+    array<int> b = toBytes(text)
+    array<int> sa = suffixArray(b)
+    println("suffix-array \"" + text + "\"  (n=" + string(b.length) + ")")
+    println("  " + fmtArr(sa))
+    println("  ---- suffixes ----")
+    int i = 0
+    while i < sa.length do
+        int p = sa[i]
+        println("  sa[" + string(i) + "]=" + string(p) + "  " + bytesToText(b, p, b.length - p))
+        i += 1
+    end
+    return 0
+end
+
+func cmdZ(string text) as int
+    array<int> b = toBytes(text)
+    array<int> z = zCompute(b)
+    println("Z-array \"" + text + "\"")
+    println("  " + fmtArr(z))
+    return 0
+end
+
+func cmdFail(string pattern) as int
+    array<int> p = toBytes(pattern)
+    array<int> fail = kmpFailFunc(p)
+    println("KMP failure function \"" + pattern + "\"")
+    println("  " + fmtArr(fail))
+    return 0
+end
+
+func cmdTest() as int
+    println("stringalg - built-in test")
+    println("================================================================")
+    int fails = 0
+
+    // ---- 模式匹配: 四种算法结果应一致且为已知值 ----
+    // "ab" in "ababcab" -> [0, 2, 5]
+    array<int> exp1 = array<int>[0, 2, 5]
+    if eqIntArr(kmpSearch(toBytes("ab"), toBytes("ababcab")), exp1) then
+        println("  [OK] KMP    'ab' in 'ababcab' -> [0, 2, 5]")
+    else
+        fails += 1
+        println("  [FAIL] KMP    'ab' in 'ababcab'")
+    end
+    if eqIntArr(bmSearch(toBytes("ab"), toBytes("ababcab")), exp1) then
+        println("  [OK] BM     'ab' in 'ababcab' -> [0, 2, 5]")
+    else
+        fails += 1
+        println("  [FAIL] BM     'ab' in 'ababcab'")
+    end
+    if eqIntArr(rkSearch(toBytes("ab"), toBytes("ababcab")), exp1) then
+        println("  [OK] RK     'ab' in 'ababcab' -> [0, 2, 5]")
+    else
+        fails += 1
+        println("  [FAIL] RK     'ab' in 'ababcab'")
+    end
+    if eqIntArr(zSearch(toBytes("ab"), toBytes("ababcab")), exp1) then
+        println("  [OK] Z      'ab' in 'ababcab' -> [0, 2, 5]")
+    else
+        fails += 1
+        println("  [FAIL] Z      'ab' in 'ababcab'")
+    end
+
+    // 重叠匹配: "aaa" in "aaaaa" -> [0, 1, 2]
+    array<int> exp2 = array<int>[0, 1, 2]
+    if eqIntArr(kmpSearch(toBytes("aaa"), toBytes("aaaaa")), exp2) then
+        println("  [OK] KMP    'aaa' in 'aaaaa' -> [0, 1, 2] (overlap)")
+    else
+        fails += 1
+        println("  [FAIL] KMP    'aaa' in 'aaaaa' (overlap)")
+    end
+    if eqIntArr(bmSearch(toBytes("aaa"), toBytes("aaaaa")), exp2) then
+        println("  [OK] BM     'aaa' in 'aaaaa' -> [0, 1, 2] (overlap)")
+    else
+        fails += 1
+        println("  [FAIL] BM     'aaa' in 'aaaaa' (overlap)")
+    end
+    if eqIntArr(rkSearch(toBytes("aaa"), toBytes("aaaaa")), exp2) then
+        println("  [OK] RK     'aaa' in 'aaaaa' -> [0, 1, 2] (overlap)")
+    else
+        fails += 1
+        println("  [FAIL] RK     'aaa' in 'aaaaa' (overlap)")
+    end
+    if eqIntArr(zSearch(toBytes("aaa"), toBytes("aaaaa")), exp2) then
+        println("  [OK] Z      'aaa' in 'aaaaa' -> [0, 1, 2] (overlap)")
+    else
+        fails += 1
+        println("  [FAIL] Z      'aaa' in 'aaaaa' (overlap)")
+    end
+
+    // 无匹配
+    if kmpSearch(toBytes("xyz"), toBytes("ababcab")).length == 0 then
+        println("  [OK] KMP    'xyz' in 'ababcab' -> [] (no match)")
+    else
+        fails += 1
+        println("  [FAIL] KMP    'xyz' no-match case")
+    end
+
+    // ---- KMP 失败函数 ----
+    // "ababac" -> fail = [0, 0, 1, 2, 3, 0]
+    array<int> expFail = array<int>[0, 0, 1, 2, 3, 0]
+    if eqIntArr(kmpFailFunc(toBytes("ababac")), expFail) then
+        println("  [OK] KMP failfunc 'ababac' -> [0, 0, 1, 2, 3, 0]")
+    else
+        fails += 1
+        println("  [FAIL] KMP failfunc 'ababac'")
+    end
+
+    // ---- Z 数组 ----
+    // "aabxaab" -> [7, 1, 0, 0, 3, 1, 0]
+    array<int> expZ = array<int>[7, 1, 0, 0, 3, 1, 0]
+    if eqIntArr(zCompute(toBytes("aabxaab")), expZ) then
+        println("  [OK] Z-array 'aabxaab' -> [7, 1, 0, 0, 3, 1, 0]")
+    else
+        fails += 1
+        println("  [FAIL] Z-array 'aabxaab'")
+    end
+
+    // ---- Levenshtein ----
+    // "kitten" -> "sitting" = 3
+    if levenshtein(toBytes("kitten"), toBytes("sitting")) == 3 then
+        println("  [OK] Levenshtein 'kitten'/'sitting' = 3")
+    else
+        fails += 1
+        println("  [FAIL] Levenshtein 'kitten'/'sitting'")
+    end
+    // "flaw" -> "lawn" = 2
+    if levenshtein(toBytes("flaw"), toBytes("lawn")) == 2 then
+        println("  [OK] Levenshtein 'flaw'/'lawn' = 2")
+    else
+        fails += 1
+        println("  [FAIL] Levenshtein 'flaw'/'lawn'")
+    end
+    // "" -> "abc" = 3
+    if levenshtein(toBytes(""), toBytes("abc")) == 3 then
+        println("  [OK] Levenshtein ''/'abc' = 3 (empty)")
+    else
+        fails += 1
+        println("  [FAIL] Levenshtein ''/'abc'")
+    end
+
+    // ---- LCS ----
+    // "AGGTAB" / "GXTXAYB" -> length 4 ("GTAB")
+    if lcsLength(toBytes("AGGTAB"), toBytes("GXTXAYB")) == 4 then
+        println("  [OK] LCS len 'AGGTAB'/'GXTXAYB' = 4")
+    else
+        fails += 1
+        println("  [FAIL] LCS len 'AGGTAB'/'GXTXAYB'")
+    end
+    if bytesToString(lcsBytes(toBytes("AGGTAB"), toBytes("GXTXAYB"))) == "GTAB" then
+        println("  [OK] LCS str 'AGGTAB'/'GXTXAYB' = \"GTAB\"")
+    else
+        fails += 1
+        println("  [FAIL] LCS str 'AGGTAB'/'GXTXAYB'")
+    end
+    // "ABCBDAB" / "BDCAB" -> length 4
+    if lcsLength(toBytes("ABCBDAB"), toBytes("BDCAB")) == 4 then
+        println("  [OK] LCS len 'ABCBDAB'/'BDCAB' = 4")
+    else
+        fails += 1
+        println("  [FAIL] LCS len 'ABCBDAB'/'BDCAB'")
+    end
+
+    // ---- 后缀数组 ----
+    // "banana" -> [5, 3, 1, 0, 4, 2]
+    array<int> expSa = array<int>[5, 3, 1, 0, 4, 2]
+    if eqIntArr(suffixArray(toBytes("banana")), expSa) then
+        println("  [OK] suffix-array 'banana' -> [5, 3, 1, 0, 4, 2]")
+    else
+        fails += 1
+        println("  [FAIL] suffix-array 'banana'")
+    end
+    // "mississippi" -> [10, 7, 4, 1, 0, 9, 8, 6, 3, 5, 2]
+    array<int> expSa2 = array<int>[10, 7, 4, 1, 0, 9, 8, 6, 3, 5, 2]
+    if eqIntArr(suffixArray(toBytes("mississippi")), expSa2) then
+        println("  [OK] suffix-array 'mississippi' -> [10, 7, 4, 1, 0, 9, 8, 6, 3, 5, 2]")
+    else
+        fails += 1
+        println("  [FAIL] suffix-array 'mississippi'")
+    end
+
+    println("================================================================")
+    if fails == 0 then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println(string(fails) + " TEST(S) FAILED")
+    return 1
+end
+
+// ============================================================
+// 入口
+// ============================================================
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "match" then
+        if arg.length < 5 then
+            println("stringalg: match needs: stringalg match <algo> <pattern> <text>")
+            return 1
+        end
+        string algo = string(arg[2])
+        if not isKnownAlgo(algo) then
+            println("stringalg: unknown algorithm: " + algo)
+            println("  supported: kmp, bm, rk, z")
+            return 1
+        end
+        return cmdMatch(algo, string(arg[3]), string(arg[4]))
+    end
+
+    if cmd == "edit-dist" then
+        if arg.length < 4 then
+            println("stringalg: edit-dist needs: stringalg edit-dist <a> <b>")
+            return 1
+        end
+        return cmdEditDist(string(arg[2]), string(arg[3]))
+    end
+
+    if cmd == "lcs" then
+        if arg.length < 4 then
+            println("stringalg: lcs needs: stringalg lcs <a> <b>")
+            return 1
+        end
+        return cmdLcs(string(arg[2]), string(arg[3]))
+    end
+
+    if cmd == "suffix-array" then
+        if arg.length < 3 then
+            println("stringalg: suffix-array needs: stringalg suffix-array <text>")
+            return 1
+        end
+        return cmdSuffixArray(string(arg[2]))
+    end
+
+    if cmd == "z" then
+        if arg.length < 3 then
+            println("stringalg: z needs: stringalg z <text>")
+            return 1
+        end
+        return cmdZ(string(arg[2]))
+    end
+
+    if cmd == "fail" then
+        if arg.length < 3 then
+            println("stringalg: fail needs: stringalg fail <pattern>")
+            return 1
+        end
+        return cmdFail(string(arg[2]))
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    println("stringalg: unknown command: " + cmd)
+    println("")
+    printUsage()
+    return 1
+end

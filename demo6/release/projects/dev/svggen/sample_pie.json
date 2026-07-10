@@ -1,0 +1,7 @@
+[
+  { "label": "Search", "value": 42 },
+  { "label": "Direct", "value": 28 },
+  { "label": "Social", "value": 16 },
+  { "label": "Referral", "value": 9 },
+  { "label": "Email", "value": 5 }
+]

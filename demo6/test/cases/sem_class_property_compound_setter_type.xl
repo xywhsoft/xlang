@@ -1,0 +1,13 @@
+class Mismatched
+    int value = 1
+
+    get item() as int
+        return self.value
+    end
+
+    let item(string value)
+    end
+end
+
+Mismatched value = Mismatched()
+value.item += 1

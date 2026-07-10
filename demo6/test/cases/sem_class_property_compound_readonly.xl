@@ -1,0 +1,10 @@
+class ReadOnly
+    int value = 1
+
+    get item() as int
+        return self.value
+    end
+end
+
+ReadOnly value = ReadOnly()
+value.item += 1

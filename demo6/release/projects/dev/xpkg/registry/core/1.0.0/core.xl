@@ -1,0 +1,12 @@
+// core.xl - diamond root: depends on right AND left
+export func name() as string
+    return "core"
+end
+
+export func version() as string
+    return "1.0.0"
+end
+
+export func label() as string
+    return "core-1.0.0"
+end

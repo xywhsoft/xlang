@@ -1,0 +1,1144 @@
+// voxel - 体素渲染器（Voxel Renderer）
+//
+// 软件光栅化的体素世界渲染器，综合验证：
+//   * 一维 array<int> 模拟三维网格 grid[x][y][z] = data[(y*w+z)*d+x]
+//   * array<float> 深度缓冲（per-pixel depth buffer）
+//   * 简单透视投影（3D 世界坐标 -> 2D 屏幕）
+//   * 面剔除（背向相机的面剔除 + 被邻居遮挡的面剔除）
+//   * Painter's algorithm 深度排序（从远到近绘制）+ 深度缓冲双重保证
+//   * 方向光照（面法线 · 光照方向）
+//   * ASCII 灰度图 + PPM (P3) 双输出
+//
+// 用法：
+//   voxel                                    打印用法
+//   voxel render [w=80] [h=40] [output=...]  渲染场景（默认 demo 场景）
+//        可选 name=value 参数：
+//          w=80 / width=80        屏幕宽度（字符/像素列）
+//          h=40 / height=40       屏幕高度（字符/像素行）
+//          output=out.ppm         输出 PPM 文件路径（不写则只打印 ASCII）
+//          scene=demo             demo / pyramid / terrain
+//          fov=55                 垂直视场角（度）
+//   voxel demo                               渲染 demo 场景（金字塔+球体地形）-> demo.ppm
+//   voxel test                               运行内置单元测试
+//
+// 验证：
+//   cd /d D:\GIT\x-lang\demo6\release
+//   xl run projects\dev\voxel\voxel.xl render w=100 h=50 output=out.ppm
+//   xl run projects\dev\voxel\voxel.xl demo
+//   xl build projects\dev\voxel\voxel.xl -o projects\dev\voxel\voxel.exe
+
+// ========================================================================
+// 常量
+// ========================================================================
+const int VOXEL_EMPTY = 0
+const int VOXEL_GRASS  = 1
+const int VOXEL_DIRT   = 2
+const int VOXEL_STONE  = 3
+const int VOXEL_SAND   = 4
+const int VOXEL_WATER  = 5
+const int VOXEL_SNOW   = 6
+const int VOXEL_WOOD   = 7
+const int VOXEL_GOLD   = 8
+const int VOXEL_LEAF   = 9
+
+const int FACE_STRIDE = 12   // 每个面在 faces 数组里占 12 个 float：
+                             // sx0,sy0,sx1,sy1,sx2,sy2,sx3,sy3, depth, r, g, b
+
+float PI        = 3.14159265358979323846
+float NEAR      = 0.1           // 近裁剪面
+float INF_DEPTH = 1.0e30        // 深度缓冲初值（无穷远）
+float AMBIENT   = 0.35          // 环境光
+// 方向光：指向太阳的单位向量（归一化的 (0.4, 1.0, 0.5)）
+float LX = 0.337
+float LY = 0.842
+float LZ = 0.421
+
+// 六个面的邻居偏移（判断该面是否被相邻体素遮挡）
+array<int> NX = array[1, -1, 0, 0, 0, 0]
+array<int> NY = array[0, 0, 1, -1, 0, 0]
+array<int> NZ = array[0, 0, 0, 0, 1, -1]
+// 六个面的外法线
+array<float> FNX = array[1.0, -1.0, 0.0, 0.0, 0.0, 0.0]
+array<float> FNY = array[0.0, 0.0, 1.0, -1.0, 0.0, 0.0]
+array<float> FNZ = array[0.0, 0.0, 0.0, 0.0, 1.0, -1.0]
+// 每个面 4 个角点相对体素原点 (x,y,z) 的偏移（按环绕顺序，凸四边形）
+array<float> CX = array[1.0,1.0,1.0,1.0, 0.0,0.0,0.0,0.0, 0.0,1.0,1.0,0.0, 0.0,0.0,1.0,1.0, 0.0,1.0,1.0,0.0, 0.0,1.0,1.0,0.0]
+array<float> CY = array[0.0,0.0,1.0,1.0, 0.0,1.0,1.0,0.0, 1.0,1.0,1.0,1.0, 0.0,0.0,0.0,0.0, 0.0,0.0,1.0,1.0, 0.0,1.0,1.0,0.0]
+array<float> CZ = array[0.0,1.0,1.0,0.0, 0.0,0.0,1.0,1.0, 0.0,0.0,1.0,1.0, 0.0,1.0,1.0,0.0, 1.0,1.0,1.0,1.0, 0.0,0.0,0.0,0.0]
+
+// 调色板：按体素类型索引，packed RGB（r*65536 + g*256 + b），由 initPalette 填充
+array<int> PALETTE = array[]
+
+// ========================================================================
+// 通用工具
+// ========================================================================
+func degToRad(float deg) as float
+    return deg * PI / 180.0
+end
+
+func clampF(float v, float lo, float hi) as float
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
+end
+
+func clampByte(int v) as int
+    if v < 0 then return 0 end
+    if v > 255 then return 255 end
+    return v
+end
+
+func packRGB(int r, int g, int b) as int
+    return r * 65536 + g * 256 + b
+end
+
+func unpackR(int c) as int
+    return (c / 65536) % 256
+end
+
+func unpackG(int c) as int
+    return (c / 256) % 256
+end
+
+func unpackB(int c) as int
+    return c % 256
+end
+
+func min4(float a, float b, float c, float d) as float
+    float m = a
+    if b < m then m = b end
+    if c < m then m = c end
+    if d < m then m = d end
+    return m
+end
+
+func max4(float a, float b, float c, float d) as float
+    float m = a
+    if b > m then m = b end
+    if c > m then m = c end
+    if d > m then m = d end
+    return m
+end
+
+// 2D 叉积（用于点在凸四边形内判定）
+func cross2(float ax, float ay, float bx, float by) as float
+    return ax * by - ay * bx
+end
+
+// 点是否在凸四边形内（绕序无关：四条边的叉积同号即在内部）
+func pointInQuad(float px, float py,
+                 float ax, float ay, float bx, float by,
+                 float cx, float cy, float dx, float dy) as bool
+    float c1 = cross2(bx - ax, by - ay, px - ax, py - ay)
+    float c2 = cross2(cx - bx, cy - by, px - bx, py - by)
+    float c3 = cross2(dx - cx, dy - cy, px - cx, py - cy)
+    float c4 = cross2(ax - dx, ay - dy, px - dx, py - dy)
+    bool hasNeg = (c1 < 0.0) or (c2 < 0.0) or (c3 < 0.0) or (c4 < 0.0)
+    bool hasPos = (c1 > 0.0) or (c2 > 0.0) or (c3 > 0.0) or (c4 > 0.0)
+    return not (hasNeg and hasPos)
+end
+
+func initPalette()
+    PALETTE.push(packRGB(0, 0, 0))            // 0 empty
+    PALETTE.push(packRGB(96, 160, 72))        // 1 grass
+    PALETTE.push(packRGB(120, 82, 50))        // 2 dirt
+    PALETTE.push(packRGB(128, 128, 134))      // 3 stone
+    PALETTE.push(packRGB(214, 190, 120))      // 4 sand
+    PALETTE.push(packRGB(64, 110, 200))       // 5 water
+    PALETTE.push(packRGB(236, 240, 246))      // 6 snow
+    PALETTE.push(packRGB(96, 60, 34))         // 7 wood
+    PALETTE.push(packRGB(232, 188, 56))       // 8 gold
+    PALETTE.push(packRGB(58, 128, 58))        // 9 leaf
+end
+
+// ========================================================================
+// Vec3：仅用于相机基底计算（投影热路径全部用裸 float，避免分配）
+// ========================================================================
+class Vec3
+    derive value
+    float x = 0.0
+    float y = 0.0
+    float z = 0.0
+
+    create(float x, float y, float z)
+        self.x = x
+        self.y = y
+        self.z = z
+    end
+
+    func __sub__(Vec3 o) as Vec3
+        Vec3 r = Vec3(self.x - o.x, self.y - o.y, self.z - o.z)
+        return r
+    end
+
+    func dot(Vec3 o) as float
+        return self.x * o.x + self.y * o.y + self.z * o.z
+    end
+
+    func cross(Vec3 o) as Vec3
+        Vec3 r = Vec3(self.y * o.z - self.z * o.y,
+                      self.z * o.x - self.x * o.z,
+                      self.x * o.y - self.y * o.x)
+        return r
+    end
+
+    func length() as float
+        return math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
+    end
+
+    func normalize() as Vec3
+        float l = self.length()
+        if l < 1e-9 then
+            Vec3 z = Vec3(0.0, 0.0, 0.0)
+            return z
+        end
+        Vec3 r = Vec3(self.x / l, self.y / l, self.z / l)
+        return r
+    end
+end
+
+// ========================================================================
+// VoxelWorld：三维体素网格（一维 array<int> 存储）
+//   grid[x][y][z] = data[(y*w + z)*d + x]
+//   w = x 方向格数（宽），h = y 方向格数（高），d = z 方向格数（深）
+// ========================================================================
+class VoxelWorld
+    int w = 0
+    int h = 0
+    int d = 0
+    array<int> data = array[]
+
+    create(int w, int h, int d)
+        self.w = w
+        self.h = h
+        self.d = d
+        int total = w * h * d
+        array<int> a = array[0]
+        int i = 1
+        while i < total do
+            a.push(0)
+            i += 1
+        end
+        self.data = a
+    end
+
+    func idx(int x, int y, int z) as int
+        return (y * self.w + z) * self.d + x
+    end
+
+    // 越界视为空（边界面自然暴露）
+    func get(int x, int y, int z) as int
+        if x < 0 or x >= self.w then return 0 end
+        if y < 0 or y >= self.h then return 0 end
+        if z < 0 or z >= self.d then return 0 end
+        return self.data[(y * self.w + z) * self.d + x]
+    end
+
+    func set(int x, int y, int z, int t)
+        if x < 0 or x >= self.w then return end
+        if y < 0 or y >= self.h then return end
+        if z < 0 or z >= self.d then return end
+        self.data[(y * self.w + z) * self.d + x] = t
+    end
+
+    // 第 f 个面的邻居是否为空（面是否暴露）
+    func isExposed(int x, int y, int z, int f) as bool
+        return self.get(x + NX[f], y + NY[f], z + NZ[f]) == VOXEL_EMPTY
+    end
+
+    func countSolid() as int
+        int total = 0
+        int i = 0
+        while i < self.data.length do
+            if self.data[i] != VOXEL_EMPTY then
+                total += 1
+            end
+            i += 1
+        end
+        return total
+    end
+end
+
+// ========================================================================
+// Camera：透视相机（look-at 模型）
+//   存储基底向量 forward/right/up 为裸 float，project() 全程裸 float 运算
+// ========================================================================
+class Camera
+    float ex = 0.0
+    float ey = 0.0
+    float ez = 0.0
+    float fx = 0.0
+    float fy = 0.0
+    float fz = 0.0
+    float rx = 0.0
+    float ry = 0.0
+    float rz = 0.0
+    float ux = 0.0
+    float uy = 0.0
+    float uz = 0.0
+    float focal = 1.0
+    float scx = 0.0
+    float scy = 0.0
+
+    create(Vec3 eye, Vec3 target, Vec3 up, float fovDeg, int width, int height)
+        self.ex = eye.x
+        self.ey = eye.y
+        self.ez = eye.z
+        Vec3 diff = target - eye
+        Vec3 fwd = diff.normalize()
+        Vec3 crossRU = fwd.cross(up)
+        Vec3 right = crossRU.normalize()
+        Vec3 upv = right.cross(fwd)
+        self.fx = fwd.x
+        self.fy = fwd.y
+        self.fz = fwd.z
+        self.rx = right.x
+        self.ry = right.y
+        self.rz = right.z
+        self.ux = upv.x
+        self.uy = upv.y
+        self.uz = upv.z
+        self.focal = float(width) * 0.5 / math.tan(degToRad(fovDeg) * 0.5)
+        self.scx = float(width) * 0.5
+        self.scy = float(height) * 0.5
+    end
+
+    // 世界点 -> (屏幕x, 屏幕y, 相机前向深度 camZ)；camZ>0 表示在相机前方
+    func project(float px, float py, float pz) as (float, float, float)
+        float dx = px - self.ex
+        float dy = py - self.ey
+        float dz = pz - self.ez
+        float cz = dx * self.fx + dy * self.fy + dz * self.fz
+        float cx = dx * self.rx + dy * self.ry + dz * self.rz
+        float cy = dx * self.ux + dy * self.uy + dz * self.uz
+        if cz < NEAR then
+            cz = NEAR
+        end
+        float sx = self.scx + cx / cz * self.focal
+        float sy = self.scy - cy / cz * self.focal
+        return sx, sy, cz
+    end
+end
+
+// 判断面（中心 + 外法线）是否朝向相机（背面剔除）
+func faceFacesCamera(Camera cam, float fcx, float fcy, float fcz,
+                     float fnx, float fny, float fnz) as bool
+    float vex = cam.ex - fcx
+    float vey = cam.ey - fcy
+    float vez = cam.ez - fcz
+    float dotv = fnx * vex + fny * vey + fnz * vez
+    return dotv > 0.0
+end
+
+// ========================================================================
+// 渲染管线
+// ========================================================================
+
+// 收集所有可见面到 faces（每面 FACE_STRIDE 个 float）
+func collectFaces(VoxelWorld world, Camera cam, array<float> faces)
+    int y = 0
+    while y < world.h do
+        int z = 0
+        while z < world.d do
+            int x = 0
+            while x < world.w do
+                int t = world.get(x, y, z)
+                if t != VOXEL_EMPTY then
+                    int f = 0
+                    while f < 6 do
+                        if world.isExposed(x, y, z, f) then
+                            float fnx = FNX[f]
+                            float fny = FNY[f]
+                            float fnz = FNZ[f]
+                            float fcx = float(x) + 0.5 + fnx * 0.5
+                            float fcy = float(y) + 0.5 + fny * 0.5
+                            float fcz = float(z) + 0.5 + fnz * 0.5
+                            if faceFacesCamera(cam, fcx, fcy, fcz, fnx, fny, fnz) then
+                                // 面中心的深度（用于排序）
+                                float csx = 0.0
+                                float csy = 0.0
+                                float ccz = 0.0
+                                csx, csy, ccz = cam.project(fcx, fcy, fcz)
+                                if ccz > NEAR then
+                                    // 光照：diffuse = max(0, normal · toLight)
+                                    float diff = fnx * LX + fny * LY + fnz * LZ
+                                    if diff < 0.0 then
+                                        diff = 0.0
+                                    end
+                                    float bri = AMBIENT + (1.0 - AMBIENT) * diff
+                                    if bri > 1.0 then
+                                        bri = 1.0
+                                    end
+                                    int base = PALETTE[t]
+                                    float br = float(unpackR(base)) * bri
+                                    float bg = float(unpackG(base)) * bri
+                                    float bb = float(unpackB(base)) * bri
+                                    // 投影 4 个角点
+                                    int off = f * 4
+                                    float sx0 = 0.0
+                                    float sy0 = 0.0
+                                    float cz0 = 0.0
+                                    sx0, sy0, cz0 = cam.project(float(x) + CX[off + 0], float(y) + CY[off + 0], float(z) + CZ[off + 0])
+                                    float sx1 = 0.0
+                                    float sy1 = 0.0
+                                    float cz1 = 0.0
+                                    sx1, sy1, cz1 = cam.project(float(x) + CX[off + 1], float(y) + CY[off + 1], float(z) + CZ[off + 1])
+                                    float sx2 = 0.0
+                                    float sy2 = 0.0
+                                    float cz2 = 0.0
+                                    sx2, sy2, cz2 = cam.project(float(x) + CX[off + 2], float(y) + CY[off + 2], float(z) + CZ[off + 2])
+                                    float sx3 = 0.0
+                                    float sy3 = 0.0
+                                    float cz3 = 0.0
+                                    sx3, sy3, cz3 = cam.project(float(x) + CX[off + 3], float(y) + CY[off + 3], float(z) + CZ[off + 3])
+                                    faces.append(sx0)
+                                    faces.append(sy0)
+                                    faces.append(sx1)
+                                    faces.append(sy1)
+                                    faces.append(sx2)
+                                    faces.append(sy2)
+                                    faces.append(sx3)
+                                    faces.append(sy3)
+                                    faces.append(ccz)
+                                    faces.append(br)
+                                    faces.append(bg)
+                                    faces.append(bb)
+                                end
+                            end
+                        end
+                        f += 1
+                    end
+                end
+                x += 1
+            end
+            z += 1
+        end
+        y += 1
+    end
+end
+
+// 按 depth（camZ）降序排序 order（远者在前 = 先画），shell/comb 排序
+func sortFacesDesc(array<float> faces, array<int> order, int n)
+    int gap = n
+    while gap > 1 do
+        gap = gap * 10 / 13
+        if gap < 1 then
+            gap = 1
+        end
+        int i = gap
+        while i < n do
+            int temp = order[i]
+            float keyD = faces[temp * FACE_STRIDE + 8]
+            int j = i
+            while j >= gap do
+                float prevD = faces[order[j - gap] * FACE_STRIDE + 8]
+                if prevD >= keyD then
+                    break
+                end
+                order[j] = order[j - gap]
+                j = j - gap
+            end
+            order[j] = temp
+            i += 1
+        end
+    end
+end
+
+// 把一个面光栅化进帧缓冲 + 深度缓冲（Painter：调用方保证从远到近）
+func rasterFace(array<int> fb, array<float> depth, int sw, int sh,
+                array<float> faces, int fi)
+    int base = fi * FACE_STRIDE
+    float sx0 = faces[base + 0]
+    float sy0 = faces[base + 1]
+    float sx1 = faces[base + 2]
+    float sy1 = faces[base + 3]
+    float sx2 = faces[base + 4]
+    float sy2 = faces[base + 5]
+    float sx3 = faces[base + 6]
+    float sy3 = faces[base + 7]
+    float fdepth = faces[base + 8]
+    int r = clampByte(int(faces[base + 9]))
+    int g = clampByte(int(faces[base + 10]))
+    int b = clampByte(int(faces[base + 11]))
+    int col = packRGB(r, g, b)
+
+    float mnx = min4(sx0, sx1, sx2, sx3)
+    float mxx = max4(sx0, sx1, sx2, sx3)
+    float mny = min4(sy0, sy1, sy2, sy3)
+    float mxy = max4(sy0, sy1, sy2, sy3)
+    int x0 = int(math.floor(mnx))
+    int x1 = int(math.floor(mxx + 0.999999))
+    int y0 = int(math.floor(mny))
+    int y1 = int(math.floor(mxy + 0.999999))
+    if x0 < 0 then x0 = 0 end
+    if y0 < 0 then y0 = 0 end
+    if x1 > sw - 1 then x1 = sw - 1 end
+    if y1 > sh - 1 then y1 = sh - 1 end
+    if x0 > x1 or y0 > y1 then
+        return
+    end
+
+    int py = y0
+    while py <= y1 do
+        float pcy = float(py) + 0.5
+        int px = x0
+        while px <= x1 do
+            float pcx = float(px) + 0.5
+            if pointInQuad(pcx, pcy, sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3) then
+                int pidx = py * sw + px
+                if fdepth <= depth[pidx] then
+                    fb[pidx] = col
+                    depth[pidx] = fdepth
+                end
+            end
+            px += 1
+        end
+        py += 1
+    end
+end
+
+// 渲染整个世界，返回 (帧缓冲, 深度缓冲, 可见面数)
+func renderWorld(VoxelWorld world, Camera cam, int sw, int sh) as (array<int>, array<float>, int)
+    int n = sw * sh
+    int sky = packRGB(150, 200, 235)
+    array<int> fb = array[]
+    array<float> depth = array[]
+    int ii = 0
+    while ii < n do
+        fb.push(sky)
+        depth.push(INF_DEPTH)
+        ii += 1
+    end
+
+    array<float> faces = array[]
+    collectFaces(world, cam, faces)
+    int fc = faces.length / FACE_STRIDE
+
+    array<int> order = array[]
+    int k = 0
+    while k < fc do
+        order.push(k)
+        k += 1
+    end
+    sortFacesDesc(faces, order, fc)
+
+    int idx = 0
+    while idx < fc do
+        rasterFace(fb, depth, sw, sh, faces, order[idx])
+        idx += 1
+    end
+    return fb, depth, fc
+end
+
+// ========================================================================
+// 输出
+// ========================================================================
+
+// 帧缓冲 -> ASCII 灰度图（每像素按亮度映射到一个字符）
+func renderAscii(array<int> fb, int sw, int sh) as string
+    string ramp = " .:-=+*#%@"
+    string out = ""
+    int y = 0
+    while y < sh do
+        string line = ""
+        int x = 0
+        while x < sw do
+            int c = fb[y * sw + x]
+            int lum = int(0.299 * float(unpackR(c)) + 0.587 * float(unpackG(c)) + 0.114 * float(unpackB(c)))
+            int ci = lum * 9 / 255
+            if ci < 0 then ci = 0 end
+            if ci > 9 then ci = 9 end
+            line = line + string.slice(ramp, ci, 1)
+            x += 1
+        end
+        out = out + line
+        if y + 1 < sh then
+            out = out + "\n"
+        end
+        y += 1
+    end
+    return out
+end
+
+// 帧缓冲 -> PPM (P3 ASCII) 文件
+func writePpm(string path, array<int> fb, int sw, int sh) as bool
+    array<string> lines = array[]
+    lines.append("P3")
+    lines.append(string(sw) + " " + string(sh))
+    lines.append("255")
+    int y = 0
+    while y < sh do
+        string line = ""
+        int x = 0
+        while x < sw do
+            int c = fb[y * sw + x]
+            int r = unpackR(c)
+            int g = unpackG(c)
+            int b = unpackB(c)
+            if x > 0 then
+                line = line + " "
+            end
+            line = line + string(r) + " " + string(g) + " " + string(b)
+            x += 1
+        end
+        lines.append(line)
+        y += 1
+    end
+    string body = string.join(lines, "\n") + "\n"
+    return file.writeText(path, body)
+end
+
+// 深度缓冲 -> 可视化 ASCII（近=亮，远=暗），调试用
+func renderDepthAscii(array<float> depth, int sw, int sh, float maxDist) as string
+    string ramp = " .:-=+*#%@"
+    if maxDist <= 0.0 then
+        maxDist = 1.0
+    end
+    string out = ""
+    int y = 0
+    while y < sh do
+        string line = ""
+        int x = 0
+        while x < sw do
+            float dz = depth[y * sw + x]
+            int ci = 0
+            if dz >= INF_DEPTH then
+                ci = 0
+            else
+                float t = dz / maxDist
+                if t > 1.0 then t = 1.0 end
+                ci = 9 - int(t * 9.0)
+                if ci < 0 then ci = 0 end
+                if ci > 9 then ci = 9 end
+            end
+            line = line + string.slice(ramp, ci, 1)
+            x += 1
+        end
+        out = out + line
+        if y + 1 < sh then
+            out = out + "\n"
+        end
+        y += 1
+    end
+    return out
+end
+
+// ========================================================================
+// 场景构造
+// ========================================================================
+
+func buildPyramidInto(VoxelWorld world, int cx, int baseY, int cz, int height)
+    int y = 0
+    while y < height do
+        int r = height - 1 - y
+        int yy = baseY + y
+        int xx = cx - r
+        while xx <= cx + r do
+            int zz = cz - r
+            while zz <= cz + r do
+                int t = VOXEL_STONE
+                if y >= height - 3 then
+                    t = VOXEL_SAND
+                end
+                if y == height - 1 then
+                    t = VOXEL_GOLD
+                end
+                world.set(xx, yy, zz, t)
+                zz += 1
+            end
+            xx += 1
+        end
+        y += 1
+    end
+end
+
+func buildDomeInto(VoxelWorld world, int cx, int baseY, int cz, int r)
+    int y = 0
+    while y <= r do
+        int yy = baseY + y
+        int xx = cx - r
+        while xx <= cx + r do
+            int zz = cz - r
+            while zz <= cz + r do
+                int ddx = xx - cx
+                int ddz = zz - cz
+                int dist2 = ddx * ddx + y * y + ddz * ddz
+                if dist2 <= r * r then
+                    int t = VOXEL_STONE
+                    if dist2 >= (r - 1) * (r - 1) then
+                        t = VOXEL_GRASS
+                    end
+                    world.set(xx, yy, zz, t)
+                end
+                zz += 1
+            end
+            xx += 1
+        end
+        y += 1
+    end
+end
+
+func plantTree(VoxelWorld world, int x, int baseY, int z)
+    int y = 0
+    while y < 4 do
+        world.set(x, baseY + y, z, VOXEL_WOOD)
+        y += 1
+    end
+    int topY = baseY + 3
+    int ly = -1
+    while ly <= 1 do
+        int lx = -2
+        while lx <= 2 do
+            int lz = -2
+            while lz <= 2 do
+                int dist2 = lx * lx + ly * ly + lz * lz
+                if dist2 <= 4 then
+                    world.set(x + lx, topY + ly, z + lz, VOXEL_LEAF)
+                end
+                lz += 1
+            end
+            lx += 1
+        end
+        ly += 1
+    end
+end
+
+// 仅金字塔 + 地面
+func buildPyramidScene() as VoxelWorld
+    int w = 32
+    int h = 18
+    int d = 32
+    VoxelWorld world = VoxelWorld(w, h, d)
+    int x = 0
+    while x < w do
+        int z = 0
+        while z < d do
+            world.set(x, 0, z, VOXEL_STONE)
+            z += 1
+        end
+        x += 1
+    end
+    buildPyramidInto(world, w / 2, 1, d / 2, 9)
+    return world
+end
+
+// 仅球体地形（穹顶 + 起伏地表）
+func buildTerrainScene() as VoxelWorld
+    int w = 40
+    int h = 20
+    int d = 40
+    VoxelWorld world = VoxelWorld(w, h, d)
+    int domeCx = w * 3 / 4
+    int domeCz = d * 3 / 4
+    int domeR = 7
+    int x = 0
+    while x < w do
+        int z = 0
+        while z < d do
+            float s = math.sin(float(x) * 0.32) * math.cos(float(z) * 0.32)
+            int hh = 1 + int((s + 1.0) * 1.5)
+            int y = 0
+            while y <= hh do
+                int t = VOXEL_DIRT
+                if y == hh then
+                    t = VOXEL_GRASS
+                end
+                if hh <= 1 then
+                    t = VOXEL_SAND
+                end
+                world.set(x, y, z, t)
+                y += 1
+            end
+            z += 1
+        end
+        x += 1
+    end
+    buildDomeInto(world, domeCx, 2, domeCz, domeR)
+    return world
+end
+
+// demo：金字塔 + 球体地形 + 树 + 地面
+func buildDemoScene() as VoxelWorld
+    int w = 44
+    int h = 20
+    int d = 44
+    VoxelWorld world = VoxelWorld(w, h, d)
+    int x = 0
+    while x < w do
+        int z = 0
+        while z < d do
+            world.set(x, 0, z, VOXEL_STONE)
+            world.set(x, 1, z, VOXEL_GRASS)
+            z += 1
+        end
+        x += 1
+    end
+    buildPyramidInto(world, 11, 2, 11, 7)
+    buildDomeInto(world, 33, 2, 33, 7)
+    plantTree(world, 24, 2, 9)
+    plantTree(world, 32, 2, 16)
+    plantTree(world, 9, 2, 31)
+    plantTree(world, 36, 2, 8)
+    return world
+end
+
+// 根据世界尺寸构造一个 3/4 俯视相机
+func makeCamera(VoxelWorld world, float fovDeg, int sw, int sh) as Camera
+    float tx = float(world.w) * 0.5
+    float ty = float(world.h) * 0.35
+    float tz = float(world.d) * 0.5
+    Vec3 target = Vec3(tx, ty, tz)
+    float diag = math.sqrt(float(world.w * world.w) + float(world.d * world.d))
+    Vec3 eye = Vec3(tx + diag * 0.5, ty + diag * 0.45, tz + diag * 0.5)
+    Vec3 up = Vec3(0.0, 1.0, 0.0)
+    Camera cam = Camera(eye, target, up, fovDeg, sw, sh)
+    return cam
+end
+
+// ========================================================================
+// 参数解析
+// ========================================================================
+func parseIntSafe(string s, int defValue) as int
+    s = string.trim(s)
+    if string.len(s) == 0 then
+        return defValue
+    end
+    int start = 0
+    string first = string.slice(s, 0, 1)
+    if first == "-" or first == "+" then
+        start = 1
+        if string.len(s) == 1 then
+            return defValue
+        end
+    end
+    int i = start
+    while i < string.len(s) do
+        string ch = string.slice(s, i, 1)
+        if string.indexOf("0123456789", ch) < 0 then
+            return defValue
+        end
+        i += 1
+    end
+    return int(s)
+end
+
+func parseFloatSafe(string s, float defValue) as float
+    s = string.trim(s)
+    if string.len(s) == 0 then
+        return defValue
+    end
+    int start = 0
+    string first = string.slice(s, 0, 1)
+    if first == "-" or first == "+" then
+        start = 1
+        if string.len(s) == 1 then
+            return defValue
+        end
+    end
+    int dots = 0
+    int i = start
+    while i < string.len(s) do
+        string ch = string.slice(s, i, 1)
+        if ch == "." then
+            dots += 1
+            if dots > 1 then
+                return defValue
+            end
+        elseif string.indexOf("0123456789", ch) < 0 then
+            return defValue
+        end
+        i += 1
+    end
+    return float(s)
+end
+
+// 从 arg[startIdx] 起解析 name=value 参数
+func parseRenderArgs(int startIdx) as (int, int, string, string, float)
+    int width = 80
+    int height = 40
+    string outPath = ""
+    string scene = "demo"
+    float fov = 55.0
+    int i = startIdx
+    while i < arg.length do
+        string a = string(arg[i])
+        int eq = string.indexOf(a, "=")
+        if eq > 0 then
+            string key = string.lower(string.trim(string.left(a, eq)))
+            string val = string.trim(string.mid(a, eq + 1))
+            if key == "w" or key == "width" then
+                width = parseIntSafe(val, 80)
+            elseif key == "h" or key == "height" then
+                height = parseIntSafe(val, 40)
+            elseif key == "output" or key == "out" then
+                outPath = val
+            elseif key == "scene" or key == "s" then
+                scene = string.lower(val)
+            elseif key == "fov" then
+                fov = parseFloatSafe(val, 55.0)
+            end
+        end
+        i += 1
+    end
+    return width, height, outPath, scene, fov
+end
+
+// ========================================================================
+// 命令
+// ========================================================================
+func printUsage()
+    println("voxel - xlang voxel renderer")
+    println("usage:")
+    println("  voxel                                show this help")
+    println("  voxel render [name=value ...]        render scene, print ASCII grayscale")
+    println("    w=80 h=40 output=out.ppm scene=demo fov=55")
+    println("    scene: demo | pyramid | terrain")
+    println("  voxel demo                           render demo scene -> demo.ppm")
+    println("  voxel test                           run built-in unit tests")
+    println("features: perspective projection, face culling, painter's algorithm + z-buffer, directional lighting")
+end
+
+func doRender(int width, int height, string outPath, string scene, float fov) as int
+    if width < 4 or height < 3 then
+        println("error: width must be >= 4 and height >= 3")
+        return 1
+    end
+    if width > 400 or height > 200 then
+        println("error: width max 400, height max 200 (keep it sane for software raster)")
+        return 1
+    end
+
+    VoxelWorld world
+    if scene == "pyramid" then
+        world = buildPyramidScene()
+    elseif scene == "terrain" then
+        world = buildTerrainScene()
+    else
+        scene = "demo"
+        world = buildDemoScene()
+    end
+
+    Camera cam = makeCamera(world, fov, width, height)
+
+    println("[voxel] scene=" + scene + " grid=" + string(world.w) + "x" + string(world.h) + "x" + string(world.d))
+    println("[voxel] voxels=" + string(world.countSolid()) + " render=" + string(width) + "x" + string(height) + " fov=" + string.formatFloat(fov, ".1"))
+    float t0 = time.timer()
+    array<int> fb
+    array<float> depth
+    int faceCount
+    fb, depth, faceCount = renderWorld(world, cam, width, height)
+    float t1 = time.timer()
+    float elapsed = t1 - t0
+
+    string ascii = renderAscii(fb, width, height)
+    println(ascii)
+
+    if outPath != "" then
+        bool ok = writePpm(outPath, fb, width, height)
+        if ok then
+            println("[voxel] wrote PPM -> " + outPath)
+        else
+            println("[voxel] error: failed to write " + outPath)
+        end
+    end
+
+    println("[voxel] faces=" + string(faceCount) + " time=" + string.formatFloat(elapsed, ".3") + "s")
+    return 0
+end
+
+// ========================================================================
+// 单元测试
+// ========================================================================
+int gPass = 0
+int gFail = 0
+
+func check(bool cond, string label)
+    if cond then
+        println("  ok   " + label)
+        gPass += 1
+    else
+        println("  FAIL " + label)
+        gFail += 1
+    end
+end
+
+func checkInt(int actual, int expected, string label)
+    bool ok = actual == expected
+    if ok then
+        println("  ok   " + label)
+        gPass += 1
+    else
+        println("  FAIL " + label + " (expected " + string(expected) + " got " + string(actual) + ")")
+        gFail += 1
+    end
+end
+
+func checkFloat(float actual, float expected, string label)
+    float diff = actual - expected
+    if diff < 0.0 then
+        diff = 0.0 - diff
+    end
+    bool ok = diff < 0.01
+    if ok then
+        println("  ok   " + label)
+        gPass += 1
+    else
+        println("  FAIL " + label + " (expected " + string.formatFloat(expected, ".3") + " got " + string.formatFloat(actual, ".3") + ")")
+        gFail += 1
+    end
+end
+
+func runTests() as int
+    println("== voxel tests ==")
+
+    // --- 1. 索引公式 grid[x][y][z] = data[(y*w+z)*d+x] ---
+    VoxelWorld w = VoxelWorld(4, 3, 4)
+    checkInt(w.idx(0, 0, 0), 0, "idx origin = 0")
+    checkInt(w.idx(1, 0, 0), 1, "idx x+1 = 1")
+    checkInt(w.idx(0, 0, 1), 4, "idx z+1 = 4  ((0*4+1)*4+0)")
+    checkInt(w.idx(0, 1, 0), 16, "idx y+1 = 16 ((1*4+0)*4+0)")
+    checkInt(w.idx(3, 2, 3), 47, "idx max = 47 ((2*4+3)*4+3)")
+
+    // --- 2. get/set + 越界 ---
+    w.set(2, 1, 3, VOXEL_STONE)
+    checkInt(w.get(2, 1, 3), VOXEL_STONE, "set/get roundtrip")
+    checkInt(w.get(2, 1, 3), 3, "stone type id = 3")
+    checkInt(w.get(-1, 0, 0), 0, "out-of-bounds get = empty")
+    checkInt(w.get(100, 100, 100), 0, "far out-of-bounds = empty")
+
+    // --- 3. 面暴露判定（邻居为空则暴露）---
+    VoxelWorld lone = VoxelWorld(5, 5, 5)
+    lone.set(2, 2, 2, VOXEL_STONE)
+    int f = 0
+    bool allExposed = true
+    while f < 6 do
+        if not lone.isExposed(2, 2, 2, f) then
+            allExposed = false
+        end
+        f += 1
+    end
+    check(allExposed, "lone voxel: all 6 faces exposed")
+    lone.set(3, 2, 2, VOXEL_STONE)
+    check(not lone.isExposed(2, 2, 2, 0), "+X face hidden when neighbor present")
+    check(lone.isExposed(2, 2, 2, 2), "+Y face still exposed")
+
+    // --- 4. packRGB/unpack 往返 ---
+    int packed = packRGB(96, 160, 72)
+    checkInt(unpackR(packed), 96, "unpackR")
+    checkInt(unpackG(packed), 160, "unpackG")
+    checkInt(unpackB(packed), 72, "unpackB")
+    checkInt(packRGB(255, 255, 255), 16777215, "pack white = 0xFFFFFF")
+
+    // --- 5. 透视投影 ---
+    Vec3 eye = Vec3(0.0, 0.0, 5.0)
+    Vec3 tgt = Vec3(0.0, 0.0, 0.0)
+    Vec3 upv = Vec3(0.0, 1.0, 0.0)
+    Camera cam = Camera(eye, tgt, upv, 90.0, 100, 100)
+    float sx = 0.0
+    float sy = 0.0
+    float cz = 0.0
+    sx, sy, cz = cam.project(0.0, 0.0, 0.0)
+    checkFloat(sx, 50.0, "project origin -> screen center x=50")
+    checkFloat(sy, 50.0, "project origin -> screen center y=50")
+    checkFloat(cz, 5.0, "project origin -> depth=5")
+    sx, sy, cz = cam.project(1.0, 0.0, 0.0)
+    checkFloat(sx, 60.0, "project (1,0,0) -> x=60 (+x goes right)")
+    sx, sy, cz = cam.project(0.0, 1.0, 0.0)
+    checkFloat(sy, 40.0, "project (0,1,0) -> y=40 (+y goes up)")
+
+    // --- 6. 背面剔除 ---
+    // 法线 +X，相机在 +X 侧 -> 朝向相机（可见）
+    check(faceFacesCamera(cam, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0) == false, "+X face away from cam at (0,0,5)")
+    Camera cam2 = Camera(Vec3(10.0, 0.0, 0.0), Vec3(0.0, 0.0, 0.0), Vec3(0.0, 1.0, 0.0), 90.0, 100, 100)
+    check(faceFacesCamera(cam2, 5.0, 0.0, 0.0, 1.0, 0.0, 0.0), "+X face toward cam at (10,0,0)")
+
+    // --- 7. 光照：顶面比底面亮 ---
+    float diffTop = 0.0 * LX + 1.0 * LY + 0.0 * LZ
+    float diffBot = 0.0 * LX + (-1.0) * LY + 0.0 * LZ
+    check(diffTop > diffBot, "top face brighter than bottom (normal . lightdir)")
+    checkFloat(diffTop, 0.842, "top diffuse ~ 0.842")
+
+    // --- 8. 深度排序（远者在前）---
+    array<float> tf = array[]
+    int ti = 0
+    while ti < 2 * FACE_STRIDE do
+        tf.push(0.0)
+        ti += 1
+    end
+    // face 0: depth 10, face 1: depth 5
+    tf[0 * FACE_STRIDE + 8] = 10.0
+    tf[1 * FACE_STRIDE + 8] = 5.0
+    array<int> order = array[0, 1]
+    sortFacesDesc(tf, order, 2)
+    checkInt(order[0], 0, "farther face (depth=10) sorted first")
+    checkInt(order[1], 1, "nearer face (depth=5) sorted second")
+
+    // --- 9. 点在四边形内 ---
+    check(pointInQuad(0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0), "center inside unit quad")
+    check(not pointInQuad(2.0, 2.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0), "far point outside unit quad")
+
+    // --- 10. 端到端：渲染小场景应产生非空帧缓冲 ---
+    VoxelWorld mini = VoxelWorld(6, 4, 6)
+    mini.set(2, 1, 2, VOXEL_GOLD)
+    mini.set(3, 1, 3, VOXEL_GRASS)
+    Camera minicam = makeCamera(mini, 55.0, 30, 18)
+    array<int> mfb
+    array<float> mdepth
+    int mfaces
+    mfb, mdepth, mfaces = renderWorld(mini, minicam, 30, 18)
+    check(mfaces > 0, "mini scene produced visible faces")
+    int nonbg = 0
+    int p = 0
+    while p < mfb.length do
+        if mfb[p] != packRGB(150, 200, 235) then
+            nonbg += 1
+        end
+        p += 1
+    end
+    check(nonbg > 0, "mini scene painted non-background pixels")
+
+    println("================================================================")
+    println("result: " + string(gPass) + " passed, " + string(gFail) + " failed")
+    if gFail == 0 then
+        return 0
+    end
+    return 1
+end
+
+// ========================================================================
+// main
+// ========================================================================
+func main(...) as int
+    initPalette()
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+    string cmd = string.lower(string(arg[1]))
+    try
+        if cmd == "-h" or cmd == "--help" or cmd == "help" then
+            printUsage()
+            return 0
+        elseif cmd == "render" then
+            int width
+            int height
+            string outPath
+            string scene
+            float fov
+            width, height, outPath, scene, fov = parseRenderArgs(2)
+            return doRender(width, height, outPath, scene, fov)
+        elseif cmd == "demo" then
+            return doRender(100, 50, "demo.ppm", "demo", 55.0)
+        elseif cmd == "test" then
+            return runTests()
+        else
+            println("error: unknown command '" + string(arg[1]) + "'")
+            printUsage()
+            return 1
+        end
+    catch e
+        println("error: " + e.message)
+        return 1
+    end
+    return 0
+end

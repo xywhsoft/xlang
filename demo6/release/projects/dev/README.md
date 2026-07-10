@@ -8,7 +8,10 @@
 - 发现 BUG 和手感不正确的地方，记录到 `BUGS.md`。
 - 工具本身要能跑、能用，不是玩具占位。
 
-## 工具列表（68 个）
+## 核心工具批次
+
+当前目录包含 137 个项目目录、174 个 xlang 源文件；下表记录最初按批次建立的核心工具，
+其余项目用于网络、扩展库、嵌入式运行和边界回归等专项验证。
 
 | 批次 | 工具 | 覆盖领域 |
 |---|---|---|
@@ -58,40 +61,35 @@ xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<to
 - 标准 API 入口参考：`D:\GIT\x-lang\DEMO6功能清单.md` 第 14 节。
 - 范例参考：`D:\GIT\x-lang\demo6\release\examples\` 下的 `.xl` 文件。
 
-## 当前限制
+## 当前设计限制
 
-以下为**设计限制**或**暂未修复的 BUG**，开发时需注意：
+以下条目是当前明确保留的设计边界，不是兼容旧实现的临时绕过，也不代表 `BUGS.md` 中存在未关闭缺陷：
 
 | 限制 | 说明 | 绕过方式 |
 |---|---|---|
 | **无 stdin API** | 不能从控制台读输入 | 用命令行参数驱动 |
-| **native-backed class 不可按值传参/返回已有值** | 带 destroy 的不可复制资源（设计决策） | 操作逻辑内联；可作参数传入、可 `return T()` 临时构造 |
+| **有 destroy 的 native-backed class 不按普通 class 值语义复制** | native 资源遵循 owned/borrowed/move 生命周期，禁止隐式复制同一句柄 | 传递借用参数，或返回 `T()` 新构造/明确可移动的资源值 |
 | **json pretty 用 TAB 缩进** | XRT 底层未提供配置机制 | `string.replace(s, "\t", "  ")` |
-| **json pretty 键序可能 hash 重排** | compact 模式保序，pretty 模式可能重排 | 需要保序时手工拼接 JSON 文本 |
 | **`string.splitLines` 尾部空串** | `"a\nb\n"` 返回 3 行 | 末元素为 `""` 时 remove 一个 |
-| **`int("abc")` 静默返回 0** | 不抛异常 | 自行逐字符校验 |
 | **`auto` 无法从 `pop()` 推断** | 用显式类型 | `int p = a.pop()` |
 | **list 无 append** | int64 稀疏存储 | `li[index] = value` |
 | **`#` 不是注释** | `//` 才是注释 | `#` 开启时间字面量 |
-| **复合赋值 `+=` 不派发 class 协议** | `[sem] numeric compound assignment` | 展开为 `a = a + b` |
 | **`derive string/hash/equals` 未实现** | 编译期明确拒绝 | 手写 `__eq__`/`__toString__` 等 |
-| **`__item__` 返回 `array<T>` 崩溃** | 运行期 0xC0000005 | 避免协议方法返回 typed 容器 |
-| **属性零维+一维重载不工作** | `get x()` + `get x(int)` 冲突 | 使用不同属性名 |
 | **`var` 实参传给重载函数失败** | `[sem] 没有匹配的函数重载` | 先 `int(v)` / `float(v)` 显式转换 |
-| **var dict 在递归中分配触发二次方 GC 劣化** | 高频/递归分配 dict 致 O(n²) 变慢（BUG-LP1）；var 数组不受影响 | 递归热路径用扁平 var 数组（key/val 交替）+ 线性查找替代 dict |
 
 ## 正向验证通过的能力
 
-以下能力经过 66 个工具的实战验证，可放心使用：
+以下能力已经过当前 dev 项目群、分类测试套件和发布物闭包的联合验证：
 
 - **语法**：f-string/rf-string、多行字符串、raw string、时间字面量、`#doc/#end` 文档注释
 - **类型系统**：泛型函数/泛型 class/泛型约束/泛型迭代协议、union 类型、typedef、is/as 类型判断
 - **容器**：array 全套方法 + `+` 拼接、list 稀疏索引、set/dict（含 remove）、`Type<T>[...]` 构造、**`array<var>` 承载多态 class 实例 + `as Base` 还原 vtable 派发**
-- **OOP**：class 继承链、base 调用、public/private/protected、static、virtual/override/final、vtable 动态派发、隐式向上转型、var 装箱 vtable 保留、属性 get/let（零维/多维/virtual）、方法重载/构造重载
+- **OOP**：class 继承链、base 调用、public/private/protected、static、virtual/override/final、vtable 动态派发、显式类型边界、var 装箱 vtable 保留、属性 get/let（零维/多维/virtual）、方法重载/构造重载
 - **运算符协议**：`__add__/__sub__/__mul__/__div__/__mod__/__pow__`、`__neg__/__pos__/__not__/__bitNot__`、`__eq__/__ne__/__lt__/__le__/__gt__/__ge__/__approx__`、`__item__/__setItem__`（多维）、`__contains__/__call__/__len__/__iter__/__next__/__field__/__setField__`
 - **derive**：copy/clone/moveOnly（冲突检查）/value/json/xson + 字段注解 @json/@persist/omit
 - **持久化**：json/xson stringify/parse（含容器内 class）、字段级注解
 - **并发**：async/await、future、task.all/race/spawn/cancel、generator/yield、channel（send/recvInto/tryRecvInto/close）、thread、mutex/sem/cond/rwlock
+- **共享全局状态**：文件作用域 `var`/typed container/class 拥有字段可在初始化或重绑定后进入 thread、task 和 native callback；共享容器写入嵌套复合值时由 XRT 完成共享图发布
 - **C 混编**：extern 函数/变量、export C ABI、native-backed class、.xl+.c 混合构建、xl abi dump、import/package/扩展库
 - **标准库**：string/math/time/random/path/file/dir/json/xson/codec/hash/crypto/regex/url/query/process/log/template/encoding/net/tcp/udp/http（client+server 全套）
 - **try/catch/finally**（含 catch 内 return）、throw、assert、多返回值+解构
@@ -100,4 +98,5 @@ xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<to
 
 ## BUG 记录
 
-未修复的 BUG 和设计限制统一记录在 `BUGS.md`。
+当前确认未修复的 BUG 记录在 `BUGS.md`；设计限制只记录在本节和对应权威设计文档中。
+三轮集中治理的根因、修复边界与验收证据见 `docs/三轮问题统一修复任务.md`。

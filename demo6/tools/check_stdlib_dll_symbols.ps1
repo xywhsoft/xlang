@@ -60,7 +60,7 @@ $crtSymbols = @(
     "sin", "cos", "tan",
     "asin", "acos", "atan", "atan2",
     "sqrt", "pow", "exp", "log", "log10",
-    "floor", "ceil", "fabs"
+    "floor", "ceil", "fabs", "llabs"
 )
 
 $symbols = New-Object System.Collections.Generic.List[string]

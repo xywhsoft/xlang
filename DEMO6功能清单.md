@@ -287,6 +287,7 @@ func(string, ***) as int namedVarargProc
 - 泛型参数支持 `<T is Constraint>` 约束语法。
 - 多个泛型约束使用 `and` 组合，例如 `<T is json and cloneable>`。
 - 泛型约束支持内置能力约束和 class 继承约束，并在实例化时执行语义检查。
+- 内置泛型约束名固定为 `comparable`、`cloneable`、`json`、`xson`；其他约束名必须指向已声明 class。
 - 泛型容器支持静态元素类型。
 - `future<T>`、`generator<T>`、`channel<T>` 服务 async/yield/channel 能力。
 - `object` 是标准库普通 class，不是特殊黑盒类型。
@@ -598,8 +599,13 @@ set<int> empty = set<int>{}
 - typed container 可承载基础类型、class、native-backed class、union、function 值。
 - `list` 使用 int64 稀疏索引，字面量写作 `[index: value]`。
 - 容器支持索引读写、索引复合赋值和安全索引 `?[...]`。
+- `array`、`array<var>` 和 `array<T>` 的负下标从尾部计数并支持读写；`list` 的负数仍是实际 int64 稀疏键。
 - `auto` 接收能推断为静态容器的表达式时，保持静态 typed-container 存储；需要动态容器时请显式使用 `var`。
 - 容器赋值和进入 `var` 时保持当前实现的复制/引用计数语义，避免裸 C 指针泄漏。
+- 文件作用域 `var`、`array<T>`、`list<T>`、`set<T>`、`dict<T>` 在模块初始化和后续重绑定时使用 XRT shared 根，可由 thread、task 和 native callback 访问。
+- 全局 class 拥有的 `var` 与静态泛型容器字段也会在构造完成后发布为 shared 根。
+- 向共享动态容器写入本地嵌套 array/list/set/dict 时，XRT 自动复制为共享值图；跨线程并发写仍需 mutex/rwlock。
+- XRT C API 可使用 `xvoCopyEx(value, mode)` / `xvoDeepCopyEx(value, mode)` 显式选择 local/shared 复制模式；共享值图限制为 256 层，循环引用发布失败。
 
 容器成员 API：
 
@@ -968,6 +974,7 @@ auto p = json.parse::<Packet>(text)
 - `__len__` 可将 `.length` 作为只读协议属性暴露给 class；静态字段 `length` 优先于协议。
 - class 构造表达式可作为成员/协议临时接收者，例如 `Sized(2).length`。
 - class 方法支持多返回值，并可参与解构声明、解构赋值和成员调用返回类型推断。
+- 普通 class 参数采用值语义：被调函数为含 owned 字段的普通或泛型 class 形参建立独立副本，修改或清理形参不会影响调用方；native-backed class 继续遵循 owned/borrowed/move 资源规则，不隐式复制底层句柄。
 - 普通 class 支持 `__iter__` / `__next__` 迭代协议。
 - `__iter__() as IteratorClass` 创建迭代器，`IteratorClass.__next__() as (bool, T)` 返回是否存在下一项和值。
 - `for value in obj` 绑定迭代项类型 `T`；`for index, value in obj` 绑定 `int` 索引和 `T` 值。
@@ -1122,9 +1129,17 @@ if ch.recvInto(received) then
 end
 
 ch.close()
+
+channel<string> texts = channel::<string>(2)
+texts.send("你好")
+string message = ""
+texts.recvInto(message)
+print(message)
 ```
 
-`channel<T>` 当前只允许 `bool`、整数、浮点、`time`、`point` 等可按值复制的元素类型。`string`、`var`、`class`、`func`、`generator<T>`、`array<int>` 这类静态容器等涉及所有权、动态值或 move-only 句柄的类型会在语义阶段拒绝，避免进入当前 `memcpy` 发送路径。
+`channel<T>` 当前允许 `bool`、整数、浮点、`string`、`time`、`point`。字符串发送会立即复制 UTF-8 字节，接收时在接收线程中重建，因此不借用发送线程的字符串地址。`var`、`class`、`func`、`generator<T>`、`array<int>` 这类涉及动态所有权、析构或 move-only 句柄的类型仍会在语义阶段拒绝。
+
+channel 离开作用域时会关闭队列并释放全部未消费消息；关闭后已经入队的消息仍可继续接收，直到队列排空。
 
 `send(value)` 是阻塞发送：当 channel 已满但未关闭时会等待可写空间；channel 已关闭时返回 `false`。`trySend(value)` 是非阻塞发送：当 channel 已满或已关闭时立即返回 `false`。
 
@@ -1245,7 +1260,8 @@ auto text = file.readText("data.txt")
 
 常用默认参数：
 - `string.compare(left, right, ignoreCase = false)`、`string.equals(...)`、`string.contains(...)`、`string.indexOf(...)`、`string.lastIndexOf(...)`、`string.count(...)`、`string.startsWith(...)`、`string.endsWith(...)`、`string.like(...)`。
-- `string.format(value, format = "")` 支持 `int`、`uint64`、`float` 重载；`string.formatInt(value, format = "")`、`string.formatUInt(value, format = "")`、`string.formatFloat(value, format = "")` 保留为显式类型入口；`string.trim(text, chars = "")`、`string.ltrim(...)`、`string.rtrim(...)`、`string.slice(text, start, count = -1)`、`string.mid(text, start, count = -1)`。
+- `string.format(value, format = "")` 支持 `int`、`uint64`、`float` 重载；`string.formatInt(value, format = "")`、`string.formatUInt(value, format = "")`、`string.formatFloat(value, format = "")` 保留为显式类型入口；`string.formatInt(value, "c")` 将有效非 NUL Unicode codepoint 转为 UTF-8 字符；`string.trim(text, chars = "")`、`string.ltrim(...)`、`string.rtrim(...)`、`string.slice(text, start, count = -1)`、`string.mid(text, start, count = -1)`。
+- `time.timezoneOffset()` 返回本地时区相对 UTC 的有符号偏移秒数，例如 UTC+8 返回 `28800`。
 - `string.join(values, sep = "")`、`string.padLeft(text, width, pad = " ")`、`string.padRight(text, width, pad = " ")`、`string.padCenter(text, width, pad = " ")`、`string.remove(text, part, ignoreCase = false)`。
 - `time.fromDateTime(year, month, day, hour = 0, minute = 0, second = 0)`、`time.firstDayOfWeek(value, startDay = 1)`、`time.lastDayOfWeek(value, startDay = 1)`、`time.format(value, format = 0)`。
 - `random.seed(seed, seq)`、`random.string(len = 16, chars = "")`、`path.join(first, second, third = "", fourth = "")`、`path.random(head = "", foot = "", len = 12)`。

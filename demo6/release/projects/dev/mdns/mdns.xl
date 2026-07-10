@@ -1,0 +1,593 @@
+// mdns - mDNS / DNS-SD service discovery simulator
+//
+// Usage:
+//   mdns                               -> self-test (build a fake network,
+//                                          register / browse / resolve, verify)
+//   mdns test                          -> same self-test
+//   mdns register <service> <port> [txt]
+//                                      -> register a service instance
+//   mdns browse <service>              -> list instances of a service type
+//   mdns resolve <instance>            -> resolve instance -> host/port/txt
+//   mdns list                          -> dump registry (PTR/SRV/TXT views)
+//   mdns -h | --help                   -> usage
+//
+// Simulates DNS-based Service Discovery (RFC 6763) over multicast DNS
+// (RFC 6762) WITHOUT real networking. A single in-process global registry
+// stands in for the multicast group; each browse / resolve incurs a small
+// simulated network latency. Query results are cached with a TTL.
+//
+// Record types modeled:
+//   PTR  <_service._tcp>      -> list of <instance> names   (browseService)
+//   SRV  <instance>           -> <host> <port>              (srvRecord)
+//   TXT  <instance>           -> <txt> key=value list       (txtRecord)
+//
+// Registry layout:  var dict<service, array<instance>>
+//   key   = service type, e.g. "_http._tcp" (lowercased)
+//   value = array of instance dicts, each:
+//     { "instance", "service", "host", "port", "txt", "ttl", "registered", "expire" }
+//
+// xlang constraints honored (see dev/README.md + dev/BUGS.md):
+//   * BUG-XT3: global containers (g_registry, g_cache) are initialized at
+//     declaration and only modified in-place (clear + key-assign), never
+//     rebound with `g = ...`.
+//   * BUG-DN1: never `for _, _ in dict`; at least the key is always named.
+//   * BUG-CE1: every var value drawn from a container is coerced with
+//     string()/int() before being concatenated; no `var + string`.
+//   * var containers are reference-typed through function calls, so helpers
+//     mutate the shared registry / cache in place.
+
+// ============================== constants ==================================
+
+const int DEFAULT_TTL    = 4500     // mDNS record TTL in seconds (RFC 6762)
+const int CACHE_TTL      = 120      // query-result cache TTL in seconds
+const int SIM_LATENCY_LO = 4        // simulated network latency lower bound (ms)
+const int SIM_LATENCY_HI = 14       // simulated network latency upper bound (ms)
+
+// ============================== globals ====================================
+// g_registry : service -> array<instance dict>   (the "multicast group")
+// g_cache    : cacheKey -> {"data": var, "expire": int}
+
+var g_registry = {}
+var g_cache    = {}
+
+string g_hostBase   = "xlang-host"
+int g_instCounter   = 0
+int g_totalQueries  = 0
+int g_cacheHits     = 0
+int g_cacheMisses   = 0
+
+// self-test counters
+int g_pass = 0
+int g_fail = 0
+
+
+// ============================== usage ======================================
+
+func usage()
+    println("mdns - mDNS / DNS-SD service discovery simulator")
+    println("")
+    println("  mdns                               run self-test")
+    println("  mdns test                          run self-test")
+    println("  mdns register <service> <port> [txt]")
+    println("                                     register a service instance")
+    println("  mdns browse <service>              browse instances of a service")
+    println("  mdns resolve <instance>            resolve host/port/txt")
+    println("  mdns list                          dump PTR/SRV/TXT records")
+    println("  mdns -h | --help                   this message")
+    println("")
+    println("Examples:")
+    println("  mdns register _http._tcp 8080 path=/api")
+    println("  mdns browse _http._tcp")
+    println("  mdns resolve xlang-host-1._http._tcp")
+end
+
+
+// ============================== utility ====================================
+
+func nowUnix() as int
+    return time.toUnix(time.now())
+end
+
+func normalizeService(string svc) as string
+    return string.lower(string.trim(svc))
+end
+
+// Simulated per-query multicast latency.
+func simulateLatency()
+    int ms = random.range(SIM_LATENCY_LO, SIM_LATENCY_HI)
+    time.sleep(ms)
+end
+
+
+// ============================== instance factory ===========================
+// Each instance is a var dict encapsulating its full record set.
+
+func makeInstance(string instance, string service, string host,
+                  int port, string txt, int ttl) as var
+    int nowt = nowUnix()
+    var inst = {}
+    inst["instance"]   = instance
+    inst["service"]    = service
+    inst["host"]       = host
+    inst["port"]       = port
+    inst["txt"]        = txt
+    inst["ttl"]        = ttl
+    inst["registered"] = nowt
+    inst["expire"]     = nowt + ttl
+    return inst
+end
+
+func genInstanceName(string service) as string
+    g_instCounter = g_instCounter + 1
+    return g_hostBase + "-" + g_instCounter.toString() + "." + service
+end
+
+func genHost() as string
+    return g_hostBase + "-" + g_instCounter.toString() + ".local"
+end
+
+
+// ============================== registry ===================================
+// g_registry holds service -> array<instance>. regEnsure lazily creates the
+// array slot; var arrays are references, so callers append in place.
+
+func regEnsure(string service) as var
+    var arr = g_registry[service]
+    if arr == null then
+        var fresh = []
+        g_registry[service] = fresh
+        return fresh
+    end
+    return arr
+end
+
+// Public: register a new instance. Invalidates the browse cache for the
+// service so subsequent browses observe the new instance immediately.
+func registerService(string service, int port, string txt) as string
+    string svc = normalizeService(service)
+    string instName = genInstanceName(svc)
+    string host = genHost()
+    var inst = makeInstance(instName, svc, host, port, txt, DEFAULT_TTL)
+    var arr = regEnsure(svc)
+    arr.append(inst)
+    cacheInvalidate("browse:" + svc)
+    return instName
+end
+
+// Browse: PTR records. Returns a var array of live instance names.
+func browseService(string service) as var
+    string svc = normalizeService(service)
+    string cacheKey = "browse:" + svc
+    var cached = cacheGet(cacheKey)
+    if cached != null then
+        return cached
+    end
+    simulateLatency()
+    var result = []
+    var arr = g_registry[svc]
+    if arr != null then
+        int nowt = nowUnix()
+        for inst in arr
+            int expire = int(inst["expire"])
+            if nowt < expire then
+                result.append(string(inst["instance"]))
+            end
+        end
+    end
+    cachePut(cacheKey, result)
+    return result
+end
+
+// Resolve: SRV + TXT for a single instance. Returns the instance dict or null.
+func resolveInstance(string instance) as var
+    string cacheKey = "resolve:" + string.lower(instance)
+    var cached = cacheGet(cacheKey)
+    if cached != null then
+        return cached
+    end
+    simulateLatency()
+    string target = string.lower(instance)
+    for svc, arr in g_registry
+        for inst in arr
+            string name = string.lower(string(inst["instance"]))
+            if name == target then
+                int nowt = nowUnix()
+                int expire = int(inst["expire"])
+                if nowt < expire then
+                    cachePut(cacheKey, inst)
+                    return inst
+                end
+            end
+        end
+    end
+    return null
+end
+
+// Count live instances of a service (registry view, bypasses cache).
+func countInstances(string service) as int
+    string svc = normalizeService(service)
+    var arr = g_registry[svc]
+    if arr == null then return 0 end
+    int nowt = nowUnix()
+    int n = 0
+    for inst in arr
+        int expire = int(inst["expire"])
+        if nowt < expire then
+            n = n + 1
+        end
+    end
+    return n
+end
+
+
+// ============================== records ====================================
+// PTR : service   -> array of instance names (browse contents)
+// SRV : instance  -> host + port
+// TXT : instance  -> txt string
+
+func ptrRecords(string service) as var
+    return browseService(service)
+end
+
+// SRV record: returns {"host", "port"} or null.
+func srvRecord(string instance) as var
+    var inst = resolveInstance(instance)
+    if inst == null then return null end
+    var rec = {}
+    rec["host"] = string(inst["host"])
+    rec["port"] = int(inst["port"])
+    return rec
+end
+
+// TXT record: returns the txt string (or "" if none).
+func txtRecord(string instance) as string
+    var inst = resolveInstance(instance)
+    if inst == null then return "" end
+    return string(inst["txt"])
+end
+
+
+// ============================== cache + TTL ================================
+
+func cacheGet(string key) as var
+    g_totalQueries = g_totalQueries + 1
+    var entry = g_cache[key]
+    if entry == null then
+        g_cacheMisses = g_cacheMisses + 1
+        return null
+    end
+    int nowt = nowUnix()
+    int expire = int(entry["expire"])
+    if nowt >= expire then
+        g_cache.remove(key)
+        g_cacheMisses = g_cacheMisses + 1
+        return null
+    end
+    g_cacheHits = g_cacheHits + 1
+    return entry["data"]
+end
+
+func cachePut(string key, var data)
+    int nowt = nowUnix()
+    var entry = {}
+    entry["data"] = data
+    entry["expire"] = nowt + CACHE_TTL
+    g_cache[key] = entry
+end
+
+func cacheInvalidate(string key)
+    g_cache.remove(key)
+end
+
+// Force a cache entry to expire (test helper for deterministic TTL checks).
+func cacheForceExpire(string key)
+    var entry = g_cache[key]
+    if entry == null then return end
+    entry["expire"] = 0
+end
+
+// Force every instance of a service to expire, and drop their resolve cache
+// entries (test helper).
+func recordsForceExpire(string service)
+    string svc = normalizeService(service)
+    var arr = g_registry[svc]
+    if arr == null then return end
+    for inst in arr
+        inst["expire"] = 0
+        string name = string.lower(string(inst["instance"]))
+        cacheInvalidate("resolve:" + name)
+    end
+end
+
+
+// ============================== display ====================================
+
+func printInstance(var inst)
+    string instName = string(inst["instance"])
+    string svc      = string(inst["service"])
+    string host     = string(inst["host"])
+    int port        = int(inst["port"])
+    string txt      = string(inst["txt"])
+    int ttl         = int(inst["ttl"])
+    println("  instance : " + instName)
+    println("  service  : " + svc)
+    println("  host     : " + host)
+    println("  port     : " + port.toString())
+    println("  txt      : " + txt)
+    println("  ttl      : " + ttl.toString() + "s")
+end
+
+func printBrowse(string service, var instances)
+    string svc = normalizeService(service)
+    int n = instances.length
+    if n == 1 then
+        println("PTR  " + svc + "  (1 instance)")
+    else
+        println("PTR  " + svc + "  (" + n.toString() + " instances)")
+    end
+    if n == 0 then
+        println("  (none)")
+    else
+        for name in instances
+            println("  -> " + string(name))
+        end
+    end
+end
+
+
+// ============================== command handlers ===========================
+
+func cmdRegister(string service, int port, string txt) as int
+    string instName = registerService(service, port, txt)
+    println("registered:")
+    var inst = resolveInstance(instName)
+    if inst != null then
+        printInstance(inst)
+    end
+    println("")
+    println("(use: mdns browse " + service + "  /  mdns resolve " + instName + ")")
+    return 0
+end
+
+func cmdBrowse(string service) as int
+    var instances = browseService(service)
+    printBrowse(service, instances)
+    return 0
+end
+
+func cmdResolve(string instance) as int
+    var inst = resolveInstance(instance)
+    if inst == null then
+        println("resolve: instance not found (or expired): " + instance)
+        return 1
+    end
+    println("resolve " + instance + ":")
+    printInstance(inst)
+    return 0
+end
+
+func cmdList()
+    int svcCount  = 0
+    int instCount = 0
+    println("=== mDNS registry ===")
+    for svc, arr in g_registry
+        svcCount = svcCount + 1
+        int live = countInstances(string(svc))
+        println("")
+        println("PTR  " + string(svc) + "  (" + live.toString() + " live)")
+        for inst in arr
+            string name  = string(inst["instance"])
+            string host  = string(inst["host"])
+            int port     = int(inst["port"])
+            string txt   = string(inst["txt"])
+            int ttl      = int(inst["ttl"])
+            int expire   = int(inst["expire"])
+            int nowt     = nowUnix()
+            string state = "live"
+            if nowt >= expire then state = "expired" end
+            println("  " + name + "  [" + state + "]  ttl=" + ttl.toString() + "s")
+            println("    SRV  " + name + "  " + host + ":" + port.toString())
+            if txt == "" then
+                println("    TXT  " + name + "  (none)")
+            else
+                println("    TXT  " + name + "  " + txt)
+            end
+            instCount = instCount + 1
+        end
+    end
+    println("")
+    println("--- summary ---")
+    println("services  : " + svcCount.toString())
+    println("instances : " + instCount.toString())
+    println("queries   : " + g_totalQueries.toString())
+    println("cache     : " + g_cacheHits.toString() + " hits, " + g_cacheMisses.toString() + " misses")
+end
+
+
+// ============================== self-test ==================================
+
+func check(bool ok, string label)
+    if ok then
+        g_pass = g_pass + 1
+        println("  PASS " + label)
+    else
+        g_fail = g_fail + 1
+        println("  FAIL " + label)
+    end
+end
+
+func runTest() as int
+    println("=== mDNS service discovery simulator - self-test ===")
+    println("")
+    g_registry.clear()
+    g_cache.clear()
+    g_instCounter  = 0
+    g_totalQueries = 0
+    g_cacheHits    = 0
+    g_cacheMisses  = 0
+
+    // ---- 1. service registration ----
+    println("[1] service registration (DNS-SD)")
+    string a1 = registerService("_http._tcp", 8080, "path=/api")
+    string a2 = registerService("_http._tcp", 8081, "path=/web")
+    string a3 = registerService("_ssh._tcp", 22, "")
+    string a4 = registerService("_print._tcp", 515, "ty=printer")
+    check(a1 == "xlang-host-1._http._tcp", "register instance name #1")
+    check(a2 == "xlang-host-2._http._tcp", "register instance name #2")
+    check(a3 == "xlang-host-3._ssh._tcp", "register instance name #3")
+    check(a4 == "xlang-host-4._print._tcp", "register instance name #4")
+
+    // ---- 2. browse / PTR ----
+    println("")
+    println("[2] browse (PTR records)")
+    var httpList = browseService("_http._tcp")
+    check(httpList.length == 2, "browse _http._tcp -> 2 instances")
+    bool hasA1 = false
+    bool hasA2 = false
+    for name in httpList
+        if string(name) == a1 then hasA1 = true end
+        if string(name) == a2 then hasA2 = true end
+    end
+    check(hasA1 and hasA2, "PTR contains both http instances")
+
+    var sshList = browseService("_ssh._tcp")
+    check(sshList.length == 1, "browse _ssh._tcp -> 1 instance")
+
+    var emptyList = browseService("_foo._tcp")
+    check(emptyList.length == 0, "browse unknown service -> 0 instances")
+
+    // ---- 3. resolve / SRV + TXT ----
+    println("")
+    println("[3] resolve (SRV + TXT records)")
+    var r1 = resolveInstance(a1)
+    check(r1 != null, "resolve known instance")
+    if r1 != null then
+        check(string(r1["host"]) == "xlang-host-1.local", "resolve host")
+        check(int(r1["port"]) == 8080, "resolve port")
+        check(string(r1["txt"]) == "path=/api", "resolve txt")
+    end
+    var rSrv = srvRecord(a1)
+    check(rSrv != null, "SRV record present")
+    if rSrv != null then
+        check(string(rSrv["host"]) == "xlang-host-1.local", "SRV host field")
+        check(int(rSrv["port"]) == 8080, "SRV port field")
+    end
+    check(txtRecord(a1) == "path=/api", "TXT record value")
+    check(txtRecord(a3) == "", "TXT record empty for ssh")
+
+    var rMissing = resolveInstance("nope._http._tcp")
+    check(rMissing == null, "resolve unknown instance -> null")
+
+    // ---- 4. cache + TTL ----
+    println("")
+    println("[4] cache + TTL")
+    int hitsBefore = g_cacheHits
+    var cachedBrowse = browseService("_http._tcp")
+    check(cachedBrowse.length == 2, "cached browse still 2 instances")
+    check(g_cacheHits == hitsBefore + 1, "repeated browse is a cache hit")
+
+    // cache invalidation on register: new instance must be visible
+    string a5 = registerService("_http._tcp", 8082, "path=/v2")
+    var httpAfterReg = browseService("_http._tcp")
+    check(httpAfterReg.length == 3, "browse sees new instance after register")
+
+    // force cache TTL expiry -> next browse recomputes (miss, no hit)
+    int hitsBeforeExp = g_cacheHits
+    cacheForceExpire("browse:_http._tcp")
+    var recomputed = browseService("_http._tcp")
+    check(recomputed.length == 3, "recomputed browse after cache TTL expiry")
+    check(g_cacheHits == hitsBeforeExp, "expired cache entry causes a miss")
+
+    // ---- 5. record TTL expiry ----
+    println("")
+    println("[5] record TTL expiry")
+    check(countInstances("_ssh._tcp") == 1, "ssh instance live before TTL expiry")
+    recordsForceExpire("_ssh._tcp")
+    cacheInvalidate("browse:_ssh._tcp")
+    check(countInstances("_ssh._tcp") == 0, "ssh instance gone after TTL expiry")
+    var expiredResolve = resolveInstance(a3)
+    check(expiredResolve == null, "expired instance does not resolve")
+
+    // ---- 6. normalization ----
+    println("")
+    println("[6] normalization")
+    var normList = browseService("_HTTP._TCP")
+    check(normList.length == 3, "browse is case-insensitive (_HTTP._TCP)")
+
+    println("")
+    println("--- summary ---")
+    println("queries   : " + g_totalQueries.toString())
+    println("cache     : " + g_cacheHits.toString() + " hits, " + g_cacheMisses.toString() + " misses")
+    println("results   : " + g_pass.toString() + " passed, " + g_fail.toString() + " failed")
+
+    if g_fail > 0 then
+        println("SELF-TEST FAILED")
+        return 1
+    end
+    println("SELF-TEST PASSED")
+    return 0
+end
+
+
+// ============================== main =======================================
+
+func main(...) as int
+    string mode = "test"
+
+    if arg.length >= 2 then
+        string a1 = string(arg[1])
+        if a1 == "-h" or a1 == "--help" then
+            usage()
+            return 0
+        elseif a1 == "register" then
+            mode = "register"
+        elseif a1 == "browse" then
+            mode = "browse"
+        elseif a1 == "resolve" then
+            mode = "resolve"
+        elseif a1 == "list" then
+            mode = "list"
+        elseif a1 == "test" then
+            mode = "test"
+        end
+    end
+
+    if mode == "register" then
+        if arg.length < 4 then
+            println("ERROR: usage: mdns register <service> <port> [txt]")
+            return 1
+        end
+        string service = string(arg[2])
+        int pp = int(string(arg[3]))
+        string txt = ""
+        if arg.length >= 5 then txt = string(arg[4]) end
+        if pp <= 0 or pp > 65535 then
+            println("ERROR: invalid port '" + string(arg[3]) + "'")
+            return 1
+        end
+        return cmdRegister(service, pp, txt)
+    end
+
+    if mode == "browse" then
+        if arg.length < 3 then
+            println("ERROR: usage: mdns browse <service>")
+            return 1
+        end
+        return cmdBrowse(string(arg[2]))
+    end
+
+    if mode == "resolve" then
+        if arg.length < 3 then
+            println("ERROR: usage: mdns resolve <instance>")
+            return 1
+        end
+        return cmdResolve(string(arg[2]))
+    end
+
+    if mode == "list" then
+        cmdList()
+        return 0
+    end
+
+    return runTest()
+end

@@ -1,0 +1,714 @@
+// crontab - 定时任务调度器（cron 表达式解析 + 任务执行）
+//
+// 用法：
+//   crontab add <name> "<cron>" <command...>      注册任务（cron 用引号包成一个参数）
+//   crontab remove <name>                          删除任务
+//   crontab list                                    列出所有任务及下次触发时间
+//   crontab next "<cron>" [count=5]                 显示某 cron 表达式接下来 N 次触发时间
+//   crontab run [durationSeconds]                   启动调度循环（0 或缺省 = 永久；Ctrl+C 停止）
+//   crontab test                                    自检：解析 / next-time / 模拟调度
+//   crontab help                                    显示本帮助
+//
+// cron 表达式为 5 字段：分 时 日 月 周
+//   minute        0-59
+//   hour          0-23
+//   day-of-month  1-31
+//   month         1-12
+//   day-of-week   0-6（0=周日，7 也视为周日）
+// 每个字段支持：*  /n  a-b  a-b/n  a,b,c  单值
+//   */5 * * * *        每 5 分钟
+//   0 9 * * 1-5        工作日 09:00
+//   0 0 1 1 *          每年 1 月 1 日 00:00
+//   0,30 * * * *       每小时的 0 分和 30 分
+// 日 与 周 都被限定时，二者取“或”（符合 cron 语义）；其一为 * 时仅看另一个。
+//
+// 时间计算使用 time API：time.fromDateTime / time.addMinutes / time.addHours /
+// time.addDays / time.weekday / time.format。
+// 任务持久化到脚本/exe 同目录的 crontab.json（var dict + json）。
+// 执行日志追加到同目录的 crontab.log。命令通过 process.run 以 shell 方式执行
+// （Windows 上内置命令需写 cmd /c ...）。
+
+
+// ---- 数据结构 ----
+
+// 解析后的 cron 表达式：每个字段用一个 int 位图（下标=值，1=允许）。
+// domRestricted / dowRestricted 记录“日 / 周”是否被显式限定（非 *），用于日-周取或语义。
+class CronExpr
+    array<int> minute
+    array<int> hour
+    array<int> dom
+    array<int> month
+    array<int> dow
+    bool domRestricted = false
+    bool dowRestricted = false
+    string raw = ""
+end
+
+
+// ---- 小工具 ----
+
+// 判断字符串是否纯数字（空串返回 false）。
+func isAllDigits(string s) as bool
+    if string.isEmpty(s) then
+        return false
+    end
+    int i = 0
+    while i < string.len(s) do
+        string ch = string.charAt(s, i)
+        if ch < "0" or ch > "9" then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+
+// 构造一个全 0 的 int 位图，长度为 size。
+func makeBits(int size) as array<int>
+    array<int> bits = array[]
+    int i = 0
+    while i < size do
+        bits.append(0)
+        i += 1
+    end
+    return bits
+end
+
+
+// ---- cron 字段解析 ----
+
+// 解析单个字段。
+//   token        字段原文
+//   lo, hi       合法取值范围（闭区间）
+//   bitsSize     位图长度（= 最大下标 + 1）
+//   isDow        是否星期字段（true 时 7 视为 0=周日）
+// 返回 (ok, bits, restricted)：ok=是否合法；restricted=是否非“*”（被显式限定）。
+func parseField(string token, int lo, int hi, int bitsSize, bool isDow) as (bool, array<int>, bool)
+    array<int> bits = makeBits(bitsSize)
+    string t = string.trim(token)
+    if string.isEmpty(t) then
+        return false, bits, false
+    end
+    bool restricted = (t != "*")
+    array parts = string.split(t, ",")
+    for part in parts
+        string p = string.trim(string(part))
+        if string.isEmpty(p) then
+            return false, bits, false
+        end
+
+        // 步进 step：处理可选的 /n
+        int step = 1
+        string rangeText = p
+        int slash = string.indexOf(p, "/")
+        if slash >= 0 then
+            rangeText = string.left(p, slash)
+            string stepText = string.trim(string.mid(p, slash + 1))
+            if not isAllDigits(stepText) then
+                return false, bits, false
+            end
+            step = int(stepText)
+            if step < 1 then
+                return false, bits, false
+            end
+        end
+
+        // 范围 [startV..endV]：* → lo..hi；a-b；单值 a
+        int startV = lo
+        int endV = hi
+        if rangeText == "*" then
+            startV = lo
+            endV = hi
+        else
+            int dash = string.indexOf(rangeText, "-")
+            if dash >= 0 then
+                string aText = string.trim(string.left(rangeText, dash))
+                string bText = string.trim(string.mid(rangeText, dash + 1))
+                if not isAllDigits(aText) or not isAllDigits(bText) then
+                    return false, bits, false
+                end
+                startV = int(aText)
+                endV = int(bText)
+            else
+                if not isAllDigits(rangeText) then
+                    return false, bits, false
+                end
+                startV = int(rangeText)
+                endV = startV
+            end
+        end
+
+        // 边界校验
+        if startV < lo or startV > hi or endV < lo or endV > hi then
+            return false, bits, false
+        end
+        if endV < startV then
+            return false, bits, false
+        end
+
+        // 置位
+        int v = startV
+        while v <= endV do
+            int idx = v
+            if isDow and idx == 7 then
+                idx = 0
+            end
+            bits[idx] = 1
+            v += step
+        end
+    end
+
+    // 至少要有一个合法值
+    bool any = false
+    int j = lo
+    while j <= hi do
+        if bits[j] == 1 then
+            any = true
+        end
+        j += 1
+    end
+    if not any then
+        return false, bits, false
+    end
+    return true, bits, restricted
+end
+
+
+// 解析整条 cron 表达式。返回 (ok, CronExpr)。
+func parseCron(string expr) as (bool, CronExpr)
+    // 按空白切分，过滤空串（兼容多空格）
+    array<string> f = array[]
+    array raw = string.split(expr, " ")
+    for tok in raw
+        string s = string.trim(string(tok))
+        if string.len(s) > 0 then
+            f.append(s)
+        end
+    end
+    if f.length != 5 then
+        return false, CronExpr()
+    end
+
+    auto okM, bitsM, _ = parseField(f[0], 0, 59, 60, false)
+    auto okH, bitsH, _ = parseField(f[1], 0, 23, 24, false)
+    auto okDom, bitsDom, restrDom = parseField(f[2], 1, 31, 32, false)
+    auto okMon, bitsMon, _ = parseField(f[3], 1, 12, 13, false)
+    auto okDow, bitsDow, restrDow = parseField(f[4], 0, 7, 7, true)
+    if not (okM and okH and okDom and okMon and okDow) then
+        return false, CronExpr()
+    end
+
+    CronExpr c
+    c.minute = bitsM
+    c.hour = bitsH
+    c.dom = bitsDom
+    c.month = bitsMon
+    c.dow = bitsDow
+    c.domRestricted = restrDom
+    c.dowRestricted = restrDow
+    c.raw = expr
+    return true, c
+end
+
+
+// ---- 触发匹配 / 下次时间 ----
+
+// 判断“日”是否满足（处理 dom/dow 取或语义）。
+func dayMatches(CronExpr c, int dd, int wd) as bool
+    if c.domRestricted and c.dowRestricted then
+        if c.dom[dd] == 1 then return true end
+        if c.dow[wd] == 1 then return true end
+        return false
+    end
+    if c.domRestricted then
+        return c.dom[dd] == 1
+    end
+    if c.dowRestricted then
+        return c.dow[wd] == 1
+    end
+    return true
+end
+
+
+// 给定起点 from，计算下一次触发时间（严格大于 from，精确到分钟）。
+// 采用“逐级回退”策略：从月→日→时→分检查；某级不满足则跳到该级下一可行点并把更细
+// 字段归零，再重新从头检查。合法 cron 在很少几次迭代内即可命中；不可能的表达式
+// （如 2 月 30 日）由 guard 兜底避免死循环。
+func nextTime(CronExpr c, time from) as time
+    int y = time.year(from)
+    int mo = time.month(from)
+    int d = time.day(from)
+    int h = time.hour(from)
+    int mi = time.minute(from)
+    time t = time.fromDateTime(y, mo, d, h, mi, 0)
+    t = time.addMinutes(t, 1)
+
+    int guard = 0
+    int limit = 2200000   // 约 4 年分钟数，覆盖闰年周期并兜底不可能表达式
+    while guard < limit do
+        int yy = time.year(t)
+        int mm = time.month(t)
+        int dd = time.day(t)
+        int hh = time.hour(t)
+        int nn = time.minute(t)
+        int wd = time.weekday(t)
+
+        if c.month[mm] != 1 then
+            int nm = mm + 1
+            int ny = yy
+            if nm > 12 then
+                nm = 1
+                ny = ny + 1
+            end
+            t = time.fromDateTime(ny, nm, 1, 0, 0, 0)
+            guard += 1
+            continue
+        end
+
+        if not dayMatches(c, dd, wd) then
+            t = time.fromDateTime(yy, mm, dd, 0, 0, 0)
+            t = time.addDays(t, 1)
+            guard += 1
+            continue
+        end
+
+        if c.hour[hh] != 1 then
+            t = time.fromDateTime(yy, mm, dd, hh, 0, 0)
+            t = time.addHours(t, 1)
+            guard += 1
+            continue
+        end
+
+        if c.minute[nn] != 1 then
+            t = time.addMinutes(t, 1)
+            guard += 1
+            continue
+        end
+
+        return t
+    end
+    return t
+end
+
+
+// ---- 持久化（var dict + json）----
+
+func dataPath(string scriptPath) as string
+    return path.join(path.dir(scriptPath), "crontab.json")
+end
+
+func logPath(string scriptPath) as string
+    return path.join(path.dir(scriptPath), "crontab.log")
+end
+
+// 读取任务表；文件不存在 / 非法时返回空 dict。
+func loadTasks(string p) as var
+    var data = {}
+    if not file.exists(p) then
+        return data
+    end
+    string text = file.readText(p)
+    if string.isEmpty(text) then
+        return data
+    end
+    if not json.valid(text) then
+        return data
+    end
+    var parsed = json.parse(text)
+    if parsed == null then
+        return data
+    end
+    return parsed
+end
+
+// 以 pretty JSON 落盘（TAB 缩进替换为 2 空格，便于人读）。
+func saveTasks(string p, var data)
+    string text = json.stringify(data, pretty = true)
+    text = string.replace(text, "\t", "  ")
+    bool ok = file.writeText(p, text)
+    if not ok then
+        println("Error: failed to write " + p)
+    end
+end
+
+// 追加一行日志到 log 文件。
+func logLine(string logP, string msg)
+    string line = time.format(time.now()) + "  " + msg + "\n"
+    file.appendText(logP, line)
+end
+
+
+// ---- 命令 ----
+
+func cmdAdd(string p, string name, string cronText, string command) as int
+    auto ok, c = parseCron(cronText)
+    if not ok then
+        println("Error: invalid cron expression: " + cronText)
+        println("  expected 5 fields: minute hour day-of-month month day-of-week")
+        println("  example: \"*/5 * * * *\"  or  \"0 9 * * 1-5\"")
+        return 1
+    end
+    var data = loadTasks(p)
+    var entry = {}
+    entry["cron"] = cronText
+    entry["command"] = command
+    if name in data then
+        var prev = data[name]
+        entry["runs"] = prev["runs"]
+        entry["lastRun"] = prev["lastRun"]
+    else
+        entry["runs"] = 0
+        entry["lastRun"] = 0
+    end
+    data[name] = entry
+    saveTasks(p, data)
+    time nx = nextTime(c, time.now())
+    println("added " + name + " : " + cronText + "  ->  " + command)
+    println("  next fire: " + time.format(nx))
+    return 0
+end
+
+
+func cmdRemove(string p, string name) as int
+    var data = loadTasks(p)
+    if not (name in data) then
+        println("Error: no such task: " + name)
+        return 1
+    end
+    data.remove(name)
+    saveTasks(p, data)
+    println("removed " + name)
+    return 0
+end
+
+
+func cmdList(string p) as int
+    var data = loadTasks(p)
+    if data.length == 0 then
+        println("(no tasks)")
+        return 0
+    end
+    time now = time.now()
+    for name, entry in data
+        string cronText = string(entry["cron"])
+        string command = string(entry["command"])
+        int runs = int(entry["runs"])
+        string nextStr = "(invalid cron)"
+        auto ok, c = parseCron(cronText)
+        if ok then
+            nextStr = time.format(nextTime(c, now))
+        end
+        println(name + "  [" + cronText + "]  " + command)
+        println("    runs=" + string(runs) + "  next=" + nextStr)
+    end
+    return 0
+end
+
+
+func cmdNext(string cronText, int count) as int
+    auto ok, c = parseCron(cronText)
+    if not ok then
+        println("Error: invalid cron expression: " + cronText)
+        return 1
+    end
+    println("cron: " + cronText)
+    time cur = time.now()
+    if count < 1 then
+        count = 1
+    end
+    int i = 0
+    while i < count do
+        time nx = nextTime(c, cur)
+        println("  " + string(i + 1) + ") " + time.format(nx))
+        cur = nx
+        i += 1
+    end
+    return 0
+end
+
+
+// 执行一个任务（process.run 一次拿到 stdout + exitCode），并记日志。
+func executeTask(string logP, string name, string command)
+    string stamp = time.format(time.now())
+    ProcessResult res = process.run(command, 30000)
+    if res.spawnFailed then
+        println("[" + stamp + "] " + name + " -> SPAWN FAILED")
+        logLine(logP, "FAIL " + name + " spawn-failed: " + command)
+    elseif res.success then
+        println("[" + stamp + "] " + name + " -> exit 0")
+        logLine(logP, "OK   " + name + " exit=0 : " + command)
+    else
+        println("[" + stamp + "] " + name + " -> exit " + string(res.exitCode))
+        logLine(logP, "FAIL " + name + " exit=" + string(res.exitCode) + " : " + command)
+    end
+end
+
+
+// 调度循环：每秒检查各任务下次触发时间，到期则执行并重算。
+func cmdRun(string p, string logP, int durationSec) as int
+    var data = loadTasks(p)
+    if data.length == 0 then
+        println("no tasks scheduled. add one with: crontab add <name> \"<cron>\" <command>")
+        return 0
+    end
+
+    // 预解析所有任务
+    array<string> names = array[]
+    array<CronExpr> exprs = array[]
+    array<string> commands = array[]
+    for name, entry in data
+        string cronText = string(entry["cron"])
+        auto ok, c = parseCron(cronText)
+        if ok then
+            names.append(string(name))
+            exprs.append(c)
+            commands.append(string(entry["command"]))
+        else
+            logLine(logP, "WARN skip " + string(name) + " (invalid cron: " + cronText + ")")
+        end
+    end
+    if names.length == 0 then
+        println("no valid tasks to run.")
+        return 0
+    end
+
+    // 预计算每个任务下次触发的 unix 秒
+    array<int> nextUnix = array[]
+    time now = time.now()
+    int i = 0
+    while i < names.length do
+        nextUnix.append(time.toUnix(nextTime(exprs[i], now)))
+        i += 1
+    end
+
+    string mode = "forever"
+    if durationSec > 0 then
+        mode = string(durationSec) + "s"
+    end
+    println("crontab scheduler started: " + string(names.length) + " task(s), duration=" + mode)
+    logLine(logP, "scheduler start: " + string(names.length) + " tasks, duration=" + mode)
+
+    float deadline = time.timer() + float(durationSec)
+    while durationSec <= 0 or time.timer() < deadline do
+        int nowUnix = time.toUnix(time.now())
+        int k = 0
+        while k < names.length do
+            if nowUnix >= nextUnix[k] then
+                executeTask(logP, names[k], commands[k])
+                var e = data[names[k]]
+                e["runs"] = int(e["runs"]) + 1
+                e["lastRun"] = nowUnix
+                data[names[k]] = e
+                saveTasks(p, data)
+                nextUnix[k] = time.toUnix(nextTime(exprs[k], time.now()))
+            end
+            k += 1
+        end
+        time.sleep(1000)
+    end
+
+    logLine(logP, "scheduler stop")
+    println("crontab scheduler stopped.")
+    return 0
+end
+
+
+// ---- 自检 ----
+
+func check(string label, bool ok)
+    if ok then
+        println("  PASS  " + label)
+    else
+        println("  FAIL  " + label)
+    end
+end
+
+func cmdTest() as int
+    println("=== crontab self-test ===")
+
+    println("[1] expression parsing")
+    auto ok1, _ = parseCron("*/5 * * * *")
+    check("parse */5 * * * *", ok1)
+    auto ok2, _ = parseCron("0 9 * * 1-5")
+    check("parse 0 9 * * 1-5", ok2)
+    auto ok3, _ = parseCron("0,30 * * * *")
+    check("parse 0,30 * * * *", ok3)
+    auto ok4, _ = parseCron("0 0 1 1 *")
+    check("parse 0 0 1 1 *", ok4)
+    auto ok5, _ = parseCron("*/15 8-17 * * 1-5")
+    check("parse */15 8-17 * * 1-5", ok5)
+    auto bad1, _ = parseCron("not a cron")
+    check("reject 'not a cron'", not bad1)
+    auto bad2, _ = parseCron("60 * * * *")
+    check("reject minute=60", not bad2)
+    auto bad3, _ = parseCron("* * 32 * *")
+    check("reject day=32", not bad3)
+    auto bad4, _ = parseCron("* * * 13 *")
+    check("reject month=13", not bad4)
+    auto bad5, _ = parseCron("* * * * * *")
+    check("reject 6 fields", not bad5)
+
+    println("[2] next-time: */5 * * * *")
+    auto c5ok, c5 = parseCron("*/5 * * * *")
+    if c5ok then
+        time base = time.fromDateTime(2026, 7, 10, 12, 3, 0)
+        time nx = nextTime(c5, base)
+        println("    from 2026-07-10 12:03 -> " + time.format(nx))
+        check("*/5 lands on xx:05", time.hour(nx) == 12 and time.minute(nx) == 5)
+    end
+
+    println("[3] next-time: 0,30 * * * *")
+    auto c30ok, c30 = parseCron("0,30 * * * *")
+    if c30ok then
+        time base = time.fromDateTime(2026, 7, 10, 12, 3, 0)
+        time nx = nextTime(c30, base)
+        println("    from 2026-07-10 12:03 -> " + time.format(nx))
+        check("0,30 lands on xx:30", time.minute(nx) == 30)
+    end
+
+    println("[4] next-time: 0 9 * * 1-5 (weekdays 09:00)")
+    auto cwdok, cwd = parseCron("0 9 * * 1-5")
+    if cwdok then
+        time base = time.fromDateTime(2026, 7, 10, 12, 0, 0)
+        time nx = nextTime(cwd, base)
+        println("    from 2026-07-10 12:00 -> " + time.format(nx))
+        int wd = time.weekday(nx)
+        check("lands on weekday 1..5", wd >= 1 and wd <= 5)
+        check("lands at 09:00", time.hour(nx) == 9 and time.minute(nx) == 0)
+    end
+
+    println("[5] next-time: 0 0 1 1 * (new year)")
+    auto cyok, cy = parseCron("0 0 1 1 *")
+    if cyok then
+        time base = time.fromDateTime(2026, 7, 10, 12, 0, 0)
+        time nx = nextTime(cy, base)
+        println("    from 2026-07-10 -> " + time.format(nx))
+        check("lands on 2027-01-01 00:00",
+            time.year(nx) == 2027 and time.month(nx) == 1 and time.day(nx) == 1 and
+            time.hour(nx) == 0 and time.minute(nx) == 0)
+    end
+
+    println("[6] simulated schedule: fire sequence of */5 * * * *")
+    auto skok, sk = parseCron("*/5 * * * *")
+    if skok then
+        time cur = time.fromDateTime(2026, 7, 10, 12, 0, 0)
+        int n = 0
+        while n < 5 do
+            time fire = nextTime(sk, cur)
+            println("    fire " + string(n + 1) + " -> " + time.format(fire))
+            cur = fire
+            n += 1
+        end
+        check("simulated 5 fires produced", n == 5)
+    end
+
+    println("[7] day-of-week alias 7=Sunday")
+    auto c7ok, c7 = parseCron("0 0 * * 7")
+    if c7ok then
+        time base = time.fromDateTime(2026, 7, 10, 0, 0, 0)
+        time nx = nextTime(c7, base)
+        println("    from 2026-07-10 -> " + time.format(nx) + " (weekday=" + string(time.weekday(nx)) + ")")
+        check("7 maps to Sunday(0)", time.weekday(nx) == 0)
+    end
+
+    println("=== self-test done ===")
+    return 0
+end
+
+
+func printUsage()
+    println("crontab - cron-based task scheduler")
+    println("usage:")
+    println("  crontab add <name> \"<cron>\" <command...>   register a task")
+    println("  crontab remove <name>                       remove a task")
+    println("  crontab list                                list tasks + next fire")
+    println("  crontab next \"<cron>\" [count=5]             show next N fire times")
+    println("  crontab run [durationSeconds]               start scheduler (0=forever)")
+    println("  crontab test                                run self-test")
+    println("  crontab help                                show this help")
+    println("cron fields: minute hour day-of-month month day-of-week")
+    println("  support: *  /n  a-b  a-b/n  a,b,c   (dow: 0=Sun..6=Sat, 7=Sun)")
+    println("examples:")
+    println("  crontab add ping \"*/5 * * * *\" cmd /c echo hello")
+    println("  crontab add workday \"0 9 * * 1-5\" cmd /c echo start")
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string scriptPath = string(arg[0])
+    string tasksPath = dataPath(scriptPath)
+    string logFile = logPath(scriptPath)
+    string command = string(arg[1])
+
+    if command == "help" or command == "-h" or command == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if command == "add" then
+        if arg.length < 5 then
+            println("Error: 'add' needs <name> \"<cron>\" <command>")
+            return 1
+        end
+        string name = string(arg[2])
+        string cronText = string(arg[3])
+        string cmdText = ""
+        int ci = 4
+        while ci < arg.length do
+            if string.isEmpty(cmdText) then
+                cmdText = string(arg[ci])
+            else
+                cmdText = cmdText + " " + string(arg[ci])
+            end
+            ci += 1
+        end
+        return cmdAdd(tasksPath, name, cronText, cmdText)
+    end
+
+    if command == "remove" then
+        if arg.length < 3 then
+            println("Error: 'remove' needs <name>")
+            return 1
+        end
+        return cmdRemove(tasksPath, string(arg[2]))
+    end
+
+    if command == "list" then
+        return cmdList(tasksPath)
+    end
+
+    if command == "next" then
+        if arg.length < 3 then
+            println("Error: 'next' needs \"<cron>\"")
+            return 1
+        end
+        string cronText = string(arg[2])
+        int count = 5
+        if arg.length >= 4 then
+            count = int(string(arg[3]))
+        end
+        return cmdNext(cronText, count)
+    end
+
+    if command == "run" then
+        int duration = 0
+        if arg.length >= 3 then
+            duration = int(string(arg[2]))
+        end
+        return cmdRun(tasksPath, logFile, duration)
+    end
+
+    if command == "test" then
+        return cmdTest()
+    end
+
+    println("Error: unknown command '" + command + "'")
+    printUsage()
+    return 1
+end

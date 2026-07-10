@@ -377,14 +377,26 @@ static void xl6CgenFuncSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
         }
         return;
     }
-    if ( nameNode == NULL || (xl6CgenFuncOverloadCount(ctx, nameNode->text) <= 1 &&
-         xl6CgenIsSimpleCIdent(nameNode->text) && !xl6CTextEquals(nameNode->text, "xlang_main")) ) {
-        xl6OutputPuts((nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_", ctx->out);
+    if ( nameNode != NULL && nameNode->text != NULL &&
+         strncmp(nameNode->text, "__xl_", 5) == 0 &&
+         xl6CgenIsSimpleCIdent(nameNode->text) &&
+         xl6CgenFuncOverloadCount(ctx, nameNode->text) <= 1 ) {
+        /* 编译器注入函数已经位于保留的私有命名空间，不重复加前缀。 */
+        xl6OutputPuts(nameNode->text, ctx->out);
+        return;
+    }
+    if ( nameNode == NULL || nameNode->text == NULL ) {
+        xl6OutputPuts("xl_fn_", ctx->out);
+        xl6CgenMangledPart(ctx->out, "_");
         return;
     }
 
+    /* 普通 xlang 函数始终位于私有 C 符号空间；公开 ABI 只由 export 包装层提供。 */
     xl6OutputPuts("xl_fn_", ctx->out);
     xl6CgenMangledPart(ctx->out, nameNode->text);
+    if ( xl6CgenFuncOverloadCount(ctx, nameNode->text) <= 1 ) {
+        return;
+    }
     params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
     if ( params == NULL || params->childCount == 0 ) {
         xl6OutputPuts("__void", ctx->out);
@@ -411,7 +423,11 @@ static void xl6CgenFunctionValueSymbol(XL6_CgenContext* ctx, const XL6_AstNode* 
 static void xl6CgenCallableTargetSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
 {
     if ( funcNode != NULL && funcNode->kind == XL6_AST_EXTERN_FUNC ) {
-        xl6CgenCStringSymbol(ctx->out, funcNode->text);
+        if ( xl6CgenExternCallNeedsWrapper(ctx, funcNode) ) {
+            xl6CgenExternCallWrapperSymbol(ctx, funcNode);
+        } else {
+            xl6CgenCStringSymbol(ctx->out, funcNode->text);
+        }
     } else if ( funcNode != NULL && funcNode->kind == XL6_AST_EXPORT_FUNC ) {
         xl6CgenExportInternalSymbol(ctx, funcNode);
     } else {

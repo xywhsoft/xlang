@@ -1,0 +1,1069 @@
+// xprof - xlang 性能分析器（用 xlang 编写，分析 xlang 自身代码）
+//
+// 功能：
+//   1. 函数计时插桩：通过 `xl parse <file.xl> --format json` 取 AST，定位每个函数
+//      定义与 return 语句，在函数入口插入 __xprof_enter，在每个返回路径插入
+//      __xprof_exit，得到精确的 calls / totalTime / selfTime。
+//   2. 调用图：运行期后台采样线程每 2ms 快照调用栈，analyze 时由样本重建
+//      caller -> callee 的调用关系与近似调用次数。
+//   3. 热点分析：按 selfTime 排序，找出耗时最多的函数。
+//   4. 火焰图（ASCII）：把采样栈聚合为火焰树，按宽度比例可视化。
+//
+// 用法：
+//   xl run  projects\dev\xprof\xprof.xl instrument <file.xl> <output.xl>
+//   xl run  projects\dev\xprof\xprof.xl analyze <profile.json>
+//   xl run  projects\dev\xprof\xprof.xl flame <profile.json>
+//   xl run  projects\dev\xprof\xprof.xl test
+//
+// 典型工作流：
+//   xprof instrument app.xl app.inst.xl
+//   xl run app.inst.xl            （运行结束写出 xprof_profile.json）
+//   xprof analyze xprof_profile.json
+//   xprof flame   xprof_profile.json
+//
+// 实现要点：
+//   - 计时用 time.timer()（单调秒，float），enter/exit 各取一次。
+//   - 栈用三组并行原生数组（names/starts/childTimes）承载，避免在递归热路径
+//     分配 class / dict（规避 BUG-LP1：递归中分配 var dict 触发 O(n^2) GC 劣化）。
+//   - 调用图来自采样而非每次调用的边计数，进一步消除热路径字符串拼接。
+//   - 插桩只增行不改行：在每个 return 前、函数 end 前插入计时代码，main 的
+//     退出路径额外注入 __xprof_dump()，无 main 的脚本在文件末尾追加 dump。
+
+// ===== 全局状态 =====
+
+string g_scriptPath
+string g_toolDir
+int g_tpass
+int g_tfail
+int g_lastInstrumented
+
+// ===== 注入到被测程序的运行时（triple-quoted，可含 " 但不含 """）=====
+
+string XP_RUNTIME
+XP_RUNTIME = """
+// ===== xprof runtime (auto-injected) =====
+class XStat
+    string name
+    int calls
+    float totalTime
+    float selfTime
+    create()
+        self.name = ""
+        self.calls = 0
+        self.totalTime = 0.0
+        self.selfTime = 0.0
+    end
+end
+
+var __xp_stats = {}
+array<string> __xp_names = []
+array<float> __xp_starts = []
+array<float> __xp_childTimes = []
+array<var> __xp_samples = []
+mutex __xp_mu = mutex()
+bool __xp_stop = false
+bool __xp_inited = false
+bool __xp_dumped = false
+string __xp_outPath = "xprof_profile.json"
+const int __XP_SAMPLE_MS = 2
+const int __XP_MAX_SAMPLES = 200000
+
+func __xp_sampler() as int
+    while true do
+        time.sleep(__XP_SAMPLE_MS)
+        __xp_mu.lock()
+        if __xp_stop then
+            __xp_mu.unlock()
+            return 0
+        end
+        if __xp_samples.length < __XP_MAX_SAMPLES then
+            var snap = []
+            int nn = __xp_names.length
+            int ii = 0
+            while ii < nn do
+                snap.push(__xp_names[ii])
+                ii += 1
+            end
+            __xp_samples.push(snap)
+        end
+        __xp_mu.unlock()
+    end
+    return 0
+end
+
+func __xp_ensureInit()
+    if __xp_inited then return end
+    __xp_inited = true
+    thread(__xp_sampler)
+end
+
+func __xprof_enter(string name)
+    if not __xp_inited then __xp_ensureInit() end
+    float now = time.timer()
+    __xp_mu.lock()
+    __xp_names.push(name)
+    __xp_starts.push(now)
+    __xp_childTimes.push(0.0)
+    __xp_mu.unlock()
+end
+
+func __xprof_exit(string name)
+    float now = time.timer()
+    __xp_mu.lock()
+    int n = __xp_names.length
+    if n == 0 then
+        __xp_mu.unlock()
+        return
+    end
+    n = n - 1
+    string fname = __xp_names[n]
+    float start = __xp_starts[n]
+    float ct = __xp_childTimes[n]
+    __xp_names.remove(n)
+    __xp_starts.remove(n)
+    __xp_childTimes.remove(n)
+    float elapsed = now - start
+    if elapsed < 0.0 then elapsed = 0.0 end
+    float selft = elapsed - ct
+    if selft < 0.0 then selft = 0.0 end
+    var s = null
+    if __xp_stats.contains(fname) then
+        s = __xp_stats[fname]
+    else
+        s = XStat()
+        s.name = fname
+        __xp_stats[fname] = s
+    end
+    s.calls = s.calls + 1
+    s.totalTime = s.totalTime + elapsed
+    s.selfTime = s.selfTime + selft
+    int m = __xp_names.length
+    if m > 0 then
+        __xp_childTimes[m - 1] = __xp_childTimes[m - 1] + elapsed
+    end
+    __xp_mu.unlock()
+end
+
+func __xprof_dump()
+    __xp_mu.lock()
+    if __xp_dumped then
+        __xp_mu.unlock()
+        return
+    end
+    __xp_dumped = true
+    __xp_stop = true
+    var funcs = []
+    for name, v in __xp_stats
+        var s = v
+        var d = {}
+        d["name"] = s.name
+        d["calls"] = s.calls
+        d["totalTime"] = s.totalTime
+        d["selfTime"] = s.selfTime
+        funcs.push(d)
+    end
+    var samps = []
+    int si = 0
+    while si < __xp_samples.length do
+        samps.push(__xp_samples[si])
+        si += 1
+    end
+    var root = {}
+    root["functions"] = funcs
+    root["samples"] = samps
+    string txt = json.stringify(root)
+    file.writeText(__xp_outPath, txt)
+    int fc = funcs.length
+    int sc = samps.length
+    __xp_mu.unlock()
+    println("")
+    println("[xprof] profile written to " + __xp_outPath + " (" + string(fc) + " funcs, " + string(sc) + " samples)")
+end
+
+// ===== end xprof runtime =====
+"""
+
+// ===== 数据类 =====
+
+class FuncInfo
+    string name
+    int startLine
+    int endLine
+    int bodyStart
+    array<int> returns
+    bool isMain
+    bool ok
+    create()
+        self.name = ""
+        self.startLine = 0
+        self.endLine = 0
+        self.bodyStart = 0
+        self.returns = []
+        self.isMain = false
+        self.ok = false
+    end
+end
+
+class HotRow
+    string name
+    int calls
+    float total
+    float selft
+    create(string n, int c, float t, float s)
+        self.name = n
+        self.calls = c
+        self.total = t
+        self.selft = s
+    end
+end
+
+class EdgeRow
+    string caller
+    string callee
+    int count
+    create(string c1, string c2, int cnt)
+        self.caller = c1
+        self.callee = c2
+        self.count = cnt
+    end
+end
+
+class FlameNode
+    string name
+    int count
+    array<FlameNode> kids
+    create(string n)
+        self.name = n
+        self.count = 0
+        self.kids = []
+    end
+end
+
+// ===== AST 访问辅助（一律返回静态 string/int/var，规避 var+string 乱码）=====
+
+func nk(var n) as string
+    if n is null then return "" end
+    var k = n["kind"]
+    if k is string then return string(k) end
+    return ""
+end
+
+func nt(var n) as string
+    if n is null then return "" end
+    var t = n["text"]
+    if t is string then return string(t) end
+    return ""
+end
+
+func nch(var n) as var
+    if n is null then return [] end
+    var ch = n["children"]
+    if ch is array then return ch end
+    return []
+end
+
+func childK(var n, string kind) as var
+    var ch = nch(n)
+    for c in ch
+        if nk(c) == kind then return c end
+    end
+    return null
+end
+
+func nodeLine(var n) as int
+    if n is null then return 0 end
+    var l = n["line"]
+    if l is int then return int(l) end
+    return 0
+end
+
+// ===== 字符串辅助 =====
+
+func splitLinesSafe(string s) as array<string>
+    var tmp = string.splitLines(s)
+    array<string> ls = []
+    for line in tmp
+        ls.push(string(line))
+    end
+    if ls.length > 0 then
+        if ls[ls.length - 1] == "" then
+            ls.remove(ls.length - 1)
+        end
+    end
+    return ls
+end
+
+func leadingWS(string s) as string
+    string ws = ""
+    int i = 0
+    int n = string.len(s)
+    while i < n do
+        string c = string.mid(s, i, 1)
+        if c == " " or c == "\t" then
+            ws = ws + c
+            i += 1
+        else
+            break
+        end
+    end
+    return ws
+end
+
+func padR(string s, int w) as string
+    string r = s
+    while string.len(r) < w do
+        r = r + " "
+    end
+    return r
+end
+
+func padL(string s, int w) as string
+    string r = s
+    while string.len(r) < w do
+        r = " " + r
+    end
+    return r
+end
+
+func fmtMs(float s) as string
+    return string.formatFloat(s * 1000.0, ".3")
+end
+
+func fmtSec(float s) as string
+    return string.formatFloat(s, ".3") + "s"
+end
+
+// ===== 定位 xl.exe =====
+
+func findXl() as string
+    array<string> cands = []
+    cands.push(path.join(path.appDir(), "xl.exe"))
+    cands.push(path.join(path.cwd(), "xl.exe"))
+    if string.len(g_scriptPath) > 0 then
+        string d0 = path.dir(g_scriptPath)
+        cands.push(path.join(path.join(d0, "..", "..", ".."), "xl.exe"))
+        cands.push(path.join(d0, "xl.exe"))
+    end
+    for c in cands
+        if file.exists(c) then
+            return c
+        end
+    end
+    return ""
+end
+
+// ===== 通过 xl parse 取 AST =====
+
+func parseAst(string xl, string absFile) as var
+    string cmd = xl + " parse " + absFile + " --format json"
+    ProcessResult r = process.run(cmd, 60000)
+    if not r.success or string.len(string.trim(r.stdout)) == 0 then
+        println("xprof: xl parse failed: " + string.trim(r.stderr))
+        return null
+    end
+    var root = null
+    try
+        root = json.parse(r.stdout)
+    catch e
+        string msg = e.message + ""
+        println("xprof: AST JSON parse failed: " + msg)
+        return null
+    end
+    return root
+end
+
+// ===== 函数发现（遍历 AST 收集可插桩函数）=====
+
+func isFuncKind(string k) as bool
+    return k == "func" or k == "async_func" or k == "export_func" or k == "create"
+end
+
+func classNameOf(var node) as string
+    var nm = childK(node, "name")
+    if not (nm is null) then return nt(nm) end
+    return nt(node)
+end
+
+func funcBaseName(var node) as string
+    var nm = childK(node, "name")
+    if not (nm is null) then return nt(nm) end
+    return ""
+end
+
+// 基于缩进找函数的匹配 end：func 行的缩进 = 其 end 行的缩进。
+// 函数体内的 if/while/for/try/class 都更深层缩进，其 end 不会误匹配。
+func findFuncEnd(array<string> lines, int startLine1) as int
+    if startLine1 < 1 or startLine1 > lines.length then
+        return lines.length
+    end
+    string findent = leadingWS(lines[startLine1 - 1])
+    int i = startLine1 + 1
+    while i <= lines.length do
+        string ln = lines[i - 1]
+        if leadingWS(ln) == findent and string.trim(ln) == "end" then
+            return i
+        end
+        i += 1
+    end
+    return lines.length
+end
+
+// 收集函数自身作用域内的 return 行（不进入嵌套函数体）。
+func collectReturns(var node, array<int> out)
+    string k = nk(node)
+    if k == "return" then
+        out.push(nodeLine(node))
+        return
+    end
+    // 嵌套函数（具名/匿名/构造/属性访问器）的 return 属于它们自己，不收。
+    if k == "func" or k == "async_func" or k == "anon_func" or k == "create" or k == "get" or k == "let" then
+        return
+    end
+    var ch = nch(node)
+    for c in ch
+        collectReturns(c, out)
+    end
+end
+
+func makeFuncInfo(var node, string cls, array<string> lines) as FuncInfo
+    FuncInfo fi = FuncInfo()
+    string k = nk(node)
+    string base = funcBaseName(node)
+    string nm = base
+    if string.len(nm) == 0 then
+        nm = k
+    end
+    if string.len(cls) > 0 then
+        nm = cls + "." + nm
+    end
+    fi.name = nm
+    fi.startLine = nodeLine(node)
+    fi.isMain = (base == "main" and string.len(cls) == 0 and k == "func")
+
+    var blk = childK(node, "block")
+    if blk is null then
+        // extern_func / 抽象 / 无 body：不可插桩
+        fi.ok = false
+        return fi
+    end
+
+    fi.endLine = findFuncEnd(lines, fi.startLine)
+    var bch = nch(blk)
+    if bch.length > 0 then
+        fi.bodyStart = nodeLine(bch[0])
+    else
+        fi.bodyStart = fi.endLine
+    end
+
+    // 单行函数 / 首语句贴在签名行：跳过，避免破坏源码结构
+    if fi.endLine <= fi.startLine then
+        fi.ok = false
+        return fi
+    end
+    if fi.bodyStart <= fi.startLine then
+        fi.ok = false
+        return fi
+    end
+
+    collectReturns(blk, fi.returns)
+    fi.ok = true
+    return fi
+end
+
+func collectFuncs(var node, string cls, array<string> lines, array<FuncInfo> out)
+    if node is null then return end
+    string k = nk(node)
+    if isFuncKind(k) then
+        FuncInfo fi = makeFuncInfo(node, cls, lines)
+        if fi.ok then
+            out.push(fi)
+        end
+    end
+    if k == "class" then
+        cls = classNameOf(node)
+    end
+    var ch = nch(node)
+    for c in ch
+        collectFuncs(c, cls, lines, out)
+    end
+end
+
+// ===== 插桩核心 =====
+
+// ins: var dict, key=string(目标行号 1-based), value=var array of 要在此行前插入的代码行
+func addInsert(var ins, int line1, string text)
+    string key = string(line1)
+    if ins.contains(key) then
+        var arr = ins[key]
+        arr.push(text)
+    else
+        var arr = []
+        arr.push(text)
+        ins[key] = arr
+    end
+end
+
+func instrumentFile(string src, var root) as string
+    array<string> lines = splitLinesSafe(src)
+    array<FuncInfo> funcs = []
+    collectFuncs(root, "", lines, funcs)
+
+    var ins = {}
+    g_lastInstrumented = 0
+    bool hasMain = false
+
+    for fi in funcs
+        if not fi.ok then continue end
+        g_lastInstrumented = g_lastInstrumented + 1
+        if fi.isMain then hasMain = true end
+
+        string funcInd = leadingWS(lines[fi.startLine - 1])
+        string bodyInd4 = funcInd + "    "
+
+        // 入口计时（插在首语句前，沿用首语句自身缩进）
+        if fi.bodyStart >= 1 and fi.bodyStart <= lines.length then
+            string enterInd = leadingWS(lines[fi.bodyStart - 1])
+            addInsert(ins, fi.bodyStart, enterInd + "__xprof_enter(\"" + fi.name + "\")")
+        end
+
+        // 每条 return 前插 exit
+        for rl in fi.returns
+            if rl > fi.startLine and rl < fi.endLine then
+                string rind = leadingWS(lines[rl - 1])
+                addInsert(ins, rl, rind + "__xprof_exit(\"" + fi.name + "\")")
+            end
+        end
+
+        // end 前兜底 exit（覆盖“贯穿无 return”的路径）
+        addInsert(ins, fi.endLine, bodyInd4 + "__xprof_exit(\"" + fi.name + "\")")
+
+        // main 的退出路径额外触发 dump
+        if fi.isMain then
+            for rl in fi.returns
+                if rl > fi.startLine and rl < fi.endLine then
+                    string rind = leadingWS(lines[rl - 1])
+                    addInsert(ins, rl, rind + "__xprof_dump()")
+                end
+            end
+            addInsert(ins, fi.endLine, bodyInd4 + "__xprof_dump()")
+        end
+    end
+
+    string out = XP_RUNTIME + "\n"
+    int i = 1
+    while i <= lines.length do
+        string key = string(i)
+        if ins.contains(key) then
+            var arr = ins[key]
+            for tl in arr
+                out = out + string(tl) + "\n"
+            end
+        end
+        out = out + lines[i - 1] + "\n"
+        i += 1
+    end
+
+    // 无 main 的脚本：在文件末尾追加一次 dump
+    if not hasMain then
+        out = out + "\n__xprof_dump()\n"
+    end
+    return out
+end
+
+// 给 test 用：把 src 写到临时文件，parse 后插桩
+func instrumentSource(string src, string tmpPath) as string
+    file.writeText(tmpPath, src)
+    string xl = findXl()
+    if string.len(xl) == 0 then return "" end
+    var root = parseAst(xl, path.abs(tmpPath))
+    if root is null then return "" end
+    return instrumentFile(src, root)
+end
+
+// ===== profile.json 读写 =====
+
+func loadProfile(string p) as var
+    if not file.exists(p) then
+        println("xprof: profile not found: " + p)
+        return null
+    end
+    string txt = file.readText(p)
+    if not json.valid(txt) then
+        println("xprof: invalid JSON: " + p)
+        return null
+    end
+    return json.parse(txt)
+end
+
+// ===== analyze：热点表 + 调用图 =====
+
+func renderHotspots(var root) as string
+    string out = ""
+    array<HotRow> rows = []
+    var funcs = root["functions"]
+    int nfunc = 0
+    if funcs is array then
+        for f in funcs
+            rows.push(HotRow(string(f["name"]), int(f["calls"]), float(f["totalTime"]), float(f["selfTime"])))
+        end
+        nfunc = funcs.length
+    end
+
+    // 按 selfTime 降序（选择排序，函数数量通常不大）
+    int n = rows.length
+    int a = 0
+    while a < n do
+        int best = a
+        int b = a + 1
+        while b < n do
+            if rows[b].selft > rows[best].selft then
+                best = b
+            end
+            b += 1
+        end
+        if best != a then
+            HotRow tmp = rows[a]
+            rows[a] = rows[best]
+            rows[best] = tmp
+        end
+        a += 1
+    end
+
+    // 总墙上时间：优先取 main 的 totalTime
+    float wall = 0.0
+    bool got = false
+    for r in rows
+        if r.name == "main" then
+            wall = r.total
+            got = true
+        end
+    end
+    if not got then
+        for r in rows
+            if r.total > wall then wall = r.total end
+        end
+    end
+
+    out = out + "=== xprof analyze ===\n"
+    out = out + "functions: " + string(nfunc) + "    wall time: " + fmtSec(wall) + "\n"
+    out = out + "\n"
+    out = out + "Hotspots (by self time):\n"
+    out = out + "  #  function                            calls    total(ms)   self(ms)   avg(us)\n"
+    int idx = 0
+    for r in rows
+        idx += 1
+        float avgUs = 0.0
+        if r.calls > 0 then
+            avgUs = r.selft * 1000000.0 / float(r.calls)
+        end
+        out = out + "  " + padL(string(idx), 2) + "  " + padR(r.name, 34) + padL(string(r.calls), 9) + padL(fmtMs(r.total), 12) + padL(fmtMs(r.selft), 11) + padL(string.formatFloat(avgUs, ".1"), 9) + "\n"
+    end
+
+    // 调用图：由采样栈重建 caller -> callee 边
+    var samps = root["samples"]
+    int nsamp = 0
+    var emap = {}
+    if samps is array then
+        nsamp = samps.length
+        for snap in samps
+            int i = 0
+            int L = snap.length
+            while i + 1 < L do
+                string ca = string(snap[i])
+                string ce = string(snap[i + 1])
+                string key = ca + ">" + ce
+                if emap.contains(key) then
+                    emap[key] = int(emap[key]) + 1
+                else
+                    emap[key] = 1
+                end
+                i += 1
+            end
+        end
+    end
+    array<EdgeRow> eds = []
+    for k, v in emap
+        string ks = string(k)
+        int sep = string.indexOf(ks, ">")
+        string ca = ks
+        string ce = ""
+        if sep >= 0 then
+            ca = string.left(ks, sep)
+            ce = string.mid(ks, sep + 1, string.len(ks) - sep - 1)
+        end
+        eds.push(EdgeRow(ca, ce, int(v)))
+    end
+    // 按次数降序
+    int en = eds.length
+    int ea = 0
+    while ea < en do
+        int best = ea
+        int eb = ea + 1
+        while eb < en do
+            if eds[eb].count > eds[best].count then best = eb end
+            eb += 1
+        end
+        if best != ea then
+            EdgeRow tmp = eds[ea]
+            eds[ea] = eds[best]
+            eds[best] = tmp
+        end
+        ea += 1
+    end
+
+    out = out + "\n"
+    out = out + "Call graph (from " + string(nsamp) + " samples):\n"
+    out = out + "  caller                              -> callee                                 samples\n"
+    for e in eds
+        out = out + "  " + padR(e.caller, 34) + " -> " + padR(e.callee, 38) + padL(string(e.count), 7) + "\n"
+    end
+    if eds.length == 0 then
+        out = out + "  (no edges; samples too few)\n"
+    end
+    return out
+end
+
+// ===== flame：ASCII 火焰图 =====
+
+func flameChild(var parent, string nm) as var
+    var kids = parent.kids
+    for k in kids
+        if k.name == nm then return k end
+    end
+    return null
+end
+
+// 把火焰树按深度铺到 rows（var array of var array of FlameNode）
+func flameLay(var rows, var node, int depth)
+    while rows.length <= depth do
+        var empty = []
+        rows.push(empty)
+    end
+    var row = rows[depth]
+    row.push(node)
+    var kids = node.kids
+    for k in kids
+        flameLay(rows, k, depth + 1)
+    end
+end
+
+func flameWidth(int count, int total, int W) as int
+    if total <= 0 then return 0 end
+    int w = count * W / total
+    if w < 1 then w = 1 end
+    return w
+end
+
+func flameBox(string name, int w) as string
+    if w <= 0 then return "" end
+    if w == 1 then return "." end
+    if w == 2 then return "[]" end
+    string inner = " " + name
+    if string.len(inner) > w then
+        inner = string.left(inner, w)
+    else
+        while string.len(inner) < w do
+            inner = inner + " "
+        end
+    end
+    return inner
+end
+
+func renderFlame(var root) as string
+    string out = ""
+    var samps = root["samples"]
+    int nsamp = 0
+    if samps is array then nsamp = samps.length end
+
+    out = out + "=== xprof flame ===\n"
+    if nsamp == 0 then
+        out = out + "no samples available (program too short or sampler disabled).\n"
+        out = out + "tip: timing/call-count data is still in the profile; flame needs stack samples.\n"
+        return out
+    end
+
+    // 聚合采样栈为火焰树：sample[0] = 最外层
+    FlameNode treeRoot = FlameNode("<root>")
+    for snap in samps
+        var cur = treeRoot
+        treeRoot.count = treeRoot.count + 1
+        int i = 0
+        int L = snap.length
+        while i < L do
+            string nm = string(snap[i])
+            var kid = flameChild(cur, nm)
+            if kid is null then
+                FlameNode nn = FlameNode(nm)
+                cur.kids.push(nn)
+                cur = nn
+            else
+                cur = kid
+            end
+            cur.count = cur.count + 1
+            i += 1
+        end
+    end
+
+    var rows = []
+    flameLay(rows, treeRoot, 0)
+
+    out = out + "samples: " + string(nsamp) + "    depth levels: " + string(rows.length) + "\n"
+    out = out + "\n"
+    int W = 80
+    int maxD = rows.length - 1
+    if maxD > 25 then maxD = 25 end
+    int d = 0
+    while d <= maxD do
+        var row = rows[d]
+        string line = ""
+        int ri = 0
+        while ri < row.length do
+            var nd = row[ri]
+            int w = flameWidth(int(nd.count), treeRoot.count, W)
+            line = line + flameBox(string(nd.name), w)
+            ri += 1
+        end
+        out = out + padL(string(d), 2) + " | " + line + "\n"
+        d += 1
+    end
+    out = out + "\n"
+    out = out + "box width ~ proportional to sample count; '.' / '[]' = too narrow to label.\n"
+    return out
+end
+
+// ===== 命令实现 =====
+
+func cmdInstrument(string inFile, string outFile) as int
+    if not file.exists(inFile) then
+        println("xprof: file not found: " + inFile)
+        return 1
+    end
+    string xl = findXl()
+    if string.len(xl) == 0 then
+        println("xprof: xl.exe not found (needed for AST parsing)")
+        return 1
+    end
+    string src = file.readText(inFile)
+    var root = parseAst(xl, path.abs(inFile))
+    if root is null then return 1 end
+    string out = instrumentFile(src, root)
+    bool ok = file.writeText(outFile, out)
+    if not ok then
+        println("xprof: failed to write " + outFile)
+        return 1
+    end
+    array<string> ol = splitLinesSafe(out)
+    println("xprof: instrumented " + inFile + " -> " + outFile)
+    println("  lines: " + string(ol.length) + "    instrumented functions: " + string(g_lastInstrumented))
+    println("  run it: xl run " + outFile + "    (writes xprof_profile.json)")
+    println("  then:   xprof analyze xprof_profile.json")
+    return 0
+end
+
+func cmdAnalyze(string profilePath) as int
+    var root = loadProfile(profilePath)
+    if root is null then return 1 end
+    print(renderHotspots(root))
+    return 0
+end
+
+func cmdFlame(string profilePath) as int
+    var root = loadProfile(profilePath)
+    if root is null then return 1 end
+    print(renderFlame(root))
+    return 0
+end
+
+// ===== self-test =====
+
+func tcheck(bool ok, string label, string detail)
+    if ok then
+        g_tpass = g_tpass + 1
+        println("  [PASS] " + label)
+    else
+        g_tfail = g_tfail + 1
+        string extra = ""
+        if string.len(detail) > 0 then extra = "  " + detail end
+        println("  [FAIL] " + label + extra)
+    end
+end
+
+func tskip(string label)
+    println("  [SKIP] " + label)
+end
+
+func makeSampleProfile() as string
+    var fns = []
+    var fm = {}
+    fm["name"] = "main"
+    fm["calls"] = 1
+    fm["totalTime"] = 1.0
+    fm["selfTime"] = 0.1
+    fns.push(fm)
+    var fw = {}
+    fw["name"] = "work"
+    fw["calls"] = 10
+    fw["totalTime"] = 0.8
+    fw["selfTime"] = 0.5
+    fns.push(fw)
+    var fh = {}
+    fh["name"] = "helper"
+    fh["calls"] = 100
+    fh["totalTime"] = 0.3
+    fh["selfTime"] = 0.3
+    fns.push(fh)
+    var smps = []
+    smps.push(["main", "work", "helper"])
+    smps.push(["main", "work", "helper"])
+    smps.push(["main", "work"])
+    smps.push(["main", "work", "helper"])
+    var root = {}
+    root["functions"] = fns
+    root["samples"] = smps
+    return json.stringify(root)
+end
+
+func cmdTest() as int
+    g_tpass = 0
+    g_tfail = 0
+    println("=== xprof self-test ===")
+    println("")
+
+    // --- 1. findFuncEnd / leadingWS（不需要 xl）---
+    string src1 = "func add(int a, int b) as int\n    return a + b\nend\n"
+    array<string> l1 = splitLinesSafe(src1)
+    int end1 = findFuncEnd(l1, 1)
+    tcheck(end1 == 3, "findFuncEnd: 3-line func end at line 3", "got " + string(end1))
+
+    string src1b = "func a()\n    if x then\n        foo()\n    end\n    bar()\nend\nfunc b()\n    baz()\nend\n"
+    array<string> l1b = splitLinesSafe(src1b)
+    int endA = findFuncEnd(l1b, 1)
+    tcheck(endA == 6, "findFuncEnd: skips nested if-end, matches func end", "got " + string(endA))
+
+    // --- 2. 插桩（需要 xl.exe）---
+    string sample = "func add(int a, int b) as int\n    return a + b\nend\n\nfunc main(...) as int\n    int s = 0\n    int i = 0\n    while i < 5 do\n        s = s + add(i, i)\n        i += 1\n    end\n    return 0\nend\n"
+    string tmpXl = path.join(g_toolDir, "xprof_tmp_sample.xl")
+    string out2 = instrumentSource(sample, tmpXl)
+    if string.len(out2) == 0 then
+        tskip("instrument: xl.exe not available")
+    else
+        tcheck(string.contains(out2, "__xprof_enter(\"add\")"), "instrument: inserts __xprof_enter(\"add\")", "")
+        tcheck(string.contains(out2, "__xprof_exit(\"add\")"), "instrument: inserts __xprof_exit(\"add\")", "")
+        tcheck(string.contains(out2, "return a + b"), "instrument: preserves original body", "")
+        tcheck(string.contains(out2, "__xprof_enter(\"main\")"), "instrument: inserts enter for main", "")
+        tcheck(string.contains(out2, "__xprof_dump()"), "instrument: injects dump in main", "")
+        tcheck(string.contains(out2, "XP_RUNTIME") == false, "instrument: does not leak internal marker", "")
+    end
+    if file.exists(tmpXl) then file.remove(tmpXl) end
+
+    // --- 3. analyze（合成 profile）---
+    string profPath = path.join(g_toolDir, "xprof_tmp_profile.json")
+    file.writeText(profPath, makeSampleProfile())
+    var root3 = loadProfile(profPath)
+    if root3 is null then
+        tcheck(false, "analyze: load synthetic profile", "load failed")
+    else
+        string a3 = renderHotspots(root3)
+        tcheck(string.contains(a3, "Hotspots"), "analyze: has Hotspots header", "")
+        tcheck(string.contains(a3, "work"), "analyze: lists 'work'", "")
+        tcheck(string.contains(a3, "Call graph"), "analyze: has Call graph section", "")
+        tcheck(string.contains(a3, "main") and string.contains(a3, "->") and string.contains(a3, "work"), "analyze: call graph has main->work edge", "")
+    end
+
+    // --- 4. flame（合成 profile）---
+    var root4 = root3
+    if not (root4 is null) then
+        string f4 = renderFlame(root4)
+        tcheck(string.contains(f4, "xprof flame"), "flame: header", "")
+        tcheck(string.contains(f4, "main"), "flame: shows main", "")
+        tcheck(string.contains(f4, "helper"), "flame: shows helper", "")
+    end
+
+    // --- 5. flame 无样本兜底 ---
+    var empty = {}
+    empty["functions"] = []
+    empty["samples"] = []
+    file.writeText(profPath, json.stringify(empty))
+    var root5 = loadProfile(profPath)
+    string f5 = renderFlame(root5)
+    tcheck(string.contains(f5, "no samples"), "flame: empty-samples fallback message", "")
+
+    if file.exists(profPath) then file.remove(profPath) end
+
+    println("")
+    println("total: " + string(g_tpass) + " passed, " + string(g_tfail) + " failed")
+    if g_tfail > 0 then return 1 end
+    return 0
+end
+
+// ===== 用法 / 入口 =====
+
+func printUsage()
+    println("xprof - xlang profiler (instrument + analyze + flame)")
+    println("")
+    println("Usage:")
+    println("  xprof instrument <file.xl> <output.xl>   insert timing probes into output.xl")
+    println("  xprof analyze <profile.json>             show hotspots + call graph")
+    println("  xprof flame <profile.json>               ASCII flame graph")
+    println("  xprof test                               run self-test")
+    println("")
+    println("Workflow:")
+    println("  1. xprof instrument app.xl app.inst.xl")
+    println("  2. xl run app.inst.xl           (produces xprof_profile.json)")
+    println("  3. xprof analyze xprof_profile.json")
+    println("  4. xprof flame   xprof_profile.json")
+end
+
+func main(...) as int
+    g_scriptPath = ""
+    if arg.length > 0 then
+        g_scriptPath = string(arg[0])
+    end
+    g_toolDir = path.dir(g_scriptPath)
+    if string.len(g_toolDir) == 0 then
+        g_toolDir = path.cwd()
+    end
+
+    if arg.length < 2 then
+        printUsage()
+        return 0
+    end
+
+    string cmd = string(arg[1])
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "instrument" then
+        if arg.length < 4 then
+            println("xprof instrument: usage: xprof instrument <file.xl> <output.xl>")
+            return 1
+        end
+        return cmdInstrument(string(arg[2]), string(arg[3]))
+    end
+
+    if cmd == "analyze" then
+        if arg.length < 3 then
+            println("xprof analyze: usage: xprof analyze <profile.json>")
+            return 1
+        end
+        return cmdAnalyze(string(arg[2]))
+    end
+
+    if cmd == "flame" then
+        if arg.length < 3 then
+            println("xprof flame: usage: xprof flame <profile.json>")
+            return 1
+        end
+        return cmdFlame(string(arg[2]))
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    println("xprof: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

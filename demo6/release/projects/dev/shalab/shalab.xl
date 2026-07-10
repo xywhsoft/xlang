@@ -1,0 +1,393 @@
+// shalab - SHA-1 / SHA-256 from scratch (no crypto stdlib)
+//
+// usage:
+//   shalab test                 self-test: SHA-1/256("abc") known-answer vectors
+//   shalab sha1   <text>        SHA-1 of <text>   (UPPERCASE hex)
+//   shalab sha256 <text>        SHA-256 of <text> (UPPERCASE hex)
+//   shalab -h | --help          this help
+//
+// Implements, by hand:
+//   * message padding (0x80, zero pad to 56 mod 64, 8-byte big-endian bit length)
+//   * message schedule (SHA-1: 16->80 words ROTL1; SHA-256: 16->64 words σ0/σ1)
+//   * compression / round function (80 rounds SHA-1, 64 rounds SHA-256)
+//   * big-endian digest output, UPPERCASE hex
+//
+// All 32-bit working values live in int64 and are masked with & 0xFFFFFFFF
+// after every add/rotate, so semantics match the spec on a 64-bit host.
+// State + message bytes + schedule are global arrays (global-function style).
+
+const int64 M32 = 0xFFFFFFFF
+
+// FIPS 180-2 / RFC 3174 known-answer vectors for the one-block message "abc".
+const string V_SHA1_ABC   = "A9993E364706816ABA3E25717850C26C9CD0D89D"
+const string V_SHA256_ABC = "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD"
+
+// ======================== global working state ========================
+
+array<int>   g_msg   = []            // padded message bytes (0..255 each)
+array<int64> g_h1    = []            // SHA-1   H state, 5  words
+array<int64> g_h256  = []            // SHA-256 H state, 8  words
+array<int64> g_w1    = []            // SHA-1   schedule, 80 words
+array<int64> g_w256  = []            // SHA-256 schedule, 64 words
+
+// SHA-256 round constants K[0..63] (FIPS 180-4, first 32 bits of cube-roots of first 64 primes).
+array<int64> K256 = array<int64>[
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+]
+
+
+// ======================== small helpers ========================
+
+// Make an n-length int64 array filled with v.
+func makeArr64(int n, int64 v) as array<int64>
+    if n <= 0 then
+        return array<int64>[]
+    end
+    array<int64> a = array<int64>[v]
+    int i = 1
+    while i < n do
+        a.push(v)
+        i += 1
+    end
+    return a
+end
+
+// Rotate-left of a 32-bit value (held in int64) by n bits, 1<=n<=31.
+func rotl32(int64 x, int n) as int64
+    return ((x << n) | (x >> (32 - n))) & M32
+end
+
+// Rotate-right of a 32-bit value by n bits, 1<=n<=31.
+func rotr32(int64 x, int n) as int64
+    return ((x >> n) | (x << (32 - n))) & M32
+end
+
+// Read 4 big-endian bytes from g_msg at byte offset `off` -> one 32-bit word.
+func beWord(int off) as int64
+    return (int64(g_msg[off])     << 24)
+         | (int64(g_msg[off + 1]) << 16)
+         | (int64(g_msg[off + 2]) <<  8)
+         |  int64(g_msg[off + 3])
+end
+
+// Append big-endian 64-bit value `v` to the byte buffer `buf` (high byte first).
+func appendBe64(array<int> buf, int64 v)
+    buf.push(int((v >> 56) & 0xFF))
+    buf.push(int((v >> 48) & 0xFF))
+    buf.push(int((v >> 40) & 0xFF))
+    buf.push(int((v >> 32) & 0xFF))
+    buf.push(int((v >> 24) & 0xFF))
+    buf.push(int((v >> 16) & 0xFF))
+    buf.push(int((v >>  8) & 0xFF))
+    buf.push(int( v        & 0xFF))
+end
+
+
+// ======================== message padding ========================
+
+// FIPS 180-4 padding: append 0x80, then 0x00 until length ≡ 56 (mod 64),
+// then the 8-byte big-endian bit length. Result is a multiple of 64 bytes.
+func padMessage(string msg) as array<int>
+    int L = string.byteLen(msg)
+    array<int> M = []
+    int i = 0
+    while i < L do
+        M.push(string.byteAt(msg, i))
+        i += 1
+    end
+    M.push(0x80)
+    while (M.length % 64) != 56 do
+        M.push(0)
+    end
+    // bit length as a 64-bit big-endian integer (L*8; L fits in <2^60 in practice)
+    int64 bitLen = int64(L) * 8
+    appendBe64(M, bitLen)
+    return M
+end
+
+
+// ======================== SHA-1 ========================
+
+func sha1Init()
+    g_h1 = makeArr64(5, 0)
+    g_h1[0] = 0x67452301
+    g_h1[1] = 0xEFCDAB89
+    g_h1[2] = 0x98BADCFE
+    g_h1[3] = 0x10325476
+    g_h1[4] = 0xC3D2E1F0
+end
+
+// Compress one 64-byte chunk starting at byte offset `off` of g_msg.
+func sha1Compress(int off)
+    g_w1 = makeArr64(80, 0)
+
+    // 1. load 16 big-endian words
+    int j = 0
+    while j < 16 do
+        g_w1[j] = beWord(off + j * 4)
+        j += 1
+    end
+
+    // 2. message schedule: W[t] = ROTL1(W[t-3] ^ W[t-8] ^ W[t-14] ^ W[t-16])
+    while j < 80 do
+        int64 v = g_w1[j - 3] ^ g_w1[j - 8] ^ g_w1[j - 14] ^ g_w1[j - 16]
+        g_w1[j] = rotl32(v, 1)
+        j += 1
+    end
+
+    // 3. initialize working variables from current hash state
+    int64 a = g_h1[0]
+    int64 b = g_h1[1]
+    int64 c = g_h1[2]
+    int64 d = g_h1[3]
+    int64 e = g_h1[4]
+
+    // 4. 80 rounds, 4 groups of 20 with different f / K
+    int t = 0
+    while t < 80 do
+        int64 f = 0
+        int64 k = 0
+        if t < 20 then
+            // Ch:  (b AND c) OR ((NOT b) AND d)
+            f = (b & c) | ((~b & M32) & d)
+            k = 0x5A827999
+        elseif t < 40 then
+            // Parity: b XOR c XOR d
+            f = b ^ c ^ d
+            k = 0x6ED9EBA1
+        elseif t < 60 then
+            // Maj: (b AND c) OR (b AND d) OR (c AND d)
+            f = (b & c) | (b & d) | (c & d)
+            k = 0x8F1BBCDC
+        else
+            // Parity
+            f = b ^ c ^ d
+            k = 0xCA62C1D6
+        end
+        int64 temp = (rotl32(a, 5) + f + e + k + g_w1[t]) & M32
+        e = d
+        d = c
+        c = rotl32(b, 30)
+        b = a
+        a = temp
+        t += 1
+    end
+
+    // 5. add the chunk's hash to the running state (mod 2^32)
+    g_h1[0] = (g_h1[0] + a) & M32
+    g_h1[1] = (g_h1[1] + b) & M32
+    g_h1[2] = (g_h1[2] + c) & M32
+    g_h1[3] = (g_h1[3] + d) & M32
+    g_h1[4] = (g_h1[4] + e) & M32
+end
+
+// Full SHA-1 of a string -> 40-char UPPERCASE hex.
+func sha1(string msg) as string
+    sha1Init()
+    g_msg = padMessage(msg)
+    int off = 0
+    int n = g_msg.length
+    while off < n do
+        sha1Compress(off)
+        off += 64
+    end
+    string out = ""
+    int i = 0
+    while i < 5 do
+        out = out + string.formatInt(g_h1[i], "X8")
+        i += 1
+    end
+    return out
+end
+
+
+// ======================== SHA-256 ========================
+
+func sha256Init()
+    g_h256 = makeArr64(8, 0)
+    g_h256[0] = 0x6a09e667
+    g_h256[1] = 0xbb67ae85
+    g_h256[2] = 0x3c6ef372
+    g_h256[3] = 0xa54ff53a
+    g_h256[4] = 0x510e527f
+    g_h256[5] = 0x9b05688c
+    g_h256[6] = 0x1f83d9ab
+    g_h256[7] = 0x5be0cd19
+end
+
+// Compress one 64-byte chunk starting at byte offset `off` of g_msg.
+func sha256Compress(int off)
+    g_w256 = makeArr64(64, 0)
+
+    // 1. load 16 big-endian words
+    int j = 0
+    while j < 16 do
+        g_w256[j] = beWord(off + j * 4)
+        j += 1
+    end
+
+    // 2. message schedule:
+    //    σ0 = ROTR7 ^ ROTR18 ^ SHR3
+    //    σ1 = ROTR17 ^ ROTR19 ^ SHR10
+    //    W[t] = W[t-16] + σ0 + W[t-7] + σ1  (mod 2^32)
+    while j < 64 do
+        int64 w0 = g_w256[j - 15]
+        int64 w1 = g_w256[j - 2]
+        int64 s0 = rotr32(w0, 7) ^ rotr32(w0, 18) ^ (w0 >> 3)
+        int64 s1 = rotr32(w1, 17) ^ rotr32(w1, 19) ^ (w1 >> 10)
+        g_w256[j] = (g_w256[j - 16] + s0 + g_w256[j - 7] + s1) & M32
+        j += 1
+    end
+
+    // 3. working variables
+    int64 a = g_h256[0]
+    int64 b = g_h256[1]
+    int64 c = g_h256[2]
+    int64 d = g_h256[3]
+    int64 e = g_h256[4]
+    int64 f = g_h256[5]
+    int64 g = g_h256[6]
+    int64 h = g_h256[7]
+
+    // 4. 64 rounds
+    int t = 0
+    while t < 64 do
+        // Σ1 = ROTR6 ^ ROTR11 ^ ROTR25 ; Ch = (e AND f) XOR ((NOT e) AND g)
+        int64 bigS1 = rotr32(e, 6) ^ rotr32(e, 11) ^ rotr32(e, 25)
+        int64 ch    = (e & f) ^ ((~e & M32) & g)
+        int64 t1    = (h + bigS1 + ch + K256[t] + g_w256[t]) & M32
+        // Σ0 = ROTR2 ^ ROTR13 ^ ROTR22 ; Maj = (a AND b) XOR (a AND c) XOR (b AND c)
+        int64 bigS0 = rotr32(a, 2) ^ rotr32(a, 13) ^ rotr32(a, 22)
+        int64 maj   = (a & b) ^ (a & c) ^ (b & c)
+        int64 t2    = (bigS0 + maj) & M32
+
+        h = g
+        g = f
+        f = e
+        e = (d + t1) & M32
+        d = c
+        c = b
+        b = a
+        a = (t1 + t2) & M32
+        t += 1
+    end
+
+    // 5. add to running state
+    g_h256[0] = (g_h256[0] + a) & M32
+    g_h256[1] = (g_h256[1] + b) & M32
+    g_h256[2] = (g_h256[2] + c) & M32
+    g_h256[3] = (g_h256[3] + d) & M32
+    g_h256[4] = (g_h256[4] + e) & M32
+    g_h256[5] = (g_h256[5] + f) & M32
+    g_h256[6] = (g_h256[6] + g) & M32
+    g_h256[7] = (g_h256[7] + h) & M32
+end
+
+// Full SHA-256 of a string -> 64-char UPPERCASE hex.
+func sha256(string msg) as string
+    sha256Init()
+    g_msg = padMessage(msg)
+    int off = 0
+    int n = g_msg.length
+    while off < n do
+        sha256Compress(off)
+        off += 64
+    end
+    string out = ""
+    int i = 0
+    while i < 8 do
+        out = out + string.formatInt(g_h256[i], "X8")
+        i += 1
+    end
+    return out
+end
+
+
+// ======================== self-test ========================
+
+int g_pass = 0
+int g_fail = 0
+
+func check(string algo, string input, string got, string want)
+    if got == want then
+        g_pass += 1
+        println("  [PASS] " + algo + "(\"" + input + "\") = " + got)
+    else
+        g_fail += 1
+        println("  [FAIL] " + algo + "(\"" + input + "\")")
+        println("           got  = " + got)
+        println("           want = " + want)
+    end
+end
+
+func runSelfTest() as int
+    println("shalab self-test (known-answer vectors for \"abc\")")
+    check("sha1",   "abc", sha1("abc"),   V_SHA1_ABC)
+    check("sha256", "abc", sha256("abc"), V_SHA256_ABC)
+    println("")
+    println("PASSED " + string(g_pass) + " / FAILED " + string(g_fail))
+    if g_fail > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ======================== CLI ========================
+
+func printUsage()
+    println("shalab - SHA-1 / SHA-256 implemented from scratch (no crypto stdlib)")
+    println("")
+    println("usage:")
+    println("  shalab test                 self-test: SHA-1/256(\"abc\")")
+    println("  shalab sha1   <text>        SHA-1 of <text>   (UPPERCASE hex)")
+    println("  shalab sha256 <text>        SHA-256 of <text> (UPPERCASE hex)")
+    println("  shalab -h | --help          this help")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return runSelfTest()
+    end
+
+    if cmd == "sha1" then
+        if arg.length < 3 then
+            println("shalab: 'sha1' needs <text>")
+            return 1
+        end
+        println(sha1(string(arg[2])))
+        return 0
+    end
+
+    if cmd == "sha256" then
+        if arg.length < 3 then
+            println("shalab: 'sha256' needs <text>")
+            return 1
+        end
+        println(sha256(string(arg[2])))
+        return 0
+    end
+
+    println("shalab: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

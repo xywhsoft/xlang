@@ -1573,18 +1573,263 @@ static void xl6StdlibRewriteMemberToLiteral(XL6_AstNode* node, XL6_AstKind kind,
     node->text = xl6StdlibDupText(value);
 }
 
-static int xl6StdlibRewriteRefs(XL6_AstNode* node, int* used, XL6_DiagList* diags)
+typedef struct XL6_StdlibNameScope {
+    const struct XL6_StdlibNameScope* parent;
+    const char** names;
+    size_t count;
+    size_t capacity;
+} XL6_StdlibNameScope;
+
+static void xl6StdlibScopeInit(XL6_StdlibNameScope* scope, const XL6_StdlibNameScope* parent)
+{
+    if ( scope == NULL ) {
+        return;
+    }
+    memset(scope, 0, sizeof(*scope));
+    scope->parent = parent;
+}
+
+static void xl6StdlibScopeFree(XL6_StdlibNameScope* scope)
+{
+    if ( scope == NULL ) {
+        return;
+    }
+    xrtFree(scope->names);
+    memset(scope, 0, sizeof(*scope));
+}
+
+static int xl6StdlibScopeContains(const XL6_StdlibNameScope* scope, const char* name)
+{
+    size_t i;
+
+    for ( ; scope != NULL; scope = scope->parent ) {
+        for ( i = 0; i < scope->count; ++i ) {
+            if ( xl6StdlibTextEquals(scope->names[i], name) ) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+static int xl6StdlibScopeAdd(XL6_StdlibNameScope* scope, const char* name)
+{
+    const char** names;
+    size_t capacity;
+
+    if ( scope == NULL || name == NULL || name[0] == '\0' || xl6StdlibScopeContains(scope, name) ) {
+        return 1;
+    }
+    if ( scope->count == scope->capacity ) {
+        capacity = scope->capacity == 0 ? 8 : scope->capacity * 2;
+        names = (const char**)xrtRealloc(scope->names, capacity * sizeof(const char*));
+        if ( names == NULL ) {
+            return 0;
+        }
+        scope->names = names;
+        scope->capacity = capacity;
+    }
+    scope->names[scope->count++] = name;
+    return 1;
+}
+
+static int xl6StdlibScopeAddParams(XL6_StdlibNameScope* scope, const XL6_AstNode* params)
+{
+    size_t i;
+
+    for ( i = 0; params != NULL && i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+        if ( param != NULL && !xl6StdlibScopeAdd(scope, param->text) ) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int xl6StdlibScopeAddDecl(XL6_StdlibNameScope* scope, const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 1;
+    }
+    if ( node->kind == XL6_AST_VAR_DECL || node->kind == XL6_AST_CONST_DECL ) {
+        return xl6StdlibScopeAdd(scope, node->text);
+    }
+    if ( node->kind == XL6_AST_MULTI_VAR_DECL && node->childCount > 0 ) {
+        const XL6_AstNode* names = node->children[0];
+        for ( i = 0; names != NULL && i < names->childCount; ++i ) {
+            if ( names->children[i] != NULL && !xl6StdlibScopeAdd(scope, names->children[i]->text) ) {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+static const char* xl6StdlibReceiverRootName(const XL6_AstNode* node)
+{
+    while ( node != NULL && (node->kind == XL6_AST_MEMBER || node->kind == XL6_AST_SAFE_MEMBER) && node->childCount > 0 ) {
+        node = node->children[0];
+    }
+    return node != NULL && node->kind == XL6_AST_NAME ? node->text : NULL;
+}
+
+static int xl6StdlibRewriteRefsScoped(
+    XL6_AstNode* node,
+    int* used,
+    XL6_DiagList* diags,
+    XL6_StdlibNameScope* scope);
+
+static int xl6StdlibRewriteCallable(
+    XL6_AstNode* node,
+    const XL6_AstNode* params,
+    XL6_AstNode* body,
+    int* used,
+    XL6_DiagList* diags,
+    XL6_StdlibNameScope* scope)
+{
+    XL6_StdlibNameScope functionScope;
+    size_t i;
+    int ok;
+
+    xl6StdlibScopeInit(&functionScope, scope);
+    ok = xl6StdlibScopeAddParams(&functionScope, params);
+    for ( i = 0; ok && i < node->childCount; ++i ) {
+        if ( node->children[i] != body &&
+             !xl6StdlibRewriteRefsScoped(node->children[i], used, diags, &functionScope) ) {
+            ok = 0;
+        }
+    }
+    if ( ok && body != NULL ) {
+        ok = xl6StdlibRewriteRefsScoped(body, used, diags, &functionScope);
+    }
+    xl6StdlibScopeFree(&functionScope);
+    return ok;
+}
+
+static int xl6StdlibRewriteRefsScoped(
+    XL6_AstNode* node,
+    int* used,
+    XL6_DiagList* diags,
+    XL6_StdlibNameScope* scope)
 {
     char ns[128];
+    const char* rootName;
     size_t index;
     size_t i;
     int ok;
 
+    if ( node == NULL ) {
+        return 1;
+    }
+
+    if ( node->kind == XL6_AST_MODULE || node->kind == XL6_AST_BLOCK ) {
+        XL6_StdlibNameScope blockScope;
+
+        xl6StdlibScopeInit(&blockScope, scope);
+        ok = 1;
+        if ( node->kind == XL6_AST_MODULE ) {
+            for ( i = 0; i < node->childCount; ++i ) {
+                const XL6_AstNode* item = node->children[i];
+                if ( !xl6StdlibScopeAddDecl(&blockScope, item) ) {
+                    ok = 0;
+                }
+                if ( item != NULL &&
+                     (item->kind == XL6_AST_FUNC || item->kind == XL6_AST_ASYNC_FUNC ||
+                      item->kind == XL6_AST_EXTERN_FUNC || item->kind == XL6_AST_EXPORT_FUNC) &&
+                     item->childCount > 0 && item->children[0] != NULL &&
+                     !xl6StdlibScopeAdd(&blockScope, item->children[0]->text) ) {
+                    ok = 0;
+                }
+            }
+        }
+        for ( i = 0; i < node->childCount; ++i ) {
+            if ( !xl6StdlibRewriteRefsScoped(node->children[i], used, diags, &blockScope) ||
+                 (node->kind == XL6_AST_BLOCK && !xl6StdlibScopeAddDecl(&blockScope, node->children[i])) ) {
+                ok = 0;
+            }
+        }
+        xl6StdlibScopeFree(&blockScope);
+        return ok;
+    }
+
+    if ( node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC ||
+         node->kind == XL6_AST_EXPORT_FUNC || node->kind == XL6_AST_GET || node->kind == XL6_AST_LET ) {
+        const XL6_AstNode* params = node->childCount > 1 ? node->children[1] : NULL;
+        XL6_AstNode* body = node->childCount > 3 ? node->children[3] : NULL;
+        return xl6StdlibRewriteCallable(node, params, body, used, diags, scope);
+    }
+    if ( node->kind == XL6_AST_ANON_FUNC ) {
+        const XL6_AstNode* params = node->childCount > 0 ? node->children[0] : NULL;
+        XL6_AstNode* body = node->childCount > 2 ? node->children[2] : NULL;
+        return xl6StdlibRewriteCallable(node, params, body, used, diags, scope);
+    }
+    if ( node->kind == XL6_AST_CREATE ) {
+        const XL6_AstNode* params = node->childCount > 0 ? node->children[0] : NULL;
+        XL6_AstNode* body = node->childCount > 1 ? node->children[1] : NULL;
+        return xl6StdlibRewriteCallable(node, params, body, used, diags, scope);
+    }
+    if ( node->kind == XL6_AST_CLASS && node->childCount > 1 ) {
+        const XL6_AstNode* body = node->children[1];
+        XL6_StdlibNameScope classScope;
+
+        xl6StdlibScopeInit(&classScope, scope);
+        ok = 1;
+        for ( i = 0; body != NULL && i < body->childCount; ++i ) {
+            const XL6_AstNode* member = body->children[i];
+            if ( member != NULL && member->kind == XL6_AST_FIELD &&
+                 !xl6StdlibScopeAdd(&classScope, member->text) ) {
+                ok = 0;
+            }
+        }
+        for ( i = 0; ok && i < node->childCount; ++i ) {
+            if ( node->children[i] != body &&
+                 !xl6StdlibRewriteRefsScoped(node->children[i], used, diags, &classScope) ) {
+                ok = 0;
+            }
+        }
+        for ( i = 0; ok && body != NULL && i < body->childCount; ++i ) {
+            if ( !xl6StdlibRewriteRefsScoped(body->children[i], used, diags, &classScope) ) {
+                ok = 0;
+            }
+        }
+        xl6StdlibScopeFree(&classScope);
+        return ok;
+    }
+    if ( node->kind == XL6_AST_FOR && node->childCount > 2 ) {
+        const XL6_AstNode* targets = node->children[0];
+        XL6_StdlibNameScope loopScope;
+
+        ok = xl6StdlibRewriteRefsScoped(node->children[1], used, diags, scope);
+        xl6StdlibScopeInit(&loopScope, scope);
+        for ( i = 0; ok && targets != NULL && i < targets->childCount; ++i ) {
+            if ( targets->children[i] != NULL && !xl6StdlibScopeAdd(&loopScope, targets->children[i]->text) ) {
+                ok = 0;
+            }
+        }
+        if ( ok ) {
+            ok = xl6StdlibRewriteRefsScoped(node->children[2], used, diags, &loopScope);
+        }
+        xl6StdlibScopeFree(&loopScope);
+        return ok;
+    }
+    if ( node->kind == XL6_AST_CATCH && node->childCount > 1 ) {
+        XL6_StdlibNameScope catchScope;
+
+        xl6StdlibScopeInit(&catchScope, scope);
+        ok = xl6StdlibScopeAdd(&catchScope, node->children[0] != NULL ? node->children[0]->text : NULL) &&
+             xl6StdlibRewriteRefsScoped(node->children[1], used, diags, &catchScope);
+        xl6StdlibScopeFree(&catchScope);
+        return ok;
+    }
+
     /* 全局标准库函数：print(...) -> __xl_std_print(...)。 */
-    if ( node != NULL && node->kind == XL6_AST_CALL && node->childCount > 0 &&
+    if ( node->kind == XL6_AST_CALL && node->childCount > 0 &&
          node->children[0] != NULL && node->children[0]->kind == XL6_AST_NAME ) {
         XL6_AstNode* callee = node->children[0];
-        const XL6_StdlibFunc* func = xl6StdlibFindFunc("", callee->text, &index);
+        const XL6_StdlibFunc* func = xl6StdlibScopeContains(scope, callee->text) ?
+                                    NULL : xl6StdlibFindFunc("", callee->text, &index);
         if ( func != NULL ) {
             xl6StdlibMarkFuncUsed(used, "", callee->text);
             xrtFree(callee->text);
@@ -1595,13 +1840,11 @@ static int xl6StdlibRewriteRefs(XL6_AstNode* node, int* used, XL6_DiagList* diag
         }
     }
 
-    if ( node == NULL ) {
-        return 1;
-    }
-
     /* 标准库命名空间：math.log -> __xl_std_math_log。 */
     if ( node->kind == XL6_AST_MEMBER && node->childCount > 0 && node->children[0] != NULL ) {
-        if ( xl6StdlibReceiverPath(node->children[0], ns, sizeof(ns)) ) {
+        rootName = xl6StdlibReceiverRootName(node->children[0]);
+        if ( !xl6StdlibScopeContains(scope, rootName) &&
+             xl6StdlibReceiverPath(node->children[0], ns, sizeof(ns)) ) {
             const XL6_StdlibConst* constant = xl6StdlibFindConst(ns, node->text);
             if ( constant != NULL ) {
                 xl6StdlibRewriteMemberToLiteral(node, constant->kind, constant->value);
@@ -1624,7 +1867,7 @@ static int xl6StdlibRewriteRefs(XL6_AstNode* node, int* used, XL6_DiagList* diag
 
     ok = 1;
     for ( i = 0; i < node->childCount; ++i ) {
-        if ( !xl6StdlibRewriteRefs(node->children[i], used, diags) ) {
+        if ( !xl6StdlibRewriteRefsScoped(node->children[i], used, diags, scope) ) {
             ok = 0;
         }
     }
@@ -2055,7 +2298,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
 
     memset(used, 0, sizeof(used));
-    ok = xl6StdlibRewriteRefs(root, used, diags);
+    ok = xl6StdlibRewriteRefsScoped(root, used, diags, NULL);
     if ( !ok ) {
         return 0;
     }

@@ -1,0 +1,14 @@
+class TextBox
+    string value
+
+    get text() as string
+        return self.value
+    end
+
+    let text(string value)
+        self.value = value
+    end
+end
+
+TextBox value = TextBox()
+value.text ?= "fallback"

@@ -1,0 +1,1112 @@
+// skiplist - 跳表（Skip List）概率性平衡数据结构
+//
+// 用法：
+//   skiplist insert <key> <value>   插入/更新（key 为整数，value 为字符串，可含空格）
+//   skiplist search <key>           查找，打印 value 或 (not found)
+//   skiplist range <low> <high>     范围查询 [low, high]，打印 key=value 列表
+//   skiplist delete <key>           删除
+//   skiplist dump                   可视化跳表各层（含 span）
+//   skiplist export <file>          导出 JSON
+//   skiplist import <file>          从 JSON 导入（整体替换）
+//   skiplist test                   内置测试（1000 元素 插入/查找/范围/排名/删除/序列化）
+//   skiplist help                   帮助
+//
+// 数据自动持久化到 脚本/exe 同目录的 skiplist.json（compact JSON，保序）。
+//
+// 设计要点（结合 dev/README.md 与 BUGS.md）：
+//   - 概率性平衡：多层链表，插入时 random.u32() 抛硬币（p=0.5）决定层数。
+//     查找/插入/删除/排名均为期望 O(log n)。
+//   - 节点用单一 SkipNode class（key/value/forward/span 数组）。
+//     forward[i] = 第 i 层的下一个节点 id（-1 表示 nil）。
+//     span[i]    = 从本节点到 forward[i] 之间跨越的（第 0 层）节点数（含 forward[i]）。
+//     span 用于 O(log n) 计算 rank（同 Redis zskiplist）。
+//   - 节点池：SkipList.nodes 为 var 数组（index = node id）；节点按 id 引用。
+//     id 0 恒为 header（哨兵，key/value 不参与比较），真实节点从 id 1 起。
+//   - 值语义：derive value class，getNode 取出的是副本，修改后用 setNode 写回
+//     （探针确认 write-back 持久，与 btree 工具一致）。
+//   - 递归热路径用扁平 var 数组 / 标量，不分配 var dict（规避 BUG-LP1）。
+//   - class 方法不接收 array<int> 形参（规避 BUG-C1）；访问器全部用 int 标量参数。
+//   - 不直接 return self.field.length（规避 BUG-C2），先落局部 int。
+//   - 迭代器：SkipIter 持有预先收集的 [key,value] var 数组快照（避免持有 class 引用，
+//     规避值/引用语义歧义），实现 __iter__/__next__，支持 for-in。
+//   - 序列化：手动遍历节点池构造 var 结构 + json.stringify（compact 保序，
+//     规避 BUG-K1 pretty 键序重排）。
+//   - int 在 xlang 中为 64-bit，位运算（& 1、>> 1）对 32-bit 随机数无符号位问题。
+
+const int MAX_LEVEL = 16    // 最大层数（n=1000 时期望最高层 ~10，16 足够余量）
+const int NIL = -1          // 空指针
+const int HEADER_ID = 0     // header 节点固定 id=0
+
+
+// ============================================================================
+// SkipNode — 单一节点 class（derive value）
+// ============================================================================
+
+class SkipNode
+    derive value
+
+    int key = 0
+    string value = ""
+    array<int> forward = array[]      // forward[i]：第 i 层下一个节点 id
+    array<int> span = array[]         // span[i]：到 forward[i] 跨越的 L0 节点数（含目标）
+
+    create(int key, string value, int levels)
+        self.key = key
+        self.value = value
+        self.forward = array[]
+        self.span = array[]
+        int i = 0
+        while i < levels do
+            self.forward.push(NIL)
+            self.span.push(0)
+            i = i + 1
+        end
+    end
+end
+
+
+// ============================================================================
+// SkipIter — 有序迭代器（L0 链快照），实现 __iter__/__next__
+// 定义先于 SkipList，供 __iter__ 返回类型引用。
+// ============================================================================
+
+class SkipIter
+    var items = []        // 预收集的 [key, value] 对数组（有序升序）
+    int pos = 0
+
+    create(var items)
+        self.items = items
+        self.pos = 0
+    end
+
+    func __next__() as (bool, var)
+        int n = self.items.length
+        if self.pos >= n then
+            return false, null
+        end
+        var pair = self.items[self.pos]
+        self.pos = self.pos + 1
+        return true, pair
+    end
+end
+
+
+// ============================================================================
+// SkipList — 跳表引擎（节点池 + header id + level + count）
+// ============================================================================
+
+class SkipList
+    derive value
+
+    var nodes = []            // 节点池：var 数组，index = node id（0 = header）
+    int level = 1             // 当前最高已用层数（>=1）
+    int count = 0             // 真实元素数（不含 header）
+    int maxLevel = MAX_LEVEL
+
+    create(int maxLevel)
+        self.maxLevel = maxLevel
+        self.nodes = []
+        self.level = 1
+        self.count = 0
+        SkipNode header = SkipNode(0, "", maxLevel)
+        self.nodes.push(header)
+    end
+
+    // ---- 节点池访问（值语义 write-back）----
+
+    func getNode(int id) as SkipNode
+        var v = self.nodes[id]
+        SkipNode n = v as SkipNode
+        return n
+    end
+
+    func setNode(int id, SkipNode n)
+        self.nodes[id] = n
+    end
+
+    func allocNode(SkipNode n) as int
+        self.nodes.push(n)
+        int nid = self.nodes.length
+        nid = nid - 1
+        return nid
+    end
+
+    // 只读标量访问器（避免 class 方法接收 array<int> 形参 — BUG-C1）
+
+    func keyAt(int id) as int
+        SkipNode n = self.getNode(id)
+        return n.key
+    end
+
+    func valAt(int id) as string
+        SkipNode n = self.getNode(id)
+        return n.value
+    end
+
+    // 第 lvl 层的下一个节点 id；越界（节点无此层）返回 NIL
+    func fwdAt(int id, int lvl) as int
+        SkipNode n = self.getNode(id)
+        if lvl < n.forward.length then
+            return n.forward[lvl]
+        end
+        return NIL
+    end
+
+    func spanAt(int id, int lvl) as int
+        SkipNode n = self.getNode(id)
+        if lvl < n.span.length then
+            return n.span[lvl]
+        end
+        return 0
+    end
+
+    func setFwd(int id, int lvl, int nid)
+        SkipNode n = self.getNode(id)
+        n.forward[lvl] = nid
+        self.setNode(id, n)
+    end
+
+    func setSpan(int id, int lvl, int s)
+        SkipNode n = self.getNode(id)
+        n.span[lvl] = s
+        self.setNode(id, n)
+    end
+
+    func size() as int
+        int c = self.count
+        return c
+    end
+
+    func nodeCount() as int
+        int n = self.nodes.length
+        return n
+    end
+
+    // ---- 随机层数（p=0.5 几率逐层提升）----
+    // 抛硬币：取一个 u32，从低位起逐位判断，1 则升层，0 则停止。
+    func randomLevel() as int
+        int lvl = 1
+        int bits = int(random.u32())
+        while lvl < self.maxLevel and (bits & 1) == 1 do
+            lvl = lvl + 1
+            bits = bits >> 1
+        end
+        return lvl
+    end
+
+    // ---- 查找：定位 key 所在节点 id（找不到返回 NIL）----
+    func findNode(int key) as int
+        int xid = HEADER_ID
+        int i = self.level - 1
+        while i >= 0 do
+            int f = self.fwdAt(xid, i)
+            while f != NIL and self.keyAt(f) < key do
+                xid = f
+                f = self.fwdAt(xid, i)
+            end
+            i = i - 1
+        end
+        int cand = self.fwdAt(xid, 0)
+        if cand != NIL and self.keyAt(cand) == key then
+            return cand
+        end
+        return NIL
+    end
+
+    func search(int key) as string
+        int id = self.findNode(key)
+        if id == NIL then
+            return ""
+        end
+        return self.valAt(id)
+    end
+
+    func contains(int key) as bool
+        int id = self.findNode(key)
+        if id == NIL then
+            return false
+        end
+        return true
+    end
+
+    // ---- 插入 / 更新 ----
+    // 若 key 已存在，先删除再以新（随机）层数重插，保证 span/level 一致。
+    // 返回 true=新增，false=已存在（值已更新）。
+    func insert(int key, string value) as bool
+        bool existed = self.contains(key)
+        if existed then
+            self.delete(key)
+        end
+
+        // 预分配 update[] / rank[]（maxLevel 大小）
+        array<int> update = array[]
+        array<int> rank = array[]
+        int mi = 0
+        while mi < self.maxLevel do
+            update.push(HEADER_ID)
+            rank.push(0)
+            mi = mi + 1
+        end
+
+        // 下降查找：记录每层的前驱 update[i] 与其 rank[i]
+        int xid = HEADER_ID
+        int i = self.level - 1
+        while i >= 0 do
+            if i == self.level - 1 then
+                rank[i] = 0
+            else
+                rank[i] = rank[i + 1]
+            end
+            int f = self.fwdAt(xid, i)
+            while f != NIL and self.keyAt(f) < key do
+                rank[i] = rank[i] + self.spanAt(xid, i)
+                xid = f
+                f = self.fwdAt(xid, i)
+            end
+            update[i] = xid
+            i = i - 1
+        end
+
+        int lvl = self.randomLevel()
+        // 新层数超过当前最高：扩展 header 的空层 span = count
+        if lvl > self.level then
+            int j = self.level
+            while j < lvl do
+                rank[j] = 0
+                update[j] = HEADER_ID
+                self.setSpan(HEADER_ID, j, self.count)
+                j = j + 1
+            end
+            self.level = lvl
+        end
+
+        // 创建并链入新节点
+        SkipNode nn = SkipNode(key, value, lvl)
+        int newId = self.allocNode(nn)
+        SkipNode work = self.getNode(newId)
+        int k = 0
+        while k < lvl do
+            SkipNode un = self.getNode(update[k])
+            int fwd = un.forward[k]
+            work.forward[k] = fwd
+            work.span[k] = un.span[k] - (rank[0] - rank[k])
+            un.forward[k] = newId
+            un.span[k] = (rank[0] - rank[k]) + 1
+            self.setNode(update[k], un)
+            k = k + 1
+        end
+        self.setNode(newId, work)
+
+        // 新节点未出现的更高层：前驱 span +1
+        int m = lvl
+        while m < self.level do
+            SkipNode un = self.getNode(update[m])
+            un.span[m] = un.span[m] + 1
+            self.setNode(update[m], un)
+            m = m + 1
+        end
+
+        self.count = self.count + 1
+        return not existed
+    end
+
+    // ---- 删除 ----
+    // 返回 true=找到并删除，false=不存在。
+    func delete(int key) as bool
+        array<int> update = array[]
+        int mi = 0
+        while mi < self.maxLevel do
+            update.push(HEADER_ID)
+            mi = mi + 1
+        end
+
+        int xid = HEADER_ID
+        int i = self.level - 1
+        while i >= 0 do
+            int f = self.fwdAt(xid, i)
+            while f != NIL and self.keyAt(f) < key do
+                xid = f
+                f = self.fwdAt(xid, i)
+            end
+            update[i] = xid
+            i = i - 1
+        end
+
+        int cand = self.fwdAt(xid, 0)
+        if cand == NIL then
+            return false
+        end
+        if self.keyAt(cand) != key then
+            return false
+        end
+
+        SkipNode cn = self.getNode(cand)
+        int i2 = 0
+        while i2 < self.level do
+            SkipNode un = self.getNode(update[i2])
+            if un.forward[i2] == cand then
+                // cand 出现于第 i2 层：cn 在该层有效，前驱直接接到 cand.next
+                int merged = un.span[i2] + cn.span[i2] - 1
+                un.forward[i2] = cn.forward[i2]
+                un.span[i2] = merged
+            else
+                // cand 不在第 i2 层：仅 span -1
+                un.span[i2] = un.span[i2] - 1
+            end
+            self.setNode(update[i2], un)
+            i2 = i2 + 1
+        end
+
+        // 顶层变空则降低 level
+        while self.level > 1 and self.fwdAt(HEADER_ID, self.level - 1) == NIL do
+            self.level = self.level - 1
+        end
+
+        self.count = self.count - 1
+        return true
+    end
+
+    // ---- 排名（1-based；不存在返回 -1）----
+    // 沿各层累计 span（<= 比较以落在目标节点上）。
+    func rank(int key) as int
+        int xid = HEADER_ID
+        int acc = 0
+        int i = self.level - 1
+        while i >= 0 do
+            int f = self.fwdAt(xid, i)
+            while f != NIL and self.keyAt(f) <= key do
+                acc = acc + self.spanAt(xid, i)
+                xid = f
+                f = self.fwdAt(xid, i)
+            end
+            i = i - 1
+        end
+        if xid != HEADER_ID and self.keyAt(xid) == key then
+            return acc
+        end
+        return NIL
+    end
+
+    // ---- 最小 / 最大 key（空表返回 NIL=-1）----
+    func min() as int
+        int f = self.fwdAt(HEADER_ID, 0)
+        if f == NIL then
+            return NIL
+        end
+        return self.keyAt(f)
+    end
+
+    func max() as int
+        int xid = HEADER_ID
+        int i = self.level - 1
+        while i >= 0 do
+            int f = self.fwdAt(xid, i)
+            while f != NIL do
+                xid = f
+                f = self.fwdAt(xid, i)
+            end
+            i = i - 1
+        end
+        if xid == HEADER_ID then
+            return NIL
+        end
+        return self.keyAt(xid)
+    end
+
+    // ---- 范围查询 [low, high]（升序，返回 [key,value] 对数组）----
+    func range(int low, int high) as var
+        var result = []
+        if low > high then
+            return result
+        end
+        int xid = HEADER_ID
+        int i = self.level - 1
+        while i >= 0 do
+            int f = self.fwdAt(xid, i)
+            while f != NIL and self.keyAt(f) < low do
+                xid = f
+                f = self.fwdAt(xid, i)
+            end
+            i = i - 1
+        end
+        int cur = self.fwdAt(xid, 0)
+        while cur != NIL and self.keyAt(cur) <= high do
+            var pair = [self.keyAt(cur), self.valAt(cur)]
+            result.push(pair)
+            cur = self.fwdAt(cur, 0)
+        end
+        return result
+    end
+
+    // ---- 有序迭代器（L0 链快照）----
+    func __iter__() as SkipIter
+        var items = []
+        int xid = self.fwdAt(HEADER_ID, 0)
+        while xid != NIL do
+            var pair = [self.keyAt(xid), self.valAt(xid)]
+            items.push(pair)
+            xid = self.fwdAt(xid, 0)
+        end
+        SkipIter it = SkipIter(items)
+        return it
+    end
+
+    // ---- 序列化到 JSON（compact，手动遍历保序）----
+    func serialize() as string
+        var out = {}
+        out["maxLevel"] = self.maxLevel
+        out["level"] = self.level
+        out["count"] = self.count
+        var ns = []
+        int total = self.nodes.length
+        int i = 0
+        while i < total do
+            SkipNode n = self.getNode(i)
+            var nd = {}
+            nd["key"] = n.key
+            nd["value"] = n.value
+            var fw = []
+            var sp = []
+            int L = n.forward.length
+            int j = 0
+            while j < L do
+                fw.push(n.forward[j])
+                sp.push(n.span[j])
+                j = j + 1
+            end
+            nd["forward"] = fw
+            nd["span"] = sp
+            ns.push(nd)
+            i = i + 1
+        end
+        out["nodes"] = ns
+        return json.stringify(out)
+    end
+
+    // 从 JSON 文本重建（替换当前内容）；失败返回 false。
+    func deserialize(string text) as bool
+        var data = json.parse(text)
+        if data == null then
+            return false
+        end
+        self.maxLevel = int(data["maxLevel"])
+        self.level = int(data["level"])
+        self.count = int(data["count"])
+        self.nodes = []
+        var ns = data["nodes"]
+        int total = ns.length
+        int i = 0
+        while i < total do
+            var nd = ns[i]
+            int key = int(nd["key"])
+            string val = string(nd["value"])
+            var fw = nd["forward"]
+            var sp = nd["span"]
+            int L = fw.length
+            SkipNode n = SkipNode(key, val, L)
+            int j = 0
+            while j < L do
+                n.forward[j] = int(fw[j])
+                n.span[j] = int(sp[j])
+                j = j + 1
+            end
+            self.nodes.push(n)
+            i = i + 1
+        end
+        return true
+    end
+
+    // ---- 可视化：逐层打印链 + span ----
+    func dumpLevel(int lvl)
+        string line = "L" + string(lvl) + ": H"
+        int xid = HEADER_ID
+        int f = self.fwdAt(xid, lvl)
+        while f != NIL do
+            int sp = self.spanAt(xid, lvl)
+            SkipNode n = self.getNode(f)
+            line = line + " --[" + string(sp) + "]--> "
+            line = line + "[" + string(n.key) + "]"
+            xid = f
+            f = self.fwdAt(xid, lvl)
+        end
+        int tailSpan = self.spanAt(xid, lvl)
+        line = line + " --[" + string(tailSpan) + "]--> nil"
+        println(line)
+    end
+
+    func dump()
+        println("SkipList count=" + string(self.count) +
+                " level=" + string(self.level) +
+                " maxLevel=" + string(self.maxLevel) +
+                " nodes=" + string(self.nodes.length))
+        int i = self.level - 1
+        while i >= 0 do
+            self.dumpLevel(i)
+            i = i - 1
+        end
+    end
+end
+
+
+// ============================================================================
+// 测试框架
+// ============================================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass = g_pass + 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail = g_fail + 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectTrue(bool got, string label)
+    if got then
+        ok(label)
+    else
+        bad(label, "expected true, got false")
+    end
+end
+
+func expectFalse(bool got, string label)
+    if got then
+        bad(label, "expected false, got true")
+    else
+        ok(label)
+    end
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectS(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+
+// ============================================================================
+// 辅助函数
+// ============================================================================
+
+// 确定性 LCG：生成 1..n 的伪随机排列（保证 xl run 与 build 输出一致）
+func shuffledRange(int n) as var
+    var arr = []
+    int i = 1
+    while i <= n do
+        arr.push(i)
+        i = i + 1
+    end
+    int seed = 987654321
+    int j = n - 1
+    while j > 0 do
+        seed = seed * 1103515245 + 12345
+        seed = seed % 2147483647
+        if seed < 0 then
+            seed = -seed
+        end
+        int k = seed % (j + 1)
+        int ta = int(arr[j])
+        int tb = int(arr[k])
+        arr[j] = tb
+        arr[k] = ta
+        j = j - 1
+    end
+    return arr
+end
+
+// 判断字符串是否整数字面量（可选符号 + 纯数字）
+func looksLikeInt(string s) as bool
+    if string.isEmpty(s) then
+        return false
+    end
+    int i = 0
+    int firstByte = string.byteAt(s, 0)
+    if firstByte == 45 or firstByte == 43 then
+        i = 1
+    end
+    int len = string.len(s)
+    if i >= len then
+        return false
+    end
+    while i < len do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i = i + 1
+    end
+    return true
+end
+
+// 把 var 数组中从 fromIdx 起的元素用空格拼回（用于多词 value）
+func joinArgs(var argv, int fromIdx) as string
+    string s = ""
+    int i = fromIdx
+    int n = argv.length
+    while i < n do
+        if i > fromIdx then
+            s = s + " "
+        end
+        s = s + string(argv[i])
+        i = i + 1
+    end
+    return s
+end
+
+
+// ============================================================================
+// 持久化（脚本/exe 同目录的 skiplist.json）
+// ============================================================================
+
+func dataPath(string scriptPath) as string
+    return path.join(path.dir(scriptPath), "skiplist.json")
+end
+
+func loadTree(string p) as SkipList
+    SkipList tree = SkipList(MAX_LEVEL)
+    if file.exists(p) then
+        string text = file.readText(p)
+        if not string.isEmpty(text) then
+            if json.valid(text) then
+                tree.deserialize(text)
+            end
+        end
+    end
+    return tree
+end
+
+func saveTree(string p, SkipList tree)
+    string js = tree.serialize()
+    bool okw = file.writeText(p, js)
+    if not okw then
+        println("Error: failed to write " + p)
+    end
+end
+
+func buildDemo(int n) as SkipList
+    SkipList tree = SkipList(MAX_LEVEL)
+    var ord = shuffledRange(n)
+    int i = 0
+    while i < ord.length do
+        int k = int(ord[i])
+        tree.insert(k, "demo-" + string(k))
+        i = i + 1
+    end
+    return tree
+end
+
+
+// ============================================================================
+// 内置测试
+// ============================================================================
+
+func cmdTest() as int
+    println("=== skiplist self-test (1000 keys, maxLevel=16) ===")
+    random.seed(uint64(20260710), uint64(1))
+
+    SkipList tree = SkipList(MAX_LEVEL)
+
+    // ---- 大规模插入 ----
+    int N = 1000
+    var order = shuffledRange(N)
+    int inserted = 0
+    int ii = 0
+    while ii < N do
+        int k = int(order[ii])
+        bool isNew = tree.insert(k, "v-" + string(k))
+        if isNew then
+            inserted = inserted + 1
+        end
+        ii = ii + 1
+    end
+    expectI(inserted, N, "insert 1000 new keys")
+    expectI(tree.size(), N, "size() = 1000")
+
+    // ---- 更新已有 key（值变化，size 不变）----
+    bool upd = tree.insert(500, "updated-500")
+    expectFalse(upd, "update existing key returns false (new=false)")
+    expectS(tree.search(500), "updated-500", "updated value visible via search")
+    expectI(tree.size(), N, "size unchanged after update")
+
+    // ---- 查找：全部命中 ----
+    int findHits = 0
+    int fi = 1
+    while fi <= N do
+        string v = tree.search(fi)
+        if not string.isEmpty(v) then
+            findHits = findHits + 1
+        end
+        fi = fi + 1
+    end
+    expectI(findHits, N, "search all 1000 keys present")
+
+    // 未插入的键 miss
+    expectFalse(tree.contains(99999), "contains missing 99999")
+    expectTrue(string.isEmpty(tree.search(0)), "search missing 0 -> empty")
+    expectTrue(string.isEmpty(tree.search(-7)), "search missing -7 -> empty")
+
+    // ---- 排名：keys 为 1..1000，rank(k) 应 = k ----
+    int rankHits = 0
+    int ri = 1
+    while ri <= N do
+        if tree.rank(ri) == ri then
+            rankHits = rankHits + 1
+        end
+        ri = ri + 1
+    end
+    expectI(rankHits, N, "rank(k) == k for all 1000 keys")
+    expectI(tree.rank(99999), NIL, "rank(missing) = -1")
+
+    // ---- min / max ----
+    expectI(tree.min(), 1, "min = 1")
+    expectI(tree.max(), 1000, "max = 1000")
+
+    // ---- 范围查询 ----
+    var r1 = tree.range(100, 200)
+    expectI(r1.length, 101, "range [100,200] count = 101")
+    if r1.length == 101 then
+        expectI(int(r1[0][0]), 100, "range [100,200] first key = 100")
+        expectI(int(r1[100][0]), 200, "range [100,200] last key = 200")
+        expectS(string(r1[0][1]), "v-100", "range [100,200] first value = v-100")
+    end
+
+    var r2 = tree.range(1, 10)
+    expectI(r2.length, 10, "range [1,10] count = 10")
+
+    var rEmpty = tree.range(5000, 6000)
+    expectI(rEmpty.length, 0, "range empty window -> 0")
+
+    var rReverse = tree.range(300, 100)
+    expectI(rReverse.length, 0, "range low>high -> 0")
+
+    // ---- 有序遍历（for-in / __iter__/__next__）----
+    int iterCount = 0
+    int prevKey = 0
+    bool ascending = true
+    for pair in tree
+        int kk = int(pair[0])
+        if kk < prevKey then
+            ascending = false
+        end
+        prevKey = kk
+        iterCount = iterCount + 1
+    end
+    expectI(iterCount, N, "for-in iterates all 1000 elements")
+    expectTrue(ascending, "for-in yields ascending order")
+
+    // ---- 层级合理性 ----
+    if tree.level >= 3 and tree.level <= MAX_LEVEL then
+        ok("top level in [3, " + string(MAX_LEVEL) + "] (got " + string(tree.level) + ")")
+    else
+        bad("top level range", "got " + string(tree.level))
+    end
+
+    // ---- 序列化往返 ----
+    string js = tree.serialize()
+    expectTrue(string.contains(js, "maxLevel"), "serialize text contains maxLevel field")
+    expectTrue(string.contains(js, "forward"), "serialize text contains forward field")
+
+    SkipList tree2 = SkipList(MAX_LEVEL)
+    bool loaded = tree2.deserialize(js)
+    expectTrue(loaded, "deserialize returns true")
+    expectI(tree2.size(), N, "restored size = 1000")
+    expectI(tree2.min(), 1, "restored min = 1")
+    expectI(tree2.max(), 1000, "restored max = 1000")
+    expectI(tree2.level, tree.level, "restored top level matches")
+    expectS(tree2.search(500), "updated-500", "restored updated value")
+    expectI(tree2.rank(777), 777, "restored rank(777) = 777")
+    var rRestored = tree2.range(100, 200)
+    expectI(rRestored.length, 101, "restored range [100,200] = 101")
+
+    // ---- 删除：删掉全部偶数键（500 个）----
+    int delCount = 0
+    int di = 2
+    while di <= N do
+        bool removed = tree.delete(di)
+        if removed then
+            delCount = delCount + 1
+        end
+        di = di + 2
+    end
+    expectI(delCount, 500, "delete 500 even keys")
+    expectI(tree.size(), 500, "size after delete = 500")
+
+    // 偶数 gone
+    int evenMiss = 0
+    int ei = 2
+    while ei <= N do
+        if not tree.contains(ei) then
+            evenMiss = evenMiss + 1
+        end
+        ei = ei + 2
+    end
+    expectI(evenMiss, 500, "all even keys now missing")
+
+    // 奇数仍在
+    int oddHit = 0
+    int oi = 1
+    while oi <= N do
+        if tree.contains(oi) then
+            oddHit = oddHit + 1
+        end
+        oi = oi + 2
+    end
+    expectI(oddHit, 500, "all odd keys still present")
+
+    // 删除后 rank：奇数 1,3,...,999 共 500 个，rank(2k-1) = k
+    expectI(tree.rank(1), 1, "rank(1) = 1 after even-delete")
+    expectI(tree.rank(501), 251, "rank(501) = 251 after even-delete")
+    expectI(tree.rank(999), 500, "rank(999) = 500 after even-delete")
+    expectI(tree.rank(2), NIL, "rank(deleted 2) = -1")
+
+    // 删除后 min/max
+    expectI(tree.min(), 1, "min = 1 after even-delete")
+    expectI(tree.max(), 999, "max = 999 after even-delete")
+
+    // 删除后范围查询
+    var rAfter = tree.range(1, 10)
+    expectI(rAfter.length, 5, "range [1,10] after even-delete = 5 (odd)")
+    if rAfter.length == 5 then
+        expectI(int(rAfter[0][0]), 1, "range[1,10] first = 1")
+        expectI(int(rAfter[4][0]), 9, "range[1,10] last = 9")
+    end
+
+    // ---- 再删剩余奇数 -> 树空 ----
+    int dii = 1
+    while dii <= N do
+        tree.delete(dii)
+        dii = dii + 2
+    end
+    expectI(tree.size(), 0, "size = 0 after deleting all")
+    expectI(tree.min(), NIL, "min on empty = -1")
+    expectI(tree.max(), NIL, "max on empty = -1")
+    expectTrue(string.isEmpty(tree.search(1)), "search on empty -> empty")
+
+    // 删空后再插入，验证树仍可用
+    bool reNew = tree.insert(42, "answer")
+    expectTrue(reNew, "re-insert into cleared tree")
+    expectS(tree.search(42), "answer", "re-inserted key findable")
+    expectI(tree.rank(42), 1, "rank(42) = 1 on single-element tree")
+    expectI(tree.min(), 42, "min = 42")
+    expectI(tree.max(), 42, "max = 42")
+
+    // ---- 不存在的键删除应返回 false ----
+    expectFalse(tree.delete(7777), "delete missing key returns false")
+
+    // ---- 多元素再插 + dump 形态校验（节点数 >= 元素数 + header）----
+    SkipList small = SkipList(MAX_LEVEL)
+    int si = 1
+    while si <= 50 do
+        small.insert(si, "x" + string(si))
+        si = si + 1
+    end
+    expectTrue(small.nodeCount() >= 51, "nodeCount >= elements + header")
+    expectI(small.size(), 50, "small tree size = 50")
+
+    println("=== results: " + string(g_pass) + " passed, " + string(g_fail) + " failed ===")
+    return 0
+end
+
+
+// ============================================================================
+// 命令实现
+// ============================================================================
+
+func cmdInsert(string scriptPath, int key, string value) as int
+    string p = dataPath(scriptPath)
+    SkipList tree = loadTree(p)
+    bool isNew = tree.insert(key, value)
+    saveTree(p, tree)
+    if isNew then
+        println("inserted " + string(key) + " = '" + value + "' (size=" + string(tree.size()) + ")")
+    else
+        println("updated " + string(key) + " = '" + value + "' (size=" + string(tree.size()) + ")")
+    end
+    return 0
+end
+
+func cmdSearch(string scriptPath, int key) as int
+    SkipList tree = loadTree(dataPath(scriptPath))
+    if tree.contains(key) then
+        println(tree.search(key))
+    else
+        println("(not found)")
+    end
+    return 0
+end
+
+func cmdRange(string scriptPath, int low, int high) as int
+    SkipList tree = loadTree(dataPath(scriptPath))
+    var result = tree.range(low, high)
+    int n = result.length
+    if n == 0 then
+        println("(no entries in [" + string(low) + ", " + string(high) + "])")
+        return 0
+    end
+    int i = 0
+    while i < n do
+        var pair = result[i]
+        println(string(pair[0]) + "=" + string(pair[1]))
+        i = i + 1
+    end
+    println("--- " + string(n) + " entries ---")
+    return 0
+end
+
+func cmdDelete(string scriptPath, int key) as int
+    string p = dataPath(scriptPath)
+    SkipList tree = loadTree(p)
+    bool removed = tree.delete(key)
+    if removed then
+        saveTree(p, tree)
+        println("deleted " + string(key) + " (size=" + string(tree.size()) + ")")
+    else
+        println("(not found: " + string(key) + ")")
+    end
+    return 0
+end
+
+func cmdDump(string scriptPath) as int
+    SkipList tree = loadTree(dataPath(scriptPath))
+    if tree.size() == 0 then
+        println("(persisted skiplist empty; building demo with 15 keys)")
+        tree = buildDemo(15)
+    end
+    tree.dump()
+    return 0
+end
+
+func cmdExport(string scriptPath, string outFile) as int
+    SkipList tree = loadTree(dataPath(scriptPath))
+    string text = tree.serialize()
+    bool okw = file.writeText(outFile, text)
+    if not okw then
+        println("Error: failed to write " + outFile)
+        return 1
+    end
+    println("OK exported " + string(tree.size()) + " entries to " + outFile)
+    return 0
+end
+
+func cmdImport(string scriptPath, string inFile) as int
+    if not file.exists(inFile) then
+        println("Error: file not found " + inFile)
+        return 1
+    end
+    string text = file.readText(inFile)
+    if not json.valid(text) then
+        println("Error: invalid JSON in " + inFile)
+        return 1
+    end
+    string p = dataPath(scriptPath)
+    SkipList tree = SkipList(MAX_LEVEL)
+    bool loaded = tree.deserialize(text)
+    if not loaded then
+        println("Error: failed to parse skiplist JSON")
+        return 1
+    end
+    saveTree(p, tree)
+    println("OK imported " + string(tree.size()) + " entries from " + inFile)
+    return 0
+end
+
+func printUsage()
+    println("skiplist - probabilistic balanced Skip List")
+    println("usage: skiplist <command> [args]")
+    println("commands:")
+    println("  insert <key> <value>   insert/update (key=int, value=string, may contain spaces)")
+    println("  search <key>           print value or (not found)")
+    println("  range <low> <high>     list key=value in [low, high] (ascending)")
+    println("  delete <key>           remove key")
+    println("  dump                   visualize skip list levels (with spans)")
+    println("  export <file>          export to JSON")
+    println("  import <file>          import from JSON (replace)")
+    println("  test                   self-test: 1000 keys insert/search/range/rank/delete/serialize")
+    println("  help                   show this help")
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string scriptPath = string(arg[0])
+    string command = string.lower(string(arg[1]))
+
+    if command == "test" then
+        return cmdTest()
+    end
+    if command == "dump" then
+        return cmdDump(scriptPath)
+    end
+    if command == "insert" then
+        if arg.length < 4 then
+            println("Error: 'insert' needs <key> and <value>")
+            return 1
+        end
+        string ks = string(arg[2])
+        if not looksLikeInt(ks) then
+            println("Error: key must be an integer, got '" + ks + "'")
+            return 1
+        end
+        return cmdInsert(scriptPath, int(ks), joinArgs(arg, 3))
+    end
+    if command == "search" then
+        if arg.length < 3 then
+            println("Error: 'search' needs <key>")
+            return 1
+        end
+        return cmdSearch(scriptPath, int(string(arg[2])))
+    end
+    if command == "range" then
+        if arg.length < 4 then
+            println("Error: 'range' needs <low> and <high>")
+            return 1
+        end
+        return cmdRange(scriptPath, int(string(arg[2])), int(string(arg[3])))
+    end
+    if command == "delete" then
+        if arg.length < 3 then
+            println("Error: 'delete' needs <key>")
+            return 1
+        end
+        return cmdDelete(scriptPath, int(string(arg[2])))
+    end
+    if command == "export" then
+        if arg.length < 3 then
+            println("Error: 'export' needs <file>")
+            return 1
+        end
+        return cmdExport(scriptPath, string(arg[2]))
+    end
+    if command == "import" then
+        if arg.length < 3 then
+            println("Error: 'import' needs <file>")
+            return 1
+        end
+        return cmdImport(scriptPath, string(arg[2]))
+    end
+    if command == "help" or command == "--help" or command == "-h" then
+        printUsage()
+        return 0
+    end
+
+    printUsage()
+    return 1
+end

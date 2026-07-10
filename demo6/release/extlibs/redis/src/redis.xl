@@ -37,9 +37,9 @@ const int RECV_SIZE = 4096
 const int MAX_RESPONSE_BYTES = 16777216
 const int MAX_ARRAY_DEPTH = 16
 
-export "xredis_g_resp_buffer" string g_resp_buffer = ""
-export "xredis_g_resp_pos" int g_resp_pos = 0
-export "xredis_g_resp_error" string g_resp_error = ""
+string g_resp_buffer = ""
+int g_resp_pos = 0
+string g_resp_error = ""
 
 export func available() as bool
 	return true

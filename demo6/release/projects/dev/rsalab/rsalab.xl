@@ -1,0 +1,748 @@
+// rsalab - 从零实现的 RSA 加密（大整数用十进制字符串模拟）
+//
+// 用法：
+//   rsalab test                       用 p=61,q=53 验证 encrypt/decrypt roundtrip
+//   rsalab selftest                   大数运算 + Miller-Rabin 自检
+//   rsalab check <n>                  Miller-Rabin 素性检验
+//   rsalab keygen <p> <q>             由给定素数 p,q 推导 n,phi,e,d
+//   rsalab encrypt <e> <n> <m>        加密 m^e mod n
+//   rsalab decrypt <d> <n> <c>        解密 c^d mod n
+//
+// 设计要点：
+//   - 大整数以十进制字符串存储（可选前导 +/-），不依赖 int64。
+//   - 加/减/乘为字符串逐位竖式（参考 bigint.xl）；模用长除法逐位求商。
+//   - 模幂用快速幂（平方求幂），指数按 /2 右移逐位处理（支持任意大指数）。
+//   - Miller-Rabin 使用确定性见证集 [2,3,5,...,37]，对 n < 3.3e24 结果精确。
+//   - 模逆用扩展欧几里得算法（迭代式，全大数运算）。
+
+// ============================ 数字字符串工具 ============================
+
+// 去除前导符号，返回纯数字部分（可能含前导零）。
+func rawDigits(string s) as string
+    int n = string.len(s)
+    if n == 0 then
+        return s
+    end
+    string c0 = string.charAt(s, 0)
+    if c0 == "-" or c0 == "+" then
+        return string.slice(s, 1)
+    end
+    return s
+end
+
+// 取符号：负数返回 -1，否则返回 1。
+func signOf(string s) as int
+    if string.len(s) > 0 and string.charAt(s, 0) == "-" then
+        return -1
+    end
+    return 1
+end
+
+// 去除前导零；全零时返回 "0"。
+func stripLeadZeros(string body) as string
+    int n = string.len(body)
+    int i = 0
+    while i < n do
+        if string.charAt(body, i) != "0" then
+            break
+        end
+        i += 1
+    end
+    string digits = string.slice(body, i)
+    if digits == "" then
+        return "0"
+    end
+    return digits
+end
+
+// 规范化：去前导符号/前导零，返回无前导零的形式（"0" 无符号）。
+func normalize(string s) as string
+    int sign = signOf(s)
+    string digits = stripLeadZeros(rawDigits(s))
+    if digits == "0" then
+        return "0"
+    end
+    if sign < 0 then
+        return "-" + digits
+    end
+    return digits
+end
+
+// 检查是否为合法整数串（可选符号 + 纯数字）。
+func isValidNumber(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int start = 0
+    string c0 = string.charAt(s, 0)
+    if c0 == "-" or c0 == "+" then
+        start = 1
+        if n == 1 then
+            return false
+        end
+    end
+    int i = start
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+// 把符号应用到无符号量上。
+func applySign(int sign, string mag) as string
+    if mag == "0" then
+        return "0"
+    end
+    if sign < 0 then
+        return "-" + mag
+    end
+    return mag
+end
+
+// ============================ 无符号运算 ============================
+
+// 比较两个无符号数字串大小：a<b -> -1, == -> 0, a>b -> 1。
+func cmpAbs(string a, string b) as int
+    int la = string.len(a)
+    int lb = string.len(b)
+    if la > lb then
+        return 1
+    end
+    if la < lb then
+        return -1
+    end
+    int i = 0
+    while i < la do
+        int da = string.byteAt(a, i) - 48
+        int db = string.byteAt(b, i) - 48
+        if da > db then
+            return 1
+        end
+        if da < db then
+            return -1
+        end
+        i += 1
+    end
+    return 0
+end
+
+// 无符号加法（a, b 为纯数字串）。
+func addAbs(string a, string b) as string
+    string ra = string.reverse(a)
+    string rb = string.reverse(b)
+    int la = string.len(ra)
+    int lb = string.len(rb)
+    int n = la
+    if lb > n then
+        n = lb
+    end
+    string out = ""
+    int carry = 0
+    int i = 0
+    while i < n do
+        int da = 0
+        int db = 0
+        if i < la then
+            da = string.byteAt(ra, i) - 48
+        end
+        if i < lb then
+            db = string.byteAt(rb, i) - 48
+        end
+        int sum = da + db + carry
+        carry = sum / 10
+        out = out + string.charAt("0123456789", sum - carry * 10)
+        i += 1
+    end
+    if carry > 0 then
+        out = out + "1"
+    end
+    return string.reverse(out)
+end
+
+// 无符号减法（要求 a >= b，返回 a - b）。
+func subAbs(string a, string b) as string
+    string ra = string.reverse(a)
+    string rb = string.reverse(b)
+    int la = string.len(ra)
+    int lb = string.len(rb)
+    string out = ""
+    int borrow = 0
+    int i = 0
+    while i < la do
+        int da = string.byteAt(ra, i) - 48
+        int db = 0
+        if i < lb then
+            db = string.byteAt(rb, i) - 48
+        end
+        int diff = da - db - borrow
+        if diff < 0 then
+            diff = diff + 10
+            borrow = 1
+        else
+            borrow = 0
+        end
+        out = out + string.charAt("0123456789", diff)
+        i += 1
+    end
+    return stripLeadZeros(string.reverse(out))
+end
+
+// 大数 a 乘以单个数字 d（0..9）。
+func mulDigit(string a, int d) as string
+    if d == 0 then
+        return "0"
+    end
+    string ra = string.reverse(a)
+    int la = string.len(ra)
+    string out = ""
+    int carry = 0
+    int i = 0
+    while i < la do
+        int da = string.byteAt(ra, i) - 48
+        int prod = da * d + carry
+        carry = prod / 10
+        out = out + string.charAt("0123456789", prod - carry * 10)
+        i += 1
+    end
+    while carry > 0 do
+        int m = carry % 10
+        out = out + string.charAt("0123456789", m)
+        carry = carry / 10
+    end
+    return string.reverse(out)
+end
+
+// 无符号乘法（竖式：对 b 的每一位做 mulDigit 并移位累加）。
+func mulAbs(string a, string b) as string
+    if a == "0" or b == "0" then
+        return "0"
+    end
+    string rb = string.reverse(b)
+    int lb = string.len(rb)
+    string result = "0"
+    int j = 0
+    while j < lb do
+        int db = string.byteAt(rb, j) - 48
+        string row = mulDigit(a, db)
+        if row != "0" then
+            if j > 0 then
+                row = row + string.repeat("0", j)
+            end
+            result = addAbs(result, row)
+        end
+        j += 1
+    end
+    return result
+end
+
+// ============================ 带符号运算 ============================
+
+func bigAdd(string a, string b) as string
+    string na = normalize(a)
+    string nb = normalize(b)
+    int sa = signOf(na)
+    string da = rawDigits(na)
+    int sb = signOf(nb)
+    string db = rawDigits(nb)
+    if sa == sb then
+        return applySign(sa, addAbs(da, db))
+    end
+    int c = cmpAbs(da, db)
+    if c == 0 then
+        return "0"
+    end
+    if c > 0 then
+        return applySign(sa, subAbs(da, db))
+    end
+    return applySign(sb, subAbs(db, da))
+end
+
+func bigSub(string a, string b) as string
+    string nb = normalize(b)
+    if nb == "0" then
+        return normalize(a)
+    end
+    if string.charAt(nb, 0) == "-" then
+        return bigAdd(a, string.slice(nb, 1))
+    end
+    return bigAdd(a, "-" + nb)
+end
+
+func bigMul(string a, string b) as string
+    string na = normalize(a)
+    string nb = normalize(b)
+    int sa = signOf(na)
+    string da = rawDigits(na)
+    int sb = signOf(nb)
+    string db = rawDigits(nb)
+    int sign = sa * sb
+    return applySign(sign, mulAbs(da, db))
+end
+
+// ============================ 除法 / 取模 ============================
+
+// 无符号长除法：返回 (商, 余数)。a,b 为纯数字串且 b != 0。
+func divmodAbs(string a, string b) as (string, string)
+    if cmpAbs(a, b) < 0 then
+        return "0", a
+    end
+    string rem = "0"
+    string quot = ""
+    int la = string.len(a)
+    int i = 0
+    while i < la do
+        int d = string.byteAt(a, i) - 48
+        rem = stripLeadZeros(rem + string.charAt("0123456789", d))
+        int q = 0
+        int k = 9
+        while k >= 1 do
+            if cmpAbs(mulDigit(b, k), rem) <= 0 then
+                q = k
+                break
+            end
+            k -= 1
+        end
+        quot = quot + string.charAt("0123456789", q)
+        if q > 0 then
+            rem = subAbs(rem, mulDigit(b, q))
+        end
+        i += 1
+    end
+    return stripLeadZeros(quot), stripLeadZeros(rem)
+end
+
+// 无符号整除（a,b 非负）。
+func bigDiv(string a, string b) as string
+    auto q, _ = divmodAbs(rawDigits(normalize(a)), rawDigits(normalize(b)))
+    return q
+end
+
+// 带符号取模，结果落在 [0, m)。
+func bigMod(string a, string m) as string
+    string na = normalize(a)
+    string nm = normalize(m)
+    if nm == "0" then
+        throw "bigMod: modulo by zero"
+    end
+    int sign = signOf(na)
+    string mag = rawDigits(na)
+    if mag == "0" then
+        return "0"
+    end
+    auto _, r = divmodAbs(mag, nm)
+    if sign < 0 and r != "0" then
+        r = subAbs(nm, r)
+    end
+    return r
+end
+
+// ============================ 小工具：除 2 / 奇偶 ============================
+
+// 十进制串除以 2（非负）。
+func div2(string a) as string
+    string out = ""
+    int rem = 0
+    int n = string.len(a)
+    int i = 0
+    while i < n do
+        int d = string.byteAt(a, i) - 48 + rem * 10
+        out = out + string.charAt("0123456789", d / 2)
+        rem = d % 2
+        i += 1
+    end
+    return stripLeadZeros(out)
+end
+
+func isEven(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return true
+    end
+    int ld = string.byteAt(s, n - 1) - 48
+    return ld % 2 == 0
+end
+
+func isOdd(string s) as bool
+    return isEven(s) == false
+end
+
+// ============================ 模幂（快速幂）============================
+
+// base^exp mod m，全部非负大数；按 exp 的二进制位平方求幂。
+func bigModPow(string base, string exp, string mod) as string
+    string m = normalize(mod)
+    if m == "0" then
+        throw "bigModPow: modulo by zero"
+    end
+    if m == "1" then
+        return "0"
+    end
+    string result = "1"
+    string b = bigMod(base, m)
+    string e = normalize(exp)
+    while e != "0" do
+        if isOdd(e) then
+            result = bigMod(bigMul(result, b), m)
+        end
+        e = div2(e)
+        if e != "0" then
+            b = bigMod(bigMul(b, b), m)
+        end
+    end
+    return bigMod(result, m)
+end
+
+// ============================ 最大公约数 / 模逆 ============================
+
+// 欧几里得 gcd（非负）。
+func bigGcd(string a, string b) as string
+    string x = normalize(a)
+    string y = normalize(b)
+    while y != "0" do
+        string r = bigMod(x, y)
+        x = y
+        y = r
+    end
+    return x
+end
+
+// 扩展欧几里得求 e 模 phi 的乘法逆元（e * d ≡ 1 mod phi）。
+func modInverse(string e, string phi) as string
+    string oldR = normalize(e)
+    string r = normalize(phi)
+    string oldS = "1"
+    string s = "0"
+    while r != "0" do
+        string q = bigDiv(oldR, r)
+        string newR = bigSub(oldR, bigMul(q, r))
+        string newS = bigSub(oldS, bigMul(q, s))
+        oldR = r
+        r = newR
+        oldS = s
+        s = newS
+    end
+    if oldR != "1" then
+        throw "modInverse: not coprime, gcd=" + oldR
+    end
+    return bigMod(oldS, normalize(phi))
+end
+
+// ============================ Miller-Rabin 素性检验 ============================
+
+// 确定性 Miller-Rabin：见证集覆盖 n < 3.3e24 的全部合数判定。
+func millerRabin(string n) as bool
+    string nn = normalize(n)
+    if cmpAbs(nn, "2") < 0 then
+        return false
+    end
+    if nn == "2" then
+        return true
+    end
+    if isEven(nn) then
+        return false
+    end
+    if nn == "3" then
+        return true
+    end
+    // n-1 = 2^r * d，d 为奇数
+    string n1 = bigSub(nn, "1")
+    string d = n1
+    int r = 0
+    while isEven(d) do
+        d = div2(d)
+        r += 1
+    end
+    array<string> witnesses = array["2", "3", "5", "7", "11", "13", "17", "19", "23", "29", "31", "37"]
+    for a in witnesses
+        if cmpAbs(nn, a) <= 0 then
+            continue
+        end
+        string x = bigModPow(a, d, nn)
+        if x == "1" or x == n1 then
+            continue
+        end
+        bool composite = true
+        int j = 0
+        while j < r - 1 do
+            x = bigModPow(x, "2", nn)
+            if x == n1 then
+                composite = false
+                break
+            end
+            j += 1
+        end
+        if composite then
+            return false
+        end
+    end
+    return true
+end
+
+// ============================ RSA 密钥 / 编解码 ============================
+
+// 由素数 p,q 生成密钥：返回 [n, phi, e, d]。
+func rsaKeygen(string p, string q) as array<string>
+    string n = bigMul(p, q)
+    string phi = bigMul(bigSub(p, "1"), bigSub(q, "1"))
+    array<string> cands = array["17", "65537", "11", "13", "7", "5", "3"]
+    string e = "0"
+    int ci = 0
+    while ci < cands.length do
+        if bigGcd(cands[ci], phi) == "1" then
+            e = cands[ci]
+            break
+        end
+        ci += 1
+    end
+    if e == "0" then
+        e = "3"
+        while bigGcd(e, phi) != "1" do
+            e = bigAdd(e, "2")
+        end
+    end
+    string d = modInverse(e, phi)
+    return array[n, phi, e, d]
+end
+
+func rsaEncrypt(string m, string e, string n) as string
+    return bigModPow(m, e, n)
+end
+
+func rsaDecrypt(string c, string d, string n) as string
+    return bigModPow(c, d, n)
+end
+
+// ============================ 自检 ============================
+
+func assertEq(string got, string want)
+    if got != want then
+        println("FAIL: got ", got, " want ", want)
+        throw "selftest failed"
+    end
+end
+
+func assertBool(string label, bool got, bool want)
+    if got != want then
+        println("FAIL: ", label, " got ", got, " want ", want)
+        throw "selftest failed"
+    end
+end
+
+func selftest()
+    // 大数基础
+    assertEq(bigAdd("99999999999999999999", "1"), "100000000000000000000")
+    assertEq(bigSub("100000000000000000000", "1"), "99999999999999999999")
+    assertEq(bigMul("12345678901234567890", "98765432109876543210"), "1219326311370217952237463801111263526900")
+    // 除法 / 取模
+    assertEq(bigDiv("3120", "17"), "183")
+    assertEq(bigMod("3120", "17"), "9")
+    assertEq(bigDiv("100000000000000000000", "7"), "14285714285714285714")
+    assertEq(bigMod("100000000000000000000", "7"), "2")
+    assertEq(bigDiv("999983", "999983"), "1")
+    assertEq(bigMod("999983", "999983"), "0")
+    // 模幂
+    assertEq(bigModPow("2", "10", "1000"), "24")
+    assertEq(bigModPow("65", "17", "3233"), "2790")
+    assertEq(bigModPow("2790", "2753", "3233"), "65")
+    // 模逆
+    assertEq(modInverse("17", "3120"), "2753")
+    // gcd
+    assertEq(bigGcd("17", "3120"), "1")
+    assertEq(bigGcd("3120", "3120"), "3120")
+    // Miller-Rabin
+    assertBool("check 2", millerRabin("2"), true)
+    assertBool("check 3", millerRabin("3"), true)
+    assertBool("check 4", millerRabin("4"), false)
+    assertBool("check 17", millerRabin("17"), true)
+    assertBool("check 561", millerRabin("561"), false)
+    assertBool("check 7919", millerRabin("7919"), true)
+    assertBool("check 3233", millerRabin("3233"), false)
+    assertBool("check 1000000007", millerRabin("1000000007"), true)
+    println("selftest OK")
+end
+
+// ============================ 命令 ============================
+
+func cmdTest() as int
+    string p = "61"
+    string q = "53"
+    array<string> keys = rsaKeygen(p, q)
+    string n = keys[0]
+    string phi = keys[1]
+    string e = keys[2]
+    string d = keys[3]
+    println("p   =", p)
+    println("q   =", q)
+    println("n   =", n)
+    println("phi =", phi)
+    println("e   =", e)
+    println("d   =", d)
+
+    int fails = 0
+    int checks = 0
+
+    // 0..25 字符消息 roundtrip
+    int mi = 0
+    while mi <= 25 do
+        string m = string(mi)
+        string c = rsaEncrypt(m, e, n)
+        string r = rsaDecrypt(c, d, n)
+        checks += 1
+        if r != m then
+            println("FAIL m=", m, " c=", c, " r=", r)
+            fails += 1
+        end
+        mi += 1
+    end
+
+    // 教科书样例 m=65 -> c=2790 -> m=65
+    array<string> extra = array["65", "3232", "123", "2048"]
+    int ei = 0
+    while ei < extra.length do
+        string m = extra[ei]
+        string c = rsaEncrypt(m, e, n)
+        string r = rsaDecrypt(c, d, n)
+        checks += 1
+        if r != m then
+            println("FAIL m=", m, " c=", c, " r=", r)
+            fails += 1
+        end
+        ei += 1
+    end
+
+    // 校验教科书密文
+    if rsaEncrypt("65", e, n) == "2790" then
+        println("textbook ciphertext 65^e mod n = 2790 (match)")
+    else
+        println("note: 65^e mod n = ", rsaEncrypt("65", e, n), "(e != 17 expected value)")
+    end
+
+    if fails == 0 then
+        println("roundtrip OK (", checks, " messages)")
+    else
+        println("roundtrip FAILED:", fails, "/", checks)
+    end
+    return 0
+end
+
+func printUsage()
+    println("rsalab - RSA encryption from scratch (big-integer via decimal strings)")
+    println("Usage:")
+    println("  rsalab test                 verify encrypt/decrypt roundtrip (p=61,q=53)")
+    println("  rsalab selftest             bignum + Miller-Rabin self checks")
+    println("  rsalab check <n>            Miller-Rabin primality test on n")
+    println("  rsalab keygen <p> <q>       derive n, phi, e, d from primes p,q")
+    println("  rsalab encrypt <e> <n> <m>  encrypt: m^e mod n")
+    println("  rsalab decrypt <d> <n> <c>  decrypt: c^d mod n")
+end
+
+func requireNum(string label, string v)
+    if isValidNumber(v) == false then
+        throw label + ": '" + v + "' is not a valid integer"
+    end
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "test" then
+        try
+            return cmdTest()
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+
+    if cmd == "selftest" then
+        try
+            selftest()
+            return 0
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+
+    if cmd == "check" then
+        if arg.length < 3 then
+            println("Error: 'check' needs <n>")
+            return 1
+        end
+        string n = string(arg[2])
+        try
+            requireNum("check", n)
+            if millerRabin(n) then
+                println(n, "is prime")
+            else
+                println(n, "is composite")
+            end
+            return 0
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+
+    if cmd == "keygen" then
+        if arg.length < 4 then
+            println("Error: 'keygen' needs <p> <q>")
+            return 1
+        end
+        string p = string(arg[2])
+        string q = string(arg[3])
+        try
+            requireNum("keygen", p)
+            requireNum("keygen", q)
+            array<string> keys = rsaKeygen(p, q)
+            println("p   =", p)
+            println("q   =", q)
+            println("n   =", keys[0])
+            println("phi =", keys[1])
+            println("e   =", keys[2])
+            println("d   =", keys[3])
+            return 0
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+
+    if cmd == "encrypt" or cmd == "decrypt" then
+        if arg.length < 5 then
+            println("Error: '", cmd, "' needs <k> <n> <x>")
+            return 1
+        end
+        string k = string(arg[2])
+        string n = string(arg[3])
+        string x = string(arg[4])
+        try
+            requireNum(cmd, k)
+            requireNum(cmd, n)
+            requireNum(cmd, x)
+            if cmd == "encrypt" then
+                println(rsaEncrypt(x, k, n))
+            else
+                println(rsaDecrypt(x, k, n))
+            end
+            return 0
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

@@ -1,5 +1,70 @@
 static void xl6CgenEmitRuntimeTypeCastHelpers(XL6_CgenContext* ctx);
 static void xl6CgenEmitRuntimeTypeClassRecordCastHelper(XL6_CgenContext* ctx, const XL6_AstNode* targetType);
+static unsigned long long xl6CgenTypeIdForTypeNode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
+
+static void xl6CgenEmitProgramTypeNameCase(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* typeName)
+{
+    if ( ctx == NULL || typeNode == NULL || typeName == NULL || typeName[0] == '\0' ) {
+        return;
+    }
+    xl6OutputPrintf(ctx->out, "    if (typeId == 0x%016llXULL) { return ",
+                    xl6CgenTypeIdForTypeNode(ctx, typeNode));
+    xl6CgenCStringLiteral(ctx->out, typeName);
+    xl6OutputPuts("; }\n", ctx->out);
+}
+
+/* type 本质上保存稳定 ID；程序自定义类型的反向名称由当前模块生成。 */
+static void xl6CgenEmitProgramTypeNameHelper(XL6_CgenContext* ctx)
+{
+    size_t i;
+
+    if ( ctx == NULL || ctx->out == NULL || ctx->root == NULL ) {
+        return;
+    }
+    xl6OutputPuts("static const char* xl6_program_type_name_from_id(unsigned long long typeId)\n", ctx->out);
+    xl6OutputPuts("{\n", ctx->out);
+
+    for ( i = 0; i < ctx->root->childCount; ++i ) {
+        const XL6_AstNode* node = ctx->root->children[i];
+        XL6_AstNode typeNode;
+
+        if ( node == NULL || node->text == NULL ||
+             (node->kind != XL6_AST_CLASS && node->kind != XL6_AST_UNION) ||
+             (node->kind == XL6_AST_CLASS && xl6CgenClassHasTypeParams(node)) ) {
+            continue;
+        }
+        memset(&typeNode, 0, sizeof(typeNode));
+        typeNode.kind = XL6_AST_TYPE;
+        typeNode.text = node->text;
+        typeNode.line = node->line;
+        typeNode.column = node->column;
+        xl6CgenEmitProgramTypeNameCase(ctx, &typeNode, node->text);
+    }
+
+    for ( i = 0; i < ctx->genericClassInstanceCount; ++i ) {
+        char typeName[512];
+        const XL6_AstNode* typeNode = ctx->genericClassInstances[i].typeNode;
+
+        typeName[0] = '\0';
+        xl6CgenTypeText(ctx, typeNode, typeName, sizeof(typeName));
+        xl6CgenEmitProgramTypeNameCase(ctx, typeNode, typeName);
+    }
+
+    for ( i = 0; i < ctx->runtimeTypeDescCount; ++i ) {
+        char typeName[512];
+        const XL6_AstNode* typeNode = ctx->runtimeTypeDescs[i].typeNode;
+
+        typeName[0] = '\0';
+        xl6CgenTypeText(ctx, typeNode, typeName, sizeof(typeName));
+        xl6CgenEmitProgramTypeNameCase(ctx, typeNode, typeName);
+    }
+
+    xl6OutputPuts("    return xl6_xrt_type_name_from_id(typeId);\n", ctx->out);
+    xl6OutputPuts("}\n\n", ctx->out);
+}
 
 static int xl6CgenNodeNeedsRuntimeTypeOps(const XL6_AstNode* node)
 {

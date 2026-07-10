@@ -1,0 +1,869 @@
+// turtle - Turtle graphics engine + L-systems
+//
+// Usage:
+//   turtle draw <commands.txt> <output.svg>          run a turtle command script
+//   turtle lsystem <name> [iterations=4] <output.svg> render a built-in L-system
+//   turtle demo [output.svg]                          2x2 gallery of all patterns
+//   turtle test                                        run internal self-checks
+//
+// Commands recognised in a draw script (case-insensitive, // or ; = comment):
+//   FD <n>  FORWARD <n>    forward n pixels
+//   BK <n>  BACK <n>       backward n pixels
+//   RT <a>  RIGHT <a>      turn right a degrees
+//   LT <a>  LEFT <a>       turn left a degrees
+//   PU  PENUP              lift the pen (move without drawing)
+//   PD  PENDOWN            lower the pen
+//   COLOR <name>           set stroke colour (red/green/blue/#RRGGBB ...)
+//   SETXY <x>,<y>  GOTO    jump to absolute position (pen state unchanged)
+//   HOME                   return to origin heading 0
+//
+// Built-in L-systems: koch (snowflake), sierpinski (triangle), dragon (curve),
+// plant (fractal plant).
+//
+// Architecture notes (xlang gotchas worked around):
+//   * All turtle mutation happens through METHODS on a single instance held in
+//     main scope (never passed by value to a function), so scalar fields
+//     (x/y/angle) survive (see BUG-XT2: class-by-value param loses scalars).
+//   * runCommands / interpret take only scalar (string/float) parameters; the
+//     command text is split into LOCAL var arrays, avoiding BUG-C1 (container
+//     params to methods) and BUG-XL5 (typed array<T> from stdlib).
+//   * The path is stored as array<string> of "M x y" / "L x y" segments with a
+//     parallel array<string> of colours; renderBody bakes scale+translate into
+//     the coordinates so stroke-width stays in screen units.
+//   * lsystemExpand is iterative (no per-frame dict allocation in recursion),
+//     so BUG-LP1 (quadratic dict GC) does not apply.
+
+
+// ============================================================ numeric helpers
+
+// ASCII uppercase (stdlib has no string.toUpper; mirrors xvm's helper).
+func toUpper(string s) as string
+    string out = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b >= 97 and b <= 122 then
+            out = out + string.charAt("ABCDEFGHIJKLMNOPQRSTUVWXYZ", b - 97)
+        else
+            out = out + string.charAt(s, i)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+
+// Format a float for SVG attributes: whole numbers -> integer text, otherwise
+// 2 decimals with trailing zeros stripped. NaN/Inf -> "0".
+func fmtNum(float v) as string
+    if math.isNaN(v) or math.isInf(v) then
+        return "0"
+    end
+    if v == math.floor(v) and math.abs(v) < 1e15 then
+        return string(int(v))
+    end
+    string s = string.formatFloat(v, ".2")
+    if string.contains(s, ".") then
+        while string.endsWith(s, "0") do
+            s = string.slice(s, 0, string.len(s) - 1)
+        end
+        if string.endsWith(s, ".") then
+            s = string.slice(s, 0, string.len(s) - 1)
+        end
+    end
+    return s
+end
+
+
+// True if s looks like a (optionally signed, optionally fractional) number.
+func looksNumber(string s) as bool
+    string t = string.trim(s)
+    if t == "" then
+        return false
+    end
+    int n = string.len(t)
+    int i = 0
+    if n > 1 then
+        int b0 = string.byteAt(t, 0)
+        if b0 == 45 or b0 == 43 then
+            i = 1
+        end
+    end
+    bool seen = false
+    while i < n do
+        int b = string.byteAt(t, i)
+        if b >= 48 and b <= 57 then
+            seen = true
+        elseif b == 46 then
+            // decimal point allowed
+        else
+            return false
+        end
+        i = i + 1
+    end
+    return seen
+end
+
+
+// Map a colour name to a hex code; unknown values (e.g. "#RRGGBB") pass through.
+func colorHex(string name) as string
+    string n = toUpper(string.trim(name))
+    var m = {"RED": "#E53935", "GREEN": "#43A047", "BLUE": "#1E88E5", "YELLOW": "#FDD835", "BLACK": "#212121", "WHITE": "#FFFFFF", "PURPLE": "#8E24AA", "ORANGE": "#FB8C00", "CYAN": "#00ACC1", "PINK": "#EC407A", "BROWN": "#6D4C41", "GRAY": "#9E9E9E", "GREY": "#9E9E9E", "MAGENTA": "#E535AB", "LIME": "#C0CA33", "TEAL": "#00897B", "NAVY": "#1A237E"}
+    string h = string(m[n])
+    if h == "" then
+        return string.trim(name)
+    end
+    return h
+end
+
+
+// ============================================================ SVG elements
+
+func svgPath(string d, string fill, string stroke, float sw, float op) as string
+    return "<path d=\"" + d + "\" fill=\"" + fill + "\" stroke=\"" + stroke + "\" stroke-width=\"" + fmtNum(sw) + "\" opacity=\"" + fmtNum(op) + "\" />"
+end
+
+
+func svgRect(float x, float y, float w, float h, string fill, string stroke, float sw, float op) as string
+    return "<rect x=\"" + fmtNum(x) + "\" y=\"" + fmtNum(y) + "\" width=\"" + fmtNum(w) + "\" height=\"" + fmtNum(h) + "\" fill=\"" + fill + "\" stroke=\"" + stroke + "\" stroke-width=\"" + fmtNum(sw) + "\" opacity=\"" + fmtNum(op) + "\" />"
+end
+
+
+func svgText(float x, float y, string text, string fill, float size, string anchor) as string
+    return "<text x=\"" + fmtNum(x) + "\" y=\"" + fmtNum(y) + "\" font-family=\"sans-serif\" font-size=\"" + fmtNum(size) + "\" text-anchor=\"" + anchor + "\" fill=\"" + fill + "\">" + text + "</text>"
+end
+
+
+func svgWrap(float w, float h, string body) as string
+    string s = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    s = s + "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + fmtNum(w) + "\" height=\"" + fmtNum(h) + "\" viewBox=\"0 0 " + fmtNum(w) + " " + fmtNum(h) + "\">\n"
+    s = s + body
+    s = s + "</svg>\n"
+    return s
+end
+
+
+// ============================================================ L-system expand
+// Iteratively rewrite axiom: each char with a rule key maps to its value,
+// every other char is kept. `rules` is built once by lsystemConfig (no dict
+// allocation inside the loop, so BUG-LP1 cannot trigger).
+func lsystemExpand(string axiom, var rules, int iter) as string
+    string cur = axiom
+    int it = 0
+    while it < iter do
+        string nxt = ""
+        int n = string.len(cur)
+        int i = 0
+        while i < n do
+            string ch = string.charAt(cur, i)
+            string rep = string(rules[ch])
+            if rep != "" then
+                nxt = nxt + rep
+            else
+                nxt = nxt + ch
+            end
+            i = i + 1
+        end
+        cur = nxt
+        it = it + 1
+    end
+    return cur
+end
+
+
+// Configuration for each built-in L-system.
+//   + / - turn left / right by `angle` (screen coords: y-down, so + = CCW).
+//   F G A B draw forward by `step`; f moves without drawing; [ ] push/pop.
+func lsystemConfig(string name) as var
+    if name == "koch" then
+        var rules = {"F": "F+F--F+F"}
+        return {"axiom": "F++F++F", "rules": rules, "angle": 60.0, "startAngle": 0.0, "step": 10.0, "color": "#4FC3F7", "title": "Koch Snowflake"}
+    elseif name == "sierpinski" then
+        var rules = {"F": "G-F-G", "G": "F+G+F"}
+        return {"axiom": "F", "rules": rules, "angle": 60.0, "startAngle": 0.0, "step": 10.0, "color": "#FFB74D", "title": "Sierpinski Triangle"}
+    elseif name == "dragon" then
+        var rules = {"X": "X+YF+", "Y": "-FX-Y"}
+        return {"axiom": "FX", "rules": rules, "angle": 90.0, "startAngle": 0.0, "step": 10.0, "color": "#81C784", "title": "Dragon Curve"}
+    elseif name == "plant" then
+        var rules = {"F": "F[+F]F[-F]F"}
+        return {"axiom": "F", "rules": rules, "angle": 25.0, "startAngle": -90.0, "step": 8.0, "color": "#66BB6A", "title": "Fractal Plant"}
+    end
+    return {}
+end
+
+
+func lsystemTitle(string name) as string
+    var cfg = lsystemConfig(name)
+    return string(cfg["title"])
+end
+
+
+// ============================================================ class Turtle
+// Holds turtle state (x/y/angle/penDown/color) plus the recorded path. All
+// state-changing ops are methods so they mutate the real instance (the caller
+// never passes a Turtle by value into a mutating helper).
+class Turtle
+    public float x = 0.0
+    public float y = 0.0
+    public float angle = 0.0
+    public bool penDown = true
+    public string color = "#222222"
+    array<string> cmds
+    array<string> cmdColors
+    float minX = 0.0
+    float maxX = 0.0
+    float minY = 0.0
+    float maxY = 0.0
+    bool needMove = true
+
+
+    create(float sx, float sy, float sa)
+        self.x = sx
+        self.y = sy
+        self.angle = sa
+        self.penDown = true
+        self.color = "#222222"
+        self.cmds = array[]
+        self.cmdColors = array[]
+        self.minX = sx
+        self.maxX = sx
+        self.minY = sy
+        self.maxY = sy
+        self.needMove = true
+    end
+
+
+    func updateBounds(float px, float py)
+        if px < self.minX then
+            self.minX = px
+        end
+        if px > self.maxX then
+            self.maxX = px
+        end
+        if py < self.minY then
+            self.minY = py
+        end
+        if py > self.maxY then
+            self.maxY = py
+        end
+    end
+
+
+    // Move forward by d along the current heading; record an SVG line when the
+    // pen is down. needMove forces a leading "M" after a pen lift or a branch
+    // pop so each drawn sub-path starts with a moveto.
+    func forward(float d)
+        float r = math.rad(self.angle)
+        float nx = self.x + d * math.cos(r)
+        float ny = self.y + d * math.sin(r)
+        if self.penDown then
+            if self.needMove then
+                self.cmds.push("M " + fmtNum(self.x) + " " + fmtNum(self.y))
+                self.cmdColors.push(self.color)
+                self.needMove = false
+            end
+            self.cmds.push("L " + fmtNum(nx) + " " + fmtNum(ny))
+            self.cmdColors.push(self.color)
+        end
+        self.x = nx
+        self.y = ny
+        self.updateBounds(nx, ny)
+    end
+
+
+    func right(float deg)
+        self.angle = self.angle + deg
+    end
+
+
+    func left(float deg)
+        self.angle = self.angle - deg
+    end
+
+
+    func penUp()
+        self.penDown = false
+    end
+
+
+    func penDown()
+        self.penDown = true
+        self.needMove = true
+    end
+
+
+    func setColor(string c)
+        self.color = c
+    end
+
+
+    func reset(float sx, float sy, float sa)
+        self.x = sx
+        self.y = sy
+        self.angle = sa
+        self.needMove = true
+        self.updateBounds(sx, sy)
+    end
+
+
+    // Number of recorded path segments (BUG-C2: route self.field.length
+    // through a local before returning).
+    func segmentCount() as int
+        int n = self.cmds.length
+        return n
+    end
+
+
+    // Interpret an L-system symbol string. step = forward length, turn = turn
+    // angle in degrees. Branch state ([ ]) is kept on local stacks.
+    func interpret(string symbols, float step, float turn)
+        int n = string.len(symbols)
+        var stackX = []
+        var stackY = []
+        var stackA = []
+        int i = 0
+        while i < n do
+            string ch = string.charAt(symbols, i)
+            if ch == "F" or ch == "G" or ch == "A" or ch == "B" then
+                self.forward(step)
+            elseif ch == "f" then
+                bool was = self.penDown
+                self.penDown = false
+                self.forward(step)
+                self.penDown = was
+            elseif ch == "+" then
+                self.angle = self.angle - turn
+            elseif ch == "-" then
+                self.angle = self.angle + turn
+            elseif ch == "[" then
+                stackX.push(self.x)
+                stackY.push(self.y)
+                stackA.push(self.angle)
+            elseif ch == "]" then
+                int top = stackX.length - 1
+                if top >= 0 then
+                    self.x = float(stackX[top])
+                    self.y = float(stackY[top])
+                    self.angle = float(stackA[top])
+                    stackX.remove(top)
+                    stackY.remove(top)
+                    stackA.remove(top)
+                    self.needMove = true
+                end
+            end
+            i = i + 1
+        end
+    end
+
+
+    // Parse and execute a command script (one command per line).
+    func runCommands(string text)
+        var lines = string.splitLines(text)
+        int ln = lines.length
+        if ln > 0 then
+            if string(lines[ln - 1]) == "" then
+                lines.remove(ln - 1)
+            end
+        end
+        int i = 0
+        int n = lines.length
+        while i < n do
+            string line = string.trim(string(lines[i]))
+            bool blank = (line == "")
+            bool cmt = string.startsWith(line, "//")
+            bool semi = string.startsWith(line, ";")
+            if not (blank or cmt or semi) then
+                var toks = []
+                array parts = string.split(line, " ")
+                int m = parts.length
+                int j = 0
+                while j < m do
+                    string tt = string.trim(string(parts[j]))
+                    if tt != "" then
+                        toks.push(tt)
+                    end
+                    j = j + 1
+                end
+                int tc = toks.length
+                if tc > 0 then
+                    string op = toUpper(string(toks[0]))
+                    string a1 = ""
+                    if tc >= 2 then
+                        a1 = string(toks[1])
+                    end
+                    self.execCommand(op, a1)
+                end
+            end
+            i = i + 1
+        end
+    end
+
+
+    // Execute a single parsed command.
+    func execCommand(string op, string arg)
+        if op == "FD" or op == "FORWARD" then
+            if looksNumber(arg) then
+                self.forward(float(arg))
+            end
+        elseif op == "BK" or op == "BACK" or op == "BACKWARD" then
+            if looksNumber(arg) then
+                self.forward(0.0 - float(arg))
+            end
+        elseif op == "RT" or op == "RIGHT" then
+            if looksNumber(arg) then
+                self.right(float(arg))
+            end
+        elseif op == "LT" or op == "LEFT" then
+            if looksNumber(arg) then
+                self.left(float(arg))
+            end
+        elseif op == "PU" or op == "PENUP" then
+            self.penUp()
+        elseif op == "PD" or op == "PENDOWN" then
+            self.penDown()
+        elseif op == "COLOR" or op == "SETCOLOR" or op == "PC" then
+            self.setColor(colorHex(arg))
+        elseif op == "HOME" then
+            self.reset(0.0, 0.0, 0.0)
+            self.penDown = true
+        elseif op == "SETXY" or op == "GOTO" then
+            array pp = string.split(arg, ",")
+            if pp.length == 2 then
+                string sx = string.trim(string(pp[0]))
+                string sy = string.trim(string(pp[1]))
+                if looksNumber(sx) and looksNumber(sy) then
+                    float nx = float(sx)
+                    float ny = float(sy)
+                    self.x = nx
+                    self.y = ny
+                    self.needMove = true
+                    self.updateBounds(nx, ny)
+                end
+            end
+        end
+    end
+
+
+    // Render the recorded path into element strings fitted+centred inside the
+    // rectangle (x0,y0,tw,th). Coordinates are baked (scale+translate) so the
+    // stroke width `sw` is in screen units. Consecutive same-colour segments
+    // are merged into one <path>.
+    func renderBody(float x0, float y0, float tw, float th, float sw) as string
+        int n = self.cmds.length
+        string out = ""
+        if n == 0 then
+            return out
+        end
+        float pad = 24.0
+        float cw = self.maxX - self.minX
+        float ch = self.maxY - self.minY
+        float availW = tw - 2.0 * pad
+        float availH = th - 2.0 * pad
+        if availW < 1.0 then
+            availW = 1.0
+        end
+        if availH < 1.0 then
+            availH = 1.0
+        end
+        float sx = 1.0
+        float sy = 1.0
+        if cw > 0.001 then
+            sx = availW / cw
+        end
+        if ch > 0.001 then
+            sy = availH / ch
+        end
+        float s = sx
+        if sy < s then
+            s = sy
+        end
+        float drawnW = cw * s
+        float drawnH = ch * s
+        float offX = x0 + (tw - drawnW) / 2.0
+        float offY = y0 + (th - drawnH) / 2.0
+        float tx = offX - self.minX * s
+        float ty = offY - self.minY * s
+
+        string curColor = ""
+        string curD = ""
+        float prevX = 0.0
+        float prevY = 0.0
+        bool havePrev = false
+        int i = 0
+        while i < n do
+            string cmd = self.cmds[i]
+            string col = self.cmdColors[i]
+            array parts = string.split(cmd, " ")
+            string letter = string(parts[0])
+            float px = float(parts[1]) * s + tx
+            float py = float(parts[2]) * s + ty
+            if col != curColor then
+                if curD != "" then
+                    out = out + svgPath(curD, "none", curColor, sw, 1.0) + "\n"
+                end
+                curColor = col
+                if letter == "M" then
+                    curD = ""
+                elseif havePrev then
+                    curD = "M " + fmtNum(prevX) + " " + fmtNum(prevY) + " "
+                else
+                    curD = ""
+                end
+            end
+            curD = curD + letter + " " + fmtNum(px) + " " + fmtNum(py) + " "
+            prevX = px
+            prevY = py
+            havePrev = true
+            i = i + 1
+        end
+        if curD != "" then
+            out = out + svgPath(curD, "none", curColor, sw, 1.0) + "\n"
+        end
+        return out
+    end
+
+
+    // Render a standalone SVG document with background + title.
+    func renderSVG(float w, float h, string title, float sw) as string
+        string body = ""
+        body = body + svgRect(0.0, 0.0, w, h, "#ffffff", "none", 0.0, 1.0) + "\n"
+        if title != "" then
+            body = body + svgText(w / 2.0, 32.0, title, "#222222", 18.0, "middle") + "\n"
+        end
+        body = body + self.renderBody(0.0, 50.0, w, h - 50.0, sw)
+        return svgWrap(w, h, body)
+    end
+end
+
+
+// ============================================================ pattern builder
+// Build a fully-drawn Turtle for a named L-system. Returning a class instance
+// from a function is safe (BUG-XT2: return preserves all fields).
+func buildPatternTurtle(string name, int iter) as Turtle
+    var cfg = lsystemConfig(name)
+    float sa = float(cfg["startAngle"])
+    Turtle t = Turtle(0.0, 0.0, sa)
+    t.setColor(string(cfg["color"]))
+    string sym = lsystemExpand(string(cfg["axiom"]), cfg["rules"], iter)
+    t.interpret(sym, float(cfg["step"]), float(cfg["angle"]))
+    return t
+end
+
+
+// ============================================================ output / cli
+func emit(string svg, string outPath) as int
+    if outPath == "" then
+        print(svg)
+        return 0
+    end
+    bool ok = file.writeText(outPath, svg)
+    if not ok then
+        println("Error: failed to write " + outPath)
+        return 1
+    end
+    println("Wrote " + outPath + " (" + string(string.byteLen(svg)) + " bytes)")
+    return 0
+end
+
+
+func runDraw(string inPath, string outPath) as int
+    if not file.exists(inPath) then
+        println("Error: command file not found: " + inPath)
+        return 1
+    end
+    string text = file.readText(inPath)
+    Turtle t = Turtle(0.0, 0.0, 0.0)
+    t.runCommands(text)
+    int seg = t.segmentCount()
+    if seg == 0 then
+        println("Warning: no drawing commands produced any segments")
+    end
+    string svg = t.renderSVG(800.0, 600.0, "Turtle Draw", 1.5)
+    println("drew " + string(seg) + " segments -> " + outPath)
+    return emit(svg, outPath)
+end
+
+
+func runLSystem(string name, int iter, string outPath) as int
+    var cfg = lsystemConfig(name)
+    if string(cfg["axiom"]) == "" then
+        println("Error: unknown L-system '" + name + "'")
+        println("Available: koch, sierpinski, dragon, plant")
+        return 1
+    end
+    int it = iter
+    if it < 0 then
+        it = 0
+    end
+    if it > 8 then
+        println("Warning: capping iterations at 8 (requested " + string(iter) + ")")
+        it = 8
+    end
+    Turtle t = buildPatternTurtle(name, it)
+    int seg = t.segmentCount()
+    string title = string(cfg["title"]) + "  (iter=" + string(it) + ", " + string(seg) + " seg)"
+    string svg = t.renderSVG(800.0, 800.0, title, 1.2)
+    println(name + " iter=" + string(it) + " -> " + string(seg) + " segments -> " + outPath)
+    return emit(svg, outPath)
+end
+
+
+func runDemo(string outPath) as int
+    float w = 820.0
+    float h = 880.0
+    float gap = 14.0
+    float top = 54.0
+    float tw = (w - 3.0 * gap) / 2.0
+    float th = (h - top - 3.0 * gap) / 2.0
+    float col0 = gap
+    float col1 = gap * 2.0 + tw
+    float row0 = top
+    float row1 = top + th + gap
+
+    string body = ""
+    body = body + svgRect(0.0, 0.0, w, h, "#0d1117", "none", 0.0, 1.0) + "\n"
+    body = body + svgText(w / 2.0, 32.0, "Turtle + L-system Gallery", "#e6edf3", 20.0, "middle") + "\n"
+
+    Turtle tk = buildPatternTurtle("koch", 4)
+    body = body + tk.renderBody(col0, row0, tw, th, 1.3)
+    body = body + svgText(col0 + 10.0, row0 + 18.0, "Koch Snowflake (4)", "#c9d1d9", 12.0, "start") + "\n"
+
+    Turtle ts = buildPatternTurtle("sierpinski", 5)
+    body = body + ts.renderBody(col1, row0, tw, th, 1.3)
+    body = body + svgText(col1 + 10.0, row0 + 18.0, "Sierpinski (5)", "#c9d1d9", 12.0, "start") + "\n"
+
+    Turtle td = buildPatternTurtle("dragon", 10)
+    body = body + td.renderBody(col0, row1, tw, th, 1.0)
+    body = body + svgText(col0 + 10.0, row1 + 18.0, "Dragon (10)", "#c9d1d9", 12.0, "start") + "\n"
+
+    Turtle tp = buildPatternTurtle("plant", 5)
+    body = body + tp.renderBody(col1, row1, tw, th, 1.0)
+    body = body + svgText(col1 + 10.0, row1 + 18.0, "Plant (5)", "#c9d1d9", 12.0, "start") + "\n"
+
+    return emit(svgWrap(w, h, body), outPath)
+end
+
+
+// ============================================================ self-test
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass = g_pass + 1
+    println("  [PASS] " + label)
+end
+
+
+func bad(string label, string detail)
+    g_fail = g_fail + 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+
+func expectF(float got, float want, string label)
+    if math.abs(got - want) < 0.001 then
+        ok(label)
+    else
+        bad(label, "got " + string.formatFloat(got, ".4") + " want " + string.formatFloat(want, ".4"))
+    end
+end
+
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+
+func expectS(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+
+func expectContains(string haystack, string needle, string label)
+    if string.contains(haystack, needle) then
+        ok(label)
+    else
+        bad(label, "missing '" + needle + "'")
+    end
+end
+
+
+func runTest() as int
+    println("=== turtle: self-test suite ===")
+    println("")
+
+    println("[1] turtle movement + trig")
+    try
+        Turtle t1 = Turtle(0.0, 0.0, 0.0)
+        t1.forward(100.0)
+        expectF(t1.x, 100.0, "forward(100) along +x -> x=100")
+        expectF(t1.y, 0.0, "forward(100) along +x -> y=0")
+
+        Turtle t2 = Turtle(0.0, 0.0, 0.0)
+        t2.right(90.0)
+        t2.forward(100.0)
+        expectF(t2.angle, 90.0, "right(90) -> angle=90")
+        expectF(t2.x, 0.0, "right(90)+forward(100) -> x~0")
+        expectF(t2.y, 100.0, "right(90)+forward(100) -> y=100")
+
+        Turtle t3 = Turtle(0.0, 0.0, 0.0)
+        t3.left(45.0)
+        t3.forward(10.0)
+        expectF(t3.angle, -45.0, "left(45) -> angle=-45")
+    catch e
+        bad("turtle movement", e.message)
+    end
+
+    println("[2] pen up / pen down")
+    try
+        Turtle t = Turtle(0.0, 0.0, 0.0)
+        t.penUp()
+        t.forward(50.0)
+        expectI(t.segmentCount(), 0, "penUp forward draws nothing")
+        t.penDown()
+        t.forward(50.0)
+        expectI(t.segmentCount(), 2, "penDown forward records M + L")
+    catch e
+        bad("pen up/down", e.message)
+    end
+
+    println("[3] colour change")
+    try
+        Turtle t = Turtle(0.0, 0.0, 0.0)
+        t.setColor(colorHex("red"))
+        expectS(t.color, "#E53935", "COLOR red -> #E53935")
+        t.setColor(colorHex("#ABCDEF"))
+        expectS(t.color, "#ABCDEF", "hex colour passes through")
+    catch e
+        bad("colour change", e.message)
+    end
+
+    println("[4] L-system rewrite")
+    try
+        var rules = {"F": "F+F--F+F"}
+        expectS(lsystemExpand("F", rules, 0), "F", "0 iterations = axiom unchanged")
+        expectS(lsystemExpand("F", rules, 1), "F+F--F+F", "koch F-rule 1 iteration")
+        expectS(lsystemExpand("F++F++F", rules, 1), "F+F--F+F++F+F--F+F++F+F--F+F", "koch snowflake axiom 1 iteration")
+
+        var prules = {"F": "F[+F]F[-F]F"}
+        expectS(lsystemExpand("F", prules, 1), "F[+F]F[-F]F", "plant F-rule 1 iteration")
+    catch e
+        bad("L-system rewrite", e.message)
+    end
+
+    println("[5] L-system configs")
+    try
+        expectS(string(lsystemConfig("koch")["axiom"]), "F++F++F", "koch axiom")
+        expectS(string(lsystemConfig("sierpinski")["axiom"]), "F", "sierpinski axiom")
+        expectS(string(lsystemConfig("dragon")["axiom"]), "FX", "dragon axiom")
+        expectS(string(lsystemConfig("plant")["axiom"]), "F", "plant axiom")
+        expectS(string(lsystemConfig("bogus")["axiom"]), "", "unknown -> empty config")
+    catch e
+        bad("L-system configs", e.message)
+    end
+
+    println("[6] draw script parsing")
+    try
+        string script = "FD 100\nRT 90\n; comment line\n// another comment\nCOLOR blue\nFD 100\n"
+        Turtle t = Turtle(0.0, 0.0, 0.0)
+        t.runCommands(script)
+        expectF(t.x, 100.0, "after FD100 RT90 FD100 -> x stays ~100")
+        expectF(t.y, 100.0, "after FD100 RT90 FD100 -> y=100")
+        expectI(t.segmentCount(), 3, "two FD strokes = M + L + L = 3 path commands")
+    catch e
+        bad("draw script parsing", e.message)
+    end
+
+    println("[7] SVG render")
+    try
+        Turtle t = buildPatternTurtle("koch", 2)
+        int seg = t.segmentCount()
+        if seg > 0 then
+            ok("koch iter=2 produced " + string(seg) + " segments")
+        else
+            bad("koch iter=2 segments", "got 0")
+        end
+        string svg = t.renderSVG(400.0, 400.0, "koch", 1.0)
+        expectContains(svg, "<svg", "renderSVG emits <svg>")
+        expectContains(svg, "<path", "renderSVG emits <path>")
+        expectContains(svg, "</svg>", "renderSVG emits closing </svg>")
+    catch e
+        bad("SVG render", e.message)
+    end
+
+    println("")
+    println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+    return 0
+end
+
+
+func printUsage()
+    println("turtle - Turtle graphics engine + L-systems")
+    println()
+    println("Usage:")
+    println("  turtle draw <commands.txt> <output.svg>          run a turtle command script")
+    println("  turtle lsystem <name> [iterations=4] <output.svg> render a built-in L-system")
+    println("  turtle demo [output.svg]                          2x2 gallery of all patterns")
+    println("  turtle test                                        run internal self-checks")
+    println()
+    println("L-system names: koch, sierpinski, dragon, plant")
+    println()
+    println("Draw-script commands: FD BK RT LT PU PD COLOR SETXY HOME  (// or ; = comment)")
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "test" then
+        return runTest()
+    elseif cmd == "demo" then
+        string out = "turtle_demo.svg"
+        if arg.length >= 3 then
+            out = string(arg[2])
+        end
+        return runDemo(out)
+    elseif cmd == "draw" then
+        if arg.length < 4 then
+            println("Usage: turtle draw <commands.txt> <output.svg>")
+            return 1
+        end
+        return runDraw(string(arg[2]), string(arg[3]))
+    elseif cmd == "lsystem" then
+        if arg.length < 4 then
+            println("Usage: turtle lsystem <name> [iterations=4] <output.svg>")
+            return 1
+        end
+        string name = string(arg[2])
+        int iter = 4
+        string outPath = ""
+        if arg.length == 4 then
+            outPath = string(arg[3])
+        else
+            if looksNumber(string(arg[3])) then
+                iter = int(float(string(arg[3])))
+            end
+            outPath = string(arg[4])
+        end
+        return runLSystem(name, iter, outPath)
+    else
+        println("Error: unknown command '" + cmd + "'")
+        println()
+        printUsage()
+        return 1
+    end
+end

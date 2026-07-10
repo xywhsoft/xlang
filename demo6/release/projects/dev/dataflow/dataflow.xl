@@ -1,0 +1,1060 @@
+// dataflow - 编译器数据流分析框架
+//
+// 用法：
+//   dataflow test     在内置 CFG 上验证三种数据流分析，输出每块 IN/OUT 集合
+//   dataflow help     显示帮助
+//
+// 功能：
+//   1. 控制流图 CFG：BasicBlock（id/instrs/preds/succs）+ 前驱/后继边
+//   2. Worklist 求解框架（前向 / 后向，meet 算子可插拔：并集 / 交集）
+//   3. 活跃变量分析 Live Variables（use/def，后向，meet = 并集）
+//   4. 到达定义分析 Reaching Definitions（gen/kill，前向，meet = 并集）
+//   5. 可用表达式分析 Available Expressions（e_gen/e_kill，前向，meet = 交集）
+//      —— 作为第三种分析，验证框架对「前向/后向 + 并集/交集」四种组合的通用性。
+//
+// 设计要点（结合 dev/README.md 与 BUGS.md）：
+//   - 集合一律用 dict<string, bool> 模拟（key=元素，value=true）。
+//     提供并/交/差/相等/拷贝 等集合算子（set* 系列自由函数）。
+//   - 节点池 + id 引用（参考 trie/btree，规避 BUG-RT1/RT2/XL1：
+//     「typed 容器直接嵌套 class 实例」脆弱）。BasicBlock 存于 CFG.blocks
+//     （var dict），Instr 存于 BasicBlock.instrs（var 数组），取出时用 as 还原。
+//   - 值语义 write-back：derive value class，getBlock 取副本，改字段后 setBlock 写回
+//     （容器字段虽因引用共享，但统一 write-back 保证两种语义下都正确，参考 trie）。
+//   - Worklist 框架为纯迭代实现（非递归），规避 BUG-LP1（var dict 递归分配二次方劣化）。
+//   - 传递函数与 meet 算子作为一等公民 func 值传入求解器（func 是一等公民，已验证）；
+//     各分析的传递函数用 auto 闭包捕获预计算的 use/def、gen/kill 字典。
+//   - 形参不重载 var（BUG：var 实参传给重载函数失败）；class 方法形参用 var 而非
+//     array<T>（BUG-C1）。
+//   - 字符串拼接前对来自 var 容器的 key/value 先 string() 显式转换（BUG-CE1）。
+
+
+// ============================================================
+// 集合算子（基于 dict<string, bool>）
+// ============================================================
+
+// 拷贝集合。
+func setCopy(var s) as var
+    var r = {}
+    for k, v in s
+        r[k] = true
+    end
+    return r
+end
+
+// 就地并入 src 全部元素到 dst。
+func setAddAll(var dst, var src)
+    for k, v in src
+        dst[k] = true
+    end
+end
+
+// 并集 a ∪ b（返回新集合）。
+func setUnion(var a, var b) as var
+    var r = {}
+    for k, v in a
+        r[k] = true
+    end
+    for k, v in b
+        r[k] = true
+    end
+    return r
+end
+
+// 交集 a ∩ b（返回新集合）。
+func setInter(var a, var b) as var
+    var r = {}
+    for k, v in a
+        if b.contains(k) then
+            r[k] = true
+        end
+    end
+    return r
+end
+
+// 差集 a - b（返回新集合）。
+func setDiff(var a, var b) as var
+    var r = {}
+    for k, v in a
+        if not b.contains(k) then
+            r[k] = true
+        end
+    end
+    return r
+end
+
+// 集合相等（元素完全一致）。
+func setEqual(var a, var b) as bool
+    int na = 0
+    for k, v in a
+        na = na + 1
+    end
+    int nb = 0
+    for k, v in b
+        nb = nb + 1
+    end
+    if na != nb then
+        return false
+    end
+    for k, v in a
+        if not b.contains(k) then
+            return false
+        end
+    end
+    return true
+end
+
+// 字符串数组 -> 集合。
+func setFromArr(var arr) as var
+    var r = {}
+    int i = 0
+    while i < arr.length do
+        r[string(arr[i])] = true
+        i = i + 1
+    end
+    return r
+end
+
+// meet 算子：对一组集合求并集。
+func meetUnion(var sets) as var
+    var r = {}
+    int i = 0
+    while i < sets.length do
+        var s = sets[i]
+        for k, v in s
+            r[k] = true
+        end
+        i = i + 1
+    end
+    return r
+end
+
+// meet 算子：对一组集合求交集（空组返回空集）。
+func meetInter(var sets) as var
+    if sets.length == 0 then
+        return {}
+    end
+    var r = {}
+    var first = sets[0]
+    for k, v in first
+        r[k] = true
+    end
+    int i = 1
+    while i < sets.length do
+        var s = sets[i]
+        var next = {}
+        for k, v in r
+            if s.contains(k) then
+                next[k] = true
+            end
+        end
+        r = next
+        i = i + 1
+    end
+    return r
+end
+
+// 把集合格式化为 {a, b, c}（按字典序，便于稳定比对）。
+func setToSortedString(var s) as string
+    var keys = []
+    for k, v in s
+        keys.push(string(k))
+    end
+    int n = keys.length
+    int i = 0
+    while i < n do
+        int minIdx = i
+        int j = i + 1
+        while j < n do
+            if string.compare(string(keys[j]), string(keys[minIdx]), false) < 0 then
+                minIdx = j
+            end
+            j = j + 1
+        end
+        if minIdx != i then
+            var tmp = keys[i]
+            keys[i] = keys[minIdx]
+            keys[minIdx] = tmp
+        end
+        i = i + 1
+    end
+    string out = "{"
+    i = 0
+    while i < n do
+        if i > 0 then
+            out = out + ", "
+        end
+        out = out + string(keys[i])
+        i = i + 1
+    end
+    out = out + "}"
+    return out
+end
+
+
+// ============================================================
+// 指令 IR：文本 + 定义变量集 + 使用变量集 + 计算的表达式集
+// ============================================================
+
+class Instr
+    derive value
+
+    string text = ""          // 可读文本，如 "b = i + j"
+    var defvars = []          // 本指令定义（赋值）的变量名数组
+    var usevars = []          // 本指令使用（读取）的变量名数组
+    var exprs = []            // 本指令计算的表达式数组（如 ["i+j"]），无则为 []
+
+    create()
+        self.text = ""
+        self.defvars = []
+        self.usevars = []
+        self.exprs = []
+    end
+end
+
+// 构造指令（自由函数，避开 create/var 重载陷阱）。
+//   text    可读文本
+//   defvars 定义变量数组（如 ["b"]），无可传 []
+//   usevars 使用变量数组（如 ["i","j"]），无可传 []
+//   exprs   表达式数组（如 ["i+j"]），无可传 []
+func mkInstr(string text, var defvars, var usevars, var exprs) as Instr
+    Instr ins = Instr()
+    ins.text = text
+    ins.defvars = defvars
+    ins.usevars = usevars
+    ins.exprs = exprs
+    return ins
+end
+
+
+// ============================================================
+// BasicBlock：基本块（id / instrs / preds / succs）
+// ============================================================
+
+class BasicBlock
+    derive value
+
+    string id = ""
+    var instrs = []           // Instr 数组（var 承载，as 还原）
+    var predIds = []          // 前驱块 id（字符串）数组
+    var succIds = []          // 后继块 id（字符串）数组
+
+    create(string id)
+        self.id = id
+        self.instrs = []
+        self.predIds = []
+        self.succIds = []
+    end
+end
+
+
+// ============================================================
+// CFG：控制流图（块池 + 入口）
+// ============================================================
+
+class CFG
+    derive value
+
+    var blocks = {}           // id(string) -> BasicBlock（var 承载）
+    var order = []            // 块 id 插入序（稳定遍历用）
+    string entryId = ""       // 入口块 id
+
+    create()
+        self.blocks = {}
+        self.order = []
+        self.entryId = ""
+    end
+
+    func addBlock(BasicBlock b)
+        self.blocks[b.id] = b
+        self.order.push(b.id)
+    end
+
+    func setEntry(string id)
+        self.entryId = id
+    end
+
+    func getBlock(string id) as BasicBlock
+        var v = self.blocks[id]
+        BasicBlock b = v as BasicBlock
+        return b
+    end
+
+    // 值语义 write-back：取副本改字段后写回。
+    func setBlock(string id, BasicBlock b)
+        self.blocks[id] = b
+    end
+
+    // 加有向边 from -> to（同时维护双向前驱/后继）。
+    func addEdge(string from, string to)
+        BasicBlock fb = self.getBlock(from)
+        fb.succIds.push(to)
+        self.setBlock(from, fb)
+        BasicBlock tb = self.getBlock(to)
+        tb.predIds.push(from)
+        self.setBlock(to, tb)
+    end
+
+    // 返回块 id 数组的拷贝（插入序）。
+    func blockIds() as var
+        var r = []
+        int i = 0
+        while i < self.order.length do
+            r.push(self.order[i])
+            i = i + 1
+        end
+        return r
+    end
+
+    func blockCount() as int
+        return self.order.length
+    end
+
+    func edgeCount() as int
+        int total = 0
+        int i = 0
+        while i < self.order.length do
+            string bid = string(self.order[i])
+            BasicBlock b = self.getBlock(bid)
+            total = total + b.succIds.length
+            i = i + 1
+        end
+        return total
+    end
+
+    // 返回后继 id 数组的拷贝。
+    func succsOf(string id) as var
+        BasicBlock b = self.getBlock(id)
+        var r = []
+        int i = 0
+        while i < b.succIds.length do
+            r.push(b.succIds[i])
+            i = i + 1
+        end
+        return r
+    end
+
+    // 返回前驱 id 数组的拷贝。
+    func predsOf(string id) as var
+        BasicBlock b = self.getBlock(id)
+        var r = []
+        int i = 0
+        while i < b.predIds.length do
+            r.push(b.predIds[i])
+            i = i + 1
+        end
+        return r
+    end
+
+    // 返回无后继的块（出口块）id 数组。
+    func exitIds() as var
+        var r = []
+        int i = 0
+        while i < self.order.length do
+            string bid = string(self.order[i])
+            BasicBlock b = self.getBlock(bid)
+            if b.succIds.length == 0 then
+                r.push(bid)
+            end
+            i = i + 1
+        end
+        return r
+    end
+end
+
+
+// ============================================================
+// Worklist 求解框架（前向 / 后向，meet 可插拔）
+// ============================================================
+//
+//   forward = true  前向：IN[B] = meet(OUT[P])，OUT[B] = transfer(B, IN[B])
+//   forward = false 后向：OUT[B] = meet(IN[S])，IN[B] = transfer(B, OUT[B])
+//
+//   transfer(blockId, inputSet) -> outputSet
+//     前向：input=IN，output=OUT；后向：input=OUT，output=IN
+//   meetOp(sets[]) -> set   并集或交集
+//   boundary       边界条件：前向 = 入口 IN；后向 = 出口 OUT
+//
+//   返回 (inSets, outSets)：均为 dict<块id, dict<string,bool>>。
+func solveWorklist(CFG cfg, bool forward,
+                   func(string, var) as var transfer,
+                   func(var) as var meetOp,
+                   var boundary) as (var, var)
+    var inSets = {}
+    var outSets = {}
+    var ids = cfg.blockIds()
+    int n = ids.length
+
+    // 初始化所有块的 IN/OUT 为空集
+    int i = 0
+    while i < n do
+        string bid = string(ids[i])
+        inSets[bid] = {}
+        outSets[bid] = {}
+        i = i + 1
+    end
+
+    // 工作表（FIFO；块可重复入队，标准 worklist）
+    var work = []
+    i = 0
+    while i < n do
+        work.push(ids[i])
+        i = i + 1
+    end
+    int head = 0
+
+    while head < work.length do
+        string bid = string(work[head])
+        head = head + 1
+
+        if forward then
+            var preds = cfg.predsOf(bid)
+            var newIn = {}
+            if preds.length == 0 then
+                if bid == cfg.entryId then
+                    newIn = setCopy(boundary)
+                else
+                    newIn = {}
+                end
+            else
+                var sets = []
+                int pi = 0
+                while pi < preds.length do
+                    sets.push(outSets[string(preds[pi])])
+                    pi = pi + 1
+                end
+                newIn = meetOp(sets)
+            end
+            var newOut = transfer(bid, newIn)
+            if not setEqual(newOut, outSets[bid]) then
+                outSets[bid] = newOut
+                inSets[bid] = newIn
+                var succs = cfg.succsOf(bid)
+                int si = 0
+                while si < succs.length do
+                    work.push(succs[si])
+                    si = si + 1
+                end
+            else
+                inSets[bid] = newIn
+            end
+        else
+            var succs = cfg.succsOf(bid)
+            var newOut = {}
+            if succs.length == 0 then
+                newOut = setCopy(boundary)
+            else
+                var sets = []
+                int si = 0
+                while si < succs.length do
+                    sets.push(inSets[string(succs[si])])
+                    si = si + 1
+                end
+                newOut = meetOp(sets)
+            end
+            var newIn = transfer(bid, newOut)
+            if not setEqual(newIn, inSets[bid]) then
+                inSets[bid] = newIn
+                outSets[bid] = newOut
+                var preds = cfg.predsOf(bid)
+                int pi = 0
+                while pi < preds.length do
+                    work.push(preds[pi])
+                    pi = pi + 1
+                end
+            else
+                outSets[bid] = newOut
+            end
+        end
+    end
+
+    return inSets, outSets
+end
+
+
+// ============================================================
+// 分析 1：活跃变量分析（后向，meet = 并集）
+//   use[B] = B 中「先使用后定义」的变量（upward-exposed uses）
+//   def[B] = B 中定义的全部变量
+//   OUT[B] = ∪ IN[S]
+//   IN[B]  = use[B] ∪ (OUT[B] - def[B])
+// ============================================================
+
+// 预计算每块的 use / def。
+func computeUseDef(CFG cfg) as (var, var)
+    var useSets = {}
+    var defSets = {}
+    var ids = cfg.blockIds()
+    int n = ids.length
+    int i = 0
+    while i < n do
+        string bid = string(ids[i])
+        BasicBlock b = cfg.getBlock(bid)
+        var used = {}       // upward-exposed uses
+        var defined = {}    // 已定义变量
+        int m = b.instrs.length
+        int j = 0
+        while j < m do
+            var iv = b.instrs[j]
+            Instr ins = iv as Instr
+            // 先处理使用：未在本块先前定义 -> upward-exposed
+            int uk = 0
+            while uk < ins.usevars.length do
+                string u = string(ins.usevars[uk])
+                if not defined.contains(u) then
+                    used[u] = true
+                end
+                uk = uk + 1
+            end
+            // 再处理定义
+            int dk = 0
+            while dk < ins.defvars.length do
+                string d = string(ins.defvars[dk])
+                defined[d] = true
+                dk = dk + 1
+            end
+            j = j + 1
+        end
+        useSets[bid] = used
+        defSets[bid] = defined
+        i = i + 1
+    end
+    return useSets, defSets
+end
+
+// 活跃变量分析驱动（后向 worklist）。
+func analyzeLiveness(CFG cfg) as (var, var)
+    var useSets = {}
+    var defSets = {}
+    useSets, defSets = computeUseDef(cfg)
+    auto transfer = func(string b, var outSet) as var
+        var use = useSets[b]
+        var def = defSets[b]
+        return setUnion(use, setDiff(outSet, def))
+    end
+    var boundary = {}
+    return solveWorklist(cfg, false, transfer, meetUnion, boundary)
+end
+
+
+// ============================================================
+// 分析 2：到达定义分析（前向，meet = 并集）
+//   定义 = 一条给某变量赋值的指令，用 "var@block#index" 唯一标识。
+//   gen[B]  = B 中到达 B 末尾的定义（每变量取块内最后一次定义）
+//   kill[B] = 程序中所有「与 B 内定义同变量」的定义，减去 gen[B]
+//   IN[B]  = ∪ OUT[P]
+//   OUT[B] = gen[B] ∪ (IN[B] - kill[B])
+// ============================================================
+
+func computeGenKill(CFG cfg) as (var, var)
+    var defVar = {}         // defId -> 变量名
+    var allDefsByVar = {}   // 变量名 -> defId 集合（全程序）
+    var blockDefList = {}   // 块id -> defId 数组（按指令序）
+
+    var ids = cfg.blockIds()
+    int n = ids.length
+
+    // 第一遍：枚举所有定义
+    int i = 0
+    while i < n do
+        string bid = string(ids[i])
+        BasicBlock b = cfg.getBlock(bid)
+        var dlist = []
+        int m = b.instrs.length
+        int j = 0
+        while j < m do
+            var iv = b.instrs[j]
+            Instr ins = iv as Instr
+            int dk = 0
+            while dk < ins.defvars.length do
+                string v = string(ins.defvars[dk])
+                string did = v + "@" + bid + "#" + string(j)
+                dlist.push(did)
+                defVar[did] = v
+                if not allDefsByVar.contains(v) then
+                    allDefsByVar[v] = {}
+                end
+                var ds = allDefsByVar[v]
+                ds[did] = true
+                dk = dk + 1
+            end
+            j = j + 1
+        end
+        blockDefList[bid] = dlist
+        i = i + 1
+    end
+
+    // 第二遍：每块 gen（每变量取最后一次定义）/ kill
+    var genSets = {}
+    var killSets = {}
+    i = 0
+    while i < n do
+        string bid = string(ids[i])
+        var dlist = blockDefList[bid]
+        var lastOfVar = {}   // 变量 -> 最后一次 defId（临时）
+        var varsInBlock = {}
+        int k = 0
+        while k < dlist.length do
+            string did = string(dlist[k])
+            string v = string(defVar[did])
+            varsInBlock[v] = true
+            lastOfVar[v] = did
+            k = k + 1
+        end
+        var genSet = {}
+        for vkey, didv in lastOfVar
+            genSet[string(didv)] = true
+        end
+        // kill = (∪ 同变量全部定义) - gen
+        var killSet = {}
+        for v, tmp in varsInBlock
+            var ds = allDefsByVar[v]
+            for did, tmp2 in ds
+                killSet[did] = true
+            end
+        end
+        for did, tmp in genSet
+            killSet.remove(did)
+        end
+        genSets[bid] = genSet
+        killSets[bid] = killSet
+        i = i + 1
+    end
+
+    return genSets, killSets
+end
+
+// 到达定义分析驱动（前向 worklist）。
+func analyzeReachingDefs(CFG cfg) as (var, var)
+    var genSets = {}
+    var killSets = {}
+    genSets, killSets = computeGenKill(cfg)
+    auto transfer = func(string b, var inSet) as var
+        var gen = genSets[b]
+        var kill = killSets[b]
+        return setUnion(gen, setDiff(inSet, kill))
+    end
+    var boundary = {}
+    return solveWorklist(cfg, true, transfer, meetUnion, boundary)
+end
+
+
+// ============================================================
+// 分析 3：可用表达式分析（前向，meet = 交集）
+//   表达式字符串形如 "i+j"（操作数以 "+" 连接）。
+//   e_gen[B]  = B 中计算且之后未被本块重定义操作数所破坏的表达式
+//   e_kill[B] = 程序中所有「操作数 ∩ B 内定义变量 ≠ ∅」的表达式
+//   IN[B]  = ∩ OUT[P]
+//   OUT[B] = e_gen[B] ∪ (IN[B] - e_kill[B])
+// ============================================================
+
+// 以 "+" 切分表达式的操作数。
+func exprOperands(string e) as var
+    var r = []
+    array parts = string.split(e, "+")
+    int i = 0
+    while i < parts.length do
+        string p = string(parts[i])
+        if string.len(p) > 0 then
+            r.push(p)
+        end
+        i = i + 1
+    end
+    return r
+end
+
+func computeExprGenKill(CFG cfg) as (var, var)
+    var allExprs = {}        // 表达式 -> true（全程序）
+    var operandsOf = {}      // 表达式 -> 操作数数组
+    var ids = cfg.blockIds()
+    int n = ids.length
+
+    // 第一遍：枚举所有表达式及其操作数
+    int i = 0
+    while i < n do
+        string bid = string(ids[i])
+        BasicBlock b = cfg.getBlock(bid)
+        int m = b.instrs.length
+        int j = 0
+        while j < m do
+            var iv = b.instrs[j]
+            Instr ins = iv as Instr
+            int ek = 0
+            while ek < ins.exprs.length do
+                string e = string(ins.exprs[ek])
+                allExprs[e] = true
+                operandsOf[e] = exprOperands(e)
+                ek = ek + 1
+            end
+            j = j + 1
+        end
+        i = i + 1
+    end
+
+    // 第二遍：每块 e_gen / e_kill
+    var genSets = {}
+    var killSets = {}
+    i = 0
+    while i < n do
+        string bid = string(ids[i])
+        BasicBlock b = cfg.getBlock(bid)
+        var generated = {}     // 当前块末尾仍可用的表达式
+        var blockDefVars = {}
+        int m = b.instrs.length
+        int j = 0
+        while j < m do
+            var iv = b.instrs[j]
+            Instr ins = iv as Instr
+            // 先把本指令计算的表达式加入 generated
+            int ek = 0
+            while ek < ins.exprs.length do
+                string e = string(ins.exprs[ek])
+                generated[e] = true
+                ek = ek + 1
+            end
+            // 再处理本指令定义的变量：从 generated 移除以该变量为操作数的表达式
+            int dk = 0
+            while dk < ins.defvars.length do
+                string dv = string(ins.defvars[dk])
+                blockDefVars[dv] = true
+                var toRemove = []
+                for ge, tmp in generated
+                    var ops = operandsOf[ge]
+                    int oi = 0
+                    bool hit = false
+                    while oi < ops.length and not hit do
+                        if string(ops[oi]) == dv then
+                            hit = true
+                        end
+                        oi = oi + 1
+                    end
+                    if hit then
+                        toRemove.push(ge)
+                    end
+                end
+                int ri = 0
+                while ri < toRemove.length do
+                    generated.remove(string(toRemove[ri]))
+                    ri = ri + 1
+                end
+                dk = dk + 1
+            end
+            j = j + 1
+        end
+        // e_kill = 所有「操作数命中 blockDefVars」的表达式
+        var killSet = {}
+        for e, tmp in allExprs
+            var ops = operandsOf[e]
+            int oi = 0
+            bool usesDef = false
+            while oi < ops.length and not usesDef do
+                if blockDefVars.contains(string(ops[oi])) then
+                    usesDef = true
+                end
+                oi = oi + 1
+            end
+            if usesDef then
+                killSet[e] = true
+            end
+        end
+        genSets[bid] = generated
+        killSets[bid] = killSet
+        i = i + 1
+    end
+
+    return genSets, killSets
+end
+
+// 可用表达式分析驱动（前向 worklist，meet = 交集）。
+func analyzeAvailableExprs(CFG cfg) as (var, var)
+    var genSets = {}
+    var killSets = {}
+    genSets, killSets = computeExprGenKill(cfg)
+    auto transfer = func(string b, var inSet) as var
+        var gen = genSets[b]
+        var kill = killSets[b]
+        return setUnion(gen, setDiff(inSet, kill))
+    end
+    var boundary = {}
+    return solveWorklist(cfg, true, transfer, meetInter, boundary)
+end
+
+
+// ============================================================
+// 输出格式化
+// ============================================================
+
+func joinIds(var arr) as string
+    string s = ""
+    int i = 0
+    while i < arr.length do
+        if i > 0 then
+            s = s + ", "
+        end
+        s = s + string(arr[i])
+        i = i + 1
+    end
+    return s
+end
+
+func printCFG(CFG cfg)
+    var ids = cfg.blockIds()
+    int n = ids.length
+    int i = 0
+    while i < n do
+        string bid = string(ids[i])
+        BasicBlock b = cfg.getBlock(bid)
+        string tag = ""
+        if bid == cfg.entryId then
+            tag = "  (entry)"
+        end
+        if b.succIds.length == 0 then
+            tag = tag + "  (exit)"
+        end
+        println("  [" + bid + "]" + tag)
+        int m = b.instrs.length
+        int j = 0
+        while j < m do
+            var iv = b.instrs[j]
+            Instr ins = iv as Instr
+            println("      " + ins.text)
+            j = j + 1
+        end
+        println("      preds: [" + joinIds(b.predIds) + "]   succs: [" + joinIds(b.succIds) + "]")
+        i = i + 1
+    end
+end
+
+// 打印每块 IN/OUT 集合。
+func printSets(CFG cfg, string inLabel, string outLabel, var inSets, var outSets)
+    var ids = cfg.blockIds()
+    int n = ids.length
+    int i = 0
+    while i < n do
+        string bid = string(ids[i])
+        var inS = inSets[bid]
+        var outS = outSets[bid]
+        println("    " + bid + "  " + inLabel + "=" + setToSortedString(inS) + "   " + outLabel + "=" + setToSortedString(outS))
+        i = i + 1
+    end
+end
+
+
+// ============================================================
+// 断言助手
+// ============================================================
+
+func inSetOk(string label, var s, string elem, var fails)
+    if s.contains(elem) then
+        println("  ok   " + label)
+    else
+        fails.push("FAIL " + label + ": expected '" + elem + "' in " + setToSortedString(s))
+    end
+end
+
+func notInSetOk(string label, var s, string elem, var fails)
+    if not s.contains(elem) then
+        println("  ok   " + label)
+    else
+        fails.push("FAIL " + label + ": expected '" + elem + "' NOT in " + setToSortedString(s))
+    end
+end
+
+func setEmptyOk(string label, var s, var fails)
+    int c = 0
+    for k, v in s
+        c = c + 1
+    end
+    if c == 0 then
+        println("  ok   " + label)
+    else
+        fails.push("FAIL " + label + ": expected empty, got " + setToSortedString(s))
+    end
+end
+
+func intOk(string label, int got, int want, var fails)
+    if got == want then
+        println("  ok   " + label)
+    else
+        fails.push("FAIL " + label + ": got " + string(got) + ", want " + string(want))
+    end
+end
+
+
+// ============================================================
+// 内置示例 CFG（钻石形 B1 -> B2 -> {B3, B4} -> B5）
+// ============================================================
+//
+//   B1 (entry): i = 1; j = 1; a = 0
+//   B2        : b = i + j          (use i,j / def b / expr "i+j")
+//   B3        : c = b + a; a = c   (use b,a,c / def c,a / expr "a+b")
+//   B4        : d = b + 1; a = d   (use b,d / def d,a / expr "b+1")
+//   B5 (exit) : e = a + b          (use a,b / def e / expr "a+b")
+//
+//   边：B1->B2, B2->B3, B2->B4, B3->B5, B4->B5
+func buildSampleCFG() as CFG
+    CFG cfg = CFG()
+
+    BasicBlock b1 = BasicBlock("B1")
+    b1.instrs.push(mkInstr("i = 1", ["i"], [], []))
+    b1.instrs.push(mkInstr("j = 1", ["j"], [], []))
+    b1.instrs.push(mkInstr("a = 0", ["a"], [], []))
+    cfg.addBlock(b1)
+    cfg.setEntry("B1")
+
+    BasicBlock b2 = BasicBlock("B2")
+    b2.instrs.push(mkInstr("b = i + j", ["b"], ["i", "j"], ["i+j"]))
+    cfg.addBlock(b2)
+
+    BasicBlock b3 = BasicBlock("B3")
+    b3.instrs.push(mkInstr("c = b + a", ["c"], ["b", "a"], ["a+b"]))
+    b3.instrs.push(mkInstr("a = c", ["a"], ["c"], []))
+    cfg.addBlock(b3)
+
+    BasicBlock b4 = BasicBlock("B4")
+    b4.instrs.push(mkInstr("d = b + 1", ["d"], ["b"], ["b+1"]))
+    b4.instrs.push(mkInstr("a = d", ["a"], ["d"], []))
+    cfg.addBlock(b4)
+
+    BasicBlock b5 = BasicBlock("B5")
+    b5.instrs.push(mkInstr("e = a + b", ["e"], ["a", "b"], ["a+b"]))
+    cfg.addBlock(b5)
+
+    cfg.addEdge("B1", "B2")
+    cfg.addEdge("B2", "B3")
+    cfg.addEdge("B2", "B4")
+    cfg.addEdge("B3", "B5")
+    cfg.addEdge("B4", "B5")
+
+    return cfg
+end
+
+
+// ============================================================
+// 内置测试：一种 CFG，三种分析
+// ============================================================
+
+func cmdTest() as int
+    println("=========================================")
+    println("dataflow 内置测试")
+    println("=========================================")
+
+    CFG cfg = buildSampleCFG()
+    var fails = []
+
+    // ---- 0. CFG 结构 ----
+    println("")
+    println("[0] 控制流图 CFG（基本块 + 前驱/后继）")
+    printCFG(cfg)
+    intOk("block count == 5", cfg.blockCount(), 5, fails)
+    intOk("edge count == 5", cfg.edgeCount(), 5, fails)
+    var b1succ = cfg.succsOf("B1")
+    intOk("B1 succ count == 1", b1succ.length, 1, fails)
+    var b2succ = cfg.succsOf("B2")
+    intOk("B2 succ count == 2 (branch)", b2succ.length, 2, fails)
+    var b5pred = cfg.predsOf("B5")
+    intOk("B5 pred count == 2 (join)", b5pred.length, 2, fails)
+    var exits = cfg.exitIds()
+    intOk("exit block count == 1", exits.length, 1, fails)
+
+    // ---- 1. 活跃变量分析（后向 worklist，meet=并集）----
+    println("")
+    println("[1] 活跃变量分析 Live Variables（后向，meet=∪）")
+    var lvIn = {}
+    var lvOut = {}
+    lvIn, lvOut = analyzeLiveness(cfg)
+    printSets(cfg, "IN", "OUT", lvIn, lvOut)
+    inSetOk("live IN[B5] ⊇ a", lvIn["B5"], "a", fails)
+    inSetOk("live IN[B5] ⊇ b", lvIn["B5"], "b", fails)
+    notInSetOk("live IN[B5] ⊬ e (e defined in B5)", lvIn["B5"], "e", fails)
+    setEmptyOk("live IN[B1] = ∅ (entry)", lvIn["B1"], fails)
+    inSetOk("live OUT[B1] ⊇ a (live-through)", lvOut["B1"], "a", fails)
+    inSetOk("live OUT[B1] ⊇ i", lvOut["B1"], "i", fails)
+    inSetOk("live IN[B2] ⊇ i", lvIn["B2"], "i", fails)
+    inSetOk("live IN[B2] ⊇ a (a live on B3 path)", lvIn["B2"], "a", fails)
+    inSetOk("live IN[B4] ⊇ b", lvIn["B4"], "b", fails)
+    notInSetOk("live IN[B4] ⊬ a (a redefined in B4)", lvIn["B4"], "a", fails)
+
+    // ---- 2. 到达定义分析（前向 worklist，meet=并集）----
+    println("")
+    println("[2] 到达定义分析 Reaching Definitions（前向，meet=∪）")
+    var rdIn = {}
+    var rdOut = {}
+    rdIn, rdOut = analyzeReachingDefs(cfg)
+    printSets(cfg, "IN", "OUT", rdIn, rdOut)
+    inSetOk("reach OUT[B1] ⊇ i@B1#0", rdOut["B1"], "i@B1#0", fails)
+    inSetOk("reach OUT[B1] ⊇ a@B1#2", rdOut["B1"], "a@B1#2", fails)
+    inSetOk("reach IN[B2] ⊇ a@B1#2", rdIn["B2"], "a@B1#2", fails)
+    inSetOk("reach OUT[B3] ⊇ a@B3#1 (redef)", rdOut["B3"], "a@B3#1", fails)
+    notInSetOk("reach OUT[B3] ⊬ a@B1#2 (killed)", rdOut["B3"], "a@B1#2", fails)
+    inSetOk("reach OUT[B4] ⊇ a@B4#1", rdOut["B4"], "a@B4#1", fails)
+    notInSetOk("reach OUT[B4] ⊬ a@B3#1 (other path)", rdOut["B4"], "a@B3#1", fails)
+    inSetOk("reach IN[B5] ⊇ a@B3#1 (via B3)", rdIn["B5"], "a@B3#1", fails)
+    inSetOk("reach IN[B5] ⊇ a@B4#1 (via B4)", rdIn["B5"], "a@B4#1", fails)
+    notInSetOk("reach IN[B5] ⊬ a@B1#2 (killed on both paths)", rdIn["B5"], "a@B1#2", fails)
+
+    // ---- 3. 可用表达式分析（前向 worklist，meet=交集）----
+    println("")
+    println("[3] 可用表达式分析 Available Expressions（前向，meet=∩）")
+    var aeIn = {}
+    var aeOut = {}
+    aeIn, aeOut = analyzeAvailableExprs(cfg)
+    printSets(cfg, "IN", "OUT", aeIn, aeOut)
+    inSetOk("avail OUT[B2] ⊇ i+j (computed)", aeOut["B2"], "i+j", fails)
+    inSetOk("avail IN[B5] ⊇ i+j (available on both paths)", aeIn["B5"], "i+j", fails)
+    notInSetOk("avail IN[B5] ⊬ a+b (only gen'd in B5)", aeIn["B5"], "a+b", fails)
+    notInSetOk("avail IN[B5] ⊬ b+1 (only on B4 path)", aeIn["B5"], "b+1", fails)
+    inSetOk("avail OUT[B4] ⊇ b+1", aeOut["B4"], "b+1", fails)
+    inSetOk("avail OUT[B5] ⊇ a+b (gen'd at exit)", aeOut["B5"], "a+b", fails)
+    setEmptyOk("avail IN[B1] = ∅ (entry)", aeIn["B1"], fails)
+
+    // ---- 汇总 ----
+    println("")
+    println("=========================================")
+    int failCount = fails.length
+    if failCount == 0 then
+        println("ALL CHECKS PASSED")
+    else
+        println(string(failCount) + " CHECK(S) FAILED:")
+        int i = 0
+        while i < failCount do
+            println("  " + string(fails[i]))
+            i = i + 1
+        end
+    end
+    println("=========================================")
+    if failCount == 0 then
+        return 0
+    end
+    return 1
+end
+
+
+// ============================================================
+// 入口
+// ============================================================
+
+func printUsage()
+    println("dataflow - 编译器数据流分析框架")
+    println("usage: dataflow <command>")
+    println("commands:")
+    println("  test     在内置 CFG 上验证三种分析（活跃变量 / 到达定义 / 可用表达式）")
+    println("  help     显示本帮助")
+end
+
+func main(...) as int
+    string cmd = ""
+    if arg.length >= 2 then
+        cmd = string.lower(string(arg[1]))
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+    if cmd == "help" or cmd == "--help" or cmd == "-h" then
+        printUsage()
+        return 0
+    end
+
+    printUsage()
+    return 0
+end

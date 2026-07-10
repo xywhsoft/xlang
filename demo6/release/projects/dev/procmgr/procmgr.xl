@@ -1,0 +1,627 @@
+// procmgr - 进程管理器（启动 / 监控 / 重启策略）
+//
+// 用法：
+//   procmgr run <config.json> [durationSeconds]   按 JSON 配置托管一组子进程
+//   procmgr test                                  模拟进程管理场景（自包含验证）
+//
+// 配置格式（顶层 JSON 数组，每个元素一个进程规格）：
+//   [
+//     {
+//       "name":           "web",
+//       "command":        "cmd /c ping -n 30 127.0.0.1",
+//       "restartPolicy":  "always",          // always / on-failure / never
+//       "maxRetries":     5,                 // 0 = 不限制（仅 always 有意义）
+//       "healthCheck":    "cmd /c exit /b 0",// 空 = 不检查；http://... 走 HTTP
+//       "healthInterval": 1000               // 健康检查 / 轮询间隔（毫秒）
+//     }
+//   ]
+//
+// 能力覆盖：
+//   - process.start 启动子进程；process.run（健康检查）+ http.get（HTTP 探活）。
+//   - thread 每个受管进程一个监控线程；Process 为 native-backed 不可复制资源，
+//     由监控线程独占持有（在 runOnce 的栈上创建，作用域结束自动 destroy）。
+//   - time.timer 计时（uptime / 运行时长截止）；time.sleep 轮询与退避等待。
+//   - file.appendText 日志收集（stdout/stderr/事件 分别落盘）。
+//
+// xlang 约束处理（参考 actorsys / prodcon 已验证模式）：
+//   - thread / channel / Process 均不可复制，不能放进 typed array；线程一律
+//     fire-and-forget 启动，通过全局并行数组 + mutex 维护注册表与状态。
+//   - 监控线程通过闭包工厂 pmMakeMonitor(idx) 按值捕获下标。
+//   - 全局容器在声明处初始化（array[]），仅用 push/clear 增删，不重绑定。
+
+
+// ============================== 状态常量 ===================================
+
+int STATUS_PENDING   = 0   // 已注册尚未启动
+int STATUS_RUNNING   = 1   // 进程运行中
+int STATUS_RESTARTING = 2  // 退出后等待退避重启
+int STATUS_STOPPED   = 3   // 干净退出且不再重启（终态）
+int STATUS_CRASHED   = 4   // 失败退出且不再重启（终态）
+
+string POLICY_ALWAYS     = "always"
+string POLICY_ON_FAILURE = "on-failure"
+string POLICY_NEVER      = "never"
+
+
+// ============================== 全局注册表 =================================
+// 并行全局数组，每个受管进程一列。监控线程与主线程通过 g_lock 读写。
+
+mutex g_lock = mutex()
+
+array<string> g_pName        = array[]
+array<string> g_pCommand     = array[]
+array<string> g_pPolicy      = array[]
+array<int>    g_pMaxRetries  = array[]
+array<string> g_pHealthCheck = array[]
+array<int>    g_pHealthInterval = array[]
+array<int>    g_pStatus      = array[]
+array<int>    g_pRestarts    = array[]
+array<int>    g_pExitCode    = array[]
+array<float>  g_pStartTime   = array[]
+array<int>    g_pHealthFail  = array[]
+
+int  g_pCount        = 0
+int  g_activeMonitors = 0
+bool g_stop          = false
+
+string g_logDir      = ""
+int    g_backoffBase = 1000   // 指数退避起始（毫秒）
+int    g_backoffCap  = 30000  // 指数退避上限（毫秒）
+
+
+// ============================== 工具函数 ===================================
+
+func pmStatusName(int s) as string
+    if s == STATUS_PENDING    then return "pending"    end
+    if s == STATUS_RUNNING    then return "running"    end
+    if s == STATUS_RESTARTING then return "restarting" end
+    if s == STATUS_STOPPED    then return "stopped"    end
+    if s == STATUS_CRASHED    then return "crashed"    end
+    return "unknown"
+end
+
+// 指数退避：attempt=1 -> base, 2 -> base*2, 3 -> base*4 ... 封顶 cap。
+// 即 1s -> 2s -> 4s -> 8s -> ... -> max。
+func pmExpBackoff(int attempt) as int
+    if attempt < 1 then attempt = 1 end
+    int v = g_backoffBase
+    int i = 1
+    while i < attempt do
+        v = v * 2
+        if v >= g_backoffCap then return g_backoffCap end
+        i = i + 1
+    end
+    return v
+end
+
+// 把秒数格式化为 "Ns"（整数秒）。
+func pmFmtUp(float seconds) as string
+    if seconds < 0.0 then seconds = 0.0 end
+    return string(int(seconds)) + "s"
+end
+
+// 右侧补空格到固定宽度，用于状态表对齐。
+func pmPad(string s, int w) as string
+    string r = s
+    while string.len(r) < w do
+        r = r + " "
+    end
+    return r
+end
+
+// 时间戳字符串（用于日志行首）。
+func pmNow() as string
+    return time.format(time.now())
+end
+
+// 写一条事件日志：<logs>/<name>.log
+func pmLog(int idx, string msg)
+    string line = pmNow() + " [" + g_pName[idx] + "] " + msg + "\n"
+    file.appendText(path.join(g_logDir, g_pName[idx] + ".log"), line)
+end
+
+// 把进程一次运行期的 stdout / stderr 落盘（追加）。
+func pmFlush(int idx, string outText, string errText)
+    if string.len(outText) > 0 then
+        file.appendText(path.join(g_logDir, g_pName[idx] + ".out.log"), outText)
+    end
+    if string.len(errText) > 0 then
+        file.appendText(path.join(g_logDir, g_pName[idx] + ".err.log"), errText)
+    end
+end
+
+// 健康检查：http:// 开头走 HTTP 探活，否则当作命令用 process.run 执行。
+func pmHealth(string spec) as bool
+    if string.len(spec) >= 4 and string.startsWith(spec, "http") then
+        try
+            HttpClientResponse r = http.get(spec, 3000)
+            return r.ok()
+        catch e
+            return false
+        end
+    end
+    try
+        ProcessResult r = process.run(spec)
+        return r.success
+    catch e
+        return false
+    end
+end
+
+
+// ============================== 注册表 =====================================
+
+func registerProc(string name, string command, string policy, int maxRetries, string healthCheck, int healthInterval)
+    g_pName.push(name)
+    g_pCommand.push(command)
+    g_pPolicy.push(policy)
+    g_pMaxRetries.push(maxRetries)
+    g_pHealthCheck.push(healthCheck)
+    g_pHealthInterval.push(healthInterval)
+    g_pStatus.push(STATUS_PENDING)
+    g_pRestarts.push(0)
+    g_pExitCode.push(-1)
+    g_pStartTime.push(0.0)
+    g_pHealthFail.push(0)
+    g_pCount = g_pCount + 1
+end
+
+func pmResetRegistry()
+    g_pName.clear()
+    g_pCommand.clear()
+    g_pPolicy.clear()
+    g_pMaxRetries.clear()
+    g_pHealthCheck.clear()
+    g_pHealthInterval.clear()
+    g_pStatus.clear()
+    g_pRestarts.clear()
+    g_pExitCode.clear()
+    g_pStartTime.clear()
+    g_pHealthFail.clear()
+    g_pCount = 0
+    g_activeMonitors = 0
+    g_stop = false
+end
+
+// 规范化策略字面量：忽略大小写，未知值退化为 on-failure。
+func pmNormalizePolicy(string raw) as string
+    string low = string.lower(string.trim(raw))
+    if low == "always" then return POLICY_ALWAYS end
+    if low == "never"  then return POLICY_NEVER  end
+    if low == "on-failure" then return POLICY_ON_FAILURE end
+    return POLICY_ON_FAILURE
+end
+
+// 可选字符串字段，缺失 / null 时返回默认值。
+func optStr(var spec, string key, string def) as string
+    try
+        var v = spec[key]
+        string s = string(v)
+        if s == "null" then return def end
+        return s
+    catch e
+        return def
+    end
+end
+
+// 可选整数字段，缺失 / null 时返回默认值。
+func optInt(var spec, string key, int def) as int
+    try
+        var v = spec[key]
+        return int(v)
+    catch e
+        return def
+    end
+end
+
+// 从 JSON 配置文件加载并注册所有进程规格。支持顶层数组或 {processes:[...]}。
+func loadConfig(string cfgPath) as bool
+    if not file.exists(cfgPath) then
+        println("Error: config not found: " + cfgPath)
+        return false
+    end
+    string raw = file.readText(cfgPath)
+    if not json.valid(raw) then
+        println("Error: invalid JSON in config: " + cfgPath)
+        return false
+    end
+    var root = json.parse(raw)
+    var procs = root
+    if string.contains(raw, "\"processes\"") then
+        procs = root["processes"]
+    end
+    int n = procs.length
+    if n == 0 then
+        println("Error: no processes in config")
+        return false
+    end
+    int i = 0
+    while i < n do
+        var spec = procs[i]
+        string name = optStr(spec, "name", "proc" + string(i))
+        string command = optStr(spec, "command", "")
+        if string.len(command) == 0 then
+            println("Error: process '" + name + "' missing 'command'")
+            return false
+        end
+        string policy = pmNormalizePolicy(optStr(spec, "restartPolicy", POLICY_ON_FAILURE))
+        int maxRetries = optInt(spec, "maxRetries", 3)
+        string healthCheck = string.trim(optStr(spec, "healthCheck", ""))
+        int healthInterval = optInt(spec, "healthInterval", 1000)
+        if healthInterval < 50 then healthInterval = 1000 end
+        registerProc(name, command, policy, maxRetries, healthCheck, healthInterval)
+        i = i + 1
+    end
+    return true
+end
+
+
+// ============================== 进程生命周期 ===============================
+
+// 启动并监控一次进程运行，直到其退出（或被健康检查 / 停机信号终止）。
+// 返回退出码；副作用：刷新日志、写 g_pExitCode[idx]、置 g_pHealthFail[idx]。
+// Process 在本函数栈上创建，返回时自动 destroy（native-backed 资源）。
+func runOnce(int idx) as int
+    string cmd = g_pCommand[idx]
+    Process proc = process.start(cmd)
+    g_lock.lock()
+    g_pStartTime[idx] = time.timer()
+    g_pStatus[idx] = STATUS_RUNNING
+    g_pExitCode[idx] = -1
+    g_lock.unlock()
+    pmLog(idx, "started: " + cmd)
+
+    int interval = g_pHealthInterval[idx]
+    if interval < 50 then interval = 200 end
+    string hc = g_pHealthCheck[idx]
+    bool healthFail = false
+
+    while not g_stop do
+        bool done = proc.wait(interval)
+        if g_stop then
+            pmLog(idx, "stop signal -> terminate")
+            proc.terminate()
+            proc.wait(1000)
+            break
+        end
+        if done then
+            break
+        end
+        if not proc.running then
+            break
+        end
+        if string.len(hc) > 0 then
+            bool ok = pmHealth(hc)
+            if not ok then
+                healthFail = true
+                pmLog(idx, "health check failed -> terminate")
+                proc.terminate()
+                proc.wait(1000)
+                break
+            end
+        end
+    end
+
+    int code = proc.exitCode
+    string outText = ""
+    string errText = ""
+    try
+        outText = proc.stdout
+        errText = proc.stderr
+    catch e
+        outText = ""
+        errText = ""
+    end
+    pmFlush(idx, outText, errText)
+
+    g_lock.lock()
+    g_pExitCode[idx] = code
+    g_lock.unlock()
+    g_pHealthFail[idx] = healthFail ? 1 : 0
+    pmLog(idx, "exited code=" + string(code) + (healthFail ? " (health-failed)" : ""))
+    return code
+end
+
+// 单个受管进程的监控线程主体：循环 runOnce -> 按策略决定是否重启 -> 退避等待。
+func monitorBody(int idx) as int
+    g_lock.lock()
+    g_activeMonitors = g_activeMonitors + 1
+    g_lock.unlock()
+
+    while not g_stop do
+        int code = runOnce(idx)
+        if g_stop then break end
+
+        string policy = g_pPolicy[idx]
+        bool failed = (code != 0 or g_pHealthFail[idx] == 1)
+
+        bool shouldRestart = false
+        if policy == POLICY_ALWAYS then
+            shouldRestart = true
+        elseif policy == POLICY_ON_FAILURE then
+            shouldRestart = failed
+        else
+            shouldRestart = false
+        end
+
+        int cap = g_pMaxRetries[idx]
+        if cap > 0 and g_pRestarts[idx] >= cap then
+            shouldRestart = false
+        end
+
+        if not shouldRestart then
+            g_lock.lock()
+            if failed then
+                g_pStatus[idx] = STATUS_CRASHED
+            else
+                g_pStatus[idx] = STATUS_STOPPED
+            end
+            g_lock.unlock()
+            pmLog(idx, "terminal: " + pmStatusName(g_pStatus[idx]) + " restarts=" + string(g_pRestarts[idx]))
+            break
+        end
+
+        g_lock.lock()
+        g_pRestarts[idx] = g_pRestarts[idx] + 1
+        int attempt = g_pRestarts[idx]
+        g_pStatus[idx] = STATUS_RESTARTING
+        g_lock.unlock()
+
+        int backoff = pmExpBackoff(attempt)
+        pmLog(idx, "restart #" + string(attempt) + " after " + string(backoff) + "ms backoff")
+        int slept = 0
+        while slept < backoff and not g_stop do
+            time.sleep(50)
+            slept = slept + 50
+        end
+    end
+
+    g_lock.lock()
+    g_activeMonitors = g_activeMonitors - 1
+    g_lock.unlock()
+    return 0
+end
+
+// 闭包工厂：按下标捕获 idx（int 按值），交给 thread() 启动。
+func pmMakeMonitor(int idx) as func() as int
+    return func() as int
+        return monitorBody(idx)
+    end
+end
+
+
+// ============================== 状态报告 ===================================
+
+func printStatus()
+    g_lock.lock()
+    println("---- procmgr status ----")
+    int i = 0
+    while i < g_pCount do
+        string nm = g_pName[i]
+        float up = 0.0
+        if g_pStatus[i] == STATUS_RUNNING and g_pStartTime[i] > 0.0 then
+            up = time.timer() - g_pStartTime[i]
+        end
+        println("  " + pmPad(nm, 16) +
+                pmPad(pmStatusName(g_pStatus[i]), 12) +
+                pmPad("restarts=" + string(g_pRestarts[i]), 14) +
+                pmPad("up=" + pmFmtUp(up), 10) +
+                "exit=" + string(g_pExitCode[i]))
+        i = i + 1
+    end
+    g_lock.unlock()
+end
+
+
+// ============================== run 子命令 =================================
+
+func runWithConfig(string cfgPath, int durationSec) as int
+    if not loadConfig(cfgPath) then return 1 end
+    if g_pCount == 0 then
+        println("Error: no processes in config")
+        return 1
+    end
+
+    println("==== procmgr start ====")
+    println("config:    " + cfgPath)
+    println("processes: " + string(g_pCount) + "  duration: " + string(durationSec) + "s  (0 = until all terminal)")
+    println("logs:      " + g_logDir)
+    println("backoff:   base=" + string(g_backoffBase) + "ms cap=" + string(g_backoffCap) + "ms")
+    println("------------------------")
+
+    int i = 0
+    while i < g_pCount do
+        thread(pmMakeMonitor(i))
+        i = i + 1
+    end
+
+    float deadline = -1.0
+    if durationSec > 0 then deadline = time.timer() + float(durationSec) end
+
+    while true do
+        time.sleep(1000)
+        printStatus()
+        g_lock.lock()
+        int active = g_activeMonitors
+        g_lock.unlock()
+        if active == 0 then break end
+        if deadline > 0.0 and time.timer() >= deadline then
+            println("duration elapsed, shutting down")
+            break
+        end
+    end
+
+    g_lock.lock()
+    g_stop = true
+    g_lock.unlock()
+
+    int waited = 0
+    while waited < 8000 do
+        g_lock.lock()
+        int active = g_activeMonitors
+        g_lock.unlock()
+        if active <= 0 then break end
+        time.sleep(50)
+        waited = waited + 50
+    end
+
+    println("------------------------")
+    printStatus()
+    println("==== procmgr done ====")
+    return 0
+end
+
+
+// ============================== test 子命令 ================================
+// 自包含模拟：用短命令 + 短退避覆盖 always / on-failure / never 三种策略、
+// 指数退避、健康检查（通过 / 失败）、maxRetries 封顶、日志落盘。
+
+func pmCheck(string name, bool ok, int pass, int fail) as (int, int)
+    if ok then
+        println("  [PASS] " + name)
+        return pass + 1, fail
+    end
+    println("  [FAIL] " + name)
+    return pass, fail + 1
+end
+
+func runTest() as int
+    println("==== procmgr test start ====")
+    int pass = 0
+    int fail = 0
+
+    // ---- 单元：指数退避序列（用真实 base/cap 验证）----
+    println("[unit] exponential backoff sequence")
+    g_backoffBase = 1000
+    g_backoffCap  = 30000
+    pass, fail = pmCheck("backoff attempt 1 = 1000ms", pmExpBackoff(1) == 1000, pass, fail)
+    pass, fail = pmCheck("backoff attempt 2 = 2000ms", pmExpBackoff(2) == 2000, pass, fail)
+    pass, fail = pmCheck("backoff attempt 3 = 4000ms", pmExpBackoff(3) == 4000, pass, fail)
+    pass, fail = pmCheck("backoff attempt 4 = 8000ms", pmExpBackoff(4) == 8000, pass, fail)
+    pass, fail = pmCheck("backoff attempt 5 = 16000ms", pmExpBackoff(5) == 16000, pass, fail)
+    pass, fail = pmCheck("backoff caps at 30000ms", pmExpBackoff(10) == 30000, pass, fail)
+
+    // ---- 单元：loadConfig 解析 ----
+    println("[unit] loadConfig (JSON array)")
+    string samplePath = path.join(g_logDir, "sample.json")
+    file.writeText(samplePath, '[{"name":"s1","command":"cmd /c exit /b 0","restartPolicy":"NEVER","maxRetries":7,"healthCheck":"","healthInterval":250}]')
+    bool loaded = loadConfig(samplePath)
+    pass, fail = pmCheck("loadConfig parses sample.json", loaded and g_pCount == 1, pass, fail)
+    pass, fail = pmCheck("loadConfig read name=s1", g_pName[0] == "s1", pass, fail)
+    pass, fail = pmCheck("loadConfig normalized NEVER -> never", g_pPolicy[0] == POLICY_NEVER, pass, fail)
+    pass, fail = pmCheck("loadConfig read maxRetries=7", g_pMaxRetries[0] == 7, pass, fail)
+    pmResetRegistry()
+
+    // ---- 实战：短退避让重启快速完成 ----
+    g_backoffBase = 20
+    g_backoffCap  = 100
+
+    registerProc("clean",        "cmd /c echo clean-ok& exit /b 0",          POLICY_NEVER,      0, "",                       200)
+    registerProc("crash-never",  "cmd /c echo bye-now& exit /b 3",           POLICY_NEVER,      0, "",                       200)
+    registerProc("retry-giveup", "cmd /c exit /b 1",                         POLICY_ON_FAILURE, 2, "",                       200)
+    registerProc("always-cap",   "cmd /c exit /b 0",                         POLICY_ALWAYS,     2, "",                       200)
+    registerProc("health-ok",    "cmd /c ping -n 2 127.0.0.1 > nul",         POLICY_NEVER,      0, "cmd /c exit /b 0",       200)
+    registerProc("health-fail",  "cmd /c ping -n 30 127.0.0.1 > nul",        POLICY_ON_FAILURE, 1, "cmd /c exit /b 1",       100)
+
+    println("[live] spawning " + string(g_pCount) + " monitor threads (fast backoff)")
+    int i = 0
+    while i < g_pCount do
+        thread(pmMakeMonitor(i))
+        i = i + 1
+    end
+
+    int waited = 0
+    while waited < 20000 do
+        g_lock.lock()
+        int active = g_activeMonitors
+        g_lock.unlock()
+        if active == 0 then break end
+        time.sleep(100)
+        waited = waited + 100
+    end
+
+    g_lock.lock()
+    g_stop = true
+    g_lock.unlock()
+    time.sleep(200)
+
+    println("[live] final status")
+    printStatus()
+
+    println("[verify] outcomes")
+    pass, fail = pmCheck("clean -> stopped (exit 0, no restart)", g_pStatus[0] == STATUS_STOPPED and g_pExitCode[0] == 0 and g_pRestarts[0] == 0, pass, fail)
+    pass, fail = pmCheck("crash-never -> crashed (exit 3, no restart)", g_pStatus[1] == STATUS_CRASHED and g_pExitCode[1] == 3 and g_pRestarts[1] == 0, pass, fail)
+    pass, fail = pmCheck("retry-giveup -> crashed after retries", g_pStatus[2] == STATUS_CRASHED, pass, fail)
+    pass, fail = pmCheck("retry-giveup restarts capped at maxRetries=2", g_pRestarts[2] == 2, pass, fail)
+    pass, fail = pmCheck("always-cap -> stopped (restart even on success)", g_pStatus[3] == STATUS_STOPPED, pass, fail)
+    pass, fail = pmCheck("always-cap restarts capped at maxRetries=2", g_pRestarts[3] == 2, pass, fail)
+    pass, fail = pmCheck("health-ok -> stopped (health passed, exit 0)", g_pStatus[4] == STATUS_STOPPED and g_pExitCode[4] == 0, pass, fail)
+    pass, fail = pmCheck("health-fail -> crashed (health failed)", g_pStatus[5] == STATUS_CRASHED, pass, fail)
+    pass, fail = pmCheck("health-fail restarts == maxRetries=1", g_pRestarts[5] == 1, pass, fail)
+
+    println("[verify] log collection")
+    pass, fail = pmCheck("clean out log written", file.exists(path.join(g_logDir, "clean.out.log")), pass, fail)
+    pass, fail = pmCheck("clean out log contains stdout", string.contains(file.readText(path.join(g_logDir, "clean.out.log")), "clean-ok"), pass, fail)
+    pass, fail = pmCheck("clean event log written", file.exists(path.join(g_logDir, "clean.log")), pass, fail)
+    pass, fail = pmCheck("crash-never event log records terminal", string.contains(file.readText(path.join(g_logDir, "crash-never.log")), "terminal: crashed"), pass, fail)
+    pass, fail = pmCheck("health-fail log records health failure", string.contains(file.readText(path.join(g_logDir, "health-fail.log")), "health check failed"), pass, fail)
+
+    println("------------------------")
+    println("==== procmgr test summary ====")
+    println("passed: " + string(pass) + "  failed: " + string(fail))
+    if fail == 0 then
+        println("RESULT: OK - process manager verification passed")
+        return 0
+    end
+    println("RESULT: FAIL - " + string(fail) + " check(s) failed")
+    return 1
+end
+
+
+// ============================== 用法 / 入口 ================================
+
+func printUsage()
+    println("procmgr - 进程管理器（启动 / 监控 / 重启策略）")
+    println("Usage:")
+    println("  procmgr run <config.json> [durationSeconds]   托管配置中的一组子进程")
+    println("  procmgr test                                 模拟进程管理场景")
+    println("Options:")
+    println("  durationSeconds  run 模式最长运行秒数（默认 30，0 = 直到全部终态）")
+    println("Config fields (JSON array):")
+    println("  name, command, restartPolicy(always/on-failure/never),")
+    println("  maxRetries(0=unlimited), healthCheck(cmd or http://...), healthInterval(ms)")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string scriptPath = string(arg[0])
+    g_logDir = path.join(path.dir(scriptPath), "logs")
+    dir.createAll(g_logDir)
+
+    string cmd = string(arg[1])
+
+    if cmd == "run" then
+        if arg.length < 3 then
+            println("Error: 'run' needs <config.json>")
+            printUsage()
+            return 1
+        end
+        string cfgPath = string(arg[2])
+        int duration = 30
+        if arg.length >= 4 then duration = int(arg[3]) end
+        if duration < 0 then duration = 0 end
+        return runWithConfig(cfgPath, duration)
+    end
+
+    if cmd == "test" then
+        return runTest()
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

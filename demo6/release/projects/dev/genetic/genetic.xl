@@ -1,0 +1,991 @@
+// genetic - 通用遗传算法（GA）求解器
+//
+// 用法：
+//   genetic onemax [N=100]                       OneMax：最大化二进制串中 1 的个数
+//   genetic tsp    <cities.json> [gens=500] [pop=100]   TSP：找最短回路
+//   genetic func   [D=5] [gens=300]              函数优化：最大化 sum(xi*sin(xi))
+//   genetic test                                 自检：OneMax/TSP/FuncOpt 正确性
+//
+// 设计要点：
+//   - class Individual：chromosome 为 var（承载 array<int> 或 array<float>），fitness float。
+//   - 通用 GA 引擎 gaRun(...)：种群初始化 → 适应度评估 → 选择（轮盘赌/锦标赛）
+//     → 交叉 → 变异 → 精英保留 → 迭代。引擎对染色体类型完全透明，只搬运 Individual。
+//   - 每个问题模块（OneMax/FuncOpt/TSP）提供 5 个策略闭包：
+//       initFn / evalFn / crossFn / mutateFn / cloneFn
+//     闭包内部知道染色体精确类型，构造全新数组返回；引擎从不就地修改共享染色体。
+//   - 引擎始终“最大化” fitness：TSP 用 1/(1+路程) 把最小化转成最大化。
+//   - 随机种子固定，保证 xl run 与 built exe 输出一致（可复现）。
+//
+// 重要语义（见 dev/README.md 限制表）：
+//   - typed array 赋值是值拷贝（unionbits 验证），故 fitness/evaluated 一律用
+//     `pop[i].field = ...` 直接索引就地写入；染色体永远重建新数组。
+
+// ============================================================
+// 随机辅助
+// ============================================================
+
+// 返回 [0, 1) 内的 float。random 库只提供整数源，这里取 6 位精度。
+func randFloat() as float
+    return float(random.range(0, 999999)) / 1000000.0
+end
+
+// 返回 [lo, hi) 内的 float。
+func randFloatRange(float lo, float hi) as float
+    return lo + (hi - lo) * randFloat()
+end
+
+// 标准正态分布抽样（Box-Muller），用于实值变异。
+func randGauss() as float
+    float u1 = randFloat()
+    if u1 < 0.0001 then
+        u1 = 0.0001
+    end
+    float u2 = randFloat()
+    float r = math.sqrt(-2.0 * math.log(u1))
+    return r * math.cos(2.0 * math.pi * u2)
+end
+
+// ============================================================
+// Individual
+// ============================================================
+
+class Individual
+    var chromosome = array[]
+    float fitness = 0.0
+    bool evaluated = false
+
+    create(var chrom)
+        self.chromosome = chrom
+        self.fitness = 0.0
+        self.evaluated = false
+    end
+
+    create()
+        self.chromosome = array[]
+        self.fitness = 0.0
+        self.evaluated = false
+    end
+end
+
+// ============================================================
+// GA 配置
+// ============================================================
+
+class GAConfig
+    int populationSize = 100
+    int generations = 500
+    float crossoverRate = 0.9
+    float mutationRate = 0.02
+    float elitismRate = 0.08
+    string selection = "tournament"     // "tournament" | "roulette"
+    int tournamentSize = 3
+end
+
+// ============================================================
+// GA 引擎
+// ============================================================
+
+// 评估所有未评估个体（直接索引就地写 fitness/evaluated）。
+func gaEvaluate(array<Individual> pop, func(var) as float evalFn)
+    int i = 0
+    int n = pop.length
+    while i < n do
+        if not pop[i].evaluated then
+            pop[i].fitness = evalFn(pop[i].chromosome)
+            pop[i].evaluated = true
+        end
+        i += 1
+    end
+end
+
+// 按适应度降序选择排序（种群小，O(n^2) 足够）。
+func gaSort(array<Individual> pop)
+    int n = pop.length
+    int i = 0
+    while i < n do
+        int best = i
+        int j = i + 1
+        while j < n do
+            if pop[j].fitness > pop[best].fitness then
+                best = j
+            end
+            j += 1
+        end
+        if best != i then
+            Individual tmp = pop[i]
+            pop[i] = pop[best]
+            pop[best] = tmp
+        end
+        i += 1
+    end
+end
+
+func gaAvgFitness(array<Individual> pop) as float
+    float s = 0.0
+    int i = 0
+    int n = pop.length
+    while i < n do
+        s += pop[i].fitness
+        i += 1
+    end
+    if n == 0 then
+        return 0.0
+    end
+    return s / float(n)
+end
+
+// 锦标赛选择：随机抽 k 个，返回最优。
+func tournamentSelect(array<Individual> pop, int k) as Individual
+    int n = pop.length
+    if n == 0 then
+        return Individual()
+    end
+    Individual best = pop[random.range(0, n - 1)]
+    int c = 1
+    while c < k do
+        Individual cand = pop[random.range(0, n - 1)]
+        if cand.fitness > best.fitness then
+            best = cand
+        end
+        c += 1
+    end
+    return best
+end
+
+// 轮盘赌选择：概率正比于 (fitness - min + eps)，自动处理负适应度。
+func rouletteSelect(array<Individual> pop) as Individual
+    int n = pop.length
+    if n == 0 then
+        return Individual()
+    end
+    float minF = pop[0].fitness
+    int i = 1
+    while i < n do
+        if pop[i].fitness < minF then
+            minF = pop[i].fitness
+        end
+        i += 1
+    end
+    float total = 0.0
+    i = 0
+    while i < n do
+        total += (pop[i].fitness - minF) + 0.001
+        i += 1
+    end
+    if total <= 0.0 then
+        return pop[random.range(0, n - 1)]
+    end
+    float r = randFloat() * total
+    float acc = 0.0
+    i = 0
+    while i < n do
+        acc += (pop[i].fitness - minF) + 0.001
+        if acc >= r then
+            return pop[i]
+        end
+        i += 1
+    end
+    return pop[n - 1]
+end
+
+func gaSelect(array<Individual> pop, GAConfig cfg) as Individual
+    if cfg.selection == "roulette" then
+        return rouletteSelect(pop)
+    end
+    return tournamentSelect(pop, cfg.tournamentSize)
+end
+
+// 通用 GA 主循环。返回历史最优 Individual（最大化 fitness）。
+//
+//   initFn()          -> 随机生成一条染色体
+//   evalFn(chrom)     -> 计算适应度（越大越好）
+//   crossFn(a, b)     -> 交叉产生全新染色体
+//   mutateFn(chrom)   -> 对（全新）染色体施加变异，返回结果
+//   cloneFn(chrom)    -> 深拷贝染色体（用于“不交叉则复制父代”分支）
+// 策略回调：染色体相关用擦除 func（返回 var，动态调用），evalFn 用带签名
+// func(var) as float（确认可用，见 examples/task_api.xl）。
+func gaRun(GAConfig cfg,
+           func initFn,
+           func(var) as float evalFn,
+           func crossFn,
+           func mutateFn,
+           func cloneFn,
+           bool verbose) as Individual
+
+    array<Individual> pop = array[]
+    int i = 0
+    while i < cfg.populationSize do
+        pop.append(Individual(initFn()))
+        i += 1
+    end
+    gaEvaluate(pop, evalFn)
+    gaSort(pop)
+
+    int g = 0
+    while g < cfg.generations do
+        if verbose then
+            if g % 50 == 0 or g == cfg.generations - 1 then
+                println("  gen " + string(g) +
+                        "  best=" + string.formatFloat(pop[0].fitness, ".6") +
+                        "  avg=" + string.formatFloat(gaAvgFitness(pop), ".6"))
+            end
+        end
+
+        array<Individual> newPop = array[]
+        int eliteCount = int(float(cfg.populationSize) * cfg.elitismRate)
+        if eliteCount < 1 then
+            eliteCount = 1
+        end
+        if eliteCount > cfg.populationSize then
+            eliteCount = cfg.populationSize
+        end
+        int e = 0
+        while e < eliteCount do
+            newPop.append(pop[e])
+            e += 1
+        end
+
+        while newPop.length < cfg.populationSize do
+            Individual p1 = gaSelect(pop, cfg)
+            Individual p2 = gaSelect(pop, cfg)
+            var childChrom = array[]
+            if randFloat() < cfg.crossoverRate then
+                childChrom = crossFn(p1.chromosome, p2.chromosome)
+            else
+                childChrom = cloneFn(p1.chromosome)
+            end
+            childChrom = mutateFn(childChrom)
+            newPop.append(Individual(childChrom))
+        end
+
+        pop = newPop
+        gaEvaluate(pop, evalFn)
+        gaSort(pop)
+        g += 1
+    end
+
+    if verbose then
+        println("  gen " + string(cfg.generations) +
+                "  best=" + string.formatFloat(pop[0].fitness, ".6") +
+                "  avg=" + string.formatFloat(gaAvgFitness(pop), ".6"))
+    end
+    return pop[0]
+end
+
+// ============================================================
+// 公用工具
+// ============================================================
+
+// 由扁平坐标 [x0,y0,x1,y1,...] 构造 n*n 距离矩阵（扁平）。
+func buildDistMatrix(array<float> coords, int n) as array<float>
+    array<float> dist = array[]
+    int total = n * n
+    int z = 0
+    while z < total do
+        dist.push(0.0)
+        z += 1
+    end
+    int i = 0
+    while i < n do
+        int j = 0
+        while j < n do
+            float dx = coords[i * 2] - coords[j * 2]
+            float dy = coords[i * 2 + 1] - coords[j * 2 + 1]
+            dist[i * n + j] = math.sqrt(dx * dx + dy * dy)
+            j += 1
+        end
+        i += 1
+    end
+    return dist
+end
+
+// 给定排列染色体，计算回路总长（含回到起点）。
+func tourLength(var c, array<float> dist, int n) as float
+    float total = 0.0
+    int k = 0
+    while k < n do
+        int a = int(c[k])
+        int b = int(c[(k + 1) % n])
+        total += dist[a * n + b]
+        k += 1
+    end
+    return total
+end
+
+// 判断染色体是否为 0..n-1 的合法排列。
+func isValidPermutation(var c, int n) as bool
+    array<int> seen = array[]
+    int z = 0
+    while z < n do
+        seen.push(0)
+        z += 1
+    end
+    int i = 0
+    while i < n do
+        int v = int(c[i])
+        if v < 0 or v >= n then
+            return false
+        end
+        if seen[v] == 1 then
+            return false
+        end
+        seen[v] = 1
+        i += 1
+    end
+    return true
+end
+
+func printRoute(var c, int n)
+    print("  route: ")
+    int i = 0
+    while i < n do
+        if i > 0 then
+            print(" -> ")
+        end
+        print(int(c[i]))
+        i += 1
+    end
+    print(" -> ")
+    print(int(c[0]))
+    println()
+end
+
+func printVector(var c)
+    print("  x = [")
+    int i = 0
+    int n = c.length
+    while i < n do
+        if i > 0 then
+            print(", ")
+        end
+        print(string.formatFloat(float(c[i]), ".4"))
+        i += 1
+    end
+    println("]")
+end
+
+// ============================================================
+// JSON 加载（TSP 城市）
+//   支持三种格式：
+//     [[x,y],[x,y],...]                      裸数组
+//     {"cities":[[x,y],...]}                 带键
+//     {"cities":[{"x":..,"y":..},...]}       对象数组
+// ============================================================
+
+func loadCities(string path) as array<float>
+    if not file.exists(path) then
+        throw "file not found: " + path
+    end
+    string text = file.readText(path)
+    var root = json.parse(text)
+    if root == null then
+        throw "invalid JSON: " + path
+    end
+    var cities = root
+    if root.contains("cities") then
+        cities = root["cities"]
+    end
+    int n = cities.length
+    if n < 2 then
+        throw "need at least 2 cities, got " + string(n)
+    end
+    array<float> coords = array[]
+    int i = 0
+    while i < n do
+        var item = cities[i]
+        float x = 0.0
+        float y = 0.0
+        if item.contains("x") then
+            x = float(item["x"])
+            y = float(item["y"])
+        else
+            x = float(item[0])
+            y = float(item[1])
+        end
+        coords.push(x)
+        coords.push(y)
+        i += 1
+    end
+    return coords
+end
+
+// ============================================================
+// 问题模块 1：OneMax（二进制串，最大化 1 的个数）
+// ============================================================
+
+func runOneMax(int N, GAConfig cfg, bool verbose) as Individual
+    int geneLen = N
+    float mRate = cfg.mutationRate
+
+    func initFn = func() as var
+        array<int> chrom = array[]
+        int i = 0
+        while i < geneLen do
+            chrom.push(random.range(0, 1))
+            i += 1
+        end
+        return chrom
+    end
+
+    func(var) as float evalFn = func(var c) as float
+        int sum = 0
+        int i = 0
+        int n = c.length
+        while i < n do
+            sum += int(c[i])
+            i += 1
+        end
+        return float(sum)
+    end
+
+    func crossFn = func(var a, var b) as var
+        int n = a.length
+        int cut = random.range(0, n - 1)
+        array<int> child = array[]
+        int i = 0
+        while i < cut do
+            child.push(int(a[i]))
+            i += 1
+        end
+        while i < n do
+            child.push(int(b[i]))
+            i += 1
+        end
+        return child
+    end
+
+    func mutateFn = func(var c) as var
+        int n = c.length
+        array<int> child = array[]
+        int i = 0
+        while i < n do
+            int bit = int(c[i])
+            if randFloat() < mRate then
+                bit = 1 - bit
+            end
+            child.push(bit)
+            i += 1
+        end
+        return child
+    end
+
+    func cloneFn = func(var c) as var
+        int n = c.length
+        array<int> child = array[]
+        int i = 0
+        while i < n do
+            child.push(int(c[i]))
+            i += 1
+        end
+        return child
+    end
+
+    return gaRun(cfg, initFn, evalFn, crossFn, mutateFn, cloneFn, verbose)
+end
+
+// ============================================================
+// 问题模块 2：函数优化 最大化 f(x) = sum(xi * sin(xi))，xi in [lo, hi]
+// ============================================================
+
+func runFuncOpt(int D, float lo, float hi, GAConfig cfg, bool verbose) as Individual
+    int dim = D
+    float lower = lo
+    float upper = hi
+    float span = hi - lo
+    float mRate = cfg.mutationRate
+
+    func initFn = func() as var
+        array<float> chrom = array[]
+        int i = 0
+        while i < dim do
+            chrom.push(randFloatRange(lower, upper))
+            i += 1
+        end
+        return chrom
+    end
+
+    func(var) as float evalFn = func(var c) as float
+        float sum = 0.0
+        int i = 0
+        int n = c.length
+        while i < n do
+            float x = float(c[i])
+            sum += x * math.sin(x)
+            i += 1
+        end
+        return sum
+    end
+
+    // 整体算术交叉：child = alpha*a + (1-alpha)*b
+    func crossFn = func(var a, var b) as var
+        int n = a.length
+        float alpha = randFloat()
+        array<float> child = array[]
+        int i = 0
+        while i < n do
+            float va = float(a[i])
+            float vb = float(b[i])
+            child.push(alpha * va + (1.0 - alpha) * vb)
+            i += 1
+        end
+        return child
+    end
+
+    // 高斯变异：被选中基因加 N(0,1)*0.1*span，并夹到 [lo,hi]。
+    func mutateFn = func(var c) as var
+        int n = c.length
+        array<float> child = array[]
+        int i = 0
+        while i < n do
+            float v = float(c[i])
+            if randFloat() < mRate then
+                v = v + randGauss() * span * 0.1
+                if v < lower then
+                    v = lower
+                end
+                if v > upper then
+                    v = upper
+                end
+            end
+            child.push(v)
+            i += 1
+        end
+        return child
+    end
+
+    func cloneFn = func(var c) as var
+        int n = c.length
+        array<float> child = array[]
+        int i = 0
+        while i < n do
+            child.push(float(c[i]))
+            i += 1
+        end
+        return child
+    end
+
+    return gaRun(cfg, initFn, evalFn, crossFn, mutateFn, cloneFn, verbose)
+end
+
+// ============================================================
+// 问题模块 3：TSP（排列染色体，最小化回路 -> 最大化 1/(1+len)）
+// ============================================================
+
+func runTSP(array<float> coords, int ncities, GAConfig cfg, bool verbose) as Individual
+    int n = ncities
+    array<float> dist = buildDistMatrix(coords, n)
+    float mRate = cfg.mutationRate
+
+    // 随机排列初始化（Fisher-Yates 洗牌）
+    func initFn = func() as var
+        array<int> perm = array[]
+        int i = 0
+        while i < n do
+            perm.push(i)
+            i += 1
+        end
+        int s = n - 1
+        while s > 0 do
+            int r = random.range(0, s)
+            int tmp = perm[s]
+            perm[s] = perm[r]
+            perm[r] = tmp
+            s -= 1
+        end
+        return perm
+    end
+
+    func(var) as float evalFn = func(var c) as float
+        return 1.0 / (1.0 + tourLength(c, dist, n))
+    end
+
+    // 顺序交叉 OX：拷贝 a 的 [start,end] 段，其余按 b 顺序填入。
+    func crossFn = func(var a, var b) as var
+        int start = random.range(0, n - 1)
+        int end = random.range(0, n - 1)
+        if start > end then
+            int t = start
+            start = end
+            end = t
+        end
+        array<int> child = array[]
+        int k = 0
+        while k < n do
+            child.push(-1)
+            k += 1
+        end
+        k = start
+        while k <= end do
+            child[k] = int(a[k])
+            k += 1
+        end
+        int fill = (end + 1) % n
+        int bi = (end + 1) % n
+        while fill != start do
+            int gene = int(b[bi])
+            bool present = false
+            int ci = 0
+            while ci < n do
+                if child[ci] == gene then
+                    present = true
+                end
+                ci += 1
+            end
+            if not present then
+                child[fill] = gene
+                fill = (fill + 1) % n
+            end
+            bi = (bi + 1) % n
+        end
+        return child
+    end
+
+    // 段反转变异（2-opt 风格，对 TSP 极有效）：以概率 mRate 反转一段。
+    func mutateFn = func(var c) as var
+        array<int> child = array[]
+        int k = 0
+        while k < n do
+            child.push(int(c[k]))
+            k += 1
+        end
+        if randFloat() < mRate then
+            int i1 = random.range(0, n - 1)
+            int i2 = random.range(0, n - 1)
+            if i1 > i2 then
+                int t = i1
+                i1 = i2
+                i2 = t
+            end
+            while i1 < i2 do
+                int tmp = child[i1]
+                child[i1] = child[i2]
+                child[i2] = tmp
+                i1 += 1
+                i2 -= 1
+            end
+        end
+        return child
+    end
+
+    func cloneFn = func(var c) as var
+        array<int> child = array[]
+        int k = 0
+        while k < n do
+            child.push(int(c[k]))
+            k += 1
+        end
+        return child
+    end
+
+    return gaRun(cfg, initFn, evalFn, crossFn, mutateFn, cloneFn, verbose)
+end
+
+// ============================================================
+// 暴力最优 TSP（小规模，用于 test 比对）
+// ============================================================
+
+float gBestLen
+
+func bfRec(array<float> dist, int n, int startCity, int prev, int count, float curLen, array<int> visited)
+    if count == n then
+        float total = curLen + dist[prev * n + startCity]
+        if total < gBestLen then
+            gBestLen = total
+        end
+        return
+    end
+    int k = 0
+    while k < n do
+        if visited[k] == 0 then
+            visited[k] = 1
+            bfRec(dist, n, startCity, k, count + 1, curLen + dist[prev * n + k], visited)
+            visited[k] = 0
+        end
+        k += 1
+    end
+end
+
+func bruteForceTSP(array<float> coords, int n) as float
+    array<float> dist = buildDistMatrix(coords, n)
+    array<int> visited = array[]
+    int i = 0
+    while i < n do
+        visited.push(0)
+        i += 1
+    end
+    visited[0] = 1
+    gBestLen = 1.0e18
+    bfRec(dist, n, 0, 0, 1, 0.0, visited)
+    return gBestLen
+end
+
+// ============================================================
+// 自检
+// ============================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func pass(string name)
+    g_pass += 1
+    println("[ PASS ] " + name)
+end
+
+func fail(string name, string detail)
+    g_fail += 1
+    println("[ FAIL ] " + name + " : " + detail)
+end
+
+func runTests() as int
+    println("=== genetic self-test ===")
+
+    // ---- OneMax：应收敛到全 1 ----
+    int N = 32
+    GAConfig om = GAConfig()
+    om.populationSize = 80
+    om.generations = 150
+    om.crossoverRate = 0.9
+    om.mutationRate = 0.02
+    om.elitismRate = 0.1
+    om.selection = "tournament"
+    om.tournamentSize = 3
+    Individual omBest = runOneMax(N, om, false)
+    println("OneMax N=" + string(N) + " best=" + string.formatFloat(omBest.fitness, ".0"))
+    if omBest.fitness >= float(N) - 1.0 then
+        pass("OneMax converges to near-optimal (>= " + string(N - 1) + ")")
+    else
+        fail("OneMax", "best=" + string(omBest.fitness) + " expected >= " + string(N - 1))
+    end
+
+    // ---- FuncOpt：GA 应优于单个随机个体 ----
+    GAConfig fc = GAConfig()
+    fc.populationSize = 80
+    fc.generations = 200
+    fc.crossoverRate = 0.85
+    fc.mutationRate = 0.25
+    fc.elitismRate = 0.1
+    fc.selection = "tournament"
+    fc.tournamentSize = 3
+    Individual fcBest = runFuncOpt(5, 0.0, 10.0, fc, false)
+    // 基线：单个随机个体
+    array<float> sample = array[]
+    int si = 0
+    while si < 5 do
+        sample.push(randFloatRange(0.0, 10.0))
+        si += 1
+    end
+    float baseline = 0.0
+    si = 0
+    while si < 5 do
+        float x = sample[si]
+        baseline += x * math.sin(x)
+        si += 1
+    end
+    println("FuncOpt best=" + string.formatFloat(fcBest.fitness, ".4") +
+            " random-baseline=" + string.formatFloat(baseline, ".4"))
+    if fcBest.fitness > baseline then
+        pass("FuncOpt GA beats random baseline")
+    else
+        fail("FuncOpt", "best=" + string(fcBest.fitness) + " <= baseline " + string(baseline))
+    end
+
+    // ---- TSP：与暴力最优比对（n=6）----
+    array<float> coords = array[
+        0.0, 0.0,
+        10.0, 0.0,
+        10.0, 10.0,
+        0.0, 10.0,
+        5.0, 2.0,
+        5.0, 8.0
+    ]
+    int tn = 6
+    float optimal = bruteForceTSP(coords, tn)
+    GAConfig tp = GAConfig()
+    tp.populationSize = 80
+    tp.generations = 300
+    tp.crossoverRate = 0.9
+    tp.mutationRate = 0.5
+    tp.elitismRate = 0.15
+    tp.selection = "tournament"
+    tp.tournamentSize = 5
+    Individual tspBest = runTSP(coords, tn, tp, false)
+    array<float> tdist = buildDistMatrix(coords, tn)
+    float gaLen = tourLength(tspBest.chromosome, tdist, tn)
+    bool valid = isValidPermutation(tspBest.chromosome, tn)
+    println("TSP n=" + string(tn) + " brute-optimal=" + string.formatFloat(optimal, ".4") +
+            " GA-len=" + string.formatFloat(gaLen, ".4") + " valid=" + string(valid))
+    if not valid then
+        fail("TSP route validity", "best tour is not a valid permutation")
+    else
+        pass("TSP route is a valid permutation")
+    end
+    if gaLen <= optimal * 1.5 then
+        pass("TSP GA within 1.5x of optimum")
+    else
+        fail("TSP quality", "GA=" + string(gaLen) + " optimal=" + string(optimal))
+    end
+
+    // ---- 轮盘赌选择冒烟测试（OneMax 小规模，确保不崩且能收敛）----
+    GAConfig rl = GAConfig()
+    rl.populationSize = 50
+    rl.generations = 100
+    rl.crossoverRate = 0.9
+    rl.mutationRate = 0.02
+    rl.elitismRate = 0.1
+    rl.selection = "roulette"
+    rl.tournamentSize = 3
+    Individual rlBest = runOneMax(24, rl, false)
+    if rlBest.fitness >= 22.0 then
+        pass("Roulette-wheel selection works")
+    else
+        fail("Roulette selection", "best=" + string(rlBest.fitness))
+    end
+
+    println("")
+    println(string(g_pass) + " passed, " + string(g_fail) + " failed")
+    if g_fail > 0 then
+        return 1
+    end
+    return 0
+end
+
+// ============================================================
+// 入口
+// ============================================================
+
+func printUsage()
+    println("genetic - generic genetic-algorithm solver")
+    println("Usage:")
+    println("  genetic onemax [N=100]                       maximize count of 1-bits")
+    println("  genetic tsp    <cities.json> [gens=500] [pop=100]   shortest tour")
+    println("  genetic func   [D=5] [gens=300]              maximize sum(xi*sin(xi))")
+    println("  genetic test                                 self-test")
+    println("Cities JSON formats:")
+    println('  [[x,y],[x,y],...]                 bare array of pairs')
+    println('  {"cities":[[x,y],...]}            wrapped')
+    println('  {"cities":[{"x":0,"y":0},...]}    object array')
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    // 固定种子，保证 xl run 与 built exe 输出一致。
+    random.seed(uint64(20260710), uint64(1))
+
+    if cmd == "test" then
+        return runTests()
+    end
+
+    if cmd == "onemax" then
+        int N = 100
+        if arg.length >= 3 then
+            N = int(arg[2])
+        end
+        if N < 2 then
+            println("Error: N must be >= 2")
+            return 1
+        end
+        GAConfig cfg = GAConfig()
+        cfg.populationSize = 80
+        cfg.generations = 200
+        cfg.crossoverRate = 0.9
+        cfg.mutationRate = 0.02
+        if N >= 50 then
+            cfg.mutationRate = 1.0 / float(N)
+        end
+        cfg.elitismRate = 0.1
+        cfg.selection = "tournament"
+        cfg.tournamentSize = 3
+        println("OneMax  N=" + string(N) + "  pop=" + string(cfg.populationSize) +
+                "  gens=" + string(cfg.generations))
+        Individual best = runOneMax(N, cfg, true)
+        println("Best fitness: " + string.formatFloat(best.fitness, ".0") + " / " + string(N))
+        return 0
+    end
+
+    if cmd == "func" then
+        int D = 5
+        int gens = 300
+        if arg.length >= 3 then
+            D = int(arg[2])
+        end
+        if arg.length >= 4 then
+            gens = int(arg[3])
+        end
+        if D < 1 then
+            println("Error: D must be >= 1")
+            return 1
+        end
+        GAConfig cfg = GAConfig()
+        cfg.populationSize = 100
+        cfg.generations = gens
+        cfg.crossoverRate = 0.85
+        cfg.mutationRate = 0.25
+        cfg.elitismRate = 0.1
+        cfg.selection = "tournament"
+        cfg.tournamentSize = 3
+        println("FuncOpt  f(x)=sum(xi*sin(xi))  D=" + string(D) +
+                "  xi in [0,10]  pop=" + string(cfg.populationSize) +
+                "  gens=" + string(gens))
+        Individual best = runFuncOpt(D, 0.0, 10.0, cfg, true)
+        println("Best f(x): " + string.formatFloat(best.fitness, ".6"))
+        printVector(best.chromosome)
+        return 0
+    end
+
+    if cmd == "tsp" then
+        if arg.length < 3 then
+            println("Error: 'tsp' needs <cities.json>")
+            return 1
+        end
+        string path = string(arg[2])
+        int gens = 500
+        int popSize = 100
+        if arg.length >= 4 then
+            gens = int(arg[3])
+        end
+        if arg.length >= 5 then
+            popSize = int(arg[4])
+        end
+        array<float> coords = array[]
+        try
+            coords = loadCities(path)
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+        int n = coords.length / 2
+        if n < 3 then
+            println("Error: need at least 3 cities, got " + string(n))
+            return 1
+        end
+        if popSize < 4 then
+            popSize = 4
+        end
+        GAConfig cfg = GAConfig()
+        cfg.populationSize = popSize
+        cfg.generations = gens
+        cfg.crossoverRate = 0.9
+        cfg.mutationRate = 0.5
+        cfg.elitismRate = 0.1
+        cfg.selection = "tournament"
+        cfg.tournamentSize = 5
+        println("TSP  cities=" + string(n) + "  pop=" + string(popSize) +
+                "  gens=" + string(gens))
+        Individual best = runTSP(coords, n, cfg, true)
+        array<float> dist = buildDistMatrix(coords, n)
+        float len = tourLength(best.chromosome, dist, n)
+        println("Best tour length: " + string.formatFloat(len, ".4"))
+        printRoute(best.chromosome, n)
+        return 0
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

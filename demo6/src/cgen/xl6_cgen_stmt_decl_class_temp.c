@@ -45,6 +45,8 @@ static void xl6CgenDeclDestroyTemporaryClassValue(XL6_CgenContext* ctx, const XL
 
 typedef struct XL6_CgenDeclClassArgTemp {
     int active;
+    int isConstructor;
+    int isUpcast;
     const XL6_AstNode* expr;
     XL6_AstNode* valueType;
     XL6_AstNode* functionType;
@@ -86,6 +88,8 @@ static int xl6CgenDeclPrepareClassArgTemp(
         return 0;
     }
     temp->active = 0;
+    temp->isConstructor = 0;
+    temp->isUpcast = 0;
     temp->expr = NULL;
     temp->valueType = NULL;
     temp->functionType = NULL;
@@ -94,19 +98,51 @@ static int xl6CgenDeclPrepareClassArgTemp(
     temp->functionName[0] = '\0';
 
     functionType = xl6CgenCloneMemberFunctionCallTypeForStatementInvoke(ctx, expr);
-    if ( functionType == NULL ) {
-        return 0;
+    returnCanonical = NULL;
+    classNode = NULL;
+    if ( functionType != NULL ) {
+        returns = xl6CgenFunctionReturnTypes(functionType);
+        returnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
+        returnCanonical = xl6CgenCloneCanonicalTypeNode(ctx, returnType);
+        classNode = xl6CgenClassNodeForType(ctx, returnCanonical);
+    } else {
+        XL6_AstNode* ctorClass = NULL;
+        XL6_AstNode* genericType = NULL;
+
+        if ( xl6CgenCallIsClassCtor(ctx, expr, &ctorClass) ) {
+            returnCanonical = xl6CgenCloneExprTypeForInference(ctx, expr);
+            classNode = ctorClass;
+        } else {
+            genericType = xl6CgenGenericClassCtorType(ctx, expr, &ctorClass);
+            if ( genericType != NULL ) {
+                returnCanonical = xl6CgenCloneCanonicalTypeNode(ctx, genericType);
+                classNode = ctorClass;
+            }
+            xl6AstFree(genericType);
+        }
+        if ( returnCanonical == NULL || classNode == NULL ) {
+            xl6AstFree(returnCanonical);
+            return 0;
+        }
+        temp->isConstructor = 1;
     }
 
-    returns = xl6CgenFunctionReturnTypes(functionType);
-    returnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
-    paramCanonical = xl6CgenCloneCanonicalTypeNode(ctx, paramType);
-    returnCanonical = xl6CgenCloneCanonicalTypeNode(ctx, returnType);
-    classNode = xl6CgenClassNodeForType(ctx, returnCanonical);
-    matches = paramCanonical != NULL &&
-              returnCanonical != NULL &&
+    paramCanonical = paramType != NULL ? xl6CgenCloneCanonicalTypeNode(ctx, paramType) : NULL;
+    matches = returnCanonical != NULL &&
               classNode != NULL &&
-              xl6CgenTypeNodeEqual(paramCanonical, returnCanonical);
+              (paramCanonical == NULL || xl6CgenTypeNodeEqual(paramCanonical, returnCanonical));
+    if ( !matches && paramCanonical != NULL && returnCanonical != NULL &&
+         xl6CgenExprNeedsClassUpcast(ctx, paramCanonical, expr, NULL, 0, NULL, NULL) ) {
+        XL6_AstNode* targetClass = xl6CgenClassNodeForType(ctx, paramCanonical);
+        if ( targetClass != NULL ) {
+            xl6AstFree(returnCanonical);
+            returnCanonical = paramCanonical;
+            paramCanonical = NULL;
+            classNode = targetClass;
+            temp->isUpcast = 1;
+            matches = 1;
+        }
+    }
     xl6AstFree(paramCanonical);
     if ( !matches ) {
         xl6AstFree(returnCanonical);
@@ -159,49 +195,59 @@ static int xl6CgenDeclAppendClassArgTemp(XL6_CgenContext* ctx,
     return 1;
 }
 
+static void xl6CgenDeclCollectClassArgTempsInExprImpl(XL6_CgenContext* ctx,
+                                                      const XL6_AstNode* expr,
+                                                      int includeCurrent,
+                                                      XL6_CgenDeclClassArgTemp** temps,
+                                                      int* count,
+                                                      int* capacity)
+{
+    size_t i;
+
+    if ( ctx == NULL || expr == NULL ) {
+        return;
+    }
+
+    /*
+        匿名函数拥有独立的求值作用域。
+        外层扫描器不能提前物化函数体里的 class 临时值，否则会引用尚不存在的形参，
+        也会把调用时副作用错误地提升到闭包创建时。
+    */
+    if ( expr->kind == XL6_AST_ANON_FUNC ) {
+        return;
+    }
+
+    /*
+        条件、短路逻辑和空合并只会求值部分分支，不能把分支中的构造提前到外层。
+        这些节点必须由各自的语句级 lowering 保持惰性求值。
+    */
+    if ( expr->kind == XL6_AST_CONDITIONAL ||
+         (expr->kind == XL6_AST_BINARY &&
+          (xl6CTextEquals(expr->text, "and") ||
+           xl6CTextEquals(expr->text, "or") ||
+           xl6CTextEquals(expr->text, "??"))) ) {
+        return;
+    }
+
+    /*
+        子表达式先于父表达式物化，确保多层嵌套构造按源码求值顺序完成。
+        根表达式由它所在的声明、return 或调用语句接管，这里只收集内部 class 值。
+    */
+    for ( i = 0; i < expr->childCount; ++i ) {
+        xl6CgenDeclCollectClassArgTempsInExprImpl(ctx, expr->children[i], 1, temps, count, capacity);
+    }
+    if ( includeCurrent ) {
+        (void)xl6CgenDeclAppendClassArgTemp(ctx, temps, count, capacity, NULL, expr);
+    }
+}
+
 static void xl6CgenDeclCollectClassArgTempsInExpr(XL6_CgenContext* ctx,
                                                   const XL6_AstNode* expr,
                                                   XL6_CgenDeclClassArgTemp** temps,
                                                   int* count,
                                                   int* capacity)
 {
-    const XL6_AstNode* callee;
-    const XL6_AstNode* args;
-    const XL6_AstNode* params;
-    XL6_AstNode* inferredArgs;
-    XL6_AstNode* func;
-    int fixedCount;
-    int i;
-
-    if ( ctx == NULL || expr == NULL ) {
-        return;
-    }
-
-    if ( expr->kind == XL6_AST_CALL && expr->childCount > 0 ) {
-        callee = expr->children[0];
-        if ( callee != NULL && callee->kind == XL6_AST_NAME ) {
-            inferredArgs = NULL;
-            func = xl6CgenResolveCallFuncInternal(ctx, expr, callee->text, &inferredArgs, 0);
-            if ( inferredArgs == NULL && func != NULL ) {
-                params = func->childCount > 1 ? func->children[1] : NULL;
-                fixedCount = xl6CgenFixedParamCount(params);
-                if ( params == NULL || params->childCount == (size_t)fixedCount ) {
-                    args = expr->childCount > 1 ? expr->children[1] : NULL;
-                    for ( i = 0; i < fixedCount; ++i ) {
-                        const XL6_AstNode* param = params->children[i];
-                        const XL6_AstNode* paramType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
-                        const XL6_AstNode* argExpr = param != NULL ? xl6CgenFindArgForParam(args, param->text, i) : NULL;
-                        xl6CgenDeclAppendClassArgTemp(ctx, temps, count, capacity, paramType, argExpr);
-                    }
-                }
-            }
-            xl6AstFree(inferredArgs);
-        }
-    }
-
-    for ( i = 0; i < (int)expr->childCount; ++i ) {
-        xl6CgenDeclCollectClassArgTempsInExpr(ctx, expr->children[i], temps, count, capacity);
-    }
+    xl6CgenDeclCollectClassArgTempsInExprImpl(ctx, expr, 0, temps, count, capacity);
 }
 
 static void xl6CgenDeclEmitClassArgTemps(XL6_CgenContext* ctx,
@@ -209,14 +255,35 @@ static void xl6CgenDeclEmitClassArgTemps(XL6_CgenContext* ctx,
                                          int count,
                                          int firstLineAlreadyIndented)
 {
+    XL6_CgenExprReplacement* dependencies;
+    const XL6_CgenExprReplacement* savedReplacements;
+    size_t savedReplacementCount;
+    size_t dependencyCapacity;
+    size_t emittedCount;
     int i;
     int firstOutput;
 
+    savedReplacements = ctx != NULL ? ctx->exprReplacements : NULL;
+    savedReplacementCount = ctx != NULL ? ctx->exprReplacementCount : 0;
+    dependencyCapacity = savedReplacementCount + (count > 0 ? (size_t)count : 0);
+    dependencies = dependencyCapacity > 0 ?
+                   (XL6_CgenExprReplacement*)xrtMalloc(dependencyCapacity * sizeof(XL6_CgenExprReplacement)) : NULL;
+    if ( dependencyCapacity > 0 && dependencies == NULL ) {
+        xl6CgenError(ctx, NULL, "out of memory while preparing nested class dependencies");
+        return;
+    }
+    for ( i = 0; i < (int)savedReplacementCount; ++i ) {
+        dependencies[i] = savedReplacements[i];
+    }
+
     firstOutput = 1;
+    emittedCount = 0;
     for ( i = 0; i < count; ++i ) {
         if ( !temps[i].active ) {
             continue;
         }
+        ctx->exprReplacements = dependencies;
+        ctx->exprReplacementCount = savedReplacementCount + emittedCount;
         if ( firstOutput ) {
             if ( !firstLineAlreadyIndented ) {
                 xl6CgenIndent(ctx);
@@ -226,12 +293,28 @@ static void xl6CgenDeclEmitClassArgTemps(XL6_CgenContext* ctx,
             xl6CgenIndent(ctx);
         }
         xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, temps[i].valueType), temps[i].valueName);
-        xl6CgenEmitMemberFunctionStatementTemp(ctx, temps[i].expr, temps[i].functionName);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = ", temps[i].valueName);
-        xl6CgenMemberFunctionStatementInvokeExpr(ctx, temps[i].expr, temps[i].functionType, temps[i].functionName);
-        xl6OutputPuts(";\n", ctx->out);
+        if ( temps[i].isConstructor ) {
+            if ( !xl6CgenEmitClassCtorInto(ctx, temps[i].expr, temps[i].valueName) ) {
+                xl6CgenError(ctx, temps[i].expr, "nested class constructor lowering failed");
+            }
+        } else if ( temps[i].isUpcast ) {
+            if ( !xl6CgenClassUpcastStmt(ctx, temps[i].valueType, temps[i].expr, temps[i].valueName) ) {
+                xl6CgenError(ctx, temps[i].expr, "nested class upcast lowering failed");
+            }
+        } else {
+            xl6CgenEmitMemberFunctionStatementTemp(ctx, temps[i].expr, temps[i].functionName);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = ", temps[i].valueName);
+            xl6CgenMemberFunctionStatementInvokeExpr(ctx, temps[i].expr, temps[i].functionType, temps[i].functionName);
+            xl6OutputPuts(";\n", ctx->out);
+        }
+        dependencies[savedReplacementCount + emittedCount].expr = temps[i].expr;
+        dependencies[savedReplacementCount + emittedCount].cName = temps[i].valueName;
+        emittedCount += 1;
     }
+    ctx->exprReplacements = savedReplacements;
+    ctx->exprReplacementCount = savedReplacementCount;
+    xrtFree(dependencies);
 }
 
 static void xl6CgenDeclDestroyClassArgTemps(XL6_CgenContext* ctx, XL6_CgenDeclClassArgTemp* temps, int count)
@@ -243,6 +326,78 @@ static void xl6CgenDeclDestroyClassArgTemps(XL6_CgenContext* ctx, XL6_CgenDeclCl
             xl6CgenDeclDestroyTemporaryClassValue(ctx, temps[i].classNode, temps[i].valueType, temps[i].valueName);
         }
     }
+}
+
+typedef struct XL6_CgenClassExprTempScope {
+    XL6_CgenDeclClassArgTemp* temps;
+    XL6_CgenExprReplacement* replacements;
+    const XL6_CgenExprReplacement* savedReplacements;
+    size_t savedReplacementCount;
+    int count;
+    int capacity;
+    int active;
+} XL6_CgenClassExprTempScope;
+
+static int xl6CgenClassExprTempScopeBegin(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* expr,
+    XL6_CgenClassExprTempScope* scope)
+{
+    size_t totalCount;
+    int i;
+
+    if ( scope == NULL ) {
+        return 0;
+    }
+    memset(scope, 0, sizeof(*scope));
+    if ( ctx == NULL || expr == NULL ) {
+        return 0;
+    }
+
+    xl6CgenDeclCollectClassArgTempsInExpr(ctx, expr, &scope->temps, &scope->count, &scope->capacity);
+    if ( scope->count <= 0 ) {
+        xl6CgenDeclFreeClassArgTemps(scope->temps, scope->count);
+        memset(scope, 0, sizeof(*scope));
+        return 0;
+    }
+
+    scope->savedReplacements = ctx->exprReplacements;
+    scope->savedReplacementCount = ctx->exprReplacementCount;
+    totalCount = scope->savedReplacementCount + (size_t)scope->count;
+    scope->replacements = (XL6_CgenExprReplacement*)xrtMalloc(totalCount * sizeof(XL6_CgenExprReplacement));
+    if ( scope->replacements == NULL ) {
+        xl6CgenError(ctx, expr, "out of memory while preparing class expression temporaries");
+        xl6CgenDeclFreeClassArgTemps(scope->temps, scope->count);
+        memset(scope, 0, sizeof(*scope));
+        return 0;
+    }
+    for ( i = 0; i < (int)scope->savedReplacementCount; ++i ) {
+        scope->replacements[i] = scope->savedReplacements[i];
+    }
+    for ( i = 0; i < scope->count; ++i ) {
+        scope->replacements[scope->savedReplacementCount + (size_t)i].expr = scope->temps[i].expr;
+        scope->replacements[scope->savedReplacementCount + (size_t)i].cName = scope->temps[i].valueName;
+    }
+
+    xl6CgenDeclEmitClassArgTemps(ctx, scope->temps, scope->count, 0);
+    ctx->exprReplacements = scope->replacements;
+    ctx->exprReplacementCount = totalCount;
+    scope->active = 1;
+    return 1;
+}
+
+static void xl6CgenClassExprTempScopeEnd(XL6_CgenContext* ctx, XL6_CgenClassExprTempScope* scope)
+{
+    if ( ctx == NULL || scope == NULL || !scope->active ) {
+        return;
+    }
+
+    ctx->exprReplacements = scope->savedReplacements;
+    ctx->exprReplacementCount = scope->savedReplacementCount;
+    xl6CgenDeclDestroyClassArgTemps(ctx, scope->temps, scope->count);
+    xrtFree(scope->replacements);
+    xl6CgenDeclFreeClassArgTemps(scope->temps, scope->count);
+    memset(scope, 0, sizeof(*scope));
 }
 
 static XL6_CgenExprReplacement* xl6CgenDeclCreateExprReplacements(XL6_CgenContext* ctx, XL6_CgenDeclClassArgTemp* temps, int count)
@@ -350,7 +505,11 @@ static void xl6CgenDeclEmitKnownStatementCallSymbol(XL6_CgenContext* ctx, const 
         return;
     }
     if ( func->kind == XL6_AST_EXTERN_FUNC ) {
-        xl6CgenCStringSymbol(ctx->out, func->text);
+        if ( xl6CgenExternCallNeedsWrapper(ctx, func) ) {
+            xl6CgenExternCallWrapperSymbol(ctx, func);
+        } else {
+            xl6CgenCStringSymbol(ctx->out, func->text);
+        }
     } else if ( func->kind == XL6_AST_EXPORT_FUNC ) {
         xl6CgenExportInternalSymbol(ctx, func);
     } else {
@@ -445,11 +604,21 @@ static int xl6CgenDeclTryTemporaryClassArgInit(
         }
         firstOutput = 0;
         xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, temps[i].valueType), temps[i].valueName);
-        xl6CgenEmitMemberFunctionStatementTemp(ctx, expr, temps[i].functionName);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = ", temps[i].valueName);
-        xl6CgenMemberFunctionStatementInvokeExpr(ctx, expr, temps[i].functionType, temps[i].functionName);
-        xl6OutputPuts(";\n", ctx->out);
+        if ( temps[i].isConstructor ) {
+            if ( !xl6CgenEmitClassCtorInto(ctx, expr, temps[i].valueName) ) {
+                xl6CgenError(ctx, expr, "class argument constructor lowering failed");
+            }
+        } else if ( temps[i].isUpcast ) {
+            if ( !xl6CgenClassUpcastStmt(ctx, temps[i].valueType, expr, temps[i].valueName) ) {
+                xl6CgenError(ctx, expr, "class argument upcast lowering failed");
+            }
+        } else {
+            xl6CgenEmitMemberFunctionStatementTemp(ctx, expr, temps[i].functionName);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = ", temps[i].valueName);
+            xl6CgenMemberFunctionStatementInvokeExpr(ctx, expr, temps[i].functionType, temps[i].functionName);
+            xl6OutputPuts(";\n", ctx->out);
+        }
     }
 
     xl6CgenAddVarType(ctx, node->text, typeNode);

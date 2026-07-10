@@ -78,7 +78,7 @@ static void xl6CgenExportInternalProto(XL6_CgenContext* ctx, const XL6_AstNode* 
                 xl6CgenError(ctx, param, "当前 C 生成暂不支持可变参数 export 函数");
                 xl6OutputPuts("int ", ctx->out);
             } else {
-                xl6OutputPuts(xl6CgenTypeName(ctx, param->children[0]), ctx->out);
+                xl6OutputPuts(xl6CgenParamCType(ctx, param->children[0]), ctx->out);
                 xl6OutputPutc(' ', ctx->out);
             }
             xl6CgenFputsCIdent(ctx->out, param->text);
@@ -293,7 +293,7 @@ static void xl6CgenClassParamListEx(XL6_CgenContext* ctx, const XL6_AstNode* cla
             xl6CgenError(ctx, param, "class C 生成暂不支持可变参数方法");
             xl6OutputPuts("int ", ctx->out);
         } else {
-            xl6OutputPuts(xl6CgenTypeName(ctx, param->children[0]), ctx->out);
+            xl6OutputPuts(xl6CgenParamCType(ctx, param->children[0]), ctx->out);
             xl6OutputPutc(' ', ctx->out);
         }
         xl6CgenFputsCIdent(ctx->out, param->text);

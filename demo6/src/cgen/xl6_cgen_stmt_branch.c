@@ -54,7 +54,10 @@ static int xl6CgenEmitConditionTemp(
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "int %s = 0;\n", name);
     if ( !xl6CgenDeclEmitCallArgTemp(ctx, boolType, "int", name, expr) ) {
-        xl6CgenError(ctx, expr, "condition expression lowering failed");
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", name);
+        xl6CgenConditionExpr(ctx, expr);
+        xl6OutputPuts(";\n", ctx->out);
     }
     if ( hasTaskScope ) {
         xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);

@@ -1,0 +1,11 @@
+export func sumInternal(array<int> values) as int
+    int total = 0
+    for value in values
+        total = total + value
+    end
+    return total
+end
+
+array<int> values = [1, 2, 3, 4]
+assert sumInternal(values) == 10, "package export typed-container ABI failed"
+println("export typed container ABI ok")

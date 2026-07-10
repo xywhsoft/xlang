@@ -261,28 +261,68 @@ func issueLess(Issue a, Issue b) as bool
     if a.line != b.line then
         return a.line < b.line
     end
-    return a.rule < b.rule
+    if a.column != b.column then
+        return a.column < b.column
+    end
+    if a.rule != b.rule then
+        return a.rule < b.rule
+    end
+    if a.severity != b.severity then
+        return a.severity < b.severity
+    end
+    return a.message < b.message
+end
+
+func mergeIssueRuns(array<Issue> left, array<Issue> right) as array<Issue>
+    array<Issue> result = []
+    int li = 0
+    int ri = 0
+    while li < left.length and ri < right.length do
+        // 相等时保留左侧元素，保证排序稳定。
+        if issueLess(right[ri], left[li]) then
+            result.push(right[ri])
+            ri += 1
+        else
+            result.push(left[li])
+            li += 1
+        end
+    end
+    while li < left.length do
+        result.push(left[li])
+        li += 1
+    end
+    while ri < right.length do
+        result.push(right[ri])
+        ri += 1
+    end
+    return result
+end
+
+func mergeSortIssues(array<Issue> items) as array<Issue>
+    if items.length <= 1 then
+        return items
+    end
+
+    int middle = items.length / 2
+    array<Issue> left = []
+    array<Issue> right = []
+    int i = 0
+    while i < items.length do
+        if i < middle then
+            left.push(items[i])
+        else
+            right.push(items[i])
+        end
+        i += 1
+    end
+
+    left = mergeSortIssues(left)
+    right = mergeSortIssues(right)
+    return mergeIssueRuns(left, right)
 end
 
 func sortIssues()
-    int n = g_issues.length
-    int a = 0
-    while a < n do
-        int best = a
-        int b = a + 1
-        while b < n do
-            if issueLess(g_issues[b], g_issues[best]) then
-                best = b
-            end
-            b += 1
-        end
-        if best != a then
-            Issue tmp = g_issues[a]
-            g_issues[a] = g_issues[best]
-            g_issues[best] = tmp
-        end
-        a += 1
-    end
+    g_issues = mergeSortIssues(g_issues)
 end
 
 // ===== 命名判定 =====
@@ -494,7 +534,7 @@ func passA(var root, int depth0, bool skip0)
             end
         end
 
-        // ---- 压栈子节点（迭代 + 全 var 栈，避免递归/typed-array 泄漏）----
+        // ---- 压栈子节点（迭代遍历，避免深层 AST 消耗 C 调用栈）----
         if k == "var_decl" or k == "const_decl" then
             var ch = childrenOf(node)
             int idx = 0
@@ -645,14 +685,14 @@ func splitLinesSafe(string s) as array<string>
     return ls
 end
 
-func lintFile(string file)
-    g_curFile = file
-    if not file.exists(file) then
-        addIssue(0, 0, "xlint", "error", "file not found: " + file)
+func lintFile(string filePath)
+    g_curFile = filePath
+    if not file.exists(filePath) then
+        addIssue(0, 0, "xlint", "error", "file not found: " + filePath)
         return
     end
 
-    string src = file.readText(file)
+    string src = file.readText(filePath)
     array<string> lines = splitLinesSafe(src)
 
     if ruleOn("no-while-without-do") then
@@ -669,7 +709,7 @@ func lintFile(string file)
         return
     end
 
-    string absFile = path.abs(file)
+    string absFile = path.abs(filePath)
     string cmd = g_xl + " parse " + absFile + " --format json"
     ProcessResult r = process.run(cmd, 60000)
     if not r.success or string.len(string.trim(r.stdout)) == 0 then
@@ -848,15 +888,6 @@ func reportJson()
     println(json.stringify(arr))
 end
 
-// ===== 子进程命令构造（fan-out 多文件）=====
-
-func childCmd(string file, string arg0) as string
-    if string.endsWith(string.lower(arg0), ".exe") then
-        return arg0 + " " + file + " --format json --no-banner"
-    end
-    return g_xl + " run " + arg0 + " -- " + file + " --format json --no-banner"
-end
-
 // ===== 入口 =====
 
 func main(...) as int
@@ -962,35 +993,8 @@ func main(...) as int
         return 0
     end
 
-    // 多文件时采用 fan-out：每文件一个短命子进程，规避 xlang 运行时在
-    // 单进程内累积大量 var AST 造成的逐步变慢。
-    if files.length > 1 then
-        string arg0 = ""
-        if arg.length > 0 then
-            arg0 = string(arg[0])
-        end
-        for f in files
-            g_curFile = f
-            string cmd = childCmd(f, arg0)
-            ProcessResult cr = process.run(cmd, 120000)
-            string out = string.trim(cr.stdout)
-            if cr.success and string.len(out) > 0 then
-                try
-                    var arr = json.parse(out)
-                    if arr is array then
-                        for d in arr
-                            g_issues.push(Issue(string(d["file"]), int(d["line"]), int(d["column"]), string(d["rule"]), string(d["severity"]), string(d["message"])))
-                        end
-                    end
-                catch ce
-                    addIssue(0, 0, "xlint", "error", "child failed for " + f + ": " + ce.message)
-                end
-            else
-                addIssue(0, 0, "xlint", "error", "child run failed for " + f)
-            end
-        end
-    else
-        lintFile(files[0])
+    for f in files
+        lintFile(f)
     end
 
     sortIssues()

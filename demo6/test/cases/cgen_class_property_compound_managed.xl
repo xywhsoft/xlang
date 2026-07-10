@@ -1,0 +1,84 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class GenericBox<T>
+    T value
+
+    get item() as T
+        return self.value
+    end
+
+    let item(T value)
+        self.value = value
+    end
+end
+
+class Score
+    int value
+
+    create(int value)
+        self.value = value
+    end
+
+    func __add__(int delta) as Score
+        return Score(self.value + delta)
+    end
+end
+
+class ScoreBoard
+    Score current = Score(10)
+
+    get score() as Score
+        return self.current
+    end
+
+    let score(Score value)
+        self.current = value
+    end
+end
+
+class Inventory
+    array<int> stored = array[1, 2]
+
+    get items() as array<int>
+        return self.stored
+    end
+
+    let items(array<int> value)
+        self.stored = value
+    end
+end
+
+class Label
+    string value = "A"
+
+    get text() as string
+        return self.value
+    end
+
+    let text(string value)
+        self.value = value
+    end
+end
+
+GenericBox<int> number = GenericBox::<int>()
+number.item = 7
+number.item += 5
+expect(number.item, 12)
+
+ScoreBoard board = ScoreBoard()
+board.score += 6
+expect(board.score.value, 16)
+
+Inventory inventory = Inventory()
+inventory.items += array<int>[3, 4]
+expect(inventory.items.length, 4)
+expect(inventory.items[0], 1)
+expect(inventory.items[3], 4)
+
+Label label = Label()
+label.text += "B"
+if label.text != "AB" then
+    throw "string property compound assignment failed"
+end
+
+println("managed class property compound ok")

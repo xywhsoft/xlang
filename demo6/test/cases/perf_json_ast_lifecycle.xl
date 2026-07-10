@@ -1,0 +1,67 @@
+class AstFinding
+    int iteration
+    int line
+    string kind
+
+    create(int iteration, int line, string kind)
+        self.iteration = iteration
+        self.line = line
+        self.kind = kind
+    end
+end
+
+
+array<AstFinding> findings = []
+
+
+func walkAst(var node, int iteration) as int
+    int count = 1
+    var kindValue = node["kind"]
+
+    if kindValue is string then
+        string kind = string(kindValue)
+        if kind == "func" or kind == "class" then
+            var lineValue = node["line"]
+            int line = lineValue is int ? int(lineValue) : 0
+            findings.push(AstFinding(iteration, line, kind))
+        end
+    end
+
+    var children = node["children"]
+    if children is array then
+        for child in children
+            count += walkAst(child, iteration)
+        end
+    end
+    return count
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        println("usage: perf_json_ast_lifecycle <ast.json> [repeats]")
+        return 2
+    end
+
+    string source = file.readText(string(arg[1]))
+    int repeats = arg.length > 2 ? int(arg[2]) : 20
+    int expected = 0
+    int iteration = 0
+    float totalStart = time.timer()
+
+    while iteration < repeats do
+        float start = time.timer()
+        var root = json.parse(source)
+        int actual = walkAst(root, iteration)
+        if iteration == 0 then
+            expected = actual
+        else
+            assert actual == expected, "AST node count changed between rounds"
+        end
+        println(iteration + 1, time.timer() - start, actual, findings.length)
+        iteration += 1
+    end
+
+    println("total", time.timer() - totalStart, expected, findings.length)
+    return 0
+end

@@ -355,7 +355,17 @@ static void xl6CgenForClassProtocolIterable(XL6_CgenContext* ctx, const XL6_AstN
         valueTarget = targets->children[valueTargetIndex];
         xl6CgenForTargetCName(valueName, sizeof(valueName), targets, valueTargetIndex);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s %s = %s.value1;\n", itemCType, valueName, nextName);
+        xl6OutputPrintf(ctx->out, "%s %s = ", itemCType, valueName);
+        if ( xl6CgenIsStringTypeNode(ctx, itemType) ) {
+            xl6OutputPrintf(ctx->out, "xrtCopyStr(%s.value1, 0u)", nextName);
+        } else {
+            xl6OutputPrintf(ctx->out, "%s.value1", nextName);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        if ( xl6CgenIsStringTypeNode(ctx, itemType) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", valueName);
+        }
         xl6CgenRegisterLoopTargetTypeNode(ctx, valueTarget, itemType);
         xl6CgenRetainClassFunctionFieldsForType(ctx, itemType, valueName);
     }

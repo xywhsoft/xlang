@@ -1,0 +1,1335 @@
+// virtfs - 虚拟文件系统 (Virtual File System)
+//
+// 用法：
+//   virtfs test       内置自测：多层目录+文件，验证 CRUD + 路径解析 + 权限 + inode + 挂载 + 序列化 roundtrip
+//   virtfs help       帮助
+//
+// 设计要点（结合 dev/README.md 与 BUGS.md，参考 btree/skiplist 的节点池模式）：
+//   - 节点池：VFS.nodes 为 var 数组（index = node id），节点按 id 引用（不持指针）。
+//   - VNode 单一 class（type 字段区分 FILE/DIR），derive value（值语义 write-back）。
+//     getNode/setNode/allocNode 值语义访问，与 btree/skiplist 探针一致（write-back 持久）。
+//   - 路径解析：迭代分段（string.split "/"），处理绝对/相对、"." / ".."。
+//   - normalize：栈式消解 "." / ".."，返回规范路径字符串。
+//   - 权限模拟：rwx 三位（r=4, w=2, x=1，owner 单一身份）；cd 需 x、ls 需 r、
+//     read 需 r、write/create/delete 检查目标或父目录的 w。
+//   - inode 计数：全局自增 nextInode，每个节点分配唯一 inode。
+//   - 挂载点：mount(mountPath, subVFS) 把子树节点整体导入池（id 偏移重映射）并挂到目录下，
+//     子树根 isMount=true；unmount 摘除挂载（子树节点成为孤立，保留在池中不挪动 id）。
+//   - find 用显式 var 数组栈迭代 DFS，避免递归中分配 dict（BUG-LP1）。
+//   - dumpTree 为纯字符串递归（不分配 dict），安全。
+//   - class 方法不接收 array<int> / Buffer 形参（BUG-C1），全用 int/string 标量参数。
+//   - 不直接 return self.field.length（BUG-C2），先落局部 int。
+//   - 避开 stdlib 命名空间同名局部变量（BUG-RT5）：用 p / pathStr 而非 path/dir。
+//   - 不用 set/get/let 作方法名（BUG-RAS1）：用 putChild / dropChild / hasChild。
+//   - 复合赋值 += 仅用于标量（BUG-V1）。
+//   - 顶层函数名避开 C 标准库保留名（BUG-CL2）。
+//   - 序列化：手动遍历节点池构造 var 结构 + json.stringify（compact 保序，规避 BUG-K1）。
+
+const int NT_FILE = 0
+const int NT_DIR = 1
+const int NIL = -1
+
+const int PERM_R = 4      // 读
+const int PERM_W = 2      // 写
+const int PERM_X = 1      // 执行/遍历（目录 cd）
+const int PERM_RWX = 7
+const int PERM_RW = 6
+const int PERM_RX = 5
+const int PERM_NONE = 0
+
+const int SLASH = 47      // '/' 字节
+
+
+// ============================================================================
+// 顶层辅助函数（不依赖 VFS 状态）
+// ============================================================================
+
+func isAbsolutePath(string p) as bool
+    if string.len(p) > 0 then
+        if string.byteAt(p, 0) == SLASH then
+            return true
+        end
+    end
+    return false
+end
+
+// 把路径拆成父目录路径 + 末段名，返回 var 数组 [parent, name]。
+//   "/a/b/c" -> ["/a/b", "c"]   "a/b" -> ["a", "b"]   "c" -> ["", "c"]   "/" -> ["", ""]
+// 用 var 数组单返回值（btree insertInto 同款），规避 class 方法内多返回解构的不确定性。
+func splitParentName(string p) as var
+    int lastSlash = -1
+    int n = string.len(p)
+    int i = 0
+    while i < n do
+        if string.byteAt(p, i) == SLASH then
+            lastSlash = i
+        end
+        i = i + 1
+    end
+    string parent = ""
+    string fname = ""
+    if lastSlash < 0 then
+        parent = ""
+        fname = p
+    else
+        parent = string.mid(p, 0, lastSlash)
+        fname = string.mid(p, lastSlash + 1, n - lastSlash - 1)
+    end
+    var result = [parent, fname]
+    return result
+end
+
+// 规范化路径：消解 "." / ".."，折叠多余 "/"。绝对路径以 "/" 开头，空栈返回 "/" 或 "."。
+func normalizePath(string p) as string
+    bool absolute = isAbsolutePath(p)
+    var segs = string.split(p, "/")
+    var stack = []
+    int n = segs.length
+    int i = 0
+    while i < n do
+        string seg = string(segs[i])
+        if seg == "" or seg == "." then
+            // 跳过空段与当前目录
+        elseif seg == ".." then
+            int sl = stack.length
+            if sl > 0 then
+                stack.remove(sl - 1)
+            end
+        else
+            stack.push(seg)
+        end
+        i = i + 1
+    end
+    int sl = stack.length
+    if sl == 0 then
+        if absolute then
+            return "/"
+        end
+        return "."
+    end
+    string result = ""
+    int j = 0
+    while j < sl do
+        if j > 0 then
+            result = result + "/"
+        end
+        result = result + string(stack[j])
+        j = j + 1
+    end
+    if absolute then
+        return "/" + result
+    end
+    return result
+end
+
+
+// ============================================================================
+// VNode — 单一节点 class（type 区分 file/dir），derive value
+// ============================================================================
+
+class VNode
+    derive value
+
+    string name = ""
+    int type = NT_DIR
+    array<int> children = array[]
+    int parent = NIL
+    int size = 0
+    int perm = PERM_RWX
+    string content = ""
+    int inode = 0
+    bool isMount = false
+
+    create()
+        self.name = ""
+        self.type = NT_DIR
+        self.children = array[]
+        self.parent = NIL
+        self.size = 0
+        self.perm = PERM_RWX
+        self.content = ""
+        self.inode = 0
+        self.isMount = false
+    end
+end
+
+
+// ============================================================================
+// VFS — 虚拟文件系统（节点池 + rootId + cwdId + nextInode + 挂载记录）
+// ============================================================================
+
+class VFS
+    derive value
+
+    var nodes = []            // 节点池：var 数组，index = node id
+    int rootId = 0
+    int cwdId = 0             // 当前工作目录节点 id
+    int nextInode = 1         // 下一个可用 inode（自增）
+    var mountRoots = []       // 已挂载子树根 id 列表（var 数组，规避 BUG-LP1）
+
+    create()
+        self.nodes = []
+        self.mountRoots = []
+        VNode r = VNode()
+        r.name = "/"
+        r.type = NT_DIR
+        r.parent = NIL
+        r.perm = PERM_RWX
+        r.inode = self.allocInode()
+        self.nodes.push(r)
+        self.rootId = 0
+        self.cwdId = 0
+    end
+
+    // ---- 节点池访问（值语义 write-back）----
+
+    func getNode(int id) as VNode
+        var v = self.nodes[id]
+        VNode n = v as VNode
+        return n
+    end
+
+    func setNode(int id, VNode n)
+        self.nodes[id] = n
+    end
+
+    func allocNode(VNode n) as int
+        self.nodes.push(n)
+        int nid = self.nodes.length
+        nid = nid - 1
+        return nid
+    end
+
+    func allocInode() as int
+        int v = self.nextInode
+        self.nextInode = self.nextInode + 1
+        return v
+    end
+
+    func nodeCount() as int
+        int n = self.nodes.length
+        return n
+    end
+
+    // ---- 子节点操作（标量参数，规避 BUG-C1）----
+
+    // 在 dirId 子节点中找名为 name 的子节点 id，找不到返回 NIL。
+    func findChild(int dirId, string name) as int
+        VNode d = self.getNode(dirId)
+        int n = d.children.length
+        int i = 0
+        while i < n do
+            int cid = d.children[i]
+            VNode c = self.getNode(cid)
+            if c.name == name then
+                return cid
+            end
+            i = i + 1
+        end
+        return NIL
+    end
+
+    func hasChild(int dirId, string name) as bool
+        int cid = self.findChild(dirId, name)
+        if cid == NIL then
+            return false
+        end
+        return true
+    end
+
+    // 在 dirId 的 children 末尾追加 childId。
+    func putChild(int dirId, int childId)
+        VNode d = self.getNode(dirId)
+        d.children.push(childId)
+        self.setNode(dirId, d)
+    end
+
+    // 从 dirId 的 children 中移除首个等于 childId 的元素。
+    func dropChild(int dirId, int childId)
+        VNode d = self.getNode(dirId)
+        int n = d.children.length
+        int i = 0
+        bool done = false
+        while i < n and not done do
+            if d.children[i] == childId then
+                d.children.remove(i)
+                done = true
+            end
+            i = i + 1
+        end
+        self.setNode(dirId, d)
+    end
+
+    // ---- 权限检查 ----
+
+    func checkPerm(int id, int need) as bool
+        VNode n = self.getNode(id)
+        if (n.perm & need) == need then
+            return true
+        end
+        return false
+    end
+
+    func setPerm(int id, int perm)
+        VNode n = self.getNode(id)
+        n.perm = perm
+        self.setNode(id, n)
+    end
+
+    // ---- 路径解析 ----
+
+    // 把任意路径（绝对/相对）解析为节点 id；找不到返回 NIL。
+    func resolveNode(string p) as int
+        if string.len(p) == 0 then
+            return self.cwdId
+        end
+        int curId = self.cwdId
+        if isAbsolutePath(p) then
+            curId = self.rootId
+        end
+        var segs = string.split(p, "/")
+        int n = segs.length
+        int i = 0
+        while i < n do
+            string seg = string(segs[i])
+            if seg == "" or seg == "." then
+                // 跳过
+            elseif seg == ".." then
+                VNode cur = self.getNode(curId)
+                if cur.parent != NIL then
+                    curId = cur.parent
+                end
+            else
+                int childId = self.findChild(curId, seg)
+                if childId == NIL then
+                    return NIL
+                end
+                curId = childId
+            end
+            i = i + 1
+        end
+        return curId
+    end
+
+    // 从节点 id 反算绝对路径字符串（沿 parent 上溯）。
+    func absPathOf(int id) as string
+        if id == self.rootId then
+            return "/"
+        end
+        var parts = []
+        int curId = id
+        bool stop = false
+        while not stop do
+            if curId == NIL then
+                stop = true
+            elseif curId == self.rootId then
+                stop = true
+            else
+                VNode n = self.getNode(curId)
+                parts.push(n.name)
+                curId = n.parent
+            end
+        end
+        string result = ""
+        int n = parts.length
+        int i = n - 1
+        while i >= 0 do
+            result = result + "/" + string(parts[i])
+            i = i - 1
+        end
+        if string.len(result) == 0 then
+            return "/"
+        end
+        return result
+    end
+
+    // 当前工作目录的绝对路径。
+    func pwd() as string
+        return self.absPathOf(self.cwdId)
+    end
+
+    func cwdId_() as int
+        return self.cwdId
+    end
+
+    // ---- 存在性 ----
+
+    func exists(string p) as bool
+        int id = self.resolveNode(p)
+        if id == NIL then
+            return false
+        end
+        return true
+    end
+
+    // ---- 目录操作 ----
+
+    // 创建目录（含中间路径不自动创建）。返回 true=新建，false=已存在或父缺失或无权限。
+    func mkdir(string p, int perm) as bool
+        var parts = splitParentName(p)
+        string parentPath = string(parts[0])
+        string fname = string(parts[1])
+        if string.len(fname) == 0 then
+            return false
+        end
+        int parentId = self.resolveNode(parentPath)
+        if parentId == NIL then
+            return false
+        end
+        VNode parent = self.getNode(parentId)
+        if parent.type != NT_DIR then
+            return false
+        end
+        if not self.checkPerm(parentId, PERM_W) then
+            return false
+        end
+        if self.findChild(parentId, fname) != NIL then
+            return false
+        end
+        VNode d = VNode()
+        d.name = fname
+        d.type = NT_DIR
+        d.perm = perm
+        d.parent = parentId
+        d.inode = self.allocInode()
+        int newId = self.allocNode(d)
+        self.putChild(parentId, newId)
+        return true
+    end
+
+    // 递归创建目录（mkdir -p 风格）。返回 true=全部就绪。
+    func mkdirs(string p, int perm) as bool
+        bool absolute = isAbsolutePath(p)
+        int curId = self.cwdId
+        if absolute then
+            curId = self.rootId
+        end
+        var segs = string.split(p, "/")
+        int n = segs.length
+        int i = 0
+        while i < n do
+            string seg = string(segs[i])
+            if seg == "" or seg == "." then
+                // 跳过
+            elseif seg == ".." then
+                VNode cur = self.getNode(curId)
+                if cur.parent != NIL then
+                    curId = cur.parent
+                end
+            else
+                int childId = self.findChild(curId, seg)
+                if childId == NIL then
+                    if not self.checkPerm(curId, PERM_W) then
+                        return false
+                    end
+                    VNode d = VNode()
+                    d.name = seg
+                    d.type = NT_DIR
+                    d.perm = perm
+                    d.parent = curId
+                    d.inode = self.allocInode()
+                    int newId = self.allocNode(d)
+                    self.putChild(curId, newId)
+                    curId = newId
+                else
+                    curId = childId
+                end
+            end
+            i = i + 1
+        end
+        return true
+    end
+
+    // 删除空目录。返回 true=成功，false=不存在/非目录/非空/无权限/根。
+    func rmdir(string p) as bool
+        int id = self.resolveNode(p)
+        if id == NIL then
+            return false
+        end
+        if id == self.rootId then
+            return false
+        end
+        VNode n = self.getNode(id)
+        if n.type != NT_DIR then
+            return false
+        end
+        if n.children.length > 0 then
+            return false
+        end
+        int parentId = n.parent
+        if not self.checkPerm(parentId, PERM_W) then
+            return false
+        end
+        self.dropChild(parentId, id)
+        // 节点保留在池中成为孤立（不挪动其它 id）。
+        VNode orphan = self.getNode(id)
+        orphan.parent = NIL
+        self.setNode(id, orphan)
+        return true
+    end
+
+    // 列出目录下直接子项名称（var 数组）。非目录或无权限返回空。
+    func listDir(string p) as var
+        var result = []
+        int id = self.resolveNode(p)
+        if id == NIL then
+            return result
+        end
+        VNode n = self.getNode(id)
+        if n.type != NT_DIR then
+            return result
+        end
+        if not self.checkPerm(id, PERM_R) then
+            return result
+        end
+        int cn = n.children.length
+        int i = 0
+        while i < cn do
+            int cid = n.children[i]
+            VNode c = self.getNode(cid)
+            result.push(c.name)
+            i = i + 1
+        end
+        return result
+    end
+
+    // 切换当前工作目录。返回 true=成功。
+    func cd(string p) as bool
+        int id = self.resolveNode(p)
+        if id == NIL then
+            return false
+        end
+        VNode n = self.getNode(id)
+        if n.type != NT_DIR then
+            return false
+        end
+        if not self.checkPerm(id, PERM_X) then
+            return false
+        end
+        self.cwdId = id
+        return true
+    end
+
+    // 从 startP 开始深度优先搜索名为 name 的节点，返回匹配的绝对路径数组。
+    func find(string startP, string name) as var
+        var result = []
+        int startId = self.resolveNode(startP)
+        if startId == NIL then
+            return result
+        end
+        var stack = []
+        stack.push(startId)
+        bool stop = false
+        while not stop do
+            int sl = stack.length
+            if sl == 0 then
+                stop = true
+            else
+                int curId = int(stack[sl - 1])
+                stack.remove(sl - 1)
+                VNode n = self.getNode(curId)
+                if n.name == name then
+                    result.push(self.absPathOf(curId))
+                end
+                int cn = n.children.length
+                int i = 0
+                while i < cn do
+                    stack.push(n.children[i])
+                    i = i + 1
+                end
+            end
+        end
+        return result
+    end
+
+    // ---- 文件操作 ----
+
+    // 创建空文件。返回 true=新建，false=已存在/父缺失/无权限。
+    func createFile(string p, int perm) as bool
+        var parts = splitParentName(p)
+        string parentPath = string(parts[0])
+        string fname = string(parts[1])
+        if string.len(fname) == 0 then
+            return false
+        end
+        int parentId = self.resolveNode(parentPath)
+        if parentId == NIL then
+            return false
+        end
+        VNode parent = self.getNode(parentId)
+        if parent.type != NT_DIR then
+            return false
+        end
+        if not self.checkPerm(parentId, PERM_W) then
+            return false
+        end
+        if self.findChild(parentId, fname) != NIL then
+            return false
+        end
+        VNode f = VNode()
+        f.name = fname
+        f.type = NT_FILE
+        f.perm = perm
+        f.parent = parentId
+        f.inode = self.allocInode()
+        f.size = 0
+        f.content = ""
+        int newId = self.allocNode(f)
+        self.putChild(parentId, newId)
+        return true
+    end
+
+    // 读文件内容。不存在/非文件/无读权限返回 ""。
+    func readFile(string p) as string
+        int id = self.resolveNode(p)
+        if id == NIL then
+            return ""
+        end
+        if not self.checkPerm(id, PERM_R) then
+            return ""
+        end
+        VNode n = self.getNode(id)
+        if n.type != NT_FILE then
+            return ""
+        end
+        return n.content
+    end
+
+    // 写文件：存在则覆盖内容，不存在则创建（默认 perm = rw）。返回 true=成功。
+    func writeFile(string p, string content) as bool
+        int id = self.resolveNode(p)
+        if id != NIL then
+            if not self.checkPerm(id, PERM_W) then
+                return false
+            end
+            VNode n = self.getNode(id)
+            if n.type != NT_FILE then
+                return false
+            end
+            n.content = content
+            n.size = string.len(content)
+            self.setNode(id, n)
+            return true
+        end
+        var parts = splitParentName(p)
+        string parentPath = string(parts[0])
+        string fname = string(parts[1])
+        if string.len(fname) == 0 then
+            return false
+        end
+        int parentId = self.resolveNode(parentPath)
+        if parentId == NIL then
+            return false
+        end
+        VNode parent = self.getNode(parentId)
+        if parent.type != NT_DIR then
+            return false
+        end
+        if not self.checkPerm(parentId, PERM_W) then
+            return false
+        end
+        VNode f = VNode()
+        f.name = fname
+        f.type = NT_FILE
+        f.perm = PERM_RW
+        f.parent = parentId
+        f.inode = self.allocInode()
+        f.content = content
+        f.size = string.len(content)
+        int newId = self.allocNode(f)
+        self.putChild(parentId, newId)
+        return true
+    end
+
+    // 删除文件（或空目录）。返回 true=成功。
+    func remove(string p) as bool
+        int id = self.resolveNode(p)
+        if id == NIL then
+            return false
+        end
+        if id == self.rootId then
+            return false
+        end
+        VNode n = self.getNode(id)
+        if n.type == NT_DIR then
+            if n.children.length > 0 then
+                return false
+            end
+        end
+        int parentId = n.parent
+        if not self.checkPerm(parentId, PERM_W) then
+            return false
+        end
+        self.dropChild(parentId, id)
+        VNode orphan = self.getNode(id)
+        orphan.parent = NIL
+        self.setNode(id, orphan)
+        return true
+    end
+
+    // 重命名（同目录改名）。返回 true=成功。
+    func rename(string p, string newName) as bool
+        int id = self.resolveNode(p)
+        if id == NIL then
+            return false
+        end
+        if id == self.rootId then
+            return false
+        end
+        VNode n = self.getNode(id)
+        int parentId = n.parent
+        if not self.checkPerm(parentId, PERM_W) then
+            return false
+        end
+        if self.findChild(parentId, newName) != NIL then
+            return false
+        end
+        n.name = newName
+        self.setNode(id, n)
+        return true
+    end
+
+    // ---- 挂载 / 卸载 ----
+
+    // 把 subVFS 的整棵子树导入节点池（id 偏移重映射），并把 sub 根的直接子项
+    // graft 到 mountPath 目录下（标准 Unix mount 语义：挂载点显示被挂 FS 根的内容）。
+    // 要求挂载点为空目录。挂载点节点 isMount=true。返回 true=成功。
+    func mount(string mountP, VFS sub) as bool
+        int mountId = self.resolveNode(mountP)
+        if mountId == NIL then
+            return false
+        end
+        VNode md = self.getNode(mountId)
+        if md.type != NT_DIR then
+            return false
+        end
+        if not self.checkPerm(mountId, PERM_W) then
+            return false
+        end
+        if md.children.length > 0 then
+            return false
+        end
+        int offset = self.nodes.length
+        int subTotal = sub.nodes.length
+        int subRootLocal = sub.rootId
+        int i = 0
+        while i < subTotal do
+            VNode sn = sub.getNode(i)
+            VNode cp = VNode()
+            cp.name = sn.name
+            cp.type = sn.type
+            int scn = sn.children.length
+            int j = 0
+            while j < scn do
+                cp.children.push(sn.children[j] + offset)
+                j = j + 1
+            end
+            if i == subRootLocal then
+                cp.parent = NIL
+            elseif sn.parent == subRootLocal then
+                cp.parent = mountId
+            else
+                cp.parent = sn.parent + offset
+            end
+            cp.size = sn.size
+            cp.perm = sn.perm
+            cp.content = sn.content
+            cp.inode = self.allocInode()
+            cp.isMount = false
+            self.nodes.push(cp)
+            i = i + 1
+        end
+        // 把 sub 根的（已重映射）子项挂到挂载点
+        VNode subRootCopy = self.getNode(offset + subRootLocal)
+        int gcn = subRootCopy.children.length
+        int g = 0
+        while g < gcn do
+            self.putChild(mountId, subRootCopy.children[g])
+            g = g + 1
+        end
+        VNode mnt = self.getNode(mountId)
+        mnt.isMount = true
+        self.setNode(mountId, mnt)
+        self.mountRoots.push(mountId)
+        return true
+    end
+
+    // 摘除挂载在 mountPath 下的子树：清空挂载点的子项（均为 graft 来的），
+    // 子树节点成为孤立保留在池中。返回 true=成功。
+    func unmount(string mountP) as bool
+        int mountId = self.resolveNode(mountP)
+        if mountId == NIL then
+            return false
+        end
+        VNode md = self.getNode(mountId)
+        if md.type != NT_DIR then
+            return false
+        end
+        if not md.isMount then
+            return false
+        end
+        int cn = md.children.length
+        var kids = []
+        int i = 0
+        while i < cn do
+            kids.push(md.children[i])
+            i = i + 1
+        end
+        md.children = array[]
+        md.isMount = false
+        self.setNode(mountId, md)
+        int kn = kids.length
+        int k = 0
+        while k < kn do
+            int kid = int(kids[k])
+            VNode c = self.getNode(kid)
+            c.parent = NIL
+            self.setNode(kid, c)
+            k = k + 1
+        end
+        int mr = self.mountRoots.length
+        int m = 0
+        bool removed = false
+        while m < mr and not removed do
+            if int(self.mountRoots[m]) == mountId then
+                self.mountRoots.remove(m)
+                removed = true
+            end
+            m = m + 1
+        end
+        return true
+    end
+
+    func isMountPoint(string p) as bool
+        int id = self.resolveNode(p)
+        if id == NIL then
+            return false
+        end
+        VNode n = self.getNode(id)
+        return n.isMount
+    end
+
+    // ---- inode 校验 ----
+
+    // 收集所有可达节点的 inode（var 数组），用于唯一性检查。
+    func reachableInodes() as var
+        var result = []
+        var stack = []
+        stack.push(self.rootId)
+        bool stop = false
+        while not stop do
+            int sl = stack.length
+            if sl == 0 then
+                stop = true
+            else
+                int curId = int(stack[sl - 1])
+                stack.remove(sl - 1)
+                VNode n = self.getNode(curId)
+                result.push(n.inode)
+                int cn = n.children.length
+                int i = 0
+                while i < cn do
+                    stack.push(n.children[i])
+                    i = i + 1
+                end
+            end
+        end
+        return result
+    end
+
+    // 可达节点总数（从 root 起的 DFS）。
+    func reachableCount() as int
+        int count = 0
+        var stack = []
+        stack.push(self.rootId)
+        bool stop = false
+        while not stop do
+            int sl = stack.length
+            if sl == 0 then
+                stop = true
+            else
+                int curId = int(stack[sl - 1])
+                stack.remove(sl - 1)
+                count = count + 1
+                VNode n = self.getNode(curId)
+                int cn = n.children.length
+                int i = 0
+                while i < cn do
+                    stack.push(n.children[i])
+                    i = i + 1
+                end
+            end
+        end
+        return count
+    end
+
+    // ---- 序列化 / 反序列化（手动遍历，compact 保序）----
+
+    func serialize() as string
+        var out = {}
+        out["rootId"] = self.rootId
+        out["cwdId"] = self.cwdId
+        out["nextInode"] = self.nextInode
+        var ns = []
+        int total = self.nodes.length
+        int i = 0
+        while i < total do
+            VNode n = self.getNode(i)
+            var nd = {}
+            nd["name"] = n.name
+            nd["type"] = n.type
+            var ch = []
+            int cn = n.children.length
+            int j = 0
+            while j < cn do
+                ch.push(n.children[j])
+                j = j + 1
+            end
+            nd["children"] = ch
+            nd["parent"] = n.parent
+            nd["size"] = n.size
+            nd["perm"] = n.perm
+            nd["content"] = n.content
+            nd["inode"] = n.inode
+            nd["isMount"] = n.isMount
+            ns.push(nd)
+            i = i + 1
+        end
+        out["nodes"] = ns
+        var mrs = []
+        int mn = self.mountRoots.length
+        int mi = 0
+        while mi < mn do
+            mrs.push(self.mountRoots[mi])
+            mi = mi + 1
+        end
+        out["mountRoots"] = mrs
+        return json.stringify(out)
+    end
+
+    func deserialize(string text) as bool
+        var data = json.parse(text)
+        if data == null then
+            return false
+        end
+        self.rootId = int(data["rootId"])
+        self.cwdId = int(data["cwdId"])
+        self.nextInode = int(data["nextInode"])
+        self.nodes = []
+        var ns = data["nodes"]
+        int total = ns.length
+        int i = 0
+        while i < total do
+            var nd = ns[i]
+            VNode n = VNode()
+            n.name = string(nd["name"])
+            n.type = int(nd["type"])
+            var ch = nd["children"]
+            int cn = ch.length
+            int j = 0
+            while j < cn do
+                n.children.push(int(ch[j]))
+                j = j + 1
+            end
+            n.parent = int(nd["parent"])
+            n.size = int(nd["size"])
+            n.perm = int(nd["perm"])
+            n.content = string(nd["content"])
+            n.inode = int(nd["inode"])
+            n.isMount = bool(nd["isMount"])
+            self.nodes.push(n)
+            i = i + 1
+        end
+        self.mountRoots = []
+        var mrsVal = data["mountRoots"]
+        if mrsVal == null then
+            // 旧版/手写 JSON 可能没有 mountRoots 字段：留空即可
+        else
+            var mrs = mrsVal
+            int mn = mrs.length
+            int mi = 0
+            while mi < mn do
+                self.mountRoots.push(int(mrs[mi]))
+                mi = mi + 1
+            end
+        end
+        return true
+    end
+
+    // ---- 可视化：递归打印目录树（纯字符串递归，不分配 dict）----
+
+    func dumpNode(int id, int depth)
+        VNode n = self.getNode(id)
+        string pad = ""
+        int d = 0
+        while d < depth do
+            pad = pad + "  "
+            d = d + 1
+        end
+        string typ = "DIR "
+        if n.type == NT_FILE then
+            typ = "FILE"
+        end
+        string mnt = ""
+        if n.isMount then
+            mnt = " <MOUNT>"
+        end
+        string line = pad + "[" + string(id) + "] " + typ + " " + n.name +
+                      "  perm=" + string(n.perm) + " inode=" + string(n.inode) + mnt
+        if n.type == NT_FILE then
+            line = line + " size=" + string(n.size)
+        end
+        println(line)
+        int cn = n.children.length
+        int i = 0
+        while i < cn do
+            self.dumpNode(n.children[i], depth + 1)
+            i = i + 1
+        end
+    end
+
+    func dumpTree()
+        int rc = self.reachableCount()
+        println("VFS nodes(pool)=" + string(self.nodes.length) +
+                " reachable=" + string(rc) +
+                " nextInode=" + string(self.nextInode) +
+                " mounts=" + string(self.mountRoots.length))
+        self.dumpNode(self.rootId, 0)
+    end
+end
+
+
+// ============================================================================
+// 测试框架
+// ============================================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass = g_pass + 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail = g_fail + 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectTrue(bool got, string label)
+    if got then
+        ok(label)
+    else
+        bad(label, "expected true, got false")
+    end
+end
+
+func expectFalse(bool got, string label)
+    if got then
+        bad(label, "expected false, got true")
+    else
+        ok(label)
+    end
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectS(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+// 判断 var 数组中是否存在重复 inode（O(n^2)，规模小可用）。
+func hasDuplicates(var arr) as bool
+    int n = arr.length
+    int i = 0
+    while i < n do
+        int a = int(arr[i])
+        int j = i + 1
+        while j < n do
+            int b = int(arr[j])
+            if a == b then
+                return true
+            end
+            j = j + 1
+        end
+        i = i + 1
+    end
+    return false
+end
+
+
+// ============================================================================
+// 内置测试：virtfs test
+// ============================================================================
+
+func cmdTest() as int
+    println("=== virtfs self-test ===")
+
+    VFS fs = VFS()
+
+    // ---- 基线：根目录 ----
+    expectTrue(fs.exists("/"), "root '/' exists")
+    expectI(fs.cwdId_(), 0, "cwd starts at root")
+    expectS(fs.pwd(), "/", "pwd at root = '/'")
+
+    // ---- 多层目录创建 ----
+    expectTrue(fs.mkdir("/home", PERM_RWX), "mkdir /home")
+    expectTrue(fs.mkdir("/home/user", PERM_RWX), "mkdir /home/user")
+    expectTrue(fs.mkdirs("/home/user/docs/notes", PERM_RWX), "mkdirs /home/user/docs/notes (recursive)")
+    expectTrue(fs.mkdir("/etc", PERM_RWX), "mkdir /etc")
+    expectTrue(fs.mkdirs("/var/log/app", PERM_RWX), "mkdirs /var/log/app (recursive)")
+    expectTrue(fs.mkdir("/tmp", PERM_RWX), "mkdir /tmp")
+
+    expectTrue(fs.exists("/home/user/docs"), "intermediate /home/user/docs exists after mkdirs")
+    expectTrue(fs.exists("/var/log/app"), "/var/log/app exists")
+
+    // mkdir 已存在目录返回 false
+    expectFalse(fs.mkdir("/etc", PERM_RWX), "mkdir existing /etc returns false")
+    // mkdir 父不存在返回 false（非 mkdirs）
+    expectFalse(fs.mkdir("/nope/sub", PERM_RWX), "mkdir with missing parent returns false")
+
+    // ---- 文件 CRUD ----
+    expectTrue(fs.createFile("/home/user/docs/readme.txt", PERM_RW), "create /home/user/docs/readme.txt")
+    expectTrue(fs.writeFile("/home/user/docs/readme.txt", "hello virtfs"), "write readme content")
+    expectS(fs.readFile("/home/user/docs/readme.txt"), "hello virtfs", "read readme content")
+    expectTrue(fs.nodeCount() > 0, "nodeCount() > 0 (sanity)")
+
+    // writeFile 自动创建文件
+    expectTrue(fs.writeFile("/etc/hostname", "xlang-host"), "writeFile creates /etc/hostname")
+    expectS(fs.readFile("/etc/hostname"), "xlang-host", "read auto-created /etc/hostname")
+
+    // 写入覆盖
+    expectTrue(fs.writeFile("/etc/hostname", "new-host"), "overwrite /etc/hostname")
+    expectS(fs.readFile("/etc/hostname"), "new-host", "read overwritten content")
+
+    // exists
+    expectTrue(fs.exists("/etc/hostname"), "exists /etc/hostname = true")
+    expectFalse(fs.exists("/etc/nope.conf"), "exists /etc/nope.conf = false")
+
+    // read 目录 / 不存在 返回空
+    expectTrue(string.isEmpty(fs.readFile("/etc")), "readFile on dir returns empty")
+    expectTrue(string.isEmpty(fs.readFile("/missing")), "readFile missing returns empty")
+
+    // ---- rename ----
+    expectTrue(fs.createFile("/tmp/a.txt", PERM_RW), "create /tmp/a.txt")
+    expectTrue(fs.rename("/tmp/a.txt", "b.txt"), "rename /tmp/a.txt -> b.txt")
+    expectFalse(fs.exists("/tmp/a.txt"), "old name gone after rename")
+    expectTrue(fs.exists("/tmp/b.txt"), "new name exists after rename")
+    // rename 不存在的源失败
+    expectFalse(fs.rename("/tmp/ghost.txt", "x.txt"), "rename missing source fails")
+    // rename 到已存在名失败
+    expectTrue(fs.createFile("/tmp/c.txt", PERM_RW), "create /tmp/c.txt for collision test")
+    expectFalse(fs.rename("/tmp/b.txt", "c.txt"), "rename to existing name fails")
+    // rename 到新名成功
+    expectTrue(fs.rename("/tmp/b.txt", "d.txt"), "rename to fresh name succeeds")
+    expectTrue(fs.exists("/tmp/d.txt"), "fresh rename target exists")
+
+    // ---- delete ----
+    expectTrue(fs.remove("/tmp/c.txt"), "remove /tmp/c.txt")
+    expectFalse(fs.exists("/tmp/c.txt"), "removed file gone")
+    expectFalse(fs.remove("/tmp/c.txt"), "remove again returns false")
+    // 删非空目录失败
+    expectFalse(fs.remove("/home/user/docs"), "remove non-empty dir fails")
+    // 删空目录成功
+    expectTrue(fs.mkdir("/tmp/emptydir", PERM_RWX), "mkdir /tmp/emptydir")
+    expectTrue(fs.remove("/tmp/emptydir"), "remove empty dir succeeds")
+    expectFalse(fs.exists("/tmp/emptydir"), "empty dir gone")
+    // 不能删根
+    expectFalse(fs.remove("/"), "cannot remove root")
+
+    // ---- 路径解析：绝对 / 相对 / . / .. ----
+    expectTrue(fs.cd("/home/user"), "cd /home/user")
+    expectS(fs.pwd(), "/home/user", "pwd after cd = /home/user")
+    expectTrue(fs.exists("docs"), "relative exists 'docs' from cwd")
+    expectTrue(fs.exists("docs/readme.txt"), "relative nested path")
+    expectTrue(fs.exists(".."), "'..' resolves to parent")
+    expectTrue(fs.exists("../user"), "'../user' resolves back")
+    expectTrue(fs.exists("."), "'.' resolves to cwd")
+    expectTrue(fs.exists("/etc/hostname"), "absolute path from deep cwd")
+    expectTrue(fs.exists("./docs"), "'./docs' resolves")
+    expectTrue(fs.exists("../../etc"), "'../../etc' resolves")
+
+    // 从 cwd 创建相对文件
+    expectTrue(fs.writeFile("notes_local.txt", "relative-write"), "writeFile relative path")
+    expectS(fs.readFile("/home/user/notes_local.txt"), "relative-write", "relative-written file reachable absolutely")
+    expectTrue(fs.remove("/home/user/notes_local.txt"), "cleanup relative file")
+
+    // ---- normalize ----
+    expectS(normalizePath("/a/./b/../c"), "/a/c", "normalize /a/./b/../c")
+    expectS(normalizePath("/a//b///c"), "/a/b/c", "normalize collapse slashes")
+    expectS(normalizePath("a/b/../c"), "a/c", "normalize relative")
+    expectS(normalizePath("/../.."), "/", "normalize above root clamps to /")
+    expectS(normalizePath("/"), "/", "normalize root")
+    expectS(normalizePath("/a/b/../../.."), "/", "normalize deep parent clamps")
+
+    // ---- ls ----
+    var lsHome = fs.listDir("/home")
+    expectI(lsHome.length, 1, "ls /home has 1 entry (user)")
+    if lsHome.length == 1 then
+        expectS(string(lsHome[0]), "user", "ls /home[0] = 'user'")
+    end
+
+    // ---- find ----
+    // 多处放同名文件
+    expectTrue(fs.writeFile("/home/user/docs/log.txt", "log1"), "create log.txt #1")
+    expectTrue(fs.writeFile("/var/log/app/log.txt", "log2"), "create log.txt #2")
+    expectTrue(fs.writeFile("/var/log/log.txt", "log3"), "create log.txt #3")
+    var found = fs.find("/", "log.txt")
+    expectI(found.length, 3, "find log.txt returns 3 matches")
+    if found.length == 3 then
+        expectTrue(string.contains(string(found[0]), "log.txt"), "find result is a path string")
+    end
+
+    var foundReadme = fs.find("/home", "readme.txt")
+    expectI(foundReadme.length, 1, "find readme.txt under /home = 1")
+
+    var foundNone = fs.find("/", "does-not-exist.xyz")
+    expectI(foundNone.length, 0, "find missing name = 0")
+
+    // ---- inode 计数 ----
+    var inodes = fs.reachableInodes()
+    expectFalse(hasDuplicates(inodes), "all reachable inodes are unique")
+    int reachable = fs.reachableCount()
+    expectI(inodes.length, reachable, "inode count == reachable node count")
+    expectTrue(fs.nextInode > reachable, "nextInode > allocated count")
+
+    // ---- 权限模拟 ----
+    // 创建只读文件（perm=4: r）
+    expectTrue(fs.createFile("/tmp/readonly.txt", PERM_R), "create readonly file (perm=r)")
+    expectFalse(fs.writeFile("/tmp/readonly.txt", "hack"), "write to r-only file denied")
+    expectS(fs.readFile("/tmp/readonly.txt"), "", "readonly file content still empty")
+
+    // 创建只写文件（perm=2: w）
+    expectTrue(fs.createFile("/tmp/writeonly.txt", PERM_W), "create writeonly file (perm=w)")
+    expectTrue(fs.writeFile("/tmp/writeonly.txt", "w-data"), "write to w-only file ok")
+    expectTrue(string.isEmpty(fs.readFile("/tmp/writeonly.txt")), "read w-only file denied")
+
+    // 无 x 权限的目录不可 cd
+    expectTrue(fs.mkdir("/tmp/locked", PERM_RW), "mkdir locked dir (perm=rw, no x)")
+    expectFalse(fs.cd("/tmp/locked"), "cd into dir without x denied")
+    expectTrue(fs.cd("/"), "cd back to /")
+
+    // 无 w 权限的目录不可创建子项
+    expectTrue(fs.mkdir("/tmp/nowrite", PERM_RX), "mkdir nowrite dir (perm=rx, no w)")
+    expectFalse(fs.createFile("/tmp/nowrite/x.txt", PERM_RW), "create in no-w dir denied")
+    expectFalse(fs.mkdir("/tmp/nowrite/sub", PERM_RWX), "mkdir in no-w dir denied")
+
+    // 动态改权限后恢复能力
+    expectTrue(fs.exists("/tmp/nowrite"), "nowrite dir exists")
+    int nowriteId = fs.resolveNode("/tmp/nowrite")
+    fs.setPerm(nowriteId, PERM_RWX)
+    expectTrue(fs.createFile("/tmp/nowrite/x.txt", PERM_RW), "create after perm restored to rwx")
+
+    // ---- 挂载 / 卸载 ----
+    VFS sub = VFS()
+    expectTrue(sub.mkdir("/projects", PERM_RWX), "sub: mkdir /projects")
+    expectTrue(sub.mkdir("/projects/dev", PERM_RWX), "sub: mkdir /projects/dev")
+    expectTrue(sub.writeFile("/projects/dev/main.xl", "print(1)"), "sub: write main.xl")
+    expectTrue(sub.writeFile("/projects/README.md", "# sub"), "sub: write README.md")
+
+    expectTrue(fs.mkdir("/mnt", PERM_RWX), "mkdir mount point /mnt")
+    expectTrue(fs.mount("/mnt", sub), "mount subVFS at /mnt")
+    expectTrue(fs.exists("/mnt/projects"), "mounted /mnt/projects reachable")
+    expectTrue(fs.exists("/mnt/projects/dev/main.xl"), "mounted nested file reachable")
+    expectS(fs.readFile("/mnt/projects/dev/main.xl"), "print(1)", "read mounted file content")
+    expectTrue(fs.isMountPoint("/mnt"), "mount point flagged isMount")
+    expectFalse(fs.isMountPoint("/mnt/projects"), "non-root subtree node not a mount point")
+
+    // find 跨挂载点可见
+    var foundMounted = fs.find("/mnt", "README.md")
+    expectI(foundMounted.length, 1, "find README.md under mount = 1")
+
+    // 挂载后 inode 仍全局唯一
+    var inodesAfterMount = fs.reachableInodes()
+    expectFalse(hasDuplicates(inodesAfterMount), "inodes unique after mount")
+
+    // 卸载
+    expectTrue(fs.unmount("/mnt"), "unmount /mnt")
+    expectFalse(fs.exists("/mnt/projects"), "mounted content gone after unmount")
+    expectFalse(fs.isMountPoint("/mnt/projects"), "mount flag cleared after unmount")
+
+    // ---- 序列化 roundtrip ----
+    // 准备一个干净的小 FS 做精确 roundtrip
+    VFS src = VFS()
+    src.mkdirs("/data/nested/deep", PERM_RWX)
+    src.writeFile("/data/nested/deep/file.bin", "BIN-CONTENT")
+    src.writeFile("/data/root.txt", "root file")
+    src.createFile("/data/empty.txt", PERM_RW)
+    src.mkdir("/perms", PERM_RX)
+    src.cd("/data/nested")
+
+    int srcReachable = src.reachableCount()
+    int srcNextInode = src.nextInode
+    string js = src.serialize()
+    expectTrue(string.contains(js, "nodes"), "serialize contains 'nodes'")
+    expectTrue(string.contains(js, "inode"), "serialize contains 'inode'")
+    expectTrue(string.contains(js, "BIN-CONTENT"), "serialize contains file content")
+
+    VFS dst = VFS()
+    bool loaded = dst.deserialize(js)
+    expectTrue(loaded, "deserialize returns true")
+    expectI(dst.reachableCount(), srcReachable, "restored reachable count matches")
+    expectI(dst.nextInode, srcNextInode, "restored nextInode matches")
+    expectS(dst.readFile("/data/nested/deep/file.bin"), "BIN-CONTENT", "restored file content matches")
+    expectS(dst.readFile("/data/root.txt"), "root file", "restored root.txt content")
+    expectS(dst.pwd(), "/data/nested", "restored cwd preserved")
+    expectTrue(dst.exists("/data/empty.txt"), "restored empty.txt exists")
+    expectTrue(dst.exists("/perms"), "restored /perms exists")
+
+    // restored 后可继续操作
+    expectTrue(dst.writeFile("/data/new.txt", "post-restore"), "write after restore works")
+    expectS(dst.readFile("/data/new.txt"), "post-restore", "read after restore works")
+
+    // restored inode 唯一性
+    var dstInodes = dst.reachableInodes()
+    expectFalse(hasDuplicates(dstInodes), "restored inodes unique")
+
+    // ---- dumpTree 可视化（不验证输出，仅确认不崩溃）----
+    fs.dumpTree()
+    ok("dumpTree completed without crash")
+
+    println("=== results: " + string(g_pass) + " passed, " + string(g_fail) + " failed ===")
+    return 0
+end
+
+
+// ============================================================================
+// 命令入口
+// ============================================================================
+
+func printUsage()
+    println("virtfs - Virtual File System (node-pool, rwx perms, mount, JSON serialize)")
+    println("usage: virtfs <command>")
+    println("commands:")
+    println("  test       self-test: multi-level dirs+files, CRUD + path resolve + perms + inode + mount + serialize")
+    println("  help       show this help")
+end
+
+
+func main(...) as int
+    string command = ""
+    if arg.length >= 2 then
+        command = string.lower(string(arg[1]))
+    end
+
+    if command == "test" then
+        return cmdTest()
+    end
+    if command == "help" or command == "--help" or command == "-h" then
+        printUsage()
+        return 0
+    end
+
+    printUsage()
+    return 0
+end

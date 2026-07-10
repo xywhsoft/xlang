@@ -1,0 +1,57 @@
+var gPublished = []
+var gRebound = []
+array<string> gFiles
+array<int> gNumbers
+dict<int> gScores
+mutex gLock = mutex()
+
+class SharedStore
+    var posts = []
+    array<int> values = array[3]
+end
+
+SharedStore gStore
+
+func makeNumbers() as array<int>
+    return array[10, 20, 30]
+end
+
+func sharedWorker() as int
+    if not gLock.lock() then return 10 end
+
+    int result = 0
+    if gPublished.length != 1 then result = 11 end
+    if gPublished[0]["slug"] != "published" then result = 12 end
+    if gRebound[0]["slug"] != "rebound" then result = 13 end
+    if gFiles[0] != "alpha" or gFiles[1] != "beta" then result = 14 end
+    if gNumbers[0] != 10 or gNumbers[2] != 30 then result = 15 end
+    if gScores["seven"] != 7 then result = 16 end
+    if gStore.posts[0]["slug"] != "class" then result = 17 end
+    if gStore.values[0] != 3 then result = 18 end
+
+    gPublished.push({"slug": "worker"})
+    gScores["eight"] = 8
+    if not gLock.unlock() then return 19 end
+    return result
+end
+
+func main(...) as int
+    gPublished.push({"slug": "published"})
+    gRebound = [{"slug": "rebound"}]
+    gFiles = array["alpha", "beta"]
+    gNumbers = makeNumbers()
+    gScores = dict{"seven": 7}
+    gStore.posts.push({"slug": "class"})
+
+    thread worker = thread(sharedWorker)
+    if not worker.waitTimeout(2000) then return 20 end
+    if worker.exitCode() != 0 then return worker.exitCode() end
+
+    if not gLock.lock() then return 21 end
+    bool ok = gPublished.length == 2
+    if gPublished[1]["slug"] != "worker" then ok = false end
+    if gScores["eight"] != 8 then ok = false end
+    if not gLock.unlock() then return 22 end
+    if not ok then return 23 end
+    return 0
+end

@@ -1,0 +1,12 @@
+// extra.xl - standalone leaf package
+export func name() as string
+    return "extra"
+end
+
+export func version() as string
+    return "1.0.0"
+end
+
+export func bonus() as int
+    return 7
+end

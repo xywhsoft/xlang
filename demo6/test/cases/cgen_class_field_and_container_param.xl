@@ -1,0 +1,64 @@
+class InnerValue
+    int value = 0
+
+    create(int value = 0)
+        self.value = value
+    end
+end
+
+class OuterValue
+    InnerValue inner
+
+    create(InnerValue inner)
+        self.inner = inner
+    end
+end
+
+class ContainerParamBox
+    array<int> values = [1, 2, 3]
+
+    func first(array<int> source) as int
+        return source[0]
+    end
+
+    func sourceLength(array<int> source) as int
+        return source.length
+    end
+
+    func ownLength() as int
+        return self.values.length
+    end
+
+    func bufferLength(Buffer source) as int
+        return source.len()
+    end
+end
+
+func verifyBufferParam(ContainerParamBox box)
+    Buffer bytes = Buffer()
+    bytes.append("abc")
+    assert box.bufferLength(bytes) == 3, "class methods must accept native-backed class parameters"
+end
+
+InnerValue inner = InnerValue(41)
+OuterValue outer = OuterValue(inner)
+assert outer.inner.value == 41, "plain class fields must not require persistence derives"
+
+var boxedOuter = outer
+var boxedInner = boxedOuter["inner"]
+assert boxedInner is InnerValue, "dynamic class field reads must preserve the record type"
+InnerValue innerCopy = boxedInner as InnerValue
+assert innerCopy.value == 41, "dynamic class field reads must preserve the field value"
+
+InnerValue replacement = InnerValue(52)
+var boxedReplacement = replacement
+boxedOuter["inner"] = boxedReplacement
+OuterValue changedOuter = boxedOuter as OuterValue
+assert changedOuter.inner.value == 52, "dynamic class field writes must unbox the matching record type"
+
+ContainerParamBox box = ContainerParamBox()
+array<int> source = [7, 8, 9, 10]
+assert box.first(source) == 7, "class methods must index typed-container parameters"
+assert box.sourceLength(source) == 4, "class methods must read typed-container parameter length"
+assert box.ownLength() == 3, "class methods must return typed-container field length directly"
+verifyBufferParam(box)

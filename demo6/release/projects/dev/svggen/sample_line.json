@@ -1,0 +1,13 @@
+{
+  "title": "Monthly Active Users",
+  "width": 760,
+  "height": 440,
+  "items": [
+    { "label": "Jan", "value": 120 },
+    { "label": "Feb", "value": 145 },
+    { "label": "Mar", "value": 130 },
+    { "label": "Apr", "value": 175 },
+    { "label": "May", "value": 210 },
+    { "label": "Jun", "value": 245 }
+  ]
+}

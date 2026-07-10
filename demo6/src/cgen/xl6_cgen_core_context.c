@@ -6,6 +6,7 @@ typedef struct XL6_CgenVar {
 
 #define XL6_CGEN_VAR_TYPED_CONTAINER 0x00000001u
 #define XL6_CGEN_VAR_BORROWED 0x00000002u
+#define XL6_CGEN_VAR_MODULE_GLOBAL 0x00000004u
 
 typedef enum XL6_CgenCleanupKind {
     XL6_CGEN_CLEANUP_NATIVE_CLASS,
@@ -20,8 +21,10 @@ typedef enum XL6_CgenCleanupKind {
     XL6_CGEN_CLEANUP_TYPED_CONTAINER,
     XL6_CGEN_CLEANUP_ERROR,
     XL6_CGEN_CLEANUP_ITER_SNAPSHOT,
+    XL6_CGEN_CLEANUP_STRING,
     XL6_CGEN_CLEANUP_XRT_PTR,
-    XL6_CGEN_CLEANUP_TYPED_CONTAINER_PARAM
+    XL6_CGEN_CLEANUP_TYPED_CONTAINER_PARAM,
+    XL6_CGEN_CLEANUP_TEMP_SCOPE
 } XL6_CgenCleanupKind;
 
 typedef struct XL6_CgenCleanup {
@@ -160,6 +163,8 @@ static void xl6CgenDebugProbe(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 static int xl6CgenEmitClassCtorInto(XL6_CgenContext* ctx, const XL6_AstNode* call, const char* targetExpr);
 static int xl6CgenClassNeedsDestroy(XL6_CgenContext* ctx, const XL6_AstNode* classNode);
+static void xl6CgenBeginTempScope(XL6_CgenContext* ctx, const XL6_AstNode* atNode);
+static int xl6CgenParamTypeUsesTypedContainerStorage(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 static int xl6CgenClassHasLocalVirtualSlots(const XL6_AstNode* classNode);
 static int xl6CgenClassBasePath(XL6_CgenContext* ctx, const XL6_AstNode* fromClass, const XL6_AstNode* targetClass, char* buffer, size_t capacity);
 static void xl6CgenEmitRecordFieldHelpers(XL6_CgenContext* ctx);

@@ -617,6 +617,10 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_process.exe
 if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\stdlib_process_shell_quotes.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_process_shell_quotes.xl
+if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\stdlib_process.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_process_xlang.out.txt
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_process_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_process_c.exe

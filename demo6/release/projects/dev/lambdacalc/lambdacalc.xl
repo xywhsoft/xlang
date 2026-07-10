@@ -1,0 +1,1059 @@
+// lambdacalc.xl - 纯 Lambda 演算解释器（用 xlang 编写）
+//
+// 用法:
+//   lambdacalc eval  "(expr)"              解析 + 归约到正规式（normal order）
+//   lambdacalc reduce "(expr)" [max=1000] [normal|applicative]
+//                                          逐步归约（打印每一步）
+//   lambdacalc demo                         Church 编码演示
+//   lambdacalc test                         内置测试套件
+//   lambdacalc -h | --help                  显示帮助
+//
+// 本工具验证 xlang 的以下能力:
+//   * 递归下降 Parser（λ 抽象 / 应用 / let 语法糖 / 多参抽象糖）
+//   * α-变换（捕获避免换名）+ β-归约（normal order + applicative order）
+//   * 捕获避免代换 subst(x, M, N)
+//   * Church 编码（数字 / 后继 / 加法 / 乘法 / 布尔 / IF）
+//   * Y 组合子与不动点展开
+//   * 归约步骤追踪
+//   * var 动态类型承载所有 Lambda 项（Var / Abs / App）
+//
+// 数据模型:
+//   Lambda 项统一用 var 表示，三种构造子:
+//     Var(name)              变量
+//     Abs(param, body)       抽象  (λparam.body)
+//     App(fn, arg)           应用  (fn arg)
+//   项是不可变的：归约总是构造新项，从不就地修改字段，因此用引用语义即可。
+//
+// 语法:
+//   x            变量
+//   (λx.M)       抽象  （也接受反斜杠 \ 作为 λ）
+//   (M N)        应用   （左结合：M N P = ((M N) P)）
+//   (λx y.M)     多参糖 = (λx.(λy.M))
+//   (let x = M in N)   语法糖 = ((λx.N) M)
+
+
+// ====================== Lambda 项类型 ======================
+
+// 变量
+class Var
+    var name = ""
+    create(var n)
+        self.name = n
+        return
+    end
+end
+
+// 抽象：λparam.body
+class Abs
+    var param = ""
+    var body = null
+    create(var p, var b)
+        self.param = p
+        self.body = b
+        return
+    end
+end
+
+// 应用：fn arg
+class App
+    var fn = null
+    var arg = null
+    create(var f, var a)
+        self.fn = f
+        self.arg = a
+        return
+    end
+end
+
+
+// ====================== 小工具 ======================
+
+func isNotNull(var v) as bool
+    if v is null then
+        return false
+    end
+    return true
+end
+
+
+// ====================== 词法分析 ======================
+// token 用 2 元素数组 [type, value] 表示：
+//   ["LP","("] ["RP",")"] ["LAM","λ"| "\\"] ["DOT","."] ["EQ","="] ["ID",name] ["EOF",""]
+
+func isWsChar(string c) as bool
+    if c == " " or c == "\t" or c == "\r" or c == "\n" then
+        return true
+    end
+    return false
+end
+
+func isDelimChar(string c) as bool
+    if isWsChar(c) then
+        return true
+    end
+    if c == "(" or c == ")" or c == "." or c == "=" then
+        return true
+    end
+    if c == "λ" or c == "\\" then
+        return true
+    end
+    return false
+end
+
+func tokenize(string src) as var
+    var toks = []
+    int i = 0
+    int n = string.len(src)
+    while i < n do
+        string c = string.charAt(src, i)
+        if isWsChar(c) then
+            i += 1
+        elseif c == "(" then
+            toks.push(["LP", "("])
+            i += 1
+        elseif c == ")" then
+            toks.push(["RP", ")"])
+            i += 1
+        elseif c == "." then
+            toks.push(["DOT", "."])
+            i += 1
+        elseif c == "=" then
+            toks.push(["EQ", "="])
+            i += 1
+        elseif c == "λ" or c == "\\" then
+            toks.push(["LAM", c])
+            i += 1
+        else
+            // 标识符：连续非分隔符
+            string name = ""
+            while i < n do
+                string cc = string.charAt(src, i)
+                if isDelimChar(cc) then
+                    break
+                end
+                name = name + cc
+                i += 1
+            end
+            if name == "" then
+                throw "lambdacalc: lex: bad char at pos " + string(i)
+            end
+            toks.push(["ID", name])
+        end
+    end
+    toks.push(["EOF", ""])
+    return toks
+end
+
+
+// ====================== Parser（递归下降） ======================
+
+class Parser
+    var toks = null
+    int pos = 0
+    create(var t)
+        self.toks = t
+        self.pos = 0
+        return
+    end
+
+    func curType() as string
+        var tk = self.toks[self.pos]
+        return string(tk[0])
+    end
+
+    func curVal() as string
+        var tk = self.toks[self.pos]
+        return string(tk[1])
+    end
+
+    func advance()
+        self.pos += 1
+    end
+
+    func expect(string ty)
+        if self.curType() != ty then
+            throw "lambdacalc: parse: expected " + ty + " but got " + self.curType() + " '" + self.curVal() + "'"
+        end
+        self.advance()
+    end
+
+    // expr := lambda | let | app
+    func parseExpr() as var
+        if self.curType() == "LAM" then
+            return self.parseLambda()
+        end
+        if self.curType() == "ID" and self.curVal() == "let" then
+            return self.parseLet()
+        end
+        return self.parseApp()
+    end
+
+    // atom := "(" expr ")" | lambda | IDENT
+    func parseAtom() as var
+        if self.curType() == "LP" then
+            self.advance()
+            var e = self.parseExpr()
+            self.expect("RP")
+            return e
+        end
+        if self.curType() == "LAM" then
+            return self.parseLambda()
+        end
+        if self.curType() == "ID" then
+            string name = self.curVal()
+            self.advance()
+            return Var(name)
+        end
+        throw "lambdacalc: parse: unexpected token " + self.curType() + " '" + self.curVal() + "'"
+    end
+
+    // app := atom atom*   （左结合；遇 RP / DOT / EQ / EOF / "in" 停止）
+    func parseApp() as var
+        var left = self.parseAtom()
+        while true do
+            string ty = self.curType()
+            if ty == "EOF" or ty == "RP" or ty == "DOT" or ty == "EQ" then
+                break
+            end
+            if ty == "ID" and self.curVal() == "in" then
+                break
+            end
+            var right = self.parseAtom()
+            left = App(left, right)
+        end
+        return left
+    end
+
+    // lambda := "λ" IDENT+ "." expr   （多参糖：λx y.M = λx.(λy.M)）
+    func parseLambda() as var
+        self.expect("LAM")
+        var params = []
+        params.push(self.readParam())
+        while self.curType() == "ID" do
+            params.push(self.readParam())
+        end
+        self.expect("DOT")
+        var body = self.parseExpr()
+        int k = params.length - 1
+        while k >= 0 do
+            body = Abs(params[k], body)
+            k -= 1
+        end
+        return body
+    end
+
+    func readParam() as var
+        if self.curType() != "ID" then
+            throw "lambdacalc: parse: expected parameter name but got " + self.curType()
+        end
+        var p = self.curVal()
+        self.advance()
+        return p
+    end
+
+    // let := "let" IDENT "=" expr "in" expr   ==>   ((λIDENT.expr_in) expr_val)
+    func parseLet() as var
+        self.advance()
+        var name = self.readParam()
+        self.expect("EQ")
+        var m = self.parseExpr()
+        if not (self.curType() == "ID" and self.curVal() == "in") then
+            throw "lambdacalc: parse: expected 'in' in let-form"
+        end
+        self.advance()
+        var nval = self.parseExpr()
+        return App(Abs(name, nval), m)
+    end
+
+    func parseAll() as var
+        var e = self.parseExpr()
+        if self.curType() != "EOF" then
+            throw "lambdacalc: parse: trailing tokens beginning " + self.curType() + " '" + self.curVal() + "'"
+        end
+        return e
+    end
+end
+
+func parseTerm(string src) as var
+    var toks = tokenize(src)
+    Parser p = Parser(toks)
+    return p.parseAll()
+end
+
+
+// ====================== 显示 ======================
+
+func showTerm(var t) as string
+    if t is Var then
+        Var v = t as Var
+        return string(v.name)
+    end
+    if t is Abs then
+        Abs a = t as Abs
+        return "(λ" + string(a.param) + "." + showTerm(a.body) + ")"
+    end
+    if t is App then
+        App ap = t as App
+        return "(" + showTerm(ap.fn) + " " + showTerm(ap.arg) + ")"
+    end
+    return "?"
+end
+
+
+// ====================== 自由变量 ======================
+// 收集结果用扁平 var 数组（线性去重），避免递归热路径分配 dict（BUG-LP1）。
+
+func addUnique(var arr, string s)
+    int i = 0
+    int n = arr.length
+    while i < n do
+        if string(arr[i]) == s then
+            return
+        end
+        i += 1
+    end
+    arr.push(s)
+end
+
+func inSet(var arr, string s) as bool
+    int i = 0
+    int n = arr.length
+    while i < n do
+        if string(arr[i]) == s then
+            return true
+        end
+        i += 1
+    end
+    return false
+end
+
+func mergeUnique(var dest, var src)
+    int i = 0
+    int n = src.length
+    while i < n do
+        addUnique(dest, string(src[i]))
+        i += 1
+    end
+end
+
+// 计算 t 的自由变量集合（去重的字符串数组）。
+func freeVars(var t) as var
+    var acc = []
+    collectFree(t, acc)
+    return acc
+end
+
+func collectFree(var t, var acc)
+    if t is Var then
+        Var v = t as Var
+        addUnique(acc, string(v.name))
+        return
+    end
+    if t is Abs then
+        Abs a = t as Abs
+        var inner = []
+        collectFree(a.body, inner)
+        int i = 0
+        int n = inner.length
+        while i < n do
+            if string(inner[i]) != string(a.param) then
+                addUnique(acc, string(inner[i]))
+            end
+            i += 1
+        end
+        return
+    end
+    if t is App then
+        App ap = t as App
+        collectFree(ap.fn, acc)
+        collectFree(ap.arg, acc)
+        return
+    end
+end
+
+
+// ====================== α-变换：新鲜变量 ======================
+
+int gFresh = 0
+
+// 在 avoid 集合外生成形如 base0, base1, ... 的新名。
+func freshVar(string base, var avoid) as string
+    int k = 0
+    while true do
+        string cand = base + string(k)
+        if not inSet(avoid, cand) then
+            return cand
+        end
+        k += 1
+    end
+    return base
+end
+
+
+// ====================== 捕获避免代换 subst(x, M, N) ======================
+// 在 N 中把自由出现的 x 替换为 M；遇到会捕获的约束变量先做 α-变换。
+
+func subst(string x, var m, var n) as var
+    if n is Var then
+        Var v = n as Var
+        if string(v.name) == x then
+            return m
+        end
+        return n
+    end
+    if n is Abs then
+        Abs a = n as Abs
+        if string(a.param) == x then
+            // x 在此处被绑定，不再替换
+            return n
+        end
+        // 捕获检查：约束变量 a.param 是否在 M 中自由出现？
+        var fm = freeVars(m)
+        if inSet(fm, string(a.param)) then
+            // 需要 α-变换：把 a.param 换名为不在 body / M / {x} 自由集中的新名
+            var avoid = freeVars(a.body)
+            mergeUnique(avoid, fm)
+            addUnique(avoid, x)
+            string fresh = freshVar(string(a.param), avoid)
+            var renamed = subst(string(a.param), Var(fresh), a.body)
+            return Abs(fresh, subst(x, m, renamed))
+        end
+        return Abs(a.param, subst(x, m, a.body))
+    end
+    if n is App then
+        App ap = n as App
+        return App(subst(x, m, ap.fn), subst(x, m, ap.arg))
+    end
+    throw "lambdacalc: subst: not a lambda term"
+end
+
+
+// ====================== 单步 β-归约 ======================
+// 返回归约后的新项；若已是正规式（无可归约红式）则返回 null。
+
+// normal order：最左最外红式优先；红式可在 λ 体内部。
+func normalStep(var t) as var
+    if t is App then
+        App ap = t as App
+        if ap.fn is Abs then
+            Abs a = ap.fn as Abs
+            return subst(string(a.param), ap.arg, a.body)
+        end
+        var f = normalStep(ap.fn)
+        if isNotNull(f) then
+            return App(f, ap.arg)
+        end
+        var g = normalStep(ap.arg)
+        if isNotNull(g) then
+            return App(ap.fn, g)
+        end
+        return null
+    end
+    if t is Abs then
+        Abs a = t as Abs
+        var b = normalStep(a.body)
+        if isNotNull(b) then
+            return Abs(a.param, b)
+        end
+        return null
+    end
+    return null
+end
+
+// applicative order：先归约函数位与参数位，再收缩最外红式。
+// 对发散项（如 Y）会无限归约参数。
+func applicativeStep(var t) as var
+    if t is App then
+        App ap = t as App
+        var f = applicativeStep(ap.fn)
+        if isNotNull(f) then
+            return App(f, ap.arg)
+        end
+        var g = applicativeStep(ap.arg)
+        if isNotNull(g) then
+            return App(ap.fn, g)
+        end
+        if ap.fn is Abs then
+            Abs a = ap.fn as Abs
+            return subst(string(a.param), ap.arg, a.body)
+        end
+        return null
+    end
+    if t is Abs then
+        Abs a = t as Abs
+        var b = applicativeStep(a.body)
+        if isNotNull(b) then
+            return Abs(a.param, b)
+        end
+        return null
+    end
+    return null
+end
+
+
+// ====================== 多步归约（含追踪） ======================
+// 返回 [最终项, 步数, 是否到达正规式]。
+
+func reduceToNormal(var term, int maxSteps, bool trace, string order) as var
+    gFresh = 0
+    var cur = term
+    int steps = 0
+    if trace then
+        println("  = " + showTerm(cur))
+    end
+    while steps < maxSteps do
+        var nxt = null
+        if order == "applicative" then
+            nxt = applicativeStep(cur)
+        else
+            nxt = normalStep(cur)
+        end
+        if nxt is null then
+            return [cur, steps, true]
+        end
+        cur = nxt
+        steps += 1
+        if trace then
+            println("  -> [" + string(steps) + "] " + showTerm(cur))
+        end
+    end
+    if trace then
+        println("  ; step limit " + string(maxSteps) + " reached (not yet in normal form)")
+    end
+    return [cur, steps, false]
+end
+
+
+// ====================== α-等价（De Bruijn 规范形比较） ======================
+
+func canonStr(var t, var binders) as string
+    // binders: 约束变量名栈，最近入栈的在末尾
+    if t is Var then
+        Var v = t as Var
+        string nm = string(v.name)
+        int i = binders.length - 1
+        int depth = 0
+        while i >= 0 do
+            if string(binders[i]) == nm then
+                return "#" + string(depth)
+            end
+            depth += 1
+            i -= 1
+        end
+        return nm
+    end
+    if t is Abs then
+        Abs a = t as Abs
+        binders.push(string(a.param))
+        string s = "(|" + canonStr(a.body, binders) + ")"
+        binders.pop()
+        return s
+    end
+    if t is App then
+        App ap = t as App
+        return "(" + canonStr(ap.fn, binders) + " " + canonStr(ap.arg, binders) + ")"
+    end
+    return "?"
+end
+
+func alphaEquiv(var a, var b) as bool
+    var ba = []
+    var bb = []
+    return canonStr(a, ba) == canonStr(b, bb)
+end
+
+
+// ====================== Church 数字识别 ======================
+// 若 t 形如 λf.λx.(f (f (... (f x))))（n 次 f），返回 n；否则返回 null。
+func churchToInt(var t) as var
+    if not (t is Abs) then
+        return null
+    end
+    Abs a = t as Abs
+    if not (a.body is Abs) then
+        return null
+    end
+    Abs b = a.body as Abs
+    string f = string(a.param)
+    string x = string(b.param)
+    return countApplications(b.body, f, x)
+end
+
+func countApplications(var body, string f, string x) as var
+    int count = 0
+    var cur = body
+    while cur is App do
+        App ap = cur as App
+        if not (ap.fn is Var) then
+            return null
+        end
+        Var fnv = ap.fn as Var
+        if string(fnv.name) != f then
+            return null
+        end
+        count += 1
+        cur = ap.arg
+    end
+    if cur is Var then
+        Var v = cur as Var
+        if string(v.name) == x then
+            return count
+        end
+    end
+    return null
+end
+
+
+// ====================== Church 编码前导库 ======================
+// 后定义者可引用先定义者的名字；用 subst 把引用内联成闭合项。
+// 前导库名也可在 eval/reduce 的表达式里直接使用。
+
+func buildPrelude() as var
+    gFresh = 0
+    var defs = []
+    addRaw(defs, "ZERO",  "λf.λx.x")
+    addRaw(defs, "ONE",   "λf.λx.f x")
+    addRaw(defs, "TWO",   "λf.λx.f (f x)")
+    addRaw(defs, "THREE", "λf.λx.f (f (f x))")
+    addRaw(defs, "FOUR",  "λf.λx.f (f (f (f x)))")
+    addRaw(defs, "FIVE",  "λf.λx.f (f (f (f (f x))))")
+    addRaw(defs, "SUCC",  "λn.λf.λx.f (n f x)")
+    addRaw(defs, "PLUS",  "λm.λn.λf.λx.m f (n f x)")
+    addRaw(defs, "MULT",  "λm.λn.λf.m (n f)")
+    addRaw(defs, "TRUE",  "λx.λy.x")
+    addRaw(defs, "FALSE", "λx.λy.y")
+    addRaw(defs, "IF",    "λb.λt.λe.b t e")
+    addRaw(defs, "ISZERO", "λn.n (λx.FALSE) TRUE")
+    addRaw(defs, "PAIR",  "λa.λb.λf.f a b")
+    addRaw(defs, "FST",   "λp.p TRUE")
+    addRaw(defs, "SND",   "λp.p FALSE")
+    addRaw(defs, "PRED",  "λn.FST (n (λp.PAIR (SND p) (SUCC (SND p))) (PAIR ZERO ZERO))")
+    addRaw(defs, "Y",     "λf.(λx.f (x x)) (λx.f (x x))")
+    addRaw(defs, "FACT",  "λg.λn.IF (ISZERO n) ONE (MULT n (g (PRED n)))")
+    return defs
+end
+
+func addRaw(var defs, string name, string src)
+    var t = parseTerm(src)
+    int i = 0
+    int n = defs.length
+    while i < n do
+        string nm = string(defs[i])
+        var val = defs[i + 1]
+        t = subst(nm, val, t)
+        i += 2
+    end
+    defs.push(name)
+    defs.push(t)
+end
+
+func lookupPrelude(var pre, string name) as var
+    int i = 0
+    int n = pre.length
+    while i < n do
+        if string(pre[i]) == name then
+            return pre[i + 1]
+        end
+        i += 2
+    end
+    throw "lambdacalc: prelude name not found: " + name
+end
+
+// 解析 exprSrc，并把所有前导库名内联（闭项）。
+func buildApp(var pre, string exprSrc) as var
+    var t = parseTerm(exprSrc)
+    int i = 0
+    int n = pre.length
+    while i < n do
+        string nm = string(pre[i])
+        var val = pre[i + 1]
+        t = subst(nm, val, t)
+        i += 2
+    end
+    return t
+end
+
+
+// ====================== 命令行 ======================
+
+func printUsage()
+    println("lambdacalc - pure lambda calculus interpreter (written in xlang)")
+    println("")
+    println("usage:")
+    println("  lambdacalc eval  \"(expr)\"                       parse + reduce to normal form (normal order)")
+    println("  lambdacalc reduce \"(expr)\" [max=1000] [normal|applicative]")
+    println("                                                  reduce with per-step trace")
+    println("  lambdacalc demo                                  Church encoding showcase")
+    println("  lambdacalc test                                  run built-in test suite")
+    println("  lambdacalc -h | --help                           show this help")
+    println("")
+    println("syntax:")
+    println("  x                  variable")
+    println("  (λx.M)             abstraction   (backslash \\ also accepted)")
+    println("  (M N)              application   (left-assoc: M N P = ((M N) P))")
+    println("  (λx y.M)           sugar for (λx.(λy.M))")
+    println("  (let x = M in N)   sugar for ((λx.N) M)")
+    println("")
+    println("prelude names available in eval/reduce:")
+    println("  ZERO ONE TWO THREE FOUR FIVE   SUCC PLUS MULT")
+    println("  TRUE FALSE IF   ISZERO   PAIR FST SND PRED   Y  FACT")
+end
+
+
+// ----- eval -----
+
+func cmdEval(string src) as int
+    var pre = buildPrelude()
+    var term = buildApp(pre, src)
+    var r = reduceToNormal(term, 10000, false, "normal")
+    var result = r[0]
+    int steps = int(r[1])
+    bool reached = bool(r[2])
+    println(showTerm(result))
+    var ci = churchToInt(result)
+    if isNotNull(ci) then
+        println("= Church numeral " + string(int(ci)))
+    end
+    if reached then
+        println("; normal form reached in " + string(steps) + " step(s)")
+    else
+        println("; WARNING: step limit reached (10000), term may NOT be in normal form")
+    end
+    return 0
+end
+
+
+// ----- reduce -----
+
+func cmdReduce(string src, int maxSteps, string order) as int
+    var pre = buildPrelude()
+    var term = buildApp(pre, src)
+    println("; order: " + order + "    maxSteps: " + string(maxSteps))
+    var r = reduceToNormal(term, maxSteps, true, order)
+    int steps = int(r[1])
+    bool reached = bool(r[2])
+    if reached then
+        println("; reduced to normal form in " + string(steps) + " step(s)")
+    else
+        println("; stopped after " + string(steps) + " step(s) (limit reached, not normal form)")
+    end
+    return 0
+end
+
+
+// ----- demo -----
+
+func cmdDemo() as int
+    var pre = buildPrelude()
+    println("=== Lambda Calculus : Church Encoding Demo ===")
+    println("")
+    println("-- Church booleans --")
+    println("  TRUE  = λx.λy.x")
+    println("  FALSE = λx.λy.y")
+    println("  IF    = λb.λt.λe.b t e")
+    println("")
+    println("-- Church numerals --")
+    println("  ZERO  = λf.λx.x")
+    println("  ONE   = λf.λx.f x")
+    println("  TWO   = λf.λx.f (f x)")
+    println("  THREE = λf.λx.f (f (f x))")
+    println("  SUCC  = λn.λf.λx.f (n f x)")
+    println("  PLUS  = λm.λn.λf.λx.m f (n f x)")
+    println("  MULT  = λm.λn.λf.m (n f)")
+    println("")
+    println("-- Y combinator --")
+    println("  Y     = λf.(λx.f (x x)) (λx.f (x x))")
+    println("================================================")
+    println("")
+
+    println("[numerals] reduce each to normal form:")
+    demoNumeral(pre, "ZERO")
+    demoNumeral(pre, "ONE")
+    demoNumeral(pre, "TWO")
+    demoNumeral(pre, "THREE")
+    println("")
+
+    println("[successor]")
+    demoReduce(pre, "SUCC ZERO")
+    demoReduce(pre, "SUCC TWO")
+    println("")
+
+    println("[addition]")
+    demoReduce(pre, "PLUS TWO THREE")
+    println("")
+
+    println("[multiplication]")
+    demoReduce(pre, "MULT THREE FOUR")
+    println("")
+
+    println("[booleans]")
+    demoReduce(pre, "IF TRUE ZERO ONE")
+    demoReduce(pre, "IF FALSE ZERO ONE")
+    println("")
+
+    println("[Y combinator : fixed-point unfolding]")
+    demoY(pre)
+    println("")
+
+    println("[Y-based recursion : terminating under normal order]")
+    demoYRecursion(pre)
+    println("")
+    println("================================================")
+    println("done.")
+    return 0
+end
+
+func demoNumeral(var pre, string name)
+    var t = lookupPrelude(pre, name)
+    var r = reduceToNormal(t, 10000, false, "normal")
+    var res = r[0]
+    int steps = int(r[1])
+    string n = "?"
+    var ci = churchToInt(res)
+    if isNotNull(ci) then
+        n = string(int(ci))
+    end
+    println("  " + name + " => " + showTerm(res) + "   [church " + n + "]   (" + string(steps) + " steps)")
+end
+
+func demoReduce(var pre, string exprSrc)
+    var t = buildApp(pre, exprSrc)
+    var r = reduceToNormal(t, 50000, false, "normal")
+    var res = r[0]
+    int steps = int(r[1])
+    bool reached = bool(r[2])
+    string line = "  " + exprSrc + " => " + showTerm(res)
+    var ci = churchToInt(res)
+    if isNotNull(ci) then
+        line = line + "   [= " + string(int(ci)) + "]"
+    end
+    println(line)
+    if reached then
+        println("    " + string(steps) + " reduction steps (normal form)")
+    else
+        println("    " + string(steps) + " reduction steps (STEP LIMIT REACHED)")
+    end
+end
+
+func demoY(var pre)
+    println("  Y = λf.(λx.f (x x)) (λx.f (x x))")
+    println("  Reduce \"Y g\" (g kept symbolic) under normal order, 5 steps:")
+    var yg = buildApp(pre, "Y g")
+    reduceToNormal(yg, 5, true, "normal")
+    println("  ==> step [2] reveals the fixed-point equation:   Y g  =β  g (Y g)")
+end
+
+func demoYRecursion(var pre)
+    println("  Let   g = λself.λn.IF (ISZERO n) ZERO (self ZERO)")
+    println("  (g recurses through self; Y g is its least fixed point)")
+    var t = buildApp(pre, "Y (λself.λn.IF (ISZERO n) ZERO (self ZERO)) THREE")
+    var r = reduceToNormal(t, 50000, false, "normal")
+    var res = r[0]
+    int steps = int(r[1])
+    bool reached = bool(r[2])
+    string n = "?"
+    var ci = churchToInt(res)
+    if isNotNull(ci) then
+        n = string(int(ci))
+    end
+    println("  Y g THREE => " + showTerm(res) + "   [church " + n + "]")
+    if reached then
+        println("    normal form reached in " + string(steps) + " steps")
+    else
+        println("    stopped after " + string(steps) + " steps (limit)")
+    end
+    println("  Note: applicative-order reduction of any Y term diverges")
+    println("        (it insists on fully evaluating the argument first).")
+end
+
+
+// ----- test -----
+
+func report(string label, bool ok, string detail) as bool
+    if ok then
+        println("PASS  " + label + "  => " + detail)
+    else
+        println("FAIL  " + label + "  => " + detail)
+    end
+    return ok
+end
+
+func runCheckExact(var pre, string label, string src, string expectedShow) as bool
+    var term = buildApp(pre, src)
+    var r = reduceToNormal(term, 20000, false, "normal")
+    var res = r[0]
+    string got = showTerm(res)
+    return report(label, got == expectedShow, got)
+end
+
+func runCheckEquiv(var pre, string label, string src, string expectedSrc) as bool
+    var term = buildApp(pre, src)
+    var r = reduceToNormal(term, 20000, false, "normal")
+    var res = r[0]
+    var exp = parseTerm(expectedSrc)
+    bool ok = alphaEquiv(res, exp)
+    return report(label, ok, showTerm(res))
+end
+
+func runCheckChurch(var pre, string label, string expr, int expectedInt) as bool
+    var t = buildApp(pre, expr)
+    var r = reduceToNormal(t, 50000, false, "normal")
+    var res = r[0]
+    var ci = churchToInt(res)
+    bool ok = false
+    if isNotNull(ci) then
+        if int(ci) == expectedInt then
+            ok = true
+        end
+    end
+    string detail = showTerm(res)
+    if isNotNull(ci) then
+        detail = detail + " (= " + string(int(ci)) + ")"
+    end
+    return report(label, ok, detail)
+end
+
+func cmdTest() as int
+    println("=== lambdacalc built-in test suite ===")
+    var pre = buildPrelude()
+    int passed = 0
+    int failed = 0
+
+    try
+        // ---- 基本代换 / β-归约 ----
+        if runCheckExact(pre, "identity", "(λx.x) y", "y") then passed += 1 else failed += 1 end
+        if runCheckExact(pre, "K combinator", "(λx.λy.x) a b", "a") then passed += 1 else failed += 1 end
+        if runCheckExact(pre, "KI returns second", "(λx.λy.y) a b", "b") then passed += 1 else failed += 1 end
+
+        // ---- α-变换 / 捕获避免 ----
+        // (λx.λy.x) y ：内层 y 必须换名，结果等价于 λ_.y（保留外层自由 y）
+        if runCheckEquiv(pre, "capture avoidance", "(λx.λy.x) y", "λz.y") then passed += 1 else failed += 1 end
+        // 无捕获时不换名：(λx.λy.x) z => λy.z
+        if runCheckEquiv(pre, "no capture", "(λx.λy.x) z", "λw.z") then passed += 1 else failed += 1 end
+
+        // ---- let 语法糖 ----
+        // let id = λy.y in id z  ==>  z
+        if runCheckExact(pre, "let sugar", "let id = λy.y in id z", "z") then passed += 1 else failed += 1 end
+        // let x = (λa.a) in (x x)  ==>  ... reduce
+        if runCheckExact(pre, "let application", "let x = (λa.a) in (x b)", "b") then passed += 1 else failed += 1 end
+
+        // ---- λ 体内部归约 + 多参糖 ----
+        // (λf.λx.f x) (λa.a)  =>  λx.x
+        if runCheckEquiv(pre, "redex under lambda", "(λf.λx.f x) (λa.a)", "λp.p") then passed += 1 else failed += 1 end
+        // 多参糖 λx y.y => 等价于 λx.λy.y；应用到 a b 得 b
+        if runCheckExact(pre, "multi-param sugar", "(λx y.y) a b", "b") then passed += 1 else failed += 1 end
+
+        // ---- Church 算术 ----
+        if runCheckChurch(pre, "SUCC ZERO = 1", "SUCC ZERO", 1) then passed += 1 else failed += 1 end
+        if runCheckChurch(pre, "SUCC TWO = 3", "SUCC TWO", 3) then passed += 1 else failed += 1 end
+        if runCheckChurch(pre, "PLUS TWO THREE = 5", "PLUS TWO THREE", 5) then passed += 1 else failed += 1 end
+        if runCheckChurch(pre, "MULT THREE FOUR = 12", "MULT THREE FOUR", 12) then passed += 1 else failed += 1 end
+        if runCheckChurch(pre, "MULT TWO (PLUS TWO THREE) = 10", "MULT TWO (PLUS TWO THREE)", 10) then passed += 1 else failed += 1 end
+
+        // ---- Church 布尔 ----
+        if runCheckChurch(pre, "IF TRUE selects branch 1", "IF TRUE ZERO ONE", 0) then passed += 1 else failed += 1 end
+        if runCheckChurch(pre, "IF FALSE selects branch 2", "IF FALSE ZERO ONE", 1) then passed += 1 else failed += 1 end
+
+        // ---- normal vs applicative ----
+        // (λx.λy.y) Ω ，其中 Ω = (λz.z z)(λz.z z) 发散
+        var omega = parseTerm("(λx.λy.y) ((λz.z z) (λz.z z))")
+        var rn = reduceToNormal(omega, 2000, false, "normal")
+        bool reachedN = bool(rn[2])
+        bool okN = reachedN and alphaEquiv(rn[0], parseTerm("λw.w"))
+        if report("normal-order skips diverging arg", okN, showTerm(rn[0])) then passed += 1 else failed += 1 end
+
+        var ra = reduceToNormal(omega, 300, false, "applicative")
+        bool reachedA = bool(ra[2])
+        bool okA = not reachedA
+        if report("applicative-order diverges on Ω", okA, "diverged=" + string(not reachedA)) then passed += 1 else failed += 1 end
+
+        // ---- Y 不动点：Y g =β g (Y g) ----
+        // 把 "Y g" 归约两步（normal order），结果应 α-等价于 g ((λx.g(x x))(λx.g(x x)))
+        var yg = buildApp(pre, "Y g")
+        var ry = reduceToNormal(yg, 2, false, "normal")
+        var expectedFP = parseTerm("g ((λx.g (x x)) (λx.g (x x)))")
+        bool okY = alphaEquiv(ry[0], expectedFP)
+        if report("Y g =β g (Y g) after 2 steps", okY, showTerm(ry[0])) then passed += 1 else failed += 1 end
+
+        // ---- Y 驱动终止递归 ----
+        var recT = buildApp(pre, "Y (λself.λn.IF (ISZERO n) ZERO (self ZERO)) THREE")
+        var rr = reduceToNormal(recT, 50000, false, "normal")
+        var rci = churchToInt(rr[0])
+        bool okRec = false
+        if isNotNull(rci) then
+            okRec = (int(rci) == 0)
+        end
+        if report("Y recursion terminates (=> 0)", okRec, showTerm(rr[0])) then passed += 1 else failed += 1 end
+
+    catch e
+        println("ERROR during test: " + e.message)
+        failed += 1
+    end
+
+    println("----------------------------------------------------------------")
+    println("total: " + string(passed + failed) + "   passed: " + string(passed) + "   failed: " + string(failed))
+    if failed == 0 then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println("SOME TESTS FAILED")
+    return 1
+end
+
+
+// ====================== 入口 ======================
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    try
+        if cmd == "eval" then
+            if arg.length < 3 then
+                println("lambdacalc: 'eval' needs \"(expr)\"")
+                return 1
+            end
+            return cmdEval(string(arg[2]))
+        end
+
+        if cmd == "reduce" then
+            if arg.length < 3 then
+                println("lambdacalc: 'reduce' needs \"(expr)\"")
+                return 1
+            end
+            int maxSteps = 1000
+            if arg.length >= 4 then
+                maxSteps = int(string(arg[3]))
+            end
+            string order = "normal"
+            if arg.length >= 5 then
+                order = string(arg[4])
+            end
+            return cmdReduce(string(arg[2]), maxSteps, order)
+        end
+
+        if cmd == "demo" then
+            return cmdDemo()
+        end
+
+        if cmd == "test" then
+            return cmdTest()
+        end
+
+        println("lambdacalc: unknown command: " + cmd)
+        printUsage()
+        return 1
+    catch e
+        println("lambdacalc: error: " + e.message)
+        return 1
+    end
+end

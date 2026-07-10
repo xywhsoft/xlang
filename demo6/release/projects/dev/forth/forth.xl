@@ -1,0 +1,770 @@
+// forth.xl — 栈式后缀（Forth）语言解释器
+//
+// 用法:
+//   forth run <file.fth>     执行一个 .fth 文件
+//   forth test               运行内置测试套件
+//   forth -h | --help        显示帮助
+//
+// 实现模型: 空格分 token -> 查词表 -> 执行。
+//   - 数据栈:     array<int>（全局）
+//   - 用户词表:   dict<string, array<string>>  name -> body tokens
+//   - 内置词:     if-chain 派发
+//   - 控制流:     if/else/then、begin/until、do/loop 在运行期扫描匹配关键字
+//
+// 词集:
+//   算术   + - * / mod
+//   栈操作 dup drop swap over
+//   比较   = <> < > <= >=        (真=-1, 假=0, Forth 惯例)
+//   输出   .  cr  .s
+//   定义   : name ... ;
+//   控制流 if else then  begin until  do loop
+//   其它   i (循环索引)  recurse (递归调用当前词)
+//   注释   \ 行注释   ( 块注释 )
+
+
+// ====================== 全局状态 ======================
+// 注: 数据栈/词表/循环栈均为全局变量, 全程只就地修改（push/pop/clear/按 key 赋值），
+// 从不重新绑定，规避「typed 容器作函数形参被值拷贝（BUG-XL1）」与「main 中重绑全局容器的线程问题」。
+
+array<int> gStack = array[]
+dict<string, array<string>> gWords = dict<string, array<string>>{}
+array<int> gLoopStack = array[]
+string gCurrentWord = ""
+
+
+// ====================== 数据栈辅助 ======================
+
+func push(int v)
+    gStack.push(v)
+end
+
+func pop() as int
+    if gStack.length == 0 then
+        throw "forth: stack underflow"
+    end
+    int v = gStack.pop()
+    return v
+end
+
+// 布尔 -> Forth 标志（真=-1, 假=0）。
+func pushFlag(bool b)
+    if b then
+        push(-1)
+    else
+        push(0)
+    end
+end
+
+
+// ====================== 词法分析 ======================
+
+// 判断 token 是否为十进制整数（可带符号）。
+func isNumber(string t) as bool
+    int n = string.len(t)
+    if n == 0 then
+        return false
+    end
+    int i = 0
+    int b0 = string.byteAt(t, 0)
+    if b0 == 45 or b0 == 43 then
+        i = 1
+        if n == 1 then
+            return false
+        end
+    end
+    while i < n do
+        int b = string.byteAt(t, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+// 源码 -> token 数组。空白分词；\ 为行注释；( ... ) 为块注释。
+func tokenize(string src) as array<string>
+    array<string> toks = array[]
+    int n = string.len(src)
+    int i = 0
+    while i < n do
+        string c = string.charAt(src, i)
+        if c == " " or c == "\t" or c == "\r" or c == "\n" then
+            i += 1
+        elseif c == "\\" then
+            while i < n do
+                if string.charAt(src, i) == "\n" then
+                    break
+                end
+                i += 1
+            end
+        elseif c == "(" then
+            while i < n do
+                if string.charAt(src, i) == ")" then
+                    i += 1
+                    break
+                end
+                i += 1
+            end
+        else
+            string tok = ""
+            while i < n do
+                string cc = string.charAt(src, i)
+                if cc == " " or cc == "\t" or cc == "\r" or cc == "\n" then
+                    break
+                end
+                tok = tok + cc
+                i += 1
+            end
+            toks.push(tok)
+        end
+    end
+    return toks
+end
+
+
+// ====================== 控制流扫描 ======================
+// 在 toks[start..end) 中查找匹配的控制关键字（处理嵌套，按深度匹配）。
+
+// 匹配 'if' 的 'then' 位置。
+func scanThen(array<string> toks, int start, int end) as int
+    int depth = 0
+    int j = start
+    while j < end do
+        string t = toks[j]
+        if t == "if" then
+            depth += 1
+        elseif t == "then" then
+            if depth == 0 then
+                return j
+            end
+            depth -= 1
+        end
+        j += 1
+    end
+    throw "forth: unterminated if (missing then)"
+end
+
+// [start..end) 内处于深度 0 的 'else'（end 通常为 then 位置）。
+func scanElse(array<string> toks, int start, int end) as int
+    int depth = 0
+    int j = start
+    while j < end do
+        string t = toks[j]
+        if t == "if" then
+            depth += 1
+        elseif t == "then" then
+            depth -= 1
+        elseif t == "else" then
+            if depth == 0 then
+                return j
+            end
+        end
+        j += 1
+    end
+    return -1
+end
+
+// 匹配 'begin' 的 'until' 位置。
+func scanUntil(array<string> toks, int start, int end) as int
+    int depth = 0
+    int j = start
+    while j < end do
+        string t = toks[j]
+        if t == "begin" then
+            depth += 1
+        elseif t == "until" then
+            if depth == 0 then
+                return j
+            end
+            depth -= 1
+        end
+        j += 1
+    end
+    throw "forth: unterminated begin (missing until)"
+end
+
+// 匹配 'do' 的 'loop' 位置。
+func scanLoop(array<string> toks, int start, int end) as int
+    int depth = 0
+    int j = start
+    while j < end do
+        string t = toks[j]
+        if t == "do" then
+            depth += 1
+        elseif t == "loop" then
+            if depth == 0 then
+                return j
+            end
+            depth -= 1
+        end
+        j += 1
+    end
+    throw "forth: unterminated do (missing loop)"
+end
+
+
+// ====================== 执行器 ======================
+
+// 执行 toks[start..end)。
+func execRange(array<string> toks, int start, int end)
+    int i = start
+    while i < end do
+        i = execOne(toks, i, end)
+    end
+end
+
+// 执行单个 token，返回下一个 token 位置。
+func execOne(array<string> toks, int i, int end) as int
+    string t = toks[i]
+
+    // 结构性词（改变执行位置）
+    if t == ":" then
+        return doDefine(toks, i, end)
+    end
+    if t == "if" then
+        return doIf(toks, i, end)
+    end
+    if t == "begin" then
+        return doBegin(toks, i, end)
+    end
+    if t == "do" then
+        return doLoop(toks, i, end)
+    end
+
+    // 循环索引 i
+    if t == "i" then
+        if gLoopStack.length == 0 then
+            throw "forth: 'i' used outside do-loop"
+        end
+        push(gLoopStack[gLoopStack.length - 1])
+        return i + 1
+    end
+
+    // 递归调用当前词
+    if t == "recurse" then
+        if gCurrentWord == "" then
+            throw "forth: 'recurse' used outside a word"
+        end
+        callWord(gCurrentWord)
+        return i + 1
+    end
+
+    // 关键字误用：单独出现的结构词
+    if t == "else" or t == "then" or t == "until" or t == "loop" or t == ";" then
+        throw "forth: unexpected '" + t + "'"
+    end
+
+    // 数字字面量
+    if isNumber(t) then
+        push(int(t))
+        return i + 1
+    end
+
+    // 用户自定义词
+    if gWords.contains(t) then
+        callWord(t)
+        return i + 1
+    end
+
+    // 内置词
+    if execBuiltin(t) then
+        return i + 1
+    end
+
+    throw "forth: unknown word: " + t
+    return i + 1
+end
+
+// : name body ;  —— 收集 body 存入词表。
+func doDefine(array<string> toks, int i, int end) as int
+    if i + 1 >= end then
+        throw "forth: ':' missing word name"
+    end
+    string name = toks[i + 1]
+    int semi = i + 2
+    while semi < end do
+        if toks[semi] == ";" then
+            break
+        end
+        semi += 1
+    end
+    if semi >= end then
+        throw "forth: ':' missing ';'"
+    end
+    array<string> body = array[]
+    int k = i + 2
+    while k < semi do
+        body.push(toks[k])
+        k += 1
+    end
+    gWords[name] = body
+    return semi + 1
+end
+
+// flag if A else B then
+func doIf(array<string> toks, int i, int end) as int
+    int flag = pop()
+    int thenIdx = scanThen(toks, i + 1, end)
+    int elseIdx = scanElse(toks, i + 1, thenIdx)
+    if flag != 0 then
+        if elseIdx >= 0 then
+            execRange(toks, i + 1, elseIdx)
+        else
+            execRange(toks, i + 1, thenIdx)
+        end
+    else
+        if elseIdx >= 0 then
+            execRange(toks, elseIdx + 1, thenIdx)
+        end
+    end
+    return thenIdx + 1
+end
+
+// begin body until  —— 执行 body，弹标志，非零退出。
+func doBegin(array<string> toks, int i, int end) as int
+    int untilIdx = scanUntil(toks, i + 1, end)
+    while true do
+        execRange(toks, i + 1, untilIdx)
+        int flag = pop()
+        if flag != 0 then
+            break
+        end
+    end
+    return untilIdx + 1
+end
+
+// limit start do body loop  —— start..limit-1 计数循环。
+func doLoop(array<string> toks, int i, int end) as int
+    int loopIdx = scanLoop(toks, i + 1, end)
+    int index = pop()
+    int limit = pop()
+    gLoopStack.push(index)
+    while index < limit do
+        int top = gLoopStack.length - 1
+        gLoopStack[top] = index
+        execRange(toks, i + 1, loopIdx)
+        index += 1
+    end
+    gLoopStack.pop()
+    return loopIdx + 1
+end
+
+// 调用用户词：执行其 body，记录当前词名以支持 recurse。
+func callWord(string name)
+    array<string> body = gWords[name]
+    string prev = gCurrentWord
+    gCurrentWord = name
+    execRange(body, 0, body.length)
+    gCurrentWord = prev
+end
+
+// 内置词派发（if-chain）。
+// 用独立 if 块 + return（而非 elseif 链），确保每个分支独立作用域，
+// 可安全在各分支内声明 int a/int b（与 lisp applyBuiltin 同款写法）。
+func execBuiltin(string t) as bool
+    if t == "+" then
+        int b = pop()
+        int a = pop()
+        push(a + b)
+        return true
+    end
+    if t == "-" then
+        int b = pop()
+        int a = pop()
+        push(a - b)
+        return true
+    end
+    if t == "*" then
+        int b = pop()
+        int a = pop()
+        push(a * b)
+        return true
+    end
+    if t == "/" then
+        int b = pop()
+        int a = pop()
+        if b == 0 then
+            throw "forth: division by zero"
+        end
+        push(a / b)
+        return true
+    end
+    if t == "mod" then
+        int b = pop()
+        int a = pop()
+        if b == 0 then
+            throw "forth: modulo by zero"
+        end
+        push(a % b)
+        return true
+    end
+    if t == "dup" then
+        if gStack.length == 0 then
+            throw "forth: stack underflow"
+        end
+        push(gStack[gStack.length - 1])
+        return true
+    end
+    if t == "drop" then
+        pop()
+        return true
+    end
+    if t == "swap" then
+        int b = pop()
+        int a = pop()
+        push(b)
+        push(a)
+        return true
+    end
+    if t == "over" then
+        if gStack.length < 2 then
+            throw "forth: stack underflow"
+        end
+        push(gStack[gStack.length - 2])
+        return true
+    end
+    if t == "=" then
+        int b = pop()
+        int a = pop()
+        pushFlag(a == b)
+        return true
+    end
+    if t == "<>" then
+        int b = pop()
+        int a = pop()
+        pushFlag(a != b)
+        return true
+    end
+    if t == "<" then
+        int b = pop()
+        int a = pop()
+        pushFlag(a < b)
+        return true
+    end
+    if t == ">" then
+        int b = pop()
+        int a = pop()
+        pushFlag(a > b)
+        return true
+    end
+    if t == "<=" then
+        int b = pop()
+        int a = pop()
+        pushFlag(a <= b)
+        return true
+    end
+    if t == ">=" then
+        int b = pop()
+        int a = pop()
+        pushFlag(a >= b)
+        return true
+    end
+    if t == "." then
+        int v = pop()
+        print(string(v) + " ")
+        return true
+    end
+    if t == "cr" then
+        println("")
+        return true
+    end
+    if t == ".s" then
+        printStack()
+        return true
+    end
+    return false
+end
+
+// 打印数据栈（非破坏）。
+func printStack()
+    print("<" + string(gStack.length) + "> ")
+    int k = 0
+    while k < gStack.length do
+        print(string(gStack[k]) + " ")
+        k += 1
+    end
+    println("")
+end
+
+
+// ====================== 源码运行 ======================
+
+func runSource(string src)
+    array<string> toks = tokenize(src)
+    execRange(toks, 0, toks.length)
+end
+
+// 重置运行态：清数据栈/循环栈/递归上下文。
+// 不清 gWords —— typed dict 不保证支持 .clear()；且重定义同名词会自然覆盖（Forth 语义）。
+func resetState()
+    gStack.clear()
+    gLoopStack.clear()
+    gCurrentWord = ""
+end
+
+
+// ====================== 命令 ======================
+
+func cmdRun(string path) as int
+    if not file.exists(path) then
+        println("forth: file not found: " + path)
+        return 1
+    end
+    string src = file.readText(path)
+    try
+        runSource(src)
+    catch e
+        println("forth: error: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+// 运行源码后检查栈顶 == expected。
+func check(string label, string src, int expected) as bool
+    gStack.clear()
+    try
+        runSource(src)
+    catch e
+        println("FAIL  " + label + "  error: " + e.message)
+        return false
+    end
+    bool ok = false
+    if gStack.length > 0 then
+        if gStack[gStack.length - 1] == expected then
+            ok = true
+        end
+    end
+    if ok then
+        println("PASS  " + label + "  => " + string(gStack[gStack.length - 1]))
+        return true
+    end
+    string topStr = "empty"
+    if gStack.length > 0 then
+        topStr = string(gStack[gStack.length - 1])
+    end
+    println("FAIL  " + label + "  expected " + string(expected) + "  got " + topStr)
+    return false
+end
+
+func cmdTest() as int
+    println("=== forth built-in test suite ===")
+    resetState()
+    int passed = 0
+    int failed = 0
+
+    try
+        // ---- 算术 ----
+        if check("3 4 +", "3 4 +", 7) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("10 3 -", "10 3 -", 7) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("6 7 *", "6 7 *", 42) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("20 4 /", "20 4 /", 5) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("17 5 mod", "17 5 mod", 2) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("neg literal", "-5 2 +", -3) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 栈操作 ----
+        if check("dup", "5 dup drop", 5) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("swap", "1 2 swap", 1) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("over", "1 2 over drop drop", 1) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("drop", "10 20 drop", 10) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 比较（真=-1 假=0）----
+        if check("3 3 =", "3 3 =", -1) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("3 4 <>", "3 4 <>", -1) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("3 4 <", "3 4 <", -1) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("4 3 <", "4 3 <", 0) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- if / else / then ----
+        if check("if true", "3 0 > if 10 else 20 then", 10) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("if false", "0 0 > if 10 else 20 then", 20) then
+            passed += 1
+        else
+            failed += 1
+        end
+        runSource(": abs dup 0 < if 0 swap - then ;")
+        if check("abs -7", "-7 abs", 7) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("abs 7", "7 abs", 7) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- begin / until ----
+        if check("begin until", "0 begin 1 + dup 3 = until", 3) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- do / loop ----
+        if check("do loop sum", "0 5 0 do i + loop", 10) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 规格示例: square ----
+        runSource(": square dup * ;")
+        if check("5 square", "5 square", 25) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 规格示例: fact (递归 + if + recurse) ----
+        runSource(": fact dup 1 > if dup 1 - recurse * then ;")
+        if check("5 fact", "5 fact", 120) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("0 fact", "0 fact", 0) then
+            passed += 1
+        else
+            failed += 1
+        end
+        if check("10 fact", "10 fact", 3628800) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+        // ---- 组合: 用 do/loop + square 求平方和 ----
+        runSource(": sqsum 0 swap 0 do i 1 + square + loop ;")
+        if check("sqsum 1..3", "3 sqsum", 14) then
+            passed += 1
+        else
+            failed += 1
+        end
+
+    catch e
+        println("ERROR during test: " + e.message)
+        failed += 1
+    end
+
+    // ---- 规格示例的实际输出演示（. / cr）----
+    println("")
+    println("--- spec output demo ---")
+    resetState()
+    runSource(": square dup * ;")
+    runSource("5 square . cr")
+    runSource(": fact dup 1 > if dup 1 - recurse * then ;")
+    runSource("5 fact . cr")
+
+    println("----------------------------------------------------------------")
+    println("total: " + string(passed + failed) + "  passed: " + string(passed) + "  failed: " + string(failed))
+    if failed == 0 then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println("SOME TESTS FAILED")
+    return 1
+end
+
+func printUsage()
+    println("forth - stack-based (Forth) interpreter (written in xlang)")
+    println("")
+    println("usage:")
+    println("  forth run <file.fth>     execute a .fth file")
+    println("  forth test               run built-in test suite")
+    println("  forth -h | --help        show this help")
+    println("")
+    println("words: + - * / mod  dup drop swap over  = <> < > <= >=  . cr .s")
+    println("       : name ... ;  if else then  begin until  do loop  i recurse")
+end
+
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    if cmd == "run" then
+        if arg.length < 3 then
+            println("forth: 'run' needs <file.fth>")
+            return 1
+        end
+        return cmdRun(string(arg[2]))
+    end
+
+    println("forth: unknown command: " + cmd)
+    printUsage()
+    return 1
+end

@@ -5,6 +5,7 @@ float diagonal = math.sqrt(2.0)
 assert(area ~= 28.274333882308138)
 assert(diagonal ~= 1.414213562373095)
 assert(math.abs(-3.5) ~= 3.5)
+assert(math.abs(-7) == 7)
 println("basic=ok")
 
 assert(math.sin(0.0) ~= 0.0)

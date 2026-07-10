@@ -54,8 +54,8 @@ xl run projects\dev\xblog\xblog.xl -- serve 8080
 - 斜体 `*italic*` → `<em>`
 - 行内代码 `` `code` `` → `<code>`
 - 代码块 ` ``` ... ``` ` → `<pre><code>`（内部不做行内变换，只 HTML 转义）
-- 链接 `[text](url)` → `<a href="url">text</a>`
-- 图片 `![alt](url)` → `<img src="url" alt="alt">`
+- 链接 `\[text\]\(url\)` → `<a href="url">text</a>`
+- 图片 `!\[alt\]\(url\)` → `<img src="url" alt="alt">`
 - 无序列表 `- item` / `* item` → `<ul><li>`
 - 有序列表 `1. item` → `<ol><li>`
 - 分隔线 `---` / `***` / `___` → `<hr>`

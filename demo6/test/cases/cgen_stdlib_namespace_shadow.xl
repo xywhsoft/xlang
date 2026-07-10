@@ -1,0 +1,73 @@
+class Vec
+    int x
+
+    create(int x)
+        self.x = x
+    end
+
+    func nearZero() as bool
+        return self.x == 0
+    end
+end
+
+class Holder
+    Vec dir = Vec(0)
+
+    func fieldIsZero() as bool
+        return dir.nearZero()
+    end
+end
+
+func inspect(Vec dir, Vec path) as int
+    int result = 0
+    if dir.nearZero() then
+        result += 1
+    end
+    if path.nearZero() then
+        result += 2
+    end
+    return result
+end
+
+func localShadow() as int
+    Vec time = Vec(0)
+    Vec math = Vec(1)
+    if time.nearZero() and not math.nearZero() then
+        return 4
+    end
+    return 0
+end
+
+func blockScope() as bool
+    if true then
+        Vec path = Vec(0)
+        assert path.nearZero(), "inner block variable should shadow stdlib namespace"
+    end
+    string joined = path.join("left", "right")
+    return string.len(joined) > 0
+end
+
+func declarationOrder() as bool
+    string joined = path.join("before", "shadow")
+    Vec path = Vec(0)
+    return string.len(joined) > 0 and path.nearZero()
+end
+
+func print(int value) as int
+    return value + 1
+end
+
+Vec zero = Vec(0)
+Vec one = Vec(1)
+assert inspect(zero, one) == 1, "function parameters should shadow stdlib namespaces"
+assert localShadow() == 4, "local variables should shadow stdlib namespaces"
+assert blockScope(), "block-local shadow must not escape its scope"
+assert declarationOrder(), "a declaration must not shadow expressions that precede it"
+
+Holder holder = Holder()
+assert holder.fieldIsZero(), "class field shadow should resolve before stdlib namespace"
+
+assert print(6) == 7, "user function should shadow the global stdlib function"
+assert math.abs(-8.0) == 8.0, "stdlib namespace should remain available outside the shadowed scope"
+assert math.abs(-8) == 8, "integer stdlib overload should remain available outside the shadowed scope"
+println("stdlib namespace shadow ok")

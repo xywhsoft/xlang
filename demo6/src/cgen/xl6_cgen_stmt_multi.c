@@ -250,6 +250,10 @@ static void xl6CgenAddManagedCleanupForType(XL6_CgenContext* ctx, const char* na
     if ( name == NULL || typeNode == NULL ) {
         return;
     }
+    if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+        xl6CgenAddStringCleanup(ctx, name, typeNode);
+        return;
+    }
     if ( xl6CgenIsFunctionType(typeNode) ) {
         xl6CgenAddFunctionCleanup(ctx, name, typeNode);
         return;
@@ -371,15 +375,29 @@ static void xl6CgenMultiDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         }
         xl6CgenCIdentText(cName, sizeof(cName), name->text);
         xl6CgenIndent(ctx);
-        xl6OutputPuts(xl6CgenTypeName(ctx, typeNode), ctx->out);
-        xl6OutputPrintf(ctx->out, " %s = __xl6_multi_%d.value%u;\n", cName, id, (unsigned)i);
+        xl6OutputPuts(xl6CgenValueStorageCType(ctx, typeNode), ctx->out);
+        xl6OutputPrintf(ctx->out, " %s = ", cName);
+        if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+            xl6OutputPrintf(ctx->out, "xrtCopyStr(__xl6_multi_%d.value%u, 0u)", id, (unsigned)i);
+        } else {
+            xl6OutputPrintf(ctx->out, "__xl6_multi_%d.value%u", id, (unsigned)i);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", cName);
+        }
         varTypeNode = typeNode;
         ownedTypeNode = xl6CgenCloneTypeNode(typeNode);
         if ( ownedTypeNode != NULL ) {
             xl6CgenOwnTypeNode(ctx, ownedTypeNode);
             varTypeNode = ownedTypeNode;
         }
-        xl6CgenAddVarType(ctx, name->text, varTypeNode);
+        xl6CgenAddVarTypeWithFlags(
+            ctx,
+            name->text,
+            varTypeNode,
+            xl6CgenIsTypedContainerType(ctx, varTypeNode) ? XL6_CGEN_VAR_TYPED_CONTAINER : 0u);
         xl6CgenAddManagedCleanupForType(ctx, name->text, varTypeNode);
     }
     xl6AstFree(ownedFunctionType);
@@ -395,7 +413,9 @@ static void xl6CgenXValueFromTypedCExpr(XL6_CgenContext* ctx, const XL6_AstNode*
     concreteType = xl6CgenResolveAliasType(ctx, concreteType);
     typeName = concreteType != NULL ? concreteType->text : NULL;
 
-    if ( xl6CgenIsXValueType(concreteType) ) {
+    if ( xl6CgenIsTypedContainerType(ctx, concreteType) ) {
+        xl6CgenTypedContainerStorageToXValueExpr(ctx, concreteType, exprText);
+    } else if ( xl6CgenIsXValueType(concreteType) ) {
         xl6OutputPuts(exprText != NULL ? exprText : "xvoCreateNull()", ctx->out);
     } else if ( xl6CgenIsIntegerTypeName(typeName) ) {
         xl6OutputPrintf(ctx->out, "xvoCreateInt((long long)(%s))", exprText != NULL ? exprText : "0");
@@ -505,6 +525,32 @@ static void xl6CgenMultiAssign(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenReleaseReturnedValuePath(ctx, typeNode, valuePath);
             continue;
         }
+        if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+            int valueId = ctx->tempId++;
+
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "const char** __xl6_multi_string_slot_%d = &(", valueId);
+            xl6CgenExpr(ctx, target);
+            xl6OutputPuts(");\n", ctx->out);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out,
+                            "char* __xl6_multi_string_value_%d = xrtCopyStr(__xl6_multi_%d.value%u, 0u);\n",
+                            valueId,
+                            id,
+                            (unsigned)i);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out,
+                            "if (__xl6_multi_string_value_%d == 0) { xl6_runtime_fatal(3); }\n",
+                            valueId);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "xrtFree((void*)*__xl6_multi_string_slot_%d);\n", valueId);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out,
+                            "*__xl6_multi_string_slot_%d = __xl6_multi_string_value_%d;\n",
+                            valueId,
+                            valueId);
+            continue;
+        }
         if ( target->kind == XL6_AST_NAME && xl6CgenIsXValueType(xl6CgenFindVarType(ctx, target->text)) ) {
             xl6CgenCIdentText(cName, sizeof(cName), target->text);
             xl6CgenIndent(ctx);
@@ -515,6 +561,38 @@ static void xl6CgenMultiAssign(XL6_CgenContext* ctx, const XL6_AstNode* node)
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = __xl6_multi_%d.value%u;\n", cName, id, (unsigned)i);
+            continue;
+        }
+        if ( target->kind == XL6_AST_NAME && xl6CgenIsTypedContainerType(ctx, xl6CgenFindVarType(ctx, target->text)) ) {
+            const XL6_AstNode* targetType = xl6CgenFindVarType(ctx, target->text);
+            unsigned int targetFlags = xl6CgenFindTrackedVarFlags(ctx, target->text);
+            int targetBorrowed = (targetFlags & XL6_CGEN_VAR_BORROWED) != 0;
+
+            xl6CgenCIdentText(cName, sizeof(cName), target->text);
+            if ( targetBorrowed ) {
+                char ownerName[512];
+
+                xl6CgenTypedParamOwnerName(ownerName, sizeof(ownerName), target->text);
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(ctx->out, "if (%s) {\n", ownerName);
+                ctx->indent += 1;
+                xl6CgenIndent(ctx);
+                xl6CgenTypedContainerDestroyValue(ctx, targetType, cName);
+                ctx->indent -= 1;
+                xl6CgenIndent(ctx);
+                xl6OutputPuts("} else {\n", ctx->out);
+                ctx->indent += 1;
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(ctx->out, "%s = 1;\n", ownerName);
+                ctx->indent -= 1;
+                xl6CgenIndent(ctx);
+                xl6OutputPuts("}\n", ctx->out);
+            } else {
+                xl6CgenIndent(ctx);
+                xl6CgenTypedContainerDestroyValue(ctx, targetType, cName);
+            }
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s = __xl6_multi_%d.value%u;\n", cName, id, (unsigned)i);
             continue;
@@ -545,6 +623,13 @@ static void xl6CgenMultiAssign(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenXValueFromTypedCExpr(ctx, typeNode, valueExpr);
             xl6OutputPuts(";\n", ctx->out);
             xl6CgenIndexAssignTemp(ctx, target, tempName);
+            if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+                char valuePath[96];
+
+                snprintf(valuePath, sizeof(valuePath), "__xl6_multi_%d.value%u", id, (unsigned)i);
+                xl6CgenIndent(ctx);
+                xl6CgenTypedContainerDestroyValue(ctx, typeNode, valuePath);
+            }
             continue;
         }
         xl6CgenIndent(ctx);

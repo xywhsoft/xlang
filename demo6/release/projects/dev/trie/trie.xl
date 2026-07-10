@@ -1,0 +1,927 @@
+// trie.xl - 字典树/前缀树 (Trie / Prefix Tree)
+//
+// 用法：
+//   trie insert <word>               插入单词（重复插入累加词频）
+//   trie search <word>               精确查找
+//   trie complete <prefix>           自动补全（列出所有匹配单词）
+//   trie fuzzy  <word> [maxDist=2]   模糊匹配（编辑距离 ≤ maxDist）
+//   trie load   <dict_file>          从文件批量加载（每行一个单词）
+//   trie test                         内置自测
+//   trie help                         显示帮助
+//
+// 设计要点（结合 dev/README.md 与 BUGS.md）：
+//   - 节点池模式（参考 btree）：Trie.nodes 为 var 数组（index = node id），
+//     TrieNode 之间用整数 id 引用，而非嵌套指针。
+//     原因：BUG-RT1/RT2/XL1 使「dict<string, TrieNode> 直接嵌套类实例」
+//     （typed 容器装 class、class 字段递归引用同类）脆弱；节点池 + id 是
+//     dev 工具群已验证的安全写法（var 数组承载 class 实例 + as 还原）。
+//     children 仍是 dict<string, ...>，只是值为 node id（int）。
+//   - TrieNode.children 为 var dict（char 字符串 -> 子节点 id）。
+//     derive value 已验证可与 var 字段共存（参考 graphalg.Graph / UnionFind）。
+//   - 值语义 write-back：getNode 取副本，改标量后 setNode 写回
+//     （BUG-XT2：class 标量字段修改不自动回传；容器字段虽因引用共享，
+//      但统一 setNode 保证两种语义下都正确）。
+//   - 递归安全（BUG-LP1）：autocomplete / count / fuzzy / remove 的递归只
+//     「读」已有 children dict、仅分配 var 数组（结果集 / DP 行），不在递归帧
+//     里新建 dict —— 规避 var dict 递归分配的二次方 GC 劣化。
+//   - 字符串拼接（BUG-CE1）：来自 var dict 的 key/value 先 string() / int()
+//     显式转换再拼接，避免 var + string 乱码。
+//   - UTF-8：字符遍历统一用 string.chars（按字符，非字节）；string.mid 是
+//     字节偏移故不用于取字符。
+//   - class 方法形参（BUG-C1）：不把 array / array<T> 作 class 方法形参；
+//     fuzzy/remove 在方法内用局部 array = string.chars(word) 取字符。
+
+
+// ============================================================================
+// TrieNode — 单一节点 class（derive value，可与 var 字段共存）
+// ============================================================================
+
+class TrieNode
+    derive value
+
+    bool isWord = false       // 本节点是否为某单词的终结节点
+    int frequency = 0         // 该单词被插入的次数（词频）
+    var children = {}         // 单字符(字符串) -> 子节点 id(int)；节点池下标
+
+    create()
+        self.isWord = false
+        self.frequency = 0
+        self.children = {}
+    end
+end
+
+
+// ============================================================================
+// Trie — 字典树引擎（节点池 + root id）
+// ============================================================================
+
+class Trie
+    derive value
+
+    var nodes = []            // 节点池：nodes[0] = 根节点
+    int wordCount = 0         // 当前不同单词数
+
+    create()
+        self.nodes = []
+        TrieNode root = TrieNode()
+        self.nodes.push(root)
+        self.wordCount = 0
+    end
+
+    // ---- 节点池访问（值语义 write-back）----
+
+    func getNode(int id) as TrieNode
+        var v = self.nodes[id]
+        TrieNode n = v as TrieNode
+        return n
+    end
+
+    func setNode(int id, TrieNode n)
+        self.nodes[id] = n
+    end
+
+    func allocNode() as int
+        TrieNode n = TrieNode()
+        self.nodes.push(n)
+        int nid = self.nodes.length
+        nid = nid - 1
+        return nid
+    end
+
+    func size() as int
+        return self.wordCount
+    end
+
+    func isEmpty() as bool
+        return self.wordCount == 0
+    end
+
+    func nodeTotal() as int
+        int n = self.nodes.length
+        return n
+    end
+
+    // ---- 沿 word 走到对应节点；返回 node id，找不到返回 -1 ----
+    func findNode(string word) as int
+        array chars = string.chars(word)
+        int n = chars.length
+        int curId = 0
+        int i = 0
+        while i < n do
+            TrieNode cur = self.getNode(curId)
+            string ch = string(chars[i])
+            bool has = ch in cur.children
+            if not has then
+                return -1
+            end
+            var cv = cur.children[ch]
+            curId = int(cv)
+            i = i + 1
+        end
+        return curId
+    end
+
+    // ---- 插入：返回插入后的词频（>=1）。重复插入累加词频 ----
+    func insert(string word) as int
+        array chars = string.chars(word)
+        int n = chars.length
+        int curId = 0
+        int i = 0
+        while i < n do
+            TrieNode cur = self.getNode(curId)
+            string ch = string(chars[i])
+            bool has = ch in cur.children
+            if not has then
+                int newId = self.allocNode()
+                cur.children[ch] = newId
+                self.setNode(curId, cur)
+                curId = newId
+            else
+                var cv = cur.children[ch]
+                curId = int(cv)
+            end
+            i = i + 1
+        end
+        TrieNode ending = self.getNode(curId)
+        if ending.isWord then
+            ending.frequency = ending.frequency + 1
+            self.setNode(curId, ending)
+            return ending.frequency
+        end
+        ending.isWord = true
+        ending.frequency = 1
+        self.setNode(curId, ending)
+        self.wordCount = self.wordCount + 1
+        return 1
+    end
+
+    // ---- 精确查找 ----
+    func search(string word) as bool
+        int id = self.findNode(word)
+        if id < 0 then
+            return false
+        end
+        TrieNode n = self.getNode(id)
+        return n.isWord
+    end
+
+    // ---- 词频查询（不存在 / 非单词返回 0）----
+    func getFrequency(string word) as int
+        int id = self.findNode(word)
+        if id < 0 then
+            return 0
+        end
+        TrieNode n = self.getNode(id)
+        if not n.isWord then
+            return 0
+        end
+        return n.frequency
+    end
+
+    // ---- 前缀匹配：是否存在以 prefix 开头的单词 ----
+    func startsWith(string prefix) as bool
+        int id = self.findNode(prefix)
+        if id < 0 then
+            return false
+        end
+        return true
+    end
+
+    // ---- 自动补全：返回所有以 prefix 开头的完整单词 ----
+    // 递归收集（结果经 var 数组按引用传递，BUG-XL1 更正：var 数组写回传播）。
+    func autocomplete(string prefix) as var
+        var results = []
+        int startId = self.findNode(prefix)
+        if startId < 0 then
+            return results
+        end
+        self.collectWords(startId, prefix, results)
+        return results
+    end
+
+    // 递归 DFS：current 为到达本节点时累计的单词前缀字符串。
+    func collectWords(int id, string current, var results)
+        TrieNode n = self.getNode(id)
+        if n.isWord then
+            results.push(current)
+        end
+        for ch, childVar in n.children
+            string c = string(ch)
+            int childId = int(childVar)
+            self.collectWords(childId, current + c, results)
+        end
+    end
+
+    // ---- 前缀计数：以 prefix 开头的完整单词数 ----
+    func count(string prefix) as int
+        int id = self.findNode(prefix)
+        if id < 0 then
+            return 0
+        end
+        return self.countWords(id)
+    end
+
+    func countWords(int id) as int
+        TrieNode n = self.getNode(id)
+        int c = 0
+        if n.isWord then
+            c = 1
+        end
+        for ch, childVar in n.children
+            int childId = int(childVar)
+            c = c + self.countWords(childId)
+        end
+        return c
+    end
+
+    // ---- 最长前缀匹配（LPM）：返回树中作为 word 前缀的最长完整单词 ----
+    // 用于 IP 路由表 / CIDR 最长前缀匹配场景。
+    func longestPrefix(string word) as string
+        array chars = string.chars(word)
+        int n = chars.length
+        int curId = 0
+        int lastMatchLen = -1
+        int i = 0
+        while i < n do
+            TrieNode cur = self.getNode(curId)
+            string ch = string(chars[i])
+            bool has = ch in cur.children
+            if not has then
+                i = n
+            else
+                var cv = cur.children[ch]
+                curId = int(cv)
+                TrieNode step = self.getNode(curId)
+                if step.isWord then
+                    lastMatchLen = i
+                end
+                i = i + 1
+            end
+        end
+        if lastMatchLen < 0 then
+            return ""
+        end
+        // 取 word 的前 (lastMatchLen+1) 个字符（按字符重建，UTF-8 安全）
+        string s = ""
+        int k = 0
+        while k <= lastMatchLen do
+            s = s + string(chars[k])
+            k = k + 1
+        end
+        return s
+    end
+
+    // ---- 删除：返回 true=成功删除，false=不存在 ----
+    // 清除 isWord 标志并递归剪枝无用的空分支（不改节点池容量，仅摘除边）。
+    func remove(string word) as bool
+        int id = self.findNode(word)
+        if id < 0 then
+            return false
+        end
+        TrieNode n = self.getNode(id)
+        if not n.isWord then
+            return false
+        end
+        n.isWord = false
+        n.frequency = 0
+        self.setNode(id, n)
+        self.wordCount = self.wordCount - 1
+        // 从根开始沿 word 路径自顶向下递归剪枝（根自身永不摘除）
+        self.pruneAlong(0, word, 0)
+        return true
+    end
+
+    // 沿 word 第 depth 个字符下沉到子节点；子树若变空则从本节点 children 摘除。
+    // 返回 true 表示本节点已无子节点且非单词，可被父节点摘除。
+    func pruneAlong(int id, string word, int depth) as bool
+        TrieNode n = self.getNode(id)
+        int wlen = string.len(word)
+        if depth < wlen then
+            array chars = string.chars(word)
+            string ch = string(chars[depth])
+            bool has = ch in n.children
+            if has then
+                var cv = n.children[ch]
+                int childId = int(cv)
+                bool childGone = self.pruneAlong(childId, word, depth + 1)
+                if childGone then
+                    var kids = n.children
+                    kids.remove(ch)
+                    self.setNode(id, n)
+                end
+            end
+        end
+        // 复查本节点是否变空
+        TrieNode n2 = self.getNode(id)
+        var kids2 = n2.children
+        if kids2.length == 0 and not n2.isWord then
+            return true
+        end
+        return false
+    end
+
+    // ---- 模糊匹配：返回 [[word, distance], ...]，编辑距离 ≤ maxDist ----
+    // 在 Trie 上做 Levenshtein DP（按行下推 + 剪枝）。
+    // 每帧只分配 var 数组（DP 行），不分配 dict（规避 BUG-LP1）。
+    func fuzzy(string word, int maxDist) as var
+        var results = []
+        array chars = string.chars(word)
+        int wn = chars.length
+        var row = []
+        int i = 0
+        while i <= wn do
+            row.push(i)
+            i = i + 1
+        end
+        TrieNode root = self.getNode(0)
+        for ch, childVar in root.children
+            string c = string(ch)
+            int childId = int(childVar)
+            self.fuzzyRec(childId, c, c, word, maxDist, row, results)
+        end
+        return results
+    end
+
+    // letter = 本节点对应的字符；path = 到本节点累计的完整单词串。
+    // 形参只取 string/int/var（不把 array 作 class 方法形参，规避 BUG-C1）；
+    // chars 在方法内局部取得（局部 array 在 class 方法中安全）。
+    func fuzzyRec(int id, string letter, string path, string word, int maxDist, var prevRow, var results)
+        TrieNode n = self.getNode(id)
+        array chars = string.chars(word)
+        int columns = chars.length + 1
+        var curRow = []
+        curRow.push(int(prevRow[0]) + 1)
+        int minInRow = int(prevRow[0]) + 1
+        int j = 1
+        while j < columns do
+            int cost = 1
+            string wc = string(chars[j - 1])
+            if wc == letter then
+                cost = 0
+            end
+            int delCost = int(prevRow[j]) + 1
+            int insCost = int(curRow[j - 1]) + 1
+            int subCost = int(prevRow[j - 1]) + cost
+            int m = delCost
+            if insCost < m then
+                m = insCost
+            end
+            if subCost < m then
+                m = subCost
+            end
+            curRow.push(m)
+            if m < minInRow then
+                minInRow = m
+            end
+            j = j + 1
+        end
+        int lastDist = int(curRow[columns - 1])
+        if n.isWord and lastDist <= maxDist then
+            // 用 push 构造 [word, dist]，避免 string+int 混合字面量（未验证）
+            var entry = []
+            entry.push(path)
+            entry.push(lastDist)
+            results.push(entry)
+        end
+        // 剪枝：本行最小值已超过 maxDist，再往下不可能产出 ≤ maxDist 的匹配
+        if minInRow <= maxDist then
+            for ch2, childVar2 in n.children
+                string c2 = string(ch2)
+                int childId = int(childVar2)
+                self.fuzzyRec(childId, c2, path + c2, word, maxDist, curRow, results)
+            end
+        end
+    end
+
+    // ---- 从文件批量加载（每行一个单词），返回加载数 ----
+    func loadFile(string path) as int
+        string text = file.readText(path)
+        array lines = string.splitLines(text)
+        int n = lines.length
+        int loaded = 0
+        int i = 0
+        while i < n do
+            string w = string(lines[i])
+            w = string.replace(w, "\r", "")
+            w = string.trim(w)
+            if string.len(w) > 0 then
+                self.insert(w)
+                loaded = loaded + 1
+            end
+            i = i + 1
+        end
+        return loaded
+    end
+
+    // ---- 序列化到 JSON（手动遍历节点池，compact 保序）----
+    func serialize() as string
+        var out = {}
+        out["wordCount"] = self.wordCount
+        var ns = []
+        int total = self.nodes.length
+        int i = 0
+        while i < total do
+            TrieNode n = self.getNode(i)
+            var nd = {}
+            nd["isWord"] = n.isWord
+            nd["frequency"] = n.frequency
+            var kids = {}
+            for ch, childVar in n.children
+                kids[string(ch)] = int(childVar)
+            end
+            nd["children"] = kids
+            ns.push(nd)
+            i = i + 1
+        end
+        out["nodes"] = ns
+        return json.stringify(out)
+    end
+
+    // ---- 从 JSON 文本重建（替换当前内容）----
+    func deserialize(string text) as bool
+        var data = json.parse(text)
+        if data == null then
+            return false
+        end
+        self.nodes = []
+        self.wordCount = int(data["wordCount"])
+        var ns = data["nodes"]
+        int total = ns.length
+        int i = 0
+        while i < total do
+            var nd = ns[i]
+            TrieNode n = TrieNode()
+            n.isWord = bool(nd["isWord"])
+            n.frequency = int(nd["frequency"])
+            var srcKids = nd["children"]
+            var kids = {}
+            for k, v in srcKids
+                kids[string(k)] = int(v)
+            end
+            n.children = kids
+            self.nodes.push(n)
+            i = i + 1
+        end
+        return true
+    end
+end
+
+
+// ============================================================================
+// 测试框架
+// ============================================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass = g_pass + 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail = g_fail + 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectTrue(bool got, string label)
+    if got then
+        ok(label)
+    else
+        bad(label, "expected true, got false")
+    end
+end
+
+func expectFalse(bool got, string label)
+    if got then
+        bad(label, "expected false, got true")
+    else
+        ok(label)
+    end
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectS(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+// 在 var 数组（每项 [word, dist]）中查找某单词的编辑距离，找不到返回 -1。
+func fuzzyDistOf(var results, string word) as int
+    int n = results.length
+    int i = 0
+    while i < n do
+        var e = results[i]
+        if string(e[0]) == word then
+            return int(e[1])
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+// var 字符串数组是否包含某单词。
+func varContains(var arr, string word) as bool
+    int n = arr.length
+    int i = 0
+    while i < n do
+        if string(arr[i]) == word then
+            return true
+        end
+        i = i + 1
+    end
+    return false
+end
+
+// 就地对 var 字符串数组升序排序（选择排序，大小写敏感）。
+func sortStrings(var arr)
+    int n = arr.length
+    int i = 0
+    while i < n do
+        int minIdx = i
+        int j = i + 1
+        while j < n do
+            if string.compare(string(arr[j]), string(arr[minIdx]), false) < 0 then
+                minIdx = j
+            end
+            j = j + 1
+        end
+        if minIdx != i then
+            var tmp = arr[i]
+            arr[i] = arr[minIdx]
+            arr[minIdx] = tmp
+        end
+        i = i + 1
+    end
+end
+
+
+// ============================================================================
+// 命令实现
+// ============================================================================
+
+func cmdInsert(string word) as int
+    Trie t = Trie()
+    int freq = t.insert(word)
+    println("inserted: " + word + " (frequency=" + string(freq) + ", total=" + string(t.size()) + ")")
+    return 0
+end
+
+func cmdSearch(string word) as int
+    Trie t = Trie()
+    t.insert(word)
+    bool found = t.search(word)
+    if found then
+        println("found: " + word)
+    else
+        println("not found: " + word)
+    end
+    return 0
+end
+
+func cmdComplete(string prefix) as int
+    Trie t = Trie()
+    // 用一组示例词演示自动补全引擎
+    var sample = ["apple", "application", "apply", "app", "banana", "band", "bandana", "can", "cancel"]
+    int i = 0
+    while i < sample.length do
+        t.insert(string(sample[i]))
+        i = i + 1
+    end
+    var matches = t.autocomplete(prefix)
+    sortStrings(matches)
+    println("autocomplete '" + prefix + "' -> " + string(matches.length) + " matches:")
+    int k = 0
+    while k < matches.length do
+        println("  " + string(matches[k]))
+        k = k + 1
+    end
+    return 0
+end
+
+func cmdFuzzy(string word, int maxDist) as int
+    Trie t = Trie()
+    var sample = ["apple", "application", "apply", "app", "banana", "band", "bandana", "can", "cancel", "cat", "car", "care", "careful"]
+    int i = 0
+    while i < sample.length do
+        t.insert(string(sample[i]))
+        i = i + 1
+    end
+    var matches = t.fuzzy(word, maxDist)
+    // 注意：fuzzy 结果每项是 [word, dist]（var 数组），非纯字符串，故不套用
+    // sortStrings（它假定元素为字符串）；按自然 DFS 序输出。
+    println("fuzzy '" + word + "' (dist<=" + string(maxDist) + ") -> " + string(matches.length) + " matches:")
+    int k = 0
+    while k < matches.length do
+        var e = matches[k]
+        println("  " + string(e[0]) + "  (dist=" + string(e[1]) + ")")
+        k = k + 1
+    end
+    return 0
+end
+
+func cmdLoad(string dictFile) as int
+    if not file.exists(dictFile) then
+        println("trie: dict file not found: " + dictFile)
+        return 1
+    end
+    Trie t = Trie()
+    int loaded = t.loadFile(dictFile)
+    println("loaded " + string(loaded) + " words from " + dictFile + " (unique=" + string(t.size()) + ", nodes=" + string(t.nodeTotal()) + ")")
+    return 0
+end
+
+
+// ----------------------------------------------------------------------------
+// 内置自测
+// ----------------------------------------------------------------------------
+
+func cmdTest() as int
+    println("=== trie self-test ===")
+
+    Trie t = Trie()
+
+    // ---- T1: insert / search / startsWith 基线 ----
+    expectI(t.insert("apple"), 1, "insert apple -> freq 1")
+    expectI(t.insert("app"), 1, "insert app -> freq 1")
+    expectI(t.insert("apply"), 1, "insert apply -> freq 1")
+    expectI(t.insert("application"), 1, "insert application -> freq 1")
+    expectI(t.size(), 4, "size == 4 after 4 distinct inserts")
+
+    expectTrue(t.search("apple"), "search apple")
+    expectTrue(t.search("app"), "search app")
+    expectFalse(t.search("ap"), "search ap (not a word)")
+    expectFalse(t.search("apples"), "search missing apples")
+    expectTrue(t.startsWith("app"), "startsWith app")
+    expectTrue(t.startsWith("appl"), "startsWith appl")
+    expectFalse(t.startsWith("b"), "startsWith b (none)")
+    expectTrue(t.startsWith(""), "startsWith '' (root exists)")
+
+    // ---- T2: 词频累加 ----
+    expectI(t.insert("apple"), 2, "re-insert apple -> freq 2")
+    expectI(t.insert("apple"), 3, "re-insert apple -> freq 3")
+    expectI(t.getFrequency("apple"), 3, "frequency of apple == 3")
+    expectI(t.getFrequency("app"), 1, "frequency of app == 1")
+    expectI(t.getFrequency("nope"), 0, "frequency of missing == 0")
+    expectI(t.size(), 4, "size still 4 (freq does not add new word)")
+
+    // ---- T3: autocomplete + count ----
+    var ac = t.autocomplete("app")
+    // app, apple, apply, application
+    expectI(ac.length, 4, "autocomplete 'app' -> 4 words")
+    expectTrue(varContains(ac, "app"), "autocomplete contains app")
+    expectTrue(varContains(ac, "apple"), "autocomplete contains apple")
+    expectTrue(varContains(ac, "application"), "autocomplete contains application")
+    expectFalse(varContains(ac, "banana"), "autocomplete not contains banana")
+
+    expectI(t.count("app"), 4, "count 'app' == 4")
+    expectI(t.count("appl"), 3, "count 'appl' == 3 (apple/apply/application)")
+    expectI(t.count("apple"), 1, "count 'apple' == 1")
+    expectI(t.count("z"), 0, "count 'z' == 0")
+    expectI(t.count(""), 4, "count '' == 4 (all words)")
+
+    // autocomplete 不存在前缀返回空
+    var acEmpty = t.autocomplete("zzz")
+    expectI(acEmpty.length, 0, "autocomplete 'zzz' -> empty")
+
+    // ---- T4: 删除 + 剪枝 + 隔离 ----
+    // 删除 apple：app / apply / application 不受影响
+    expectTrue(t.remove("apple"), "remove apple -> true")
+    expectFalse(t.search("apple"), "apple gone after remove")
+    expectTrue(t.search("app"), "app still present")
+    expectTrue(t.search("apply"), "apply still present")
+    expectTrue(t.search("application"), "application still present")
+    expectI(t.size(), 3, "size == 3 after remove")
+    expectI(t.getFrequency("apple"), 0, "frequency of removed apple == 0")
+    expectFalse(t.remove("apple"), "remove apple again -> false")
+    expectFalse(t.remove("ghost"), "remove missing -> false")
+
+    // count 反映删除
+    expectI(t.count("appl"), 2, "count 'appl' == 2 after apple removed")
+    expectI(t.count(""), 3, "count '' == 3 after remove")
+
+    // 删除共享前缀叶子：删 apply 不影响 app / application
+    expectTrue(t.remove("apply"), "remove apply")
+    expectTrue(t.search("app"), "app still present after apply removed")
+    expectTrue(t.search("application"), "application still present after apply removed")
+    expectI(t.count("app"), 2, "count 'app' == 2 (app, application)")
+
+    // 删光 -> 空树
+    expectTrue(t.remove("app"), "remove app")
+    expectTrue(t.remove("application"), "remove application")
+    expectI(t.size(), 0, "size == 0 after all removed")
+    expectI(t.count(""), 0, "count '' == 0 on empty")
+    expectTrue(t.isEmpty(), "isEmpty true")
+
+    // 空树仍可再插入
+    expectI(t.insert("restart"), 1, "re-insert into cleared tree")
+    expectTrue(t.search("restart"), "re-inserted word findable")
+
+    // ---- T5: 模糊匹配（编辑距离）----
+    Trie f = Trie()
+    var fwords = ["apple", "apply", "map", "app", "cat", "car", "care", "careful"]
+    int fi = 0
+    while fi < fwords.length do
+        f.insert(string(fwords[fi]))
+        fi = fi + 1
+    end
+
+    // "aple" -> "apple" dist 1, "app" dist 2
+    var m1 = f.fuzzy("aple", 1)
+    expectTrue(fuzzyDistOf(m1, "apple") == 1, "fuzzy 'aple' d<=1 finds apple (d=1)")
+    expectTrue(fuzzyDistOf(m1, "app") < 0, "fuzzy 'aple' d<=1 excludes app (d=2)")
+
+    // "aple" d<=2 应同时含 apple(1) 和 app(2)
+    var m2 = f.fuzzy("aple", 2)
+    expectTrue(fuzzyDistOf(m2, "apple") == 1, "fuzzy 'aple' d<=2 apple d=1")
+    expectTrue(fuzzyDistOf(m2, "app") == 2, "fuzzy 'aple' d<=2 app d=2")
+
+    // "care" 精确命中 + 近邻
+    var m3 = f.fuzzy("care", 1)
+    expectTrue(fuzzyDistOf(m3, "care") == 0, "fuzzy 'care' d<=1 care d=0")
+    expectTrue(fuzzyDistOf(m3, "car") == 1, "fuzzy 'care' d<=1 car d=1")
+    // "cat" 不在 care 的 1 邻域
+    expectTrue(fuzzyDistOf(m3, "cat") < 0, "fuzzy 'care' d<=1 excludes cat (d=2)")
+    // "careful" 距 care 为 3（追加 ful），d<=1 必被剪掉
+    expectTrue(fuzzyDistOf(m3, "careful") < 0, "fuzzy 'care' d<=1 excludes careful (d=3)")
+    // 放宽到 3 才能命中 careful
+    var m3b = f.fuzzy("care", 3)
+    expectTrue(fuzzyDistOf(m3b, "careful") == 3, "fuzzy 'care' d<=3 careful d=3")
+
+    // 完全不匹配
+    var m4 = f.fuzzy("zzzzzz", 1)
+    expectI(m4.length, 0, "fuzzy no match returns empty")
+
+    // ---- T6: 序列化往返 ----
+    string js = f.serialize()
+    bool hasWord = string.contains(js, "careful")
+    expectTrue(hasWord, "serialize text contains a known word node")
+
+    Trie restored = Trie()
+    bool loaded = restored.deserialize(js)
+    expectTrue(loaded, "deserialize returns true")
+    expectI(restored.size(), f.size(), "restored size matches")
+    expectTrue(restored.search("careful"), "restored finds careful")
+    expectTrue(restored.search("apple"), "restored finds apple")
+    expectFalse(restored.search("missing"), "restored missing not found")
+    expectI(restored.count("ca"), f.count("ca"), "restored count 'ca' matches")
+    // 词频也保留
+    expectI(restored.getFrequency("careful"), 1, "restored frequency preserved")
+
+    // ---- T7: 从文件加载 ----
+    string dictPath = "trie_load_test.txt"
+    file.delete(dictPath)
+    string dictText = "hello\nworld\nhappy\nhappen\nhelicopter\nhelp\n\nhand\n"
+    bool wok = file.writeText(dictPath, dictText)
+    expectTrue(wok, "write sample dict file")
+
+    Trie lt = Trie()
+    int loadedN = lt.loadFile(dictPath)
+    // BUG-S1: splitLines("...hand\n") 多出尾部空串 -> 被空行过滤，应为 7 个有效词
+    expectI(loadedN, 7, "loadFile loads 7 words (trailing empty skipped)")
+    expectI(lt.size(), 7, "loaded unique count == 7")
+    expectTrue(lt.search("hello"), "loaded hello")
+    expectTrue(lt.search("helicopter"), "loaded helicopter")
+    expectFalse(lt.search("hel"), "loaded 'hel' not a word")
+    expectI(lt.count("he"), 4, "count 'he' == 4 (hello/helicopter/help/happen)")
+    var heAuto = lt.autocomplete("he")
+    expectI(heAuto.length, 4, "autocomplete 'he' == 4")
+    file.delete(dictPath)
+
+    // ---- T8: 最长前缀匹配（IP 路由 / CIDR 场景）----
+    // 用点分前缀串模拟路由表：越长的前缀越具体（优先匹配）。
+    Trie routes = Trie()
+    routes.insert("192.168.1")      // /24
+    routes.insert("192.168")        // /16
+    routes.insert("10")             // /8
+    routes.insert("192.168.1.32")   // /27
+    expectS(routes.longestPrefix("192.168.1.5"), "192.168.1", "LPM 192.168.1.5 -> /24")
+    expectS(routes.longestPrefix("192.168.5.5"), "192.168", "LPM 192.168.5.5 -> /16")
+    expectS(routes.longestPrefix("192.169.0.1"), "", "LPM 192.169.0.1 -> no route")
+    expectS(routes.longestPrefix("192.168.1.32.7"), "192.168.1.32", "LPM exact /27 wins")
+    expectS(routes.longestPrefix("10.0.0.1"), "10", "LPM 10.x -> /8")
+
+    // ---- T9: 拼写检查器场景 ----
+    // 把字典当正确词库，对疑似拼写错误做 fuzzy 找最近似单词。
+    // （变量名避开 stdlib 容器名 dict，参考 BUG-RT5 命名空间冲突）
+    Trie checker = Trie()
+    var dictWords = ["receive", "definitely", "separate", "occurrence", "necessary", "restaurant"]
+    int di = 0
+    while di < dictWords.length do
+        checker.insert(string(dictWords[di]))
+        di = di + 1
+    end
+    // "recieve" -> "receive"：相邻 ie/ei 互换，纯 Levenshtein（无转置）= 2 次替换
+    var spell = checker.fuzzy("recieve", 2)
+    expectTrue(fuzzyDistOf(spell, "receive") == 2, "spellcheck 'recieve' -> receive d=2")
+    // "definately" -> "definitely"
+    var spell2 = checker.fuzzy("definately", 3)
+    expectTrue(spell2.length > 0, "spellcheck 'definately' finds candidates")
+    expectTrue(fuzzyDistOf(spell2, "definitely") >= 0, "spellcheck 'definately' -> definitely present")
+
+    // ---- T10: 边界 —— 空串 / 单字符 ----
+    Trie edge = Trie()
+    expectFalse(edge.search(""), "empty tree search '' false")
+    expectTrue(edge.startsWith(""), "empty tree startsWith '' true (root)")
+    expectI(edge.count(""), 0, "empty tree count '' == 0")
+    expectFalse(edge.remove("anything"), "empty tree remove -> false")
+    edge.insert("a")
+    expectTrue(edge.search("a"), "single char word")
+    expectI(edge.autocomplete("a").length, 1, "autocomplete single char")
+    expectTrue(edge.remove("a"), "remove single char")
+    expectI(edge.size(), 0, "size 0 after single remove")
+
+    println("=== results: " + string(g_pass) + " passed, " + string(g_fail) + " failed ===")
+    if g_fail > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ============================================================================
+// 入口
+// ============================================================================
+
+func printUsage()
+    println("trie - 字典树/前缀树 (Trie)")
+    println("usage: trie <command> [args]")
+    println("commands:")
+    println("  insert <word>               插入单词")
+    println("  search <word>               精确查找")
+    println("  complete <prefix>           自动补全")
+    println("  fuzzy  <word> [maxDist=2]   模糊匹配（编辑距离）")
+    println("  load   <dict_file>          从文件批量加载（每行一个单词）")
+    println("  test                         内置自测")
+    println("  help                         显示本帮助")
+end
+
+
+func main(...) as int
+    string command = ""
+    if arg.length >= 2 then
+        command = string.lower(string(arg[1]))
+    end
+
+    if command == "test" then
+        return cmdTest()
+    end
+    if command == "help" or command == "--help" or command == "-h" then
+        printUsage()
+        return 0
+    end
+
+    if command == "insert" then
+        if arg.length < 3 then
+            println("usage: trie insert <word>")
+            return 1
+        end
+        return cmdInsert(string(arg[2]))
+    end
+    if command == "search" then
+        if arg.length < 3 then
+            println("usage: trie search <word>")
+            return 1
+        end
+        return cmdSearch(string(arg[2]))
+    end
+    if command == "complete" then
+        if arg.length < 3 then
+            println("usage: trie complete <prefix>")
+            return 1
+        end
+        return cmdComplete(string(arg[2]))
+    end
+    if command == "fuzzy" then
+        if arg.length < 3 then
+            println("usage: trie fuzzy <word> [maxDist]")
+            return 1
+        end
+        int maxDist = 2
+        if arg.length >= 4 then
+            int parsed = int(string(arg[3]))
+            maxDist = parsed
+        end
+        return cmdFuzzy(string(arg[2]), maxDist)
+    end
+    if command == "load" then
+        if arg.length < 3 then
+            println("usage: trie load <dict_file>")
+            return 1
+        end
+        return cmdLoad(string(arg[2]))
+    end
+
+    printUsage()
+    return 0
+end

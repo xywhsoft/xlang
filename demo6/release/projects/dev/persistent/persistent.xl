@@ -1,0 +1,779 @@
+// persistent.xl - 持久化 (不可变) 数据结构库: 链表 / BST / HashMap
+//
+// 用法:
+//   persistent test          验证持久化语义 (操作返回新版本, 旧版本不变)
+//   persistent help | -h     显示帮助
+//
+// 设计核心: 节点池 (id 引用)
+//   所有节点存放在模块级并行数组 (节点池) 中, 用 int id 引用; NIL = -1 表示空。
+//   节点一旦写入即不可变 (池只 append, 不原地修改) => 结构天然共享:
+//     * 旧版本 (旧 root id) 指向的节点链永远不变;
+//     * 新版本只在"变化路径"上分配新节点 (path copying), 未变部分按 id 共享。
+//   持久化三件套:
+//     1. 链表   : cons/head/tail/map/filter/fold/reverse/append  -- root id 即列表
+//     2. BST    : insert/lookup/delete/inorder                   -- root id 即树
+//     3. HashMap: assoc/get/dissoc                               -- version id 即 map
+//   链表 / BST 是纯 id 表示; HashMap 的桶数组按 version 扁平存入池中, 同样以 id 引用。
+//
+// 对齐 xlang 当前限制:
+//   * 热路径一律用扁平 array<int>/array<string> (避开 BUG-LP1: var dict 递归二次方 GC)。
+//   * 显式类型接收 pop() (auto 无法推断)。
+//   * 注释用 // (# 是时间字面量)。
+
+int NIL = -1
+
+// ============================ 节点池 (存储) =================================
+// --- 持久化链表节点: listVal[id]=value, listNext[id]=nextId|NIL ---
+array<int> listVal  = array[]
+array<int> listNext = array[]
+
+// --- 持久化 BST 节点: bstKey[id]/bstLeft[id]/bstRight[id] ---
+array<int> bstKey   = array[]
+array<int> bstLeft  = array[]
+array<int> bstRight = array[]
+
+// --- 持久化 HashMap 链节点 (冲突链): hmKey[id]/hmVal[id]/hmNext[id] ---
+array<string> hmKey  = array[]
+array<int>    hmVal  = array[]
+array<int>    hmNext = array[]
+// --- HashMap 版本: 每个 version v 的桶数组扁平存于 hmBuckets[ hmBase[v] .. +hmCap[v] ) ---
+array<int> hmCap     = array[]   // 每 version 的桶数
+array<int> hmBase    = array[]   // 每 version 桶数组在 hmBuckets 的起始下标
+array<int> hmBuckets = array[]   // 扁平桶存储; 每元素 = 链头 entry-id | NIL
+
+func poolReset()
+    listVal.clear();  listNext.clear()
+    bstKey.clear();   bstLeft.clear();  bstRight.clear()
+    hmKey.clear();    hmVal.clear();    hmNext.clear()
+    hmCap.clear();    hmBase.clear();   hmBuckets.clear()
+end
+
+func poolStats() as string
+    string s = "node pool:"
+    s = s + " listNodes=" + string(listVal.length)
+    s = s + " bstNodes=" + string(bstKey.length)
+    s = s + " hmEntries=" + string(hmKey.length)
+    s = s + " hmVersions=" + string(hmCap.length)
+    return s
+end
+
+// ============================ 持久化链表 ===================================
+// 列表 = 头节点 id; NIL = 空表。节点 {val, next} 写入后不可变。
+
+func listEmpty() as int
+    return NIL
+end
+
+func listIsEmpty(int id) as bool
+    return id == NIL
+end
+
+// cons(v, tail): 分配新头节点, 返回新 id (= 新列表)。旧 tail 节点不变。
+func listCons(int v, int tail) as int
+    int id = listVal.length
+    listVal.append(v)
+    listNext.append(tail)
+    return id
+end
+
+func listHead(int id) as int
+    return listVal[id]
+end
+
+func listTail(int id) as int
+    return listNext[id]
+end
+
+func listLength(int id) as int
+    int n = 0
+    int cur = id
+    while cur != NIL do
+        n += 1
+        cur = listNext[cur]
+    end
+    return n
+end
+
+func listToArr(int id) as array<int>
+    array<int> out
+    int cur = id
+    while cur != NIL do
+        out.append(listVal[cur])
+        cur = listNext[cur]
+    end
+    return out
+end
+
+// 数组 -> 列表 (保持顺序; 从尾部向前 cons)
+func listFromArr(array<int> a) as int
+    int r = NIL
+    int i = a.length - 1
+    while i >= 0 do
+        r = listCons(a[i], r)
+        i -= 1
+    end
+    return r
+end
+
+func listStr(int id) as string
+    array<int> a = listToArr(id)
+    string s = "("
+    int i = 0
+    while i < a.length do
+        if i > 0 then s = s + " " end
+        s = s + string(a[i])
+        i += 1
+    end
+    return s + ")"
+end
+
+// map: 逐元素应用 f, 保持顺序。原列表不变。
+func listMap(int id, func(int) as int f) as int
+    array<int> vals
+    int cur = id
+    while cur != NIL do
+        vals.append(f(listVal[cur]))
+        cur = listNext[cur]
+    end
+    return listFromArr(vals)
+end
+
+// filter: 保留满足 pred 的元素, 保持顺序。
+func listFilter(int id, func(int) as bool pred) as int
+    array<int> vals
+    int cur = id
+    while cur != NIL do
+        int v = listVal[cur]
+        if pred(v) then
+            vals.append(v)
+        end
+        cur = listNext[cur]
+    end
+    return listFromArr(vals)
+end
+
+// fold: 从左折叠, init 为初值。
+func listFold(int id, int init, func(int, int) as int f) as int
+    int acc = init
+    int cur = id
+    while cur != NIL do
+        acc = f(acc, listVal[cur])
+        cur = listNext[cur]
+    end
+    return acc
+end
+
+// reverse: 返回新列表 (分配新节点), 原列表不变。
+func listReverse(int id) as int
+    int r = NIL
+    int cur = id
+    while cur != NIL do
+        r = listCons(listVal[cur], r)
+        cur = listNext[cur]
+    end
+    return r
+end
+
+// append(a, b): 返回 a ++ b。a 部分配新节点 (保持不可变), b 部分按 id 共享。
+// 反转 a 后逐个 cons 到 b 前 -> 得到 a ++ b (无需递归)。
+func listAppend(int a, int b) as int
+    int r = b
+    int cur = listReverse(a)
+    while cur != NIL do
+        r = listCons(listVal[cur], r)
+        cur = listNext[cur]
+    end
+    return r
+end
+
+// ============================ 持久化 BST ===================================
+// 树 = 根 id; NIL = 空树。节点 {key, left, right} 写入后不可变。
+// insert/delete 沿变化路径复制节点 (path copying), 未变子树按 id 共享。
+
+func bstEmpty() as int
+    return NIL
+end
+
+func bstAlloc(int key, int left, int right) as int
+    int id = bstKey.length
+    bstKey.append(key)
+    bstLeft.append(left)
+    bstRight.append(right)
+    return id
+end
+
+// insert: 返回新树根 id (path copying)。重复 key 返回原 id (不变)。
+func bstInsert(int root, int key) as int
+    if root == NIL then
+        return bstAlloc(key, NIL, NIL)
+    end
+    if key < bstKey[root] then
+        int nl = bstInsert(bstLeft[root], key)
+        return bstAlloc(bstKey[root], nl, bstRight[root])
+    elseif key > bstKey[root] then
+        int nr = bstInsert(bstRight[root], key)
+        return bstAlloc(bstKey[root], bstLeft[root], nr)
+    else
+        return root
+    end
+end
+
+// lookup: 迭代查找。
+func bstLookup(int root, int key) as bool
+    int cur = root
+    while cur != NIL do
+        if key == bstKey[cur] then
+            return true
+        elseif key < bstKey[cur] then
+            cur = bstLeft[cur]
+        else
+            cur = bstRight[cur]
+        end
+    end
+    return false
+end
+
+// bstMin: 子树最小 key (前提 root != NIL)。
+func bstMin(int root) as int
+    int cur = root
+    while bstLeft[cur] != NIL do
+        cur = bstLeft[cur]
+    end
+    return bstKey[cur]
+end
+
+// delete: 返回新树根 id (path copying)。删不存在的 key 返回原结构。
+func bstDelete(int root, int key) as int
+    if root == NIL then
+        return NIL
+    end
+    if key < bstKey[root] then
+        int nl = bstDelete(bstLeft[root], key)
+        return bstAlloc(bstKey[root], nl, bstRight[root])
+    elseif key > bstKey[root] then
+        int nr = bstDelete(bstRight[root], key)
+        return bstAlloc(bstKey[root], bstLeft[root], nr)
+    else
+        // 命中删除节点
+        if bstLeft[root] == NIL then
+            return bstRight[root]
+        end
+        if bstRight[root] == NIL then
+            return bstLeft[root]
+        end
+        // 双子: 用右子树最小值 (后继) 替换, 并在右子树删除该后继
+        int succ = bstMin(bstRight[root])
+        int nr = bstDelete(bstRight[root], succ)
+        return bstAlloc(succ, bstLeft[root], nr)
+    end
+end
+
+// inorder: 中序遍历 -> 升序数组。用显式栈 (避免深递归)。
+func bstInorder(int root) as array<int>
+    array<int> out
+    array<int> st
+    int cur = root
+    while cur != NIL or st.length > 0 do
+        while cur != NIL do
+            st.push(cur)
+            cur = bstLeft[cur]
+        end
+        int node = st.pop()
+        out.append(bstKey[node])
+        cur = bstRight[node]
+    end
+    return out
+end
+
+func bstHeight(int root) as int
+    // 递归高度 (用于报告; 测试用平衡树, 深度小)
+    if root == NIL then
+        return 0
+    end
+    int hl = bstHeight(bstLeft[root])
+    int hr = bstHeight(bstRight[root])
+    if hl >= hr then
+        return hl + 1
+    end
+    return hr + 1
+end
+
+// ============================ 持久化 HashMap ===============================
+// map = version id (int)。每 version 拥有 cap 个桶 (扁平存于 hmBuckets)。
+// 桶 = 冲突链头 entry-id | NIL; entry {key, val, next} 写入后不可变。
+// assoc/dissoc: 分配新 version (复制桶数组), 仅重建目标桶的链 (path copying),
+//               其余桶按 id 共享 => 旧 version 完全不受影响。
+
+func hmNew(int cap) as int
+    if cap < 1 then cap = 1 end
+    int ver = hmCap.length
+    hmCap.append(cap)
+    int base = hmBuckets.length
+    hmBase.append(base)
+    int i = 0
+    while i < cap do
+        hmBuckets.append(NIL)
+        i += 1
+    end
+    return ver
+end
+
+func hmHashIdx(int ver, string key) as int
+    uint64 h = hash.u64(key)
+    return int(h % uint64(hmCap[ver]))
+end
+
+func hmAllocEntry(string key, int val, int nextId) as int
+    int id = hmKey.length
+    hmKey.append(key)
+    hmVal.append(val)
+    hmNext.append(nextId)
+    return id
+end
+
+// get: 存在返回值; 否则返回 defaultVal。
+func hmGetOr(int ver, string key, int defaultVal) as int
+    int idx = hmHashIdx(ver, key)
+    int entry = hmBuckets[hmBase[ver] + idx]
+    while entry != NIL do
+        if hmKey[entry] == key then
+            return hmVal[entry]
+        end
+        entry = hmNext[entry]
+    end
+    return defaultVal
+end
+
+func hmHas(int ver, string key) as bool
+    int idx = hmHashIdx(ver, key)
+    int entry = hmBuckets[hmBase[ver] + idx]
+    while entry != NIL do
+        if hmKey[entry] == key then
+            return true
+        end
+        entry = hmNext[entry]
+    end
+    return false
+end
+
+// path-copy 插入/替换: 返回新链头 id; 未变尾段按 id 共享。
+//   - key 不存在: 追加到链尾;
+//   - key 已存在: 替换 value (新节点), 共享原 next。
+func hmChainInsert(int entry, string key, int val) as int
+    if entry == NIL then
+        return hmAllocEntry(key, val, NIL)
+    end
+    if hmKey[entry] == key then
+        return hmAllocEntry(key, val, hmNext[entry])
+    end
+    int nt = hmChainInsert(hmNext[entry], key, val)
+    return hmAllocEntry(hmKey[entry], hmVal[entry], nt)
+end
+
+// path-copy 删除: 返回新链头 id (跳过匹配 key 的节点), 其余共享。
+func hmChainRemove(int entry, string key) as int
+    if entry == NIL then
+        return NIL
+    end
+    if hmKey[entry] == key then
+        return hmNext[entry]
+    end
+    int nt = hmChainRemove(hmNext[entry], key)
+    return hmAllocEntry(hmKey[entry], hmVal[entry], nt)
+end
+
+// assoc: 返回新 version id (旧 version 不变)。
+func hmAssoc(int ver, string key, int val) as int
+    int cap = hmCap[ver]
+    int newVer = hmNew(cap)
+    int oldBase = hmBase[ver]
+    int newBase = hmBase[newVer]
+    // 复制桶数组 (未变桶仅复制链头 id => 结构共享)
+    int i = 0
+    while i < cap do
+        hmBuckets[newBase + i] = hmBuckets[oldBase + i]
+        i += 1
+    end
+    // 重建目标桶链 (path copying)
+    int idx = hmHashIdx(newVer, key)
+    int oldHead = hmBuckets[newBase + idx]
+    int newHead = hmChainInsert(oldHead, key, val)
+    hmBuckets[newBase + idx] = newHead
+    return newVer
+end
+
+// dissoc: 返回新 version id (旧 version 不变)。
+func hmDissoc(int ver, string key) as int
+    int cap = hmCap[ver]
+    int newVer = hmNew(cap)
+    int oldBase = hmBase[ver]
+    int newBase = hmBase[newVer]
+    int i = 0
+    while i < cap do
+        hmBuckets[newBase + i] = hmBuckets[oldBase + i]
+        i += 1
+    end
+    int idx = hmHashIdx(newVer, key)
+    int oldHead = hmBuckets[newBase + idx]
+    int newHead = hmChainRemove(oldHead, key)
+    hmBuckets[newBase + idx] = newHead
+    return newVer
+end
+
+func hmSize(int ver) as int
+    int n = 0
+    int cap = hmCap[ver]
+    int base = hmBase[ver]
+    int i = 0
+    while i < cap do
+        int entry = hmBuckets[base + i]
+        while entry != NIL do
+            n += 1
+            entry = hmNext[entry]
+        end
+        i += 1
+    end
+    return n
+end
+
+func hmKeys(int ver) as array<string>
+    array<string> out
+    int cap = hmCap[ver]
+    int base = hmBase[ver]
+    int i = 0
+    while i < cap do
+        int entry = hmBuckets[base + i]
+        while entry != NIL do
+            out.append(hmKey[entry])
+            entry = hmNext[entry]
+        end
+        i += 1
+    end
+    return out
+end
+
+// 字符串展示 (key 排序, 保证输出稳定)
+func hmStr(int ver) as string
+    array<string> ks = hmKeys(ver)
+    int n = ks.length
+    int i = 0
+    while i < n do
+        int best = i
+        int j = i + 1
+        while j < n do
+            if ks[j] < ks[best] then best = j end
+            j += 1
+        end
+        if best != i then
+            string t = ks[i]; ks[i] = ks[best]; ks[best] = t
+        end
+        i += 1
+    end
+    string s = "{"
+    int k = 0
+    while k < n do
+        if k > 0 then s = s + ", " end
+        s = s + ks[k] + ":" + string(hmGetOr(ver, ks[k], 0))
+        k += 1
+    end
+    return s + "}"
+end
+
+// ============================ 测试辅助 =====================================
+
+int g_fail = 0
+
+func check(bool cond, string label)
+    if cond then
+        println("  [OK]   " + label)
+    else
+        println("  [FAIL] " + label)
+        g_fail = g_fail + 1
+    end
+end
+
+func section(string title)
+    println("")
+    println("=== " + title + " ===")
+end
+
+func arrEqInt(array<int> a, array<int> b) as bool
+    int n = a.length
+    if b.length != n then return false end
+    int i = 0
+    while i < n do
+        if a[i] != b[i] then return false end
+        i += 1
+    end
+    return true
+end
+
+func intArrStr(array<int> a) as string
+    string s = "["
+    int i = 0
+    while i < a.length do
+        if i > 0 then s = s + ", " end
+        s = s + string(a[i])
+        i += 1
+    end
+    return s + "]"
+end
+
+// ---- 高阶函数用到的具名函数 (xlang: 命名函数按值传递) ----
+func fn_times10(int v) as int
+    return v * 10
+end
+
+func fn_isOdd(int v) as bool
+    return (v % 2) == 1
+end
+
+func fn_add(int acc, int x) as int
+    return acc + x
+end
+
+func fn_mul(int acc, int x) as int
+    return acc * x
+end
+
+// ============================ test: 链表 ===================================
+
+func testList() as int
+    section("Persistent Linked List")
+
+    int L1 = listFromArr(array[1, 2, 3])
+    println("  L1 = " + listStr(L1) + "  len=" + string(listLength(L1)))
+    check(listLength(L1) == 3, "length == 3")
+    check(listHead(L1) == 1, "head(L1) == 1")
+    check(listHead(listTail(L1)) == 2, "head(tail(L1)) == 2")
+
+    // cons 返回新列表; 旧列表不变; tail(L2) 与 L1 同一 id (结构共享)
+    int L2 = listCons(0, L1)
+    println("  L2 = cons(0, L1) = " + listStr(L2))
+    check(arrEqInt(listToArr(L2), array[0, 1, 2, 3]), "L2 == [0,1,2,3]")
+    check(arrEqInt(listToArr(L1), array[1, 2, 3]), "L1 unchanged after cons")
+    check(listTail(L2) == L1, "tail(L2) shares L1 by id (structural sharing)")
+
+    // map: 返回新列表, 原 L1 不变
+    func(int) as int f10 = fn_times10
+    int Lm = listMap(L1, f10)
+    println("  map(L1, x*10) = " + listStr(Lm))
+    check(arrEqInt(listToArr(Lm), array[10, 20, 30]), "map(L1,*10) == [10,20,30]")
+    check(arrEqInt(listToArr(L1), array[1, 2, 3]), "L1 unchanged after map")
+
+    // filter
+    func(int) as bool pOdd = fn_isOdd
+    int Lf = listFilter(L1, pOdd)
+    println("  filter(L1, odd) = " + listStr(Lf))
+    check(arrEqInt(listToArr(Lf), array[1, 3]), "filter(L1,odd) == [1,3]")
+    check(arrEqInt(listToArr(L1), array[1, 2, 3]), "L1 unchanged after filter")
+
+    // fold
+    func(int, int) as int fadd = fn_add
+    func(int, int) as int fmul = fn_mul
+    check(listFold(L1, 0, fadd) == 6, "fold(L1, +, 0) == 6")
+    check(listFold(L1, 1, fmul) == 6, "fold(L1, *, 1) == 6")
+    check(listFold(listEmpty(), 0, fadd) == 0, "fold(empty, +, 0) == 0")
+
+    // reverse
+    int Lr = listReverse(L1)
+    println("  reverse(L1) = " + listStr(Lr))
+    check(arrEqInt(listToArr(Lr), array[3, 2, 1]), "reverse(L1) == [3,2,1]")
+    check(arrEqInt(listToArr(L1), array[1, 2, 3]), "L1 unchanged after reverse")
+
+    // append: b 部分按 id 共享
+    int A = listFromArr(array[1, 2])
+    int B = listFromArr(array[3, 4])
+    int Ap = listAppend(A, B)
+    println("  append([1,2],[3,4]) = " + listStr(Ap))
+    check(arrEqInt(listToArr(Ap), array[1, 2, 3, 4]), "append == [1,2,3,4]")
+    check(arrEqInt(listToArr(A), array[1, 2]), "A unchanged after append")
+    check(arrEqInt(listToArr(B), array[3, 4]), "B unchanged after append")
+    check(listAppend(listEmpty(), A) == A, "append(empty, A) shares A by id")
+
+    // empty
+    check(listIsEmpty(listEmpty()), "empty list is empty")
+    check(listLength(listEmpty()) == 0, "length(empty) == 0")
+
+    println("  " + poolStats())
+    return 0
+end
+
+// ============================ test: BST ====================================
+
+func testBST() as int
+    section("Persistent BST")
+
+    // 平衡顺序插入 -> 深度 ~log2(n), 递归安全
+    array<int> keys = array[4, 2, 6, 1, 3, 5, 7]
+    int T1 = bstEmpty()
+    int i = 0
+    while i < keys.length do
+        T1 = bstInsert(T1, keys[i])
+        i += 1
+    end
+    println("  T1 inorder = " + intArrStr(bstInorder(T1)) + "  height=" + string(bstHeight(T1)))
+    check(arrEqInt(bstInorder(T1), array[1, 2, 3, 4, 5, 6, 7]), "inorder(T1) sorted == [1..7]")
+    check(bstHeight(T1) == 3, "balanced insert height == 3")
+
+    // lookup: 命中 / 未命中
+    check(bstLookup(T1, 1), "lookup 1 (present)")
+    check(bstLookup(T1, 7), "lookup 7 (present)")
+    check(not bstLookup(T1, 0), "lookup 0 (absent)")
+    check(not bstLookup(T1, 8), "lookup 8 (absent)")
+
+    // insert 返回新树; 旧树 T1 不变 (持久化)
+    int T2 = bstInsert(T1, 8)
+    check(bstLookup(T2, 8), "T2 has 8")
+    check(not bstLookup(T1, 8), "T1 still lacks 8 (persistence)")
+    check(arrEqInt(bstInorder(T1), array[1, 2, 3, 4, 5, 6, 7]), "T1 inorder unchanged after T2 insert")
+    check(arrEqInt(bstInorder(T2), array[1, 2, 3, 4, 5, 6, 7, 8]), "T2 inorder == [1..8]")
+
+    // 重复 insert 返回同一 id (不变)
+    int T1b = bstInsert(T1, 4)
+    check(T1b == T1, "insert duplicate key returns same id")
+
+    // delete: 删根 (双子) -> 用后继 5 替换; 旧树 T1 不变
+    int T3 = bstDelete(T1, 4)
+    check(not bstLookup(T3, 4), "T3 lacks 4 (deleted)")
+    check(bstLookup(T1, 4), "T1 still has 4 (persistence)")
+    check(arrEqInt(bstInorder(T3), array[1, 2, 3, 5, 6, 7]), "T3 inorder == [1,2,3,5,6,7]")
+    check(arrEqInt(bstInorder(T1), array[1, 2, 3, 4, 5, 6, 7]), "T1 inorder unchanged after delete")
+
+    // delete 叶子 + 单子节点
+    int T4 = bstDelete(T3, 1)   // 叶子
+    check(arrEqInt(bstInorder(T4), array[2, 3, 5, 6, 7]), "delete leaf 1")
+    int T5 = bstDelete(T4, 2)   // 2 只有右子 3 -> 单子
+    check(arrEqInt(bstInorder(T5), array[3, 5, 6, 7]), "delete single-child 2")
+    check(arrEqInt(bstInorder(T3), array[1, 2, 3, 5, 6, 7]), "T3 unchanged after T4/T5 deletes")
+
+    // delete 不存在的 key -> 返回原 id
+    int T5b = bstDelete(T5, 999)
+    check(T5b == T5, "delete absent key returns same id")
+    check(arrEqInt(bstInorder(T5), array[3, 5, 6, 7]), "T5 intact after absent delete")
+
+    println("  " + poolStats())
+    return 0
+end
+
+// ============================ test: HashMap ================================
+
+func testHashMap() as int
+    section("Persistent HashMap")
+
+    int m1 = hmNew(4)
+    m1 = hmAssoc(m1, "a", 1)
+    m1 = hmAssoc(m1, "b", 2)
+    m1 = hmAssoc(m1, "c", 3)
+    println("  m1 = " + hmStr(m1) + "  size=" + string(hmSize(m1)))
+    check(hmGetOr(m1, "a", -1) == 1, "m1[a] == 1")
+    check(hmGetOr(m1, "b", -1) == 2, "m1[b] == 2")
+    check(hmGetOr(m1, "c", -1) == 3, "m1[c] == 3")
+    check(not hmHas(m1, "z"), "m1 has no z")
+    check(hmGetOr(m1, "z", -1) == -1, "m1[z] default == -1")
+    check(hmSize(m1) == 3, "size(m1) == 3")
+
+    // assoc 返回新 version; 旧 m1 不变 (持久化)
+    int m2 = hmAssoc(m1, "d", 4)
+    check(hmGetOr(m2, "d", -1) == 4, "m2[d] == 4")
+    check(not hmHas(m1, "d"), "m1 still has no d (persistence)")
+    check(hmGetOr(m1, "a", -1) == 1, "m1[a] still 1 after m2 assoc")
+    check(hmGetOr(m2, "a", -1) == 1, "m2[a] == 1 (shared)")
+    println("  m2 = " + hmStr(m2) + "  size=" + string(hmSize(m2)))
+
+    // 替换已有 key 的 value: 返回新 version, 旧值不变 (持久化)
+    int m1b = hmAssoc(m1, "a", 100)
+    check(hmGetOr(m1b, "a", -1) == 100, "m1b[a] == 100 (replaced)")
+    check(hmGetOr(m1, "a", -1) == 1, "m1[a] still 1 (old value intact)")
+    check(hmSize(m1b) == 3, "size unchanged after replace")
+    check(hmSize(m1) == 3, "m1 size unchanged after replace")
+
+    // dissoc: 返回新 version, 旧 m1 不变
+    int m3 = hmDissoc(m1, "a")
+    check(not hmHas(m3, "a"), "m3 has no a (dissoc)")
+    check(hmHas(m1, "a"), "m1 still has a (persistence)")
+    check(hmGetOr(m3, "b", -1) == 2, "m3[b] == 2 (kept)")
+    check(hmSize(m3) == 2, "size(m3) == 2")
+    check(hmSize(m1) == 3, "m1 size unchanged after dissoc")
+    println("  m3 = " + hmStr(m3) + "  size=" + string(hmSize(m3)))
+
+    // 链式: 从 m1 派生多个独立分支, 互不影响
+    int m4 = hmDissoc(hmAssoc(m1, "e", 5), "b")
+    check(hmGetOr(m4, "e", -1) == 5, "m4[e] == 5 (derived branch)")
+    check(not hmHas(m4, "b"), "m4 has no b")
+    check(hmGetOr(m1, "b", -1) == 2, "m1[b] still 2 (branch isolated)")
+
+    // dissoc 不存在的 key -> 返回新 version 但语义不变
+    int m5 = hmDissoc(m1, "nope")
+    check(hmGetOr(m5, "a", -1) == 1, "dissoc absent key keeps data")
+
+    // 哈希冲突 (cap=4) 下大量 key 仍正确: 顺序无关 get 一致性
+    int mbig = hmNew(4)
+    int k = 0
+    while k < 20 do
+        mbig = hmAssoc(mbig, "k" + string(k), k * k)
+        k += 1
+    end
+    bool ok = true
+    int j = 0
+    while j < 20 do
+        if hmGetOr(mbig, "k" + string(j), -1) != j * j then ok = false end
+        j += 1
+    end
+    check(ok, "20 keys in 4 buckets: all get correct (chaining)")
+    check(hmSize(mbig) == 20, "size == 20")
+
+    println("  " + poolStats())
+    return 0
+end
+
+func cmdTest() as int
+    println("persistent - immutable data structure verification")
+    println("================================================================")
+    poolReset()
+    g_fail = 0
+    testList()
+    testBST()
+    testHashMap()
+    println("================================================================")
+    println(poolStats())
+    if g_fail == 0 then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println(string(g_fail) + " CHECK(S) FAILED")
+    return 1
+end
+
+// ============================ main =========================================
+
+func printUsage()
+    println("persistent - persistent (immutable) data structures: list / BST / HashMap")
+    println("all operations return new versions; old versions stay unchanged.")
+    println("usage:")
+    println("  persistent test          verify persistence semantics")
+    println("  persistent help | -h     show this help")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    println("persistent: unknown command: " + cmd)
+    println("")
+    printUsage()
+    return 1
+end

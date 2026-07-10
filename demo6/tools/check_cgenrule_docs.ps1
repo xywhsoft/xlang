@@ -61,7 +61,11 @@ $allTextParts = New-Object System.Collections.Generic.List[string]
 
 foreach ( $doc in $docs ) {
     $text = Read-Utf8Text $doc.FullName
-    $allTextParts.Add($text) | Out-Null
+    # Generated index numbers are source line numbers and may match an old rule count.
+    # Keep the index registered, but scan stale wording only in hand-maintained docs.
+    if ( $doc.Name -ne "_function_index.generated.md" ) {
+        $allTextParts.Add($text) | Out-Null
+    }
 
     if ( $doc.Name -ne "README.md" -and ! $readmeText.Contains($doc.Name) ) {
         Add-Failure "cgenrule README does not reference $($doc.Name)"

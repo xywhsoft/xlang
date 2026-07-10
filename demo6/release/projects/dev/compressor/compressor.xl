@@ -1,0 +1,917 @@
+// compressor.xl - compression algorithm library (RLE / LZW / Huffman / Delta / BWT)
+//
+// usage:
+//   compressor test                          roundtrip all algorithms on samples
+//   compressor bench <file>                  compare compression ratios on a file
+//   compressor --help | -h                   show help
+//
+// ---------------------------------------------------------------------------
+// Algorithms (all operate on array<int> byte streams, 0..255):
+//   RLE     - run-length encoding (count+byte pairs, max run 255)
+//   LZW     - Lempel-Ziv-Welch (dictionary index stream, variable dictionary)
+//   Huffman - canonical Huffman coding (frequency -> tree -> bitstream)
+//   Delta   - differential coding (byte deltas mod 256)
+//   BWT     - Burrows-Wheeler Transform (+ inverse via LF-mapping)
+//
+// Design notes:
+//   * Huffman tree uses a node pool: parallel global arrays gHFreq/gHLeft/
+//     gHRight/gHSym, nodes referenced by integer id. Codes are canonical
+//     (stored as symbol/length pairs, codes reconstructed on decode).
+//   * Compressed payloads use array<int> (basic type, safe to pass/return).
+//   * BWT sort is naive O(n^2) over rotation indices; bench caps BWT input to
+//     65536 bytes to avoid pathological runtimes on large files.
+//   * All functions are global (no classes).
+// ---------------------------------------------------------------------------
+
+// === Huffman node pool (parallel arrays, indexed by node id) ===
+array<int> gHFreq = array[]
+array<int> gHLeft = array[]
+array<int> gHRight = array[]
+array<int> gHSym = array[]       // leaf byte (0..255) if leaf, else -1
+
+// ===========================================================================
+// Byte helpers
+// ===========================================================================
+
+func strToBytes(string s) as array<int>
+    array raw = string.bytes(s)
+    array<int> out = array[]
+    int i = 0
+    int n = raw.length
+    while i < n do
+        out.push(int(raw[i]))
+        i += 1
+    end
+    return out
+end
+
+func bytesToStr(array<int> b) as string
+    Buffer buf = Buffer()
+    int i = 0
+    int n = b.length
+    while i < n do
+        buf.appendByte(b[i])
+        i += 1
+    end
+    return buf.text()
+end
+
+func bytesEqual(array<int> a, array<int> b) as bool
+    int n = a.length
+    if n != b.length then
+        return false
+    end
+    int i = 0
+    while i < n do
+        if a[i] != b[i] then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+func bytesSlice(array<int> data, int maxN) as array<int>
+    array<int> out = array[]
+    int n = data.length
+    if n > maxN then
+        n = maxN
+    end
+    int i = 0
+    while i < n do
+        out.push(data[i])
+        i += 1
+    end
+    return out
+end
+
+// ===========================================================================
+// Size formatting
+// ===========================================================================
+
+func formatSize(int bytes) as string
+    if bytes < 1024 then
+        return string(bytes) + " B"
+    elseif bytes < 1048576 then
+        return string.formatFloat(float(bytes) / 1024.0, ".2") + " KB"
+    end
+    return string.formatFloat(float(bytes) / 1048576.0, ".2") + " MB"
+end
+
+func formatRatio(int orig, int stored) as string
+    if stored == 0 or orig == 0 then
+        return "---"
+    end
+    float r = float(orig) / float(stored)
+    return string.formatFloat(r, ".2") + ":1"
+end
+
+func formatPct(int orig, int stored) as string
+    if orig == 0 then
+        return "---"
+    end
+    float p = float(stored) * 100.0 / float(orig)
+    return string.formatFloat(p, ".1") + "%"
+end
+
+func padField(string s, int w) as string
+    return string.padRight(s, w, " ")
+end
+
+// ===========================================================================
+// RLE (Run-Length Encoding): "AAAAA" -> [5, 65]
+// ===========================================================================
+
+func rleEncode(array<int> data) as array<int>
+    array<int> out = array[]
+    int n = data.length
+    if n == 0 then
+        return out
+    end
+    int i = 0
+    while i < n do
+        int b = data[i]
+        int run = 1
+        while i + run < n and data[i + run] == b and run < 255 do
+            run += 1
+        end
+        out.push(run)
+        out.push(b)
+        i += run
+    end
+    return out
+end
+
+func rleDecode(array<int> enc) as array<int>
+    array<int> out = array[]
+    int n = enc.length
+    int i = 0
+    while i < n do
+        int run = enc[i]
+        int b = enc[i + 1]
+        int k = 0
+        while k < run do
+            out.push(b)
+            k += 1
+        end
+        i += 2
+    end
+    return out
+end
+
+// ===========================================================================
+// LZW (dictionary index stream)
+// ===========================================================================
+
+func lzwEncode(array<int> data) as array<int>
+    array<int> out = array[]
+    int n = data.length
+    if n == 0 then
+        return out
+    end
+    var table = {}
+    int nextCode = 256
+    int w = data[0]
+    int i = 1
+    while i < n do
+        int b = data[i]
+        string key = string(w) + ":" + string(b)
+        if key in table then
+            w = int(table[key])
+        else
+            out.push(w)
+            table[key] = nextCode
+            nextCode += 1
+            w = b
+        end
+        i += 1
+    end
+    out.push(w)
+    return out
+end
+
+// Walk prefix chain to the root, return the single first byte of a code.
+func lzwFirstByte(array<int> dprefix, int code) as int
+    int c = code
+    while c >= 256 do
+        c = dprefix[c - 256]
+    end
+    return c
+end
+
+// Emit the full byte sequence for a code into out (iterative, no recursion).
+func lzwEmitCode(array<int> out, array<int> dprefix, array<int> dsuffix, int code)
+    array<int> stk = array[]
+    int c = code
+    while c >= 256 do
+        stk.push(dsuffix[c - 256])
+        c = dprefix[c - 256]
+    end
+    stk.push(c)
+    int s = stk.length - 1
+    while s >= 0 do
+        out.push(stk[s])
+        s -= 1
+    end
+end
+
+func lzwDecode(array<int> codes) as array<int]
+    array<int> out = array[]
+    int n = codes.length
+    if n == 0 then
+        return out
+    end
+    array<int> dprefix = array[]
+    array<int> dsuffix = array[]
+    int nextCode = 256
+    int prev = codes[0]
+    lzwEmitCode(out, dprefix, dsuffix, prev)
+    int i = 1
+    while i < n do
+        int cur = codes[i]
+        int fb = 0
+        if cur < nextCode then
+            lzwEmitCode(out, dprefix, dsuffix, cur)
+            fb = lzwFirstByte(dprefix, cur)
+        elseif cur == nextCode then
+            fb = lzwFirstByte(dprefix, prev)
+            lzwEmitCode(out, dprefix, dsuffix, prev)
+            out.push(fb)
+        else
+            lzwEmitCode(out, dprefix, dsuffix, cur)
+            fb = lzwFirstByte(dprefix, cur)
+        end
+        dprefix.push(prev)
+        dsuffix.push(fb)
+        nextCode += 1
+        prev = cur
+        i += 1
+    end
+    return out
+end
+
+// Estimate byte size of the index stream (1/2/4 bytes per code).
+func lzwByteSize(array<int> codes) as int
+    int n = codes.length
+    if n == 0 then
+        return 0
+    end
+    int maxCode = 0
+    int i = 0
+    while i < n do
+        if codes[i] > maxCode then
+            maxCode = codes[i]
+        end
+        i += 1
+    end
+    int perCode = 1
+    if maxCode >= 65536 then
+        perCode = 4
+    elseif maxCode >= 256 then
+        perCode = 2
+    end
+    return n * perCode
+end
+
+// ===========================================================================
+// Huffman (canonical, node-pool tree)
+// ===========================================================================
+
+// Build Huffman tree into the global node pool, return root id (-1 if empty).
+func huffBuildTree(array<int> data) as int
+    int n = data.length
+    if n == 0 then
+        return -1
+    end
+    array<int> freq = array[]
+    int bi = 0
+    while bi < 256 do
+        freq.push(0)
+        bi += 1
+    end
+    int di = 0
+    while di < n do
+        freq[data[di]] += 1
+        di += 1
+    end
+    gHFreq.clear()
+    gHLeft.clear()
+    gHRight.clear()
+    gHSym.clear()
+    int bi2 = 0
+    while bi2 < 256 do
+        if freq[bi2] > 0 then
+            gHFreq.push(freq[bi2])
+            gHLeft.push(-1)
+            gHRight.push(-1)
+            gHSym.push(bi2)
+        end
+        bi2 += 1
+    end
+    int leaves = gHFreq.length
+    if leaves == 1 then
+        // Single distinct symbol: add a dummy internal node so it gets a code.
+        gHFreq.push(gHFreq[0])
+        gHLeft.push(0)
+        gHRight.push(0)
+        gHSym.push(-1)
+        return 1
+    end
+    array<int> dead = array[]
+    int di2 = 0
+    while di2 < gHFreq.length do
+        dead.push(0)
+        di2 += 1
+    end
+    int alive = gHFreq.length
+    while alive > 1 do
+        int m1 = -1
+        int m2 = -1
+        int i = 0
+        while i < gHFreq.length do
+            if dead[i] == 0 then
+                if m1 == -1 or gHFreq[i] < gHFreq[m1] then
+                    m2 = m1
+                    m1 = i
+                elseif m2 == -1 or gHFreq[i] < gHFreq[m2] then
+                    m2 = i
+                end
+            end
+            i += 1
+        end
+        int combined = gHFreq[m1] + gHFreq[m2]
+        gHFreq.push(combined)
+        gHLeft.push(m1)
+        gHRight.push(m2)
+        gHSym.push(-1)
+        dead.push(0)
+        dead[m1] = 1
+        dead[m2] = 1
+        alive -= 1
+    end
+    int root = -1
+    int i = 0
+    while i < gHFreq.length do
+        if dead[i] == 0 then
+            root = i
+        end
+        i += 1
+    end
+    return root
+end
+
+// Compute code length per byte (0 = unused) via iterative DFS.
+func huffCodeLengths(int root) as array<int>
+    array<int> lengths = array[]
+    int bi = 0
+    while bi < 256 do
+        lengths.push(0)
+        bi += 1
+    end
+    array<int> sn = array[]
+    array<int> sd = array[]
+    sn.push(root)
+    sd.push(0)
+    while sn.length > 0 do
+        int top = sn.length - 1
+        int node = sn[top]
+        int depth = sd[top]
+        sn.remove(top)
+        sd.remove(top)
+        if gHSym[node] >= 0 then
+            int d = depth
+            if d == 0 then
+                d = 1
+            end
+            lengths[gHSym[node]] = d
+        else
+            sn.push(gHLeft[node])
+            sd.push(depth + 1)
+            sn.push(gHRight[node])
+            sd.push(depth + 1)
+        end
+    end
+    return lengths
+end
+
+// Assign canonical Huffman codes from code lengths; returns codes[256].
+func huffCanonicalCodes(array<int> lengths) as array<int>
+    int maxLen = 0
+    int bi = 0
+    while bi < 256 do
+        if lengths[bi] > maxLen then
+            maxLen = lengths[bi]
+        end
+        bi += 1
+    end
+    array<int> blCount = array[]
+    int li = 0
+    while li <= maxLen do
+        blCount.push(0)
+        li += 1
+    end
+    int bi2 = 0
+    while bi2 < 256 do
+        if lengths[bi2] > 0 then
+            blCount[lengths[bi2]] += 1
+        end
+        bi2 += 1
+    end
+    array<int> nextCode = array[]
+    int li2 = 0
+    while li2 <= maxLen do
+        nextCode.push(0)
+        li2 += 1
+    end
+    int code = 0
+    int len = 1
+    while len <= maxLen do
+        code = (code + blCount[len - 1]) << 1
+        nextCode[len] = code
+        len += 1
+    end
+    array<int> codes = array[]
+    int bi3 = 0
+    while bi3 < 256 do
+        codes.push(0)
+        bi3 += 1
+    end
+    int bi4 = 0
+    while bi4 < 256 do
+        if lengths[bi4] > 0 then
+            codes[bi4] = nextCode[lengths[bi4]]
+            nextCode[lengths[bi4]] += 1
+        end
+        bi4 += 1
+    end
+    return codes
+end
+
+// Encode: [nsym, (sym,len)*, bitCount, packedBytes...]
+func huffEncode(array<int> data) as array<int>
+    array<int> out = array[]
+    int n = data.length
+    if n == 0 then
+        out.push(0)
+        return out
+    end
+    int root = huffBuildTree(data)
+    array<int> lengths = huffCodeLengths(root)
+    array<int> codes = huffCanonicalCodes(lengths)
+
+    int nsym = 0
+    int bi = 0
+    while bi < 256 do
+        if lengths[bi] > 0 then
+            nsym += 1
+        end
+        bi += 1
+    end
+    out.push(nsym)
+    int bi2 = 0
+    while bi2 < 256 do
+        if lengths[bi2] > 0 then
+            out.push(bi2)
+            out.push(lengths[bi2])
+        end
+        bi2 += 1
+    end
+
+    int acc = 0
+    int nbits = 0
+    int bitCount = 0
+    array<int> packed = array[]
+    int di = 0
+    while di < n do
+        int sym = data[di]
+        int c = codes[sym]
+        int len = lengths[sym]
+        int pos = len - 1
+        while pos >= 0 do
+            int bit = (c >> pos) & 1
+            acc = (acc << 1) | bit
+            nbits += 1
+            bitCount += 1
+            if nbits == 8 then
+                packed.push(acc & 0xFF)
+                acc = 0
+                nbits = 0
+            end
+            pos -= 1
+        end
+        di += 1
+    end
+    if nbits > 0 then
+        acc = acc << (8 - nbits)
+        packed.push(acc & 0xFF)
+    end
+
+    out.push(bitCount)
+    int pi = 0
+    while pi < packed.length do
+        out.push(packed[pi])
+        pi += 1
+    end
+    return out
+end
+
+func huffDecode(array<int> packed) as array<int>
+    array<int> out = array[]
+    int idx = 0
+    int nsym = packed[idx]
+    idx += 1
+    if nsym == 0 then
+        return out
+    end
+    array<int> lengths = array[]
+    int bi = 0
+    while bi < 256 do
+        lengths.push(0)
+        bi += 1
+    end
+    int si = 0
+    while si < nsym do
+        int sym = packed[idx]
+        idx += 1
+        int len = packed[idx]
+        idx += 1
+        lengths[sym] = len
+        si += 1
+    end
+    int bitCount = packed[idx]
+    idx += 1
+    array<int> codes = huffCanonicalCodes(lengths)
+
+    var inv = {}
+    int bi2 = 0
+    while bi2 < 256 do
+        if lengths[bi2] > 0 then
+            inv[string(codes[bi2]) + ":" + string(lengths[bi2])] = bi2
+        end
+        bi2 += 1
+    end
+
+    int curCode = 0
+    int curLen = 0
+    int bitIdx = 0
+    int base = idx
+    while bitIdx < bitCount do
+        int bytePos = bitIdx >> 3
+        int bitPos = 7 - (bitIdx & 7)
+        int bit = (packed[base + bytePos] >> bitPos) & 1
+        bitIdx += 1
+        curCode = (curCode << 1) | bit
+        curLen += 1
+        string key = string(curCode) + ":" + string(curLen)
+        if key in inv then
+            out.push(int(inv[key]))
+            curCode = 0
+            curLen = 0
+        end
+    end
+    return out
+end
+
+// ===========================================================================
+// Delta (differential coding, mod 256)
+// ===========================================================================
+
+func deltaEncode(array<int> data) as array<int>
+    array<int> out = array[]
+    int n = data.length
+    if n == 0 then
+        return out
+    end
+    out.push(data[0])
+    int i = 1
+    while i < n do
+        out.push((data[i] - data[i - 1]) & 0xFF)
+        i += 1
+    end
+    return out
+end
+
+func deltaDecode(array<int> data) as array<int>
+    array<int> out = array[]
+    int n = data.length
+    if n == 0 then
+        return out
+    end
+    int prev = data[0]
+    out.push(prev)
+    int i = 1
+    while i < n do
+        prev = (prev + data[i]) & 0xFF
+        out.push(prev)
+        i += 1
+    end
+    return out
+end
+
+// ===========================================================================
+// BWT (Burrows-Wheeler Transform) + inverse
+// ===========================================================================
+
+// Compare cyclic rotations starting at i and j; <0 / 0 / >0.
+func bwtRotCompare(array<int> s, int n, int i, int j) as int
+    int k = 0
+    while k < n do
+        int ri = i + k
+        if ri >= n then
+            ri -= n
+        end
+        int rj = j + k
+        if rj >= n then
+            rj -= n
+        end
+        if s[ri] != s[rj] then
+            return s[ri] - s[rj]
+        end
+        k += 1
+    end
+    return 0
+end
+
+// Encode: [primary, n, lastColumn bytes...]
+func bwtEncode(array<int> data) as array<int>
+    array<int> out = array[]
+    int n = data.length
+    if n == 0 then
+        out.push(0)
+        out.push(0)
+        return out
+    end
+    array<int> idx = array[]
+    int i = 0
+    while i < n do
+        idx.push(i)
+        i += 1
+    end
+    int p = 0
+    while p < n do
+        int sel = p
+        int q = p + 1
+        while q < n do
+            if bwtRotCompare(data, n, idx[q], idx[sel]) < 0 then
+                sel = q
+            end
+            q += 1
+        end
+        if sel != p then
+            int tmp = idx[p]
+            idx[p] = idx[sel]
+            idx[sel] = tmp
+        end
+        p += 1
+    end
+    int primary = 0
+    int p2 = 0
+    while p2 < n do
+        if idx[p2] == 0 then
+            primary = p2
+        end
+        p2 += 1
+    end
+    out.push(primary)
+    out.push(n)
+    int p3 = 0
+    while p3 < n do
+        int startPos = idx[p3]
+        int lastPos = startPos - 1
+        if lastPos < 0 then
+            lastPos = n - 1
+        end
+        out.push(data[lastPos])
+        p3 += 1
+    end
+    return out
+end
+
+// Decode: reconstruct original via LF-mapping.
+func bwtDecode(array<int> packed) as array<int>
+    array<int> out = array[]
+    int idx = 0
+    int primary = packed[idx]
+    idx += 1
+    int n = packed[idx]
+    idx += 1
+    if n == 0 then
+        return out
+    end
+    array<int> L = array[]
+    int li = 0
+    while li < n do
+        L.push(packed[idx + li])
+        li += 1
+    end
+    idx += n
+
+    array<int> count = array[]
+    int ci = 0
+    while ci < 256 do
+        count.push(0)
+        ci += 1
+    end
+    int li2 = 0
+    while li2 < n do
+        count[L[li2]] += 1
+        li2 += 1
+    end
+    array<int> C = array[]
+    int ci2 = 0
+    int sum = 0
+    while ci2 < 256 do
+        C.push(sum)
+        sum += count[ci2]
+        ci2 += 1
+    end
+
+    array<int> LF = array[]
+    int li3 = 0
+    while li3 < n do
+        LF.push(0)
+        li3 += 1
+    end
+    array<int> occ = array[]
+    int ci3 = 0
+    while ci3 < 256 do
+        occ.push(0)
+        ci3 += 1
+    end
+    int li4 = 0
+    while li4 < n do
+        int c = L[li4]
+        LF[li4] = C[c] + occ[c]
+        occ[c] += 1
+        li4 += 1
+    end
+
+    int ri = 0
+    while ri < n do
+        out.push(0)
+        ri += 1
+    end
+    int pos = primary
+    int k = n - 1
+    while k >= 0 do
+        out[k] = L[pos]
+        pos = LF[pos]
+        k -= 1
+    end
+    return out
+end
+
+// ===========================================================================
+// Command: test
+// ===========================================================================
+
+func printTrial(string algo, bool ok, int encSize) as bool
+    println("  " + padField(algo, 10) + " enc=" + string(encSize) + "  " + (ok ? "PASS" : "FAIL"))
+    return ok
+end
+
+func cmdTest() as int
+    array<string> samples = array["ABABABABABABABAB", "TOBEORNOTTOBE"]
+    int passed = 0
+    int total = 0
+    for s in samples do
+        array<int> data = strToBytes(s)
+        println("input: \"" + s + "\"  (" + string(data.length) + " bytes)")
+
+        array<int> rleEnc = rleEncode(data)
+        total += 1
+        if printTrial("rle", bytesEqual(rleDecode(rleEnc), data), rleEnc.length) then
+            passed += 1
+        end
+
+        array<int> lzwEnc = lzwEncode(data)
+        total += 1
+        if printTrial("lzw", bytesEqual(lzwDecode(lzwEnc), data), lzwByteSize(lzwEnc)) then
+            passed += 1
+        end
+
+        array<int> huffEnc = huffEncode(data)
+        total += 1
+        if printTrial("huffman", bytesEqual(huffDecode(huffEnc), data), huffEnc.length) then
+            passed += 1
+        end
+
+        array<int> deltaEnc = deltaEncode(data)
+        total += 1
+        if printTrial("delta", bytesEqual(deltaDecode(deltaEnc), data), deltaEnc.length) then
+            passed += 1
+        end
+
+        array<int> bwtEnc = bwtEncode(data)
+        total += 1
+        if printTrial("bwt", bytesEqual(bwtDecode(bwtEnc), data), bwtEnc.length) then
+            passed += 1
+        end
+
+        println("")
+    end
+    println("result: " + string(passed) + "/" + string(total) + " roundtrips passed")
+    if passed == total then
+        return 0
+    end
+    return 1
+end
+
+// ===========================================================================
+// Command: bench <file>
+// ===========================================================================
+
+func printBenchRow(string algo, int encSize, int origSize, string note)
+    string c1 = padField(algo, 12)
+    string c2 = padField(string(encSize), 12)
+    string c3 = padField(formatPct(origSize, encSize), 9)
+    string c4 = padField(formatRatio(origSize, encSize), 10)
+    println("  " + c1 + c2 + c3 + c4 + note)
+end
+
+func cmdBench(string filePath) as int
+    if not file.exists(filePath) then
+        println("compressor: file not found: " + filePath)
+        return 1
+    end
+    Buffer raw = file.readBytes(filePath)
+    int origSize = raw.len()
+    if origSize == 0 then
+        println("compressor: empty file: " + filePath)
+        return 1
+    end
+    array<int> data = array[]
+    int i = 0
+    while i < origSize do
+        data.push(raw.byteAt(i))
+        i += 1
+    end
+
+    println("compressor: benchmark on " + filePath)
+    println("  file: " + formatSize(origSize) + " (" + string(origSize) + " bytes)")
+    println("")
+    println("  " + padField("algorithm", 12) + padField("encoded", 12) + padField("size%", 9) + padField("ratio", 10) + "note")
+
+    array<int> rleEnc = rleEncode(data)
+    printBenchRow("rle", rleEnc.length, origSize, "")
+
+    array<int> lzwEnc = lzwEncode(data)
+    printBenchRow("lzw", lzwByteSize(lzwEnc), origSize, "index stream")
+
+    array<int> huffEnc = huffEncode(data)
+    printBenchRow("huffman", huffEnc.length, origSize, "self-contained")
+
+    array<int> deltaEnc = deltaEncode(data)
+    printBenchRow("delta", deltaEnc.length, origSize, "transform")
+
+    int bwtCap = 65536
+    array<int> bwtSample = bytesSlice(data, bwtCap)
+    array<int> bwtEnc = bwtEncode(bwtSample)
+    string bwtNote = "transform"
+    if origSize > bwtCap then
+        bwtNote = "transform (cap " + string(bwtCap) + ")"
+    end
+    printBenchRow("bwt", bwtEnc.length, bwtSample.length, bwtNote)
+
+    return 0
+end
+
+// ===========================================================================
+// Usage and main
+// ===========================================================================
+
+func printUsage()
+    println("compressor - compression algorithm library")
+    println("")
+    println("usage:")
+    println("  compressor test                roundtrip all algorithms on samples")
+    println("  compressor bench <file>        compare compression ratios on a file")
+    println("  compressor --help | -h         show this help")
+    println("")
+    println("algorithms: RLE, LZW, Huffman (canonical, node-pool tree), Delta, BWT")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+    string cmd = string(arg[1])
+    if cmd == "--help" or cmd == "-h" or cmd == "help" then
+        printUsage()
+        return 0
+    elseif cmd == "test" then
+        return cmdTest()
+    elseif cmd == "bench" then
+        if arg.length < 3 then
+            println("compressor bench: requires <file>")
+            return 1
+        end
+        return cmdBench(string(arg[2]))
+    else
+        println("compressor: unknown command: " + cmd)
+        printUsage()
+        return 1
+    end
+    return 0
+end

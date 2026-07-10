@@ -307,6 +307,7 @@ static const XL6_AstNode* xl6CgenCallableParams(const XL6_AstNode* node)
     return node->childCount > 1 ? node->children[1] : NULL;
 }
 
+
 static const XL6_AstNode* xl6CgenFindClassCreateCallableWithoutArgs(const XL6_AstNode* classNode)
 {
     const XL6_AstNode* body;
@@ -455,13 +456,38 @@ static const char* xl6CgenExternalVarLocalName(const XL6_AstNode* node)
     return nameNode != NULL ? nameNode->text : NULL;
 }
 
-static void xl6CgenExternalVarStorageName(XL6_Output* out, const XL6_AstNode* node)
+static void xl6CgenExternalVarStorageNameText(
+    char* buffer,
+    size_t capacity,
+    const XL6_AstNode* node)
 {
-    if ( xl6CgenExternalVarHasCSymbol(node) ) {
-        xl6CgenCStringSymbol(out, node->text);
+    const char* text;
+    size_t len;
+
+    if ( buffer == NULL || capacity == 0 ) {
         return;
     }
-    xl6CgenFputsCIdent(out, xl6CgenExternalVarLocalName(node));
+    buffer[0] = '\0';
+    if ( !xl6CgenExternalVarHasCSymbol(node) ) {
+        xl6CgenCIdentText(buffer, capacity, xl6CgenExternalVarLocalName(node));
+        return;
+    }
+
+    text = node->text;
+    len = strlen(text);
+    if ( len >= 2 && (text[0] == '"' || text[0] == '\'') ) {
+        snprintf(buffer, capacity, "%.*s", (int)(len - 2), text + 1);
+        return;
+    }
+    snprintf(buffer, capacity, "%s", text);
+}
+
+static void xl6CgenExternalVarStorageName(XL6_Output* out, const XL6_AstNode* node)
+{
+    char storageName[512];
+
+    xl6CgenExternalVarStorageNameText(storageName, sizeof(storageName), node);
+    xl6OutputPuts(storageName, out);
 }
 
 static int xl6CgenIsTypeAliasDecl(const XL6_AstNode* node)

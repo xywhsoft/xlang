@@ -999,6 +999,10 @@ static const XL6_StdlibParam xl6StdMathUnaryFloatParams[] = {
     {"float", "x"}
 };
 
+static const XL6_StdlibParam xl6StdMathUnaryIntParams[] = {
+    {"int", "x"}
+};
+
 static const XL6_StdlibParam xl6StdMathPowParams[] = {
     {"float", "x"},
     {"float", "y"}
@@ -1363,8 +1367,7 @@ static const XL6_StdlibParam xl6StdXrtDirSizeParams[] = {
 static const XL6_StdlibParam xl6StdRuntimePathJoinParams[] = {
     {"string", "first"},
     {"string", "second"},
-    {"string", "third"},
-    {"string", "fourth"}
+    {"var", "rest"}
 };
 
 static const XL6_StdlibParam xl6StdRuntimeHttpServerCreateParams[] = {
@@ -2965,8 +2968,8 @@ static const char xl6StdPathDirBody[] =
     "end\n";
 
 static const char xl6StdPathJoinBody[] =
-    "func __xl_std_path_join(string first, string second, string third = \"\", string fourth = \"\") as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_path_join(first, second, third, fourth))\n"
+    "func __xl_std_path_join(string first, string second, ...) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_path_join(first, second, arg))\n"
     "end\n";
 
 static const char xl6StdPathRandomBody[] =
@@ -4255,7 +4258,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "dirList", "__xl_std_runtime_dir_list", "xl6_xrt_dir_list", xl6StdRuntimeDirListParams, 3, "var", NULL},
     {"__xl_runtime", "dirGlob", "__xl_std_runtime_dir_glob", "xl6_xrt_dir_glob", xl6StdRuntimeDirGlobParams, 4, "var", NULL},
     {"__xl_runtime", "dirEntries", "__xl_std_runtime_dir_entries", "xl6_xrt_dir_entries", xl6StdRuntimeDirEntriesParams, 5, "var", NULL},
-    {"__xl_runtime", "pathJoin", "__xl_std_runtime_path_join", "xl6_xrt_path_join", xl6StdRuntimePathJoinParams, 4, "point", NULL},
+    {"__xl_runtime", "pathJoin", "__xl_std_runtime_path_join", "xl6_xrt_path_join", xl6StdRuntimePathJoinParams, 3, "point", NULL},
     {"__xl_runtime", "httpServerCreate", "__xl_std_runtime_http_server_create", "xl6_xrt_http_server_create", xl6StdRuntimeHttpServerCreateParams, 14, "point", NULL},
     {"__xl_runtime", "httpServerCreateTls", "__xl_std_runtime_http_server_create_tls", "xl6_xrt_http_server_create_tls", xl6StdRuntimeHttpServerCreateTlsParams, 16, "point", NULL},
     {"__xl_runtime", "httpAppCreate", "__xl_std_runtime_http_app_create", "xl6_xrt_http_app_create", NULL, 0, "point", NULL},
@@ -4523,6 +4526,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"math", "ceil", "__xl_std_math_ceil", "ceil", xl6StdMathUnaryFloatParams, 1, "float", NULL},
     {"math", "round", "__xl_std_math_round", NULL, xl6StdMathUnaryFloatParams, 1, "float", xl6StdMathRoundBody},
     {"math", "abs", "__xl_std_math_abs", "fabs", xl6StdMathUnaryFloatParams, 1, "float", NULL},
+    {"math", "abs", "__xl_std_math_abs", "llabs", xl6StdMathUnaryIntParams, 1, "int", NULL},
     {"math", "min", "__xl_std_math_min", "xrtMathMin", xl6StdMathBinaryFloatParams, 2, "float", NULL},
     {"math", "max", "__xl_std_math_max", "xrtMathMax", xl6StdMathBinaryFloatParams, 2, "float", NULL},
     {"math", "clamp", "__xl_std_math_clamp", "xrtMathClamp", xl6StdMathClampParams, 3, "float", NULL},

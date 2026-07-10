@@ -1,5 +1,25 @@
 #include "src/cgen/xl6_cgen_runtime.h"
 
+void xl6CgenEmitTempScopeRuntime(XL6_Output* out)
+{
+    xl6OutputPuts("#ifndef XL6_XRT_TEMP_SCOPE_TYPEDEF\n", out);
+    xl6OutputPuts("#define XL6_XRT_TEMP_SCOPE_TYPEDEF\n", out);
+    xl6OutputPuts("typedef struct xrtTempScope {\n", out);
+    xl6OutputPuts("    void* pThreadData;\n", out);
+    xl6OutputPuts("    void* pCurrent;\n", out);
+    xl6OutputPuts("    void* pSpill;\n", out);
+    xl6OutputPuts("    unsigned int iUsed;\n", out);
+    xl6OutputPuts("    unsigned int iDepth;\n", out);
+    xl6OutputPuts("    unsigned long long iCurrentBytes;\n", out);
+    xl6OutputPuts("    bool bActive;\n", out);
+    xl6OutputPuts("} xrtTempScope;\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("xrtTempScope xrtTempScopeBegin(void);\n", out);
+    xl6OutputPuts("void xrtTempScopeEnd(xrtTempScope* pScope);\n", out);
+    xl6OutputPuts("char* xrtTempStringTake(char* sText, size_t iSize);\n", out);
+    xl6OutputPuts("char* xrtCopyStr(const char* sText, size_t iSize);\n\n", out);
+}
+
 void xl6CgenEmitApproxProtos(XL6_Output* out)
 {
     xl6OutputPuts("#include <stdbool.h>\n", out);
@@ -24,9 +44,25 @@ void xl6CgenEmitStringRuntime(XL6_Output* out)
     xl6OutputPuts("#include <stdarg.h>\n", out);
     xl6OutputPuts("#include <string.h>\n", out);
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n\n", out);
+    xl6OutputPuts("void* xrtTempMemory(size_t iSize);\n\n", out);
     xl6OutputPuts("int xrtStrComp(const char* s1, const char* s2, size_t iSize, bool bCase);\n", out);
     xl6OutputPuts("const char* xrtFindStr(const char* sText, size_t iSize, const char* sSubText, size_t iSubSize, bool bCase);\n", out);
     xl6OutputPuts("bool xrtStrApprox(const char* s1, size_t len1, const char* s2, size_t len2);\n\n", out);
+
+    xl6OutputPuts("static const char* xl6_xrt_external_string_copy(const char* text)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t len = text != 0 ? strlen(text) : 0;\n", out);
+    xl6OutputPuts("    char* copy;\n\n", out);
+    xl6OutputPuts("    if ( len == 0 ) {\n", out);
+    xl6OutputPuts("        return \"\";\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    copy = (char*)xrtTempMemory(len + 1);\n", out);
+    xl6OutputPuts("    if ( copy == 0 ) {\n", out);
+    xl6OutputPuts("        return \"\";\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    memcpy(copy, text, len + 1);\n", out);
+    xl6OutputPuts("    return copy;\n", out);
+    xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("#ifndef XL6_XBUFFER_TYPEDEF\n", out);
     xl6OutputPuts("#define XL6_XBUFFER_TYPEDEF\n", out);
     xl6OutputPuts("typedef struct xbuffer_struct { char* Buffer; unsigned int Length; unsigned int AllocLength; unsigned int AllocStep; } xbuffer_struct, *xbuffer;\n", out);
@@ -46,6 +82,7 @@ void xl6CgenEmitStringRuntime(XL6_Output* out)
     xl6OutputPuts("static const char* xl6_xrt_fstr_take(xbuffer buffer)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    char* text;\n\n", out);
+    xl6OutputPuts("    unsigned int length;\n\n", out);
     xl6OutputPuts("    if ( buffer == 0 ) {\n", out);
     xl6OutputPuts("        return \"\";\n", out);
     xl6OutputPuts("    }\n", out);
@@ -53,11 +90,12 @@ void xl6CgenEmitStringRuntime(XL6_Output* out)
     xl6OutputPuts("        xrtBufferAppend(buffer, (void*)\"\", 0, 1u);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    text = buffer->Buffer;\n", out);
+    xl6OutputPuts("    length = buffer->Length;\n", out);
     xl6OutputPuts("    buffer->Buffer = 0;\n", out);
     xl6OutputPuts("    buffer->Length = 0;\n", out);
     xl6OutputPuts("    buffer->AllocLength = 0;\n", out);
     xl6OutputPuts("    xrtBufferUnit(buffer);\n", out);
-    xl6OutputPuts("    return text != 0 ? text : \"\";\n", out);
+    xl6OutputPuts("    return text != 0 ? xrtTempStringTake(text, length) : \"\";\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static const char* xl6_xrt_fstr_join(int count, ...)\n", out);
@@ -83,7 +121,7 @@ void xl6CgenEmitStringRuntime(XL6_Output* out)
     xl6OutputPuts("    if ( totalLen == 0 ) {\n", out);
     xl6OutputPuts("        return \"\";\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    text = (char*)xrtMalloc(totalLen + 1);\n", out);
+    xl6OutputPuts("    text = (char*)xrtTempMemory(totalLen + 1);\n", out);
     xl6OutputPuts("    if ( text == 0 ) {\n", out);
     xl6OutputPuts("        return \"\";\n", out);
     xl6OutputPuts("    }\n", out);
@@ -104,7 +142,7 @@ void xl6CgenEmitStringRuntime(XL6_Output* out)
     xl6OutputPuts("    if ( len == 0 ) {\n", out);
     xl6OutputPuts("        return \"\";\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    copy = (char*)xrtMalloc(len + 1);\n", out);
+    xl6OutputPuts("    copy = (char*)xrtTempMemory(len + 1);\n", out);
     xl6OutputPuts("    if ( copy == 0 ) {\n", out);
     xl6OutputPuts("        return \"\";\n", out);
     xl6OutputPuts("    }\n", out);

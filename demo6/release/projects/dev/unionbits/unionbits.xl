@@ -282,9 +282,9 @@ func testAbiMetadata()
     IntFloat w = uIdent(v)
     expectFExact(w.f, 2.0, "export uIdent(u) round-trip (ABI wrapper)")
     // type 值可转字符串 —— BUG-U1：union 类型值的字符串化返回 "unknown"
-    // （type 身份比较本身正确，见上面 type(u)==IntFloat；仅 string(type_value) 丢名）
+    // type 身份和名称反查都应保留声明类型。
     string tn = string(type(u))
-    println("    (NOTE BUG-U1: string(type(u)) = '" + tn + "', expected 'IntFloat')")
+    println("    string(type(u)) = '" + tn + "'")
     if tn == "unknown" then
         ok("BUG-U1 reproduced: union type name stringifies as 'unknown'")
     else

@@ -1,3 +1,90 @@
+static void xl6CgenClosureCapturePath(char* buffer, size_t capacity, const XL6_CgenAnonCapture* capture)
+{
+    char fieldName[512];
+
+    xl6CgenCIdentText(fieldName, sizeof(fieldName), capture != NULL ? capture->name : NULL);
+    snprintf(buffer, capacity, "__env->%s", fieldName);
+}
+
+static void xl6CgenReleaseClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAnonCapture* capture)
+{
+    const XL6_AstNode* typeNode = capture != NULL ? capture->type : NULL;
+    XL6_AstNode* classNode;
+    char path[1024];
+
+    if ( typeNode == NULL ) {
+        return;
+    }
+    xl6CgenClosureCapturePath(path, sizeof(path), capture);
+    if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtFree((void*)%s); %s = 0; }\n", path, path, path);
+    } else if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", path);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6CgenTypedContainerDestroyValue(ctx, typeNode, path);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+    } else if ( xl6CgenIsXValueType(typeNode) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", path, path, path);
+    } else if ( xl6CgenIsFunctionType(typeNode) ) {
+        xl6CgenReleaseFunctionPath(ctx, path);
+    } else {
+        classNode = xl6CgenClassNodeForType(ctx, typeNode);
+        if ( classNode != NULL ) {
+            xl6CgenDeclDestroyTemporaryClassValue(ctx, classNode, typeNode, path);
+        }
+    }
+}
+
+static void xl6CgenCopyClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAnonCapture* capture)
+{
+    const XL6_AstNode* typeNode = capture != NULL ? capture->type : NULL;
+    XL6_AstNode* classNode;
+    char path[1024];
+    char sourceName[512];
+
+    if ( typeNode == NULL ) {
+        return;
+    }
+    xl6CgenClosureCapturePath(path, sizeof(path), capture);
+    xl6CgenCIdentText(sourceName, sizeof(sourceName), capture->name);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts(path, ctx->out);
+    xl6OutputPuts(" = ", ctx->out);
+    if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+        xl6OutputPrintf(ctx->out, "xrtCopyStr(%s, 0u)", sourceName);
+    } else if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+        xl6CgenTypedContainerCopyCExprMode(ctx, typeNode, sourceName, "XRT_OBJMODE_SHARED");
+    } else if ( xl6CgenIsXValueType(typeNode) ) {
+        xl6OutputPrintf(ctx->out, "xl6_xrt_retain(%s)", sourceName);
+    } else if ( xl6CgenIsFunctionType(typeNode) ) {
+        xl6OutputPuts(sourceName, ctx->out);
+    } else {
+        classNode = xl6CgenClassNodeForType(ctx, typeNode);
+        if ( classNode != NULL && !xl6CgenClassHasTypeParams(classNode) ) {
+            xl6CgenClassCopyBuiltinHelperSymbol(ctx->out, classNode, 0);
+            xl6OutputPrintf(ctx->out, "(%s, 1)", sourceName);
+        } else {
+            xl6OutputPuts(sourceName, ctx->out);
+        }
+    }
+    xl6OutputPuts(";\n", ctx->out);
+
+    if ( xl6CgenIsFunctionType(typeNode) ) {
+        xl6CgenRetainFunctionPath(ctx, path);
+    } else {
+        classNode = xl6CgenClassNodeForType(ctx, typeNode);
+        if ( classNode != NULL && xl6CgenClassHasTypeParams(classNode) ) {
+            xl6CgenRetainClassFunctionFields(ctx, classNode, path);
+        }
+    }
+}
+
 static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc* info)
 {
     const XL6_AstNode* params;
@@ -26,7 +113,7 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
         xl6OutputPuts("    int ref_count;\n", ctx->out);
         for ( i = 0; i < info->captureCount; ++i ) {
             xl6OutputPuts("    ", ctx->out);
-            xl6OutputPuts(xl6CgenTypeName(ctx, info->captures[i].type), ctx->out);
+            xl6OutputPuts(xl6CgenParamCType(ctx, info->captures[i].type), ctx->out);
             xl6OutputPutc(' ', ctx->out);
             xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
             xl6OutputPuts(";\n", ctx->out);
@@ -51,7 +138,8 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
     ctx->currentReturns = returns;
     ctx->currentReturnFunc = NULL;
     xl6CgenRegisterParamTypes(ctx, params);
-    xl6CgenEmitTypedContainerParamOwnerDecls(ctx, params);
+    xl6CgenEmitManagedParamOwners(ctx, params);
+    xl6CgenBeginTempScope(ctx, info->node);
     xl6CgenRegisterAnonCaptureTypes(ctx, info);
     if ( info->captureCount > 0 ) {
         xl6CgenIndent(ctx);
@@ -89,38 +177,11 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
         xl6OutputPuts("    }\n", ctx->out);
         xl6OutputPuts("    __env->ref_count -= 1;\n", ctx->out);
         xl6OutputPuts("    if (__env->ref_count == 0) {\n", ctx->out);
+        ctx->indent += 2;
         for ( i = 0; i < info->captureCount; ++i ) {
-            if ( xl6CgenIsXValueType(info->captures[i].type) ) {
-                xl6OutputPuts("        if (__env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(" != 0) {\n", ctx->out);
-                xl6OutputPuts("            xvoUnref(__env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(");\n", ctx->out);
-                xl6OutputPuts("            __env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(" = 0;\n", ctx->out);
-                xl6OutputPuts("        }\n", ctx->out);
-            } else if ( xl6CgenIsFunctionType(info->captures[i].type) ) {
-                xl6OutputPuts("        if (__env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(".release != 0 && __env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(".env != 0) {\n", ctx->out);
-                xl6OutputPuts("            __env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(".release(__env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(".env);\n", ctx->out);
-                xl6OutputPuts("            __env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(".env = 0;\n", ctx->out);
-                xl6OutputPuts("            __env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(".release = 0;\n", ctx->out);
-                xl6OutputPuts("        }\n", ctx->out);
-            }
+            xl6CgenReleaseClosureCapture(ctx, &info->captures[i]);
         }
+        ctx->indent -= 2;
         xl6OutputPuts("        xrtFree(__env);\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
         xl6OutputPuts("}\n\n", ctx->out);
@@ -137,7 +198,7 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
             if ( i > 0 ) {
                 xl6OutputPuts(", ", ctx->out);
             }
-            xl6OutputPuts(xl6CgenTypeName(ctx, info->captures[i].type), ctx->out);
+            xl6OutputPuts(xl6CgenParamCType(ctx, info->captures[i].type), ctx->out);
             xl6OutputPutc(' ', ctx->out);
             xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
         }
@@ -148,33 +209,13 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
         xl6OutputPuts("    if (__env == 0) {\n", ctx->out);
         xl6OutputPuts("        xl6_function_fatal(2);\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
+        xl6OutputPuts("    memset(__env, 0, sizeof(*__env));\n", ctx->out);
         xl6OutputPuts("    __env->ref_count = 1;\n", ctx->out);
+        ctx->indent += 1;
         for ( i = 0; i < info->captureCount; ++i ) {
-            xl6OutputPuts("    __env->", ctx->out);
-            xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-            if ( xl6CgenIsXValueType(info->captures[i].type) ) {
-                xl6OutputPuts(" = xl6_xrt_retain(", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPutc(')', ctx->out);
-            } else {
-                xl6OutputPuts(" = ", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-            }
-            xl6OutputPuts(";\n", ctx->out);
-            if ( xl6CgenIsFunctionType(info->captures[i].type) ) {
-                xl6OutputPuts("    if (__env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(".retain != 0 && __env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(".env != 0) {\n", ctx->out);
-                xl6OutputPuts("        __env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(".retain(__env->", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-                xl6OutputPuts(".env);\n", ctx->out);
-                xl6OutputPuts("    }\n", ctx->out);
-            }
+            xl6CgenCopyClosureCapture(ctx, &info->captures[i]);
         }
+        ctx->indent -= 1;
     }
     xl6OutputPuts("    XL6_Function __fn;\n", ctx->out);
     xl6CgenEmitFunctionSigObject(ctx, "__xl6_sig", "", signatureId, params, returns);

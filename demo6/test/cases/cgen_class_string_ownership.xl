@@ -1,0 +1,36 @@
+class OwnedText
+    derive copy
+    derive clone
+
+    string text = ""
+
+    create(string text)
+        self.text = text
+    end
+end
+
+func makeText(int value) as string
+    return "item-" + string(value)
+end
+
+func makeOwnedText(int value) as OwnedText
+    return OwnedText(makeText(value))
+end
+
+array<OwnedText> values = []
+for i in range(0, 64)
+    values.push(makeOwnedText(i))
+end
+
+assert values.length == 64
+assert values[0].text == "item-0"
+assert values[31].text == "item-31"
+assert values[63].text == "item-63"
+
+OwnedText source = values[31]
+OwnedText copied = copy(source)
+OwnedText cloned = clone(source)
+source.text = "changed"
+
+assert copied.text == "item-31"
+assert cloned.text == "item-31"

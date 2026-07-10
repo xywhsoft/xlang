@@ -1,0 +1,24 @@
+// 动态值参与字符串拼接时，运行时类型必须决定运算语义。
+var dynamicLeft = "a."
+string staticRight = "id"
+var leftValue = dynamicLeft + staticRight
+assert type(leftValue) == string, "var string + string should produce a dynamic string"
+assert string(leftValue) == "a.id", "var string + string should concatenate"
+
+string staticLeft = "a."
+var dynamicRight = "id"
+var rightValue = staticLeft + dynamicRight
+assert string(rightValue) == "a.id", "string + var string should concatenate"
+
+var bothLeft = "a."
+var bothRight = "id"
+string bothResult = string(bothLeft + bothRight)
+assert bothResult == "a.id", "explicit conversion should extract concatenated text"
+
+string checkedResult = (bothLeft + bothRight) as string
+assert checkedResult == "a.id", "runtime checked conversion should extract concatenated text"
+
+// 数值动态值仍走数值运算，避免字符串修复改变既有语义。
+var numberLeft = 20
+var numberRight = 22
+assert int(numberLeft + numberRight) == 42, "var numeric addition should remain numeric"

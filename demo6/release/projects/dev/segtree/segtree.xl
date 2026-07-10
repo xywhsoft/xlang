@@ -1,0 +1,898 @@
+// segtree - 线段树（Segment Tree）区间查询 + 懒惰传播
+//
+// 用法：
+//   segtree build <array_file> [sum|max|min]        从文件读数组构建（文件内数字以空格/逗号/换行分隔）
+//   segtree build <n1> <n2> ... [sum|max|min]        直接用命令行数字构建（无需文件）
+//   segtree query <l> <r>                            区间查询 [l,r]
+//   segtree update <idx> <val>                       单点赋值
+//   segtree update-range <l> <r> <val>              区间加（懒惰传播，O(log n)）
+//   segtree test                                     内置自测（含随机对拍）
+//   segtree help                                     帮助
+//
+// 设计要点（结合 dev/README.md 与 BUGS.md）：
+//   - 经典数组式线段树：tree[1..4n]、lazy[1..4n]，节点 1 为根，左 2i 右 2i+1。
+//   - 三种聚合 op：sum(0)/max(1)/min(2)。懒惰语义统一为「区间加」：
+//       applyVal(node,len,val)：sum → tree += len*val；max/min → tree += val。
+//     因此 max/min 树同样支持区间更新（最大/最小值整体平移）。
+//   - 单点 update 为「赋值」语义：沿路径 pushDown 后置叶再回拉 merge。
+//   - 状态持久化：源数组 + op 落盘到脚本同目录 segtree.state.json（var + json），
+//     每条命令载入后在内存重建树（O(n)）。xl run 与 build 出的 exe 共享同一份状态。
+//   - 递归热路径不分配 dict/大对象，规避 BUG-LP1；数组元素更新一律展开为 a=a+b
+//     （复合赋值 += 不派发协议，热路径显式展开更稳）。
+//   - 命令行驱动（无 stdin API），数字解析用手写字节扫描，兼容多种分隔符与负号。
+
+const int OP_SUM = 0
+const int OP_MAX = 1
+const int OP_MIN = 2
+const int INF = 2000000000
+const int NEG_INF = 0 - 2000000000
+
+
+// ============================================================================
+// 标量辅助（避免依赖 math.max/min 的 float 重载）
+// ============================================================================
+
+func imax(int a, int b) as int
+    if a >= b then
+        return a
+    end
+    return b
+end
+
+func imin(int a, int b) as int
+    if a <= b then
+        return a
+    end
+    return b
+end
+
+func mergeVal(int op, int a, int b) as int
+    if op == OP_MAX then
+        return imax(a, b)
+    end
+    if op == OP_MIN then
+        return imin(a, b)
+    end
+    return a + b
+end
+
+func identityOf(int op) as int
+    if op == OP_MAX then
+        return NEG_INF
+    end
+    if op == OP_MIN then
+        return INF
+    end
+    return 0
+end
+
+func opName(int op) as string
+    if op == OP_MAX then
+        return "max"
+    end
+    if op == OP_MIN then
+        return "min"
+    end
+    return "sum"
+end
+
+func opId(string s) as int
+    string t = string.lower(string.trim(s))
+    if t == "max" then
+        return OP_MAX
+    end
+    if t == "min" then
+        return OP_MIN
+    end
+    return OP_SUM
+end
+
+
+// ============================================================================
+// 数字解析：从文本扫描整数（分隔符为空格/逗号/换行/制表/分号，支持负号）
+// ============================================================================
+
+func parseIntArray(string text) as array<int>
+    array<int> result = array[]
+    int n = string.len(text)
+    int i = 0
+    bool inNum = false
+    bool hasDigit = false
+    int sign = 1
+    int64 acc = 0
+    while i < n do
+        int b = string.byteAt(text, i)
+        bool isDigit = false
+        if b >= 48 and b <= 57 then
+            isDigit = true
+        end
+        if isDigit then
+            if not inNum then
+                inNum = true
+                hasDigit = false
+                acc = 0
+                sign = 1
+            end
+            hasDigit = true
+            acc = acc * 10 + int64(b - 48)
+        elseif b == 45 then
+            // '-' : 若不在数字中，作为新负数起点；否则先 flush 再开新负数
+            if inNum then
+                if hasDigit then
+                    int64 v = acc * int64(sign)
+                    result.push(int(v))
+                end
+            end
+            inNum = true
+            hasDigit = false
+            acc = 0
+            sign = 0 - 1
+        elseif b == 43 then
+            // '+'
+            if inNum then
+                if hasDigit then
+                    int64 v = acc * int64(sign)
+                    result.push(int(v))
+                end
+            end
+            inNum = true
+            hasDigit = false
+            acc = 0
+            sign = 1
+        else
+            // 分隔符：flush
+            if inNum and hasDigit then
+                int64 v = acc * int64(sign)
+                result.push(int(v))
+            end
+            inNum = false
+            hasDigit = false
+            acc = 0
+            sign = 1
+        end
+        i = i + 1
+    end
+    // 尾部 flush
+    if inNum and hasDigit then
+        int64 v = acc * int64(sign)
+        result.push(int(v))
+    end
+    return result
+end
+
+
+// ============================================================================
+// SegTree — 线段树（数组式 + 懒惰传播）
+// ============================================================================
+
+class SegTree
+    array<int> tree = array[]
+    array<int> lazy = array[]
+    int n = 0
+    int op = OP_SUM
+
+    create(int op)
+        self.op = op
+        self.n = 0
+        self.tree = array[]
+        self.lazy = array[]
+    end
+
+    // 分配 4n+5 的 tree/lazy 数组（self 写入，确定持久）。
+    // 注：不在此接收 array<int> 形参——BUG-C1：class 方法不能安全接收
+    // array<int> 参数。源数据由顶层 segBuild/segBuildRec（普通函数）读取，
+    // tree 元素写入经 class 实例形参持久（参照 chip8 loadBytes）。
+    func allocTree(int dn)
+        self.n = dn
+        self.tree = array[]
+        self.lazy = array[]
+        if dn == 0 then
+            return
+        end
+        int size = 4 * dn + 5
+        int k = 0
+        while k < size do
+            self.tree.push(0)
+            self.lazy.push(0)
+            k = k + 1
+        end
+    end
+
+    // 取下标 idx 的原始叶子值（查询单点）。
+    func pointValue(int idx) as int
+        if self.n == 0 then
+            return identityOf(self.op)
+        end
+        return self.queryRec(1, 0, self.n - 1, idx, idx)
+    end
+
+    // 区间查询 [ql, qr]。
+    func query(int ql, int qr) as int
+        if self.n == 0 then
+            return identityOf(self.op)
+        end
+        return self.queryRec(1, 0, self.n - 1, ql, qr)
+    end
+
+    // 单点赋值：沿路径 pushDown 后置叶，回拉 merge。
+    func update(int idx, int val)
+        if self.n == 0 then
+            return
+        end
+        self.setRec(1, 0, self.n - 1, idx, val)
+    end
+
+    // 区间加 [ql, qr] += val（懒惰传播）。
+    func updateRange(int ql, int qr, int val)
+        if self.n == 0 then
+            return
+        end
+        self.updateRangeRec(1, 0, self.n - 1, ql, qr, val)
+    end
+
+    // ---- 内部递归（仅 int 形参，class 方法安全；buildRec 见顶层 segBuildRec）----
+
+    // 懒惰标记下推：把 node 的 lazy 分发到两个子节点。
+    func pushDown(int node, int l, int r)
+        int v = self.lazy[node]
+        if v == 0 then
+            return
+        end
+        int mid = (l + r) / 2
+        int left = node * 2
+        int right = left + 1
+        // 左子覆盖 [l, mid]，长度 mid-l+1
+        self.applyVal(left, mid - l + 1, v)
+        self.lazy[left] = self.lazy[left] + v
+        // 右子覆盖 [mid+1, r]，长度 r-mid
+        self.applyVal(right, r - mid, v)
+        self.lazy[right] = self.lazy[right] + v
+        self.lazy[node] = 0
+    end
+
+    // 对 node 应用「区间加」：sum 按长度放大，max/min 直接平移。
+    func applyVal(int node, int len, int val)
+        if self.op == OP_SUM then
+            self.tree[node] = self.tree[node] + len * val
+        else
+            self.tree[node] = self.tree[node] + val
+        end
+    end
+
+    func updateRangeRec(int node, int l, int r, int ql, int qr, int val)
+        if ql <= l and r <= qr then
+            self.applyVal(node, r - l + 1, val)
+            self.lazy[node] = self.lazy[node] + val
+            return
+        end
+        self.pushDown(node, l, r)
+        int mid = (l + r) / 2
+        int left = node * 2
+        int right = left + 1
+        if ql <= mid then
+            self.updateRangeRec(left, l, mid, ql, qr, val)
+        end
+        if qr > mid then
+            self.updateRangeRec(right, mid + 1, r, ql, qr, val)
+        end
+        self.tree[node] = mergeVal(self.op, self.tree[left], self.tree[right])
+    end
+
+    func setRec(int node, int l, int r, int idx, int val)
+        if l == r then
+            self.tree[node] = val
+            return
+        end
+        self.pushDown(node, l, r)
+        int mid = (l + r) / 2
+        int left = node * 2
+        int right = left + 1
+        if idx <= mid then
+            self.setRec(left, l, mid, idx, val)
+        else
+            self.setRec(right, mid + 1, r, idx, val)
+        end
+        self.tree[node] = mergeVal(self.op, self.tree[left], self.tree[right])
+    end
+
+    func queryRec(int node, int l, int r, int ql, int qr) as int
+        if ql <= l and r <= qr then
+            return self.tree[node]
+        end
+        self.pushDown(node, l, r)
+        int mid = (l + r) / 2
+        int left = node * 2
+        int right = left + 1
+        int res = identityOf(self.op)
+        if ql <= mid then
+            int a = self.queryRec(left, l, mid, ql, qr)
+            res = mergeVal(self.op, res, a)
+        end
+        if qr > mid then
+            int b = self.queryRec(right, mid + 1, r, ql, qr)
+            res = mergeVal(self.op, res, b)
+        end
+        return res
+    end
+
+    // 树占用数组大小（调试/统计用）。BUG-C2：不能直接 return self.field.length。
+    func capacity() as int
+        int c = self.tree.length
+        return c
+    end
+end
+
+
+// ============================================================================
+// 顶层构建函数（规避 BUG-C1：class 方法不能接收 array<int> 形参）
+// array<int> 作为普通函数形参完全正常；对 t.tree 的元素写入经 class
+// 实例形参持久（参照 chip8 的 loadBytes(Chip8, array<int>)）。
+// ============================================================================
+
+// 递归构建：读取 data，写入 t.tree 元素。
+func segBuildRec(SegTree t, int node, int l, int r, array<int> data)
+    if l == r then
+        t.tree[node] = data[l]
+        return
+    end
+    int mid = (l + r) / 2
+    int left = node * 2
+    int right = left + 1
+    segBuildRec(t, left, l, mid, data)
+    segBuildRec(t, right, mid + 1, r, data)
+    int lv = t.tree[left]
+    int rv = t.tree[right]
+    t.tree[node] = mergeVal(t.op, lv, rv)
+end
+
+// 构建入口：先经 class 方法分配数组（self 持久），再递归填值。
+func segBuild(SegTree t, array<int> data)
+    int dn = data.length
+    t.allocTree(dn)
+    if dn > 0 then
+        segBuildRec(t, 1, 0, dn - 1, data)
+    end
+end
+
+
+
+// ============================================================================
+// 状态持久化（源数组 + op 落盘 JSON）
+// ============================================================================
+
+func statePath(string scriptPath) as string
+    return path.join(path.dir(scriptPath), "segtree.state.json")
+end
+
+// 保存：写入 {"op":.., "data":[..]}
+func saveState(string p, int op, array<int> data) as bool
+    var obj = {}
+    obj["op"] = opName(op)
+    var arr = []
+    int i = 0
+    int dn = data.length
+    while i < dn do
+        arr.push(data[i])
+        i = i + 1
+    end
+    obj["data"] = arr
+    string js = json.stringify(obj)
+    return file.writeText(p, js)
+end
+
+// 载入：返回 var dict {"op":int, "data":var数组, "n":int}；失败返回 null。
+// data 为透传的 var 数组，由调用方重建 array<int>。
+func loadState(string p) as var
+    if not file.exists(p) then
+        return null
+    end
+    string text = file.readText(p)
+    if string.isEmpty(text) then
+        return null
+    end
+    if not json.valid(text) then
+        return null
+    end
+    var parsed = json.parse(text)
+    if parsed == null then
+        return null
+    end
+    var darr = parsed["data"]
+    if darr == null then
+        return null
+    end
+    int dn = darr.length
+    if dn == 0 then
+        return null
+    end
+    // 直接透传 var 数组（json.parse 产物），不在 var dict 里塞 array<int>，
+    // 由调用方按 btree deserialize 模式重建 array<int>（int(darr[i]) 已验证）。
+    var result = {}
+    result["op"] = opId(string(parsed["op"]))
+    result["data"] = darr
+    result["n"] = dn
+    return result
+end
+
+
+// ============================================================================
+// 命令实现
+// ============================================================================
+
+func cmdBuild() as int
+    // 收集 arg[2..]
+    var toks = []
+    int ti = 2
+    while ti < arg.length do
+        toks.push(string(arg[ti]))
+        ti = ti + 1
+    end
+    if toks.length == 0 then
+        println("error: build needs array data (file path or numbers) [sum|max|min]")
+        return 1
+    end
+
+    // 识别 op 词；其余为数据/文件
+    int op = OP_SUM
+    var rest = []
+    int ri = 0
+    while ri < toks.length do
+        string t = string(toks[ri])
+        string tl = string.lower(t)
+        if tl == "sum" or tl == "max" or tl == "min" then
+            op = opId(tl)
+        else
+            rest.push(t)
+        end
+        ri = ri + 1
+    end
+    if rest.length == 0 then
+        println("error: no array data after op token")
+        return 1
+    end
+
+    array<int> data = array[]
+    string firstTok = string(rest[0])
+    if file.exists(firstTok) then
+        string text = file.readText(firstTok)
+        data = parseIntArray(text)
+    else
+        int di = 0
+        while di < rest.length do
+            data.push(int(string(rest[di])))
+            di = di + 1
+        end
+    end
+
+    if data.length == 0 then
+        println("error: parsed 0 numbers")
+        return 1
+    end
+
+    SegTree tree = SegTree(op)
+    segBuild(tree, data)
+
+    string scriptPath = string(arg[0])
+    string p = statePath(scriptPath)
+    bool ok = saveState(p, op, data)
+    if not ok then
+        println("error: failed to write state: " + p)
+        return 1
+    end
+
+    int total = tree.query(0, data.length - 1)
+    println("built segment tree:")
+    println("  n        = " + string(data.length))
+    println("  op       = " + opName(op))
+    println("  capacity = " + string(tree.capacity()) + " (4n+5)")
+    println("  query[0," + string(data.length - 1) + "] = " + string(total))
+    println("  state    = " + p)
+    return 0
+end
+
+func ensureArgs(int need, string usage) as bool
+    // 校验 arg 是否足够（命令本身在 arg[1]，参数从 arg[2] 起）
+    if arg.length < 2 + need then
+        println("error: " + usage)
+        return false
+    end
+    return true
+end
+
+func cmdQuery() as int
+    if not ensureArgs(2, "usage: segtree query <l> <r>") then
+        return 1
+    end
+    string p = statePath(string(arg[0]))
+    var st = loadState(p)
+    if st == null then
+        println("error: no tree built. run: segtree build <array_file>")
+        return 1
+    end
+    int op = int(st["op"])
+    var darr = st["data"]
+    array<int> data = array[]
+    int dn = darr.length
+    int i = 0
+    while i < dn do
+        data.push(int(darr[i]))
+        i = i + 1
+    end
+    SegTree tree = SegTree(op)
+    segBuild(tree, data)
+    int l = int(arg[2])
+    int r = int(arg[3])
+    if l < 0 or r >= tree.n or l > r then
+        println("error: range [" + string(l) + "," + string(r) + "] out of [0," + string(tree.n - 1) + "]")
+        return 1
+    end
+    int v = tree.query(l, r)
+    println("query [" + string(l) + "," + string(r) + "] (" + opName(tree.op) + ") = " + string(v))
+    return 0
+end
+
+func cmdUpdate() as int
+    if not ensureArgs(2, "usage: segtree update <idx> <val>") then
+        return 1
+    end
+    string p = statePath(string(arg[0]))
+    var st = loadState(p)
+    if st == null then
+        println("error: no tree built. run: segtree build <array_file>")
+        return 1
+    end
+    int op = int(st["op"])
+    var darr = st["data"]
+    array<int> data = array[]
+    int dn = darr.length
+    int i = 0
+    while i < dn do
+        data.push(int(darr[i]))
+        i = i + 1
+    end
+    int idx = int(arg[2])
+    int val = int(arg[3])
+    if idx < 0 or idx >= dn then
+        println("error: index " + string(idx) + " out of [0," + string(dn - 1) + "]")
+        return 1
+    end
+    int old = data[idx]
+    data[idx] = val
+    SegTree tree = SegTree(op)
+    segBuild(tree, data)
+    bool ok = saveState(p, op, data)
+    if not ok then
+        println("error: failed to write state: " + p)
+        return 1
+    end
+    int total = tree.query(0, dn - 1)
+    println("update [" + string(idx) + "] = " + string(val) + " (was " + string(old) + ")")
+    println("  op = " + opName(op) + "  query[0," + string(dn - 1) + "] = " + string(total))
+    return 0
+end
+
+func cmdUpdateRange() as int
+    if not ensureArgs(3, "usage: segtree update-range <l> <r> <val>") then
+        return 1
+    end
+    string p = statePath(string(arg[0]))
+    var st = loadState(p)
+    if st == null then
+        println("error: no tree built. run: segtree build <array_file>")
+        return 1
+    end
+    int op = int(st["op"])
+    var darr = st["data"]
+    array<int> data = array[]
+    int dn = darr.length
+    int i = 0
+    while i < dn do
+        data.push(int(darr[i]))
+        i = i + 1
+    end
+    int l = int(arg[2])
+    int r = int(arg[3])
+    int val = int(arg[4])
+    if l < 0 or r >= dn or l > r then
+        println("error: range [" + string(l) + "," + string(r) + "] out of [0," + string(dn - 1) + "]")
+        return 1
+    end
+    SegTree tree = SegTree(op)
+    segBuild(tree, data)
+    tree.updateRange(l, r, val)
+    // 同步源数组（区间加），落盘保持一致
+    int j = l
+    while j <= r do
+        data[j] = data[j] + val
+        j = j + 1
+    end
+    bool ok = saveState(p, op, data)
+    if not ok then
+        println("error: failed to write state: " + p)
+        return 1
+    end
+    int total = tree.query(0, dn - 1)
+    println("update-range [" + string(l) + "," + string(r) + "] += " + string(val))
+    println("  op = " + opName(op) + "  query[0," + string(dn - 1) + "] = " + string(total))
+    return 0
+end
+
+
+// ============================================================================
+// 测试框架
+// ============================================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass = g_pass + 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail = g_fail + 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectTrue(bool got, string label)
+    if got then
+        ok(label)
+    else
+        bad(label, "expected true, got false")
+    end
+end
+
+
+// ---- 随机源（LCG，确定性）----
+// 取较小种子 + mod 2^31-1，保证 g_seed * 1103515245 不溢出 int64（参照 btree shuffledRange）。
+int64 g_seed = 1234567890
+
+func randNext() as int
+    g_seed = g_seed * 1103515245 + 12345
+    g_seed = g_seed % 2147483647
+    if g_seed < 0 then
+        g_seed = 0 - g_seed
+    end
+    return int(g_seed)
+end
+
+func randInt(int lo, int hi) as int
+    int span = hi - lo + 1
+    return lo + randNext() % span
+end
+
+// 朴素参考实现：直接对数组做区间聚合。
+func naiveQuery(array<int> a, int op, int l, int r) as int
+    int res = identityOf(op)
+    int i = l
+    while i <= r do
+        res = mergeVal(op, res, a[i])
+        i = i + 1
+    end
+    return res
+end
+
+
+// ============================================================================
+// 自测
+// ============================================================================
+
+func cmdTest() as int
+    println("=== segtree self-test ===")
+
+    // ---- 1) sum 树基础 ----
+    array<int> d1 = array<int>[1, 2, 3, 4, 5, 6, 7, 8]
+    SegTree tsum = SegTree(OP_SUM)
+    segBuild(tsum, d1)
+    expectI(tsum.n, 8, "sum: n=8")
+    expectI(tsum.query(0, 7), 36, "sum: total [0,7]=36")
+    expectI(tsum.query(2, 5), 18, "sum: [2,5]=3+4+5+6=18")
+    expectI(tsum.query(0, 0), 1, "sum: point [0,0]=1")
+    expectI(tsum.query(7, 7), 8, "sum: point [7,7]=8")
+    expectI(tsum.pointValue(4), 5, "sum: pointValue(4)=5")
+
+    // ---- 2) 单点赋值 ----
+    tsum.update(3, 10)       // a[3]: 4 -> 10 (+6)
+    expectI(tsum.query(0, 7), 42, "sum: after set[3]=10 total=42")
+    expectI(tsum.pointValue(3), 10, "sum: pointValue(3)=10")
+    expectI(tsum.query(2, 5), 24, "sum: [2,5]=3+10+5+6=24")
+
+    // ---- 3) 区间加 + 懒惰传播 ----
+    tsum.updateRange(1, 6, 5)   // 中段 +5
+    // 当前数组: [1,7,8,15,10,11,12,8]
+    expectI(tsum.query(0, 7), 72, "sum: after +5[1,6] total=72")
+    expectI(tsum.pointValue(0), 1, "sum: untouched a[0]=1")
+    expectI(tsum.pointValue(7), 8, "sum: untouched a[7]=8")
+    expectI(tsum.pointValue(3), 20, "sum: a[3]=15+5=20")
+    expectI(tsum.query(1, 3), 7 + 8 + 20, "sum: [1,3]=7+8+20=35")
+    // 再次区间加，验证 lazy 链式累积
+    tsum.updateRange(0, 7, 1)
+    expectI(tsum.query(0, 7), 80, "sum: after +1 all total=80")
+    expectI(tsum.pointValue(3), 21, "sum: a[3]=21")
+
+    // ---- 4) max 树 ----
+    array<int> d2 = array<int>[3, 1, 4, 1, 5, 9, 2, 6]
+    SegTree tmax = SegTree(OP_MAX)
+    segBuild(tmax, d2)
+    expectI(tmax.query(0, 7), 9, "max: [0,7]=9")
+    expectI(tmax.query(0, 4), 5, "max: [0,4]=5")
+    expectI(tmax.query(5, 7), 9, "max: [5,7]=9")
+    expectI(tmax.query(1, 2), 4, "max: [1,2]=4")
+    // max 区间加：最大值整体平移
+    tmax.updateRange(0, 3, 10)
+    expectI(tmax.query(0, 3), 14, "max: [0,3] after +10 = 14")
+    expectI(tmax.query(4, 7), 9, "max: [4,7] untouched = 9")
+    expectI(tmax.pointValue(0), 13, "max: a[0]=3+10=13")
+    tmax.update(7, 100)
+    expectI(tmax.query(0, 7), 100, "max: after set[7]=100")
+
+    // ---- 5) min 树 ----
+    array<int> d3 = array<int>[5, 2, 8, 1, 9, 3, 7, 4]
+    SegTree tmin = SegTree(OP_MIN)
+    segBuild(tmin, d3)
+    expectI(tmin.query(0, 7), 1, "min: [0,7]=1")
+    expectI(tmin.query(2, 5), 1, "min: [2,5]=1")
+    expectI(tmin.query(4, 7), 3, "min: [4,7]=3")
+    tmin.updateRange(4, 7, 5)   // [9,3,7,4] -> [14,8,12,9]
+    expectI(tmin.query(4, 7), 8, "min: [4,7] after +5 = 8")
+    expectI(tmin.query(0, 7), 1, "min: [0,7] still 1 (前段未动)")
+    tmin.update(3, 0)
+    expectI(tmin.query(0, 7), 0, "min: after set[3]=0")
+
+    // ---- 6) 解析器 ----
+    array<int> pa = parseIntArray("1 2,3\n4 -5  6")
+    expectI(pa.length, 6, "parse: mixed seps -> 6 nums")
+    if pa.length == 6 then
+        expectI(pa[0], 1, "parse: [0]=1")
+        expectI(pa[3], 4, "parse: [3]=4")
+        expectI(pa[4], 0 - 5, "parse: [4]=-5")
+        expectI(pa[5], 6, "parse: [5]=6")
+    end
+    array<int> pb = parseIntArray("  10,-20,30  ")
+    expectI(pb.length, 3, "parse: csv -> 3 nums")
+    if pb.length == 3 then
+        expectI(pb[1], 0 - 20, "parse: csv [1]=-20")
+    end
+    array<int> pc = parseIntArray("")
+    expectI(pc.length, 0, "parse: empty -> 0")
+
+    // ---- 7) 随机对拍（sum/max/min 各一轮，含点更新 + 区间更新 + 查询）----
+    randStress(OP_SUM, "sum random stress")
+    randStress(OP_MAX, "max random stress")
+    randStress(OP_MIN, "min random stress")
+
+    println("=== results: " + string(g_pass) + " passed, " + string(g_fail) + " failed ===")
+    if g_fail == 0 then
+        return 0
+    end
+    return 1
+end
+
+// 随机压力：构造 N 元数组，执行 ROUNDS 次 随机操作，
+// 每次 query 与朴素实现逐一对拍；点更新/区间更新同步落到朴素数组。
+func randStress(int op, string label) as int
+    int N = 400
+    int ROUNDS = 1500
+    array<int> data = array[]
+    int i = 0
+    while i < N do
+        data.push(randInt(0 - 50, 50))
+        i = i + 1
+    end
+    SegTree tree = SegTree(op)
+    segBuild(tree, data)
+
+    int checked = 0
+    int mism = 0
+    int r = 0
+    while r < ROUNDS do
+        int kind = randNext() % 3
+        if kind == 0 then
+            // query
+            int a = randInt(0, N - 1)
+            int b = randInt(0, N - 1)
+            int l = a
+            int rr = b
+            if b < a then
+                l = b
+                rr = a
+            end
+            int got = tree.query(l, rr)
+            int want = naiveQuery(data, op, l, rr)
+            checked = checked + 1
+            if got != want then
+                mism = mism + 1
+                if mism <= 3 then
+                    bad(label, "op=" + opName(op) + " query[" + string(l) + "," + string(rr) +
+                               "] got " + string(got) + " want " + string(want))
+                end
+            end
+        elseif kind == 1 then
+            // point set
+            int idx = randInt(0, N - 1)
+            int v = randInt(0 - 50, 50)
+            tree.update(idx, v)
+            data[idx] = v
+        else
+            // range add
+            int a = randInt(0, N - 1)
+            int b = randInt(0, N - 1)
+            int l = a
+            int rr = b
+            if b < a then
+                l = b
+                rr = a
+            end
+            int add = randInt(0 - 10, 10)
+            tree.updateRange(l, rr, add)
+            int k = l
+            while k <= rr do
+                data[k] = data[k] + add
+                k = k + 1
+            end
+        end
+        r = r + 1
+    end
+
+    if mism == 0 then
+        ok(label + " (" + string(checked) + " queries vs naive, 0 mismatch)")
+    else
+        bad(label, string(mism) + " mismatches out of " + string(checked) + " queries")
+    end
+    return mism
+end
+
+
+func printUsage()
+    println("segtree - segment tree with lazy propagation")
+    println("usage: segtree <command> [args]")
+    println("commands:")
+    println("  build <array_file> [sum|max|min]   build from file (nums split by space/comma/newline)")
+    println("  build <n1> <n2> ... [sum|max|min]  build from inline numbers")
+    println("  query <l> <r>                      range query on [l,r]")
+    println("  update <idx> <val>                 point assign")
+    println("  update-range <l> <r> <val>         range add (lazy, O(log n))")
+    println("  test                               built-in self-test (with random cross-check)")
+    println("  help                               show this help")
+    println("state: segtree.state.json next to the script/exe")
+end
+
+
+func main(...) as int
+    string command = ""
+    if arg.length >= 2 then
+        command = string.lower(string(arg[1]))
+    end
+
+    if command == "build" then
+        return cmdBuild()
+    end
+    if command == "query" then
+        return cmdQuery()
+    end
+    if command == "update" then
+        return cmdUpdate()
+    end
+    if command == "update-range" then
+        return cmdUpdateRange()
+    end
+    if command == "test" then
+        return cmdTest()
+    end
+    if command == "help" or command == "--help" or command == "-h" then
+        printUsage()
+        return 0
+    end
+
+    printUsage()
+    return 0
+end

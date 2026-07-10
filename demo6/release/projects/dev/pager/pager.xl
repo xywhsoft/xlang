@@ -1,0 +1,848 @@
+// pager - 内存页式管理模拟器
+//
+// 用法:
+//   pager run <algo> <access_trace.txt> [frames=4]
+//       用指定算法回放一条访问序列, 输出逐步回放 + 缺页/TLB 统计.
+//       algo: lru / fifo / clock / opt
+//   pager compare <trace> [frames=4]
+//       4 种算法同序列同帧数对比表 (faults / faultRate / TLB-hit / TLB-rate).
+//   pager test [frames=N]
+//       内置经典访问序列 (1 2 3 4 1 2 5 1 2 3 4 5), 依次展示 4 种算法.
+//   pager help
+//       显示帮助.
+//
+// trace 格式: 每行一个页号; 同一行也可空格分隔 (如 "1 2 3 4 1 2 5 1 2 3 4 5").
+//   非数字 token 自动跳过; 注释行可写成文本 (解析失败的 token 被忽略).
+//
+// 设计要点 (遵循 dev/README.md 已验证写法):
+//   - class PageTable 模拟二级页表 (页目录 + 页表): VPN = dirIdx (高位, tableSize=16)
+//     + tblIdx (低位). 仅在驻留集上维护 PTE (frame/dirty/referenced/lastUsed);
+//     dirOccupancy[d] 记录目录槽 d 下驻留页数, dirCount() = 有效页目录项数.
+//   - class TLB 固定槽位缓存最近翻译, 内部 LRU 替换; 命中/未命中独立计数.
+//   - 物理帧用 array<int> 存储 (frames[i] = 帧 i 中的页号, -1 = 空闲), 即"物理内存".
+//   - 模拟引擎是单个函数 simulate(trace, frames, algo, tlbCap) -> SimResult:
+//     PageTable/TLB 作为函数内局部实例, 直接调其方法 (局部上的方法调用不受
+//     xlang class 值语义影响; 值语义只影响赋值/传参, 不影响 local.method()).
+//     这与 dev/cpusched 的 cloneProcess(Process) -> ScheduleResult 同构, 已验证.
+//   - 置换算法 (LRU/Clock/OPT 选受害者逻辑内联于 simulate, 直接操作局部 pt;
+//      仅 OPT 的 nextUse 前瞻为独立纯函数, 避免 class 带数组形参, 见 BUG-C1):
+//       FIFO  按 load 顺序 (fifoOrder) 淘汰队首;
+//       LRU   淘汰 lastUsed 最小的驻留页 (每次访问 touch 刷新);
+//       Clock 二次机会: 手绕帧环形扫描, ref=1 清零跳过, ref=0 淘汰 (内联, 需写 ref 位);
+//       OPT   基准: 淘汰未来最远才使用 (或不再使用) 的驻留页 (nextUse 前瞻 trace).
+//   - 每次访问: TLB lookup -> (命中结束) -> 页表查 -> (命中回填 TLB) ->
+//     缺页 -> 找空闲帧或置换 -> 装入页表/帧/TLB. 每步记 TraceStep 用于回放.
+
+
+// ============================================================
+// 通用格式化
+// ============================================================
+func fmt2(float v) as string
+    return string.formatFloat(v, ".2")
+end
+
+// 百分比: part/total, total=0 时显示 0.00%.
+func pct(int part, int total) as string
+    if total == 0 then
+        return "0.00%"
+    end
+    float p = float(part) * 100.0 / float(total)
+    return fmt2(p) + "%"
+end
+
+
+// ============================================================
+// class PageTable: 二级页表 (页目录 + 页表) 模拟
+//   仅跟踪驻留 (已装入物理帧) 的页; 每个 PTE 含 frame/dirty/referenced/lastUsed.
+//   dirOccupancy[d] = 目录槽 d 内驻留页数; dirCount() = 有效页目录项数.
+//   方法只读写 self 字段, 故在局部实例上调用安全.
+// ============================================================
+class PageTable
+    int tableSize = 16
+    array<int> pages = array[]
+    array<int> frames = array[]
+    array<int> dirty = array[]
+    array<int> referenced = array[]
+    array<int> lastUsed = array[]
+    array<int> dirOccupancy = array[]
+
+    func reset()
+        self.pages.clear()
+        self.frames.clear()
+        self.dirty.clear()
+        self.referenced.clear()
+        self.lastUsed.clear()
+        self.dirOccupancy.clear()
+    end
+
+    // VPN -> 页目录槽号 (二级结构的高位索引).
+    func dirIndex(int vpn) as int
+        return vpn / self.tableSize
+    end
+
+    // VPN -> 页表内索引 (二级结构的低位索引).
+    func tblIndex(int vpn) as int
+        return vpn % self.tableSize
+    end
+
+    // 返回 vpn 在 pages[] 中的下标, 不存在返回 -1.
+    func find(int vpn) as int
+        int n = self.pages.length
+        int i = 0
+        while i < n do
+            if self.pages[i] == vpn then
+                return i
+            end
+            i += 1
+        end
+        return -1
+    end
+
+    // 返回 vpn 映射的物理帧号, 未映射返回 -1.
+    func frameOf(int vpn) as int
+        int idx = self.find(vpn)
+        if idx < 0 then
+            return -1
+        end
+        return self.frames[idx]
+    end
+
+    func ensureDir(int d)
+        while self.dirOccupancy.length <= d do
+            self.dirOccupancy.append(0)
+        end
+    end
+
+    // 把 vpn 装入 frame, 置 referenced=1 (刚访问), lastUsed=tick.
+    func install(int vpn, int frame, int tick)
+        self.pages.append(vpn)
+        self.frames.append(frame)
+        self.dirty.append(0)
+        self.referenced.append(1)
+        self.lastUsed.append(tick)
+        int d = self.dirIndex(vpn)
+        self.ensureDir(d)
+        self.dirOccupancy[d] = self.dirOccupancy[d] + 1
+    end
+
+    // 把 vpn 从页表移除 (被淘汰时调用), 同步页目录占用计数.
+    func evict(int vpn)
+        int idx = self.find(vpn)
+        if idx < 0 then
+            return
+        end
+        int d = self.dirIndex(vpn)
+        if d < self.dirOccupancy.length then
+            if self.dirOccupancy[d] > 0 then
+                self.dirOccupancy[d] = self.dirOccupancy[d] - 1
+            end
+        end
+        self.pages.remove(idx)
+        self.frames.remove(idx)
+        self.dirty.remove(idx)
+        self.referenced.remove(idx)
+        self.lastUsed.remove(idx)
+    end
+
+    // 命中访问: 置 referenced=1, 刷新 lastUsed.
+    func touch(int vpn, int tick)
+        int idx = self.find(vpn)
+        if idx >= 0 then
+            self.referenced[idx] = 1
+            self.lastUsed[idx] = tick
+        end
+    end
+
+    func setReferencedByPage(int vpn, int v)
+        int idx = self.find(vpn)
+        if idx >= 0 then
+            self.referenced[idx] = v
+        end
+    end
+
+    func referencedOf(int vpn) as int
+        int idx = self.find(vpn)
+        if idx < 0 then
+            return 0
+        end
+        return self.referenced[idx]
+    end
+
+    func lastUsedOf(int vpn) as int
+        int idx = self.find(vpn)
+        if idx < 0 then
+            return 0
+        end
+        return self.lastUsed[idx]
+    end
+
+    // 返回当前驻留页号集合的拷贝 (供置换算法遍历).
+    func residentPages() as array<int>
+        array<int> out = array[]
+        int n = self.pages.length
+        int i = 0
+        while i < n do
+            out.append(self.pages[i])
+            i += 1
+        end
+        return out
+    end
+
+    // 当前有效的页目录项数 (至少有一个驻留页的目录槽个数).
+    func dirCount() as int
+        int c = 0
+        int n = self.dirOccupancy.length
+        int i = 0
+        while i < n do
+            if self.dirOccupancy[i] > 0 then
+                c += 1
+            end
+            i += 1
+        end
+        return c
+    end
+
+    func residentCount() as int
+        return self.pages.length
+    end
+end
+
+
+// ============================================================
+// OPT 前瞻辅助 (纯模块函数, 不涉及 class)
+//   注意: 遵循 BUG-C1, 凡带 array 形参的算法辅助一律做模块函数, 不做 class 方法.
+// ============================================================
+
+// page 在 trace 中 fromIdx 之后首次出现的下标; 不再出现返回 trace.length (最远).
+func nextUse(int page, int fromIdx, array<int> trace) as int
+    int j = fromIdx + 1
+    int n = trace.length
+    while j < n do
+        if trace[j] == page then
+            return j
+        end
+        j += 1
+    end
+    return n
+end
+
+
+// ============================================================
+// class TLB: 翻译后备缓冲器, 固定容量, 内部 LRU 替换.
+//   pages[k]/frames[k]/stamp[k] 为第 k 槽的页/帧/最近使用时间戳.
+// ============================================================
+class TLB
+    int capacity = 4
+    array<int> pages = array[]
+    array<int> frames = array[]
+    array<int> stamp = array[]
+    int hits = 0
+    int misses = 0
+    int clock = 0
+
+    func reset(int capacity)
+        self.capacity = capacity
+        self.pages.clear()
+        self.frames.clear()
+        self.stamp.clear()
+        self.hits = 0
+        self.misses = 0
+        self.clock = 0
+    end
+
+    func find(int vpn) as int
+        int n = self.pages.length
+        int i = 0
+        while i < n do
+            if self.pages[i] == vpn then
+                return i
+            end
+            i += 1
+        end
+        return -1
+    end
+
+    // 查 vpn: 命中返回帧号并刷新时间戳/命中计数; 未命中返回 -1 并计 miss.
+    func lookup(int vpn) as int
+        self.clock += 1
+        int idx = self.find(vpn)
+        if idx >= 0 then
+            self.hits += 1
+            self.stamp[idx] = self.clock
+            return self.frames[idx]
+        end
+        self.misses += 1
+        return -1
+    end
+
+    // 插入/刷新 (vpn->frame); 满则淘汰 stamp 最小的槽.
+    func insert(int vpn, int frame)
+        int idx = self.find(vpn)
+        if idx >= 0 then
+            self.frames[idx] = frame
+            self.clock += 1
+            self.stamp[idx] = self.clock
+            return
+        end
+        if self.pages.length < self.capacity then
+            self.pages.append(vpn)
+            self.frames.append(frame)
+            self.clock += 1
+            self.stamp.append(self.clock)
+        else
+            int victim = 0
+            int i = 1
+            while i < self.pages.length do
+                if self.stamp[i] < self.stamp[victim] then
+                    victim = i
+                end
+                i += 1
+            end
+            self.pages[victim] = vpn
+            self.frames[victim] = frame
+            self.clock += 1
+            self.stamp[victim] = self.clock
+        end
+    end
+
+    // 页被淘汰出物理内存时, 作废其 TLB 项.
+    func remove(int vpn)
+        int idx = self.find(vpn)
+        if idx >= 0 then
+            self.pages.remove(idx)
+            self.frames.remove(idx)
+            self.stamp.remove(idx)
+        end
+    end
+end
+
+
+// ============================================================
+// class TraceStep: 一次访问的回放记录
+// ============================================================
+class TraceStep
+    int step = 0
+    int page = 0
+    int tlbHit = 0
+    int fault = 0
+    string framesText = ""
+end
+
+
+// ============================================================
+// class SimResult: 一次模拟的完整结果 (供渲染)
+// ============================================================
+class SimResult
+    string algo = "fifo"
+    int numFrames = 4
+    int tlbCap = 4
+    int accesses = 0
+    int pageFaults = 0
+    int tlbHits = 0
+    int dirCount = 0
+    int residentCount = 0
+    array<TraceStep> log = array[]
+end
+
+
+// ============================================================
+// 物理帧快照: [1,2,-,-] (- = 空闲帧)
+// ============================================================
+func snapshot(array<int> frames) as string
+    string s = "["
+    int n = frames.length
+    int i = 0
+    while i < n do
+        if i > 0 then
+            s = s + ","
+        end
+        if frames[i] < 0 then
+            s = s + "-"
+        else
+            s = s + string(frames[i])
+        end
+        i += 1
+    end
+    s = s + "]"
+    return s
+end
+
+
+// ============================================================
+// simulate: 模拟器引擎
+//   trace   访问序列; numFrames 物理帧数; algo 算法; tlbCap TLB 槽位数.
+//   PageTable/TLB 为函数内局部实例; frames/fifoOrder/clockHand 为局部状态.
+//   返回 SimResult (含逐步回放日志).
+// ============================================================
+func simulate(array<int> trace, int numFrames, string algo, int tlbCap) as SimResult
+    PageTable pt = PageTable()
+    pt.reset()
+    TLB tlb = TLB()
+    tlb.reset(tlbCap)
+
+    array<int> frames = array[]
+    int fi = 0
+    while fi < numFrames do
+        frames.append(-1)
+        fi += 1
+    end
+
+    array<int> fifoOrder = array[]
+    int clockHand = 0
+    int accesses = 0
+    int pageFaults = 0
+    int tlbHits = 0
+    int tick = 0
+
+    SimResult res = SimResult()
+    res.algo = algo
+    res.numFrames = numFrames
+    res.tlbCap = tlbCap
+
+    int n = trace.length
+    int idx = 0
+    while idx < n do
+        int vpn = trace[idx]
+        accesses += 1
+        tick += 1
+        int tlbHit = 0
+        int fault = 0
+
+        int fr = tlb.lookup(vpn)
+        if fr >= 0 then
+            tlbHits += 1
+            tlbHit = 1
+            pt.touch(vpn, tick)
+        else
+            int frame = pt.frameOf(vpn)
+            if frame >= 0 then
+                // 页表命中: 页已驻留, 回填 TLB, 不缺页.
+                pt.touch(vpn, tick)
+                tlb.insert(vpn, frame)
+            else
+                // 缺页: 找空闲帧, 否则按算法置换.
+                fault = 1
+                pageFaults += 1
+                int targetFrame = -1
+                int ff = 0
+                while ff < numFrames do
+                    if frames[ff] == -1 then
+                        targetFrame = ff
+                        ff = numFrames
+                    end
+                    ff += 1
+                end
+
+                if targetFrame < 0 then
+                    // 需置换: 选受害者页.
+                    int victimPage = -1
+                    if algo == "fifo" then
+                        victimPage = fifoOrder[0]
+                        fifoOrder.remove(0)
+                    elseif algo == "lru" then
+                        // LRU: 驻留页中 lastUsed 最小者.
+                        array<int> rp = pt.residentPages()
+                        victimPage = rp[0]
+                        int bestStamp = pt.lastUsedOf(victimPage)
+                        int li = 1
+                        while li < rp.length do
+                            int s = pt.lastUsedOf(rp[li])
+                            if s < bestStamp then
+                                bestStamp = s
+                                victimPage = rp[li]
+                            end
+                            li += 1
+                        end
+                    elseif algo == "clock" then
+                        // 二次机会: 手绕帧环形扫描, ref=1 清零前进, ref=0 淘汰.
+                        int guard = 0
+                        while guard < numFrames + 1 do
+                            guard += 1
+                            int pg = frames[clockHand]
+                            if pt.referencedOf(pg) == 1 then
+                                pt.setReferencedByPage(pg, 0)
+                                clockHand = (clockHand + 1) % numFrames
+                            else
+                                victimPage = pg
+                                clockHand = (clockHand + 1) % numFrames
+                                guard = numFrames + 1
+                            end
+                        end
+                    else
+                        // OPT: 驻留页中未来首次使用最远者.
+                        array<int> rp = pt.residentPages()
+                        victimPage = rp[0]
+                        int bestNext = nextUse(victimPage, idx, trace)
+                        int oi = 1
+                        while oi < rp.length do
+                            int nxt = nextUse(rp[oi], idx, trace)
+                            if nxt > bestNext then
+                                bestNext = nxt
+                                victimPage = rp[oi]
+                            end
+                            oi += 1
+                        end
+                    end
+                    targetFrame = pt.frameOf(victimPage)
+                    pt.evict(victimPage)
+                    tlb.remove(victimPage)
+                    frames[targetFrame] = -1
+                end
+
+                pt.install(vpn, targetFrame, tick)
+                frames[targetFrame] = vpn
+                tlb.insert(vpn, targetFrame)
+                if algo == "fifo" then
+                    fifoOrder.append(vpn)
+                end
+            end
+        end
+
+        TraceStep st = TraceStep()
+        st.step = accesses
+        st.page = vpn
+        st.tlbHit = tlbHit
+        st.fault = fault
+        st.framesText = snapshot(frames)
+        res.log.append(st)
+
+        idx += 1
+    end
+
+    res.accesses = accesses
+    res.pageFaults = pageFaults
+    res.tlbHits = tlbHits
+    res.dirCount = pt.dirCount()
+    res.residentCount = pt.residentCount()
+    return res
+end
+
+
+// ============================================================
+// trace 解析与加载
+// ============================================================
+
+// 把文本解析为页号数组: tab->空格, 按行 + 空格分词, 非数字 token 跳过.
+func parseTrace(string content) as array<int>
+    array<int> result = array[]
+    string norm = string.replace(content, "\t", " ")
+    array lines = string.splitLines(norm)
+    int li = 0
+    while li < lines.length do
+        string s = string.trim(string(lines[li]))
+        li += 1
+        if s == "" then
+            continue
+        end
+        array toks = string.split(s, " ")
+        int ti = 0
+        while ti < toks.length do
+            string t = string.trim(string(toks[ti]))
+            ti += 1
+            if t == "" then
+                continue
+            end
+            bool ok = true
+            int v = 0
+            try
+                v = int(t)
+            catch e
+                ok = false
+            end
+            if ok then
+                result.push(v)
+            end
+        end
+    end
+    return result
+end
+
+// 读 trace 文件; 不存在/读失败返回空数组.
+func loadTrace(string p) as array<int>
+    if not file.exists(p) then
+        println("pager: file not found: " + p)
+        array<int> e1 = array[]
+        return e1
+    end
+    string text = ""
+    bool ok = true
+    try
+        text = file.readText(p)
+    catch e
+        ok = false
+    end
+    if not ok then
+        println("pager: failed to read: " + p)
+        array<int> e2 = array[]
+        return e2
+    end
+    return parseTrace(text)
+end
+
+
+// ============================================================
+// 算法名/校验
+// ============================================================
+func isAlgo(string a) as bool
+    return a == "fifo" or a == "lru" or a == "clock" or a == "opt"
+end
+
+func algoName(string a) as string
+    if a == "fifo" then
+        return "FIFO"
+    end
+    if a == "lru" then
+        return "LRU"
+    end
+    if a == "clock" then
+        return "Clock"
+    end
+    return "OPT"
+end
+
+func algoFull(string a) as string
+    if a == "fifo" then
+        return "FIFO (First-In First-Out)"
+    end
+    if a == "lru" then
+        return "LRU (Least Recently Used)"
+    end
+    if a == "clock" then
+        return "Clock (Second-Chance)"
+    end
+    return "OPT (Optimal, Belady benchmark)"
+end
+
+
+// ============================================================
+// 渲染: 回放表 / 单算法摘要 / 对比表
+// ============================================================
+
+// 逐访问回放表.
+func renderReplay(SimResult res)
+    println(string.padRight("Step", 7) + string.padRight("Page", 7) + string.padRight("TLB", 7) + string.padRight("Fault", 8) + "Frames")
+    println(string.repeat("-", 42))
+    int i = 0
+    while i < res.log.length do
+        TraceStep st = res.log[i]
+        string tlbStr = "miss"
+        if st.tlbHit == 1 then
+            tlbStr = "hit"
+        end
+        string faultStr = ""
+        if st.fault == 1 then
+            faultStr = "FAULT"
+        end
+        println(string.padRight(string(st.step), 7) + string.padRight(string(st.page), 7) + string.padRight(tlbStr, 7) + string.padRight(faultStr, 8) + st.framesText)
+        i += 1
+    end
+end
+
+// 单算法统计摘要 (含页目录/页表信息).
+func renderSummary(SimResult res)
+    println("Algorithm   : " + algoFull(res.algo))
+    println("Frames      : " + string(res.numFrames) + "  (TLB slots: " + string(res.tlbCap) + ")")
+    println("PageDir     : " + string(res.dirCount) + " active directory entr(ies), tableSize=16")
+    println("Resident    : " + string(res.residentCount) + " page-table entr(ies)")
+    println("Accesses    : " + string(res.accesses))
+    println("PageFaults  : " + string(res.pageFaults) + "  (rate " + pct(res.pageFaults, res.accesses) + ")")
+    println("TLB Hits    : " + string(res.tlbHits) + "  (rate " + pct(res.tlbHits, res.accesses) + ")")
+end
+
+
+// ============================================================
+// 命令实现
+// ============================================================
+
+// 内置经典序列.
+func makeTestTrace() as array<int>
+    array<int> t = array[]
+    t.append(1)
+    t.append(2)
+    t.append(3)
+    t.append(4)
+    t.append(1)
+    t.append(2)
+    t.append(5)
+    t.append(1)
+    t.append(2)
+    t.append(3)
+    t.append(4)
+    t.append(5)
+    return t
+end
+
+// pager run <algo> <trace> [frames=N]: 单算法回放 + 摘要.
+func runOne(string algo, array<int> trace, int frames)
+    SimResult res = simulate(trace, frames, algo, 4)
+    println(string.repeat("=", 14) + " " + algoName(algo) + " (" + string(frames) + " frames, " + string(trace.length) + " accesses) " + string.repeat("=", 14))
+    println("")
+    renderReplay(res)
+    println("")
+    renderSummary(res)
+end
+
+// pager compare <trace> [frames=N]: 4 种算法对比表.
+func runCompare(array<int> trace, int frames)
+    array<string> algos = array["fifo", "lru", "clock", "opt"]
+    array<int> fFaults = array[]
+    array<int> fTlbHits = array[]
+    int k = 0
+    while k < 4 do
+        SimResult res = simulate(trace, frames, algos[k], 4)
+        fFaults.append(res.pageFaults)
+        fTlbHits.append(res.tlbHits)
+        k += 1
+    end
+    println(string.repeat("=", 16) + " Comparison (" + string(trace.length) + " accesses, " + string(frames) + " frames) " + string.repeat("=", 16))
+    println(string.padRight("Algorithm", 12) + string.padLeft("Faults", 9) + string.padLeft("FaultRate", 12) + string.padLeft("TLB-Hit", 10) + string.padLeft("TLB-Rate", 10))
+    println(string.repeat("-", 53))
+    k = 0
+    while k < 4 do
+        println(string.padRight(algoName(algos[k]), 12) + string.padLeft(string(fFaults[k]), 9) + string.padLeft(pct(fFaults[k], trace.length), 12) + string.padLeft(string(fTlbHits[k]), 10) + string.padLeft(pct(fTlbHits[k], trace.length), 10))
+        k += 1
+    end
+    println(string.repeat("-", 53))
+    int best = 0
+    k = 1
+    while k < 4 do
+        if fFaults[k] < fFaults[best] then
+            best = k
+        end
+        k += 1
+    end
+    println("Fewest faults: " + algoName(algos[best]) + "  (" + string(fFaults[best]) + " faults, " + pct(fFaults[best], trace.length) + ")")
+end
+
+// pager test: 内置经典序列, 4 种算法逐个展示 + 对比表.
+func runTest(int frames)
+    array<int> trace = makeTestTrace()
+    println("Pager Simulator - built-in test trace")
+    println("Trace : 1 2 3 4 1 2 5 1 2 3 4 5")
+    println("Frames: " + string(frames))
+    println("")
+    runOne("fifo", trace, frames)
+    println("")
+    runOne("lru", trace, frames)
+    println("")
+    runOne("clock", trace, frames)
+    println("")
+    runOne("opt", trace, frames)
+    println("")
+    runCompare(trace, frames)
+end
+
+
+// ============================================================
+// CLI 入口
+// ============================================================
+
+// 在 arg[start..] 中找 frames=N, 返回 N; 没有返回 defaultFrames; 非法返回 -1.
+func parseFrames(array arg, int start, int defaultFrames) as int
+    int i = start
+    while i < arg.length do
+        string a = string(arg[i])
+        if string.startsWith(a, "frames=") then
+            string rest = string.mid(a, 7)
+            int v = 0
+            bool ok = true
+            try
+                v = int(rest)
+            catch e
+                ok = false
+            end
+            if not ok or v < 1 then
+                println("pager: frames must be a positive integer: " + a)
+                return -1
+            end
+            return v
+        end
+        i += 1
+    end
+    return defaultFrames
+end
+
+func printUsage()
+    println("pager - 内存页式管理模拟器")
+    println("用法:")
+    println("  pager run <algo> <access_trace.txt> [frames=4]")
+    println("      algo: lru / fifo / clock / opt  逐访问回放 + 缺页/TLB 统计")
+    println("  pager compare <trace> [frames=4]")
+    println("      4 种算法同序列对比表")
+    println("  pager test [frames=N]")
+    println("      内置经典序列演示 (1 2 3 4 1 2 5 1 2 3 4 5)")
+    println("  pager help")
+    println("      显示本帮助")
+    println("trace 格式: 每行一个页号, 或同行空格分隔 (如 \"1 2 3 4 1 2 5 1 2 3 4 5\")")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+    string cmd = string(arg[1])
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        int fr = parseFrames(arg, 2, 4)
+        if fr < 0 then
+            return 1
+        end
+        runTest(fr)
+        return 0
+    end
+
+    if cmd == "run" then
+        if arg.length < 4 then
+            println("pager run: usage: pager run <algo> <trace> [frames=N]")
+            println("algo: lru / fifo / clock / opt")
+            return 1
+        end
+        string algo = string.lower(string(arg[2]))
+        string tracePath = string(arg[3])
+        if not isAlgo(algo) then
+            println("pager: unknown algorithm: " + algo)
+            println("available: fifo / lru / clock / opt")
+            return 1
+        end
+        int fr = parseFrames(arg, 4, 4)
+        if fr < 0 then
+            return 1
+        end
+        array<int> trace = loadTrace(tracePath)
+        if trace.length == 0 then
+            println("pager: no pages parsed from: " + tracePath)
+            return 1
+        end
+        runOne(algo, trace, fr)
+        return 0
+    end
+
+    if cmd == "compare" then
+        if arg.length < 3 then
+            println("pager compare: usage: pager compare <trace> [frames=N]")
+            return 1
+        end
+        string tracePath = string(arg[2])
+        int fr = parseFrames(arg, 3, 4)
+        if fr < 0 then
+            return 1
+        end
+        array<int> trace = loadTrace(tracePath)
+        if trace.length == 0 then
+            println("pager: no pages parsed from: " + tracePath)
+            return 1
+        end
+        runCompare(trace, fr)
+        return 0
+    end
+
+    println("pager: unknown command: " + cmd)
+    println("")
+    printUsage()
+    return 1
+end

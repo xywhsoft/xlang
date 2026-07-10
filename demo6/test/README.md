@@ -72,6 +72,7 @@ test\suites\02_language_frontend.bat
 - `overload`：可变参数重载用例。
 - `overloads`：重载基础用例。
 - `parse`：解析器负例和边界诊断用例。
+- `perf`：长进程、递归分配和大 JSON/AST 生命周期性能回归。
 - `sem`：语义诊断负例。
 - `stdlib`：标准库函数与错误路径用例。
 - `type`：type 值和类型别名用例。

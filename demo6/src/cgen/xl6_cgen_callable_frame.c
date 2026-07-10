@@ -38,7 +38,10 @@ static void xl6CgenEmitVarInvokeValueExpr(XL6_CgenContext* ctx, const XL6_AstNod
     if ( xl6CTextEquals(typeName, "var") || xl6CgenIsArrayXValueType(concreteType) ||
          xl6CgenIsListXValueType(concreteType) || xl6CgenIsSetXValueType(concreteType) ||
          xl6CgenIsDictXValueType(concreteType) ) {
+        /* 动态调用帧只借用 argv；目标函数按统一形参 ABI 接收 owned 引用。 */
+        xl6OutputPuts("xl6_xrt_retain(", ctx->out);
         xl6OutputPuts(valueExpr != NULL ? valueExpr : "0", ctx->out);
+        xl6OutputPutc(')', ctx->out);
     } else if ( xl6CgenIsIntegerTypeName(typeName) ) {
         xl6OutputPrintf(ctx->out, "((%s)xvoGetInt(%s))", xl6CgenTypeName(ctx, concreteType), valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CgenIsFloatTypeName(typeName) ) {

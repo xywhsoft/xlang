@@ -423,7 +423,20 @@ export func json_int_field(string raw, string key) as int
 	end
 	start = start + string.len(pattern)
 	string rest = x_volc_phone_substr(raw, start, string.len(raw) - start)
-	return int(rest)
+	int comma = string.indexOf(rest, ",")
+	int brace = string.indexOf(rest, "}")
+	int end_pos = comma
+	if end_pos < 0 or (brace >= 0 and brace < end_pos) then
+		end_pos = brace
+	end
+	if end_pos < 0 then
+		end_pos = string.len(rest)
+	end
+	string token = string.trim(x_volc_phone_substr(rest, 0, end_pos))
+	if token == "" then
+		return 0
+	end
+	return int(token)
 end
 
 export func json_section(string raw, string key) as string

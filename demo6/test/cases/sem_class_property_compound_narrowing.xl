@@ -1,0 +1,14 @@
+class Counter
+    int value = 1
+
+    get count() as int
+        return self.value
+    end
+
+    let count(int value)
+        self.value = value
+    end
+end
+
+Counter counter = Counter()
+counter.count += 1.5

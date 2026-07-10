@@ -138,7 +138,9 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6AstFree(initType);
             }
         }
-        xl6CgenClassDefaultInitFields(ctx, classNode, cName);
+        if ( !copyInit ) {
+            xl6CgenClassDefaultInitFields(ctx, classNode, cName);
+        }
         ctx->currentGenericParams = prevParams;
         ctx->currentGenericArgs = prevArgs;
         if ( copyInit ) {
@@ -151,19 +153,29 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 snprintf(memberTempName, sizeof(memberTempName), "__xl6_member_fn_stmt_%d", ctx->tempId++);
                 xl6CgenEmitMemberFunctionStatementTemp(ctx, initExpr, memberTempName);
             }
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = ", cName);
             if ( upcastInit ) {
-                xl6CgenClassUpcastExpr(ctx, classTypeNode, initExpr);
+                if ( !xl6CgenClassUpcastStmt(ctx, classTypeNode, initExpr, cName) ) {
+                    xl6CgenError(ctx, initExpr, "class initialization upcast lowering failed");
+                }
             } else if ( memberFunctionType != NULL ) {
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(ctx->out, "%s = ", cName);
                 xl6CgenMemberFunctionStatementInvokeExpr(ctx, initExpr, memberFunctionType, memberTempName);
+                xl6OutputPuts(";\n", ctx->out);
+                xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, isGenericClass ? classTypeNode : classNode, cName, initExpr);
             } else {
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(ctx->out, "%s = ", cName);
                 xl6CgenExpr(ctx, initExpr);
+                xl6OutputPuts(";\n", ctx->out);
+                xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, isGenericClass ? classTypeNode : classNode, cName, initExpr);
             }
-            xl6OutputPuts(";\n", ctx->out);
-            xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, isGenericClass ? classTypeNode : classNode, cName, initExpr);
             xl6AstFree(memberFunctionType);
         } else if ( initExpr != NULL && ctorClass != NULL && xl6CTextEquals(ctorClass->text, classNode->text) ) {
+            XL6_CgenClassExprTempScope ctorArgScope;
+            int hasCtorArgScope;
+
+            hasCtorArgScope = xl6CgenClassExprTempScopeBegin(ctx, initExpr, &ctorArgScope);
             if ( createNode != NULL ) {
                 const XL6_AstNode* createParams;
 
@@ -187,6 +199,9 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
             } else if ( args != NULL && args->childCount > 0 &&
                         !xl6CgenEmitNativeClassHandleBinding(ctx, classNode, cName, args) ) {
                 xl6CgenError(ctx, initExpr, "class constructor has arguments but no matching create method");
+            }
+            if ( hasCtorArgScope ) {
+                xl6CgenClassExprTempScopeEnd(ctx, &ctorArgScope);
             }
         } else if ( initExpr == NULL ) {
             if ( createNode != NULL ) {
@@ -303,6 +318,7 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
     if ( xl6CgenDeclShouldUseTypedContainer(ctx, typeNode, initExpr, declaredAuto) ) {
         int initByCopy = xl6CgenTypedContainerCanCopyFromExpr(ctx, typeNode, initExpr);
         int initByMove = xl6CgenTypedContainerCanMoveFromExpr(ctx, typeNode, initExpr);
+        int initByImport = xl6CgenTypedContainerCanImportDynamicExpr(ctx, typeNode, initExpr);
         XL6_AstNode* memberFunctionType = NULL;
         char memberTempName[64];
 
@@ -336,14 +352,19 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
             } else {
                 xl6CgenExpr(ctx, initExpr);
             }
+        } else if ( initByImport ) {
+            xl6CgenTypedContainerImportDynamicExpr(ctx, typeNode, initExpr);
         } else {
             xl6CgenTypedContainerCreateExpr(ctx, typeNode);
         }
         xl6OutputPuts(";\n", ctx->out);
         xl6AstFree(memberFunctionType);
+        if ( initByImport ) {
+            xl6CgenTypedContainerImportCheckStmt(ctx, cName, initExpr);
+        }
         xl6CgenAddVarTypeWithFlags(ctx, node->text, typeNode, XL6_CGEN_VAR_TYPED_CONTAINER);
         xl6CgenAddTypedContainerCleanup(ctx, node->text, typeNode);
-        if ( !initByCopy && !initByMove ) {
+        if ( !initByCopy && !initByMove && !initByImport ) {
             XL6_CgenTaskSpawnArgTempScope taskScope;
             int hasTaskScope;
 
@@ -381,6 +402,20 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenDefaultXValueForTarget(ctx, typeNode);
         }
         xl6OutputPuts(";\n", ctx->out);
+        return;
+    }
+    if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+        xl6CgenAddVarType(ctx, node->text, typeNode);
+        xl6CgenAddStringCleanup(ctx, node->text, typeNode);
+        xl6OutputPrintf(ctx->out, "const char* %s = xrtCopyStr(", cName);
+        if ( initExpr != NULL ) {
+            xl6CgenExpr(ctx, initExpr);
+        } else {
+            xl6OutputPuts("\"\"", ctx->out);
+        }
+        xl6OutputPuts(", 0u);\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", cName);
         return;
     }
     xl6CgenAddVarType(ctx, node->text, typeNode);

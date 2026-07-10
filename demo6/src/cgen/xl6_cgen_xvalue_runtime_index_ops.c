@@ -62,7 +62,7 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static xvalue xl6_xrt_array_index_retain_release(xvalue values, long long index)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xvalue result = xl6_xrt_retain(xvoArrayGetValue(values, (unsigned int)index));\n", out);
+    xl6OutputPuts("    xvalue result = xl6_xrt_retain(xvoIndexGetI64(values, index));\n", out);
     xl6OutputPuts("    if ( values != 0 ) {\n", out);
     xl6OutputPuts("        xvoUnref(values);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -275,6 +275,34 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("    if ( op == 1 ) { return cmp <= 0; }\n", out);
     xl6OutputPuts("    if ( op == 2 ) { return cmp > 0; }\n", out);
     xl6OutputPuts("    return cmp >= 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    /*
+        表达式生成器传入的是拥有型 xvalue。比较 helper 在同一处消费参数，
+        避免声明、赋值、实参和返回值各自维护一套释放规则。
+    */
+    xl6OutputPuts("static int xl6_xrt_basic_equal_release(xvalue left, xvalue right)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    int result = xl6_xrt_basic_equal(left, right);\n", out);
+    xl6OutputPuts("    if ( left != 0 ) { xvoUnref(left); }\n", out);
+    xl6OutputPuts("    if ( right != 0 ) { xvoUnref(right); }\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static int xl6_xrt_basic_approx_release(xvalue left, xvalue right)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    int result = xl6_xrt_basic_approx(left, right);\n", out);
+    xl6OutputPuts("    if ( left != 0 ) { xvoUnref(left); }\n", out);
+    xl6OutputPuts("    if ( right != 0 ) { xvoUnref(right); }\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static int xl6_xrt_basic_order_release(xvalue left, xvalue right, int op)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    int result = xl6_xrt_basic_order(left, right, op);\n", out);
+    xl6OutputPuts("    if ( left != 0 ) { xvoUnref(left); }\n", out);
+    xl6OutputPuts("    if ( right != 0 ) { xvoUnref(right); }\n", out);
+    xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static xvalue xl6_xrt_value_text_concat(xvalue left, xvalue right)\n", out);

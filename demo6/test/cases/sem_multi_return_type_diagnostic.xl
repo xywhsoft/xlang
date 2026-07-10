@@ -1,0 +1,14 @@
+class Ray
+end
+
+class Color
+end
+
+func scatter() as (bool, Ray, Color)
+    return true, Ray(), Color()
+end
+
+bool scattered
+Color attenuation
+Ray scatteredRay
+scattered, attenuation, scatteredRay = scatter()
