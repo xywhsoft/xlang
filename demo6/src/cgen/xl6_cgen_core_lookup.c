@@ -120,7 +120,9 @@ static const XL6_AstNode* xl6CgenFieldDefaultExpr(const XL6_AstNode* field)
     }
 
     /*
-        瀛楁 child[0] 鍥哄畾涓虹被鍨嬨€?        浠?child[1] 寮€濮嬶紝鍙兘鏄粯璁ゅ€硷紝涔熷彲鑳芥槸瀛楁娉ㄨВ銆?    */
+        字段 child[0] 固定为类型。
+        从 child[1] 开始，可能是默认值，也可能是字段注解。
+    */
     for ( i = 1; i < field->childCount; ++i ) {
         const XL6_AstNode* child = field->children[i];
         if ( child != NULL && child->kind != XL6_AST_FIELD_ATTR ) {
@@ -294,7 +296,8 @@ static const XL6_AstNode* xl6CgenCallableParams(const XL6_AstNode* node)
     }
 
     /*
-        涓嶅悓澹版槑鑺傜偣鐨勫弬鏁拌〃浣嶇疆涓嶅悓锛岃繖閲岀粺涓€鎴愨€滃彲璋冪敤鍙傛暟琛ㄢ€濄€?        鏅€?func / custom extern func: child[1]
+        不同声明节点的参数表位置不同，这里统一取得可调用参数表。
+        普通 func / native-backed extern func: child[1]
         class create: child[0]
         custom extern create/destroy: child[1]
     */
@@ -374,7 +377,9 @@ static int xl6CgenClassIsPureNativeHandle(const XL6_AstNode* classNode)
         }
 
         /*
-            鍙湁绾彞鏌勭被浣跨敤 handle type-desc銆?            涓€鏃?class 鑷繁鎼哄甫棰濆 xlang 瀛楁锛屽氨蹇呴』淇濈暀鏅€?record 璇箟銆?        */
+            只有纯句柄类使用 handle type-desc。
+            class 一旦携带额外 xlang 字段，就必须保留普通 record 语义。
+        */
         return 0;
     }
     return hasHandle;

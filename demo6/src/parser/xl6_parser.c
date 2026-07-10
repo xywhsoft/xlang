@@ -3977,7 +3977,7 @@ static YYACTIONTYPE yy_reduce(
       case 18: /* item ::= TOK_ERROR */
 #line 644 "xl6_parser.y"
 {
-    xl6PDiag(ctx, &yymsp[0].minor.yy0, "褰撳墠璇硶浣嶇疆涓嶆敮鎸佽 token");
+    xl6PDiag(ctx, &yymsp[0].minor.yy0, "当前语法位置不支持该 token");
     yylhsminor.yy46 = xl6AstNew(XL6_AST_LIST, NULL);
 }
 #line 3983 "xl6_parser.c"

@@ -1084,7 +1084,9 @@ static int xl6CgenAwaitExprReturnsOwnedTemporaryForType(
     }
 
     /*
-        鏉′欢 await 浼氬湪鍒嗘敮灞傛妸 borrowed future 澶嶅埗鎴愪复鏃跺紩鐢ㄣ€?        class 缁撴灉闇€瑕侀澶?retain 鎴愬憳鍑芥暟瀛楁锛屼笉鑳藉彧闈犺繖涓?owned 鏍囪銆?    */
+        条件 await 会在分支层把 borrowed future 复制成临时引用。
+        class 结果还需要 retain 成员函数字段，不能只依赖 owned 标记。
+    */
     return !xl6CgenIsClassType(ctx, resultType);
 }
 

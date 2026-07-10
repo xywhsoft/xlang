@@ -22,7 +22,7 @@ static void xl6CgenForStringIterable(XL6_CgenContext* ctx, const XL6_AstNode* no
     targets = node->children[0];
     iterable = node->children[1];
     if ( targets == NULL || targets->childCount == 0 || targets->childCount > 2 ) {
-        xl6CgenError(ctx, targets, "for string 鍙敮鎸佷竴涓垨涓や釜杩唬鍙橀噺");
+        xl6CgenError(ctx, targets, "for string 只支持一个或两个迭代变量");
         return;
     }
 
