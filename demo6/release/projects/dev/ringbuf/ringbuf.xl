@@ -1,4 +1,4 @@
-// ringbuf - 环形缓冲区 + 并发生产者/消费者队列
+﻿// ringbuf - 环形缓冲区 + 并发生产者/消费者队列
 //
 // 用法:
 //   ringbuf                  显示帮助
@@ -7,7 +7,7 @@
 //   ringbuf help             显示本帮助
 //
 // 覆盖:
-//   [1] RingBuffer<T> 定长环形缓冲区
+//   [1] RingBuffer 定长环形缓冲区
 //         - push / pop / peek            (FIFO)
 //         - isFull / isEmpty / count / capacity
 //         - 覆盖模式 (满时覆盖最旧) vs 拒绝模式 (满时拒绝)
@@ -21,7 +21,7 @@
 //   - mutex/cond 是 native-backed / 不可复制资源，按 prodcon / syncdemo /
 //     ratelimit 的既定 idiom 放在模块级全局，而非 class 字段 (无任何工具把
 //     sync 原语作为 class 字段并经 self.* 调用成功过)。并发队列因此以
-//     "模块级 RingBuffer<int> + mutex + 两个 cond + 自由函数" 的形式封装。
+//     "模块级 RingBuffer + mutex + 两个 cond + 自由函数" 的形式封装。
 //   - thread 不可复制，不可放入 array<thread>/list<thread>；worker 以命名
 //     局部变量持有，或 fire-and-forget 后用全局计数 + mutex 轮询 join。
 //   - array<T> 按引用传递 (gstack sortArray 已验证)，故 drainTo(array<T>)
@@ -33,24 +33,24 @@
 
 
 // ====================================================================
-// 1. RingBuffer<T> 定长环形缓冲区
+// 1. RingBuffer 定长环形缓冲区
 // ====================================================================
 
-class RingBuffer<T>
-    array<T> buf = array<T>[]
+class RingBuffer
+    var buf = array[]
     int head = 0       // 最旧元素下标 (下一个 pop 读取位)
     int tail = 0       // 下一个 push 写入位
     int _count = 0     // 当前元素数
     int _cap = 0       // 容量
     bool overwrite = false
-    T zero             // 空槽占位零值 (仅用于空时 pop/peek 的占位返回)
+    var zero             // 空槽占位零值 (仅用于空时 pop/peek 的占位返回)
 
-    create(int capacity, bool overwrite, T zero)
+    create(int capacity, bool overwrite, var zero)
         self.reset(capacity, overwrite, zero)
     end
 
     // 重新配置 (容量/模式/零值)，清空内容。用于复用全局实例。
-    func reset(int capacity, bool overwrite, T zero)
+    func reset(int capacity, bool overwrite, var zero)
         self._cap = capacity
         self.overwrite = overwrite
         self.zero = zero
@@ -82,7 +82,7 @@ class RingBuffer<T>
     end
 
     // 入队。拒绝模式满时返回 false；覆盖模式满时覆盖最旧并始终返回 true。
-    func push(T item) as bool
+    func push(var item) as bool
         if self._count == self._cap then
             if not self.overwrite then
                 return false
@@ -108,11 +108,11 @@ class RingBuffer<T>
     end
 
     // 出队。空时返回 (false, zero)；否则返回 (true, item) 并移除最旧。
-    func pop() as (bool, T)
+    func pop() as (bool, var)
         if self._count == 0 then
             return false, self.zero
         end
-        T v = self.buf[self.head]
+        var v = self.buf[self.head]
         self.head = self.head + 1
         if self.head == self._cap then
             self.head = 0
@@ -122,7 +122,7 @@ class RingBuffer<T>
     end
 
     // 窥探最旧元素但不移除。空时返回 (false, zero)。
-    func peek() as (bool, T)
+    func peek() as (bool, var)
         if self._count == 0 then
             return false, self.zero
         end
@@ -132,7 +132,7 @@ class RingBuffer<T>
     // 批量入队。返回成功入队数。
     //   拒绝模式: 遇满即停。
     //   覆盖模式: 全部入队 (可能覆盖旧元素)。
-    func pushBatch(array<T> items) as int
+    func pushBatch(var items) as int
         int pushed = 0
         int i = 0
         while i < items.length do
@@ -147,8 +147,8 @@ class RingBuffer<T>
     end
 
     // 批量出队至多 n 个，返回新数组 (FIFO 顺序)。
-    func popBatch(int n) as array<T>
-        array<T> out = array<T>[]
+    func popBatch(int n) as var
+        var out = array[]
         int want = n
         if want > self._count then
             want = self._count
@@ -159,7 +159,7 @@ class RingBuffer<T>
         int i = 0
         while i < want do
             bool ok = false
-            T v = self.zero
+            var v = self.zero
             ok, v = self.pop()
             if ok then
                 out.append(v)
@@ -170,11 +170,11 @@ class RingBuffer<T>
     end
 
     // 排空所有元素追加到 out (引用语义，修改调用方数组)，返回排空数。
-    func drainTo(array<T> out) as int
+    func drainTo(var out) as int
         int drained = 0
         while self._count > 0 do
             bool ok = false
-            T v = self.zero
+            var v = self.zero
             ok, v = self.pop()
             if ok then
                 out.append(v)
@@ -209,8 +209,8 @@ end
 // ====================================================================
 
 func testBasicFifo() as int
-    println("[1] RingBuffer<int> 基本 FIFO + 状态查询")
-    RingBuffer<int> rb = RingBuffer::<int>(4, false, 0)
+    println("[1] RingBuffer 基本 FIFO + 状态查询")
+    RingBuffer rb = RingBuffer(4, false, 0)
     check(rb.isEmpty(), "新建 isEmpty=true")
     check(not rb.isFull(), "新建 isFull=false")
     check(rb.count() == 0, "count()=0")
@@ -224,26 +224,26 @@ func testBasicFifo() as int
     check(not rb.isEmpty(), "isEmpty=false")
 
     bool pok2 = false
-    int pv = 0
+    var pv = 0
     pok2, pv = rb.peek()
-    check(pok2 and pv == 10, "peek()=10 (最旧，未移除)")
+    check(pok2 and int(pv) == 10, "peek()=10 (最旧，未移除)")
     check(rb.count() == 3, "peek 后 count 仍=3 (未消费)")
 
     bool ok1 = false
-    int v1 = 0
+    var v1 = 0
     ok1, v1 = rb.pop()
-    check(ok1 and v1 == 10, "pop()=10 (FIFO)")
+    check(ok1 and int(v1) == 10, "pop()=10 (FIFO)")
     bool ok2 = false
-    int v2 = 0
+    var v2 = 0
     ok2, v2 = rb.pop()
-    check(ok2 and v2 == 20, "pop()=20")
+    check(ok2 and int(v2) == 20, "pop()=20")
     check(rb.count() == 1, "count=1")
     return 0
 end
 
 func testRejectMode() as int
     println("[2] 拒绝模式: 满时 push 返回 false")
-    RingBuffer<int> rb = RingBuffer::<int>(3, false, 0)
+    RingBuffer rb = RingBuffer(3, false, 0)
     check(rb.push(1), "push(1)")
     check(rb.push(2), "push(2)")
     check(rb.push(3), "push(3)")
@@ -253,21 +253,21 @@ func testRejectMode() as int
     check(rb.count() == 3, "拒绝后 count 仍=3 (未变)")
 
     // 空时 pop/peek 返回 (false, zero)
-    RingBuffer<int> empty = RingBuffer::<int>(2, false, 0)
+    RingBuffer empty = RingBuffer(2, false, 0)
     bool ok = true
-    int v = 9
+    var v = 9
     ok, v = empty.pop()
-    check(not ok and v == 0, "空 pop 返回 (false, 0)")
+    check(not ok and int(v) == 0, "空 pop 返回 (false, 0)")
     bool ok2 = true
-    int v2 = 9
+    var v2 = 9
     ok2, v2 = empty.peek()
-    check(not ok2 and v2 == 0, "空 peek 返回 (false, 0)")
+    check(not ok2 and int(v2) == 0, "空 peek 返回 (false, 0)")
     return 0
 end
 
 func testOverwriteMode() as int
     println("[3] 覆盖模式: 满时覆盖最旧")
-    RingBuffer<int> rb = RingBuffer::<int>(3, true, 0)
+    RingBuffer rb = RingBuffer(3, true, 0)
     check(rb.push(1), "push(1)")
     check(rb.push(2), "push(2)")
     check(rb.push(3), "push(3)")
@@ -278,20 +278,20 @@ func testOverwriteMode() as int
 
     // 现存应为 2,3,4 (FIFO)
     bool o1 = false
-    int a = 0
+    var a = 0
     o1, a = rb.pop()
-    check(o1 and a == 2, "pop()=2 (1 已被覆盖)")
+    check(o1 and int(a) == 2, "pop()=2 (1 已被覆盖)")
     bool o2 = false
-    int b = 0
+    var b = 0
     o2, b = rb.pop()
-    check(o2 and b == 3, "pop()=3")
+    check(o2 and int(b) == 3, "pop()=3")
     bool o3 = false
-    int c = 0
+    var c = 0
     o3, c = rb.pop()
-    check(o3 and c == 4, "pop()=4")
+    check(o3 and int(c) == 4, "pop()=4")
 
     // 连续覆盖多轮: cap=2, push 0..5, 现存应为 4,5
-    RingBuffer<int> ow = RingBuffer::<int>(2, true, 0)
+    RingBuffer ow = RingBuffer(2, true, 0)
     int i = 0
     while i <= 5 do
         ow.push(i)
@@ -299,49 +299,49 @@ func testOverwriteMode() as int
     end
     check(ow.count() == 2, "cap=2 push 6 次 count=2")
     bool w1 = false
-    int x = 0
+    var x = 0
     w1, x = ow.pop()
-    check(w1 and x == 4, "覆盖多轮 pop()=4")
+    check(w1 and int(x) == 4, "覆盖多轮 pop()=4")
     bool w2 = false
-    int y = 0
+    var y = 0
     w2, y = ow.pop()
-    check(w2 and y == 5, "覆盖多轮 pop()=5")
+    check(w2 and int(y) == 5, "覆盖多轮 pop()=5")
     return 0
 end
 
 func testWraparound() as int
     println("[4] 环绕正确性: head/tail 跨越边界")
     // cap=3, 多轮 push+pop 让 head/tail 绕一圈以上
-    RingBuffer<int> rb = RingBuffer::<int>(3, false, 0)
+    RingBuffer rb = RingBuffer(3, false, 0)
     int i = 1
     while i <= 30 do
         check(rb.push(i), "iter " + string(i) + " push(" + string(i) + ")")
         bool ok = false
-        int v = 0
+        var v = 0
         ok, v = rb.pop()
-        check(ok and v == i, "iter " + string(i) + " pop()=" + string(i) + " (FIFO 单进单出)")
+        check(ok and int(v) == i, "iter " + string(i) + " pop()=" + string(i) + " (FIFO 单进单出)")
         i = i + 1
     end
     check(rb.count() == 0, "30 轮单进单出后 count=0")
     check(rb.isEmpty(), "isEmpty=true")
 
     // 交错: 满后 pop 2 再 push 2, 验证环绕写入
-    RingBuffer<int> rb2 = RingBuffer::<int>(3, false, 0)
+    RingBuffer rb2 = RingBuffer(3, false, 0)
     rb2.push(1)
     rb2.push(2)
     rb2.push(3)
     bool p1 = false
-    int q1 = 0
+    var q1 = 0
     p1, q1 = rb2.pop()
     bool p2 = false
-    int q2 = 0
+    var q2 = 0
     p2, q2 = rb2.pop()
-    check(p1 and q1 == 1 and p2 and q2 == 2, "pop 1,2 后 head 移动")
+    check(p1 and int(q1) == 1 and p2 and int(q2) == 2, "pop 1,2 后 head 移动")
     rb2.push(4)
     rb2.push(5)
     check(rb2.count() == 3, "再 push 4,5 后 count=3 (环绕写入)")
     // 现存 FIFO 顺序: 3,4,5
-    array<int> got = array<int>[]
+    var got = array[]
     rb2.drainTo(got)
     check(got.length == 3, "drain 后得 3 个")
     check(got[0] == 3 and got[1] == 4 and got[2] == 5, "环绕后顺序 3,4,5")
@@ -351,7 +351,7 @@ end
 func testBatchOps() as int
     println("[5] 批量操作 pushBatch / popBatch / drainTo")
     // pushBatch 拒绝模式部分入队
-    RingBuffer<int> rb = RingBuffer::<int>(4, false, 0)
+    RingBuffer rb = RingBuffer(4, false, 0)
     array<int> src = array<int>[]
     int i = 1
     while i <= 6 do
@@ -363,23 +363,23 @@ func testBatchOps() as int
     check(rb.count() == 4, "count=4")
 
     // popBatch
-    array<int> mid = rb.popBatch(2)
+    var mid = rb.popBatch(2)
     check(mid.length == 2, "popBatch(2) 得 2 个")
     check(mid[0] == 1 and mid[1] == 2, "popBatch 内容 1,2")
     check(rb.count() == 2, "popBatch 后 count=2")
 
     // popBatch 超过现存
-    array<int> rest = rb.popBatch(100)
+    var rest = rb.popBatch(100)
     check(rest.length == 2, "popBatch(100) 但仅余 2 -> 得 2")
     check(rest[0] == 3 and rest[1] == 4, "popBatch 剩余 3,4")
     check(rb.isEmpty(), "popBatch 后 isEmpty=true")
 
     // drainTo 追加到已有数组 (引用语义)
-    RingBuffer<int> rb2 = RingBuffer::<int>(3, false, 0)
+    RingBuffer rb2 = RingBuffer(3, false, 0)
     rb2.push(7)
     rb2.push(8)
     rb2.push(9)
-    array<int> sink = array<int>[]
+    var sink = array[]
     sink.append(0)
     int drained = rb2.drainTo(sink)
     check(drained == 3, "drainTo 排空 3 个")
@@ -388,7 +388,7 @@ func testBatchOps() as int
     check(rb2.isEmpty(), "drainTo 后 isEmpty=true")
 
     // pushBatch 覆盖模式全部入队
-    RingBuffer<int> ow = RingBuffer::<int>(3, true, 0)
+    RingBuffer ow = RingBuffer(3, true, 0)
     array<int> big = array<int>[]
     int j = 1
     while j <= 8 do
@@ -398,30 +398,30 @@ func testBatchOps() as int
     int owPushed = ow.pushBatch(big)
     check(owPushed == 8, "pushBatch(8 项, cap=3 覆盖) 全部入队 8")
     check(ow.count() == 3, "覆盖后 count=3 (仅留最新 3 个)")
-    array<int> tail = ow.popBatch(3)
+    var tail = ow.popBatch(3)
     check(tail[0] == 6 and tail[1] == 7 and tail[2] == 8, "覆盖 batch 留下 6,7,8")
     return 0
 end
 
 func testStringGeneric() as int
-    println("[6] RingBuffer<string> 泛型多类型")
-    RingBuffer<string> rs = RingBuffer::<string>(3, false, "")
+    println("[6] RingBuffer 泛型多类型")
+    RingBuffer rs = RingBuffer(3, false, "")
     check(rs.isEmpty(), "string 环 isEmpty=true")
     rs.push("alpha")
     rs.push("beta")
     check(rs.count() == 2, "push 2 个 string count=2")
     bool ok = false
-    string s = ""
+    var s = ""
     ok, s = rs.peek()
-    check(ok and s == "alpha", "peek()=alpha")
+    check(ok and string(s) == "alpha", "peek()=alpha")
     bool ok2 = false
-    string p = ""
+    var p = ""
     ok2, p = rs.pop()
-    check(ok2 and p == "alpha", "pop()=alpha")
+    check(ok2 and string(p) == "alpha", "pop()=alpha")
     bool ok3 = false
-    string q = ""
+    var q = ""
     ok3, q = rs.pop()
-    check(ok3 and q == "beta", "pop()=beta")
+    check(ok3 and string(q) == "beta", "pop()=beta")
     check(rs.isEmpty(), "string 环排空 isEmpty=true")
     return 0
 end
@@ -432,7 +432,7 @@ end
 //    (sync 原语按既定 idiom 放模块级全局)
 // ====================================================================
 
-RingBuffer<int> g_cq = RingBuffer::<int>(8, false, 0)   // 共享有界队列 (reject 模式)
+RingBuffer g_cq = RingBuffer(8, false, 0)   // 共享有界队列 (reject 模式)
 mutex g_cqMu = mutex()             // 保护 g_cq + 等待谓词
 cond g_cqNotFull = cond()          // 满时生产者在此等待
 cond g_cqNotEmpty = cond()         // 空时消费者在此等待
@@ -492,11 +492,11 @@ func cqPop() as int
         g_cqNotEmpty.wait(g_cqMu)
     end
     bool ok = false
-    int v = 0
+    var v = 0
     ok, v = g_cq.pop()
     g_cqNotFull.signal()
     g_cqMu.unlock()
-    return v
+    return int(v)
 end
 
 // 超时入队: 满时最多等 ms 毫秒; 仍有空位则入队返回 true, 否则 false。
@@ -531,13 +531,13 @@ func cqPopTimeout(int ms) as (bool, int)
         g_cqNotEmpty.waitTimeout(g_cqMu, int(remain))
     end
     bool ok = false
-    int v = 0
+    var v = 0
     if not g_cq.isEmpty() then
         ok, v = g_cq.pop()
         g_cqNotFull.signal()
     end
     g_cqMu.unlock()
-    return ok, v
+    return ok, int(v)
 end
 
 // ---- worker 工厂 (返回 func() as int, 供 thread 持有) ----
@@ -662,7 +662,7 @@ func testPopTimeout() as int
     // 空且无生产者 -> 超时返回 false
     float t0 = time.timer()
     bool pok = false
-    int pv = 0
+    var pv = 0
     pok, pv = cqPopTimeout(60)
     float dt1 = (time.timer() - t0) * 1000.0
     check(not pok, "空队列 popTimeout(60ms) 返回 false")
@@ -768,7 +768,7 @@ func report(string name, int n, float elapsed)
 end
 
 func benchPush(int n) as float
-    RingBuffer<int> rb = RingBuffer::<int>(n, false, 0)
+    RingBuffer rb = RingBuffer(n, false, 0)
     int s = 0
     float t0 = time.timer()
     int i = 0
@@ -784,7 +784,7 @@ func benchPush(int n) as float
 end
 
 func benchPop(int n) as float
-    RingBuffer<int> rb = RingBuffer::<int>(n, false, 0)
+    RingBuffer rb = RingBuffer(n, false, 0)
     int i = 0
     while i < n do
         rb.push(i)
@@ -795,10 +795,10 @@ func benchPop(int n) as float
     int j = 0
     while j < n do
         bool ok = false
-        int v = 0
+        var v = 0
         ok, v = rb.pop()
         if ok then
-            s = s + v
+            s = s + int(v)
         end
         j = j + 1
     end
@@ -809,17 +809,17 @@ end
 
 // 单进单出 (push+pop 一对), 队列始终 0~1 元素, 测纯环操作开销。
 func benchRoundtrip(int n) as float
-    RingBuffer<int> rb = RingBuffer::<int>(16, true, 0)
+    RingBuffer rb = RingBuffer(16, true, 0)
     int s = 0
     float t0 = time.timer()
     int i = 0
     while i < n do
         rb.push(i)
         bool ok = false
-        int v = 0
+        var v = 0
         ok, v = rb.pop()
         if ok then
-            s = s + v
+            s = s + int(v)
         end
         i = i + 1
     end
@@ -836,15 +836,15 @@ func benchBatch(int n) as float
         src.append(i)
         i = i + 1
     end
-    array<int> dst = array<int>[]
+    var dst = array[]
     int s = 0
     float t0 = time.timer()
-    RingBuffer<int> rb = RingBuffer::<int>(n, false, 0)
+    RingBuffer rb = RingBuffer(n, false, 0)
     rb.pushBatch(src)
     rb.drainTo(dst)
     int k = 0
     while k < dst.length do
-        s = s + dst[k]
+        s = s + int(dst[k])
         k = k + 1
     end
     float t1 = time.timer()
@@ -877,7 +877,7 @@ func printUsage()
     println("  ringbuf bench [N]      单线程 push/pop 吞吐基准 (默认 N=100000)")
     println("  ringbuf help           显示本帮助")
     println("覆盖:")
-    println("  RingBuffer<T>: push/pop/peek, isFull/isEmpty/count/capacity")
+    println("  RingBuffer: push/pop/peek, isFull/isEmpty/count/capacity")
     println("                覆盖模式 vs 拒绝模式, pushBatch/popBatch/drainTo")
     println("  并发版:       mutex+cond 阻塞队列, pushTimeout/popTimeout")
 end

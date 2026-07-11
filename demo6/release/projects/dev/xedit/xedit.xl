@@ -1,0 +1,2334 @@
+// xedit.xl - 文本编辑器（命令行驱动，非交互）
+//
+// 用法：
+//   xedit script <file.xed>    读取并执行编辑命令脚本（每行一条命令）
+//   xedit test                 运行内置自测（缓冲区/撤销重做/搜索替换/高亮/多缓冲区）
+//   xedit help                 显示帮助
+//
+// 功能：
+//   1. 缓冲区模型：class Buffer，行数组(array<string>) + 光标(row,col) + 文件名 + 修改标志
+//      插入字符/删除字符/插入行/删除行/替换行
+//      光标移动（上下左右/行首/行尾/文件首/文件尾）
+//   2. 撤销/重做：命令模式，每个编辑操作构造 EditOp 入 undoStack
+//      操作类型：INSERT_CHAR / DELETE_CHAR / INSERT_LINE / DELETE_LINE / REPLACE
+//      undo 弹栈执行逆操作并入 redoStack；redo 弹栈执行正向操作回 undoStack
+//   3. 搜索替换：正则搜索（regex.isMatch / regex.match），单次/全部替换，大小写敏感选项
+//   4. 语法高亮：对 xlang 代码做关键字/字符串/注释/数字/类型名着色，输出带 ANSI SGR 的文本
+//   5. 编辑器命令（命令行驱动，非交互）：
+//      open/save/insert/append/delete/set/find/replace/replace-one/undo/redo/
+//      show/lines/count/highlight/goto/cursor/info/clear-history/quit
+//   6. 多缓冲区：bnext/bprev/blist/bclose
+//
+// 脚本命令格式（每行一条，# 或 // 开头为注释）：
+//   open <file>                  打开文件到新缓冲区
+//   save [file]                  保存当前缓冲区（不跟文件名则用已打开文件名）
+//   insert <line> <text>         在第 <line> 行前插入文本（1-based）
+//   append <text>                在末尾追加一行
+//   delete <line>                删除第 <line> 行（1-based）
+//   set <line> <text>            替换第 <line> 行内容
+//   find <pattern>               正则搜索，显示所有匹配行
+//   find -i <pattern>            大小写不敏感搜索
+//   replace <from> <to>          全部替换（正则匹配，逐行）
+//   replace-one <from> <to>      仅替换每行首个匹配
+//   replace -i <from> <to>       大小写不敏感替换
+//   undo                         撤销上一次编辑
+//   redo                         重做
+//   show [start] [end]           显示缓冲区内容（带行号，> 标记光标行）
+//   lines                        显示行数
+//   count                        显示字数/字符数统计
+//   highlight [start] [end]      语法高亮显示
+//   goto <line>                  移动光标到指定行
+//   cursor <row> <col>           设置光标位置
+//   bnext                        切换到下一个缓冲区
+//   bprev                        切换到上一个缓冲区
+//   blist                        列出所有缓冲区
+//   bclose                       关闭当前缓冲区
+//   info                         显示当前缓冲区信息
+//   clear-history                清空撤销/重做历史
+//   quit                         停止执行脚本
+//
+// 设计说明：
+//   - EditOp / Buffer 用 class + derive value：值语义，函数间传递为副本。
+//   - 多缓冲区用 array<Buffer> 全局池 + g_currentIdx 索引；修改时取出副本、改完写回。
+//   - 撤销/重做：每个编辑操作构造 EditOp 入 undoStack；undo 弹栈执行逆操作并入 redoStack。
+//   - 正则搜索：regex.isMatch 逐行匹配；替换用 regex.match 定位、手动拼接重建字符串。
+//   - 语法高亮：逐行扫描，识别注释/字符串/数字/关键字/类型名，输出 ANSI SGR 着色文本。
+//   - 绕过 BUG-S1（splitLines 尾部空串）：加载文件时丢掉恰好一个尾部空串。
+//   - 脚本参数解析支持双引号：insert 3 "hello world" → ["insert","3","hello world"]。
+
+
+// ============================================================================
+// 操作类型常量
+// ============================================================================
+
+const int OP_INSERT_CHAR = 0
+const int OP_DELETE_CHAR = 1
+const int OP_INSERT_LINE = 2
+const int OP_DELETE_LINE = 3
+const int OP_REPLACE = 4
+
+
+// ============================================================================
+// ANSI 颜色常量（SGR）
+// ============================================================================
+
+string C_RESET = "\x1b[0m"
+string C_BOLD = "\x1b[1m"
+string C_DIM = "\x1b[2m"
+string C_UNDERLINE = "\x1b[4m"
+string C_RED = "\x1b[31m"
+string C_GREEN = "\x1b[32m"
+string C_YELLOW = "\x1b[33m"
+string C_BLUE = "\x1b[34m"
+string C_MAGENTA = "\x1b[35m"
+string C_CYAN = "\x1b[36m"
+string C_WHITE = "\x1b[37m"
+string C_GRAY = "\x1b[90m"
+
+
+// ============================================================================
+// 语法高亮关键字表
+// ============================================================================
+
+string g_xlangKeywords = " func end if then elseif else for while do return class create base and or not in is as break continue try catch finally throw assert const derive typedef union export extern import package let get new enum switch case default public private protected static virtual override final property "
+
+string g_xlangTypes = " int float string bool void array dict set list var auto uint64 point "
+
+string g_xlangLiterals = " true false null "
+
+
+// ============================================================================
+// 通用辅助函数
+// ============================================================================
+
+// 把全文拆成行，丢掉 splitLines 的尾部空串（BUG-S1）。
+func splitLinesSafe(string content) as array<string>
+    array<string> result = array[]
+    if string.isEmpty(content) then
+        return result
+    end
+    array raw = string.splitLines(content)
+    int n = raw.length
+    int i = 0
+    while i < n do
+        result.push(string(raw[i]))
+        i += 1
+    end
+    if result.length > 0 then
+        if result[result.length - 1] == "" then
+            result.remove(result.length - 1)
+        end
+    end
+    return result
+end
+
+// 把命令行按空格拆成 token，双引号内的空格保留。
+// 例：insert 3 "hello world" → ["insert","3","hello world"]
+func parseCommandTokens(string line) as array<string>
+    array<string> tokens = array[]
+    string buf = ""
+    bool inQuote = false
+    int i = 0
+    int n = string.len(line)
+    while i < n do
+        string c = string.charAt(line, i)
+        if inQuote then
+            if c == "\"" then
+                tokens.push(buf)
+                buf = ""
+                inQuote = false
+            else
+                buf = buf + c
+            end
+        else
+            if c == "\"" then
+                if string.isEmpty(buf) then
+                    inQuote = true
+                else
+                    buf = buf + c
+                end
+            elseif c == " " or c == "\t" then
+                if not string.isEmpty(buf) then
+                    tokens.push(buf)
+                    buf = ""
+                end
+            else
+                buf = buf + c
+            end
+        end
+        i += 1
+    end
+    if not string.isEmpty(buf) then
+        tokens.push(buf)
+    end
+    if inQuote then
+        tokens.push(buf)
+    end
+    return tokens
+end
+
+// 把 tokens 从 start 下标开始用空格拼回字符串。
+func joinTokens(array<string> tokens, int start) as string
+    string result = ""
+    int i = start
+    while i < tokens.length do
+        if i > start then
+            result = result + " "
+        end
+        result = result + tokens[i]
+        i += 1
+    end
+    return result
+end
+
+// 统计一行文本的单词数（以空白分隔）。
+func countWords(string text) as int
+    int count = 0
+    bool inWord = false
+    int i = 0
+    int n = string.len(text)
+    while i < n do
+        string c = string.charAt(text, i)
+        if c == " " or c == "\t" or c == "\r" or c == "\n" then
+            if inWord then
+                count += 1
+                inWord = false
+            end
+        else
+            inWord = true
+        end
+        i += 1
+    end
+    if inWord then
+        count += 1
+    end
+    return count
+end
+
+// 判断字符是否为十进制数字。
+func isDigitChar(string c) as bool
+    return string.contains("0123456789", c)
+end
+
+// 判断字符是否为字母或下划线。
+func isAlphaChar(string c) as bool
+    return string.contains("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_", c)
+end
+
+// 判断字符是否为标识符字符（字母/数字/下划线）。
+func isIdentChar(string c) as bool
+    return isAlphaChar(c) or isDigitChar(c)
+end
+
+// 判断单词是否为 xlang 关键字。
+func isKeyword(string word) as bool
+    return string.contains(g_xlangKeywords, " " + word + " ")
+end
+
+// 判断单词是否为 xlang 类型名。
+func isTypeWord(string word) as bool
+    return string.contains(g_xlangTypes, " " + word + " ")
+end
+
+// 判断单词是否为字面量（true/false/null）。
+func isLiteralWord(string word) as bool
+    return string.contains(g_xlangLiterals, " " + word + " ")
+end
+
+
+// ============================================================================
+// 正则替换辅助函数
+// ============================================================================
+
+// 用 regex.match 定位首个匹配，手动拼接 replacement。
+// pattern 是正则表达式，replacement 是纯文本替换串（不支持反向引用）。
+func regexReplaceFirst(string text, string pattern, string replacement, bool ignoreCase) as string
+    int flags = 0
+    if ignoreCase then
+        flags = regex.ignoreCase
+    end
+    RegexMatch m = regex.match(text, pattern, flags, 0)
+    if not m.ok then
+        return text
+    end
+    string before = string.left(text, m.start)
+    string after = string.mid(text, m.end)
+    return before + replacement + after
+end
+
+// 用 regex.match 循环定位所有匹配，逐段拼接 replacement。
+// 处理零长度匹配：跳过一个字符避免死循环。
+func regexReplaceAll(string text, string pattern, string replacement, bool ignoreCase) as string
+    int flags = 0
+    if ignoreCase then
+        flags = regex.ignoreCase
+    end
+    string result = ""
+    int pos = 0
+    int textLen = string.len(text)
+    bool done = false
+    while not done do
+        if pos > textLen then
+            break
+        end
+        RegexMatch m = regex.match(text, pattern, flags, pos)
+        if not m.ok then
+            result = result + string.mid(text, pos)
+            done = true
+        else
+            if m.start > pos then
+                result = result + string.mid(text, pos, m.start - pos)
+            end
+            result = result + replacement
+            if m.end > m.start then
+                pos = m.end
+            else
+                if m.start < textLen then
+                    result = result + string.charAt(text, m.start)
+                end
+                pos = m.start + 1
+            end
+        end
+    end
+    return result
+end
+
+
+// ============================================================================
+// 语法高亮：逐行扫描，输出 ANSI SGR 着色文本
+// ============================================================================
+
+// 对一行 xlang 源码着色：
+//   // 注释        → 灰色
+//   "字符串"        → 绿色
+//   f"..." rf"..."  → 绿色
+//   123 12.34      → 黄色
+//   关键字          → 青色加粗
+//   类型名          → 蓝色
+//   true/false/null → 紫色
+//   其他            → 默认色
+func highlightLine(string line) as string
+    if string.isEmpty(line) then
+        return ""
+    end
+    string result = ""
+    int i = 0
+    int n = string.len(line)
+    while i < n do
+        string c = string.charAt(line, i)
+
+        // 行注释：// 到行尾
+        if c == "/" and i + 1 < n then
+            if string.charAt(line, i + 1) == "/" then
+                result = result + C_GRAY + string.mid(line, i) + C_RESET
+                return result
+            end
+        end
+
+        // f"..." / rf"..." / f'...' / rf'...'
+        bool prevIsIdent = false
+        if i > 0 then
+            prevIsIdent = isIdentChar(string.charAt(line, i - 1))
+        end
+        if not prevIsIdent then
+            if c == "f" and i + 1 < n then
+                string qc = string.charAt(line, i + 1)
+                if qc == "\"" or qc == "'" then
+                    int k = i + 2
+                    string buf = "f" + qc
+                    while k < n do
+                        string cc = string.charAt(line, k)
+                        buf = buf + cc
+                        if cc == qc then
+                            k += 1
+                            break
+                        end
+                        k += 1
+                    end
+                    result = result + C_GREEN + buf + C_RESET
+                    i = k
+                    continue
+                end
+            end
+            if c == "r" and i + 2 < n then
+                if string.charAt(line, i + 1) == "f" then
+                    string qc = string.charAt(line, i + 2)
+                    if qc == "\"" or qc == "'" then
+                        int k = i + 3
+                        string buf = "rf" + qc
+                        while k < n do
+                            string cc = string.charAt(line, k)
+                            buf = buf + cc
+                            if cc == qc then
+                                k += 1
+                                break
+                            end
+                            k += 1
+                        end
+                        result = result + C_GREEN + buf + C_RESET
+                        i = k
+                        continue
+                    end
+                end
+            end
+        end
+
+        // 字符串："..." 或 '...'
+        if c == "\"" or c == "'" then
+            string qc = c
+            string buf = c
+            i += 1
+            while i < n do
+                string cc = string.charAt(line, i)
+                buf = buf + cc
+                i += 1
+                if cc == qc then
+                    break
+                end
+            end
+            result = result + C_GREEN + buf + C_RESET
+            continue
+        end
+
+        // 数字：[0-9]+ 或 .[0-9]+
+        if isDigitChar(c) then
+            string buf = ""
+            while i < n do
+                string cc = string.charAt(line, i)
+                if isDigitChar(cc) or cc == "." then
+                    buf = buf + cc
+                    i += 1
+                else
+                    break
+                end
+            end
+            result = result + C_YELLOW + buf + C_RESET
+            continue
+        end
+
+        // 标识符 / 关键字
+        if isAlphaChar(c) then
+            string buf = ""
+            while i < n do
+                string cc = string.charAt(line, i)
+                if isIdentChar(cc) then
+                    buf = buf + cc
+                    i += 1
+                else
+                    break
+                end
+            end
+            if isKeyword(buf) then
+                result = result + C_CYAN + C_BOLD + buf + C_RESET
+            elseif isTypeWord(buf) then
+                result = result + C_BLUE + buf + C_RESET
+            elseif isLiteralWord(buf) then
+                result = result + C_MAGENTA + C_BOLD + buf + C_RESET
+            else
+                result = result + buf
+            end
+            continue
+        end
+
+        // 默认：原样输出
+        result = result + c
+        i += 1
+    end
+    return result
+end
+
+
+// ============================================================================
+// EditOp — 编辑操作记录（撤销/重做的基本单元）
+// ============================================================================
+
+class EditOp
+    derive value
+
+    int opType = 0
+    int row = 0
+    int col = 0
+    string text = ""
+    string newText = ""
+end
+
+
+// ============================================================================
+// Buffer — 文本缓冲区（行数组 + 光标 + 文件名 + 修改标志 + 撤销/重做栈）
+// ============================================================================
+
+class Buffer
+    derive value
+
+    array<string> lines = array[]
+    int cursorRow = 0
+    int cursorCol = 0
+    string filename = ""
+    bool modified = false
+    array<EditOp> undoStack = array[]
+    array<EditOp> redoStack = array[]
+
+    create()
+        self.lines = array[]
+        self.lines.push("")
+        self.cursorRow = 0
+        self.cursorCol = 0
+        self.filename = ""
+        self.modified = false
+        self.undoStack = array[]
+        self.redoStack = array[]
+        return
+    end
+
+    // ===== 文件 I/O =====
+
+    func load(string path) as bool
+        if not file.exists(path) then
+            return false
+        end
+        string content = ""
+        try
+            content = file.readText(path)
+        catch e
+            return false
+        end
+        self.lines = splitLinesSafe(content)
+        if self.lines.length == 0 then
+            self.lines.push("")
+        end
+        self.filename = path
+        self.modified = false
+        self.undoStack = array[]
+        self.redoStack = array[]
+        self.cursorRow = 0
+        self.cursorCol = 0
+        return true
+    end
+
+    func saveAs(string path) as bool
+        string content = self.toText()
+        bool ok = false
+        try
+            ok = file.writeText(path, content)
+        catch e
+            return false
+        end
+        if ok then
+            self.filename = path
+            self.modified = false
+        end
+        return ok
+    end
+
+    // ===== 基本访问 =====
+
+    func lineCount() as int
+        return self.lines.length
+    end
+
+    func getLine(int idx) as string
+        if idx < 0 or idx >= self.lines.length then
+            return ""
+        end
+        return self.lines[idx]
+    end
+
+    func displayName() as string
+        if string.isEmpty(self.filename) then
+            return "[No Name]"
+        end
+        return self.filename
+    end
+
+    func toText() as string
+        if self.lines.length == 0 then
+            return ""
+        end
+        string result = self.lines[0]
+        int i = 1
+        while i < self.lines.length do
+            result = result + "\n" + self.lines[i]
+            i += 1
+        end
+        return result
+    end
+
+    // ===== 原始编辑操作（不记 undo）=====
+
+    func insertLineRaw(int idx, string text)
+        if idx < 0 then
+            idx = 0
+        end
+        if idx > self.lines.length then
+            idx = self.lines.length
+        end
+        self.lines.insert(idx, text)
+    end
+
+    func deleteLineRaw(int idx)
+        if idx < 0 or idx >= self.lines.length then
+            return
+        end
+        self.lines.remove(idx)
+        if self.lines.length == 0 then
+            self.lines.push("")
+        end
+    end
+
+    func setLineRaw(int idx, string text)
+        if idx < 0 or idx >= self.lines.length then
+            return
+        end
+        self.lines[idx] = text
+    end
+
+    func insertCharRaw(int row, int col, string ch)
+        if row < 0 or row >= self.lines.length then
+            return
+        end
+        if string.isEmpty(ch) then
+            return
+        end
+        string line = self.lines[row]
+        if col < 0 then
+            col = 0
+        end
+        if col > string.len(line) then
+            col = string.len(line)
+        end
+        self.lines[row] = string.left(line, col) + ch + string.mid(line, col)
+    end
+
+    func deleteCharRaw(int row, int col) as string
+        if row < 0 or row >= self.lines.length then
+            return ""
+        end
+        string line = self.lines[row]
+        if col < 0 or col >= string.len(line) then
+            return ""
+        end
+        string deleted = string.charAt(line, col)
+        self.lines[row] = string.left(line, col) + string.mid(line, col + 1)
+        return deleted
+    end
+
+    // ===== 带撤销的编辑操作 =====
+
+    func insertLine(int idx, string text)
+        EditOp op
+        op.opType = OP_INSERT_LINE
+        op.row = idx
+        op.col = 0
+        op.text = text
+        self.undoStack.push(op)
+        self.redoStack = array[]
+        self.insertLineRaw(idx, text)
+        self.modified = true
+    end
+
+    func deleteLine(int idx) as string
+        if idx < 0 or idx >= self.lines.length then
+            return ""
+        end
+        string text = self.lines[idx]
+        EditOp op
+        op.opType = OP_DELETE_LINE
+        op.row = idx
+        op.col = 0
+        op.text = text
+        self.undoStack.push(op)
+        self.redoStack = array[]
+        self.deleteLineRaw(idx)
+        self.modified = true
+        return text
+    end
+
+    func setLine(int idx, string text)
+        if idx < 0 or idx >= self.lines.length then
+            return
+        end
+        string old = self.lines[idx]
+        if old == text then
+            return
+        end
+        EditOp op
+        op.opType = OP_REPLACE
+        op.row = idx
+        op.col = 0
+        op.text = old
+        op.newText = text
+        self.undoStack.push(op)
+        self.redoStack = array[]
+        self.setLineRaw(idx, text)
+        self.modified = true
+    end
+
+    func insertChar(int row, int col, string ch)
+        if string.isEmpty(ch) then
+            return
+        end
+        EditOp op
+        op.opType = OP_INSERT_CHAR
+        op.row = row
+        op.col = col
+        op.text = ch
+        self.undoStack.push(op)
+        self.redoStack = array[]
+        self.insertCharRaw(row, col, ch)
+        self.modified = true
+    end
+
+    func deleteChar(int row, int col) as string
+        string deleted = self.deleteCharRaw(row, col)
+        if string.isEmpty(deleted) then
+            return ""
+        end
+        EditOp op
+        op.opType = OP_DELETE_CHAR
+        op.row = row
+        op.col = col
+        op.text = deleted
+        self.undoStack.push(op)
+        self.redoStack = array[]
+        self.modified = true
+        return deleted
+    end
+
+    // ===== 撤销 / 重做 =====
+
+    func canUndo() as bool
+        return self.undoStack.length > 0
+    end
+
+    func canRedo() as bool
+        return self.redoStack.length > 0
+    end
+
+    func undoCount() as int
+        return self.undoStack.length
+    end
+
+    func redoCount() as int
+        return self.redoStack.length
+    end
+
+    func clearHistory()
+        self.undoStack = array[]
+        self.redoStack = array[]
+    end
+
+    func undo() as bool
+        if self.undoStack.length == 0 then
+            return false
+        end
+        int last = self.undoStack.length - 1
+        EditOp op = self.undoStack[last]
+        self.undoStack.remove(last)
+
+        if op.opType == OP_INSERT_CHAR then
+            self.deleteCharRaw(op.row, op.col)
+        elseif op.opType == OP_DELETE_CHAR then
+            self.insertCharRaw(op.row, op.col, op.text)
+        elseif op.opType == OP_INSERT_LINE then
+            self.deleteLineRaw(op.row)
+        elseif op.opType == OP_DELETE_LINE then
+            self.insertLineRaw(op.row, op.text)
+        elseif op.opType == OP_REPLACE then
+            self.setLineRaw(op.row, op.text)
+        end
+
+        self.redoStack.push(op)
+        self.modified = true
+        return true
+    end
+
+    func redo() as bool
+        if self.redoStack.length == 0 then
+            return false
+        end
+        int last = self.redoStack.length - 1
+        EditOp op = self.redoStack[last]
+        self.redoStack.remove(last)
+
+        if op.opType == OP_INSERT_CHAR then
+            self.insertCharRaw(op.row, op.col, op.text)
+        elseif op.opType == OP_DELETE_CHAR then
+            self.deleteCharRaw(op.row, op.col)
+        elseif op.opType == OP_INSERT_LINE then
+            self.insertLineRaw(op.row, op.text)
+        elseif op.opType == OP_DELETE_LINE then
+            self.deleteLineRaw(op.row)
+        elseif op.opType == OP_REPLACE then
+            self.setLineRaw(op.row, op.newText)
+        end
+
+        self.undoStack.push(op)
+        self.modified = true
+        return true
+    end
+
+    // ===== 光标操作 =====
+
+    func clampCol()
+        if self.cursorRow < 0 then
+            self.cursorRow = 0
+        end
+        if self.cursorRow >= self.lines.length then
+            self.cursorRow = self.lines.length - 1
+        end
+        if self.cursorRow < 0 then
+            self.cursorRow = 0
+        end
+        string line = self.lines[self.cursorRow]
+        if self.cursorCol > string.len(line) then
+            self.cursorCol = string.len(line)
+        end
+        if self.cursorCol < 0 then
+            self.cursorCol = 0
+        end
+    end
+
+    func cursorUp()
+        if self.cursorRow > 0 then
+            self.cursorRow -= 1
+        end
+        self.clampCol()
+    end
+
+    func cursorDown()
+        if self.cursorRow < self.lines.length - 1 then
+            self.cursorRow += 1
+        end
+        self.clampCol()
+    end
+
+    func cursorLeft()
+        if self.cursorCol > 0 then
+            self.cursorCol -= 1
+        elseif self.cursorRow > 0 then
+            self.cursorRow -= 1
+            self.cursorCol = string.len(self.lines[self.cursorRow])
+        end
+    end
+
+    func cursorRight()
+        string curLine = ""
+        if self.cursorRow < self.lines.length then
+            curLine = self.lines[self.cursorRow]
+        end
+        if self.cursorCol < string.len(curLine) then
+            self.cursorCol += 1
+        elseif self.cursorRow < self.lines.length - 1 then
+            self.cursorRow += 1
+            self.cursorCol = 0
+        end
+    end
+
+    func cursorHome()
+        self.cursorCol = 0
+    end
+
+    func cursorEnd()
+        if self.cursorRow < self.lines.length then
+            self.cursorCol = string.len(self.lines[self.cursorRow])
+        end
+    end
+
+    func cursorFileStart()
+        self.cursorRow = 0
+        self.cursorCol = 0
+    end
+
+    func cursorFileEnd()
+        self.cursorRow = self.lines.length - 1
+        if self.cursorRow < 0 then
+            self.cursorRow = 0
+        end
+        self.cursorCol = string.len(self.lines[self.cursorRow])
+    end
+
+    func cursorGoto(int row, int col)
+        if row < 0 then
+            row = 0
+        end
+        if row >= self.lines.length then
+            row = self.lines.length - 1
+        end
+        if row < 0 then
+            row = 0
+        end
+        self.cursorRow = row
+        string line = self.lines[row]
+        if col < 0 then
+            col = 0
+        end
+        if col > string.len(line) then
+            col = string.len(line)
+        end
+        self.cursorCol = col
+    end
+
+    // ===== 搜索 =====
+
+    // 在所有行中正则搜索 pattern，逐行打印命中行（行号 + 内容）。
+    // 返回命中行数。
+    func findPattern(string pattern, bool ignoreCase) as int
+        int flags = 0
+        if ignoreCase then
+            flags = regex.ignoreCase
+        end
+        int matches = 0
+        int i = 0
+        while i < self.lines.length do
+            string line = self.lines[i]
+            bool hit = false
+            try
+                hit = regex.isMatch(line, pattern, flags)
+            catch e
+                hit = false
+            end
+            if hit then
+                matches += 1
+                println(string(i + 1) + ": " + line)
+            end
+            i += 1
+        end
+        return matches
+    end
+
+    // ===== 替换 =====
+
+    // 对所有行做正则全量替换，返回被修改的行数。
+    func replaceAllPattern(string pattern, string to, bool ignoreCase) as int
+        int count = 0
+        int i = 0
+        while i < self.lines.length do
+            string old = self.lines[i]
+            string newLine = old
+            try
+                newLine = regexReplaceAll(old, pattern, to, ignoreCase)
+            catch e
+                newLine = old
+            end
+            if old != newLine then
+                self.setLine(i, newLine)
+                count += 1
+            end
+            i += 1
+        end
+        return count
+    end
+
+    // 对所有行做正则单次替换（每行替换第一个匹配），返回被修改的行数。
+    func replaceFirstPattern(string pattern, string to, bool ignoreCase) as int
+        int count = 0
+        int i = 0
+        while i < self.lines.length do
+            string old = self.lines[i]
+            string newLine = old
+            try
+                newLine = regexReplaceFirst(old, pattern, to, ignoreCase)
+            catch e
+                newLine = old
+            end
+            if old != newLine then
+                self.setLine(i, newLine)
+                count += 1
+            end
+            i += 1
+        end
+        return count
+    end
+
+    // ===== 统计 =====
+
+    func charCount() as int
+        int total = 0
+        int i = 0
+        while i < self.lines.length do
+            total += string.len(self.lines[i])
+            i += 1
+        end
+        return total
+    end
+
+    func wordCount() as int
+        int total = 0
+        int i = 0
+        while i < self.lines.length do
+            total += countWords(self.lines[i])
+            i += 1
+        end
+        return total
+    end
+
+    // ===== 显示 =====
+
+    // 显示 [start, end] 行（1-based），带行号和光标标记。
+    func displayRange(int start, int end)
+        int s = start
+        int e = end
+        if s < 1 then
+            s = 1
+        end
+        if e < 1 or e > self.lines.length then
+            e = self.lines.length
+        end
+        if s > e then
+            int tmp = s
+            s = e
+            e = tmp
+        end
+        int width = string.len(string(self.lines.length))
+        if width < 3 then
+            width = 3
+        end
+        int i = s
+        while i <= e do
+            string numStr = string.padLeft(string(i), width)
+            string marker = "  "
+            if i - 1 == self.cursorRow then
+                marker = "> "
+            end
+            println(numStr + marker + " " + self.lines[i - 1])
+            i += 1
+        end
+    end
+
+    func displayAll()
+        self.displayRange(1, self.lines.length)
+    end
+
+    // 带 xlang 语法高亮显示 [start, end] 行。
+    func displayHighlightedRange(int start, int end)
+        int s = start
+        int e = end
+        if s < 1 then
+            s = 1
+        end
+        if e < 1 or e > self.lines.length then
+            e = self.lines.length
+        end
+        if s > e then
+            int tmp = s
+            s = e
+            e = tmp
+        end
+        int width = string.len(string(self.lines.length))
+        if width < 3 then
+            width = 3
+        end
+        int i = s
+        while i <= e do
+            string numStr = string.padLeft(string(i), width)
+            string marker = "  "
+            if i - 1 == self.cursorRow then
+                marker = "> "
+            end
+            string hl = highlightLine(self.lines[i - 1])
+            println(C_GRAY + numStr + marker + " " + C_RESET + hl)
+            i += 1
+        end
+    end
+
+    func displayAllHighlighted()
+        self.displayHighlightedRange(1, self.lines.length)
+    end
+
+    // 返回缓冲区信息字符串。
+    func infoText() as string
+        string s = "File: " + self.displayName() + "\n"
+        s = s + "Lines: " + string(self.lines.length) + "\n"
+        s = s + "Chars: " + string(self.charCount()) + "\n"
+        s = s + "Words: " + string(self.wordCount()) + "\n"
+        s = s + "Cursor: row=" + string(self.cursorRow) + " col=" + string(self.cursorCol) + "\n"
+        if self.modified then
+            s = s + "Modified: yes"
+        else
+            s = s + "Modified: no"
+        end
+        s = s + "  Undo: " + string(self.undoStack.length) + "  Redo: " + string(self.redoStack.length)
+        return s
+    end
+end
+
+
+// ============================================================================
+// 编辑器全局状态（多缓冲区管理）
+// ============================================================================
+
+array<Buffer> g_buffers = array[]
+int g_currentIdx = 0
+bool g_shouldQuit = false
+
+func initEditor()
+    g_buffers = array[]
+    Buffer buf = Buffer()
+    g_buffers.push(buf)
+    g_currentIdx = 0
+    g_shouldQuit = false
+end
+
+func curBuffer() as Buffer
+    if g_buffers.length == 0 then
+        Buffer empty = Buffer()
+        return empty
+    end
+    if g_currentIdx < 0 or g_currentIdx >= g_buffers.length then
+        g_currentIdx = 0
+    end
+    return g_buffers[g_currentIdx]
+end
+
+func putBuffer(Buffer buf)
+    if g_buffers.length == 0 then
+        g_buffers.push(buf)
+        g_currentIdx = 0
+        return
+    end
+    if g_currentIdx < 0 or g_currentIdx >= g_buffers.length then
+        g_currentIdx = 0
+    end
+    g_buffers[g_currentIdx] = buf
+end
+
+func newBufferWithName(string name) as int
+    Buffer buf = Buffer()
+    buf.filename = name
+    g_buffers.push(buf)
+    return g_buffers.length - 1
+end
+
+func bufferCount() as int
+    return g_buffers.length
+end
+
+func switchToBuffer(int idx) as bool
+    if idx < 0 or idx >= g_buffers.length then
+        return false
+    end
+    g_currentIdx = idx
+    return true
+end
+
+func nextBuffer() as bool
+    if g_buffers.length <= 1 then
+        return false
+    end
+    g_currentIdx += 1
+    if g_currentIdx >= g_buffers.length then
+        g_currentIdx = 0
+    end
+    return true
+end
+
+func prevBuffer() as bool
+    if g_buffers.length <= 1 then
+        return false
+    end
+    g_currentIdx -= 1
+    if g_currentIdx < 0 then
+        g_currentIdx = g_buffers.length - 1
+    end
+    return true
+end
+
+func closeCurrentBuffer() as bool
+    if g_buffers.length <= 1 then
+        return false
+    end
+    g_buffers.remove(g_currentIdx)
+    if g_currentIdx >= g_buffers.length then
+        g_currentIdx = g_buffers.length - 1
+    end
+    return true
+end
+
+func listBuffersText() as string
+    string result = ""
+    int i = 0
+    while i < g_buffers.length do
+        Buffer buf = g_buffers[i]
+        string mark = "   "
+        if i == g_currentIdx then
+            mark = ">  "
+        end
+        string modFlag = " "
+        if buf.modified then
+            modFlag = "*"
+        end
+        result = result + mark + string(i + 1) + ": " + modFlag + buf.displayName()
+        result = result + " (" + string(buf.lineCount()) + " lines)\n"
+        i += 1
+    end
+    return result
+end
+
+
+// ============================================================================
+// 命令处理函数
+// ============================================================================
+
+// --- open <file> ---
+
+func cmdOpen(array<string> args) as int
+    if args.length < 2 then
+        println("error: open requires a filename")
+        return 1
+    end
+    string filePath = args[1]
+    Buffer buf = Buffer()
+    if not buf.load(filePath) then
+        println("error: cannot open file: " + filePath)
+        return 1
+    end
+    int idx = newBufferWithName(filePath)
+    g_buffers[idx] = buf
+    g_currentIdx = idx
+    println("opened " + filePath + " (" + string(buf.lineCount()) + " lines) as buffer " + string(idx + 1))
+    return 0
+end
+
+// --- save [file] ---
+
+func cmdSave(array<string> args) as int
+    Buffer buf = curBuffer()
+    string target = buf.filename
+    if args.length >= 2 then
+        target = args[1]
+    end
+    if string.isEmpty(target) then
+        println("error: no filename specified and buffer has no file")
+        return 1
+    end
+    if buf.saveAs(target) then
+        putBuffer(buf)
+        println("saved " + string(buf.lineCount()) + " lines to " + target)
+        return 0
+    else
+        println("error: cannot write to " + target)
+        return 1
+    end
+end
+
+// --- insert <line> <text> ---
+
+func cmdInsert(array<string> args) as int
+    if args.length < 3 then
+        println("error: insert requires <line> <text>")
+        return 1
+    end
+    int lineNum = 0
+    try
+        lineNum = int(args[1])
+    catch e
+        println("error: invalid line number: " + args[1])
+        return 1
+    end
+    string text = joinTokens(args, 2)
+    Buffer buf = curBuffer()
+    int idx = lineNum - 1
+    if idx < 0 then
+        idx = 0
+    end
+    if idx > buf.lineCount() then
+        idx = buf.lineCount()
+    end
+    buf.insertLine(idx, text)
+    putBuffer(buf)
+    println("inserted at line " + string(lineNum) + ": " + text)
+    return 0
+end
+
+// --- append <text> ---
+
+func cmdAppend(array<string> args) as int
+    if args.length < 2 then
+        println("error: append requires <text>")
+        return 1
+    end
+    string text = joinTokens(args, 1)
+    Buffer buf = curBuffer()
+    int idx = buf.lineCount()
+    buf.insertLine(idx, text)
+    putBuffer(buf)
+    println("appended: " + text)
+    return 0
+end
+
+// --- delete <line> ---
+
+func cmdDelete(array<string> args) as int
+    if args.length < 2 then
+        println("error: delete requires <line>")
+        return 1
+    end
+    int lineNum = 0
+    try
+        lineNum = int(args[1])
+    catch e
+        println("error: invalid line number: " + args[1])
+        return 1
+    end
+    Buffer buf = curBuffer()
+    int idx = lineNum - 1
+    if idx < 0 or idx >= buf.lineCount() then
+        println("error: line " + string(lineNum) + " out of range")
+        return 1
+    end
+    string deleted = buf.deleteLine(idx)
+    putBuffer(buf)
+    println("deleted line " + string(lineNum) + ": " + deleted)
+    return 0
+end
+
+// --- set <line> <text> ---
+
+func cmdSet(array<string> args) as int
+    if args.length < 3 then
+        println("error: set requires <line> <text>")
+        return 1
+    end
+    int lineNum = 0
+    try
+        lineNum = int(args[1])
+    catch e
+        println("error: invalid line number: " + args[1])
+        return 1
+    end
+    string text = joinTokens(args, 2)
+    Buffer buf = curBuffer()
+    int idx = lineNum - 1
+    if idx < 0 or idx >= buf.lineCount() then
+        println("error: line " + string(lineNum) + " out of range")
+        return 1
+    end
+    buf.setLine(idx, text)
+    putBuffer(buf)
+    println("set line " + string(lineNum) + ": " + text)
+    return 0
+end
+
+// --- find [-i] <pattern> ---
+
+func cmdFind(array<string> args) as int
+    bool ignoreCase = false
+    int start = 1
+    if args.length >= 2 then
+        if args[1] == "-i" or args[1] == "--ignore-case" then
+            ignoreCase = true
+            start = 2
+        end
+    end
+    if start >= args.length then
+        println("error: find requires a pattern")
+        return 1
+    end
+    string pattern = args[start]
+    Buffer buf = curBuffer()
+    int matches = buf.findPattern(pattern, ignoreCase)
+    if ignoreCase then
+        println(string(matches) + " match(es) for /" + pattern + "/i")
+    else
+        println(string(matches) + " match(es) for /" + pattern + "/")
+    end
+    return 0
+end
+
+// --- replace [-i] <from> <to> ---
+
+func cmdReplace(array<string> args) as int
+    bool ignoreCase = false
+    int start = 1
+    if args.length >= 2 then
+        if args[1] == "-i" or args[1] == "--ignore-case" then
+            ignoreCase = true
+            start = 2
+        end
+    end
+    if start + 1 >= args.length then
+        println("error: replace requires <from> <to>")
+        return 1
+    end
+    string from = args[start]
+    string to = args[start + 1]
+    Buffer buf = curBuffer()
+    int count = buf.replaceAllPattern(from, to, ignoreCase)
+    putBuffer(buf)
+    println(string(count) + " line(s) replaced")
+    return 0
+end
+
+// --- replace-one [-i] <from> <to> ---
+
+func cmdReplaceOne(array<string> args) as int
+    bool ignoreCase = false
+    int start = 1
+    if args.length >= 2 then
+        if args[1] == "-i" or args[1] == "--ignore-case" then
+            ignoreCase = true
+            start = 2
+        end
+    end
+    if start + 1 >= args.length then
+        println("error: replace-one requires <from> <to>")
+        return 1
+    end
+    string from = args[start]
+    string to = args[start + 1]
+    Buffer buf = curBuffer()
+    int count = buf.replaceFirstPattern(from, to, ignoreCase)
+    putBuffer(buf)
+    println(string(count) + " line(s) replaced (first match per line)")
+    return 0
+end
+
+// --- undo ---
+
+func cmdUndo(array<string> args) as int
+    Buffer buf = curBuffer()
+    if not buf.canUndo() then
+        println("nothing to undo")
+        return 0
+    end
+    buf.undo()
+    putBuffer(buf)
+    println("undo (" + string(buf.undoCount()) + " remaining)")
+    return 0
+end
+
+// --- redo ---
+
+func cmdRedo(array<string> args) as int
+    Buffer buf = curBuffer()
+    if not buf.canRedo() then
+        println("nothing to redo")
+        return 0
+    end
+    buf.redo()
+    putBuffer(buf)
+    println("redo (" + string(buf.redoCount()) + " remaining)")
+    return 0
+end
+
+// --- show [start] [end] ---
+
+func cmdShow(array<string> args) as int
+    Buffer buf = curBuffer()
+    if buf.lineCount() == 0 then
+        println("(empty buffer)")
+        return 0
+    end
+    int s = 1
+    int e = buf.lineCount()
+    if args.length >= 2 then
+        try
+            s = int(args[1])
+        catch ex
+            s = 1
+        end
+    end
+    if args.length >= 3 then
+        try
+            e = int(args[2])
+        catch ex
+            e = buf.lineCount()
+        end
+    end
+    buf.displayRange(s, e)
+    return 0
+end
+
+// --- lines ---
+
+func cmdLines(array<string> args) as int
+    Buffer buf = curBuffer()
+    println(string(buf.lineCount()) + " line(s)")
+    return 0
+end
+
+// --- count ---
+
+func cmdCount(array<string> args) as int
+    Buffer buf = curBuffer()
+    println("Lines: " + string(buf.lineCount()))
+    println("Chars: " + string(buf.charCount()))
+    println("Words: " + string(buf.wordCount()))
+    return 0
+end
+
+// --- highlight [start] [end] ---
+
+func cmdHighlight(array<string> args) as int
+    Buffer buf = curBuffer()
+    if buf.lineCount() == 0 then
+        println("(empty buffer)")
+        return 0
+    end
+    int s = 1
+    int e = buf.lineCount()
+    if args.length >= 2 then
+        try
+            s = int(args[1])
+        catch ex
+            s = 1
+        end
+    end
+    if args.length >= 3 then
+        try
+            e = int(args[2])
+        catch ex
+            e = buf.lineCount()
+        end
+    end
+    buf.displayHighlightedRange(s, e)
+    return 0
+end
+
+// --- goto <line> ---
+
+func cmdGoto(array<string> args) as int
+    if args.length < 2 then
+        println("error: goto requires <line>")
+        return 1
+    end
+    int lineNum = 0
+    try
+        lineNum = int(args[1])
+    catch e
+        println("error: invalid line number: " + args[1])
+        return 1
+    end
+    Buffer buf = curBuffer()
+    int idx = lineNum - 1
+    if idx < 0 then
+        idx = 0
+    end
+    if idx >= buf.lineCount() then
+        idx = buf.lineCount() - 1
+    end
+    buf.cursorGoto(idx, 0)
+    putBuffer(buf)
+    println("cursor at line " + string(idx + 1))
+    return 0
+end
+
+// --- cursor <row> <col> ---
+
+func cmdCursor(array<string> args) as int
+    if args.length < 3 then
+        println("error: cursor requires <row> <col>")
+        return 1
+    end
+    int r = 0
+    int c = 0
+    try
+        r = int(args[1])
+        c = int(args[2])
+    catch e
+        println("error: invalid cursor position")
+        return 1
+    end
+    Buffer buf = curBuffer()
+    buf.cursorGoto(r, c)
+    putBuffer(buf)
+    println("cursor at row=" + string(r) + " col=" + string(c))
+    return 0
+end
+
+// --- bnext ---
+
+func cmdBnext(array<string> args) as int
+    if nextBuffer() then
+        Buffer buf = curBuffer()
+        println("switched to buffer " + string(g_currentIdx + 1) + ": " + buf.displayName())
+        return 0
+    else
+        println("no next buffer")
+        return 1
+    end
+end
+
+// --- bprev ---
+
+func cmdBprev(array<string> args) as int
+    if prevBuffer() then
+        Buffer buf = curBuffer()
+        println("switched to buffer " + string(g_currentIdx + 1) + ": " + buf.displayName())
+        return 0
+    else
+        println("no previous buffer")
+        return 1
+    end
+end
+
+// --- blist ---
+
+func cmdBlist(array<string> args) as int
+    print(listBuffersText())
+    return 0
+end
+
+// --- bclose ---
+
+func cmdBclose(array<string> args) as int
+    if closeCurrentBuffer() then
+        Buffer buf = curBuffer()
+        println("closed buffer. now at buffer " + string(g_currentIdx + 1) + ": " + buf.displayName())
+        return 0
+    else
+        println("cannot close the last buffer")
+        return 1
+    end
+end
+
+// --- info ---
+
+func cmdInfo(array<string> args) as int
+    Buffer buf = curBuffer()
+    println(buf.infoText())
+    return 0
+end
+
+// --- clear-history ---
+
+func cmdClearHistory(array<string> args) as int
+    Buffer buf = curBuffer()
+    int u = buf.undoCount()
+    int r = buf.redoCount()
+    buf.clearHistory()
+    putBuffer(buf)
+    println("cleared " + string(u) + " undo + " + string(r) + " redo entries")
+    return 0
+end
+
+// --- cursor up/down/left/right/home/end/filestart/fileend ---
+
+func cmdCursorMove(string direction) as int
+    Buffer buf = curBuffer()
+    if direction == "up" then
+        buf.cursorUp()
+    elseif direction == "down" then
+        buf.cursorDown()
+    elseif direction == "left" then
+        buf.cursorLeft()
+    elseif direction == "right" then
+        buf.cursorRight()
+    elseif direction == "home" then
+        buf.cursorHome()
+    elseif direction == "end" then
+        buf.cursorEnd()
+    elseif direction == "file-start" then
+        buf.cursorFileStart()
+    elseif direction == "file-end" then
+        buf.cursorFileEnd()
+    else
+        println("error: unknown cursor direction: " + direction)
+        return 1
+    end
+    putBuffer(buf)
+    println("cursor at row=" + string(buf.cursorRow) + " col=" + string(buf.cursorCol))
+    return 0
+end
+
+
+// ============================================================================
+// 命令分发
+// ============================================================================
+
+func executeCommand(string line) as int
+    array<string> tokens = parseCommandTokens(line)
+    if tokens.length == 0 then
+        return 0
+    end
+    string cmd = string.lower(tokens[0])
+
+    if cmd == "quit" or cmd == "exit" then
+        g_shouldQuit = true
+        return 0
+    end
+    if cmd == "open" then
+        return cmdOpen(tokens)
+    end
+    if cmd == "save" then
+        return cmdSave(tokens)
+    end
+    if cmd == "insert" then
+        return cmdInsert(tokens)
+    end
+    if cmd == "append" then
+        return cmdAppend(tokens)
+    end
+    if cmd == "delete" or cmd == "del" then
+        return cmdDelete(tokens)
+    end
+    if cmd == "set" or cmd == "replace-line" then
+        return cmdSet(tokens)
+    end
+    if cmd == "find" or cmd == "search" then
+        return cmdFind(tokens)
+    end
+    if cmd == "replace" then
+        return cmdReplace(tokens)
+    end
+    if cmd == "replace-one" or cmd == "substitute" then
+        return cmdReplaceOne(tokens)
+    end
+    if cmd == "undo" then
+        return cmdUndo(tokens)
+    end
+    if cmd == "redo" then
+        return cmdRedo(tokens)
+    end
+    if cmd == "show" or cmd == "cat" or cmd == "print" then
+        return cmdShow(tokens)
+    end
+    if cmd == "lines" then
+        return cmdLines(tokens)
+    end
+    if cmd == "count" or cmd == "stats" then
+        return cmdCount(tokens)
+    end
+    if cmd == "highlight" or cmd == "hl" then
+        return cmdHighlight(tokens)
+    end
+    if cmd == "goto" then
+        return cmdGoto(tokens)
+    end
+    if cmd == "cursor" then
+        if tokens.length >= 2 then
+            string sub = string.lower(tokens[1])
+            if sub == "up" or sub == "down" or sub == "left" or sub == "right" then
+                return cmdCursorMove(sub)
+            end
+            if sub == "home" or sub == "end" then
+                return cmdCursorMove(sub)
+            end
+            if sub == "file-start" or sub == "file-end" then
+                return cmdCursorMove(sub)
+            end
+        end
+        return cmdCursor(tokens)
+    end
+    if cmd == "bnext" then
+        return cmdBnext(tokens)
+    end
+    if cmd == "bprev" then
+        return cmdBprev(tokens)
+    end
+    if cmd == "blist" or cmd == "buffers" or cmd == "ls" then
+        return cmdBlist(tokens)
+    end
+    if cmd == "bclose" then
+        return cmdBclose(tokens)
+    end
+    if cmd == "info" or cmd == "status" then
+        return cmdInfo(tokens)
+    end
+    if cmd == "clear-history" then
+        return cmdClearHistory(tokens)
+    end
+
+    println("error: unknown command: " + tokens[0])
+    println("type 'xedit help' for usage")
+    return 1
+end
+
+// 执行编辑命令脚本文件。
+func runScript(string scriptPath) as int
+    if not file.exists(scriptPath) then
+        println("error: script file not found: " + scriptPath)
+        return 1
+    end
+    string content = ""
+    try
+        content = file.readText(scriptPath)
+    catch e
+        println("error: cannot read script: " + scriptPath)
+        return 1
+    end
+
+    array<string> scriptLines = splitLinesSafe(content)
+    int executed = 0
+    int errors = 0
+    int i = 0
+    while i < scriptLines.length do
+        string raw = scriptLines[i]
+        string trimmed = string.trim(raw)
+        if string.isEmpty(trimmed) then
+            i += 1
+            continue
+        end
+        if string.startsWith(trimmed, "#") or string.startsWith(trimmed, "//") then
+            i += 1
+            continue
+        end
+        int ret = executeCommand(raw)
+        executed += 1
+        if ret != 0 then
+            errors += 1
+        end
+        if g_shouldQuit then
+            break
+        end
+        i += 1
+    end
+    println("--- script done: " + string(executed) + " commands executed, " + string(errors) + " error(s) ---")
+    if errors > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ============================================================================
+// 帮助
+// ============================================================================
+
+func printHelp()
+    println("xedit - 文本编辑器（命令行驱动，非交互）")
+    println("")
+    println("用法:")
+    println("  xedit script <file.xed>    执行编辑命令脚本")
+    println("  xedit test                 运行内置自测")
+    println("  xedit help                 显示本帮助")
+    println("")
+    println("脚本命令（每行一条，# 或 // 为注释，双引号保留空格）:")
+    println("  open <file>                打开文件到新缓冲区")
+    println("  save [file]                保存当前缓冲区")
+    println("  insert <line> <text>       在第 <line> 行前插入")
+    println("  append <text>              在末尾追加一行")
+    println("  delete <line>              删除第 <line> 行")
+    println("  set <line> <text>          替换第 <line> 行内容")
+    println("  find [-i] <pattern>        正则搜索（-i 大小写不敏感）")
+    println("  replace [-i] <from> <to>   全部替换（正则）")
+    println("  replace-one [-i] <f> <t>   仅替换每行首个匹配")
+    println("  undo                       撤销")
+    println("  redo                       重做")
+    println("  show [start] [end]         显示内容（带行号）")
+    println("  lines                      显示行数")
+    println("  count                      字数/字符数统计")
+    println("  highlight [start] [end]    语法高亮显示")
+    println("  goto <line>                光标跳转到指定行")
+    println("  cursor <row> <col>         设置光标位置")
+    println("  cursor up|down|left|right  光标移动")
+    println("  cursor home|end            行首/行尾")
+    println("  cursor file-start|file-end 文件首/文件尾")
+    println("  info                       缓冲区信息")
+    println("  clear-history              清空撤销/重做历史")
+    println("  bnext / bprev              切换缓冲区")
+    println("  blist                      列出所有缓冲区")
+    println("  bclose                     关闭当前缓冲区")
+    println("  quit                       停止执行脚本")
+end
+
+
+// ============================================================================
+// 自测
+// ============================================================================
+
+int g_testPass = 0
+int g_testFail = 0
+
+func testAssert(string name, bool cond) as bool
+    if cond then
+        g_testPass += 1
+        println("  " + C_GREEN + "PASS" + C_RESET + " " + name)
+    else
+        g_testFail += 1
+        println("  " + C_RED + "FAIL" + C_RESET + " " + name)
+    end
+    return cond
+end
+
+func runSelfTest() as int
+    println("========================================")
+    println("xedit self-test")
+    println("========================================")
+
+    testBufferBasic()
+    testInsertDeleteLines()
+    testSetLine()
+    testUndoRedoLines()
+    testCharOps()
+    testUndoRedoCharOps()
+    testReplaceUndo()
+    testClearHistory()
+    testSearch()
+    testReplaceAll()
+    testReplaceFirst()
+    testCaseSensitiveSearch()
+    testCursorMove()
+    testHighlight()
+    testMultiBuffer()
+    testStats()
+    testFileIO()
+    testRegexHelpers()
+    testParseTokens()
+    testSplitLinesSafe()
+
+    println("========================================")
+    println("Total: " + C_GREEN + string(g_testPass) + " passed" + C_RESET +
+            ", " + C_RED + string(g_testFail) + " failed" + C_RESET)
+    if g_testFail > 0 then
+        return 1
+    end
+    return 0
+end
+
+// 测试 Buffer 基本创建和初始状态。
+func testBufferBasic()
+    println("[test] Buffer basic creation")
+    Buffer buf = Buffer()
+    testAssert("new buffer has 1 line", buf.lineCount() == 1)
+    testAssert("first line is empty", buf.getLine(0) == "")
+    testAssert("cursor row=0", buf.cursorRow == 0)
+    testAssert("cursor col=0", buf.cursorCol == 0)
+    testAssert("not modified", buf.modified == false)
+    testAssert("display name is [No Name]", buf.displayName() == "[No Name]")
+    testAssert("undo stack empty", buf.canUndo() == false)
+    testAssert("redo stack empty", buf.canRedo() == false)
+end
+
+// 测试插入/删除行。
+func testInsertDeleteLines()
+    println("[test] Insert/delete lines")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "hello")
+    buf.insertLine(1, "world")
+    buf.insertLine(2, "foo")
+    testAssert("3 lines after insert", buf.lineCount() == 3)
+    testAssert("line 0 = hello", buf.getLine(0) == "hello")
+    testAssert("line 1 = world", buf.getLine(1) == "world")
+    testAssert("line 2 = foo", buf.getLine(2) == "foo")
+    testAssert("modified after insert", buf.modified == true)
+
+    string deleted = buf.deleteLine(1)
+    testAssert("deleted line is world", deleted == "world")
+    testAssert("2 lines after delete", buf.lineCount() == 2)
+    testAssert("line 0 still hello", buf.getLine(0) == "hello")
+    testAssert("line 1 now foo", buf.getLine(1) == "foo")
+
+    buf.insertLine(0, "first")
+    testAssert("4 lines total", buf.lineCount() == 3)
+    testAssert("line 0 = first", buf.getLine(0) == "first")
+
+    buf.insertLine(buf.lineCount(), "last")
+    testAssert("appended at end", buf.getLine(buf.lineCount() - 1) == "last")
+end
+
+// 测试 setLine（替换行）。
+func testSetLine()
+    println("[test] Set/replace line")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "aaa")
+    buf.insertLine(1, "bbb")
+    buf.setLine(0, "XXX")
+    testAssert("line 0 replaced", buf.getLine(0) == "XXX")
+    testAssert("line 1 unchanged", buf.getLine(1) == "bbb")
+    testAssert("line count unchanged", buf.lineCount() == 2)
+end
+
+// 测试行级撤销/重做。
+func testUndoRedoLines()
+    println("[test] Undo/redo line operations")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "line1")
+    buf.insertLine(1, "line2")
+    testAssert("2 lines before undo", buf.lineCount() == 2)
+    testAssert("can undo", buf.canUndo() == true)
+
+    buf.undo()
+    testAssert("1 line after undo insert", buf.lineCount() == 1)
+    testAssert("undo restored line1", buf.getLine(0) == "line1")
+
+    buf.undo()
+    testAssert("0+1 line after second undo", buf.lineCount() == 1)
+    testAssert("line is empty after full undo", buf.getLine(0) == "")
+
+    testAssert("cannot undo more", buf.canUndo() == false)
+    testAssert("can redo", buf.canRedo() == true)
+
+    buf.redo()
+    testAssert("redo restores line1", buf.getLine(0) == "line1")
+
+    buf.redo()
+    testAssert("redo restores line2", buf.getLine(1) == "line2")
+    testAssert("2 lines after redo", buf.lineCount() == 2)
+
+    testAssert("cannot redo more", buf.canRedo() == false)
+end
+
+// 测试字符级操作。
+func testCharOps()
+    println("[test] Character operations")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "hello")
+    buf.insertChar(0, 0, "X")
+    testAssert("insert X at start", buf.getLine(0) == "Xhello")
+    buf.insertChar(0, 6, "!")
+    testAssert("insert ! at end", buf.getLine(0) == "Xhello!")
+    buf.insertChar(0, 1, "Y")
+    testAssert("insert Y at pos 1", buf.getLine(0) == "XYhello!")
+
+    string d = buf.deleteChar(0, 0)
+    testAssert("deleted X", d == "X")
+    testAssert("line after delete X", buf.getLine(0) == "Yhello!")
+
+    d = buf.deleteChar(0, string.len(buf.getLine(0)) - 1)
+    testAssert("deleted !", d == "!")
+    testAssert("line after delete !", buf.getLine(0) == "Yhello")
+end
+
+// 测试字符级撤销/重做。
+func testUndoRedoCharOps()
+    println("[test] Undo/redo character operations")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "abc")
+    buf.insertChar(0, 3, "d")
+    testAssert("line is abcd", buf.getLine(0) == "abcd")
+
+    buf.undo()
+    testAssert("undo char insert", buf.getLine(0) == "abc")
+
+    buf.redo()
+    testAssert("redo char insert", buf.getLine(0) == "abcd")
+
+    buf.deleteChar(0, 0)
+    testAssert("delete first char", buf.getLine(0) == "bcd")
+    buf.undo()
+    testAssert("undo delete char", buf.getLine(0) == "abcd")
+end
+
+// 测试替换行撤销。
+func testReplaceUndo()
+    println("[test] Replace line undo/redo")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "original")
+    buf.setLine(0, "changed")
+    testAssert("line changed", buf.getLine(0) == "changed")
+    buf.undo()
+    testAssert("undo restore original", buf.getLine(0) == "original")
+    buf.redo()
+    testAssert("redo back to changed", buf.getLine(0) == "changed")
+end
+
+// 测试清空历史。
+func testClearHistory()
+    println("[test] Clear history")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "a")
+    buf.insertLine(1, "b")
+    testAssert("undo stack has entries", buf.canUndo() == true)
+    buf.clearHistory()
+    testAssert("undo empty after clear", buf.canUndo() == false)
+    testAssert("redo empty after clear", buf.canRedo() == false)
+    testAssert("lines preserved after clear", buf.lineCount() == 2)
+end
+
+// 测试正则搜索。
+func testSearch()
+    println("[test] Regex search")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "hello world")
+    buf.insertLine(1, "foo bar")
+    buf.insertLine(2, "hello again")
+
+    int n1 = buf.findPattern("hello", false)
+    testAssert("find hello matches 2 lines", n1 == 2)
+
+    int n2 = buf.findPattern("[0-9]+", false)
+    testAssert("find digits matches 0", n2 == 0)
+
+    int n3 = buf.findPattern("foo|hello", false)
+    testAssert("find foo|hello matches 3", n3 == 3)
+
+    int n4 = buf.findPattern("^hello", false)
+    testAssert("find ^hello matches 2", n4 == 2)
+end
+
+// 测试全量替换。
+func testReplaceAll()
+    println("[test] Replace all")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "foo bar foo")
+    buf.insertLine(1, "baz foo")
+    int count = buf.replaceAllPattern("foo", "XXX", false)
+    testAssert("2 lines replaced", count == 2)
+    testAssert("line 0 all foo replaced", buf.getLine(0) == "XXX bar XXX")
+    testAssert("line 1 foo replaced", buf.getLine(1) == "baz XXX")
+end
+
+// 测试单次替换。
+func testReplaceFirst()
+    println("[test] Replace first")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "aaa bbb aaa")
+    int count = buf.replaceFirstPattern("aaa", "X", false)
+    testAssert("1 line replaced", count == 1)
+    testAssert("only first aaa replaced", buf.getLine(0) == "X bbb aaa")
+end
+
+// 测试大小写敏感搜索。
+func testCaseSensitiveSearch()
+    println("[test] Case-sensitive search")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "Hello World")
+    buf.insertLine(1, "HELLO there")
+    buf.insertLine(2, "hello again")
+
+    int ns = buf.findPattern("Hello", false)
+    testAssert("case-sensitive Hello=1", ns == 1)
+
+    int ni = buf.findPattern("Hello", true)
+    testAssert("case-insensitive Hello=3", ni == 3)
+end
+
+// 测试光标移动。
+func testCursorMove()
+    println("[test] Cursor movement")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "abc")
+    buf.insertLine(1, "defg")
+    buf.insertLine(2, "hi")
+
+    buf.cursorFileStart()
+    testAssert("file start row=0 col=0", buf.cursorRow == 0 and buf.cursorCol == 0)
+
+    buf.cursorEnd()
+    testAssert("end of line 0 col=3", buf.cursorCol == 3)
+
+    buf.cursorDown()
+    testAssert("down to row 1", buf.cursorRow == 1)
+    testAssert("col clamped to 4", buf.cursorCol == 4)
+
+    buf.cursorHome()
+    testAssert("home col=0", buf.cursorCol == 0)
+
+    buf.cursorRight()
+    testAssert("right col=1", buf.cursorCol == 1)
+
+    buf.cursorLeft()
+    testAssert("left back to 0", buf.cursorCol == 0)
+
+    buf.cursorFileEnd()
+    testAssert("file end row=2", buf.cursorRow == 2)
+    testAssert("file end col=2", buf.cursorCol == 2)
+
+    buf.cursorUp()
+    testAssert("up to row 1", buf.cursorRow == 1)
+end
+
+// 测试语法高亮。
+func testHighlight()
+    println("[test] Syntax highlighting")
+    string hl1 = highlightLine("// comment here")
+    testAssert("comment has gray", string.contains(hl1, C_GRAY))
+    testAssert("comment has reset", string.contains(hl1, C_RESET))
+
+    string hl2 = highlightLine("x = \"hello\"")
+    testAssert("string has green", string.contains(hl2, C_GREEN))
+
+    string hl3 = highlightLine("func foo() as int")
+    testAssert("keyword has cyan", string.contains(hl3, C_CYAN))
+
+    string hl4 = highlightLine("x = 12345")
+    testAssert("number has yellow", string.contains(hl4, C_YELLOW))
+
+    string hl5 = highlightLine("")
+    testAssert("empty line empty", hl5 == "")
+
+    string hl6 = highlightLine("var data = 42")
+    testAssert("var typed as type word", string.contains(hl6, C_BLUE))
+
+    string hl7 = highlightLine("if x == true then")
+    testAssert("true colored as literal", string.contains(hl7, C_MAGENTA))
+
+    string hl8 = highlightLine("f\"value = {x}\"")
+    testAssert("f-string has green", string.contains(hl8, C_GREEN))
+
+    string hl9 = highlightLine("s = rf\"c:\\path\"")
+    testAssert("rf-string has green", string.contains(hl9, C_GREEN))
+end
+
+// 测试多缓冲区。
+func testMultiBuffer()
+    println("[test] Multi-buffer")
+    initEditor()
+    testAssert("1 buffer after init", bufferCount() == 1)
+
+    int idx2 = newBufferWithName("test2.txt")
+    testAssert("2 buffers after new", bufferCount() == 2)
+    testAssert("idx2 is 1", idx2 == 1)
+
+    Buffer b2 = g_buffers[idx2]
+    b2.insertLine(0, "in buffer 2")
+    g_buffers[idx2] = b2
+
+    switchToBuffer(0)
+    testAssert("switched to buffer 0", g_currentIdx == 0)
+
+    nextBuffer()
+    testAssert("next goes to buffer 1", g_currentIdx == 1)
+
+    nextBuffer()
+    testAssert("next wraps to buffer 0", g_currentIdx == 0)
+
+    prevBuffer()
+    testAssert("prev wraps to buffer 1", g_currentIdx == 1)
+
+    prevBuffer()
+    testAssert("prev goes to buffer 0", g_currentIdx == 0)
+
+    closeCurrentBuffer()
+    testAssert("1 buffer after close", bufferCount() == 1)
+
+    string listing = listBuffersText()
+    testAssert("listing not empty", string.isEmpty(listing) == false)
+end
+
+// 测试统计。
+func testStats()
+    println("[test] Statistics")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "hello world")
+    buf.insertLine(1, "foo bar baz")
+    testAssert("2 lines", buf.lineCount() == 2)
+    testAssert("19 chars", buf.charCount() == 19)
+    testAssert("5 words", buf.wordCount() == 5)
+
+    Buffer empty = Buffer()
+    testAssert("empty has 0 chars", empty.charCount() == 0)
+    testAssert("empty has 0 words", empty.wordCount() == 0)
+end
+
+// 测试文件 I/O 往返。
+func testFileIO()
+    println("[test] File I/O roundtrip")
+    Buffer buf = Buffer()
+    buf.insertLine(0, "first line")
+    buf.insertLine(1, "second line")
+    buf.insertLine(2, "third line")
+
+    string testPath = "xedit_test_temp.txt"
+    bool saved = buf.saveAs(testPath)
+    testAssert("save succeeded", saved == true)
+    testAssert("filename set", buf.filename == testPath)
+    testAssert("not modified after save", buf.modified == false)
+
+    Buffer buf2 = Buffer()
+    bool loaded = buf2.load(testPath)
+    testAssert("load succeeded", loaded == true)
+    testAssert("3 lines loaded", buf2.lineCount() == 3)
+    testAssert("line 0 correct", buf2.getLine(0) == "first line")
+    testAssert("line 1 correct", buf2.getLine(1) == "second line")
+    testAssert("line 2 correct", buf2.getLine(2) == "third line")
+
+    try
+        file.remove(testPath)
+    catch e
+    end
+end
+
+// 测试正则替换辅助函数。
+func testRegexHelpers()
+    println("[test] Regex helper functions")
+    string r1 = regexReplaceAll("hello world hello", "hello", "HI", false)
+    testAssert("replaceAll hello→HI", r1 == "HI world HI")
+
+    string r2 = regexReplaceFirst("aaa aaa", "aaa", "X", false)
+    testAssert("replaceFirst only first", r2 == "X aaa")
+
+    string r3 = regexReplaceAll("test123test456", "[0-9]+", "#", false)
+    testAssert("replaceAll regex digits", r3 == "test#test#")
+
+    string r4 = regexReplaceAll("no match here", "xyz", "QQ", false)
+    testAssert("replaceAll no match unchanged", r4 == "no match here")
+
+    string r5 = regexReplaceFirst("nothing", "xyz", "found", false)
+    testAssert("replaceFirst no match unchanged", r5 == "nothing")
+end
+
+// 测试命令 token 解析。
+func testParseTokens()
+    println("[test] Command token parsing")
+    array<string> t1 = parseCommandTokens("insert 3 hello world")
+    testAssert("3 tokens no quotes", t1.length == 4)
+    testAssert("first is insert", t1[0] == "insert")
+    testAssert("second is 3", t1[1] == "3")
+
+    array<string> t2 = parseCommandTokens("insert 3 \"hello world\"")
+    testAssert("quoted text one token", t2.length == 3)
+    testAssert("quoted content preserved", t2[2] == "hello world")
+
+    array<string> t3 = parseCommandTokens("")
+    testAssert("empty line 0 tokens", t3.length == 0)
+
+    array<string> t4 = parseCommandTokens("   save   ")
+    testAssert("trimmed single token", t4.length == 1)
+    testAssert("token is save", t4[0] == "save")
+
+    string j1 = joinTokens(t1, 2)
+    testAssert("joinTokens from 2", j1 == "hello world")
+end
+
+// 测试 splitLinesSafe。
+func testSplitLinesSafe()
+    println("[test] splitLinesSafe")
+    array<string> a1 = splitLinesSafe("aaa\nbbb\nccc")
+    testAssert("3 lines no trailing", a1.length == 3)
+
+    array<string> a2 = splitLinesSafe("aaa\nbbb\n")
+    testAssert("trailing newline dropped", a2.length == 2)
+
+    array<string> a3 = splitLinesSafe("")
+    testAssert("empty input 0 lines", a3.length == 0)
+
+    array<string> a4 = splitLinesSafe("single")
+    testAssert("single line", a4.length == 1)
+    testAssert("single content", a4[0] == "single")
+end
+
+
+// ============================================================================
+// main
+// ============================================================================
+
+func main(...) as int
+    if arg.length < 2 then
+        printHelp()
+        return 1
+    end
+
+    string command = string(arg[1])
+
+    if command == "script" then
+        if arg.length < 3 then
+            println("error: script requires a file argument")
+            println("usage: xedit script <file.xed>")
+            return 1
+        end
+        initEditor()
+        string scriptFile = string(arg[2])
+        return runScript(scriptFile)
+    end
+
+    if command == "test" then
+        initEditor()
+        return runSelfTest()
+    end
+
+    if command == "help" or command == "-h" or command == "--help" then
+        printHelp()
+        return 0
+    end
+
+    if command == "version" or command == "--version" or command == "-v" then
+        println("xedit 1.0 (xlang text editor)")
+        return 0
+    end
+
+    println("error: unknown command: " + command)
+    println("usage: xedit script <file> | test | help")
+    return 1
+end

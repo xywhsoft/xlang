@@ -1,0 +1,2890 @@
+// xcompiler.xl - 一个用 xlang 编写的「xlang 子集 → C」简化编译器
+//
+// 用法:
+//   xcompiler compile <input.xl> <output.c>   把 xlang 源文件编译成 C 源文件
+//   xcompiler test                            运行内置自检测试套件
+//   xcompiler -h | --help                     显示帮助
+//
+// 本工具验证 xlang 的以下能力:
+//   * 手写词法分析器（手撸 DFA，token 流生成）
+//   * 递归下降语法分析器 → AST（用 var dict 作为节点载体）
+//   * 简化语义分析（变量声明检查、重复声明检测）
+//   * C 代码生成（AST → C 源码字符串拼接）
+//   * 大量全局函数 + 全局可变状态组织编译流水线
+//
+// 支持的 xlang 子集:
+//   func add(int a, int b) as int
+//       return a + b
+//   end
+//
+//   int x = 42
+//   float pi = 3.14
+//   string name = "xlang"
+//   bool ok = true
+//
+//   if x > 10 then
+//       print(x)
+//   elseif x == 5 then
+//       print(0)
+//   else
+//       print(-1)
+//   end
+//
+//   while x > 0 do
+//       x = x - 1
+//   end
+//
+//   for i in range(10)
+//       print(i)
+//   end
+//
+//   return x + y
+//
+// 代码生成约定:
+//   int      → int64_t     (printf 用 "%lld")
+//   float    → double      (printf 用 "%g")
+//   string   → const char* (printf 用 "%s")
+//   bool     → int         (printf 用 "%d")
+//   print(e) → printf("...\n", e);
+
+
+// =====================================================================
+// 1. 全局状态
+// =====================================================================
+
+string g_src
+int g_pos
+int g_len
+array<var> g_tokens = []
+int g_ti
+var g_ct
+
+// 语义分析期间的符号表栈（每层是一个 dict<string,string>）。
+array<var> g_scopes = []
+
+// 全局函数表：dict<string,var>，key=函数名。
+var g_funcTable = {}
+
+// 错误收集。
+string g_error = ""
+
+// 关键字表。
+array<string> g_keywords = []
+array<string> g_types = []
+
+
+// =====================================================================
+// 2. 字符级辅助函数
+// =====================================================================
+
+func initTables()
+    g_keywords = []
+    g_keywords.append("func")
+    g_keywords.append("if")
+    g_keywords.append("then")
+    g_keywords.append("elseif")
+    g_keywords.append("else")
+    g_keywords.append("end")
+    g_keywords.append("while")
+    g_keywords.append("do")
+    g_keywords.append("for")
+    g_keywords.append("in")
+    g_keywords.append("return")
+    g_keywords.append("break")
+    g_keywords.append("continue")
+    g_keywords.append("and")
+    g_keywords.append("or")
+    g_keywords.append("not")
+    g_keywords.append("true")
+    g_keywords.append("false")
+    g_keywords.append("print")
+    g_keywords.append("println")
+
+    g_types = []
+    g_types.append("int")
+    g_types.append("float")
+    g_types.append("string")
+    g_types.append("bool")
+    g_types.append("void")
+end
+
+
+func isKeyword(string w) as bool
+    for k in g_keywords
+        if k == w then
+            return true
+        end
+    end
+    return false
+end
+
+
+func isTypeWord(string w) as bool
+    for t in g_types
+        if t == w then
+            return true
+        end
+    end
+    return false
+end
+
+
+func isWs(string c) as bool
+    if c == " " then
+        return true
+    end
+    if c == "\t" then
+        return true
+    end
+    if c == "\r" then
+        return true
+    end
+    if c == "\n" then
+        return true
+    end
+    return false
+end
+
+
+func isDigitChar(string c) as bool
+    if c == "0" then
+        return true
+    end
+    if c == "1" then
+        return true
+    end
+    if c == "2" then
+        return true
+    end
+    if c == "3" then
+        return true
+    end
+    if c == "4" then
+        return true
+    end
+    if c == "5" then
+        return true
+    end
+    if c == "6" then
+        return true
+    end
+    if c == "7" then
+        return true
+    end
+    if c == "8" then
+        return true
+    end
+    if c == "9" then
+        return true
+    end
+    return false
+end
+
+
+func isAlphaChar(string c) as bool
+    if c == "_" then
+        return true
+    end
+    int b = string.byteAt(c, 0)
+    if b >= 65 and b <= 90 then
+        return true
+    end
+    if b >= 97 and b <= 122 then
+        return true
+    end
+    return false
+end
+
+
+func isIdentChar(string c) as bool
+    if isAlphaChar(c) then
+        return true
+    end
+    return isDigitChar(c)
+end
+
+
+func curChar() as string
+    if g_pos >= g_len then
+        return ""
+    end
+    return string.charAt(g_src, g_pos)
+end
+
+
+func peekChar(int off) as string
+    int p = g_pos + off
+    if p >= g_len then
+        return ""
+    end
+    if p < 0 then
+        return ""
+    end
+    return string.charAt(g_src, p)
+end
+
+
+func startsWith2(string a, string b) as bool
+    return string.startsWith(a, b)
+end
+
+
+func arrayContainsStr(array<string> arr, string v) as bool
+    for x in arr
+        if x == v then
+            return true
+        end
+    end
+    return false
+end
+
+
+// =====================================================================
+// 3. 词法分析
+// =====================================================================
+
+// 构造一个 token 字典。
+func mkTok(string kind, string text, string val) as var
+    var t = {}
+    t["kind"] = kind
+    t["text"] = text
+    t["val"] = val
+    return t
+end
+
+
+func skipWsAndComments()
+    while g_pos < g_len do
+        string c = curChar()
+        if isWs(c) then
+            g_pos += 1
+        elseif c == "/" and peekChar(1) == "/" then
+            while g_pos < g_len do
+                string cc = curChar()
+                if cc == "\n" then
+                    break
+                end
+                g_pos += 1
+            end
+        else
+            return
+        end
+    end
+end
+
+
+func lexNumber() as var
+    string buf = ""
+    bool hasDot = false
+    bool hasE = false
+    while g_pos < g_len do
+        string c = curChar()
+        if isDigitChar(c) then
+            buf = buf + c
+            g_pos += 1
+        elseif c == "." and not hasDot and not hasE then
+            string nc = peekChar(1)
+            if isDigitChar(nc) then
+                buf = buf + c
+                hasDot = true
+                g_pos += 1
+            else
+                break
+            end
+        elseif (c == "e" or c == "E") and not hasE and string.len(buf) > 0 then
+            string nc = peekChar(1)
+            if isDigitChar(nc) then
+                buf = buf + c
+                hasE = true
+                g_pos += 1
+            elseif (nc == "+" or nc == "-") and isDigitChar(peekChar(2)) then
+                buf = buf + c + nc
+                hasE = true
+                g_pos += 2
+            else
+                break
+            end
+        else
+            break
+        end
+    end
+    if hasDot or hasE then
+        return mkTok("num", buf, "float")
+    end
+    return mkTok("num", buf, "int")
+end
+
+
+func lexStringLit() as var
+    g_pos += 1
+    string buf = ""
+    while g_pos < g_len do
+        string c = curChar()
+        if c == "\"" then
+            g_pos += 1
+            return mkTok("str", buf, "string")
+        end
+        if c == "\\" then
+            g_pos += 1
+            if g_pos >= g_len then
+                break
+            end
+            string e = curChar()
+            if e == "n" then
+                buf = buf + "\n"
+            elseif e == "t" then
+                buf = buf + "\t"
+            elseif e == "r" then
+                buf = buf + "\r"
+            elseif e == "\\" then
+                buf = buf + "\\"
+            elseif e == "\"" then
+                buf = buf + "\""
+            elseif e == "0" then
+                buf = buf + "\0"
+            else
+                buf = buf + e
+            end
+            g_pos += 1
+        else
+            buf = buf + c
+            g_pos += 1
+        end
+    end
+    throw "xcompiler: 未终止的字符串字面量"
+end
+
+
+func lexIdent() as var
+    string buf = ""
+    while g_pos < g_len do
+        string c = curChar()
+        if isIdentChar(c) then
+            buf = buf + c
+            g_pos += 1
+        else
+            break
+        end
+    end
+    if isKeyword(buf) then
+        return mkTok("kw", buf, buf)
+    end
+    if isTypeWord(buf) then
+        return mkTok("type", buf, buf)
+    end
+    return mkTok("id", buf, buf)
+end
+
+
+// 三字符运算符优先，其次双字符，最后单字符。
+func tryMatchOp() as var
+    if g_pos + 2 <= g_len then
+        string t3 = string.charAt(g_src, g_pos) + string.charAt(g_src, g_pos + 1)
+        if g_pos + 2 < g_len then
+            string t3c = t3 + string.charAt(g_src, g_pos + 2)
+            if t3c == "===" then
+                g_pos += 3
+                return mkTok("op", "==", "==")
+            end
+        end
+        if t3 == "==" then
+            g_pos += 2
+            return mkTok("op", "==", "==")
+        end
+        if t3 == "!=" then
+            g_pos += 2
+            return mkTok("op", "!=", "!=")
+        end
+        if t3 == "<=" then
+            g_pos += 2
+            return mkTok("op", "<=", "<=")
+        end
+        if t3 == ">=" then
+            g_pos += 2
+            return mkTok("op", ">=", ">=")
+        end
+        if t3 == "&&" then
+            g_pos += 2
+            return mkTok("op", "&&", "&&")
+        end
+        if t3 == "||" then
+            g_pos += 2
+            return mkTok("op", "||", "||")
+        end
+        if t3 == "+=" then
+            g_pos += 2
+            return mkTok("op", "+=", "+=")
+        end
+        if t3 == "-=" then
+            g_pos += 2
+            return mkTok("op", "-=", "-=")
+        end
+        if t3 == "*=" then
+            g_pos += 2
+            return mkTok("op", "*=", "*=")
+        end
+        if t3 == "/=" then
+            g_pos += 2
+            return mkTok("op", "/=", "/=")
+        end
+    end
+    string c = curChar()
+    g_pos += 1
+    if c == "+" then
+        return mkTok("op", "+", "+")
+    end
+    if c == "-" then
+        return mkTok("op", "-", "-")
+    end
+    if c == "*" then
+        return mkTok("op", "*", "*")
+    end
+    if c == "/" then
+        return mkTok("op", "/", "/")
+    end
+    if c == "%" then
+        return mkTok("op", "%", "%")
+    end
+    if c == "=" then
+        return mkTok("op", "=", "=")
+    end
+    if c == "<" then
+        return mkTok("op", "<", "<")
+    end
+    if c == ">" then
+        return mkTok("op", ">", ">")
+    end
+    if c == "!" then
+        return mkTok("op", "!", "!")
+    end
+    if c == "(" then
+        return mkTok("op", "(", "(")
+    end
+    if c == ")" then
+        return mkTok("op", ")", ")")
+    end
+    if c == "," then
+        return mkTok("op", ",", ",")
+    end
+    if c == ";" then
+        return mkTok("op", ";", ";")
+    end
+    if c == "." then
+        return mkTok("op", ".", ".")
+    end
+    if c == "{" then
+        return mkTok("op", "{", "{")
+    end
+    if c == "}" then
+        return mkTok("op", "}", "}")
+    end
+    if c == "[" then
+        return mkTok("op", "[", "[")
+    end
+    if c == "]" then
+        return mkTok("op", "]", "]")
+    end
+    if c == ":" then
+        return mkTok("op", ":", ":")
+    end
+    throw "xcompiler: 未识别的字符 '" + c + "'"
+end
+
+
+func tokenize(string src) as array<var>
+    g_src = src
+    g_pos = 0
+    g_len = string.len(src)
+    array<var> out = []
+    while true do
+        skipWsAndComments()
+        if g_pos >= g_len then
+            break
+        end
+        string c = curChar()
+        var t
+        if isDigitChar(c) then
+            t = lexNumber()
+        elseif c == "." and isDigitChar(peekChar(1)) then
+            t = lexNumber()
+        elseif c == "\"" then
+            t = lexStringLit()
+        elseif isAlphaChar(c) then
+            t = lexIdent()
+        else
+            t = tryMatchOp()
+        end
+        out.append(t)
+    end
+    out.append(mkTok("eof", "", ""))
+    return out
+end
+
+
+// =====================================================================
+// 4. AST 节点构造辅助
+// =====================================================================
+
+func astNode(string nt) as var
+    var n = {}
+    n["nt"] = nt
+    return n
+end
+
+
+func astProgram() as var
+    var p = astNode("program")
+    p["stmts"] = []
+    return p
+end
+
+
+func astFunc(string name, array<var> params, string retType, array<var> body) as var
+    var n = astNode("func")
+    n["name"] = name
+    n["params"] = params
+    n["retType"] = retType
+    n["body"] = body
+    return n
+end
+
+
+func astParam(string ptype, string pname) as var
+    var n = astNode("param")
+    n["ptype"] = ptype
+    n["pname"] = pname
+    return n
+end
+
+
+func astVarDecl(string vtype, string name, var init) as var
+    var n = astNode("vardecl")
+    n["vtype"] = vtype
+    n["name"] = name
+    n["init"] = init
+    return n
+end
+
+
+func astAssign(string name, var expr) as var
+    var n = astNode("assign")
+    n["name"] = name
+    n["expr"] = expr
+    return n
+end
+
+
+func astIf(var cond, array<var> thenBody, array<var> elseBody) as var
+    var n = astNode("if")
+    n["cond"] = cond
+    n["then"] = thenBody
+    n["elseifs"] = []
+    n["else"] = elseBody
+    return n
+end
+
+
+func astWhile(var cond, array<var> body) as var
+    var n = astNode("while")
+    n["cond"] = cond
+    n["body"] = body
+    return n
+end
+
+
+func astFor(string iterName, var iterable, array<var> body) as var
+    var n = astNode("for")
+    n["iter"] = iterName
+    n["iterable"] = iterable
+    n["body"] = body
+    return n
+end
+
+
+func astReturn(var value) as var
+    var n = astNode("return")
+    n["value"] = value
+    return n
+end
+
+
+func astBreak() as var
+    return astNode("break")
+end
+
+
+func astContinue() as var
+    return astNode("continue")
+end
+
+
+func astExprStmt(var expr) as var
+    var n = astNode("exprstmt")
+    n["expr"] = expr
+    return n
+end
+
+
+func astBinary(string op, var left, var right) as var
+    var n = astNode("binary")
+    n["op"] = op
+    n["left"] = left
+    n["right"] = right
+    return n
+end
+
+
+func astUnary(string op, var expr) as var
+    var n = astNode("unary")
+    n["op"] = op
+    n["expr"] = expr
+    return n
+end
+
+
+func astLiteral(string litType, string value) as var
+    var n = astNode("literal")
+    n["litType"] = litType
+    n["value"] = value
+    return n
+end
+
+
+func astVarRef(string name) as var
+    var n = astNode("varref")
+    n["name"] = name
+    return n
+end
+
+
+func astCall(string name, array<var> args) as var
+    var n = astNode("call")
+    n["name"] = name
+    n["args"] = args
+    return n
+end
+
+
+// =====================================================================
+// 5. 语法分析（递归下降）
+// =====================================================================
+
+func tokKind(var t) as string
+    return string(t["kind"])
+end
+
+
+func tokText(var t) as string
+    return string(t["text"])
+end
+
+
+func curTokKind() as string
+    return tokKind(g_ct)
+end
+
+
+func curTokText() as string
+    return tokText(g_ct)
+end
+
+
+func advanceTok()
+    g_ti += 1
+    if g_ti >= g_tokens.length then
+        g_ti = g_tokens.length - 1
+    end
+    g_ct = g_tokens[g_ti]
+end
+
+
+func isKw(string w) as bool
+    if curTokKind() != "kw" then
+        return false
+    end
+    return curTokText() == w
+end
+
+
+func isOp(string w) as bool
+    if curTokKind() != "op" then
+        return false
+    end
+    return curTokText() == w
+end
+
+
+func isTypeTok() as bool
+    return curTokKind() == "type"
+end
+
+
+func curTypeText() as string
+    return curTokText()
+end
+
+
+func expectOp(string w)
+    if not isOp(w) then
+        throw "xcompiler: 期望 '" + w + "' 但得到 '" + curTokText() + "' (kind=" + curTokKind() + ")"
+    end
+    advanceTok()
+end
+
+
+func expectKw(string w)
+    if not isKw(w) then
+        throw "xcompiler: 期望关键字 '" + w + "' 但得到 '" + curTokText() + "'"
+    end
+    advanceTok()
+end
+
+
+func expectId() as string
+    if curTokKind() != "id" then
+        throw "xcompiler: 期望标识符但得到 '" + curTokText() + "' (kind=" + curTokKind() + ")"
+    end
+    string s = curTokText()
+    advanceTok()
+    return s
+end
+
+
+func expectType() as string
+    if not isTypeTok() then
+        throw "xcompiler: 期望类型名但得到 '" + curTokText() + "' (kind=" + curTokKind() + ")"
+    end
+    string s = curTokText()
+    advanceTok()
+    return s
+end
+
+
+// 语句块终止判断：遇到以下之一即认为当前块结束。
+func atBlockEnd() as bool
+    if curTokKind() == "eof" then
+        return true
+    end
+    if curTokKind() != "kw" then
+        return false
+    end
+    string w = curTokText()
+    if w == "end" then
+        return true
+    end
+    if w == "else" then
+        return true
+    end
+    if w == "elseif" then
+        return true
+    end
+    return false
+end
+
+
+// 解析整个程序。
+func parseProgram() as var
+    var prog = astProgram()
+    while curTokKind() != "eof" do
+        var s = parseStmt()
+        if s != null then
+            prog["stmts"].append(s)
+        end
+    end
+    return prog
+end
+
+
+// 解析参数列表（已消费 '(' 之前的）。
+func parseParams() as array<var>
+    array<var> params = []
+    expectOp("(")
+    if isOp(")") then
+        advanceTok()
+        return params
+    end
+    while true do
+        string pt = expectType()
+        string pn = expectId()
+        params.append(astParam(pt, pn))
+        if isOp(",") then
+            advanceTok()
+        else
+            break
+        end
+    end
+    expectOp(")")
+    return params
+end
+
+
+// 解析语句块直到遇到块终止关键字（end/else/elseif/eof）。
+func parseBlock() as array<var>
+    array<var> body = []
+    while not atBlockEnd() do
+        var s = parseStmt()
+        if s != null then
+            body.append(s)
+        end
+    end
+    return body
+end
+
+
+// 单条语句分派。
+func parseStmt() as var
+    if curTokKind() == "eof" then
+        return null
+    end
+    if curTokKind() == "kw" then
+        string w = curTokText()
+        if w == "func" then
+            return parseFuncDecl()
+        end
+        if w == "if" then
+            return parseIf()
+        end
+        if w == "while" then
+            return parseWhile()
+        end
+        if w == "for" then
+            return parseFor()
+        end
+        if w == "return" then
+            return parseReturn()
+        end
+        if w == "break" then
+            advanceTok()
+            consumeSep()
+            return astBreak()
+        end
+        if w == "continue" then
+            advanceTok()
+            consumeSep()
+            return astContinue()
+        end
+    end
+    if curTokKind() == "type" then
+        return parseVarDecl()
+    end
+    // 否则当作表达式语句或赋值。
+    return parseExprOrAssign()
+end
+
+
+// 消费可选的语句分隔符（换行已不可见，所以这里只吃 ';'）。
+func consumeSep()
+    while isOp(";") do
+        advanceTok()
+    end
+end
+
+
+func parseFuncDecl() as var
+    expectKw("func")
+    string name = expectId()
+    array<var> params = parseParams()
+    string retType = "void"
+    if isKw("as") then
+        advanceTok()
+        retType = expectType()
+    end
+    array<var> body = parseBlock()
+    expectKw("end")
+    return astFunc(name, params, retType, body)
+end
+
+
+func parseVarDecl() as var
+    string vt = expectType()
+    string name = expectId()
+    var initExpr = null
+    if isOp("=") then
+        advanceTok()
+        initExpr = parseExpr()
+    end
+    consumeSep()
+    return astVarDecl(vt, name, initExpr)
+end
+
+
+func parseIf() as var
+    expectKw("if")
+    var cond = parseExpr()
+    if isKw("then") then
+        advanceTok()
+    end
+    array<var> thenBody = parseBlock()
+    var node = astIf(cond, thenBody, [])
+    // elseif 链
+    while isKw("elseif") do
+        advanceTok()
+        var ec = parseExpr()
+        if isKw("then") then
+            advanceTok()
+        end
+        array<var> eb = parseBlock()
+        var ei = {}
+        ei["cond"] = ec
+        ei["body"] = eb
+        node["elseifs"].append(ei)
+    end
+    // else 分支
+    if isKw("else") then
+        advanceTok()
+        array<var> elseBody = parseBlock()
+        node["else"] = elseBody
+    end
+    expectKw("end")
+    return node
+end
+
+
+func parseWhile() as var
+    expectKw("while")
+    var cond = parseExpr()
+    expectKw("do")
+    array<var> body = parseBlock()
+    expectKw("end")
+    return astWhile(cond, body)
+end
+
+
+func parseFor() as var
+    expectKw("for")
+    string iterName = expectId()
+    expectKw("in")
+    var iterable = parseExpr()
+    array<var> body = parseBlock()
+    expectKw("end")
+    return astFor(iterName, iterable, body)
+end
+
+
+func parseReturn() as var
+    expectKw("return")
+    // 如果下一个就是分隔/块结束，则无返回值。
+    if atStmtBoundary() then
+        consumeSep()
+        return astReturn(null)
+    end
+    var v = parseExpr()
+    consumeSep()
+    return astReturn(v)
+end
+
+
+func atStmtBoundary() as bool
+    if curTokKind() == "eof" then
+        return true
+    end
+    if isOp(";") then
+        return true
+    end
+    if curTokKind() == "kw" then
+        string w = curTokText()
+        if w == "end" or w == "else" or w == "elseif" then
+            return true
+        end
+    end
+    return false
+end
+
+
+// 解析「标识符 = 表达式」赋值，或纯表达式语句。
+func parseExprOrAssign() as var
+    // 标识符后跟 '='（但不是 '=='）则视作赋值。
+    if curTokKind() == "id" then
+        string name = curTokText()
+        // 向前看：仅当紧跟 '='（单字符赋值）时按赋值处理。
+        if g_ti + 1 < g_tokens.length then
+            var nt = g_tokens[g_ti + 1]
+            if tokKind(nt) == "op" and tokText(nt) == "=" then
+                advanceTok()
+                advanceTok()
+                var e = parseExpr()
+                consumeSep()
+                return astAssign(name, e)
+            end
+        end
+    end
+    var e = parseExpr()
+    consumeSep()
+    return astExprStmt(e)
+end
+
+
+// ---------- 表达式递归下降 ----------
+
+func parseExpr() as var
+    return parseOr()
+end
+
+
+func parseOr() as var
+    var left = parseAnd()
+    while isOp("||") or isKw("or") do
+        advanceTok()
+        var right = parseAnd()
+        left = astBinary("||", left, right)
+    end
+    return left
+end
+
+
+func parseAnd() as var
+    var left = parseNot()
+    while isOp("&&") or isKw("and") do
+        advanceTok()
+        var right = parseNot()
+        left = astBinary("&&", left, right)
+    end
+    return left
+end
+
+
+func parseNot() as var
+    if isOp("!") or isKw("not") then
+        advanceTok()
+        var e = parseNot()
+        return astUnary("!", e)
+    end
+    return parseCmp()
+end
+
+
+func parseCmp() as var
+    var left = parseAdd()
+    while true do
+        if isOp("==") then
+            advanceTok()
+            var r = parseAdd()
+            left = astBinary("==", left, r)
+        elseif isOp("!=") then
+            advanceTok()
+            var r = parseAdd()
+            left = astBinary("!=", left, r)
+        elseif isOp("<") then
+            advanceTok()
+            var r = parseAdd()
+            left = astBinary("<", left, r)
+        elseif isOp(">") then
+            advanceTok()
+            var r = parseAdd()
+            left = astBinary(">", left, r)
+        elseif isOp("<=") then
+            advanceTok()
+            var r = parseAdd()
+            left = astBinary("<=", left, r)
+        elseif isOp(">=") then
+            advanceTok()
+            var r = parseAdd()
+            left = astBinary(">=", left, r)
+        else
+            break
+        end
+    end
+    return left
+end
+
+
+func parseAdd() as var
+    var left = parseMul()
+    while true do
+        if isOp("+") then
+            advanceTok()
+            var r = parseMul()
+            left = astBinary("+", left, r)
+        elseif isOp("-") then
+            advanceTok()
+            var r = parseMul()
+            left = astBinary("-", left, r)
+        else
+            break
+        end
+    end
+    return left
+end
+
+
+func parseMul() as var
+    var left = parseUnary()
+    while true do
+        if isOp("*") then
+            advanceTok()
+            var r = parseUnary()
+            left = astBinary("*", left, r)
+        elseif isOp("/") then
+            advanceTok()
+            var r = parseUnary()
+            left = astBinary("/", left, r)
+        elseif isOp("%") then
+            advanceTok()
+            var r = parseUnary()
+            left = astBinary("%", left, r)
+        else
+            break
+        end
+    end
+    return left
+end
+
+
+func parseUnary() as var
+    if isOp("-") then
+        advanceTok()
+        var e = parseUnary()
+        return astUnary("-", e)
+    end
+    if isOp("+") then
+        advanceTok()
+        return parseUnary()
+    end
+    return parsePrimary()
+end
+
+
+func parsePrimary() as var
+    // 数字字面量
+    if curTokKind() == "num" then
+        string vt = string(g_ct["val"])
+        string v = curTokText()
+        advanceTok()
+        return astLiteral(vt, v)
+    end
+    // 字符串字面量
+    if curTokKind() == "str" then
+        string v = string(g_ct["text"])
+        advanceTok()
+        return astLiteral("string", v)
+    end
+    // 布尔字面量
+    if isKw("true") then
+        advanceTok()
+        return astLiteral("bool", "true")
+    end
+    if isKw("false") then
+        advanceTok()
+        return astLiteral("bool", "false")
+    end
+    // 标识符 / 函数调用
+    if curTokKind() == "id" then
+        string name = curTokText()
+        advanceTok()
+        if isOp("(") then
+            advanceTok()
+            array<var> args = []
+            if not isOp(")") then
+                while true do
+                    var a = parseExpr()
+                    args.append(a)
+                    if isOp(",") then
+                        advanceTok()
+                    else
+                        break
+                    end
+                end
+            end
+            expectOp(")")
+            return astCall(name, args)
+        end
+        return astVarRef(name)
+    end
+    // 括号表达式
+    if isOp("(") then
+        advanceTok()
+        var e = parseExpr()
+        expectOp(")")
+        return e
+    end
+    throw "xcompiler: 无法解析的表达式，遇到 '" + curTokText() + "' (kind=" + curTokKind() + ")"
+end
+
+
+// 完整语法分析入口。
+func parseTokens(array<var> toks) as var
+    g_tokens = toks
+    g_ti = 0
+    g_ct = toks[0]
+    return parseProgram()
+end
+
+
+// =====================================================================
+// 6. 简化语义分析
+// =====================================================================
+
+func pushScope()
+    var s = {}
+    g_scopes.append(s)
+end
+
+
+func popScope()
+    if g_scopes.length > 0 then
+        g_scopes.pop()
+    end
+end
+
+
+// 在符号表栈里声明一个变量；重复声明返回 false。
+func declareVar(string name, string vtype) as bool
+    if g_scopes.length == 0 then
+        return false
+    end
+    var top = g_scopes[g_scopes.length - 1]
+    if top[name] != null then
+        return false
+    end
+    top[name] = vtype
+    return true
+end
+
+
+// 查找变量的声明类型；找不到返回空串。
+func lookupVar(string name) as string
+    int i = g_scopes.length - 1
+    while i >= 0 do
+        var s = g_scopes[i]
+        if s[name] != null then
+            return string(s[name])
+        end
+        i -= 1
+    end
+    return ""
+end
+
+
+func varExists(string name) as bool
+    return string.len(lookupVar(name)) > 0
+end
+
+
+// 推断表达式类型（用于 print 格式化选择）。
+func inferType(var expr) as string
+    string nt = string(expr["nt"])
+    if nt == "literal" then
+        return string(expr["litType"])
+    end
+    if nt == "varref" then
+        string t = lookupVar(string(expr["name"]))
+        if string.len(t) > 0 then
+            return t
+        end
+        return "int"
+    end
+    if nt == "binary" then
+        string op = string(expr["op"])
+        if op == "==" or op == "!=" or op == "<" or op == ">" or op == "<=" or op == ">=" then
+            return "bool"
+        end
+        if op == "&&" or op == "||" then
+            return "bool"
+        end
+        string lt = inferType(expr["left"])
+        string rt = inferType(expr["right"])
+        if lt == "float" or rt == "float" then
+            return "float"
+        end
+        if lt == "string" or rt == "string" then
+            return "string"
+        end
+        return "int"
+    end
+    if nt == "unary" then
+        string op = string(expr["op"])
+        if op == "!" then
+            return "bool"
+        end
+        return inferType(expr["expr"])
+    end
+    if nt == "call" then
+        string fname = string(expr["name"])
+        if g_funcTable[fname] != null then
+            var fi = g_funcTable[fname]
+            return string(fi["retType"])
+        end
+        return "int"
+    end
+    return "int"
+end
+
+
+// 收集所有函数声明到 g_funcTable。
+func collectFuncs(var prog)
+    array<var> stmts = prog["stmts"]
+    for s in stmts
+        if string(s["nt"]) == "func" then
+            var fi = {}
+            fi["name"] = s["name"]
+            fi["retType"] = s["retType"]
+            fi["params"] = s["params"]
+            g_funcTable[string(s["name"])] = fi
+        end
+    end
+end
+
+
+// 对整个程序做语义分析。
+func analyzeProgram(var prog) as string
+    g_funcTable = {}
+    g_scopes = []
+    collectFuncs(prog)
+    pushScope()
+    array<var> stmts = prog["stmts"]
+    for s in stmts
+        string err = analyzeStmt(s)
+        if string.len(err) > 0 then
+            return err
+        end
+    end
+    popScope()
+    return ""
+end
+
+
+func analyzeStmt(var s) as string
+    if s == null then
+        return ""
+    end
+    string nt = string(s["nt"])
+    if nt == "func" then
+        return analyzeFunc(s)
+    end
+    if nt == "vardecl" then
+        return analyzeVarDecl(s)
+    end
+    if nt == "assign" then
+        return analyzeAssign(s)
+    end
+    if nt == "if" then
+        return analyzeIf(s)
+    end
+    if nt == "while" then
+        return analyzeWhile(s)
+    end
+    if nt == "for" then
+        return analyzeFor(s)
+    end
+    if nt == "return" then
+        return ""
+    end
+    if nt == "break" then
+        return ""
+    end
+    if nt == "continue" then
+        return ""
+    end
+    if nt == "exprstmt" then
+        return ""
+    end
+    return ""
+end
+
+
+func analyzeFunc(var f) as string
+    pushScope()
+    array<var> params = f["params"]
+    for p in params
+        string pn = string(p["pname"])
+        string pt = string(p["ptype"])
+        if not declareVar(pn, pt) then
+            popScope()
+            return "函数 " + string(f["name"]) + " 中重复声明参数 " + pn
+        end
+    end
+    array<var> body = f["body"]
+    for st in body
+        string err = analyzeStmt(st)
+        if string.len(err) > 0 then
+            popScope()
+            return err
+        end
+    end
+    popScope()
+    return ""
+end
+
+
+func analyzeVarDecl(var d) as string
+    string name = string(d["name"])
+    string vt = string(d["vtype"])
+    if not declareVar(name, vt) then
+        return "重复声明变量 " + name
+    end
+    return ""
+end
+
+
+func analyzeAssign(var a) as string
+    string name = string(a["name"])
+    if not varExists(name) then
+        return "赋值给未声明的变量 " + name
+    end
+    return ""
+end
+
+
+func analyzeIf(var n) as string
+    array<var> tb = n["then"]
+    for s in tb
+        string e = analyzeStmt(s)
+        if string.len(e) > 0 then
+            return e
+        end
+    end
+    array<var> eis = n["elseifs"]
+    for ei in eis
+        array<var> eb = ei["body"]
+        for s in eb
+            string e = analyzeStmt(s)
+            if string.len(e) > 0 then
+                return e
+            end
+        end
+    end
+    array<var> el = n["else"]
+    for s in el
+        string e = analyzeStmt(s)
+        if string.len(e) > 0 then
+            return e
+        end
+    end
+    return ""
+end
+
+
+func analyzeWhile(var n) as string
+    pushScope()
+    array<var> body = n["body"]
+    for s in body
+        string e = analyzeStmt(s)
+        if string.len(e) > 0 then
+            popScope()
+            return e
+        end
+    end
+    popScope()
+    return ""
+end
+
+
+func analyzeFor(var n) as string
+    pushScope()
+    declareVar(string(n["iter"]), "int")
+    array<var> body = n["body"]
+    for s in body
+        string e = analyzeStmt(s)
+        if string.len(e) > 0 then
+            popScope()
+            return e
+        end
+    end
+    popScope()
+    return ""
+end
+
+
+// =====================================================================
+// 7. C 代码生成
+// =====================================================================
+
+// 把 xlang 类型名映射成 C 类型名。
+func mapCType(string t) as string
+    if t == "int" then
+        return "int64_t"
+    end
+    if t == "float" then
+        return "double"
+    end
+    if t == "string" then
+        return "const char*"
+    end
+    if t == "bool" then
+        return "int"
+    end
+    if t == "void" then
+        return "void"
+    end
+    return "int64_t"
+end
+
+
+// C 字符串字面量转义：把任意字符串包成 C 字面量。
+func cQuote(string s) as string
+    string out = "\""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        if c == "\\" then
+            out = out + "\\\\"
+        elseif c == "\"" then
+            out = out + "\\\""
+        elseif c == "\n" then
+            out = out + "\\n"
+        elseif c == "\r" then
+            out = out + "\\r"
+        elseif c == "\t" then
+            out = out + "\\t"
+        else
+            out = out + c
+        end
+        i += 1
+    end
+    out = out + "\""
+    return out
+end
+
+
+// 表达式 → C 代码字符串。
+func genExpr(var e) as string
+    string nt = string(e["nt"])
+    if nt == "literal" then
+        return genLiteral(e)
+    end
+    if nt == "varref" then
+        return string(e["name"])
+    end
+    if nt == "binary" then
+        return genBinary(e)
+    end
+    if nt == "unary" then
+        return genUnary(e)
+    end
+    if nt == "call" then
+        return genCall(e)
+    end
+    return "/* unknown expr */"
+end
+
+
+func genLiteral(var e) as string
+    string lt = string(e["litType"])
+    string v = string(e["value"])
+    if lt == "string" then
+        return cQuote(v)
+    end
+    if lt == "bool" then
+        if v == "true" then
+            return "1"
+        end
+        return "0"
+    end
+    if lt == "float" then
+        // 保证 C 编译器视作 double
+        if not string.contains(v, ".") and not string.contains(v, "e") and not string.contains(v, "E") then
+            return v + ".0"
+        end
+        return v
+    end
+    // int
+    return v
+end
+
+
+func genBinary(var e) as string
+    string op = string(e["op"])
+    string l = genExpr(e["left"])
+    string r = genExpr(e["right"])
+    // 字符串拼接特判：若任一边是 string 类型，映射成 strcat 风格调用。
+    // 这里简化：直接保留 '+'，让 C 端处理（演示用途）。
+    return "(" + l + " " + op + " " + r + ")"
+end
+
+
+func genUnary(var e) as string
+    string op = string(e["op"])
+    string v = genExpr(e["expr"])
+    return "(" + op + v + ")"
+end
+
+
+func genCall(var e) as string
+    string name = string(e["name"])
+    array<var> args = e["args"]
+    // print / println 特殊处理
+    if name == "print" or name == "println" then
+        return genPrintCall(name, args)
+    end
+    string s = name + "("
+    int i = 0
+    while i < args.length do
+        if i > 0 then
+            s = s + ", "
+        end
+        s = s + genExpr(args[i])
+        i += 1
+    end
+    s = s + ")"
+    return s
+end
+
+
+// 根据参数类型选择 printf 格式串。
+func genPrintCall(string name, array<var> args) as string
+    // 无参数：仅打印换行（println）或什么都不打印（print）。
+    if args.length == 0 then
+        if name == "println" then
+            return "printf(\"\\n\")"
+        end
+        return "printf(\"\")"
+    end
+    // 多参数：用拼接方式依次输出。
+    string out = ""
+    int i = 0
+    while i < args.length do
+        var a = args[i]
+        string t = inferType(a)
+        string code = genExpr(a)
+        string fmt
+        if t == "int" then
+            fmt = "%lld"
+        elseif t == "float" then
+            fmt = "%g"
+        elseif t == "string" then
+            fmt = "%s"
+        elseif t == "bool" then
+            fmt = "%d"
+        else
+            fmt = "%lld"
+        end
+        if i > 0 then
+            out = out + " "
+        end
+        out = out + "printf(\"" + fmt
+        if name == "println" and i == args.length - 1 then
+            out = out + "\\n"
+        end
+        out = out + "\", " + code + ")"
+        if i < args.length - 1 then
+            out = out + "; "
+        end
+        i += 1
+    end
+    return out
+end
+
+
+// 语句 → C 代码字符串（带缩进）。
+func genIndent(int level) as string
+    string s = ""
+    int i = 0
+    while i < level do
+        s = s + "    "
+        i += 1
+    end
+    return s
+end
+
+
+func genStmt(var s, int level) as string
+    if s == null then
+        return ""
+    end
+    string nt = string(s["nt"])
+    if nt == "func" then
+        return genFunc(s, level)
+    end
+    if nt == "vardecl" then
+        return genVarDecl(s, level)
+    end
+    if nt == "assign" then
+        return genIndent(level) + string(s["name"]) + " = " + genExpr(s["expr"]) + ";\n"
+    end
+    if nt == "if" then
+        return genIf(s, level)
+    end
+    if nt == "while" then
+        return genWhile(s, level)
+    end
+    if nt == "for" then
+        return genFor(s, level)
+    end
+    if nt == "return" then
+        return genReturn(s, level)
+    end
+    if nt == "break" then
+        return genIndent(level) + "break;\n"
+    end
+    if nt == "continue" then
+        return genIndent(level) + "continue;\n"
+    end
+    if nt == "exprstmt" then
+        return genIndent(level) + genExpr(s["expr"]) + ";\n"
+    end
+    return genIndent(level) + "/* unknown stmt " + nt + " */\n"
+end
+
+
+func genFunc(var f, int level) as string
+    string name = string(f["name"])
+    string rt = mapCType(string(f["retType"]))
+    array<var> params = f["params"]
+    string head = genIndent(level) + rt + " " + name + "("
+    if params.length == 0 then
+        head = head + "void"
+    else
+        int i = 0
+        while i < params.length do
+            if i > 0 then
+                head = head + ", "
+            end
+            var p = params[i]
+            head = head + mapCType(string(p["ptype"])) + " " + string(p["pname"])
+            i += 1
+        end
+    end
+    head = head + ") {\n"
+    pushScope()
+    int i = 0
+    while i < params.length do
+        var p = params[i]
+        declareVar(string(p["pname"]), string(p["ptype"]))
+        i += 1
+    end
+    string body = ""
+    array<var> bs = f["body"]
+    for st in bs
+        body = body + genStmt(st, level + 1)
+    end
+    popScope()
+    // 若函数非 void 且最后一条不是 return，自动补一条。
+    if rt != "void" then
+        if not blockEndsWithReturn(bs) then
+            body = body + genIndent(level + 1) + "return 0;\n"
+        end
+    end
+    return head + body + genIndent(level) + "}\n\n"
+end
+
+
+func blockEndsWithReturn(array<var> body) as bool
+    if body.length == 0 then
+        return false
+    end
+    var last = body[body.length - 1]
+    return string(last["nt"]) == "return"
+end
+
+
+func genVarDecl(var d, int level) as string
+    string vt = mapCType(string(d["vtype"]))
+    string name = string(d["name"])
+    declareVar(name, string(d["vtype"]))
+    if d["init"] == null then
+        // 给出默认零值。
+        string zero
+        if string(d["vtype"]) == "float" then
+            zero = "0.0"
+        elseif string(d["vtype"]) == "string" then
+            zero = cQuote("")
+        elseif string(d["vtype"]) == "bool" then
+            zero = "0"
+        else
+            zero = "0"
+        end
+        return genIndent(level) + vt + " " + name + " = " + zero + ";\n"
+    end
+    string initCode = genExpr(d["init"])
+    return genIndent(level) + vt + " " + name + " = " + initCode + ";\n"
+end
+
+
+func genIf(var n, int level) as string
+    string ind = genIndent(level)
+    string out = ind + "if (" + genExpr(n["cond"]) + ") {\n"
+    pushScope()
+    array<var> tb = n["then"]
+    for s in tb
+        out = out + genStmt(s, level + 1)
+    end
+    popScope()
+    out = out + ind + "}\n"
+    // elseif 链翻译成 else if
+    array<var> eis = n["elseifs"]
+    for ei in eis
+        pushScope()
+        out = out + ind + "else if (" + genExpr(ei["cond"]) + ") {\n"
+        array<var> eb = ei["body"]
+        for s in eb
+            out = out + genStmt(s, level + 1)
+        end
+        out = out + ind + "}\n"
+        popScope()
+    end
+    // else
+    array<var> el = n["else"]
+    if el.length > 0 then
+        pushScope()
+        out = out + ind + "else {\n"
+        for s in el
+            out = out + genStmt(s, level + 1)
+        end
+        out = out + ind + "}\n"
+        popScope()
+    end
+    return out
+end
+
+
+func genWhile(var n, int level) as string
+    string ind = genIndent(level)
+    string out = ind + "while (" + genExpr(n["cond"]) + ") {\n"
+    pushScope()
+    array<var> body = n["body"]
+    for s in body
+        out = out + genStmt(s, level + 1)
+    end
+    popScope()
+    out = out + ind + "}\n"
+    return out
+end
+
+
+func genFor(var n, int level) as string
+    string ind = genIndent(level)
+    string iter = string(n["iter"])
+    pushScope()
+    declareVar(iter, "int")
+    // 简化：仅支持 range(n) 形式的可迭代对象。
+    string out = ind + "for (int64_t " + iter + " = 0; " + iter + " < "
+    var it = n["iterable"]
+    // 如果是 range(n) 调用，直接取上界。
+    if string(it["nt"]) == "call" and string(it["name"]) == "range" then
+        array<var> args = it["args"]
+        if args.length >= 1 then
+            out = out + genExpr(args[0])
+        else
+            out = out + "0"
+        end
+    else
+        out = out + genExpr(it)
+    end
+    out = out + "; " + iter + "++) {\n"
+    array<var> body = n["body"]
+    for s in body
+        out = out + genStmt(s, level + 1)
+    end
+    out = out + ind + "}\n"
+    popScope()
+    return out
+end
+
+
+func genReturn(var n, int level) as string
+    if n["value"] == null then
+        return genIndent(level) + "return;\n"
+    end
+    return genIndent(level) + "return " + genExpr(n["value"]) + ";\n"
+end
+
+
+// 生成 forward declarations（函数原型）。
+func genForwardDecls(var prog) as string
+    string out = ""
+    array<var> stmts = prog["stmts"]
+    for s in stmts
+        if string(s["nt"]) == "func" then
+            string name = string(s["name"])
+            string rt = mapCType(string(s["retType"]))
+            array<var> params = s["params"]
+            out = out + rt + " " + name + "("
+            if params.length == 0 then
+                out = out + "void"
+            else
+                int i = 0
+                while i < params.length do
+                    if i > 0 then
+                        out = out + ", "
+                    end
+                    var p = params[i]
+                    out = out + mapCType(string(p["ptype"]))
+                    i += 1
+                end
+            end
+            out = out + ");\n"
+        end
+    end
+    return out + "\n"
+end
+
+
+// 把整个程序 AST 翻译成 C 源码字符串。
+func genProgram(var prog) as string
+    g_scopes = []
+    pushScope()
+    collectFuncs(prog)
+    string hdr = ""
+    hdr = hdr + "// Generated by xcompiler. DO NOT EDIT.\n"
+    hdr = hdr + "#include <stdio.h>\n"
+    hdr = hdr + "#include <stdint.h>\n"
+    hdr = hdr + "#include <string.h>\n"
+    hdr = hdr + "\n"
+    hdr = hdr + genForwardDecls(prog)
+    string body = ""
+    array<var> stmts = prog["stmts"]
+    for s in stmts
+        body = body + genStmt(s, 0)
+    end
+    // 若没有 main，自动补一个。
+    if g_funcTable["main"] == null then
+        body = body + "int main(int argc, char** argv) {\n"
+        body = body + "    return 0;\n"
+        body = body + "}\n"
+    end
+    popScope()
+    return hdr + body
+end
+
+
+// =====================================================================
+// 8. 编译流水线
+// =====================================================================
+
+// 从源码字符串完成一次完整编译，返回 C 源码（失败抛异常）。
+func compileSource(string src) as string
+    array<var> toks = tokenize(src)
+    var prog = parseTokens(toks)
+    string err = analyzeProgram(prog)
+    if string.len(err) > 0 then
+        throw "xcompiler: 语义错误: " + err
+    end
+    return genProgram(prog)
+end
+
+
+// 把编译结果 dump 成 token 列表字符串（调试用）。
+func dumpTokens(array<var> toks) as string
+    string out = ""
+    int i = 0
+    while i < toks.length do
+        var t = toks[i]
+        out = out + "[" + string(i) + "] " + string(t["kind"]) + " '" + string(t["text"]) + "'\n"
+        i += 1
+    end
+    return out
+end
+
+
+// 把 AST dump 成可读字符串（调试用）。
+func dumpAst(var node, int depth) as string
+    if node == null then
+        return "<null>\n"
+    end
+    string nt = string(node["nt"])
+    string pad = ""
+    int i = 0
+    while i < depth do
+        pad = pad + "  "
+        i += 1
+    end
+    string out = pad + nt
+    if nt == "program" then
+        out = out + "\n"
+        array<var> ss = node["stmts"]
+        for s in ss
+            out = out + dumpAst(s, depth + 1)
+        end
+        return out
+    end
+    if nt == "func" then
+        out = out + " " + string(node["name"]) + " ret=" + string(node["retType"]) + "\n"
+        array<var> ps = node["params"]
+        for p in ps
+            out = out + dumpAst(p, depth + 1)
+        end
+        array<var> bs = node["body"]
+        for s in bs
+            out = out + dumpAst(s, depth + 1)
+        end
+        return out
+    end
+    if nt == "param" then
+        return out + " " + string(node["ptype"]) + " " + string(node["pname"]) + "\n"
+    end
+    if nt == "vardecl" then
+        out = out + " " + string(node["vtype"]) + " " + string(node["name"])
+        if node["init"] != null then
+            out = out + " =\n" + dumpAst(node["init"], depth + 1)
+        else
+            out = out + "\n"
+        end
+        return out
+    end
+    if nt == "assign" then
+        out = out + " " + string(node["name"]) + " =\n"
+        out = out + dumpAst(node["expr"], depth + 1)
+        return out
+    end
+    if nt == "if" then
+        out = out + "\n" + pad + "  cond:\n" + dumpAst(node["cond"], depth + 2)
+        out = out + pad + "  then:\n"
+        array<var> tb = node["then"]
+        for s in tb
+            out = out + dumpAst(s, depth + 2)
+        end
+        array<var> eis = node["elseifs"]
+        for ei in eis
+            out = out + pad + "  elseif:\n" + dumpAst(ei["cond"], depth + 2)
+            array<var> eb = ei["body"]
+            for s in eb
+                out = out + dumpAst(s, depth + 2)
+            end
+        end
+        array<var> el = node["else"]
+        if el.length > 0 then
+            out = out + pad + "  else:\n"
+            for s in el
+                out = out + dumpAst(s, depth + 2)
+            end
+        end
+        return out
+    end
+    if nt == "while" then
+        out = out + "\n" + pad + "  cond:\n" + dumpAst(node["cond"], depth + 2)
+        out = out + pad + "  body:\n"
+        array<var> body = node["body"]
+        for s in body
+            out = out + dumpAst(s, depth + 2)
+        end
+        return out
+    end
+    if nt == "for" then
+        out = out + " " + string(node["iter"]) + " in\n"
+        out = out + dumpAst(node["iterable"], depth + 1)
+        out = out + pad + "  body:\n"
+        array<var> body = node["body"]
+        for s in body
+            out = out + dumpAst(s, depth + 2)
+        end
+        return out
+    end
+    if nt == "return" then
+        if node["value"] == null then
+            return out + " void\n"
+        end
+        out = out + "\n" + dumpAst(node["value"], depth + 1)
+        return out
+    end
+    if nt == "break" then
+        return out + "\n"
+    end
+    if nt == "continue" then
+        return out + "\n"
+    end
+    if nt == "exprstmt" then
+        out = out + "\n" + dumpAst(node["expr"], depth + 1)
+        return out
+    end
+    if nt == "binary" then
+        out = out + " " + string(node["op"]) + "\n"
+        out = out + dumpAst(node["left"], depth + 1)
+        out = out + dumpAst(node["right"], depth + 1)
+        return out
+    end
+    if nt == "unary" then
+        out = out + " " + string(node["op"]) + "\n"
+        out = out + dumpAst(node["expr"], depth + 1)
+        return out
+    end
+    if nt == "literal" then
+        return out + " " + string(node["litType"]) + " " + string(node["value"]) + "\n"
+    end
+    if nt == "varref" then
+        return out + " " + string(node["name"]) + "\n"
+    end
+    if nt == "call" then
+        out = out + " " + string(node["name"]) + "\n"
+        array<var> args = node["args"]
+        for a in args
+            out = out + dumpAst(a, depth + 1)
+        end
+        return out
+    end
+    return out + " <?>\n"
+end
+
+
+// =====================================================================
+// 9. 命令实现
+// =====================================================================
+
+func printUsage()
+    println("xcompiler - xlang 子集 → C 编译器")
+    println("")
+    println("用法:")
+    println("  xcompiler compile <input.xl> <output.c>   编译 xlang 源文件")
+    println("  xcompiler ast     <input.xl>               打印 AST（调试用）")
+    println("  xcompiler tokens  <input.xl>               打印 token 流（调试用）")
+    println("  xcompiler test                             运行内置测试套件")
+    println("  xcompiler -h | --help                      显示本帮助")
+end
+
+
+func cmdCompile(string inPath, string outPath) as int
+    if not file.exists(inPath) then
+        println("xcompiler: 输入文件不存在: " + inPath)
+        return 1
+    end
+    string src = file.readText(inPath)
+    try
+        string c = compileSource(src)
+        file.writeText(outPath, c)
+        println("xcompiler: " + inPath + " -> " + outPath + " (" + string(string.len(c)) + " bytes)")
+        return 0
+    catch e
+        println("xcompiler: 编译失败: " + e.message)
+        return 1
+    end
+end
+
+
+func cmdAst(string inPath) as int
+    if not file.exists(inPath) then
+        println("xcompiler: 输入文件不存在: " + inPath)
+        return 1
+    end
+    string src = file.readText(inPath)
+    try
+        array<var> toks = tokenize(src)
+        var prog = parseTokens(toks)
+        println(dumpAst(prog, 0))
+        return 0
+    catch e
+        println("xcompiler: 解析失败: " + e.message)
+        return 1
+    end
+end
+
+
+func cmdTokens(string inPath) as int
+    if not file.exists(inPath) then
+        println("xcompiler: 输入文件不存在: " + inPath)
+        return 1
+    end
+    string src = file.readText(inPath)
+    try
+        array<var> toks = tokenize(src)
+        print(dumpTokens(toks))
+        return 0
+    catch e
+        println("xcompiler: 词法失败: " + e.message)
+        return 1
+    end
+end
+
+
+// =====================================================================
+// 10. 测试套件
+// =====================================================================
+
+int g_pass
+int g_fail
+
+
+func tReset()
+    g_pass = 0
+    g_fail = 0
+end
+
+
+func tCheck(bool cond, string label)
+    if cond then
+        g_pass += 1
+    else
+        g_fail += 1
+        println("  [ FAIL ] " + label)
+    end
+end
+
+
+func tCheckHas(string got, string needle, string label)
+    tCheck(string.contains(got, needle), label + "  (missing '" + needle + "')")
+end
+
+
+func tCheckNotHas(string got, string needle, string label)
+    tCheck(not string.contains(got, needle), label + "  (unexpected '" + needle + "')")
+end
+
+
+func tCheckEq(string got, string want, string label)
+    tCheck(got == want, label + "  got='" + got + "' want='" + want + "'")
+end
+
+
+func tEnd(string name)
+    println("[" + name + "] pass=" + string(g_pass) + " fail=" + string(g_fail))
+end
+
+
+// ----- 词法分析测试 -----
+
+func testLexer()
+    println("[test] 词法分析")
+    tReset()
+    try
+        array<var> toks = tokenize("func main() as int\n    return 0\nend")
+        tCheckEq(toks[0]["kind"], "kw", "kw kind")
+        tCheckEq(toks[0]["text"], "func", "kw text")
+        tCheckEq(toks[1]["kind"], "id", "id kind")
+        tCheckEq(toks[1]["text"], "main", "id text")
+        tCheckEq(toks[2]["kind"], "op", "op ( kind")
+        tCheckEq(toks[2]["text"], "(", "op ( text")
+        tCheckEq(toks[3]["text"], ")", "op ) text")
+        tCheckEq(toks[4]["kind"], "kw", "as kw")
+        tCheckEq(toks[5]["kind"], "type", "int type")
+        tCheckEq(toks[5]["text"], "int", "int type text")
+        tCheckEq(toks[6]["kind"], "kw", "return kw")
+        tCheckEq(toks[7]["kind"], "num", "0 num")
+        tCheckEq(toks[7]["val"], "int", "0 val int")
+        tCheckEq(toks[8]["kind"], "kw", "end kw")
+        tCheckEq(toks[9]["kind"], "eof", "eof")
+    catch e
+        tCheck(false, "lexer threw: " + e.message)
+    end
+    tEnd("lexer")
+end
+
+
+func testLexerNumbers()
+    println("[test] 词法分析 - 数字与浮点")
+    tReset()
+    try
+        array<var> toks = tokenize("42 3.14 0 100")
+        tCheckEq(toks[0]["text"], "42", "42 text")
+        tCheckEq(toks[0]["val"], "int", "42 int")
+        tCheckEq(toks[1]["text"], "3.14", "3.14 text")
+        tCheckEq(toks[1]["val"], "float", "3.14 float")
+        tCheckEq(toks[2]["text"], "0", "0 text")
+        tCheckEq(toks[3]["text"], "100", "100 text")
+    catch e
+        tCheck(false, "lexer num threw: " + e.message)
+    end
+    tEnd("lexer-num")
+end
+
+
+func testLexerStrings()
+    println("[test] 词法分析 - 字符串")
+    tReset()
+    try
+        array<var> toks = tokenize("\"hello\" \"a\\nb\"")
+        tCheckEq(toks[0]["kind"], "str", "str kind")
+        tCheckEq(toks[0]["text"], "hello", "hello text")
+        tCheckEq(toks[1]["text"], "a\nb", "escape newline")
+    catch e
+        tCheck(false, "lexer str threw: " + e.message)
+    end
+    tEnd("lexer-str")
+end
+
+
+func testLexerOperators()
+    println("[test] 词法分析 - 运算符")
+    tReset()
+    try
+        array<var> toks = tokenize("a == b != c <= d >= e && f || g")
+        tCheckEq(toks[1]["text"], "==", "==")
+        tCheckEq(toks[3]["text"], "!=", "!=")
+        tCheckEq(toks[5]["text"], "<=", "<=")
+        tCheckEq(toks[7]["text"], ">=", ">=")
+        tCheckEq(toks[9]["text"], "&&", "&&")
+        tCheckEq(toks[11]["text"], "||", "||")
+    catch e
+        tCheck(false, "lexer op threw: " + e.message)
+    end
+    tEnd("lexer-op")
+end
+
+
+func testLexerComments()
+    println("[test] 词法分析 - 注释")
+    tReset()
+    try
+        array<var> toks = tokenize("// this is a comment\nint x = 1")
+        tCheckEq(toks[0]["kind"], "type", "int after comment")
+        tCheckEq(toks[1]["text"], "x", "id x")
+        tCheckEq(toks[3]["text"], "1", "1 after comment")
+    catch e
+        tCheck(false, "lexer comment threw: " + e.message)
+    end
+    tEnd("lexer-comment")
+end
+
+
+// ----- 语法分析测试 -----
+
+func testParseFunc()
+    println("[test] 语法分析 - 函数声明")
+    tReset()
+    try
+        string src = "func add(int a, int b) as int\n    return a + b\nend"
+        array<var> toks = tokenize(src)
+        var prog = parseTokens(toks)
+        array<var> ss = prog["stmts"]
+        tCheck(ss.length == 1, "1 stmt")
+        var f = ss[0]
+        tCheckEq(string(f["nt"]), "func", "func node")
+        tCheckEq(string(f["name"]), "add", "name add")
+        tCheckEq(string(f["retType"]), "int", "ret int")
+        array<var> ps = f["params"]
+        tCheck(ps.length == 2, "2 params")
+        tCheckEq(string(ps[0]["pname"]), "a", "param a")
+        tCheckEq(string(ps[0]["ptype"]), "int", "param a int")
+        array<var> body = f["body"]
+        tCheck(body.length == 1, "1 body stmt")
+        tCheckEq(string(body[0]["nt"]), "return", "return")
+    catch e
+        tCheck(false, "parse func threw: " + e.message)
+    end
+    tEnd("parse-func")
+end
+
+
+func testParseVarDecl()
+    println("[test] 语法分析 - 变量声明")
+    tReset()
+    try
+        string src = "int x = 42\nfloat pi = 3.14\nstring s = \"hi\"\nbool b = true"
+        array<var> toks = tokenize(src)
+        var prog = parseTokens(toks)
+        array<var> ss = prog["stmts"]
+        tCheck(ss.length == 4, "4 stmts")
+        tCheckEq(string(ss[0]["nt"]), "vardecl", "0 vardecl")
+        tCheckEq(string(ss[0]["vtype"]), "int", "0 int")
+        tCheckEq(string(ss[0]["name"]), "x", "0 x")
+        tCheckEq(string(ss[1]["vtype"]), "float", "1 float")
+        tCheckEq(string(ss[2]["vtype"]), "string", "2 string")
+        tCheckEq(string(ss[3]["vtype"]), "bool", "3 bool")
+    catch e
+        tCheck(false, "parse vardecl threw: " + e.message)
+    end
+    tEnd("parse-vardecl")
+end
+
+
+func testParseIf()
+    println("[test] 语法分析 - if/elseif/else")
+    tReset()
+    try
+        string src = "if x > 10 then\n    print(1)\nelseif x == 5 then\n    print(2)\nelse\n    print(3)\nend"
+        array<var> toks = tokenize(src)
+        var prog = parseTokens(toks)
+        array<var> ss = prog["stmts"]
+        tCheck(ss.length == 1, "1 stmt")
+        var n = ss[0]
+        tCheckEq(string(n["nt"]), "if", "if node")
+        tCheckEq(string(n["cond"]["nt"]), "binary", "cond binary")
+        tCheckEq(string(n["cond"]["op"]), ">", "cond >")
+        array<var> eis = n["elseifs"]
+        tCheck(eis.length == 1, "1 elseif")
+        array<var> el = n["else"]
+        tCheck(el.length == 1, "1 else stmt")
+    catch e
+        tCheck(false, "parse if threw: " + e.message)
+    end
+    tEnd("parse-if")
+end
+
+
+func testParseWhile()
+    println("[test] 语法分析 - while")
+    tReset()
+    try
+        string src = "while x > 0 do\n    x = x - 1\nend"
+        array<var> toks = tokenize(src)
+        var prog = parseTokens(toks)
+        array<var> ss = prog["stmts"]
+        var n = ss[0]
+        tCheckEq(string(n["nt"]), "while", "while node")
+        tCheckEq(string(n["cond"]["op"]), ">", "cond >")
+        array<var> body = n["body"]
+        tCheck(body.length == 1, "1 body stmt")
+        tCheckEq(string(body[0]["nt"]), "assign", "assign")
+    catch e
+        tCheck(false, "parse while threw: " + e.message)
+    end
+    tEnd("parse-while")
+end
+
+
+func testParseFor()
+    println("[test] 语法分析 - for-in")
+    tReset()
+    try
+        string src = "for i in range(10)\n    print(i)\nend"
+        array<var> toks = tokenize(src)
+        var prog = parseTokens(toks)
+        array<var> ss = prog["stmts"]
+        var n = ss[0]
+        tCheckEq(string(n["nt"]), "for", "for node")
+        tCheckEq(string(n["iter"]), "i", "iter i")
+        tCheckEq(string(n["iterable"]["nt"]), "call", "iterable call")
+        tCheckEq(string(n["iterable"]["name"]), "range", "range")
+    catch e
+        tCheck(false, "parse for threw: " + e.message)
+    end
+    tEnd("parse-for")
+end
+
+
+func testParseExpr()
+    println("[test] 语法分析 - 表达式优先级")
+    tReset()
+    try
+        string src = "int x = 1 + 2 * 3"
+        array<var> toks = tokenize(src)
+        var prog = parseTokens(toks)
+        array<var> ss = prog["stmts"]
+        var d = ss[0]
+        var e = d["init"]
+        tCheckEq(string(e["nt"]), "binary", "top binary")
+        tCheckEq(string(e["op"]), "+", "top +")
+        tCheckEq(string(e["right"]["op"]), "*", "right *")
+    catch e
+        tCheck(false, "parse expr threw: " + e.message)
+    end
+    tEnd("parse-expr")
+end
+
+
+// ----- 代码生成测试 -----
+
+func testGenFunc()
+    println("[test] 代码生成 - 函数签名")
+    tReset()
+    try
+        string src = "func add(int a, int b) as int\n    return a + b\nend"
+        string c = compileSource(src)
+        tCheckHas(c, "int64_t add(int64_t a, int64_t b)", "func signature")
+        tCheckHas(c, "return (a + b)", "return body")
+        tCheckHas(c, "#include <stdio.h>", "stdio include")
+        tCheckHas(c, "#include <stdint.h>", "stdint include")
+    catch e
+        tCheck(false, "gen func threw: " + e.message)
+    end
+    tEnd("gen-func")
+end
+
+
+func testGenVarDecl()
+    println("[test] 代码生成 - 变量声明")
+    tReset()
+    try
+        string src = "func f() as int\n    int x = 42\n    float pi = 3.14\n    string s = \"hi\"\n    return x\nend"
+        string c = compileSource(src)
+        tCheckHas(c, "int64_t x = 42", "int decl")
+        tCheckHas(c, "double pi = 3.14", "float decl")
+        tCheckHas(c, "const char* s = \"hi\"", "string decl")
+    catch e
+        tCheck(false, "gen vardecl threw: " + e.message)
+    end
+    tEnd("gen-vardecl")
+end
+
+
+func testGenPrint()
+    println("[test] 代码生成 - print 映射")
+    tReset()
+    try
+        string src = "func f() as int\n    int x = 42\n    print(x)\n    return 0\nend"
+        string c = compileSource(src)
+        tCheckHas(c, "printf(\"%lld", "int print format")
+        tCheckHas(c, "x)", "x arg")
+    catch e
+        tCheck(false, "gen print threw: " + e.message)
+    end
+    tEnd("gen-print")
+end
+
+
+func testGenIf()
+    println("[test] 代码生成 - if/else")
+    tReset()
+    try
+        string src = "func f(int x) as int\n    if x > 10 then\n        return 1\n    else\n        return 0\n    end\nend"
+        string c = compileSource(src)
+        tCheckHas(c, "if ((x > 10))", "if cond")
+        tCheckHas(c, "return 1", "then")
+        tCheckHas(c, "else", "else")
+        tCheckHas(c, "return 0", "else body")
+    catch e
+        tCheck(false, "gen if threw: " + e.message)
+    end
+    tEnd("gen-if")
+end
+
+
+func testGenWhile()
+    println("[test] 代码生成 - while")
+    tReset()
+    try
+        string src = "func f() as int\n    int x = 10\n    while x > 0 do\n        x = x - 1\n    end\n    return x\nend"
+        string c = compileSource(src)
+        tCheckHas(c, "while ((x > 0))", "while cond")
+        tCheckHas(c, "x = (x - 1)", "assign in loop")
+    catch e
+        tCheck(false, "gen while threw: " + e.message)
+    end
+    tEnd("gen-while")
+end
+
+
+func testGenFor()
+    println("[test] 代码生成 - for range")
+    tReset()
+    try
+        string src = "func f() as int\n    for i in range(10)\n        print(i)\n    end\n    return 0\nend"
+        string c = compileSource(src)
+        tCheckHas(c, "for (int64_t i = 0; i < 10; i++)", "for range")
+        tCheckHas(c, "printf(\"%lld", "print in for")
+    catch e
+        tCheck(false, "gen for threw: " + e.message)
+    end
+    tEnd("gen-for")
+end
+
+
+func testGenReturn()
+    println("[test] 代码生成 - return")
+    tReset()
+    try
+        string src = "func f() as int\n    return 42\nend"
+        string c = compileSource(src)
+        tCheckHas(c, "return 42", "return 42")
+    catch e
+        tCheck(false, "gen return threw: " + e.message)
+    end
+    tEnd("gen-return")
+end
+
+
+func testGenForwardDecl()
+    println("[test] 代码生成 - 函数原型")
+    tReset()
+    try
+        string src = "func b() as int\n    return a()\nend\nfunc a() as int\n    return 1\nend"
+        string c = compileSource(src)
+        tCheckHas(c, "int64_t b();", "b proto")
+        tCheckHas(c, "int64_t a();", "a proto")
+    catch e
+        tCheck(false, "gen forward threw: " + e.message)
+    end
+    tEnd("gen-forward")
+end
+
+
+func testGenBreakContinue()
+    println("[test] 代码生成 - break/continue")
+    tReset()
+    try
+        string src = "func f() as int\n    int i = 0\n    while i < 10 do\n        if i == 5 then\n            break\n        end\n        i = i + 1\n    end\n    return i\nend"
+        string c = compileSource(src)
+        tCheckHas(c, "break;", "break")
+    catch e
+        tCheck(false, "gen break threw: " + e.message)
+    end
+    tEnd("gen-break")
+end
+
+
+func testGenNested()
+    println("[test] 代码生成 - 嵌套函数")
+    tReset()
+    try
+        string src = "func fib(int n) as int\n    if n < 2 then\n        return n\n    end\n    return fib(n - 1) + fib(n - 2)\nend"
+        string c = compileSource(src)
+        tCheckHas(c, "int64_t fib(int64_t n)", "fib sig")
+        tCheckHas(c, "return n", "base case")
+        tCheckHas(c, "fib(n - 1)", "recursive call")
+        tCheckHas(c, "fib(n - 2)", "recursive call 2")
+    catch e
+        tCheck(false, "gen nested threw: " + e.message)
+    end
+    tEnd("gen-nested")
+end
+
+
+func testGenExprMixed()
+    println("[test] 代码生成 - 复合表达式")
+    tReset()
+    try
+        string src = "func f() as int\n    int x = (1 + 2) * 3 - 4 / 2\n    return x\nend"
+        string c = compileSource(src)
+        tCheckHas(c, "((1 + 2) * 3)", "mul over add")
+        tCheckHas(c, "(4 / 2)", "div")
+    catch e
+        tCheck(false, "gen expr mixed threw: " + e.message)
+    end
+    tEnd("gen-expr-mixed")
+end
+
+
+// ----- 语义分析测试 -----
+
+func testSemanticOk()
+    println("[test] 语义分析 - 正确程序")
+    tReset()
+    try
+        string src = "func f() as int\n    int x = 1\n    return x\nend"
+        string err = analyzeOnly(src)
+        tCheckEq(err, "", "no error")
+    catch e
+        tCheck(false, "sem ok threw: " + e.message)
+    end
+    tEnd("sem-ok")
+end
+
+
+func testSemanticDupVar()
+    println("[test] 语义分析 - 重复声明")
+    tReset()
+    try
+        string src = "func f() as int\n    int x = 1\n    int x = 2\n    return x\nend"
+        string err = analyzeOnly(src)
+        tCheck(string.len(err) > 0, "expected error")
+        tCheck(string.contains(err, "x"), "error mentions x")
+    catch e
+        tCheck(false, "sem dup threw: " + e.message)
+    end
+    tEnd("sem-dup")
+end
+
+
+func testSemanticUndecl()
+    println("[test] 语义分析 - 未声明赋值")
+    tReset()
+    try
+        string src = "func f() as int\n    y = 2\n    return 0\nend"
+        string err = analyzeOnly(src)
+        tCheck(string.len(err) > 0, "expected error")
+        tCheck(string.contains(err, "y"), "error mentions y")
+    catch e
+        tCheck(false, "sem undecl threw: " + e.message)
+    end
+    tEnd("sem-undecl")
+end
+
+
+func testSemanticScope()
+    println("[test] 语义分析 - 作用域隔离")
+    tReset()
+    try
+        // 内层声明的 x 不应与外层冲突。
+        string src = "func f() as int\n    int x = 1\n    if x > 0 then\n        int x = 2\n    end\n    return x\nend"
+        string err = analyzeOnly(src)
+        tCheckEq(err, "", "no error in nested scope")
+    catch e
+        tCheck(false, "sem scope threw: " + e.message)
+    end
+    tEnd("sem-scope")
+end
+
+
+// 仅做语义分析（不生成代码），返回错误字符串。
+func analyzeOnly(string src) as string
+    array<var> toks = tokenize(src)
+    var prog = parseTokens(toks)
+    return analyzeProgram(prog)
+end
+
+
+// ----- 端到端集成测试 -----
+
+func testEndToEnd()
+    println("[test] 端到端 - 完整小程序")
+    tReset()
+    try
+        string src = ""
+        src = src + "func add(int a, int b) as int\n"
+        src = src + "    return a + b\n"
+        src = src + "end\n"
+        src = src + "\n"
+        src = src + "func main() as int\n"
+        src = src + "    int x = add(3, 4)\n"
+        src = src + "    print(x)\n"
+        src = src + "    return 0\n"
+        src = src + "end\n"
+        string c = compileSource(src)
+        tCheckHas(c, "int64_t add(int64_t a, int64_t b)", "add signature")
+        tCheckHas(c, "int64_t add();", "add prototype")
+        tCheckHas(c, "int64_t x = add(3, 4)", "call add")
+        tCheckHas(c, "printf(\"%lld", "print x")
+        tCheckHas(c, "return 0", "main return")
+        tCheckHas(c, "int main", "has main")
+    catch e
+        tCheck(false, "e2e threw: " + e.message)
+    end
+    tEnd("e2e")
+end
+
+
+func testEndToEndLoop()
+    println("[test] 端到端 - 循环累加")
+    tReset()
+    try
+        string src = ""
+        src = src + "func sum(int n) as int\n"
+        src = src + "    int total = 0\n"
+        src = src + "    int i = 1\n"
+        src = src + "    while i <= n do\n"
+        src = src + "        total = total + i\n"
+        src = src + "        i = i + 1\n"
+        src = src + "    end\n"
+        src = src + "    return total\n"
+        src = src + "end\n"
+        string c = compileSource(src)
+        tCheckHas(c, "int64_t sum(int64_t n)", "sum sig")
+        tCheckHas(c, "int64_t total = 0", "total init")
+        tCheckHas(c, "while ((i <= n))", "while cond")
+        tCheckHas(c, "total = (total + i)", "accumulate")
+        tCheckHas(c, "i = (i + 1)", "increment")
+    catch e
+        tCheck(false, "e2e loop threw: " + e.message)
+    end
+    tEnd("e2e-loop")
+end
+
+
+func testEndToEndIf()
+    println("[test] 端到端 - 多分支")
+    tReset()
+    try
+        string src = ""
+        src = src + "func grade(int s) as int\n"
+        src = src + "    if s >= 90 then\n"
+        src = src + "        print(4)\n"
+        src = src + "    elseif s >= 80 then\n"
+        src = src + "        print(3)\n"
+        src = src + "    elseif s >= 60 then\n"
+        src = src + "        print(2)\n"
+        src = src + "    else\n"
+        src = src + "        print(0)\n"
+        src = src + "    end\n"
+        src = src + "    return 0\n"
+        src = src + "end\n"
+        string c = compileSource(src)
+        tCheckHas(c, "if ((s >= 90))", "if 90")
+        tCheckHas(c, "else if ((s >= 80))", "elseif 80")
+        tCheckHas(c, "else if ((s >= 60))", "elseif 60")
+        tCheckHas(c, "else {", "else")
+    catch e
+        tCheck(false, "e2e if threw: " + e.message)
+    end
+    tEnd("e2e-if")
+end
+
+
+func testMultipleFuncs()
+    println("[test] 端到端 - 多函数互相调用")
+    tReset()
+    try
+        string src = ""
+        src = src + "func sq(int x) as int\n"
+        src = src + "    return x * x\n"
+        src = src + "end\n"
+        src = src + "func sumsq(int a, int b) as int\n"
+        src = src + "    return sq(a) + sq(b)\n"
+        src = src + "end\n"
+        string c = compileSource(src)
+        tCheckHas(c, "int64_t sq(int64_t x)", "sq sig")
+        tCheckHas(c, "int64_t sumsq(int64_t a, int64_t b)", "sumsq sig")
+        tCheckHas(c, "(sq(a) + sq(b))", "nested calls")
+    catch e
+        tCheck(false, "multi func threw: " + e.message)
+    end
+    tEnd("multi-func")
+end
+
+
+// ----- 主测试入口 -----
+
+func cmdTest() as int
+    println("=== xcompiler built-in test suite ===")
+    println("")
+    testLexer()
+    testLexerNumbers()
+    testLexerStrings()
+    testLexerOperators()
+    testLexerComments()
+    testParseFunc()
+    testParseVarDecl()
+    testParseIf()
+    testParseWhile()
+    testParseFor()
+    testParseExpr()
+    testSemanticOk()
+    testSemanticDupVar()
+    testSemanticUndecl()
+    testSemanticScope()
+    testGenFunc()
+    testGenVarDecl()
+    testGenPrint()
+    testGenIf()
+    testGenWhile()
+    testGenFor()
+    testGenReturn()
+    testGenForwardDecl()
+    testGenBreakContinue()
+    testGenNested()
+    testGenExprMixed()
+    testEndToEnd()
+    testEndToEndLoop()
+    testEndToEndIf()
+    testMultipleFuncs()
+    println("")
+    println("=== total pass=" + string(g_pass) + " fail=" + string(g_fail) + " ===")
+    if g_fail > 0 then
+        println("SOME TESTS FAILED")
+        return 1
+    end
+    println("ALL TESTS PASSED")
+    return 0
+end
+
+
+// =====================================================================
+// 11. 入口
+// =====================================================================
+
+func main(...) as int
+    initTables()
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+    string cmd = string(arg[1])
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+    if cmd == "test" then
+        return cmdTest()
+    end
+    if cmd == "compile" then
+        if arg.length < 4 then
+            println("xcompiler: 'compile' 需要 <input.xl> <output.c>")
+            return 1
+        end
+        return cmdCompile(string(arg[2]), string(arg[3]))
+    end
+    if cmd == "ast" then
+        if arg.length < 3 then
+            println("xcompiler: 'ast' 需要 <input.xl>")
+            return 1
+        end
+        return cmdAst(string(arg[2]))
+    end
+    if cmd == "tokens" then
+        if arg.length < 3 then
+            println("xcompiler: 'tokens' 需要 <input.xl>")
+            return 1
+        end
+        return cmdTokens(string(arg[2]))
+    end
+    println("xcompiler: 未知命令: " + cmd)
+    printUsage()
+    return 1
+end

@@ -63,8 +63,6 @@ xl ir <file.xl> [--format text|json] [--emit output.xlir]
 xl cgen <file.xl> [--emit output.c] [--emit-header output.h] [--dump-dir dir]
 xl abi <file.xl> [--json] [--emit output.abi.txt]
 xl run <file.xl|file.c|file.xlp> [helper.c ...] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]
-xl dbg <file.xl> [--break line] [--stop-on-entry] [--commands file] [--save-temps] [-- <args>...]
-xl dap
 xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o <output.exe|dll>] [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]
 xl impdef <file.dll> -o <output.def>
 ```
@@ -85,8 +83,6 @@ xl impdef <file.dll> -o <output.def>
 - `build`：生成 exe。
 - `build -shared`：进入共享库/DLL 构建边界。
 - `build --emit-header`：输出供 C 调用的头文件。
-- `dbg`：启动调试器运行脚本，支持 `--break`、`--stop-on-entry`、`--commands` 等。
-- `dap`：启动 DAP（Debug Adapter Protocol）服务，供编辑器集成。
 - `impdef`：从 DLL 生成 import definition（`.def`）。
 - `--inc-path`、`--lib-path`、`--link`、`--loadlib`：向 TCC 后端注入 include、lib、链接库和运行库。
 
@@ -264,6 +260,7 @@ object
 native-backed class
 union
 typedef alias
+ref<Class>
 ```
 
 函数值类型：
@@ -293,6 +290,53 @@ func(string, ***) as int namedVarargProc
 - `object` 是标准库普通 class，不是特殊黑盒类型。
 - `void` 不属于 DEMO6 类型系统。
 
+显式多态引用 `ref<T>`：
+
+```xlang
+class Base
+    virtual func value() as int
+        return 1
+    end
+end
+
+class Child extends Base
+    int n
+
+    create(int value)
+        self.n = value
+    end
+
+    override func value() as int
+        return self.n
+    end
+end
+
+ref<Child> child = ref(Child(42))
+ref<Base> base = child
+
+assert base.value() == 42
+assert base is ref<Child>
+
+ref<Child> checked = base as ref<Child>
+array<ref<Base>> values = array[]
+values.append(child)
+assert values[0].value() == 42
+```
+
+已实现规则：
+
+- 普通 class 继续保持 C 结构体值语义；`Base value = Child()` 不合法，也不会发生静默对象切片。
+- `ref(ClassValue)` 创建拥有完整动态对象的引用。命名 class 值会复制到独立对象；新建临时值和 fresh return 可直接移交所有权。
+- `ref<Child>` 可安全拓宽为 `ref<Base>`，参数、返回值、赋值和静态泛型容器使用同一规则。
+- 多个 ref 副本共享同一动态对象；引用计数保证完整对象只析构一次。
+- 字段、属性、协议和 virtual 调用都通过引用指向的动态对象执行。
+- `ref<T>` 支持泛型 class，例如 `ref<Box<int>>`，并保留具体泛型类型身份。
+- `ref<T>` 可与 `null` 比较；两个 ref 使用对象身份比较，不执行 class 值比较。
+- `expr is ref<T>` 执行运行时继承关系判断；`expr as ref<T>` 执行 checked downcast，失败触发可捕获的运行时类型错误。
+- `ref<T>` 的 `T` 必须是普通 class。native-backed class 继续使用自身句柄所有权模型，不套用 ref。
+- 从已有的不可复制 class 值创建 ref 会被拒绝；可以直接从该 class 的 fresh 构造结果创建 ref 并移交所有权。
+- C ABI 将 ref 参数和返回值表示为 `xvalue` 共享对象句柄；C 侧使用 XRT retain/unref 与类型描述能力管理它。
+
 运行时类型判断与向下转换：
 
 ```xlang
@@ -321,14 +365,14 @@ end
 - `expr is Type` 返回 `bool`。
 - `is` 用于判断运行时值是否满足目标类型。
 - `is` 对非 `var` 的静态表达式会尽量在编译期折叠为常量。
-- `is` 支持基础类型、`null`、class 继承关系、union、native-backed class、函数签名类型和静态泛型容器 descriptor。
+- `is` 支持基础类型、`null`、class 继承关系、`ref<class>`、union、native-backed class、函数签名类型和静态泛型容器 descriptor。
 - `is` 判断 class 时支持 `Child is Base`。
 - `is` 判断函数值时保留完整 `func(...) as ...` 签名，不退化为裸 `function`。
 - `is` 判断 `array<T>`、`list<T>`、`set<T>`、`dict<T>` 时使用静态泛型容器 descriptor，`array<int>` 与 `array<string>` 不相等。
 - `expr as Type` 表示显式 checked downcast。
 - `as` 成功时返回目标类型的静态值。
 - `as` 失败时触发运行时 fatal，当前阶段不返回 nullable/option。
-- `as` 当前支持从 `var` 转出基础值、`string`、`time`、`point`、`type`、class、union、native-backed class。
+- `as` 当前支持从 `var` 转出基础值、`string`、`time`、`point`、`type`、class、union、native-backed class，也支持 `ref<Base> as ref<Child>` checked downcast。
 - `as` 也允许目标类型与源静态类型完全一致的 no-op 写法。
 - `as` 不用于普通数值转换；普通转换继续使用 `int(expr)`、`float(expr)`、`string(expr)` 等构造/转换函数。
 - `is auto`、`is var`、`as auto`、`as var` 不合法。
@@ -413,7 +457,7 @@ move(y = 2, x = 1)
 - 使用 `as` 声明返回类型。
 - 无 `as` 表示无返回值。
 - 多返回值使用 `as (T1, T2)`。
-- `func foo() -> int` 不属于 DEMO6 语法；函数、函数类型、匿名函数统一使用 `as`。
+- 函数、函数类型和匿名函数的返回类型统一使用 `as`。
 - 函数值类型使用 `func(...) as T`，不使用完整单词 `function` 作为签名写法。
 - 支持可选参数。
 - 支持命名参数。
@@ -422,6 +466,8 @@ move(y = 2, x = 1)
 - `...` 与 `***` 不能同时出现。
 - 命名参数优先匹配已声明形参。
 - 未匹配的命名参数进入 `***` 参数字典。
+- 具名函数和方法支持固定形参命名调用；`func(...) as ...` 函数值签名不保存固定形参名，因此固定参数按位置调用。
+- 声明 `***` 的函数值仍支持命名参数，全部额外名称和值进入 `arg` 字典。
 - 可选参数导出到 C 环境时，默认值语义不导出，C 侧按普通参数调用。
 - 支持函数值赋值与调用。
 - 支持匿名函数与闭包。
@@ -1193,7 +1239,8 @@ rw.readUnlock()
 - `task.all` 的内部取消转发生命周期已经收紧：聚合启动时会先持有内部 group future 的本地引用，再建立取消转发，成功、启动失败和转发失败路径都会释放本地引用，避免 worker 过快完成时释放内部状态导致竞态。
 - `task.cancel(...)` 只接受 `future<T>` / `task<T>`；`channel<T>`、`generator<T>`、`sem`、`thread` 等资源句柄不是 task 句柄，必须使用各自的专用方法或生命周期规则，不能传给 `task.cancel`。
 - `task.all` / `task.race` 的失败传播已覆盖基础值、`string`、`class` 与 `func`；已失败的具名 task future 支持 repeated await，`task.cancel(failedFuture)` 返回 `false`，post-cancel await 仍保留原始错误。`task.all` 中某个 source 快速失败时，group 必须传播原始错误，但不会取消仍在 pending 的 sibling；数组字面量输入和 `array<future<int>>` typed-array 输入均已覆盖慢 sibling 后续正常 `await`。`task.race` 中某个 source 快速失败时，仍在 pending 的 loser future 会被取消，后续 repeated await 保持取消态；如果 race 创建前 winner 已经失败，数组字面量输入和 `array<future<int>>` typed-array 输入也都必须覆盖 loser 首次 await 与 sleep 后 late await 均保持取消态。
-- 当前 typed future bridge 不支持 `task.all/race` 聚合 `future<var>`，也不支持完成值本身为 `array/list/set/dict` 的 `future<array/list/set/dict>`，也不支持 `future<future<T>>`、`future<generator<T>>`、`future<channel<T>>`、`future<sem>`、`future<thread>` 等资源句柄完成值。该限制同时适用于 `[future<T>, ...]` 数组字面量输入和 `array<future<T>>` typed-array 输入；这些 future 可以直接 `await`，但暂不能再交给 `task.all/race` 二次聚合。
+- `task.all/race` 的完成值复制由 XRT 类型描述符统一负责，支持 `var`、四种静态泛型容器、可复制 class、function 值以及嵌套 `future/task`；数组字面量和 `array<future<T>>` 输入使用同一类型闭包。
+- `channel`、`generator`、`thread` 和同步句柄等 move-only 资源不能聚合；语义阶段会报告结果类型不可安全复制，避免伪造共享所有权。
 - `task.spawn` 只接收具备完整签名的 `func` 值；当前桥接不支持 `var` 返回值、`***` 字典可变参数、typed container 参数/返回值、动态 `array/list/set/dict` 参数/返回值、`future<T>` 参数/返回值、`generator<T>` 参数/返回值、`channel<T>` / `sem` / `thread` 等资源句柄参数/返回值。
 - `task.spawn` 已覆盖 `...` 数组可变参数函数值，包括 `func(int, ...) as int` 和零固定参数的 `func(...) as int` adapter；pending vararg future 取消后，worker 晚到完成不能覆盖取消态。
 - `task.spawn(...)` 产生的 `future<int/string/bool/float>` 进入 typed-array `task.all` / `task.race` 后，已覆盖 completed future 的 repeated await、completed cancel 返回 `false`、post-cancel await 仍返回原完成值。
@@ -1429,6 +1476,7 @@ Buffer packetBytes = packet.bytes()
 - 成员导出符号进入生成头文件和 ABI dump；ABI kind 为 `class_method`，并记录 `owner`。
 - 当前阶段不支持 static 成员导出为 class method C ABI。
 - 当前阶段不支持泛型 class 成员直接导出 C ABI。
+- `ref<Class>` 参数和返回值导出为 `xvalue`；C 侧可用完整 XRT `xvalue` API 检查类型、保留与释放引用。
 
 变量与常量声明示例：
 
@@ -1667,17 +1715,6 @@ DEMO6 是 xlang 准备发布的第一个候选口径，原则是不背负 DEMO5 
 - 泛型约束的 trait/protocol bound 方法集合推导。
 - 泛型 class 成员直接导出 C ABI 的专用实例化 wrapper。
 - 更完整的跨平台 DLL 入口封装。
-
-以下旧口径不属于 DEMO6 语法或运行模型：
-- `func foo() -> int` 箭头返回值写法。
-- `function(int) as int` 完整单词函数签名写法。
-- `0X`、`0O`、`0B` 大写数字前缀。
-- `&H`、`&O`、`&B` 及其大小写变体。
-- `extern "c_symbol" var int name` 这类 `extern/export` 变量声明中的额外 `var` 标记词。
-- `export "c_symbol" var int name = value` 这类旧 C ABI 变量导出写法。
-- `deepcopy()` 兼容别名。
-- `xl xapi` 命令、`xlang-xapi-1` schema、`.xapi` / `.xapi.json` 产物（接口元数据已并入 `abi` 阶段，仅承载 C ABI 导出符号）。
-- `lib/tcc/include/...` 这类对上层源码目录有依赖的内置资源路径。
 
 这些能力应先进入 `demo6/docs` 的权威设计文档，再进入实现与测试。
 

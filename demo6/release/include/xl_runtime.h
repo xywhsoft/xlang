@@ -53,6 +53,7 @@ typedef bool (*xrt_xcall_proc)(xrt_call_frame* pFrame, xrt_call_result* pResult)
 #define XL6_XRT_TYPE_KIND_DICT 12u
 #define XL6_XRT_TYPE_KIND_RECORD 13u
 #define XL6_XRT_TYPE_KIND_HANDLE 14u
+#define XL6_XRT_TYPE_KIND_REF 17u
 #define XL6_XRT_HANDLE_FLAG_BORROWED 0x00000002u
 #define XL6_XRT_HANDLE_FLAG_NULLABLE 0x00000004u
 #ifndef XRT_OBJMODE_LOCAL
@@ -233,6 +234,7 @@ xvalue xvoCreateTime(xtime tVal);
 xvalue xvoCreatePoint(ptr point);
 xvalue xvoCreateCallable(xrt_callable* pCallable, bool bColloc);
 xvalue xvoCreateRecord(const xrt_type_desc* pType, const void* pData);
+xvalue xvoCreateRecordMove(const xrt_type_desc* pType, void* pData);
 xvalue xvoCreateHandle(const xrt_type_desc* pType, ptr pHandle, uint32 iFlags);
 xvalue xvoCreateArray(void);
 xvalue xvoCreateList(void);
@@ -244,6 +246,7 @@ xvalue xvoCreateListArgs(uint32 iCount, ...);
 xvalue xvoCreateSetArgs(uint32 iCount, ...);
 xvalue xvoCreateTableArgs(uint32 iCount, ...);
 void xvoAddRef(xvalue pVal);
+bool xvoIsShared(xvalue pVal);
 void xvoUnref(xvalue pVal);
 xvalue xvoCopy(xvalue pVal);
 xvalue xvoDeepCopy(xvalue pVal);
@@ -603,7 +606,12 @@ static char* xl6_xrt_fstr_join(int count, ...)
 #ifdef XL_RUNTIME_NEED_XVALUE
 static xvalue xl6_xrt_move_to_shared(xvalue value)
 {
-    xvalue result = xvoDeepCopyEx(value, XRT_OBJMODE_SHARED);
+    xvalue result;
+
+    if ( value == 0 || xvoIsShared(value) ) {
+        return value;
+    }
+    result = xvoDeepCopyEx(value, XRT_OBJMODE_SHARED);
     if ( value != 0 ) {
         xvoUnref(value);
     }
@@ -666,7 +674,7 @@ static const char* xl6_xrt_type_name_from_id(uint64 typeId)
 
 static xvalue xl6_xrt_bind_type(xvalue value, const xrt_type_desc* desc)
 {
-    if ( value != 0 && desc != 0 ) {
+    if ( value != 0 && desc != 0 && desc->Kind != XL6_XRT_TYPE_KIND_REF ) {
         (void)xvoSetTypeDesc(value, desc);
     }
     return value;

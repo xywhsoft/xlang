@@ -1,4 +1,4 @@
-// pager - 内存页式管理模拟器
+﻿// pager - 内存页式管理模拟器
 //
 // 用法:
 //   pager run <algo> <access_trace.txt> [frames=4]
@@ -58,6 +58,7 @@ end
 //   方法只读写 self 字段, 故在局部实例上调用安全.
 // ============================================================
 class PageTable
+    derive value
     int tableSize = 16
     array<int> pages = array[]
     array<int> frames = array[]
@@ -318,9 +319,11 @@ end
 
 
 // ============================================================
-// class TraceStep: 一次访问的回放记录
+// class TraceStep
+//     derive value: 一次访问的回放记录
 // ============================================================
 class TraceStep
+    derive value
     int step = 0
     int page = 0
     int tlbHit = 0
@@ -330,9 +333,11 @@ end
 
 
 // ============================================================
-// class SimResult: 一次模拟的完整结果 (供渲染)
+// class SimResult
+//     derive value: 一次模拟的完整结果 (供渲染)
 // ============================================================
 class SimResult
+    derive value
     string algo = "fifo"
     int numFrames = 4
     int tlbCap = 4
@@ -738,7 +743,7 @@ end
 // ============================================================
 
 // 在 arg[start..] 中找 frames=N, 返回 N; 没有返回 defaultFrames; 非法返回 -1.
-func parseFrames(array arg, int start, int defaultFrames) as int
+func parseFrames(var arg, int start, int defaultFrames) as int
     int i = start
     while i < arg.length do
         string a = string(arg[i])

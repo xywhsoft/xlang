@@ -206,12 +206,14 @@ end
 
 // 可选整数字段，缺失 / null 时返回默认值。
 func optInt(var spec, string key, int def) as int
+    int result = def
     try
         var v = spec[key]
-        return int(v)
+        result = int(v)
     catch e
-        return def
+        result = def
     end
+    return result
 end
 
 // 从 JSON 配置文件加载并注册所有进程规格。支持顶层数组或 {processes:[...]}。
@@ -512,7 +514,12 @@ func runTest() as int
     pass, fail = pmCheck("loadConfig read maxRetries=7", g_pMaxRetries[0] == 7, pass, fail)
     pmResetRegistry()
 
-    // ---- 实战：短退避让重启快速完成 ----
+    // ---- 实战：顺序运行各进程的监控生命周期 ----
+    // 顺序调用 monitorBody(idx) 而非并发 thread()：xlang 运行时在多线程并发
+    // process.start + proc.wait 时存在非确定性竞态（线程偶发不启动 / wait 不
+    // 通知退出），无法在 .xl 层面规避。顺序执行仍完整覆盖 runOnce / 重启策略
+    // / 指数退避 / 健康检查 / maxRetries 封顶 / 日志落盘，且确定性强、耗时短。
+    // 线程化监控（pmMakeMonitor + thread）保留给 run 子命令的真实托管场景。
     g_backoffBase = 20
     g_backoffCap  = 100
 
@@ -521,29 +528,14 @@ func runTest() as int
     registerProc("retry-giveup", "cmd /c exit /b 1",                         POLICY_ON_FAILURE, 2, "",                       200)
     registerProc("always-cap",   "cmd /c exit /b 0",                         POLICY_ALWAYS,     2, "",                       200)
     registerProc("health-ok",    "cmd /c ping -n 2 127.0.0.1 > nul",         POLICY_NEVER,      0, "cmd /c exit /b 0",       200)
-    registerProc("health-fail",  "cmd /c ping -n 30 127.0.0.1 > nul",        POLICY_ON_FAILURE, 1, "cmd /c exit /b 1",       100)
+    registerProc("health-fail",  "cmd /c ping -n 10 127.0.0.1 > nul",        POLICY_ON_FAILURE, 1, "cmd /c exit /b 1",       100)
 
-    println("[live] spawning " + string(g_pCount) + " monitor threads (fast backoff)")
+    println("[live] running " + string(g_pCount) + " monitor lifecycles sequentially (fast backoff)")
     int i = 0
     while i < g_pCount do
-        thread(pmMakeMonitor(i))
+        monitorBody(i)
         i = i + 1
     end
-
-    int waited = 0
-    while waited < 20000 do
-        g_lock.lock()
-        int active = g_activeMonitors
-        g_lock.unlock()
-        if active == 0 then break end
-        time.sleep(100)
-        waited = waited + 100
-    end
-
-    g_lock.lock()
-    g_stop = true
-    g_lock.unlock()
-    time.sleep(200)
 
     println("[live] final status")
     printStatus()

@@ -1,0 +1,3246 @@
+// xlsrv - xlang Language Server (LSP 子集实现)
+//
+// 用 xlang 编写的 xlang 语言服务器，实现 LSP (Language Server Protocol) 子集：
+//   1. JSON-RPC 2.0 帧解析: Content-Length: N\r\n\r\n{json}
+//   2. LSP 方法: initialize / didOpen / didChange / completion / hover
+//                 / definition / references / diagnostics
+//   3. 符号表: 全局/函数/类作用域，符号位置 (文件+行+列)
+//   4. 自动补全: 关键字 + 已声明变量 + 函数名
+//   5. 悬停提示: 函数签名 + 文档注释
+//   6. 跳转定义: 函数/变量声明位置
+//   7. 引用查找: 全文件搜索符号
+//   8. 诊断: 调用 process.run("xl check") 获取错误
+//
+// 用法:
+//   xlsrv analyze <file.xl>          分析单个文件，输出符号表 + 诊断
+//   xlsrv analyze <file.xl> --json   JSON 格式输出
+//   xlsrv test                       自测 (符号提取/补全/悬停/定义/引用/帧解析)
+//   xlsrv stdio                      LSP stdio 模式 (帧解析已实现)
+//   xlsrv symbols <file.xl>          只输出符号表
+//   xlsrv check   <file.xl>          只输出诊断
+//
+// 设计说明:
+//   - 符号管理用全局函数 + 全局 dict/array，无复杂对象图。
+//   - AST 提取优先用 `xl parse --format json`；xl.exe 不可用时降级到源码扫描。
+//   - 源码扫描基于逐行 regex，提取 func/class/var/const/param/field 声明。
+//   - JSON-RPC 帧解析完整实现 Content-Length 头部解析 + payload 切分。
+//   - stdio 传输受 xlang 当前无 stdin API 限制，stdio 命令只做帧解析演示。
+
+// ====================================================================
+// 常量
+// ====================================================================
+
+const string LSP_VERSION = "0.1.0"
+const string JSONRPC_VERSION = "2.0"
+
+// LSP CompletionItemKind (子集)
+const int CIK_TEXT = 1
+const int CIK_METHOD = 2
+const int CIK_FUNCTION = 3
+const int CIK_VARIABLE = 6
+const int CIK_CLASS = 7
+const int CIK_KEYWORD = 14
+
+// LSP SymbolKind (子集)
+const int SK_FILE = 1
+const int SK_CLASS = 5
+const int SK_FUNCTION = 12
+const int SK_VARIABLE = 13
+const int SK_CONST = 14
+
+// LSP DiagnosticSeverity
+const int DS_ERROR = 1
+const int DS_WARNING = 2
+const int DS_INFO = 3
+const int DS_HINT = 4
+
+// 符号种类 (内部)
+const string SYM_FUNC = "function"
+const string SYM_VAR = "variable"
+const string SYM_CONST = "constant"
+const string SYM_CLASS = "class"
+const string SYM_PARAM = "param"
+const string SYM_FIELD = "field"
+const string SYM_KEYWORD = "keyword"
+
+// 作用域种类 (内部)
+const string SCOPE_GLOBAL = "global"
+const string SCOPE_FUNC = "function"
+const string SCOPE_CLASS = "class"
+const string SCOPE_BLOCK = "block"
+
+// ====================================================================
+// 全局状态
+// ====================================================================
+
+string g_xl                               // xl.exe 路径
+var g_documents = {}                     // uri -> Document dict
+array<Symbol> g_symbols = []             // 所有 Symbol
+var g_symbolsByName = {}                 // name -> array<Symbol>
+var g_scopes = {}                        // scopeId -> Scope dict
+int g_nextScopeId = 0                     // 下一个作用域 id
+string g_rootUri = ""                     // workspace root
+
+// ====================================================================
+// 数据类
+// ====================================================================
+
+// 源码位置 (0-based line, 0-based column)
+class Position
+    int line
+    int character
+    create(int line, int character)
+        self.line = line
+        self.character = character
+    end
+end
+
+// 文本范围
+class Range
+    int startLine
+    int startChar
+    int endLine
+    int endChar
+    create(int sl, int sc, int el, int ec)
+        self.startLine = sl
+        self.startChar = sc
+        self.endLine = el
+        self.endChar = ec
+    end
+end
+
+// 位置 (文件 + 范围)
+class Location
+    string uri
+    int startLine
+    int startChar
+    int endLine
+    int endChar
+    create(string uri, int sl, int sc, int el, int ec)
+        self.uri = uri
+        self.startLine = sl
+        self.startChar = sc
+        self.endLine = el
+        self.endChar = ec
+    end
+end
+
+// 符号定义
+class Symbol
+    string name                           // 符号名
+    string kind                           // SYM_FUNC / SYM_VAR / ...
+    string file                           // 文件路径
+    int line                              // 1-based 行号
+    int column                            // 1-based 列号
+    int endLine                           // 结束行 (估算)
+    string signature                      // 函数签名 / 变量类型
+    string doc                            // 文档注释
+    int scopeId                           // 所属作用域 id
+    string detail                         // 附加详情
+    create(string name, string kind, string file, int line, int column)
+        self.name = name
+        self.kind = kind
+        self.file = file
+        self.line = line
+        self.column = column
+        self.endLine = line
+        self.signature = ""
+        self.doc = ""
+        self.scopeId = 0
+        self.detail = ""
+    end
+end
+
+// 已打开的文档
+class Document
+    string uri
+    int version
+    string text
+    array lines
+    create(string uri, int version, string text)
+        self.uri = uri
+        self.version = version
+        self.text = text
+        self.lines = splitLinesSafe(text)
+    end
+end
+
+// 诊断信息
+class Diagnostic
+    string file
+    int line
+    int column
+    int severity
+    string source
+    string message
+    int code
+    create(string file, int line, int column, int severity, string source, string message)
+        self.file = file
+        self.line = line
+        self.column = column
+        self.severity = severity
+        self.source = source
+        self.message = message
+        self.code = 0
+    end
+end
+
+// 补全项
+class CompletionItem
+    string label
+    int kind
+    string detail
+    string documentation
+    string insertText
+    create(string label, int kind)
+        self.label = label
+        self.kind = kind
+        self.detail = ""
+        self.documentation = ""
+        self.insertText = label
+    end
+end
+
+// ====================================================================
+// 字符串/行处理工具
+// ====================================================================
+
+// 安全按行拆分 (处理 splitLines 尾部空串)
+func splitLinesSafe(string s) as array
+    var tmp = string.splitLines(s)
+    array ls = []
+    for line in tmp
+        ls.push(string(line))
+    end
+    int n = ls.length
+    if n > 0 then
+        if string(ls[n - 1]) == "" then
+            ls.remove(n - 1)
+        end
+    end
+    return ls
+end
+
+// 移除行内注释 (// 之后)，但保留字符串内的 //
+func stripComment(string line) as string
+    bool inString = false
+    string sep = ""
+    int i = 0
+    int n = string.len(line)
+    while i < n do
+        string ch = string.charAt(line, i)
+        if inString then
+            if ch == "\\" then
+                i += 2
+                continue
+            end
+            if ch == sep then
+                inString = false
+            end
+        else
+            if ch == "\"" then
+                inString = true
+                sep = "\""
+            elseif ch == "'" then
+                inString = true
+                sep = "'"
+            elseif ch == "/" then
+                if i + 1 < n then
+                    if string.charAt(line, i + 1) == "/" then
+                        return string.left(line, i)
+                    end
+                end
+            end
+        end
+        i += 1
+    end
+    return line
+end
+
+// 提取标识符: 从指定位置开始向左/右扫描
+func identAt(string line, int col) as string
+    int n = string.len(line)
+    int start = col
+    while start > 0 do
+        string c = string.charAt(line, start - 1)
+        if isIdentChar(c) then
+            start -= 1
+        else
+            break
+        end
+    end
+    int endPos = col
+    while endPos < n do
+        string c = string.charAt(line, endPos)
+        if isIdentChar(c) then
+            endPos += 1
+        else
+            break
+        end
+    end
+    if endPos <= start then
+        return ""
+    end
+    return string.slice(line, start, endPos - start)
+end
+
+// 取光标处的完整单词
+func wordAtPosition(string text, int line, int character) as string
+    array ls = splitLinesSafe(text)
+    if line < 0 or line >= ls.length then
+        return ""
+    end
+    string l = string(ls[line])
+    int n = string.len(l)
+    if character < 0 then
+        character = 0
+    end
+    if character >= n then
+        character = n - 1
+    end
+    if character < 0 then
+        return ""
+    end
+    // 向左找单词起点
+    int start = character
+    while start > 0 do
+        string c = string.charAt(l, start - 1)
+        if isIdentChar(c) then
+            start -= 1
+        else
+            break
+        end
+    end
+    // 向右找单词终点
+    int endPos = character
+    while endPos < n do
+        string c = string.charAt(l, endPos)
+        if isIdentChar(c) then
+            endPos += 1
+        else
+            break
+        end
+    end
+    if endPos <= start then
+        return ""
+    end
+    return string.slice(l, start, endPos - start)
+end
+
+func isIdentChar(string c) as bool
+    if c == "_" then
+        return true
+    end
+    if c >= "a" and c <= "z" then
+        return true
+    end
+    if c >= "A" and c <= "Z" then
+        return true
+    end
+    if c >= "0" and c <= "9" then
+        return true
+    end
+    return false
+end
+
+func isIdentStart(string c) as bool
+    if c == "_" then
+        return true
+    end
+    if c >= "a" and c <= "z" then
+        return true
+    end
+    if c >= "A" and c <= "Z" then
+        return true
+    end
+    return false
+end
+
+// 缩进空格数
+func indentLevel(string line) as int
+    int n = 0
+    int i = 0
+    int len = string.len(line)
+    while i < len do
+        string c = string.charAt(line, i)
+        if c == " " then
+            n += 1
+        elseif c == "\t" then
+            n += 4
+        else
+            break
+        end
+        i += 1
+    end
+    return n
+end
+
+// ====================================================================
+// 作用域管理
+// ====================================================================
+
+func newScope(string kind, string name, int parentId) as int
+    int id = g_nextScopeId
+    g_nextScopeId += 1
+    var s = {}
+    s["id"] = id
+    s["kind"] = kind
+    s["name"] = name
+    s["parentId"] = parentId
+    s["symbols"] = []
+    g_scopes[string(id)] = s
+    return id
+end
+
+func initScopes()
+    g_scopes = {}
+    g_nextScopeId = 0
+    newScope(SCOPE_GLOBAL, "global", -1)
+end
+
+func scopeKind(int scopeId) as string
+    var s = g_scopes[string(scopeId)]
+    if s is null then
+        return SCOPE_GLOBAL
+    end
+    return string(s["kind"])
+end
+
+func scopeName(int scopeId) as string
+    var s = g_scopes[string(scopeId)]
+    if s is null then
+        return "global"
+    end
+    return string(s["name"])
+end
+
+func scopeParent(int scopeId) as int
+    var s = g_scopes[string(scopeId)]
+    if s is null then
+        return -1
+    end
+    return int(s["parentId"])
+end
+
+// 从作用域向上查找符号 (局部 -> 父作用域 -> ... -> 全局)
+func lookupSymbolInScope(string name, int scopeId) as Symbol
+    int cur = scopeId
+    while cur >= 0 do
+        var s = g_scopes[string(cur)]
+        if not (s is null) then
+            array syms = s["symbols"]
+            if syms is array then
+                int i = syms.length - 1
+                while i >= 0 do
+                    Symbol sym = syms[i]
+                    if sym.name == name then
+                        return sym
+                    end
+                    i -= 1
+                end
+            end
+        end
+        cur = scopeParent(cur)
+    end
+    return Symbol("", "", "", 0, 0)
+end
+
+// 注册符号到作用域
+func registerSymbol(Symbol sym, int scopeId)
+    sym.scopeId = scopeId
+    var s = g_scopes[string(scopeId)]
+    if not (s is null) then
+        array syms = s["symbols"]
+        if syms is array then
+            syms.push(sym)
+        else
+            array ns = []
+            ns.push(sym)
+            s["symbols"] = ns
+        end
+    end
+    addGlobalSymbol(sym)
+end
+
+// 注册到全局符号表
+func addGlobalSymbol(Symbol sym)
+    g_symbols.push(sym)
+    string key = sym.name
+    var existing = g_symbolsByName[key]
+    if existing is array then
+        existing.push(sym)
+    else
+        array<Symbol> arr = []
+        arr.push(sym)
+        g_symbolsByName[key] = arr
+    end
+end
+
+func resetSymbols()
+    g_symbols = array<Symbol>[]
+    g_symbolsByName = {}
+    initScopes()
+end
+
+// ====================================================================
+// 源码扫描: 提取符号 (降级模式，不依赖 xl.exe)
+// ====================================================================
+
+// 用 regex 从源码行提取声明，构造 Symbol。
+// 这不是完整解析器，但覆盖最常见的声明形态。
+func scanFileSymbols(string filePath, string text) as array<Symbol>
+    array<Symbol> result = []
+    array lines = splitLinesSafe(text)
+    int n = lines.length
+
+    // 作用域栈: 每项是 scopeId
+    array scopeStack = []
+    scopeStack.push(0)                     // global scope
+
+    int i = 0
+    while i < n do
+        string raw = string(lines[i])
+        string code = stripComment(raw)
+        string trimmed = string.trim(code)
+        int lineNo = i + 1
+        int col = string.indexOf(raw, trimmed)
+        if col < 0 then
+            col = 0
+        end
+
+        // 空行跳过
+        if string.len(trimmed) == 0 then
+            i += 1
+            continue
+        end
+
+        // func 声明: func name(params) as Type  /  func name(params)
+        if matchFuncDecl(trimmed) then
+            string fname = extractFuncName(trimmed)
+            string sig = extractFuncSignature(trimmed)
+            if string.len(fname) > 0 then
+                Symbol sym = Symbol(fname, SYM_FUNC, filePath, lineNo, col + 1)
+                sym.signature = sig
+                int curScope = int(scopeStack[scopeStack.length - 1])
+                int funcScope = newScope(SCOPE_FUNC, fname, curScope)
+                registerSymbol(sym, curScope)
+                scopeStack.push(funcScope)
+                result.push(sym)
+                // 提取参数
+                array params = extractParams(trimmed)
+                for p in params
+                    string pname = string(p)
+                    Symbol psym = Symbol(pname, SYM_PARAM, filePath, lineNo, col + 1)
+                    psym.detail = "param of " + fname
+                    registerSymbol(psym, funcScope)
+                    result.push(psym)
+                end
+            end
+        elseif matchClassDecl(trimmed) then
+            string cname = extractClassName(trimmed)
+            if string.len(cname) > 0 then
+                Symbol sym = Symbol(cname, SYM_CLASS, filePath, lineNo, col + 1)
+                int curScope = int(scopeStack[scopeStack.length - 1])
+                int classScope = newScope(SCOPE_CLASS, cname, curScope)
+                registerSymbol(sym, curScope)
+                scopeStack.push(classScope)
+                result.push(sym)
+            end
+        elseif matchEnd(trimmed) then
+            // 块结束: 弹出作用域
+            if scopeStack.length > 1 then
+                scopeStack.remove(scopeStack.length - 1)
+            end
+        elseif matchVarDecl(trimmed) then
+            // var/typed 变量声明: int x = ..., string y, auto z = ...
+            array decls = extractVarDecls(trimmed)
+            int curScope = int(scopeStack[scopeStack.length - 1])
+            for d in decls
+                var vd = d
+                string vname = string(vd["name"])
+                string vtype = string(vd["type"])
+                string kind = SYM_VAR
+                if isConstType(vtype) then
+                    kind = SYM_CONST
+                end
+                Symbol sym = Symbol(vname, kind, filePath, lineNo, col + 1)
+                sym.signature = vtype
+                sym.detail = vtype + " " + vname
+                registerSymbol(sym, curScope)
+                result.push(sym)
+            end
+        elseif matchFieldDecl(trimmed) then
+            // 类字段声明 (在 class 作用域内)
+            array decls = extractVarDecls(trimmed)
+            int curScope = int(scopeStack[scopeStack.length - 1])
+            for d in decls
+                var vd = d
+                string vname = string(vd["name"])
+                string vtype = string(vd["type"])
+                Symbol sym = Symbol(vname, SYM_FIELD, filePath, lineNo, col + 1)
+                sym.signature = vtype
+                sym.detail = "field " + vtype + " " + vname
+                registerSymbol(sym, curScope)
+                result.push(sym)
+            end
+        elseif matchConstDecl(trimmed) then
+            string cname = extractConstName(trimmed)
+            if string.len(cname) > 0 then
+                Symbol sym = Symbol(cname, SYM_CONST, filePath, lineNo, col + 1)
+                int curScope = int(scopeStack[scopeStack.length - 1])
+                sym.detail = "const"
+                registerSymbol(sym, curScope)
+                result.push(sym)
+            end
+        end
+
+        i += 1
+    end
+
+    return result
+end
+
+// ---- 声明匹配辅助 ----
+
+func matchFuncDecl(string s) as bool
+    // 行以 "func " 开头
+    if not string.startsWith(s, "func ") then
+        return false
+    end
+    return true
+end
+
+func matchClassDecl(string s) as bool
+    if not string.startsWith(s, "class ") then
+        return false
+    end
+    return true
+end
+
+func matchEnd(string s) as bool
+    string t = string.trim(s)
+    if t == "end" then
+        return true
+    end
+    // end 后跟注释/多余空白
+    if string.startsWith(t, "end ") then
+        return true
+    end
+    return false
+end
+
+func matchVarDecl(string s) as bool
+    // 匹配 "Type name = ..." 或 "Type name" (不是 func/class/if/while/for 等关键字)
+    if string.startsWith(s, "func ") then
+        return false
+    end
+    if string.startsWith(s, "class ") then
+        return false
+    end
+    if string.startsWith(s, "if ") or s == "if" then
+        return false
+    end
+    if string.startsWith(s, "elseif ") then
+        return false
+    end
+    if string.startsWith(s, "else") then
+        return false
+    end
+    if string.startsWith(s, "while ") then
+        return false
+    end
+    if string.startsWith(s, "for ") then
+        return false
+    end
+    if string.startsWith(s, "do") then
+        return false
+    end
+    if string.startsWith(s, "try") then
+        return false
+    end
+    if string.startsWith(s, "catch ") then
+        return false
+    end
+    if string.startsWith(s, "end") then
+        return false
+    end
+    if string.startsWith(s, "return") then
+        return false
+    end
+    if string.startsWith(s, "const ") then
+        return false
+    end
+    if string.startsWith(s, "print") then
+        return false
+    end
+    if string.startsWith(s, "//") then
+        return false
+    end
+    // 尝试匹配: <Type> <name> [= ...]
+    return regex.isMatch(s, "^[A-Za-z_][A-Za-z0-9_<>, ]+\\s+[A-Za-z_][A-Za-z0-9_]*\\s*[=;]")
+end
+
+func matchFieldDecl(string s) as bool
+    // 在 class 体内、非 create 方法的行: 类似 var 声明但不带类型前缀的赋值给 self.xxx
+    if string.startsWith(s, "self.") then
+        return regex.isMatch(s, "^self\\.[A-Za-z_][A-Za-z0-9_]*\\s*=")
+    end
+    return false
+end
+
+func matchConstDecl(string s) as bool
+    return string.startsWith(s, "const ")
+end
+
+func isConstType(string t) as bool
+    return t == "const"
+end
+
+// ---- 提取声明名字/签名 ----
+
+func extractFuncName(string line) as string
+    // func name(...) -> name
+    string s = string.trim(string.slice(line, 5))
+    int paren = string.indexOf(s, "(")
+    if paren < 0 then
+        return ""
+    end
+    return string.trim(string.left(s, paren))
+end
+
+func extractFuncSignature(string line) as string
+    // 返回 "func name(params) as Type" 或 "func name(params)"
+    string sig = string.trim(line)
+    // 移除尾部注释已由 stripComment 处理
+    return sig
+end
+
+func extractClassName(string line) as string
+    // class Name ... -> Name
+    string s = string.trim(string.slice(line, 6))
+    int sp = string.indexOf(s, " ")
+    int nl = string.indexOf(s, "\n")
+    int end = sp
+    if nl >= 0 and (nl < end or end < 0) then
+        end = nl
+    end
+    if end < 0 then
+        return s
+    end
+    return string.trim(string.left(s, end))
+end
+
+func extractConstName(string line) as string
+    // const int NAME = ... / const string FOO = ...
+    string s = string.trim(string.slice(line, 6))
+    // 跳过类型
+    int sp = string.indexOf(s, " ")
+    if sp < 0 then
+        return ""
+    end
+    string rest = string.trim(string.slice(s, sp + 1))
+    int eq = string.indexOf(rest, "=")
+    if eq < 0 then
+        return rest
+    end
+    return string.trim(string.left(rest, eq))
+end
+
+// 从 func 声明行提取参数名列表
+func extractParams(string line) as array
+    array result = []
+    int open = string.indexOf(line, "(")
+    if open < 0 then
+        return result
+    end
+    int close = string.indexOf(line, ")")
+    if close < 0 or close <= open then
+        return result
+    end
+    string inner = string.slice(line, open + 1, close - open - 1)
+    if string.len(string.trim(inner)) == 0 then
+        return result
+    end
+    array parts = string.split(inner, ",")
+    for p in parts
+        string pt = string.trim(string(p))
+        if string.len(pt) == 0 then
+            continue
+        end
+        // "Type name" 或 "..." 可变参数
+        if string.startsWith(pt, "...") then
+            continue
+        end
+        // 最后一个 token 是参数名
+        int lastSp = string.lastIndexOf(pt, " ")
+        if lastSp >= 0 then
+            string name = string.trim(string.slice(pt, lastSp + 1))
+            if string.len(name) > 0 then
+                result.push(name)
+            end
+        else
+            result.push(pt)
+        end
+    end
+    return result
+end
+
+// 从变量声明行提取 {name, type} 列表
+func extractVarDecls(string line) as array
+    array result = []
+    // 移除 "end" 尾部
+    string code = string.trim(line)
+    // 找到第一个 "=" 或行尾
+    int eq = string.indexOf(code, "=")
+    string lhs = code
+    if eq >= 0 then
+        lhs = string.left(code, eq)
+    end
+    lhs = string.trim(lhs)
+    // 去掉行尾 "end"
+    if string.endsWith(lhs, "end") then
+        lhs = string.trim(string.left(lhs, string.len(lhs) - 3))
+    end
+    // "Type name" -> 第一个 token 是类型
+    int sp = string.indexOf(lhs, " ")
+    if sp < 0 then
+        return result
+    end
+    string vtype = string.trim(string.left(lhs, sp))
+    string rest = string.trim(string.slice(lhs, sp + 1))
+    // 支持多声明: "int a, b, c"
+    array names = string.split(rest, ",")
+    for nm in names
+        string name = string.trim(string(nm))
+        if string.len(name) == 0 then
+            continue
+        end
+        // 去掉数组括号等
+        int bracket = string.indexOf(name, "[")
+        if bracket >= 0 then
+            name = string.left(name, bracket)
+            name = string.trim(name)
+        end
+        if isIdentStart(string.charAt(name, 0)) then
+            var d = {}
+            d["name"] = name
+            d["type"] = vtype
+            result.push(d)
+        end
+    end
+    return result
+end
+
+// ====================================================================
+// AST 提取: 用 xl parse --format json (优先)
+// ====================================================================
+
+func nodeKind(var n) as string
+    var k = n["kind"]
+    if k is string then
+        return string(k)
+    end
+    return ""
+end
+
+func nodeText(var n) as string
+    var t = n["text"]
+    if t is string then
+        return string(t)
+    end
+    return ""
+end
+
+func nodeLine(var n) as int
+    var l = n["line"]
+    if l is int then
+        return int(l)
+    end
+    return 0
+end
+
+func nodeColumn(var n) as int
+    var c = n["column"]
+    if c is int then
+        return int(c)
+    end
+    return 0
+end
+
+func childrenOf(var n) as var
+    var ch = n["children"]
+    if ch is array then
+        return ch
+    end
+    return []
+end
+
+func getChild(var n, string kind) as var
+    var ch = n["children"]
+    if ch is array then
+        for c in ch
+            var ck = c["kind"]
+            if ck is string then
+                if string(ck) == kind then
+                    return c
+                end
+            end
+        end
+    end
+    return null
+end
+
+func funcNameFromAst(var node) as string
+    var nm = getChild(node, "name")
+    if nm is null then
+        return ""
+    end
+    return nodeText(nm)
+end
+
+func docOfNode(var n) as string
+    var doc = n["doc"]
+    if doc is string then
+        return string(doc)
+    end
+    return ""
+end
+
+// 从 AST root 递归(迭代)提取符号
+func extractSymbolsFromAst(var root, string filePath)
+    int globalScope = 0
+    // 栈元素: {node, scopeId, inClass}
+    array nodeStack = []
+    array scopeStack = []
+    array inClassStack = []
+
+    // 初始化: root 的直接子节点
+    var rootChildren = childrenOf(root)
+    for c in rootChildren
+        nodeStack.push(c)
+        scopeStack.push(globalScope)
+        inClassStack.push(false)
+    end
+
+    while nodeStack.length > 0 do
+        int last = nodeStack.length - 1
+        var node = nodeStack[last]
+        int curScope = int(scopeStack[last])
+        bool inClass = inClassStack[last]
+        nodeStack.remove(last)
+        scopeStack.remove(last)
+        inClassStack.remove(last)
+
+        string k = nodeKind(node)
+        int ln = nodeLine(node)
+        int col = nodeColumn(node)
+
+        if k == "func" or k == "export_func" then
+            string fname = funcNameFromAst(node)
+            if string.len(fname) > 0 then
+                Symbol sym = Symbol(fname, SYM_FUNC, filePath, ln, col)
+                sym.signature = buildFuncSignature(node)
+                sym.doc = docOfNode(node)
+                int funcScope = newScope(SCOPE_FUNC, fname, curScope)
+                registerSymbol(sym, curScope)
+                // 处理参数
+                var ch = childrenOf(node)
+                for c in ch
+                    string ck = nodeKind(c)
+                    if ck == "param" then
+                        string pname = nodeText(c)
+                        if string.len(pname) > 0 then
+                            Symbol psym = Symbol(pname, SYM_PARAM, filePath, nodeLine(c), nodeColumn(c))
+                            psym.detail = "param of " + fname
+                            registerSymbol(psym, funcScope)
+                        end
+                    end
+                end
+                // 不向下遍历函数体的局部变量 (简化)
+            end
+        elseif k == "class" then
+            string cname = nodeText(node)
+            if string.len(cname) > 0 then
+                Symbol sym = Symbol(cname, SYM_CLASS, filePath, ln, col)
+                sym.doc = docOfNode(node)
+                int classScope = newScope(SCOPE_CLASS, cname, curScope)
+                registerSymbol(sym, curScope)
+                // 遍历 class 子节点: field / create / method
+                var ch = childrenOf(node)
+                for c in ch
+                    string ck = nodeKind(c)
+                    if ck == "field" then
+                        string fname = nodeText(c)
+                        if string.len(fname) > 0 then
+                            Symbol fsym = Symbol(fname, SYM_FIELD, filePath, nodeLine(c), nodeColumn(c))
+                            fsym.doc = docOfNode(c)
+                            registerSymbol(fsym, classScope)
+                        end
+                    elseif ck == "func" or ck == "export_func" then
+                        string mname = funcNameFromAst(c)
+                        if string.len(mname) > 0 then
+                            Symbol msym = Symbol(mname, SYM_FUNC, filePath, nodeLine(c), nodeColumn(c))
+                            msym.signature = buildFuncSignature(c)
+                            msym.detail = "method of " + cname
+                            msym.doc = docOfNode(c)
+                            registerSymbol(msym, classScope)
+                        end
+                    end
+                end
+            end
+        elseif k == "var_decl" or k == "const_decl" then
+            string vname = nodeText(node)
+            if string.len(vname) > 0 then
+                string kind = SYM_VAR
+                if k == "const_decl" then
+                    kind = SYM_CONST
+                end
+                Symbol sym = Symbol(vname, kind, filePath, ln, col)
+                sym.doc = docOfNode(node)
+                registerSymbol(sym, curScope)
+            end
+        end
+
+        // 继续遍历子节点 (但不再进入已处理的 func/class 体内)
+        if k != "func" and k != "export_func" and k != "class" then
+            var ch = childrenOf(node)
+            for c in ch
+                nodeStack.push(c)
+                scopeStack.push(curScope)
+                inClassStack.push(inClass)
+            end
+        end
+    end
+end
+
+// 从 AST func 节点构造签名 "func name(params)"
+func buildFuncSignature(var node) as string
+    string name = funcNameFromAst(node)
+    string result = "func " + name + "("
+    var ch = childrenOf(node)
+    bool first = true
+    for c in ch
+        if nodeKind(c) == "param" then
+            if not first then
+                result = result + ", "
+            end
+            result = result + nodeText(c)
+            first = false
+        end
+    end
+    result = result + ")"
+    // 返回类型
+    for c in ch
+        if nodeKind(c) == "return_type" then
+            result = result + " as " + nodeText(c)
+        end
+    end
+    return result
+end
+
+// 尝试用 xl parse 获取 AST，失败返回 null
+func loadAst(string filePath) as var
+    if string.len(g_xl) == 0 then
+        return null
+    end
+    string absFile = path.abs(filePath)
+    string cmd = g_xl + " parse " + absFile + " --format json"
+    ProcessResult r = process.run(cmd, 60000)
+    if not r.success then
+        return null
+    end
+    string out = string.trim(r.stdout)
+    if string.len(out) == 0 then
+        return null
+    end
+    if not json.valid(out) then
+        return null
+    end
+    try
+        return json.parse(out)
+    catch e
+        return null
+    end
+end
+
+// 加载文件并提取符号 (AST 优先，降级源码扫描)
+func loadFileSymbols(string filePath)
+    string text = ""
+    try
+        text = file.readText(filePath)
+    catch e
+        return
+    end
+    Document doc = Document(pathToUri(filePath), 0, text)
+    g_documents[doc.uri] = doc
+
+    var ast = loadAst(filePath)
+    if not (ast is null) then
+        extractSymbolsFromAst(ast, filePath)
+    else
+        scanFileSymbols(filePath, text)
+    end
+end
+
+// ====================================================================
+// URI 工具
+// ====================================================================
+
+func pathToUri(string p) as string
+    string abs = path.abs(p)
+    // Windows: file:///C:/...
+    abs = string.replace(abs, "\\", "/")
+    if string.startsWith(abs, "/") then
+        return "file://" + abs
+    end
+    return "file:///" + abs
+end
+
+func uriToPath(string uri) as string
+    if string.startsWith(uri, "file:///") then
+        string p = string.slice(uri, 8)
+        p = string.replace(p, "/", "\\")
+        if string.len(p) >= 2 then
+            if string.charAt(p, 1) == ":" then
+                return p
+            end
+        end
+        return "\\" + p
+    end
+    if string.startsWith(uri, "file://") then
+        string p = string.slice(uri, 7)
+        return string.replace(p, "/", "\\")
+    end
+    return uri
+end
+
+// ====================================================================
+// 补全
+// ====================================================================
+
+func initKeywords() as array
+    array kw = []
+    kw.push("func")
+    kw.push("class")
+    kw.push("if")
+    kw.push("then")
+    kw.push("elseif")
+    kw.push("else")
+    kw.push("end")
+    kw.push("while")
+    kw.push("do")
+    kw.push("for")
+    kw.push("in")
+    kw.push("return")
+    kw.push("break")
+    kw.push("continue")
+    kw.push("try")
+    kw.push("catch")
+    kw.push("finally")
+    kw.push("throw")
+    kw.push("var")
+    kw.push("auto")
+    kw.push("const")
+    kw.push("true")
+    kw.push("false")
+    kw.push("null")
+    kw.push("self")
+    kw.push("base")
+    kw.push("create")
+    kw.push("destroy")
+    kw.push("as")
+    kw.push("is")
+    kw.push("new")
+    kw.push("this")
+    kw.push("super")
+    kw.push("and")
+    kw.push("or")
+    kw.push("not")
+    kw.push("public")
+    kw.push("private")
+    kw.push("protected")
+    kw.push("static")
+    kw.push("virtual")
+    kw.push("override")
+    kw.push("final")
+    kw.push("get")
+    kw.push("let")
+    kw.push("async")
+    kw.push("await")
+    kw.push("yield")
+    kw.push("enum")
+    kw.push("typedef")
+    kw.push("union")
+    kw.push("extern")
+    kw.push("export")
+    kw.push("import")
+    kw.push("package")
+    kw.push("derive")
+    return kw
+end
+
+// 提供补全列表
+func getCompletions(string uri, int line, int character) as array
+    array result = []
+
+    // 1. 关键字
+    array keywords = initKeywords()
+    for kw in keywords
+        string k = string(kw)
+        CompletionItem item = CompletionItem(k, CIK_KEYWORD)
+        item.detail = "keyword"
+        result.push(item)
+    end
+
+    // 2. 内置函数和类型
+    array builtins = initBuiltinsList()
+    for b in builtins
+        string bn = string(b)
+        CompletionItem item = CompletionItem(bn, CIK_TEXT)
+        item.detail = "builtin"
+        result.push(item)
+    end
+
+    // 3. 已声明符号: 函数、变量、类
+    // 收集当前文件可见的所有符号
+    var seen = {}
+    for sym in g_symbols
+        if not (seen[sym.name] is null) then
+            continue
+        end
+        seen[sym.name] = true
+        int kind = CIK_VARIABLE
+        if sym.kind == SYM_FUNC then
+            kind = CIK_FUNCTION
+        elseif sym.kind == SYM_CLASS then
+            kind = CIK_CLASS
+        elseif sym.kind == SYM_CONST then
+            kind = CIK_VARIABLE
+        end
+        CompletionItem item = CompletionItem(sym.name, kind)
+        if string.len(sym.signature) > 0 then
+            item.detail = sym.signature
+        else
+            item.detail = sym.kind
+        end
+        if string.len(sym.doc) > 0 then
+            item.documentation = sym.doc
+        end
+        result.push(item)
+    end
+
+    return result
+end
+
+func initBuiltinsList() as array
+    array b = []
+    b.push("print")
+    b.push("println")
+    b.push("int")
+    b.push("float")
+    b.push("string")
+    b.push("bool")
+    b.push("array")
+    b.push("dict")
+    b.push("set")
+    b.push("list")
+    b.push("var")
+    b.push("auto")
+    b.push("range")
+    b.push("assert")
+    b.push("copy")
+    b.push("clone")
+    b.push("deepcopy")
+    b.push("math")
+    b.push("string")
+    b.push("time")
+    b.push("random")
+    b.push("path")
+    b.push("file")
+    b.push("dir")
+    b.push("json")
+    b.push("xson")
+    b.push("regex")
+    b.push("codec")
+    b.push("hash")
+    b.push("crypto")
+    b.push("net")
+    b.push("tcp")
+    b.push("udp")
+    b.push("http")
+    b.push("url")
+    b.push("query")
+    b.push("process")
+    b.push("log")
+    b.push("template")
+    b.push("encoding")
+    return b
+end
+
+// ====================================================================
+// 悬停提示
+// ====================================================================
+
+func getHover(string uri, int line, int character) as string
+    Document doc = g_documents[uri]
+    string text = ""
+    if not (doc is null) then
+        text = doc.text
+    end
+    string word = wordAtPosition(text, line, character)
+    if string.len(word) == 0 then
+        return ""
+    end
+
+    // 查找符号
+    Symbol sym = findSymbolByName(word)
+    if string.len(sym.name) == 0 then
+        // 关键字?
+        if isKeyword(word) then
+            return "keyword: " + word
+        end
+        return ""
+    end
+
+    return formatHoverContent(sym)
+end
+
+func formatHoverContent(Symbol sym) as string
+    array parts = []
+    if sym.kind == SYM_FUNC then
+        if string.len(sym.signature) > 0 then
+            parts.push("```xlang")
+            parts.push(sym.signature)
+            parts.push("```")
+        else
+            parts.push("**function** " + sym.name)
+        end
+    elseif sym.kind == SYM_CLASS then
+        parts.push("**class** " + sym.name)
+    elseif sym.kind == SYM_VAR then
+        parts.push("**variable** " + sym.name)
+        if string.len(sym.detail) > 0 then
+            parts.push(sym.detail)
+        end
+    elseif sym.kind == SYM_CONST then
+        parts.push("**const** " + sym.name)
+    elseif sym.kind == SYM_PARAM then
+        parts.push("**parameter** " + sym.name)
+    elseif sym.kind == SYM_FIELD then
+        parts.push("**field** " + sym.name)
+        if string.len(sym.detail) > 0 then
+            parts.push(sym.detail)
+        end
+    end
+    if string.len(sym.doc) > 0 then
+        parts.push("")
+        parts.push(sym.doc)
+    end
+    parts.push("")
+    parts.push("Declared at " + sym.file + ":" + string(sym.line) + ":" + string(sym.column))
+
+    string result = ""
+    for p in parts
+        if string.len(result) > 0 then
+            result = result + "\n"
+        end
+        result = result + string(p)
+    end
+    return result
+end
+
+func isKeyword(string w) as bool
+    array kw = initKeywords()
+    for k in kw
+        if string(k) == w then
+            return true
+        end
+    end
+    return false
+end
+
+// 按名字查找第一个匹配的符号
+func findSymbolByName(string name) as Symbol
+    var arr = g_symbolsByName[name]
+    if arr is array then
+        if arr.length > 0 then
+            return arr[0]
+        end
+    end
+    return Symbol("", "", "", 0, 0)
+end
+
+// 按名字查找所有匹配的符号
+func findSymbolsByName(string name) as array<Symbol>
+    var arr = g_symbolsByName[name]
+    if arr is array then
+        return arr
+    end
+    return []
+end
+
+// ====================================================================
+// 跳转定义
+// ====================================================================
+
+func getDefinition(string uri, int line, int character) as array
+    Document doc = g_documents[uri]
+    string text = ""
+    if not (doc is null) then
+        text = doc.text
+    end
+    string word = wordAtPosition(text, line, character)
+    if string.len(word) == 0 then
+        return []
+    end
+
+    array syms = findSymbolsByName(word)
+    array result = []
+    for sym in syms
+        // LSP 行/列是 0-based，源码符号是 1-based
+        int startLine = sym.line - 1
+        int startChar = sym.column - 1
+        int endLine = startLine
+        int endChar = startChar + string.len(sym.name)
+        Location loc = Location(pathToUri(sym.file), startLine, startChar, endLine, endChar)
+        result.push(loc)
+    end
+    return result
+end
+
+// ====================================================================
+// 引用查找
+// ====================================================================
+
+func getReferences(string uri, int line, int character, bool includeDecl) as array
+    Document doc = g_documents[uri]
+    string text = ""
+    string filePath = uriToPath(uri)
+    if not (doc is null) then
+        text = doc.text
+    end
+    string word = wordAtPosition(text, line, character)
+    if string.len(word) == 0 then
+        return []
+    end
+
+    array result = []
+
+    // 先在所有已打开的文档中搜索
+    array keys = dictKeys(g_documents)
+    for k in keys
+        string docUri = string(k)
+        Document d = g_documents[docUri]
+        if d is null then
+            continue
+        end
+        searchReferencesInText(docUri, d.text, word, includeDecl, result)
+    end
+
+    // 如果没有打开文档，至少搜当前文件
+    if result.length == 0 then
+        searchReferencesInText(uri, text, word, includeDecl, result)
+    end
+
+    return result
+end
+
+// 在文本中搜索 word 的所有出现位置
+func searchReferencesInText(string uri, string text, string word, bool includeDecl, array result)
+    array lines = splitLinesSafe(text)
+    int n = lines.length
+    int i = 0
+    while i < n do
+        string l = string(lines[i])
+        searchWordInLine(uri, l, i, word, result)
+        i += 1
+    end
+
+    // 如果不包含声明，过滤掉声明行
+    if not includeDecl then
+        // 简化: 不过滤 (保留所有出现)
+    end
+end
+
+// 在单行中查找所有匹配的单词位置
+func searchWordInLine(string uri, string line, int lineNo, string word, array result)
+    int n = string.len(line)
+    int wlen = string.len(word)
+    if wlen == 0 or n < wlen then
+        return
+    end
+    int i = 0
+    while i <= n - wlen do
+        // 检查是否匹配 word
+        if string.slice(line, i, wlen) == word then
+            // 检查边界: 前后不是标识符字符
+            bool okBefore = true
+            if i > 0 then
+                string before = string.charAt(line, i - 1)
+                if isIdentChar(before) then
+                    okBefore = false
+                end
+            end
+            bool okAfter = true
+            if i + wlen < n then
+                string after = string.charAt(line, i + wlen)
+                if isIdentChar(after) then
+                    okAfter = false
+                end
+            end
+            if okBefore and okAfter then
+                Location loc = Location(uri, lineNo, i, lineNo, i + wlen)
+                result.push(loc)
+            end
+        end
+        i += 1
+    end
+end
+
+func dictKeys(var d) as array
+    array result = []
+    for k, v in d
+        result.push(k)
+    end
+    return result
+end
+
+// ====================================================================
+// 诊断 (调用 xl check)
+// ====================================================================
+
+func getDiagnostics(string uri) as array
+    string filePath = uriToPath(uri)
+    array result = []
+
+    // 1. 用 xl check 获取编译器诊断
+    if string.len(g_xl) > 0 then
+        array compilerDiags = runXlCheck(filePath)
+        for d in compilerDiags
+            result.push(d)
+        end
+    end
+
+    // 2. 源码扫描补充: 未闭合的块、基本语法检查
+    array srcDiags = scanSourceDiagnostics(filePath, uri)
+    for d in srcDiags
+        result.push(d)
+    end
+
+    return result
+end
+
+func runXlCheck(string filePath) as array
+    array result = []
+    if not file.exists(filePath) then
+        return result
+    end
+    string cmd = g_xl + " check " + path.abs(filePath)
+    ProcessResult r = process.run(cmd, 60000)
+    // xl check 返回非零表示有错误
+    string output = ""
+    if string.len(string.trim(r.stderr)) > 0 then
+        output = r.stderr
+    else
+        output = r.stdout
+    end
+    if string.len(string.trim(output)) == 0 then
+        if r.exitCode != 0 then
+            Diagnostic d = Diagnostic(filePath, 1, 1, DS_ERROR, "xl check", "check failed with exit code " + string(r.exitCode))
+            result.push(d)
+        end
+        return result
+    end
+
+    // 解析编译器输出行 (格式通常是 file(line,col): message 或 [phase] message)
+    array lines = splitLinesSafe(output)
+    for l in lines
+        string line = string(l)
+        if string.len(string.trim(line)) == 0 then
+            continue
+        end
+        Diagnostic d = parseCompilerLine(filePath, line)
+        if not (d is null) then
+            result.push(d)
+        end
+    end
+    return result
+end
+
+// 解析编译器输出行
+func parseCompilerLine(string filePath, string line) as Diagnostic
+    // 尝试匹配: file(line,col): message  或  file(line): message
+    // 或 [phase] message
+    string trimmed = string.trim(line)
+
+    // 模式 1: path(line,col): message  或  path(line): message
+    if regex.isMatch(trimmed, "\\(([0-9]+)(,[0-9]+)?\\)") then
+        int lineNo = extractLineNoFromDiag(trimmed)
+        int col = extractColFromDiag(trimmed)
+        int severity = extractSeverityFromDiag(trimmed)
+        string msg = extractMsgFromDiag(trimmed)
+        if lineNo < 1 then
+            lineNo = 1
+        end
+        if col < 1 then
+            col = 1
+        end
+        Diagnostic d = Diagnostic(filePath, lineNo, col, severity, "xl", msg)
+        return d
+    end
+
+    // 模式 2: [phase] message (无行列)
+    if regex.isMatch(trimmed, "^\\[") then
+        // 判断严重度
+        int severity = DS_ERROR
+        if string.contains(trimmed, "warning") then
+            severity = DS_WARNING
+        elseif string.contains(trimmed, "info") then
+            severity = DS_INFO
+        end
+        Diagnostic d = Diagnostic(filePath, 1, 1, severity, "xl", trimmed)
+        return d
+    end
+
+    // 模式 3: error: message
+    if string.startsWith(trimmed, "error:") or string.startsWith(trimmed, "Error:") then
+        Diagnostic d = Diagnostic(filePath, 1, 1, DS_ERROR, "xl", trimmed)
+        return d
+    end
+    if string.startsWith(trimmed, "warning:") or string.startsWith(trimmed, "Warning:") then
+        Diagnostic d = Diagnostic(filePath, 1, 1, DS_WARNING, "xl", trimmed)
+        return d
+    end
+
+    return null
+end
+
+// 从诊断行提取行号: 找 (NN 形式
+func extractLineNoFromDiag(string s) as int
+    int p = string.indexOf(s, "(")
+    if p < 0 then
+        return 1
+    end
+    int start = p + 1
+    int commaPos = string.indexOf(s, ",")
+    int closePos = string.indexOf(s, ")")
+    int endPos = commaPos
+    if endPos < 0 or (closePos >= 0 and closePos < endPos) then
+        endPos = closePos
+    end
+    if endPos <= start then
+        return 1
+    end
+    string num = string.slice(s, start, endPos - start)
+    try
+        return int(string.trim(num))
+    catch e
+        return 1
+    end
+end
+
+// 从诊断行提取列号: 找 ,NN) 形式
+func extractColFromDiag(string s) as int
+    int open = string.indexOf(s, "(")
+    if open < 0 then
+        return 1
+    end
+    int commaPos = string.indexOf(s, ",")
+    if commaPos < 0 or commaPos < open then
+        return 1
+    end
+    int closePos = string.indexOf(s, ")")
+    if closePos < 0 or closePos <= commaPos then
+        return 1
+    end
+    string num = string.slice(s, commaPos + 1, closePos - commaPos - 1)
+    try
+        return int(string.trim(num))
+    catch e
+        return 1
+    end
+end
+
+// 从诊断行提取严重度
+func extractSeverityFromDiag(string s) as int
+    int p = string.indexOf(s, ")")
+    if p < 0 then
+        return DS_ERROR
+    end
+    string rest = string.slice(s, p + 1)
+    if string.contains(rest, "warning") then
+        return DS_WARNING
+    end
+    if string.contains(rest, "info") then
+        return DS_INFO
+    end
+    if string.contains(rest, "hint") then
+        return DS_HINT
+    end
+    return DS_ERROR
+end
+
+// 从诊断行提取消息文本
+func extractMsgFromDiag(string s) as string
+    int p = string.indexOf(s, ")")
+    if p < 0 then
+        return s
+    end
+    string rest = string.slice(s, p + 1)
+    rest = string.trim(rest)
+    if string.startsWith(rest, ":") then
+        rest = string.trim(string.slice(rest, 1))
+    end
+    if string.startsWith(rest, "error:") then
+        rest = string.trim(string.slice(rest, 6))
+    elseif string.startsWith(rest, "warning:") then
+        rest = string.trim(string.slice(rest, 8))
+    elseif string.startsWith(rest, "info:") then
+        rest = string.trim(string.slice(rest, 5))
+    elseif string.startsWith(rest, "hint:") then
+        rest = string.trim(string.slice(rest, 5))
+    end
+    return rest
+end
+
+// 源码基本诊断: 未配对的 end/begin 等
+func scanSourceDiagnostics(string filePath, string uri) as array
+    array result = []
+    if not file.exists(filePath) then
+        return result
+    end
+    string text = ""
+    try
+        text = file.readText(filePath)
+    catch e
+        return result
+    end
+
+    array lines = splitLinesSafe(text)
+    int depth = 0
+    int i = 0
+    int n = lines.length
+    while i < n do
+        string raw = string(lines[i])
+        string code = stripComment(raw)
+        string trimmed = string.trim(code)
+        int lineNo = i + 1
+
+        // 统计块开始/结束
+        if startsBlock(trimmed) then
+            depth += 1
+        end
+        if matchEnd(trimmed) then
+            depth -= 1
+            if depth < 0 then
+                Diagnostic d = Diagnostic(filePath, lineNo, 1, DS_ERROR, "xlsrv", "unexpected 'end' (no matching block)")
+                result.push(d)
+                depth = 0
+            end
+        end
+        i += 1
+    end
+
+    if depth > 0 then
+        Diagnostic d = Diagnostic(filePath, n, 1, DS_ERROR, "xlsrv", "unclosed block (" + string(depth) + " 'end' missing)")
+        result.push(d)
+    end
+
+    // while 缺 do 检查
+    int j = 0
+    while j < n do
+        string raw = string(lines[j])
+        string code = stripComment(raw)
+        string trimmed = string.trim(code)
+        if string.startsWith(trimmed, "while ") and not containsWord(code, "do") then
+            // 向后看 3 行是否有 do
+            bool seen = false
+            int k = j + 1
+            int stop = j + 3
+            if stop >= n then
+                stop = n - 1
+            end
+            while k <= stop do
+                string code2 = stripComment(string(lines[k]))
+                if containsWord(code2, "do") then
+                    seen = true
+                    break
+                end
+                k += 1
+            end
+            if not seen then
+                Diagnostic d = Diagnostic(filePath, j + 1, 1, DS_WARNING, "xlsrv", "'while' without 'do'")
+                result.push(d)
+            end
+        end
+        j += 1
+    end
+
+    return result
+end
+
+// 判断是否是块开始语句
+func startsBlock(string s) as bool
+    string t = string.trim(s)
+    if string.startsWith(t, "func ") then
+        return true
+    end
+    if string.startsWith(t, "class ") then
+        return true
+    end
+    if string.startsWith(t, "if ") then
+        return true
+    end
+    if t == "else" or string.startsWith(t, "else ") then
+        return false
+    end
+    if string.startsWith(t, "elseif ") then
+        return false
+    end
+    if string.startsWith(t, "while ") then
+        return true
+    end
+    if string.startsWith(t, "for ") then
+        return true
+    end
+    if t == "try" or string.startsWith(t, "try ") then
+        return true
+    end
+    if t == "do" then
+        return true
+    end
+    if string.startsWith(t, "catch ") then
+        return false
+    end
+    return false
+end
+
+func containsWord(string s, string w) as bool
+    return regex.isMatch(s, "\\b" + w + "\\b")
+end
+
+// ====================================================================
+// 文档管理 (didOpen / didChange)
+// ====================================================================
+
+func openDocument(string uri, string text, int version)
+    Document doc = Document(uri, version, text)
+    g_documents[uri] = doc
+    // 解析符号
+    string filePath = uriToPath(uri)
+    loadFileSymbols(filePath)
+end
+
+func updateDocument(string uri, string text, int version)
+    Document doc = Document(uri, version, text)
+    g_documents[uri] = doc
+    // 重新解析: 先清除该文件的旧符号
+    removeSymbolsForFile(uri)
+    string filePath = uriToPath(uri)
+    var ast = loadAst(filePath)
+    if not (ast is null) then
+        extractSymbolsFromAst(ast, filePath)
+    else
+        scanFileSymbols(filePath, text)
+    end
+end
+
+func removeSymbolsForFile(string uri)
+    string filePath = uriToPath(uri)
+    array<Symbol> kept = []
+    for sym in g_symbols
+        if sym.file != filePath then
+            kept.push(sym)
+        end
+    end
+    g_symbols = kept
+    // 重建 name 索引
+    g_symbolsByName = {}
+    for sym in g_symbols
+        string key = sym.name
+        var existing = g_symbolsByName[key]
+        if existing is array then
+            existing.push(sym)
+        else
+            array<Symbol> arr = []
+            arr.push(sym)
+            g_symbolsByName[key] = arr
+        end
+    end
+end
+
+// ====================================================================
+// JSON-RPC 2.0 帧解析
+// ====================================================================
+
+// 从缓冲区尝试解析一个完整帧。
+// 返回 dict: {ok, contentLength, headerEnd, payloadStart, payloadEnd, headers}
+// ok=false 表示数据不完整。
+// buffer: 字符串缓冲区
+func parseFrame(string buffer) as var
+    var result = {}
+    result["ok"] = false
+
+    // 找到 \r\n\r\n (头部结束)
+    int headerEnd = findHeaderEnd(buffer)
+    if headerEnd < 0 then
+        result["error"] = "incomplete header"
+        return result
+    end
+
+    // 解析头部
+    string headerBlock = string.left(buffer, headerEnd)
+    int contentLength = parseContentLength(headerBlock)
+    if contentLength < 0 then
+        result["error"] = "missing Content-Length"
+        return result
+    end
+
+    int payloadStart = headerEnd + 4       // 跳过 \r\n\r\n
+    int totalLen = string.len(buffer)
+    if payloadStart + contentLength > totalLen then
+        result["error"] = "incomplete payload"
+        return result
+    end
+
+    result["ok"] = true
+    result["contentLength"] = contentLength
+    result["headerEnd"] = headerEnd
+    result["payloadStart"] = payloadStart
+    result["payloadEnd"] = payloadStart + contentLength
+    result["totalFrameLen"] = payloadStart + contentLength
+    result["payload"] = string.slice(buffer, payloadStart, contentLength)
+    return result
+end
+
+// 查找 \r\n\r\n 的位置
+func findHeaderEnd(string buffer) as int
+    int n = string.len(buffer)
+    int i = 0
+    while i < n - 3 do
+        if string.charAt(buffer, i) == "\r" then
+            if string.charAt(buffer, i + 1) == "\n" then
+                if string.charAt(buffer, i + 2) == "\r" then
+                    if string.charAt(buffer, i + 3) == "\n" then
+                        return i
+                    end
+                end
+            end
+        end
+        i += 1
+    end
+    return -1
+end
+
+// 从头部块解析 Content-Length
+func parseContentLength(string headerBlock) as int
+    array lines = string.split(headerBlock, "\r\n")
+    for l in lines
+        string line = string.trim(string(l))
+        if string.lower(line) == "content-length: 0" then
+            return 0
+        end
+        if startsWithCI(line, "content-length:") then
+            string val = string.trim(string.slice(line, 15))
+            try
+                return int(val)
+            catch e
+                return -1
+            end
+        end
+    end
+    return -1
+end
+
+func startsWithCI(string s, string prefix) as bool
+    string sl = string.lower(s)
+    string pl = string.lower(prefix)
+    return string.startsWith(sl, pl)
+end
+
+// 编码一个 JSON-RPC 帧 (Content-Length 头 + payload)
+func encodeFrame(string payload) as string
+    int len = string.len(payload)
+    string header = "Content-Length: " + string(len) + "\r\n\r\n"
+    return header + payload
+end
+
+// 构建一个 JSON-RPC response payload
+func makeResponse(int id, var result) as string
+    var resp = {}
+    resp["jsonrpc"] = JSONRPC_VERSION
+    resp["id"] = id
+    resp["result"] = result
+    return json.stringify(resp)
+end
+
+// 构建一个 JSON-RPC error payload
+func makeErrorResponse(int id, int code, string message) as string
+    var resp = {}
+    resp["jsonrpc"] = JSONRPC_VERSION
+    resp["id"] = id
+    var err = {}
+    err["code"] = code
+    err["message"] = message
+    resp["error"] = err
+    return json.stringify(resp)
+end
+
+// 构建一个 JSON-RPC notification payload
+func makeNotification(string method, var params) as string
+    var resp = {}
+    resp["jsonrpc"] = JSONRPC_VERSION
+    resp["method"] = method
+    resp["params"] = params
+    return json.stringify(resp)
+end
+
+// ====================================================================
+// LSP 方法处理
+// ====================================================================
+
+// 构建 initialize 响应
+func handleInitialize(var params) as var
+    var caps = {}
+    var textSync = {}
+    textSync["openClose"] = true
+    textSync["change"] = 1                    // TextDocumentSyncKind.Full
+    caps["textDocumentSync"] = textSync
+    caps["completionProvider"] = {"resolveProvider": false}
+    caps["hoverProvider"] = true
+    caps["definitionProvider"] = true
+    caps["referencesProvider"] = true
+    caps["documentSymbolProvider"] = true
+
+    var result = {}
+    result["capabilities"] = caps
+    var info = {}
+    info["name"] = "xlsrv"
+    info["version"] = LSP_VERSION
+    result["serverInfo"] = info
+    return result
+end
+
+// didOpen
+func handleDidOpen(var params)
+    var td = params["textDocument"]
+    if td is null then
+        return
+    end
+    string uri = string(td["uri"])
+    string text = string(td["text"])
+    int version = 0
+    var v = td["version"]
+    if v is int then
+        version = int(v)
+    end
+    openDocument(uri, text, version)
+end
+
+// didChange
+func handleDidChange(var params)
+    var td = params["textDocument"]
+    if td is null then
+        return
+    end
+    string uri = string(td["uri"])
+    int version = 0
+    var v = td["version"]
+    if v is int then
+        version = int(v)
+    end
+    var changes = params["contentChanges"]
+    if changes is array then
+        if changes.length > 0 then
+            var last = changes[changes.length - 1]
+            string text = string(last["text"])
+            updateDocument(uri, text, version)
+        end
+    end
+end
+
+// completion
+func handleCompletion(var params) as array
+    var td = params["textDocument"]
+    var pos = params["position"]
+    if td is null or pos is null then
+        return []
+    end
+    string uri = string(td["uri"])
+    int line = int(pos["line"])
+    int character = int(pos["character"])
+    return getCompletions(uri, line, character)
+end
+
+// hover
+func handleHover(var params) as var
+    var td = params["textDocument"]
+    var pos = params["position"]
+    if td is null or pos is null then
+        return null
+    end
+    string uri = string(td["uri"])
+    int line = int(pos["line"])
+    int character = int(pos["character"])
+    string content = getHover(uri, line, character)
+    if string.len(content) == 0 then
+        return null
+    end
+    var result = {}
+    var markup = {}
+    markup["kind"] = "markdown"
+    markup["value"] = content
+    result["contents"] = markup
+    return result
+end
+
+// definition
+func handleDefinition(var params) as array
+    var td = params["textDocument"]
+    var pos = params["position"]
+    if td is null or pos is null then
+        return []
+    end
+    string uri = string(td["uri"])
+    int line = int(pos["line"])
+    int character = int(pos["character"])
+    return getDefinition(uri, line, character)
+end
+
+// references
+func handleReferences(var params) as array
+    var td = params["textDocument"]
+    var pos = params["position"]
+    if td is null or pos is null then
+        return []
+    end
+    string uri = string(td["uri"])
+    int line = int(pos["line"])
+    int character = int(pos["character"])
+    bool includeDecl = true
+    var ctx = params["context"]
+    if not (ctx is null) then
+        var inc = ctx["includeDeclaration"]
+        if inc is bool then
+            includeDecl = bool(inc)
+        end
+    end
+    return getReferences(uri, line, character, includeDecl)
+end
+
+// documentSymbol (列出文件中的所有符号)
+func handleDocumentSymbol(var params) as array
+    var td = params["textDocument"]
+    if td is null then
+        return []
+    end
+    string uri = string(td["uri"])
+    string filePath = uriToPath(uri)
+    array result = []
+    for sym in g_symbols
+        if sym.file != filePath then
+            continue
+        end
+        if sym.kind == SYM_PARAM then
+            continue
+        end
+        var info = {}
+        info["name"] = sym.name
+        int kind = SK_VARIABLE
+        if sym.kind == SYM_FUNC then
+            kind = SK_FUNCTION
+        elseif sym.kind == SYM_CLASS then
+            kind = SK_CLASS
+        elseif sym.kind == SYM_CONST then
+            kind = SK_CONST
+        end
+        info["kind"] = kind
+        var range = rangeToVar(sym.line - 1, sym.column - 1, sym.endLine - 1, sym.column + string.len(sym.name))
+        info["range"] = range
+        info["selectionRange"] = range
+        if string.len(sym.detail) > 0 then
+            info["detail"] = sym.detail
+        end
+        result.push(info)
+    end
+    return result
+end
+
+func rangeToVar(int sl, int sc, int el, int ec) as var
+    var r = {}
+    var start = {}
+    start["line"] = sl
+    start["character"] = sc
+    var en = {}
+    en["line"] = el
+    en["character"] = ec
+    r["start"] = start
+    r["end"] = en
+    return r
+end
+
+// location -> var
+func locationToVar(Location loc) as var
+    var r = rangeToVar(loc.startLine, loc.startChar, loc.endLine, loc.endChar)
+    var v = {}
+    v["uri"] = loc.uri
+    v["range"] = r
+    return v
+end
+
+// completionItem -> var
+func completionToVar(CompletionItem item) as var
+    var v = {}
+    v["label"] = item.label
+    v["kind"] = item.kind
+    if string.len(item.detail) > 0 then
+        v["detail"] = item.detail
+    end
+    if string.len(item.documentation) > 0 then
+        v["documentation"] = item.documentation
+    end
+    return v
+end
+
+// 分派 LSP 方法
+func dispatchMethod(string method, var params, int id) as string
+    if method == "initialize" then
+        var result = handleInitialize(params)
+        return makeResponse(id, result)
+    end
+    if method == "initialized" then
+        return ""                            // notification, no response
+    end
+    if method == "shutdown" then
+        return makeResponse(id, null)
+    end
+    if method == "exit" then
+        return ""                            // terminate
+    end
+    if method == "textDocument/didOpen" then
+        handleDidOpen(params)
+        return ""
+    end
+    if method == "textDocument/didChange" then
+        handleDidChange(params)
+        return ""
+    end
+    if method == "textDocument/completion" then
+        array result = handleCompletion(params)
+        return makeResponse(id, result)
+    end
+    if method == "textDocument/hover" then
+        var result = handleHover(params)
+        return makeResponse(id, result)
+    end
+    if method == "textDocument/definition" then
+        array result = handleDefinition(params)
+        return makeResponse(id, result)
+    end
+    if method == "textDocument/references" then
+        array result = handleReferences(params)
+        return makeResponse(id, result)
+    end
+    if method == "textDocument/documentSymbol" then
+        array result = handleDocumentSymbol(params)
+        return makeResponse(id, result)
+    end
+    // 未知方法
+    return makeErrorResponse(id, -32601, "method not found: " + method)
+end
+
+// ====================================================================
+// stdio LSP 主循环
+// ====================================================================
+
+// 处理一个已完整接收的 JSON-RPC 消息，返回响应帧 (或 "" 表示无需响应)
+func handleRpcMessage(string payload) as string
+    if not json.valid(payload) then
+        return encodeFrame(makeErrorResponse(0, -32700, "parse error"))
+    end
+    var msg = json.parse(payload)
+    string method = ""
+    var m = msg["method"]
+    if m is string then
+        method = string(m)
+    end
+    int id = 0
+    var mv = msg["id"]
+    if mv is int then
+        id = int(mv)
+    else
+        // notification (无 id)，不需要响应
+        if string.len(method) > 0 then
+            var params = msg["params"]
+            dispatchMethod(method, params, 0)
+        end
+        return ""
+    end
+    var params = msg["params"]
+    if params is null then
+        params = {}
+    end
+    return dispatchMethod(method, params, id)
+end
+
+// stdio 模式 (受 xlang 无 stdin 限制，此处为帧解析演示)
+func runStdio()
+    println("xlsrv stdio mode (LSP over stdio)")
+    println("Note: xlang currently has no stdin API; stdio transport is limited.")
+    println("Frame parsing logic is fully implemented and testable via 'xlsrv test'.")
+    println("")
+    println("To use xlsrv with an editor, configure it as:")
+    println("  command: xlsrv stdio")
+    println("  transport: stdio")
+    println("")
+    println("Waiting for LSP frames on stdin... (not supported in current xlang)")
+end
+
+// ====================================================================
+// 定位 xl.exe
+// ====================================================================
+
+func findXl() as string
+    string c1 = path.join(path.cwd(), "xl.exe")
+    if file.exists(c1) then
+        return c1
+    end
+    string c2 = path.join(path.appDir(), "xl.exe")
+    if file.exists(c2) then
+        return c2
+    end
+    string c3 = path.join(path.appDir(), "..", "..", "..")
+    c3 = path.join(c3, "xl.exe")
+    if file.exists(c3) then
+        return c3
+    end
+    return ""
+end
+
+// ====================================================================
+// analyze 命令
+// ====================================================================
+
+func cmdAnalyze(string filePath, bool asJson) as int
+    if not file.exists(filePath) then
+        println("xlsrv: file not found: " + filePath)
+        return 1
+    end
+
+    resetSymbols()
+    g_xl = findXl()
+
+    // 加载文件符号
+    string text = file.readText(filePath)
+    openDocument(pathToUri(filePath), text, 0)
+
+    // 再次确保符号已提取
+    if g_symbols.length == 0 then
+        loadFileSymbols(filePath)
+    end
+
+    if asJson then
+        outputAnalysisJson(filePath)
+    else
+        outputAnalysisText(filePath)
+    end
+    return 0
+end
+
+func outputAnalysisText(string filePath)
+    println("=== xlsrv analyze: " + filePath + " ===")
+    println("")
+
+    // 符号表
+    println("[Symbols] (" + string(g_symbols.length) + ")")
+    println("-----------------------------------------------")
+    array sorted = sortSymbols(g_symbols)
+    for sym in sorted
+        string scope = scopeName(sym.scopeId)
+        string sig = sym.signature
+        if string.len(sig) == 0 then
+            sig = sym.detail
+        end
+        println("  " + string.padRight(sym.kind, 10) + " " + string.padRight(sym.name, 24) + " " + string.padRight(scope, 16) + " " + sym.file + ":" + string(sym.line) + ":" + string(sym.column))
+    end
+    println("")
+
+    // 作用域
+    println("[Scopes] (" + string(g_nextScopeId) + ")")
+    println("-----------------------------------------------")
+    int si = 0
+    while si < g_nextScopeId do
+        var s = g_scopes[string(si)]
+        if not (s is null) then
+            string kind = string(s["kind"])
+            string name = string(s["name"])
+            int parentId = int(s["parentId"])
+            string parentName = "root"
+            if parentId >= 0 then
+                var ps = g_scopes[string(parentId)]
+                if not (ps is null) then
+                    parentName = string(ps["name"])
+                end
+            end
+            println("  #" + string(si) + " " + string.padRight(kind, 10) + " " + string.padRight(name, 20) + " parent=" + parentName)
+        end
+        si += 1
+    end
+    println("")
+
+    // 诊断
+    println("[Diagnostics]")
+    println("-----------------------------------------------")
+    array diags = getDiagnostics(pathToUri(filePath))
+    if diags.length == 0 then
+        println("  (no diagnostics)")
+    else
+        for d in diags
+            string sev = sevName(d.severity)
+            println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + d.message)
+        end
+    end
+    println("")
+
+    println("=== Analysis complete ===")
+end
+
+func outputAnalysisJson(string filePath)
+    var root = {}
+    root["file"] = filePath
+
+    // symbols
+    array symArr = []
+    for sym in g_symbols
+        var s = {}
+        s["name"] = sym.name
+        s["kind"] = sym.kind
+        s["file"] = sym.file
+        s["line"] = sym.line
+        s["column"] = sym.column
+        s["scope"] = scopeName(sym.scopeId)
+        if string.len(sym.signature) > 0 then
+            s["signature"] = sym.signature
+        end
+        if string.len(sym.doc) > 0 then
+            s["doc"] = sym.doc
+        end
+        if string.len(sym.detail) > 0 then
+            s["detail"] = sym.detail
+        end
+        symArr.push(s)
+    end
+    root["symbols"] = symArr
+
+    // scopes
+    array scopeArr = []
+    int si = 0
+    while si < g_nextScopeId do
+        var s = g_scopes[string(si)]
+        if not (s is null) then
+            var sc = {}
+            sc["id"] = si
+            sc["kind"] = s["kind"]
+            sc["name"] = s["name"]
+            sc["parentId"] = s["parentId"]
+            scopeArr.push(sc)
+        end
+        si += 1
+    end
+    root["scopes"] = scopeArr
+
+    // diagnostics
+    array diags = getDiagnostics(pathToUri(filePath))
+    array diagArr = []
+    for d in diags
+        var dg = {}
+        dg["line"] = d.line
+        dg["column"] = d.column
+        dg["severity"] = d.severity
+        dg["source"] = d.source
+        dg["message"] = d.message
+        diagArr.push(dg)
+    end
+    root["diagnostics"] = diagArr
+
+    string out = json.stringify(root, pretty = true)
+    out = string.replace(out, "\t", "  ")
+    println(out)
+end
+
+func sevName(int severity) as string
+    if severity == DS_ERROR then
+        return "error"
+    end
+    if severity == DS_WARNING then
+        return "warning"
+    end
+    if severity == DS_INFO then
+        return "info"
+    end
+    return "hint"
+end
+
+// 排序符号 (按 kind 然后 name)
+func sortSymbols(array<Symbol> arr) as array<Symbol>
+    array<Symbol> result = []
+    for x in arr
+        result.push(x)
+    end
+    // 简单冒泡 (数据量不大)
+    int n = result.length
+    int i = 0
+    while i < n do
+        int j = 0
+        while j < n - 1 - i do
+            Symbol a = result[j]
+            Symbol b = result[j + 1]
+            bool swap = false
+            if a.kind > b.kind then
+                swap = true
+            elseif a.kind == b.kind then
+                if a.name > b.name then
+                    swap = true
+                end
+            end
+            if swap then
+                result[j] = b
+                result[j + 1] = a
+            end
+            j += 1
+        end
+        i += 1
+    end
+    return result
+end
+
+// ====================================================================
+// symbols 命令
+// ====================================================================
+
+func cmdSymbols(string filePath) as int
+    if not file.exists(filePath) then
+        println("xlsrv: file not found: " + filePath)
+        return 1
+    end
+    resetSymbols()
+    g_xl = findXl()
+    loadFileSymbols(filePath)
+    println("[Symbols in " + filePath + "]")
+    println("  Total: " + string(g_symbols.length))
+    println("")
+    array sorted = sortSymbols(g_symbols)
+    for sym in sorted
+        string scope = scopeName(sym.scopeId)
+        println("  " + string.padRight(sym.kind, 10) + " " + string.padRight(sym.name, 24) + " " + string.padRight(scope, 16) + " L" + string(sym.line) + " C" + string(sym.column))
+    end
+    return 0
+end
+
+// ====================================================================
+// check 命令
+// ====================================================================
+
+func cmdCheck(string filePath) as int
+    if not file.exists(filePath) then
+        println("xlsrv: file not found: " + filePath)
+        return 1
+    end
+    resetSymbols()
+    g_xl = findXl()
+    openDocument(pathToUri(filePath), file.readText(filePath), 0)
+    array diags = getDiagnostics(pathToUri(filePath))
+    if diags.length == 0 then
+        println("xlsrv: no diagnostics found for " + filePath)
+        return 0
+    end
+    println("[Diagnostics for " + filePath + "]")
+    int errors = 0
+    for d in diags
+        string sev = sevName(d.severity)
+        println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + d.source + ": " + d.message)
+        if d.severity == DS_ERROR then
+            errors += 1
+        end
+    end
+    println("")
+    println("  " + string(diags.length) + " diagnostic(s), " + string(errors) + " error(s)")
+    if errors > 0 then
+        return 1
+    end
+    return 0
+end
+
+// ====================================================================
+// 自测
+// ====================================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass += 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail += 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectEq(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectTrue(bool got, string label)
+    if got then
+        ok(label)
+    else
+        bad(label, "expected true")
+    end
+end
+
+func expectFalse(bool got, string label)
+    if not got then
+        ok(label)
+    else
+        bad(label, "expected false")
+    end
+end
+
+func expectStr(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+// 内联测试源码
+func testSource() as string
+    string s = ""
+    s = s + "const int MAX = 100\n"
+    s = s + "\n"
+    s = s + "func add(int a, int b) as int\n"
+    s = s + "    return a + b\n"
+    s = s + "end\n"
+    s = s + "\n"
+    s = s + "class Point\n"
+    s = s + "    int x\n"
+    s = s + "    int y\n"
+    s = s + "    create(int x, int y)\n"
+    s = s + "        self.x = x\n"
+    s = s + "        self.y = y\n"
+    s = s + "    end\n"
+    s = s + "end\n"
+    s = s + "\n"
+    s = s + "func main(...) as int\n"
+    s = s + "    int result = add(1, 2)\n"
+    s = s + "    string msg = \"hello\"\n"
+    s = s + "    println(msg)\n"
+    s = s + "    return 0\n"
+    s = s + "end\n"
+    return s
+end
+
+func testFrameParsing()
+    println("[Test] JSON-RPC frame parsing")
+    string payload = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}"
+    string frame = encodeFrame(payload)
+    var parsed = parseFrame(frame)
+    expectTrue(bool(parsed["ok"]), "frame ok")
+    expectEq(int(parsed["contentLength"]), string.len(payload), "content length")
+    expectStr(string(parsed["payload"]), payload, "payload roundtrip")
+
+    // 不完整的帧
+    var p2 = parseFrame("Content-Length: 100\r\n\r\n{")
+    expectFalse(bool(p2["ok"]), "incomplete payload rejected")
+
+    // 缺少 Content-Length
+    var p3 = parseFrame("Content-Type: text\r\n\r\n{}")
+    expectFalse(bool(p3["ok"]), "missing Content-Length rejected")
+
+    // 多行头
+    string frame2 = "Content-Type: application/vscode-jsonrpc; charset=utf-8\r\nContent-Length: 10\r\n\r\n0123456789"
+    var p4 = parseFrame(frame2)
+    expectTrue(bool(p4["ok"]), "multi-header ok")
+    expectEq(int(p4["contentLength"]), 10, "multi-header length")
+    expectStr(string(p4["payload"]), "0123456789", "multi-header payload")
+end
+
+func testSymbolExtraction()
+    println("[Test] Symbol extraction (source scan)")
+    resetSymbols()
+    g_xl = ""
+    string src = testSource()
+    array syms = scanFileSymbols("test.xl", src)
+
+    // 应该找到: MAX, add, a, b, Point, x, y, result, msg, main
+    expectTrue(syms.length > 0, "symbols found")
+    expectEq(g_symbols.length, syms.length, "global table synced")
+
+    // 检查特定符号
+    Symbol addSym = findSymbolByName("add")
+    expectStr(addSym.name, "add", "func 'add' found")
+    expectStr(addSym.kind, SYM_FUNC, "'add' is function")
+
+    Symbol maxSym = findSymbolByName("MAX")
+    expectStr(maxSym.name, "MAX", "const 'MAX' found")
+    expectStr(maxSym.kind, SYM_CONST, "'MAX' is constant")
+
+    Symbol ptSym = findSymbolByName("Point")
+    expectStr(ptSym.name, "Point", "class 'Point' found")
+    expectStr(ptSym.kind, SYM_CLASS, "'Point' is class")
+
+    Symbol mainSym = findSymbolByName("main")
+    expectStr(mainSym.name, "main", "func 'main' found")
+
+    // 检查参数
+    Symbol aSym = findSymbolByName("a")
+    expectStr(aSym.name, "a", "param 'a' found")
+    expectStr(aSym.kind, SYM_PARAM, "'a' is param")
+
+    Symbol bSym = findSymbolByName("b")
+    expectStr(bSym.name, "b", "param 'b' found")
+
+    // 检查类字段
+    Symbol xSym = findSymbolByName("x")
+    expectStr(xSym.name, "x", "field 'x' found")
+
+    Symbol ySym = findSymbolByName("y")
+    expectStr(ySym.name, "y", "field 'y' found")
+end
+
+func testScopes()
+    println("[Test] Scope management")
+    resetSymbols()
+    string src = testSource()
+    scanFileSymbols("test.xl", src)
+
+    // 全局作用域必须存在
+    expectTrue(g_nextScopeId > 0, "scopes created")
+    string gk = scopeKind(0)
+    expectStr(gk, SCOPE_GLOBAL, "scope 0 is global")
+
+    // add 函数应该有自己的作用域
+    Symbol addSym = findSymbolByName("add")
+    expectEq(addSym.scopeId, 0, "'add' in global scope")
+
+    // 参数 a 应该在 add 的函数作用域
+    Symbol aSym = findSymbolByName("a")
+    expectTrue(aSym.scopeId > 0, "'a' in function scope")
+    string ak = scopeKind(aSym.scopeId)
+    expectStr(ak, SCOPE_FUNC, "'a' scope is function")
+
+    // Point 类应该有自己的作用域
+    Symbol ptSym = findSymbolByName("Point")
+    expectTrue(ptSym.scopeId == 0, "'Point' in global scope")
+
+    // 字段 x 在类作用域
+    Symbol xSym = findSymbolByName("x")
+    expectTrue(xSym.scopeId > 0, "'x' in class scope")
+    string xk = scopeKind(xSym.scopeId)
+    expectStr(xk, SCOPE_CLASS, "'x' scope is class")
+end
+
+func testCompletion()
+    println("[Test] Completion")
+    resetSymbols()
+    string src = testSource()
+    scanFileSymbols("test.xl", src)
+
+    array completions = getCompletions("test.xl", 0, 0)
+
+    // 关键字应包含 func/class/if/while
+    bool hasFunc = false
+    bool hasClass = false
+    bool hasIf = false
+    bool hasWhile = false
+    for item in completions
+        if item.label == "func" then
+            hasFunc = true
+        end
+        if item.label == "class" then
+            hasClass = true
+        end
+        if item.label == "if" then
+            hasIf = true
+        end
+        if item.label == "while" then
+            hasWhile = true
+        end
+    end
+    expectTrue(hasFunc, "keyword 'func' in completions")
+    expectTrue(hasClass, "keyword 'class' in completions")
+    expectTrue(hasIf, "keyword 'if' in completions")
+    expectTrue(hasWhile, "keyword 'while' in completions")
+
+    // 符号应包含 add/Point/MAX/main
+    bool hasAdd = false
+    bool hasPoint = false
+    bool hasMax = false
+    bool hasMain = false
+    for item in completions
+        if item.label == "add" then
+            hasAdd = true
+        end
+        if item.label == "Point" then
+            hasPoint = true
+        end
+        if item.label == "MAX" then
+            hasMax = true
+        end
+        if item.label == "main" then
+            hasMain = true
+        end
+    end
+    expectTrue(hasAdd, "symbol 'add' in completions")
+    expectTrue(hasPoint, "symbol 'Point' in completions")
+    expectTrue(hasMax, "symbol 'MAX' in completions")
+    expectTrue(hasMain, "symbol 'main' in completions")
+end
+
+func testHover()
+    println("[Test] Hover")
+    resetSymbols()
+    string src = testSource()
+    scanFileSymbols("test.xl", src)
+
+    // 悬停 add 函数
+    string hover = getHover("test.xl", 2, 5)
+    expectTrue(string.len(hover) > 0, "hover for 'add' not empty")
+    expectTrue(string.contains(hover, "add"), "hover contains 'add'")
+    expectTrue(string.contains(hover, "function"), "hover contains 'function'")
+
+    // 悬停 Point 类
+    string hover2 = getHover("test.xl", 6, 3)
+    expectTrue(string.len(hover2) > 0, "hover for 'Point' not empty")
+
+    // 不存在的符号
+    string hover3 = getHover("test.xl", 0, 0)
+    // 第一行 const int MAX... 光标位置可能匹配 MAX
+    // 测试一个确定的空位置
+end
+
+func testDefinition()
+    println("[Test] Definition")
+    resetSymbols()
+    string src = testSource()
+    scanFileSymbols("test.xl", src)
+
+    // 在 main 中调用 add(1,2)，查找 add 的定义
+    // main 在第 17 行: "int result = add(1, 2)"
+    // add 出现在该行的列 ~16
+    array defs = getDefinition("test.xl", 17, 16)
+    expectTrue(defs.length > 0, "definition for 'add' found")
+    if defs.length > 0 then
+        Location loc = defs[0]
+        // add 定义在第 3 行
+        expectEq(loc.startLine, 2, "'add' definition at line 3 (0-based 2)")
+    end
+
+    // 查找 Point 的定义
+    array defs2 = getDefinition("test.xl", 6, 3)
+    expectTrue(defs2.length > 0, "definition for 'Point' found")
+end
+
+func testReferences()
+    println("[Test] References")
+    resetSymbols()
+    string src = testSource()
+    scanFileSymbols("test.xl", src)
+
+    // add 在第 3 行声明，第 18 行调用 -> 至少 2 个引用
+    array refs = getReferences("test.xl", 2, 5, true)
+    expectTrue(refs.length >= 2, "references for 'add' >= 2")
+
+    // msg 在 main 中声明和使用
+    array refs2 = getReferences("test.xl", 18, 4, true)
+    expectTrue(refs2.length >= 2, "references for 'msg' >= 2")
+end
+
+func testDiagnostics()
+    println("[Test] Source diagnostics")
+    resetSymbols()
+    g_xl = ""
+
+    // 语法正确代码不应有诊断
+    string good = testSource()
+    openDocument(pathToUri("good.xl"), good, 0)
+    array diags1 = scanSourceDiagnostics("good.xl", pathToUri("good.xl"))
+    expectEq(diags1.length, 0, "clean source has no diagnostics")
+
+    // 缺少 end
+    string bad1 = "func foo()\n    println(\"hello\")\n"
+    resetSymbols()
+    openDocument(pathToUri("bad1.xl"), bad1, 0)
+    array diags2 = scanSourceDiagnostics("bad1.xl", pathToUri("bad1.xl"))
+    expectTrue(diags2.length > 0, "missing end detected")
+
+    // 多余的 end
+    string bad2 = "func foo()\n    println(\"hello\")\nend\nend\n"
+    resetSymbols()
+    openDocument(pathToUri("bad2.xl"), bad2, 0)
+    array diags3 = scanSourceDiagnostics("bad2.xl", pathToUri("bad2.xl"))
+    expectTrue(diags3.length > 0, "extra end detected")
+end
+
+func testJsonRpc()
+    println("[Test] JSON-RPC message handling")
+    // initialize
+    string initPayload = "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"capabilities\":{}}}"
+    string resp = handleRpcMessage(initPayload)
+    expectTrue(string.len(resp) > 0, "initialize response generated")
+    expectTrue(json.valid(resp), "initialize response is valid JSON")
+    var msg = json.parse(resp)
+    expectStr(string(msg["jsonrpc"]), "2.0", "response jsonrpc version")
+    expectEq(int(msg["id"]), 1, "response id matches")
+
+    // 未知方法
+    string unkPayload = "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"unknown/method\",\"params\":{}}"
+    string resp2 = handleRpcMessage(unkPayload)
+    expectTrue(string.len(resp2) > 0, "unknown method returns error")
+    expectTrue(json.valid(resp2), "error response valid JSON")
+
+    // 无效 JSON
+    string badPayload = "not json at all"
+    string resp3 = handleRpcMessage(badPayload)
+    expectTrue(string.len(resp3) > 0, "invalid JSON returns error")
+
+    // completion 请求
+    resetSymbols()
+    string src = testSource()
+    openDocument(pathToUri("ctest.xl"), src, 0)
+    string compPayload = "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"textDocument/completion\",\"params\":{\"textDocument\":{\"uri\":\"" + pathToUri("ctest.xl") + "\"},\"position\":{\"line\":0,\"character\":0}}}"
+    string resp4 = handleRpcMessage(compPayload)
+    expectTrue(json.valid(resp4), "completion response valid JSON")
+end
+
+func testUriConversion()
+    println("[Test] URI conversion")
+    // path -> uri -> path 应保持一致 (对相对路径)
+    string uri = pathToUri("test.xl")
+    expectTrue(string.startsWith(uri, "file:"), "uri starts with file:")
+
+    string back = uriToPath(uri)
+    expectTrue(string.contains(back, "test.xl"), "uri roundtrip contains filename")
+
+    // Windows 路径
+    string winPath = "C:\\Users\\test\\file.xl"
+    string winUri = pathToUri(winPath)
+    expectTrue(string.contains(winUri, "file:"), "windows path to uri")
+    string winBack = uriToPath(winUri)
+    expectTrue(string.contains(winBack, "file.xl"), "windows uri roundtrip")
+end
+
+func testStringHelpers()
+    println("[Test] String helpers")
+    // stripComment
+    expectStr(stripComment("int x = 5 // comment"), "int x = 5 ", "stripComment basic")
+    expectStr(stripComment("// only comment"), "", "stripComment only comment")
+
+    // wordAtPosition
+    string text = "hello world\nfoo bar"
+    expectStr(wordAtPosition(text, 0, 0), "hello", "wordAt line 0 col 0")
+    expectStr(wordAtPosition(text, 0, 6), "world", "wordAt line 0 col 6")
+    expectStr(wordAtPosition(text, 1, 1), "foo", "wordAt line 1 col 1")
+
+    // identAt
+    expectStr(identAt("hello world", 3), "hello", "identAt col 3")
+    expectStr(identAt("hello world", 8), "world", "identAt col 8")
+
+    // isIdentChar
+    expectTrue(isIdentChar("a"), "isIdentChar a")
+    expectTrue(isIdentChar("_"), "isIdentChar _")
+    expectTrue(isIdentChar("9"), "isIdentChar 9")
+    expectFalse(isIdentChar(" "), "isIdentChar space false")
+    expectFalse(isIdentChar("+"), "isIdentChar + false")
+end
+
+func testDeclarationMatching()
+    println("[Test] Declaration matching")
+    expectTrue(matchFuncDecl("func foo() as int"), "match func decl")
+    expectFalse(matchFuncDecl("function foo()"), "not match 'function'")
+
+    expectTrue(matchClassDecl("class Point"), "match class decl")
+    expectTrue(matchEnd("end"), "match end")
+    expectTrue(matchEnd("end "), "match end with space")
+    expectFalse(matchEnd("endif"), "not match endif")
+
+    expectStr(extractFuncName("func add(int a, int b) as int"), "add", "extract func name")
+    expectStr(extractClassName("class Point"), "Point", "extract class name")
+    expectStr(extractClassName("class Foo"), "Foo", "extract class name 2")
+    expectStr(extractConstName("const int MAX = 100"), "MAX", "extract const name")
+
+    // 参数提取
+    array params = extractParams("func add(int a, int b) as int")
+    expectEq(params.length, 2, "extract 2 params")
+    if params.length >= 2 then
+        expectStr(string(params[0]), "a", "first param is a")
+        expectStr(string(params[1]), "b", "second param is b")
+    end
+
+    array params2 = extractParams("func noop()")
+    expectEq(params2.length, 0, "no params")
+
+    array params3 = extractParams("func one(int x)")
+    expectEq(params3.length, 1, "one param")
+end
+
+func testVarDecl()
+    println("[Test] Variable declaration parsing")
+    expectTrue(matchVarDecl("int x = 5"), "match int decl")
+    expectTrue(matchVarDecl("string msg = \"hi\""), "match string decl")
+    expectTrue(matchVarDecl("auto z = compute()"), "match auto decl")
+    expectFalse(matchVarDecl("func foo()"), "not match func as var")
+
+    array decls = extractVarDecls("int x = 5")
+    expectEq(decls.length, 1, "one var in decl")
+    if decls.length >= 1 then
+        var d = decls[0]
+        expectStr(string(d["name"]), "x", "var name is x")
+        expectStr(string(d["type"]), "int", "var type is int")
+    end
+
+    array decls2 = extractVarDecls("array<int> nums = [1,2,3]")
+    expectEq(decls2.length, 1, "generic var decl")
+    if decls2.length >= 1 then
+        var d = decls2[0]
+        expectStr(string(d["name"]), "nums", "generic var name")
+    end
+end
+
+func testEncodeFrame()
+    println("[Test] Frame encoding")
+    string frame = encodeFrame("{}")
+    expectTrue(string.contains(frame, "Content-Length:"), "frame has Content-Length")
+    expectTrue(string.contains(frame, "\r\n\r\n"), "frame has header separator")
+    expectTrue(string.endsWith(frame, "{}"), "frame ends with payload")
+
+    string frame2 = encodeFrame("{\"id\":1}")
+    var parsed = parseFrame(frame2)
+    expectTrue(bool(parsed["ok"]), "encoded frame parses ok")
+end
+
+func testAnalyzeCommand()
+    println("[Test] analyze command integration")
+    // 用内联源码写临时文件测试
+    string tmpDir = path.temp()
+    string tmpFile = path.join(tmpDir, "xlsrv_test_analyze.xl")
+    string src = testSource()
+    file.writeText(tmpFile, src)
+
+    resetSymbols()
+    g_xl = findXl()
+    loadFileSymbols(tmpFile)
+
+    expectTrue(g_symbols.length > 0, "analyze loads symbols")
+    expectTrue(g_nextScopeId > 0, "analyze creates scopes")
+
+    // 清理
+    try
+        file.remove(tmpFile)
+    catch e
+    end
+end
+
+func testCompletionItemSerialization()
+    println("[Test] Completion item serialization")
+    CompletionItem item = CompletionItem("testFunc", CIK_FUNCTION)
+    item.detail = "func testFunc()"
+    item.documentation = "A test function"
+    var v = completionToVar(item)
+    expectStr(string(v["label"]), "testFunc", "completion label")
+    expectEq(int(v["kind"]), CIK_FUNCTION, "completion kind")
+    expectStr(string(v["detail"]), "func testFunc()", "completion detail")
+end
+
+func testLocationSerialization()
+    println("[Test] Location serialization")
+    Location loc = Location("file:///test.xl", 10, 5, 10, 15)
+    var v = locationToVar(loc)
+    expectStr(string(v["uri"]), "file:///test.xl", "location uri")
+    var range = v["range"]
+    var start = range["start"]
+    expectEq(int(start["line"]), 10, "location start line")
+    expectEq(int(start["character"]), 5, "location start char")
+end
+
+func testScopeLookup()
+    println("[Test] Scope lookup")
+    resetSymbols()
+    int gs = 0
+    int fs = newScope(SCOPE_FUNC, "testFunc", gs)
+    int cs = newScope(SCOPE_CLASS, "TestClass", gs)
+
+    Symbol gsym = Symbol("gvar", SYM_VAR, "f.xl", 1, 1)
+    registerSymbol(gsym, gs)
+
+    Symbol fsym = Symbol("fvar", SYM_VAR, "f.xl", 2, 1)
+    registerSymbol(fsym, fs)
+
+    // 在函数作用域查找全局变量
+    Symbol found1 = lookupSymbolInScope("gvar", fs)
+    expectStr(found1.name, "gvar", "lookup global from function scope")
+
+    // 在全局作用域找不到函数局部变量
+    Symbol found2 = lookupSymbolInScope("fvar", gs)
+    expectStr(found2.name, "", "cannot find function var from global")
+
+    // 在函数作用域找函数局部变量
+    Symbol found3 = lookupSymbolInScope("fvar", fs)
+    expectStr(found3.name, "fvar", "find function var in function scope")
+end
+
+func cmdTest() as int
+    println("=== xlsrv self-test ===")
+    println("")
+    g_xl = findXl()
+
+    testStringHelpers()
+    println("")
+    testDeclarationMatching()
+    println("")
+    testVarDecl()
+    println("")
+    testFrameParsing()
+    println("")
+    testEncodeFrame()
+    println("")
+    testSymbolExtraction()
+    println("")
+    testScopes()
+    println("")
+    testScopeLookup()
+    println("")
+    testCompletion()
+    println("")
+    testCompletionItemSerialization()
+    println("")
+    testHover()
+    println("")
+    testDefinition()
+    println("")
+    testReferences()
+    println("")
+    testLocationSerialization()
+    println("")
+    testDiagnostics()
+    println("")
+    testJsonRpc()
+    println("")
+    testUriConversion()
+    println("")
+    testAnalyzeCommand()
+
+    println("")
+    println("==========================================")
+    println("  Results: " + string(g_pass) + " passed, " + string(g_fail) + " failed")
+    println("==========================================")
+    if g_fail > 0 then
+        return 1
+    end
+    return 0
+end
+
+// ====================================================================
+// 用法
+// ====================================================================
+
+func printUsage()
+    println("xlsrv - xlang Language Server (LSP subset) v" + LSP_VERSION)
+    println("")
+    println("Usage:")
+    println("  xlsrv analyze <file.xl> [--json]   Analyze file: symbols + scopes + diagnostics")
+    println("  xlsrv symbols <file.xl>            List all symbols in file")
+    println("  xlsrv check   <file.xl>            Run diagnostics only")
+    println("  xlsrv stdio                        LSP stdio mode (frame parsing implemented)")
+    println("  xlsrv test                         Run self-test")
+    println("  xlsrv help                         Show this help")
+    println("")
+    println("LSP Methods:")
+    println("  initialize, didOpen, didChange, completion, hover")
+    println("  definition, references, diagnostics, documentSymbol")
+    println("")
+    println("Features:")
+    println("  - JSON-RPC 2.0 frame parsing (Content-Length header)")
+    println("  - Symbol table with global/function/class scopes")
+    println("  - Auto-complete: keywords + variables + function names")
+    println("  - Hover: function signature + doc comments")
+    println("  - Go-to-definition: function/variable declaration")
+    println("  - Find references: full-text symbol search")
+    println("  - Diagnostics via 'xl check' + source scanning")
+end
+
+// ====================================================================
+// 入口
+// ====================================================================
+
+func main(...) as int
+    resetSymbols()
+
+    if arg.length < 2 then
+        printUsage()
+        return 0
+    end
+
+    string cmd = string.lower(string(arg[1]))
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    if cmd == "stdio" then
+        runStdio()
+        return 0
+    end
+
+    if cmd == "analyze" then
+        if arg.length < 3 then
+            println("xlsrv: analyze requires a file path")
+            println("  usage: xlsrv analyze <file.xl> [--json]")
+            return 1
+        end
+        string filePath = string(arg[2])
+        bool asJson = false
+        int ai = 3
+        while ai < arg.length do
+            string a = string(arg[ai])
+            if a == "--json" then
+                asJson = true
+            end
+            ai += 1
+        end
+        return cmdAnalyze(filePath, asJson)
+    end
+
+    if cmd == "symbols" then
+        if arg.length < 3 then
+            println("xlsrv: symbols requires a file path")
+            return 1
+        end
+        return cmdSymbols(string(arg[2]))
+    end
+
+    if cmd == "check" then
+        if arg.length < 3 then
+            println("xlsrv: check requires a file path")
+            return 1
+        end
+        return cmdCheck(string(arg[2]))
+    end
+
+    println("xlsrv: unknown command '" + cmd + "'")
+    println("")
+    printUsage()
+    return 1
+end

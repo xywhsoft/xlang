@@ -107,7 +107,7 @@ func isResponseStripHeader(string name) as bool
     return false
 end
 
-// 在响应头块里按名取值（大小写不敏感）。
+// 在响应头块里按名取值（大小写不敏感；返回值保留原大小写）。
 func headerValueCI(string headerBlock, string name) as string
     string low = string.lower(headerBlock)
     string needle = string.lower(name) + ":"
@@ -116,11 +116,13 @@ func headerValueCI(string headerBlock, string name) as string
         return ""
     end
     int valStart = idx + string.len(needle)
-    int nl = string.indexOf(low, "\r\n", valStart)
+    string tail = string.mid(headerBlock, valStart)
+    string lowTail = string.mid(low, valStart)
+    int nl = string.indexOf(lowTail, "\r\n")
     if nl < 0 then
-        nl = string.len(low)
+        nl = string.len(lowTail)
     end
-    return string.trim(string.mid(low, valStart, nl - valStart))
+    return string.trim(string.mid(tail, 0, nl))
 end
 
 // 从一坨响应文本里解析状态码（HTTP/1.1 200 OK -> 200）。非法返回 0。
@@ -365,9 +367,11 @@ func proxyRoute(point reqHandle, point respHandle) as bool
     int scan = string.indexOf(headerBlock, "\r\n")
     int pos = scan + 2
     while pos < string.len(headerBlock) do
-        int lineEnd = string.indexOf(headerBlock, "\r\n", pos)
+        int lineEnd = string.indexOf(string.mid(headerBlock, pos), "\r\n")
         if lineEnd < 0 then
             lineEnd = string.len(headerBlock)
+        else
+            lineEnd = pos + lineEnd
         end
         string line = string.mid(headerBlock, pos, lineEnd - pos)
         int colon = string.indexOf(line, ":")
@@ -406,10 +410,47 @@ end
 
 func(point, point) as bool proxyHandler = proxyRoute
 
+// http.server 不把 CONNECT 方法派发给 anyRequest 路由（authority-form 目标无路径，
+// 框架直接 404）。这里在 error 回调里接住 CONNECT，完成隧道握手应答。
+func proxyError(int status, string message, point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    string method = req.method()
+    if method == "CONNECT" then
+        string target = req.target()
+        if target == "" then
+            target = req.path()
+        end
+        g_requests += 1
+        g_connects += 1
+        auto host, port = splitHostPort(target, 443)
+        access(method, target, 0, "CONNECT")
+        point cp = tcp.connect(host, port, CONNECT_TIMEOUT)
+        if cp == ZERO then
+            g_errors += 1
+            resp.header("Via", "1.1 xlang-httpproxy")
+            resp.header("X-Proxy", "xlang-httpproxy")
+            resp.status(502)
+            return resp.text("Bad Gateway: cannot reach " + host + ":" + port.toString(), "text/plain; charset=utf-8")
+        end
+        TcpStream ts = TcpStream(cp)
+        ts.close()
+        resp.header("Via", "1.1 xlang-httpproxy")
+        resp.header("X-Proxy", "xlang-httpproxy")
+        resp.status(200, "Connection Established")
+        return true
+    end
+    resp.status(status)
+    return resp.text("Not Found", "text/plain; charset=utf-8")
+end
+
+func(int, string, point, point) as bool proxyErrorHandler = proxyError
+
 func buildProxyServer(int port) as point
     // workerCount=1：保证缓存 dict / 统计 int 在 handler 串行访问，无需锁。
     point server = http.server.create(port, "127.0.0.1", 128, 16777216, 16777216, 200, 131072, 1)
     http.server.anyRequest(server, "/*", proxyHandler)
+    http.server.error(server, proxyErrorHandler)
     return server
 end
 

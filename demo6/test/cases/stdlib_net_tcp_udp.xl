@@ -6,10 +6,14 @@ end
 TcpServer server = TcpServer(tcp.listen(0))
 int tcpPort = int(server.port())
 future<point> accepted = server.acceptAsync(8000)
+assert accepted != null, "tcp_accept_future"
 TcpStream client = TcpStream(tcp.connect("127.0.0.1", tcpPort, 8000))
-TcpStream peer = TcpStream(await accepted)
+point acceptedPoint = await accepted
+assert acceptedPoint != null, "tcp_accept_value"
+TcpStream peer = TcpStream(acceptedPoint)
 
 future<string> received = peer.recvAsync(8000)
+assert received != null, "tcp_recv_future"
 bool sent = client.send("ping")
 bool drained = client.drain(8000)
 string request = await received
@@ -46,12 +50,23 @@ TcpServer asyncServer = TcpServer(tcp.listen(0))
 int asyncPort = int(asyncServer.port())
 future<point> asyncAccepted = asyncServer.acceptAsync(8000)
 future<point> asyncConnected = tcp.connectAsync("127.0.0.1", asyncPort, 8000)
-TcpStream asyncClient = TcpStream(await asyncConnected)
-TcpStream asyncPeer = TcpStream(await asyncAccepted)
+assert asyncAccepted != null, "tcp_async_accept_future"
+assert asyncConnected != null, "tcp_async_connect_future"
+point asyncClientPoint = await asyncConnected
+point asyncPeerPoint = await asyncAccepted
+assert asyncClientPoint != null, "tcp_async_connect_value"
+assert asyncPeerPoint != null, "tcp_async_accept_value"
+TcpStream asyncClient = TcpStream(asyncClientPoint)
+TcpStream asyncPeer = TcpStream(asyncPeerPoint)
 
 future<string> asyncReceived = asyncPeer.recvAsync(8000)
-bool asyncSent = await asyncClient.sendAsync("async")
-bool asyncDrained = await asyncClient.drainAsync(8000)
+assert asyncReceived != null, "tcp_async_recv_future"
+future<bool> asyncSendFuture = asyncClient.sendAsync("async")
+assert asyncSendFuture != null, "tcp_async_send_future"
+bool asyncSent = await asyncSendFuture
+future<bool> asyncDrainFuture = asyncClient.drainAsync(8000)
+assert asyncDrainFuture != null, "tcp_async_drain_future"
+bool asyncDrained = await asyncDrainFuture
 string asyncRequest = await asyncReceived
 asyncClient.close()
 asyncPeer.close()
@@ -95,8 +110,11 @@ UdpSocket asyncRight = UdpSocket(udp.bind(0))
 int asyncLeftPort = asyncLeft.port()
 int asyncRightPort = asyncRight.port()
 future<point> packetFuture = asyncRight.recvAsync(8000)
+assert packetFuture != null, "udp_async_recv_future"
 time.sleep(10)
-bool asyncUdpSent = await asyncLeft.sendAsync("127.0.0.1", uint16(asyncRightPort), "async-udp")
+future<bool> asyncUdpSendFuture = asyncLeft.sendAsync("127.0.0.1", uint16(asyncRightPort), "async-udp")
+assert asyncUdpSendFuture != null, "udp_async_send_future"
+bool asyncUdpSent = await asyncUdpSendFuture
 UdpPacket asyncPacket = UdpPacket(await packetFuture)
 
 requireLine("udp_async", asyncLeftPort > 0 and asyncRightPort > 0 and asyncUdpSent and asyncPacket.text() == "async-udp")

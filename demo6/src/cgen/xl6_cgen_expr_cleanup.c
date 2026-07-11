@@ -25,12 +25,12 @@ static void xl6CgenAddCleanupEntry(XL6_CgenContext* ctx, const char* name, XL6_C
     ctx->cleanupCount += 1;
 }
 
-static void xl6CgenAddNativeClassCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* customNode)
+static void xl6CgenAddNativeClassCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* nativeClassNode)
 {
-    if ( customNode == NULL || !xl6CgenNativeBackedClassHasDestroy(customNode) ) {
+    if ( nativeClassNode == NULL || !xl6CgenNativeBackedClassHasDestroy(nativeClassNode) ) {
         return;
     }
-    xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_NATIVE_CLASS, customNode, NULL);
+    xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_NATIVE_CLASS, nativeClassNode, NULL);
 }
 
 static void xl6CgenAddClassCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* classNode, const XL6_AstNode* classTypeNode)

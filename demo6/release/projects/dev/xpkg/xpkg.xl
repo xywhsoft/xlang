@@ -1,4 +1,4 @@
-// xpkg — xlang 简易包管理器
+﻿// xpkg — xlang 简易包管理器
 // 只写代码不运行。不修改编译器源码。
 // 用法：xl run xpkg.xl -- init|install|list|tree|test
 
@@ -23,8 +23,12 @@ func parseSemver(string v) as (int, int, int)
 end
 
 func cmpVer(string a, string b) as int
-    int aMaj, aMin, aPat
-    int bMaj, bMin, bPat
+    int aMaj
+    int aMin
+    int aPat
+    int bMaj
+    int bMin
+    int bPat
     aMaj, aMin, aPat = parseSemver(a)
     bMaj, bMin, bPat = parseSemver(b)
     if aMaj != bMaj then return aMaj - bMaj end
@@ -36,12 +40,16 @@ func matchRange(string version, string range) as bool
     string r = string.trim(range)
     if r == "*" then return true end
 
-    int rm, rn, rp
+    int rm
+    int rn
+    int rp
     rm, rn, rp = parseSemver(version)
 
     if string.startsWith(r, "^") then
         string target = string.mid(r, 1, string.len(r) - 1)
-        int tm, tn, tp
+        int tm
+    int tn
+    int tp
         tm, tn, tp = parseSemver(target)
         if rm != tm then return false end
         if rm == 0 then
@@ -56,7 +64,9 @@ func matchRange(string version, string range) as bool
 
     if string.startsWith(r, "~") then
         string target = string.mid(r, 1, string.len(r) - 1)
-        int tm, tn, tp
+        int tm
+    int tn
+    int tp
         tm, tn, tp = parseSemver(target)
         if rm != tm then return false end
         if rn != tn then return false end
@@ -74,7 +84,7 @@ func matchRange(string version, string range) as bool
     return false
 end
 
-func bestVersion(array<string> versions, string range) as string
+func bestVersion(var versions, string range) as string
     string best = ""
     int i = 0
     while i < versions.length do
@@ -132,7 +142,7 @@ func initRegistry(string regPath)
     end
 end
 
-func getVersions(string pkgName) as array<string>
+func getVersions(string pkgName) as var
     var v = g_registry[pkgName + ":versions"]
     if v == null then return [] end
     return v
@@ -163,7 +173,7 @@ func resolveDeps(var deps, string parentName)
     while i < n do
         string depName = string(keys[i])
         string range = string(deps[depName])
-        array<string> versions = getVersions(depName)
+        var versions = getVersions(depName)
         string chosen = bestVersion(versions, range)
         if chosen == "" then
             string regPath = path.join(g_rootDir, "registry")
@@ -203,7 +213,10 @@ func topoSort() as array<string>
     array<int> visited = []
     array<string> order = []
     int i = 0
-    while i < n do visited.append(0); i += 1 end
+    while i < n do
+        visited.append(0)
+        i += 1
+    end
     i = 0
     while i < n do
         if visited[i] == 0 then
@@ -459,10 +472,14 @@ func main(...) as int
     string regPath = path.join(g_rootDir, "registry")
     initRegistry(regPath)
 
-    if cmd == "init" then return cmdInit()
-    elseif cmd == "install" then return cmdInstall()
-    elseif cmd == "list" then return cmdList()
-    elseif cmd == "tree" then return cmdTree()
+    if cmd == "init" then
+        return cmdInit()
+    elseif cmd == "install" then
+        return cmdInstall()
+    elseif cmd == "list" then
+        return cmdList()
+    elseif cmd == "tree" then
+        return cmdTree()
     elseif cmd == "test" then
         g_rootDir = "."
         return cmdTest()

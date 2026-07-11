@@ -1,0 +1,1979 @@
+// xfuzz.xl - xlang 模糊测试框架（coverage-guided black-box fuzzer）
+//
+// 功能：
+//   - 变异引擎：位翻转 / 字节增删改 / 算术变异 / 字典注入 / 块交换与重复 / 交叉
+//   - 种子管理：语料库加载 / 覆盖引导调度（favors new coverage）/ 能量分配
+//   - 覆盖率：黑盒路径哈希（exit code + stdout 指纹）区分不同执行路径
+//   - 崩溃分析：去重（输入 hash）/ 最小化（delta-debugging）/ 分类
+//   - 内置目标：json（stdlib json.parse）/ regex（stdlib regex.isMatch）
+//   - 统计：执行数 / 路径数 / 崩溃数 / 速度 / 平均耗时
+//
+// 用法（在 release 目录下）：
+//   xl run projects\dev\xfuzz\xfuzz.xl run <target> <seeds_dir> [minutes]
+//   xl run projects\dev\xfuzz\xfuzz.xl minimize <crash_file> <target>
+//   xl run projects\dev\xfuzz\xfuzz.xl test
+//
+// target:
+//   json        内置 JSON 解析器 fuzz（stdlib json.parse，无 try/catch harness）
+//   regex       内置 regex 解析器 fuzz（stdlib regex.isMatch，无 try/catch harness）
+//   <cmd>       自定义目标命令，%s 为输入文件占位符
+//
+// 示例：
+//   xl run projects\dev\xfuzz\xfuzz.xl run json projects\dev\xfuzz\seeds 2
+//   xl run projects\dev\xfuzz\xfuzz.xl run regex projects\dev\xfuzz\seeds 1
+//   xl run projects\dev\xfuzz\xfuzz.xl minimize crashes\crash_xxx.bin json
+//   xl run projects\dev\xfuzz\xfuzz.xl test
+//
+// 实现：
+//   - 输入统一用 array<int>（每元素 0-255 字节），避免 UTF-8 编码问题
+//   - 变异全部返回新数组，不修改原输入
+//   - 目标通过 process.run 执行；路径哈希 = hash.u64(exitCode + "|" + stdout 前 64 字节)
+//   - 崩溃判定：exitCode!=0 / timeout / stderr 含 stack-overflow/assert 关键字
+//   - 种子调度：加权随机（new-coverage boost + over-fuzz decay）
+//
+// 退出码：0 = 正常；1 = 参数错误 / 目标不可用
+
+// ============================================================================
+// 全局状态
+// ============================================================================
+
+string g_xl          // xl.exe 绝对路径（内置目标需要）
+string g_scriptPath  // 本脚本路径（arg[0]）
+string g_workRoot    // 工作目录根（temp 下）
+
+// ANSI 颜色
+string C_RESET
+string C_BOLD
+string C_GREEN
+string C_RED
+string C_YELLOW
+string C_CYAN
+string C_GRAY
+
+// 自检计数器
+int g_pass
+int g_fail
+
+// 有趣字节值（AFL 风格）
+array<int> INTERESTING_BYTES = array<int>[0, 1, 2, 3, 4, 8, 16, 32, 64, 100,
+    127, 128, 129, 130, 200, 254, 255, 0x0a, 0x0d, 0x20, 0x22, 0x5c, 0x7b, 0x7d,
+    0x5b, 0x5d, 0x3a, 0x2c]
+
+// 可打印 ASCII 查表（32..126）
+string PRINTABLE_CHARS = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+
+// ============================================================================
+// findXl - 定位 xl.exe
+// ============================================================================
+
+func findXl() as string
+    array<string> cands = []
+    cands.push(path.join(path.appDir(), "xl.exe"))
+    cands.push(path.join(path.cwd(), "xl.exe"))
+    cands.push(path.join(path.cwd(), "bin", "xl.exe"))
+    string a0 = g_scriptPath
+    if string.len(a0) > 0 then
+        cands.push(path.join(path.join(path.dir(a0), "..", "..", ".."), "xl.exe"))
+        cands.push(path.join(path.dir(a0), "xl.exe"))
+    end
+    for c in cands
+        if file.exists(c) then
+            return c
+        end
+    end
+    return ""
+end
+
+// ============================================================================
+// 字节辅助函数
+// ============================================================================
+
+// string -> array<int>（按字节展开）
+func bytesFromString(string s) as array<int>
+    array<int> out = []
+    int n = string.len(s)
+    if n == 0 then
+        return out
+    end
+    int i = 0
+    while i < n do
+        out.push(string.byteAt(s, i))
+        i += 1
+    end
+    return out
+end
+
+// array<int> -> string（通过 Buffer + encoding.fromBytes）
+func stringFromBytes(array<int> bs) as string
+    if bs.length == 0 then
+        return ""
+    end
+    Buffer buf = Buffer()
+    int i = 0
+    while i < bs.length do
+        buf.appendByte(bs[i] & 0xFF)
+        i += 1
+    end
+    try
+        return encoding.fromBytes(buf.data(), c_size(buf.len()), encoding.utf8)
+    catch e
+        return ""
+    end
+end
+
+// array<int> -> 十六进制串
+func bytesToHex(array<int> bs) as string
+    if bs.length == 0 then
+        return ""
+    end
+    string hex = "0123456789abcdef"
+    string out = ""
+    int i = 0
+    while i < bs.length do
+        int b = bs[i] & 0xFF
+        out = out + string.charAt(hex, (b >> 4) & 0xF) + string.charAt(hex, b & 0xF)
+        i += 1
+    end
+    return out
+end
+
+// 可打印展示（非可打印字节用 . 代替），maxLen 截断
+func printableBytes(array<int> bs, int maxLen) as string
+    string out = ""
+    int n = bs.length
+    int show = n
+    if show > maxLen then
+        show = maxLen
+    end
+    int i = 0
+    while i < show do
+        int b = bs[i] & 0xFF
+        if b >= 32 and b <= 126 then
+            out = out + string.charAt(PRINTABLE_CHARS, b - 32)
+        else
+            out = out + "."
+        end
+        i += 1
+    end
+    if n > maxLen then
+        out = out + "...(" + string(n) + " bytes)"
+    end
+    return out
+end
+
+// 数组深拷贝
+func copyBytes(array<int> bs) as array<int>
+    array<int> out = []
+    int i = 0
+    while i < bs.length do
+        out.push(bs[i])
+        i += 1
+    end
+    return out
+end
+
+// 切片 [start, start+len)
+func sliceBytes(array<int> bs, int start, int len) as array<int>
+    array<int> out = []
+    if start < 0 then
+        start = 0
+    end
+    int i = start
+    int end2 = start + len
+    if end2 > bs.length then
+        end2 = bs.length
+    end
+    while i < end2 do
+        out.push(bs[i])
+        i += 1
+    end
+    return out
+end
+
+// 删除区间 [start, start+len)
+func removeRange(array<int> bs, int start, int len) as array<int>
+    array<int> out = []
+    int i = 0
+    while i < start and i < bs.length do
+        out.push(bs[i])
+        i += 1
+    end
+    i = start + len
+    while i < bs.length do
+        out.push(bs[i])
+        i += 1
+    end
+    return out
+end
+
+// 在 pos 处插入一段字节
+func insertAt(array<int> bs, int pos, array<int> segment) as array<int>
+    array<int> out = []
+    if pos < 0 then
+        pos = 0
+    end
+    if pos > bs.length then
+        pos = bs.length
+    end
+    int i = 0
+    while i < pos do
+        out.push(bs[i])
+        i += 1
+    end
+    int j = 0
+    while j < segment.length do
+        out.push(segment[j])
+        j += 1
+    end
+    while i < bs.length do
+        out.push(bs[i])
+        i += 1
+    end
+    return out
+end
+
+// 两个字节数组相等比较
+func bytesEqual(array<int> a, array<int> b) as bool
+    if a.length != b.length then
+        return false
+    end
+    int i = 0
+    while i < a.length do
+        if a[i] != b[i] then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+// 截断到 maxLen
+func clampLen(array<int> bs, int maxLen) as array<int>
+    if bs.length <= maxLen then
+        return bs
+    end
+    array<int> out = []
+    int i = 0
+    while i < maxLen do
+        out.push(bs[i])
+        i += 1
+    end
+    return out
+end
+
+// 读文件 -> array<int>
+func readFileBytes(string p) as array<int>
+    Buffer buf = file.readBytes(p)
+    array<int> out = []
+    int n = buf.len()
+    int i = 0
+    while i < n do
+        out.push(buf.byteAt(i))
+        i += 1
+    end
+    return out
+end
+
+// 写 array<int> -> 文件
+func writeFileBytes(string p, array<int> bs)
+    Buffer buf = Buffer()
+    int i = 0
+    while i < bs.length do
+        buf.appendByte(bs[i] & 0xFF)
+        i += 1
+    end
+    file.writeBytes(p, buf)
+end
+
+// 输入字节指纹（uint64 hex），用于崩溃去重
+func inputHash(array<int> bs) as string
+    string hex = bytesToHex(bs)
+    if string.len(hex) == 0 then
+        hex = "00"
+    end
+    uint64 h = hash.u64(hex)
+    return string.formatUInt(h, "x16")
+end
+
+// ============================================================================
+// MutationEngine - 变异引擎
+// 所有方法接受 array<int>，返回新 array<int>，不修改输入
+// ============================================================================
+
+class MutationEngine
+    int minLen
+    int maxLen
+    array<string> dictTokens
+
+    create(int minLen, int maxLen)
+        self.minLen = minLen
+        self.maxLen = maxLen
+        self.dictTokens = []
+    end
+
+    func setDictionary(array<string> tokens)
+        self.dictTokens = []
+        int i = 0
+        while i < tokens.length do
+            self.dictTokens.push(tokens[i])
+            i += 1
+        end
+    end
+
+    // 随机 [0, n-1]，n<=0 时返回 0
+    func rp(int n) as int
+        if n <= 0 then
+            return 0
+        end
+        return random.range(0, n - 1)
+    end
+
+    // 随机插入位置 [0, n]
+    func rip(int n) as int
+        if n <= 0 then
+            return 0
+        end
+        return random.range(0, n)
+    end
+
+    // 随机字节 0-255
+    func rb() as int
+        return random.range(0, 255)
+    end
+
+    // ---- 位翻转 ----
+    func flipBit(array<int> input) as array<int>
+        array<int> out = copyBytes(input)
+        if out.length == 0 then
+            out.push(rb())
+            return out
+        end
+        int pos = rp(out.length)
+        int bit = random.range(0, 7)
+        out[pos] = (out[pos] ^ (1 << bit)) & 0xFF
+        return out
+    end
+
+    // ---- 字节插入 ----
+    func insertByte(array<int> input) as array<int>
+        array<int> seg = array<int>[rb()]
+        array<int> out = insertAt(input, rip(input.length), seg)
+        return self.clamp(out)
+    end
+
+    // ---- 字节删除 ----
+    func deleteByte(array<int> input) as array<int>
+        int n = input.length
+        if n <= self.minLen then
+            return copyBytes(input)
+        end
+        int pos = rp(n)
+        return removeRange(input, pos, 1)
+    end
+
+    // ---- 字节替换 ----
+    func replaceByte(array<int> input) as array<int>
+        array<int> out = copyBytes(input)
+        if out.length == 0 then
+            out.push(rb())
+            return out
+        end
+        int pos = rp(out.length)
+        out[pos] = rb()
+        return out
+    end
+
+    // ---- 算术变异（±N）----
+    func arithByte(array<int> input) as array<int>
+        array<int> out = copyBytes(input)
+        if out.length == 0 then
+            out.push(rb())
+            return out
+        end
+        int pos = rp(out.length)
+        int delta = random.range(-35, 35)
+        out[pos] = (out[pos] + delta) & 0xFF
+        return out
+    end
+
+    // ---- 有趣字节值注入 ----
+    func interestingByte(array<int> input) as array<int>
+        array<int> out = copyBytes(input)
+        int val = INTERESTING_BYTES[rp(INTERESTING_BYTES.length)]
+        if out.length == 0 then
+            out.push(val)
+            return out
+        end
+        int pos = rp(out.length)
+        out[pos] = val
+        return out
+    end
+
+    // ---- 字典注入（插入）----
+    func injectDict(array<int> input) as array<int>
+        if self.dictTokens.length == 0 then
+            return self.insertByte(input)
+        end
+        string tok = self.dictTokens[rp(self.dictTokens.length)]
+        array<int> tokenBytes = bytesFromString(tok)
+        array<int> out = insertAt(input, rip(input.length), tokenBytes)
+        return self.clamp(out)
+    end
+
+    // ---- 字典注入（覆盖）----
+    func overwriteDict(array<int> input) as array<int>
+        if self.dictTokens.length == 0 then
+            return self.replaceByte(input)
+        end
+        int n = input.length
+        if n == 0 then
+            return self.injectDict(input)
+        end
+        string tok = self.dictTokens[rp(self.dictTokens.length)]
+        array<int> tokenBytes = bytesFromString(tok)
+        array<int> out = copyBytes(input)
+        int pos = rp(n)
+        int j = 0
+        while j < tokenBytes.length and pos + j < n do
+            out[pos + j] = tokenBytes[j]
+            j += 1
+        end
+        return out
+    end
+
+    // ---- 块交换 ----
+    func blockSwap(array<int> input) as array<int>
+        int n = input.length
+        if n < 4 then
+            return self.flipBit(input)
+        end
+        int half = n / 2
+        if half < 2 then
+            half = 2
+        end
+        int blockLen = random.range(2, half)
+        int maxStart = n - blockLen * 2
+        if maxStart < 0 then
+            return self.flipBit(input)
+        end
+        int s1 = random.range(0, maxStart)
+        int s2 = s1 + blockLen
+        if s2 + blockLen > n then
+            s2 = n - blockLen
+        end
+        array<int> out = copyBytes(input)
+        int k = 0
+        while k < blockLen do
+            int tmp = out[s1 + k]
+            out[s1 + k] = out[s2 + k]
+            out[s2 + k] = tmp
+            k += 1
+        end
+        return out
+    end
+
+    // ---- 块重复（duplicate）----
+    func blockDup(array<int> input) as array<int>
+        int n = input.length
+        if n < 2 then
+            return self.insertByte(input)
+        end
+        int half = n / 2
+        if half < 1 then
+            half = 1
+        end
+        int blockLen = random.range(1, half)
+        int src = rp(n - blockLen + 1)
+        array<int> block = sliceBytes(input, src, blockLen)
+        array<int> out = insertAt(input, rip(n), block)
+        return self.clamp(out)
+    end
+
+    // ---- 块删除 ----
+    func blockDelete(array<int> input) as array<int>
+        int n = input.length
+        if n <= self.minLen + 2 then
+            return self.deleteByte(input)
+        end
+        int half = n / 2
+        if half < 1 then
+            half = 1
+        end
+        int blockLen = random.range(1, half)
+        int maxStart = n - blockLen
+        if maxStart < 0 then
+            return self.deleteByte(input)
+        end
+        int start = random.range(0, maxStart)
+        array<int> out = removeRange(input, start, blockLen)
+        if out.length < self.minLen then
+            return copyBytes(input)
+        end
+        return out
+    end
+
+    // ---- 整体克隆（repeat N times）----
+    func cloneBytes(array<int> input) as array<int>
+        if input.length == 0 then
+            return self.insertByte(input)
+        end
+        int times = random.range(2, 4)
+        array<int> out = []
+        int t = 0
+        while t < times do
+            int i = 0
+            while i < input.length do
+                out.push(input[i])
+                i += 1
+            end
+            t += 1
+        end
+        return self.clamp(out)
+    end
+
+    // ---- 交叉（splice two inputs）----
+    func crossOver(array<int> a, array<int> b) as array<int>
+        array<int> out = []
+        int i = 0
+        int j = 0
+        bool useA = true
+        if random.range(0, 1) == 0 then
+            useA = false
+        end
+        while i < a.length and j < b.length do
+            if random.range(0, 4) == 0 then
+                useA = not useA
+            end
+            if useA then
+                out.push(a[i])
+                i += 1
+            else
+                out.push(b[j])
+                j += 1
+            end
+        end
+        while i < a.length do
+            out.push(a[i])
+            i += 1
+        end
+        while j < b.length do
+            out.push(b[j])
+            j += 1
+        end
+        return self.clamp(out)
+    end
+
+    // ---- 随机生成全新输入 ----
+    func randomInput() as array<int>
+        int n = random.range(1, 64)
+        array<int> out = []
+        int i = 0
+        while i < n do
+            out.push(rb())
+            i += 1
+        end
+        return out
+    end
+
+    // ---- havoc：堆叠 1-N 个随机变异 ----
+    func havoc(array<int> input) as array<int>
+        array<int> cur = copyBytes(input)
+        int rounds = random.range(1, 8)
+        int i = 0
+        while i < rounds do
+            int which = random.range(0, 11)
+            if which == 0 then
+                cur = self.flipBit(cur)
+            elseif which == 1 then
+                cur = self.insertByte(cur)
+            elseif which == 2 then
+                cur = self.deleteByte(cur)
+            elseif which == 3 then
+                cur = self.replaceByte(cur)
+            elseif which == 4 then
+                cur = self.arithByte(cur)
+            elseif which == 5 then
+                cur = self.interestingByte(cur)
+            elseif which == 6 then
+                cur = self.injectDict(cur)
+            elseif which == 7 then
+                cur = self.overwriteDict(cur)
+            elseif which == 8 then
+                cur = self.blockSwap(cur)
+            elseif which == 9 then
+                cur = self.blockDup(cur)
+            elseif which == 10 then
+                cur = self.blockDelete(cur)
+            else
+                cur = self.flipBit(cur)
+            end
+            i += 1
+        end
+        return self.normalize(cur)
+    end
+
+    // 截断到 maxLen
+    func clamp(array<int> bs) as array<int>
+        return clampLen(bs, self.maxLen)
+    end
+
+    // 长度归一化：补齐 minLen，截断 maxLen
+    func normalize(array<int> bs) as array<int>
+        array<int> out = copyBytes(bs)
+        while out.length < self.minLen do
+            out.push(0)
+        end
+        if out.length > self.maxLen then
+            array<int> trimmed = []
+            int j = 0
+            while j < self.maxLen do
+                trimmed.push(out[j])
+                j += 1
+            end
+            out = trimmed
+        end
+        return out
+    end
+end
+
+// ============================================================================
+// Dictionary - 字典管理
+// ============================================================================
+
+class Dictionary
+    array<string> tokens
+
+    create()
+        self.tokens = []
+    end
+
+    func buildForTarget(string targetName)
+        self.tokens = []
+        if targetName == "json" then
+            self.tokens.push("{")
+            self.tokens.push("}")
+            self.tokens.push("[")
+            self.tokens.push("]")
+            self.tokens.push(",")
+            self.tokens.push(":")
+            self.tokens.push("\"")
+            self.tokens.push("\\")
+            self.tokens.push("/")
+            self.tokens.push("null")
+            self.tokens.push("true")
+            self.tokens.push("false")
+            self.tokens.push("0")
+            self.tokens.push("-1")
+            self.tokens.push("1e999")
+            self.tokens.push("1.5e-10")
+            self.tokens.push("\"\\u0000\"")
+            self.tokens.push("\"\\n\"")
+            self.tokens.push("\"\\t\"")
+            self.tokens.push("\"\\\"\"")
+            self.tokens.push(":\"")
+            self.tokens.push(",:")
+            self.tokens.push("{}")
+            self.tokens.push("[]")
+            self.tokens.push("{\"k\":")
+            self.tokens.push("[0,1,2]")
+            self.tokens.push("999999999999")
+            self.tokens.push("-0")
+            self.tokens.push("true,false")
+        elseif targetName == "regex" then
+            self.tokens.push("(")
+            self.tokens.push(")")
+            self.tokens.push("[")
+            self.tokens.push("]")
+            self.tokens.push("*")
+            self.tokens.push("+")
+            self.tokens.push("?")
+            self.tokens.push("|")
+            self.tokens.push("^")
+            self.tokens.push("$")
+            self.tokens.push(".")
+            self.tokens.push("\\d")
+            self.tokens.push("\\w")
+            self.tokens.push("\\s")
+            self.tokens.push("(?:")
+            self.tokens.push("(?=")
+            self.tokens.push("(?!")
+            self.tokens.push("{1,")
+            self.tokens.push("{0,3}")
+            self.tokens.push(".*")
+            self.tokens.push(".+")
+            self.tokens.push("[^")
+            self.tokens.push("[-]")
+            self.tokens.push("\\b")
+            self.tokens.push("(a|b)")
+            self.tokens.push("(a)*\\1")
+            self.tokens.push("((.*)*)")
+            self.tokens.push("(a+)+")
+        else
+            self.tokens.push("0")
+            self.tokens.push("1")
+            self.tokens.push("-1")
+            self.tokens.push("255")
+            self.tokens.push("\n")
+            self.tokens.push("\t")
+            self.tokens.push("%s")
+            self.tokens.push("../")
+            self.tokens.push("true")
+            self.tokens.push("null")
+            self.tokens.push("{}")
+            self.tokens.push("[]")
+        end
+    end
+
+    func load(string filePath)
+        if not file.exists(filePath) then
+            return
+        end
+        string text = file.readText(filePath)
+        array<string> lines = string.splitLines(text)
+        int i = 0
+        while i < lines.length do
+            string line = lines[i]
+            string trimmed = string.trim(line)
+            if string.len(trimmed) > 0 then
+                self.tokens.push(line)
+            end
+            i += 1
+        end
+    end
+
+    func getTokens() as array<string>
+        return self.tokens
+    end
+
+    func count() as int
+        return self.tokens.length
+    end
+end
+
+// ============================================================================
+// CoverageTracker - 覆盖率追踪（黑盒路径哈希去重）
+// ============================================================================
+
+class CoverageTracker
+    dict<int> hashes     // path-hash-hex -> hit count
+    int totalPaths
+
+    create()
+        self.hashes = {}
+        self.totalPaths = 0
+    end
+
+    // 观察一次执行信号，返回 true 表示新路径
+    func observe(string signal) as bool
+        uint64 h = hash.u64(signal)
+        string key = string.formatUInt(h, "x16")
+        if self.hashes.contains(key) then
+            self.hashes[key] = int(self.hashes[key]) + 1
+            return false
+        end
+        self.hashes[key] = 1
+        self.totalPaths += 1
+        return true
+    end
+
+    func pathCount() as int
+        return self.totalPaths
+    end
+
+    // 从 ProcessResult 字段构造信号
+    func makeSignal(int exitCode, string stdout) as string
+        string sig = string(exitCode) + "|" + string.slice(stdout, 0, 64)
+        return sig
+    end
+end
+
+// ============================================================================
+// Seed - 单个种子
+// ============================================================================
+
+class Seed
+    array<int> data
+    int weight
+    int timesFuzzed
+    int newPaths
+
+    create(array<int> data)
+        self.data = data
+        self.weight = 100
+        self.timesFuzzed = 0
+        self.newPaths = 0
+    end
+end
+
+// ============================================================================
+// SeedCorpus - 种子语料库（加权调度）
+// ============================================================================
+
+class SeedCorpus
+    array<Seed> seeds
+    int maxSeeds
+    int maxSeedLen
+
+    create(int maxSeeds, int maxSeedLen)
+        self.seeds = []
+        self.maxSeeds = maxSeeds
+        self.maxSeedLen = maxSeedLen
+    end
+
+    func size() as int
+        return self.seeds.length
+    end
+
+    func add(array<int> data)
+        if data.length == 0 then
+            return
+        end
+        if data.length > self.maxSeedLen then
+            data = sliceBytes(data, 0, self.maxSeedLen)
+        end
+        if self.seeds.length >= self.maxSeeds then
+            // 替换权重最低的
+            int minIdx = 0
+            int minW = self.seeds[0].weight
+            int i = 1
+            while i < self.seeds.length do
+                if self.seeds[i].weight < minW then
+                    minW = self.seeds[i].weight
+                    minIdx = i
+                end
+                i += 1
+            end
+            if minW < 200 then
+                self.seeds[minIdx] = Seed(data)
+            end
+        else
+            self.seeds.push(Seed(data))
+        end
+    end
+
+    // 覆盖引导：新路径种子获得更高初始权重
+    func addFavored(array<int> data)
+        if data.length == 0 then
+            return
+        end
+        if data.length > self.maxSeedLen then
+            data = sliceBytes(data, 0, self.maxSeedLen)
+        end
+        if self.seeds.length >= self.maxSeeds then
+            self.add(data)
+            return
+        end
+        Seed s = Seed(data)
+        s.weight = 300
+        self.seeds.push(s)
+    end
+
+    // 加权随机选取，返回索引
+    func pickIndex() as int
+        int n = self.seeds.length
+        if n == 0 then
+            return -1
+        end
+        int total = 0
+        int i = 0
+        while i < n do
+            total += self.seeds[i].weight
+            i += 1
+        end
+        if total <= 0 then
+            return 0
+        end
+        int r = random.range(0, total - 1)
+        int acc = 0
+        int j = 0
+        while j < n do
+            acc += self.seeds[j].weight
+            if r < acc then
+                return j
+            end
+            j += 1
+        end
+        return n - 1
+    end
+
+    func get(int idx) as Seed
+        if idx < 0 or idx >= self.seeds.length then
+            return Seed([])
+        end
+        return self.seeds[idx]
+    end
+
+    func getData(int idx) as array<int>
+        if idx < 0 or idx >= self.seeds.length then
+            array<int> e = []
+            return e
+        end
+        return self.seeds[idx].data
+    end
+
+    // boost：发现新路径时增加权重（read-modify-write）
+    func boostByIndex(int idx)
+        if idx < 0 or idx >= self.seeds.length then
+            return
+        end
+        Seed s = self.seeds[idx]
+        s.newPaths += 1
+        s.weight += 50
+        if s.weight > 10000 then
+            s.weight = 10000
+        end
+        self.seeds[idx] = s
+    end
+
+    // 记录一次 fuzz + decay
+    func markFuzzed(int idx)
+        if idx < 0 or idx >= self.seeds.length then
+            return
+        end
+        Seed s = self.seeds[idx]
+        s.timesFuzzed += 1
+        if s.timesFuzzed % 50 == 0 and s.weight > 50 then
+            s.weight -= 10
+        end
+        self.seeds[idx] = s
+    end
+
+    // 从目录加载种子
+    func loadDir(string dirPath)
+        if not dir.exists(dirPath) then
+            return
+        end
+        array raw = dir.entries(dirPath, false)
+        int i = 0
+        while i < raw.length do
+            var e = raw[i]
+            bool isDir = bool(e["isDir"])
+            if not isDir then
+                string fp = string(e["path"])
+                try
+                    array<int> data = readFileBytes(fp)
+                    if data.length > 0 and data.length <= self.maxSeedLen then
+                        self.add(data)
+                    end
+                catch e2
+                    // 跳过不可读文件
+                end
+            end
+            i += 1
+        end
+    end
+
+    // 统计总字节数
+    func totalBytes() as int
+        int total = 0
+        int i = 0
+        while i < self.seeds.length do
+            total += self.seeds[i].data.length
+            i += 1
+        end
+        return total
+    end
+end
+
+// ============================================================================
+// 崩溃分类（独立函数，便于测试）
+// ============================================================================
+
+func classifyResult(bool success, int exitCode, string stderrText, float durationMs, int timeoutMs) as string
+    if success and exitCode == 0 then
+        return "ok"
+    end
+    // 超时检测
+    if durationMs >= float(timeoutMs) * 0.85 then
+        return "timeout"
+    end
+    if not success and durationMs >= float(timeoutMs) * 0.7 then
+        return "timeout"
+    end
+    string lowErr = string.lower(stderrText)
+    if string.len(lowErr) > 0 then
+        if string.contains(lowErr, "stack") or string.contains(lowErr, "overflow") or string.contains(lowErr, "depth") then
+            return "stack-overflow"
+        end
+        if string.contains(lowErr, "assert") then
+            return "assert"
+        end
+        if string.contains(lowErr, "timeout") or string.contains(lowErr, "timed out") then
+            return "timeout"
+        end
+        if string.contains(lowErr, "out of memory") or string.contains(lowErr, "oom") then
+            return "oom"
+        end
+    end
+    // 信号映射（POSIX 风格 exit code）
+    if exitCode == 139 or exitCode == 134 then
+        if exitCode == 139 then
+            return "segfault"
+        end
+        return "abort"
+    end
+    if exitCode != 0 then
+        return "crash-exit-" + string(exitCode)
+    end
+    return "ok"
+end
+
+// ============================================================================
+// CrashRec - 崩溃记录
+// ============================================================================
+
+class CrashRec
+    array<int> data
+    string crashType
+    string hashStr
+    int exitCode
+    string stderrText
+    float durationMs
+
+    create(array<int> data, string crashType, string hashStr, int exitCode, string stderrText, float durationMs)
+        self.data = data
+        self.crashType = crashType
+        self.hashStr = hashStr
+        self.exitCode = exitCode
+        self.stderrText = stderrText
+        self.durationMs = durationMs
+    end
+end
+
+// ============================================================================
+// CrashAnalyzer - 崩溃分析（去重 / 保存 / 最小化）
+// ============================================================================
+
+class CrashAnalyzer
+    set<string> seen        // 去重集合（input hash）
+    array<CrashRec> crashes
+    string outDir
+    int timeoutMs
+
+    create(string outDir, int timeoutMs)
+        self.seen = set<string>{}
+        self.crashes = []
+        self.outDir = outDir
+        self.timeoutMs = timeoutMs
+    end
+
+    func crashCount() as int
+        return self.crashes.length
+    end
+
+    // 考虑一个结果是否为新的唯一崩溃；返回 true 表示新崩溃
+    func consider(array<int> data, bool success, int exitCode, string stdoutText, string stderrText, float durationMs) as bool
+        string kind = classifyResult(success, exitCode, stderrText, durationMs, self.timeoutMs)
+        if kind == "ok" then
+            return false
+        end
+        string h = inputHash(data)
+        if self.seen.contains(h) then
+            return false
+        end
+        self.seen.add(h)
+        CrashRec rec = CrashRec(copyBytes(data), kind, h, exitCode, stderrText, durationMs)
+        self.crashes.push(rec)
+        self.saveCrash(rec)
+        return true
+    end
+
+    // 保存崩溃到文件
+    func saveCrash(CrashRec rec) as string
+        if not dir.exists(self.outDir) then
+            dir.createAll(self.outDir)
+        end
+        string fname = "crash_" + rec.crashType + "_" + rec.hashStr + ".bin"
+        string fpath = path.join(self.outDir, fname)
+        writeFileBytes(fpath, rec.data)
+        return fpath
+    end
+
+    // 崩溃最小化（delta-debugging：逐块 + 逐字节删除，保持崩溃）
+    func minimize(array<int> data, Target target, int maxExecs) as array<int>
+        // 确认原始输入崩溃
+        ProcessResult r0 = target.runData(data)
+        string kind0 = classifyResult(r0.success, r0.exitCode, r0.stderr, r0.durationMs, self.timeoutMs)
+        if kind0 == "ok" then
+            return copyBytes(data)
+        end
+        array<int> best = copyBytes(data)
+        int execsUsed = 1
+        bool progress = true
+        // 多轮：块级删除（块大小减半）+ 字节级删除
+        while progress and execsUsed < maxExecs do
+            progress = false
+            // 块级删除
+            int n = best.length
+            if n > 1 then
+                int blockSize = n / 2
+                if blockSize < 1 then
+                    blockSize = 1
+                end
+                int pos = 0
+                while pos < best.length and execsUsed < maxExecs do
+                    if best.length <= 1 then
+                        break
+                    end
+                    int bl = blockSize
+                    if pos + bl > best.length then
+                        bl = best.length - pos
+                    end
+                    array<int> candidate = removeRange(best, pos, bl)
+                    if candidate.length == 0 then
+                        pos += 1
+                        continue
+                    end
+                    ProcessResult r = target.runData(candidate)
+                    execsUsed += 1
+                    string k = classifyResult(r.success, r.exitCode, r.stderr, r.durationMs, self.timeoutMs)
+                    if k != "ok" then
+                        best = candidate
+                        progress = true
+                        // 不前进 pos，尝试同位置继续删除
+                    else
+                        pos += bl
+                    end
+                end
+            end
+            // 字节级删除
+            if execsUsed < maxExecs then
+                int bp = 0
+                while bp < best.length and execsUsed < maxExecs do
+                    if best.length <= 1 then
+                        break
+                    end
+                    array<int> candidate2 = removeRange(best, bp, 1)
+                    ProcessResult r2 = target.runData(candidate2)
+                    execsUsed += 1
+                    string k2 = classifyResult(r2.success, r2.exitCode, r2.stderr, r2.durationMs, self.timeoutMs)
+                    if k2 != "ok" then
+                        best = candidate2
+                        progress = true
+                    else
+                        bp += 1
+                    end
+                end
+            end
+        end
+        return best
+    end
+
+    // 打印崩溃列表
+    func printCrashes()
+        if self.crashes.length == 0 then
+            return
+        end
+        println("")
+        println(C_YELLOW + "Crashes:" + C_RESET)
+        int i = 0
+        while i < self.crashes.length do
+            CrashRec c = self.crashes[i]
+            string preview = printableBytes(c.data, 48)
+            println("  [" + string(i + 1) + "] " + c.crashType + " (" + string(c.data.length) + "B) " + preview)
+            i += 1
+        end
+    end
+end
+
+// ============================================================================
+// Target - 目标抽象（内置 json/regex + 自定义命令）
+// ============================================================================
+
+string JSON_HARNESS_SRC = """
+// xfuzz auto-generated: JSON fuzz harness (no try/catch)
+func main(...) as int
+    string p = string(arg[1])
+    string s = file.readText(p)
+    var v = json.parse(s)
+    println(string.len(json.stringify(v)))
+    return 0
+end
+"""
+
+string REGEX_HARNESS_SRC = """
+// xfuzz auto-generated: regex fuzz harness (no try/catch)
+func main(...) as int
+    string p = string(arg[1])
+    string s = file.readText(p)
+    bool m = regex.isMatch("the quick brown fox jumps over 13 lazy dogs abcXYZ 0x7f", s)
+    println(m)
+    return 0
+end
+"""
+
+class Target
+    string name
+    string xlPath
+    string harnessPath
+    string cmdTemplate     // 自定义命令模板（%s 占位）
+    int timeoutMs
+    string workDir
+    int seq
+
+    create(string name, string xlPath, int timeoutMs, string workDir)
+        self.name = name
+        self.xlPath = xlPath
+        self.timeoutMs = timeoutMs
+        self.workDir = workDir
+        self.harnessPath = ""
+        self.cmdTemplate = ""
+        self.seq = 0
+    end
+
+    func isBuiltIn() as bool
+        return self.name == "json" or self.name == "regex"
+    end
+
+    func setup()
+        if not dir.exists(self.workDir) then
+            dir.createAll(self.workDir)
+        end
+        if self.name == "json" then
+            self.harnessPath = path.join(self.workDir, "xfuzz_json_harness.xl")
+            file.writeText(self.harnessPath, JSON_HARNESS_SRC)
+        elseif self.name == "regex" then
+            self.harnessPath = path.join(self.workDir, "xfuzz_regex_harness.xl")
+            file.writeText(self.harnessPath, REGEX_HARNESS_SRC)
+        else
+            // 自定义：name 即命令模板
+            self.cmdTemplate = self.name
+        end
+    end
+
+    func buildCommand(string inputFile) as string
+        if self.name == "json" or self.name == "regex" then
+            return self.xlPath + " run " + self.harnessPath + " " + inputFile
+        end
+        return string.replace(self.cmdTemplate, "%s", inputFile)
+    end
+
+    // 写入输入数据到临时文件，执行目标，返回 ProcessResult
+    func runData(array<int> data) as ProcessResult
+        self.seq += 1
+        int slot = self.seq % 8
+        string inputFile = path.join(self.workDir, "in_" + string(slot) + ".bin")
+        writeFileBytes(inputFile, data)
+        string cmd = self.buildCommand(inputFile)
+        ProcessResult r = process.run(cmd, self.timeoutMs)
+        return r
+    end
+
+    // 健全性检查：用一个已知合法输入验证目标可运行
+    func sanityCheck() as bool
+        array<int> okInput = []
+        if self.name == "json" then
+            okInput = bytesFromString("{\"k\":1}")
+        elseif self.name == "regex" then
+            okInput = bytesFromString("abc")
+        else
+            okInput = bytesFromString("hello")
+        end
+        ProcessResult r = self.runData(okInput)
+        return r.success and r.exitCode == 0
+    end
+end
+
+// ============================================================================
+// Stats - 统计
+// ============================================================================
+
+class Stats
+    int totalRuns
+    int okRuns
+    int crashRuns
+    int timeoutRuns
+    int startTime
+    int lastPrintTime
+    float totalDurationMs
+
+    create()
+        self.totalRuns = 0
+        self.okRuns = 0
+        self.crashRuns = 0
+        self.timeoutRuns = 0
+        self.totalDurationMs = 0.0
+        self.startTime = time.toUnix(time.now())
+        self.lastPrintTime = self.startTime
+    end
+
+    func record(string kind, float durationMs)
+        self.totalRuns += 1
+        self.totalDurationMs += durationMs
+        if kind == "ok" then
+            self.okRuns += 1
+        elseif kind == "timeout" then
+            self.timeoutRuns += 1
+        else
+            self.crashRuns += 1
+        end
+    end
+
+    func elapsedSec() as float
+        return float(time.toUnix(time.now()) - self.startTime)
+    end
+
+    func speed() as float
+        float e = self.elapsedSec()
+        if e < 0.001 then
+            return 0.0
+        end
+        return float(self.totalRuns) / e
+    end
+
+    func avgDuration() as float
+        if self.totalRuns == 0 then
+            return 0.0
+        end
+        return self.totalDurationMs / float(self.totalRuns)
+    end
+
+    func printStatus(int paths, int corpusSize, int crashCount, int budgetSec)
+        int now = time.toUnix(time.now())
+        if now - self.lastPrintTime < 3 then
+            return
+        end
+        self.lastPrintTime = now
+        float e = self.elapsedSec()
+        float spd = self.speed()
+        float avg = self.avgDuration()
+        string budget = string.formatFloat(e, ".0") + "s"
+        if budgetSec > 0 then
+            budget = budget + "/" + string(budgetSec) + "s"
+        end
+        println(C_CYAN + "[xfuzz]" + C_RESET +
+                " execs: " + string.formatInt(self.totalRuns, ",") +
+                " | paths: " + string(paths) +
+                " | corpus: " + string(corpusSize) +
+                " | crashes: " + C_RED + string(crashCount) + C_RESET +
+                " | " + string.formatFloat(spd, ".1") + " exec/s" +
+                " | " + string.formatFloat(avg, ".1") + " ms/run" +
+                " | " + budget)
+    end
+
+    func printSummary(int paths, int corpusSize, int crashCount)
+        float e = self.elapsedSec()
+        float spd = self.speed()
+        float avg = self.avgDuration()
+        println("")
+        println(C_BOLD + "=== xfuzz summary ===" + C_RESET)
+        println("  executions:    " + string.formatInt(self.totalRuns, ","))
+        println("  unique paths:  " + string.formatInt(paths, ","))
+        println("  crashes found: " + string.formatInt(crashCount, ",") +
+                " (" + string(self.timeoutRuns) + " timeout, " +
+                string(self.crashRuns) + " other)")
+        println("  corpus size:   " + string.formatInt(corpusSize, ",") + " seeds")
+        println("  speed:         " + string.formatFloat(spd, ".1") + " exec/s")
+        println("  avg duration:  " + string.formatFloat(avg, ".1") + " ms/run")
+        println("  elapsed:       " + string.formatFloat(e, ".1") + "s")
+    end
+end
+
+// ============================================================================
+// Fuzzer - 模糊测试主循环
+// ============================================================================
+
+class Fuzzer
+    MutationEngine engine
+    Dictionary dict
+    CoverageTracker coverage
+    SeedCorpus corpus
+    CrashAnalyzer analyzer
+    Target target
+    Stats stats
+    string workDir
+    int budgetSec
+
+    create(string targetName, string seedsDir, int minutes, string scriptPath)
+        g_xl = findXl()
+        g_scriptPath = scriptPath
+        self.workDir = path.join(path.temp(), "xfuzz_work")
+        if not dir.exists(self.workDir) then
+            dir.createAll(self.workDir)
+        end
+        self.target = Target(targetName, g_xl, 5000, self.workDir)
+        self.target.setup()
+        self.coverage = CoverageTracker()
+        self.stats = Stats()
+        self.budgetSec = minutes * 60
+        // 字典
+        self.dict = Dictionary()
+        self.dict.buildForTarget(targetName)
+        string dictPath = path.join(seedsDir, "xfuzz.dict")
+        if file.exists(dictPath) then
+            self.dict.load(dictPath)
+        end
+        // 变异引擎
+        self.engine = MutationEngine(1, 4096)
+        self.engine.setDictionary(self.dict.getTokens())
+        // 种子语料库
+        self.corpus = SeedCorpus(1024, 65536)
+        self.corpus.loadDir(seedsDir)
+        if self.corpus.size() == 0 then
+            if targetName == "regex" then
+                self.corpus.add(bytesFromString("a"))
+                self.corpus.add(bytesFromString("(a)"))
+                self.corpus.add(bytesFromString("[a-z]+"))
+            else
+                self.corpus.add(bytesFromString("{}"))
+                self.corpus.add(bytesFromString("[]"))
+                self.corpus.add(bytesFromString("null"))
+            end
+        end
+        // 崩溃分析器
+        string crashDir = path.join(self.workDir, "crashes")
+        self.analyzer = CrashAnalyzer(crashDir, self.target.timeoutMs)
+    end
+
+    func runLoop() as int
+        // 健全性检查
+        if self.target.isBuiltIn() then
+            if string.len(g_xl) == 0 then
+                println(C_RED + "xfuzz: xl.exe not found; cannot run built-in target '" + self.target.name + "'" + C_RESET)
+                println("hint: run from the release directory, or set XL_PATH")
+                return 1
+            end
+        end
+        println(C_BOLD + "xfuzz starting" + C_RESET)
+        println("  target:  " + self.target.name)
+        println("  engine:  " + string(self.corpus.size()) + " seed(s), " + string(self.dict.count()) + " dict token(s)")
+        println("  budget:  " + string(self.budgetSec) + "s")
+        println("  xl:      " + g_xl)
+        println("")
+        if not self.target.sanityCheck() then
+            println(C_YELLOW + "warning: target sanity check failed; results may be unreliable" + C_RESET)
+            println("  (the target did not exit 0 on a known-good input)");
+        end
+
+        int endTime = time.toUnix(time.now()) + self.budgetSec
+        while time.toUnix(time.now()) < endTime do
+            self.fuzzOne()
+            self.stats.printStatus(self.coverage.pathCount(), self.corpus.size(),
+                                   self.analyzer.crashCount(), self.budgetSec)
+        end
+
+        self.stats.printSummary(self.coverage.pathCount(), self.corpus.size(),
+                                self.analyzer.crashCount())
+        self.analyzer.printCrashes()
+        if self.analyzer.crashCount() > 0 then
+            println("")
+            println("  crashes saved to: " + path.join(self.workDir, "crashes"))
+        end
+        return 0
+    end
+
+    func fuzzOne()
+        int idx = self.corpus.pickIndex()
+        if idx < 0 then
+            return
+        end
+        array<int> base = self.corpus.getData(idx)
+        // 5% 概率交叉
+        if random.range(0, 19) == 0 and self.corpus.size() > 1 then
+            int idx2 = self.corpus.pickIndex()
+            if idx2 >= 0 and idx2 != idx then
+                array<int> other = self.corpus.getData(idx2)
+                base = self.engine.crossOver(base, other)
+            end
+        end
+        array<int> mutated = self.engine.havoc(base)
+        self.corpus.markFuzzed(idx)
+        // 运行目标
+        ProcessResult r = self.target.runData(mutated)
+        string kind = classifyResult(r.success, r.exitCode, r.stderr, r.durationMs, self.target.timeoutMs)
+        self.stats.record(kind, r.durationMs)
+        // 覆盖率
+        string signal = self.coverage.makeSignal(r.exitCode, r.stdout)
+        bool isNew = self.coverage.observe(signal)
+        if isNew then
+            self.corpus.addFavored(mutated)
+            self.corpus.boostByIndex(idx)
+        end
+        // 崩溃分析
+        if kind != "ok" then
+            bool newCrash = self.analyzer.consider(mutated, r.success, r.exitCode, r.stdout, r.stderr, r.durationMs)
+            if newCrash then
+                string preview = printableBytes(mutated, 40)
+                println(C_RED + "[CRASH]" + C_RESET + " " + kind + " (" +
+                        string(mutated.length) + "B) " + preview)
+            end
+        end
+    end
+end
+
+// ============================================================================
+// CLI: cmdRun
+// ============================================================================
+
+func cmdRun(string targetName, string seedsDir, int minutes) as int
+    if minutes <= 0 then
+        minutes = 1
+    end
+    if not dir.exists(seedsDir) then
+        println(C_RED + "xfuzz: seeds_dir not found: " + seedsDir + C_RESET)
+        return 1
+    end
+    Fuzzer f = Fuzzer(targetName, seedsDir, minutes, g_scriptPath)
+    return f.runLoop()
+end
+
+// ============================================================================
+// CLI: cmdMinimize
+// ============================================================================
+
+func cmdMinimize(string crashFile, string targetName) as int
+    if not file.exists(crashFile) then
+        println(C_RED + "xfuzz: crash_file not found: " + crashFile + C_RESET)
+        return 1
+    end
+    g_xl = findXl()
+    string workDir = path.join(path.temp(), "xfuzz_min")
+    if not dir.exists(workDir) then
+        dir.createAll(workDir)
+    end
+    Target target = Target(targetName, g_xl, 5000, workDir)
+    target.setup()
+    if target.isBuiltIn() and string.len(g_xl) == 0 then
+        println(C_RED + "xfuzz: xl.exe not found; cannot run built-in target" + C_RESET)
+        return 1
+    end
+    array<int> data = readFileBytes(crashFile)
+    println(C_BOLD + "xfuzz minimize" + C_RESET)
+    println("  input:  " + crashFile)
+    println("  target: " + targetName)
+    println("  size:   " + string(data.length) + " bytes")
+    println("")
+    CrashAnalyzer analyzer = CrashAnalyzer(workDir, target.timeoutMs)
+    // 最多执行 500 次
+    array<int> mini = analyzer.minimize(data, target, 500)
+    string outPath = crashFile + ".min"
+    writeFileBytes(outPath, mini)
+    float ratio = 100.0
+    if data.length > 0 then
+        ratio = float(mini.length) / float(data.length) * 100.0
+    end
+    println("")
+    println("  minimized: " + string(mini.length) + " bytes (" +
+            string.formatFloat(ratio, ".1") + "% of original)")
+    println("  saved to:  " + outPath)
+    println("  preview:   " + printableBytes(mini, 64))
+    return 0
+end
+
+// ============================================================================
+// CLI: cmdTest - 自检
+// ============================================================================
+
+func check(bool cond, string label)
+    if cond then
+        g_pass += 1
+    else
+        g_fail += 1
+        println("  " + C_RED + "FAIL" + C_RESET + ": " + label)
+    end
+end
+
+func testByteHelpers()
+    println("[byte helpers]")
+    // string -> bytes -> string round trip
+    string s1 = "Hello, World! 123"
+    array<int> bs = bytesFromString(s1)
+    string s2 = stringFromBytes(bs)
+    check(s1 == s2, "string round trip ('" + s1 + "' -> '" + s2 + "')")
+    // length
+    check(bs.length == string.len(s1), "bytes length matches string length")
+    // known bytes
+    check(bs[0] == 72, "first byte 'H' = 72")
+    check(bs[7] == 87, "byte[7] 'W' = 87")
+    // hex
+    array<int> hb = array<int>[72, 101, 108, 108, 111]
+    string hex = bytesToHex(hb)
+    check(hex == "48656c6c6f", "hex encoding: " + hex)
+    // empty
+    check(bytesFromString("").length == 0, "empty string -> empty bytes")
+    check(stringFromBytes([]) == "", "empty bytes -> empty string")
+    check(bytesToHex([]) == "", "empty bytes hex = ''")
+    // printable
+    array<int> pb = array<int>[72, 105, 0, 255, 10]
+    string pr = printableBytes(pb, 100)
+    check(string.contains(pr, "Hi"), "printable shows 'Hi': " + pr)
+    check(string.contains(pr, "."), "printable uses '.' for non-printable")
+    // copyBytes / sliceBytes / removeRange / insertAt
+    array<int> orig = array<int>[1, 2, 3, 4, 5]
+    array<int> cp = copyBytes(orig)
+    check(bytesEqual(orig, cp), "copyBytes equal")
+    cp[0] = 99
+    check(orig[0] == 1, "copyBytes is deep (modifying copy doesn't affect orig)")
+    array<int> sl = sliceBytes(orig, 1, 3)
+    check(sl.length == 3 and sl[0] == 2 and sl[2] == 4, "sliceBytes [1,1+3)")
+    array<int> rm = removeRange(orig, 1, 2)
+    check(rm.length == 3 and rm[0] == 1 and rm[1] == 4, "removeRange [1,1+2)")
+    array<int> seg = array<int>[99, 98]
+    array<int> ins = insertAt(orig, 2, seg)
+    check(ins.length == 7 and ins[2] == 99 and ins[3] == 98 and ins[4] == 3, "insertAt pos=2")
+    // clampLen
+    array<int> big = []
+    int i = 0
+    while i < 100 do
+        big.push(i)
+        i += 1
+    end
+    array<int> cl = clampLen(big, 10)
+    check(cl.length == 10, "clampLen to 10")
+    // bytesEqual
+    check(bytesEqual(array<int>[1, 2, 3], array<int>[1, 2, 3]), "bytesEqual true")
+    check(not bytesEqual(array<int>[1, 2, 3], array<int>[1, 2, 4]), "bytesEqual false (diff)")
+    check(not bytesEqual(array<int>[1, 2], array<int>[1, 2, 3]), "bytesEqual false (len)")
+    // inputHash
+    string h1 = inputHash(array<int>[1, 2, 3])
+    string h2 = inputHash(array<int>[1, 2, 3])
+    string h3 = inputHash(array<int>[1, 2, 4])
+    check(h1 == h2, "inputHash deterministic")
+    check(h1 != h3, "inputHash differs for different input")
+    check(string.len(h1) == 16, "inputHash is 16 hex chars: " + h1)
+end
+
+func testMutators()
+    println("[mutation engine]")
+    MutationEngine eng = MutationEngine(1, 256)
+    array<int> seed = bytesFromString("Hello, Fuzzing World!")
+    int seedLen = seed.length
+
+    // havoc 大量循环：检查长度边界 + 字节范围
+    int i = 0
+    int havocFailLen = 0
+    int havocFailRange = 0
+    int havocSame = 0
+    while i < 500 do
+        array<int> m = eng.havoc(seed)
+        if m.length < 1 or m.length > 256 then
+            havocFailLen += 1
+        end
+        int j = 0
+        while j < m.length do
+            if m[j] < 0 or m[j] > 255 then
+                havocFailRange += 1
+            end
+            j += 1
+        end
+        if bytesEqual(m, seed) then
+            havocSame += 1
+        end
+        i += 1
+    end
+    check(havocFailLen == 0, "havoc: all outputs within [1, 256]")
+    check(havocFailRange == 0, "havoc: all bytes in [0, 255]")
+    check(havocSame < 500, "havoc: produces varied output (" + string(havocSame) + "/500 identical)")
+
+    // flipBit：长度不变，最多 1 字节差异
+    array<int> m1 = eng.flipBit(seed)
+    check(m1.length == seedLen, "flipBit preserves length")
+    int diffs = 0
+    int k = 0
+    while k < seedLen do
+        if m1[k] != seed[k] then
+            diffs += 1
+        end
+        k += 1
+    end
+    check(diffs >= 1, "flipBit changes at least 1 byte")
+    check(diffs <= 1, "flipBit changes at most 1 byte (got " + string(diffs) + ")")
+
+    // insertByte：+1
+    array<int> m2 = eng.insertByte(seed)
+    check(m2.length == seedLen + 1, "insertByte grows by 1")
+
+    // deleteByte：-1
+    array<int> m3 = eng.deleteByte(seed)
+    check(m3.length == seedLen - 1, "deleteByte shrinks by 1")
+
+    // replaceByte：长度不变
+    array<int> m4 = eng.replaceByte(seed)
+    check(m4.length == seedLen, "replaceByte preserves length")
+
+    // arithByte：长度不变
+    array<int> m5 = eng.arithByte(seed)
+    check(m5.length == seedLen, "arithByte preserves length")
+
+    // interestingByte：长度不变
+    array<int> m6 = eng.interestingByte(seed)
+    check(m6.length == seedLen, "interestingByte preserves length")
+
+    // blockSwap：长度不变
+    array<int> m7 = eng.blockSwap(seed)
+    check(m7.length == seedLen, "blockSwap preserves length")
+
+    // blockDelete：变短
+    array<int> m8 = eng.blockDelete(seed)
+    check(m8.length < seedLen, "blockDelete shrinks")
+
+    // 空输入处理
+    array<int> empty = []
+    array<int> me1 = eng.flipBit(empty)
+    check(me1.length >= 1, "flipBit on empty produces non-empty")
+    array<int> me2 = eng.replaceByte(empty)
+    check(me2.length >= 1, "replaceByte on empty produces non-empty")
+    array<int> me3 = eng.insertByte(empty)
+    check(me3.length == 1, "insertByte on empty -> 1 byte")
+
+    // minLen 约束：deleteByte 不低于 minLen
+    MutationEngine eng2 = MutationEngine(10, 256)
+    array<int> short = bytesFromString("abc")
+    array<int> m9 = eng2.deleteByte(short)
+    check(m9.length >= 3, "deleteByte respects minLen (length " + string(m9.length) + ")")
+    array<int> m10 = eng2.normalize(short)
+    check(m10.length >= 10, "normalize pads to minLen")
+end
+
+func testDictionary()
+    println("[dictionary]")
+    Dictionary d = Dictionary()
+    d.buildForTarget("json")
+    check(d.count() > 0, "json dict has tokens (" + string(d.count()) + ")")
+    bool hasBrace = false
+    int i = 0
+    while i < d.count() do
+        if d.getTokens()[i] == "{" then
+            hasBrace = true
+        end
+        i += 1
+    end
+    check(hasBrace, "json dict contains '{'")
+
+    d.buildForTarget("regex")
+    check(d.count() > 0, "regex dict has tokens (" + string(d.count()) + ")")
+
+    d.buildForTarget("custom")
+    check(d.count() > 0, "generic dict has tokens (" + string(d.count()) + ")")
+
+    // 变异引擎使用字典
+    MutationEngine eng = MutationEngine(1, 1024)
+    eng.setDictionary(d.getTokens())
+    array<int> seed = bytesFromString("test")
+    array<int> injected = eng.injectDict(seed)
+    check(injected.length > seed.length, "injectDict grows input (insertion)")
+    array<int> overwritten = eng.overwriteDict(seed)
+    check(overwritten.length == seed.length, "overwriteDict preserves length")
+end
+
+func testCoverage()
+    println("[coverage tracker]")
+    CoverageTracker cov = CoverageTracker()
+    check(cov.pathCount() == 0, "initial path count = 0")
+    bool n1 = cov.observe("0|hello")
+    check(n1, "first observe is new path")
+    check(cov.pathCount() == 1, "path count = 1")
+    bool n2 = cov.observe("0|hello")
+    check(not n2, "same signal not new")
+    check(cov.pathCount() == 1, "path count still 1")
+    bool n3 = cov.observe("1|world")
+    check(n3, "different signal is new")
+    check(cov.pathCount() == 2, "path count = 2")
+    bool n4 = cov.observe("0|hello")
+    check(not n4, "repeat of first not new")
+    check(cov.pathCount() == 2, "path count still 2")
+    // makeSignal
+    string sig = cov.makeSignal(0, "hello world")
+    check(string.contains(sig, "0|"), "makeSignal includes exit code")
+end
+
+func testStats()
+    println("[stats]")
+    Stats st = Stats()
+    st.record("ok", 5.0)
+    st.record("ok", 3.0)
+    st.record("crash-exit-1", 10.0)
+    st.record("timeout", 4900.0)
+    check(st.totalRuns == 4, "total runs = 4")
+    check(st.okRuns == 2, "ok runs = 2")
+    check(st.crashRuns == 1, "crash runs = 1")
+    check(st.timeoutRuns == 1, "timeout runs = 1")
+    check(st.elapsedSec() >= 0.0, "elapsed >= 0")
+    check(st.avgDuration() > 0.0, "avg duration > 0")
+end
+
+func testCorpus()
+    println("[seed corpus]")
+    SeedCorpus c = SeedCorpus(100, 4096)
+    check(c.size() == 0, "initial corpus empty")
+    c.add(bytesFromString("seed1"))
+    c.add(bytesFromString("seed2"))
+    c.add(bytesFromString("seed3"))
+    check(c.size() == 3, "corpus has 3 seeds")
+    int idx = c.pickIndex()
+    check(idx >= 0 and idx < 3, "pickIndex returns valid index")
+    array<int> d = c.getData(idx)
+    check(d.length > 0, "getData returns non-empty")
+    c.boostByIndex(idx)
+    check(c.get(idx).weight > 100, "boosted weight > 100")
+    c.markFuzzed(idx)
+    check(c.get(idx).timesFuzzed == 1, "markFuzzed increments")
+    // 大输入截断
+    array<int> big = []
+    int i = 0
+    while i < 10000 do
+        big.push(65)
+        i += 1
+    end
+    c.add(big)
+    int last = c.size() - 1
+    check(c.getData(last).length <= 4096, "large seed truncated to maxSeedLen")
+    // totalBytes
+    check(c.totalBytes() > 0, "totalBytes > 0")
+end
+
+func testClassifier()
+    println("[crash classifier]")
+    // ok
+    check(classifyResult(true, 0, "", 5.0, 5000) == "ok", "exit 0 + success = ok")
+    // stack-overflow
+    check(classifyResult(false, 1, "RuntimeError: stack overflow at line 5", 5.0, 5000) == "stack-overflow",
+          "stderr 'stack overflow' -> stack-overflow")
+    // assert
+    check(classifyResult(false, 1, "assertion failed: x > 0", 5.0, 5000) == "assert",
+          "stderr 'assertion' -> assert")
+    // timeout
+    check(classifyResult(false, 1, "", 4900.0, 5000) == "timeout",
+          "durationMs 4900/5000 -> timeout")
+    check(classifyResult(true, 0, "", 4800.0, 5000) == "timeout",
+          "durationMs 4800/5000 even with exit 0 -> timeout")
+    // segfault (exit 139)
+    check(classifyResult(false, 139, "Segmentation fault", 5.0, 5000) == "segfault",
+          "exit 139 -> segfault")
+    // abort (exit 134)
+    check(classifyResult(false, 134, "Aborted", 5.0, 5000) == "abort",
+          "exit 134 -> abort")
+    // generic crash
+    string k = classifyResult(false, 42, "some error", 5.0, 5000)
+    check(string.startsWith(k, "crash-exit-"), "exit 42 -> crash-exit-42: " + k)
+    // oom
+    check(classifyResult(false, 1, "out of memory", 5.0, 5000) == "oom",
+          "stderr 'out of memory' -> oom")
+end
+
+func cmdTest() as int
+    g_pass = 0
+    g_fail = 0
+    // 初始化颜色
+    C_RESET = "\x1b[0m"
+    C_BOLD = "\x1b[1m"
+    C_GREEN = "\x1b[32m"
+    C_RED = "\x1b[31m"
+    C_YELLOW = "\x1b[33m"
+    C_CYAN = "\x1b[36m"
+    C_GRAY = "\x1b[90m"
+
+    println(C_BOLD + "=== xfuzz self-test ===" + C_RESET)
+    println("")
+    testByteHelpers()
+    testMutators()
+    testDictionary()
+    testCoverage()
+    testStats()
+    testCorpus()
+    testClassifier()
+    println("")
+    println(C_GREEN + "Passed: " + string(g_pass) + C_RESET)
+    if g_fail > 0 then
+        println(C_RED + "Failed: " + string(g_fail) + C_RESET)
+        return 1
+    end
+    println(C_GREEN + "All tests passed." + C_RESET)
+    return 0
+end
+
+// ============================================================================
+// printUsage
+// ============================================================================
+
+func printUsage()
+    println("xfuzz - xlang 模糊测试框架 (coverage-guided black-box fuzzer)")
+    println("")
+    println("用法:")
+    println("  xfuzz run <target> <seeds_dir> [minutes]    运行模糊测试")
+    println("  xfuzz minimize <crash_file> <target>         最小化崩溃输入")
+    println("  xfuzz test                                   自检")
+    println("  xfuzz -h | --help                            显示帮助")
+    println("")
+    println("target:")
+    println("  json        内置 JSON 解析器 fuzz (stdlib json.parse)")
+    println("  regex       内置 regex 解析器 fuzz (stdlib regex.isMatch)")
+    println("  <cmd>       自定义目标命令，%s 为输入文件占位符")
+    println("")
+    println("示例:")
+    println("  xfuzz run json seeds/ 5")
+    println("  xfuzz run regex seeds/ 3")
+    println("  xfuzz run \"myprog.exe --input %s\" seeds/ 10")
+    println("  xfuzz minimize crashes/crash_timeout_xxx.bin json")
+    println("  xfuzz test")
+    println("")
+    println("seeds_dir:")
+    println("  包含初始种子的目录（任意二进制/文本文件）。可选放 xfuzz.dict")
+    println("  文件（每行一个字典 token）以增强字典注入变异。")
+end
+
+// ============================================================================
+// main
+// ============================================================================
+
+func main(...) as int
+    // 初始化颜色（非 TTY 时也可安全输出）
+    C_RESET = "\x1b[0m"
+    C_BOLD = "\x1b[1m"
+    C_GREEN = "\x1b[32m"
+    C_RED = "\x1b[31m"
+    C_YELLOW = "\x1b[33m"
+    C_CYAN = "\x1b[36m"
+    C_GRAY = "\x1b[90m"
+
+    g_scriptPath = ""
+    if arg.length > 0 then
+        g_scriptPath = string(arg[0])
+    end
+
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string sub = string(arg[1])
+
+    if sub == "-h" or sub == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if sub == "test" then
+        return cmdTest()
+    end
+
+    if sub == "run" then
+        if arg.length < 4 then
+            println("usage: xfuzz run <target> <seeds_dir> [minutes]")
+            return 1
+        end
+        string target = string(arg[2])
+        string seeds = string(arg[3])
+        int minutes = 1
+        if arg.length >= 5 then
+            minutes = int(string(arg[4]))
+            if minutes <= 0 then
+                minutes = 1
+            end
+        end
+        return cmdRun(target, seeds, minutes)
+    end
+
+    if sub == "minimize" then
+        if arg.length < 4 then
+            println("usage: xfuzz minimize <crash_file> <target>")
+            return 1
+        end
+        return cmdMinimize(string(arg[2]), string(arg[3]))
+    end
+
+    println(C_RED + "unknown command: " + sub + C_RESET)
+    println("")
+    printUsage()
+    return 1
+end

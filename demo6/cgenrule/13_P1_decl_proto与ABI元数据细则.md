@@ -127,7 +127,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `type(a)` / `int` 作为 type 字面量 |
-| 生成规则描述 | 普通类型 ID 使用 `type:` 前缀和类型节点 hash。class/custom 节点会转成普通类型节点后 hash；func 类型直接使用函数签名 ID，使 `func(...) (...)` 的 type id 与 callable 签名保持一致。 |
+| 生成规则描述 | 普通类型 ID 使用 `type:` 前缀和类型节点 hash。class/native-backed class 节点会转成普通类型节点后 hash；func 类型直接使用函数签名 ID，使 `func(...) (...)` 的 type id 与 callable 签名保持一致。 |
 | 生成器文件名和行号 | `xl6_cgen_abi.c:14`、`xl6_cgen_abi.c:283`、`xl6_cgen_abi.c:309`、`xl6_cgen_abi.c:314` |
 | 对应生成的 C 代码 | `0x0123456789ABCDEFULL` |
 | 中间形态伪代码 | `typeId(typeNode) = hash("type:" + canonicalTypeText)` |
@@ -163,19 +163,19 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | 类型进入 xvalue、typed container、runtime metadata |
-| 生成规则描述 | 生成某个类型的 `xrt_type_desc*` 引用时，基础类型映射到 XRT 内置 `xrtType*()`；runtime 容器类型引用生成的 runtime type desc；class/union/custom 引用各自生成的 type desc 函数；未知类型输出 `0`。 |
+| 生成规则描述 | 生成某个类型的 `xrt_type_desc*` 引用时，基础类型映射到 XRT 内置 `xrtType*()`；runtime 容器类型引用生成的 runtime type desc；class/union/native-backed class 引用各自生成的 type desc 函数；未知类型输出 `0`。 |
 | 生成器文件名和行号 | `xl6_cgen_abi.c:365`、`xl6_cgen_args.c:261`、`xl6_cgen_value_object.c:59`、`xl6_cgen_value_index.c:389` |
 | 对应生成的 C 代码 | `xrtTypeInt()` / `xl6_type_desc_XL_Class_Person()` / `xl6_runtime_type_desc_ABCD()` |
 | 中间形态伪代码 | `typeDescRef(type) -> builtin/ref/generated/0` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要知道每种类型的元数据入口函数。 |
-| 额外依赖的封装代码 | class/union/custom box runtime 或 runtime container type desc。 |
+| 额外依赖的封装代码 | class/union/native-backed class box runtime 或 runtime container type desc。 |
 
 ## CGEN-ABI-015 runtime type desc 依赖原型
 
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `array<Box::<int>>` |
-| 生成规则描述 | 运行时容器 type desc 生成前，会递归输出其类型参数所依赖的 class/union/custom type desc 原型。容器嵌套时继续递归，确保后续静态初始化代码能引用依赖函数。 |
+| 生成规则描述 | 运行时容器 type desc 生成前，会递归输出其类型参数所依赖的 class/union/native-backed class type desc 原型。容器嵌套时继续递归，确保后续静态初始化代码能引用依赖函数。 |
 | 生成器文件名和行号 | `xl6_cgen_abi.c:414`、`xl6_cgen_abi.c:427`、`xl6_cgen_abi.c:443` |
 | 对应生成的 C 代码 | `static const xrt_type_desc* xl6_type_desc_XL_Class_Box__int(void);` |
 | 中间形态伪代码 | `emit dependency prototypes for generic args before container desc` |
@@ -199,7 +199,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | 任意触发 runtime type desc 的代码 |
-| 生成规则描述 | 批量输出分三段：先输出依赖 type desc 原型，再输出当前 runtime type desc 原型，最后输出函数体。模块生成中该批量输出位于 xvalue runtime 之后、class/custom/union 声明之前。 |
+| 生成规则描述 | 批量输出分三段：先输出依赖 type desc 原型，再输出当前 runtime type desc 原型，最后输出函数体。模块生成中该批量输出位于 xvalue runtime 之后、class/native-backed class/union 声明之前。 |
 | 生成器文件名和行号 | `xl6_cgen_abi.c:498`、`xl6_cgen_module.c:94`、`xl6_cgen_module.c:98` |
 | 对应生成的 C 代码 | `dependency prototypes; runtime prototypes; runtime desc bodies;` |
 | 中间形态伪代码 | `emitDeps(); emitProtos(); emitBodies();` |
@@ -318,22 +318,22 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | custom 值进入 `var` 后释放 |
-| 生成规则描述 | custom handle box runtime 的 copy 只复制 `void*`。若 custom 声明了 destroy，则生成 drop hook：把 obj 看作 `void**`，非空时调用 destroy 并把 handle 清零；无 destroy 时 drop 槽位为 `0`。 |
+| xlang 写法 | native-backed class 值进入 `var` 后释放 |
+| 生成规则描述 | native-backed class handle box runtime 的 copy 只复制 `void*`。若 native-backed class 声明了 destroy，则生成 drop hook：把 obj 看作 `void**`，非空时调用 destroy 并把 handle 清零；无 destroy 时 drop 槽位为 `0`。 |
 | 生成器文件名和行号 | `xl6_cgen_decl_proto.c:563`、`xl6_cgen_decl_proto.c:577`、`xl6_cgen_decl_proto.c:589` |
 | 对应生成的 C 代码 | `if (handle != 0 && *handle != 0) { file_close(*handle); *handle = 0; }` |
-| 中间形态伪代码 | `drop(handleBox) -> custom.destroy(handle); handle = null` |
+| 中间形态伪代码 | `drop(handleBox) -> native-backed class.destroy(handle); handle = null` |
 | 实现同等功能手写的 C 代码 | 手写 C 要显式区分 borrowed handle 和 owned handle 的释放策略。 |
-| 额外依赖的封装代码 | custom destroy C 原型。 |
+| 额外依赖的封装代码 | native-backed class destroy C 原型。 |
 
 ## CGEN-ABI-028 handle compare/hash/box/unbox/type desc
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | custom 值作为 `var`、set/dict key 或运行时类型值 |
-| 生成规则描述 | handle compare 按 `uintptr_t` 比较 handle 地址；hash 对 handle 指针值本身 hash；box 使用 `xvoCreateHandle`，标记 borrowed 和 nullable；unbox 校验 type desc 后把 `xvoGetHandleData` 写回 custom 的 `.handle`。type desc kind 为 `XL6_XRT_TYPE_KIND_HANDLE`，大小和对齐都是 `sizeof(void*)`。 |
+| xlang 写法 | native-backed class 值作为 `var`、set/dict key 或运行时类型值 |
+| 生成规则描述 | handle compare 按 `uintptr_t` 比较 handle 地址；hash 对 handle 指针值本身 hash；box 使用 `xvoCreateHandle`，标记 borrowed 和 nullable；unbox 校验 type desc 后把 `xvoGetHandleData` 写回 native-backed class 的 `.handle`。type desc kind 为 `XL6_XRT_TYPE_KIND_HANDLE`，大小和对齐都是 `sizeof(void*)`。 |
 | 生成器文件名和行号 | `xl6_cgen_decl_proto.c:602`、`xl6_cgen_decl_proto.c:616`、`xl6_cgen_decl_proto.c:623`、`xl6_cgen_decl_proto.c:638`、`xl6_cgen_decl_proto.c:667` |
 | 对应生成的 C 代码 | `xvoCreateHandle(type, value.handle, XL6_XRT_HANDLE_FLAG_BORROWED | XL6_XRT_HANDLE_FLAG_NULLABLE);` |
-| 中间形态伪代码 | `custom <-> xvalue handle with type desc check` |
+| 中间形态伪代码 | `native-backed class <-> xvalue handle with type desc check` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要提供 handle 的 compare/hash/box/unbox/type_desc 全套 hooks。 |
 | 额外依赖的封装代码 | handle box runtime。 |

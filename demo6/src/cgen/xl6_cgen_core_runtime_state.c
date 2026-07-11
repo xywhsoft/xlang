@@ -27,6 +27,22 @@ static const XL6_AstNode* xl6CgenTypeNodeGenericArgs(const XL6_AstNode* typeNode
     return NULL;
 }
 
+static const XL6_AstNode* xl6CgenRefTargetType(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* args;
+
+    typeNode = xl6CgenSubstituteGenericType(ctx, typeNode);
+    typeNode = xl6CgenResolveAliasType(ctx, typeNode);
+    if ( typeNode == NULL || !xl6CTextEquals(typeNode->text, "ref") ) {
+        return NULL;
+    }
+    args = xl6CgenTypeNodeGenericArgs(typeNode);
+    return args != NULL && args->childCount == 1 ?
+           xl6CgenResolveAliasType(ctx, args->children[0]) : NULL;
+}
+
 static int xl6CgenContainerGenericIsVar(XL6_CgenContext* ctx, const XL6_AstNode* concreteType)
 {
     const XL6_AstNode* args;
@@ -73,7 +89,8 @@ static int xl6CgenIsRuntimeContainerTypeDesc(XL6_CgenContext* ctx, const XL6_Ast
     args = xl6CgenTypeNodeGenericArgs(concreteType);
     return args != NULL && args->childCount > 0 &&
            !xl6CgenContainerGenericIsVar(ctx, concreteType) &&
-           (xl6CTextEquals(name, "array") ||
+           (xl6CTextEquals(name, "ref") ||
+            xl6CTextEquals(name, "array") ||
             xl6CTextEquals(name, "list") ||
             xl6CTextEquals(name, "set") ||
             xl6CTextEquals(name, "dict"));
@@ -398,7 +415,7 @@ static void xl6CgenFreeOwnedTypeNodes(XL6_CgenContext* ctx)
     ctx->ownedTypeNodeCapacity = 0;
 }
 
-static int xl6CgenCallIsNativeBackedCtor(XL6_CgenContext* ctx, const XL6_AstNode* expr, XL6_AstNode** outCustom);
+static int xl6CgenCallIsNativeBackedCtor(XL6_CgenContext* ctx, const XL6_AstNode* expr, XL6_AstNode** outNativeClass);
 
 static int xl6CgenCallableReturnsString(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
@@ -421,17 +438,17 @@ static const XL6_AstNode* xl6CgenResolveClassFunc(XL6_CgenContext* ctx, const XL
 static const XL6_AstNode* xl6CgenResolveStaticClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* call, const char* name, const XL6_AstNode** outOwnerClass);
 static XL6_AstNode* xl6CgenClassDeclFromTypeMemberReceiver(XL6_CgenContext* ctx, const XL6_AstNode* member);
 static const XL6_AstNode* xl6CgenResolveClassCreate(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* call);
-static const XL6_AstNode* xl6CgenResolveNativeClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* call, const char* name, int reportNoMatch);
-static const XL6_AstNode* xl6CgenResolveNativeExternFuncWithReport(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* call, const char* name, int reportNoMatch);
-static const XL6_AstNode* xl6CgenResolveNativeExternFunc(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* call, const char* name);
-static const XL6_AstNode* xl6CgenResolveNativeBackedCreate(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* call);
+static const XL6_AstNode* xl6CgenResolveNativeClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* nativeClassNode, const XL6_AstNode* call, const char* name, int reportNoMatch);
+static const XL6_AstNode* xl6CgenResolveNativeExternFuncWithReport(XL6_CgenContext* ctx, const XL6_AstNode* nativeClassNode, const XL6_AstNode* call, const char* name, int reportNoMatch);
+static const XL6_AstNode* xl6CgenResolveNativeExternFunc(XL6_CgenContext* ctx, const XL6_AstNode* nativeClassNode, const XL6_AstNode* call, const char* name);
+static const XL6_AstNode* xl6CgenResolveNativeBackedCreate(XL6_CgenContext* ctx, const XL6_AstNode* nativeClassNode, const XL6_AstNode* call);
 static int xl6CgenClassConstructorExpr(XL6_CgenContext* ctx, const XL6_AstNode* call);
 static XL6_AstNode* xl6CgenBaseClass(XL6_CgenContext* ctx, const XL6_AstNode* classNode);
 static XL6_AstNode* xl6CgenFindExternFunc(XL6_CgenContext* ctx, const char* name);
 static void xl6CgenFuncSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode);
 static void xl6CgenClassCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* memberNode);
 static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* varPath);
-static void xl6CgenModuleGlobalClassPublishShared(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* varPath);
+static void xl6CgenClassValuePublishShared(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* varPath);
 static void xl6CgenCollectGenericInstances(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenCollectRuntimeTypeDescs(XL6_CgenContext* ctx, const XL6_AstNode* root);
 static void xl6CgenTypeText(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, char* buffer, size_t capacity);
@@ -541,8 +558,10 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 static const XL6_AstNode* xl6CgenArgExpr(const XL6_AstNode* arg);
 static void xl6CgenCStringLiteral(XL6_Output* out, const char* text);
 static void xl6CgenArrayVarargExpr(XL6_CgenContext* ctx, const XL6_AstNode* args, int fixedCount);
+static void xl6CgenFixedTypeArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr);
+static void xl6CgenStringSourceExpr(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr);
 static void xl6CgenEmitAutoBaseCreateForValue(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* varPath, const XL6_AstNode* atNode);
-static void xl6CgenNativeBackedCtorValue(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* call);
+static void xl6CgenNativeBackedCtorValue(XL6_CgenContext* ctx, const XL6_AstNode* nativeClassNode, const XL6_AstNode* call);
 static void xl6CgenHashText(unsigned long long* hash, const char* text);
 static void xl6CgenHashTypeNode(unsigned long long* hash, const XL6_AstNode* typeNode);
 static int xl6CgenIsKnownTypeName(XL6_CgenContext* ctx, const char* name);

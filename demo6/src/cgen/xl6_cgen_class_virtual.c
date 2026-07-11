@@ -585,6 +585,21 @@ static int xl6CgenVirtualEmitReceiverObject(
     if ( receiver == NULL || fromClass == NULL || targetClass == NULL ) {
         return 0;
     }
+    {
+        XL6_AstNode* receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+        const XL6_AstNode* refTarget = xl6CgenRefTargetType(ctx, receiverType);
+
+        if ( refTarget != NULL ) {
+            char targetTypeName[512];
+            xl6CgenClassTypeRefName(targetTypeName, sizeof(targetTypeName), targetClass);
+            xl6OutputPrintf(ctx->out, "(*((%s*)xl6_ref_data(", targetTypeName);
+            xl6CgenExpr(ctx, receiver);
+            xl6OutputPrintf(ctx->out, ", \"\", %d, %d)))", receiver->line, receiver->column);
+            xl6AstFree(receiverType);
+            return 1;
+        }
+        xl6AstFree(receiverType);
+    }
     basePath[0] = '\0';
     if ( !xl6CgenClassBasePath(ctx, fromClass, targetClass, basePath, sizeof(basePath)) ) {
         return 0;
@@ -618,6 +633,21 @@ static int xl6CgenVirtualEmitReceiverPointer(
 
     if ( receiver == NULL || fromClass == NULL || targetClass == NULL ) {
         return 0;
+    }
+    {
+        XL6_AstNode* receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+        const XL6_AstNode* refTarget = xl6CgenRefTargetType(ctx, receiverType);
+
+        if ( refTarget != NULL ) {
+            char targetTypeName[512];
+            xl6CgenClassTypeRefName(targetTypeName, sizeof(targetTypeName), targetClass);
+            xl6OutputPrintf(ctx->out, "((%s*)xl6_ref_data(", targetTypeName);
+            xl6CgenExpr(ctx, receiver);
+            xl6OutputPrintf(ctx->out, ", \"\", %d, %d))", receiver->line, receiver->column);
+            xl6AstFree(receiverType);
+            return 1;
+        }
+        xl6AstFree(receiverType);
     }
     basePath[0] = '\0';
     if ( !xl6CgenClassBasePath(ctx, fromClass, targetClass, basePath, sizeof(basePath)) ) {

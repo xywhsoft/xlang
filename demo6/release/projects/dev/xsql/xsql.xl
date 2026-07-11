@@ -1,0 +1,1973 @@
+// xsql.xl - 一个用 xlang 编写的内存 SQL 数据库引擎
+//
+// 用法:
+//   xsql exec "<SQL 语句; SQL 语句; ...>"   执行一条或多条 SQL
+//   xsql script <file.sql>                  执行脚本文件（每条语句以 ; 分隔）
+//   xsql test                               运行内置自测
+//   xsql -h | --help                        显示帮助
+//
+// 本工具验证 xlang 的以下能力:
+//   * 手写词法分析器 tokenize(sql) -> array<string>
+//   * 递归下降语法分析器 parse(tokens) -> AST（var dict 承载节点）
+//   * 表达式求值 evalExpr（比较 / AND / OR / NOT / 算术 / 聚合）
+//   * 复杂执行器：扫描 + 过滤 + JOIN + GROUP BY + 聚合 + HAVING + ORDER BY + LIMIT
+//   * 全局函数 + 全局状态（gTables / gTox / gIx）组织大型程序
+//
+// 支持的 SQL 子集（关键字大小写不敏感）:
+//   CREATE TABLE name (col TYPE, ...)
+//   INSERT INTO name [(cols,...)] VALUES (..),(..)
+//   SELECT cols/aggs/* FROM name [[INNER|LEFT] JOIN t ON ..] [WHERE ..]
+//          [GROUP BY ..] [HAVING ..] [ORDER BY .. [ASC|DESC]] [LIMIT n]
+//   UPDATE name SET col=expr,... [WHERE ..]
+//   DELETE FROM name [WHERE ..]
+//   类型: INT / INTEGER / REAL / TEXT（其它类型名被接受但弱约束）
+//   聚合: COUNT(*) COUNT(expr) SUM AVG MIN MAX
+//
+// CE1 约定: 所有 var 到字符串的转换一律使用 string(var_expr)。
+
+
+// ============================================================================
+// 1. 全局状态
+// ============================================================================
+
+var gTables = {}      // 表名 -> {columns:[{name,type}], rows:[{col:val}]}
+var gTox = []         // 当前正在解析的 token 数组（array<string>）
+int gIx = 0           // 当前解析下标
+int gAggId = 0        // 聚合节点编号计数器（每条 SELECT 重置）
+var gAggList = []     // 当前 SELECT 中收集到的聚合节点
+
+
+// ============================================================================
+// 2. 词法分析器
+// ============================================================================
+
+// 将 SQL 源码切分成 token 数组。
+// - 单引号字符串：保留外层引号 '...'，内部 '' 表示一个字面 '。
+// - 数字：纯数字 / 含一个 '.'。
+// - 标识符/关键字：字母或下划线开头，含字母数字下划线。
+// - 运算符：( ) , . * + - / % ;  以及 = == != <> < <= > >=
+func tokenize(string s) as array
+    array toks = []
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b == 32 or b == 9 or b == 10 or b == 13 then
+            i += 1
+        elseif b == 39 then
+            // 单引号字符串
+            i += 1
+            string lit = "'"
+            bool closed = false
+            while i < n do
+                int c = string.byteAt(s, i)
+                if c == 39 then
+                    if i + 1 < n and string.byteAt(s, i + 1) == 39 then
+                        lit = lit + "''"
+                        i += 2
+                    else
+                        lit = lit + "'"
+                        i += 1
+                        closed = true
+                        break
+                    end
+                else
+                    lit = lit + string.charAt(s, i)
+                    i += 1
+                end
+            end
+            if not closed then
+                throw "unterminated string literal"
+            end
+            toks.append(lit)
+        elseif b >= 48 and b <= 57 then
+            // 数字字面量
+            string num = ""
+            bool hasDot = false
+            while i < n do
+                int c = string.byteAt(s, i)
+                if c >= 48 and c <= 57 then
+                    num = num + string.charAt(s, i)
+                    i += 1
+                elseif c == 46 and not hasDot then
+                    num = num + "."
+                    hasDot = true
+                    i += 1
+                else
+                    break
+                end
+            end
+            toks.append(num)
+        elseif (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 95 then
+            // 标识符 / 关键字
+            string ident = ""
+            while i < n do
+                int c = string.byteAt(s, i)
+                if (c >= 65 and c <= 90) or (c >= 97 and c <= 122) or (c >= 48 and c <= 57) or c == 95 then
+                    ident = ident + string.charAt(s, i)
+                    i += 1
+                else
+                    break
+                end
+            end
+            toks.append(ident)
+        elseif b == 60 or b == 62 or b == 33 or b == 61 then
+            // < > <= >= <> != = ==
+            int b2 = -1
+            if i + 1 < n then
+                b2 = string.byteAt(s, i + 1)
+            end
+            if b == 60 and b2 == 62 then
+                toks.append("<>")
+                i += 2
+            elseif b == 60 and b2 == 61 then
+                toks.append("<=")
+                i += 2
+            elseif b == 62 and b2 == 61 then
+                toks.append(">=")
+                i += 2
+            elseif b == 33 and b2 == 61 then
+                toks.append("!=")
+                i += 2
+            elseif b == 61 then
+                toks.append("=")
+                if b2 == 61 then
+                    i += 2
+                else
+                    i += 1
+                end
+            elseif b == 60 then
+                toks.append("<")
+                i += 1
+            elseif b == 62 then
+                toks.append(">")
+                i += 1
+            else
+                throw "unexpected character '!'"
+            end
+        elseif b == 40 or b == 41 or b == 44 or b == 46 or b == 42 or b == 43 or b == 45 or b == 47 or b == 37 or b == 59 then
+            // ( ) , . * + - / % ;
+            toks.append(string.charAt(s, i))
+            i += 1
+        else
+            throw "unexpected character: " + string.charAt(s, i)
+        end
+    end
+    return toks
+end
+
+
+// 按顶层 ';' 把 token 序列切成多条语句，每条返回其 token 子数组。
+func splitStatements(array toks) as array
+    array result = []
+    array cur = []
+    for t in toks
+        if t == ";" then
+            result.append(cur)
+            cur = []
+        else
+            cur.append(t)
+        end
+    end
+    if cur.length > 0 then
+        result.append(cur)
+    end
+    return result
+end
+
+
+// ============================================================================
+// 3. token 分类辅助
+// ============================================================================
+
+func tokIsWord(string t) as bool
+    if t == "" then
+        return false
+    end
+    int b = string.byteAt(t, 0)
+    if (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 95 then
+        return true
+    end
+    return false
+end
+
+func tokWordIs(string t, string kw) as bool
+    if not tokIsWord(t) then
+        return false
+    end
+    return string.lower(t) == string.lower(kw)
+end
+
+func tokIsNumberLit(string t) as bool
+    if t == "" then
+        return false
+    end
+    int b0 = string.byteAt(t, 0)
+    if not (b0 >= 48 and b0 <= 57) then
+        return false
+    end
+    bool hasDot = false
+    int i = 1
+    int n = string.len(t)
+    while i < n do
+        int b = string.byteAt(t, i)
+        if b == 46 then
+            if hasDot then
+                return false
+            end
+            hasDot = true
+        elseif b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+func tokNumValue(string t) as var
+    if string.contains(t, ".") then
+        return float(t)
+    end
+    return int(t)
+end
+
+func tokIsStringLit(string t) as bool
+    if t == "" then
+        return false
+    end
+    return string.byteAt(t, 0) == 39
+end
+
+// 去掉外层引号并把内部的 '' 还原成 '。
+func tokStrValue(string t) as string
+    int n = string.len(t)
+    if n < 2 then
+        return ""
+    end
+    string inner = string.slice(t, 1, n - 2)
+    return string.replace(inner, "''", "'")
+end
+
+func tokIsAggName(string t) as bool
+    string u = string.lower(t)
+    if u == "count" then return true end
+    if u == "sum" then return true end
+    if u == "avg" then return true end
+    if u == "min" then return true end
+    if u == "max" then return true end
+    return false
+end
+
+
+// ============================================================================
+// 4. 语法分析器游标
+// ============================================================================
+
+func tokPeek() as string
+    if gIx >= gTox.length then
+        return ""
+    end
+    return gTox[gIx] as string
+end
+
+func tokPeekAt(int off) as string
+    int idx = gIx + off
+    if idx < 0 then
+        return ""
+    end
+    if idx >= gTox.length then
+        return ""
+    end
+    return gTox[idx] as string
+end
+
+func tokAtEnd() as bool
+    return gIx >= gTox.length
+end
+
+func tokEat() as string
+    string t = tokPeek()
+    gIx += 1
+    return t
+end
+
+func tokAcceptWord(string kw) as bool
+    if tokWordIs(tokPeek(), kw) then
+        gIx += 1
+        return true
+    end
+    return false
+end
+
+func tokExpectWord(string kw)
+    if not tokWordIs(tokPeek(), kw) then
+        throw "expected '" + kw + "' but got '" + tokPeek() + "'"
+    end
+    gIx += 1
+end
+
+func tokExpectTok(string t)
+    if tokPeek() != t then
+        throw "expected '" + t + "' but got '" + tokPeek() + "'"
+    end
+    gIx += 1
+end
+
+func tokAcceptTok(string t) as bool
+    if tokPeek() == t then
+        gIx += 1
+        return true
+    end
+    return false
+end
+
+// 判断是否是会终止当前子句的关键字（防止被误当作别名）。
+func isClauseWord(string t) as bool
+    string u = string.lower(t)
+    if u == "from" then return true end
+    if u == "where" then return true end
+    if u == "group" then return true end
+    if u == "order" then return true end
+    if u == "having" then return true end
+    if u == "limit" then return true end
+    if u == "join" then return true end
+    if u == "inner" then return true end
+    if u == "left" then return true end
+    if u == "right" then return true end
+    if u == "full" then return true end
+    if u == "outer" then return true end
+    if u == "on" then return true end
+    if u == "as" then return true end
+    if u == "asc" then return true end
+    if u == "desc" then return true end
+    if u == "and" then return true end
+    if u == "or" then return true end
+    if u == "not" then return true end
+    if u == "by" then return true end
+    if u == "is" then return true end
+    return false
+end
+
+
+// ============================================================================
+// 5. 表达式解析（产出 var dict AST 节点）
+//   节点形态:
+//     {k:"lit",  v:value}
+//     {k:"col",  name:..}                 非限定列
+//     {k:"col",  table:.., name:..}       限定列 table.col
+//     {k:"star"}
+//     {k:"qstar", table:..}
+//     {k:"agg",  name:"COUNT", arg:节点或null}
+//     {k:"cmp",  op:">", left:.., right:..}
+//     {k:"arith",op:"+", left:.., right:..}
+//     {k:"and"/"or", left:.., right:..}
+//     {k:"not",  e:..}
+// ============================================================================
+
+func parseExpr() as var
+    return parseOr()
+end
+
+func parseOr() as var
+    var node = parseAnd()
+    while tokWordIs(tokPeek(), "or") do
+        gIx += 1
+        var rhs = parseAnd()
+        node = {k:"or", left:node, right:rhs}
+    end
+    return node
+end
+
+func parseAnd() as var
+    var node = parseNot()
+    while tokWordIs(tokPeek(), "and") do
+        gIx += 1
+        var rhs = parseNot()
+        node = {k:"and", left:node, right:rhs}
+    end
+    return node
+end
+
+func parseNot() as var
+    if tokWordIs(tokPeek(), "not") then
+        gIx += 1
+        var e = parseNot()
+        return {k:"not", e:e}
+    end
+    return parseCmp()
+end
+
+func parseCmp() as var
+    var left = parseAdd()
+    string t = tokPeek()
+    if t == "=" or t == "!=" or t == "<>" or t == ">" or t == "<" or t == ">=" or t == "<=" then
+        gIx += 1
+        var right = parseAdd()
+        return {k:"cmp", op:t, left:left, right:right}
+    end
+    if tokWordIs(t, "is") then
+        gIx += 1
+        bool neg = tokAcceptWord("not")
+        tokExpectWord("null")
+        var isNullNode = {k:"cmp", op:"=", left:left, right:{k:"lit", v:null}}
+        if neg then
+            return {k:"not", e:isNullNode}
+        end
+        return isNullNode
+    end
+    return left
+end
+
+func parseAdd() as var
+    var node = parseMul()
+    while tokPeek() == "+" or tokPeek() == "-" do
+        string op = tokEat()
+        var rhs = parseMul()
+        node = {k:"arith", op:op, left:node, right:rhs}
+    end
+    return node
+end
+
+func parseMul() as var
+    var node = parseUnary()
+    while tokPeek() == "*" or tokPeek() == "/" or tokPeek() == "%" do
+        string op = tokEat()
+        var rhs = parseUnary()
+        node = {k:"arith", op:op, left:node, right:rhs}
+    end
+    return node
+end
+
+func parseUnary() as var
+    if tokPeek() == "-" then
+        gIx += 1
+        var e = parseUnary()
+        return {k:"arith", op:"-", left:{k:"lit", v:0}, right:e}
+    end
+    if tokPeek() == "+" then
+        gIx += 1
+        return parseUnary()
+    end
+    return parsePrimary()
+end
+
+func parsePrimary() as var
+    string t = tokPeek()
+    if t == "" then
+        throw "unexpected end of input in expression"
+    end
+    if t == "*" then
+        gIx += 1
+        return {k:"star"}
+    end
+    if t == "(" then
+        gIx += 1
+        var e = parseExpr()
+        tokExpectTok(")")
+        return e
+    end
+    if tokIsStringLit(t) then
+        gIx += 1
+        return {k:"lit", v:tokStrValue(t)}
+    end
+    if tokIsNumberLit(t) then
+        gIx += 1
+        return {k:"lit", v:tokNumValue(t)}
+    end
+    if tokIsWord(t) then
+        string low = string.lower(t)
+        if low == "true" then
+            gIx += 1
+            return {k:"lit", v:true}
+        end
+        if low == "false" then
+            gIx += 1
+            return {k:"lit", v:false}
+        end
+        if low == "null" then
+            gIx += 1
+            return {k:"lit", v:null}
+        end
+        // 聚合函数调用
+        if tokIsAggName(t) and tokPeekAt(1) == "(" then
+            string aggName = t
+            gIx += 2
+            var arg = null
+            if tokPeek() == "*" then
+                gIx += 1
+                arg = {k:"star"}
+            elseif tokPeek() == ")" then
+                arg = null
+            else
+                arg = parseExpr()
+            end
+            tokExpectTok(")")
+            return {k:"agg", name:aggName, arg:arg}
+        end
+        // 列引用，可能带 table.col 限定
+        gIx += 1
+        string colName = t
+        if tokPeek() == "." then
+            gIx += 1
+            if tokPeek() == "*" then
+                gIx += 1
+                return {k:"qstar", table:colName}
+            end
+            string fld = tokEat()
+            return {k:"col", table:colName, name:fld}
+        end
+        return {k:"col", name:colName}
+    end
+    throw "unexpected token in expression: '" + t + "'"
+end
+
+
+// ============================================================================
+// 6. 语句解析
+// ============================================================================
+
+func parseStatement() as var
+    string t = tokPeek()
+    if t == "" then
+        return null
+    end
+    if tokWordIs(t, "create") then
+        gIx += 1
+        return parseCreate()
+    end
+    if tokWordIs(t, "insert") then
+        gIx += 1
+        return parseInsert()
+    end
+    if tokWordIs(t, "select") then
+        return parseSelect()
+    end
+    if tokWordIs(t, "update") then
+        gIx += 1
+        return parseUpdate()
+    end
+    if tokWordIs(t, "delete") then
+        gIx += 1
+        return parseDelete()
+    end
+    throw "unexpected statement start: '" + t + "'"
+end
+
+// CREATE TABLE name (col TYPE [(..)], ...)
+func parseCreate() as var
+    tokExpectWord("table")
+    string tname = tokEat()
+    tokExpectTok("(")
+    array cols = []
+    while tokPeek() != ")" and not tokAtEnd() do
+        string cname = tokEat()
+        string ctype = "TEXT"
+        if tokIsWord(tokPeek()) then
+            ctype = tokEat()
+        end
+        // 跳过类型后的括号说明，例如 VARCHAR(10)
+        if tokPeek() == "(" then
+            gIx += 1
+            while tokPeek() != ")" and not tokAtEnd() do
+                gIx += 1
+            end
+            if tokPeek() == ")" then
+                gIx += 1
+            end
+        end
+        cols.append({name:cname, type:string.upper(ctype)})
+        if tokPeek() == "," then
+            gIx += 1
+        end
+    end
+    tokExpectTok(")")
+    return {op:"create", table:tname, columns:cols}
+end
+
+// INSERT INTO name [(c,..)] VALUES (..),(..)
+func parseInsert() as var
+    tokExpectWord("into")
+    string tname = tokEat()
+    var colNames = null
+    if tokPeek() == "(" then
+        gIx += 1
+        colNames = []
+        while tokPeek() != ")" and not tokAtEnd() do
+            colNames.append(tokEat())
+            if tokPeek() == "," then
+                gIx += 1
+            end
+        end
+        tokExpectTok(")")
+    end
+    tokExpectWord("values")
+    array rows = []
+    while true do
+        tokExpectTok("(")
+        array vals = []
+        while tokPeek() != ")" and not tokAtEnd() do
+            vals.append(parseExpr())
+            if tokPeek() == "," then
+                gIx += 1
+            end
+        end
+        tokExpectTok(")")
+        rows.append(vals)
+        if tokPeek() == "," then
+            gIx += 1
+        else
+            break
+        end
+    end
+    return {op:"insert", table:tname, columns:colNames, rows:rows}
+end
+
+// SELECT [DISTINCT] <items> FROM name [JOINs] [WHERE] [GROUP BY] [HAVING] [ORDER BY] [LIMIT]
+func parseSelect() as var
+    tokExpectWord("select")
+    bool distinct = false
+    if tokAcceptWord("distinct") then
+        distinct = true
+    end
+    array selItems = []
+    while true do
+        var expr = parseExpr()
+        var alias = null
+        if tokAcceptWord("as") then
+            alias = tokEat()
+        elseif tokIsWord(tokPeek()) and not isClauseWord(tokPeek()) then
+            alias = tokEat()
+        end
+        selItems.append({expr:expr, alias:alias})
+        if tokPeek() == "," then
+            gIx += 1
+        else
+            break
+        end
+    end
+
+    tokExpectWord("from")
+    string fromTable = tokEat()
+    string fromAlias = null
+    if tokIsWord(tokPeek()) and not isClauseWord(tokPeek()) then
+        fromAlias = tokEat()
+    end
+
+    array joins = []
+    while true do
+        var j = tryParseJoin()
+        if j == null then
+            break
+        end
+        joins.append(j)
+    end
+
+    var whereExpr = null
+    if tokAcceptWord("where") then
+        whereExpr = parseExpr()
+    end
+
+    array groupExprs = null
+    if tokAcceptWord("group") then
+        tokExpectWord("by")
+        groupExprs = []
+        while true do
+            groupExprs.append(parseExpr())
+            if tokPeek() == "," then
+                gIx += 1
+            else
+                break
+            end
+        end
+    end
+
+    var havingExpr = null
+    if tokAcceptWord("having") then
+        havingExpr = parseExpr()
+    end
+
+    array orderSpecs = null
+    if tokAcceptWord("order") then
+        tokExpectWord("by")
+        orderSpecs = []
+        while true do
+            var oe = parseExpr()
+            string dir = "asc"
+            if tokAcceptWord("asc") then
+                dir = "asc"
+            elseif tokAcceptWord("desc") then
+                dir = "desc"
+            end
+            orderSpecs.append({expr:oe, dir:dir})
+            if tokPeek() == "," then
+                gIx += 1
+            else
+                break
+            end
+        end
+    end
+
+    int limitVal = -1
+    if tokAcceptWord("limit") then
+        string lt = tokEat()
+        limitVal = int(lt)
+    end
+
+    return {op:"select", select:selItems, distinct:distinct, from:fromTable, fromAlias:fromAlias,
+            joins:joins, where:whereExpr, group:groupExprs, having:havingExpr,
+            order:orderSpecs, limit:limitVal}
+end
+
+// 解析一个 JOIN 子句；若当前位置不是 JOIN 则返回 null 并恢复游标。
+func tryParseJoin() as var
+    int save = gIx
+    string jt = "inner"
+    if tokWordIs(tokPeek(), "inner") then
+        gIx += 1
+        jt = "inner"
+    elseif tokWordIs(tokPeek(), "left") then
+        gIx += 1
+        jt = "left"
+        if tokWordIs(tokPeek(), "outer") then
+            gIx += 1
+        end
+    elseif tokWordIs(tokPeek(), "right") then
+        gIx += 1
+        jt = "right"
+        if tokWordIs(tokPeek(), "outer") then
+            gIx += 1
+        end
+    elseif tokWordIs(tokPeek(), "full") then
+        gIx += 1
+        jt = "full"
+        if tokWordIs(tokPeek(), "outer") then
+            gIx += 1
+        end
+    end
+    if not tokWordIs(tokPeek(), "join") then
+        gIx = save
+        return null
+    end
+    gIx += 1
+    string jtable = tokEat()
+    string jalias = null
+    if tokIsWord(tokPeek()) and not isClauseWord(tokPeek()) then
+        jalias = tokEat()
+    end
+    var onExpr = null
+    if tokAcceptWord("on") then
+        onExpr = parseExpr()
+    end
+    return {table:jtable, alias:jalias, type:jt, on:onExpr}
+end
+
+// UPDATE name SET col=expr,... [WHERE ..]
+func parseUpdate() as var
+    string tname = tokEat()
+    tokExpectWord("set")
+    array sets = []
+    while true do
+        string col = tokEat()
+        tokExpectTok("=")
+        var ex = parseExpr()
+        sets.append({col:col, expr:ex})
+        if tokPeek() == "," then
+            gIx += 1
+        else
+            break
+        end
+    end
+    var whereExpr = null
+    if tokAcceptWord("where") then
+        whereExpr = parseExpr()
+    end
+    return {op:"update", table:tname, sets:sets, where:whereExpr}
+end
+
+// DELETE FROM name [WHERE ..]
+func parseDelete() as var
+    tokExpectWord("from")
+    string tname = tokEat()
+    var whereExpr = null
+    if tokAcceptWord("where") then
+        whereExpr = parseExpr()
+    end
+    return {op:"delete", table:tname, where:whereExpr}
+end
+
+
+// ============================================================================
+// 7. 值比较 / 算术 / 真值辅助
+// ============================================================================
+
+func bothNum(var l, var r) as bool
+    bool lb = (l is int) or (l is float)
+    bool rb = (r is int) or (r is float)
+    return lb and rb
+end
+
+func valEq(var l, var r) as bool
+    if l == null and r == null then
+        return true
+    end
+    if l == null or r == null then
+        return false
+    end
+    if bothNum(l, r) then
+        return float(l) == float(r)
+    end
+    if (l is bool) and (r is bool) then
+        return l == r
+    end
+    return string(l) == string(r)
+end
+
+// 返回 -1 / 0 / 1。
+func valCmp(var l, var r) as int
+    if bothNum(l, r) then
+        float a = float(l)
+        float b = float(r)
+        if a < b then
+            return -1
+        end
+        if a > b then
+            return 1
+        end
+        return 0
+    end
+    if l == null and r == null then
+        return 0
+    end
+    if l == null then
+        return -1
+    end
+    if r == null then
+        return 1
+    end
+    string a = string(l)
+    string b = string(r)
+    if a < b then
+        return -1
+    end
+    if a > b then
+        return 1
+    end
+    return 0
+end
+
+func applyCmp(string op, var l, var r) as bool
+    if op == "=" then
+        return valEq(l, r)
+    end
+    if op == "!=" or op == "<>" then
+        return not valEq(l, r)
+    end
+    int c = valCmp(l, r)
+    if op == ">" then
+        return c > 0
+    end
+    if op == "<" then
+        return c < 0
+    end
+    if op == ">=" then
+        return c >= 0
+    end
+    if op == "<=" then
+        return c <= 0
+    end
+    throw "unknown comparison operator: " + op
+end
+
+func applyArith(string op, var l, var r) as var
+    if not bothNum(l, r) then
+        throw "arithmetic on non-numeric values"
+    end
+    if (l is int) and (r is int) then
+        int a = int(l)
+        int b = int(r)
+        if op == "+" then
+            return a + b
+        end
+        if op == "-" then
+            return a - b
+        end
+        if op == "*" then
+            return a * b
+        end
+        if op == "/" then
+            if b == 0 then
+                throw "division by zero"
+            end
+            return a / b
+        end
+        if op == "%" then
+            if b == 0 then
+                throw "modulo by zero"
+            end
+            return int(math.mod(float(a), float(b)))
+        end
+        throw "unknown operator: " + op
+    end
+    float a = float(l)
+    float b = float(r)
+    if op == "+" then
+        return a + b
+    end
+    if op == "-" then
+        return a - b
+    end
+    if op == "*" then
+        return a * b
+    end
+    if op == "/" then
+        if b == 0.0 then
+            throw "division by zero"
+        end
+        return a / b
+    end
+    if op == "%" then
+        if b == 0.0 then
+            throw "modulo by zero"
+        end
+        return math.mod(a, b)
+    end
+    throw "unknown operator: " + op
+end
+
+func truthy(var v) as bool
+    if v == null then
+        return false
+    end
+    if v is bool then
+        return v
+    end
+    if v is int then
+        return v != 0
+    end
+    if v is float then
+        return v != 0.0
+    end
+    return true
+end
+
+// 把一个值转成用于分组的稳定字符串键（区分 int/float/string）。
+func valKey(var v) as string
+    if v == null then
+        return "~~null"
+    end
+    if v is int then
+        return "i:" + string(v)
+    end
+    if v is float then
+        return "f:" + string(v)
+    end
+    return "s:" + string(v)
+end
+
+
+// ============================================================================
+// 8. 表达式求值
+// ============================================================================
+
+func lookupCol(var row, var e) as var
+    var nm = e["name"]
+    if e["table"] != null then
+        var key = e["table"] + "." + nm
+        if key in row then
+            return row[key]
+        end
+        return null
+    end
+    if nm in row then
+        return row[nm]
+    end
+    return null
+end
+
+// aggCache 为 null 表示非聚合上下文；否则为 {aid -> value}。
+func evalExpr(var row, var e, var aggCache) as var
+    var k = e["k"]
+    if k == "lit" then
+        return e["v"]
+    end
+    if k == "col" then
+        return lookupCol(row, e)
+    end
+    if k == "agg" then
+        if aggCache == null then
+            throw "aggregate used in non-aggregate context"
+        end
+        return aggCache[e["aid"]]
+    end
+    if k == "not" then
+        bool b = truthy(evalExpr(row, e["e"], aggCache))
+        return not b
+    end
+    if k == "and" then
+        bool lb = truthy(evalExpr(row, e["left"], aggCache))
+        if not lb then
+            return false
+        end
+        return truthy(evalExpr(row, e["right"], aggCache))
+    end
+    if k == "or" then
+        bool lb = truthy(evalExpr(row, e["left"], aggCache))
+        if lb then
+            return true
+        end
+        return truthy(evalExpr(row, e["right"], aggCache))
+    end
+    if k == "cmp" then
+        var lv = evalExpr(row, e["left"], aggCache)
+        var rv = evalExpr(row, e["right"], aggCache)
+        return applyCmp(e["op"], lv, rv)
+    end
+    if k == "arith" then
+        var lv = evalExpr(row, e["left"], aggCache)
+        var rv = evalExpr(row, e["right"], aggCache)
+        return applyArith(e["op"], lv, rv)
+    end
+    if k == "star" or k == "qstar" then
+        return null
+    end
+    throw "cannot evaluate expression node: " + string(k)
+end
+
+
+// ============================================================================
+// 9. 聚合收集与计算
+// ============================================================================
+
+// 递归收集表达式中的聚合节点，给每个节点分配 aid 并加入 gAggList。
+func collectAgg(var e)
+    if e == null then
+        return
+    end
+    var k = e["k"]
+    if k == "agg" then
+        gAggId += 1
+        e["aid"] = string(gAggId)
+        gAggList.append(e)
+        if e["arg"] != null then
+            collectAgg(e["arg"])
+        end
+        return
+    end
+    if k == "col" then
+        return
+    end
+    if k == "lit" then
+        return
+    end
+    if k == "star" then
+        return
+    end
+    if k == "qstar" then
+        return
+    end
+    if k == "cmp" then
+        collectAgg(e["left"])
+        collectAgg(e["right"])
+        return
+    end
+    if k == "arith" then
+        collectAgg(e["left"])
+        collectAgg(e["right"])
+        return
+    end
+    if k == "and" then
+        collectAgg(e["left"])
+        collectAgg(e["right"])
+        return
+    end
+    if k == "or" then
+        collectAgg(e["left"])
+        collectAgg(e["right"])
+        return
+    end
+    if k == "not" then
+        collectAgg(e["e"])
+        return
+    end
+end
+
+// 在给定行集合上计算一个聚合节点的值。
+func computeAgg(var node, var rows) as var
+    string name = string.upper(string(node["name"]))
+    var arg = node["arg"]
+    if name == "COUNT" then
+        if arg == null then
+            return rows.length
+        end
+        if arg["k"] == "star" then
+            return rows.length
+        end
+        int cnt = 0
+        int i = 0
+        while i < rows.length do
+            var v = evalExpr(rows[i], arg, null)
+            if v != null then
+                cnt += 1
+            end
+            i += 1
+        end
+        return cnt
+    end
+    if arg == null then
+        throw name + " requires an argument"
+    end
+    if name == "MIN" or name == "MAX" then
+        var best = null
+        int i = 0
+        while i < rows.length do
+            var v = evalExpr(rows[i], arg, null)
+            if v != null then
+                if best == null then
+                    best = v
+                else
+                    int c = valCmp(v, best)
+                    if name == "MIN" and c < 0 then
+                        best = v
+                    end
+                    if name == "MAX" and c > 0 then
+                        best = v
+                    end
+                end
+            end
+            i += 1
+        end
+        return best
+    end
+    // SUM / AVG：跳过 null 值
+    float total = 0.0
+    int cnt = 0
+    int i = 0
+    while i < rows.length do
+        var v = evalExpr(rows[i], arg, null)
+        if v != null then
+            if not ((v is int) or (v is float)) then
+                throw name + " of non-numeric value"
+            end
+            total = total + float(v)
+            cnt += 1
+        end
+        i += 1
+    end
+    if name == "SUM" then
+        if cnt == 0 then
+            return null
+        end
+        if total == math.floor(total) then
+            return int(total)
+        end
+        return total
+    end
+    if name == "AVG" then
+        if cnt == 0 then
+            return null
+        end
+        return total / float(cnt)
+    end
+    throw "unknown aggregate: " + name
+end
+
+// 为表达式生成默认显示列名。
+func exprLabel(var e) as string
+    var k = e["k"]
+    if k == "col" then
+        if e["table"] != null then
+            return string(e["table"]) + "." + string(e["name"])
+        end
+        return string(e["name"])
+    end
+    if k == "lit" then
+        var v = e["v"]
+        if v == null then
+            return "NULL"
+        end
+        return string(v)
+    end
+    if k == "agg" then
+        string nm = string.upper(string(e["name"]))
+        var arg = e["arg"]
+        if arg == null then
+            return nm + "()"
+        end
+        if arg["k"] == "star" then
+            return nm + "(*)"
+        end
+        return nm + "(" + exprLabel(arg) + ")"
+    end
+    if k == "arith" then
+        return exprLabel(e["left"]) + string(e["op"]) + exprLabel(e["right"])
+    end
+    if k == "star" then
+        return "*"
+    end
+    if k == "qstar" then
+        return string(e["table"]) + ".*"
+    end
+    return "expr"
+end
+
+
+// ============================================================================
+// 10. CREATE / INSERT / UPDATE / DELETE 执行器
+// ============================================================================
+
+func execCreate(var ast)
+    string tname = string(ast["table"])
+    if gTables[tname] != null then
+        throw "table already exists: " + tname
+    end
+    gTables[tname] = {columns:ast["columns"], rows:[]}
+    println("OK")
+end
+
+func execInsert(var ast) as int
+    string tname = string(ast["table"])
+    var tab = gTables[tname]
+    if tab == null then
+        throw "no such table: " + tname
+    end
+    var colDefs = tab["columns"]
+    int ncol = colDefs.length
+    array targetCols = ast["columns"]
+    int count = 0
+    for vals in ast["rows"]
+        var row = {}
+        int ci = 0
+        while ci < ncol do
+            row[colDefs[ci]["name"]] = null
+            ci += 1
+        end
+        if targetCols != null then
+            int k = 0
+            while k < targetCols.length and k < vals.length do
+                row[targetCols[k]] = evalExpr({}, vals[k], null)
+                k += 1
+            end
+        else
+            int k = 0
+            while k < ncol and k < vals.length do
+                row[colDefs[k]["name"]] = evalExpr({}, vals[k], null)
+                k += 1
+            end
+        end
+        tab["rows"].append(row)
+        count += 1
+    end
+    return count
+end
+
+func execUpdate(var ast) as int
+    string tname = string(ast["table"])
+    var tab = gTables[tname]
+    if tab == null then
+        throw "no such table: " + tname
+    end
+    var rows = tab["rows"]
+    var sets = ast["sets"]
+    var whereExpr = ast["where"]
+    int count = 0
+    int i = 0
+    while i < rows.length do
+        var row = rows[i]
+        if whereExpr == null or truthy(evalExpr(row, whereExpr, null)) then
+            int s = 0
+            while s < sets.length do
+                row[sets[s]["col"]] = evalExpr(row, sets[s]["expr"], null)
+                s += 1
+            end
+            count += 1
+        end
+        i += 1
+    end
+    return count
+end
+
+func execDelete(var ast) as int
+    string tname = string(ast["table"])
+    var tab = gTables[tname]
+    if tab == null then
+        throw "no such table: " + tname
+    end
+    var whereExpr = ast["where"]
+    array kept = []
+    int count = 0
+    for row in tab["rows"]
+        if whereExpr == null or truthy(evalExpr(row, whereExpr, null)) then
+            count += 1
+        else
+            kept.append(row)
+        end
+    end
+    tab["rows"] = kept
+    return count
+end
+
+
+// ============================================================================
+// 11. SELECT 执行器辅助
+// ============================================================================
+
+// SELECT * 的列展开：单表用裸列名，多表用 table.col 限定。
+func expandStar(var srcTables) as array
+    array cols = []
+    bool qualify = srcTables.length > 1
+    int i = 0
+    while i < srcTables.length do
+        var tn = srcTables[i]
+        var t = gTables[tn]
+        if t != null then
+            for cdef in t["columns"]
+                string nm = string(cdef["name"])
+                if qualify then
+                    cols.append({name:string(tn) + "." + nm, expr:{k:"col", table:tn, name:nm}})
+                else
+                    cols.append({name:nm, expr:{k:"col", name:nm}})
+                end
+            end
+        end
+        i += 1
+    end
+    return cols
+end
+
+// SELECT table.* 的列展开。
+func expandTableStar(var tableName) as array
+    array cols = []
+    var t = gTables[tableName]
+    if t == null then
+        return cols
+    end
+    for cdef in t["columns"]
+        string nm = string(cdef["name"])
+        cols.append({name:string(tableName) + "." + nm, expr:{k:"col", table:tableName, name:nm}})
+    end
+    return cols
+end
+
+// 多键排序的比较：按 orderSpecs 顺序比较，desc 反向。
+func orderCompare(var c1, var c2, var orderSpecs) as int
+    int i = 0
+    while i < orderSpecs.length do
+        var spec = orderSpecs[i]
+        var v1 = evalExpr(c1["row"], spec["expr"], c1["agg"])
+        var v2 = evalExpr(c2["row"], spec["expr"], c2["agg"])
+        int c = valCmp(v1, v2)
+        if c != 0 then
+            if spec["dir"] == "desc" then
+                return -c
+            end
+            return c
+        end
+        i += 1
+    end
+    return 0
+end
+
+// 对 outCtx 做稳定插入排序（按 orderSpecs）。
+func insertionSortCtx(var outCtx, var orderSpecs)
+    int n = outCtx.length
+    int i = 1
+    while i < n do
+        var cur = outCtx[i]
+        int j = i - 1
+        while j >= 0 and orderCompare(outCtx[j], cur, orderSpecs) > 0 do
+            outCtx[j + 1] = outCtx[j]
+            j -= 1
+        end
+        outCtx[j + 1] = cur
+        i += 1
+    end
+end
+
+// 生成上下文行在投影后的去重键。
+func ctxRowKey(var c, var projCols) as string
+    string key = ""
+    int i = 0
+    while i < projCols.length do
+        var v = evalExpr(c["row"], projCols[i]["expr"], c["agg"])
+        key = key + "|" + valKey(v)
+        i += 1
+    end
+    return key
+end
+
+
+// ============================================================================
+// 12. SELECT 执行器
+// ============================================================================
+
+func execSelect(var ast) as var
+    // ---- FROM ----
+    string baseName = string(ast["from"])
+    var baseTab = gTables[baseName]
+    if baseTab == null then
+        throw "no such table: " + baseName
+    end
+    array srcTables = []
+    srcTables.append(baseName)
+    array ctxRows = []
+    for r in baseTab["rows"]
+        var cr = {}
+        for k, v in r
+            cr[k] = v
+            cr[baseName + "." + k] = v
+        end
+        ctxRows.append(cr)
+    end
+
+    // ---- JOINs ----
+    var joins = ast["joins"]
+    int ji = 0
+    while ji < joins.length do
+        var j = joins[ji]
+        string jt = string(j["type"])
+        if jt == "right" or jt == "full" then
+            throw "RIGHT/FULL JOIN not supported (use INNER or LEFT)"
+        end
+        var jtab = gTables[j["table"]]
+        if jtab == null then
+            throw "no such table: " + string(j["table"])
+        end
+        srcTables.append(j["table"])
+        var onExpr = j["on"]
+        array nr = []
+        for lr in ctxRows
+            bool matched = false
+            for rr in jtab["rows"]
+                var combined = {}
+                for k, v in lr
+                    combined[k] = v
+                end
+                for k, v in rr
+                    combined[k] = v
+                    combined[j["table"] + "." + k] = v
+                end
+                if onExpr == null or truthy(evalExpr(combined, onExpr, null)) then
+                    nr.append(combined)
+                    matched = true
+                end
+            end
+            if jt == "left" and not matched then
+                var combined = {}
+                for k, v in lr
+                    combined[k] = v
+                end
+                for cdef in jtab["columns"]
+                    string cn = string(cdef["name"])
+                    combined[cn] = null
+                    combined[j["table"] + "." + cn] = null
+                end
+                nr.append(combined)
+            end
+        end
+        ctxRows = nr
+        ji += 1
+    end
+
+    // ---- WHERE ----
+    if ast["where"] != null then
+        array fr = []
+        for r in ctxRows
+            if truthy(evalExpr(r, ast["where"], null)) then
+                fr.append(r)
+            end
+        end
+        ctxRows = fr
+    end
+
+    // ---- 收集聚合节点 ----
+    gAggId = 0
+    gAggList = []
+    var selItems = ast["select"]
+    int si = 0
+    while si < selItems.length do
+        collectAgg(selItems[si]["expr"])
+        si += 1
+    end
+    if ast["having"] != null then
+        collectAgg(ast["having"])
+    end
+    if ast["order"] != null then
+        var specs = ast["order"]
+        int oi = 0
+        while oi < specs.length do
+            collectAgg(specs[oi]["expr"])
+            oi += 1
+        end
+    end
+
+    bool grouped = (ast["group"] != null) or (gAggList.length > 0)
+
+    // ---- 构造输出上下文 outCtx（每项 {row, agg}）----
+    array outCtx = []
+    if grouped then
+        var groups = {}
+        array groupOrder = []
+        if ast["group"] != null then
+            var gp = ast["group"]
+            for r in ctxRows
+                var kv = []
+                string gkey = ""
+                int gi = 0
+                while gi < gp.length do
+                    var v = evalExpr(r, gp[gi], null)
+                    kv.append(v)
+                    gkey = gkey + "|" + valKey(v)
+                    gi += 1
+                end
+                if not (gkey in groups) then
+                    groups[gkey] = {rows:[]}
+                    groupOrder.append(gkey)
+                end
+                groups[gkey]["rows"].append(r)
+            end
+        else
+            groups["__all__"] = {rows:ctxRows}
+            groupOrder.append("__all__")
+        end
+        int gi2 = 0
+        while gi2 < groupOrder.length do
+            string gk = groupOrder[gi2]
+            var grp = groups[gk]
+            var rep = {}
+            if grp["rows"].length > 0 then
+                rep = grp["rows"][0]
+            end
+            var aggCache = {}
+            int ai = 0
+            while ai < gAggList.length do
+                var an = gAggList[ai]
+                aggCache[an["aid"]] = computeAgg(an, grp["rows"])
+                ai += 1
+            end
+            outCtx.append({row:rep, agg:aggCache})
+            gi2 += 1
+        end
+    else
+        for r in ctxRows
+            outCtx.append({row:r, agg:null})
+        end
+    end
+
+    // ---- HAVING ----
+    if ast["having"] != null then
+        array fr = []
+        for c in outCtx
+            if truthy(evalExpr(c["row"], ast["having"], c["agg"])) then
+                fr.append(c)
+            end
+        end
+        outCtx = fr
+    end
+
+    // ---- 投影列（展开 *）----
+    array projCols = []
+    int pi = 0
+    while pi < selItems.length do
+        var item = selItems[pi]
+        var ex = item["expr"]
+        if ex["k"] == "star" then
+            array expanded = expandStar(srcTables)
+            int ei = 0
+            while ei < expanded.length do
+                projCols.append(expanded[ei])
+                ei += 1
+            end
+        elseif ex["k"] == "qstar" then
+            array expanded = expandTableStar(ex["table"])
+            int ei = 0
+            while ei < expanded.length do
+                projCols.append(expanded[ei])
+                ei += 1
+            end
+        else
+            string dispName = ""
+            if item["alias"] != null then
+                dispName = string(item["alias"])
+            else
+                dispName = exprLabel(ex)
+            end
+            projCols.append({name:dispName, expr:ex})
+        end
+        pi += 1
+    end
+
+    // ---- ORDER BY ----
+    if ast["order"] != null then
+        insertionSortCtx(outCtx, ast["order"])
+    end
+
+    // ---- DISTINCT ----
+    if ast["distinct"] then
+        array dr = []
+        var seen = {}
+        for c in outCtx
+            string key = ctxRowKey(c, projCols)
+            if not (key in seen) then
+                seen[key] = true
+                dr.append(c)
+            end
+        end
+        outCtx = dr
+    end
+
+    // ---- LIMIT ----
+    int limitVal = int(ast["limit"])
+    if limitVal >= 0 and outCtx.length > limitVal then
+        array tr = []
+        int li = 0
+        while li < limitVal do
+            tr.append(outCtx[li])
+            li += 1
+        end
+        outCtx = tr
+    end
+
+    // ---- 生成结果 ----
+    array colNames = []
+    int ci = 0
+    while ci < projCols.length do
+        colNames.append(string(projCols[ci]["name"]))
+        ci += 1
+    end
+    array resultRows = []
+    for c in outCtx
+        array vals = []
+        int vi = 0
+        while vi < projCols.length do
+            vals.append(evalExpr(c["row"], projCols[vi]["expr"], c["agg"]))
+            vi += 1
+        end
+        resultRows.append(vals)
+    end
+
+    return {columns:colNames, rows:resultRows}
+end
+
+
+// ============================================================================
+// 13. 总执行入口 / 结果打印
+// ============================================================================
+
+func execute(var ast)
+    string op = string(ast["op"])
+    if op == "create" then
+        execCreate(ast)
+        return
+    end
+    if op == "insert" then
+        int k = execInsert(ast)
+        println("OK " + string(k) + " row(s) inserted")
+        return
+    end
+    if op == "select" then
+        var res = execSelect(ast)
+        printTable(res)
+        var rr = res["rows"]
+        println("(" + string(rr.length) + " row(s) in set)")
+        return
+    end
+    if op == "update" then
+        int k = execUpdate(ast)
+        println("OK " + string(k) + " row(s) updated")
+        return
+    end
+    if op == "delete" then
+        int k = execDelete(ast)
+        println("OK " + string(k) + " row(s) deleted")
+        return
+    end
+    throw "unknown operation: " + op
+end
+
+func repeatChar(string c, int n) as string
+    string r = ""
+    int i = 0
+    while i < n do
+        r = r + c
+        i += 1
+    end
+    return r
+end
+
+func spaces(var n) as string
+    int cnt = int(n)
+    if cnt <= 0 then
+        return ""
+    end
+    return repeatChar(" ", cnt)
+end
+
+func dashes(var n) as string
+    int cnt = int(n)
+    if cnt <= 0 then
+        return ""
+    end
+    return repeatChar("-", cnt)
+end
+
+func formatHeaderCell(var c) as string
+    return string(c)
+end
+
+func formatVal(var v) as string
+    if v == null then
+        return "NULL"
+    end
+    return string(v)
+end
+
+// 以对齐表格形式打印 SELECT 结果。
+func printTable(var res)
+    var colsVar = res["columns"]
+    var rowsVar = res["rows"]
+    int nc = colsVar.length
+    if nc == 0 then
+        println("(no columns)")
+        return
+    end
+    array widths = []
+    int i = 0
+    while i < nc do
+        widths.append(string.len(formatHeaderCell(colsVar[i])))
+        i += 1
+    end
+    array smatrix = []
+    for row in rowsVar
+        array sr = []
+        int j = 0
+        while j < nc do
+            sr.append(formatVal(row[j]))
+            j += 1
+        end
+        smatrix.append(sr)
+    end
+    for sr in smatrix
+        int j = 0
+        while j < nc do
+            int wl = string.len(sr[j])
+            if wl > widths[j] then
+                widths[j] = wl
+            end
+            j += 1
+        end
+    end
+    // 表头
+    string hline = ""
+    int j2 = 0
+    while j2 < nc do
+        if j2 > 0 then
+            hline = hline + " | "
+        end
+        string cn = formatHeaderCell(colsVar[j2])
+        hline = hline + cn + spaces(widths[j2] - string.len(cn))
+        j2 += 1
+    end
+    println(hline)
+    // 分隔线
+    string sep = ""
+    int j3 = 0
+    while j3 < nc do
+        if j3 > 0 then
+            sep = sep + "-+-"
+        end
+        sep = sep + dashes(widths[j3])
+        j3 += 1
+    end
+    println(sep)
+    // 数据行
+    for sr in smatrix
+        string line = ""
+        int j4 = 0
+        while j4 < nc do
+            if j4 > 0 then
+                line = line + " | "
+            end
+            line = line + sr[j4] + spaces(widths[j4] - string.len(sr[j4]))
+            j4 += 1
+        end
+        println(line)
+    end
+    if smatrix.length == 0 then
+        println("(no rows)")
+    end
+end
+
+
+// ============================================================================
+// 14. 脚本执行
+// ============================================================================
+
+// 执行一段 SQL 文本（可含多条以 ; 分隔的语句），逐条解析并执行。
+func runSqlString(string sql) as int
+    array toks = tokenize(sql)
+    array stmts = splitStatements(toks)
+    int i = 0
+    while i < stmts.length do
+        var stmt = stmts[i]
+        if stmt.length > 0 then
+            gTox = stmt
+            gIx = 0
+            var ast = parseStatement()
+            if ast != null then
+                execute(ast)
+            end
+        end
+        i += 1
+    end
+    return 0
+end
+
+// 执行单行/单条 SQL（用于自测里逐条打印）。
+func runOneLine(string line)
+    array toks = tokenize(line)
+    array stmts = splitStatements(toks)
+    int i = 0
+    while i < stmts.length do
+        var stmt = stmts[i]
+        if stmt.length > 0 then
+            gTox = stmt
+            gIx = 0
+            var ast = parseStatement()
+            if ast != null then
+                execute(ast)
+            end
+        end
+        i += 1
+    end
+end
+
+// 执行脚本文件：去掉以 -- 或 // 开头的整行注释后整体运行。
+func runScriptFile(string path) as int
+    if not file.exists(path) then
+        println("error: file not found: " + path)
+        return 1
+    end
+    string text = file.readText(path)
+    array lines = string.splitLines(text)
+    if lines.length > 0 then
+        if string(lines[lines.length - 1]) == "" then
+            lines.remove(lines.length - 1)
+        end
+    end
+    string joined = ""
+    for line in lines
+        string trimmed = string.trim(line)
+        if string.startsWith(trimmed, "--") or string.startsWith(trimmed, "//") then
+            // 注释行，跳过
+        else
+            joined = joined + line + "\n"
+        end
+    end
+    return runSqlString(joined)
+end
+
+
+// ============================================================================
+// 15. 内置自测 / 用法
+// ============================================================================
+
+func runBuiltinTest() as int
+    println("=== xsql self-test ===")
+    array stmts = []
+    stmts.append("CREATE TABLE users (id INT, name TEXT, age INT)")
+    stmts.append("INSERT INTO users VALUES (1,'Alice',30),(2,'Bob',25)")
+    stmts.append("SELECT * FROM users WHERE age>26")
+    stmts.append("SELECT COUNT(*) FROM users")
+    // 额外演示：ORDER BY / GROUP BY / UPDATE / DELETE
+    stmts.append("INSERT INTO users VALUES (3,'Carol',30),(4,'Dave',22)")
+    stmts.append("SELECT name,age FROM users ORDER BY age DESC")
+    stmts.append("SELECT age,COUNT(*) FROM users GROUP BY age")
+    stmts.append("UPDATE users SET age=age+1 WHERE name='Bob'")
+    stmts.append("SELECT name,age FROM users ORDER BY age")
+    stmts.append("DELETE FROM users WHERE id=4")
+    stmts.append("SELECT COUNT(*) FROM users")
+
+    int i = 0
+    while i < stmts.length do
+        println("")
+        println("xsql> " + stmts[i])
+        try
+            runOneLine(stmts[i])
+        catch e
+            println("Error: " + e.message)
+        end
+        i += 1
+    end
+    println("")
+    println("=== self-test done ===")
+    return 0
+end
+
+func printUsage()
+    println("xsql - a tiny in-memory SQL engine written in xlang")
+    println("")
+    println("usage:")
+    println("  xsql exec \"<SQL statements>\"    run one or more SQL statements")
+    println("  xsql script <file.sql>          run SQL statements from a file")
+    println("  xsql test                        run the built-in self-test")
+    println("  xsql -h | --help                 show this help")
+    println("")
+    println("supported SQL (case-insensitive keywords):")
+    println("  CREATE TABLE name (col TYPE, ...)")
+    println("  INSERT INTO name [(cols,...)] VALUES (..),(..)")
+    println("  SELECT cols/aggs/* FROM name [JOIN ... ON ...] [WHERE ..]")
+    println("         [GROUP BY ..] [HAVING ..] [ORDER BY .. [ASC|DESC]] [LIMIT n]")
+    println("  UPDATE name SET col=expr,... [WHERE ..]")
+    println("  DELETE FROM name [WHERE ..]")
+    println("types: INT / INTEGER / REAL / TEXT (others accepted, loosely enforced)")
+    println("aggregates: COUNT(*) COUNT(expr) SUM AVG MIN MAX")
+end
+
+
+// ============================================================================
+// 16. main
+// ============================================================================
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+    string mode = string(arg[1])
+    if mode == "test" then
+        return runBuiltinTest()
+    end
+    if mode == "exec" then
+        if arg.length < 3 then
+            println("error: 'exec' requires a SQL string argument")
+            return 1
+        end
+        string sql = string(arg[2])
+        try
+            return runSqlString(sql)
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+    if mode == "script" then
+        if arg.length < 3 then
+            println("error: 'script' requires a file path argument")
+            return 1
+        end
+        string path = string(arg[2])
+        try
+            return runScriptFile(path)
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+    if mode == "-h" or mode == "--help" or mode == "help" then
+        printUsage()
+        return 0
+    end
+    println("error: unknown mode '" + mode + "'")
+    printUsage()
+    return 1
+end

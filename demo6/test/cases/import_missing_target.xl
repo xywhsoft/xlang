@@ -1,0 +1,4 @@
+import package_that_does_not_exist_7f4c2b19
+
+int value = 42
+assert value == 42

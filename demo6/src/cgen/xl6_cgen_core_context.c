@@ -75,6 +75,13 @@ typedef struct XL6_CgenTryTarget {
     int targetFinally;
 } XL6_CgenTryTarget;
 
+typedef struct XL6_CgenFinallyTarget {
+    size_t cleanupMark;
+    size_t loopTargetCount;
+    int id;
+    int inFinally;
+} XL6_CgenFinallyTarget;
+
 typedef struct XL6_CgenExprReplacement {
     const XL6_AstNode* expr;
     const char* cName;
@@ -102,6 +109,9 @@ typedef struct XL6_CgenContext {
     XL6_CgenTryTarget* tryTargets;
     size_t tryTargetCount;
     size_t tryTargetCapacity;
+    XL6_CgenFinallyTarget* finallyTargets;
+    size_t finallyTargetCount;
+    size_t finallyTargetCapacity;
     XL6_CgenGenericInstance* genericInstances;
     size_t genericInstanceCount;
     size_t genericInstanceCapacity;

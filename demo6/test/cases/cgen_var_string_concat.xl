@@ -1,6 +1,32 @@
 // 动态值参与字符串拼接时，运行时类型必须决定运算语义。
 var dynamicLeft = "a."
+class TextBox
+    string text = ""
+end
+
+func makeText(var left, string right) as string
+    return left + right
+end
+
+func checkOwnedStringPaths(var left, string right) as int
+    string declared = left + right
+    assert declared == "a.id", "var string expression should initialize local string"
+
+    string assigned = ""
+    assigned = left + right
+    assert assigned == "a.id", "var string expression should assign local string"
+
+    TextBox box = TextBox()
+    box.text = left + right
+    assert box.text == "a.id", "var string expression should assign class string field"
+    return 0
+end
+
 string staticRight = "id"
+string directStaticResult = dynamicLeft + staticRight
+assert directStaticResult == "a.id", "var string expression should initialize static string"
+assert makeText(dynamicLeft, staticRight) == "a.id", "var string expression should return static string"
+assert checkOwnedStringPaths(dynamicLeft, staticRight) == 0
 var leftValue = dynamicLeft + staticRight
 assert type(leftValue) == string, "var string + string should produce a dynamic string"
 assert string(leftValue) == "a.id", "var string + string should concatenate"

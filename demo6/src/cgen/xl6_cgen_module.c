@@ -16,6 +16,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int hasFunctionRuntime;
     int hasFunctionVarRuntime;
     int hasXValueRuntime;
+    int hasRefRuntime;
     int hasErrorRuntime;
     int hasDynamicForInErrorRuntime;
     int hasAsyncRuntime;
@@ -70,13 +71,16 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasTypeConvertRuntime = xl6CgenProgramNeedsTypeConvertRuntime(&ctx, root);
     hasFunctionRuntime = xl6CgenNodeNeedsFunctionRuntime(root);
     hasFunctionVarRuntime = xl6CgenProgramNeedsFunctionVarRuntime(&ctx, root);
-    hasXValueRuntime = xl6CgenNodeNeedsXValueRuntime(root) || hasFunctionVarRuntime || ctx.runtimeTypeDescCount > 0;
+    hasRefRuntime = xl6CgenNodeNeedsRefRuntime(root);
+    hasXValueRuntime = xl6CgenNodeNeedsXValueRuntime(root) || hasFunctionVarRuntime ||
+                       ctx.runtimeTypeDescCount > 0 || hasRefRuntime;
     hasTimeRuntime = xl6CgenNodeNeedsTimeRuntime(root);
     hasAsyncRuntime = xl6CgenNodeNeedsAsyncRuntime(root);
     hasTaskSpawn = xl6CgenNodeNeedsTaskSpawn(root);
     hasPointMove = xl6CgenNodeNeedsPointMove(&ctx, root);
     hasDynamicForInErrorRuntime = xl6CgenProgramNeedsDynamicForInErrorRuntime(&ctx, root);
-    hasErrorRuntime = xl6CgenNodeNeedsErrorRuntime(root) || hasAsyncRuntime || hasDynamicForInErrorRuntime || hasTypeConvertRuntime;
+    hasErrorRuntime = xl6CgenNodeNeedsErrorRuntime(root) || hasAsyncRuntime ||
+                      hasDynamicForInErrorRuntime || hasTypeConvertRuntime || hasRefRuntime;
     hasCryptoRuntime = xl6CgenNodeNeedsCryptoRuntime(root);
     hasUrlRuntime = xl6CgenNodeNeedsUrlRuntime(root);
     hasQueryRuntime = xl6CgenNodeNeedsQueryRuntime(root);
@@ -186,6 +190,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasErrorRuntime ) {
         xl6CgenEmitErrorRuntime(out);
     }
+    if ( hasRefRuntime ) {
+        xl6CgenEmitRefRuntime(out);
+    }
     if ( hasAsyncRuntime ) {
         xl6CgenEmitAsyncRuntime(out, hasTaskSpawn);
     }
@@ -266,6 +273,8 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
             xl6CgenUnionDecls(&ctx, root->children[i]);
         }
     }
+    xl6CgenRegisterModuleGlobalTypes(&ctx, root);
+    xl6CgenEmitModuleGlobalForwardDecls(&ctx, root);
 
     /*
         class 默认字段初始化会被写入默认构造 helper，而该 helper 早于普通函数定义。
@@ -333,8 +342,6 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         ctx.currentGenericArgs = prevArgs;
     }
     xl6CgenFunctionReturnStructDecls(&ctx, root);
-    xl6CgenRegisterModuleGlobalTypes(&ctx, root);
-
     for ( i = 0; i < root->childCount; ++i ) {
         if ( root->children[i]->kind == XL6_AST_EXTERN_FUNC ) {
             if ( !xl6CgenIsRuntimeHeaderExtern(root->children[i]) ) {
@@ -474,6 +481,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     xl6CgenFreeCleanups(&ctx);
     xl6CgenFreeLoopTargets(&ctx);
     xl6CgenFreeTryTargets(&ctx);
+    xl6CgenFreeFinallyTargets(&ctx);
     xl6CgenFreeGenericInstances(&ctx);
     xl6CgenFreeGenericClassInstances(&ctx);
     xl6CgenFreeRuntimeTypeDescs(&ctx);

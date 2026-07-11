@@ -231,7 +231,7 @@ end
 class FlameNode
     string name
     int count
-    array<FlameNode> kids
+    var kids
     create(string n)
         self.name = n
         self.count = 0
@@ -727,13 +727,15 @@ end
 
 func flameChild(var parent, string nm) as var
     var kids = parent.kids
-    for k in kids
-        if k.name == nm then return k end
+    int ki = 0
+    while ki < kids.length do
+        if kids[ki].name == nm then return kids[ki] end
+        ki += 1
     end
     return null
 end
 
-// 把火焰树按深度铺到 rows（var array of var array of FlameNode）
+// 把火焰树按深度铺到 rows（var array of var array of var dict nodes）
 func flameLay(var rows, var node, int depth)
     while rows.length <= depth do
         var empty = []
@@ -741,9 +743,11 @@ func flameLay(var rows, var node, int depth)
     end
     var row = rows[depth]
     row.push(node)
-    var kids = node.kids
-    for k in kids
-        flameLay(rows, k, depth + 1)
+    var kids = node["kids"]
+    int ki = 0
+    while ki < kids.length do
+        flameLay(rows, kids[ki], depth + 1)
+        ki += 1
     end
 end
 
@@ -783,23 +787,39 @@ func renderFlame(var root) as string
     end
 
     // 聚合采样栈为火焰树：sample[0] = 最外层
-    FlameNode treeRoot = FlameNode("<root>")
+    // 用 dict 代替 FlameNode 实例，避免 class 值语义在 var 传递时丢失修改。
+    var treeRoot = {}
+    treeRoot["name"] = "<root>"
+    treeRoot["count"] = 0
+    treeRoot["kids"] = []
     for snap in samps
         var cur = treeRoot
-        treeRoot.count = treeRoot.count + 1
+        cur["count"] = int(cur["count"]) + 1
         int i = 0
         int L = snap.length
         while i < L do
             string nm = string(snap[i])
-            var kid = flameChild(cur, nm)
-            if kid is null then
-                FlameNode nn = FlameNode(nm)
-                cur.kids.push(nn)
+            var kids = cur["kids"]
+            int ki = 0
+            var found = null
+            while ki < kids.length do
+                if kids[ki]["name"] == nm then
+                    found = kids[ki]
+                end
+                ki += 1
+            end
+            if found is null then
+                var nn = {}
+                nn["name"] = nm
+                nn["count"] = 0
+                nn["kids"] = []
+                kids.push(nn)
+                cur["kids"] = kids
                 cur = nn
             else
-                cur = kid
+                cur = found
             end
-            cur.count = cur.count + 1
+            cur["count"] = int(cur["count"]) + 1
             i += 1
         end
     end
@@ -807,6 +827,7 @@ func renderFlame(var root) as string
     var rows = []
     flameLay(rows, treeRoot, 0)
 
+    int totalCnt = int(treeRoot["count"])
     out = out + "samples: " + string(nsamp) + "    depth levels: " + string(rows.length) + "\n"
     out = out + "\n"
     int W = 80
@@ -819,8 +840,8 @@ func renderFlame(var root) as string
         int ri = 0
         while ri < row.length do
             var nd = row[ri]
-            int w = flameWidth(int(nd.count), treeRoot.count, W)
-            line = line + flameBox(string(nd.name), w)
+            int w = flameWidth(int(nd["count"]), totalCnt, W)
+            line = line + flameBox(string(nd["name"]), w)
             ri += 1
         end
         out = out + padL(string(d), 2) + " | " + line + "\n"
@@ -954,7 +975,7 @@ func cmdTest() as int
         tcheck(string.contains(out2, "__xprof_dump()"), "instrument: injects dump in main", "")
         tcheck(string.contains(out2, "XP_RUNTIME") == false, "instrument: does not leak internal marker", "")
     end
-    if file.exists(tmpXl) then file.remove(tmpXl) end
+    if file.exists(tmpXl) then file.delete(tmpXl) end
 
     // --- 3. analyze（合成 profile）---
     string profPath = path.join(g_toolDir, "xprof_tmp_profile.json")
@@ -988,7 +1009,7 @@ func cmdTest() as int
     string f5 = renderFlame(root5)
     tcheck(string.contains(f5, "no samples"), "flame: empty-samples fallback message", "")
 
-    if file.exists(profPath) then file.remove(profPath) end
+    if file.exists(profPath) then file.delete(profPath) end
 
     println("")
     println("total: " + string(g_tpass) + " passed, " + string(g_tfail) + " failed")

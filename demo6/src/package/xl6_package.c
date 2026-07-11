@@ -2,17 +2,9 @@
 #include "src/common/xl6_common.h"
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#if defined(_WIN32) || defined(_WIN64)
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
 
 static char* xl6PackageDupText(const char* text)
 {
@@ -20,100 +12,61 @@ static char* xl6PackageDupText(const char* text)
     return xrtCopyStr((char*)src, strlen(src));
 }
 
-static void xl6PackageCopyText(char* out, size_t outSize, const char* text)
+static char* xl6PackageDirName(const char* path)
 {
-    if ( out == NULL || outSize == 0 ) {
-        return;
+    char* result;
+
+    if ( path == NULL || path[0] == '\0' ) {
+        return xl6PackageDupText(".");
     }
-    snprintf(out, outSize, "%s", text != NULL ? text : "");
+    result = (char*)xrtPathGetDir((str)path, 0);
+    if ( result == NULL || result[0] == '\0' ) {
+        xrtFree(result);
+        return xl6PackageDupText(".");
+    }
+    return result;
 }
 
-static void xl6PackageDirName(char* out, size_t outSize, const char* path)
+static char* xl6PackageJoinPathAlloc(const char* a, const char* b)
 {
-    const char* lastSep;
-    const char* p;
-    size_t len;
-
-    if ( out == NULL || outSize == 0 ) {
-        return;
+    if ( a == NULL || b == NULL ) {
+        return NULL;
     }
-    out[0] = '\0';
-    if ( path == NULL || path[0] == '\0' ) {
-        snprintf(out, outSize, ".");
-        return;
-    }
-
-    lastSep = NULL;
-    for ( p = path; *p != '\0'; ++p ) {
-        if ( *p == '\\' || *p == '/' || *p == ':' ) {
-            lastSep = p;
-        }
-    }
-    if ( lastSep == NULL ) {
-        snprintf(out, outSize, ".");
-        return;
-    }
-
-    len = (size_t)(lastSep - path);
-    if ( *lastSep == ':' ) {
-        len += 1;
-    }
-    if ( len >= outSize ) {
-        len = outSize - 1;
-    }
-    memcpy(out, path, len);
-    out[len] = '\0';
+    return (char*)xrtPathJoin(2u, (str)a, (str)b);
 }
 
 int xl6PackageJoinPath(char* out, size_t outSize, const char* a, const char* b)
 {
-    const char* sep;
-    size_t aLen;
-    int written;
+    char* joined;
+    size_t len;
 
     if ( out == NULL || outSize == 0 || a == NULL || b == NULL ) {
         return 0;
     }
-    aLen = strlen(a);
-    sep = (aLen > 0 && (a[aLen - 1] == '\\' || a[aLen - 1] == '/')) ? "" : "\\";
-    written = snprintf(out, outSize, "%s%s%s", a, sep, b);
-    return written > 0 && (size_t)written < outSize;
+    joined = xl6PackageJoinPathAlloc(a, b);
+    if ( joined == NULL ) {
+        return 0;
+    }
+    len = strlen(joined);
+    if ( len >= outSize ) {
+        xrtFree(joined);
+        return 0;
+    }
+    memcpy(out, joined, len + 1);
+    xrtFree(joined);
+    return 1;
 }
 
-static void xl6PackageBaseNameNoExt(char* out, size_t outSize, const char* path)
+static char* xl6PackageBaseNameNoExt(const char* path)
 {
-    const char* base;
-    const char* p;
-    const char* dot;
-    size_t len;
+    char* result;
 
-    if ( out == NULL || outSize == 0 ) {
-        return;
+    result = path != NULL ? (char*)xrtPathGetName((str)path, 0) : NULL;
+    if ( result == NULL || result[0] == '\0' ) {
+        xrtFree(result);
+        return xl6PackageDupText("package");
     }
-    out[0] = '\0';
-
-    base = path != NULL ? path : "package";
-    for ( p = base; *p != '\0'; ++p ) {
-        if ( *p == '\\' || *p == '/' || *p == ':' ) {
-            base = p + 1;
-        }
-    }
-    dot = NULL;
-    for ( p = base; *p != '\0'; ++p ) {
-        if ( *p == '.' ) {
-            dot = p;
-        }
-    }
-    len = dot != NULL ? (size_t)(dot - base) : strlen(base);
-    if ( len == 0 ) {
-        base = "package";
-        len = strlen(base);
-    }
-    if ( len >= outSize ) {
-        len = outSize - 1;
-    }
-    memcpy(out, base, len);
-    out[len] = '\0';
+    return result;
 }
 
 static int xl6PackageEndsWith(const char* text, const char* suffix)
@@ -129,15 +82,13 @@ static int xl6PackageEndsWith(const char* text, const char* suffix)
     return textLen >= suffixLen && strcmp(text + textLen - suffixLen, suffix) == 0;
 }
 
-static void xl6PackageMakePackageId(char* out, size_t outSize, const char* name, const char* version, const char* abiVersion)
+static char* xl6PackageMakePackageId(const char* name, const char* version, const char* abiVersion)
 {
-    if ( out == NULL || outSize == 0 ) {
-        return;
-    }
-    snprintf(out, outSize, "%s@%s#abi%s",
-             name != NULL && name[0] != '\0' ? name : "package",
-             version != NULL && version[0] != '\0' ? version : "0.0.0",
-             abiVersion != NULL && abiVersion[0] != '\0' ? abiVersion : "1");
+    return (char*)xrtFormat(
+        "%s@%s#abi%s",
+        name != NULL && name[0] != '\0' ? name : "package",
+        version != NULL && version[0] != '\0' ? version : "0.0.0",
+        abiVersion != NULL && abiVersion[0] != '\0' ? abiVersion : "1");
 }
 
 void xl6PackageStringListInit(XL6_PackageStringList* list)
@@ -220,240 +171,69 @@ void xl6PackageManifestFree(XL6_PackageManifest* manifest)
     memset(manifest, 0, sizeof(*manifest));
 }
 
-typedef struct XL6_PackageJson {
-    const char* text;
-    size_t len;
-    size_t pos;
-} XL6_PackageJson;
-
-static void xl6PackageJsonSkipWs(XL6_PackageJson* json)
+/*
+    package 层只验证字段约束，JSON 词法、转义和 Unicode 统一交给 XRT。
+    未识别字段允许保留，便于清单元数据向前扩展；所有已知字段必须严格匹配类型。
+*/
+static int xl6PackageValueHasField(xvalue object, const char* name)
 {
-    while ( json != NULL && json->pos < json->len ) {
-        char ch = json->text[json->pos];
-        if ( ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n' ) {
-            break;
-        }
-        json->pos += 1;
-    }
+    return object != NULL && name != NULL &&
+           xvoIsTable(object) && xvoTableExists(object, (str)name, (uint32)strlen(name));
 }
 
-static int xl6PackageJsonPeek(XL6_PackageJson* json)
+static xvalue xl6PackageValueField(xvalue object, const char* name)
 {
-    xl6PackageJsonSkipWs(json);
-    if ( json == NULL || json->pos >= json->len ) {
-        return 0;
-    }
-    return (unsigned char)json->text[json->pos];
+    return xvoTableGetValue(object, name, (uint32)strlen(name));
 }
 
-static int xl6PackageJsonConsume(XL6_PackageJson* json, char ch)
+static int xl6PackageValueReadText(xvalue object, const char* name, char** out, int required)
 {
-    xl6PackageJsonSkipWs(json);
-    if ( json == NULL || json->pos >= json->len || json->text[json->pos] != ch ) {
+    xvalue value;
+    char* copy;
+
+    if ( out == NULL ) {
         return 0;
     }
-    json->pos += 1;
+    if ( !xl6PackageValueHasField(object, name) ) {
+        return !required;
+    }
+    value = xl6PackageValueField(object, name);
+    if ( !xvoIsText(value) ) {
+        return 0;
+    }
+    copy = xl6PackageDupText(xvoGetText(value));
+    if ( copy == NULL ) {
+        return 0;
+    }
+    xrtFree(*out);
+    *out = copy;
     return 1;
 }
 
-static int xl6PackageJsonAppendChar(char** out, size_t* len, size_t* cap, char ch)
+static int xl6PackageValueReadStringArray(
+    xvalue object,
+    const char* name,
+    XL6_PackageStringList* list)
 {
-    char* newData;
-    size_t newCap;
+    xvalue array;
+    uint32 count;
+    uint32 i;
 
-    if ( out == NULL || len == NULL || cap == NULL ) {
+    if ( !xl6PackageValueHasField(object, name) ) {
+        return 1;
+    }
+    array = xl6PackageValueField(object, name);
+    if ( !xvoIsArray(array) ) {
         return 0;
     }
-    if ( *len + 2 > *cap ) {
-        newCap = *cap == 0 ? 32 : *cap * 2;
-        while ( *len + 2 > newCap ) {
-            newCap *= 2;
-        }
-        newData = (char*)xrtRealloc(*out, newCap);
-        if ( newData == NULL ) {
+    count = xvoArrayItemCount(array);
+    for ( i = 0; i < count; ++i ) {
+        xvalue item = xvoArrayGetValue(array, i);
+        if ( !xvoIsText(item) || !xl6PackageStringListAppend(list, xvoGetText(item)) ) {
             return 0;
         }
-        *out = newData;
-        *cap = newCap;
-    }
-    (*out)[*len] = ch;
-    *len += 1;
-    (*out)[*len] = '\0';
-    return 1;
-}
-
-static char* xl6PackageJsonReadString(XL6_PackageJson* json)
-{
-    char* out;
-    size_t len;
-    size_t cap;
-
-    if ( !xl6PackageJsonConsume(json, '"') ) {
-        return NULL;
-    }
-    out = NULL;
-    len = 0;
-    cap = 0;
-    while ( json->pos < json->len ) {
-        char ch = json->text[json->pos++];
-        if ( ch == '"' ) {
-            return out != NULL ? out : xl6PackageDupText("");
-        }
-        if ( ch == '\\' && json->pos < json->len ) {
-            ch = json->text[json->pos++];
-            switch ( ch ) {
-            case '"': ch = '"'; break;
-            case '\\': ch = '\\'; break;
-            case '/': ch = '/'; break;
-            case 'b': ch = '\b'; break;
-            case 'f': ch = '\f'; break;
-            case 'n': ch = '\n'; break;
-            case 'r': ch = '\r'; break;
-            case 't': ch = '\t'; break;
-            case 'u':
-                if ( json->pos + 4 <= json->len ) {
-                    json->pos += 4;
-                }
-                ch = '?';
-                break;
-            default:
-                break;
-            }
-        }
-        if ( !xl6PackageJsonAppendChar(&out, &len, &cap, ch) ) {
-            xrtFree(out);
-            return NULL;
-        }
-    }
-    xrtFree(out);
-    return NULL;
-}
-
-static int xl6PackageJsonReadBool(XL6_PackageJson* json, int* outValue)
-{
-    xl6PackageJsonSkipWs(json);
-    if ( json->pos + 4 <= json->len && memcmp(json->text + json->pos, "true", 4) == 0 ) {
-        json->pos += 4;
-        if ( outValue != NULL ) {
-            *outValue = 1;
-        }
-        return 1;
-    }
-    if ( json->pos + 5 <= json->len && memcmp(json->text + json->pos, "false", 5) == 0 ) {
-        json->pos += 5;
-        if ( outValue != NULL ) {
-            *outValue = 0;
-        }
-        return 1;
-    }
-    return 0;
-}
-
-static int xl6PackageJsonSkipValue(XL6_PackageJson* json);
-
-static int xl6PackageJsonSkipObject(XL6_PackageJson* json)
-{
-    if ( !xl6PackageJsonConsume(json, '{') ) {
-        return 0;
-    }
-    if ( xl6PackageJsonConsume(json, '}') ) {
-        return 1;
-    }
-    for (;;) {
-        char* key = xl6PackageJsonReadString(json);
-        if ( key == NULL ) {
-            return 0;
-        }
-        xrtFree(key);
-        if ( !xl6PackageJsonConsume(json, ':') || !xl6PackageJsonSkipValue(json) ) {
-            return 0;
-        }
-        if ( xl6PackageJsonConsume(json, '}') ) {
-            return 1;
-        }
-        if ( !xl6PackageJsonConsume(json, ',') ) {
-            return 0;
-        }
-    }
-}
-
-static int xl6PackageJsonSkipArray(XL6_PackageJson* json)
-{
-    if ( !xl6PackageJsonConsume(json, '[') ) {
-        return 0;
-    }
-    if ( xl6PackageJsonConsume(json, ']') ) {
-        return 1;
-    }
-    for (;;) {
-        if ( !xl6PackageJsonSkipValue(json) ) {
-            return 0;
-        }
-        if ( xl6PackageJsonConsume(json, ']') ) {
-            return 1;
-        }
-        if ( !xl6PackageJsonConsume(json, ',') ) {
-            return 0;
-        }
-    }
-}
-
-static int xl6PackageJsonSkipValue(XL6_PackageJson* json)
-{
-    int ch;
-
-    ch = xl6PackageJsonPeek(json);
-    if ( ch == '"' ) {
-        char* text = xl6PackageJsonReadString(json);
-        xrtFree(text);
-        return text != NULL;
-    }
-    if ( ch == '{' ) {
-        return xl6PackageJsonSkipObject(json);
-    }
-    if ( ch == '[' ) {
-        return xl6PackageJsonSkipArray(json);
-    }
-    if ( ch == 't' || ch == 'f' ) {
-        return xl6PackageJsonReadBool(json, NULL);
-    }
-    if ( ch == 'n' && json->pos + 4 <= json->len && memcmp(json->text + json->pos, "null", 4) == 0 ) {
-        json->pos += 4;
-        return 1;
-    }
-    xl6PackageJsonSkipWs(json);
-    while ( json->pos < json->len ) {
-        ch = (unsigned char)json->text[json->pos];
-        if ( ch == ',' || ch == ']' || ch == '}' || ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' ) {
-            break;
-        }
-        json->pos += 1;
     }
     return 1;
-}
-
-static int xl6PackageManifestReadStringArray(XL6_PackageJson* json, XL6_PackageStringList* list)
-{
-    if ( !xl6PackageJsonConsume(json, '[') ) {
-        return 0;
-    }
-    if ( xl6PackageJsonConsume(json, ']') ) {
-        return 1;
-    }
-    for (;;) {
-        char* text = xl6PackageJsonReadString(json);
-        int ok = text != NULL && xl6PackageStringListAppend(list, text);
-        xrtFree(text);
-        if ( !ok ) {
-            return 0;
-        }
-        if ( xl6PackageJsonConsume(json, ']') ) {
-            return 1;
-        }
-        if ( !xl6PackageJsonConsume(json, ',') ) {
-            return 0;
-        }
-    }
 }
 
 static int xl6PackageManifestAppendDependency(
@@ -464,290 +244,172 @@ static int xl6PackageManifestAppendDependency(
 {
     XL6_PackageDependency* newItems;
     XL6_PackageDependency* dep;
-    char id[256];
+    char* nameCopy;
+    char* versionCopy;
+    char* abiCopy;
+    char* packageId;
 
-    if ( manifest == NULL || name == NULL || name[0] == '\0' ) {
+    if ( manifest == NULL || name == NULL || name[0] == '\0' ||
+         manifest->dependencyCount == SIZE_MAX / sizeof(XL6_PackageDependency) ) {
         return 0;
     }
+
+    /* 所有字段先构造完成；扩容失败时 manifest 保持原状。 */
+    nameCopy = xl6PackageDupText(name);
+    versionCopy = xl6PackageDupText(
+        version != NULL && version[0] != '\0' ? version : "0.0.0");
+    abiCopy = xl6PackageDupText(
+        abiVersion != NULL && abiVersion[0] != '\0' ? abiVersion : "1");
+    packageId = xl6PackageMakePackageId(nameCopy, versionCopy, abiCopy);
+    if ( nameCopy == NULL || versionCopy == NULL || abiCopy == NULL || packageId == NULL ) {
+        xrtFree(nameCopy);
+        xrtFree(versionCopy);
+        xrtFree(abiCopy);
+        xrtFree(packageId);
+        return 0;
+    }
+
     newItems = (XL6_PackageDependency*)xrtRealloc(
         manifest->dependencies,
         (manifest->dependencyCount + 1) * sizeof(XL6_PackageDependency));
     if ( newItems == NULL ) {
+        xrtFree(nameCopy);
+        xrtFree(versionCopy);
+        xrtFree(abiCopy);
+        xrtFree(packageId);
         return 0;
     }
+
     manifest->dependencies = newItems;
     dep = &manifest->dependencies[manifest->dependencyCount];
-    memset(dep, 0, sizeof(*dep));
-    dep->name = xl6PackageDupText(name);
-    dep->version = xl6PackageDupText(version != NULL && version[0] != '\0' ? version : "0.0.0");
-    dep->abiVersion = xl6PackageDupText(abiVersion != NULL && abiVersion[0] != '\0' ? abiVersion : "1");
-    xl6PackageMakePackageId(id, sizeof(id), dep->name, dep->version, dep->abiVersion);
-    dep->packageId = xl6PackageDupText(id);
-    if ( dep->name == NULL || dep->version == NULL || dep->abiVersion == NULL || dep->packageId == NULL ) {
-        return 0;
-    }
+    dep->name = nameCopy;
+    dep->version = versionCopy;
+    dep->abiVersion = abiCopy;
+    dep->packageId = packageId;
     manifest->dependencyCount += 1;
     return 1;
 }
 
-static int xl6PackageManifestReadDependencyString(XL6_PackageJson* json, XL6_PackageManifest* manifest)
+static int xl6PackageValueReadDependencies(xvalue root, XL6_PackageManifest* manifest)
 {
-    char* name;
-    int ok;
+    xvalue array;
+    uint32 count;
+    uint32 i;
 
-    name = xl6PackageJsonReadString(json);
-    ok = name != NULL && xl6PackageManifestAppendDependency(manifest, name, "*", "*");
-    xrtFree(name);
-    return ok;
-}
-
-static int xl6PackageManifestReadDependencyObject(XL6_PackageJson* json, XL6_PackageManifest* manifest)
-{
-    char* name;
-    char* version;
-    char* abiVersion;
-    int ok;
-
-    name = NULL;
-    version = NULL;
-    abiVersion = NULL;
-    if ( !xl6PackageJsonConsume(json, '{') ) {
-        return 0;
-    }
-    if ( !xl6PackageJsonConsume(json, '}') ) {
-        for (;;) {
-            char* key = xl6PackageJsonReadString(json);
-            if ( key == NULL || !xl6PackageJsonConsume(json, ':') ) {
-                xrtFree(key);
-                xrtFree(name);
-                xrtFree(version);
-                xrtFree(abiVersion);
-                return 0;
-            }
-            if ( strcmp(key, "name") == 0 ) {
-                xrtFree(name);
-                name = xl6PackageJsonReadString(json);
-            } else if ( strcmp(key, "version") == 0 ) {
-                xrtFree(version);
-                version = xl6PackageJsonReadString(json);
-            } else if ( strcmp(key, "abiVersion") == 0 ) {
-                xrtFree(abiVersion);
-                abiVersion = xl6PackageJsonReadString(json);
-            } else if ( !xl6PackageJsonSkipValue(json) ) {
-                xrtFree(key);
-                xrtFree(name);
-                xrtFree(version);
-                xrtFree(abiVersion);
-                return 0;
-            }
-            xrtFree(key);
-            if ( xl6PackageJsonConsume(json, '}') ) {
-                break;
-            }
-            if ( !xl6PackageJsonConsume(json, ',') ) {
-                xrtFree(name);
-                xrtFree(version);
-                xrtFree(abiVersion);
-                return 0;
-            }
-        }
-    }
-    ok = xl6PackageManifestAppendDependency(manifest, name, version, abiVersion);
-    xrtFree(name);
-    xrtFree(version);
-    xrtFree(abiVersion);
-    return ok;
-}
-
-static int xl6PackageManifestReadDependencies(XL6_PackageJson* json, XL6_PackageManifest* manifest)
-{
-    if ( !xl6PackageJsonConsume(json, '[') ) {
-        return 0;
-    }
-    if ( xl6PackageJsonConsume(json, ']') ) {
+    if ( !xl6PackageValueHasField(root, "dependencies") ) {
         return 1;
     }
-    for (;;) {
-        int ok;
+    array = xl6PackageValueField(root, "dependencies");
+    if ( !xvoIsArray(array) ) {
+        return 0;
+    }
+    count = xvoArrayItemCount(array);
+    for ( i = 0; i < count; ++i ) {
+        xvalue item = xvoArrayGetValue(array, i);
+        if ( xvoIsText(item) ) {
+            if ( xvoGetText(item)[0] == '\0' ||
+                 !xl6PackageManifestAppendDependency(manifest, xvoGetText(item), "*", "*") ) {
+                return 0;
+            }
+        } else if ( xvoIsTable(item) ) {
+            xvalue nameValue;
+            xvalue versionValue;
+            xvalue abiValue;
+            const char* version = "*";
+            const char* abiVersion = "*";
 
-        xl6PackageJsonSkipWs(json);
-        if ( json->pos < json->len && json->text[json->pos] == '"' ) {
-            ok = xl6PackageManifestReadDependencyString(json, manifest);
+            if ( !xl6PackageValueHasField(item, "name") ) {
+                return 0;
+            }
+            nameValue = xl6PackageValueField(item, "name");
+            if ( !xvoIsText(nameValue) || xvoGetText(nameValue)[0] == '\0' ) {
+                return 0;
+            }
+            if ( xl6PackageValueHasField(item, "version") ) {
+                versionValue = xl6PackageValueField(item, "version");
+                if ( !xvoIsText(versionValue) ) {
+                    return 0;
+                }
+                version = xvoGetText(versionValue);
+            }
+            if ( xl6PackageValueHasField(item, "abiVersion") ) {
+                abiValue = xl6PackageValueField(item, "abiVersion");
+                if ( !xvoIsText(abiValue) ) {
+                    return 0;
+                }
+                abiVersion = xvoGetText(abiValue);
+            }
+            if ( !xl6PackageManifestAppendDependency(
+                    manifest, xvoGetText(nameValue), version, abiVersion) ) {
+                return 0;
+            }
         } else {
-            ok = xl6PackageManifestReadDependencyObject(json, manifest);
-        }
-        if ( !ok ) {
-            return 0;
-        }
-        if ( xl6PackageJsonConsume(json, ']') ) {
-            return 1;
-        }
-        if ( !xl6PackageJsonConsume(json, ',') ) {
             return 0;
         }
     }
+    return 1;
 }
 
-static int xl6PackageManifestReadArtifact(XL6_PackageJson* json, XL6_PackageManifest* manifest)
+static int xl6PackageValueReadArtifact(xvalue root, XL6_PackageManifest* manifest)
 {
-    if ( !xl6PackageJsonConsume(json, '{') ) {
-        return 0;
-    }
-    if ( xl6PackageJsonConsume(json, '}') ) {
+    xvalue artifact;
+
+    if ( !xl6PackageValueHasField(root, "artifact") ) {
         return 1;
     }
-    for (;;) {
-        char* key = xl6PackageJsonReadString(json);
-        if ( key == NULL || !xl6PackageJsonConsume(json, ':') ) {
-            xrtFree(key);
-            return 0;
-        }
-        if ( strcmp(key, "cSources") == 0 ) {
-            if ( !xl6PackageManifestReadStringArray(json, &manifest->cSources) ) {
-                xrtFree(key);
-                return 0;
-            }
-        } else if ( strcmp(key, "xlSources") == 0 ) {
-            if ( !xl6PackageManifestReadStringArray(json, &manifest->xlSources) ) {
-                xrtFree(key);
-                return 0;
-            }
-        } else if ( !xl6PackageJsonSkipValue(json) ) {
-            xrtFree(key);
-            return 0;
-        }
-        xrtFree(key);
-        if ( xl6PackageJsonConsume(json, '}') ) {
-            return 1;
-        }
-        if ( !xl6PackageJsonConsume(json, ',') ) {
-            return 0;
-        }
-    }
+    artifact = xl6PackageValueField(root, "artifact");
+    return xvoIsTable(artifact) &&
+           xl6PackageValueReadStringArray(artifact, "cSources", &manifest->cSources) &&
+           xl6PackageValueReadStringArray(artifact, "xlSources", &manifest->xlSources);
 }
 
-static int xl6PackageManifestReadNative(XL6_PackageJson* json, XL6_PackageManifest* manifest)
+static int xl6PackageValueReadNative(xvalue root, XL6_PackageManifest* manifest)
 {
-    if ( !xl6PackageJsonConsume(json, '{') ) {
-        return 0;
-    }
-    if ( xl6PackageJsonConsume(json, '}') ) {
+    xvalue native;
+    xvalue singleton;
+
+    if ( !xl6PackageValueHasField(root, "native") ) {
         return 1;
     }
-    for (;;) {
-        char* key = xl6PackageJsonReadString(json);
-        if ( key == NULL || !xl6PackageJsonConsume(json, ':') ) {
-            xrtFree(key);
-            return 0;
-        }
-        if ( strcmp(key, "singleton") == 0 ) {
-            if ( !xl6PackageJsonReadBool(json, &manifest->nativeInfo.singleton) ) {
-                xrtFree(key);
-                return 0;
-            }
-        } else if ( strcmp(key, "loadName") == 0 ) {
-            xrtFree(manifest->nativeInfo.loadName);
-            manifest->nativeInfo.loadName = xl6PackageJsonReadString(json);
-        } else if ( strcmp(key, "version") == 0 ) {
-            xrtFree(manifest->nativeInfo.version);
-            manifest->nativeInfo.version = xl6PackageJsonReadString(json);
-        } else if ( !xl6PackageJsonSkipValue(json) ) {
-            xrtFree(key);
-            return 0;
-        }
-        xrtFree(key);
-        if ( xl6PackageJsonConsume(json, '}') ) {
-            return 1;
-        }
-        if ( !xl6PackageJsonConsume(json, ',') ) {
-            return 0;
-        }
+    native = xl6PackageValueField(root, "native");
+    if ( !xvoIsTable(native) ) {
+        return 0;
     }
+    if ( xl6PackageValueHasField(native, "singleton") ) {
+        singleton = xl6PackageValueField(native, "singleton");
+        if ( !xvoIsBool(singleton) ) {
+            return 0;
+        }
+        manifest->nativeInfo.singleton = xvoGetBool(singleton) ? 1 : 0;
+    }
+    return xl6PackageValueReadText(native, "loadName", &manifest->nativeInfo.loadName, 0) &&
+           xl6PackageValueReadText(native, "version", &manifest->nativeInfo.version, 0);
 }
 
-static int xl6PackageManifestParseRoot(XL6_PackageJson* json, XL6_PackageManifest* manifest)
+static int xl6PackageManifestReadXrtValue(xvalue root, XL6_PackageManifest* manifest)
 {
-    if ( !xl6PackageJsonConsume(json, '{') ) {
-        return 0;
-    }
-    if ( xl6PackageJsonConsume(json, '}') ) {
-        return 1;
-    }
-    for (;;) {
-        char* key = xl6PackageJsonReadString(json);
-        if ( key == NULL || !xl6PackageJsonConsume(json, ':') ) {
-            xrtFree(key);
-            return 0;
-        }
-        if ( strcmp(key, "format") == 0 ) {
-            xrtFree(manifest->format);
-            manifest->format = xl6PackageJsonReadString(json);
-        } else if ( strcmp(key, "name") == 0 ) {
-            xrtFree(manifest->name);
-            manifest->name = xl6PackageJsonReadString(json);
-        } else if ( strcmp(key, "version") == 0 ) {
-            xrtFree(manifest->version);
-            manifest->version = xl6PackageJsonReadString(json);
-        } else if ( strcmp(key, "abiVersion") == 0 ) {
-            xrtFree(manifest->abiVersion);
-            manifest->abiVersion = xl6PackageJsonReadString(json);
-        } else if ( strcmp(key, "artifact") == 0 ) {
-            if ( !xl6PackageManifestReadArtifact(json, manifest) ) {
-                xrtFree(key);
-                return 0;
-            }
-        } else if ( strcmp(key, "links") == 0 ) {
-            if ( !xl6PackageManifestReadStringArray(json, &manifest->links) ) {
-                xrtFree(key);
-                return 0;
-            }
-        } else if ( strcmp(key, "loadlibs") == 0 ) {
-            if ( !xl6PackageManifestReadStringArray(json, &manifest->loadlibs) ) {
-                xrtFree(key);
-                return 0;
-            }
-        } else if ( strcmp(key, "cSources") == 0 ) {
-            if ( !xl6PackageManifestReadStringArray(json, &manifest->cSources) ) {
-                xrtFree(key);
-                return 0;
-            }
-        } else if ( strcmp(key, "xlSources") == 0 ) {
-            if ( !xl6PackageManifestReadStringArray(json, &manifest->xlSources) ) {
-                xrtFree(key);
-                return 0;
-            }
-        } else if ( strcmp(key, "dependencies") == 0 ) {
-            if ( !xl6PackageManifestReadDependencies(json, manifest) ) {
-                xrtFree(key);
-                return 0;
-            }
-        } else if ( strcmp(key, "native") == 0 ) {
-            if ( !xl6PackageManifestReadNative(json, manifest) ) {
-                xrtFree(key);
-                return 0;
-            }
-        } else if ( !xl6PackageJsonSkipValue(json) ) {
-            xrtFree(key);
-            return 0;
-        }
-        xrtFree(key);
-        if ( xl6PackageJsonConsume(json, '}') ) {
-            return 1;
-        }
-        if ( !xl6PackageJsonConsume(json, ',') ) {
-            return 0;
-        }
-    }
+    return xvoIsTable(root) &&
+           xl6PackageValueReadText(root, "format", &manifest->format, 1) &&
+           xl6PackageValueReadText(root, "name", &manifest->name, 0) &&
+           xl6PackageValueReadText(root, "version", &manifest->version, 0) &&
+           xl6PackageValueReadText(root, "abiVersion", &manifest->abiVersion, 0) &&
+           xl6PackageValueReadArtifact(root, manifest) &&
+           xl6PackageValueReadStringArray(root, "cSources", &manifest->cSources) &&
+           xl6PackageValueReadStringArray(root, "xlSources", &manifest->xlSources) &&
+           xl6PackageValueReadStringArray(root, "links", &manifest->links) &&
+           xl6PackageValueReadStringArray(root, "loadlibs", &manifest->loadlibs) &&
+           xl6PackageValueReadDependencies(root, manifest) &&
+           xl6PackageValueReadNative(root, manifest);
 }
 
 int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest)
 {
     char* text;
+    char* dir;
+    char* fallbackName;
     size_t textLen;
-    XL6_PackageJson json;
-    char dir[512];
-    char fallbackName[128];
-    char packageId[256];
+    size_t jsonOffset;
+    xvalue root;
     int ok;
 
     if ( path == NULL || manifest == NULL ) {
@@ -763,19 +425,27 @@ int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest)
         xrtFree(text);
         return 0;
     }
-    memset(&json, 0, sizeof(json));
-    json.text = text;
-    json.len = textLen;
-    if ( json.len >= 3 &&
-         (unsigned char)json.text[0] == 0xEF &&
-         (unsigned char)json.text[1] == 0xBB &&
-         (unsigned char)json.text[2] == 0xBF ) {
-        json.pos = 3;
+    jsonOffset = textLen >= 3 &&
+                 (unsigned char)text[0] == 0xEF &&
+                 (unsigned char)text[1] == 0xBB &&
+                 (unsigned char)text[2] == 0xBF ? 3 : 0;
+    root = NULL;
+    ok = xrtJsonValid(text + jsonOffset, textLen - jsonOffset);
+    if ( ok ) {
+        root = xrtParseJSON(text + jsonOffset, textLen - jsonOffset);
+        ok = root != NULL && !xvoIsNull(root) &&
+             xl6PackageManifestReadXrtValue(root, manifest);
     }
-    ok = xl6PackageManifestParseRoot(&json, manifest);
+    xvoUnref(root);
     xrtFree(text);
-    xl6PackageDirName(dir, sizeof(dir), path);
-    xl6PackageBaseNameNoExt(fallbackName, sizeof(fallbackName), dir);
+    dir = xl6PackageDirName(path);
+    fallbackName = xl6PackageBaseNameNoExt(dir);
+    if ( dir == NULL || fallbackName == NULL ) {
+        xrtFree(dir);
+        xrtFree(fallbackName);
+        xl6PackageManifestFree(manifest);
+        return 0;
+    }
     if ( ok && (manifest->format == NULL || strcmp(manifest->format, "xlang-package-1") != 0) ) {
         ok = 0;
     }
@@ -789,14 +459,17 @@ int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest)
         manifest->abiVersion = xl6PackageDupText("1");
     }
     if ( ok ) {
-        manifest->dir = xl6PackageDupText(dir);
-        xl6PackageMakePackageId(packageId, sizeof(packageId), manifest->name, manifest->version, manifest->abiVersion);
-        manifest->packageId = xl6PackageDupText(packageId);
+        manifest->dir = dir;
+        dir = NULL;
+        manifest->packageId = xl6PackageMakePackageId(
+            manifest->name, manifest->version, manifest->abiVersion);
         if ( manifest->name == NULL || manifest->version == NULL || manifest->abiVersion == NULL ||
              manifest->dir == NULL || manifest->packageId == NULL ) {
             ok = 0;
         }
     }
+    xrtFree(dir);
+    xrtFree(fallbackName);
     if ( !ok ) {
         xl6PackageManifestFree(manifest);
     }
@@ -806,21 +479,59 @@ int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest)
 static int xl6PackageFinalizeManifestResult(XL6_PackageResolveResult* result)
 {
     XL6_PackageManifest manifest;
-    int ok;
+    char* packageDir;
+    char* packageName;
+    char* packageVersion;
+    char* abiVersion;
+    char* packageId;
 
     xl6PackageManifestInit(&manifest);
     if ( !xl6PackageLoadManifest(result->manifestPath, &manifest) ) {
         xl6PackageManifestFree(&manifest);
         return 0;
     }
-    ok = 1;
-    xl6PackageCopyText(result->packageDir, sizeof(result->packageDir), manifest.dir);
-    xl6PackageCopyText(result->packageName, sizeof(result->packageName), manifest.name);
-    xl6PackageCopyText(result->packageVersion, sizeof(result->packageVersion), manifest.version);
-    xl6PackageCopyText(result->abiVersion, sizeof(result->abiVersion), manifest.abiVersion);
-    xl6PackageCopyText(result->packageId, sizeof(result->packageId), manifest.packageId);
+    packageDir = xl6PackageDupText(manifest.dir);
+    packageName = xl6PackageDupText(manifest.name);
+    packageVersion = xl6PackageDupText(manifest.version);
+    abiVersion = xl6PackageDupText(manifest.abiVersion);
+    packageId = xl6PackageDupText(manifest.packageId);
     xl6PackageManifestFree(&manifest);
-    return ok;
+    if ( packageDir == NULL || packageName == NULL || packageVersion == NULL ||
+         abiVersion == NULL || packageId == NULL ) {
+        xrtFree(packageDir);
+        xrtFree(packageName);
+        xrtFree(packageVersion);
+        xrtFree(abiVersion);
+        xrtFree(packageId);
+        return 0;
+    }
+    result->packageDir = packageDir;
+    result->packageName = packageName;
+    result->packageVersion = packageVersion;
+    result->abiVersion = abiVersion;
+    result->packageId = packageId;
+    return 1;
+}
+
+static void xl6PackageResolveResultClearResolution(XL6_PackageResolveResult* result)
+{
+    if ( result == NULL ) {
+        return;
+    }
+    xrtFree(result->manifestPath);
+    xrtFree(result->packageDir);
+    xrtFree(result->packageName);
+    xrtFree(result->packageVersion);
+    xrtFree(result->abiVersion);
+    xrtFree(result->packageId);
+    result->manifestPath = NULL;
+    result->packageDir = NULL;
+    result->packageName = NULL;
+    result->packageVersion = NULL;
+    result->abiVersion = NULL;
+    result->packageId = NULL;
+    result->resolved = 0;
+    result->kind = XL6_PACKAGE_RESOLVE_UNRESOLVED;
 }
 
 static int xl6PackageTryManifest(XL6_PackageResolveResult* result, const char* path, XL6_PackageResolveKind kind)
@@ -831,11 +542,14 @@ static int xl6PackageTryManifest(XL6_PackageResolveResult* result, const char* p
     if ( !xrtFileExists((char*)path) ) {
         return 0;
     }
+    result->manifestPath = xl6PackageDupText(path);
+    if ( result->manifestPath == NULL ) {
+        return 0;
+    }
     result->resolved = 1;
     result->kind = kind;
-    xl6PackageCopyText(result->manifestPath, sizeof(result->manifestPath), path);
     if ( !xl6PackageFinalizeManifestResult(result) ) {
-        xl6PackageResolveResultInit(result);
+        xl6PackageResolveResultClearResolution(result);
         return 0;
     }
     return 1;
@@ -873,7 +587,8 @@ static int xl6PackagePathIsAbsolute(const char* path)
 
 static int xl6PackageTryPathCandidates(XL6_PackageResolveResult* result, const char* path)
 {
-    char path2[512];
+    char* path2;
+    int ok;
 
     if ( path == NULL || path[0] == '\0' ) {
         return 0;
@@ -881,11 +596,10 @@ static int xl6PackageTryPathCandidates(XL6_PackageResolveResult* result, const c
     if ( xl6PackageTryManifest(result, path, XL6_PACKAGE_RESOLVE_FILE) ) {
         return 1;
     }
-    if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
-         xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
-        return 1;
-    }
-    return 0;
+    path2 = xl6PackageJoinPathAlloc(path, "xlang.package.json");
+    ok = path2 != NULL && xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE);
+    xrtFree(path2);
+    return ok;
 }
 
 static int xl6PackageCanBePackageName(const char* target)
@@ -905,24 +619,24 @@ static int xl6PackageCanBePackageName(const char* target)
 
 static int xl6PackageTryNamedPackageInBase(XL6_PackageResolveResult* result, const char* baseDir, const char* target)
 {
-    char path[512];
-    char path2[512];
+    char* path;
+    char* path2;
+    int ok;
 
     if ( baseDir == NULL || baseDir[0] == '\0' || !xl6PackageCanBePackageName(target) ) {
         return 0;
     }
-    if ( xl6PackageJoinPath(path, sizeof(path), baseDir, target) ) {
-        if ( xl6PackageJoinPath(path2, sizeof(path2), path, "xlang.package.json") &&
-             xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE) ) {
-            return 1;
-        }
-    }
-    return 0;
+    path = xl6PackageJoinPathAlloc(baseDir, target);
+    path2 = path != NULL ? xl6PackageJoinPathAlloc(path, "xlang.package.json") : NULL;
+    ok = path2 != NULL && xl6PackageTryManifest(result, path2, XL6_PACKAGE_RESOLVE_PACKAGE);
+    xrtFree(path2);
+    xrtFree(path);
+    return ok;
 }
 
 static int xl6PackageTryEnvPackagePath(XL6_PackageResolveResult* result, const char* target)
 {
-    const char* env;
+    char* env;
     const char* start;
 #if defined(_WIN32) || defined(_WIN64)
     const char sep = ';';
@@ -930,75 +644,60 @@ static int xl6PackageTryEnvPackagePath(XL6_PackageResolveResult* result, const c
     const char sep = ':';
 #endif
 
-    env = getenv("XLANG_PACKAGE_PATH");
+    env = (char*)xrtEnvGet((str)"XLANG_PACKAGE_PATH");
     if ( env == NULL || env[0] == '\0' ) {
+        xrtFree(env);
         return 0;
     }
     start = env;
     for (;;) {
         const char* end = strchr(start, sep);
         size_t len = end != NULL ? (size_t)(end - start) : strlen(start);
-        char baseDir[512];
+        char* baseDir;
 
         if ( len > 0 ) {
-            if ( len >= sizeof(baseDir) ) {
-                len = sizeof(baseDir) - 1;
-            }
-            memcpy(baseDir, start, len);
-            baseDir[len] = '\0';
-            if ( xl6PackageTryNamedPackageInBase(result, baseDir, target) ) {
+            baseDir = xrtCopyStr((char*)start, len);
+            if ( baseDir != NULL && xl6PackageTryNamedPackageInBase(result, baseDir, target) ) {
+                xrtFree(baseDir);
+                xrtFree(env);
                 return 1;
             }
+            xrtFree(baseDir);
         }
         if ( end == NULL ) {
             break;
         }
         start = end + 1;
     }
+    xrtFree(env);
     return 0;
 }
 
-static int xl6PackageGetExecutableDir(char* out, size_t outSize)
+static char* xl6PackageGetExecutableDir(void)
 {
-    char path[512];
-
-    if ( out == NULL || outSize == 0 ) {
-        return 0;
+    char* path = (char*)xrtPathAppDir();
+    if ( path == NULL || path[0] == '\0' ) {
+        xrtFree(path);
+        return NULL;
     }
-    out[0] = '\0';
-#if defined(_WIN32) || defined(_WIN64)
-    {
-        DWORD len = GetModuleFileNameA(NULL, path, (DWORD)sizeof(path));
-        if ( len == 0 || len >= sizeof(path) ) {
-            return 0;
-        }
-        path[len] = '\0';
-    }
-#else
-    {
-        ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
-        if ( len <= 0 || (size_t)len >= sizeof(path) ) {
-            return 0;
-        }
-        path[len] = '\0';
-    }
-#endif
-    xl6PackageDirName(out, outSize, path);
-    return out[0] != '\0';
+    return path;
 }
 
 static int xl6PackageTryExeExtlibsPackage(XL6_PackageResolveResult* result, const char* target)
 {
-    char exeDir[512];
-    char extlibsDir[512];
+    char* exeDir;
+    char* extlibsDir;
+    int ok;
 
-    if ( !xl6PackageGetExecutableDir(exeDir, sizeof(exeDir)) ) {
+    exeDir = xl6PackageGetExecutableDir();
+    if ( exeDir == NULL ) {
         return 0;
     }
-    if ( !xl6PackageJoinPath(extlibsDir, sizeof(extlibsDir), exeDir, "extlibs") ) {
-        return 0;
-    }
-    return xl6PackageTryNamedPackageInBase(result, extlibsDir, target);
+    extlibsDir = xl6PackageJoinPathAlloc(exeDir, "extlibs");
+    ok = extlibsDir != NULL && xl6PackageTryNamedPackageInBase(result, extlibsDir, target);
+    xrtFree(extlibsDir);
+    xrtFree(exeDir);
+    return ok;
 }
 
 static int xl6PackageTryNamedPackage(XL6_PackageResolveResult* result, const char* importerDir, const char* target)
@@ -1027,6 +726,21 @@ void xl6PackageResolveResultInit(XL6_PackageResolveResult* result)
     result->kind = XL6_PACKAGE_RESOLVE_UNRESOLVED;
 }
 
+void xl6PackageResolveResultFree(XL6_PackageResolveResult* result)
+{
+    if ( result == NULL ) {
+        return;
+    }
+    xrtFree(result->target);
+    xrtFree(result->manifestPath);
+    xrtFree(result->packageDir);
+    xrtFree(result->packageName);
+    xrtFree(result->packageVersion);
+    xrtFree(result->abiVersion);
+    xrtFree(result->packageId);
+    xl6PackageResolveResultInit(result);
+}
+
 const char* xl6PackageResolveKindName(XL6_PackageResolveKind kind)
 {
     switch ( kind ) {
@@ -1040,41 +754,57 @@ const char* xl6PackageResolveKindName(XL6_PackageResolveKind kind)
 
 int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_PackageResolveResult* result)
 {
-    char importerDir[512];
-    char path[512];
+    char* importerDir;
+    char* path;
+    int ok;
 
     if ( result == NULL ) {
         return 0;
     }
     xl6PackageResolveResultInit(result);
-    xl6PackageCopyText(result->target, sizeof(result->target), target);
     if ( target == NULL || target[0] == '\0' ) {
         return 0;
     }
+    result->target = xl6PackageDupText(target);
+    if ( result->target == NULL ) {
+        return 0;
+    }
 
-    xl6PackageDirName(importerDir, sizeof(importerDir), importerPath);
+    importerDir = xl6PackageDirName(importerPath);
+    if ( importerDir == NULL ) {
+        xl6PackageResolveResultFree(result);
+        return 0;
+    }
 
     if ( xl6PackageTryNamedPackage(result, importerDir, target) ) {
+        xrtFree(importerDir);
         return 1;
     }
 
     if ( xl6PackageLooksLikePath(target) ) {
         if ( xl6PackagePathIsAbsolute(target) ) {
             if ( xl6PackageTryPathCandidates(result, target) ) {
+                xrtFree(importerDir);
                 return 1;
             }
         } else {
-            if ( xl6PackageJoinPath(path, sizeof(path), importerDir, target) &&
-                 xl6PackageTryPathCandidates(result, path) ) {
+            path = xl6PackageJoinPathAlloc(importerDir, target);
+            ok = path != NULL && xl6PackageTryPathCandidates(result, path);
+            xrtFree(path);
+            if ( ok ) {
+                xrtFree(importerDir);
                 return 1;
             }
             if ( xl6PackageTryPathCandidates(result, target) ) {
+                xrtFree(importerDir);
                 return 1;
             }
         }
+        xrtFree(importerDir);
         return 0;
     }
 
+    xrtFree(importerDir);
     return 0;
 }
 

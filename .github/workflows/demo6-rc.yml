@@ -1,0 +1,99 @@
+name: demo6 rc
+
+on:
+  push:
+    paths:
+      - "demo6/**"
+      - ".github/workflows/demo6-rc.yml"
+  pull_request:
+    paths:
+      - "demo6/**"
+      - ".github/workflows/demo6-rc.yml"
+  workflow_dispatch:
+
+jobs:
+  windows-regression:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MinGW
+        shell: powershell
+        run: |
+          choco install mingw --no-progress -y
+          "C:\tools\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Full DEMO6 regression
+        shell: cmd
+        run: demo6\test.bat
+
+      - name: DLL boundary regression
+        shell: cmd
+        run: demo6\test_dll.bat
+
+      - name: Heavy async and task soak
+        shell: powershell
+        run: demo6\tools\check_async_task_soak.ps1 -Repeat 20 -IncludeHeavy
+
+  linux-frontend-sanitizers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ASan and UBSan frontend fuzz harness
+        working-directory: demo6
+        run: |
+          mkdir -p build/ci
+          gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -I. \
+            test/fuzz/xl6_frontend_fuzz.c \
+            src/common/xl6_console.c src/common/xl6_output.c \
+            src/diag/xl6_diag.c src/ast/xl6_ast.c \
+            src/lexer/xl6_token.c src/lexer/xl6_lexer_api.c src/lexer/xl6_lexer_gen.c \
+            src/parser/xl6_parser.c src/parser/xl6_parser_api.c \
+            tools/xrt_single_header_impl.c -pthread -ldl -lm \
+            -o build/ci/xl6_frontend_fuzz_sanitize
+
+      - name: Run sanitizer mutation corpus
+        working-directory: demo6
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1:strict_string_checks=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: build/ci/xl6_frontend_fuzz_sanitize 100000 0x584C3601
+
+  linux-frontend-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install coverage tool
+        run: python3 -m pip install gcovr
+
+      - name: Build coverage frontend fuzz harness
+        working-directory: demo6
+        run: |
+          mkdir -p build/ci/coverage
+          gcc -std=c11 -O0 -g --coverage -I. \
+            test/fuzz/xl6_frontend_fuzz.c \
+            src/common/xl6_console.c src/common/xl6_output.c \
+            src/diag/xl6_diag.c src/ast/xl6_ast.c \
+            src/lexer/xl6_token.c src/lexer/xl6_lexer_api.c src/lexer/xl6_lexer_gen.c \
+            src/parser/xl6_parser.c src/parser/xl6_parser_api.c \
+            tools/xrt_single_header_impl.c -pthread -ldl -lm \
+            -o build/ci/coverage/xl6_frontend_fuzz_coverage
+
+      - name: Run coverage corpus and enforce baseline
+        working-directory: demo6
+        run: |
+          build/ci/coverage/xl6_frontend_fuzz_coverage 150000 0x584C3601
+          gcovr --root . --filter 'src/(lexer|parser|ast|diag)/' \
+            --exclude 'src/lexer/xl6_lexer_gen.c' \
+            --fail-under-line 25 --xml-pretty -o build/ci/coverage/coverage.xml \
+            --print-summary
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: demo6-frontend-coverage
+          path: demo6/build/ci/coverage/coverage.xml

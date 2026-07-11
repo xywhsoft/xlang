@@ -42,8 +42,8 @@
 |---|---|---|---|
 | `CGEN-MODULE-001..003` 入口校验、预收集、needs 聚合 | `release/examples/hello.xl --dump-dir`、`import_metadata.xl`、generic/class/function value 系列 | 直接生成检查 + 运行行为检查 | 入口校验、导入元数据不生成 main、匿名/泛型/runtime type 预收集有覆盖。 |
 | `CGEN-MODULE-004..007` 固定序言、基础 runtime、xvalue/type desc/main arg、标准库 wrapper 注入 | `hello.xl --dump-dir`、`cgen_main_entry.xl`、`cgen_var_runtime_objects.xl`、`stdlib_*.xl` | 直接生成检查 + 运行行为检查 | 生命周期、main 参数、xvalue、runtime type desc、标准库 wrapper 注入有覆盖。 |
-| `CGEN-MODULE-008..012` union/class/custom、多返回、顶层函数/extern/export/async、泛型函数/class 方法原型顺序 | export/class/custom/generic/multi-return 系列 | 直接生成检查 + C 宿主运行 | 声明顺序通过生成片段和 C 宿主编译验证。 |
-| `CGEN-MODULE-013..016` function wrapper/匿名函数体、class/custom 方法体、普通/generator/async/export 函数体、泛型实例函数体 | `cgen_function_named_value.xl`、`cgen_closure.xl`、`cgen_class*.xl`、`cgen_custom*.xl`、`cgen_generator.xl`、`cgen_async.xl`、`cgen_generic_*.xl` | 直接生成检查 + 运行行为检查 | 主体输出顺序覆盖充分。 |
+| `CGEN-MODULE-008..012` union/class/native-backed class、多返回、顶层函数/extern/export/async、泛型函数/class 方法原型顺序 | export/class/native-backed class/generic/multi-return 系列 | 直接生成检查 + C 宿主运行 | 声明顺序通过生成片段和 C 宿主编译验证。 |
+| `CGEN-MODULE-013..016` function wrapper/匿名函数体、class/native-backed class 方法体、普通/generator/async/export 函数体、泛型实例函数体 | `cgen_function_named_value.xl`、`cgen_closure.xl`、`cgen_class*.xl`、`cgen_native_class_lifecycle*.xl`、`cgen_generator.xl`、`cgen_async.xl`、`cgen_generic_*.xl` | 直接生成检查 + 运行行为检查 | 主体输出顺序覆盖充分。 |
 | `CGEN-MODULE-017..019` xlang main、脚本 main、异常退出路径 | `cgen_main_entry.xl`、`release/examples/hello.xl`、`cgen_loop_exception_propagation.xl`、`cgen_exception_uncaught.xl`；`test.bat` 检查未捕获异常 stderr 中包含 `uncaught Error: uncaught` | 直接生成检查 + 运行行为检查 + 运行负例 + 负例诊断检查 | xlang main wrapper、顶层脚本 main、异常退出和未捕获错误诊断均有覆盖。 |
 | `CGEN-MODULE-020` 生成状态汇总与上下文资源释放 | 大量 `xl cgen` 成功/失败路径、invalid/sem 用例 | 间接覆盖 | 主要通过稳定运行与失败诊断间接覆盖；建议后续引入内存/资源泄漏巡检。 |
 

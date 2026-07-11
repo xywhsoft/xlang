@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-07-10 21:59:26
+    Generated: 2026-07-11 17:47:55
 
     MIT License
 
@@ -1647,6 +1647,8 @@
 	
 	/* ------------------------------------ OS 函数库 ------------------------------------ */
 	
+	// 读取环境变量并返回需要由 xrtFree 释放的 UTF-8 副本
+	XXAPI str xrtEnvGet(str sName);
 	// 运行程序
 	XXAPI ptr xrtRun(str sPath, size_t iSize);
 	
@@ -7026,6 +7028,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	#define XRT_TYPE_KIND_HANDLE		14u
 	#define XRT_TYPE_KIND_TYPE			15u
 	#define XRT_TYPE_KIND_FUTURE		16u
+	#define XRT_TYPE_KIND_REF			17u
 	#define XRT_NATIVE_ABI_XCALL		0u
 	#define XRT_NATIVE_ABI_CDECL		1u
 	#define XRT_NATIVE_ABI_STDCALL		2u
@@ -7183,6 +7186,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI const xrt_type_desc* xrtTypeRecord();
 	XXAPI const xrt_type_desc* xrtTypeHandle();
 	XXAPI const xrt_type_desc* xrtTypeType();
+	XXAPI const xrt_type_desc* xrtTypeValue();
 	XXAPI bool xrtTypeSame(const xrt_type_desc* pA, const xrt_type_desc* pB);
 	XXAPI const char* xrtTypeName(const xrt_type_desc* pType);
 	XXAPI uint32 xrtTypeGenericArgCount(const xrt_type_desc* pType);
@@ -7215,6 +7219,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	*/
 	XXAPI xtarray xrtTypedArrayCreate(const xrt_type_desc* pItemType, uint32 iMode);
 	XXAPI xtarray xrtTypedArrayFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
+	XXAPI xvalue xrtTypedArrayToValue(xtarray pArray);
 	XXAPI void xrtTypedArrayDestroy(xtarray pArray);
 	XXAPI void xrtTypedArrayInit(xtarray pArray, const xrt_type_desc* pItemType, uint32 iMode);
 	XXAPI void xrtTypedArrayUnit(xtarray pArray);
@@ -7237,6 +7242,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI bool xrtTypedArrayContains(xtarray pArray, const ptr pItem);
 	XXAPI bool xrtTypedArrayContainsValue(xtarray pArray, xvalue pVal);
 	XXAPI bool xrtTypedArrayExtend(xtarray pTarget, xtarray pSource);
+	XXAPI xtarray xrtTypedArrayCloneEx(xtarray pArray, uint32 iMode);
 	XXAPI xtarray xrtTypedArrayClone(xtarray pArray);
 	XXAPI xtarray xrtTypedArrayConcat(xtarray pLeft, xtarray pRight);
 	XXAPI bool xrtTypedArrayEquals(xtarray pLeft, xtarray pRight);
@@ -7244,6 +7250,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI const xrt_type_desc* xrtTypedArrayItemType(xtarray pArray);
 	XXAPI xtlist xrtTypedListCreate(const xrt_type_desc* pItemType, uint32 iMode);
 	XXAPI xtlist xrtTypedListFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
+	XXAPI xvalue xrtTypedListToValue(xtlist pList);
 	XXAPI void xrtTypedListDestroy(xtlist pList);
 	XXAPI void xrtTypedListInit(xtlist pList, const xrt_type_desc* pItemType, uint32 iMode);
 	XXAPI void xrtTypedListUnit(xtlist pList);
@@ -7258,12 +7265,14 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI bool xrtTypedListContains(xtlist pList, const ptr pItem);
 	XXAPI bool xrtTypedListContainsValue(xtlist pList, xvalue pVal);
 	XXAPI bool xrtTypedListMerge(xtlist pTarget, xtlist pSource);
+	XXAPI xtlist xrtTypedListCloneEx(xtlist pList, uint32 iMode);
 	XXAPI xtlist xrtTypedListClone(xtlist pList);
 	XXAPI bool xrtTypedListEquals(xtlist pLeft, xtlist pRight);
 	XXAPI uint32 xrtTypedListCount(xtlist pList);
 	XXAPI const xrt_type_desc* xrtTypedListItemType(xtlist pList);
 	XXAPI xtset xrtTypedSetCreate(const xrt_type_desc* pItemType, uint32 iMode);
 	XXAPI xtset xrtTypedSetFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
+	XXAPI xvalue xrtTypedSetToValue(xtset pSet);
 	XXAPI void xrtTypedSetDestroy(xtset pSet);
 	XXAPI void xrtTypedSetInit(xtset pSet, const xrt_type_desc* pItemType, uint32 iMode);
 	XXAPI void xrtTypedSetUnit(xtset pSet);
@@ -7277,6 +7286,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI ptr xrtTypedSetItemAt(xtset pSet, uint32 iIndex);
 	XXAPI bool xrtTypedSetClear(xtset pSet);
 	XXAPI bool xrtTypedSetMerge(xtset pTarget, xtset pSource);
+	XXAPI xtset xrtTypedSetCloneEx(xtset pSet, uint32 iMode);
 	XXAPI xtset xrtTypedSetClone(xtset pSet);
 	XXAPI xtset xrtTypedSetUnion(xtset pLeft, xtset pRight);
 	XXAPI xtset xrtTypedSetIntersection(xtset pLeft, xtset pRight);
@@ -7289,6 +7299,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI const xrt_type_desc* xrtTypedSetItemType(xtset pSet);
 	XXAPI xtdict xrtTypedDictCreate(const xrt_type_desc* pItemType, uint32 iMode);
 	XXAPI xtdict xrtTypedDictFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
+	XXAPI xvalue xrtTypedDictToValue(xtdict pDict);
 	XXAPI void xrtTypedDictDestroy(xtdict pDict);
 	XXAPI void xrtTypedDictInit(xtdict pDict, const xrt_type_desc* pItemType, uint32 iMode);
 	XXAPI void xrtTypedDictUnit(xtdict pDict);
@@ -7302,6 +7313,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI xvalue xrtTypedDictTakeValue(xtdict pDict, const ptr sKey, uint32 iKeyLen);
 	XXAPI bool xrtTypedDictClear(xtdict pDict);
 	XXAPI bool xrtTypedDictMerge(xtdict pTarget, xtdict pSource);
+	XXAPI xtdict xrtTypedDictCloneEx(xtdict pDict, uint32 iMode);
 	XXAPI xtdict xrtTypedDictClone(xtdict pDict);
 	XXAPI bool xrtTypedDictEquals(xtdict pLeft, xtdict pRight);
 	XXAPI uint32 xrtTypedDictCount(xtdict pDict);
@@ -7513,6 +7525,8 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	
 	// 引用计数操作
 	XXAPI void xvoAddRef(xvalue pVal);
+	// 判断动态值是否已经进入共享所有权模式
+	XXAPI bool xvoIsShared(xvalue pVal);
 	// 减少值的引用计数
 	XXAPI void xvoUnref(xvalue pVal);
 	// 内联增加值的引用计数
@@ -7576,7 +7590,8 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	// 创建 callable 函数值
 	XXAPI xvalue xvoCreateCallable(xrt_callable* pCallable, bool bColloc);
 	// 创建 record/class 动态值
-	XXAPI xvalue xvoCreateRecord(const xrt_type_desc* pType, const ptr pData);
+XXAPI xvalue xvoCreateRecord(const xrt_type_desc* pType, const ptr pData);
+XXAPI xvalue xvoCreateRecordMove(const xrt_type_desc* pType, ptr pData);
 	// 创建 handle/custom 动态值
 	XXAPI xvalue xvoCreateHandle(const xrt_type_desc* pType, ptr pHandle, uint32 iFlags);
 	// 创建数组
@@ -13840,6 +13855,46 @@ XXAPI bool xrtStrApprox(str s1, size_t len1, str s2, size_t len2)
 // ========================================
 
 
+// 读取环境变量并统一返回 UTF-8 副本，调用方使用 xrtFree 释放
+XXAPI str xrtEnvGet(str sName)
+{
+	if ( sName == NULL || sName[0] == '\0' ) {
+		return NULL;
+	}
+	#if defined(_WIN32) || defined(_WIN64)
+		u16str sNameW = xrtUTF8to16((u8str)sName, 0, NULL);
+		u16str sValueW;
+		u8str sValue;
+		DWORD iNeed;
+		if ( sNameW == NULL ) {
+			return NULL;
+		}
+		SetLastError(ERROR_SUCCESS);
+		iNeed = GetEnvironmentVariableW((LPCWSTR)sNameW, NULL, 0);
+		if ( iNeed == 0 ) {
+			DWORD iError = GetLastError();
+			xrtFree(sNameW);
+			return iError == ERROR_SUCCESS ? xrtCopyStr((str)"", 0) : NULL;
+		}
+		sValueW = (u16str)xrtMalloc((size_t)iNeed * sizeof(wchar_t));
+		if ( sValueW == NULL ) {
+			xrtFree(sNameW);
+			return NULL;
+		}
+		if ( GetEnvironmentVariableW((LPCWSTR)sNameW, (LPWSTR)sValueW, iNeed) >= iNeed ) {
+			xrtFree(sValueW);
+			xrtFree(sNameW);
+			return NULL;
+		}
+		xrtFree(sNameW);
+		sValue = xrtUTF16to8(sValueW, 0, NULL);
+		xrtFree(sValueW);
+		return (str)sValue;
+	#else
+		const char* sValue = getenv(sName);
+		return sValue != NULL ? xrtCopyStr(sValue, 0) : NULL;
+	#endif
+}
 // 运行程序
 XXAPI ptr xrtRun(str sPath, size_t iSize)
 {
@@ -52758,6 +52813,7 @@ static bool __xnetStreamHasPreOpenGate(const xnetstream* pStream);
 static void __xnetStreamDetachTls(xnetstream* pStream);
 static void __xnetStreamNotifyDestroyWaiters(xnetstream* pStream);
 static void __xnetStreamAbandonUnownedAccepted(xnetstream* pStream);
+static void __xnetListenerCloseSocket(xnetlistener* pListener);
 static void __xnetSocketCloseHandle(xsocket* phSocket);
 static bool __xnetStreamRecvArmed(const xnetstream* pStream)
 {
@@ -52893,7 +52949,7 @@ static void __xnetListenerFinalizeDestroy(xnetlistener* pListener)
 	pListener->pEvents = NULL;
 	pListener->pStreamEvents = NULL;
 	pListener->pUserData = NULL;
-	__xnetSocketCloseHandle(&pListener->hSocket);
+	__xnetListenerCloseSocket(pListener);
 	XNET_FREE(pListener);
 }
 // 内部函数：异步增加监听器 hold
@@ -53330,6 +53386,11 @@ static bool __xnetListenerArmAcceptWatch(xnetlistener* pListener)
 	pListener->iAcceptOpId = iOpId;
 	__xnetListenerAddAsyncHold(pListener);
 	if ( !__xnetListenerSubmitSocketNotice(pListener, XNET_PORT_OP_ACCEPT, pListener->hSocket) ) {
+		#if defined(XRT_INTERNAL_TEST_ENV)
+			fprintf(stderr, "[XNET ACCEPT] submit failed, worker=%u, op=%llu\n",
+				pListener->pWorker ? pListener->pWorker->iId : 0u,
+				(unsigned long long)iOpId);
+		#endif
 		__xnetListenerReleaseAsyncHold(pListener);
 		return false;
 	}
@@ -53528,6 +53589,15 @@ static bool __xnetStreamAttachTls(xnetstream* pStream, const xtlsconfig* pCfg, b
 	pStream->pTls = xrtNetTlsSessionCreate(pCfg, bIsServer);
 	return pStream->pTls != NULL;
 	#endif
+}
+// 先从后端端口登记中移除监听 socket，再关闭句柄，避免句柄复用命中陈旧登记。
+static void __xnetListenerCloseSocket(xnetlistener* pListener)
+{
+	xsocket hSocket;
+	if ( !pListener || !__xnetSocketIsValid(pListener->hSocket) ) { return; }
+	hSocket = pListener->hSocket;
+	(void)__xnetListenerSubmitSocketNotice(pListener, XNET_PORT_OP_CLOSE, hSocket);
+	__xnetSocketCloseHandle(&pListener->hSocket);
 }
 // 内部函数：__xnetStreamDetachTls
 static void __xnetStreamDetachTls(xnetstream* pStream)
@@ -54869,7 +54939,7 @@ XXAPI void xrtNetListenerDestroy(xnetlistener* pListener)
 	}
 	pListener->bRunning = false;
 	(void)__xnetListenerCancelAcceptWatch(pListener);
-	__xnetSocketCloseHandle(&pListener->hSocket);
+	__xnetListenerCloseSocket(pListener);
 	__xnetListenerNotifySyncAccept(pListener, XRT_NET_CLOSED, NULL);
 	if ( __xnetAtomicLoad32(&pListener->iAsyncHoldCount) != 0 ) {
 		__xnetListenerPrepareDeferredDestroy(pListener);
@@ -54897,7 +54967,7 @@ XXAPI xnet_result xrtNetListenerStart(xnetlistener* pListener)
 		if ( pListener->pEvents && pListener->pEvents->OnError ) {
 			pListener->pEvents->OnError(pListener->pUserData, pListener, __xnetSocketLastErr());
 		}
-		__xnetSocketCloseHandle(&pListener->hSocket);
+		__xnetListenerCloseSocket(pListener);
 		return XRT_NET_ERROR;
 	}
 	// 开始监听，默认 backlog 为 128
@@ -54905,7 +54975,7 @@ XXAPI xnet_result xrtNetListenerStart(xnetlistener* pListener)
 		if ( pListener->pEvents && pListener->pEvents->OnError ) {
 			pListener->pEvents->OnError(pListener->pUserData, pListener, __xnetSocketLastErr());
 		}
-		__xnetSocketCloseHandle(&pListener->hSocket);
+		__xnetListenerCloseSocket(pListener);
 		return XRT_NET_ERROR;
 	}
 	// 更新本地地址信息（bind 后系统可能分配了实际端口）
@@ -54922,7 +54992,7 @@ XXAPI void xrtNetListenerStop(xnetlistener* pListener)
 	if ( !pListener ) { return; }
 	pListener->bRunning = false;
 	(void)__xnetListenerCancelAcceptWatch(pListener);
-	__xnetSocketCloseHandle(&pListener->hSocket);
+	__xnetListenerCloseSocket(pListener);
 	__xnetListenerNotifySyncAccept(pListener, XRT_NET_CLOSED, NULL);
 }
 // 内部函数：创建监听器 accepted 流
@@ -55134,6 +55204,9 @@ static void __xnetListenerHandleAcceptEvent(xnetlistener* pListener)
 			__xnetListenerNotifySyncAccept(pListener, XRT_NET_OK, pStream);
 			return;
 		}
+		#if defined(XRT_INTERNAL_TEST_ENV)
+			fprintf(stderr, "[XNET ACCEPT] accepted socket wrap failed\n");
+		#endif
 		// 包装失败，关闭已接受的套接字并重新挂起接受监视
 		__xnetSocketCloseHandle(&tRaw.hSocket);
 		if ( __xnetListenerCanDispatchAccept(pListener) && pListener->bRunning && __xnetSocketIsValid(pListener->hSocket) ) {
@@ -55154,6 +55227,9 @@ static void __xnetListenerHandleAcceptEvent(xnetlistener* pListener)
 		return;
 	}
 	// accept 遇到系统错误
+	#if defined(XRT_INTERNAL_TEST_ENV)
+		fprintf(stderr, "[XNET ACCEPT] accept event failed, system error=%d\n", iSysErr);
+	#endif
 	__xnetListenerNotifySyncAccept(pListener, XRT_NET_ERROR, NULL);
 }
 // 内部函数：处理监听器 accepted 套接字事件
@@ -55181,6 +55257,9 @@ static void __xnetListenerHandleAcceptedSocketEvent(xnetlistener* pListener, xso
 		__xnetListenerNotifySyncAccept(pListener, XRT_NET_OK, pStream);
 		return;
 	}
+	#if defined(XRT_INTERNAL_TEST_ENV)
+		fprintf(stderr, "[XNET ACCEPT] native accepted socket wrap failed\n");
+	#endif
 	// 包装失败，关闭套接字并重新挂起接受监视
 	__xnetSocketCloseHandle(&hSocket);
 	if ( __xnetListenerCanDispatchAccept(pListener) &&
@@ -55539,10 +55618,21 @@ static void __xnetStreamOnPortEvents(xnetworker* pWorker, const xnetportevent* p
 					// IOCP 返回了已接受的套接字
 					__xnetListenerHandleAcceptedSocketEvent(pListener, (xsocket)pEvent->hSocket);
 				} else {
+					#if defined(XRT_INTERNAL_TEST_ENV)
+						fprintf(stderr, "[XNET ACCEPT] completion failed, status=%d, socket=%lld, op=%llu\n",
+							pEvent->iStatus,
+							(long long)pEvent->hSocket,
+							(unsigned long long)pEvent->iOpId);
+					#endif
 					// 接受失败或无套接字，走普通 accept 路径
 					__xnetListenerHandleAcceptEvent(pListener);
 				}
 			} else if ( pEvent->iStatus == XRT_NET_OK && __xnetSocketIsValid((xsocket)pEvent->hSocket) ) {
+				#if defined(XRT_INTERNAL_TEST_ENV)
+					fprintf(stderr, "[XNET ACCEPT] stale completion, expected=%llu, actual=%llu\n",
+						(unsigned long long)(pListener ? pListener->iAcceptOpId : 0u),
+						(unsigned long long)pEvent->iOpId);
+				#endif
 				// 操作 ID 不匹配（过期的监听器），关闭陈旧套接字
 				xsocket hStaleSocket = (xsocket)pEvent->hSocket;
 				__xnetSocketCloseHandle(&hStaleSocket);
@@ -58668,6 +58758,12 @@ static int32 __xnetAsyncError(xfuture_result* pOut, const char* sError)
 	}
 	return XRT_NET_ERROR;
 }
+// 将当前工作线程记录的网络错误传递给 Future，避免把失败伪装成 NULL 成功值。
+static int32 __xnetAsyncLastError(xfuture_result* pOut, const char* sFallback)
+{
+	const char* sError = (const char*)xrtGetError();
+	return __xnetAsyncError(pOut, (sError && sError[0]) ? sError : sFallback);
+}
 static int32 __xnetAsyncBool(xfuture_result* pOut, bool bValue)
 {
 	int* pValue;
@@ -58739,6 +58835,9 @@ static int32 __xnetTcpConnectTaskProc(ptr pArg, xfuture_result* pOut)
 	if ( !pTask ) { return __xnetAsyncPoint(pOut, NULL); }
 	pStream = xrtNetTcpConnect(pTask->sHost, pTask->iPort, pTask->iTimeoutMs);
 	__xnetTcpConnectTaskFree(pTask);
+	if ( !pStream ) {
+		return __xnetAsyncLastError(pOut, "TCP connect failed");
+	}
 	return __xnetAsyncPoint(pOut, pStream);
 }
 static int32 __xnetTcpAcceptTaskProc(ptr pArg, xfuture_result* pOut)
@@ -58748,6 +58847,9 @@ static int32 __xnetTcpAcceptTaskProc(ptr pArg, xfuture_result* pOut)
 	if ( !pTask ) { return __xnetAsyncPoint(pOut, NULL); }
 	pStream = xrtNetTcpAccept(pTask->pListener, pTask->iTimeoutMs);
 	xrtFree(pTask);
+	if ( !pStream ) {
+		return __xnetAsyncLastError(pOut, "TCP accept failed");
+	}
 	return __xnetAsyncPoint(pOut, pStream);
 }
 static int32 __xnetStreamRecvTaskProc(ptr pArg, xfuture_result* pOut)
@@ -61190,6 +61292,9 @@ static void __xnetSyncRegisterListenerFutureWait(xnetworker* pWorker, ptr pArg)
 	long iState;
 	(void)pWorker;
 	if ( pCtx == NULL || pCtx->pFuture == NULL || pCtx->pListener == NULL ) {
+		#if defined(XRT_INTERNAL_TEST_ENV)
+			fprintf(stderr, "[XNET ACCEPT] invalid register context\n");
+		#endif
 		__xnetSyncResolveListenerFutureWait(pCtx, XRT_NET_ERROR, NULL);
 		return;
 	}
@@ -61213,6 +61318,9 @@ static void __xnetSyncRegisterListenerFutureWait(xnetworker* pWorker, ptr pArg)
 		__xnetSyncListenerWaitCanAccept,
 		pCtx);
 	if ( !bRegistered ) {
+		#if defined(XRT_INTERNAL_TEST_ENV)
+			fprintf(stderr, "[XNET ACCEPT] waiter registration rejected\n");
+		#endif
 		__xnetSyncSetError("unable to register listener accept waiter.");
 		__xnetSyncResolveListenerFutureWait(pCtx, XRT_NET_ERROR, NULL);
 	}
@@ -61780,12 +61888,16 @@ static xnet_result __xnetSyncWaitListenerSyncCoreEx(xnetlistener* pListener, int
 	}
 	// 如果等待超时或失败且 Future 仍在等待, 需要取消
 	if ( iStatus == XRT_NET_TIMEOUT || iStatus == XRT_NET_ERROR ) {
+		#if defined(XRT_INTERNAL_TEST_ENV)
+			fprintf(stderr, "[XNET ACCEPT] wait failed, status=%d, future-status=%d\n",
+				iStatus, iFutureStatus);
+		#endif
 		bNeedCancel = true;
 	}
 	// 执行取消操作
 	if ( bNeedCancel ) {
 		if ( !__xnetSyncCancelPendingListenerFutureWait(pFuture) ) {
-			(void)__xnetFutureDestroyCore(pFuture);
+			__xnetFutureReleaseRefInternal(pFuture);
 			__xnetSyncSetError("listener accept wait could not cancel its pending waiter.");
 			return XRT_NET_ERROR;
 		}
@@ -61797,11 +61909,11 @@ static xnet_result __xnetSyncWaitListenerSyncCoreEx(xnetlistener* pListener, int
 			iStatus = XRT_NET_OK;
 		}
 	}
-	// 销毁 Future
-	if ( !__xnetFutureDestroyCore(pFuture) ) {
-		__xnetSyncSetError("listener accept wait could not release its internal future.");
-		return XRT_NET_ERROR;
-	}
+	/*
+		释放同步等待方持有的引用。完成回调可能刚刚唤醒当前线程、尚未释放 async hold；
+		引用计数会在最后一个 hold 释放后自动销毁 Future，不依赖线程完成顺序。
+	*/
+	__xnetFutureReleaseRefInternal(pFuture);
 	return iStatus;
 }
 // 内部函数：等待同步数据报同步 core 扩展
@@ -61838,7 +61950,7 @@ static xnet_result __xnetSyncWaitDgramSyncCoreEx(xdgramsock* pSock, int iWaitMod
 	// 执行取消操作
 	if ( bNeedCancel ) {
 		if ( !__xnetSyncCancelPendingDgramFutureWait(pFuture) ) {
-			(void)__xnetFutureDestroyCore(pFuture);
+			__xnetFutureReleaseRefInternal(pFuture);
 			__xnetSyncSetError("datagram wait could not cancel its pending waiter.");
 			return XRT_NET_ERROR;
 		}
@@ -61850,11 +61962,7 @@ static xnet_result __xnetSyncWaitDgramSyncCoreEx(xdgramsock* pSock, int iWaitMod
 			iStatus = XRT_NET_OK;
 		}
 	}
-	// 销毁 Future
-	if ( !__xnetFutureDestroyCore(pFuture) ) {
-		__xnetSyncSetError("datagram wait could not release its internal future.");
-		return XRT_NET_ERROR;
-	}
+	__xnetFutureReleaseRefInternal(pFuture);
 	return iStatus;
 }
 // 内部函数：等待同步数据报同步 core
@@ -61896,7 +62004,7 @@ static xnet_result __xnetSyncWaitStreamSyncCoreEx(xnetstream* pStream, uint32 iW
 	// 执行取消操作
 	if ( bNeedCancel ) {
 		if ( !__xnetSyncCancelPendingStreamFutureWait(pFuture) ) {
-			(void)__xnetFutureDestroyCore(pFuture);
+			__xnetFutureReleaseRefInternal(pFuture);
 			__xnetSyncSetError("stream wait could not cancel its pending waiter.");
 			return XRT_NET_ERROR;
 		}
@@ -61908,11 +62016,7 @@ static xnet_result __xnetSyncWaitStreamSyncCoreEx(xnetstream* pStream, uint32 iW
 			iStatus = XRT_NET_OK;
 		}
 	}
-	// 销毁 Future
-	if ( !__xnetFutureDestroyCore(pFuture) ) {
-		__xnetSyncSetError("stream wait could not release its internal future.");
-		return XRT_NET_ERROR;
-	}
+	__xnetFutureReleaseRefInternal(pFuture);
 	return iStatus;
 }
 // 内部函数：等待同步流同步 core
@@ -62130,7 +62234,6 @@ static xnet_result __xnetSyncWaitStreamCoCoreEx(xnetstream* pStream, uint32 iWai
 	xnetfuture* pFuture = NULL;
 	xnet_result iStatus = XRT_NET_ERROR;
 	xnet_result iFutureStatus;
-	str sErr = NULL;
 	bool bNeedCancel = false;
 	if ( ppValue ) { *ppValue = NULL; }
 	// 校验协程上下文
@@ -62164,8 +62267,7 @@ static xnet_result __xnetSyncWaitStreamCoCoreEx(xnetstream* pStream, uint32 iWai
 	// 执行取消操作
 	if ( bNeedCancel ) {
 		if ( !__xnetSyncCancelPendingStreamFutureWait(pFuture) ) {
-			xrtClearError();
-			xrtNetFutureDestroy(pFuture);
+			__xnetFutureReleaseRefInternal(pFuture);
 			__xnetSyncSetError("stream coroutine wait could not cancel its pending waiter.");
 			return XRT_NET_ERROR;
 		}
@@ -62177,14 +62279,7 @@ static xnet_result __xnetSyncWaitStreamCoCoreEx(xnetstream* pStream, uint32 iWai
 			iStatus = XRT_NET_OK;
 		}
 	}
-	// 销毁 Future, 检查是否有错误
-	xrtClearError();
-	xrtNetFutureDestroy(pFuture);
-	sErr = xrtGetError();
-	if ( sErr && sErr[0] != 0 ) {
-		__xnetSyncSetError("stream coroutine wait could not release its internal future.");
-		return XRT_NET_ERROR;
-	}
+	__xnetFutureReleaseRefInternal(pFuture);
 	return iStatus;
 }
 // 内部函数：等待同步流协程 core
@@ -62198,7 +62293,6 @@ static xnet_result __xnetSyncWaitListenerCoCoreEx(xnetlistener* pListener, int i
 	xnetfuture* pFuture = NULL;
 	xnet_result iStatus = XRT_NET_ERROR;
 	xnet_result iFutureStatus;
-	str sErr = NULL;
 	bool bNeedCancel = false;
 	if ( ppValue ) { *ppValue = NULL; }
 	// 校验协程上下文
@@ -62232,8 +62326,7 @@ static xnet_result __xnetSyncWaitListenerCoCoreEx(xnetlistener* pListener, int i
 	// 执行取消操作
 	if ( bNeedCancel ) {
 		if ( !__xnetSyncCancelPendingListenerFutureWait(pFuture) ) {
-			xrtClearError();
-			xrtNetFutureDestroy(pFuture);
+			__xnetFutureReleaseRefInternal(pFuture);
 			__xnetSyncSetError("listener coroutine wait could not cancel its pending waiter.");
 			return XRT_NET_ERROR;
 		}
@@ -62245,14 +62338,7 @@ static xnet_result __xnetSyncWaitListenerCoCoreEx(xnetlistener* pListener, int i
 			iStatus = XRT_NET_OK;
 		}
 	}
-	// 销毁 Future, 检查是否有错误
-	xrtClearError();
-	xrtNetFutureDestroy(pFuture);
-	sErr = xrtGetError();
-	if ( sErr && sErr[0] != 0 ) {
-		__xnetSyncSetError("listener coroutine wait could not release its internal future.");
-		return XRT_NET_ERROR;
-	}
+	__xnetFutureReleaseRefInternal(pFuture);
 	return iStatus;
 }
 // 内部函数：等待同步监听器协程 core
@@ -62266,7 +62352,6 @@ static xnet_result __xnetSyncWaitDgramCoCoreEx(xdgramsock* pSock, int iWaitMode,
 	xnetfuture* pFuture = NULL;
 	xnet_result iStatus = XRT_NET_ERROR;
 	xnet_result iFutureStatus;
-	str sErr = NULL;
 	bool bNeedCancel = false;
 	if ( ppValue ) { *ppValue = NULL; }
 	// 校验协程上下文
@@ -62300,8 +62385,7 @@ static xnet_result __xnetSyncWaitDgramCoCoreEx(xdgramsock* pSock, int iWaitMode,
 	// 执行取消操作
 	if ( bNeedCancel ) {
 		if ( !__xnetSyncCancelPendingDgramFutureWait(pFuture) ) {
-			xrtClearError();
-			xrtNetFutureDestroy(pFuture);
+			__xnetFutureReleaseRefInternal(pFuture);
 			__xnetSyncSetError("datagram coroutine wait could not cancel its pending waiter.");
 			return XRT_NET_ERROR;
 		}
@@ -62313,14 +62397,7 @@ static xnet_result __xnetSyncWaitDgramCoCoreEx(xdgramsock* pSock, int iWaitMode,
 			iStatus = XRT_NET_OK;
 		}
 	}
-	// 销毁 Future, 检查是否有错误
-	xrtClearError();
-	xrtNetFutureDestroy(pFuture);
-	sErr = xrtGetError();
-	if ( sErr && sErr[0] != 0 ) {
-		__xnetSyncSetError("datagram coroutine wait could not release its internal future.");
-		return XRT_NET_ERROR;
-	}
+	__xnetFutureReleaseRefInternal(pFuture);
 	return iStatus;
 }
 // 内部函数：等待同步数据报协程 core
@@ -86858,13 +86935,13 @@ XXAPI bool xrtTypedArrayExtend(xtarray pTarget, xtarray pSource)
 	}
 	return TRUE;
 }
-XXAPI xtarray xrtTypedArrayClone(xtarray pArray)
+XXAPI xtarray xrtTypedArrayCloneEx(xtarray pArray, uint32 iMode)
 {
 	xtarray pRet;
 	if ( pArray == NULL ) {
 		return NULL;
 	}
-	pRet = xrtTypedArrayCreate(pArray->ItemType, XRT_OBJMODE_LOCAL);
+	pRet = xrtTypedArrayCreate(pArray->ItemType, iMode);
 	if ( pRet == NULL ) {
 		return NULL;
 	}
@@ -86873,6 +86950,11 @@ XXAPI xtarray xrtTypedArrayClone(xtarray pArray)
 		return NULL;
 	}
 	return pRet;
+}
+XXAPI xtarray xrtTypedArrayClone(xtarray pArray)
+{
+	return pArray != NULL ?
+		xrtTypedArrayCloneEx(pArray, xrtOwnerGetMode(&pArray->Array.Owner)) : NULL;
 }
 XXAPI xtarray xrtTypedArrayConcat(xtarray pLeft, xtarray pRight)
 {
@@ -87206,13 +87288,13 @@ XXAPI bool xrtTypedListMerge(xtlist pTarget, xtlist pSource)
 	}
 	return state.Failed == FALSE;
 }
-XXAPI xtlist xrtTypedListClone(xtlist pList)
+XXAPI xtlist xrtTypedListCloneEx(xtlist pList, uint32 iMode)
 {
 	xtlist pRet;
 	if ( pList == NULL ) {
 		return NULL;
 	}
-	pRet = xrtTypedListCreate(pList->ItemType, XRT_OBJMODE_LOCAL);
+	pRet = xrtTypedListCreate(pList->ItemType, iMode);
 	if ( pRet == NULL ) {
 		return NULL;
 	}
@@ -87221,6 +87303,11 @@ XXAPI xtlist xrtTypedListClone(xtlist pList)
 		return NULL;
 	}
 	return pRet;
+}
+XXAPI xtlist xrtTypedListClone(xtlist pList)
+{
+	return pList != NULL ?
+		xrtTypedListCloneEx(pList, xrtOwnerGetMode(&pList->List.Owner)) : NULL;
 }
 XXAPI bool xrtTypedListEquals(xtlist pLeft, xtlist pRight)
 {
@@ -87380,13 +87467,13 @@ XXAPI bool xrtTypedSetMerge(xtset pTarget, xtset pSource)
 	}
 	return xrtSetMerge(&pTarget->Set, &pSource->Set);
 }
-XXAPI xtset xrtTypedSetClone(xtset pSet)
+XXAPI xtset xrtTypedSetCloneEx(xtset pSet, uint32 iMode)
 {
 	xtset pRet;
 	if ( pSet == NULL ) {
 		return NULL;
 	}
-	pRet = xrtTypedSetCreate(pSet->ItemType, XRT_OBJMODE_LOCAL);
+	pRet = xrtTypedSetCreate(pSet->ItemType, iMode);
 	if ( pRet == NULL ) {
 		return NULL;
 	}
@@ -87395,6 +87482,11 @@ XXAPI xtset xrtTypedSetClone(xtset pSet)
 		return NULL;
 	}
 	return pRet;
+}
+XXAPI xtset xrtTypedSetClone(xtset pSet)
+{
+	return pSet != NULL ?
+		xrtTypedSetCloneEx(pSet, xrtOwnerGetMode(&pSet->Set.Owner)) : NULL;
 }
 static xtset __xrtTypedSetFromRaw(xtset pBase, xset pRaw)
 {
@@ -87729,13 +87821,13 @@ XXAPI bool xrtTypedDictMerge(xtdict pTarget, xtdict pSource)
 	}
 	return state.Failed == FALSE;
 }
-XXAPI xtdict xrtTypedDictClone(xtdict pDict)
+XXAPI xtdict xrtTypedDictCloneEx(xtdict pDict, uint32 iMode)
 {
 	xtdict pRet;
 	if ( pDict == NULL ) {
 		return NULL;
 	}
-	pRet = xrtTypedDictCreate(pDict->ItemType, XRT_OBJMODE_LOCAL);
+	pRet = xrtTypedDictCreate(pDict->ItemType, iMode);
 	if ( pRet == NULL ) {
 		return NULL;
 	}
@@ -87744,6 +87836,11 @@ XXAPI xtdict xrtTypedDictClone(xtdict pDict)
 		return NULL;
 	}
 	return pRet;
+}
+XXAPI xtdict xrtTypedDictClone(xtdict pDict)
+{
+	return pDict != NULL ?
+		xrtTypedDictCloneEx(pDict, xrtOwnerGetMode(&pDict->Dict.Owner)) : NULL;
 }
 XXAPI bool xrtTypedDictEquals(xtdict pLeft, xtdict pRight)
 {
@@ -87804,6 +87901,11 @@ static xvalue_struct XVO_VALUE_FALSE = {
 XXAPI void xvoAddRef(xvalue pVal)
 {
 	xvoAddRef_Inline(pVal);
+}
+// 判断动态值是否已经进入共享所有权模式
+XXAPI bool xvoIsShared(xvalue pVal)
+{
+	return xvoIsShared_Inline(pVal);
 }
 // 释放列表 clear 进程
 bool xvoListClear_FreeProc(int64 pKey, xvalue* ppVal, xlist pList)
@@ -87963,6 +88065,31 @@ static void __xvoSetValueDrop(ptr pObj)
 		xvoUnref(pVal);
 	}
 }
+// 将 xvalue 句柄装箱为自身，并为返回值增加一份引用。
+static xvalue __xvoSetValueBox(const ptr pObj, const xrt_type_desc* pType)
+{
+	xvalue pVal = pObj ? *(const xvalue*)pObj : NULL;
+	(void)pType;
+	if ( pVal == NULL ) {
+		pVal = &XVO_VALUE_NULL;
+	}
+	xvoAddRef_Inline(pVal);
+	return pVal;
+}
+// 将任意动态值解箱为 xvalue 句柄；目标槽拥有新增的引用。
+static bool __xvoSetValueUnbox(xvalue pVal, ptr pOut, const xrt_type_desc* pType)
+{
+	(void)pType;
+	if ( pOut == NULL ) {
+		return FALSE;
+	}
+	if ( pVal == NULL ) {
+		pVal = &XVO_VALUE_NULL;
+	}
+	*(xvalue*)pOut = pVal;
+	xvoAddRef_Inline(pVal);
+	return TRUE;
+}
 static const xrt_type_ops __xvoSetValueOps = {
 	.init = NULL,
 	.copy = __xvoSetValueCopy,
@@ -87971,8 +88098,8 @@ static const xrt_type_ops __xvoSetValueOps = {
 	.compare = __xvoSetValueCompare,
 	.hash = __xvoSetValueHash,
 	.to_string = NULL,
-	.box = NULL,
-	.unbox = NULL
+	.box = __xvoSetValueBox,
+	.unbox = __xvoSetValueUnbox
 };
 static const xrt_type_desc __xvoSetValueType = {
 	.TypeId = 0,
@@ -87986,6 +88113,11 @@ static const xrt_type_desc __xvoSetValueType = {
 	.Ops = &__xvoSetValueOps,
 	.Extra = NULL
 };
+// XRT 的通用动态值类型，可直接作为静态容器元素类型使用。
+XXAPI const xrt_type_desc* xrtTypeValue()
+{
+	return &__xvoSetValueType;
+}
 typedef struct {
 	str Key;
 	uint32 KeyLen;
@@ -88572,7 +88704,7 @@ XXAPI xvalue xvoCreateClass(uint32 iSize)
 	return pVal;
 }
 // 创建 record/class 动态值
-XXAPI xvalue xvoCreateRecord(const xrt_type_desc* pType, const ptr pData)
+static xvalue __xvoCreateRecord(const xrt_type_desc* pType, ptr pData, bool bMove)
 {
 	xvalue pVal;
 	xrt_record_value* pRecord;
@@ -88585,11 +88717,21 @@ XXAPI xvalue xvoCreateRecord(const xrt_type_desc* pType, const ptr pData)
 	if ( pRecord == NULL ) {
 		return NULL;
 	}
+	pVal = xrtMalloc(sizeof(xvalue_struct));
+	if ( pVal == NULL ) {
+		xrtFree(pRecord);
+		return NULL;
+	}
 	pRecord->Type = pType;
 	pRecord->Flags = 0;
 	pRecord->Size = (uint32)pType->Size;
 	if ( pData ) {
-		if ( pType->Ops && pType->Ops->copy ) {
+		if ( bMove && pType->Ops && pType->Ops->move ) {
+			pType->Ops->move(pRecord->Data, pData);
+		} else if ( bMove ) {
+			memcpy(pRecord->Data, pData, pType->Size);
+			memset(pData, 0, pType->Size);
+		} else if ( pType->Ops && pType->Ops->copy ) {
 			pType->Ops->copy(pRecord->Data, pData);
 		} else {
 			memcpy(pRecord->Data, pData, pType->Size);
@@ -88601,19 +88743,20 @@ XXAPI xvalue xvoCreateRecord(const xrt_type_desc* pType, const ptr pData)
 			memset(pRecord->Data, 0, pType->Size);
 		}
 	}
-	pVal = xrtMalloc(sizeof(xvalue_struct));
-	if ( pVal == NULL ) {
-		if ( pType->Ops && pType->Ops->drop ) {
-			pType->Ops->drop(pRecord->Data);
-		}
-		xrtFree(pRecord);
-		return NULL;
-	}
 	xvoInitOwnedHeader_Inline(pVal, XVO_DT_CLASS, XRT_OBJMODE_LOCAL);
 	pVal->Size = (uint32)pType->Size;
 	pVal->vStruct = pRecord;
 	pVal->vTypeDesc = pType;
 	return pVal;
+}
+XXAPI xvalue xvoCreateRecord(const xrt_type_desc* pType, const ptr pData)
+{
+	return __xvoCreateRecord(pType, (ptr)pData, false);
+}
+// 转移 record/class 所有权，成功后源对象进入零值状态
+XXAPI xvalue xvoCreateRecordMove(const xrt_type_desc* pType, ptr pData)
+{
+	return __xvoCreateRecord(pType, pData, true);
 }
 // xvoCreateCustom 相关处理
 XXAPI xvalue xvoCreateCustom(ptr pObj)
@@ -90041,6 +90184,9 @@ static bool __xrtTypedValueCanImport(xvalue pValue, const xrt_type_desc* pItemTy
 	if ( pValue == NULL || pItemType == NULL ) {
 		return FALSE;
 	}
+	if ( pItemType == xrtTypeValue() ) {
+		return TRUE;
+	}
 	pValueType = xvoTypeDesc(pValue);
 	return xrtTypeCanConvert(
 		pValueType,
@@ -90065,6 +90211,31 @@ XXAPI xtarray xrtTypedArrayFromValue(xvalue pValue, const xrt_type_desc* pItemTy
 		if ( !__xrtTypedValueCanImport(pItem, pItemType) ||
 			 !xrtTypedArrayAppendValue(pResult, pItem) ) {
 			xrtTypedArrayDestroy(pResult);
+			return NULL;
+		}
+	}
+	return pResult;
+}
+XXAPI xvalue xrtTypedArrayToValue(xtarray pArray)
+{
+	xvalue pResult;
+	uint32 i;
+	uint32 iCount;
+	if ( pArray == NULL || pArray->ItemType == NULL ) {
+		return NULL;
+	}
+	pResult = xvoCreateArray();
+	if ( pResult == NULL ) {
+		return NULL;
+	}
+	iCount = xrtTypedArrayCount(pArray);
+	for ( i = 0; i < iCount; ++i ) {
+		xvalue pItem = xrtTypeBoxValue(pArray->ItemType, xrtTypedArrayGet(pArray, i + 1));
+		if ( pItem == NULL || !xvoArrayAppendValue(pResult, pItem, TRUE) ) {
+			if ( pItem != NULL ) {
+				xvoUnref(pItem);
+			}
+			xvoUnref(pResult);
 			return NULL;
 		}
 	}
@@ -90105,6 +90276,32 @@ XXAPI xtlist xrtTypedListFromValue(xvalue pValue, const xrt_type_desc* pItemType
 		return NULL;
 	}
 	return tCtx.Result;
+}
+XXAPI xvalue xrtTypedListToValue(xtlist pList)
+{
+	xvalue pResult;
+	uint32 i;
+	uint32 iCount;
+	if ( pList == NULL || pList->ItemType == NULL ) {
+		return NULL;
+	}
+	pResult = xvoCreateList();
+	if ( pResult == NULL ) {
+		return NULL;
+	}
+	iCount = xrtTypedListCount(pList);
+	for ( i = 0; i < iCount; ++i ) {
+		int64 iKey = 0;
+		xvalue pItem = xrtTypeBoxValue(pList->ItemType, xrtTypedListItemAt(pList, i, &iKey));
+		if ( pItem == NULL || !xvoListSetValue(pResult, iKey, pItem, TRUE) ) {
+			if ( pItem != NULL ) {
+				xvoUnref(pItem);
+			}
+			xvoUnref(pResult);
+			return NULL;
+		}
+	}
+	return pResult;
 }
 typedef struct __xrt_typed_set_from_value_ctx {
 	xtset Result;
@@ -90156,6 +90353,31 @@ XXAPI xtset xrtTypedSetFromValue(xvalue pValue, const xrt_type_desc* pItemType, 
 	}
 	return tCtx.Result;
 }
+XXAPI xvalue xrtTypedSetToValue(xtset pSet)
+{
+	xvalue pResult;
+	uint32 i;
+	uint32 iCount;
+	if ( pSet == NULL || pSet->ItemType == NULL ) {
+		return NULL;
+	}
+	pResult = xvoCreateSet();
+	if ( pResult == NULL ) {
+		return NULL;
+	}
+	iCount = xrtTypedSetCount(pSet);
+	for ( i = 0; i < iCount; ++i ) {
+		xvalue pItem = xrtTypeBoxValue(pSet->ItemType, xrtTypedSetItemAt(pSet, i));
+		if ( pItem == NULL || !xvoCollSetValue(pResult, pItem, TRUE) ) {
+			if ( pItem != NULL ) {
+				xvoUnref(pItem);
+			}
+			xvoUnref(pResult);
+			return NULL;
+		}
+	}
+	return pResult;
+}
 typedef struct __xrt_typed_dict_from_value_ctx {
 	xtdict Result;
 	const xrt_type_desc* ItemType;
@@ -90191,6 +90413,35 @@ XXAPI xtdict xrtTypedDictFromValue(xvalue pValue, const xrt_type_desc* pItemType
 		return NULL;
 	}
 	return tCtx.Result;
+}
+XXAPI xvalue xrtTypedDictToValue(xtdict pDict)
+{
+	xvalue pResult;
+	uint32 i;
+	uint32 iCount;
+	if ( pDict == NULL || pDict->ItemType == NULL ) {
+		return NULL;
+	}
+	pResult = xvoCreateTable();
+	if ( pResult == NULL ) {
+		return NULL;
+	}
+	iCount = xrtTypedDictCount(pDict);
+	for ( i = 0; i < iCount; ++i ) {
+		const char* sKey = NULL;
+		uint32 iKeyLen = 0;
+		xvalue pItem = xrtTypeBoxValue(
+			pDict->ItemType,
+			xrtTypedDictItemAt(pDict, i, &sKey, &iKeyLen));
+		if ( pItem == NULL || !xvoTableSetValue(pResult, sKey, iKeyLen, pItem, TRUE) ) {
+			if ( pItem != NULL ) {
+				xvoUnref(pItem);
+			}
+			xvoUnref(pResult);
+			return NULL;
+		}
+	}
+	return pResult;
 }
 XXAPI bool xvoTableSetParent(xvalue pTbl, xvalue pParentTable)
 {

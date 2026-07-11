@@ -1,0 +1,2044 @@
+// xvcs.xl - Git 式分布式版本控制系统 (Content-Addressable Object Store)
+//
+// 用法:
+//   xvcs init                          初始化仓库 (创建 .xvcs/)
+//   xvcs add <file|dir>                添加到索引 (staging)
+//   xvcs add .                         添加全部工作区文件
+//   xvcs commit -m "message"           从索引构建 tree + 创建 commit + 更新 HEAD
+//   xvcs status                        比较 工作区/索引/HEAD 三方差异
+//   xvcs log                           沿第一父提交显示提交历史
+//   xvcs branch [name]                 无参数列出分支, 带名字创建分支
+//   xvcs checkout <branch|hash>        切换分支 / 分离 HEAD, 并恢复工作区
+//   xvcs merge <branch>                3-way merge (base/ours/theirs), 冲突标记
+//   xvcs diff [file]                   工作区 vs 索引 (LCS 行级 diff)
+//   xvcs diff --cached [file]          索引 vs HEAD
+//   xvcs test                          内置自测 (init/add/commit/branch/merge/diff)
+//   xvcs help | -h                     显示本帮助
+//
+// 对象模型 (Content-Addressable Storage):
+//   对象 = SHA-1(UTF-8 JSON 文本) -> 内容; 用 .xvcs/objects/<hash>.json 持久化.
+//   crypto.sha1 返回大写 hex, 这里统一 string.lower 成小写 40 字符做对象名.
+//   三种对象:
+//     blob   {"type":"blob",   "content":"..."}
+//     tree   {"type":"tree",   "entries":{"name":{"kind":"blob|tree","hash":"..."}}}
+//     commit {"type":"commit", "tree":"<hash>", "parents":["<hash>",...],
+//             "message":"...", "author":"...", "timestamp":<unix秒>}
+//   tree 的 entries 按 name 排序输出 -> 相同目录内容产生相同哈希 (跨提交复用子树).
+//
+// 引用:
+//   .xvcs/HEAD              "ref: refs/heads/main\n"  或  "<hash>\n" (分离头)
+//   .xvcs/refs/heads/<分支>  内含一个 commit 哈希
+//   .xvcs/index.json        {"path/with/slash": "<blob-hash>"}  (扁平, 用 / 分隔)
+//
+// 设计要点 (对齐 dev/README.md 现有能力与限制):
+//   * 路径规范: index/tree 内一律用 "/" 分隔; 文件系统操作前 toFsPath 转 path.sep().
+//   * splitLines 尾部空串 (BUG-S1): toLines 丢掉恰好一个尾部空串.
+//   * pop() 不走 auto (auto 无法从 pop 推断): 用显式 int/string 接收, 或索引 + remove.
+//   * var 实参传重载 (BUG-VO1): 容器内值先用 string()/int() 显式转换再传 API.
+//   * LCS 行级 diff: 一维 DP 表 + 回溯 (复用 dev/diff 思路).
+//   * 3-way 文本合并: 用 base↔ours 与 base↔theirs 两份 LCS 匹配做 diff3 同步点算法,
+//     一致变更自动合并, 双向冲突产生 <<<<<<< HEAD / ======= / >>>>>>> branch 标记.
+//   * merge-base: 收集 ours 全部祖先到 set, 沿 theirs 第一父链找首个公共祖先.
+
+const string XVCS   = ".xvcs"
+const string HEAD_FN = "HEAD"
+const string INDEX_FN = "index.json"
+const string CONFIG_FN = "config.json"
+const string BLOB_K   = "blob"
+const string TREE_K   = "tree"
+const string COMMIT_K = "commit"
+
+
+// ============================================================================
+// 路径辅助
+// ============================================================================
+
+func xvcsRoot() as string
+    return XVCS
+end
+
+func objPath(string h) as string
+    return path.join(path.join(XVCS, "objects"), h + ".json")
+end
+
+func headPath() as string
+    return path.join(XVCS, HEAD_FN)
+end
+
+func indexPath() as string
+    return path.join(XVCS, INDEX_FN)
+end
+
+func configPath() as string
+    return path.join(XVCS, CONFIG_FN)
+end
+
+func refPath(string branch) as string
+    return path.join(path.join(XVCS, "refs"), path.join("heads", branch))
+end
+
+func refsDir() as string
+    return path.join(path.join(XVCS, "refs"), "heads")
+end
+
+func repoExists() as bool
+    return dir.exists(XVCS)
+end
+
+func shortHash(string h) as string
+    if string.len(h) <= 7 then return h end
+    return string.mid(h, 0, 7)
+end
+
+
+// ============================================================================
+// 字符串 / 数组 / 通用辅助
+// ============================================================================
+
+// 去掉首尾的 \r 和 \n (HEAD / ref 文件以换行结尾).
+func stripNewline(string s) as string
+    int n = string.len(s)
+    while n > 0 do
+        string last = string.mid(s, n - 1, 1)
+        if last == "\n" or last == "\r" then
+            n = n - 1
+        else
+            break
+        end
+    end
+    if n == string.len(s) then return s end
+    return string.mid(s, 0, n)
+end
+
+// 把全文拆成行, 丢掉 splitLines 的尾部空串 (BUG-S1).
+func toLines(string content) as array<string>
+    array raw = string.splitLines(content)
+    array<string> out = array[]
+    int n = raw.length
+    int i = 0
+    while i < n do
+        out.push(string(raw[i]))
+        i += 1
+    end
+    if out.length > 0 then
+        if out[out.length - 1] == "" then
+            out.remove(out.length - 1)
+        end
+    end
+    return out
+end
+
+// 行数组 -> 文本 (用 \n 连接; 末尾保留一个换行便于文件落盘).
+func joinLines(array<string> lines) as string
+    string s = ""
+    int n = lines.length
+    int i = 0
+    while i < n do
+        if i == 0 then
+            s = lines[i]
+        else
+            s = s + "\n" + lines[i]
+        end
+        i += 1
+    end
+    if string.len(s) > 0 then
+        s = s + "\n"
+    end
+    return s
+end
+
+// 行数组(var) -> 文本.
+func joinLinesVar(var lines) as string
+    string s = ""
+    int n = lines.length
+    int i = 0
+    while i < n do
+        if i == 0 then
+            s = string(lines[i])
+        else
+            s = s + "\n" + string(lines[i])
+        end
+        i += 1
+    end
+    if string.len(s) > 0 then
+        s = s + "\n"
+    end
+    return s
+end
+
+// 对 array<string> 原地插入排序 (大小写敏感, 字典序).
+func sortStringArray(array<string> a)
+    int n = a.length
+    int i = 1
+    while i < n do
+        string key = a[i]
+        int j = i - 1
+        while j >= 0 do
+            if string.compare(a[j], key, false) > 0 then
+                a[j + 1] = a[j]
+                j = j - 1
+            else
+                break
+            end
+        end
+        a[j + 1] = key
+        i += 1
+    end
+end
+
+// 取 var dict 的键并排序 (大小写敏感, 字典序) -> 用于确定性序列化.
+func sortedKeys(var d) as array<string>
+    array<string> keys = array[]
+    for k, v in d
+        keys.push(string(k))
+    end
+    sortStringArray(keys)
+    return keys
+end
+
+// 规整相对路径: 转成 "/" 分隔, 去掉前缀 "./" 与尾 "/".
+func normalizeRelPath(string p) as string
+    if path.sep() != "/" then
+        p = string.replace(p, path.sep(), "/")
+    end
+    if string.startsWith(p, "./") then
+        p = string.mid(p, 2, string.len(p) - 2)
+    end
+    if string.len(p) > 0 then
+        if string.mid(p, string.len(p) - 1, 1) == "/" then
+            p = string.mid(p, 0, string.len(p) - 1)
+        end
+    end
+    return p
+end
+
+// 索引路径 ("/" 分隔) -> 文件系统路径 (用 path.sep).
+func toFsPath(string rel) as string
+    if path.sep() == "/" then return rel end
+    return string.replace(rel, "/", path.sep())
+end
+
+
+// ============================================================================
+// 对象库 (Content-Addressable Storage)
+// ============================================================================
+
+func writeObject(var obj) as string
+    string text = json.stringify(obj)
+    string h = string.lower(crypto.sha1(text))
+    string p = objPath(h)
+    if not file.exists(p) then
+        file.writeText(p, text)
+    end
+    return h
+end
+
+func readObject(string h) as var
+    string p = objPath(h)
+    string text = file.readText(p)
+    return json.parse(text)
+end
+
+func objectExists(string h) as bool
+    if string.isEmpty(h) then return false end
+    return file.exists(objPath(h))
+end
+
+func writeBlob(string content) as string
+    var obj = {}
+    obj["type"] = BLOB_K
+    obj["content"] = content
+    return writeObject(obj)
+end
+
+func readBlob(string h) as string
+    var obj = readObject(h)
+    return string(obj["content"])
+end
+
+// 仅计算 blob 哈希 (不落盘), 用于 status/diff 比对工作区文件.
+func hashText(string content) as string
+    var obj = {}
+    obj["type"] = BLOB_K
+    obj["content"] = content
+    return string.lower(crypto.sha1(json.stringify(obj)))
+end
+
+func writeCommit(string treeHash, var parents, string message, string author, int ts) as string
+    var obj = {}
+    obj["type"] = COMMIT_K
+    obj["tree"] = treeHash
+    obj["parents"] = parents
+    obj["message"] = message
+    obj["author"] = author
+    obj["timestamp"] = ts
+    return writeObject(obj)
+end
+
+func commitTree(string commitHash) as string
+    if not objectExists(commitHash) then return "" end
+    var obj = readObject(commitHash)
+    if obj == null then return "" end
+    return string(obj["tree"])
+end
+
+func commitParents(string commitHash) as array<string>
+    array<string> result = array[]
+    if not objectExists(commitHash) then return result end
+    var obj = readObject(commitHash)
+    if obj == null then return result end
+    var parents = obj["parents"]
+    if parents == null then return result end
+    int n = parents.length
+    int i = 0
+    while i < n do
+        result.push(string(parents[i]))
+        i += 1
+    end
+    return result
+end
+
+
+// ============================================================================
+// Tree 操作 (索引 -> 嵌套目录树 -> tree 对象)
+// ============================================================================
+
+// 把扁平 index (path -> hash) 转成嵌套 dict.
+//   目录节点 = 普通 dict (无 "kind");
+//   文件叶子 = {"kind":"blob", "hash":...}
+func buildNested(var index) as var
+    var root = {}
+    array<string> paths = sortedKeys(index)
+    int pi = 0
+    while pi < paths.length do
+        string path_ = paths[pi]
+        string hash = string(index[path_])
+        array parts = string.split(path_, "/")
+        int last = parts.length - 1
+        var cur = root
+        int i = 0
+        while i < last do
+            string seg = string(parts[i])
+            if not (seg in cur) then
+                var child = {}
+                cur[seg] = child
+            end
+            cur = cur[seg]
+            i += 1
+        end
+        string fname = string(parts[last])
+        var blobEntry = {}
+        blobEntry["kind"] = BLOB_K
+        blobEntry["hash"] = hash
+        cur[fname] = blobEntry
+        pi += 1
+    end
+    return root
+end
+
+// 递归把嵌套 dict 写成 tree 对象, 返回当前子树的 tree 哈希.
+func writeTreeFromNested(var node) as string
+    var entries = {}
+    array<string> names = sortedKeys(node)
+    int i = 0
+    while i < names.length do
+        string nm = names[i]
+        var child = node[nm]
+        if "kind" in child then
+            entries[nm] = child
+        else
+            string subHash = writeTreeFromNested(child)
+            var e = {}
+            e["kind"] = TREE_K
+            e["hash"] = subHash
+            entries[nm] = e
+        end
+        i += 1
+    end
+    var treeObj = {}
+    treeObj["type"] = TREE_K
+    treeObj["entries"] = entries
+    return writeObject(treeObj)
+end
+
+// 从索引构建根 tree 对象, 返回根 tree 哈希.
+func buildTreeFromIndex(var index) as string
+    if index.length == 0 then
+        // 空 tree: 仍写一个 entries 为空的 tree 对象, 哈希稳定
+        var empty = {}
+        empty["type"] = TREE_K
+        var entries = {}
+        empty["entries"] = entries
+        return writeObject(empty)
+    end
+    var nested = buildNested(index)
+    return writeTreeFromNested(nested)
+end
+
+// 递归把一个 tree 哈希拍平成 path -> blobHash 字典 (path 用 "/" 分隔).
+func flattenTreeRecurse(string treeHash, string prefix, var out)
+    if not objectExists(treeHash) then return end
+    var tree = readObject(treeHash)
+    if tree == null then return end
+    var entries = tree["entries"]
+    if entries == null then return end
+    array<string> names = sortedKeys(entries)
+    int i = 0
+    while i < names.length do
+        string nm = names[i]
+        var entry = entries[nm]
+        string kind = string(entry["kind"])
+        string h = string(entry["hash"])
+        string full = prefix + nm
+        if kind == BLOB_K then
+            out[full] = h
+        else
+            flattenTreeRecurse(h, full + "/", out)
+        end
+        i += 1
+    end
+end
+
+// 拍平一个 commit 的顶层 tree -> path -> blobHash.
+func flattenCommit(string commitHash) as var
+    var result = {}
+    if string.isEmpty(commitHash) then return result end
+    string tree = commitTree(commitHash)
+    if string.isEmpty(tree) then return result end
+    flattenTreeRecurse(tree, "", result)
+    return result
+end
+
+
+// ============================================================================
+// 引用 (refs) / HEAD
+// ============================================================================
+
+func readHeadRaw() as string
+    if not file.exists(headPath()) then return "" end
+    return file.readText(headPath())
+end
+
+// 解析 HEAD: {"mode":"ref"|"detached"|"none", "ref":..., "branch":..., "commit":...}
+func readHead() as var
+    var h = {}
+    string raw = readHeadRaw()
+    if string.isEmpty(raw) then
+        h["mode"] = "none"
+        return h
+    end
+    raw = stripNewline(raw)
+    if string.startsWith(raw, "ref: ") then
+        string ref = string.mid(raw, 5, string.len(raw) - 5)
+        h["mode"] = "ref"
+        h["ref"] = ref
+        h["branch"] = path.name(ref)
+        h["commit"] = readRef(ref)
+        return h
+    end
+    h["mode"] = "detached"
+    h["commit"] = raw
+    return h
+end
+
+func readRef(string ref) as string
+    string p = path.join(XVCS, ref)
+    if not file.exists(p) then return "" end
+    return stripNewline(file.readText(p))
+end
+
+func readBranch(string name) as string
+    string p = refPath(name)
+    if not file.exists(p) then return "" end
+    return stripNewline(file.readText(p))
+end
+
+func writeBranch(string name, string hash)
+    string p = refPath(name)
+    string parent = path.dir(p)
+    if not dir.exists(parent) then
+        dir.createAll(parent)
+    end
+    file.writeText(p, hash + "\n")
+end
+
+func resolveHeadCommit() as string
+    var h = readHead()
+    if h["mode"] == "none" then return "" end
+    return string(h["commit"])
+end
+
+func currentBranchName() as string
+    var h = readHead()
+    if h["mode"] == "ref" then return string(h["branch"]) end
+    return "HEAD"
+end
+
+// 把当前 HEAD 指向的提交更新为 hash (分支 -> 写分支文件; 分离 -> 写 HEAD).
+func updateHeadCommit(string hash)
+    var h = readHead()
+    if h["mode"] == "ref" then
+        writeBranch(string(h["branch"]), hash)
+    else
+        file.writeText(headPath(), hash + "\n")
+    end
+end
+
+// 列出所有分支名 (refs/heads/ 下的文件名).
+func listBranches() as array<string>
+    array<string> result = array[]
+    string d = refsDir()
+    if not dir.exists(d) then return result end
+    array raw = dir.entries(d, false)
+    int n = raw.length
+    int i = 0
+    while i < n do
+        var e = raw[i]
+        if bool(e["isFile"]) then
+            result.push(string(e["name"]))
+        end
+        i += 1
+    end
+    return result
+end
+
+
+// ============================================================================
+// 索引 (Staging Area)
+// ============================================================================
+
+func readIndex() as var
+    var idx = {}
+    if not file.exists(indexPath()) then return idx end
+    string text = file.readText(indexPath())
+    if string.isEmpty(text) then return idx end
+    if not json.valid(text) then return idx end
+    var parsed = json.parse(text)
+    if parsed == null then return idx end
+    return parsed
+end
+
+func writeIndex(var idx)
+    file.writeText(indexPath(), json.stringify(idx))
+end
+
+func getAuthor() as string
+    if file.exists(configPath()) then
+        string text = file.readText(configPath())
+        if json.valid(text) then
+            var cfg = json.parse(text)
+            if cfg != null and "user" in cfg then
+                return string(cfg["user"])
+            end
+        end
+    end
+    return "xvcs-user <xvcs@local>"
+end
+
+
+// ============================================================================
+// 工作区扫描与文件读写
+// ============================================================================
+
+// 从 dirPath (文件系统路径) 递归收集文件, 输出为 rel 列表 ("/" 分隔, 含 prefix).
+func scanDirRecurse(string dirPath, string prefix, array<string> out)
+    array raw = dir.entries(dirPath, false)
+    int n = raw.length
+    int i = 0
+    while i < n do
+        var e = raw[i]
+        string nm = string(e["name"])
+        bool isDir = bool(e["isDir"])
+        // 仅在顶层跳过 .xvcs
+        if nm == XVCS and string.len(prefix) == 0 then
+            i += 1
+            continue
+        end
+        string rel = nm
+        if string.len(prefix) > 0 then
+            rel = prefix + "/" + nm
+        end
+        if isDir then
+            scanDirRecurse(string(e["path"]), rel, out)
+        else
+            out.push(rel)
+        end
+        i += 1
+    end
+end
+
+// 扫描整个工作区 (相对 cwd), 返回排序后的 rel 路径列表 ("/" 分隔).
+func scanWorkdir() as array<string>
+    array<string> out = array[]
+    scanDirRecurse(".", "", out)
+    sortStringArray(out)
+    return out
+end
+
+// 读取 rel 路径文件内容 (rel 用 "/" 分隔).
+func readFileRel(string rel) as string
+    string fs = toFsPath(rel)
+    return file.readText(fs)
+end
+
+// 把文本写入 rel 路径 (自动创建父目录).
+func writeFileText(string rel, string content) as bool
+    string fs = toFsPath(rel)
+    string parent = path.dir(fs)
+    if string.len(parent) > 0 and parent != "." then
+        if not dir.exists(parent) then
+            dir.createAll(parent)
+        end
+    end
+    return file.writeText(fs, content)
+end
+
+// 删除 rel 路径文件 (若存在).
+func deleteWorkFile(string rel)
+    string fs = toFsPath(rel)
+    if file.exists(fs) then
+        file.delete(fs)
+    end
+end
+
+// 把工作区恢复到 commitHash 对应的 tree, 并把 index 重写为该 tree.
+//   会删除 "当前 index 中有但目标 tree 没有" 的文件 (不影响未跟踪文件).
+func restoreWorkdir(string commitHash)
+    var target = flattenCommit(commitHash)
+    var currentIndex = readIndex()
+    // 删除: 当前 index 跟踪、但目标不在的文件
+    array<string> tracked = sortedKeys(currentIndex)
+    int i = 0
+    while i < tracked.length do
+        string p = tracked[i]
+        if not (p in target) then
+            deleteWorkFile(p)
+        end
+        i += 1
+    end
+    // 写入目标文件
+    array<string> tpaths = sortedKeys(target)
+    int j = 0
+    while j < tpaths.length do
+        string p = tpaths[j]
+        string content = readBlob(string(target[p]))
+        writeFileText(p, content)
+        j += 1
+    end
+    writeIndex(target)
+end
+
+
+// ============================================================================
+// LCS 行级 diff (一维 DP 表 + 回溯)
+//   ops: 0=same 1=del(来自 a) 2=add(来自 b); 配套 texts 存对应行文本.
+// ============================================================================
+
+func lcsDiffLines(array<string> a, array<string> b, array<int> ops, array<string> texts)
+    int m = a.length
+    int n = b.length
+    int cols = n + 1
+    int total = (m + 1) * cols
+
+    array<int> dp = array[]
+    int z = 0
+    while z < total do
+        dp.push(0)
+        z += 1
+    end
+
+    int i = 1
+    while i <= m do
+        int j = 1
+        while j <= n do
+            if a[i - 1] == b[j - 1] then
+                dp[i * cols + j] = dp[(i - 1) * cols + (j - 1)] + 1
+            else
+                int up = dp[(i - 1) * cols + j]
+                int left = dp[i * cols + (j - 1)]
+                if up >= left then
+                    dp[i * cols + j] = up
+                else
+                    dp[i * cols + j] = left
+                end
+            end
+            j += 1
+        end
+        i += 1
+    end
+
+    // 回溯收集, 再翻转
+    i = m
+    int j = n
+    while i > 0 or j > 0 do
+        if i > 0 then
+            if j > 0 then
+                if a[i - 1] == b[j - 1] then
+                    ops.push(0)
+                    texts.push(a[i - 1])
+                    i -= 1
+                    j -= 1
+                elseif dp[(i - 1) * cols + j] > dp[i * cols + (j - 1)] then
+                    ops.push(1)
+                    texts.push(a[i - 1])
+                    i -= 1
+                else
+                    ops.push(2)
+                    texts.push(b[j - 1])
+                    j -= 1
+                end
+            else
+                ops.push(1)
+                texts.push(a[i - 1])
+                i -= 1
+            end
+        else
+            ops.push(2)
+            texts.push(b[j - 1])
+            j -= 1
+        end
+    end
+    ops.reverse()
+    texts.reverse()
+end
+
+// 单文件 unified-style diff 输出.
+func printFileDiff(string path_, string oldContent, string newContent)
+    array<string> a = toLines(oldContent)
+    array<string> b = toLines(newContent)
+    array<int> ops = array[]
+    array<string> texts = array[]
+    lcsDiffLines(a, b, ops, texts)
+
+    println("--- a/" + path_)
+    println("+++ b/" + path_)
+
+    int total = ops.length
+    int i = 0
+    while i < total do
+        if ops[i] != 0 then
+            // hunk 起点 (1-based)
+            int s = i
+            int context = 3
+            int start = i - context
+            if start < 0 then start = 0 end
+            int end_ = i + context
+            if end_ >= total then end_ = total - 1 end
+            // 推进到该 hunk 末
+            int j = s + 1
+            while j < total do
+                if ops[j] != 0 then
+                    int cand = j + context
+                    if cand > end_ then end_ = cand end
+                    if end_ >= total then end_ = total - 1 end
+                end
+                j += 1
+            end
+            if end_ >= total then end_ = total - 1 end
+
+            // 计算 old/new 起始行与行数
+            int oldLine = 0
+            int newLine = 0
+            int k = 0
+            while k < start do
+                if ops[k] == 0 then
+                    oldLine += 1
+                    newLine += 1
+                elseif ops[k] == 1 then
+                    oldLine += 1
+                else
+                    newLine += 1
+                end
+                k += 1
+            end
+            int oldStart = oldLine + 1
+            int newStart = newLine + 1
+            int oldCount = 0
+            int newCount = 0
+            int kk = start
+            while kk <= end_ do
+                if ops[kk] == 0 then
+                    oldCount += 1
+                    newCount += 1
+                elseif ops[kk] == 1 then
+                    oldCount += 1
+                else
+                    newCount += 1
+                end
+                kk += 1
+            end
+            if oldCount == 0 then oldStart = oldLine end
+            if newCount == 0 then newStart = newLine end
+            println("@@ -" + string(oldStart) + "," + string(oldCount) + " +" + string(newStart) + "," + string(newCount) + " @@")
+            int p = start
+            while p <= end_ do
+                if ops[p] == 0 then
+                    println(" " + texts[p])
+                elseif ops[p] == 1 then
+                    println("-" + texts[p])
+                else
+                    println("+" + texts[p])
+                end
+                p += 1
+            end
+            i = end_ + 1
+        else
+            i += 1
+        end
+    end
+end
+
+
+// ============================================================================
+// diff3 三方行级合并
+//   思路: 对 base↔ours, base↔theirs 各做一次 LCS 匹配, 得到 base 每行对齐的
+//   other 行号 (或 -1). 然后沿 base 推进, 在 "双匹配同步点" 之间切出 changed
+//   区域, 按 oursIsBase / theirsIsBase / 相等 三种判据自动合并或标冲突.
+// ============================================================================
+
+// 求 LCS 匹配: 对 base[i] 返回 other 中对齐的行号, 没有则 -1.
+func matchBase(array<string> base, array<string> other) as array<int>
+    int m = base.length
+    int n = other.length
+    int cols = n + 1
+    array<int> dp = array[]
+    int total = (m + 1) * cols
+    int z = 0
+    while z < total do
+        dp.push(0)
+        z += 1
+    end
+    int i = 1
+    while i <= m do
+        int j = 1
+        while j <= n do
+            if base[i - 1] == other[j - 1] then
+                dp[i * cols + j] = dp[(i - 1) * cols + (j - 1)] + 1
+            else
+                int up = dp[(i - 1) * cols + j]
+                int left = dp[i * cols + (j - 1)]
+                if up >= left then
+                    dp[i * cols + j] = up
+                else
+                    dp[i * cols + j] = left
+                end
+            end
+            j += 1
+        end
+        i += 1
+    end
+
+    array<int> match = array[]
+    int mi = 0
+    while mi < m do
+        match.push(-1)
+        mi += 1
+    end
+    int bi = m
+    int bj = n
+    while bi > 0 and bj > 0 do
+        if base[bi - 1] == other[bj - 1] then
+            match[bi - 1] = bj - 1
+            bi -= 1
+            bj -= 1
+        elseif dp[(bi - 1) * cols + bj] >= dp[bi * cols + (bj - 1)] then
+            bi -= 1
+        else
+            bj -= 1
+        end
+    end
+    return match
+end
+
+// 比较 a[alo..ahi) 与 b[blo..bhi) 两个切片是否完全相同.
+func sliceEquals(array<string> a, int alo, int ahi, array<string> b, int blo, int bhi) as bool
+    int la = ahi - alo
+    int lb = bhi - blo
+    if la != lb then return false end
+    int i = 0
+    while i < la do
+        if a[alo + i] != b[blo + i] then return false end
+        i += 1
+    end
+    return true
+end
+
+// 把 a[lo..hi) 追加到 var lines.
+func appendRange(var lines, array<string> a, int lo, int hi)
+    int i = lo
+    while i < hi do
+        lines.push(a[i])
+        i += 1
+    end
+end
+
+// 处理一个 changed 区域 (base[bs..be) / ours[os..oe) / theirs[ts..te)),
+// 把结果追加到 lines. 返回 true 表示产生了冲突.
+func resolveRegion(array<string> base, int bs, int be,
+                   array<string> ours, int os_, int oe,
+                   array<string> theirs, int ts_, int te,
+                   var lines, string branchName) as bool
+    bool oursIsBase = sliceEquals(ours, os_, oe, base, bs, be)
+    bool theirsIsBase = sliceEquals(theirs, ts_, te, base, bs, be)
+    if oursIsBase and theirsIsBase then
+        appendRange(lines, base, bs, be)
+        return false
+    end
+    if oursIsBase then
+        appendRange(lines, theirs, ts_, te)
+        return false
+    end
+    if theirsIsBase then
+        appendRange(lines, ours, os_, oe)
+        return false
+    end
+    if sliceEquals(ours, os_, oe, theirs, ts_, te) then
+        appendRange(lines, ours, os_, oe)
+        return false
+    end
+    // 冲突
+    lines.push("<<<<<<< HEAD")
+    appendRange(lines, ours, os_, oe)
+    lines.push("=======")
+    appendRange(lines, theirs, ts_, te)
+    lines.push(">>>>>>> " + branchName)
+    return true
+end
+
+// 三方合并 base/ours/theirs (均为行数组). 返回 {"lines":[...], "conflict":bool}.
+func merge3(array<string> base, array<string> ours, array<string> theirs, string branchName) as var
+    var out = {}
+    var lines = []
+    bool conflict = false
+    array<int> mo = matchBase(base, ours)
+    array<int> mt = matchBase(base, theirs)
+    int m = base.length
+    int nO = ours.length
+    int nT = theirs.length
+
+    int bi = 0
+    int oi = 0
+    int ti = 0
+    bool done = false
+
+    while not done do
+        // 找下一个同步点: base 索引 s >= bi, 且 mo[s] >= oi 且 mt[s] >= ti
+        int s = bi
+        bool found = false
+        while s < m do
+            if mo[s] >= oi and mt[s] >= ti then
+                found = true
+                break
+            end
+            s += 1
+        end
+
+        if not found then
+            // 末尾区域
+            bool c = resolveRegion(base, bi, m, ours, oi, nO, theirs, ti, nT, lines, branchName)
+            if c then conflict = true end
+            done = true
+        else
+            int nsO = mo[s]
+            int nsT = mt[s]
+            // 同步点之前的 changed 区域
+            if s > bi or nsO > oi or nsT > ti then
+                bool c = resolveRegion(base, bi, s, ours, oi, nsO, theirs, ti, nsT, lines, branchName)
+                if c then conflict = true end
+            end
+            // 发射同步行
+            lines.push(base[s])
+            bi = s + 1
+            oi = nsO + 1
+            ti = nsT + 1
+            if bi >= m and oi >= nO and ti >= nT then
+                done = true
+            end
+        end
+    end
+
+    out["lines"] = lines
+    out["conflict"] = conflict
+    return out
+end
+
+
+// ============================================================================
+// merge-base 查找
+// ============================================================================
+
+// 收集 commitHash 的全部祖先 (含自身) 到 set.
+func collectAncestors(string commitHash, var set)
+    array<string> stack = array[]
+    stack.push(commitHash)
+    while stack.length > 0 do
+        int last = stack.length - 1
+        string c = stack[last]
+        stack.remove(last)
+        if c in set then continue end
+        if not objectExists(c) then continue end
+        set[c] = true
+        array<string> ps = commitParents(c)
+        int i = 0
+        while i < ps.length do
+            stack.push(ps[i])
+            i += 1
+        end
+    end
+end
+
+// 找 h1/h2 的首个公共祖先 (BFS h2 链, 命中 h1 祖先集即返回).
+func findMergeBase(string h1, string h2) as string
+    if string.isEmpty(h1) or string.isEmpty(h2) then return "" end
+    var anc1 = {}
+    collectAncestors(h1, anc1)
+    array<string> stack = array[]
+    stack.push(h2)
+    var seen = {}
+    while stack.length > 0 do
+        int last = stack.length - 1
+        string c = stack[last]
+        stack.remove(last)
+        if c in seen then continue end
+        seen[c] = true
+        if c in anc1 then return c end
+        if not objectExists(c) then continue end
+        array<string> ps = commitParents(c)
+        int i = 0
+        while i < ps.length do
+            stack.push(ps[i])
+            i += 1
+        end
+    end
+    return ""
+end
+
+
+// ============================================================================
+// 命令实现
+// ============================================================================
+
+// ----- init -----
+func cmdInit() as int
+    if dir.exists(XVCS) then
+        println("Reinitialized existing xvcs repository in " + path.abs(XVCS))
+        return 0
+    end
+    dir.createAll(path.join(XVCS, "objects"))
+    dir.createAll(refsDir())
+    file.writeText(headPath(), "ref: refs/heads/main\n")
+    writeIndex({})
+    var config = {}
+    config["user"] = "xvcs-user"
+    file.writeText(configPath(), json.stringify(config))
+    println("Initialized empty xvcs repository in " + path.abs(XVCS))
+    return 0
+end
+
+// ----- add -----
+// 把单个 rel 文件加入 index (读 + 写 blob), 返回 1 表示加入.
+func addFileToIndex(string rel, var index) as int
+    string fs = toFsPath(rel)
+    if not file.exists(fs) then return 0 end
+    string content = ""
+    try
+        content = file.readText(fs)
+    catch e
+        return 0
+    end
+    string h = writeBlob(content)
+    index[rel] = h
+    return 1
+end
+
+// 处理一个用户传入的路径参数 (文件或目录), 返回加入文件数.
+func addPath(string p, var index) as int
+    string norm = normalizeRelPath(p)
+    string fs = toFsPath(norm)
+    int count = 0
+    if dir.exists(fs) then
+        array<string> files = array[]
+        scanDirRecurse(fs, norm, files)
+        int i = 0
+        while i < files.length do
+            count += addFileToIndex(files[i], index)
+            i += 1
+        end
+    elseif file.exists(fs) then
+        count += addFileToIndex(norm, index)
+    else
+        println("xvcs: path not found: " + p)
+    end
+    return count
+end
+
+func cmdAdd(array<string> paths) as int
+    if not repoExists() then
+        println("xvcs: not a repository (run 'xvcs init' first)")
+        return 1
+    end
+    if paths.length == 0 then
+        println("usage: xvcs add <file|dir|.;.;.>")
+        return 1
+    end
+    var index = readIndex()
+    int added = 0
+    int i = 0
+    while i < paths.length do
+        added += addPath(paths[i], index)
+        i += 1
+    end
+    writeIndex(index)
+    println("added " + string(added) + " file(s) to index")
+    return 0
+end
+
+// ----- commit -----
+func cmdCommit(string message) as int
+    if not repoExists() then
+        println("xvcs: not a repository")
+        return 1
+    end
+    var index = readIndex()
+    if index.length == 0 then
+        println("nothing to commit (empty index)")
+        return 1
+    end
+    string tree = buildTreeFromIndex(index)
+    string parent = resolveHeadCommit()
+    if parent != "" and tree == commitTree(parent) then
+        println("nothing to commit (working tree clean)")
+        return 1
+    end
+    var parents = []
+    if parent != "" then
+        parents.push(parent)
+    end
+    int ts = time.toUnix(time.now())
+    string c = writeCommit(tree, parents, message, getAuthor(), ts)
+    updateHeadCommit(c)
+    println("[" + currentBranchName() + " " + shortHash(c) + "] " + message)
+    return 0
+end
+
+// ----- status -----
+func cmdStatus() as int
+    if not repoExists() then
+        println("xvcs: not a repository")
+        return 1
+    end
+    var index = readIndex()
+    string headCommit = resolveHeadCommit()
+    var headTree = flattenCommit(headCommit)
+
+    // 分支头
+    var head = readHead()
+    if head["mode"] == "ref" then
+        println("On branch " + string(head["branch"]))
+    elseif head["mode"] == "detached" then
+        println("HEAD detached at " + shortHash(string(head["commit"])))
+    else
+        println("On branch (no commits yet)")
+    end
+    if headCommit == "" then
+        println("")
+        println("No commits yet")
+    end
+
+    // 工作区文件集 (用于发现 untracked)
+    array<string> workFiles = scanWorkdir()
+    var workSet = {}
+    int wi = 0
+    while wi < workFiles.length do
+        workSet[workFiles[wi]] = true
+        wi += 1
+    end
+
+    // staged: index vs HEAD
+    var stagedNew = []
+    var stagedMod = []
+    var stagedDel = []
+    array<string> idxKeys = sortedKeys(index)
+    int ii = 0
+    while ii < idxKeys.length do
+        string p = idxKeys[ii]
+        string ih = string(index[p])
+        if not (p in headTree) then
+            stagedNew.push(p)
+        elseif string(headTree[p]) != ih then
+            stagedMod.push(p)
+        end
+        ii += 1
+    end
+    array<string> headKeys = sortedKeys(headTree)
+    int hi = 0
+    while hi < headKeys.length do
+        string p = headKeys[hi]
+        if not (p in index) then
+            stagedDel.push(p)
+        end
+        hi += 1
+    end
+
+    // unstaged: workdir vs index
+    var unstagedMod = []
+    var unstagedDel = []
+    var untracked = []
+    int ui = 0
+    while ui < idxKeys.length do
+        string p = idxKeys[ui]
+        string fs = toFsPath(p)
+        if file.exists(fs) then
+            string content = file.readText(fs)
+            string wh = hashText(content)
+            if wh != string(index[p]) then
+                unstagedMod.push(p)
+            end
+        else
+            unstagedDel.push(p)
+        end
+        ui += 1
+    end
+    // untracked: workdir 中有, index 与 head 均无
+    int wj = 0
+    while wj < workFiles.length do
+        string p = workFiles[wj]
+        if not (p in index) and not (p in headTree) then
+            untracked.push(p)
+        end
+        wj += 1
+    end
+
+    bool hasStaged = stagedNew.length + stagedMod.length + stagedDel.length > 0
+    bool hasUnstaged = unstagedMod.length + unstagedDel.length > 0
+
+    if hasStaged then
+        println("")
+        println("Changes to be committed:")
+        int k = 0
+        while k < stagedNew.length do
+            println("        new file:   " + string(stagedNew[k]))
+            k += 1
+        end
+        k = 0
+        while k < stagedMod.length do
+            println("        modified:   " + string(stagedMod[k]))
+            k += 1
+        end
+        k = 0
+        while k < stagedDel.length do
+            println("        deleted:    " + string(stagedDel[k]))
+            k += 1
+        end
+    end
+
+    if hasUnstaged then
+        println("")
+        println("Changes not staged for commit:")
+        int k = 0
+        while k < unstagedMod.length do
+            println("        modified:   " + string(unstagedMod[k]))
+            k += 1
+        end
+        k = 0
+        while k < unstagedDel.length do
+            println("        deleted:    " + string(unstagedDel[k]))
+            k += 1
+        end
+    end
+
+    if untracked.length > 0 then
+        println("")
+        println("Untracked files:")
+        int k = 0
+        while k < untracked.length do
+            println("        " + string(untracked[k]))
+            k += 1
+        end
+    end
+
+    if not hasStaged and not hasUnstaged and untracked.length == 0 then
+        println("")
+        println("nothing to commit, working tree clean")
+    end
+    return 0
+end
+
+// ----- log -----
+func cmdLog() as int
+    if not repoExists() then
+        println("xvcs: not a repository")
+        return 1
+    end
+    string h = resolveHeadCommit()
+    if string.isEmpty(h) then
+        println("(no commits yet)")
+        return 0
+    end
+    int count = 0
+    while not string.isEmpty(h) do
+        if not objectExists(h) then break end
+        var c = readObject(h)
+        string msg = string(c["message"])
+        string author = string(c["author"])
+        int ts = int(c["timestamp"])
+        var parents = c["parents"]
+        int pn = parents.length
+        string parentStr = ""
+        int pi = 0
+        while pi < pn do
+            if pi > 0 then parentStr = parentStr + " " end
+            parentStr = parentStr + shortHash(string(parents[pi]))
+            pi += 1
+        end
+        println("commit " + h)
+        if pn > 1 then
+            println("Merge: " + parentStr)
+        end
+        println("Author: " + author)
+        println("Date  : " + string(ts))
+        println("")
+        println("    " + msg)
+        println("")
+        count += 1
+        if count > 1000 then break end
+        if pn == 0 then
+            h = ""
+        else
+            h = string(parents[0])
+        end
+    end
+    return 0
+end
+
+// ----- branch -----
+func cmdBranch(string name) as int
+    if not repoExists() then
+        println("xvcs: not a repository")
+        return 1
+    end
+    if string.isEmpty(name) then
+        string cur = currentBranchName()
+        array<string> branches = listBranches()
+        sortStringArray(branches)
+        if branches.length == 0 then
+            println("(no branches)")
+            return 0
+        end
+        int i = 0
+        while i < branches.length do
+            if branches[i] == cur then
+                println("* " + branches[i])
+            else
+                println("  " + branches[i])
+            end
+            i += 1
+        end
+        return 0
+    end
+    // 创建分支
+    string h = resolveHeadCommit()
+    if string.isEmpty(h) then
+        println("xvcs: cannot create branch (no commits yet)")
+        return 1
+    end
+    if readBranch(name) != "" then
+        println("xvcs: branch '" + name + "' already exists")
+        return 1
+    end
+    writeBranch(name, h)
+    return 0
+end
+
+// ----- checkout -----
+func cmdCheckout(string target) as int
+    if not repoExists() then
+        println("xvcs: not a repository")
+        return 1
+    end
+    string commitHash = ""
+    bool isBranch = false
+    if readBranch(target) != "" then
+        commitHash = readBranch(target)
+        isBranch = true
+    elseif objectExists(target) then
+        commitHash = target
+    else
+        println("xvcs: unknown branch or commit '" + target + "'")
+        return 1
+    end
+    if not objectExists(commitHash) then
+        println("xvcs: '" + target + "' does not refer to a valid commit")
+        return 1
+    end
+    var cobj = readObject(commitHash)
+    if string(cobj["type"]) != COMMIT_K then
+        println("xvcs: '" + target + "' is not a commit")
+        return 1
+    end
+
+    restoreWorkdir(commitHash)
+
+    if isBranch then
+        file.writeText(headPath(), "ref: refs/heads/" + target + "\n")
+        println("Switched to branch '" + target + "'")
+    else
+        file.writeText(headPath(), commitHash + "\n")
+        println("HEAD is now at " + shortHash(commitHash))
+    end
+    return 0
+end
+
+// ----- merge -----
+func cmdMerge(string branch) as int
+    if not repoExists() then
+        println("xvcs: not a repository")
+        return 1
+    end
+    string ours = resolveHeadCommit()
+    string theirs = readBranch(branch)
+    if theirs == "" then
+        if objectExists(branch) then
+            theirs = branch
+        else
+            println("xvcs: unknown branch '" + branch + "'")
+            return 1
+        end
+    end
+
+    if ours == "" then
+        // 无提交, 直接 fast-forward
+        updateHeadCommit(theirs)
+        restoreWorkdir(theirs)
+        println("Fast-forward to " + shortHash(theirs))
+        return 0
+    end
+    if ours == theirs then
+        println("Already up to date.")
+        return 0
+    end
+    string base = findMergeBase(ours, theirs)
+    if base == theirs then
+        println("Already up to date.")
+        return 0
+    end
+    if base == ours then
+        updateHeadCommit(theirs)
+        restoreWorkdir(theirs)
+        println("Fast-forward to " + shortHash(theirs))
+        return 0
+    end
+
+    // 3-way 合并
+    var baseTree = flattenCommit(base)
+    var oursTree = flattenCommit(ours)
+    var theirsTree = flattenCommit(theirs)
+    var allPaths = {}
+    for p, v in baseTree
+        allPaths[p] = true
+    end
+    for p, v in oursTree
+        allPaths[p] = true
+    end
+    for p, v in theirsTree
+        allPaths[p] = true
+    end
+
+    var newIndex = {}
+    int conflicts = 0
+    var conflictFiles = []
+    array<string> keys = sortedKeys(allPaths)
+    int ki = 0
+    while ki < keys.length do
+        string p = keys[ki]
+        bool inB = p in baseTree
+        bool inO = p in oursTree
+        bool inT = p in theirsTree
+        string bh = inB ? string(baseTree[p]) : ""
+        string oh = inO ? string(oursTree[p]) : ""
+        string th = inT ? string(theirsTree[p]) : ""
+
+        if inO and inT and oh == th then
+            newIndex[p] = oh
+        elseif inO and not inT and (not inB or bh == oh) then
+            // theirs 删除, ours 未改 -> 删除 (跳过)
+        elseif inT and not inO and (not inB or bh == th) then
+            // ours 删除, theirs 未改 -> 删除 (跳过)
+        elseif inO and not inT and inB and bh != oh then
+            // ours 修改, theirs 删除 -> 冲突, 保留 ours
+            newIndex[p] = oh
+            conflicts += 1
+            conflictFiles.push(p + " (modify/delete)")
+        elseif inT and not inO and inB and bh != th then
+            // theirs 修改, ours 删除 -> 冲突, 保留 theirs
+            newIndex[p] = th
+            conflicts += 1
+            conflictFiles.push(p + " (modify/delete)")
+        else
+            // 三方都在 (或双方新增) -> 行级 diff3
+            string baseContent = inB ? readBlob(bh) : ""
+            string oursContent = inO ? readBlob(oh) : ""
+            string theirsContent = inT ? readBlob(th) : ""
+            array<string> baseLines = toLines(baseContent)
+            array<string> oursLines = toLines(oursContent)
+            array<string> theirsLines = toLines(theirsContent)
+            var merged = merge3(baseLines, oursLines, theirsLines, branch)
+            var mlines = merged["lines"]
+            string mergedText = joinLinesVar(mlines)
+            string newBlob = writeBlob(mergedText)
+            newIndex[p] = newBlob
+            writeFileText(p, mergedText)
+            if bool(merged["conflict"]) then
+                conflicts += 1
+                conflictFiles.push(p)
+            end
+        end
+        ki += 1
+    end
+
+    writeIndex(newIndex)
+
+    if conflicts > 0 then
+        println("Automatic merge failed; fix conflicts and then commit the result.")
+        int ci = 0
+        while ci < conflictFiles.length do
+            println("  CONFLICT: " + string(conflictFiles[ci]))
+            ci += 1
+        end
+        return 1
+    end
+
+    // 无冲突: 自动产生 merge commit (两个父)
+    string tree = buildTreeFromIndex(newIndex)
+    var parents = [ours, theirs]
+    int ts = time.toUnix(time.now())
+    string mc = writeCommit(tree, parents, "Merge branch '" + branch + "'", getAuthor(), ts)
+    updateHeadCommit(mc)
+    println("Merge made by the 'recursive' strategy.")
+    println("[" + currentBranchName() + " " + shortHash(mc) + "] Merge branch '" + branch + "'")
+    return 0
+end
+
+// ----- diff -----
+func cmdDiff(array<string> paths, bool cached) as int
+    if not repoExists() then
+        println("xvcs: not a repository")
+        return 1
+    end
+    var index = readIndex()
+    int shown = 0
+    if cached then
+        // index vs HEAD
+        var headTree = flattenCommit(resolveHeadCommit())
+        array<string> files = array[]
+        if paths.length > 0 then
+            int pi = 0
+            while pi < paths.length do
+                files.push(normalizeRelPath(paths[pi]))
+                pi += 1
+            end
+        else
+            var union_ = {}
+            for p, v in headTree
+                union_[p] = true
+            end
+            for p, v in index
+                union_[p] = true
+            end
+            files = sortedKeys(union_)
+        end
+        int i = 0
+        while i < files.length do
+            string p = files[i]
+            string oh = p in headTree ? string(headTree[p]) : ""
+            string nh = p in index ? string(index[p]) : ""
+            if oh != nh then
+                string oc = oh == "" ? "" : readBlob(oh)
+                string nc = nh == "" ? "" : readBlob(nh)
+                printFileDiff(p, oc, nc)
+                shown += 1
+            end
+            i += 1
+        end
+    else
+        // workdir vs index
+        array<string> files = array[]
+        if paths.length > 0 then
+            int pi = 0
+            while pi < paths.length do
+                files.push(normalizeRelPath(paths[pi]))
+                pi += 1
+            end
+        else
+            files = sortedKeys(index)
+        end
+        int i = 0
+        while i < files.length do
+            string p = files[i]
+            string ih = p in index ? string(index[p]) : ""
+            string fs = toFsPath(p)
+            bool exists = file.exists(fs)
+            string nc = ""
+            if exists then
+                nc = file.readText(fs)
+            end
+            string nh = exists ? hashText(nc) : ""
+            if ih != nh then
+                string ic = ih == "" ? "" : readBlob(ih)
+                printFileDiff(p, ic, nc)
+                shown += 1
+            end
+            i += 1
+        end
+    end
+    if shown == 0 then
+        println("(no differences)")
+    end
+    return 0
+end
+
+
+// ============================================================================
+// 内置自测
+// ============================================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass += 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail += 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectTrue(bool got, string label)
+    if got then ok(label) else bad(label, "expected true, got false") end
+end
+
+func expectFalse(bool got, string label)
+    if got then bad(label, "expected false, got true") else ok(label) end
+end
+
+func expectI(int got, int want, string label)
+    if got == want then ok(label) else bad(label, "got " + string(got) + " want " + string(want)) end
+end
+
+func expectS(string got, string want, string label)
+    if got == want then ok(label) else bad(label, "got '" + got + "' want '" + want + "'") end
+end
+
+// 在预批准的临时目录里开一个带时间戳的子目录做沙盒, chdir 进去跑全部用例.
+func cmdTest() as int
+    println("=== xvcs self-test ===")
+    string tmpBase = path.join("C:", "Users", "ADMINI~1", "AppData", "Local", "Temp", "opencode")
+    string testRoot = path.join(tmpBase, "xvcs_test_" + string(time.toUnix(time.now())))
+    dir.createAll(testRoot)
+    path.setCwd(testRoot)
+    println("sandbox: " + testRoot)
+
+    // ---- crypto 基线: sha1("abc") 已知答案 ----
+    expectS(string.lower(crypto.sha1("abc")),
+            "a9993e364706816aba3e25717850c26c9cd0d89d",
+            "sha1('abc') known-answer")
+
+    // ---- 对象哈希确定性 ----
+    string b1 = writeBlob("hello world")
+    string b2 = writeBlob("hello world")
+    expectS(b1, b2, "same content -> same blob hash (dedup)")
+    expectI(string.len(b1), 40, "blob hash is 40 hex chars")
+    expectTrue(objectExists(b1), "blob object persisted")
+
+    // ---- init ----
+    cmdInit()
+    expectTrue(repoExists(), "init creates .xvcs/")
+    expectTrue(dir.exists(path.join(XVCS, "objects")), "objects dir created")
+    expectTrue(file.exists(headPath()), "HEAD file created")
+    expectS(stripNewline(readHeadRaw()), "ref: refs/heads/main", "HEAD points to main")
+    expectTrue(string.isEmpty(resolveHeadCommit()), "no commits yet")
+
+    // ---- add + commit (initial) ----
+    writeFileText("README.md", "# Project\n\nHello from xvcs.\n")
+    writeFileText("src/a.xl", "print(\"a\")\n")
+    dir.createAll(toFsPath("src/sub"))
+    writeFileText("src/sub/b.xl", "println(\"b\")\n")
+
+    array<string> addAll = array[]
+    addAll.push(".")
+    cmdAdd(addAll)
+    var idx = readIndex()
+    expectTrue("README.md" in idx, "index has README.md")
+    expectTrue("src/a.xl" in idx, "index has src/a.xl")
+    expectTrue("src/sub/b.xl" in idx, "index has nested src/sub/b.xl")
+    expectFalse(".xvcs" in idx, ".xvcs is NOT tracked")
+
+    // tree 构建: 相同 index -> 相同 tree hash
+    string tree1 = buildTreeFromIndex(idx)
+    string tree2 = buildTreeFromIndex(idx)
+    expectS(tree1, tree2, "deterministic tree hash for same index")
+
+    cmdCommit("initial commit")
+    string c0 = resolveHeadCommit()
+    expectFalse(string.isEmpty(c0), "HEAD now points to a commit")
+    expectS(commitTree(c0), tree1, "commit.tree matches index tree")
+    array<string> parents = commitParents(c0)
+    expectI(parents.length, 0, "initial commit has 0 parents")
+    expectTrue(objectExists(c0), "commit object persisted")
+
+    // ---- flatten 往返 ----
+    var flat = flattenCommit(c0)
+    expectTrue("README.md" in flat, "flatten: README.md")
+    expectTrue("src/sub/b.xl" in flat, "flatten: nested file")
+    expectS(string(flat["src/a.xl"]), string(idx["src/a.xl"]), "flatten hash matches index")
+
+    // ---- status: clean ----
+    // (输出不捕获, 只验证逻辑: headTree==indexTree, workdir 未改)
+    var headTree0 = flattenCommit(c0)
+    expectI(headTree0.length, 3, "head tree has 3 files")
+
+    // ---- branch + checkout ----
+    cmdBranch("feature")
+    expectTrue(readBranch("feature") == c0, "feature branch at c0")
+    cmdCheckout("feature")
+    expectS(currentBranchName(), "feature", "switched to feature")
+
+    // 在 feature 上修改 + 新增 + 提交
+    writeFileText("src/a.xl", "println(\"a-modified\")\n")
+    writeFileText("src/c.xl", "println(\"c-new\")\n")
+    array<string> addFeat = array[]
+    addFeat.push(".")
+    cmdAdd(addFeat)
+    cmdCommit("feature work")
+    string cF = resolveHeadCommit()
+    expectFalse(cF == c0, "feature advanced past c0")
+    array<string> cFParents = commitParents(cF)
+    expectI(cFParents.length, 1, "feature commit has 1 parent")
+    expectS(cFParents[0], c0, "feature parent == main HEAD")
+
+    // 切回 main: a.xl 应回到原版, c.xl 应消失
+    cmdCheckout("main")
+    expectS(currentBranchName(), "main", "switched back to main")
+    expectS(readFileRel("src/a.xl"), "print(\"a\")\n", "main: a.xl restored to original")
+    expectFalse(file.exists(toFsPath("src/c.xl")), "main: feature file c.xl removed")
+    expectTrue(file.exists(toFsPath("README.md")), "main: README still present")
+
+    // ---- merge: fast-forward (main 落后于 feature) ----
+    string beforeFF = resolveHeadCommit()
+    expectS(beforeFF, c0, "main still at c0 before merge")
+    int rc = cmdMerge("feature")
+    expectI(rc, 0, "merge feature returns 0 (fast-forward)")
+    expectS(resolveHeadCommit(), cF, "main fast-forwarded to feature commit")
+    expectTrue(file.exists(toFsPath("src/c.xl")), "after FF merge: c.xl present")
+
+    // ---- 3-way merge with conflict-free line merge ----
+    // 重置: 从 c0 起两条分叉
+    cmdCheckout("main")
+    // 再造一个分叉点: 新建 topic (此时 main==cF), 各自改 b.xl 不同行
+    cmdBranch("topic")
+    // main 改 b.xl 第一行
+    writeFileText("src/sub/b.xl", "println(\"b-main\")\nprintln(\"b-second\")\n")
+    array<string> addMain = array[]
+    addMain.push(".")
+    cmdAdd(addMain)
+    cmdCommit("main edit b")
+    string cMain = resolveHeadCommit()
+
+    cmdCheckout("topic")
+    // topic 改 b.xl: 不同的行 (无冲突)
+    writeFileText("src/sub/b.xl", "println(\"b-topic-line1\")\nprintln(\"b-second\")\nprintln(\"b-third\")\n")
+    array<string> addTop = array[]
+    addTop.push(".")
+    cmdAdd(addTop)
+    cmdCommit("topic edit b")
+    string cTopic = resolveHeadCommit()
+
+    // merge-base 必须是 cF (两分支的共同祖先)
+    string mb = findMergeBase(cMain, cTopic)
+    expectS(mb, cF, "merge-base of main/topic is cF")
+
+    int rc2 = cmdMerge("main")
+    expectI(rc2, 0, "3-way merge returns 0 (auto-merge)")
+    string cMerge = resolveHeadCommit()
+    array<string> cMergeParents = commitParents(cMerge)
+    expectI(cMergeParents.length, 2, "merge commit has 2 parents")
+    string bcontent = readFileRel("src/sub/b.xl")
+    // ours=topic 改了行1+加行3; theirs=main 改了行1 -> 行1 冲突
+    expectTrue(string.contains(bcontent, "<<<<<<< HEAD"), "conflict markers present on line1 clash")
+    expectTrue(string.contains(bcontent, "======="), "separator marker present")
+    expectTrue(string.contains(bcontent, ">>>>>>> main"), "trailing marker names branch")
+
+    // ---- merge-base & ancestor 收集 ----
+    var anc = {}
+    collectAncestors(cMerge, anc)
+    expectTrue(cF in anc, "ancestors include cF")
+    expectTrue(c0 in anc, "ancestors include c0")
+    expectTrue(cMain in anc, "ancestors include cMain")
+    expectTrue(cTopic in anc, "ancestors include cTopic")
+
+    // ---- LCS diff: 基本正确性 ----
+    array<string> da = array[]
+    da.push("a")
+    da.push("b")
+    da.push("c")
+    array<string> db = array[]
+    db.push("a")
+    db.push("c")
+    array<int> dop = array[]
+    array<string> dt = array[]
+    lcsDiffLines(da, db, dop, dt)
+    int dels = 0
+    int adds = 0
+    int sames = 0
+    int di = 0
+    while di < dop.length do
+        if dop[di] == 0 then
+            sames += 1
+        elseif dop[di] == 1 then
+            dels += 1
+        else
+            adds += 1
+        end
+        di += 1
+    end
+    expectI(sames, 2, "diff: 2 common lines (a,c)")
+    expectI(dels, 1, "diff: 1 deletion (b)")
+    expectI(adds, 0, "diff: 0 additions")
+
+    // ---- matchBase: 对齐 ----
+    array<string> baseA = array[]
+    baseA.push("x")
+    baseA.push("y")
+    baseA.push("z")
+    array<string> otherA = array[]
+    otherA.push("x")
+    otherA.push("z")
+    array<int> mm = matchBase(baseA, otherA)
+    expectI(mm[0], 0, "matchBase: base[0]=x -> other 0")
+    expectI(mm[1], -1, "matchBase: base[1]=y -> -1 (deleted)")
+    expectI(mm[2], 1, "matchBase: base[2]=z -> other 1")
+
+    // ---- merge3: 一致变更 (ours==theirs) 不冲突 ----
+    array<string> mb3 = array[]
+    mb3.push("L1")
+    mb3.push("L2")
+    mb3.push("L3")
+    array<string> mo3 = array[]
+    mo3.push("L1")
+    mo3.push("L2X")
+    mo3.push("L3")
+    array<string> mt3 = array[]
+    mt3.push("L1")
+    mt3.push("L2X")
+    mt3.push("L3")
+    var mg3 = merge3(mb3, mo3, mt3, "branch")
+    expectFalse(bool(mg3["conflict"]), "merge3: identical change -> no conflict")
+    var mg3lines = mg3["lines"]
+    expectI(mg3lines.length, 3, "merge3: 3 merged lines")
+    expectS(string(mg3lines[1]), "L2X", "merge3: line2 is L2X")
+
+    // ---- merge3: 单侧变更采纳 ----
+    array<string> mo3b = array[]
+    mo3b.push("L1")
+    mo3b.push("L2-ours")
+    mo3b.push("L3")
+    array<string> mt3b = array[]
+    mt3b.push("L1")
+    mt3b.push("L2")
+    mt3b.push("L3")
+    var mg3b = merge3(mb3, mo3b, mt3b, "branch")
+    expectFalse(bool(mg3b["conflict"]), "merge3: one-sided change -> no conflict")
+    expectS(string(mg3b["lines"][1]), "L2-ours", "merge3: adopts ours when theirs==base")
+
+    // ---- merge3: 双侧不同 -> 冲突 ----
+    array<string> mt3c = array[]
+    mt3c.push("L1")
+    mt3c.push("L2-theirs")
+    mt3c.push("L3")
+    var mg3c = merge3(mb3, mo3b, mt3c, "topic")
+    expectTrue(bool(mg3c["conflict"]), "merge3: both sides differ -> conflict")
+    var mglines = mg3c["lines"]
+    bool hasHead = false
+    bool hasSep = false
+    bool hasTail = false
+    int ci = 0
+    while ci < mglines.length do
+        string ln = string(mglines[ci])
+        if ln == "<<<<<<< HEAD" then hasHead = true end
+        if ln == "=======" then hasSep = true end
+        if ln == ">>>>>>> topic" then hasTail = true end
+        ci += 1
+    end
+    expectTrue(hasHead and hasSep and hasTail, "merge3: full conflict markers")
+
+    // ---- toLines / joinLines 往返 ----
+    array<string> rl = toLines("a\nb\nc\n")
+    expectI(rl.length, 3, "toLines: 3 lines (trailing newline dropped)")
+    expectS(rl[0], "a", "toLines[0]=a")
+    expectS(rl[2], "c", "toLines[2]=c")
+    expectS(joinLines(rl), "a\nb\nc\n", "joinLines(toLines(x)) ~= x")
+
+    // ---- normalizeRelPath / toFsPath ----
+    expectS(normalizeRelPath("./a/b.txt"), "a/b.txt", "normalize strips ./")
+    expectS(normalizeRelPath("a/b/"), "a/b", "normalize strips trailing /")
+
+    // ---- path.sep independent storage ----
+    // 索引键永远是 "/" 分隔 (验证一个嵌套文件)
+    var finalIdx = readIndex()
+    bool slashOK = true
+    for k, v in finalIdx
+        if string.contains(string(k), path.sep()) and path.sep() != "/" then
+            slashOK = false
+        end
+    end
+    expectTrue(slashOK, "index keys use '/' regardless of OS sep")
+
+    // ---- object dedup across commits ----
+    // README.md 自始至终内容未变 -> 同一 blob hash 应在 c0 与最新 commit 的 tree 中复用
+    var c0flat = flattenCommit(c0)
+    string latest = resolveHeadCommit()
+    var latestFlat = flattenCommit(latest)
+    if "README.md" in latestFlat then
+        expectS(string(latestFlat["README.md"]), string(c0flat["README.md"]),
+                "unchanged file reuses blob across commits")
+    else
+        bad("unchanged file reuses blob", "README.md missing in latest")
+    end
+
+    println("=== results: " + string(g_pass) + " passed, " + string(g_fail) + " failed ===")
+    if g_fail == 0 then
+        return 0
+    end
+    return 1
+end
+
+
+// ============================================================================
+// 用法与入口
+// ============================================================================
+
+func printUsage()
+    println("xvcs - Git-style distributed version control (content-addressable)")
+    println("usage: xvcs <command> [args]")
+    println("commands:")
+    println("  init                          initialize a new repository (.xvcs/)")
+    println("  add <file|dir|.;.;.>          stage files into the index")
+    println("  commit -m \"message\"           build tree from index, create commit")
+    println("  status                        compare workdir / index / HEAD")
+    println("  log                           show commit history (first-parent)")
+    println("  branch [name]                 list branches, or create one at HEAD")
+    println("  checkout <branch|hash>        switch HEAD and restore workdir")
+    println("  merge <branch>                3-way merge with conflict markers")
+    println("  diff [file] [--cached]        line-level LCS diff (workdir vs index,")
+    println("                                or index vs HEAD with --cached)")
+    println("  test                          built-in self-test")
+    println("  help | -h                     show this help")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string.lower(string(arg[1]))
+
+    if cmd == "init" then
+        return cmdInit()
+    end
+
+    if cmd == "add" then
+        array<string> paths = array[]
+        int i = 2
+        while i < arg.length do
+            paths.push(string(arg[i]))
+            i += 1
+        end
+        return cmdAdd(paths)
+    end
+
+    if cmd == "commit" then
+        string msg = ""
+        int i = 2
+        while i < arg.length do
+            string a = string(arg[i])
+            if a == "-m" or a == "--message" then
+                if i + 1 < arg.length then
+                    msg = string(arg[i + 1])
+                    i += 2
+                else
+                    i += 1
+                end
+            else
+                i += 1
+            end
+        end
+        if string.isEmpty(msg) then
+            println("xvcs commit: empty message (use -m \"...\")")
+            return 1
+        end
+        return cmdCommit(msg)
+    end
+
+    if cmd == "status" then
+        return cmdStatus()
+    end
+
+    if cmd == "log" then
+        return cmdLog()
+    end
+
+    if cmd == "branch" then
+        if arg.length >= 3 then
+            return cmdBranch(string(arg[2]))
+        end
+        return cmdBranch("")
+    end
+
+    if cmd == "checkout" then
+        if arg.length < 3 then
+            println("usage: xvcs checkout <branch|hash>")
+            return 1
+        end
+        return cmdCheckout(string(arg[2]))
+    end
+
+    if cmd == "merge" then
+        if arg.length < 3 then
+            println("usage: xvcs merge <branch>")
+            return 1
+        end
+        return cmdMerge(string(arg[2]))
+    end
+
+    if cmd == "diff" then
+        bool cached = false
+        array<string> paths = array[]
+        int i = 2
+        while i < arg.length do
+            string a = string(arg[i])
+            if a == "--cached" or a == "--staged" then
+                cached = true
+            else
+                paths.push(a)
+            end
+            i += 1
+        end
+        return cmdDiff(paths, cached)
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    println("xvcs: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

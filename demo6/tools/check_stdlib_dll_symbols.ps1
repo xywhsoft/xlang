@@ -12,7 +12,7 @@ $stdlibPaths = @(
     (Join-Path $Root "src\stdlib\xl6_stdlib.c"),
     (Join-Path $Root "src\stdlib\xl6_stdlib_data.c")
 )
-$apiPath = Join-Path $Root "src\api\xl_api.c"
+$apiPath = Join-Path $Root "src\api\xl_api_symbols.c"
 $cgenDir = Join-Path $Root "src\cgen"
 $minStdlibCsymbols = 161
 $minRuntimeExports = 370
@@ -84,13 +84,13 @@ $xrtExportMatches = [regex]::Matches($api, '(?m)^\s*XL_ADD_XRT_SYMBOL\s*\(\s*s\s
 $xrtExportInvocationCount = [regex]::Matches($api, '(?m)^\s*XL_ADD_XRT_SYMBOL\s*\(').Count
 
 if ( $xrtExportMatches.Count -ne $xrtExportInvocationCount ) {
-    $failures.Add("non-canonical XL_ADD_XRT_SYMBOL invocation in src/api/xl_api.c") | Out-Null
+    $failures.Add("non-canonical XL_ADD_XRT_SYMBOL invocation in src/api/xl_api_symbols.c") | Out-Null
 }
 
 foreach ( $match in $xrtExportMatches ) {
     $name = $match.Groups[1].Value
     if ( ! $xrtExports.Add($name) ) {
-        $failures.Add("duplicate XL_ADD_XRT_SYMBOL export in xl_api.c: $name") | Out-Null
+        $failures.Add("duplicate XL_ADD_XRT_SYMBOL export in xl_api_symbols.c: $name") | Out-Null
     }
 }
 
@@ -119,7 +119,7 @@ if ( $xrtExports.Count -lt $minRuntimeExports ) {
 if ( $failures.Count -ne 0 -or $missingXrt.Count -ne 0 -or $missingRuntime.Count -ne 0 -or $unknown.Count -ne 0 ) {
     Write-Host "Standard library DLL symbol check failed."
     Print-Missing "Export table failures:" $failures
-    Print-Missing "Missing XRT symbols in xl_api.c:" $missingXrt
+    Print-Missing "Missing XRT symbols in xl_api_symbols.c:" $missingXrt
     Print-Missing "Missing generated runtime helpers in cgen:" $missingRuntime
     Print-Missing "Unknown C symbols:" $unknown
     exit 1

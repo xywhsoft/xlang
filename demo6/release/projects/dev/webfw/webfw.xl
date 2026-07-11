@@ -1,0 +1,3085 @@
+// webfw - MVC Web 框架（路由 / ORM / 模板 / 中间件 / 会话 / 认证）
+//
+// 用法：
+//   webfw test                 全模块自测（路由/ORM/模板/中间件/会话/认证 + HTTP 端到端）
+//   webfw serve [port]         常驻模式，启动示例应用，监听 port（默认 18200）
+//   webfw bench [port]         对常驻服务发一波只读请求，打印统计
+//
+// 验证范围（六个核心子系统全部用全局函数 + 内联 native class 操作）：
+//   1. 路由引擎    routerAdd/routerMatch：method + path pattern
+//                  支持静态段、参数段 /users/{id}、尾部通配 /static/*
+//   2. ORM 查询    Query 类构建器 where/orderBy/limit/offset + JSON 文件存储
+//                  dbInsert/dbUpdate/dbDelete/dbFindById + 条件求值
+//   3. 模板引擎    tplCompile/tplRender：{var} {a.b} {if} {elseif} {else} {foreach}
+//                  自写的词法 + 树形解析 + 作用域求值（不依赖 std.template）
+//   4. 中间件链    gMiddlewares（名称数组）+ mwRun 顺序执行，false 短路
+//                  内置 logging / auth / authRequired / headerDump / blocker
+//   5. 会话        cookie token sid → userId 映射，crypto.randomHex 生成 token
+//                  sessionCreate/Get/Destroy + JSON 持久化
+//   6. 认证        authRegister/authLogin + crypto.sha256(password + salt) 哈希
+//                  用户表 JSON 存储，登录签发会话 token
+//
+// 设计约束（与 fileserver 一致，见 README 当前设计限制）：
+//   * HttpRequest / HttpResponse / HttpClientRequest / HttpClientResponse 是
+//     native-backed class，不能跨函数按值传递，所以所有 req/resp 操作全部
+//     内联到 frameworkRoute 与 runHttpTest 中；公共逻辑只动纯数据 ctx（dict）。
+//   * 路由匹配、ORM 求值、模板渲染、中间件、会话、认证全是纯数据函数，可独立单测。
+//   * 中间件用「名称数组 + 分派函数」实现，避免把 func 值塞进 array 的不确定性。
+
+
+const int DEFAULT_PORT = 18200
+const string SESSION_COOKIE = "sid"
+const string AUTH_SALT = "webfw-salt-v1"
+
+
+// ============================================================
+// 全局可变状态：数据目录 / 路由表 / 中间件名链
+// ============================================================
+
+string gDataDir = ""        // ORM 集合文件、用户表、会话表所在目录
+var gRoutes = []            // array of route dict（见 parsePattern）
+var gMiddlewares = []       // array of middleware-name string，按注册顺序执行
+
+
+// ============================================================
+// 通用工具函数（字符串 / JSON / 表单 / Cookie / 数值比较）
+// ============================================================
+
+// 安全取 dict 字段，缺失返回默认值。
+func dictGet(var d, string key, var def) as var
+    if key in d then
+        return d[key]
+    end
+    return def
+end
+
+
+// 把任意 var 值规范成字符串（bool 强制 true/false，其余走 string()）。
+func stringify(var v) as string
+    if type(v) == type(true) then
+        if bool(v) then
+            return "true"
+        end
+        return "false"
+    end
+    if v == null then
+        return ""
+    end
+    return string(v)
+end
+
+
+// 尝试把 var 解释为 float；成功返回 (值, true)，失败返回 (0.0, false)。
+// 支持 int / float / 数字串（含负号、小数点、指数）。
+func numTry(var v) as (float, bool)
+    if type(v) == type(int(0)) then
+        return float(int(v)), true
+    end
+    if type(v) == type(float(0.0)) then
+        return float(v), true
+    end
+    string s = ""
+    if type(v) == type("") then
+        s = string(v)
+    else
+        s = stringify(v)
+    end
+    if string.isEmpty(s) then
+        return 0.0, false
+    end
+    bool hasDigit = false
+    int i = 0
+    int firstByte = string.byteAt(s, 0)
+    if firstByte == 45 or firstByte == 43 then
+        i = 1
+    end
+    int slen = string.len(s)
+    if i >= slen then
+        return 0.0, false
+    end
+    while i < slen do
+        int b = string.byteAt(s, i)
+        if b >= 48 and b <= 57 then
+            hasDigit = true
+        elseif b == 46 or b == 101 or b == 69 or b == 45 or b == 43 then
+            // '.' / 'e' / 'E' / '-' / '+' 在数字字面量中允许
+        else
+            return 0.0, false
+        end
+        i += 1
+    end
+    if not hasDigit then
+        return 0.0, false
+    end
+    float f = float(s)
+    return f, true
+end
+
+
+// 真值判定：bool 看本身；数字看非零；字符串看非空；array/dict 看 length>0。
+func truthy(var v) as bool
+    if v == null then
+        return false
+    end
+    if type(v) == type(true) then
+        return bool(v)
+    end
+    if type(v) == type(int(0)) then
+        return int(v) != 0
+    end
+    if type(v) == type(float(0.0)) then
+        return float(v) != 0.0
+    end
+    if type(v) == type("") then
+        return not string.isEmpty(string(v))
+    end
+    return v.length > 0
+end
+
+
+// 通用比较：能双方都解释为数字时按数值比，否则按字符串比。返回 -1/0/1。
+func cmpVar(var a, var b) as int
+    float fa = 0.0
+    float fb = 0.0
+    bool na = false
+    bool nb = false
+    fa, na = numTry(a)
+    fb, nb = numTry(b)
+    if na and nb then
+        if fa < fb then
+            return -1
+        elseif fa > fb then
+            return 1
+        end
+        return 0
+    end
+    string sa = stringify(a)
+    string sb = stringify(b)
+    if sa < sb then
+        return -1
+    elseif sa > sb then
+        return 1
+    end
+    return 0
+end
+
+
+// op ∈ {=, ==, !=, <, >, <=, >=} 的通用布尔比较。
+func compareOp(var a, string op, var b) as bool
+    int c = cmpVar(a, b)
+    if op == "=" or op == "==" then
+        return c == 0
+    elseif op == "!=" then
+        return c != 0
+    elseif op == ">" then
+        return c > 0
+    elseif op == "<" then
+        return c < 0
+    elseif op == ">=" then
+        return c >= 0
+    elseif op == "<=" then
+        return c <= 0
+    end
+    return false
+end
+
+
+// 从「字段+运算符」表达式串中解析出 {field, op}。
+// "age>"  -> {"field":"age", "op":">"}
+// "name=" -> {"field":"name", "op":"="}
+// "age>=" -> {"field":"age", "op":">="}
+// "flag"  -> {"field":"flag", "op":"="}  （无运算符视为相等）
+func parseFieldOp(string expr) as var
+    int n = string.len(expr)
+    if n == 0 then
+        return {"field": "", "op": "="}
+    end
+    if n >= 2 then
+        string two = string.slice(expr, n - 2, 2)
+        if two == ">=" or two == "<=" or two == "!=" or two == "==" then
+            return {"field": string.slice(expr, 0, n - 2), "op": two}
+        end
+    end
+    string one = string.slice(expr, n - 1, 1)
+    if one == ">" or one == "<" or one == "=" then
+        return {"field": string.slice(expr, 0, n - 1), "op": one}
+    end
+    return {"field": expr, "op": "="}
+end
+
+
+// HTML 转义（模板输出默认转义，防注入）。
+func htmlEscape(string s) as string
+    s = string.replace(s, "&", "&amp;")
+    s = string.replace(s, "<", "&lt;")
+    s = string.replace(s, ">", "&gt;")
+    s = string.replace(s, "\"", "&quot;")
+    s = string.replace(s, "'", "&#39;")
+    return s
+end
+
+
+// JSON 字符串字面量转义（手工拼 JSON 时用）。
+func jsonEscape(string s) as string
+    s = string.replace(s, "\\", "\\\\")
+    s = string.replace(s, "\"", "\\\"")
+    s = string.replace(s, "\n", "\\n")
+    s = string.replace(s, "\r", "\\r")
+    s = string.replace(s, "\t", "\\t")
+    return s
+end
+
+
+// 把 var 值手工序列化成紧凑 JSON（不依赖 json.stringify 的 pretty 缩进策略）。
+func jsonFromVar(var v) as string
+    if v == null then
+        return "null"
+    end
+    if type(v) == type(true) then
+        if bool(v) then
+            return "true"
+        end
+        return "false"
+    end
+    if type(v) == type(int(0)) then
+        return string(int(v))
+    end
+    if type(v) == type(float(0.0)) then
+        return string(float(v))
+    end
+    if type(v) == type("") then
+        return "\"" + jsonEscape(string(v)) + "\""
+    end
+    // array
+    bool isArray = false
+    bool isDict = false
+    if type(v) == type([]) then
+        isArray = true
+    end
+    if not isArray then
+        if type(v) == type({}) then
+            isDict = true
+        end
+    end
+    // 兜底：尝试按 array 迭代，失败则按 dict
+    if isArray then
+        string out = "["
+        int i = 0
+        int n = v.length
+        while i < n do
+            if i > 0 then
+                out = out + ","
+            end
+            out = out + jsonFromVar(v[i])
+            i += 1
+        end
+        out = out + "]"
+        return out
+    end
+    if isDict then
+        string out2 = "{"
+        bool first = true
+        for k, item in v
+            if not first then
+                out2 = out2 + ","
+            end
+            first = false
+            out2 = out2 + "\"" + jsonEscape(string(k)) + "\":" + jsonFromVar(item)
+        end
+        out2 = out2 + "}"
+        return out2
+    end
+    // 未知类型退化为字符串
+    return "\"" + jsonEscape(string(v)) + "\""
+end
+
+
+// percent-decode（application/x-www-form-urlencoded 体的 %XX 与 +）。
+// 直接复用 std codec.percentDecode（codec.xl 已验证可用），保证 UTF-8 多字节
+// 百分号序列也能正确还原。
+func percentDecode(string s) as string
+    return codec.percentDecode(s)
+end
+
+
+// 解析 Cookie 头（"a=1; b=2"）成 dict。
+func parseCookies(string header) as var
+    var d = {}
+    if string.isEmpty(header) then
+        return d
+    end
+    var parts = string.split(header, ";")
+    int i = 0
+    int n = parts.length
+    while i < n do
+        string pair = string.trim(string(parts[i]))
+        if not string.isEmpty(pair) then
+            int eq = string.indexOf(pair, "=")
+            if eq > 0 then
+                string k = string.trim(string.slice(pair, 0, eq))
+                string v = string.trim(string.slice(pair, eq + 1, string.len(pair) - eq - 1))
+                d[k] = v
+            end
+        end
+        i += 1
+    end
+    return d
+end
+
+
+// 解析 application/x-www-form-urlencoded 体成 dict。
+func parseForm(string body) as var
+    var d = {}
+    if string.isEmpty(body) then
+        return d
+    end
+    var parts = string.split(body, "&")
+    int i = 0
+    int n = parts.length
+    while i < n do
+        string pair = string(parts[i])
+        if not string.isEmpty(pair) then
+            int eq = string.indexOf(pair, "=")
+            string k = ""
+            string v = ""
+            if eq >= 0 then
+                k = percentDecode(string.slice(pair, 0, eq))
+                v = percentDecode(string.slice(pair, eq + 1, string.len(pair) - eq - 1))
+            else
+                k = percentDecode(pair)
+            end
+            d[k] = v
+        end
+        i += 1
+    end
+    return d
+end
+
+
+// 按 content-type 把请求体解析成 dict：JSON 走 json.parse，表单走 parseForm，
+// 其它退化为 {"raw": body}。
+func parseBody(string ct, string body) as var
+    if string.startsWith(string.lower(ct), "application/json") then
+        if json.valid(body) then
+            var parsed = json.parse(body)
+            if parsed == null then
+                return {}
+            end
+            return parsed
+        end
+        return {}
+    end
+    if string.startsWith(string.lower(ct), "application/x-www-form-urlencoded") then
+        return parseForm(body)
+    end
+    var fallback = {}
+    fallback["raw"] = body
+    return fallback
+end
+
+
+// ============================================================
+// 模块 1：路由引擎
+//   route dict 形如：
+//     {"method":"GET", "pattern":"/users/{id}", "handler":"users_show",
+//      "segments":[ {"kind":"static","value":"users"},
+//                   {"kind":"param","name":"id"} ],
+//      "paramNames":["id"] }
+//   通配段：{"kind":"wildcard","name":"path"} （只能出现在末尾）
+// ============================================================
+
+func routerReset()
+    gRoutes = []
+end
+
+
+// 把 pattern 串拆成段描述数组，同时收集参数名。
+// "/users/{id}"        -> static(users), param(id)
+// "/static/*"          -> static(static), wildcard(*)  （通配名固定 "path"）
+// "/api/{x}/sub/{y}"   -> static(api), param(x), static(sub), param(y)
+func parsePattern(string pattern) as var
+    var segs = []
+    var pnames = []
+    string p = pattern
+    if string.startsWith(p, "/") then
+        p = string.slice(p, 1)
+    end
+    if string.isEmpty(p) then
+        return {"segments": segs, "paramNames": pnames}
+    end
+    var parts = string.split(p, "/")
+    int i = 0
+    int n = parts.length
+    while i < n do
+        string seg = string(parts[i])
+        if seg == "*" then
+            var ws = {}
+            ws["kind"] = "wildcard"
+            ws["name"] = "path"
+            segs.push(ws)
+        elseif string.startsWith(seg, "{") and string.endsWith(seg, "}") then
+            string name = string.slice(seg, 1, string.len(seg) - 2)
+            var ps = {}
+            ps["kind"] = "param"
+            ps["name"] = name
+            segs.push(ps)
+            pnames.push(name)
+        else
+            var ss = {}
+            ss["kind"] = "static"
+            ss["value"] = seg
+            segs.push(ss)
+        end
+        i += 1
+    end
+    return {"segments": segs, "paramNames": pnames}
+end
+
+
+// 注册一条路由：method + pattern -> handler 名称（由 frameworkRoute 据此分派）。
+func routerAdd(string method, string pattern, string handler)
+    var parsed = parsePattern(pattern)
+    var r = {}
+    r["method"] = string.upper(method)
+    r["pattern"] = pattern
+    r["handler"] = handler
+    r["segments"] = parsed["segments"]
+    r["paramNames"] = parsed["paramNames"]
+    gRoutes.push(r)
+end
+
+
+// 快捷：GET 注册。
+func routerGet(string pattern, string handler)
+    routerAdd("GET", pattern, handler)
+end
+
+
+// 快捷：POST 注册。
+func routerPost(string pattern, string handler)
+    routerAdd("POST", pattern, handler)
+end
+
+
+// 把请求 path 拆成段（去掉前导 / ，按 / 切分；空路径返回空数组）。
+func splitPath(string path) as var
+    var segs = []
+    string p = path
+    if string.startsWith(p, "/") then
+        p = string.slice(p, 1)
+    end
+    // 去掉 query 串
+    int q = string.indexOf(p, "?")
+    if q >= 0 then
+        p = string.slice(p, 0, q)
+    end
+    if string.isEmpty(p) then
+        return segs
+    end
+    var parts = string.split(p, "/")
+    return parts
+end
+
+
+// 匹配路由。返回 {"matched":bool, "handler":string, "params":{name:value}, "pattern":str}
+// 优先匹配静态段更具体的路由（按「参数/通配段数」升序排），以让 /users/me 命中
+// 显式注册的而非 /users/{id}（前提是前者也注册了）。
+func routerMatch(string method, string path) as var
+    string m = string.upper(method)
+    var pathSegs = splitPath(path)
+    int pathLen = pathSegs.length
+
+    var best = null
+    int bestScore = -1
+
+    int ri = 0
+    int rn = gRoutes.length
+    while ri < rn do
+        var r = gRoutes[ri]
+        if string(r["method"]) != m then
+            ri += 1
+            continue
+        end
+        var segs = r["segments"]
+        int sn = segs.length
+        var params = {}
+        bool ok = true
+        bool usedWildcard = false
+        int pi = 0
+        int si = 0
+        while si < sn do
+            var seg = segs[si]
+            string kind = string(seg["kind"])
+            if kind == "static" then
+                if pi >= pathLen then
+                    ok = false
+                elseif string(pathSegs[pi]) != string(seg["value"]) then
+                    ok = false
+                else
+                    pi += 1
+                end
+            elseif kind == "param" then
+                if pi >= pathLen then
+                    ok = false
+                else
+                    params[string(seg["name"])] = string(pathSegs[pi])
+                    pi += 1
+                end
+            elseif kind == "wildcard" then
+                // 吞掉剩余所有段，拼回成 "a/b/c"
+                string rest = ""
+                while pi < pathLen do
+                    if not string.isEmpty(rest) then
+                        rest = rest + "/"
+                    end
+                    rest = rest + string(pathSegs[pi])
+                    pi += 1
+                end
+                params[string(seg["name"])] = rest
+                usedWildcard = true
+            end
+            if not ok then
+                si = sn
+            end
+            si += 1
+        end
+        if ok and pi < pathLen and not usedWildcard then
+            // 还有未消费的路径段，且没有通配兜底 -> 不匹配
+            ok = false
+        end
+        if ok then
+            // 越多静态段越优先：score = 静态段数 * 2 + 参数段数 * 1（通配为 0）
+            int score = computeSpecificity(segs)
+            if score > bestScore then
+                bestScore = score
+                best = {"matched": true, "handler": r["handler"], "params": params, "pattern": r["pattern"]}
+            end
+        end
+        ri += 1
+    end
+
+    if best != null then
+        return best
+    end
+    return {"matched": false, "handler": "", "params": {}, "pattern": ""}
+end
+
+
+// 计算路由特异度：static 段权重 2，param 段权重 1，wildcard 段权重 0。
+func computeSpecificity(var segs) as int
+    int score = 0
+    int i = 0
+    int n = segs.length
+    while i < n do
+        string k = string(segs[i]["kind"])
+        if k == "static" then
+            score += 2
+        elseif k == "param" then
+            score += 1
+        end
+        i += 1
+    end
+    return score
+end
+
+
+// 打印当前路由表（调试 / serve 启动横幅用）。
+func routerDump() as string
+    string out = ""
+    int i = 0
+    int n = gRoutes.length
+    while i < n do
+        var r = gRoutes[i]
+        out = out + string(r["method"]) + " " + string(r["pattern"]) + " -> " + string(r["handler"]) + "\n"
+        i += 1
+    end
+    return out
+end
+
+
+// ============================================================
+// 模块 2：ORM —— JSON 文件存储 + Query 构建器
+//   每个集合单独一个 <name>.json 文件，内容是 record 数组（array of dict）。
+//   record 是 var dict，dbInsert 会自动分配自增 id 字段。
+// ============================================================
+
+func dbFile(string collection) as string
+    return path.join(gDataDir, collection + ".json")
+end
+
+
+// 读取集合：文件不存在/非法/空时返回空 var 数组。
+func dbLoad(string collection) as var
+    var empty = []
+    string f = dbFile(collection)
+    if not file.exists(f) then
+        return empty
+    end
+    string text = file.readText(f)
+    if string.isEmpty(text) then
+        return empty
+    end
+    if not json.valid(text) then
+        return empty
+    end
+    var parsed = json.parse(text)
+    if parsed == null then
+        return empty
+    end
+    // 兼容单个对象：包成数组
+    bool isArr = false
+    if type(parsed) == type([]) then
+        isArr = true
+    end
+    if not isArr then
+        var wrap = []
+        wrap.push(parsed)
+        return wrap
+    end
+    return parsed
+end
+
+
+// 写集合：紧凑 JSON 落盘（保留插入顺序）。
+func dbSave(string collection, var records)
+    string f = dbFile(collection)
+    string text = jsonFromVar(records)
+    bool ok = file.writeText(f, text)
+    if not ok then
+        println("[webfw] WARN: failed to write " + f)
+    end
+end
+
+
+// 集合内最大 id（id 字段缺失或非数字按 0 计）。
+func dbMaxId(var records) as int
+    int maxId = 0
+    int i = 0
+    int n = records.length
+    while i < n do
+        var rec = records[i]
+        if "id" in rec then
+            float fv = 0.0
+            bool ok = false
+            fv, ok = numTry(rec["id"])
+            if ok then
+                int iv = int(fv)
+                if iv > maxId then
+                    maxId = iv
+                end
+            end
+        end
+        i += 1
+    end
+    return maxId
+end
+
+
+// 插入一条记录：自动补自增 id，落盘，返回写入后的 record（含 id）。
+func dbInsert(string collection, var record) as var
+    var records = dbLoad(collection)
+    int newId = dbMaxId(records) + 1
+    record["id"] = newId
+    records.push(record)
+    dbSave(collection, records)
+    return record
+end
+
+
+// 按 id 查单条；找不到返回 null。
+func dbFindById(string collection, int id) as var
+    var records = dbLoad(collection)
+    int i = 0
+    int n = records.length
+    while i < n do
+        var rec = records[i]
+        if "id" in rec then
+            float fv = 0.0
+            bool ok = false
+            fv, ok = numTry(rec["id"])
+            if ok and int(fv) == id then
+                return rec
+            end
+        end
+        i += 1
+    end
+    return null
+end
+
+
+// 按 id 更新：把 fields 里的字段合并到目标 record，落盘；成功返回 true。
+func dbUpdate(string collection, int id, var fields) as bool
+    var records = dbLoad(collection)
+    int i = 0
+    int n = records.length
+    while i < n do
+        var rec = records[i]
+        float fv = 0.0
+        bool ok = false
+        if "id" in rec then
+            fv, ok = numTry(rec["id"])
+        end
+        if ok and int(fv) == id then
+            for k, v in fields
+                rec[k] = v
+            end
+            records[i] = rec
+            dbSave(collection, records)
+            return true
+        end
+        i += 1
+    end
+    return false
+end
+
+
+// 按 id 删除；成功返回 true。
+func dbDelete(string collection, int id) as bool
+    var records = dbLoad(collection)
+    int i = 0
+    int n = records.length
+    while i < n do
+        var rec = records[i]
+        float fv = 0.0
+        bool ok = false
+        if "id" in rec then
+            fv, ok = numTry(rec["id"])
+        end
+        if ok and int(fv) == id then
+            records.remove(i)
+            dbSave(collection, records)
+            return true
+        end
+        i += 1
+    end
+    return false
+end
+
+
+// 单条件是否匹配一条 record。
+// cond 形如 {"field":"age","op":">","value":25}
+func matchCondition(var rec, var cond) as bool
+    string field = string(cond["field"])
+    string op = string(cond["op"])
+    var want = cond["value"]
+    if not (field in rec) then
+        // 字段缺失：只有「!=」可能为真（当 want 非空时），其余为假
+        if op == "!=" then
+            return truthy(want)
+        end
+        return false
+    end
+    return compareOp(rec[field], op, want)
+end
+
+
+// 依次应用所有条件（AND）。
+func matchAll(var conditions, var rec) as bool
+    int i = 0
+    int n = conditions.length
+    while i < n do
+        if not matchCondition(rec, conditions[i]) then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+
+// 选择排序：按 field 升/降排（稳定，数据量不大够用）。
+func sortRecords(var arr, string field, bool desc)
+    int n = arr.length
+    int i = 0
+    while i < n do
+        int best = i
+        int j = i + 1
+        while j < n do
+            var ra = arr[best]
+            var rb = arr[j]
+            var va = ""
+            var vb = ""
+            if field in ra then
+                va = ra[field]
+            end
+            if field in rb then
+                vb = rb[field]
+            end
+            int c = cmpVar(va, vb)
+            bool swap = false
+            if desc then
+                if c > 0 then
+                    swap = true
+                end
+            else
+                if c < 0 then
+                    swap = true
+                end
+            end
+            if swap then
+                best = j
+            end
+            j += 1
+        end
+        if best != i then
+            var tmp = arr[i]
+            arr[i] = arr[best]
+            arr[best] = tmp
+        end
+        i += 1
+    end
+end
+
+
+// Query 构建器：链式 where/orderBy/limit/offset，find/first/count 终结。
+class Query
+    string coll = ""
+    var conditions
+    string ordField = ""
+    bool ordDesc = false
+    int lim = -1
+    int off = 0
+
+    create(string collection)
+        self.coll = collection
+        // 构造期显式新建容器，保证每个 Query 实例独立（不共享默认数组）
+        self.conditions = []
+    end
+
+    // 接受「字段+运算符」串：q.where("age>", 25)
+    func where(string expr, var value) as Query
+        var fo = parseFieldOp(expr)
+        var c = {}
+        c["field"] = fo["field"]
+        c["op"] = fo["op"]
+        c["value"] = value
+        self.conditions.push(c)
+        return self
+    end
+
+    // 显式 (field, op, value) 形式
+    func whereOp(string field, string op, var value) as Query
+        var c = {}
+        c["field"] = field
+        c["op"] = op
+        c["value"] = value
+        self.conditions.push(c)
+        return self
+    end
+
+    func orderBy(string field) as Query
+        self.ordField = field
+        self.ordDesc = false
+        return self
+    end
+
+    func orderByDesc(string field) as Query
+        self.ordField = field
+        self.ordDesc = true
+        return self
+    end
+
+    func limit(int n) as Query
+        self.lim = n
+        return self
+    end
+
+    func offset(int n) as Query
+        self.off = n
+        return self
+    end
+
+    // 终结：返回匹配 + 排序 + 分页后的 var 数组
+    func find() as var
+        var records = dbLoad(self.coll)
+        var out = []
+        int i = 0
+        int n = records.length
+        while i < n do
+            var rec = records[i]
+            if matchAll(self.conditions, rec) then
+                out.push(rec)
+            end
+            i += 1
+        end
+        if not string.isEmpty(self.ordField) then
+            sortRecords(out, self.ordField, self.ordDesc)
+        end
+        if self.off > 0 then
+            out = sliceArray(out, self.off, out.length)
+        end
+        if self.lim >= 0 and out.length > self.lim then
+            out = sliceArray(out, 0, self.lim)
+        end
+        return out
+    end
+
+    // 终结：返回第一条或 null
+    func first() as var
+        int savedLim = self.lim
+        self.lim = 1
+        var arr = self.find()
+        self.lim = savedLim
+        if arr.length == 0 then
+            return null
+        end
+        return arr[0]
+    end
+
+    // 终结：匹配条数（不受 limit/offset 影响）
+    func count() as int
+        var records = dbLoad(self.coll)
+        int c = 0
+        int i = 0
+        int n = records.length
+        while i < n do
+            if matchAll(self.conditions, records[i]) then
+                c += 1
+            end
+            i += 1
+        end
+        return c
+    end
+end
+
+
+// 数组切片 [start, end)
+func sliceArray(var arr, int start, int endIdx) as var
+    var out = []
+    int n = arr.length
+    if start < 0 then
+        start = 0
+    end
+    if endIdx > n then
+        endIdx = n
+    end
+    int i = start
+    while i < endIdx do
+        out.push(arr[i])
+        i += 1
+    end
+    return out
+end
+
+
+// ============================================================
+// 模块 3：模板引擎（自写，{var} / {a.b} / {if} / {foreach}）
+//
+// 语法：
+//   {name}            变量插值（HTML 转义）
+//   {user.name}       点号路径取嵌套字段
+//   {{                字面量 '{'
+//   }}                字面量 '}'
+//   {if EXPR}A{elseif EXPR}B{else}C{end}
+//   {foreach LIST as ITEM}...{end}
+//   {foreach LIST as IDX,ITEM}...{end}
+//
+// EXPR 支持：
+//   flag               真值判定
+//   !flag              假值判定
+//   age>18             比较（op ∈ > < >= <= == != =）
+//   name=="bob"        与字面量比较（"串" / 数字 / 变量）
+// ============================================================
+
+// 节点结构（dict）：
+//   {"type":"text", "text":"..."}
+//   {"type":"var", "path":"user.name"}
+//   {"type":"if", "branches":[{"expr":"...","nodes":[...]}, ...], "else":[...] 或 null}
+//   {"type":"foreach", "list":"items", "item":"x", "index":"", "nodes":[...]}
+
+// 编译：源串 -> 节点数组（顶层）。
+func tplCompile(string src) as var
+    var toks = tplTokenize(src)
+    var nodes = []
+    int pos = 0
+    int n = toks.length
+    while pos < n do
+        var tk = toks[pos]
+        string ty = string(tk["type"])
+        if ty == "text" then
+            nodes.push(tk)
+            pos += 1
+        elseif ty == "var" then
+            nodes.push(tk)
+            pos += 1
+        elseif ty == "if" then
+            var ifNode = null
+            int consumed = 0
+            ifNode, consumed = tplParseIf(toks, pos)
+            if ifNode != null then
+                nodes.push(ifNode)
+                pos += consumed
+            else
+                // 解析失败：当作文本跳过
+                pos += 1
+            end
+        elseif ty == "foreach" then
+            var feNode = null
+            int consumed2 = 0
+            feNode, consumed2 = tplParseForeach(toks, pos)
+            if feNode != null then
+                nodes.push(feNode)
+                pos += consumed2
+            else
+                pos += 1
+            end
+        else
+            // 控制结束标签在顶层出现：忽略
+            pos += 1
+        end
+    end
+    return nodes
+end
+
+
+// 词法：把源串切成 token 数组。
+//   text token: {"type":"text","text":"..."}
+//   tag token : {"type":"var"|"if"|"elseif"|"else"|"foreach"|"end", "inner":"..."}
+func tplTokenize(string src) as var
+    var toks = []
+    string buf = ""
+    int i = 0
+    int n = string.len(src)
+    while i < n do
+        int b = string.byteAt(src, i)
+        // 字面量 {{ 或 }}
+        if b == 123 and i + 1 < n and string.byteAt(src, i + 1) == 123 then
+            if not string.isEmpty(buf) then
+                var t = {}
+                t["type"] = "text"
+                t["text"] = buf
+                toks.push(t)
+                buf = ""
+            end
+            var lb = {}
+            lb["type"] = "text"
+            lb["text"] = "{"
+            toks.push(lb)
+            i += 2
+            continue
+        end
+        if b == 125 and i + 1 < n and string.byteAt(src, i + 1) == 125 then
+            if not string.isEmpty(buf) then
+                var t = {}
+                t["type"] = "text"
+                t["text"] = buf
+                toks.push(t)
+                buf = ""
+            end
+            var rb = {}
+            rb["type"] = "text"
+            rb["text"] = "}"
+            toks.push(rb)
+            i += 2
+            continue
+        end
+        if b == 123 then
+            // 找匹配的 '}'
+            int j = i + 1
+            bool closed = false
+            while j < n do
+                if string.byteAt(src, j) == 125 then
+                    closed = true
+                    break
+                end
+                j += 1
+            end
+            if not closed then
+                // 没闭合：当普通文本
+                buf = buf + "{"
+                i += 1
+                continue
+            end
+            if not string.isEmpty(buf) then
+                var t = {}
+                t["type"] = "text"
+                t["text"] = buf
+                toks.push(t)
+                buf = ""
+            end
+            string inner = string.trim(string.slice(src, i + 1, j - i - 1))
+            string ty = tplTagType(inner)
+            var tag = {}
+            tag["type"] = ty
+            tag["inner"] = inner
+            toks.push(tag)
+            i = j + 1
+            continue
+        end
+        buf = buf + string.slice(src, i, 1)
+        i += 1
+    end
+    if not string.isEmpty(buf) then
+        var t = {}
+        t["type"] = "text"
+        t["text"] = buf
+        toks.push(t)
+    end
+    return toks
+end
+
+
+// 由 tag 内容判断类型。
+func tplTagType(string inner) as string
+    if string.startsWith(inner, "if ") or string.startsWith(inner, "if\t") or inner == "if" then
+        return "if"
+    end
+    if string.startsWith(inner, "elseif ") or string.startsWith(inner, "elseif\t") then
+        return "elseif"
+    end
+    if string.startsWith(inner, "foreach ") or string.startsWith(inner, "foreach\t") then
+        return "foreach"
+    end
+    if inner == "else" then
+        return "else"
+    end
+    if inner == "end" then
+        return "end"
+    end
+    return "var"
+end
+
+
+// 从 if 起始位置解析整段 if/elseif/else/end。返回 (节点, 消费 token 数)。
+func tplParseIf(var toks, int start) as (var, int)
+    var branches = []
+    var elseNodes = null
+    string curExpr = string.trim(string.slice(string(toks[start]["inner"]), 2))
+    int pos = start + 1
+    int n = toks.length
+    bool ok = true
+    while pos < n do
+        var body
+        int consumed
+        body, consumed = tplParseUntilCtrl(toks, pos)
+        pos += consumed
+        // 现在 toks[pos] 应该是控制标签 elseif/else/end
+        if pos >= n then
+            ok = false
+            break
+        end
+        string ctrl = string(toks[pos]["type"])
+        var branch = {}
+        branch["expr"] = curExpr
+        branch["nodes"] = body
+        branches.push(branch)
+        pos += 1
+        if ctrl == "elseif" then
+            string afterElseif = string(toks[pos - 1]["inner"])
+            curExpr = string.trim(string.slice(afterElseif, string.len("elseif")))
+        elseif ctrl == "else" then
+            var elseBody
+            int consumed2
+            elseBody, consumed2 = tplParseUntilCtrl(toks, pos)
+            pos += consumed2
+            if pos < n and string(toks[pos]["type"]) == "end" then
+                elseNodes = elseBody
+                pos += 1
+            else
+                ok = false
+            end
+            break
+        elseif ctrl == "end" then
+            break
+        else
+            ok = false
+            break
+        end
+    end
+    if not ok then
+        return null, 1
+    end
+    var node = {}
+    node["type"] = "if"
+    node["branches"] = branches
+    node["else"] = elseNodes
+    return node, pos - start
+end
+
+
+// 从 start 起解析到遇到首个控制标签（if/elseif/else/foreach/end）为止。
+// 注意：嵌套的 if/foreach 会被整体吞掉（递归配对 end）。
+// 返回 (节点数组, 消费 token 数，不含停在的控制标签本身)。
+func tplParseUntilCtrl(var toks, int start) as (var, int)
+    var nodes = []
+    int pos = start
+    int n = toks.length
+    while pos < n do
+        var tk = toks[pos]
+        string ty = string(tk["type"])
+        if ty == "text" then
+            nodes.push(tk)
+            pos += 1
+        elseif ty == "var" then
+            nodes.push(tk)
+            pos += 1
+        elseif ty == "if" then
+            var ifNode = null
+            int consumed = 0
+            ifNode, consumed = tplParseIf(toks, pos)
+            if ifNode != null then
+                nodes.push(ifNode)
+                pos += consumed
+            else
+                pos += 1
+            end
+        elseif ty == "foreach" then
+            var feNode = null
+            int consumed2 = 0
+            feNode, consumed2 = tplParseForeach(toks, pos)
+            if feNode != null then
+                nodes.push(feNode)
+                pos += consumed2
+            else
+                pos += 1
+            end
+        else
+            // elseif / else / end -> 停
+            break
+        end
+    end
+    return nodes, pos - start
+end
+
+
+// 解析 foreach ... {end}。返回 (节点, 消费 token 数)。
+func tplParseForeach(var toks, int start) as (var, int)
+    string header = string.trim(string.slice(string(toks[start]["inner"]), string.len("foreach")))
+    // header 形如 "items as x" 或 "items as i,x"
+    int asIdx = string.indexOf(string.lower(header), " as ")
+    if asIdx < 0 then
+        return null, 1
+    end
+    string listExpr = string.trim(string.slice(header, 0, asIdx))
+    string tail = string.trim(string.slice(header, asIdx + 4))
+    string itemVar = tail
+    string indexVar = ""
+    int comma = string.indexOf(tail, ",")
+    if comma >= 0 then
+        indexVar = string.trim(string.slice(tail, 0, comma))
+        itemVar = string.trim(string.slice(tail, comma + 1, string.len(tail) - comma - 1))
+    end
+    int pos = start + 1
+    var body
+    int consumed
+    body, consumed = tplParseUntilCtrl(toks, pos)
+    pos += consumed
+    if pos < toks.length and string(toks[pos]["type"]) == "end" then
+        pos += 1
+    end
+    var node = {}
+    node["type"] = "foreach"
+    node["list"] = listExpr
+    node["item"] = itemVar
+    node["index"] = indexVar
+    node["nodes"] = body
+    return node, pos - start
+end
+
+
+// 渲染：节点数组 + 作用域 -> 字符串。
+func tplRender(var nodes, var scope) as string
+    string out = ""
+    int i = 0
+    int n = nodes.length
+    while i < n do
+        var nd = nodes[i]
+        string ty = string(nd["type"])
+        if ty == "text" then
+            out = out + string(nd["text"])
+        elseif ty == "var" then
+            out = out + htmlEscape(stringify(tplLookup(scope, string(nd["inner"]))))
+        elseif ty == "if" then
+            out = out + tplRenderIf(nd, scope)
+        elseif ty == "foreach" then
+            out = out + tplRenderForeach(nd, scope)
+        end
+        i += 1
+    end
+    return out
+end
+
+
+func tplRenderIf(var nd, var scope) as string
+    var branches = nd["branches"]
+    int i = 0
+    int n = branches.length
+    while i < n do
+        var br = branches[i]
+        if tplEvalIf(string(br["expr"]), scope) then
+            return tplRender(br["nodes"], scope)
+        end
+        i += 1
+    end
+    var els = nd["else"]
+    if els != null then
+        return tplRender(els, scope)
+    end
+    return ""
+end
+
+
+func tplRenderForeach(var nd, var scope) as string
+    var list = tplLookup(scope, string(nd["list"]))
+    if list == null then
+        return ""
+    end
+    bool isArr = false
+    if type(list) == type([]) then
+        isArr = true
+    end
+    string itemVar = string(nd["item"])
+    string indexVar = string(nd["index"])
+    string out = ""
+    if isArr then
+        int i = 0
+        int n = list.length
+        while i < n do
+            var child = tplChildScope(scope)
+            child[itemVar] = list[i]
+            if not string.isEmpty(indexVar) then
+                child[indexVar] = i
+            end
+            out = out + tplRender(nd["nodes"], child)
+            i += 1
+        end
+        return out
+    end
+    // dict 迭代：item 取 value，index 取 key
+    int seq = 0
+    for k, v in list
+        var child = tplChildScope(scope)
+        child[itemVar] = v
+        if not string.isEmpty(indexVar) then
+            child[indexVar] = k
+        end
+        out = out + tplRender(nd["nodes"], child)
+        seq += 1
+    end
+    return out
+end
+
+
+// 子作用域：拷贝父作用域字段，使循环变量可覆盖同名父变量但仍能访问父级其它字段。
+func tplChildScope(var parent) as var
+    var child = {}
+    for k, v in parent
+        child[k] = v
+    end
+    return child
+end
+
+
+// 路径取值：支持 "name" / "a.b.c"，点号逐级下钻 dict；任何一级缺失返回 null。
+func tplLookup(var scope, string path) as var
+    path = string.trim(path)
+    if string.isEmpty(path) then
+        return null
+    end
+    if not string.contains(path, ".") then
+        if path in scope then
+            return scope[path]
+        end
+        return null
+    end
+    var parts = string.split(path, ".")
+    var cur = scope
+    int i = 0
+    int n = parts.length
+    while i < n do
+        string p = string(parts[i])
+        bool isDict = false
+        if type(cur) == type({}) then
+            isDict = true
+        end
+        if not isDict then
+            return null
+        end
+        if not (p in cur) then
+            return null
+        end
+        cur = cur[p]
+        i += 1
+    end
+    return cur
+end
+
+
+// 求值 if 表达式：
+//   "flag"      -> 真值
+//   "!flag"     -> 非真值
+//   "a op b"    -> compareOp（b 可以是 "串" / 数字字面量 / 变量名）
+func tplEvalIf(string expr, var scope) as bool
+    expr = string.trim(expr)
+    if string.isEmpty(expr) then
+        return false
+    end
+    if string.startsWith(expr, "!") then
+        string sub = string.trim(string.slice(expr, 1))
+        return not truthy(tplLookupOrLiteral(sub, scope))
+    end
+    // 寻找比较运算符
+    int opAt = -1
+    string opStr = ""
+    // 优先 2 字符
+    var ops2 = ["<=", ">=", "==", "!="]
+    int oi = 0
+    while oi < 4 do
+        int p = string.indexOf(expr, string(ops2[oi]))
+        if p > 0 then
+            opAt = p
+            opStr = string(ops2[oi])
+            oi = 4
+        end
+        oi += 1
+    end
+    if opAt < 0 then
+        var ops1 = ["<", ">", "="]
+        int oi2 = 0
+        while oi2 < 3 do
+            int p = string.indexOf(expr, string(ops1[oi2]))
+            if p > 0 then
+                opAt = p
+                opStr = string(ops1[oi2])
+                oi2 = 3
+            end
+            oi2 += 1
+        end
+    end
+    if opAt < 0 then
+        // 纯真值判定
+        return truthy(tplLookupOrLiteral(expr, scope))
+    end
+    string leftRaw = string.trim(string.slice(expr, 0, opAt))
+    string rightRaw = string.trim(string.slice(expr, opAt + string.len(opStr)))
+    if opStr == "=" then
+        opStr = "=="
+    end
+    var leftVal = tplLookupOrLiteral(leftRaw, scope)
+    var rightVal = tplLookupOrLiteral(rightRaw, scope)
+    return compareOp(leftVal, opStr, rightVal)
+end
+
+
+// 把 token 解释成值：
+//   "..." 或 '...' -> 字符串字面量（去引号）
+//   纯数字         -> int/float
+//   true/false     -> bool
+//   其它           -> 当变量名从 scope 取（取不到返回空串）
+func tplLookupOrLiteral(string tok, var scope) as var
+    tok = string.trim(tok)
+    if string.isEmpty(tok) then
+        return ""
+    end
+    int firstByte = string.byteAt(tok, 0)
+    int lastByte = string.byteAt(tok, string.len(tok) - 1)
+    if (firstByte == 34 and lastByte == 34) or (firstByte == 39 and lastByte == 39) then
+        if string.len(tok) >= 2 then
+            return string.slice(tok, 1, string.len(tok) - 2)
+        end
+        return ""
+    end
+    if tok == "true" then
+        return true
+    end
+    if tok == "false" then
+        return false
+    end
+    float f = 0.0
+    bool ok = false
+    f, ok = numTry(tok)
+    if ok then
+        // 整数优先返回 int，便于相等比较
+        if string.contains(tok, ".") or string.contains(tok, "e") or string.contains(tok, "E") then
+            return f
+        end
+        return int(f)
+    end
+    // 变量
+    var v = tplLookup(scope, tok)
+    if v == null then
+        return ""
+    end
+    return v
+end
+
+
+// 一站式：编译并渲染。
+func tplRenderText(string src, var data) as string
+    var nodes = tplCompile(src)
+    return tplRender(nodes, data)
+end
+
+
+// ============================================================
+// 模块 4：中间件链
+//   gMiddlewares 是「中间件名」数组，按注册顺序执行。
+//   每个中间件签名等价于 func(var ctx) as bool：true 继续，false 短路。
+//   ctx 是纯数据 dict（method/path/cookies/token/user/... + 响应字段）。
+// ============================================================
+
+func mwReset()
+    gMiddlewares = []
+end
+
+
+// 注册中间件名（顺序即执行顺序）。
+func mwUse(string name)
+    gMiddlewares.push(name)
+end
+
+
+// 按名分派到具体实现。
+func mwExec(string name, var ctx) as bool
+    if name == "logging" then
+        return mwLogging(ctx)
+    elseif name == "auth" then
+        return mwAuth(ctx)
+    elseif name == "authRequired" then
+        return mwAuthRequired(ctx)
+    elseif name == "headerDump" then
+        return mwHeaderDump(ctx)
+    elseif name == "blocker" then
+        return mwBlocker(ctx)
+    end
+    // 未知中间件：放行
+    return true
+end
+
+
+// 顺序执行链上所有中间件；遇到返回 false 的即停止。
+func mwRun(var ctx) as bool
+    int i = 0
+    int n = gMiddlewares.length
+    while i < n do
+        bool cont = mwExec(string(gMiddlewares[i]), ctx)
+        if not cont then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+
+// logging：记录请求行到 ctx["log"]，控制台打印。
+func mwLogging(var ctx) as bool
+    string line = string(ctx["method"]) + " " + string(ctx["path"])
+    ctx["log"] = line
+    println("[webfw] " + line)
+    return true
+end
+
+
+// auth：从 cookie sid 取 token，查会话，命中则填 user / username；允许游客通过。
+func mwAuth(var ctx) as bool
+    var cookies = ctx["cookies"]
+    string token = ""
+    if SESSION_COOKIE in cookies then
+        token = string(cookies[SESSION_COOKIE])
+    end
+    ctx["token"] = token
+    if not string.isEmpty(token) then
+        string userId = sessionGet(token)
+        if not string.isEmpty(userId) then
+            ctx["user"] = userId
+            var u = authFindById(int(userId))
+            if u != null then
+                ctx["username"] = u["username"]
+            end
+        end
+    end
+    return true
+end
+
+
+// authRequired：未登录则短路（设置 302 跳 /login）。
+func mwAuthRequired(var ctx) as bool
+    if string.isEmpty(string(ctx["user"])) then
+        ctx["respStatus"] = 302
+        var hdr = {}
+        hdr["Location"] = "/login"
+        ctx["respHeaders"] = hdr
+        ctx["respBody"] = "redirect to login"
+        ctx["stop"] = true
+        return false
+    end
+    return true
+end
+
+
+// headerDump：把请求关键头回写到 ctx（调试用），不影响流程。
+func mwHeaderDump(var ctx) as bool
+    var h = ctx["headers"]
+    if h == null then
+        h = {}
+    end
+    ctx["headerDump"] = stringify(dictGet(h, "User-Agent", ""))
+    return true
+end
+
+
+// blocker：测试用中间件——带 ?block=1 时短路并返回 403。
+func mwBlocker(var ctx) as bool
+    string qs = string(ctx["query"])
+    if string.contains(qs, "block=1") then
+        ctx["respStatus"] = 403
+        ctx["respBody"] = "blocked by middleware"
+        ctx["stop"] = true
+        return false
+    end
+    return true
+end
+
+
+// ============================================================
+// 模块 5：会话（cookie token -> userId，JSON 持久化）
+// ============================================================
+
+func sessionFile() as string
+    return path.join(gDataDir, "sessions.json")
+end
+
+
+func sessionLoad() as var
+    var d = {}
+    string f = sessionFile()
+    if not file.exists(f) then
+        return d
+    end
+    string text = file.readText(f)
+    if string.isEmpty(text) or not json.valid(text) then
+        return d
+    end
+    var parsed = json.parse(text)
+    if parsed == null then
+        return d
+    end
+    return parsed
+end
+
+
+func sessionSave(var d)
+    string f = sessionFile()
+    bool ok = file.writeText(f, jsonFromVar(d))
+    if not ok then
+        println("[webfw] WARN: failed to write " + f)
+    end
+end
+
+
+// 为 userId 创建新会话，返回 token（32 字节 hex）。
+func sessionCreate(string userId) as string
+    var d = sessionLoad()
+    string token = string.lower(crypto.randomHex(32))
+    d[token] = userId
+    sessionSave(d)
+    return token
+end
+
+
+// token -> userId；无效返回 ""。
+func sessionGet(string token) as string
+    if string.isEmpty(token) then
+        return ""
+    end
+    var d = sessionLoad()
+    if token in d then
+        return string(d[token])
+    end
+    return ""
+end
+
+
+// 注销 token；成功返回 true。
+func sessionDestroy(string token) as bool
+    var d = sessionLoad()
+    if token in d then
+        d.remove(token)
+        sessionSave(d)
+        return true
+    end
+    return false
+end
+
+
+func sessionCount() as int
+    var d = sessionLoad()
+    return d.length
+end
+
+
+// ============================================================
+// 模块 6：认证（register / login + sha256 哈希）
+//   用户表文件 users.json：array of {id, username, passhash}
+// ============================================================
+
+func usersFile() as string
+    return path.join(gDataDir, "users.json")
+end
+
+
+func authLoad() as var
+    var empty = []
+    string f = usersFile()
+    if not file.exists(f) then
+        return empty
+    end
+    string text = file.readText(f)
+    if string.isEmpty(text) or not json.valid(text) then
+        return empty
+    end
+    var parsed = json.parse(text)
+    if parsed == null then
+        return empty
+    end
+    bool isArr = false
+    if type(parsed) == type([]) then
+        isArr = true
+    end
+    if not isArr then
+        var wrap = []
+        wrap.push(parsed)
+        return wrap
+    end
+    return parsed
+end
+
+
+func authSave(var users)
+    string f = usersFile()
+    bool ok = file.writeText(f, jsonFromVar(users))
+    if not ok then
+        println("[webfw] WARN: failed to write " + f)
+    end
+end
+
+
+// 密码哈希：sha256(salt + password)，返回小写 hex。
+func authHashPassword(string password) as string
+    return string.lower(crypto.sha256(AUTH_SALT + password))
+end
+
+
+func authFindByName(string username) as var
+    var users = authLoad()
+    int i = 0
+    int n = users.length
+    while i < n do
+        var u = users[i]
+        if string(u["username"]) == username then
+            return u
+        end
+        i += 1
+    end
+    return null
+end
+
+
+func authFindById(int id) as var
+    var users = authLoad()
+    int i = 0
+    int n = users.length
+    while i < n do
+        var u = users[i]
+        float fv = 0.0
+        bool ok = false
+        if "id" in u then
+            fv, ok = numTry(u["id"])
+        end
+        if ok and int(fv) == id then
+            return u
+        end
+        i += 1
+    end
+    return null
+end
+
+
+// 注册：返回 {"ok":bool, "id":int, "error":str}
+func authRegister(string username, string password) as var
+    if string.isEmpty(username) or string.isEmpty(password) then
+        return {"ok": false, "id": 0, "error": "username and password required"}
+    end
+    if authFindByName(username) != null then
+        return {"ok": false, "id": 0, "error": "username exists"}
+    end
+    var users = authLoad()
+    int newId = 1
+    int i = 0
+    int n = users.length
+    while i < n do
+        float fv = 0.0
+        bool ok = false
+        if "id" in users[i] then
+            fv, ok = numTry(users[i]["id"])
+        end
+        if ok and int(fv) >= newId then
+            newId = int(fv) + 1
+        end
+        i += 1
+    end
+    var u = {}
+    u["id"] = newId
+    u["username"] = username
+    u["passhash"] = authHashPassword(password)
+    users.push(u)
+    authSave(users)
+    return {"ok": true, "id": newId, "error": ""}
+end
+
+
+// 登录：校验密码，成功签发会话 token。
+// 返回 {"ok":bool, "token":str, "id":int, "error":str}
+func authLogin(string username, string password) as var
+    var u = authFindByName(username)
+    if u == null then
+        return {"ok": false, "token": "", "id": 0, "error": "no such user"}
+    end
+    string h = authHashPassword(password)
+    if string(u["passhash"]) != h then
+        return {"ok": false, "token": "", "id": 0, "error": "bad password"}
+    end
+    float fv = 0.0
+    bool ok = false
+    fv, ok = numTry(u["id"])
+    int uid = 0
+    if ok then
+        uid = int(fv)
+    end
+    string token = sessionCreate(string(uid))
+    return {"ok": true, "token": token, "id": uid, "error": ""}
+end
+
+
+// 注销：销毁会话。
+func authLogout(string token) as bool
+    return sessionDestroy(token)
+end
+
+
+// 用 token 反查 userId；无效返回 ""。
+func authVerify(string token) as string
+    return sessionGet(token)
+end
+
+
+// ============================================================
+// HTTP 集成：单点请求分派器
+//
+// frameworkRoute 是唯一注册给 http.server 的回调；因为 HttpRequest /
+// HttpResponse 是 native-backed class，所有 req/resp 操作都内联在这里。
+// 公共逻辑只动纯数据 ctx，再据此驱动 ORM/模板/会话/认证。
+// ============================================================
+
+func frameworkRoute(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.header("X-Powered-By", "xlang-webfw")
+
+    // 1) 抽取请求信息到纯数据 ctx
+    string method = req.method()
+    string path_ = req.path()
+    string query = req.query()
+    string body = req.body()
+    string ct = req.contentType()
+
+    var ctx = {}
+    ctx["method"] = method
+    ctx["path"] = path_
+    ctx["query"] = query
+    ctx["body"] = body
+    ctx["contentType"] = ct
+    ctx["form"] = parseBody(ct, body)
+    ctx["cookies"] = parseCookies(req.header("Cookie"))
+    ctx["headers"] = {"User-Agent": req.header("User-Agent"), "Host": req.header("Host")}
+    ctx["token"] = ""
+    ctx["user"] = ""
+    ctx["username"] = ""
+    ctx["log"] = ""
+    ctx["respStatus"] = 0
+    ctx["respBody"] = ""
+    ctx["respHeaders"] = {}
+    ctx["stop"] = false
+
+    // 2) 跑中间件链；被短路则按 ctx 回写响应
+    bool chainOk = mwRun(ctx)
+    if not chainOk then
+        int st = int(ctx["respStatus"])
+        if st <= 0 then
+            st = 200
+        end
+        resp.status(st)
+        var hdrs = ctx["respHeaders"]
+        for hk, hv in hdrs
+            resp.header(string(hk), string(hv))
+        end
+        return resp.text(string(ctx["respBody"]), "text/plain; charset=utf-8")
+    end
+
+    // 3) 路由匹配
+    var m = routerMatch(method, path_)
+    if not bool(m["matched"]) then
+        resp.status(404)
+        return resp.jsonText("{\"error\":\"not found\",\"path\":\"" + jsonEscape(path_) + "\"}")
+    end
+    ctx["params"] = m["params"]
+    string handler = string(m["handler"])
+
+    // 4) 据 handler 分派（全部内联，直接操作 req/resp + ctx + ORM/模板/会话/认证）
+
+    if handler == "home" then
+        var data = {}
+        data["title"] = "webfw"
+        data["user"] = ctx["username"]
+        data["loggedIn"] = not string.isEmpty(string(ctx["user"]))
+        string html = tplRenderText(
+            "<h1>{title}</h1>" +
+            "{if loggedIn}<p>welcome <b>{user}</b></p>" +
+            "{else}<p><a href=\"/login\">login</a> | <a href=\"/register\">register</a></p>{end}" +
+            "<ul><li>/health</li><li>/users</li><li>/users/{id}</li><li>/articles?topic=...</li>" +
+            "<li>/dashboard (auth)</li><li>/static/* wildcard</li></ul>", data)
+        return resp.text(html, "text/html; charset=utf-8")
+    end
+
+    if handler == "health" then
+        return resp.jsonText("{\"ok\":true,\"fw\":\"webfw\",\"routes\":" + string(gRoutes.length) + "}")
+    end
+
+    if handler == "login_form" then
+        var data = {}
+        data["msg"] = "please login"
+        string form = tplRenderText(
+            "<h2>Login</h2><p>{msg}</p>" +
+            "<form method=\"POST\" action=\"/login\">" +
+            "<input name=\"username\"><input name=\"password\" type=\"password\">" +
+            "<button>login</button></form>", data)
+        return resp.text(form, "text/html; charset=utf-8")
+    end
+
+    if handler == "register_form" then
+        string form2 = ("<h2>Register</h2>" +
+            "<form method=\"POST\" action=\"/register\">" +
+            "<input name=\"username\"><input name=\"password\" type=\"password\">" +
+            "<button>register</button></form>")
+        return resp.text(form2, "text/html; charset=utf-8")
+    end
+
+    if handler == "login_submit" then
+        var form = ctx["form"]
+        string uname = string(dictGet(form, "username", ""))
+        string pw = string(dictGet(form, "password", ""))
+        var res = authLogin(uname, pw)
+        if bool(res["ok"]) then
+            resp.cookie(SESSION_COOKIE, string(res["token"]), "/", 3600,
+                        http.server.sameSiteLax, http.server.cookieHttpOnly)
+            return resp.redirect("/dashboard", 302)
+        end
+        resp.status(401)
+        return resp.text("login failed: " + string(res["error"]), "text/plain; charset=utf-8")
+    end
+
+    if handler == "register_submit" then
+        var form = ctx["form"]
+        string uname = string(dictGet(form, "username", ""))
+        string pw = string(dictGet(form, "password", ""))
+        var res = authRegister(uname, pw)
+        if bool(res["ok"]) then
+            return resp.redirect("/login", 302)
+        end
+        resp.status(400)
+        return resp.text("register failed: " + string(res["error"]), "text/plain; charset=utf-8")
+    end
+
+    if handler == "logout" then
+        if SESSION_COOKIE in ctx["cookies"] then
+            authLogout(string(ctx["cookies"][SESSION_COOKIE]))
+        end
+        resp.cookie(SESSION_COOKIE, "", "/", -1, http.server.sameSiteLax, http.server.cookieHttpOnly)
+        return resp.redirect("/", 302)
+    end
+
+    if handler == "dashboard" then
+        // 路由级鉴权：未登录跳 /login
+        if string.isEmpty(string(ctx["user"])) then
+            return resp.redirect("/login", 302)
+        end
+        var data = {}
+        data["username"] = ctx["username"]
+        // ORM 列出所有用户（脱敏：不输出 passhash）
+        var users = dbLoad("users")
+        var safe = []
+        int ui = 0
+        int un = users.length
+        while ui < un do
+            var one = {}
+            one["id"] = users[ui]["id"]
+            one["username"] = users[ui]["username"]
+            safe.push(one)
+            ui += 1
+        end
+        data["users"] = safe
+        data["count"] = safe.length
+        string page = tplRenderText(
+            "<h2>Dashboard</h2><p>hello <b>{username}</b></p>" +
+            "<p>registered users: {count}</p>" +
+            "<ul>{foreach users as u}<li>#{u.id} {u.username}</li>{end}</ul>" +
+            "<p><a href=\"/logout\">logout</a></p>", data)
+        return resp.text(page, "text/html; charset=utf-8")
+    end
+
+    if handler == "users_list" then
+        // ORM 查询：可带 ?role=... 与排序
+        string role = req.queryValue("role")
+        var arr
+        if not string.isEmpty(role) then
+            Query q = Query("users")
+            q.whereOp("role", "==", role)
+            q.orderBy("username")
+            arr = q.find()
+        else
+            Query q2 = Query("users")
+            q2.orderBy("username")
+            arr = q2.find()
+        end
+        // 脱敏
+        var clean = []
+        int ci = 0
+        int cn = arr.length
+        while ci < cn do
+            var one = {}
+            one["id"] = arr[ci]["id"]
+            one["username"] = arr[ci]["username"]
+            if "role" in arr[ci] then
+                one["role"] = arr[ci]["role"]
+            end
+            clean.push(one)
+            ci += 1
+        end
+        return resp.jsonText(jsonFromVar(clean))
+    end
+
+    if handler == "users_show" then
+        var params = ctx["params"]
+        string idStr = string(params["id"])
+        float fv = 0.0
+        bool ok = false
+        fv, ok = numTry(idStr)
+        if not ok then
+            resp.status(400)
+            return resp.jsonText("{\"error\":\"bad id\"}")
+        end
+        var u = authFindById(int(fv))
+        if u == null then
+            resp.status(404)
+            return resp.jsonText("{\"error\":\"no such user\"}")
+        end
+        var out = {}
+        out["id"] = u["id"]
+        out["username"] = u["username"]
+        return resp.jsonText(jsonFromVar(out))
+    end
+
+    if handler == "users_create" then
+        var form = ctx["form"]
+        string uname = string(dictGet(form, "username", ""))
+        string pw = string(dictGet(form, "password", ""))
+        string role = string(dictGet(form, "role", "user"))
+        var res = authRegister(uname, pw)
+        if not bool(res["ok"]) then
+            resp.status(400)
+            return resp.jsonText("{\"ok\":false,\"error\":\"" + jsonEscape(string(res["error"])) + "\"}")
+        end
+        // 补 role 字段
+        int newId = int(res["id"])
+        var extra = {}
+        extra["role"] = role
+        dbUpdate("users", newId, extra)
+        var out2 = {}
+        out2["ok"] = true
+        out2["id"] = newId
+        out2["username"] = uname
+        out2["role"] = role
+        resp.status(201)
+        return resp.jsonText(jsonFromVar(out2))
+    end
+
+    if handler == "articles" then
+        // ORM 查询构建器演示：?topic=X & min=N & order=name|age
+        string topic = req.queryValue("topic")
+        string minAge = req.queryValue("min")
+        string order = req.queryValue("order")
+        Query q = Query("articles")
+        if not string.isEmpty(topic) then
+            q.whereOp("topic", "==", topic)
+        end
+        if not string.isEmpty(minAge) then
+            q.where("age>", int(minAge))
+        end
+        if string.isEmpty(order) then
+            order = "name"
+        end
+        if order == "age" then
+            q.orderByDesc("age")
+        else
+            q.orderBy("name")
+        end
+        var arr = q.find()
+        return resp.jsonText("{\"count\":" + string(arr.length) + ",\"items\":" + jsonFromVar(arr) + "}")
+    end
+
+    if handler == "static_wild" then
+        var params = ctx["params"]
+        string rest = string(params["path"])
+        resp.header("X-Wild-Path", rest)
+        return resp.text("wildcard captured: " + rest, "text/plain; charset=utf-8")
+    end
+
+    if handler == "template_demo" then
+        var data = {}
+        var items = []
+        var a = {}
+        a["name"] = "alpha"
+        a["price"] = 10
+        items.push(a)
+        var b = {}
+        b["name"] = "beta"
+        b["price"] = 25
+        items.push(b)
+        var c = {}
+        c["name"] = "gamma"
+        c["price"] = 5
+        items.push(c)
+        data["title"] = "products"
+        data["items"] = items
+        string t = "<h1>{title}</h1><ul>{foreach items as it}<li>{it.name}: {it.price}</li>{end}</ul>"
+        string rendered = tplRenderText(t, data)
+        return resp.text(rendered, "text/html; charset=utf-8")
+    end
+
+    // 未实现的 handler
+    resp.status(501)
+    return resp.jsonText("{\"error\":\"handler not implemented: " + jsonEscape(handler) + "\"}")
+end
+
+func(point, point) as bool frameworkRequestHandler = frameworkRoute
+
+
+// 错误页：兜底错误处理（4xx/5xx）。
+func frameworkError(int status, string message, point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.status(status)
+    resp.header("X-Error-Path", req.path())
+    string body = "{\"status\":" + string(status) + ",\"error\":\"" + jsonEscape(message) + "\",\"path\":\"" + jsonEscape(req.path()) + "\"}"
+    return resp.jsonText(body)
+end
+
+func(int, string, point, point) as bool frameworkErrorHandler = frameworkError
+
+
+// 注册示例应用所有路由 + 中间件。
+func frameworkRegisterRoutes()
+    routerReset()
+    routerGet("/", "home")
+    routerGet("/health", "health")
+    routerGet("/login", "login_form")
+    routerGet("/register", "register_form")
+    routerPost("/login", "login_submit")
+    routerPost("/register", "register_submit")
+    routerGet("/logout", "logout")
+    routerGet("/dashboard", "dashboard")
+    routerGet("/users", "users_list")
+    routerGet("/users/{id}", "users_show")
+    routerPost("/users", "users_create")
+    routerGet("/articles", "articles")
+    routerGet("/tpl", "template_demo")
+    routerGet("/static/*", "static_wild")
+
+    mwReset()
+    mwUse("logging")
+    mwUse("auth")
+end
+
+
+// 创建并配置 server（与 fileserver 同款 create 参数）。
+// 示例应用只注册 GET/POST；未知方法不注册（http.server.any 的 handler 签名
+// 不同，这里不混用）。
+func buildServer(int port) as point
+    point server = http.server.create(port, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 2)
+    int ri = 0
+    int rn = gRoutes.length
+    while ri < rn do
+        var r = gRoutes[ri]
+        string m = string(r["method"])
+        if m == "GET" then
+            http.server.getRequest(server, string(r["pattern"]), frameworkRequestHandler)
+        elseif m == "POST" then
+            http.server.postRequest(server, string(r["pattern"]), frameworkRequestHandler)
+        end
+        ri += 1
+    end
+    http.server.error(server, frameworkErrorHandler)
+    return server
+end
+
+
+// ============================================================
+// 自测框架
+// ============================================================
+
+int gPassed = 0
+int gFailed = 0
+
+func check(bool cond, string name, string detail)
+    if cond then
+        gPassed += 1
+        println("  [ PASS ] " + name)
+    else
+        gFailed += 1
+        println("  [ FAIL ] " + name + "  " + detail)
+    end
+end
+
+func expectI(int got, int want, string name)
+    check(got == want, name, "got " + string(got) + " want " + string(want))
+end
+
+func expectS(string got, string want, string name)
+    check(got == want, name, "got '" + got + "' want '" + want + "'")
+end
+
+func expectContains(string hay, string needle, string name)
+    check(string.contains(hay, needle), name, "'" + needle + "' not in '" + hay + "'")
+end
+
+
+// 准备一个干净的数据目录，便于重复跑自测。
+// 用 dir.create 建目录，用 file.writeText 写入空内容来「清空」各集合文件
+// （避免使用未确认的 remove 接口；dbLoad 对空文件返回空数组）。
+func prepareDataDir(string scriptPath) as string
+    string dataDir = path.join(path.dir(scriptPath), "webfw_data")
+    if not dir.exists(dataDir) then
+        dir.create(dataDir)
+    end
+    file.writeText(path.join(dataDir, "users.json"), "[]")
+    file.writeText(path.join(dataDir, "sessions.json"), "{}")
+    file.writeText(path.join(dataDir, "products.json"), "[]")
+    file.writeText(path.join(dataDir, "articles.json"), "[]")
+    return dataDir
+end
+
+
+// ============================================================
+// 自测 1：路由引擎
+// ============================================================
+
+func testRouter() as int
+    println("")
+    println("==== test: router ====")
+    routerReset()
+    routerGet("/", "home")
+    routerGet("/users", "users_list")
+    routerGet("/users/{id}", "users_show")
+    routerPost("/users", "users_create")
+    routerGet("/static/*", "static_wild")
+    routerGet("/users/me", "users_me")
+    routerGet("/articles", "articles")
+
+    var m1 = routerMatch("GET", "/")
+    check(bool(m1["matched"]), "1. match GET /", "")
+    expectS(string(m1["handler"]), "home", "1. GET / handler")
+
+    var m2 = routerMatch("GET", "/users")
+    check(bool(m2["matched"]), "2. match GET /users", "")
+    expectS(string(m2["handler"]), "users_list", "2. /users handler")
+
+    var m3 = routerMatch("GET", "/users/42")
+    check(bool(m3["matched"]), "3. match GET /users/42", "")
+    expectS(string(m3["handler"]), "users_show", "3. /users/42 handler")
+    expectS(string(m3["params"]["id"]), "42", "3. param id=42")
+
+    var m4 = routerMatch("POST", "/users")
+    check(bool(m4["matched"]), "4. match POST /users", "")
+    expectS(string(m4["handler"]), "users_create", "4. POST /users handler")
+
+    var m5 = routerMatch("GET", "/static/a/b/c.css")
+    check(bool(m5["matched"]), "5. match GET /static/a/b/c.css", "")
+    expectS(string(m5["handler"]), "static_wild", "5. static handler")
+    expectS(string(m5["params"]["path"]), "a/b/c.css", "5. wildcard path")
+
+    // 特异度：/users/me 应优先于 /users/{id}
+    var m6 = routerMatch("GET", "/users/me")
+    expectS(string(m6["handler"]), "users_me", "6. /users/me beats /users/{id}")
+
+    // 方法不符
+    var m7 = routerMatch("DELETE", "/users")
+    check(not bool(m7["matched"]), "7. DELETE /users not matched", "")
+
+    // 404
+    var m8 = routerMatch("GET", "/nope")
+    check(not bool(m8["matched"]), "8. GET /nope 404", "")
+
+    // 参数在中间
+    routerGet("/api/{ver}/info", "api_info")
+    var m9 = routerMatch("GET", "/api/v2/info")
+    check(bool(m9["matched"]), "9. match /api/{ver}/info", "")
+    expectS(string(m9["params"]["ver"]), "v2", "9. mid param ver=v2")
+
+    // 多参数
+    routerGet("/a/{x}/b/{y}", "multi")
+    var m10 = routerMatch("GET", "/a/1/b/2")
+    check(bool(m10["matched"]), "10. match multi-param", "")
+    expectS(string(m10["params"]["x"]), "1", "10. x=1")
+    expectS(string(m10["params"]["y"]), "2", "10. y=2")
+
+    // 带 query 串
+    var m11 = routerMatch("GET", "/articles?topic=x")
+    check(bool(m11["matched"]), "11. match with query string", "")
+    expectS(string(m11["handler"]), "articles", "11. query stripped handler")
+    return 0
+end
+
+
+// ============================================================
+// 自测 2：ORM 存储基础（insert/findById/update/delete）
+// ============================================================
+
+func testOrm() as int
+    println("")
+    println("==== test: orm (storage) ====")
+    var p = dbInsert("products", {"name": "apple", "price": 5, "cat": "fruit"})
+    check(bool(p["id"]) and int(p["id"]) == 1, "1. insert id=1", "got " + stringify(p["id"]))
+    var p2 = dbInsert("products", {"name": "milk", "price": 12, "cat": "drink"})
+    check(int(p2["id"]) == 2, "2. insert id=2", "got " + stringify(p2["id"]))
+    var p3 = dbInsert("products", {"name": "bowl", "price": 30, "cat": "kitchen"})
+    check(int(p3["id"]) == 3, "3. insert id=3", "")
+
+    var got = dbFindById("products", 2)
+    expectS(string(got["name"]), "milk", "4. findById 2 = milk")
+
+    bool upd = dbUpdate("products", 2, {"price": 15})
+    check(upd, "5. update id=2 ok", "")
+    var got2 = dbFindById("products", 2)
+    expectI(int(got2["price"]), 15, "6. updated price=15")
+
+    bool dl = dbDelete("products", 1)
+    check(dl, "7. delete id=1 ok", "")
+    var gone = dbFindById("products", 1)
+    check(gone == null, "8. deleted id=1 gone", "")
+
+    // 再插一个，自增应跳过已删除的 1，从 4 开始
+    var p4 = dbInsert("products", {"name": "nut", "price": 8, "cat": "fruit"})
+    expectI(int(p4["id"]), 4, "9. auto-id skips gap -> 4")
+    return 0
+end
+
+
+// ============================================================
+// 自测 3：Query 构建器（where/orderBy/limit/offset/count）
+// ============================================================
+
+func testQuery() as int
+    println("")
+    println("==== test: orm (query builder) ====")
+    // 准备数据：articles
+    dbInsert("articles", {"name": "go", "topic": "lang", "age": 10})
+    dbInsert("articles", {"name": "rust", "topic": "lang", "age": 6})
+    dbInsert("articles", {"name": "zig", "topic": "lang", "age": 1})
+    dbInsert("articles", {"name": "linux", "topic": "os", "age": 30})
+    dbInsert("articles", {"name": "bsd", "topic": "os", "age": 40})
+
+    // where("age>", 5)
+    Query q1 = Query("articles")
+    q1.where("age>", 5)
+    var r1 = q1.find()
+    expectI(r1.length, 4, "1. age>5 -> 4 rows")
+
+    // where + orderBy name asc
+    Query q2 = Query("articles")
+    q2.whereOp("topic", "==", "lang")
+    q2.orderBy("name")
+    var r2 = q2.find()
+    expectI(r2.length, 3, "2. topic=lang -> 3 rows")
+    expectS(string(r2[0]["name"]), "go", "2a. first sorted name = go")
+    expectS(string(r2[2]["name"]), "zig", "2b. last sorted name = zig")
+
+    // orderByDesc age
+    Query q3 = Query("articles")
+    q3.orderByDesc("age")
+    var r3 = q3.find()
+    expectS(string(r3[0]["name"]), "bsd", "3. desc age top = bsd(40)")
+
+    // limit
+    Query q4 = Query("articles")
+    q4.orderBy("age")
+    q4.limit(2)
+    var r4 = q4.find()
+    expectI(r4.length, 2, "4. limit 2 length")
+    expectS(string(r4[0]["name"]), "zig", "4a. youngest = zig")
+
+    // offset + limit（第 2、3 小的 age）
+    Query q5 = Query("articles")
+    q5.orderBy("age")
+    q5.offset(1)
+    q5.limit(2)
+    var r5 = q5.find()
+    expectI(r5.length, 2, "5. offset1+limit2 length")
+    expectS(string(r5[0]["name"]), "rust", "5a. 2nd youngest = rust(6)")
+
+    // count（不受 limit/offset 影响）
+    Query q6 = Query("articles")
+    q6.limit(1)
+    expectI(q6.count(), 5, "6. count ignores limit -> 5")
+
+    // first
+    Query q7 = Query("articles")
+    q7.whereOp("topic", "==", "os")
+    q7.orderByDesc("age")
+    var first = q7.first()
+    expectS(string(first["name"]), "bsd", "7. first os by age = bsd")
+
+    // 复合条件 AND
+    Query q8 = Query("articles")
+    q8.whereOp("topic", "==", "lang")
+    q8.where("age>", 5)
+    expectI(q8.count(), 2, "8. lang AND age>5 -> 2 (go,rust)")
+
+    // 字符串相等
+    Query q9 = Query("articles")
+    q9.whereOp("name", "=", "linux")
+    var r9 = q9.find()
+    expectI(r9.length, 1, "9. name=linux -> 1")
+    expectS(string(r9[0]["topic"]), "os", "9a. topic = os")
+    return 0
+end
+
+
+// ============================================================
+// 自测 4：模板引擎
+// ============================================================
+
+func testTemplate() as int
+    println("")
+    println("==== test: template ====")
+
+    // [1] 变量插值
+    var d1 = {"title": "hello", "n": 42}
+    string r1 = tplRenderText("T={title} N={n}", d1)
+    expectS(r1, "T=hello N=42", "1. scalar var")
+
+    // [2] HTML 转义
+    var d2 = {"x": "<b>&\"'</b>"}
+    string r2 = tplRenderText("{x}", d2)
+    expectS(r2, "&lt;b&gt;&amp;&quot;&#39;&lt;/b&gt;", "2. html escape")
+
+    // [3] if 真/假分支
+    var d3 = {"ok": true, "name": "ada"}
+    string r3 = tplRenderText("{if ok}yes:{name}{else}no{end}", d3)
+    expectS(r3, "yes:ada", "3. if true branch")
+    var d3b = {"ok": false}
+    string r3b = tplRenderText("{if ok}yes{else}no{end}", d3b)
+    expectS(r3b, "no", "3b. if false -> else")
+
+    // [4] elseif 链
+    var d4 = {"level": 2}
+    string r4 = tplRenderText("{if level>3}A{elseif level>1}B{else}C{end}", d4)
+    expectS(r4, "B", "4. elseif branch")
+
+    // [5] foreach 标量数组（带索引）
+    var d5 = {"xs": ["a", "b", "c"]}
+    string r5 = tplRenderText("[{foreach xs as i,v}{i}:{v};{end}]", d5)
+    expectS(r5, "[0:a;1:b;2:c;]", "5. foreach scalars")
+
+    // [6] foreach 对象数组（点号路径）
+    var d6 = {}
+    var us = []
+    us.push({"name": "ada"})
+    us.push({"name": "lin"})
+    d6["users"] = us
+    string r6 = tplRenderText("{foreach users as u}{u.name};{end}", d6)
+    expectS(r6, "ada;lin;", "6. foreach objects")
+
+    // [7] 嵌套 if + foreach
+    var d7 = {}
+    var it = []
+    it.push({"name": "x", "hot": true})
+    it.push({"name": "y", "hot": false})
+    it.push({"name": "z", "hot": true})
+    d7["items"] = it
+    string r7 = tplRenderText("{foreach items as it}{if hot}<b>{it.name}</b>{else}{it.name}{end};{end}", d7)
+    expectS(r7, "<b>x</b>;y;<b>z</b>;", "7. nested if in foreach")
+
+    // [8] 字面量大括号 {{ }}
+    string r8 = tplRenderText("literal {{ and }} done", {})
+    expectS(r8, "literal { and } done", "8. literal braces")
+
+    // [9] 比较：字符串相等
+    var d9 = {"who": "bob"}
+    string r9 = tplRenderText("{if who==\"bob\"}match{else}no{end}", d9)
+    expectS(r9, "match", "9. string equality in if")
+
+    // [10] 取反
+    var d10 = {"admin": false}
+    string r10 = tplRenderText("{if !admin}guest{else}admin{end}", d10)
+    expectS(r10, "guest", "10. negation")
+
+    // [11] 点号路径取嵌套
+    var d11 = {"u": {"profile": {"city": "Shanghai"}}}
+    string r11 = tplRenderText("{u.profile.city}", d11)
+    expectS(r11, "Shanghai", "11. dotted path")
+
+    // [12] 不存在的变量 -> 空串
+    string r12 = tplRenderText("[{missing}]", {})
+    expectS(r12, "[]", "12. missing var -> empty")
+    return 0
+end
+
+
+// ============================================================
+// 自测 5：中间件链（顺序执行 + 短路）
+// ============================================================
+
+func testMiddleware() as int
+    println("")
+    println("==== test: middleware ====")
+
+    // [1] 顺序执行：logging -> auth（游客）放行
+    mwReset()
+    mwUse("logging")
+    mwUse("auth")
+    var ctx1 = {}
+    ctx1["method"] = "GET"
+    ctx1["path"] = "/x"
+    ctx1["cookies"] = {}
+    ctx1["user"] = ""
+    ctx1["username"] = ""
+    ctx1["respStatus"] = 0
+    ctx1["respBody"] = ""
+    ctx1["respHeaders"] = {}
+    ctx1["stop"] = false
+    bool ok1 = mwRun(ctx1)
+    check(ok1, "1. logging+auth pass-through", "")
+    expectS(string(ctx1["log"]), "GET /x", "1a. logging wrote ctx.log")
+
+    // [2] authRequired 在未登录时短路
+    mwReset()
+    mwUse("logging")
+    mwUse("auth")
+    mwUse("authRequired")
+    var ctx2 = {}
+    ctx2["method"] = "GET"
+    ctx2["path"] = "/secret"
+    ctx2["cookies"] = {}
+    ctx2["user"] = ""
+    ctx2["username"] = ""
+    ctx2["respStatus"] = 0
+    ctx2["respBody"] = ""
+    ctx2["respHeaders"] = {}
+    ctx2["stop"] = false
+    bool ok2 = mwRun(ctx2)
+    check(not ok2, "2. authRequired short-circuits", "")
+    expectI(int(ctx2["respStatus"]), 302, "2a. status 302")
+    expectS(string(ctx2["respHeaders"]["Location"]), "/login", "2b. Location /login")
+
+    // [3] blocker 中间件短路
+    mwReset()
+    mwUse("blocker")
+    var ctx3 = {}
+    ctx3["method"] = "GET"
+    ctx3["path"] = "/any"
+    ctx3["query"] = "block=1"
+    ctx3["respStatus"] = 0
+    ctx3["respBody"] = ""
+    ctx3["respHeaders"] = {}
+    ctx3["stop"] = false
+    bool ok3 = mwRun(ctx3)
+    check(not ok3, "3. blocker short-circuits on block=1", "")
+    expectI(int(ctx3["respStatus"]), 403, "3a. status 403")
+
+    // [4] 未知中间件名 -> 放行
+    mwReset()
+    mwUse("does-not-exist")
+    var ctx4 = {}
+    ctx4["respStatus"] = 0
+    ctx4["stop"] = false
+    bool ok4 = mwRun(ctx4)
+    check(ok4, "4. unknown mw name passes", "")
+
+    // [5] blocker 不触发 -> 放行
+    mwReset()
+    mwUse("blocker")
+    var ctx5 = {}
+    ctx5["query"] = ""
+    ctx5["respStatus"] = 0
+    ctx5["respBody"] = ""
+    ctx5["respHeaders"] = {}
+    ctx5["stop"] = false
+    bool ok5 = mwRun(ctx5)
+    check(ok5, "5. blocker pass when no block=1", "")
+    return 0
+end
+
+
+// ============================================================
+// 自测 6：会话
+// ============================================================
+
+func testSession() as int
+    println("")
+    println("==== test: session ====")
+    string t1 = sessionCreate("100")
+    check(not string.isEmpty(t1), "1. create returns token", "")
+    expectS(sessionGet(t1), "100", "2. get returns userId")
+    check(string.len(t1) == 64, "3. token is 64 hex chars", "len=" + string(string.len(t1)))
+
+    string t2 = sessionCreate("200")
+    check(t1 != t2, "4. two tokens differ", "")
+    expectI(sessionCount(), 2, "5. count = 2")
+
+    check(sessionDestroy(t1), "6. destroy t1 ok", "")
+    expectS(sessionGet(t1), "", "7. destroyed token -> empty")
+    expectI(sessionCount(), 1, "8. count = 1 after destroy")
+
+    expectS(sessionGet(""), "", "9. empty token -> empty")
+    expectS(sessionGet("deadbeef"), "", "10. unknown token -> empty")
+    check(not sessionDestroy("nope"), "11. destroy unknown -> false", "")
+    return 0
+end
+
+
+// ============================================================
+// 自测 7：认证（register / login / hash / verify）
+// ============================================================
+
+func testAuth() as int
+    println("")
+    println("==== test: auth ====")
+
+    // 哈希稳定性
+    string h1 = authHashPassword("hunter2")
+    string h2 = authHashPassword("hunter2")
+    expectS(h1, h2, "1. hash stable")
+    string h3 = authHashPassword("hunter3")
+    check(h1 != h3, "2. different pwd different hash", "")
+
+    // 注册
+    var r1 = authRegister("alice", "pw-alice")
+    check(bool(r1["ok"]), "3. register alice ok", string(r1["error"]))
+    expectI(int(r1["id"]), 1, "3a. alice id=1")
+    var r2 = authRegister("bob", "pw-bob")
+    expectI(int(r2["id"]), 2, "3b. bob id=2")
+
+    // 重名拒绝
+    var r3 = authRegister("alice", "x")
+    check(not bool(r3["ok"]), "4. duplicate username rejected", "")
+
+    // 空用户名/密码拒绝
+    var r4 = authRegister("", "")
+    check(not bool(r4["ok"]), "5. empty creds rejected", "")
+
+    // 登录成功
+    var l1 = authLogin("alice", "pw-alice")
+    check(bool(l1["ok"]), "6. login alice ok", string(l1["error"]))
+    check(not string.isEmpty(string(l1["token"])), "6a. got token", "")
+    expectI(int(l1["id"]), 1, "6b. id=1")
+
+    // 登录错误密码
+    var l2 = authLogin("alice", "wrong")
+    check(not bool(l2["ok"]), "7. bad password rejected", "")
+
+    // 登录不存在用户
+    var l3 = authLogin("nobody", "x")
+    check(not bool(l3["ok"]), "8. no such user rejected", "")
+
+    // token 反查
+    string tok = string(l1["token"])
+    expectS(authVerify(tok), "1", "9. authVerify -> userId 1")
+
+    // findById
+    var u = authFindById(2)
+    expectS(string(u["username"]), "bob", "10. findById 2 = bob")
+
+    // 注销后 token 失效
+    check(authLogout(tok), "11. logout ok", "")
+    expectS(authVerify(tok), "", "12. token invalidated after logout")
+    return 0
+end
+
+
+// ============================================================
+// 自测 8：HTTP 端到端（启服务 + HttpClientRequest 自发自收）
+//   native-backed class 必须内联，所以每个 case 用 `if true then ... end`
+//   制造独立作用域，避免 req/resp 变量重名。
+// ============================================================
+
+func runHttpTest(int port) as int
+    string base = "http://127.0.0.1:" + port.toString()
+    println("")
+    println("==== test: http end-to-end (base " + base + ") ====")
+
+    // [1] GET /health -> 200 + ok:true
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/health")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 200, "1. GET /health status", "status=" + resp.status().toString())
+        expectContains(resp.body(), "\"ok\":true", "1a. health body ok")
+    end
+
+    // [2] GET / -> 200 + 模板渲染（含 webfw 标题）
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 200, "2. GET / status", "")
+        expectContains(resp.body(), "webfw", "2a. home has title")
+        expectContains(resp.body(), "/login", "2b. guest sees login link")
+    end
+
+    // [3] 注册 alice2 -> 302 跳 /login
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/register")
+        req.method("POST")
+        req.timeout(5000)
+        req.text("username=alice2&password=pwalice2", "application/x-www-form-urlencoded")
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 302, "3. POST /register -> 302", "status=" + resp.status().toString())
+        check(resp.header("Location") == "/login", "3a. Location /login", "Loc=" + resp.header("Location"))
+    end
+
+    // [4] 登录 alice2 -> 302 跳 /dashboard + Set-Cookie sid
+    string tokenCookie = ""
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/login")
+        req.method("POST")
+        req.timeout(5000)
+        req.text("username=alice2&password=pwalice2", "application/x-www-form-urlencoded")
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 302, "4. POST /login -> 302", "status=" + resp.status().toString())
+        check(resp.header("Location") == "/dashboard", "4a. Location /dashboard", "")
+        string sc = resp.header("Set-Cookie")
+        expectContains(sc, "sid=", "4b. Set-Cookie sid")
+        // 提取 token
+        int eq = string.indexOf(sc, "sid=")
+        string rest = string.slice(sc, eq + 4)
+        int semi = string.indexOf(rest, ";")
+        if semi >= 0 then
+            tokenCookie = "sid=" + string.slice(rest, 0, semi)
+        else
+            tokenCookie = "sid=" + rest
+        end
+    end
+
+    // [5] 带 cookie 访问 /dashboard -> 200 + 欢迎语
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/dashboard")
+        req.method("GET")
+        req.timeout(5000)
+        req.header("Cookie", tokenCookie)
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 200, "5. GET /dashboard (authed) status", "status=" + resp.status().toString())
+        expectContains(resp.body(), "alice2", "5a. dashboard greets alice2")
+        expectContains(resp.body(), "registered users", "5b. dashboard lists users")
+    end
+
+    // [6] 不带 cookie 访问 /dashboard -> 302 跳 /login
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/dashboard")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 302, "6. GET /dashboard (guest) -> 302", "status=" + resp.status().toString())
+        check(resp.header("Location") == "/login", "6a. redirect /login", "")
+    end
+
+    // [7] POST /users 创建 carol（带 role）
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/users")
+        req.method("POST")
+        req.timeout(5000)
+        req.text("username=carol&password=pwcarol&role=admin", "application/x-www-form-urlencoded")
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 201, "7. POST /users -> 201", "status=" + resp.status().toString())
+        expectContains(resp.body(), "\"username\":\"carol\"", "7a. body has carol")
+        expectContains(resp.body(), "\"role\":\"admin\"", "7b. body has role admin")
+    end
+
+    // [8] GET /users?role=admin -> 含 carol，不含 alice2
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/users?role=admin")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 200, "8. GET /users?role=admin status", "")
+        expectContains(resp.body(), "carol", "8a. has carol")
+        check(not string.contains(resp.body(), "alice2"), "8b. excludes alice2 (role user)", "body=" + resp.body())
+    end
+
+    // [9] GET /users/{id} -> 单用户 JSON
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/users/1")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 200, "9. GET /users/1 status", "")
+        expectContains(resp.body(), "\"id\":1", "9a. body id=1")
+    end
+
+    // [10] GET /articles?topic=lang&order=age -> 按 age 降序
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/articles?topic=lang&order=age")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 200, "10. GET /articles status", "")
+        expectContains(resp.body(), "\"count\":3", "10a. 3 lang articles")
+        // go(10) 应排在 rust(6) 前
+        int pgo = string.indexOf(resp.body(), "\"name\":\"go\"")
+        int prust = string.indexOf(resp.body(), "\"name\":\"rust\"")
+        check(pgo >= 0 and prust >= 0 and pgo < prust, "10b. go before rust (age desc)", "")
+    end
+
+    // [11] GET /static/x/y/z -> 通配捕获
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/static/x/y/z.txt")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 200, "11. GET /static/* status", "")
+        expectContains(resp.body(), "x/y/z.txt", "11a. wildcard body")
+        check(resp.header("X-Wild-Path") == "x/y/z.txt", "11b. X-Wild-Path header", "")
+    end
+
+    // [12] GET /tpl -> 模板 foreach 渲染
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/tpl")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 200, "12. GET /tpl status", "")
+        expectContains(resp.body(), "alpha", "12a. tpl has alpha")
+        expectContains(resp.body(), "gamma", "12b. tpl has gamma")
+    end
+
+    // [13] GET /nope -> 404
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/nope")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 404, "13. GET /nope -> 404", "status=" + resp.status().toString())
+        expectContains(resp.body(), "not found", "13a. 404 body")
+    end
+
+    // [14] 错误处理器响应带 X-Error-Path
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/nope")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        check(resp.header("X-Error-Path") == "/nope", "14. X-Error-Path=/nope", "got=" + resp.header("X-Error-Path"))
+    end
+
+    // [15] GET /logout -> 302 + 清除 cookie
+    if true then
+        HttpClientRequest req = HttpClientRequest(base + "/logout")
+        req.method("GET")
+        req.timeout(5000)
+        req.header("Cookie", tokenCookie)
+        HttpClientResponse resp = req.execute()
+        check(resp.status() == 302, "15. GET /logout -> 302", "status=" + resp.status().toString())
+        expectContains(resp.header("Set-Cookie"), "sid=", "15a. clears sid cookie")
+    end
+    return 0
+end
+
+
+// ============================================================
+// 主入口
+// ============================================================
+
+func printUsage()
+    println("webfw - MVC web framework (router / orm / template / middleware / session / auth)")
+    println()
+    println("Usage:")
+    println("  webfw test              run all module self-tests + http e2e")
+    println("  webfw serve [port]      start sample app (default port " + DEFAULT_PORT.toString() + ")")
+    println("  webfw bench [port]      fire read-only requests at a running server")
+end
+
+
+func seedSampleData()
+    // 注册一个内置管理员 + 一些 articles 供 serve/演示
+    if authFindByName("admin") == null then
+        authRegister("admin", "admin")
+        dbUpdate("users", 1, {"role": "admin"})
+    end
+    var arts = dbLoad("articles")
+    if arts.length == 0 then
+        dbInsert("articles", {"name": "go", "topic": "lang", "age": 10})
+        dbInsert("articles", {"name": "rust", "topic": "lang", "age": 6})
+        dbInsert("articles", {"name": "linux", "topic": "os", "age": 30})
+    end
+end
+
+
+func cmdServe(int port) as int
+    frameworkRegisterRoutes()
+    seedSampleData()
+    point server = buildServer(port)
+    if server == null then
+        println("FATAL: http.server.create returned null")
+        return 1
+    end
+    if not http.server.start(server) then
+        println("FATAL: http.server.start failed (port " + port.toString() + " busy?)")
+        http.server.destroy(server)
+        return 1
+    end
+    int bound = http.server.port(server)
+    println("webfw listening on http://127.0.0.1:" + bound.toString())
+    println("routes:")
+    print(routerDump())
+    println("data dir: " + gDataDir)
+    println("demo login: admin / admin")
+    println("press Ctrl+C to stop")
+    while true do
+        time.sleep(5000)
+        println("[stats] requests=" + http.server.requestCount(server).toString() +
+                " connections=" + http.server.connectionCount(server).toString())
+    end
+    return 0
+end
+
+
+func cmdBench(int port) as int
+    string base = "http://127.0.0.1:" + port.toString()
+    int N = 200
+    int ok = 0
+    int fail = 0
+    int i = 0
+    float t0 = time.timer()
+    while i < N do
+        HttpClientRequest req = HttpClientRequest(base + "/health")
+        req.method("GET")
+        req.timeout(5000)
+        HttpClientResponse resp = req.execute()
+        if resp.status() == 200 then
+            ok += 1
+        else
+            fail += 1
+        end
+        i += 1
+    end
+    float dt = time.timer() - t0
+    println("bench: " + string(ok) + " ok / " + string(fail) + " fail in " + string(int(dt)) + "ms")
+    if dt > 0.0 then
+        println("rps: " + string(int(float(N) * 1000.0 / dt)))
+    end
+    return 0
+end
+
+
+func cmdTest(string scriptPath) as int
+    println("============================================================")
+    println(" webfw self-test")
+    println("============================================================")
+
+    // 准备独立数据目录
+    gDataDir = prepareDataDir(scriptPath)
+    println("data dir: " + gDataDir)
+
+    // 单元测试（纯数据模块，不依赖 HTTP）
+    testRouter()
+    testOrm()
+    testQuery()
+    testTemplate()
+    testMiddleware()
+    testSession()
+    testAuth()
+
+    // 端到端 HTTP 测试：注册路由+中间件，启服务，自发自收
+    frameworkRegisterRoutes()
+    seedSampleData()
+    point server = buildServer(0)
+    if server == null then
+        println("FATAL: http.server.create returned null")
+        return 1
+    end
+    if not http.server.start(server) then
+        println("FATAL: http.server.start failed")
+        http.server.destroy(server)
+        return 1
+    end
+    int boundPort = http.server.port(server)
+    println("")
+    println("server started on 127.0.0.1:" + boundPort.toString() + " for e2e test")
+    time.sleep(200)
+    runHttpTest(boundPort)
+    if not http.server.drain(server, 3000) then
+        println("WARN: drain timed out, forcing stop")
+    end
+    http.server.stop(server)
+    http.server.destroy(server)
+    println("server stopped & destroyed")
+
+    println("")
+    println("------------------------------------------------------------")
+    println(" total: " + string(gPassed + gFailed) +
+            "  passed: " + string(gPassed) +
+            "  failed: " + string(gFailed))
+    println("------------------------------------------------------------")
+    if gFailed > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+func main(...) as int
+    println("webfw - MVC web framework")
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string scriptPath = string(arg[0])
+    string cmd = string(arg[1])
+
+    // 默认数据目录（serve/bench 用，test 自带独立目录）
+    gDataDir = path.join(path.dir(scriptPath), "webfw_data")
+    if not dir.exists(gDataDir) then
+        dir.create(gDataDir)
+    end
+
+    if cmd == "test" then
+        return cmdTest(scriptPath)
+    elseif cmd == "serve" then
+        int port = DEFAULT_PORT
+        if arg.length >= 3 then
+            int p = int(string(arg[2]))
+            if p > 0 then
+                port = p
+            end
+        end
+        return cmdServe(port)
+    elseif cmd == "bench" then
+        int port = DEFAULT_PORT
+        if arg.length >= 3 then
+            int p = int(string(arg[2]))
+            if p > 0 then
+                port = p
+            end
+        end
+        return cmdBench(port)
+    elseif cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+    println("Error: unknown command '" + cmd + "'")
+    printUsage()
+    return 1
+end

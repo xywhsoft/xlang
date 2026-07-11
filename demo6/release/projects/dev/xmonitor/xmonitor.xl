@@ -1,0 +1,1954 @@
+// xmonitor - 监控仪表盘（时序存储 + 聚合查询 + 标签过滤 + 告警引擎 + HTTP API + ASCII 图表）
+//
+// 用法：
+//   xmonitor serve <port>        启动 HTTP API + 后台数据采集（默认端口 18400）
+//   xmonitor collect [duration]  采集 duration 秒（默认 30）后打印仪表盘报告，不开 HTTP
+//   xmonitor test                自检：在确定性种子数据上验证聚合/标签/告警状态机/图表
+//   xmonitor help                显示本帮助
+//
+// HTTP API：
+//   GET  /                       HTML 仪表盘页面（自动轮询 /api/dashboard 渲染）
+//   GET  /api/metrics            列出全部 metric（含最近窗口的 latest/min/max/avg/count）
+//   GET  /api/query?metric=cpu&agg=avg&window=300&labels=host=host1
+//                                按时间窗口与标签过滤聚合查询
+//                                agg ∈ {avg,max,min,sum,count,p50,p90,p99}
+//   GET  /api/alerts             列出告警规则与当前状态机状态
+//   GET  /api/dashboard          汇总仪表盘 JSON（各 metric sparkline + 告警概览）
+//   GET  /api/health             健康检查（metric 数 / 数据点总数）
+//   POST /api/ingest             写入一个数据点 {metric,value,labels}
+//
+// 设计要点（结合 dev/README.md 与 dev/BUGS.md）：
+//   * 时序存储：metric(name) → 时间戳+值序列，用全局并行数组 array<int64>(时间戳) +
+//     array<float>(值) + array<string>(打包标签)。采用 flat 环形缓冲：每个 metric
+//     在扁平数组里占 CAP_PER 个槽位，写头 gHead + 有效数 gCnt 实现定长环形覆盖。
+//     运行期只做定长索引赋值（不做 append），避免并发下数组重分配竞争。
+//   * 告警状态机：OK → PENDING → FIRING → RESOLVED。规则存全局并行数组（名称/metric/
+//     类型/算子/阈值/持续秒/标签/状态/计时）。三类规则：阈值 / 变化率 / 缺失。
+//   * 并发：采集线程写、HTTP worker 读，统一用 gStoreLock 串行化。提供 NL（no-lock）
+//     内部函数供已持锁路径调用，杜绝非重入 mutex 的嵌套死锁。
+//   * native-backed class（HttpRequest/HttpResponse）不可跨函数传参，对象化操作全部
+//     内联到 route handler；handler 只调用返回字符串的纯数据 helper。
+//   * 时间戳统一 int64（Unix 秒），由 time.toUnix(time.now()) 经 int64() 转换。
+//   * ASCII 图表：sparkline（值→8 级块字符，块字符存 array<string> 规避 UTF-8 字节切片）、
+//     横向 bar、趋势箭头、二维填充直方图。
+//   * self-test 完全确定性：用 recordPointAt 显式时间戳 + evaluateAllRulesAt 显式 now，
+//     无线程、无 sleep。
+//   * 用本地 fabsF 替代 math.abs：本机构建中反复引用 math.abs 会触发后端 fnvalue 重复
+//     定义（redefinition of xl6_fnvalue___xl_std_math_abs_invoke），故统一改用本地函数。
+
+// ============================================================
+// 常量
+// ============================================================
+
+const int DEFAULT_PORT = 18400
+const int MAX_METRICS = 32            // 最多 metric 数
+const int CAP_PER = 2048              // 每个 metric 环形缓冲容量（数据点数）
+const int DEFAULT_WINDOW = 300        // 默认查询窗口（秒）
+const int COLLECT_INTERVAL_MS = 1000  // 采集间隔
+const int WORKERS = 4                 // HTTP server worker 数
+
+// 告警类型
+const int RT_THRESH = 1               // 阈值告警
+const int RT_RATE = 2                 // 变化率告警
+const int RT_MISSING = 3              // 缺失告警
+
+// 算子
+const int OP_GT = 1
+const int OP_GE = 2
+const int OP_LT = 3
+const int OP_LE = 4
+
+// 告警状态机
+const int ST_OK = 0
+const int ST_PENDING = 1
+const int ST_FIRING = 2
+const int ST_RESOLVED = 3
+
+
+// ============================================================
+// 全局状态
+// ============================================================
+
+// flat 环形缓冲：索引 = metricId * CAP_PER + slot。预分配 MAX_METRICS*CAP_PER 槽。
+array<int64>  gTs = array[]
+array<float>  gVal = array[]
+array<string> gLabel = array[]
+
+// metric 注册表（并行数组，按 metricId 索引）
+array<string> gMetricName = array[]
+array<int>    gHead = array[]
+array<int>    gCnt = array[]
+int gNumMetrics = 0
+
+// 告警规则（并行数组，按 ruleId 索引）
+array<string> gRuleName = array[]
+array<string> gRuleMetric = array[]
+array<int>    gRuleType = array[]
+array<int>    gRuleOp = array[]
+array<float>  gRuleThresh = array[]
+array<int>    gRuleDuration = array[]
+array<string> gRuleLabels = array[]
+array<int>    gRuleState = array[]
+array<int64>  gRuleBadSince = array[]
+array<int64>  gRuleStateSince = array[]
+array<int>    gRuleFireCount = array[]
+array<int64>  gRuleLastFired = array[]
+int gNumRules = 0
+
+// sparkline 块字符（array<string> 单元素隔离，规避 UTF-8 字节切片）
+array<string> gBlocks = array[]
+
+mutex gStoreLock            // 串行化 store / rule 临界区
+int   gCollectStop = 0      // 采集线程停止信号
+
+// 模拟指标随机游走状态（每 host 一组）
+float gCpu1 = 35.0
+float gCpu2 = 42.0
+float gMem1 = 50.0
+float gMem2 = 58.0
+float gReq1 = 120.0
+float gReq2 = 135.0
+float gLat1 = 45.0
+float gLat2 = 52.0
+
+// self-test 计数
+int gPassed = 0
+int gFailed = 0
+
+
+// ============================================================
+// 存储 init / reset
+// ============================================================
+
+func initStore()
+    // 首次分配 flat 缓冲（定长，运行期只索引赋值）
+    if gTs.length == 0 then
+        int total = MAX_METRICS * CAP_PER
+        int i = 0
+        while i < total do
+            gTs.append(int64(0))
+            gVal.append(0.0)
+            gLabel.append("")
+            i += 1
+        end
+    end
+
+    // 块字符
+    if gBlocks.length == 0 then
+        gBlocks.append("▁")
+        gBlocks.append("▂")
+        gBlocks.append("▃")
+        gBlocks.append("▄")
+        gBlocks.append("▅")
+        gBlocks.append("▆")
+        gBlocks.append("▇")
+        gBlocks.append("█")
+    end
+
+    gNumMetrics = 0
+    gNumRules = 0
+end
+
+// 清空所有 metric 与 rule（flat 缓冲保留，只重置计数）。
+func resetStore()
+    gStoreLock.lock()
+    gNumMetrics = 0
+    gMetricName = array[]
+    gHead = array[]
+    gCnt = array[]
+    gNumRules = 0
+    gRuleName = array[]
+    gRuleMetric = array[]
+    gRuleType = array[]
+    gRuleOp = array[]
+    gRuleThresh = array[]
+    gRuleDuration = array[]
+    gRuleLabels = array[]
+    gRuleState = array[]
+    gRuleBadSince = array[]
+    gRuleStateSince = array[]
+    gRuleFireCount = array[]
+    gRuleLastFired = array[]
+    gStoreLock.unlock()
+end
+
+
+// ============================================================
+// 通用工具
+// ============================================================
+
+// 整数浮点友好格式化：整数落点显示为整数，否则 3 位小数。
+func fmtNum(float v) as string
+    if v == math.floor(v) and fabsF(v) < 1.0e15 then
+        return string(int(v))
+    end
+    return string.formatFloat(v, ".3")
+end
+
+func clampF(float v, float lo, float hi) as float
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
+end
+
+// 浮点绝对值（本地实现，见文件头说明）。
+func fabsF(float v) as float
+    if v < 0.0 then
+        return -v
+    end
+    return v
+end
+
+func joinStrings(array<string> parts, string sep) as string
+    string out = ""
+    int i = 0
+    while i < parts.length do
+        if i > 0 then
+            out = out + sep
+        end
+        out = out + parts[i]
+        i += 1
+    end
+    return out
+end
+
+func opSymbol(int op) as string
+    if op == OP_GT then return ">" end
+    if op == OP_GE then return ">=" end
+    if op == OP_LT then return "<" end
+    return "<="
+end
+
+func typeName(int tp) as string
+    if tp == RT_THRESH then return "threshold" end
+    if tp == RT_RATE then return "rate" end
+    return "missing"
+end
+
+func stateName(int st) as string
+    if st == ST_OK then return "OK" end
+    if st == ST_PENDING then return "PENDING" end
+    if st == ST_FIRING then return "FIRING" end
+    return "RESOLVED"
+end
+
+func nowSec() as int64
+    return int64(time.toUnix(time.now()))
+end
+
+
+// ============================================================
+// JSON 构造辅助
+// ============================================================
+
+func jEsc(string s) as string
+    string r = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b == 34 then
+            r = r + "\\\""
+        elseif b == 92 then
+            r = r + "\\\\"
+        elseif b == 10 then
+            r = r + "\\n"
+        elseif b == 13 then
+            r = r + "\\r"
+        elseif b == 9 then
+            r = r + "\\t"
+        elseif b < 32 then
+            r = r + " "
+        else
+            r = r + string.slice(s, i, 1)
+        end
+        i += 1
+    end
+    return r
+end
+
+func jStr(string s) as string
+    return "\"" + jEsc(s) + "\""
+end
+
+// JSON 数值：整数落点不带小数点，否则 3 位小数。
+func jF(float v) as string
+    if v == math.floor(v) and fabsF(v) < 1.0e15 then
+        return string(int(v))
+    end
+    return string.formatFloat(v, ".3")
+end
+
+func jI64(int64 v) as string
+    return string(v)
+end
+
+
+// ============================================================
+// 标签系统
+// ============================================================
+
+// 打包 0 个标签。
+func labelPack0() as string
+    return ""
+end
+
+// 打包 1 个标签 k=v。
+func labelPack1(string k1, string v1) as string
+    return k1 + "=" + v1
+end
+
+// 打包 2 个标签。
+func labelPack2(string k1, string v1, string k2, string v2) as string
+    return k1 + "=" + v1 + ";" + k2 + "=" + v2
+end
+
+// packed 串里是否含有某 segment（精确 "k=v"）。
+func segmentsContain(string packed, string term) as bool
+    if string.isEmpty(packed) or string.isEmpty(term) then
+        return false
+    end
+    array parts = string.split(packed, ";")
+    for p in parts
+        if string(p) == term then
+            return true
+        end
+    end
+    return false
+end
+
+// 过滤器匹配：filter 形如 "host=host1" 或多条件逗号分隔 "host=host1,region=us-east"。
+// 空 filter 匹配全部；要求所有条件都在 packed 中出现。
+func labelMatch(string packed, string filter) as bool
+    if string.isEmpty(filter) then
+        return true
+    end
+    array terms = string.split(filter, ",")
+    for t in terms
+        string tt = string.trim(string(t))
+        if not string.isEmpty(tt) then
+            if not segmentsContain(packed, tt) then
+                return false
+            end
+        end
+    end
+    return true
+end
+
+// 从 packed 标签里提取所有键值，返回 "k=v, k=v" 展示串。
+func labelDisplay(string packed) as string
+    if string.isEmpty(packed) then
+        return ""
+    end
+    array parts = string.split(packed, ";")
+    string out = ""
+    int i = 0
+    while i < parts.length do
+        if i > 0 then
+            out = out + ", "
+        end
+        out = out + string(parts[i])
+        i += 1
+    end
+    return out
+end
+
+
+// ============================================================
+// metric 注册 + flat 索引
+// ============================================================
+
+func flatIdx(int metricId, int slot) as int
+    return metricId * CAP_PER + slot
+end
+
+// 调用者负责加锁。
+func metricIdOfNL(string name) as int
+    int i = 0
+    while i < gNumMetrics do
+        if gMetricName[i] == name then
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+// 调用者负责加锁。满了返回 -1。
+func getOrCreateMetricNL(string name) as int
+    int id = metricIdOfNL(name)
+    if id >= 0 then
+        return id
+    end
+    if gNumMetrics >= MAX_METRICS then
+        return -1
+    end
+    id = gNumMetrics
+    gMetricName.append(name)
+    gHead.append(0)
+    gCnt.append(0)
+    gNumMetrics += 1
+    return id
+end
+
+
+// ============================================================
+// 数据写入
+// ============================================================
+
+// 显式时间戳写入（self-test 用，确定性）。
+func recordPointAt(string name, float value, string labels, int64 ts)
+    gStoreLock.lock()
+    int id = getOrCreateMetricNL(name)
+    if id < 0 then
+        gStoreLock.unlock()
+        return
+    end
+    int pos = flatIdx(id, gHead[id])
+    gTs[pos] = ts
+    gVal[pos] = value
+    gLabel[pos] = labels
+    gHead[id] = gHead[id] + 1
+    if gHead[id] >= CAP_PER then
+        gHead[id] = 0
+    end
+    if gCnt[id] < CAP_PER then
+        gCnt[id] = gCnt[id] + 1
+    end
+    gStoreLock.unlock()
+end
+
+// 当前时间写入。
+func recordPoint(string name, float value, string labels)
+    recordPointAt(name, value, labels, nowSec())
+end
+
+
+// ============================================================
+// 查询：窗口收集 / 最新点 / 变化率
+// ============================================================
+
+// 调用者负责加锁。把 metric 在 [now-window, now] 内、且标签匹配的点
+// append 到 outVals / outTs（并行数组），返回匹配数。
+func collectWindowNL(int id, int64 nowTs, int windowSec, string labelFilter,
+                     array<float> outVals, array<int64> outTs) as int
+    if id < 0 or id >= gNumMetrics then
+        return 0
+    end
+    int cnt = gCnt[id]
+    if cnt == 0 then
+        return 0
+    end
+    int start = gHead[id] - cnt
+    while start < 0 do
+        start = start + CAP_PER
+    end
+    int64 cutoff = nowTs - int64(windowSec)
+    int matched = 0
+    int i = 0
+    while i < cnt do
+        int pos = flatIdx(id, (start + i) % CAP_PER)
+        int64 ts = gTs[pos]
+        if ts >= cutoff then
+            if labelMatch(gLabel[pos], labelFilter) then
+                outVals.append(gVal[pos])
+                outTs.append(ts)
+                matched += 1
+            end
+        end
+        i += 1
+    end
+    return matched
+end
+
+// 加锁版窗口收集。
+func collectWindow(int id, int64 nowTs, int windowSec, string labelFilter,
+                   array<float> outVals, array<int64> outTs) as int
+    gStoreLock.lock()
+    int m = collectWindowNL(id, nowTs, windowSec, labelFilter, outVals, outTs)
+    gStoreLock.unlock()
+    return m
+end
+
+// 调用者负责加锁。返回时间序里最后一个匹配点（found, value, ts）。
+func latestPointNL(int id, string labelFilter) as (bool, float, int64)
+    bool found = false
+    float v = 0.0
+    int64 ts = int64(0)
+    if id < 0 or id >= gNumMetrics then
+        return found, v, ts
+    end
+    int cnt = gCnt[id]
+    if cnt == 0 then
+        return found, v, ts
+    end
+    int start = gHead[id] - cnt
+    while start < 0 do
+        start = start + CAP_PER
+    end
+    int i = 0
+    while i < cnt do
+        int pos = flatIdx(id, (start + i) % CAP_PER)
+        if labelMatch(gLabel[pos], labelFilter) then
+            found = true
+            v = gVal[pos]
+            ts = gTs[pos]
+        end
+        i += 1
+    end
+    return found, v, ts
+end
+
+// 调用者负责加锁。metric 的最新时间戳（任意标签）。
+func lastTsNL(int id) as int64
+    int64 ts = int64(0)
+    if id < 0 or id >= gNumMetrics then
+        return ts
+    end
+    int cnt = gCnt[id]
+    if cnt == 0 then
+        return ts
+    end
+    int start = gHead[id] - cnt
+    while start < 0 do
+        start = start + CAP_PER
+    end
+    int i = 0
+    while i < cnt do
+        int pos = flatIdx(id, (start + i) % CAP_PER)
+        if gTs[pos] > ts then
+            ts = gTs[pos]
+        end
+        i += 1
+    end
+    return ts
+end
+
+// 调用者负责加锁。最近 win 秒的变化率（%/分钟）。
+// rate = (末值-首值)/|首值| * 100 / 跨度分钟。
+func computeRateNL(int id, string labelFilter, int64 nowTs, int win) as float
+    array<float> vals
+    array<int64> ts
+    int m = collectWindowNL(id, nowTs, win, labelFilter, vals, ts)
+    if m < 2 then
+        return 0.0
+    end
+    float first = vals[0]
+    float lastv = vals[m - 1]
+    int64 span = ts[m - 1] - ts[0]
+    if span <= 0 then
+        return 0.0
+    end
+    if first == 0.0 then
+        return 0.0
+    end
+    float pct = (lastv - first) / fabsF(first) * 100.0
+    float minutes = float(int(span)) / 60.0
+    if minutes <= 0.0 then
+        return 0.0
+    end
+    return pct / minutes
+end
+
+
+// ============================================================
+// 聚合：avg/max/min/sum/count/p50/p90/p99
+// ============================================================
+
+// 选择排序（升序，原地）。
+func sortAscInPlace(array<float> a)
+    int n = a.length
+    int i = 0
+    while i < n do
+        int minIdx = i
+        int j = i + 1
+        while j < n do
+            if a[j] < a[minIdx] then
+                minIdx = j
+            end
+            j += 1
+        end
+        if minIdx != i then
+            float tmp = a[i]
+            a[i] = a[minIdx]
+            a[minIdx] = tmp
+        end
+        i += 1
+    end
+end
+
+// 拷贝并排序。
+func copySortAsc(array<float> src) as array<float>
+    array<float> out
+    int i = 0
+    while i < src.length do
+        out.append(src[i])
+        i += 1
+    end
+    sortAscInPlace(out)
+    return out
+end
+
+// 已排序数组的 p 分位（nearest-rank：rank=ceil(p/100*n)，idx=rank-1，p∈[0,100]）。
+func pctValue(array<float> sorted, int p) as float
+    int n = sorted.length
+    if n == 0 then
+        return 0.0
+    end
+    if n == 1 then
+        return sorted[0]
+    end
+    // 整数 ceil(p*n/100) = (p*n + 99) / 100
+    int rank = (p * n + 99) / 100
+    int idx = rank - 1
+    if idx < 0 then
+        idx = 0
+    end
+    if idx >= n then
+        idx = n - 1
+    end
+    return sorted[idx]
+end
+
+// 在 vals 上计算聚合。count 返回 float(n)。
+func aggregate(array<float> vals, string agg) as float
+    int n = vals.length
+    if n == 0 then
+        return 0.0
+    end
+    string a = string.lower(agg)
+    if a == "count" then
+        return float(n)
+    end
+    // 单遍 sum/min/max
+    float sum = 0.0
+    float mn = vals[0]
+    float mx = vals[0]
+    int i = 0
+    while i < n do
+        float x = vals[i]
+        sum += x
+        if x < mn then
+            mn = x
+        end
+        if x > mx then
+            mx = x
+        end
+        i += 1
+    end
+    if a == "sum" then
+        return sum
+    end
+    if a == "avg" then
+        return sum / float(n)
+    end
+    if a == "min" then
+        return mn
+    end
+    if a == "max" then
+        return mx
+    end
+    // 分位数
+    if a == "p50" or a == "p90" or a == "p99" then
+        array<float> sorted = copySortAsc(vals)
+        if a == "p50" then
+            return pctValue(sorted, 50)
+        end
+        if a == "p90" then
+            return pctValue(sorted, 90)
+        end
+        return pctValue(sorted, 99)
+    end
+    // 未知 agg 默认 avg
+    return sum / float(n)
+end
+
+// 聚合结果展示：count 显示整数，其它按 fmtNum。
+func fmtAgg(float v, string agg) as string
+    if string.lower(agg) == "count" then
+        return string(int(v))
+    end
+    return fmtNum(v)
+end
+
+
+// ============================================================
+// 算子比较
+// ============================================================
+
+func cmpOp(float v, int op, float th) as bool
+    if op == OP_GT then
+        return v > th
+    end
+    if op == OP_GE then
+        return v >= th
+    end
+    if op == OP_LT then
+        return v < th
+    end
+    return v <= th
+end
+
+
+// ============================================================
+// 告警规则引擎 + 状态机
+// ============================================================
+
+func addRule(string name, string metric, int tp, int op, float th, int dur, string labels) as int
+    gStoreLock.lock()
+    int rid = gNumRules
+    gRuleName.append(name)
+    gRuleMetric.append(metric)
+    gRuleType.append(tp)
+    gRuleOp.append(op)
+    gRuleThresh.append(th)
+    gRuleDuration.append(dur)
+    gRuleLabels.append(labels)
+    gRuleState.append(ST_OK)
+    gRuleBadSince.append(int64(0))
+    gRuleStateSince.append(int64(0))
+    gRuleFireCount.append(0)
+    gRuleLastFired.append(int64(0))
+    gNumRules += 1
+    gStoreLock.unlock()
+    return rid
+end
+
+// 调用者负责加锁。规则当前的「坏」判定。
+func evalBadNL(int rid, int64 now) as bool
+    int tp = gRuleType[rid]
+    string metric = gRuleMetric[rid]
+    string lf = gRuleLabels[rid]
+    int id = metricIdOfNL(metric)
+    if tp == RT_MISSING then
+        if id < 0 then
+            return true
+        end
+        int64 lt = lastTsNL(id)
+        if lt == int64(0) then
+            return true
+        end
+        return (now - lt) > int64(int(gRuleThresh[rid]))
+    end
+    if id < 0 then
+        return false
+    end
+    if tp == RT_THRESH then
+        auto f, v, ts = latestPointNL(id, lf)
+        if not f then
+            return false
+        end
+        return cmpOp(v, gRuleOp[rid], gRuleThresh[rid])
+    end
+    if tp == RT_RATE then
+        float r = computeRateNL(id, lf, now, 60)
+        return cmpOp(r, gRuleOp[rid], gRuleThresh[rid])
+    end
+    return false
+end
+
+// 调用者负责加锁。推进一条规则的状态机。
+func evaluateRuleNL(int rid, int64 now)
+    bool bad = evalBadNL(rid, now)
+    int st = gRuleState[rid]
+    if bad then
+        if st == ST_OK or st == ST_RESOLVED then
+            gRuleState[rid] = ST_PENDING
+            gRuleBadSince[rid] = now
+            gRuleStateSince[rid] = now
+        elseif st == ST_PENDING then
+            int64 since = gRuleBadSince[rid]
+            if (now - since) >= int64(gRuleDuration[rid]) then
+                gRuleState[rid] = ST_FIRING
+                gRuleStateSince[rid] = now
+                gRuleFireCount[rid] = gRuleFireCount[rid] + 1
+                gRuleLastFired[rid] = now
+            end
+        end
+    else
+        if st == ST_PENDING then
+            gRuleState[rid] = ST_OK
+            gRuleStateSince[rid] = now
+        elseif st == ST_FIRING then
+            gRuleState[rid] = ST_RESOLVED
+            gRuleStateSince[rid] = now
+        end
+    end
+end
+
+// 评估全部规则（加锁一次）。
+func evaluateAllRulesAt(int64 now)
+    gStoreLock.lock()
+    int i = 0
+    while i < gNumRules do
+        evaluateRuleNL(i, now)
+        i += 1
+    end
+    gStoreLock.unlock()
+end
+
+func evaluateAllRules()
+    evaluateAllRulesAt(nowSec())
+end
+
+
+// ============================================================
+// ASCII 图表
+// ============================================================
+
+// sparkline：把 vals 压缩到 width 个块字符。空数据返回提示串。
+func sparkline(array<float> vals, int width) as string
+    int n = vals.length
+    if n == 0 then
+        return "(no data)"
+    end
+    int w = width
+    if w < 1 then
+        w = 1
+    end
+    float lo = vals[0]
+    float hi = vals[0]
+    int i = 1
+    while i < n do
+        if vals[i] < lo then
+            lo = vals[i]
+        end
+        if vals[i] > hi then
+            hi = vals[i]
+        end
+        i += 1
+    end
+    float range = hi - lo
+    if range == 0.0 then
+        range = 1.0
+    end
+    string out = ""
+    int idx = 0
+    while idx < w do
+        int s0 = int(float(idx) * float(n) / float(w))
+        int s1 = int(float(idx + 1) * float(n) / float(w))
+        if s1 <= s0 then
+            s1 = s0 + 1
+        end
+        if s1 > n then
+            s1 = n
+        end
+        float sum = 0.0
+        int c = 0
+        int j = s0
+        while j < s1 do
+            sum += vals[j]
+            c += 1
+            j += 1
+        end
+        float avg = c > 0 ? sum / float(c) : lo
+        int lvl = int((avg - lo) / range * 7.0)
+        if lvl < 0 then
+            lvl = 0
+        end
+        if lvl > 7 then
+            lvl = 7
+        end
+        out = out + gBlocks[lvl]
+        idx += 1
+    end
+    return out
+end
+
+// 横向 bar：name [████·····] value
+func barH(string name, float value, float maxval, int width) as string
+    float frac = 0.0
+    if maxval > 0.0 then
+        frac = value / maxval
+    end
+    frac = clampF(frac, 0.0, 1.0)
+    int filled = int(frac * float(width))
+    string bar = ""
+    int i = 0
+    while i < width do
+        if i < filled then
+            bar = bar + "█"
+        else
+            bar = bar + "·"
+        end
+        i += 1
+    end
+    return string.padRight(name, 12) + "[" + bar + "] " + fmtNum(value)
+end
+
+// 趋势箭头：比较前半与后半均值。
+func trendArrow(array<float> vals) as string
+    int n = vals.length
+    if n < 2 then
+        return "→"
+    end
+    int half = n / 2
+    if half < 1 then
+        half = 1
+    end
+    float firstSum = 0.0
+    int i = 0
+    while i < half do
+        firstSum += vals[i]
+        i += 1
+    end
+    float firstAvg = firstSum / float(half)
+    float lastSum = 0.0
+    int lc = 0
+    int k = half
+    while k < n do
+        lastSum += vals[k]
+        lc += 1
+        k += 1
+    end
+    if lc == 0 then
+        return "→"
+    end
+    float lastAvg = lastSum / float(lc)
+    float diff = lastAvg - firstAvg
+    float scale = fabsF(firstAvg)
+    if scale < 1.0 then
+        scale = 1.0
+    end
+    float rel = diff / scale
+    if rel > 0.05 then
+        return "↗"
+    end
+    if rel < -0.05 then
+        return "↘"
+    end
+    return "→"
+end
+
+// 二维填充直方图：vals 分桶到 width 列，渲染 height 行（顶到底）。
+func sparkChart(array<float> vals, int height, int width) as array<string>
+    array<string> rows
+    int n = vals.length
+    if n == 0 then
+        int r = 0
+        while r < height do
+            rows.append(string.padRight("", width))
+            r += 1
+        end
+        return rows
+    end
+    // 分桶取每列 max
+    array<float> cols
+    int c = 0
+    while c < width do
+        int s0 = int(float(c) * float(n) / float(width))
+        int s1 = int(float(c + 1) * float(n) / float(width))
+        if s1 <= s0 then
+            s1 = s0 + 1
+        end
+        if s1 > n then
+            s1 = n
+        end
+        float mx = vals[s0]
+        int j = s0 + 1
+        while j < s1 do
+            if vals[j] > mx then
+                mx = vals[j]
+            end
+            j += 1
+        end
+        cols.append(mx)
+        c += 1
+    end
+    float lo = cols[0]
+    float hi = cols[0]
+    c = 1
+    while c < width do
+        if cols[c] < lo then
+            lo = cols[c]
+        end
+        if cols[c] > hi then
+            hi = cols[c]
+        end
+        c += 1
+    end
+    float range = hi - lo
+    if range == 0.0 then
+        range = 1.0
+    end
+    int row = 0
+    while row < height do
+        float level = hi - (float(row) + 0.5) * range / float(height)
+        string line = ""
+        int cc = 0
+        while cc < width do
+            if cols[cc] >= level then
+                line = line + "█"
+            else
+                line = line + " "
+            end
+            cc += 1
+        end
+        rows.append(line)
+        row += 1
+    end
+    return rows
+end
+
+
+// ============================================================
+// JSON 构造（API 响应体）
+// ============================================================
+
+// GET /api/metrics
+func metricsJson(int64 now, int window) as string
+    gStoreLock.lock()
+    string sb = "["
+    int i = 0
+    while i < gNumMetrics do
+        array<float> vals
+        array<int64> ts
+        int m = collectWindowNL(i, now, window, "", vals, ts)
+        auto f, lv, lts = latestPointNL(i, "")
+        float a = aggregate(vals, "avg")
+        float mn = aggregate(vals, "min")
+        float mx = aggregate(vals, "max")
+        if i > 0 then
+            sb = sb + ","
+        end
+        sb = sb + "{\"name\":" + jStr(gMetricName[i])
+        sb = sb + ",\"points\":" + string(m)
+        sb = sb + ",\"window\":" + string(window)
+        sb = sb + ",\"latest\":" + (f ? jF(lv) : "null")
+        sb = sb + ",\"avg\":" + jF(a)
+        sb = sb + ",\"min\":" + jF(mn)
+        sb = sb + ",\"max\":" + jF(mx)
+        sb = sb + "}"
+        i += 1
+    end
+    sb = sb + "]"
+    gStoreLock.unlock()
+    return sb
+end
+
+// GET /api/query?metric=&agg=&window=&labels=
+func queryJson(string metric, string agg, int window, string labels, int64 now) as string
+    if string.isEmpty(agg) then
+        agg = "avg"
+    end
+    if window <= 0 then
+        window = DEFAULT_WINDOW
+    end
+    gStoreLock.lock()
+    int id = metricIdOfNL(metric)
+    string spark = "(no data)"
+    float value = 0.0
+    int matched = 0
+    string series = "[]"
+    if id >= 0 then
+        array<float> vals
+        array<int64> ts
+        matched = collectWindowNL(id, now, window, labels, vals, ts)
+        value = aggregate(vals, agg)
+        spark = sparkline(vals, 48)
+        // 系列采样（最多 64 点，等距抽取 value）
+        string sb = "["
+        int cap = 64
+        int n = vals.length
+        int si = 0
+        int written = 0
+        while si < n do
+            int step = n / cap
+            if step < 1 then
+                step = 1
+            end
+            if written > 0 then
+                sb = sb + ","
+            end
+            sb = sb + jF(vals[si])
+            written += 1
+            si += step
+        end
+        sb = sb + "]"
+        series = sb
+    end
+    int rid = id
+    gStoreLock.unlock()
+
+    string sb = "{"
+    sb = sb + "\"metric\":" + jStr(metric)
+    sb = sb + ",\"agg\":" + jStr(string.lower(agg))
+    sb = sb + ",\"window\":" + string(window)
+    sb = sb + ",\"labels\":" + jStr(labels)
+    sb = sb + ",\"found\":" + (rid >= 0 ? "true" : "false")
+    sb = sb + ",\"count\":" + string(matched)
+    sb = sb + ",\"value\":" + jF(value)
+    sb = sb + ",\"sparkline\":" + jStr(spark)
+    sb = sb + ",\"series\":" + series
+    sb = sb + "}"
+    return sb
+end
+
+// GET /api/alerts
+func alertsJson() as string
+    gStoreLock.lock()
+    string sb = "["
+    int i = 0
+    while i < gNumRules do
+        if i > 0 then
+            sb = sb + ","
+        end
+        sb = sb + "{\"name\":" + jStr(gRuleName[i])
+        sb = sb + ",\"metric\":" + jStr(gRuleMetric[i])
+        sb = sb + ",\"type\":" + jStr(typeName(gRuleType[i]))
+        sb = sb + ",\"op\":" + jStr(opSymbol(gRuleOp[i]))
+        sb = sb + ",\"threshold\":" + jF(gRuleThresh[i])
+        sb = sb + ",\"duration\":" + string(gRuleDuration[i])
+        sb = sb + ",\"labels\":" + jStr(gRuleLabels[i])
+        sb = sb + ",\"state\":" + jStr(stateName(gRuleState[i]))
+        sb = sb + ",\"fireCount\":" + string(gRuleFireCount[i])
+        sb = sb + ",\"stateSince\":" + jI64(gRuleStateSince[i])
+        sb = sb + ",\"lastFired\":" + jI64(gRuleLastFired[i])
+        sb = sb + "}"
+        i += 1
+    end
+    sb = sb + "]"
+    gStoreLock.unlock()
+    return sb
+end
+
+// GET /api/dashboard
+func dashboardJson(int64 now, int window) as string
+    gStoreLock.lock()
+    // metric 卡片
+    string msb = "["
+    int i = 0
+    while i < gNumMetrics do
+        array<float> vals
+        array<int64> ts
+        int m = collectWindowNL(i, now, window, "", vals, ts)
+        auto f, lv, lts = latestPointNL(i, "")
+        string spark = sparkline(vals, 40)
+        string tr = trendArrow(vals)
+        if i > 0 then
+            msb = msb + ","
+        end
+        msb = msb + "{\"name\":" + jStr(gMetricName[i])
+        msb = msb + ",\"points\":" + string(m)
+        msb = msb + ",\"latest\":" + (f ? jF(lv) : "null")
+        msb = msb + ",\"avg\":" + jF(aggregate(vals, "avg"))
+        msb = msb + ",\"max\":" + jF(aggregate(vals, "max"))
+        msb = msb + ",\"sparkline\":" + jStr(spark)
+        msb = msb + ",\"trend\":" + jStr(tr)
+        msb = msb + "}"
+        i += 1
+    end
+    msb = msb + "]"
+    // 告警概览
+    int firing = 0
+    int pending = 0
+    int okc = 0
+    int resolved = 0
+    string asb = "["
+    int j = 0
+    while j < gNumRules do
+        int st = gRuleState[j]
+        if st == ST_FIRING then
+            firing += 1
+        elseif st == ST_PENDING then
+            pending += 1
+        elseif st == ST_RESOLVED then
+            resolved += 1
+        else
+            okc += 1
+        end
+        if j > 0 then
+            asb = asb + ","
+        end
+        asb = asb + "{\"name\":" + jStr(gRuleName[j])
+        asb = asb + ",\"state\":" + jStr(stateName(st))
+        asb = asb + ",\"metric\":" + jStr(gRuleMetric[j])
+        asb = asb + "}"
+        j += 1
+    end
+    asb = asb + "]"
+    int nm = gNumMetrics
+    int nr = gNumRules
+    gStoreLock.unlock()
+
+    string sb = "{"
+    sb = sb + "\"now\":" + jI64(now)
+    sb = sb + ",\"window\":" + string(window)
+    sb = sb + ",\"metrics\":" + msb
+    sb = sb + ",\"alerts\":" + asb
+    sb = sb + ",\"summary\":{\"metrics\":" + string(nm)
+    sb = sb + ",\"rules\":" + string(nr)
+    sb = sb + ",\"firing\":" + string(firing)
+    sb = sb + ",\"pending\":" + string(pending)
+    sb = sb + ",\"ok\":" + string(okc)
+    sb = sb + ",\"resolved\":" + string(resolved) + "}"
+    sb = sb + "}"
+    return sb
+end
+
+// GET /api/health
+func healthJson() as string
+    gStoreLock.lock()
+    int total = 0
+    int i = 0
+    while i < gNumMetrics do
+        total += gCnt[i]
+        i += 1
+    end
+    string sb = "{\"ok\":true,\"metrics\":" + string(gNumMetrics)
+    sb = sb + ",\"rules\":" + string(gNumRules)
+    sb = sb + ",\"points\":" + string(total) + "}"
+    gStoreLock.unlock()
+    return sb
+end
+
+
+// ============================================================
+// 控制台仪表盘报告（collect / test 用）
+// ============================================================
+
+func consoleDashboard(int64 now, int window) as string
+    array<string> lines
+    lines.append("================ xmonitor dashboard ================")
+    lines.append("window: last " + string(window) + "s    now: " + string(int(now)) + "s")
+    lines.append("----------------------------------------------------")
+
+    gStoreLock.lock()
+    int i = 0
+    while i < gNumMetrics do
+        array<float> vals
+        array<int64> ts
+        int m = collectWindowNL(i, now, window, "", vals, ts)
+        auto f, lv, lts = latestPointNL(i, "")
+        float a = aggregate(vals, "avg")
+        float mn = aggregate(vals, "min")
+        float mx = aggregate(vals, "max")
+        string spark = sparkline(vals, 48)
+        string tr = trendArrow(vals)
+        lines.append("")
+        lines.append("[" + gMetricName[i] + "]  points=" + string(m) + "  trend=" + tr)
+        lines.append("  latest=" + (f ? fmtNum(lv) : "n/a")
+                    + "  avg=" + fmtNum(a)
+                    + "  min=" + fmtNum(mn)
+                    + "  max=" + fmtNum(mx))
+        lines.append("  " + spark)
+        // 直方图
+        if m > 0 then
+            array<string> chart = sparkChart(vals, 5, 50)
+            int r = 0
+            while r < chart.length do
+                lines.append("  " + chart[r])
+                r += 1
+            end
+        end
+        i += 1
+    end
+    // 告警表
+    lines.append("")
+    lines.append("----------------------------------------------------")
+    lines.append(string.padRight("ALERT", 18) + string.padRight("STATE", 10)
+                + string.padRight("FIRES", 6) + "EXPR")
+    int j = 0
+    while j < gNumRules do
+        string expr = gRuleName[j] + ": " + gRuleMetric[j] + " "
+        if gRuleType[j] == RT_MISSING then
+            expr = expr + "missing > " + fmtNum(gRuleThresh[j]) + "s"
+        elseif gRuleType[j] == RT_RATE then
+            expr = expr + "rate " + opSymbol(gRuleOp[j]) + " " + fmtNum(gRuleThresh[j]) + "%/min"
+        else
+            expr = expr + opSymbol(gRuleOp[j]) + " " + fmtNum(gRuleThresh[j])
+        end
+        if not string.isEmpty(gRuleLabels[j]) then
+            expr = expr + " {" + gRuleLabels[j] + "}"
+        end
+        lines.append(string.padRight(gRuleName[j], 18)
+                    + string.padRight(stateName(gRuleState[j]), 10)
+                    + string.padRight(string(gRuleFireCount[j]), 6)
+                    + expr)
+        j += 1
+    end
+    gStoreLock.unlock()
+
+    lines.append("====================================================")
+    return joinStrings(lines, "\n")
+end
+
+
+// ============================================================
+// HTML 仪表盘页面（GET /）
+// ============================================================
+
+func dashboardPage() as string
+    string html = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>xmonitor</title>
+<style>
+body { font-family: ui-monospace, Consolas, monospace; background: #0d1117; color: #c9d1d9; margin: 0; padding: 16px; }
+h1 { color: #58a6ff; margin: 0 0 4px; font-size: 18px; }
+.sub { color: #8b949e; font-size: 12px; margin-bottom: 14px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 1100px; }
+.card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
+.card h2 { margin: 0 0 8px; font-size: 14px; color: #7ee787; }
+.row { font-size: 12px; color: #8b949e; }
+.spark { font-size: 16px; letter-spacing: 0px; color: #79c0ff; white-space: pre; }
+.val { color: #e6edf3; font-weight: bold; }
+.bad { color: #f85149; }
+.warn { color: #d29922; }
+.ok { color: #7ee787; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+td, th { text-align: left; padding: 4px 6px; border-bottom: 1px solid #21262d; }
+.pill { padding: 1px 6px; border-radius: 10px; font-size: 11px; }
+</style>
+</head>
+<body>
+<h1>xmonitor</h1>
+<div class="sub" id="sub">loading...</div>
+<div class="grid" id="metrics"></div>
+<h2 style="margin-top:18px;color:#58a6ff">Alerts</h2>
+<table id="alerts"><tr><td>loading...</td></tr></table>
+<script>
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function clsForState(s){return s==="FIRING"?"bad":(s==="PENDING"?"warn":(s==="RESOLVED"?"ok":""));}
+function poll(){
+  fetch("/api/dashboard?window=300").then(function(r){return r.json();}).then(function(d){
+    document.getElementById("sub").textContent =
+      "metrics: " + d.summary.metrics + " | rules: " + d.summary.rules +
+      " | FIRING: " + d.summary.firing + " | PENDING: " + d.summary.pending +
+      " | window: " + d.window + "s";
+    var html = "";
+    d.metrics.forEach(function(m){
+      var latest = m.latest===null?"n/a":m.latest;
+      html += "<div class='card'><h2>" + esc(m.name) + "</h2>";
+      html += "<div class='spark'>" + esc(m.sparkline) + "</div>";
+      html += "<div class='row'>latest <span class='val'>" + latest + "</span>";
+      html += " trend " + esc(m.trend) + "</div>";
+      html += "<div class='row'>avg " + m.avg + " &nbsp; max " + m.max + " &nbsp; pts " + m.points + "</div>";
+      html += "</div>";
+    });
+    document.getElementById("metrics").innerHTML = html;
+    var rows = "<tr><th>name</th><th>metric</th><th>state</th></tr>";
+    d.alerts.forEach(function(a){
+      rows += "<tr><td>" + esc(a.name) + "</td><td>" + esc(a.metric) + "</td>";
+      rows += "<td><span class='pill " + clsForState(a.state) + "'>" + a.state + "</span></td></tr>";
+    });
+    document.getElementById("alerts").innerHTML = rows;
+  }).catch(function(e){
+    document.getElementById("sub").textContent = "error: " + e;
+  });
+}
+poll();
+setInterval(poll, 2000);
+</script>
+</body>
+</html>'''
+    return html
+end
+
+
+// ============================================================
+// 数据采集：模拟系统指标
+// ============================================================
+
+func clampWalk(float cur, float lo, float hi, float step) as float
+    int r = random.range(-10, 10)
+    float v = cur + float(r) * step / 10.0
+    return clampF(v, lo, hi)
+end
+
+// 采集一个 tick（4 个 metric × 2 host）。
+func collectOnce()
+    // host1 偶发尖刺
+    gCpu1 = clampWalk(gCpu1, 5.0, 100.0, 9.0)
+    if random.range(0, 19) == 0 then
+        gCpu1 = clampF(gCpu1 + 35.0, 0.0, 100.0)
+    end
+    gMem1 = clampWalk(gMem1, 20.0, 96.0, 3.0)
+    gReq1 = clampWalk(gReq1, 0.0, 600.0, 45.0)
+    gLat1 = clampWalk(gLat1, 5.0, 900.0, 35.0)
+    if gCpu1 > 85.0 then
+        gLat1 = clampF(gLat1 + 120.0, 0.0, 2000.0)
+    end
+    recordPoint("cpu", gCpu1, "host=host1;region=us-east")
+    recordPoint("memory", gMem1, "host=host1;region=us-east")
+    recordPoint("reqrate", gReq1, "host=host1;region=us-east")
+    recordPoint("latency", gLat1, "host=host1;region=us-east")
+
+    // host2
+    gCpu2 = clampWalk(gCpu2, 5.0, 100.0, 8.0)
+    if random.range(0, 24) == 0 then
+        gCpu2 = clampF(gCpu2 + 30.0, 0.0, 100.0)
+    end
+    gMem2 = clampWalk(gMem2, 20.0, 96.0, 2.5)
+    gReq2 = clampWalk(gReq2, 0.0, 600.0, 40.0)
+    gLat2 = clampWalk(gLat2, 5.0, 900.0, 30.0)
+    recordPoint("cpu", gCpu2, "host=host2;region=eu-west")
+    recordPoint("memory", gMem2, "host=host2;region=eu-west")
+    recordPoint("reqrate", gReq2, "host=host2;region=eu-west")
+    recordPoint("latency", gLat2, "host=host2;region=eu-west")
+end
+
+func makeCollector() as func() as int
+    return func() as int
+        while gCollectStop == 0 do
+            collectOnce()
+            evaluateAllRules()
+            time.sleep(COLLECT_INTERVAL_MS)
+        end
+        return 0
+    end
+end
+
+// 注册默认模拟 metric（提前占位，便于空数据查询返回 found=false 而非 metric 不存在）。
+func seedDefaultMetrics()
+    gStoreLock.lock()
+    getOrCreateMetricNL("cpu")
+    getOrCreateMetricNL("memory")
+    getOrCreateMetricNL("reqrate")
+    getOrCreateMetricNL("latency")
+    gStoreLock.unlock()
+end
+
+// 注册默认告警规则。
+func seedDefaultRules()
+    addRule("high_cpu",      "cpu",     RT_THRESH,  OP_GT, 85.0,  10, "host=host1")
+    addRule("mem_leak",      "memory",  RT_THRESH,  OP_GT, 90.0,  30, "")
+    addRule("rate_drop",     "reqrate", RT_THRESH,  OP_LT, 15.0,  15, "")
+    addRule("latency_spike", "latency", RT_THRESH,  OP_GT, 500.0, 5, "")
+    addRule("cpu_rate_jump", "cpu",     RT_RATE,    OP_GT, 80.0,  10, "host=host2")
+    addRule("no_data",       "cpu",     RT_MISSING, OP_GT, 20.0,  1, "")
+end
+
+
+// ============================================================
+// HTTP 路由（HttpRequest / HttpResponse 必须内联使用）
+// ============================================================
+
+func route(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+
+    resp.header("X-Server", "xlang-xmonitor")
+    resp.header("Access-Control-Allow-Origin", "*")
+
+    string method = req.method()
+    string path = req.path()
+
+    // GET / -> HTML 仪表盘
+    if method == "GET" and path == "/" then
+        return resp.text(dashboardPage(), "text/html; charset=utf-8")
+    end
+
+    // GET /api/health
+    if method == "GET" and path == "/api/health" then
+        return resp.jsonText(healthJson())
+    end
+
+    // GET /api/metrics[?window=300]
+    if method == "GET" and path == "/api/metrics" then
+        int w = DEFAULT_WINDOW
+        string ws = req.queryValue("window")
+        if ws != "" then
+            int p = int(ws)
+            if p > 0 then
+                w = p
+            end
+        end
+        return resp.jsonText(metricsJson(nowSec(), w))
+    end
+
+    // GET /api/query?metric=&agg=&window=&labels=
+    if method == "GET" and path == "/api/query" then
+        string metric = req.queryValue("metric")
+        string agg = req.queryValue("agg")
+        string winStr = req.queryValue("window")
+        string labels = req.queryValue("labels")
+        int w = DEFAULT_WINDOW
+        if winStr != "" then
+            int p = int(winStr)
+            if p > 0 then
+                w = p
+            end
+        end
+        if metric == "" then
+            resp.status(400)
+            return resp.jsonText("{\"error\":\"missing metric\"}")
+        end
+        return resp.jsonText(queryJson(metric, agg, w, labels, nowSec()))
+    end
+
+    // GET /api/alerts
+    if method == "GET" and path == "/api/alerts" then
+        return resp.jsonText(alertsJson())
+    end
+
+    // GET /api/dashboard[?window=300]
+    if method == "GET" and path == "/api/dashboard" then
+        int w = DEFAULT_WINDOW
+        string ws = req.queryValue("window")
+        if ws != "" then
+            int p = int(ws)
+            if p > 0 then
+                w = p
+            end
+        end
+        return resp.jsonText(dashboardJson(nowSec(), w))
+    end
+
+    // POST /api/ingest -> {metric,value,labels?}
+    if method == "POST" and path == "/api/ingest" then
+        string body = req.body()
+        if not json.valid(body) then
+            resp.status(400)
+            return resp.jsonText("{\"ok\":false,\"error\":\"invalid json\"}")
+        end
+        var payload = json.parse(body)
+        if not ("metric" in payload) or not ("value" in payload) then
+            resp.status(400)
+            return resp.jsonText("{\"ok\":false,\"error\":\"missing metric or value\"}")
+        end
+        string mname = string(payload["metric"])
+        float mval = float(payload["value"])
+        string mlbl = ""
+        if "labels" in payload then
+            mlbl = string(payload["labels"])
+        end
+        recordPoint(mname, mval, mlbl)
+        return resp.jsonText("{\"ok\":true,\"metric\":" + jStr(mname) + ",\"value\":" + jF(mval) + "}")
+    end
+
+    // 未匹配
+    resp.status(404)
+    return resp.jsonText("{\"error\":\"not found\",\"path\":\"" + path + "\"}")
+end
+
+func(point, point) as bool requestHandler = route
+
+func errorHandler(int status, string message, point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.status(status)
+    resp.header("X-Error-Path", req.path())
+    string body = "{\"status\":" + status.toString() + ",\"error\":\"" + jEsc(message) + "\",\"path\":\"" + req.path() + "\"}"
+    return resp.jsonText(body)
+end
+
+func(int, string, point, point) as bool serverErrorHandler = errorHandler
+
+
+// ============================================================
+// buildServer
+// ============================================================
+
+func buildServer(int port) as point
+    point server = http.server.create(port, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, WORKERS)
+    if server == null then
+        return null
+    end
+    http.server.getRequest(server, "/", requestHandler)
+    http.server.getRequest(server, "/api/health", requestHandler)
+    http.server.getRequest(server, "/api/metrics", requestHandler)
+    http.server.getRequest(server, "/api/query", requestHandler)
+    http.server.getRequest(server, "/api/alerts", requestHandler)
+    http.server.getRequest(server, "/api/dashboard", requestHandler)
+    http.server.postRequest(server, "/api/ingest", requestHandler)
+    http.server.error(server, serverErrorHandler)
+    return server
+end
+
+
+// ============================================================
+// self-test 计数
+// ============================================================
+
+func check(bool cond, string name, string detail)
+    if cond then
+        gPassed += 1
+        println("[ PASS ] " + name)
+    else
+        gFailed += 1
+        println("[ FAIL ] " + name + "  " + detail)
+    end
+end
+
+func approx(float a, float b, float eps) as bool
+    return fabsF(a - b) <= eps
+end
+
+
+// ============================================================
+// self-test（确定性：显式时间戳 + 显式 now）
+// ============================================================
+
+func runTest() as int
+    println("")
+    println("================ xmonitor self-test ================")
+    println("")
+
+    resetStore()
+
+    // ---------- 1. 聚合：avg/max/min/count ----------
+    // 用 1..10 填充 metric "m1"
+    int64 base = int64(1000)
+    int n = 1
+    while n <= 10 do
+        recordPointAt("m1", float(n), "", base + int64(n - 1))
+        n += 1
+    end
+    gStoreLock.lock()
+    int idM1 = metricIdOfNL("m1")
+    array<float> v1
+    array<int64> t1
+    int c1 = collectWindowNL(idM1, base + int64(100), 1000, "", v1, t1)
+    gStoreLock.unlock()
+    check(c1 == 10, "1a. collect count 10", "got " + string(c1))
+    check(approx(aggregate(v1, "sum"), 55.0, 0.001), "1b. sum=55", "got " + fmtNum(aggregate(v1, "sum")))
+    check(approx(aggregate(v1, "avg"), 5.5, 0.001), "1c. avg=5.5", "got " + fmtNum(aggregate(v1, "avg")))
+    check(approx(aggregate(v1, "min"), 1.0, 0.001), "1d. min=1", "got " + fmtNum(aggregate(v1, "min")))
+    check(approx(aggregate(v1, "max"), 10.0, 0.001), "1e. max=10", "got " + fmtNum(aggregate(v1, "max")))
+    check(approx(aggregate(v1, "count"), 10.0, 0.001), "1f. count=10", "got " + fmtNum(aggregate(v1, "count")))
+
+    // ---------- 2. 分位数 ----------
+    // 1..10 升序，p50 nearest-rank=5，p90=9，p99=10
+    float p50 = aggregate(v1, "p50")
+    float p90 = aggregate(v1, "p90")
+    float p99 = aggregate(v1, "p99")
+    check(p50 == 5.0, "2a. p50=5", "got " + fmtNum(p50))
+    check(p90 == 9.0, "2b. p90=9", "got " + fmtNum(p90))
+    check(p99 == 10.0, "2c. p99=10", "got " + fmtNum(p99))
+
+    // ---------- 3. 标签过滤 ----------
+    // 给 m2 写 4 个点：host=a 两个，host=b 两个
+    recordPointAt("m2", 10.0, "host=a;region=us", base)
+    recordPointAt("m2", 20.0, "host=a;region=us", base + int64(1))
+    recordPointAt("m2", 30.0, "host=b;region=eu", base + int64(2))
+    recordPointAt("m2", 40.0, "host=b;region=eu", base + int64(3))
+    gStoreLock.lock()
+    int idM2 = metricIdOfNL("m2")
+    array<float> va
+    array<int64> ta
+    int ca = collectWindowNL(idM2, base + int64(100), 1000, "host=a", va, ta)
+    array<float> vb
+    array<int64> tb
+    int cb = collectWindowNL(idM2, base + int64(100), 1000, "host=b", vb, tb)
+    array<float> vus
+    array<int64> tus
+    int cus = collectWindowNL(idM2, base + int64(100), 1000, "host=a,region=us", vus, tus)
+    array<float> vnone
+    array<int64> tnone
+    int cn = collectWindowNL(idM2, base + int64(100), 1000, "", vnone, tnone)
+    gStoreLock.unlock()
+    check(ca == 2, "3a. host=a count 2", "got " + string(ca))
+    check(cb == 2, "3b. host=b count 2", "got " + string(cb))
+    check(cus == 2, "3c. host=a,region=us count 2", "got " + string(cus))
+    check(cn == 4, "3d. no-filter count 4", "got " + string(cn))
+    check(approx(aggregate(va, "avg"), 15.0, 0.001), "3e. host=a avg=15", "got " + fmtNum(aggregate(va, "avg")))
+    check(approx(aggregate(vb, "max"), 40.0, 0.001), "3f. host=b max=40", "got " + fmtNum(aggregate(vb, "max")))
+
+    // ---------- 4. 标签 helper ----------
+    check(labelMatch("host=a;region=us", "host=a") == true, "4a. match host=a", "")
+    check(labelMatch("host=a;region=us", "host=b") == false, "4b. no match host=b", "")
+    check(labelMatch("host=a;region=us", "host=a,region=us") == true, "4c. multi match", "")
+    check(labelMatch("host=a;region=us", "host=a,region=eu") == false, "4d. multi no match", "")
+    check(labelMatch("", "") == true, "4e. empty matches empty", "")
+    check(labelMatch("host=a", "") == true, "4f. empty filter matches all", "")
+
+    // ---------- 5. 阈值告警状态机 OK→PENDING→FIRING→RESOLVED ----------
+    resetStore()
+    // cpu = 90（超过 80）持续 3s 触发
+    recordPointAt("cpu", 90.0, "host=h1", base)
+    int ridT = addRule("high_cpu", "cpu", RT_THRESH, OP_GT, 80.0, 3, "")
+    evaluateAllRulesAt(base)
+    check(gRuleState[ridT] == ST_PENDING, "5a. threshold OK->PENDING", "state=" + stateName(gRuleState[ridT]))
+    evaluateAllRulesAt(base + int64(1))
+    check(gRuleState[ridT] == ST_PENDING, "5b. stay PENDING (1s<3s)", "state=" + stateName(gRuleState[ridT]))
+    evaluateAllRulesAt(base + int64(2))
+    check(gRuleState[ridT] == ST_PENDING, "5c. stay PENDING (2s<3s)", "state=" + stateName(gRuleState[ridT]))
+    evaluateAllRulesAt(base + int64(3))
+    check(gRuleState[ridT] == ST_FIRING, "5d. PENDING->FIRING (3s>=3s)", "state=" + stateName(gRuleState[ridT]))
+    check(gRuleFireCount[ridT] == 1, "5e. fireCount=1", "got " + string(gRuleFireCount[ridT]))
+    // 值恢复 → RESOLVED
+    recordPointAt("cpu", 40.0, "host=h1", base + int64(4))
+    evaluateAllRulesAt(base + int64(4))
+    check(gRuleState[ridT] == ST_RESOLVED, "5f. FIRING->RESOLVED", "state=" + stateName(gRuleState[ridT]))
+
+    // ---------- 6. PENDING 抖动回退 → OK ----------
+    resetStore()
+    recordPointAt("cpu", 90.0, "", base)
+    int ridJ = addRule("jitter", "cpu", RT_THRESH, OP_GT, 80.0, 5, "")
+    evaluateAllRulesAt(base)
+    check(gRuleState[ridJ] == ST_PENDING, "6a. ->PENDING", "")
+    recordPointAt("cpu", 50.0, "", base + int64(1))
+    evaluateAllRulesAt(base + int64(1))
+    check(gRuleState[ridJ] == ST_OK, "6b. PENDING->OK on recovery", "state=" + stateName(gRuleState[ridJ]))
+
+    // ---------- 7. 缺失告警 ----------
+    resetStore()
+    // cpu 有一个点，之后长时间无数据
+    recordPointAt("cpu", 30.0, "", base)
+    int ridM = addRule("nodata", "cpu", RT_MISSING, OP_GT, 20.0, 1, "")
+    evaluateAllRulesAt(base + int64(10))
+    check(gRuleState[ridM] == ST_OK, "7a. not missing yet (10s<20s)", "state=" + stateName(gRuleState[ridM]))
+    evaluateAllRulesAt(base + int64(25))
+    check(gRuleState[ridM] == ST_PENDING, "7b. ->PENDING (25s>20s)", "state=" + stateName(gRuleState[ridM]))
+    evaluateAllRulesAt(base + int64(27))
+    check(gRuleState[ridM] == ST_FIRING, "7c. ->FIRING (sustained 1s)", "state=" + stateName(gRuleState[ridM]))
+
+    // ---------- 8. 变化率告警 ----------
+    resetStore()
+    // reqrate: 100 -> 250 跨 60s ⇒ 150%/min
+    recordPointAt("reqrate", 100.0, "", base)
+    recordPointAt("reqrate", 250.0, "", base + int64(60))
+    int ridR = addRule("rate_jump", "reqrate", RT_RATE, OP_GT, 100.0, 1, "")
+    evaluateAllRulesAt(base + int64(60))
+    check(gRuleState[ridR] == ST_PENDING, "8a. rate ->PENDING", "state=" + stateName(gRuleState[ridR]))
+    evaluateAllRulesAt(base + int64(61))
+    check(gRuleState[ridR] == ST_FIRING, "8b. rate ->FIRING", "state=" + stateName(gRuleState[ridR]))
+
+    // ---------- 9. sparkline / 图表 ----------
+    resetStore()
+    int z = 0
+    while z < 50 do
+        recordPointAt("wave", float(z), "", base + int64(z))
+        z += 1
+    end
+    gStoreLock.lock()
+    int idW = metricIdOfNL("wave")
+    array<float> vw
+    array<int64> tw
+    int cw = collectWindowNL(idW, base + int64(100), 1000, "", vw, tw)
+    string sp = sparkline(vw, 20)
+    string tr = trendArrow(vw)
+    array<string> chart = sparkChart(vw, 4, 20)
+    gStoreLock.unlock()
+    check(cw == 50, "9a. wave count 50", "got " + string(cw))
+    check(string.len(sp) > 0, "9b. sparkline non-empty", "")
+    check(tr == "↗", "9c. upward trend", "got " + tr)
+    check(chart.length == 4, "9d. chart rows=4", "got " + string(chart.length))
+
+    // ---------- 10. barH 格式 ----------
+    string bar = barH("cpu", 75.0, 100.0, 10)
+    check(string.contains(bar, "cpu"), "10a. bar has label", bar)
+    check(string.contains(bar, "75"), "10b. bar has value", bar)
+
+    // ---------- 11. API JSON 基本结构 ----------
+    resetStore()
+    recordPointAt("cpu", 50.0, "host=h1", base)
+    recordPointAt("cpu", 60.0, "host=h1", base + int64(1))
+    addRule("rc", "cpu", RT_THRESH, OP_GT, 40.0, 5, "")
+    string mj = metricsJson(base + int64(100), 1000)
+    string aj = alertsJson()
+    string dj = dashboardJson(base + int64(100), 1000)
+    string hj = healthJson()
+    check(string.contains(mj, "cpu"), "11a. metricsJson has cpu", mj)
+    check(string.contains(mj, "\"latest\""), "11b. metricsJson has latest", "")
+    check(string.contains(aj, "rc"), "11c. alertsJson has rc", aj)
+    check(string.contains(aj, "OK"), "11d. alertsJson has state", "")
+    check(string.contains(dj, "\"summary\""), "11e. dashboardJson has summary", "")
+    check(string.contains(hj, "\"ok\":true"), "11f. healthJson ok", hj)
+    // queryJson 聚合
+    string qj = queryJson("cpu", "avg", 1000, "host=h1", base + int64(100))
+    check(string.contains(qj, "\"found\":true"), "11g. queryJson found", qj)
+    check(string.contains(qj, "\"value\":55"), "11h. queryJson avg=55", qj)
+
+    println("")
+    println("------------------- summary -------------------")
+    println("passed: " + string(gPassed) + " / " + string(gPassed + gFailed))
+    println("failed: " + string(gFailed))
+    println("")
+    if gFailed > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ============================================================
+// collect 命令：采集 N 秒后打印仪表盘
+// ============================================================
+
+func cmdCollect(int durationSec) as int
+    if durationSec <= 0 then
+        durationSec = 30
+    end
+    println("xmonitor collect - sampling for " + string(durationSec) + "s (interval " + string(COLLECT_INTERVAL_MS) + "ms)")
+    seedDefaultMetrics()
+    seedDefaultRules()
+    println("registered " + string(gNumMetrics) + " metrics, " + string(gNumRules) + " alert rules")
+    println("")
+
+    int tick = 0
+    int64 start = nowSec()
+    while tick < durationSec do
+        collectOnce()
+        evaluateAllRulesAt(nowSec())
+        int64 now = nowSec()
+        // 紧凑进度行：各 metric 最新值
+        gStoreLock.lock()
+        string line = "[" + string(int(now - start)) + "s] "
+        int i = 0
+        while i < gNumMetrics do
+            auto f, v, ts = latestPointNL(i, "")
+            line = line + gMetricName[i] + "=" + (f ? fmtNum(v) : "n/a") + " "
+            i += 1
+        end
+        // FIRING 数
+        int firing = 0
+        int j = 0
+        while j < gNumRules do
+            if gRuleState[j] == ST_FIRING then
+                firing += 1
+            end
+            j += 1
+        end
+        line = line + "| firing=" + string(firing)
+        gStoreLock.unlock()
+        println(line)
+        tick += 1
+        if tick < durationSec then
+            time.sleep(COLLECT_INTERVAL_MS)
+        end
+    end
+
+    println("")
+    int win = durationSec
+    if win < 60 then
+        win = 60
+    end
+    print(consoleDashboard(nowSec(), win))
+    println("")
+    return 0
+end
+
+
+// ============================================================
+// serve 命令：HTTP API + 后台采集
+// ============================================================
+
+func cmdServe(int port) as int
+    seedDefaultMetrics()
+    seedDefaultRules()
+
+    // 启动后台采集线程
+    gCollectStop = 0
+    thread(makeCollector())
+    // 给采集线程一个 tick 预热
+    time.sleep(150)
+
+    point server = buildServer(port)
+    if server == null then
+        println("FATAL: http.server.create returned null")
+        gCollectStop = 1
+        return 1
+    end
+    if not http.server.start(server) then
+        println("FATAL: http.server.start failed (port " + string(port) + " busy?)")
+        gCollectStop = 1
+        return 1
+    end
+    println("xmonitor listening on http://127.0.0.1:" + string(port))
+    println("endpoints:")
+    println("  GET  /                 HTML dashboard")
+    println("  GET  /api/metrics")
+    println("  GET  /api/query?metric=cpu&agg=avg&window=300&labels=host=host1")
+    println("  GET  /api/alerts")
+    println("  GET  /api/dashboard")
+    println("  GET  /api/health")
+    println("  POST /api/ingest       {\"metric\":\"...\",\"value\":N,\"labels\":\"k=v\"}")
+    println("press Ctrl+C to stop")
+    println("")
+    while true do
+        time.sleep(5000)
+        gStoreLock.lock()
+        int firing = 0
+        int jj = 0
+        while jj < gNumRules do
+            if gRuleState[jj] == ST_FIRING then
+                firing += 1
+            end
+            jj += 1
+        end
+        int nm = gNumMetrics
+        int nr = gNumRules
+        gStoreLock.unlock()
+        println("[stats] metrics=" + string(nm) + " rules=" + string(nr)
+                + " firing=" + string(firing)
+                + " reqs=" + http.server.requestCount(server).toString()
+                + " conns=" + http.server.connectionCount(server).toString())
+    end
+end
+
+
+// ============================================================
+// 用法 + main
+// ============================================================
+
+func printUsage()
+    println("xmonitor - monitoring dashboard (time-series store + aggregation + alerts + HTTP API)")
+    println("Usage:")
+    println("  xmonitor serve <port>        start HTTP API + background collector (default port " + string(DEFAULT_PORT) + ")")
+    println("  xmonitor collect [duration]   collect for N seconds then print dashboard (default 30)")
+    println("  xmonitor test                run deterministic self-test")
+    println("  xmonitor help                show this help")
+    println("HTTP API (serve mode):")
+    println("  GET  /api/metrics[?window=300]")
+    println("  GET  /api/query?metric=cpu&agg=avg&window=300&labels=host=host1")
+    println("       agg in {avg,max,min,sum,count,p50,p90,p99}")
+    println("  GET  /api/alerts")
+    println("  GET  /api/dashboard[?window=300]")
+    println("  GET  /api/health")
+    println("  POST /api/ingest   {\"metric\":\"...\",\"value\":N,\"labels\":\"k=v;k2=v2\"}")
+end
+
+func main(...) as int
+    println("xlang xmonitor - monitoring dashboard")
+    println("")
+
+    // 初始化全局存储与 mutex
+    initStore()
+    gStoreLock = mutex()
+
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string.lower(string(arg[1]))
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return runTest()
+    end
+
+    if cmd == "collect" then
+        int dur = 30
+        if arg.length >= 3 then
+            int p = int(string(arg[2]))
+            if p > 0 then
+                dur = p
+            end
+        end
+        return cmdCollect(dur)
+    end
+
+    if cmd == "serve" then
+        int port = DEFAULT_PORT
+        if arg.length >= 3 then
+            int p = int(string(arg[2]))
+            if p > 0 then
+                port = p
+            end
+        end
+        return cmdServe(port)
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    println("")
+    printUsage()
+    return 1
+end

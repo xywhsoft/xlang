@@ -31,9 +31,9 @@
 - `oop_virtual_dispatch.xl`：OOP virtual/override/final method and property dispatch example；回归：`check`、`run`。
 - `copy_clone.xl`：`derive copy/clone`、`copy()` 和 `clone()` 示例；回归：`check`。
 - `class_persistence.xl`：`derive value`、class 与 object 的 json/xson 持久化 roundtrip 示例；回归：`run`。
-- `class_custom.xl`：class 与 native-backed class 组合示例；回归：`check`。
+- `class_native_backed.xl`：class 与 native-backed class 组合示例；回归：`check`。
 - `class_native_bridge.xl`：native-backed class 对接 C opaque handle 的声明示例；回归：`check`。
-- `custom_counter.xl`：native-backed class 句柄类示例；回归：`check`。
+- `native_counter.xl`：native-backed class 句柄类示例；回归：`check`。
 - `second_stage.xl`：第二阶段基础语义组合示例；回归：`check`、`run`。
 - `top_level_main.xl`：顶层语句与 `main(...)` 共存示例，验证顶层语句先于 `main` 执行；回归：`run`。
 - `concurrency.xl`：并发、通道和异步相关示例；回归：`run`。

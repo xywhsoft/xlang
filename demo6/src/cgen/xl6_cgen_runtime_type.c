@@ -185,6 +185,17 @@ static void xl6CgenEmitRuntimeTypeHelpers(XL6_CgenContext* ctx)
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("static xvalue xl6_runtime_value_as_ref(xvalue value, const xrt_type_desc* target, bool release)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if (!xl6_runtime_type_is(xl6_runtime_value_type_desc(value), target)) {\n", out);
+    xl6OutputPuts("        if (release && value != 0) { xvoUnref(value); }\n", out);
+    xl6OutputPuts("        xl6_runtime_fatal(4);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if (!release && value != 0) { xvoAddRef(value); }\n", out);
+    xl6OutputPuts("    return value;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("static bool xl6_runtime_value_as_record(xvalue value, const xrt_type_desc* target, void* outValue, bool release)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    const xrt_type_desc* actual = xl6_runtime_value_type_desc(value);\n", out);
@@ -520,6 +531,15 @@ static void xl6CgenRuntimeTypeIsExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
     target = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
     valueType = xl6CgenCloneExprTypeForInference(ctx, value);
     concreteValueType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, valueType));
+    if ( xl6CgenRefTargetType(ctx, target) != NULL ) {
+        xl6OutputPuts("xl6_runtime_value_is(", ctx->out);
+        xl6CgenExpr(ctx, value);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenEmitXrtTypeDescRef(ctx, xl6CgenRefTargetType(ctx, target));
+        xl6OutputPuts(xl6CgenExprIsXValueBorrow(ctx, value) ? ", false)" : ", true)", ctx->out);
+        xl6AstFree(valueType);
+        return;
+    }
     if ( concreteValueType != NULL && !xl6CgenIsXValueType(concreteValueType) ) {
         xl6OutputPuts(xl6CgenRuntimeTypeStaticIs(ctx, concreteValueType, target) ? "1" : "0", ctx->out);
         xl6AstFree(valueType);
@@ -549,6 +569,7 @@ static int xl6CgenRuntimeTypeAsScalarExpr(XL6_CgenContext* ctx, const XL6_AstNod
     const char* cType;
 
     concreteTarget = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, target));
+
     name = concreteTarget != NULL ? concreteTarget->text : NULL;
     if ( name == NULL ) {
         return 0;
@@ -596,6 +617,16 @@ static void xl6CgenRuntimeTypeAsExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
     valueType = xl6CgenCloneExprTypeForInference(ctx, value);
     concreteValueType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, valueType));
     concreteTarget = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, target));
+
+    if ( xl6CgenRefTargetType(ctx, concreteTarget) != NULL ) {
+        xl6OutputPuts("xl6_runtime_value_as_ref(", ctx->out);
+        xl6CgenExpr(ctx, value);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenEmitXrtTypeDescRef(ctx, xl6CgenRefTargetType(ctx, concreteTarget));
+        xl6OutputPuts(xl6CgenExprIsXValueBorrow(ctx, value) ? ", false)" : ", true)", ctx->out);
+        xl6AstFree(valueType);
+        return;
+    }
 
     if ( concreteValueType != NULL && concreteTarget != NULL &&
          !xl6CgenIsXValueType(concreteValueType) &&

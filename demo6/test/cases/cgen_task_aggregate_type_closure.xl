@@ -1,0 +1,184 @@
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+class AggregateBox
+    string name
+    array<int> values
+    func(int) as int op
+end
+
+class AggregateEnvelope
+    AggregateBox box
+    dict<int> metadata
+end
+
+async func makeVar(var value) as var
+    return value
+end
+
+async func makeArray(int value) as array<int>
+    return array[value, value + 1]
+end
+
+async func makeList(int value) as list<int>
+    return list[0: value, 2: value + 2]
+end
+
+async func makeSet(int value) as set<int>
+    return set{value, value + 1}
+end
+
+async func makeDict(int value) as dict<int>
+    return dict{"value": value}
+end
+
+async func makeBox(string name, int value) as AggregateBox
+    AggregateBox box
+    box.name = name
+    box.values = array[value, value + 1]
+    box.op = makeAdder(value)
+    return box
+end
+
+async func makeEnvelope(string name, int value) as AggregateEnvelope
+    AggregateBox box
+    box.name = name
+    box.values = array[value, value + 1]
+    box.op = makeAdder(value)
+
+    AggregateEnvelope envelope
+    envelope.box = box
+    envelope.metadata = dict{"value": value}
+    return envelope
+end
+
+async func failArray() as array<int>
+    throw "aggregate array failed"
+    return array[]
+end
+
+async func failBox() as AggregateBox
+    throw "aggregate class failed"
+    AggregateBox box
+    return box
+end
+
+async func slowArray(int value) as array<int>
+    time.sleep(200)
+    return array[value]
+end
+
+// var 聚合允许每个结果保存不同的动态类型。
+future<array<var>> varAllFuture = task.all([makeVar(7), makeVar("ok")])
+array<var> varValuesA = await varAllFuture
+array<var> varValuesB = await varAllFuture
+assert int(varValuesA[0]) == 7, "task.all future<var> int failed"
+assert string(varValuesA[1]) == "ok", "task.all future<var> string failed"
+assert int(varValuesB[0]) == 7, "task.all future<var> repeat await failed"
+var racedVar = await task.race([makeVar("race")])
+assert string(racedVar) == "race", "task.race future<var> failed"
+println("aggregate var ok")
+
+// 四种静态容器都通过 XRT 类型描述符执行深复制和析构。
+future<array<array<int>>> arraysFuture = task.all([makeArray(1), makeArray(10)])
+array<array<int>> arraysA = await arraysFuture
+array<array<int>> arraysB = await arraysFuture
+array<int> firstArray = arraysA[0]
+array<int> secondArray = arraysB[1]
+assert firstArray[1] == 2, "task.all array<T> failed"
+assert secondArray[0] == 10, "task.all array<T> repeat await failed"
+
+future<array<int>> arrayRaceSource = makeArray(20)
+array<int> racedArray = await task.race([arrayRaceSource])
+array<int> arrayRaceSourceAgain = await arrayRaceSource
+assert racedArray[1] == 21, "task.race array<T> failed"
+assert arrayRaceSourceAgain[0] == 20, "task.race array<T> consumed source future"
+println("aggregate array ok")
+
+array<list<int>> lists = await task.all([makeList(3), makeList(30)])
+list<int> firstList = lists[0]
+assert firstList[2] == 5, "task.all list<T> failed"
+list<int> racedList = await task.race([makeList(4)])
+assert racedList[2] == 6, "task.race list<T> failed"
+println("aggregate list ok")
+
+array<set<int>> sets = await task.all([makeSet(5), makeSet(50)])
+set<int> firstSet = sets[0]
+assert 6 in firstSet, "task.all set<T> failed"
+set<int> racedSet = await task.race([makeSet(7)])
+assert 8 in racedSet, "task.race set<T> failed"
+println("aggregate set ok")
+
+array<dict<int>> dicts = await task.all([makeDict(8), makeDict(80)])
+dict<int> firstDict = dicts[0]
+assert firstDict["value"] == 8, "task.all dict<T> failed"
+dict<int> racedDict = await task.race([makeDict(9)])
+assert racedDict["value"] == 9, "task.race dict<T> failed"
+println("aggregate dict ok")
+
+// 带 string、容器和闭包字段的 class 用同一类型描述符完成复制。
+future<array<AggregateBox>> boxesFuture = task.all([makeBox("left", 10), makeBox("right", 20)])
+array<AggregateBox> boxesA = await boxesFuture
+array<AggregateBox> boxesB = await boxesFuture
+AggregateBox left = boxesA[0]
+AggregateBox right = boxesB[1]
+assert left.name == "left", "task.all managed class string field failed"
+assert left.values[1] == 11, "task.all managed class container field failed"
+assert right.op(2) == 22, "task.all managed class function field failed"
+
+future<AggregateBox> boxRaceSource = makeBox("race-box", 30)
+AggregateBox racedBox = await task.race([boxRaceSource])
+AggregateBox sourceBoxAgain = await boxRaceSource
+assert racedBox.op(1) == 31, "task.race managed class failed"
+assert sourceBoxAgain.name == "race-box", "task.race managed class consumed source future"
+
+future<array<AggregateEnvelope>> envelopesFuture = task.all([makeEnvelope("nested", 40)])
+array<AggregateEnvelope> envelopesA = await envelopesFuture
+array<AggregateEnvelope> envelopesB = await envelopesFuture
+AggregateEnvelope envelopeA = envelopesA[0]
+AggregateEnvelope envelopeB = envelopesB[0]
+assert envelopeA.box.values[1] == 41, "task.all nested class container field failed"
+assert envelopeB.box.op(2) == 42, "task.all nested class function field failed"
+assert envelopeB.metadata["value"] == 40, "task.all nested class repeat await failed"
+println("aggregate class ok")
+
+// 聚合失败保留原始异常；取消后的聚合 future 可稳定重复观察。
+int failedArrayState = 0
+try
+    array<array<int>> ignoredArrays = await task.all([makeArray(1), failArray()])
+    failedArrayState = ignoredArrays.length
+catch e
+    if e.message == "aggregate array failed" then
+        failedArrayState = 1
+    end
+end
+assert failedArrayState == 1, "task.all container error propagation failed"
+
+int failedBoxState = 0
+try
+    AggregateBox ignoredBox = await task.race([failBox()])
+    failedBoxState = ignoredBox.values.length
+catch e
+    if e.message == "aggregate class failed" then
+        failedBoxState = 1
+    end
+end
+assert failedBoxState == 1, "task.race class error propagation failed"
+
+future<array<array<int>>> canceledGroup = task.all([slowArray(40), slowArray(50)])
+assert task.cancel(canceledGroup), "task.cancel aggregate future should request cancellation"
+int canceledState = 0
+try
+    array<array<int>> ignoredCanceled = await canceledGroup
+    canceledState = ignoredCanceled.length
+catch e
+    if e.message == "future cancel requested." then
+        canceledState = 1
+    end
+end
+assert canceledState == 1, "canceled aggregate future did not remain observable"
+
+println("task aggregate type closure ok")

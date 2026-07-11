@@ -1,7 +1,7 @@
-// fontrender - 位图字体渲染器（5x7 Bitmap Font -> ASCII Art）
+﻿// fontrender - 位图字体渲染器（5x7 Bitmap Font -> ASCII Art）
 //
 // 完整的命令行 ASCII Art 文本渲染工具，验证 xlang 的：
-//   * dict<string, array<string>> 大型字库的构建与查找
+//   * var 大型字库的构建与查找
 //   * string 逐字符处理（charAt / 字符串拼接）
 //   * array<string> 行缓冲的逐行构建
 //   * 嵌套 while 整数循环（scale 缩放 / 对齐填充）
@@ -32,13 +32,13 @@
 
 
 // ========================================================================
-// 字库：dict<string, array<string>>
+// 字库：var
 //   key   = 单个字符（大写）
 //   value = array<string>，7 个字符串，每个 5 字符（# 或空格）
 //
 // 全局只初始化一次，全程只读，规避「typed 容器作函数形参被值拷贝（BUG-XL1）」。
 // ========================================================================
-dict<string, array<string>> gFont = dict<string, array<string>>{}
+var gFont = {}
 
 // 空白字形（未定义字符的占位）
 array<string> gBlank = array[]
@@ -575,6 +575,18 @@ end
 //     对每个输出行（0 .. 7*scale-1），源行 = outRow / scale，
 //     逐列（0..4）取源像素，重复 scale 次追加到该行缓冲；
 //     字符末尾追加 scale 列空格作间隔。
+func loadGlyph(string ch) as array<string>
+    var src = gFont[ch]
+    array<string> out = array[]
+    int i = 0
+    int n = src.length
+    while i < n do
+        out.append(string(src[i]))
+        i += 1
+    end
+    return out
+end
+
 // ========================================================================
 func renderText(string text, int scale) as array<string>
     int rowTotal = 7 * scale
@@ -592,7 +604,7 @@ func renderText(string text, int scale) as array<string>
         string ch = string.upper(raw)
         array<string> glyph
         if gFont.contains(ch) then
-            glyph = gFont[ch]
+            glyph = loadGlyph(ch)
         else
             glyph = gBlank
         end
@@ -778,13 +790,13 @@ func cmdTest() as int
     check(gFont.contains("."), "font has '.'")
     check(gFont.length >= 26 + 10 + 1, "font has >= 37 glyphs (got " + string(gFont.length) + ")")
 
-    array<string> ga = gFont["A"]
+    array<string> ga = loadGlyph("A")
     check(ga.length == 7, "'A' glyph has 7 rows (got " + string(ga.length) + ")")
     check(string.len(ga[0]) == 5, "'A' row 0 width == 5")
     check(ga[3] == "#####", "'A' row 3 == '#####' (got '" + ga[3] + "')")
     check(ga[0] == " ### ", "'A' row 0 == ' ### ' (got '" + ga[0] + "')")
 
-    array<string> go = gFont["O"]
+    array<string> go = loadGlyph("O")
     check(go[0] == " ### " and go[6] == " ### ", "'O' top/bottom symmetric")
 
     // 字形宽度一致性：抽检若干字形每行都是 5
@@ -792,7 +804,7 @@ func cmdTest() as int
     array<string> keysToCheck = array["A", "B", "M", "W", "0", "5", " ", ".", "?", "/"]
     int ki = 0
     while ki < keysToCheck.length do
-        array<string> g = gFont[keysToCheck[ki]]
+        array<string> g = loadGlyph(keysToCheck[ki])
         int ri = 0
         while ri < g.length do
             if string.len(g[ri]) != 5 then
@@ -830,8 +842,8 @@ func cmdTest() as int
     check(i4.length == 28, "'A' scale=4 -> 28 rows (got " + string(i4.length) + ")")
     // 5*4=20 像素 + 4 间隔 = 24
     check(string.len(i4[0]) == 24, "'A' scale=4 row width == 24 (got " + string(string.len(i4[0])) + ")")
-    // A 顶行 " ### " => scale=4 => "        ################        " + 4 空格
-    check(i4[0] == "        ################        ", "'A' scale=4 row 0 correct (got '" + i4[0] + "')")
+    // A 顶行 " ### " => scale=4 => 4 空格 + 12 # + 4 空格 + 4 列间隔 = 24
+    check(i4[0] == "    ############        ", "'A' scale=4 row 0 correct (got '" + i4[0] + "')")
 
     // ---- 5. 未知字符 ----
     println("[5] unknown char")
@@ -844,7 +856,7 @@ func cmdTest() as int
     array<string> lo = renderText("a", 1)
     array<string> up = renderText("A", 1)
     check(lo[0] == up[0], "'a' maps to 'A' glyph")
-    check(lo[3] == "#####", "'a' row 3 == '#####'")
+    check(lo[3] == "##### ", "'a' row 3 == '##### '")
 
     // ---- 7. 对齐 ----
     println("[7] alignment")
@@ -855,11 +867,11 @@ func cmdTest() as int
 
     array<string> left = applyAlign(base, 12, "left")
     check(string.len(left[0]) == 12, "left align width 12")
-    check(string.slice(left[0], 0, 6) == " ### ", "left align content at start")
+    check(string.slice(left[0], 0, 5) == " ### ", "left align content at start")
 
     array<string> right = applyAlign(base, 12, "right")
     check(string.len(right[0]) == 12, "right align width 12")
-    check(string.slice(right[0], 6, 12) == " ### ", "right align content at end (got '" + string.slice(right[0], 6, 12) + "')")
+    check(string.slice(right[0], 6, 5) == " ### ", "right align content at end (got '" + string.slice(right[0], 6, 5) + "')")
     // 右对齐前 6 位应为空格
     check(string.slice(right[0], 0, 6) == "      ", "right align leading spaces")
 
@@ -867,7 +879,7 @@ func cmdTest() as int
     check(string.len(center[0]) == 12, "center align width 12")
     // 居中：pad=6, left=3, right=3 => 前 3 空格 + 内容
     check(string.slice(center[0], 0, 3) == "   ", "center align 3 leading spaces")
-    check(string.slice(center[0], 3, 8) == " ### ", "center align content in middle")
+    check(string.slice(center[0], 3, 5) == " ### ", "center align content in middle")
 
     // ---- 8. maxWidthOf ----
     println("[8] maxWidthOf")
@@ -900,7 +912,7 @@ func printUsage()
     println("                                              width: align target width (0=natural)")
     println("  fontrender banner \"<text>\"                  big banner (scale=4 + border)")
     println("  fontrender test                             run self-test")
-    println("font: 5x7, A-Z / 0-9 / punctuation, stored in dict<string, array<string>>")
+    println("font: 5x7, A-Z / 0-9 / punctuation, stored in var")
 end
 
 

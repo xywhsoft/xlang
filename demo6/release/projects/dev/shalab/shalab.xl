@@ -1,4 +1,4 @@
-// shalab - SHA-1 / SHA-256 from scratch (no crypto stdlib)
+﻿// shalab - SHA-1 / SHA-256 from scratch (no crypto stdlib)
 //
 // usage:
 //   shalab test                 self-test: SHA-1/256("abc") known-answer vectors
@@ -71,10 +71,7 @@ end
 
 // Read 4 big-endian bytes from g_msg at byte offset `off` -> one 32-bit word.
 func beWord(int off) as int64
-    return (int64(g_msg[off])     << 24)
-         | (int64(g_msg[off + 1]) << 16)
-         | (int64(g_msg[off + 2]) <<  8)
-         |  int64(g_msg[off + 3])
+    return (int64(g_msg[off]) << 24) | (int64(g_msg[off + 1]) << 16) | (int64(g_msg[off + 2]) << 8) | int64(g_msg[off + 3])
 end
 
 // Append big-endian 64-bit value `v` to the byte buffer `buf` (high byte first).

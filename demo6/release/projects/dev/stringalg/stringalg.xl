@@ -41,7 +41,15 @@ array<int> g_suf
 // ============================================================
 
 func toBytes(string s) as array<int>
-    return string.bytes(s)
+    // string.bytes 返回无类型 array；经 array<int> 返回类型直通会变空，需逐元素拷贝。
+    array raw = string.bytes(s)
+    array<int> out = array[]
+    int i = 0
+    while i < raw.length do
+        out.push(int(raw[i]))
+        i = i + 1
+    end
+    return out
 end
 
 // 从字节偏移 start 起取 count 个字节, 还原为字符串 (逐字节 formatInt "c")
@@ -651,7 +659,8 @@ func cmdTest() as int
     end
 
     // 无匹配
-    if kmpSearch(toBytes("xyz"), toBytes("ababcab")).length == 0 then
+    array<int> noMatch = kmpSearch(toBytes("xyz"), toBytes("ababcab"))
+    if noMatch.length == 0 then
         println("  [OK] KMP    'xyz' in 'ababcab' -> [] (no match)")
     else
         fails += 1

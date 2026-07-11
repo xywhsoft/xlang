@@ -260,7 +260,7 @@ end
 
 // Hex string of a Buffer's contents (for diagnostics).
 func bufHex(Buffer buf) as string
-    return codec.hexEncodeBytes(buf.data(), c_size(buf.len()))
+    return string.lower(codec.hexEncodeBytes(buf.data(), c_size(buf.len())))
 end
 
 
@@ -338,7 +338,7 @@ func runTests() as int
         ok7 = ok7 and g_opcode == OP_TEXT
         ok7 = ok7 and g_masked
         ok7 = ok7 and g_payloadLen == 5
-        ok7 = ok7 and g_headerLen == 8
+        ok7 = ok7 and g_headerLen == 6
         ok7 = ok7 and g_maskOffset == 2
         ok7 = ok7 and g_payloadOffset == 6
     end

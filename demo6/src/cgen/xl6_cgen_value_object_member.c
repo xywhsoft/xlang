@@ -122,6 +122,10 @@ static int xl6CgenXValueMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode* me
     }
     receiver = member->children[0];
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    if ( xl6CgenRefTargetType(ctx, receiverType) != NULL ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
     if ( !xl6CgenIsXValueType(receiverType) ) {
         xl6AstFree(receiverType);
         return 0;

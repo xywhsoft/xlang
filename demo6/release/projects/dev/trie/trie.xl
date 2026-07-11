@@ -764,8 +764,9 @@ func cmdTest() as int
 
     // ---- T6: 序列化往返 ----
     string js = f.serialize()
-    bool hasWord = string.contains(js, "careful")
-    expectTrue(hasWord, "serialize text contains a known word node")
+    // 序列化结果保存了节点池结构与 wordCount；不含字面单词字符串（词由路径重建）。
+    bool hasWord = string.contains(js, "wordCount") and string.contains(js, "isWord")
+    expectTrue(hasWord, "serialize text contains trie structure markers")
 
     Trie restored = Trie()
     bool loaded = restored.deserialize(js)
@@ -793,9 +794,9 @@ func cmdTest() as int
     expectTrue(lt.search("hello"), "loaded hello")
     expectTrue(lt.search("helicopter"), "loaded helicopter")
     expectFalse(lt.search("hel"), "loaded 'hel' not a word")
-    expectI(lt.count("he"), 4, "count 'he' == 4 (hello/helicopter/help/happen)")
+    expectI(lt.count("he"), 3, "count 'he' == 3 (hello/helicopter/help)")
     var heAuto = lt.autocomplete("he")
-    expectI(heAuto.length, 4, "autocomplete 'he' == 4")
+    expectI(heAuto.length, 3, "autocomplete 'he' == 3")
     file.delete(dictPath)
 
     // ---- T8: 最长前缀匹配（IP 路由 / CIDR 场景）----

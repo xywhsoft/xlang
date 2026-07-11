@@ -6,76 +6,15 @@ static int xl6CgenHeaderTextEquals(const char* a, const char* b)
     return (a != NULL) && (b != NULL) && (strcmp(a, b) == 0);
 }
 
-static unsigned int xl6CgenHeaderNextUtf8Codepoint(const unsigned char** p)
+static void xl6CgenHeaderFputsCIdent(XL6_Output* out, const char* text)
 {
-    const unsigned char* s;
-    unsigned int cp;
+    char encoded[49];
 
-    if ( p == NULL || *p == NULL || **p == '\0' ) {
-        return 0;
-    }
-
-    s = *p;
-    if ( s[0] < 0x80 ) {
-        *p = s + 1;
-        return s[0];
-    }
-    if ( (s[0] & 0xE0) == 0xC0 && (s[1] & 0xC0) == 0x80 ) {
-        cp = ((unsigned int)(s[0] & 0x1F) << 6) | (unsigned int)(s[1] & 0x3F);
-        *p = s + 2;
-        return cp;
-    }
-    if ( (s[0] & 0xF0) == 0xE0 && (s[1] & 0xC0) == 0x80 && (s[2] & 0xC0) == 0x80 ) {
-        cp = ((unsigned int)(s[0] & 0x0F) << 12) |
-             ((unsigned int)(s[1] & 0x3F) << 6) |
-             (unsigned int)(s[2] & 0x3F);
-        *p = s + 3;
-        return cp;
-    }
-    if ( (s[0] & 0xF8) == 0xF0 && (s[1] & 0xC0) == 0x80 &&
-         (s[2] & 0xC0) == 0x80 && (s[3] & 0xC0) == 0x80 ) {
-        cp = ((unsigned int)(s[0] & 0x07) << 18) |
-             ((unsigned int)(s[1] & 0x3F) << 12) |
-             ((unsigned int)(s[2] & 0x3F) << 6) |
-             (unsigned int)(s[3] & 0x3F);
-        *p = s + 4;
-        return cp;
-    }
-
-    *p = s + 1;
-    return s[0];
-}
-
-static void xl6CgenHeaderFputsCIdentCodepoint(XL6_Output* out, unsigned int cp, int isFirst)
-{
     if ( out == NULL ) {
         return;
     }
-    if ( (cp >= 'a' && cp <= 'z') || (cp >= 'A' && cp <= 'Z') || cp == '_' ||
-         (!isFirst && cp >= '0' && cp <= '9') ) {
-        xl6OutputPutc((int)cp, out);
-    } else if ( cp <= 0xFFFFU ) {
-        xl6OutputPrintf(out, "_u%04X_", cp);
-    } else {
-        xl6OutputPrintf(out, "_u%06X_", cp);
-    }
-}
-
-static void xl6CgenHeaderFputsCIdent(XL6_Output* out, const char* text)
-{
-    const unsigned char* p;
-    int isFirst;
-
-    if ( text == NULL || text[0] == '\0' ) {
-        xl6OutputPutc('_', out);
-        return;
-    }
-    p = (const unsigned char*)text;
-    isFirst = 1;
-    while ( *p != '\0' ) {
-        xl6CgenHeaderFputsCIdentCodepoint(out, xl6CgenHeaderNextUtf8Codepoint(&p), isFirst);
-        isFirst = 0;
-    }
+    xl6CgenEncodeCIdentifier(encoded, sizeof(encoded), text);
+    xl6OutputPuts(encoded, out);
 }
 
 static void xl6CgenHeaderAppendText(char* buffer, size_t capacity, const char* text)
@@ -104,30 +43,10 @@ static void xl6CgenHeaderAppendText(char* buffer, size_t capacity, const char* t
 
 static void xl6CgenHeaderAppendEncodedText(char* buffer, size_t capacity, const char* text)
 {
-    const unsigned char* p;
-    char tmp[32];
+    char encoded[49];
 
-    if ( text == NULL || text[0] == '\0' ) {
-        xl6CgenHeaderAppendText(buffer, capacity, "_");
-        return;
-    }
-    p = (const unsigned char*)text;
-    while ( *p != '\0' ) {
-        unsigned int cp = xl6CgenHeaderNextUtf8Codepoint(&p);
-        if ( (cp >= 'a' && cp <= 'z') || (cp >= 'A' && cp <= 'Z') || (cp >= '0' && cp <= '9') ) {
-            tmp[0] = (char)cp;
-            tmp[1] = '\0';
-        } else if ( cp == '_' ) {
-            tmp[0] = '_';
-            tmp[1] = '_';
-            tmp[2] = '\0';
-        } else if ( cp <= 0xFFFFU ) {
-            snprintf(tmp, sizeof(tmp), "_u%04X_", cp);
-        } else {
-            snprintf(tmp, sizeof(tmp), "_u%06X_", cp);
-        }
-        xl6CgenHeaderAppendText(buffer, capacity, tmp);
-    }
+    xl6CgenEncodeSymbolComponent(encoded, sizeof(encoded), text);
+    xl6CgenHeaderAppendText(buffer, capacity, encoded);
 }
 
 static void xl6CgenHeaderUnionTypeTextName(char* buffer, size_t capacity, const char* name)
@@ -368,6 +287,7 @@ static const char* xl6CgenHeaderTypeName(const XL6_AstNode* root, const XL6_AstN
         return "void*";
     }
     if ( xl6CgenHeaderTextEquals(typeNode->text, "var") ||
+         xl6CgenHeaderTextEquals(typeNode->text, "ref") ||
          xl6CgenHeaderTextEquals(typeNode->text, "array") || xl6CgenHeaderTextEquals(typeNode->text, "array<var>") ||
          xl6CgenHeaderTextEquals(typeNode->text, "list") || xl6CgenHeaderTextEquals(typeNode->text, "list<var>") ||
          xl6CgenHeaderTextEquals(typeNode->text, "set") || xl6CgenHeaderTextEquals(typeNode->text, "set<var>") ||

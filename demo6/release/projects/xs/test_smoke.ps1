@@ -12,9 +12,20 @@ New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 Remove-Item -LiteralPath $outLog,$errLog,$customOut -Force -ErrorAction SilentlyContinue
 
 function Wait-HttpReady {
-    param([int]$Port)
+    param(
+        [int]$Port,
+        [System.Diagnostics.Process]$ServerProcess
+    )
 
     for ($i = 0; $i -lt 80; $i++) {
+        if ($ServerProcess.HasExited) {
+            $stderr = if (Test-Path -LiteralPath $errLog) {
+                [System.IO.File]::ReadAllText($errLog, [System.Text.Encoding]::UTF8).Trim()
+            } else {
+                ""
+            }
+            throw "xs process exited before HTTP readiness: code=$($ServerProcess.ExitCode), stderr=$stderr"
+        }
         try {
             $resp = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:$Port/" -TimeoutSec 1
             if ($resp.StatusCode -eq 200) {
@@ -24,7 +35,12 @@ function Wait-HttpReady {
             Start-Sleep -Milliseconds 100
         }
     }
-    throw "HTTP service did not become ready"
+    $stderr = if (Test-Path -LiteralPath $errLog) {
+        [System.IO.File]::ReadAllText($errLog, [System.Text.Encoding]::UTF8).Trim()
+    } else {
+        ""
+    }
+    throw "HTTP service did not become ready: stderr=$stderr"
 }
 
 $proc = Start-Process -FilePath $xl `
@@ -35,7 +51,7 @@ $proc = Start-Process -FilePath $xl `
     -PassThru
 
 try {
-    Wait-HttpReady -Port 18080
+    Wait-HttpReady -Port 18080 -ServerProcess $proc
 
     $client = Start-Process -FilePath $xl `
         -ArgumentList @("run", "projects\xs\smoke_client.xl") `

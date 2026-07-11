@@ -376,8 +376,8 @@ end
 //
 //   返回 (inSets, outSets)：均为 dict<块id, dict<string,bool>>。
 func solveWorklist(CFG cfg, bool forward,
-                   func(string, var) as var transfer,
-                   func(var) as var meetOp,
+                   var genSets, var killSets,
+                   bool meetIsUnion,
                    var boundary) as (var, var)
     var inSets = {}
     var outSets = {}
@@ -422,9 +422,13 @@ func solveWorklist(CFG cfg, bool forward,
                     sets.push(outSets[string(preds[pi])])
                     pi = pi + 1
                 end
-                newIn = meetOp(sets)
+                if meetIsUnion then
+                    newIn = meetUnion(sets)
+                else
+                    newIn = meetInter(sets)
+                end
             end
-            var newOut = transfer(bid, newIn)
+            var newOut = setUnion(genSets[bid], setDiff(newIn, killSets[bid]))
             if not setEqual(newOut, outSets[bid]) then
                 outSets[bid] = newOut
                 inSets[bid] = newIn
@@ -449,9 +453,13 @@ func solveWorklist(CFG cfg, bool forward,
                     sets.push(inSets[string(succs[si])])
                     si = si + 1
                 end
-                newOut = meetOp(sets)
+                if meetIsUnion then
+                    newOut = meetUnion(sets)
+                else
+                    newOut = meetInter(sets)
+                end
             end
-            var newIn = transfer(bid, newOut)
+            var newIn = setUnion(genSets[bid], setDiff(newOut, killSets[bid]))
             if not setEqual(newIn, inSets[bid]) then
                 inSets[bid] = newIn
                 outSets[bid] = newOut
@@ -526,13 +534,8 @@ func analyzeLiveness(CFG cfg) as (var, var)
     var useSets = {}
     var defSets = {}
     useSets, defSets = computeUseDef(cfg)
-    auto transfer = func(string b, var outSet) as var
-        var use = useSets[b]
-        var def = defSets[b]
-        return setUnion(use, setDiff(outSet, def))
-    end
     var boundary = {}
-    return solveWorklist(cfg, false, transfer, meetUnion, boundary)
+    return solveWorklist(cfg, false, useSets, defSets, true, boundary)
 end
 
 
@@ -628,13 +631,8 @@ func analyzeReachingDefs(CFG cfg) as (var, var)
     var genSets = {}
     var killSets = {}
     genSets, killSets = computeGenKill(cfg)
-    auto transfer = func(string b, var inSet) as var
-        var gen = genSets[b]
-        var kill = killSets[b]
-        return setUnion(gen, setDiff(inSet, kill))
-    end
     var boundary = {}
-    return solveWorklist(cfg, true, transfer, meetUnion, boundary)
+    return solveWorklist(cfg, true, genSets, killSets, true, boundary)
 end
 
 
@@ -769,13 +767,8 @@ func analyzeAvailableExprs(CFG cfg) as (var, var)
     var genSets = {}
     var killSets = {}
     genSets, killSets = computeExprGenKill(cfg)
-    auto transfer = func(string b, var inSet) as var
-        var gen = genSets[b]
-        var kill = killSets[b]
-        return setUnion(gen, setDiff(inSet, kill))
-    end
     var boundary = {}
-    return solveWorklist(cfg, true, transfer, meetInter, boundary)
+    return solveWorklist(cfg, true, genSets, killSets, false, boundary)
 end
 
 

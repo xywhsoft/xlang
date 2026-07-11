@@ -1,0 +1,2141 @@
+// ircserver - RFC 1459 subset IRC server (TCP + self-test)
+//
+// 用法：
+//   ircserver test              -> self-test：不启动真实 server，模拟协议交互验证全部命令
+//   ircserver serve <port>      -> 常驻模式，监听 port（默认 16667）接受真实 IRC 客户端
+//   ircserver -h | --help       -> 帮助
+//
+// 验证范围：
+//   1. TCP server          tcp.listen / TcpServer.acceptAsync 接受客户端连接
+//   2. IRC 协议解析        `[:prefix] COMMAND param :trailing` 行解析（含多行粘包）
+//   3. 注册                NICK / USER -> 001/002/003/004 + MOTD(375/372/376)
+//   4. 频道                JOIN / PART / 创建 / 销毁 / 成员管理 / 消息广播
+//   5. 消息                PRIVMSG (channel + nick) / QUIT / QUIT 广播
+//   6. 信道控制            TOPIC (get/set + +t 保护) / NAMES / MODE (+n/+t/+s/+p/+m/+o)
+//   7. 保活                PING / PONG（客户端发起 + server 空闲探测）
+//   8. 昵称                唯一性（IRC 大小写折叠）/ 昵称变更广播
+//   9. 数值回复            001..004, 324, 331/332, 353/366, 375/372/376
+//                          401, 403, 404, 409, 411/412, 421, 431/432/433,
+//                          441/442, 451, 461, 462, 482, 501
+//  10. self-test 模式      不启动真实 server，直接驱动核心状态机验证协议交互
+//
+// 设计约束（见 dev/README "当前设计限制" 与 dev/BUGS.md BUG-XB1）：
+//   * native-backed class（TcpStream / TcpServer）不跨函数按值传参。
+//     每个 client 连接的 TcpStream 只存在于该连接的 thread 闭包内部，
+//     协议处理函数（processLine 等）完全不接触 TcpStream，只读写全局状态。
+//   * BUG-XB1：文件作用域 var 容器在 native 回调里元素引用丢失。绕过方式：
+//     所有共享状态只用全局 string（gConns / gChannels / gOutbox，存 JSON 文本）
+//     和全局 int（gNextConnId / gServing / gTotalConns）+ 一个全局 mutex。
+//     string / int / mutex 在 thread / native 回调里访问完全正常；每次操作把
+//     JSON string parse 成局部 var，改完再 stringify 写回全局 string。
+//   * IRC 大小写：RFC 1459 2.2 规定 `{}|^` 为 `[]\~` 的小写形式，ircUpper 做
+//     ASCII 大写 + 这四组特殊折叠；昵称 / 频道名比较一律走 ircEqual。
+//   * processLine 是唯一触碰全局可变状态（gConns/gChannels/gOutbox）的入口：
+//     一次 gLock 临界区里 snapshot -> 解析 -> 派发 -> 回写，避免并发竞态。
+//     serve 模式的连接 thread 通过 drainOutbox(connId) 取走自己的待发报文。
+
+const int DEFAULT_PORT = 16667
+const int RECV_TIMEOUT_MS = 500
+const int IDLE_PING_TICKS = 60        // ~30s 空闲后发 PING
+const int IDLE_KILL_TICKS = 240       // ~120s 空闲后断开
+
+// 服务器标识
+string SERVER_NAME = "irc.xlang.local"
+string SERVER_VERSION = "xlang-irc1.0"
+string USER_MODES = "iwo"             // 用户模式（本子集仅做声明）
+string CHAN_MODES = "nstspm"          // 频道模式（n/t/s/p/m 无参，o 带参）
+
+point ZERO                            // 默认零句柄（tcp.connect/listen 失败判定）
+
+// ============================================================
+// 共享状态（全局 string/int/mutex，见 BUG-XB1）
+//   gConns    : { "<connId>": {nick,user,host,real,registered,channels:[...]} }
+//   gChannels : { "#name": {topic,members:[nick],modes:[c],op:nick,key:""} }
+//   gOutbox   : { "<connId>": ["raw line\r\n", ...] }  待发送队列
+// ============================================================
+string gConns = "{}"
+string gChannels = "{}"
+string gOutbox = "{}"
+int gNextConnId = 1
+int gServing = 0
+int gTotalConns = 0
+string gCreated = ""
+mutex gLock
+
+// ============================================================
+// self-test 计数
+// ============================================================
+int gPassed = 0
+int gFailed = 0
+
+func check(bool cond, string name, string detail)
+    if cond then
+        gPassed = gPassed + 1
+        println("[ PASS ] " + name)
+    else
+        gFailed = gFailed + 1
+        println("[ FAIL ] " + name + "  " + detail)
+    end
+end
+
+func expectContains(string hay, string needle, string name)
+    check(string.contains(hay, needle), name, "missing '" + needle + "' in: " + hay)
+end
+
+func expectNotContains(string hay, string needle, string name)
+    check(not string.contains(hay, needle), name, "unexpected '" + needle + "' in: " + hay)
+end
+
+// ============================================================
+// 字符串 / 协议辅助
+// ============================================================
+
+func cidKey(int connId) as string
+    return connId.toString()
+end
+
+// 从下标 i 取到串尾（slice 起始 + 长度封装，减少手算出错）
+func fromIdx(string s, int i) as string
+    int total = string.len(s)
+    if i >= total then
+        return ""
+    end
+    if i < 0 then
+        i = 0
+    end
+    return string.slice(s, i, total - i)
+end
+
+// IRC 大小写折叠（RFC 1459 2.2）：{}|^  ->  []\~
+func ircUpper(string s) as string
+    string r = string.upper(s)
+    r = string.replace(r, "{", "[")
+    r = string.replace(r, "}", "]")
+    r = string.replace(r, "|", "\\")
+    r = string.replace(r, "^", "~")
+    return r
+end
+
+func ircEqual(string a, string b) as bool
+    return ircUpper(a) == ircUpper(b)
+end
+
+func isAlpha(string c) as bool
+    return string.contains("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", c)
+end
+
+func isDigit(string c) as bool
+    return string.contains("0123456789", c)
+end
+
+// 昵称字符：字母 / 数字 / 特殊 `- _ [ ] \ ` ^ { } |`
+func isNickChar(string c) as bool
+    if string.len(c) != 1 then
+        return false
+    end
+    if isAlpha(c) then
+        return true
+    end
+    if isDigit(c) then
+        return true
+    end
+    return string.contains("-_[]\\`^{}|", c)
+end
+
+// 昵称首字符：字母或特殊（不能是数字 / 连字符）
+func isNickFirstChar(string c) as bool
+    if string.len(c) != 1 then
+        return false
+    end
+    if isAlpha(c) then
+        return true
+    end
+    return string.contains("[]\\`_^{}|", c)
+end
+
+func isValidNick(string nick) as bool
+    int n = string.len(nick)
+    if n < 1 or n > 30 then
+        return false
+    end
+    if not isNickFirstChar(string.charAt(nick, 0)) then
+        return false
+    end
+    int i = 1
+    while i < n do
+        if not isNickChar(string.charAt(nick, i)) then
+            return false
+        end
+        i = i + 1
+    end
+    return true
+end
+
+func isValidChanName(string name) as bool
+    int n = string.len(name)
+    if n < 2 then
+        return false
+    end
+    if string.charAt(name, 0) != "#" then
+        return false
+    end
+    int i = 1
+    while i < n do
+        string c = string.charAt(name, i)
+        if c == " " or c == "," or c == "\r" or c == "\n" or c == "\t" then
+            return false
+        end
+        i = i + 1
+    end
+    return true
+end
+
+// 解析一行 IRC 报文 `[:prefix] COMMAND p1 p2 :trailing`
+// 返回 var dict: {prefix, command, params:[], trailing, hasTrailing}
+func parseIrcLine(string line) as var
+    var msg = {}
+    msg["prefix"] = ""
+    msg["command"] = ""
+    msg["params"] = []
+    msg["trailing"] = ""
+    msg["hasTrailing"] = false
+
+    string s = line
+    int L = string.len(s)
+    if L > 0 and string.charAt(s, L - 1) == "\r" then
+        s = string.left(s, L - 1)
+    end
+    if s == "" then
+        return msg
+    end
+
+    // 前缀
+    if string.charAt(s, 0) == ":" then
+        int sp = string.indexOf(s, " ")
+        if sp < 0 then
+            msg["prefix"] = fromIdx(s, 1)
+            return msg
+        end
+        msg["prefix"] = string.slice(s, 1, sp - 1)
+        s = fromIdx(s, sp + 1)
+    end
+    if s == "" then
+        return msg
+    end
+
+    // 尾部 ` :trailing`（最后一个以 : 开头的参数，可含空格）
+    int colon = string.indexOf(s, " :")
+    if colon >= 0 then
+        msg["trailing"] = fromIdx(s, colon + 2)
+        msg["hasTrailing"] = true
+        s = string.left(s, colon)
+    end
+
+    // 命令 + 中间参数
+    int sp2 = string.indexOf(s, " ")
+    if sp2 < 0 then
+        msg["command"] = s
+        return msg
+    end
+    msg["command"] = string.left(s, sp2)
+    string rest = fromIdx(s, sp2 + 1)
+    if rest != "" then
+        array parts = string.split(rest, " ")
+        var parr = msg["params"]
+        int pi = 0
+        while pi < parts.length do
+            string p = string(parts[pi])
+            if p != "" then
+                parr.push(p)
+            end
+            pi = pi + 1
+        end
+        msg["params"] = parr
+    end
+    return msg
+end
+
+// ============================================================
+// 状态访问辅助（均作用于 processLine 临界区内的局部 var）
+// ============================================================
+
+func newConnDict(string host) as var
+    var c = {}
+    c["nick"] = ""
+    c["user"] = ""
+    c["host"] = host
+    c["real"] = ""
+    c["registered"] = false
+    c["channels"] = []
+    return c
+end
+
+func newChanDict(string opNick) as var
+    var ch = {}
+    ch["topic"] = ""
+    ch["topicWho"] = ""
+    ch["topicTime"] = 0
+    ch["created"] = time.toUnix(time.now())
+    var members = []
+    members.push(opNick)
+    ch["members"] = members
+    var modes = []
+    modes.push("n")
+    modes.push("t")
+    ch["modes"] = modes
+    ch["op"] = opNick
+    ch["key"] = ""
+    return ch
+end
+
+// 统计：当前连接数 / 频道数 / 已注册连接数（持锁快照）
+func serverStats() as (int, int, int)
+    gLock.lock()
+    var conns = json.parse(gConns)
+    var chans = json.parse(gChannels)
+    int totalConns = 0
+    int registered = 0
+    for k, v in conns
+        totalConns = totalConns + 1
+        if bool(v["registered"]) then
+            registered = registered + 1
+        end
+    end
+    int totalChans = 0
+    for ck, cv in chans
+        totalChans = totalChans + 1
+    end
+    gLock.unlock()
+    return totalConns, totalChans, registered
+end
+
+func buildPrefix(int connId, var conns) as string
+    if not (cidKey(connId) in conns) then
+        return "*"
+    end
+    var conn = conns[cidKey(connId)]
+    return string(conn["nick"]) + "!" + string(conn["user"]) + "@" + string(conn["host"])
+end
+
+// 按昵称（大小写不敏感）找 connId，找不到返回 0
+func findConnIdByNick(var conns, string nick) as int
+    for k, v in conns
+        if ircEqual(string(v["nick"]), nick) then
+            return int(k)
+        end
+    end
+    return 0
+end
+
+// 按频道名（大小写不敏感）找存储 key，找不到返回 ""
+func findChanKey(var chans, string name) as string
+    for k, v in chans
+        if ircEqual(k, name) then
+            return k
+        end
+    end
+    return ""
+end
+
+func modeInArray(var modes, string c) as bool
+    for m in modes
+        if string(m) == c then
+            return true
+        end
+    end
+    return false
+end
+
+func modeRemove(var modes, string c) as var
+    var out = []
+    for m in modes
+        if string(m) != c then
+            out.push(m)
+        end
+    end
+    return out
+end
+
+func hasMode(var ch, string mode) as bool
+    return modeInArray(ch["modes"], mode)
+end
+
+func isMember(var ch, string nick) as bool
+    var members = ch["members"]
+    for m in members
+        if ircEqual(string(m), nick) then
+            return true
+        end
+    end
+    return false
+end
+
+// 生成频道 mode 串（规范顺序），如 "nt"
+func joinModes(var ch) as string
+    var modes = ch["modes"]
+    string s = ""
+    array order = ["n", "t", "s", "p", "m"]
+    int i = 0
+    while i < order.length do
+        string c = string(order[i])
+        if modeInArray(modes, c) then
+            s = s + c
+        end
+        i = i + 1
+    end
+    return s
+end
+
+// ============================================================
+// 发送队列 / 数值回复（操作局部 outbox var，不持锁）
+// ============================================================
+
+func enqueueLocal(var outbox, int connId, string line)
+    string k = cidKey(connId)
+    if not (k in outbox) then
+        outbox[k] = []
+    end
+    var arr = outbox[k]
+    arr.push(line)
+    outbox[k] = arr
+end
+
+// 把一条报文发给频道的所有成员（按昵称解析 connId），可排除一个连接
+func broadcastToChannel(var chans, var conns, var outbox, string chanName, string line, int exceptConnId)
+    string key = findChanKey(chans, chanName)
+    if key == "" then
+        return
+    end
+    var ch = chans[key]
+    var members = ch["members"]
+    for nick in members
+        int cid = findConnIdByNick(conns, string(nick))
+        if cid > 0 and cid != exceptConnId then
+            enqueueLocal(outbox, cid, line)
+        end
+    end
+end
+
+// :SERVER <code(3位)> <nick> :<text>
+func numeric(int connId, int code, var conns, var outbox, string text)
+    string nick = "*"
+    if cidKey(connId) in conns then
+        string n = string(conns[cidKey(connId)]["nick"])
+        if n != "" then
+            nick = n
+        end
+    end
+    string codeStr = string.padLeft(code.toString(), 3, "0")
+    string line = ":" + SERVER_NAME + " " + codeStr + " " + nick + " :" + text + "\r\n"
+    enqueueLocal(outbox, connId, line)
+end
+
+// ============================================================
+// 注册 / MOTD / NAMES 输出
+// ============================================================
+
+// 当 nick 与 user 均已就绪且尚未注册时，完成注册并发欢迎序列
+func maybeWelcome(int connId, var conns, var outbox)
+    if not (cidKey(connId) in conns) then
+        return
+    end
+    var conn = conns[cidKey(connId)]
+    if bool(conn["registered"]) then
+        return
+    end
+    if string(conn["nick"]) == "" then
+        return
+    end
+    if string(conn["user"]) == "" then
+        return
+    end
+    conn["registered"] = true
+    conns[cidKey(connId)] = conn
+
+    string nick = string(conn["nick"])
+    string prefix = buildPrefix(connId, conns)
+
+    // 001 RPL_WELCOME
+    numeric(connId, 1, conns, outbox, "Welcome to the xlang IRC network " + prefix)
+    // 002 RPL_YOURHOST
+    numeric(connId, 2, conns, outbox, "Your host is " + SERVER_NAME + ", running version " + SERVER_VERSION)
+    // 003 RPL_CREATED
+    numeric(connId, 3, conns, outbox, "This server was created " + gCreated)
+    // 004 RPL_MYINFO（参数形式，无 : 前缀）
+    string l004 = ":" + SERVER_NAME + " 004 " + nick + " " + SERVER_NAME + " " + SERVER_VERSION + " " + USER_MODES + " " + CHAN_MODES + "\r\n"
+    enqueueLocal(outbox, connId, l004)
+    // 005 RPL_ISUPPORT：声明本子集支持的特性（客户端据此调整行为）
+    string l005 = ":" + SERVER_NAME + " 005 " + nick + " CHANTYPES=# CHANMODES=ntspm PREFIX=(o)@ NICKLEN=30 TOPICLEN=300 NETWORK=xlang :are supported by this server\r\n"
+    enqueueLocal(outbox, connId, l005)
+    // MOTD
+    numeric(connId, 375, conns, outbox, "- " + SERVER_NAME + " Message of the day -")
+    numeric(connId, 372, conns, outbox, "- Welcome to the xlang IRC server (RFC 1459 subset).")
+    numeric(connId, 372, conns, outbox, "- This is a demonstration server written in xlang.")
+    numeric(connId, 376, conns, outbox, "End of MOTD command")
+end
+
+// 发送频道成员名单（353 + 366）给 connId
+func sendNames(int connId, var conns, var chans, var outbox, string chanKey)
+    if not (chanKey in chans) then
+        numeric(connId, 366, conns, outbox, chanKey + " :End of NAMES list")
+        return
+    end
+    var ch = chans[chanKey]
+    var members = ch["members"]
+    string op = string(ch["op"])
+    string names = ""
+    for m in members
+        string mn = string(m)
+        if ircEqual(mn, op) then
+            names = names + "@" + mn + " "
+        else
+            names = names + mn + " "
+        end
+    end
+    names = string.trim(names)
+    string nick = string(conns[cidKey(connId)]["nick"])
+    // 353 RPL_NAMREPLY: = 表示 public 频道
+    string l353 = ":" + SERVER_NAME + " 353 " + nick + " = " + chanKey + " :" + names + "\r\n"
+    enqueueLocal(outbox, connId, l353)
+    numeric(connId, 366, conns, outbox, chanKey + " :End of NAMES list")
+end
+
+// ============================================================
+// 命令处理器（全部接收局部 conns/chans/outbox，不触碰全局 / 不持锁）
+// ============================================================
+
+// ---- NICK ----
+func cmdNick(int connId, var msg, var conns, var chans, var outbox)
+    var params = msg["params"]
+    string newNick = ""
+    if params.length > 0 then
+        newNick = string(params[0])
+    end
+    if newNick == "" and string(msg["trailing"]) != "" then
+        newNick = string(msg["trailing"])
+    end
+    if newNick == "" then
+        numeric(connId, 431, conns, outbox, "No nickname given")
+        return
+    end
+    if not isValidNick(newNick) then
+        numeric(connId, 432, conns, outbox, newNick + " :Erroneous nickname")
+        return
+    end
+    // 唯一性（大小写不敏感，排除自己）
+    for k, v in conns
+        if int(k) != connId then
+            if ircEqual(string(v["nick"]), newNick) then
+                numeric(connId, 433, conns, outbox, newNick + " :Nickname is already in use")
+                return
+            end
+        end
+    end
+
+    var conn = conns[cidKey(connId)]
+    string oldNick = string(conn["nick"])
+    bool wasReg = bool(conn["registered"])
+    conn["nick"] = newNick
+    conns[cidKey(connId)] = conn
+
+    // 已注册用户改名：更新所有频道成员表 + 广播 NICK
+    if oldNick != "" and wasReg then
+        string prefix = oldNick + "!" + string(conn["user"]) + "@" + string(conn["host"])
+        string line = ":" + prefix + " NICK :" + newNick + "\r\n"
+        // 更新频道成员表 / op
+        for ck, cv in chans
+            var members = cv["members"]
+            var newMembers = []
+            bool changed = false
+            for m in members
+                if ircEqual(string(m), oldNick) then
+                    newMembers.push(newNick)
+                    changed = true
+                else
+                    newMembers.push(m)
+                end
+            end
+            if changed then
+                cv["members"] = newMembers
+                if ircEqual(string(cv["op"]), oldNick) then
+                    cv["op"] = newNick
+                end
+                chans[ck] = cv
+            end
+        end
+        // 广播给自己 + 所有共享频道的人（去重）
+        var seen = {}
+        seen[cidKey(connId)] = true
+        enqueueLocal(outbox, connId, line)
+        var clist = conns[cidKey(connId)]["channels"]
+        for cc in clist
+            string key = string(cc)
+            if key in chans then
+                var members2 = chans[key]["members"]
+                for m in members2
+                    int cid = findConnIdByNick(conns, string(m))
+                    if cid != 0 and not (cidKey(cid) in seen) then
+                        seen[cidKey(cid)] = true
+                        enqueueLocal(outbox, cid, line)
+                    end
+                end
+            end
+        end
+    end
+
+    maybeWelcome(connId, conns, outbox)
+end
+
+// ---- USER ----
+func cmdUser(int connId, var msg, var conns, var outbox)
+    var params = msg["params"]
+    string real = string(msg["trailing"])
+    if params.length < 1 then
+        numeric(connId, 461, conns, outbox, "USER :Not enough parameters")
+        return
+    end
+    var conn = conns[cidKey(connId)]
+    if bool(conn["registered"]) then
+        numeric(connId, 462, conns, outbox, ":You may not reregister")
+        return
+    end
+    conn["user"] = string(params[0])
+    if real != "" then
+        conn["real"] = real
+    end
+    if string(conn["host"]) == "" then
+        conn["host"] = "localhost"
+    end
+    conns[cidKey(connId)] = conn
+    maybeWelcome(connId, conns, outbox)
+end
+
+// ---- JOIN ----
+func cmdJoin(int connId, var msg, var conns, var chans, var outbox)
+    var params = msg["params"]
+    if params.length < 1 then
+        numeric(connId, 461, conns, outbox, "JOIN :Not enough parameters")
+        return
+    end
+    string targets = string(params[0])
+    array chanList = string.split(targets, ",")
+    int ci = 0
+    while ci < chanList.length do
+        joinOne(connId, string(chanList[ci]), conns, chans, outbox)
+        ci = ci + 1
+    end
+end
+
+// 处理单个频道加入（用 return 跳过本频道，等价 continue）
+func joinOne(int connId, string c, var conns, var chans, var outbox)
+    string nick = string(conns[cidKey(connId)]["nick"])
+    string prefix = buildPrefix(connId, conns)
+    if string.len(c) == 0 then
+        return
+    end
+    if not isValidChanName(c) then
+        numeric(connId, 403, conns, outbox, c + " :No such channel")
+        return
+    end
+    string key = findChanKey(chans, c)
+    if key == "" then
+        var fresh = newChanDict(nick)
+        chans[c] = fresh
+        key = c
+    end
+    var ch = chans[key]
+    if isMember(ch, nick) then
+        return
+    end
+    // 加入成员
+    var members = ch["members"]
+    members.push(nick)
+    ch["members"] = members
+    chans[key] = ch
+    // 更新连接频道表
+    var conn = conns[cidKey(connId)]
+    var clist = conn["channels"]
+    clist.push(key)
+    conn["channels"] = clist
+    conns[cidKey(connId)] = conn
+    // 广播 JOIN 给所有成员（含自己）
+    string joinLine = ":" + prefix + " JOIN :" + key + "\r\n"
+    broadcastToChannel(chans, conns, outbox, key, joinLine, 0)
+    // topic（含 333 设置者/时间）
+    if string(ch["topic"]) == "" then
+        numeric(connId, 331, conns, outbox, key + " :No topic is set")
+    else
+        numeric(connId, 332, conns, outbox, key + " :" + string(ch["topic"]))
+        string who = string(ch["topicWho"])
+        if who != "" then
+            string l333 = ":" + SERVER_NAME + " 333 " + nick + " " + key + " " + who + " " + string(ch["topicTime"]) + "\r\n"
+            enqueueLocal(outbox, connId, l333)
+        end
+    end
+    // 329 RPL_CREATIONTIME
+    string l329 = ":" + SERVER_NAME + " 329 " + nick + " " + key + " " + string(ch["created"]) + "\r\n"
+    enqueueLocal(outbox, connId, l329)
+    // 名单
+    sendNames(connId, conns, chans, outbox, key)
+end
+
+// ---- PART ----
+func cmdPart(int connId, var msg, var conns, var chans, var outbox)
+    var params = msg["params"]
+    if params.length < 1 then
+        numeric(connId, 461, conns, outbox, "PART :Not enough parameters")
+        return
+    end
+    string targets = string(params[0])
+    string reason = string(msg["trailing"])
+    if reason == "" then
+        reason = "Leaving"
+    end
+    array chanList = string.split(targets, ",")
+    int ci = 0
+    while ci < chanList.length do
+        partOne(connId, string(chanList[ci]), reason, conns, chans, outbox)
+        ci = ci + 1
+    end
+end
+
+// 处理单个频道离开（用 return 跳过，等价 continue）
+func partOne(int connId, string c, string reason, var conns, var chans, var outbox)
+    string nick = string(conns[cidKey(connId)]["nick"])
+    string prefix = buildPrefix(connId, conns)
+    string key = findChanKey(chans, c)
+    if key == "" then
+        numeric(connId, 403, conns, outbox, c + " :No such channel")
+        return
+    end
+    var ch = chans[key]
+    if not isMember(ch, nick) then
+        numeric(connId, 442, conns, outbox, key + " :You're not on that channel")
+        return
+    end
+    string partLine = ":" + prefix + " PART " + key + " :" + reason + "\r\n"
+    broadcastToChannel(chans, conns, outbox, key, partLine, 0)
+    // 移除成员
+    var members = ch["members"]
+    var newMembers = []
+    for m in members
+        if not ircEqual(string(m), nick) then
+            newMembers.push(m)
+        end
+    end
+    if newMembers.length == 0 then
+        chans.remove(key)
+    else
+        ch["members"] = newMembers
+        if ircEqual(string(ch["op"]), nick) then
+            ch["op"] = string(newMembers[0])
+        end
+        chans[key] = ch
+    end
+    // 从连接频道表移除
+    var conn = conns[cidKey(connId)]
+    var clist = conn["channels"]
+    var newClist = []
+    for cc in clist
+        if not ircEqual(string(cc), key) then
+            newClist.push(cc)
+        end
+    end
+    conn["channels"] = newClist
+    conns[cidKey(connId)] = conn
+end
+
+
+// ---- PRIVMSG ----
+func cmdPrivmsg(int connId, var msg, var conns, var chans, var outbox)
+    var params = msg["params"]
+    if params.length < 1 then
+        numeric(connId, 411, conns, outbox, ":No recipient given (PRIVMSG)")
+        return
+    end
+    string text = string(msg["trailing"])
+    if text == "" then
+        numeric(connId, 412, conns, outbox, ":No text to send")
+        return
+    end
+    string target = string(params[0])
+    string prefix = buildPrefix(connId, conns)
+    string senderNick = string(conns[cidKey(connId)]["nick"])
+    if string.startsWith(target, "#") then
+        string key = findChanKey(chans, target)
+        if key == "" then
+            numeric(connId, 403, conns, outbox, target + " :No such channel")
+            return
+        end
+        var ch = chans[key]
+        // +n: 非成员不能发
+        if hasMode(ch, "n") and not isMember(ch, senderNick) then
+            numeric(connId, 404, conns, outbox, key + " :Cannot send to channel")
+            return
+        end
+        string line = ":" + prefix + " PRIVMSG " + key + " :" + text + "\r\n"
+        broadcastToChannel(chans, conns, outbox, key, line, connId)
+    else
+        int targetCid = findConnIdByNick(conns, target)
+        if targetCid == 0 then
+            numeric(connId, 401, conns, outbox, target + " :No such nick/channel")
+            return
+        end
+        string line = ":" + prefix + " PRIVMSG " + target + " :" + text + "\r\n"
+        enqueueLocal(outbox, targetCid, line)
+    end
+end
+
+// ---- PING ----
+func cmdPing(int connId, var msg, var conns, var outbox)
+    var params = msg["params"]
+    string token = string(msg["trailing"])
+    if token == "" and params.length > 0 then
+        token = string(params[0])
+    end
+    if token == "" then
+        numeric(connId, 409, conns, outbox, ":No origin specified")
+        return
+    end
+    string line = ":" + SERVER_NAME + " PONG " + SERVER_NAME + " :" + token + "\r\n"
+    enqueueLocal(outbox, connId, line)
+end
+
+// ---- PONG（仅消费，用于保活；本子集不强制校验）----
+func cmdPong(int connId, var msg, var conns, var outbox)
+    // 无操作：收到客户端 PONG 表示链路活跃
+end
+
+// ---- CAP（IRCv3 能力协商：本子集宣告无能力，让客户端继续注册）----
+func cmdCap(int connId, var msg, var conns, var outbox)
+    var params = msg["params"]
+    string sub = ""
+    if params.length > 0 then
+        sub = ircUpper(string(params[0]))
+    end
+    if sub == "LS" then
+        // 宣告无可用能力
+        string line = ":" + SERVER_NAME + " CAP * LS :\r\n"
+        enqueueLocal(outbox, connId, line)
+    elseif sub == "REQ" then
+        // 拒绝全部请求
+        string req = string(msg["trailing"])
+        if req == "" and params.length > 1 then
+            req = string(params[1])
+        end
+        string line = ":" + SERVER_NAME + " CAP * NAK :" + req + "\r\n"
+        enqueueLocal(outbox, connId, line)
+    elseif sub == "END" then
+        // 客户端结束协商，正常继续注册流程，无回复
+    else
+        // 未知 CAP 子命令：回 410 ERR_INVALIDCAPCMD
+        numeric(connId, 410, conns, outbox, sub + " :Invalid CAP command")
+    end
+end
+
+// ---- PASS（静默消费；本子集不做密码校验）----
+func cmdPass(int connId, var msg, var conns, var outbox)
+    // 无操作
+end
+
+// ---- MODE ----
+func cmdMode(int connId, var msg, var conns, var chans, var outbox)
+    var params = msg["params"]
+    if params.length < 1 then
+        numeric(connId, 461, conns, outbox, "MODE :Not enough parameters")
+        return
+    end
+    string target = string(params[0])
+    string senderNick = string(conns[cidKey(connId)]["nick"])
+    if string.startsWith(target, "#") then
+        string key = findChanKey(chans, target)
+        if key == "" then
+            numeric(connId, 403, conns, outbox, target + " :No such channel")
+            return
+        end
+        var ch = chans[key]
+        if params.length < 2 then
+            // 查询：324 RPL_CHANNELMODEIS
+            string modestring = "+" + joinModes(ch)
+            string l324 = ":" + SERVER_NAME + " 324 " + senderNick + " " + key + " " + modestring + "\r\n"
+            enqueueLocal(outbox, connId, l324)
+            return
+        end
+        // 设置：需要 op
+        if not ircEqual(string(ch["op"]), senderNick) then
+            numeric(connId, 482, conns, outbox, key + " :You're not channel operator")
+            return
+        end
+        string modestring = string(params[1])
+        applyChanModes(ch, modestring, params)
+        chans[key] = ch
+        // 广播 MODE（含参数）
+        string prefix = buildPrefix(connId, conns)
+        string modeLine = ":" + prefix + " MODE " + key + " " + modestring
+        int ai = 2
+        while ai < params.length do
+            modeLine = modeLine + " " + string(params[ai])
+            ai = ai + 1
+        end
+        modeLine = modeLine + "\r\n"
+        broadcastToChannel(chans, conns, outbox, key, modeLine, 0)
+    else
+        // 用户模式本子集不支持
+        numeric(connId, 501, conns, outbox, ":Unknown MODE flag")
+    end
+end
+
+// 应用频道 mode 串（+n/+t/+s/+p/+m 无参；+o/-o 带昵称参）
+func applyChanModes(var ch, string modestring, var params)
+    bool plus = true
+    int argIdx = 2
+    var modes = ch["modes"]
+    int i = 0
+    int n = string.len(modestring)
+    while i < n do
+        string c = string.charAt(modestring, i)
+        if c == "+" then
+            plus = true
+        elseif c == "-" then
+            plus = false
+        elseif c == "o" then
+            if argIdx < params.length then
+                string opTarget = string(params[argIdx])
+                argIdx = argIdx + 1
+                if plus then
+                    if isMember(ch, opTarget) then
+                        ch["op"] = opTarget
+                    end
+                end
+            end
+        elseif c == "n" or c == "t" or c == "s" or c == "p" or c == "m" then
+            if plus then
+                if not modeInArray(modes, c) then
+                    modes.push(c)
+                end
+            else
+                modes = modeRemove(modes, c)
+            end
+        end
+        i = i + 1
+    end
+    ch["modes"] = modes
+end
+
+// ---- TOPIC ----
+func cmdTopic(int connId, var msg, var conns, var chans, var outbox)
+    var params = msg["params"]
+    if params.length < 1 then
+        numeric(connId, 461, conns, outbox, "TOPIC :Not enough parameters")
+        return
+    end
+    string target = string(params[0])
+    string key = findChanKey(chans, target)
+    if key == "" then
+        numeric(connId, 403, conns, outbox, target + " :No such channel")
+        return
+    end
+    var ch = chans[key]
+    string senderNick = string(conns[cidKey(connId)]["nick"])
+    bool hasTrail = bool(msg["hasTrailing"])
+    string trailing = string(msg["trailing"])
+    // 无 trailing 且无第二个参数 -> 查询
+    if not hasTrail and params.length < 2 then
+        if string(ch["topic"]) == "" then
+            numeric(connId, 331, conns, outbox, key + " :No topic is set")
+        else
+            numeric(connId, 332, conns, outbox, key + " :" + string(ch["topic"]))
+        end
+        return
+    end
+    // 设置：+t 限制仅 op
+    if hasMode(ch, "t") and not ircEqual(string(ch["op"]), senderNick) then
+        numeric(connId, 482, conns, outbox, key + " :You're not channel operator")
+        return
+    end
+    ch["topic"] = trailing
+    ch["topicWho"] = buildPrefix(connId, conns)
+    ch["topicTime"] = time.toUnix(time.now())
+    chans[key] = ch
+    string prefix = buildPrefix(connId, conns)
+    string line = ":" + prefix + " TOPIC " + key + " :" + trailing + "\r\n"
+    broadcastToChannel(chans, conns, outbox, key, line, 0)
+end
+
+// ---- NAMES ----
+func cmdNames(int connId, var msg, var conns, var chans, var outbox)
+    var params = msg["params"]
+    if params.length < 1 then
+        numeric(connId, 366, conns, outbox, "* :End of NAMES list")
+        return
+    end
+    string target = string(params[0])
+    string key = findChanKey(chans, target)
+    if key == "" then
+        numeric(connId, 366, conns, outbox, target + " :End of NAMES list")
+        return
+    end
+    sendNames(connId, conns, chans, outbox, key)
+end
+
+// ---- NOTICE（与 PRIVMSG 类似但不回任何错误数值）----
+func cmdNotice(int connId, var msg, var conns, var chans, var outbox)
+    var params = msg["params"]
+    if params.length < 1 then
+        return
+    end
+    string text = string(msg["trailing"])
+    string target = string(params[0])
+    string prefix = buildPrefix(connId, conns)
+    string senderNick = string(conns[cidKey(connId)]["nick"])
+    if string.startsWith(target, "#") then
+        string key = findChanKey(chans, target)
+        if key == "" then
+            return
+        end
+        var ch = chans[key]
+        if hasMode(ch, "n") and not isMember(ch, senderNick) then
+            return
+        end
+        string line = ":" + prefix + " NOTICE " + key + " :" + text + "\r\n"
+        broadcastToChannel(chans, conns, outbox, key, line, connId)
+    else
+        int targetCid = findConnIdByNick(conns, target)
+        if targetCid == 0 then
+            return
+        end
+        string line = ":" + prefix + " NOTICE " + target + " :" + text + "\r\n"
+        enqueueLocal(outbox, targetCid, line)
+    end
+end
+
+// ---- LUSERS（服务器使用统计：251/252/253/254/255）----
+func cmdLusers(int connId, var msg, var conns, var chans, var outbox)
+    int users = 0
+    int invisible = 0
+    int servers = 1
+    int channels = 0
+    int operators = 0
+    for k, v in conns
+        if bool(v["registered"]) then
+            users = users + 1
+        end
+    end
+    for ck, cv in chans
+        channels = channels + 1
+    end
+    string nick = string(conns[cidKey(connId)]["nick"])
+    // 251 RPL_LUSERCLIENT
+    string l251 = ":" + SERVER_NAME + " 251 " + nick + " :There are " + users.toString() + " users and " + servers.toString() + " servers on " + servers.toString() + " network\r\n"
+    enqueueLocal(outbox, connId, l251)
+    // 254 RPL_LUSERCHANNELS
+    string l254 = ":" + SERVER_NAME + " 254 " + nick + " " + channels.toString() + " :channels formed\r\n"
+    enqueueLocal(outbox, connId, l254)
+    // 255 RPL_LUSERME
+    string l255 = ":" + SERVER_NAME + " 255 " + nick + " :I have " + users.toString() + " clients and " + servers.toString() + " servers\r\n"
+    enqueueLocal(outbox, connId, l255)
+end
+
+// ---- WHOIS（最小实现：311 + 312 + 318 / 401）----
+func cmdWhois(int connId, var msg, var conns, var chans, var outbox)
+    var params = msg["params"]
+    if params.length < 1 then
+        numeric(connId, 431, conns, outbox, ":No nickname given")
+        return
+    end
+    string target = string(params[0])
+    int targetCid = findConnIdByNick(conns, target)
+    string nick = string(conns[cidKey(connId)]["nick"])
+    if targetCid == 0 then
+        numeric(connId, 401, conns, outbox, target + " :No such nick/channel")
+        return
+    end
+    var tc = conns[cidKey(targetCid)]
+    string tnick = string(tc["nick"])
+    string tuser = string(tc["user"])
+    string thost = string(tc["host"])
+    string treal = string(tc["real"])
+    // 311 RPL_WHOISUSER
+    string l311 = ":" + SERVER_NAME + " 311 " + nick + " " + tnick + " " + tuser + " " + thost + " * :" + treal + "\r\n"
+    enqueueLocal(outbox, connId, l311)
+    // 312 RPL_WHOISSERVER
+    string l312 = ":" + SERVER_NAME + " 312 " + nick + " " + tnick + " " + SERVER_NAME + " :xlang IRC server\r\n"
+    enqueueLocal(outbox, connId, l312)
+    // 319 RPL_WHOISCHANNELS（列出所在频道）
+    var clist = tc["channels"]
+    string chanStr = ""
+    for cc in clist
+        chanStr = chanStr + string(cc) + " "
+    end
+    chanStr = string.trim(chanStr)
+    if chanStr != "" then
+        string l319 = ":" + SERVER_NAME + " 319 " + nick + " " + tnick + " :" + chanStr + "\r\n"
+        enqueueLocal(outbox, connId, l319)
+    end
+    // 318 RPL_ENDOFWHOIS
+    string l318 = ":" + SERVER_NAME + " 318 " + nick + " " + tnick + " :End of WHOIS list\r\n"
+    enqueueLocal(outbox, connId, l318)
+end
+
+// ---- VERSION / TIME（轻量信息查询）----
+func cmdVersion(int connId, var msg, var conns, var outbox)
+    string nick = string(conns[cidKey(connId)]["nick"])
+    string l351 = ":" + SERVER_NAME + " 351 " + nick + " " + SERVER_VERSION + " " + SERVER_NAME + "\r\n"
+    enqueueLocal(outbox, connId, l351)
+end
+
+func cmdTime(int connId, var msg, var conns, var outbox)
+    string nick = string(conns[cidKey(connId)]["nick"])
+    string l391 = ":" + SERVER_NAME + " 391 " + nick + " " + SERVER_NAME + " :" + time.format(time.now()) + "\r\n"
+    enqueueLocal(outbox, connId, l391)
+end
+
+// ---- QUIT（共享逻辑，serve 断开时也复用）----
+func doQuit(int connId, string reason, var conns, var chans, var outbox)
+    if not (cidKey(connId) in conns) then
+        return
+    end
+    var conn = conns[cidKey(connId)]
+    string nick = string(conn["nick"])
+    bool registered = bool(conn["registered"])
+    string prefix = buildPrefix(connId, conns)
+    string quitLine = ":" + prefix + " QUIT :Quit: " + reason + "\r\n"
+
+    if nick == "" or not registered then
+        conns.remove(cidKey(connId))
+        return
+    end
+
+    var clist = conn["channels"]
+    // 广播 QUIT 给所有共享频道的人（去重，不含自己）
+    var seen = {}
+    for cc in clist
+        string key = string(cc)
+        if key in chans then
+            var members = chans[key]["members"]
+            for m in members
+                int cid = findConnIdByNick(conns, string(m))
+                if cid != 0 and cid != connId and not (cidKey(cid) in seen) then
+                    seen[cidKey(cid)] = true
+                    enqueueLocal(outbox, cid, quitLine)
+                end
+            end
+        end
+    end
+    // 从所有频道移除，空频道销毁，op 流转
+    for cc in clist
+        string key = string(cc)
+        if key in chans then
+            var ch = chans[key]
+            var members = ch["members"]
+            var newMembers = []
+            for m in members
+                if not ircEqual(string(m), nick) then
+                    newMembers.push(m)
+                end
+            end
+            if newMembers.length == 0 then
+                chans.remove(key)
+            else
+                ch["members"] = newMembers
+                if ircEqual(string(ch["op"]), nick) then
+                    ch["op"] = string(newMembers[0])
+                end
+                chans[key] = ch
+            end
+        end
+    end
+    conns.remove(cidKey(connId))
+end
+
+func cmdQuit(int connId, var msg, var conns, var chans, var outbox)
+    string reason = string(msg["trailing"])
+    if reason == "" then
+        reason = "Client Quit"
+    end
+    doQuit(connId, reason, conns, chans, outbox)
+end
+
+// ============================================================
+// processLine：唯一触碰全局可变状态的入口
+// ============================================================
+func processLine(int connId, string rawLine)
+    gLock.lock()
+    var conns = json.parse(gConns)
+    var chans = json.parse(gChannels)
+    var outbox = json.parse(gOutbox)
+
+    if not (cidKey(connId) in conns) then
+        gLock.unlock()
+        return
+    end
+
+    var msg = parseIrcLine(rawLine)
+    string cmd = ircUpper(string(msg["command"]))
+    if cmd == "" then
+        gConns = json.stringify(conns)
+        gChannels = json.stringify(chans)
+        gOutbox = json.stringify(outbox)
+        gLock.unlock()
+        return
+    end
+
+    var conn = conns[cidKey(connId)]
+    bool registered = bool(conn["registered"])
+
+    // 注册前只允许 NICK / USER / PING / PONG / QUIT
+    if cmd == "NICK" then
+        cmdNick(connId, msg, conns, chans, outbox)
+    elseif cmd == "USER" then
+        cmdUser(connId, msg, conns, outbox)
+    elseif cmd == "QUIT" then
+        cmdQuit(connId, msg, conns, chans, outbox)
+    elseif cmd == "PING" then
+        cmdPing(connId, msg, conns, outbox)
+    elseif cmd == "PONG" then
+        cmdPong(connId, msg, conns, outbox)
+    elseif cmd == "CAP" then
+        cmdCap(connId, msg, conns, outbox)
+    elseif cmd == "PASS" then
+        // 注册前密码（本子集不校验）：静默消费
+        cmdPass(connId, msg, conns, outbox)
+    else
+        if not registered then
+            numeric(connId, 451, conns, outbox, ":You have not registered")
+        else
+            if cmd == "JOIN" then
+                cmdJoin(connId, msg, conns, chans, outbox)
+            elseif cmd == "PART" then
+                cmdPart(connId, msg, conns, chans, outbox)
+            elseif cmd == "PRIVMSG" then
+                cmdPrivmsg(connId, msg, conns, chans, outbox)
+            elseif cmd == "NOTICE" then
+                cmdNotice(connId, msg, conns, chans, outbox)
+            elseif cmd == "MODE" then
+                cmdMode(connId, msg, conns, chans, outbox)
+            elseif cmd == "TOPIC" then
+                cmdTopic(connId, msg, conns, chans, outbox)
+            elseif cmd == "NAMES" then
+                cmdNames(connId, msg, conns, chans, outbox)
+            elseif cmd == "LUSERS" then
+                cmdLusers(connId, msg, conns, chans, outbox)
+            elseif cmd == "WHOIS" then
+                cmdWhois(connId, msg, conns, chans, outbox)
+            elseif cmd == "VERSION" then
+                cmdVersion(connId, msg, conns, outbox)
+            elseif cmd == "TIME" then
+                cmdTime(connId, msg, conns, outbox)
+            else
+                numeric(connId, 421, conns, outbox, cmd + " :Unknown command")
+            end
+        end
+    end
+
+    gConns = json.stringify(conns)
+    gChannels = json.stringify(chans)
+    gOutbox = json.stringify(outbox)
+    gLock.unlock()
+end
+
+// ============================================================
+// serve / self-test 共用的状态存取（持锁，操作全局）
+// ============================================================
+
+func resetState()
+    gLock.lock()
+    gConns = "{}"
+    gChannels = "{}"
+    gOutbox = "{}"
+    gNextConnId = 1
+    gLock.unlock()
+end
+
+// 分配一个新连接 id 并在 gConns 注册空 conn
+func allocConn(string host) as int
+    gLock.lock()
+    int id = gNextConnId
+    gNextConnId = id + 1
+    var conns = json.parse(gConns)
+    conns[cidKey(id)] = newConnDict(host)
+    gConns = json.stringify(conns)
+    gLock.unlock()
+    return id
+end
+
+// 取走 connId 的全部待发报文（拼接成一个字符串），并清空该队列
+func drainOutbox(int connId) as string
+    gLock.lock()
+    var outbox = json.parse(gOutbox)
+    string result = ""
+    string k = cidKey(connId)
+    if k in outbox then
+        var arr = outbox[k]
+        for m in arr
+            result = result + string(m)
+        end
+        outbox.remove(k)
+    end
+    gOutbox = json.stringify(outbox)
+    gLock.unlock()
+    return result
+end
+
+func outboxHas(int connId, string needle) as bool
+    gLock.lock()
+    var outbox = json.parse(gOutbox)
+    string k = cidKey(connId)
+    bool found = false
+    if k in outbox then
+        var arr = outbox[k]
+        for m in arr
+            if string.contains(string(m), needle) then
+                found = true
+            end
+        end
+    end
+    gLock.unlock()
+    return found
+end
+
+func connExists(int connId) as bool
+    gLock.lock()
+    var conns = json.parse(gConns)
+    bool ok = cidKey(connId) in conns
+    gLock.unlock()
+    return ok
+end
+
+// 断开清理：广播 QUIT 并移除连接（serve 用）
+func processQuit(int connId, string reason)
+    gLock.lock()
+    var conns = json.parse(gConns)
+    var chans = json.parse(gChannels)
+    var outbox = json.parse(gOutbox)
+    doQuit(connId, reason, conns, chans, outbox)
+    gConns = json.stringify(conns)
+    gChannels = json.stringify(chans)
+    gOutbox = json.stringify(outbox)
+    gLock.unlock()
+end
+
+// ============================================================
+// self-test：纯状态机驱动，不启动真实 server
+// ============================================================
+
+// 模拟注册：发 NICK + USER，返回 connId（welcome 报文被丢弃）
+func simRegister(string nick, string user) as int
+    int cid = allocConn("127.0.0.1")
+    processLine(cid, "NICK " + nick)
+    drainOutbox(cid)
+    processLine(cid, "USER " + user + " 0 * :" + nick)
+    drainOutbox(cid)
+    return cid
+end
+
+// 模拟注册并返回 welcome 报文（用于断言）
+func simRegisterCapture(string nick, string user) as (int, string)
+    int cid = allocConn("127.0.0.1")
+    processLine(cid, "NICK " + nick)
+    drainOutbox(cid)
+    processLine(cid, "USER " + user + " 0 * :" + nick)
+    string welcome = drainOutbox(cid)
+    return cid, welcome
+end
+
+func runSelfTest() as int
+    println("")
+    println("================ ircserver self-test ================")
+    println("(no real server: simulated protocol interaction)")
+    println("")
+
+    // -------- 1. parseIrcLine 基础 --------
+    if true then
+        var m = parseIrcLine("NICK alice")
+        check(ircUpper(string(m["command"])) == "NICK", "1. parse NICK command", "cmd=" + string(m["command"]))
+        var p = m["params"]
+        check(p.length == 0, "1. parse NICK no params", "len=" + p.length.toString())
+        check(string(m["trailing"]) == "", "1. parse NICK no trailing", "trail=" + string(m["trailing"]))
+    end
+
+    // -------- 2. parseIrcLine 带前缀 --------
+    if true then
+        var m = parseIrcLine(":irc.xlang.local 001 alice :Welcome to the IRC")
+        check(string(m["prefix"]) == "irc.xlang.local", "2. parse prefix", "prefix=" + string(m["prefix"]))
+        check(string(m["command"]) == "001", "2. parse numeric command", "cmd=" + string(m["command"]))
+        var p = m["params"]
+        check(p.length == 1 and string(p[0]) == "alice", "2. parse one param", "len=" + p.length.toString())
+        check(string(m["trailing"]) == "Welcome to the IRC", "2. parse trailing", "trail=" + string(m["trailing"]))
+        check(bool(m["hasTrailing"]) == true, "2. hasTrailing flag", "")
+    end
+
+    // -------- 3. parseIrcLine trailing 含空格 --------
+    if true then
+        var m = parseIrcLine("PRIVMSG #test :hello world foo")
+        check(ircUpper(string(m["command"])) == "PRIVMSG", "3. parse PRIVMSG", "")
+        var p = m["params"]
+        check(p.length == 1 and string(p[0]) == "#test", "3. parse target #test", "")
+        check(string(m["trailing"]) == "hello world foo", "3. trailing keeps spaces", "trail=" + string(m["trailing"]))
+    end
+
+    // -------- 4. parseIrcLine 空 trailing --------
+    if true then
+        var m = parseIrcLine("TOPIC #test :")
+        check(bool(m["hasTrailing"]) == true, "4. empty trailing hasTrailing", "")
+        check(string(m["trailing"]) == "", "4. empty trailing value", "")
+    end
+
+    // -------- 5. parseIrcLine 多参数 --------
+    if true then
+        var m = parseIrcLine("MODE #chan +o bob")
+        var p = m["params"]
+        check(p.length == 3, "5. three params", "len=" + p.length.toString())
+        check(string(p[0]) == "#chan" and string(p[1]) == "+o" and string(p[2]) == "bob", "5. param values", "")
+    end
+
+    // -------- 6. IRC 大小写折叠 --------
+    check(ircUpper("alice") == "ALICE", "6. ircUpper ascii", "got " + ircUpper("alice"))
+    check(ircUpper(" nick{a}|b^c ") == " NICK[A]\\B~C ", "6. ircUpper special fold", "got [" + ircUpper(" nick{a}|b^c ") + "]")
+    check(ircEqual("Alice", "ALICE"), "6. ircEqual case", "")
+    check(ircEqual("Foo{Bar}", "foo[bar]"), "6. ircEqual special", "")
+    check(not ircEqual("abc", "abd"), "6. ircEqual negative", "")
+
+    // -------- 7. 昵称校验 --------
+    check(isValidNick("alice"), "7. valid nick alice", "")
+    check(isValidNick("Alice_2"), "7. valid nick Alice_2", "")
+    check(isValidNick("[bob]"), "7. valid nick [bob]", "")
+    check(not isValidNick(""), "7. empty nick invalid", "")
+    check(not isValidNick("1abc"), "7. leading digit invalid", "")
+    check(not isValidNick("ab c"), "7. space invalid", "")
+    check(not isValidNick("-abc"), "7. leading hyphen invalid", "")
+
+    // -------- 8. 频道名校验 --------
+    check(isValidChanName("#test"), "8. valid chan #test", "")
+    check(not isValidChanName("test"), "8. chan needs #", "")
+    check(not isValidChanName("#a b"), "8. chan no space", "")
+
+    resetState()
+
+    // -------- 9. 注册流程 + welcome --------
+    int alice = 0
+    string welcome = ""
+    alice, welcome = simRegisterCapture("alice", "alice")
+    expectContains(welcome, " 001 alice ", "9. 001 welcome")
+    expectContains(welcome, " 002 ", "9. 002 yourhost")
+    expectContains(welcome, " 003 ", "9. 003 created")
+    expectContains(welcome, " 004 ", "9. 004 myinfo")
+    expectContains(welcome, " 375 ", "9. 375 motd start")
+    expectContains(welcome, " 376 ", "9. 376 motd end")
+    expectContains(welcome, "Welcome to the xlang IRC network alice!alice@127.0.0.1", "9. welcome prefix")
+
+    // -------- 10. 重复注册 -> 462 --------
+    if true then
+        processLine(alice, "USER alice2 0 * :Alice2")
+        string r = drainOutbox(alice)
+        expectContains(r, " 462 ", "10. reregister -> 462")
+    end
+
+    // -------- 11. 注册前发命令 -> 451 --------
+    if true then
+        int cid = allocConn("127.0.0.1")
+        processLine(cid, "JOIN #test")
+        string r = drainOutbox(cid)
+        expectContains(r, " 451 ", "11. join before register -> 451")
+    end
+
+    resetState()
+
+    // -------- 12. NICK 缺参 -> 431 --------
+    if true then
+        int cid = allocConn("127.0.0.1")
+        processLine(cid, "NICK")
+        expectContains(drainOutbox(cid), " 431 ", "12. NICK no param -> 431")
+    end
+
+    // -------- 13. 非法昵称 -> 432 --------
+    if true then
+        int cid = allocConn("127.0.0.1")
+        processLine(cid, "NICK 1bad")
+        expectContains(drainOutbox(cid), " 432 ", "13. bad nick -> 432")
+    end
+
+    // -------- 14. 昵称冲突 -> 433 --------
+    int alice2 = simRegister("alice", "alice")
+    if true then
+        int cid = allocConn("127.0.0.1")
+        processLine(cid, "NICK ALICE")
+        string r = drainOutbox(cid)
+        expectContains(r, " 433 ", "14. nick collision -> 433")
+    end
+
+    // -------- 15. JOIN 建频道 + 自身收到 JOIN + 名单 --------
+    processLine(alice2, "JOIN #test")
+    string aOut = drainOutbox(alice2)
+    expectContains(aOut, "alice!alice@127.0.0.1 JOIN :#test", "15. self JOIN echo")
+    expectContains(aOut, " 331 #test ", "15. no topic 331")
+    expectContains(aOut, " 353 alice = #test :@alice", "15. names 353 with op")
+    expectContains(aOut, " 366 #test ", "15. end of names 366")
+
+    // -------- 16. 第二个用户 JOIN，原成员收到其 JOIN --------
+    int bob = simRegister("bob", "bob")
+    processLine(bob, "JOIN #test")
+    string bOut = drainOutbox(bob)
+    expectContains(bOut, "bob!bob@127.0.0.1 JOIN :#test", "16. bob self JOIN")
+    expectContains(bOut, " 353 bob = #test :@alice bob", "16. names both")
+    // alice 应收到 bob 的 JOIN
+    string aOut2 = drainOutbox(alice2)
+    expectContains(aOut2, "bob!bob@127.0.0.1 JOIN :#test", "16. alice sees bob JOIN")
+
+    // -------- 17. 频道 PRIVMSG：另一成员收到，自己不收到 --------
+    processLine(alice2, "PRIVMSG #test :hello world")
+    string toBob = drainOutbox(bob)
+    expectContains(toBob, ":alice!alice@127.0.0.1 PRIVMSG #test :hello world", "17. bob receives channel msg")
+    string toAlice = drainOutbox(alice2)
+    expectNotContains(toAlice, "PRIVMSG #test :hello world", "17. alice does NOT receive own msg")
+
+    // -------- 18. 私聊 PRIVMSG --------
+    processLine(bob, "PRIVMSG alice :hi alice")
+    string dm = drainOutbox(alice2)
+    expectContains(dm, ":bob!bob@127.0.0.1 PRIVMSG alice :hi alice", "18. alice receives direct msg")
+    drainOutbox(bob)
+
+    // -------- 19. PRIVMSG 不存在的昵称 -> 401 --------
+    if true then
+        processLine(alice2, "PRIVMSG nobody :hey")
+        expectContains(drainOutbox(alice2), " 401 nobody ", "19. no such nick -> 401")
+    end
+
+    // -------- 20. PRIVMSG 缺参 -> 411 / 无文本 -> 412 --------
+    if true then
+        processLine(alice2, "PRIVMSG")
+        expectContains(drainOutbox(alice2), " 411 ", "20. no recipient -> 411")
+        processLine(alice2, "PRIVMSG bob :")
+        expectContains(drainOutbox(alice2), " 412 ", "20. no text -> 412")
+    end
+
+    // -------- 21. TOPIC 设置 + 查询 + 广播 --------
+    processLine(alice2, "TOPIC #test :Welcome to xlang")
+    string topicOut = drainOutbox(alice2)
+    expectContains(topicOut, "alice!alice@127.0.0.1 TOPIC #test :Welcome to xlang", "21. topic set broadcast")
+    expectContains(drainOutbox(bob), "TOPIC #test :Welcome to xlang", "21. bob sees topic change")
+    processLine(alice2, "TOPIC #test")
+    expectContains(drainOutbox(alice2), " 332 #test :Welcome to xlang", "21. topic query 332")
+
+    // -------- 22. TOPIC +t 非 op -> 482 --------
+    processLine(bob, "TOPIC #test :hacked")
+    expectContains(drainOutbox(bob), " 482 #test ", "22. non-op topic -> 482")
+
+    // -------- 23. MODE 查询 -> 324 --------
+    processLine(alice2, "MODE #test")
+    expectContains(drainOutbox(alice2), " 324 alice #test +nt", "23. mode query 324")
+
+    // -------- 24. MODE +s 设置 + 广播 --------
+    processLine(alice2, "MODE #test +s")
+    string modeOut = drainOutbox(alice2)
+    expectContains(modeOut, ":alice!alice@127.0.0.1 MODE #test +s", "24. mode set broadcast")
+    expectContains(drainOutbox(bob), "MODE #test +s", "24. bob sees mode change")
+    // 再查询应含 s
+    processLine(alice2, "MODE #test")
+    expectContains(drainOutbox(alice2), " 324 alice #test +nts", "24. mode query reflects +s")
+
+    // -------- 25. MODE 非 op -> 482 --------
+    processLine(bob, "MODE #test -n")
+    expectContains(drainOutbox(bob), " 482 #test ", "25. non-op mode -> 482")
+
+    // -------- 26. MODE +o 提升 op --------
+    processLine(alice2, "MODE #test +o bob")
+    drainOutbox(alice2)
+    drainOutbox(bob)
+    // 现在 bob 是 op，可以设 topic（+t 下）
+    processLine(bob, "TOPIC #test :bob topic now")
+    expectContains(drainOutbox(bob), "TOPIC #test :bob topic now", "26. bob op can set topic")
+
+    // -------- 27. NAMES 命令 --------
+    processLine(alice2, "NAMES #test")
+    string namesOut = drainOutbox(alice2)
+    expectContains(namesOut, " 353 alice = #test :", "27. NAMES 353")
+    expectContains(namesOut, " 366 #test ", "27. NAMES 366")
+
+    // -------- 28. PING -> PONG --------
+    processLine(alice2, "PING server123")
+    string pong = drainOutbox(alice2)
+    expectContains(pong, "PONG " + SERVER_NAME + " :server123", "28. PING -> PONG echo token")
+
+    // -------- 29. 昵称变更 + 广播 --------
+    processLine(bob, "NICK bobby")
+    string nickOut = drainOutbox(bob)
+    expectContains(nickOut, ":bob!bob@127.0.0.1 NICK :bobby", "29. self NICK echo")
+    expectContains(drainOutbox(alice2), ":bob!bob@127.0.0.1 NICK :bobby", "29. alice sees bob NICK change")
+
+    // -------- 30. PART：成员收到，频道表更新 --------
+    processLine(alice2, "PART #test :bye")
+    string partOut = drainOutbox(alice2)
+    expectContains(partOut, ":alice!alice@127.0.0.1 PART #test :bye", "30. self PART echo")
+    expectContains(drainOutbox(bob), ":alice!alice@127.0.0.1 PART #test :bye", "30. bob sees alice PART")
+    // alice 不再在 #test，再 PART -> 442
+    processLine(alice2, "PART #test")
+    expectContains(drainOutbox(alice2), " 442 #test ", "30. part not on channel -> 442")
+
+    // -------- 31. QUIT：共享频道成员收到 QUIT，空频道销毁 --------
+    resetState()
+    int u1 = simRegister("ann", "ann")
+    int u2 = simRegister("ben", "ben")
+    processLine(u1, "JOIN #room")
+    drainOutbox(u1)
+    processLine(u2, "JOIN #room")
+    drainOutbox(u1)
+    drainOutbox(u2)
+    processLine(u1, "QUIT :gone")
+    // ben 应收到 ann 的 QUIT
+    expectContains(drainOutbox(u2), ":ann!ann@127.0.0.1 QUIT :Quit: gone", "31. ben sees ann QUIT")
+    // u1 应已从状态移除
+    check(not connExists(u1), "31. quit removes conn", "")
+    // ben 仍在 #room，names 仅 ben
+    processLine(u2, "NAMES #room")
+    expectContains(drainOutbox(u2), " 353 ben = #room :@ben", "31. room only has ben")
+
+    // -------- 32. QUIT 后空频道销毁，新加入者成为新 op --------
+    processLine(u2, "QUIT :bye")
+    // gChannels 现已空（#room 最后一人离开即销毁）
+    int dan = simRegister("dan", "dan")
+    processLine(dan, "JOIN #room")
+    // 新建 #room，dan 为 op（即使名字与已销毁频道相同）
+    expectContains(drainOutbox(dan), " 353 dan = #room :@dan", "32. rebuilt channel fresh op")
+
+    // -------- 33. +n 非成员不能向频道发消息 -> 404 --------
+    resetState()
+    int owner = simRegister("owner", "owner")
+    int outsider = simRegister("outsider", "outsider")
+    processLine(owner, "JOIN #priv")
+    drainOutbox(owner)
+    processLine(outsider, "PRIVMSG #priv :spam")
+    expectContains(drainOutbox(outsider), " 404 #priv ", "33. +n non-member -> 404")
+
+    // -------- 34. 未知命令 -> 421 --------
+    processLine(owner, "FLY away")
+    expectContains(drainOutbox(owner), " 421 owner FLY :Unknown command", "34. unknown command -> 421")
+
+    // -------- 35. JOIN 缺参 -> 461 --------
+    processLine(owner, "JOIN")
+    expectContains(drainOutbox(owner), " 461 owner JOIN :Not enough parameters", "35. JOIN no params -> 461")
+
+    // -------- 36. JOIN 多频道 --------
+    resetState()
+    int m1 = simRegister("mul", "mul")
+    processLine(m1, "JOIN #a,#b,#c")
+    string mOut = drainOutbox(m1)
+    expectContains(mOut, "JOIN :#a", "36. multi join #a")
+    expectContains(mOut, "JOIN :#b", "36. multi join #b")
+    expectContains(mOut, "JOIN :#c", "36. multi join #c")
+
+    // -------- 37. 频道大小写不敏感 --------
+    processLine(m1, "JOIN #A")
+    string cOut = drainOutbox(m1)
+    // 已是 #a 成员，#A 视为同一频道 -> 不应再次产生 JOIN（isMember 命中 continue）
+    expectNotContains(cOut, "JOIN :#a", "37. case-insensitive join dedup")
+    expectNotContains(cOut, "JOIN :#A", "37. case-insensitive join dedup 2")
+
+    // -------- 38. MODE 去除 n/t --------
+    processLine(m1, "MODE #a -n")
+    string mnOut = drainOutbox(m1)
+    expectContains(mnOut, ":mul!mul@127.0.0.1 MODE #a -n", "38. mode -n broadcast")
+    processLine(m1, "MODE #a")
+    expectContains(drainOutbox(m1), " 324 mul #a +t", "38. mode query reflects -n")
+
+    // -------- 39. PING 缺 token -> 409 --------
+    processLine(m1, "PING")
+    expectContains(drainOutbox(m1), " 409 ", "39. ping no origin -> 409")
+
+    // -------- 40. 大小写不敏感的 PRIVMSG 目标昵称 --------
+    resetState()
+    int up1 = simRegister("Casey", "casey")
+    int up2 = simRegister("ria", "ria")
+    processLine(up2, "PRIVMSG casey :hello")
+    expectContains(drainOutbox(up1), ":ria!ria@127.0.0.1 PRIVMSG Casey :hello", "40. case-insensitive nick target")
+
+    // -------- 41. 005 RPL_ISUPPORT 在注册序列里 --------
+    resetState()
+    string supWelcome = ""
+    int supCid = 0
+    supCid, supWelcome = simRegisterCapture("sup", "sup")
+    expectContains(supWelcome, " 005 sup ", "41. 005 isupport present")
+    expectContains(supWelcome, "NICKLEN=30", "41. 005 NICKLEN")
+
+    // -------- 42. JOIN 收到 329 CREATIONTIME --------
+    processLine(supCid, "JOIN #t")
+    string tOut = drainOutbox(supCid)
+    expectContains(tOut, " 329 sup #t ", "42. 329 creationtime on join")
+
+    // -------- 43. TOPIC 设置后新成员 JOIN 收到 332 + 333 --------
+    processLine(supCid, "TOPIC #t :My Topic")
+    drainOutbox(supCid)
+    int lateJoiner = simRegister("late", "late")
+    processLine(lateJoiner, "JOIN #t")
+    string lateOut = drainOutbox(lateJoiner)
+    expectContains(lateOut, " 332 late #t :My Topic", "43. late join sees topic 332")
+    expectContains(lateOut, " 333 late #t sup!sup@127.0.0.1 ", "43. late join sees topic who 333")
+    expectContains(lateOut, " 329 late #t ", "43. late join sees creationtime")
+
+    // -------- 44. NOTICE 不回错误（不存在目标）--------
+    resetState()
+    int n1 = simRegister("na", "na")
+    processLine(n1, "NOTICE nobody :hi")
+    string nOut = drainOutbox(n1)
+    check(nOut == "", "44. NOTICE no error reply on missing target", "got: " + nOut)
+
+    // -------- 45. NOTICE 频道广播（自己不收到）--------
+    int n2 = simRegister("nb", "nb")
+    processLine(n1, "JOIN #n")
+    drainOutbox(n1)
+    processLine(n2, "JOIN #n")
+    drainOutbox(n1)
+    drainOutbox(n2)
+    processLine(n1, "NOTICE #n :announcement")
+    expectContains(drainOutbox(n2), ":na!na@127.0.0.1 NOTICE #n :announcement", "45. channel notice to member")
+    string noticeSelf = drainOutbox(n1)
+    expectNotContains(noticeSelf, "NOTICE #n :announcement", "45. no self notice echo")
+
+    // -------- 46. LUSERS 统计 --------
+    resetState()
+    int l1 = simRegister("l1", "l1")
+    int l2 = simRegister("l2", "l2")
+    processLine(l1, "JOIN #x")
+    drainOutbox(l1)
+    processLine(l1, "LUSERS")
+    string lOut = drainOutbox(l1)
+    expectContains(lOut, " 251 l1 ", "46. 251 luserclient")
+    expectContains(lOut, " 254 l1 1 :channels", "46. 254 one channel")
+    expectContains(lOut, " 255 l1 ", "46. 255 luserme")
+
+    // -------- 47. WHOIS --------
+    resetState()
+    int w1 = simRegister("zoe", "zoe")
+    int w2 = simRegister("max", "max")
+    processLine(w1, "JOIN #w1,#w2")
+    drainOutbox(w1)
+    processLine(w2, "WHOIS zoe")
+    string wOut = drainOutbox(w2)
+    expectContains(wOut, " 311 max zoe zoe 127.0.0.1 ", "47. 311 whoisuser")
+    expectContains(wOut, " 312 max zoe " + SERVER_NAME, "47. 312 whoisserver")
+    expectContains(wOut, " 319 max zoe :#w1 #w2", "47. 319 whoischannels")
+    expectContains(wOut, " 318 max zoe :End of WHOIS", "47. 318 end of whois")
+
+    // -------- 48. WHOIS 不存在 -> 401 --------
+    processLine(w2, "WHOIS ghost")
+    expectContains(drainOutbox(w2), " 401 max ghost ", "48. whois no such -> 401")
+
+    // -------- 49. VERSION / TIME --------
+    processLine(w2, "VERSION")
+    expectContains(drainOutbox(w2), " 351 max " + SERVER_VERSION, "49. version 351")
+    processLine(w2, "TIME")
+    expectContains(drainOutbox(w2), " 391 max " + SERVER_NAME, "49. time 391")
+
+    // -------- 50. TOPIC 清空（:空尾）+ op 可清 --------
+    resetState()
+    int tc = simRegister("top", "top")
+    processLine(tc, "JOIN #c")
+    processLine(tc, "TOPIC #c :Hello")
+    drainOutbox(tc)
+    processLine(tc, "TOPIC #c :")
+    string cleared = drainOutbox(tc)
+    expectContains(cleared, ":top!top@127.0.0.1 TOPIC #c :", "50. clear topic broadcast")
+    processLine(tc, "TOPIC #c")
+    expectContains(drainOutbox(tc), " 331 top #c ", "50. cleared topic -> 331")
+
+    // -------- 51. MODE -o 去 op 后无法再设 topic（+t）--------
+    resetState()
+    int oa = simRegister("op", "op")
+    int ob = simRegister("oo", "oo")
+    processLine(oa, "JOIN #d")
+    drainOutbox(oa)
+    processLine(ob, "JOIN #d")
+    drainOutbox(oa)
+    drainOutbox(ob)
+    processLine(oa, "MODE #d +o oo")
+    drainOutbox(oa)
+    drainOutbox(ob)
+    // ob 现在是 op，能设 topic
+    processLine(ob, "TOPIC #d :by oo")
+    expectContains(drainOutbox(ob), "TOPIC #d :by oo", "51. oo op sets topic")
+    // op 把自己 -o... 这里跳过 deop 自身的边角，验证 oa 仍是 op：oa 设 topic
+    processLine(oa, "TOPIC #d :by op again")
+    expectContains(drainOutbox(oa), "TOPIC #d :by op again", "51. op still can set topic")
+
+    // -------- 52. 多频道广播扇出：一条 PRIVMSG 只发到目标频道成员 --------
+    resetState()
+    int p1 = simRegister("p1", "p1")
+    int p2 = simRegister("p2", "p2")
+    int p3 = simRegister("p3", "p3")
+    processLine(p1, "JOIN #alpha")
+    drainOutbox(p1)
+    processLine(p2, "JOIN #alpha")
+    drainOutbox(p1)
+    drainOutbox(p2)
+    processLine(p3, "JOIN #beta")
+    drainOutbox(p3)
+    // p1 发到 #alpha，p3（仅在 #beta）不应收到
+    processLine(p1, "PRIVMSG #alpha :alpha msg")
+    expectContains(drainOutbox(p2), "PRIVMSG #alpha :alpha msg", "52. p2 in #alpha receives")
+    expectNotContains(drainOutbox(p3), "alpha msg", "52. p3 in #beta does NOT receive")
+
+    // -------- 53. 昵称变更向多个共享频道传播（去重）--------
+    resetState()
+    int s1 = simRegister("sam", "sam")
+    int s2 = simRegister("sue", "sue")
+    processLine(s1, "JOIN #one,#two")
+    drainOutbox(s1)
+    processLine(s2, "JOIN #one,#two")
+    drainOutbox(s1)
+    drainOutbox(s2)
+    processLine(s1, "NICK samuel")
+    // sue 与 sam 共享 #one 和 #two，但只应收到一次 NICK
+    string sueNick = drainOutbox(s2)
+    int nickCount = string.count(sueNick, " NICK :samuel")
+    check(nickCount == 1, "53. nick change deduped across shared channels", "count=" + nickCount.toString())
+    expectContains(sueNick, ":sam!sam@127.0.0.1 NICK :samuel", "53. sue sees nick change")
+
+    // -------- 54. QUIT 向多频道成员广播但每人只一次 --------
+    resetState()
+    int q1 = simRegister("q1", "q1")
+    int q2 = simRegister("q2", "q2")
+    processLine(q1, "JOIN #x,#y")
+    drainOutbox(q1)
+    processLine(q2, "JOIN #x,#y")
+    drainOutbox(q1)
+    drainOutbox(q2)
+    processLine(q1, "QUIT :done")
+    string q2quit = drainOutbox(q2)
+    int quitCount = string.count(q2quit, "QUIT :Quit: done")
+    check(quitCount == 1, "54. quit broadcast deduped", "count=" + quitCount.toString())
+
+    // -------- 55. PART 多频道 --------
+    resetState()
+    int mp = simRegister("mp", "mp")
+    processLine(mp, "JOIN #pa,#pb,#pc")
+    drainOutbox(mp)
+    processLine(mp, "PART #pa,#pc")
+    string partOut2 = drainOutbox(mp)
+    expectContains(partOut2, "PART #pa", "55. part #pa")
+    expectContains(partOut2, "PART #pc", "55. part #pc")
+    expectNotContains(partOut2, "PART #pb", "55. did not part #pb")
+    // mp 仍在 #pb，names 含 mp
+    processLine(mp, "NAMES #pb")
+    expectContains(drainOutbox(mp), " 353 mp = #pb :@mp", "55. still in #pb")
+
+    // -------- 56. 空 PRIVMSG 文本 -> 412 --------
+    resetState()
+    int z1 = simRegister("z1", "z1")
+    processLine(z1, "PRIVMSG z1")
+    expectContains(drainOutbox(z1), " 412 ", "56. no text -> 412")
+
+    // -------- 57. TOPIC 不存在频道 -> 403 --------
+    processLine(z1, "TOPIC #nope")
+    expectContains(drainOutbox(z1), " 403 z1 #nope ", "57. topic no channel -> 403")
+
+    // -------- 58. MODE 不存在频道 -> 403 --------
+    processLine(z1, "MODE #nope")
+    expectContains(drainOutbox(z1), " 403 z1 #nope ", "58. mode no channel -> 403")
+
+    // -------- 59. 状态隔离：reset 后频道与连接清空 --------
+    resetState()
+    int clean = simRegister("clean", "clean")
+    processLine(clean, "JOIN #fresh")
+    expectContains(drainOutbox(clean), "JOIN :#fresh", "59. fresh join after reset")
+    int connN = 0
+    int chanN = 0
+    int regN = 0
+    connN, chanN, regN = serverStats()
+    check(connN == 1 and chanN == 1 and regN == 1, "59. stats after reset+join", "conn=" + connN.toString() + " chan=" + chanN.toString() + " reg=" + regN.toString())
+
+    // -------- 60. PONG 无副作用（注册前也允许）--------
+    resetState()
+    int pg = allocConn("127.0.0.1")
+    processLine(pg, "PONG server")
+    string pgOut = drainOutbox(pg)
+    check(pgOut == "", "60. PONG no reply", "got: " + pgOut)
+
+    // -------- 61. 真实风格前缀入站行被正确剥离 --------
+    resetState()
+    int rp = simRegister("rex", "rex")
+    // 客户端罕见地发带前缀的行：前缀应被忽略，按命令派发
+    processLine(rp, ":someone!u@h PRIVMSG rex :self-msg")
+    expectContains(drainOutbox(rp), ":rex!rex@127.0.0.1 PRIVMSG rex :self-msg", "61. inbound prefix stripped")
+
+    // -------- 62. 多行粘包一次性 processLine 多次 --------
+    resetState()
+    int stick = allocConn("127.0.0.1")
+    processLine(stick, "NICK stick")
+    drainOutbox(stick)
+    processLine(stick, "USER stick 0 * :Stick")
+    string stickWelcome = drainOutbox(stick)
+    expectContains(stickWelcome, " 001 stick ", "62. sticky multi-step register welcome")
+
+    // -------- 63. NICK 长度边界（30 ok / 31 拒绝）--------
+    resetState()
+    int b1 = allocConn("127.0.0.1")
+    string n30 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    check(string.len(n30) == 30, "63. setup nick30 len", "len=" + string.len(n30).toString())
+    processLine(b1, "NICK " + n30)
+    expectNotContains(drainOutbox(b1), " 432 ", "63. 30-char nick accepted")
+    int b2 = allocConn("127.0.0.1")
+    string n31 = n30 + "b"
+    processLine(b2, "NICK " + n31)
+    expectContains(drainOutbox(b2), " 432 ", "63. 31-char nick rejected")
+
+    // -------- 64. USER 重复字段不报错（reregister 由 registered 守卫）--------
+    resetState()
+    int ur = simRegister("ur", "ur")
+    processLine(ur, "USER other 0 * :Other")
+    expectContains(drainOutbox(ur), " 462 ", "64. USER after register -> 462")
+
+    // -------- 65. JOIN 后 QUIT，频道在只剩 1 人时留存、最后一人走时销毁 --------
+    resetState()
+    int j1 = simRegister("jay", "jay")
+    int j2 = simRegister("joe", "joe")
+    int j3 = simRegister("jim", "jim")
+    processLine(j1, "JOIN #jay")
+    drainOutbox(j1)
+    processLine(j2, "JOIN #jay")
+    drainOutbox(j1)
+    drainOutbox(j2)
+    processLine(j3, "JOIN #jay")
+    drainOutbox(j1)
+    drainOutbox(j2)
+    drainOutbox(j3)
+    // j3 退出 -> 频道仍留 jay,joe
+    processLine(j3, "QUIT :bye")
+    drainOutbox(j1)
+    drainOutbox(j2)
+    processLine(j1, "NAMES #jay")
+    string after1 = drainOutbox(j1)
+    expectContains(after1, " 353 jay = #jay :@jay joe", "65. channel survives until last")
+    // j2 退出 -> 频道仍留 jay
+    processLine(j2, "QUIT :bye")
+    drainOutbox(j1)
+    processLine(j1, "NAMES #jay")
+    expectContains(drainOutbox(j1), " 353 jay = #jay :@jay", "65. one member remains")
+    // j1 退出 -> 频道销毁
+    processLine(j1, "QUIT :bye")
+    int jC = simRegister("jChk", "jChk")
+    processLine(jC, "NAMES #jay")
+    expectContains(drainOutbox(jC), " 366 jChk #jay ", "65. channel destroyed after last quit")
+
+    // -------- 66. 服务端统计 serverStats 准确 --------
+    resetState()
+    int sA = simRegister("sA", "sA")
+    int sB = simRegister("sB", "sB")
+    int sUnreg = allocConn("127.0.0.1")
+    processLine(sA, "JOIN #s1")
+    drainOutbox(sA)
+    processLine(sA, "JOIN #s2")
+    drainOutbox(sA)
+    int sc = 0
+    int sh = 0
+    int sr = 0
+    sc, sh, sr = serverStats()
+    // sA, sB 已注册 + sUnreg 未注册 -> 3 连接、2 已注册、2 频道
+    check(sc == 3 and sh == 2 and sr == 2, "66. serverStats counts", "conn=" + sc.toString() + " chan=" + sh.toString() + " reg=" + sr.toString())
+
+    println("")
+    println("------------------- summary -------------------")
+    println("passed: " + gPassed.toString() + " / " + (gPassed + gFailed).toString())
+    println("failed: " + gFailed.toString())
+    println("")
+    if gFailed > 0 then
+        return 1
+    end
+    return 0
+end
+
+// ============================================================
+// serve 模式：真实 TCP server
+// ============================================================
+
+// 每个客户端连接的处理 thread（TcpStream 仅存在于此闭包，不跨函数传参）
+func makeClientLoop(int connId, point handle) as func() as int
+    return func() as int
+        // native-backed class 在此内联构造使用，绝不传给其它函数
+        TcpStream conn = TcpStream(handle)
+        string recvBuf = ""
+        bool alive = true
+        int idleTicks = 0
+        bool sentPing = false
+
+        while alive do
+            string chunk = conn.recv(RECV_TIMEOUT_MS)
+            if chunk != "" then
+                idleTicks = 0
+                sentPing = false
+                recvBuf = recvBuf + chunk
+                // 按 \n 切行（兼容 \r\n）
+                bool keepGoing = true
+                while keepGoing do
+                    int nl = string.indexOf(recvBuf, "\n")
+                    if nl < 0 then
+                        keepGoing = false
+                    else
+                        string oneLine = string.left(recvBuf, nl)
+                        recvBuf = fromIdx(recvBuf, nl + 1)
+                        int oneLen = string.len(oneLine)
+                        if oneLen > 0 and string.charAt(oneLine, oneLen - 1) == "\r" then
+                            oneLine = string.left(oneLine, oneLen - 1)
+                        end
+                        if oneLine != "" then
+                            processLine(connId, oneLine)
+                        end
+                    end
+                end
+                // 客户端主动 QUIT 后状态已被移除 -> 退出循环
+                if not connExists(connId) then
+                    alive = false
+                end
+                // flush 待发队列
+                string drained = drainOutbox(connId)
+                if drained != "" then
+                    bool ok = conn.send(drained)
+                    if not ok then
+                        alive = false
+                    end
+                end
+            else
+                idleTicks = idleTicks + 1
+                // 取走别的连接广播给自己的报文
+                string drained = drainOutbox(connId)
+                if drained != "" then
+                    idleTicks = 0
+                    bool ok = conn.send(drained)
+                    if not ok then
+                        alive = false
+                    end
+                end
+                // 空闲探测：~30s 发 PING
+                if alive and idleTicks >= IDLE_PING_TICKS and not sentPing then
+                    string pingLine = ":" + SERVER_NAME + " PING " + SERVER_NAME + " :" + cidKey(connId) + "\r\n"
+                    bool ok = conn.send(pingLine)
+                    if not ok then
+                        alive = false
+                    end
+                    sentPing = true
+                end
+                // ~120s 仍无活动 -> 断开
+                if idleTicks >= IDLE_KILL_TICKS then
+                    alive = false
+                end
+            end
+        end
+
+        conn.close()
+        // 清理：从状态移除并向共享频道广播 QUIT
+        processQuit(connId, "Connection closed")
+        gTotalConns = gTotalConns - 1
+        if gTotalConns < 0 then
+            gTotalConns = 0
+        end
+        return 0
+    end
+end
+
+// accept 主循环（async 以便 await acceptAsync）
+async func serveMode(int port) as int
+    point lh = tcp.listen(port)
+    if lh == ZERO then
+        println("FATAL: tcp.listen failed on port " + port.toString())
+        return 1
+    end
+    TcpServer server = TcpServer(lh)
+    int boundPort = int(server.port())
+    gServing = 1
+    println("listening on port " + boundPort.toString() + "  (server: " + SERVER_NAME + " " + SERVER_VERSION + ")")
+    println("connect with an IRC client, e.g.:  /server 127.0.0.1 " + boundPort.toString())
+    println("press Ctrl+C to stop")
+    println("")
+
+    while gServing == 1 do
+        future<point> af = server.acceptAsync(500)
+        point handle = ZERO
+        try
+            handle = await af
+        catch e
+            handle = ZERO
+        end
+        if handle != ZERO then
+            int connId = allocConn("127.0.0.1")
+            gTotalConns = gTotalConns + 1
+            thread t = thread(makeClientLoop(connId, handle))
+            println("[conn] accepted id=" + connId.toString() + " active=" + gTotalConns.toString())
+        end
+    end
+    return 0
+end
+
+func usage()
+    println("xlang ircserver - RFC 1459 subset IRC server")
+    println("Usage:")
+    println("  ircserver test            run self-test (no real server, simulates protocol)")
+    println("  ircserver serve [port]    serve real IRC clients (default port " + DEFAULT_PORT.toString() + ")")
+    println("  ircserver -h | --help     show this help")
+    println("")
+    println("Core commands:  NICK USER JOIN PART PRIVMSG QUIT PING PONG MODE TOPIC NAMES")
+    println("Bonus commands: NOTICE LUSERS WHOIS VERSION TIME CAP PASS")
+    println("State held in global JSON strings (gConns/gChannels/gOutbox) + mutex,")
+    println("working around BUG-XB1. TcpStream never crosses function boundaries.")
+end
+
+// ============================================================
+// main
+// ============================================================
+func main(...) as int
+    println("xlang ircserver - RFC 1459 subset IRC server")
+    println("")
+
+    // 初始化全局共享状态（mutex 需显式构造）
+    gConns = "{}"
+    gChannels = "{}"
+    gOutbox = "{}"
+    gNextConnId = 1
+    gServing = 0
+    gTotalConns = 0
+    gLock = mutex()
+    gCreated = "unix " + time.toUnix(time.now()).toString()
+
+    string mode = "test"
+    int port = DEFAULT_PORT
+
+    if arg.length >= 2 then
+        string a1 = string(arg[1])
+        if a1 == "-h" or a1 == "--help" then
+            usage()
+            return 0
+        elseif a1 == "serve" then
+            mode = "serve"
+            if arg.length >= 3 then
+                int parsed = int(string(arg[2]))
+                if parsed > 0 and parsed < 65536 then
+                    port = parsed
+                end
+            end
+        elseif a1 == "test" then
+            mode = "test"
+        elseif a1 == "selftest" then
+            mode = "test"
+        else
+            int parsed = int(a1)
+            if parsed > 0 and parsed < 65536 then
+                mode = "serve"
+                port = parsed
+            else
+                println("Error: unknown command '" + a1 + "'")
+                usage()
+                return 1
+            end
+        end
+    end
+
+    if mode == "test" then
+        return runSelfTest()
+    end
+
+    // serve 模式
+    future<int> done = serveMode(port)
+    done.wait()
+    return 0
+end

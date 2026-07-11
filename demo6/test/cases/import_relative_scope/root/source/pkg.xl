@@ -1,0 +1,3 @@
+export "xl6_test_relative_pkg_value" func value() as int
+    return 42
+end

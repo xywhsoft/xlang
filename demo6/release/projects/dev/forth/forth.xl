@@ -1,4 +1,4 @@
-// forth.xl — 栈式后缀（Forth）语言解释器
+﻿// forth.xl — 栈式后缀（Forth）语言解释器
 //
 // 用法:
 //   forth run <file.fth>     执行一个 .fth 文件
@@ -7,7 +7,7 @@
 //
 // 实现模型: 空格分 token -> 查词表 -> 执行。
 //   - 数据栈:     array<int>（全局）
-//   - 用户词表:   dict<string, array<string>>  name -> body tokens
+//   - 用户词表:   var  name -> body tokens
 //   - 内置词:     if-chain 派发
 //   - 控制流:     if/else/then、begin/until、do/loop 在运行期扫描匹配关键字
 //
@@ -27,7 +27,7 @@
 // 从不重新绑定，规避「typed 容器作函数形参被值拷贝（BUG-XL1）」与「main 中重绑全局容器的线程问题」。
 
 array<int> gStack = array[]
-dict<string, array<string>> gWords = dict<string, array<string>>{}
+var gWords = {}
 array<int> gLoopStack = array[]
 string gCurrentWord = ""
 
@@ -127,10 +127,10 @@ end
 // 在 toks[start..end) 中查找匹配的控制关键字（处理嵌套，按深度匹配）。
 
 // 匹配 'if' 的 'then' 位置。
-func scanThen(array<string> toks, int start, int end) as int
+func scanThen(array<string> toks, int start, int endIdx) as int
     int depth = 0
     int j = start
-    while j < end do
+    while j < endIdx do
         string t = toks[j]
         if t == "if" then
             depth += 1
@@ -146,10 +146,10 @@ func scanThen(array<string> toks, int start, int end) as int
 end
 
 // [start..end) 内处于深度 0 的 'else'（end 通常为 then 位置）。
-func scanElse(array<string> toks, int start, int end) as int
+func scanElse(array<string> toks, int start, int endIdx) as int
     int depth = 0
     int j = start
-    while j < end do
+    while j < endIdx do
         string t = toks[j]
         if t == "if" then
             depth += 1
@@ -166,10 +166,10 @@ func scanElse(array<string> toks, int start, int end) as int
 end
 
 // 匹配 'begin' 的 'until' 位置。
-func scanUntil(array<string> toks, int start, int end) as int
+func scanUntil(array<string> toks, int start, int endIdx) as int
     int depth = 0
     int j = start
-    while j < end do
+    while j < endIdx do
         string t = toks[j]
         if t == "begin" then
             depth += 1
@@ -185,10 +185,10 @@ func scanUntil(array<string> toks, int start, int end) as int
 end
 
 // 匹配 'do' 的 'loop' 位置。
-func scanLoop(array<string> toks, int start, int end) as int
+func scanLoop(array<string> toks, int start, int endIdx) as int
     int depth = 0
     int j = start
-    while j < end do
+    while j < endIdx do
         string t = toks[j]
         if t == "do" then
             depth += 1
@@ -207,29 +207,29 @@ end
 // ====================== 执行器 ======================
 
 // 执行 toks[start..end)。
-func execRange(array<string> toks, int start, int end)
+func execRange(array<string> toks, int start, int endIdx)
     int i = start
-    while i < end do
-        i = execOne(toks, i, end)
+    while i < endIdx do
+        i = execOne(toks, i, endIdx)
     end
 end
 
 // 执行单个 token，返回下一个 token 位置。
-func execOne(array<string> toks, int i, int end) as int
+func execOne(array<string> toks, int i, int endIdx) as int
     string t = toks[i]
 
     // 结构性词（改变执行位置）
     if t == ":" then
-        return doDefine(toks, i, end)
+        return doDefine(toks, i, endIdx)
     end
     if t == "if" then
-        return doIf(toks, i, end)
+        return doIf(toks, i, endIdx)
     end
     if t == "begin" then
-        return doBegin(toks, i, end)
+        return doBegin(toks, i, endIdx)
     end
     if t == "do" then
-        return doLoop(toks, i, end)
+        return doLoop(toks, i, endIdx)
     end
 
     // 循环索引 i
@@ -277,19 +277,19 @@ func execOne(array<string> toks, int i, int end) as int
 end
 
 // : name body ;  —— 收集 body 存入词表。
-func doDefine(array<string> toks, int i, int end) as int
-    if i + 1 >= end then
+func doDefine(array<string> toks, int i, int endIdx) as int
+    if i + 1 >= endIdx then
         throw "forth: ':' missing word name"
     end
     string name = toks[i + 1]
     int semi = i + 2
-    while semi < end do
+    while semi < endIdx do
         if toks[semi] == ";" then
             break
         end
         semi += 1
     end
-    if semi >= end then
+    if semi >= endIdx then
         throw "forth: ':' missing ';'"
     end
     array<string> body = array[]
@@ -303,9 +303,9 @@ func doDefine(array<string> toks, int i, int end) as int
 end
 
 // flag if A else B then
-func doIf(array<string> toks, int i, int end) as int
+func doIf(array<string> toks, int i, int endIdx) as int
     int flag = pop()
-    int thenIdx = scanThen(toks, i + 1, end)
+    int thenIdx = scanThen(toks, i + 1, endIdx)
     int elseIdx = scanElse(toks, i + 1, thenIdx)
     if flag != 0 then
         if elseIdx >= 0 then
@@ -322,8 +322,8 @@ func doIf(array<string> toks, int i, int end) as int
 end
 
 // begin body until  —— 执行 body，弹标志，非零退出。
-func doBegin(array<string> toks, int i, int end) as int
-    int untilIdx = scanUntil(toks, i + 1, end)
+func doBegin(array<string> toks, int i, int endIdx) as int
+    int untilIdx = scanUntil(toks, i + 1, endIdx)
     while true do
         execRange(toks, i + 1, untilIdx)
         int flag = pop()
@@ -335,8 +335,8 @@ func doBegin(array<string> toks, int i, int end) as int
 end
 
 // limit start do body loop  —— start..limit-1 计数循环。
-func doLoop(array<string> toks, int i, int end) as int
-    int loopIdx = scanLoop(toks, i + 1, end)
+func doLoop(array<string> toks, int i, int endIdx) as int
+    int loopIdx = scanLoop(toks, i + 1, endIdx)
     int index = pop()
     int limit = pop()
     gLoopStack.push(index)
@@ -352,7 +352,14 @@ end
 
 // 调用用户词：执行其 body，记录当前词名以支持 recurse。
 func callWord(string name)
-    array<string> body = gWords[name]
+    var src = gWords[name]
+    array<string> body = array[]
+    int k = 0
+    int n = src.length
+    while k < n do
+        body.append(string(src[k]))
+        k += 1
+    end
     string prev = gCurrentWord
     gCurrentWord = name
     execRange(body, 0, body.length)

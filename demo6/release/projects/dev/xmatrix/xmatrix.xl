@@ -1,0 +1,2789 @@
+// xmatrix - 线性代数库（linear algebra library in xlang）
+//
+// 综合验证 xlang 的：
+//   * class Matrix + array<float> 密集存储 + row-major 线性索引
+//   * 运算符协议：__add__ / __sub__ / __mul__(Matrix) / __mul__(float) / __neg__ / __eq__
+//     / __item__ / __setItem__ / __len__ / __approx__ / __call__
+//   * 方法重载（__mul__ 按 Matrix / float 参数类型分派）
+//   * float 密集数值计算：LU / QR / Cholesky 分解、行列式、矩阵求逆、线性方程组求解
+//   * 特征值算法：幂迭代法 + QR 迭代法
+//   * 最小二乘法（Householder QR 回代）
+//   * 向量运算：点积 / 叉积 / 范数 / 归一化
+//   * JSON 文件 I/O：矩阵和向量的序列化/反序列化
+//
+// 矩阵存储格式：
+//   row-major 一维 array<float>，元素 (r, c) 的线性索引 = r * cols + c。
+//   Matrix 不含 virtual 方法、不含 destroy，可安全按值传递与从函数返回。
+//
+// JSON 矩阵格式（三种等价格式）：
+//   [[1,2,3],[4,5,6]]                              裸二维数组
+//   {"matrix": [[1,2,3],[4,5,6]]}                  带键 "matrix"
+//   {"data": [[1,2,3],[4,5,6]], "rows":2,"cols":3} 带 "data" + 显式维度
+//
+// JSON 向量格式：
+//   [1,2,3]                          裂数组
+//   {"b": [1,2,3]}                   带键 "b"
+//   {"vector": [1,2,3]}              带键 "vector"
+//
+// 用法：
+//   xl run projects\dev\xmatrix\xmatrix.xl solve <a.json> <b.json>
+//       求解 Ax = b，输出解向量 x
+//   xl run projects\dev\xmatrix\xmatrix.xl eigen <matrix.json>
+//       求最大特征值和对应特征向量
+//   xl run projects\dev\xmatrix\xmatrix.xl test
+//       运行全部单元测试
+//   xl run projects\dev\xmatrix\xmatrix.xl det <matrix.json>
+//       计算行列式
+//   xl run projects\dev\xmatrix\xmatrix.xl inv <matrix.json>
+//       计算逆矩阵
+//   xl run projects\dev\xmatrix\xmatrix.xl lu <matrix.json>
+//       LU 分解
+//   xl run projects\dev\xmatrix\xmatrix.xl qr <matrix.json>
+//       QR 分解
+//   xl run projects\dev\xmatrix\xmatrix.xl chol <matrix.json>
+//       Cholesky 分解
+//   xl run projects\dev\xmatrix\xmatrix.xl lstsq <a.json> <b.json>
+//       最小二乘法
+//
+// 验证：
+//   cd /d D:\GIT\x-lang\demo6\release
+//   xl run projects\dev\xmatrix\xmatrix.xl test
+//   xl build projects\dev\xmatrix\xmatrix.xl -o projects\dev\xmatrix\xmatrix.exe
+
+// ========================================================================
+// 全局常量
+// ========================================================================
+
+float EPS_LU = 1e-12       // LU 分解奇异判定阈值
+float EPS_QR = 1e-14       // QR 分解零向量判定
+float EPS_CHOL = 1e-14     // Cholesky 非正定判定
+float EPS_EIGEN = 1e-10    // 特征值收敛阈值
+float EPS_COMPARE = 1e-9   // 通用近似比较阈值
+
+// ========================================================================
+// 第 1 节：通用辅助函数
+// ========================================================================
+
+// 浮点近似比较：|a - b| < tol
+func approxEq(float a, float b, float tol) as bool
+    return math.abs(a - b) < tol
+end
+
+// 浮点近似比较（使用默认容差）
+func approxDefault(float a, float b) as bool
+    return math.abs(a - b) < EPS_COMPARE
+end
+
+// 把 float 格式化为人类友好字符串：整数落点显示为整数，否则保留 6 位小数。
+func formatNumber(float v) as string
+    if math.isNaN(v) then
+        return "nan"
+    end
+    if math.isInf(v) then
+        if v < 0.0 then
+            return "-inf"
+        end
+        return "inf"
+    end
+    if v == math.floor(v) and math.abs(v) < 1e15 then
+        return string(int(v))
+    end
+    return string.formatFloat(v, ".6")
+end
+
+// sign 函数：返回 x 的符号（-1 / 0 / 1）
+func signF(float x) as float
+    if x > 0.0 then
+        return 1.0
+    end
+    if x < 0.0 then
+        return -1.0
+    end
+    return 0.0
+end
+
+// 把 array<float> 格式化为逗号分隔的文本
+func formatVector(array<float> v) as string
+    string out = "["
+    int n = v.length
+    int i = 0
+    while i < n do
+        if i > 0 then
+            out = out + ", "
+        end
+        out = out + formatNumber(v[i])
+        i += 1
+    end
+    out = out + "]"
+    return out
+end
+
+// 打印向量
+func printVector(array<float> v)
+    println(formatVector(v))
+end
+
+// ========================================================================
+// 第 2 节：测试框架（参考 shapes.xl 风格，程序始终返回 0）
+// ========================================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass += 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail += 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectF(float got, float want, string label)
+    if approxEq(got, want, 0.0001) then
+        ok(label)
+    else
+        bad(label, "got " + formatNumber(got) + " want " + formatNumber(want))
+    end
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectB(bool got, bool want, string label)
+    if got == want then
+        ok(label)
+    else
+        string gs = "false"
+        if got then
+            gs = "true"
+        end
+        string ws = "false"
+        if want then
+            ws = "true"
+        end
+        bad(label, "got " + gs + " want " + ws)
+    end
+end
+
+// ========================================================================
+// 第 3 节：Matrix 类
+//
+//   row-major 一维 array<float> 存储，元素 (r, c) 的线性索引 = r * cols + c。
+//   实现 __add__ / __sub__ / __mul__(Matrix) / __mul__(float) / __neg__ / __eq__
+//   / __item__ / __setItem__ / __len__ / __approx__ / __call__ 协议。
+//   无 virtual 方法、无 destroy → 可安全按值传递与从函数返回。
+// ========================================================================
+
+class Matrix
+    int rows = 0
+    int cols = 0
+    array<float> data = array[]
+
+    // 构造 rows x cols 的零矩阵
+    create(int rows, int cols)
+        self.rows = rows
+        self.cols = cols
+        self.data = array[]
+        int total = rows * cols
+        int i = 0
+        while i < total do
+            self.data.append(0.0)
+            i += 1
+        end
+    end
+
+    // 线性索引：(r, c) → r * cols + c
+    func idx(int r, int c) as int
+        return r * self.cols + c
+    end
+
+    // 读取 (r, c)
+    func at(int r, int c) as float
+        return self.data[r * self.cols + c]
+    end
+
+    // 写入 (r, c)
+    func set(int r, int c, float v)
+        self.data[r * self.cols + c] = v
+    end
+
+    // __item__ 多维索引协议：m[r, c] 读取
+    func __item__(int r, int c) as float
+        return self.data[r * self.cols + c]
+    end
+
+    // __setItem__ 多维索引协议：m[r, c] = v
+    func __setItem__(int r, int c, float v)
+        self.data[r * self.cols + c] = v
+    end
+
+    // __len__ 协议：返回行数
+    func __len__() as int
+        return self.rows
+    end
+
+    // __call__ 协议：m(r, c) 读取（函数调用语法）
+    func __call__(int r, int c) as float
+        return self.data[r * self.cols + c]
+    end
+
+    // 深拷贝：返回独立副本
+    func copy() as Matrix
+        Matrix result = Matrix(self.rows, self.cols)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            result.data[i] = self.data[i]
+            i += 1
+        end
+        return result
+    end
+
+    // clone 别名（与 derive clone 风格一致）
+    func clone() as Matrix
+        return self.copy()
+    end
+
+    // 是否方阵
+    func isSquare() as bool
+        return self.rows == self.cols
+    end
+
+    // 是否对称（仅对方阵有意义）
+    func isSymmetric() as bool
+        if self.rows != self.cols then
+            return false
+        end
+        int r = 0
+        while r < self.rows do
+            int c = r + 1
+            while c < self.cols do
+                if not approxDefault(self.at(r, c), self.at(c, r)) then
+                    return false
+                end
+                c += 1
+            end
+            r += 1
+        end
+        return true
+    end
+
+    // 迹（trace）：对角元素之和（仅方阵）
+    func trace() as float
+        if not self.isSquare() then
+            throw "trace requires square matrix"
+        end
+        float s = 0.0
+        int i = 0
+        while i < self.rows do
+            s += self.at(i, i)
+            i += 1
+        end
+        return s
+    end
+
+    // 填充所有元素为指定值
+    func fill(float v)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            self.data[i] = v
+            i += 1
+        end
+    end
+
+    // 设为单位矩阵（原地操作，仅方阵）
+    func setIdentity()
+        if not self.isSquare() then
+            throw "identity requires square matrix"
+        end
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            self.data[i] = 0.0
+            i += 1
+        end
+        int k = 0
+        while k < self.rows do
+            self.set(k, k, 1.0)
+            k += 1
+        end
+    end
+
+    // 交换两行（原地操作）
+    func swapRows(int i, int j)
+        if i == j then
+            return
+        end
+        int c = 0
+        while c < self.cols do
+            float tmp = self.at(i, c)
+            self.set(i, c, self.at(j, c))
+            self.set(j, c, tmp)
+            c += 1
+        end
+    end
+
+    // 交换两列（原地操作）
+    func swapCols(int i, int j)
+        if i == j then
+            return
+        end
+        int r = 0
+        while r < self.rows do
+            float tmp = self.at(r, i)
+            self.set(r, i, self.at(r, j))
+            self.set(r, j, tmp)
+            r += 1
+        end
+    end
+
+    // 提取第 r 行为新 Matrix（1 x cols）
+    func getRow(int r) as Matrix
+        Matrix result = Matrix(1, self.cols)
+        int c = 0
+        while c < self.cols do
+            result.set(0, c, self.at(r, c))
+            c += 1
+        end
+        return result
+    end
+
+    // 提取第 c 列为新 Matrix（rows x 1）
+    func getCol(int c) as Matrix
+        Matrix result = Matrix(self.rows, 1)
+        int r = 0
+        while r < self.rows do
+            result.set(r, 0, self.at(r, c))
+            r += 1
+        end
+        return result
+    end
+
+    // 设置第 r 行的值（从 array<float>）
+    func setRow(int r, array<float> vals)
+        int c = 0
+        while c < self.cols do
+            self.set(r, c, vals[c])
+            c += 1
+        end
+    end
+
+    // 设置第 c 列的值（从 array<float>）
+    func setCol(int c, array<float> vals)
+        int r = 0
+        while r < self.rows do
+            self.set(r, c, vals[r])
+            r += 1
+        end
+    end
+
+    // ---- 矩阵基础运算 ----
+
+    // 矩阵加法：self + other → 新矩阵
+    func add(Matrix other) as Matrix
+        if self.rows != other.rows or self.cols != other.cols then
+            throw "add: dimension mismatch " + string(self.rows) + "x" + string(self.cols) + " vs " + string(other.rows) + "x" + string(other.cols)
+        end
+        Matrix result = Matrix(self.rows, self.cols)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            result.data[i] = self.data[i] + other.data[i]
+            i += 1
+        end
+        return result
+    end
+
+    // 矩阵减法：self - other → 新矩阵
+    func sub(Matrix other) as Matrix
+        if self.rows != other.rows or self.cols != other.cols then
+            throw "sub: dimension mismatch"
+        end
+        Matrix result = Matrix(self.rows, self.cols)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            result.data[i] = self.data[i] - other.data[i]
+            i += 1
+        end
+        return result
+    end
+
+    // 矩阵乘法：self * other → 新矩阵
+    func mul(Matrix other) as Matrix
+        if self.cols != other.rows then
+            throw "mul: dimension mismatch " + string(self.rows) + "x" + string(self.cols) + " * " + string(other.rows) + "x" + string(other.cols)
+        end
+        Matrix result = Matrix(self.rows, other.cols)
+        int r = 0
+        while r < self.rows do
+            int c = 0
+            while c < other.cols do
+                float sum = 0.0
+                int k = 0
+                while k < self.cols do
+                    sum += self.at(r, k) * other.at(k, c)
+                    k += 1
+                end
+                result.set(r, c, sum)
+                c += 1
+            end
+            r += 1
+        end
+        return result
+    end
+
+    // 数乘：self * scalar → 新矩阵
+    func scale(float s) as Matrix
+        Matrix result = Matrix(self.rows, self.cols)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            result.data[i] = self.data[i] * s
+            i += 1
+        end
+        return result
+    end
+
+    // 转置：self^T → 新矩阵
+    func transpose() as Matrix
+        Matrix result = Matrix(self.cols, self.rows)
+        int r = 0
+        while r < self.rows do
+            int c = 0
+            while c < self.cols do
+                result.set(c, r, self.at(r, c))
+                c += 1
+            end
+            r += 1
+        end
+        return result
+    end
+
+    // 逐元素乘（Hadamard 积）：self ⊙ other → 新矩阵
+    func elemMul(Matrix other) as Matrix
+        if self.rows != other.rows or self.cols != other.cols then
+            throw "elemMul: dimension mismatch"
+        end
+        Matrix result = Matrix(self.rows, self.cols)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            result.data[i] = self.data[i] * other.data[i]
+            i += 1
+        end
+        return result
+    end
+
+    // ---- 运算符协议 ----
+
+    // __add__：m1 + m2
+    func __add__(Matrix other) as Matrix
+        return self.add(other)
+    end
+
+    // __sub__：m1 - m2
+    func __sub__(Matrix other) as Matrix
+        return self.sub(other)
+    end
+
+    // __mul__（重载 1）：m1 * m2（矩阵乘法）
+    func __mul__(Matrix other) as Matrix
+        return self.mul(other)
+    end
+
+    // __mul__（重载 2）：m * scalar（数乘）
+    func __mul__(float s) as Matrix
+        return self.scale(s)
+    end
+
+    // __neg__：-m（取反）
+    func __neg__() as Matrix
+        return self.scale(-1.0)
+    end
+
+    // __eq__：m1 == m2（精确比较）
+    func __eq__(Matrix other) as bool
+        if self.rows != other.rows or self.cols != other.cols then
+            return false
+        end
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            if self.data[i] != other.data[i] then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+
+    // __approx__：m1 ~= m2（近似比较，容差 EPS_COMPARE）
+    func __approx__(Matrix other) as bool
+        if self.rows != other.rows or self.cols != other.cols then
+            return false
+        end
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            if not approxDefault(self.data[i], other.data[i]) then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+
+    // ---- 工具方法 ----
+
+    // 近似相等比较（自定义容差）
+    func approxEqual(Matrix other, float tol) as bool
+        if self.rows != other.rows or self.cols != other.cols then
+            return false
+        end
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            if math.abs(self.data[i] - other.data[i]) > tol then
+                return false
+            end
+            i += 1
+        end
+        return true
+    end
+
+    // Frobenius 范数：sqrt(sum of squares)
+    func frobeniusNorm() as float
+        float s = 0.0
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            float v = self.data[i]
+            s += v * v
+            i += 1
+        end
+        return math.sqrt(s)
+    end
+
+    // 提取对角线元素为 array<float>（仅方阵）
+    func diagonal() as array<float>
+        if not self.isSquare() then
+            throw "diagonal requires square matrix"
+        end
+        array<float> d = array[]
+        int i = 0
+        while i < self.rows do
+            d.append(self.at(i, i))
+            i += 1
+        end
+        return d
+    end
+
+    // 转换为可读表格文本
+    func toString() as string
+        return formatMatrixText(self)
+    end
+end
+
+// ========================================================================
+// 第 4 节：Matrix 工厂函数
+// ========================================================================
+
+// 创建 r x c 零矩阵
+func matrixZeros(int r, int c) as Matrix
+    return Matrix(r, c)
+end
+
+// 创建 n x n 单位矩阵
+func matrixIdentity(int n) as Matrix
+    Matrix m = Matrix(n, n)
+    int i = 0
+    while i < n do
+        m.set(i, i, 1.0)
+        i += 1
+    end
+    return m
+end
+
+// 从 array<float> 创建 r x c 矩阵（row-major 填充）
+func matrixFrom(int r, int c, array<float> vals) as Matrix
+    Matrix m = Matrix(r, c)
+    int n = r * c
+    int i = 0
+    while i < n do
+        if i < vals.length then
+            m.data[i] = vals[i]
+        end
+        i += 1
+    end
+    return m
+end
+
+// 创建所有元素均为 v 的 r x c 矩阵
+func matrixConstant(int r, int c, float v) as Matrix
+    Matrix m = Matrix(r, c)
+    int n = r * c
+    int i = 0
+    while i < n do
+        m.data[i] = v
+        i += 1
+    end
+    return m
+end
+
+// 从行向量数组创建矩阵（每行一个 array<float>）
+func matrixFromRows(array<array<float>> rows) as Matrix
+    int nr = rows.length
+    if nr == 0 then
+        return Matrix(0, 0)
+    end
+    int nc = rows[0].length
+    Matrix m = Matrix(nr, nc)
+    int r = 0
+    while r < nr do
+        int c = 0
+        while c < nc do
+            m.set(r, c, rows[r][c])
+            c += 1
+        end
+        r += 1
+    end
+    return m
+end
+
+// ========================================================================
+// 第 5 节：LU 分解（Doolittle 方法 + 部分主元选择）
+//
+//   PA = LU
+//   L 为单位下三角矩阵，U 为上三角矩阵，P 为排列矩阵（用 perm 数组表示）。
+//   部分主元选择（partial pivoting）：每步选当前列中绝对值最大的行作为主元。
+// ========================================================================
+
+class LUResult
+    Matrix L = Matrix(1, 1)
+    Matrix U = Matrix(1, 1)
+    array<int> perm = array[]
+    int sign = 1       // 行列式符号：+1（偶排列）或 -1（奇排列）
+    bool singular = false
+end
+
+// 对方阵 A 做 LU 分解（带部分主元选择）
+func luDecompose(Matrix a) as LUResult
+    if not a.isSquare() then
+        throw "LU decompose requires square matrix, got " + string(a.rows) + "x" + string(a.cols)
+    end
+    int n = a.rows
+    LUResult result = LUResult()
+
+    // 工作副本（会被修改为 LU 合并存储）
+    Matrix work = a.copy()
+    array<int> perm = array[]
+    int sign = 1
+    int i = 0
+    while i < n do
+        perm.append(i)
+        i += 1
+    end
+
+    int k = 0
+    while k < n do
+        // 部分主元选择：在 [k, n) 中找 |work[i][k]| 最大的行
+        float maxVal = math.abs(work.at(k, k))
+        int maxRow = k
+        int r = k + 1
+        while r < n do
+            float absVal = math.abs(work.at(r, k))
+            if absVal > maxVal then
+                maxVal = absVal
+                maxRow = r
+            end
+            r += 1
+        end
+
+        // 交换行
+        if maxRow != k then
+            work.swapRows(k, maxRow)
+            int tmp = perm[k]
+            perm[k] = perm[maxRow]
+            perm[maxRow] = tmp
+            sign = -sign
+        end
+
+        // 奇异检测
+        float pivot = work.at(k, k)
+        if math.abs(pivot) < EPS_LU then
+            result.singular = true
+            // 仍继续分解，但标记奇异
+        end
+
+        // 消元：计算 L 的第 k 列（严格下三角部分）并更新 U
+        if math.abs(pivot) >= EPS_LU then
+            int r2 = k + 1
+            while r2 < n do
+                float factor = work.at(r2, k) / pivot
+                work.set(r2, k, factor)
+                int j = k + 1
+                while j < n do
+                    float val = work.at(r2, j) - factor * work.at(k, j)
+                    work.set(r2, j, val)
+                    j += 1
+                end
+                r2 += 1
+            end
+        end
+        k += 1
+    end
+
+    // 从 work 中提取 L（单位下三角）和 U（上三角）
+    Matrix L = Matrix(n, n)
+    Matrix U = Matrix(n, n)
+    int r3 = 0
+    while r3 < n do
+        int c3 = 0
+        while c3 < n do
+            if r3 > c3 then
+                L.set(r3, c3, work.at(r3, c3))
+                U.set(r3, c3, 0.0)
+            elseif r3 == c3 then
+                L.set(r3, c3, 1.0)
+                U.set(r3, c3, work.at(r3, c3))
+            else
+                L.set(r3, c3, 0.0)
+                U.set(r3, c3, work.at(r3, c3))
+            end
+            c3 += 1
+        end
+        r3 += 1
+    end
+
+    result.L = L
+    result.U = U
+    result.perm = perm
+    result.sign = sign
+    return result
+end
+
+// 前代法（forward substitution）：解 Ly = Pb
+// L 为下三角矩阵（单位对角），Pb 为已排列的右端向量
+func forwardSub(Matrix L, array<float> Pb) as array<float>
+    int n = L.rows
+    array<float> y = array[]
+    int i = 0
+    while i < n do
+        y.append(0.0)
+        i += 1
+    end
+    int r = 0
+    while r < n do
+        float s = Pb[r]
+        int c = 0
+        while c < r do
+            s -= L.at(r, c) * y[c]
+            c += 1
+        end
+        y[r] = s
+        r += 1
+    end
+    return y
+end
+
+// 前代法（一般下三角，非单位对角）
+func forwardSubGeneral(Matrix L, array<float> b) as array<float>
+    int n = L.rows
+    array<float> y = array[]
+    int i = 0
+    while i < n do
+        y.append(0.0)
+        i += 1
+    end
+    int r = 0
+    while r < n do
+        float s = b[r]
+        int c = 0
+        while c < r do
+            s -= L.at(r, c) * y[c]
+            c += 1
+        end
+        float diag = L.at(r, r)
+        if math.abs(diag) < EPS_LU then
+            throw "forwardSub: singular diagonal at row " + string(r)
+        end
+        y[r] = s / diag
+        r += 1
+    end
+    return y
+end
+
+// 回代法（back substitution）：解 Ux = y
+// U 为上三角矩阵
+func backSub(Matrix U, array<float> y) as array<float>
+    int n = U.rows
+    array<float> x = array[]
+    int i = 0
+    while i < n do
+        x.append(0.0)
+        i += 1
+    end
+    int r = n - 1
+    while r >= 0 do
+        float s = y[r]
+        int c = r + 1
+        while c < n do
+            s -= U.at(r, c) * x[c]
+            c += 1
+        end
+        float diag = U.at(r, r)
+        if math.abs(diag) < EPS_LU then
+            throw "backSub: singular diagonal at row " + string(r)
+        end
+        x[r] = s / diag
+        r -= 1
+    end
+    return x
+end
+
+// ========================================================================
+// 第 6 节：QR 分解（Householder 反射）
+//
+//   A = QR
+//   Q 为 m x m 正交矩阵，R 为 m x n 上三角矩阵。
+//   通过一系列 Householder 反射 H_k 将 A 逐步化为上三角。
+//   Q = H_1 * H_2 * ... * H_min(m,n)，R = H_min * ... * H_1 * A。
+// ========================================================================
+
+class QRResult
+    Matrix Q = Matrix(1, 1)
+    Matrix R = Matrix(1, 1)
+end
+
+// 对 m x n 矩阵 A 做 Householder QR 分解
+func qrDecompose(Matrix a) as QRResult
+    int m = a.rows
+    int n = a.cols
+    QRResult result = QRResult()
+
+    // R 从 A 的副本开始，逐步被 Householder 变换化为上三角
+    Matrix R = a.copy()
+    // Q 从单位矩阵开始，逐步累积 Householder 变换
+    Matrix Q = matrixIdentity(m)
+
+    int steps = n
+    if m < steps then
+        steps = m
+    end
+    // Householder 最多 min(m-1, n) 步（最后一步如果 m > n 不需要）
+    if steps > m - 1 then
+        steps = m - 1
+    end
+    if steps < 0 then
+        steps = 0
+    end
+
+    int k = 0
+    while k < steps do
+        // 计算 Householder 向量 v
+        // x = R[k:m, k]（从第 k 行到第 m-1 行的第 k 列）
+        int xlen = m - k
+        array<float> x = array[]
+        int i = 0
+        while i < xlen do
+            x.append(R.at(k + i, k))
+            i += 1
+        end
+
+        // alpha = -sign(x[0]) * ||x||
+        float xNorm = 0.0
+        i = 0
+        while i < xlen do
+            xNorm += x[i] * x[i]
+            i += 1
+        end
+        xNorm = math.sqrt(xNorm)
+
+        if xNorm < EPS_QR then
+            k += 1
+            continue
+        end
+
+        float alpha = 0.0 - signF(x[0]) * xNorm
+
+        // v = x - alpha * e1
+        array<float> v = array[]
+        i = 0
+        while i < xlen do
+            float vi = x[i]
+            if i == 0 then
+                vi = vi - alpha
+            end
+            v.append(vi)
+            i += 1
+        end
+
+        // vNorm^2 = ||v||^2
+        float vNormSq = 0.0
+        i = 0
+        while i < xlen do
+            vNormSq += v[i] * v[i]
+            i += 1
+        end
+
+        if vNormSq < EPS_QR then
+            k += 1
+            continue
+        end
+
+        // 对 R 的第 k 到 n-1 列应用 H = I - 2 v v^T / (v^T v)
+        // R[k:m, j] -= 2 * v * (v^T R[k:m, j]) / vNormSq
+        int j = k
+        while j < n do
+            // dot = v^T * R[k:m, j]
+            float dot = 0.0
+            int p = 0
+            while p < xlen do
+                dot += v[p] * R.at(k + p, j)
+                p += 1
+            end
+            float coeff = 2.0 * dot / vNormSq
+            p = 0
+            while p < xlen do
+                float val = R.at(k + p, j) - coeff * v[p]
+                R.set(k + p, j, val)
+                p += 1
+            end
+            j += 1
+        end
+
+        // 对 Q 应用同样的变换：Q = Q * H
+        // Q[i, k:m] -= 2 * (Q[i, k:m] * v) * v^T / vNormSq
+        int row = 0
+        while row < m do
+            // dot = Q[row, k:m] * v
+            float dot = 0.0
+            int p = 0
+            while p < xlen do
+                dot += Q.at(row, k + p) * v[p]
+                p += 1
+            end
+            float coeff = 2.0 * dot / vNormSq
+            p = 0
+            while p < xlen do
+                float val = Q.at(row, k + p) - coeff * v[p]
+                Q.set(row, k + p, val)
+                p += 1
+            end
+            row += 1
+        end
+
+        k += 1
+    end
+
+    result.Q = Q
+    result.R = R
+    return result
+end
+
+// ========================================================================
+// 第 7 节：Cholesky 分解（对称正定矩阵）
+//
+//   A = L * L^T
+//   L 为下三角矩阵，A 必须对称正定。
+// ========================================================================
+
+// 对对称正定矩阵 A 做 Cholesky 分解，返回下三角 L
+func cholesky(Matrix a) as Matrix
+    if not a.isSquare() then
+        throw "cholesky requires square matrix"
+    end
+    int n = a.rows
+    Matrix L = Matrix(n, n)
+    int i = 0
+    while i < n do
+        int j = 0
+        while j <= i do
+            float sum = a.at(i, j)
+            int k = 0
+            while k < j do
+                sum -= L.at(i, k) * L.at(j, k)
+                k += 1
+            end
+            if i == j then
+                if sum <= EPS_CHOL then
+                    throw "cholesky: matrix not positive definite at (" + string(i) + "," + string(j) + ")"
+                end
+                L.set(i, j, math.sqrt(sum))
+            else
+                float diag = L.at(j, j)
+                if math.abs(diag) < EPS_CHOL then
+                    throw "cholesky: zero diagonal at " + string(j)
+                end
+                L.set(i, j, sum / diag)
+            end
+            j += 1
+        end
+        i += 1
+    end
+    return L
+end
+
+// 通过 Cholesky 分解解 Ax = b（A 对称正定）
+func choleskySolve(Matrix a, array<float> b) as array<float>
+    Matrix L = cholesky(a)
+    // 解 Ly = b（前代，L 非单位对角）
+    array<float> y = forwardSubGeneral(L, b)
+    // 解 L^T x = y（回代）
+    Matrix LT = L.transpose()
+    array<float> x = backSub(LT, y)
+    return x
+end
+
+// ========================================================================
+// 第 8 节：行列式（通过 LU 分解）
+//
+//   det(A) = sign * prod(U[i][i])
+//   sign 来自部分主元选择的行交换次数奇偶性。
+// ========================================================================
+
+func determinant(Matrix a) as float
+    if not a.isSquare() then
+        throw "determinant requires square matrix"
+    end
+    int n = a.rows
+    if n == 1 then
+        return a.at(0, 0)
+    end
+    if n == 2 then
+        return a.at(0, 0) * a.at(1, 1) - a.at(0, 1) * a.at(1, 0)
+    end
+
+    LUResult lu = luDecompose(a)
+    if lu.singular then
+        return 0.0
+    end
+    float det = float(lu.sign)
+    int i = 0
+    while i < n do
+        det *= lu.U.at(i, i)
+        i += 1
+    end
+    return det
+end
+
+// ========================================================================
+// 第 9 节：矩阵求逆（通过 LU 分解 + 前代/回代）
+//
+//   A^{-1} 的第 j 列 = A^{-1} * e_j，通过 LU 分解求解 Ax = e_j。
+// ========================================================================
+
+func inverse(Matrix a) as Matrix
+    if not a.isSquare() then
+        throw "inverse requires square matrix"
+    end
+    int n = a.rows
+    LUResult lu = luDecompose(a)
+    if lu.singular then
+        throw "inverse: matrix is singular"
+    end
+
+    Matrix inv = Matrix(n, n)
+    int col = 0
+    while col < n do
+        // 构造 e_col（单位向量的原始位置）
+        // 先按 perm 排列：Pb = P * e_col
+        array<float> Pb = array[]
+        int i = 0
+        while i < n do
+            Pb.append(0.0)
+            i += 1
+        end
+        // perm[i] 表示位置 i 的原始行号
+        // P * e_col 的第 i 个分量 = e_col[perm[i]]
+        i = 0
+        while i < n do
+            if lu.perm[i] == col then
+                Pb[i] = 1.0
+            end
+            i += 1
+        end
+
+        // 解 Ly = Pb（前代，L 单位对角）
+        array<float> y = forwardSub(lu.L, Pb)
+        // 解 Ux = y（回代）
+        array<float> x = backSub(lu.U, y)
+
+        // x 就是 A^{-1} 的第 col 列
+        int r = 0
+        while r < n do
+            inv.set(r, col, x[r])
+            r += 1
+        end
+        col += 1
+    end
+    return inv
+end
+
+// ========================================================================
+// 第 10 节：线性方程组求解 Ax = b（LU 分解法）
+//
+//   1. PA = LU
+//   2. Ly = Pb（前代）
+//   3. Ux = y（回代）
+// ========================================================================
+
+func solve(Matrix a, array<float> b) as array<float>
+    if not a.isSquare() then
+        throw "solve requires square coefficient matrix"
+    end
+    if a.rows != b.length then
+        throw "solve: dimension mismatch, A is " + string(a.rows) + "x" + string(a.cols) + ", b has " + string(b.length) + " elements"
+    end
+
+    LUResult lu = luDecompose(a)
+    if lu.singular then
+        throw "solve: matrix is singular"
+    end
+
+    // 排列 b：Pb[i] = b[perm[i]]
+    int n = a.rows
+    array<float> Pb = array[]
+    int i = 0
+    while i < n do
+        Pb.append(b[lu.perm[i]])
+        i += 1
+    end
+
+    // 解 Ly = Pb（前代，L 单位对角）
+    array<float> y = forwardSub(lu.L, Pb)
+    // 解 Ux = y（回代）
+    array<float> x = backSub(lu.U, y)
+    return x
+end
+
+// ========================================================================
+// 第 11 节：特征值计算
+//
+//   - 幂迭代法（Power Iteration）：求最大特征值（按模）和对应特征向量。
+//   - QR 迭代法（QR Iteration）：迭代收敛后对角元素即为特征值近似。
+// ========================================================================
+
+class EigenResult
+    float eigenvalue = 0.0
+    Matrix eigenvector = Matrix(1, 1)
+    int iterations = 0
+    bool converged = false
+end
+
+// 幂迭代法：求矩阵的按模最大特征值和对应特征向量
+// 适用于存在唯一主特征值（按模严格大于其他特征值）的矩阵。
+func powerIteration(Matrix a, int maxIter, float tol) as EigenResult
+    if not a.isSquare() then
+        throw "powerIteration requires square matrix"
+    end
+    int n = a.rows
+    EigenResult result = EigenResult()
+
+    // 初始向量：全 1（避免全零）
+    array<float> v = array[]
+    int i = 0
+    while i < n do
+        v.append(1.0)
+        i += 1
+    end
+
+    // 归一化初始向量
+    float vNorm = 0.0
+    i = 0
+    while i < n do
+        vNorm += v[i] * v[i]
+        i += 1
+    end
+    vNorm = math.sqrt(vNorm)
+    if vNorm < EPS_EIGEN then
+        result.eigenvalue = 0.0
+        result.converged = false
+        return result
+    end
+    i = 0
+    while i < n do
+        v[i] = v[i] / vNorm
+        i += 1
+    end
+
+    float eigenvalue = 0.0
+    int iter = 0
+    bool converged = false
+
+    while iter < maxIter do
+        // w = A * v
+        array<float> w = array[]
+        int r = 0
+        while r < n do
+            float s = 0.0
+            int c = 0
+            while c < n do
+                s += a.at(r, c) * v[c]
+                c += 1
+            end
+            w.append(s)
+            r += 1
+        end
+
+        // Rayleigh 商：lambda = v^T * w
+        float lambda = 0.0
+        i = 0
+        while i < n do
+            lambda += v[i] * w[i]
+            i += 1
+        end
+
+        // 归一化 w
+        float wNorm = 0.0
+        i = 0
+        while i < n do
+            wNorm += w[i] * w[i]
+            i += 1
+        end
+        wNorm = math.sqrt(wNorm)
+
+        if wNorm < EPS_EIGEN then
+            // A*v ≈ 0，特征值 ≈ 0
+            eigenvalue = 0.0
+            converged = true
+            iter += 1
+            break
+        end
+
+        // 新向量
+        array<float> vNew = array[]
+        i = 0
+        while i < n do
+            vNew.append(w[i] / wNorm)
+            i += 1
+        end
+
+        // 收敛判定：v_new ≈ v 或 v_new ≈ -v
+        float diff1 = 0.0
+        float diff2 = 0.0
+        i = 0
+        while i < n do
+            float d1 = vNew[i] - v[i]
+            float d2 = vNew[i] + v[i]
+            diff1 += d1 * d1
+            diff2 += d2 * d2
+            i += 1
+        end
+        diff1 = math.sqrt(diff1)
+        diff2 = math.sqrt(diff2)
+
+        // 更新 v 和 eigenvalue
+        i = 0
+        while i < n do
+            v[i] = vNew[i]
+            i += 1
+        end
+        float prevLambda = eigenvalue
+        eigenvalue = lambda
+
+        if diff1 < tol or diff2 < tol then
+            converged = true
+            iter += 1
+            break
+        end
+        if iter > 0 and math.abs(lambda - prevLambda) < tol then
+            converged = true
+            iter += 1
+            break
+        end
+
+        iter += 1
+    end
+
+    // 构造特征向量矩阵（n x 1 列向量）
+    Matrix eigenVec = Matrix(n, 1)
+    i = 0
+    while i < n do
+        eigenVec.set(i, 0, v[i])
+        i += 1
+    end
+
+    result.eigenvalue = eigenvalue
+    result.eigenvector = eigenVec
+    result.iterations = iter
+    result.converged = converged
+    return result
+end
+
+// QR 迭代法：求矩阵的所有特征值（对角元素）
+// 基本算法（无位移）：
+//   A_0 = A
+//   重复：QR 分解 A_k = Q_k R_k，然后 A_{k+1} = R_k Q_k
+//   A_k 收敛到上三角（非对称）或对角（对称）矩阵，对角元素为特征值。
+// 返回对角元素数组（特征值近似），按模从大到小排序。
+func qrIteration(Matrix a, int maxIter, float tol) as array<float>
+    if not a.isSquare() then
+        throw "qrIteration requires square matrix"
+    end
+    int n = a.rows
+
+    Matrix ak = a.copy()
+    int iter = 0
+    while iter < maxIter do
+        QRResult qr = qrDecompose(ak)
+        Matrix next = qr.R.mul(qr.Q)
+
+        // 计算次对角线（严格下三角）元素之和，判断收敛
+        float offDiag = 0.0
+        int r = 0
+        while r < n do
+            int c = 0
+            while c < r do
+                offDiag += next.at(r, c) * next.at(r, c)
+                c += 1
+            end
+            r += 1
+        end
+        offDiag = math.sqrt(offDiag)
+
+        ak = next
+        iter += 1
+
+        if offDiag < tol then
+            break
+        end
+    end
+
+    // 提取对角线特征值
+    array<float> eigenvalues = array[]
+    int i = 0
+    while i < n do
+        eigenvalues.append(ak.at(i, i))
+        i += 1
+    end
+
+    // 按模从大到小排序（简单选择排序）
+    int ei = 0
+    while ei < n - 1 do
+        int maxIdx = ei
+        int ej = ei + 1
+        while ej < n do
+            if math.abs(eigenvalues[ej]) > math.abs(eigenvalues[maxIdx]) then
+                maxIdx = ej
+            end
+            ej += 1
+        end
+        if maxIdx != ei then
+            float tmp = eigenvalues[ei]
+            eigenvalues[ei] = eigenvalues[maxIdx]
+            eigenvalues[maxIdx] = tmp
+        end
+        ei += 1
+    end
+
+    return eigenvalues
+end
+
+// QR 迭代法的简化接口：只返回最大特征值（按模）
+func qrLargestEigenvalue(Matrix a) as float
+    array<float> eigs = qrIteration(a, 200, EPS_EIGEN)
+    if eigs.length == 0 then
+        return 0.0
+    end
+    return eigs[0]
+end
+
+// ========================================================================
+// 第 12 节：最小二乘法（通过 QR 分解）
+//
+//   对超定方程组 Ax ≈ b（A 为 m x n，m >= n），求最小二乘解。
+//   1. A = QR（Householder QR）
+//   2. Q^T A x = Q^T b → R x = Q^T b（取前 n 行）
+//   3. 回代求解 R[0:n, 0:n] x = (Q^T b)[0:n]
+// ========================================================================
+
+func leastSquares(Matrix a, array<float> b) as array<float>
+    int m = a.rows
+    int n = a.cols
+    if m < n then
+        throw "leastSquares: underdetermined system (m < n)"
+    end
+    if b.length != m then
+        throw "leastSquares: b length mismatch, expected " + string(m) + " got " + string(b.length)
+    end
+
+    QRResult qr = qrDecompose(a)
+    Matrix Q = qr.Q
+    Matrix R = qr.R
+
+    // 计算 Q^T * b（Q^T 的第 i 行 = Q 的第 i 列）
+    // (Q^T b)[i] = sum_j Q[j][i] * b[j]
+    array<float> QTb = array[]
+    int i = 0
+    while i < m do
+        float s = 0.0
+        int j = 0
+        while j < m do
+            s += Q.at(j, i) * b[j]
+            j += 1
+        end
+        QTb.append(s)
+        i += 1
+    end
+
+    // 回代解 R[0:n, 0:n] x = QTb[0:n]
+    // R 是上三角（前 n 行 n 列部分）
+    array<float> x = array[]
+    i = 0
+    while i < n do
+        x.append(0.0)
+        i += 1
+    end
+
+    int r = n - 1
+    while r >= 0 do
+        float s = QTb[r]
+        int c = r + 1
+        while c < n do
+            s -= R.at(r, c) * x[c]
+            c += 1
+        end
+        float diag = R.at(r, r)
+        if math.abs(diag) < EPS_LU then
+            throw "leastSquares: rank-deficient matrix"
+        end
+        x[r] = s / diag
+        r -= 1
+    end
+
+    return x
+end
+
+// 计算残差 r = b - A*x（用于评估最小二乘解质量）
+func residual(Matrix a, array<float> x, array<float> b) as array<float>
+    int m = a.rows
+    int n = a.cols
+    array<float> r = array[]
+    int i = 0
+    while i < m do
+        float s = b[i]
+        int j = 0
+        while j < n do
+            s -= a.at(i, j) * x[j]
+            j += 1
+        end
+        r.append(s)
+        i += 1
+    end
+    return r
+end
+
+// ========================================================================
+// 第 13 节：向量运算
+//
+//   点积 / 叉积 / 范数 / 归一化 / 加减 / 数乘
+//   使用全局函数（避免 class 方法接收 array<float> 参数的已知边界 BUG-C1）。
+// ========================================================================
+
+// 点积：a · b = sum(a[i] * b[i])
+func vDot(array<float> a, array<float> b) as float
+    int n = a.length
+    if b.length < n then
+        n = b.length
+    end
+    float s = 0.0
+    int i = 0
+    while i < n do
+        s += a[i] * b[i]
+        i += 1
+    end
+    return s
+end
+
+// 叉积：a × b（仅 3 维向量）
+func vCross(array<float> a, array<float> b) as array<float>
+    if a.length != 3 or b.length != 3 then
+        throw "cross product requires 3D vectors"
+    end
+    array<float> r = array[]
+    r.append(a[1] * b[2] - a[2] * b[1])
+    r.append(a[2] * b[0] - a[0] * b[2])
+    r.append(a[0] * b[1] - a[1] * b[0])
+    return r
+end
+
+// 范数（2-范数）：||a|| = sqrt(sum(a[i]^2))
+func vNorm(array<float> a) as float
+    float s = 0.0
+    int n = a.length
+    int i = 0
+    while i < n do
+        s += a[i] * a[i]
+        i += 1
+    end
+    return math.sqrt(s)
+end
+
+// 归一化：a / ||a||
+func vNormalize(array<float> a) as array<float>
+    float norm = vNorm(a)
+    if norm < EPS_LU then
+        throw "vNormalize: zero vector"
+    end
+    array<float> r = array[]
+    int n = a.length
+    int i = 0
+    while i < n do
+        r.append(a[i] / norm)
+        i += 1
+    end
+    return r
+end
+
+// 向量加法：a + b
+func vAdd(array<float> a, array<float> b) as array<float>
+    int n = a.length
+    if b.length < n then
+        n = b.length
+    end
+    array<float> r = array[]
+    int i = 0
+    while i < n do
+        r.append(a[i] + b[i])
+        i += 1
+    end
+    return r
+end
+
+// 向量减法：a - b
+func vSub(array<float> a, array<float> b) as array<float>
+    int n = a.length
+    if b.length < n then
+        n = b.length
+    end
+    array<float> r = array[]
+    int i = 0
+    while i < n do
+        r.append(a[i] - b[i])
+        i += 1
+    end
+    return r
+end
+
+// 向量数乘：a * scalar
+func vScale(array<float> a, float s) as array<float>
+    array<float> r = array[]
+    int n = a.length
+    int i = 0
+    while i < n do
+        r.append(a[i] * s)
+        i += 1
+    end
+    return r
+end
+
+// 1-范数（绝对值之和）
+func vNorm1(array<float> a) as float
+    float s = 0.0
+    int n = a.length
+    int i = 0
+    while i < n do
+        s += math.abs(a[i])
+        i += 1
+    end
+    return s
+end
+
+// 无穷范数（最大绝对值）
+func vNormInf(array<float> a) as float
+    if a.length == 0 then
+        return 0.0
+    end
+    float mx = math.abs(a[0])
+    int i = 1
+    while i < a.length do
+        float v = math.abs(a[i])
+        if v > mx then
+            mx = v
+        end
+        i += 1
+    end
+    return mx
+end
+
+// ========================================================================
+// 第 14 节：格式化与 JSON I/O
+// ========================================================================
+
+// 把 Matrix 格式化为对齐的表格文本
+func formatMatrixText(Matrix m) as string
+    if m.rows == 0 or m.cols == 0 then
+        return "| empty |"
+    end
+
+    // 计算每列最大宽度
+    array<int> widths = array[]
+    int c = 0
+    while c < m.cols do
+        int maxW = 0
+        int r = 0
+        while r < m.rows do
+            string s = formatNumber(m.at(r, c))
+            int sl = string.len(s)
+            if sl > maxW then
+                maxW = sl
+            end
+            r += 1
+        end
+        widths.append(maxW)
+        c += 1
+    end
+
+    string out = ""
+    int r2 = 0
+    while r2 < m.rows do
+        out = out + "| "
+        int cc = 0
+        while cc < m.cols do
+            int w = widths[cc]
+            string s = formatNumber(m.at(r2, cc))
+            out = out + string.padLeft(s, w, " ")
+            if cc + 1 < m.cols then
+                out = out + "  "
+            end
+            cc += 1
+        end
+        out = out + " |"
+        if r2 + 1 < m.rows then
+            out = out + "\n"
+        end
+        r2 += 1
+    end
+    return out
+end
+
+// 打印矩阵
+func printMatrix(Matrix m)
+    println(formatMatrixText(m))
+end
+
+// 把 Matrix 序列化为 JSON 二维数组文本
+func matrixToJson(Matrix m) as string
+    string out = "["
+    int r = 0
+    while r < m.rows do
+        if r > 0 then
+            out = out + ", "
+        end
+        out = out + "["
+        int c = 0
+        while c < m.cols do
+            if c > 0 then
+                out = out + ", "
+            end
+            out = out + formatNumber(m.at(r, c))
+            c += 1
+        end
+        out = out + "]"
+        r += 1
+    end
+    out = out + "]"
+    return out
+end
+
+// 把 array<float> 序列化为 JSON 数组文本
+func vectorToJson(array<float> v) as string
+    return formatVector(v)
+end
+
+// 从 JSON 文本解析 Matrix
+// 支持三种格式：
+//   [[1,2],[3,4]]                              裸二维数组
+//   {"matrix": [[1,2],[3,4]]}                  带键 "matrix"
+//   {"data": [[1,2],[3,4]]}                    带键 "data"
+func matrixFromJson(string text) as Matrix
+    var root = json.parse(text)
+    if root == null then
+        throw "invalid JSON for matrix"
+    end
+
+    var data = root
+    if root.contains("matrix") then
+        data = root["matrix"]
+    elseif root.contains("data") then
+        data = root["data"]
+    elseif root.contains("a") then
+        data = root["a"]
+    end
+
+    int rows = data.length
+    if rows == 0 then
+        throw "empty matrix (0 rows)"
+    end
+
+    // 检查第一行是否为数组
+    var firstRow = data[0]
+    int cols = firstRow.length
+    if cols == 0 then
+        throw "empty matrix row (0 cols)"
+    end
+
+    Matrix m = Matrix(rows, cols)
+    int r = 0
+    while r < rows do
+        var row = data[r]
+        int rowLen = row.length
+        if rowLen != cols then
+            throw "ragged matrix at row " + string(r) + ": expected " + string(cols) + " cols, got " + string(rowLen)
+        end
+        int c = 0
+        while c < cols do
+            m.set(r, c, float(row[c]))
+            c += 1
+        end
+        r += 1
+    end
+    return m
+end
+
+// 从 JSON 文本解析向量 array<float>
+// 支持格式：
+//   [1,2,3]                        裂数组
+//   {"b": [1,2,3]}                 带键 "b"
+//   {"vector": [1,2,3]}            带键 "vector"
+//   {"data": [1,2,3]}              带键 "data"
+func vectorFromJson(string text) as array<float>
+    var root = json.parse(text)
+    if root == null then
+        throw "invalid JSON for vector"
+    end
+
+    var data = root
+    if root.contains("b") then
+        data = root["b"]
+    elseif root.contains("vector") then
+        data = root["vector"]
+    elseif root.contains("data") then
+        data = root["data"]
+    end
+
+    int n = data.length
+    if n == 0 then
+        throw "empty vector"
+    end
+
+    array<float> v = array[]
+    int i = 0
+    while i < n do
+        v.append(float(data[i]))
+        i += 1
+    end
+    return v
+end
+
+// 从文件加载 Matrix（JSON 格式）
+func loadMatrixFile(string path) as Matrix
+    if not file.exists(path) then
+        throw "file not found: " + path
+    end
+    string text = file.readText(path)
+    return matrixFromJson(text)
+end
+
+// 从文件加载向量（JSON 格式）
+func loadVectorFile(string path) as array<float>
+    if not file.exists(path) then
+        throw "file not found: " + path
+    end
+    string text = file.readText(path)
+    return vectorFromJson(text)
+end
+
+// ========================================================================
+// 第 15 节：单元测试套件
+// ========================================================================
+
+func testMatrixBasic()
+    println("[1] Matrix basic operations")
+    try
+        // 创建矩阵
+        Matrix m = matrixFrom(2, 3, array[1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+        expectI(m.rows, 2, "matrix rows = 2")
+        expectI(m.cols, 3, "matrix cols = 3")
+        expectF(m.at(0, 0), 1.0, "m[0,0] = 1")
+        expectF(m.at(1, 2), 6.0, "m[1,2] = 6")
+
+        // __item__ 协议
+        expectF(m[0, 1], 2.0, "m[0,1] via __item__ = 2")
+
+        // __setItem__ 协议
+        m[0, 0] = 10.0
+        expectF(m[0, 0], 10.0, "m[0,0] via __setItem__ = 10")
+
+        // __len__ 协议
+        expectI(m.length, 2, "m.length via __len__ = 2 (rows)")
+
+        // __call__ 协议
+        expectF(m(1, 1), 5.0, "m(1,1) via __call__ = 5")
+
+        // isSquare
+        Matrix sq = matrixFrom(2, 2, array[1.0, 2.0, 3.0, 4.0])
+        expectB(sq.isSquare(), true, "2x2 is square")
+        expectB(m.isSquare(), false, "2x3 is not square")
+
+        // trace
+        expectF(sq.trace(), 5.0, "trace([[1,2],[3,4]]) = 5")
+
+        // copy
+        Matrix cp = sq.copy()
+        sq.set(0, 0, 99.0)
+        expectF(cp.at(0, 0), 1.0, "copy is independent")
+    catch e
+        bad("matrix basic", e.message)
+    end
+end
+
+func testMatrixArithmetic()
+    println("[2] Matrix arithmetic (+, -, *, scalar, transpose)")
+    try
+        Matrix a = matrixFrom(2, 2, array[1.0, 2.0, 3.0, 4.0])
+        Matrix b = matrixFrom(2, 2, array[5.0, 6.0, 7.0, 8.0])
+
+        // 加法
+        Matrix sum = a + b
+        Matrix expectedSum = matrixFrom(2, 2, array[6.0, 8.0, 10.0, 12.0])
+        expectB(sum == expectedSum, true, "a + b via __add__")
+
+        // 减法
+        Matrix diff = a - b
+        Matrix expectedDiff = matrixFrom(2, 2, array[-4.0, -4.0, -4.0, -4.0])
+        expectB(diff == expectedDiff, true, "a - b via __sub__")
+
+        // 乘法
+        Matrix prod = a * b
+        Matrix expectedProd = matrixFrom(2, 2, array[19.0, 22.0, 43.0, 50.0])
+        expectB(prod == expectedProd, true, "a * b via __mul__(Matrix)")
+
+        // 数乘
+        Matrix scaled = a * 2.0
+        Matrix expectedScaled = matrixFrom(2, 2, array[2.0, 4.0, 6.0, 8.0])
+        expectB(scaled == expectedScaled, true, "a * 2.0 via __mul__(float)")
+
+        // 负号
+        Matrix neg = -a
+        Matrix expectedNeg = matrixFrom(2, 2, array[-1.0, -2.0, -3.0, -4.0])
+        expectB(neg == expectedNeg, true, "-a via __neg__")
+
+        // 转置
+        Matrix t = a.transpose()
+        Matrix expectedT = matrixFrom(2, 2, array[1.0, 3.0, 2.0, 4.0])
+        expectB(t == expectedT, true, "a.transpose()")
+
+        // 非方阵转置
+        Matrix rect = matrixFrom(2, 3, array[1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+        Matrix rt = rect.transpose()
+        expectI(rt.rows, 3, "rect transpose rows = 3")
+        expectI(rt.cols, 2, "rect transpose cols = 2")
+        expectF(rt.at(0, 1), 4.0, "rect transpose [0,1] = 4")
+
+        // 逐元素乘
+        Matrix em = a.elemMul(b)
+        Matrix expectedEm = matrixFrom(2, 2, array[5.0, 12.0, 21.0, 32.0])
+        expectB(em == expectedEm, true, "a.elemMul(b)")
+    catch e
+        bad("matrix arithmetic", e.message)
+    end
+end
+
+func testMatrixComparison()
+    println("[3] Matrix comparison (__eq__, __approx__)")
+    try
+        Matrix a = matrixFrom(2, 2, array[1.0, 2.0, 3.0, 4.0])
+        Matrix b = matrixFrom(2, 2, array[1.0, 2.0, 3.0, 4.0])
+        Matrix c = matrixFrom(2, 2, array[1.0, 2.0, 3.0, 5.0])
+
+        expectB(a == b, true, "a == b (exact)")
+        expectB(a == c, false, "a != c (exact)")
+        expectB(a ~= b, true, "a ~= b (approx)")
+        expectB(a ~= c, false, "a !~= c (approx)")
+
+        // 维度不同
+        Matrix d = matrixFrom(2, 3, array[1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+        expectB(a == d, false, "2x2 != 2x3")
+    catch e
+        bad("matrix comparison", e.message)
+    end
+end
+
+func testLUDecomposition()
+    println("[4] LU decomposition (Doolittle + partial pivoting)")
+    try
+        Matrix a = matrixFrom(2, 2, array[4.0, 3.0, 6.0, 3.0])
+        LUResult lu = luDecompose(a)
+
+        expectB(lu.singular, false, "2x2 not singular")
+
+        // 验证 P*A = L*U
+        // 先构造 PA
+        Matrix pa = Matrix(2, 2)
+        int i = 0
+        while i < 2 do
+            int j = 0
+            while j < 2 do
+                pa.set(i, j, a.at(lu.perm[i], j))
+                j += 1
+            end
+            i += 1
+        end
+        Matrix luProd = lu.L * lu.U
+        expectB(pa.approxEqual(luProd, 0.0001), true, "P*A = L*U")
+
+        // 验证 L 是单位下三角
+        expectF(lu.L.at(0, 0), 1.0, "L[0,0] = 1 (unit lower)")
+        expectF(lu.L.at(1, 1), 1.0, "L[1,1] = 1 (unit lower)")
+
+        // 验证 U 是上三角
+        expectF(lu.U.at(1, 0), 0.0, "U[1,0] = 0 (upper triangular)")
+
+        // 3x3 测试
+        Matrix a3 = matrixFrom(3, 3, array[2.0, 1.0, 1.0, 4.0, -6.0, 0.0, -2.0, 7.0, 2.0])
+        LUResult lu3 = luDecompose(a3)
+        expectB(lu3.singular, false, "3x3 not singular")
+
+        // 验证 PA = LU
+        Matrix pa3 = Matrix(3, 3)
+        i = 0
+        while i < 3 do
+            int j = 0
+            while j < 3 do
+                pa3.set(i, j, a3.at(lu3.perm[i], j))
+                j += 1
+            end
+            i += 1
+        end
+        Matrix lu3Prod = lu3.L * lu3.U
+        expectB(pa3.approxEqual(lu3Prod, 0.0001), true, "3x3 P*A = L*U")
+    catch e
+        bad("LU decomposition", e.message)
+    end
+end
+
+func testQRDecomposition()
+    println("[5] QR decomposition (Householder reflections)")
+    try
+        // 测试 1：方阵 QR
+        Matrix a = matrixFrom(3, 3, array[12.0, -51.0, 4.0, 6.0, 167.0, -68.0, -4.0, 24.0, -41.0])
+        QRResult qr = qrDecompose(a)
+
+        // 验证 Q*R = A
+        Matrix qrProd = qr.Q * qr.R
+        expectB(qrProd.approxEqual(a, 0.001), true, "Q*R = A (3x3)")
+
+        // 验证 Q 正交：Q^T * Q = I
+        Matrix qt = qr.Q.transpose()
+        Matrix qtq = qt * qr.Q
+        Matrix I3 = matrixIdentity(3)
+        expectB(qtq.approxEqual(I3, 0.001), true, "Q^T*Q = I (orthogonal)")
+
+        // 验证 R 上三角
+        bool upperTri = true
+        int r = 1
+        while r < 3 do
+            int c = 0
+            while c < r do
+                if math.abs(qr.R.at(r, c)) > 0.001 then
+                    upperTri = false
+                end
+                c += 1
+            end
+            r += 1
+        end
+        expectB(upperTri, true, "R is upper triangular")
+
+        // 测试 2：长方阵 QR (4x3)
+        Matrix a2 = matrixFrom(4, 3, array[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0])
+        QRResult qr2 = qrDecompose(a2)
+        Matrix qr2Prod = qr2.Q * qr2.R
+        expectB(qr2Prod.approxEqual(a2, 0.001), true, "Q*R = A (4x3)")
+
+        Matrix qt2 = qr2.Q.transpose()
+        Matrix qtq2 = qt2 * qr2.Q
+        Matrix I4 = matrixIdentity(4)
+        expectB(qtq2.approxEqual(I4, 0.001), true, "Q^T*Q = I (4x4 orthogonal)")
+    catch e
+        bad("QR decomposition", e.message)
+    end
+end
+
+func testCholesky()
+    println("[6] Cholesky decomposition (symmetric positive definite)")
+    try
+        // [[4,2],[2,3]] → L = [[2,0],[1,sqrt(2)]]
+        Matrix a = matrixFrom(2, 2, array[4.0, 2.0, 2.0, 3.0])
+        Matrix L = cholesky(a)
+
+        expectF(L.at(0, 0), 2.0, "L[0,0] = 2")
+        expectF(L.at(0, 1), 0.0, "L[0,1] = 0 (lower triangular)")
+        expectF(L.at(1, 0), 1.0, "L[1,0] = 1")
+        expectF(L.at(1, 1), 1.414214, "L[1,1] = sqrt(2)")
+
+        // 验证 L*L^T = A
+        Matrix LT = L.transpose()
+        Matrix llt = L * LT
+        expectB(llt.approxEqual(a, 0.0001), true, "L*L^T = A")
+
+        // 3x3 对称正定
+        Matrix a3 = matrixFrom(3, 3, array[4.0, 12.0, -16.0, 12.0, 37.0, -43.0, -16.0, -43.0, 98.0])
+        Matrix L3 = cholesky(a3)
+        Matrix LT3 = L3.transpose()
+        Matrix llt3 = L3 * LT3
+        expectB(llt3.approxEqual(a3, 0.0001), true, "3x3 L*L^T = A")
+
+        // 非正定矩阵应该抛异常
+        bool threw = false
+        try
+            Matrix bad = matrixFrom(2, 2, array[1.0, 2.0, 2.0, 1.0])
+            Matrix lr = cholesky(bad)
+        catch e2
+            threw = true
+        end
+        expectB(threw, true, "cholesky throws on non-positive-definite")
+    catch e
+        bad("cholesky", e.message)
+    end
+end
+
+func testDeterminant()
+    println("[7] Determinant (via LU)")
+    try
+        // 1x1
+        Matrix m1 = matrixFrom(1, 1, array[5.0])
+        expectF(determinant(m1), 5.0, "det(1x1)")
+
+        // 2x2
+        Matrix m2 = matrixFrom(2, 2, array[1.0, 2.0, 3.0, 4.0])
+        expectF(determinant(m2), -2.0, "det([[1,2],[3,4]]) = -2")
+
+        // 3x3
+        Matrix m3 = matrixFrom(3, 3, array[6.0, 1.0, 1.0, 4.0, -2.0, 5.0, 2.0, 8.0, 7.0])
+        expectF(determinant(m3), -306.0, "det(3x3) = -306")
+
+        // 单位矩阵
+        Matrix I4 = matrixIdentity(4)
+        expectF(determinant(I4), 1.0, "det(I_4) = 1")
+
+        // 奇异矩阵
+        Matrix sing = matrixFrom(2, 2, array[1.0, 2.0, 2.0, 4.0])
+        expectF(determinant(sing), 0.0, "det(singular) = 0")
+    catch e
+        bad("determinant", e.message)
+    end
+end
+
+func testInverse()
+    println("[8] Matrix inverse (via LU)")
+    try
+        // 2x2 逆
+        Matrix a = matrixFrom(2, 2, array[4.0, 7.0, 2.0, 6.0])
+        Matrix inv = inverse(a)
+        // 预期：[[0.6, -0.7], [-0.2, 0.4]]
+        expectF(inv.at(0, 0), 0.6, "inv[0,0] = 0.6")
+        expectF(inv.at(0, 1), -0.7, "inv[0,1] = -0.7")
+        expectF(inv.at(1, 0), -0.2, "inv[1,0] = -0.2")
+        expectF(inv.at(1, 1), 0.4, "inv[1,1] = 0.4")
+
+        // 验证 A * A^{-1} = I
+        Matrix prod = a * inv
+        Matrix I2 = matrixIdentity(2)
+        expectB(prod.approxEqual(I2, 0.0001), true, "A * A^{-1} = I")
+
+        // 3x3 逆
+        Matrix a3 = matrixFrom(3, 3, array[2.0, 1.0, -1.0, -3.0, -1.0, 2.0, -2.0, 1.0, 2.0])
+        Matrix inv3 = inverse(a3)
+        Matrix prod3 = a3 * inv3
+        Matrix I3 = matrixIdentity(3)
+        expectB(prod3.approxEqual(I3, 0.0001), true, "3x3 A * A^{-1} = I")
+
+        // 奇异矩阵求逆应抛异常
+        bool threw = false
+        try
+            Matrix sing = matrixFrom(2, 2, array[1.0, 2.0, 2.0, 4.0])
+            Matrix sr = inverse(sing)
+        catch e2
+            threw = true
+        end
+        expectB(threw, true, "inverse throws on singular")
+    catch e
+        bad("inverse", e.message)
+    end
+end
+
+func testLinearSolve()
+    println("[9] Linear system solve Ax = b (LU method)")
+    try
+        // 2x2 系统
+        Matrix a = matrixFrom(2, 2, array[3.0, 2.0, 1.0, 4.0])
+        array<float> b = array[7.0, 6.0]
+        array<float> x = solve(a, b)
+        // 预期：x = [2, 0.5]
+        expectF(x[0], 2.0, "solve x[0] = 2")
+        expectF(x[1], 0.5, "solve x[1] = 0.5")
+
+        // 验证 A*x = b
+        array<float> ax = array[]
+        int i = 0
+        while i < 2 do
+            float s = 0.0
+            int j = 0
+            while j < 2 do
+                s += a.at(i, j) * x[j]
+                j += 1
+            end
+            ax.append(s)
+            i += 1
+        end
+        expectB(approxEq(ax[0], b[0], 0.0001), true, "verify A*x[0] = b[0]")
+        expectB(approxEq(ax[1], b[1], 0.0001), true, "verify A*x[1] = b[1]")
+
+        // 3x3 系统
+        Matrix a3 = matrixFrom(3, 3, array[1.0, 1.0, 1.0, 0.0, 2.0, 5.0, 2.0, 5.0, -1.0])
+        array<float> b3 = array[6.0, -4.0, 27.0]
+        array<float> x3 = solve(a3, b3)
+        // 预期：x = [5, 3, -2]
+        expectF(x3[0], 5.0, "solve3 x[0] = 5")
+        expectF(x3[1], 3.0, "solve3 x[1] = 3")
+        expectF(x3[2], -2.0, "solve3 x[2] = -2")
+    catch e
+        bad("linear solve", e.message)
+    end
+end
+
+func testPowerIteration()
+    println("[10] Eigenvalue: power iteration")
+    try
+        // [[2,1],[1,2]] 最大特征值 = 3，特征向量 [1,1]/sqrt(2)
+        Matrix a = matrixFrom(2, 2, array[2.0, 1.0, 1.0, 2.0])
+        EigenResult eig = powerIteration(a, 500, EPS_EIGEN)
+        expectF(eig.eigenvalue, 3.0, "power iteration eigenvalue = 3")
+        expectB(eig.converged, true, "power iteration converged")
+
+        // 特征向量应该是 [1,1]/sqrt(2) 或 [-1,-1]/sqrt(2)
+        float v0 = eig.eigenvector.at(0, 0)
+        float v1 = eig.eigenvector.at(1, 0)
+        float expected = 0.707107
+        bool correctSign = approxEq(v0, expected, 0.01) or approxEq(v0, 0.0 - expected, 0.01)
+        expectB(correctSign, true, "eigenvector component 0 ≈ ±1/sqrt(2)")
+        bool correctRatio = approxEq(math.abs(v1), math.abs(v0), 0.01)
+        expectB(correctRatio, true, "eigenvector [1] ≈ [0] in magnitude")
+
+        // 对角矩阵
+        Matrix diag = matrixFrom(3, 3, array[5.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 1.0])
+        EigenResult eig2 = powerIteration(diag, 500, EPS_EIGEN)
+        expectF(eig2.eigenvalue, 5.0, "diagonal matrix eigenvalue = 5")
+
+        // 3x3 对称矩阵
+        Matrix a3 = matrixFrom(3, 3, array[4.0, 1.0, 1.0, 1.0, 4.0, 1.0, 1.0, 1.0, 4.0])
+        EigenResult eig3 = powerIteration(a3, 500, EPS_EIGEN)
+        expectF(eig3.eigenvalue, 6.0, "3x3 symmetric eigenvalue = 6")
+    catch e
+        bad("power iteration", e.message)
+    end
+end
+
+func testQRIteration()
+    println("[11] Eigenvalue: QR iteration")
+    try
+        // [[2,1],[1,2]] 特征值 3, 1
+        Matrix a = matrixFrom(2, 2, array[2.0, 1.0, 1.0, 2.0])
+        array<float> eigs = qrIteration(a, 200, EPS_EIGEN)
+        expectI(eigs.length, 2, "QR iteration returns 2 eigenvalues")
+        expectF(math.abs(eigs[0]), 3.0, "largest eigenvalue magnitude = 3")
+        expectF(math.abs(eigs[1]), 1.0, "smallest eigenvalue magnitude = 1")
+
+        // 3x3 对角矩阵
+        Matrix diag = matrixFrom(3, 3, array[5.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 1.0])
+        array<float> eigs2 = qrIteration(diag, 200, EPS_EIGEN)
+        expectF(math.abs(eigs2[0]), 5.0, "diag eigenvalue 1 = 5")
+        expectF(math.abs(eigs2[1]), 3.0, "diag eigenvalue 2 = 3")
+        expectF(math.abs(eigs2[2]), 1.0, "diag eigenvalue 3 = 1")
+
+        // 3x3 对称矩阵
+        Matrix a3 = matrixFrom(3, 3, array[4.0, 1.0, 1.0, 1.0, 4.0, 1.0, 1.0, 1.0, 4.0])
+        array<float> eigs3 = qrIteration(a3, 200, EPS_EIGEN)
+        expectF(math.abs(eigs3[0]), 6.0, "3x3 symmetric eigenvalue 1 = 6")
+        expectF(math.abs(eigs3[1]), 3.0, "3x3 symmetric eigenvalue 2 = 3")
+
+        // qrLargestEigenvalue 接口
+        float largest = qrLargestEigenvalue(a)
+        expectF(math.abs(largest), 3.0, "qrLargestEigenvalue = 3")
+    catch e
+        bad("QR iteration", e.message)
+    end
+end
+
+func testLeastSquares()
+    println("[12] Least squares (via QR)")
+    try
+        // 简单系统：A = [[1],[1],[1]], b = [1,2,3] → x = mean = 2
+        Matrix a = matrixFrom(3, 1, array[1.0, 1.0, 1.0])
+        array<float> b = array[1.0, 2.0, 3.0]
+        array<float> x = leastSquares(a, b)
+        expectF(x[0], 2.0, "least squares mean = 2")
+
+        // 线性拟合：y = a*x + b
+        // 数据点：(0,1), (1,2), (2,3), (3,4) → y = x + 1
+        // A = [[0,1],[1,1],[2,1],[3,1]], b = [1,2,3,4]
+        Matrix a2 = matrixFrom(4, 2, array[0.0, 1.0, 1.0, 1.0, 2.0, 1.0, 3.0, 1.0])
+        array<float> b2 = array[1.0, 2.0, 3.0, 4.0]
+        array<float> x2 = leastSquares(a2, b2)
+        expectF(x2[0], 1.0, "linear fit slope = 1")
+        expectF(x2[1], 1.0, "linear fit intercept = 1")
+
+        // 带噪声的拟合：(0,0.9), (1,2.1), (2,2.9) → 近似 y = x + 1
+        Matrix a3 = matrixFrom(3, 2, array[0.0, 1.0, 1.0, 1.0, 2.0, 1.0])
+        array<float> b3 = array[0.9, 2.1, 2.9]
+        array<float> x3 = leastSquares(a3, b3)
+        expectB(approxEq(x3[0], 1.0, 0.05), true, "noisy fit slope ≈ 1")
+        expectB(approxEq(x3[1], 1.0, 0.05), true, "noisy fit intercept ≈ 1")
+
+        // 计算残差
+        array<float> res = residual(a2, x2, b2)
+        expectB(approxEq(vNorm(res), 0.0, 0.001), true, "exact fit residual ≈ 0")
+    catch e
+        bad("least squares", e.message)
+    end
+end
+
+func testVectorOps()
+    println("[13] Vector operations (dot, cross, norm, normalize)")
+    try
+        // 点积
+        array<float> a = array[1.0, 2.0, 3.0]
+        array<float> b = array[4.0, 5.0, 6.0]
+        expectF(vDot(a, b), 32.0, "dot([1,2,3],[4,5,6]) = 32")
+
+        // 叉积
+        array<float> c = vCross(a, b)
+        // [1,2,3] × [4,5,6] = [12-15, 12-6, 5-8] = [-3, 6, -3]
+        expectF(c[0], -3.0, "cross[0] = -3")
+        expectF(c[1], 6.0, "cross[1] = 6")
+        expectF(c[2], -3.0, "cross[2] = -3")
+
+        // 范数
+        array<float> v = array[3.0, 4.0]
+        expectF(vNorm(v), 5.0, "norm([3,4]) = 5")
+
+        // 归一化
+        array<float> n = vNormalize(v)
+        expectF(n[0], 0.6, "normalize([3,4])[0] = 0.6")
+        expectF(n[1], 0.8, "normalize([3,4])[1] = 0.8")
+
+        // 加法
+        array<float> sum = vAdd(a, b)
+        expectF(sum[0], 5.0, "vAdd[0] = 5")
+        expectF(sum[1], 7.0, "vAdd[1] = 7")
+        expectF(sum[2], 9.0, "vAdd[2] = 9")
+
+        // 减法
+        array<float> diff = vSub(b, a)
+        expectF(diff[0], 3.0, "vSub[0] = 3")
+        expectF(diff[1], 3.0, "vSub[1] = 3")
+        expectF(diff[2], 3.0, "vSub[2] = 3")
+
+        // 数乘
+        array<float> sc = vScale(a, 2.0)
+        expectF(sc[0], 2.0, "vScale[0] = 2")
+        expectF(sc[1], 4.0, "vScale[1] = 4")
+
+        // 1-范数
+        expectF(vNorm1(a), 6.0, "norm1([1,2,3]) = 6")
+
+        // 无穷范数
+        expectF(vNormInf(a), 3.0, "normInf([1,2,3]) = 3")
+
+        // 自叉积验证
+        array<float> e1 = array[1.0, 0.0, 0.0]
+        array<float> e2 = array[0.0, 1.0, 0.0]
+        array<float> e1xe2 = vCross(e1, e2)
+        expectF(e1xe2[0], 0.0, "e1×e2[0] = 0")
+        expectF(e1xe2[1], 0.0, "e1×e2[1] = 0")
+        expectF(e1xe2[2], 1.0, "e1×e2[2] = 1")
+    catch e
+        bad("vector operations", e.message)
+    end
+end
+
+func testJSON()
+    println("[14] JSON serialization / deserialization")
+    try
+        // 矩阵序列化/反序列化
+        Matrix m = matrixFrom(2, 3, array[1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+        string json = matrixToJson(m)
+        Matrix m2 = matrixFromJson(json)
+        expectB(m == m2, true, "matrix JSON round-trip")
+
+        // 带键格式
+        Matrix m3 = matrixFromJson("{\"matrix\":[[1,2],[3,4]]}")
+        expectF(m3.at(0, 0), 1.0, "matrix from {\"matrix\":...}")
+        expectF(m3.at(1, 1), 4.0, "matrix from {\"matrix\":...} [1,1]")
+
+        // 向量序列化/反序列化
+        array<float> v = array[1.0, 2.0, 3.0]
+        string vj = vectorToJson(v)
+        array<float> v2 = vectorFromJson(vj)
+        expectI(v2.length, 3, "vector JSON round-trip length")
+        expectF(v2[0], 1.0, "vector JSON round-trip [0]")
+        expectF(v2[2], 3.0, "vector JSON round-trip [2]")
+
+        // 带键向量
+        array<float> v3 = vectorFromJson("{\"b\":[1,2,3]}")
+        expectF(v3[1], 2.0, "vector from {\"b\":...}")
+    catch e
+        bad("JSON I/O", e.message)
+    end
+end
+
+func testMatrixNorms()
+    println("[15] Matrix norms and utilities")
+    try
+        Matrix m = matrixFrom(2, 2, array[1.0, 2.0, 3.0, 4.0])
+        // Frobenius norm = sqrt(1+4+9+16) = sqrt(30) ≈ 5.477226
+        expectF(m.frobeniusNorm(), 5.477226, "Frobenius norm = sqrt(30)")
+
+        // 对称检测
+        Matrix sym = matrixFrom(2, 2, array[1.0, 2.0, 2.0, 4.0])
+        expectB(sym.isSymmetric(), true, "symmetric matrix detected")
+        expectB(m.isSymmetric(), false, "non-symmetric matrix detected")
+
+        // 行列操作
+        Matrix r = m.getRow(0)
+        Matrix expected = matrixFrom(1, 2, array[1.0, 2.0])
+        expectB(r == expected, true, "getRow(0)")
+
+        Matrix col = m.getCol(1)
+        Matrix expectedCol = matrixFrom(2, 1, array[2.0, 4.0])
+        expectB(col == expectedCol, true, "getCol(1)")
+
+        // swapRows
+        Matrix sw = m.copy()
+        sw.swapRows(0, 1)
+        Matrix expectedSw = matrixFrom(2, 2, array[3.0, 4.0, 1.0, 2.0])
+        expectB(sw == expectedSw, true, "swapRows(0,1)")
+
+        // diagonal
+        array<float> diag = m.diagonal()
+        expectF(diag[0], 1.0, "diagonal[0] = 1")
+        expectF(diag[1], 4.0, "diagonal[1] = 4")
+    catch e
+        bad("matrix norms", e.message)
+    end
+end
+
+// 运行全部测试
+func runAllTests()
+    println("=== xmatrix: linear algebra test suite ===")
+    println("(Matrix ops, LU/QR/Cholesky, det/inv/solve, eigenvalues, least squares, vectors)")
+    println("")
+
+    testMatrixBasic()
+    testMatrixArithmetic()
+    testMatrixComparison()
+    testLUDecomposition()
+    testQRDecomposition()
+    testCholesky()
+    testDeterminant()
+    testInverse()
+    testLinearSolve()
+    testPowerIteration()
+    testQRIteration()
+    testLeastSquares()
+    testVectorOps()
+    testJSON()
+    testMatrixNorms()
+
+    println("")
+    println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+end
+
+// ========================================================================
+// 第 16 节：命令行接口
+// ========================================================================
+
+func printUsage()
+    println("xmatrix - linear algebra library")
+    println("Usage:")
+    println("  xmatrix solve <a.json> <b.json>    Solve Ax = b")
+    println("  xmatrix eigen <matrix.json>         Dominant eigenvalue + eigenvector")
+    println("  xmatrix test                        Run unit test suite")
+    println("  xmatrix det <matrix.json>           Determinant")
+    println("  xmatrix inv <matrix.json>           Inverse matrix")
+    println("  xmatrix lu <matrix.json>            LU decomposition")
+    println("  xmatrix qr <matrix.json>            QR decomposition")
+    println("  xmatrix chol <matrix.json>          Cholesky decomposition")
+    println("  xmatrix lstsq <a.json> <b.json>     Least squares Ax ~ b")
+    println("  xmatrix transpose <matrix.json>     Transpose")
+    println("")
+    println("Matrix JSON format: [[1,2,3],[4,5,6]] or {\"matrix\":[[1,2],[3,4]]}")
+    println("Vector JSON format: [1,2,3] or {\"b\":[1,2,3]}")
+end
+
+func requireArgs(int got, int need, string cmd) as bool
+    if got < need then
+        println("Error: '" + cmd + "' needs " + string(need - 1) + " argument(s), got " + string(got - 1))
+        return false
+    end
+    return true
+end
+
+// 命令：solve <a.json> <b.json>
+// 求解 Ax = b
+func cmdSolve(string aPath, string bPath) as int
+    try
+        Matrix a = loadMatrixFile(aPath)
+        array<float> b = loadVectorFile(bPath)
+        if a.rows != b.length then
+            println("Error: A is " + string(a.rows) + "x" + string(a.cols) + ", b has " + string(b.length) + " elements")
+            return 1
+        end
+        println("A (" + string(a.rows) + "x" + string(a.cols) + "):")
+        printMatrix(a)
+        println("b:")
+        printVector(b)
+        println("")
+        array<float> x = solve(a, b)
+        println("Solution x = A^{-1} * b:")
+        printVector(x)
+        println("")
+        // 验证：打印 A*x
+        array<float> ax = array[]
+        int i = 0
+        while i < a.rows do
+            float s = 0.0
+            int j = 0
+            while j < a.cols do
+                s += a.at(i, j) * x[j]
+                j += 1
+            end
+            ax.append(s)
+            i += 1
+        end
+        println("Verification A*x:")
+        printVector(ax)
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+// 命令：eigen <matrix.json>
+// 求最大特征值和对应特征向量
+func cmdEigen(string mPath) as int
+    try
+        Matrix m = loadMatrixFile(mPath)
+        if not m.isSquare() then
+            println("Error: eigenvalue requires square matrix, got " + string(m.rows) + "x" + string(m.cols))
+            return 1
+        end
+        println("Matrix (" + string(m.rows) + "x" + string(m.cols) + "):")
+        printMatrix(m)
+        println("")
+
+        // 幂迭代法
+        EigenResult eig = powerIteration(m, 1000, EPS_EIGEN)
+        println("--- Power Iteration ---")
+        println("Dominant eigenvalue:  " + formatNumber(eig.eigenvalue))
+        println("Converged:            " + string(eig.converged))
+        println("Iterations:           " + string(eig.iterations))
+        println("Eigenvector:")
+        printMatrix(eig.eigenvector)
+        println("")
+
+        // QR 迭代法
+        array<float> eigs = qrIteration(m, 200, EPS_EIGEN)
+        println("--- QR Iteration ---")
+        println("All eigenvalues (diagonal, sorted by magnitude):")
+        int i = 0
+        while i < eigs.length do
+            println("  lambda_" + string(i) + " = " + formatNumber(eigs[i]))
+            i += 1
+        end
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+// 命令：det <matrix.json>
+func cmdDet(string mPath) as int
+    try
+        Matrix m = loadMatrixFile(mPath)
+        println("Matrix (" + string(m.rows) + "x" + string(m.cols) + "):")
+        printMatrix(m)
+        println("")
+        float d = determinant(m)
+        println("Determinant = " + formatNumber(d))
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+// 命令：inv <matrix.json>
+func cmdInv(string mPath) as int
+    try
+        Matrix m = loadMatrixFile(mPath)
+        println("Matrix (" + string(m.rows) + "x" + string(m.cols) + "):")
+        printMatrix(m)
+        println("")
+        Matrix inv = inverse(m)
+        println("Inverse:")
+        printMatrix(inv)
+        println("")
+        // 验证 A * A^{-1} = I
+        Matrix prod = m * inv
+        println("Verification A * A^{-1}:")
+        printMatrix(prod)
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+// 命令：lu <matrix.json>
+func cmdLU(string mPath) as int
+    try
+        Matrix m = loadMatrixFile(mPath)
+        println("Matrix (" + string(m.rows) + "x" + string(m.cols) + "):")
+        printMatrix(m)
+        println("")
+        LUResult lu = luDecompose(m)
+        println("Singular: " + string(lu.singular) + "  Sign: " + string(lu.sign))
+        println("Permutation: " + permToString(lu.perm))
+        println("")
+        println("L (unit lower triangular):")
+        printMatrix(lu.L)
+        println("")
+        println("U (upper triangular):")
+        printMatrix(lu.U)
+        println("")
+        // 验证 PA = LU
+        int n = m.rows
+        Matrix pa = Matrix(n, n)
+        int i = 0
+        while i < n do
+            int j = 0
+            while j < n do
+                pa.set(i, j, m.at(lu.perm[i], j))
+                j += 1
+            end
+            i += 1
+        end
+        Matrix luProd = lu.L * lu.U
+        println("Verification P*A = L*U:")
+        printMatrix(luProd)
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+// 把排列数组格式化为字符串
+func permToString(array<int> perm) as string
+    string out = "["
+    int i = 0
+    while i < perm.length do
+        if i > 0 then
+            out = out + ", "
+        end
+        out = out + string(perm[i])
+        i += 1
+    end
+    out = out + "]"
+    return out
+end
+
+// 命令：qr <matrix.json>
+func cmdQR(string mPath) as int
+    try
+        Matrix m = loadMatrixFile(mPath)
+        println("Matrix (" + string(m.rows) + "x" + string(m.cols) + "):")
+        printMatrix(m)
+        println("")
+        QRResult qr = qrDecompose(m)
+        println("Q (orthogonal):")
+        printMatrix(qr.Q)
+        println("")
+        println("R (upper triangular):")
+        printMatrix(qr.R)
+        println("")
+        // 验证 QR = A
+        Matrix qrProd = qr.Q * qr.R
+        println("Verification Q*R:")
+        printMatrix(qrProd)
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+// 命令：chol <matrix.json>
+func cmdChol(string mPath) as int
+    try
+        Matrix m = loadMatrixFile(mPath)
+        println("Matrix (" + string(m.rows) + "x" + string(m.cols) + "):")
+        printMatrix(m)
+        println("")
+        Matrix L = cholesky(m)
+        println("L (lower triangular):")
+        printMatrix(L)
+        println("")
+        // 验证 L*L^T = A
+        Matrix LT = L.transpose()
+        Matrix llt = L * LT
+        println("Verification L*L^T:")
+        printMatrix(llt)
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+// 命令：lstsq <a.json> <b.json>
+func cmdLstsq(string aPath, string bPath) as int
+    try
+        Matrix a = loadMatrixFile(aPath)
+        array<float> b = loadVectorFile(bPath)
+        println("A (" + string(a.rows) + "x" + string(a.cols) + "):")
+        printMatrix(a)
+        println("b:")
+        printVector(b)
+        println("")
+        array<float> x = leastSquares(a, b)
+        println("Least squares solution x:")
+        printVector(x)
+        println("")
+        // 计算残差
+        array<float> res = residual(a, x, b)
+        println("Residual r = b - A*x:")
+        printVector(res)
+        println("Residual norm: " + formatNumber(vNorm(res)))
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+// 命令：transpose <matrix.json>
+func cmdTranspose(string mPath) as int
+    try
+        Matrix m = loadMatrixFile(mPath)
+        println("Matrix (" + string(m.rows) + "x" + string(m.cols) + "):")
+        printMatrix(m)
+        println("")
+        Matrix t = m.transpose()
+        println("Transpose (" + string(t.rows) + "x" + string(t.cols) + "):")
+        printMatrix(t)
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+    return 0
+end
+
+// 命令：test
+func cmdTest() as int
+    runAllTests()
+    if g_fail > 0 then
+        return 1
+    end
+    return 0
+end
+
+// ========================================================================
+// 第 17 节：主入口
+// ========================================================================
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    try
+        if cmd == "solve" then
+            if not requireArgs(arg.length, 4, "solve") then
+                return 1
+            end
+            return cmdSolve(string(arg[2]), string(arg[3]))
+        elseif cmd == "eigen" then
+            if not requireArgs(arg.length, 3, "eigen") then
+                return 1
+            end
+            return cmdEigen(string(arg[2]))
+        elseif cmd == "test" then
+            return cmdTest()
+        elseif cmd == "det" then
+            if not requireArgs(arg.length, 3, "det") then
+                return 1
+            end
+            return cmdDet(string(arg[2]))
+        elseif cmd == "inv" then
+            if not requireArgs(arg.length, 3, "inv") then
+                return 1
+            end
+            return cmdInv(string(arg[2]))
+        elseif cmd == "lu" then
+            if not requireArgs(arg.length, 3, "lu") then
+                return 1
+            end
+            return cmdLU(string(arg[2]))
+        elseif cmd == "qr" then
+            if not requireArgs(arg.length, 3, "qr") then
+                return 1
+            end
+            return cmdQR(string(arg[2]))
+        elseif cmd == "chol" then
+            if not requireArgs(arg.length, 3, "chol") then
+                return 1
+            end
+            return cmdChol(string(arg[2]))
+        elseif cmd == "lstsq" then
+            if not requireArgs(arg.length, 4, "lstsq") then
+                return 1
+            end
+            return cmdLstsq(string(arg[2]), string(arg[3]))
+        elseif cmd == "transpose" then
+            if not requireArgs(arg.length, 3, "transpose") then
+                return 1
+            end
+            return cmdTranspose(string(arg[2]))
+        elseif cmd == "-h" or cmd == "--help" or cmd == "help" then
+            printUsage()
+            return 0
+        else
+            println("Error: unknown command '" + cmd + "'")
+            printUsage()
+            return 1
+        end
+    catch e
+        println("Fatal: " + e.message)
+        return 1
+    end
+
+    return 0
+end

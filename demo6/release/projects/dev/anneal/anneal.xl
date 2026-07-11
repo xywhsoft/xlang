@@ -70,23 +70,36 @@ end
 float gCurrentTemp = 0.0
 
 // ============================================================
-// 通用 SA 引擎
+// 通用 SA 引擎（基于虚方法派发，避免闭包跨帧调用）
 // ============================================================
 
-//   initFn()          -> 随机生成一个初始状态
-//   energyFn(s)       -> 计算能量（越小越好）
-//   neighborFn(s)     -> 构造并返回一个扰动的“全新”状态（不改输入）
-//   cloneFn(s)        -> 深拷贝状态（用于命中新最优时的快照）
-func saRun(SAConfig cfg,
-           func initFn,
-           func(var) as float energyFn,
-           func neighborFn,
-           func(var) as var cloneFn,
-           bool verbose) as SAResult
+//   myInit()          -> 随机生成一个初始状态
+//   myEnergy(s)       -> 计算能量（越小越好）
+//   myNeighbor(s)     -> 构造并返回一个扰动的“全新”状态（不改输入）
+//   myClone(s)        -> 深拷贝状态（用于命中新最优时的快照）
+class SAProblem
+    virtual func myInit() as var
+        return array[]
+    end
 
-    var state = initFn()
-    float e = energyFn(state)
-    var best = cloneFn(state)
+    virtual func myEnergy(var c) as float
+        return 0.0
+    end
+
+    virtual func myNeighbor(var c) as var
+        return array[]
+    end
+
+    virtual func myClone(var c) as var
+        return array[]
+    end
+end
+
+func saRun(SAConfig cfg, SAProblem p, bool verbose) as SAResult
+
+    var state = p.myInit()
+    float e = p.myEnergy(state)
+    var best = p.myClone(state)
     float bestE = e
     float T = cfg.T0
     gCurrentTemp = T
@@ -98,16 +111,16 @@ func saRun(SAConfig cfg,
         int i = 0
         int stepAccepts = 0
         while i < cfg.itersPerTemp do
-            var cand = neighborFn(state)
-            float eCand = energyFn(cand)
+            var cand = p.myNeighbor(state)
+            float eCand = p.myEnergy(cand)
             float dE = eCand - e
             bool ok = false
             // Metropolis 准则：ΔE<=0 必接受；否则以 exp(-ΔE/T) 概率接受。
             if dE <= 0.0 then
                 ok = true
             else
-                float p = math.exp(-dE / T)
-                if randFloat() < p then
+                float prob = math.exp(-dE / T)
+                if randFloat() < prob then
                     ok = true
                 end
             end
@@ -117,7 +130,7 @@ func saRun(SAConfig cfg,
                 accepts += 1
                 stepAccepts += 1
                 if e < bestE then
-                    best = cloneFn(state)
+                    best = p.myClone(state)
                     bestE = e
                 end
             end
@@ -405,19 +418,19 @@ end
 // 问题模块 1：TSP（排列状态，2-opt 反转邻域）
 // ============================================================
 
-func runTSP(array<float> coords, int ncities, SAConfig cfg, bool verbose) as SAResult
-    int n = ncities
-    array<float> dist = buildDistMatrix(coords, n)
+class TSPProblem extends SAProblem
+    int n = 0
+    array<float> dist = array[]
 
-    // 随机排列初始化（Fisher-Yates 洗牌）
-    func initFn = func() as var
+    override func myInit() as var
+        // 随机排列初始化（Fisher-Yates 洗牌）
         array<int> perm = array[]
         int i = 0
-        while i < n do
+        while i < self.n do
             perm.push(i)
             i += 1
         end
-        int s = n - 1
+        int s = self.n - 1
         while s > 0 do
             int r = random.range(0, s)
             int tmp = perm[s]
@@ -428,20 +441,20 @@ func runTSP(array<float> coords, int ncities, SAConfig cfg, bool verbose) as SAR
         return perm
     end
 
-    func(var) as float energyFn = func(var c) as float
-        return tourLength(c, dist, n)
+    override func myEnergy(var c) as float
+        return tourLength(c, self.dist, self.n)
     end
 
     // 2-opt：复制排列，反转 [i, j] 段（等价于断两条边重连）。
-    func neighborFn = func(var c) as var
+    override func myNeighbor(var c) as var
         array<int> child = array[]
         int k = 0
-        while k < n do
+        while k < self.n do
             child.push(int(c[k]))
             k += 1
         end
-        int i = random.range(0, n - 2)
-        int j = random.range(i + 1, n - 1)
+        int i = random.range(0, self.n - 2)
+        int j = random.range(i + 1, self.n - 1)
         while i < j do
             int tmp = child[i]
             child[i] = child[j]
@@ -452,44 +465,51 @@ func runTSP(array<float> coords, int ncities, SAConfig cfg, bool verbose) as SAR
         return child
     end
 
-    func(var) as var cloneFn = func(var c) as var
+    override func myClone(var c) as var
         array<int> child = array[]
         int k = 0
-        while k < n do
+        while k < self.n do
             child.push(int(c[k]))
             k += 1
         end
         return child
     end
+end
 
-    return saRun(cfg, initFn, energyFn, neighborFn, cloneFn, verbose)
+func runTSP(array<float> coords, int ncities, SAConfig cfg, bool verbose) as SAResult
+    TSPProblem tp
+    tp.n = ncities
+    tp.dist = buildDistMatrix(coords, ncities)
+    var p = tp
+    return saRun(cfg, p as SAProblem, verbose)
 end
 
 // ============================================================
 // 问题模块 2：图着色（颜色向量，随机改色邻域）
 // ============================================================
 
-func runColoring(array<int> edges, int nverts, int kcolors, SAConfig cfg, bool verbose) as SAResult
-    int n = nverts
-    int k = kcolors
+class ColoringProblem extends SAProblem
+    int n = 0
+    int k = 0
+    array<int> edges = array[]
 
-    func initFn = func() as var
+    override func myInit() as var
         array<int> cols = array[]
         int i = 0
-        while i < n do
-            cols.push(random.range(0, k - 1))
+        while i < self.n do
+            cols.push(random.range(0, self.k - 1))
             i += 1
         end
         return cols
     end
 
-    func(var) as float energyFn = func(var c) as float
+    override func myEnergy(var c) as float
         int conflicts = 0
-        int m = edges.length / 2
+        int m = self.edges.length / 2
         int i = 0
         while i < m do
-            int u = edges[i * 2]
-            int v = edges[i * 2 + 1]
+            int u = self.edges[i * 2]
+            int v = self.edges[i * 2 + 1]
             if int(c[u]) == int(c[v]) then
                 conflicts += 1
             end
@@ -499,62 +519,69 @@ func runColoring(array<int> edges, int nverts, int kcolors, SAConfig cfg, bool v
     end
 
     // 随机改色：挑一个顶点，换成另一个不同的颜色。
-    func neighborFn = func(var c) as var
+    override func myNeighbor(var c) as var
         array<int> child = array[]
         int i = 0
-        while i < n do
+        while i < self.n do
             child.push(int(c[i]))
             i += 1
         end
-        int v = random.range(0, n - 1)
+        int v = random.range(0, self.n - 1)
         int old = child[v]
         int nc = old
         while nc == old do
-            nc = random.range(0, k - 1)
+            nc = random.range(0, self.k - 1)
         end
         child[v] = nc
         return child
     end
 
-    func(var) as var cloneFn = func(var c) as var
+    override func myClone(var c) as var
         array<int> child = array[]
         int i = 0
-        while i < n do
+        while i < self.n do
             child.push(int(c[i]))
             i += 1
         end
         return child
     end
+end
 
-    return saRun(cfg, initFn, energyFn, neighborFn, cloneFn, verbose)
+func runColoring(array<int> edges, int nverts, int kcolors, SAConfig cfg, bool verbose) as SAResult
+    ColoringProblem cp
+    cp.n = nverts
+    cp.k = kcolors
+    cp.edges = edges
+    var p = cp
+    return saRun(cfg, p as SAProblem, verbose)
 end
 
 // ============================================================
 // 问题模块 3：函数极值（Rastrigin 极小化，全局最小 0 在原点）
 // ============================================================
 
-func runFunc(int dim, float lo, float hi, SAConfig cfg, bool verbose) as SAResult
-    int D = dim
-    float lower = lo
-    float upper = hi
-    float span = hi - lo
-    float t0 = cfg.T0
+class FuncProblem extends SAProblem
+    int D = 0
+    float lower = 0.0
+    float upper = 0.0
+    float span = 0.0
+    float t0 = 100.0
 
-    func initFn = func() as var
+    override func myInit() as var
         array<float> x = array[]
         int i = 0
-        while i < D do
-            x.push(randFloatRange(lower, upper))
+        while i < self.D do
+            x.push(randFloatRange(self.lower, self.upper))
             i += 1
         end
         return x
     end
 
     // Rastrigin：f(x)=A*D + Σ(x_i² − A·cos(2π·x_i))，A=10。
-    func(var) as float energyFn = func(var c) as float
-        float s = 10.0 * float(D)
+    override func myEnergy(var c) as float
+        float s = 10.0 * float(self.D)
         int i = 0
-        while i < D do
+        while i < self.D do
             float x = float(c[i])
             s += x * x - 10.0 * math.cos(2.0 * math.pi * x)
             i += 1
@@ -563,41 +590,50 @@ func runFunc(int dim, float lo, float hi, SAConfig cfg, bool verbose) as SAResul
     end
 
     // 单维高斯扰动；步长随温度收缩（高温大步探索，低温小步精修）。
-    func neighborFn = func(var c) as var
+    override func myNeighbor(var c) as var
         array<float> child = array[]
         int i = 0
-        while i < D do
+        while i < self.D do
             child.push(float(c[i]))
             i += 1
         end
-        int d = random.range(0, D - 1)
-        float frac = math.sqrt(gCurrentTemp / t0)
+        int d = random.range(0, self.D - 1)
+        float frac = math.sqrt(gCurrentTemp / self.t0)
         if frac < 0.01 then
             frac = 0.01
         end
-        float step = span * 0.1 * frac
+        float step = self.span * 0.1 * frac
         float v = child[d] + randGauss() * step
-        if v < lower then
-            v = lower
+        if v < self.lower then
+            v = self.lower
         end
-        if v > upper then
-            v = upper
+        if v > self.upper then
+            v = self.upper
         end
         child[d] = v
         return child
     end
 
-    func(var) as var cloneFn = func(var c) as var
+    override func myClone(var c) as var
         array<float> child = array[]
         int i = 0
-        while i < D do
+        while i < self.D do
             child.push(float(c[i]))
             i += 1
         end
         return child
     end
+end
 
-    return saRun(cfg, initFn, energyFn, neighborFn, cloneFn, verbose)
+func runFunc(int dim, float lo, float hi, SAConfig cfg, bool verbose) as SAResult
+    FuncProblem fp
+    fp.D = dim
+    fp.lower = lo
+    fp.upper = hi
+    fp.span = hi - lo
+    fp.t0 = cfg.T0
+    var p = fp
+    return saRun(cfg, p as SAProblem, verbose)
 end
 
 // ============================================================

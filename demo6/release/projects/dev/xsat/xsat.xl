@@ -1,0 +1,1727 @@
+// xsat.xl - 一个用 xlang 编写的冲突驱动子句学习 (CDCL) SAT 求解器
+//
+// 用法:
+//   xsat solve <file.cnf>     求解 DIMACS CNF 文件, 输出 SAT/UNSAT 与模型
+//   xsat queens <N>           将 N 皇后问题编码为 SAT 并求解, 打印棋盘
+//   xsat sudoku <puzzle.txt>  将 9x9 数独编码为 SAT 并求解, 打印完整解
+//   xsat test                 运行内置测试套件
+//   xsat -h | --help          显示帮助
+//
+// 本工具验证 xlang 的以下能力:
+//   * DIMACS CNF 文本解析 (按行 + 跨行子句 + 行内注释)
+//   * 完整 CDCL 搜索循环: 单元传播 (BCP) + 决策 + 冲突分析 + 非时序回溯
+//   * 观察文字 (two-watched-literal) 数据结构: 用扁平池 + 单链表实现
+//   * 冲突分析 (1-UIP), 学习子句, VSIDS 变量活动度, 子句删除 (reduceDB)
+//   * 预处理: 重言式消除 / 重复文字去除 / 纯文字消除 / 单元子句处理
+//   * 约束满足问题 (CSP) -> SAT 编码: N 皇后, 9x9 数独
+//   * 全局 (文件作用域) 状态机: 一组全局函数操作全局状态容器
+//
+// 设计要点 (避免 xlang 嵌套 typed array 的限制):
+//   * 文字编码: lit = 2*var + sign, var 从 0 开始, sign=1 正, sign=0 负.
+//     negLit(lit) = lit ^ 1; litVar(lit) = lit >> 1; litSign(lit) = lit & 1.
+//   * 赋值表 g_value 按 [lit] 索引: 1=该文字为真, -1=假, 0=未赋值;
+//     恒有 g_value[lit] == -g_value[lit^1].
+//   * 子句库扁平存储: g_cl_data 平铺所有文字, g_cl_off 给出每个子句的区间
+//     [g_cl_off[cid], g_cl_off[cid+1]); 这样可避免 array<array<int>>.
+//   * 观察文字: 对每个文字维护一个单链表 (槽位池 g_wc_cid/g_wc_blk/g_wc_next,
+//     g_wc_head[lit] 给表头); BCP 时把待检查文字的链表整体取出再重建.
+
+
+// ====================== 文字 / DIMACS 编码辅助 ======================
+
+// DIMACS 整数 (正负 1-based) -> 内部 lit 码.
+func dimacsToLit(int d) as int
+    int v = d
+    if v < 0 then
+        v = -v
+    end
+    int variable = v - 1
+    if d > 0 then
+        return 2 * variable + 1
+    end
+    return 2 * variable
+end
+
+// 内部 lit 码 -> DIMACS 整数.
+func litToDimacs(int lit) as int
+    int variable = (lit >> 1) + 1
+    if (lit & 1) == 1 then
+        return variable
+    end
+    return -variable
+end
+
+// 1-based 变量号 -> 正文字 lit 码 (编码器辅助).
+func posLit1(int v1) as int
+    return 2 * (v1 - 1) + 1
+end
+
+// 1-based 变量号 -> 负文字 lit 码.
+func negLit1(int v1) as int
+    return 2 * (v1 - 1)
+end
+
+func litVar(int lit) as int
+    return lit >> 1
+end
+
+func litSign(int lit) as int
+    return lit & 1
+end
+
+func negLit(int lit) as int
+    return lit ^ 1
+end
+
+
+// ====================== 求解器全局状态 ======================
+
+int g_nvars = 0
+
+// 子句库 (扁平): 子句 cid 的文字 = g_cl_data[g_cl_off[cid] .. g_cl_off[cid+1]-1].
+array<int> g_cl_data = array[]
+array<int> g_cl_off = array[]          // 长度 = 子句数 + 1, g_cl_off[0] = 0
+array<int> g_cl_learnt = array[]       // 1 = 学习子句, 0 = 原始子句
+array<int> g_cl_dead = array[]         // 1 = 已删除 (惰性), 0 = 存活
+array<float> g_cl_act = array[]        // 子句活动度 (用于删除排序)
+
+// 赋值 / 蕴含图.
+array<int> g_value = array[]           // 按 lit 索引: 1 真 / -1 假 / 0 未赋值
+array<int> g_level = array[]           // 按 var 索引: 决策层
+array<int> g_reason = array[]          // 按 var 索引: 蕴含它的子句 cid, -1 = 决策/假设
+array<int> g_seen = array[]            // 冲突分析标记位 (按 var)
+array<int> g_phase = array[]           // 相位保存 (按 var): 1 / 0
+array<float> g_activity = array[]      // VSIDS 活动度 (按 var)
+
+array<int> g_trail = array[]           // 赋值顺序 (文字序列)
+array<int> g_trail_lim = array[]       // 每个决策层在 trail 上的起点
+int g_qhead = 0                        // BCP 队列头 (指向 trail)
+
+// 观察文字链表池.
+array<int> g_wc_cid = array[]
+array<int> g_wc_blk = array[]
+array<int> g_wc_next = array[]
+array<int> g_wc_head = array[]         // 按 lit 索引: 表头槽位, -1 = 空
+array<int> g_wc_free = array[]         // 空闲槽位栈
+
+// 启发式 / 统计.
+float g_var_inc = 1.0                  // VSIDS 增量
+float g_cl_inc = 1.0                   // 子句活动度增量
+int g_conflict_cid = -1                // 当前 BCP 冲突子句
+array<int> g_learnt_cls = array[]      // 最近一次分析得到的学习子句
+int g_btlevel = 0                      // 最近一次分析的回溯层
+int g_conflicts = 0
+int g_decisions = 0
+int g_propagations = 0
+int g_learnts_cnt = 0
+int g_max_learnts = 0
+array<int> g_pure_assign = array[]     // 纯文字预处理结果 (按 var: 0/1/2)
+
+float VAR_RESCALE = 1e100
+float CL_RESCALE = 1e20
+
+
+// ====================== 全局重置 ======================
+
+func g_reset()
+    g_nvars = 0
+    g_cl_data = array[]
+    g_cl_off = array[]
+    g_cl_off.append(0)
+    g_cl_learnt = array[]
+    g_cl_dead = array[]
+    g_cl_act = array[]
+    g_value = array[]
+    g_level = array[]
+    g_reason = array[]
+    g_seen = array[]
+    g_phase = array[]
+    g_activity = array[]
+    g_trail = array[]
+    g_trail_lim = array[]
+    g_qhead = 0
+    g_wc_cid = array[]
+    g_wc_blk = array[]
+    g_wc_next = array[]
+    g_wc_head = array[]
+    g_wc_free = array[]
+    g_var_inc = 1.0
+    g_cl_inc = 1.0
+    g_conflict_cid = -1
+    g_learnt_cls = array[]
+    g_btlevel = 0
+    g_conflicts = 0
+    g_decisions = 0
+    g_propagations = 0
+    g_learnts_cnt = 0
+    g_max_learnts = 0
+    g_pure_assign = array[]
+end
+
+
+// ====================== 子句库基本操作 ======================
+
+func g_clauseSize(int cid) as int
+    return g_cl_off[cid + 1] - g_cl_off[cid]
+end
+
+// 追加一个子句 (扁平文字), 返回新 cid.
+func g_addClauseRaw(array<int> lits, int learnt) as int
+    int cid = g_cl_off.length - 1
+    int i = 0
+    while i < lits.length do
+        g_cl_data.append(lits[i])
+        i += 1
+    end
+    g_cl_off.append(g_cl_data.length)
+    g_cl_learnt.append(learnt)
+    g_cl_dead.append(0)
+    g_cl_act.append(0.0)
+    return cid
+end
+
+// 把子句 cid 的前两个文字挂到观察列表 (size>=2 才挂).
+func g_attachClause(int cid)
+    int off = g_cl_off[cid]
+    int sz = g_cl_off[cid + 1] - off
+    if sz < 2 then
+        return
+    end
+    int l0 = g_cl_data[off]
+    int l1 = g_cl_data[off + 1]
+    g_watchAdd(l0, cid, l1)
+    g_watchAdd(l1, cid, l0)
+end
+
+
+// ====================== 观察文字链表池 ======================
+
+// 分配一个槽位 (优先复用空闲槽).
+func g_wcAlloc() as int
+    if g_wc_free.length > 0 then
+        int s = g_wc_free[g_wc_free.length - 1]
+        g_wc_free.pop()
+        return s
+    end
+    g_wc_cid.append(0)
+    g_wc_blk.append(0)
+    g_wc_next.append(-1)
+    return g_wc_cid.length - 1
+end
+
+// 在文字 lit 的链表头插入观察 (cid, blk).
+func g_watchAdd(int lit, int cid, int blk)
+    int s = g_wcAlloc()
+    g_wc_cid[s] = cid
+    g_wc_blk[s] = blk
+    g_wc_next[s] = g_wc_head[lit]
+    g_wc_head[lit] = s
+end
+
+
+// ====================== 赋值 / 决策层 ======================
+
+func g_decisionLevel() as int
+    return g_trail_lim.length
+end
+
+func g_newDecisionLevel()
+    g_trail_lim.append(g_trail.length)
+end
+
+// 把文字 lit 赋为真, 记录 reason 与决策层, 入队 trail.
+func g_enqueue(int lit, int reason)
+    int nv = lit ^ 1
+    g_value[lit] = 1
+    g_value[nv] = -1
+    int v = lit >> 1
+    g_level[v] = g_trail_lim.length
+    g_reason[v] = reason
+    g_trail.append(lit)
+    g_propagations += 1
+end
+
+
+// ====================== 单元传播 (BCP) ======================
+
+// 处理 trail 队列, 进行布尔约束传播.
+// 返回冲突子句 cid, 或 -1 表示无冲突.
+// 核心: 对每个刚赋为真的 p, 检查所有 "观察 ~p" 的子句
+// (因为 ~p 现在为假, 这些子句的某个观察文字变假了).
+func g_propagate() as int
+    g_conflict_cid = -1
+    while g_qhead < g_trail.length do
+        int p = g_trail[g_qhead]
+        g_qhead += 1
+        int falseLit = p ^ 1
+        // 取出 falseLit 的整条观察链, 后面重建.
+        array<int> old = array[]
+        int s = g_wc_head[falseLit]
+        while s != -1 do
+            old.append(g_wc_cid[s])
+            old.append(g_wc_blk[s])
+            g_wc_free.push(s)
+            s = g_wc_next[s]
+        end
+        g_wc_head[falseLit] = -1
+
+        int i = 0
+        while i < old.length do
+            int cid = old[i]
+            int blk = old[i + 1]
+            i += 2
+            if g_cl_dead[cid] == 1 then
+                continue
+            end
+            // 快速满足检查: blk 若已为真, 子句满足, 继续观察 falseLit.
+            if g_value[blk] == 1 then
+                g_watchAdd(falseLit, cid, blk)
+                continue
+            end
+            int off = g_cl_off[cid]
+            // 确保 falseLit 在位置 1 (必要时交换 pos0/pos1).
+            if g_cl_data[off] == falseLit then
+                int t = g_cl_data[off]
+                g_cl_data[off] = g_cl_data[off + 1]
+                g_cl_data[off + 1] = t
+            end
+            int other = g_cl_data[off]
+            if g_value[other] == 1 then
+                g_watchAdd(falseLit, cid, other)
+                continue
+            end
+            // 在 pos2.. 试图找一个非假文字作为新观察.
+            int sz = g_cl_off[cid + 1] - off
+            int k = 2
+            bool found = false
+            while k < sz do
+                int lk = g_cl_data[off + k]
+                if g_value[lk] != -1 then
+                    g_cl_data[off + 1] = lk
+                    g_cl_data[off + k] = falseLit
+                    g_watchAdd(lk, cid, other)
+                    found = true
+                    break
+                end
+                k += 1
+            end
+            if found then
+                continue
+            end
+            // 找不到新观察: 子句为单元或冲突, 继续观察 falseLit.
+            g_watchAdd(falseLit, cid, other)
+            if g_value[other] == -1 then
+                // 冲突: 保留剩余观察者后返回.
+                g_conflict_cid = cid
+                while i < old.length do
+                    if g_cl_dead[old[i]] == 0 then
+                        g_watchAdd(falseLit, old[i], old[i + 1])
+                    end
+                    i += 2
+                end
+                break
+            else
+                // other 未赋值 -> 单元传播.
+                g_enqueue(other, cid)
+            end
+        end
+        if g_conflict_cid != -1 then
+            return g_conflict_cid
+        end
+    end
+    return -1
+end
+
+
+// ====================== 冲突分析 (1-UIP) ======================
+
+// 从冲突子句出发, 反解蕴含图, 产生 1-UIP 学习子句.
+// 结果写入 g_learnt_cls (位置 0 = 断言文字), 返回回溯层.
+func g_analyze(int confl) as int
+    int pathC = 0
+    int p = -1
+    int conflCur = confl
+    g_learnt_cls = array[]
+    g_learnt_cls.append(0)               // 断言文字占位
+    int index = g_trail.length - 1
+    int btlevel = 0
+    do
+        int cid = conflCur
+        if g_cl_learnt[cid] == 1 then
+            g_clauseBump(cid)
+        end
+        int off = g_cl_off[cid]
+        int sz = g_cl_off[cid + 1] - off
+        // 首次处理冲突子句时扫描全部; 之后处理 reason 子句时跳过 pos0
+        // (pos0 是被传播的文字, 正是上一轮解掉的 p).
+        int start = 0
+        if p != -1 then
+            start = 1
+        end
+        int j = start
+        while j < sz do
+            int q = g_cl_data[off + j]
+            j += 1
+            int vq = q >> 1
+            if g_seen[vq] == 0 and g_level[vq] > 0 then
+                g_varBump(vq)
+                g_seen[vq] = 1
+                if g_level[vq] >= g_trail_lim.length then
+                    pathC += 1
+                else
+                    g_learnt_cls.append(q)
+                    if g_level[vq] > btlevel then
+                        btlevel = g_level[vq]
+                    end
+                end
+            end
+        end
+        // 从 trail 末尾向前找下一个标记变量.
+        while index >= 0 and g_seen[g_trail[index] >> 1] == 0 do
+            index -= 1
+        end
+        p = g_trail[index]
+        index -= 1
+        conflCur = g_reason[p >> 1]
+        g_seen[p >> 1] = 0
+        pathC -= 1
+    while pathC > 0
+    g_learnt_cls[0] = p ^ 1              // 断言文字 = ~p (1-UIP 的否定)
+    // 清除学习子句文字的 seen 标记.
+    int i = 0
+    while i < g_learnt_cls.length do
+        g_seen[g_learnt_cls[i] >> 1] = 0
+        i += 1
+    end
+    g_btlevel = btlevel
+    return btlevel
+end
+
+
+// ====================== 非时序回溯 ======================
+
+// 撤销所有决策层 > level 的赋值, 恢复到 level.
+func g_cancelUntil(int level)
+    int dl = g_trail_lim.length
+    if level >= dl then
+        return
+    end
+    int lim = g_trail_lim[level]
+    int i = g_trail.length - 1
+    while i >= lim do
+        int lit = g_trail[i]
+        int v = lit >> 1
+        g_phase[v] = lit & 1             // 相位保存
+        g_value[lit] = 0
+        g_value[lit ^ 1] = 0
+        g_reason[v] = -1
+        i -= 1
+    end
+    while g_trail.length > lim do
+        g_trail.pop()
+    end
+    while g_trail_lim.length > level do
+        g_trail_lim.pop()
+    end
+    g_qhead = g_trail.length
+end
+
+
+// ====================== VSIDS 变量活动度 ======================
+
+func g_varBump(int v)
+    g_activity[v] = g_activity[v] + g_var_inc
+    if g_activity[v] > VAR_RESCALE then
+        int i = 0
+        int n = g_nvars
+        while i < n do
+            g_activity[i] = g_activity[i] * 1e-100
+            i += 1
+        end
+        g_var_inc = g_var_inc * 1e-100
+    end
+end
+
+func g_varDecay()
+    g_var_inc = g_var_inc / 0.95
+end
+
+
+// ====================== 子句活动度 (用于删除排序) ======================
+
+func g_clauseBump(int cid)
+    g_cl_act[cid] = g_cl_act[cid] + g_cl_inc
+    if g_cl_act[cid] > CL_RESCALE then
+        int i = 0
+        int nc = g_cl_off.length - 1
+        while i < nc do
+            g_cl_act[i] = g_cl_act[i] * 1e-20
+            i += 1
+        end
+        g_cl_inc = g_cl_inc * 1e-20
+    end
+end
+
+func g_clauseDecay()
+    g_cl_inc = g_cl_inc / 0.999
+end
+
+
+// ====================== 决策 (VSIDS 变量选择) ======================
+
+// 线性扫描找活动度最高的未赋值变量, 用相位保存决定正负.
+// 返回分支文字, 或 -1 表示全部已赋值 (=> SAT).
+func g_pickBranchVar() as int
+    int best = -1
+    float bestAct = -1.0
+    int v = 0
+    int n = g_nvars
+    while v < n do
+        if g_value[2 * v + 1] == 0 then
+            if g_activity[v] > bestAct then
+                bestAct = g_activity[v]
+                best = v
+            end
+        end
+        v += 1
+    end
+    if best == -1 then
+        return -1
+    end
+    int sign = g_phase[best]
+    return 2 * best + sign
+end
+
+
+// ====================== 学习子句删除 (reduceDB) ======================
+
+// cid 是否 "锁定" (是某个在 trail 上的变量的 reason).
+func g_locked(int cid) as bool
+    int v = 0
+    int n = g_nvars
+    while v < n do
+        if g_reason[v] == cid then
+            return true
+        end
+        v += 1
+    end
+    return false
+end
+
+// 删除活动度最低的一半学习子句 (锁定者保留).
+func g_reduceDB()
+    array<int> ls = array[]
+    int nc = g_cl_off.length - 1
+    int cid = 0
+    while cid < nc do
+        if g_cl_learnt[cid] == 1 and g_cl_dead[cid] == 0 then
+            ls.append(cid)
+        end
+        cid += 1
+    end
+    // 按活动度降序插入排序.
+    int m = ls.length
+    int i = 1
+    while i < m do
+        int key = ls[i]
+        float keyAct = g_cl_act[key]
+        int j = i - 1
+        while j >= 0 and g_cl_act[ls[j]] < keyAct do
+            ls[j + 1] = ls[j]
+            j -= 1
+        end
+        ls[j + 1] = key
+        i += 1
+    end
+    int half = m / 2
+    int removed = 0
+    int idx = m - 1
+    while idx >= 0 and removed < half do
+        int c2 = ls[idx]
+        idx -= 1
+        if not g_locked(c2) then
+            g_cl_dead[c2] = 1
+            removed += 1
+        end
+    end
+    g_learnts_cnt = g_learnts_cnt - removed
+    g_max_learnts = g_max_learnts * 11 / 10
+end
+
+
+// ====================== 预处理 ======================
+
+// 阶段1: 每个子句去重 + 重言式 (含 x 与 ~x) 消除, 重建扁平库.
+func g_preprocess()
+    array<int> nd = array[]
+    array<int> no = array[]
+    no.append(0)
+    array<int> nlr = array[]
+    array<int> ndead = array[]
+    array<float> nact = array[]
+    int nc = g_cl_off.length - 1
+    int cid = 0
+    while cid < nc do
+        int off = g_cl_off[cid]
+        int sz = g_cl_off[cid + 1] - off
+        array<int> tmp = array[]
+        bool taut = false
+        int j = 0
+        while j < sz do
+            int lit = g_cl_data[off + j]
+            j += 1
+            bool dup = false
+            int k = 0
+            while k < tmp.length do
+                if tmp[k] == lit then
+                    dup = true
+                    break
+                end
+                if tmp[k] == (lit ^ 1) then
+                    taut = true
+                    break
+                end
+                k += 1
+            end
+            if taut then
+                break
+            end
+            if not dup then
+                tmp.append(lit)
+            end
+        end
+        if (not taut) and tmp.length > 0 then
+            int kk = 0
+            while kk < tmp.length do
+                nd.append(tmp[kk])
+                kk += 1
+            end
+            no.append(nd.length)
+            nlr.append(g_cl_learnt[cid])
+            ndead.append(0)
+            nact.append(0.0)
+        end
+        cid += 1
+    end
+    g_cl_data = nd
+    g_cl_off = no
+    g_cl_learnt = nlr
+    g_cl_dead = ndead
+    g_cl_act = nact
+
+    // 阶段2: 纯文字消除.
+    g_pureLiteralElim()
+end
+
+// 统计每个变量正/负出现次数, 对纯文字 (只出现一种极性) 做满足,
+// 删除被满足的子句, 并把结果存入 g_pure_assign 供 setup 使用.
+func g_pureLiteralElim()
+    int n = g_nvars
+    array<int> pos = array[]
+    array<int> neg = array[]
+    int i = 0
+    while i < n do
+        pos.append(0)
+        neg.append(0)
+        i += 1
+    end
+    int nc = g_cl_off.length - 1
+    int cid = 0
+    while cid < nc do
+        if g_cl_dead[cid] == 0 then
+            int off = g_cl_off[cid]
+            int sz = g_cl_off[cid + 1] - off
+            int j = 0
+            while j < sz do
+                int lit = g_cl_data[off + j]
+                int v = lit >> 1
+                if (lit & 1) == 1 then
+                    pos[v] += 1
+                else
+                    neg[v] += 1
+                end
+                j += 1
+            end
+        end
+        cid += 1
+    end
+    array<int> assign = array[]
+    i = 0
+    while i < n do
+        assign.append(0)
+        i += 1
+    end
+    i = 0
+    while i < n do
+        if pos[i] > 0 and neg[i] == 0 then
+            assign[i] = 1
+        elseif neg[i] > 0 and pos[i] == 0 then
+            assign[i] = 2
+        end
+        i += 1
+    end
+    // 删除被纯文字满足的子句.
+    cid = 0
+    while cid < nc do
+        if g_cl_dead[cid] == 0 then
+            int off = g_cl_off[cid]
+            int sz = g_cl_off[cid + 1] - off
+            int j = 0
+            bool sat = false
+            while j < sz do
+                int lit = g_cl_data[off + j]
+                int v = lit >> 1
+                int sign = lit & 1
+                if (assign[v] == 1 and sign == 1) or (assign[v] == 2 and sign == 0) then
+                    sat = true
+                    break
+                end
+                j += 1
+            end
+            if sat then
+                g_cl_dead[cid] = 1
+            end
+        end
+        cid += 1
+    end
+    g_pure_assign = assign
+end
+
+
+// ====================== 初始化 (建立观察表 + 入队单元) ======================
+
+// 初始化求解器内部数组, 挂接观察文字, 入队纯文字与单元子句.
+// 返回 false 表示顶层层级即冲突 (UNSAT).
+func g_setup() as bool
+    int n = g_nvars
+    g_value = array[]
+    g_level = array[]
+    g_reason = array[]
+    g_seen = array[]
+    g_phase = array[]
+    g_activity = array[]
+    int i = 0
+    while i < 2 * n do
+        g_value.append(0)
+        i += 1
+    end
+    i = 0
+    while i < n do
+        g_level.append(0)
+        i += 1
+    end
+    i = 0
+    while i < n do
+        g_reason.append(-1)
+        i += 1
+    end
+    i = 0
+    while i < n do
+        g_seen.append(0)
+        i += 1
+    end
+    i = 0
+    while i < n do
+        g_phase.append(1)
+        i += 1
+    end
+    i = 0
+    while i < n do
+        g_activity.append(0.0)
+        i += 1
+    end
+    g_trail = array[]
+    g_trail_lim = array[]
+    g_qhead = 0
+
+    // 观察链表池.
+    g_wc_cid = array[]
+    g_wc_blk = array[]
+    g_wc_next = array[]
+    g_wc_head = array[]
+    g_wc_free = array[]
+    i = 0
+    while i < 2 * n do
+        g_wc_head.append(-1)
+        i += 1
+    end
+
+    g_var_inc = 1.0
+    g_cl_inc = 1.0
+    g_conflict_cid = -1
+    g_learnts_cnt = 0
+    g_conflicts = 0
+    g_decisions = 0
+    g_propagations = 0
+    g_max_learnts = 0
+
+    // 挂接所有存活子句 (size>=2) 到观察表.
+    int nc = g_cl_off.length - 1
+    int nclive = 0
+    int cid = 0
+    while cid < nc do
+        if g_cl_dead[cid] == 0 then
+            int off = g_cl_off[cid]
+            int sz = g_cl_off[cid + 1] - off
+            if sz >= 2 then
+                g_watchAdd(g_cl_data[off], cid, g_cl_data[off + 1])
+                g_watchAdd(g_cl_data[off + 1], cid, g_cl_data[off])
+            end
+            nclive += 1
+        end
+        cid += 1
+    end
+    g_max_learnts = 200 + nclive / 3
+
+    // 入队纯文字 (层级 0).
+    if g_pure_assign.length == n then
+        i = 0
+        while i < n do
+            if g_pure_assign[i] == 1 then
+                g_enqueue(2 * i + 1, -1)
+            elseif g_pure_assign[i] == 2 then
+                g_enqueue(2 * i, -1)
+            end
+            i += 1
+        end
+    end
+
+    // 入队单元子句 (层级 0); 直接冲突则 UNSAT.
+    cid = 0
+    while cid < nc do
+        if g_cl_dead[cid] == 0 then
+            int off = g_cl_off[cid]
+            int sz = g_cl_off[cid + 1] - off
+            if sz == 0 then
+                return false
+            elseif sz == 1 then
+                int lit = g_cl_data[off]
+                if g_value[lit] == 1 then
+                    // 已满足, 跳过.
+                elseif g_value[lit] == -1 then
+                    return false
+                else
+                    g_enqueue(lit, -1)
+                end
+            end
+        end
+        cid += 1
+    end
+    return true
+end
+
+
+// ====================== CDCL 主搜索循环 ======================
+
+// 运行 CDCL. 返回 1 = SAT, -1 = UNSAT.
+func g_solve() as int
+    if g_nvars == 0 then
+        return 1
+    end
+    if not g_setup() then
+        return -1
+    end
+    int confl = g_propagate()
+    if confl != -1 then
+        return -1
+    end
+    while true do
+        int branch = g_pickBranchVar()
+        if branch == -1 then
+            return 1                       // 全部变量已赋值 => SAT
+        end
+        g_newDecisionLevel()
+        g_decisions += 1
+        g_enqueue(branch, -1)
+        while true do
+            confl = g_propagate()
+            if confl == -1 then
+                break
+            end
+            g_conflicts += 1
+            if g_trail_lim.length == 0 then
+                return -1                  // 顶层冲突 => UNSAT
+            end
+            g_btlevel = 0
+            g_learnt_cls = array[]
+            int bt = g_analyze(confl)
+            g_cancelUntil(bt)
+            if g_learnt_cls.length == 1 then
+                // 单元学习子句: 直接入队 (层级 0).
+                g_enqueue(g_learnt_cls[0], -1)
+            else
+                int ncid = g_addClauseRaw(g_learnt_cls, 1)
+                g_attachClause(ncid)
+                g_learnts_cnt += 1
+                g_cl_act[ncid] = g_cl_inc
+                g_enqueue(g_learnt_cls[0], ncid)
+            end
+            g_varDecay()
+            g_clauseDecay()
+            if g_learnts_cnt >= g_max_learnts then
+                g_reduceDB()
+            end
+        end
+    end
+    return 0
+end
+
+
+// ====================== 模型输出 / 校验 ======================
+
+// 按竞赛格式输出满足赋值: 每行 "v <sign><var>", 末行 "v 0".
+func g_printModel()
+    int v = 0
+    while v < g_nvars do
+        int dim = v + 1
+        if g_value[2 * v + 1] == 1 then
+            println("v " + string(dim))
+        elseif g_value[2 * v] == 1 then
+            println("v -" + string(dim))
+        else
+            // 自由变量 (未参与任何子句), 默认输出正.
+            println("v " + string(dim))
+        end
+        v += 1
+    end
+    println("v 0")
+end
+
+// 校验当前 g_value 是否满足所有原始 (非学习) 子句.
+func g_verifyModel() as bool
+    int nc = g_cl_off.length - 1
+    int cid = 0
+    while cid < nc do
+        if g_cl_learnt[cid] == 0 and g_cl_dead[cid] == 0 then
+            int off = g_cl_off[cid]
+            int sz = g_cl_off[cid + 1] - off
+            bool sat = false
+            int j = 0
+            while j < sz do
+                if g_value[g_cl_data[off + j]] == 1 then
+                    sat = true
+                    break
+                end
+                j += 1
+            end
+            if not sat then
+                return false
+            end
+        end
+        cid += 1
+    end
+    return true
+end
+
+
+// ====================== DIMACS CNF 解析 ======================
+
+// 解析 DIMACS CNF 文本, 把子句写入全局子句库, 设置 g_nvars.
+// 支持: c 注释行, p cnf 头, 跨行子句 (以 0 结束).
+func parseDimacs(string content)
+    array lines = string.splitLines(content)
+    // BUG-S1 绕过: splitLines 末尾换行产生空串, 用 pop 弃掉末元素.
+    if lines.length > 0 then
+        if lines[lines.length - 1] == "" then
+            lines.pop()
+        end
+    end
+    array<int> cur = array[]
+    int i = 0
+    while i < lines.length do
+        string line = string(lines[i])
+        i += 1
+        string t = string.trim(line)
+        if t == "" then
+            continue
+        end
+        if string.charAt(t, 0) == "c" then
+            continue
+        end
+        if string.charAt(t, 0) == "p" then
+            // p cnf <vars> <clauses>
+            array parts = string.split(t, " ")
+            int pi = 0
+            while pi < parts.length do
+                if parts[pi] == "cnf" then
+                    pi += 1
+                    while pi < parts.length and parts[pi] == "" do
+                        pi += 1
+                    end
+                    if pi < parts.length then
+                        int nv = int(parts[pi])
+                        if nv > g_nvars then
+                            g_nvars = nv
+                        end
+                    end
+                    break
+                end
+                pi += 1
+            end
+            continue
+        end
+        // 子句行: 空白分隔的整数, 以 0 结束.
+        array toks = string.split(t, " ")
+        int j = 0
+        while j < toks.length do
+            string tk = string.trim(string(toks[j]))
+            j += 1
+            if tk == "" then
+                continue
+            end
+            int b0 = string.byteAt(tk, 0)
+            // 行内出现非数字 token 视为注释尾巴, 跳过本行剩余.
+            if b0 == 45 then
+                // '-' 负号, 继续.
+            elseif b0 < 48 or b0 > 57 then
+                break
+            end
+            int d = int(tk)
+            if d == 0 then
+                if cur.length > 0 then
+                    g_addClauseRaw(cur, 0)
+                    cur = array[]
+                end
+            else
+                cur.append(dimacsToLit(d))
+                int av = d
+                if av < 0 then
+                    av = -av
+                end
+                if av > g_nvars then
+                    g_nvars = av
+                end
+            end
+        end
+    end
+    // 容忍未以 0 结束的尾子句.
+    if cur.length > 0 then
+        g_addClauseRaw(cur, 0)
+    end
+end
+
+
+// ====================== 统计输出 ======================
+
+func g_printStats(float elapsed)
+    println("c conflicts=" + string(g_conflicts) + " decisions=" + string(g_decisions) + " propagations=" + string(g_propagations))
+    println("c learnt=" + string(g_learnts_cnt) + " time=" + string.formatFloat(elapsed * 1000.0, ".3") + "ms")
+end
+
+
+// ====================== CSP 编码: N 皇后 -> SAT ======================
+
+// 变量: q(r,c) 表示 (r,c) 有皇后, 1-based 变量号 = r*N + c + 1.
+// 约束: 每行/列至少一个且至多一个; 每条对角线至多一个.
+func g_encodeQueens(int N)
+    g_nvars = N * N
+    // 行约束.
+    int r = 0
+    while r < N do
+        // 至少一个.
+        array<int> row = array[]
+        int c = 0
+        while c < N do
+            row.append(posLit1(r * N + c + 1))
+            c += 1
+        end
+        g_addClauseRaw(row, 0)
+        // 至多一个 (两两互斥).
+        int c1 = 0
+        while c1 < N do
+            int c2 = c1 + 1
+            while c2 < N do
+                array<int> cl = array[]
+                cl.append(negLit1(r * N + c1 + 1))
+                cl.append(negLit1(r * N + c2 + 1))
+                g_addClauseRaw(cl, 0)
+                c2 += 1
+            end
+            c1 += 1
+        end
+        r += 1
+    end
+    // 列约束.
+    int cc = 0
+    while cc < N do
+        array<int> col = array[]
+        int rr = 0
+        while rr < N do
+            col.append(posLit1(rr * N + cc + 1))
+            rr += 1
+        end
+        g_addClauseRaw(col, 0)
+        int r1 = 0
+        while r1 < N do
+            int r2 = r1 + 1
+            while r2 < N do
+                array<int> cl = array[]
+                cl.append(negLit1(r1 * N + cc + 1))
+                cl.append(negLit1(r2 * N + cc + 1))
+                g_addClauseRaw(cl, 0)
+                r2 += 1
+            end
+            r1 += 1
+        end
+        cc += 1
+    end
+    // 对角线 (主/副) 两两互斥.
+    int a = 0
+    while a < N do
+        int b = 0
+        while b < N do
+            int a2 = a + 1
+            while a2 < N do
+                int b2 = 0
+                while b2 < N do
+                    if (a - b == a2 - b2) or (a + b == a2 + b2) then
+                        array<int> cl = array[]
+                        cl.append(negLit1(a * N + b + 1))
+                        cl.append(negLit1(a2 * N + b2 + 1))
+                        g_addClauseRaw(cl, 0)
+                    end
+                    b2 += 1
+                end
+                a2 += 1
+            end
+            b += 1
+        end
+        a += 1
+    end
+end
+
+// 打印 N 皇后棋盘 (Q/.).
+func g_printQueensBoard(int N)
+    int r = 0
+    while r < N do
+        int c = 0
+        while c < N do
+            int lit = 2 * (r * N + c) + 1
+            if g_value[lit] == 1 then
+                print("Q ")
+            else
+                print(". ")
+            end
+            c += 1
+        end
+        println()
+        r += 1
+    end
+end
+
+
+// ====================== CSP 编码: 9x9 数独 -> SAT ======================
+
+// 变量: x(r,c,d) 表示格 (r,c) 取数字 d (1..9).
+// 1-based 变量号 = (r*9+c)*9 + d, 共 729 个变量.
+// 约束: 每格至少且至多一个数字; 每行/列/宫各数字至少出现一次; 题面单元子句.
+func g_encodeSudoku(string puzzle)
+    g_nvars = 9 * 9 * 9
+    // 每格至少一个数字 + 至多一个数字.
+    int r = 0
+    while r < 9 do
+        int c = 0
+        while c < 9 do
+            int base = (r * 9 + c) * 9
+            array<int> atleast = array[]
+            int d = 1
+            while d <= 9 do
+                atleast.append(posLit1(base + d))
+                d += 1
+            end
+            g_addClauseRaw(atleast, 0)
+            int d1 = 1
+            while d1 <= 9 do
+                int d2 = d1 + 1
+                while d2 <= 9 do
+                    array<int> cl = array[]
+                    cl.append(negLit1(base + d1))
+                    cl.append(negLit1(base + d2))
+                    g_addClauseRaw(cl, 0)
+                    d2 += 1
+                end
+                d1 += 1
+            end
+            c += 1
+        end
+        r += 1
+    end
+    // 行: 每个数字至少出现一次.
+    int rr = 0
+    while rr < 9 do
+        int d = 1
+        while d <= 9 do
+            array<int> cl = array[]
+            int cc = 0
+            while cc < 9 do
+                cl.append(posLit1((rr * 9 + cc) * 9 + d))
+                cc += 1
+            end
+            g_addClauseRaw(cl, 0)
+            d += 1
+        end
+        rr += 1
+    end
+    // 列: 每个数字至少出现一次.
+    int cc2 = 0
+    while cc2 < 9 do
+        int d = 1
+        while d <= 9 do
+            array<int> cl = array[]
+            int r3 = 0
+            while r3 < 9 do
+                cl.append(posLit1((r3 * 9 + cc2) * 9 + d))
+                r3 += 1
+            end
+            g_addClauseRaw(cl, 0)
+            d += 1
+        end
+        cc2 += 1
+    end
+    // 宫: 每个数字至少出现一次.
+    int br = 0
+    while br < 3 do
+        int bc = 0
+        while bc < 3 do
+            int d = 1
+            while d <= 9 do
+                array<int> cl = array[]
+                int dr = 0
+                while dr < 3 do
+                    int dc = 0
+                    while dc < 3 do
+                        int r4 = br * 3 + dr
+                        int c4 = bc * 3 + dc
+                        cl.append(posLit1((r4 * 9 + c4) * 9 + d))
+                        dc += 1
+                    end
+                    dr += 1
+                end
+                g_addClauseRaw(cl, 0)
+                d += 1
+            end
+            bc += 1
+        end
+        br += 1
+    end
+    // 题面: 已知数字作单元子句.
+    int idx = 0
+    while idx < 81 do
+        int digit = int(string.charAt(puzzle, idx))
+        if digit >= 1 and digit <= 9 then
+            int r5 = idx / 9
+            int c5 = idx % 9
+            array<int> cl = array[]
+            cl.append(posLit1((r5 * 9 + c5) * 9 + digit))
+            g_addClauseRaw(cl, 0)
+        end
+        idx += 1
+    end
+end
+
+// 打印数独解 (从 SAT 模型解码每格数字).
+func g_printSudokuSolution()
+    int r = 0
+    while r < 9 do
+        int c = 0
+        while c < 9 do
+            int d = 1
+            int found = 0
+            while d <= 9 do
+                int lit = 2 * ((r * 9 + c) * 9 + (d - 1)) + 1
+                if g_value[lit] == 1 then
+                    found = d
+                    break
+                end
+                d += 1
+            end
+            print(string(found) + " ")
+            if c == 2 or c == 5 then
+                print("| ")
+            end
+            c += 1
+        end
+        println()
+        if r == 2 or r == 5 then
+            println("------+-------+------")
+        end
+        r += 1
+    end
+end
+
+// 校验数独解: 题面一致 + 每行/列/宫含 1..9.
+func g_verifySudoku(string puzzle) as bool
+    array<int> grid = array[]
+    int r = 0
+    while r < 9 do
+        int c = 0
+        while c < 9 do
+            int d = 1
+            int found = 0
+            while d <= 9 do
+                int lit = 2 * ((r * 9 + c) * 9 + (d - 1)) + 1
+                if g_value[lit] == 1 then
+                    found = d
+                    break
+                end
+                d += 1
+            end
+            grid.append(found)
+            c += 1
+        end
+        r += 1
+    end
+    // 题面一致.
+    int i = 0
+    while i < 81 do
+        int given = int(string.charAt(puzzle, i))
+        if given >= 1 and given <= 9 then
+            if grid[i] != given then
+                return false
+            end
+        end
+        i += 1
+    end
+    // 行.
+    r = 0
+    while r < 9 do
+        array<int> seen = array[]
+        int k = 0
+        while k < 10 do
+            seen.append(0)
+            k += 1
+        end
+        int c = 0
+        while c < 9 do
+            int d = grid[r * 9 + c]
+            if d < 1 or d > 9 then
+                return false
+            end
+            if seen[d] == 1 then
+                return false
+            end
+            seen[d] = 1
+            c += 1
+        end
+        r += 1
+    end
+    // 列.
+    int c2 = 0
+    while c2 < 9 do
+        array<int> seen = array[]
+        int k = 0
+        while k < 10 do
+            seen.append(0)
+            k += 1
+        end
+        int rr = 0
+        while rr < 9 do
+            int d = grid[rr * 9 + c2]
+            if seen[d] == 1 then
+                return false
+            end
+            seen[d] = 1
+            rr += 1
+        end
+        c2 += 1
+    end
+    // 宫.
+    int br = 0
+    while br < 3 do
+        int bc = 0
+        while bc < 3 do
+            array<int> seen = array[]
+            int k = 0
+            while k < 10 do
+                seen.append(0)
+                k += 1
+            end
+            int dr = 0
+            while dr < 3 do
+                int dc = 0
+                while dc < 3 do
+                    int d = grid[(br * 3 + dr) * 9 + (bc * 3 + dc)]
+                    if seen[d] == 1 then
+                        return false
+                    end
+                    seen[d] = 1
+                    dc += 1
+                end
+                dr += 1
+            end
+            bc += 1
+        end
+        br += 1
+    end
+    return true
+end
+
+// 把原始题面文本清洗为 81 位数字串 (0 表示空), 忽略空白/分隔符.
+func cleanPuzzle(string raw) as string
+    array lines = string.splitLines(raw)
+    string out = ""
+    int i = 0
+    while i < lines.length do
+        string ln = string(lines[i])
+        i += 1
+        int j = 0
+        int L = string.len(ln)
+        while j < L do
+            int b = string.byteAt(ln, j)
+            if b >= 48 and b <= 57 then
+                out = out + string.charAt(ln, j)
+            end
+            j += 1
+        end
+    end
+    return out
+end
+
+// 打印原始题面网格 (0 显示为 .).
+func g_printPuzzleGrid(string puzzle)
+    int r = 0
+    while r < 9 do
+        int c = 0
+        while c < 9 do
+            string ch = string.charAt(puzzle, r * 9 + c)
+            if ch == "0" then
+                print(". ")
+            else
+                print(ch + " ")
+            end
+            if c == 2 or c == 5 then
+                print("| ")
+            end
+            c += 1
+        end
+        println()
+        if r == 2 or r == 5 then
+            println("------+-------+------")
+        end
+        r += 1
+    end
+end
+
+
+// ====================== 命令: solve ======================
+
+func cmdSolve(string path) as int
+    if not file.exists(path) then
+        println("xsat: file not found: " + path)
+        return 1
+    end
+    string content = file.readText(path)
+    g_reset()
+    parseDimacs(content)
+    g_preprocess()
+    println("c parsed " + string(g_nvars) + " vars, " + string(g_cl_off.length - 1) + " clauses (after preprocess)")
+    float t0 = time.timer()
+    int res = g_solve()
+    float t1 = time.timer()
+    if res == 1 then
+        println("s SATISFIABLE")
+        g_printModel()
+        if g_verifyModel() then
+            println("c model verified OK")
+        else
+            println("c WARNING: model verification FAILED")
+        end
+    else
+        println("s UNSATISFIABLE")
+    end
+    g_printStats(t1 - t0)
+    return 0
+end
+
+
+// ====================== 命令: queens ======================
+
+func cmdQueens(int N) as int
+    if N < 1 then
+        println("xsat: N must be >= 1")
+        return 1
+    end
+    g_reset()
+    g_encodeQueens(N)
+    g_preprocess()
+    println("c N-Queens N=" + string(N) + ": " + string(g_nvars) + " vars, " + string(g_cl_off.length - 1) + " clauses")
+    float t0 = time.timer()
+    int res = g_solve()
+    float t1 = time.timer()
+    if res == 1 then
+        println("s SATISFIABLE (a placement exists)")
+        g_printQueensBoard(N)
+    else
+        println("s UNSATISFIABLE (no placement exists)")
+    end
+    g_printStats(t1 - t0)
+    return 0
+end
+
+
+// ====================== 命令: sudoku ======================
+
+func cmdSudoku(string path) as int
+    if not file.exists(path) then
+        println("xsat: file not found: " + path)
+        return 1
+    end
+    string raw = file.readText(path)
+    string puzzle = cleanPuzzle(raw)
+    if string.len(puzzle) != 81 then
+        println("xsat: puzzle must have 81 cells, got " + string(string.len(puzzle)))
+        return 1
+    end
+    println("c puzzle:")
+    g_printPuzzleGrid(puzzle)
+    g_reset()
+    g_encodeSudoku(puzzle)
+    g_preprocess()
+    println("c sudoku encoded: " + string(g_nvars) + " vars, " + string(g_cl_off.length - 1) + " clauses")
+    float t0 = time.timer()
+    int res = g_solve()
+    float t1 = time.timer()
+    if res == 1 then
+        println("s SATISFIABLE (solution found)")
+        g_printSudokuSolution()
+        if g_verifySudoku(puzzle) then
+            println("c sudoku solution verified OK")
+        else
+            println("c WARNING: sudoku verification FAILED")
+        end
+    else
+        println("s UNSATISFIABLE (no solution)")
+    end
+    g_printStats(t1 - t0)
+    return 0
+end
+
+
+// ====================== 命令: test ======================
+
+// 用一段 CNF 文本测试, 期望 SAT/UNSAT; SAT 时额外校验模型.
+func testCnf(string label, string cnfText, int expectSat) as bool
+    g_reset()
+    parseDimacs(cnfText)
+    g_preprocess()
+    int res = g_solve()
+    bool ok = false
+    if expectSat == 1 then
+        if res == 1 and g_verifyModel() then
+            ok = true
+        end
+    else
+        if res == -1 then
+            ok = true
+        end
+    end
+    if ok then
+        println("PASS  " + label)
+    else
+        println("FAIL  " + label + " (res=" + string(res) + " conflicts=" + string(g_conflicts) + ")")
+    end
+    return ok
+end
+
+// 测试 N 皇后, 期望 SAT/UNSAT.
+func testQueens(string label, int N, int expectSat) as bool
+    g_reset()
+    g_encodeQueens(N)
+    g_preprocess()
+    int res = g_solve()
+    bool ok = false
+    if expectSat == 1 then
+        if res == 1 then
+            ok = true
+        end
+    else
+        if res == -1 then
+            ok = true
+        end
+    end
+    if ok then
+        println("PASS  " + label + "  (conflicts=" + string(g_conflicts) + ")")
+    else
+        println("FAIL  " + label + " (res=" + string(res) + ")")
+    end
+    return ok
+end
+
+// 测试数独, 期望 SAT 且校验通过.
+func testSudoku(string label, string puzzle) as bool
+    g_reset()
+    g_encodeSudoku(puzzle)
+    g_preprocess()
+    int res = g_solve()
+    bool ok = false
+    if res == 1 and g_verifySudoku(puzzle) then
+        ok = true
+    end
+    if ok then
+        println("PASS  " + label + "  (conflicts=" + string(g_conflicts) + ")")
+    else
+        println("FAIL  " + label + " (res=" + string(res) + ")")
+    end
+    return ok
+end
+
+func cmdTest() as int
+    println("=== xsat built-in test suite ===")
+    int passed = 0
+    int failed = 0
+
+    // ---- 基本单元传播 ----
+    // (1 v 2) ^ (~1 v 3): 1=T,3=T 即满足.
+    if testCnf("cnf-sat-basic", "p cnf 3 2\n1 2 0\n-1 3 0\n", 1) then
+        passed += 1
+    else
+        failed += 1
+    end
+    // (1) ^ (~1): 顶层冲突 => UNSAT.
+    if testCnf("cnf-unsat-unit", "p cnf 2 2\n1 0\n-1 0\n", -1) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // ---- 需要 CDCL 学习 ----
+    // (1v2)^(1v~2)^(~1v3)^(~1v~3): 选 1=T 会引发冲突, 学到 ~1 后即满足.
+    if testCnf("cnf-cdcl-learn", "p cnf 3 4\n1 2 0\n1 -2 0\n-1 3 0\n-1 -3 0\n", 1) then
+        passed += 1
+    else
+        failed += 1
+    end
+    // 含重言式与重复文字的子句应被化简后仍正确.
+    if testCnf("cnf-tautology", "p cnf 3 3\n1 1 2 0\n1 -1 3 0\n2 0\n", 1) then
+        passed += 1
+    else
+        failed += 1
+    end
+    // 鸽巢 / 链式传播 UNSAT: (1)(~1 v 2)(~2 v 3)(~3 v 4)(~4).
+    if testCnf("cnf-chain-unsat", "p cnf 4 5\n1 0\n-1 2 0\n-2 3 0\n-3 4 0\n-4 0\n", -1) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // ---- N 皇后 ----
+    if testQueens("queens-1-sat", 1, 1) then
+        passed += 1
+    else
+        failed += 1
+    end
+    if testQueens("queens-2-unsat", 2, -1) then
+        passed += 1
+    else
+        failed += 1
+    end
+    if testQueens("queens-3-unsat", 3, -1) then
+        passed += 1
+    else
+        failed += 1
+    end
+    if testQueens("queens-4-sat", 4, 1) then
+        passed += 1
+    else
+        failed += 1
+    end
+    if testQueens("queens-6-sat", 6, 1) then
+        passed += 1
+    else
+        failed += 1
+    end
+    if testQueens("queens-8-sat", 8, 1) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // ---- 数独 (经典题面) ----
+    string classic = "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
+    if testSudoku("sudoku-classic", classic) then
+        passed += 1
+    else
+        failed += 1
+    end
+    // 空盘 (全 0) 必然可解 (只需任意合法终局).
+    string emptyb = "000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    if testSudoku("sudoku-empty", emptyb) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("----------------------------------------------------------------")
+    println("total: " + string(passed + failed) + "  passed: " + string(passed) + "  failed: " + string(failed))
+    if failed == 0 then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println("SOME TESTS FAILED")
+    return 1
+end
+
+
+// ====================== 用法 / 入口 ======================
+
+func printUsage()
+    println("xsat - CDCL SAT solver (DIMACS CNF, N-Queens, Sudoku)")
+    println("Usage:")
+    println("  xsat solve <file.cnf>      solve a DIMACS CNF instance")
+    println("  xsat queens <N>            encode & solve the N-Queens problem")
+    println("  xsat sudoku <puzzle.txt>   encode & solve a 9x9 sudoku (81 digits, 0=empty)")
+    println("  xsat test                  run the built-in test suite")
+    println("  xsat -h | --help           show this help")
+    println("Output:")
+    println("  s SATISFIABLE / s UNSATISFIABLE  (plus 'v ...' model lines for SAT)")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    try
+        if cmd == "solve" then
+            if arg.length < 3 then
+                println("xsat: 'solve' needs <file.cnf>")
+                return 1
+            end
+            return cmdSolve(string(arg[2]))
+        end
+        if cmd == "queens" then
+            if arg.length < 3 then
+                println("xsat: 'queens' needs <N>")
+                return 1
+            end
+            int N = int(string(arg[2]))
+            return cmdQueens(N)
+        end
+        if cmd == "sudoku" then
+            if arg.length < 3 then
+                println("xsat: 'sudoku' needs <puzzle.txt>")
+                return 1
+            end
+            return cmdSudoku(string(arg[2]))
+        end
+    catch e
+        println("xsat: error: " + e.message)
+        return 1
+    end
+
+    println("xsat: unknown command: " + cmd)
+    printUsage()
+    return 1
+end

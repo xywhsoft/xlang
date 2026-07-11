@@ -130,7 +130,7 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static void* xl6_future_await_handle_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("static void* xl6_future_await_handle_release(xfuture* pFuture, const xrt_type_desc* valueType, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    void* result = 0;\n", out);
     xl6OutputPuts("    void* value;\n", out);
@@ -138,8 +138,14 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("    value = xl6_future_await_value(pFuture, file, line, column, 1, sizeof(result));\n", out);
     xl6OutputPuts("    valueOwned = xFutureValueIsOwned(pFuture);\n", out);
     xl6OutputPuts("    if ( value != 0 && !xl6_error_has() ) {\n", out);
-    xl6OutputPuts("        result = *(void**)value;\n", out);
-    xl6OutputPuts("        if ( valueOwned ) { *(void**)value = 0; }\n", out);
+    xl6OutputPuts("        if ( valueOwned ) {\n", out);
+    xl6OutputPuts("            result = *(void**)value;\n", out);
+    xl6OutputPuts("            *(void**)value = 0;\n", out);
+    xl6OutputPuts("        } else if ( valueType != 0 && valueType->Ops != 0 && valueType->Ops->copy != 0 ) {\n", out);
+    xl6OutputPuts("            valueType->Ops->copy(&result, value);\n", out);
+    xl6OutputPuts("        } else {\n", out);
+    xl6OutputPuts("            xl6_error_raise(\"AsyncError\", \"borrowed async handle is not copyable\", file, line, column);\n", out);
+    xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( xl6_error_has() && value != 0 ) {\n", out);
     xl6OutputPuts("        xrtFree(value);\n", out);
@@ -228,7 +234,6 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
     xl6OutputPuts("static xvalue xl6_future_await_xvalue_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xvalue result = 0;\n", out);
@@ -244,7 +249,7 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n", out);
-    xl6OutputPuts("#endif\n\n", out);
+    xl6OutputPuts("\n", out);
 
     xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
     xl6OutputPuts("static XL6_Function xl6_future_await_function_release(xfuture* pFuture, const char* file, int line, int column)\n", out);

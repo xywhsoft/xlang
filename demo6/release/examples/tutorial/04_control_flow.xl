@@ -4,8 +4,14 @@
 // 3. 展示多层 break/continue。
 
 func sign(int value) as int
-    if value > 0 then return 1
-    if value < 0 then return -1 else return 0
+    if value > 0 then
+        return 1
+    end
+    if value < 0 then
+        return -1
+    else
+        return 0
+    end
 end
 
 func main(...) as int

@@ -3,6 +3,11 @@ async func greetOwned(string name) as string
     return "hello " + name
 end
 
+async func greetDynamic(var name) as string
+    time.sleep(10)
+    return "hello " + name
+end
+
 string temporary = await greetOwned("temporary-" + string(7))
 assert temporary == "hello temporary-7"
 
@@ -12,3 +17,7 @@ string second = await named
 
 assert first == "hello named-9"
 assert second == "hello named-9"
+
+var dynamicName = "dynamic"
+string dynamicResult = await greetDynamic(dynamicName)
+assert dynamicResult == "hello dynamic"

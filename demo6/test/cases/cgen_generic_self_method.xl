@@ -1,0 +1,18 @@
+class Ring<T>
+    T value
+
+    create(T initial)
+        self.reset(initial)
+    end
+
+    func reset(T next)
+        self.value = next
+    end
+
+    func read() as T
+        return self.value
+    end
+end
+
+Ring<int> ring = Ring::<int>(42)
+assert ring.read() == 42

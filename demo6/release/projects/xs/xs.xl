@@ -1,6 +1,5 @@
 import tcc
 import xlang
-import random
 
 // xs：基于 xlang demo6 标准库的 xserver 雏形。
 // 目标是验证配置驱动、HTTP/TCP/UDP/custom 服务，以及 C/xlang handler 调用链路。

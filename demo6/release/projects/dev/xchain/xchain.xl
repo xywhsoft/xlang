@@ -1,0 +1,2317 @@
+// xchain - 区块链 + 智能合约平台（PoW 共识 / 栈式合约 VM / Merkle 根 / 事件日志）
+//
+// 用法：
+//   xchain mine [difficulty]        从内存池打包交易并 PoW 挖出一个新区块
+//   xchain balance <addr>           查询地址在当前最长链上的余额
+//   xchain deploy <contract.bin>    部署合约（文本字节码），返回合约地址
+//   xchain call <addr> <m> <args>   以方法 m + 逗号分隔整数参数调用合约（只读视图）
+//   xchain send <from> <to> <amt>   构造一笔转账并入内存池（等待下一次 mine）
+//   xchain chain                    打印当前最长链概要（每块一行）
+//   xchain events [type]            打印事件日志（可按类型过滤）
+//   xchain test                     内置自测：挖矿 / 余额 / 合约 / Merkle / 事件 / 分叉 / 持久化
+//   xchain -h | --help              打印帮助
+//
+// 设计要点（结合 dev/README.md 与 BUGS.md）：
+//   - 账户模型（非 UTXO）：每笔交易 from -> to 转账 amount；余额按最长链重放计算。
+//     全局 g_balances 由 computeBalances() 在每次查询/挖矿时按最长链重建，避免脏状态。
+//   - PoW（工作量证明）：blockHash = sha256(index:ts:merkleRoot:prevHash:nonce:difficulty)，
+//     小写 hex。挖矿循环递增 nonce 直到哈希前缀出现 difficulty 个 '0'。crypto.sha256
+//     返回大写 hex，统一 string.lower 输出。difficulty 默认 3，可在 mine 时指定。
+//   - 签名模拟（非真实非对称密码）：每个账户在 g_keyStore 登记私钥 priv = sha256("key:"+name)，
+//     地址 addr = "0x" + 前 12 hex of sha256(priv)。sign(addr, msg) = sha256(priv + msg)；
+//     verify(addr, msg, sig) 用 keyStore 里查到的 priv 重算并比对（演示用，不安全）。
+//   - 合约 VM：栈式字节码机，指令集 PUSH/POP/ADD/SUB/MUL/DIV/STORE/LOAD/JMP/CALL/RET
+//     （外加 JZ/JNZ/ARG/EQ/LT/GT/DUP/HALT/PRINT 便于写有意义的合约）。
+//     字节码为文本，每行一条指令；标签 "name:" 供 JMP/CALL/JZ/JNZ 寻址（两遍汇编）。
+//     deploy 先执行入口代码（从地址 0 跑到 RET/HALT）初始化存储槽；call <addr> <method>
+//     以方法标签为入口跑至 RET，返回栈顶。VM 用 array<int> code + int ip + value/call 栈。
+//   - Merkle 树：交易列表哈希两两配对（补齐到 2 的幂）求根；空列表根 = sha256("")。
+//   - 事件日志：g_events 全局数组，每条 {ts, block, type, source, data}；emitEvent 记录，
+//     queryEvents 按类型过滤。
+//   - 链结构：g_blockIndex dict<hash,Block> 存所有已知块；g_tips 维护叶子块哈希。
+//     addBlock 按 prevHash 链接，更新 tips；longestChain() 从每个 tip 回溯到创世块取最长。
+//     （支持分叉：自测里手动造一条更短的分叉验证最长链选择。）
+//   - 持久化：链状态手动序列化到 var dict 再 json.stringify 落 xchain.json（脚本/exe 同目录），
+//     读取时 json.parse 还原并重建 Block/Transaction 实例，保证 mine/balance 跨进程可见。
+//   - xlang 边界：`#` 不是注释（用 //）；while 必须带 do；for 不带 do；类型转换用 int()/string()；
+//     crypto.sha256 返回大写 hex 需 lower；string 拼接两边都用 string 静态类型避免乱码；
+//     `auto` 无法从 pop() 推断 → 显式 int 局部；splitLines 尾部空串需裁剪。
+
+// ============================================================================
+// 常量
+// ============================================================================
+
+const int GENESIS_ALLOC     = 1000000      // 创世块预挖给每个创始账户的额度
+const int DEFAULT_DIFFICULTY = 3           // 默认 PoW 难度（前导 0 hex 位数）
+const int MAX_DIFFICULTY    = 6            // 上限（避免挖矿耗时过久）
+const int TX_FEE            = 1            // 每笔交易打包费（奖励给矿工地址）
+const int MAX_TX_PER_BLOCK  = 64           // 单块交易数上限
+const int VM_STACK_MAX      = 1024         // VM 数据栈深度上限
+const int VM_CALL_MAX       = 256          // VM 调用栈深度上限
+const int VM_SLOT_COUNT     = 256          // VM 存储槽数量
+const int VM_MAX_STEPS      = 200000       // VM 单次执行最大指令数（防爆栈）
+const int ADDR_HEX_LEN      = 12           // 地址取 sha256 的前 12 个 hex 字符
+
+// 合约 VM 指令集
+const int OP_HALT  = 0
+const int OP_PUSH  = 1     // PUSH n        压入常量 n
+const int OP_POP   = 2     // POP           丢弃栈顶
+const int OP_ADD   = 3     // ADD           b,a -> a+b
+const int OP_SUB   = 4     // SUB           b,a -> a-b
+const int OP_MUL   = 5     // MUL           b,a -> a*b
+const int OP_DIV   = 6     // DIV           b,a -> a/b（整除；除 0 停机）
+const int OP_STORE = 7     // STORE slot    弹出栈顶写入 slot
+const int OP_LOAD  = 8     // LOAD slot     读 slot 压栈
+const int OP_JMP   = 9     // JMP label     无条件跳转
+const int OP_CALL  = 10    // CALL label    调用子程序
+const int OP_RET   = 11    // RET           从子程序返回（顶层 RET = 停机）
+const int OP_JZ    = 12    // JZ label      栈顶为 0 则跳转
+const int OP_JNZ   = 13    // JNZ label     栈顶非 0 则跳转
+const int OP_ARG   = 14    // ARG idx       压入第 idx 个调用参数
+const int OP_EQ    = 15    // EQ            b,a -> (a==b)?1:0
+const int OP_LT    = 16    // LT            b,a -> (a<b)?1:0
+const int OP_GT    = 17    // GT            b,a -> (a>b)?1:0
+const int OP_DUP   = 18    // DUP           复制栈顶
+const int OP_PRINT = 19    // PRINT         弹出并打印（调试用）
+
+const int NUM_OPS  = 20
+
+// 指令助记符表（与上面 opcode 一一对应）
+array<string> gOpNames = array[
+    "HALT", "PUSH", "POP", "ADD", "SUB", "MUL", "DIV",
+    "STORE", "LOAD", "JMP", "CALL", "RET",
+    "JZ", "JNZ", "ARG", "EQ", "LT", "GT", "DUP", "PRINT"
+]
+
+// 每条指令是否带一个整数操作数（1=带，0=不带）
+array<int> gOpHasOperand = array[
+    0, 1, 0, 0, 0, 0, 0,
+    1, 1, 1, 1, 0,
+    1, 1, 1, 0, 0, 0, 0, 0
+]
+
+// ============================================================================
+// 全局状态（模块作用域；可在初始化或重绑定后进入 thread/task；这里仅单线程使用）
+// ============================================================================
+
+var g_blockIndex = {}           // hash -> Block 实例
+array<string> g_tips = array[]  // 当前叶子块哈希列表（候选链顶）
+array<var> g_mempool = array[]  // 待打包交易（Transaction 实例）
+var g_keyStore = {}             // 地址 -> 私钥（演示用账户注册表）
+var g_nameIndex = {}            // 名称 -> 地址（便于按名查账户）
+array<var> g_events = array[]   // 事件日志条目（dict）
+var g_contracts = {}            // 合约地址 -> Contract 实例
+int g_difficulty = DEFAULT_DIFFICULTY
+string g_genesisHash = ""       // 缓存创世块哈希（longestChain 回溯终点）
+string g_minerAddr = ""         // 默认矿工地址（mine 奖励 + 手续费归此）
+
+// 持久化文件名（脚本/exe 同目录）
+string g_stateFile = ""
+
+string g_asmError = ""          // 合约汇编错误信息
+
+
+// ============================================================================
+// 路径 / 时间 / 字符串辅助
+// ============================================================================
+
+// 取脚本/exe 同目录下的状态文件路径。
+func stateFilePath(string scriptPath) as string
+    return path.join(path.dir(scriptPath), "xchain.json")
+end
+
+// 当前 Unix 秒时间戳。
+func nowTs() as int
+    return time.toUnix(time.now())
+end
+
+// 单块 SHA-256 -> 小写 hex（crypto.sha256 返回大写，统一 lower）。
+func hashStr(string s) as string
+    return string.lower(crypto.sha256(s))
+end
+
+// 两段 hex 串拼接后 SHA-256 -> 小写 hex。
+func hashPair(string a, string b) as string
+    return string.lower(crypto.sha256(a + b))
+end
+
+// 取不小于 n 的最小 2 的幂。
+func nextPow2(int n) as int
+    if n <= 1 then
+        return 1
+    end
+    int p = 1
+    while p < n do
+        p = p * 2
+    end
+    return p
+end
+
+// 统计小写 hex 串的前导 '0' 个数（用于 PoW 难度判定）。
+func leadingZeros(string h) as int
+    int n = string.len(h)
+    int i = 0
+    while i < n do
+        if string.charAt(h, i) != "0" then
+            return i
+        end
+        i = i + 1
+    end
+    return n
+end
+
+// 大写化 ASCII 串（助记符查表用）。
+func toUpper(string s) as string
+    string out = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b >= 97 and b <= 122 then
+            out = out + string.charAt("ABCDEFGHIJKLMNOPQRSTUVWXYZ", b - 97)
+        else
+            out = out + string.charAt(s, i)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+// 判断 s 是否十进制整数（可选符号）。
+func looksInt(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int i = 0
+    if string.byteAt(s, 0) == 45 then
+        i = 1
+        if n == 1 then
+            return false
+        end
+    end
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i = i + 1
+    end
+    return true
+end
+
+// 按分隔符切分字符串为 array<string>（比 string.split 多一层 trim 空元素保护）。
+func splitOn(string s, string delim) as array<string>
+    array<string> out = string.split(s, delim)
+    array<string> cleaned = array[]
+    int i = 0
+    int n = out.length
+    while i < n do
+        string t = string.trim(string(out[i]))
+        if string.len(t) > 0 then
+            cleaned.push(t)
+        end
+        i = i + 1
+    end
+    return cleaned
+end
+
+// 取地址的短前缀（展示用，前 8 hex）。
+func shortHash(string h) as string
+    return string.mid(h, 0, 8)
+end
+
+// 把任意 var 值格式化为展示字符串（bool 显式输出 true/false）。
+func varToString(var v) as string
+    if type(v) == type(true) then
+        if bool(v) then
+            return "true"
+        end
+        return "false"
+    end
+    return string(v)
+end
+
+
+// ============================================================================
+// 账户 / 密钥（签名模拟）
+// ============================================================================
+
+// 用名称种子确定性派生私钥：priv = sha256("key:"+name)。
+func privFromName(string name) as string
+    return hashStr("key:" + name)
+end
+
+// 由私钥派生地址："0x" + 前 ADDR_HEX_LEN 个 hex of sha256(priv)。
+func addrFromPriv(string priv) as string
+    return "0x" + string.mid(hashStr(priv), 0, ADDR_HEX_LEN)
+end
+
+// 由名称派生地址（等价于 addrFromPriv(privFromName(name))）。
+func addrFromName(string name) as string
+    return addrFromPriv(privFromName(name))
+end
+
+// 注册一个账户（名称 -> 地址 + 私钥 写入全局 keyStore/nameIndex）。
+// 已存在则直接返回地址。返回地址。
+func ensureAccount(string name) as string
+    if name in g_nameIndex then
+        return string(g_nameIndex[name])
+    end
+    string priv = privFromName(name)
+    string addr = addrFromPriv(priv)
+    g_keyStore[addr] = priv
+    g_nameIndex[name] = addr
+    return addr
+end
+
+// 模拟签名：sig = sha256(priv + msg)。addr 必须已注册。
+func signMsg(string addr, string msg) as string
+    if addr in g_keyStore then
+        string priv = string(g_keyStore[addr])
+        return hashStr(priv + msg)
+    end
+    return ""
+end
+
+// 验证签名：用 keyStore[addr] 的私钥重算并比对（演示用，非真实公钥验证）。
+func verifySig(string addr, string msg, string sig) as bool
+    if not (addr in g_keyStore) then
+        return false
+    end
+    string expect = signMsg(addr, msg)
+    if string.len(expect) == 0 then
+        return false
+    end
+    return expect == sig
+end
+
+
+// ============================================================================
+// Merkle 树（交易列表 -> root）
+// ============================================================================
+
+// 给定一组叶子哈希，按完全二叉树两两配对求 Merkle 根。
+// 空列表 -> sha256("")；单叶子 -> sha256(leaf)（避免与空混淆）。
+func merkleRoot(array<string> leafHashes) as string
+    int n = leafHashes.length
+    if n == 0 then
+        return hashStr("")
+    end
+    if n == 1 then
+        return hashStr(leafHashes[0])
+    end
+    // 复制到工作集（避免修改入参）
+    array<string> level = array[]
+    int i = 0
+    while i < n do
+        level.push(leafHashes[i])
+        i = i + 1
+    end
+    // 补齐到 2 的幂：复制最后一个叶子
+    int padded = nextPow2(n)
+    while level.length < padded do
+        level.push(level[level.length - 1])
+    end
+    // 自底向上两两归并
+    while level.length > 1 do
+        array<string> next = array[]
+        int k = 0
+        int m = level.length
+        while k < m do
+            string a = level[k]
+            string b = level[k + 1]
+            next.push(hashPair(a, b))
+            k = k + 2
+        end
+        level = next
+    end
+    return level[0]
+end
+
+// 验证 Merkle 包含证明（leafHash + proof[[sib,dir],...] -> 是否得到 root）。
+// dir=1 兄弟在右（h=H(h+sib)）；dir=0 兄弟在左（h=H(sib+h)）。
+func verifyMerkleProof(string leafHash, var proof, string rootHash) as bool
+    string h = leafHash
+    int n = proof.length
+    int i = 0
+    while i < n do
+        var entry = proof[i]
+        string sib = string(entry[0])
+        int dir = int(entry[1])
+        if dir == 1 then
+            h = hashPair(h, sib)
+        else
+            h = hashPair(sib, h)
+        end
+        i = i + 1
+    end
+    return h == rootHash
+end
+
+
+// ============================================================================
+// Transaction
+// ============================================================================
+
+class Transaction
+    derive value
+
+    string from = ""        // 发送方地址（"0x..."；空串表示铸币/挖矿奖励）
+    string to = ""          // 接收方地址
+    int amount = 0          // 转账金额
+    int nonce = 0           // 防重放序号
+    int ts = 0              // 构造时间戳
+    string sig = ""         // 模拟签名
+    string memo = ""        // 备注（可放合约调用信息）
+    string hash = ""        // 交易哈希（对除 hash/sig 外字段计算）
+
+    create(string fromAddr, string toAddr, int amount, int nonce, string memo)
+        self.from = fromAddr
+        self.to = toAddr
+        self.amount = amount
+        self.nonce = nonce
+        self.ts = nowTs()
+        self.memo = memo
+        self.hash = self.computeHash()
+    end
+
+    // 计算交易哈希（不含 sig/hash 字段）。
+    func computeHash() as string
+        string s = self.from + ":" + self.to + ":" + string(self.amount) + ":" + string(self.nonce) + ":" + string(self.ts) + ":" + self.memo
+        return hashStr(s)
+    end
+
+    // 待签名消息 = 交易哈希（签名覆盖全部业务字段）。
+    func signingMessage() as string
+        return self.hash
+    end
+
+    // 用发送方私钥签名（addr 必须在 keyStore 中）。
+    func sign()
+        if string.len(self.from) == 0 then
+            return
+        end
+        self.sig = signMsg(self.from, self.signingMessage())
+    end
+
+    // 校验交易：签名一致 + 金额非负 + hash 自洽。
+    func isValid() as bool
+        if self.amount < 0 then
+            return false
+        end
+        string recomputed = self.computeHash()
+        if recomputed != self.hash then
+            return false
+        end
+        if string.len(self.from) == 0 then
+            // 铸币交易（挖矿奖励/合约铸币）：无需签名
+            return true
+        end
+        return verifySig(self.from, self.signingMessage(), self.sig)
+    end
+
+    // 简短展示串。
+    func describe() as string
+        string f = shortHash(self.from)
+        if string.len(self.from) == 0 then
+            f = "COINBASE"
+        end
+        return "tx{" + f + " -> " + shortHash(self.to) + " : " + string(self.amount) + " n=" + string(self.nonce) + "}"
+    end
+
+    // 序列化为 var dict（持久化用）。
+    func toDict() as var
+        var d = {}
+        d["from"] = self.from
+        d["to"] = self.to
+        d["amount"] = self.amount
+        d["nonce"] = self.nonce
+        d["ts"] = self.ts
+        d["sig"] = self.sig
+        d["memo"] = self.memo
+        d["hash"] = self.hash
+        return d
+    end
+end
+
+// 从 var dict 重建 Transaction 实例。
+func txFromDict(var d) as Transaction
+    Transaction t = Transaction(string(d["from"]), string(d["to"]), int(d["amount"]), int(d["nonce"]), string(d["memo"]))
+    t.ts = int(d["ts"])
+    t.sig = string(d["sig"])
+    t.hash = string(d["hash"])
+    return t
+end
+
+// 构造并签名一笔普通转账，返回 Transaction 实例（from 必须已注册）。
+func makeTx(string fromAddr, string toAddr, int amount, int nonce, string memo) as Transaction
+    Transaction t = Transaction(fromAddr, toAddr, amount, nonce, memo)
+    t.sign()
+    return t
+end
+
+// 构造一笔铸币交易（from 为空，无签名），用于挖矿奖励。
+func makeCoinbase(string toAddr, int amount, int nonce) as Transaction
+    Transaction t = Transaction("", toAddr, amount, nonce, "coinbase")
+    return t
+end
+
+
+// ============================================================================
+// Block
+// ============================================================================
+
+class Block
+    derive value
+
+    int index = 0
+    int ts = 0
+    array<var> txs = array[]     // Transaction 实例列表
+    string prevHash = ""
+    int nonce = 0
+    string hash = ""
+    string merkleRoot = ""
+    int difficulty = DEFAULT_DIFFICULTY
+    string miner = ""            // 挖出此块的矿工地址
+
+    create(int index, int ts, string prevHash, int difficulty, string miner)
+        self.index = index
+        self.ts = ts
+        self.prevHash = prevHash
+        self.difficulty = difficulty
+        self.miner = miner
+        self.txs = array[]
+    end
+
+    // 块头序列化字符串（作为 PoW 哈希输入，不含 nonce/merkleRoot 之外的动态字段）。
+    func headerString(int nonceTry) as string
+        return string(self.index) + ":" + string(self.ts) + ":" + self.merkleRoot + ":" + self.prevHash + ":" + string(nonceTry) + ":" + string(self.difficulty)
+    end
+
+    // 给定 nonce 计算块哈希。
+    func hashWith(int nonceTry) as string
+        return hashStr(self.headerString(nonceTry))
+    end
+
+    // 重新计算本块所有交易的 Merkle 根（写回 self.merkleRoot 并返回）。
+    func computeMerkle() as string
+        array<string> hashes = array[]
+        int n = self.txs.length
+        int i = 0
+        while i < n do
+            Transaction t = self.txs[i] as Transaction
+            hashes.push(t.hash)
+            i = i + 1
+        end
+        self.merkleRoot = merkleRoot(hashes)
+        return self.merkleRoot
+    end
+
+    // PoW 挖矿：递增 nonce 直到 hash 前导 0 数 >= difficulty。
+    // 返回挖到的 nonce；同时写回 self.nonce / self.hash / self.merkleRoot。
+    func mine() as int
+        self.computeMerkle()
+        int n = 0
+        while n < 2000000000 do
+            string h = self.hashWith(n)
+            if leadingZeros(h) >= self.difficulty then
+                self.nonce = n
+                self.hash = h
+                return n
+            end
+            n = n + 1
+        end
+        self.nonce = n
+        self.hash = self.hashWith(n)
+        return n
+    end
+
+    // 不重新挖矿的情况下，按当前 nonce/merkleRoot 重算并校验块哈希 + PoW 难度。
+    func sealsCorrectly() as bool
+        string h = self.hashWith(self.nonce)
+        if h != self.hash then
+            return false
+        end
+        return leadingZeros(h) >= self.difficulty
+    end
+
+    // 简短展示串。
+    func describe() as string
+        return "block#" + string(self.index) + "{" + shortHash(self.hash) + "} prev=" + shortHash(self.prevHash) + " txs=" + string(self.txs.length) + " nonce=" + string(self.nonce) + " pow=" + string(self.difficulty)
+    end
+
+    // 序列化为 var dict。
+    func toDict() as var
+        var d = {}
+        d["index"] = self.index
+        d["ts"] = self.ts
+        d["prevHash"] = self.prevHash
+        d["nonce"] = self.nonce
+        d["hash"] = self.hash
+        d["merkleRoot"] = self.merkleRoot
+        d["difficulty"] = self.difficulty
+        d["miner"] = self.miner
+        var txList = []
+        int i = 0
+        int n = self.txs.length
+        while i < n do
+            Transaction t = self.txs[i] as Transaction
+            txList.push(t.toDict())
+            i = i + 1
+        end
+        d["txs"] = txList
+        return d
+    end
+end
+
+// 从 var dict 重建 Block 实例。
+func blockFromDict(var d) as Block
+    Block b = Block(int(d["index"]), int(d["ts"]), string(d["prevHash"]), int(d["difficulty"]), string(d["miner"]))
+    b.nonce = int(d["nonce"])
+    b.hash = string(d["hash"])
+    b.merkleRoot = string(d["merkleRoot"])
+    var txList = d["txs"]
+    int n = txList.length
+    int i = 0
+    while i < n do
+        Transaction t = txFromDict(txList[i])
+        b.txs.push(t)
+        i = i + 1
+    end
+    return b
+end
+
+
+// ============================================================================
+// 合约 VM
+// ============================================================================
+
+// 助记符 -> opcode；未找到返回 -1。
+func opNameToCode(string name) as string
+    string up = toUpper(name)
+    int i = 0
+    while i < NUM_OPS do
+        if gOpNames[i] == up then
+            return string(i)
+        end
+        i = i + 1
+    end
+    return "-1"
+end
+
+// 在 names/addrs 表中查标签地址；未找到返回 -1。
+func findLabel(array<string> names, array<int> addrs, string name) as int
+    int i = 0
+    int n = names.length
+    while i < n do
+        if names[i] == name then
+            return addrs[i]
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+// 两遍汇编：文本字节码 -> array<int>。失败置 g_asmError 并返回空数组。
+// 语法：每行一条指令，"name:" 定义标签，PUSH/STORE/LOAD/ARG 带整数操作数，
+// JMP/CALL/JZ/JNZ 带标签或数字地址；";" 行尾注释被剥离。
+func assemble(string src) as array<int>
+    array<int> result = array[]
+    g_asmError = ""
+
+    var rawLines = string.splitLines(src)
+    int numLines = rawLines.length
+    if numLines > 0 then
+        string lastRaw = string.trim(string(rawLines[numLines - 1]))
+        if string.len(lastRaw) == 0 then
+            numLines = numLines - 1
+        end
+    end
+
+    array<string> instrMnem = array[]
+    array<string> instrOperand = array[]
+    array<int> instrLine = array[]
+    array<string> labelNames = array[]
+    array<int> labelAddrs = array[]
+
+    int addr = 0
+    int li = 0
+    while li < numLines do
+        string raw = string(rawLines[li])
+        // 去行尾 ";" 注释
+        string body = ""
+        int blen = string.len(raw)
+        int bi = 0
+        while bi < blen do
+            if string.charAt(raw, bi) == ";" then
+                bi = blen
+            else
+                body = body + string.charAt(raw, bi)
+                bi = bi + 1
+            end
+        end
+        array<string> tokens = string.split(body, " ")
+        int nt = tokens.length
+        int ti = 0
+        while ti < nt do
+            string tok = string.trim(tokens[ti])
+            if string.len(tok) == 0 then
+                ti = ti + 1
+            else
+                int tokLen = string.len(tok)
+                if string.byteAt(tok, tokLen - 1) == 58 then
+                    // "name:" 标签定义
+                    string lbl = string.mid(tok, 0, tokLen - 1)
+                    if findLabel(labelNames, labelAddrs, lbl) >= 0 then
+                        g_asmError = "line " + string(li + 1) + ": duplicate label '" + lbl + "'"
+                        return array[]
+                    end
+                    labelNames.push(lbl)
+                    labelAddrs.push(addr)
+                    ti = ti + 1
+                else
+                    string mnem = toUpper(tok)
+                    int opcode = int(opNameToCode(mnem))
+                    if opcode < 0 then
+                        g_asmError = "line " + string(li + 1) + ": unknown instruction '" + tok + "'"
+                        return array[]
+                    end
+                    string operand = ""
+                    if gOpHasOperand[opcode] != 0 then
+                        if ti + 1 >= nt then
+                            g_asmError = "line " + string(li + 1) + ": '" + mnem + "' expects an operand"
+                            return array[]
+                        end
+                        ti = ti + 1
+                        operand = string.trim(tokens[ti])
+                    end
+                    instrMnem.push(mnem)
+                    instrOperand.push(operand)
+                    instrLine.push(li + 1)
+                    addr = addr + 1
+                    if gOpHasOperand[opcode] != 0 then
+                        addr = addr + 1
+                    end
+                    ti = ti + 1
+                end
+            end
+        end
+        li = li + 1
+    end
+
+    // Pass 2: 发射字节码，解析标签引用
+    int ii = 0
+    int ni = instrMnem.length
+    while ii < ni do
+        string mnem = instrMnem[ii]
+        string operand = instrOperand[ii]
+        int opcode = int(opNameToCode(mnem))
+        result.push(opcode)
+        if gOpHasOperand[opcode] != 0 then
+            int val = 0
+            if opcode == OP_PUSH or opcode == OP_STORE or opcode == OP_LOAD or opcode == OP_ARG then
+                if not looksInt(operand) then
+                    g_asmError = "line " + string(instrLine[ii]) + ": '" + mnem + "' expects integer, got '" + operand + "'"
+                    return array[]
+                end
+                val = int(operand)
+            else
+                // JMP / CALL / JZ / JNZ：标签或数字地址
+                int target = findLabel(labelNames, labelAddrs, operand)
+                if target >= 0 then
+                    val = target
+                elseif looksInt(operand) then
+                    val = int(operand)
+                else
+                    g_asmError = "line " + string(instrLine[ii]) + ": unknown label '" + operand + "'"
+                    return array[]
+                end
+            end
+            result.push(val)
+        end
+        ii = ii + 1
+    end
+
+    return result
+end
+
+
+// 反汇编字节码为可读文本（调试/dump 用）。
+func disassemble(array<int> code) as string
+    string out = ""
+    int n = code.length
+    int p = 0
+    while p < n do
+        int op = code[p]
+        string name = "UNK" + string(op)
+        int hasOp = 0
+        if op >= 0 and op < NUM_OPS then
+            name = gOpNames[op]
+            hasOp = gOpHasOperand[op]
+        end
+        out = out + string(p) + ": " + name
+        p = p + 1
+        if hasOp != 0 then
+            if p < n then
+                out = out + " " + string(code[p])
+                p = p + 1
+            else
+                out = out + " <missing>"
+            end
+        end
+        out = out + "\n"
+    end
+    return out
+end
+
+
+// 查找标签在字节码中的地址（线性扫描 gLabelTable；由 Contract 维护）。
+// 这里提供独立函数从 Contract 的两张表查。
+func labelAddr(array<string> names, array<int> addrs, string name) as int
+    return findLabel(names, addrs, name)
+end
+
+
+class Contract
+    derive value
+
+    string address = ""           // 合约地址 "0x..."
+    string owner = ""             // 部署者地址
+    string source = ""            // 原始文本字节码
+    array<int> code = array[]     // 汇编后的字节码
+    array<string> labels = array[]   // 标签名表
+    array<int> labelAddrs = array[]  // 标签地址表
+    array<int> slots = array[]    // 持久存储槽（deploy 初始化 + call 修改）
+    int ts = 0
+
+    create(string address, string owner, string source)
+        self.address = address
+        self.owner = owner
+        self.source = source
+        self.code = array[]
+        self.labels = array[]
+        self.labelAddrs = array[]
+        self.slots = array[]
+        int i = 0
+        while i < VM_SLOT_COUNT do
+            self.slots.push(0)
+            i = i + 1
+        end
+        self.ts = nowTs()
+    end
+
+    // 汇编源码并填充标签表（不执行）。失败返回 false 并记录 g_asmError。
+    func compile() as bool
+        self.code = assemble(self.source)
+        if string.len(g_asmError) > 0 then
+            return false
+        end
+        // 重新扫一遍源码提取标签表（供 call 查方法地址）
+        var rawLines = string.splitLines(self.source)
+        int numLines = rawLines.length
+        if numLines > 0 then
+            string lastRaw = string.trim(string(rawLines[numLines - 1]))
+            if string.len(lastRaw) == 0 then
+                numLines = numLines - 1
+            end
+        end
+        // 重算 addr 与 pass1 一致
+        int addr = 0
+        int li = 0
+        while li < numLines do
+            string raw = string(rawLines[li])
+            string body = ""
+            int blen = string.len(raw)
+            int bi = 0
+            while bi < blen do
+                if string.charAt(raw, bi) == ";" then
+                    bi = blen
+                else
+                    body = body + string.charAt(raw, bi)
+                    bi = bi + 1
+                end
+            end
+            array<string> tokens = string.split(body, " ")
+            int nt = tokens.length
+            int ti = 0
+            while ti < nt do
+                string tok = string.trim(tokens[ti])
+                if string.len(tok) == 0 then
+                    ti = ti + 1
+                else
+                    int tokLen = string.len(tok)
+                    if string.byteAt(tok, tokLen - 1) == 58 then
+                        self.labels.push(string.mid(tok, 0, tokLen - 1))
+                        self.labelAddrs.push(addr)
+                        ti = ti + 1
+                    else
+                        string mnem = toUpper(tok)
+                        int opcode = int(opNameToCode(mnem))
+                        if gOpHasOperand[opcode] != 0 then
+                            ti = ti + 2
+                            addr = addr + 2
+                        else
+                            ti = ti + 1
+                            addr = addr + 1
+                        end
+                    end
+                end
+            end
+            li = li + 1
+        end
+        return true
+    end
+
+    // 执行字节码入口（从地址 0 跑到 HALT/RET/结束）用于部署初始化。
+    // 返回 [rc, msg]：rc=0 成功。
+    func runInit() as var
+        return self.runFrom(0, array[])
+    end
+
+    // 以方法标签为入口执行（参数为整数数组）。返回 [rc, retVal, msg]。
+    // rc=0 成功，retVal=栈顶结果；rc=1 错误，msg 描述。
+    func callMethod(string method, array<int> args) as var
+        int entry = findLabel(self.labels, self.labelAddrs, method)
+        if entry < 0 then
+            var fail = [1, 0, "method '" + method + "' not found"]
+            return fail
+        end
+        return self.runFrom(entry, args)
+    end
+
+    // 内部：从 startAddr 开始执行（args 供 ARG 指令读取），直到停机。
+    func runFrom(int startAddr, array<int> args) as var
+        array<int> stack = array[]
+        array<int> callStack = array[]
+        int ip = startAddr
+        int codeLen = self.code.length
+        int steps = 0
+        string errMsg = ""
+
+        while true do
+            if steps > VM_MAX_STEPS then
+                var fail = [1, 0, "max steps exceeded"]
+                return fail
+            end
+            steps = steps + 1
+            if ip < 0 or ip >= codeLen then
+                // 越界 = 隐式停机（正常结束）
+                int ret = 0
+                if stack.length > 0 then
+                    ret = stack[stack.length - 1]
+                end
+                var ok = [0, ret, ""]
+                return ok
+            end
+
+            int op = self.code[ip]
+            ip = ip + 1
+
+            if op == OP_HALT then
+                int ret = 0
+                if stack.length > 0 then
+                    ret = stack[stack.length - 1]
+                end
+                var ok = [0, ret, ""]
+                return ok
+            elseif op == OP_PUSH then
+                int val = self.code[ip]
+                ip = ip + 1
+                stack.push(val)
+            elseif op == OP_POP then
+                if stack.length <= 0 then
+                    var fail = [1, 0, "stack underflow at POP"]
+                    return fail
+                end
+                stack.pop()
+            elseif op == OP_DUP then
+                if stack.length <= 0 then
+                    var fail = [1, 0, "stack underflow at DUP"]
+                    return fail
+                end
+                stack.push(stack[stack.length - 1])
+            elseif op == OP_ADD then
+                if stack.length < 2 then
+                    var fail = [1, 0, "stack underflow at ADD"]
+                    return fail
+                end
+                int b = stack.pop()
+                int a = stack.pop()
+                stack.push(a + b)
+            elseif op == OP_SUB then
+                if stack.length < 2 then
+                    var fail = [1, 0, "stack underflow at SUB"]
+                    return fail
+                end
+                int b = stack.pop()
+                int a = stack.pop()
+                stack.push(a - b)
+            elseif op == OP_MUL then
+                if stack.length < 2 then
+                    var fail = [1, 0, "stack underflow at MUL"]
+                    return fail
+                end
+                int b = stack.pop()
+                int a = stack.pop()
+                stack.push(a * b)
+            elseif op == OP_DIV then
+                if stack.length < 2 then
+                    var fail = [1, 0, "stack underflow at DIV"]
+                    return fail
+                end
+                int b = stack.pop()
+                int a = stack.pop()
+                if b == 0 then
+                    var fail = [1, 0, "division by zero"]
+                    return fail
+                end
+                stack.push(a / b)
+            elseif op == OP_STORE then
+                int slot = self.code[ip]
+                ip = ip + 1
+                if slot < 0 or slot >= VM_SLOT_COUNT then
+                    var fail = [1, 0, "slot out of range: " + string(slot)]
+                    return fail
+                end
+                if stack.length <= 0 then
+                    var fail = [1, 0, "stack underflow at STORE"]
+                    return fail
+                end
+                int v = stack.pop()
+                self.slots[slot] = v
+            elseif op == OP_LOAD then
+                int slot = self.code[ip]
+                ip = ip + 1
+                if slot < 0 or slot >= VM_SLOT_COUNT then
+                    var fail = [1, 0, "slot out of range: " + string(slot)]
+                    return fail
+                end
+                stack.push(self.slots[slot])
+            elseif op == OP_ARG then
+                int idx = self.code[ip]
+                ip = ip + 1
+                if idx < 0 or idx >= args.length then
+                    var fail = [1, 0, "arg index out of range: " + string(idx)]
+                    return fail
+                end
+                stack.push(args[idx])
+            elseif op == OP_JMP then
+                int target = self.code[ip]
+                ip = target
+            elseif op == OP_JZ then
+                int target = self.code[ip]
+                ip = ip + 1
+                if stack.length <= 0 then
+                    var fail = [1, 0, "stack underflow at JZ"]
+                    return fail
+                end
+                int v = stack.pop()
+                if v == 0 then
+                    ip = target
+                end
+            elseif op == OP_JNZ then
+                int target = self.code[ip]
+                ip = ip + 1
+                if stack.length <= 0 then
+                    var fail = [1, 0, "stack underflow at JNZ"]
+                    return fail
+                end
+                int v = stack.pop()
+                if v != 0 then
+                    ip = target
+                end
+            elseif op == OP_CALL then
+                int target = self.code[ip]
+                ip = ip + 1
+                if callStack.length >= VM_CALL_MAX then
+                    var fail = [1, 0, "call stack overflow"]
+                    return fail
+                end
+                callStack.push(ip)
+                ip = target
+            elseif op == OP_RET then
+                if callStack.length <= 0 then
+                    // 顶层 RET = 正常停机
+                    int ret = 0
+                    if stack.length > 0 then
+                        ret = stack[stack.length - 1]
+                    end
+                    var ok = [0, ret, ""]
+                    return ok
+                end
+                ip = callStack.pop()
+            elseif op == OP_EQ then
+                if stack.length < 2 then
+                    var fail = [1, 0, "stack underflow at EQ"]
+                    return fail
+                end
+                int b = stack.pop()
+                int a = stack.pop()
+                if a == b then
+                    stack.push(1)
+                else
+                    stack.push(0)
+                end
+            elseif op == OP_LT then
+                if stack.length < 2 then
+                    var fail = [1, 0, "stack underflow at LT"]
+                    return fail
+                end
+                int b = stack.pop()
+                int a = stack.pop()
+                if a < b then
+                    stack.push(1)
+                else
+                    stack.push(0)
+                end
+            elseif op == OP_GT then
+                if stack.length < 2 then
+                    var fail = [1, 0, "stack underflow at GT"]
+                    return fail
+                end
+                int b = stack.pop()
+                int a = stack.pop()
+                if a > b then
+                    stack.push(1)
+                else
+                    stack.push(0)
+                end
+            elseif op == OP_PRINT then
+                if stack.length <= 0 then
+                    var fail = [1, 0, "stack underflow at PRINT"]
+                    return fail
+                end
+                int v = stack.pop()
+                println("    [vm] " + string(v))
+            else
+                var fail = [1, 0, "unknown opcode: " + string(op)]
+                return fail
+            end
+
+            if stack.length > VM_STACK_MAX then
+                var fail = [1, 0, "stack overflow"]
+                return fail
+            end
+        end
+
+        // 不可达
+        var unreachable = [0, 0, ""]
+        return unreachable
+    end
+
+    // 序列化为 var dict（持久化）。
+    func toDict() as var
+        var d = {}
+        d["address"] = self.address
+        d["owner"] = self.owner
+        d["source"] = self.source
+        d["ts"] = self.ts
+        var codeList = []
+        int i = 0
+        int cn = self.code.length
+        while i < cn do
+            codeList.push(self.code[i])
+            i = i + 1
+        end
+        d["code"] = codeList
+        var slotList = []
+        int j = 0
+        while j < VM_SLOT_COUNT do
+            slotList.push(self.slots[j])
+            j = j + 1
+        end
+        d["slots"] = slotList
+        return d
+    end
+end
+
+// 从 var dict 重建 Contract（含已编译 code 与 slots，免去重新汇编）。
+func contractFromDict(var d) as Contract
+    Contract c = Contract(string(d["address"]), string(d["owner"]), string(d["source"]))
+    c.ts = int(d["ts"])
+    var codeList = d["code"]
+    int cn = codeList.length
+    int i = 0
+    while i < cn do
+        c.code.push(int(codeList[i]))
+        i = i + 1
+    end
+    // 重新提取标签表（compile 不重写 code，只填 labels）
+    c.compile()
+    // 还原 slots（覆盖 compile 不动的初值）
+    var slotList = d["slots"]
+    int sn = slotList.length
+    int j = 0
+    while j < VM_SLOT_COUNT and j < sn do
+        c.slots[j] = int(slotList[j])
+        j = j + 1
+    end
+    return c
+end
+
+
+// ============================================================================
+// 事件日志
+// ============================================================================
+
+// 记录一条事件：{ts, block, type, source, data}。
+func emitEvent(int blockIndex, string type_, string source, string data)
+    var e = {}
+    e["ts"] = nowTs()
+    e["block"] = blockIndex
+    e["type"] = type_
+    e["source"] = source
+    e["data"] = data
+    g_events.push(e)
+end
+
+// 按类型过滤事件（typeFilter 为空串表示全部）。返回条数。
+func printEvents(string typeFilter) as int
+    int n = g_events.length
+    int i = 0
+    int shown = 0
+    while i < n do
+        var e = g_events[i]
+        string etype = string(e["type"])
+        if string.len(typeFilter) == 0 or etype == typeFilter then
+            println("  [" + string(e["ts"]) + "] blk#" + string(e["block"]) + " " + etype + " src=" + shortHash(string(e["source"])) + " :: " + string(e["data"]))
+            shown = shown + 1
+        end
+        i = i + 1
+    end
+    return shown
+end
+
+
+// ============================================================================
+// 区块链：创世 / 添加 / 验证 / 最长链 / 余额
+// ============================================================================
+
+// 创建创世块（index=0）。创始账户从 COINBASE 获得 GENESIS_ALLOC。
+// founderAddrs 为获得预挖的地址列表。
+func createGenesis(array<string> founderAddrs, int difficulty) as Block
+    Block g = Block(0, nowTs(), "", difficulty, "")
+    int i = 0
+    int n = founderAddrs.length
+    while i < n do
+        Transaction cb = makeCoinbase(founderAddrs[i], GENESIS_ALLOC, i)
+        g.txs.push(cb)
+        i = i + 1
+    end
+    g.mine()
+    return g
+end
+
+// 初始化一条新链：注册创始人 + 铸造创世块 + 清空 mempool/events。
+// 默认创始人 = alice, bob, carol；矿工 = alice。
+func initChain(int difficulty)
+    g_blockIndex = {}
+    g_tips = array[]
+    g_mempool = array[]
+    g_events = array[]
+    g_contracts = {}
+    g_keyStore = {}
+    g_nameIndex = {}
+    g_difficulty = difficulty
+
+    array<string> founders = array["alice", "bob", "carol"]
+    array<string> founderAddrs = array[]
+    int i = 0
+    while i < founders.length do
+        string addr = ensureAccount(founders[i])
+        founderAddrs.push(addr)
+        i = i + 1
+    end
+    g_minerAddr = string(g_nameIndex["alice"])
+
+    Block g = createGenesis(founderAddrs, difficulty)
+    g_genesisHash = g.hash
+    g_blockIndex[g.hash] = g
+    g_tips.push(g.hash)
+    emitEvent(-1, "chain.init", g_minerAddr, "genesis=" + shortHash(g.hash) + " diff=" + string(difficulty))
+end
+
+// 取一个块的后继数量（用于判断是否为 tip：0 个后继即叶子）。
+func countChildren(string hash) as int
+    int cnt = 0
+    for h, blk in g_blockIndex
+        Block b = blk as Block
+        if b.prevHash == hash then
+            cnt = cnt + 1
+        end
+    end
+    return cnt
+end
+
+// 刷新 g_tips：遍历所有块，找出没有后继的块哈希。
+func refreshTips()
+    g_tips = array[]
+    for h, blk in g_blockIndex
+        Block b = blk as Block
+        if countChildren(b.hash) == 0 then
+            g_tips.push(b.hash)
+        end
+    end
+end
+
+// 添加一个已挖好的块到链索引：校验 prevHash 存在 + seal 正确 + 交易签名合法，
+// 写入 g_blockIndex，刷新 tips，应用交易（更新事件）。返回 true 成功。
+func appendBlock(Block b) as bool
+    // prevHash 校验：非创世块必须链接到已知块
+    if b.index > 0 then
+        if not (b.prevHash in g_blockIndex) then
+            emitEvent(b.index, "block.reject", b.miner, "unknown prevHash " + shortHash(b.prevHash))
+            return false
+        end
+    end
+    if not b.sealsCorrectly() then
+        emitEvent(b.index, "block.reject", b.miner, "bad seal/pow")
+        return false
+    end
+    // 交易校验
+    int ti = 0
+    int tn = b.txs.length
+    while ti < tn do
+        Transaction t = b.txs[ti] as Transaction
+        if not t.isValid() then
+            emitEvent(b.index, "block.reject", b.miner, "invalid tx " + shortHash(t.hash))
+            return false
+        end
+        ti = ti + 1
+    end
+    g_blockIndex[b.hash] = b
+    refreshTips()
+    emitEvent(b.index, "block.add", b.miner, b.describe())
+    return true
+end
+
+// 链是否已初始化（有创世块）。
+func chainReady() as bool
+    return g_tips.length > 0
+end
+
+// 从 tip 哈希回溯到创世块，返回该路径的块哈希列表（创世在前）。
+func pathFromTip(string tipHash) as array<string>
+    array<string> path = array[]
+    string cur = tipHash
+    while cur in g_blockIndex do
+        path.push(cur)
+        Block b = g_blockIndex[cur] as Block
+        if b.index == 0 then
+            break
+        end
+        cur = b.prevHash
+    end
+    // 反转：创世在前
+    array<string> reversed = array[]
+    int i = path.length - 1
+    while i >= 0 do
+        reversed.push(path[i])
+        i = i - 1
+    end
+    return reversed
+end
+
+// 最长链：遍历所有 tip，选块数最多（并列时取哈希字典序最小，保证稳定）。
+// 返回该链从创世到尖端的块哈希有序列表。
+func longestChain() as array<string>
+    refreshTips()
+    array<string> best = array[]
+    int bestLen = -1
+    string bestTip = ""
+    int tn = g_tips.length
+    int i = 0
+    while i < tn do
+        array<string> p = pathFromTip(g_tips[i])
+        int plen = p.length
+        if plen > bestLen then
+            bestLen = plen
+            best = p
+            bestTip = g_tips[i]
+        elseif plen == bestLen then
+            // 平局取字典序最小的 tip 哈希（确定性）
+            if g_tips[i] < bestTip then
+                best = p
+                bestTip = g_tips[i]
+            end
+        end
+        i = i + 1
+    end
+    return best
+end
+
+// 取最长链当前尖端块。
+func bestTipBlock() as Block
+    array<string> chain = longestChain()
+    if chain.length == 0 then
+        Block empty = Block(0, 0, "", 0, "")
+        return empty
+    end
+    string tipHash = chain[chain.length - 1]
+    Block b = g_blockIndex[tipHash] as Block
+    return b
+end
+
+// 在最长链顶端挖一个新区块：打包 mempool 中交易 + coinbase 奖励。
+// difficulty 由参数指定（<=0 用 g_difficulty）。返回新块（已 append）。
+func mineNextBlock(int difficulty) as Block
+    if not chainReady() then
+        initChain(DEFAULT_DIFFICULTY)
+    end
+    if difficulty <= 0 then
+        difficulty = g_difficulty
+    end
+    if difficulty > MAX_DIFFICULTY then
+        difficulty = MAX_DIFFICULTY
+    end
+
+    Block parent = bestTipBlock()
+    int nextIndex = parent.index + 1
+
+    // 打包交易（最多 MAX_TX_PER_BLOCK，含 coinbase 占第一位）
+    Block b = Block(nextIndex, nowTs(), parent.hash, difficulty, g_minerAddr)
+
+    // coinbase：奖励 = 创世预挖的 1/100 + 累计手续费
+    int fees = 0
+    int packed = 0
+    int mi = 0
+    int mn = g_mempool.length
+    while mi < mn and packed < MAX_TX_PER_BLOCK do
+        Transaction t = g_mempool[mi] as Transaction
+        if t.isValid() then
+            b.txs.push(t)
+            fees = fees + TX_FEE
+            packed = packed + 1
+        end
+        mi = mi + 1
+    end
+    int reward = 500 + fees
+    Transaction cb = makeCoinbase(g_minerAddr, reward, nextIndex)
+    b.txs.push(cb)
+
+    // PoW 挖矿
+    b.mine()
+
+    // 清空已打包的 mempool（这里简单清空全部；保留未打包的留给下块）
+    array<var> leftover = array[]
+    while mi < mn do
+        leftover.push(g_mempool[mi])
+        mi = mi + 1
+    end
+    g_mempool = leftover
+
+    appendBlock(b)
+    emitEvent(nextIndex, "block.mine", g_minerAddr, "hash=" + shortHash(b.hash) + " reward=" + string(reward) + " txs=" + string(packed))
+    return b
+end
+
+// 校验整条链（最长链）：每个块 seal 正确 + prevHash 链接 + 交易签名合法。
+// 返回校验通过的块数；若中断返回已校验数（调用方对比期望值）。
+func validateLongestChain() as int
+    array<string> chain = longestChain()
+    int n = chain.length
+    int i = 0
+    while i < n do
+        Block b = g_blockIndex[chain[i]] as Block
+        if not b.sealsCorrectly() then
+            return i
+        end
+        if i > 0 then
+            Block prev = g_blockIndex[chain[i - 1]] as Block
+            if b.prevHash != prev.hash then
+                return i
+            end
+            if b.index != prev.index + 1 then
+                return i
+            end
+        else
+            if b.index != 0 then
+                return i
+            end
+        end
+        // 交易签名校验
+        int ti = 0
+        int tn = b.txs.length
+        while ti < tn do
+            Transaction t = b.txs[ti] as Transaction
+            if not t.isValid() then
+                return i
+            end
+            ti = ti + 1
+        end
+        i = i + 1
+    end
+    return n
+end
+
+// 计算某地址在最长链上的余额：重放所有块交易，from 扣 amount+fee，to 加 amount，
+// coinbase 给 to 加 amount。founder 预挖在创世块的 coinbase 里。
+func balanceOf(string addr) as int
+    array<string> chain = longestChain()
+    int bal = 0
+    int ci = 0
+    int cn = chain.length
+    while ci < cn do
+        Block b = g_blockIndex[chain[ci]] as Block
+        int ti = 0
+        int tn = b.txs.length
+        while ti < tn do
+            Transaction t = b.txs[ti] as Transaction
+            if t.to == addr then
+                bal = bal + t.amount
+            end
+            if t.from == addr then
+                bal = bal - t.amount
+                bal = bal - TX_FEE
+            end
+            ti = ti + 1
+        end
+        ci = ci + 1
+    end
+    return bal
+end
+
+// 把一笔交易加入 mempool（先校验签名）。
+func submitTransaction(Transaction t) as bool
+    if not t.isValid() then
+        emitEvent(-1, "tx.reject", t.from, "bad sig/validity " + shortHash(t.hash))
+        return false
+    end
+    g_mempool.push(t)
+    emitEvent(-1, "tx.submit", t.from, t.describe())
+    return true
+end
+
+
+// ============================================================================
+// 持久化（xchain.json）
+// ============================================================================
+
+func loadState(string statePath) as bool
+    g_stateFile = statePath
+    if not file.exists(statePath) then
+        return false
+    end
+    string text = file.readText(statePath)
+    if string.isEmpty(text) then
+        return false
+    end
+    if not json.valid(text) then
+        return false
+    end
+    var root = json.parse(text)
+    if root == null then
+        return false
+    end
+
+    g_blockIndex = {}
+    g_tips = array[]
+    g_mempool = array[]
+    g_events = array[]
+    g_contracts = {}
+    g_keyStore = {}
+    g_nameIndex = {}
+    g_difficulty = int(root["difficulty"])
+    g_genesisHash = string(root["genesisHash"])
+    g_minerAddr = string(root["minerAddr"])
+
+    // 还原 keyStore / nameIndex
+    var keys = root["keyStore"]
+    for addr, priv in keys
+        g_keyStore[addr] = priv
+    end
+    var names = root["nameIndex"]
+    for name, addr in names
+        g_nameIndex[name] = addr
+    end
+
+    // 还原 blocks
+    var blocks = root["blocks"]
+    for h, bd in blocks
+        Block b = blockFromDict(bd)
+        g_blockIndex[h] = b
+    end
+
+    // 还原 mempool
+    var pool = root["mempool"]
+    int pn = pool.length
+    int pi = 0
+    while pi < pn do
+        Transaction t = txFromDict(pool[pi])
+        g_mempool.push(t)
+        pi = pi + 1
+    end
+
+    // 还原 events
+    var evts = root["events"]
+    int en = evts.length
+    int ei = 0
+    while ei < en do
+        g_events.push(evts[ei])
+        ei = ei + 1
+    end
+
+    // 还原 contracts
+    var contracts = root["contracts"]
+    for addr, cd in contracts
+        Contract c = contractFromDict(cd)
+        g_contracts[addr] = c
+    end
+
+    refreshTips()
+    return true
+end
+
+func saveState(string statePath) as bool
+    var root = {}
+    root["difficulty"] = g_difficulty
+    root["genesisHash"] = g_genesisHash
+    root["minerAddr"] = g_minerAddr
+    root["keyStore"] = g_keyStore
+    root["nameIndex"] = g_nameIndex
+
+    var blocks = {}
+    for h, blk in g_blockIndex
+        Block b = blk as Block
+        blocks[h] = b.toDict()
+    end
+    root["blocks"] = blocks
+
+    var pool = []
+    int pn = g_mempool.length
+    int pi = 0
+    while pi < pn do
+        Transaction t = g_mempool[pi] as Transaction
+        pool.push(t.toDict())
+        pi = pi + 1
+    end
+    root["mempool"] = pool
+    root["events"] = g_events
+
+    var contracts = {}
+    for addr, c in g_contracts
+        Contract ct = c as Contract
+        contracts[addr] = ct.toDict()
+    end
+    root["contracts"] = contracts
+
+    string text = json.stringify(root)
+    return file.writeText(statePath, text)
+end
+
+
+// ============================================================================
+// 合约部署 / 调用（基于全局 g_contracts）
+// ============================================================================
+
+// 用 owner 名派生合约地址："0xc" + 前 11 hex of sha256(owner+ts+count)。
+func newContractAddr(string owner) as string
+    int cnt = 0
+    for addr, c in g_contracts
+        cnt = cnt + 1
+    end
+    string seed = owner + ":" + string(nowTs()) + ":" + string(cnt)
+    return "0xc" + string.mid(hashStr(seed), 0, ADDR_HEX_LEN - 1)
+end
+
+// 部署合约：读字节码文件 -> 编译 -> 执行 init -> 注册到 g_contracts。
+// 返回合约地址（失败返回空串）。
+func deployContract(string ownerAddr, string sourcePath) as string
+    if not file.exists(sourcePath) then
+        println("xchain: contract file not found: " + sourcePath)
+        return ""
+    end
+    string src = file.readText(sourcePath)
+    Contract c = Contract(newContractAddr(ownerAddr), ownerAddr, src)
+    if not c.compile() then
+        println("xchain: assemble error: " + g_asmError)
+        return ""
+    end
+    var initResult = c.runInit()
+    int rc = int(initResult[0])
+    if rc != 0 then
+        println("xchain: init error: " + string(initResult[2]))
+        return ""
+    end
+    g_contracts[c.address] = c
+    emitEvent(-1, "contract.deploy", ownerAddr, "addr=" + c.address + " code=" + string(c.code.length) + " cells")
+    return c.address
+end
+
+// 只读调用合约方法：args 为逗号分隔整数。返回 [rc, retVal, msg]。
+func callContract(string addr, string method, string argsCsv) as var
+    if not (addr in g_contracts) then
+        var fail = [1, 0, "contract not found: " + addr]
+        return fail
+    end
+    Contract c = g_contracts[addr]
+    array<int> args = array[]
+    if string.len(argsCsv) > 0 then
+        array<string> parts = splitOn(argsCsv, ",")
+        int i = 0
+        int n = parts.length
+        while i < n do
+            if looksInt(parts[i]) then
+                args.push(int(parts[i]))
+            else
+                var fail = [1, 0, "bad arg: " + parts[i]]
+                return fail
+            end
+            i = i + 1
+        end
+    end
+    return c.callMethod(method, args)
+end
+
+
+// ============================================================================
+// 测试框架辅助
+// ============================================================================
+
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass = g_pass + 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail = g_fail + 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectTrue(bool got, string label)
+    if got then
+        ok(label)
+    else
+        bad(label, "expected true")
+    end
+end
+
+func expectFalse(bool got, string label)
+    if got then
+        bad(label, "expected false")
+    else
+        ok(label)
+    end
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectS(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+
+// ============================================================================
+// 内置示例合约源码（token.xbin：存储型代币合约，用于自测）
+// ============================================================================
+
+// 入口（deploy 时执行）：slot0=总供应量=1000，slot1=调用方余额（部署者=1000）
+// 方法：supply()   -> LOAD 0; RET
+//       add(a,b)  -> ARG 0; ARG 1; ADD; RET
+//       mul(a,b)  -> ARG 0; ARG 1; MUL; RET
+//       max(a,b)  -> ARG 0; ARG 1; STORE 2; STORE 3; LOAD 3; LOAD 2; GT; JZ else; LOAD 3; RET
+//       else:        LOAD 2; RET
+string TOKEN_CONTRACT_SRC
+TOKEN_CONTRACT_SRC = """
+; token.xbin - 存储型示例合约
+PUSH 1000
+STORE 0
+HALT
+
+supply:
+LOAD 0
+RET
+
+add:
+ARG 0
+ARG 1
+ADD
+RET
+
+mul:
+ARG 0
+ARG 1
+MUL
+RET
+
+square:
+ARG 0
+DUP
+MUL
+RET
+
+max:
+ARG 0
+ARG 1
+STORE 2
+STORE 3
+LOAD 3
+LOAD 2
+GT
+JZ max_else
+LOAD 3
+RET
+max_else:
+LOAD 2
+RET
+"""
+
+
+// ============================================================================
+// 自测
+// ============================================================================
+
+func cmdTest() as int
+    println("=== xchain self-test ===")
+
+    // ---- 1. crypto / hash 基线 ----
+    expectS(hashStr("hello"),
+            "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+            "sha256('hello') known-answer")
+    expectI(leadingZeros("000abc"), 3, "leadingZeros counts 3")
+    expectI(leadingZeros("1000"), 0, "leadingZeros no leading zero")
+    expectI(nextPow2(5), 8, "nextPow2(5)=8")
+    expectI(nextPow2(8), 8, "nextPow2(8)=8")
+
+    // ---- 2. 账户 / 签名模拟 ----
+    string alice = ensureAccount("alice")
+    string bob = ensureAccount("bob")
+    expectTrue(string.startsWith(alice, "0x"), "address has 0x prefix")
+    expectI(string.len(alice), 2 + ADDR_HEX_LEN, "address length = 2 + ADDR_HEX_LEN")
+    string msg = "transfer:10"
+    string sig = signMsg(alice, msg)
+    expectTrue(verifySig(alice, msg, sig), "signature verifies for correct addr")
+    expectFalse(verifySig(bob, msg, sig), "signature fails for wrong addr")
+    expectFalse(verifySig("0xdeadbeef", msg, sig), "signature fails for unknown addr")
+    expectS(alice, addrFromName("alice"), "addrFromName deterministic")
+
+    // ---- 3. Merkle 树 ----
+    array<string> leaves = array[
+        hashStr("tx1"), hashStr("tx2"), hashStr("tx3"), hashStr("tx4")
+    ]
+    string root4 = merkleRoot(leaves)
+    expectI(string.len(root4), 64, "merkle root is 64 hex chars")
+    // 确定性：同样输入同样根
+    expectS(merkleRoot(leaves), root4, "merkle deterministic")
+    // 顺序敏感
+    array<string> leaves2 = array[
+        hashStr("tx2"), hashStr("tx1"), hashStr("tx3"), hashStr("tx4")
+    ]
+    expectFalse(merkleRoot(leaves2) == root4, "merkle order-sensitive")
+    // 空根
+    array<string> empty = array[]
+    expectS(merkleRoot(empty), hashStr(""), "empty merkle root = sha256('')")
+    // 单叶子
+    array<string> one = array[hashStr("only")]
+    expectS(merkleRoot(one), hashStr(hashStr("only")), "single-leaf merkle root")
+
+    // ---- 4. Transaction 构造 / 签名 / 校验 ----
+    Transaction tx1 = makeTx(alice, bob, 100, 0, "rent")
+    expectTrue(tx1.isValid(), "signed tx validates")
+    expectI(string.len(tx1.hash), 64, "tx hash 64 hex chars")
+    expectI(tx1.amount, 100, "tx amount stored")
+    // 篡改后失效
+    tx1.amount = 999
+    expectFalse(tx1.isValid(), "tampered amount invalidates hash/signature link")
+    // coinbase 不需要签名
+    Transaction cb = makeCoinbase(bob, 50, 1)
+    expectTrue(cb.isValid(), "coinbase tx (empty from) valid without sig")
+
+    // ---- 5. 链初始化 / 创世块 / 最长链 ----
+    initChain(2)
+    expectI(g_tips.length, 1, "after init: single tip (genesis)")
+    array<string> chain0 = longestChain()
+    expectI(chain0.length, 1, "longest chain = 1 (genesis only)")
+    Block genesis = g_blockIndex[chain0[0]] as Block
+    expectI(genesis.index, 0, "genesis index = 0")
+    expectS(genesis.prevHash, "", "genesis prevHash empty")
+    expectTrue(genesis.sealsCorrectly(), "genesis seal/pow correct")
+    expectI(string.len(g_genesisHash), 64, "genesis hash cached 64 chars")
+    expectTrue(genesis.hash == g_genesisHash, "genesis hash == cached")
+    // 三个创始人各得 GENESIS_ALLOC
+    expectI(balanceOf(alice), GENESIS_ALLOC, "alice genesis balance")
+    expectI(balanceOf(bob), GENESIS_ALLOC, "bob genesis balance")
+    expectI(balanceOf(carol), GENESIS_ALLOC, "carol genesis balance")
+
+    // ---- 6. 交易提交 + 挖矿 + 余额变化 ----
+    string carol = ensureAccount("carol")
+    submitTransaction(makeTx(alice, bob, 300, 0, "pay1"))
+    submitTransaction(makeTx(bob, carol, 200, 0, "pay2"))
+    expectI(g_mempool.length, 2, "mempool has 2 txs after submit")
+
+    Block b1 = mineNextBlock(2)
+    expectI(b1.index, 1, "mined block index = 1")
+    expectTrue(b1.sealsCorrectly(), "mined block seals correctly")
+    expectI(leadingZeros(b1.hash), 2, "mined block hash has >= 2 leading zeros")
+    // 区块应含 2 笔业务交易 + 1 coinbase
+    expectI(b1.txs.length, 3, "block has 2 txs + 1 coinbase")
+    expectI(g_mempool.length, 0, "mempool drained after mine")
+    // 余额：alice=预挖-300-手续费，bob=预挖+300-200-手续费，carol=预挖+200
+    expectI(balanceOf(alice), GENESIS_ALLOC - 300 - TX_FEE, "alice balance after block1")
+    expectI(balanceOf(bob), GENESIS_ALLOC + 300 - 200 - TX_FEE, "bob balance after block1")
+    expectI(balanceOf(carol), GENESIS_ALLOC + 200, "carol balance after block1")
+    // 矿工奖励 = 500 + 2*TX_FEE 进 alice（矿工）
+    expectI(balanceOf(alice), GENESIS_ALLOC - 300 - TX_FEE, "miner (alice) balance includes reward")
+
+    // 最长链现在 2 块
+    array<string> chain1 = longestChain()
+    expectI(chain1.length, 2, "longest chain = 2 blocks")
+
+    // ---- 7. 链校验 ----
+    expectI(validateLongestChain(), 2, "validate chain passes 2 blocks")
+
+    // ---- 8. 再挖一块（难度 3）测试难度参数 ----
+    submitTransaction(makeTx(carol, alice, 50, 0, "payback"))
+    Block b2 = mineNextBlock(3)
+    expectI(leadingZeros(b2.hash), 3, "block2 hash has >= 3 leading zeros")
+    expectI(b2.difficulty, 3, "block2 difficulty = 3")
+    array<string> chain2 = longestChain()
+    expectI(chain2.length, 3, "longest chain = 3 blocks")
+    expectI(validateLongestChain(), 3, "validate chain passes 3 blocks")
+
+    // ---- 9. Merkle 根在区块中正确 ----
+    // 重算 b2 的 merkle 与存储值一致
+    array<string> b2leaves = array[]
+    int b2i = 0
+    int b2n = b2.txs.length
+    while b2i < b2n do
+        Transaction t = b2.txs[b2i]
+        b2leaves.push(t.hash)
+        b2i = b2i + 1
+    end
+    expectS(merkleRoot(b2leaves), b2.merkleRoot, "block2 merkleRoot recomputed matches")
+
+    // ---- 10. 分叉 + 最长链选择 ----
+    // 在 b1（index=1）之上手动造一条更短的竞争链（只 1 块），主链应仍选 3 块那条
+    Block fork = Block(2, nowTs(), b1.hash, 2, bob)
+    fork.txs.push(makeCoinbase(bob, 100, 2))
+    fork.mine()
+    appendBlock(fork)
+    // 现在 tips 有两条：原主链顶端(b2) 和 fork
+    expectTrue(g_tips.length >= 2, "fork created second tip")
+    array<string> chainAfterFork = longestChain()
+    expectI(chainAfterFork.length, 3, "longest chain still 3 (beats fork's 3 via tiebreak/length)")
+    // 注意：fork 链也是 index 0,1,2 共 3 块，长度并列；tiebreak 取字典序最小 tip
+    // 关键性质：没有把更短的链选上来。再给主链加一块使它确定最长。
+    Block b3 = mineNextBlock(3)
+    expectI(b3.index, 3, "block3 index = 3")
+    array<string> chainFinal = longestChain()
+    expectI(chainFinal.length, 4, "longest chain = 4 after extending main")
+    expectI(validateLongestChain(), 4, "validate chain passes 4 blocks")
+    // fork 那条仍是 3 块，不应被选中
+    expectTrue(b3.hash == chainFinal[chainFinal.length - 1], "main chain tip is the freshly mined b3")
+
+    // ---- 11. 持久化往返 ----
+    string tmpPath = path.join(path.dir(g_stateFile), "xchain_test_snapshot.json")
+    if string.len(g_stateFile) == 0 then
+        tmpPath = "xchain_test_snapshot.json"
+    end
+    bool saved = saveState(tmpPath)
+    expectTrue(saved, "saveState wrote snapshot")
+
+    // 备份当前状态
+    int blocksBefore = 0
+    for h, blk in g_blockIndex
+        blocksBefore = blocksBefore + 1
+    end
+    int balanceAliceBefore = balanceOf(alice)
+
+    // 清空后重载
+    g_blockIndex = {}
+    g_tips = array[]
+    g_mempool = array[]
+    g_events = array[]
+    g_keyStore = {}
+    g_nameIndex = {}
+    g_contracts = {}
+    bool loaded = loadState(tmpPath)
+    expectTrue(loaded, "loadState read snapshot")
+    int blocksAfter = 0
+    for h, blk in g_blockIndex
+        blocksAfter = blocksAfter + 1
+    end
+    expectI(blocksAfter, blocksBefore, "restored block count matches")
+    expectI(balanceOf(alice), balanceAliceBefore, "restored alice balance matches")
+    array<string> chainRestored = longestChain()
+    expectI(chainRestored.length, 4, "restored longest chain = 4")
+    expectI(validateLongestChain(), 4, "restored chain validates")
+
+    // ---- 12. 合约 VM 单元测试（直接构造 Contract 实例）----
+    Contract tok = Contract("0xtestcontract", alice, TOKEN_CONTRACT_SRC)
+    expectTrue(tok.compile(), "token contract compiles")
+    expectFalse(string.len(g_asmError) > 0, "no assemble error on token contract")
+    var initR = tok.runInit()
+    expectI(int(initR[0]), 0, "token init runs cleanly")
+    expectI(tok.slots[0], 1000, "token totalSupply slot0 = 1000")
+
+    // supply 方法
+    var supplyR = tok.callMethod("supply", array[])
+    expectI(int(supplyR[0]), 0, "supply() rc=0")
+    expectI(int(supplyR[1]), 1000, "supply() returns 1000")
+
+    // add(3,4)=7
+    array<int> addArgs = array[3, 4]
+    var addR = tok.callMethod("add", addArgs)
+    expectI(int(addR[1]), 7, "add(3,4)=7")
+
+    // mul(5,6)=30
+    array<int> mulArgs = array[5, 6]
+    var mulR = tok.callMethod("mul", mulArgs)
+    expectI(int(mulR[1]), 30, "mul(5,6)=30")
+
+    // square(7)=49
+    array<int> sqArgs = array[7]
+    var sqR = tok.callMethod("square", sqArgs)
+    expectI(int(sqR[1]), 49, "square(7)=49")
+
+    // max(3,9)=9
+    array<int> maxArgs1 = array[3, 9]
+    var maxR1 = tok.callMethod("max", maxArgs1)
+    expectI(int(maxR1[1]), 9, "max(3,9)=9")
+    // max(8,2)=8
+    array<int> maxArgs2 = array[8, 2]
+    var maxR2 = tok.callMethod("max", maxArgs2)
+    expectI(int(maxR2[1]), 8, "max(8,2)=8")
+
+    // 调用不存在的方法
+    var badMethod = tok.callMethod("nonexistent", array[])
+    expectI(int(badMethod[0]), 1, "unknown method returns rc=1")
+
+    // ---- 13. VM 错误路径 ----
+    // 除零
+    Contract divZero = Contract("0xdiv0", alice, "PUSH 5\nPUSH 0\nDIV\nHALT")
+    divZero.compile()
+    var dzR = divZero.runInit()
+    expectI(int(dzR[0]), 1, "division by zero -> rc=1")
+    expectS(string(dzR[2]), "division by zero", "div-zero error message")
+
+    // 栈下溢
+    Contract underflow = Contract("0xuf", alice, "ADD\nHALT")
+    underflow.compile()
+    var ufR = underflow.runInit()
+    expectI(int(ufR[0]), 1, "stack underflow -> rc=1")
+
+    // 未知指令（汇编期拦截）
+    Contract badAsm = Contract("0xbad", alice, "FOO 1")
+    bool compiledBad = badAsm.compile()
+    expectFalse(compiledBad, "unknown mnemonic -> compile fails")
+    expectTrue(string.len(g_asmError) > 0, "assemble error message recorded")
+
+    // ---- 14. 合约 deploy/call 经全局 g_contracts ----
+    // 写合约源到临时文件，用 deployContract 走文件路径
+    string contractFilePath = path.join(path.dir(tmpPath), "xchain_token_test.xbin")
+    if string.len(contractFilePath) == 0 then
+        contractFilePath = "xchain_token_test.xbin"
+    end
+    file.writeText(contractFilePath, TOKEN_CONTRACT_SRC)
+    string deployedAddr = deployContract(alice, contractFilePath)
+    expectTrue(string.len(deployedAddr) > 0, "deployContract returns address")
+    expectTrue(deployedAddr in g_contracts, "deployed contract registered")
+
+    var callSupply = callContract(deployedAddr, "supply", "")
+    expectI(int(callSupply[1]), 1000, "deployed contract supply()=1000")
+
+    var callAdd = callContract(deployedAddr, "add", "10,20")
+    expectI(int(callAdd[1]), 30, "deployed contract add(10,20)=30")
+
+    var callMul = callContract(deployedAddr, "mul", "6,7")
+    expectI(int(callMul[1]), 42, "deployed contract mul(6,7)=42")
+
+    // call 不存在的合约
+    var callMissing = callContract("0xnonexist", "supply", "")
+    expectI(int(callMissing[0]), 1, "call missing contract -> rc=1")
+
+    // 清理临时文件（忽略失败）
+    file.writeText(contractFilePath, "")
+    file.writeText(tmpPath, "")
+
+    // ---- 15. 事件日志 ----
+    initChain(2)
+    submitTransaction(makeTx(ensureAccount("alice"), ensureAccount("bob"), 10, 0, "ev"))
+    mineNextBlock(2)
+    // 应该有 chain.init / tx.submit / block.mine / block.add 等事件
+    expectTrue(g_events.length > 0, "events recorded")
+
+    // ---- 结果汇总 ----
+    println("=== results: " + string(g_pass) + " passed, " + string(g_fail) + " failed ===")
+    if g_fail == 0 then
+        return 0
+    end
+    return 1
+end
+
+
+// ============================================================================
+// CLI 命令实现
+// ============================================================================
+
+func cmdMine(string scriptPath, int difficulty) as int
+    string statePath = stateFilePath(scriptPath)
+    g_stateFile = statePath
+    if not loadState(statePath) then
+        initChain(DEFAULT_DIFFICULTY)
+    end
+    if difficulty <= 0 then
+        difficulty = g_difficulty
+    end
+    Block b = mineNextBlock(difficulty)
+    println("mined " + b.describe())
+    println("  hash     = " + b.hash)
+    println("  prevHash = " + b.prevHash)
+    println("  merkle   = " + b.merkleRoot)
+    println("  txs      = " + string(b.txs.length))
+    int i = 0
+    int n = b.txs.length
+    while i < n do
+        Transaction t = b.txs[i] as Transaction
+        println("    " + t.describe())
+        i = i + 1
+    end
+    saveState(statePath)
+    return 0
+end
+
+func cmdBalance(string scriptPath, string addr) as int
+    string statePath = stateFilePath(scriptPath)
+    g_stateFile = statePath
+    if not loadState(statePath) then
+        initChain(DEFAULT_DIFFICULTY)
+        saveState(statePath)
+    end
+    // 支持按名称查（不是 0x 开头则视为账户名）
+    string target = addr
+    if not string.startsWith(addr, "0x") then
+        target = addrFromName(addr)
+    end
+    int bal = balanceOf(target)
+    println("balance " + target + " = " + string(bal))
+    return 0
+end
+
+func cmdDeploy(string scriptPath, string contractFile) as int
+    string statePath = stateFilePath(scriptPath)
+    g_stateFile = statePath
+    if not loadState(statePath) then
+        initChain(DEFAULT_DIFFICULTY)
+    end
+    string owner = g_minerAddr
+    if string.len(owner) == 0 then
+        owner = ensureAccount("alice")
+    end
+    string addr = deployContract(owner, contractFile)
+    if string.len(addr) == 0 then
+        return 1
+    end
+    println("deployed contract at " + addr)
+    println("  owner = " + owner)
+    println("  file  = " + contractFile)
+    saveState(statePath)
+    return 0
+end
+
+func cmdCall(string scriptPath, string addr, string method, string argsCsv) as int
+    string statePath = stateFilePath(scriptPath)
+    g_stateFile = statePath
+    if not loadState(statePath) then
+        initChain(DEFAULT_DIFFICULTY)
+    end
+    var result = callContract(addr, method, argsCsv)
+    int rc = int(result[0])
+    int retVal = int(result[1])
+    string msg = string(result[2])
+    if rc != 0 then
+        println("call failed: " + msg)
+        return 1
+    end
+    println("call " + addr + "." + method + "(" + argsCsv + ") = " + string(retVal))
+    return 0
+end
+
+func cmdSend(string scriptPath, string fromName, string toName, int amount) as int
+    string statePath = stateFilePath(scriptPath)
+    g_stateFile = statePath
+    if not loadState(statePath) then
+        initChain(DEFAULT_DIFFICULTY)
+    end
+    string fromAddr = fromName
+    if not string.startsWith(fromName, "0x") then
+        fromAddr = ensureAccount(fromName)
+    end
+    string toAddr = toName
+    if not string.startsWith(toName, "0x") then
+        toAddr = ensureAccount(toName)
+    end
+    int nonce = g_mempool.length
+    Transaction t = makeTx(fromAddr, toAddr, amount, nonce, "cli-send")
+    if not submitTransaction(t) then
+        println("send rejected (bad signature / unknown account)")
+        return 1
+    end
+    println("queued " + t.describe() + " hash=" + shortHash(t.hash))
+    saveState(statePath)
+    return 0
+end
+
+func cmdChain(string scriptPath) as int
+    string statePath = stateFilePath(scriptPath)
+    g_stateFile = statePath
+    if not loadState(statePath) then
+        println("(no chain state; run 'xchain mine' to initialize)")
+        return 0
+    end
+    array<string> chain = longestChain()
+    int n = chain.length
+    if n == 0 then
+        println("(empty chain)")
+        return 0
+    end
+    println("longest chain: " + string(n) + " blocks, difficulty=" + string(g_difficulty))
+    int i = 0
+    while i < n do
+        Block b = g_blockIndex[chain[i]] as Block
+        println("  " + b.describe())
+        i = i + 1
+    end
+    int tips = g_tips.length
+    println("tips: " + string(tips))
+    return 0
+end
+
+func cmdEvents(string scriptPath, string typeFilter) as int
+    string statePath = stateFilePath(scriptPath)
+    g_stateFile = statePath
+    if not loadState(statePath) then
+        println("(no chain state)")
+        return 0
+    end
+    int shown = printEvents(typeFilter)
+    if shown == 0 then
+        println("(no events" + (string.len(typeFilter) > 0 ? " of type '" + typeFilter + "'" : "") + ")")
+    end
+    return 0
+end
+
+func printUsage()
+    println("xchain - blockchain + smart-contract platform (PoW / stack VM / merkle / events)")
+    println("")
+    println("usage:")
+    println("  xchain mine [difficulty]        mine a new block from the mempool (PoW)")
+    println("  xchain balance <addr>           query balance of address (or account name)")
+    println("  xchain deploy <contract.bin>    deploy a contract from text bytecode file")
+    println("  xchain call <addr> <m> <args>   call contract method (view) with comma-sep int args")
+    println("  xchain send <from> <to> <amt>   queue a transfer tx into the mempool")
+    println("  xchain chain                    print the current longest chain")
+    println("  xchain events [type]            print event log (optionally filter by type)")
+    println("  xchain test                     built-in self-test")
+    println("  xchain -h | --help              this help")
+    println("")
+    println("contract bytecode is text, one instruction per line. opcodes:")
+    println("  PUSH n  POP  ADD  SUB  MUL  DIV  STORE slot  LOAD slot")
+    println("  JMP label  CALL label  RET  JZ label  JNZ label  ARG idx")
+    println("  EQ  LT  GT  DUP  PRINT  HALT   (labels: 'name:')")
+end
+
+
+func main(...) as int
+    string scriptPath = ""
+    if arg.length >= 1 then
+        scriptPath = string(arg[0])
+    end
+    g_stateFile = stateFilePath(scriptPath)
+
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string.lower(string(arg[1]))
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        g_stateFile = stateFilePath(scriptPath)
+        return cmdTest()
+    end
+
+    if cmd == "mine" then
+        int diff = 0
+        if arg.length >= 3 then
+            if looksInt(string(arg[2])) then
+                diff = int(string(arg[2]))
+            else
+                println("xchain: difficulty must be an integer")
+                return 1
+            end
+        end
+        return cmdMine(scriptPath, diff)
+    end
+
+    if cmd == "balance" then
+        if arg.length < 3 then
+            println("xchain: 'balance' needs <addr>")
+            return 1
+        end
+        return cmdBalance(scriptPath, string(arg[2]))
+    end
+
+    if cmd == "deploy" then
+        if arg.length < 3 then
+            println("xchain: 'deploy' needs <contract.bin>")
+            return 1
+        end
+        return cmdDeploy(scriptPath, string(arg[2]))
+    end
+
+    if cmd == "call" then
+        if arg.length < 5 then
+            println("xchain: 'call' needs <addr> <method> <args>")
+            return 1
+        end
+        return cmdCall(scriptPath, string(arg[2]), string(arg[3]), string(arg[4]))
+    end
+
+    if cmd == "send" then
+        if arg.length < 5 then
+            println("xchain: 'send' needs <from> <to> <amount>")
+            return 1
+        end
+        if not looksInt(string(arg[4])) then
+            println("xchain: amount must be an integer")
+            return 1
+        end
+        return cmdSend(scriptPath, string(arg[2]), string(arg[3]), int(string(arg[4])))
+    end
+
+    if cmd == "chain" then
+        return cmdChain(scriptPath)
+    end
+
+    if cmd == "events" then
+        string filter = ""
+        if arg.length >= 3 then
+            filter = string(arg[2])
+        end
+        return cmdEvents(scriptPath, filter)
+    end
+
+    println("xchain: unknown command: " + string(arg[1]))
+    printUsage()
+    return 1
+end

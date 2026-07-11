@@ -176,11 +176,22 @@ static int xl6CgenAssignTryStaticXValueCompareStmt(
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
     if ( equalMode ) {
-        xl6OutputPrintf(ctx->out,
-                        "int __xl6_cmp_result_%d = xl6_xrt_basic_equal(__xl6_cmp_left_%d, __xl6_cmp_right_%d);\n",
-                        id,
-                        id,
-                        id);
+        if ( xl6CgenBinaryCompareHasRef(ctx, right) ) {
+            xl6OutputPrintf(ctx->out,
+                            "int __xl6_cmp_result_%d = "
+                            "(((__xl6_cmp_left_%d == 0 || xvoIsNull(__xl6_cmp_left_%d)) && "
+                            "(__xl6_cmp_right_%d == 0 || xvoIsNull(__xl6_cmp_right_%d))) || "
+                            "(__xl6_cmp_left_%d != 0 && __xl6_cmp_right_%d != 0 && "
+                            "!xvoIsNull(__xl6_cmp_left_%d) && !xvoIsNull(__xl6_cmp_right_%d) && "
+                            "__xl6_cmp_left_%d == __xl6_cmp_right_%d));\n",
+                            id, id, id, id, id, id, id, id, id, id, id);
+        } else {
+            xl6OutputPrintf(ctx->out,
+                            "int __xl6_cmp_result_%d = xl6_xrt_basic_equal(__xl6_cmp_left_%d, __xl6_cmp_right_%d);\n",
+                            id,
+                            id,
+                            id);
+        }
     } else {
         xl6OutputPrintf(ctx->out,
                         "int __xl6_cmp_result_%d = xl6_xrt_basic_order(__xl6_cmp_left_%d, __xl6_cmp_right_%d, %d);\n",

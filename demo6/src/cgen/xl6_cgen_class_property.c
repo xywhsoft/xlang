@@ -96,7 +96,10 @@ static int xl6CgenClassPropertyResolve(
 
     receiver = member->children[0];
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-    concreteType = xl6CgenResolveAliasType(ctx, receiverType);
+    concreteType = xl6CgenRefTargetType(ctx, receiverType);
+    if ( concreteType == NULL ) {
+        concreteType = xl6CgenResolveAliasType(ctx, receiverType);
+    }
     classNode = concreteType != NULL ? xl6CgenFindClass(ctx, concreteType->text) : NULL;
     if ( classNode == NULL || xl6CgenFindClassFieldNode(ctx, classNode, member->text) != NULL ) {
         xl6AstFree(receiverType);
@@ -183,10 +186,16 @@ static XL6_AstNode* xl6CgenCloneClassPropertyMemberType(XL6_CgenContext* ctx, co
 
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
-    if ( receiverType != NULL && receiverType->childCount > 0 &&
+    {
+        const XL6_AstNode* concreteReceiver = xl6CgenRefTargetType(ctx, receiverType);
+        if ( concreteReceiver == NULL ) {
+            concreteReceiver = receiverType;
+        }
+        if ( concreteReceiver != NULL && concreteReceiver->childCount > 0 &&
          ownerClass != NULL && xl6CgenClassHasTypeParams(ownerClass) ) {
-        ctx->currentGenericParams = xl6CgenClassTypeParams(ownerClass);
-        ctx->currentGenericArgs = receiverType->children[0];
+            ctx->currentGenericParams = xl6CgenClassTypeParams(ownerClass);
+            ctx->currentGenericArgs = concreteReceiver->children[0];
+        }
     }
     result = xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0]);
     ctx->currentGenericParams = prevParams;
@@ -199,6 +208,7 @@ static XL6_AstNode* xl6CgenCloneClassPropertyMemberType(XL6_CgenContext* ctx, co
 static int xl6CgenClassPropertyEmitSelf(
     XL6_CgenContext* ctx,
     const XL6_AstNode* receiver,
+    const XL6_AstNode* receiverType,
     const XL6_AstNode* classNode,
     const XL6_AstNode* ownerClass)
 {
@@ -208,6 +218,15 @@ static int xl6CgenClassPropertyEmitSelf(
         xl6CgenError(ctx, receiver, "property receiver is missing");
         xl6OutputPuts("0", ctx->out);
         return 0;
+    }
+    if ( xl6CgenRefTargetType(ctx, receiverType) != NULL ) {
+        char ownerTypeName[512];
+        const XL6_AstNode* concreteReceiver = xl6CgenRefTargetType(ctx, receiverType);
+        xl6CgenClassTypeRefName(ownerTypeName, sizeof(ownerTypeName), concreteReceiver);
+        xl6OutputPrintf(ctx->out, "((%s*)xl6_ref_data(", ownerTypeName);
+        xl6CgenExpr(ctx, receiver);
+        xl6OutputPrintf(ctx->out, ", \"\", %d, %d))", receiver->line, receiver->column);
+        return 1;
     }
     basePath[0] = '\0';
     if ( !xl6CgenClassBasePath(ctx, classNode, ownerClass, basePath, sizeof(basePath)) ) {
@@ -270,20 +289,26 @@ static int xl6CgenClassPropertyEmitCall(
         return 1;
     }
 
-    if ( receiverType != NULL && receiverType->childCount > 0 && xl6CgenClassHasTypeParams(ownerClass) ) {
+    {
+        const XL6_AstNode* concreteReceiver = xl6CgenRefTargetType(ctx, receiverType);
+        if ( concreteReceiver == NULL ) {
+            concreteReceiver = receiverType;
+        }
+        if ( concreteReceiver != NULL && concreteReceiver->childCount > 0 && xl6CgenClassHasTypeParams(ownerClass) ) {
         const XL6_AstNode* prevParams = ctx->currentGenericParams;
         const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
         ctx->currentGenericParams = xl6CgenClassTypeParams(ownerClass);
-        ctx->currentGenericArgs = receiverType->children[0];
-        xl6CgenGenericClassCallableSymbol(ctx, ownerClass, receiverType, method);
+            ctx->currentGenericArgs = concreteReceiver->children[0];
+            xl6CgenGenericClassCallableSymbol(ctx, ownerClass, concreteReceiver, method);
         ctx->currentGenericParams = prevParams;
         ctx->currentGenericArgs = prevArgs;
-    } else {
+        } else {
         xl6CgenClassCallableSymbol(ctx, ownerClass, method);
+        }
     }
 
     xl6OutputPutc('(', ctx->out);
-    xl6CgenClassPropertyEmitSelf(ctx, receiver, classNode, ownerClass);
+    xl6CgenClassPropertyEmitSelf(ctx, receiver, receiverType, classNode, ownerClass);
     params = xl6CgenCallableParams(method);
     fixedCount = xl6CgenFixedParamCount(params);
     if ( fixedCount > 0 ) {

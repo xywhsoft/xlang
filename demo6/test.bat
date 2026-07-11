@@ -20,7 +20,7 @@ if errorlevel 1 exit /b 1
 
 rem cgen output includes a private runtime path. The full regression prepares
 rem the same mirror as test\suites\common.bat before suite early-exit is enabled.
-set "XL6_TCC_INCLUDES=-Ibuild\test %XL6_TCC_INCLUDES%"
+set "XL6_TCC_INCLUDES=-Ibuild\test %XL6_TCC_INCLUDES_WINAPI%"
 set "XL6_TCC_INCLUDES_WINAPI=-Ibuild\test %XL6_TCC_INCLUDES_WINAPI%"
 
 call tools\bootstrap_tcc.bat

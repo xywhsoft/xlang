@@ -1,0 +1,15 @@
+func badArray() as array<string>
+    return [1]
+end
+
+func badList() as list<int>
+    return [0: "bad"]
+end
+
+func badSet() as set<string>
+    return {1}
+end
+
+func badDict() as dict<string>
+    return {"key": 1}
+end

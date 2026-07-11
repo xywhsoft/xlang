@@ -10,9 +10,12 @@
 //   - class Individual：chromosome 为 var（承载 array<int> 或 array<float>），fitness float。
 //   - 通用 GA 引擎 gaRun(...)：种群初始化 → 适应度评估 → 选择（轮盘赌/锦标赛）
 //     → 交叉 → 变异 → 精英保留 → 迭代。引擎对染色体类型完全透明，只搬运 Individual。
-//   - 每个问题模块（OneMax/FuncOpt/TSP）提供 5 个策略闭包：
-//       initFn / evalFn / crossFn / mutateFn / cloneFn
-//     闭包内部知道染色体精确类型，构造全新数组返回；引擎从不就地修改共享染色体。
+//   - 每个问题模块（OneMax/FuncOpt/TSP）提供 5 个策略函数（普通顶层函数，非闭包）：
+//       init / eval / cross / mutate / clone
+//     由 g_mode 分派（initStep/evalStep/crossStep/mutateStep/cloneStep）；策略内部知道
+//     染色体精确类型，构造全新数组返回；引擎从不就地修改共享染色体。
+//     （原实现用 func literal 闭包承载策略，但当前运行时闭包反复调用会破坏堆，故改用
+//     模块级普通函数 + 模式分派，走正常函数调用路径。）
 //   - 引擎始终“最大化” fitness：TSP 用 1/(1+路程) 把最小化转成最大化。
 //   - 随机种子固定，保证 xl run 与 built exe 输出一致（可复现）。
 //
@@ -85,13 +88,308 @@ end
 // GA 引擎
 // ============================================================
 
+// ---- 模式与策略全局参数 ----
+// 原实现用闭包（func literal）承载每问题的策略并传给 gaRun。当前运行时里闭包
+// 反复调用会破坏堆（与 typed array / class var 字段共存时触发访问违规），故改为
+// “模式分派 + 模块级普通函数”：runXxx 设置全局参数后调用 gaRun，gaRun 通过
+// initStep/evalStep/crossStep/mutateStep/cloneStep 按 g_mode 分派到具体函数。
+// 这些都是普通顶层函数的直接调用，走与 CASE E 一致的正常调用路径。
+const int MODE_ONEMAX = 0
+const int MODE_FUNCOPT = 1
+const int MODE_TSP = 2
+
+int g_mode = MODE_ONEMAX
+int g_geneLen = 0
+float g_mRate = 0.0
+int g_dim = 0
+float g_lower = 0.0
+float g_upper = 0.0
+float g_span = 0.0
+int g_n = 0
+array<float> g_dist = array[]
+
+// ---------- OneMax 策略 ----------
+func initOneMax() as var
+    array<int> chrom = array[]
+    int i = 0
+    while i < g_geneLen do
+        chrom.push(random.range(0, 1))
+        i += 1
+    end
+    return chrom
+end
+
+func evalOneMax(var c) as float
+    int sum = 0
+    int i = 0
+    int n = c.length
+    while i < n do
+        sum += int(c[i])
+        i += 1
+    end
+    return float(sum)
+end
+
+func crossOneMax(var a, var b) as var
+    int n = a.length
+    int cut = random.range(0, n - 1)
+    array<int> child = array[]
+    int i = 0
+    while i < cut do
+        child.push(int(a[i]))
+        i += 1
+    end
+    while i < n do
+        child.push(int(b[i]))
+        i += 1
+    end
+    return child
+end
+
+func mutateOneMax(var c) as var
+    int n = c.length
+    array<int> child = array[]
+    int i = 0
+    while i < n do
+        int bit = int(c[i])
+        if randFloat() < g_mRate then
+            bit = 1 - bit
+        end
+        child.push(bit)
+        i += 1
+    end
+    return child
+end
+
+// ---------- FuncOpt 策略 ----------
+func initFuncOpt() as var
+    array<float> chrom = array[]
+    int i = 0
+    while i < g_dim do
+        chrom.push(randFloatRange(g_lower, g_upper))
+        i += 1
+    end
+    return chrom
+end
+
+func evalFuncOpt(var c) as float
+    float sum = 0.0
+    int i = 0
+    int n = c.length
+    while i < n do
+        float x = float(c[i])
+        sum += x * math.sin(x)
+        i += 1
+    end
+    return sum
+end
+
+func crossFuncOpt(var a, var b) as var
+    int n = a.length
+    float alpha = randFloat()
+    array<float> child = array[]
+    int i = 0
+    while i < n do
+        float va = float(a[i])
+        float vb = float(b[i])
+        child.push(alpha * va + (1.0 - alpha) * vb)
+        i += 1
+    end
+    return child
+end
+
+func mutateFuncOpt(var c) as var
+    int n = c.length
+    array<float> child = array[]
+    int i = 0
+    while i < n do
+        float v = float(c[i])
+        if randFloat() < g_mRate then
+            v = v + randGauss() * g_span * 0.1
+            if v < g_lower then
+                v = g_lower
+            end
+            if v > g_upper then
+                v = g_upper
+            end
+        end
+        child.push(v)
+        i += 1
+    end
+    return child
+end
+
+// ---------- TSP 策略 ----------
+func initTSP() as var
+    array<int> perm = array[]
+    int i = 0
+    while i < g_n do
+        perm.push(i)
+        i += 1
+    end
+    int s = g_n - 1
+    while s > 0 do
+        int r = random.range(0, s)
+        int tmp = perm[s]
+        perm[s] = perm[r]
+        perm[r] = tmp
+        s -= 1
+    end
+    return perm
+end
+
+func evalTSP(var c) as float
+    return 1.0 / (1.0 + tourLength(c, g_dist, g_n))
+end
+
+func crossTSP(var a, var b) as var
+    int n = g_n
+    int start = random.range(0, n - 1)
+    int endIdx = random.range(0, n - 1)
+    if start > endIdx then
+        int t = start
+        start = endIdx
+        endIdx = t
+    end
+    array<int> child = array[]
+    int k = 0
+    while k < n do
+        child.push(-1)
+        k += 1
+    end
+    k = start
+    while k <= endIdx do
+        child[k] = int(a[k])
+        k += 1
+    end
+    int fill = (endIdx + 1) % n
+    int bi = (endIdx + 1) % n
+    while fill != start do
+        int gene = int(b[bi])
+        bool present = false
+        int ci = 0
+        while ci < n do
+            if child[ci] == gene then
+                present = true
+            end
+            ci += 1
+        end
+        if not present then
+            child[fill] = gene
+            fill = (fill + 1) % n
+        end
+        bi = (bi + 1) % n
+    end
+    return child
+end
+
+func mutateTSP(var c) as var
+    array<int> child = array[]
+    int k = 0
+    int n = g_n
+    while k < n do
+        child.push(int(c[k]))
+        k += 1
+    end
+    if randFloat() < g_mRate then
+        int i1 = random.range(0, n - 1)
+        int i2 = random.range(0, n - 1)
+        if i1 > i2 then
+            int t = i1
+            i1 = i2
+            i2 = t
+        end
+        while i1 < i2 do
+            int tmp = child[i1]
+            child[i1] = child[i2]
+            child[i2] = tmp
+            i1 += 1
+            i2 -= 1
+        end
+    end
+    return child
+end
+
+// ---------- 拷贝策略（按染色体元素类型）----------
+func cloneIntChrom(var c) as var
+    int n = c.length
+    array<int> child = array[]
+    int i = 0
+    while i < n do
+        child.push(int(c[i]))
+        i += 1
+    end
+    return child
+end
+
+func cloneFloatChrom(var c) as var
+    int n = c.length
+    array<float> child = array[]
+    int i = 0
+    while i < n do
+        child.push(float(c[i]))
+        i += 1
+    end
+    return child
+end
+
+// ---------- 分派层（普通函数直接调用）----------
+func initStep() as var
+    if g_mode == MODE_FUNCOPT then
+        return initFuncOpt()
+    end
+    if g_mode == MODE_TSP then
+        return initTSP()
+    end
+    return initOneMax()
+end
+
+func evalStep(var c) as float
+    if g_mode == MODE_FUNCOPT then
+        return evalFuncOpt(c)
+    end
+    if g_mode == MODE_TSP then
+        return evalTSP(c)
+    end
+    return evalOneMax(c)
+end
+
+func crossStep(var a, var b) as var
+    if g_mode == MODE_FUNCOPT then
+        return crossFuncOpt(a, b)
+    end
+    if g_mode == MODE_TSP then
+        return crossTSP(a, b)
+    end
+    return crossOneMax(a, b)
+end
+
+func mutateStep(var c) as var
+    if g_mode == MODE_FUNCOPT then
+        return mutateFuncOpt(c)
+    end
+    if g_mode == MODE_TSP then
+        return mutateTSP(c)
+    end
+    return mutateOneMax(c)
+end
+
+func cloneStep(var c) as var
+    if g_mode == MODE_FUNCOPT then
+        return cloneFloatChrom(c)
+    end
+    return cloneIntChrom(c)
+end
+
 // 评估所有未评估个体（直接索引就地写 fitness/evaluated）。
-func gaEvaluate(array<Individual> pop, func(var) as float evalFn)
+func gaEvaluate(array<Individual> pop)
     int i = 0
     int n = pop.length
     while i < n do
         if not pop[i].evaluated then
-            pop[i].fitness = evalFn(pop[i].chromosome)
+            var chrom = pop[i].chromosome
+            float f = evalStep(chrom)
+            pop[i].fitness = f
             pop[i].evaluated = true
         end
         i += 1
@@ -196,29 +494,18 @@ func gaSelect(array<Individual> pop, GAConfig cfg) as Individual
 end
 
 // 通用 GA 主循环。返回历史最优 Individual（最大化 fitness）。
-//
-//   initFn()          -> 随机生成一条染色体
-//   evalFn(chrom)     -> 计算适应度（越大越好）
-//   crossFn(a, b)     -> 交叉产生全新染色体
-//   mutateFn(chrom)   -> 对（全新）染色体施加变异，返回结果
-//   cloneFn(chrom)    -> 深拷贝染色体（用于“不交叉则复制父代”分支）
-// 策略回调：染色体相关用擦除 func（返回 var，动态调用），evalFn 用带签名
-// func(var) as float（确认可用，见 examples/task_api.xl）。
-func gaRun(GAConfig cfg,
-           func initFn,
-           func(var) as float evalFn,
-           func crossFn,
-           func mutateFn,
-           func cloneFn,
-           bool verbose) as Individual
+// 策略通过 g_mode 分派到 initStep/evalStep/crossStep/mutateStep/cloneStep
+// （均为普通顶层函数直接调用），避免闭包导致的堆破坏。
+func gaRun(GAConfig cfg, int mode, bool verbose) as Individual
 
+    g_mode = mode
     array<Individual> pop = array[]
     int i = 0
     while i < cfg.populationSize do
-        pop.append(Individual(initFn()))
+        pop.append(Individual(initStep()))
         i += 1
     end
-    gaEvaluate(pop, evalFn)
+    gaEvaluate(pop)
     gaSort(pop)
 
     int g = 0
@@ -248,18 +535,20 @@ func gaRun(GAConfig cfg,
         while newPop.length < cfg.populationSize do
             Individual p1 = gaSelect(pop, cfg)
             Individual p2 = gaSelect(pop, cfg)
+            var c1 = p1.chromosome
+            var c2 = p2.chromosome
             var childChrom = array[]
             if randFloat() < cfg.crossoverRate then
-                childChrom = crossFn(p1.chromosome, p2.chromosome)
+                childChrom = crossStep(c1, c2)
             else
-                childChrom = cloneFn(p1.chromosome)
+                childChrom = cloneStep(c1)
             end
-            childChrom = mutateFn(childChrom)
+            childChrom = mutateStep(childChrom)
             newPop.append(Individual(childChrom))
         end
 
         pop = newPop
-        gaEvaluate(pop, evalFn)
+        gaEvaluate(pop)
         gaSort(pop)
         g += 1
     end
@@ -414,73 +703,9 @@ end
 // ============================================================
 
 func runOneMax(int N, GAConfig cfg, bool verbose) as Individual
-    int geneLen = N
-    float mRate = cfg.mutationRate
-
-    func initFn = func() as var
-        array<int> chrom = array[]
-        int i = 0
-        while i < geneLen do
-            chrom.push(random.range(0, 1))
-            i += 1
-        end
-        return chrom
-    end
-
-    func(var) as float evalFn = func(var c) as float
-        int sum = 0
-        int i = 0
-        int n = c.length
-        while i < n do
-            sum += int(c[i])
-            i += 1
-        end
-        return float(sum)
-    end
-
-    func crossFn = func(var a, var b) as var
-        int n = a.length
-        int cut = random.range(0, n - 1)
-        array<int> child = array[]
-        int i = 0
-        while i < cut do
-            child.push(int(a[i]))
-            i += 1
-        end
-        while i < n do
-            child.push(int(b[i]))
-            i += 1
-        end
-        return child
-    end
-
-    func mutateFn = func(var c) as var
-        int n = c.length
-        array<int> child = array[]
-        int i = 0
-        while i < n do
-            int bit = int(c[i])
-            if randFloat() < mRate then
-                bit = 1 - bit
-            end
-            child.push(bit)
-            i += 1
-        end
-        return child
-    end
-
-    func cloneFn = func(var c) as var
-        int n = c.length
-        array<int> child = array[]
-        int i = 0
-        while i < n do
-            child.push(int(c[i]))
-            i += 1
-        end
-        return child
-    end
-
-    return gaRun(cfg, initFn, evalFn, crossFn, mutateFn, cloneFn, verbose)
+    g_geneLen = N
+    g_mRate = cfg.mutationRate
+    return gaRun(cfg, MODE_ONEMAX, verbose)
 end
 
 // ============================================================
@@ -488,83 +713,12 @@ end
 // ============================================================
 
 func runFuncOpt(int D, float lo, float hi, GAConfig cfg, bool verbose) as Individual
-    int dim = D
-    float lower = lo
-    float upper = hi
-    float span = hi - lo
-    float mRate = cfg.mutationRate
-
-    func initFn = func() as var
-        array<float> chrom = array[]
-        int i = 0
-        while i < dim do
-            chrom.push(randFloatRange(lower, upper))
-            i += 1
-        end
-        return chrom
-    end
-
-    func(var) as float evalFn = func(var c) as float
-        float sum = 0.0
-        int i = 0
-        int n = c.length
-        while i < n do
-            float x = float(c[i])
-            sum += x * math.sin(x)
-            i += 1
-        end
-        return sum
-    end
-
-    // 整体算术交叉：child = alpha*a + (1-alpha)*b
-    func crossFn = func(var a, var b) as var
-        int n = a.length
-        float alpha = randFloat()
-        array<float> child = array[]
-        int i = 0
-        while i < n do
-            float va = float(a[i])
-            float vb = float(b[i])
-            child.push(alpha * va + (1.0 - alpha) * vb)
-            i += 1
-        end
-        return child
-    end
-
-    // 高斯变异：被选中基因加 N(0,1)*0.1*span，并夹到 [lo,hi]。
-    func mutateFn = func(var c) as var
-        int n = c.length
-        array<float> child = array[]
-        int i = 0
-        while i < n do
-            float v = float(c[i])
-            if randFloat() < mRate then
-                v = v + randGauss() * span * 0.1
-                if v < lower then
-                    v = lower
-                end
-                if v > upper then
-                    v = upper
-                end
-            end
-            child.push(v)
-            i += 1
-        end
-        return child
-    end
-
-    func cloneFn = func(var c) as var
-        int n = c.length
-        array<float> child = array[]
-        int i = 0
-        while i < n do
-            child.push(float(c[i]))
-            i += 1
-        end
-        return child
-    end
-
-    return gaRun(cfg, initFn, evalFn, crossFn, mutateFn, cloneFn, verbose)
+    g_dim = D
+    g_lower = lo
+    g_upper = hi
+    g_span = hi - lo
+    g_mRate = cfg.mutationRate
+    return gaRun(cfg, MODE_FUNCOPT, verbose)
 end
 
 // ============================================================
@@ -572,112 +726,10 @@ end
 // ============================================================
 
 func runTSP(array<float> coords, int ncities, GAConfig cfg, bool verbose) as Individual
-    int n = ncities
-    array<float> dist = buildDistMatrix(coords, n)
-    float mRate = cfg.mutationRate
-
-    // 随机排列初始化（Fisher-Yates 洗牌）
-    func initFn = func() as var
-        array<int> perm = array[]
-        int i = 0
-        while i < n do
-            perm.push(i)
-            i += 1
-        end
-        int s = n - 1
-        while s > 0 do
-            int r = random.range(0, s)
-            int tmp = perm[s]
-            perm[s] = perm[r]
-            perm[r] = tmp
-            s -= 1
-        end
-        return perm
-    end
-
-    func(var) as float evalFn = func(var c) as float
-        return 1.0 / (1.0 + tourLength(c, dist, n))
-    end
-
-    // 顺序交叉 OX：拷贝 a 的 [start,end] 段，其余按 b 顺序填入。
-    func crossFn = func(var a, var b) as var
-        int start = random.range(0, n - 1)
-        int end = random.range(0, n - 1)
-        if start > end then
-            int t = start
-            start = end
-            end = t
-        end
-        array<int> child = array[]
-        int k = 0
-        while k < n do
-            child.push(-1)
-            k += 1
-        end
-        k = start
-        while k <= end do
-            child[k] = int(a[k])
-            k += 1
-        end
-        int fill = (end + 1) % n
-        int bi = (end + 1) % n
-        while fill != start do
-            int gene = int(b[bi])
-            bool present = false
-            int ci = 0
-            while ci < n do
-                if child[ci] == gene then
-                    present = true
-                end
-                ci += 1
-            end
-            if not present then
-                child[fill] = gene
-                fill = (fill + 1) % n
-            end
-            bi = (bi + 1) % n
-        end
-        return child
-    end
-
-    // 段反转变异（2-opt 风格，对 TSP 极有效）：以概率 mRate 反转一段。
-    func mutateFn = func(var c) as var
-        array<int> child = array[]
-        int k = 0
-        while k < n do
-            child.push(int(c[k]))
-            k += 1
-        end
-        if randFloat() < mRate then
-            int i1 = random.range(0, n - 1)
-            int i2 = random.range(0, n - 1)
-            if i1 > i2 then
-                int t = i1
-                i1 = i2
-                i2 = t
-            end
-            while i1 < i2 do
-                int tmp = child[i1]
-                child[i1] = child[i2]
-                child[i2] = tmp
-                i1 += 1
-                i2 -= 1
-            end
-        end
-        return child
-    end
-
-    func cloneFn = func(var c) as var
-        array<int> child = array[]
-        int k = 0
-        while k < n do
-            child.push(int(c[k]))
-            k += 1
-        end
-        return child
-    end
-
-    return gaRun(cfg, initFn, evalFn, crossFn, mutateFn, cloneFn, verbose)
+    g_n = ncities
+    g_dist = buildDistMatrix(coords, ncities)
+    g_mRate = cfg.mutationRate
+    return gaRun(cfg, MODE_TSP, verbose)
 end
 
 // ============================================================

@@ -438,7 +438,13 @@ static XL6_AstNode* xl6CgenCloneClassMethodCallType(XL6_CgenContext* ctx, const 
         classNode = (XL6_AstNode*)ctx->currentClass;
     } else {
         receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
+        {
+            const XL6_AstNode* classType = xl6CgenRefTargetType(ctx, receiverType);
+            if ( classType == NULL ) {
+                classType = receiverType;
+            }
+            classNode = classType != NULL ? xl6CgenFindClass(ctx, classType->text) : NULL;
+        }
     }
     if ( classNode == NULL ) {
         xl6AstFree(receiverType);
@@ -513,7 +519,12 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
     case XL6_AST_NAME:
         varType = xl6CgenFindVarType(ctx, expr->text);
         if ( varType != NULL && !xl6CTextEquals(varType->text, "auto") ) {
-            return xl6CgenCloneTypeNode(varType);
+            /*
+                泛型函数和泛型类的局部类型表保存声明形态，例如 T、array<T>。
+                推断表达式类型时必须转换为当前实例的具体类型，否则语义检查
+                已通过的 self.method(param) 会在 C 生成阶段再次匹配为 T != int。
+            */
+            return xl6CgenCloneCanonicalTypeNode(ctx, varType);
         }
         {
             XL6_AstNode* fieldType = xl6CgenCloneImplicitSelfFieldType(ctx, expr->text);
@@ -584,7 +595,8 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
                                           xl6CTextEquals(leftContainerName, "list") ||
                                           xl6CTextEquals(leftContainerName, "dict"));
             int isXValue = !isTypedContainerConcat &&
-                            (xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType));
+                            ((xl6CgenIsXValueType(leftType) && xl6CgenRefTargetType(ctx, leftType) == NULL) ||
+                             (xl6CgenIsXValueType(rightType) && xl6CgenRefTargetType(ctx, rightType) == NULL));
             int isNumeric = leftType != NULL && rightType != NULL &&
                             (xl6CgenIsIntegerTypeName(leftType->text) || xl6CgenIsFloatTypeName(leftType->text)) &&
                             (xl6CgenIsIntegerTypeName(rightType->text) || xl6CgenIsFloatTypeName(rightType->text));
@@ -852,6 +864,18 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
         if ( xl6CgenIsImplicitToStringCall(ctx, expr) ) {
             return xl6CgenNewSimpleType("string", expr);
         }
+        if ( expr->childCount > 1 && expr->children[0] != NULL &&
+             expr->children[0]->kind == XL6_AST_NAME &&
+             xl6CTextEquals(expr->children[0]->text, "ref") &&
+             expr->children[1] != NULL && expr->children[1]->childCount == 1 ) {
+            const XL6_AstNode* arg = expr->children[1]->children[0];
+            const XL6_AstNode* valueExpr = arg != NULL && arg->childCount > 0 ? arg->children[0] : NULL;
+            XL6_AstNode* valueType = xl6CgenCloneExprTypeForInference(ctx, valueExpr);
+
+            if ( valueType != NULL ) {
+                return xl6CgenNewGenericTypeNode("ref", valueType, expr);
+            }
+        }
         {
             XL6_AstNode* threadMethodType = xl6CgenThreadMethodType(ctx, expr);
             if ( threadMethodType != NULL ) {
@@ -1094,10 +1118,10 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
                 return xl6CgenNewSimpleType(expr->children[0]->text, expr);
             }
             {
-                XL6_AstNode* customCtor = NULL;
+                XL6_AstNode* nativeClassCtor = NULL;
                 XL6_AstNode* classCtor = NULL;
-                if ( xl6CgenCallIsNativeBackedCtor(ctx, expr, &customCtor) && customCtor != NULL ) {
-                    return xl6CgenNewSimpleType(customCtor->text, expr);
+                if ( xl6CgenCallIsNativeBackedCtor(ctx, expr, &nativeClassCtor) && nativeClassCtor != NULL ) {
+                    return xl6CgenNewSimpleType(nativeClassCtor->text, expr);
                 }
                 if ( xl6CgenCallIsClassCtor(ctx, expr, &classCtor) && classCtor != NULL ) {
                     return xl6CgenNewSimpleType(classCtor->text, expr);

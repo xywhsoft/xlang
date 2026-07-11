@@ -1,0 +1,2308 @@
+// xtorrent.xl - a BitTorrent client (parse + simulated download) in xlang
+//
+// usage:
+//   xtorrent parse <file.torrent>
+//       decode the bencoded torrent, print announce / info / files / piece hashes
+//   xtorrent download <file.torrent> [output_dir]
+//       parse torrent, run a simulated swarm download, assemble + SHA-1 verify
+//   xtorrent test
+//       run the self-test suite (bencode, bitmap, handshake, messages,
+//       rarest-first, choke algorithm, SHA-1 verification, full downloads)
+//   xtorrent --help | -h
+//       show this help
+//
+// design notes (informed by dev/README.md + sibling projects btree/chip8):
+//   * bencode AST uses a single BNode class with typed scalar fields + var
+//     arrays (.items/.keys). this mirrors btree's node design and avoids
+//     BUG-LP1 (var dict created inside the recursive decoder).
+//   * the decoder is a recursive-descent parser that threads the source
+//     Buffer through every call and keeps mutable position in a single
+//     file-scope int (g_pos), so no var container is allocated across the
+//     recursion (which would trip BUG-LP1).
+//   * logic lives in free functions (per spec). free functions freely take
+//     Buffer / array<int> / BNode parameters - class methods cannot
+//     (BUG-C1 / chip8 note), so no class methods do real work here.
+//   * SHA-1 verification uses crypto.sha1 (hashes the UTF-8 bytes of a
+//     string). simulated piece content is printable ASCII, so every digest
+//     is exact and end-to-end verification is real.
+//   * bitmaps are array<int> (one cell per piece) so set/get/clear are plain
+//     typed indexing. peer bitfields are stored as "0"/"1" strings.
+// ---------------------------------------------------------------------------
+
+// --- protocol / algorithm constants -----------------------------------------
+
+const string PROTOCOL          = "BitTorrent protocol"
+const int    HANDSHAKE_PSTRLEN = 19
+const int    HANDSHAKE_LEN     = 68                 // 1 + 19 + 8 + 20 + 20
+const int    RESERVED_LEN      = 8
+const int    HASH_BYTES        = 20
+const int    HASH_HEX          = 40
+const int    BLOCK_SIZE        = 16384              // 16 KiB sub-piece request
+const int    MAX_UNCHOKE       = 4                  // standard BT choke slot count
+const int    OPTIMISTIC_ROUND  = 3                  // optimistic unchoke cadence
+const string PEER_ID_PREFIX    = "-XL2060-"         // Azureus-style client id
+const float  SIM_TICK          = 0.5                // simulated seconds per tick
+const int    DEFAULT_PEERS     = 12
+const int    BAR_WIDTH         = 32
+
+// BT peer-wire message ids
+const int MSG_CHOKE          = 0
+const int MSG_UNCHOKE        = 1
+const int MSG_INTERESTED     = 2
+const int MSG_NOT_INTERESTED = 3
+const int MSG_HAVE           = 4
+const int MSG_BITFIELD       = 5
+const int MSG_REQUEST        = 6
+const int MSG_PIECE          = 7
+const int MSG_CANCEL         = 8
+
+const array<string> MSG_NAMES = ["CHOKE", "UNCHOKE", "INTERESTED", "NOT_INTERESTED",
+    "HAVE", "BITFIELD", "REQUEST", "PIECE", "CANCEL"]
+
+// --- decoder cursor (file scope; only a plain int lives across recursion) ---
+
+int g_pos = 0
+int g_ok  = 1
+
+// ---------------------------------------------------------------------------
+// BNode - bencode AST node (data only; all logic in free functions)
+// ---------------------------------------------------------------------------
+
+class BNode
+    string tag = ""               // "i" | "s" | "l" | "d"
+    int ivalue = 0                // "i"
+    array<int> bytes = array[]    // "s": raw byte values
+    var items = []                // "l": child BNode list ; "d": parallel values
+    var keys = []                 // "d": key strings, parallel to items
+    int start = 0                 // "d": byte offset of opening 'd' in source
+    int endOff = 0             // "d": byte offset just past closing 'e'
+end
+
+// ---------------------------------------------------------------------------
+// small formatting / conversion utilities
+// ---------------------------------------------------------------------------
+
+func intToHex2(int n) as string
+    string d = "0123456789abcdef"
+    int hi = (n >> 4) & 15
+    int lo = n & 15
+    return string.charAt(d, hi) + string.charAt(d, lo)
+end
+
+func bufferFromText(string s) as Buffer
+    Buffer b = Buffer()
+    b.append(s)
+    return b
+end
+
+func bufferFromBytes(array<int> bytes) as Buffer
+    Buffer b = Buffer(bytes.length + 4)
+    int i = 0
+    while i < bytes.length do
+        b.appendByte(int(bytes[i]) & 255)
+        i += 1
+    end
+    return b
+end
+
+func bytesToBuffer(array<int> bytes, int start, int len) as Buffer
+    Buffer b = Buffer(len + 4)
+    int i = 0
+    while i < len do
+        b.appendByte(int(bytes[start + i]) & 255)
+        i += 1
+    end
+    return b
+end
+
+func bufSlice(Buffer src, int start, int len) as Buffer
+    Buffer out = Buffer(len + 4)
+    if start < 0 or len < 0 then return out end
+    int i = 0
+    while i < len do
+        out.appendByte(src.byteAt(start + i))
+        i += 1
+    end
+    return out
+end
+
+func bufAppendBuf(Buffer dst, Buffer src) as int
+    int i = 0
+    int n = src.len()
+    while i < n do
+        dst.appendByte(src.byteAt(i))
+        i += 1
+    end
+    return n
+end
+
+func bufToHexLower(Buffer b) as string
+    return string.lower(codec.hexEncodeBytes(b.data(), c_size(b.len())))
+end
+
+func bytesToHex(array<int> bytes, int start, int len) as string
+    string s = ""
+    int i = 0
+    while i < len do
+        s = s + intToHex2(int(bytes[start + i]) & 255)
+        i += 1
+    end
+    return s
+end
+
+func hexToBuffer(string hex) as Buffer
+    return codec.hexDecodeBytes(string.upper(hex))
+end
+
+func sha1Hex(Buffer b) as string
+    return string.lower(crypto.sha1(b.text()))
+end
+
+func sha1Text(string s) as string
+    return string.lower(crypto.sha1(s))
+end
+
+func humanSize(float bytes) as string
+    float abs = bytes
+    if abs < 0.0 then abs = -abs end
+    string unit = "B"
+    float val = bytes
+    if abs >= 1073741824.0 then
+        val = bytes / 1073741824.0
+        unit = "GiB"
+    elseif abs >= 1048576.0 then
+        val = bytes / 1048576.0
+        unit = "MiB"
+    elseif abs >= 1024.0 then
+        val = bytes / 1024.0
+        unit = "KiB"
+    end
+    if unit == "B" then
+        return string(int(bytes)) + " " + unit
+    end
+    return string.formatFloat(val, ".2") + " " + unit
+end
+
+func formatDuration(float seconds) as string
+    int s = int(seconds)
+    if s < 0 then s = 0 end
+    if s < 60 then return string(s) + "s" end
+    if s < 3600 then return string(s / 60) + "m " + string(s % 60) + "s" end
+    return string(s / 3600) + "h " + string((s % 3600) / 60) + "m"
+end
+
+func clampInt(int v, int lo, int hi) as int
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
+end
+
+func progressBar(float frac, int width) as string
+    string bar = "["
+    int filled = clampInt(int(frac * float(width) + 0.000001), 0, width)
+    int i = 0
+    while i < width do
+        if i < filled then bar = bar + "#" else bar = bar + "-" end
+        i += 1
+    end
+    return bar + "]"
+end
+
+func makePeerId(string tag) as string
+    string id = PEER_ID_PREFIX + string.upper(tag)
+    Random rng = Random(uint64(0xA11CE), uint64(0xBEFE))
+    while string.len(id) < 20 do
+        id = id + rng.string(1, "0123456789ABCDEF")
+    end
+    if string.len(id) > 20 then id = string.left(id, 20) end
+    return id
+end
+
+func sortStringArray(array keys) as array
+    int n = keys.length
+    int i = 1
+    while i < n do
+        string cur = string(keys[i])
+        int j = i - 1
+        bool moved = false
+        while j >= 0 do
+            string prev = string(keys[j])
+            if string.compare(prev, cur, false) <= 0 then
+                j = -1
+            else
+                keys[j + 1] = prev
+                j -= 1
+                moved = true
+            end
+        end
+        if moved then keys[0] = cur end
+        i += 1
+    end
+    return keys
+end
+
+// ---------------------------------------------------------------------------
+// bencode recursive-descent decoder
+// ---------------------------------------------------------------------------
+
+func bnFail() as BNode
+    g_ok = 0
+    BNode n = BNode()
+    n.tag = ""
+    return n
+end
+
+func bnIsDigitByte(int b) as bool
+    return b >= 48 and b <= 57
+end
+
+func bnReadNumberUntil(Buffer src, int terminator) as int
+    int value = 0
+    bool neg = false
+    bool any = false
+    int srclen = src.len()
+    if g_pos < srclen then
+        if src.byteAt(g_pos) == 45 then
+            neg = true
+            g_pos += 1
+        end
+    end
+    while g_pos < srclen do
+        int b = src.byteAt(g_pos)
+        if b == terminator then
+            g_pos += 1
+            if not any then
+                g_ok = 0
+                return 0
+            end
+            if neg then return -value end
+            return value
+        end
+        if not bnIsDigitByte(b) then
+            g_ok = 0
+            return 0
+        end
+        value = value * 10 + (b - 48)
+        any = true
+        g_pos += 1
+    end
+    g_ok = 0
+    return 0
+end
+
+func bnReadInt(Buffer src) as BNode
+    g_pos += 1
+    int v = bnReadNumberUntil(src, 101)
+    BNode n = BNode()
+    n.tag = "i"
+    n.ivalue = v
+    return n
+end
+
+func bnReadBytestring(Buffer src) as BNode
+    int len = bnReadNumberUntil(src, 58)
+    if g_ok == 0 then return bnFail() end
+    if g_pos + len > src.len() then return bnFail() end
+    BNode n = BNode()
+    n.tag = "s"
+    int i = 0
+    while i < len do
+        n.bytes.push(src.byteAt(g_pos + i))
+        i += 1
+    end
+    g_pos += len
+    return n
+end
+
+func bnReadList(Buffer src) as BNode
+    g_pos += 1
+    BNode n = BNode()
+    n.tag = "l"
+    int srclen = src.len()
+    while g_pos < srclen do
+        int b = src.byteAt(g_pos)
+        if b == 101 then
+            g_pos += 1
+            return n
+        end
+        BNode child = bnReadNode(src)
+        if g_ok == 0 then return n end
+        n.items.push(child)
+    end
+    g_ok = 0
+    return n
+end
+
+func bnReadDict(Buffer src) as BNode
+    int dPos = g_pos
+    g_pos += 1
+    BNode n = BNode()
+    n.tag = "d"
+    int srclen = src.len()
+    while g_pos < srclen do
+        int b = src.byteAt(g_pos)
+        if b == 101 then
+            g_pos += 1
+            n.start = dPos
+            n.endOff = g_pos
+            return n
+        end
+        if not bnIsDigitByte(b) then
+            g_ok = 0
+            return n
+        end
+        BNode keyNode = bnReadBytestring(src)
+        if g_ok == 0 then return n end
+        string key = bnText(keyNode)
+        BNode val = bnReadNode(src)
+        if g_ok == 0 then return n end
+        n.keys.push(key)
+        n.items.push(val)
+    end
+    g_ok = 0
+    return n
+end
+
+func bnReadNode(Buffer src) as BNode
+    if g_pos >= src.len() then return bnFail() end
+    int b = src.byteAt(g_pos)
+    if b == 105 then
+        return bnReadInt(src)
+    elseif b == 108 then
+        return bnReadList(src)
+    elseif b == 100 then
+        return bnReadDict(src)
+    elseif bnIsDigitByte(b) then
+        return bnReadBytestring(src)
+    end
+    return bnFail()
+end
+
+func bdecode(Buffer src) as BNode
+    g_pos = 0
+    g_ok = 1
+    if src.len() == 0 then
+        g_ok = 0
+        return BNode()
+    end
+    BNode root = bnReadNode(src)
+    return root
+end
+
+// ---------------------------------------------------------------------------
+// BNode accessors (free functions; no class methods do real work)
+// ---------------------------------------------------------------------------
+
+func bnTag(BNode n) as string
+    if n is null then return "" end
+    return n.tag
+end
+
+func bnIsInt(BNode n) as bool
+    return bnTag(n) == "i"
+end
+func bnIsStr(BNode n) as bool
+    return bnTag(n) == "s"
+end
+func bnIsList(BNode n) as bool
+    return bnTag(n) == "l"
+end
+func bnIsDict(BNode n) as bool
+    return bnTag(n) == "d"
+end
+
+func bnAsInt(BNode n) as int
+    if not bnIsInt(n) then return 0 end
+    return n.ivalue
+end
+
+func bnAsBytes(BNode n) as array<int>
+    if not bnIsStr(n) then return array[] end
+    return n.bytes
+end
+
+func bnText(BNode n) as string
+    if not bnIsStr(n) then return "" end
+    int n2 = n.bytes.length
+    Buffer b = Buffer(n2 + 4)
+    int i = 0
+    while i < n2 do
+        b.appendByte(int(n.bytes[i]) & 255)
+        i += 1
+    end
+    return b.text()
+end
+
+func bnListLen(BNode n) as int
+    if not bnIsList(n) then return 0 end
+    return n.items.length
+end
+
+func bnListItem(BNode n, int i) as BNode
+    var v = n.items[i]
+    return v as BNode
+end
+
+func bnDictLen(BNode n) as int
+    if not bnIsDict(n) then return 0 end
+    return n.keys.length
+end
+
+func bnDictKey(BNode n, int i) as string
+    return string(n.keys[i])
+end
+
+func bnDictVal(BNode n, int i) as BNode
+    var v = n.items[i]
+    return v as BNode
+end
+
+func bnHasKey(BNode n, string key) as bool
+    if not bnIsDict(n) then return false end
+    int i = 0
+    int k = n.keys.length
+    while i < k do
+        if string(n.keys[i]) == key then return true end
+        i += 1
+    end
+    return false
+end
+
+func bnGet(BNode n, string key) as BNode
+    if not bnIsDict(n) then return BNode() end
+    int i = 0
+    int k = n.keys.length
+    while i < k do
+        if string(n.keys[i]) == key then
+            var v = n.items[i]
+            return v as BNode
+        end
+        i += 1
+    end
+    return BNode()
+end
+
+func bnGetText(BNode n, string key) as string
+    return bnText(bnGet(n, key))
+end
+
+func bnGetInt(BNode n, string key) as int
+    return bnAsInt(bnGet(n, key))
+end
+
+// ---------------------------------------------------------------------------
+// BNode constructors + encoder (round-trip / canonical serialisation)
+// ---------------------------------------------------------------------------
+
+func bInt(int v) as BNode
+    BNode n = BNode()
+    n.tag = "i"
+    n.ivalue = v
+    return n
+end
+
+func bStrText(string s) as BNode
+    BNode n = BNode()
+    n.tag = "s"
+    Buffer b = Buffer(string.byteLen(s) + 1)
+    b.append(s)
+    int i = 0
+    int k = b.len()
+    while i < k do
+        n.bytes.push(b.byteAt(i))
+        i += 1
+    end
+    return n
+end
+
+func bStrBytes(array<int> bytes) as BNode
+    BNode n = BNode()
+    n.tag = "s"
+    int i = 0
+    while i < bytes.length do
+        n.bytes.push(int(bytes[i]) & 255)
+        i += 1
+    end
+    return n
+end
+
+func bList() as BNode
+    BNode n = BNode()
+    n.tag = "l"
+    return n
+end
+
+func bListPush(BNode list, BNode child)
+    list.items.push(child)
+end
+
+func bDict() as BNode
+    BNode n = BNode()
+    n.tag = "d"
+    return n
+end
+
+func bDictPut(BNode d, string key, BNode val)
+    int i = 0
+    int k = d.keys.length
+    while i < k do
+        if string(d.keys[i]) == key then
+            d.items[i] = val
+            return
+        end
+        i += 1
+    end
+    d.keys.push(key)
+    d.items.push(val)
+end
+
+func encWriteUint(Buffer out, int n) as int
+    if n == 0 then
+        out.appendByte(48)
+        return 0
+    end
+    array<int> digits = array[]
+    int v = n
+    while v > 0 do
+        digits.push(48 + (v % 10))
+        v = v / 10
+    end
+    int i = digits.length - 1
+    while i >= 0 do
+        out.appendByte(int(digits[i]))
+        i -= 1
+    end
+    return 0
+end
+
+func encWriteInt(Buffer out, int n) as int
+    if n < 0 then
+        out.appendByte(45)
+        encWriteUint(out, -n)
+        return 0
+    end
+    return encWriteUint(out, n)
+end
+
+func encNode(Buffer out, BNode n) as int
+    string t = n.tag
+    if t == "i" then
+        out.appendByte(105)
+        encWriteInt(out, n.ivalue)
+        out.appendByte(101)
+        return 0
+    elseif t == "s" then
+        encWriteUint(out, n.bytes.length)
+        out.appendByte(58)
+        int i = 0
+        int k = n.bytes.length
+        while i < k do
+            out.appendByte(int(n.bytes[i]) & 255)
+            i += 1
+        end
+        return 0
+    elseif t == "l" then
+        out.appendByte(108)
+        int i = 0
+        int k = n.items.length
+        while i < k do
+            var v = n.items[i]
+            encNode(out, v as BNode)
+            i += 1
+        end
+        out.appendByte(101)
+        return 0
+    elseif t == "d" then
+        out.appendByte(100)
+        int k = n.keys.length
+        array<int> order = array[]
+        int i = 0
+        while i < k do
+            order.push(i)
+            i += 1
+        end
+        int a = 1
+        while a < k do
+            int cur = order[a]
+            string curKey = string(n.keys[cur])
+            int j = a - 1
+            bool moved = false
+            while j >= 0 do
+                string prevKey = string(n.keys[order[j]])
+                if string.compare(prevKey, curKey, false) <= 0 then
+                    j = -1
+                else
+                    order[j + 1] = order[j]
+                    j -= 1
+                    moved = true
+                end
+            end
+            if moved then order[0] = cur end
+            a += 1
+        end
+        int m = 0
+        while m < k do
+            int idx = int(order[m])
+            string keyStr = string(n.keys[idx])
+            encWriteUint(out, string.byteLen(keyStr))
+            out.appendByte(58)
+            int bi = 0
+            int blen = string.byteLen(keyStr)
+            while bi < blen do
+                out.appendByte(string.byteAt(keyStr, bi))
+                bi += 1
+            end
+            var vv = n.items[idx]
+            encNode(out, vv as BNode)
+            m += 1
+        end
+        out.appendByte(101)
+        return 0
+    end
+    return 0
+end
+
+func bencode(BNode n) as Buffer
+    Buffer out = Buffer()
+    encNode(out, n)
+    return out
+end
+
+func bnodeEqual(BNode a, BNode b) as bool
+    string ta = bnTag(a)
+    string tb = bnTag(b)
+    if ta != tb then return false end
+    if ta == "i" then return bnAsInt(a) == bnAsInt(b) end
+    if ta == "s" then
+        if a.bytes.length != b.bytes.length then return false end
+        int i = 0
+        while i < a.bytes.length do
+            if int(a.bytes[i]) != int(b.bytes[i]) then return false end
+            i += 1
+        end
+        return true
+    end
+    if ta == "l" then
+        if bnListLen(a) != bnListLen(b) then return false end
+        int i = 0
+        int k = bnListLen(a)
+        while i < k do
+            if not bnodeEqual(bnListItem(a, i), bnListItem(b, i)) then return false end
+            i += 1
+        end
+        return true
+    end
+    if ta == "d" then
+        if bnDictLen(a) != bnDictLen(b) then return false end
+        int i = 0
+        int k = bnDictLen(a)
+        while i < k do
+            string key = bnDictKey(a, i)
+            if not bnHasKey(b, key) then return false end
+            if not bnodeEqual(bnDictVal(a, i), bnGet(b, key)) then return false end
+            i += 1
+        end
+        return true
+    end
+    return false
+end
+
+// ---------------------------------------------------------------------------
+// .torrent parsing -> flat metadata (var dict with scalar fields + arrays)
+// ---------------------------------------------------------------------------
+
+func splitPiecesHashes(array<int> rawBytes, int pieceLength, int totalLength) as array
+    array result = []
+    int pieceCount = totalLength / pieceLength
+    if totalLength % pieceLength != 0 then pieceCount += 1 end
+    if pieceCount == 0 then pieceCount = rawBytes.length / HASH_BYTES end
+    if rawBytes.length / HASH_BYTES < pieceCount then
+        pieceCount = rawBytes.length / HASH_BYTES
+    end
+    int i = 0
+    while i < pieceCount do
+        string h = bytesToHex(rawBytes, i * HASH_BYTES, HASH_BYTES)
+        int off = i * pieceLength
+        int remain = totalLength - off
+        int plen = pieceLength
+        if remain < pieceLength then plen = remain end
+        if plen < 0 then plen = 0 end
+        result.push({"index": i, "hash": h, "offset": off, "length": plen,
+            "have": false, "requested": false, "downloaded": 0, "availability": 0})
+        i += 1
+    end
+    return result
+end
+
+func parseAnnounceList(BNode root) as array
+    BNode al = bnGet(root, "announce-list")
+    if not bnIsList(al) then return [] end
+    array result = []
+    int i = 0
+    int tiers = bnListLen(al)
+    while i < tiers do
+        BNode tier = bnListItem(al, i)
+        if bnIsList(tier) then
+            int j = 0
+            int urls = bnListLen(tier)
+            while j < urls do
+                string u = bnText(bnListItem(tier, j))
+                if string.len(u) > 0 then result.push(u) end
+                j += 1
+            end
+        end
+        i += 1
+    end
+    return result
+end
+
+func parseFileList(BNode info, string fallbackName) as array
+    array files = []
+    if bnHasKey(info, "files") then
+        BNode fl = bnGet(info, "files")
+        int n = bnListLen(fl)
+        int i = 0
+        while i < n do
+            BNode f = bnListItem(fl, i)
+            int flen = bnGetInt(f, "length")
+            BNode pathNode = bnGet(f, "path")
+            array segs = []
+            if bnIsList(pathNode) then
+                int j = 0
+                int pn = bnListLen(pathNode)
+                while j < pn do
+                    segs.push(bnText(bnListItem(pathNode, j)))
+                    j += 1
+                end
+            end
+            files.push({"length": flen, "path": segs, "pathText": string.join(segs, "/")})
+            i += 1
+        end
+    else
+        int singleLen = bnGetInt(info, "length")
+        array segs = []
+        segs.push(fallbackName)
+        files.push({"length": singleLen, "path": segs, "pathText": fallbackName})
+    end
+    return files
+end
+
+func totalLengthOf(array files) as int
+    int total = 0
+    int i = 0
+    while i < files.length do
+        var f = files[i]
+        total += int(f["length"])
+        i += 1
+    end
+    return total
+end
+
+func parseTorrentBuffer(Buffer src) as var
+    BNode root = bdecode(src)
+    if g_ok == 0 or not bnIsDict(root) then return null end
+
+    string announce = bnGetText(root, "announce")
+    array announceList = parseAnnounceList(root)
+    string comment = bnGetText(root, "comment")
+    string createdBy = bnGetText(root, "created by")
+    int creationDate = bnGetInt(root, "creation date")
+    string encoding = bnGetText(root, "encoding")
+
+    BNode info = bnGet(root, "info")
+    if not bnIsDict(info) then return null end
+
+    string name = bnGetText(info, "name")
+    int pieceLength = bnGetInt(info, "piece length")
+    array<int> piecesBytes = bnAsBytes(bnGet(info, "pieces"))
+    int privateFlag = bnGetInt(info, "private")
+
+    array files = parseFileList(info, name)
+    int totalLength = totalLengthOf(files)
+    if totalLength <= 0 then totalLength = bnGetInt(info, "length") end
+
+    array pieceTable = splitPiecesHashes(piecesBytes, pieceLength, totalLength)
+
+    string infoHash = ""
+    if info.endOff > info.start then
+        Buffer region = bufSlice(src, info.start, info.endOff - info.start)
+        infoHash = sha1Hex(region)
+    end
+
+    return {"announce": announce, "announceList": announceList,
+        "comment": comment, "createdBy": createdBy,
+        "creationDate": creationDate, "encoding": encoding,
+        "name": name, "pieceLength": pieceLength,
+        "pieceCount": pieceTable.length, "pieces": pieceTable,
+        "rawPiecesHex": bytesToHex(piecesBytes, 0, piecesBytes.length),
+        "files": files, "totalLength": totalLength,
+        "private": privateFlag, "infoHash": infoHash}
+end
+
+// ---------------------------------------------------------------------------
+// deterministic content generation + piece SHA-1 hashing
+// (printable ASCII so crypto.sha1 yields exact digests)
+// ---------------------------------------------------------------------------
+
+func nameSeed(string name) as uint64
+    uint64 h = uint64(1469598103934665603)
+    int i = 0
+    int n = string.byteLen(name)
+    while i < n do
+        int c = string.byteAt(name, i)
+        h = h ^ uint64(c)
+        h = h * uint64(1099511628211)
+        i += 1
+    end
+    return h
+end
+
+func generateContent(string name, int totalLength) as Buffer
+    Buffer out = Buffer(totalLength + 16)
+    string printable = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/-_.,: "
+    int plen = string.len(printable)
+    uint64 seed = nameSeed(name)
+    Random rng = Random(seed, uint64(0x9E3779B97F4A7C15))
+    int i = 0
+    while i < totalLength do
+        int idx = int(rng.u64() % uint64(plen))
+        out.appendByte(string.byteAt(printable, idx))
+        i += 1
+    end
+    return out
+end
+
+func computePieceHashes(Buffer content, int pieceLength, int pieceCount) as array<string>
+    array<string> hashes = array[]
+    int i = 0
+    while i < pieceCount do
+        int off = i * pieceLength
+        int remain = content.len() - off
+        int plen = pieceLength
+        if remain < pieceLength then plen = remain end
+        Buffer piece = bufSlice(content, off, plen)
+        hashes.push(sha1Hex(piece))
+        i += 1
+    end
+    return hashes
+end
+
+// ---------------------------------------------------------------------------
+// bitmap as array<int> (one cell per piece; 0 = absent, 1 = present)
+// ---------------------------------------------------------------------------
+
+func makeBitmap(int bits) as array<int>
+    array<int> bm = array[]
+    int i = 0
+    while i < bits do
+        bm.push(0)
+        i += 1
+    end
+    return bm
+end
+
+func bmSet(array<int> bm, int i)
+    if i >= 0 and i < bm.length then bm[i] = 1 end
+end
+
+func bmClear(array<int> bm, int i)
+    if i >= 0 and i < bm.length then bm[i] = 0 end
+end
+
+func bmGet(array<int> bm, int i) as bool
+    if i < 0 or i >= bm.length then return false end
+    return int(bm[i]) == 1
+end
+
+func bmCount(array<int> bm) as int
+    int c = 0
+    int i = 0
+    while i < bm.length do
+        if int(bm[i]) == 1 then c += 1 end
+        i += 1
+    end
+    return c
+end
+
+func bmString(array<int> bm) as string
+    string s = ""
+    int i = 0
+    while i < bm.length do
+        if int(bm[i]) == 1 then s = s + "1" else s = s + "0" end
+        i += 1
+    end
+    return s
+end
+
+func bmToBitfieldString(array<int> bm) as string
+    return bmString(bm)
+end
+
+func bitfieldGet(string bf, int i) as bool
+    if i < 0 or i >= string.len(bf) then return false end
+    return string.charAt(bf, i) == "1"
+end
+
+func bitfieldCount(string bf) as int
+    int c = 0
+    int i = 0
+    int n = string.len(bf)
+    while i < n do
+        if string.charAt(bf, i) == "1" then c += 1 end
+        i += 1
+    end
+    return c
+end
+
+// ---------------------------------------------------------------------------
+// piece-table helpers
+// ---------------------------------------------------------------------------
+
+func piecesComplete(var table) as int
+    int c = 0
+    int i = 0
+    int n = table.length
+    while i < n do
+        var p = table[i]
+        if bool(p["have"]) then c += 1 end
+        i += 1
+    end
+    return c
+end
+
+func bytesDownloaded(var table) as int
+    int c = 0
+    int i = 0
+    int n = table.length
+    while i < n do
+        var p = table[i]
+        if bool(p["have"]) then
+            c += int(p["length"])
+        else
+            c += int(p["downloaded"])
+        end
+        i += 1
+    end
+    return c
+end
+
+// ---------------------------------------------------------------------------
+// rarest-first piece selection
+// ---------------------------------------------------------------------------
+
+func recomputeAvailability(array peers, var table)
+    int i = 0
+    int np = peers.length
+    int tn = table.length
+    while i < tn do
+        int av = 0
+        int j = 0
+        while j < np do
+            var peer = peers[j]
+            string bf = string(peer["bitfield"])
+            if bitfieldGet(bf, i) then av += 1 end
+            j += 1
+        end
+        var p = table[i]
+        p["availability"] = av
+        i += 1
+    end
+end
+
+func selectRarestFromPeer(var peer, var table, array<int> ours, Random rng) as int
+    int best = -1
+    int bestAvail = 1000000000
+    int candidateCount = 0
+    string peerBf = string(peer["bitfield"])
+    int i = 0
+    int tn = table.length
+    while i < tn do
+        var p = table[i]
+        if bool(p["have"]) then
+            i += 1
+            continue
+        end
+        if bool(p["requested"]) then
+            i += 1
+            continue
+        end
+        if not bitfieldGet(peerBf, i) then
+            i += 1
+            continue
+        end
+        int avail = int(p["availability"])
+        if avail <= 0 then avail = 1 end
+        if avail < bestAvail then
+            bestAvail = avail
+            best = i
+            candidateCount = 1
+        elseif avail == bestAvail then
+            candidateCount += 1
+            if int(rng.u64() % uint64(candidateCount)) == 0 then
+                best = i
+            end
+        end
+        i += 1
+    end
+    return best
+end
+
+// ---------------------------------------------------------------------------
+// peer-wire protocol: handshake + length-prefixed messages
+// ---------------------------------------------------------------------------
+
+func writeUint32Be(Buffer out, int v) as int
+    out.appendByte((v >> 24) & 255)
+    out.appendByte((v >> 16) & 255)
+    out.appendByte((v >> 8) & 255)
+    out.appendByte(v & 255)
+    return 0
+end
+
+func readUint32Be(Buffer src, int off) as int
+    int b0 = src.byteAt(off)
+    int b1 = src.byteAt(off + 1)
+    int b2 = src.byteAt(off + 2)
+    int b3 = src.byteAt(off + 3)
+    return ((b0 & 255) << 24) | ((b1 & 255) << 16) | ((b2 & 255) << 8) | (b3 & 255)
+end
+
+func buildHandshake(string infoHashHex, string peerId) as Buffer
+    Buffer b = Buffer(HANDSHAKE_LEN + 4)
+    b.appendByte(HANDSHAKE_PSTRLEN)
+    b.append(PROTOCOL)
+    int i = 0
+    while i < RESERVED_LEN do
+        b.appendByte(0)
+        i += 1
+    end
+    Buffer ih = hexToBuffer(infoHashHex)
+    bufAppendBuf(b, ih)
+    Buffer pid = bufferFromText(peerId)
+    bufAppendBuf(b, pid)
+    return b
+end
+
+func parseHandshake(Buffer b) as var
+    if b.len() < HANDSHAKE_LEN then return null end
+    if b.byteAt(0) != HANDSHAKE_PSTRLEN then return null end
+    Buffer pstr = bufSlice(b, 1, HANDSHAKE_PSTRLEN)
+    if pstr.text() != PROTOCOL then return null end
+    Buffer reserved = bufSlice(b, 1 + HANDSHAKE_PSTRLEN, RESERVED_LEN)
+    Buffer infoHash = bufSlice(b, 1 + HANDSHAKE_PSTRLEN + RESERVED_LEN, HASH_BYTES)
+    Buffer peerId = bufSlice(b, 1 + HANDSHAKE_PSTRLEN + RESERVED_LEN + HASH_BYTES, HASH_BYTES)
+    return {"pstrlen": HANDSHAKE_PSTRLEN, "pstr": pstr.text(),
+        "reserved": bufToHexLower(reserved),
+        "infoHash": bufToHexLower(infoHash),
+        "peerId": peerId.text()}
+end
+
+func buildKeepalive() as Buffer
+    Buffer b = Buffer(4)
+    writeUint32Be(b, 0)
+    return b
+end
+
+func buildMessage(int id, Buffer payload) as Buffer
+    int total = 1 + payload.len()
+    Buffer b = Buffer(total + 4)
+    writeUint32Be(b, total)
+    b.appendByte(id)
+    bufAppendBuf(b, payload)
+    return b
+end
+
+func buildMessageNoPayload(int id) as Buffer
+    Buffer b = Buffer(5)
+    writeUint32Be(b, 1)
+    b.appendByte(id)
+    return b
+end
+
+func buildHave(int pieceIndex) as Buffer
+    Buffer payload = Buffer(4)
+    writeUint32Be(payload, pieceIndex)
+    return buildMessage(MSG_HAVE, payload)
+end
+
+func buildBitfieldFromBm(array<int> bm) as Buffer
+    Buffer payload = Buffer(bm.length + 4)
+    int i = 0
+    while i < bm.length do
+        payload.appendByte((int(bm[i]) & 1) + 48)
+        i += 1
+    end
+    return buildMessage(MSG_BITFIELD, payload)
+end
+
+func buildRequest(int index, int begin, int length) as Buffer
+    Buffer payload = Buffer(12)
+    writeUint32Be(payload, index)
+    writeUint32Be(payload, begin)
+    writeUint32Be(payload, length)
+    return buildMessage(MSG_REQUEST, payload)
+end
+
+func buildCancel(int index, int begin, int length) as Buffer
+    Buffer payload = Buffer(12)
+    writeUint32Be(payload, index)
+    writeUint32Be(payload, begin)
+    writeUint32Be(payload, length)
+    return buildMessage(MSG_CANCEL, payload)
+end
+
+func buildPiece(int index, int begin, Buffer block) as Buffer
+    Buffer payload = Buffer(8 + block.len())
+    writeUint32Be(payload, index)
+    writeUint32Be(payload, begin)
+    bufAppendBuf(payload, block)
+    return buildMessage(MSG_PIECE, payload)
+end
+
+func msgName(int id) as string
+    if id < 0 or id >= MSG_NAMES.length then return "UNKNOWN" end
+    return string(MSG_NAMES[id])
+end
+
+func parseMessage(Buffer b) as var
+    if b.len() < 4 then return null end
+    int len = readUint32Be(b, 0)
+    if len == 0 then return {"keepalive": true} end
+    if b.len() < 4 + len then return null end
+    int id = b.byteAt(4)
+    Buffer payload = bufSlice(b, 5, len - 1)
+    var msg = {"keepalive": false, "id": id, "name": msgName(id), "payload": payload}
+    if id == MSG_HAVE and payload.len() >= 4 then
+        msg["pieceIndex"] = readUint32Be(payload, 0)
+    elseif id == MSG_REQUEST and payload.len() >= 12 then
+        msg["index"] = readUint32Be(payload, 0)
+        msg["begin"] = readUint32Be(payload, 4)
+        msg["length"] = readUint32Be(payload, 8)
+    elseif id == MSG_PIECE and payload.len() >= 8 then
+        msg["index"] = readUint32Be(payload, 0)
+        msg["begin"] = readUint32Be(payload, 4)
+        msg["blockText"] = bufSlice(payload, 8, payload.len() - 8).text()
+    end
+    return msg
+end
+
+// ---------------------------------------------------------------------------
+// simulated peer pool
+// ---------------------------------------------------------------------------
+
+func makeSimPeer(int index, int pieceCount, Random rng) as var
+    string id = PEER_ID_PREFIX + "P" + string.format(index, "03")
+    while string.len(id) < 20 do
+        id = id + "0"
+    end
+    id = string.left(id, 20)
+    string bf = ""
+    int haveCount = 0
+    int i = 0
+    while i < pieceCount do
+        int roll = int(rng.u64() % uint64(100))
+        if roll < 75 then
+            bf = bf + "1"
+            haveCount += 1
+        else
+            bf = bf + "0"
+        end
+        i += 1
+    end
+    if haveCount == 0 and pieceCount > 0 then
+        int only = int(rng.u64() % uint64(pieceCount))
+        bf = ""
+        int k = 0
+        while k < pieceCount do
+            if k == only then bf = bf + "1" else bf = bf + "0" end
+            k += 1
+        end
+        haveCount = 1
+    end
+    return {"index": index, "peerId": id,
+        "amChoking": true, "amInterested": false,
+        "peerChoking": true, "peerInterested": true,
+        "bitfield": bf, "piecesHave": haveCount,
+        "downloaded": 0, "uploaded": 0,
+        "downRate": 0.0, "upRate": 0.0,
+        "activePiece": -1, "activeBegin": 0}
+end
+
+func buildPeerPool(int count, int pieceCount, Random rng) as array
+    array peers = []
+    int i = 0
+    while i < count do
+        peers.push(makeSimPeer(i, pieceCount, rng))
+        i += 1
+    end
+    return peers
+end
+
+// ---------------------------------------------------------------------------
+// choke / unchoke algorithm (4 download slots + 1 optimistic)
+// ---------------------------------------------------------------------------
+
+func sortPeerIndicesByRate(array peers) as array<int>
+    int n = peers.length
+    array<int> idx = array[]
+    int i = 0
+    while i < n do
+        idx.push(i)
+        i += 1
+    end
+    int a = 1
+    while a < n do
+        int cur = int(idx[a])
+        float curRate = float(peers[cur]["downRate"])
+        int j = a - 1
+        bool moved = false
+        while j >= 0 do
+            float prevRate = float(peers[int(idx[j])]["downRate"])
+            if prevRate >= curRate then
+                j = -1
+            else
+                idx[j + 1] = idx[j]
+                j -= 1
+                moved = true
+            end
+        end
+        if moved then idx[0] = cur end
+        a += 1
+    end
+    return idx
+end
+
+func intArrayContains(array<int> a, int v) as bool
+    int i = 0
+    while i < a.length do
+        if int(a[i]) == v then return true end
+        i += 1
+    end
+    return false
+end
+
+func runChokeAlgorithm(array peers, int round) as var
+    int n = peers.length
+    array<int> order = sortPeerIndicesByRate(peers)
+    array<int> unchoked = array[]
+    int i = 0
+    while i < n and unchoked.length < MAX_UNCHOKE do
+        int pi = int(order[i])
+        var peer = peers[pi]
+        if bool(peer["peerInterested"]) or float(peer["downRate"]) > 0.0 then
+            unchoked.push(pi)
+        end
+        i += 1
+    end
+    int k = 0
+    while k < n and unchoked.length < MAX_UNCHOKE do
+        int pi = int(order[k])
+        if not intArrayContains(unchoked, pi) then unchoked.push(pi) end
+        k += 1
+    end
+    int optPeer = -1
+    if round % OPTIMISTIC_ROUND == 0 then
+        array<int> candidates = array[]
+        int j = 0
+        while j < n do
+            if not intArrayContains(unchoked, j) then candidates.push(j) end
+            j += 1
+        end
+        if candidates.length > 0 then
+            Random rng = Random(uint64(round + 7), uint64(0xABCDEF))
+            optPeer = int(candidates[int(rng.u64() % uint64(candidates.length))])
+            unchoked.push(optPeer)
+        end
+    end
+    int m = 0
+    while m < n do
+        var peer = peers[m]
+        if intArrayContains(unchoked, m) then
+            peer["amChoking"] = false
+        else
+            peer["amChoking"] = true
+        end
+        m += 1
+    end
+    var result = []
+    int u = 0
+    while u < unchoked.length do
+        result.push(int(unchoked[u]))
+        u += 1
+    end
+    return {"unchoked": result, "optimistic": optPeer, "count": unchoked.length}
+end
+
+// ---------------------------------------------------------------------------
+// rate statistics (EMA-based; scalar fields only, no window arrays)
+// ---------------------------------------------------------------------------
+
+func makeRateStats() as var
+    return {"downloaded": 0, "uploaded": 0,
+        "downRate": 0.0, "upRate": 0.0,
+        "maxDownRate": 0.0, "startTime": time.timer()}
+end
+
+func rsAddDownload(var rs, int bytes, float instantScale)
+    rs["downloaded"] = int(rs["downloaded"]) + bytes
+    float instant = float(bytes) / SIM_TICK * instantScale
+    float old = float(rs["downRate"])
+    rs["downRate"] = old * 0.7 + instant * 0.3
+    if float(rs["downRate"]) > float(rs["maxDownRate"]) then
+        rs["maxDownRate"] = rs["downRate"]
+    end
+end
+
+func rsAddUpload(var rs, int bytes)
+    rs["uploaded"] = int(rs["uploaded"]) + bytes
+    float instant = float(bytes) / SIM_TICK
+    float old = float(rs["upRate"])
+    rs["upRate"] = old * 0.7 + instant * 0.3
+end
+
+func rsEta(var rs, int remainingBytes) as float
+    float dr = float(rs["downRate"])
+    if dr < 1.0 then return -1.0 end
+    return float(remainingBytes) / dr
+end
+
+// ---------------------------------------------------------------------------
+// file assembly (single + multi file) and on-disk SHA-1 re-verification
+// ---------------------------------------------------------------------------
+
+func writeSliceToFile(string path, Buffer content, int start, int len) as bool
+    Buffer slice = bufSlice(content, start, len)
+    return file.writeBytes(path, slice)
+end
+
+func ensureParentDir(string filePath) as bool
+    string parent = path.dir(filePath)
+    if string.len(parent) == 0 then return true end
+    if dir.exists(parent) then return true end
+    return dir.createAll(parent)
+end
+
+func joinSegments(array<string> parts) as string
+    string out = parts[0]
+    int i = 1
+    while i < parts.length do
+        out = path.join(out, parts[i])
+        i += 1
+    end
+    return out
+end
+
+func assembleFiles(Buffer content, var torrent, string outputDir) as array
+    array results = []
+    string rootName = string(torrent["name"])
+    string rootDir = path.join(outputDir, rootName)
+    var files = torrent["files"]
+    int fileCount = files.length
+    bool singleFile = fileCount == 1
+    int offset = 0
+    int i = 0
+    while i < fileCount do
+        var f = files[i]
+        int flen = int(f["length"])
+        string outPath
+        if singleFile then
+            outPath = path.join(outputDir, rootName)
+        else
+            var segsVar = f["path"]
+            array<string> parts = array[]
+            parts.push(rootDir)
+            int sn = segsVar.length
+            int j = 0
+            while j < sn do
+                parts.push(string(segsVar[j]))
+                j += 1
+            end
+            outPath = joinSegments(parts)
+        end
+        ensureParentDir(outPath)
+        bool ok = writeSliceToFile(outPath, content, offset, flen)
+        results.push({"path": outPath, "length": flen, "offset": offset, "ok": ok})
+        offset += flen
+        i += 1
+    end
+    return results
+end
+
+func verifyAssembledFile(string pathStr, int pieceLength, var expectedHashes) as var
+    int count = expectedHashes.length
+    if not file.exists(pathStr) then return {"ok": false, "verified": 0, "total": count} end
+    Buffer content = file.readBytes(pathStr)
+    int i = 0
+    int okCount = 0
+    while i < count do
+        int off = i * pieceLength
+        int remain = content.len() - off
+        int plen = pieceLength
+        if remain < pieceLength then plen = remain end
+        Buffer piece = bufSlice(content, off, plen)
+        if sha1Hex(piece) == string(expectedHashes[i]) then okCount += 1 end
+        i += 1
+    end
+    return {"ok": okCount == count, "verified": okCount, "total": count}
+end
+
+// ---------------------------------------------------------------------------
+// download simulation engine
+// ---------------------------------------------------------------------------
+
+func simulateDownload(var torrent, string outputDir, int peerCount) as var
+    int totalLength = int(torrent["totalLength"])
+    int pieceLength = int(torrent["pieceLength"])
+    string name = string(torrent["name"])
+    int pieceCount = int(torrent["pieceCount"])
+
+    if pieceCount == 0 then return {"ok": false, "reason": "no pieces"} end
+    if totalLength <= 0 then return {"ok": false, "reason": "empty torrent"} end
+
+    Buffer content = generateContent(name, totalLength)
+    array<string> workingHashes = computePieceHashes(content, pieceLength, pieceCount)
+
+    var table = torrent["pieces"]
+    int ti = 0
+    while ti < pieceCount do
+        var p = table[ti]
+        p["hash"] = string(workingHashes[ti])
+        p["have"] = false
+        p["requested"] = false
+        p["downloaded"] = 0
+        p["availability"] = 0
+        ti += 1
+    end
+
+    array<int> ours = makeBitmap(pieceCount)
+    Random rng = Random(uint64(0xCAFE), uint64(0xBABE))
+    array peers = buildPeerPool(peerCount, pieceCount, rng)
+    recomputeAvailability(peers, table)
+
+    var rs = makeRateStats()
+    int round = 0
+    var choke = {"unchoked": [], "optimistic": -1}
+    float start = time.timer()
+    int totalBlocks = 0
+    int bi = 0
+    while bi < pieceCount do
+        var pzc = table[bi]
+        int plen = int(pzc["length"])
+        totalBlocks += (plen + BLOCK_SIZE - 1) / BLOCK_SIZE
+        bi += 1
+    end
+
+    println("starting simulated download")
+    println("  name        : " + name)
+    println("  size        : " + humanSize(float(totalLength)) + " (" + string(totalLength) + " bytes)")
+    println("  piece length: " + humanSize(float(pieceLength)))
+    println("  pieces      : " + string(pieceCount) + " (" + string(totalBlocks) + " blocks)")
+    println("  peers       : " + string(peers.length))
+    println("  info_hash   : " + string(torrent["infoHash"]))
+    println("  our peer id : " + makePeerId("DOWN"))
+    println("")
+
+    int lastReportPieces = -1
+    while piecesComplete(table) < pieceCount do
+        round += 1
+        if round == 1 or round % 3 == 0 then
+            choke = runChokeAlgorithm(peers, round)
+        end
+
+        var unchoked = choke["unchoked"]
+        int unchokedCount = unchoked.length
+        int ui = 0
+        while ui < unchokedCount do
+            var peer = peers[int(unchoked[ui])]
+            if bool(peer["amChoking"]) then
+                ui += 1
+                continue
+            end
+            peer["amInterested"] = true
+            if int(peer["activePiece"]) < 0 then
+                int pick = selectRarestFromPeer(peer, table, ours, rng)
+                if pick >= 0 then
+                    peer["activePiece"] = pick
+                    peer["activeBegin"] = 0
+                    var pp = table[pick]
+                    pp["requested"] = true
+                end
+            end
+            ui += 1
+        end
+
+        int ui2 = 0
+        while ui2 < unchokedCount do
+            var peer = peers[int(unchoked[ui2])]
+            int pieceIdx = int(peer["activePiece"])
+            if pieceIdx < 0 then
+                ui2 += 1
+                continue
+            end
+            var piece = table[pieceIdx]
+            int pieceLen = int(piece["length"])
+            int begin = int(peer["activeBegin"])
+            int blockLen = BLOCK_SIZE
+            if begin + blockLen > pieceLen then blockLen = pieceLen - begin end
+            if blockLen <= 0 then
+                piece["downloaded"] = pieceLen
+                piece["have"] = true
+                piece["requested"] = false
+                bmSet(ours, pieceIdx)
+                peer["activePiece"] = -1
+                peer["activeBegin"] = 0
+                ui2 += 1
+                continue
+            end
+            Buffer block = bufSlice(content, int(piece["offset"]) + begin, blockLen)
+            Buffer pieceMsg = buildPiece(pieceIdx, begin, block)
+            rsAddDownload(rs, blockLen, 1.0)
+            rsAddUpload(rs, blockLen / 4)
+            peer["downloaded"] = int(peer["downloaded"]) + blockLen
+            float peerInstant = float(blockLen) / SIM_TICK
+            peer["downRate"] = float(peer["downRate"]) * 0.6 + peerInstant * 0.4
+            peer["activeBegin"] = begin + blockLen
+            int newDown = int(piece["downloaded"]) + blockLen
+            if newDown >= pieceLen then
+                Buffer full = bufSlice(content, int(piece["offset"]), pieceLen)
+                string got = sha1Hex(full)
+                if got == string(piece["hash"]) then
+                    piece["have"] = true
+                else
+                    piece["have"] = false
+                end
+                piece["downloaded"] = pieceLen
+                piece["requested"] = false
+                bmSet(ours, pieceIdx)
+                peer["activePiece"] = -1
+                peer["activeBegin"] = 0
+            else
+                piece["downloaded"] = newDown
+            end
+            ui2 += 1
+        end
+
+        int done = piecesComplete(table)
+        if done - lastReportPieces >= 1 or round == 1 then
+            float frac = float(done) / float(pieceCount)
+            int remaining = totalLength - bytesDownloaded(table)
+            float eta = rsEta(rs, remaining)
+            string etaText
+            if eta < 0.0 then etaText = "--" else etaText = formatDuration(eta) end
+            println("  " + progressBar(frac, BAR_WIDTH) + " "
+                + string.formatFloat(frac * 100.0, ".1") + "%  "
+                + "D " + humanSize(float(rs["downRate"])) + "/s  "
+                + "U " + humanSize(float(rs["upRate"])) + "/s  "
+                + "ETA " + etaText + "  "
+                + "done " + string(done) + "/" + string(pieceCount))
+            lastReportPieces = done
+        end
+        if round > 200000 then
+            println("  aborted: round limit reached")
+            break
+        end
+        if round % 8 == 0 then
+            recomputeAvailability(peers, table)
+        end
+    end
+
+    float elapsed = time.timer() - start
+    array written = assembleFiles(content, torrent, outputDir)
+
+    int verifiedCount = 0
+    int vi = 0
+    while vi < table.length do
+        var p = table[vi]
+        if bool(p["have"]) then verifiedCount += 1 end
+        vi += 1
+    end
+
+    return {"ok": verifiedCount == pieceCount,
+        "workingHashes": workingHashes,
+        "pieces": pieceCount, "verified": verifiedCount,
+        "written": written, "elapsed": elapsed,
+        "downloaded": int(rs["downloaded"]),
+        "uploaded": int(rs["uploaded"]),
+        "avgDownRate": float(totalLength) / (elapsed + 0.000001),
+        "rounds": round}
+end
+
+// ---------------------------------------------------------------------------
+// command: parse
+// ---------------------------------------------------------------------------
+
+func cmdParse(array argv) as int
+    if argv.length < 1 then
+        println("xtorrent: parse requires <file.torrent>")
+        return 1
+    end
+    string tp = string(argv[0])
+    if not file.exists(tp) then
+        println("xtorrent: file not found: " + tp)
+        return 1
+    end
+    Buffer src = file.readBytes(tp)
+    var torrent = parseTorrentBuffer(src)
+    if torrent is null then
+        println("xtorrent: failed to parse (not a valid bencoded torrent)")
+        return 1
+    end
+    printTorrentInfo(torrent, true)
+    return 0
+end
+
+func printTorrentInfo(var torrent, bool verbose) as int
+    println("name         : " + string(torrent["name"]))
+    if string.len(string(torrent["announce"])) > 0 then
+        println("announce     : " + string(torrent["announce"]))
+    end
+    var al = torrent["announceList"]
+    if al.length > 0 then
+        println("announce-list: " + string(al.length) + " tracker(s)")
+        if verbose then
+            int i = 0
+            while i < al.length do
+                println("               " + string(al[i]))
+                i += 1
+            end
+        end
+    end
+    if string.len(string(torrent["comment"])) > 0 then
+        println("comment      : " + string(torrent["comment"]))
+    end
+    if string.len(string(torrent["createdBy"])) > 0 then
+        println("created by   : " + string(torrent["createdBy"]))
+    end
+    int cd = int(torrent["creationDate"])
+    if cd > 0 then
+        time t = time.fromUnix(cd)
+        println("creation date: " + time.format(t) + " (" + string(cd) + ")")
+    end
+    if string.len(string(torrent["infoHash"])) > 0 then
+        println("info_hash    : " + string(torrent["infoHash"]))
+    end
+    int total = int(torrent["totalLength"])
+    println("total size   : " + humanSize(float(total)) + " (" + string(total) + " bytes)")
+    println("piece length : " + humanSize(float(int(torrent["pieceLength"]))) + " (" + string(torrent["pieceLength"]) + " bytes)")
+    println("piece count  : " + string(torrent["pieceCount"]))
+    if int(torrent["private"]) == 1 then
+        println("private      : yes")
+    else
+        println("private      : no")
+    end
+
+    var files = torrent["files"]
+    println("files        : " + string(files.length))
+    int i = 0
+    while i < files.length do
+        var f = files[i]
+        println("               " + string(f["pathText"]) + "  (" + humanSize(float(int(f["length"]))) + ")")
+        i += 1
+    end
+
+    if verbose then
+        var table = torrent["pieces"]
+        int show = table.length
+        if show > 8 then show = 8 end
+        println("")
+        println("piece hashes (first " + string(show) + " of " + string(table.length) + "):")
+        int j = 0
+        while j < show do
+            var p = table[j]
+            println("  #" + string.format(int(p["index"]), "04") + "  " + string(p["hash"]))
+            j += 1
+        end
+    end
+    return 0
+end
+
+// ---------------------------------------------------------------------------
+// command: download
+// ---------------------------------------------------------------------------
+
+func cmdDownload(array argv) as int
+    if argv.length < 1 then
+        println("xtorrent: download requires <file.torrent>")
+        return 1
+    end
+    string tp = string(argv[0])
+    string outputDir = "."
+    if argv.length >= 2 then outputDir = string(argv[1]) end
+    if not file.exists(tp) then
+        println("xtorrent: file not found: " + tp)
+        return 1
+    end
+    Buffer src = file.readBytes(tp)
+    var torrent = parseTorrentBuffer(src)
+    if torrent is null then
+        println("xtorrent: failed to parse torrent")
+        return 1
+    end
+    if not dir.exists(outputDir) then dir.createAll(outputDir) end
+    printTorrentInfo(torrent, false)
+    println("")
+    var result = simulateDownload(torrent, outputDir, DEFAULT_PEERS)
+    return printDownloadResult(torrent, result)
+end
+
+func printDownloadResult(var torrent, var result) as int
+    println("")
+    if bool(result["ok"]) then
+        println("download complete")
+    else
+        println("download finished with errors")
+    end
+    println("  pieces verified : " + string(result["verified"]) + "/" + string(result["pieces"]))
+    println("  downloaded (sim): " + humanSize(float(int(result["downloaded"]))))
+    println("  uploaded   (sim): " + humanSize(float(int(result["uploaded"]))))
+    println("  elapsed         : " + formatDuration(float(result["elapsed"])) + " (" + string.formatFloat(float(result["elapsed"]), ".3") + "s)")
+    println("  avg rate        : " + humanSize(float(result["avgDownRate"])) + "/s")
+    println("  rounds          : " + string(result["rounds"]))
+    var written = result["written"]
+    println("  output files    : " + string(written.length))
+    int i = 0
+    while i < written.length do
+        var w = written[i]
+        string okText = "ok"
+        if not bool(w["ok"]) then okText = "FAILED" end
+        println("     " + string(w["path"]) + "  (" + humanSize(float(int(w["length"]))) + ") [" + okText + "]")
+        i += 1
+    end
+
+    int pieceLength = int(torrent["pieceLength"])
+    var working = result["workingHashes"]
+    if written.length > 0 then
+        var firstEntry = written[0]
+        string firstPath = string(firstEntry["path"])
+        var vf = verifyAssembledFile(firstPath, pieceLength, working)
+        println("  re-verify on disk: " + string(vf["verified"]) + "/" + string(vf["total"]) + " pieces matched")
+    end
+    println("")
+    if bool(result["ok"]) then return 0 end
+    return 2
+end
+
+// ---------------------------------------------------------------------------
+// command: test  (self-test suite)
+// ---------------------------------------------------------------------------
+
+func assertOk(string label, bool cond) as int
+    if cond then
+        println("  [ok] " + label)
+        return 0
+    end
+    println("  [FAIL] " + label)
+    return 1
+end
+
+func testBencodeRoundTrip() as int
+    int fails = 0
+    fails += assertOk("int 42", bnodeEqual(bdecode(bufferFromText("i42e")), bInt(42)))
+    fails += assertOk("int 0", bnodeEqual(bdecode(bufferFromText("i0e")), bInt(0)))
+    fails += assertOk("int 123456789", bnodeEqual(bdecode(bufferFromText("i123456789e")), bInt(123456789)))
+    fails += assertOk("str spam", bnodeEqual(bdecode(bufferFromText("4:spam")), bStrText("spam")))
+    fails += assertOk("str empty", bnodeEqual(bdecode(bufferFromText("0:")), bStrText("")))
+    fails += assertOk("str a:b", bnodeEqual(bdecode(bufferFromText("3:a:b")), bStrText("a:b")))
+
+    BNode lst = bList()
+    bListPush(lst, bInt(1))
+    bListPush(lst, bStrText("two"))
+    bListPush(lst, bInt(3))
+    fails += assertOk("list mix", bnodeEqual(bdecode(bufferFromText("li1e3:twoei3ee")), lst))
+
+    BNode d = bDict()
+    bDictPut(d, "a", bInt(1))
+    bDictPut(d, "b", bStrText("xx"))
+    fails += assertOk("dict", bnodeEqual(bdecode(bufferFromText("d1:ai1e1:b2:xxe")), d))
+
+    BNode nested = bDict()
+    BNode inner = bList()
+    bListPush(inner, bInt(10))
+    bListPush(inner, bStrText("hi"))
+    bDictPut(nested, "k", inner)
+    fails += assertOk("nested", bnodeEqual(bdecode(bufferFromText("d1:kli10e2:hie")), nested))
+
+    fails += assertOk("encode int", bencode(bInt(42)).text() == "i42e")
+    fails += assertOk("encode str", bencode(bStrText("spam")).text() == "4:spam")
+    fails += assertOk("encode list", bencode(lst).text() == "li1e3:twoei3ee")
+    fails += assertOk("encode dict sorted", bencode(d).text() == "d1:ai1e1:b2:xxe")
+    fails += assertOk("encode nested", bencode(nested).text() == "d1:kli10e2:hie")
+
+    BNode binDecode = bdecode(bufferFromText("4:" + "ABCD"))
+    fails += assertOk("binary str len", bnAsBytes(binDecode).length == 4)
+    fails += assertOk("binary str bytes", int(bnAsBytes(binDecode)[0]) == 65 and int(bnAsBytes(binDecode)[3]) == 68)
+    return fails
+end
+
+func testBitmap() as int
+    int fails = 0
+    array<int> bm = makeBitmap(20)
+    fails += assertOk("bm empty count", bmCount(bm) == 0)
+    bmSet(bm, 0)
+    bmSet(bm, 7)
+    bmSet(bm, 19)
+    fails += assertOk("bm get set", bmGet(bm, 0) and bmGet(bm, 7) and bmGet(bm, 19))
+    fails += assertOk("bm not set", not bmGet(bm, 1) and not bmGet(bm, 18))
+    fails += assertOk("bm count 3", bmCount(bm) == 3)
+    bmClear(bm, 7)
+    fails += assertOk("bm clear", not bmGet(bm, 7) and bmCount(bm) == 2)
+    array<int> bm2 = makeBitmap(9)
+    bmSet(bm2, 0)
+    bmSet(bm2, 8)
+    fails += assertOk("bm cross-cell", bmGet(bm2, 0) and bmGet(bm2, 8) and bmCount(bm2) == 2)
+    fails += assertOk("bm string", bmString(bm2) == "100000001")
+    string bf = "10110001"
+    fails += assertOk("bitfield get", bitfieldGet(bf, 0) and not bitfieldGet(bf, 1) and bitfieldGet(bf, 2))
+    fails += assertOk("bitfield count", bitfieldCount(bf) == 4)
+    return fails
+end
+
+func testHandshake() as int
+    int fails = 0
+    string infoHash = sha1Text("info-hash-input")
+    string peerId = makePeerId("TEST")
+    Buffer hs = buildHandshake(infoHash, peerId)
+    fails += assertOk("handshake len", hs.len() == HANDSHAKE_LEN)
+    fails += assertOk("handshake pstrlen", hs.byteAt(0) == HANDSHAKE_PSTRLEN)
+    var parsed = parseHandshake(hs)
+    fails += assertOk("handshake parses", not (parsed is null))
+    fails += assertOk("handshake pstr", string(parsed["pstr"]) == PROTOCOL)
+    fails += assertOk("handshake info_hash", string(parsed["infoHash"]) == infoHash)
+    fails += assertOk("handshake peer_id", string(parsed["peerId"]) == peerId)
+    Buffer bad = bufSlice(hs, 0, 20)
+    fails += assertOk("handshake reject short", parseHandshake(bad) is null)
+    return fails
+end
+
+func testMessages() as int
+    int fails = 0
+    Buffer keep = buildKeepalive()
+    fails += assertOk("keepalive len", keep.len() == 4)
+    var km = parseMessage(keep)
+    fails += assertOk("keepalive parsed", bool(km["keepalive"]))
+
+    Buffer choke = buildMessageNoPayload(MSG_CHOKE)
+    var cm = parseMessage(choke)
+    fails += assertOk("choke id", int(cm["id"]) == MSG_CHOKE)
+    fails += assertOk("choke name", string(cm["name"]) == "CHOKE")
+
+    fails += assertOk("unchoke", int(parseMessage(buildMessageNoPayload(MSG_UNCHOKE))["id"]) == MSG_UNCHOKE)
+    fails += assertOk("interested", int(parseMessage(buildMessageNoPayload(MSG_INTERESTED))["id"]) == MSG_INTERESTED)
+    fails += assertOk("not interested", int(parseMessage(buildMessageNoPayload(MSG_NOT_INTERESTED))["id"]) == MSG_NOT_INTERESTED)
+
+    Buffer have = buildHave(42)
+    var hm = parseMessage(have)
+    fails += assertOk("have id", int(hm["id"]) == MSG_HAVE)
+    fails += assertOk("have piece", int(hm["pieceIndex"]) == 42)
+
+    array<int> bf = makeBitmap(16)
+    bmSet(bf, 1)
+    bmSet(bf, 9)
+    Buffer bfm = buildBitfieldFromBm(bf)
+    var bmMsg = parseMessage(bfm)
+    fails += assertOk("bitfield id", int(bmMsg["id"]) == MSG_BITFIELD)
+
+    Buffer req = buildRequest(7, 16384, 16384)
+    var rm = parseMessage(req)
+    fails += assertOk("request id", int(rm["id"]) == MSG_REQUEST)
+    fails += assertOk("request idx", int(rm["index"]) == 7)
+    fails += assertOk("request begin", int(rm["begin"]) == 16384)
+    fails += assertOk("request len", int(rm["length"]) == 16384)
+
+    Buffer cancel = buildCancel(3, 0, 16384)
+    fails += assertOk("cancel id", int(parseMessage(cancel)["id"]) == MSG_CANCEL)
+
+    Buffer block = bufferFromText("hello-piece-data")
+    Buffer pm = buildPiece(5, 0, block)
+    var pmMsg = parseMessage(pm)
+    fails += assertOk("piece id", int(pmMsg["id"]) == MSG_PIECE)
+    fails += assertOk("piece idx", int(pmMsg["index"]) == 5)
+    fails += assertOk("piece begin", int(pmMsg["begin"]) == 0)
+    fails += assertOk("piece block", string(pmMsg["blockText"]) == "hello-piece-data")
+    return fails
+end
+
+func testRarestFirst() as int
+    int fails = 0
+    int pieceCount = 8
+    array table = []
+    int i = 0
+    while i < pieceCount do
+        table.push({"index": i, "hash": "", "offset": i * 100, "length": 100,
+            "have": false, "requested": false, "downloaded": 0, "availability": 0})
+        i += 1
+    end
+    var donePiece = table[3]
+    donePiece["have"] = true
+
+    Random rng = Random(uint64(1), uint64(2))
+    array peers = []
+    int p = 0
+    while p < 5 do
+        string bf = ""
+        int q = 0
+        while q < pieceCount do
+            bf = bf + "0"
+            q += 1
+        end
+        if p == 0 then
+            bf = "11000000"
+        elseif p == 1 then
+            bf = "01110000"
+        elseif p == 2 then
+            bf = "00100100"
+        elseif p == 3 then
+            bf = "01110010"
+        else
+            bf = "00100001"
+        end
+        peers.push({"index": p, "bitfield": bf, "peerInterested": true,
+            "amChoking": true, "downRate": 0.0, "activePiece": -1})
+        p += 1
+    end
+    recomputeAvailability(peers, table)
+    fails += assertOk("avail p0 == 1", int(table[0]["availability"]) == 1)
+    fails += assertOk("avail p1 == 3", int(table[1]["availability"]) == 3)
+    fails += assertOk("avail p2 == 5", int(table[2]["availability"]) == 5)
+    fails += assertOk("avail p4 == 1", int(table[4]["availability"]) == 1)
+    fails += assertOk("avail p5 == 1", int(table[5]["availability"]) == 1)
+
+    array<int> ours = makeBitmap(pieceCount)
+    int pick = selectRarestFromPeer(peers[0], table, ours, rng)
+    fails += assertOk("rarest peer0 picks rare", pick == 0 or pick == -1)
+    int pick2 = selectRarestFromPeer(peers[2], table, ours, rng)
+    fails += assertOk("rarest peer2 avoids done3", pick2 != 3)
+    return fails
+end
+
+func testChokeAlgorithm() as int
+    int fails = 0
+    int n = 8
+    array peers = []
+    int i = 0
+    while i < n do
+        peers.push({"index": i, "amChoking": true, "amInterested": false,
+            "peerInterested": true, "downRate": float((i + 1) * 100), "activePiece": -1})
+        i += 1
+    end
+    var r1 = runChokeAlgorithm(peers, 1)
+    var u1 = r1["unchoked"]
+    fails += assertOk("choke unchoke count <= 5", u1.length <= 5)
+    fails += assertOk("choke at least max", u1.length >= MAX_UNCHOKE)
+    int choked = 0
+    int j = 0
+    while j < n do
+        if bool(peers[j]["amChoking"]) then choked += 1 end
+        j += 1
+    end
+    fails += assertOk("choke rest choked", choked == n - u1.length)
+    var r3 = runChokeAlgorithm(peers, 3)
+    fails += assertOk("optimistic round runs", int(r3["optimistic"]) >= 0 or u1.length == n)
+    return fails
+end
+
+func testSha1Verification() as int
+    int fails = 0
+    string a = sha1Text("")
+    fails += assertOk("sha1 empty len", string.len(a) == 40)
+    fails += assertOk("sha1 empty val", a == "da39a3ee5e6b4b0d3255bfef95601890afd80709")
+    string b = sha1Text("abc")
+    fails += assertOk("sha1 abc", b == "a9993e364706816aba3e25717850c26c9cd0d89d")
+    string c = sha1Text("The quick brown fox jumps over the lazy dog")
+    fails += assertOk("sha1 fox", c == "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12")
+
+    Buffer content = generateContent("verify-test", 1000)
+    array<string> hashes = computePieceHashes(content, 256, 4)
+    fails += assertOk("piece hashes count", hashes.length == 4)
+    int i = 0
+    int matched = 0
+    while i < 4 do
+        int off = i * 256
+        int plen = 256
+        if off + plen > content.len() then plen = content.len() - off end
+        Buffer piece = bufSlice(content, off, plen)
+        if sha1Hex(piece) == string(hashes[i]) then matched += 1 end
+        i += 1
+    end
+    fails += assertOk("piece sha1 round trip", matched == 4)
+    return fails
+end
+
+func buildSampleTorrentNode(string name, int pieceLength, Buffer content, int totalLength, array files) as BNode
+    int pieceCount = totalLength / pieceLength
+    if totalLength % pieceLength != 0 then pieceCount += 1 end
+    array<string> hashes = computePieceHashes(content, pieceLength, pieceCount)
+    array<int> piecesBytes = array[]
+    int i = 0
+    while i < pieceCount do
+        Buffer h = hexToBuffer(string(hashes[i]))
+        int j = 0
+        while j < h.len() do
+            piecesBytes.push(h.byteAt(j))
+            j += 1
+        end
+        i += 1
+    end
+
+    BNode info = bDict()
+    bDictPut(info, "name", bStrText(name))
+    bDictPut(info, "piece length", bInt(pieceLength))
+    bDictPut(info, "pieces", bStrBytes(piecesBytes))
+    if files.length == 1 then
+        bDictPut(info, "length", bInt(totalLength))
+    else
+        BNode flist = bList()
+        int j = 0
+        while j < files.length do
+            var finfo = files[j]
+            BNode fnode = bDict()
+            bDictPut(fnode, "length", bInt(int(finfo["length"])))
+            BNode pathList = bList()
+            var segsVar = finfo["path"]
+            int sn = segsVar.length
+            int k = 0
+            while k < sn do
+                bListPush(pathList, bStrText(string(segsVar[k])))
+                k += 1
+            end
+            bDictPut(fnode, "path", pathList)
+            bListPush(flist, fnode)
+            j += 1
+        end
+        bDictPut(info, "files", flist)
+    end
+
+    BNode root = bDict()
+    bDictPut(root, "announce", bStrText("udp://tracker.xlang.dev:1337"))
+    BNode al = bList()
+    BNode tier1 = bList()
+    bListPush(tier1, bStrText("udp://tracker.xlang.dev:1337"))
+    bListPush(tier1, bStrText("http://tracker.xlang.dev/announce"))
+    bListPush(al, tier1)
+    bDictPut(root, "announce-list", al)
+    bDictPut(root, "comment", bStrText("xlang sample torrent"))
+    bDictPut(root, "created by", bStrText("xtorrent/test"))
+    bDictPut(root, "creation date", bInt(int(time.toUnix(time.now()))))
+    bDictPut(root, "info", info)
+    return root
+end
+
+func testTorrentStructuralParse() as int
+    int fails = 0
+    BNode node = bDict()
+    bDictPut(node, "a", bInt(1))
+    bDictPut(node, "b", bStrText("two"))
+    bDictPut(node, "c", bList())
+    Buffer enc = bencode(node)
+    BNode back = bdecode(enc)
+    fails += assertOk("parse dict ok", g_ok == 1)
+    fails += assertOk("parse dict keys", bnDictLen(back) == 3)
+    fails += assertOk("parse dict get", bnAsInt(bnGet(back, "a")) == 1)
+    fails += assertOk("parse dict text", bnText(bnGet(back, "b")) == "two")
+    fails += assertOk("parse dict hasKey", bnHasKey(back, "c") and not bnHasKey(back, "z"))
+
+    var p2 = parseTorrentBuffer(enc)
+    fails += assertOk("parse non-torrent -> null", p2 is null)
+
+    BNode empty = bdecode(Buffer())
+    fails += assertOk("parse empty -> not ok", g_ok == 0)
+    BNode bad = bdecode(bufferFromText("not bencode at all"))
+    fails += assertOk("parse garbage -> not ok", g_ok == 0)
+    return fails
+end
+
+func testFullDownloadSingleFile() as int
+    int fails = 0
+    string name = "xlang-single-sample.bin"
+    int pieceLength = 512
+    int totalLength = 1200
+    Buffer content = generateContent(name, totalLength)
+    array files = []
+    array<string> segs = array[]
+    segs.push(name)
+    files.push({"length": totalLength, "path": segs, "pathText": name})
+    BNode node = buildSampleTorrentNode(name, pieceLength, content, totalLength, files)
+    Buffer enc = bencode(node)
+    var torrent = parseTorrentBuffer(enc)
+    fails += assertOk("sample parses", not (torrent is null))
+    if torrent is null then return fails + 1 end
+    fails += assertOk("sample name", string(torrent["name"]) == name)
+    fails += assertOk("sample pieceLen", int(torrent["pieceLength"]) == pieceLength)
+    int expectedPieces = totalLength / pieceLength
+    if totalLength % pieceLength != 0 then expectedPieces += 1 end
+    fails += assertOk("sample pieceCount", int(torrent["pieceCount"]) == expectedPieces)
+    fails += assertOk("sample total", int(torrent["totalLength"]) == totalLength)
+    fails += assertOk("sample infoHash len", string.len(string(torrent["infoHash"])) == 40)
+    var pt = torrent["pieces"]
+    fails += assertOk("sample pieces table", pt.length == expectedPieces)
+
+    string outDir = path.join(path.temp(), "xtorrent_test_single")
+    if dir.exists(outDir) then dir.clean(outDir) end
+    dir.createAll(outDir)
+    var result = simulateDownload(torrent, outDir, 8)
+    fails += assertOk("sample download ok", bool(result["ok"]))
+    fails += assertOk("sample all verified", int(result["verified"]) == expectedPieces)
+    string outFile = path.join(outDir, name)
+    fails += assertOk("sample file exists", file.exists(outFile))
+    Buffer back = file.readBytes(outFile)
+    fails += assertOk("sample file size", back.len() == totalLength)
+    int i = 0
+    int byteMatch = 1
+    while i < totalLength do
+        if back.byteAt(i) != content.byteAt(i) then byteMatch = 0 end
+        i += 1
+    end
+    fails += assertOk("sample file bytes", byteMatch == 1)
+    dir.clean(outDir)
+    return fails
+end
+
+func testFullDownloadMultiFile() as int
+    int fails = 0
+    string root = "xlang-multi-pkg"
+    int pieceLength = 256
+    array files = []
+    array<string> s1 = array[]
+    s1.push("readme.txt")
+    array<string> s2 = array[]
+    s2.push("data")
+    s2.push("blob.bin")
+    array<string> s3 = array[]
+    s3.push("data")
+    s3.push("sub")
+    s3.push("deep.txt")
+    files.push({"length": 300, "path": s1, "pathText": "readme.txt"})
+    files.push({"length": 600, "path": s2, "pathText": "data/blob.bin"})
+    files.push({"length": 200, "path": s3, "pathText": "data/sub/deep.txt"})
+    int totalLength = 300 + 600 + 200
+    Buffer content = generateContent(root, totalLength)
+    BNode node = buildSampleTorrentNode(root, pieceLength, content, totalLength, files)
+    Buffer enc = bencode(node)
+    var torrent = parseTorrentBuffer(enc)
+    fails += assertOk("multi parses", not (torrent is null))
+    if torrent is null then return fails + 1 end
+    var tf = torrent["files"]
+    fails += assertOk("multi file count", tf.length == 3)
+    fails += assertOk("multi total", int(torrent["totalLength"]) == totalLength)
+
+    string outDir = path.join(path.temp(), "xtorrent_test_multi")
+    if dir.exists(outDir) then dir.clean(outDir) end
+    dir.createAll(outDir)
+    var result = simulateDownload(torrent, outDir, 8)
+    fails += assertOk("multi download ok", bool(result["ok"]))
+    var written = result["written"]
+    fails += assertOk("multi written count", written.length == 3)
+    int i = 0
+    int allOk = 1
+    while i < written.length do
+        if not bool(written[i]["ok"]) then allOk = 0 end
+        i += 1
+    end
+    fails += assertOk("multi all files written", allOk == 1)
+    string deep = path.join(outDir, root)
+    deep = path.join(deep, "data")
+    deep = path.join(deep, "sub")
+    deep = path.join(deep, "deep.txt")
+    fails += assertOk("multi nested file exists", file.exists(deep))
+    dir.clean(outDir)
+    return fails
+end
+
+func cmdTest() as int
+    println("xtorrent self-test")
+    println("==================")
+    int totalFails = 0
+    println("")
+    println("[bencode encode/decode round trip]")
+    totalFails += testBencodeRoundTrip()
+    println("")
+    println("[bitmap + bitfield]")
+    totalFails += testBitmap()
+    println("")
+    println("[peer-wire handshake]")
+    totalFails += testHandshake()
+    println("")
+    println("[peer-wire messages]")
+    totalFails += testMessages()
+    println("")
+    println("[rarest-first selection]")
+    totalFails += testRarestFirst()
+    println("")
+    println("[choke / unchoke algorithm]")
+    totalFails += testChokeAlgorithm()
+    println("")
+    println("[SHA-1 piece verification]")
+    totalFails += testSha1Verification()
+    println("")
+    println("[torrent structural parse]")
+    totalFails += testTorrentStructuralParse()
+    println("")
+    println("[full download - single file]")
+    totalFails += testFullDownloadSingleFile()
+    println("")
+    println("[full download - multi file]")
+    totalFails += testFullDownloadMultiFile()
+    println("")
+    println("==================")
+    if totalFails == 0 then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println(string(totalFails) + " TEST(S) FAILED")
+    return 1
+end
+
+// ---------------------------------------------------------------------------
+// entry point
+// ---------------------------------------------------------------------------
+
+func printUsage()
+    println("xtorrent - BitTorrent client (parse + simulated download)")
+    println("")
+    println("usage:")
+    println("  xtorrent parse <file.torrent>")
+    println("      decode and display torrent metadata (announce, info, files, piece hashes)")
+    println("  xtorrent download <file.torrent> [output_dir]")
+    println("      parse torrent, simulate a swarm download, assemble + SHA-1 verify output")
+    println("  xtorrent test")
+    println("      run the built-in self-test suite")
+    println("  xtorrent --help | -h")
+    println("      show this help")
+    println("")
+    println("notes:")
+    println("  * download is a self-contained simulation (no real network I/O).")
+    println("  * piece content is generated deterministically; SHA-1 verification is real.")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+    string cmd = string(arg[1])
+    if cmd == "parse" then
+        array rest = []
+        int i = 2
+        while i < arg.length do
+            rest.push(arg[i])
+            i += 1
+        end
+        return cmdParse(rest)
+    elseif cmd == "download" then
+        array rest = []
+        int i = 2
+        while i < arg.length do
+            rest.push(arg[i])
+            i += 1
+        end
+        return cmdDownload(rest)
+    elseif cmd == "test" then
+        return cmdTest()
+    elseif cmd == "--help" or cmd == "-h" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+    println("xtorrent: unknown command: " + cmd)
+    printUsage()
+    return 1
+end

@@ -1,0 +1,2384 @@
+// xsheet.xl — 一个用 xlang 编写的电子表格引擎（xsheet）
+//
+// 用法:
+//   xl run xsheet.xl                       运行内置 demo（展示全部能力）
+//   xl run xsheet.xl demo                  同上
+//   xl run xsheet.xl test                  运行内置自检测试套件
+//   xl run xsheet.xl run <file.xs>         运行一个命令脚本（每行一条命令）
+//   xl run xsheet.xl do "<cmd>" ["<cmd2>"] 在同一进程内依次执行多条命令
+//   xl run xsheet.xl -h | --help | help    显示帮助
+//
+// 命令（在 demo / run / do 中可用，大小写不敏感）:
+//   set <ref> <value...>          设置单元格。值以 = 开头时为公式
+//                                 例: set A1 42
+//                                     set B1 =A1*2
+//                                     set C1 =SUM(A1:B1, 10)
+//   get <ref>                     读取单元格的当前值
+//   show                          渲染整张表（自动列宽）
+//   dump                          列出所有非空单元格（raw / value / deps）
+//   refs                          打印依赖图
+//   clear                         清空整张表
+//   clear <ref>                   清空单个单元格
+//   import csv <file>             从 CSV 导入（左上角对齐 A1）
+//   export csv <file>             导出为 CSV
+//   test                          运行自检测试套件
+//   help                          显示帮助
+//
+// 公式引擎:
+//   * 词法分析（Lexer）-> 递归下降 AST -> 求值（Evaluator）
+//   * 运算符: + - * / ^ 以及 &（字符串拼接）、比较 = <> < > <= >= （结果 1/0）
+//   * 一元 + / -，括号 ()
+//   * 单元格引用 A1、范围 A1:B3
+//   * 函数: SUM / AVG / MIN / MAX / COUNT / IF / ABS
+//   * 字面量: 整数 / 浮点 / "字符串" / TRUE / FALSE
+//
+// 重算模型:
+//   * 依赖图（每个公式单元格 -> 它直接引用的单元格）
+//   * Kahn 拓扑排序 + 循环检测（成环节点标记为 #CYCLE）
+//   * set 之后做一次全表重算（按拓扑序），保证依赖一致
+//
+// 本工具验证 xlang 的以下能力:
+//   * 递归下降 Lexer + Parser（表达式 AST）
+//   * 递归求值器，var 承载 int/float/string/bool/null
+//   * 全局 var dict（gCells）作为共享状态，按名重绑定
+//   * dict 迭代 for k,v in d / key in d / d.remove(k)
+//   * array 全套方法 + 拼接
+//   * class（Cell / Token / Node）+ derive value
+//   * 多返回值 + 解构、try/catch、throw
+//   * string 标准库（charAt/byteAt/indexOf/slice/split/splitLines/trim/...）
+//   * file.readText / file.writeText / file.exists / file.delete
+//
+// 数据模型:
+//   var gCells = {}      // 全局 var dict，key = 规范化引用 "A1"
+//   gCells["A1"] 是一个 Cell 实例，核心字段 {raw, value}：
+//     raw    原始用户输入（公式带前导 '='）
+//     value  当前计算值（int/float/string），null 表示空
+//   额外字段 ast/deps/isError/err 服务于公式引擎与重算。
+
+
+// ============================================================================
+// 全局状态
+// ============================================================================
+
+// 全局单元格表。key 形如 "A1"（列字母大写 + 行号，从 1 开始）。
+var gCells = {}
+
+// 自检统计。
+int gTestPass = 0
+int gTestFail = 0
+
+
+// ============================================================================
+// Cell 模型
+// ============================================================================
+
+// 单元格。核心是 {raw, value}，其余字段为公式引擎服务。
+class Cell
+    derive value
+    string raw = ""          // 原始输入；公式以 '=' 开头
+    var value = null         // 计算值：int / float / string；空为 null
+    var ast = null           // 公式 AST（仅公式单元格非 null）
+    var deps = null          // 直接依赖的单元格引用数组 array<string>（仅公式）
+    bool isError = false     // 是否处于错误态
+    string err = ""          // 错误描述（#CYCLE / #ERR: ... / #DIV/0 等）
+
+    create(string r)
+        self.raw = r
+        return
+    end
+end
+
+
+// 取得单元格（不存在返回 null）。
+func cellAt(string ref) as var
+    if not (ref in gCells) then return null end
+    Cell c = gCells[ref] as Cell
+    return c
+end
+
+
+// 取得或创建单元格。
+func ensureCell(string ref) as Cell
+    if ref in gCells then
+        return gCells[ref] as Cell
+    end
+    Cell c = Cell("")
+    gCells[ref] = c
+    return c
+end
+
+
+// 清空整张表（按名重绑定全局 dict）。
+func resetSheet()
+    gCells = {}
+end
+
+
+// 清空单个单元格。
+func clearCell(string ref)
+    if ref in gCells then
+        gCells.remove(ref)
+    end
+end
+
+
+// ============================================================================
+// 列号 / 引用 辅助
+// ============================================================================
+
+// 判断字符是否为 A-Z / a-z。
+func isAlpha(string c) as bool
+    return string.contains("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", c)
+end
+
+// 判断字符是否为 0-9。
+func isDigit(string c) as bool
+    return string.contains("0123456789", c)
+end
+
+// 判断字符是否为字母/数字/下划线。
+func isAlphaNum(string c) as bool
+    return isAlpha(c) or isDigit(c) or c == "_"
+end
+
+
+// 列序号 -> 列字母（1 -> "A", 27 -> "AA"）。
+func colToLetter(int col) as string
+    if col < 1 then return "" end
+    string ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    string out = ""
+    int n = col
+    while n > 0 do
+        int rem = (n - 1) % 26
+        out = string.charAt(ALPHABET, rem) + out
+        n = (n - 1) / 26
+    end
+    return out
+end
+
+
+// 列字母 -> 列序号（"A" -> 1, "AA" -> 27）。非法返回 0。
+func letterToCol(string letters) as int
+    int n = string.len(letters)
+    if n == 0 then return 0 end
+    int col = 0
+    int i = 0
+    while i < n do
+        string c = string.charAt(letters, i)
+        if not isAlpha(c) then return 0 end
+        int b = string.byteAt(letters, i)
+        int lo = 0
+        if b >= 65 and b <= 90 then
+            lo = b - 64
+        elseif b >= 97 and b <= 122 then
+            lo = b - 96
+        else
+            return 0
+        end
+        col = col * 26 + lo
+        i += 1
+    end
+    if col < 1 then return 0 end
+    return col
+end
+
+
+// 由列号 + 行号构造规范引用 "A1"。
+func makeRef(int col, int row) as string
+    return colToLetter(col) + string(row)
+end
+
+
+// 一个字符串是否为合法单元格引用（字母部分 + 数字部分，均非空）。
+func isRefName(string s) as bool
+    int n = string.len(s)
+    if n < 2 then return false end
+    int i = 0
+    int alphaCount = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        if not isAlpha(c) then break end
+        alphaCount += 1
+        i += 1
+    end
+    if alphaCount == 0 then return false end
+    int digitCount = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        if not isDigit(c) then return false end
+        digitCount += 1
+        i += 1
+    end
+    return digitCount > 0
+end
+
+
+// 把引用解析为 (col, row, ok)。ok=false 表示非法。
+func parseRef(string s) as (int, int, bool)
+    if not isRefName(s) then return 0, 0, false end
+    int n = string.len(s)
+    int i = 0
+    string letters = ""
+    while i < n do
+        string c = string.charAt(s, i)
+        if not isAlpha(c) then break end
+        letters = letters + c
+        i += 1
+    end
+    string digits = ""
+    while i < n do
+        string c = string.charAt(s, i)
+        digits = digits + c
+        i += 1
+    end
+    int col = letterToCol(letters)
+    int row = int(digits)
+    if col < 1 or row < 1 then return 0, 0, false end
+    return col, row, true
+end
+
+
+// 规范化引用为大写。
+func normRef(string s) as string
+    return string.upper(s)
+end
+
+
+// 展开一个矩形范围 first:last 为其中的所有单元格引用数组。
+func expandRange(string firstRaw, string lastRaw) as var
+    int c1 = 0
+    int r1 = 0
+    bool ok1 = false
+    c1, r1, ok1 = parseRef(firstRaw)
+    int c2 = 0
+    int r2 = 0
+    bool ok2 = false
+    c2, r2, ok2 = parseRef(lastRaw)
+    if not ok1 or not ok2 then
+        throw "#REF!"
+    end
+    int colA = c1
+    int colB = c2
+    if colA > colB then
+        int t = colA
+        colA = colB
+        colB = t
+    end
+    int rowA = r1
+    int rowB = r2
+    if rowA > rowB then
+        int t = rowA
+        rowA = rowB
+        rowB = t
+    end
+    var out = []
+    int r = rowA
+    while r <= rowB do
+        int c = colA
+        while c <= colB do
+            out.push(makeRef(c, r))
+            c += 1
+        end
+        r += 1
+    end
+    return out
+end
+
+
+// ============================================================================
+// 数值 / 文本 格式化辅助
+// ============================================================================
+
+// 判断 var 是否为数值（int 或 float）。
+func isNum(var v) as bool
+    if v is int then return true end
+    if v is float then return true end
+    return false
+end
+
+// 判断 var 是否为字符串。
+func isStr(var v) as bool
+    return v is string
+end
+
+// 判断 var 是否为布尔。
+func isBool(var v) as bool
+    return v is bool
+end
+
+// 把 var 转为 float；不可转换则抛出。
+func asNum(var v) as float
+    if v is bool then
+        if v then return 1.0 end
+        return 0.0
+    end
+    if v is int then return float(v) end
+    if v is float then return float(v) end
+    throw "#TYPE!"
+end
+
+
+// 尝试把字符串解析为整数。
+func looksLikeInt(string s) as bool
+    int n = string.len(s)
+    if n == 0 then return false end
+    int i = 0
+    int b0 = string.byteAt(s, 0)
+    if b0 == 45 or b0 == 43 then
+        i = 1
+        if n == 1 then return false end
+    end
+    while i < n do
+        if not isDigit(string.charAt(s, i)) then return false end
+        i += 1
+    end
+    return true
+end
+
+
+// 尝试把字符串解析为浮点（含 '.' 或 'e'）。
+func looksLikeFloat(string s) as bool
+    int n = string.len(s)
+    if n == 0 then return false end
+    bool hasDot = false
+    bool hasDigit = false
+    int i = 0
+    int b0 = string.byteAt(s, 0)
+    if b0 == 45 or b0 == 43 then i = 1 end
+    while i < n do
+        string c = string.charAt(s, i)
+        if isDigit(c) then
+            hasDigit = true
+        elseif c == "." then
+            if hasDot then return false end
+            hasDot = true
+        elseif c == "e" or c == "E" then
+            i += 1
+            if i < n then
+                string c2 = string.charAt(s, i)
+                if c2 == "+" or c2 == "-" then i += 1 end
+            end
+        else
+            return false
+        end
+        i += 1
+    end
+    return hasDigit and hasDot
+end
+
+
+// 把一个字面量文本解析为单元格值（int/float/string）。
+func parseLiteral(string s) as var
+    if looksLikeInt(s) then return int(s) end
+    if looksLikeFloat(s) then return float(s) end
+    return s
+end
+
+
+// 把数值格式化为显示文本（整数无小数点；浮点截尾零）。
+func formatNum(var v) as string
+    if v is int then return string(v) end
+    float f = float(v)
+    if f == math.floor(f) and math.abs(f) < 1e15 then
+        return string(int(f))
+    end
+    string s = string.formatFloat(f, ".6")
+    // 截掉尾部多余的 0 与可能的小数点
+    int n = string.len(s)
+    int last = n
+    int dot = string.indexOf(s, ".")
+    if dot < 0 then return s end
+    while last > dot + 1 do
+        string c = string.charAt(s, last - 1)
+        if c == "0" then
+            last -= 1
+        else
+            break
+        end
+    end
+    if last == dot + 1 then last = dot end
+    return string.slice(s, 0, last)
+end
+
+
+// 把任意单元格值格式化为显示文本。
+func valueToText(var v) as string
+    if v == null then return "" end
+    if isBool(v) then
+        if v then return "TRUE" end
+        return "FALSE"
+    end
+    if isNum(v) then return formatNum(v) end
+    return string(v)
+end
+
+
+// 取得一个单元格的当前显示文本（按引用）。
+func cellDisplay(string ref) as string
+    var c = cellAt(ref)
+    if c == null then return "" end
+    if c.isError then return c.err end
+    return valueToText(c.value)
+end
+
+
+// ============================================================================
+// Token + Lexer（公式词法分析）
+// ============================================================================
+
+class Token
+    derive value
+    string kind = ""       // "num" "str" "name" "+" "-" "*" "/" "^" "&"
+                           // "(" ")" "," ":" "=" "<" ">" "<=" ">=" "<>" "eof"
+    string text = ""       // 原始文本
+    float num = 0.0        // 数值（kind=="num" 时有效）
+
+    create(string k)
+        self.kind = k
+        return
+    end
+end
+
+
+class Lexer
+    derive value
+    string src = ""
+    int pos = 0
+    int len = 0
+
+    create(string s)
+        self.src = s
+        self.len = string.len(s)
+        self.pos = 0
+        return
+    end
+
+    func skipWs()
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if c == " " or c == "\t" or c == "\r" or c == "\n" then
+                self.pos += 1
+            else
+                return
+            end
+        end
+    end
+
+    // 读取一个数字字面量（整数或浮点）。
+    func readNumber() as Token
+        string buf = ""
+        bool hasDot = false
+        bool hasE = false
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if isDigit(c) then
+                buf = buf + c
+                self.pos += 1
+            elseif c == "." and not hasDot and not hasE then
+                buf = buf + c
+                hasDot = true
+                self.pos += 1
+            elseif (c == "e" or c == "E") and not hasE then
+                buf = buf + c
+                hasE = true
+                self.pos += 1
+                if self.pos < self.len then
+                    string s = string.charAt(self.src, self.pos)
+                    if s == "+" or s == "-" then
+                        buf = buf + s
+                        self.pos += 1
+                    end
+                end
+            else
+                break
+            end
+        end
+        Token t = Token("num")
+        t.text = buf
+        t.num = float(buf)
+        return t
+    end
+
+    // 读取一个 "..." 字符串字面量（调用者已定位到起始引号）。
+    func readString() as Token
+        self.pos += 1
+        string out = ""
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if c == "\"" then
+                self.pos += 1
+                Token t = Token("str")
+                t.text = out
+                return t
+            end
+            if c == "\\" then
+                self.pos += 1
+                if self.pos >= self.len then throw "#ERR: 未终止的字符串" end
+                string e = string.charAt(self.src, self.pos)
+                if e == "n" then
+                    out = out + "\n"
+                elseif e == "t" then
+                    out = out + "\t"
+                elseif e == "r" then
+                    out = out + "\r"
+                elseif e == "\"" then
+                    out = out + "\""
+                elseif e == "\\" then
+                    out = out + "\\"
+                else
+                    out = out + e
+                end
+                self.pos += 1
+            else
+                out = out + c
+                self.pos += 1
+            end
+        end
+        throw "#ERR: 未终止的字符串"
+    end
+
+    // 读取一个名字（字母开头，含字母/数字/下划线）。
+    func readName() as Token
+        string buf = ""
+        while self.pos < self.len do
+            string c = string.charAt(self.src, self.pos)
+            if isAlphaNum(c) then
+                buf = buf + c
+                self.pos += 1
+            else
+                break
+            end
+        end
+        Token t = Token("name")
+        t.text = buf
+        return t
+    end
+
+    // 读取下一个 Token。
+    func next() as Token
+        self.skipWs()
+        if self.pos >= self.len then return Token("eof") end
+        string c = string.charAt(self.src, self.pos)
+        // 数字（含 . 开头）
+        if isDigit(c) or (c == "." and self.pos + 1 < self.len and isDigit(string.charAt(self.src, self.pos + 1))) then
+            return self.readNumber()
+        end
+        // 字符串
+        if c == "\"" then
+            return self.readString()
+        end
+        // 名字
+        if isAlpha(c) or c == "_" then
+            return self.readName()
+        end
+        // 双字符操作符
+        if self.pos + 1 < self.len then
+            string two = string.charAt(self.src, self.pos) + string.charAt(self.src, self.pos + 1)
+            if two == "<=" or two == ">=" or two == "<>" then
+                self.pos += 2
+                return Token(two)
+            end
+        end
+        // 单字符操作符
+        if c == "+" or c == "-" or c == "*" or c == "/" or c == "^" or c == "&" then
+            self.pos += 1
+            return Token(c)
+        end
+        if c == "(" or c == ")" or c == "," or c == ":" then
+            self.pos += 1
+            return Token(c)
+        end
+        if c == "=" or c == "<" or c == ">" then
+            self.pos += 1
+            return Token(c)
+        end
+        throw "#ERR: 公式中出现非法字符 '" + c + "'"
+    end
+end
+
+
+// ============================================================================
+// AST Node + Parser（递归下降）
+// ============================================================================
+
+// AST 节点。用单个类承载所有种类，便于 xlang 处理。
+// kind 取值: "num" "str" "bool" "ref" "range" "unary" "binop" "call"
+class Node
+    derive value
+    string kind = ""
+    float num = 0.0         // num
+    string text = ""        // str / ref / range 的引用名 / call 的函数名
+    string op = ""          // unary / binop 的运算符
+    bool bval = false       // bool
+    var left = null         // binop.unary 的操作数
+    var right = null        // binop 的右操作数
+    var first = null        // range 的左上角引用 Node
+    var last = null         // range 的右下角引用 Node
+    var args = null         // call 的参数数组 array<Node>
+end
+
+func mkNum(float n) as Node
+    Node x = Node()
+    x.kind = "num"
+    x.num = n
+    return x
+end
+
+func mkStr(string s) as Node
+    Node x = Node()
+    x.kind = "str"
+    x.text = s
+    return x
+end
+
+func mkBool(bool b) as Node
+    Node x = Node()
+    x.kind = "bool"
+    x.bval = b
+    return x
+end
+
+func mkRef(string name) as Node
+    Node x = Node()
+    x.kind = "ref"
+    x.text = name
+    return x
+end
+
+func mkRange(Node first, Node last) as Node
+    Node x = Node()
+    x.kind = "range"
+    x.first = first
+    x.last = last
+    return x
+end
+
+func mkUnary(string op, Node operand) as Node
+    Node x = Node()
+    x.kind = "unary"
+    x.op = op
+    x.left = operand
+    return x
+end
+
+func mkBinop(string op, Node left, Node right) as Node
+    Node x = Node()
+    x.kind = "binop"
+    x.op = op
+    x.left = left
+    x.right = right
+    return x
+end
+
+func mkCall(string name, var args) as Node
+    Node x = Node()
+    x.kind = "call"
+    x.text = name
+    x.args = args
+    return x
+end
+
+
+class Parser
+    derive value
+    Lexer lx
+    Token cur
+
+    create(Lexer l)
+        self.lx = l
+        self.cur = self.lx.next()
+        return
+    end
+
+    func advance()
+        self.cur = self.lx.next()
+    end
+
+    func accept(string kind) as bool
+        if self.cur.kind == kind then
+            self.advance()
+            return true
+        end
+        return false
+    end
+
+    func expect(string kind)
+        if self.cur.kind != kind then
+            throw "#ERR: 期望 '" + kind + "' 但遇到 '" + self.cur.kind + "'"
+        end
+        self.advance()
+    end
+
+    // expr := compare
+    func parseExpr() as Node
+        return self.parseCompare()
+    end
+
+    // compare := additive (cmpop additive)?
+    func parseCompare() as Node
+        Node left = self.parseAdditive()
+        string k = self.cur.kind
+        if k == "=" or k == "<>" or k == "<" or k == ">" or k == "<=" or k == ">=" then
+            self.advance()
+            Node right = self.parseAdditive()
+            return mkBinop(k, left, right)
+        end
+        return left
+    end
+
+    // additive := term (("+"|"-"|"&") term)*
+    func parseAdditive() as Node
+        Node left = self.parseTerm()
+        while self.cur.kind == "+" or self.cur.kind == "-" or self.cur.kind == "&" do
+            string op = self.cur.kind
+            self.advance()
+            Node right = self.parseTerm()
+            left = mkBinop(op, left, right)
+        end
+        return left
+    end
+
+    // term := power (("*"|"/") power)*
+    func parseTerm() as Node
+        Node left = self.parsePower()
+        while self.cur.kind == "*" or self.cur.kind == "/" do
+            string op = self.cur.kind
+            self.advance()
+            Node right = self.parsePower()
+            left = mkBinop(op, left, right)
+        end
+        return left
+    end
+
+    // power := unary ("^" power)?   （右结合）
+    func parsePower() as Node
+        Node base = self.parseUnary()
+        if self.cur.kind == "^" then
+            self.advance()
+            Node exp = self.parsePower()
+            return mkBinop("^", base, exp)
+        end
+        return base
+    end
+
+    // unary := ("+"|"-") unary | primary
+    func parseUnary() as Node
+        if self.cur.kind == "-" then
+            self.advance()
+            return mkUnary("-", self.parseUnary())
+        end
+        if self.cur.kind == "+" then
+            self.advance()
+            return self.parseUnary()
+        end
+        return self.parsePrimary()
+    end
+
+    // primary := num | str | bool | "(" expr ")" | funcall | range | ref
+    func parsePrimary() as Node
+        Token t = self.cur
+        if t.kind == "num" then
+            self.advance()
+            return mkNum(t.num)
+        end
+        if t.kind == "str" then
+            self.advance()
+            return mkStr(t.text)
+        end
+        if t.kind == "(" then
+            self.advance()
+            Node e = self.parseExpr()
+            self.expect(")")
+            return e
+        end
+        if t.kind == "name" then
+            string name = t.text
+            string up = string.upper(name)
+            self.advance()
+            // 函数调用
+            if self.cur.kind == "(" then
+                self.advance()
+                var args = []
+                if self.cur.kind != ")" then
+                    Node first = self.parseExpr()
+                    args.push(first)
+                    while self.accept(",") do
+                        Node a = self.parseExpr()
+                        args.push(a)
+                    end
+                end
+                self.expect(")")
+                return mkCall(up, args)
+            end
+            // 布尔字面量
+            if up == "TRUE" then return mkBool(true) end
+            if up == "FALSE" then return mkBool(false) end
+            // 单元格引用
+            if not isRefName(up) then
+                throw "#NAME?"
+            end
+            Node ref = mkRef(up)
+            // 范围 first:last
+            if self.cur.kind == ":" then
+                self.advance()
+                if self.cur.kind != "name" then
+                    throw "#ERR: 范围期待引用"
+                end
+                string name2 = string.upper(self.cur.text)
+                if not isRefName(name2) then
+                    throw "#REF!"
+                end
+                self.advance()
+                Node ref2 = mkRef(name2)
+                return mkRange(ref, ref2)
+            end
+            return ref
+        end
+        if t.kind == "eof" then
+            throw "#ERR: 公式意外结束"
+        end
+        throw "#ERR: 意外的 token '" + t.kind + "'"
+    end
+
+    func parse() as Node
+        Node e = self.parseExpr()
+        if self.cur.kind != "eof" then
+            throw "#ERR: 公式尾部多余的 token '" + self.cur.kind + "'"
+        end
+        return e
+    end
+end
+
+
+// 把公式文本（不含前导 '='）解析为 AST。
+func parseFormula(string body) as Node
+    Lexer lx = Lexer(body)
+    Parser p = Parser(lx)
+    return p.parse()
+end
+
+
+// ============================================================================
+// 依赖抽取
+// ============================================================================
+
+// 递归遍历 AST，收集所有被引用的单元格（ref 与 range 展开）到 set out。
+func collectDeps(Node n, var out)
+    if n == null then return end
+    if n.kind == "num" then return end
+    if n.kind == "str" then return end
+    if n.kind == "bool" then return end
+    if n.kind == "ref" then
+        string r = n.text
+        if not (r in out) then out[r] = true end
+        return
+    end
+    if n.kind == "range" then
+        var refs = expandRange((n.first as Node).text, (n.last as Node).text)
+        int i = 0
+        while i < refs.length do
+            string r = string(refs[i])
+            if not (r in out) then out[r] = true end
+            i += 1
+        end
+        return
+    end
+    if n.kind == "unary" then
+        collectDeps(n.left as Node, out)
+        return
+    end
+    if n.kind == "binop" then
+        collectDeps(n.left as Node, out)
+        collectDeps(n.right as Node, out)
+        return
+    end
+    if n.kind == "call" then
+        int i = 0
+        while i < n.args.length do
+            collectDeps(n.args[i] as Node, out)
+            i += 1
+        end
+        return
+    end
+end
+
+
+// 把 AST 的依赖集合转成有序数组（按 col,row 排序，便于稳定输出）。
+func depsOf(Node ast) as var
+    var set = {}
+    collectDeps(ast, set)
+    var arr = []
+    for k, v in set
+        arr.push(k)
+    end
+    sortRefs(arr)
+    return arr
+end
+
+
+// 按行列对引用数组排序（简单插入排序）。
+func sortRefs(var arr)
+    int n = arr.length
+    int i = 1
+    while i < n do
+        string key = string(arr[i])
+        int j = i - 1
+        while j >= 0 and refLess(key, string(arr[j])) do
+            arr[j + 1] = arr[j]
+            j -= 1
+        end
+        arr[j + 1] = key
+        i += 1
+    end
+end
+
+
+// a 是否应排在 b 之前（先列后行）。
+func refLess(string a, string b) as bool
+    int ca = 0
+    int ra = 0
+    bool oka = false
+    ca, ra, oka = parseRef(a)
+    int cb = 0
+    int rb = 0
+    bool okb = false
+    cb, rb, okb = parseRef(b)
+    if ca != cb then return ca < cb end
+    return ra < rb
+end
+
+
+// ============================================================================
+// 求值器
+// ============================================================================
+
+// 取得被引用单元格的值（用于公式求值）。空单元格视为数值 0。
+// 错误单元格向上抛出其错误文本。
+func refValue(string ref) as var
+    var c = cellAt(ref)
+    if c == null then return 0 end
+    if c.isError then throw c.err end
+    if c.value == null then return 0 end
+    return c.value
+end
+
+
+// 对两个值执行比较，返回 bool。
+func compareValues(var a, var b, string op) as bool
+    if isNum(a) and isNum(b) then
+        float x = asNum(a)
+        float y = asNum(b)
+        if op == "=" then return x == y end
+        if op == "<>" then return x != y end
+        if op == "<" then return x < y end
+        if op == ">" then return x > y end
+        if op == "<=" then return x <= y end
+        if op == ">=" then return x >= y end
+    end
+    string sa = valueToText(a)
+    string sb = valueToText(b)
+    if op == "=" then return sa == sb end
+    if op == "<>" then return sa != sb end
+    if op == "<" then return sa < sb end
+    if op == ">" then return sa > sb end
+    if op == "<=" then return sa <= sb end
+    if op == ">=" then return sa >= sb end
+    return false
+end
+
+
+// 递归求值 AST，返回 var。
+func evalNode(Node n) as var
+    if n.kind == "num" then return n.num end
+    if n.kind == "str" then return n.text end
+    if n.kind == "bool" then
+        if n.bval then return 1 end
+        return 0
+    end
+    if n.kind == "ref" then
+        return refValue(n.text)
+    end
+    if n.kind == "range" then
+        // 范围不能作为标量求值
+        throw "#VALUE!"
+    end
+    if n.kind == "unary" then
+        var v = evalNode(n.left as Node)
+        if not isNum(v) then throw "#TYPE!" end
+        if n.op == "-" then return -asNum(v) end
+        return asNum(v)
+    end
+    if n.kind == "binop" then
+        return evalBinop(n)
+    end
+    if n.kind == "call" then
+        return evalCall(n)
+    end
+    throw "#ERR: 未知节点 '" + n.kind + "'"
+end
+
+
+// 求值二元运算。
+func evalBinop(Node n) as var
+    string op = n.op
+    // 字符串拼接：& 把两侧都按文本拼接
+    if op == "&" then
+        var a = evalNode(n.left as Node)
+        var b = evalNode(n.right as Node)
+        return valueToText(a) + valueToText(b)
+    end
+    // 比较
+    if op == "=" or op == "<>" or op == "<" or op == ">" or op == "<=" or op == ">=" then
+        var a = evalNode(n.left as Node)
+        var b = evalNode(n.right as Node)
+        if compareValues(a, b, op) then return 1 end
+        return 0
+    end
+    // 算术
+    var a = evalNode(n.left as Node)
+    var b = evalNode(n.right as Node)
+    if not isNum(a) or not isNum(b) then throw "#TYPE!" end
+    if op == "+" then
+        return numPlus(a, b)
+    end
+    if op == "-" then
+        return numMinus(a, b)
+    end
+    if op == "*" then
+        return numMul(a, b)
+    end
+    if op == "/" then
+        float y = asNum(b)
+        if y == 0.0 then throw "#DIV/0!" end
+        return asNum(a) / y
+    end
+    if op == "^" then
+        return math.pow(asNum(a), asNum(b))
+    end
+    throw "#ERR: 未知运算符 '" + op + "'"
+end
+
+
+// 保留 int 性质的 + - *。
+func numPlus(var a, var b) as var
+    if a is int and b is int then return int(a) + int(b) end
+    return asNum(a) + asNum(b)
+end
+
+func numMinus(var a, var b) as var
+    if a is int and b is int then return int(a) - int(b) end
+    return asNum(a) - asNum(b)
+end
+
+func numMul(var a, var b) as var
+    if a is int and b is int then return int(a) * int(b) end
+    return asNum(a) * asNum(b)
+end
+
+
+// 把一个参数节点求值为「数值数组」。
+// 范围节点会被展开；标量节点被求值后若为数值则加入。
+func flattenNumArgs(var args) as var
+    var out = []
+    int i = 0
+    while i < args.length do
+        Node a = args[i] as Node
+        if a.kind == "range" then
+            var refs = expandRange((a.first as Node).text, (a.last as Node).text)
+            int j = 0
+            while j < refs.length do
+                var c = cellAt(string(refs[j]))
+                if c != null and not c.isError and isNum(c.value) then
+                    out.push(c.value)
+                end
+                j += 1
+            end
+        else
+            var v = evalNode(a)
+            if isNum(v) then out.push(v) end
+        end
+        i += 1
+    end
+    return out
+end
+
+
+// 把参数节点求值为「文本数组」（COUNT 计数所有非空）。
+func flattenAllArgs(var args) as var
+    var out = []
+    int i = 0
+    while i < args.length do
+        Node a = args[i] as Node
+        if a.kind == "range" then
+            var refs = expandRange((a.first as Node).text, (a.last as Node).text)
+            int j = 0
+            while j < refs.length do
+                var c = cellAt(string(refs[j]))
+                if c != null and not c.isError and c.value != null then
+                    out.push(c.value)
+                end
+                j += 1
+            end
+        else
+            var v = evalNode(a)
+            out.push(v)
+        end
+        i += 1
+    end
+    return out
+end
+
+
+// 内置函数实现。args 为 AST 参数数组（未求值），便于 IF 惰性求值与范围展开。
+func evalCall(Node n) as var
+    string name = n.text
+    var args = n.args
+
+    // IF 惰性求值
+    if name == "IF" then
+        if args.length < 2 or args.length > 3 then
+            throw "#ERR: IF 需要 2 或 3 个参数"
+        end
+        var cond = evalNode(args[0] as Node)
+        bool truth = false
+        if isNum(cond) then
+            truth = asNum(cond) != 0.0
+        elseif isBool(cond) then
+            truth = bool(cond)
+        else
+            truth = string(cond) != ""
+        end
+        if truth then
+            return evalNode(args[1] as Node)
+        end
+        if args.length == 3 then
+            return evalNode(args[2] as Node)
+        end
+        return 0
+    end
+
+    // ABS 单值
+    if name == "ABS" then
+        if args.length != 1 then throw "#ERR: ABS 需要 1 个参数" end
+        Node a = args[0] as Node
+        if a.kind == "range" then throw "#VALUE!" end
+        var v = evalNode(a)
+        if not isNum(v) then throw "#TYPE!" end
+        return math.abs(asNum(v))
+    end
+
+    // 聚合函数
+    if name == "SUM" then
+        var nums = flattenNumArgs(args)
+        return sumNums(nums)
+    end
+    if name == "AVG" then
+        var nums = flattenNumArgs(args)
+        if nums.length == 0 then throw "#DIV/0!" end
+        return sumNums(nums) / float(nums.length)
+    end
+    if name == "MIN" then
+        var nums = flattenNumArgs(args)
+        if nums.length == 0 then return 0 end
+        return minNums(nums)
+    end
+    if name == "MAX" then
+        var nums = flattenNumArgs(args)
+        if nums.length == 0 then return 0 end
+        return maxNums(nums)
+    end
+    if name == "COUNT" then
+        var nums = flattenNumArgs(args)
+        return nums.length
+    end
+
+    throw "#NAME?"
+end
+
+
+func sumNums(var nums) as var
+    bool allInt = true
+    int i = 0
+    while i < nums.length do
+        if not (nums[i] is int) then allInt = false end
+        i += 1
+    end
+    if allInt then
+        int isum = 0
+        i = 0
+        while i < nums.length do
+            isum += int(nums[i])
+            i += 1
+        end
+        return isum
+    end
+    float fsum = 0.0
+    i = 0
+    while i < nums.length do
+        fsum += asNum(nums[i])
+        i += 1
+    end
+    return s
+end
+
+func minNums(var nums) as var
+    var best = nums[0]
+    int i = 1
+    while i < nums.length do
+        if asNum(nums[i]) < asNum(best) then best = nums[i] end
+        i += 1
+    end
+    return best
+end
+
+func maxNums(var nums) as var
+    var best = nums[0]
+    int i = 1
+    while i < nums.length do
+        if asNum(nums[i]) > asNum(best) then best = nums[i] end
+        i += 1
+    end
+    return best
+end
+
+
+// ============================================================================
+// 依赖图 + 拓扑排序 + 循环检测（Kahn 算法，迭代）
+// ============================================================================
+
+// 收集所有公式单元格的引用（按行列序）。
+func formulaRefs() as var
+    var refs = []
+    for k, v in gCells
+        Cell c = v as Cell
+        if c.ast != null then refs.push(k) end
+    end
+    sortRefs(refs)
+    return refs
+end
+
+
+// 对所有公式单元格做拓扑排序。
+// 返回 dict: { order: array<string>, cyclic: array<string> }
+func topoSort(var refs) as var
+    // fset: 公式单元格集合
+    var fset = {}
+    int i = 0
+    while i < refs.length do
+        fset[string(refs[i])] = true
+        i += 1
+    end
+
+    // inDegree[ref] = 它依赖的、本身也是公式单元格的依赖个数
+    // dependents[ref] = 直接依赖 ref 的公式单元格列表
+    var inDegree = {}
+    var dependents = {}
+    i = 0
+    while i < refs.length do
+        string r = string(refs[i])
+        inDegree[r] = 0
+        dependents[r] = []
+        i += 1
+    end
+    i = 0
+    while i < refs.length do
+        string r = string(refs[i])
+        var c = cellAt(r)
+        int j = 0
+        while j < c.deps.length do
+            string d = string(c.deps[j])
+            if d in fset then
+                inDegree[r] = int(inDegree[r]) + 1
+                dependents[d].push(r)
+            end
+            j += 1
+        end
+        i += 1
+    end
+
+    // Kahn
+    var queue = []
+    i = 0
+    while i < refs.length do
+        string r = string(refs[i])
+        if int(inDegree[r]) == 0 then queue.push(r) end
+        i += 1
+    end
+    var order = []
+    int head = 0
+    while head < queue.length do
+        string r = string(queue[head])
+        head += 1
+        order.push(r)
+        var deps = dependents[r]
+        int j = 0
+        while j < deps.length do
+            string d = string(deps[j])
+            inDegree[d] = int(inDegree[d]) - 1
+            if int(inDegree[d]) == 0 then queue.push(d) end
+            j += 1
+        end
+    end
+
+    // 剩余 inDegree>0 的单元格成环
+    var cyclic = []
+    i = 0
+    while i < refs.length do
+        string r = string(refs[i])
+        if int(inDegree[r]) > 0 then cyclic.push(r) end
+        i += 1
+    end
+
+    var result = {}
+    result["order"] = order
+    result["cyclic"] = cyclic
+    return result
+end
+
+
+// ============================================================================
+// 重算引擎
+// ============================================================================
+
+// 全表重算：对所有公式单元格做拓扑排序后逐个求值；成环节点标记错误。
+func recalcAll()
+    var refs = formulaRefs()
+    var sortResult = topoSort(refs)
+    var order = sortResult["order"]
+    var cyclic = sortResult["cyclic"]
+
+    // 先标记成环单元格
+    int i = 0
+    while i < cyclic.length do
+        string r = string(cyclic[i])
+        var c = cellAt(r)
+        c.isError = true
+        c.err = "#CYCLE!"
+        c.value = "#CYCLE!"
+        i += 1
+    end
+
+    // 清除非环节点的错误标记（重算前）
+    i = 0
+    while i < order.length do
+        string r = string(order[i])
+        var c = cellAt(r)
+        c.isError = false
+        c.err = ""
+        i += 1
+    end
+
+    // 按拓扑序逐个求值
+    i = 0
+    while i < order.length do
+        string r = string(order[i])
+        var c = cellAt(r)
+        try
+            var v = evalNode(c.ast as Node)
+            c.value = v
+            c.isError = false
+            c.err = ""
+        catch e
+            c.isError = true
+            c.err = e.message
+            c.value = e.message
+        end
+        i += 1
+    end
+end
+
+
+// ============================================================================
+// set / get / clear
+// ============================================================================
+
+// 设置单元格（命令入口）。raw 为去掉了 "set <ref> " 之后的值文本。
+func setCellValue(string ref, string raw)
+    string r = normRef(ref)
+    int col = 0
+    int row = 0
+    bool ok = false
+    col, row, ok = parseRef(r)
+    if not ok then throw "#ERR: 非法单元格引用 '" + ref + "'" end
+
+    Cell c = ensureCell(r)
+    c.raw = raw
+
+    string trimmed = string.trim(raw)
+    if string.isEmpty(trimmed) then
+        // 空值：当作清空
+        clearCell(r)
+        recalcAll()
+        return
+    end
+
+    // 公式？
+    if string.startsWith(trimmed, "=") then
+        string body = string.trim(string.mid(trimmed, 1))
+        try
+            Node ast = parseFormula(body)
+            c.ast = ast
+            c.deps = depsOf(ast)
+            c.isError = false
+            c.err = ""
+        catch e
+            c.ast = null
+            c.deps = []
+            c.isError = true
+            c.err = e.message
+            c.value = e.message
+        end
+    else
+        // 字面量
+        c.ast = null
+        c.deps = null
+        c.isError = false
+        c.err = ""
+        c.value = parseLiteral(trimmed)
+    end
+
+    recalcAll()
+end
+
+
+// ============================================================================
+// show —— 渲染网格
+// ============================================================================
+
+// 收集表中所有 (col,row) 与最大列/最大行。
+func gridBounds() as (int, int)
+    int maxCol = 0
+    int maxRow = 0
+    for k, v in gCells
+        int col = 0
+        int row = 0
+        bool ok = false
+        col, row, ok = parseRef(k)
+        if ok then
+            if col > maxCol then maxCol = col end
+            if row > maxRow then maxRow = row end
+        end
+    end
+    return maxCol, maxRow
+end
+
+
+// 计算字符串的显示宽度（按字节近似）。
+func textWidth(string s) as int
+    return string.len(s)
+end
+
+
+// 在左侧 pad 空格使右对齐到 width。
+func padLeft(string s, int width) as string
+    int n = textWidth(s)
+    if n >= width then return s end
+    return string.repeat(" ", width - n) + s
+end
+
+
+// 在右侧 pad 空格使左对齐到 width。
+func padRight(string s, int width) as string
+    int n = textWidth(s)
+    if n >= width then return s end
+    return s + string.repeat(" ", width - n)
+end
+
+
+// 渲染整张表为字符串。
+func renderShow() as string
+    int maxCol = 0
+    int maxRow = 0
+    maxCol, maxRow = gridBounds()
+    if maxCol == 0 then return "(empty sheet)" end
+
+    // 行号列宽
+    int labelW = string.len(string(maxRow))
+    if labelW < 3 then labelW = 3 end
+
+    // 各列宽度（至少为列头宽度）
+    var colW = {}
+    int ci = 1
+    while ci <= maxCol do
+        colW[ci] = string.len(colToLetter(ci))
+        ci += 1
+    end
+    for k, v in gCells
+        int col = 0
+        int row = 0
+        bool ok = false
+        col, row, ok = parseRef(k)
+        if ok then
+            string t = cellDisplay(k)
+            int w = textWidth(t)
+            if w > int(colW[col]) then colW[col] = w end
+        end
+    end
+
+    // 顶部表头分隔线
+    string out = ""
+    string sep = ""
+    out = out + padRight("", labelW) + " |"
+    ci = 1
+    while ci <= maxCol do
+        int w = int(colW[ci])
+        sep = sep + string.repeat("-", w) + "+"
+        out = out + " " + padLeft(colToLetter(ci), w)
+        if ci < maxCol then out = out + " " end
+        if ci == maxCol then out = out + " |" end
+        ci += 1
+    end
+    out = out + "\n"
+    out = out + string.repeat("-", labelW) + "-+" + sep + "\n"
+
+    int r = 1
+    while r <= maxRow do
+        out = out + padLeft(string(r), labelW) + " |"
+        ci = 1
+        while ci <= maxCol do
+            string key = makeRef(ci, r)
+            int w = int(colW[ci])
+            string t = cellDisplay(key)
+            // 数值右对齐，文本左对齐
+            var c = cellAt(key)
+            bool rightAlign = false
+            if c != null and not c.isError and isNum(c.value) then rightAlign = true end
+            string cell1 = ""
+            if rightAlign then
+                cell1 = padLeft(t, w)
+            else
+                cell1 = padRight(t, w)
+            end
+            out = out + " " + cell1
+            if ci < maxCol then out = out + " " end
+            if ci == maxCol then out = out + " |" end
+            ci += 1
+        end
+        out = out + "\n"
+        r += 1
+    end
+    return out
+end
+
+
+// ============================================================================
+// dump —— 列出所有非空单元格
+// ============================================================================
+
+func renderDump() as string
+    var refs = []
+    for k, v in gCells
+        refs.push(k)
+    end
+    if refs.length == 0 then return "(empty sheet)" end
+    sortRefs(refs)
+    string out = ""
+    int i = 0
+    while i < refs.length do
+        string r = string(refs[i])
+        var c = cellAt(r)
+        if i > 0 then out = out + "\n" end
+        string dv = cellDisplay(r)
+        string depsStr = ""
+        if c.deps != null then
+            int j = 0
+            while j < c.deps.length do
+                if j > 0 then depsStr = depsStr + "," end
+                depsStr = depsStr + string(c.deps[j])
+                j += 1
+            end
+        end
+        string tag = "lit"
+        if c.ast != null then tag = "fx" end
+        if c.isError then tag = "err" end
+        out = out + r + "  [" + tag + "]  raw='" + c.raw + "'  value='" + dv + "'"
+        if depsStr != "" then out = out + "  deps=" + depsStr end
+        i += 1
+    end
+    return out
+end
+
+
+// ============================================================================
+// refs —— 打印依赖图
+// ============================================================================
+
+func renderRefs() as string
+    var refs = formulaRefs()
+    if refs.length == 0 then return "(no formula cells)" end
+    string out = ""
+    int i = 0
+    while i < refs.length do
+        string r = string(refs[i])
+        var c = cellAt(r)
+        if i > 0 then out = out + "\n" end
+        out = out + r + " -> ["
+        if c.deps != null then
+            int j = 0
+            while j < c.deps.length do
+                if j > 0 then out = out + ", " end
+                out = out + string(c.deps[j])
+                j += 1
+            end
+        end
+        out = out + "]"
+        i += 1
+    end
+    return out
+end
+
+
+// ============================================================================
+// CSV 导入 / 导出
+// ============================================================================
+
+// 把一个字段加引号（必要时）。
+func csvQuote(string s) as string
+    bool need = false
+    if string.contains(s, ",") then need = true end
+    if string.contains(s, "\"") then need = true end
+    if string.contains(s, "\n") then need = true end
+    if string.contains(s, "\r") then need = true end
+    if not need then return s end
+    string out = string.replace(s, "\"", "\"\"")
+    return "\"" + out + "\""
+end
+
+
+// 把整张表导出为 CSV 文本。
+func exportCsv() as string
+    int maxCol = 0
+    int maxRow = 0
+    maxCol, maxRow = gridBounds()
+    if maxCol == 0 then return "" end
+    string out = ""
+    int r = 1
+    while r <= maxRow do
+        string line = ""
+        int c = 1
+        while c <= maxCol do
+            if c > 1 then line = line + "," end
+            line = line + csvQuote(cellDisplay(makeRef(c, r)))
+            c += 1
+        end
+        out = out + line + "\n"
+        r += 1
+    end
+    return out
+end
+
+
+// 解析 CSV 文本为二维字符串数组（处理引号字段、字段内逗号、转义引号、跨行字段）。
+func parseCsv(string text) as var
+    var rows = []
+    var fields = []
+    string field = ""
+    bool inQuotes = false
+    int i = 0
+    int n = string.len(text)
+    while i < n do
+        string c = string.charAt(text, i)
+        if inQuotes then
+            if c == "\"" then
+                if i + 1 < n and string.charAt(text, i + 1) == "\"" then
+                    field = field + "\""
+                    i += 2
+                    continue
+                end
+                inQuotes = false
+                i += 1
+                continue
+            end
+            field = field + c
+            i += 1
+            continue
+        end
+        if c == "\"" then
+            inQuotes = true
+            i += 1
+            continue
+        end
+        if c == "," then
+            fields.push(field)
+            field = ""
+            i += 1
+            continue
+        end
+        if c == "\r" then
+            i += 1
+            continue
+        end
+        if c == "\n" then
+            fields.push(field)
+            field = ""
+            rows.push(fields)
+            fields = []
+            i += 1
+            continue
+        end
+        field = field + c
+        i += 1
+    end
+    // 末行（可能没有换行结尾）
+    if field != "" or fields.length > 0 then
+        fields.push(field)
+        rows.push(fields)
+    end
+    return rows
+end
+
+
+// 从 CSV 文本导入到表中（左上角对齐 A1），导入完成后重算。
+// importMeta 为 true 时首行当作列头（跳过），这里默认不跳过。
+func importCsv(string text)
+    var rows = parseCsv(text)
+    int r = 0
+    while r < rows.length do
+        var fields = rows[r]
+        int c = 0
+        while c < fields.length do
+            string raw = string.trim(string(fields[c]))
+            if raw != "" then
+                string ref = makeRef(c + 1, r + 1)
+                Cell cell1 = ensureCell(ref)
+                cell1.raw = raw
+                if string.startsWith(raw, "=") then
+                    string body = string.trim(string.mid(raw, 1))
+                    try
+                        Node ast = parseFormula(body)
+                        cell1.ast = ast
+                        cell1.deps = depsOf(ast)
+                    catch e
+                        cell1.ast = null
+                        cell1.deps = []
+                        cell1.isError = true
+                        cell1.err = e.message
+                    end
+                else
+                    cell1.ast = null
+                    cell1.deps = null
+                    cell1.value = parseLiteral(raw)
+                end
+            end
+            c += 1
+        end
+        r += 1
+    end
+    recalcAll()
+end
+
+
+// ============================================================================
+// 命令分发
+// ============================================================================
+
+// 按首个空白拆出命令词与剩余串。
+func splitCmd(string line) as (string, string)
+    string s = string.trim(line)
+    if string.isEmpty(s) then return "", "" end
+    int sp = string.indexOf(s, " ")
+    if sp < 0 then return s, "" end
+    string cmd = string.slice(s, 0, sp)
+    string rest = string.ltrim(string.mid(s, sp + 1))
+    return cmd, rest
+end
+
+
+// 执行单条命令，返回结果文本（"" 表示无输出）。
+func executeCommand(string line) as string
+    string cmd = ""
+    string rest = ""
+    cmd, rest = splitCmd(line)
+    if cmd == "" then return "" end
+    if string.startsWith(cmd, "//") then return "" end
+    string up = string.upper(cmd)
+
+    if up == "SET" then
+        string ref = ""
+        string val = ""
+        ref, val = splitCmd(rest)
+        if ref == "" then return "(error) 用法: set <ref> <value>" end
+        try
+            setCellValue(ref, val)
+            return "OK"
+        catch e
+            return "(error) " + e.message
+        end
+    end
+
+    if up == "GET" then
+        string ref = normRef(string.trim(rest))
+        int col = 0
+        int row = 0
+        bool ok = false
+        col, row, ok = parseRef(ref)
+        if not ok then return "(error) 非法引用 '" + rest + "'" end
+        var c = cellAt(ref)
+        if c == null then return "(empty)" end
+        string dv = cellDisplay(ref)
+        return ref + " = " + dv
+    end
+
+    if up == "SHOW" then
+        return renderShow()
+    end
+
+    if up == "DUMP" then
+        return renderDump()
+    end
+
+    if up == "REFS" then
+        return renderRefs()
+    end
+
+    if up == "CLEAR" then
+        string ref = string.trim(rest)
+        if ref == "" then
+            resetSheet()
+            return "OK (cleared all)"
+        end
+        clearCell(normRef(ref))
+        recalcAll()
+        return "OK"
+    end
+
+    if up == "IMPORT" then
+        // import csv <file>
+        string sub = ""
+        string path = ""
+        sub, path = splitCmd(rest)
+        if string.upper(sub) != "CSV" or path == "" then
+            return "(error) 用法: import csv <file>"
+        end
+        if not file.exists(path) then return "(error) 文件不存在: " + path end
+        try
+            string text = file.readText(path)
+            importCsv(text)
+            return "OK (imported " + path + ")"
+        catch e
+            return "(error) " + e.message
+        end
+    end
+
+    if up == "EXPORT" then
+        // export csv <file>
+        string sub = ""
+        string path = ""
+        sub, path = splitCmd(rest)
+        if string.upper(sub) != "CSV" or path == "" then
+            return "(error) 用法: export csv <file>"
+        end
+        try
+            string text = exportCsv()
+            bool okw = file.writeText(path, text)
+            if not okw then return "(error) 写入失败: " + path end
+            return "OK (exported " + path + ")"
+        catch e
+            return "(error) " + e.message
+        end
+    end
+
+    if up == "TEST" then
+        return runSelfTest()
+    end
+
+    if up == "HELP" then
+        return helpText()
+    end
+
+    return "(error) 未知命令 '" + cmd + "'（输入 help 查看帮助）"
+end
+
+
+func helpText() as string
+    string out = ""
+    out = out + "xsheet 命令:\n"
+    out = out + "  set <ref> <value...>       设置单元格（=开头为公式）\n"
+    out = out + "  get <ref>                  读取单元格值\n"
+    out = out + "  show                       渲染整张表\n"
+    out = out + "  dump                       列出所有非空单元格\n"
+    out = out + "  refs                       打印依赖图\n"
+    out = out + "  clear  /  clear <ref>      清空表 / 单个单元格\n"
+    out = out + "  import csv <file>          从 CSV 导入\n"
+    out = out + "  export csv <file>          导出为 CSV\n"
+    out = out + "  test                       运行自检测试\n"
+    out = out + "  help                       显示本帮助\n"
+    out = out + "\n"
+    out = out + "公式: + - * / ^ & 以及 = <> < > <= >= ；函数 SUM/AVG/MIN/MAX/COUNT/IF/ABS\n"
+    out = out + "示例: =A1*2   =SUM(A1:B3)   =IF(A1>10, A1, 0)   =ABS(A1-B1)"
+    return out
+end
+
+
+// ============================================================================
+// 运行器
+// ============================================================================
+
+// 执行一个命令脚本（每行一条命令），逐条打印结果。
+func runScript(string path) as int
+    if not file.exists(path) then
+        println("(error) 文件不存在: " + path)
+        return 1
+    end
+    string text = file.readText(path)
+    var lines = string.splitLines(text)
+    // 处理 splitLines 尾部空串
+    if lines.length > 0 then
+        string last = string(lines[lines.length - 1])
+        if string.trim(last) == "" then
+            lines.remove(lines.length - 1)
+        end
+    end
+    int i = 0
+    while i < lines.length do
+        string line = string(lines[i])
+        string out = executeCommand(line)
+        if out != "" then
+            println(out)
+        end
+        i += 1
+    end
+    return 0
+end
+
+
+// 依次执行多条命令行（每个 argv 元素是一条完整命令）。
+func runArgs(var cmds) as int
+    int i = 0
+    while i < cmds.length do
+        string out = executeCommand(string(cmds[i]))
+        if out != "" then
+            println(out)
+        end
+        i += 1
+    end
+    return 0
+end
+
+
+// 内置 demo 脚本。
+func runDemo() as int
+    println("================ xsheet demo ================")
+    var demo = []
+    demo.push("set A1 10")
+    demo.push("set A2 20")
+    demo.push("set A3 30")
+    demo.push("set B1 =A1*2")
+    demo.push("set B2 =A1+A2+A3")
+    demo.push("set B3 =SUM(A1:A3)")
+    demo.push("set C1 =AVG(A1:A3)")
+    demo.push("set C2 =MAX(A1:A3)")
+    demo.push("set C3 =MIN(A1:A3)")
+    demo.push("set D1 =IF(A1>5, B1, 0)")
+    demo.push("set D2 =ABS(A1-100)")
+    demo.push("set D3 =COUNT(A1:A3)")
+    demo.push("set E1 =A1+B1&\"!\"")
+    demo.push("set E2 =(A1+A2)/A3")
+    demo.push("set E3 =2^10")
+    demo.push("set F1 =A1=A2")
+    demo.push("show")
+    demo.push("dump")
+    demo.push("refs")
+
+    int i = 0
+    while i < demo.length do
+        string line = string(demo[i])
+        println("> " + line)
+        string out = executeCommand(line)
+        if out != "" then
+            println(out)
+        end
+        println("")
+        i += 1
+    end
+
+    // 依赖重算演示
+    println("---------------- 重算演示 ----------------")
+    println("> set A1 100      # 改动 A1，依赖 B1/B2/B3/D1/D2 会自动更新")
+    println(executeCommand("set A1 100"))
+    println("")
+    println("> show")
+    println(executeCommand("show"))
+
+    println("---------------- 循环检测演示 ----------------")
+    println("> set X1 =Y1")
+    println(executeCommand("set X1 =Y1"))
+    println("> set Y1 =X1       # 形成 X1<->Y1 循环")
+    println(executeCommand("set Y1 =X1"))
+    println("> get X1")
+    println(executeCommand("get X1"))
+    println("> get Y1")
+    println(executeCommand("get Y1"))
+    return 0
+end
+
+
+// ============================================================================
+// 自检测试套件
+// ============================================================================
+
+func check(bool cond, string label)
+    if cond then
+        gTestPass += 1
+        println("  [PASS] " + label)
+    else
+        gTestFail += 1
+        println("  [FAIL] " + label)
+    end
+end
+
+func checkEq(var got, var want, string label)
+    bool ok = false
+    if isNum(got) and isNum(want) then
+        ok = asNum(got) == asNum(want)
+    else
+        ok = (string(got) == string(want))
+    end
+    if ok then
+        gTestPass += 1
+        println("  [PASS] " + label)
+    else
+        gTestFail += 1
+        println("  [FAIL] " + label + "   got=" + string(got) + "  want=" + string(want))
+    end
+end
+
+
+// 取得某单元格的数值（用于断言）。
+func numOf(string ref) as float
+    var c = cellAt(ref)
+    if c == null then return 0.0 end
+    if c.isError then return 1e999 end
+    return asNum(c.value)
+end
+
+func errOf(string ref) as string
+    var c = cellAt(ref)
+    if c == null then return "" end
+    if c.isError then return c.err end
+    return ""
+end
+
+
+func testLiterals()
+    println("[test] 字面量与算术")
+    resetSheet()
+    setCellValue("A1", "42")
+    checkEq(cellAt("A1").value, 42, "整数字面量")
+    setCellValue("A2", "3.14")
+    check(numOf("A2") == 3.14, "浮点字面量")
+    setCellValue("A3", "hello")
+    checkEq(cellAt("A3").value, "hello", "字符串字面量")
+    setCellValue("B1", "=1+2*3")
+    checkEq(numOf("B1"), 7, "1+2*3 = 7")
+    setCellValue("B2", "=(1+2)*3")
+    checkEq(numOf("B2"), 9, "(1+2)*3 = 9")
+    setCellValue("B3", "=2^10")
+    checkEq(numOf("B3"), 1024, "2^10 = 1024")
+    setCellValue("B4", "=7/2")
+    checkEq(numOf("B4"), 3.5, "7/2 = 3.5")
+    setCellValue("B5", "=-3+4")
+    checkEq(numOf("B5"), 1, "一元负号 -3+4=1")
+    setCellValue("B6", "=2^3^2")
+    checkEq(numOf("B6"), 512, "右结合 2^3^2 = 512")
+end
+
+
+func testRefsAndDeps()
+    println("[test] 引用与依赖")
+    resetSheet()
+    setCellValue("A1", "100")
+    setCellValue("A2", "200")
+    setCellValue("B1", "=A1+A2")
+    checkEq(numOf("B1"), 300, "=A1+A2")
+    // 修改 A1 触发重算
+    setCellValue("A1", "1")
+    checkEq(numOf("B1"), 201, "改动 A1 后 B1=201")
+    setCellValue("C1", "=B1*2")
+    checkEq(numOf("C1"), 402, "=B1*2 传递依赖")
+    setCellValue("A2", "9")
+    checkEq(numOf("B1"), 10, "改动 A2 后 B1=10")
+    checkEq(numOf("C1"), 20, "改动 A2 后 C1=20（传递重算）")
+end
+
+
+func testFunctions()
+    println("[test] 函数")
+    resetSheet()
+    setCellValue("A1", "10")
+    setCellValue("A2", "20")
+    setCellValue("A3", "30")
+    setCellValue("A4", "40")
+    setCellValue("B1", "=SUM(A1:A4)")
+    checkEq(numOf("B1"), 100, "SUM(A1:A4)=100")
+    setCellValue("B2", "=AVG(A1:A4)")
+    checkEq(numOf("B2"), 25, "AVG(A1:A4)=25")
+    setCellValue("B3", "=MIN(A1:A4)")
+    checkEq(numOf("B3"), 10, "MIN(A1:A4)=10")
+    setCellValue("B4", "=MAX(A1:A4)")
+    checkEq(numOf("B4"), 40, "MAX(A1:A4)=40")
+    setCellValue("B5", "=COUNT(A1:A4)")
+    checkEq(numOf("B5"), 4, "COUNT(A1:A4)=4")
+    setCellValue("B6", "=SUM(A1:A2, A4)")
+    checkEq(numOf("B6"), 70, "SUM(A1:A2,A4)=70")
+    setCellValue("B7", "=ABS(-7)")
+    checkEq(numOf("B7"), 7, "ABS(-7)=7")
+    setCellValue("B8", "=IF(A1<A2, A1, A2)")
+    checkEq(numOf("B8"), 10, "IF(A1<A2,A1,A2)=10")
+    setCellValue("B9", "=IF(A1>A2, A1, A2)")
+    checkEq(numOf("B9"), 20, "IF(A1>A2,A1,A2)=20")
+    setCellValue("B10", "=IF(A1<A2, \"yes\", \"no\")")
+    checkEq(cellAt("B10").value, "yes", "IF 返回字符串 yes")
+    // 空白参数混合
+    setCellValue("B11", "=SUM(A1, A2, 5)")
+    checkEq(numOf("B11"), 35, "SUM(A1,A2,5)=35")
+end
+
+
+func testRanges()
+    println("[test] 范围")
+    resetSheet()
+    setCellValue("A1", "1")
+    setCellValue("A2", "2")
+    setCellValue("B1", "3")
+    setCellValue("B2", "4")
+    setCellValue("C1", "=SUM(A1:B2)")
+    checkEq(numOf("C1"), 10, "SUM(A1:B2)=10（2x2 范围）")
+    setCellValue("C2", "=MAX(A1:B2)")
+    checkEq(numOf("C2"), 4, "MAX(A1:B2)=4")
+    setCellValue("C3", "=COUNT(A1:B2)")
+    checkEq(numOf("C3"), 4, "COUNT(A1:B2)=4")
+end
+
+
+func testConcatAndCompare()
+    println("[test] 拼接与比较")
+    resetSheet()
+    setCellValue("A1", "xlang")
+    setCellValue("A2", "spreadsheet")
+    setCellValue("B1", "=A1&\" \"&A2")
+    checkEq(cellAt("B1").value, "xlang spreadsheet", "& 拼接")
+    setCellValue("B2", "=A1=\"xlang\"")
+    checkEq(numOf("B2"), 1, "字符串相等 =1")
+    setCellValue("B3", "=A1=\"foo\"")
+    checkEq(numOf("B3"), 0, "字符串不等 =0")
+    setCellValue("B4", "=3<>4")
+    checkEq(numOf("B4"), 1, "3<>4 =1")
+    setCellValue("B5", "=5<=5")
+    checkEq(numOf("B5"), 1, "5<=5 =1")
+end
+
+
+func testCycleDetection()
+    println("[test] 循环检测")
+    resetSheet()
+    setCellValue("A1", "=B1")
+    setCellValue("B1", "=A1")
+    check(errOf("A1") == "#CYCLE!", "A1<->B1 循环标记 A1")
+    check(errOf("B1") == "#CYCLE!", "A1<->B1 循环标记 B1")
+    // 解除循环后应恢复
+    setCellValue("A1", "5")
+    checkEq(numOf("A1"), 5, "解除循环 A1=5")
+    checkEq(numOf("B1"), 5, "解除循环 B1=A1=5")
+    check(not cellAt("A1").isError, "A1 错误标记已清除")
+    check(not cellAt("B1").isError, "B1 错误标记已清除")
+end
+
+
+func testThreeCycle()
+    println("[test] 三元循环")
+    resetSheet()
+    setCellValue("A1", "=B1+1")
+    setCellValue("B1", "=C1+1")
+    setCellValue("C1", "=A1+1")
+    check(errOf("A1") == "#CYCLE!", "A1->B1->C1->A1 循环 A1")
+    check(errOf("B1") == "#CYCLE!", "三元循环 B1")
+    check(errOf("C1") == "#CYCLE!", "三元循环 C1")
+end
+
+
+func testErrors()
+    println("[test] 错误处理")
+    resetSheet()
+    setCellValue("A1", "0")
+    setCellValue("B1", "=10/A1")
+    check(errOf("B1") == "#DIV/0!", "除零 #DIV/0!")
+    setCellValue("A2", "hello")
+    setCellValue("B2", "=A2+1")
+    check(string.startsWith(errOf("B2"), "#TYPE"), "字符串+数字 #TYPE!")
+    setCellValue("B3", "=UNKNOWNFN(1)")
+    check(errOf("B3") == "#NAME?", "未知函数 #NAME?")
+    setCellValue("B4", "=A99+B99")
+    checkEq(numOf("B4"), 0, "空单元格引用按 0 处理")
+end
+
+
+func testGetShow()
+    println("[test] get / show / dump")
+    resetSheet()
+    setCellValue("A1", "1")
+    setCellValue("A2", "2")
+    setCellValue("B1", "=A1+A2")
+    string g = executeCommand("get B1")
+    check(string.contains(g, "3"), "get B1 含 3")
+    string s = executeCommand("show")
+    check(string.contains(s, "A1"), "show 输出含列头")
+    check(string.contains(s, "1") and string.contains(s, "2"), "show 输出含单元格值")
+    string d = executeCommand("dump")
+    check(string.contains(d, "B1") and string.contains(d, "fx"), "dump 含 B1 [fx]")
+    string r = executeCommand("refs")
+    check(string.contains(r, "B1"), "refs 含 B1")
+end
+
+
+func testCsvRoundtrip()
+    println("[test] CSV 导入/导出往返")
+    resetSheet()
+    setCellValue("A1", "1")
+    setCellValue("B1", "2")
+    setCellValue("A2", "3")
+    setCellValue("B2", "4")
+    setCellValue("C1", "=SUM(A1:B2)")
+    string csv = exportCsv()
+    check(string.contains(csv, "1") and string.contains(csv, "10"), "exportCsv 含 1 和 10")
+
+    resetSheet()
+    importCsv("5,6\n7,8\n")
+    checkEq(numOf("A1"), 5, "import A1=5")
+    checkEq(numOf("B2"), 8, "import B2=8")
+    checkEq(numOf("A2"), 7, "import A2=7")
+
+    // 含逗号的引号字段
+    resetSheet()
+    importCsv("\"a,b\",x\n")
+    checkEq(cellAt("A1").value, "a,b", "import 引号字段含逗号")
+    checkEq(cellAt("B1").value, "x", "import 第二列")
+end
+
+
+func testColLetter()
+    println("[test] 列字母转换")
+    check(colToLetter(1) == "A", "1->A")
+    check(colToLetter(26) == "Z", "26->Z")
+    check(colToLetter(27) == "AA", "27->AA")
+    check(colToLetter(52) == "AZ", "52->AZ")
+    check(colToLetter(53) == "BA", "53->BA")
+    check(colToLetter(702) == "ZZ", "702->ZZ")
+    check(colToLetter(703) == "AAA", "703->AAA")
+    check(letterToCol("A") == 1, "A->1")
+    check(letterToCol("Z") == 26, "Z->26")
+    check(letterToCol("AA") == 27, "AA->27")
+    check(letterToCol("AZ") == 52, "AZ->52")
+    check(letterToCol("AAA") == 703, "AAA->703")
+    check(isRefName("A1") == true, "A1 是合法引用")
+    check(isRefName("AB12") == true, "AB12 合法")
+    check(isRefName("SUM") == false, "SUM 非引用")
+    check(isRefName("1A") == false, "1A 非引用")
+end
+
+
+func testCommandsViaExecute()
+    println("[test] 命令文本解析")
+    resetSheet()
+    checkEq(executeCommand("set A1 7"), "OK", "set 返回 OK")
+    check(string.contains(executeCommand("get A1"), "7"), "get A1 含 7")
+    check(string.contains(executeCommand("set B1 =A1*3"), "OK"), "set 公式 OK")
+    check(string.contains(executeCommand("get B1"), "21"), "get B1 含 21")
+    check(string.contains(executeCommand("set a1 1"), "OK"), "小写引用 OK")
+    check(string.contains(executeCommand("get a1"), "1"), "小写引用 get")
+    check(executeCommand("clear") != "", "clear 返回非空")
+end
+
+
+func runSelfTest() as string
+    gTestPass = 0
+    gTestFail = 0
+    println("")
+    println("================ xsheet self-test ================")
+    testColLetter()
+    testLiterals()
+    testRefsAndDeps()
+    testFunctions()
+    testRanges()
+    testConcatAndCompare()
+    testCycleDetection()
+    testThreeCycle()
+    testErrors()
+    testGetShow()
+    testCsvRoundtrip()
+    testCommandsViaExecute()
+    println("")
+    println("------------------- summary -------------------")
+    println("passed: " + string(gTestPass) + " / " + string(gTestPass + gTestFail))
+    println("failed: " + string(gTestFail))
+    println("")
+    return "passed=" + string(gTestPass) + " failed=" + string(gTestFail)
+end
+
+
+// ============================================================================
+// 入口
+// ============================================================================
+
+func printUsage()
+    println("xsheet - xlang 电子表格引擎")
+    println("")
+    println("用法:")
+    println("  xl run xsheet.xl                       运行内置 demo")
+    println("  xl run xsheet.xl demo                  同上")
+    println("  xl run xsheet.xl test                  运行自检测试套件")
+    println("  xl run xsheet.xl run <file.xs>         运行命令脚本（每行一条命令）")
+    println("  xl run xsheet.xl do \"<cmd>\" [\"<cmd2>\"] 同一进程内执行多条命令")
+    println("  xl run xsheet.xl help                  显示帮助")
+    println("")
+    println("命令: set / get / show / dump / refs / clear / import csv / export csv / test / help")
+    println("公式: + - * / ^ & 以及 = <> < > <= >= ；函数 SUM/AVG/MIN/MAX/COUNT/IF/ABS")
+end
+
+
+func main(...) as int
+    println("xsheet - xlang spreadsheet engine")
+    println("")
+
+    if arg.length < 2 then
+        return runDemo()
+    end
+
+    string mode = string.lower(string(arg[1]))
+
+    if mode == "demo" then
+        return runDemo()
+    end
+
+    if mode == "test" then
+        runSelfTest()
+        if gTestFail > 0 then return 1 end
+        return 0
+    end
+
+    if mode == "run" then
+        if arg.length >= 3 then
+            return runScript(string(arg[2]))
+        end
+        return runDemo()
+    end
+
+    if mode == "do" then
+        var cmds = []
+        int i = 2
+        while i < arg.length do
+            cmds.push(arg[i])
+            i += 1
+        end
+        return runArgs(cmds)
+    end
+
+    if mode == "-h" or mode == "--help" or mode == "help" then
+        printUsage()
+        return 0
+    end
+
+    println("Error: 未知模式 '" + mode + "'")
+    printUsage()
+    return 1
+end

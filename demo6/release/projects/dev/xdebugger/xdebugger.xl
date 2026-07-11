@@ -1,0 +1,3245 @@
+// xdebugger.xl - xlang 源码级调试器（命令脚本驱动 + DAP 事件输出）
+//
+// 功能：
+//   1. 调试核心：通过 xl run --save-temps 生成 C 中间文件，分析行映射（xlang 行→C 行）；
+//      通过 xl parse --format json 获取 AST，识别函数、变量；
+//      通过 xl ir --format json 分析函数调用关系。
+//   2. 断点管理：行断点 / 条件断点 / 函数断点，支持 enable/disable/count（命中 N 次后暂停）。
+//   3. 变量检查：基于 AST 收集全局/局部变量名，运行期通过插桩快照取值。
+//   4. 调用栈：基于函数 entry/exit 事件重建。
+//   5. 命令模式（非交互，从 .xdbg 脚本读取）：
+//        break <file:line>          设置行断点
+//        break <func>               设置函数断点
+//        break <line> if <cond>     设置条件断点
+//        tbreak <file:line>         临时断点（命中一次后自动删除）
+//        continue / step / next / finish
+//        print <var>                打印变量值
+//        locals                     打印当前所有局部变量
+//        backtrace / bt             打印调用栈
+//        watch <var>                监视变量（每次暂停时显示）
+//        info breakpoints           列出所有断点
+//        delete <id>                删除断点
+//        enable <id> / disable <id>
+//        ignore <id> <count>        忽略前 count 次命中
+//        run                        （已由 debug 子命令隐式执行）
+//        quit                       结束会话
+//   6. DAP 适配（简化）：生成 DAP-compatible JSON 事件（stopped/continued/terminated/output）。
+//
+// 用法（在 release 目录下）：
+//   xl run projects\dev\xdebugger\xdebugger.xl debug <file.xl> <commands.xdbg>
+//   xl run projects\dev\xdebugger\xdebugger.xl debug <file.xl> <commands.xdbg> --dap
+//   xl run projects\dev\xdebugger\xdebugger.xl linemap <file.xl>
+//   xl run projects\dev\xdebugger\xdebugger.xl test
+//   xl run projects\dev\xdebugger\xdebugger.xl -h | --help
+//
+// 构建后：
+//   xdebugger debug <file.xl> <commands.xdbg>
+//   xdebugger test
+//
+// 工作原理（模拟调试）：
+//   由于 xlang 无 stdin / ptrace 等原生调试 API，本工具采用「插桩 + 事件回放」模拟：
+//   1. xl parse --format json 取 AST → 定位每个函数的行范围、参数、局部变量。
+//   2. 在目标源码的函数入口/退出/断点行前注入调试钩子（__xd_enter/__xd_exit/__xd_p），
+//      钩子运行期记录函数调用栈与局部变量快照，程序结束时 dump 全部事件为 JSON。
+//   3. xl run 运行插桩后的程序，捕获 __XDBG_DUMP__ 标记行，解析事件流。
+//   4. 在事件流上回放 .xdbg 调试命令：continue/step/next/finish 推进事件指针，
+//      断点匹配决定是否「暂停」；暂停时执行 print/locals/backtrace 等检查命令。
+//   5. 可选 --dap 将整个会话输出为 DAP-compatible JSON 事件序列。
+//
+// 退出码：成功 EXIT=0；目标程序或命令脚本错误 EXIT=1。
+
+// ===== 全局状态 =====
+
+string g_xl                // xl.exe 完整路径
+string g_scriptPath        // 本工具脚本路径（argv[0]）
+string g_toolDir           // 本工具所在目录
+string g_tempDir           // 临时文件目录
+string g_dapOut            // DAP 输出文件路径（--dap 模式）
+
+bool g_color               // 是否启用 ANSI 彩色
+bool g_dapMode             // 是否输出 DAP JSON
+bool g_verbose             // 详细输出
+
+// 颜色（ANSI）
+string C_RESET
+string C_BOLD
+string C_GREEN
+string C_RED
+string C_YELLOW
+string C_CYAN
+string C_BLUE
+string C_GRAY
+
+// ===== 数据类型 =====
+
+// 断点类型常量
+int BP_LINE
+int BP_FUNC
+int BP_CONDITIONAL
+
+// 调试命令常量
+int CMD_UNKNOWN
+int CMD_BREAK
+int CMD_TBREAK
+int CMD_CONTINUE
+int CMD_STEP
+int CMD_NEXT
+int CMD_FINISH
+int CMD_PRINT
+int CMD_LOCALS
+int CMD_BACKTRACE
+int CMD_WATCH
+int CMD_INFO_BP
+int CMD_DELETE
+int CMD_ENABLE
+int CMD_DISABLE
+int CMD_IGNORE
+int CMD_RUN
+int CMD_QUIT
+int CMD_COMMENT
+int CMD_BLANK
+
+class Breakpoint
+    int id
+    int kind              // BP_LINE / BP_FUNC / BP_CONDITIONAL
+    string file           // 文件名（行断点/条件断点）
+    int line              // 行号（行断点/条件断点）
+    string funcName       // 函数名（函数断点）
+    string condition      // 条件表达式（条件断点）
+    bool enabled          // 是否启用
+    bool temporary        // 是否临时（命中一次后自动删除）
+    int hitCount          // 已命中次数
+    int ignoreCount       // 忽略前 N 次命中
+    string state          // "pending" / "bound" / "resolved"
+    create()
+        self.id = 0
+        self.kind = BP_LINE
+        self.file = ""
+        self.line = 0
+        self.funcName = ""
+        self.condition = ""
+        self.enabled = true
+        self.temporary = false
+        self.hitCount = 0
+        self.ignoreCount = 0
+        self.state = "pending"
+    end
+end
+
+class StackFrame
+    string fn             // 函数名
+    int line              // 当前行号
+    string file           // 文件名
+    int depth             // 调用深度
+    create(string fn, int line, string file, int depth)
+        self.fn = fn
+        self.line = line
+        self.file = file
+        self.depth = depth
+    end
+end
+
+class VarDecl
+    string name           // 变量名
+    int line              // 声明行号
+    string vtype          // 类型（int/string/...）
+    bool isParam          // 是否函数参数
+    create(string name, int line, string vtype, bool isParam)
+        self.name = name
+        self.line = line
+        self.vtype = vtype
+        self.isParam = isParam
+    end
+end
+
+class FuncInfo
+    string name           // 函数名（含类名前缀）
+    int startLine         // 起始行（func 行）
+    int endLine           // 结束行（end 行）
+    int bodyStart         // 函数体首行
+    bool isMain           // 是否 main
+    bool ok               // 是否可插桩
+    array<VarDecl> vars   // 局部变量+参数
+    create()
+        self.name = ""
+        self.startLine = 0
+        self.endLine = 0
+        self.bodyStart = 0
+        self.isMain = false
+        self.ok = false
+        self.vars = []
+    end
+end
+
+class LineMapEntry
+    int cLine             // C 文件行号
+    int xlLine            // xlang 源文件行号
+    string source         // 源文件路径
+    create(int cLine, int xlLine, string source)
+        self.cLine = cLine
+        self.xlLine = xlLine
+        self.source = source
+    end
+end
+
+class CallEdge
+    string caller         // 调用者
+    string callee         // 被调用者
+    int count             // 估计调用次数
+    create(string caller, string callee)
+        self.caller = caller
+        self.callee = callee
+        self.count = 0
+    end
+end
+
+class DebugEvent
+    string etype          // "enter" / "exit" / "point" / "output"
+    string fn             // 函数名
+    int line              // 行号
+    var locals            // 局部变量快照（var dict）
+    string rawText        // 原始输出文本（output 事件）
+    create()
+        self.etype = ""
+        self.fn = ""
+        self.line = 0
+        self.locals = {}
+        self.rawText = ""
+    end
+end
+
+class Command
+    int kind              // CMD_* 常量
+    string raw            // 原始文本
+    string arg1           // 主参数
+    string arg2           // 副参数（条件等）
+    int intArg            // 整型参数（delete id / ignore count）
+    create(int kind, string raw)
+        self.kind = kind
+        self.raw = raw
+        self.arg1 = ""
+        self.arg2 = ""
+        self.intArg = 0
+    end
+end
+
+class WatchVar
+    string name           // 变量名
+    string lastValue      // 上次值
+    create(string name)
+        self.name = name
+        self.lastValue = "\x01<uninit>\x01"
+    end
+end
+
+// ===== 初始化 =====
+
+func initState()
+    g_xl = ""
+    g_scriptPath = ""
+    g_toolDir = ""
+    g_tempDir = ""
+    g_dapOut = ""
+    g_color = true
+    g_dapMode = false
+    g_verbose = false
+    BP_LINE = 0
+    BP_FUNC = 1
+    BP_CONDITIONAL = 2
+    CMD_UNKNOWN = -1
+    CMD_BREAK = 0
+    CMD_TBREAK = 1
+    CMD_CONTINUE = 2
+    CMD_STEP = 3
+    CMD_NEXT = 4
+    CMD_FINISH = 5
+    CMD_PRINT = 6
+    CMD_LOCALS = 7
+    CMD_BACKTRACE = 8
+    CMD_WATCH = 9
+    CMD_INFO_BP = 10
+    CMD_DELETE = 11
+    CMD_ENABLE = 12
+    CMD_DISABLE = 13
+    CMD_IGNORE = 14
+    CMD_RUN = 15
+    CMD_QUIT = 16
+    CMD_COMMENT = 17
+    CMD_BLANK = 18
+end
+
+func initColors()
+    // 在 Windows 终端也可能支持 ANSI（Win10+）。检测环境决定。
+    C_RESET = "\x1b[0m"
+    C_BOLD = "\x1b[1m"
+    C_GREEN = "\x1b[32m"
+    C_RED = "\x1b[31m"
+    C_YELLOW = "\x1b[33m"
+    C_CYAN = "\x1b[36m"
+    C_BLUE = "\x1b[34m"
+    C_GRAY = "\x1b[90m"
+end
+
+func colorOn(string code, string text) as string
+    if g_color then
+        return code + text + C_RESET
+    end
+    return text
+end
+
+// ===== xl.exe 定位 =====
+
+func findXl() as string
+    array<string> cands = []
+    cands.push(path.join(path.appDir(), "xl.exe"))
+    cands.push(path.join(path.cwd(), "xl.exe"))
+    if string.len(g_scriptPath) > 0 then
+        string d0 = path.dir(g_scriptPath)
+        cands.push(path.join(path.join(d0, "..", "..", ".."), "xl.exe"))
+        cands.push(path.join(d0, "xl.exe"))
+    end
+    for c in cands
+        if file.exists(c) then
+            return c
+        end
+    end
+    return ""
+end
+
+func findToolDir() as string
+    if string.len(g_scriptPath) > 0 then
+        return path.dir(g_scriptPath)
+    end
+    return path.cwd()
+end
+
+func makeTempDir() as string
+    string base = path.join(path.temp(), "xdebugger_cache")
+    dir.createAll(base)
+    return base
+end
+
+func cleanupTempDir()
+    if string.len(g_tempDir) > 0 then
+        try
+            dir.delete(g_tempDir)
+        catch e
+        end
+    end
+end
+
+// ===== 字符串 / 行辅助 =====
+
+func isDigitByte(int b) as bool
+    return b >= 48 and b <= 57
+end
+
+func isIdentStart(int b) as bool
+    return (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 95
+end
+
+func isIdentByte(int b) as bool
+    return (b >= 48 and b <= 57) or (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 95
+end
+
+func isWS(int b) as bool
+    return b == 32 or b == 9 or b == 13 or b == 10
+end
+
+// 安全 splitLines：去掉尾部空串（规避 xlang splitLines 尾部多 "" 的行为）
+func splitLinesSafe(string src) as array<string>
+    var raw = string.splitLines(src)
+    array<string> lines = []
+    for r in raw
+        lines.push(string(r))
+    end
+    if lines.length > 0 then
+        if lines[lines.length - 1] == "" then
+            lines.remove(lines.length - 1)
+        end
+    end
+    return lines
+end
+
+func leadingWS(string line) as string
+    int n = string.len(line)
+    int i = 0
+    while i < n do
+        int b = string.byteAt(line, i)
+        if b != 32 and b != 9 then
+            return string.mid(line, 0, i)
+        end
+        i += 1
+    end
+    return line
+end
+
+func indentOf(string line) as int
+    int n = string.len(line)
+    int i = 0
+    int cnt = 0
+    while i < n do
+        int b = string.byteAt(line, i)
+        if b == 32 then
+            cnt += 1
+        elseif b == 9 then
+            cnt += 4
+        else
+            return cnt
+        end
+        i += 1
+    end
+    return cnt
+end
+
+func padRight(string s, int width) as string
+    string out = s
+    int n = string.len(s)
+    while n < width do
+        out = out + " "
+        n += 1
+    end
+    return out
+end
+
+func padLeft(string s, int width) as string
+    string out = s
+    while string.len(out) < width do
+        out = " " + out
+    end
+    return out
+end
+
+func intStr(int v) as string
+    return string(v)
+end
+
+// 简单的字符串模板替换：将 src 中所有 {key} 替换为 dict[key]
+func tplReplace(string src, var d) as string
+    string result = src
+    var keys = []
+    for k, v in d
+        keys.push(k)
+    end
+    // 不使用 regex，逐个替换
+    for k in keys
+        string placeholder = "{" + string(k) + "}"
+        string val = ""
+        var vv = d[k]
+        if vv is string then
+            val = string(vv)
+        elseif vv is int then
+            val = string(int(vv))
+        elseif vv is float then
+            val = string.formatFloat(float(vv), ".3")
+        else
+            try
+                val = json.stringify(vv)
+            catch e
+                val = "?"
+            end
+        end
+        result = string.replace(result, placeholder, val)
+    end
+    return result
+end
+
+// ===== AST 节点辅助 =====
+
+func nodeKind(var n) as string
+    if n is null then
+        return ""
+    end
+    var k = n["kind"]
+    if k is string then
+        return string(k)
+    end
+    return ""
+end
+
+func nodeText(var n) as string
+    if n is null then
+        return ""
+    end
+    var t = n["text"]
+    if t is string then
+        return string(t)
+    end
+    return ""
+end
+
+func nodeLine(var n) as int
+    if n is null then
+        return 0
+    end
+    var l = n["line"]
+    if l is int then
+        return int(l)
+    end
+    return 0
+end
+
+func nodeColumn(var n) as int
+    if n is null then
+        return 0
+    end
+    var c = n["column"]
+    if c is int then
+        return int(c)
+    end
+    return 0
+end
+
+func childrenOf(var n) as var
+    if n is null then
+        return []
+    end
+    var ch = n["children"]
+    if ch is array then
+        return ch
+    end
+    return []
+end
+
+func getChild(var n, string kind) as var
+    var ch = childrenOf(n)
+    for c in ch
+        if nodeKind(c) == kind then
+            return c
+        end
+    end
+    return null
+end
+
+func funcNameOfVar(var node) as string
+    var ch = childrenOf(node)
+    for c in ch
+        if nodeKind(c) == "name" then
+            return nodeText(c)
+        end
+    end
+    return ""
+end
+
+func isFuncKind(string k) as bool
+    return k == "func" or k == "async_func" or k == "export_func" or k == "create" or k == "method"
+end
+
+func classNameOfNode(var node) as string
+    var nm = getChild(node, "name")
+    if not (nm is null) then
+        return nodeText(nm)
+    end
+    return ""
+end
+
+// ===== AST 分析：函数收集 =====
+
+// 基于缩进找函数的匹配 end：func 行的缩进 = 其 end 行的缩进
+func findFuncEndByIndent(array<string> lines, int startLine1) as int
+    if startLine1 < 1 or startLine1 > lines.length then
+        return lines.length
+    end
+    string findent = leadingWS(lines[startLine1 - 1])
+    int i = startLine1 + 1
+    while i <= lines.length do
+        string ln = lines[i - 1]
+        if leadingWS(ln) == findent and string.trim(ln) == "end" then
+            return i
+        end
+        i += 1
+    end
+    return lines.length
+end
+
+func collectReturnsInBlock(var node, string ownerFunc, array<int> out)
+    if node is null then
+        return
+    end
+    string k = nodeKind(node)
+    if k == "return" then
+        out.push(nodeLine(node))
+        return
+    end
+    // 不进入嵌套函数
+    if k == "func" or k == "async_func" or k == "anon_func" or k == "create" or k == "get" or k == "let" then
+        return
+    end
+    var ch = childrenOf(node)
+    for c in ch
+        collectReturnsInBlock(c, ownerFunc, out)
+    end
+end
+
+func makeFuncInfoFromAst(var node, string cls, array<string> lines) as FuncInfo
+    FuncInfo fi = FuncInfo()
+    string k = nodeKind(node)
+    string base = funcNameOfVar(node)
+    string nm = base
+    if string.len(nm) == 0 then
+        nm = k
+    end
+    if string.len(cls) > 0 then
+        nm = cls + "." + nm
+    end
+    fi.name = nm
+    fi.startLine = nodeLine(node)
+    fi.isMain = (base == "main" and string.len(cls) == 0 and k == "func")
+
+    var blk = getChild(node, "block")
+    if blk is null then
+        fi.ok = false
+        return fi
+    end
+
+    fi.endLine = findFuncEndByIndent(lines, fi.startLine)
+    var bch = childrenOf(blk)
+    if bch.length > 0 then
+        fi.bodyStart = nodeLine(bch[0])
+    else
+        fi.bodyStart = fi.endLine
+    end
+
+    if fi.endLine <= fi.startLine then
+        fi.ok = false
+        return fi
+    end
+    if fi.bodyStart <= fi.startLine then
+        fi.ok = false
+        return fi
+    end
+
+    fi.ok = true
+    return fi
+end
+
+func collectFuncsFromAst(var node, string cls, array<string> lines, array<FuncInfo> out)
+    if node is null then
+        return
+    end
+    string k = nodeKind(node)
+    if isFuncKind(k) then
+        FuncInfo fi = makeFuncInfoFromAst(node, cls, lines)
+        if fi.ok then
+            out.push(fi)
+        end
+    end
+    if k == "class" then
+        cls = classNameOfNode(node)
+    end
+    var ch = childrenOf(node)
+    for c in ch
+        collectFuncsFromAst(c, cls, lines, out)
+    end
+end
+
+// ===== 源码扫描：局部变量发现 =====
+
+// 判断是否为类型关键字
+func isTypeKeyword(string w) as bool
+    return w == "var" or w == "auto" or w == "int" or w == "int8" or w == "int16" or w == "int32" or w == "int64" or w == "uint8" or w == "uint16" or w == "uint32" or w == "uint64" or w == "c_size" or w == "float" or w == "float32" or w == "float64" or w == "string" or w == "bool"
+end
+
+// 从 func 签名行提取参数名
+// 形如: func foo(int a, string b) as int
+func extractParams(string sigLine) as array<VarDecl>
+    array<VarDecl> result = []
+    int openParen = string.indexOf(sigLine, "(")
+    if openParen < 0 then
+        return result
+    end
+    int closeParen = string.indexOf(sigLine, ")")
+    if closeParen < 0 or closeParen <= openParen then
+        return result
+    end
+    string params = string.mid(sigLine, openParen + 1, closeParen - openParen - 1)
+    params = string.trim(params)
+    if string.len(params) == 0 then
+        return result
+    end
+    // 按逗号分割（简化：不处理嵌套泛型逗号）
+    array<string> parts = []
+    string cur = ""
+    int depth = 0
+    int i = 0
+    while i < string.len(params) do
+        int b = string.byteAt(params, i)
+        if b == 60 then
+            depth += 1
+            cur = cur + string.mid(params, i, 1)
+        elseif b == 62 then
+            depth -= 1
+            cur = cur + string.mid(params, i, 1)
+        elseif b == 44 and depth == 0 then
+            parts.push(string.trim(cur))
+            cur = ""
+        else
+            cur = cur + string.mid(params, i, 1)
+        end
+        i += 1
+    end
+    if string.len(string.trim(cur)) > 0 then
+        parts.push(string.trim(cur))
+    end
+    // 解析每个参数
+    for p in parts
+        // p 形如 "int a" / "string name" / "array<int> data"
+        string t = ""
+        string vname = ""
+        int si = 0
+        // 跳过类型
+        int wsIdx = string.indexOf(p, " ")
+        if wsIdx > 0 then
+            t = string.trim(string.mid(p, 0, wsIdx))
+            vname = string.trim(string.mid(p, wsIdx + 1, string.len(p)))
+            // 可能有 "as int" 尾部
+            int asIdx = string.indexOf(vname, " as ")
+            if asIdx >= 0 then
+                vname = string.trim(string.mid(vname, 0, asIdx))
+            end
+        else
+            vname = p
+        end
+        if string.len(vname) > 0 then
+            if isIdentByte(string.byteAt(vname, 0)) then
+                result.push(VarDecl(vname, 0, t, true))
+            end
+        end
+    end
+    return result
+end
+
+// 从函数体行范围内扫描局部变量声明
+func scanLocals(array<string> lines, int startLine, int endLine, array<VarDecl> params) as array<VarDecl>
+    array<VarDecl> result = []
+    // 参数直接加入
+    for p in params
+        p.line = startLine
+        result.push(p)
+    end
+    int i = startLine
+    while i <= endLine and i <= lines.length do
+        string raw = lines[i - 1]
+        // 去注释
+        int cpos = string.indexOf(raw, "//")
+        string code = raw
+        if cpos >= 0 then
+            code = string.mid(raw, 0, cpos)
+        end
+        code = string.trim(code)
+        if string.len(code) == 0 then
+            i += 1
+            continue
+        end
+        // 提取首个单词
+        int wlen = 0
+        while wlen < string.len(code) and isIdentByte(string.byteAt(code, wlen)) do
+            wlen += 1
+        end
+        string firstW = string.mid(code, 0, wlen)
+        string rest = string.trim(string.mid(code, wlen, string.len(code)))
+        // 基本类型声明: int x = ... / string s = ...
+        if isTypeKeyword(firstW) then
+            // 提取变量名：rest 开头的标识符
+            if string.len(rest) > 0 and isIdentStart(string.byteAt(rest, 0)) then
+                int vlen = 0
+                while vlen < string.len(rest) and isIdentByte(string.byteAt(rest, vlen)) do
+                    vlen += 1
+                end
+                string vname = string.mid(rest, 0, vlen)
+                // 确认后面跟 = 或换行
+                string after = string.trim(string.mid(rest, vlen, string.len(rest)))
+                if string.len(after) == 0 or string.byteAt(after, 0) == 61 then
+                    result.push(VarDecl(vname, i, firstW, false))
+                end
+            end
+        end
+        // 泛型容器声明: array<int> x = ... / dict<int> d = ...
+        if string.startsWith(firstW, "array") or string.startsWith(firstW, "dict") or string.startsWith(firstW, "set") or string.startsWith(firstW, "list") then
+            // 找到 > 后的变量名
+            int gt = string.indexOf(rest, ">")
+            if gt >= 0 and gt + 1 < string.len(rest) then
+                string afterGt = string.trim(string.mid(rest, gt + 1, string.len(rest)))
+                if string.len(afterGt) > 0 and isIdentStart(string.byteAt(afterGt, 0)) then
+                    int vlen = 0
+                    while vlen < string.len(afterGt) and isIdentByte(string.byteAt(afterGt, vlen)) do
+                        vlen += 1
+                    end
+                    string vname = string.mid(afterGt, 0, vlen)
+                    string tail = string.trim(string.mid(afterGt, vlen, string.len(afterGt)))
+                    if string.len(tail) == 0 or string.byteAt(tail, 0) == 61 then
+                        result.push(VarDecl(vname, i, firstW, false))
+                    end
+                end
+            end
+        end
+        i += 1
+    end
+    return result
+end
+
+// 为每个函数填充变量列表
+func fillFuncVars(array<FuncInfo> funcs, array<string> lines)
+    for fi in funcs
+        string sigLine = ""
+        if fi.startLine >= 1 and fi.startLine <= lines.length then
+            sigLine = lines[fi.startLine - 1]
+        end
+        array<VarDecl> params = extractParams(sigLine)
+        fi.vars = scanLocals(lines, fi.bodyStart, fi.endLine, params)
+    end
+end
+
+// 从源码正则扫描函数（AST 失败时的回退）
+func firstTokenAfterFunc(string line) as string
+    string t = string.trim(line)
+    if string.startsWith(t, "export ") then
+        t = string.mid(t, 7, string.len(t))
+    end
+    if string.startsWith(t, "async ") then
+        t = string.mid(t, 6, string.len(t))
+        if string.startsWith(t, "func ") then
+            t = string.mid(t, 5, string.len(t))
+        else
+            return ""
+        end
+    elseif string.startsWith(t, "func ") then
+        t = string.mid(t, 5, string.len(t))
+    else
+        return ""
+    end
+    t = string.trim(t)
+    int paren = string.indexOf(t, "(")
+    if paren <= 0 then
+        return ""
+    end
+    return string.trim(string.mid(t, 0, paren))
+end
+
+func scanFuncsFromSource(string src) as array<FuncInfo>
+    array<string> lines = splitLinesSafe(src)
+    array<FuncInfo> result = []
+    int i = 0
+    while i < lines.length do
+        string raw = lines[i]
+        int cpos = string.indexOf(raw, "//")
+        string code = raw
+        if cpos >= 0 then
+            code = string.mid(raw, 0, cpos)
+        end
+        code = string.trim(code)
+        string nm = firstTokenAfterFunc(code)
+        if string.len(nm) > 0 then
+            FuncInfo fi = FuncInfo()
+            fi.name = nm
+            fi.startLine = i + 1
+            fi.endLine = findFuncEndByIndent(lines, i + 1)
+            fi.bodyStart = i + 2
+            if fi.endLine > fi.startLine then
+                fi.isMain = (nm == "main")
+                fi.ok = true
+                result.push(fi)
+            end
+        end
+        i += 1
+    end
+    fillFuncVars(result, lines)
+    return result
+end
+
+// ===== AST 获取（通过 xl parse）=====
+
+func parseAst(string xl, string absFile) as var
+    string cmd = xl + " parse " + absFile + " --format json"
+    ProcessResult r = process.run(cmd, 30000)
+    if not r.success or string.len(string.trim(r.stdout)) == 0 then
+        return null
+    end
+    try
+        return json.parse(r.stdout)
+    catch e
+        return null
+    end
+end
+
+// 综合：先试 AST，失败回退源码扫描
+func discoverFuncs(string xl, string absFile, string src) as array<FuncInfo>
+    array<string> lines = splitLinesSafe(src)
+    array<FuncInfo> result = []
+    var root = parseAst(xl, absFile)
+    if not (root is null) then
+        collectFuncsFromAst(root, "", lines, result)
+        if result.length > 0 then
+            fillFuncVars(result, lines)
+            return result
+        end
+    end
+    return scanFuncsFromSource(src)
+end
+
+// ===== 行映射分析（xl run --save-temps → C 文件）=====
+
+// 在指定目录中查找生成的 .c 文件
+func findGeneratedCFiles(string searchDir) as array<string>
+    array<string> result = []
+    if not dir.exists(searchDir) then
+        return result
+    end
+    var fs = dir.files(searchDir, true)
+    for f in fs
+        string p = string(f)
+        if string.lower(path.ext(p)) == "c" then
+            // 排除 companion C 文件（项目自带的 .c）
+            string nm = path.name(p)
+            if string.startsWith(nm, "xlgen_") or string.startsWith(nm, "_xl_") or string.contains(nm, ".xl.") then
+                result.push(p)
+            end
+        end
+    end
+    return result
+end
+
+// 从 C 文件中提取行映射（#line 指令 / /* line N */ 注释）
+func extractLineMapFromC(string cPath, string xlFileName) as array<LineMapEntry>
+    array<LineMapEntry> result = []
+    if not file.exists(cPath) then
+        return result
+    end
+    string content = ""
+    try
+        content = file.readText(cPath)
+    catch e
+        return result
+    end
+    array<string> lines = splitLinesSafe(content)
+    int curXlLine = 0
+    string curSource = ""
+    int i = 0
+    while i < lines.length do
+        string ln = lines[i]
+        int lineNum = i + 1
+        // #line N "file.xl"
+        if string.startsWith(string.trim(ln), "#line") then
+            string t = string.trim(ln)
+            // 提取行号
+            int sp1 = string.indexOf(t, " ")
+            if sp1 > 0 then
+                string rest = string.trim(string.mid(t, sp1 + 1, string.len(t)))
+                int numEnd = 0
+                while numEnd < string.len(rest) and isDigitByte(string.byteAt(rest, numEnd)) do
+                    numEnd += 1
+                end
+                if numEnd > 0 then
+                    string numStr = string.mid(rest, 0, numEnd)
+                    int parsed = int(numStr)
+                    if parsed > 0 then
+                        curXlLine = parsed
+                        // 尝试提取文件名
+                        int q1 = string.indexOf(rest, "\"")
+                        if q1 >= 0 then
+                            int q2 = string.indexOf(string.mid(rest, q1 + 1, string.len(rest)), "\"")
+                            if q2 >= 0 then
+                                curSource = string.mid(rest, q1 + 1, q2)
+                            end
+                        end
+                        result.push(LineMapEntry(lineNum, curXlLine, curSource))
+                    end
+                end
+            end
+        end
+        // /* line N "file" */ 风格注释
+        int lc = string.indexOf(ln, "/* line ")
+        if lc >= 0 then
+            string after = string.mid(ln, lc + 8, string.len(ln))
+            int numEnd = 0
+            while numEnd < string.len(after) and isDigitByte(string.byteAt(after, numEnd)) do
+                numEnd += 1
+            end
+            if numEnd > 0 then
+                int parsed = int(string.mid(after, 0, numEnd))
+                curXlLine = parsed
+                result.push(LineMapEntry(lineNum, curXlLine, curSource))
+            end
+        end
+        // // @line N 风格
+        int at = string.indexOf(ln, "// @line ")
+        if at >= 0 then
+            string after = string.mid(ln, at + 9, string.len(ln))
+            int numEnd = 0
+            while numEnd < string.len(after) and isDigitByte(string.byteAt(after, numEnd)) do
+                numEnd += 1
+            end
+            if numEnd > 0 then
+                int parsed = int(string.mid(after, 0, numEnd))
+                curXlLine = parsed
+                result.push(LineMapEntry(lineNum, curXlLine, curSource))
+            end
+        end
+        i += 1
+    end
+    return result
+end
+
+// 综合行映射分析：运行 xl run --save-temps，扫描输出目录
+func analyzeLineMap(string xl, string absFile, string tempOutDir) as array<LineMapEntry>
+    array<LineMapEntry> empty = []
+    // 运行 xl run --save-temps（设置工作目录为 tempOutDir 以便生成文件落在那里）
+    string cmd = xl + " run " + absFile + " --save-temps"
+    try
+        ProcessResult r = process.run(cmd, 30000)
+        // 即使程序运行错误，C 文件可能已生成
+    catch e
+        return empty
+    end
+    // 搜索生成的 C 文件
+    array<string> cFiles = []
+    // 搜索 tempOutDir
+    array<string> tmp = findGeneratedCFiles(tempOutDir)
+    for c in tmp
+        cFiles.push(c)
+    end
+    // 搜索目标文件所在目录
+    string fileDir = path.dir(absFile)
+    array<string> tmp2 = findGeneratedCFiles(fileDir)
+    for c in tmp2
+        cFiles.push(c)
+    end
+    // 搜索 cwd
+    array<string> tmp3 = findGeneratedCFiles(path.cwd())
+    for c in tmp3
+        cFiles.push(c)
+    end
+    if cFiles.length == 0 then
+        return empty
+    end
+    string xlFn = path.name(absFile)
+    // 取第一个 C 文件（通常只有一个）
+    return extractLineMapFromC(cFiles[0], xlFn)
+end
+
+// ===== IR 分析：函数调用关系（xl ir --format json）=====
+
+func parseIR(string xl, string absFile) as var
+    string cmd = xl + " ir " + absFile + " --format json"
+    ProcessResult r = process.run(cmd, 30000)
+    if not r.success or string.len(string.trim(r.stdout)) == 0 then
+        return null
+    end
+    try
+        return json.parse(r.stdout)
+    catch e
+        return null
+    end
+end
+
+// 从 IR JSON 中递归收集 call 指令，构建调用边
+func collectCallEdgesFromIR(var node, string curFunc, array<CallEdge> edges, set<string> seen)
+    if node is null then
+        return
+    end
+    string k = nodeKind(node)
+    // 如果是函数定义，更新当前函数
+    if k == "func" or k == "function" or k == "define" then
+        string nm = funcNameOfVar(node)
+        if string.len(nm) > 0 then
+            curFunc = nm
+        end
+    end
+    // 如果是 call 指令
+    if k == "call" or k == "invoke" or k == "call_func" then
+        string callee = nodeText(node)
+        if string.len(callee) == 0 then
+            var target = getChild(node, "target")
+            if not (target is null) then
+                callee = nodeText(target)
+            end
+        end
+        if string.len(callee) > 0 and string.len(curFunc) > 0 then
+            string key = curFunc + "->" + callee
+            if seen.contains(key) then
+                // 已有此边，增加计数
+                for e in edges
+                    if e.caller == curFunc and e.callee == callee then
+                        e.count += 1
+                        break
+                    end
+                end
+            else
+                seen.add(key)
+                edges.push(CallEdge(curFunc, callee))
+            end
+        end
+    end
+    var ch = childrenOf(node)
+    for c in ch
+        collectCallEdgesFromIR(c, curFunc, edges, seen)
+    end
+end
+
+// 基于 AST 递归收集函数调用（IR 不可用时的回退）
+func collectCallEdgesFromAST(var node, string curFunc, array<CallEdge> edges, set<string> seen)
+    if node is null then
+        return
+    end
+    string k = nodeKind(node)
+    if isFuncKind(k) then
+        string nm = funcNameOfVar(node)
+        if string.len(nm) > 0 then
+            curFunc = nm
+        end
+    end
+    if k == "call" or k == "func_call" then
+        string callee = nodeText(node)
+        if string.len(callee) == 0 then
+            callee = nodeText(getChild(node, "name"))
+        end
+        if string.len(callee) > 0 and string.len(curFunc) > 0 then
+            string key = curFunc + "->" + callee
+            if not seen.contains(key) then
+                seen.add(key)
+                edges.push(CallEdge(curFunc, callee))
+            end
+        end
+    end
+    var ch = childrenOf(node)
+    for c in ch
+        collectCallEdgesFromAST(c, curFunc, edges, seen)
+    end
+end
+
+func analyzeCallGraph(string xl, string absFile) as array<CallEdge>
+    array<CallEdge> edges = []
+    set<string> seen = set<string>{}
+    var ir = parseIR(xl, absFile)
+    if not (ir is null) then
+        collectCallEdgesFromIR(ir, "", edges, seen)
+        if edges.length > 0 then
+            return edges
+        end
+    end
+    // 回退到 AST
+    var ast = parseAst(xl, absFile)
+    if not (ast is null) then
+        collectCallEdgesFromAST(ast, "", edges, seen)
+    end
+    return edges
+end
+
+// ===== 断点管理 =====
+
+class BreakpointManager
+    array<Breakpoint> bps
+    int nextId
+    create()
+        self.bps = []
+        self.nextId = 1
+    end
+end
+
+func bpmAdd(BreakpointManager bpm, int kind, string file, int line, string funcName, string cond) as Breakpoint
+    Breakpoint bp = Breakpoint()
+    bp.id = bpm.nextId
+    bpm.nextId += 1
+    bp.kind = kind
+    bp.file = file
+    bp.line = line
+    bp.funcName = funcName
+    bp.condition = cond
+    bpm.bps.push(bp)
+    return bp
+end
+
+func bpmFind(BreakpointManager bpm, int id) as var
+    for bp in bpm.bps
+        if bp.id == id then
+            return bp
+        end
+    end
+    return null
+end
+
+func bpmRemove(BreakpointManager bpm, int id) as bool
+    int i = 0
+    while i < bpm.bps.length do
+        if bpm.bps[i].id == id then
+            bpm.bps.remove(i)
+            return true
+        end
+        i += 1
+    end
+    return false
+end
+
+func bpmSetEnabled(BreakpointManager bpm, int id, bool on) as bool
+    var bp = bpmFind(bpm, id)
+    if bp is null then
+        return false
+    end
+    bp.enabled = on
+    return true
+end
+
+func bpmSetIgnore(BreakpointManager bpm, int id, int count) as bool
+    var bp = bpmFind(bpm, id)
+    if bp is null then
+        return false
+    end
+    bp.ignoreCount = count
+    return true
+end
+
+// 绑定断点到实际行（基于 AST 分析）
+func bpmResolve(BreakpointManager bpm, array<FuncInfo> funcs, string srcFile)
+    array<string> lines = splitLinesSafe(file.readText(srcFile))
+    for bp in bpm.bps
+        if bp.state != "pending" then
+            continue
+        end
+        if bp.kind == BP_FUNC then
+            for fi in funcs
+                if fi.name == bp.funcName or string.endsWith(fi.name, "." + bp.funcName) then
+                    bp.line = fi.bodyStart
+                    bp.file = srcFile
+                    bp.state = "resolved"
+                    break
+                end
+            end
+        elseif bp.kind == BP_LINE or bp.kind == BP_CONDITIONAL then
+            // 检查行号是否有效
+            if bp.line > 0 and bp.line <= lines.length then
+                bp.file = srcFile
+                bp.state = "resolved"
+            end
+        end
+    end
+end
+
+// 检查一个 point 事件是否命中某个断点
+// 返回命中的 Breakpoint（null 表示未命中）
+func bpmCheckHit(BreakpointManager bpm, string file, int line, string funcName, var locals) as var
+    for bp in bpm.bps
+        if not bp.enabled then
+            continue
+        end
+        bool matched = false
+        if bp.kind == BP_FUNC then
+            if funcName == bp.funcName or string.endsWith(funcName, "." + bp.funcName) then
+                matched = true
+            end
+        elseif bp.kind == BP_LINE then
+            if bp.line == line then
+                matched = true
+            end
+        elseif bp.kind == BP_CONDITIONAL then
+            if bp.line == line then
+                // 评估条件
+                if evalCondition(bp.condition, locals) then
+                    matched = true
+                end
+            end
+        end
+        if matched then
+            bp.hitCount += 1
+            if bp.hitCount <= bp.ignoreCount then
+                continue
+            end
+            return bp
+        end
+    end
+    return null
+end
+
+// ===== 条件表达式求值（简化版）=====
+// 支持: varname  /  varname == value  /  varname != value
+//       varname > value  /  varname < value  /  varname >= value  /  varname <= value
+
+func evalCondition(string cond, var locals) as bool
+    string c = string.trim(cond)
+    if string.len(c) == 0 then
+        return true
+    end
+    // 查找比较运算符
+    string ops = "==|!=|>=|<=|><"
+    // 简单解析：尝试每种运算符
+    int opIdx = string.indexOf(c, "==")
+    string opStr = "=="
+    if opIdx < 0 then
+        opIdx = string.indexOf(c, "!=")
+        opStr = "!="
+    end
+    if opIdx < 0 then
+        opIdx = string.indexOf(c, ">=")
+        opStr = ">="
+    end
+    if opIdx < 0 then
+        opIdx = string.indexOf(c, "<=")
+        opStr = "<="
+    end
+    if opIdx < 0 then
+        opIdx = string.indexOf(c, ">")
+        opStr = ">"
+    end
+    if opIdx < 0 then
+        opIdx = string.indexOf(c, "<")
+        opStr = "<"
+    end
+    if opIdx < 0 then
+        // 无运算符：检查变量是否为 true
+        if locals.contains(c) then
+            var v = locals[c]
+            if v is bool then
+                return bool(v)
+            end
+            if v is int then
+                return int(v) != 0
+            end
+        end
+        return false
+    end
+    string lhs = string.trim(string.mid(c, 0, opIdx))
+    int rhsStart = opIdx + string.len(opStr)
+    string rhs = string.trim(string.mid(c, rhsStart, string.len(c)))
+    if not locals.contains(lhs) then
+        return false
+    end
+    var lv = locals[lhs]
+    // 尝试数值比较
+    bool lvIsNum = false
+    float lnum = 0.0
+    if lv is int then
+        lnum = float(int(lv))
+        lvIsNum = true
+    elseif lv is float then
+        lnum = float(lv)
+        lvIsNum = true
+    end
+    float rnum = 0.0
+    bool rIsNum = false
+    // 尝试解析 rhs 为数值
+    bool rhsNumeric = true
+    int ri = 0
+    if ri < string.len(rhs) then
+        int rb = string.byteAt(rhs, ri)
+        if rb == 45 or rb == 43 then
+            ri += 1
+        end
+    end
+    while ri < string.len(rhs) do
+        int rb = string.byteAt(rhs, ri)
+        if not (isDigitByte(rb) or rb == 46) then
+            rhsNumeric = false
+            break
+        end
+        ri += 1
+    end
+    if rhsNumeric and string.len(rhs) > 0 then
+        try
+            rnum = float(rhs)
+            rIsNum = true
+        catch e
+            rIsNum = false
+        end
+    end
+    if lvIsNum and rIsNum then
+        if opStr == "==" then return lnum == rnum end
+        if opStr == "!=" then return lnum != rnum end
+        if opStr == ">" then return lnum > rnum end
+        if opStr == "<" then return lnum < rnum end
+        if opStr == ">=" then return lnum >= rnum end
+        if opStr == "<=" then return lnum <= rnum end
+        return false
+    end
+    // 字符串比较
+    string lstr = ""
+    if lv is string then
+        lstr = string(lv)
+    else
+        try
+            lstr = json.stringify(lv)
+        catch e
+            lstr = "?"
+        end
+    end
+    // rhs 去引号
+    string rstr = rhs
+    if string.len(rstr) >= 2 then
+        if string.byteAt(rstr, 0) == 34 and string.byteAt(rstr, string.len(rstr) - 1) == 34 then
+            rstr = string.mid(rstr, 1, string.len(rstr) - 2)
+        end
+    end
+    if opStr == "==" then return lstr == rstr end
+    if opStr == "!=" then return lstr != rstr end
+    if opStr == ">" then return lstr > rstr end
+    if opStr == "<" then return lstr < rstr end
+    if opStr == ">=" then return lstr >= rstr end
+    if opStr == "<=" then return lstr <= rstr end
+    return false
+end
+
+// ===== 插桩运行时（注入到目标程序的 xlang 代码）=====
+
+string DBG_RUNTIME
+DBG_RUNTIME = """
+// ===== xdebugger runtime (auto-injected) =====
+array<string> __xd_stack = []
+array<var> __xd_events = []
+var __xd_locals = {}
+bool __xd_dumped = false
+
+func __xd_enter(string name, int line)
+    __xd_stack.push(name)
+    var evt = {}
+    evt["type"] = "enter"
+    evt["func"] = name
+    evt["line"] = line
+    __xd_events.push(evt)
+end
+
+func __xd_exit(string name, int line)
+    var evt = {}
+    evt["type"] = "exit"
+    evt["func"] = name
+    evt["line"] = line
+    __xd_events.push(evt)
+    int n = __xd_stack.length
+    if n > 0 then
+        __xd_stack.remove(n - 1)
+    end
+end
+
+func __xd_lc()
+    __xd_locals = {}
+end
+
+func __xd_l(string name, var v)
+    var safe = __xd_safe(v)
+    __xd_locals[name] = safe
+end
+
+func __xd_safe(var v) as var
+    if v is int then return v end
+    if v is float then return v end
+    if v is string then return v end
+    if v is bool then return v end
+    if v is null then return "null" end
+    try
+        string s = json.stringify(v)
+        return json.parse(s)
+    catch e
+        return "<unserializable>"
+    end
+end
+
+func __xd_p(int line)
+    string fname = "<top>"
+    int n = __xd_stack.length
+    if n > 0 then
+        fname = __xd_stack[n - 1]
+    end
+    var snap = {}
+    for k, v in __xd_locals
+        snap[k] = v
+    end
+    var evt = {}
+    evt["type"] = "point"
+    evt["func"] = fname
+    evt["line"] = line
+    evt["locals"] = snap
+    __xd_events.push(evt)
+end
+
+func __xd_out(string text)
+    var evt = {}
+    evt["type"] = "output"
+    evt["text"] = text
+    __xd_events.push(evt)
+end
+
+func __xd_dump()
+    if __xd_dumped then return end
+    __xd_dumped = true
+    var root = {}
+    root["events"] = __xd_events
+    string txt = json.stringify(root)
+    println("__XDBG_DUMP__" + txt)
+end
+
+// ===== end xdebugger runtime =====
+"""
+
+// ===== 源码插桩 =====
+
+// 生成在某行前插入的局部变量捕获代码
+func genLocalsCapture(FuncInfo fi, int traceLine) as array<string>
+    array<string> result = []
+    result.push("    __xd_lc()")
+    for v in fi.vars
+        // 只包含声明行 < traceLine 的变量
+        if v.line < traceLine or v.isParam then
+            result.push("    __xd_l(\"" + v.name + "\", " + v.name + ")")
+        end
+    end
+    return result
+end
+
+// 构建插入指令表：key=行号(1-based), value=要在此行前插入的代码行数组
+func buildInstrumentation(string src, array<FuncInfo> funcs) as var
+    array<string> lines = splitLinesSafe(src)
+    var ins = {}
+    bool hasMain = false
+
+    for fi in funcs
+        if not fi.ok then
+            continue
+        end
+        if fi.isMain then
+            hasMain = true
+        end
+
+        // 函数入口：bodyStart 行前插入 __xd_enter
+        string enterKey = string(fi.bodyStart)
+        var enterArr = []
+        enterArr.push("    __xd_enter(\"" + fi.name + "\", " + string(fi.startLine) + ")")
+        // 捕获参数
+        enterArr.push("    __xd_lc()")
+        for v in fi.vars
+            if v.isParam then
+                enterArr.push("    __xd_l(\"" + v.name + "\", " + v.name + ")")
+            end
+        end
+        // 第一个 point 事件
+        enterArr.push("    __xd_p(" + string(fi.bodyStart) + ")")
+        if ins.contains(enterKey) then
+            var existing = ins[enterKey]
+            for e in enterArr
+                existing.push(e)
+            end
+        else
+            ins[enterKey] = enterArr
+        end
+
+        // 函数内每条语句行前插入 point 事件（跳过 bodyStart 已处理的）
+        int sl = fi.bodyStart + 1
+        while sl < fi.endLine do
+            string raw = lines[sl - 1]
+            string tcode = string.trim(raw)
+            // 跳过空行、注释行、end 行
+            if string.len(tcode) == 0 then
+                sl += 1
+                continue
+            end
+            if string.startsWith(tcode, "//") then
+                sl += 1
+                continue
+            end
+            if tcode == "end" then
+                sl += 1
+                continue
+            end
+            // 捕获局部变量 + point
+            var ptArr = []
+            // 变量捕获
+            bool anyVar = false
+            for v in fi.vars
+                if v.line < sl or v.isParam then
+                    anyVar = true
+                end
+            end
+            if anyVar then
+                ptArr.push("    __xd_lc()")
+                for v in fi.vars
+                    if v.line < sl or v.isParam then
+                        ptArr.push("    __xd_l(\"" + v.name + "\", " + v.name + ")")
+                    end
+                end
+            end
+            ptArr.push("    __xd_p(" + string(sl) + ")")
+            string slKey = string(sl)
+            if ins.contains(slKey) then
+                var existing2 = ins[slKey]
+                for e in ptArr
+                    existing2.push(e)
+                end
+            else
+                ins[slKey] = ptArr
+            end
+            sl += 1
+        end
+
+        // 函数退出：end 行前插入 __xd_exit
+        string exitKey = string(fi.endLine)
+        var exitArr = []
+        exitArr.push("    __xd_exit(\"" + fi.name + "\", " + string(fi.endLine) + ")")
+        // main 的退出前 dump
+        if fi.isMain then
+            exitArr.push("    __xd_dump()")
+        end
+        if ins.contains(exitKey) then
+            var existing3 = ins[exitKey]
+            for e in exitArr
+                existing3.push(e)
+            end
+        else
+            ins[exitKey] = exitArr
+        end
+
+        // 在每个 return 行前插入 exit（简化：整行匹配）
+        // return 行的插桩在循环中已通过 point 覆盖，这里额外加 exit
+        int rl = fi.bodyStart
+        while rl < fi.endLine do
+            string raw = lines[rl - 1]
+            int cpos = string.indexOf(raw, "//")
+            string code = raw
+            if cpos >= 0 then
+                code = string.mid(raw, 0, cpos)
+            end
+            code = string.trim(code)
+            if string.startsWith(code, "return") then
+                string retKey = string(rl)
+                var retArr = []
+                retArr.push("    __xd_exit(\"" + fi.name + "\", " + string(rl) + ")")
+                if fi.isMain then
+                    retArr.push("    __xd_dump()")
+                end
+                if ins.contains(retKey) then
+                    var existing4 = ins[retKey]
+                    for e in retArr
+                        existing4.push(e)
+                    end
+                else
+                    ins[retKey] = retArr
+                end
+            end
+            rl += 1
+        end
+    end
+
+    // 无 main 的脚本：在文件末尾追加 dump
+    if not hasMain then
+        string lastKey = string(lines.length + 1)
+        var lastArr = []
+        lastArr.push("__xd_dump()")
+        ins[lastKey] = lastArr
+    end
+
+    return ins
+end
+
+// 应用插桩：读取源码，在指定行前插入代码
+func applyInstrumentation(string src, var ins) as string
+    array<string> lines = splitLinesSafe(src)
+    array<string> output = []
+    int i = 1
+    while i <= lines.length do
+        string key = string(i)
+        if ins.contains(key) then
+            var arr = ins[key]
+            for code in arr
+                output.push(string(code))
+            end
+        end
+        output.push(lines[i - 1])
+        i += 1
+    end
+    // 文件末尾追加（key > lines.length）
+    string tailKey = string(lines.length + 1)
+    if ins.contains(tailKey) then
+        var arr = ins[tailKey]
+        for code in arr
+            output.push(string(code))
+        end
+    end
+    string result = ""
+    int j = 0
+    while j < output.length do
+        result = result + output[j] + "\n"
+        j += 1
+    end
+    return result
+end
+
+// 完整插桩流程：返回插桩后的源码
+func instrumentTarget(string src, array<FuncInfo> funcs) as string
+    var ins = buildInstrumentation(src, funcs)
+    string body = applyInstrumentation(src, ins)
+    // 前面加运行时
+    return DBG_RUNTIME + "\n" + body
+end
+
+// ===== 事件流解析 =====
+
+// 从子进程 stdout 中提取 __XDBG_DUMP__ 行的 JSON
+func extractDumpJson(string outText) as string
+    var lines = string.splitLines(outText)
+    for line in lines
+        string s = string(line)
+        if string.startsWith(s, "__XDBG_DUMP__") then
+            return string.mid(s, string.len("__XDBG_DUMP__"), string.len(s))
+        end
+    end
+    return ""
+end
+
+// 将 JSON 事件列表解析为 DebugEvent 数组
+func parseEventStream(string jsonStr) as array<DebugEvent>
+    array<DebugEvent> result = []
+    if string.len(jsonStr) == 0 then
+        return result
+    end
+    var root = null
+    try
+        root = json.parse(jsonStr)
+    catch e
+        return result
+    end
+    var events = root["events"]
+    if not (events is array) then
+        return result
+    end
+    for e in events
+        DebugEvent de = DebugEvent()
+        var et = e["type"]
+        if et is string then
+            de.etype = string(et)
+        end
+        var fn = e["func"]
+        if fn is string then
+            de.fn = string(fn)
+        end
+        var ln = e["line"]
+        if ln is int then
+            de.line = int(ln)
+        end
+        var lc = e["locals"]
+        if lc is null then
+            de.locals = {}
+        else
+            de.locals = lc
+        end
+        var tx = e["text"]
+        if tx is string then
+            de.rawText = string(tx)
+        end
+        result.push(de)
+    end
+    return result
+end
+
+// ===== 命令脚本解析 =====
+
+func parseCommand(string line) as Command
+    string t = string.trim(line)
+    if string.len(t) == 0 then
+        return Command(CMD_BLANK, line)
+    end
+    if string.startsWith(t, "#") or string.startsWith(t, "//") then
+        return Command(CMD_COMMENT, line)
+    end
+    // 提取第一个词
+    int wlen = 0
+    while wlen < string.len(t) and isIdentByte(string.byteAt(t, wlen)) do
+        wlen += 1
+    end
+    string cmd = string.mid(t, 0, wlen)
+    string rest = string.trim(string.mid(t, wlen, string.len(t)))
+    if cmd == "break" or cmd == "b" then
+        Command c = Command(CMD_BREAK, line)
+        c.arg1 = rest
+        // 检查是否有 " if " 条件
+        int ifIdx = string.indexOf(rest, " if ")
+        if ifIdx >= 0 then
+            c.arg1 = string.trim(string.mid(rest, 0, ifIdx))
+            c.arg2 = string.trim(string.mid(rest, ifIdx + 4, string.len(rest)))
+        end
+        return c
+    end
+    if cmd == "tbreak" then
+        Command c = Command(CMD_TBREAK, line)
+        c.arg1 = rest
+        return c
+    end
+    if cmd == "continue" or cmd == "c" then
+        return Command(CMD_CONTINUE, line)
+    end
+    if cmd == "step" or cmd == "s" then
+        return Command(CMD_STEP, line)
+    end
+    if cmd == "next" or cmd == "n" then
+        return Command(CMD_NEXT, line)
+    end
+    if cmd == "finish" or cmd == "f" then
+        return Command(CMD_FINISH, line)
+    end
+    if cmd == "print" or cmd == "p" then
+        Command c = Command(CMD_PRINT, line)
+        c.arg1 = rest
+        return c
+    end
+    if cmd == "locals" or cmd == "l" then
+        return Command(CMD_LOCALS, line)
+    end
+    if cmd == "backtrace" or cmd == "bt" or cmd == "where" then
+        return Command(CMD_BACKTRACE, line)
+    end
+    if cmd == "watch" or cmd == "w" then
+        Command c = Command(CMD_WATCH, line)
+        c.arg1 = rest
+        return c
+    end
+    if cmd == "info" then
+        // info breakpoints / info bps
+        if string.startsWith(rest, "breakpoints") or string.startsWith(rest, "bps") or string.startsWith(rest, "b") then
+            return Command(CMD_INFO_BP, line)
+        end
+        return Command(CMD_UNKNOWN, line)
+    end
+    if cmd == "delete" or cmd == "del" or cmd == "d" then
+        Command c = Command(CMD_DELETE, line)
+        try
+            c.intArg = int(rest)
+        catch e
+            c.intArg = 0
+        end
+        return c
+    end
+    if cmd == "enable" or cmd == "en" then
+        Command c = Command(CMD_ENABLE, line)
+        try
+            c.intArg = int(rest)
+        catch e
+            c.intArg = 0
+        end
+        return c
+    end
+    if cmd == "disable" or cmd == "dis" then
+        Command c = Command(CMD_DISABLE, line)
+        try
+            c.intArg = int(rest)
+        catch e
+            c.intArg = 0
+        end
+        return c
+    end
+    if cmd == "ignore" then
+        Command c = Command(CMD_IGNORE, line)
+        // ignore <id> <count>
+        int sp = string.indexOf(rest, " ")
+        if sp > 0 then
+            try
+                c.intArg = int(string.trim(string.mid(rest, 0, sp)))
+            catch e
+            end
+            try
+                string cntStr = string.trim(string.mid(rest, sp + 1, string.len(rest)))
+                // 存入 arg2 作为字符串，执行时再解析
+                c.arg2 = cntStr
+            catch e
+            end
+        end
+        return c
+    end
+    if cmd == "run" or cmd == "r" then
+        return Command(CMD_RUN, line)
+    end
+    if cmd == "quit" or cmd == "q" or cmd == "exit" then
+        return Command(CMD_QUIT, line)
+    end
+    return Command(CMD_UNKNOWN, line)
+end
+
+func parseCommandScript(string src) as array<Command>
+    array<string> lines = splitLinesSafe(src)
+    array<Command> result = []
+    for line in lines
+        result.push(parseCommand(line))
+    end
+    return result
+end
+
+// ===== 调试会话模拟 =====
+
+class DebugSession
+    array<DebugEvent> events
+    int eventIdx              // 当前事件指针
+    string targetFile         // 目标源文件
+    array<FuncInfo> funcs     // 函数信息
+    BreakpointManager bpm     // 断点管理器
+    array<WatchVar> watches   // 监视变量
+    array<StackFrame> callStack // 当前调用栈
+    bool terminated           // 是否已终止
+    string output             // 累积输出
+    create()
+        self.events = []
+        self.eventIdx = 0
+        self.targetFile = ""
+        self.funcs = []
+        self.bpm = BreakpointManager()
+        self.watches = []
+        self.callStack = []
+        self.terminated = false
+        self.output = ""
+    end
+end
+
+// 重建调用栈到指定事件索引
+func rebuildCallStack(DebugSession sess, int upToIdx) as array<StackFrame>
+    array<StackFrame> stack = []
+    int depth = 0
+    int i = 0
+    while i <= upToIdx and i < sess.events.length do
+        DebugEvent e = sess.events[i]
+        if e.etype == "enter" then
+            depth += 1
+            stack.push(StackFrame(e.fn, e.line, sess.targetFile, depth))
+        elseif e.etype == "exit" then
+            if stack.length > 0 then
+                stack.remove(stack.length - 1)
+            end
+            depth -= 1
+            if depth < 0 then
+                depth = 0
+            end
+        elseif e.etype == "point" then
+            // 更新栈顶的行号
+            if stack.length > 0 then
+                stack[stack.length - 1].line = e.line
+            end
+        end
+        i += 1
+    end
+    return stack
+end
+
+// 获取当前事件（如果当前是 point 事件）
+func currentPointEvent(DebugSession sess) as var
+    if sess.eventIdx < 0 or sess.eventIdx >= sess.events.length then
+        return null
+    end
+    DebugEvent e = sess.events[sess.eventIdx]
+    if e.etype == "point" then
+        return e
+    end
+    // 向前找最近的 point 事件
+    int i = sess.eventIdx
+    while i >= 0 do
+        if sess.events[i].etype == "point" then
+            return sess.events[i]
+        end
+        i -= 1
+    end
+    return null
+end
+
+// 执行 continue：推进到下一个断点命中或结束
+func execContinue(DebugSession sess) as string
+    string msg = ""
+    while sess.eventIdx < sess.events.length do
+        DebugEvent e = sess.events[sess.eventIdx]
+        if e.etype == "point" then
+            var bp = bpmCheckHit(sess.bpm, sess.targetFile, e.line, e.fn, e.locals)
+            if not (bp is null) then
+                // 临时断点命中后删除
+                if bp.temporary then
+                    bpmRemove(sess.bpm, bp.id)
+                end
+                msg = "breakpoint " + string(bp.id) + " at " + sess.targetFile + ":" + string(e.line)
+                sess.callStack = rebuildCallStack(sess, sess.eventIdx)
+                return msg
+            end
+        elseif e.etype == "exit" then
+            // 程序结束检测
+        end
+        sess.eventIdx += 1
+    end
+    sess.terminated = true
+    msg = "program terminated"
+    return msg
+end
+
+// 执行 step：前进到下一个 point 事件
+func execStep(DebugSession sess) as string
+    sess.eventIdx += 1
+    while sess.eventIdx < sess.events.length do
+        DebugEvent e = sess.events[sess.eventIdx]
+        if e.etype == "point" then
+            sess.callStack = rebuildCallStack(sess, sess.eventIdx)
+            return "stepped to " + sess.targetFile + ":" + string(e.line)
+        end
+        sess.eventIdx += 1
+    end
+    sess.terminated = true
+    return "program terminated"
+end
+
+// 执行 next：前进到同一调用深度的下一个 point 事件（step over）
+func execNext(DebugSession sess) as string
+    // 记录当前深度
+    int startDepth = sess.callStack.length
+    sess.eventIdx += 1
+    while sess.eventIdx < sess.events.length do
+        DebugEvent e = sess.events[sess.eventIdx]
+        if e.etype == "enter" then
+            // 进入函数，跳过
+        elseif e.etype == "exit" then
+            // 退出函数
+        elseif e.etype == "point" then
+            // 检查当前深度
+            array<StackFrame> curStack = rebuildCallStack(sess, sess.eventIdx)
+            if curStack.length <= startDepth then
+                sess.callStack = curStack
+                return "next to " + sess.targetFile + ":" + string(e.line)
+            end
+        end
+        sess.eventIdx += 1
+    end
+    sess.terminated = true
+    return "program terminated"
+end
+
+// 执行 finish：前进到当前函数退出
+func execFinish(DebugSession sess) as string
+    string curFunc = ""
+    if sess.callStack.length > 0 then
+        curFunc = sess.callStack[sess.callStack.length - 1].fn
+    end
+    int targetDepth = sess.callStack.length - 1
+    sess.eventIdx += 1
+    while sess.eventIdx < sess.events.length do
+        DebugEvent e = sess.events[sess.eventIdx]
+        if e.etype == "exit" then
+            if e.fn == curFunc then
+                sess.eventIdx += 1
+                // 前进到下一个 point 或结束
+                while sess.eventIdx < sess.events.length do
+                    DebugEvent e2 = sess.events[sess.eventIdx]
+                    if e2.etype == "point" then
+                        sess.callStack = rebuildCallStack(sess, sess.eventIdx)
+                        return "finished " + curFunc + ", now at " + sess.targetFile + ":" + string(e2.line)
+                    end
+                    sess.eventIdx += 1
+                end
+                break
+            end
+        end
+        sess.eventIdx += 1
+    end
+    sess.terminated = true
+    return "program terminated"
+end
+
+// 执行 print <var>
+func execPrint(DebugSession sess, string varName) as string
+    var e = currentPointEvent(sess)
+    if e is null then
+        return colorOn(C_YELLOW, "not paused at a traceable location")
+    end
+    if not e.locals.contains(varName) then
+        return colorOn(C_YELLOW, varName + " is not available in current scope")
+    end
+    var v = e.locals[varName]
+    string rep = valueToString(v)
+    return varName + " = " + rep
+end
+
+// 执行 locals
+func execLocals(DebugSession sess) as string
+    var e = currentPointEvent(sess)
+    if e is null then
+        return colorOn(C_YELLOW, "not paused at a traceable location")
+    end
+    if e.locals is null then
+        return "(no locals)"
+    end
+    string result = ""
+    bool any = false
+    var locals = e.locals
+    for k, v in locals
+        any = true
+        string rep = valueToString(v)
+        result = result + "  " + padRight(string(k), 16) + " = " + rep + "\n"
+    end
+    if not any then
+        return "(no locals in scope)"
+    end
+    return result
+end
+
+// 执行 backtrace
+func execBacktrace(DebugSession sess) as string
+    if sess.callStack.length == 0 then
+        return "(empty call stack)"
+    end
+    string result = ""
+    int i = sess.callStack.length - 1
+    while i >= 0 do
+        StackFrame f = sess.callStack[i]
+        string marker = ""
+        if i == sess.callStack.length - 1 then
+            marker = colorOn(C_GREEN, "=> ")
+        else
+            marker = "   "
+        end
+        result = result + marker + "#" + string(f.depth - 1) + " " + padRight(f.fn, 24) + " " + f.file + ":" + string(f.line) + "\n"
+        i -= 1
+    end
+    return result
+end
+
+// 执行 watch <var>
+func execWatch(DebugSession sess, string varName)
+    // 检查是否已在监视列表
+    bool found = false
+    for w in sess.watches
+        if w.name == varName then
+            found = true
+            break
+        end
+    end
+    if not found then
+        sess.watches.push(WatchVar(varName))
+    end
+end
+
+// 在暂停时显示所有 watch 变量
+func showWatches(DebugSession sess) as string
+    if sess.watches.length == 0 then
+        return ""
+    end
+    var e = currentPointEvent(sess)
+    string result = colorOn(C_CYAN, "[watch]") + "\n"
+    for w in sess.watches
+        string curVal = "<N/A>"
+        if not (e is null) then
+            if e.locals.contains(w.name) then
+                curVal = valueToString(e.locals[w.name])
+            end
+        end
+        string marker = ""
+        if curVal != w.lastValue then
+            marker = colorOn(C_YELLOW, " *")
+            w.lastValue = curVal
+        end
+        result = result + "  " + padRight(w.name, 16) + " = " + curVal + marker + "\n"
+    end
+    return result
+end
+
+// 值转字符串表示
+func valueToString(var v) as string
+    if v is null then
+        return "null"
+    end
+    if v is string then
+        return "\"" + string(v) + "\""
+    end
+    if v is int then
+        return string(int(v))
+    end
+    if v is float then
+        return string.formatFloat(float(v), ".6")
+    end
+    if v is bool then
+        if bool(v) then
+            return "true"
+        end
+        return "false"
+    end
+    try
+        string s = json.stringify(v)
+        s = string.replace(s, "\t", "  ")
+        return s
+    catch e
+        return "<?>"
+    end
+end
+
+// ===== 命令执行循环 =====
+
+func runDebugSession(DebugSession sess, array<Command> commands) as int
+    int errors = 0
+    int ci = 0
+    while ci < commands.length do
+        Command cmd = commands[ci]
+        ci += 1
+        if cmd.kind == CMD_BLANK or cmd.kind == CMD_COMMENT then
+            continue
+        end
+        if cmd.kind == CMD_UNKNOWN then
+            println(colorOn(C_RED, "unknown command: ") + cmd.raw)
+            errors += 1
+            continue
+        end
+        if sess.terminated then
+            if cmd.kind == CMD_QUIT then
+                break
+            end
+            if cmd.kind == CMD_CONTINUE or cmd.kind == CMD_STEP or cmd.kind == CMD_NEXT or cmd.kind == CMD_FINISH then
+                println(colorOn(C_GRAY, "program has terminated"))
+                continue
+            end
+        end
+        if cmd.kind == CMD_BREAK or cmd.kind == CMD_TBREAK then
+            handleBreak(sess, cmd)
+            continue
+        end
+        if cmd.kind == CMD_CONTINUE then
+            if sess.eventIdx >= sess.events.length then
+                println(colorOn(C_GRAY, "at end of program"))
+            else
+                string msg = execContinue(sess)
+                println(colorOn(C_CYAN, "(xdbg) ") + msg)
+                if sess.callStack.length > 0 then
+                    StackFrame top = sess.callStack[sess.callStack.length - 1]
+                    println("  " + sess.targetFile + ":" + string(top.line) + " in " + top.fn)
+                end
+                if sess.watches.length > 0 then
+                    print(showWatches(sess))
+                end
+            end
+            continue
+        end
+        if cmd.kind == CMD_STEP then
+            string msg = execStep(sess)
+            println(colorOn(C_CYAN, "(xdbg) ") + msg)
+            if sess.watches.length > 0 then
+                print(showWatches(sess))
+            end
+            continue
+        end
+        if cmd.kind == CMD_NEXT then
+            string msg = execNext(sess)
+            println(colorOn(C_CYAN, "(xdbg) ") + msg)
+            if sess.watches.length > 0 then
+                print(showWatches(sess))
+            end
+            continue
+        end
+        if cmd.kind == CMD_FINISH then
+            string msg = execFinish(sess)
+            println(colorOn(C_CYAN, "(xdbg) ") + msg)
+            if sess.watches.length > 0 then
+                print(showWatches(sess))
+            end
+            continue
+        end
+        if cmd.kind == CMD_PRINT then
+            println(execPrint(sess, cmd.arg1))
+            continue
+        end
+        if cmd.kind == CMD_LOCALS then
+            print(execLocals(sess))
+            continue
+        end
+        if cmd.kind == CMD_BACKTRACE then
+            print(execBacktrace(sess))
+            continue
+        end
+        if cmd.kind == CMD_WATCH then
+            execWatch(sess, cmd.arg1)
+            println(colorOn(C_GRAY, "watching: " + cmd.arg1))
+            continue
+        end
+        if cmd.kind == CMD_INFO_BP then
+            print(infoBreakpoints(sess.bpm))
+            continue
+        end
+        if cmd.kind == CMD_DELETE then
+            if bpmRemove(sess.bpm, cmd.intArg) then
+                println(colorOn(C_GRAY, "deleted breakpoint " + string(cmd.intArg)))
+            else
+                println(colorOn(C_RED, "no breakpoint " + string(cmd.intArg)))
+                errors += 1
+            end
+            continue
+        end
+        if cmd.kind == CMD_ENABLE then
+            if bpmSetEnabled(sess.bpm, cmd.intArg, true) then
+                println(colorOn(C_GRAY, "enabled breakpoint " + string(cmd.intArg)))
+            else
+                println(colorOn(C_RED, "no breakpoint " + string(cmd.intArg)))
+                errors += 1
+            end
+            continue
+        end
+        if cmd.kind == CMD_DISABLE then
+            if bpmSetEnabled(sess.bpm, cmd.intArg, false) then
+                println(colorOn(C_GRAY, "disabled breakpoint " + string(cmd.intArg)))
+            else
+                println(colorOn(C_RED, "no breakpoint " + string(cmd.intArg)))
+                errors += 1
+            end
+            continue
+        end
+        if cmd.kind == CMD_IGNORE then
+            int cnt = 0
+            try
+                cnt = int(cmd.arg2)
+            catch e
+            end
+            if bpmSetIgnore(sess.bpm, cmd.intArg, cnt) then
+                println(colorOn(C_GRAY, "ignore breakpoint " + string(cmd.intArg) + " next " + string(cnt) + " hits"))
+            else
+                println(colorOn(C_RED, "no breakpoint " + string(cmd.intArg)))
+                errors += 1
+            end
+            continue
+        end
+        if cmd.kind == CMD_RUN then
+            println(colorOn(C_GRAY, "(program already running in simulation mode)"))
+            continue
+        end
+        if cmd.kind == CMD_QUIT then
+            break
+        end
+    end
+    println("")
+    println(colorOn(C_GREEN, "[xdebugger] session ended") + " (" + string(errors) + " error(s))")
+    if errors > 0 then
+        return 1
+    end
+    return 0
+end
+
+// 处理 break / tbreak 命令
+func handleBreak(DebugSession sess, Command cmd)
+    string spec = cmd.arg1
+    string cond = cmd.arg2
+    if string.len(spec) == 0 then
+        println(colorOn(C_RED, "break: missing location"))
+        return
+    end
+    // file:line 格式
+    int colon = string.lastIndexOf(spec, ":")
+    bool parsed = false
+    if colon > 0 then
+        string filePart = string.mid(spec, 0, colon)
+        string linePart = string.mid(spec, colon + 1, string.len(spec))
+        try
+            int ln = int(linePart)
+            int kind = BP_LINE
+            if string.len(cond) > 0 then
+                kind = BP_CONDITIONAL
+            end
+            Breakpoint bp = bpmAdd(sess.bpm, kind, filePart, ln, "", cond)
+            if cmd.kind == CMD_TBREAK then
+                bp.temporary = true
+            end
+            bpmResolve(sess.bpm, sess.funcs, sess.targetFile)
+            string tag = "breakpoint"
+            if bp.temporary then
+                tag = "temp breakpoint"
+            end
+            println(colorOn(C_GREEN, tag + " " + string(bp.id)) + " at " + filePart + ":" + string(ln))
+            if string.len(cond) > 0 then
+                println(colorOn(C_GRAY, "    condition: " + cond))
+            end
+            parsed = true
+        catch e
+        end
+    end
+    if parsed then
+        return
+    end
+    // 纯数字 = 行号
+    bool allDigit = true
+    int di = 0
+    while di < string.len(spec) do
+        if not isDigitByte(string.byteAt(spec, di)) then
+            allDigit = false
+            break
+        end
+        di += 1
+    end
+    if allDigit and string.len(spec) > 0 then
+        try
+            int ln = int(spec)
+            int kind = BP_LINE
+            if string.len(cond) > 0 then
+                kind = BP_CONDITIONAL
+            end
+            Breakpoint bp = bpmAdd(sess.bpm, kind, sess.targetFile, ln, "", cond)
+            if cmd.kind == CMD_TBREAK then
+                bp.temporary = true
+            end
+            bpmResolve(sess.bpm, sess.funcs, sess.targetFile)
+            string tag = "breakpoint"
+            if bp.temporary then
+                tag = "temp breakpoint"
+            end
+            println(colorOn(C_GREEN, tag + " " + string(bp.id)) + " at " + sess.targetFile + ":" + string(ln))
+            if string.len(cond) > 0 then
+                println(colorOn(C_GRAY, "    condition: " + cond))
+            end
+            return
+        catch e
+        end
+    end
+    // 函数名
+    Breakpoint bp = bpmAdd(sess.bpm, BP_FUNC, "", 0, spec, "")
+    if cmd.kind == CMD_TBREAK then
+        bp.temporary = true
+    end
+    bpmResolve(sess.bpm, sess.funcs, sess.targetFile)
+    if bp.state == "resolved" then
+        println(colorOn(C_GREEN, "breakpoint " + string(bp.id)) + " at " + spec + " (" + sess.targetFile + ":" + string(bp.line) + ")")
+    else
+        println(colorOn(C_YELLOW, "breakpoint " + string(bp.id)) + " at " + spec + " (pending - function not found)")
+    end
+end
+
+// 列出所有断点
+func infoBreakpoints(BreakpointManager bpm) as string
+    if bpm.bps.length == 0 then
+        return "(no breakpoints)\n"
+    end
+    string result = ""
+    result = result + padRight("ID", 5) + padRight("Type", 12) + padRight("Enabled", 9) + padRight("Hits", 6) + padRight("Location", 30) + "Condition\n"
+    result = result + string.replace(padRight("-", 62), " ", "-") + "\n"
+    for bp in bpm.bps
+        string kindStr = ""
+        if bp.kind == BP_LINE then
+            kindStr = "line"
+        elseif bp.kind == BP_FUNC then
+            kindStr = "function"
+        else
+            kindStr = "conditional"
+        end
+        string enStr = "yes"
+        if not bp.enabled then
+            enStr = colorOn(C_GRAY, "no")
+        end
+        string loc = ""
+        if bp.kind == BP_FUNC then
+            loc = bp.funcName
+        else
+            loc = path.name(bp.file) + ":" + string(bp.line)
+        end
+        string cond = bp.condition
+        if string.len(cond) == 0 then
+            cond = "-"
+        end
+        result = result + padRight(string(bp.id), 5) + padRight(kindStr, 12) + padRight(enStr, 9) + padRight(string(bp.hitCount), 6) + padRight(loc, 30) + cond + "\n"
+    end
+    return result
+end
+
+// ===== DAP 事件生成 =====
+
+func dapSequence() as int
+    return 0
+end
+
+// 生成 DAP-compatible JSON 事件序列
+func generateDapEvents(DebugSession sess, array<Command> commands) as string
+    array<var> dapEvents = []
+    int seq = 1
+
+    // initialized 事件
+    var initEvt = {}
+    initEvt["seq"] = seq
+    seq += 1
+    initEvt["type"] = "event"
+    initEvt["event"] = "initialized"
+    dapEvents.push(initEvt)
+
+    // 为每个断点生成 breakpoint 事件
+    for bp in sess.bpm.bps
+        var bpEvt = {}
+        bpEvt["seq"] = seq
+        seq += 1
+        bpEvt["type"] = "response"
+        bpEvt["command"] = "setBreakpoints"
+        var body = {}
+        var bpArr = []
+        var bpInfo = {}
+        bpInfo["id"] = bp.id
+        bpInfo["verified"] = (bp.state == "resolved")
+        bpInfo["line"] = bp.line
+        bpArr.push(bpInfo)
+        body["breakpoints"] = bpArr
+        bpEvt["body"] = body
+        dapEvents.push(bpEvt)
+    end
+
+    // 重新模拟事件流，生成 stopped/continued 事件
+    int evtIdx = 0
+    int ci = 0
+    while ci < commands.length do
+        Command cmd = commands[ci]
+        ci += 1
+        if cmd.kind == CMD_CONTINUE or cmd.kind == CMD_STEP or cmd.kind == CMD_NEXT or cmd.kind == CMD_FINISH then
+            // continued 事件
+            var contEvt = {}
+            contEvt["seq"] = seq
+            seq += 1
+            contEvt["type"] = "event"
+            contEvt["event"] = "continued"
+            var contBody = {}
+            contBody["threadId"] = 1
+            contEvt["body"] = contBody
+            dapEvents.push(contEvt)
+
+            // 模拟推进
+            if cmd.kind == CMD_CONTINUE then
+                bool stopped = false
+                while evtIdx < sess.events.length do
+                    DebugEvent e = sess.events[evtIdx]
+                    if e.etype == "point" then
+                        var bp = bpmCheckHit(sess.bpm, sess.targetFile, e.line, e.fn, e.locals)
+                        if not (bp is null) then
+                            // stopped 事件
+                            var stopEvt = {}
+                            stopEvt["seq"] = seq
+                            seq += 1
+                            stopEvt["type"] = "event"
+                            stopEvt["event"] = "stopped"
+                            var stopBody = {}
+                            stopBody["reason"] = "breakpoint"
+                            stopBody["threadId"] = 1
+                            stopBody["allThreadsStopped"] = true
+                            var hitBps = []
+                            hitBps.push(bp.id)
+                            stopBody["hitBreakpointIds"] = hitBps
+                            stopEvt["body"] = stopBody
+                            dapEvents.push(stopEvt)
+                            stopped = true
+                            break
+                        end
+                    end
+                    evtIdx += 1
+                end
+                if not stopped then
+                    // terminated
+                    var termEvt = {}
+                    termEvt["seq"] = seq
+                    seq += 1
+                    termEvt["type"] = "event"
+                    termEvt["event"] = "terminated"
+                    dapEvents.push(termEvt)
+                end
+            elseif cmd.kind == CMD_STEP or cmd.kind == CMD_NEXT or cmd.kind == CMD_FINISH then
+                evtIdx += 1
+                while evtIdx < sess.events.length do
+                    DebugEvent e = sess.events[evtIdx]
+                    if e.etype == "point" then
+                        string reason = "step"
+                        var stopEvt = {}
+                        stopEvt["seq"] = seq
+                        seq += 1
+                        stopEvt["type"] = "event"
+                        stopEvt["event"] = "stopped"
+                        var stopBody = {}
+                        stopBody["reason"] = reason
+                        stopBody["threadId"] = 1
+                        stopBody["allThreadsStopped"] = true
+                        stopEvt["body"] = stopBody
+                        dapEvents.push(stopEvt)
+                        break
+                    end
+                    evtIdx += 1
+                end
+                if evtIdx >= sess.events.length then
+                    var termEvt = {}
+                    termEvt["seq"] = seq
+                    seq += 1
+                    termEvt["type"] = "event"
+                    termEvt["event"] = "terminated"
+                    dapEvents.push(termEvt)
+                end
+            end
+        end
+    end
+
+    // 最终 terminated 事件（如果还没有）
+    bool hasTerm = false
+    for de in dapEvents
+        var evt = de
+        var ev = evt["event"]
+        if ev is string then
+            if string(ev) == "terminated" then
+                hasTerm = true
+            end
+        end
+    end
+    if not hasTerm then
+        var termEvt = {}
+        termEvt["seq"] = seq
+        seq += 1
+        termEvt["type"] = "event"
+        termEvt["event"] = "exited"
+        var exitBody = {}
+        exitBody["exitCode"] = 0
+        termEvt["body"] = exitBody
+        dapEvents.push(termEvt)
+    end
+
+    var root = {}
+    root["protocolVersion"] = "1.0.0"
+    root["events"] = dapEvents
+    string txt = json.stringify(root)
+    txt = string.replace(txt, "\t", "  ")
+    return txt
+end
+
+// ===== 行映射报告 =====
+
+func reportLineMap(string xl, string absFile) as int
+    string src = file.readText(absFile)
+    println(colorOn(C_BOLD, "[linemap] analyzing ") + absFile)
+    println("")
+
+    // 运行 --save-temps 并提取行映射
+    string tempOut = makeTempDir()
+    array<LineMapEntry> entries = analyzeLineMap(xl, absFile, tempOut)
+    if entries.length == 0 then
+        println(colorOn(C_YELLOW, "no C line markers found (--save-temps may not be supported or C file not located)"))
+        println(colorOn(C_GRAY, "falling back to AST-based line analysis..."))
+        println("")
+    end
+
+    if entries.length > 0 then
+        println(colorOn(C_CYAN, "[C line map]") + " " + string(entries.length) + " markers")
+        println(padRight("C Line", 12) + padRight("XL Line", 12) + "Source")
+        println("------------------------------------------------")
+        for e in entries
+            string src2 = e.source
+            if string.len(src2) == 0 then
+                src2 = path.name(absFile)
+            end
+            println(padRight(string(e.cLine), 12) + padRight(string(e.xlLine), 12) + src2)
+        end
+        println("")
+    end
+
+    // 函数信息
+    array<FuncInfo> funcs = discoverFuncs(xl, absFile, src)
+    println(colorOn(C_CYAN, "[functions]") + " " + string(funcs.length) + " discovered")
+    println(padRight("Name", 24) + padRight("Start", 8) + padRight("End", 8) + padRight("Body", 8) + "Vars")
+    println("------------------------------------------------------------")
+    for fi in funcs
+        string tag = ""
+        if fi.isMain then
+            tag = colorOn(C_YELLOW, " (main)")
+        end
+        println(padRight(fi.name + tag, 24) + padRight(string(fi.startLine), 8) + padRight(string(fi.endLine), 8) + padRight(string(fi.bodyStart), 8) + string(fi.vars.length))
+    end
+    println("")
+
+    // 调用图
+    array<CallEdge> edges = analyzeCallGraph(xl, absFile)
+    if edges.length > 0 then
+        println(colorOn(C_CYAN, "[call graph]") + " " + string(edges.length) + " edges")
+        for e in edges
+            string cnt = ""
+            if e.count > 0 then
+                cnt = colorOn(C_GRAY, " (x" + string(e.count) + ")")
+            end
+            println("  " + padRight(e.caller, 20) + " -> " + e.callee + cnt)
+        end
+        println("")
+    end
+
+    // 清理临时目录
+    try
+        dir.delete(tempOut)
+    catch e
+    end
+
+    println(colorOn(C_GREEN, "[linemap] done"))
+    return 0
+end
+
+// ===== 子命令：debug =====
+
+func cmdDebug(string targetFile, string cmdFile, bool dapMode) as int
+    // 验证文件
+    if not file.exists(targetFile) then
+        println(colorOn(C_RED, "xdebugger: target file not found: " + targetFile))
+        return 1
+    end
+    if not file.exists(cmdFile) then
+        println(colorOn(C_RED, "xdebugger: command script not found: " + cmdFile))
+        return 1
+    end
+
+    // 定位 xl.exe
+    if string.len(g_xl) == 0 then
+        println(colorOn(C_RED, "xdebugger: xl.exe not found"))
+        return 1
+    end
+
+    string absTarget = targetFile
+    if not path.isAbs(targetFile) then
+        absTarget = path.join(path.cwd(), targetFile)
+    end
+
+    // 读取源码和命令脚本
+    string src = ""
+    try
+        src = file.readText(absTarget)
+    catch e
+        println(colorOn(C_RED, "xdebugger: cannot read target: " + e.message))
+        return 1
+    end
+    string cmdSrc = ""
+    try
+        cmdSrc = file.readText(cmdFile)
+    catch e
+        println(colorOn(C_RED, "xdebugger: cannot read command script: " + e.message))
+        return 1
+    end
+
+    println(colorOn(C_BOLD, "[xdebugger] starting debug session"))
+    println("  target:   " + absTarget)
+    println("  commands: " + cmdFile)
+    println("")
+
+    // 分析函数
+    array<FuncInfo> funcs = discoverFuncs(g_xl, absTarget, src)
+    println(colorOn(C_GRAY, "  discovered " + string(funcs.length) + " function(s)"))
+
+    // 插桩
+    string instrumented = instrumentTarget(src, funcs)
+
+    // 写入临时文件
+    g_tempDir = makeTempDir()
+    string instrumentedPath = path.join(g_tempDir, "xdbg_target.xl")
+    file.writeText(instrumentedPath, instrumented)
+
+    // 运行插桩后的程序
+    println(colorOn(C_GRAY, "  running instrumented program..."))
+    println("")
+    string runCmd = g_xl + " run " + instrumentedPath
+    ProcessResult r = process.run(runCmd, 60000)
+
+    // 提取事件流
+    string dumpJson = extractDumpJson(r.stdout)
+    array<DebugEvent> events = parseEventStream(dumpJson)
+
+    if events.length == 0 then
+        println(colorOn(C_YELLOW, "[xdebugger] no debug events captured"))
+        println(colorOn(C_GRAY, "  the target may have failed to compile or run"))
+        if string.len(string.trim(r.stderr)) > 0 then
+            println(colorOn(C_RED, "  stderr:"))
+            string err = string.trim(r.stderr)
+            err = string.replace(err, instrumentedPath, "<instrumented>")
+            println(err)
+        end
+        // 清理
+        cleanupTempDir()
+        return 1
+    end
+
+    println(colorOn(C_GREEN, "  captured " + string(events.length) + " debug event(s)"))
+    println("")
+
+    // 解析命令脚本
+    array<Command> commands = parseCommandScript(cmdSrc)
+
+    // 创建调试会话
+    DebugSession sess = DebugSession()
+    sess.events = events
+    sess.targetFile = absTarget
+    sess.funcs = funcs
+
+    // 如果有初始 continue，需要先绑定断点
+    // 解析命令时，break 命令在会话执行循环中处理
+
+    // 运行调试会话
+    println(colorOn(C_BOLD, "=== debug session ==="))
+    println("")
+    int result = runDebugSession(sess, commands)
+
+    // DAP 输出
+    if dapMode then
+        string dapJson = generateDapEvents(sess, commands)
+        string dapPath = path.join(g_tempDir, "xdebugger_dap.json")
+        if string.len(g_dapOut) > 0 then
+            dapPath = g_dapOut
+        end
+        try
+            file.writeText(dapPath, dapJson)
+            println("")
+            println(colorOn(C_CYAN, "[DAP] events written to " + dapPath))
+        catch e
+            println(colorOn(C_RED, "[DAP] failed to write: " + e.message))
+        end
+    end
+
+    // 清理
+    cleanupTempDir()
+    return result
+end
+
+// ===== 子命令：test（内置自测）=====
+
+func cmdTest() as int
+    println(colorOn(C_BOLD, "[xdebugger] running built-in self-test"))
+    println("")
+
+    int passed = 0
+    int failed = 0
+
+    // === 测试 1: 命令解析 ===
+    println(colorOn(C_CYAN, "test 1: command parsing"))
+    bool t1ok = true
+    Command c1 = parseCommand("break main.xl:10")
+    if c1.kind != CMD_BREAK then t1ok = false end
+    if c1.arg1 != "main.xl:10" then t1ok = false end
+    Command c2 = parseCommand("break 15 if x > 3")
+    if c2.kind != CMD_BREAK then t1ok = false end
+    if c2.arg1 != "15" then t1ok = false end
+    if c2.arg2 != "x > 3" then t1ok = false end
+    Command c3 = parseCommand("break myFunc")
+    if c3.kind != CMD_BREAK then t1ok = false end
+    if c3.arg1 != "myFunc" then t1ok = false end
+    Command c4 = parseCommand("continue")
+    if c4.kind != CMD_CONTINUE then t1ok = false end
+    Command c5 = parseCommand("step")
+    if c5.kind != CMD_STEP then t1ok = false end
+    Command c6 = parseCommand("next")
+    if c6.kind != CMD_NEXT then t1ok = false end
+    Command c7 = parseCommand("finish")
+    if c7.kind != CMD_FINISH then t1ok = false end
+    Command c8 = parseCommand("print x")
+    if c8.kind != CMD_PRINT then t1ok = false end
+    if c8.arg1 != "x" then t1ok = false end
+    Command c9 = parseCommand("backtrace")
+    if c9.kind != CMD_BACKTRACE then t1ok = false end
+    Command c10 = parseCommand("# this is a comment")
+    if c10.kind != CMD_COMMENT then t1ok = false end
+    Command c11 = parseCommand("delete 3")
+    if c11.kind != CMD_DELETE then t1ok = false end
+    if c11.intArg != 3 then t1ok = false end
+    Command c12 = parseCommand("disable 2")
+    if c12.kind != CMD_DISABLE then t1ok = false end
+    if t1ok then
+        println("  " + colorOn(C_GREEN, "PASS") + " command parsing (12 cases)")
+        passed += 1
+    else
+        println("  " + colorOn(C_RED, "FAIL") + " command parsing")
+        failed += 1
+    end
+
+    // === 测试 2: 条件求值 ===
+    println(colorOn(C_CYAN, "test 2: condition evaluation"))
+    bool t2ok = true
+    var testLocals = {}
+    testLocals["x"] = 10
+    testLocals["name"] = "hello"
+    testLocals["flag"] = true
+    if not evalCondition("x == 10", testLocals) then t2ok = false end
+    if evalCondition("x != 10", testLocals) then t2ok = false end
+    if not evalCondition("x > 5", testLocals) then t2ok = false end
+    if evalCondition("x < 5", testLocals) then t2ok = false end
+    if not evalCondition("x >= 10", testLocals) then t2ok = false end
+    if not evalCondition("x <= 10", testLocals) then t2ok = false end
+    if not evalCondition("name == \"hello\"", testLocals) then t2ok = false end
+    if evalCondition("name == \"world\"", testLocals) then t2ok = false end
+    if not evalCondition("flag", testLocals) then t2ok = false end
+    if t2ok then
+        println("  " + colorOn(C_GREEN, "PASS") + " condition evaluation (9 cases)")
+        passed += 1
+    else
+        println("  " + colorOn(C_RED, "FAIL") + " condition evaluation")
+        failed += 1
+    end
+
+    // === 测试 3: 断点管理 ===
+    println(colorOn(C_CYAN, "test 3: breakpoint management"))
+    bool t3ok = true
+    BreakpointManager bpm = BreakpointManager()
+    Breakpoint bp1 = bpmAdd(bpm, BP_LINE, "test.xl", 10, "", "")
+    Breakpoint bp2 = bpmAdd(bpm, BP_FUNC, "", 0, "myFunc", "")
+    Breakpoint bp3 = bpmAdd(bpm, BP_CONDITIONAL, "test.xl", 20, "", "x > 5")
+    if bpm.bps.length != 3 then t3ok = false end
+    if bp1.id != 1 then t3ok = false end
+    if bp2.id != 2 then t3ok = false end
+    if bp3.id != 3 then t3ok = false end
+    if not bpmSetEnabled(bpm, 1, false) then t3ok = false end
+    var check1 = bpmFind(bpm, 1)
+    if check1.enabled then t3ok = false end
+    if not bpmSetIgnore(bpm, 2, 3) then t3ok = false end
+    var check2 = bpmFind(bpm, 2)
+    if check2.ignoreCount != 3 then t3ok = false end
+    if not bpmRemove(bpm, 3) then t3ok = false end
+    if bpm.bps.length != 2 then t3ok = false end
+    if t3ok then
+        println("  " + colorOn(C_GREEN, "PASS") + " breakpoint management (8 cases)")
+        passed += 1
+    else
+        println("  " + colorOn(C_RED, "FAIL") + " breakpoint management")
+        failed += 1
+    end
+
+    // === 测试 4: 断点命中检测 ===
+    println(colorOn(C_CYAN, "test 4: breakpoint hit detection"))
+    bool t4ok = true
+    BreakpointManager bpm2 = BreakpointManager()
+    bpmAdd(bpm2, BP_LINE, "test.xl", 5, "", "")
+    bpmAdd(bpm2, BP_FUNC, "", 0, "foo", "")
+    var hitLocals = {}
+    hitLocals["x"] = 42
+    // 行断点命中
+    var hit1 = bpmCheckHit(bpm2, "test.xl", 5, "main", hitLocals)
+    if hit1 is null then t4ok = false end
+    // 行不匹配
+    var hit2 = bpmCheckHit(bpm2, "test.xl", 99, "main", hitLocals)
+    if not (hit2 is null) then t4ok = false end
+    // 函数断点命中
+    var hit3 = bpmCheckHit(bpm2, "test.xl", 1, "foo", hitLocals)
+    if hit3 is null then t4ok = false end
+    // ignore count 测试
+    BreakpointManager bpm3 = BreakpointManager()
+    Breakpoint bpIgn = bpmAdd(bpm3, BP_LINE, "t.xl", 1, "", "")
+    bpmSetIgnore(bpm3, bpIgn.id, 2)
+    var h1 = bpmCheckHit(bpm3, "t.xl", 1, "f", {})
+    if not (h1 is null) then t4ok = false end
+    var h2 = bpmCheckHit(bpm3, "t.xl", 1, "f", {})
+    if not (h2 is null) then t4ok = false end
+    var h3 = bpmCheckHit(bpm3, "t.xl", 1, "f", {})
+    if h3 is null then t4ok = false end
+    if t4ok then
+        println("  " + colorOn(C_GREEN, "PASS") + " breakpoint hit detection (6 cases)")
+        passed += 1
+    else
+        println("  " + colorOn(C_RED, "FAIL") + " breakpoint hit detection")
+        failed += 1
+    end
+
+    // === 测试 5: 事件流解析 ===
+    println(colorOn(C_CYAN, "test 5: event stream parsing"))
+    bool t5ok = true
+    string testJson = "{\"events\":[{\"type\":\"enter\",\"func\":\"main\",\"line\":1},{\"type\":\"point\",\"func\":\"main\",\"line\":2,\"locals\":{\"x\":10}},{\"type\":\"exit\",\"func\":\"main\",\"line\":5}]}"
+    array<DebugEvent> evts = parseEventStream(testJson)
+    if evts.length != 3 then t5ok = false end
+    if evts.length == 3 then
+        if evts[0].etype != "enter" then t5ok = false end
+        if evts[0].fn != "main" then t5ok = false end
+        if evts[1].etype != "point" then t5ok = false end
+        if evts[1].line != 2 then t5ok = false end
+        if not evts[1].locals.contains("x") then t5ok = false end
+        if evts[2].etype != "exit" then t5ok = false end
+    end
+    // 空 JSON
+    array<DebugEvent> empty = parseEventStream("")
+    if empty.length != 0 then t5ok = false end
+    if t5ok then
+        println("  " + colorOn(C_GREEN, "PASS") + " event stream parsing (7 cases)")
+        passed += 1
+    else
+        println("  " + colorOn(C_RED, "FAIL") + " event stream parsing")
+        failed += 1
+    end
+
+    // === 测试 6: 调用栈重建 ===
+    println(colorOn(C_CYAN, "test 6: call stack reconstruction"))
+    bool t6ok = true
+    DebugSession sess = DebugSession()
+    DebugEvent e1 = DebugEvent()
+    e1.etype = "enter"
+    e1.fn = "main"
+    e1.line = 1
+    sess.events.push(e1)
+    DebugEvent e2 = DebugEvent()
+    e2.etype = "point"
+    e2.fn = "main"
+    e2.line = 3
+    sess.events.push(e2)
+    DebugEvent e3 = DebugEvent()
+    e3.etype = "enter"
+    e3.fn = "foo"
+    e3.line = 10
+    sess.events.push(e3)
+    DebugEvent e4 = DebugEvent()
+    e4.etype = "point"
+    e4.fn = "foo"
+    e4.line = 12
+    sess.events.push(e4)
+    sess.targetFile = "test.xl"
+    array<StackFrame> stack = rebuildCallStack(sess, 3)
+    if stack.length != 2 then t6ok = false end
+    if stack.length == 2 then
+        if stack[0].fn != "main" then t6ok = false end
+        if stack[1].fn != "foo" then t6ok = false end
+        if stack[1].line != 12 then t6ok = false end
+    end
+    if t6ok then
+        println("  " + colorOn(C_GREEN, "PASS") + " call stack reconstruction (4 cases)")
+        passed += 1
+    else
+        println("  " + colorOn(C_RED, "FAIL") + " call stack reconstruction")
+        failed += 1
+    end
+
+    // === 测试 7: 参数提取 ===
+    println(colorOn(C_CYAN, "test 7: parameter extraction"))
+    bool t7ok = true
+    array<VarDecl> params1 = extractParams("func foo(int a, string b) as int")
+    if params1.length != 2 then t7ok = false end
+    if params1.length == 2 then
+        if params1[0].name != "a" then t7ok = false end
+        if params1[1].name != "b" then t7ok = false end
+    end
+    array<VarDecl> params2 = extractParams("func bar() as int")
+    if params2.length != 0 then t7ok = false end
+    array<VarDecl> params3 = extractParams("func baz(int x, float y, bool z)")
+    if params3.length != 3 then t7ok = false end
+    if params3.length == 3 then
+        if params3[0].name != "x" then t7ok = false end
+        if params3[1].name != "y" then t7ok = false end
+        if params3[2].name != "z" then t7ok = false end
+    end
+    if t7ok then
+        println("  " + colorOn(C_GREEN, "PASS") + " parameter extraction (7 cases)")
+        passed += 1
+    else
+        println("  " + colorOn(C_RED, "FAIL") + " parameter extraction")
+        failed += 1
+    end
+
+    // === 测试 8: 局部变量扫描 ===
+    println(colorOn(C_CYAN, "test 8: local variable scanning"))
+    bool t8ok = true
+    string testSrc = "func test(int a) as int\n    int x = 10\n    string s = \"hi\"\n    bool flag = true\n    return x\nend"
+    array<string> testLines = splitLinesSafe(testSrc)
+    array<VarDecl> testParams = extractParams(testLines[0])
+    array<VarDecl> testLocals2 = scanLocals(testLines, 2, 5, testParams)
+    // 应该有 a, x, s, flag 共 4 个
+    if testLocals2.length != 4 then t8ok = false end
+    if testLocals2.length == 4 then
+        if testLocals2[0].name != "a" then t8ok = false end
+        if testLocals2[1].name != "x" then t8ok = false end
+        if testLocals2[2].name != "s" then t8ok = false end
+        if testLocals2[3].name != "flag" then t8ok = false end
+    end
+    if t8ok then
+        println("  " + colorOn(C_GREEN, "PASS") + " local variable scanning (5 cases)")
+        passed += 1
+    else
+        println("  " + colorOn(C_RED, "FAIL") + " local variable scanning")
+        failed += 1
+    end
+
+    // === 测试 9: 值转字符串 ===
+    println(colorOn(C_CYAN, "test 9: value to string conversion"))
+    bool t9ok = true
+    if valueToString(42) != "42" then t9ok = false end
+    if valueToString("hello") != "\"hello\"" then t9ok = false end
+    if valueToString(true) != "true" then t9ok = false end
+    if valueToString(false) != "false" then t9ok = false end
+    if t9ok then
+        println("  " + colorOn(C_GREEN, "PASS") + " value to string (4 cases)")
+        passed += 1
+    else
+        println("  " + colorOn(C_RED, "FAIL") + " value to string")
+        failed += 1
+    end
+
+    // === 测试 10: 行映射提取 ===
+    println(colorOn(C_CYAN, "test 10: C line map extraction"))
+    bool t10ok = true
+    string testC = "#line 5 \"test.xl\"\nint main() {\n#line 10 \"test.xl\"\n    return 0;\n}"
+    string testCPath = path.join(path.temp(), "xdbg_test.c")
+    file.writeText(testCPath, testC)
+    array<LineMapEntry> entries = extractLineMapFromC(testCPath, "test.xl")
+    if entries.length != 2 then t10ok = false end
+    if entries.length == 2 then
+        if entries[0].xlLine != 5 then t10ok = false end
+        if entries[1].xlLine != 10 then t10ok = false end
+    end
+    try
+        file.delete(testCPath)
+    catch e
+    end
+    if t10ok then
+        println("  " + colorOn(C_GREEN, "PASS") + " C line map extraction (3 cases)")
+        passed += 1
+    else
+        println("  " + colorOn(C_RED, "FAIL") + " C line map extraction")
+        failed += 1
+    end
+
+    // === 测试 11: DAP 事件生成 ===
+    println(colorOn(C_CYAN, "test 11: DAP event generation"))
+    bool t11ok = true
+    DebugSession sess2 = DebugSession()
+    sess2.targetFile = "test.xl"
+    BreakpointManager bpmDap = sess2.bpm
+    bpmAdd(bpmDap, BP_LINE, "test.xl", 5, "", "")
+    array<Command> dapCmds = []
+    dapCmds.push(Command(CMD_BREAK, "break 5"))
+    dapCmds.push(Command(CMD_CONTINUE, "continue"))
+    string dapResult = generateDapEvents(sess2, dapCmds)
+    if string.len(dapResult) == 0 then t11ok = false end
+    if not string.contains(dapResult, "initialized") then t11ok = false end
+    if not string.contains(dapResult, "protocolVersion") then t11ok = false end
+    if not string.contains(dapResult, "events") then t11ok = false end
+    if t11ok then
+        println("  " + colorOn(C_GREEN, "PASS") + " DAP event generation (4 cases)")
+        passed += 1
+    else
+        println("  " + colorOn(C_RED, "FAIL") + " DAP event generation")
+        failed += 1
+    end
+
+    // === 测试 12: 插桩生成 ===
+    println(colorOn(C_CYAN, "test 12: instrumentation generation"))
+    bool t12ok = true
+    string instSrc = "func add(int a, int b) as int\n    int result = a + b\n    return result\nend\n\nfunc main(...) as int\n    int x = add(3, 4)\n    println(x)\n    return 0\nend"
+    array<FuncInfo> instFuncs = scanFuncsFromSource(instSrc)
+    if instFuncs.length < 2 then t12ok = false end
+    if t12ok then
+        string instrumented = instrumentTarget(instSrc, instFuncs)
+        if not string.contains(instrumented, "__xd_enter") then t12ok = false end
+        if not string.contains(instrumented, "__xd_exit") then t12ok = false end
+        if not string.contains(instrumented, "__xd_dump") then t12ok = false end
+        if not string.contains(instrumented, "__xd_p(") then t12ok = false end
+    end
+    if t12ok then
+        println("  " + colorOn(C_GREEN, "PASS") + " instrumentation generation (5 cases)")
+        passed += 1
+    else
+        println("  " + colorOn(C_RED, "FAIL") + " instrumentation generation")
+        failed += 1
+    end
+
+    // === 总结 ===
+    println("")
+    println("------------------------------------------------")
+    string summary = colorOn(C_BOLD, "results: ") + colorOn(C_GREEN, string(passed) + " passed") + ", " + colorOn(C_RED, string(failed) + " failed")
+    println(summary)
+    if failed > 0 then
+        return 1
+    end
+    return 0
+end
+
+// ===== 用法 =====
+
+func printUsage()
+    println("xdebugger - xlang source-level debugger (script-driven + DAP)")
+    println("")
+    println("usage:")
+    println("  xdebugger debug <file.xl> <commands.xdbg>          debug a program")
+    println("  xdebugger debug <file.xl> <commands.xdbg> --dap    with DAP JSON output")
+    println("  xdebugger linemap <file.xl>                        show line mapping info")
+    println("  xdebugger test                                     run built-in self-test")
+    println("  xdebugger -h | --help                              show this help")
+    println("")
+    println("debug commands (.xdbg script, one per line):")
+    println("  break <file:line>          set a line breakpoint")
+    println("  break <func>               set a function breakpoint")
+    println("  break <line> if <cond>     set a conditional breakpoint")
+    println("  tbreak <file:line>         temporary breakpoint (auto-deleted on hit)")
+    println("  continue                   resume execution until next breakpoint")
+    println("  step                       step into next statement")
+    println("  next                       step over (skip function calls)")
+    println("  finish                     run until current function returns")
+    println("  print <var>                print variable value")
+    println("  locals                     print all local variables")
+    println("  backtrace                  print call stack")
+    println("  watch <var>                watch a variable (shown on each pause)")
+    println("  info breakpoints           list all breakpoints")
+    println("  delete <id>                delete breakpoint by id")
+    println("  enable <id>                enable breakpoint")
+    println("  disable <id>               disable breakpoint")
+    println("  ignore <id> <count>        ignore next <count> hits of breakpoint")
+    println("  quit                       end session")
+    println("")
+    println("example .xdbg:")
+    println("  # set breakpoints and run")
+    println("  break main.xl:10")
+    println("  break 15 if x > 5")
+    println("  break myFunc")
+    println("  continue")
+    println("  locals")
+    println("  print x")
+    println("  backtrace")
+    println("  next")
+    println("  watch x")
+    println("  continue")
+    println("  quit")
+    println("")
+    println("conditions support: varname, varname == value, varname != value,")
+    println("  varname > value, varname < value, varname >= value, varname <= value")
+    println("")
+    println("how it works:")
+    println("  1. xl parse --format json gets AST for function/variable discovery")
+    println("  2. debug hooks are injected into the target source")
+    println("  3. the instrumented program runs, emitting a JSON event stream")
+    println("  4. the debugger replays .xdbg commands against the event stream")
+    println("  5. optional --dap outputs DAP-compatible JSON events")
+end
+
+// ===== main =====
+
+func main(...) as int
+    initState()
+    initColors()
+    if arg.length > 0 then
+        g_scriptPath = string(arg[0])
+    end
+    g_toolDir = findToolDir()
+    if arg.length < 2 then
+        printUsage()
+        return 0
+    end
+    string sub = string(arg[1])
+    if sub == "-h" or sub == "--help" then
+        printUsage()
+        return 0
+    end
+    if sub == "test" then
+        return cmdTest()
+    end
+    if sub == "linemap" then
+        if arg.length < 3 then
+            println(colorOn(C_RED, "xdebugger: linemap requires a file argument"))
+            return 1
+        end
+        g_xl = findXl()
+        if string.len(g_xl) == 0 then
+            println(colorOn(C_RED, "xdebugger: xl.exe not found"))
+            return 1
+        end
+        return reportLineMap(g_xl, string(arg[2]))
+    end
+    if sub == "debug" then
+        if arg.length < 4 then
+            println(colorOn(C_RED, "xdebugger: debug requires <file.xl> <commands.xdbg>"))
+            return 1
+        end
+        g_xl = findXl()
+        if string.len(g_xl) == 0 then
+            println(colorOn(C_RED, "xdebugger: xl.exe not found (place me in the release dir)"))
+            return 1
+        end
+        bool dap = false
+        if arg.length >= 5 then
+            string opt = string(arg[4])
+            if opt == "--dap" then
+                dap = true
+            elseif opt == "--dap-out" and arg.length >= 6 then
+                dap = true
+                g_dapOut = string(arg[5])
+            elseif opt == "--verbose" then
+                g_verbose = true
+            elseif opt == "--no-color" then
+                g_color = false
+            end
+        end
+        if arg.length >= 6 then
+            string opt2 = string(arg[5])
+            if opt2 == "--verbose" then
+                g_verbose = true
+            elseif opt2 == "--no-color" then
+                g_color = false
+            end
+        end
+        return cmdDebug(string(arg[2]), string(arg[3]), dap)
+    end
+    println(colorOn(C_RED, "xdebugger: unknown subcommand: " + sub))
+    println(colorOn(C_GRAY, "  try: xdebugger --help"))
+    return 1
+end

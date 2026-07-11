@@ -9,7 +9,7 @@ static int xl6CgenIsBuiltinTypeName(const char* name)
         "c_size", "c_ssize", "c_ptrdiff", "c_intptr", "c_uintptr", "c_bool",
         "c_float", "c_double", "c_wchar",
         "string", "time", "point", "error", "function", "var", "type",
-        "array", "list", "set", "dict",
+        "array", "list", "set", "dict", "ref",
         "future", "task", "channel", "generator",
         "thread", "mutex", "cond", "rwlock", "sem"
     };
@@ -321,7 +321,8 @@ static int xl6CgenIsXValueTypeName(const char* name)
            xl6CTextEquals(name, "array") ||
            xl6CTextEquals(name, "list") ||
            xl6CTextEquals(name, "set") ||
-           xl6CTextEquals(name, "dict");
+           xl6CTextEquals(name, "dict") ||
+           xl6CTextEquals(name, "ref");
 }
 
 static int xl6CgenIsStringTypeNode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
@@ -457,7 +458,7 @@ static int xl6CgenIsKnownTypeName(XL6_CgenContext* ctx, const char* name)
 
 static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
-    static char customTypeName[256];
+    static char typeTextBuffer[256];
 
     typeNode = xl6CgenSubstituteGenericType(ctx, typeNode);
     typeNode = xl6CgenResolveAliasType(ctx, typeNode);
@@ -544,7 +545,7 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
     if ( xl6CTextEquals(typeNode->text, "type") ) {
         return "unsigned long long";
     }
-    if ( xl6CTextEquals(typeNode->text, "var") ||
+    if ( xl6CTextEquals(typeNode->text, "var") || xl6CTextEquals(typeNode->text, "ref") ||
          xl6CTextEquals(typeNode->text, "array") || xl6CTextEquals(typeNode->text, "array<var>") ||
          xl6CTextEquals(typeNode->text, "list") || xl6CTextEquals(typeNode->text, "list<var>") ||
          xl6CTextEquals(typeNode->text, "set") || xl6CTextEquals(typeNode->text, "set<var>") ||
@@ -555,8 +556,8 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
         return "XL6_Function";
     }
     if ( xl6CgenIsNativeBackedClassType(ctx, typeNode) ) {
-        xl6CgenNativeBackedTypeRefName(customTypeName, sizeof(customTypeName), typeNode->text);
-        return customTypeName;
+        xl6CgenNativeBackedTypeRefName(typeTextBuffer, sizeof(typeTextBuffer), typeNode->text);
+        return typeTextBuffer;
     }
     if ( xl6CgenIsClassType(ctx, typeNode) ) {
         XL6_AstNode* canonicalType = NULL;
@@ -568,18 +569,18 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
                 refType = canonicalType;
             }
         }
-        xl6CgenClassTypeRefName(customTypeName, sizeof(customTypeName), refType);
+        xl6CgenClassTypeRefName(typeTextBuffer, sizeof(typeTextBuffer), refType);
         xl6AstFree(canonicalType);
-        return customTypeName;
+        return typeTextBuffer;
     }
     if ( xl6CgenIsUnionType(ctx, typeNode) ) {
-        xl6CgenUnionTypeTextName(customTypeName, sizeof(customTypeName), typeNode->text);
-        return customTypeName;
+        xl6CgenUnionTypeTextName(typeTextBuffer, sizeof(typeTextBuffer), typeNode->text);
+        return typeTextBuffer;
     }
 
-    snprintf(customTypeName, sizeof(customTypeName), "C generator does not support type node: %s (%s)",
+    snprintf(typeTextBuffer, sizeof(typeTextBuffer), "C generator does not support type node: %s (%s)",
              typeNode->text != NULL ? typeNode->text : "<missing>", xl6AstKindName(typeNode->kind));
-    xl6CgenError(ctx, typeNode, customTypeName);
+    xl6CgenError(ctx, typeNode, typeTextBuffer);
     return "int";
 }
 

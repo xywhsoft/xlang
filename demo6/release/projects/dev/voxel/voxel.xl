@@ -853,7 +853,7 @@ func parseFloatSafe(string s, float defValue) as float
 end
 
 // 从 arg[startIdx] 起解析 name=value 参数
-func parseRenderArgs(int startIdx) as (int, int, string, string, float)
+func parseRenderArgs(array<string> arg, int startIdx) as (int, int, string, string, float)
     int width = 80
     int height = 40
     string outPath = ""
@@ -908,14 +908,13 @@ func doRender(int width, int height, string outPath, string scene, float fov) as
         return 1
     end
 
-    VoxelWorld world
+    VoxelWorld world = buildDemoScene()
     if scene == "pyramid" then
         world = buildPyramidScene()
     elseif scene == "terrain" then
         world = buildTerrainScene()
     else
         scene = "demo"
-        world = buildDemoScene()
     end
 
     Camera cam = makeCamera(world, fov, width, height)
@@ -1110,11 +1109,18 @@ end
 // ========================================================================
 func main(...) as int
     initPalette()
-    if arg.length < 2 then
+    // arg 仅在 main 内可用（BUGS.md NOTE-22/23）：收集后传给 parseRenderArgs。
+    array<string> args = array[]
+    int ai = 0
+    while ai < arg.length do
+        args.push(string(arg[ai]))
+        ai = ai + 1
+    end
+    if args.length < 2 then
         printUsage()
         return 1
     end
-    string cmd = string.lower(string(arg[1]))
+    string cmd = string.lower(args[1])
     try
         if cmd == "-h" or cmd == "--help" or cmd == "help" then
             printUsage()
@@ -1125,14 +1131,14 @@ func main(...) as int
             string outPath
             string scene
             float fov
-            width, height, outPath, scene, fov = parseRenderArgs(2)
+            width, height, outPath, scene, fov = parseRenderArgs(args, 2)
             return doRender(width, height, outPath, scene, fov)
         elseif cmd == "demo" then
             return doRender(100, 50, "demo.ppm", "demo", 55.0)
         elseif cmd == "test" then
             return runTests()
         else
-            println("error: unknown command '" + string(arg[1]) + "'")
+            println("error: unknown command '" + args[1] + "'")
             printUsage()
             return 1
         end

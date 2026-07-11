@@ -1,5 +1,3 @@
-import dir
-import file
 import tcc
 import xlang
 

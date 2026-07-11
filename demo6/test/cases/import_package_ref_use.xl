@@ -1,0 +1,13 @@
+import ref_api
+
+func main(...) as int
+    auto value = ref_api.make(42)
+    if value.value() != 42 then
+        return 1
+    end
+    if ref_api.read(value) != 42 then
+        return 2
+    end
+    return 0
+end
+

@@ -642,17 +642,17 @@ static void xl6CgenEmitPlainRecordBoxRuntime(XL6_CgenContext* ctx, const char* c
     xl6OutputPuts("}\n\n", ctx->out);
 }
 
-static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const char* cTypeName, const char* sourceName)
+static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode* nativeClassNode, const char* cTypeName, const char* sourceName)
 {
     const XL6_AstNode* destroyNode;
 
     if ( ctx == NULL || cTypeName == NULL || sourceName == NULL ) {
         return;
     }
-    if ( customNode != NULL && customNode->kind == XL6_AST_CLASS ) {
-        destroyNode = xl6CgenFindClassSpecial(customNode, "destroy");
+    if ( nativeClassNode != NULL && nativeClassNode->kind == XL6_AST_CLASS ) {
+        destroyNode = xl6CgenFindClassSpecial(nativeClassNode, "destroy");
     } else {
-        destroyNode = xl6CgenFindNativeBackedClassSpecial(customNode, "destroy");
+        destroyNode = xl6CgenFindNativeBackedClassSpecial(nativeClassNode, "destroy");
     }
 
     xl6OutputPrintf(ctx->out, "static void xl6_type_copy_%s(void* dst, const void* src)\n{\n", cTypeName);

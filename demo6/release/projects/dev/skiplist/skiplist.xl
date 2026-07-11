@@ -33,7 +33,7 @@
 //     规避 BUG-K1 pretty 键序重排）。
 //   - int 在 xlang 中为 64-bit，位运算（& 1、>> 1）对 32-bit 随机数无符号位问题。
 
-const int MAX_LEVEL = 16    // 最大层数（n=1000 时期望最高层 ~10，16 足够余量）
+const int MAXLVL = 16       // 最大层数（n=1000 时期望最高层 ~10，16 足够余量）
 const int NIL = -1          // 空指针
 const int HEADER_ID = 0     // header 节点固定 id=0
 
@@ -101,7 +101,7 @@ class SkipList
     var nodes = []            // 节点池：var 数组，index = node id（0 = header）
     int level = 1             // 当前最高已用层数（>=1）
     int count = 0             // 真实元素数（不含 header）
-    int maxLevel = MAX_LEVEL
+    int maxLevel = 16
 
     create(int maxLevel)
         self.maxLevel = maxLevel
@@ -677,7 +677,7 @@ func dataPath(string scriptPath) as string
 end
 
 func loadTree(string p) as SkipList
-    SkipList tree = SkipList(MAX_LEVEL)
+    SkipList tree = SkipList(MAXLVL)
     if file.exists(p) then
         string text = file.readText(p)
         if not string.isEmpty(text) then
@@ -698,7 +698,7 @@ func saveTree(string p, SkipList tree)
 end
 
 func buildDemo(int n) as SkipList
-    SkipList tree = SkipList(MAX_LEVEL)
+    SkipList tree = SkipList(MAXLVL)
     var ord = shuffledRange(n)
     int i = 0
     while i < ord.length do
@@ -718,7 +718,7 @@ func cmdTest() as int
     println("=== skiplist self-test (1000 keys, maxLevel=16) ===")
     random.seed(uint64(20260710), uint64(1))
 
-    SkipList tree = SkipList(MAX_LEVEL)
+    SkipList tree = SkipList(MAXLVL)
 
     // ---- 大规模插入 ----
     int N = 1000
@@ -809,8 +809,8 @@ func cmdTest() as int
     expectTrue(ascending, "for-in yields ascending order")
 
     // ---- 层级合理性 ----
-    if tree.level >= 3 and tree.level <= MAX_LEVEL then
-        ok("top level in [3, " + string(MAX_LEVEL) + "] (got " + string(tree.level) + ")")
+    if tree.level >= 3 and tree.level <= MAXLVL then
+        ok("top level in [3, " + string(MAXLVL) + "] (got " + string(tree.level) + ")")
     else
         bad("top level range", "got " + string(tree.level))
     end
@@ -820,7 +820,7 @@ func cmdTest() as int
     expectTrue(string.contains(js, "maxLevel"), "serialize text contains maxLevel field")
     expectTrue(string.contains(js, "forward"), "serialize text contains forward field")
 
-    SkipList tree2 = SkipList(MAX_LEVEL)
+    SkipList tree2 = SkipList(MAXLVL)
     bool loaded = tree2.deserialize(js)
     expectTrue(loaded, "deserialize returns true")
     expectI(tree2.size(), N, "restored size = 1000")
@@ -908,7 +908,7 @@ func cmdTest() as int
     expectFalse(tree.delete(7777), "delete missing key returns false")
 
     // ---- 多元素再插 + dump 形态校验（节点数 >= 元素数 + header）----
-    SkipList small = SkipList(MAX_LEVEL)
+    SkipList small = SkipList(MAXLVL)
     int si = 1
     while si <= 50 do
         small.insert(si, "x" + string(si))
@@ -1013,7 +1013,7 @@ func cmdImport(string scriptPath, string inFile) as int
         return 1
     end
     string p = dataPath(scriptPath)
-    SkipList tree = SkipList(MAX_LEVEL)
+    SkipList tree = SkipList(MAXLVL)
     bool loaded = tree.deserialize(text)
     if not loaded then
         println("Error: failed to parse skiplist JSON")

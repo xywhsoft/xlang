@@ -169,7 +169,7 @@ class SegTree
     array<int> tree = array[]
     array<int> lazy = array[]
     int n = 0
-    int op = OP_SUM
+    int op = 0
 
     create(int op)
         self.op = op
@@ -320,37 +320,31 @@ class SegTree
         int c = self.tree.length
         return c
     end
-end
 
-
-// ============================================================================
-// 顶层构建函数（规避 BUG-C1：class 方法不能接收 array<int> 形参）
-// array<int> 作为普通函数形参完全正常；对 t.tree 的元素写入经 class
-// 实例形参持久（参照 chip8 的 loadBytes(Chip8, array<int>)）。
-// ============================================================================
-
-// 递归构建：读取 data，写入 t.tree 元素。
-func segBuildRec(SegTree t, int node, int l, int r, array<int> data)
-    if l == r then
-        t.tree[node] = data[l]
-        return
+    // 递归构建：读取 data，写入 self.tree 元素（必须在 class 方法内直接操作 self，
+    // 顶层函数收到的是值副本，写回不持久）。
+    func buildRec(int node, int l, int r, array<int> data)
+        if l == r then
+            self.tree[node] = data[l]
+            return
+        end
+        int mid = (l + r) / 2
+        int left = node * 2
+        int right = left + 1
+        self.buildRec(left, l, mid, data)
+        self.buildRec(right, mid + 1, r, data)
+        int lv = self.tree[left]
+        int rv = self.tree[right]
+        self.tree[node] = mergeVal(self.op, lv, rv)
     end
-    int mid = (l + r) / 2
-    int left = node * 2
-    int right = left + 1
-    segBuildRec(t, left, l, mid, data)
-    segBuildRec(t, right, mid + 1, r, data)
-    int lv = t.tree[left]
-    int rv = t.tree[right]
-    t.tree[node] = mergeVal(t.op, lv, rv)
-end
 
-// 构建入口：先经 class 方法分配数组（self 持久），再递归填值。
-func segBuild(SegTree t, array<int> data)
-    int dn = data.length
-    t.allocTree(dn)
-    if dn > 0 then
-        segBuildRec(t, 1, 0, dn - 1, data)
+    // 构建入口：先分配数组（self 持久），再递归填值。
+    func build(array<int> data)
+        int dn = data.length
+        self.allocTree(dn)
+        if dn > 0 then
+            self.buildRec(1, 0, dn - 1, data)
+        end
     end
 end
 
@@ -419,7 +413,7 @@ end
 // 命令实现
 // ============================================================================
 
-func cmdBuild() as int
+func cmdBuild(array<string> arg) as int
     // 收集 arg[2..]
     var toks = []
     int ti = 2
@@ -470,7 +464,7 @@ func cmdBuild() as int
     end
 
     SegTree tree = SegTree(op)
-    segBuild(tree, data)
+    tree.build(data)
 
     string scriptPath = string(arg[0])
     string p = statePath(scriptPath)
@@ -490,7 +484,7 @@ func cmdBuild() as int
     return 0
 end
 
-func ensureArgs(int need, string usage) as bool
+func ensureArgs(array<string> arg, int need, string usage) as bool
     // 校验 arg 是否足够（命令本身在 arg[1]，参数从 arg[2] 起）
     if arg.length < 2 + need then
         println("error: " + usage)
@@ -499,8 +493,8 @@ func ensureArgs(int need, string usage) as bool
     return true
 end
 
-func cmdQuery() as int
-    if not ensureArgs(2, "usage: segtree query <l> <r>") then
+func cmdQuery(array<string> arg) as int
+    if not ensureArgs(arg, 2, "usage: segtree query <l> <r>") then
         return 1
     end
     string p = statePath(string(arg[0]))
@@ -519,7 +513,7 @@ func cmdQuery() as int
         i = i + 1
     end
     SegTree tree = SegTree(op)
-    segBuild(tree, data)
+    tree.build(data)
     int l = int(arg[2])
     int r = int(arg[3])
     if l < 0 or r >= tree.n or l > r then
@@ -531,8 +525,8 @@ func cmdQuery() as int
     return 0
 end
 
-func cmdUpdate() as int
-    if not ensureArgs(2, "usage: segtree update <idx> <val>") then
+func cmdUpdate(array<string> arg) as int
+    if not ensureArgs(arg, 2, "usage: segtree update <idx> <val>") then
         return 1
     end
     string p = statePath(string(arg[0]))
@@ -559,7 +553,7 @@ func cmdUpdate() as int
     int old = data[idx]
     data[idx] = val
     SegTree tree = SegTree(op)
-    segBuild(tree, data)
+    tree.build(data)
     bool ok = saveState(p, op, data)
     if not ok then
         println("error: failed to write state: " + p)
@@ -571,8 +565,8 @@ func cmdUpdate() as int
     return 0
 end
 
-func cmdUpdateRange() as int
-    if not ensureArgs(3, "usage: segtree update-range <l> <r> <val>") then
+func cmdUpdateRange(array<string> arg) as int
+    if not ensureArgs(arg, 3, "usage: segtree update-range <l> <r> <val>") then
         return 1
     end
     string p = statePath(string(arg[0]))
@@ -598,7 +592,7 @@ func cmdUpdateRange() as int
         return 1
     end
     SegTree tree = SegTree(op)
-    segBuild(tree, data)
+    tree.build(data)
     tree.updateRange(l, r, val)
     // 同步源数组（区间加），落盘保持一致
     int j = l
@@ -692,7 +686,7 @@ func cmdTest() as int
     // ---- 1) sum 树基础 ----
     array<int> d1 = array<int>[1, 2, 3, 4, 5, 6, 7, 8]
     SegTree tsum = SegTree(OP_SUM)
-    segBuild(tsum, d1)
+    tsum.build(d1)
     expectI(tsum.n, 8, "sum: n=8")
     expectI(tsum.query(0, 7), 36, "sum: total [0,7]=36")
     expectI(tsum.query(2, 5), 18, "sum: [2,5]=3+4+5+6=18")
@@ -712,17 +706,17 @@ func cmdTest() as int
     expectI(tsum.query(0, 7), 72, "sum: after +5[1,6] total=72")
     expectI(tsum.pointValue(0), 1, "sum: untouched a[0]=1")
     expectI(tsum.pointValue(7), 8, "sum: untouched a[7]=8")
-    expectI(tsum.pointValue(3), 20, "sum: a[3]=15+5=20")
-    expectI(tsum.query(1, 3), 7 + 8 + 20, "sum: [1,3]=7+8+20=35")
+    expectI(tsum.pointValue(3), 15, "sum: a[3]=10+5=15")
+    expectI(tsum.query(1, 3), 7 + 8 + 15, "sum: [1,3]=7+8+15=30")
     // 再次区间加，验证 lazy 链式累积
     tsum.updateRange(0, 7, 1)
     expectI(tsum.query(0, 7), 80, "sum: after +1 all total=80")
-    expectI(tsum.pointValue(3), 21, "sum: a[3]=21")
+    expectI(tsum.pointValue(3), 16, "sum: a[3]=16")
 
     // ---- 4) max 树 ----
     array<int> d2 = array<int>[3, 1, 4, 1, 5, 9, 2, 6]
     SegTree tmax = SegTree(OP_MAX)
-    segBuild(tmax, d2)
+    tmax.build(d2)
     expectI(tmax.query(0, 7), 9, "max: [0,7]=9")
     expectI(tmax.query(0, 4), 5, "max: [0,4]=5")
     expectI(tmax.query(5, 7), 9, "max: [5,7]=9")
@@ -738,7 +732,7 @@ func cmdTest() as int
     // ---- 5) min 树 ----
     array<int> d3 = array<int>[5, 2, 8, 1, 9, 3, 7, 4]
     SegTree tmin = SegTree(OP_MIN)
-    segBuild(tmin, d3)
+    tmin.build(d3)
     expectI(tmin.query(0, 7), 1, "min: [0,7]=1")
     expectI(tmin.query(2, 5), 1, "min: [2,5]=1")
     expectI(tmin.query(4, 7), 3, "min: [4,7]=3")
@@ -789,7 +783,7 @@ func randStress(int op, string label) as int
         i = i + 1
     end
     SegTree tree = SegTree(op)
-    segBuild(tree, data)
+    tree.build(data)
 
     int checked = 0
     int mism = 0
@@ -868,22 +862,30 @@ end
 
 
 func main(...) as int
+    // arg 仅在 main 内可用（BUGS.md NOTE-22/23）：收集到 array<string> 后传给各 cmd。
+    array<string> args = array[]
+    int ai = 0
+    while ai < arg.length do
+        args.push(string(arg[ai]))
+        ai = ai + 1
+    end
+
     string command = ""
-    if arg.length >= 2 then
-        command = string.lower(string(arg[1]))
+    if args.length >= 2 then
+        command = string.lower(args[1])
     end
 
     if command == "build" then
-        return cmdBuild()
+        return cmdBuild(args)
     end
     if command == "query" then
-        return cmdQuery()
+        return cmdQuery(args)
     end
     if command == "update" then
-        return cmdUpdate()
+        return cmdUpdate(args)
     end
     if command == "update-range" then
-        return cmdUpdateRange()
+        return cmdUpdateRange(args)
     end
     if command == "test" then
         return cmdTest()

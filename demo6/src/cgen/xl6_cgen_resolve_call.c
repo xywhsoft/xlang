@@ -182,7 +182,7 @@ static XL6_AstNode* xl6CgenResolveExplicitGenericCallFunc(
     }
     if ( fixedBestCount > 1 ) {
         if ( report ) {
-            xl6CgenError(ctx, call, "鏄惧紡娉涘瀷函数调用存在重载歧义");
+            xl6CgenError(ctx, call, "显式泛型函数调用存在重载歧义");
         }
         return NULL;
     }
@@ -191,7 +191,7 @@ static XL6_AstNode* xl6CgenResolveExplicitGenericCallFunc(
     }
     if ( report ) {
         if ( varargBestCount > 1 ) {
-            xl6CgenError(ctx, call, "鏄惧紡娉涘瀷函数调用存在重载歧义");
+            xl6CgenError(ctx, call, "显式泛型函数调用存在重载歧义");
         } else {
             xl6CgenError(ctx, call, "找不到匹配的显式泛型函数重载");
         }
@@ -327,7 +327,7 @@ static const XL6_AstNode* xl6CgenResolveCallableInBodyMode(
         /*
             class 调用解析需要把普通成员、导出成员和 native-backed class
             的 extern 成员视为同一组可调用候选。这里的 alias 用于统一
-            class 基座后的成员形态，不是旧 custom 语法兼容。
+            class 基座后的成员形态；用户侧只有这一套 class 调用模型。
         */
         kindMatches = member != NULL &&
                       (member->kind == kind ||
@@ -501,54 +501,54 @@ static const XL6_AstNode* xl6CgenResolveStaticClassFunc(
 
 static const XL6_AstNode* xl6CgenResolveNativeClassFunc(
     XL6_CgenContext* ctx,
-    const XL6_AstNode* customNode,
+    const XL6_AstNode* nativeClassNode,
     const XL6_AstNode* call,
     const char* name,
     int reportNoMatch)
 {
     const XL6_AstNode* body;
 
-    body = xl6CgenClassBody(customNode);
+    body = xl6CgenClassBody(nativeClassNode);
     return xl6CgenResolveCallableInBodyExact(ctx, body, call, XL6_AST_FUNC, name, reportNoMatch);
 }
 
 static const XL6_AstNode* xl6CgenResolveNativeExternFuncWithReport(
     XL6_CgenContext* ctx,
-    const XL6_AstNode* customNode,
+    const XL6_AstNode* nativeClassNode,
     const XL6_AstNode* call,
     const char* name,
     int reportNoMatch)
 {
     const XL6_AstNode* body;
 
-    body = xl6CgenClassBody(customNode);
+    body = xl6CgenClassBody(nativeClassNode);
     return xl6CgenResolveCallableInBody(ctx, body, call, XL6_AST_NATIVE_EXTERN_FUNC, name, reportNoMatch);
 }
 
 static const XL6_AstNode* xl6CgenResolveNativeExternFunc(
     XL6_CgenContext* ctx,
-    const XL6_AstNode* customNode,
+    const XL6_AstNode* nativeClassNode,
     const XL6_AstNode* call,
     const char* name)
 {
-    return xl6CgenResolveNativeExternFuncWithReport(ctx, customNode, call, name, 1);
+    return xl6CgenResolveNativeExternFuncWithReport(ctx, nativeClassNode, call, name, 1);
 }
 
-static const XL6_AstNode* xl6CgenResolveNativeBackedCreate(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* call)
+static const XL6_AstNode* xl6CgenResolveNativeBackedCreate(XL6_CgenContext* ctx, const XL6_AstNode* nativeClassNode, const XL6_AstNode* call)
 {
     const XL6_AstNode* body;
 
-    body = xl6CgenClassBody(customNode);
+    body = xl6CgenClassBody(nativeClassNode);
     return xl6CgenResolveCallableInBody(ctx, body, call, XL6_AST_NATIVE_EXTERN_SPECIAL, "create", 1);
 }
 
-static int xl6CgenCallIsNativeBackedCtor(XL6_CgenContext* ctx, const XL6_AstNode* expr, XL6_AstNode** outCustom)
+static int xl6CgenCallIsNativeBackedCtor(XL6_CgenContext* ctx, const XL6_AstNode* expr, XL6_AstNode** outNativeClass)
 {
     const XL6_AstNode* callee;
-    XL6_AstNode* customNode;
+    XL6_AstNode* nativeClassNode;
 
-    if ( outCustom != NULL ) {
-        *outCustom = NULL;
+    if ( outNativeClass != NULL ) {
+        *outNativeClass = NULL;
     }
     if ( expr == NULL || expr->kind != XL6_AST_CALL || expr->childCount == 0 ) {
         return 0;
@@ -557,12 +557,12 @@ static int xl6CgenCallIsNativeBackedCtor(XL6_CgenContext* ctx, const XL6_AstNode
     if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
         return 0;
     }
-    customNode = xl6CgenFindNativeBackedClass(ctx, callee->text);
-    if ( customNode == NULL ) {
+    nativeClassNode = xl6CgenFindNativeBackedClass(ctx, callee->text);
+    if ( nativeClassNode == NULL ) {
         return 0;
     }
-    if ( outCustom != NULL ) {
-        *outCustom = customNode;
+    if ( outNativeClass != NULL ) {
+        *outNativeClass = nativeClassNode;
     }
     return 1;
 }
@@ -644,13 +644,13 @@ static int xl6CgenClassBasePath(XL6_CgenContext* ctx, const XL6_AstNode* fromCla
     return xl6CgenClassBasePath(ctx, baseClass, targetClass, buffer, capacity);
 }
 
-static void xl6CgenNativeBackedCtorValue(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* call)
+static void xl6CgenNativeBackedCtorValue(XL6_CgenContext* ctx, const XL6_AstNode* nativeClassNode, const XL6_AstNode* call)
 {
     const XL6_AstNode* createNode;
     const XL6_AstNode* args;
 
     args = call->childCount > 1 ? call->children[1] : NULL;
-    createNode = xl6CgenResolveNativeBackedCreate(ctx, customNode, call);
+    createNode = xl6CgenResolveNativeBackedCreate(ctx, nativeClassNode, call);
 
     if ( createNode != NULL ) {
         xl6CgenCStringSymbol(ctx->out, createNode->text);
@@ -661,12 +661,12 @@ static void xl6CgenNativeBackedCtorValue(XL6_CgenContext* ctx, const XL6_AstNode
     }
 
     if ( args != NULL && args->childCount == 1 && args->children[0] != NULL && args->children[0]->childCount > 0 ) {
-        xl6CgenNativeBackedPointBindingValue(ctx, customNode, args->children[0]->children[0]);
+        xl6CgenNativeBackedPointBindingValue(ctx, nativeClassNode, args->children[0]->children[0]);
         return;
     }
 
     {
-        const char* className = customNode != NULL && customNode->text != NULL ? customNode->text : "<class>";
+        const char* className = nativeClassNode != NULL && nativeClassNode->text != NULL ? nativeClassNode->text : "<class>";
         char message[192];
         snprintf(message, sizeof(message), "native-backed class without create can only bind one point handle: %s", className);
         xl6CgenError(ctx, call, message);
@@ -674,12 +674,12 @@ static void xl6CgenNativeBackedCtorValue(XL6_CgenContext* ctx, const XL6_AstNode
     xl6OutputPuts("0", ctx->out);
 }
 
-static void xl6CgenNativeBackedCtorAssign(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const char* varName, const XL6_AstNode* call)
+static void xl6CgenNativeBackedCtorAssign(XL6_CgenContext* ctx, const XL6_AstNode* nativeClassNode, const char* varName, const XL6_AstNode* call)
 {
     xl6CgenIndent(ctx);
     xl6CgenFputsCIdent(ctx->out, varName);
     xl6OutputPuts(".handle = ", ctx->out);
-    xl6CgenNativeBackedCtorValue(ctx, customNode, call);
+    xl6CgenNativeBackedCtorValue(ctx, nativeClassNode, call);
     xl6OutputPuts(";\n", ctx->out);
 }
 

@@ -1,0 +1,26 @@
+class RefApiBase
+    virtual func value() as int
+        return 1
+    end
+end
+
+class RefApiDerived extends RefApiBase
+    int stored
+
+    create(int value)
+        self.stored = value
+    end
+
+    override func value() as int
+        return self.stored
+    end
+end
+
+export func make(int value) as ref<RefApiBase>
+    return ref(RefApiDerived(value))
+end
+
+export func read(ref<RefApiBase> value) as int
+    return value.value()
+end
+

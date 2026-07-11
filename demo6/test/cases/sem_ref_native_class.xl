@@ -1,0 +1,7 @@
+class RefNativeHandle
+    native point handle
+    extern "ref_native_open" create()
+    extern "ref_native_close" destroy()
+end
+
+ref<RefNativeHandle> invalid

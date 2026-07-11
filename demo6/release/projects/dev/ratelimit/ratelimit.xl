@@ -1,4 +1,4 @@
-// ratelimit - rate limiting gateway (token bucket / sliding window / leaky bucket)
+﻿// ratelimit - rate limiting gateway (token bucket / sliding window / leaky bucket)
 //
 // Usage:
 //   ratelimit test
@@ -64,9 +64,9 @@ class RateLimiter
     int windowMs = 1000
 
     // single (anonymous) bucket state
-    float tokens = 0
-    float lastMs = 0
-    float level = 0
+    float tokens = 0.0
+    float lastMs = 0.0
+    float level = 0.0
     array<float> stamps = array[]
 
     // per-client state (parallel arrays, keyed by client slot index)
@@ -85,22 +85,22 @@ class RateLimiter
         g_mu.lock()
         if cap < 1 then cap = 1 end
         if r < 0 then r = 0 end
-        algo = a
-        capacity = cap
-        rate = r
-        windowMs = 1000
-        tokens = float(cap)
-        lastMs = 0
-        level = 0
-        stamps.clear()
-        clients.clear()
-        cTokens.clear()
-        cLast.clear()
-        cLevel.clear()
-        cWinCount.clear()
-        cWin.clear()
-        allowed = 0
-        blocked = 0
+        self.algo = a
+        self.capacity = cap
+        self.rate = r
+        self.windowMs = 1000
+        self.tokens = float(cap)
+        self.lastMs = 0.0
+        self.level = 0.0
+        self.stamps.clear()
+        self.clients.clear()
+        self.cTokens.clear()
+        self.cLast.clear()
+        self.cLevel.clear()
+        self.cWinCount.clear()
+        self.cWin.clear()
+        self.allowed = 0
+        self.blocked = 0
         g_mu.unlock()
     end
 
@@ -132,16 +132,16 @@ class RateLimiter
         float now = nowMs()
         bool ok = false
         if algo == "token" then
-            ok = takeToken(now)
+            ok = self.takeToken(now)
         elseif algo == "leaky" then
-            ok = takeLeaky(now)
+            ok = self.takeLeaky(now)
         else
-            ok = takeSliding(now)
+            ok = self.takeSliding(now)
         end
         if ok then
-            allowed = allowed + 1
+            self.allowed = allowed + 1
         else
-            blocked = blocked + 1
+            self.blocked = blocked + 1
         end
         g_mu.unlock()
         return ok
@@ -150,20 +150,20 @@ class RateLimiter
     // ---- per-client bucket ----
     func allowClient(string id) as bool
         g_mu.lock()
-        int ci = clientIndex(id)
+        int ci = self.clientIndex(id)
         float now = nowMs()
         bool ok = false
         if algo == "token" then
-            ok = takeTokenClient(ci, now)
+            ok = self.takeTokenClient(ci, now)
         elseif algo == "leaky" then
-            ok = takeLeakyClient(ci, now)
+            ok = self.takeLeakyClient(ci, now)
         else
-            ok = takeSlidingClient(ci, now)
+            ok = self.takeSlidingClient(ci, now)
         end
         if ok then
-            allowed = allowed + 1
+            self.allowed = allowed + 1
         else
-            blocked = blocked + 1
+            self.blocked = blocked + 1
         end
         g_mu.unlock()
         return ok
@@ -172,17 +172,17 @@ class RateLimiter
     // ---- token bucket ----
     func takeToken(float now) as bool
         if lastMs == 0 then
-            tokens = float(capacity)
-            lastMs = now
+            self.tokens = float(capacity)
+            self.lastMs = now
         end
         float elapsed = now - lastMs
         if elapsed > 0 then
-            tokens = tokens + elapsed * float(rate) / 1000.0
-            if tokens > float(capacity) then tokens = float(capacity) end
-            lastMs = now
+            self.tokens = tokens + elapsed * float(rate) / 1000.0
+            if tokens > float(capacity) then self.tokens = float(capacity) end
+            self.lastMs = now
         end
         if tokens >= 1.0 then
-            tokens = tokens - 1.0
+            self.tokens = tokens - 1.0
             return true
         end
         return false
@@ -209,15 +209,15 @@ class RateLimiter
 
     // ---- leaky bucket ----
     func takeLeaky(float now) as bool
-        if lastMs == 0 then lastMs = now end
+        if lastMs == 0 then self.lastMs = now end
         float elapsed = now - lastMs
         if elapsed > 0 then
-            level = level - elapsed * float(rate) / 1000.0
-            if level < 0 then level = 0 end
-            lastMs = now
+            self.level = level - elapsed * float(rate) / 1000.0
+            if level < 0 then self.level = 0.0 end
+            self.lastMs = now
         end
         if level + 1.0 <= float(capacity) then
-            level = level + 1.0
+            self.level = level + 1.0
             return true
         end
         return false
@@ -228,7 +228,7 @@ class RateLimiter
         float elapsed = now - cLast[ci]
         if elapsed > 0 then
             float lv = cLevel[ci] - elapsed * float(rate) / 1000.0
-            if lv < 0 then lv = 0 end
+            if lv < 0 then lv = 0.0 end
             cLevel[ci] = lv
             cLast[ci] = now
         end

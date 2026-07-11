@@ -1,0 +1,1013 @@
+// xneural - 神经网络框架（minimal neural network framework in xlang）
+//
+// 综合验证 xlang 的：
+//   * class 继承 + virtual/override 多态（Layer > Dense/ReLU/Sigmoid, Optimizer > SGD/Adam）
+//   * 泛型容器 array<float> 作为 Tensor 主存储
+//   * 多态容器 array<var> + as 还原 + vtable 派发（见下文「多态存储说明」）
+//   * 多返回值 + 解构（loss/grad、optimizer compute、forward/backward）
+//   * 数值计算密集（矩阵乘、激活、梯度检查、XOR 训练）
+//
+// 多态存储说明（重要，BUG-RT1/RT2/RT3 绕过）：
+//   xlang 对多态 class 实例的存储有以下边界（参考 raytrace/btree 等 dev 项目）：
+//     (RT1) typed array<Layer> 在 append(Derived) 时会丢派生实例 -> 改用 array<var>
+//     (RT2) typed Base 字段 + derive value 会把派生类切片到基类 -> 用 var 槽位
+//     (RT3) 从函数返回带 virtual 的 class 会丢 vtable -> Layer/Optimizer 实例从不
+//           从函数返回；它们只在调用方直接 new，存入 array<var>，再 as 还原调用
+//   因此本框架统一采用：
+//     - Sequential.layers: array<var>，每个槽位是 Dense/ReLU/Sigmoid 实例
+//     - 取用时统一 `var v = layers[i]; Layer lyr = v as Layer; lyr.forward(...)`
+//     - virtual 方法通过还原后的 self 引用调用，vtable 派发到对应 override
+//   另一条边界（owned-copy 语义）：
+//     普通 class 按值形参建立独立 owned copy，函数内修改不传播回调用方。
+//     因此 Adam/SGD 的可变状态（m/v/t）存在各 Dense 自己的字段里，optimizer 只
+//     携带只读超参（lr/beta1/beta2/eps），通过多返回值把新状态写回 Dense 字段。
+//
+// 用法：
+//   xl run projects\dev\xneural\xneural.xl xor      训练 XOR（2->4->1 网络）
+//   xl run projects\dev\xneural\xneural.xl test     矩阵运算 + 梯度检查
+//
+// 验证：
+//   cd /d D:\GIT\x-lang\demo6\release
+//   xl run projects\dev\xneural\xneural.xl test
+//   xl run projects\dev\xneural\xneural.xl xor
+//   xl build projects\dev\xneural\xneural.xl -o projects\dev\xneural\xneural.exe
+
+// ========================================================================
+// 全局常量与随机数辅助
+// ========================================================================
+float EPS_NORM = 1e-12
+
+// [0, 1) 均匀随机 float（random 模块只给整数 u32，这里包装）
+func randF() as float
+    return float(random.u32()) / 4294967296.0
+end
+
+// 标准正态分布随机数（Box-Muller），用于 Dense 权重初始化
+func randNormal() as float
+    float u1 = randF()
+    if u1 < EPS_NORM then
+        u1 = EPS_NORM
+    end
+    float u2 = randF()
+    float r = math.sqrt(-2.0 * math.log(u1))
+    return r * math.cos(2.0 * math.pi * u2)
+end
+
+func relError(float a, float b) as float
+    float denom = math.abs(a) + math.abs(b)
+    if denom < EPS_NORM then
+        return 0.0
+    end
+    return math.abs(a - b) / denom
+end
+
+// ========================================================================
+// 测试框架（参考 shapes.xl 风格，程序始终返回 0）
+// ========================================================================
+int g_pass = 0
+int g_fail = 0
+
+func ok(string label)
+    g_pass += 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail += 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectF(float got, float want, string label)
+    if math.abs(got - want) < 0.001 then
+        ok(label)
+    else
+        bad(label, "got " + string.formatFloat(got, ".6") + " want " + string.formatFloat(want, ".6"))
+    end
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func fmt(float v) as string
+    return string.formatFloat(v, ".6")
+end
+
+// ========================================================================
+// Tensor：2D 矩阵（row-major 一维 array<float> 存储）
+//   提供 matMul/add/sub/transpose/relu/sigmoid 及其导数。
+//   Tensor 无 virtual 方法，可安全按值传递与从函数返回（BUG-RT3 不适用）。
+// ========================================================================
+class Tensor
+    int rows = 0
+    int cols = 0
+    array<float> data = array[]
+
+    create(int rows, int cols)
+        self.rows = rows
+        self.cols = cols
+        int total = rows * cols
+        int i = 0
+        while i < total do
+            self.data.append(0.0)
+            i += 1
+        end
+    end
+
+    func at(int r, int c) as float
+        return self.data[r * self.cols + c]
+    end
+
+    func set(int r, int c, float v)
+        self.data[r * self.cols + c] = v
+    end
+
+    // 多维索引协议
+    func __item__(int r, int c) as float
+        return self.data[r * self.cols + c]
+    end
+
+    func __setItem__(int r, int c, float v)
+        self.data[r * self.cols + c] = v
+    end
+
+    func copy() as Tensor
+        Tensor t = Tensor(self.rows, self.cols)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            t.data[i] = self.data[i]
+            i += 1
+        end
+        return t
+    end
+
+    func matMul(Tensor other) as Tensor
+        if self.cols != other.rows then
+            throw "matMul dimension mismatch: " + string(self.rows) + "x" + string(self.cols) + " * " + string(other.rows) + "x" + string(other.cols)
+        end
+        Tensor result = Tensor(self.rows, other.cols)
+        int r = 0
+        while r < self.rows do
+            int c = 0
+            while c < other.cols do
+                float sum = 0.0
+                int k = 0
+                while k < self.cols do
+                    sum += self.at(r, k) * other.at(k, c)
+                    k += 1
+                end
+                result.set(r, c, sum)
+                c += 1
+            end
+            r += 1
+        end
+        return result
+    end
+
+    func add(Tensor other) as Tensor
+        if self.rows != other.rows or self.cols != other.cols then
+            throw "add dimension mismatch"
+        end
+        Tensor result = Tensor(self.rows, self.cols)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            result.data[i] = self.data[i] + other.data[i]
+            i += 1
+        end
+        return result
+    end
+
+    func sub(Tensor other) as Tensor
+        if self.rows != other.rows or self.cols != other.cols then
+            throw "sub dimension mismatch"
+        end
+        Tensor result = Tensor(self.rows, self.cols)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            result.data[i] = self.data[i] - other.data[i]
+            i += 1
+        end
+        return result
+    end
+
+    func transpose() as Tensor
+        Tensor result = Tensor(self.cols, self.rows)
+        int r = 0
+        while r < self.rows do
+            int c = 0
+            while c < self.cols do
+                result.set(c, r, self.at(r, c))
+                c += 1
+            end
+            r += 1
+        end
+        return result
+    end
+
+    // 逐元素 ReLU
+    func relu() as Tensor
+        Tensor result = Tensor(self.rows, self.cols)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            float v = self.data[i]
+            if v < 0.0 then
+                v = 0.0
+            end
+            result.data[i] = v
+            i += 1
+        end
+        return result
+    end
+
+    // ReLU 导数：self 是上游梯度 grad，input 是前向输入；input>0 处梯度通过
+    func reluGrad(Tensor input) as Tensor
+        Tensor result = Tensor(self.rows, self.cols)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            float g = self.data[i]
+            if input.data[i] <= 0.0 then
+                g = 0.0
+            end
+            result.data[i] = g
+            i += 1
+        end
+        return result
+    end
+
+    // 逐元素 Sigmoid
+    func sigmoid() as Tensor
+        Tensor result = Tensor(self.rows, self.cols)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            float x = self.data[i]
+            result.data[i] = 1.0 / (1.0 + math.exp(-x))
+            i += 1
+        end
+        return result
+    end
+
+    // Sigmoid 导数：self 是上游梯度 grad，output 是前向输出 s；结果 = grad * s * (1-s)
+    func sigmoidGrad(Tensor output) as Tensor
+        Tensor result = Tensor(self.rows, self.cols)
+        int n = self.data.length
+        int i = 0
+        while i < n do
+            float s = output.data[i]
+            result.data[i] = self.data[i] * s * (1.0 - s)
+            i += 1
+        end
+        return result
+    end
+end
+
+// ---- Tensor 工厂函数（避免构造重载边界）----
+func tensorZeros(int r, int c) as Tensor
+    return Tensor(r, c)
+end
+
+func tensorFrom(int r, int c, array<float> vals) as Tensor
+    Tensor t = Tensor(r, c)
+    int n = r * c
+    int i = 0
+    while i < n do
+        t.data[i] = vals[i]
+        i += 1
+    end
+    return t
+end
+
+func tensorRandom(int r, int c, float scale) as Tensor
+    Tensor t = Tensor(r, c)
+    int n = r * c
+    int i = 0
+    while i < n do
+        t.data[i] = randNormal() * scale
+        i += 1
+    end
+    return t
+end
+
+// ========================================================================
+// Layer 基类 + Dense / ReLU / Sigmoid
+//
+//   forward/backward/update 均为 virtual，子类 override。
+//   层实例只由调用方直接 new（Dense(2,4) / ReLU() / Sigmoid()），存入
+//   Sequential 的 array<var>，再 as Layer 还原后通过 self 调用 virtual 方法。
+//   不从函数返回带 virtual 的 Layer 实例（BUG-RT3）。
+// ========================================================================
+class Layer
+    virtual func forward(Tensor input) as Tensor
+        return input
+    end
+
+    virtual func backward(Tensor gradOutput) as Tensor
+        return gradOutput
+    end
+
+    // 用 optimizer 更新本层可训练参数（默认无参数，no-op）
+    virtual func update(Optimizer opt)
+    end
+end
+
+// Dense 全连接层：Y = X * W + b
+//   W: (inFeatures x outFeatures), b: (1 x outFeatures)
+//   单样本前向：X(1 x in) * W(in x out) + b(1 x out) = Y(1 x out)
+class Dense extends Layer
+    int inFeatures = 0
+    int outFeatures = 0
+    Tensor W = Tensor(1, 1)
+    Tensor b = Tensor(1, 1)
+    Tensor gradW = Tensor(1, 1)
+    Tensor gradB = Tensor(1, 1)
+    var cachedInputVar = null
+
+    // Adam/动量状态（存在 Dense 自己的字段里，规避 owned-copy 不传播问题）
+    array<float> mW = array[]
+    array<float> vW = array[]
+    array<float> mb = array[]
+    array<float> vb = array[]
+    float adamT = 0.0
+
+    create(int inFeatures, int outFeatures)
+        self.inFeatures = inFeatures
+        self.outFeatures = outFeatures
+        // He/Glorot 风格缩放
+        float scale = 1.0 / math.sqrt(float(inFeatures))
+        self.W = tensorRandom(inFeatures, outFeatures, scale)
+        self.b = tensorZeros(1, outFeatures)
+        self.gradW = tensorZeros(inFeatures, outFeatures)
+        self.gradB = tensorZeros(1, outFeatures)
+    end
+
+    override func forward(Tensor input) as Tensor
+        self.cachedInputVar = input
+        Tensor y = input.matMul(self.W)
+        y = y.add(self.b)
+        return y
+    end
+
+    override func backward(Tensor gradOutput) as Tensor
+        Tensor x = self.cachedInputVar as Tensor
+        // gradInput = gradOutput * W^T
+        Tensor gradInput = gradOutput.matMul(self.W.transpose())
+        // gradW = x^T * gradOutput
+        Tensor xt = x.transpose()
+        self.gradW = xt.matMul(gradOutput)
+        // gradB = gradOutput（单样本，batch 维即 1）
+        self.gradB = gradOutput.copy()
+        return gradInput
+    end
+
+    override func update(Optimizer opt)
+        int nw = self.W.data.length
+        int nb = self.b.data.length
+        // 首次调用时把 Adam 状态数组补到参数数量
+        while self.mW.length < nw do
+            self.mW.append(0.0)
+        end
+        while self.vW.length < nw do
+            self.vW.append(0.0)
+        end
+        while self.mb.length < nb do
+            self.mb.append(0.0)
+        end
+        while self.vb.length < nb do
+            self.vb.append(0.0)
+        end
+        self.adamT += 1.0
+        // 对每个标量参数调用 optimizer.compute（virtual -> SGD/Adam dispatch）
+        // compute 只返回新值，由 Dense 写回自己的字段，规避 owned-copy 不传播
+        int i = 0
+        while i < nw do
+            float np; float nm; float nv
+            np, nm, nv = opt.compute(self.W.data[i], self.gradW.data[i], self.mW[i], self.vW[i], self.adamT)
+            self.W.data[i] = np
+            self.mW[i] = nm
+            self.vW[i] = nv
+            i += 1
+        end
+        int j = 0
+        while j < nb do
+            float np; float nm; float nv
+            np, nm, nv = opt.compute(self.b.data[j], self.gradB.data[j], self.mb[j], self.vb[j], self.adamT)
+            self.b.data[j] = np
+            self.mb[j] = nm
+            self.vb[j] = nv
+            j += 1
+        end
+    end
+end
+
+// ReLU 激活层：缓存前向输入，反向按 input>0 选通梯度
+class ReLU extends Layer
+    var cachedInputVar = null
+
+    override func forward(Tensor input) as Tensor
+        self.cachedInputVar = input
+        return input.relu()
+    end
+
+    override func backward(Tensor gradOutput) as Tensor
+        Tensor x = self.cachedInputVar as Tensor
+        return gradOutput.reluGrad(x)
+    end
+end
+
+// Sigmoid 激活层：缓存前向输出 s，反向 grad * s * (1-s)
+class Sigmoid extends Layer
+    var cachedOutputVar = null
+
+    override func forward(Tensor input) as Tensor
+        Tensor out = input.sigmoid()
+        self.cachedOutputVar = out
+        return out
+    end
+
+    override func backward(Tensor gradOutput) as Tensor
+        Tensor out = self.cachedOutputVar as Tensor
+        return gradOutput.sigmoidGrad(out)
+    end
+end
+
+// ========================================================================
+// Optimizer 基类 + SGD / Adam
+//
+//   compute 为 virtual，按 (param, grad, m, v, t) 计算并返回
+//   (newParam, newM, newV)。SGD 忽略 m/v/t；Adam 用它们做一阶/二阶矩估计。
+//   optimizer 只携只读超参，可变状态由 Dense 持有（见 Dense.update）。
+// ========================================================================
+class Optimizer
+    float lr = 0.01
+
+    create(float lr)
+        self.lr = lr
+    end
+
+    virtual func compute(float param, float grad, float m, float v, float t) as (float, float, float)
+        return param, m, v
+    end
+end
+
+class SGD extends Optimizer
+    create(float lr)
+        base(lr)
+    end
+
+    override func compute(float param, float grad, float m, float v, float t) as (float, float, float)
+        float np = param - self.lr * grad
+        return np, m, v
+    end
+end
+
+class Adam extends Optimizer
+    float beta1 = 0.9
+    float beta2 = 0.999
+    float eps = 1e-8
+
+    create(float lr)
+        base(lr)
+    end
+
+    override func compute(float param, float grad, float m, float v, float t) as (float, float, float)
+        float nm = self.beta1 * m + (1.0 - self.beta1) * grad
+        float nv = self.beta2 * v + (1.0 - self.beta2) * grad * grad
+        float bc1 = 1.0 - math.pow(self.beta1, t)
+        float bc2 = 1.0 - math.pow(self.beta2, t)
+        float mHat = nm / bc1
+        float vHat = nv / bc2
+        float np = param - self.lr * mHat / (math.sqrt(vHat) + self.eps)
+        return np, nm, nv
+    end
+end
+
+// ========================================================================
+// Loss：MSE + CrossEntropy（softmax）
+//   返回 (loss, dL/dpred)。pred/target 同形状，无 virtual，可安全返回。
+// ========================================================================
+func mseLoss(Tensor pred, Tensor target) as (float, Tensor)
+    int n = pred.data.length
+    Tensor diff = pred.sub(target)
+    float sum = 0.0
+    int i = 0
+    while i < n do
+        float d = diff.data[i]
+        sum += d * d
+        i += 1
+    end
+    float loss = sum / float(n)
+    Tensor grad = Tensor(pred.rows, pred.cols)
+    float scale = 2.0 / float(n)
+    int j = 0
+    while j < n do
+        grad.data[j] = diff.data[j] * scale
+        j += 1
+    end
+    return loss, grad
+end
+
+// Softmax 交叉熵：logits 是 (1 x C) 原始分数，target 是 (1 x C) one-hot
+//   loss = -sum(target * log(softmax))；grad = softmax - target
+func crossEntropyLoss(Tensor logits, Tensor target) as (float, Tensor)
+    int c = logits.data.length
+    // 数值稳定 softmax：减最大值
+    float maxL = logits.data[0]
+    int i = 1
+    while i < c do
+        if logits.data[i] > maxL then
+            maxL = logits.data[i]
+        end
+        i += 1
+    end
+    float sumExp = 0.0
+    int j = 0
+    while j < c do
+        sumExp += math.exp(logits.data[j] - maxL)
+        j += 1
+    end
+    Tensor grad = Tensor(logits.rows, logits.cols)
+    float loss = 0.0
+    int k = 0
+    while k < c do
+        float sm = math.exp(logits.data[k] - maxL) / sumExp
+        float t = target.data[k]
+        loss -= t * math.log(sm + EPS_NORM)
+        grad.data[k] = sm - t
+        k += 1
+    end
+    return loss, grad
+end
+
+// ========================================================================
+// Sequential：线性堆叠的层容器
+//   layers 用 array<var> 存储（BUG-RT1 绕过），取用时 as Layer 还原 +
+//   通过 self 调用 virtual 方法（BUG-RT3 绕过）。
+// ========================================================================
+class Sequential
+    array<var> layers = array[]
+
+    func add(var lyr)
+        self.layers.append(lyr)
+    end
+
+    func size() as int
+        return self.layers.length
+    end
+
+    func forward(Tensor input) as Tensor
+        Tensor cur = input
+        int i = 0
+        while i < self.layers.length do
+            var v = self.layers[i]
+            Layer lyr = v as Layer
+            cur = lyr.forward(cur)
+            i += 1
+        end
+        return cur
+    end
+
+    func backward(Tensor grad) as Tensor
+        Tensor cur = grad
+        int i = self.layers.length - 1
+        while i >= 0 do
+            var v = self.layers[i]
+            Layer lyr = v as Layer
+            cur = lyr.backward(cur)
+            i -= 1
+        end
+        return cur
+    end
+
+    func update(Optimizer opt)
+        int i = 0
+        while i < self.layers.length do
+            var v = self.layers[i]
+            Layer lyr = v as Layer
+            lyr.update(opt)
+            i += 1
+        end
+    end
+
+    // 在 (xBatch, yBatch) 上跑 epochs 轮在线 SGD 训练，verbose 时定期打印 loss
+    func train(array<var> xBatch, array<var> yBatch, Optimizer opt, int epochs, bool verbose)
+        int n = xBatch.length
+        int nextPrint = 0
+        int epoch = 0
+        while epoch < epochs do
+            float totalLoss = 0.0
+            int s = 0
+            while s < n do
+                Tensor x = xBatch[s] as Tensor
+                Tensor target = yBatch[s] as Tensor
+                Tensor pred = self.forward(x)
+                float loss
+                var grad = null
+                loss, grad = mseLoss(pred, target)
+                totalLoss += loss
+                self.backward(grad)
+                self.update(opt)
+                s += 1
+            end
+            if verbose and (epoch >= nextPrint or epoch == epochs - 1) then
+                println("  epoch " + string(epoch) + "  avg_loss=" + fmt(totalLoss / float(n)))
+                nextPrint = epoch + 500
+            end
+            epoch += 1
+        end
+    end
+end
+
+// ========================================================================
+// 命令：xor —— 训练 2->4->1 网络学习 XOR
+//   Dense(2,4) -> ReLU -> Dense(4,1) -> Sigmoid，MSE 损失，Adam(lr=0.05)
+// ========================================================================
+func cmdXor() as int
+    println("=== xneural: XOR training demo ===")
+    println("Network: Dense(2,4) -> ReLU -> Dense(4,1) -> Sigmoid")
+    println("Loss: MSE    Optimizer: Adam(lr=0.05)    Epochs: 3000")
+    println("")
+
+    // XOR 真值表
+    array<var> xs = array[]
+    array<var> ys = array[]
+    xs.append(tensorFrom(1, 2, array<float>[0.0, 0.0]))
+    ys.append(tensorFrom(1, 1, array<float>[0.0]))
+    xs.append(tensorFrom(1, 2, array<float>[0.0, 1.0]))
+    ys.append(tensorFrom(1, 1, array<float>[1.0]))
+    xs.append(tensorFrom(1, 2, array<float>[1.0, 0.0]))
+    ys.append(tensorFrom(1, 1, array<float>[1.0]))
+    xs.append(tensorFrom(1, 2, array<float>[1.0, 1.0]))
+    ys.append(tensorFrom(1, 1, array<float>[0.0]))
+
+    // 构建网络：层实例直接 new，存入 Sequential(array<var>)
+    Sequential net = Sequential()
+    net.add(Dense(2, 4))
+    net.add(ReLU())
+    net.add(Dense(4, 1))
+    net.add(Sigmoid())
+
+    Adam opt = Adam(0.05)
+
+    float t0 = time.timer()
+    net.train(xs, ys, opt, 3000, true)
+    float t1 = time.timer()
+
+    println("")
+    println("Training took " + string.formatFloat((t1 - t0) * 1000.0, ".1") + " ms")
+    println("")
+    println("Predictions:")
+    int s = 0
+    while s < xs.length do
+        Tensor x = xs[s] as Tensor
+        Tensor target = ys[s] as Tensor
+        Tensor pred = net.forward(x)
+        string label = "XOR(" + string(int(x.at(0, 0))) + "," + string(int(x.at(0, 1))) + ")"
+        println("  " + label + " => " + string.formatFloat(pred.at(0, 0), ".4") + "  (target " + string(int(target.at(0, 0))) + ")")
+        s += 1
+    end
+
+    // 验收：4 个样本预测都接近目标
+    bool learned = true
+    int k = 0
+    while k < xs.length do
+        Tensor x = xs[k] as Tensor
+        Tensor target = ys[k] as Tensor
+        Tensor pred = net.forward(x)
+        if math.abs(pred.at(0, 0) - target.at(0, 0)) > 0.1 then
+            learned = false
+        end
+        k += 1
+    end
+    println("")
+    if learned then
+        println("[OK] XOR learned successfully (all |pred-target| < 0.1)")
+    else
+        println("[NOTE] XOR not fully converged (try more epochs)")
+    end
+    return 0
+end
+
+// ========================================================================
+// 命令：test —— 矩阵运算 + 损失函数 + 梯度检查（数值 vs 解析）
+// ========================================================================
+func testMatrixOps()
+    println("[1] Tensor matrix operations (matMul/add/sub/transpose/relu/sigmoid)")
+    try
+        Tensor a = tensorFrom(2, 3, array<float>[1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+        Tensor b = tensorFrom(3, 2, array<float>[7.0, 8.0, 9.0, 10.0, 11.0, 12.0])
+        Tensor c = a.matMul(b)
+        // [[1*7+2*9+3*11, 1*8+2*10+3*12],[4*7+5*9+6*11, 4*8+5*10+6*12]]
+        // = [[58, 64], [139, 154]]
+        expectF(c.at(0, 0), 58.0, "matMul [0,0]=58")
+        expectF(c.at(0, 1), 64.0, "matMul [0,1]=64")
+        expectF(c.at(1, 0), 139.0, "matMul [1,0]=139")
+        expectF(c.at(1, 1), 154.0, "matMul [1,1]=154")
+
+        Tensor at = a.transpose()
+        expectI(at.rows, 3, "transpose rows=3")
+        expectI(at.cols, 2, "transpose cols=2")
+        expectF(at.at(0, 0), 1.0, "transpose [0,0]=1")
+        expectF(at.at(2, 1), 6.0, "transpose [2,1]=6")
+
+        Tensor d = tensorFrom(2, 3, array<float>[10.0, 20.0, 30.0, 40.0, 50.0, 60.0])
+        Tensor e = a.add(d)
+        expectF(e.at(0, 0), 11.0, "add [0,0]=11")
+        expectF(e.at(1, 2), 66.0, "add [1,2]=66")
+        Tensor f = d.sub(a)
+        expectF(f.at(0, 0), 9.0, "sub [0,0]=9")
+        expectF(f.at(1, 2), 54.0, "sub [1,2]=54")
+
+        Tensor g = tensorFrom(1, 4, array<float>[-1.0, 2.0, -3.0, 4.0])
+        Tensor gr = g.relu()
+        expectF(gr.at(0, 0), 0.0, "relu(-1)=0")
+        expectF(gr.at(0, 1), 2.0, "relu(2)=2")
+        expectF(gr.at(0, 3), 4.0, "relu(4)=4")
+
+        Tensor h = tensorFrom(1, 2, array<float>[0.0, 0.0])
+        Tensor hs = h.sigmoid()
+        expectF(hs.at(0, 0), 0.5, "sigmoid(0)=0.5")
+
+        // 多维索引协议
+        a[0, 1] = 99.0
+        expectF(a[0, 1], 99.0, "__item__/__setItem__ multi-dim")
+        a[0, 1] = 2.0
+    catch e
+        bad("matrix ops", e.message)
+    end
+end
+
+func testLossFunctions()
+    println("[2] Loss functions (MSE + CrossEntropy)")
+    try
+        // MSE: pred=[0.8], target=[1.0] -> loss=0.04, grad=2*(0.8-1.0)/1=-0.4
+        Tensor p = tensorFrom(1, 1, array<float>[0.8])
+        Tensor t = tensorFrom(1, 1, array<float>[1.0])
+        float mloss
+        var mgrad = null
+        mloss, mgrad = mseLoss(p, t)
+        expectF(mloss, 0.04, "MSE loss=0.04")
+        expectF(mgrad.at(0, 0), -0.4, "MSE grad=-0.4")
+
+        // CE: logits=[0,0,0], target=[1,0,0] -> softmax=[1/3,1/3,1/3]
+        //   loss = -log(1/3) = 1.0986..., grad=[1/3-1, 1/3, 1/3]=[-2/3, 1/3, 1/3]
+        Tensor lg = tensorFrom(1, 3, array<float>[0.0, 0.0, 0.0])
+        Tensor tg = tensorFrom(1, 3, array<float>[1.0, 0.0, 0.0])
+        float closs
+        var cgrad = null
+        closs, cgrad = crossEntropyLoss(lg, tg)
+        expectF(closs, 1.0986, "CE uniform softmax loss~1.0986")
+        expectF(cgrad.at(0, 0), -0.6667, "CE grad[0]=-2/3")
+        expectF(cgrad.at(0, 1), 0.3333, "CE grad[1]=1/3")
+    catch e
+        bad("loss functions", e.message)
+    end
+end
+
+// 单 Dense 层 + MSE 的梯度检查（直接操作 Dense 实例，最稳健）
+func gradCheckDense() as float
+    Dense d = Dense(3, 4)
+    Tensor x = tensorRandom(1, 3, 1.0)
+    Tensor target = tensorRandom(1, 4, 1.0)
+
+    Tensor y = d.forward(x)
+    float loss0
+    var gradY = null
+    loss0, gradY = mseLoss(y, target)
+    d.backward(gradY)
+
+    float eps = 1e-4
+    float maxRelErr = 0.0
+
+    // 检查 gradW
+    int nw = d.W.data.length
+    int i = 0
+    while i < nw do
+        float orig = d.W.data[i]
+        d.W.data[i] = orig + eps
+        Tensor yp = d.forward(x)
+        float lp; Tensor gp
+        lp, gp = mseLoss(yp, target)
+        d.W.data[i] = orig - eps
+        Tensor ym = d.forward(x)
+        float lm; Tensor gm
+        lm, gm = mseLoss(ym, target)
+        d.W.data[i] = orig
+        float numG = (lp - lm) / (2.0 * eps)
+        float anaG = d.gradW.data[i]
+        float rel = relError(numG, anaG)
+        if rel > maxRelErr then
+            maxRelErr = rel
+        end
+        i += 1
+    end
+
+    // 检查 gradB
+    int nb = d.b.data.length
+    int j = 0
+    while j < nb do
+        float orig = d.b.data[j]
+        d.b.data[j] = orig + eps
+        Tensor yp = d.forward(x)
+        float lp; Tensor gp
+        lp, gp = mseLoss(yp, target)
+        d.b.data[j] = orig - eps
+        Tensor ym = d.forward(x)
+        float lm; Tensor gm
+        lm, gm = mseLoss(ym, target)
+        d.b.data[j] = orig
+        float numG = (lp - lm) / (2.0 * eps)
+        float anaG = d.gradB.data[j]
+        float rel = relError(numG, anaG)
+        if rel > maxRelErr then
+            maxRelErr = rel
+        end
+        j += 1
+    end
+
+    return maxRelErr
+end
+
+// Sequential(Dense->Sigmoid->Dense) + MSE 的梯度检查。
+// 通过 array<var> + as Dense 取回首层并就地扰动其 W，验证：
+//   (a) array<var> 多态存储 + as 还原后 vtable 派发正确
+//   (b) 扰动能作用到 Sequential 实际使用的层参数上
+func gradCheckSequential() as float
+    Sequential net = Sequential()
+    net.add(Dense(3, 4))
+    net.add(Sigmoid())
+    net.add(Dense(4, 2))
+
+    Tensor x = tensorRandom(1, 3, 1.0)
+    Tensor target = tensorRandom(1, 2, 1.0)
+
+    Tensor y = net.forward(x)
+    float loss0
+    var gradY = null
+    loss0, gradY = mseLoss(y, target)
+    net.backward(gradY)
+
+    // 从 array<var> 取回首层，as Dense 还原（BUG-RT1 绕过路径）
+    var v0 = net.layers[0]
+    Dense d0 = v0 as Dense
+
+    float eps = 1e-4
+    float maxRelErr = 0.0
+    int nw = d0.W.data.length
+    int i = 0
+    while i < nw do
+        float orig = d0.W.data[i]
+        d0.W.data[i] = orig + eps
+        Tensor yp = net.forward(x)
+        float lp; Tensor gp
+        lp, gp = mseLoss(yp, target)
+        d0.W.data[i] = orig - eps
+        Tensor ym = net.forward(x)
+        float lm; Tensor gm
+        lm, gm = mseLoss(ym, target)
+        d0.W.data[i] = orig
+        float numG = (lp - lm) / (2.0 * eps)
+        float anaG = d0.gradW.data[i]
+        float rel = relError(numG, anaG)
+        if rel > maxRelErr then
+            maxRelErr = rel
+        end
+        i += 1
+    end
+    return maxRelErr
+end
+
+func testGradientChecks()
+    println("[3] Gradient check (numerical vs analytic)")
+    try
+        float errD = gradCheckDense()
+        println("  single Dense + MSE: " + string(denseParamCountFor3x4()) + " params, max rel err=" + fmt(errD))
+        if errD < 1e-4 then
+            ok("Dense gradient check passed (max rel err < 1e-4)")
+        else
+            bad("Dense gradient check", "max rel err=" + fmt(errD))
+        end
+
+        float errS = gradCheckSequential()
+        println("  Sequential(Dense->Sigmoid->Dense) via array<var>: max rel err=" + fmt(errS))
+        if errS < 1e-4 then
+            ok("Sequential gradient check passed (vtable + var-slot mutation)")
+        else
+            bad("Sequential gradient check", "max rel err=" + fmt(errS))
+        end
+    catch e
+        bad("gradient check", e.message)
+    end
+end
+
+// 仅用于上面打印参数个数（3x4 W + 1x4 b = 16）
+func denseParamCountFor3x4() as int
+    return 16
+end
+
+// 多态派发自检：3 种层存入 array<var>，as Layer 还原后 forward 结果各不相同
+func testPolymorphism()
+    println("[4] Layer polymorphism via array<var> + as Layer (BUG-RT1 bypass)")
+    try
+        array<var> bag = array[]
+        bag.append(Dense(2, 3))
+        bag.append(ReLU())
+        bag.append(Sigmoid())
+
+        Tensor in1 = tensorFrom(1, 2, array<float>[1.0, -1.0])
+        // 构造一个 (1x3) 输入喂给 ReLU/Sigmoid（它们对形状不敏感）
+        Tensor in2 = tensorFrom(1, 3, array<float>[1.0, -2.0, 3.0])
+
+        // Dense
+        var vd = bag[0]
+        Layer ld = vd as Layer
+        Tensor od = ld.forward(in1)
+        expectI(od.cols, 3, "Dense.forward via Layer ref -> 3 outputs")
+        // 扰动后再次前向，确认通过 Layer 引用写入的 W 生效（验证 var 槽位是可变引用）
+        Dense dd = vd as Dense
+        float wsave = dd.W.data[0]
+        dd.W.data[0] = 999.0
+        Tensor od2 = ld.forward(in1)
+        dd.W.data[0] = wsave
+        if od.at(0, 0) != od2.at(0, 0) then
+            ok("mutating Dense.W via as Layer ref affects forward (var slot is mutable)")
+        else
+            bad("var slot mutation", "forward output unchanged after W perturb")
+        end
+
+        // ReLU
+        var vr = bag[1]
+        Layer lr = vr as Layer
+        Tensor or_ = lr.forward(in2)
+        expectF(or_.at(0, 0), 1.0, "ReLU(1)=1 via Layer ref")
+        expectF(or_.at(0, 1), 0.0, "ReLU(-2)=0 via Layer ref")
+
+        // Sigmoid
+        var vs = bag[2]
+        Layer ls = vs as Layer
+        Tensor os = ls.forward(in2)
+        expectF(os.at(0, 1), 0.1192, "Sigmoid(-2)~0.1192 via Layer ref")
+
+        // 三种层 forward 结果不同 -> vtable 派发
+        if or_.at(0, 0) != os.at(0, 0) then
+            ok("ReLU vs Sigmoid dispatch distinct -> vtable works")
+        else
+            bad("vtable distinct", "ReLU == Sigmoid output")
+        end
+    catch e
+        bad("polymorphism", e.message)
+    end
+end
+
+func cmdTest() as int
+    println("=== xneural: self-test suite ===")
+    println("(Tensor ops + Loss + Gradient check + Layer polymorphism)")
+    println("")
+    testMatrixOps()
+    testLossFunctions()
+    testGradientChecks()
+    testPolymorphism()
+    println("")
+    println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+    return 0
+end
+
+// ========================================================================
+// 入口
+// ========================================================================
+func printUsage()
+    println("xneural - minimal neural network framework in xlang")
+    println("Usage:")
+    println("  xneural xor     train a 2->4->1 network to learn XOR")
+    println("  xneural test    run matrix op tests + gradient checks + polymorphism")
+    println("")
+    println("Features: Tensor(2D), Layer(Dense/ReLU/Sigmoid), Loss(MSE/CrossEntropy),")
+    println("          Optimizer(SGD/Adam), Sequential, gradient checking, XOR demo.")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "xor" then
+        return cmdXor()
+    elseif cmd == "test" then
+        return cmdTest()
+    else
+        println("Error: unknown command '" + cmd + "'")
+        printUsage()
+        return 1
+    end
+end

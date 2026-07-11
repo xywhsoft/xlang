@@ -23,7 +23,7 @@ for %%f in (
     04_containers.xl
     05_generics.xl
     06_function_values_closures.xl
-    07_class_custom.xl
+    07_class_native_backed.xl
     08_c_interop_exports.xl
     10_errors_docs.xl
     11_concurrency.xl

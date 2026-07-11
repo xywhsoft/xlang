@@ -17,6 +17,9 @@ if errorlevel 1 exit /b 1
 release\xl_dll_threaded_host.exe
 if errorlevel 1 exit /b 1
 
+release\xl_dll_module_dependency_lifetime.exe
+if errorlevel 1 exit /b 1
+
 release\xlc_dll_embed_string.exe
 if errorlevel 1 exit /b 1
 

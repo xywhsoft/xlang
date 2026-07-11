@@ -1,0 +1,31 @@
+func pair<T>(T value) as (bool, T)
+    return true, value
+end
+
+class Box<T>
+    T value
+
+    create(T initial)
+        self.value = initial
+    end
+
+    func take() as (bool, T)
+        return true, self.value
+    end
+end
+
+bool inferredOk = false
+int inferredValue = 0
+inferredOk, inferredValue = pair(41)
+assert inferredOk and inferredValue == 41
+
+bool explicitOk = false
+string explicitValue = ""
+explicitOk, explicitValue = pair::<string>("ready")
+assert explicitOk and explicitValue == "ready"
+
+Box<int> box = Box::<int>(42)
+bool memberOk = false
+int memberValue = 0
+memberOk, memberValue = box.take()
+assert memberOk and memberValue == 42

@@ -1,4 +1,4 @@
-// compressor.xl - compression algorithm library (RLE / LZW / Huffman / Delta / BWT)
+﻿// compressor.xl - compression algorithm library (RLE / LZW / Huffman / Delta / BWT)
 //
 // usage:
 //   compressor test                          roundtrip all algorithms on samples
@@ -215,7 +215,7 @@ func lzwEmitCode(array<int> out, array<int> dprefix, array<int> dsuffix, int cod
     end
 end
 
-func lzwDecode(array<int> codes) as array<int]
+func lzwDecode(array<int> codes) as array<int>
     array<int> out = array[]
     int n = codes.length
     if n == 0 then
@@ -774,7 +774,7 @@ func cmdTest() as int
     array<string> samples = array["ABABABABABABABAB", "TOBEORNOTTOBE"]
     int passed = 0
     int total = 0
-    for s in samples do
+    for s in samples
         array<int> data = strToBytes(s)
         println("input: \"" + s + "\"  (" + string(data.length) + " bytes)")
 

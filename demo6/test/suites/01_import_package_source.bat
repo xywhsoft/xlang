@@ -4,6 +4,23 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: import package source...
 
+release\xl.exe check test\cases\import_missing_target.xl >nul 2> build\test\import_missing_target.err.txt
+if not errorlevel 1 (
+    echo import_missing_target.xl should fail when the import cannot be resolved.
+    exit /b 1
+)
+findstr /C:"cannot resolve import" build\test\import_missing_target.err.txt >nul
+if errorlevel 1 (
+    echo import_missing_target.err.txt missing unresolved import diagnostic.
+    exit /b 1
+)
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=Join-Path (Resolve-Path 'build\test') (([char]0x4E2D)+([char]0x6587)+'_install_package'); New-Item -ItemType Directory -Force -Path $root | Out-Null; Copy-Item -LiteralPath 'release\xl.exe','release\xlc.dll','release\xl.dll' -Destination $root -Force; Copy-Item -LiteralPath 'test\cases\import_package_use.xl' -Destination $root -Force; $fixtures=Join-Path $root 'fixtures'; if(-not (Test-Path -LiteralPath $fixtures)){Copy-Item -LiteralPath 'test\fixtures' -Destination $fixtures -Recurse -Force}; $old=$env:XLANG_PACKAGE_PATH; try{$env:XLANG_PACKAGE_PATH=$fixtures; & (Join-Path $root 'xl.exe') check (Join-Path $root 'import_package_use.xl'); if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}; & (Join-Path $root 'xl.exe') run (Join-Path $root 'import_package_use.xl'); exit $LASTEXITCODE} finally{$env:XLANG_PACKAGE_PATH=$old}"
+if errorlevel 1 (
+    echo package resolution from a UTF-8 installation path failed.
+    exit /b 1
+)
+
 release\xl.exe run test\cases\import_source_use.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\import_source_math.xl
@@ -125,6 +142,10 @@ if errorlevel 1 exit /b 1
 build\test\import_deps_snapshot_host.exe test\cases\import_metadata_combo.xl
 if errorlevel 1 exit /b 1
 build\test\import_deps_snapshot_host.exe test\cases\import_builtin_features.xl 7
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\package_manifest_strict_host.c src\package\xl6_package.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\package_manifest_strict_host.exe
+if errorlevel 1 exit /b 1
+build\test\package_manifest_strict_host.exe
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\import_native_singleton_conflict.xl >nul 2> build\test\import_native_singleton_conflict.err.txt
 if not errorlevel 1 (

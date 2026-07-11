@@ -45,7 +45,7 @@ end
 
 // 抽象：λparam.body
 class Abs
-    var param = ""
+    var param = null
     var body = null
     create(var p, var b)
         self.param = p
@@ -262,7 +262,8 @@ class Parser
         end
         self.advance()
         var nval = self.parseExpr()
-        return App(Abs(name, nval), m)
+        Abs inner = Abs(name, nval)
+        return App(inner, m)
     end
 
     func parseAll() as var
@@ -415,7 +416,8 @@ func subst(string x, var m, var n) as var
             mergeUnique(avoid, fm)
             addUnique(avoid, x)
             string fresh = freshVar(string(a.param), avoid)
-            var renamed = subst(string(a.param), Var(fresh), a.body)
+            Var fv = Var(fresh)
+            var renamed = subst(string(a.param), fv, a.body)
             return Abs(fresh, subst(x, m, renamed))
         end
         return Abs(a.param, subst(x, m, a.body))

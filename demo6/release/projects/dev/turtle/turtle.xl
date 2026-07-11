@@ -287,7 +287,7 @@ class Turtle
     end
 
 
-    func penDown()
+    func lowerPen()
         self.penDown = true
         self.needMove = true
     end
@@ -421,7 +421,7 @@ class Turtle
         elseif op == "PU" or op == "PENUP" then
             self.penUp()
         elseif op == "PD" or op == "PENDOWN" then
-            self.penDown()
+            self.lowerPen()
         elseif op == "COLOR" or op == "SETCOLOR" or op == "PC" then
             self.setColor(colorHex(arg))
         elseif op == "HOME" then
@@ -729,7 +729,7 @@ func runTest() as int
         t.penUp()
         t.forward(50.0)
         expectI(t.segmentCount(), 0, "penUp forward draws nothing")
-        t.penDown()
+        t.lowerPen()
         t.forward(50.0)
         expectI(t.segmentCount(), 2, "penDown forward records M + L")
     catch e

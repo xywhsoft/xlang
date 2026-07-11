@@ -35,6 +35,109 @@ int main(void)
 
 #define XL_THREAD_COUNT 4
 
+typedef struct LifetimeRunArg {
+    XL_Context* ctx;
+    XL_Module* module;
+    int runModule;
+    int ok;
+} LifetimeRunArg;
+
+static HANDLE xl_lifetime_entered;
+static HANDLE xl_lifetime_release;
+
+static void host_lifetime_wait(void)
+{
+    SetEvent(xl_lifetime_entered);
+    WaitForSingleObject(xl_lifetime_release, INFINITE);
+}
+
+static DWORD WINAPI lifetime_run_proc(LPVOID param)
+{
+    LifetimeRunArg* arg = (LifetimeRunArg*)param;
+    const char* source =
+        "extern \"host_lifetime_wait\" func hostLifetimeWait()\n"
+        "hostLifetimeWait()\n";
+
+    arg->ok = arg->runModule ?
+              xlRunModuleMain(arg->ctx, arg->module, NULL) :
+              xlRunScriptString(arg->ctx, source);
+    return 0;
+}
+
+static int run_destroy_lifetime_test(int runModule)
+{
+    XL_ContextOptions options = xlDefaultContextOptions();
+    XL_Context* ctx = NULL;
+    XL_Module* module = NULL;
+    LifetimeRunArg arg;
+    HANDLE thread = NULL;
+    const char* source =
+        "extern \"host_lifetime_wait\" func hostLifetimeWait()\n"
+        "hostLifetimeWait()\n";
+    int ok = 0;
+
+    memset(&arg, 0, sizeof(arg));
+    xl_lifetime_entered = CreateEventA(NULL, TRUE, FALSE, NULL);
+    xl_lifetime_release = CreateEventA(NULL, TRUE, FALSE, NULL);
+    if ( xl_lifetime_entered == NULL || xl_lifetime_release == NULL ) {
+        goto cleanup;
+    }
+    ctx = xlCreateContext(&options);
+    if ( ctx == NULL || !xlRegisterCFunction(ctx, "host_lifetime_wait", (void*)host_lifetime_wait) ) {
+        goto cleanup;
+    }
+    if ( runModule ) {
+        module = xlCompileScriptStringToModule(ctx, source);
+        if ( module == NULL ) {
+            goto cleanup;
+        }
+    }
+    arg.ctx = ctx;
+    arg.module = module;
+    arg.runModule = runModule;
+    thread = CreateThread(NULL, 0, lifetime_run_proc, &arg, 0, NULL);
+    if ( thread == NULL || WaitForSingleObject(xl_lifetime_entered, 30000) != WAIT_OBJECT_0 ) {
+        goto cleanup;
+    }
+
+    if ( runModule ) {
+        xlDestroyModule(module);
+        module = NULL;
+    } else {
+        xlDestroyContext(ctx);
+        ctx = NULL;
+    }
+    SetEvent(xl_lifetime_release);
+    if ( WaitForSingleObject(thread, 30000) != WAIT_OBJECT_0 || !arg.ok ) {
+        goto cleanup;
+    }
+    ok = 1;
+
+cleanup:
+    if ( xl_lifetime_release != NULL ) {
+        SetEvent(xl_lifetime_release);
+    }
+    if ( thread != NULL ) {
+        WaitForSingleObject(thread, 30000);
+        CloseHandle(thread);
+    }
+    if ( module != NULL ) {
+        xlDestroyModule(module);
+    }
+    if ( ctx != NULL ) {
+        xlDestroyContext(ctx);
+    }
+    if ( xl_lifetime_entered != NULL ) {
+        CloseHandle(xl_lifetime_entered);
+    }
+    if ( xl_lifetime_release != NULL ) {
+        CloseHandle(xl_lifetime_release);
+    }
+    xl_lifetime_entered = NULL;
+    xl_lifetime_release = NULL;
+    return ok;
+}
+
 typedef struct ThreadArg {
     int index;
     int ok;
@@ -266,6 +369,14 @@ int main(void)
         ok = 0;
     }
     if ( !ok ) {
+        return 1;
+    }
+    if ( !run_destroy_lifetime_test(0) ) {
+        fprintf(stderr, "context destroy during execution failed\n");
+        return 1;
+    }
+    if ( !run_destroy_lifetime_test(1) ) {
+        fprintf(stderr, "module destroy during execution failed\n");
         return 1;
     }
 

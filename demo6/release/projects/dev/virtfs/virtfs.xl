@@ -131,11 +131,11 @@ class VNode
     derive value
 
     string name = ""
-    int type = NT_DIR
+    int type = 1
     array<int> children = array[]
-    int parent = NIL
+    int parent = -1
     int size = 0
-    int perm = PERM_RWX
+    int perm = 7
     string content = ""
     int inode = 0
     bool isMount = false
@@ -974,8 +974,7 @@ class VFS
         if n.isMount then
             mnt = " <MOUNT>"
         end
-        string line = pad + "[" + string(id) + "] " + typ + " " + n.name +
-                      "  perm=" + string(n.perm) + " inode=" + string(n.inode) + mnt
+        string line = pad + "[" + string(id) + "] " + typ + " " + n.name + "  perm=" + string(n.perm) + " inode=" + string(n.inode) + mnt
         if n.type == NT_FILE then
             line = line + " size=" + string(n.size)
         end

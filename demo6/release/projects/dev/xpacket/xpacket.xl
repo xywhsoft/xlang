@@ -1,0 +1,1990 @@
+// xpacket.xl - 网络协议分析器 (multi-layer packet / pcap analyzer)
+//
+// 用法:
+//   xpacket analyze <file.pcap>             多层解码每包: ETH/IP/TCP/UDP/APP
+//   xpacket filter  <expr> <file.pcap>      BPF 风格过滤, 打印命中包
+//   xpacket stats   <file.pcap>             协议分布 / Top N IP/端口 / 流量分布
+//   xpacket flows   <file.pcap>             TCP 流按 seq 排序重组
+//   xpacket test                            内建自构造 pcap 自检
+//   xpacket -h | --help                     本帮助
+//
+// 支持的 BPF 过滤表达式 (子集):
+//   tcp                                      仅 TCP
+//   udp                                      仅 UDP
+//   ip                                       仅 IPv4
+//   tcp port 80                              TCP 且 (src/dst 端口 == 80)
+//   udp and src host 1.2.3.4                 UDP 且源 IP == 1.2.3.4
+//   dst port 443                             目的端口 == 443
+//   host 8.8.8.8                             源或目的 IP == 8.8.8.8
+//   not tcp                                  非 TCP
+//   tcp port 80 or udp port 53               复合
+//   tcp[tcpflags] & tcp-syn != 0             SYN 位置位
+//   tcp[tcpflags] & (tcp-syn|tcp-ack) == 0   (按位与)
+//
+// ---------------------------------------------------------------------------
+// 实现 / API 覆盖:
+//   * file.readBytes(path)  -> Buffer           二进制整读
+//   * Buffer: len() / byteAt(i) / appendByte(v) / text() / capacity() / clear()
+//   * 位运算 & | ^ << >> 与 0xFF/0xFFFF 掩码, 字节序 (LE/BE) 处理
+//   * class (PktRecord / PcapFile / FNode / PState) + 自引用字段 + array<T>
+//   * 独立函数以 user-class 与 Buffer 同时为参数 (参考 loadBuffer(Chip8, Buffer))
+//   * string.bytes / string.slice(s,start,len) / string.formatInt(x,fmt)
+//   * var dict 计数 + 平行 list 冒泡排序取 Top N
+//   * 多返回值 + 解构  (auto a, b = f()  /  a, b = f())
+//
+// 说明:
+//   - native-backed class (Buffer) 不可从用户函数返回, 故所有 Buffer 经参数
+//     传入; 返回 string/PcapFile/PktRecord 等"普通值"无此限制.
+//   - pcap 全局/记录头字段使用文件字节序 (magic 检测); 而以太网/IP/TCP/UDP
+//     字段恒为网络字节序 (大端), 二者独立.
+//   - 仅支持经典 pcap (magic 0xa1b2c3d4 / 0xd4c3b2a1, 含纳秒变体); 不解析 pcap-ng.
+// ---------------------------------------------------------------------------
+
+const int PCAP_MAGIC_LE       = 0xa1b2c3d4   // 文件=LE, 微秒
+const int PCAP_MAGIC_BE       = 0xd4c3b2a1   // 文件=BE, 微秒
+const int PCAP_MAGIC_LE_NANO  = 0xa1b23c4d   // 文件=LE, 纳秒
+const int PCAP_MAGIC_BE_NANO  = 0x4d3cb2a1   // 文件=BE, 纳秒
+
+const int ETHER_TYPE_IPV4 = 0x0800
+const int ETHER_TYPE_ARP  = 0x0806
+const int ETHER_TYPE_IPV6 = 0x86DD
+const int ETHER_TYPE_VLAN = 0x8100
+
+const int IP_PROTO_ICMP = 1
+const int IP_PROTO_TCP  = 6
+const int IP_PROTO_UDP  = 17
+
+const int TCP_FIN = 0x01
+const int TCP_SYN = 0x02
+const int TCP_RST = 0x04
+const int TCP_PSH = 0x08
+const int TCP_ACK = 0x10
+const int TCP_URG = 0x20
+
+
+// ============================ 字节序读取 ============================
+
+func rdU16BE(Buffer buf, int off) as int
+    return ((buf.byteAt(off) & 0xFF) << 8) | (buf.byteAt(off + 1) & 0xFF)
+end
+
+func rdU32BE(Buffer buf, int off) as int
+    return (((buf.byteAt(off) & 0xFF) << 24)
+         | ((buf.byteAt(off + 1) & 0xFF) << 16)
+         | ((buf.byteAt(off + 2) & 0xFF) << 8)
+         | (buf.byteAt(off + 3) & 0xFF))
+end
+
+func rdU16LE(Buffer buf, int off) as int
+    return ((buf.byteAt(off + 1) & 0xFF) << 8) | (buf.byteAt(off) & 0xFF)
+end
+
+func rdU32LE(Buffer buf, int off) as int
+    return (((buf.byteAt(off + 3) & 0xFF) << 24)
+         | ((buf.byteAt(off + 2) & 0xFF) << 16)
+         | ((buf.byteAt(off + 1) & 0xFF) << 8)
+         | (buf.byteAt(off) & 0xFF))
+end
+
+// 按文件字节序读取 (pcap 头部字段)
+func rdU16e(Buffer buf, int off, bool le) as int
+    if le then
+        return rdU16LE(buf, off)
+    end
+    return rdU16BE(buf, off)
+end
+
+func rdU32e(Buffer buf, int off, bool le) as int
+    if le then
+        return rdU32LE(buf, off)
+    end
+    return rdU32BE(buf, off)
+end
+
+
+// ============================ 字节序写入 (构造自检 pcap) ============================
+
+func putLe16(Buffer b, int v)
+    b.appendByte(v & 0xFF)
+    b.appendByte((v >> 8) & 0xFF)
+end
+
+func putLe32(Buffer b, int v)
+    b.appendByte(v & 0xFF)
+    b.appendByte((v >> 8) & 0xFF)
+    b.appendByte((v >> 16) & 0xFF)
+    b.appendByte((v >> 24) & 0xFF)
+end
+
+func putBe16(Buffer b, int v)
+    b.appendByte((v >> 8) & 0xFF)
+    b.appendByte(v & 0xFF)
+end
+
+func putBe32(Buffer b, int v)
+    b.appendByte((v >> 24) & 0xFF)
+    b.appendByte((v >> 16) & 0xFF)
+    b.appendByte((v >> 8) & 0xFF)
+    b.appendByte(v & 0xFF)
+end
+
+func putBytes(Buffer out, array<int> bs)
+    int i = 0
+    while i < bs.length do
+        out.appendByte(bs[i] & 0xFF)
+        i += 1
+    end
+end
+
+func putText(Buffer out, string s)
+    array bs = string.bytes(s)
+    int i = 0
+    while i < bs.length do
+        out.appendByte(int(bs[i]))
+        i += 1
+    end
+end
+
+func putBuffer(Buffer out, Buffer src, int len)
+    int i = 0
+    while i < len do
+        out.appendByte(src.byteAt(i))
+        i += 1
+    end
+end
+
+
+// ============================ 格式化辅助 ============================
+
+func hexByte(int b) as string
+    return string.formatInt(b & 0xFF, "x2")
+end
+
+func hexWord(int w) as string
+    return string.formatInt(w & 0xFFFF, "X4")
+end
+
+// 6 字节 MAC -> "aa:bb:cc:dd:ee:ff"
+func fmtMac(Buffer buf, int off) as string
+    string s = ""
+    int i = 0
+    while i < 6 do
+        if i > 0 then
+            s = s + ":"
+        end
+        s = s + hexByte(buf.byteAt(off + i))
+        i += 1
+    end
+    return s
+end
+
+// 4 字节 IPv4 -> "a.b.c.d"
+func fmtIp(Buffer buf, int off) as string
+    return string(buf.byteAt(off)) + "." + string(buf.byteAt(off + 1)) + "."
+         + string(buf.byteAt(off + 2)) + "." + string(buf.byteAt(off + 3))
+end
+
+func etherTypeName(int t) as string
+    if t == ETHER_TYPE_IPV4 then return "IPv4" end
+    if t == ETHER_TYPE_ARP  then return "ARP"  end
+    if t == ETHER_TYPE_IPV6 then return "IPv6" end
+    if t == ETHER_TYPE_VLAN then return "VLAN" end
+    return "0x" + string.formatInt(t, "X4")
+end
+
+func ipProtoName(int p) as string
+    if p == IP_PROTO_ICMP then return "ICMP" end
+    if p == IP_PROTO_TCP  then return "TCP"  end
+    if p == IP_PROTO_UDP  then return "UDP"  end
+    if p == 2  then return "IGMP" end
+    if p == 89 then return "OSPF" end
+    return string(p)
+end
+
+func dnsTypeStr(int t) as string
+    if t == 1  then return "A"     end
+    if t == 2  then return "NS"    end
+    if t == 5  then return "CNAME" end
+    if t == 6  then return "SOA"   end
+    if t == 12 then return "PTR"   end
+    if t == 15 then return "MX"    end
+    if t == 16 then return "TXT"   end
+    if t == 28 then return "AAAA"  end
+    if t == 33 then return "SRV"   end
+    return string(t)
+end
+
+func linkName(int lt) as string
+    if lt == 1   then return "Ethernet"  end
+    if lt == 101 then return "Raw IP"    end
+    if lt == 113 then return "Linux SLL" end
+    return "linktype(" + string(lt) + ")"
+end
+
+func endianStr(bool le) as string
+    if le then
+        return "little"
+    end
+    return "big"
+end
+
+// TCP flags 位图 -> "SYN,ACK"
+func tcpFlagStr(int flags) as string
+    string s = ""
+    if (flags & TCP_FIN) != 0 then s = s + "FIN," end
+    if (flags & TCP_SYN) != 0 then s = s + "SYN," end
+    if (flags & TCP_RST) != 0 then s = s + "RST," end
+    if (flags & TCP_PSH) != 0 then s = s + "PSH," end
+    if (flags & TCP_ACK) != 0 then s = s + "ACK," end
+    if (flags & TCP_URG) != 0 then s = s + "URG," end
+    if string.len(s) > 0 then
+        s = string.slice(s, 0, string.len(s) - 1)
+    else
+        s = "none"
+    end
+    return s
+end
+
+// 把 Buffer 中一段字节以 UTF-8 还原成 string (用于 HTTP/DNS 文本预览)
+func bytesToStr(Buffer buf, int off, int len) as string
+    if len <= 0 then
+        return ""
+    end
+    Buffer t = Buffer()
+    int i = 0
+    while i < len do
+        t.appendByte(buf.byteAt(off + i))
+        i += 1
+    end
+    return t.text()
+end
+
+// 短十六进制预览 (前 maxBytes 字节)
+func hexPreview(Buffer buf, int off, int len, int maxBytes) as string
+    int n = len
+    if n > maxBytes then
+        n = maxBytes
+    end
+    string s = ""
+    int i = 0
+    while i < n do
+        if i > 0 then
+            s = s + " "
+        end
+        s = s + string.formatInt(buf.byteAt(off + i), "x2")
+        i += 1
+    end
+    if len > n then
+        s = s + " ..(" + string(len) + " bytes)"
+    end
+    return s
+end
+
+func looksInt(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int i = 0
+    if string.byteAt(s, 0) == 45 then
+        i = 1
+        if n == 1 then
+            return false
+        end
+    end
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+
+// ============================ 数据结构 ============================
+
+// 单包解码结果 (所有已识别层字段的快照)
+// 显式初始化器确保无 create() 时字段仍为零值 (参考 contacts.Contact 约定)
+class PktRecord
+    int index = 0
+    int tsSec = 0
+    int tsFrac = 0
+    bool nano = false
+    int capLen = 0
+    int origLen = 0
+    int dataOff = 0
+
+    // ethernet
+    bool hasEth = false
+    string dstMac = ""
+    string srcMac = ""
+    int etherType = 0
+    int l3Off = 0
+    int l3Len = 0
+
+    // ipv4
+    bool hasIp = false
+    int ipVer = 0
+    int ipIhl = 0
+    int ipTos = 0
+    int ipTotalLen = 0
+    int ipId = 0
+    int ipFlags = 0
+    int ipFragOff = 0
+    int ipTtl = 0
+    int ipProto = 0
+    int ipChecksum = 0
+    string srcIp = ""
+    string dstIp = ""
+    int l4Off = 0
+    int l4Len = 0
+
+    // tcp
+    bool hasTcp = false
+    int srcPort = 0
+    int dstPort = 0
+    int tcpSeq = 0
+    int tcpAck = 0
+    int tcpHdrLen = 0
+    int tcpFlags = 0
+    int tcpWindow = 0
+    int tcpChecksum = 0
+    int tcpUrg = 0
+
+    // udp
+    bool hasUdp = false
+    int udpLen = 0
+    int udpChecksum = 0
+
+    // application / payload (off/len 指向原 Buffer)
+    int payloadOff = 0
+    int payloadLen = 0
+    string appProto = ""
+    string appInfo = ""
+
+    // dns specifics
+    int dnsId = 0
+    int dnsFlags = 0
+    int dnsQd = 0
+    int dnsAn = 0
+end
+
+
+// 整个 pcap 文件解码结果
+class PcapFile
+    bool valid = false
+    bool endianLe = true
+    bool nano = false
+    int verMajor = 0
+    int verMinor = 0
+    int thiszone = 0
+    int sigfigs = 0
+    int snaplen = 0
+    int linkType = 1
+    int count = 0
+    array<PktRecord> packets = array[]
+end
+
+
+// BPF 过滤 AST 节点
+// kind: 1=proto 2=port 3=host 4=tcpflags 5=and 6=or 7=not 8=true
+class FNode
+    int kind = 0
+    int ival = 0        // proto 号 / 端口号
+    string sval = ""    // host IP
+    int dir = 0         // 0=any 1=src 2=dst
+    int mask = 0        // tcpflags 掩码
+    int op = 0          // 0='!='  1='=='
+    int cmpv = 0        // 比较值
+    FNode left
+    FNode right
+end
+
+
+// 过滤表达式词法/语法分析上下文
+class PState
+    array<string> toks
+    int pos
+
+    create()
+        self.toks = array[]
+        self.pos = 0
+    end
+
+    func peek() as string
+        if self.pos < self.toks.length then
+            return self.toks[self.pos]
+        end
+        return ""
+    end
+
+    func next() as string
+        string t = self.peek()
+        if self.pos < self.toks.length then
+            self.pos = self.pos + 1
+        end
+        return t
+    end
+
+    func eat(string t) as bool
+        if self.peek() == t then
+            self.pos = self.pos + 1
+            return true
+        end
+        return false
+    end
+end
+
+
+// ============================ pcap 文件解析 ============================
+
+func parsePcap(Buffer buf) as PcapFile
+    PcapFile pf = PcapFile()
+    pf.valid = false
+    pf.packets = array[]
+    pf.count = 0
+    pf.endianLe = true
+    pf.nano = false
+    pf.linkType = 1
+
+    int total = buf.len()
+    if total < 24 then
+        return pf
+    end
+
+    int magic = rdU32LE(buf, 0)
+    bool le = true
+    bool nano = false
+    if magic == PCAP_MAGIC_LE then
+        le = true
+        nano = false
+    elseif magic == PCAP_MAGIC_BE then
+        le = false
+        nano = false
+    elseif magic == PCAP_MAGIC_LE_NANO then
+        le = true
+        nano = true
+    elseif magic == PCAP_MAGIC_BE_NANO then
+        le = false
+        nano = true
+    else
+        return pf
+    end
+
+    pf.valid = true
+    pf.endianLe = le
+    pf.nano = nano
+    pf.verMajor = rdU16e(buf, 4, le)
+    pf.verMinor = rdU16e(buf, 6, le)
+    pf.thiszone = rdU32e(buf, 8, le)
+    pf.sigfigs = rdU32e(buf, 12, le)
+    pf.snaplen = rdU32e(buf, 16, le)
+    pf.linkType = rdU32e(buf, 20, le)
+
+    int off = 24
+    int idx = 0
+    while off + 16 <= total do
+        int tsSec = rdU32e(buf, off, le)
+        int tsFrac = rdU32e(buf, off + 4, le)
+        int inclLen = rdU32e(buf, off + 8, le)
+        int origLen = rdU32e(buf, off + 12, le)
+        off += 16
+        if inclLen < 0 then
+            break
+        end
+        if off + inclLen > total then
+            break
+        end
+
+        PktRecord rec = PktRecord()
+        rec.index = idx
+        rec.tsSec = tsSec
+        rec.tsFrac = tsFrac
+        rec.nano = nano
+        rec.capLen = inclLen
+        rec.origLen = origLen
+        rec.dataOff = off
+        rec.hasEth = false
+        rec.hasIp = false
+        rec.hasTcp = false
+        rec.hasUdp = false
+        rec.ipProto = 0
+        rec.srcPort = 0
+        rec.dstPort = 0
+        rec.payloadOff = off
+        rec.payloadLen = 0
+        rec.appProto = ""
+        rec.appInfo = ""
+
+        parseLayers(buf, off, inclLen, pf.linkType, rec)
+
+        pf.packets.push(rec)
+        idx += 1
+        off += inclLen
+    end
+
+    pf.count = idx
+    return pf
+end
+
+
+// ============================ 多层协议解码 ============================
+
+func parseLayers(Buffer buf, int base, int cap, int linkType, PktRecord rec)
+    if linkType == 1 then
+        // Ethernet II
+        if cap < 14 then
+            return
+        end
+        rec.hasEth = true
+        rec.dstMac = fmtMac(buf, base)
+        rec.srcMac = fmtMac(buf, base + 6)
+        rec.etherType = rdU16BE(buf, base + 12)
+        rec.l3Off = base + 14
+        rec.l3Len = cap - 14
+        if rec.etherType == ETHER_TYPE_IPV4 then
+            parseIPv4(buf, base + 14, cap - 14, rec)
+        end
+    elseif linkType == 101 then
+        // 裸 IP
+        rec.l3Off = base
+        rec.l3Len = cap
+        parseIPv4(buf, base, cap, rec)
+    end
+end
+
+func parseIPv4(Buffer buf, int off, int len, PktRecord rec)
+    if len < 20 then
+        return
+    end
+    int verIhl = buf.byteAt(off)
+    int version = (verIhl >> 4) & 0x0F
+    int ihl = (verIhl & 0x0F) * 4
+    if version != 4 then
+        return
+    end
+    if ihl < 20 then
+        return
+    end
+
+    rec.hasIp = true
+    rec.ipVer = 4
+    rec.ipIhl = ihl
+    rec.ipTos = buf.byteAt(off + 1)
+    rec.ipTotalLen = rdU16BE(buf, off + 2)
+    rec.ipId = rdU16BE(buf, off + 4)
+    int flagsFrag = rdU16BE(buf, off + 6)
+    rec.ipFlags = (flagsFrag >> 13) & 0x07
+    rec.ipFragOff = flagsFrag & 0x1FFF
+    rec.ipTtl = buf.byteAt(off + 8)
+    rec.ipProto = buf.byteAt(off + 9)
+    rec.ipChecksum = rdU16BE(buf, off + 10)
+    rec.srcIp = fmtIp(buf, off + 12)
+    rec.dstIp = fmtIp(buf, off + 16)
+
+    int l4off = off + ihl
+    int l4len = rec.ipTotalLen - ihl
+    int avail = len - ihl
+    if avail < 0 then
+        avail = 0
+    end
+    if l4len > avail then
+        l4len = avail
+    end
+    if l4len < 0 then
+        l4len = 0
+    end
+    rec.l4Off = l4off
+    rec.l4Len = l4len
+
+    if rec.ipProto == IP_PROTO_TCP then
+        parseTCP(buf, l4off, l4len, rec)
+    elseif rec.ipProto == IP_PROTO_UDP then
+        parseUDP(buf, l4off, l4len, rec)
+    end
+end
+
+func parseTCP(Buffer buf, int off, int len, PktRecord rec)
+    if len < 20 then
+        return
+    end
+    rec.hasTcp = true
+    rec.srcPort = rdU16BE(buf, off)
+    rec.dstPort = rdU16BE(buf, off + 2)
+    rec.tcpSeq = rdU32BE(buf, off + 4)
+    rec.tcpAck = rdU32BE(buf, off + 8)
+    int dataOff = (buf.byteAt(off + 12) >> 4) * 4
+    rec.tcpHdrLen = dataOff
+    rec.tcpFlags = buf.byteAt(off + 13)
+    rec.tcpWindow = rdU16BE(buf, off + 14)
+    rec.tcpChecksum = rdU16BE(buf, off + 16)
+    rec.tcpUrg = rdU16BE(buf, off + 18)
+
+    if dataOff < 20 then
+        dataOff = 20
+    end
+    if dataOff > len then
+        dataOff = len
+    end
+    int poff = off + dataOff
+    int plen = len - dataOff
+    if plen < 0 then
+        plen = 0
+    end
+    rec.payloadOff = poff
+    rec.payloadLen = plen
+
+    parseApp(buf, rec, poff, plen)
+end
+
+func parseUDP(Buffer buf, int off, int len, PktRecord rec)
+    if len < 8 then
+        return
+    end
+    rec.hasUdp = true
+    rec.srcPort = rdU16BE(buf, off)
+    rec.dstPort = rdU16BE(buf, off + 2)
+    rec.udpLen = rdU16BE(buf, off + 4)
+    rec.udpChecksum = rdU16BE(buf, off + 6)
+
+    int poff = off + 8
+    int plen = len - 8
+    if plen < 0 then
+        plen = 0
+    end
+    rec.payloadOff = poff
+    rec.payloadLen = plen
+
+    parseApp(buf, rec, poff, plen)
+end
+
+
+// ============================ 应用层识别 ============================
+
+func parseApp(Buffer buf, PktRecord rec, int poff, int plen)
+    if plen <= 0 then
+        return
+    end
+    int sp = rec.srcPort
+    int dp = rec.dstPort
+
+    if sp == 53 or dp == 53 then
+        parseDns(buf, poff, plen, rec)
+        return
+    end
+
+    // 已知 HTTP 明文端口或启发式
+    if sp == 80 or dp == 80 or sp == 8080 or dp == 8080 or sp == 8000 or dp == 8000 then
+        parseHttp(buf, poff, plen, rec)
+        return
+    end
+
+    // 启发式: 行首匹配 HTTP 动词 / "HTTP/"
+    parseHttp(buf, poff, plen, rec)
+end
+
+// HTTP: 取第一个 CRLF/LF 前的请求行或状态行
+func parseHttp(Buffer buf, int poff, int plen, PktRecord rec)
+    if plen < 4 then
+        return
+    end
+    int lineEnd = 0
+    while lineEnd < plen do
+        int c = buf.byteAt(poff + lineEnd)
+        if c == 13 or c == 10 then
+            break
+        end
+        lineEnd += 1
+    end
+    if lineEnd == 0 then
+        return
+    end
+    string line = bytesToStr(buf, poff, lineEnd)
+    bool isReq = string.startsWith(line, "GET ")
+    isReq = isReq or string.startsWith(line, "POST ")
+    isReq = isReq or string.startsWith(line, "PUT ")
+    isReq = isReq or string.startsWith(line, "DELETE ")
+    isReq = isReq or string.startsWith(line, "HEAD ")
+    isReq = isReq or string.startsWith(line, "OPTIONS ")
+    isReq = isReq or string.startsWith(line, "PATCH ")
+    isReq = isReq or string.startsWith(line, "CONNECT ")
+    isReq = isReq or string.startsWith(line, "TRACE ")
+    bool isResp = string.startsWith(line, "HTTP/")
+    if isReq or isResp then
+        rec.appProto = "HTTP"
+        rec.appInfo = line
+    end
+end
+
+// DNS: 解析 header + 首个 question 的 qname/qtype
+func parseDns(Buffer buf, int poff, int plen, PktRecord rec)
+    if plen < 12 then
+        return
+    end
+    int id = rdU16BE(buf, poff)
+    int flags = rdU16BE(buf, poff + 2)
+    int qd = rdU16BE(buf, poff + 4)
+    int an = rdU16BE(buf, poff + 6)
+
+    string qname = ""
+    int qtype = 0
+    int qclass = 0
+    int qbase = poff + 12
+    if qd > 0 and plen > 12 then
+        auto nm, used = parseDnsName(buf, qbase, plen - 12)
+        qname = nm
+        int qend = qbase + used
+        if qend + 4 <= poff + plen then
+            qtype = rdU16BE(buf, qend)
+            qclass = rdU16BE(buf, qend + 2)
+        end
+    end
+
+    rec.appProto = "DNS"
+    rec.appInfo = "query " + qname + " type=" + dnsTypeStr(qtype)
+    rec.dnsId = id
+    rec.dnsFlags = flags
+    rec.dnsQd = qd
+    rec.dnsAn = an
+end
+
+// DNS name (length-prefixed labels). 返回 名称 与 消费字节数.
+// 遇压缩指针 (0xC0..) 即停止, 不跨段跟随.
+func parseDnsName(Buffer buf, int off, int limit) as (string, int)
+    Buffer name = Buffer()
+    int i = 0
+    int consumed = 0
+    bool first = true
+    bool done = false
+    while i < limit and not done do
+        int b = buf.byteAt(off + i)
+        if b == 0 then
+            i += 1
+            consumed = i
+            done = true
+        elseif (b & 0xC0) == 0xC0 then
+            i += 2
+            consumed = i
+            done = true
+        else
+            int labLen = b
+            if not first then
+                name.appendByte(46)
+            end
+            first = false
+            int j = 0
+            while j < labLen and (i + 1 + j) < limit do
+                name.appendByte(buf.byteAt(off + i + 1 + j))
+                j += 1
+            end
+            i += 1 + labLen
+            consumed = i
+        end
+    end
+    if consumed == 0 then
+        consumed = i
+    end
+    return name.text(), consumed
+end
+
+
+// ============================ BPF 过滤: 词法 ============================
+
+func isWord(int c) as bool
+    if c >= 48 and c <= 57 then
+        return true
+    end
+    if c >= 65 and c <= 90 then
+        return true
+    end
+    if c >= 97 and c <= 122 then
+        return true
+    end
+    if c == 46 or c == 95 or c == 45 then
+        return true
+    end
+    return false
+end
+
+// 切分过滤表达式为 token; 保留 [ ] ( ) & | ! != = == < > 与单词/数字
+func tokenize(string s) as array<string>
+    array<string> toks = array[]
+    int i = 0
+    int n = string.len(s)
+    while i < n do
+        int c = string.byteAt(s, i)
+        if c == 32 or c == 9 then
+            i += 1
+            continue
+        end
+        if c == 91 or c == 93 or c == 40 or c == 41 then
+            toks.push(string.slice(s, i, 1))
+            i += 1
+            continue
+        end
+        if c == 38 then
+            toks.push("&")
+            i += 1
+            continue
+        end
+        if c == 124 then
+            toks.push("|")
+            i += 1
+            continue
+        end
+        if c == 33 then
+            if i + 1 < n and string.byteAt(s, i + 1) == 61 then
+                toks.push("!=")
+                i += 2
+            else
+                toks.push("!")
+                i += 1
+            end
+            continue
+        end
+        if c == 61 then
+            if i + 1 < n and string.byteAt(s, i + 1) == 61 then
+                toks.push("==")
+                i += 2
+            else
+                toks.push("==")
+                i += 1
+            end
+            continue
+        end
+        if c == 60 then
+            toks.push("<")
+            i += 1
+            continue
+        end
+        if c == 62 then
+            toks.push(">")
+            i += 1
+            continue
+        end
+        // 单词 / 数字 / IP / tcp-syn
+        int start = i
+        while i < n do
+            if isWord(string.byteAt(s, i)) then
+                i += 1
+            else
+                break
+            end
+        end
+        if i > start then
+            toks.push(string.slice(s, start, i - start))
+        else
+            i += 1
+        end
+    end
+    return toks
+end
+
+func flagMask(string f) as int
+    string t = string.lower(f)
+    if t == "tcp-syn" or t == "syn" then return TCP_SYN end
+    if t == "tcp-ack" or t == "ack" then return TCP_ACK end
+    if t == "tcp-fin" or t == "fin" then return TCP_FIN end
+    if t == "tcp-rst" or t == "rst" then return TCP_RST end
+    if t == "tcp-psh" or t == "psh" then return TCP_PSH end
+    if t == "tcp-urg" or t == "urg" then return TCP_URG end
+    if t == "tcpflags" or t == "tcp-flags" then return 0xFF end
+    return 0
+end
+
+
+// ============================ BPF 过滤: 语法 (递归下降) ============================
+//
+//   expr   := or_expr
+//   or_expr := and_expr (('or'|'||') and_expr)*
+//   and_expr:= not_expr (('and'|'&&') not_expr)*
+//   not_expr:= ('not'|'!') not_expr | primary
+//   primary := '(' expr ')' | proto_or_host_or_port | tcpflags
+//
+//   tcp[tcpflags] & flag op val
+
+func parseOr(PState st) as FNode
+    FNode left = parseAnd(st)
+    bool loop = true
+    while loop do
+        string t = st.peek()
+        if t == "or" or t == "||" then
+            st.next()
+            FNode right = parseAnd(st)
+            FNode n = FNode()
+            n.kind = 6
+            n.left = left
+            n.right = right
+            left = n
+        else
+            loop = false
+        end
+    end
+    return left
+end
+
+func parseAnd(PState st) as FNode
+    FNode left = parseNot(st)
+    bool loop = true
+    while loop do
+        string t = st.peek()
+        if t == "and" or t == "&&" then
+            st.next()
+            FNode right = parseNot(st)
+            FNode n = FNode()
+            n.kind = 5
+            n.left = left
+            n.right = right
+            left = n
+        else
+            loop = false
+        end
+    end
+    return left
+end
+
+func parseNot(PState st) as FNode
+    string t = st.peek()
+    if t == "not" or t == "!" then
+        st.next()
+        FNode c = parseNot(st)
+        FNode n = FNode()
+        n.kind = 7
+        n.left = c
+        return n
+    end
+    return parsePrimary(st)
+end
+
+func parsePrimary(PState st) as FNode
+    string t = st.peek()
+
+    if t == "(" then
+        st.next()
+        FNode e = parseOr(st)
+        st.eat(")")
+        return e
+    end
+
+    if t == "tcp" or t == "udp" or t == "ip" or t == "ether" or t == "icmp" then
+        st.next()
+        if st.peek() == "[" then
+            return parseTcpFlags(st)
+        end
+        if st.peek() == "port" then
+            st.next()
+            int port = int(st.next())
+            FNode pf = FNode()
+            pf.kind = 2
+            pf.ival = port
+            pf.dir = 0
+            FNode proto = makeProtoNode(t)
+            return makeAnd(proto, pf)
+        end
+        return makeProtoNode(t)
+    end
+
+    if t == "port" then
+        st.next()
+        int port = int(st.next())
+        FNode n = FNode()
+        n.kind = 2
+        n.ival = port
+        n.dir = 0
+        return n
+    end
+
+    if t == "host" then
+        st.next()
+        string ip = st.next()
+        FNode n = FNode()
+        n.kind = 3
+        n.sval = ip
+        n.dir = 0
+        return n
+    end
+
+    if t == "src" or t == "dst" then
+        st.next()
+        string dirTok = t
+        int dirv = 1
+        if dirTok == "dst" then
+            dirv = 2
+        end
+        if st.peek() == "host" then
+            st.next()
+            string ip = st.next()
+            FNode n = FNode()
+            n.kind = 3
+            n.sval = ip
+            n.dir = dirv
+            return n
+        elseif st.peek() == "port" then
+            st.next()
+            int port = int(st.next())
+            FNode n = FNode()
+            n.kind = 2
+            n.ival = port
+            n.dir = dirv
+            return n
+        else
+            string ip = st.next()
+            FNode n = FNode()
+            n.kind = 3
+            n.sval = ip
+            n.dir = dirv
+            return n
+        end
+    end
+
+    // 未知 token -> 丢弃并视作 true (容错)
+    if string.len(t) > 0 then
+        st.next()
+    end
+    FNode n = FNode()
+    n.kind = 8
+    return n
+end
+
+// tcp [ tcpflags ] (& flag)? (op val)?
+func parseTcpFlags(PState st) as FNode
+    st.eat("[")
+    string inner = st.next()
+    st.eat("]")
+    FNode n = FNode()
+    n.kind = 4
+    n.mask = flagMask(inner)
+    if n.mask == 0 then
+        n.mask = 0xFF
+    end
+    if st.peek() == "&" then
+        st.next()
+        string flag = st.next()
+        n.mask = flagMask(flag)
+        if n.mask == 0 then
+            n.mask = 0xFF
+        end
+        string op = st.next()
+        if op == "!=" then
+            n.op = 0
+        else
+            n.op = 1
+        end
+        string val = st.next()
+        int cv = 0
+        if looksInt(val) then
+            cv = int(val)
+        end
+        n.cmpv = cv
+    else
+        n.op = 0
+        n.cmpv = 0
+    end
+    return n
+end
+
+func makeProtoNode(string t) as FNode
+    FNode n = FNode()
+    n.kind = 1
+    if t == "ip" then
+        n.ival = -1
+    elseif t == "tcp" then
+        n.ival = IP_PROTO_TCP
+    elseif t == "udp" then
+        n.ival = IP_PROTO_UDP
+    elseif t == "icmp" then
+        n.ival = IP_PROTO_ICMP
+    else
+        // ether: 匹配所有以太网帧 (本层视作 true)
+        n.kind = 8
+    end
+    return n
+end
+
+func makeAnd(FNode a, FNode b) as FNode
+    FNode n = FNode()
+    n.kind = 5
+    n.left = a
+    n.right = b
+    return n
+end
+
+func parseFilter(string expr) as FNode
+    PState st = PState()
+    st.toks = tokenize(expr)
+    st.pos = 0
+    if st.toks.length == 0 then
+        FNode n = FNode()
+        n.kind = 8
+        return n
+    end
+    return parseOr(st)
+end
+
+
+// ============================ BPF 过滤: 求值 ============================
+
+func evalMatch(FNode n, PktRecord p) as bool
+    if n.kind == 8 then
+        return true
+    end
+    if n.kind == 1 then
+        // proto
+        if not p.hasIp then
+            return false
+        end
+        if n.ival < 0 then
+            return p.ipVer == 4
+        end
+        return p.ipProto == n.ival
+    end
+    if n.kind == 2 then
+        return matchPort(p, n.ival, n.dir)
+    end
+    if n.kind == 3 then
+        return matchHost(p, n.sval, n.dir)
+    end
+    if n.kind == 4 then
+        int f = p.tcpFlags & n.mask
+        if n.op == 0 then
+            return f != n.cmpv
+        end
+        return f == n.cmpv
+    end
+    if n.kind == 5 then
+        return evalMatch(n.left, p) and evalMatch(n.right, p)
+    end
+    if n.kind == 6 then
+        return evalMatch(n.left, p) or evalMatch(n.right, p)
+    end
+    if n.kind == 7 then
+        return not evalMatch(n.left, p)
+    end
+    return false
+end
+
+func matchPort(PktRecord p, int port, int dir) as bool
+    if not (p.hasTcp or p.hasUdp) then
+        return false
+    end
+    if dir == 1 then
+        return p.srcPort == port
+    end
+    if dir == 2 then
+        return p.dstPort == port
+    end
+    if p.srcPort == port then
+        return true
+    end
+    if p.dstPort == port then
+        return true
+    end
+    return false
+end
+
+func matchHost(PktRecord p, string ip, int dir) as bool
+    if not p.hasIp then
+        return false
+    end
+    if dir == 1 then
+        return p.srcIp == ip
+    end
+    if dir == 2 then
+        return p.dstIp == ip
+    end
+    if p.srcIp == ip then
+        return true
+    end
+    if p.dstIp == ip then
+        return true
+    end
+    return false
+end
+
+
+// ============================ 输出: analyze ============================
+
+func printPacket(PktRecord p, Buffer buf)
+    string fracPad = string(p.tsFrac)
+    if p.nano then
+        // 纳秒: 不额外补零, 仅标注
+        fracPad = fracPad + "ns"
+    end
+    println("[" + string.formatInt(p.index, "D4") + "] " + string(p.tsSec) + "." + fracPad
+         + "  cap=" + string(p.capLen) + "/" + string(p.origLen))
+
+    if p.hasEth then
+        println("  ETH  " + p.srcMac + " -> " + p.dstMac
+             + "  type=0x" + string.formatInt(p.etherType, "X4")
+             + " (" + etherTypeName(p.etherType) + ")")
+    end
+
+    if p.hasIp then
+        string fragNote = ""
+        if (p.ipFlags & 0x01) != 0 then
+            fragNote = " MF"
+        end
+        if p.ipFragOff != 0 then
+            fragNote = fragNote + " frag=" + string(p.ipFragOff)
+        end
+        println("  IP   v" + string(p.ipVer) + "  " + p.srcIp + " -> " + p.dstIp
+             + "  proto=" + ipProtoName(p.ipProto) + "(" + string(p.ipProto) + ")"
+             + " ttl=" + string(p.ipTtl)
+             + " len=" + string(p.ipTotalLen)
+             + " id=0x" + string.formatInt(p.ipId, "X4") + fragNote)
+    end
+
+    if p.hasTcp then
+        println("  TCP  :" + string(p.srcPort) + " -> :" + string(p.dstPort)
+             + "  seq=" + string(p.tcpSeq) + " ack=" + string(p.tcpAck)
+             + "  flags=[" + tcpFlagStr(p.tcpFlags) + "]"
+             + "  win=" + string(p.tcpWindow)
+             + "  payload=" + string(p.payloadLen))
+    end
+
+    if p.hasUdp then
+        println("  UDP  :" + string(p.srcPort) + " -> :" + string(p.dstPort)
+             + "  len=" + string(p.udpLen)
+             + "  payload=" + string(p.payloadLen))
+    end
+
+    if string.len(p.appProto) > 0 then
+        println("  APP  " + p.appProto + ": " + p.appInfo)
+    end
+
+    if p.payloadLen > 0 and string.len(p.appProto) == 0 then
+        println("  PAY  " + hexPreview(buf, p.payloadOff, p.payloadLen, 32))
+    end
+end
+
+func cmdAnalyze(string path) as int
+    if not file.exists(path) then
+        println("xpacket: file not found: " + path)
+        return 1
+    end
+    Buffer buf = file.readBytes(path)
+    PcapFile pf = parsePcap(buf)
+    if not pf.valid then
+        println("xpacket: not a pcap file (bad magic): " + path)
+        return 1
+    end
+
+    println("=== xpacket analyze: " + path + " ===")
+    println("link=" + linkName(pf.linkType)
+         + "  endian=" + endianStr(pf.endianLe)
+         + "  nano=" + string(pf.nano)
+         + "  ver=" + string(pf.verMajor) + "." + string(pf.verMinor)
+         + "  snaplen=" + string(pf.snaplen))
+    println("packets: " + string(pf.count))
+    println(string.repeat("-", 72))
+
+    int i = 0
+    while i < pf.count do
+        printPacket(pf.packets[i], buf)
+        i += 1
+    end
+    return 0
+end
+
+
+// ============================ 输出: filter ============================
+
+func cmdFilter(string expr, string path) as int
+    if not file.exists(path) then
+        println("xpacket: file not found: " + path)
+        return 1
+    end
+    Buffer buf = file.readBytes(path)
+    PcapFile pf = parsePcap(buf)
+    if not pf.valid then
+        println("xpacket: not a pcap file (bad magic): " + path)
+        return 1
+    end
+
+    FNode f = parseFilter(expr)
+    println("=== xpacket filter ===")
+    println("filter: " + expr)
+    println("file:   " + path + "  (" + string(pf.count) + " packets)")
+    println(string.repeat("-", 72))
+
+    int matched = 0
+    int i = 0
+    while i < pf.count do
+        PktRecord p = pf.packets[i]
+        if evalMatch(f, p) then
+            printPacket(p, buf)
+            matched += 1
+        end
+        i += 1
+    end
+
+    println(string.repeat("-", 72))
+    println("matched: " + string(matched) + " / " + string(pf.count))
+    return 0
+end
+
+
+// ============================ 输出: stats ============================
+
+func bumpDict(var d, string key)
+    var cur = d[key]
+    if cur == null then
+        d[key] = 1
+    else
+        d[key] = int(cur) + 1
+    end
+end
+
+// 平行 list 冒泡排序 (按计数降序), 取 Top N
+func printTopN(var d, string title, int topN)
+    println(title + ":")
+    list<string> keys
+    list<int> vals
+    int cnt = 0
+    for k, v in d
+        keys[cnt] = string(k)
+        vals[cnt] = int(v)
+        cnt += 1
+    end
+    if cnt == 0 then
+        println("  (none)")
+        return
+    end
+    int a = 0
+    while a < cnt do
+        int b = a + 1
+        while b < cnt do
+            if vals[b] > vals[a] then
+                int tv = vals[a]
+                vals[a] = vals[b]
+                vals[b] = tv
+                string tk = keys[a]
+                keys[a] = keys[b]
+                keys[b] = tk
+            end
+            b += 1
+        end
+        a += 1
+    end
+    int limit = topN
+    if limit > cnt then
+        limit = cnt
+    end
+    int i = 0
+    while i < limit do
+        println("  " + string.padLeft(string(vals[i]), 6) + "  " + keys[i])
+        i += 1
+    end
+end
+
+func bucketIndex(int n) as int
+    if n < 64 then return 0 end
+    if n < 128 then return 1 end
+    if n < 256 then return 2 end
+    if n < 512 then return 3 end
+    if n < 1024 then return 4 end
+    if n < 1518 then return 5 end
+    return 6
+end
+
+func cmdStats(string path) as int
+    if not file.exists(path) then
+        println("xpacket: file not found: " + path)
+        return 1
+    end
+    Buffer buf = file.readBytes(path)
+    PcapFile pf = parsePcap(buf)
+    if not pf.valid then
+        println("xpacket: not a pcap file (bad magic): " + path)
+        return 1
+    end
+
+    var protoCount = {}
+    var srcIpCount = {}
+    var dstIpCount = {}
+    var portCount = {}
+
+    array<int> buckets = array[0, 0, 0, 0, 0, 0, 0]
+    array<string> bucketNames = array[
+        "<64", "64-127", "128-255", "256-511",
+        "512-1023", "1024-1517", ">=1518"
+    ]
+
+    int totalBytes = 0
+    int tcpPayloadBytes = 0
+
+    int i = 0
+    while i < pf.count do
+        PktRecord p = pf.packets[i]
+        bumpDict(protoCount, "frames")
+        if p.hasEth then
+            bumpDict(protoCount, "ethernet")
+        end
+        if p.hasIp then
+            bumpDict(protoCount, "ipv4")
+            bumpDict(srcIpCount, p.srcIp)
+            bumpDict(dstIpCount, p.dstIp)
+            if p.ipProto == IP_PROTO_TCP then
+                bumpDict(protoCount, "tcp")
+            elseif p.ipProto == IP_PROTO_UDP then
+                bumpDict(protoCount, "udp")
+            elseif p.ipProto == IP_PROTO_ICMP then
+                bumpDict(protoCount, "icmp")
+            else
+                bumpDict(protoCount, "ip-other-" + string(p.ipProto))
+            end
+        end
+        if p.etherType == ETHER_TYPE_ARP then
+            bumpDict(protoCount, "arp")
+        end
+        if p.etherType == ETHER_TYPE_IPV6 then
+            bumpDict(protoCount, "ipv6")
+        end
+        if p.hasTcp or p.hasUdp then
+            bumpDict(portCount, string(p.srcPort))
+            bumpDict(portCount, string(p.dstPort))
+        end
+        if p.hasTcp then
+            tcpPayloadBytes += p.payloadLen
+        end
+        if string.len(p.appProto) > 0 then
+            bumpDict(protoCount, string.lower(p.appProto))
+        end
+
+        int bi = bucketIndex(p.origLen)
+        buckets[bi] = buckets[bi] + 1
+        totalBytes += p.origLen
+        i += 1
+    end
+
+    println("=== xpacket stats: " + path + " ===")
+    println("link=" + linkName(pf.linkType) + "  packets=" + string(pf.count)
+         + "  bytes=" + string(totalBytes) + "  tcpPayload=" + string(tcpPayloadBytes))
+    println(string.repeat("-", 72))
+
+    println("Protocol distribution:")
+    printTopN(protoCount, "  by protocol", 16)
+
+    println("")
+    printTopN(srcIpCount, "Top 10 source IPs", 10)
+    println("")
+    printTopN(dstIpCount, "Top 10 destination IPs", 10)
+    println("")
+    printTopN(portCount, "Top 10 ports", 10)
+
+    println("")
+    println("Size distribution (origLen):")
+    int bi2 = 0
+    while bi2 < 7 do
+        println("  " + string.padLeft(bucketNames[bi2], 12) + " : " + string(buckets[bi2]))
+        bi2 += 1
+    end
+
+    return 0
+end
+
+
+// ============================ TCP 流重组 ============================
+
+// 规范化双向 4 元组 key
+func flowKey(PktRecord p) as string
+    string a = p.srcIp + ":" + string(p.srcPort)
+    string b = p.dstIp + ":" + string(p.dstPort)
+    if string.compare(a, b) <= 0 then
+        return a + " <-> " + b
+    end
+    return b + " <-> " + a
+end
+
+func cmdFlows(Buffer buf, PcapFile pf) as int
+    int n = pf.count
+
+    // 收集唯一 flow key
+    list<string> uniq
+    int uniqCount = 0
+    int i = 0
+    while i < n do
+        PktRecord p = pf.packets[i]
+        if p.hasTcp and p.payloadLen > 0 then
+            string k = flowKey(p)
+            bool found = false
+            int j = 0
+            while j < uniqCount do
+                if uniq[j] == k then
+                    found = true
+                    break
+                end
+                j += 1
+            end
+            if not found then
+                uniq[uniqCount] = k
+                uniqCount += 1
+            end
+        end
+        i += 1
+    end
+
+    println("TCP flows with payload: " + string(uniqCount))
+    if uniqCount == 0 then
+        println("(no reassemblable TCP streams)")
+        return 0
+    end
+    println(string.repeat("-", 72))
+
+    int fi = 0
+    while fi < uniqCount do
+        string k = uniq[fi]
+
+        // 收集该流所有 payload 段 (seq, off, len)
+        list<int> segSeq
+        list<int> segOff
+        list<int> segLen
+        int segCount = 0
+        int si = 0
+        while si < n do
+            PktRecord p = pf.packets[si]
+            if p.hasTcp and p.payloadLen > 0 and flowKey(p) == k then
+                segSeq[segCount] = p.tcpSeq
+                segOff[segCount] = p.payloadOff
+                segLen[segCount] = p.payloadLen
+                segCount += 1
+            end
+            si += 1
+        end
+
+        // 按 seq 升序排序 (携带 off/len 一起)
+        int a = 0
+        while a < segCount do
+            int b = a + 1
+            while b < segCount do
+                if segSeq[b] < segSeq[a] then
+                    int t1 = segSeq[a]; segSeq[a] = segSeq[b]; segSeq[b] = t1
+                    int t2 = segOff[a]; segOff[a] = segOff[b]; segOff[b] = t2
+                    int t3 = segLen[a]; segLen[a] = segLen[b]; segLen[b] = t3
+                end
+                b += 1
+            end
+            a += 1
+        end
+
+        println("Flow " + string(fi) + ": " + k + "  segments=" + string(segCount))
+
+        // 重组 (展示前 256 字节)
+        Buffer rb = Buffer()
+        int shown = 0
+        int cap256 = 256
+        int ri = 0
+        while ri < segCount do
+            int j = 0
+            while j < segLen[ri] and shown < cap256 do
+                rb.appendByte(buf.byteAt(segOff[ri] + j))
+                shown += 1
+                j += 1
+            end
+            if shown >= cap256 then
+                break
+            end
+            ri += 1
+        end
+
+        if rb.len() > 0 then
+            println("  reassembled (" + string(rb.len()) + " bytes shown):")
+            println("  |" + rb.text() + "|")
+        else
+            println("  (no payload bytes)")
+        end
+        println("")
+        fi += 1
+    end
+    return 0
+end
+
+func cmdFlowsFile(string path) as int
+    if not file.exists(path) then
+        println("xpacket: file not found: " + path)
+        return 1
+    end
+    Buffer buf = file.readBytes(path)
+    PcapFile pf = parsePcap(buf)
+    if not pf.valid then
+        println("xpacket: not a pcap file (bad magic): " + path)
+        return 1
+    end
+    println("=== xpacket flows: " + path + " ===")
+    return cmdFlows(buf, pf)
+end
+
+
+// ============================ 自检: 构造合成 pcap ============================
+
+// 计算 IPv4 头校验和 (20 字节, 入口时 [10..11]==0)
+func ipChecksum(array<int> h) as int
+    int sum = 0
+    int i = 0
+    while i < 20 do
+        int w = ((h[i] & 0xFF) << 8) | (h[i + 1] & 0xFF)
+        sum += w
+        i += 2
+    end
+    while (sum >> 16) != 0 do
+        sum = (sum & 0xFFFF) + (sum >> 16)
+    end
+    return sum ^ 0xFFFF
+end
+
+// 构造 20 字节 IPv4 头 (含校验和)
+func ipHeaderBytes(array<int> srcIp, array<int> dstIp, int proto, int totalLen) as array<int>
+    array<int> h = array[
+        0x45, 0x00, 0x00, 0x00,
+        0x00, 0x01, 0x40, 0x00,
+        64, proto, 0x00, 0x00,
+        srcIp[0], srcIp[1], srcIp[2], srcIp[3],
+        dstIp[0], dstIp[1], dstIp[2], dstIp[3]
+    ]
+    h[2] = (totalLen >> 8) & 0xFF
+    h[3] = totalLen & 0xFF
+    int ck = ipChecksum(h)
+    h[10] = (ck >> 8) & 0xFF
+    h[11] = ck & 0xFF
+    return h
+end
+
+func putEth(Buffer out, array<int> dstMac, array<int> srcMac)
+    putBytes(out, dstMac)
+    putBytes(out, srcMac)
+    putBe16(out, ETHER_TYPE_IPV4)
+end
+
+// 写一个完整的 ETH+IPv4+TCP 帧 (无 pcap 记录头)
+func putFrameTcp(Buffer out, array<int> dstMac, array<int> srcMac,
+                 array<int> srcIp, array<int> dstIp,
+                 int srcPort, int dstPort, int seq, int ack,
+                 int flags, int win, string payload)
+    putEth(out, dstMac, srcMac)
+    int payloadLen = string.byteLen(payload)
+    int ipTotal = 20 + 20 + payloadLen
+    array<int> iph = ipHeaderBytes(srcIp, dstIp, IP_PROTO_TCP, ipTotal)
+    putBytes(out, iph)
+    putBe16(out, srcPort)
+    putBe16(out, dstPort)
+    putBe32(out, seq)
+    putBe32(out, ack)
+    out.appendByte(0x50)             // data offset = 5 (20B), reserved 0
+    out.appendByte(flags & 0xFF)
+    putBe16(out, win)
+    putBe16(out, 0)                  // checksum
+    putBe16(out, 0)                  // urg pointer
+    if payloadLen > 0 then
+        putText(out, payload)
+    end
+end
+
+// 写一个完整的 ETH+IPv4+UDP 帧, payload 来自一个已构造的 Buffer (DNS)
+func putFrameUdpRaw(Buffer out, array<int> dstMac, array<int> srcMac,
+                    array<int> srcIp, array<int> dstIp,
+                    int srcPort, int dstPort, Buffer payload, int payloadLen)
+    putEth(out, dstMac, srcMac)
+    int ipTotal = 20 + 8 + payloadLen
+    array<int> iph = ipHeaderBytes(srcIp, dstIp, IP_PROTO_UDP, ipTotal)
+    putBytes(out, iph)
+    putBe16(out, srcPort)
+    putBe16(out, dstPort)
+    putBe16(out, 8 + payloadLen)     // udp length
+    putBe16(out, 0)                  // checksum
+    if payloadLen > 0 then
+        putBuffer(out, payload, payloadLen)
+    end
+end
+
+// 把 DNS 查询段写入 Buffer: id/flags/counts + qname + qtype + qclass
+func buildDnsSection(Buffer dns, string name, int qtype)
+    putBe16(dns, 0x1234)             // id
+    putBe16(dns, 0x0100)             // flags: standard query, RD
+    putBe16(dns, 1)                  // qdcount
+    putBe16(dns, 0)                  // ancount
+    putBe16(dns, 0)                  // nscount
+    putBe16(dns, 0)                  // arcount
+    array labels = string.split(name, ".")
+    int li = 0
+    while li < labels.length do
+        array lb = string.bytes(string(labels[li]))
+        dns.appendByte(lb.length)
+        int j = 0
+        while j < lb.length do
+            dns.appendByte(int(lb[j]))
+            j += 1
+        end
+        li += 1
+    end
+    dns.appendByte(0)                // qname terminator
+    putBe16(dns, qtype)
+    putBe16(dns, 1)                  // qclass = IN
+end
+
+// 写一个 16 字节 pcap 记录头
+func addPacket(Buffer out, int tsSec, int tsUsec, int frameLen)
+    putLe32(out, tsSec)
+    putLe32(out, tsUsec)
+    putLe32(out, frameLen)
+    putLe32(out, frameLen)
+end
+
+
+// ============================ 自检: 断言 ============================
+
+func check(string name, bool ok) as bool
+    if ok then
+        println("  [PASS] " + name)
+    else
+        println("  [FAIL] " + name)
+    end
+    return ok
+end
+
+func cmdTest() as int
+    println("=== xpacket self-test ===")
+
+    Buffer cap = Buffer()
+
+    // pcap 全局头 (LE, 微秒)
+    cap.appendByte(0xd4); cap.appendByte(0xc3); cap.appendByte(0xb2); cap.appendByte(0xa1)
+    putLe16(cap, 2)
+    putLe16(cap, 4)
+    putLe32(cap, 0)                   // thiszone
+    putLe32(cap, 0)                   // sigfigs
+    putLe32(cap, 65535)               // snaplen
+    putLe32(cap, 1)                   // linktype = Ethernet
+
+    array<int> macCli = array[0x00, 0x11, 0x22, 0x33, 0x44, 0x55]
+    array<int> macSrv = array[0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF]
+    array<int> ipCli  = array[192, 168, 1, 100]
+    array<int> ipSrv  = array[140, 82, 121, 4]
+    array<int> ipDns  = array[8, 8, 8, 8]
+    array<int> ipSyn  = array[10, 0, 0, 5]
+
+    // 包 A: TCP/HTTP GET  client:54321 -> server:80, PSH+ACK, 带 HTTP 请求
+    string httpReq = "GET /index.html HTTP/1.1\r\nHost: xlang.test\r\nUser-Agent: xpacket\r\n\r\n"
+    int frameA = 14 + 20 + 20 + string.byteLen(httpReq)
+    addPacket(cap, 1700000000, 0, frameA)
+    putFrameTcp(cap, macSrv, macCli, ipCli, ipSrv, 54321, 80, 1000, 1, TCP_PSH | TCP_ACK, 65535, httpReq)
+
+    // 包 B: UDP/DNS 查询  client:1234 -> 8.8.8.8:53, 查 example.com A
+    Buffer dns = Buffer()
+    buildDnsSection(dns, "example.com", 1)
+    int dnsLen = dns.len()
+    int frameB = 14 + 20 + 8 + dnsLen
+    addPacket(cap, 1700000001, 0, frameB)
+    putFrameUdpRaw(cap, macSrv, macCli, ipCli, ipDns, 1234, 53, dns, dnsLen)
+
+    // 包 C: TCP SYN -> :443 (无 payload)
+    int frameC = 14 + 20 + 20
+    addPacket(cap, 1700000002, 0, frameC)
+    putFrameTcp(cap, macSrv, macCli, ipSyn, ipSrv, 40000, 443, 200, 0, TCP_SYN, 65535, "")
+
+    // ---- 解析 ----
+    PcapFile pf = parsePcap(cap)
+    bool allOk = true
+
+    println("[G1] pcap file header")
+    allOk = check("valid magic", pf.valid) and allOk
+    allOk = check("linkType == Ethernet(1)", pf.linkType == 1) and allOk
+    allOk = check("endian == little", pf.endianLe) and allOk
+    allOk = check("version == 2.4", pf.verMajor == 2 and pf.verMinor == 4) and allOk
+    allOk = check("packet count == 3", pf.count == 3) and allOk
+
+    println("[G2] packet A (TCP/HTTP)")
+    PktRecord pa = pf.packets[0]
+    allOk = check("hasEth", pa.hasEth) and allOk
+    allOk = check("hasIp", pa.hasIp) and allOk
+    allOk = check("hasTcp", pa.hasTcp) and allOk
+    allOk = check("srcIp == 192.168.1.100", pa.srcIp == "192.168.1.100") and allOk
+    allOk = check("dstIp == 140.82.121.4", pa.dstIp == "140.82.121.4") and allOk
+    allOk = check("srcPort == 54321", pa.srcPort == 54321) and allOk
+    allOk = check("dstPort == 80", pa.dstPort == 80) and allOk
+    allOk = check("tcpSeq == 1000", pa.tcpSeq == 1000) and allOk
+    allOk = check("flags has PSH", (pa.tcpFlags & TCP_PSH) != 0) and allOk
+    allOk = check("flags has ACK", (pa.tcpFlags & TCP_ACK) != 0) and allOk
+    allOk = check("etherType == 0x0800", pa.etherType == ETHER_TYPE_IPV4) and allOk
+    allOk = check("appProto == HTTP", pa.appProto == "HTTP") and allOk
+    allOk = check("appInfo starts GET", string.startsWith(pa.appInfo, "GET /index.html")) and allOk
+    allOk = check("payload > 0", pa.payloadLen > 0) and allOk
+
+    println("[G3] packet B (UDP/DNS)")
+    PktRecord pb = pf.packets[1]
+    allOk = check("hasUdp", pb.hasUdp) and allOk
+    allOk = check("srcPort == 1234", pb.srcPort == 1234) and allOk
+    allOk = check("dstPort == 53", pb.dstPort == 53) and allOk
+    allOk = check("srcIp == 192.168.1.100", pb.srcIp == "192.168.1.100") and allOk
+    allOk = check("dstIp == 8.8.8.8", pb.dstIp == "8.8.8.8") and allOk
+    allOk = check("appProto == DNS", pb.appProto == "DNS") and allOk
+    allOk = check("appInfo contains example.com", string.contains(pb.appInfo, "example.com")) and allOk
+    allOk = check("appInfo contains type=A", string.contains(pb.appInfo, "type=A")) and allOk
+    allOk = check("dnsId == 0x1234", pb.dnsId == 0x1234) and allOk
+    allOk = check("dnsQd == 1", pb.dnsQd == 1) and allOk
+
+    println("[G4] packet C (TCP SYN)")
+    PktRecord pc = pf.packets[2]
+    allOk = check("hasTcp", pc.hasTcp) and allOk
+    allOk = check("dstPort == 443", pc.dstPort == 443) and allOk
+    allOk = check("flags has SYN", (pc.tcpFlags & TCP_SYN) != 0) and allOk
+    allOk = check("flags has not ACK", (pc.tcpFlags & TCP_ACK) == 0) and allOk
+    allOk = check("payloadLen == 0", pc.payloadLen == 0) and allOk
+
+    println("[G5] BPF filter expressions")
+    allOk = check("'tcp port 80' matches A", evalMatch(parseFilter("tcp port 80"), pa)) and allOk
+    allOk = check("'tcp port 80' rejects B", not evalMatch(parseFilter("tcp port 80"), pb)) and allOk
+    allOk = check("'udp' matches B", evalMatch(parseFilter("udp"), pb)) and allOk
+    allOk = check("'udp' rejects A", not evalMatch(parseFilter("udp"), pa)) and allOk
+    allOk = check("'udp and src host 192.168.1.100' matches B",
+                  evalMatch(parseFilter("udp and src host 192.168.1.100"), pb)) and allOk
+    allOk = check("'udp and src host 8.8.8.8' rejects B",
+                  not evalMatch(parseFilter("udp and src host 8.8.8.8"), pb)) and allOk
+    allOk = check("'dst port 443' matches C", evalMatch(parseFilter("dst port 443"), pc)) and allOk
+    allOk = check("'host 8.8.8.8' matches B", evalMatch(parseFilter("host 8.8.8.8"), pb)) and allOk
+    allOk = check("'src host 8.8.8.8' rejects B", not evalMatch(parseFilter("src host 8.8.8.8"), pb)) and allOk
+    allOk = check("'tcp[tcpflags] & tcp-syn != 0' matches C",
+                  evalMatch(parseFilter("tcp[tcpflags] & tcp-syn != 0"), pc)) and allOk
+    allOk = check("'tcp[tcpflags] & tcp-syn != 0' rejects A",
+                  not evalMatch(parseFilter("tcp[tcpflags] & tcp-syn != 0"), pa)) and allOk
+    allOk = check("'not tcp' matches B", evalMatch(parseFilter("not tcp"), pb)) and allOk
+    allOk = check("'tcp port 80 or udp port 53' matches A",
+                  evalMatch(parseFilter("tcp port 80 or udp port 53"), pa)) and allOk
+    allOk = check("'tcp port 80 or udp port 53' matches B",
+                  evalMatch(parseFilter("tcp port 80 or udp port 53"), pb)) and allOk
+
+    println("[G6] TCP flow reassembly")
+    Buffer fb = cap
+    PcapFile fpf = pf
+    // A 流 (54321<->80) 应被识别为 1 条带 payload 流
+    list<string> uniq
+    int uniqCount = 0
+    int ti = 0
+    while ti < fpf.count do
+        PktRecord tp = fpf.packets[ti]
+        if tp.hasTcp and tp.payloadLen > 0 then
+            string fk = flowKey(tp)
+            bool found = false
+            int tj = 0
+            while tj < uniqCount do
+                if uniq[tj] == fk then
+                    found = true
+                    break
+                end
+                tj += 1
+            end
+            if not found then
+                uniq[uniqCount] = fk
+                uniqCount += 1
+            end
+        end
+        ti += 1
+    end
+    allOk = check("flows with payload == 1", uniqCount == 1) and allOk
+
+    println("[G7] IP header checksum self-consistency")
+    // 单独校验 ipHeaderBytes 生成的校验和: 对合法头再算一次必须为 0
+    array<int> iph = ipHeaderBytes(array[10, 0, 0, 1], array[10, 0, 0, 2], IP_PROTO_TCP, 40)
+    int reverify = ipChecksum(iph)
+    allOk = check("ip header checksum verifies to 0", reverify == 0) and allOk
+
+    println("===")
+    if allOk then
+        println("ALL TESTS PASSED")
+        return 0
+    end
+    println("SOME TESTS FAILED")
+    return 1
+end
+
+
+// ============================ CLI ============================
+
+func printUsage()
+    println("xpacket - network protocol analyzer (pcap / multi-layer decoder)")
+    println("")
+    println("usage:")
+    println("  xpacket analyze <file.pcap>            decode every packet layer by layer")
+    println("  xpacket filter  <expr> <file.pcap>     BPF-style filter, print matches")
+    println("  xpacket stats   <file.pcap>            protocol dist / Top N / size hist")
+    println("  xpacket flows   <file.pcap>            reassemble TCP streams by seq")
+    println("  xpacket test                           built-in synthetic pcap self-test")
+    println("  xpacket -h | --help                    this help")
+    println("")
+    println("filter expressions (subset of BPF):")
+    println("  tcp | udp | ip | icmp")
+    println("  tcp port 80 | udp port 53 | dst port 443")
+    println("  host 8.8.8.8 | src host 1.2.3.4 | dst host 5.6.7.8")
+    println("  udp and src host 1.2.3.4")
+    println("  not tcp | tcp port 80 or udp port 53")
+    println("  tcp[tcpflags] & tcp-syn != 0")
+    println("  tcp[tcpflags] & (tcp-syn|tcp-ack) == 0")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    if cmd == "analyze" then
+        if arg.length < 3 then
+            println("xpacket: 'analyze' needs <file.pcap>")
+            return 1
+        end
+        return cmdAnalyze(string(arg[2]))
+    end
+
+    if cmd == "stats" then
+        if arg.length < 3 then
+            println("xpacket: 'stats' needs <file.pcap>")
+            return 1
+        end
+        return cmdStats(string(arg[2]))
+    end
+
+    if cmd == "flows" then
+        if arg.length < 3 then
+            println("xpacket: 'flows' needs <file.pcap>")
+            return 1
+        end
+        return cmdFlowsFile(string(arg[2]))
+    end
+
+    if cmd == "filter" then
+        // xpacket filter <expr words...> <file.pcap>
+        // 最后一个参数为文件, 中间全部 join 为过滤表达式
+        if arg.length < 4 then
+            println("xpacket: 'filter' needs <expr> <file.pcap>")
+            return 1
+        end
+        int last = arg.length - 1
+        string file = string(arg[last])
+        string expr = ""
+        int i = 2
+        while i < last do
+            if string.len(expr) > 0 then
+                expr = expr + " "
+            end
+            expr = expr + string(arg[i])
+            i += 1
+        end
+        return cmdFilter(expr, file)
+    end
+
+    println("xpacket: unknown command: " + cmd)
+    printUsage()
+    return 1
+end

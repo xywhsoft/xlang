@@ -1,4 +1,4 @@
-// cpusched - CPU 调度器模拟器
+﻿// cpusched - CPU 调度器模拟器
 //
 // 用法:
 //   cpusched test                 内置 5 进程测试集, 依次运行全部 5 种算法
@@ -30,6 +30,7 @@
 //   remaining 初值 = burst, 随调度递减; responseTime 初值 -1 表示尚未响应.
 // ============================================================
 class Process
+    derive value
     int pid = 0
     int arrival = 0
     int burst = 0

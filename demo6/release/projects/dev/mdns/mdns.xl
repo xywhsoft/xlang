@@ -150,6 +150,7 @@ func registerService(string service, int port, string txt) as string
     var inst = makeInstance(instName, svc, host, port, txt, DEFAULT_TTL)
     var arr = regEnsure(svc)
     arr.append(inst)
+    g_registry[svc] = arr
     cacheInvalidate("browse:" + svc)
     return instName
 end

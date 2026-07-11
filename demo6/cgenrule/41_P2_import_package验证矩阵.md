@@ -35,12 +35,12 @@
 
 | 规则范围 | 当前验证用例 | 证据等级 | 核验结论 |
 |---|---|---|---|
-| `CGEN-PKG-001..007` 字符串复制、dirname、path join、默认包名、packageId、字符串列表、manifest 生命周期 | release/extlibs 与 test/fixtures 下所有 `xlang.package.json`、`import_metadata.xl`、`import_dependency_versions.xl` | build/run + JSON 检查 | manifest 默认身份、packageId、路径拼接、字符串列表和释放路径在多 package fixture 中反复覆盖。 |
-| `CGEN-PKG-008..016` manifest JSON parser、字符串/bool/未知值、数组、dependencies、artifact、native、根对象 | packages `counter`、`class_api`、`union_api`、`uses_dep*`、`native_one/native_two`、`metadata_combo`、`missing_interface`、`test/fixtures/libprobe` | build/run + 语义负例 + fixture | links/loadlibs/cSources/dependencies/native 字段读取、组合字段同包共存、未知字段跳过主策略和未知对象/数组跳过均有覆盖。 |
-| `CGEN-PKG-017..020` manifest 文件读取、format 校验、默认字段补齐、最终身份和失败清理 | package fixtures、`import_dependency_version_mismatch.xl`、fixture `missing_interface` | build/run + 语义负例 | XRT UTF-8 文件读取、格式/默认值/packageId/dir 补齐和失败清理有覆盖。 |
-| `CGEN-PKG-021..023` manifest 归一、候选命中规则、目录 package 入口 | `counter/xlang.package.json`、`import_path_no_ext.xl`、fixture `missing_interface` | import 消费 + IR/C 检查 + 语义负例 | manifest 到 source package 的归一、目录 package 入口、存在但不可用时重置并诊断有覆盖。 |
-| `CGEN-PKG-024..030` path import 判定、resolver 结果、绝对/相对候选、相对 importer 优先、目录包命中顺序 | `import_metadata.xl` 的 `"local/math"`、`import_path_no_ext.xl` 的 `"path_no_ext/probe"`、`test/cases/import_relative_scope/root/source/import_relative_scope.xl`、package fixture | JSON 检查 + IR/C 检查 + import 消费 | path target、相对 importer 目录、目录下 `xlang.package.json` 命中顺序有覆盖。 |
-| `CGEN-PKG-031..032` 裸包名 release/extlibs 与 package path fixture 搜索、manifestPath 查询 | `import_package_use.xl`、`import_lib_search.xl`、`import_dependency_private.xl`、`import_dependency_versions.xl`、packages `counter/uses_dep*`、`test/fixtures/libprobe` | build/run + IR/C 检查 | `release/extlibs/<name>` 搜索、`test/fixtures/<name>` 搜索、`name@version` 多版本目录和 manifestPath 查询均有覆盖。 |
+| `CGEN-PKG-001..007` 文本所有权、XRT 路径、缺省包名、packageId、字符串列表 | release/extlibs 与 test/fixtures 下所有 `xlang.package.json`、`import_metadata.xl`、`import_dependency_versions.xl` | build/run + JSON 检查 | 动态路径、manifest 默认身份、packageId、字符串列表和释放路径在多 package fixture 中反复覆盖。 |
+| `CGEN-PKG-008..016` manifest 生命周期、XRT JSON 值树、严格字段 schema、dependencies、artifact、native | packages `counter`、`class_api`、`union_api`、`uses_dep*`、`native_one/native_two`、`metadata_combo`、`missing_interface`、`test/fixtures/libprobe` | build/run + 语义负例 + fixture | JSON 词法和 Unicode 由 XRT 负责；package 层的字段类型、依赖双形态、组合字段和未知字段保留策略均有覆盖。 |
+| `CGEN-PKG-017..020` UTF-8/BOM 文件读取、format/default/packageId、事务归一、失败回滚 | package fixtures、`import_dependency_version_mismatch.xl`、fixture `missing_interface` | build/run + 语义负例 | XRT UTF-8 文件读取、严格格式、默认身份、完整提交和失败清理有覆盖。 |
+| `CGEN-PKG-021..023` manifest 候选、path 分类、显式文件与目录 package 候选 | `counter/xlang.package.json`、`import_path_no_ext.xl`、fixture `missing_interface` | import 消费 + IR/C 检查 + 语义负例 | 文件存在但内容无效时回滚；显式 manifest 与目录 manifest 顺序有覆盖。 |
+| `CGEN-PKG-024..030` 裸包名约束、环境与程序目录搜索、结果生命周期、resolver 前置、绝对/相对路径顺序 | `import_metadata.xl` 的 `"local/math"`、`import_path_no_ext.xl` 的 `"path_no_ext/probe"`、`test/cases/import_relative_scope/root/source/import_relative_scope.xl`、package fixture | JSON 检查 + IR/C 检查 + import 消费 | importerDir 优先、cwd 路径兜底、`XLANG_PACKAGE_PATH` 与程序旁 `extlibs` 搜索均有覆盖。 |
+| `CGEN-PKG-031..032` 裸包入口与严格 unresolved 边界 | `import_package_use.xl`、`import_lib_search.xl`、`import_dependency_private.xl`、`import_dependency_versions.xl`、packages `counter/uses_dep*`、`test/fixtures/libprobe` | build/run + IR/C 检查 | 裸包搜索不退回旧固定目录；失败结果保留 target 且不残留半初始化身份。 |
 
 ## 剩余风险与后续增强
 

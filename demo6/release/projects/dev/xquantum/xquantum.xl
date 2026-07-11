@@ -1,0 +1,1983 @@
+// xquantum - 量子计算模拟器
+//
+// 纯 xlang 实现的量子态矢量模拟器，支持单/双/三量子比特门、张量积、
+// 测量坍缩，并内置 Bell 态、Deutsch、Grover、QFT 四种典型量子算法。
+//
+// 用法：
+//   xquantum bell                     制备 Bell 态并测量统计（量子纠缠演示）
+//   xquantum deutsch                  运行 4 个 Deutsch 预言机，判断常数/平衡
+//   xquantum grover <n> [marked]      在 2^n 项中 Grover 搜索 marked（默认 n=3）
+//   xquantum qft <n>                  对 |0..0> 执行 QFT 并打印态矢量
+//   xquantum test                     运行完整自检（门、态、测量、算法）
+//   xquantum gates                    打印全部内置量子门矩阵
+//
+// 设计要点：
+//   - 量子态用 2 个 array<float> 表示 N 量子比特的 2^N 维态矢量：
+//       re[i] = 第 i 个基态复数振幅的实部，im[i] = 虚部。
+//   - 量子门用 2 个 array<float> 表示 dim*dim 复数矩阵（dim = 2^门作用位数）。
+//   - 复数运算全部内联（a*c - b*d 形式），避免装箱开销。
+//   - applyGate 通用子空间算法：对 k 位门，把基态按目标位抽取子空间下标，
+//     再用矩阵 × 子空间向量完成门作用，统一处理 1/2/3 位门。
+//   - 测量：按 |振幅|^2 概率采样并坍缩态矢量（单量子位）或返回基态（全测）。
+//   - 算法（Grover 扩散 / QFT 受控旋转 / Deutsch 预言机）既用通用门框架，
+//     也提供等价的直接态操作实现并交叉验证。
+//   - 电路构建器 Circuit：以 GateOp 序列组合门，run() 顺序施加并返回终态。
+//
+// 约定：
+//   - 量子位编号：q0 是最低有效位（LSB），基态 |i> 的第 q 位 = (i >> q) & 1。
+//   - 门目标数组 targets：targets[0] 对应门子空间的最低有效位。
+//   - 所有角度以弧度为单位。
+
+// ============================================================
+// 第 1 节：数学常量与数值格式化
+// ============================================================
+
+// sqrt(2) 与 1/sqrt(2)，预计算避免重复开方。
+float SQRT2 = 1.4142135623730951
+float INV_SQRT2 = 0.7071067811865476
+
+// 浮点近似相等阈值（用于自检比较复数振幅）。
+float EPS = 1e-9
+
+// 判断浮点是否表示一个整数（用于格式化时省略小数部分）。
+func isWhole(float v) as bool
+    if math.isNaN(v) then
+        return false
+    end
+    if math.isInf(v) then
+        return false
+    end
+    if math.abs(v) < 1e15 and v == math.floor(v) then
+        return true
+    end
+    return false
+end
+
+// 把单个浮点格式化为短文本：整数显示为整数，否则保留 4 位小数。
+func fmtNum(float v) as string
+    if math.isNaN(v) then
+        return "nan"
+    end
+    if math.isInf(v) then
+        if v < 0.0 then
+            return "-inf"
+        end
+        return "inf"
+    end
+    if isWhole(v) then
+        return string(int(v))
+    end
+    return string.formatFloat(v, ".4")
+end
+
+// 带符号格式化：正数前补 '+'，便于拼接复数实/虚部。
+func fmtSigned(float v) as string
+    string s = fmtNum(v)
+    if string.startsWith(s, "-") then
+        return s
+    end
+    return "+" + s
+end
+
+// 把一个复数 (re, im) 格式化为 "a+bj" 形式。
+func fmtComplex(float re, float im) as string
+    if math.abs(im) < EPS then
+        return fmtNum(re)
+    end
+    if math.abs(re) < EPS then
+        return fmtNum(im) + "j"
+    end
+    return fmtNum(re) + fmtSigned(im) + "j"
+end
+
+// 生成 [0, 1) 区间均匀分布伪随机浮点。
+func randomUnit() as float
+    uint64 u = random.u32()
+    return float(u) / 4294967296.0
+end
+
+// ============================================================
+// 第 2 节：量子态矢量
+// ============================================================
+
+// 返回 N 量子比特对应的态空间维数 2^N（用整数累乘避免依赖浮点幂）。
+func stateDim(int n) as int
+    int d = 1
+    int i = 0
+    while i < n do
+        d = d * 2
+        i += 1
+    end
+    return d
+end
+
+// 创建全 |0...0> 的 N 量子比特态矢量，返回 (re, im)。
+func stateZero(int n) as (array<float>, array<float>)
+    int dim = stateDim(n)
+    array<float> re = array[]
+    array<float> im = array[]
+    int i = 0
+    while i < dim do
+        if i == 0 then
+            re.append(1.0)
+        else
+            re.append(0.0)
+        end
+        im.append(0.0)
+        i += 1
+    end
+    return re, im
+end
+
+// 创建空（全 0）态矢量，返回 (re, im)，长度由调用方语义保证。
+func stateBlank(int dim) as (array<float>, array<float>)
+    array<float> re = array[]
+    array<float> im = array[]
+    int i = 0
+    while i < dim do
+        re.append(0.0)
+        im.append(0.0)
+        i += 1
+    end
+    return re, im
+end
+
+// 把态矢量置为指定基态 |index>（实部 1，其余 0）。
+func stateSetBasis(array<float> re, array<float> im, int index)
+    int dim = re.length
+    int i = 0
+    while i < dim do
+        if i == index then
+            re[i] = 1.0
+            im[i] = 0.0
+        else
+            re[i] = 0.0
+            im[i] = 0.0
+        end
+        i += 1
+    end
+end
+
+// 复制态矢量，返回 (re, im) 的新副本。
+func stateCopy(array<float> re, array<float> im) as (array<float>, array<float>)
+    int dim = re.length
+    array<float> nr = array[]
+    array<float> ni = array[]
+    int i = 0
+    while i < dim do
+        nr.append(re[i])
+        ni.append(im[i])
+        i += 1
+    end
+    return nr, ni
+end
+
+// 计算态矢量总概率（应等于 1）：sum |a_i|^2。
+func stateNorm(array<float> re, array<float> im) as float
+    int dim = re.length
+    float sum = 0.0
+    int i = 0
+    while i < dim do
+        float r = re[i]
+        float c = im[i]
+        sum = sum + r * r + c * c
+        i += 1
+    end
+    return sum
+end
+
+// 把态矢量原地归一化（除以总概率的平方根）。
+func stateNormalize(array<float> re, array<float> im)
+    float norm = stateNorm(re, im)
+    if norm < EPS then
+        return
+    end
+    float f = 1.0 / math.sqrt(norm)
+    int i = 0
+    while i < re.length do
+        re[i] = re[i] * f
+        im[i] = im[i] * f
+        i += 1
+    end
+end
+
+// 把整数 i 的低 n 位格式化为长度 n 的二进制字符串（高位在前）。
+func binString(int i, int n) as string
+    string s = ""
+    int bit = n - 1
+    while bit >= 0 do
+        if ((i >> bit) & 1) == 1 then
+            s = s + "1"
+        else
+            s = s + "0"
+        end
+        bit -= 1
+    end
+    return s
+end
+
+// 打印态矢量：列出所有概率非零的基态及其复数振幅与概率。
+func statePrint(array<float> re, array<float> im, int n)
+    int dim = re.length
+    println("State vector (" + string(n) + " qubits, dim=" + string(dim) + "):")
+    int i = 0
+    while i < dim do
+        float r = re[i]
+        float c = im[i]
+        float prob = r * r + c * c
+        if prob > EPS then
+            println("  |" + binString(i, n) + ">  amp=" + fmtComplex(r, c) +
+                    "  p=" + string.formatFloat(prob, ".4"))
+        end
+        i += 1
+    end
+end
+
+// ============================================================
+// 第 3 节：单量子比特门（2x2 复数矩阵）
+// ============================================================
+
+// 门矩阵存储约定：长度 dim*dim 的一维数组，行优先；
+// G[r*dim + c] 表示矩阵第 r 行第 c 列。
+
+// 单位门 I。
+func gateI() as (array<float>, array<float>)
+    array<float> re = array<float>[1.0, 0.0, 0.0, 1.0]
+    array<float> im = array<float>[0.0, 0.0, 0.0, 0.0]
+    return re, im
+end
+
+// Hadamard 门 H = 1/sqrt(2) [[1, 1], [1, -1]]。
+func gateH() as (array<float>, array<float>)
+    array<float> re = array<float>[INV_SQRT2, INV_SQRT2, INV_SQRT2, -INV_SQRT2]
+    array<float> im = array<float>[0.0, 0.0, 0.0, 0.0]
+    return re, im
+end
+
+// Pauli-X（NOT 门）[[0,1],[1,0]]。
+func gateX() as (array<float>, array<float>)
+    array<float> re = array<float>[0.0, 1.0, 1.0, 0.0]
+    array<float> im = array<float>[0.0, 0.0, 0.0, 0.0]
+    return re, im
+end
+
+// Pauli-Y [[0,-i],[i,0]]。
+func gateY() as (array<float>, array<float>)
+    array<float> re = array<float>[0.0, 0.0, 0.0, 0.0]
+    array<float> im = array<float>[0.0, -1.0, 1.0, 0.0]
+    return re, im
+end
+
+// Pauli-Z [[1,0],[0,-1]]。
+func gateZ() as (array<float>, array<float>)
+    array<float> re = array<float>[1.0, 0.0, 0.0, -1.0]
+    array<float> im = array<float>[0.0, 0.0, 0.0, 0.0]
+    return re, im
+end
+
+// S 门 = Phase(π/2) = diag(1, i)。
+func gateS() as (array<float>, array<float>)
+    array<float> re = array<float>[1.0, 0.0, 0.0, 0.0]
+    array<float> im = array<float>[0.0, 0.0, 0.0, 1.0]
+    return re, im
+end
+
+// S†（S 的共轭转置）= diag(1, -i)。
+func gateSdg() as (array<float>, array<float>)
+    array<float> re = array<float>[1.0, 0.0, 0.0, 0.0]
+    array<float> im = array<float>[0.0, 0.0, 0.0, -1.0]
+    return re, im
+end
+
+// T 门 = Phase(π/4) = diag(1, e^{iπ/4})。
+func gateT() as (array<float>, array<float>)
+    float c = math.cos(math.pi / 4.0)
+    float s = math.sin(math.pi / 4.0)
+    array<float> re = array<float>[1.0, 0.0, 0.0, c]
+    array<float> im = array<float>[0.0, 0.0, 0.0, s]
+    return re, im
+end
+
+// T†（T 的共轭转置）= diag(1, e^{-iπ/4})。
+func gateTdg() as (array<float>, array<float>)
+    float c = math.cos(math.pi / 4.0)
+    float s = math.sin(math.pi / 4.0)
+    array<float> re = array<float>[1.0, 0.0, 0.0, c]
+    array<float> im = array<float>[0.0, 0.0, 0.0, -s]
+    return re, im
+end
+
+// 通用相位门 Phase(θ) = diag(1, e^{iθ})。
+func gatePhase(float theta) as (array<float>, array<float>)
+    float c = math.cos(theta)
+    float s = math.sin(theta)
+    array<float> re = array<float>[1.0, 0.0, 0.0, c]
+    array<float> im = array<float>[0.0, 0.0, 0.0, s]
+    return re, im
+end
+
+// Rx(θ) = [[cos(θ/2), -i sin(θ/2)], [-i sin(θ/2), cos(θ/2)]]。
+func gateRx(float theta) as (array<float>, array<float>)
+    float c = math.cos(theta / 2.0)
+    float s = math.sin(theta / 2.0)
+    array<float> re = array<float>[c, 0.0, 0.0, c]
+    array<float> im = array<float>[0.0, -s, -s, 0.0]
+    return re, im
+end
+
+// Ry(θ) = [[cos(θ/2), -sin(θ/2)], [sin(θ/2), cos(θ/2)]]。
+func gateRy(float theta) as (array<float>, array<float>)
+    float c = math.cos(theta / 2.0)
+    float s = math.sin(theta / 2.0)
+    array<float> re = array<float>[c, -s, s, c]
+    array<float> im = array<float>[0.0, 0.0, 0.0, 0.0]
+    return re, im
+end
+
+// Rz(θ) = [[e^{-iθ/2}, 0], [0, e^{iθ/2}]]。
+func gateRz(float theta) as (array<float>, array<float>)
+    float c = math.cos(theta / 2.0)
+    float s = math.sin(theta / 2.0)
+    array<float> re = array<float>[c, 0.0, 0.0, c]
+    array<float> im = array<float>[-s, 0.0, 0.0, s]
+    return re, im
+end
+
+// 通用单量子位门 U(θ,φ,λ)。返回 OpenQASM 3 风格 U3 矩阵。
+// U3 = [[cos(θ/2), -e^{iλ} sin(θ/2)],
+//       [e^{iφ} sin(θ/2), e^{i(φ+λ)} cos(θ/2)]]
+func gateU3(float theta, float phi, float lambda) as (array<float>, array<float>)
+    float c = math.cos(theta / 2.0)
+    float s = math.sin(theta / 2.0)
+    float cl = math.cos(lambda)
+    float sl = math.sin(lambda)
+    float cp = math.cos(phi)
+    float sp = math.sin(phi)
+    float cpl = math.cos(phi + lambda)
+    float spl = math.sin(phi + lambda)
+    array<float> re = array<float>[c, -cl * s, cp * s, cpl * c]
+    array<float> im = array<float>[0.0, -sl * s, sp * s, spl * c]
+    return re, im
+end
+
+// ============================================================
+// 第 4 节：双量子比特门（4x4 复数矩阵）
+// ============================================================
+
+// 子空间基序：s = b1*2 + b0，b0 = targets[0]（LSB），b1 = targets[1]（MSB）。
+
+// CNOT：targets=[targ, ctrl]，ctrl=1 时翻转 targ。
+// |00>→|00>, |01>→|01>, |10>→|11>, |11>→|10>。
+func gateCNOT() as (array<float>, array<float>)
+    array<float> re = array<float>[
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0, 0.0
+    ]
+    array<float> im = array<float>[
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0
+    ]
+    return re, im
+end
+
+// CZ = diag(1, 1, 1, -1)。
+func gateCZ() as (array<float>, array<float>)
+    array<float> re = array<float>[
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, -1.0
+    ]
+    array<float> im = array<float>[
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0
+    ]
+    return re, im
+end
+
+// SWAP：交换两个量子位。
+// |00>→|00>, |01>→|10>, |10>→|01>, |11>→|11>。
+func gateSWAP() as (array<float>, array<float>)
+    array<float> re = array<float>[
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    ]
+    array<float> im = array<float>[
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0
+    ]
+    return re, im
+end
+
+// 受控相位 CP(θ)：targets=[targ, ctrl]，ctrl=1 时对 targ 施加 Phase(θ)。
+// |10>,|11> 各乘 e^{iθ}，其余不变。
+func gateCP(float theta) as (array<float>, array<float>)
+    float c = math.cos(theta)
+    float s = math.sin(theta)
+    array<float> re = array<float>[
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, c,   0.0,
+        0.0, 0.0, 0.0, c
+    ]
+    array<float> im = array<float>[
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, s,   0.0,
+        0.0, 0.0, 0.0, s
+    ]
+    return re, im
+end
+
+// ============================================================
+// 第 5 节：三量子比特门（8x8 复数矩阵）
+// ============================================================
+
+// 子空间基序：s = b2*4 + b1*2 + b0。
+//   b0 = targets[0]（LSB）, b1 = targets[1], b2 = targets[2]（MSB）。
+
+// Toffoli（CCNOT）：targets=[targ, c1, c2]，c1=c2=1 时翻转 targ。
+// 即 |110>↔|111>（s=6↔7），其余恒等。
+func gateToffoli() as (array<float>, array<float>)
+    // 8x8 单位矩阵，再把 (6,6) 与 (7,7) 对调为 (7,6) 与 (6,7)。
+    array<float> re = array<float>[
+        1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0
+    ]
+    array<float> im = array[]
+    int i = 0
+    while i < 64 do
+        im.append(0.0)
+        i += 1
+    end
+    return re, im
+end
+
+// Fredkin（CSWAP）：targets=[a, b, ctrl]，ctrl=1 时交换 a、b。
+// ctrl=0（b2=0，s<4）恒等；ctrl=1 时：
+//   |100>(s=4)→|100>, |101>(s=5)↔|110>(s=6), |111>(s=7)→|111>。
+func gateFredkin() as (array<float>, array<float>)
+    array<float> re = array<float>[
+        1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0
+    ]
+    array<float> im = array[]
+    int i = 0
+    while i < 64 do
+        im.append(0.0)
+        i += 1
+    end
+    return re, im
+end
+
+// 构造全零复数矩阵（dim*dim），用于后续填充。
+func matrixZero(int dim) as (array<float>, array<float>)
+    array<float> re = array[]
+    array<float> im = array[]
+    int total = dim * dim
+    int i = 0
+    while i < total do
+        re.append(0.0)
+        im.append(0.0)
+        i += 1
+    end
+    return re, im
+end
+
+// ============================================================
+// 第 6 节：复数矩阵运算（乘法、张量积、共轭转置）
+// ============================================================
+
+// 复数矩阵乘法 C = A * B，三者均为 (re, im)，维度 adim x bdim 等。
+// A: arows x Acols，B: Acols x Bcols，结果 arows x Bcols。
+func matMul(array<float> aRe, array<float> aIm,
+            array<float> bRe, array<float> bIm,
+            int aRows, int aCols, int bCols) as (array<float>, array<float>)
+    array<float> re = array[]
+    array<float> im = array[]
+    int total = aRows * bCols
+    int z = 0
+    while z < total do
+        re.append(0.0)
+        im.append(0.0)
+        z += 1
+    end
+    int r = 0
+    while r < aRows do
+        int c = 0
+        while c < bCols do
+            float sr = 0.0
+            float si = 0.0
+            int k = 0
+            while k < aCols do
+                float ar = aRe[r * aCols + k]
+                float ai = aIm[r * aCols + k]
+                float br = bRe[k * bCols + c]
+                float bi = bIm[k * bCols + c]
+                sr = sr + ar * br - ai * bi
+                si = si + ar * bi + ai * br
+                k += 1
+            end
+            re[r * bCols + c] = sr
+            im[r * bCols + c] = si
+            c += 1
+        end
+        r += 1
+    end
+    return re, im
+end
+
+// 张量积 C = A ⊗ B。
+// A: a x a，B: b x b，结果 (a*b) x (a*b)。
+// 用于构造 I⊗G、G⊗I 等多量子位算符。
+func tensorProduct(array<float> aRe, array<float> aIm,
+                   array<float> bRe, array<float> bIm,
+                   int a, int b) as (array<float>, array<float>)
+    int cd = a * b
+    array<float> re = array[]
+    array<float> im = array[]
+    int total = cd * cd
+    int z = 0
+    while z < total do
+        re.append(0.0)
+        im.append(0.0)
+        z += 1
+    end
+    int i = 0
+    while i < a do
+        int j = 0
+        while j < a do
+            float ar = aRe[i * a + j]
+            float ai = aIm[i * a + j]
+            int p = 0
+            while p < b do
+                int q = 0
+                while q < b do
+                    float br = bRe[p * b + q]
+                    float bi = bIm[p * b + q]
+                    re[(i * b + p) * cd + (j * b + q)] = ar * br - ai * bi
+                    im[(i * b + p) * cd + (j * b + q)] = ar * bi + ai * br
+                    q += 1
+                end
+                p += 1
+            end
+            j += 1
+        end
+        i += 1
+    end
+    return re, im
+end
+
+// 构造 N 量子比特单位矩阵 I_{2^N}（dim x dim 复数，虚部全 0）。
+func identityN(int n) as (array<float>, array<float>)
+    int dim = stateDim(n)
+    array<float> re = array[]
+    array<float> im = array[]
+    int i = 0
+    while i < dim do
+        int j = 0
+        while j < dim do
+            if i == j then
+                re.append(1.0)
+            else
+                re.append(0.0)
+            end
+            im.append(0.0)
+            j += 1
+        end
+        i += 1
+    end
+    return re, im
+end
+
+// 共轭转置（dagger）：用于自检构造逆矩阵（幺正门 U† = U^{-1}）。
+func dagger(array<float> re, array<float> im, int dim) as (array<float>, array<float>)
+    array<float> nr = array[]
+    array<float> ni = array[]
+    int total = dim * dim
+    int z = 0
+    while z < total do
+        nr.append(0.0)
+        ni.append(0.0)
+        z += 1
+    end
+    int i = 0
+    while i < dim do
+        int j = 0
+        while j < dim do
+            nr[j * dim + i] = re[i * dim + j]
+            ni[j * dim + i] = -im[i * dim + j]
+            j += 1
+        end
+        i += 1
+    end
+    return nr, ni
+end
+
+// 打印复数方阵（dim x dim）。
+func matrixPrint(array<float> re, array<float> im, int dim, string title)
+    println(title + " (" + string(dim) + "x" + string(dim) + "):")
+    int i = 0
+    while i < dim do
+        string row = "  ["
+        int j = 0
+        while j < dim do
+            row = row + fmtComplex(re[i * dim + j], im[i * dim + j])
+            if j + 1 < dim then
+                row = row + ", "
+            end
+            j += 1
+        end
+        row = row + "]"
+        println(row)
+        i += 1
+    end
+end
+
+// ============================================================
+// 第 7 节：门作用 —— 通用子空间算法
+// ============================================================
+
+// 从基态 idx 按 targets 抽取子空间下标 s。
+// targets[0] 对应 s 的第 0 位，targets[k] 对应 s 的第 k 位。
+func subIndex(int idx, array<int> targets) as int
+    int s = 0
+    int k = targets.length
+    int j = 0
+    while j < k do
+        if ((idx >> targets[j]) & 1) == 1 then
+            s = s | (1 << j)
+        end
+        j += 1
+    end
+    return s
+end
+
+// 把 idx 在 targets 位上的位清零，返回清除后的值。
+// 用 XOR 清位：仅当目标位为 1 时翻转，等价于 v & ~(1<<b)。
+func clearTargets(int idx, array<int> targets) as int
+    int v = idx
+    int k = targets.length
+    int j = 0
+    while j < k do
+        int b = targets[j]
+        if ((v >> b) & 1) == 1 then
+            v = v ^ (1 << b)
+        end
+        j += 1
+    end
+    return v
+end
+
+// 把子空间下标 sp 写回 cleared（已清零目标位）的对应 targets 位上。
+func embedSub(int cleared, int sp, array<int> targets) as int
+    int v = cleared
+    int k = targets.length
+    int j = 0
+    while j < k do
+        if ((sp >> j) & 1) == 1 then
+            v = v | (1 << targets[j])
+        end
+        j += 1
+    end
+    return v
+end
+
+// 通用门作用：把 dim=gDim 的 k 位门（k=log2(gDim)）作用到态矢量，
+// 作用位由 targets 给出。返回新的 (re, im)。
+// 算法：对每个输出基态 idx，new[idx] = Σ_{sp} G[s, sp] * old[partner(idx, sp)]，
+// 其中 s = idx 的子空间下标，partner = idx 非目标位不变 + sp 重写目标位。
+func applyGate(array<float> re, array<float> im,
+               array<float> gRe, array<float> gIm, int gDim,
+               array<int> targets) as (array<float>, array<float>)
+    int dim = re.length
+    int k = targets.length
+    if stateDim(k) != gDim then
+        throw "applyGate: target count " + string(k) +
+              " does not match gate dim " + string(gDim)
+    end
+    array<float> newRe = array[]
+    array<float> newIm = array[]
+    int z = 0
+    while z < dim do
+        newRe.append(0.0)
+        newIm.append(0.0)
+        z += 1
+    end
+    int idx = 0
+    while idx < dim do
+        int s = subIndex(idx, targets)
+        int cleared = clearTargets(idx, targets)
+        float accRe = 0.0
+        float accIm = 0.0
+        int sp = 0
+        while sp < gDim do
+            int partner = embedSub(cleared, sp, targets)
+            float gr = gRe[s * gDim + sp]
+            float gi = gIm[s * gDim + sp]
+            float oldR = re[partner]
+            float oi = im[partner]
+            accRe = accRe + gr * oldR - gi * oi
+            accIm = accIm + gr * oi + gi * oldR
+            sp += 1
+        end
+        newRe[idx] = accRe
+        newIm[idx] = accIm
+        idx += 1
+    end
+    return newRe, newIm
+end
+
+// 便利封装：对态施加单量子位门 g 于目标位 targ。
+func applySingle(array<float> re, array<float> im,
+                 array<float> gRe, array<float> gIm, int targ)
+                 as (array<float>, array<float>)
+    array<int> targets = array<int>[targ]
+    return applyGate(re, im, gRe, gIm, 2, targets)
+end
+
+// 便利封装：对态施加双量子位门 g。
+// targets：[targ_LSB, ctrl_MSB]（targets[0] 为子空间 LSB）。
+func applyDouble(array<float> re, array<float> im,
+                 array<float> gRe, array<float> gIm,
+                 int t0, int t1) as (array<float>, array<float>)
+    array<int> targets = array<int>[t0, t1]
+    return applyGate(re, im, gRe, gIm, 4, targets)
+end
+
+// 便利封装：对态施加三量子位门 g。
+func applyTriple(array<float> re, array<float> im,
+                 array<float> gRe, array<float> gIm,
+                 int t0, int t1, int t2) as (array<float>, array<float>)
+    array<int> targets = array<int>[t0, t1, t2]
+    return applyGate(re, im, gRe, gIm, 8, targets)
+end
+
+// ============================================================
+// 第 8 节：测量
+// ============================================================
+
+// 计算单量子位 q 测得 0 的概率：Σ_{bit q=0 的基态} |amp|^2。
+func probQubitZero(array<float> re, array<float> im, int q) as float
+    int dim = re.length
+    float sum = 0.0
+    int i = 0
+    while i < dim do
+        if ((i >> q) & 1) == 0 then
+            float r = re[i]
+            float c = im[i]
+            sum = sum + r * r + c * c
+        end
+        i += 1
+    end
+    return sum
+end
+
+// 计算全态概率分布：返回 array<float>，第 i 项 = |amp_i|^2。
+func probDistribution(array<float> re, array<float> im) as array<float>
+    int dim = re.length
+    array<float> p = array[]
+    int i = 0
+    while i < dim do
+        float r = re[i]
+        float c = im[i]
+        p.append(r * r + c * c)
+        i += 1
+    end
+    return p
+end
+
+// 测量单量子位 q 并坍缩态矢量（原地修改 re, im）。
+// 返回测量结果 0 或 1。
+func measureQubit(array<float> re, array<float> im, int q) as int
+    int dim = re.length
+    float p0 = probQubitZero(re, im, q)
+    float r = randomUnit()
+    int outcome = 0
+    if r < p0 then
+        outcome = 0
+    else
+        outcome = 1
+    end
+    // 坍缩：清零另一组，缩放命中组。
+    int i = 0
+    while i < dim do
+        int bit = (i >> q) & 1
+        if bit != outcome then
+            re[i] = 0.0
+            im[i] = 0.0
+        end
+        i += 1
+    end
+    // 归一化（命中组概率 p_outcome）。
+    float pout = 0.0
+    if outcome == 0 then
+        pout = p0
+    else
+        pout = 1.0 - p0
+    end
+    if pout < EPS then
+        throw "measureQubit: zero probability outcome"
+    end
+    float f = 1.0 / math.sqrt(pout)
+    int j = 0
+    while j < dim do
+        re[j] = re[j] * f
+        im[j] = im[j] * f
+        j += 1
+    end
+    return outcome
+end
+
+// 全测：按概率分布采样一个基态索引（不修改态矢量）。
+func measureAll(array<float> re, array<float> im) as int
+    int dim = re.length
+    array<float> p = probDistribution(re, im)
+    float r = randomUnit()
+    float cum = 0.0
+    int i = 0
+    while i < dim do
+        cum = cum + p[i]
+        if r < cum then
+            return i
+        end
+        i += 1
+    end
+    return dim - 1
+end
+
+// 对同一态矢量做 shots 次全测采样，返回 dict<基态索引, 次数>。
+func sampleMany(array<float> re, array<float> im, int shots) as dict<int>
+    dict<int> counts = dict<int>{}
+    int s = 0
+    while s < shots do
+        int r = measureAll(re, im)
+        if r in counts then
+            counts[r] = counts[r] + 1
+        else
+            counts[r] = 1
+        end
+        s += 1
+    end
+    return counts
+end
+
+// 用字符柱状图打印概率分布（每基态一行，柱长 ∝ 概率）。
+func printHistogram(array<float> re, array<float> im, int n, int width)
+    int dim = re.length
+    int i = 0
+    while i < dim do
+        float r = re[i]
+        float c = im[i]
+        float p = r * r + c * c
+        string label = "|" + binString(i, n) + ">"
+        int bars = int(p * float(width) + 0.5)
+        string bar = ""
+        int b = 0
+        while b < bars do
+            bar = bar + "#"
+            b += 1
+        end
+        println("  " + label + " " + string.formatFloat(p, ".4") + " |" + bar)
+        i += 1
+    end
+end
+
+// 按采样次数打印基态计数柱状图。
+func printCounts(dict<int> counts, int n, int shots, int width)
+    int dim = stateDim(n)
+    int i = 0
+    while i < dim do
+        int cnt = 0
+        if i in counts then
+            cnt = counts[i]
+        end
+        float frac = float(cnt) / float(shots)
+        string label = "|" + binString(i, n) + ">"
+        int bars = int(frac * float(width) + 0.5)
+        string bar = ""
+        int b = 0
+        while b < bars do
+            bar = bar + "#"
+            b += 1
+        end
+        println("  " + label + " " + string(cnt) + "/" + string(shots) +
+                " " + string.formatFloat(frac, ".3") + " |" + bar)
+        i += 1
+    end
+end
+
+// ============================================================
+// 第 9 节：直接态操作（Grover 预言机 / 扩散算子的快速实现）
+// ============================================================
+
+// 把基态 |idx> 的振幅相位翻转（乘 -1）。用于 Grover 相位预言机。
+func phaseFlipState(array<float> re, array<float> im, int idx)
+    re[idx] = -re[idx]
+    im[idx] = -im[idx]
+end
+
+// 对一组 marked 基态施加相位翻转。
+func phaseFlipStates(array<float> re, array<float> im, array<int> marked)
+    int n = marked.length
+    int i = 0
+    while i < n do
+        phaseFlipState(re, im, marked[i])
+        i += 1
+    end
+end
+
+// Grover 扩散算子 D = 2|s><s| - I（原地）。
+// |s> = 均匀叠加态。new_i = 2*avg - old_i，avg = (1/N) Σ old_j。
+func groverDiffusion(array<float> re, array<float> im)
+    int dim = re.length
+    float sumRe = 0.0
+    float sumIm = 0.0
+    int i = 0
+    while i < dim do
+        sumRe = sumRe + re[i]
+        sumIm = sumIm + im[i]
+        i += 1
+    end
+    float n = float(dim)
+    float avgRe = sumRe / n
+    float avgIm = sumIm / n
+    int j = 0
+    while j < dim do
+        re[j] = 2.0 * avgRe - re[j]
+        im[j] = 2.0 * avgIm - im[j]
+        j += 1
+    end
+end
+
+// ============================================================
+// 第 10 节：量子电路构建器
+// ============================================================
+
+// 单个门操作记录。
+class GateOp
+    string name = ""
+    array<float> re = array[]
+    array<float> im = array[]
+    int dim = 0
+    array<int> targets = array[]
+
+    create(string name, array<float> re, array<float> im, int dim, array<int> targets)
+        self.name = name
+        self.re = re
+        self.im = im
+        self.dim = dim
+        self.targets = targets
+    end
+end
+
+// 电路：持有量子位数与门操作序列，可顺序施加并测量。
+class Circuit
+    int n = 0
+    array<GateOp> ops = array[]
+
+    create(int n)
+        self.n = n
+        self.ops = array[]
+    end
+
+    // 添加一个门操作。
+    func add(string name, array<float> re, array<float> im, int dim, array<int> targets)
+        GateOp op = GateOp(name, re, im, dim, targets)
+        self.ops.append(op)
+    end
+
+    // 添加单量子位门。
+    func add1(string name, array<float> re, array<float> im, int targ)
+        array<int> ts = array<int>[targ]
+        self.add(name, re, im, 2, ts)
+    end
+
+    // 添加双量子位门。
+    func add2(string name, array<float> re, array<float> im, int t0, int t1)
+        array<int> ts = array<int>[t0, t1]
+        self.add(name, re, im, 4, ts)
+    end
+
+    // 添加三量子位门。
+    func add3(string name, array<float> re, array<float> im, int t0, int t1, int t2)
+        array<int> ts = array<int>[t0, t1, t2]
+        self.add(name, re, im, 8, ts)
+    end
+
+    // 顺序施加所有门，从 |0...0> 出发，返回终态 (re, im)。
+    func run() as (array<float>, array<float>)
+        array<float> re
+        array<float> im
+        re, im = stateZero(self.n)
+        int i = 0
+        int count = self.ops.length
+        while i < count do
+            GateOp op = self.ops[i]
+            re, im = applyGate(re, im, op.re, op.im, op.dim, op.targets)
+            i += 1
+        end
+        return re, im
+    end
+
+    // 打印电路门序列。
+    func dump()
+        println("Circuit (n=" + string(self.n) + ", gates=" + string(self.ops.length) + "):")
+        int i = 0
+        while i < self.ops.length do
+            GateOp op = self.ops[i]
+            string t = ""
+            int j = 0
+            while j < op.targets.length do
+                if j > 0 then
+                    t = t + ","
+                end
+                t = t + string(op.targets[j])
+                j += 1
+            end
+            println("  [" + string(i) + "] " + op.name + " q{" + t + "}")
+            i += 1
+        end
+    end
+end
+
+// ============================================================
+// 第 11 节：算法 1 —— Bell 态（量子纠缠演示）
+// ============================================================
+
+// 制备 Bell 态 |Φ+> = (|00> + |11>)/sqrt(2)。
+// 电路：q0 上 H，再 CNOT(ctrl=q0, targ=q1)。
+// 注意 CNOT targets=[targ, ctrl]，故传 [1, 0]。
+func buildBellCircuit() as Circuit
+    Circuit c = Circuit(2)
+    array<float> hr
+    array<float> hi
+    hr, hi = gateH()
+    c.add1("H", hr, hi, 0)
+    array<float> cr
+    array<float> ci
+    cr, ci = gateCNOT()
+    c.add2("CNOT", cr, ci, 1, 0)
+    return c
+end
+
+// 运行 Bell 态演示：打印态矢量，做 shots 次测量统计，验证只有 |00>、|11>。
+func algoBell(int shots) as int
+    println("==================== Bell State |Phi+> ====================")
+    Circuit c = buildBellCircuit()
+    c.dump()
+    array<float> re
+    array<float> im
+    re, im = c.run()
+    statePrint(re, im, 2)
+    float norm = stateNorm(re, im)
+    println("Total probability: " + string.formatFloat(norm, ".6"))
+    println()
+    println("Measurement samples: " + string(shots))
+    dict<int> counts = sampleMany(re, im, shots)
+    printCounts(counts, 2, shots, 40)
+    println()
+    println("Entanglement check: |00> and |11> each ~0.5, |01> and |10> ~0.")
+    return 0
+end
+
+// ============================================================
+// 第 12 节：算法 2 —— Deutsch 算法
+// ============================================================
+
+// 构造 1 位函数 f 的 Deutsch 预言机 Uf：|x>|y> -> |x>|y XOR f(x)>。
+// 4 个基态 s = 2*q0 + q1（q0=x 在 MSB）。
+// 返回 4x4 复数矩阵，fType: "const0"/"const1"/"id"/"not"。
+func deutschOracle(string fType) as (array<float>, array<float>)
+    array<float> re
+    array<float> im
+    re, im = matrixZero(4)
+    // 对每个输入 s=0..3，输出 = s XOR (f(q0) << 0)（f 作用在 q1 即 bit 0）。
+    int s = 0
+    while s < 4 do
+        int q0 = (s >> 1) & 1
+        int fval = 0
+        if fType == "const0" then
+            fval = 0
+        elseif fType == "const1" then
+            fval = 1
+        elseif fType == "id" then
+            fval = q0
+        elseif fType == "not" then
+            fval = 1 - q0
+        else
+            throw "deutschOracle: unknown fType " + fType
+        end
+        int out = s ^ fval
+        re[out * 4 + s] = 1.0
+        s += 1
+    end
+    return re, im
+end
+
+// 运行 Deutsch 算法：q0=|0>, q1=|1>，X(q1), H(q0), H(q1), Uf, H(q0), 测 q0。
+// q0 测得 0 => f 常数；测得 1 => f 平衡。
+func runDeutschOnce(string fType) as (int, string)
+    array<float> re
+    array<float> im
+    re, im = stateZero(2)
+    // q1 = |1>：对 q1 施加 X。
+    array<float> xr
+    array<float> xi
+    xr, xi = gateX()
+    re, im = applySingle(re, im, xr, xi, 1)
+    // 叠加：H on q0, H on q1。
+    array<float> hr
+    array<float> hi
+    hr, hi = gateH()
+    re, im = applySingle(re, im, hr, hi, 0)
+    re, im = applySingle(re, im, hr, hi, 1)
+    // 预言机 Uf。
+    array<float> ur
+    array<float> ui
+    ur, ui = deutschOracle(fType)
+    // Uf 子空间：s = 2*q0 + q1，即 targets=[q1_LSB=1, q0_MSB=0]。
+    array<int> ts = array<int>[1, 0]
+    re, im = applyGate(re, im, ur, ui, 4, ts)
+    // 最后 H on q0。
+    re, im = applySingle(re, im, hr, hi, 0)
+    // 测 q0（确定性，直接读 bit0=0 的概率）。
+    float p0 = probQubitZero(re, im, 0)
+    int result = 1
+    if p0 > 0.5 then
+        result = 0
+    end
+    string verdict = "balanced"
+    if result == 0 then
+        verdict = "constant"
+    end
+    return result, verdict
+end
+
+// 对全部 4 个预言机运行 Deutsch 并报告。
+func algoDeutsch() as int
+    println("==================== Deutsch Algorithm ====================")
+    array<string> types = array<string>["const0", "const1", "id", "not"]
+    array<string> descs = array<string>[
+        "f(x)=0      (constant)",
+        "f(x)=1      (constant)",
+        "f(x)=x      (balanced)",
+        "f(x)=1-x    (balanced)"
+    ]
+    int i = 0
+    while i < 4 do
+        int res
+        string verdict
+        res, verdict = runDeutschOnce(types[i])
+        println("Oracle " + types[i] + " : " + descs[i])
+        println("  -> measure q0 = " + string(res) +
+                "  verdict: " + verdict)
+        i += 1
+    end
+    println()
+    println("Classical worst case needs 2 queries; Deutsch needs only 1.")
+    return 0
+end
+
+// ============================================================
+// 第 13 节：算法 3 —— Grover 搜索
+// ============================================================
+
+// 返回最优 Grover 迭代次数：R ≈ floor(π/4 * sqrt(N))。
+func groverOptimalIters(int n) as int
+    int dim = stateDim(n)
+    float N = float(dim)
+    float r = math.pi / 4.0 * math.sqrt(N)
+    return int(math.floor(r))
+end
+
+// 用门框架构造 Grover 预言机电路段（相位翻转 marked）：
+// 这里用直接态操作更高效，本函数仅作构造演示（返回标记列表）。
+func groverMarkedList(int marked, int dim) as array<int>
+    array<int> list = array<int>[marked]
+    return list
+end
+
+// 运行 Grover 搜索：在 2^n 项中找 marked。
+// 双路实现并交叉验证：
+//   (A) 直接态操作：phaseFlipStates + groverDiffusion（快速、O(2^n)）。
+//   (B) 矩阵预言机：构造 2^n 对角相位矩阵 + applyGate（验证通用框架）。
+// 报告理论最优迭代数与两路测量结果。
+func algoGrover(int n, int marked) as int
+    if n < 2 then
+        println("Error: grover needs n >= 2")
+        return 1
+    end
+    int dim = stateDim(n)
+    if marked < 0 or marked >= dim then
+        println("Error: marked must be in [0, " + string(dim - 1) + "]")
+        return 1
+    end
+    println("==================== Grover Search ====================")
+    println("n=" + string(n) + " qubits, N=" + string(dim) +
+            " items, target=|" + binString(marked, n) + "> (idx " + string(marked) + ")")
+    int R = groverOptimalIters(n)
+    println("Optimal iterations R = floor(pi/4 * sqrt(N)) = " + string(R))
+    println()
+
+    // ---- 路径 A：直接态操作 ----
+    array<float> reA
+    array<float> imA
+    reA, imA = stateZero(n)
+    // 均匀叠加：全部 H。
+    array<float> hr
+    array<float> hi
+    hr, hi = gateH()
+    int q = 0
+    while q < n do
+        reA, imA = applySingle(reA, imA, hr, hi, q)
+        q += 1
+    end
+    int it = 0
+    while it < R do
+        phaseFlipState(reA, imA, marked)
+        groverDiffusion(reA, imA)
+        it += 1
+    end
+    float pHitA = reA[marked] * reA[marked] + imA[marked] * imA[marked]
+    println("[Path A: direct state ops]")
+    println("  Success probability of target: " + string.formatFloat(pHitA, ".4"))
+    // 多次采样。
+    int shots = 2000
+    random.seed(uint64(12345), uint64(67890))
+    dict<int> countsA = sampleMany(reA, imA, shots)
+    int hitA = 0
+    if marked in countsA then
+        hitA = countsA[marked]
+    end
+    println("  Samples: " + string(shots) + ", hits: " + string(hitA) +
+            " (" + string.formatFloat(float(hitA) / float(shots), ".3") + ")")
+    println()
+
+    // ---- 路径 B：矩阵对角预言机 ----
+    array<float> reB
+    array<float> imB
+    reB, imB = stateZero(n)
+    q = 0
+    while q < n do
+        reB, imB = applySingle(reB, imB, hr, hi, q)
+        q += 1
+    end
+    // 构造全空间对角预言机矩阵（marked 位 -1，其余 +1）。
+    array<float> oRe
+    array<float> oIm
+    oRe, oIm = matrixZero(dim)
+    int d0 = 0
+    while d0 < dim do
+        if d0 == marked then
+            oRe[d0 * dim + d0] = -1.0
+        else
+            oRe[d0 * dim + d0] = 1.0
+        end
+        d0 += 1
+    end
+    // 构造全空间扩散矩阵 D = 2|s><s| - I。
+    array<float> dRe
+    array<float> dIm
+    dRe, dIm = matrixZero(dim)
+    int r0 = 0
+    while r0 < dim do
+        int c0 = 0
+        while c0 < dim do
+            float v = 2.0 / float(dim)
+            if r0 == c0 then
+                v = v - 1.0
+            end
+            dRe[r0 * dim + c0] = v
+            c0 += 1
+        end
+        r0 += 1
+    end
+    // 全空间 targets = [0, 1, ..., n-1]。
+    array<int> allQ = array[]
+    int t = 0
+    while t < n do
+        allQ.append(t)
+        t += 1
+    end
+    int it2 = 0
+    while it2 < R do
+        reB, imB = applyGate(reB, imB, oRe, oIm, dim, allQ)
+        reB, imB = applyGate(reB, imB, dRe, dIm, dim, allQ)
+        it2 += 1
+    end
+    float pHitB = reB[marked] * reB[marked] + imB[marked] * imB[marked]
+    println("[Path B: full-space diagonal matrices via applyGate]")
+    println("  Success probability of target: " + string.formatFloat(pHitB, ".4"))
+    random.seed(uint64(12345), uint64(67890))
+    dict<int> countsB = sampleMany(reB, imB, shots)
+    int hitB = 0
+    if marked in countsB then
+        hitB = countsB[marked]
+    end
+    println("  Samples: " + string(shots) + ", hits: " + string(hitB) +
+            " (" + string.formatFloat(float(hitB) / float(shots), ".3") + ")")
+    println()
+
+    // 交叉验证：两路终态应几乎相同（最大振幅差 < EPS）。
+    float maxDiff = 0.0
+    int i = 0
+    while i < dim do
+        float dr = reA[i] - reB[i]
+        float di = imA[i] - imB[i]
+        float mag = math.sqrt(dr * dr + di * di)
+        if mag > maxDiff then
+            maxDiff = mag
+        end
+        i += 1
+    end
+    println("Cross-check: max amplitude diff (Path A vs B) = " +
+            string.formatFloat(maxDiff, ".2e"))
+    if maxDiff < 1e-6 then
+        println("  => two implementations agree.")
+    else
+        println("  => WARNING: implementations disagree beyond tolerance.")
+    end
+    println()
+    println("Classical: ~N/2 = " + string(dim / 2) +
+            " queries; Grover: ~sqrt(N) = " +
+            string.formatFloat(math.sqrt(float(dim)), ".2") + " queries.")
+    return 0
+end
+
+// ============================================================
+// 第 14 节：算法 4 —— 量子傅里叶变换 QFT
+// ============================================================
+
+// 用门框架构造 QFT 电路（作用于 n 量子位，q0..q_{n-1}）。
+// 标准 QFT 线路：
+//   for j = 0..n-1:
+//       H on q_j
+//       for k = j+1..n-1:
+//           CP(pi / 2^(k-j)) 控制=q_k 目标=q_j
+//   再把 q_j 与 q_{n-1-j} 逐一 SWAP（j < n/2）。
+// 注意 CP targets=[targ_LSB, ctrl_MSB]，故传 [j, k]。
+func buildQFTCircuit(int n) as Circuit
+    Circuit c = Circuit(n)
+    array<float> hr
+    array<float> hi
+    hr, hi = gateH()
+    int j = 0
+    while j < n do
+        c.add1("H", hr, hi, j)
+        int k = j + 1
+        while k < n do
+            float angle = math.pi / float(1 << (k - j))
+            array<float> pr
+            array<float> pi
+            pr, pi = gateCP(angle)
+            c.add2("CP(pi/2^" + string(k - j) + ")", pr, pi, j, k)
+            k += 1
+        end
+        j += 1
+    end
+    // 末端 SWAP。
+    array<float> sr
+    array<float> si
+    sr, si = gateSWAP()
+    int s2 = 0
+    while s2 < n / 2 do
+        c.add2("SWAP", sr, si, s2, n - 1 - s2)
+        s2 += 1
+    end
+    return c
+end
+
+// 直接计算理论 QFT 振幅：|y> = (1/sqrt(N)) Σ_x e^{2πi xy/N} |x>。
+// 用于验证线路输出。返回 (re, im)（输入 |0...0> 的 QFT = 均匀叠加）。
+func qftReferenceUniform(int n) as (array<float>, array<float>)
+    int dim = stateDim(n)
+    float invN = 1.0 / math.sqrt(float(dim))
+    array<float> re = array[]
+    array<float> im = array[]
+    int y = 0
+    while y < dim do
+        // 输入 |0...0>，只有 x=0 贡献：|y> = invN * e^0 = invN。
+        re.append(invN)
+        im.append(0.0)
+        y += 1
+    end
+    return re, im
+end
+
+// 运行 QFT：对 |0...0> 施加 QFT 线路，打印态矢量并与理论均匀叠加交叉验证。
+func algoQFT(int n) as int
+    if n < 1 then
+        println("Error: qft needs n >= 1")
+        return 1
+    end
+    println("==================== Quantum Fourier Transform ====================")
+    println("n=" + string(n) + " qubits, dim=" + string(stateDim(n)))
+    Circuit c = buildQFTCircuit(n)
+    c.dump()
+    println()
+    array<float> re
+    array<float> im
+    re, im = c.run()
+    stateNormalize(re, im)
+    statePrint(re, im, n)
+    // 验证：QFT|0> 应为均匀叠加，每个基态概率 = 1/N。
+    array<float> refRe
+    array<float> refIm
+    refRe, refIm = qftReferenceUniform(n)
+    float maxDiff = 0.0
+    int i = 0
+    while i < re.length do
+        float dr = re[i] - refRe[i]
+        float di = im[i] - refIm[i]
+        float mag = math.sqrt(dr * dr + di * di)
+        if mag > maxDiff then
+            maxDiff = mag
+        end
+        i += 1
+    end
+    println()
+    println("Cross-check vs uniform superposition: max diff = " +
+            string.formatFloat(maxDiff, ".2e"))
+    if maxDiff < 1e-6 then
+        println("  => QFT circuit matches reference QFT|0>.")
+    else
+        println("  => WARNING: QFT mismatch beyond tolerance.")
+    end
+    // 演示：对 |3> 做 QFT，输出应有结构化相位。
+    println()
+    println("--- QFT on basis |" + binString(3 % stateDim(n), n) + "> (if dim>3) ---")
+    if stateDim(n) > 3 then
+        array<float> re2
+        array<float> im2
+        re2, im2 = stateZero(n)
+        stateSetBasis(re2, im2, 3)
+        Circuit c2 = buildQFTCircuit(n)
+        // Circuit.run 总从 |0> 起；这里需从 |3> 起，故手动施加门序列。
+        int g = 0
+        while g < c2.ops.length do
+            GateOp op = c2.ops[g]
+            re2, im2 = applyGate(re2, im2, op.re, op.im, op.dim, op.targets)
+            g += 1
+        end
+        stateNormalize(re2, im2)
+        statePrint(re2, im2, n)
+    end
+    return 0
+end
+
+// ============================================================
+// 第 15 节：自检 test —— 门/态/测量/算法一致性
+// ============================================================
+
+// 比较两个态矢量是否在容差内一致。
+func statesApprox(array<float> r1, array<float> i1,
+                  array<float> r2, array<float> i2, float tol) as bool
+    if r1.length != r2.length then
+        return false
+    end
+    int i = 0
+    while i < r1.length do
+        float dr = r1[i] - r2[i]
+        float di = i1[i] - i2[i]
+        float mag = math.sqrt(dr * dr + di * di)
+        if mag > tol then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+// 验证门 U 是否幺正：U† U == I。
+func checkUnitary(array<float> re, array<float> im, int dim, string name) as bool
+    array<float> dRe
+    array<float> dIm
+    dRe, dIm = dagger(re, im, dim)
+    array<float> pRe
+    array<float> pIm
+    pRe, pIm = matMul(dRe, dIm, re, im, dim, dim, dim)
+    int i = 0
+    while i < dim do
+        int j = 0
+        while j < dim do
+            float expect = 0.0
+            if i == j then
+                expect = 1.0
+            end
+            float dr = pRe[i * dim + j] - expect
+            float di = pIm[i * dim + j]
+            if math.abs(dr) > 1e-6 or math.abs(di) > 1e-6 then
+                println("  FAIL: " + name + " not unitary at (" +
+                        string(i) + "," + string(j) + ")")
+                return false
+            end
+            j += 1
+        end
+        i += 1
+    end
+    return true
+end
+
+// 自检全部。
+func runSelfTest() as int
+    println("==================== xquantum self-test ====================")
+    int passed = 0
+    int failed = 0
+    float tol = 1e-9
+
+    // --- 检查 1：态矢量初始化与范数 ---
+    array<float> r0
+    array<float> i0
+    r0, i0 = stateZero(3)
+    if math.abs(stateNorm(r0, i0) - 1.0) < tol then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: stateZero norm != 1")
+    end
+    if r0.length == 8 then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: stateZero(3) dim != 8")
+    end
+
+    // --- 检查 2：H 门作用产生均匀叠加 ---
+    array<float> hr
+    array<float> hi
+    hr, hi = gateH()
+    array<float> r1
+    array<float> i1
+    r1, i1 = stateZero(1)
+    r1, i1 = applySingle(r1, i1, hr, hi, 0)
+    // 应为 (|0>+|1>)/sqrt(2)。
+    if math.abs(r1[0] - INV_SQRT2) < tol and math.abs(r1[1] - INV_SQRT2) < tol then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: H|0> != uniform superposition")
+    end
+
+    // --- 检查 3：X 门翻转 ---
+    array<float> xr
+    array<float> xi
+    xr, xi = gateX()
+    array<float> r2
+    array<float> i2
+    r2, i2 = stateZero(1)
+    r2, i2 = applySingle(r2, i2, xr, xi, 0)
+    if math.abs(r2[0]) < tol and math.abs(r2[1] - 1.0) < tol then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: X|0> != |1>")
+    end
+
+    // --- 检查 4：Z 门对 |+> 加负号 ---
+    array<float> zr
+    array<float> zi
+    zr, zi = gateZ()
+    r1, i1 = applySingle(r1, i1, zr, zi, 0)
+    // H|0>=(|0>+|1>)/s2; Z 给 (|0>-|1>)/s2。
+    if math.abs(r1[0] - INV_SQRT2) < tol and math.abs(r1[1] + INV_SQRT2) < tol then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: ZH|0> != (|0>-|1>)/sqrt(2)")
+    end
+
+    // --- 检查 5：H H = I（同一量子位两次 H 还原）---
+    array<float> r3
+    array<float> i3
+    r3, i3 = stateZero(1)
+    r3, i3 = applySingle(r3, i3, hr, hi, 0)
+    r3, i3 = applySingle(r3, i3, hr, hi, 0)
+    if math.abs(r3[0] - 1.0) < tol and math.abs(r3[1]) < tol then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: HH|0> != |0>")
+    end
+
+    // --- 检查 6：幺正性（U†U = I）---
+    if checkUnitary(hr, hi, 2, "H") then
+        passed += 1
+    else
+        failed += 1
+    end
+    array<float> rxr
+    array<float> rxi
+    rxr, rxi = gateRx(0.7)
+    if checkUnitary(rxr, rxi, 2, "Rx(0.7)") then
+        passed += 1
+    else
+        failed += 1
+    end
+    array<float> cr
+    array<float> ci
+    cr, ci = gateCNOT()
+    if checkUnitary(cr, ci, 4, "CNOT") then
+        passed += 1
+    else
+        failed += 1
+    end
+    array<float> tr
+    array<float> ti
+    tr, ti = gateToffoli()
+    if checkUnitary(tr, ti, 8, "Toffoli") then
+        passed += 1
+    else
+        failed += 1
+    end
+    array<float> fr
+    array<float> fi
+    fr, fi = gateFredkin()
+    if checkUnitary(fr, fi, 8, "Fredkin") then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    // --- 检查 7：CNOT 产生 Bell 态纠缠 ---
+    array<float> r4
+    array<float> i4
+    r4, i4 = stateZero(2)
+    r4, i4 = applySingle(r4, i4, hr, hi, 0)
+    r4, i4 = applyDouble(r4, i4, cr, ci, 1, 0)
+    // 期望 (|00>+|11>)/sqrt(2)。
+    if math.abs(r4[0] - INV_SQRT2) < tol and
+       math.abs(r4[3] - INV_SQRT2) < tol and
+       math.abs(r4[1]) < tol and math.abs(r4[2]) < tol then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: Bell state not produced")
+    end
+
+    // --- 检查 8：Toffoli 翻转（仅 110<->111）---
+    array<float> r5
+    array<float> i5
+    r5, i5 = stateZero(3)
+    stateSetBasis(r5, i5, 6)   // |110>
+    r5, i5 = applyTriple(r5, i5, tr, ti, 0, 1, 2)
+    if math.abs(r5[7] - 1.0) < tol and math.abs(r5[6]) < tol then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: Toffoli did not flip target")
+    end
+
+    // --- 检查 9：Fredkin 交换 ---
+    r5, i5 = stateZero(3)
+    stateSetBasis(r5, i5, 5)   // |101> = ctrl=1, swap a,b
+    r5, i5 = applyTriple(r5, i5, fr, fi, 0, 1, 2)
+    // |101>(s=5) -> |110>(s=6)
+    if math.abs(r5[6] - 1.0) < tol and math.abs(r5[5]) < tol then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: Fredkin did not swap")
+    end
+
+    // --- 检查 10：张量积 I⊗H（H 作用于 q0/LSB）---
+    array<float> ir_
+    array<float> ii_
+    ir_, ii_ = gateI()
+    array<float> tRe
+    array<float> tIm
+    tRe, tIm = tensorProduct(ir_, ii_, hr, hi, 2, 2)   // I⊗H（q0 上 H）
+    // 作用到 |00>：q0 叠加 -> (|00>+|01>)/sqrt(2) -> idx 0,1 各 s2。
+    array<float> r6
+    array<float> i6
+    r6, i6 = stateZero(2)
+    array<int> all2 = array<int>[0, 1]
+    r6, i6 = applyGate(r6, i6, tRe, tIm, 4, all2)
+    if math.abs(r6[0] - INV_SQRT2) < tol and math.abs(r6[1] - INV_SQRT2) < tol then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: tensor I(x)H wrong")
+    end
+
+    // --- 检查 11：概率分布归一 ---
+    array<float> p = probDistribution(r4, i4)
+    float psum = 0.0
+    int pi = 0
+    while pi < p.length do
+        psum = psum + p[pi]
+        pi += 1
+    end
+    if math.abs(psum - 1.0) < 1e-9 then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: probability distribution not normalized")
+    end
+
+    // --- 检查 12：Grover 两路实现一致（n=3, marked=5）---
+    // 直接态操作。
+    array<float> gA
+    array<float> gAi
+    gA, gAi = stateZero(3)
+    int qq = 0
+    while qq < 3 do
+        gA, gAi = applySingle(gA, gAi, hr, hi, qq)
+        qq += 1
+    end
+    int marked = 5
+    int it = 0
+    int R = groverOptimalIters(3)
+    while it < R do
+        phaseFlipState(gA, gAi, marked)
+        groverDiffusion(gA, gAi)
+        it += 1
+    end
+    // 矩阵路径（复用 algoGrover 内逻辑的精简版）。
+    int dim3 = 8
+    array<float> gB
+    array<float> gBi
+    gB, gBi = stateZero(3)
+    qq = 0
+    while qq < 3 do
+        gB, gBi = applySingle(gB, gBi, hr, hi, qq)
+        qq += 1
+    end
+    array<float> oRe
+    array<float> oIm
+    oRe, oIm = matrixZero(dim3)
+    int d0 = 0
+    while d0 < dim3 do
+        if d0 == marked then
+            oRe[d0 * dim3 + d0] = -1.0
+        else
+            oRe[d0 * dim3 + d0] = 1.0
+        end
+        d0 += 1
+    end
+    array<float> dfRe
+    array<float> dfIm
+    dfRe, dfIm = matrixZero(dim3)
+    int rr = 0
+    while rr < dim3 do
+        int cc = 0
+        while cc < dim3 do
+            float v = 2.0 / float(dim3)
+            if rr == cc then
+                v = v - 1.0
+            end
+            dfRe[rr * dim3 + cc] = v
+            cc += 1
+        end
+        rr += 1
+    end
+    array<int> all3 = array<int>[0, 1, 2]
+    it = 0
+    while it < R do
+        gB, gBi = applyGate(gB, gBi, oRe, oIm, dim3, all3)
+        gB, gBi = applyGate(gB, gBi, dfRe, dfIm, dim3, all3)
+        it += 1
+    end
+    if statesApprox(gA, gAi, gB, gBi, 1e-6) then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: Grover two-path mismatch")
+    end
+
+    // --- 检查 13：QFT|0> = 均匀叠加 ---
+    Circuit qc = buildQFTCircuit(3)
+    array<float> qr_
+    array<float> qi_
+    qr_, qi_ = qc.run()
+    stateNormalize(qr_, qi_)
+    array<float> refR
+    array<float> refI
+    refR, refI = qftReferenceUniform(3)
+    if statesApprox(qr_, qi_, refR, refI, 1e-6) then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: QFT|0> != uniform superposition")
+    end
+
+    // --- 检查 14：Deutsch 正确分类 ---
+    array<string> dTypes = array<string>["const0", "const1", "id", "not"]
+    bool deutschOk = true
+    int di = 0
+    while di < 4 do
+        int res
+        string verdict
+        res, verdict = runDeutschOnce(dTypes[di])
+        bool expectConst = (di < 2)
+        if expectConst and res != 0 then
+            deutschOk = false
+        end
+        if not expectConst and res != 1 then
+            deutschOk = false
+        end
+        di += 1
+    end
+    if deutschOk then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: Deutsch misclassification")
+    end
+
+    // --- 检查 15：binString 位序 ---
+    if binString(5, 4) == "0101" then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: binString(5,4) != 0101")
+    end
+
+    // --- 检查 16：测量坍缩概率守恒 ---
+    array<float> mr_
+    array<float> mi_
+    mr_, mi_ = stateZero(2)
+    mr_, mi_ = applySingle(mr_, mi_, hr, hi, 0)
+    mr_, mi_ = applyDouble(mr_, mi_, cr, ci, 1, 0)
+    random.seed(uint64(42), uint64(7))
+    int outc = measureQubit(mr_, mi_, 0)
+    float mnorm = stateNorm(mr_, mi_)
+    if math.abs(mnorm - 1.0) < 1e-9 then
+        passed += 1
+    else
+        failed += 1
+        println("FAIL: measurement did not preserve norm")
+    end
+
+    println()
+    println("Self-test result: " + string(passed) + " passed, " +
+            string(failed) + " failed")
+    if failed == 0 then
+        println("ALL CHECKS PASSED.")
+        return 0
+    end
+    return 1
+end
+
+// ============================================================
+// 第 16 节：gates 命令 —— 打印全部内置量子门
+// ============================================================
+
+func dumpAllGates() as int
+    println("==================== Built-in Quantum Gates ====================")
+    array<float> r
+    array<float> i
+    r, i = gateI();        matrixPrint(r, i, 2, "I  (Identity)")
+    r, i = gateH();        matrixPrint(r, i, 2, "H  (Hadamard)")
+    r, i = gateX();        matrixPrint(r, i, 2, "X  (Pauli-X / NOT)")
+    r, i = gateY();        matrixPrint(r, i, 2, "Y  (Pauli-Y)")
+    r, i = gateZ();        matrixPrint(r, i, 2, "Z  (Pauli-Z)")
+    r, i = gateS();        matrixPrint(r, i, 2, "S  (Phase pi/2)")
+    r, i = gateSdg();      matrixPrint(r, i, 2, "S+ (S dagger)")
+    r, i = gateT();        matrixPrint(r, i, 2, "T  (Phase pi/4)")
+    r, i = gateTdg();      matrixPrint(r, i, 2, "T+ (T dagger)")
+    r, i = gatePhase(math.pi / 3.0); matrixPrint(r, i, 2, "P(pi/3) (Phase)")
+    r, i = gateRx(math.pi / 2.0);     matrixPrint(r, i, 2, "Rx(pi/2)")
+    r, i = gateRy(math.pi / 2.0);     matrixPrint(r, i, 2, "Ry(pi/2)")
+    r, i = gateRz(math.pi / 2.0);     matrixPrint(r, i, 2, "Rz(pi/2)")
+    r, i = gateU3(math.pi / 2.0, 0.0, math.pi / 2.0)
+    matrixPrint(r, i, 2, "U3(pi/2, 0, pi/2)")
+    r, i = gateCNOT();     matrixPrint(r, i, 4, "CNOT   [targ, ctrl]")
+    r, i = gateCZ();       matrixPrint(r, i, 4, "CZ     [t0, t1]")
+    r, i = gateSWAP();     matrixPrint(r, i, 4, "SWAP   [t0, t1]")
+    r, i = gateCP(math.pi / 4.0)
+    matrixPrint(r, i, 4, "CP(pi/4) [targ, ctrl]")
+    r, i = gateToffoli();  matrixPrint(r, i, 8, "Toffoli [targ, c1, c2]")
+    r, i = gateFredkin();  matrixPrint(r, i, 8, "Fredkin [a, b, ctrl]")
+    return 0
+end
+
+// ============================================================
+// 第 17 节：命令行入口
+// ============================================================
+
+func printUsage()
+    println("xquantum - quantum computing simulator in pure xlang")
+    println("Usage:")
+    println("  xquantum bell               prepare Bell state |Phi+> and measure")
+    println("  xquantum deutsch            run 4 Deutsch oracles (constant/balanced)")
+    println("  xquantum grover <n> [m]     Grover search in 2^n items (default n=3, m=5)")
+    println("  xquantum qft <n>            Quantum Fourier Transform on n qubits")
+    println("  xquantum test               run full self-test")
+    println("  xquantum gates              dump all built-in gate matrices")
+    println()
+    println("State: N qubits -> 2^N dim complex vector (array<float> re + im).")
+    println("Convention: q0 is LSB; gate targets[0] is gate-subspace LSB.")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    try
+        if cmd == "bell" then
+            return algoBell(2000)
+        elseif cmd == "deutsch" then
+            return algoDeutsch()
+        elseif cmd == "grover" then
+            int n = 3
+            if arg.length >= 3 then
+                n = int(string(arg[2]))
+            end
+            int dim = stateDim(n)
+            int marked = 5 % dim
+            if arg.length >= 4 then
+                marked = int(string(arg[3]))
+            end
+            return algoGrover(n, marked)
+        elseif cmd == "qft" then
+            int n = 3
+            if arg.length >= 3 then
+                n = int(string(arg[2]))
+            end
+            return algoQFT(n)
+        elseif cmd == "test" then
+            return runSelfTest()
+        elseif cmd == "gates" then
+            return dumpAllGates()
+        elseif cmd == "help" or cmd == "-h" or cmd == "--help" then
+            printUsage()
+            return 0
+        else
+            println("Error: unknown command '" + cmd + "'")
+            printUsage()
+            return 1
+        end
+    catch e
+        println("Error: " + e.message)
+        return 1
+    end
+
+    return 0
+end

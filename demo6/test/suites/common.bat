@@ -29,9 +29,10 @@ if not exist build\test\__xl_runtime mkdir build\test\__xl_runtime
 copy /Y release\include\xl_runtime.h build\test\__xl_runtime\xl_runtime.h >nul
 if errorlevel 1 exit /b 1
 
-rem cgen output includes a private runtime path. External TCC tests mount only
-rem the temporary mirror under build/test so release/include never pollutes xl.exe.
-set "XL6_TCC_INCLUDES=-Ibuild\test %XL6_TCC_INCLUDES%"
+rem cgen output includes the private runtime and may use Windows TLS primitives.
+rem All generated-C compilations therefore use the WinAPI include closure; host-only
+rem C fixtures tolerate the superset and keep one stable test compiler environment.
+set "XL6_TCC_INCLUDES=-Ibuild\test %XL6_TCC_INCLUDES_WINAPI%"
 set "XL6_TCC_INCLUDES_WINAPI=-Ibuild\test %XL6_TCC_INCLUDES_WINAPI%"
 
 call tools\bootstrap_tcc.bat

@@ -1,0 +1,11 @@
+class BadArrayProperty
+    get value(...) as int
+        return 0
+    end
+end
+
+class BadDictProperty
+    get value(***) as int
+        return 0
+    end
+end

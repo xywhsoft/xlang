@@ -1,0 +1,1851 @@
+// xmapreduce - MapReduce 分布式计算框架（单机多线程模拟分布式）
+//
+// 用法:
+//   xmapreduce wordcount <input.txt> [options]      经典词频统计
+//   xmapreduce inverted-index <dir> [options]        倒排索引（dir 下所有文本文件）
+//   xmapreduce sort <input.txt> [options]            全局排序（数值/字典序）
+//   xmapreduce dedup <input.txt> [options]           全局去重
+//   xmapreduce test                                  内置样例自检（含容错演示）
+//   xmapreduce help                                  显示帮助
+//
+// 通用 options:
+//   --workers <N>       map/reduce worker 线程数（默认 4）
+//   --reducers <R>      reduce 任务（分区）数（默认 3；sort 固定为 1）
+//   --split <L>         每个 input split 的行数（默认 64）
+//   --combine           启用 combiner（本地聚合，减少 shuffle 数据量）
+//   --failrate <P>      故障注入（千分之 P，0=不故障，默认 0；仅用于演示容错）
+//   --retries <K>       单任务最大重试次数（默认 2）
+//   --out <file>        结果写入文件（默认写 stdout）
+//   --quiet             不打印调度细节，只打印最终结果
+//
+// 数据流:
+//   Input -> [Split] -> [Map] -> [Shuffle/Sort] -> [Reduce] -> Output
+//
+// 设计要点:
+//   - Job 配置集中在 g_job（input files / kind / numReduceTasks / numWorkers /
+//     linesPerSplit / useCombiner / maxRetries / failRate）。
+//   - Master（main 线程）负责 split -> 派发 map -> shuffle -> 派发 reduce ->
+//     汇总输出；worker（thread）从 channel<int> 领取任务编号执行。
+//   - channel<int> only：channel 只传任务 id（int），真实数据走受 mutex 保护的
+//     全局结构（g_splits / g_mapOut / g_parts / g_redOut），各结构按 tid/rid 分槽，
+//     不同 worker 写不同槽，无需对数据本身加锁，只在计数器/重排队列上用 g_lock。
+//   - thread 不可拷贝（参考 prodcon.xl），故 worker 线程 fire-and-forget，通过
+//     g_activeMapW / g_activeRedW 计数器（派发前预置）轮询汇合，避免 thread 入容器。
+//   - 容错：worker 执行任务异常 -> 记录尝试次数 -> 未超 maxRetries 则把 tid 重新
+//     send 回 channel 排队重试；超过则计入 g_mapFailed/g_redFailed。failRate 用于
+//     test 命令随机注入故障以演示重试链路真实生效。
+//   - map/reduce/combiner 的具体实现按 g_job.kind 分派（built-in 示例固定），
+//     partitioner 默认 hash(key) % R（自写 hashString，避免依赖外部哈希 API）。
+//   - 字符串逐字节扫描做分词（无 regex.split），splitWords 按字母/数字/下划线切词。
+//
+// 验证能力: class + array<Class> + 方法 + 并发(thread/channel/mutex) +
+//   try/catch 容错 + 选择排序 + 大规模字符串处理 + 多阶段流水线编排。
+
+// =============================================================================
+// 一、基础数据结构
+// =============================================================================
+
+// 单个 key/value 对。无 native 资源，按值语义可入 typed array。
+class KV
+    derive value
+    string key = ""
+    string value = ""
+end
+
+// 构造 KV 的便捷工厂（class 实例作返回值，参考 matrix 的 Matrix 工厂）。
+func makeKV(string k, string v) as KV
+    KV p = KV()
+    p.key = k
+    p.value = v
+    return p
+end
+
+// Map 阶段上下文：mapper 通过 ctx.emit 把 (key,value) 写入本地缓冲。
+// 每个 map task 创建独立 ctx，单 worker 单线程写入，无竞争。
+class MapContext
+    array<KV> out = array[]
+
+    func emit(string k, string v)
+        KV p = makeKV(k, v)
+        self.out.append(p)
+    end
+
+    func emitInt(string k, int v)
+        self.emit(k, string(v))
+    end
+
+    func size() as int
+        return self.out.length
+    end
+end
+
+// Reduce 阶段上下文：reducer 通过 ctx.emit 写最终结果。
+class ReduceContext
+    array<KV> out = array[]
+
+    func emit(string k, string v)
+        KV p = makeKV(k, v)
+        self.out.append(p)
+    end
+
+    func emitInt(string k, int v)
+        self.emit(k, string(v))
+    end
+
+    func size() as int
+        return self.out.length
+    end
+end
+
+// 单个 map task 的输出包装。用 class 包住 array<KV>，使全局存储为 array<MapResult>
+// （单层 typed array），避免 array<array<KV>> 这种嵌套 typed array（当前未验证）。
+class MapResult
+    array<KV> pairs = array[]
+end
+
+// 输入分片：一个 source 名（文件名）+ 若干行。mapper 对每行调用一次。
+class InputSplit
+    string source = ""
+    array<string> lines = array[]
+
+    func lineCount() as int
+        return self.lines.length
+    end
+end
+
+// 分区：shuffle 产出，存放该分区按 key 排好序的 KV 列表。
+// reduce worker 顺序扫描，把相邻相同 key 聚成一组调用 reducer。
+class Partition
+    array<KV> entries = array[]
+
+    func size() as int
+        return self.entries.length
+    end
+end
+
+// Job 配置（全局单例 g_job）。kind 决定 map/reduce/combiner 的分派目标。
+class Job
+    string kind = "wordcount"          // wordcount | inverted-index | sort | dedup
+    array<string> inputFiles = array[] // 输入文件完整路径列表
+    int numReduceTasks = 3             // R: 分区数 / reduce 任务数
+    int numWorkers = 4                 // W: worker 线程数
+    int linesPerSplit = 64             // 每个 split 的最大行数
+    bool useCombiner = false           // 是否启用 combiner（本地聚合）
+    int maxRetries = 2                 // 单任务最大重试次数
+    int failRate = 0                   // 故障注入千分比（0..1000），仅 test 用
+    bool quiet = false                 // 静默调度日志
+end
+
+// =============================================================================
+// 二、全局共享状态（worker 线程通过闭包捕获访问）
+// =============================================================================
+
+Job g_job                               // 当前作业配置
+array<InputSplit> g_splits              // 输入分片列表（map 任务源）
+array<MapResult> g_mapOut               // 每个 map task 的输出，按 tid 分槽
+array<Partition> g_parts                // shuffle 产出的 R 个分区
+array<string> g_redOut                  // 每个 reduce task 的输出文本，按 rid 分槽
+
+channel<int> g_mapCh                    // map 任务 id 分发通道
+channel<int> g_redCh                    // reduce 任务 id 分发通道
+mutex g_lock                            // 保护下方所有计数器与重试队列
+
+int g_mapTotal = 0                      // map 任务总数
+int g_mapDone = 0                       // 成功完成的 map 任务数
+int g_mapFailed = 0                     // 永久失败的 map 任务数
+array<int> g_mapAttempts                // 每个 map task 已尝试次数（按 tid 分槽）
+array<int> g_mapRetries                 // 历经重试的 map task 总次数（统计）
+int g_activeMapW = 0                    // 存活的 map worker 线程数
+
+int g_redTotal = 0
+int g_redDone = 0
+int g_redFailed = 0
+array<int> g_redAttempts
+array<int> g_redRetries
+int g_activeRedW = 0
+
+int g_logSeq = 0                        // 调度日志序号（便于排序查看）
+
+string g_outFile = ""                   // --out 指定的输出文件；空表示写 stdout
+
+var g_args = []                         // 命令行参数快照（main 写入，子函数读取）
+
+// =============================================================================
+// 三、字符串与通用工具
+// =============================================================================
+
+// 安全 var -> string（splitLines 返回动态 array，元素需显式转换）。
+func toStr(var v) as string
+    return string(v)
+end
+
+// 自写字符串哈希（多项式，按字节累计）。避免依赖外部 hash API，保证可移植。
+// 返回非负 int，供 partitioner 取模。按字节长度遍历，与 byteAt 索引一致。
+func hashString(string s) as int
+    int h = 0
+    int n = string.byteLen(s)
+    int i = 0
+    while i < n do
+        int b = string.byteAt(s, i)
+        h = h * 31 + b
+        i += 1
+    end
+    if h < 0 then
+        h = -h
+    end
+    return h
+end
+
+// 默认 partitioner：hash(key) % R。R <= 0 时返回 0 兜底。
+func defaultPartition(string key, int numPartitions) as int
+    if numPartitions <= 0 then
+        return 0
+    end
+    int h = hashString(key)
+    int p = h % numPartitions
+    if p < 0 then
+        p = p + numPartitions
+    end
+    return p
+end
+
+// 把一行文本切分成单词（连续的字母/数字/下划线）。lower=true 时小写化。
+// 无 regex.split，故逐字节扫描（byteLen + byteAt 配对，与 kvdb 遍历风格一致）。
+// 非 ASCII 字节（>=128）当作分隔符，符合英文词频场景惯例。
+func splitWords(string line, bool lower) as array<string>
+    array<string> words = array[]
+    int n = string.byteLen(line)
+    int i = 0
+    string cur = ""
+    while i < n do
+        int b = string.byteAt(line, i)
+        bool letter = (b >= 65 and b <= 90) or (b >= 97 and b <= 122)
+        bool digit = (b >= 48 and b <= 57)
+        bool under = (b == 95)
+        if letter or digit or under then
+            string ch = string.formatInt(b, "c")
+            if lower and (b >= 65 and b <= 90) then
+                // A-Z -> a-z
+                ch = string.formatInt(b + 32, "c")
+            end
+            cur = cur + ch
+        else
+            if string.len(cur) > 0 then
+                words.append(cur)
+                cur = ""
+            end
+        end
+        i += 1
+    end
+    if string.len(cur) > 0 then
+        words.append(cur)
+    end
+    return words
+end
+
+// 读取文件全部行，返回 array<string>。去掉 splitLines 尾部空串（见 README 限制）。
+// 读失败抛异常由调用方 catch（map task 会因此触发重试）。
+func loadFileLines(string path) as array<string>
+    string text = file.readText(path)
+    array raw = string.splitLines(text)
+    int n = raw.length
+    array<string> result = array[]
+    int i = 0
+    while i < n do
+        result.append(toStr(raw[i]))
+        i += 1
+    end
+    if result.length > 0 then
+        if result[result.length - 1] == "" then
+            result.remove(result.length - 1)
+        end
+    end
+    return result
+end
+
+// KV 数组原地选择排序（按 key 升序，字符串字典序）。
+// 稳定够用；map/reduce 单分区规模不大，O(n^2) 可接受。
+func sortKVByKey(array<KV> a)
+    int n = a.length
+    int i = 0
+    while i < n do
+        int sel = i
+        int j = i + 1
+        while j < n do
+            if string.compare(a[j].key, a[sel].key) < 0 then
+                sel = j
+            end
+            j += 1
+        end
+        if sel != i then
+            KV tmp = a[i]
+            a[i] = a[sel]
+            a[sel] = tmp
+        end
+        i += 1
+    end
+end
+
+// 带降序选项的 KV 选择排序（sort 示例按数值降序输出时使用）。
+func sortKVByKeyDesc(array<KV> a)
+    int n = a.length
+    int i = 0
+    while i < n do
+        int sel = i
+        int j = i + 1
+        while j < n do
+            if string.compare(a[j].key, a[sel].key) > 0 then
+                sel = j
+            end
+            j += 1
+        end
+        if sel != i then
+            KV tmp = a[i]
+            a[i] = a[sel]
+            a[sel] = tmp
+        end
+        i += 1
+    end
+end
+
+// 判断字符串是否整数字面量（sort 示例区分数值/字典序）。
+func looksLikeInt(string s) as bool
+    if string.len(s) == 0 then
+        return false
+    end
+    int i = 0
+    int firstByte = string.byteAt(s, 0)
+    if firstByte == 45 or firstByte == 43 then
+        i = 1
+    end
+    if i >= string.len(s) then
+        return false
+    end
+    while i < string.len(s) do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+// 线程安全的调度日志：加序号、加锁打印。quiet 时不输出。
+func schedLog(string phase, string msg)
+    if g_job.quiet then
+        return
+    end
+    g_lock.lock()
+    g_logSeq = g_logSeq + 1
+    string prefix = "[" + string(g_logSeq) + "] " + phase
+    println(prefix + " " + msg)
+    g_lock.unlock()
+end
+
+// 把 int 右对齐到 width 列，便于表格输出。
+func padInt(int v, int width) as string
+    string s = string(v)
+    return string.padLeft(s, width, " ")
+end
+
+// bool -> "on"/"off" 文本（xlang 无三目运算符，统一走本 helper）。
+func boolOnOff(bool b) as string
+    if b then
+        return "on"
+    end
+    return "off"
+end
+
+// =============================================================================
+// 四、输入分片（Split 阶段）
+// =============================================================================
+
+// 把 g_job.inputFiles 全部读入，按 linesPerSplit 切成 InputSplit 列表。
+// 单个文件可能切成多个 split；空文件贡献 0 个 split。
+func buildSplits() as array<InputSplit>
+    array<InputSplit> result = array[]
+    int fi = 0
+    int fcount = g_job.inputFiles.length
+    while fi < fcount do
+        string fp = g_job.inputFiles[fi]
+        array<string> lines = array[]
+        bool ok = true
+        try
+            lines = loadFileLines(fp)
+        catch e
+            ok = false
+            schedLog("SPLIT", "WARN read failed: " + fp + " (" + e.message + ")")
+        end
+        if ok then
+            int total = lines.length
+            int idx = 0
+            while idx < total do
+                InputSplit sp = InputSplit()
+                sp.source = fp
+                int take = g_job.linesPerSplit
+                if take <= 0 then
+                    take = 64
+                end
+                int endIdx = idx + take
+                if endIdx > total then
+                    endIdx = total
+                end
+                int k = idx
+                while k < endIdx do
+                    sp.lines.append(lines[k])
+                    k += 1
+                end
+                result.append(sp)
+                idx = endIdx
+            end
+        end
+        fi += 1
+    end
+    return result
+end
+
+// =============================================================================
+// 五、Map 阶段：mapper 分派与执行
+// =============================================================================
+
+// 按 g_job.kind 分派到具体 mapper。mapper 对 (source, line) 调用 ctx.emit。
+func dispatchMap(string kind, string source, string line, MapContext ctx) as bool
+    if kind == "wordcount" then
+        wcMap(source, line, ctx)
+        return true
+    elseif kind == "inverted-index" then
+        iiMap(source, line, ctx)
+        return true
+    elseif kind == "sort" then
+        sortMap(source, line, ctx)
+        return true
+    elseif kind == "dedup" then
+        dedupMap(source, line, ctx)
+        return true
+    end
+    return false
+end
+
+// 按 kind 分派到 combiner；返回 false 表示该 kind 无 combiner（跳过）。
+func dispatchCombine(string kind, string key, array<string> values, ReduceContext ctx) as bool
+    if kind == "wordcount" then
+        wcCombine(key, values, ctx)
+        return true
+    elseif kind == "dedup" then
+        dedupCombine(key, values, ctx)
+        return true
+    end
+    return false
+end
+
+// 按 kind 分派到 reducer。
+func dispatchReduce(string kind, string key, array<string> values, ReduceContext ctx) as bool
+    if kind == "wordcount" then
+        wcReduce(key, values, ctx)
+        return true
+    elseif kind == "inverted-index" then
+        iiReduce(key, values, ctx)
+        return true
+    elseif kind == "sort" then
+        sortReduce(key, values, ctx)
+        return true
+    elseif kind == "dedup" then
+        dedupReduce(key, values, ctx)
+        return true
+    end
+    return false
+end
+
+// 对一个 map task 的本地输出做 combiner 本地聚合：
+// 排序 -> 相邻同 key 聚成 values -> 调 dispatchCombine -> 写入新 ctx。
+// 该 kind 无 combiner 时直接返回原 ctx。
+func combineLocal(string kind, array<KV> src, ReduceContext dst) as bool
+    bool any = false
+    if kind == "wordcount" then
+        any = true
+    elseif kind == "dedup" then
+        any = true
+    end
+    if not any then
+        return false
+    end
+    sortKVByKey(src)
+    int n = src.length
+    int i = 0
+    while i < n do
+        string key = src[i].key
+        array<string> values = array[]
+        values.append(src[i].value)
+        int j = i + 1
+        while j < n do
+            if string.equals(src[j].key, key) then
+                values.append(src[j].value)
+                j += 1
+            else
+                break
+            end
+        end
+        dispatchCombine(kind, key, values, dst)
+        i = j
+    end
+    return true
+end
+
+// 故障注入：按 g_job.failRate（千分比）判定本次任务是否"失败"。
+// 确定性策略——只在 attempt==0（首次尝试）注入，且按 tid 哈希取模选择固定子集；
+// 重试（attempt>=1）必然成功。这样既能演示"故障->重试->成功"链路，又保证 test
+// 结果确定（不会因概率性永久失败导致计数错乱）。
+func shouldFail(int tid, int attempt) as bool
+    if g_job.failRate <= 0 then
+        return false
+    end
+    if attempt > 0 then
+        return false
+    end
+    int seed = hashString("fail" + string(tid))
+    int mod = seed % 1000
+    return mod < g_job.failRate
+end
+
+// 执行单个 map task（tid）。成功返回 true；失败返回 false（触发重试）。
+// 流程：取 split -> 建 ctx -> 逐行 dispatchMap -> 可选 combiner -> 写 g_mapOut[tid]。
+func runMapTask(int tid) as bool
+    // 故障注入（模拟 worker 崩溃/超时）。读取该 task 已失败次数作为 attempt。
+    int attempt = g_mapAttempts[tid]
+    if shouldFail(tid, attempt) then
+        schedLog("MAP", "task " + string(tid) + " injected FAILURE")
+        return false
+    end
+    if tid < 0 or tid >= g_splits.length then
+        return false
+    end
+    InputSplit sp = g_splits[tid]
+    MapContext ctx = MapContext()
+    int li = 0
+    int ln = sp.lines.length
+    while li < ln do
+        dispatchMap(g_job.kind, sp.source, sp.lines[li], ctx)
+        li += 1
+    end
+    // 可选 combiner：本地聚合后再入 shuffle，显著减少跨分片数据量。
+    if g_job.useCombiner then
+        ReduceContext combined = ReduceContext()
+        bool did = combineLocal(g_job.kind, ctx.out, combined)
+        if did then
+            // 用聚合后的结果替换原始输出。
+            MapResult mr = MapResult()
+            mr.pairs = combined.out
+            g_mapOut[tid] = mr
+            return true
+        end
+    end
+    MapResult raw = MapResult()
+    raw.pairs = ctx.out
+    g_mapOut[tid] = raw
+    return true
+end
+
+// map worker 线程体工厂：返回 func() as int，被 thread(...) 调度。
+// 循环：tryRecvInto(g_mapCh) 领 tid -> 执行 -> 成功 g_mapDone++ -> 失败重试或计失败。
+// 通道在阶段内保持打开（重试通过 send 回队）；done+failed==total 时退出。
+func makeMapWorker(int wid) as func() as int
+    return func() as int
+        int handled = 0
+        while true do
+            int tid = -1
+            bool got = g_mapCh.tryRecvInto(tid)
+            if got then
+                handled += 1
+                bool ok = false
+                try
+                    ok = runMapTask(tid)
+                catch e
+                    ok = false
+                    schedLog("MAP", "task " + string(tid) + " exception: " + e.message)
+                end
+                if ok then
+                    g_lock.lock()
+                    g_mapDone += 1
+                    g_lock.unlock()
+                    schedLog("MAP", "task " + string(tid) + " OK (w" + string(wid) + ")")
+                else
+                    // 容错：决定重试还是永久失败。
+                    g_lock.lock()
+                    g_mapAttempts[tid] = g_mapAttempts[tid] + 1
+                    int att = g_mapAttempts[tid]
+                    if att <= g_job.maxRetries then
+                        g_mapRetries[tid] = g_mapRetries[tid] + 1
+                        g_lock.unlock()
+                        // 重新入队重试（通道仍打开）。
+                        bool sentok = false
+                        int tries = 0
+                        while tries < 200 do
+                            if g_mapCh.send(tid) then
+                                sentok = true
+                                break
+                            end
+                            if g_mapCh.isClosed() then
+                                break
+                            end
+                            time.sleep(1)
+                            tries += 1
+                        end
+                        schedLog("MAP", "task " + string(tid) + " retry #" + string(att) + " requeued")
+                        if not sentok then
+                            // 通道已关无法重排，记为失败。
+                            g_lock.lock()
+                            g_mapFailed += 1
+                            g_lock.unlock()
+                        end
+                    else
+                        g_mapFailed += 1
+                        g_lock.unlock()
+                        schedLog("MAP", "task " + string(tid) + " PERMANENT FAIL after " + string(att) + " attempts")
+                    end
+                end
+            else
+                // 通道暂时空：判断阶段是否结束。
+                g_lock.lock()
+                bool done = (g_mapDone + g_mapFailed >= g_mapTotal)
+                g_lock.unlock()
+                if done then
+                    break
+                end
+                time.sleep(1)
+            end
+        end
+        g_lock.lock()
+        g_activeMapW -= 1
+        g_lock.unlock()
+        return handled
+    end
+end
+
+// =============================================================================
+// 六、Shuffle 阶段：收集 -> 分区 -> 排序
+// =============================================================================
+
+// 收集所有 map 输出到一个大数组，按 defaultPartition 分发到 R 个分区的 entries。
+// 此时 g_mapOut 各槽已就绪（map 阶段完成）。
+func shufflePartition()
+    int R = g_job.numReduceTasks
+    if R <= 0 then
+        R = 1
+    end
+    // 预建 R 个空分区。
+    int r = 0
+    while r < R do
+        Partition p = Partition()
+        g_parts.append(p)
+        r += 1
+    end
+    // 遍历所有 map 输出，逐 KV 路由到分区。
+    int mi = 0
+    int mcount = g_mapOut.length
+    while mi < mcount do
+        array<KV> kvs = g_mapOut[mi].pairs
+        int ki = 0
+        int kn = kvs.length
+        while ki < kn do
+            KV pair = kvs[ki]
+            int pid = defaultPartition(pair.key, R)
+            g_parts[pid].entries.append(pair)
+            ki += 1
+        end
+        mi += 1
+    end
+    // 每个分区内按 key 排序（reduce 依赖有序以做相邻分组）。
+    int ri = 0
+    while ri < R do
+        sortKVByKey(g_parts[ri].entries)
+        ri += 1
+    end
+end
+
+// 打印 shuffle 统计（每分区 KV 数、key 范围）。
+func shuffleReport()
+    if g_job.quiet then
+        return
+    end
+    int R = g_parts.length
+    println("---- shuffle summary ----")
+    int i = 0
+    while i < R do
+        int sz = g_parts[i].entries.length
+        string lo = "(empty)"
+        string hi = "(empty)"
+        if sz > 0 then
+            lo = g_parts[i].entries[0].key
+            hi = g_parts[i].entries[sz - 1].key
+        end
+        println("  partition " + string(i) + " : " + string(sz) + " kvs, key[" + lo + " .. " + hi + "]")
+        i += 1
+    end
+end
+
+// =============================================================================
+// 七、Reduce 阶段：reducer 分派与执行
+// =============================================================================
+
+// 执行单个 reduce task（rid=分区号）。扫描该分区有序 entries，相邻同 key 聚组。
+// 对每组调用 dispatchReduce(key, values, rctx)；rctx.out 写入 g_redOut[rid] 文本。
+func runReduceTask(int rid) as bool
+    int attempt = g_redAttempts[rid]
+    if shouldFail(rid + 100000, attempt) then
+        schedLog("RED", "task " + string(rid) + " injected FAILURE")
+        return false
+    end
+    if rid < 0 or rid >= g_parts.length then
+        return false
+    end
+    array<KV> entries = g_parts[rid].entries
+    ReduceContext rctx = ReduceContext()
+    int n = entries.length
+    int i = 0
+    while i < n do
+        string key = entries[i].key
+        array<string> values = array[]
+        values.append(entries[i].value)
+        int j = i + 1
+        while j < n do
+            if string.equals(entries[j].key, key) then
+                values.append(entries[j].value)
+                j += 1
+            else
+                break
+            end
+        end
+        dispatchReduce(g_job.kind, key, values, rctx)
+        i = j
+    end
+    // 把该分区的 reduce 输出格式化成文本存入 g_redOut[rid]。
+    g_redOut[rid] = formatReduceOutput(g_job.kind, rctx.out)
+    return true
+end
+
+// reduce worker 线程体工厂。结构同 map worker，使用 g_redCh / g_red* 计数器。
+func makeReduceWorker(int wid) as func() as int
+    return func() as int
+        int handled = 0
+        while true do
+            int rid = -1
+            bool got = g_redCh.tryRecvInto(rid)
+            if got then
+                handled += 1
+                bool ok = false
+                try
+                    ok = runReduceTask(rid)
+                catch e
+                    ok = false
+                    schedLog("RED", "task " + string(rid) + " exception: " + e.message)
+                end
+                if ok then
+                    g_lock.lock()
+                    g_redDone += 1
+                    g_lock.unlock()
+                    schedLog("RED", "task " + string(rid) + " OK (w" + string(wid) + ")")
+                else
+                    g_lock.lock()
+                    g_redAttempts[rid] = g_redAttempts[rid] + 1
+                    int att = g_redAttempts[rid]
+                    if att <= g_job.maxRetries then
+                        g_redRetries[rid] = g_redRetries[rid] + 1
+                        g_lock.unlock()
+                        bool sentok = false
+                        int tries = 0
+                        while tries < 200 do
+                            if g_redCh.send(rid) then
+                                sentok = true
+                                break
+                            end
+                            if g_redCh.isClosed() then
+                                break
+                            end
+                            time.sleep(1)
+                            tries += 1
+                        end
+                        schedLog("RED", "task " + string(rid) + " retry #" + string(att) + " requeued")
+                        if not sentok then
+                            g_lock.lock()
+                            g_redFailed += 1
+                            g_lock.unlock()
+                        end
+                    else
+                        g_redFailed += 1
+                        g_lock.unlock()
+                        schedLog("RED", "task " + string(rid) + " PERMANENT FAIL after " + string(att) + " attempts")
+                    end
+                end
+            else
+                g_lock.lock()
+                bool done = (g_redDone + g_redFailed >= g_redTotal)
+                g_lock.unlock()
+                if done then
+                    break
+                end
+                time.sleep(1)
+            end
+        end
+        g_lock.lock()
+        g_activeRedW -= 1
+        g_lock.unlock()
+        return handled
+    end
+end
+
+// 把单个分区的 reduce 输出 KV 列表格式化成多行文本（每行一条）。
+// 不同 kind 可有不同格式（见下方 sortReduce 的降序处理）。
+func formatReduceOutput(string kind, array<KV> out) as string
+    string text = ""
+    int n = out.length
+    int i = 0
+    while i < n do
+        if kind == "wordcount" then
+            text = text + out[i].key + "\t" + out[i].value + "\n"
+        elseif kind == "inverted-index" then
+            text = text + out[i].key + "\t" + out[i].value + "\n"
+        elseif kind == "sort" then
+            text = text + out[i].key + "\n"
+        elseif kind == "dedup" then
+            text = text + out[i].key + "\n"
+        else
+            text = text + out[i].key + "\t" + out[i].value + "\n"
+        end
+        i += 1
+    end
+    return text
+end
+
+// =============================================================================
+// 八、Master：阶段编排（runMapPhase / runReducePhase / runJob）
+// =============================================================================
+
+// 读 g_activeMapW（加锁）。
+func readActiveMap() as int
+    g_lock.lock()
+    int v = g_activeMapW
+    g_lock.unlock()
+    return v
+end
+
+func readActiveRed() as int
+    g_lock.lock()
+    int v = g_activeRedW
+    g_lock.unlock()
+    return v
+end
+
+// 重置 map 阶段全局状态，构建 splits，预填 g_mapOut/g_mapAttempts 槽位，
+// 把所有 map task id 塞入 g_mapCh，然后派发 worker 线程并等待汇合。
+func runMapPhase() as bool
+    g_splits = buildSplits()
+    g_mapTotal = g_splits.length
+    if g_mapTotal == 0 then
+        println("xmapreduce: no input data (empty files?)")
+        return false
+    end
+
+    // 预置输出/尝试计数槽。
+    int i = 0
+    while i < g_mapTotal do
+        MapResult mr = MapResult()
+        g_mapOut.append(mr)
+        g_mapAttempts.append(0)
+        g_mapRetries.append(0)
+        i += 1
+    end
+
+    // 通道容量 >= 任务数，保证重排 send 不会因满而失败。
+    g_mapCh = channel::<int>(g_mapTotal + 8)
+    int ti = 0
+    while ti < g_mapTotal do
+        g_mapCh.send(ti)
+        ti += 1
+    end
+
+    println("==== map phase ====")
+    println("splits:    " + string(g_mapTotal))
+    println("workers:   " + string(g_job.numWorkers))
+    println("combiner:  " + boolOnOff(g_job.useCombiner))
+    println("reducers:  " + string(g_job.numReduceTasks))
+    println("--------------------")
+
+    // 派发前预置 active 计数，消除启动竞争（参考 prodcon.xl 模式）。
+    int w = g_job.numWorkers
+    if w < 1 then
+        w = 1
+    end
+    g_lock.lock()
+    g_activeMapW = w
+    g_mapDone = 0
+    g_mapFailed = 0
+    g_lock.unlock()
+
+    int wid = 1
+    while wid <= w do
+        thread(makeMapWorker(wid))
+        wid += 1
+    end
+
+    // 等待所有 worker 退出（channel 留空 + done+failed==total 触发退出）。
+    while readActiveMap() > 0 do
+        time.sleep(5)
+    end
+    // 关闭并清理通道。
+    g_mapCh.close()
+
+    int retriesUsed = 0
+    int r = 0
+    while r < g_mapRetries.length do
+        retriesUsed += g_mapRetries[r]
+        r += 1
+    end
+    println("--------------------")
+    println("map done:    " + string(g_mapDone) + " / " + string(g_mapTotal))
+    println("map failed:  " + string(g_mapFailed))
+    println("map retries: " + string(retriesUsed))
+    if g_mapFailed > 0 then
+        println("RESULT: map phase had permanent failures")
+        return false
+    end
+    return true
+end
+
+// shuffle：在 map 完成后路由+排序+分组。
+func runShufflePhase()
+    println("==== shuffle phase ====")
+    shufflePartition()
+    shuffleReport()
+end
+
+// 重置 reduce 阶段状态，预填 g_redOut/g_redAttempts，塞 R 个 reduce id，
+// 派发 worker，等待汇合。
+func runReducePhase() as bool
+    g_redTotal = g_parts.length
+    if g_redTotal == 0 then
+        println("xmapreduce: no partitions to reduce")
+        return false
+    end
+
+    int i = 0
+    while i < g_redTotal do
+        g_redOut.append("")
+        g_redAttempts.append(0)
+        g_redRetries.append(0)
+        i += 1
+    end
+
+    g_redCh = channel::<int>(g_redTotal + 8)
+    int ri = 0
+    while ri < g_redTotal do
+        g_redCh.send(ri)
+        ri += 1
+    end
+
+    println("==== reduce phase ====")
+    int w = g_job.numWorkers
+    if w < 1 then
+        w = 1
+    end
+    g_lock.lock()
+    g_activeRedW = w
+    g_redDone = 0
+    g_redFailed = 0
+    g_lock.unlock()
+
+    int wid = 1
+    while wid <= w do
+        thread(makeReduceWorker(wid))
+        wid += 1
+    end
+
+    while readActiveRed() > 0 do
+        time.sleep(5)
+    end
+    g_redCh.close()
+
+    int retriesUsed = 0
+    int r = 0
+    while r < g_redRetries.length do
+        retriesUsed += g_redRetries[r]
+        r += 1
+    end
+    println("--------------------")
+    println("reduce done:    " + string(g_redDone) + " / " + string(g_redTotal))
+    println("reduce failed:  " + string(g_redFailed))
+    println("reduce retries: " + string(retriesUsed))
+    if g_redFailed > 0 then
+        println("RESULT: reduce phase had permanent failures")
+        return false
+    end
+    return true
+end
+
+// 把所有分区的 reduce 输出合并成最终文本。
+// sort 示例要求全局有序：R=1 时直接取；若 R>1 则再做一次跨分区归并排序。
+func collectOutput() as string
+    string kind = g_job.kind
+    if kind == "sort" then
+        return collectSortOutput()
+    end
+    string text = ""
+    int i = 0
+    int n = g_redOut.length
+    while i < n do
+        text = text + g_redOut[i]
+        i += 1
+    end
+    return text
+end
+
+// sort 示例的输出合并：把各分区的 key 收集后整体再排序，保证全局有序。
+// 通常 sort 用 R=1，此分支为 R>1 兜底。
+func collectSortOutput() as string
+    array<KV> all = array[]
+    int p = 0
+    int pn = g_parts.length
+    while p < pn do
+        // 重跑 reduce 收集（reduce 输出已是 key 列表，这里直接从 entries 取 key）。
+        int e = 0
+        int en = g_parts[p].entries.length
+        while e < en do
+            KV pair = makeKV(g_parts[p].entries[e].key, "")
+            all.append(pair)
+            e += 1
+        end
+        p += 1
+    end
+    // 全量数值或字典序排序后输出。
+    bool numeric = all.length > 0 and looksLikeInt(all[0].key)
+    if numeric then
+        sortNumericKV(all, true)
+    else
+        sortKVByKey(all)
+    end
+    string text = ""
+    int i = 0
+    int n = all.length
+    while i < n do
+        text = text + all[i].key + "\n"
+        i += 1
+    end
+    return text
+end
+
+// KV 数组按 key 的整数值排序（升序 asc=true / 降序 asc=false）。
+func sortNumericKV(array<KV> a, bool asc)
+    int n = a.length
+    int i = 0
+    while i < n do
+        int sel = i
+        int j = i + 1
+        while j < n do
+            int kj = int(a[j].key)
+            int ks = int(a[sel].key)
+            bool take = false
+            if asc then
+                if kj < ks then
+                    take = true
+                end
+            else
+                if kj > ks then
+                    take = true
+                end
+            end
+            if take then
+                sel = j
+            end
+            j += 1
+        end
+        if sel != i then
+            KV tmp = a[i]
+            a[i] = a[sel]
+            a[sel] = tmp
+        end
+        i += 1
+    end
+end
+
+// 重置所有阶段全局结构（同一进程连续跑多个作业时使用，如 test 命令）。
+// 用 .clear() 清空而非 = array[] 重赋值，避免 typed array 类型推断的潜在歧义。
+func resetJobState()
+    g_splits.clear()
+    g_mapOut.clear()
+    g_parts.clear()
+    g_redOut.clear()
+    g_mapAttempts.clear()
+    g_mapRetries.clear()
+    g_redAttempts.clear()
+    g_redRetries.clear()
+    g_mapTotal = 0
+    g_mapDone = 0
+    g_mapFailed = 0
+    g_redTotal = 0
+    g_redDone = 0
+    g_redFailed = 0
+    g_activeMapW = 0
+    g_activeRedW = 0
+    g_logSeq = 0
+end
+
+// 端到端跑一个作业：map -> shuffle -> reduce -> 汇总输出。返回结果文本（失败返回 ""）。
+func runJob() as string
+    int t0 = time.toUnix(time.now())
+    bool okm = runMapPhase()
+    if not okm then
+        return ""
+    end
+    runShufflePhase()
+    bool okr = runReducePhase()
+    if not okr then
+        return ""
+    end
+    int t1 = time.toUnix(time.now())
+    string output = collectOutput()
+    println("==== summary ====")
+    println("job:        " + g_job.kind)
+    println("splits:     " + string(g_mapTotal))
+    println("partitions: " + string(g_redTotal))
+    println("workers:    " + string(g_job.numWorkers))
+    println("combiner:   " + boolOnOff(g_job.useCombiner))
+    println("elapsed:    " + string(t1 - t0) + "s")
+    int uniqKeys = 0
+    int totalKv = 0
+    int pi = 0
+    while pi < g_parts.length do
+        totalKv += g_parts[pi].entries.length
+        // 估算独立 key 数：扫描相邻去重。
+        int ei = 0
+        int en = g_parts[pi].entries.length
+        while ei < en do
+            uniqKeys += 1
+            int ej = ei + 1
+            while ej < en do
+                if string.equals(g_parts[pi].entries[ej].key, g_parts[pi].entries[ei].key) then
+                    ej += 1
+                else
+                    break
+                end
+            end
+            ei = ej
+        end
+        pi += 1
+    end
+    println("shuffle kv: " + string(totalKv))
+    println("unique keys:" + string(uniqKeys))
+    return output
+end
+
+// =============================================================================
+// 九、内置示例 1：WordCount（经典 MapReduce）
+// =============================================================================
+
+// map: line -> 对每个词 emit(word, "1")。大小写不敏感（统一小写）。
+func wcMap(string source, string line, MapContext ctx)
+    array<string> words = splitWords(line, true)
+    int i = 0
+    int n = words.length
+    while i < n do
+        if string.len(words[i]) > 0 then
+            ctx.emit(words[i], "1")
+        end
+        i += 1
+    end
+end
+
+// combiner: 本地把 word 的若干 "1" 求和 emit(word, partialSum)。
+// 必须与 reducer 同态（输入输出都是 (word, 数值串)），才能安全替换。
+func wcCombine(string key, array<string> values, ReduceContext ctx)
+    int sum = 0
+    int i = 0
+    int n = values.length
+    while i < n do
+        sum += int(values[i])
+        i += 1
+    end
+    ctx.emitInt(key, sum)
+end
+
+// reduce: word -> sum(values) emit(word, total)。
+func wcReduce(string key, array<string> values, ReduceContext ctx)
+    int sum = 0
+    int i = 0
+    int n = values.length
+    while i < n do
+        sum += int(values[i])
+        i += 1
+    end
+    ctx.emitInt(key, sum)
+end
+
+// 把 wordcount 原始输出按 count 降序重排（保持同 count 按字典序）。
+// 原始 collectOutput 是按分区/字典序的；这里做最终排序便于阅读。
+func sortWordCountOutput(string text) as string
+    array lines = string.splitLines(text)
+    int n = lines.length
+    array<KV> rows = array[]
+    int i = 0
+    while i < n do
+        string s = toStr(lines[i])
+        if string.len(s) > 0 then
+            // 形如 "word\tN"
+            int tab = string.indexOf(s, "\t")
+            if tab >= 0 then
+                string w = string.left(s, tab)
+                string cnt = string.mid(s, tab + 1)
+                rows.append(makeKV(cnt, w))
+            end
+        end
+        i += 1
+    end
+    // 按 count 数值降序（key 存的是 count）。
+    sortNumericKV(rows, false)
+    string out = ""
+    int j = 0
+    int rn = rows.length
+    while j < rn do
+        out = out + rows[j].value + "\t" + rows[j].key + "\n"
+        j += 1
+    end
+    return out
+end
+
+// =============================================================================
+// 十、内置示例 2：倒排索引（Inverted Index）
+// =============================================================================
+
+// map: (file, line) -> 对每个词 emit(word, filename)。
+// filename 用 path 的 basename（去掉目录），便于阅读。
+func iiMap(string source, string line, MapContext ctx)
+    string name = path.nameExt(source)
+    array<string> words = splitWords(line, true)
+    int i = 0
+    int n = words.length
+    while i < n do
+        if string.len(words[i]) > 0 then
+            ctx.emit(words[i], name)
+        end
+        i += 1
+    end
+end
+
+// reduce: word -> 出现在哪些文件（去重 + 排序） emit(word, "f1,f2,...")。
+func iiReduce(string key, array<string> values, ReduceContext ctx)
+    // 去重（保留首次出现顺序）。
+    array<string> files = array[]
+    int i = 0
+    int n = values.length
+    while i < n do
+        if not files.contains(values[i]) then
+            files.append(values[i])
+        end
+        i += 1
+    end
+    // 按文件名排序，输出稳定。
+    sortStringsAsc(files)
+    string joined = ""
+    int j = 0
+    int fn = files.length
+    while j < fn do
+        if j > 0 then
+            joined = joined + ","
+        end
+        joined = joined + files[j]
+        j += 1
+    end
+    ctx.emit(key, joined)
+end
+
+// 字符串数组原地升序排序（选择排序）。
+func sortStringsAsc(array<string> a)
+    int n = a.length
+    int i = 0
+    while i < n do
+        int sel = i
+        int j = i + 1
+        while j < n do
+            if string.compare(a[j], a[sel]) < 0 then
+                sel = j
+            end
+            j += 1
+        end
+        if sel != i then
+            string tmp = a[i]
+            a[i] = a[sel]
+            a[sel] = tmp
+        end
+        i += 1
+    end
+end
+
+// =============================================================================
+// 十一、内置示例 3：排序（Sort）
+// =============================================================================
+
+// map: line -> emit(line, "")（key 是要排序的内容，trim 后非空才发）。
+// sort 使用 R=1（单分区）保证全局有序；多分区时 collectSortOutput 会再归并。
+func sortMap(string source, string line, MapContext ctx)
+    string s = string.trim(line)
+    if string.len(s) > 0 then
+        ctx.emit(s, "")
+    end
+end
+
+// reduce: 顺序输出即可（shuffle 已排序）。
+func sortReduce(string key, array<string> values, ReduceContext ctx)
+    ctx.emit(key, "")
+end
+
+// =============================================================================
+// 十二、内置示例 4：去重（Dedup）
+// =============================================================================
+
+// map: line -> emit(line, "")。
+func dedupMap(string source, string line, MapContext ctx)
+    string s = string.trim(line)
+    if string.len(s) > 0 then
+        ctx.emit(s, "")
+    end
+end
+
+// combiner: 本地把同 key 折叠成一条。
+func dedupCombine(string key, array<string> values, ReduceContext ctx)
+    ctx.emit(key, "")
+end
+
+// reduce: 同 key 只输出一条。
+func dedupReduce(string key, array<string> values, ReduceContext ctx)
+    ctx.emit(key, "")
+end
+
+// =============================================================================
+// 十三、命令处理：wordcount / inverted-index / sort / dedup / test
+// =============================================================================
+
+// 解析通用 options（--workers/--reducers/--split/--combine/--failrate/--retries/
+// --out/--quiet），写入 g_job。返回消费的参数个数；遇到未知选项打印并返回 -1。
+func parseCommonOptions(int start) as int
+    int i = start
+    while i < g_args.length do
+        string a = string(g_args[i])
+        if a == "--workers" then
+            if i + 1 >= g_args.length then
+                return -1
+            end
+            g_job.numWorkers = int(g_args[i + 1])
+            i += 2
+        elseif a == "--reducers" then
+            if i + 1 >= g_args.length then
+                return -1
+            end
+            g_job.numReduceTasks = int(g_args[i + 1])
+            i += 2
+        elseif a == "--split" then
+            if i + 1 >= g_args.length then
+                return -1
+            end
+            g_job.linesPerSplit = int(g_args[i + 1])
+            i += 2
+        elseif a == "--combine" then
+            g_job.useCombiner = true
+            i += 1
+        elseif a == "--failrate" then
+            if i + 1 >= g_args.length then
+                return -1
+            end
+            g_job.failRate = int(g_args[i + 1])
+            i += 2
+        elseif a == "--retries" then
+            if i + 1 >= g_args.length then
+                return -1
+            end
+            g_job.maxRetries = int(g_args[i + 1])
+            i += 2
+        elseif a == "--out" then
+            if i + 1 >= g_args.length then
+                return -1
+            end
+            g_outFile = string(g_args[i + 1])
+            i += 2
+        elseif a == "--quiet" then
+            g_job.quiet = true
+            i += 1
+        else
+            println("xmapreduce: unknown option: " + a)
+            return -1
+        end
+    end
+    return i
+end
+
+// 把结果文本写到 --out 文件或 stdout。
+func emitResult(string output)
+    if string.len(g_outFile) > 0 then
+        bool ok = file.writeText(g_outFile, output)
+        if ok then
+            println("wrote " + string(string.splitLines(output).length) + " lines to " + g_outFile)
+        else
+            println("xmapreduce: failed to write " + g_outFile)
+        end
+    else
+        print(output)
+    end
+end
+
+// wordcount 命令：xmapreduce wordcount <input.txt> [options]
+func cmdWordCount() as int
+    if g_args.length < 3 then
+        println("xmapreduce: wordcount needs an input file")
+        println("  xmapreduce wordcount <input.txt> [options]")
+        return 1
+    end
+    string target = string(g_args[2])
+    if not file.exists(target) then
+        println("xmapreduce: file not found: " + target)
+        return 1
+    end
+    g_job.kind = "wordcount"
+    g_job.inputFiles.append(target)
+    int consumed = parseCommonOptions(3)
+    if consumed < 0 then
+        return 1
+    end
+    string output = runJob()
+    if string.len(output) == 0 then
+        return 1
+    end
+    // wordcount 友好排序：按 count 降序。
+    string sorted = sortWordCountOutput(output)
+    emitResult(sorted)
+    return 0
+end
+
+// inverted-index 命令：xmapreduce inverted-index <dir> [options]
+// 收集 dir 下所有文件（递归）作为输入。
+func cmdInvertedIndex() as int
+    if g_args.length < 3 then
+        println("xmapreduce: inverted-index needs an input directory")
+        println("  xmapreduce inverted-index <dir> [options]")
+        return 1
+    end
+    string target = string(g_args[2])
+    if not dir.exists(target) then
+        println("xmapreduce: directory not found: " + target)
+        return 1
+    end
+    array files = dir.files(target, true)
+    int n = files.length
+    if n == 0 then
+        println("xmapreduce: no files under " + target)
+        return 1
+    end
+    g_job.kind = "inverted-index"
+    int i = 0
+    while i < n do
+        g_job.inputFiles.append(string(files[i]))
+        i += 1
+    end
+    int consumed = parseCommonOptions(3)
+    if consumed < 0 then
+        return 1
+    end
+    string output = runJob()
+    if string.len(output) == 0 then
+        return 1
+    end
+    emitResult(output)
+    return 0
+end
+
+// sort 命令：xmapreduce sort <input.txt> [options]
+// 强制 R=1 保证全局有序。
+func cmdSort() as int
+    if g_args.length < 3 then
+        println("xmapreduce: sort needs an input file")
+        println("  xmapreduce sort <input.txt> [options]")
+        return 1
+    end
+    string target = string(g_args[2])
+    if not file.exists(target) then
+        println("xmapreduce: file not found: " + target)
+        return 1
+    end
+    g_job.kind = "sort"
+    g_job.inputFiles.append(target)
+    int consumed = parseCommonOptions(3)
+    if consumed < 0 then
+        return 1
+    end
+    g_job.numReduceTasks = 1   // sort 必须单分区才能全局有序
+    string output = runJob()
+    if string.len(output) == 0 then
+        return 1
+    end
+    emitResult(output)
+    return 0
+end
+
+// dedup 命令：xmapreduce dedup <input.txt> [options]
+func cmdDedup() as int
+    if g_args.length < 3 then
+        println("xmapreduce: dedup needs an input file")
+        println("  xmapreduce dedup <input.txt> [options]")
+        return 1
+    end
+    string target = string(g_args[2])
+    if not file.exists(target) then
+        println("xmapreduce: file not found: " + target)
+        return 1
+    end
+    g_job.kind = "dedup"
+    g_job.inputFiles.append(target)
+    int consumed = parseCommonOptions(3)
+    if consumed < 0 then
+        return 1
+    end
+    string output = runJob()
+    if string.len(output) == 0 then
+        return 1
+    end
+    emitResult(output)
+    return 0
+end
+
+// =============================================================================
+// 十四、test 命令：内置样例 + 容错演示
+// =============================================================================
+
+// 在临时目录生成一个多文件英文语料，供 test 跑 wordcount/倒排/排序/去重。
+func makeSampleInputs() as string
+    string base = "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\opencode\\xmr_sample"
+    if not dir.exists(base) then
+        dir.createAll(base)
+    end
+    // 三个文件，词频有重叠，便于验证。
+    file.writeText(path.join(base, "a.txt"), "the quick brown fox\nthe lazy dog\nfox runs fast\n")
+    file.writeText(path.join(base, "b.txt"), "the fox is quick\nbrown dog sleeps\nthe the the\n")
+    file.writeText(path.join(base, "c.txt"), "quick fox quick\nlazy lazy dog\nthe end\n")
+    // 一个数值文件，供 sort 测试。
+    file.writeText(path.join(base, "nums.txt"), "5\n2\n9\n1\n7\n3\n8\n4\n6\n10\n")
+    return base
+end
+
+// 跑一次 wordcount 并校验 "the" 的频次（应为 7：a 2 + b 4 + c 1）。
+// 弱校验：能跑完 + 产出非空 + 关键词计数正确。
+func runSampleWordCount(string base, bool useCombiner, int workers, int failRate) as bool
+    resetJobState()
+    Job gj = Job()
+    g_job = gj
+    g_job.kind = "wordcount"
+    g_job.inputFiles.append(path.join(base, "a.txt"))
+    g_job.inputFiles.append(path.join(base, "b.txt"))
+    g_job.inputFiles.append(path.join(base, "c.txt"))
+    g_job.useCombiner = useCombiner
+    g_job.numWorkers = workers
+    g_job.numReduceTasks = 3
+    g_job.linesPerSplit = 1
+    g_job.failRate = failRate
+    g_job.quiet = true
+    string output = runJob()
+    if string.len(output) == 0 then
+        println("  [FAIL] wordcount produced no output")
+        return false
+    end
+    // 统计 the 的频次（应 = 7：a 2 + b 4 + c 1）。
+    int theCount = 0
+    array lines = string.splitLines(output)
+    int i = 0
+    int n = lines.length
+    while i < n do
+        string row = toStr(lines[i])
+        if string.len(row) > 0 then
+            int tab = string.indexOf(row, "\t")
+            if tab > 0 then
+                string w = string.left(row, tab)
+                if string.equals(w, "the") then
+                    theCount = int(string.mid(row, tab + 1))
+                end
+            end
+        end
+        i += 1
+    end
+    bool ok = (theCount == 7)
+    if ok then
+        println("  [PASS] wordcount: 'the' count = " + string(theCount) + " (combiner=" + boolOnOff(useCombiner) + ", workers=" + string(workers) + ", failRate=" + string(failRate) + ")")
+    else
+        println("  [FAIL] wordcount: 'the' count = " + string(theCount) + " expected 7")
+    end
+    return ok
+end
+
+// 跑倒排索引校验：fox 应出现在 a.txt,b.txt,c.txt 三个文件。
+func runSampleInvertedIndex(string base) as bool
+    resetJobState()
+    Job gj = Job()
+    g_job = gj
+    g_job.kind = "inverted-index"
+    g_job.inputFiles.append(path.join(base, "a.txt"))
+    g_job.inputFiles.append(path.join(base, "b.txt"))
+    g_job.inputFiles.append(path.join(base, "c.txt"))
+    g_job.numWorkers = 3
+    g_job.numReduceTasks = 2
+    g_job.linesPerSplit = 1
+    g_job.quiet = true
+    string output = runJob()
+    if string.len(output) == 0 then
+        println("  [FAIL] inverted-index produced no output")
+        return false
+    end
+    // 找 fox 的行。
+    string foxLine = ""
+    array lines = string.splitLines(output)
+    int i = 0
+    int n = lines.length
+    while i < n do
+        string row = toStr(lines[i])
+        if string.len(row) > 0 then
+            int tab = string.indexOf(row, "\t")
+            if tab > 0 then
+                string w = string.left(row, tab)
+                if string.equals(w, "fox") then
+                    foxLine = string.mid(row, tab + 1)
+                end
+            end
+        end
+        i += 1
+    end
+    // 三个文件名都应出现在 fox 的文件列表里。
+    bool ha = string.contains(foxLine, "a.txt")
+    bool hb = string.contains(foxLine, "b.txt")
+    bool hc = string.contains(foxLine, "c.txt")
+    bool ok = ha and hb and hc
+    if ok then
+        println("  [PASS] inverted-index: fox -> " + foxLine)
+    else
+        println("  [FAIL] inverted-index: fox -> '" + foxLine + "' (missing a/b/c)")
+    end
+    return ok
+end
+
+// 跑全局排序校验：nums.txt 的 10 个数应升序输出 1..10。
+func runSampleSort(string base) as bool
+    resetJobState()
+    Job gj = Job()
+    g_job = gj
+    g_job.kind = "sort"
+    g_job.inputFiles.append(path.join(base, "nums.txt"))
+    g_job.numWorkers = 2
+    g_job.numReduceTasks = 1
+    g_job.linesPerSplit = 3
+    g_job.quiet = true
+    string output = runJob()
+    if string.len(output) == 0 then
+        println("  [FAIL] sort produced no output")
+        return false
+    end
+    // 解析为整数，检查是否严格升序且为 1..10。
+    array lines = string.splitLines(output)
+    array<int> seq = array[]
+    int i = 0
+    int n = lines.length
+    while i < n do
+        string s = string.trim(toStr(lines[i]))
+        if string.len(s) > 0 then
+            seq.append(int(s))
+        end
+        i += 1
+    end
+    bool ok = (seq.length == 10)
+    int k = 1
+    while k <= 10 do
+        if k - 1 >= seq.length then
+            ok = false
+            break
+        end
+        if seq[k - 1] != k then
+            ok = false
+        end
+        k += 1
+    end
+    if ok then
+        println("  [PASS] sort: nums -> 1..10 ascending")
+    else
+        println("  [FAIL] sort: got " + string(seq.length) + " elements, not 1..10")
+    end
+    return ok
+end
+
+// 跑去重校验：合并三个文件去重后，行数应等于独立行数。
+func runSampleDedup(string base) as bool
+    resetJobState()
+    Job gj = Job()
+    g_job = gj
+    g_job.kind = "dedup"
+    g_job.inputFiles.append(path.join(base, "a.txt"))
+    g_job.inputFiles.append(path.join(base, "b.txt"))
+    g_job.inputFiles.append(path.join(base, "c.txt"))
+    g_job.numWorkers = 2
+    g_job.numReduceTasks = 3
+    g_job.useCombiner = true
+    g_job.quiet = true
+    string output = runJob()
+    if string.len(output) == 0 then
+        println("  [FAIL] dedup produced no output")
+        return false
+    end
+    array lines = string.splitLines(output)
+    // 去重后每行唯一：校验无重复。
+    bool uniq = true
+    int i = 0
+    int n = lines.length
+    while i < n do
+        string a = toStr(lines[i])
+        int j = i + 1
+        while j < n do
+            if string.equals(a, toStr(lines[j])) then
+                uniq = false
+            end
+            j += 1
+        end
+        i += 1
+    end
+    bool ok = uniq and n > 0
+    if ok then
+        println("  [PASS] dedup: " + string(n) + " unique lines, no duplicates")
+    else
+        println("  [FAIL] dedup: duplicates found or empty (n=" + string(n) + ")")
+    end
+    return ok
+end
+
+// test 主入口：跑全部示例 + 容错演示，输出 PASS/FAIL 汇总。
+func cmdTest() as int
+    println("==== xmapreduce self-test ====")
+    int passed = 0
+    int failed = 0
+
+    string base = makeSampleInputs()
+    println("sample inputs at: " + base)
+    println("")
+
+    println("[1] WordCount (no combiner, 4 workers, no faults)")
+    if runSampleWordCount(base, false, 4, 0) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("[2] WordCount (combiner ON, 3 workers, no faults)")
+    if runSampleWordCount(base, true, 3, 0) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("[3] WordCount (combiner ON, 4 workers, fault-injected 300/1000 to exercise retry)")
+    if runSampleWordCount(base, true, 4, 300) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("[4] Inverted Index (3 files)")
+    if runSampleInvertedIndex(base) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("[5] Sort (10 numbers, R=1)")
+    if runSampleSort(base) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("[6] Dedup (combiner ON)")
+    if runSampleDedup(base) then
+        passed += 1
+    else
+        failed += 1
+    end
+
+    println("")
+    println("==== self-test summary ====")
+    println("passed: " + string(passed) + " / " + string(passed + failed))
+    if failed == 0 then
+        println("RESULT: OK - all MapReduce examples passed")
+        return 0
+    end
+    println("RESULT: FAIL - " + string(failed) + " example(s) failed")
+    return 1
+end
+
+// =============================================================================
+// 十五、帮助与入口
+// =============================================================================
+
+func printUsage()
+    println("xmapreduce - MapReduce distributed-compute framework (multi-thread simulation)")
+    println("")
+    println("Usage:")
+    println("  xmapreduce wordcount <input.txt> [options]      classic word frequency")
+    println("  xmapreduce inverted-index <dir> [options]        build inverted index over a dir")
+    println("  xmapreduce sort <input.txt> [options]            global sort (R=1)")
+    println("  xmapreduce dedup <input.txt> [options]           global dedup")
+    println("  xmapreduce test                                  built-in self-test (with fault injection)")
+    println("  xmapreduce help                                  show this help")
+    println("")
+    println("Options:")
+    println("  --workers <N>      map/reduce worker threads (default 4)")
+    println("  --reducers <R>     reduce partitions (default 3; sort forces 1)")
+    println("  --split <L>        lines per input split (default 64)")
+    println("  --combine          enable combiner (local aggregation)")
+    println("  --failrate <P>     inject faults at P per-mille (0..1000, default 0)")
+    println("  --retries <K>      max retries per task (default 2)")
+    println("  --out <file>       write result to file (default stdout)")
+    println("  --quiet            suppress scheduling log, print result only")
+    println("")
+    println("Pipeline: Input -> [Split] -> [Map] -> [Shuffle/Sort] -> [Reduce] -> Output")
+    println("Tasks are distributed to worker threads via channel<int>; faults trigger")
+    println("automatic retry up to --retries times.")
+end
+
+func main(...) as int
+    g_args = arg
+    if g_args.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(g_args[1])
+    Job gj = Job()
+    g_job = gj
+    g_lock = mutex()
+
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+    if cmd == "wordcount" then
+        return cmdWordCount()
+    end
+    if cmd == "inverted-index" then
+        return cmdInvertedIndex()
+    end
+    if cmd == "sort" then
+        return cmdSort()
+    end
+    if cmd == "dedup" then
+        return cmdDedup()
+    end
+    if cmd == "test" then
+        return cmdTest()
+    end
+
+    println("xmapreduce: unknown command: " + cmd)
+    println("")
+    printUsage()
+    return 1
+end

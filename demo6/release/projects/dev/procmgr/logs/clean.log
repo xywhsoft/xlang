@@ -1,0 +1,25 @@
+2026-07-11 00:58:17 [clean] started: cmd /c echo clean-ok& exit /b 0
+2026-07-11 00:58:39 [clean] stop signal -> terminate
+2026-07-11 02:43:08 [clean] started: cmd /c echo clean-ok& exit /b 0
+2026-07-11 02:43:30 [clean] stop signal -> terminate
+2026-07-11 02:44:05 [clean] started: cmd /c echo clean-ok& exit /b 0
+2026-07-11 02:44:27 [clean] stop signal -> terminate
+2026-07-11 02:48:34 [clean] started: cmd /c echo clean-ok& exit /b 0
+2026-07-11 02:48:56 [clean] stop signal -> terminate
+2026-07-11 02:51:44 [clean] started: cmd /c echo clean-ok& exit /b 0
+2026-07-11 02:52:06 [clean] stop signal -> terminate
+2026-07-11 02:54:46 [clean] started: cmd /c echo clean-ok& exit /b 0
+2026-07-11 02:54:46 [clean] exited code=0
+2026-07-11 02:54:46 [clean] terminal: stopped restarts=0
+2026-07-11 02:55:04 [clean] started: cmd /c echo clean-ok& exit /b 0
+2026-07-11 02:55:04 [clean] exited code=0
+2026-07-11 02:55:04 [clean] terminal: stopped restarts=0
+2026-07-11 02:55:16 [clean] started: cmd /c echo clean-ok& exit /b 0
+2026-07-11 02:55:16 [clean] exited code=0
+2026-07-11 02:55:16 [clean] terminal: stopped restarts=0
+2026-07-11 02:55:28 [clean] started: cmd /c echo clean-ok& exit /b 0
+2026-07-11 02:55:28 [clean] exited code=0
+2026-07-11 02:55:28 [clean] terminal: stopped restarts=0
+2026-07-11 02:56:25 [clean] started: cmd /c echo clean-ok& exit /b 0
+2026-07-11 02:56:25 [clean] exited code=0
+2026-07-11 02:56:25 [clean] terminal: stopped restarts=0

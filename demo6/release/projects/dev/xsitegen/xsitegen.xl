@@ -1,0 +1,2663 @@
+// xsitegen - 静态站点生成器（Static Site Generator）
+//
+// 用法：
+//   xsitegen build [content_dir] [output_dir]   构建站点（默认 content -> public）
+//   xsitegen serve <port>                       预览服务器（自动 build 后常驻）
+//   xsitegen test                               自测：markdown / 模板 / 生成管线
+//
+// 验证范围：
+//   1. Markdown -> HTML：#/##/### 标题、段落、**粗体**、*斜体*、[链接]()、
+//      ![图片]()、- 列表、``` 代码块、> 引用、--- 分隔线、| 表格 |
+//   2. 自研模板引擎：{var} / {a.b.c} / {if:cond}{else}{end} / {foreach:list}...{end}，
+//      支持继承（{extends:base} + {block:name}...{endblock} 多级覆盖）。
+//   3. 站点结构：posts/*.md -> /post/<slug>/index.html、/archive/index.html、
+//      /tag/<name>/index.html、首页分页 / + /page/N/、rss.xml、sitemap.xml、
+//      search.json 全文搜索索引。
+//   4. 配置 site.json：title / url / description / per_page / theme / author。
+//   5. 主题系统：themes/<theme>/templates/*.html + themes/<theme>/static/*。
+//   6. 预览服务器：http.server 静态文件服务 + 目录索引兜底。
+//   7. 内置默认主题，零配置即可 build 出完整站点。
+//
+// 设计约束（来自 dev/README）：
+//   * native-backed class（HttpRequest/HttpResponse/HttpClientRequest/
+//     HttpClientResponse/Buffer）不能按值传给函数，HTTP 操作全部内联。
+//   * string.splitLines 末尾换行产生空串（BUG-S1），用末元素判空收缩长度。
+//   * json pretty 模式会 hash 重排键序，需要保序时手工拼接 JSON 文本。
+//   * `#` 不是注释（开启时间字面量），注释统一用 `//`。
+//   * 没有裸块作用域，多个独立测试用 `if true then ... end` 隔离作用域。
+
+
+const int  DEFAULT_PORT       = 18300
+const int  DEFAULT_PER_PAGE   = 5
+const string VERSION          = "1.0.0"
+
+
+// ============================================================
+// 全局状态
+// ============================================================
+string gScriptDir    = ""
+string gContentDir   = "content"
+string gOutputDir    = "public"
+string gThemeDir     = ""
+string gTemplatesDir = ""
+string gStaticDir    = ""
+
+// site.json 解析结果
+var gConfig = {
+    "title":       "My Site",
+    "url":         "http://localhost",
+    "description": "A site built with xsitegen",
+    "per_page":    DEFAULT_PER_PAGE,
+    "theme":       "default",
+    "author":      "Anonymous",
+    "language":    "en"
+}
+
+// 模板缓存：name -> 解析后的 AST（dict {extends, nodes, blocks}）
+var gTplCache = {}
+
+// 原始模板文本缓存：name -> string
+var gTplText = {}
+
+// 文章数组：每个元素是 dict（slug/title/date/tags/summary/content/html/url/draft）
+var gPosts = []
+
+// 标签索引：tag -> array of post dict
+var gTags = {}
+
+// 所有页面（用于 sitemap）：array of {url, lastmod, changefreq, priority}
+var gSiteUrls = []
+
+
+// ============================================================
+// 字符串 / HTML 工具
+// ============================================================
+
+// HTML 转义：& < > " '
+func escapeHtml(string text) as string
+    string s = string.replace(text, "&", "&amp;")
+    s = string.replace(s, "<", "&lt;")
+    s = string.replace(s, ">", "&gt;")
+    s = string.replace(s, "\"", "&quot;")
+    s = string.replace(s, "'", "&#39;")
+    return s
+end
+
+
+// 在 text 中从 from 开始查找 token，返回起始下标或 -1。
+func findFrom(string text, string token, int from) as int
+    int n = string.len(text)
+    int tn = string.len(token)
+    if tn == 0 or from < 0 or from >= n then
+        return -1
+    end
+    int last = n - tn
+    int i = from
+    while i <= last do
+        bool match = true
+        int j = 0
+        while j < tn do
+            if string.charAt(text, i + j) != string.charAt(token, j) then
+                match = false
+                break
+            end
+            j = j + 1
+        end
+        if match then
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
+
+func isDigit(string c) as bool
+    return c >= "0" and c <= "9"
+end
+
+
+func isAlpha(string c) as bool
+    return (c >= "a" and c <= "z") or (c >= "A" and c <= "Z")
+end
+
+
+func isIdentStart(string c) as bool
+    return isAlpha(c) or c == "_"
+end
+
+
+func isIdentChar(string c) as bool
+    return isAlpha(c) or isDigit(c) or c == "_"
+end
+
+
+// 判断字符串是否是合法的标识符路径（a / a.b / a.b.c）
+func isIdentPath(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int i = 0
+    int segStart = 0
+    while i <= n do
+        bool atEnd = (i == n)
+        string c = ""
+        if not atEnd then
+            c = string.charAt(s, i)
+        end
+        if atEnd or c == "." then
+            int segLen = i - segStart
+            if segLen == 0 then
+                return false
+            end
+            string first = string.charAt(s, segStart)
+            if not isIdentStart(first) then
+                return false
+            end
+            int k = segStart + 1
+            while k < i do
+                if not isIdentChar(string.charAt(s, k)) then
+                    return false
+                end
+                k = k + 1
+            end
+            segStart = i + 1
+        end
+        i = i + 1
+    end
+    return true
+end
+
+
+// JSON 字符串转义
+func jsonString(string s) as string
+    if s == null then
+        return "\"\""
+    end
+    string out = "\""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        string c = string.charAt(s, i)
+        if c == "\"" then
+            out = out + "\\\""
+        elseif c == "\\" then
+            out = out + "\\\\"
+        elseif c == "\n" then
+            out = out + "\\n"
+        elseif c == "\r" then
+            out = out + "\\r"
+        elseif c == "\t" then
+            out = out + "\\t"
+        else
+            out = out + c
+        end
+        i = i + 1
+    end
+    return out + "\""
+end
+
+
+// 把 array<string> 拼成 JSON 数组文本
+func tagsToJsonArray(var arr) as string
+    if arr == null then
+        return "[]"
+    end
+    int n = arr.length
+    if n == 0 then
+        return "[]"
+    end
+    string out = "["
+    int i = 0
+    while i < n do
+        if i > 0 then
+            out = out + ","
+        end
+        out = out + jsonString(string(arr[i]))
+        i = i + 1
+    end
+    return out + "]"
+end
+
+
+// 把字符串数组的每一项 trim 后入数组（用于解析 tags: a, b, c）
+func splitTags(string val) as var
+    var tags = []
+    string v = val
+    if string.startsWith(v, "[") then
+        v = string.slice(v, 1)
+    end
+    if string.endsWith(v, "]") then
+        v = string.slice(v, 0, string.len(v) - 1)
+    end
+    v = string.trim(v)
+    if v == "" then
+        return tags
+    end
+    var parts = string.split(v, ",")
+    int n = parts.length
+    int i = 0
+    while i < n do
+        string t = string.trim(string(parts[i]))
+        if t != "" then
+            tags.push(t)
+        end
+        i = i + 1
+    end
+    return tags
+end
+
+
+// 由标题/文件名生成 URL slug：小写化、空格转 -、丢弃非字母数字。
+func makeSlug(string text) as string
+    string lower = string.lower(text)
+    array chs = string.chars(lower)
+    string result = ""
+    int n = chs.length
+    int i = 0
+    while i < n do
+        string c = string(chs[i])
+        int b = string.byteAt(c, 0)
+        if b >= 128 then
+            result = result + c
+        elseif (c >= "a" and c <= "z") or (c >= "0" and c <= "9") then
+            result = result + c
+        elseif c == " " or c == "-" or c == "_" then
+            result = result + "-"
+        end
+        i = i + 1
+    end
+    // 折叠连续的 -
+    string folded = ""
+    int fn = string.len(result)
+    int fi = 0
+    bool prevDash = false
+    while fi < fn do
+        string cc = string.charAt(result, fi)
+        if cc == "-" then
+            if not prevDash then
+                folded = folded + cc
+            end
+            prevDash = true
+        else
+            folded = folded + cc
+            prevDash = false
+        end
+        fi = fi + 1
+    end
+    // 去掉首尾 -
+    if string.startsWith(folded, "-") then
+        folded = string.slice(folded, 1)
+    end
+    if string.endsWith(folded, "-") then
+        folded = string.slice(folded, 0, string.len(folded) - 1)
+    end
+    if folded == "" then
+        return "post"
+    end
+    return folded
+end
+
+
+// 取字符串前 n 个字符的纯文本摘要。
+func takeSummary(string text, int n) as string
+    int len = string.len(text)
+    if len <= n then
+        return text
+    end
+    return string.slice(text, 0, n) + "..."
+end
+
+
+// 把 markdown 文本剥离为纯文本（用于搜索索引/摘要）。
+func mdToPlainText(string md) as string
+    string out = ""
+    array lines = string.splitLines(md)
+    int total = lines.length
+    if total > 0 then
+        if string(lines[total - 1]) == "" then
+            total = total - 1
+        end
+    end
+    int i = 0
+    bool inCode = false
+    while i < total do
+        string line = string(lines[i])
+        string trimmed = string.trim(line)
+        if string.startsWith(trimmed, "```") then
+            inCode = not inCode
+            i = i + 1
+            continue
+        end
+        if inCode then
+            i = i + 1
+            continue
+        end
+        if string.startsWith(trimmed, "#") then
+            int level = 0
+            while level < string.len(trimmed) and string.charAt(trimmed, level) == "#" do
+                level = level + 1
+            end
+            if level < string.len(trimmed) then
+                out = out + string.trim(string.slice(trimmed, level)) + " "
+            end
+            i = i + 1
+            continue
+        end
+        if string.startsWith(trimmed, "-") or string.startsWith(trimmed, ">") then
+            out = out + string.trim(string.replace(string.replace(trimmed, "-", ""), ">", "")) + " "
+            i = i + 1
+            continue
+        end
+        // 行内去掉 ** * ` [ ] ( )
+        string cleaned = string.replace(trimmed, "**", "")
+        cleaned = string.replace(cleaned, "*", "")
+        cleaned = string.replace(cleaned, "`", "")
+        cleaned = string.replace(cleaned, "[", "")
+        cleaned = string.replace(cleaned, "]", "")
+        out = out + cleaned + " "
+        i = i + 1
+    end
+    // 折叠多空格
+    string collapsed = ""
+    int cn = string.len(out)
+    int ci = 0
+    bool prevSpace = false
+    while ci < cn do
+        string ch = string.charAt(out, ci)
+        if ch == " " then
+            if not prevSpace then
+                collapsed = collapsed + ch
+            end
+            prevSpace = true
+        else
+            collapsed = collapsed + ch
+            prevSpace = false
+        end
+        ci = ci + 1
+    end
+    return string.trim(collapsed)
+end
+
+
+// ============================================================
+// Markdown 渲染
+// ============================================================
+
+// 行内元素：**粗体**、*斜体*、`code`、![alt](url)、[text](url)。
+// 输入文本先做 HTML 转义，输出包含 HTML 标签。
+func mdInline(string text) as string
+    string s = escapeHtml(text)
+    string out = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        bool matched = false
+        string c0 = string.charAt(s, i)
+        string c1 = ""
+        if i + 1 < n then
+            c1 = string.charAt(s, i + 1)
+        end
+
+        // **bold**  (必须先于 *italic*)
+        if not matched then
+            if c0 == "*" and c1 == "*" then
+                int close = findFrom(s, "**", i + 2)
+                if close > 0 then
+                    string inner = string.slice(s, i + 2, close - i - 2)
+                    out = out + "<strong>" + inner + "</strong>"
+                    i = close + 2
+                    matched = true
+                end
+            end
+        end
+
+        // `inline code`
+        if not matched then
+            if c0 == "`" then
+                int close = findFrom(s, "`", i + 1)
+                if close > 0 then
+                    string inner = string.slice(s, i + 1, close - i - 1)
+                    out = out + "<code>" + inner + "</code>"
+                    i = close + 1
+                    matched = true
+                end
+            end
+        end
+
+        // *italic*
+        if not matched then
+            if c0 == "*" then
+                int close = findFrom(s, "*", i + 1)
+                if close > 0 then
+                    string inner = string.slice(s, i + 1, close - i - 1)
+                    out = out + "<em>" + inner + "</em>"
+                    i = close + 1
+                    matched = true
+                end
+            end
+        end
+
+        // ![alt](url)  image
+        if not matched then
+            if c0 == "!" and c1 == "[" then
+                int bracketClose = findFrom(s, "]", i + 2)
+                if bracketClose > 0 and bracketClose + 1 < n then
+                    if string.charAt(s, bracketClose + 1) == "(" then
+                        int parenClose = findFrom(s, ")", bracketClose + 2)
+                        if parenClose > 0 then
+                            string alt = string.slice(s, i + 2, bracketClose - i - 2)
+                            string url = string.slice(s, bracketClose + 2, parenClose - bracketClose - 2)
+                            out = out + "<img src=\"" + url + "\" alt=\"" + alt + "\">"
+                            i = parenClose + 1
+                            matched = true
+                        end
+                    end
+                end
+            end
+        end
+
+        // [text](url)  link
+        if not matched then
+            if c0 == "[" then
+                int bracketClose = findFrom(s, "]", i + 1)
+                if bracketClose > 0 and bracketClose + 1 < n then
+                    if string.charAt(s, bracketClose + 1) == "(" then
+                        int parenClose = findFrom(s, ")", bracketClose + 2)
+                        if parenClose > 0 then
+                            string linkText = string.slice(s, i + 1, bracketClose - i - 1)
+                            string url = string.slice(s, bracketClose + 2, parenClose - bracketClose - 2)
+                            out = out + "<a href=\"" + url + "\">" + linkText + "</a>"
+                            i = parenClose + 1
+                            matched = true
+                        end
+                    end
+                end
+            end
+        end
+
+        if not matched then
+            out = out + c0
+            i = i + 1
+        end
+    end
+    return out
+end
+
+
+// 关闭当前块级元素的开口标签。
+func closeBlockTag(string block) as string
+    if block == "p" then
+        return "</p>\n"
+    elseif block == "ul" then
+        return "</ul>\n"
+    elseif block == "ol" then
+        return "</ol>\n"
+    elseif block == "code" then
+        return "</code></pre>\n"
+    elseif block == "blockquote" then
+        return "</blockquote>\n"
+    end
+    return ""
+end
+
+
+// 判断一行是否是表格分隔行（| --- | :---: | ---: | 形式）
+func isTableSeparator(string line) as string
+    string t = string.trim(line)
+    if not string.contains(t, "|") then
+        return ""
+    end
+    if not string.contains(t, "-") then
+        return ""
+    end
+    // 去掉首尾 |
+    if string.startsWith(t, "|") then
+        t = string.slice(t, 1)
+    end
+    if string.endsWith(t, "|") then
+        t = string.slice(t, 0, string.len(t) - 1)
+    end
+    var cells = string.split(t, "|")
+    int n = cells.length
+    if n == 0 then
+        return ""
+    end
+    string aligns = ""
+    int i = 0
+    while i < n do
+        string cell = string.trim(string(cells[i]))
+        int clen = string.len(cell)
+        if clen == 0 then
+            return ""
+        end
+        bool leftColon = string.startsWith(cell, ":")
+        bool rightColon = string.endsWith(cell, ":")
+        // 中间必须全是 -
+        string middle = cell
+        if leftColon then
+            middle = string.slice(middle, 1)
+        end
+        if rightColon then
+            middle = string.slice(middle, 0, string.len(middle) - 1)
+        end
+        if string.len(middle) == 0 then
+            return ""
+        end
+        int mi = 0
+        while mi < string.len(middle) do
+            if string.charAt(middle, mi) != "-" then
+                return ""
+            end
+            mi = mi + 1
+        end
+        if leftColon and rightColon then
+            aligns = aligns + "c"
+        elseif rightColon then
+            aligns = aligns + "r"
+        else
+            aligns = aligns + "l"
+        end
+        i = i + 1
+    end
+    return aligns
+end
+
+
+// 把表格行（含 |）切成单元格数组（trim 后）。
+func splitTableRow(string line) as var
+    string t = string.trim(line)
+    if string.startsWith(t, "|") then
+        t = string.slice(t, 1)
+    end
+    if string.endsWith(t, "|") then
+        t = string.slice(t, 0, string.len(t) - 1)
+    end
+    return string.split(t, "|")
+end
+
+
+// 渲染一张表格。headerLines 和 bodyLines 已是数组形式。
+func renderTable(string headerLine, string aligns, var bodyLines) as string
+    var headerCells = splitTableRow(headerLine)
+    string html = "<table>\n<thead>\n<tr>\n"
+    int hn = headerCells.length
+    int hi = 0
+    while hi < hn do
+        string align = "left"
+        if hi < string.len(aligns) then
+            string a = string.charAt(aligns, hi)
+            if a == "c" then
+                align = "center"
+            elseif a == "r" then
+                align = "right"
+            end
+        end
+        string cell = string.trim(string(headerCells[hi]))
+        html = html + "<th style=\"text-align:" + align + "\">" + mdInline(cell) + "</th>\n"
+        hi = hi + 1
+    end
+    html = html + "</tr>\n</thead>\n<tbody>\n"
+    int bn = bodyLines.length
+    int bi = 0
+    while bi < bn do
+        var cells = splitTableRow(string(bodyLines[bi]))
+        html = html + "<tr>\n"
+        int cn = cells.length
+        int ci = 0
+        while ci < cn do
+            string align = "left"
+            if ci < string.len(aligns) then
+                string a = string.charAt(aligns, ci)
+                if a == "c" then
+                    align = "center"
+                elseif a == "r" then
+                    align = "right"
+                end
+            end
+            string cell = string.trim(string(cells[ci]))
+            html = html + "<td style=\"text-align:" + align + "\">" + mdInline(cell) + "</td>\n"
+            ci = ci + 1
+        end
+        html = html + "</tr>\n"
+        bi = bi + 1
+    end
+    html = html + "</tbody>\n</table>\n"
+    return html
+end
+
+
+// 块级 Markdown -> HTML。逐行扫描状态机。
+// 支持：```代码围栏、#/##/### 标题、--- 分隔线、-/* 无序列表、
+//       1. 有序列表、> 引用、| 表格 |、段落。
+func renderMarkdown(string md) as string
+    array lines = string.splitLines(md)
+    int totalLines = lines.length
+    if totalLines > 0 then
+        if string(lines[totalLines - 1]) == "" then
+            totalLines = totalLines - 1
+        end
+    end
+
+    string html = ""
+    string openBlock = ""    // "", "p", "ul", "ol", "code", "blockquote"
+
+    int i = 0
+    while i < totalLines do
+        string line = string(lines[i])
+        string trimmed = string.trim(line)
+
+        // 在代码块内：原样输出（仅 HTML 转义），直到 ``` 结束
+        if openBlock == "code" then
+            if string.startsWith(trimmed, "```") then
+                html = html + "</code></pre>\n"
+                openBlock = ""
+            else
+                html = html + escapeHtml(line) + "\n"
+            end
+            i = i + 1
+            continue
+        end
+
+        // 开启代码块
+        if string.startsWith(trimmed, "```") then
+            if openBlock != "" then
+                html = html + closeBlockTag(openBlock)
+                openBlock = ""
+            end
+            html = html + "<pre><code>"
+            openBlock = "code"
+            i = i + 1
+            continue
+        end
+
+        // 空行：关闭当前非代码块
+        if trimmed == "" then
+            if openBlock != "" then
+                html = html + closeBlockTag(openBlock)
+                openBlock = ""
+            end
+            i = i + 1
+            continue
+        end
+
+        // 标题 #..######
+        if string.startsWith(trimmed, "#") then
+            int level = 0
+            while level < string.len(trimmed) and string.charAt(trimmed, level) == "#" do
+                level = level + 1
+            end
+            if level >= 1 and level <= 6 then
+                if level < string.len(trimmed) and string.charAt(trimmed, level) == " " then
+                    if openBlock != "" then
+                        html = html + closeBlockTag(openBlock)
+                        openBlock = ""
+                    end
+                    string title = string.trim(string.slice(trimmed, level + 1))
+                    string anchor = makeSlug(title)
+                    string lv = level.toString()
+                    html = html + "<h" + lv + " id=\"" + anchor + "\">" + mdInline(title) + "</h" + lv + ">\n"
+                    i = i + 1
+                    continue
+                end
+            end
+        end
+
+        // 分隔线
+        if trimmed == "---" or trimmed == "***" or trimmed == "___" then
+            if openBlock != "" then
+                html = html + closeBlockTag(openBlock)
+                openBlock = ""
+            end
+            html = html + "<hr>\n"
+            i = i + 1
+            continue
+        end
+
+        // 引用块 > ...  （连续多行合并为一段，递归渲染内部）
+        if string.startsWith(trimmed, ">") then
+            if openBlock != "" then
+                html = html + closeBlockTag(openBlock)
+                openBlock = ""
+            end
+            array quoteLines = []
+            while i < totalLines do
+                string q = string.trim(string(lines[i]))
+                if string.startsWith(q, ">") then
+                    string rest = string.trim(string.slice(q, 1))
+                    quoteLines.push(rest)
+                    i = i + 1
+                else
+                    break
+                end
+            end
+            // 把引用内部行拼成 markdown 文本，递归渲染
+            string innerMd = ""
+            int qn = quoteLines.length
+            int qi = 0
+            while qi < qn do
+                innerMd = innerMd + string(quoteLines[qi]) + "\n"
+                qi = qi + 1
+            end
+            html = html + "<blockquote>\n" + renderMarkdown(innerMd) + "</blockquote>\n"
+            continue
+        end
+
+        // 表格：当前行有 | 且下一行是分隔行
+        if string.contains(trimmed, "|") and i + 1 < totalLines then
+            string aligns = isTableSeparator(string(lines[i + 1]))
+            if aligns != "" then
+                if openBlock != "" then
+                    html = html + closeBlockTag(openBlock)
+                    openBlock = ""
+                end
+                string headerLine = trimmed
+                var bodyLines = []
+                int j = i + 2
+                while j < totalLines do
+                    string bl = string.trim(string(lines[j]))
+                    if bl == "" or not string.contains(bl, "|") then
+                        break
+                    end
+                    bodyLines.push(bl)
+                    j = j + 1
+                end
+                html = html + renderTable(headerLine, aligns, bodyLines)
+                i = j
+                continue
+            end
+        end
+
+        // 无序列表项 - 或 * 后跟空格
+        if string.startsWith(trimmed, "- ") or string.startsWith(trimmed, "* ") then
+            if openBlock == "p" then
+                html = html + "</p>\n"
+                openBlock = ""
+            end
+            if openBlock != "ul" then
+                html = html + "<ul>\n"
+                openBlock = "ul"
+            end
+            string item = string.trim(string.slice(trimmed, 2))
+            html = html + "<li>" + mdInline(item) + "</li>\n"
+            i = i + 1
+            continue
+        end
+
+        // 有序列表项 数字.空格
+        bool isOrdered = false
+        string orderedItem = ""
+        if string.len(trimmed) >= 3 then
+            if isDigit(string.charAt(trimmed, 0)) then
+                int dotPos = string.indexOf(trimmed, ". ")
+                if dotPos > 0 then
+                    isOrdered = true
+                    orderedItem = string.trim(string.slice(trimmed, dotPos + 2))
+                end
+            end
+        end
+        if isOrdered then
+            if openBlock == "p" then
+                html = html + "</p>\n"
+                openBlock = ""
+            end
+            if openBlock != "ol" then
+                html = html + "<ol>\n"
+                openBlock = "ol"
+            end
+            html = html + "<li>" + mdInline(orderedItem) + "</li>\n"
+            i = i + 1
+            continue
+        end
+
+        // 段落文本
+        if openBlock == "ul" or openBlock == "ol" then
+            html = html + closeBlockTag(openBlock)
+            openBlock = ""
+        end
+        if openBlock == "p" then
+            html = html + " " + mdInline(trimmed)
+        else
+            html = html + "<p>" + mdInline(trimmed)
+            openBlock = "p"
+        end
+        i = i + 1
+    end
+
+    // 文件结束时关闭未闭合的块
+    if openBlock != "" then
+        html = html + closeBlockTag(openBlock)
+    end
+
+    return html
+end
+
+
+// ============================================================
+// 自研模板引擎
+//
+// 语法：
+//   {var}                         变量插值（纯标识符或 a.b.c 路径）
+//   {if:cond}...{elseif:c}...{else}...{end}
+//   {foreach:list}...{end}        循环；body 内可用 {$index} {$value}，
+//                                  若元素是 dict，其字段直接进入作用域。
+//   {extends:base}                声明父模板（一般放首行）
+//   {block:name}默认内容{endblock}  可被子模板覆盖的块
+//
+// 设计取舍：
+//   - 单花括号 { } 作为标记。CSS/JS 里出现的 { } 因为内部不匹配任何
+//     已知关键字/标识符路径，会被当作字面量保留输出。
+//   - AST 用 dict 表示，避免 class 的 derive 限制。
+// ============================================================
+
+// 把模板文本切分为 token 数组。
+// token 形如：{"type":"text","value":"..."} / {"type":"var","name":"x"}
+//   / {"type":"kw","kw":"if","arg":"..."} / {"type":"literal","value":"{...}"}
+func tplTokenize(string text) as var
+    var tokens = []
+    string buf = ""
+    int n = string.len(text)
+    int i = 0
+    while i < n do
+        string c = string.charAt(text, i)
+        if c == "{" then
+            int j = i + 1
+            if j < n then
+                string nc = string.charAt(text, j)
+                if isIdentStart(nc) then
+                    int close = findFrom(text, "}", j)
+                    if close > 0 then
+                        if string.len(buf) > 0 then
+                            tokens.push({"type": "text", "value": buf})
+                            buf = ""
+                        end
+                        string inner = string.slice(text, j, close - j)
+                        string innerTrim = string.trim(inner)
+                        var tag = null
+                        if innerTrim == "end" then
+                            tag = {"type": "kw", "kw": "end"}
+                        elseif innerTrim == "else" then
+                            tag = {"type": "kw", "kw": "else"}
+                        elseif innerTrim == "endblock" then
+                            tag = {"type": "kw", "kw": "endblock"}
+                        elseif string.startsWith(innerTrim, "if:") then
+                            tag = {"type": "kw", "kw": "if", "arg": string.trim(string.slice(innerTrim, 3))}
+                        elseif string.startsWith(innerTrim, "elseif:") then
+                            tag = {"type": "kw", "kw": "elseif", "arg": string.trim(string.slice(innerTrim, 7))}
+                        elseif string.startsWith(innerTrim, "foreach:") then
+                            tag = {"type": "kw", "kw": "foreach", "arg": string.trim(string.slice(innerTrim, 8))}
+                        elseif string.startsWith(innerTrim, "block:") then
+                            tag = {"type": "kw", "kw": "block", "arg": string.trim(string.slice(innerTrim, 6))}
+                        elseif string.startsWith(innerTrim, "extends:") then
+                            tag = {"type": "kw", "kw": "extends", "arg": string.trim(string.slice(innerTrim, 8))}
+                        elseif isIdentPath(innerTrim) then
+                            tag = {"type": "var", "name": innerTrim}
+                        end
+                        if tag != null then
+                            tokens.push(tag)
+                        else
+                            tokens.push({"type": "literal", "value": "{" + inner + "}"})
+                        end
+                        i = close + 1
+                        continue
+                    end
+                end
+            end
+            buf = buf + c
+            i = i + 1
+        else
+            buf = buf + c
+            i = i + 1
+        end
+    end
+    if string.len(buf) > 0 then
+        tokens.push({"type": "text", "value": buf})
+    end
+    return tokens
+end
+
+
+// 在 data（dict）里按 a.b.c 路径查找变量，找不到返回 null。
+func tplResolve(string name, var data) as var
+    if not string.contains(name, ".") then
+        if name in data then
+            return data[name]
+        end
+        return null
+    end
+    var parts = string.split(name, ".")
+    var cur = data
+    int n = parts.length
+    int i = 0
+    while i < n do
+        string p = string(parts[i])
+        if p in cur then
+            cur = cur[p]
+        else
+            return null
+        end
+        i = i + 1
+    end
+    return cur
+end
+
+
+// 把 var 转成输出字符串。
+func tplVarToString(var v) as string
+    if v == null then
+        return ""
+    end
+    if v is bool then
+        if bool(v) then
+            return "true"
+        end
+        return "false"
+    end
+    if v is int then
+        return string(v)
+    end
+    if v is float then
+        return string(v)
+    end
+    return string(v)
+end
+
+
+// 真值判断（用于 {if:cond}）
+func tplTruthy(var v) as bool
+    if v == null then
+        return false
+    end
+    if v is bool then
+        return bool(v)
+    end
+    if v is int then
+        return int(v) != 0
+    end
+    if v is float then
+        return float(v) != 0.0
+    end
+    if v is string then
+        return string.len(string(v)) > 0
+    end
+    return true
+end
+
+
+// 递归解析 token 序列为节点数组。
+// 读取 tokens 从 parsed["_pos"] 开始，遇到 end/else/elseif/endblock 停止。
+func tplParseNodes(var tokens, var parsed) as var
+    var nodes = []
+    while parsed["_pos"] < tokens.length do
+        var tk = tokens[parsed["_pos"]]
+        string tt = string(tk["type"])
+        if tt == "kw" then
+            string kw = string(tk["kw"])
+            if kw == "end" or kw == "else" or kw == "elseif" or kw == "endblock" then
+                parsed["_pos"] = parsed["_pos"] + 1
+                parsed["_stop"] = kw
+                parsed["_stoparg"] = tk["arg"]
+                return nodes
+            end
+            parsed["_pos"] = parsed["_pos"] + 1
+            if kw == "extends" then
+                parsed["extends"] = string(tk["arg"])
+            elseif kw == "if" then
+                nodes.push(tplParseIf(tokens, string(tk["arg"]), parsed))
+            elseif kw == "foreach" then
+                nodes.push(tplParseForeach(tokens, string(tk["arg"]), parsed))
+            elseif kw == "block" then
+                nodes.push(tplParseBlock(tokens, string(tk["arg"]), parsed))
+            end
+        elseif tt == "literal" then
+            nodes.push({"type": "text", "value": string(tk["value"])})
+            parsed["_pos"] = parsed["_pos"] + 1
+        else
+            nodes.push(tk)
+            parsed["_pos"] = parsed["_pos"] + 1
+        end
+    end
+    parsed["_stop"] = "eof"
+    return nodes
+end
+
+
+func tplParseIf(var tokens, string cond, var parsed) as var
+    var node = {}
+    node["type"] = "if"
+    var branches = []
+    var firstBranch = {}
+    firstBranch["cond"] = cond
+    firstBranch["body"] = tplParseNodes(tokens, parsed)
+    branches.push(firstBranch)
+    while string(parsed["_stop"]) == "elseif" do
+        var br = {}
+        br["cond"] = string(parsed["_stoparg"])
+        br["body"] = tplParseNodes(tokens, parsed)
+        branches.push(br)
+    end
+    var elseBody = null
+    if string(parsed["_stop"]) == "else" then
+        var eb = tplParseNodes(tokens, parsed)
+        elseBody = eb
+    end
+    node["branches"] = branches
+    node["else"] = elseBody
+    return node
+end
+
+
+func tplParseForeach(var tokens, string coll, var parsed) as var
+    var node = {}
+    node["type"] = "foreach"
+    node["collection"] = coll
+    node["body"] = tplParseNodes(tokens, parsed)
+    return node
+end
+
+
+func tplParseBlock(var tokens, string name, var parsed) as var
+    var node = {}
+    node["type"] = "block"
+    node["name"] = name
+    var body = tplParseNodes(tokens, parsed)
+    node["body"] = body
+    var blocks = parsed["blocks"]
+    blocks[name] = body
+    return node
+end
+
+
+// 解析模板文本 -> AST dict {extends, nodes, blocks}
+func tplParse(string text) as var
+    var tokens = tplTokenize(text)
+    var parsed = {}
+    parsed["extends"] = ""
+    parsed["blocks"] = {}
+    parsed["_pos"] = 0
+    parsed["_stop"] = ""
+    parsed["_stoparg"] = ""
+    var nodes = tplParseNodes(tokens, parsed)
+    parsed["nodes"] = nodes
+    dict.remove(parsed, "_pos")
+    dict.remove(parsed, "_stop")
+    dict.remove(parsed, "_stoparg")
+    return parsed
+end
+
+
+// 渲染节点数组（nodes）为字符串。
+// blocks：当前生效的 block 覆盖表（name -> body nodes）。
+func tplRenderNodes(var nodes, var data, var blocks) as string
+    string out = ""
+    int n = nodes.length
+    int i = 0
+    while i < n do
+        var node = nodes[i]
+        string tt = string(node["type"])
+        if tt == "text" then
+            out = out + string(node["value"])
+        elseif tt == "var" then
+            var v = tplResolve(string(node["name"]), data)
+            out = out + tplVarToString(v)
+        elseif tt == "if" then
+            out = out + tplRenderIf(node, data, blocks)
+        elseif tt == "foreach" then
+            out = out + tplRenderForeach(node, data, blocks)
+        elseif tt == "block" then
+            string bname = string(node["name"])
+            var body = node["body"]
+            if bname in blocks then
+                body = blocks[bname]
+            end
+            out = out + tplRenderNodes(body, data, blocks)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+
+func tplRenderIf(var node, var data, var blocks) as string
+    var branches = node["branches"]
+    int n = branches.length
+    int i = 0
+    while i < n do
+        var br = branches[i]
+        var condVal = tplResolve(string(br["cond"]), data)
+        if tplTruthy(condVal) then
+            return tplRenderNodes(br["body"], data, blocks)
+        end
+        i = i + 1
+    end
+    if node["else"] != null then
+        return tplRenderNodes(node["else"], data, blocks)
+    end
+    return ""
+end
+
+
+func tplRenderForeach(var node, var data, var blocks) as string
+    string collName = string(node["collection"])
+    var coll = tplResolve(collName, data)
+    if coll == null then
+        return ""
+    end
+    if not (coll is array) then
+        return ""
+    end
+    string out = ""
+    int n = coll.length
+    int i = 0
+    while i < n do
+        var item = coll[i]
+        var scope = tplMakeScope(data, item, i)
+        out = out + tplRenderNodes(node["body"], scope, blocks)
+        i = i + 1
+    end
+    return out
+end
+
+
+// 构造 foreach 的子作用域：复制父作用域 + 设置 __index__/__value__
+// + 若 item 是 dict，合并其字段。
+func tplMakeScope(var parent, var item, int index) as var
+    var scope = {}
+    for k in parent do
+        scope[k] = parent[k]
+    end
+    scope["__index__"] = index
+    scope["__value__"] = item
+    if item is dict then
+        for k in item do
+            scope[k] = item[k]
+        end
+    end
+    return scope
+end
+
+
+// 加载模板文本（带缓存）。
+func tplLoadText(string name) as string
+    if name in gTplText then
+        return string(gTplText[name])
+    end
+    string p = path.join(gTemplatesDir, name + ".html")
+    if file.exists(p) then
+        string text = file.readText(p)
+        gTplText[name] = text
+        return text
+    end
+    return ""
+end
+
+
+// 加载模板 AST（带缓存）。
+func tplLoad(string name) as var
+    if name in gTplCache then
+        return gTplCache[name]
+    end
+    string text = tplLoadText(name)
+    var parsed = tplParse(text)
+    gTplCache[name] = parsed
+    return parsed
+end
+
+
+// 渲染命名模板，处理多级继承。
+// 渲染链：子模板 -> 父模板 -> ... -> 顶层模板。
+// blocks 覆盖：子级的 block 定义优先于父级。
+func tplRenderChain(string name, var data, var childBlocks) as string
+    var parsed = tplLoad(name)
+    string parentName = string(parsed["extends"])
+    // 合并：本模板的 blocks 作为基础，childBlocks（来自更下级）覆盖之
+    var effBlocks = {}
+    var ownBlocks = parsed["blocks"]
+    for k in ownBlocks do
+        effBlocks[k] = ownBlocks[k]
+    end
+    if childBlocks != null then
+        for k in childBlocks do
+            effBlocks[k] = childBlocks[k]
+        end
+    end
+    if parentName == "" then
+        return tplRenderNodes(parsed["nodes"], data, effBlocks)
+    end
+    return tplRenderChain(parentName, data, effBlocks)
+end
+
+
+// 对外渲染入口。
+func tplRender(string name, var data) as string
+    return tplRenderChain(name, data, null)
+end
+
+
+// 用文本字符串直接渲染（不入缓存，供 test 用）。
+func tplRenderText(string text, var data) as string
+    var parsed = tplParse(text)
+    return tplRenderNodes(parsed["nodes"], data, parsed["blocks"])
+end
+
+
+// ============================================================
+// 配置 / 主题
+// ============================================================
+
+// 从 content_dir/site.json 读取配置，合并到 gConfig。
+func loadConfig(string contentDir) as bool
+    string cfgPath = path.join(contentDir, "site.json")
+    if not file.exists(cfgPath) then
+        return false
+    end
+    string text = file.readText(cfgPath)
+    if not json.valid(text) then
+        println("WARN: site.json invalid JSON, using defaults")
+        return false
+    end
+    var cfg = json.parse(text)
+    if "title" in cfg then
+        gConfig["title"] = string(cfg["title"])
+    end
+    if "url" in cfg then
+        gConfig["url"] = string(cfg["url"])
+    end
+    if "description" in cfg then
+        gConfig["description"] = string(cfg["description"])
+    end
+    if "author" in cfg then
+        gConfig["author"] = string(cfg["author"])
+    end
+    if "language" in cfg then
+        gConfig["language"] = string(cfg["language"])
+    end
+    if "theme" in cfg then
+        gConfig["theme"] = string(cfg["theme"])
+    end
+    if "per_page" in cfg then
+        int pp = int(cfg["per_page"])
+        if pp > 0 then
+            gConfig["per_page"] = pp
+        end
+    end
+    return true
+end
+
+
+// 主题目录解析 + 默认模板注入。
+func loadTheme(string contentDir)
+    string themeName = string(gConfig["theme"])
+    gThemeDir = path.join(contentDir, "themes", themeName)
+    gTemplatesDir = path.join(gThemeDir, "templates")
+    gStaticDir = path.join(gThemeDir, "static")
+
+    gTplText = {}
+    gTplCache = {}
+
+    // 加载主题 templates/ 下所有 .html / .xml 模板
+    if dir.exists(gTemplatesDir) then
+        var files = dir.files(gTemplatesDir, false)
+        int n = files.length
+        int i = 0
+        while i < n do
+            string fp = string(files[i])
+            string baseName = path.base(fp)
+            string ext = path.ext(baseName)
+            string stem = string.slice(baseName, 0, string.len(baseName) - string.len(ext))
+            gTplText[stem] = file.readText(fp)
+            i = i + 1
+        end
+    end
+
+    // 注入内置默认模板（仅当主题未提供时）
+    if not ("base" in gTplText) or tplLoadText("base") == "" then
+        gTplText["base"] = defaultBaseTemplate()
+    end
+    if not ("index" in gTplText) or tplLoadText("index") == "" then
+        gTplText["index"] = defaultIndexTemplate()
+    end
+    if not ("post" in gTplText) or tplLoadText("post") == "" then
+        gTplText["post"] = defaultPostTemplate()
+    end
+    if not ("archive" in gTplText) or tplLoadText("archive") == "" then
+        gTplText["archive"] = defaultArchiveTemplate()
+    end
+    if not ("tag" in gTplText) or tplLoadText("tag") == "" then
+        gTplText["tag"] = defaultTagTemplate()
+    end
+    if not ("rss" in gTplText) or tplLoadText("rss") == "" then
+        gTplText["rss"] = defaultRssTemplate()
+    end
+end
+
+
+// ============================================================
+// 内置默认主题（零配置可用）
+// ============================================================
+
+func defaultBaseTemplate() as string
+    string s = ""
+    s = "<!DOCTYPE html>\n"
+    s = s + "<html lang=\"{site.language}\">\n"
+    s = s + "<head>\n"
+    s = s + "<meta charset=\"utf-8\">\n"
+    s = s + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+    s = s + "<title>{title} - {site.title}</title>\n"
+    s = s + "<meta name=\"description\" content=\"{site.description}\">\n"
+    s = s + "<link rel=\"alternate\" type=\"application/rss+xml\" title=\"{site.title}\" href=\"{site.url}/rss.xml\">\n"
+    s = s + "<link rel=\"stylesheet\" href=\"/static/style.css\">\n"
+    s = s + "</head>\n"
+    s = s + "<body>\n"
+    s = s + "<header class=\"site-header\">\n"
+    s = s + "<div class=\"wrap\">\n"
+    s = s + "<h1 class=\"site-title\"><a href=\"/\">{site.title}</a></h1>\n"
+    s = s + "<nav class=\"site-nav\">\n"
+    s = s + "<a href=\"/\">Home</a>\n"
+    s = s + "<a href=\"/archive\">Archive</a>\n"
+    s = s + "</nav>\n"
+    s = s + "</div>\n"
+    s = s + "</header>\n"
+    s = s + "<main class=\"site-main\">\n"
+    s = s + "<div class=\"wrap\">\n"
+    s = s + "{content}\n"
+    s = s + "</div>\n"
+    s = s + "</main>\n"
+    s = s + "<footer class=\"site-footer\">\n"
+    s = s + "<div class=\"wrap\">\n"
+    s = s + "<p>&copy; {year} {site.title}. Built with xsitegen.</p>\n"
+    s = s + "</div>\n"
+    s = s + "</footer>\n"
+    s = s + "</body>\n"
+    s = s + "</html>\n"
+    return s
+end
+
+
+func defaultIndexTemplate() as string
+    string s = ""
+    s = "{extends:base}\n"
+    s = s + "{block:content}\n"
+    s = s + "<section class=\"post-list\">\n"
+    s = s + "{foreach:posts}\n"
+    s = s + "<article class=\"post-card\">\n"
+    s = s + "<h2 class=\"post-title\"><a href=\"{url}\">{title}</a></h2>\n"
+    s = s + "<div class=\"post-meta\"><time>{date}</time></div>\n"
+    s = s + "<p class=\"post-summary\">{summary}</p>\n"
+    s = s + "</article>\n"
+    s = s + "{end}\n"
+    s = s + "</section>\n"
+    s = s + "{if:hasPrev}<a class=\"pager prev\" href=\"{prevUrl}\">&larr; Newer</a>{end}\n"
+    s = s + "{if:hasNext}<a class=\"pager next\" href=\"{nextUrl}\">Older &rarr;</a>{end}\n"
+    s = s + "<div class=\"pager-info\">Page {page} of {totalPages}</div>\n"
+    s = s + "{endblock}\n"
+    return s
+end
+
+
+func defaultPostTemplate() as string
+    string s = ""
+    s = "{extends:base}\n"
+    s = s + "{block:content}\n"
+    s = s + "<article class=\"post-single\">\n"
+    s = s + "<h1 class=\"post-title\">{post.title}</h1>\n"
+    s = s + "<div class=\"post-meta\">\n"
+    s = s + "<time>{post.date}</time>\n"
+    s = s + "{if:hasTags}<span class=\"tags\">{foreach:post.tags}<a href=\"/tag/{__value__}\">{__value__}</a> {end}</span>{end}\n"
+    s = s + "</div>\n"
+    s = s + "<div class=\"post-content\">\n"
+    s = s + "{post.html}\n"
+    s = s + "</div>\n"
+    s = s + "</article>\n"
+    s = s + "{endblock}\n"
+    return s
+end
+
+
+func defaultArchiveTemplate() as string
+    string s = ""
+    s = "{extends:base}\n"
+    s = s + "{block:content}\n"
+    s = s + "<section class=\"archive\">\n"
+    s = s + "<h1>Archive</h1>\n"
+    s = s + "<ul class=\"archive-list\">\n"
+    s = s + "{foreach:posts}\n"
+    s = s + "<li><time>{date}</time> <a href=\"{url}\">{title}</a></li>\n"
+    s = s + "{end}\n"
+    s = s + "</ul>\n"
+    s = s + "</section>\n"
+    s = s + "{endblock}\n"
+    return s
+end
+
+
+func defaultTagTemplate() as string
+    string s = ""
+    s = "{extends:base}\n"
+    s = s + "{block:content}\n"
+    s = s + "<section class=\"tag\">\n"
+    s = s + "<h1>Tag: {tagName}</h1>\n"
+    s = s + "<ul class=\"archive-list\">\n"
+    s = s + "{foreach:posts}\n"
+    s = s + "<li><time>{date}</time> <a href=\"{url}\">{title}</a></li>\n"
+    s = s + "{end}\n"
+    s = s + "</ul>\n"
+    s = s + "</section>\n"
+    s = s + "{endblock}\n"
+    return s
+end
+
+
+func defaultRssTemplate() as string
+    string s = ""
+    s = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    s = s + "<rss version=\"2.0\">\n"
+    s = s + "<channel>\n"
+    s = s + "<title>{site.title}</title>\n"
+    s = s + "<link>{site.url}</link>\n"
+    s = s + "<description>{site.description}</description>\n"
+    s = s + "<language>{site.language}</language>\n"
+    s = s + "{foreach:posts}\n"
+    s = s + "<item>\n"
+    s = s + "<title>{title}</title>\n"
+    s = s + "<link>{site.url}{url}</link>\n"
+    s = s + "<guid>{site.url}{url}</guid>\n"
+    s = s + "<pubDate>{rfc822}</pubDate>\n"
+    s = s + "<description>"
+    s = s + "{summary}"
+    s = s + "</description>\n"
+    s = s + "</item>\n"
+    s = s + "{end}\n"
+    s = s + "</channel>\n"
+    s = s + "</rss>\n"
+    return s
+end
+
+
+// 内置默认 CSS（写入 /static/style.css 当主题未提供时）
+func defaultStyleSheet() as string
+    string s = ""
+    s = "* { box-sizing: border-box; }\n"
+    s = s + "body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; color: #222; line-height: 1.6; }\n"
+    s = s + ".wrap { max-width: 720px; margin: 0 auto; padding: 0 16px; }\n"
+    s = s + "a { color: #3366cc; text-decoration: none; }\n"
+    s = s + "a:hover { text-decoration: underline; }\n"
+    s = s + ".site-header { border-bottom: 1px solid #eee; padding: 16px 0; }\n"
+    s = s + ".site-title { display: inline-block; margin: 0; font-size: 1.4rem; }\n"
+    s = s + ".site-nav { display: inline-block; margin-left: 24px; }\n"
+    s = s + ".site-nav a { margin-right: 12px; }\n"
+    s = s + ".site-main { padding: 24px 0; min-height: 60vh; }\n"
+    s = s + ".post-card { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #f0f0f0; }\n"
+    s = s + ".post-card .post-title { margin: 0 0 4px; font-size: 1.3rem; }\n"
+    s = s + ".post-meta { color: #888; font-size: 0.9rem; margin-bottom: 8px; }\n"
+    s = s + ".post-summary { color: #555; }\n"
+    s = s + ".post-content pre { background: #f6f8fa; padding: 12px; overflow: auto; border-radius: 4px; }\n"
+    s = s + ".post-content code { font-family: \"SFMono-Regular\", Consolas, monospace; font-size: 0.9em; }\n"
+    s = s + ".post-content blockquote { border-left: 4px solid #ddd; margin: 0; padding: 4px 16px; color: #555; }\n"
+    s = s + ".post-content table { border-collapse: collapse; width: 100%; }\n"
+    s = s + ".post-content th, .post-content td { border: 1px solid #ddd; padding: 6px 10px; }\n"
+    s = s + ".post-content h1, .post-content h2, .post-content h3 { margin-top: 1.4em; }\n"
+    s = s + ".tags a { background: #eef; padding: 2px 6px; border-radius: 3px; margin-right: 4px; }\n"
+    s = s + ".pager { display: inline-block; padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; margin: 12px 4px 12px 0; }\n"
+    s = s + ".pager-info { color: #888; font-size: 0.9rem; }\n"
+    s = s + ".site-footer { border-top: 1px solid #eee; padding: 16px 0; color: #888; font-size: 0.9rem; }\n"
+    s = s + ".archive-list { list-style: none; padding: 0; }\n"
+    s = s + ".archive-list li { padding: 6px 0; }\n"
+    s = s + ".archive-list time { display: inline-block; width: 100px; color: #888; }\n"
+    return s
+end
+
+
+// ============================================================
+// 文章加载 / 索引
+// ============================================================
+
+// 解析 frontmatter（--- 之间的 key: value）+ markdown body。
+func parsePostFile(string rawText, string fileSlug) as var
+    var post = {}
+    array lines = string.splitLines(rawText)
+    int total = lines.length
+    if total > 0 then
+        if string(lines[total - 1]) == "" then
+            total = total - 1
+        end
+    end
+
+    string body = ""
+    var meta = {}
+    bool hasFm = false
+    int bodyStart = 0
+
+    if total > 0 and string.trim(string(lines[0])) == "---" then
+        int j = 1
+        while j < total do
+            if string.trim(string(lines[j])) == "---" then
+                hasFm = true
+                bodyStart = j + 1
+                break
+            end
+            string l = string(lines[j])
+            int colon = string.indexOf(l, ":")
+            if colon > 0 then
+                string k = string.trim(string.slice(l, 0, colon))
+                string v = string.trim(string.slice(l, colon + 1))
+                meta[k] = v
+            end
+            j = j + 1
+        end
+    end
+
+    if hasFm then
+        int bi = bodyStart
+        while bi < total do
+            body = body + string(lines[bi]) + "\n"
+            bi = bi + 1
+        end
+    else
+        int bi = 0
+        while bi < total do
+            body = body + string(lines[bi]) + "\n"
+            bi = bi + 1
+        end
+    end
+
+    // 标题：frontmatter > 第一个 # 标题 > fileSlug
+    string title = fileSlug
+    if "title" in meta then
+        title = string(meta["title"])
+    else
+        array bodyLines = string.splitLines(body)
+        int bn = bodyLines.length
+        int bi = 0
+        while bi < bn do
+            string bl = string.trim(string(bodyLines[bi]))
+            if string.startsWith(bl, "# ") then
+                title = string.trim(string.slice(bl, 2))
+                break
+            end
+            bi = bi + 1
+        end
+    end
+
+    string slug = fileSlug
+    if "slug" in meta then
+        slug = makeSlug(string(meta["slug"]))
+    end
+
+    string date = ""
+    if "date" in meta then
+        date = string(meta["date"])
+    end
+
+    var tags = []
+    if "tags" in meta then
+        tags = splitTags(string(meta["tags"]))
+    end
+
+    bool draft = false
+    if "draft" in meta then
+        string dv = string.lower(string.trim(string(meta["draft"])))
+        if dv == "true" or dv == "yes" or dv == "1" then
+            draft = true
+        end
+    end
+
+    string plainText = mdToPlainText(body)
+    string summary = takeSummary(plainText, 160)
+    string html = renderMarkdown(body)
+
+    post["slug"] = slug
+    post["title"] = title
+    post["date"] = date
+    post["tags"] = tags
+    post["draft"] = draft
+    post["summary"] = summary
+    post["plain"] = plainText
+    post["content"] = body
+    post["html"] = html
+    post["url"] = "/post/" + slug + "/"
+    post["rfc822"] = toRfc822(date)
+    return post
+end
+
+
+// 加载 posts/*.md（非递归）。返回排序后的数组（日期降序，无日期放最后）。
+func loadPosts(string contentDir) as var
+    var posts = []
+    string postsDir = path.join(contentDir, "posts")
+    if not dir.exists(postsDir) then
+        return posts
+    end
+    var files = dir.files(postsDir, false)
+    int n = files.length
+    int i = 0
+    while i < n do
+        string fp = string(files[i])
+        string baseName = path.base(fp)
+        string ext = string.lower(path.ext(baseName))
+        if ext == ".md" or ext == ".markdown" then
+            string stem = string.slice(baseName, 0, string.len(baseName) - string.len(ext))
+            string slug = makeSlug(stem)
+            string raw = file.readText(fp)
+            var post = parsePostFile(raw, slug)
+            posts.push(post)
+        end
+        i = i + 1
+    end
+    sortPostsByDate(posts)
+    return posts
+end
+
+
+// 按日期降序排序（冒泡，文章数不会很大）。
+func sortPostsByDate(var posts)
+    int n = posts.length
+    int a = 0
+    while a < n - 1 do
+        int b = 0
+        while b < n - 1 - a do
+            string d1 = string(posts[b]["date"])
+            string d2 = string(posts[b + 1]["date"])
+            if d1 < d2 then
+                var tmp = posts[b]
+                posts[b] = posts[b + 1]
+                posts[b + 1] = tmp
+            end
+            b = b + 1
+        end
+        a = a + 1
+    end
+end
+
+
+// 构造标签索引 gTags：tag -> array of post
+func buildTagIndex()
+    gTags = {}
+    int n = gPosts.length
+    int i = 0
+    while i < n do
+        var p = gPosts[i]
+        if bool(p["draft"]) then
+            i = i + 1
+            continue
+        end
+        var tags = p["tags"]
+        int tn = tags.length
+        int ti = 0
+        while ti < tn do
+            string t = string(tags[ti])
+            if not (t in gTags) then
+                gTags[t] = []
+            end
+            var arr = gTags[t]
+            arr.push(p)
+            ti = ti + 1
+        end
+        i = i + 1
+    end
+end
+
+
+// ============================================================
+// 日期工具（RSS RFC822）
+// ============================================================
+
+const array MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const array DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+
+// 把 "YYYY-MM-DD" 转为 RFC822："Sat, 11 Jul 2026 00:00:00 GMT"
+// 解析失败时返回原始字符串。
+func toRfc822(string dateStr) as string
+    if string.len(dateStr) < 10 then
+        return dateStr
+    end
+    string okStr = string.slice(dateStr, 0, 10)
+    var parts = string.split(okStr, "-")
+    if parts.length != 3 then
+        return dateStr
+    end
+    int y = 0
+    int m = 0
+    int d = 0
+    try
+        y = int(string(parts[0]))
+        m = int(string(parts[1]))
+        d = int(string(parts[2]))
+    catch e
+        return dateStr
+    end
+    if m < 1 or m > 12 then
+        return dateStr
+    end
+    time t = time.fromDate(y, m, d)
+    int wd = time.weekday(t)
+    string dayName = string(DAY_NAMES[wd])
+    string monthName = string(MONTH_NAMES[m - 1])
+    return dayName + ", " + string.padLeft(d.toString(), 2, "0") + " " + monthName + " " + y.toString() + " 00:00:00 GMT"
+end
+
+
+// ============================================================
+// 站点数据构造
+// ============================================================
+
+// 公共站点数据（注入到每个模板）
+func siteData() as var
+    var d = {}
+    d["site"] = gConfig
+    int yn = time.year(time.now())
+    d["year"] = yn.toString()
+    return d
+end
+
+
+// 记录一个 URL 到 gSiteUrls（供 sitemap）。
+func recordUrl(string url, string lastmod, string priority)
+    var entry = {}
+    entry["url"] = url
+    entry["lastmod"] = lastmod
+    entry["priority"] = priority
+    gSiteUrls.push(entry)
+end
+
+
+// 把 string 写入 output_dir 下的相对路径文件（自动建目录）。
+func writeOutput(string relPath, string content) as bool
+    string full = path.join(gOutputDir, relPath)
+    string parent = path.dir(full)
+    if not dir.exists(parent) then
+        dir.createAll(parent)
+    end
+    bool ok = file.writeText(full, content)
+    if not ok then
+        println("ERROR: failed to write " + full)
+    end
+    return ok
+end
+
+
+// ============================================================
+// 生成器
+// ============================================================
+
+// 生成每篇文章页 /post/<slug>/index.html
+func generatePostPages()
+    string siteUrl = string(gConfig["url"])
+    int n = gPosts.length
+    int i = 0
+    while i < n do
+        var p = gPosts[i]
+        var data = siteData()
+        data["title"] = p["title"]
+        data["post"] = p
+        var tags = p["tags"]
+        data["hasTags"] = tags.length > 0
+        string html = tplRender("post", data)
+        string rel = "post" + "/" + string(p["slug"]) + "/index.html"
+        writeOutput(rel, html)
+        recordUrl(siteUrl + string(p["url"]), string(p["date"]), "0.8")
+        i = i + 1
+    end
+end
+
+
+// 生成分页首页 /index.html + /page/N/index.html
+func generateIndexPages()
+    string siteUrl = string(gConfig["url"])
+    int perPage = int(gConfig["per_page"])
+    // 仅非草稿文章进入列表
+    var published = []
+    int n = gPosts.length
+    int i = 0
+    while i < n do
+        var p = gPosts[i]
+        if not bool(p["draft"]) then
+            published.push(p)
+        end
+        i = i + 1
+    end
+
+    int total = published.length
+    int totalPages = 1
+    if total > 0 then
+        totalPages = (total + perPage - 1) / perPage
+    end
+
+    int page = 1
+    int idx = 0
+    while page <= totalPages do
+        var pagePosts = []
+        int cnt = 0
+        while idx < total and cnt < perPage do
+            pagePosts.push(published[idx])
+            idx = idx + 1
+            cnt = cnt + 1
+        end
+
+        var data = siteData()
+        data["title"] = "Home"
+        data["posts"] = pagePosts
+        data["page"] = page
+        data["totalPages"] = totalPages
+        if page > 1 then
+            data["hasPrev"] = true
+            if page == 2 then
+                data["prevUrl"] = "/"
+            else
+                data["prevUrl"] = "/page/" + (page - 1).toString() + "/"
+            end
+        else
+            data["hasPrev"] = false
+        end
+        if page < totalPages then
+            data["hasNext"] = true
+            data["nextUrl"] = "/page/" + (page + 1).toString() + "/"
+        else
+            data["hasNext"] = false
+        end
+
+        string html = tplRender("index", data)
+        string rel = ""
+        if page == 1 then
+            rel = "index.html"
+            recordUrl(siteUrl + "/", time.formatPattern(time.now(), "yyyy-mm-dd"), "1.0")
+        else
+            rel = "page" + "/" + page.toString() + "/index.html"
+            recordUrl(siteUrl + "/page/" + page.toString() + "/", time.formatPattern(time.now(), "yyyy-mm-dd"), "0.6")
+        end
+        writeOutput(rel, html)
+        page = page + 1
+    end
+
+    // 空站点也要一个首页
+    if totalPages == 0 then
+        var data = siteData()
+        data["title"] = "Home"
+        data["posts"] = []
+        data["page"] = 1
+        data["totalPages"] = 1
+        data["hasPrev"] = false
+        data["hasNext"] = false
+        string html = tplRender("index", data)
+        writeOutput("index.html", html)
+        recordUrl(siteUrl + "/", time.formatPattern(time.now(), "yyyy-mm-dd"), "1.0")
+    end
+end
+
+
+// 生成归档页 /archive/index.html
+func generateArchivePage()
+    string siteUrl = string(gConfig["url"])
+    var published = []
+    int n = gPosts.length
+    int i = 0
+    while i < n do
+        var p = gPosts[i]
+        if not bool(p["draft"]) then
+            published.push(p)
+        end
+        i = i + 1
+    end
+    var data = siteData()
+    data["title"] = "Archive"
+    data["posts"] = published
+    string html = tplRender("archive", data)
+    writeOutput("archive/index.html", html)
+    recordUrl(siteUrl + "/archive/", time.formatPattern(time.now(), "yyyy-mm-dd"), "0.5")
+end
+
+
+// 生成各标签页 /tag/<name>/index.html
+func generateTagPages()
+    string siteUrl = string(gConfig["url"])
+    var tagNames = []
+    for t in gTags do
+        tagNames.push(t)
+    end
+    int n = tagNames.length
+    int i = 0
+    while i < n do
+        string tagName = string(tagNames[i])
+        var posts = gTags[tagName]
+        var data = siteData()
+        data["title"] = "Tag: " + tagName
+        data["tagName"] = tagName
+        data["posts"] = posts
+        string html = tplRender("tag", data)
+        string slug = makeSlug(tagName)
+        string rel = "tag" + "/" + slug + "/index.html"
+        writeOutput(rel, html)
+        recordUrl(siteUrl + "/tag/" + slug + "/", time.formatPattern(time.now(), "yyyy-mm-dd"), "0.4")
+        i = i + 1
+    end
+end
+
+
+// 生成 RSS rss.xml（使用 rss 模板，需注入 rfc822 日期）
+func generateRssFeed()
+    string siteUrl = string(gConfig["url"])
+    var published = []
+    int n = gPosts.length
+    int i = 0
+    while i < n do
+        var p = gPosts[i]
+        if not bool(p["draft"]) then
+            published.push(p)
+        end
+        i = i + 1
+    end
+    var data = {}
+    data["site"] = gConfig
+    data["posts"] = published
+    // 只取最近 20 篇
+    int total = published.length
+    int limit = 20
+    if total < limit then
+        limit = total
+    end
+    var recent = []
+    int k = 0
+    while k < limit do
+        recent.push(published[k])
+        k = k + 1
+    end
+    data["posts"] = recent
+    string xml = tplRenderText(tplLoadText("rss"), data)
+    writeOutput("rss.xml", xml)
+end
+
+
+// 生成 sitemap.xml
+func generateSitemap()
+    string siteUrl = string(gConfig["url"])
+    string xml = ""
+    xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    xml = xml + "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
+    int n = gSiteUrls.length
+    int i = 0
+    while i < n do
+        var e = gSiteUrls[i]
+        string url = string(e["url"])
+        string lastmod = string(e["lastmod"])
+        string priority = string(e["priority"])
+        xml = xml + "<url>\n"
+        xml = xml + "<loc>" + escapeHtml(url) + "</loc>\n"
+        if lastmod != "" then
+            xml = xml + "<lastmod>" + lastmod + "</lastmod>\n"
+        end
+        xml = xml + "<changefreq>weekly</changefreq>\n"
+        xml = xml + "<priority>" + priority + "</priority>\n"
+        xml = xml + "</url>\n"
+        i = i + 1
+    end
+    xml = xml + "</urlset>\n"
+    writeOutput("sitemap.xml", xml)
+end
+
+
+// 生成全文搜索索引 search.json
+// 结构：[{title, url, date, summary, content, tags}]
+func generateSearchIndex()
+    string out = "["
+    int n = gPosts.length
+    int i = 0
+    bool first = true
+    while i < n do
+        var p = gPosts[i]
+        if bool(p["draft"]) then
+            i = i + 1
+            continue
+        end
+        if not first then
+            out = out + ","
+        end
+        first = false
+        out = out + "{"
+        out = out + "\"title\":" + jsonString(string(p["title"])) + ","
+        out = out + "\"url\":" + jsonString(string(p["url"])) + ","
+        out = out + "\"date\":" + jsonString(string(p["date"])) + ","
+        out = out + "\"summary\":" + jsonString(string(p["summary"])) + ","
+        out = out + "\"content\":" + jsonString(string(p["plain"])) + ","
+        out = out + "\"tags\":" + tagsToJsonArray(p["tags"])
+        out = out + "}"
+        i = i + 1
+    end
+    out = out + "]"
+    writeOutput("search.json", out)
+end
+
+
+// 复制主题 static/ 到 output/static/（递归）。
+// 没有主题 static 时写入默认 style.css。
+func copyStaticAssets()
+    string outStatic = path.join(gOutputDir, "static")
+    if not dir.exists(outStatic) then
+        dir.createAll(outStatic)
+    end
+    if dir.exists(gStaticDir) then
+        copyDirRecursive(gStaticDir, outStatic)
+    end
+    // 若没有 style.css，注入默认
+    string stylePath = path.join(outStatic, "style.css")
+    if not file.exists(stylePath) then
+        file.writeText(stylePath, defaultStyleSheet())
+    end
+end
+
+
+// 递归复制目录（二进制安全：用 Buffer）。
+func copyDirRecursive(string src, string dst)
+    if not dir.exists(dst) then
+        dir.createAll(dst)
+    end
+    var entries = dir.entries(src, false)
+    int n = entries.length
+    int i = 0
+    while i < n do
+        var e = entries[i]
+        string name = string(e["name"])
+        bool isDir = bool(e["isDir"])
+        string srcPath = string(e["path"])
+        string dstPath = path.join(dst, name)
+        if isDir then
+            copyDirRecursive(srcPath, dstPath)
+        else
+            Buffer data = file.readBytes(srcPath)
+            file.writeBytes(dstPath, data)
+        end
+        i = i + 1
+    end
+end
+
+
+// ============================================================
+// Build 流水线
+// ============================================================
+
+func buildSite(string contentDir, string outputDir) as int
+    gContentDir = contentDir
+    gOutputDir = outputDir
+
+    println("xsitegen build")
+    println("  content: " + contentDir)
+    println("  output:  " + outputDir)
+
+    if not dir.exists(contentDir) then
+        println("ERROR: content dir not found: " + contentDir)
+        return 1
+    end
+
+    // 1. 配置
+    bool hasCfg = loadConfig(contentDir)
+    if hasCfg then
+        println("  loaded site.json (theme=" + string(gConfig["theme"]) + ")")
+    else
+        println("  no site.json, using defaults")
+    end
+
+    // 2. 主题（含默认模板注入）
+    loadTheme(contentDir)
+
+    // 3. 文章
+    gPosts = loadPosts(contentDir)
+    int totalPosts = gPosts.length
+    int published = 0
+    int pi = 0
+    while pi < totalPosts do
+        if not bool(gPosts[pi]["draft"]) then
+            published = published + 1
+        end
+        pi = pi + 1
+    end
+    println("  posts: " + totalPosts.toString() + " (" + published.toString() + " published, " + (totalPosts - published).toString() + " draft)")
+
+    // 4. 标签索引
+    buildTagIndex()
+    println("  tags: " + gTags.length.toString())
+
+    // 5. 准备 output 目录
+    if not dir.exists(outputDir) then
+        dir.createAll(outputDir)
+    end
+    gSiteUrls = []
+
+    // 6. 生成各类页面
+    generateIndexPages()
+    generatePostPages()
+    generateArchivePage()
+    generateTagPages()
+    generateRssFeed()
+    generateSearchIndex()
+    generateSitemap()
+
+    // 7. 静态资源
+    copyStaticAssets()
+
+    println("  urls recorded: " + gSiteUrls.length.toString())
+    println("build done.")
+    return 0
+end
+
+
+// ============================================================
+// 预览服务器（http.server）
+// 设计取舍：route handler 必须 inline（native-backed class 不能按值传）。
+// ============================================================
+
+string gServeRoot = ""
+
+func route(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+
+    resp.header("X-Server", "xlang-xsitegen")
+
+    string method = req.method()
+    string pathReq = req.path()
+
+    if method != "GET" and method != "HEAD" then
+        resp.status(405)
+        return resp.text("method not allowed", "text/plain; charset=utf-8")
+    end
+
+    // 映射 URL -> 文件系统路径
+    string rel = pathReq
+    if string.startsWith(rel, "/") then
+        rel = string.slice(rel, 1)
+    end
+    if rel == "" then
+        rel = "index.html"
+    end
+    string fsPath = path.join(gServeRoot, rel)
+
+    // 目录 -> index.html
+    if dir.exists(fsPath) then
+        fsPath = path.join(fsPath, "index.html")
+    end
+
+    if not file.exists(fsPath) then
+        string body = "<!DOCTYPE html><html><body><h1>404</h1><p>Not found: " + escapeHtml(pathReq) + "</p><p><a href=\"/\">Home</a></p></body></html>"
+        resp.status(404)
+        return resp.text(body, "text/html; charset=utf-8")
+    end
+
+    // 目录列表（仅当访问 / 且无 index.html 时不太会发生，此处略）
+    return resp.file(fsPath)
+end
+
+func(point, point) as bool requestHandler = route
+
+
+// 错误页面
+func errorPage(int status, string message, point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.status(status)
+    resp.header("X-Error-Path", req.path())
+    string body = "<!DOCTYPE html><html><body><h1>" + status.toString() + "</h1><p>" + escapeHtml(message) + "</p></body></html>"
+    return resp.text(body, "text/html; charset=utf-8")
+end
+
+func(int, string, point, point) as bool errorHandler = errorPage
+
+
+func serveSite(int port, string outputDir) as int
+    gServeRoot = outputDir
+    if not dir.exists(outputDir) then
+        println("ERROR: output dir not found: " + outputDir)
+        return 1
+    end
+
+    point server = http.server.create(port, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 1)
+    if server == null then
+        println("FATAL: http.server.create returned null")
+        return 1
+    end
+
+    http.server.getRequest(server, "/", requestHandler)
+    http.server.getRequest(server, "/{path}", requestHandler)
+    http.server.error(server, errorHandler)
+
+    if not http.server.start(server) then
+        println("FATAL: http.server.start failed (port " + port.toString() + " busy?)")
+        http.server.destroy(server)
+        return 1
+    end
+
+    int boundPort = http.server.port(server)
+    println("xsitegen serve")
+    println("  previewing: " + outputDir)
+    println("  listening:  http://127.0.0.1:" + boundPort.toString())
+    println("press Ctrl+C to stop")
+    while true do
+        time.sleep(5000)
+        println("[stats] requestCount=" + http.server.requestCount(server).toString() + " connectionCount=" + http.server.connectionCount(server).toString())
+    end
+    return 0
+end
+
+
+// ============================================================
+// 自测
+// ============================================================
+int gPassed = 0
+int gFailed = 0
+
+func check(bool cond, string name, string detail)
+    if cond then
+        gPassed = gPassed + 1
+        println("[ PASS ] " + name)
+    else
+        gFailed = gFailed + 1
+        println("[ FAIL ] " + name + "  " + detail)
+    end
+end
+
+
+func runMarkdownTests()
+    println("")
+    println("================ markdown tests ================")
+
+    string md1 = "# Hello\n\nThis is **bold** and *italic*."
+    string html1 = renderMarkdown(md1)
+    check(string.contains(html1, "<h1 id=\"hello\">Hello</h1>"), "md.h1-anchor", "html=" + html1)
+    check(string.contains(html1, "<strong>bold</strong>"), "md.bold", "html=" + html1)
+    check(string.contains(html1, "<em>italic</em>"), "md.italic", "html=" + html1)
+
+    string md2 = "## Sub\n\nInline `code here`.\n\n```\nfunc f() as int\n    return 0\nend\n```"
+    string html2 = renderMarkdown(md2)
+    check(string.contains(html2, "<h2 id=\"sub\">Sub</h2>"), "md.h2", "html=" + html2)
+    check(string.contains(html2, "<code>code here</code>"), "md.inline-code", "html=" + html2)
+    check(string.contains(html2, "<pre><code>"), "md.code-open", "html=" + html2)
+    check(string.contains(html2, "func f()"), "md.code-content", "html=" + html2)
+    check(string.contains(html2, "</code></pre>"), "md.code-close", "html=" + html2)
+
+    string md3 = "- one\n- two\n- three"
+    string html3 = renderMarkdown(md3)
+    check(string.contains(html3, "<ul>"), "md.ul-open", "html=" + html3)
+    check(string.contains(html3, "<li>one</li>"), "md.ul-item1", "html=" + html3)
+    check(string.contains(html3, "</ul>"), "md.ul-close", "html=" + html3)
+
+    string md4 = "1. first\n2. second"
+    string html4 = renderMarkdown(md4)
+    check(string.contains(html4, "<ol>"), "md.ol-open", "html=" + html4)
+    check(string.contains(html4, "<li>first</li>"), "md.ol-item1", "html=" + html4)
+
+    string md5 = "[click](https://xlang.dev) and ![pic](https://xlang.dev/a.png)"
+    string html5 = renderMarkdown(md5)
+    check(string.contains(html5, "<a href=\"https://xlang.dev\">click</a>"), "md.link", "html=" + html5)
+    check(string.contains(html5, "<img src=\"https://xlang.dev/a.png\" alt=\"pic\">"), "md.image", "html=" + html5)
+
+    string md6 = "para1\n\n---\n\nafter hr"
+    string html6 = renderMarkdown(md6)
+    check(string.contains(html6, "<hr>"), "md.hr", "html=" + html6)
+    check(string.contains(html6, "<p>after hr</p>"), "md.para-after-hr", "html=" + html6)
+
+    string md7 = "<script>alert(1)</script> & stuff"
+    string html7 = renderMarkdown(md7)
+    check(string.contains(html7, "&lt;script&gt;"), "md.escape", "html=" + html7)
+    check(not string.contains(html7, "<script>"), "md.no-raw-script", "html=" + html7)
+
+    // 引用块
+    string md8 = "> quoted text\n> second line\n\nafter"
+    string html8 = renderMarkdown(md8)
+    check(string.contains(html8, "<blockquote>"), "md.blockquote-open", "html=" + html8)
+    check(string.contains(html8, "quoted text"), "md.blockquote-content", "html=" + html8)
+    check(string.contains(html8, "</blockquote>"), "md.blockquote-close", "html=" + html8)
+
+    // 表格
+    string md9 = "| Name | Age |\n|------|-----|\n| Ada  | 30  |\n| Lin  | 25  |"
+    string html9 = renderMarkdown(md9)
+    check(string.contains(html9, "<table>"), "md.table-open", "html=" + html9)
+    check(string.contains(html9, "<th"), "md.table-header", "html=" + html9)
+    check(string.contains(html9, "Ada"), "md.table-cell1", "html=" + html9)
+    check(string.contains(html9, "25"), "md.table-cell4", "html=" + html9)
+    check(string.contains(html9, "</table>"), "md.table-close", "html=" + html9)
+
+    // 表格对齐
+    string md10 = "| L | C | R |\n|:---|:---:|---:|\n| a | b | c |"
+    string html10 = renderMarkdown(md10)
+    check(string.contains(html10, "text-align:left"), "md.table-align-left", "html=" + html10)
+    check(string.contains(html10, "text-align:center"), "md.table-align-center", "html=" + html10)
+    check(string.contains(html10, "text-align:right"), "md.table-align-right", "html=" + html10)
+
+    // 三级标题
+    string md11 = "### Section Three"
+    string html11 = renderMarkdown(md11)
+    check(string.contains(html11, "<h3 id=\"section-three\">Section Three</h3>"), "md.h3", "html=" + html11)
+
+    println("")
+end
+
+
+func runTemplateTests()
+    println("================ template tests ================")
+
+    var data = {
+        "title": "Hello",
+        "count": 3,
+        "show": true,
+        "empty": "",
+        "items": ["alpha", "beta", "gamma"],
+        "users": [
+            {"name": "Ada"},
+            {"name": "Lin"}
+        ],
+        "site": {"title": "My Site"}
+    }
+
+    // 变量
+    check(tplRenderText("{title}", data) == "Hello", "tpl.var", "got=" + tplRenderText("{title}", data))
+
+    // 路径变量
+    check(tplRenderText("{site.title}", data) == "My Site", "tpl.path-var", "got=" + tplRenderText("{site.title}", data))
+
+    // 缺失变量
+    check(tplRenderText("{missing}", data) == "", "tpl.missing-var", "got=" + tplRenderText("{missing}", data))
+
+    // if true
+    check(string.contains(tplRenderText("{if:show}yes{else}no{end}", data), "yes"), "tpl.if-true", "got=" + tplRenderText("{if:show}yes{else}no{end}", data))
+
+    // if false -> else
+    var data2 = {"show": false}
+    check(tplRenderText("{if:show}yes{else}no{end}", data2) == "no", "tpl.if-false-else", "got=" + tplRenderText("{if:show}yes{else}no{end}", data2))
+
+    // if 空字符串为假
+    var data3 = {"s": ""}
+    check(tplRenderText("{if:s}Y{else}N{end}", data3) == "N", "tpl.if-empty-str", "got=" + tplRenderText("{if:s}Y{else}N{end}", data3))
+
+    // foreach 标量数组
+    string r5 = tplRenderText("{foreach:items}[{__index__}:{__value__}]{end}", data)
+    check(r5 == "[0:alpha][1:beta][2:gamma]", "tpl.foreach-scalar", "got=" + r5)
+
+    // foreach 对象数组（字段直接进入作用域）
+    string r6 = tplRenderText("{foreach:users}{name};{end}", data)
+    check(r6 == "Ada;Lin;", "tpl.foreach-object", "got=" + r6)
+
+    // 字面量花括号（CSS 应保留）
+    string css = "body { color: red; }"
+    check(tplRenderText(css, data) == css, "tpl.literal-braces", "got=" + tplRenderText(css, data))
+
+    // 混合文本与变量
+    check(tplRenderText("a {title} b", data) == "a Hello b", "tpl.mix", "got=" + tplRenderText("a {title} b", data))
+
+    // 嵌套 if + foreach
+    var data7 = {"list": [{"n": "x", "ok": true}, {"n": "y", "ok": false}]}
+    string r7 = tplRenderText("{foreach:list}{if:ok}[Y]{else}[N]{end}{end}", data7)
+    check(r7 == "[Y][N]", "tpl.nested-if-foreach", "got=" + r7)
+
+    // 继承 + block 覆盖
+    gTplText = {}
+    gTplCache = {}
+    gTemplatesDir = ""
+    gTplText["base"] = "[B:{block:x}default{endblock}]"
+    gTplText["child"] = "{extends:base}\n{block:x}overridden{endblock}"
+    string r8 = tplRender("child", data)
+    check(r8 == "[B:overridden]", "tpl.inherit-override", "got=" + r8)
+
+    // 继承但子未覆盖 -> 用父默认
+    gTplText["child2"] = "{extends:base}\n"
+    string r9 = tplRender("child2", data)
+    check(r9 == "[B:default]", "tpl.inherit-default", "got=" + r9)
+
+    println("")
+end
+
+
+func runBuildTests()
+    println("================ build pipeline tests ================")
+
+    // 构造临时 content 目录
+    string tmpBase = path.join(path.dir(gScriptDir), "xsitegen_tmp_test")
+    string contentDir = path.join(tmpBase, "content")
+    string outputDir = path.join(tmpBase, "public")
+    if dir.exists(tmpBase) then
+        removeTree(tmpBase)
+    end
+    dir.createAll(contentDir)
+    dir.createAll(path.join(contentDir, "posts"))
+
+    // site.json
+    file.writeText(path.join(contentDir, "site.json"), "{\"title\":\"TestSite\",\"url\":\"http://example.com\",\"description\":\"d\",\"per_page\":2,\"theme\":\"default\"}")
+
+    // posts
+    file.writeText(path.join(contentDir, "posts", "hello.md"), "---\ntitle: Hello World\ndate: 2026-07-10\ntags: intro, welcome\n---\n# Hello\n\nThis is **bold**.\n")
+    file.writeText(path.join(contentDir, "posts", "second.md"), "---\ntitle: Second Post\ndate: 2026-07-09\ntags: intro\n---\nSecond post content.\n")
+    file.writeText(path.join(contentDir, "posts", "third.md"), "---\ntitle: Third\ndate: 2026-07-08\ntags: misc\n---\nThird.\n")
+    file.writeText(path.join(contentDir, "posts", "draft.md"), "---\ntitle: Draft\ndate: 2026-07-11\ntags: intro\ndraft: true\n---\nDraft.\n")
+
+    int rc = buildSite(contentDir, outputDir)
+    check(rc == 0, "build.returncode", "rc=" + rc.toString())
+
+    // 首页
+    check(file.exists(path.join(outputDir, "index.html")), "build.index", "missing index.html")
+    // 分页（per_page=2, 3 篇 published -> 2 页）
+    check(file.exists(path.join(outputDir, "page", "2", "index.html")), "build.page2", "missing page/2/index.html")
+    // 文章页
+    check(file.exists(path.join(outputDir, "post", "hello-world", "index.html")), "build.post-page", "missing post/hello-world/index.html")
+    // 归档
+    check(file.exists(path.join(outputDir, "archive", "index.html")), "build.archive", "missing archive/index.html")
+    // 标签页
+    check(file.exists(path.join(outputDir, "tag", "intro", "index.html")), "build.tag-intro", "missing tag/intro/index.html")
+    // RSS
+    check(file.exists(path.join(outputDir, "rss.xml")), "build.rss", "missing rss.xml")
+    // sitemap
+    check(file.exists(path.join(outputDir, "sitemap.xml")), "build.sitemap", "missing sitemap.xml")
+    // search index
+    check(file.exists(path.join(outputDir, "search.json")), "build.search-json", "missing search.json")
+    // 静态资源
+    check(file.exists(path.join(outputDir, "static", "style.css")), "build.static-css", "missing static/style.css")
+
+    // 内容校验
+    string indexHtml = file.readText(path.join(outputDir, "index.html"))
+    check(string.contains(indexHtml, "TestSite"), "build.index-has-title", "html=" + indexHtml)
+    check(string.contains(indexHtml, "Hello World"), "build.index-has-post", "html=" + indexHtml)
+    // 草稿不应出现在首页
+    check(not string.contains(indexHtml, "Draft"), "build.index-no-draft", "html=" + indexHtml)
+
+    string postHtml = file.readText(path.join(outputDir, "post", "hello-world", "index.html"))
+    check(string.contains(postHtml, "<strong>bold</strong>"), "build.post-md", "html=" + postHtml)
+
+    string rss = file.readText(path.join(outputDir, "rss.xml"))
+    check(string.contains(rss, "<rss"), "build.rss-root", "xml=" + rss)
+    check(string.contains(rss, "Hello World"), "build.rss-has-post", "xml=" + rss)
+    check(not string.contains(rss, "Draft"), "build.rss-no-draft", "xml=" + rss)
+
+    string sitemap = file.readText(path.join(outputDir, "sitemap.xml"))
+    check(string.contains(sitemap, "<urlset"), "build.sitemap-root", "xml=" + sitemap)
+    check(string.contains(sitemap, "hello-world"), "build.sitemap-has-post", "xml=" + sitemap)
+
+    string search = file.readText(path.join(outputDir, "search.json"))
+    check(string.startsWith(search, "["), "build.search-array", "json=" + search)
+    check(string.contains(search, "Hello World"), "build.search-has-post", "json=" + search)
+
+    string tagHtml = file.readText(path.join(outputDir, "tag", "intro", "index.html"))
+    check(string.contains(tagHtml, "Tag: intro"), "build.tag-heading", "html=" + tagHtml)
+    check(string.contains(tagHtml, "Hello World"), "build.tag-has-post1", "html=" + tagHtml)
+    check(string.contains(tagHtml, "Second Post"), "build.tag-has-post2", "html=" + tagHtml)
+
+    // 清理
+    removeTree(tmpBase)
+
+    println("")
+end
+
+
+// 递归删除目录树（rm -rf）。dir 自身也删。
+func removeTree(string p)
+    if not dir.exists(p) then
+        return
+    end
+    var entries = dir.entries(p, true)
+    int n = entries.length
+    int i = 0
+    // entries recursive 返回顺序不一定，先删文件
+    while i < n do
+        var e = entries[i]
+        if not bool(e["isDir"]) then
+            file.delete(string(e["path"]))
+        end
+        i = i + 1
+    end
+    // 再删目录（按路径长度倒序：子目录优先）
+    var dirs = []
+    i = 0
+    while i < n do
+        var e = entries[i]
+        if bool(e["isDir"]) then
+            dirs.push(string(e["path"]))
+        end
+        i = i + 1
+    end
+    int dn = dirs.length
+    // 简单冒泡按长度倒序
+    int a = 0
+    while a < dn - 1 do
+        int b = 0
+        while b < dn - 1 - a do
+            if string.len(string(dirs[b])) < string.len(string(dirs[b + 1])) then
+                var tmp = dirs[b]
+                dirs[b] = dirs[b + 1]
+                dirs[b + 1] = tmp
+            end
+            b = b + 1
+        end
+        a = a + 1
+    end
+    int k = 0
+    while k < dn do
+        dir.remove(string(dirs[k]))
+        k = k + 1
+    end
+    dir.remove(p)
+end
+
+
+func runTests() as int
+    println("xsitegen test (v" + VERSION + ")")
+
+    // 加载默认主题（用于模板测试中的继承测试）
+    gTemplatesDir = ""
+    runMarkdownTests()
+    runTemplateTests()
+    runBuildTests()
+
+    println("------------------- summary -------------------")
+    println("passed: " + gPassed.toString() + " / " + (gPassed + gFailed).toString())
+    println("failed: " + gFailed.toString())
+    println("")
+
+    if gFailed > 0 then
+        return 1
+    end
+    return 0
+end
+
+
+// ============================================================
+// 用法
+// ============================================================
+func printUsage()
+    println("xsitegen v" + VERSION + " - static site generator")
+    println()
+    println("Usage:")
+    println("  xsitegen build [content_dir] [output_dir]   build site (default: content -> public)")
+    println("  xsitegen serve <port>                       preview server (auto-build then serve)")
+    println("  xsitegen test                               run self-tests")
+    println("  xsitegen -h | --help                        show this help")
+    println()
+    println("Content layout:")
+    println("  content/")
+    println("    site.json              title/url/description/per_page/theme/author")
+    println("    posts/*.md              markdown posts with optional frontmatter")
+    println("    themes/<theme>/templates/*.html   theme templates")
+    println("    themes/<theme>/static/*           theme static assets")
+    println()
+    println("Generated output:")
+    println("  public/index.html         paginated home (page/2/, page/3/...)")
+    println("  public/post/<slug>/       per-post page")
+    println("  public/archive/           archive page")
+    println("  public/tag/<name>/        per-tag page")
+    println("  public/rss.xml            RSS feed")
+    println("  public/sitemap.xml        sitemap")
+    println("  public/search.json        full-text search index")
+    println("  public/static/*           copied theme assets")
+end
+
+
+// ============================================================
+// 入口
+// ============================================================
+func main(...) as int
+    string scriptPath = string(arg[0])
+    gScriptDir = path.dir(scriptPath)
+
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+
+    string cmd = string(arg[1])
+
+    if cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+
+    if cmd == "test" then
+        return runTests()
+    end
+
+    if cmd == "build" then
+        string contentDir = path.join(gScriptDir, "content")
+        string outputDir = path.join(gScriptDir, "public")
+        if arg.length >= 3 then
+            contentDir = string(arg[2])
+            // 相对路径基于 cwd（不强制 gScriptDir）
+            if not string.contains(contentDir, ":") and not string.startsWith(contentDir, "/") then
+                contentDir = path.join(path.cwd(), contentDir)
+            end
+        end
+        if arg.length >= 4 then
+            outputDir = string(arg[3])
+            if not string.contains(outputDir, ":") and not string.startsWith(outputDir, "/") then
+                outputDir = path.join(path.cwd(), outputDir)
+            end
+        end
+        return buildSite(contentDir, outputDir)
+    end
+
+    if cmd == "serve" then
+        if arg.length < 3 then
+            println("Usage: xsitegen serve <port>")
+            return 1
+        end
+        int port = DEFAULT_PORT
+        try
+            port = int(string(arg[2]))
+        catch e
+            println("invalid port: " + string(arg[2]))
+            return 1
+        end
+        if port <= 0 or port > 65535 then
+            println("port out of range: " + port.toString())
+            return 1
+        end
+        // 先 build 默认 content -> public
+        string contentDir = path.join(gScriptDir, "content")
+        string outputDir = path.join(gScriptDir, "public")
+        int brc = buildSite(contentDir, outputDir)
+        if brc != 0 then
+            println("build failed, abort serve")
+            return brc
+        end
+        return serveSite(port, outputDir)
+    end
+
+    println("Error: unknown command '" + cmd + "'")
+    println()
+    printUsage()
+    return 1
+end

@@ -320,11 +320,22 @@ static int xl6CgenDeclTryStaticXValueCompareInit(
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
     if ( equalMode ) {
-        xl6OutputPrintf(ctx->out,
-                        "int __xl6_cmp_result_%d = xl6_xrt_basic_equal(__xl6_cmp_left_%d, __xl6_cmp_right_%d);\n",
-                        id,
-                        id,
-                        id);
+        if ( xl6CgenBinaryCompareHasRef(ctx, initExpr) ) {
+            xl6OutputPrintf(ctx->out,
+                            "int __xl6_cmp_result_%d = "
+                            "(((__xl6_cmp_left_%d == 0 || xvoIsNull(__xl6_cmp_left_%d)) && "
+                            "(__xl6_cmp_right_%d == 0 || xvoIsNull(__xl6_cmp_right_%d))) || "
+                            "(__xl6_cmp_left_%d != 0 && __xl6_cmp_right_%d != 0 && "
+                            "!xvoIsNull(__xl6_cmp_left_%d) && !xvoIsNull(__xl6_cmp_right_%d) && "
+                            "__xl6_cmp_left_%d == __xl6_cmp_right_%d));\n",
+                            id, id, id, id, id, id, id, id, id, id, id);
+        } else {
+            xl6OutputPrintf(ctx->out,
+                            "int __xl6_cmp_result_%d = xl6_xrt_basic_equal(__xl6_cmp_left_%d, __xl6_cmp_right_%d);\n",
+                            id,
+                            id,
+                            id);
+        }
     } else {
         xl6OutputPrintf(ctx->out,
                         "int __xl6_cmp_result_%d = xl6_xrt_basic_order(__xl6_cmp_left_%d, __xl6_cmp_right_%d, %d);\n",
@@ -537,8 +548,8 @@ static void xl6CgenDiscardTemporaryResultByType(XL6_CgenContext* ctx, const XL6_
     }
 
     if ( xl6CgenIsNativeBackedClassType(ctx, concreteType) ) {
-        const XL6_AstNode* customNode = xl6CgenFindNativeBackedClass(ctx, typeName);
-        const XL6_AstNode* destroyNode = customNode != NULL ? xl6CgenFindNativeBackedClassSpecial(customNode, "destroy") : NULL;
+        const XL6_AstNode* nativeClassNode = xl6CgenFindNativeBackedClass(ctx, typeName);
+        const XL6_AstNode* destroyNode = nativeClassNode != NULL ? xl6CgenFindNativeBackedClassSpecial(nativeClassNode, "destroy") : NULL;
 
         if ( destroyNode != NULL ) {
             xl6CgenIndent(ctx);

@@ -34,11 +34,11 @@
 // 解析后的 cron 表达式：每个字段用一个 int 位图（下标=值，1=允许）。
 // domRestricted / dowRestricted 记录“日 / 周”是否被显式限定（非 *），用于日-周取或语义。
 class CronExpr
-    array<int> minute
-    array<int> hour
-    array<int> dom
-    array<int> month
-    array<int> dow
+    array<int> minute = array[]
+    array<int> hour = array[]
+    array<int> dom = array[]
+    array<int> month = array[]
+    array<int> dow = array[]
     bool domRestricted = false
     bool dowRestricted = false
     string raw = ""
@@ -162,7 +162,7 @@ func parseField(string token, int lo, int hi, int bitsSize, bool isDow) as (bool
     // 至少要有一个合法值
     bool any = false
     int j = lo
-    while j <= hi do
+    while j < bitsSize do
         if bits[j] == 1 then
             any = true
         end
@@ -399,7 +399,7 @@ func cmdList(string p) as int
         if ok then
             nextStr = time.format(nextTime(c, now))
         end
-        println(name + "  [" + cronText + "]  " + command)
+        println(string(name) + "  [" + cronText + "]  " + command)
         println("    runs=" + string(runs) + "  next=" + nextStr)
     end
     return 0

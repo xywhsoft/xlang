@@ -1,0 +1,2142 @@
+// xaudio.xl - software audio synthesizer (xaudio)
+//
+// A self-contained, WAV-rendering software synthesizer written in pure xlang.
+// No external audio libs are used: every sample is computed with math.sin /
+// random.range, accumulated into array<float>, then encoded as 16-bit PCM WAV
+// via Buffer + file.writeBytes.
+//
+// usage:
+//   xaudio render <score.txt> <output.wav>    render a score file to WAV
+//   xaudio demo <name> <output.wav>           render a built-in song
+//        names: twinkle | joy | drums | mix
+//   xaudio test                               run the built-in self-test
+//   xaudio info                               print synth capabilities
+//   xaudio -h | --help                        show this help
+//
+// features:
+//   1. waveform oscillators   sine / square / saw / triangle / noise
+//   2. ADSR envelope           attack/decay/sustain/release, per-track
+//   3. one-pole filters        low-pass & high-pass (y[n]=a*x[n]+b*y[n-1])
+//   4. note / scale system     note name / MIDI / frequency, A4=440Hz
+//   5. MIDI event parsing      note on/off, velocity, channel, tempo
+//   6. WAV encoder             RIFF/WAVE + PCM 16-bit, built with Buffer
+//   7. sequencer               multi-track timeline mixdown
+//   8. built-in songs          twinkle / ode-to-joy / drum beat
+//
+// Implementation / API coverage:
+//   * array<float>             audio sample buffers (build/mix/filter/normalize)
+//   * Buffer                   RIFF/WAVE binary header + PCM data
+//   * file.writeBytes(path, b) binary WAV output
+//   * file.readText(path)      score file input
+//   * math.sin / math.pi       oscillator phase evaluation
+//   * random.range             white-noise oscillator
+//   * class + array<class>     Track / Note / Score value types
+//   * string.split / splitLines / trim / indexOf / byteAt   score + MIDI parse
+//   * try/catch/throw          robust score + path handling
+//
+// NOTE (design-limit avoidance):
+//   Buffer is a native-backed class that cannot be RETURNED from a user
+//   function. So WAV bytes are first collected into a returnable array<int>,
+//   then copied into a Buffer in the caller (main / cmdRender) exactly like
+//   the imgcodecs BMP path. All array<float> DSP lives in global functions
+//   (the rasterizer BUG-C1/C2 note warns against bare array<float> params on
+//   *class methods*; global functions taking array<float> are exercised by
+//   voxel.xl and are used here freely).
+// ---------------------------------------------------------------------------
+
+// ============================ constants ====================================
+
+const int   SAMPLE_RATE   = 44100          // output sample rate (Hz)
+const int   BIT_DEPTH     = 16             // PCM bit depth
+const int   CHANNELS      = 1              // mono
+const float A4_FREQ       = 440.0          // A4 reference frequency
+const int   A4_MIDI       = 69             // A4 MIDI note number
+const float TWO_PI        = 6.283185307179586   // 2*pi (literal; const cannot use math.pi)
+const float SEMITONE_RATIO = 1.0594630943592953   // 2^(1/12)
+
+// waveform ids
+const int WAVE_SINE     = 0
+const int WAVE_SQUARE   = 1
+const int WAVE_SAW      = 2
+const int WAVE_TRIANGLE = 3
+const int WAVE_NOISE    = 4
+
+// filter ids
+const int FILT_NONE     = 0
+const int FILT_LOWPASS  = 1
+const int FILT_HIGHPASS = 2
+
+// drum ids (negative-frequency sentinel dispatch)
+const int DRUM_NONE     = 0
+const int DRUM_KICK     = 1
+const int DRUM_SNARE    = 2
+const int DRUM_HIHAT    = 3
+const int DRUM_TOM      = 4
+const int DRUM_CRASH    = 5
+const int DRUM_CLAP     = 6
+
+// default timing unit for score files
+const int UNIT_SECONDS = 0
+const int UNIT_BEATS   = 1
+
+// ============================ small helpers ================================
+
+// clamp an int to [lo,hi]
+func clampI(int v, int lo, int hi) as int
+    if v < lo then
+        return lo
+    end
+    if v > hi then
+        return hi
+    end
+    return v
+end
+
+// clamp a float to [lo,hi]
+func clampF(float v, float lo, float hi) as float
+    if v < lo then
+        return lo
+    end
+    if v > hi then
+        return hi
+    end
+    return v
+end
+
+// linear interpolation
+func lerp(float a, float b, float t) as float
+    return a + (b - a) * t
+end
+
+// build a zero-filled array<float> of length n
+func makeFloatBuf(int n) as array<float>
+    array<float> a = array[0.0]
+    int i = 1
+    while i < n do
+        a.push(0.0)
+        i += 1
+    end
+    return a
+end
+
+// build a zero-filled array<int> of length n
+func makeIntBuf(int n) as array<int>
+    array<int> a = array[0]
+    int i = 1
+    while i < n do
+        a.push(0)
+        i += 1
+    end
+    return a
+end
+
+// convert a float sample in [-1,1] to a signed 16-bit PCM int, with clipping
+func sampleToInt16(float s) as int
+    float v = s * 32767.0
+    if v > 32767.0 then
+        v = 32767.0
+    end
+    if v < -32768.0 then
+        v = -32768.0
+    end
+    if v >= 0.0 then
+        return int(v + 0.5)
+    end
+    return int(v - 0.5)
+end
+
+// seconds -> sample count (rounded)
+func secToSamples(float sec) as int
+    int n = int(sec * float(SAMPLE_RATE) + 0.5)
+    if n < 0 then
+        n = 0
+    end
+    return n
+end
+
+// ============================ waveform oscillators ========================
+//
+// Each oscillator evaluates one sample at absolute time `t` (seconds) for a
+// given frequency (Hz) and initial phase offset (radians). Phase is computed
+// as freq*t*2pi + phase0; the fractional part of (phase / 2pi) drives the
+// shape. math.sin drives the sine oscillator; the others are piecewise
+// functions of the normalized phase in [0,1).
+// ===========================================================================
+
+// normalized phase p in [0,1) -> sine sample in [-1,1]
+func oscSine(float p) as float
+    return math.sin(p * TWO_PI)
+end
+
+// normalized phase p in [0,1) -> square wave in {-1,+1}
+func oscSquare(float p) as float
+    if p < 0.5 then
+        return 1.0
+    end
+    return -1.0
+end
+
+// normalized phase p in [0,1) -> sawtooth, ramps -1 -> +1
+func oscSaw(float p) as float
+    return 2.0 * p - 1.0
+end
+
+// normalized phase p in [0,1) -> triangle, peaks at +1 (p=0.25) and -1 (p=0.75)
+func oscTriangle(float p) as float
+    if p < 0.25 then
+        return 4.0 * p
+    end
+    if p < 0.75 then
+        return 2.0 - 4.0 * p
+    end
+    return 4.0 * p - 4.0
+end
+
+// white noise sample in [-1,1] (uncorrelated from call to call)
+func oscNoise() as float
+    return (float(random.range(0, 2000000)) - 1000000.0) / 1000000.0
+end
+
+// dispatch a single oscillator sample by wave type.
+//   p = normalized phase in [0,1)
+func oscSample(int waveType, float p) as float
+    if waveType == WAVE_SINE then
+        return oscSine(p)
+    elseif waveType == WAVE_SQUARE then
+        return oscSquare(p)
+    elseif waveType == WAVE_SAW then
+        return oscSaw(p)
+    elseif waveType == WAVE_TRIANGLE then
+        return oscTriangle(p)
+    elseif waveType == WAVE_NOISE then
+        return oscNoise()
+    end
+    // default to silence for unknown wave type
+    return 0.0
+end
+
+// map a wave-type name to its id (case-insensitive prefix match)
+func waveTypeFromName(string name) as int
+    string s = string.lower(name)
+    if s == "sine" or s == "sin" then
+        return WAVE_SINE
+    elseif s == "square" or s == "sq" then
+        return WAVE_SQUARE
+    elseif s == "saw" or s == "sawtooth" then
+        return WAVE_SAW
+    elseif s == "tri" or s == "triangle" then
+        return WAVE_TRIANGLE
+    elseif s == "noise" or s == "white" then
+        return WAVE_NOISE
+    end
+    return WAVE_SINE
+end
+
+// map a wave id back to a printable name
+func waveName(int id) as string
+    if id == WAVE_SINE then
+        return "sine"
+    elseif id == WAVE_SQUARE then
+        return "square"
+    elseif id == WAVE_SAW then
+        return "saw"
+    elseif id == WAVE_TRIANGLE then
+        return "triangle"
+    elseif id == WAVE_NOISE then
+        return "noise"
+    end
+    return "?"
+end
+
+// ============================ ADSR envelope ===============================
+//
+// A classic four-segment amplitude envelope:
+//   attack  : 0    -> 1    over `attack`  seconds (note ON)
+//   decay   : 1    -> sus  over `decay`   seconds
+//   sustain : held at `sustain` level (0..1) until note OFF
+//   release : current -> 0 over `release` seconds (after note OFF)
+//
+// envelopeLevel returns the amplitude (0..1) at absolute time `t`, given the
+// note-on time, the note-off time (-1.0 = still held), and the four params.
+// ===========================================================================
+
+// amplitude reached on the attack/decay/sustain curve at relative time `rel`
+// (seconds since note-on), ignoring release.
+func adsrAttackDecayLevel(float rel, float attack, float decay, float sustain) as float
+    if attack > 0.0 and rel < attack then
+        return rel / attack
+    end
+    float dStart = attack
+    float dEnd = attack + decay
+    if decay > 0.0 and rel < dEnd then
+        float f = (rel - dStart) / decay
+        return lerp(1.0, sustain, f)
+    end
+    return sustain
+end
+
+// full envelope level at time t (handles release segment).
+// noteOff < 0 means the note is still gated ON (use a large sustain hold).
+func envelopeLevel(float t, float noteOn, float noteOff,
+                   float attack, float decay, float sustain, float release) as float
+    if t < noteOn then
+        return 0.0
+    end
+    // still gated on (no note-off yet, or before note-off)
+    if noteOff < 0.0 or t < noteOff then
+        float rel = t - noteOn
+        return adsrAttackDecayLevel(rel, attack, decay, sustain)
+    end
+    // release segment: starts at the level the curve had at noteOff
+    float relOff = noteOff - noteOn
+    float startLevel = adsrAttackDecayLevel(relOff, attack, decay, sustain)
+    float rt = t - noteOff
+    if release <= 0.0 then
+        return 0.0
+    end
+    if rt >= release then
+        return 0.0
+    end
+    return startLevel * (1.0 - rt / release)
+end
+
+// ============================ one-pole filters ============================
+//
+// First-order recursive filters implemented as difference equations:
+//   low-pass : y[n]  = a * x[n] + (1-a) * y[n-1]
+//   high-pass: y[n]  = a * (x[n] - x[n-1]) + a * y[n-1]   (a derived form)
+//
+// `cutoff` is the approximate -3 dB frequency in Hz; `a` is derived from it
+// relative to the sample rate. The filter is applied in place on a slice of
+// an array<float>. `prevState` carries y[n-1] (and x[n-1] for HP) across
+// calls so a whole track can be filtered continuously.
+// ===========================================================================
+
+// compute the one-pole low-pass coefficient from a cutoff frequency
+func lowpassCoeff(float cutoff) as float
+    float c = clampF(cutoff, 10.0, 20000.0)
+    // RC-derived: a = dt / (RC + dt), RC = 1/(2*pi*cutoff)
+    float dt = 1.0 / float(SAMPLE_RATE)
+    float rc = 1.0 / (TWO_PI * c)
+    return dt / (rc + dt)
+end
+
+// compute the one-pole high-pass coefficient from a cutoff frequency
+func highpassCoeff(float cutoff) as float
+    float c = clampF(cutoff, 10.0, 20000.0)
+    float dt = 1.0 / float(SAMPLE_RATE)
+    float rc = 1.0 / (TWO_PI * c)
+    return rc / (rc + dt)
+end
+
+// apply one-pole low-pass in place over [start, start+len), threading y[n-1]
+// in/out through `state` (state[0] = previous output). returns new y[n-1].
+func filterLowpass(array<float> buf, int start, int len, float a, array<float> state) as float
+    float prev = state[0]
+    int i = 0
+    while i < len do
+        float x = buf[start + i]
+        prev = a * x + (1.0 - a) * prev
+        buf[start + i] = prev
+        i += 1
+    end
+    state[0] = prev
+    return prev
+end
+
+// apply one-pole high-pass in place over [start, start+len), threading x[n-1]
+// (state[0]) and y[n-1] (state[1]). returns new y[n-1].
+func filterHighpass(array<float> buf, int start, int len, float a, array<float> state) as float
+    float prevX = state[0]
+    float prevY = state[1]
+    int i = 0
+    while i < len do
+        float x = buf[start + i]
+        float y = a * (prevY + x - prevX)
+        prevX = x
+        prevY = y
+        buf[start + i] = y
+        i += 1
+    end
+    state[0] = prevX
+    state[1] = prevY
+    return prevY
+end
+
+// ============================ note / scale system =========================
+//
+// Three interchangeable pitch representations:
+//   * note name  e.g. "C4", "A#4", "Db3", "A4"
+//   * MIDI number  e.g. 69 (= A4)
+//   * frequency  (Hz)
+//
+// Conversions (equal temperament, A4 = 440 Hz):
+//   freq(midi) = A4_FREQ * 2^((midi - 69) / 12)
+//   midi(name) = (octave + 1) * 12 + semitoneInOctave(letter, accidental)
+//   C4 = 60, A4 = 69, MIDI range used here is 0..127.
+// ===========================================================================
+
+// MIDI note number -> frequency (Hz)
+func midiToFreq(int midi) as float
+    int m = clampI(midi, 0, 127)
+    float semi = float(m - A4_MIDI)
+    return A4_FREQ * math.pow(2.0, semi / 12.0)
+end
+
+// frequency (Hz) -> nearest MIDI note number
+func freqToMidi(float freq) as int
+    if freq <= 0.0 then
+        return 0
+    end
+    float m = 12.0 * math.log(freq / A4_FREQ) / math.log(2.0) + float(A4_MIDI)
+    return int(m + 0.5)
+end
+
+// semitone offset from A4 -> frequency (offset may be fractional for microtones)
+func semitoneOffsetToFreq(float semis) as float
+    return A4_FREQ * math.pow(2.0, semis / 12.0)
+end
+
+// letter (one-char string "A".."G") -> base semitone within the octave
+// (C=0, D=2, E=4, F=5, G=7, A=9, B=11). returns -1 for an invalid letter.
+func letterToSemitone(string letter) as int
+    if letter == "C" then
+        return 0
+    elseif letter == "D" then
+        return 2
+    elseif letter == "E" then
+        return 4
+    elseif letter == "F" then
+        return 5
+    elseif letter == "G" then
+        return 7
+    elseif letter == "A" then
+        return 9
+    elseif letter == "B" then
+        return 11
+    end
+    return -1
+end
+
+// parse a note name like "C4", "A#4", "Db3", "F#5" into a MIDI number.
+// returns -1 on parse failure. octave defaults to 4 if omitted.
+func noteNameToMidi(string name) as int
+    int n = string.len(name)
+    if n == 0 then
+        return -1
+    end
+    string letter = string.upper(string.charAt(name, 0))
+    int base = letterToSemitone(letter)
+    if base < 0 then
+        return -1
+    end
+    int idx = 1
+    int accidental = 0
+    if idx < n then
+        int b = string.byteAt(name, idx)
+        // '#' (35) sharp, '+' (43) sharp, 'b' (98) / 'B'(66) flat, '-' (45) flat
+        if b == 35 or b == 43 then
+            accidental = 1
+            idx += 1
+        elseif b == 98 or b == 66 or b == 45 then
+            accidental = -1
+            idx += 1
+        end
+    end
+    int semi = base + accidental
+    int octave = 4
+    if idx < n then
+        string octStr = ""
+        while idx < n do
+            int b2 = string.byteAt(name, idx)
+            if b2 >= 48 and b2 <= 57 then
+                octStr = octStr + string.charAt(name, idx)
+                idx += 1
+            else
+                // trailing junk -> invalid
+                return -1
+            end
+        end
+        if string.len(octStr) > 0 then
+            octave = int(octStr)
+        end
+    end
+    // MIDI: C-1 = 0, so C0 = 12, C4 = 60
+    return (octave + 1) * 12 + semi
+end
+
+// note name -> frequency (Hz)
+func noteNameToFreq(string name) as float
+    int m = noteNameToMidi(name)
+    if m < 0 then
+        return 0.0
+    end
+    return midiToFreq(m)
+end
+
+// MIDI note number -> printable note name (with sharp accidentals)
+func midiToNoteName(int midi) as string
+    int m = clampI(midi, 0, 127)
+    int semi = m % 12
+    int octave = m / 12 - 1
+    array<string> names = array["C", "C#", "D", "D#", "E", "F",
+                                "F#", "G", "G#", "A", "A#", "B"]
+    return names[semi] + string(octave)
+end
+
+// drum name -> drum id (0 = not a drum)
+func drumIdFromName(string name) as int
+    string s = string.lower(string.trim(name))
+    if s == "kick" or s == "bd" or s == "bassdrum" then
+        return DRUM_KICK
+    elseif s == "snare" or s == "sd" or s == "sn" then
+        return DRUM_SNARE
+    elseif s == "hihat" or s == "hat" or s == "hh" then
+        return DRUM_HIHAT
+    elseif s == "tom" then
+        return DRUM_TOM
+    elseif s == "crash" or s == "cymbal" then
+        return DRUM_CRASH
+    elseif s == "clap" then
+        return DRUM_CLAP
+    end
+    return DRUM_NONE
+end
+
+// printable drum name from id
+func drumName(int id) as string
+    if id == DRUM_KICK then
+        return "kick"
+    elseif id == DRUM_SNARE then
+        return "snare"
+    elseif id == DRUM_HIHAT then
+        return "hihat"
+    elseif id == DRUM_TOM then
+        return "tom"
+    elseif id == DRUM_CRASH then
+        return "crash"
+    elseif id == DRUM_CLAP then
+        return "clap"
+    end
+    return "?"
+end
+
+// resolve a score pitch token to (frequency, drumId). if it is a drum name,
+// frequency is 0.0 and drumId > 0. if it is "m<N>" -> MIDI, "f<N>" -> Hz,
+// otherwise it is a note name.
+func resolvePitch(string token) as (float, int)
+    string t = string.trim(token)
+    if string.len(t) == 0 then
+        return 0.0, DRUM_NONE
+    end
+    string head = string.lower(string.charAt(t, 0))
+    // drum?
+    int dr = drumIdFromName(t)
+    if dr != DRUM_NONE then
+        return 0.0, dr
+    end
+    // MIDI literal "m60" / "mid60"
+    if head == "m" then
+        string rest = string.mid(t, 1)
+        int mm = int(rest)
+        return midiToFreq(mm), DRUM_NONE
+    end
+    // frequency literal "f440" / "hz440"
+    if head == "f" or head == "h" then
+        string rest = string.mid(t, 1)
+        return float(rest), DRUM_NONE
+    end
+    // plain number -> treat as Hz
+    if (head == "0" or head == "1" or head == "2" or head == "3" or
+        head == "4" or head == "5" or head == "6" or head == "7" or
+        head == "8" or head == "9") then
+        return float(t), DRUM_NONE
+    end
+    // note name
+    int midi = noteNameToMidi(t)
+    if midi < 0 then
+        return 0.0, DRUM_NONE
+    end
+    return midiToFreq(midi), DRUM_NONE
+end
+
+// major scale degrees (semitone offsets from the root) for a full octave
+array<int> MAJOR_SCALE = array[0, 2, 4, 5, 7, 9, 11, 12]
+// natural minor scale
+array<int> MINOR_SCALE = array[0, 2, 3, 5, 7, 8, 10, 12]
+// pentatonic major
+array<int> PENTATONIC_SCALE = array[0, 2, 4, 7, 9, 12]
+
+// build a scale starting at a root MIDI note, for `octaves` octaves, using a
+// scale-interval table. returns the list of MIDI notes.
+func buildScale(int rootMidi, array<int> intervals, int octaves) as array<int>
+    array<int> out = array[]
+    int o = 0
+    while o < octaves do
+        int k = 0
+        while k < intervals.length do
+            out.push(rootMidi + o * 12 + intervals[k])
+            k += 1
+        end
+        o += 1
+    end
+    return out
+end
+
+// ============================ note & track classes ========================
+
+// a single scheduled note (or rest when freq<=0 and drum==0 and vel==0)
+class Note
+    derive value
+    float startTime = 0.0    // seconds (absolute, on the master timeline)
+    float gateDur   = 0.0    // gated duration in seconds (note-on .. note-off)
+    float freq      = 0.0    // fundamental frequency (Hz); 0 for drums/rests
+    int   velocity  = 100    // 0..127 (mapped to 0..1 amplitude)
+    int   drumType  = 0      // 0 = pitched tone, else drum id
+    float phase0    = 0.0    // initial phase offset (radians), usually 0
+end
+
+// a track groups notes that share a waveform, an ADSR envelope, a filter
+// and a gain. tracks are mixed additively into the master buffer.
+class Track
+    derive value
+    int   index     = 0
+    int   waveType  = WAVE_SINE
+    float attack    = 0.01
+    float decay     = 0.10
+    float sustain   = 0.70
+    float release   = 0.20
+    int   filterType   = FILT_NONE
+    float filterCutoff = 2000.0
+    float gain      = 1.0
+    array<Note> notes = array[]
+end
+
+// a full score: global tempo, the timing unit, and the track list.
+class Score
+    derive value
+    float tempo    = 120.0        // BPM (used when unit == UNIT_BEATS)
+    int   unit     = UNIT_SECONDS // default timing unit for note starts/durs
+    int   ppq      = 480          // MIDI ticks per quarter (MIDI parse only)
+    array<Track> tracks = array[]
+end
+
+// add a track to a score (creating it if missing) and return it
+func getOrAddTrack(Score sc, int idx) as Track
+    int i = 0
+    while i < sc.tracks.length do
+        if sc.tracks[i].index == idx then
+            return sc.tracks[i]
+        end
+        i += 1
+    end
+    Track t = Track()
+    t.index = idx
+    sc.tracks.push(t)
+    return t
+end
+
+// velocity (0..127) -> linear amplitude (0..1)
+func velocityToAmp(int vel) as float
+    int v = clampI(vel, 0, 127)
+    return float(v) / 127.0
+end
+
+// ============================ drum rendering ==============================
+//
+// Drums are synthesized (not sampled): each drum has its own waveform +
+// envelope + pitch behavior. Returns the number of samples written into
+// `out` starting at `offset`. Does not touch samples outside the drum's
+// own (attack + decay + release) span.
+// ===========================================================================
+
+// render one drum hit into `out` at sample `offset`. `outLen` is the total
+// buffer length (for bounds safety).
+func renderDrum(int drumType, int vel, int offset, array<float> out, int outLen) as int
+    float amp = velocityToAmp(vel)
+    if drumType == DRUM_KICK then
+        // sine with a fast pitch drop from ~140 Hz to ~50 Hz
+        int n = secToSamples(0.35)
+        int i = 0
+        while i < n do
+            if offset + i >= outLen then
+                return i
+            end
+            float t = float(i) / float(SAMPLE_RATE)
+            float f = lerp(140.0, 50.0, clampF(t / 0.08, 0.0, 1.0))
+            float phase = f * t * TWO_PI
+            float env = math.exp(-t * 18.0)
+            out[offset + i] += amp * env * math.sin(phase)
+            i += 1
+        end
+        return n
+    elseif drumType == DRUM_SNARE then
+        // noise body + low sine fundamental, two decays
+        int n = secToSamples(0.20)
+        int i = 0
+        while i < n do
+            if offset + i >= outLen then
+                return i
+            end
+            float t = float(i) / float(SAMPLE_RATE)
+            float envN = math.exp(-t * 30.0)
+            float envT = math.exp(-t * 45.0)
+            float tone = math.sin(180.0 * t * TWO_PI)
+            out[offset + i] += amp * (0.7 * envN * oscNoise() + 0.3 * envT * tone)
+            i += 1
+        end
+        return n
+    elseif drumType == DRUM_HIHAT then
+        // short bright noise burst (effectively high-passed by the fast decay)
+        int n = secToSamples(0.06)
+        int i = 0
+        while i < n do
+            if offset + i >= outLen then
+                return i
+            end
+            float t = float(i) / float(SAMPLE_RATE)
+            float env = math.exp(-t * 120.0)
+            out[offset + i] += amp * env * oscNoise() * 0.6
+            i += 1
+        end
+        return n
+    elseif drumType == DRUM_TOM then
+        int n = secToSamples(0.30)
+        int i = 0
+        while i < n do
+            if offset + i >= outLen then
+                return i
+            end
+            float t = float(i) / float(SAMPLE_RATE)
+            float env = math.exp(-t * 12.0)
+            out[offset + i] += amp * env * math.sin(100.0 * t * TWO_PI)
+            i += 1
+        end
+        return n
+    elseif drumType == DRUM_CRASH then
+        int n = secToSamples(0.8)
+        int i = 0
+        while i < n do
+            if offset + i >= outLen then
+                return i
+            end
+            float t = float(i) / float(SAMPLE_RATE)
+            float env = math.exp(-t * 4.0)
+            out[offset + i] += amp * env * oscNoise() * 0.5
+            i += 1
+        end
+        return n
+    elseif drumType == DRUM_CLAP then
+        int n = secToSamples(0.18)
+        int i = 0
+        while i < n do
+            if offset + i >= outLen then
+                return i
+            end
+            float t = float(i) / float(SAMPLE_RATE)
+            float env = math.exp(-t * 35.0)
+            out[offset + i] += amp * env * oscNoise() * 0.55
+            i += 1
+        end
+        return n
+    end
+    return 0
+end
+
+// ============================ note rendering ==============================
+//
+// renderNote fills `out` with the samples of one pitched note, summing into
+// whatever is already there (additive mix). The note's waveform is modulated
+// by the track ADSR envelope and the note velocity. Drums are delegated to
+// renderDrum. The note occupies [startSample, startSample + totalSamples)
+// where totalSamples = gateSamples + releaseSamples (the release tail extends
+// past the gate duration).
+// ===========================================================================
+
+// render a pitched note into `out` (length outLen), starting at `startSample`.
+func renderPitchedNote(Note nt, Track tr, int startSample, array<float> out, int outLen) as int
+    if nt.freq <= 0.0 then
+        return 0
+    end
+    float noteOn  = nt.startTime
+    float noteOff = nt.startTime + nt.gateDur
+    float amp = velocityToAmp(nt.velocity) * tr.gain
+    int gateSamples = secToSamples(nt.gateDur)
+    int releaseSamples = secToSamples(tr.release)
+    int totalSamples = gateSamples + releaseSamples
+    int i = 0
+    while i < totalSamples do
+        int idx = startSample + i
+        if idx < 0 or idx >= outLen then
+            // allow the loop to keep counting i so we return the right length
+            i += 1
+            continue
+        end
+        float t = float(idx) / float(SAMPLE_RATE)
+        float env = envelopeLevel(t, noteOn, noteOff, tr.attack, tr.decay,
+                                  tr.sustain, tr.release)
+        float phase = nt.freq * t * TWO_PI + nt.phase0
+        // normalize phase to [0,1)
+        float p = phase / TWO_PI
+        p = p - math.floor(p)
+        float s = oscSample(tr.waveType, p)
+        out[idx] += amp * env * s
+        i += 1
+    end
+    return totalSamples
+end
+
+// render a single note (pitched or drum) into `out`.
+func renderNote(Note nt, Track tr, int startSample, array<float> out, int outLen) as int
+    if nt.drumType != DRUM_NONE then
+        float rel = velocityToAmp(nt.velocity) * tr.gain
+        int n = renderDrum(nt.drumType, int(rel * 127.0), startSample, out, outLen)
+        return n
+    end
+    return renderPitchedNote(nt, tr, startSample, out, outLen)
+end
+
+// render a whole track into a freshly allocated buffer sized to `totalSamples`.
+func renderTrack(Track tr, int totalSamples) as array<float>
+    array<float> buf = makeFloatBuf(totalSamples)
+    int k = 0
+    while k < tr.notes.length do
+        Note nt = tr.notes[k]
+        int startSample = secToSamples(nt.startTime)
+        if nt.drumType != DRUM_NONE then
+            renderDrum(nt.drumType, nt.velocity, startSample, buf, totalSamples)
+        else
+            renderPitchedNote(nt, tr, startSample, buf, totalSamples)
+        end
+        k += 1
+    end
+    // apply the track filter across the entire rendered buffer, threading
+    // filter state from sample 0 so it is continuous.
+    if tr.filterType == FILT_LOWPASS then
+        array<float> state = array[0.0]
+        filterLowpass(buf, 0, totalSamples, lowpassCoeff(tr.filterCutoff), state)
+    elseif tr.filterType == FILT_HIGHPASS then
+        array<float> state = array[0.0, 0.0]
+        filterHighpass(buf, 0, totalSamples, highpassCoeff(tr.filterCutoff), state)
+    end
+    // apply track gain
+    if tr.gain != 1.0 then
+        int i = 0
+        while i < totalSamples do
+            buf[i] = buf[i] * tr.gain
+            i += 1
+        end
+    end
+    return buf
+end
+
+// ============================ master mixdown ==============================
+
+// compute the total duration (seconds) of a score: the max end time of any
+// note across all tracks, including the longest release tail.
+func scoreDuration(Score sc) as float
+    float endT = 0.0
+    int t = 0
+    while t < sc.tracks.length do
+        Track tr = sc.tracks[t]
+        float rel = tr.release
+        int k = 0
+        while k < tr.notes.length do
+            Note nt = tr.notes[k]
+            float e = nt.startTime + nt.gateDur + rel
+            if e > endT then
+                endT = e
+            end
+            k += 1
+        end
+        t += 1
+    end
+    if endT < 0.05 then
+        endT = 0.05
+    end
+    return endT
+end
+
+// mix every rendered track into a master buffer; returns the master buffer.
+func mixdown(Score sc) as array<float>
+    float dur = scoreDuration(sc)
+    int total = secToSamples(dur) + SAMPLE_RATE / 4    // +0.25s safety tail
+    array<float> master = makeFloatBuf(total)
+    int t = 0
+    while t < sc.tracks.length do
+        Track tr = sc.tracks[t]
+        array<float> tb = renderTrack(tr, total)
+        int i = 0
+        while i < total do
+            master[i] += tb[i]
+            i += 1
+        end
+        t += 1
+    end
+    return master
+end
+
+// normalize so the peak absolute amplitude == targetPeak, then apply soft
+// saturation to tame any remaining overshoot (prevents harsh clipping).
+func normalizeAndLimit(array<float> buf, float targetPeak) as float
+    float peak = 0.0
+    int i = 0
+    while i < buf.length do
+        float a = buf[i]
+        if a < 0.0 then
+            a = -a
+        end
+        if a > peak then
+            peak = a
+        end
+        i += 1
+    end
+    if peak <= 1e-9 then
+        return 0.0
+    end
+    float g = targetPeak / peak
+    i = 0
+    while i < buf.length do
+        float s = buf[i] * g
+        // soft tanh-like saturation via cubic: keeps peaks below 1.0
+        if s > 1.0 then
+            s = 1.0 - 1.0 / (3.0 * (s - 0.8) + 1.0)
+        elseif s < -1.0 then
+            s = -1.0 + 1.0 / (3.0 * (-s - 0.8) + 1.0)
+        end
+        buf[i] = s
+        i += 1
+    end
+    return peak
+end
+
+// ============================ WAV encoding ================================
+//
+// Canonical 44-byte RIFF/WAVE + PCM 16-bit header followed by the data chunk.
+// All multi-byte integer fields are little-endian. The whole file is built
+// into an array<int> (each element one byte 0..255), then copied into a
+// Buffer for file.writeBytes (Buffer cannot be returned from a function).
+// ===========================================================================
+
+// append a little-endian 16-bit word to a byte array
+func appendLE16(array<int> b, int v) as array<int>
+    int vv = v & 0xFFFF
+    b.push(vv & 0xFF)
+    b.push((vv >> 8) & 0xFF)
+    return b
+end
+
+// append a little-endian 32-bit word to a byte array
+func appendLE32(array<int> b, int v) as array<int>
+    int vv = v & 0xFFFFFFFF
+    b.push(vv & 0xFF)
+    b.push((vv >> 8) & 0xFF)
+    b.push((vv >> 16) & 0xFF)
+    b.push((vv >> 24) & 0xFF)
+    return b
+end
+
+// append a 4-char ASCII tag to a byte array
+func appendTag(array<int> b, string tag) as array<int>
+    int i = 0
+    while i < 4 do
+        b.push(string.byteAt(tag, i))
+        i += 1
+    end
+    return b
+end
+
+// build the full WAV file (header + 16-bit PCM data) from a sample buffer.
+func buildWavBytes(array<float> samples) as array<int>
+    array<int> b = array[]
+    int numSamples = samples.length
+    int dataSize = numSamples * CHANNELS * (BIT_DEPTH / 8)
+    int byteRate = SAMPLE_RATE * CHANNELS * (BIT_DEPTH / 8)
+    int blockAlign = CHANNELS * (BIT_DEPTH / 8)
+    // ---- RIFF header ----
+    b = appendTag(b, "RIFF")
+    b = appendLE32(b, 36 + dataSize)        // ChunkSize
+    b = appendTag(b, "WAVE")
+    // ---- fmt subchunk ----
+    b = appendTag(b, "fmt ")
+    b = appendLE32(b, 16)                   // Subchunk1Size (PCM)
+    b = appendLE16(b, 1)                    // AudioFormat = PCM
+    b = appendLE16(b, CHANNELS)
+    b = appendLE32(b, SAMPLE_RATE)
+    b = appendLE32(b, byteRate)
+    b = appendLE16(b, blockAlign)
+    b = appendLE16(b, BIT_DEPTH)
+    // ---- data subchunk ----
+    b = appendTag(b, "data")
+    b = appendLE32(b, dataSize)
+    int i = 0
+    while i < numSamples do
+        int v = sampleToInt16(samples[i])
+        b = appendLE16(b, v)
+        i += 1
+    end
+    return b
+end
+
+// copy an array<int> (bytes 0..255) into a Buffer and write it to `outPath`.
+// returns true on success.
+func writeWavFile(string outPath, array<int> bytes) as bool
+    Buffer buf = Buffer()
+    buf.reserve(bytes.length)
+    int i = 0
+    while i < bytes.length do
+        buf.appendByte(bytes[i] & 0xFF)
+        i += 1
+    end
+    return file.writeBytes(outPath, buf)
+end
+
+// parse the RIFF/WAVE header of an existing file and return (sampleRate,
+// channels, bitsPerSample, dataOffset, dataSize). Used by the self-test.
+// Assumes the canonical 44-byte header layout produced by buildWavBytes.
+func parseWavHeader(Buffer buf) as (int, int, int, int, int)
+    if buf.len() < 44 then
+        return 0, 0, 0, 0, 0
+    end
+    // verify "RIFF" .... "WAVE"
+    if not (buf.byteAt(0) == 0x52 and buf.byteAt(1) == 0x49 and
+            buf.byteAt(2) == 0x46 and buf.byteAt(3) == 0x46) then
+        return 0, 0, 0, 0, 0
+    end
+    if not (buf.byteAt(8) == 0x57 and buf.byteAt(9) == 0x41 and
+            buf.byteAt(10) == 0x56 and buf.byteAt(11) == 0x45) then
+        return 0, 0, 0, 0, 0
+    end
+    int sampleRate = (buf.byteAt(24) | (buf.byteAt(25) << 8) |
+                      (buf.byteAt(26) << 16) | (buf.byteAt(27) << 24))
+    int channels  = buf.byteAt(22) | (buf.byteAt(23) << 8)
+    int bits      = buf.byteAt(34) | (buf.byteAt(35) << 8)
+    int dataOff   = 44       // canonical: data payload starts right after the 44-byte header
+    int dataSize = (buf.byteAt(40) | (buf.byteAt(41) << 8) |
+                    (buf.byteAt(42) << 16) | (buf.byteAt(43) << 24))
+    return sampleRate, channels, bits, dataOff, dataSize
+end
+
+// ============================ MIDI event parsing ==========================
+//
+// A lightweight MIDI *event-list* parser (not a binary .mid parser). It
+// consumes a list of textual events, one per line:
+//
+//   tempo <microsecondsPerQuarter>     set tempo (e.g. 500000 = 120 BPM)
+//   <tick> <channel> on  <note> <vel>
+//   <tick> <channel> off <note> <vel>
+//
+// Ticks are MIDI ticks; with PPQ ticks per quarter and a tempo in us/quarter,
+// seconds = tick / PPQ * tempo / 1e6. Note-on/off pairs on the same channel
+// are matched to produce gated Note events. The result is added to a Score
+// with one track per channel.
+// ===========================================================================
+
+// microseconds per quarter -> BPM
+func tempoToBPM(float tempo) as float
+    if tempo <= 0.0 then
+        return 120.0
+    end
+    return 60000000.0 / tempo
+end
+
+// BPM -> microseconds per quarter
+func bpmToTempo(float bpm) as float
+    if bpm <= 0.0 then
+        return 500000.0
+    end
+    return 60000000.0 / bpm
+end
+
+// parse a block of MIDI event text into a Score. `defaultPPQ` is the ticks
+// per quarter (default 480). tempo events may appear anywhere and apply to
+// later ticks (a single tempo is used for the whole conversion here, taken
+// from the last tempo event, which is sufficient for the built-in demos).
+class MidiEvent
+    int   tick     = 0
+    int   channel  = 0
+    int   isOn     = 0     // 1 = note-on, 0 = note-off
+    int   note     = 0
+    int   vel      = 0
+end
+
+func parseMidiEvents(string text, int defaultPPQ) as Score
+    Score sc = Score()
+    sc.ppq = defaultPPQ
+    array<MidiEvent> events = array[]
+    float tempo = 500000.0    // default 120 BPM
+    array lines = string.splitLines(text)
+    int li = 0
+    while li < lines.length do
+        string line = string.trim(string(lines[li]))
+        li += 1
+        if string.len(line) == 0 then
+            continue
+        end
+        if string.startsWith(line, "//") or string.startsWith(line, "#") then
+            continue
+        end
+        array parts = string.split(line, " ")
+        // collect non-empty tokens
+        array<string> tok = array[]
+        int pi = 0
+        while pi < parts.length do
+            string p = string.trim(string(parts[pi]))
+            if string.len(p) > 0 then
+                tok.push(p)
+            end
+            pi += 1
+        end
+        if tok.length == 0 then
+            continue
+        end
+        string head = string.lower(tok[0])
+        if head == "tempo" then
+            if tok.length >= 2 then
+                tempo = float(tok[1])
+            end
+            continue
+        end
+        // event form: tick channel on/off note vel
+        if tok.length >= 5 then
+            MidiEvent ev = MidiEvent()
+            ev.tick = int(tok[0])
+            ev.channel = int(tok[1])
+            string kind = string.lower(tok[2])
+            if kind == "on" then
+                ev.isOn = 1
+            else
+                ev.isOn = 0
+            end
+            ev.note = int(tok[3])
+            ev.vel = int(tok[4])
+            events.push(ev)
+        end
+    end
+    sc.tempo = tempoToBPM(tempo)
+    // convert ticks to seconds: sec = tick/ppq * tempo/1e6
+    float secPerTick = tempo / 1000000.0 / float(defaultPPQ)
+    // pair note-ons with the next note-off of the same (channel, note)
+    int i = 0
+    while i < events.length do
+        MidiEvent eon = events[i]
+        if eon.isOn == 1 and eon.vel > 0 then
+            int j = i + 1
+            int found = -1
+            while j < events.length do
+                MidiEvent eoff = events[j]
+                if (eoff.channel == eon.channel and eoff.note == eon.note and
+                    (eoff.isOn == 0 or eoff.vel == 0)) then
+                    found = j
+                    break
+                end
+                j += 1
+            end
+            Track tr = getOrAddTrack(sc, eon.channel)
+            Note nt = Note()
+            nt.startTime = float(eon.tick) * secPerTick
+            if found >= 0 then
+                int offTick = events[found].tick
+                nt.gateDur = float(offTick - eon.tick) * secPerTick
+            else
+                nt.gateDur = 0.4   // default gate if no matching off
+            end
+            if nt.gateDur <= 0.0 then
+                nt.gateDur = 0.1
+            end
+            nt.freq = midiToFreq(eon.note)
+            nt.velocity = eon.vel
+            tr.notes.push(nt)
+        end
+        i += 1
+    end
+    // assign default wave types: channel 9 (index 9) is the MIDI drum channel
+    int t = 0
+    while t < sc.tracks.length do
+        if sc.tracks[t].index == 9 then
+            sc.tracks[t].waveType = WAVE_NOISE
+        else
+            sc.tracks[t].waveType = WAVE_SINE
+        end
+        t += 1
+    end
+    return sc
+end
+
+// ============================ score parser ================================
+//
+// Score file grammar (text, one directive per line, '#' comments):
+//
+//   tempo <bpm>                       set global tempo (default 120)
+//   unit seconds|beats                set timing unit for note fields
+//   track <index>                     select a track (created if needed)
+//   wave <name>                       current track: sine|square|saw|triangle|noise
+//   env <a> <d> <s> <r>               current track ADSR (seconds, seconds, 0..1, seconds)
+//   gain <v>                          current track gain (0..2)
+//   filter none|lowpass|highpass <cutoffHz>
+//   note <start> <dur> <pitch> [<vel>]   schedule a note on the current track
+//   rest <dur>                        (ignored placeholder; affects cursor only)
+//
+// `start` and `dur` are in the active timing unit. If `unit beats`, a value v
+// maps to seconds as v * 60 / tempo. `pitch` is a note name / m<N> / f<N> /
+// drum name. `vel` defaults to 100.
+// ===========================================================================
+
+// convert a timing value in the active unit to seconds
+func toSeconds(float v, Score sc) as float
+    if sc.unit == UNIT_BEATS then
+        if sc.tempo <= 0.0 then
+            return v
+        end
+        return v * 60.0 / sc.tempo
+    end
+    return v
+end
+
+// a tiny float-string validator (allows optional sign, digits, one dot)
+func looksFloat(string s) as bool
+    int n = string.len(s)
+    if n == 0 then
+        return false
+    end
+    int i = 0
+    if string.byteAt(s, 0) == 45 or string.byteAt(s, 0) == 43 then
+        i = 1
+        if n == 1 then
+            return false
+        end
+    end
+    bool sawDot = false
+    bool sawDigit = false
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b == 46 then
+            if sawDot then
+                return false
+            end
+            sawDot = true
+        elseif b >= 48 and b <= 57 then
+            sawDigit = true
+        else
+            return false
+        end
+        i += 1
+    end
+    return sawDigit
+end
+
+// tokenize a line into non-empty trimmed tokens
+func tokenize(string line) as array<string>
+    array parts = string.split(line, " ")
+    array<string> tok = array[]
+    int i = 0
+    while i < parts.length do
+        string p = string.trim(string(parts[i]))
+        if string.len(p) > 0 then
+            tok.push(p)
+        end
+        i += 1
+    end
+    return tok
+end
+
+// parse a full score file text into a Score object. throws on malformed lines.
+func parseScore(string text) as Score
+    Score sc = Score()
+    int currentTrackIdx = 0
+    array lines = string.splitLines(text)
+    int li = 0
+    while li < lines.length do
+        string raw = string(lines[li])
+        li += 1
+        string line = string.trim(raw)
+        if string.len(line) == 0 then
+            continue
+        end
+        if string.startsWith(line, "#") or string.startsWith(line, "//") then
+            continue
+        end
+        array<string> tok = tokenize(line)
+        if tok.length == 0 then
+            continue
+        end
+        string cmd = string.lower(tok[0])
+        if cmd == "tempo" then
+            if tok.length >= 2 and looksFloat(tok[1]) then
+                sc.tempo = float(tok[1])
+                if sc.tempo <= 0.0 then
+                    sc.tempo = 120.0
+                end
+            end
+        elseif cmd == "unit" then
+            if tok.length >= 2 then
+                string u = string.lower(tok[1])
+                if string.startsWith(u, "beat") then
+                    sc.unit = UNIT_BEATS
+                else
+                    sc.unit = UNIT_SECONDS
+                end
+            end
+        elseif cmd == "track" then
+            if tok.length >= 2 and looksFloat(tok[1]) then
+                currentTrackIdx = int(float(tok[1]))
+                getOrAddTrack(sc, currentTrackIdx)
+            end
+        elseif cmd == "wave" or cmd == "waveform" then
+            Track tr = getOrAddTrack(sc, currentTrackIdx)
+            if tok.length >= 2 then
+                tr.waveType = waveTypeFromName(tok[1])
+            end
+        elseif cmd == "env" or cmd == "adsr" then
+            Track tr = getOrAddTrack(sc, currentTrackIdx)
+            if tok.length >= 5 then
+                tr.attack  = float(tok[1])
+                tr.decay   = float(tok[2])
+                tr.sustain = clampF(float(tok[3]), 0.0, 1.0)
+                tr.release = float(tok[4])
+            end
+        elseif cmd == "gain" then
+            Track tr = getOrAddTrack(sc, currentTrackIdx)
+            if tok.length >= 2 and looksFloat(tok[1]) then
+                tr.gain = float(tok[1])
+            end
+        elseif cmd == "filter" then
+            Track tr = getOrAddTrack(sc, currentTrackIdx)
+            if tok.length >= 2 then
+                string f = string.lower(tok[1])
+                if f == "lowpass" or f == "lp" then
+                    tr.filterType = FILT_LOWPASS
+                elseif f == "highpass" or f == "hp" then
+                    tr.filterType = FILT_HIGHPASS
+                else
+                    tr.filterType = FILT_NONE
+                end
+                if tok.length >= 3 and looksFloat(tok[2]) then
+                    tr.filterCutoff = float(tok[2])
+                end
+            end
+        elseif cmd == "note" then
+            Track tr = getOrAddTrack(sc, currentTrackIdx)
+            if tok.length >= 4 then
+                Note nt = Note()
+                nt.startTime = toSeconds(float(tok[1]), sc)
+                nt.gateDur   = toSeconds(float(tok[2]), sc)
+                float f
+                int dr
+                f, dr = resolvePitch(tok[3])
+                nt.freq = f
+                nt.drumType = dr
+                if tok.length >= 5 and looksFloat(tok[4]) then
+                    nt.velocity = int(float(tok[4]))
+                end
+                tr.notes.push(nt)
+            end
+        elseif cmd == "rest" then
+            // no-op placeholder (start/dur encoded purely for readability)
+        else
+            throw "unknown score directive: " + cmd
+        end
+    end
+    // ensure every track has at least an empty note list (already does)
+    return sc
+end
+
+// ============================ built-in songs ==============================
+
+// helper: append a pitched note to a track at a cumulative cursor (seconds).
+// returns the new cursor (after the note's gate).
+func addNoteAt(Track tr, float cursor, float dur, string pitch, int vel) as float
+    Note nt = Note()
+    nt.startTime = cursor
+    nt.gateDur = dur
+    float f
+    int dr
+    f, dr = resolvePitch(pitch)
+    nt.freq = f
+    nt.drumType = dr
+    nt.velocity = vel
+    tr.notes.push(nt)
+    return cursor + dur
+end
+
+// Twinkle, Twinkle, Little Star (C major). Returns a Score.
+// Each quarter note = 0.5s (tempo 120, unit seconds).
+func songTwinkle() as Score
+    Score sc = Score()
+    sc.tempo = 120.0
+    sc.unit = UNIT_SECONDS
+    Track tr = getOrAddTrack(sc, 0)
+    tr.waveType = WAVE_TRIANGLE
+    tr.attack = 0.01
+    tr.decay = 0.08
+    tr.sustain = 0.7
+    tr.release = 0.18
+    tr.gain = 0.7
+    float q = 0.5       // quarter
+    float h = 1.0       // half
+    float c = 0.0
+    // phrase 1
+    c = addNoteAt(tr, c, q, "C4", 100)
+    c = addNoteAt(tr, c, q, "C4", 100)
+    c = addNoteAt(tr, c, q, "G4", 100)
+    c = addNoteAt(tr, c, q, "G4", 100)
+    c = addNoteAt(tr, c, q, "A4", 100)
+    c = addNoteAt(tr, c, q, "A4", 100)
+    c = addNoteAt(tr, c, h, "G4", 100)
+    // phrase 2
+    c = addNoteAt(tr, c, q, "F4", 100)
+    c = addNoteAt(tr, c, q, "F4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, q, "D4", 100)
+    c = addNoteAt(tr, c, q, "D4", 100)
+    c = addNoteAt(tr, c, h, "C4", 100)
+    // phrase 3
+    c = addNoteAt(tr, c, q, "G4", 100)
+    c = addNoteAt(tr, c, q, "G4", 100)
+    c = addNoteAt(tr, c, q, "F4", 100)
+    c = addNoteAt(tr, c, q, "F4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, h, "D4", 100)
+    // phrase 4
+    c = addNoteAt(tr, c, q, "G4", 100)
+    c = addNoteAt(tr, c, q, "G4", 100)
+    c = addNoteAt(tr, c, q, "F4", 100)
+    c = addNoteAt(tr, c, q, "F4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, h, "D4", 100)
+    // phrase 1 (repeat)
+    c = addNoteAt(tr, c, q, "C4", 100)
+    c = addNoteAt(tr, c, q, "C4", 100)
+    c = addNoteAt(tr, c, q, "G4", 100)
+    c = addNoteAt(tr, c, q, "G4", 100)
+    c = addNoteAt(tr, c, q, "A4", 100)
+    c = addNoteAt(tr, c, q, "A4", 100)
+    c = addNoteAt(tr, c, h, "G4", 100)
+    // phrase 2 (repeat)
+    c = addNoteAt(tr, c, q, "F4", 100)
+    c = addNoteAt(tr, c, q, "F4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, q, "D4", 100)
+    c = addNoteAt(tr, c, q, "D4", 100)
+    c = addNoteAt(tr, c, h, "C4", 100)
+    return sc
+end
+
+// Ode to Joy (Beethoven, main theme in C major). Returns a Score.
+func songOdeToJoy() as Score
+    Score sc = Score()
+    sc.tempo = 120.0
+    sc.unit = UNIT_SECONDS
+    Track tr = getOrAddTrack(sc, 0)
+    tr.waveType = WAVE_SINE
+    tr.attack = 0.02
+    tr.decay = 0.10
+    tr.sustain = 0.75
+    tr.release = 0.22
+    tr.gain = 0.65
+    float q = 0.5
+    float h = 1.0
+    float c = 0.0
+    // phrase A
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, q, "F4", 100)
+    c = addNoteAt(tr, c, q, "G4", 100)
+    c = addNoteAt(tr, c, q, "G4", 100)
+    c = addNoteAt(tr, c, q, "F4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, q, "D4", 100)
+    c = addNoteAt(tr, c, q, "C4", 100)
+    c = addNoteAt(tr, c, q, "C4", 100)
+    c = addNoteAt(tr, c, q, "D4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, h + q * 0.5, "E4", 100)   // dotted half-ish
+    c = addNoteAt(tr, c, q * 0.5, "D4", 100)
+    c = addNoteAt(tr, c, h, "D4", 100)
+    // phrase A (repeat)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, q, "F4", 100)
+    c = addNoteAt(tr, c, q, "G4", 100)
+    c = addNoteAt(tr, c, q, "G4", 100)
+    c = addNoteAt(tr, c, q, "F4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, q, "D4", 100)
+    c = addNoteAt(tr, c, q, "C4", 100)
+    c = addNoteAt(tr, c, q, "C4", 100)
+    c = addNoteAt(tr, c, q, "D4", 100)
+    c = addNoteAt(tr, c, q, "E4", 100)
+    c = addNoteAt(tr, c, h + q * 0.5, "D4", 100)
+    c = addNoteAt(tr, c, q * 0.5, "C4", 100)
+    c = addNoteAt(tr, c, h, "C4", 100)
+    return sc
+end
+
+// A simple 4/4 drum loop (kick + snare + hihat), two bars. Returns a Score.
+func songDrums() as Score
+    Score sc = Score()
+    sc.tempo = 120.0
+    sc.unit = UNIT_SECONDS
+    float eighth = 0.25       // 0.25s = 1/8 note at 120 BPM
+    // hihat track (closed hat on every eighth)
+    Track hat = getOrAddTrack(sc, 0)
+    hat.waveType = WAVE_NOISE
+    hat.attack = 0.001
+    hat.decay = 0.02
+    hat.sustain = 0.0
+    hat.release = 0.03
+    hat.gain = 0.45
+    // kick + snare track
+    Track ks = getOrAddTrack(sc, 1)
+    ks.waveType = WAVE_NOISE
+    ks.attack = 0.001
+    ks.decay = 0.05
+    ks.sustain = 0.0
+    ks.release = 0.10
+    ks.gain = 0.9
+    int bars = 4
+    int bar = 0
+    while bar < bars do
+        float base = float(bar) * eighth * 8.0
+        int e = 0
+        while e < 8 do
+            float t = base + float(e) * eighth
+            // hihat on every eighth
+            Note hn = Note()
+            hn.startTime = t
+            hn.gateDur = eighth * 0.9
+            hn.drumType = DRUM_HIHAT
+            hn.velocity = 70
+            hat.notes.push(hn)
+            // kick on e0 and e4 (beats 1 and 3)
+            if e == 0 or e == 4 then
+                Note kn = Note()
+                kn.startTime = t
+                kn.gateDur = eighth * 1.6
+                kn.drumType = DRUM_KICK
+                kn.velocity = 120
+                ks.notes.push(kn)
+            end
+            // snare on e2 and e6 (beats 2 and 4 / backbeat)
+            if e == 2 or e == 6 then
+                Note sn = Note()
+                sn.startTime = t
+                sn.gateDur = eighth * 1.2
+                sn.drumType = DRUM_SNARE
+                sn.velocity = 110
+                ks.notes.push(sn)
+            end
+            e += 1
+        end
+        bar += 1
+    end
+    return sc
+end
+
+// A mixed demo: Twinkle melody (sine) + soft bass line (saw, lowpass) + light
+// drums. Demonstrates multi-track mixdown.
+func songMix() as Score
+    Score base = songTwinkle()
+    // bass track: one low root per bar following the melody phrase roots
+    Track bass = getOrAddTrack(base, 1)
+    bass.waveType = WAVE_SAW
+    bass.attack = 0.02
+    bass.decay = 0.10
+    bass.sustain = 0.6
+    bass.release = 0.20
+    bass.gain = 0.35
+    bass.filterType = FILT_LOWPASS
+    bass.filterCutoff = 600.0
+    float bar = 2.0      // 2s per bar (4 quarter notes)
+    int i = 0
+    array<string> roots = array["C3", "C3", "G3", "G3", "F3", "F3", "C3", "C3"]
+    while i < roots.length do
+        Note nt = Note()
+        nt.startTime = float(i) * bar
+        nt.gateDur = bar * 0.9
+        nt.freq = noteNameToFreq(roots[i])
+        nt.velocity = 95
+        bass.notes.push(nt)
+        i += 1
+    end
+    // light drums: kick on each beat over the first 4 bars
+    Track ks = getOrAddTrack(base, 2)
+    ks.waveType = WAVE_NOISE
+    ks.attack = 0.001
+    ks.decay = 0.05
+    ks.sustain = 0.0
+    ks.release = 0.10
+    ks.gain = 0.5
+    int beats = 32
+    int b = 0
+    while b < beats do
+        float t = float(b) * 0.5
+        if b % 2 == 0 then
+            Note kn = Note()
+            kn.startTime = t
+            kn.gateDur = 0.4
+            kn.drumType = DRUM_KICK
+            kn.velocity = 90
+            ks.notes.push(kn)
+        else
+            Note sn = Note()
+            sn.startTime = t
+            sn.gateDur = 0.3
+            sn.drumType = DRUM_SNARE
+            sn.velocity = 80
+            ks.notes.push(sn)
+        end
+        b += 1
+    end
+    return base
+end
+
+// ============================ score text dump =============================
+
+// produce a human-readable summary of a score (for `info` / debugging)
+func describeScore(Score sc) as string
+    array<string> lines = array[]
+    lines.push("tempo: " + string(sc.tempo) + " BPM")
+    if sc.unit == UNIT_BEATS then
+        lines.push("unit: beats")
+    else
+        lines.push("unit: seconds")
+    end
+    lines.push("tracks: " + string(sc.tracks.length))
+    int t = 0
+    while t < sc.tracks.length do
+        Track tr = sc.tracks[t]
+        string filt = "none"
+        if tr.filterType == FILT_LOWPASS then
+            filt = "lowpass " + string(tr.filterCutoff)
+        elseif tr.filterType == FILT_HIGHPASS then
+            filt = "highpass " + string(tr.filterCutoff)
+        end
+        lines.push("  track " + string(tr.index) + " wave=" + waveName(tr.waveType) +
+                   " env=(" + string(tr.attack) + "," + string(tr.decay) + "," +
+                   string(tr.sustain) + "," + string(tr.release) + ") filter=" +
+                   filt + " gain=" + string(tr.gain) + " notes=" + string(tr.notes.length))
+        t += 1
+    end
+    lines.push("duration: " + string(scoreDuration(sc)) + " s")
+    // join
+    string out = ""
+    int i = 0
+    while i < lines.length do
+        out = out + lines[i] + "\n"
+        i += 1
+    end
+    return out
+end
+
+// ============================ commands ====================================
+
+// render a Score to a WAV file at `outPath`. returns (ok, samples, peak).
+func renderScoreToWav(Score sc, string outPath) as (bool, int, float)
+    array<float> master = mixdown(sc)
+    float peak = normalizeAndLimit(master, 0.9)
+    array<int> bytes = buildWavBytes(master)
+    bool ok = writeWavFile(outPath, bytes)
+    return ok, master.length, peak
+end
+
+func cmdRender(string scorePath, string outPath) as int
+    if not file.exists(scorePath) then
+        println("xaudio: score file not found: " + scorePath)
+        return 1
+    end
+    string text = ""
+    try
+        text = file.readText(scorePath)
+    catch e
+        println("xaudio: failed to read score: " + e.message)
+        return 1
+    end
+    Score sc = Score()
+    try
+        sc = parseScore(text)
+    catch e
+        println("xaudio: score parse error: " + e.message)
+        return 1
+    end
+    if sc.tracks.length == 0 then
+        println("xaudio: score contains no tracks")
+        return 1
+    end
+    println(describeScore(sc))
+    bool ok
+    int n
+    float peak
+    ok, n, peak = renderScoreToWav(sc, outPath)
+    if not ok then
+        println("xaudio: failed to write WAV: " + outPath)
+        return 1
+    end
+    println("rendered " + string(n) + " samples -> " + outPath + "  (peak=" + string(peak) + ")")
+    return 0
+end
+
+func cmdDemo(string name, string outPath) as int
+    string n = string.lower(string.trim(name))
+    Score sc = Score()
+    if n == "twinkle" or n == "star" then
+        sc = songTwinkle()
+    elseif n == "joy" or n == "ode" or n == "odetojoy" then
+        sc = songOdeToJoy()
+    elseif n == "drums" or n == "drum" or n == "beat" then
+        sc = songDrums()
+    elseif n == "mix" or n == "all" then
+        sc = songMix()
+    else
+        println("xaudio: unknown demo '" + name + "'. choices: twinkle | joy | drums | mix")
+        return 1
+    end
+    println(describeScore(sc))
+    bool ok
+    int ns
+    float peak
+    ok, ns, peak = renderScoreToWav(sc, outPath)
+    if not ok then
+        println("xaudio: failed to write WAV: " + outPath)
+        return 1
+    end
+    println("rendered " + string(ns) + " samples -> " + outPath + "  (peak=" + string(peak) + ")")
+    return 0
+end
+
+func cmdInfo() as int
+    println("xaudio - software audio synthesizer")
+    println("sample rate : " + string(SAMPLE_RATE) + " Hz")
+    println("bit depth   : " + string(BIT_DEPTH) + "-bit PCM")
+    println("channels    : " + string(CHANNELS) + " (mono)")
+    println("oscillators : sine, square, saw, triangle, noise")
+    println("envelope    : ADSR (attack/decay/sustain/release)")
+    println("filters     : one-pole low-pass, one-pole high-pass")
+    println("pitches     : note names (C4 A#4 Db5), MIDI (m60), Hz (f440), drums")
+    println("drums       : kick, snare, hihat, tom, crash, clap")
+    println("built-in    : twinkle, joy, drums, mix")
+    println("commands    : render <score.txt> <out.wav> | demo <n> <out.wav> | test | info")
+    return 0
+end
+
+func printUsage()
+    println("xaudio - software audio synthesizer")
+    println("")
+    println("usage:")
+    println("  xaudio render <score.txt> <output.wav>   render a score file to WAV")
+    println("  xaudio demo <name> <output.wav>          render a built-in song")
+    println("        names: twinkle | joy | drums | mix")
+    println("  xaudio test                              run the built-in self-test")
+    println("  xaudio info                              print synth capabilities")
+    println("  xaudio -h | --help                       show this help")
+end
+
+// ============================ self-test ===================================
+//
+// exercises every subsystem with deterministic checks. returns the number of
+// FAILED checks (0 = all passed). also renders short tones to temp files and
+// verifies the WAV headers parse back correctly.
+// ===========================================================================
+
+// a tiny test counter helper
+class TestRun
+    int passed = 0
+    int failed = 0
+end
+
+func check(TestRun r, bool cond, string label)
+    if cond then
+        r.passed += 1
+        println("  [ OK ] " + label)
+    else
+        r.failed += 1
+        println("  [FAIL] " + label)
+    end
+end
+
+func approxEq(float a, float b, float eps) as bool
+    float d = a - b
+    if d < 0.0 then
+        d = -d
+    end
+    return d < eps
+end
+
+func cmdTest() as int
+    TestRun r = TestRun()
+    println("xaudio self-test")
+    println("================================================================")
+
+    // ---- [1] note / frequency system ----
+    println("[1] note / frequency system")
+    check(r, approxEq(noteNameToFreq("A4"), 440.0, 0.01), "A4 == 440 Hz")
+    check(r, noteNameToMidi("A4") == 69, "A4 -> MIDI 69")
+    check(r, noteNameToMidi("C4") == 60, "C4 -> MIDI 60")
+    check(r, noteNameToMidi("C5") == 72, "C5 -> MIDI 72")
+    check(r, noteNameToMidi("A#4") == 70, "A#4 -> MIDI 70")
+    check(r, noteNameToMidi("Db4") == 61, "Db4 -> MIDI 61")
+    check(r, noteNameToMidi("B3") == 59, "B3 -> MIDI 59")
+    check(r, approxEq(midiToFreq(69), 440.0, 0.01), "midi 69 -> 440 Hz")
+    check(r, approxEq(midiToFreq(81), 880.0, 0.01), "midi 81 (A5) -> 880 Hz")
+    check(r, approxEq(midiToFreq(57), 220.0, 0.01), "midi 57 (A3) -> 220 Hz")
+    // equal temperament: one octave up doubles the frequency
+    check(r, approxEq(midiToFreq(69) * 2.0, midiToFreq(81), 0.01), "octave doubles frequency")
+    // freqToMidi round trip
+    check(r, freqToMidi(440.0) == 69, "freq 440 -> MIDI 69")
+    check(r, freqToMidi(261.63) == 60, "freq 261.63 -> MIDI 60 (C4)")
+    // scale build
+    array<int> cMajor = buildScale(60, MAJOR_SCALE, 1)
+    check(r, cMajor.length == 8, "C major scale has 8 notes")
+    check(r, cMajor[0] == 60 and cMajor[7] == 72, "C major spans C4..C5")
+    // tempo conversion
+    check(r, approxEq(tempoToBPM(500000.0), 120.0, 0.001), "tempo 500000 -> 120 BPM")
+    check(r, approxEq(bpmToTempo(120.0), 500000.0, 0.001), "120 BPM -> tempo 500000")
+
+    // ---- [2] oscillators ----
+    println("[2] oscillators")
+    // sine ranges within [-1,1] and equals 0 at phase 0, +1 at 0.25
+    check(r, approxEq(oscSine(0.0), 0.0, 1e-6), "sine(0) == 0")
+    check(r, approxEq(oscSine(0.25), 1.0, 1e-6), "sine(0.25) == +1")
+    check(r, approxEq(oscSine(0.5), 0.0, 1e-6), "sine(0.5) == 0")
+    check(r, approxEq(oscSine(0.75), -1.0, 1e-6), "sine(0.75) == -1")
+    check(r, oscSquare(0.1) == 1.0 and oscSquare(0.6) == -1.0, "square +/-1 halves")
+    check(r, approxEq(oscSaw(0.0), -1.0, 1e-6), "saw(0) == -1")
+    check(r, approxEq(oscSaw(0.5), 0.0, 1e-6), "saw(0.5) == 0")
+    check(r, approxEq(oscSaw(0.999), 1.0, 0.01), "saw(1-) ~= +1")
+    check(r, approxEq(oscTriangle(0.25), 1.0, 1e-6), "triangle peak at 0.25")
+    check(r, approxEq(oscTriangle(0.75), -1.0, 1e-6), "triangle trough at 0.75")
+    check(r, approxEq(oscTriangle(0.0), 0.0, 1e-6), "triangle(0) == 0")
+    // noise within [-1,1]
+    bool noiseOk = true
+    int i = 0
+    while i < 200 do
+        float v = oscNoise()
+        if v < -1.0 or v > 1.0 then
+            noiseOk = false
+        end
+        i += 1
+    end
+    check(r, noiseOk, "noise stays within [-1,1]")
+    // dispatch
+    check(r, waveTypeFromName("SQUARE") == WAVE_SQUARE, "wave name square")
+    check(r, waveTypeFromName("sawtooth") == WAVE_SAW, "wave name sawtooth")
+    check(r, waveName(WAVE_TRIANGLE) == "triangle", "wave id -> name")
+
+    // ---- [3] ADSR envelope ----
+    println("[3] ADSR envelope")
+    // attack 0.1, decay 0.1, sustain 0.5, release 0.2
+    float A = 0.1
+    float D = 0.1
+    float S = 0.5
+    float R = 0.2
+    float onT = 1.0
+    float offT = 2.0
+    check(r, approxEq(envelopeLevel(onT + 0.0, onT, -1.0, A, D, S, R), 0.0, 1e-6), "env at note-on start == 0")
+    check(r, approxEq(envelopeLevel(onT + A, onT, -1.0, A, D, S, R), 1.0, 1e-6), "env at end of attack == 1")
+    check(r, approxEq(envelopeLevel(onT + A + D, onT, -1.0, A, D, S, R), S, 1e-6), "env at end of decay == sustain")
+    check(r, approxEq(envelopeLevel(onT + 1.0, onT, -1.0, A, D, S, R), S, 1e-6), "env holds at sustain")
+    // release falls from sustain to 0 over R seconds
+    check(r, approxEq(envelopeLevel(offT + 0.0, onT, offT, A, D, S, R), S, 1e-6), "release start == sustain")
+    check(r, approxEq(envelopeLevel(offT + R, onT, offT, A, D, S, R), 0.0, 1e-6), "release end == 0")
+    check(r, approxEq(envelopeLevel(offT + R / 2.0, onT, offT, A, D, S, R), S * 0.5, 1e-6), "release mid == sustain/2")
+    check(r, envelopeLevel(onT - 0.5, onT, -1.0, A, D, S, R) == 0.0, "env before note-on == 0")
+
+    // ---- [4] filters ----
+    println("[4] filters")
+    // a low-pass coefficient is in (0,1) and grows with cutoff
+    float aLow = lowpassCoeff(500.0)
+    float aHigh = lowpassCoeff(5000.0)
+    check(r, aLow > 0.0 and aLow < 1.0, "lowpass coeff in (0,1)")
+    check(r, aHigh > aLow, "higher cutoff -> larger lp coeff")
+    // apply low-pass to a DC step: output should monotonically approach input
+    array<float> step = makeFloatBuf(100)
+    int j = 0
+    while j < 100 do
+        step[j] = 1.0
+        j += 1
+    end
+    array<float> stState = array[0.0]
+    filterLowpass(step, 0, 100, lowpassCoeff(1000.0), stState)
+    check(r, step[0] < 0.5 and step[99] > 0.9, "low-pass smooths a step up toward 1")
+    check(r, step[99] >= step[0], "low-pass output is monotone increasing here")
+    // high-pass on a constant signal drives it toward 0
+    array<float> dc = makeFloatBuf(200)
+    int k = 0
+    while k < 200 do
+        dc[k] = 1.0
+        k += 1
+    end
+    array<float> hpState = array[0.0, 0.0]
+    filterHighpass(dc, 0, 200, highpassCoeff(500.0), hpState)
+    check(r, dc[199] < 0.05, "high-pass rejects DC (tail near 0)")
+    // high-pass preserves a fast transition
+    check(r, dc[0] > 0.0, "high-pass initial response is non-zero")
+
+    // ---- [5] WAV header build + parse round-trip ----
+    println("[5] WAV encode / decode round-trip")
+    array<float> probe = makeFloatBuf(1000)
+    int p = 0
+    while p < 1000 do
+        probe[p] = math.sin(float(p) * TWO_PI * 440.0 / float(SAMPLE_RATE))
+        p += 1
+    end
+    array<int> wavBytes = buildWavBytes(probe)
+    int expectedLen = 44 + 1000 * CHANNELS * (BIT_DEPTH / 8)
+    check(r, wavBytes.length == expectedLen, "wav byte length == 44 + data")
+    // RIFF tag
+    check(r, wavBytes[0] == 0x52 and wavBytes[1] == 0x49 and
+          wavBytes[2] == 0x46 and wavBytes[3] == 0x46, "RIFF tag present")
+    // WAVE tag
+    check(r, wavBytes[8] == 0x57 and wavBytes[9] == 0x41 and
+          wavBytes[10] == 0x56 and wavBytes[11] == 0x45, "WAVE tag present")
+    // fmt / data tags
+    check(r, wavBytes[12] == 0x66 and wavBytes[13] == 0x6D and
+          wavBytes[14] == 0x74 and wavBytes[15] == 0x20, "fmt tag present")
+    check(r, wavBytes[36] == 0x64 and wavBytes[37] == 0x61 and
+          wavBytes[38] == 0x74 and wavBytes[39] == 0x61, "data tag present")
+    // audio format == 1 (PCM), 16-bit
+    check(r, wavBytes[20] == 1 and wavBytes[21] == 0, "audio format == PCM(1)")
+    check(r, wavBytes[34] == 16 and wavBytes[35] == 0, "bits per sample == 16")
+    // sample rate little-endian 44100 == 0xAC44
+    check(r, wavBytes[24] == 0x44 and wavBytes[25] == 0xAC, "sample rate == 44100 LE")
+    // data size == 2000 bytes
+    int dSize = wavBytes[40] | (wavBytes[41] << 8) | (wavBytes[42] << 16) | (wavBytes[43] << 24)
+    check(r, dSize == 2000, "data subchunk size == 2000")
+
+    // ---- [6] render a short tone & write+read a WAV file ----
+    println("[6] render -> file round-trip")
+    string tmpDir = path.temp()
+    string tonePath = path.join(tmpDir, "xaudio_test_tone.wav")
+    Score sc = Score()
+    Track tr = getOrAddTrack(sc, 0)
+    tr.waveType = WAVE_SINE
+    tr.attack = 0.01
+    tr.decay = 0.05
+    tr.sustain = 0.8
+    tr.release = 0.10
+    tr.gain = 0.6
+    Note nt = Note()
+    nt.startTime = 0.0
+    nt.gateDur = 0.3
+    nt.freq = 440.0
+    nt.velocity = 100
+    tr.notes.push(nt)
+    bool ok
+    int nSamples
+    float peak
+    ok, nSamples, peak = renderScoreToWav(sc, tonePath)
+    check(r, ok, "tone rendered + written")
+    check(r, file.exists(tonePath), "wav file exists on disk")
+    // read back the header
+    bool hdrOk = false
+    int srBack = 0
+    int chBack = 0
+    int bitsBack = 0
+    int offBack = 0
+    int sizeBack = 0
+    try
+        Buffer back = file.readBytes(tonePath)
+        srBack, chBack, bitsBack, offBack, sizeBack = parseWavHeader(back)
+        hdrOk = srBack == SAMPLE_RATE and chBack == CHANNELS and bitsBack == BIT_DEPTH
+    catch e
+        hdrOk = false
+    end
+    check(r, hdrOk, "written wav header parses back (sr/ch/bits)")
+    check(r, sizeBack > 0, "written wav data size > 0")
+
+    // ---- [7] sequencer: multi-track mixdown ----
+    println("[7] sequencer / mixdown")
+    Score multi = Score()
+    Track t0 = getOrAddTrack(multi, 0)
+    t0.waveType = WAVE_SINE
+    t0.release = 0.1
+    Note n0a = Note()
+    n0a.startTime = 0.0
+    n0a.gateDur = 0.5
+    n0a.freq = 440.0
+    n0a.velocity = 100
+    t0.notes.push(n0a)
+    Note n0b = Note()
+    n0b.startTime = 0.5
+    n0b.gateDur = 0.5
+    n0b.freq = 660.0
+    n0b.velocity = 100
+    t0.notes.push(n0b)
+    Track t1 = getOrAddTrack(multi, 1)
+    t1.waveType = WAVE_TRIANGLE
+    t1.release = 0.1
+    Note n1 = Note()
+    n1.startTime = 0.0
+    n1.gateDur = 1.0
+    n1.freq = 220.0
+    n1.velocity = 90
+    t1.notes.push(n1)
+    array<float> mix = mixdown(multi)
+    check(r, mix.length > SAMPLE_RATE, "mixdown buffer longer than 1s")
+    float mixPeak = 0.0
+    int mi = 0
+    while mi < mix.length do
+        float a = mix[mi]
+        if a < 0.0 then
+            a = -a
+        end
+        if a > mixPeak then
+            mixPeak = a
+        end
+        mi += 1
+    end
+    check(r, mixPeak > 0.0, "mixdown produced non-zero output")
+    float dur = scoreDuration(multi)
+    check(r, dur >= 1.0, "score duration >= 1.0s")
+
+    // ---- [8] score parser ----
+    println("[8] score parser")
+    string scoreText = ("# test score\n" +
+                       "tempo 120\n" +
+                       "track 0\n" +
+                       "wave sine\n" +
+                       "env 0.01 0.1 0.7 0.2\n" +
+                       "note 0.0 0.5 C4 100\n" +
+                       "note 0.5 0.5 E4 100\n" +
+                       "track 1\n" +
+                       "wave noise\n" +
+                       "filter lowpass 800\n" +
+                       "note 0.0 0.25 kick 120\n")
+    Score parsed = parseScore(scoreText)
+    check(r, parsed.tracks.length == 2, "parser created 2 tracks")
+    check(r, parsed.tracks[0].waveType == WAVE_SINE, "track 0 wave == sine")
+    check(r, parsed.tracks[1].waveType == WAVE_NOISE, "track 1 wave == noise")
+    check(r, parsed.tracks[0].notes.length == 2, "track 0 has 2 notes")
+    check(r, parsed.tracks[1].filterType == FILT_LOWPASS, "track 1 has lowpass")
+    check(r, parsed.tracks[1].notes[0].drumType == DRUM_KICK, "track 1 note 0 is kick")
+    check(r, approxEq(parsed.tracks[0].notes[0].freq, noteNameToFreq("C4"), 0.01), "parsed C4 freq")
+    // unit beats conversion
+    Score beatScore = parseScore("tempo 60\nunit beats\nnote 0 4 A4 100\n")
+    check(r, approxEq(beatScore.tracks[0].notes[0].startTime, 0.0, 1e-6), "beat start 0 == 0s")
+    check(r, approxEq(beatScore.tracks[0].notes[0].gateDur, 4.0, 1e-6), "4 beats @60BPM == 4s")
+
+    // ---- [9] MIDI event parser ----
+    println("[9] MIDI event parser")
+    // PPQ=480, tempo=500000 (120 BPM): 480 ticks = 1 quarter = 0.5s
+    string midiText = ("tempo 500000\n" +
+                      "0 0 on 69 100\n" +      // A4 on  at t=0
+                      "480 0 off 69 0\n" +     // A4 off at t=0.5
+                      "480 0 on 72 100\n" +    // C5 on  at t=0.5
+                      "960 0 off 72 0\n")      // C5 off at t=1.0
+    Score msc = parseMidiEvents(midiText, 480)
+    check(r, msc.tracks.length == 1, "midi -> 1 track (channel 0)")
+    check(r, msc.tracks[0].notes.length == 2, "midi -> 2 notes")
+    check(r, approxEq(msc.tracks[0].notes[0].startTime, 0.0, 1e-6), "midi note 0 starts at 0s")
+    check(r, approxEq(msc.tracks[0].notes[0].gateDur, 0.5, 1e-6), "midi note 0 dur 0.5s")
+    check(r, approxEq(msc.tracks[0].notes[1].startTime, 0.5, 1e-6), "midi note 1 starts at 0.5s")
+    check(r, approxEq(msc.tracks[0].notes[0].freq, 440.0, 0.01), "midi A4 == 440 Hz")
+    check(r, approxEq(msc.tempo, 120.0, 0.001), "midi tempo -> 120 BPM")
+
+    // ---- [10] built-in songs ----
+    println("[10] built-in songs")
+    Score tw = songTwinkle()
+    check(r, tw.tracks.length == 1, "twinkle has 1 track")
+    check(r, tw.tracks[0].notes.length > 10, "twinkle has many notes")
+    check(r, scoreDuration(tw) > 5.0, "twinkle duration > 5s")
+    Score joy = songOdeToJoy()
+    check(r, joy.tracks[0].notes.length > 10, "ode-to-joy has many notes")
+    Score drm = songDrums()
+    check(r, drm.tracks.length == 2, "drums has 2 tracks (hat + kick/snare)")
+    bool drumHasKick = false
+    bool drumHasSnare = false
+    int di = 0
+    while di < drm.tracks[1].notes.length do
+        if drm.tracks[1].notes[di].drumType == DRUM_KICK then
+            drumHasKick = true
+        end
+        if drm.tracks[1].notes[di].drumType == DRUM_SNARE then
+            drumHasSnare = true
+        end
+        di += 1
+    end
+    check(r, drumHasKick and drumHasSnare, "drums contain kick + snare")
+    Score mx = songMix()
+    check(r, mx.tracks.length == 3, "mix has 3 tracks (melody + bass + drums)")
+
+    // ---- [11] drum synthesis ----
+    println("[11] drum synthesis")
+    array<float> drumOut = makeFloatBuf(SAMPLE_RATE)
+    int written = renderDrum(DRUM_KICK, 120, 0, drumOut, SAMPLE_RATE)
+    check(r, written > 0, "kick renders >0 samples")
+    bool kickHasSignal = false
+    int ki = 0
+    while ki < written do
+        if drumOut[ki] != 0.0 then
+            kickHasSignal = true
+        end
+        ki += 1
+    end
+    check(r, kickHasSignal, "kick output is non-zero")
+    int snWritten = renderDrum(DRUM_SNARE, 110, 1000, drumOut, SAMPLE_RATE)
+    check(r, snWritten > 0, "snare renders >0 samples")
+
+    // ---- [12] full demo render to temp (twinkle) ----
+    println("[12] full demo render")
+    string twPath = path.join(tmpDir, "xaudio_test_twinkle.wav")
+    bool twOk
+    int twN
+    float twPeak
+    twOk, twN, twPeak = renderScoreToWav(songTwinkle(), twPath)
+    check(r, twOk, "twinkle rendered to wav")
+    check(r, file.exists(twPath), "twinkle wav exists")
+    check(r, twN > SAMPLE_RATE * 5, "twinkle wav longer than 5s of samples")
+
+    // ---- cleanup temp files ----
+    file.delete(tonePath)
+    file.delete(twPath)
+
+    println("================================================================")
+    println("passed: " + string(r.passed) + "   failed: " + string(r.failed))
+    if r.failed == 0 then
+        return 0
+    end
+    return 1
+end
+
+// ============================ entry point =================================
+
+func main(...) as int
+    int argc = arg.length
+    if argc < 2 then
+        printUsage()
+        return 1
+    end
+    string cmd = string(arg[1])
+    if cmd == "-h" or cmd == "--help" or cmd == "help" then
+        printUsage()
+        return 0
+    end
+    if cmd == "info" then
+        return cmdInfo()
+    end
+    if cmd == "test" then
+        return cmdTest()
+    end
+    if cmd == "render" then
+        if argc < 4 then
+            println("xaudio render: usage: xaudio render <score.txt> <output.wav>")
+            return 1
+        end
+        return cmdRender(string(arg[2]), string(arg[3]))
+    end
+    if cmd == "demo" then
+        if argc < 4 then
+            println("xaudio demo: usage: xaudio demo <name> <output.wav>")
+            println("        names: twinkle | joy | drums | mix")
+            return 1
+        end
+        return cmdDemo(string(arg[2]), string(arg[3]))
+    end
+    println("xaudio: unknown command: " + cmd)
+    printUsage()
+    return 1
+end

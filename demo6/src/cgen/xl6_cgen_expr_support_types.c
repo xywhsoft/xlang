@@ -18,9 +18,9 @@ static void xl6CgenCStringSymbol(XL6_Output* out, const char* text)
     xl6OutputPuts(text, out);
 }
 
-static int xl6CgenNativeBackedClassHasDestroy(const XL6_AstNode* customNode)
+static int xl6CgenNativeBackedClassHasDestroy(const XL6_AstNode* nativeClassNode)
 {
-    return xl6CgenFindNativeBackedClassSpecial(customNode, "destroy") != NULL;
+    return xl6CgenFindNativeBackedClassSpecial(nativeClassNode, "destroy") != NULL;
 }
 
 static int xl6CgenClassHasDestroy(const XL6_AstNode* classNode)

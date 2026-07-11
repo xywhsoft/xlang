@@ -10,6 +10,13 @@ assert(encoding.name(encoding.utf8 + encoding.bom) == "utf-8")
 assert(encoding.isUtf8("hello"))
 assert(encoding.detect("hello") == encoding.utf8)
 
+func encodeBom(string text, int kind) as Buffer
+    return encoding.toBytes(text, kind + encoding.bom)
+end
+
+Buffer globalUtf8Bom = encodeBom("hi", encoding.utf8)
+assert(globalUtf8Bom.len() == 5)
+
 Buffer utf8 = encoding.toBytes("A你好")
 assert(utf8.len() == string.byteLen("A你好"))
 assert(utf8.text() == "A你好")
@@ -44,9 +51,28 @@ assert(utf16Bom.byteAt(3) == 0)
 assert(encoding.fromBytes(utf16Bom.data(), c_size(utf16Bom.len()), encoding.utf16 + encoding.bom) == "A")
 assert(encoding.fromBytes(utf16be.data(), c_size(utf16be.len()), encoding.utf16BE) == "A你好")
 
+Buffer utf16beBom = encodeBom("hi", encoding.utf16BE)
+assert(utf16beBom.len() == 6)
+assert(utf16beBom.byteAt(0) == 254)
+assert(utf16beBom.byteAt(1) == 255)
+
 Buffer utf32 = encoding.toBytes("A你好", encoding.utf32)
 assert(utf32.len() == 12)
 assert(encoding.fromBytes(utf32.data(), c_size(utf32.len()), encoding.utf32) == "A你好")
+
+Buffer utf32Bom = encodeBom("hi", encoding.utf32)
+assert(utf32Bom.len() == 12)
+assert(utf32Bom.byteAt(0) == 255)
+assert(utf32Bom.byteAt(1) == 254)
+assert(utf32Bom.byteAt(2) == 0)
+assert(utf32Bom.byteAt(3) == 0)
+
+Buffer utf32beBom = encodeBom("hi", encoding.utf32BE)
+assert(utf32beBom.len() == 12)
+assert(utf32beBom.byteAt(0) == 0)
+assert(utf32beBom.byteAt(1) == 0)
+assert(utf32beBom.byteAt(2) == 254)
+assert(utf32beBom.byteAt(3) == 255)
 
 Buffer converted = encoding.convertBytes(utf16.data(), c_size(utf16.len()), encoding.utf16, encoding.utf8)
 assert(converted.text() == "A你好")

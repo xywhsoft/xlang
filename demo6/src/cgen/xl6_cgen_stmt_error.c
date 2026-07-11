@@ -66,28 +66,27 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("};\n", out);
     xl6OutputPuts("#endif\n\n", out);
     xl6OutputPuts("#if defined(_WIN32) || defined(_WIN64)\n", out);
-    xl6OutputPuts("#ifndef XL6_STDCALL\n", out);
-    xl6OutputPuts("#define XL6_STDCALL __stdcall\n", out);
-    xl6OutputPuts("#endif\n", out);
-    xl6OutputPuts("#ifndef XL6_DLLIMPORT\n", out);
-    xl6OutputPuts("#define XL6_DLLIMPORT __declspec(dllimport)\n", out);
-    xl6OutputPuts("#endif\n", out);
-    xl6OutputPuts("#ifndef XL6_WIN_TLS_DECL\n", out);
-    xl6OutputPuts("#define XL6_WIN_TLS_DECL\n", out);
-    xl6OutputPuts("typedef unsigned long xl6_win_tls_dword;\n", out);
-    xl6OutputPuts("#define XL6_WIN_TLS_OUT_OF_INDEXES ((xl6_win_tls_dword)0xFFFFFFFFu)\n", out);
-    xl6OutputPuts("XL6_DLLIMPORT xl6_win_tls_dword XL6_STDCALL TlsAlloc(void);\n", out);
-    xl6OutputPuts("XL6_DLLIMPORT void* XL6_STDCALL TlsGetValue(xl6_win_tls_dword index);\n", out);
-    xl6OutputPuts("XL6_DLLIMPORT int XL6_STDCALL TlsSetValue(xl6_win_tls_dword index, void* value);\n", out);
-    xl6OutputPuts("#endif\n", out);
-    xl6OutputPuts("static xl6_win_tls_dword xl6__active_error_tls_index = XL6_WIN_TLS_OUT_OF_INDEXES;\n", out);
+    xl6OutputPuts("#include <windows.h>\n", out);
+    xl6OutputPuts("static DWORD xl6__active_error_tls_index = TLS_OUT_OF_INDEXES;\n", out);
+    xl6OutputPuts("static volatile LONG xl6__active_error_tls_state = 0;\n", out);
     xl6OutputPuts("\n", out);
     xl6OutputPuts("static int xl6_error_tls_ensure(void)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    if ( xl6__active_error_tls_index == XL6_WIN_TLS_OUT_OF_INDEXES ) {\n", out);
-    xl6OutputPuts("        xl6__active_error_tls_index = TlsAlloc();\n", out);
+    xl6OutputPuts("    LONG state = InterlockedCompareExchange(&xl6__active_error_tls_state, 1, 0);\n", out);
+    xl6OutputPuts("    if ( state == 0 ) {\n", out);
+    xl6OutputPuts("        DWORD index = TlsAlloc();\n", out);
+    xl6OutputPuts("        if ( index == TLS_OUT_OF_INDEXES ) {\n", out);
+    xl6OutputPuts("            InterlockedCompareExchange(&xl6__active_error_tls_state, 3, 1);\n", out);
+    xl6OutputPuts("            return 0;\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        xl6__active_error_tls_index = index;\n", out);
+    xl6OutputPuts("        InterlockedCompareExchange(&xl6__active_error_tls_state, 2, 1);\n", out);
+    xl6OutputPuts("        return 1;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    return xl6__active_error_tls_index != XL6_WIN_TLS_OUT_OF_INDEXES;\n", out);
+    xl6OutputPuts("    while ( state == 1 ) {\n", out);
+    xl6OutputPuts("        state = InterlockedCompareExchange(&xl6__active_error_tls_state, 1, 1);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return state == 2;\n", out);
     xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("static XL6_Error* xl6_error_active_get(void)\n", out);
     xl6OutputPuts("{\n", out);
@@ -102,6 +101,13 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("        TlsSetValue(xl6__active_error_tls_index, error);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("}\n", out);
+    xl6OutputPuts("\nstatic void xl6_error_tls_unit(void)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( InterlockedCompareExchange(&xl6__active_error_tls_state, 3, 2) == 2 ) {\n", out);
+    xl6OutputPuts("        TlsFree(xl6__active_error_tls_index);\n", out);
+    xl6OutputPuts("        xl6__active_error_tls_index = TLS_OUT_OF_INDEXES;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("}\n", out);
     xl6OutputPuts("#else\n", out);
     xl6OutputPuts("#ifndef XL6_THREAD_LOCAL\n", out);
     xl6OutputPuts("#define XL6_THREAD_LOCAL __thread\n", out);
@@ -114,6 +120,9 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("static void xl6_error_active_set(XL6_Error* error)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xl6__active_error = error;\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("\nstatic void xl6_error_tls_unit(void)\n", out);
+    xl6OutputPuts("{\n", out);
     xl6OutputPuts("}\n", out);
     xl6OutputPuts("#endif\n\n", out);
 
@@ -303,6 +312,7 @@ static void xl6CgenEmitDefaultErrorReturn(XL6_CgenContext* ctx)
 static void xl6CgenEmitExceptionPropagate(XL6_CgenContext* ctx, const XL6_AstNode* at)
 {
     XL6_CgenTryTarget* target;
+    XL6_CgenFinallyTarget* finallyTarget;
 
     (void)at;
     if ( ctx == NULL || !ctx->needsErrorRuntime ) {
@@ -310,9 +320,21 @@ static void xl6CgenEmitExceptionPropagate(XL6_CgenContext* ctx, const XL6_AstNod
     }
 
     target = xl6CgenCurrentTryTarget(ctx);
+    finallyTarget = xl6CgenCurrentFinallyTarget(ctx);
     xl6CgenIndent(ctx);
     xl6OutputPuts("if ( xl6_error_has() ) {\n", ctx->out);
     ctx->indent += 1;
+    if ( finallyTarget != NULL && finallyTarget->inFinally ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", finallyTarget->id);
+        ctx->indent += 1;
+        xl6CgenDiscardPendingFinallyReturn(ctx, finallyTarget->id);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "__xl6_pending_kind_%d = 0;\n", finallyTarget->id);
+    }
     if ( target != NULL ) {
         xl6CgenEmitCleanupsSince(ctx, target->cleanupMark);
         xl6CgenIndent(ctx);
@@ -438,6 +460,241 @@ static int xl6CgenTryHasFinally(const XL6_AstNode* node)
     return finallyBlock != NULL && finallyBlock->childCount > 0;
 }
 
+static int xl6CgenFunctionHasReturnValue(XL6_CgenContext* ctx)
+{
+    return ctx != NULL && ctx->currentReturns != NULL && ctx->currentReturns->childCount > 0;
+}
+
+static void xl6CgenPendingReturnType(XL6_CgenContext* ctx)
+{
+    if ( ctx->currentReturns != NULL && ctx->currentReturns->childCount > 1 ) {
+        if ( ctx->currentReturnFunc != NULL ) {
+            xl6CgenFuncReturnStructName(ctx, ctx->currentReturnFunc);
+        } else {
+            xl6CgenFunctionReturnStructName(ctx, ctx->currentReturnParams, ctx->currentReturns);
+        }
+    } else {
+        xl6OutputPuts(xl6CgenTypeName(ctx, ctx->currentReturnType), ctx->out);
+    }
+}
+
+static void xl6CgenDeclarePendingFinallyControl(XL6_CgenContext* ctx, int targetId)
+{
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "int __xl6_pending_kind_%d = 0;\n", targetId);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "int __xl6_pending_target_%d = 0;\n", targetId);
+    if ( xl6CgenFunctionHasReturnValue(ctx) ) {
+        xl6CgenIndent(ctx);
+        xl6CgenPendingReturnType(ctx);
+        xl6OutputPrintf(ctx->out, " __xl6_pending_return_%d;\n", targetId);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "memset(&__xl6_pending_return_%d, 0, sizeof(__xl6_pending_return_%d));\n", targetId, targetId);
+    }
+}
+
+static void xl6CgenDiscardPendingFinallyReturn(XL6_CgenContext* ctx, int targetId)
+{
+    char name[96];
+
+    if ( !xl6CgenFunctionHasReturnValue(ctx) ) {
+        return;
+    }
+    snprintf(name, sizeof(name), "__xl6_pending_return_%d", targetId);
+    if ( ctx->currentReturns->childCount > 1 ) {
+        xl6CgenDiscardTemporaryMultiResultByTypes(ctx, ctx->currentReturns, name);
+    } else {
+        xl6CgenDiscardTemporaryResultByType(ctx, ctx->currentReturnType, name);
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "memset(&%s, 0, sizeof(%s));\n", name, name);
+}
+
+static int xl6CgenEmitPendingFinallyReturn(
+    XL6_CgenContext* ctx,
+    const char* returnTempName,
+    const char* movedCleanupName)
+{
+    XL6_CgenFinallyTarget* target;
+
+    target = xl6CgenCurrentFinallyTarget(ctx);
+    if ( target == NULL ) {
+        return 0;
+    }
+    xl6CgenEmitCleanupsSinceExcept(
+        ctx,
+        target->cleanupMark,
+        movedCleanupName != NULL && movedCleanupName[0] != '\0' ? movedCleanupName : NULL);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", target->id);
+    ctx->indent += 1;
+    xl6CgenDiscardPendingFinallyReturn(ctx, target->id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(
+        ctx->out,
+        "__xl6_pending_return_%d = %s;\n",
+        target->id,
+        returnTempName);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "__xl6_pending_kind_%d = 1;\n", target->id);
+    xl6CgenIndent(ctx);
+    if ( target->inFinally ) {
+        xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_dispatch_%d;\n", target->id);
+    } else {
+        xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_%d;\n", target->id);
+    }
+    return 1;
+}
+
+static int xl6CgenEmitPendingFinallyVoidReturn(XL6_CgenContext* ctx)
+{
+    XL6_CgenFinallyTarget* target = xl6CgenCurrentFinallyTarget(ctx);
+
+    if ( target == NULL ) {
+        return 0;
+    }
+    xl6CgenEmitCleanupsSince(ctx, target->cleanupMark);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", target->id);
+    ctx->indent += 1;
+    xl6CgenDiscardPendingFinallyReturn(ctx, target->id);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "__xl6_pending_kind_%d = 1;\n", target->id);
+    xl6CgenIndent(ctx);
+    if ( target->inFinally ) {
+        xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_dispatch_%d;\n", target->id);
+    } else {
+        xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_%d;\n", target->id);
+    }
+    return 1;
+}
+
+static void xl6CgenGotoPendingFinallyTarget(XL6_CgenContext* ctx, const XL6_CgenFinallyTarget* target)
+{
+    if ( target->inFinally ) {
+        xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_dispatch_%d;\n", target->id);
+    } else {
+        xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_%d;\n", target->id);
+    }
+}
+
+static void xl6CgenEmitPendingFinallyReturnDispatch(
+    XL6_CgenContext* ctx,
+    const XL6_CgenFinallyTarget* target)
+{
+    XL6_CgenFinallyTarget* parent = xl6CgenCurrentFinallyTarget(ctx);
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", target->id);
+    ctx->indent += 1;
+    if ( parent != NULL ) {
+        if ( xl6CgenFunctionHasReturnValue(ctx) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", parent->id);
+            ctx->indent += 1;
+            xl6CgenDiscardPendingFinallyReturn(ctx, parent->id);
+            ctx->indent -= 1;
+            xl6CgenIndent(ctx);
+            xl6OutputPuts("}\n", ctx->out);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(
+                ctx->out,
+                "__xl6_pending_return_%d = __xl6_pending_return_%d;\n",
+                parent->id,
+                target->id);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(
+                ctx->out,
+                "memset(&__xl6_pending_return_%d, 0, sizeof(__xl6_pending_return_%d));\n",
+                target->id,
+                target->id);
+        }
+        xl6CgenEmitCleanupsSince(ctx, parent->cleanupMark);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "__xl6_pending_kind_%d = 1;\n", parent->id);
+        xl6CgenIndent(ctx);
+        xl6CgenGotoPendingFinallyTarget(ctx, parent);
+    } else {
+        if ( ctx->currentAsyncWorker ) {
+            xl6CgenAsyncPendingResultCompletion(ctx, target->id);
+        } else if ( !xl6CgenFunctionHasReturnValue(ctx) ) {
+            xl6CgenEmitCleanupsSince(ctx, 0);
+            xl6CgenIndent(ctx);
+            xl6OutputPuts("return;\n", ctx->out);
+        } else if ( ctx->currentReturns->childCount > 1 ) {
+            xl6CgenEmitCleanupsSince(ctx, 0);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "return __xl6_pending_return_%d;\n", target->id);
+        } else if ( xl6CgenIsStringTypeNode(ctx, ctx->currentReturnType) ) {
+            xl6CgenEmitCleanupsSince(ctx, 0);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "return xrtTempStringTake((char*)__xl6_pending_return_%d, 0u);\n", target->id);
+        } else {
+            xl6CgenEmitCleanupsSince(ctx, 0);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "return __xl6_pending_return_%d;\n", target->id);
+        }
+    }
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+}
+
+static void xl6CgenEmitPendingFinallyLoopDispatch(
+    XL6_CgenContext* ctx,
+    const XL6_CgenFinallyTarget* target,
+    int kind)
+{
+    XL6_CgenFinallyTarget* parent = xl6CgenCurrentFinallyTarget(ctx);
+    size_t i;
+
+    for ( i = 0; i < target->loopTargetCount && i < ctx->loopTargetCount; ++i ) {
+        XL6_CgenLoopTarget* loop = &ctx->loopTargets[i];
+        int labelId = kind == 3 ? loop->continueId : loop->breakId;
+
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(
+            ctx->out,
+            "if (__xl6_pending_kind_%d == %d && __xl6_pending_target_%d == %d) {\n",
+            target->id,
+            kind,
+            target->id,
+            labelId);
+        ctx->indent += 1;
+        if ( parent != NULL && i < parent->loopTargetCount ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", parent->id);
+            ctx->indent += 1;
+            xl6CgenDiscardPendingFinallyReturn(ctx, parent->id);
+            ctx->indent -= 1;
+            xl6CgenIndent(ctx);
+            xl6OutputPuts("}\n", ctx->out);
+            xl6CgenEmitCleanupsSince(ctx, parent->cleanupMark);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "__xl6_pending_kind_%d = %d;\n", parent->id, kind);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "__xl6_pending_target_%d = %d;\n", parent->id, labelId);
+            xl6CgenIndent(ctx);
+            xl6CgenGotoPendingFinallyTarget(ctx, parent);
+        } else {
+            xl6CgenEmitCleanupsSince(
+                ctx,
+                kind == 3 ? loop->continueCleanupMark : loop->breakCleanupMark);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "goto __xl6_%s_%d;\n", kind == 3 ? "continue" : "break", labelId);
+        }
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+    }
+}
+
 static void xl6CgenTryStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* tryBlock;
@@ -454,6 +711,8 @@ static void xl6CgenTryStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     int id;
     int hasCatch;
     int hasFinally;
+    int hasFinallyTarget;
+    XL6_CgenFinallyTarget finallyTarget;
     size_t tryCleanupMark;
     size_t catchCleanupMark;
     size_t catchVarMark;
@@ -474,6 +733,12 @@ static void xl6CgenTryStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     ctx->indent += 1;
 
     tryCleanupMark = ctx->cleanupCount;
+    hasFinallyTarget = 0;
+    memset(&finallyTarget, 0, sizeof(finallyTarget));
+    if ( hasFinally ) {
+        xl6CgenDeclarePendingFinallyControl(ctx, id);
+        hasFinallyTarget = xl6CgenPushFinallyTarget(ctx, tryCleanupMark, id);
+    }
     xl6CgenPushTryTarget(ctx, tryCleanupMark, id, hasCatch ? 0 : 1);
     xl6CgenBlock(ctx, tryBlock);
     xl6CgenPopTryTarget(ctx);
@@ -520,10 +785,36 @@ static void xl6CgenTryStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s:\n", finallyLabel);
         ctx->indent += 1;
+        if ( hasFinallyTarget && xl6CgenCurrentFinallyTarget(ctx) != NULL ) {
+            xl6CgenCurrentFinallyTarget(ctx)->inFinally = 1;
+        }
         xl6CgenBlock(ctx, finallyBlock);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (xl6_error_has() && __xl6_pending_kind_%d == 1) {\n", id);
+        ctx->indent += 1;
+        xl6CgenDiscardPendingFinallyReturn(ctx, id);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
         xl6CgenEmitExceptionPropagate(ctx, node);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "__xl6_try_finally_dispatch_%d:\n", id);
+        ctx->indent += 1;
+        if ( hasFinallyTarget && xl6CgenCurrentFinallyTarget(ctx) != NULL ) {
+            finallyTarget = *xl6CgenCurrentFinallyTarget(ctx);
+            xl6CgenPopFinallyTarget(ctx);
+            hasFinallyTarget = 0;
+            xl6CgenEmitPendingFinallyReturnDispatch(ctx, &finallyTarget);
+            xl6CgenEmitPendingFinallyLoopDispatch(ctx, &finallyTarget, 2);
+            xl6CgenEmitPendingFinallyLoopDispatch(ctx, &finallyTarget, 3);
+        }
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "goto %s;\n", endLabel);
+    }
+
+    if ( hasFinallyTarget ) {
+        xl6CgenPopFinallyTarget(ctx);
     }
 
     ctx->indent -= 1;

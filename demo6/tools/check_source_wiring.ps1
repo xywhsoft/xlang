@@ -25,6 +25,13 @@ $generatedSourceInputs = @{
     "src/lexer/xl6_lexer_gen.c" = "src/lexer/xl6_lexer.l"
     "src/parser/xl6_parser.c" = "src/parser/xl6_parser.y"
 }
+$embeddedRuntimeManifest = Join-Path $Root "src\api\xl_api.c"
+$embeddedRuntimeRequired = @(
+    "src\\api\\xl_api_symbols.c",
+    "src\\api\\xl_api_path.c",
+    "src\\sem\\xl6_sem_docs.c",
+    "src\\sem\\xl6_sem_field_attrs.c"
+)
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
@@ -84,6 +91,17 @@ $srcSubdirs = @(Get-ChildItem -LiteralPath $srcDir -Directory | Sort-Object Name
 foreach ( $dir in $srcSubdirs ) {
     if ( ! $srcReadmeText.Contains($dir.Name) ) {
         Add-Failure "src README does not list source directory: src/$($dir.Name)"
+    }
+}
+
+if ( ! (Test-Path -LiteralPath $embeddedRuntimeManifest -PathType Leaf) ) {
+    Add-Failure "embedded xlang runtime source manifest is missing: src/api/xl_api.c"
+} else {
+    $embeddedRuntimeText = Read-Utf8Text $embeddedRuntimeManifest
+    foreach ( $source in $embeddedRuntimeRequired ) {
+        if ( $embeddedRuntimeText.IndexOf(('"' + $source + '"'), [System.StringComparison]::Ordinal) -lt 0 ) {
+            Add-Failure "embedded xlang runtime source manifest is missing split unit: $source"
+        }
     }
 }
 

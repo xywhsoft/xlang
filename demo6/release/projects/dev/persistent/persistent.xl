@@ -249,9 +249,15 @@ func bstDelete(int root, int key) as int
     end
     if key < bstKey[root] then
         int nl = bstDelete(bstLeft[root], key)
+        if nl == bstLeft[root] then
+            return root
+        end
         return bstAlloc(bstKey[root], nl, bstRight[root])
     elseif key > bstKey[root] then
         int nr = bstDelete(bstRight[root], key)
+        if nr == bstRight[root] then
+            return root
+        end
         return bstAlloc(bstKey[root], bstLeft[root], nr)
     else
         // 命中删除节点
