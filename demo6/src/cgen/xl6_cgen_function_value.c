@@ -119,11 +119,47 @@ static void xl6CgenLoopJump(XL6_CgenContext* ctx, const XL6_AstNode* node, int i
 {
     int level;
     XL6_CgenLoopTarget* target;
+    XL6_CgenFinallyTarget* finallyTarget;
+    size_t targetIndex;
 
     level = node != NULL && node->childCount > 0 ? xl6CgenIntLiteralLevel(node->children[0]) : 1;
     target = xl6CgenLoopTargetAtLevel(ctx, level);
     if ( target == NULL ) {
         xl6CgenError(ctx, node, isContinue ? "continue 层数超过当前循环深度" : "break 层数超过当前循环深度");
+        return;
+    }
+
+    finallyTarget = xl6CgenCurrentFinallyTarget(ctx);
+    targetIndex = (size_t)(target - ctx->loopTargets);
+    if ( finallyTarget != NULL && targetIndex < finallyTarget->loopTargetCount ) {
+        xl6CgenEmitCleanupsSince(
+            ctx,
+            finallyTarget->cleanupMark);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", finallyTarget->id);
+        ctx->indent += 1;
+        xl6CgenDiscardPendingFinallyReturn(ctx, finallyTarget->id);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(
+            ctx->out,
+            "__xl6_pending_kind_%d = %d;\n",
+            finallyTarget->id,
+            isContinue ? 3 : 2);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(
+            ctx->out,
+            "__xl6_pending_target_%d = %d;\n",
+            finallyTarget->id,
+            isContinue ? target->continueId : target->breakId);
+        xl6CgenIndent(ctx);
+        if ( finallyTarget->inFinally ) {
+            xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_dispatch_%d;\n", finallyTarget->id);
+        } else {
+            xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_%d;\n", finallyTarget->id);
+        }
         return;
     }
 
@@ -548,7 +584,7 @@ static void xl6CgenFunctionInvokeDirectCall(XL6_CgenContext* ctx,
         const XL6_AstNode* arg = xl6CgenFunctionValuePositionalArg(args, i);
         xl6OutputPuts(", ", ctx->out);
         if ( arg != NULL && arg->childCount > 0 ) {
-            xl6CgenExpr(ctx, arg->children[0]);
+            xl6CgenFixedTypeArgExpr(ctx, paramTypes->children[i], arg->children[0]);
         } else {
             xl6OutputPuts("0", ctx->out);
         }
@@ -597,7 +633,7 @@ static void xl6CgenFunctionInvokeDirectCallExpr(XL6_CgenContext* ctx,
         const XL6_AstNode* arg = xl6CgenFunctionValuePositionalArg(args, i);
         xl6OutputPuts(", ", ctx->out);
         if ( arg != NULL && arg->childCount > 0 ) {
-            xl6CgenExpr(ctx, arg->children[0]);
+            xl6CgenFixedTypeArgExpr(ctx, paramTypes->children[i], arg->children[0]);
         } else {
             xl6OutputPuts("0", ctx->out);
         }

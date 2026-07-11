@@ -1,0 +1,13 @@
+{
+  "format": "xlang-package-1",
+  "name": "pkg\u4E2D\u6587",
+  "version": "1.0.0",
+  "abiVersion": "1",
+  "artifact": {"cSources": [], "xlSources": []},
+  "links": [],
+  "loadlibs": [],
+  "dependencies": [
+    {"name": "dep\u4E2D", "version": "2.0.0", "abiVersion": "1"}
+  ],
+  "native": {"singleton": false}
+}

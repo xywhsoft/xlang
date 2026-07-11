@@ -246,7 +246,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `var`、动态容器、func 值、typed container、class/custom 装箱 |
+| xlang 写法 | `var`、动态容器、func 值、typed container、class/native-backed class 装箱 |
 | 生成规则描述 | xvalue runtime 输出 `xvalue`、typed container 句柄、`xrt_type_desc`、`xrt_func_sig`、`xrt_call_frame`、`xrt_call_result` 等结构声明，以及大量 XRT/xvalue 操作原型。当前还声明 `xrtListWalk`、`xrtDictWalk`、`xrtRealloc` 与 list/dict snapshot helper 所需的 `Dict_EachProc`，让动态 list/dict `for-in` 不再直接理解 XRT AVL 迭代器。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:92`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:330`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:331`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:667`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:681`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:712`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:784`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:802` |
 | 对应生成的 C 代码 | `typedef struct xvalue_struct* xvalue;`、`struct xrt_type_desc { ... };`、`typedef struct xrt_call_frame { ... } xrt_call_frame;`、`typedef struct XL6_XrtIterSnapshot { ... } XL6_XrtIterSnapshot;` |
@@ -270,8 +270,8 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `type(v)`，其中 `v` 是 `var`、function、class、custom 或容器 |
-| 生成规则描述 | `xl6_xrt_type_name_id` 使用固定 FNV-1a 风格哈希和 `type:` 前缀生成类型名 ID。`xl6_xrt_type_value_id` 根据 xvalue 类型码返回内置类型 ID；function 优先使用签名 TypeId；容器/class/custom 优先读取 runtime type desc 名称，否则退回 `var`。可选 `release` 会在结束时释放输入 xvalue。 |
+| xlang 写法 | `type(v)`，其中 `v` 是 `var`、function、class、native-backed class 或容器 |
+| 生成规则描述 | `xl6_xrt_type_name_id` 使用固定 FNV-1a 风格哈希和 `type:` 前缀生成类型名 ID。`xl6_xrt_type_value_id` 根据 xvalue 类型码返回内置类型 ID；function 优先使用签名 TypeId；容器/class/native-backed class 优先读取 runtime type desc 名称，否则退回 `var`。可选 `release` 会在结束时释放输入 xvalue。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:326` |
 | 对应生成的 C 代码 | `static unsigned long long xl6_xrt_type_name_id(...)`、`static unsigned long long xl6_xrt_type_value_id(...)` |
 | 中间形态伪代码 | `switch xvoType(value): builtin -> builtinId; func -> sigId; record/container -> descNameId; default -> varId` |
@@ -282,7 +282,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | class/custom/typed container 装箱到 `var`，或动态值跨表达式保留 |
+| xlang 写法 | class/native-backed class/typed container 装箱到 `var`，或动态值跨表达式保留 |
 | 生成规则描述 | `xl6_xrt_bind_type` 给 xvalue 绑定 runtime type desc；`xl6_xrt_retain` 对非空 xvalue 调用 `xvoAddRef` 并返回自身。前者用于保持 `var` 内部的真实类型元数据，后者用于表达式临时值转移。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:346` |
 | 对应生成的 C 代码 | `static xvalue xl6_xrt_bind_type(...)`、`static xvalue xl6_xrt_retain(...)` |

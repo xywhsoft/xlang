@@ -1,0 +1,8 @@
+{
+  "format": "xlang-package-1",
+  "name": "package_nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+  "version": "1.222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+  "abiVersion": "abi_333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333",
+  "artifact": {"cSources": [], "xlSources": []},
+  "dependencies": []
+}

@@ -1,0 +1,15 @@
+func makeArray() as array<int>
+    return [1, 2]
+end
+
+func makeList() as list<string>
+    return [0: "a", 2: "b"]
+end
+
+func makeSet() as set<int>
+    return {1, 2}
+end
+
+func makeDict() as dict<int>
+    return {"a": 1, "b": 2}
+end

@@ -1,6 +1,6 @@
 ﻿# P1 声明、return 与多返回值细则
 
-本文细化 `xl6_cgen_stmt_decl.c` 与 `xl6_cgen_stmt_dispatch.c` 中声明、block cleanup、语句分派、return、多返回值声明/赋值的生成规则。class/custom 的生命周期细节见 `12_P1_class_custom生命周期细则.md`，本文件只记录它们在声明分支中的入口和与其他声明规则的优先级。
+本文细化 `xl6_cgen_stmt_decl.c` 与 `xl6_cgen_stmt_dispatch.c` 中声明、block cleanup、语句分派、return、多返回值声明/赋值的生成规则。class/native-backed class 的生命周期细节见 `12_P1_native_backed_class生命周期细则.md`，本文件只记录它们在声明分支中的入口和与其他声明规则的优先级。
 
 ## CGEN-DRET-001 block 作用域 cleanup
 
@@ -31,12 +31,12 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `auto a = ...` / `Type a = ...` / `var a = ...` |
-| 生成规则描述 | 声明生成先识别 auto 构造 custom/class，再识别显式 custom，再识别显式 class，然后依次进入 auto class、typed container、xvalue、普通 C 类型声明。该优先级保证 class/custom 构造不会被普通 auto 或普通表达式路径吞掉。 |
+| 生成规则描述 | 声明生成先识别 auto 构造 native-backed class/class，再识别显式 native-backed class，再识别显式 class，然后依次进入 auto class、typed container、xvalue、普通 C 类型声明。该优先级保证 class/native-backed class 构造不会被普通 auto 或普通表达式路径吞掉。 |
 | 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:18`、`xl6_cgen_stmt_decl.c:38`、`xl6_cgen_stmt_decl_class_temp.c:16`、`xl6_cgen_stmt_decl_class_temp.c:47`、`xl6_cgen_stmt_decl_class_temp.c:182` |
-| 对应生成的 C 代码 | `XL_Custom_File f = {0};` / `XL_Class_Counter c = {0};` / `xvalue v = ...;` |
-| 中间形态伪代码 | `decl -> custom? class? autoClass? typedContainer? xvalue? ordinary?` |
+| 对应生成的 C 代码 | `XL_Class_File f = {0};` / `XL_Class_Counter c = {0};` / `xvalue v = ...;` |
+| 中间形态伪代码 | `decl -> native-backed class? class? autoClass? typedContainer? xvalue? ordinary?` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要人工选择实际类型和初始化路径。 |
-| 额外依赖的封装代码 | 类型推断、class/custom 查找、typed container 判断。 |
+| 额外依赖的封装代码 | 类型推断、class/native-backed class 查找、typed container 判断。 |
 
 ## CGEN-DRET-004 auto 类型推断与类型节点持有
 
@@ -175,7 +175,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `auto _, b = pair()` |
-| 生成规则描述 | 左侧名称为 `_` 时不声明变量。若被丢弃值是 xvalue，立即 `xvoUnref`；随后调用 `xl6CgenReleaseReturnedValuePath` 释放 function/class/custom/容器等返回值路径，避免丢弃值泄漏。 |
+| 生成规则描述 | 左侧名称为 `_` 时不声明变量。若被丢弃值是 xvalue，立即 `xvoUnref`；随后调用 `xl6CgenReleaseReturnedValuePath` 释放 function/class/native-backed class/容器等返回值路径，避免丢弃值泄漏。 |
 | 生成器文件名和行号 | `xl6_cgen_stmt_decl_class_temp.c:435`、`xl6_cgen_stmt_decl_class_temp.c:448` |
 | 对应生成的 C 代码 | `if (__xl6_multi_0.value0 != 0) { xvoUnref(__xl6_multi_0.value0); }` |
 | 中间形态伪代码 | `if name == "_": release tmp.value[i]; continue` |
@@ -271,7 +271,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `func f() array<int>` / `return [1, 2, 3]` |
-| 生成规则描述 | 非 class/custom 函数单返回 typed container 且返回值使用 typed container storage 时，生成 typed container 专用 return：先声明 `__xl6_return_N`，按字面量/create/copy/move 规则构造，必要时填充字面量。 |
+| 生成规则描述 | 非 class/native-backed class 函数单返回 typed container 且返回值使用 typed container storage 时，生成 typed container 专用 return：先声明 `__xl6_return_N`，按字面量/create/copy/move 规则构造，必要时填充字面量。 |
 | 生成器文件名和行号 | `xl6_cgen_stmt_dispatch.c:100`、`xl6_cgen_value_object.c:384` |
 | 对应生成的 C 代码 | `xtarray __xl6_return_0 = xrtTypedArrayCreate(...); fill; cleanup; return __xl6_return_0;` |
 | 中间形态伪代码 | `return typed container -> build return container before cleanup` |

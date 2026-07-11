@@ -20,10 +20,11 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 - `check_cgen_statement_expr_allowlist.ps1`
 - `check_cgenrule_docs.ps1`
 - `check_cli_temp_cleanup.ps1`
-- `check_dap_smoke.ps1`
+- `check_debugger_not_released.ps1`
 - `check_dll_api_boundary.ps1`
 - `check_docs_index.ps1`
 - `check_example_wiring.ps1`
+- `check_frontend_fuzz.ps1`
 - `check_markdown_links.ps1`
 - `check_negative_diagnostics.ps1`
 - `check_package_fixtures.ps1`
@@ -46,7 +47,9 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 
 `check_async_task_soak.ps1` runs a focused async/task/concurrency soak guard. The default mode covers direct `xl run` entries plus the `cgen_task_spawn.xl` build/run artifact path; use `-Repeat N -IncludeHeavy` before release cuts to include the larger `release\examples\task_api.xl` and `cgen_task_api.xl` paths.
 
-`check_dap_smoke.ps1` runs the `xl dap` protocol smoke test and verifies DAP response/event framing for initialize, breakpoints, stack/scopes/variables, unsupported requests, continue, and disconnect.
+`check_frontend_fuzz.ps1` builds and runs the deterministic lexer/parser mutation harness. CI enables `-Sanitize` on Linux so address and undefined-behavior failures stop the build; the normal Windows suite runs the same corpus without requiring an external sanitizer runtime.
+
+`check_debugger_not_released.ps1` verifies that the incomplete probe/DAP prototype is not advertised or accepted by the first-release CLI. A real debugger must return through a new reviewed design and cannot reuse synthetic stack or variable responses.
 
 ## Maintenance
 

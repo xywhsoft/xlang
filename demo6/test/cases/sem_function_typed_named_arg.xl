@@ -1,0 +1,6 @@
+func add(int left, int right) as int
+    return left + right
+end
+
+func(int, int) as int op = add
+auto bad = op(left = 1, right = 2)

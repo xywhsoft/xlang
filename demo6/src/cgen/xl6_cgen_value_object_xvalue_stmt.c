@@ -68,17 +68,6 @@ static int xl6CgenTryClassCtorBoxXValueStmt(
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s = xvoCreateNull();\n", valueName);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("} else {\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = ", valueName);
-    xl6CgenBoxSymbol(ctx->out, cTypeName);
-    xl6OutputPrintf(ctx->out, "(%s);\n", tempName);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
     if ( xl6CgenClassNeedsDestroy(ctx, classNode) ) {
         xl6CgenIndent(ctx);
         if ( typeNode->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
@@ -88,7 +77,35 @@ static int xl6CgenTryClassCtorBoxXValueStmt(
         }
         xl6OutputPrintf(ctx->out, "(&%s);\n", tempName);
     }
-
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("} else {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = xvoCreateRecordMove(", valueName);
+    xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+    xl6OutputPuts("()", ctx->out);
+    xl6OutputPrintf(ctx->out, ", &%s);\n", tempName);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (%s == 0) {\n", valueName);
+    ctx->indent += 1;
+    if ( xl6CgenClassNeedsDestroy(ctx, classNode) ) {
+        xl6CgenIndent(ctx);
+        if ( typeNode->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+            xl6CgenGenericClassMemberSymbol(ctx, classNode, typeNode, "destroy");
+        } else {
+            xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
+        }
+        xl6OutputPrintf(ctx->out, "(&%s);\n", tempName);
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = xvoCreateNull();\n", valueName);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
     xl6AstFree(genericType);
     xl6AstFree(rawType);
     return 1;
@@ -132,14 +149,155 @@ static int xl6CgenTryTypedContainerReturnBoxXValueStmt(
     return 1;
 }
 
+static const XL6_AstNode* xl6CgenRefCtorValueExpr(const XL6_AstNode* valueExpr)
+{
+    const XL6_AstNode* callee;
+    const XL6_AstNode* args;
+    const XL6_AstNode* arg;
+
+    if ( valueExpr == NULL || valueExpr->kind != XL6_AST_CALL || valueExpr->childCount < 2 ) {
+        return NULL;
+    }
+    callee = valueExpr->children[0];
+    args = valueExpr->children[1];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ||
+         !xl6CTextEquals(callee->text, "ref") ||
+         args == NULL || args->childCount != 1 ) {
+        return NULL;
+    }
+    arg = args->children[0];
+    return arg != NULL && arg->kind == XL6_AST_ARG && arg->childCount > 0 ?
+           arg->children[0] : NULL;
+}
+
+/* ref(existing) 复制既有 class 值；新构造值由上面的 move 路径接管。 */
+static int xl6CgenTryClassValueCopyBoxXValueStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* valueExpr,
+    const char* valueName)
+{
+    XL6_AstNode* rawType;
+    const XL6_AstNode* typeNode;
+    XL6_AstNode* classNode;
+    char cTypeName[512];
+
+    if ( ctx == NULL || valueExpr == NULL || valueName == NULL ||
+         (valueExpr->kind != XL6_AST_NAME && valueExpr->kind != XL6_AST_MEMBER) ) {
+        return 0;
+    }
+
+    rawType = xl6CgenCloneExprTypeForInference(ctx, valueExpr);
+    typeNode = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, rawType));
+    classNode = xl6CgenClassNodeForType(ctx, typeNode);
+    if ( typeNode == NULL || classNode == NULL || xl6CgenClassIsPureNativeHandle(classNode) ) {
+        xl6AstFree(rawType);
+        return 0;
+    }
+
+    xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), typeNode);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = xvoCreateRecord(", valueName);
+    xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+    xl6OutputPuts("(), &(", ctx->out);
+    xl6CgenExpr(ctx, valueExpr);
+    xl6OutputPuts("));\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (%s == 0) { %s = xvoCreateNull(); }\n", valueName, valueName);
+    xl6AstFree(rawType);
+    return 1;
+}
+
+/* ref(makeValue()) 接管函数返回的新 class 值，不先复制一份再销毁。 */
+static int xl6CgenTryFreshClassValueMoveBoxXValueStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* valueExpr,
+    const char* valueName)
+{
+    XL6_AstNode* rawType;
+    const XL6_AstNode* typeNode;
+    XL6_AstNode* classNode;
+    char cTypeName[512];
+    char tempName[64];
+    int id;
+
+    if ( ctx == NULL || valueExpr == NULL || valueName == NULL || valueExpr->kind != XL6_AST_CALL ) {
+        return 0;
+    }
+    rawType = xl6CgenCloneExprTypeForInference(ctx, valueExpr);
+    typeNode = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, rawType));
+    classNode = xl6CgenClassNodeForType(ctx, typeNode);
+    if ( typeNode == NULL || classNode == NULL || xl6CgenClassIsPureNativeHandle(classNode) ) {
+        xl6AstFree(rawType);
+        return 0;
+    }
+
+    id = ctx->tempId++;
+    snprintf(tempName, sizeof(tempName), "__xl6_box_fresh_stmt_%d", id);
+    xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), typeNode);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypeName(ctx, typeNode), tempName);
+    xl6CgenExpr(ctx, valueExpr);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if ( xl6_error_has() ) {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = xvoCreateNull();\n", valueName);
+    if ( xl6CgenClassNeedsDestroy(ctx, classNode) ) {
+        xl6CgenIndent(ctx);
+        if ( typeNode->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+            xl6CgenGenericClassMemberSymbol(ctx, classNode, typeNode, "destroy");
+        } else {
+            xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
+        }
+        xl6OutputPrintf(ctx->out, "(&%s);\n", tempName);
+    }
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("} else {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = xvoCreateRecordMove(", valueName);
+    xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+    xl6OutputPrintf(ctx->out, "(), &%s);\n", tempName);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (%s == 0) {\n", valueName);
+    ctx->indent += 1;
+    if ( xl6CgenClassNeedsDestroy(ctx, classNode) ) {
+        xl6CgenIndent(ctx);
+        if ( typeNode->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+            xl6CgenGenericClassMemberSymbol(ctx, classNode, typeNode, "destroy");
+        } else {
+            xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
+        }
+        xl6OutputPrintf(ctx->out, "(&%s);\n", tempName);
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = xvoCreateNull();\n", valueName);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6AstFree(rawType);
+    return 1;
+}
+
 static int xl6CgenTrySpecialXValueAssignStmt(
     XL6_CgenContext* ctx,
     const XL6_AstNode* targetType,
     const char* valueName,
     const XL6_AstNode* valueExpr)
 {
-    (void)targetType;
-    return xl6CgenTryClassCtorBoxXValueStmt(ctx, valueExpr, valueName) ||
+    const XL6_AstNode* refValue = xl6CgenRefTargetType(ctx, targetType) != NULL ?
+                                  xl6CgenRefCtorValueExpr(valueExpr) : NULL;
+
+    return (refValue != NULL &&
+            (xl6CgenTryClassCtorBoxXValueStmt(ctx, refValue, valueName) ||
+             xl6CgenTryClassValueCopyBoxXValueStmt(ctx, refValue, valueName) ||
+             xl6CgenTryFreshClassValueMoveBoxXValueStmt(ctx, refValue, valueName))) ||
+           xl6CgenTryClassCtorBoxXValueStmt(ctx, valueExpr, valueName) ||
            xl6CgenTryTypedContainerReturnBoxXValueStmt(ctx, valueExpr, valueName);
 }
 
@@ -154,6 +312,12 @@ static int xl6CgenXValueExprNeedsSpecialStmt(XL6_CgenContext* ctx, const XL6_Ast
 
     if ( ctx == NULL || valueExpr == NULL ) {
         return 0;
+    }
+    {
+        const XL6_AstNode* refValue = xl6CgenRefCtorValueExpr(valueExpr);
+        if ( refValue != NULL ) {
+            return 1;
+        }
     }
     if ( !xl6CgenExprUsesTypedContainerStorage(ctx, valueExpr) &&
          xl6CgenExprIsTypedContainerReturnCall(ctx, valueExpr) ) {

@@ -1,387 +1,387 @@
 # P2 package 解析与 resolver 细则
 
-本文细化 `demo6/src/package/xl6_package.c`。该文件不直接输出 C 代码，但它决定 `import` 目标如何解析为源码文件或 `xlang.package.json` package manifest、package 身份、native/link/cSource 依赖以及私有命名空间输入，因此属于代码生成链路的前置规则。
+本文细化 `demo6/src/package/xl6_package.c`。该模块不直接输出 C 代码，但会把 `import` 目标解析为 package manifest，并提供包身份、源码、链接与动态库信息，因此是 import/cgen 链路的前置规则。JSON 词法、转义和 Unicode 统一由 XRT 处理；package 层只校验当前格式的字段约束。
 
-## CGEN-PKG-001 字符串复制与空值归一
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import pkg` 或读取 manifest 字段 |
-| 生成规则描述 | package 层内部复制字符串时，`NULL` 统一视为空字符串，并通过 XRT 内存函数复制。固定缓冲区复制则使用空字符串作为默认输入，保证 resolver 结果中的文本字段始终可安全读取。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:7`、`demo6/src/package/xl6_package.c:13` |
-| 对应生成的 C 代码 | 不直接生成 C；后续 import 生成的 extern/type 声明会使用这些字段。 |
-| 中间形态伪代码 | `copy(text ?? "")` |
-| 实现同等功能手写的 C 代码 | 手写 resolver 也应把缺省字符串收束为空串，避免调用侧反复判空。 |
-| 额外依赖的封装代码 | XRT 内存分配与释放函数。 |
-
-## CGEN-PKG-002 目录名提取规则
+## CGEN-PKG-001 字符串所有权与空值归一
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | 从文件路径 import，如 `import "./pkg/foo"` |
-| 生成规则描述 | 从路径中寻找最后一个 `\`、`/` 或 `:`。找不到分隔符时目录为 `.`；遇到 Windows 盘符冒号时保留冒号本身。空路径也回退为 `.`。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:21` |
-| 对应生成的 C 代码 | 不直接生成 C；影响相对 import 的搜索基准目录。 |
-| 中间形态伪代码 | `dirname(path) => "." | path[0..lastSep]` |
-| 实现同等功能手写的 C 代码 | 手写 C 项目中常见为 `PathRemoveFileSpec` 或自写 dirname。 |
+| xlang 写法 | `import pkg`，或读取 manifest 文本字段 |
+| 生成规则描述 | package 层拥有的文本均为独立 XRT 分配。内部复制时把 `NULL` 归一为空字符串，调用侧不需要为已构造字段增加特殊释放路径。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:9` |
+| 对应生成的 C 代码 | 不直接生成 C；后续 import 展开会读取这些稳定文本。 |
+| 中间形态伪代码 | `owned = copy(text ?? "")` |
+| 实现同等功能手写的 C 代码 | `char* owned = xrtCopyStr(src ? src : "", strlen(src ? src : ""));` |
+| 额外依赖的封装代码 | XRT 字符串复制与内存释放。 |
+
+## CGEN-PKG-002 XRT 路径目录提取
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 源文件中的相对导入，如 `import "./pkg"` |
+| 生成规则描述 | 使用 `xrtPathGetDir` 提取导入者目录；空路径或空结果统一回退为 `.`，Windows UTF-8 路径由 XRT 处理。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:15` |
+| 对应生成的 C 代码 | 不直接生成 C；决定相对 import 的第一搜索基准。 |
+| 中间形态伪代码 | `dir = dirname(path); if empty(dir): dir = "."` |
+| 实现同等功能手写的 C 代码 | 调用平台路径 API，并额外处理 UTF-8 与空路径。 |
+| 额外依赖的封装代码 | `xrtPathGetDir`。 |
+
+## CGEN-PKG-003 动态路径拼接与固定输出边界
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 搜索 `<base>/<package>/xlang.package.json` |
+| 生成规则描述 | 内部路径始终通过 `xrtPathJoin` 动态分配，避免固定缓冲区截断。公开固定缓冲接口只在完整结果可容纳时复制，否则失败，不产生截断路径。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:30`、`demo6/src/package/xl6_package.c:38` |
+| 对应生成的 C 代码 | 不直接生成 C；影响 manifest 搜索位置。 |
+| 中间形态伪代码 | `joined = pathJoin(a, b); require len(joined) < outSize` |
+| 实现同等功能手写的 C 代码 | 动态计算长度后分配并拼接路径。 |
+| 额外依赖的封装代码 | `xrtPathJoin`。 |
+
+## CGEN-PKG-004 缺省包名
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | manifest 省略 `name` |
+| 生成规则描述 | 使用 manifest 所在目录的最后一段作为缺省包名；无法取得有效名称时回退为 `package`。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:60` |
+| 对应生成的 C 代码 | 不直接生成 C；该名称进入 packageId 和私有命名空间。 |
+| 中间形态伪代码 | `name = pathName(packageDir) || "package"` |
+| 实现同等功能手写的 C 代码 | 取目录 basename，并处理根目录和空值。 |
+| 额外依赖的封装代码 | `xrtPathGetName`。 |
+
+## CGEN-PKG-005 后缀识别
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 解析显式 manifest 路径 |
+| 生成规则描述 | 仅在文本长度足够且尾部完全相等时认定后缀匹配，不做大小写或模糊兼容。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:72` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `endsWith(text, suffix) = exact suffix match` |
+| 实现同等功能手写的 C 代码 | `strcmp(text + textLen - suffixLen, suffix) == 0` |
 | 额外依赖的封装代码 | 无。 |
 
-## CGEN-PKG-003 路径拼接规则
+## CGEN-PKG-006 packageId 稳定身份
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | package 内 `xlang.package.json`、`release/extlibs/name`、`test/fixtures/name` |
-| 生成规则描述 | `a` 末尾已有 `\` 或 `/` 时直接拼接，否则插入 `\`。输出使用固定缓冲区，只有 `snprintf` 完整写入时返回成功。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:58` |
-| 对应生成的 C 代码 | 不直接生成 C；影响 manifestPath 和 package 搜索路径。 |
-| 中间形态伪代码 | `join(a,b) = a + (needsSep ? "\\" : "") + b` |
-| 实现同等功能手写的 C 代码 | 手写 C 可以使用 `PathCchCombine`，当前实现保持轻量无平台 API。 |
+| xlang 写法 | 多版本依赖中的包实例 |
+| 生成规则描述 | packageId 固定为 `<name>@<version>#abi<abiVersion>`；空 name/version/abi 分别收束为 `package`、`0.0.0`、`1`。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:85` |
+| 对应生成的 C 代码 | 不直接生成 C；import 图用它区分同名不同版本或 ABI 的包。 |
+| 中间形态伪代码 | `id = format("%s@%s#abi%s", name, version, abi)` |
+| 实现同等功能手写的 C 代码 | 使用动态格式化构造稳定键。 |
+| 额外依赖的封装代码 | `xrtFormat`。 |
+
+## CGEN-PKG-007 字符串列表生命周期
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | manifest 的 `cSources`、`xlSources`、`links`、`loadlibs` |
+| 生成规则描述 | 列表初始化清零；追加时先复制文本，再扩容指针数组；扩容失败释放新文本且不增加 count；释放时逐项释放并清零。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:94`、`demo6/src/package/xl6_package.c:101`、`demo6/src/package/xl6_package.c:115` |
+| 对应生成的 C 代码 | 不直接生成 C；列表随后进入源码和链接依赖收集。 |
+| 中间形态伪代码 | `copy = dup(text); items = realloc(items); append(copy)` |
+| 实现同等功能手写的 C 代码 | 显式维护 `char**`、数量和逐项所有权。 |
+| 额外依赖的封装代码 | XRT 分配、重分配与释放。 |
+
+## CGEN-PKG-008 manifest 完整生命周期
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 读取任意 `xlang.package.json` |
+| 生成规则描述 | manifest 初始化为全零；释放覆盖身份字段、四组字符串列表、每个依赖字段、native 字段，最后清零。失败路径可统一调用 free。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:138`、`demo6/src/package/xl6_package.c:145` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `free(all owned fields); zero(manifest)` |
+| 实现同等功能手写的 C 代码 | 为每个拥有字段编写成对释放逻辑。 |
+| 额外依赖的封装代码 | XRT 内存释放。 |
+
+## CGEN-PKG-009 XRT JSON 字段查询
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | manifest 根对象及子对象的字段 |
+| 生成规则描述 | JSON 已由 XRT 解析为 `xvalue`。字段存在性和取值统一走 table API；package 层不维护第二套 JSON 游标或转义规则。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:178`、`demo6/src/package/xl6_package.c:184` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `if table.has(name): value = table[name]` |
+| 实现同等功能手写的 C 代码 | 使用通用 JSON DOM/table API 查询字段。 |
+| 额外依赖的封装代码 | XRT `xvalue` table API。 |
+
+## CGEN-PKG-010 文本字段严格类型规则
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `"format":"xlang-package-1"`、`"name":"pkg"` |
+| 生成规则描述 | required 字段缺失即失败；可选字段缺失成功。字段一旦存在就必须是 text；成功后复制为 manifest 自有字符串，并事务式替换旧值。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:189` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `require !required || exists; require isText(value); out = copy(value)` |
+| 实现同等功能手写的 C 代码 | 校验 JSON 类型后复制字符串。 |
+| 额外依赖的封装代码 | XRT text `xvalue` API。 |
+
+## CGEN-PKG-011 字符串数组严格类型规则
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `"links":["m"]`、`"xlSources":["main.xl"]` |
+| 生成规则描述 | 字段缺失合法；存在时必须是 array，且每项都必须是 text。任何一项类型错误或分配失败都会使 manifest 加载失败。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:213` |
+| 对应生成的 C 代码 | 不直接生成 C；成功列表进入后续构建参数。 |
+| 中间形态伪代码 | `for item in array: require text; append(copy(item))` |
+| 实现同等功能手写的 C 代码 | 遍历 JSON 数组并复制每个字符串。 |
+| 额外依赖的封装代码 | XRT array `xvalue` API 与 package 字符串列表。 |
+
+## CGEN-PKG-012 依赖追加事务
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | manifest 声明一个依赖 |
+| 生成规则描述 | 先完成 name/version/abi/packageId 四个字段构造，再扩容依赖数组；任一步失败都释放临时字段，原 manifest 的 count 和已有依赖保持不变。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:239` |
+| 对应生成的 C 代码 | 不直接生成 C；保障低内存失败不会留下半初始化依赖。 |
+| 中间形态伪代码 | `tmp = buildDependency(); new = realloc(); commit(tmp)` |
+| 实现同等功能手写的 C 代码 | 使用临时对象和最终提交点。 |
+| 额外依赖的封装代码 | packageId 与 XRT 内存 API。 |
+
+## CGEN-PKG-013 dependencies 双形态规则
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `"dependencies":["json", {"name":"core","version":"2","abiVersion":"1"}]` |
+| 生成规则描述 | dependencies 必须是 array。文本简写要求非空，version/abi 使用通配 `*`；对象形态要求非空 text name，可选 version/abi 也必须为 text，缺省为 `*`。其他项类型全部拒绝。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:293` |
+| 对应生成的 C 代码 | 不直接生成 C；形成可多版本解析的依赖身份列表。 |
+| 中间形态伪代码 | `text -> dep(name,"*","*"); object -> dep(name,version||"*",abi||"*")` |
+| 实现同等功能手写的 C 代码 | 分支解析简写和完整依赖对象。 |
+| 额外依赖的封装代码 | 事务式依赖追加。 |
+
+## CGEN-PKG-014 artifact 源文件列表
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `"artifact":{"cSources":["a.c"],"xlSources":["a.xl"]}` |
+| 生成规则描述 | artifact 缺失合法；存在时必须是 table。当前识别 `cSources` 与 `xlSources`，两者都服从严格字符串数组规则；未知字段由 XRT 值树保留但 package 层忽略。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:353` |
+| 对应生成的 C 代码 | 不直接生成 C；import 阶段按列表注入 C/XLang 源。 |
+| 中间形态伪代码 | `artifact = table; readStringArray(cSources); readStringArray(xlSources)` |
+| 实现同等功能手写的 C 代码 | 从 JSON 子对象提取两个源文件数组。 |
+| 额外依赖的封装代码 | XRT table/array API。 |
+
+## CGEN-PKG-015 native 元数据
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `"native":{"singleton":true,"loadName":"foo","version":"1"}` |
+| 生成规则描述 | native 缺失合法；存在时必须是 table。singleton 一旦存在必须是 bool，loadName/version 一旦存在必须是 text；不存在的字段保持缺省值。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:366` |
+| 对应生成的 C 代码 | 不直接生成 C；影响动态库单例和加载信息。 |
+| 中间形态伪代码 | `native.singleton = bool; native.loadName/version = text` |
+| 实现同等功能手写的 C 代码 | 严格读取 native 配置对象。 |
+| 额外依赖的封装代码 | XRT bool/text `xvalue` API。 |
+
+## CGEN-PKG-016 manifest 根对象 schema
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 完整 `xlang.package.json` |
+| 生成规则描述 | 根值必须是 table。format 必填；name/version/abiVersion 可选；artifact、根级 cSources/xlSources、links、loadlibs、dependencies、native 按各自规则读取。未知字段不会触发兼容分支。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:389` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `require table(root); read known schema fields` |
+| 实现同等功能手写的 C 代码 | 用 schema 映射函数组织字段读取。 |
+| 额外依赖的封装代码 | 前述字段读取器。 |
+
+## CGEN-PKG-017 UTF-8/BOM 与 XRT JSON 解析
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 从 UTF-8 路径读取 package manifest |
+| 生成规则描述 | 使用 `xrtFileReadAll(..., XRT_CP_UTF8)` 读取；只允许可选 UTF-8 BOM。正文先经 `xrtJsonValid` 完整校验，再由 `xrtParseJSON` 生成值树；package 层不重复实现 JSON。root 和文件缓冲在所有路径释放。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:405` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `text = readUtf8(path); skipUtf8Bom(); require jsonValid(); root = parseJson()` |
+| 实现同等功能手写的 C 代码 | 使用支持 UTF-8 路径的文件 API和成熟 JSON 解析器。 |
+| 额外依赖的封装代码 | XRT 文件、JSON 与 `xvalue` API。 |
+
+## CGEN-PKG-018 格式版本与缺省身份
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | format 为 `xlang-package-1`，其余身份字段可省略 |
+| 生成规则描述 | format 必须精确等于 `xlang-package-1`。name 为空时取包目录名；version 缺省 `0.0.0`；abiVersion 缺省 `1`；随后生成 dir 与 packageId，并检查完整对象不变量。失败时释放整个 manifest。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:449` |
+| 对应生成的 C 代码 | 不直接生成 C；得到后续 import 的权威包身份。 |
+| 中间形态伪代码 | `require format==v1; fill defaults; packageId=makeId(); require all fields` |
+| 实现同等功能手写的 C 代码 | 校验格式版本后一次性补齐默认值。 |
+| 额外依赖的封装代码 | XRT 路径与格式化 API。 |
+
+## CGEN-PKG-019 manifest 结果事务归一
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | resolver 命中一个 manifest |
+| 生成规则描述 | 先独立加载临时 manifest，再复制 packageDir/name/version/abi/packageId 五个字段。只有五项全部成功才写入 result；失败时释放所有临时副本，result 不承接半初始化身份。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:479` |
+| 对应生成的 C 代码 | 不直接生成 C；为 import 展开提供稳定结果。 |
+| 中间形态伪代码 | `tmp = loadManifest(); copies = copyAll(tmp); if complete: commit(result)` |
+| 实现同等功能手写的 C 代码 | 使用临时 manifest 与提交点构造解析结果。 |
+| 额外依赖的封装代码 | manifest 生命周期。 |
+
+## CGEN-PKG-020 失败候选回滚
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 一个候选文件存在但 manifest 无效 |
+| 生成规则描述 | 清理 manifestPath 与全部包身份字段，并把 resolved/kind 恢复为 unresolved；原始 target 不被清除，因此 resolver 仍可继续尝试其他候选并用于诊断。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:516` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `clearResolution(result); keep result.target` |
+| 实现同等功能手写的 C 代码 | 只回滚候选解析产生的字段。 |
+| 额外依赖的封装代码 | XRT 内存释放。 |
+
+## CGEN-PKG-021 manifest 候选命中
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 路径或包名候选指向 `xlang.package.json` |
+| 生成规则描述 | 候选必须由 `xrtFileExists` 确认存在；随后保存动态 manifestPath、设置 kind，并加载归一身份。内容无效时调用统一回滚，允许继续搜索。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:537` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `if exists(path): mark candidate; if !finalize: rollback` |
+| 实现同等功能手写的 C 代码 | 把文件存在和 manifest 合法性作为两个检查阶段。 |
+| 额外依赖的封装代码 | XRT UTF-8 文件存在检查。 |
+
+## CGEN-PKG-022 path target 分类
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `import "./a"`、`import "a.xlang.package.json"`、`import pkg` |
+| 生成规则描述 | target 含 `\\`、`/`、`:` 或 `.` 时视为路径；绝对路径包括根分隔符开头和 ASCII 盘符形式。分类只选择 resolver 分支，不做旧语法映射。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:558`、`demo6/src/package/xl6_package.c:573` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `looksLikePath = contains("\\/:."); absolute = rooted || driveLetter` |
+| 实现同等功能手写的 C 代码 | 对 import token 做路径与裸包名分类。 |
 | 额外依赖的封装代码 | 无。 |
 
-## CGEN-PKG-004 文件名回退为 package 名
+## CGEN-PKG-023 路径候选集合
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | manifest 未声明 `name` |
-| 生成规则描述 | 从路径中取最后一个分隔符后的 base name，并去掉最后一个扩展名。若结果为空，则回退为 `package`。当前 manifest 加载时传入的是 manifest 所在目录，因此默认名来自包目录名。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:73` |
-| 对应生成的 C 代码 | 不直接生成 C；影响 import namespace 和 packageId。 |
-| 中间形态伪代码 | `name = basenameNoExt(path) || "package"` |
-| 实现同等功能手写的 C 代码 | 手写包系统通常把目录名作为缺省包名。 |
-| 额外依赖的封装代码 | 无。 |
+| xlang 写法 | `import "./pkg"` 或显式 manifest 路径 |
+| 生成规则描述 | 对每个 path 先按 manifest 文件原样尝试，失败后尝试 `<path>/xlang.package.json`。第二个候选使用 package kind；路径均动态分配并及时释放。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:588` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `try(path, FILE) || try(join(path, manifestName), PACKAGE)` |
+| 实现同等功能手写的 C 代码 | 依次探测显式文件和目录包。 |
+| 额外依赖的封装代码 | XRT 路径 API 与 manifest 尝试器。 |
 
-## CGEN-PKG-005 packageId 统一格式
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | 依赖和导入包身份 |
-| 生成规则描述 | packageId 固定生成为 `<name>@<version>#abi<abiVersion>`。name 缺省 `package`，version 缺省 `0.0.0`，abiVersion 缺省 `1`。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:122` |
-| 对应生成的 C 代码 | 不直接生成 C；import 侧用 packageId 区分同名包的不同版本实例。 |
-| 中间形态伪代码 | `id = f"{name}@{version}#abi{abiVersion}"` |
-| 实现同等功能手写的 C 代码 | 手写 resolver 应生成稳定唯一的包实例键。 |
-| 额外依赖的封装代码 | 无。 |
-
-## CGEN-PKG-006 字符串列表所有权规则
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | manifest 中 `links`、`loadlibs`、`cSources` |
-| 生成规则描述 | 列表初始化清零；追加时复制文本并扩容指针数组；释放时逐项 `xrtFree` 后释放数组并清零。追加失败会释放刚复制的字符串。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:133`、`demo6/src/package/xl6_package.c:154` |
-| 对应生成的 C 代码 | 不直接生成 C；这些列表会进入 import 依赖和链接参数收集。 |
-| 中间形态伪代码 | `list.items += strdup(text)` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要显式维护字符串数组生命周期。 |
-| 额外依赖的封装代码 | XRT 内存分配与释放函数。 |
-
-## CGEN-PKG-007 manifest 生命周期规则
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | 读取 `xlang.package.json` |
-| 生成规则描述 | manifest 初始化为全零；释放时释放 format/name/version/abiVersion/packageId/dir、三组字符串列表、每个 dependency 字段、native 字段，最后清零结构体。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:177`、`demo6/src/package/xl6_package.c:184` |
-| 对应生成的 C 代码 | 不直接生成 C；保证 import 多次解析不会泄漏旧 manifest。 |
-| 中间形态伪代码 | `free all owned fields; memset(0)` |
-| 实现同等功能手写的 C 代码 | 手写 resolver 必须明确每个字段的所有权。 |
-| 额外依赖的封装代码 | XRT 内存释放函数。 |
-
-## CGEN-PKG-008 package JSON 基础游标
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | manifest JSON 任意字段 |
-| 生成规则描述 | JSON 解析器只维护 text/len/pos。读取 token 前跳过空格、tab、CR、LF；`peek` 返回当前字符，`consume` 只有匹配指定字符时推进游标。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:213`、`demo6/src/package/xl6_package.c:219`、`demo6/src/package/xl6_package.c:230`、`demo6/src/package/xl6_package.c:239` |
-| 对应生成的 C 代码 | 不直接生成 C；决定 manifest 是否被接受。 |
-| 中间形态伪代码 | `skipWs(); if text[pos] == ch: pos++` |
-| 实现同等功能手写的 C 代码 | 手写 C 可改用通用 JSON 库，当前实现是小型专用解析器。 |
-| 额外依赖的封装代码 | 无。 |
-
-## CGEN-PKG-009 JSON 字符串读取规则
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | manifest 字符串字段 |
-| 生成规则描述 | 字符串必须以 `"` 开始。支持常见转义 `\"`、`\\`、`\/`、`\b`、`\f`、`\n`、`\r`、`\t`。`\uXXXX` 会跳过 4 位并写入 `?`。空字符串返回 XRT 复制的空串。未闭合或扩容失败返回失败。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:249`、`demo6/src/package/xl6_package.c:275` |
-| 对应生成的 C 代码 | 不直接生成 C；影响 packageName、xlSources/cSources、link 等文本。 |
-| 中间形态伪代码 | `read quoted string; decode simple escapes; unicode => "?"` |
-| 实现同等功能手写的 C 代码 | 手写 JSON 读取应完整保留 UTF-8；当前实现对 `\uXXXX` 是保守降级。 |
-| 额外依赖的封装代码 | XRT realloc/free。 |
-
-## CGEN-PKG-010 JSON 布尔与未知值跳过
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | manifest 中 `native.singleton` 或未知字段 |
-| 生成规则描述 | 布尔只接受 `true`/`false`。未知值可递归跳过 string/object/array/bool/null，其他数字或裸 token 跳到逗号、右括号、右花括号或空白。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:322`、`demo6/src/package/xl6_package.c:344`、`demo6/src/package/xl6_package.c:370`、`demo6/src/package/xl6_package.c:391` |
-| 对应生成的 C 代码 | 不直接生成 C；使 manifest 可向后扩展未知字段。 |
-| 中间形态伪代码 | `skip(value) handles {}, [], string, bool, null, primitive` |
-| 实现同等功能手写的 C 代码 | 手写解析器常用同样的 unknown field skip 策略。 |
-| 额外依赖的封装代码 | package JSON 游标。 |
-
-## CGEN-PKG-011 字符串数组读取规则
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `"links": ["m"]`、`"loadlibs": ["x"]`、`"cSources": ["a.c"]` |
-| 生成规则描述 | 字段值必须是数组；空数组合法；每一项必须是字符串并追加到目标列表。项之间必须使用逗号，数组以 `]` 结束。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:425` |
-| 对应生成的 C 代码 | 不直接生成 C；后续链接和 C 源文件注入会使用列表内容。 |
-| 中间形态伪代码 | `for item in jsonArray: appendString(item)` |
-| 实现同等功能手写的 C 代码 | 手写 manifest 读取需要把数组转为可遍历列表。 |
-| 额外依赖的封装代码 | package string list。 |
-
-## CGEN-PKG-012 dependency 对象读取与默认身份
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `"dependencies": [{"name":"C","version":"1.0","abiVersion":"1"}]` |
-| 生成规则描述 | dependency 对象只读取 name/version/abiVersion，未知字段跳过。name 必须存在且非空；version 默认 `0.0.0`，abiVersion 默认 `1`；追加时同步生成 dependency packageId。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:449`、`demo6/src/package/xl6_package.c:483` |
-| 对应生成的 C 代码 | 不直接生成 C；import 依赖图用该 packageId 检查版本实例。 |
-| 中间形态伪代码 | `dep = {name, version||0.0.0, abi||1, id}` |
-| 实现同等功能手写的 C 代码 | 手写包管理器通常也会在解析依赖时补齐默认版本键。 |
-| 额外依赖的封装代码 | packageId 生成规则。 |
-
-## CGEN-PKG-013 dependencies 数组读取规则
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | manifest 的 `dependencies` 字段 |
-| 生成规则描述 | dependencies 必须是数组；空数组合法；每一项按 dependency 对象规则读取。任何一项失败会使整个 manifest 读取失败。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:541` |
-| 对应生成的 C 代码 | 不直接生成 C；影响 import resolver 的依赖实例集合。 |
-| 中间形态伪代码 | `dependencies = [readDependencyObject()]` |
-| 实现同等功能手写的 C 代码 | 手写包解析需要在加载包时同时加载依赖声明。 |
-| 额外依赖的封装代码 | dependency append helper。 |
-
-## CGEN-PKG-014 artifact 对象读取规则
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `"artifact": {"cSources": ["a.c"]}` |
-| 生成规则描述 | artifact 字段必须是对象。当前只识别 `cSources`，并按字符串数组追加到 manifest 的 cSources；未知 artifact 字段跳过。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:562` |
-| 对应生成的 C 代码 | 不直接生成 C；后续构建会把 cSources 作为包附带 C 源文件。 |
-| 中间形态伪代码 | `if key == cSources: readStringArray(manifest.cSources)` |
-| 实现同等功能手写的 C 代码 | 手写扩展包需要显式把附属 C 源传给构建系统。 |
-| 额外依赖的封装代码 | package string list。 |
-
-## CGEN-PKG-015 native 对象读取规则
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `"native": {"singleton": true, "loadName": "x", "version": "1"}` |
-| 生成规则描述 | native 字段必须是对象。识别 singleton 布尔值、loadName 字符串、version 字符串，未知字段跳过。重复字段以后出现的值覆盖前值。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:595` |
-| 对应生成的 C 代码 | 不直接生成 C；import 依赖阶段会用 native 信息处理动态库加载约束。 |
-| 中间形态伪代码 | `native.singleton/loadName/version = json fields` |
-| 实现同等功能手写的 C 代码 | 手写扩展系统通常把 native 动态库信息作为独立元数据。 |
-| 额外依赖的封装代码 | JSON bool/string reader。 |
-
-## CGEN-PKG-016 manifest 根对象字段读取
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `xlang.package.json` 根对象 |
-| 生成规则描述 | 根必须是 JSON 对象。识别 format/name/version/abiVersion/artifact/links/loadlibs/cSources/xlSources/dependencies/native。未知字段跳过。links、loadlibs、根级 cSources 和 xlSources 都是字符串数组。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:634` |
-| 对应生成的 C 代码 | 不直接生成 C；决定包导出的构建依赖和接口文件。 |
-| 中间形态伪代码 | `switch rootKey: assign field or parse child object/array` |
-| 实现同等功能手写的 C 代码 | 手写 manifest 解析应允许未知字段以便格式演进。 |
-| 额外依赖的封装代码 | package JSON skip 和子对象解析器。 |
-
-## CGEN-PKG-017 manifest 文件读取规则
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | 解析 `xlang.package.json` |
-| 生成规则描述 | 读取 manifest 前释放并重新初始化目标 manifest。文件内容通过 `xrtFileReadAll(path, XRT_CP_UTF8, &len)` 读取，读取失败或 XRT error 非空时直接失败。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:707` |
-| 对应生成的 C 代码 | 不直接生成 C；使用 XRT UTF-8 文件能力保证中文路径可读。 |
-| 中间形态伪代码 | `text = xrtFileReadAll(path, UTF8)` |
-| 实现同等功能手写的 C 代码 | 手写 C 用 CRT `fopen` 在 Windows 中文路径下可靠性较差。 |
-| 额外依赖的封装代码 | XRT 文件 API 和错误缓冲。 |
-
-## CGEN-PKG-018 manifest 格式校验规则
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `{"format":"xlang-package-1"}` |
-| 生成规则描述 | JSON 解析成功后，manifest 的 format 必须存在并且等于 `xlang-package-1`。不匹配时整个 manifest 加载失败并释放已读内容。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:737` |
-| 对应生成的 C 代码 | 不直接生成 C；避免把非 xlang 包文件误当 package。 |
-| 中间形态伪代码 | `ok = ok && manifest.format == "xlang-package-1"` |
-| 实现同等功能手写的 C 代码 | 手写包系统也需要显式格式版本。 |
-| 额外依赖的封装代码 | manifest lifecycle。 |
-
-## CGEN-PKG-019 manifest 默认字段补齐
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | manifest 缺省 `name`、`version`、`abiVersion` |
-| 生成规则描述 | name 缺省为包目录名；version 缺省 `0.0.0`；abiVersion 缺省 `1`。这些默认值只在格式校验成功后补齐。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:740` |
-| 对应生成的 C 代码 | 不直接生成 C；影响 import namespace、packageId 和 manifestPath。 |
-| 中间形态伪代码 | `name ||= fallbackDirName; version ||= 0.0.0; abi ||= 1` |
-| 实现同等功能手写的 C 代码 | 手写包可让简单包只写 format、artifact.xlSources 和必要依赖字段。 |
-| 额外依赖的封装代码 | basename/packageId helper。 |
-
-## CGEN-PKG-020 manifest 最终身份构建与失败清理
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | 成功读取 package manifest |
-| 生成规则描述 | 成功时记录 manifest 所在目录，按 name/version/abiVersion 生成 packageId，并检查 name/version/abiVersion/dir/packageId 都存在。任何缺失都标记失败并释放整个 manifest。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:752` |
-| 对应生成的 C 代码 | 不直接生成 C；后续 import 以该身份作为包实例权威。 |
-| 中间形态伪代码 | `manifest.dir = dirname; manifest.packageId = makePackageId(...)` |
-| 实现同等功能手写的 C 代码 | 手写 resolver 应在返回前完成对象不变量校验。 |
-| 额外依赖的封装代码 | manifest lifecycle 和 packageId helper。 |
-
-## CGEN-PKG-021 manifest 结果归一
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import "./pkg"` 命中 `xlang.package.json` |
-| 生成规则描述 | 读取 manifest 后，复制 packageDir、packageName、packageVersion、abiVersion、packageId 到 resolver 结果。读取失败则解析失败。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:767` |
-| 对应生成的 C 代码 | 不直接生成 C；import 后续读取 manifest 的 `xlSources` 并合并源码模块。 |
-| 中间形态伪代码 | `result = { packageDir, packageName, packageVersion, abiVersion, packageId }` |
-| 实现同等功能手写的 C 代码 | 手写导入裸包也需要补齐包身份。 |
-| 额外依赖的封装代码 | manifest loader 和 packageId helper。 |
-
-## CGEN-PKG-022 manifest 尝试命中规则
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | resolver 搜索某个候选 `xlang.package.json` |
-| 生成规则描述 | 候选路径必须存在。存在后先标记 resolved/kind/manifestPath，再读取 manifest 归一。manifest 归一失败时会重置 result 为 unresolved。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:781` |
-| 对应生成的 C 代码 | 不直接生成 C；决定 import 是否继续尝试下一个候选路径。 |
-| 中间形态伪代码 | `if exists(path): finalizeManifestResult()` |
-| 实现同等功能手写的 C 代码 | 手写 resolver 应把“文件存在”和“manifest 可用”分开判断。 |
-| 额外依赖的封装代码 | manifest loader。 |
-
-## CGEN-PKG-023 path import 判定
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import "./a"`、`import "a.b"`、`import "pkg"` |
-| 生成规则描述 | import target 只要包含 `\`、`/`、`:` 或 `.`，就按路径目标解析；否则按裸包名解析。空 target 不算路径。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:805` |
-| 对应生成的 C 代码 | 不直接生成 C；决定 import 是否继续尝试下一个候选路径。 |
-| 中间形态伪代码 | `isPathTarget = containsSlashOrColonOrDot(target)` |
-| 实现同等功能手写的 C 代码 | 手写 import 系统通常也会先区分 path import 与 package import。 |
-| 额外依赖的封装代码 | 无。 |
-
-## CGEN-PKG-024 path import 判定
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import "./a"`、`import "a.b"`、`import "pkg"` |
-| 生成规则描述 | import target 只要包含 `\`、`/`、`:` 或 `.`，就按路径目标解析；否则按裸包名解析。空 target 不算路径。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:827` |
-| 对应生成的 C 代码 | 不直接生成 C；决定 resolver 搜索路径分支。 |
-| 中间形态伪代码 | `looksLikePath = any(ch in "\\/:.")` |
-| 实现同等功能手写的 C 代码 | 手写包系统常把带分隔符的 import 视为相对或绝对路径。 |
-| 额外依赖的封装代码 | 无。 |
-
-## CGEN-PKG-025 resolver 结果初始化与 kind 文本
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | 每次 `import` 开始解析 |
-| 生成规则描述 | resolver 结果初始化为全零，并把 kind 设为 `XL6_PACKAGE_RESOLVE_UNRESOLVED`。kind 文本只输出 `file`、`package`、`unresolved` 三种，用于诊断或调试输出。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:842`、`demo6/src/package/xl6_package.c:851` |
-| 对应生成的 C 代码 | 不直接生成 C；import 诊断使用该状态。 |
-| 中间形态伪代码 | `result = {kind: unresolved}` |
-| 实现同等功能手写的 C 代码 | 手写 resolver 应保证失败结果也处于可读状态。 |
-| 额外依赖的封装代码 | 无。 |
-
-## CGEN-PKG-026 import 入口与 target 保存
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import target` |
-| 生成规则描述 | `xl6PackageResolveImport` 先初始化 result，并把原始 target 复制到 result.target。result 为 NULL 或 target 为空时失败。importerPath 用于提取 importerDir，作为相对路径搜索基准。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:907` |
-| 对应生成的 C 代码 | 不直接生成 C；后续 import 展开使用 result.target 和 result.packageName。 |
-| 中间形态伪代码 | `result.target = target; importerDir = dirname(importerPath)` |
-| 实现同等功能手写的 C 代码 | 手写 resolver 需要保留原始 target 以便诊断。 |
-| 额外依赖的封装代码 | dirname helper。 |
-
-## CGEN-PKG-027 path target 候选集合与绝对路径原样命中
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import "D:/pkg/xlang.package.json"` |
-| 生成规则描述 | target 若被判定为路径，会先区分绝对路径和相对路径。绝对路径直接把 target 作为候选基准交给 `xl6PackageTryPathCandidates`；相对路径只在 importerDir 优先候选失败后，才把原始 target 作为 cwd 兜底候选。候选基准可以直接是 `xlang.package.json` 文件，也可以是包含 `xlang.package.json` 的目录。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:847`、`demo6/src/package/xl6_package.c:862`、`demo6/src/package/xl6_package.c:925`、`demo6/src/package/xl6_package.c:934` |
-| 对应生成的 C 代码 | 不直接生成 C；命中后 import 使用该 manifest 的 package 身份和 `xlSources`。 |
-| 中间形态伪代码 | `if absolute(target) tryManifestOrDir(target) else tryManifestOrDir(join(importerDir,target)); tryManifestOrDir(target)` |
-| 实现同等功能手写的 C 代码 | 手写导入绝对路径时也应优先使用用户指定路径。 |
-| 额外依赖的封装代码 | manifest try helper。 |
-
-## CGEN-PKG-028 path target 目录 manifest 候选
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import "./foo"`，旁边存在 `./foo/xlang.package.json` |
-| 生成规则描述 | 每个候选基准路径都会先尝试原样路径是否为 manifest，再尝试把 `xlang.package.json` 拼到该路径下作为 package kind。这样目录包可以直接按目录导入。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:869`、`demo6/src/package/xl6_package.c:872` |
-| 对应生成的 C 代码 | 不直接生成 C；命中后 import 读取 manifest 并合并 package 的 `xlSources`。 |
-| 中间形态伪代码 | `tryManifest(base, FILE); tryManifest(join(base, "xlang.package.json"), PACKAGE)` |
-| 实现同等功能手写的 C 代码 | 手写包导入也常支持扩展名省略。 |
-| 额外依赖的封装代码 | manifest try helper。 |
-
-## CGEN-PKG-029 path target 相对 importer 目录命中
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | 源文件位于 `src/main.xl`，写 `import "./pkg"` |
-| 生成规则描述 | 相对路径 target 先把 importerDir 与 target 拼接后尝试完整候选集合；只有 importerDir 候选全部失败时，才回退尝试原始 target。这样同一进程 cwd 下的同名 package 不会遮蔽源文件旁边的相对 import。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:922`、`demo6/src/package/xl6_package.c:930`、`demo6/src/package/xl6_package.c:934` |
-| 对应生成的 C 代码 | 不直接生成 C；使相对 import 以当前源文件所在目录为第一基准。 |
-| 中间形态伪代码 | `base = join(importerDir, target); if tryCandidates(base) return; tryCandidates(target)` |
-| 实现同等功能手写的 C 代码 | 手写模块系统通常使用 importer 文件目录解析相对路径。 |
-| 额外依赖的封装代码 | path join helper。 |
-
-## CGEN-PKG-030 path target 目录包命中顺序
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import "./pkg"`，目录内有 `xlang.package.json` |
-| 生成规则描述 | 每个候选基准路径都可以作为 manifest 文件或目录包：先尝试 `<base>`，失败后尝试 `<base>/xlang.package.json` 并以 package kind 归一。相对路径目录包仍遵循 importerDir 优先。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:876`、`demo6/src/package/xl6_package.c:880` |
-| 对应生成的 C 代码 | 不直接生成 C；目录包必须使用 manifest。 |
-| 中间形态伪代码 | `tryManifest(base, FILE); tryManifest(join(base, "xlang.package.json"), PACKAGE)` |
-| 实现同等功能手写的 C 代码 | 手写包系统常约定目录下 manifest 优先于默认接口文件。 |
-| 额外依赖的封装代码 | manifest try helper。 |
-
-## CGEN-PKG-031 裸包名 importer 目录搜索规则
+## CGEN-PKG-024 裸包名约束与 base 搜索
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `import json` |
-| 生成规则描述 | target 不像路径时，先搜索 importerDir 下的 `<target>/xlang.package.json`。未命中时再进入 `XLANG_PACKAGE_PATH` 与 xl.exe 同目录 `extlibs` 搜索。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:907` |
-| 对应生成的 C 代码 | 不直接生成 C；命中后 import 会使用该包 manifest 的 `xlSources/cSources/links/loadlibs`。 |
-| 中间形态伪代码 | `try join(importerDir, target, "xlang.package.json")` |
-| 实现同等功能手写的 C 代码 | 手写包管理器通常先查项目本地 packages 目录。 |
-| 额外依赖的封装代码 | path join 和 manifest try helper。 |
+| 生成规则描述 | 裸包名不能为空、不能以 `.` 开始，也不能含路径分隔符或盘符冒号；点号可以存在于名称内部。合法名称在 baseDir 下只搜索 `<base>/<target>/xlang.package.json`。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:605`、`demo6/src/package/xl6_package.c:620` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `require packageName(target); try base/target/manifest` |
+| 实现同等功能手写的 C 代码 | 先验证包名，再构造固定 manifest 位置。 |
+| 额外依赖的封装代码 | XRT 路径 API。 |
 
-## CGEN-PKG-032 裸包名 package path fixture 搜索与接口路径查询
+## CGEN-PKG-025 XLANG_PACKAGE_PATH 搜索
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `import json`，包位于 `release/extlibs/json` 或 `XLANG_PACKAGE_PATH` 中 |
-| 生成规则描述 | 裸包名先搜索 importerDir 附近的同名目录，再搜索 `XLANG_PACKAGE_PATH` 中的包目录，最后搜索 xl.exe 同目录下的 `extlibs/<target>/xlang.package.json`。解析完成后，resolver 返回 manifestPath 和 package 身份，不再返回独立接口路径。 |
-| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:917`、`demo6/src/package/xl6_package.c:930` |
-| 对应生成的 C 代码 | 不直接生成 C；最终返回路径供 import 展开读取 manifest 并合并源码模块。 |
-| 中间形态伪代码 | `search package roots; result = {manifestPath, packageDir, packageId}` |
-| 实现同等功能手写的 C 代码 | 手写包系统需要一个单独 API 把解析结果转为 package manifest 与源码列表。 |
-| 额外依赖的封装代码 | XRT file exists、path helper。 |
+| xlang 写法 | 通过环境变量提供额外 package 根目录 |
+| 生成规则描述 | 使用 `xrtEnvGet` 读取 `XLANG_PACKAGE_PATH`；Windows 以分号、其他平台以冒号分段。空段跳过，每个非空段动态复制后按 base 搜索，首次命中立即释放环境缓冲并返回。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:637` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `for base in split(env, platformSep): tryNamedPackageInBase(base,target)` |
+| 实现同等功能手写的 C 代码 | 读取并逐段遍历平台相关的搜索路径变量。 |
+| 额外依赖的封装代码 | XRT 环境变量 API。 |
+
+## CGEN-PKG-026 可执行文件旁 extlibs 兜底
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 发布目录中的 `import json` |
+| 生成规则描述 | 使用 `xrtPathAppDir` 获取当前 xl 可执行文件目录，再搜索其 `extlibs/<target>/xlang.package.json`。它是裸包名搜索的最后兜底，不依赖源码仓库上级目录。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:676`、`demo6/src/package/xl6_package.c:686` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `tryNamedPackageInBase(appDir()/"extlibs", target)` |
+| 实现同等功能手写的 C 代码 | 取程序目录后搜索随程序发布的扩展库目录。 |
+| 额外依赖的封装代码 | XRT 应用目录与路径 API。 |
+
+## CGEN-PKG-027 裸包名搜索顺序
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `import pkg` |
+| 生成规则描述 | 合法裸包名固定按 importerDir、`XLANG_PACKAGE_PATH`、可执行文件旁 `extlibs` 的顺序搜索；首次成功即停止。没有额外兼容目录或源码仓库固定路径。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:703` |
+| 对应生成的 C 代码 | 不直接生成 C；命中的 manifest 决定后续源码与链接信息。 |
+| 中间形态伪代码 | `local || envRoots || appExtlibs` |
+| 实现同等功能手写的 C 代码 | 明确并固定本地、用户环境、发布目录三层优先级。 |
+| 额外依赖的封装代码 | 前述三类搜索器。 |
+
+## CGEN-PKG-028 resolver 结果生命周期与 kind
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 每次 import 解析及诊断 |
+| 生成规则描述 | init 清零并设置 unresolved；free 释放 target、manifestPath 和所有身份字段后重新 init。kind 对外只映射为 `file`、`package`、`unresolved` 三种稳定文本。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:720`、`demo6/src/package/xl6_package.c:729`、`demo6/src/package/xl6_package.c:744` |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `init -> unresolved; free owned fields; kindName(kind)` |
+| 实现同等功能手写的 C 代码 | 为解析结果提供对称 init/free 和诊断枚举文本。 |
+| 额外依赖的封装代码 | XRT 内存释放。 |
+
+## CGEN-PKG-029 import resolver 前置条件
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `import target` |
+| 生成规则描述 | result 必须非空，target 必须非空；入口先初始化 result、复制原始 target 并取得 importerDir。复制或目录构造失败时释放已拥有字段，不进入候选搜索。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:755` |
+| 对应生成的 C 代码 | 不直接生成 C；为后续候选搜索建立可诊断、可释放的结果对象。 |
+| 中间形态伪代码 | `init(result); require target; result.target=copy(target); importerDir=dirname(importer)` |
+| 实现同等功能手写的 C 代码 | 在解析开始时建立结果对象不变量，并集中处理前置失败。 |
+| 额外依赖的封装代码 | resolver 结果生命周期、字符串复制和 dirname helper。 |
+
+## CGEN-PKG-030 路径 import 搜索顺序
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `import "D:/pkg"` 或 `import "./pkg"` |
+| 生成规则描述 | 仅当 target 像路径时进入。绝对路径只原样探测；相对路径先探测 `<importerDir>/<target>`，再以当前工作目录中的 target 兜底。每次探测都包含显式 manifest 和目录 manifest 两个候选。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:784` |
+| 对应生成的 C 代码 | 不直接生成 C；命中结果交给 import 展开。 |
+| 中间形态伪代码 | `absolute ? try(target) : try(importerDir/target) || try(target)` |
+| 实现同等功能手写的 C 代码 | 以导入者目录优先解析相对路径，并保留 cwd 兜底。 |
+| 额外依赖的封装代码 | path 分类、动态 join 与路径候选探测器。 |
+
+## CGEN-PKG-031 裸包名入口优先于路径分支
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `import pkg` |
+| 生成规则描述 | 总入口先调用裸包名搜索；只有 target 不满足裸包名或三层包根全部未命中，才考虑 path 分类。合法裸包名即使未命中，也不会被当作任意文件名兼容解析。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:779` |
+| 对应生成的 C 代码 | 不直接生成 C；成功后使用 manifest 的源码和链接元数据。 |
+| 中间形态伪代码 | `if tryNamed(importerDir,target): return resolved` |
+| 实现同等功能手写的 C 代码 | 在路径解析前执行固定的 package root 搜索。 |
+| 额外依赖的封装代码 | 裸包名三层搜索器。 |
+
+## CGEN-PKG-032 unresolved 返回边界
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | target 在所有允许位置均不存在或 manifest 无效 |
+| 生成规则描述 | 所有候选失败后释放 importerDir 并返回 0；result 保留原始 target，kind 保持 unresolved，候选产生的 manifest 和身份字段已经由回滚路径清空。没有旧目录、旧扩展名或固定仓库路径兼容回退。 |
+| 生成器文件名和行号 | `demo6/src/package/xl6_package.c:803` |
+| 对应生成的 C 代码 | 不直接生成 C；上层生成明确的 import 失败诊断。 |
+| 中间形态伪代码 | `free(importerDir); assert result.kind==unresolved; return false` |
+| 实现同等功能手写的 C 代码 | 统一释放搜索临时值，并返回仍可用于诊断的失败结果。 |
+| 额外依赖的封装代码 | 候选回滚与 resolver 生命周期。 |

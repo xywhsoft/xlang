@@ -47,6 +47,7 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("bool xFutureRequestCancel(xfuture* pFuture);\nbool xFutureForwardCancelTo(xfuture* pFuture, xfuture* pTarget);\nxfuture* xFutureWhenAny(xfuture** arrFuture, int iCount);\nxfuture* xFutureWhenAll(xfuture** arrFuture, int iCount);\nxfuture* xFutureRace(xfuture** arrFuture, int iCount);\nint xFutureGetGroupSourceIndex(xfuture* pFuture);\nint xFutureGetAllValueCount(xfuture* pFuture);\nvoid* xFutureGetAllValueItem(xfuture* pFuture, int iIndex);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeNull(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeFuture(void);\n", out);
+    xl6OutputPuts("const xrt_type_desc* xrtTypeValue(void);\n", out);
     xl6OutputPuts("xtarray xrtTypedArrayCreate(const xrt_type_desc* pItemType, unsigned int iMode);\n", out);
     xl6OutputPuts("void xrtTypedArrayDestroy(xtarray pArray);\n", out);
     xl6OutputPuts("void xrtTypedListDestroy(xtlist pList);\n", out);
@@ -71,14 +72,10 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("bool xrtChannelIsClosed(xchannel pChannel);\n\n", out);
     xl6OutputPuts("void xrtSleep(unsigned int ms);\n\n", out);
 
-    xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
     xl6OutputPuts("void xvoAddRef(xvalue pVal);\n", out);
     xl6OutputPuts("void xvoUnref(xvalue pVal);\n", out);
-    xl6OutputPuts("const xrt_type_desc* xrtTypeFunction(void);\n", out);
-    xl6OutputPuts("bool xrtTypedArrayAppendValue(xtarray pArray, xvalue pVal);\n", out);
-    xl6OutputPuts("bool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, void* pOut);\n", out);
-    xl6OutputPuts("void xrtTypeDropValue(const xrt_type_desc* pType, void* pObj);\n", out);
-    xl6OutputPuts("static xvalue xl6_function_to_xvalue(XL6_Function fn);\n", out);
+    xl6OutputPuts("xvalue xvoCreateArrayEx(unsigned int mode);\n", out);
+    xl6OutputPuts("bool xvoArrayAppendValue(xvalue array, xvalue value, bool colloc);\n", out);
     xl6OutputPuts("static void xl6_async_free_xvalue_value(void* pValue)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xvalue* value = (xvalue*)pValue;\n", out);
@@ -88,6 +85,13 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    xrtFree(pValue);\n", out);
     xl6OutputPuts("}\n", out);
+
+    xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
+    xl6OutputPuts("const xrt_type_desc* xrtTypeFunction(void);\n", out);
+    xl6OutputPuts("bool xrtTypedArrayAppendValue(xtarray pArray, xvalue pVal);\n", out);
+    xl6OutputPuts("bool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, void* pOut);\n", out);
+    xl6OutputPuts("void xrtTypeDropValue(const xrt_type_desc* pType, void* pObj);\n", out);
+    xl6OutputPuts("static xvalue xl6_function_to_xvalue(XL6_Function fn);\n", out);
     xl6OutputPuts("static void xl6_async_free_function_value(void* pValue)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_Function* fn = (XL6_Function*)pValue;\n", out);
@@ -599,6 +603,8 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("    xfuture* groupFuture;\n", out);
     xl6OutputPuts("    xtarray result;\n", out);
     xl6OutputPuts("    xtarray* box;\n", out);
+    xl6OutputPuts("    xvalue dynamicResult;\n", out);
+    xl6OutputPuts("    xvalue* dynamicBox;\n", out);
     xl6OutputPuts("    int count;\n", out);
     xl6OutputPuts("    int i;\n", out);
     xl6OutputPuts("    char* error;\n", out);
@@ -621,6 +627,20 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( arg->itemType == xrtTypeNull() ) { pOut->iStatus = 0; pOut->pValue = 0; pOut->sError = 0; pOut->iFlags = 0; pOut->pfnFreeValue = 0; pOut->pfnFreeError = 0; xl6_task_all_arg_release(arg); return 0; }\n", out);
     xl6OutputPuts("    count = arg->count;\n", out);
+    xl6OutputPuts("    if ( arg->itemType == xrtTypeValue() ) {\n", out);
+    xl6OutputPuts("        dynamicResult = xvoCreateArrayEx(XRT_OBJMODE_SHARED);\n", out);
+    xl6OutputPuts("        if ( dynamicResult == 0 ) { xl6_task_all_arg_release(arg); return xl6_async_result_error(pOut, \"task.all dynamic result array create failed\"); }\n", out);
+    xl6OutputPuts("        for ( i = 0; i < count; ++i ) {\n", out);
+    xl6OutputPuts("            void* item = xFutureValue(arg->futures[i]);\n", out);
+    xl6OutputPuts("            if ( item == 0 || !xvoArrayAppendValue(dynamicResult, *(xvalue*)item, false) ) { xvoUnref(dynamicResult); xl6_task_all_arg_release(arg); return xl6_async_result_error(pOut, \"task.all dynamic result append failed\"); }\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        dynamicBox = (xvalue*)xrtMalloc(sizeof(xvalue));\n", out);
+    xl6OutputPuts("        if ( dynamicBox == 0 ) { xvoUnref(dynamicResult); xl6_task_all_arg_release(arg); return xl6_async_result_error(pOut, \"task.all dynamic result box failed\"); }\n", out);
+    xl6OutputPuts("        *dynamicBox = dynamicResult;\n", out);
+    xl6OutputPuts("        pOut->iStatus = 0; pOut->pValue = dynamicBox; pOut->sError = 0; pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE; pOut->pfnFreeValue = xl6_async_free_xvalue_value; pOut->pfnFreeError = 0;\n", out);
+    xl6OutputPuts("        xl6_task_all_arg_release(arg);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    result = xrtTypedArrayCreate(arg->itemType, XRT_OBJMODE_SHARED);\n", out);
     xl6OutputPuts("    if ( result == 0 ) {\n", out);
     xl6OutputPuts("        xl6_task_all_arg_release(arg);\n", out);

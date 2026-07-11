@@ -577,8 +577,8 @@ static void xl6CgenCollectRuntimeTypeDescs(XL6_CgenContext* ctx, const XL6_AstNo
 
 static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
-    static char customTypeName[256];
-    XL6_AstNode* customNode;
+    static char typeTextBuffer[256];
+    XL6_AstNode* nativeClassNode;
     XL6_AstNode* classNode;
     const XL6_AstNode* varType;
 
@@ -770,13 +770,13 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
              xl6CgenIsKnownTypeName(ctx, expr->children[0]->text) ) {
             return xl6CgenConvertCTypeName(expr->children[0]->text);
         }
-        if ( xl6CgenCallIsNativeBackedCtor(ctx, expr, &customNode) ) {
-            xl6CgenNativeBackedTypeRefName(customTypeName, sizeof(customTypeName), customNode->text);
-            return customTypeName;
+        if ( xl6CgenCallIsNativeBackedCtor(ctx, expr, &nativeClassNode) ) {
+            xl6CgenNativeBackedTypeRefName(typeTextBuffer, sizeof(typeTextBuffer), nativeClassNode->text);
+            return typeTextBuffer;
         }
         if ( xl6CgenCallIsClassCtor(ctx, expr, &classNode) ) {
-            xl6CgenClassTypeTextName(customTypeName, sizeof(customTypeName), classNode->text);
-            return customTypeName;
+            xl6CgenClassTypeTextName(typeTextBuffer, sizeof(typeTextBuffer), classNode->text);
+            return typeTextBuffer;
         }
         {
             XL6_AstNode* genericClassType = xl6CgenGenericClassCtorType(ctx, expr, &classNode);
@@ -914,8 +914,8 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
             const XL6_AstNode* member = expr->children[0];
             const XL6_AstNode* receiver = member->childCount > 0 ? member->children[0] : NULL;
             const XL6_AstNode* receiverType = (receiver != NULL && receiver->kind == XL6_AST_NAME) ? xl6CgenFindVarType(ctx, receiver->text) : NULL;
-            const XL6_AstNode* customReceiverType = receiver != NULL && receiver->kind == XL6_AST_MEMBER ? xl6CgenMemberFieldType(ctx, receiver) : receiverType;
-            const XL6_AstNode* customDecl = customReceiverType != NULL ? xl6CgenFindNativeBackedClass(ctx, customReceiverType->text) : NULL;
+            const XL6_AstNode* nativeClassReceiverType = receiver != NULL && receiver->kind == XL6_AST_MEMBER ? xl6CgenMemberFieldType(ctx, receiver) : receiverType;
+            const XL6_AstNode* nativeClassDecl = nativeClassReceiverType != NULL ? xl6CgenFindNativeBackedClass(ctx, nativeClassReceiverType->text) : NULL;
             const XL6_AstNode* method = NULL;
             const XL6_AstNode* returns = method != NULL && method->childCount > 2 ? method->children[2] : NULL;
             {
@@ -938,9 +938,9 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
                 }
                 xl6AstFree(memberType);
             }
-            if ( customDecl != NULL ) {
-                const XL6_AstNode* helperMethod = xl6CgenResolveNativeClassFunc(ctx, customDecl, expr, member->text, 0);
-                const XL6_AstNode* externMethod = xl6CgenResolveNativeExternFuncWithReport(ctx, customDecl, expr, member->text, 0);
+            if ( nativeClassDecl != NULL ) {
+                const XL6_AstNode* helperMethod = xl6CgenResolveNativeClassFunc(ctx, nativeClassDecl, expr, member->text, 0);
+                const XL6_AstNode* externMethod = xl6CgenResolveNativeExternFuncWithReport(ctx, nativeClassDecl, expr, member->text, 0);
                 if ( helperMethod != NULL && externMethod != NULL ) {
                     xl6CgenError(ctx, expr, "native-backed class method call is ambiguous between helper and extern");
                     return "int";

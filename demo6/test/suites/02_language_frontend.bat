@@ -214,6 +214,20 @@ if errorlevel 1 exit /b 1
 build\test\cgen_unicode_identifiers.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\cgen_long_identifiers.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_long_identifiers.xl --emit build\test\cgen_long_identifiers.c --emit-header build\test\cgen_long_identifiers.h
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$c=Get-Content -Raw -Encoding UTF8 'build\test\cgen_long_identifiers.c'; $h=Get-Content -Raw -Encoding UTF8 'build\test\cgen_long_identifiers.h'; $hashes=[regex]::Matches($c, '_h[0-9A-F]{16}'); if($hashes.Count -lt 8){exit 1}; $unique=@($hashes.Value | Sort-Object -Unique); if($unique.Count -lt 8){exit 2}; $type=[regex]::Match($h, 'typedef struct (XL_Class_[A-Za-z0-9_]+)\s*\{').Groups[1].Value; if([string]::IsNullOrEmpty($type) -or $c.IndexOf('struct '+$type) -lt 0){exit 3}"
+if errorlevel 1 (
+    echo cgen_long_identifiers.c missing unique bounded identifier hashes.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_long_identifiers.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_long_identifiers.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_long_identifiers.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe check test\cases\call_args.xl
 if errorlevel 1 exit /b 1
 
@@ -278,6 +292,17 @@ if errorlevel 1 exit /b 1
 release\xl.exe parse test\cases\generic_types.xl > build\test\generic_types.ast.txt
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\generic_types.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_container_literal_target_types.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_container_literal_target_item_mismatch.xl > build\test\sem_container_literal_target_item_mismatch.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_container_literal_target_item_mismatch.xl should fail.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build/test/sem_container_literal_target_item_mismatch.err.txt'); $count=([regex]::Matches($text,'\[sem\].*target (array|list|set|dict), value')).Count; if($count -ne 4){ Write-Host ('expected 4 container literal item mismatch diagnostics, got '+$count); exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe parse test\cases\type_values.xl > build\test\type_values.ast.txt
@@ -514,7 +539,7 @@ if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\runtime_type.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check release\examples\custom_counter.xl
+release\xl.exe check release\examples\native_counter.xl
 if errorlevel 1 exit /b 1
 
 release\xl.exe parse test\cases\overloads.xl > build\test\overloads.ast.txt
@@ -558,11 +583,11 @@ if errorlevel 1 exit /b 1
 release\xl.exe check release\examples\anonymous_functions.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe parse test\cases\class_custom.xl > build\test\class_custom.ast.txt
+release\xl.exe parse test\cases\class_native_backed.xl > build\test\class_native_backed.ast.txt
 if errorlevel 1 exit /b 1
-release\xl.exe check test\cases\class_custom.xl
+release\xl.exe check test\cases\class_native_backed.xl
 if errorlevel 1 exit /b 1
-release\xl.exe check release\examples\class_custom.xl
+release\xl.exe check release\examples\class_native_backed.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check release\examples\class_native_bridge.xl
 if errorlevel 1 exit /b 1
@@ -847,14 +872,14 @@ if errorlevel 1 (
     echo sem_derive_copy_noncopyable_field.err.txt missing copy field diagnostic.
     exit /b 1
 )
-release\xl.exe check test\cases\sem_derive_value_custom_field.xl > build\test\sem_derive_value_custom_field.err.txt 2>&1
+release\xl.exe check test\cases\sem_derive_value_native_class_field.xl > build\test\sem_derive_value_native_class_field.err.txt 2>&1
 if not errorlevel 1 (
-    echo sem_derive_value_custom_field.xl should fail.
+    echo sem_derive_value_native_class_field.xl should fail.
     exit /b 1
 )
-findstr /C:"derive value/json/xson" build\test\sem_derive_value_custom_field.err.txt >nul
+findstr /C:"derive value/json/xson" build\test\sem_derive_value_native_class_field.err.txt >nul
 if errorlevel 1 (
-    echo sem_derive_value_custom_field.err.txt missing persistence field diagnostic.
+    echo sem_derive_value_native_class_field.err.txt missing persistence field diagnostic.
     exit /b 1
 )
 release\xl.exe check test\cases\sem_json_parse_without_derive.xl > build\test\sem_json_parse_without_derive.err.txt 2>&1

@@ -1,0 +1,8 @@
+class RefOwnedResource
+    destroy()
+    end
+end
+
+RefOwnedResource source
+ref<RefOwnedResource> invalid = ref(source)
+

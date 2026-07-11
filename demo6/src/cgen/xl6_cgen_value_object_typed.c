@@ -243,6 +243,16 @@ static int xl6CgenTypedContainerCanCopyFromExpr(XL6_CgenContext* ctx, const XL6_
     if ( initExpr == NULL || xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
         return 0;
     }
+    /*
+     * 静态容器索引返回容器内部保存的借用句柄。目标变量必须复制该句柄
+     * 指向的容器，不能把借用值当成新所有者，也不能退回字面量初始化。
+     * 这一条同时覆盖 array<array<T>>、list<dict<T>> 等所有嵌套组合。
+     */
+    if ( initExpr->kind == XL6_AST_INDEX &&
+         initExpr->childCount > 0 &&
+         xl6CgenExprUsesTypedContainerStorage(ctx, initExpr->children[0]) ) {
+        return xl6CgenTypedContainerExprTypeMatches(ctx, typeNode, initExpr);
+    }
     if ( initExpr->kind == XL6_AST_AWAIT && !xl6CgenAwaitExprReturnsOwnedTemporaryCtx(ctx, initExpr) ) {
         return xl6CgenTypedContainerExprTypeMatches(ctx, typeNode, initExpr);
     }

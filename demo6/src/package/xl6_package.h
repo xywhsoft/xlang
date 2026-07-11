@@ -12,13 +12,13 @@ typedef enum XL6_PackageResolveKind {
 typedef struct XL6_PackageResolveResult {
     XL6_PackageResolveKind kind;
     int resolved;
-    char target[256];
-    char manifestPath[512];
-    char packageDir[512];
-    char packageName[128];
-    char packageVersion[64];
-    char abiVersion[64];
-    char packageId[256];
+    char* target;
+    char* manifestPath;
+    char* packageDir;
+    char* packageName;
+    char* packageVersion;
+    char* abiVersion;
+    char* packageId;
 } XL6_PackageResolveResult;
 
 typedef struct XL6_PackageStringList {
@@ -64,6 +64,7 @@ void xl6PackageManifestFree(XL6_PackageManifest* manifest);
 int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest);
 
 void xl6PackageResolveResultInit(XL6_PackageResolveResult* result);
+void xl6PackageResolveResultFree(XL6_PackageResolveResult* result);
 const char* xl6PackageResolveKindName(XL6_PackageResolveKind kind);
 int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_PackageResolveResult* result);
 int xl6PackageJoinPath(char* out, size_t outSize, const char* a, const char* b);

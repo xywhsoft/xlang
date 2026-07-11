@@ -152,6 +152,31 @@ void xl6CgenEmitStringRuntime(XL6_Output* out)
     xl6OutputPuts("}\n\n", out);
 }
 
+void xl6CgenEmitRefRuntime(XL6_Output* out)
+{
+    xl6OutputPuts("#ifndef XL6_REF_DATA_HELPER\n", out);
+    xl6OutputPuts("#define XL6_REF_DATA_HELPER\n", out);
+    xl6OutputPuts("static void* xl6_ref_data(xvalue value, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    void* data = value != 0 ? xvoGetRecordData(value) : 0;\n", out);
+    xl6OutputPuts("    if ( data == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"NullReferenceError\", \"null ref dereference\", file, line, column);\n", out);
+    xl6OutputPuts("        xl6_runtime_fatal(4);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return data;\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("static bool xl6_ref_identity_equal_release(xvalue left, xvalue right)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    bool leftNull = left == 0 || xvoIsNull(left);\n", out);
+    xl6OutputPuts("    bool rightNull = right == 0 || xvoIsNull(right);\n", out);
+    xl6OutputPuts("    bool equal = (leftNull && rightNull) || (!leftNull && !rightNull && left == right);\n", out);
+    xl6OutputPuts("    if ( left != 0 ) { xvoUnref(left); }\n", out);
+    xl6OutputPuts("    if ( right != 0 ) { xvoUnref(right); }\n", out);
+    xl6OutputPuts("    return equal;\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("#endif\n\n", out);
+}
+
 void xl6CgenEmitIntPowHelper(XL6_Output* out)
 {
     xl6OutputPuts("static long long xl6_int_pow_i64(long long base, long long exp)\n", out);

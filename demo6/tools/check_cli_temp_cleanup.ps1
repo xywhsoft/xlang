@@ -10,6 +10,7 @@ if ( $Root -eq "" ) {
 
 $xl = Join-Path $Root "release\xl.exe"
 $tmpDir = Join-Path $Root "release\tmp"
+$artifactDir = Join-Path $Root "build\test\cli_temp_cleanup"
 $failures = New-Object System.Collections.Generic.List[string]
 $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
 
@@ -133,6 +134,10 @@ if ( ! (Test-Path -LiteralPath $xl -PathType Leaf) ) {
 if ( ! (Test-Path -LiteralPath $tmpDir -PathType Container) ) {
     New-Item -ItemType Directory -Path $tmpDir | Out-Null
 }
+if ( Test-Path -LiteralPath $artifactDir -PathType Container ) {
+    Remove-Item -LiteralPath $artifactDir -Recurse -Force
+}
+New-Item -ItemType Directory -Path $artifactDir | Out-Null
 
 $buildBefore = Count-TempDirs "xl6_build_*"
 $runBefore = Count-TempDirs "xl6_run_*"
@@ -142,9 +147,9 @@ $caseMain = "test\cases\cgen_main_entry.xl"
 $caseBadRun = "test\cases\sem_unknown_type.xl"
 $diagUnknownType = Join-CodePoints @(0x672A, 0x77E5, 0x7C7B, 0x578B)
 
-$buildOut = Join-Path $tmpDir "cli_temp_cleanup_build.out.txt"
-$buildErr = Join-Path $tmpDir "cli_temp_cleanup_build.err.txt"
-$buildExe = Join-Path $tmpDir "cli_temp_cleanup_build.exe"
+$buildOut = Join-Path $artifactDir "build.out.txt"
+$buildErr = Join-Path $artifactDir "build.err.txt"
+$buildExe = Join-Path $artifactDir "build.exe"
 $result = Invoke-XlCapture -Name "build success" -CommandArgs @("build", $caseBasic, "-o", $buildExe) -Stdout $buildOut -Stderr $buildErr
 Assert-RawNativeOutput "build success stdout" $buildOut
 Assert-RawNativeOutput "build success stderr" $buildErr
@@ -154,8 +159,8 @@ if ( $result.Code -ne 0 ) {
 Assert-EmptyCapturedText "build success stderr" $buildErr
 Assert-NoTempDirDelta "successful build" "xl6_build_*" $buildBefore
 
-$runOut = Join-Path $tmpDir "cli_temp_cleanup_run.out.txt"
-$runErr = Join-Path $tmpDir "cli_temp_cleanup_run.err.txt"
+$runOut = Join-Path $artifactDir "run.out.txt"
+$runErr = Join-Path $artifactDir "run.err.txt"
 $result = Invoke-XlCapture -Name "run success" -CommandArgs @("run", $caseBasic) -Stdout $runOut -Stderr $runErr
 Assert-RawNativeOutput "run success stdout" $runOut
 Assert-RawNativeOutput "run success stderr" $runErr
@@ -165,9 +170,9 @@ if ( $result.Code -ne 0 ) {
 Assert-EmptyCapturedText "run success stderr" $runErr
 Assert-NoTempDirDelta "successful run" "xl6_run_*" $runBefore
 
-$buildFailOut = Join-Path $tmpDir "cli_temp_cleanup_build_fail.out.txt"
-$buildFailErr = Join-Path $tmpDir "cli_temp_cleanup_build_fail.err.txt"
-$result = Invoke-XlCapture -Name "build failure" -CommandArgs @("build", $caseMain, "-shared", "-o", (Join-Path $tmpDir "cli_temp_cleanup_bad.dll")) -Stdout $buildFailOut -Stderr $buildFailErr
+$buildFailOut = Join-Path $artifactDir "build_fail.out.txt"
+$buildFailErr = Join-Path $artifactDir "build_fail.err.txt"
+$result = Invoke-XlCapture -Name "build failure" -CommandArgs @("build", $caseMain, "-shared", "-o", (Join-Path $artifactDir "bad.dll")) -Stdout $buildFailOut -Stderr $buildFailErr
 Assert-RawNativeOutput "build failure stdout" $buildFailOut
 Assert-RawNativeOutput "build failure stderr" $buildFailErr
 $buildFailText = Read-CapturedText "build failure stderr" $buildFailErr
@@ -178,8 +183,8 @@ if ( $result.Code -eq 0 ) {
 }
 Assert-NoTempDirDelta "failed build" "xl6_build_*" $buildBefore
 
-$runFailOut = Join-Path $tmpDir "cli_temp_cleanup_run_fail.out.txt"
-$runFailErr = Join-Path $tmpDir "cli_temp_cleanup_run_fail.err.txt"
+$runFailOut = Join-Path $artifactDir "run_fail.out.txt"
+$runFailErr = Join-Path $artifactDir "run_fail.err.txt"
 $result = Invoke-XlCapture -Name "run failure" -CommandArgs @("run", $caseBadRun) -Stdout $runFailOut -Stderr $runFailErr
 Assert-RawNativeOutput "run failure stdout" $runFailOut
 Assert-RawNativeOutput "run failure stderr" $runFailErr
@@ -191,9 +196,9 @@ if ( $result.Code -eq 0 ) {
 }
 Assert-NoTempDirDelta "failed run" "xl6_run_*" $runBefore
 
-$saveOut = Join-Path $tmpDir "cli_temp_cleanup_save_temps.out.txt"
-$saveErr = Join-Path $tmpDir "cli_temp_cleanup_save_temps.err.txt"
-$saveExe = Join-Path $tmpDir "cli_temp_cleanup_save_temps.exe"
+$saveOut = Join-Path $artifactDir "save_temps.out.txt"
+$saveErr = Join-Path $artifactDir "save_temps.err.txt"
+$saveExe = Join-Path $artifactDir "save_temps.exe"
 $result = Invoke-XlCapture -Name "save temps build" -CommandArgs @("build", $caseBasic, "--save-temps", "-o", $saveExe) -Stdout $saveOut -Stderr $saveErr
 Assert-RawNativeOutput "save temps stdout" $saveOut
 Assert-RawNativeOutput "save temps stderr" $saveErr
@@ -219,6 +224,11 @@ if ( $result.Code -ne 0 ) {
     }
 }
 Assert-NoTempDirDelta "save-temps cleanup" "xl6_build_*" $buildBefore
+
+$remainingTmpItems = @(Get-ChildItem -LiteralPath $tmpDir -Force)
+if ( $remainingTmpItems.Count -ne 0 ) {
+    Add-Failure "release tmp must be empty after CLI temp cleanup: $($remainingTmpItems.Count) item(s) remain"
+}
 
 if ( $failures.Count -gt 0 ) {
     foreach ( $failure in $failures ) {

@@ -78,6 +78,58 @@ function Get-CasePrefix($baseName)
     return $baseName
 }
 
+function Expand-BatchCaseMatrices($text)
+{
+    $expanded = New-Object System.Collections.Generic.List[string]
+    $matches = [regex]::Matches(
+        $text,
+        '(?is)for\s+%%(?<var>[A-Za-z])\s+in\s*\((?<items>.*?)\)\s+do\s*\((?<body>.*?)\)')
+
+    foreach ( $match in $matches ) {
+        $varName = $match.Groups['var'].Value
+        $body = $match.Groups['body'].Value
+        $casePattern = "test\cases\%%${varName}.xl"
+
+        if ( ! $body.Contains($casePattern) ) {
+            continue
+        }
+        foreach ( $itemMatch in [regex]::Matches($match.Groups['items'].Value, '(?m)^\s*([A-Za-z0-9_.-]+)\s*$') ) {
+            $expanded.Add("test/cases/$($itemMatch.Groups[1].Value).xl") | Out-Null
+        }
+    }
+    return @($expanded)
+}
+
+function Get-ImportedCaseReferences($cases, $caseRoot)
+{
+    $references = New-Object System.Collections.Generic.List[string]
+    $caseRootPath = [System.IO.Path]::GetFullPath($caseRoot).TrimEnd('\')
+
+    foreach ( $case in $cases ) {
+        $text = Read-Utf8Text $case.FullName
+        foreach ( $match in [regex]::Matches($text, '(?m)^\s*import\s+["'']([^"'']+)["'']') ) {
+            $importPath = $match.Groups[1].Value
+            if ( $importPath.StartsWith('.') ) {
+                $candidate = Join-Path $case.DirectoryName $importPath
+            } elseif ( $importPath.Contains('/') -or $importPath.Contains('\') ) {
+                $candidate = Join-Path $caseRootPath $importPath
+            } else {
+                continue
+            }
+            if ( [System.IO.Path]::GetExtension($candidate) -eq '' ) {
+                $candidate += '.xl'
+            }
+            $candidate = [System.IO.Path]::GetFullPath($candidate)
+            if ( $candidate.StartsWith($caseRootPath + '\', [System.StringComparison]::OrdinalIgnoreCase) -and
+                 (Test-Path -LiteralPath $candidate -PathType Leaf) ) {
+                $relative = $candidate.Substring($caseRootPath.Length + 1).Replace('\', '/')
+                $references.Add("test/cases/$relative") | Out-Null
+            }
+        }
+    }
+    return @($references)
+}
+
 if ( ! (Test-Path -LiteralPath $caseDir -PathType Container) ) {
     Write-Host "test cases directory missing: $caseDir"
     exit 1
@@ -103,9 +155,13 @@ $wiringText = [string]::Join("`n", $textParts)
 $rootPath = (Resolve-Path -LiteralPath $Root).Path
 $cases = @(Get-ChildItem -LiteralPath $caseDir -Filter "*.xl" -File -Recurse | Sort-Object FullName)
 $casePrefixes = New-Object System.Collections.Generic.HashSet[string]
+$wiringText += "`n" + [string]::Join("`n", @(Expand-BatchCaseMatrices $wiringText))
+$wiringText += "`n" + [string]::Join("`n", @(Get-ImportedCaseReferences $cases $caseDir))
 
 foreach ( $case in $cases ) {
-    $casePrefixes.Add((Get-CasePrefix $case.BaseName)) | Out-Null
+    if ( $case.DirectoryName -eq $caseDir ) {
+        $casePrefixes.Add((Get-CasePrefix $case.BaseName)) | Out-Null
+    }
     $relative = Normalize-PathText ($case.FullName.Substring($rootPath.Length + 1))
 
     if ( ! (Test-CaseReference $wiringText $relative) ) {

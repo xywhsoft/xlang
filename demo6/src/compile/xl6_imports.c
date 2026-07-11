@@ -522,12 +522,13 @@ static int xl6ImportsResolveDependency(
     XL6_DiagList* diags)
 {
     XL6_PackageResolveResult candidate;
-    char versionedName[256];
+    char* versionedName;
     int sawMismatchedPackage;
 
     if ( manifest == NULL || dep == NULL || out == NULL ) {
         return 0;
     }
+    xl6PackageResolveResultInit(out);
     sawMismatchedPackage = 0;
     xl6PackageResolveImport(manifest->dir, dep->name, &candidate);
     if ( candidate.resolved ) {
@@ -537,6 +538,7 @@ static int xl6ImportsResolveDependency(
         }
         sawMismatchedPackage = 1;
     }
+    xl6PackageResolveResultFree(&candidate);
 
     if ( xl6ImportsTextEquals(dep->version, "*") ) {
         if ( diags != NULL ) {
@@ -548,18 +550,30 @@ static int xl6ImportsResolveDependency(
         return 0;
     }
 
-    snprintf(versionedName, sizeof(versionedName), "%s@%s", dep->name, dep->version);
+    versionedName = (char*)xrtFormat("%s@%s", dep->name, dep->version);
+    if ( versionedName == NULL ) {
+        return 0;
+    }
     xl6PackageResolveImport(manifest->dir, versionedName, &candidate);
+    xrtFree(versionedName);
     if ( candidate.resolved ) {
         if ( xl6ImportsDependencyMatches(dep, &candidate, importNode, diags) ) {
             *out = candidate;
             return 1;
         }
+        xl6PackageResolveResultFree(&candidate);
         return 0;
     }
+    xl6PackageResolveResultFree(&candidate);
 
     if ( sawMismatchedPackage ) {
-        return xl6ImportsDependencyMatches(dep, &candidate, importNode, diags);
+        if ( diags != NULL ) {
+            xl6DiagAdd(diags,
+                       importNode != NULL ? importNode->line : 1,
+                       importNode != NULL ? importNode->column : 1,
+                       "package dependency version mismatch");
+        }
+        return 0;
     }
     if ( diags != NULL ) {
         xl6DiagAdd(diags,
@@ -593,8 +607,10 @@ static int xl6ImportsCollectManifestDependencyGraph(
             return 0;
         }
         if ( !xl6ImportsCollectResolvedPackageDeps(deps, &resolved, importNode, diags, symbols) ) {
+            xl6PackageResolveResultFree(&resolved);
             return 0;
         }
+        xl6PackageResolveResultFree(&resolved);
     }
     return 1;
 }
@@ -613,12 +629,13 @@ static int xl6ImportsCollectResolvedPackageDeps(
     if ( deps == NULL || resolved == NULL || !resolved->resolved ) {
         return 1;
     }
-    if ( resolved->packageId[0] != '\0' && xl6ImportsDepsHasPackageId(deps, resolved->packageId) ) {
+    if ( resolved->packageId != NULL && resolved->packageId[0] != '\0' &&
+         xl6ImportsDepsHasPackageId(deps, resolved->packageId) ) {
         return 1;
     }
 
     xl6PackageManifestInit(&manifest);
-    hasManifest = resolved->manifestPath[0] != '\0' &&
+    hasManifest = resolved->manifestPath != NULL && resolved->manifestPath[0] != '\0' &&
                   xl6PackageLoadManifest(resolved->manifestPath, &manifest);
     if ( !hasManifest ) {
         if ( diags != NULL ) {
@@ -631,7 +648,7 @@ static int xl6ImportsCollectResolvedPackageDeps(
         return 0;
     }
     ok = 1;
-    if ( symbols != NULL && resolved->packageName[0] != '\0' ) {
+    if ( symbols != NULL && resolved->packageName != NULL && resolved->packageName[0] != '\0' ) {
         ok = xl6ImportsSymbolTableAddNamespace(symbols, resolved->packageName, 1);
     }
     if ( ok && hasManifest ) {
@@ -1914,7 +1931,7 @@ static int xl6ImportsLoadOne(
     xl6PackageResolveImport(sourcePath, target, &resolved);
     if ( resolved.resolved ) {
         xl6PackageManifestInit(&manifest);
-        hasManifest = resolved.manifestPath[0] != '\0' &&
+        hasManifest = resolved.manifestPath != NULL && resolved.manifestPath[0] != '\0' &&
                       xl6PackageLoadManifest(resolved.manifestPath, &manifest);
         if ( !hasManifest ) {
             if ( diags != NULL ) {
@@ -1924,10 +1941,12 @@ static int xl6ImportsLoadOne(
                            "import package requires xlang.package.json with xlSources");
             }
             xl6PackageManifestFree(&manifest);
+            xl6PackageResolveResultFree(&resolved);
             xrtFree(target);
             return 0;
         }
-        ns = resolved.packageName[0] != '\0' ? resolved.packageName : target;
+        ns = resolved.packageName != NULL && resolved.packageName[0] != '\0' ?
+             resolved.packageName : target;
         if ( xl6ImportsNamespaceExists(symbols, ns) &&
              xl6ImportsFindNamespace(symbols, ns) != NULL &&
              !xl6ImportsFindNamespace(symbols, ns)->isPrivate ) {
@@ -1961,9 +1980,11 @@ static int xl6ImportsLoadOne(
             ok = xl6ImportsMergeManifestSourcesAsModule(root, &manifest, ns, diags, deps, symbols);
         }
         xl6PackageManifestFree(&manifest);
+        xl6PackageResolveResultFree(&resolved);
         xrtFree(target);
         return ok;
     }
+    xl6PackageResolveResultFree(&resolved);
 
     if ( xl6ImportsResolveSourcePath(sourcePath, target, xlSourcePath, sizeof(xlSourcePath)) ) {
         xl6ImportsNamespaceFromTarget(nsBuffer, sizeof(nsBuffer), target);
@@ -1989,8 +2010,14 @@ static int xl6ImportsLoadOne(
         return ok;
     }
 
+    if ( diags != NULL ) {
+        xl6DiagAdd(diags,
+                   importNode != NULL ? importNode->line : 1,
+                   importNode != NULL ? importNode->column : 1,
+                   "cannot resolve import");
+    }
     xrtFree(target);
-    return 1;
+    return 0;
 }
 
 static void xl6ImportsRewriteMemberToName(XL6_AstNode* node, const char* name)

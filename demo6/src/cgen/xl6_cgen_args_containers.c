@@ -811,12 +811,25 @@ static int xl6CgenFixedParamXValueConvertArgExpr(XL6_CgenContext* ctx, const XL6
     return 1;
 }
 
-static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* param, const XL6_AstNode* expr)
+/*
+    string 的所有入口都先把动态值解箱为文本，再由调用方复制或接管。
+    不能把 xvalue 句柄直接当作 const char* 交给 XRT。
+*/
+static void xl6CgenStringSourceExpr(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr)
 {
-    const XL6_AstNode* targetType;
+    if ( !xl6CgenFixedParamXValueConvertArgExpr(ctx, targetType, expr) ) {
+        xl6CgenExpr(ctx, expr);
+    }
+}
+
+/*
+    普通函数与函数值调用必须共用同一套参数所有权规则。
+    尤其是 var 实参，需要为被调函数移交一个 owned xvalue 引用。
+*/
+static void xl6CgenFixedTypeArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr)
+{
     XL6_AstNode* canonicalType;
 
-    targetType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
     canonicalType = xl6CgenCloneCanonicalTypeNode(ctx, targetType);
 
     if ( canonicalType != NULL &&
@@ -841,6 +854,14 @@ static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* pa
     }
     xl6AstFree(canonicalType);
     xl6CgenExpr(ctx, expr);
+}
+
+static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* param, const XL6_AstNode* expr)
+{
+    const XL6_AstNode* targetType;
+
+    targetType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
+    xl6CgenFixedTypeArgExpr(ctx, targetType, expr);
 }
 
 static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* args)

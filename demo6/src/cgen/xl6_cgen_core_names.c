@@ -101,102 +101,200 @@ static int xl6CgenIsSimpleCIdent(const char* text)
     return !xl6CgenIsCReservedIdent(text);
 }
 
-static void xl6CgenFputsEncodedCodepoint(XL6_Output* out, unsigned int cp)
+#define XL6_CGEN_C_IDENT_MAX 48u
+#define XL6_CGEN_C_IDENT_PREFIX 28u
+
+static unsigned long long xl6CgenIdentHash(const char* text)
 {
-    if ( out == NULL ) {
+    const unsigned char* p = (const unsigned char*)(text != NULL ? text : "");
+    unsigned long long hash = 1469598103934665603ULL;
+
+    while ( *p != '\0' ) {
+        hash ^= (unsigned long long)*p++;
+        hash *= 1099511628211ULL;
+    }
+    return hash;
+}
+
+static void xl6CgenEncodedCodepointText(char text[32], unsigned int cp)
+{
+    if ( text == NULL ) {
         return;
     }
     if ( (cp >= 'a' && cp <= 'z') || (cp >= 'A' && cp <= 'Z') || (cp >= '0' && cp <= '9') ) {
-        xl6OutputPutc((int)cp, out);
+        text[0] = (char)cp;
+        text[1] = '\0';
     } else if ( cp == '_' ) {
-        xl6OutputPuts("__", out);
+        snprintf(text, 32, "__");
     } else if ( cp <= 0xFFFFU ) {
-        xl6OutputPrintf(out, "_u%04X_", cp);
+        snprintf(text, 32, "_u%04X_", cp);
     } else {
-        xl6OutputPrintf(out, "_u%06X_", cp);
+        snprintf(text, 32, "_u%06X_", cp);
     }
+}
+
+void xl6CgenEncodeSymbolComponent(char* out, size_t capacity, const char* text)
+{
+    const unsigned char* p;
+    size_t encodedSize;
+    size_t prefixSize;
+    char token[32];
+    char prefix[XL6_CGEN_C_IDENT_PREFIX + 1];
+
+    if ( out == NULL || capacity == 0 ) {
+        return;
+    }
+    out[0] = '\0';
+    if ( text == NULL || text[0] == '\0' ) {
+        snprintf(out, capacity, "_");
+        return;
+    }
+    encodedSize = 0;
+    prefixSize = 0;
+    prefix[0] = '\0';
+    p = (const unsigned char*)text;
+    while ( *p != '\0' ) {
+        size_t tokenSize;
+
+        xl6CgenEncodedCodepointText(token, xl6CgenNextUtf8Codepoint(&p));
+        tokenSize = strlen(token);
+        encodedSize += tokenSize;
+        if ( prefixSize + tokenSize <= XL6_CGEN_C_IDENT_PREFIX ) {
+            memcpy(prefix + prefixSize, token, tokenSize + 1);
+            prefixSize += tokenSize;
+        }
+    }
+    if ( encodedSize <= XL6_CGEN_C_IDENT_MAX ) {
+        p = (const unsigned char*)text;
+        while ( *p != '\0' ) {
+            size_t used;
+            size_t tokenSize;
+
+            xl6CgenEncodedCodepointText(token, xl6CgenNextUtf8Codepoint(&p));
+            used = strlen(out);
+            tokenSize = strlen(token);
+            if ( used + tokenSize + 1 > capacity ) {
+                break;
+            }
+            memcpy(out + used, token, tokenSize + 1);
+        }
+        return;
+    }
+    snprintf(out,
+             capacity,
+             "%s_h%016llX",
+             prefix,
+             (unsigned long long)xl6CgenIdentHash(text));
 }
 
 static void xl6CgenFputsEncodedText(XL6_Output* out, const char* text)
 {
-    const unsigned char* p;
+    char encoded[XL6_CGEN_C_IDENT_MAX + 1];
 
-    if ( text == NULL || text[0] == '\0' ) {
-        xl6OutputPutc('_', out);
+    if ( out == NULL ) {
         return;
     }
-    p = (const unsigned char*)text;
-    while ( *p != '\0' ) {
-        xl6CgenFputsEncodedCodepoint(out, xl6CgenNextUtf8Codepoint(&p));
-    }
+    xl6CgenEncodeSymbolComponent(encoded, sizeof(encoded), text);
+    xl6OutputPuts(encoded, out);
 }
 
 static void xl6CgenAppendText(char* buffer, size_t capacity, const char* text);
 
-static void xl6CgenFputsCIdentCodepoint(XL6_Output* out, unsigned int cp, int isFirst)
+static void xl6CgenCIdentCodepointText(char text[32], unsigned int cp, int isFirst)
 {
-    if ( out == NULL ) {
+    if ( text == NULL ) {
         return;
     }
     if ( (cp >= 'a' && cp <= 'z') || (cp >= 'A' && cp <= 'Z') || cp == '_' ||
          (!isFirst && cp >= '0' && cp <= '9') ) {
-        xl6OutputPutc((int)cp, out);
+        text[0] = (char)cp;
+        text[1] = '\0';
     } else if ( cp <= 0xFFFFU ) {
-        xl6OutputPrintf(out, "_u%04X_", cp);
+        snprintf(text, 32, "_u%04X_", cp);
     } else {
-        xl6OutputPrintf(out, "_u%06X_", cp);
+        snprintf(text, 32, "_u%06X_", cp);
     }
+}
+
+void xl6CgenEncodeCIdentifier(char* out, size_t capacity, const char* text)
+{
+    const unsigned char* p;
+    size_t encodedSize;
+    size_t prefixSize;
+    int isFirst;
+    int reserved;
+    char token[32];
+    char prefix[XL6_CGEN_C_IDENT_PREFIX + 1];
+
+    if ( out == NULL || capacity == 0 ) {
+        return;
+    }
+    out[0] = '\0';
+    if ( text == NULL || text[0] == '\0' ) {
+        snprintf(out, capacity, "_");
+        return;
+    }
+
+    reserved = xl6CgenIsCReservedIdent(text);
+    encodedSize = reserved ? strlen("xl_kw_") : 0;
+    prefix[0] = '\0';
+    prefixSize = 0;
+    if ( reserved ) {
+        snprintf(prefix, sizeof(prefix), "xl_kw_");
+        prefixSize = strlen(prefix);
+    }
+    p = (const unsigned char*)text;
+    isFirst = 1;
+    while ( *p != '\0' ) {
+        size_t tokenSize;
+
+        xl6CgenCIdentCodepointText(token, xl6CgenNextUtf8Codepoint(&p), isFirst);
+        tokenSize = strlen(token);
+        encodedSize += tokenSize;
+        if ( prefixSize + tokenSize <= XL6_CGEN_C_IDENT_PREFIX ) {
+            memcpy(prefix + prefixSize, token, tokenSize + 1);
+            prefixSize += tokenSize;
+        }
+        isFirst = 0;
+    }
+
+    if ( encodedSize <= XL6_CGEN_C_IDENT_MAX ) {
+        if ( reserved ) {
+            xl6CgenAppendText(out, capacity, "xl_kw_");
+        }
+        p = (const unsigned char*)text;
+        isFirst = 1;
+        while ( *p != '\0' ) {
+            xl6CgenCIdentCodepointText(token, xl6CgenNextUtf8Codepoint(&p), isFirst);
+            xl6CgenAppendText(out, capacity, token);
+            isFirst = 0;
+        }
+        return;
+    }
+    snprintf(out,
+             capacity,
+             "%s_h%016llX",
+             prefix,
+             (unsigned long long)xl6CgenIdentHash(text));
 }
 
 static void xl6CgenFputsCIdent(XL6_Output* out, const char* text)
 {
-    const unsigned char* p;
-    int isFirst;
+    char encoded[XL6_CGEN_C_IDENT_MAX + 1];
 
-    if ( text == NULL || text[0] == '\0' ) {
-        xl6OutputPutc('_', out);
+    if ( out == NULL ) {
         return;
     }
-    if ( xl6CgenIsCReservedIdent(text) ) {
-        xl6OutputPuts("xl_kw_", out);
-    }
-    p = (const unsigned char*)text;
-    isFirst = 1;
-    while ( *p != '\0' ) {
-        xl6CgenFputsCIdentCodepoint(out, xl6CgenNextUtf8Codepoint(&p), isFirst);
-        isFirst = 0;
-    }
+    xl6CgenEncodeCIdentifier(encoded, sizeof(encoded), text);
+    xl6OutputPuts(encoded, out);
 }
 
 static void xl6CgenAppendCIdentText(char* buffer, size_t capacity, const char* text)
 {
-    const unsigned char* p;
-    char tmp[32];
-    int isFirst;
+    char encoded[XL6_CGEN_C_IDENT_MAX + 1];
 
-    if ( text == NULL || text[0] == '\0' ) {
-        xl6CgenAppendText(buffer, capacity, "_");
-        return;
-    }
-    if ( xl6CgenIsCReservedIdent(text) ) {
-        xl6CgenAppendText(buffer, capacity, "xl_kw_");
-    }
-    p = (const unsigned char*)text;
-    isFirst = 1;
-    while ( *p != '\0' ) {
-        unsigned int cp = xl6CgenNextUtf8Codepoint(&p);
-        if ( (cp >= 'a' && cp <= 'z') || (cp >= 'A' && cp <= 'Z') || cp == '_' ||
-             (!isFirst && cp >= '0' && cp <= '9') ) {
-            tmp[0] = (char)cp;
-            tmp[1] = '\0';
-        } else if ( cp <= 0xFFFFU ) {
-            snprintf(tmp, sizeof(tmp), "_u%04X_", cp);
-        } else {
-            snprintf(tmp, sizeof(tmp), "_u%06X_", cp);
-        }
-        xl6CgenAppendText(buffer, capacity, tmp);
-        isFirst = 0;
-    }
+    xl6CgenEncodeCIdentifier(encoded, sizeof(encoded), text);
+    xl6CgenAppendText(buffer, capacity, encoded);
 }
 
 static void xl6CgenCIdentText(char* buffer, size_t capacity, const char* text)
@@ -323,30 +421,10 @@ static void xl6CgenAppendText(char* buffer, size_t capacity, const char* text)
 
 static void xl6CgenAppendMangledText(char* buffer, size_t capacity, const char* text)
 {
-    const unsigned char* p;
-    char tmp[32];
+    char encoded[XL6_CGEN_C_IDENT_MAX + 1];
 
-    if ( text == NULL || text[0] == '\0' ) {
-        xl6CgenAppendText(buffer, capacity, "_");
-        return;
-    }
-    p = (const unsigned char*)text;
-    while ( *p != '\0' ) {
-        unsigned int cp = xl6CgenNextUtf8Codepoint(&p);
-        if ( (cp >= 'a' && cp <= 'z') || (cp >= 'A' && cp <= 'Z') || (cp >= '0' && cp <= '9') ) {
-            tmp[0] = (char)cp;
-            tmp[1] = '\0';
-        } else if ( cp == '_' ) {
-            tmp[0] = '_';
-            tmp[1] = '_';
-            tmp[2] = '\0';
-        } else if ( cp <= 0xFFFFU ) {
-            snprintf(tmp, sizeof(tmp), "_u%04X_", cp);
-        } else {
-            snprintf(tmp, sizeof(tmp), "_u%06X_", cp);
-        }
-        xl6CgenAppendText(buffer, capacity, tmp);
-    }
+    xl6CgenEncodeSymbolComponent(encoded, sizeof(encoded), text);
+    xl6CgenAppendText(buffer, capacity, encoded);
 }
 
 static void xl6CgenAppendTypeId(char* buffer, size_t capacity, const XL6_AstNode* typeNode)

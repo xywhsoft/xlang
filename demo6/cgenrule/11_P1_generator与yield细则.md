@@ -91,7 +91,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `func seq(int start, int stop) generator<int>` |
-| 生成规则描述 | generator 函数有参数时生成 `XL6_GenFrame_<func>` 结构体，字段保存每个参数的 C 类型和值。无参数时不生成 frame typedef。语义检查会拒绝 function、class、custom、string 等需要额外所有权处理的参数类型，避免生成只能 `xrtFree(frame)` 却无法释放资源字段的 frame。 |
+| 生成规则描述 | generator 函数有参数时生成 `XL6_GenFrame_<func>` 结构体，字段保存每个参数的 C 类型和值。无参数时不生成 frame typedef。语义检查会拒绝 function、class、native-backed class、string 等需要额外所有权处理的参数类型，避免生成只能 `xrtFree(frame)` 却无法释放资源字段的 frame。 |
 | 生成器文件名和行号 | `xl6_sem.c:7995`、`xl6_cgen_generator.c:133`、`xl6_cgen_generator.c:139`、`xl6_cgen_generator.c:151` |
 | 对应生成的 C 代码 | `typedef struct XL6_GenFrame_seq { long long start; long long stop; } XL6_GenFrame_seq;` |
 | 中间形态伪代码 | `frame = {params...}` |
@@ -151,7 +151,7 @@
 | 编号 | 观察 |
 | --- | --- |
 | RISK-GEN-001 | 已收口：第一版 `generator<T>` 语义层只允许 bool/int/float/time/point 等可按值复制元素；string、class、function 等复杂所有权类型由 `sem_generator_string_element.xl`、`sem_generator_class_element.xl`、`sem_generator_function_element.xl` 负例和集中诊断断言锁住，因此不会进入当前 `memcpy` yield 路径。 |
-| RISK-GEN-002 | 已收口：第一版 generator 参数语义层只允许 bool、整数、浮点、time、point 等可按值复制类型；function、class/custom 等资源参数由 `sem_generator_function_param.xl`、`sem_generator_class_param.xl` 负例和集中诊断断言锁住，因此当前 `xrtFree(frame)` 销毁路径不会遗漏 frame 内资源析构。 |
+| RISK-GEN-002 | 已收口：第一版 generator 参数语义层只允许 bool、整数、浮点、time、point 等可按值复制类型；function、class/native-backed class 等资源参数由 `sem_generator_function_param.xl`、`sem_generator_class_param.xl` 负例和集中诊断断言锁住，因此当前 `xrtFree(frame)` 销毁路径不会遗漏 frame 内资源析构。 |
 | RISK-GEN-003 | 已收口：generator 结构体持有 `XL6_Error* error`，worker 错误出口通过 `xl6_generator_store_active_error(__xl6_gen)` 转存 active error；`xl6_generator_next` 和 `xl6_generator_value_into` 通过 `xl6_generator_raise_stored_error` 重新抛出，for-in 消费端在 `while(next)` 退出后补充异常传播检查。`cgen_generator.xl` 和 feature suite `11_concurrency.xl` 覆盖 yield 后 throw 且外层 `try/catch` 捕获的路径。 |
 | RISK-GEN-004 | 已收口：generator for-in 支持 `(index, value)` 双目标形式，第一个目标为 0 基 `int` index，第二个目标为 `generator<T>` 的元素类型；`cgen_generator_two_targets.xl` 覆盖 check/run/build/cgen、break/continue 后 index 递增和生成形态守门。 |
 

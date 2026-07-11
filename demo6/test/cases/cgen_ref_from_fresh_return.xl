@@ -1,0 +1,17 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class RefReturnedValue
+    int value
+
+    create(int input)
+        self.value = input
+    end
+end
+
+func makeValue(int input) as RefReturnedValue
+    return RefReturnedValue(input)
+end
+
+ref<RefReturnedValue> value = ref(makeValue(73))
+expect(value.value, 73)
+

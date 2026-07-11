@@ -1,7 +1,6 @@
 #include "include/xlc.h"
 #include "lib/xrt/xrt.h"
 #include "src/common/xl6_console.h"
-#include "src/debug/xl6_dap.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,8 +26,6 @@ static void xlcShellPrintHelp(void)
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl cgen <file.xl> [--emit output.c] [--emit-header output.h] [--dump-dir dir]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl abi <file.xl> [--json] [--emit output.abi.txt]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c|file.xlp> [helper.c ...] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl dbg <file.xl> [--break line] [--stop-on-entry] [--commands file] [--save-temps] [-- <args>...]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl dap\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o <output.exe|dll>] [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl impdef <file.dll> -o <output.def>\n");
 }
@@ -996,136 +993,6 @@ static int xlcShellOptionTakesValue(const char* arg)
            xlcShellTextEquals(arg, "-o");
 }
 
-static int xlcShellCollectBreakpoints(char* out, size_t outSize, int argc, char** argv)
-{
-    int i;
-    int started;
-
-    if ( out == NULL || outSize == 0 ) {
-        return 0;
-    }
-    out[0] = '\0';
-    started = 0;
-    for ( i = 3; i < argc; ++i ) {
-        if ( xlcShellTextEquals(argv[i], "--") ) {
-            break;
-        }
-        if ( xlcShellTextEquals(argv[i], "--break") && i + 1 < argc ) {
-            size_t used;
-            size_t add;
-
-            used = strlen(out);
-            add = strlen(argv[i + 1]);
-            if ( used + add + (started ? 2u : 1u) >= outSize ) {
-                return 0;
-            }
-            if ( started ) {
-                out[used++] = ',';
-            }
-            memcpy(out + used, argv[i + 1], add + 1u);
-            started = 1;
-            i += 1;
-        } else if ( xlcShellOptionTakesValue(argv[i]) ) {
-            i += 1;
-        }
-    }
-    return 1;
-}
-
-static char* xlcShellReadTextFile(const char* path)
-{
-    size_t size;
-    char* text;
-
-    if ( path == NULL || path[0] == '\0' ) {
-        return NULL;
-    }
-    size = 0;
-    text = (char*)xrtFileReadAll((char*)path, XRT_CP_UTF8, &size);
-    if ( text == NULL ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot read command file: %s\n", path);
-        return NULL;
-    }
-    return text;
-}
-
-static char* xlcShellMakeEnvItem(const char* name, const char* value)
-{
-    char* text;
-    size_t nameLen;
-    size_t valueLen;
-
-    if ( name == NULL || name[0] == '\0' ) {
-        return NULL;
-    }
-    value = value != NULL ? value : "";
-    nameLen = strlen(name);
-    valueLen = strlen(value);
-    text = (char*)malloc(nameLen + 1u + valueLen + 1u);
-    if ( text == NULL ) {
-        return NULL;
-    }
-    memcpy(text, name, nameLen);
-    text[nameLen] = '=';
-    memcpy(text + nameLen + 1u, value, valueLen + 1u);
-    return text;
-}
-
-static int xlcShellRunProcess(const char* program, char** args, int argCount, char** env, int envCount)
-{
-    xprocessconfig config;
-    xprocessresult result;
-    const char* errorText;
-    int exitCode;
-
-    if ( program == NULL || program[0] == '\0' ) {
-        return 1;
-    }
-    xrtProcessConfigInit(&config);
-    config.iTargetKind = XPROC_TARGET_EXEC;
-    config.sProgram = (char*)program;
-    config.arrArgs = args != NULL ? (str*)args : NULL;
-    config.iArgCount = args != NULL && argCount > 0 ? (uint32)argCount : 0u;
-    config.arrEnv = env != NULL ? (str*)env : NULL;
-    config.iEnvCount = env != NULL && envCount > 0 ? (uint32)envCount : 0u;
-    config.bHideWindow = true;
-
-    memset(&result, 0, sizeof(result));
-    if ( !xrtExecCapture(&config, &result, 0u) ) {
-        errorText = xrtGetError();
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "process spawn failed: %s\n", errorText != NULL && errorText[0] != '\0' ? errorText : program);
-        xrtProcessResultUnit(&result);
-        return 1;
-    }
-    if ( result.pStdout != NULL && result.iStdoutSize > 0u ) {
-        (void)xl6ConsoleWrite(XL6_CONSOLE_STDOUT, (const char*)result.pStdout, result.iStdoutSize);
-    }
-    if ( result.pStderr != NULL && result.iStderrSize > 0u ) {
-        (void)xl6ConsoleWrite(XL6_CONSOLE_STDERR, (const char*)result.pStderr, result.iStderrSize);
-    }
-    exitCode = (result.ExitInfo.iKind == XPROC_EXIT_NORMAL && !result.ExitInfo.bTimedOut) ? result.iExitCode : 1;
-    xrtProcessResultUnit(&result);
-    return exitCode;
-}
-
-static void xlcShellCleanupWorkDir(const char* workDir, const char* cPath, const char* exePath, int saveTemps)
-{
-    if ( workDir == NULL || workDir[0] == '\0' ) {
-        return;
-    }
-    if ( saveTemps ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "temporary files kept: %s\n", workDir);
-        return;
-    }
-    if ( cPath != NULL && cPath[0] != '\0' ) {
-        (void)xrtFileDelete((str)cPath);
-    }
-    if ( exePath != NULL && exePath[0] != '\0' ) {
-        (void)xrtFileDelete((str)exePath);
-    }
-    (void)xrtDirDelete((str)workDir);
-}
-
 static int xlcShellApplyContextOptions(XLC_Context* ctx, int argc, char** argv)
 {
     int i;
@@ -1694,144 +1561,6 @@ static int xlcShellImpdef(int argc, char** argv)
 #define XLC_SHELL_MAX_RUN_ARGS 128
 #define XLC_SHELL_MAX_ENV_ITEMS 4
 
-static int xlcShellDoDebug(int argc, char** argv)
-{
-    XLC_ContextOptions options;
-    XLC_Context* ctx;
-    const char* file;
-    const char* commandsPath;
-    char* commandsText;
-    char* envItems[XLC_SHELL_MAX_ENV_ITEMS];
-    char* runArgs[XLC_SHELL_MAX_RUN_ARGS];
-    char workDir[512];
-    char cPath[512];
-    char exePath[512];
-    char breakpoints[1024];
-    int envCount;
-    int runArgCount;
-    int argStart;
-    int saveTemps;
-    int rc;
-    int i;
-
-    ctx = NULL;
-    commandsText = NULL;
-    envCount = 0;
-    runArgCount = 0;
-    workDir[0] = '\0';
-    cPath[0] = '\0';
-    exePath[0] = '\0';
-    for ( i = 0; i < XLC_SHELL_MAX_ENV_ITEMS; ++i ) {
-        envItems[i] = NULL;
-    }
-
-    file = xlcShellFileArg(argc, argv);
-    if ( file == NULL || file[0] == '\0' ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "missing input file\n");
-        return 1;
-    }
-    if ( !xlcShellCollectBreakpoints(breakpoints, sizeof(breakpoints), argc, argv) ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "debug breakpoint list is too long\n");
-        return 1;
-    }
-    commandsPath = xlcShellFindValue(argc, argv, "--commands", 3);
-    if ( commandsPath != NULL ) {
-        commandsText = xlcShellReadTextFile(commandsPath);
-        if ( commandsText == NULL ) {
-            return 1;
-        }
-    }
-
-    saveTemps = xlcShellHasFlag(argc, argv, "--save-temps");
-    if ( !xlcShellMakeTaggedTempDir(workDir, sizeof(workDir), "dbg") ||
-         !xlcShellJoinPath(cPath, sizeof(cPath), workDir, "module", ".c") ||
-         !xlcShellJoinPath(exePath, sizeof(exePath), workDir, "app", ".exe") ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create debug temporary paths\n");
-        xrtFree(commandsText);
-        return 1;
-    }
-
-    options = xlcDefaultContextOptions();
-    options.workDir = ".";
-    options.tempDir = workDir;
-    options.saveTemps = saveTemps;
-    ctx = xlcCreateContext(&options);
-    if ( ctx == NULL ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create xlc context\n");
-        xrtFree(commandsText);
-        xlcShellCleanupWorkDir(workDir, cPath, exePath, saveTemps);
-        return 1;
-    }
-    if ( !xlcShellApplyContextOptions(ctx, argc, argv) || !xlcShellAddFile(ctx, file) ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "%s\n", xlcGetLastError(ctx));
-        xlcDestroyContext(ctx);
-        xrtFree(commandsText);
-        xlcShellCleanupWorkDir(workDir, cPath, exePath, saveTemps);
-        return 1;
-    }
-    if ( saveTemps && !xlcEmitDebugC(ctx, cPath, file) ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "%s\n", xlcGetLastError(ctx));
-        xlcDestroyContext(ctx);
-        xrtFree(commandsText);
-        xlcShellCleanupWorkDir(workDir, cPath, exePath, saveTemps);
-        return 1;
-    }
-    if ( !xlcEmitDebugExe(ctx, exePath, file) ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "%s\n", xlcGetLastError(ctx));
-        xlcDestroyContext(ctx);
-        xrtFree(commandsText);
-        xlcShellCleanupWorkDir(workDir, cPath, exePath, saveTemps);
-        return 1;
-    }
-
-    argStart = xlcShellFindArgSplit(argc, argv);
-    for ( i = argStart; i < argc; ++i ) {
-        if ( runArgCount >= XLC_SHELL_MAX_RUN_ARGS ) {
-            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "too many program arguments\n");
-            xlcDestroyContext(ctx);
-            xrtFree(commandsText);
-            xlcShellCleanupWorkDir(workDir, cPath, exePath, saveTemps);
-            return 1;
-        }
-        runArgs[runArgCount++] = argv[i];
-    }
-    if ( breakpoints[0] != '\0' ) {
-        envItems[envCount] = xlcShellMakeEnvItem("XL6_DBG_BREAKPOINTS", breakpoints);
-        if ( envItems[envCount] == NULL ) {
-            rc = 1;
-            goto cleanup;
-        }
-        envCount += 1;
-    }
-    if ( xlcShellHasFlag(argc, argv, "--stop-on-entry") ) {
-        envItems[envCount] = xlcShellMakeEnvItem("XL6_DBG_STOP_ON_ENTRY", "1");
-        if ( envItems[envCount] == NULL ) {
-            rc = 1;
-            goto cleanup;
-        }
-        envCount += 1;
-    }
-    if ( commandsText != NULL ) {
-        envItems[envCount] = xlcShellMakeEnvItem("XL6_DBG_COMMANDS", commandsText);
-        if ( envItems[envCount] == NULL ) {
-            rc = 1;
-            goto cleanup;
-        }
-        envCount += 1;
-    }
-
-    rc = xlcShellRunProcess(exePath, runArgs, runArgCount, envItems, envCount);
-
-cleanup:
-    for ( i = 0; i < XLC_SHELL_MAX_ENV_ITEMS; ++i ) {
-        free(envItems[i]);
-    }
-    xlcDestroyContext(ctx);
-    xrtFree(commandsText);
-    xlcShellCleanupWorkDir(workDir, cPath, exePath, saveTemps);
-    return rc == 0 ? 0 : 1;
-}
-
 int xlcShellMain(int argc, char** argv)
 {
     const char* cmd;
@@ -1844,9 +1573,6 @@ int xlcShellMain(int argc, char** argv)
     if ( xlcShellTextEquals(cmd, "help") || xlcShellTextEquals(cmd, "--help") || xlcShellTextEquals(cmd, "-h") ) {
         xlcShellPrintHelp();
         return 0;
-    }
-    if ( xlcShellTextEquals(cmd, "dap") ) {
-        return xl6DapMain(argc, argv);
     }
     if ( xlcShellTextEquals(cmd, "impdef") ) {
         return xlcShellImpdef(argc, argv);
@@ -1880,9 +1606,6 @@ int xlcShellMain(int argc, char** argv)
             return xlcShellBuildC(argc, argv);
         }
         return xlcShellRunWithFile(argc, argv, xlcShellDoBuild);
-    }
-    if ( xlcShellTextEquals(cmd, "dbg") ) {
-        return xlcShellDoDebug(argc, argv);
     }
     xl6ConsolePrintf(XL6_CONSOLE_STDERR, "unknown command: %s\n", cmd);
     return 1;

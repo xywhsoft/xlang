@@ -42,6 +42,7 @@ static int xl6CgenReturnTryMultiCallInto(XL6_CgenContext* ctx, const XL6_AstNode
     const XL6_AstNode* ownerClass;
     const XL6_AstNode* receiverType;
     XL6_AstNode* ownedFunctionType;
+    XL6_AstNode* ownedFuncTypeArgs;
     const XL6_AstNode* returns;
     int multiId;
     size_t i;
@@ -52,8 +53,9 @@ static int xl6CgenReturnTryMultiCallInto(XL6_CgenContext* ctx, const XL6_AstNode
     }
 
     ownedFunctionType = NULL;
+    ownedFuncTypeArgs = NULL;
     functionType = xl6CgenResolveMultiReturnFunctionType(ctx, expr, &ownedFunctionType);
-    func = functionType == NULL ? xl6CgenResolveMultiReturnCall(ctx, expr) : NULL;
+    func = functionType == NULL ? xl6CgenResolveMultiReturnCall(ctx, expr, &ownedFuncTypeArgs) : NULL;
     ownerClass = NULL;
     receiverType = NULL;
     classMethod = (functionType == NULL && func == NULL) ?
@@ -64,6 +66,7 @@ static int xl6CgenReturnTryMultiCallInto(XL6_CgenContext* ctx, const XL6_AstNode
               (classMethod != NULL && classMethod->childCount > 2 ? classMethod->children[2] : NULL));
     if ( returns == NULL || returns->childCount != ctx->currentReturns->childCount ) {
         xl6AstFree(ownedFunctionType);
+        xl6AstFree(ownedFuncTypeArgs);
         return 0;
     }
 
@@ -77,9 +80,9 @@ static int xl6CgenReturnTryMultiCallInto(XL6_CgenContext* ctx, const XL6_AstNode
         sizeof(memberTempName));
 
     xl6CgenIndent(ctx);
-    xl6CgenMultiReturnStructName(ctx, func, functionType, classMethod, ownerClass, receiverType);
+    xl6CgenMultiReturnStructName(ctx, func, functionType, classMethod, ownerClass, receiverType, ownedFuncTypeArgs);
     xl6OutputPrintf(ctx->out, " __xl6_multi_%d = ", multiId);
-    xl6CgenEmitMultiReturnCall(ctx, expr, func, functionType, classMethod, memberTempName[0] != '\0' ? memberTempName : NULL);
+    xl6CgenEmitMultiReturnCall(ctx, expr, func, functionType, classMethod, ownedFuncTypeArgs, memberTempName[0] != '\0' ? memberTempName : NULL);
     xl6OutputPuts(";\n", ctx->out);
 
     xl6CgenIndent(ctx);
@@ -95,6 +98,7 @@ static int xl6CgenReturnTryMultiCallInto(XL6_CgenContext* ctx, const XL6_AstNode
                         returnId, (unsigned)i, multiId, (unsigned)i);
     }
     xl6AstFree(ownedFunctionType);
+    xl6AstFree(ownedFuncTypeArgs);
     return 1;
 }
 
@@ -115,7 +119,7 @@ static int xl6CgenReturnTrySingleValueStmt(
     if ( concreteReturnType != NULL && xl6CTextEquals(concreteReturnType->text, "string") ) {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "const char* %s = xrtCopyStr(", returnName);
-        xl6CgenExpr(ctx, expr);
+        xl6CgenStringSourceExpr(ctx, concreteReturnType, expr);
         xl6OutputPuts(", 0u);\n", ctx->out);
         return 1;
     }
@@ -733,24 +737,35 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6CgenClassExprTempScopeEnd(ctx, &returnArgScope);
             }
             xl6CgenPrepareMultiStringReturns(ctx, id);
-            xl6CgenEmitCleanupsSinceExcept(
-                ctx,
-                0,
-                movedCleanupName[0] != '\0' ? movedCleanupName : NULL);
-            xl6CgenIndent(ctx);
-            if ( ctx->currentReturns != NULL && ctx->currentReturns->childCount > 1 ) {
+            snprintf(returnName, sizeof(returnName), "__xl6_return_%d", id);
+            if ( ctx->currentReturns != NULL && ctx->currentReturns->childCount > 1 &&
+                 xl6CgenCurrentFinallyTarget(ctx) != NULL ) {
                 xl6CgenPromoteMultiStringReturns(ctx, id);
-                xl6CgenIndent(ctx);
-                xl6OutputPrintf(ctx->out, "return __xl6_return_%d;\n", id);
-            } else if ( xl6CgenIsStringTypeNode(ctx, ctx->currentReturnType) ) {
-                xl6OutputPrintf(ctx->out, "return xrtTempStringTake((char*)__xl6_return_%d, 0u);\n", id);
+            }
+            if ( xl6CgenEmitPendingFinallyReturn(ctx, returnName, movedCleanupName) ) {
+                ;
             } else {
-                xl6OutputPrintf(ctx->out, "return __xl6_return_%d;\n", id);
+                xl6CgenEmitCleanupsSinceExcept(
+                    ctx,
+                    0,
+                    movedCleanupName[0] != '\0' ? movedCleanupName : NULL);
+                xl6CgenIndent(ctx);
+                if ( ctx->currentReturns != NULL && ctx->currentReturns->childCount > 1 ) {
+                    xl6CgenPromoteMultiStringReturns(ctx, id);
+                    xl6CgenIndent(ctx);
+                    xl6OutputPrintf(ctx->out, "return __xl6_return_%d;\n", id);
+                } else if ( xl6CgenIsStringTypeNode(ctx, ctx->currentReturnType) ) {
+                    xl6OutputPrintf(ctx->out, "return xrtTempStringTake((char*)__xl6_return_%d, 0u);\n", id);
+                } else {
+                    xl6OutputPrintf(ctx->out, "return __xl6_return_%d;\n", id);
+                }
             }
         } else {
-            xl6CgenEmitCleanupsSince(ctx, 0);
-            xl6CgenIndent(ctx);
-            xl6OutputPuts("return;\n", ctx->out);
+            if ( !xl6CgenEmitPendingFinallyVoidReturn(ctx) ) {
+                xl6CgenEmitCleanupsSince(ctx, 0);
+                xl6CgenIndent(ctx);
+                xl6OutputPuts("return;\n", ctx->out);
+            }
         }
         if ( hasTaskScope ) {
             xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);

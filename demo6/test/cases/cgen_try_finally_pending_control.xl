@@ -1,0 +1,189 @@
+int trace = 0
+
+class FinallyBox
+    int value
+end
+
+func returnFromTry() as int
+    try
+        return 7
+    finally
+        trace = trace * 10 + 1
+    end
+end
+
+func returnFromCatch() as int
+    try
+        throw "catch me"
+    catch e
+        return 8
+    finally
+        trace = trace * 10 + 2
+    end
+end
+
+func returnFromFinally() as int
+    try
+        return 1
+    finally
+        return 2
+    end
+end
+
+func nestedFinallyReturn() as int
+    try
+        try
+            return 9
+        finally
+            trace = trace * 10 + 3
+        end
+    finally
+        trace = trace * 10 + 4
+    end
+end
+
+func returnString() as string
+    try
+        return "pending string"
+    finally
+        trace = trace * 10 + 5
+    end
+end
+
+func returnArray() as array<int>
+    try
+        return array[4, 5]
+    finally
+        trace = trace * 10 + 6
+    end
+end
+
+func returnClass() as FinallyBox
+    FinallyBox value
+    value.value = 12
+    try
+        return value
+    finally
+        trace = trace * 10 + 7
+    end
+end
+
+func returnPair() as (string, int)
+    try
+        return "pair", 13
+    finally
+        trace = trace * 10 + 8
+    end
+end
+
+func throwOverridesReturn() as string
+    try
+        return "discard me"
+    finally
+        throw "finally override"
+    end
+end
+
+func breakThroughFinally() as int
+    int count = 0
+    while true do
+        try
+            count = count + 1
+            break
+        finally
+            count = count + 10
+        end
+    end
+    return count
+end
+
+func continueThroughFinally() as int
+    int index = 0
+    int count = 0
+    while index < 3 do
+        index = index + 1
+        try
+            if index < 3 then
+                continue
+            end
+            count = count + 100
+        finally
+            count = count + 1
+        end
+    end
+    return count
+end
+
+func multiLevelBreak() as int
+    int count = 0
+    while true do
+        while true do
+            try
+                break 2
+            finally
+                count = count + 1
+            end
+        end
+    end
+    return count
+end
+
+func multiLevelContinue() as int
+    int outer = 0
+    int count = 0
+    while outer < 2 do
+        outer = outer + 1
+        while true do
+            try
+                continue 2
+            finally
+                count = count + 1
+            end
+        end
+    end
+    return count
+end
+
+func main(...) as int
+    trace = 0
+    assert returnFromTry() == 7
+    assert trace == 1
+    assert returnFromCatch() == 8
+    assert trace == 12
+    assert returnFromFinally() == 2
+
+    trace = 0
+    assert nestedFinallyReturn() == 9
+    assert trace == 34
+
+    trace = 0
+    assert returnString() == "pending string"
+    assert trace == 5
+    array<int> values = returnArray()
+    assert values[0] == 4 and values[1] == 5
+    assert trace == 56
+    FinallyBox box = returnClass()
+    assert box.value == 12
+    assert trace == 567
+    string pairText
+    int pairValue
+    pairText, pairValue = returnPair()
+    assert pairText == "pair" and pairValue == 13
+    assert trace == 5678
+
+    int caught = 0
+    try
+        string ignored = throwOverridesReturn()
+    catch e
+        assert e.message == "finally override"
+        caught = 1
+    end
+    assert caught == 1
+
+    assert breakThroughFinally() == 11
+    assert continueThroughFinally() == 103
+    assert multiLevelBreak() == 1
+    assert multiLevelContinue() == 2
+
+    return 0
+end

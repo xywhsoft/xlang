@@ -1,5 +1,3 @@
-import template
-
 func mustCatchConversion() as string
     try
         int value = int("abc")

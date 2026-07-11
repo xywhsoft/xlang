@@ -336,6 +336,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("#define XL6_XRT_TYPE_KIND_DICT 12u\n", out);
     xl6OutputPuts("#define XL6_XRT_TYPE_KIND_RECORD 13u\n", out);
     xl6OutputPuts("#define XL6_XRT_TYPE_KIND_HANDLE 14u\n", out);
+    xl6OutputPuts("#define XL6_XRT_TYPE_KIND_REF 17u\n", out);
     xl6OutputPuts("#define XL6_XRT_HANDLE_FLAG_BORROWED 0x00000002u\n", out);
     xl6OutputPuts("#define XL6_XRT_HANDLE_FLAG_NULLABLE 0x00000004u\n", out);
     xl6OutputPuts("#ifndef XRT_OBJMODE_LOCAL\n", out);
@@ -449,6 +450,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("const xrt_type_desc* xrtTypeList(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeSet(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeDict(void);\n", out);
+    xl6OutputPuts("const xrt_type_desc* xrtTypeValue(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeType(void);\n", out);
     xl6OutputPuts("bool xrtTypeSame(const xrt_type_desc* pA, const xrt_type_desc* pB);\n", out);
     xl6OutputPuts("xvalue xrtTypeBoxValue(const xrt_type_desc* pType, const void* pObj);\n", out);

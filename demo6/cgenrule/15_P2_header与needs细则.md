@@ -175,7 +175,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | 字符串 `+`、字符串比较、字符串 `in`、字符串 `+=` |
-| 生成规则描述 | string runtime 是否需要依赖类型推断，因此 `needs.c` 会在扫描声明、函数、create、class/custom 时临时注册变量类型、`self` 和参数类型。泛型函数如果还没有具体泛型上下文则跳过，具体实例会在 program 级扫描中补扫。 |
+| 生成规则描述 | string runtime 是否需要依赖类型推断，因此 `needs.c` 会在扫描声明、函数、create、class/native-backed class 时临时注册变量类型、`self` 和参数类型。泛型函数如果还没有具体泛型上下文则跳过，具体实例会在 program 级扫描中补扫。 |
 | 生成器文件名和行号 | `xl6_cgen_needs.c:1`、`xl6_cgen_needs.c:16`、`xl6_cgen_needs.c:173` |
 | 对应生成的 C 代码 | `if (xl6CgenBinaryPlusIsString(ctx,node)) return 1;` |
 | 中间形态伪代码 | `scan with type environment; string op -> need string runtime` |

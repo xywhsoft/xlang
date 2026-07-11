@@ -86,15 +86,15 @@
 | 实现同等功能手写的 C 代码 | 手写 C 需要人工选择并链接对应库函数封装。 |
 | 额外依赖的封装代码 | 标准库 wrapper、function-var runtime、HTTP runtime、表达式 helper。 |
 
-## CGEN-MODULE-008 union、class、custom 声明优先输出
+## CGEN-MODULE-008 union、class、native-backed class 声明优先输出
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `union ... end`、`class ... end`、`custom ... end` |
-| 生成规则描述 | 模块完成 runtime 注入后，先输出 `union` 声明，再输出 `class` 和 `custom` 声明。这样后续函数原型、方法体和变量声明都可以直接引用结构体类型。 |
+| xlang 写法 | `union ... end`、`class ... end`、`class ... native point handle ... end` |
+| 生成规则描述 | 模块完成 runtime 注入后，先输出 `union` 声明，再输出 `class` 和 `native-backed class` 声明。这样后续函数原型、方法体和变量声明都可以直接引用结构体类型。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:147` |
 | 对应生成的 C 代码 | `typedef union ...`、`typedef struct ...` 等类型声明。 |
-| 中间形态伪代码 | `for node in root: if union emitUnionDecls(node); for node in root: if class/custom emitTypeDecls(node)` |
+| 中间形态伪代码 | `for node in root: if union emitUnionDecls(node); for node in root: if class/native-backed class emitTypeDecls(node)` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常也必须先写结构体、联合体声明，再写函数原型。 |
 | 额外依赖的封装代码 | 无额外封装；生成的是类型声明本体。 |
 
@@ -158,17 +158,17 @@
 | 实现同等功能手写的 C 代码 | 手写 C 需要显式写函数指针适配器和闭包上下文结构。 |
 | 额外依赖的封装代码 | 函数值 wrapper、匿名函数实现、闭包辅助结构。 |
 
-## CGEN-MODULE-014 class、custom 与泛型 class 方法体输出
+## CGEN-MODULE-014 class、native-backed class 与泛型 class 方法体输出
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `class` 方法、`custom` 方法、泛型 class 方法 |
-| 生成规则描述 | 普通 class 方法体先按 AST 顺序输出，随后输出 custom 方法体，最后输出泛型 class 实例方法体。这样普通类型方法和 custom 映射方法都早于顶层函数体，顶层函数调用方法时无需后置声明以外的额外处理。 |
+| xlang 写法 | `class` 方法、`native-backed class` 方法、泛型 class 方法 |
+| 生成规则描述 | 普通 class 方法体先按 AST 顺序输出，随后输出 native-backed class 方法体，最后输出泛型 class 实例方法体。这样普通类型方法和 native-backed class 映射方法都早于顶层函数体，顶层函数调用方法时无需后置声明以外的额外处理。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:226` |
-| 对应生成的 C 代码 | class 方法 C 函数体、custom 方法映射函数、泛型 class 实例方法体。 |
+| 对应生成的 C 代码 | class 方法 C 函数体、native-backed class 方法映射函数、泛型 class 实例方法体。 |
 | 中间形态伪代码 | `emitClassMethods(); emitCustomMethods(); emitGenericClassMethods();` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要分别写结构体操作函数和黑盒指针操作函数。 |
-| 额外依赖的封装代码 | custom 方法可能生成薄 wrapper；class 方法通常是普通 C 函数体。 |
+| 额外依赖的封装代码 | native-backed class 方法可能生成薄 wrapper；class 方法通常是普通 C 函数体。 |
 
 ## CGEN-MODULE-015 顶层普通函数、generator、async 与 export 函数体输出
 

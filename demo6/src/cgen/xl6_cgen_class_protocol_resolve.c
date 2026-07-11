@@ -8,8 +8,14 @@ static XL6_AstNode* xl6CgenCloneClassProtocolReturnTypeForCall(
     const XL6_AstNode* classNode;
     const XL6_AstNode* method;
     const XL6_AstNode* returns;
+    const XL6_AstNode* prevParams;
+    const XL6_AstNode* prevArgs;
+    XL6_AstNode* result;
 
     concreteType = xl6CgenResolveAliasType(ctx, receiverType);
+    if ( xl6CgenRefTargetType(ctx, concreteType) != NULL ) {
+        concreteType = xl6CgenRefTargetType(ctx, concreteType);
+    }
     if ( concreteType == NULL || concreteType->text == NULL || protocolName == NULL || call == NULL ) {
         return NULL;
     }
@@ -24,7 +30,16 @@ static XL6_AstNode* xl6CgenCloneClassProtocolReturnTypeForCall(
     if ( returns == NULL || returns->childCount != 1 ) {
         return NULL;
     }
-    return xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0]);
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    if ( concreteType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+        ctx->currentGenericArgs = concreteType->children[0];
+    }
+    result = xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0]);
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
+    return result;
 }
 
 static XL6_AstNode* xl6CgenCloneClassProtocolReturnTypeForIndex(

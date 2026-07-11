@@ -461,7 +461,7 @@ static int xl6CgenNativeClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode*
 {
     const XL6_AstNode* receiver;
     const XL6_AstNode* receiverType;
-    const XL6_AstNode* customNode;
+    const XL6_AstNode* nativeClassNode;
     const XL6_AstNode* helperMethod;
     const XL6_AstNode* externMethod;
     const XL6_AstNode* method;
@@ -477,13 +477,13 @@ static int xl6CgenNativeClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode*
 
     receiverName = receiver->kind == XL6_AST_NAME ? receiver->text : NULL;
     receiverType = receiver->kind == XL6_AST_NAME ? xl6CgenFindVarType(ctx, receiverName) : xl6CgenMemberFieldType(ctx, receiver);
-    customNode = receiverType != NULL ? xl6CgenFindNativeBackedClass(ctx, receiverType->text) : NULL;
-    if ( customNode == NULL ) {
+    nativeClassNode = receiverType != NULL ? xl6CgenFindNativeBackedClass(ctx, receiverType->text) : NULL;
+    if ( nativeClassNode == NULL ) {
         return 0;
     }
 
-    helperMethod = xl6CgenResolveNativeClassFunc(ctx, customNode, call, member->text, 0);
-    externMethod = xl6CgenResolveNativeExternFuncWithReport(ctx, customNode, call, member->text, 0);
+    helperMethod = xl6CgenResolveNativeClassFunc(ctx, nativeClassNode, call, member->text, 0);
+    externMethod = xl6CgenResolveNativeExternFuncWithReport(ctx, nativeClassNode, call, member->text, 0);
     if ( helperMethod != NULL && externMethod != NULL ) {
         xl6CgenError(ctx, member, "native-backed class method call is ambiguous between helper and extern");
         xl6OutputPuts("0", ctx->out);
@@ -502,7 +502,7 @@ static int xl6CgenNativeClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6OutputPuts("xl6_xrt_external_string_copy(", ctx->out);
     }
     if ( helperMethod != NULL ) {
-        xl6CgenClassCallableSymbol(ctx, customNode, method);
+        xl6CgenClassCallableSymbol(ctx, nativeClassNode, method);
     } else {
         xl6CgenCStringSymbol(ctx->out, method->text);
     }
@@ -625,6 +625,7 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
 {
     const XL6_AstNode* receiver;
     const XL6_AstNode* receiverType;
+    const XL6_AstNode* classType;
     XL6_AstNode* ownedReceiverType;
     const XL6_AstNode* classNode;
     const XL6_AstNode* ownerClass;
@@ -636,22 +637,42 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
     int fixedCount;
 
     receiverType = NULL;
+    classType = NULL;
     ownedReceiverType = NULL;
     receiver = member->childCount > 0 ? member->children[0] : NULL;
-    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME && receiver->kind != XL6_AST_MEMBER) ) {
+    if ( receiver == NULL ) {
         return 0;
     }
 
     if ( receiver->kind == XL6_AST_NAME && xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
+        /*
+            self 在泛型类实例中带有具体类型参数。后续不仅用它解析重载，
+            还要用同一类型生成实例化后的 C 符号名，不能只保留 class 声明。
+        */
+        receiverType = xl6CgenFindVarType(ctx, "self");
+        classType = receiverType;
         classNode = ctx->currentClass;
     } else if ( receiver->kind == XL6_AST_MEMBER ) {
         ownedReceiverType = xl6CgenCloneMemberFieldTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
-        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
+        classType = xl6CgenRefTargetType(ctx, receiverType);
+        if ( classType == NULL ) {
+            classType = receiverType;
+        }
+        classNode = classType != NULL ? xl6CgenFindClass(ctx, classType->text) : NULL;
     } else {
         ownedReceiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
-        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
+        classType = xl6CgenRefTargetType(ctx, receiverType);
+        if ( classType == NULL ) {
+            classType = receiverType;
+        }
+        classNode = classType != NULL ? xl6CgenFindClass(ctx, classType->text) : NULL;
+    }
+    if ( receiver->kind != XL6_AST_NAME && receiver->kind != XL6_AST_MEMBER &&
+         xl6CgenRefTargetType(ctx, receiverType) == NULL ) {
+        xl6AstFree(ownedReceiverType);
+        return 0;
     }
     if ( classNode == NULL ) {
         xl6AstFree(ownedReceiverType);
@@ -660,9 +681,9 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
 
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
-    if ( receiverType != NULL && receiverType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+    if ( classType != NULL && classType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
         ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
-        ctx->currentGenericArgs = receiverType->children[0];
+        ctx->currentGenericArgs = classType->children[0];
     }
 
     ownerClass = NULL;
@@ -686,10 +707,10 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
 
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
-    if ( receiverType != NULL && receiverType->childCount > 0 && xl6CgenClassHasTypeParams(ownerClass) ) {
+    if ( classType != NULL && classType->childCount > 0 && xl6CgenClassHasTypeParams(ownerClass) ) {
         ctx->currentGenericParams = xl6CgenClassTypeParams(ownerClass);
-        ctx->currentGenericArgs = receiverType->children[0];
-        xl6CgenGenericClassCallableSymbol(ctx, ownerClass, receiverType, method);
+        ctx->currentGenericArgs = classType->children[0];
+        xl6CgenGenericClassCallableSymbol(ctx, ownerClass, classType, method);
     } else {
         xl6CgenClassCallableSymbol(ctx, ownerClass, method);
     }
@@ -708,6 +729,16 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
                 xl6OutputPuts(basePath + 5, ctx->out);
             }
         }
+    } else if ( xl6CgenRefTargetType(ctx, receiverType) != NULL ) {
+        char ownerTypeName[512];
+        xl6CgenClassTypeRefName(ownerTypeName, sizeof(ownerTypeName), classType);
+        xl6OutputPrintf(ctx->out, "((%s*)xl6_ref_data(", ownerTypeName);
+        if ( receiver->kind == XL6_AST_NAME ) {
+            xl6CgenNamedValueReference(ctx, receiver->text);
+        } else {
+            xl6CgenExpr(ctx, receiver);
+        }
+        xl6OutputPrintf(ctx->out, ", \"\", %d, %d))", receiver->line, receiver->column);
     } else {
         xl6OutputPutc('&', ctx->out);
         if ( receiver->kind == XL6_AST_NAME ) {
@@ -949,225 +980,4 @@ static int xl6CgenBaseCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call)
     return 1;
 }
 
-static int xl6CgenClassHasDirectField(const XL6_AstNode* classNode, const char* fieldName)
-{
-    return xl6CgenFindDirectClassFieldNode(classNode, fieldName) != NULL;
-}
-static int xl6CgenEmitClassFieldSuffixWithSep(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* fieldName, const char* sep)
-{
-    const XL6_AstNode* base;
-    XL6_AstNode* baseClass;
-
-    if ( classNode == NULL || fieldName == NULL ) {
-        return 0;
-    }
-    if ( xl6CgenClassHasDirectField(classNode, fieldName) ) {
-        xl6OutputPuts(sep != NULL ? sep : ".", ctx->out);
-        xl6CgenFputsCIdent(ctx->out, fieldName);
-        return 1;
-    }
-
-    base = classNode->childCount > 0 ? classNode->children[0] : NULL;
-    if ( base == NULL || base->kind != XL6_AST_NAME ) {
-        return 0;
-    }
-    baseClass = xl6CgenFindClass(ctx, base->text);
-    if ( baseClass == NULL ) {
-        return 0;
-    }
-
-    xl6OutputPuts(sep != NULL ? sep : ".", ctx->out);
-    xl6OutputPuts("base", ctx->out);
-    return xl6CgenEmitClassFieldSuffixWithSep(ctx, baseClass, fieldName, ".");
-}
-
-static int xl6CgenEmitClassFieldSuffix(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* fieldName)
-{
-    return xl6CgenEmitClassFieldSuffixWithSep(ctx, classNode, fieldName, ".");
-}
-
-static const XL6_AstNode* xl6CgenMemberFieldType(XL6_CgenContext* ctx, const XL6_AstNode* member)
-{
-    const XL6_AstNode* receiver;
-    const XL6_AstNode* receiverType;
-    const XL6_AstNode* field;
-    XL6_AstNode* classNode;
-    XL6_AstNode* ownedReceiverType;
-
-    if ( member == NULL || member->kind != XL6_AST_MEMBER ) {
-        return NULL;
-    }
-
-    receiver = member->childCount > 0 ? member->children[0] : NULL;
-    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME &&
-                              receiver->kind != XL6_AST_MEMBER &&
-                              receiver->kind != XL6_AST_INDEX) ) {
-        return NULL;
-    }
-
-    receiverType = NULL;
-    ownedReceiverType = NULL;
-    classNode = NULL;
-    if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX ) {
-        ownedReceiverType = receiver->kind == XL6_AST_MEMBER
-            ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
-            : xl6CgenCloneExprTypeForInference(ctx, receiver);
-        receiverType = ownedReceiverType;
-        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
-    } else if ( xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
-        classNode = (XL6_AstNode*)ctx->currentClass;
-    } else {
-        ownedReceiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-        receiverType = ownedReceiverType;
-        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
-    }
-
-    if ( receiverType != NULL && xl6CgenIsUnionType(ctx, receiverType) ) {
-        field = xl6CgenFindUnionFieldNode(xl6CgenFindUnion(ctx, receiverType->text), member->text);
-        xl6AstFree(ownedReceiverType);
-        return field != NULL && field->childCount > 0 ? field->children[0] : NULL;
-    }
-    if ( classNode == NULL ) {
-        xl6AstFree(ownedReceiverType);
-        return NULL;
-    }
-
-    field = xl6CgenFindClassFieldNode(ctx, classNode, member->text);
-    xl6AstFree(ownedReceiverType);
-    return field != NULL && field->childCount > 0 ? field->children[0] : NULL;
-}
-
-static int xl6CgenUnionFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* member)
-{
-    const XL6_AstNode* receiver;
-    const XL6_AstNode* receiverType;
-    const XL6_AstNode* unionNode;
-    const XL6_AstNode* field;
-    XL6_AstNode* ownedReceiverType;
-
-    if ( member == NULL || member->kind != XL6_AST_MEMBER || member->text == NULL || member->childCount == 0 ) {
-        return 0;
-    }
-    receiver = member->children[0];
-    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME &&
-                              receiver->kind != XL6_AST_MEMBER &&
-                              receiver->kind != XL6_AST_INDEX) ) {
-        return 0;
-    }
-
-    ownedReceiverType = NULL;
-    if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX ) {
-        ownedReceiverType = receiver->kind == XL6_AST_MEMBER
-            ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
-            : xl6CgenCloneExprTypeForInference(ctx, receiver);
-        receiverType = ownedReceiverType;
-    } else {
-        receiverType = xl6CgenFindVarType(ctx, receiver->text);
-    }
-    if ( !xl6CgenIsUnionType(ctx, receiverType) ) {
-        xl6AstFree(ownedReceiverType);
-        return 0;
-    }
-
-    unionNode = xl6CgenFindUnion(ctx, receiverType->text);
-    field = xl6CgenFindUnionFieldNode(unionNode, member->text);
-    if ( field == NULL ) {
-        xl6AstFree(ownedReceiverType);
-        return 0;
-    }
-
-    if ( receiver->kind == XL6_AST_NAME ) {
-        xl6CgenNamedValueReference(ctx, receiver->text);
-    } else {
-        xl6CgenExpr(ctx, receiver);
-    }
-    xl6OutputPutc('.', ctx->out);
-    xl6CgenFputsCIdent(ctx->out, member->text);
-    xl6AstFree(ownedReceiverType);
-    return 1;
-}
-static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* member)
-{
-    const XL6_AstNode* receiver;
-    const XL6_AstNode* receiverType;
-    XL6_AstNode* classNode;
-    XL6_AstNode* ownedReceiverType;
-
-    receiver = member->childCount > 0 ? member->children[0] : NULL;
-    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME &&
-                              receiver->kind != XL6_AST_MEMBER &&
-                              receiver->kind != XL6_AST_INDEX &&
-                              receiver->kind != XL6_AST_CALL) ) {
-        xl6CgenError(ctx, member, "class field receiver must be name, member, index or call");
-        xl6OutputPuts("0", ctx->out);
-        return;
-    }
-
-    if ( receiver->kind == XL6_AST_NAME && xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
-        if ( xl6CgenFindClassFieldNode(ctx, ctx->currentClass, member->text) == NULL &&
-             xl6CgenClassPropertyMemberAccess(ctx, member) ) {
-            return;
-        }
-        if ( xl6CgenFindClassFieldNode(ctx, ctx->currentClass, member->text) == NULL &&
-             xl6CgenClassProtocolMemberAccess(ctx, member) ) {
-            return;
-        }
-        xl6OutputPuts("self", ctx->out);
-        if ( !xl6CgenEmitClassFieldSuffixWithSep(ctx, ctx->currentClass, member->text, "->") ) {
-            xl6CgenError(ctx, member, "class field not found");
-        }
-        return;
-    }
-
-    ownedReceiverType = NULL;
-    if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX || receiver->kind == XL6_AST_CALL ) {
-        ownedReceiverType = receiver->kind == XL6_AST_MEMBER
-            ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
-            : xl6CgenCloneExprTypeForInference(ctx, receiver);
-        receiverType = ownedReceiverType;
-        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
-        if ( classNode == NULL ) {
-            xl6AstFree(ownedReceiverType);
-            xl6CgenError(ctx, member, "class field receiver is not a class value");
-            xl6OutputPuts("0", ctx->out);
-            return;
-        }
-
-        if ( xl6CgenFindClassFieldNode(ctx, classNode, member->text) == NULL ) {
-            if ( xl6CgenClassPropertyMemberAccess(ctx, member) ||
-                 xl6CgenClassProtocolMemberAccess(ctx, member) ) {
-                xl6AstFree(ownedReceiverType);
-                return;
-            }
-        }
-        xl6CgenExpr(ctx, receiver);
-        if ( !xl6CgenEmitClassFieldSuffix(ctx, classNode, member->text) ) {
-            xl6CgenError(ctx, member, "class field not found");
-        }
-        xl6AstFree(ownedReceiverType);
-        return;
-    }
-
-    ownedReceiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-    receiverType = ownedReceiverType;
-    classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
-    if ( classNode == NULL ) {
-        xl6AstFree(ownedReceiverType);
-        xl6CgenError(ctx, member, "class field receiver is not a class value");
-        xl6OutputPuts("0", ctx->out);
-        return;
-    }
-
-    if ( xl6CgenFindClassFieldNode(ctx, classNode, member->text) == NULL ) {
-        if ( xl6CgenClassPropertyMemberAccess(ctx, member) ||
-             xl6CgenClassProtocolMemberAccess(ctx, member) ) {
-            xl6AstFree(ownedReceiverType);
-            return;
-        }
-    }
-    xl6CgenNamedValueReference(ctx, receiver->text);
-    if ( !xl6CgenEmitClassFieldSuffix(ctx, classNode, member->text) ) {
-        xl6CgenError(ctx, member, "class field not found");
-    }
-    xl6AstFree(ownedReceiverType);
-}
+#include "xl6_cgen_value_object_fields.c"

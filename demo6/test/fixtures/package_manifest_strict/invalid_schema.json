@@ -1,0 +1,5 @@
+{
+  "format": "xlang-package-1",
+  "name": "bad",
+  "artifact": {"xlSources": "not-an-array"}
+}

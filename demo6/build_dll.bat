@@ -92,6 +92,8 @@ if errorlevel 1 (
 echo Building DEMO6 xl.dll runtime...
 "%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -DXL_RUNTIME_ONLY_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_SOURCE_INCLUDE% %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl.dll ^
     src\api\xl_api.c ^
+    src\api\xl_api_symbols.c ^
+    src\api\xl_api_path.c ^
     src\api\xl_xrt_dll.c ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\libtcc.c" ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcctools.c" ^
@@ -126,6 +128,8 @@ echo Building DEMO6 xl.dll runtime...
     src\type\xl6_type_model.c ^
     src\sem\xl6_protocol.c ^
     src\sem\xl6_type_registry.c ^
+    src\sem\xl6_sem_docs.c ^
+    src\sem\xl6_sem_field_attrs.c ^
     src\sem\xl6_sem.c ^
     %XL6_DLL_LINKS%
 
@@ -146,6 +150,8 @@ if errorlevel 1 (
 echo Building DEMO6 xlc.dll compiler runtime...
 "%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_SOURCE_INCLUDE% %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xlc.dll ^
     src\api\xl_api.c ^
+    src\api\xl_api_symbols.c ^
+    src\api\xl_api_path.c ^
     src\api\xl_xrt_dll.c ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\libtcc.c" ^
     "%XL6_EMBED_TCC_SOURCE_ROOT%\tcctools.c" ^
@@ -183,6 +189,8 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\type\xl6_type_model.c ^
     src\sem\xl6_protocol.c ^
     src\sem\xl6_type_registry.c ^
+    src\sem\xl6_sem_docs.c ^
+    src\sem\xl6_sem_field_attrs.c ^
     src\sem\xl6_sem.c ^
     %XL6_DLL_LINKS%
 
@@ -278,6 +286,16 @@ echo Building xl.dll threaded host verification program...
 
 if errorlevel 1 (
     echo DEMO6 xl.dll threaded host verification program build failed.
+    exit /b 1
+)
+
+echo Building xl.dll module dependency lifetime verification program...
+"%XL6_TCC%" -std=c11 -Wall -DXL_RUNTIME_ONLY_API -D_CRT_SECURE_NO_WARNINGS -I. -Irelease %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl_dll_module_dependency_lifetime.exe ^
+    test\cases\xl_dll_module_dependency_lifetime.c ^
+    release\xl.def
+
+if errorlevel 1 (
+    echo DEMO6 xl.dll module dependency lifetime verification program build failed.
     exit /b 1
 )
 

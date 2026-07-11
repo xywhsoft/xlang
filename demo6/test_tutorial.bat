@@ -6,6 +6,12 @@ call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 
 if not exist build\test\tutorial mkdir build\test\tutorial
+if not exist build\test\__xl_runtime mkdir build\test\__xl_runtime
+copy /Y release\include\xl_runtime.h build\test\__xl_runtime\xl_runtime.h >nul
+if errorlevel 1 exit /b 1
+
+rem Generated C uses the private runtime mirror and the Windows TLS headers.
+set "XL6_TCC_INCLUDES=-Ibuild\test %XL6_TCC_INCLUDES_WINAPI%"
 
 echo Checking tutorial examples...
 for %%f in (release\examples\tutorial\*.xl) do (
@@ -34,7 +40,7 @@ for %%f in (
 echo Running tutorial examples with C host...
 for %%f in (
     09_class_lifecycle.xl
-    10_c_interop_and_custom.xl
+    10_c_interop_and_native_class.xl
 ) do (
     echo RUN %%f
     release\xl.exe run "release\examples\tutorial\%%f" --link release\examples\tutorial\host.c

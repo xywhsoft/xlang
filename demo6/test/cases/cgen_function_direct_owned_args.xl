@@ -1,0 +1,20 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func repeatVar(func(var) as int callback, var value, int count) as int
+    int total = 0
+    int i = 0
+    while i < count do
+        total += callback(value)
+        i += 1
+    end
+    return total
+end
+
+int bias = 1
+var values = [1, 2, 3, 4]
+func(var) as int callback = func(var item) as int
+    return item.length + bias
+end
+
+expect(repeatVar(callback, values, 100), 500)
+expect(values.length, 4)

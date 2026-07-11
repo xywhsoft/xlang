@@ -4,6 +4,7 @@ static int xl6CgenIsXValueType(const XL6_AstNode* typeNode)
 {
     return typeNode != NULL && typeNode->text != NULL &&
            (xl6CTextEquals(typeNode->text, "var") ||
+            xl6CTextEquals(typeNode->text, "ref") ||
             xl6CgenIsArrayXValueType(typeNode) ||
             xl6CgenIsListXValueType(typeNode) ||
             xl6CgenIsSetXValueType(typeNode) ||
@@ -322,6 +323,7 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
 {
     const XL6_AstNode* receiver;
     const XL6_AstNode* receiverType;
+    const XL6_AstNode* classType;
     const XL6_AstNode* field;
     const XL6_AstNode* prevParams;
     const XL6_AstNode* prevArgs;
@@ -347,6 +349,7 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
     }
 
     receiverType = NULL;
+    classType = NULL;
     ownedReceiverType = NULL;
     if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX || receiver->kind == XL6_AST_CALL ) {
         receiverType = receiver->kind == XL6_AST_MEMBER
@@ -358,7 +361,11 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
             xl6AstFree((XL6_AstNode*)receiverType);
             return result;
         }
-        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
+        classType = xl6CgenRefTargetType(ctx, receiverType);
+        if ( classType == NULL ) {
+            classType = receiverType;
+        }
+        classNode = classType != NULL ? xl6CgenFindClass(ctx, classType->text) : NULL;
         if ( classNode != NULL ) {
             field = xl6CgenFindClassFieldNode(ctx, classNode, member->text);
             if ( field == NULL || field->childCount == 0 ) {
@@ -377,9 +384,9 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
 
             prevParams = ctx->currentGenericParams;
             prevArgs = ctx->currentGenericArgs;
-            if ( receiverType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+            if ( classType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
                 ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
-                ctx->currentGenericArgs = receiverType->children[0];
+                ctx->currentGenericArgs = classType->children[0];
             }
 
             result = xl6CgenCloneCanonicalTypeNode(ctx, field->children[0]);
@@ -398,7 +405,11 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
     } else {
         ownedReceiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
-        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
+        classType = xl6CgenRefTargetType(ctx, receiverType);
+        if ( classType == NULL ) {
+            classType = receiverType;
+        }
+        classNode = classType != NULL ? xl6CgenFindClass(ctx, classType->text) : NULL;
     }
     if ( receiverType != NULL && xl6CgenIsUnionType(ctx, receiverType) ) {
         field = xl6CgenFindUnionFieldNode(xl6CgenFindUnion(ctx, receiverType->text), member->text);
@@ -431,9 +442,9 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
 
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
-    if ( receiverType != NULL && receiverType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+    if ( classType != NULL && classType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
         ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
-        ctx->currentGenericArgs = receiverType->children[0];
+        ctx->currentGenericArgs = classType->children[0];
     }
 
     result = xl6CgenCloneCanonicalTypeNode(ctx, field->children[0]);
@@ -466,7 +477,7 @@ static int xl6CgenClassNeedsDestroy(XL6_CgenContext* ctx, const XL6_AstNode* cla
         for ( i = 0; i < body->childCount; ++i ) {
             const XL6_AstNode* member = body->children[i];
             const XL6_AstNode* typeNode;
-            XL6_AstNode* customNode;
+            XL6_AstNode* nativeClassNode;
             XL6_AstNode* nestedClass;
 
             if ( !xl6CgenIsInstanceField(member) || member->childCount == 0 ) {
@@ -485,8 +496,8 @@ static int xl6CgenClassNeedsDestroy(XL6_CgenContext* ctx, const XL6_AstNode* cla
             if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
                 return 1;
             }
-            customNode = xl6CgenFindNativeBackedClass(ctx, typeNode != NULL ? typeNode->text : NULL);
-            if ( customNode != NULL && xl6CgenNativeBackedClassHasDestroy(customNode) ) {
+            nativeClassNode = xl6CgenFindNativeBackedClass(ctx, typeNode != NULL ? typeNode->text : NULL);
+            if ( nativeClassNode != NULL && xl6CgenNativeBackedClassHasDestroy(nativeClassNode) ) {
                 return 1;
             }
             nestedClass = xl6CgenFindClass(ctx, typeNode != NULL ? typeNode->text : NULL);
@@ -540,19 +551,19 @@ static void xl6CgenRetainFunctionPath(XL6_CgenContext* ctx, const char* path)
     xl6OutputPuts("}\n", ctx->out);
 }
 
-static const char* xl6CgenTypedContainerCopyFuncName(const char* typeName)
+static const char* xl6CgenTypedContainerCloneFuncName(const char* typeName)
 {
     if ( xl6CTextEquals(typeName, "array") ) {
-        return "xl6_xrt_typed_array_copy_mode";
+        return "xrtTypedArrayClone";
     }
     if ( xl6CTextEquals(typeName, "list") ) {
-        return "xl6_xrt_typed_list_copy_mode";
+        return "xrtTypedListClone";
     }
     if ( xl6CTextEquals(typeName, "set") ) {
-        return "xl6_xrt_typed_set_copy_mode";
+        return "xrtTypedSetClone";
     }
     if ( xl6CTextEquals(typeName, "dict") ) {
-        return "xl6_xrt_typed_dict_copy_mode";
+        return "xrtTypedDictClone";
     }
     return NULL;
 }
@@ -581,12 +592,10 @@ static void xl6CgenTypedContainerFieldRef(
     int retain)
 {
     const XL6_AstNode* concreteType;
-    const XL6_AstNode* itemType;
     const char* typeName;
     const char* funcName;
 
     concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
-    itemType = xl6CgenTypedContainerItemType(ctx, typeNode);
     typeName = concreteType != NULL ? concreteType->text : NULL;
     if ( typeName == NULL || fieldPath == NULL ) {
         return;
@@ -594,7 +603,11 @@ static void xl6CgenTypedContainerFieldRef(
 
     xl6CgenIndent(ctx);
     if ( retain ) {
-        funcName = xl6CgenTypedContainerCopyFuncName(typeName);
+        /*
+            class 值复制必须继承源容器的对象模式。硬编码 LOCAL 会让已经发布到
+            future/全局对象中的 SHARED 字段在下一次复制时重新变成线程私有对象。
+        */
+        funcName = xl6CgenTypedContainerCloneFuncName(typeName);
         if ( funcName == NULL ) {
             xl6CgenError(ctx, typeNode, "typed container copy requires array/list/set/dict");
             return;
@@ -603,10 +616,8 @@ static void xl6CgenTypedContainerFieldRef(
         xl6OutputPuts(" = ", ctx->out);
         xl6OutputPuts(funcName, ctx->out);
         xl6OutputPutc('(', ctx->out);
-        xl6CgenEmitXrtTypeDescRef(ctx, itemType);
-        xl6OutputPuts(", ", ctx->out);
         xl6OutputPuts(fieldPath, ctx->out);
-        xl6OutputPuts(", XRT_OBJMODE_LOCAL);\n", ctx->out);
+        xl6OutputPuts(");\n", ctx->out);
         return;
     }
 

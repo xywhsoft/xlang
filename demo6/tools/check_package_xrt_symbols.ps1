@@ -10,7 +10,7 @@ if ( $Root -eq "" ) {
 
 $packageDir = Join-Path $Root "release\extlibs"
 $xrtPath = Join-Path $Root "lib\xrt\xrt.h"
-$apiPath = Join-Path $Root "src\api\xl_api.c"
+$apiPath = Join-Path $Root "src\api\xl_api_symbols.c"
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
@@ -47,7 +47,7 @@ function Read-PublicXrtSymbols($path)
     foreach ( $match in $matches ) {
         $symbols.Add($match.Groups[1].Value) | Out-Null
     }
-    return $symbols
+    return ,$symbols
 }
 
 function Read-InjectedXrtSymbols($path)
@@ -58,7 +58,7 @@ function Read-InjectedXrtSymbols($path)
     $invocations = [regex]::Matches($text, '(?m)^\s*XL_ADD_XRT_SYMBOL\s*\(').Count
 
     if ( $matches.Count -ne $invocations ) {
-        Add-Failure "non-canonical XL_ADD_XRT_SYMBOL invocation in src/api/xl_api.c"
+        Add-Failure "non-canonical XL_ADD_XRT_SYMBOL invocation in src/api/xl_api_symbols.c"
     }
 
     foreach ( $match in $matches ) {
@@ -67,7 +67,7 @@ function Read-InjectedXrtSymbols($path)
             Add-Failure "duplicate XRT runtime symbol injection: $name"
         }
     }
-    return $symbols
+    return ,$symbols
 }
 
 if ( ! (Test-Path -LiteralPath $packageDir -PathType Container) ) {

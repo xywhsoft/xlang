@@ -205,11 +205,11 @@ static int xl6CgenClassHasDerive(const XL6_AstNode* classNode, const char* abili
     return xl6CgenBodyHasDerive(xl6CgenClassBody(classNode), ability);
 }
 
-static int xl6CgenNativeBackedClassHasDerive(const XL6_AstNode* customNode, const char* ability)
+static int xl6CgenNativeBackedClassHasDerive(const XL6_AstNode* nativeClassNode, const char* ability)
 {
     const XL6_AstNode* body;
 
-    body = xl6CgenClassBody(customNode);
+    body = xl6CgenClassBody(nativeClassNode);
     return xl6CgenBodyHasDerive(body, ability);
 }
 
@@ -299,7 +299,7 @@ static const XL6_AstNode* xl6CgenCallableParams(const XL6_AstNode* node)
         不同声明节点的参数表位置不同，这里统一取得可调用参数表。
         普通 func / native-backed extern func: child[1]
         class create: child[0]
-        custom extern create/destroy: child[1]
+        native-backed extern create/destroy: child[1]
     */
     if ( node->kind == XL6_AST_CREATE ) {
         return node->childCount > 0 ? node->children[0] : NULL;
@@ -386,15 +386,15 @@ static int xl6CgenClassIsPureNativeHandle(const XL6_AstNode* classNode)
     return hasHandle;
 }
 
-static const XL6_AstNode* xl6CgenFindNativeBackedClassMember(const XL6_AstNode* customNode, XL6_AstKind kind, const char* name)
+static const XL6_AstNode* xl6CgenFindNativeBackedClassMember(const XL6_AstNode* nativeClassNode, XL6_AstKind kind, const char* name)
 {
     const XL6_AstNode* body;
     size_t i;
 
-    if ( customNode == NULL || name == NULL ) {
+    if ( nativeClassNode == NULL || name == NULL ) {
         return NULL;
     }
-    body = xl6CgenClassBody(customNode);
+    body = xl6CgenClassBody(nativeClassNode);
     if ( body == NULL ) {
         return NULL;
     }
@@ -412,14 +412,14 @@ static const XL6_AstNode* xl6CgenFindNativeBackedClassMember(const XL6_AstNode* 
     return NULL;
 }
 
-static const XL6_AstNode* xl6CgenFindNativeBackedClassSpecial(const XL6_AstNode* customNode, const char* name)
+static const XL6_AstNode* xl6CgenFindNativeBackedClassSpecial(const XL6_AstNode* nativeClassNode, const char* name)
 {
-    return xl6CgenFindNativeBackedClassMember(customNode, XL6_AST_NATIVE_EXTERN_SPECIAL, name);
+    return xl6CgenFindNativeBackedClassMember(nativeClassNode, XL6_AST_NATIVE_EXTERN_SPECIAL, name);
 }
 
-static const XL6_AstNode* xl6CgenFindNativeBackedClassExternFunc(const XL6_AstNode* customNode, const char* name)
+static const XL6_AstNode* xl6CgenFindNativeBackedClassExternFunc(const XL6_AstNode* nativeClassNode, const char* name)
 {
-    return xl6CgenFindNativeBackedClassMember(customNode, XL6_AST_NATIVE_EXTERN_FUNC, name);
+    return xl6CgenFindNativeBackedClassMember(nativeClassNode, XL6_AST_NATIVE_EXTERN_FUNC, name);
 }
 
 static int xl6CgenIsExternalVarDecl(const XL6_AstNode* node)

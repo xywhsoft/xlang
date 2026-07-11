@@ -8,6 +8,13 @@
 
 这三项能力允许参考 demo5 的用户语义和测试资产，但不照搬 demo5 的内部实现。demo6 必须建立在当前类型系统、XRT、ABI、VFS、DLL、静态 libtcc 和代码生成基座上重新实现。
 
+## 当前发布状态
+
+- 高层 `task` API 与 async generator 已进入当前实现和回归。
+- 完整调试器仍是后续设计，本次首发不提供 `xl dbg`、`xl dap` 或独立 `xldbg.exe`。
+- 曾经存在的 probe/DAP smoke 只返回合成栈帧和占位变量，没有控制真实被调试程序，已从正式 CLI 和构建中删除。
+- 本文后续调试器章节只描述重新实现时必须满足的完整边界，不表示当前命令可用。
+
 ## 总原则
 
 - demo5 只作为迁移参考，不作为 demo6 的权威设计来源。
@@ -262,11 +269,11 @@ RC0 实现口径：
 - 复杂背压策略。
 - 多线程并行推进同一个 async generator。
 
-## 完整调试器体系
+## 后续完整调试器体系（首发暂缓）
 
 ### 命令行入口
 
-demo6 使用 `xl.exe` 作为统一入口：
+调试器完整实现并重新评审后，计划仍使用 `xl.exe` 作为统一入口：
 
 ```bat
 xl.exe dbg <file> [--break line] [--stop-on-entry] [--commands file] [--save-temps] [-- <args>...]
@@ -280,12 +287,11 @@ xl.exe dap
 - 调试器能力不进入 `xl.dll` 运行版。
 - dump 类开发辅助功能仍按 CLI 工具口径存在，不进入 DLL 运行版。
 
-RC0 实现口径：
+首发边界：
 
-- `dbg` 先提供批处理式 probe 调试入口，`--break` 可重复指定行号，`--stop-on-entry` 在首个 probe 停止，`--commands` 读取命令脚本。
-- `dbg` 命令脚本支持 `stack`、`scopes`、`variables`、`next`、`step`、`continue`、`quit`。
-- `dap` 提供 stdio DAP smoke 能力，覆盖 initialize、launch、setBreakpoints、configurationDone、threads、stackTrace、scopes、variables、next/stepIn/stepOut、continue、disconnect 和 unsupported request 稳定错误。
-- RC0 的变量查看先输出稳定的当前暂停点摘要；完整 live locals/value snapshot 后续继续增强。
+- 上述命令当前不存在，调用时走普通未知命令诊断。
+- 不保留只打印 probe 摘要、合成栈帧或占位变量的简化实现。
+- 重新开放命令前，必须一次满足本节后续的调试器模型和验收要求。
 
 ### 调试器模型
 

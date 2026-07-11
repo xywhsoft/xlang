@@ -52,7 +52,7 @@ test\suites\02_language_frontend.bat
 - `c`：C ABI 类型用例。
 - `call`：调用参数、默认参数和命名参数用例。
 - `cgen`：代码生成、运行时 lowering 和生成 C 快照用例。
-- `class`：class/custom 基础语义用例。
+- `class`：class/native-backed class 基础语义用例。
 - `cli`：CLI link/loadlib 用例。
 - `companion`：同名 C companion 用例。
 - `comments`：注释词法语法用例。

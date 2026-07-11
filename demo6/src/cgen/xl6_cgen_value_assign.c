@@ -441,7 +441,8 @@ static int xl6CgenMemberAssignIsDynamicTarget(XL6_CgenContext* ctx, const XL6_As
     }
     receiver = left->children[0];
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-    result = xl6CgenIsXValueType(receiverType);
+    result = xl6CgenRefTargetType(ctx, receiverType) == NULL &&
+             xl6CgenIsXValueType(receiverType);
     xl6AstFree(receiverType);
     return result;
 }
@@ -461,6 +462,10 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
 
     receiver = left->children[0];
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    if ( xl6CgenRefTargetType(ctx, receiverType) != NULL ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
     if ( !xl6CgenIsXValueType(receiverType) ) {
         xl6AstFree(receiverType);
         return 0;
@@ -523,6 +528,63 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
 }
 #include "xl6_cgen_value_assign_xvalue.c"
 
+/*
+    带资源的 class 字段采用真正的值语义：先完整取得右值所有权，再销毁旧值。
+    直接生成 C 结构体赋值会让左右两侧共享字符串、容器和闭包，最终双重释放。
+*/
+static int xl6CgenClassMemberAssignStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* left,
+    const XL6_AstNode* right,
+    const XL6_AstNode* fieldType)
+{
+    XL6_AstNode* classNode;
+    XL6_AstNode* ctorClass;
+    int id;
+    char slotName[64];
+    char tempName[64];
+    char slotPath[96];
+
+    classNode = xl6CgenClassNodeForType(ctx, fieldType);
+    if ( classNode == NULL ||
+         xl6CgenFindNativeBackedClass(ctx, classNode->text) != NULL ||
+         !xl6CgenClassNeedsDestroy(ctx, classNode) ) {
+        return 0;
+    }
+
+    id = ctx->tempId++;
+    snprintf(slotName, sizeof(slotName), "__xl6_class_field_slot_%d", id);
+    snprintf(tempName, sizeof(tempName), "__xl6_class_field_value_%d", id);
+    snprintf(slotPath, sizeof(slotPath), "(*%s)", slotName);
+
+    /* 左值地址只计算一次，属性、索引等复杂接收者不会被重复求值。 */
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s* %s = &(", xl6CgenTypeName(ctx, fieldType), slotName);
+    xl6CgenExpr(ctx, left);
+    xl6OutputPuts(");\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, fieldType), tempName);
+
+    ctorClass = NULL;
+    if ( xl6CgenCallIsClassCtor(ctx, right, &ctorClass) &&
+         ctorClass != NULL && xl6CTextEquals(classNode->text, ctorClass->text) ) {
+        if ( !xl6CgenEmitClassCtorInto(ctx, right, tempName) ) {
+            xl6CgenError(ctx, right, "class field constructor assignment lowering failed");
+        }
+    } else {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", tempName);
+        xl6CgenExpr(ctx, right);
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, fieldType, tempName, right);
+    }
+
+    xl6CgenReleaseClassFunctionFieldsForType(ctx, fieldType, slotPath);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "*%s = %s;\n", slotName, tempName);
+    return 1;
+}
+
 static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* left;
@@ -569,11 +631,11 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return;
     }
     if ( xl6CTextEquals(op, "=") && left->kind == XL6_AST_MEMBER ) {
-        XL6_AstNode* ctorCustom;
+        XL6_AstNode* ctorNativeClass;
         XL6_AstNode* fieldType;
-        XL6_AstNode* fieldCustom;
+        XL6_AstNode* fieldNativeClass;
 
-        ctorCustom = NULL;
+        ctorNativeClass = NULL;
         if ( xl6CgenClassPropertyMemberSetStmt(ctx, left, right) ) {
             return;
         }
@@ -605,7 +667,7 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6OutputPuts(");\n", ctx->out);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "char* %s = xrtCopyStr(", valueName);
-            xl6CgenExpr(ctx, right);
+            xl6CgenStringSourceExpr(ctx, fieldType, right);
             xl6OutputPuts(", 0u);\n", ctx->out);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "xrtFree((void*)*%s);\n", slotName);
@@ -661,14 +723,14 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6AstFree(fieldType);
             return;
         }
-        if ( xl6CgenCallIsNativeBackedCtor(ctx, right, &ctorCustom) ) {
-            fieldCustom = fieldType != NULL ? xl6CgenFindNativeBackedClass(ctx, fieldType->text) : NULL;
-            if ( fieldCustom == NULL ) {
+        if ( xl6CgenCallIsNativeBackedCtor(ctx, right, &ctorNativeClass) ) {
+            fieldNativeClass = fieldType != NULL ? xl6CgenFindNativeBackedClass(ctx, fieldType->text) : NULL;
+            if ( fieldNativeClass == NULL ) {
                 xl6AstFree(fieldType);
                 xl6CgenError(ctx, left, "native-backed class constructor can only assign to same-type native-backed class field");
                 return;
             }
-            if ( !xl6CTextEquals(fieldCustom->text, ctorCustom->text) ) {
+            if ( !xl6CTextEquals(fieldNativeClass->text, ctorNativeClass->text) ) {
                 xl6CgenError(ctx, right, "native-backed class constructor type does not match target field type");
                 xl6AstFree(fieldType);
                 return;
@@ -676,12 +738,12 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenIndent(ctx);
             xl6CgenExpr(ctx, left);
             xl6OutputPuts(".handle = ", ctx->out);
-            xl6CgenNativeBackedCtorValue(ctx, ctorCustom, right);
+            xl6CgenNativeBackedCtorValue(ctx, ctorNativeClass, right);
             xl6OutputPuts(";\n", ctx->out);
             xl6AstFree(fieldType);
             return;
         }
-        if ( xl6CgenTryClassCtorAssignTarget(ctx, left, right, fieldType) ) {
+        if ( xl6CgenClassMemberAssignStmt(ctx, left, right, fieldType) ) {
             xl6AstFree(fieldType);
             return;
         }
@@ -849,7 +911,7 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s = %s;\n", cName, tempName);
             if ( (xl6CgenFindTrackedVarFlags(ctx, left->text) & XL6_CGEN_VAR_MODULE_GLOBAL) != 0 ) {
-                xl6CgenModuleGlobalClassPublishShared(ctx, targetType, cName);
+                xl6CgenClassValuePublishShared(ctx, targetType, cName);
             }
             return;
         }
@@ -918,7 +980,7 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenNameAssignTargetPath(ctx, left->text, cName, sizeof(cName));
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "char* __xl6_string_assign_%d = xrtCopyStr(", id);
-        xl6CgenExpr(ctx, right);
+        xl6CgenStringSourceExpr(ctx, xl6CgenNameAssignTargetType(ctx, left->text), right);
         xl6OutputPuts(", 0u);\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out,

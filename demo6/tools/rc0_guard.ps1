@@ -272,15 +272,17 @@ Invoke-GuardStep "required files" {
 }
 
 Invoke-GuardStep "static output boundary" {
+    Assert-NoPattern "removed custom source model" @("src") "\b(custom|[A-Za-z_]*Custom[A-Za-z_]*)\b" -CaseSensitive
     Assert-NoPattern "removed output compat header" @("src") "xl6_output_compat"
     Assert-NoPattern "codegen and dump CRT text output" @("src\cgen", "src\common", "src\abi", "src\ast", "src\ir") "\b(fputc|fputs|fprintf)\s*\("
-    Assert-NoPattern "codegen direct stdio output" @("src\cgen") "(FILE\s*\*)|(\bstdout\b)|(\bstderr\b)" -CaseSensitive
+    # stdout/stderr 作为保留标识符文本是合法的，只禁止真实的 C 标识符引用。
+    Assert-NoPattern "codegen direct stdio output" @("src\cgen") "(FILE\s*\*)|(\b(stdout|stderr)\b(?!`"))" -CaseSensitive
     Assert-NoPattern "stale xvalue scalar conversion fallback" @("src\cgen") "__xl6_conv_" -CaseSensitive
 }
 
 Invoke-GuardStep "static XRT boundary" {
     Assert-NoPattern "removed common file wrappers" @("src") "xl6(?!Std)(?!OutputOpenFile\b)[A-Za-z0-9_]*(ReadFileText|OpenFile|FileExists|CreateDirAll|StrDupRange)|xl6_file\.c"
-    Assert-NoPattern "removed custom time literal wrapper" @("src") "xl6_time_literal"
+    Assert-NoPattern "removed local time literal wrapper" @("src") "xl6_time_literal"
     Assert-NoPattern "codegen CRT heap allocation" @("src\cgen") "\b(malloc|calloc|realloc|free)\s*\(" -CaseSensitive
     Assert-NoPattern "CRT file path I/O" @("src\driver", "src\package", "src\compile", "src\api", "src\backend", "src\sem", "src\ast", "src\ir", "src\abi", "src\cgen", "src\common") "\b(fopen|_wfopen|fread|fclose|fseek|ftell|rename|remove|_unlink|unlink|_rmdir|rmdir)\s*\(" -CaseSensitive
     Assert-NoPattern "CRT buffered file output outside common" @("src\driver", "src\package", "src\compile", "src\api", "src\backend", "src\sem", "src\ast", "src\ir", "src\abi", "src\cgen") "\b(fwrite|fflush)\s*\(" -CaseSensitive
@@ -297,7 +299,7 @@ Invoke-GuardStep "static wiring guards" {
         "check_async_task_soak.ps1",
         "check_docs_index.ps1",
         "check_cgenrule_docs.ps1",
-        "check_dap_smoke.ps1",
+        "check_debugger_not_released.ps1",
         "check_risk_ledger.ps1",
         "check_cgen_statement_expr_allowlist.ps1",
         "check_cgen_module_size.ps1",
@@ -307,6 +309,7 @@ Invoke-GuardStep "static wiring guards" {
         "check_cli_temp_cleanup.ps1",
         "check_source_wiring.ps1",
         "check_source_encoding.ps1",
+        "check_frontend_fuzz.ps1",
         "check_toolchain_paths.ps1",
         "check_dll_api_boundary.ps1",
         "check_test_case_wiring.ps1",
@@ -372,9 +375,9 @@ Invoke-GuardStep "diagnostics" {
     New-Item -ItemType Directory -Path $tmp | Out-Null
 
     Invoke-XlExpectJsonFailure "semantic json diagnostic" @("check", "test\cases\sem_unknown_type.xl", "--json") (Join-Path $tmp "sem.json") "sem"
-    Invoke-XlExpectJsonFailure "import json diagnostic" @("build", "test\cases\import_source_no_global_pollution.xl", "-o", (Join-Path $tmp "bad_import.exe"), "--json") (Join-Path $tmp "import.json") "sem"
+    Invoke-XlExpectJsonFailure "import json diagnostic" @("check", "test\cases\import_missing_target.xl", "--json") (Join-Path $tmp "import.json") "import"
     Invoke-XlExpectTextFailure "semantic text diagnostic" @("check", "test\cases\sem_unknown_type.xl") (Join-Path $tmp "sem.txt") "sem"
-    Invoke-XlExpectTextFailure "import text diagnostic" @("build", "test\cases\import_source_no_global_pollution.xl", "-o", (Join-Path $tmp "bad_import.exe")) (Join-Path $tmp "import.txt") "sem"
+    Invoke-XlExpectTextFailure "import text diagnostic" @("check", "test\cases\import_missing_target.xl") (Join-Path $tmp "import.txt") "import"
 }
 
 if ( ! $SkipFullTests ) {

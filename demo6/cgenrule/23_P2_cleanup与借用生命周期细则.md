@@ -6,25 +6,25 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `custom` 的 `destroy` 映射到 `"xxx_destroy"` 或裸符号 |
-| 生成规则描述 | 输出 C 符号时，若文本是以单引号或双引号包住的字面量，则去掉首尾引号后原样输出；NULL 文本输出 `_`。该规则主要影响 custom 特殊函数调用的符号形态。 |
+| xlang 写法 | `native-backed class` 的 `destroy` 映射到 `"xxx_destroy"` 或裸符号 |
+| 生成规则描述 | 输出 C 符号时，若文本是以单引号或双引号包住的字面量，则去掉首尾引号后原样输出；NULL 文本输出 `_`。该规则主要影响 native-backed class 特殊函数调用的符号形态。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:3` |
 | 对应生成的 C 代码 | `xxx_destroy(obj.handle);` |
 | 中间形态伪代码 | `if text is quoted: emit inner text; else emit text or "_"` |
 | 实现同等功能手写的 C 代码 | 手写 C 直接写函数名。 |
 | 额外依赖的封装代码 | 无。 |
 
-## CGEN-CLEAN-002 custom/class 析构能力判定
+## CGEN-CLEAN-002 native-backed class/class 析构能力判定
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `custom Foo ... destroy ... end`、`class Bar ... destroy ... end` |
-| 生成规则描述 | custom 通过查找特殊成员 `destroy` 判断是否需要释放；class 通过查找 class 特殊成员 `destroy` 判断直接析构能力。该判定会被声明 cleanup 和 class 递归析构规则复用。 |
+| xlang 写法 | `class Foo ... native point handle ... extern destroy ... end`、`class Bar ... destroy ... end` |
+| 生成规则描述 | native-backed class 通过查找特殊成员 `destroy` 判断是否需要释放；class 通过查找 class 特殊成员 `destroy` 判断直接析构能力。该判定会被声明 cleanup 和 class 递归析构规则复用。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:23` |
 | 对应生成的 C 代码 | `Foo_destroy(x.handle);` 或 `xl6_Bar_destroy(&b);` |
 | 中间形态伪代码 | `hasDestroy = findSpecial(node, "destroy") != null` |
 | 实现同等功能手写的 C 代码 | 手写 C 由程序员显式调用析构函数。 |
-| 额外依赖的封装代码 | class/custom 特殊成员查找 helper。 |
+| 额外依赖的封装代码 | class/native-backed class 特殊成员查找 helper。 |
 
 ## CGEN-CLEAN-003 func 类型识别
 
@@ -67,7 +67,7 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `func f = fn; var r = f(1, "x")` |
-| 生成规则描述 | 一个类型可用于 var invoke 的条件是：具体化后为 `var`，或能映射到 xvalue 运行时类型常量。class/custom/union 等不可自动进入该路径。 |
+| 生成规则描述 | 一个类型可用于 var invoke 的条件是：具体化后为 `var`，或能映射到 xvalue 运行时类型常量。class/native-backed class/union 等不可自动进入该路径。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:134` |
 | 对应生成的 C 代码 | `xl6_func_invoke_var(..., xvalue_arg_array, ...)` |
 | 中间形态伪代码 | `return type == var || runtimeTypeConst(type) != null` |
@@ -127,12 +127,12 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `class A ... destroy ... end`、或 class 字段中包含需清理资源 |
-| 生成规则描述 | class 需要析构的条件包括：自身有 `destroy`；字段是 function；字段 custom 有 destroy；字段 class 递归需要析构；基类递归需要析构。只要任一条件满足，局部变量和返回路径都可能生成 class cleanup。 |
+| 生成规则描述 | class 需要析构的条件包括：自身有 `destroy`；字段是 function；字段 native-backed class 有 destroy；字段 class 递归需要析构；基类递归需要析构。只要任一条件满足，局部变量和返回路径都可能生成 class cleanup。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:323` |
 | 对应生成的 C 代码 | `xl6_A_destroy(&a);` |
 | 中间形态伪代码 | `has own destroy || any field needs cleanup || base needs cleanup` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要为每个含资源字段的结构体手写析构流程。 |
-| 额外依赖的封装代码 | class/custom 查找和 destroy helper。 |
+| 额外依赖的封装代码 | class/native-backed class 查找和 destroy helper。 |
 
 ## CGEN-CLEAN-012 function 路径释放
 
@@ -230,17 +230,17 @@
 | 实现同等功能手写的 C 代码 | 手写 C 不需要 cleanup 栈，但要在每个出口手写释放。 |
 | 额外依赖的封装代码 | cgen cleanup 栈。 |
 
-## CGEN-CLEAN-020 custom cleanup 注册
+## CGEN-CLEAN-020 native-backed class cleanup 注册
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `MyCustom x = ...`，且 custom 定义了 `destroy` |
-| 生成规则描述 | 只有 custom 定义存在且有 `destroy` 特殊成员时，才注册 `XL6_CGEN_CLEANUP_CUSTOM`。无析构 custom 不产生自动释放代码。 |
+| xlang 写法 | `MyNative x = ...`，且 native-backed class 定义了 `destroy` |
+| 生成规则描述 | 只有 native-backed class 定义存在且有 `destroy` 特殊成员时，才注册 `XL6_CGEN_CLEANUP_NATIVE_CLASS`。无析构 native-backed class 不产生自动释放代码。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:592` |
 | 对应生成的 C 代码 | `if (x.handle != 0) { my_destroy(x.handle); x.handle = 0; }` |
-| 中间形态伪代码 | `if customHasDestroy: add cleanup CUSTOM` |
+| 中间形态伪代码 | `if nativeClassHasDestroy: add cleanup NATIVE_CLASS` |
 | 实现同等功能手写的 C 代码 | 手写 C 只在拥有资源所有权时调用 destroy。 |
-| 额外依赖的封装代码 | custom destroy 映射。 |
+| 额外依赖的封装代码 | native-backed class destroy 映射。 |
 
 ## CGEN-CLEAN-021 class cleanup 注册
 
@@ -458,17 +458,17 @@
 | 实现同等功能手写的 C 代码 | 手写 C 根据同步原语类型调用对应销毁函数。 |
 | 额外依赖的封装代码 | 无额外封装，直接选择对应同步销毁函数。 |
 
-## CGEN-CLEAN-039 custom cleanup 输出
+## CGEN-CLEAN-039 native-backed class cleanup 输出
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `custom` 局部变量作用域结束 |
-| 生成规则描述 | cleanup kind 为 custom 时再次查找 `destroy` 特殊成员；若变量 `.handle != 0`，调用映射 destroy 函数并将 handle 清零。 |
+| xlang 写法 | `native-backed class` 局部变量作用域结束 |
+| 生成规则描述 | cleanup kind 为 native-backed class 时再次查找 `destroy` 特殊成员；若变量 `.handle != 0`，调用映射 destroy 函数并将 handle 清零。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_cleanup.c:266` |
 | 对应生成的 C 代码 | `if (x.handle != 0) { xxx_destroy(x.handle); x.handle = 0; }` |
-| 中间形态伪代码 | `destroy = find custom destroy; if handle: destroy(handle); clear handle` |
+| 中间形态伪代码 | `destroy = find native-backed class destroy; if handle: destroy(handle); clear handle` |
 | 实现同等功能手写的 C 代码 | 手写 C 调用 C 库 destroy 函数并清空句柄。 |
-| 额外依赖的封装代码 | custom destroy 声明映射。 |
+| 额外依赖的封装代码 | native-backed class destroy 声明映射。 |
 
 ## CGEN-CLEAN-040 function cleanup 输出
 

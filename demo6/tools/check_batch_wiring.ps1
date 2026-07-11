@@ -129,7 +129,7 @@ function Check-TutorialBatch($text)
         "07_containers.xl",
         "08_generics.xl",
         "09_class_lifecycle.xl",
-        "10_c_interop_and_custom.xl",
+        "10_c_interop_and_native_class.xl",
         "11_export_to_c.xl",
         "12_errors_and_docs.xl"
     )

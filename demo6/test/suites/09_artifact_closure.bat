@@ -66,5 +66,8 @@ if errorlevel 1 exit /b 1
 findstr /C:"script_embed_xlang=ok" build\test\trim_script_embed_xlang.out >nul
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$items=@(Get-ChildItem -LiteralPath 'release\tmp' -Force); if($items.Count -ne 0){$items | ForEach-Object { Write-Host ('unexpected release/tmp artifact: ' + $_.FullName) }; exit 1}"
+if errorlevel 1 exit /b 1
+
 echo DEMO6 suite ok: artifact closure checks
 exit /b 0

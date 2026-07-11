@@ -7,12 +7,12 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `f(1, 2)`、`obj.method()`、`a::<int>(1)` |
-| 生成规则描述 | `XL6_AST_CALL` 先按 callee 形态分派：成员调用走 function 字段/线程/同步/channel/隐性方法/class/custom；`base(...)` 与内置并发构造优先处理；泛型实例化走显式泛型函数解析；名字调用再判断 `type()`、类型转换、`var` 函数值、`function` 函数值、extern/export/普通函数。 |
+| 生成规则描述 | `XL6_AST_CALL` 先按 callee 形态分派：成员调用走 function 字段/线程/同步/channel/隐性方法/class/native-backed class；`base(...)` 与内置并发构造优先处理；泛型实例化走显式泛型函数解析；名字调用再判断 `type()`、类型转换、`var` 函数值、`function` 函数值、extern/export/普通函数。 |
 | 生成器文件名和行号 | `xl6_cgen_expr.c:185`、`xl6_cgen_expr.c:189`、`xl6_cgen_expr.c:205`、`xl6_cgen_expr.c:214`、`xl6_cgen_expr.c:250` |
 | 对应生成的 C 代码 | 根据目标不同生成 `f(args)`、`xl6_var_call(...)`、`xl6_function_call_var(...)`、`((ret(*)(void*, ...))fn.invoke)(fn.env, ...)` 等。 |
 | 中间形态伪代码 | `dispatchCall(calleeKind, calleeType, args)` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常在源码层已经知道目标函数，不需要这一层动态分派。 |
-| 额外依赖的封装代码 | 取决于目标，可能需要 function runtime、xcall wrapper、class/custom method helper。 |
+| 额外依赖的封装代码 | 取决于目标，可能需要 function runtime、xcall wrapper、class/native-backed class method helper。 |
 
 ## CGEN-CALL-002 未知目标普通实参输出
 
@@ -403,7 +403,7 @@
 - `build\test\cgen_member_function_class_return_focus.exe`
 - `tools\check_cgen_statement_expr_allowlist.ps1`
 
-当前结论：`RISK-CALL-001` 继续保持已收口。当前发布口径不允许恢复隐式 GNU statement expression fallback；后续新增复杂调用、复杂返回值或临时 class/custom/typed container 实参时，必须优先补语句级 lowering、helper 或生成形态守门。
+当前结论：`RISK-CALL-001` 继续保持已收口。当前发布口径不允许恢复隐式 GNU statement expression fallback；后续新增复杂调用、复杂返回值或临时 class/native-backed class/typed container 实参时，必须优先补语句级 lowering、helper 或生成形态守门。
 
 ## 补充：RISK-CALL-001 成员 string 返回复核
 

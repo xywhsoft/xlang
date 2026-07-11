@@ -1,0 +1,28 @@
+const int DEFAULT_SCORE = 41
+const string DEFAULT_NAME = "alpha"
+
+class Item
+    int score = DEFAULT_SCORE
+    string name = DEFAULT_NAME
+end
+
+class Box<T>
+    int marker = DEFAULT_SCORE
+    T value
+
+    create(T initial)
+        self.value = initial
+    end
+end
+
+Item globalItem = Item()
+
+Item localItem = Item()
+assert localItem.score == 41
+assert localItem.name == "alpha"
+assert globalItem.score == 41
+assert globalItem.name == "alpha"
+
+Box<string> box = Box::<string>("ready")
+assert box.marker == 41
+assert box.value == "ready"

@@ -132,6 +132,8 @@ $requiredArtifactSubstrings = @{
     "sem_function_signature_mismatch.err.txt" = "target function, value function"
     "cgen_function_signature_mismatch.err.txt" = "target function, value function"
     "sem_function_bare_named_arg.err.txt" = (Join-CodePoints @(0x0066, 0x0075, 0x006E, 0x0063, 0x0020, 0x8C03, 0x7528, 0x4E0D, 0x652F, 0x6301, 0x547D, 0x540D, 0x53C2, 0x6570))
+    "sem_function_typed_named_arg.err.txt" = (Join-CodePoints @(0x0066, 0x0075, 0x006E, 0x0063, 0x0020, 0x503C, 0x8C03, 0x7528, 0x4E0D, 0x652F, 0x6301, 0x547D, 0x540D, 0x53C2, 0x6570))
+    "sem_class_property_vararg.err.txt" = "property parameters cannot be vararg"
     "sem_function_bare_overload_name.err.txt" = (Join-CodePoints @(0x0066, 0x0075, 0x006E, 0x0063, 0x0020, 0x76EE, 0x6807, 0x65E0, 0x6CD5, 0x4ECE, 0x91CD, 0x8F7D, 0x51FD, 0x6570, 0x540D, 0x9009, 0x62E9, 0x552F, 0x4E00, 0x5019, 0x9009))
     "sem_function_call_named_order.err.txt" = (Join-CodePoints @(0x4F4D, 0x7F6E, 0x53C2, 0x6570, 0x4E0D, 0x80FD, 0x51FA, 0x73B0, 0x5728, 0x547D, 0x540D, 0x53C2, 0x6570, 0x4E4B, 0x540E))
     "sem_function_call_arg_type.err.txt" = (Join-CodePoints @(0x0066, 0x0075, 0x006E, 0x0063, 0x0020, 0x8C03, 0x7528, 0x5B9E, 0x53C2, 0x7C7B, 0x578B, 0x548C, 0x7B7E, 0x540D, 0x4E0D, 0x5339, 0x914D))
@@ -192,16 +194,14 @@ $requiredArtifactSubstrings = @{
     "sem_task_spawn_arg_future.err.txt" = "task.spawn parameter type must be supported"
     "sem_task_spawn_arg_sync.err.txt" = "task.spawn parameter type must be supported"
     "sem_task_spawn_arg_thread.err.txt" = "task.spawn parameter type must be supported"
-    "sem_task_all_return_future.err.txt" = "future resource handle result"
-    "sem_task_all_return_channel.err.txt" = "future resource handle result"
-    "sem_task_all_return_generator.err.txt" = "future resource handle result"
-    "sem_task_all_typed_array_return_future.err.txt" = "future resource handle result"
-    "sem_task_all_typed_array_return_channel.err.txt" = "future resource handle result"
-    "sem_task_all_typed_array_return_generator.err.txt" = "future resource handle result"
-    "sem_task_race_return_sync.err.txt" = "future resource handle result"
-    "sem_task_race_return_thread.err.txt" = "future resource handle result"
-    "sem_task_race_typed_array_return_sync.err.txt" = "future resource handle result"
-    "sem_task_race_typed_array_return_thread.err.txt" = "future resource handle result"
+    "sem_task_all_return_channel.err.txt" = "move-only resource handles cannot be aggregated"
+    "sem_task_all_return_generator.err.txt" = "move-only resource handles cannot be aggregated"
+    "sem_task_all_typed_array_return_channel.err.txt" = "move-only resource handles cannot be aggregated"
+    "sem_task_all_typed_array_return_generator.err.txt" = "move-only resource handles cannot be aggregated"
+    "sem_task_race_return_sync.err.txt" = "move-only resource handles cannot be aggregated"
+    "sem_task_race_return_thread.err.txt" = "move-only resource handles cannot be aggregated"
+    "sem_task_race_typed_array_return_sync.err.txt" = "move-only resource handles cannot be aggregated"
+    "sem_task_race_typed_array_return_thread.err.txt" = "move-only resource handles cannot be aggregated"
     "sem_task_cancel_channel.err.txt" = "task.cancel"
     "sem_task_cancel_generator.err.txt" = "task.cancel"
     "sem_task_cancel_sync.err.txt" = "task.cancel"
@@ -273,18 +273,18 @@ $requiredArtifactSubstrings = @{
     "sem_class_destroy_params.err.txt" = $diagDestroyNoParams
     "sem_class_field_conflict.err.txt" = "class member layout name conflicts with an existing field or union"
     "sem_class_method_overload_conflict.err.txt" = "duplicate or ambiguous class member overload signature"
-    "sem_custom_bad_special.err.txt" = $diagNativeBadSpecial
-    "sem_custom_duplicate_c_symbol.err.txt" = $diagNativeDuplicateCSymbol
-    "sem_custom_bind_non_point.err.txt" = $diagNativeBindPoint
-    "sem_custom_create_point_bind_conflict.err.txt" = $diagCreateOverloadMissing
-    "sem_custom_method_overload_conflict.err.txt" = $diagNativeOverloadConflict
+    "sem_native_class_bad_special.err.txt" = $diagNativeBadSpecial
+    "sem_native_class_duplicate_c_symbol.err.txt" = $diagNativeDuplicateCSymbol
+    "sem_native_class_bind_non_point.err.txt" = $diagNativeBindPoint
+    "sem_native_class_create_point_bind_conflict.err.txt" = $diagCreateOverloadMissing
+    "sem_native_class_method_overload_conflict.err.txt" = $diagNativeOverloadConflict
     "sem_closure_capture_destroy_class.err.txt" = $diagClosureCaptureNonCopyable
-    "sem_closure_capture_custom.err.txt" = $diagClosureCaptureNonCopyable
-    "sem_closure_capture_custom_field.err.txt" = $diagClosureCaptureNonCopyable
+    "sem_closure_capture_native_class.err.txt" = $diagClosureCaptureNonCopyable
+    "sem_closure_capture_native_class_field.err.txt" = $diagClosureCaptureNonCopyable
     "sem_anon_capture_assign.err.txt" = $diagClosureCaptureReadonly
     "sem_noncopyable_class_copy_init.err.txt" = $diagNonCopyableInit
     "sem_noncopyable_assign.err.txt" = $diagNonCopyableAssign
-    "sem_noncopyable_custom_param.err.txt" = $diagNonCopyableParam
+    "sem_noncopyable_native_class_param.err.txt" = $diagNonCopyableParam
     "sem_noncopyable_return.err.txt" = $diagNonCopyableReturnExisting
     "sem_var_destroy_class_init.err.txt" = "target var, value Resource"
     "sem_var_destroy_class_return.err.txt" = "target var, value Resource"
@@ -365,6 +365,8 @@ $maxArtifactLineCounts = @{
     "sem_class_implicit_upcast.err.txt" = 4
     "sem_multi_return_type_diagnostic.err.txt" = 2
     "sem_var_to_concrete_implicit.err.txt" = 4
+    "sem_class_property_vararg.err.txt" = 2
+    "sem_container_literal_target_item_mismatch.err.txt" = 4
     "sem_async_return_channel.err.txt" = 1
     "sem_async_return_future.err.txt" = 1
     "sem_async_return_sync.err.txt" = 1
@@ -374,10 +376,8 @@ $maxArtifactLineCounts = @{
     "sem_async_param_channel.err.txt" = 1
     "sem_async_param_sync.err.txt" = 1
     "sem_async_param_thread.err.txt" = 1
-    "sem_task_all_return_future.err.txt" = 1
     "sem_task_all_return_channel.err.txt" = 1
     "sem_task_all_return_generator.err.txt" = 1
-    "sem_task_all_typed_array_return_future.err.txt" = 1
     "sem_task_all_typed_array_return_channel.err.txt" = 1
     "sem_task_all_typed_array_return_generator.err.txt" = 1
     "sem_task_race_return_sync.err.txt" = 1
@@ -409,6 +409,8 @@ $allowedMultiLineArtifacts.Add("c_abi_mismatch_extern_header.err.txt") | Out-Nul
 $allowedMultiLineArtifacts.Add("sem_class_implicit_upcast.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_multi_return_type_diagnostic.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_var_to_concrete_implicit.err.txt") | Out-Null
+$allowedMultiLineArtifacts.Add("sem_class_property_vararg.err.txt") | Out-Null
+$allowedMultiLineArtifacts.Add("sem_container_literal_target_item_mismatch.err.txt") | Out-Null
 
 function Add-Failure($message)
 {

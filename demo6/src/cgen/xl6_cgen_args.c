@@ -528,21 +528,21 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6CgenExpr(ctx, expr);
         xl6OutputPutc(')', ctx->out);
     } else if ( typeNode != NULL && xl6CgenIsNativeBackedClassType(ctx, typeNode) ) {
-        XL6_AstNode* ctorCustom = NULL;
+        XL6_AstNode* ctorNativeClass = NULL;
         int isCtor;
         xl6CgenNativeBackedTypeRefName(cTypeName, sizeof(cTypeName), typeNode->text);
         xl6CgenBoxSymbol(ctx->out, cTypeName);
         xl6OutputPutc('(', ctx->out);
-        isCtor = !hasReplacement && xl6CgenCallIsNativeBackedCtor(ctx, expr, &ctorCustom);
+        isCtor = !hasReplacement && xl6CgenCallIsNativeBackedCtor(ctx, expr, &ctorNativeClass);
         if ( !hasReplacement && !isCtor && expr->kind == XL6_AST_CALL && expr->childCount > 0 &&
              expr->children[0] != NULL && expr->children[0]->kind == XL6_AST_NAME &&
              xl6CTextEquals(expr->children[0]->text, typeNode->text) ) {
-            ctorCustom = xl6CgenFindNativeBackedClass(ctx, typeNode->text);
-            isCtor = ctorCustom != NULL;
+            ctorNativeClass = xl6CgenFindNativeBackedClass(ctx, typeNode->text);
+            isCtor = ctorNativeClass != NULL;
         }
-        if ( isCtor && ctorCustom != NULL ) {
+        if ( isCtor && ctorNativeClass != NULL ) {
             xl6OutputPrintf(ctx->out, "(%s){", cTypeName);
-            xl6CgenNativeBackedCtorValue(ctx, ctorCustom, expr);
+            xl6CgenNativeBackedCtorValue(ctx, ctorNativeClass, expr);
             xl6OutputPutc('}', ctx->out);
         } else {
             xl6CgenExpr(ctx, expr);
@@ -609,6 +609,30 @@ static int xl6CgenBinaryCompareOpIsXValue(const char* op)
            xl6CTextEquals(op, ">") || xl6CTextEquals(op, ">=");
 }
 
+static int xl6CgenIsBasicXValueType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    return xl6CgenIsXValueType(typeNode) && xl6CgenRefTargetType(ctx, typeNode) == NULL;
+}
+
+static int xl6CgenBinaryCompareHasRef(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    XL6_AstNode* leftType;
+    XL6_AstNode* rightType;
+    int result;
+
+    if ( node == NULL || node->kind != XL6_AST_BINARY || node->childCount < 2 ||
+         (!xl6CTextEquals(node->text, "==") && !xl6CTextEquals(node->text, "!=")) ) {
+        return 0;
+    }
+    leftType = xl6CgenCloneExprTypeForInference(ctx, node->children[0]);
+    rightType = xl6CgenCloneExprTypeForInference(ctx, node->children[1]);
+    result = xl6CgenRefTargetType(ctx, leftType) != NULL ||
+             xl6CgenRefTargetType(ctx, rightType) != NULL;
+    xl6AstFree(leftType);
+    xl6AstFree(rightType);
+    return result;
+}
+
 static int xl6CgenBinaryCompareIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     XL6_AstNode* leftType;
@@ -628,7 +652,9 @@ static int xl6CgenBinaryCompareIsXValue(XL6_CgenContext* ctx, const XL6_AstNode*
 
     leftType = xl6CgenCloneExprTypeForInference(ctx, node->children[0]);
     rightType = xl6CgenCloneExprTypeForInference(ctx, node->children[1]);
-    result = xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType);
+    result = xl6CgenBinaryCompareHasRef(ctx, node) ||
+             xl6CgenIsBasicXValueType(ctx, leftType) ||
+             xl6CgenIsBasicXValueType(ctx, rightType);
     xl6AstFree(leftType);
     xl6AstFree(rightType);
     return result;
@@ -659,7 +685,11 @@ static void xl6CgenXValueCompareExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
         if ( xl6CTextEquals(node->text, "!=") ) {
             xl6OutputPuts("(!", ctx->out);
         }
-        xl6OutputPuts("xl6_xrt_basic_equal_release(", ctx->out);
+        xl6OutputPuts(
+            xl6CgenBinaryCompareHasRef(ctx, node) ?
+                "xl6_ref_identity_equal_release(" :
+                "xl6_xrt_basic_equal_release(",
+            ctx->out);
         xl6CgenXValueFromExpr(ctx, node->children[0]);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenXValueFromExpr(ctx, node->children[1]);
@@ -730,7 +760,8 @@ static int xl6CgenBinaryArithmeticIsXValue(XL6_CgenContext* ctx, const XL6_AstNo
 
     leftType = xl6CgenCloneExprTypeForInference(ctx, node->children[0]);
     rightType = xl6CgenCloneExprTypeForInference(ctx, node->children[1]);
-    result = xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType);
+    result = xl6CgenIsBasicXValueType(ctx, leftType) ||
+             xl6CgenIsBasicXValueType(ctx, rightType);
     xl6AstFree(leftType);
     xl6AstFree(rightType);
     return result;
@@ -786,6 +817,7 @@ static void xl6CgenXValueBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
     xl6CgenXValueFromExpr(ctx, right);
     xl6OutputPrintf(ctx->out, ", %d)", xl6CgenXValueBinaryMode(node->text));
 }
+
 static int xl6CgenUnaryIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     XL6_AstNode* valueType;
@@ -796,7 +828,7 @@ static int xl6CgenUnaryIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
     }
 
     valueType = xl6CgenCloneExprTypeForInference(ctx, node->children[0]);
-    result = xl6CgenIsXValueType(valueType);
+    result = xl6CgenIsBasicXValueType(ctx, valueType);
     xl6AstFree(valueType);
     return result;
 }
@@ -1000,7 +1032,12 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
         } else if ( xl6CTextEquals(target, "point") ) {
             xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetPoint", arg);
         } else {
-            xl6CgenError(ctx, node, "当前 C 生成不支持该类型转换");
+            char message[256];
+            snprintf(message, sizeof(message),
+                     "C 代码生成不支持从 %s 转换为 %s",
+                     source != NULL ? source : "<unknown>",
+                     target != NULL ? target : "<unknown>");
+            xl6CgenError(ctx, node, message);
             xl6OutputPuts("0", ctx->out);
         }
     } else if ( xl6CgenIsIntegerTypeName(target) ) {
@@ -1090,7 +1127,12 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
             xl6OutputPuts("(void*)0", ctx->out);
         }
     } else {
-        xl6CgenError(ctx, node, "当前 C 生成不支持该类型转换");
+        char message[256];
+        snprintf(message, sizeof(message),
+                 "C 代码生成不支持从 %s 转换为 %s",
+                 source != NULL ? source : "<unknown>",
+                 target != NULL ? target : "<unknown>");
+        xl6CgenError(ctx, node, message);
         xl6OutputPuts("0", ctx->out);
     }
 

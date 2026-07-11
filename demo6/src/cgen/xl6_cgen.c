@@ -32,6 +32,8 @@ static const char* xl6CgenValueStorageCType(XL6_CgenContext* ctx, const XL6_AstN
 #include "src/cgen/xl6_cgen_extern_call.c"
 #include "src/cgen/xl6_cgen_expr_cleanup.c"
 #include "src/cgen/xl6_cgen_loop_target.c"
+#include "src/cgen/xl6_cgen_finally_target.c"
+static void xl6CgenDiscardPendingFinallyReturn(XL6_CgenContext* ctx, int targetId);
 #include "src/cgen/xl6_cgen_function_value.c"
 #include "src/cgen/xl6_cgen_function_member.c"
 static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6_AstNode* expr);
@@ -87,6 +89,7 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
 #include "src/cgen/xl6_cgen_stmt_loop_string.c"
 #include "src/cgen/xl6_cgen_stmt_loop_protocol.c"
 #include "src/cgen/xl6_cgen_stmt_loop_typed.c"
+static void xl6CgenAsyncPendingResultCompletion(XL6_CgenContext* ctx, int targetId);
 #include "src/cgen/xl6_cgen_stmt_error.c"
 #include "src/cgen/xl6_cgen_stmt_dispatch.c"
 #include "src/cgen/xl6_cgen_decl_proto.c"

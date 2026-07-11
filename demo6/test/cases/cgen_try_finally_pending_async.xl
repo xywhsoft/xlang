@@ -1,0 +1,38 @@
+int trace = 0
+
+async func asyncReturnThroughFinally() as int
+    try
+        return 21
+    finally
+        trace = trace * 10 + 9
+    end
+end
+
+async func asyncFinallyOverridesReturn() as int
+    try
+        return 22
+    finally
+        return 23
+    end
+end
+
+async func asyncFinallyThrows() as string
+    try
+        return "discard async"
+    finally
+        throw "async finally override"
+    end
+end
+
+assert await asyncReturnThroughFinally() == 21
+assert trace == 9
+assert await asyncFinallyOverridesReturn() == 23
+
+int caught = 0
+try
+    string ignored = await asyncFinallyThrows()
+catch e
+    assert e.message == "async finally override"
+    caught = 1
+end
+assert caught == 1

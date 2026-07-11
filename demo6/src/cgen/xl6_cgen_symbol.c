@@ -1,4 +1,4 @@
-﻿static int xl6CgenFuncOverloadCount(XL6_CgenContext* ctx, const char* name)
+static int xl6CgenFuncOverloadCount(XL6_CgenContext* ctx, const char* name)
 {
     size_t i;
     int count;
@@ -277,22 +277,22 @@ static void xl6CgenClassCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* 
     }
 }
 
-static void xl6CgenNativeMemberSymbol(XL6_Output* out, const char* customName, const char* memberName)
+static void xl6CgenNativeMemberSymbol(XL6_Output* out, const char* nativeClassName, const char* memberName)
 {
     xl6OutputPuts("xl_native_", out);
-    xl6CgenFputsEncodedText(out, customName);
+    xl6CgenFputsEncodedText(out, nativeClassName);
     xl6OutputPuts("__", out);
     xl6CgenFputsEncodedText(out, memberName);
 }
 
-static int xl6CgenNativeCallableOverloadCount(const XL6_AstNode* customNode, const XL6_AstNode* memberNode)
+static int xl6CgenNativeCallableOverloadCount(const XL6_AstNode* nativeClassNode, const XL6_AstNode* memberNode)
 {
     const XL6_AstNode* body;
     const char* name;
     size_t i;
     int count;
 
-    body = xl6CgenClassBody(customNode);
+    body = xl6CgenClassBody(nativeClassNode);
     name = xl6CgenCallableName(memberNode);
     count = 0;
     if ( body == NULL || memberNode == NULL || name == NULL ) {
@@ -309,18 +309,18 @@ static int xl6CgenNativeCallableOverloadCount(const XL6_AstNode* customNode, con
     return count;
 }
 
-static void xl6CgenNativeCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* customNode, const XL6_AstNode* memberNode)
+static void xl6CgenNativeCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* nativeClassNode, const XL6_AstNode* memberNode)
 {
     const XL6_AstNode* params;
     const char* name;
     size_t i;
 
     name = xl6CgenCallableName(memberNode);
-    xl6CgenNativeMemberSymbol(ctx->out, customNode != NULL ? customNode->text : "_", name != NULL ? name : "_");
+    xl6CgenNativeMemberSymbol(ctx->out, nativeClassNode != NULL ? nativeClassNode->text : "_", name != NULL ? name : "_");
 
     if ( memberNode == NULL ||
          memberNode->kind != XL6_AST_FUNC ||
-         xl6CgenNativeCallableOverloadCount(customNode, memberNode) <= 1 ) {
+         xl6CgenNativeCallableOverloadCount(nativeClassNode, memberNode) <= 1 ) {
         return;
     }
 
@@ -406,7 +406,7 @@ static void xl6CgenFuncSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
         const XL6_AstNode* param = params->children[i];
         xl6OutputPuts("__", ctx->out);
         if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
-            xl6CgenMangledPart(ctx->out, param->children[0]->text);
+            xl6CgenMangledType(ctx, param->children[0]);
         } else {
             xl6OutputPutc('_', ctx->out);
         }

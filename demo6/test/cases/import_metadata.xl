@@ -1,5 +1,5 @@
 import counter
-import "local/math"
+import "./import_source_math.xl"
 
 export "xl6_import_probe" func probe() as int
     return 1

@@ -424,7 +424,9 @@ static void xl6CgenIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         const XL6_AstNode* concreteType = xl6CgenTypedContainerConcreteType(ctx, receiverType);
         const XL6_AstNode* itemType = xl6CgenTypedContainerItemType(ctx, receiverType);
         const char* typeName = concreteType != NULL ? concreteType->text : NULL;
-        const char* itemCType = itemType != NULL ? xl6CgenTypeName(ctx, itemType) : "xvalue";
+        const char* itemCType = itemType != NULL && xl6CgenIsTypedContainerType(ctx, itemType) ?
+                                xl6CgenTypedContainerCType(ctx, itemType) :
+                                (itemType != NULL ? xl6CgenTypeName(ctx, itemType) : "xvalue");
         int itemIsFunction = xl6CgenTypeContainsFunctionType(itemType);
         int itemIsLanguageBool = xl6CgenIsLanguageBoolType(ctx, itemType);
         int itemIsString = itemType != NULL && xl6CTextEquals(itemType->text, "string");

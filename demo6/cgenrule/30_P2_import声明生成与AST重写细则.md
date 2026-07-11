@@ -62,24 +62,24 @@
 | 实现同等功能手写的 C 代码 | 手写桥接声明需要恢复 class 继承、泛型和匿名 union 形状。 |
 | 额外依赖的封装代码 | import type rewrite helper。 |
 
-## CGEN-IMPG-006 custom 类型声明生成
+## CGEN-IMPG-006 native-backed class 类型声明生成
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | source type kind 为 `custom` |
-| 生成规则描述 | custom 导入只生成空壳轻量类型：`custom <internalName>\nend`。当前导入侧不恢复 custom 方法映射。 |
+| xlang 写法 | source type kind 为 `native-backed class` |
+| 生成规则描述 | native-backed class 导入生成 `class <internalName>`、`native point handle`、`end` 空壳声明。当前导入侧不恢复 extern 方法映射。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:957` |
-| 对应生成的 C 代码 | 经 cgen 后生成 custom handle 类型基础声明。 |
-| 中间形态伪代码 | `custom internalName; end` |
-| 实现同等功能手写的 C 代码 | 手写桥接可以先声明 opaque custom 类型，再显式声明函数。 |
+| 对应生成的 C 代码 | 经 cgen 后生成 native-backed class handle 类型基础声明。 |
+| 中间形态伪代码 | `class internalName; native point handle; end` |
+| 实现同等功能手写的 C 代码 | 手写桥接可以先声明 opaque native-backed class 类型，再显式声明函数。 |
 | 额外依赖的封装代码 | import generated declaration parser。 |
 
 ## CGEN-IMPG-007 导入模块类型声明批量生成
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | import package 中的 class/custom/union |
-| 生成规则描述 | 遍历 module types，跳过无 name 或 kind 的项。每个类型生成内部名称，再按 kind 分派为 union/class/custom 声明。未知 kind 不输出声明。 |
+| xlang 写法 | import package 中的 class/native-backed class/union |
+| 生成规则描述 | 遍历 module types，跳过无 name 或 kind 的项。每个类型生成内部名称，再按 kind 分派为 union/class/native-backed class 声明。未知 kind 不输出声明。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:964` |
 | 对应生成的 C 代码 | 后续 cgen 看到一组改名后的类型声明。 |
 | 中间形态伪代码 | `for type: internalName = make(ns,type.name); emit by kind` |
