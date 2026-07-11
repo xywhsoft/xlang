@@ -1122,10 +1122,17 @@ static void xl6CgenForTypedDictLoop(XL6_CgenContext* ctx, const XL6_AstNode* nod
     const XL6_AstNode* itemType;
     size_t varMark;
     size_t loopMark;
+    char snapshotName[64];
 
     itemType = xl6CgenTypedContainerItemType(ctx, iterableType);
+    snprintf(snapshotName, sizeof(snapshotName), "__xl6_typed_dict_snapshot_%d", continueId);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "unsigned int __xl6_typed_count_%d = xrtTypedDictCount(%s);\n", continueId, iterName);
+    xl6OutputPrintf(ctx->out, "xtdict %s = xrtTypedDictClone(%s);\n", snapshotName, iterName);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", snapshotName);
+    xl6CgenAddTypedContainerCleanup(ctx, snapshotName, iterableType);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "unsigned int __xl6_typed_count_%d = xrtTypedDictCount(%s);\n", continueId, snapshotName);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "for (unsigned int __xl6_typed_pos_%d = 0; __xl6_typed_pos_%d < __xl6_typed_count_%d; ++__xl6_typed_pos_%d) {\n",
             continueId, continueId, continueId, continueId);
@@ -1136,7 +1143,7 @@ static void xl6CgenForTypedDictLoop(XL6_CgenContext* ctx, const XL6_AstNode* nod
     xl6OutputPrintf(ctx->out, "unsigned int __xl6_typed_key_len_%d = 0;\n", continueId);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "void* __xl6_typed_item_%d = xrtTypedDictItemAt(%s, __xl6_typed_pos_%d, &__xl6_typed_key_%d, &__xl6_typed_key_len_%d);\n",
-            continueId, iterName, continueId, continueId, continueId);
+            continueId, snapshotName, continueId, continueId, continueId);
     xl6CgenEmitTypedLoopItemGuard(ctx, continueId);
 
     varMark = ctx->varCount;

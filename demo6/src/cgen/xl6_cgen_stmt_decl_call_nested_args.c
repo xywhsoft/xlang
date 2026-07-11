@@ -320,7 +320,21 @@ static void xl6CgenDeclCollectCallExprArgTemps(
             continue;
         }
 
-        tempType = xl6CgenNewSimpleType("var", argExpr);
+        /*
+            未通过普通函数签名解析的内建成员调用通常沿用动态 var 路径；
+            ref(...) 是例外，它必须保留 ref<Derived> 等静态类型，才能选择
+            class 移动装箱路径，不能丢失明确的所有权语义。
+        */
+        if ( xl6CgenRefCtorValueExpr(argExpr) != NULL ) {
+            XL6_AstNode* inferredType = xl6CgenCloneExprTypeForInference(ctx, argExpr);
+            tempType = xl6CgenCloneCanonicalTypeNode(ctx, inferredType);
+            xl6AstFree(inferredType);
+        } else {
+            tempType = NULL;
+        }
+        if ( tempType == NULL ) {
+            tempType = xl6CgenNewSimpleType("var", argExpr);
+        }
         if ( tempType != NULL && xl6CgenDeclCanEmitCallArgTemp(ctx, tempType, argExpr) ) {
             if ( !xl6CgenDeclCallArgTempAppend(ctx, temps, count, capacity, argExpr, tempType, "__xl6_call_arg_", "out of memory while preparing nested call argument temporaries") ) {
                 return;

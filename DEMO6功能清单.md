@@ -321,6 +321,8 @@ ref<Child> checked = base as ref<Child>
 array<ref<Base>> values = array[]
 values.append(child)
 assert values[0].value() == 42
+values.append(ref(Child(7)))
+assert values[1].value() == 7
 ```
 
 已实现规则：
@@ -328,6 +330,7 @@ assert values[0].value() == 42
 - 普通 class 继续保持 C 结构体值语义；`Base value = Child()` 不合法，也不会发生静默对象切片。
 - `ref(ClassValue)` 创建拥有完整动态对象的引用。命名 class 值会复制到独立对象；新建临时值和 fresh return 可直接移交所有权。
 - `ref<Child>` 可安全拓宽为 `ref<Base>`，参数、返回值、赋值和静态泛型容器使用同一规则。
+- `array<ref<Base>>` 等静态泛型容器既可接收具名 `ref<Child>`，也可直接接收 `ref(Child(...))`；fresh class 值按移动装箱语义进入容器，不产生多余 class 副本。
 - 多个 ref 副本共享同一动态对象；引用计数保证完整对象只析构一次。
 - 字段、属性、协议和 virtual 调用都通过引用指向的动态对象执行。
 - `ref<T>` 支持泛型 class，例如 `ref<Box<int>>`，并保留具体泛型类型身份。
@@ -730,6 +733,7 @@ td.clear()
 - 上述成员 API 均调用 XRT/xvalue 或 XRT typed-container 能力，不在 xlang 侧重复实现容器算法。
 - `array<T>.pop()` / `array<T>.take(index)` 对基础值元素（整数、浮点、`bool`、`string`、`time`、`point`）返回元素类型；复杂元素暂保持 `var` 返回，避免在表达式路径中隐式复制复杂对象。
 - 动态 `dict` 保留插入顺序；`for key, value in dict` 与 `json.stringify(dict)` compact 输出都按插入/JSON 文档顺序遍历。删除 key 后，该 key 会从顺序表移除；再次写入同名 key 会按新的插入位置进入顺序。
+- `for key, value in dict<T>` 在进入循环时通过 XRT 克隆稳定快照；循环体可以修改原字典，当前遍历仍只访问进入循环时的键值集合，快照在正常结束和提前退出路径统一释放。
 
 容器运算符：
 

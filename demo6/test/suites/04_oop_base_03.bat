@@ -267,9 +267,19 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_protocol_compound_assign.xl --emit build\test\cgen_protocol_compound_assign.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Meter______add____(&value, 5LL)" build\test\cgen_protocol_compound_assign.c >nul
+findstr /C:"xl_class_Meter______add______int(&value, 5LL)" build\test\cgen_protocol_compound_assign.c >nul
 if errorlevel 1 (
     echo cgen_protocol_compound_assign.c missing class += protocol call.
+    exit /b 1
+)
+findstr /C:"XL_Class_Meter __xl6_class_arg_" build\test\cgen_protocol_compound_assign.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_compound_assign.c missing inline class argument temporary.
+    exit /b 1
+)
+findstr /C:"xl_class_Meter______add______Meter(&value, __xl6_class_arg_" build\test\cgen_protocol_compound_assign.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_compound_assign.c missing inline class += overload call.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_protocol_compound_assign.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_protocol_compound_assign.exe
@@ -507,4 +517,3 @@ if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: OOP ABI export and interop baseline 3/8
 exit /b 0
-

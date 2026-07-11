@@ -69,6 +69,19 @@ for %%F in (
     if errorlevel 1 exit /b 1
 )
 
+release\xl.exe cgen test\cases\cgen_class_ref_polymorphism.xl --emit build\test\cgen_class_ref_polymorphism.c
+if errorlevel 1 exit /b 1
+findstr /C:"xvoCreateRecordMove(xl6_type_desc_XL_Class_RefDerived()" build\test\cgen_class_ref_polymorphism.c >nul
+if errorlevel 1 (
+    echo cgen_class_ref_polymorphism.c missing inline derived ref move boxing.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_array_append_value_release(values, __xl6_call_arg_" build\test\cgen_class_ref_polymorphism.c >nul
+if errorlevel 1 (
+    echo cgen_class_ref_polymorphism.c missing inline ref container append.
+    exit /b 1
+)
+
 for %%F in (
     cgen_class_ref_lifetime_overload
     cgen_ref_generic_class
@@ -164,4 +177,3 @@ if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: current OOP ref generic regressions
 exit /b 0
-
