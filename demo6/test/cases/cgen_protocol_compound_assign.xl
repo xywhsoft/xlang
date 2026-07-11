@@ -9,6 +9,10 @@ class Meter
         return Meter(self.value + delta)
     end
 
+    func __add__(Meter other) as Meter
+        return Meter(self.value + other.value)
+    end
+
     func __sub__(int delta) as Meter
         return Meter(self.value - delta)
     end
@@ -20,3 +24,9 @@ assert value.value == 15, "class += should dispatch __add__"
 
 value -= 3
 assert value.value == 12, "class -= should dispatch __sub__"
+
+value += Meter(4)
+assert value.value == 16, "class += should lower an inline class operand"
+
+value = value + Meter(6)
+assert value.value == 22, "class binary assignment should lower an inline class operand"

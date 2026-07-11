@@ -245,7 +245,7 @@ end
 
 func findIdx(array<string> names, string name) as int
     int i = 0
-    while i < names.count() do
+    while i < names.length do
         if names[i] == name then
             return i
         end
@@ -1054,7 +1054,7 @@ auto g_rpcWorker = func() as int
                 int argval = g_rpcArg[callId]
                 g_rpcMu.unlock()
                 int result = RPC_FAIL
-                if hidx >= 0 and hidx < g_rpcHandler.count() then
+                if hidx >= 0 and hidx < g_rpcHandler.length then
                     func(int) as int h = g_rpcHandler[hidx]
                     result = h(argval)
                 end
@@ -1349,7 +1349,7 @@ func rag_addNode(string name, int kind) as int
     end
     g_ragName.push(name)
     g_ragKind.push(kind)
-    return g_ragName.count() - 1
+    return g_ragName.length - 1
 end
 
 func rag_add_process(string name) as int
@@ -1362,7 +1362,7 @@ end
 
 func rag_addEdge(int fromNode, int toNode)
     int i = 0
-    while i < g_ragEdgeFrom.count() do
+    while i < g_ragEdgeFrom.length do
         if g_ragEdgeFrom[i] == fromNode and g_ragEdgeTo[i] == toNode then
             return
         end
@@ -1374,7 +1374,7 @@ end
 
 func rag_removeEdge(int fromNode, int toNode)
     int i = 0
-    while i < g_ragEdgeFrom.count() do
+    while i < g_ragEdgeFrom.length do
         if g_ragEdgeFrom[i] == fromNode and g_ragEdgeTo[i] == toNode then
             g_ragEdgeFrom.remove(i)
             g_ragEdgeTo.remove(i)
@@ -1386,7 +1386,7 @@ end
 
 func rag_hasEdge(int fromNode, int toNode) as bool
     int i = 0
-    while i < g_ragEdgeFrom.count() do
+    while i < g_ragEdgeFrom.length do
         if g_ragEdgeFrom[i] == fromNode and g_ragEdgeTo[i] == toNode then
             return true
         end
@@ -1422,7 +1422,7 @@ end
 
 // iterative DFS cycle detection (avoids deep recursion on large graphs).
 func rag_detect() as bool
-    int n = g_ragName.count()
+    int n = g_ragName.length
     // reset colors to white
     g_ragColor = array[]
     int k = 0
@@ -1437,13 +1437,13 @@ func rag_detect() as bool
             g_ragStack = array[]
             g_ragStack.push(start)
             g_ragColor[start] = 1
-            while g_ragStack.count() > 0 do
-                int top = g_ragStack[g_ragStack.count() - 1]
+            while g_ragStack.length > 0 do
+                int top = g_ragStack[g_ragStack.length - 1]
                 // find an unvisited or gray neighbor of `top`
                 int v = -1
                 int backEdgeTo = -1
                 int i = 0
-                while i < g_ragEdgeFrom.count() do
+                while i < g_ragEdgeFrom.length do
                     if g_ragEdgeFrom[i] == top then
                         int cand = g_ragEdgeTo[i]
                         if g_ragColor[cand] == 1 then
@@ -1477,7 +1477,7 @@ func rag_cycle() as string
         return ""
     end
     // re-run and capture: find a back edge and reconstruct the stack path.
-    int n = g_ragName.count()
+    int n = g_ragName.length
     g_ragColor = array[]
     int k = 0
     while k < n do
@@ -1490,22 +1490,22 @@ func rag_cycle() as string
         if g_ragColor[s] == 0 then
             g_ragStack.push(s)
             g_ragColor[s] = 1
-            while g_ragStack.count() > 0 do
-                int top = g_ragStack[g_ragStack.count() - 1]
+            while g_ragStack.length > 0 do
+                int top = g_ragStack[g_ragStack.length - 1]
                 int advanced = -1
                 int i = 0
-                while i < g_ragEdgeFrom.count() do
+                while i < g_ragEdgeFrom.length do
                     if g_ragEdgeFrom[i] == top then
                         int cand = g_ragEdgeTo[i]
                         if g_ragColor[cand] == 1 then
                             // build path from first occurrence of cand
                             int j = 0
                             string path = ""
-                            while j < g_ragStack.count() do
+                            while j < g_ragStack.length do
                                 if g_ragStack[j] == cand then
                                     path = g_ragName[g_ragStack[j]]
                                     int m = j + 1
-                                    while m < g_ragStack.count() do
+                                    while m < g_ragStack.length do
                                         path = path + " -> " + g_ragName[g_ragStack[m]]
                                         m = m + 1
                                     end
@@ -1539,7 +1539,7 @@ end
 func rag_dump()
     println("  RAG nodes:")
     int i = 0
-    while i < g_ragName.count() do
+    while i < g_ragName.length do
         string kind = "PROC"
         if g_ragKind[i] == RAG_RES then
             kind = "RES "
@@ -1549,7 +1549,7 @@ func rag_dump()
     end
     println("  RAG edges:")
     i = 0
-    while i < g_ragEdgeFrom.count() do
+    while i < g_ragEdgeFrom.length do
         println("    ", g_ragName[g_ragEdgeFrom[i]], " -> ", g_ragName[g_ragEdgeTo[i]])
         i = i + 1
     end
@@ -1651,10 +1651,10 @@ func test_msgq()
     thread(makeMqProducer(2, "mqsweep", perProducer))
     thread(makeMqConsumer(1, "mqsweep", totalItems))
     joinThreads()
-    verify(g_mqTestSent == totalItems, "msgq multi-prod sent all", totalItems, "got", g_mqTestSent)
-    verify(g_mqTestRecv == totalItems, "msgq consumer drained all", totalItems, "got", g_mqTestRecv)
+    verify(g_mqTestSent == totalItems, "msgq multi-prod sent all (want=" + string(totalItems) + " got=" + string(g_mqTestSent) + ")")
+    verify(g_mqTestRecv == totalItems, "msgq consumer drained all (want=" + string(totalItems) + " got=" + string(g_mqTestRecv) + ")")
     // every produced value must be unique
-    verify(g_mqTestValues.count() == totalItems, "msgq recorded all produced values")
+    verify(g_mqTestValues.length == totalItems, "msgq recorded all produced values")
     msgq_close("mqsweep")
     msgq_free("mqsweep")
 end
@@ -1940,15 +1940,17 @@ end
 // TESTS  -  RPC
 // =============================================================================
 
-func rpcDouble(int x) as int
+// 注意: 直接把具名函数作为值传入会触发 C 后端 'undeclared' 错误,
+// 因此用 func 类型变量持有 lambda (闭包值), 传值时按变量传递.
+func(int) as int rpcDouble = func(int x) as int
     return x * 2
 end
 
-func rpcInc(int x) as int
+func(int) as int rpcInc = func(int x) as int
     return x + 1
 end
 
-func rpcSquare(int x) as int
+func(int) as int rpcSquare = func(int x) as int
     return x * x
 end
 
@@ -2081,7 +2083,7 @@ func test_bus()
     bus_publish("stream", 303)
     bus_publish("stream", 304)
     joinThreads()
-    verify(g_busTestLog.count() == 4, "bus concurrent: listener got 4 events")
+    verify(g_busTestLog.length == 4, "bus concurrent: listener got 4 events")
     bus_unsubscribe(sl)
 
     // 6f. publish to a topic with no subscribers delivers zero

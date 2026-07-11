@@ -675,7 +675,7 @@ func schedulerLoop(int maxTicks)
             end
         else
             contextSwitch(pid)
-            PCB p = g_pcb[pid]
+    PCB p = g_pcb[pid]
             int q = levelQuantum(p.level)
             int used = procRunQuantum(pid, q)
             // 闂備礁鎼崯顐︽偉閻撳宫娑㈠锤濡も偓缁犳娊鏌曟繛鍨缂佺姴顭烽弻?used
@@ -697,7 +697,8 @@ func schedulerLoop(int maxTicks)
             elseif g_pcb[pid].state == PROC_WAITING then
                 // 缂傚倷鐒︾粙鎴λ囬婊勵偨? 闁诲氦顫夐悺鏇犱焊濞嗘挸鏋?sleep 闂佽崵濮崇粈浣规櫠娴犲鍋? 濠电偞鍨堕幐鍝ョ矓閺夋嚚娲冀椤撶啿鎸€闂佺粯鏌ㄩ崲鏌ユ倶?
             else
-                // 濠电偛顕慨瀵哥矓閺夋埊鑰?READY/RUNNING -> 闂備焦妞垮鍧楀礉瀹€鍕瀬?quantum 闂備礁鎲￠懝楣冩煀閿濆拋鐎跺瀣捣濡?                g_pcb[pid].usedInLevel = g_pcb[pid].usedInLevel + used
+                // 濠电偛顕慨瀵哥矓閺夋埊鑰?READY/RUNNING -> 闂備焦妞垮鍧楀礉瀹€鍕瀬?quantum 闂備礁鎲￠懝楣冩煀閿濆拋鐎跺瀣捣濡?
+                g_pcb[pid].usedInLevel = g_pcb[pid].usedInLevel + used
                 if g_pcb[pid].remaining <= 0 then
                     procTerminate(pid, EXIT_OK)
                 else
@@ -1027,7 +1028,8 @@ func memTranslate(int pid, int vaddr) as int
         return frame * FRAME_SIZE + offset
     end
     g_memTlbMiss = g_memTlbMiss + 1
-    // 闂佽崵濮嶉崶鑸垫缂備降鍔夐弲婵嬫儉椤忓浂妯勯梺闈涙椤︾敻寮?    PCB p = g_pcb[pid]
+    // 闂佽崵濮嶉崶鑸垫缂備降鍔夐弲婵嬫儉椤忓浂妯勯梺闈涙椤︾敻寮?
+    PCB p = g_pcb[pid]
     int dirId = p.ptDirId
     if dirId != NIL then
         int tabId = g_ptDir[dirId * PAGE_DIR_SIZE + dirIdx]
@@ -2553,7 +2555,8 @@ end
 // 婵犵數濮靛ú妯侯潖婵犳艾桅婵浜惌娆撴倵閿濆簼绨界痪鏉跨Ч濮婂宕卞Δ渚囨闂? 闂備礁鎲￠懝鍓р偓姘煎灦瀹曢潧顭ㄩ崨顒佸媰闂佸搫娲ㄦ慨鐗堢濞戞ǚ妲堥柟鎯х－瀛濋梺璇″枟閹搁箖鍩€椤掍胶鈯曢柛鏃€顨婇弻鍫⑩偓闈涙憸绾惧ジ鏌ｉ弮鍌氬妺闁伙絽宕湁闁挎繂鐗婄涵鍫曟煛?
 func buildPrograms() as var
     var progs = {}
-    // init: 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鍓х帛閸ゆ劙鏌曟径鍫濆姎闁告瑱绱曠槐鎺楊敍濠靛棗鎯炵紓渚囧枟濡炶棄顕ｉ鍕倞闁挎梻鐡旈崑銊╂⒑?fork 闂備礁鎲￠崹褰掑磿閵堝拑鑰块柛銉墮缁€澶愭⒔閸モ晜宕叉慨妞诲亾闁?    progs["init"] = array[
+    // init: 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鍓х帛閸ゆ劙鏌曟径鍫濆姎闁告瑱绱曠槐鎺楊敍濠靛棗鎯炵紓渚囧枟濡炶棄顕ｉ鍕倞闁挎梻鐡旈崑銊╂⒑?fork 闂備礁鎲￠崹褰掑磿閵堝拑鑰块柛銉墮缁€澶愭⒔閸モ晜宕叉慨妞诲亾闁?
+    progs["init"] = array[
         "open /var/log/boot.log w",
         "write 0 boot sequence start",
         "close 0",
@@ -2563,7 +2566,8 @@ func buildPrograms() as var
         "compute 1",
         "exit 0"
     ]
-    // writer: 濠电姰鍨归悥銏ゅ炊瑜庨锟犳⒑閸涘﹤濮堥柣鐕傜畵瀵悂宕橀鑺ユ?    progs["writer"] = array[
+    // writer: 濠电姰鍨归悥銏ゅ炊瑜庨锟犳⒑閸涘﹤濮堥柣鐕傜畵瀵悂宕橀鑺ユ?
+    progs["writer"] = array[
         "open /tmp/out.log w",
         "write 0 line-one",
         "write 0 line-two",
@@ -2594,7 +2598,8 @@ func buildPrograms() as var
         "compute 2",
         "exit 0"
     ]
-    // sleeper: 婵犵數鍋炲娆擃敄閸儲鍎?WAITING 闂備胶绮…鍫ヮ敊閹版澘绠?    progs["sleeper"] = array[
+    // sleeper: 婵犵數鍋炲娆擃敄閸儲鍎?WAITING 闂備胶绮…鍫ヮ敊閹版澘绠?
+    progs["sleeper"] = array[
         "compute 1",
         "sleep 3",
         "compute 1",
@@ -2767,7 +2772,8 @@ end
 // ---- 闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞垮剭閸︻厸鍋撻敐搴″箻婵?----
 func testMem()
     println("[testMem] paging + TLB + LRU")
-    // 闂備礁鎲￠〃鍡椕哄┑鍫熷床婵☆垵鍋愰惌娆撴倵閿濆骸澧伴柛濠冨▕閺? 闂佸搫顦弲婵嬪磻閻斿吋鍋ㄩ柤濮愬€栨刊濂告煕瑜庨〃鍡涙晬閺嶎厼绠归悗娑櫳戦悡銉х磽閸屾稒灏电紒顔规櫇閳ь剨缍嗛崑鍛般€栭梻?    array<string> prog = array["compute 1"]
+    // 闂備礁鎲￠〃鍡椕哄┑鍫熷床婵☆垵鍋愰惌娆撴倵閿濆骸澧伴柛濠冨▕閺? 闂佸搫顦弲婵嬪磻閻斿吋鍋ㄩ柤濮愬€栨刊濂告煕瑜庨〃鍡涙晬閺嶎厼绠归悗娑櫳戦悡銉х磽閸屾稒灏电紒顔规櫇閳ь剨缍嗛崑鍛般€栭梻?
+    array<string> prog = array["compute 1"]
     int pid = procCreate("tester", 0, 1, 0, prog)
     procArrive(pid)
     int baseTranslate = g_memTranslate
@@ -2961,7 +2967,8 @@ end
 func cmdTest() as int
     println("=== xos self-test ===")
     println("")
-    // 婵犳鍣徊鐣屾崲閹烘柨鍨濈€广儱鎮块崷顓涘亾閿濆骸骞樻俊鍙夋倐閺屾盯骞樺畷鍥喲囨煕閿濆懏鎲哥紒杈ㄦ椤㈡瑩骞嗚閻ｉ箖姊?    osBoot()
+    // 婵犳鍣徊鐣屾崲閹烘柨鍨濈€广儱鎮块崷顓涘亾閿濆骸骞樻俊鍙夋倐閺屾盯骞樺畷鍥喲囨煕閿濆懏鎲哥紒杈ㄦ椤㈡瑩骞嗚閻ｉ箖姊?
+    osBoot()
     testFS()
     println("")
     osBoot()
@@ -3022,7 +3029,7 @@ func main(...) as int
             println("xos: 'shell' needs <script.xsh>")
             return 1
         end
-        osBoot()
+    osBoot()
         // shell 闂備礁鎲￠崙褰掑垂閻楀牊鍙忛柍鍝勬噹缁秹鎮规ウ鎸庮仩缂佹唻绠戦埥澶愬箻椤栨矮澹曞┑鐐村灦閹尖晜绂嶅▎蹇ｆ僵闁挎洖鍊归弲?idle 闂佸搫顦弲婊呯矙閹捐鐓? 濠电偛顕慨浼村磿閹殿喚鐭?ps/kill/exec 闂備礁鎼悧鍡浰囬鍓х當闁稿本绋撻埢鏃堟倵閿濆骸浜濋柣?
         array<string> idleProg = array["compute 999"]
         int idle = procCreate("shell", 0, 999, 0, idleProg)

@@ -140,6 +140,21 @@ if errorlevel 1 (
     echo cgen_for_in_containers.c missing dict snapshot cleanup.
     exit /b 1
 )
+findstr /C:"xrtTypedDictClone(__xl6_typed_iter_" build\test\cgen_for_in_containers.c >nul
+if errorlevel 1 (
+    echo cgen_for_in_containers.c missing typed dict stable snapshot.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictItemAt(__xl6_typed_dict_snapshot_" build\test\cgen_for_in_containers.c >nul
+if errorlevel 1 (
+    echo cgen_for_in_containers.c reads typed dict iteration from the live container.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictDestroy(__xl6_typed_dict_snapshot_" build\test\cgen_for_in_containers.c >nul
+if errorlevel 1 (
+    echo cgen_for_in_containers.c missing typed dict snapshot cleanup.
+    exit /b 1
+)
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text = Get-Content -Raw -Encoding UTF8 'build\test\cgen_for_in_containers.c'; $bad=@('xrtAVLTB_Iter','__xl6_avl_','__xl6_list_data_','__xl6_dict_data_'); foreach($p in $bad){ if($text.IndexOf($p) -ge 0){ Write-Host ('cgen_for_in_containers.c regressed to AVL iterator shape: '+$p); exit 1 } }; $list=[regex]::Matches($text,'XL6_XrtIterSnapshot\* (__xl6_list_snapshot_\d+) = xl6_xrt_list_snapshot\(__xl6_iter_\d+\);[\s\S]*?for \(unsigned int __xl6_list_pos_\d+ = 0;[\s\S]*?XL6_XrtIterItem\* __xl6_list_item_\d+ = &\1->items\[[^\]]+\];[\s\S]*?xl6_xrt_iter_snapshot_free\(\1\);'); $dict=[regex]::Matches($text,'XL6_XrtIterSnapshot\* (__xl6_dict_snapshot_\d+) = xl6_xrt_dict_snapshot\(__xl6_iter_\d+\);[\s\S]*?for \(unsigned int __xl6_dict_pos_\d+ = 0;[\s\S]*?XL6_XrtIterItem\* __xl6_dict_item_\d+ = &\1->items\[[^\]]+\];[\s\S]*?xl6_xrt_iter_snapshot_free\(\1\);'); if ($list.Count -lt 1) { Write-Host 'cgen_for_in_containers.c missing list snapshot sequence.'; exit 1 }; if ($dict.Count -lt 1) { Write-Host 'cgen_for_in_containers.c missing dict snapshot sequence.'; exit 1 }"
 if errorlevel 1 exit /b 1
 findstr /C:"xrtStrComp(xl6_xrt_value_to_string(key), \"b\", 0, false)" build\test\cgen_for_in_containers.c >nul
@@ -509,4 +524,3 @@ if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: core C generation and runtime baseline 9/10
 exit /b 0
-

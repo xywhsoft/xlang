@@ -127,6 +127,7 @@ class Breakpoint
 end
 
 class StackFrame
+    derive value
     string fn             // 函数名
     int line              // 当前行号
     string file           // 文件名
@@ -140,6 +141,7 @@ class StackFrame
 end
 
 class VarDecl
+    derive value
     string name           // 变量名
     int line              // 声明行号
     string vtype          // 类型（int/string/...）
@@ -153,6 +155,7 @@ class VarDecl
 end
 
 class FuncInfo
+    derive value
     string name           // 函数名（含类名前缀）
     int startLine         // 起始行（func 行）
     int endLine           // 结束行（end 行）
@@ -172,6 +175,7 @@ class FuncInfo
 end
 
 class LineMapEntry
+    derive value
     int cLine             // C 文件行号
     int xlLine            // xlang 源文件行号
     string source         // 源文件路径
@@ -183,6 +187,7 @@ class LineMapEntry
 end
 
 class CallEdge
+    derive value
     string caller         // 调用者
     string callee         // 被调用者
     int count             // 估计调用次数
@@ -194,6 +199,7 @@ class CallEdge
 end
 
 class DebugEvent
+    derive value
     string etype          // "enter" / "exit" / "point" / "output"
     string fn             // 函数名
     int line              // 行号
@@ -209,6 +215,7 @@ class DebugEvent
 end
 
 class Command
+    derive value
     int kind              // CMD_* 常量
     string raw            // 原始文本
     string arg1           // 主参数
@@ -224,6 +231,7 @@ class Command
 end
 
 class WatchVar
+    derive value
     string name           // 变量名
     string lastValue      // 上次值
     create(string name)
@@ -1128,7 +1136,7 @@ end
 // ===== 断点管理 =====
 
 class BreakpointManager
-    array<Breakpoint> bps
+    var bps = []
     int nextId
     create()
         self.bps = []
@@ -1136,32 +1144,38 @@ class BreakpointManager
     end
 end
 
-func bpmAdd(BreakpointManager bpm, int kind, string file, int line, string funcName, string cond) as Breakpoint
-    Breakpoint bp = Breakpoint()
-    bp.id = bpm.nextId
-    bpm.nextId += 1
-    bp.kind = kind
-    bp.file = file
-    bp.line = line
-    bp.funcName = funcName
-    bp.condition = cond
+func bpmAdd(var bpm, int kind, string file, int line, string funcName, string cond) as var
+    var bp = {}
+    bp["id"] = int(bpm.nextId)
+    bp["kind"] = kind
+    bp["file"] = file
+    bp["line"] = line
+    bp["funcName"] = funcName
+    bp["condition"] = cond
+    bp["enabled"] = true
+    bp["temporary"] = false
+    bp["hitCount"] = 0
+    bp["ignoreCount"] = 0
+    bp["state"] = "pending"
     bpm.bps.push(bp)
+    bpm.nextId = int(bpm.nextId) + 1
     return bp
 end
 
-func bpmFind(BreakpointManager bpm, int id) as var
-    for bp in bpm.bps
-        if bp.id == id then
+func bpmFind(var bpm, int id) as var
+    var bps = bpm.bps
+    for bp in bps
+        if int(bp.id) == id then
             return bp
         end
     end
     return null
 end
 
-func bpmRemove(BreakpointManager bpm, int id) as bool
+func bpmRemove(var bpm, int id) as bool
     int i = 0
     while i < bpm.bps.length do
-        if bpm.bps[i].id == id then
+        if int(bpm.bps[i].id) == id then
             bpm.bps.remove(i)
             return true
         end
@@ -1170,81 +1184,92 @@ func bpmRemove(BreakpointManager bpm, int id) as bool
     return false
 end
 
-func bpmSetEnabled(BreakpointManager bpm, int id, bool on) as bool
-    var bp = bpmFind(bpm, id)
-    if bp is null then
-        return false
+func bpmSetEnabled(var bpm, int id, bool on) as bool
+    int i = 0
+    while i < bpm.bps.length do
+        if int(bpm.bps[i].id) == id then
+            bpm.bps[i].enabled = on
+            return true
+        end
+        i += 1
     end
-    bp.enabled = on
-    return true
+    return false
 end
 
-func bpmSetIgnore(BreakpointManager bpm, int id, int count) as bool
-    var bp = bpmFind(bpm, id)
-    if bp is null then
-        return false
+func bpmSetIgnore(var bpm, int id, int count) as bool
+    int i = 0
+    while i < bpm.bps.length do
+        if int(bpm.bps[i].id) == id then
+            bpm.bps[i].ignoreCount = count
+            return true
+        end
+        i += 1
     end
-    bp.ignoreCount = count
-    return true
+    return false
 end
 
 // 绑定断点到实际行（基于 AST 分析）
-func bpmResolve(BreakpointManager bpm, array<FuncInfo> funcs, string srcFile)
+func bpmResolve(var bpm, array<FuncInfo> funcs, string srcFile)
     array<string> lines = splitLinesSafe(file.readText(srcFile))
-    for bp in bpm.bps
-        if bp.state != "pending" then
-            continue
-        end
-        if bp.kind == BP_FUNC then
-            for fi in funcs
-                if fi.name == bp.funcName or string.endsWith(fi.name, "." + bp.funcName) then
-                    bp.line = fi.bodyStart
-                    bp.file = srcFile
-                    bp.state = "resolved"
-                    break
+    int bi = 0
+    while bi < bpm.bps.length do
+        if bpm.bps[bi].state == "pending" then
+            if int(bpm.bps[bi].kind) == BP_FUNC then
+                for fi in funcs
+                    if fi.name == string(bpm.bps[bi].funcName) or string.endsWith(fi.name, "." + string(bpm.bps[bi].funcName)) then
+                        bpm.bps[bi].line = fi.bodyStart
+                        bpm.bps[bi].file = srcFile
+                        bpm.bps[bi].state = "resolved"
+                        break
+                    end
+                end
+            elseif int(bpm.bps[bi].kind) == BP_LINE or int(bpm.bps[bi].kind) == BP_CONDITIONAL then
+                if int(bpm.bps[bi].line) > 0 and int(bpm.bps[bi].line) <= lines.length then
+                    bpm.bps[bi].file = srcFile
+                    bpm.bps[bi].state = "resolved"
                 end
             end
-        elseif bp.kind == BP_LINE or bp.kind == BP_CONDITIONAL then
-            // 检查行号是否有效
-            if bp.line > 0 and bp.line <= lines.length then
-                bp.file = srcFile
-                bp.state = "resolved"
-            end
         end
+        bi += 1
     end
 end
 
 // 检查一个 point 事件是否命中某个断点
 // 返回命中的 Breakpoint（null 表示未命中）
-func bpmCheckHit(BreakpointManager bpm, string file, int line, string funcName, var locals) as var
-    for bp in bpm.bps
-        if not bp.enabled then
+func bpmCheckHit(var bpm, string file, int line, string funcName, var locals) as var
+    int i = 0
+    while i < bpm.bps.length do
+        var bp = bpm.bps[i]
+        if not bool(bp.enabled) then
+            i += 1
             continue
         end
         bool matched = false
-        if bp.kind == BP_FUNC then
-            if funcName == bp.funcName or string.endsWith(funcName, "." + bp.funcName) then
+        if int(bp.kind) == BP_FUNC then
+            if funcName == string(bp.funcName) or string.endsWith(funcName, "." + string(bp.funcName)) then
                 matched = true
             end
-        elseif bp.kind == BP_LINE then
-            if bp.line == line then
+        elseif int(bp.kind) == BP_LINE then
+            if int(bp.line) == line then
                 matched = true
             end
-        elseif bp.kind == BP_CONDITIONAL then
-            if bp.line == line then
+        elseif int(bp.kind) == BP_CONDITIONAL then
+            if int(bp.line) == line then
                 // 评估条件
-                if evalCondition(bp.condition, locals) then
+                if evalCondition(string(bp.condition), locals) then
                     matched = true
                 end
             end
         end
         if matched then
-            bp.hitCount += 1
-            if bp.hitCount <= bp.ignoreCount then
+            bpm.bps[i].hitCount = int(bpm.bps[i].hitCount) + 1
+            if int(bpm.bps[i].hitCount) <= int(bpm.bps[i].ignoreCount) then
+                i += 1
                 continue
             end
-            return bp
+            return bpm.bps[i]
         end
+        i += 1
     end
     return null
 end
@@ -2320,7 +2345,7 @@ func handleBreak(DebugSession sess, Command cmd)
             if string.len(cond) > 0 then
                 kind = BP_CONDITIONAL
             end
-            Breakpoint bp = bpmAdd(sess.bpm, kind, filePart, ln, "", cond)
+            var bp = bpmAdd(sess.bpm, kind, filePart, ln, "", cond)
             if cmd.kind == CMD_TBREAK then
                 bp.temporary = true
             end
@@ -2357,7 +2382,7 @@ func handleBreak(DebugSession sess, Command cmd)
             if string.len(cond) > 0 then
                 kind = BP_CONDITIONAL
             end
-            Breakpoint bp = bpmAdd(sess.bpm, kind, sess.targetFile, ln, "", cond)
+            var bp = bpmAdd(sess.bpm, kind, sess.targetFile, ln, "", cond)
             if cmd.kind == CMD_TBREAK then
                 bp.temporary = true
             end
@@ -2375,7 +2400,7 @@ func handleBreak(DebugSession sess, Command cmd)
         end
     end
     // 函数名
-    Breakpoint bp = bpmAdd(sess.bpm, BP_FUNC, "", 0, spec, "")
+    var bp = bpmAdd(sess.bpm, BP_FUNC, "", 0, spec, "")
     if cmd.kind == CMD_TBREAK then
         bp.temporary = true
     end
@@ -2388,33 +2413,34 @@ func handleBreak(DebugSession sess, Command cmd)
 end
 
 // 列出所有断点
-func infoBreakpoints(BreakpointManager bpm) as string
+func infoBreakpoints(var bpm) as string
     if bpm.bps.length == 0 then
         return "(no breakpoints)\n"
     end
     string result = ""
     result = result + padRight("ID", 5) + padRight("Type", 12) + padRight("Enabled", 9) + padRight("Hits", 6) + padRight("Location", 30) + "Condition\n"
     result = result + string.replace(padRight("-", 62), " ", "-") + "\n"
-    for bp in bpm.bps
+    var bpsList = bpm.bps
+    for bp in bpsList
         string kindStr = ""
-        if bp.kind == BP_LINE then
+        if int(bp.kind) == BP_LINE then
             kindStr = "line"
-        elseif bp.kind == BP_FUNC then
+        elseif int(bp.kind) == BP_FUNC then
             kindStr = "function"
         else
             kindStr = "conditional"
         end
         string enStr = "yes"
-        if not bp.enabled then
+        if not bool(bp.enabled) then
             enStr = colorOn(C_GRAY, "no")
         end
         string loc = ""
-        if bp.kind == BP_FUNC then
-            loc = bp.funcName
+        if int(bp.kind) == BP_FUNC then
+            loc = string(bp.funcName)
         else
-            loc = path.name(bp.file) + ":" + string(bp.line)
+            loc = path.name(string(bp.file)) + ":" + string(bp.line)
         end
-        string cond = bp.condition
+        string cond = string(bp.condition)
         if string.len(cond) == 0 then
             cond = "-"
         end
@@ -2848,20 +2874,22 @@ func cmdTest() as int
     // === 测试 3: 断点管理 ===
     println(colorOn(C_CYAN, "test 3: breakpoint management"))
     bool t3ok = true
-    BreakpointManager bpm = BreakpointManager()
-    Breakpoint bp1 = bpmAdd(bpm, BP_LINE, "test.xl", 10, "", "")
-    Breakpoint bp2 = bpmAdd(bpm, BP_FUNC, "", 0, "myFunc", "")
-    Breakpoint bp3 = bpmAdd(bpm, BP_CONDITIONAL, "test.xl", 20, "", "x > 5")
+    var bpm = {}
+    bpm["bps"] = []
+    bpm["nextId"] = 1
+    var bp1 = bpmAdd(bpm, BP_LINE, "test.xl", 10, "", "")
+    var bp2 = bpmAdd(bpm, BP_FUNC, "", 0, "myFunc", "")
+    var bp3 = bpmAdd(bpm, BP_CONDITIONAL, "test.xl", 20, "", "x > 5")
     if bpm.bps.length != 3 then t3ok = false end
-    if bp1.id != 1 then t3ok = false end
-    if bp2.id != 2 then t3ok = false end
-    if bp3.id != 3 then t3ok = false end
+    if int(bp1.id) != 1 then t3ok = false end
+    if int(bp2.id) != 2 then t3ok = false end
+    if int(bp3.id) != 3 then t3ok = false end
     if not bpmSetEnabled(bpm, 1, false) then t3ok = false end
     var check1 = bpmFind(bpm, 1)
-    if check1.enabled then t3ok = false end
+    if bool(check1.enabled) then t3ok = false end
     if not bpmSetIgnore(bpm, 2, 3) then t3ok = false end
     var check2 = bpmFind(bpm, 2)
-    if check2.ignoreCount != 3 then t3ok = false end
+    if int(check2.ignoreCount) != 3 then t3ok = false end
     if not bpmRemove(bpm, 3) then t3ok = false end
     if bpm.bps.length != 2 then t3ok = false end
     if t3ok then
@@ -2875,7 +2903,9 @@ func cmdTest() as int
     // === 测试 4: 断点命中检测 ===
     println(colorOn(C_CYAN, "test 4: breakpoint hit detection"))
     bool t4ok = true
-    BreakpointManager bpm2 = BreakpointManager()
+    var bpm2 = {}
+    bpm2["bps"] = []
+    bpm2["nextId"] = 1
     bpmAdd(bpm2, BP_LINE, "test.xl", 5, "", "")
     bpmAdd(bpm2, BP_FUNC, "", 0, "foo", "")
     var hitLocals = {}
@@ -2890,9 +2920,11 @@ func cmdTest() as int
     var hit3 = bpmCheckHit(bpm2, "test.xl", 1, "foo", hitLocals)
     if hit3 is null then t4ok = false end
     // ignore count 测试
-    BreakpointManager bpm3 = BreakpointManager()
-    Breakpoint bpIgn = bpmAdd(bpm3, BP_LINE, "t.xl", 1, "", "")
-    bpmSetIgnore(bpm3, bpIgn.id, 2)
+    var bpm3 = {}
+    bpm3["bps"] = []
+    bpm3["nextId"] = 1
+    var bpIgn = bpmAdd(bpm3, BP_LINE, "t.xl", 1, "", "")
+    bpmSetIgnore(bpm3, int(bpIgn.id), 2)
     var h1 = bpmCheckHit(bpm3, "t.xl", 1, "f", {})
     if not (h1 is null) then t4ok = false end
     var h2 = bpmCheckHit(bpm3, "t.xl", 1, "f", {})

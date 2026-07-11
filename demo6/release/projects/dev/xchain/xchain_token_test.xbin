@@ -1,0 +1,42 @@
+
+; token.xbin - 存储型示例合约
+PUSH 1000
+STORE 0
+HALT
+
+supply:
+LOAD 0
+RET
+
+add:
+ARG 0
+ARG 1
+ADD
+RET
+
+mul:
+ARG 0
+ARG 1
+MUL
+RET
+
+square:
+ARG 0
+DUP
+MUL
+RET
+
+max:
+ARG 0
+ARG 1
+STORE 2
+STORE 3
+LOAD 3
+LOAD 2
+GT
+JZ max_else
+LOAD 3
+RET
+max_else:
+LOAD 2
+RET

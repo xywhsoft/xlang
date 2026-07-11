@@ -1698,7 +1698,7 @@ func runTest() as int
     // ---------- 8. 变化率告警 ----------
     resetStore()
     // reqrate: 100 -> 250 跨 60s ⇒ 150%/min
-    recordPointAt("reqrate", 100.0, "", base)
+    recordPointAt("reqrate", 100.0, "", base + int64(1))
     recordPointAt("reqrate", 250.0, "", base + int64(60))
     int ridR = addRule("rate_jump", "reqrate", RT_RATE, OP_GT, 100.0, 1, "")
     evaluateAllRulesAt(base + int64(60))

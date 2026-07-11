@@ -65,9 +65,19 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed set for-in lowering.
     exit /b 1
 )
-findstr /C:"xrtTypedDictItemAt(__xl6_typed_iter_" build\test\cgen_typed_container_for_in_returned.c >nul
+findstr /C:"xrtTypedDictClone(__xl6_typed_iter_" build\test\cgen_typed_container_for_in_returned.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_for_in_returned.c missing typed dict for-in lowering.
+    echo cgen_typed_container_for_in_returned.c missing returned typed dict stable snapshot.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictItemAt(__xl6_typed_dict_snapshot_" build\test\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed dict snapshot for-in lowering.
+    exit /b 1
+)
+findstr /C:"xrtTypedDictDestroy(__xl6_typed_dict_snapshot_" build\test\cgen_typed_container_for_in_returned.c >nul
+if errorlevel 1 (
+    echo cgen_typed_container_for_in_returned.c missing typed dict snapshot cleanup.
     exit /b 1
 )
 findstr /C:"void* __xl6_typed_item_" build\test\cgen_typed_container_for_in_returned.c >nul
@@ -95,7 +105,7 @@ if not errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c should not directly dereference typed set for-in item.
     exit /b 1
 )
-findstr /C:"*)xrtTypedDictItemAt(__xl6_typed_iter_" build\test\cgen_typed_container_for_in_returned.c >nul
+findstr /C:"*)xrtTypedDictItemAt(__xl6_typed_dict_snapshot_" build\test\cgen_typed_container_for_in_returned.c >nul
 if not errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c should not directly dereference typed dict for-in item.
     exit /b 1
@@ -120,32 +130,32 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before continue.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typed dict loop boom[\s\S]*?if \(key != 0\) \{[\s\S]*?xrtFree\(\(void\*\)key\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?goto __xl6_try_catch_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typed dict loop boom[\s\S]*?if \(key != 0\) \{[\s\S]*?xrtFree\(\(void\*\)key\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_dict_snapshot_\d+\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?goto __xl6_try_catch_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before throw catch.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'if \(key != 0\) \{\s*xrtFree\(\(void\*\)key\);\s*key = 0;\s*}\s*if \(__xl6_typed_iter_(\d+) != 0\) \{\s*xrtTypedDictDestroy\(__xl6_typed_iter_\1\);\s*__xl6_typed_iter_\1 = 0;\s*}\s*goto __xl6_break_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'if \(key != 0\) \{\s*xrtFree\(\(void\*\)key\);\s*key = 0;\s*}\s*if \(__xl6_typed_dict_snapshot_(\d+) != 0\) \{\s*xrtTypedDictDestroy\(__xl6_typed_dict_snapshot_\1\);\s*__xl6_typed_dict_snapshot_\1 = 0;\s*}\s*if \(__xl6_typed_iter_\1 != 0\) \{\s*xrtTypedDictDestroy\(__xl6_typed_iter_\1\);\s*__xl6_typed_iter_\1 = 0;\s*}\s*goto __xl6_break_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before break.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = score;[\s\S]*?if \(key != 0\) \{[\s\S]*?xrtFree\(\(void\*\)key\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = score;[\s\S]*?if \(key != 0\) \{[\s\S]*?xrtFree\(\(void\*\)key\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_dict_snapshot_\d+\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before return.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'nestedDictTotal = \(\(nestedDictTotal \+ \(outerScore \* 10LL\)\) \+ innerScore\);[\s\S]*?if \(innerKey != 0\) \{[\s\S]*?xrtFree\(\(void\*\)innerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'nestedDictTotal = \(\(nestedDictTotal \+ \(outerScore \* 10LL\)\) \+ innerScore\);[\s\S]*?if \(innerKey != 0\) \{[\s\S]*?xrtFree\(\(void\*\)innerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_dict_snapshot_(\d+)\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\1\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing nested typed dict inner cleanup before break.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = \(outerScore \+ innerScore\);[\s\S]*?xrtFree\(\(void\*\)innerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?xrtFree\(\(void\*\)outerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = \(outerScore \+ innerScore\);[\s\S]*?xrtFree\(\(void\*\)innerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_dict_snapshot_\d+\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?xrtFree\(\(void\*\)outerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_dict_snapshot_\d+\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing nested typed dict inner and outer cleanup before return.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_error_raise\(\"Error\", \"nested typed dict loop boom\"[\s\S]*?xrtFree\(\(void\*\)innerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?xrtFree\(\(void\*\)outerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_error_raise\(\"Error\", \"nested typed dict loop boom\"[\s\S]*?xrtFree\(\(void\*\)innerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_dict_snapshot_\d+\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);[\s\S]*?xrtFree\(\(void\*\)outerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_dict_snapshot_\d+\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\d+\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing nested typed dict inner and outer cleanup before throw.
     exit /b 1
@@ -504,4 +514,3 @@ if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: core C generation and runtime baseline 3/10
 exit /b 0
-

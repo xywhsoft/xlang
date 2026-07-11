@@ -160,7 +160,7 @@ func parseArgInt(string s, int defValue) as int
     end
     int i = start
     while i < string.len(s) do
-        string ch = string.slice(s, i, i + 1)
+        string ch = string.slice(s, i, 1)
         if string.indexOf("0123456789", ch) < 0 then
             return defValue
         end
@@ -577,7 +577,7 @@ func tokenize(string line) as array<string>
             end
             i = i + 1
         end
-        tokens.append(string.slice(line, start, i))
+        tokens.append(string.slice(line, start, i - start))
     end
     return tokens
 end
@@ -1411,7 +1411,7 @@ func rasterizeModel(
     bool useTexture,
     float matR, float matG, float matB,
     float ka, float kd, float ks, float shininess
-)
+) as RenderTarget
     int width = rt.width
     int height = rt.height
     int tc = mesh.triCount()
@@ -1659,10 +1659,9 @@ func rasterizeModel(
 
         t = t + 1
     end
+    return rt
 end
 
-// ========================================================================
-// 平面投影阴影光栅化
 //
 // 将 mesh 的每个三角形从点光源投影到 y=0 地面平面，
 // 然后光栅化投影后的三角形，以 alpha 混合（暗化）方式叠加到 framebuffer。
@@ -1683,10 +1682,10 @@ func rasterizeShadow(
     RenderTarget rt,
     float lightX, float lightY, float lightZ,
     float shadowDarkness
-)
+) as RenderTarget
     // 光源必须在地面以上
     if lightY <= 0.01 then
-        return
+        return rt
     end
 
     int width = rt.width
@@ -1856,6 +1855,7 @@ func rasterizeShadow(
 
         t = t + 1
     end
+    return rt
 end
 
 // ========================================================================
@@ -1884,7 +1884,15 @@ func writePpm(string path, RenderTarget rt)
         lines.append(rowLine)
         y = y + 1
     end
-    string body = string.join(lines, "\n")
+    string body = ""
+    int li = 0
+    while li < lines.length do
+        if li > 0 then
+            body = body + "\n"
+        end
+        body = body + string(lines[li])
+        li = li + 1
+    end
     body = body + "\n"
     bool ok = file.writeText(path, body)
     if not ok then
@@ -2023,17 +2031,17 @@ func cmdRender(string modelPath, int width, int height, string outPath) as int
 
     // Pass 1: 地面（纹理化 + Phong）
     Mat4 groundModel = matIdentity()
-    rasterizeModel(ground, groundModel, viewProj, rt, groundTex, true,
+    rt = rasterizeModel(ground, groundModel, viewProj, rt, groundTex, true,
         1.0, 1.0, 1.0, groundKa, groundKd, groundKs, groundShin)
 
     // Pass 2: 阴影（投影到地面）
     float lightX = g_lights[0]
     float lightY = g_lights[1]
     float lightZ = g_lights[2]
-    rasterizeShadow(mesh, model, viewProj, rt, lightX, lightY, lightZ, g_shadowDarkness)
+    rt = rasterizeShadow(mesh, model, viewProj, rt, lightX, lightY, lightZ, g_shadowDarkness)
 
     // Pass 3: 模型（纹理化 + Phong）
-    rasterizeModel(mesh, model, viewProj, rt, modelTex, mesh.hasUv or not fromObj,
+    rt = rasterizeModel(mesh, model, viewProj, rt, modelTex, mesh.hasUv or not fromObj,
         1.0, 1.0, 1.0, modelKa, modelKd, modelKs, modelShin)
 
     float t1 = time.timer()
@@ -2124,15 +2132,15 @@ func cmdRenderScene(int sceneChoice, int width, int height, string outPath) as i
     float t0 = time.timer()
 
     Mat4 groundModel = matIdentity()
-    rasterizeModel(ground, groundModel, viewProj, rt, groundTex, true,
+    rt = rasterizeModel(ground, groundModel, viewProj, rt, groundTex, true,
         1.0, 1.0, 1.0, 0.2, 0.6, 0.1, 8.0)
 
     float lightX = g_lights[0]
     float lightY = g_lights[1]
     float lightZ = g_lights[2]
-    rasterizeShadow(mesh, model, viewProj, rt, lightX, lightY, lightZ, g_shadowDarkness)
+    rt = rasterizeShadow(mesh, model, viewProj, rt, lightX, lightY, lightZ, g_shadowDarkness)
 
-    rasterizeModel(mesh, model, viewProj, rt, modelTex, true,
+    rt = rasterizeModel(mesh, model, viewProj, rt, modelTex, true,
         1.0, 1.0, 1.0, 0.15, 0.75, 0.5, 32.0)
 
     float t1 = time.timer()
@@ -2195,12 +2203,12 @@ func cmdBench(int width, int height) as int
 
         float t0 = time.timer()
         Mat4 gm = matIdentity()
-        rasterizeModel(ground, gm, viewProj, rt, gtex, true, 1.0, 1.0, 1.0, 0.2, 0.6, 0.1, 8.0)
+        rt = rasterizeModel(ground, gm, viewProj, rt, gtex, true, 1.0, 1.0, 1.0, 0.2, 0.6, 0.1, 8.0)
         float lx = g_lights[0]
         float ly = g_lights[1]
         float lz = g_lights[2]
-        rasterizeShadow(mesh, model, viewProj, rt, lx, ly, lz, g_shadowDarkness)
-        rasterizeModel(mesh, model, viewProj, rt, mtex, true, 1.0, 1.0, 1.0, 0.15, 0.75, 0.5, 32.0)
+        rt = rasterizeShadow(mesh, model, viewProj, rt, lx, ly, lz, g_shadowDarkness)
+        rt = rasterizeModel(mesh, model, viewProj, rt, mtex, true, 1.0, 1.0, 1.0, 0.15, 0.75, 0.5, 32.0)
         float t1 = time.timer()
 
         float elapsed = t1 - t0
@@ -2354,12 +2362,16 @@ func cmdTest() as int
     px, py, pzz, pww = proj.transformPoint(projP)
     check(pww > 0.0, "perspective w>0 for point in front of camera")
 
-    Mat4 lookAtM = matLookAt(Vec3(0.0, 0.0, 5.0), Vec3(0.0, 0.0, 0.0), Vec3(0.0, 1.0, 0.0))
+    Vec3 laEye = Vec3(0.0, 0.0, 5.0)
+    Vec3 laTarget = Vec3(0.0, 0.0, 0.0)
+    Vec3 laUp = Vec3(0.0, 1.0, 0.0)
+    Mat4 lookAtM = matLookAt(laEye, laTarget, laUp)
     float lax
     float lay
     float laz
     float law
-    lax, lay, laz, law = lookAtM.transformPoint(Vec3(0.0, 0.0, 0.0))
+    Vec3 laOrigin = Vec3(0.0, 0.0, 0.0)
+    lax, lay, laz, law = lookAtM.transformPoint(laOrigin)
     // eye at (0,0,5) looking at origin: origin should transform to (0,0,-5) in view space
     check(approxEq(laz, -5.0, 1e-4), "lookAt: origin -> z=-5 in view space")
 
@@ -2449,7 +2461,7 @@ func cmdTest() as int
     check(objMesh.faces[2] == 0, "OBJ face 0 normal idx == 0 (0-based)")
 
     // 清理测试文件
-    file.remove(testObjPath)
+    file.delete(testObjPath)
 
     // ---- 8. 程序生成模型 ----
     println("[8] procedural models")
@@ -2545,7 +2557,9 @@ func cmdTest() as int
     g_eyeX = eyeR.x
     g_eyeY = eyeR.y
     g_eyeZ = eyeR.z
-    Mat4 viewR = matLookAt(eyeR, Vec3(0.0, 0.8, 0.0), Vec3(0.0, 1.0, 0.0))
+    Vec3 tgtR = Vec3(0.0, 0.8, 0.0)
+    Vec3 upR = Vec3(0.0, 1.0, 0.0)
+    Mat4 viewR = matLookAt(eyeR, tgtR, upR)
     Mat4 projR = matPerspective(45.0, 1.0, 0.1, 100.0)
     Mat4 vpR = projR.mul(viewR)
 
@@ -2554,7 +2568,7 @@ func cmdTest() as int
     rt.clear(20, 25, 45)
 
     Mat4 gm = matIdentity()
-    rasterizeModel(renderGround, gm, vpR, rt, gtex, true, 1.0, 1.0, 1.0, 0.2, 0.6, 0.1, 8.0)
+    rt = rasterizeModel(renderGround, gm, vpR, rt, gtex, true, 1.0, 1.0, 1.0, 0.2, 0.6, 0.1, 8.0)
     int groundDrawn = countNonBg(rt, 20, 25, 45)
     check(groundDrawn > 500, "ground renders > 500 pixels (got " + string(groundDrawn) + ")")
 
@@ -2562,10 +2576,10 @@ func cmdTest() as int
     float lx = g_lights[0]
     float ly = g_lights[1]
     float lz = g_lights[2]
-    rasterizeShadow(renderMesh, renderModel, vpR, rt, lx, ly, lz, g_shadowDarkness)
+    rt = rasterizeShadow(renderMesh, renderModel, vpR, rt, lx, ly, lz, g_shadowDarkness)
 
     // 模型
-    rasterizeModel(renderMesh, renderModel, vpR, rt, mtex, true, 1.0, 1.0, 1.0, 0.15, 0.75, 0.5, 32.0)
+    rt = rasterizeModel(renderMesh, renderModel, vpR, rt, mtex, true, 1.0, 1.0, 1.0, 0.15, 0.75, 0.5, 32.0)
     int totalDrawn = countNonBg(rt, 20, 25, 45)
     check(totalDrawn > groundDrawn, "model adds pixels on top of ground")
     check(totalDrawn > 1000, "full render > 1000 shaded pixels (got " + string(totalDrawn) + ")")
@@ -2592,7 +2606,9 @@ func cmdTest() as int
     g_eyeX = 0.0
     g_eyeY = 0.0
     g_eyeZ = 0.0
-    Mat4 viewZ = matLookAt(zEye, Vec3(0.0, 0.0, -1.0), Vec3(0.0, 1.0, 0.0))
+    Vec3 tgtZ = Vec3(0.0, 0.0, -1.0)
+    Vec3 upZ = Vec3(0.0, 1.0, 0.0)
+    Mat4 viewZ = matLookAt(zEye, tgtZ, upZ)
     Mat4 projZ = matPerspective(90.0, 1.0, 0.1, 100.0)
     Mat4 vpZ = projZ.mul(viewZ)
     Mat4 nearM = matTranslate(0.0, 0.0, -2.0)
@@ -2606,8 +2622,8 @@ func cmdTest() as int
     Texture redTex = buildCheckerTexture(2, 2, 1, 255, 0, 0, 255, 0, 0)
     Texture grnTex = buildCheckerTexture(2, 2, 1, 0, 255, 0, 0, 255, 0)
 
-    rasterizeModel(farTri, farM, vpZ, rt2, grnTex, true, 1.0, 1.0, 1.0, 0.2, 0.7, 0.0, 1.0)
-    rasterizeModel(nearTri, nearM, vpZ, rt2, redTex, true, 1.0, 1.0, 1.0, 0.2, 0.7, 0.0, 1.0)
+    rt2 = rasterizeModel(farTri, farM, vpZ, rt2, grnTex, true, 1.0, 1.0, 1.0, 0.2, 0.7, 0.0, 1.0)
+    rt2 = rasterizeModel(nearTri, nearM, vpZ, rt2, redTex, true, 1.0, 1.0, 1.0, 0.2, 0.7, 0.0, 1.0)
 
     int centerR = rt2.fb[(16 * 32 + 16) * 3]
     int centerG = rt2.fb[(16 * 32 + 16) * 3 + 1]
@@ -2626,11 +2642,13 @@ func cmdTest() as int
     g_eyeX = pcEye.x
     g_eyeY = pcEye.y
     g_eyeZ = pcEye.z
-    Mat4 pcView = matLookAt(pcEye, Vec3(0.0, 0.5, 0.0), Vec3(0.0, 1.0, 0.0))
+    Vec3 tgtPC = Vec3(0.0, 0.5, 0.0)
+    Vec3 upPC = Vec3(0.0, 1.0, 0.0)
+    Mat4 pcView = matLookAt(pcEye, tgtPC, upPC)
     Mat4 pcProj = matPerspective(45.0, 40.0 / 30.0, 0.1, 100.0)
     Mat4 pcVP = pcProj.mul(pcView)
     Texture pcTex = buildCheckerTexture(16, 16, 4, 255, 255, 255, 30, 30, 30)
-    rasterizeModel(pcCube, pcModel, pcVP, rt3, pcTex, true, 1.0, 1.0, 1.0, 0.15, 0.75, 0.3, 16.0)
+    rt3 = rasterizeModel(pcCube, pcModel, pcVP, rt3, pcTex, true, 1.0, 1.0, 1.0, 0.15, 0.75, 0.3, 16.0)
     int pcDrawn = countNonBg(rt3, 0, 0, 0)
     check(pcDrawn > 50, "perspective-correct cube renders > 50 pixels (got " + string(pcDrawn) + ")")
 

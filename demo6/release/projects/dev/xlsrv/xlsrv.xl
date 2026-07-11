@@ -428,11 +428,11 @@ func lookupSymbolInScope(string name, int scopeId) as Symbol
     while cur >= 0 do
         var s = g_scopes[string(cur)]
         if not (s is null) then
-            array syms = s["symbols"]
+            var syms = s["symbols"]
             if syms is array then
                 int i = syms.length - 1
                 while i >= 0 do
-                    Symbol sym = syms[i]
+                    Symbol sym = syms[i] as Symbol
                     if sym.name == name then
                         return sym
                     end
@@ -450,7 +450,7 @@ func registerSymbol(Symbol sym, int scopeId)
     sym.scopeId = scopeId
     var s = g_scopes[string(scopeId)]
     if not (s is null) then
-        array syms = s["symbols"]
+        var syms = s["symbols"]
         if syms is array then
             syms.push(sym)
         else
@@ -470,7 +470,7 @@ func addGlobalSymbol(Symbol sym)
     if existing is array then
         existing.push(sym)
     else
-        array<Symbol> arr = []
+        array arr = []
         arr.push(sym)
         g_symbolsByName[key] = arr
     end
@@ -489,6 +489,9 @@ end
 // 用 regex 从源码行提取声明，构造 Symbol。
 // 这不是完整解析器，但覆盖最常见的声明形态。
 func scanFileSymbols(string filePath, string text) as array<Symbol>
+    // 缓存文本到 g_documents, 使后续 hover/definition/references 能取到 (按 filePath 索引).
+    Document cached = Document(filePath, 1, text)
+    g_documents[filePath] = cached
     array<Symbol> result = []
     array lines = splitLinesSafe(text)
     int n = lines.length
@@ -552,9 +555,10 @@ func scanFileSymbols(string filePath, string text) as array<Symbol>
                 scopeStack.remove(scopeStack.length - 1)
             end
         elseif matchVarDecl(trimmed) then
-            // var/typed 变量声明: int x = ..., string y, auto z = ...
+            // var/typed 变量声明: int x = ..., string y, auto z = ... 或裸声明 int x
             array decls = extractVarDecls(trimmed)
             int curScope = int(scopeStack[scopeStack.length - 1])
+            bool inClass = (scopeKind(curScope) == SCOPE_CLASS)
             for d in decls
                 var vd = d
                 string vname = string(vd["name"])
@@ -563,9 +567,16 @@ func scanFileSymbols(string filePath, string text) as array<Symbol>
                 if isConstType(vtype) then
                     kind = SYM_CONST
                 end
+                if inClass then
+                    kind = SYM_FIELD
+                end
                 Symbol sym = Symbol(vname, kind, filePath, lineNo, col + 1)
                 sym.signature = vtype
-                sym.detail = vtype + " " + vname
+                if inClass then
+                    sym.detail = "field " + vtype + " " + vname
+                else
+                    sym.detail = vtype + " " + vname
+                end
                 registerSymbol(sym, curScope)
                 result.push(sym)
             end
@@ -676,8 +687,8 @@ func matchVarDecl(string s) as bool
     if string.startsWith(s, "//") then
         return false
     end
-    // 尝试匹配: <Type> <name> [= ...]
-    return regex.isMatch(s, "^[A-Za-z_][A-Za-z0-9_<>, ]+\\s+[A-Za-z_][A-Za-z0-9_]*\\s*[=;]")
+    // 尝试匹配: <Type> <name> [= ...] 或裸声明 <Type> <name> (行尾)
+    return regex.isMatch(s, "^[A-Za-z_][A-Za-z0-9_<>, ]+\\s+[A-Za-z_][A-Za-z0-9_]*($|\\s*[=;])")
 end
 
 func matchFieldDecl(string s) as bool
@@ -720,14 +731,14 @@ func extractClassName(string line) as string
     string s = string.trim(string.slice(line, 6))
     int sp = string.indexOf(s, " ")
     int nl = string.indexOf(s, "\n")
-    int end = sp
-    if nl >= 0 and (nl < end or end < 0) then
-        end = nl
+    int endIdx = sp
+    if nl >= 0 and (nl < endIdx or endIdx < 0) then
+        endIdx = nl
     end
-    if end < 0 then
+    if endIdx < 0 then
         return s
     end
-    return string.trim(string.left(s, end))
+    return string.trim(string.left(s, endIdx))
 end
 
 func extractConstName(string line) as string
@@ -926,7 +937,7 @@ func extractSymbolsFromAst(var root, string filePath)
         int last = nodeStack.length - 1
         var node = nodeStack[last]
         int curScope = int(scopeStack[last])
-        bool inClass = inClassStack[last]
+        bool inClass = bool(inClassStack[last])
         nodeStack.remove(last)
         scopeStack.remove(last)
         inClassStack.remove(last)
@@ -1282,7 +1293,7 @@ end
 // ====================================================================
 
 func getHover(string uri, int line, int character) as string
-    Document doc = g_documents[uri]
+    var doc = g_documents[uri]
     string text = ""
     if not (doc is null) then
         text = doc.text
@@ -1308,12 +1319,11 @@ end
 func formatHoverContent(Symbol sym) as string
     array parts = []
     if sym.kind == SYM_FUNC then
+        parts.push("**function** " + sym.name)
         if string.len(sym.signature) > 0 then
             parts.push("```xlang")
             parts.push(sym.signature)
             parts.push("```")
-        else
-            parts.push("**function** " + sym.name)
         end
     elseif sym.kind == SYM_CLASS then
         parts.push("**class** " + sym.name)
@@ -1364,7 +1374,7 @@ func findSymbolByName(string name) as Symbol
     var arr = g_symbolsByName[name]
     if arr is array then
         if arr.length > 0 then
-            return arr[0]
+            return arr[0] as Symbol
         end
     end
     return Symbol("", "", "", 0, 0)
@@ -1373,10 +1383,15 @@ end
 // 按名字查找所有匹配的符号
 func findSymbolsByName(string name) as array<Symbol>
     var arr = g_symbolsByName[name]
+    array<Symbol> result = []
     if arr is array then
-        return arr
+        int i = 0
+        while i < arr.length do
+            result.push(arr[i] as Symbol)
+            i += 1
+        end
     end
-    return []
+    return result
 end
 
 // ====================================================================
@@ -1384,7 +1399,7 @@ end
 // ====================================================================
 
 func getDefinition(string uri, int line, int character) as array
-    Document doc = g_documents[uri]
+    var doc = g_documents[uri]
     string text = ""
     if not (doc is null) then
         text = doc.text
@@ -1394,7 +1409,7 @@ func getDefinition(string uri, int line, int character) as array
         return []
     end
 
-    array syms = findSymbolsByName(word)
+    array<Symbol> syms = findSymbolsByName(word)
     array result = []
     for sym in syms
         // LSP 行/列是 0-based，源码符号是 1-based
@@ -1413,7 +1428,7 @@ end
 // ====================================================================
 
 func getReferences(string uri, int line, int character, bool includeDecl) as array
-    Document doc = g_documents[uri]
+    var doc = g_documents[uri]
     string text = ""
     string filePath = uriToPath(uri)
     if not (doc is null) then
@@ -1430,7 +1445,7 @@ func getReferences(string uri, int line, int character, bool includeDecl) as arr
     array keys = dictKeys(g_documents)
     for k in keys
         string docUri = string(k)
-        Document d = g_documents[docUri]
+        var d = g_documents[docUri]
         if d is null then
             continue
         end
@@ -1559,7 +1574,7 @@ func runXlCheck(string filePath) as array
         if string.len(string.trim(line)) == 0 then
             continue
         end
-        Diagnostic d = parseCompilerLine(filePath, line)
+        var d = parseCompilerLine(filePath, line)
         if not (d is null) then
             result.push(d)
         end
@@ -1568,7 +1583,7 @@ func runXlCheck(string filePath) as array
 end
 
 // 解析编译器输出行
-func parseCompilerLine(string filePath, string line) as Diagnostic
+func parseCompilerLine(string filePath, string line) as var
     // 尝试匹配: file(line,col): message  或  file(line): message
     // 或 [phase] message
     string trimmed = string.trim(line)
@@ -1706,14 +1721,24 @@ end
 // 源码基本诊断: 未配对的 end/begin 等
 func scanSourceDiagnostics(string filePath, string uri) as array
     array result = []
-    if not file.exists(filePath) then
-        return result
-    end
     string text = ""
-    try
-        text = file.readText(filePath)
-    catch e
-        return result
+    // 优先使用内存文档 (LSP buffer), 其次读磁盘
+    var doc = g_documents[uri]
+    if not (doc is null) then
+        text = doc.text
+    else
+        var docAlt = g_documents[filePath]
+        if not (docAlt is null) then
+            text = docAlt.text
+        elseif file.exists(filePath) then
+            try
+                text = file.readText(filePath)
+            catch e
+                return result
+            end
+        else
+            return result
+        end
     end
 
     array lines = splitLinesSafe(text)
@@ -1786,6 +1811,9 @@ func startsBlock(string s) as bool
         return true
     end
     if string.startsWith(t, "class ") then
+        return true
+    end
+    if string.startsWith(t, "create ") or string.startsWith(t, "create(") then
         return true
     end
     if string.startsWith(t, "if ") then
@@ -1862,7 +1890,7 @@ func removeSymbolsForFile(string uri)
         if existing is array then
             existing.push(sym)
         else
-            array<Symbol> arr = []
+            array arr = []
             arr.push(sym)
             g_symbolsByName[key] = arr
         end
@@ -2354,7 +2382,7 @@ func outputAnalysisText(string filePath)
     // 符号表
     println("[Symbols] (" + string(g_symbols.length) + ")")
     println("-----------------------------------------------")
-    array sorted = sortSymbols(g_symbols)
+    array<Symbol> sorted = sortSymbols(g_symbols)
     for sym in sorted
         string scope = scopeName(sym.scopeId)
         string sig = sym.signature
@@ -2397,7 +2425,7 @@ func outputAnalysisText(string filePath)
     else
         for d in diags
             string sev = sevName(d.severity)
-            println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + d.message)
+            println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + string(d.message))
         end
     end
     println("")
@@ -2529,7 +2557,7 @@ func cmdSymbols(string filePath) as int
     println("[Symbols in " + filePath + "]")
     println("  Total: " + string(g_symbols.length))
     println("")
-    array sorted = sortSymbols(g_symbols)
+    array<Symbol> sorted = sortSymbols(g_symbols)
     for sym in sorted
         string scope = scopeName(sym.scopeId)
         println("  " + string.padRight(sym.kind, 10) + " " + string.padRight(sym.name, 24) + " " + string.padRight(scope, 16) + " L" + string(sym.line) + " C" + string(sym.column))
@@ -2558,7 +2586,7 @@ func cmdCheck(string filePath) as int
     int errors = 0
     for d in diags
         string sev = sevName(d.severity)
-        println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + d.source + ": " + d.message)
+        println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + string(d.source) + ": " + string(d.message))
         if d.severity == DS_ERROR then
             errors += 1
         end
@@ -2677,7 +2705,7 @@ func testSymbolExtraction()
     resetSymbols()
     g_xl = ""
     string src = testSource()
-    array syms = scanFileSymbols("test.xl", src)
+    array<Symbol> syms = scanFileSymbols("test.xl", src)
 
     // 应该找到: MAX, add, a, b, Point, x, y, result, msg, main
     expectTrue(syms.length > 0, "symbols found")
@@ -2833,18 +2861,17 @@ func testDefinition()
     scanFileSymbols("test.xl", src)
 
     // 在 main 中调用 add(1,2)，查找 add 的定义
-    // main 在第 17 行: "int result = add(1, 2)"
-    // add 出现在该行的列 ~16
-    array defs = getDefinition("test.xl", 17, 16)
+    // "int result = add(1, 2)" 在 0-based line 16, add 起始列 17
+    array defs = getDefinition("test.xl", 16, 17)
     expectTrue(defs.length > 0, "definition for 'add' found")
     if defs.length > 0 then
-        Location loc = defs[0]
+        var loc = defs[0]
         // add 定义在第 3 行
         expectEq(loc.startLine, 2, "'add' definition at line 3 (0-based 2)")
     end
 
-    // 查找 Point 的定义
-    array defs2 = getDefinition("test.xl", 6, 3)
+    // 查找 Point 的定义 (class Point: Point 起始列 6)
+    array defs2 = getDefinition("test.xl", 6, 6)
     expectTrue(defs2.length > 0, "definition for 'Point' found")
 end
 
@@ -2858,8 +2885,8 @@ func testReferences()
     array refs = getReferences("test.xl", 2, 5, true)
     expectTrue(refs.length >= 2, "references for 'add' >= 2")
 
-    // msg 在 main 中声明和使用
-    array refs2 = getReferences("test.xl", 18, 4, true)
+    // msg 在 main 中声明和使用 (println(msg): msg 起始列 12)
+    array refs2 = getReferences("test.xl", 18, 12, true)
     expectTrue(refs2.length >= 2, "references for 'msg' >= 2")
 end
 
@@ -3043,7 +3070,7 @@ func testAnalyzeCommand()
 
     // 清理
     try
-        file.remove(tmpFile)
+        file.delete(tmpFile)
     catch e
     end
 end

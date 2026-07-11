@@ -30,7 +30,7 @@
 // 1. 全局状态
 // ============================================================================
 
-var gTables = {}      // 表名 -> {columns:[{name,type}], rows:[{col:val}]}
+var gTables = {}      // 表名 -> {"columns":[{name,type}], "rows":[{"col":val}]}
 var gTox = []         // 当前正在解析的 token 数组（array<string>）
 int gIx = 0           // 当前解析下标
 int gAggId = 0        // 聚合节点编号计数器（每条 SELECT 重置）
@@ -352,16 +352,16 @@ end
 // ============================================================================
 // 5. 表达式解析（产出 var dict AST 节点）
 //   节点形态:
-//     {k:"lit",  v:value}
-//     {k:"col",  name:..}                 非限定列
-//     {k:"col",  table:.., name:..}       限定列 table.col
-//     {k:"star"}
-//     {k:"qstar", table:..}
-//     {k:"agg",  name:"COUNT", arg:节点或null}
-//     {k:"cmp",  op:">", left:.., right:..}
-//     {k:"arith",op:"+", left:.., right:..}
-//     {k:"and"/"or", left:.., right:..}
-//     {k:"not",  e:..}
+//     {"k":"lit",  v:value}
+//     {"k":"col",  name:..}                 非限定列
+//     {"k":"col",  table:.., "name":..}       限定列 table.col
+//     {"k":"star"}
+//     {"k":"qstar", "table":..}
+//     {"k":"agg",  name:"COUNT", "arg":节点或null}
+//     {"k":"cmp",  op:">", "left":.., "right":..}
+//     {"k":"arith",op:"+", "left":.., "right":..}
+//     {"k":"and"/"or", "left":.., "right":..}
+//     {"k":"not",  e:..}
 // ============================================================================
 
 func parseExpr() as var
@@ -373,7 +373,7 @@ func parseOr() as var
     while tokWordIs(tokPeek(), "or") do
         gIx += 1
         var rhs = parseAnd()
-        node = {k:"or", left:node, right:rhs}
+        node = {"k":"or", "left":node, "right":rhs}
     end
     return node
 end
@@ -383,7 +383,7 @@ func parseAnd() as var
     while tokWordIs(tokPeek(), "and") do
         gIx += 1
         var rhs = parseNot()
-        node = {k:"and", left:node, right:rhs}
+        node = {"k":"and", "left":node, "right":rhs}
     end
     return node
 end
@@ -392,7 +392,7 @@ func parseNot() as var
     if tokWordIs(tokPeek(), "not") then
         gIx += 1
         var e = parseNot()
-        return {k:"not", e:e}
+        return {"k":"not", "e":e}
     end
     return parseCmp()
 end
@@ -403,15 +403,15 @@ func parseCmp() as var
     if t == "=" or t == "!=" or t == "<>" or t == ">" or t == "<" or t == ">=" or t == "<=" then
         gIx += 1
         var right = parseAdd()
-        return {k:"cmp", op:t, left:left, right:right}
+        return {"k":"cmp", "op":t, "left":left, "right":right}
     end
     if tokWordIs(t, "is") then
         gIx += 1
         bool neg = tokAcceptWord("not")
         tokExpectWord("null")
-        var isNullNode = {k:"cmp", op:"=", left:left, right:{k:"lit", v:null}}
+        var isNullNode = {"k":"cmp", "op":"=", "left":left, "right":{"k":"lit", "v":null}}
         if neg then
-            return {k:"not", e:isNullNode}
+            return {"k":"not", "e":isNullNode}
         end
         return isNullNode
     end
@@ -423,7 +423,7 @@ func parseAdd() as var
     while tokPeek() == "+" or tokPeek() == "-" do
         string op = tokEat()
         var rhs = parseMul()
-        node = {k:"arith", op:op, left:node, right:rhs}
+        node = {"k":"arith", "op":op, "left":node, "right":rhs}
     end
     return node
 end
@@ -433,7 +433,7 @@ func parseMul() as var
     while tokPeek() == "*" or tokPeek() == "/" or tokPeek() == "%" do
         string op = tokEat()
         var rhs = parseUnary()
-        node = {k:"arith", op:op, left:node, right:rhs}
+        node = {"k":"arith", "op":op, "left":node, "right":rhs}
     end
     return node
 end
@@ -442,7 +442,7 @@ func parseUnary() as var
     if tokPeek() == "-" then
         gIx += 1
         var e = parseUnary()
-        return {k:"arith", op:"-", left:{k:"lit", v:0}, right:e}
+        return {"k":"arith", "op":"-", "left":{"k":"lit", "v":0}, "right":e}
     end
     if tokPeek() == "+" then
         gIx += 1
@@ -458,7 +458,7 @@ func parsePrimary() as var
     end
     if t == "*" then
         gIx += 1
-        return {k:"star"}
+        return {"k":"star"}
     end
     if t == "(" then
         gIx += 1
@@ -468,25 +468,25 @@ func parsePrimary() as var
     end
     if tokIsStringLit(t) then
         gIx += 1
-        return {k:"lit", v:tokStrValue(t)}
+        return {"k":"lit", "v":tokStrValue(t)}
     end
     if tokIsNumberLit(t) then
         gIx += 1
-        return {k:"lit", v:tokNumValue(t)}
+        return {"k":"lit", "v":tokNumValue(t)}
     end
     if tokIsWord(t) then
         string low = string.lower(t)
         if low == "true" then
             gIx += 1
-            return {k:"lit", v:true}
+            return {"k":"lit", "v":true}
         end
         if low == "false" then
             gIx += 1
-            return {k:"lit", v:false}
+            return {"k":"lit", "v":false}
         end
         if low == "null" then
             gIx += 1
-            return {k:"lit", v:null}
+            return {"k":"lit", "v":null}
         end
         // 聚合函数调用
         if tokIsAggName(t) and tokPeekAt(1) == "(" then
@@ -495,14 +495,14 @@ func parsePrimary() as var
             var arg = null
             if tokPeek() == "*" then
                 gIx += 1
-                arg = {k:"star"}
+                arg = {"k":"star"}
             elseif tokPeek() == ")" then
                 arg = null
             else
                 arg = parseExpr()
             end
             tokExpectTok(")")
-            return {k:"agg", name:aggName, arg:arg}
+            return {"k":"agg", "name":aggName, "arg":arg}
         end
         // 列引用，可能带 table.col 限定
         gIx += 1
@@ -511,12 +511,12 @@ func parsePrimary() as var
             gIx += 1
             if tokPeek() == "*" then
                 gIx += 1
-                return {k:"qstar", table:colName}
+                return {"k":"qstar", "table":colName}
             end
             string fld = tokEat()
-            return {k:"col", table:colName, name:fld}
+            return {"k":"col", "table":colName, "name":fld}
         end
-        return {k:"col", name:colName}
+        return {"k":"col", "name":colName}
     end
     throw "unexpected token in expression: '" + t + "'"
 end
@@ -575,13 +575,13 @@ func parseCreate() as var
                 gIx += 1
             end
         end
-        cols.append({name:cname, type:string.upper(ctype)})
+        cols.append({"name":cname, "type":string.upper(ctype)})
         if tokPeek() == "," then
             gIx += 1
         end
     end
     tokExpectTok(")")
-    return {op:"create", table:tname, columns:cols}
+    return {"op":"create", "table":tname, "columns":cols}
 end
 
 // INSERT INTO name [(c,..)] VALUES (..),(..)
@@ -619,7 +619,7 @@ func parseInsert() as var
             break
         end
     end
-    return {op:"insert", table:tname, columns:colNames, rows:rows}
+    return {"op":"insert", "table":tname, "columns":colNames, "rows":rows}
 end
 
 // SELECT [DISTINCT] <items> FROM name [JOINs] [WHERE] [GROUP BY] [HAVING] [ORDER BY] [LIMIT]
@@ -638,7 +638,7 @@ func parseSelect() as var
         elseif tokIsWord(tokPeek()) and not isClauseWord(tokPeek()) then
             alias = tokEat()
         end
-        selItems.append({expr:expr, alias:alias})
+        selItems.append({"expr":expr, "alias":alias})
         if tokPeek() == "," then
             gIx += 1
         else
@@ -648,7 +648,7 @@ func parseSelect() as var
 
     tokExpectWord("from")
     string fromTable = tokEat()
-    string fromAlias = null
+    var fromAlias = null
     if tokIsWord(tokPeek()) and not isClauseWord(tokPeek()) then
         fromAlias = tokEat()
     end
@@ -667,7 +667,7 @@ func parseSelect() as var
         whereExpr = parseExpr()
     end
 
-    array groupExprs = null
+    var groupExprs = null
     if tokAcceptWord("group") then
         tokExpectWord("by")
         groupExprs = []
@@ -686,7 +686,7 @@ func parseSelect() as var
         havingExpr = parseExpr()
     end
 
-    array orderSpecs = null
+    var orderSpecs = null
     if tokAcceptWord("order") then
         tokExpectWord("by")
         orderSpecs = []
@@ -698,7 +698,7 @@ func parseSelect() as var
             elseif tokAcceptWord("desc") then
                 dir = "desc"
             end
-            orderSpecs.append({expr:oe, dir:dir})
+            orderSpecs.append({"expr":oe, "dir":dir})
             if tokPeek() == "," then
                 gIx += 1
             else
@@ -713,9 +713,9 @@ func parseSelect() as var
         limitVal = int(lt)
     end
 
-    return {op:"select", select:selItems, distinct:distinct, from:fromTable, fromAlias:fromAlias,
-            joins:joins, where:whereExpr, group:groupExprs, having:havingExpr,
-            order:orderSpecs, limit:limitVal}
+    return {"op":"select", "select":selItems, "distinct":distinct, "from":fromTable, "fromAlias":fromAlias,
+            "joins":joins, "where":whereExpr, "group":groupExprs, "having":havingExpr,
+            "order":orderSpecs, "limit":limitVal}
 end
 
 // 解析一个 JOIN 子句；若当前位置不是 JOIN 则返回 null 并恢复游标。
@@ -750,7 +750,7 @@ func tryParseJoin() as var
     end
     gIx += 1
     string jtable = tokEat()
-    string jalias = null
+    var jalias = null
     if tokIsWord(tokPeek()) and not isClauseWord(tokPeek()) then
         jalias = tokEat()
     end
@@ -758,7 +758,7 @@ func tryParseJoin() as var
     if tokAcceptWord("on") then
         onExpr = parseExpr()
     end
-    return {table:jtable, alias:jalias, type:jt, on:onExpr}
+    return {"table":jtable, "alias":jalias, "type":jt, "on":onExpr}
 end
 
 // UPDATE name SET col=expr,... [WHERE ..]
@@ -770,7 +770,7 @@ func parseUpdate() as var
         string col = tokEat()
         tokExpectTok("=")
         var ex = parseExpr()
-        sets.append({col:col, expr:ex})
+        sets.append({"col":col, "expr":ex})
         if tokPeek() == "," then
             gIx += 1
         else
@@ -781,7 +781,7 @@ func parseUpdate() as var
     if tokAcceptWord("where") then
         whereExpr = parseExpr()
     end
-    return {op:"update", table:tname, sets:sets, where:whereExpr}
+    return {"op":"update", "table":tname, "sets":sets, "where":whereExpr}
 end
 
 // DELETE FROM name [WHERE ..]
@@ -792,7 +792,7 @@ func parseDelete() as var
     if tokAcceptWord("where") then
         whereExpr = parseExpr()
     end
-    return {op:"delete", table:tname, where:whereExpr}
+    return {"op":"delete", "table":tname, "where":whereExpr}
 end
 
 
@@ -939,7 +939,7 @@ func truthy(var v) as bool
         return false
     end
     if v is bool then
-        return v
+        return bool(v)
     end
     if v is int then
         return v != 0
@@ -1020,12 +1020,12 @@ func evalExpr(var row, var e, var aggCache) as var
     if k == "cmp" then
         var lv = evalExpr(row, e["left"], aggCache)
         var rv = evalExpr(row, e["right"], aggCache)
-        return applyCmp(e["op"], lv, rv)
+        return applyCmp(string(e["op"]), lv, rv)
     end
     if k == "arith" then
         var lv = evalExpr(row, e["left"], aggCache)
         var rv = evalExpr(row, e["right"], aggCache)
-        return applyArith(e["op"], lv, rv)
+        return applyArith(string(e["op"]), lv, rv)
     end
     if k == "star" or k == "qstar" then
         return null
@@ -1220,7 +1220,7 @@ func execCreate(var ast)
     if gTables[tname] != null then
         throw "table already exists: " + tname
     end
-    gTables[tname] = {columns:ast["columns"], rows:[]}
+    gTables[tname] = {"columns":ast["columns"], "rows":[]}
     println("OK")
 end
 
@@ -1232,7 +1232,7 @@ func execInsert(var ast) as int
     end
     var colDefs = tab["columns"]
     int ncol = colDefs.length
-    array targetCols = ast["columns"]
+    var targetCols = ast["columns"]
     int count = 0
     for vals in ast["rows"]
         var row = {}
@@ -1323,9 +1323,9 @@ func expandStar(var srcTables) as array
             for cdef in t["columns"]
                 string nm = string(cdef["name"])
                 if qualify then
-                    cols.append({name:string(tn) + "." + nm, expr:{k:"col", table:tn, name:nm}})
+                    cols.append({"name":string(tn) + "." + nm, "expr":{"k":"col", "table":tn, "name":nm}})
                 else
-                    cols.append({name:nm, expr:{k:"col", name:nm}})
+                    cols.append({"name":nm, "expr":{"k":"col", "name":nm}})
                 end
             end
         end
@@ -1343,7 +1343,7 @@ func expandTableStar(var tableName) as array
     end
     for cdef in t["columns"]
         string nm = string(cdef["name"])
-        cols.append({name:string(tableName) + "." + nm, expr:{k:"col", table:tableName, name:nm}})
+        cols.append({"name":string(tableName) + "." + nm, "expr":{"k":"col", "table":tableName, "name":nm}})
     end
     return cols
 end
@@ -1459,7 +1459,7 @@ func execSelect(var ast) as var
                 for cdef in jtab["columns"]
                     string cn = string(cdef["name"])
                     combined[cn] = null
-                    combined[j["table"] + "." + cn] = null
+                    combined[string(j["table"]) + "." + cn] = null
                 end
                 nr.append(combined)
             end
@@ -1520,18 +1520,18 @@ func execSelect(var ast) as var
                     gi += 1
                 end
                 if not (gkey in groups) then
-                    groups[gkey] = {rows:[]}
+                    groups[gkey] = {"rows":[]}
                     groupOrder.append(gkey)
                 end
                 groups[gkey]["rows"].append(r)
             end
         else
-            groups["__all__"] = {rows:ctxRows}
+            groups["__all__"] = {"rows":ctxRows}
             groupOrder.append("__all__")
         end
         int gi2 = 0
         while gi2 < groupOrder.length do
-            string gk = groupOrder[gi2]
+            string gk = string(groupOrder[gi2])
             var grp = groups[gk]
             var rep = {}
             if grp["rows"].length > 0 then
@@ -1544,12 +1544,12 @@ func execSelect(var ast) as var
                 aggCache[an["aid"]] = computeAgg(an, grp["rows"])
                 ai += 1
             end
-            outCtx.append({row:rep, agg:aggCache})
+            outCtx.append({"row":rep, "agg":aggCache})
             gi2 += 1
         end
     else
         for r in ctxRows
-            outCtx.append({row:r, agg:null})
+            outCtx.append({"row":r, "agg":null})
         end
     end
 
@@ -1591,7 +1591,7 @@ func execSelect(var ast) as var
             else
                 dispName = exprLabel(ex)
             end
-            projCols.append({name:dispName, expr:ex})
+            projCols.append({"name":dispName, "expr":ex})
         end
         pi += 1
     end
@@ -1645,7 +1645,7 @@ func execSelect(var ast) as var
         resultRows.append(vals)
     end
 
-    return {columns:colNames, rows:resultRows}
+    return {"columns":colNames, "rows":resultRows}
 end
 
 
@@ -1749,7 +1749,7 @@ func printTable(var res)
     for sr in smatrix
         int j = 0
         while j < nc do
-            int wl = string.len(sr[j])
+            int wl = string.len(string(sr[j]))
             if wl > widths[j] then
                 widths[j] = wl
             end
@@ -1787,7 +1787,7 @@ func printTable(var res)
             if j4 > 0 then
                 line = line + " | "
             end
-            line = line + sr[j4] + spaces(widths[j4] - string.len(sr[j4]))
+            line = line + string(sr[j4]) + spaces(widths[j4] - string.len(string(sr[j4])))
             j4 += 1
         end
         println(line)
@@ -1856,11 +1856,11 @@ func runScriptFile(string path) as int
     end
     string joined = ""
     for line in lines
-        string trimmed = string.trim(line)
+        string trimmed = string.trim(string(line))
         if string.startsWith(trimmed, "--") or string.startsWith(trimmed, "//") then
             // 注释行，跳过
         else
-            joined = joined + line + "\n"
+            joined = joined + string(line) + "\n"
         end
     end
     return runSqlString(joined)
@@ -1892,7 +1892,7 @@ func runBuiltinTest() as int
         println("")
         println("xsql> " + stmts[i])
         try
-            runOneLine(stmts[i])
+            runOneLine(string(stmts[i]))
         catch e
             println("Error: " + e.message)
         end

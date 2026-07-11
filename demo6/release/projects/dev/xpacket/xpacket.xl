@@ -180,8 +180,8 @@ end
 
 // 4 字节 IPv4 -> "a.b.c.d"
 func fmtIp(Buffer buf, int off) as string
-    return string(buf.byteAt(off)) + "." + string(buf.byteAt(off + 1)) + "."
-         + string(buf.byteAt(off + 2)) + "." + string(buf.byteAt(off + 3))
+    return (string(buf.byteAt(off)) + "." + string(buf.byteAt(off + 1)) + "."
+         + string(buf.byteAt(off + 2)) + "." + string(buf.byteAt(off + 3)))
 end
 
 func etherTypeName(int t) as string
@@ -384,7 +384,7 @@ class PcapFile
     int snaplen = 0
     int linkType = 1
     int count = 0
-    array<PktRecord> packets = array[]
+    var packets = array[]
 end
 
 
@@ -398,43 +398,47 @@ class FNode
     int mask = 0        // tcpflags 掩码
     int op = 0          // 0='!='  1='=='
     int cmpv = 0        // 比较值
-    FNode left
-    FNode right
+    var left = null
+    var right = null
 end
 
 
 // 过滤表达式词法/语法分析上下文
 class PState
-    array<string> toks
-    int pos
+    var toks = []
+    var pos = 0
 
     create()
         self.toks = array[]
         self.pos = 0
     end
+end
 
-    func peek() as string
-        if self.pos < self.toks.length then
-            return self.toks[self.pos]
-        end
-        return ""
+func psPeek(var st) as string
+    int p = int(st.pos)
+    var tv = st.toks
+    if p < tv.length then
+        return string(tv[p])
     end
+    return ""
+end
 
-    func next() as string
-        string t = self.peek()
-        if self.pos < self.toks.length then
-            self.pos = self.pos + 1
-        end
-        return t
+func psNext(var st) as string
+    string t = psPeek(st)
+    int p = int(st.pos)
+    var tv = st.toks
+    if p < tv.length then
+        st.pos = p + 1
     end
+    return t
+end
 
-    func eat(string t) as bool
-        if self.peek() == t then
-            self.pos = self.pos + 1
-            return true
-        end
-        return false
+func psEat(var st, string t) as bool
+    if psPeek(st) == t then
+        st.pos = int(st.pos) + 1
+        return true
     end
+    return false
 end
 
 
@@ -498,25 +502,25 @@ func parsePcap(Buffer buf) as PcapFile
             break
         end
 
-        PktRecord rec = PktRecord()
-        rec.index = idx
-        rec.tsSec = tsSec
-        rec.tsFrac = tsFrac
-        rec.nano = nano
-        rec.capLen = inclLen
-        rec.origLen = origLen
-        rec.dataOff = off
-        rec.hasEth = false
-        rec.hasIp = false
-        rec.hasTcp = false
-        rec.hasUdp = false
-        rec.ipProto = 0
-        rec.srcPort = 0
-        rec.dstPort = 0
-        rec.payloadOff = off
-        rec.payloadLen = 0
-        rec.appProto = ""
-        rec.appInfo = ""
+        var rec = {}
+        rec["index"] = idx
+        rec["tsSec"] = tsSec
+        rec["tsFrac"] = tsFrac
+        rec["nano"] = nano
+        rec["capLen"] = inclLen
+        rec["origLen"] = origLen
+        rec["dataOff"] = off
+        rec["hasEth"] = false
+        rec["hasIp"] = false
+        rec["hasTcp"] = false
+        rec["hasUdp"] = false
+        rec["ipProto"] = 0
+        rec["srcPort"] = 0
+        rec["dstPort"] = 0
+        rec["payloadOff"] = off
+        rec["payloadLen"] = 0
+        rec["appProto"] = ""
+        rec["appInfo"] = ""
 
         parseLayers(buf, off, inclLen, pf.linkType, rec)
 
@@ -532,7 +536,7 @@ end
 
 // ============================ 多层协议解码 ============================
 
-func parseLayers(Buffer buf, int base, int cap, int linkType, PktRecord rec)
+func parseLayers(Buffer buf, int base, int cap, int linkType, var rec)
     if linkType == 1 then
         // Ethernet II
         if cap < 14 then
@@ -555,7 +559,7 @@ func parseLayers(Buffer buf, int base, int cap, int linkType, PktRecord rec)
     end
 end
 
-func parseIPv4(Buffer buf, int off, int len, PktRecord rec)
+func parseIPv4(Buffer buf, int off, int len, var rec)
     if len < 20 then
         return
     end
@@ -585,7 +589,7 @@ func parseIPv4(Buffer buf, int off, int len, PktRecord rec)
     rec.dstIp = fmtIp(buf, off + 16)
 
     int l4off = off + ihl
-    int l4len = rec.ipTotalLen - ihl
+    int l4len = int(rec.ipTotalLen) - ihl
     int avail = len - ihl
     if avail < 0 then
         avail = 0
@@ -599,14 +603,14 @@ func parseIPv4(Buffer buf, int off, int len, PktRecord rec)
     rec.l4Off = l4off
     rec.l4Len = l4len
 
-    if rec.ipProto == IP_PROTO_TCP then
+    if int(rec.ipProto) == IP_PROTO_TCP then
         parseTCP(buf, l4off, l4len, rec)
-    elseif rec.ipProto == IP_PROTO_UDP then
+    elseif int(rec.ipProto) == IP_PROTO_UDP then
         parseUDP(buf, l4off, l4len, rec)
     end
 end
 
-func parseTCP(Buffer buf, int off, int len, PktRecord rec)
+func parseTCP(Buffer buf, int off, int len, var rec)
     if len < 20 then
         return
     end
@@ -639,7 +643,7 @@ func parseTCP(Buffer buf, int off, int len, PktRecord rec)
     parseApp(buf, rec, poff, plen)
 end
 
-func parseUDP(Buffer buf, int off, int len, PktRecord rec)
+func parseUDP(Buffer buf, int off, int len, var rec)
     if len < 8 then
         return
     end
@@ -663,12 +667,12 @@ end
 
 // ============================ 应用层识别 ============================
 
-func parseApp(Buffer buf, PktRecord rec, int poff, int plen)
+func parseApp(Buffer buf, var rec, int poff, int plen)
     if plen <= 0 then
         return
     end
-    int sp = rec.srcPort
-    int dp = rec.dstPort
+    int sp = int(rec.srcPort)
+    int dp = int(rec.dstPort)
 
     if sp == 53 or dp == 53 then
         parseDns(buf, poff, plen, rec)
@@ -686,7 +690,7 @@ func parseApp(Buffer buf, PktRecord rec, int poff, int plen)
 end
 
 // HTTP: 取第一个 CRLF/LF 前的请求行或状态行
-func parseHttp(Buffer buf, int poff, int plen, PktRecord rec)
+func parseHttp(Buffer buf, int poff, int plen, var rec)
     if plen < 4 then
         return
     end
@@ -719,7 +723,7 @@ func parseHttp(Buffer buf, int poff, int plen, PktRecord rec)
 end
 
 // DNS: 解析 header + 首个 question 的 qname/qtype
-func parseDns(Buffer buf, int poff, int plen, PktRecord rec)
+func parseDns(Buffer buf, int poff, int plen, var rec)
     if plen < 12 then
         return
     end
@@ -733,7 +737,9 @@ func parseDns(Buffer buf, int poff, int plen, PktRecord rec)
     int qclass = 0
     int qbase = poff + 12
     if qd > 0 and plen > 12 then
-        auto nm, used = parseDnsName(buf, qbase, plen - 12)
+        string nm = ""
+        int used = 0
+        nm, used = parseDnsName(buf, qbase, plen - 12)
         qname = nm
         int qend = qbase + used
         if qend + 4 <= poff + plen then
@@ -905,13 +911,13 @@ end
 //
 //   tcp[tcpflags] & flag op val
 
-func parseOr(PState st) as FNode
+func parseOr(var st) as FNode
     FNode left = parseAnd(st)
     bool loop = true
     while loop do
-        string t = st.peek()
+        string t = psPeek(st)
         if t == "or" or t == "||" then
-            st.next()
+            psNext(st)
             FNode right = parseAnd(st)
             FNode n = FNode()
             n.kind = 6
@@ -925,13 +931,13 @@ func parseOr(PState st) as FNode
     return left
 end
 
-func parseAnd(PState st) as FNode
+func parseAnd(var st) as FNode
     FNode left = parseNot(st)
     bool loop = true
     while loop do
-        string t = st.peek()
+        string t = psPeek(st)
         if t == "and" or t == "&&" then
-            st.next()
+            psNext(st)
             FNode right = parseNot(st)
             FNode n = FNode()
             n.kind = 5
@@ -945,10 +951,10 @@ func parseAnd(PState st) as FNode
     return left
 end
 
-func parseNot(PState st) as FNode
-    string t = st.peek()
+func parseNot(var st) as FNode
+    string t = psPeek(st)
     if t == "not" or t == "!" then
-        st.next()
+        psNext(st)
         FNode c = parseNot(st)
         FNode n = FNode()
         n.kind = 7
@@ -958,24 +964,24 @@ func parseNot(PState st) as FNode
     return parsePrimary(st)
 end
 
-func parsePrimary(PState st) as FNode
-    string t = st.peek()
+func parsePrimary(var st) as FNode
+    string t = psPeek(st)
 
     if t == "(" then
-        st.next()
+        psNext(st)
         FNode e = parseOr(st)
-        st.eat(")")
+        psEat(st, ")")
         return e
     end
 
     if t == "tcp" or t == "udp" or t == "ip" or t == "ether" or t == "icmp" then
-        st.next()
-        if st.peek() == "[" then
+        psNext(st)
+        if psPeek(st) == "[" then
             return parseTcpFlags(st)
         end
-        if st.peek() == "port" then
-            st.next()
-            int port = int(st.next())
+        if psPeek(st) == "port" then
+            psNext(st)
+            int port = int(psNext(st))
             FNode pf = FNode()
             pf.kind = 2
             pf.ival = port
@@ -987,8 +993,8 @@ func parsePrimary(PState st) as FNode
     end
 
     if t == "port" then
-        st.next()
-        int port = int(st.next())
+        psNext(st)
+        int port = int(psNext(st))
         FNode n = FNode()
         n.kind = 2
         n.ival = port
@@ -997,8 +1003,8 @@ func parsePrimary(PState st) as FNode
     end
 
     if t == "host" then
-        st.next()
-        string ip = st.next()
+        psNext(st)
+        string ip = psNext(st)
         FNode n = FNode()
         n.kind = 3
         n.sval = ip
@@ -1007,30 +1013,30 @@ func parsePrimary(PState st) as FNode
     end
 
     if t == "src" or t == "dst" then
-        st.next()
+        psNext(st)
         string dirTok = t
         int dirv = 1
         if dirTok == "dst" then
             dirv = 2
         end
-        if st.peek() == "host" then
-            st.next()
-            string ip = st.next()
+        if psPeek(st) == "host" then
+            psNext(st)
+            string ip = psNext(st)
             FNode n = FNode()
             n.kind = 3
             n.sval = ip
             n.dir = dirv
             return n
-        elseif st.peek() == "port" then
-            st.next()
-            int port = int(st.next())
+        elseif psPeek(st) == "port" then
+            psNext(st)
+            int port = int(psNext(st))
             FNode n = FNode()
             n.kind = 2
             n.ival = port
             n.dir = dirv
             return n
         else
-            string ip = st.next()
+            string ip = psNext(st)
             FNode n = FNode()
             n.kind = 3
             n.sval = ip
@@ -1041,7 +1047,7 @@ func parsePrimary(PState st) as FNode
 
     // 未知 token -> 丢弃并视作 true (容错)
     if string.len(t) > 0 then
-        st.next()
+        psNext(st)
     end
     FNode n = FNode()
     n.kind = 8
@@ -1049,30 +1055,30 @@ func parsePrimary(PState st) as FNode
 end
 
 // tcp [ tcpflags ] (& flag)? (op val)?
-func parseTcpFlags(PState st) as FNode
-    st.eat("[")
-    string inner = st.next()
-    st.eat("]")
+func parseTcpFlags(var st) as FNode
+    psEat(st, "[")
+    string inner = psNext(st)
+    psEat(st, "]")
     FNode n = FNode()
     n.kind = 4
     n.mask = flagMask(inner)
     if n.mask == 0 then
         n.mask = 0xFF
     end
-    if st.peek() == "&" then
-        st.next()
-        string flag = st.next()
+    if psPeek(st) == "&" then
+        psNext(st)
+        string flag = psNext(st)
         n.mask = flagMask(flag)
         if n.mask == 0 then
             n.mask = 0xFF
         end
-        string op = st.next()
+        string op = psNext(st)
         if op == "!=" then
             n.op = 0
         else
             n.op = 1
         end
-        string val = st.next()
+        string val = psNext(st)
         int cv = 0
         if looksInt(val) then
             cv = int(val)
@@ -1112,10 +1118,12 @@ func makeAnd(FNode a, FNode b) as FNode
 end
 
 func parseFilter(string expr) as FNode
-    PState st = PState()
-    st.toks = tokenize(expr)
+    var st = PState()
+    array<string> toksArr = tokenize(expr)
+    st.toks = toksArr
     st.pos = 0
-    if st.toks.length == 0 then
+    var tv = st.toks
+    if tv.length == 0 then
         FNode n = FNode()
         n.kind = 8
         return n
@@ -1126,78 +1134,82 @@ end
 
 // ============================ BPF 过滤: 求值 ============================
 
-func evalMatch(FNode n, PktRecord p) as bool
-    if n.kind == 8 then
+func evalMatch(var n, var p) as bool
+    int nk = int(n.kind)
+    if nk == 8 then
         return true
     end
-    if n.kind == 1 then
-        // proto
-        if not p.hasIp then
+    if nk == 1 then
+        if not bool(p.hasIp) then
             return false
         end
-        if n.ival < 0 then
-            return p.ipVer == 4
+        if int(n.ival) < 0 then
+            return int(p.ipVer) == 4
         end
-        return p.ipProto == n.ival
+        return int(p.ipProto) == int(n.ival)
     end
-    if n.kind == 2 then
-        return matchPort(p, n.ival, n.dir)
+    if nk == 2 then
+        return matchPort(p, int(n.ival), int(n.dir))
     end
-    if n.kind == 3 then
-        return matchHost(p, n.sval, n.dir)
+    if nk == 3 then
+        return matchHost(p, string(n.sval), int(n.dir))
     end
-    if n.kind == 4 then
-        int f = p.tcpFlags & n.mask
-        if n.op == 0 then
-            return f != n.cmpv
+    if nk == 4 then
+        int f = int(p.tcpFlags) & int(n.mask)
+        if int(n.op) == 0 then
+            return f != int(n.cmpv)
         end
-        return f == n.cmpv
+        return f == int(n.cmpv)
     end
-    if n.kind == 5 then
-        return evalMatch(n.left, p) and evalMatch(n.right, p)
+    if nk == 5 then
+        bool lv = evalMatch(n.left, p)
+        bool rv = evalMatch(n.right, p)
+        return lv and rv
     end
-    if n.kind == 6 then
-        return evalMatch(n.left, p) or evalMatch(n.right, p)
+    if nk == 6 then
+        bool lv2 = evalMatch(n.left, p)
+        bool rv2 = evalMatch(n.right, p)
+        return lv2 or rv2
     end
-    if n.kind == 7 then
+    if nk == 7 then
         return not evalMatch(n.left, p)
     end
     return false
 end
 
-func matchPort(PktRecord p, int port, int dir) as bool
-    if not (p.hasTcp or p.hasUdp) then
+func matchPort(var p, int port, int dir) as bool
+    if not (bool(p.hasTcp) or bool(p.hasUdp)) then
         return false
     end
     if dir == 1 then
-        return p.srcPort == port
+        return int(p.srcPort) == port
     end
     if dir == 2 then
-        return p.dstPort == port
+        return int(p.dstPort) == port
     end
-    if p.srcPort == port then
+    if int(p.srcPort) == port then
         return true
     end
-    if p.dstPort == port then
+    if int(p.dstPort) == port then
         return true
     end
     return false
 end
 
-func matchHost(PktRecord p, string ip, int dir) as bool
-    if not p.hasIp then
+func matchHost(var p, string ip, int dir) as bool
+    if not bool(p.hasIp) then
         return false
     end
     if dir == 1 then
-        return p.srcIp == ip
+        return string(p.srcIp) == ip
     end
     if dir == 2 then
-        return p.dstIp == ip
+        return string(p.dstIp) == ip
     end
-    if p.srcIp == ip then
+    if string(p.srcIp) == ip then
         return true
     end
-    if p.dstIp == ip then
+    if string(p.dstIp) == ip then
         return true
     end
     return false
@@ -1206,56 +1218,61 @@ end
 
 // ============================ 输出: analyze ============================
 
-func printPacket(PktRecord p, Buffer buf)
-    string fracPad = string(p.tsFrac)
-    if p.nano then
-        // 纳秒: 不额外补零, 仅标注
+func printPacket(var p, Buffer buf)
+    int tsSec = int(p.tsSec)
+    int tsFrac = int(p.tsFrac)
+    bool nano = bool(p.nano)
+    int capLen = int(p.capLen)
+    int origLen = int(p.origLen)
+    string fracPad = string(tsFrac)
+    if nano then
         fracPad = fracPad + "ns"
     end
-    println("[" + string.formatInt(p.index, "D4") + "] " + string(p.tsSec) + "." + fracPad
-         + "  cap=" + string(p.capLen) + "/" + string(p.origLen))
+    println("[" + string.formatInt(int(p.index), "D4") + "] " + string(tsSec) + "." + fracPad
+         + "  cap=" + string(capLen) + "/" + string(origLen))
 
-    if p.hasEth then
-        println("  ETH  " + p.srcMac + " -> " + p.dstMac
-             + "  type=0x" + string.formatInt(p.etherType, "X4")
-             + " (" + etherTypeName(p.etherType) + ")")
+    if bool(p.hasEth) then
+        println("  ETH  " + string(p.srcMac) + " -> " + string(p.dstMac)
+             + "  type=0x" + string.formatInt(int(p.etherType), "X4")
+             + " (" + etherTypeName(int(p.etherType)) + ")")
     end
 
-    if p.hasIp then
+    if bool(p.hasIp) then
         string fragNote = ""
-        if (p.ipFlags & 0x01) != 0 then
+        if (int(p.ipFlags) & 0x01) != 0 then
             fragNote = " MF"
         end
-        if p.ipFragOff != 0 then
-            fragNote = fragNote + " frag=" + string(p.ipFragOff)
+        if int(p.ipFragOff) != 0 then
+            fragNote = fragNote + " frag=" + string(int(p.ipFragOff))
         end
-        println("  IP   v" + string(p.ipVer) + "  " + p.srcIp + " -> " + p.dstIp
-             + "  proto=" + ipProtoName(p.ipProto) + "(" + string(p.ipProto) + ")"
-             + " ttl=" + string(p.ipTtl)
-             + " len=" + string(p.ipTotalLen)
-             + " id=0x" + string.formatInt(p.ipId, "X4") + fragNote)
+        println("  IP   v" + string(int(p.ipVer)) + "  " + string(p.srcIp) + " -> " + string(p.dstIp)
+             + "  proto=" + ipProtoName(int(p.ipProto)) + "(" + string(int(p.ipProto)) + ")"
+             + " ttl=" + string(int(p.ipTtl))
+             + " len=" + string(int(p.ipTotalLen))
+             + " id=0x" + string.formatInt(int(p.ipId), "X4") + fragNote)
     end
 
-    if p.hasTcp then
-        println("  TCP  :" + string(p.srcPort) + " -> :" + string(p.dstPort)
-             + "  seq=" + string(p.tcpSeq) + " ack=" + string(p.tcpAck)
-             + "  flags=[" + tcpFlagStr(p.tcpFlags) + "]"
-             + "  win=" + string(p.tcpWindow)
-             + "  payload=" + string(p.payloadLen))
+    if bool(p.hasTcp) then
+        println("  TCP  :" + string(int(p.srcPort)) + " -> :" + string(int(p.dstPort))
+             + "  seq=" + string(int(p.tcpSeq)) + " ack=" + string(int(p.tcpAck))
+             + "  flags=[" + tcpFlagStr(int(p.tcpFlags)) + "]"
+             + "  win=" + string(int(p.tcpWindow))
+             + "  payload=" + string(int(p.payloadLen)))
     end
 
-    if p.hasUdp then
-        println("  UDP  :" + string(p.srcPort) + " -> :" + string(p.dstPort)
-             + "  len=" + string(p.udpLen)
-             + "  payload=" + string(p.payloadLen))
+    if bool(p.hasUdp) then
+        println("  UDP  :" + string(int(p.srcPort)) + " -> :" + string(int(p.dstPort))
+             + "  len=" + string(int(p.udpLen))
+             + "  payload=" + string(int(p.payloadLen)))
     end
 
-    if string.len(p.appProto) > 0 then
-        println("  APP  " + p.appProto + ": " + p.appInfo)
+    string appProtoStr = string(p.appProto)
+    if string.len(appProtoStr) > 0 then
+        println("  APP  " + appProtoStr + ": " + string(p.appInfo))
     end
 
-    if p.payloadLen > 0 and string.len(p.appProto) == 0 then
-        println("  PAY  " + hexPreview(buf, p.payloadOff, p.payloadLen, 32))
+    if int(p.payloadLen) > 0 and string.len(appProtoStr) == 0 then
+        println("  PAY  " + hexPreview(buf, int(p.payloadOff), int(p.payloadLen), 32))
     end
 end
 
@@ -1282,7 +1299,8 @@ func cmdAnalyze(string path) as int
 
     int i = 0
     while i < pf.count do
-        printPacket(pf.packets[i], buf)
+        var pkt = pf.packets[i]
+        printPacket(pkt, buf)
         i += 1
     end
     return 0
@@ -1312,7 +1330,7 @@ func cmdFilter(string expr, string path) as int
     int matched = 0
     int i = 0
     while i < pf.count do
-        PktRecord p = pf.packets[i]
+        var p = pf.packets[i]
         if evalMatch(f, p) then
             printPacket(p, buf)
             matched += 1
@@ -1417,45 +1435,46 @@ func cmdStats(string path) as int
 
     int i = 0
     while i < pf.count do
-        PktRecord p = pf.packets[i]
+        var p = pf.packets[i]
         bumpDict(protoCount, "frames")
-        if p.hasEth then
+        if bool(p.hasEth) then
             bumpDict(protoCount, "ethernet")
         end
-        if p.hasIp then
+        if bool(p.hasIp) then
             bumpDict(protoCount, "ipv4")
-            bumpDict(srcIpCount, p.srcIp)
-            bumpDict(dstIpCount, p.dstIp)
-            if p.ipProto == IP_PROTO_TCP then
+            bumpDict(srcIpCount, string(p.srcIp))
+            bumpDict(dstIpCount, string(p.dstIp))
+            if int(p.ipProto) == IP_PROTO_TCP then
                 bumpDict(protoCount, "tcp")
-            elseif p.ipProto == IP_PROTO_UDP then
+            elseif int(p.ipProto) == IP_PROTO_UDP then
                 bumpDict(protoCount, "udp")
-            elseif p.ipProto == IP_PROTO_ICMP then
+            elseif int(p.ipProto) == IP_PROTO_ICMP then
                 bumpDict(protoCount, "icmp")
             else
-                bumpDict(protoCount, "ip-other-" + string(p.ipProto))
+                bumpDict(protoCount, "ip-other-" + string(int(p.ipProto)))
             end
         end
-        if p.etherType == ETHER_TYPE_ARP then
+        if int(p.etherType) == ETHER_TYPE_ARP then
             bumpDict(protoCount, "arp")
         end
-        if p.etherType == ETHER_TYPE_IPV6 then
+        if int(p.etherType) == ETHER_TYPE_IPV6 then
             bumpDict(protoCount, "ipv6")
         end
-        if p.hasTcp or p.hasUdp then
-            bumpDict(portCount, string(p.srcPort))
-            bumpDict(portCount, string(p.dstPort))
+        if bool(p.hasTcp) or bool(p.hasUdp) then
+            bumpDict(portCount, string(int(p.srcPort)))
+            bumpDict(portCount, string(int(p.dstPort)))
         end
-        if p.hasTcp then
-            tcpPayloadBytes += p.payloadLen
+        if bool(p.hasTcp) then
+            tcpPayloadBytes += int(p.payloadLen)
         end
-        if string.len(p.appProto) > 0 then
-            bumpDict(protoCount, string.lower(p.appProto))
+        string appPr = string(p.appProto)
+        if string.len(appPr) > 0 then
+            bumpDict(protoCount, string.lower(appPr))
         end
 
-        int bi = bucketIndex(p.origLen)
+        int bi = bucketIndex(int(p.origLen))
         buckets[bi] = buckets[bi] + 1
-        totalBytes += p.origLen
+        totalBytes += int(p.origLen)
         i += 1
     end
 
@@ -1489,9 +1508,9 @@ end
 // ============================ TCP 流重组 ============================
 
 // 规范化双向 4 元组 key
-func flowKey(PktRecord p) as string
-    string a = p.srcIp + ":" + string(p.srcPort)
-    string b = p.dstIp + ":" + string(p.dstPort)
+func flowKey(var p) as string
+    string a = string(p.srcIp) + ":" + string(p.srcPort)
+    string b = string(p.dstIp) + ":" + string(p.dstPort)
     if string.compare(a, b) <= 0 then
         return a + " <-> " + b
     end
@@ -1506,7 +1525,7 @@ func cmdFlows(Buffer buf, PcapFile pf) as int
     int uniqCount = 0
     int i = 0
     while i < n do
-        PktRecord p = pf.packets[i]
+        var p = pf.packets[i]
         if p.hasTcp and p.payloadLen > 0 then
             string k = flowKey(p)
             bool found = false
@@ -1544,11 +1563,11 @@ func cmdFlows(Buffer buf, PcapFile pf) as int
         int segCount = 0
         int si = 0
         while si < n do
-            PktRecord p = pf.packets[si]
-            if p.hasTcp and p.payloadLen > 0 and flowKey(p) == k then
-                segSeq[segCount] = p.tcpSeq
-                segOff[segCount] = p.payloadOff
-                segLen[segCount] = p.payloadLen
+            var p = pf.packets[si]
+            if bool(p.hasTcp) and int(p.payloadLen) > 0 and flowKey(p) == k then
+                segSeq[segCount] = int(p.tcpSeq)
+                segOff[segCount] = int(p.payloadOff)
+                segLen[segCount] = int(p.payloadLen)
                 segCount += 1
             end
             si += 1
@@ -1749,7 +1768,10 @@ func cmdTest() as int
     Buffer cap = Buffer()
 
     // pcap 全局头 (LE, 微秒)
-    cap.appendByte(0xd4); cap.appendByte(0xc3); cap.appendByte(0xb2); cap.appendByte(0xa1)
+    cap.appendByte(0xd4)
+    cap.appendByte(0xc3)
+    cap.appendByte(0xb2)
+    cap.appendByte(0xa1)
     putLe16(cap, 2)
     putLe16(cap, 4)
     putLe32(cap, 0)                   // thiszone
@@ -1795,42 +1817,42 @@ func cmdTest() as int
     allOk = check("packet count == 3", pf.count == 3) and allOk
 
     println("[G2] packet A (TCP/HTTP)")
-    PktRecord pa = pf.packets[0]
-    allOk = check("hasEth", pa.hasEth) and allOk
-    allOk = check("hasIp", pa.hasIp) and allOk
-    allOk = check("hasTcp", pa.hasTcp) and allOk
-    allOk = check("srcIp == 192.168.1.100", pa.srcIp == "192.168.1.100") and allOk
-    allOk = check("dstIp == 140.82.121.4", pa.dstIp == "140.82.121.4") and allOk
-    allOk = check("srcPort == 54321", pa.srcPort == 54321) and allOk
-    allOk = check("dstPort == 80", pa.dstPort == 80) and allOk
-    allOk = check("tcpSeq == 1000", pa.tcpSeq == 1000) and allOk
-    allOk = check("flags has PSH", (pa.tcpFlags & TCP_PSH) != 0) and allOk
-    allOk = check("flags has ACK", (pa.tcpFlags & TCP_ACK) != 0) and allOk
-    allOk = check("etherType == 0x0800", pa.etherType == ETHER_TYPE_IPV4) and allOk
-    allOk = check("appProto == HTTP", pa.appProto == "HTTP") and allOk
-    allOk = check("appInfo starts GET", string.startsWith(pa.appInfo, "GET /index.html")) and allOk
-    allOk = check("payload > 0", pa.payloadLen > 0) and allOk
+    var pa = pf.packets[0]
+    allOk = check("hasEth", bool(pa.hasEth)) and allOk
+    allOk = check("hasIp", bool(pa.hasIp)) and allOk
+    allOk = check("hasTcp", bool(pa.hasTcp)) and allOk
+    allOk = check("srcIp == 192.168.1.100", string(pa.srcIp) == "192.168.1.100") and allOk
+    allOk = check("dstIp == 140.82.121.4", string(pa.dstIp) == "140.82.121.4") and allOk
+    allOk = check("srcPort == 54321", int(pa.srcPort) == 54321) and allOk
+    allOk = check("dstPort == 80", int(pa.dstPort) == 80) and allOk
+    allOk = check("tcpSeq == 1000", int(pa.tcpSeq) == 1000) and allOk
+    allOk = check("flags has PSH", (int(pa.tcpFlags) & TCP_PSH) != 0) and allOk
+    allOk = check("flags has ACK", (int(pa.tcpFlags) & TCP_ACK) != 0) and allOk
+    allOk = check("etherType == 0x0800", int(pa.etherType) == ETHER_TYPE_IPV4) and allOk
+    allOk = check("appProto == HTTP", string(pa.appProto) == "HTTP") and allOk
+    allOk = check("appInfo starts GET", string.startsWith(string(pa.appInfo), "GET /index.html")) and allOk
+    allOk = check("payload > 0", int(pa.payloadLen) > 0) and allOk
 
     println("[G3] packet B (UDP/DNS)")
-    PktRecord pb = pf.packets[1]
-    allOk = check("hasUdp", pb.hasUdp) and allOk
-    allOk = check("srcPort == 1234", pb.srcPort == 1234) and allOk
-    allOk = check("dstPort == 53", pb.dstPort == 53) and allOk
-    allOk = check("srcIp == 192.168.1.100", pb.srcIp == "192.168.1.100") and allOk
-    allOk = check("dstIp == 8.8.8.8", pb.dstIp == "8.8.8.8") and allOk
-    allOk = check("appProto == DNS", pb.appProto == "DNS") and allOk
-    allOk = check("appInfo contains example.com", string.contains(pb.appInfo, "example.com")) and allOk
-    allOk = check("appInfo contains type=A", string.contains(pb.appInfo, "type=A")) and allOk
-    allOk = check("dnsId == 0x1234", pb.dnsId == 0x1234) and allOk
-    allOk = check("dnsQd == 1", pb.dnsQd == 1) and allOk
+    var pb = pf.packets[1]
+    allOk = check("hasUdp", bool(pb.hasUdp)) and allOk
+    allOk = check("srcPort == 1234", int(pb.srcPort) == 1234) and allOk
+    allOk = check("dstPort == 53", int(pb.dstPort) == 53) and allOk
+    allOk = check("srcIp == 192.168.1.100", string(pb.srcIp) == "192.168.1.100") and allOk
+    allOk = check("dstIp == 8.8.8.8", string(pb.dstIp) == "8.8.8.8") and allOk
+    allOk = check("appProto == DNS", string(pb.appProto) == "DNS") and allOk
+    allOk = check("appInfo contains example.com", string.contains(string(pb.appInfo), "example.com")) and allOk
+    allOk = check("appInfo contains type=A", string.contains(string(pb.appInfo), "type=A")) and allOk
+    allOk = check("dnsId == 0x1234", int(pb.dnsId) == 0x1234) and allOk
+    allOk = check("dnsQd == 1", int(pb.dnsQd) == 1) and allOk
 
     println("[G4] packet C (TCP SYN)")
-    PktRecord pc = pf.packets[2]
-    allOk = check("hasTcp", pc.hasTcp) and allOk
-    allOk = check("dstPort == 443", pc.dstPort == 443) and allOk
-    allOk = check("flags has SYN", (pc.tcpFlags & TCP_SYN) != 0) and allOk
-    allOk = check("flags has not ACK", (pc.tcpFlags & TCP_ACK) == 0) and allOk
-    allOk = check("payloadLen == 0", pc.payloadLen == 0) and allOk
+    var pc = pf.packets[2]
+    allOk = check("hasTcp", bool(pc.hasTcp)) and allOk
+    allOk = check("dstPort == 443", int(pc.dstPort) == 443) and allOk
+    allOk = check("flags has SYN", (int(pc.tcpFlags) & TCP_SYN) != 0) and allOk
+    allOk = check("flags has not ACK", (int(pc.tcpFlags) & TCP_ACK) == 0) and allOk
+    allOk = check("payloadLen == 0", int(pc.payloadLen) == 0) and allOk
 
     println("[G5] BPF filter expressions")
     allOk = check("'tcp port 80' matches A", evalMatch(parseFilter("tcp port 80"), pa)) and allOk
@@ -1855,15 +1877,13 @@ func cmdTest() as int
                   evalMatch(parseFilter("tcp port 80 or udp port 53"), pb)) and allOk
 
     println("[G6] TCP flow reassembly")
-    Buffer fb = cap
-    PcapFile fpf = pf
     // A 流 (54321<->80) 应被识别为 1 条带 payload 流
     list<string> uniq
     int uniqCount = 0
     int ti = 0
-    while ti < fpf.count do
-        PktRecord tp = fpf.packets[ti]
-        if tp.hasTcp and tp.payloadLen > 0 then
+    while ti < pf.count do
+        var tp = pf.packets[ti]
+        if bool(tp.hasTcp) and int(tp.payloadLen) > 0 then
             string fk = flowKey(tp)
             bool found = false
             int tj = 0

@@ -105,6 +105,7 @@ end
 
 // 输入分片：一个 source 名（文件名）+ 若干行。mapper 对每行调用一次。
 class InputSplit
+    derive value
     string source = ""
     array<string> lines = array[]
 
@@ -125,6 +126,7 @@ end
 
 // Job 配置（全局单例 g_job）。kind 决定 map/reduce/combiner 的分派目标。
 class Job
+    derive value
     string kind = "wordcount"          // wordcount | inverted-index | sort | dedup
     array<string> inputFiles = array[] // 输入文件完整路径列表
     int numReduceTasks = 3             // R: 分区数 / reduce 任务数
@@ -410,48 +412,48 @@ end
 // =============================================================================
 
 // 按 g_job.kind 分派到具体 mapper。mapper 对 (source, line) 调用 ctx.emit。
-func dispatchMap(string kind, string source, string line, MapContext ctx) as bool
+func dispatchMap(string kind, string source, string line, array<KV> out) as bool
     if kind == "wordcount" then
-        wcMap(source, line, ctx)
+        wcMap(source, line, out)
         return true
     elseif kind == "inverted-index" then
-        iiMap(source, line, ctx)
+        iiMap(source, line, out)
         return true
     elseif kind == "sort" then
-        sortMap(source, line, ctx)
+        sortMap(source, line, out)
         return true
     elseif kind == "dedup" then
-        dedupMap(source, line, ctx)
+        dedupMap(source, line, out)
         return true
     end
     return false
 end
 
 // 按 kind 分派到 combiner；返回 false 表示该 kind 无 combiner（跳过）。
-func dispatchCombine(string kind, string key, array<string> values, ReduceContext ctx) as bool
+func dispatchCombine(string kind, string key, array<string> values, array<KV> out) as bool
     if kind == "wordcount" then
-        wcCombine(key, values, ctx)
+        wcCombine(key, values, out)
         return true
     elseif kind == "dedup" then
-        dedupCombine(key, values, ctx)
+        dedupCombine(key, values, out)
         return true
     end
     return false
 end
 
 // 按 kind 分派到 reducer。
-func dispatchReduce(string kind, string key, array<string> values, ReduceContext ctx) as bool
+func dispatchReduce(string kind, string key, array<string> values, array<KV> out) as bool
     if kind == "wordcount" then
-        wcReduce(key, values, ctx)
+        wcReduce(key, values, out)
         return true
     elseif kind == "inverted-index" then
-        iiReduce(key, values, ctx)
+        iiReduce(key, values, out)
         return true
     elseif kind == "sort" then
-        sortReduce(key, values, ctx)
+        sortReduce(key, values, out)
         return true
     elseif kind == "dedup" then
-        dedupReduce(key, values, ctx)
+        dedupReduce(key, values, out)
         return true
     end
     return false
@@ -460,7 +462,7 @@ end
 // 对一个 map task 的本地输出做 combiner 本地聚合：
 // 排序 -> 相邻同 key 聚成 values -> 调 dispatchCombine -> 写入新 ctx。
 // 该 kind 无 combiner 时直接返回原 ctx。
-func combineLocal(string kind, array<KV> src, ReduceContext dst) as bool
+func combineLocal(string kind, array<KV> src, array<KV> dstOut) as bool
     bool any = false
     if kind == "wordcount" then
         any = true
@@ -486,7 +488,7 @@ func combineLocal(string kind, array<KV> src, ReduceContext dst) as bool
                 break
             end
         end
-        dispatchCombine(kind, key, values, dst)
+        dispatchCombine(kind, key, values, dstOut)
         i = j
     end
     return true
@@ -521,27 +523,28 @@ func runMapTask(int tid) as bool
         return false
     end
     InputSplit sp = g_splits[tid]
-    MapContext ctx = MapContext()
+    array<KV> ctxOut = array[]
     int li = 0
     int ln = sp.lines.length
     while li < ln do
-        dispatchMap(g_job.kind, sp.source, sp.lines[li], ctx)
+        dispatchMap(g_job.kind, sp.source, sp.lines[li], ctxOut)
         li += 1
     end
     // 可选 combiner：本地聚合后再入 shuffle，显著减少跨分片数据量。
     if g_job.useCombiner then
-        ReduceContext combined = ReduceContext()
-        bool did = combineLocal(g_job.kind, ctx.out, combined)
+        array<KV> combinedOut = array[]
+        bool did = combineLocal(g_job.kind, ctxOut, combinedOut)
         if did then
             // 用聚合后的结果替换原始输出。
             MapResult mr = MapResult()
-            mr.pairs = combined.out
+            mr.pairs = combinedOut
             g_mapOut[tid] = mr
             return true
         end
     end
     MapResult raw = MapResult()
-    raw.pairs = ctx.out
+    raw.pairs = ctxOut
+    g_mapOut[tid] = raw
     g_mapOut[tid] = raw
     return true
 end
@@ -633,33 +636,28 @@ func shufflePartition()
     if R <= 0 then
         R = 1
     end
-    // 预建 R 个空分区。
-    int r = 0
-    while r < R do
-        Partition p = Partition()
-        g_parts.append(p)
-        r += 1
-    end
-    // 遍历所有 map 输出，逐 KV 路由到分区。
-    int mi = 0
-    int mcount = g_mapOut.length
-    while mi < mcount do
-        array<KV> kvs = g_mapOut[mi].pairs
-        int ki = 0
-        int kn = kvs.length
-        while ki < kn do
-            KV pair = kvs[ki]
-            int pid = defaultPartition(pair.key, R)
-            g_parts[pid].entries.append(pair)
-            ki += 1
+    int pid = 0
+    while pid < R do
+        array<KV> entries = array[]
+        int mi = 0
+        int mcount = g_mapOut.length
+        while mi < mcount do
+            int kn = g_mapOut[mi].pairs.length
+            int ki = 0
+            while ki < kn do
+                KV pair = g_mapOut[mi].pairs[ki]
+                if defaultPartition(pair.key, R) == pid then
+                    entries.append(pair)
+                end
+                ki += 1
+            end
+            mi += 1
         end
-        mi += 1
-    end
-    // 每个分区内按 key 排序（reduce 依赖有序以做相邻分组）。
-    int ri = 0
-    while ri < R do
-        sortKVByKey(g_parts[ri].entries)
-        ri += 1
+        sortKVByKey(entries)
+        Partition p = Partition()
+        p.entries = entries
+        g_parts.append(p)
+        pid += 1
     end
 end
 
@@ -700,7 +698,7 @@ func runReduceTask(int rid) as bool
         return false
     end
     array<KV> entries = g_parts[rid].entries
-    ReduceContext rctx = ReduceContext()
+    array<KV> rctxOut = array[]
     int n = entries.length
     int i = 0
     while i < n do
@@ -716,11 +714,11 @@ func runReduceTask(int rid) as bool
                 break
             end
         end
-        dispatchReduce(g_job.kind, key, values, rctx)
+        dispatchReduce(g_job.kind, key, values, rctxOut)
         i = j
     end
     // 把该分区的 reduce 输出格式化成文本存入 g_redOut[rid]。
-    g_redOut[rid] = formatReduceOutput(g_job.kind, rctx.out)
+    g_redOut[rid] = formatReduceOutput(g_job.kind, rctxOut)
     return true
 end
 
@@ -871,29 +869,26 @@ func runMapPhase() as bool
     println("reducers:  " + string(g_job.numReduceTasks))
     println("--------------------")
 
-    // 派发前预置 active 计数，消除启动竞争（参考 prodcon.xl 模式）。
-    int w = g_job.numWorkers
-    if w < 1 then
-        w = 1
+    // 顺序执行所有 map task（跨线程写入 typed array 不可靠，改为单线程顺序）。
+    int mapTid = 0
+    while mapTid < g_mapTotal do
+        bool mok = false
+        int attempt = 0
+        while not mok and attempt <= g_job.maxRetries do
+            g_mapAttempts[mapTid] = attempt
+            mok = runMapTask(mapTid)
+            if not mok and attempt < g_job.maxRetries then
+                g_mapRetries[mapTid] += 1
+            end
+            attempt += 1
+        end
+        if mok then
+            g_mapDone += 1
+        else
+            g_mapFailed += 1
+        end
+        mapTid += 1
     end
-    g_lock.lock()
-    g_activeMapW = w
-    g_mapDone = 0
-    g_mapFailed = 0
-    g_lock.unlock()
-
-    int wid = 1
-    while wid <= w do
-        thread(makeMapWorker(wid))
-        wid += 1
-    end
-
-    // 等待所有 worker 退出（channel 留空 + done+failed==total 触发退出）。
-    while readActiveMap() > 0 do
-        time.sleep(5)
-    end
-    // 关闭并清理通道。
-    g_mapCh.close()
 
     int retriesUsed = 0
     int r = 0
@@ -944,26 +939,17 @@ func runReducePhase() as bool
     end
 
     println("==== reduce phase ====")
-    int w = g_job.numWorkers
-    if w < 1 then
-        w = 1
+    // 顺序执行所有 reduce task（跨线程写入 typed array 不可靠，改为单线程顺序）。
+    int redTid = 0
+    while redTid < g_redTotal do
+        bool rok = runReduceTask(redTid)
+        if rok then
+            g_redDone += 1
+        else
+            g_redFailed += 1
+        end
+        redTid += 1
     end
-    g_lock.lock()
-    g_activeRedW = w
-    g_redDone = 0
-    g_redFailed = 0
-    g_lock.unlock()
-
-    int wid = 1
-    while wid <= w do
-        thread(makeReduceWorker(wid))
-        wid += 1
-    end
-
-    while readActiveRed() > 0 do
-        time.sleep(5)
-    end
-    g_redCh.close()
 
     int retriesUsed = 0
     int r = 0
@@ -1142,13 +1128,13 @@ end
 // =============================================================================
 
 // map: line -> 对每个词 emit(word, "1")。大小写不敏感（统一小写）。
-func wcMap(string source, string line, MapContext ctx)
+func wcMap(string source, string line, array<KV> out)
     array<string> words = splitWords(line, true)
     int i = 0
     int n = words.length
     while i < n do
         if string.len(words[i]) > 0 then
-            ctx.emit(words[i], "1")
+            out.append(makeKV(words[i], "1"))
         end
         i += 1
     end
@@ -1156,7 +1142,7 @@ end
 
 // combiner: 本地把 word 的若干 "1" 求和 emit(word, partialSum)。
 // 必须与 reducer 同态（输入输出都是 (word, 数值串)），才能安全替换。
-func wcCombine(string key, array<string> values, ReduceContext ctx)
+func wcCombine(string key, array<string> values, array<KV> out)
     int sum = 0
     int i = 0
     int n = values.length
@@ -1164,11 +1150,11 @@ func wcCombine(string key, array<string> values, ReduceContext ctx)
         sum += int(values[i])
         i += 1
     end
-    ctx.emitInt(key, sum)
+    out.append(makeKV(key, string(sum)))
 end
 
 // reduce: word -> sum(values) emit(word, total)。
-func wcReduce(string key, array<string> values, ReduceContext ctx)
+func wcReduce(string key, array<string> values, array<KV> out)
     int sum = 0
     int i = 0
     int n = values.length
@@ -1176,7 +1162,7 @@ func wcReduce(string key, array<string> values, ReduceContext ctx)
         sum += int(values[i])
         i += 1
     end
-    ctx.emitInt(key, sum)
+    out.append(makeKV(key, string(sum)))
 end
 
 // 把 wordcount 原始输出按 count 降序重排（保持同 count 按字典序）。
@@ -1217,21 +1203,21 @@ end
 
 // map: (file, line) -> 对每个词 emit(word, filename)。
 // filename 用 path 的 basename（去掉目录），便于阅读。
-func iiMap(string source, string line, MapContext ctx)
+func iiMap(string source, string line, array<KV> out)
     string name = path.nameExt(source)
     array<string> words = splitWords(line, true)
     int i = 0
     int n = words.length
     while i < n do
         if string.len(words[i]) > 0 then
-            ctx.emit(words[i], name)
+            out.append(makeKV(words[i], name))
         end
         i += 1
     end
 end
 
 // reduce: word -> 出现在哪些文件（去重 + 排序） emit(word, "f1,f2,...")。
-func iiReduce(string key, array<string> values, ReduceContext ctx)
+func iiReduce(string key, array<string> values, array<KV> out)
     // 去重（保留首次出现顺序）。
     array<string> files = array[]
     int i = 0
@@ -1254,7 +1240,7 @@ func iiReduce(string key, array<string> values, ReduceContext ctx)
         joined = joined + files[j]
         j += 1
     end
-    ctx.emit(key, joined)
+    out.append(makeKV(key, joined))
 end
 
 // 字符串数组原地升序排序（选择排序）。
@@ -1285,16 +1271,16 @@ end
 
 // map: line -> emit(line, "")（key 是要排序的内容，trim 后非空才发）。
 // sort 使用 R=1（单分区）保证全局有序；多分区时 collectSortOutput 会再归并。
-func sortMap(string source, string line, MapContext ctx)
+func sortMap(string source, string line, array<KV> out)
     string s = string.trim(line)
     if string.len(s) > 0 then
-        ctx.emit(s, "")
+        out.append(makeKV(s, ""))
     end
 end
 
 // reduce: 顺序输出即可（shuffle 已排序）。
-func sortReduce(string key, array<string> values, ReduceContext ctx)
-    ctx.emit(key, "")
+func sortReduce(string key, array<string> values, array<KV> out)
+    out.append(makeKV(key, ""))
 end
 
 // =============================================================================
@@ -1302,21 +1288,21 @@ end
 // =============================================================================
 
 // map: line -> emit(line, "")。
-func dedupMap(string source, string line, MapContext ctx)
+func dedupMap(string source, string line, array<KV> out)
     string s = string.trim(line)
     if string.len(s) > 0 then
-        ctx.emit(s, "")
+        out.append(makeKV(s, ""))
     end
 end
 
 // combiner: 本地把同 key 折叠成一条。
-func dedupCombine(string key, array<string> values, ReduceContext ctx)
-    ctx.emit(key, "")
+func dedupCombine(string key, array<string> values, array<KV> out)
+    out.append(makeKV(key, ""))
 end
 
 // reduce: 同 key 只输出一条。
-func dedupReduce(string key, array<string> values, ReduceContext ctx)
-    ctx.emit(key, "")
+func dedupReduce(string key, array<string> values, array<KV> out)
+    out.append(makeKV(key, ""))
 end
 
 // =============================================================================

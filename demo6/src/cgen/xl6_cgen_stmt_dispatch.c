@@ -571,13 +571,30 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         }
         xl6CgenEmitExceptionPropagate(ctx, node);
         break;
-    case XL6_AST_ASSIGN:
+    case XL6_AST_ASSIGN: {
+        const XL6_AstNode* right;
+        const XL6_AstNode* scopeExpr;
+        XL6_CgenClassExprTempScope classScope;
+        int hasClassScope;
+
+        right = node->childCount > 1 ? node->children[1] : NULL;
+        /*
+            普通赋值自身接管根 class 构造，只预降级其内部临时值。
+            复合赋值把右值作为协议参数，必须连右值根构造一起物化。
+        */
+        scopeExpr = xl6CTextEquals(node->text, "=") ? right : node;
+        hasClassScope = scopeExpr != NULL &&
+                        xl6CgenClassExprTempScopeBegin(ctx, scopeExpr, &classScope);
         if ( !xl6CgenTryAssignWithTaskSpawnArgTemps(ctx, node) &&
              !xl6CgenTryAssignWithNestedCallArgTemps(ctx, node) ) {
             xl6CgenAssignStmt(ctx, node);
         }
+        if ( hasClassScope ) {
+            xl6CgenClassExprTempScopeEnd(ctx, &classScope);
+        }
         xl6CgenEmitExceptionPropagate(ctx, node);
         break;
+    }
     case XL6_AST_MULTI_ASSIGN:
         if ( !xl6CgenTryMultiAssignWithTaskSpawnArgTemps(ctx, node) ) {
             xl6CgenMultiAssign(ctx, node);

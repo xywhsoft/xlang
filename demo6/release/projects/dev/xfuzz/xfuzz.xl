@@ -345,10 +345,10 @@ class MutationEngine
     func flipBit(array<int> input) as array<int>
         array<int> out = copyBytes(input)
         if out.length == 0 then
-            out.push(rb())
+            out.push(self.rb())
             return out
         end
-        int pos = rp(out.length)
+        int pos = self.rp(out.length)
         int bit = random.range(0, 7)
         out[pos] = (out[pos] ^ (1 << bit)) & 0xFF
         return out
@@ -356,8 +356,8 @@ class MutationEngine
 
     // ---- 字节插入 ----
     func insertByte(array<int> input) as array<int>
-        array<int> seg = array<int>[rb()]
-        array<int> out = insertAt(input, rip(input.length), seg)
+        array<int> seg = array<int>[self.rb()]
+        array<int> out = insertAt(input, self.rip(input.length), seg)
         return self.clamp(out)
     end
 
@@ -367,7 +367,7 @@ class MutationEngine
         if n <= self.minLen then
             return copyBytes(input)
         end
-        int pos = rp(n)
+        int pos = self.rp(n)
         return removeRange(input, pos, 1)
     end
 
@@ -375,11 +375,11 @@ class MutationEngine
     func replaceByte(array<int> input) as array<int>
         array<int> out = copyBytes(input)
         if out.length == 0 then
-            out.push(rb())
+            out.push(self.rb())
             return out
         end
-        int pos = rp(out.length)
-        out[pos] = rb()
+        int pos = self.rp(out.length)
+        out[pos] = self.rb()
         return out
     end
 
@@ -387,10 +387,10 @@ class MutationEngine
     func arithByte(array<int> input) as array<int>
         array<int> out = copyBytes(input)
         if out.length == 0 then
-            out.push(rb())
+            out.push(self.rb())
             return out
         end
-        int pos = rp(out.length)
+        int pos = self.rp(out.length)
         int delta = random.range(-35, 35)
         out[pos] = (out[pos] + delta) & 0xFF
         return out
@@ -399,12 +399,12 @@ class MutationEngine
     // ---- 有趣字节值注入 ----
     func interestingByte(array<int> input) as array<int>
         array<int> out = copyBytes(input)
-        int val = INTERESTING_BYTES[rp(INTERESTING_BYTES.length)]
+        int val = INTERESTING_BYTES[self.rp(INTERESTING_BYTES.length)]
         if out.length == 0 then
             out.push(val)
             return out
         end
-        int pos = rp(out.length)
+        int pos = self.rp(out.length)
         out[pos] = val
         return out
     end
@@ -414,9 +414,9 @@ class MutationEngine
         if self.dictTokens.length == 0 then
             return self.insertByte(input)
         end
-        string tok = self.dictTokens[rp(self.dictTokens.length)]
+        string tok = self.dictTokens[self.rp(self.dictTokens.length)]
         array<int> tokenBytes = bytesFromString(tok)
-        array<int> out = insertAt(input, rip(input.length), tokenBytes)
+        array<int> out = insertAt(input, self.rip(input.length), tokenBytes)
         return self.clamp(out)
     end
 
@@ -429,10 +429,10 @@ class MutationEngine
         if n == 0 then
             return self.injectDict(input)
         end
-        string tok = self.dictTokens[rp(self.dictTokens.length)]
+        string tok = self.dictTokens[self.rp(self.dictTokens.length)]
         array<int> tokenBytes = bytesFromString(tok)
         array<int> out = copyBytes(input)
-        int pos = rp(n)
+        int pos = self.rp(n)
         int j = 0
         while j < tokenBytes.length and pos + j < n do
             out[pos + j] = tokenBytes[j]
@@ -483,9 +483,9 @@ class MutationEngine
             half = 1
         end
         int blockLen = random.range(1, half)
-        int src = rp(n - blockLen + 1)
+        int src = self.rp(n - blockLen + 1)
         array<int> block = sliceBytes(input, src, blockLen)
-        array<int> out = insertAt(input, rip(n), block)
+        array<int> out = insertAt(input, self.rip(n), block)
         return self.clamp(out)
     end
 
@@ -569,7 +569,7 @@ class MutationEngine
         array<int> out = []
         int i = 0
         while i < n do
-            out.push(rb())
+            out.push(self.rb())
             i += 1
         end
         return out
@@ -792,6 +792,7 @@ end
 // ============================================================================
 
 class Seed
+    derive value
     array<int> data
     int weight
     int timesFuzzed
@@ -844,10 +845,12 @@ class SeedCorpus
                 i += 1
             end
             if minW < 200 then
-                self.seeds[minIdx] = Seed(data)
+                Seed repl = Seed(data)
+                self.seeds[minIdx] = repl
             end
         else
-            self.seeds.push(Seed(data))
+            Seed addS = Seed(data)
+            self.seeds.push(addS)
         end
     end
 
@@ -980,12 +983,12 @@ end
 // ============================================================================
 
 func classifyResult(bool success, int exitCode, string stderrText, float durationMs, int timeoutMs) as string
-    if success and exitCode == 0 then
-        return "ok"
-    end
-    // 超时检测
+    // 超时检测：即使 exit 0，接近超时阈值也归类为 timeout
     if durationMs >= float(timeoutMs) * 0.85 then
         return "timeout"
+    end
+    if success and exitCode == 0 then
+        return "ok"
     end
     if not success and durationMs >= float(timeoutMs) * 0.7 then
         return "timeout"
@@ -1023,6 +1026,7 @@ end
 // ============================================================================
 
 class CrashRec
+    derive value
     array<int> data
     string crashType
     string hashStr
@@ -1093,7 +1097,7 @@ class CrashAnalyzer
     func minimize(array<int> data, Target target, int maxExecs) as array<int>
         // 确认原始输入崩溃
         ProcessResult r0 = target.runData(data)
-        string kind0 = classifyResult(r0.success, r0.exitCode, r0.stderr, r0.durationMs, self.timeoutMs)
+        string kind0 = classifyResult(r0.success, r0.exitCode, r0.stderr, float(r0.durationMs), self.timeoutMs)
         if kind0 == "ok" then
             return copyBytes(data)
         end
@@ -1126,7 +1130,7 @@ class CrashAnalyzer
                     end
                     ProcessResult r = target.runData(candidate)
                     execsUsed += 1
-                    string k = classifyResult(r.success, r.exitCode, r.stderr, r.durationMs, self.timeoutMs)
+                    string k = classifyResult(r.success, r.exitCode, r.stderr, float(r.durationMs), self.timeoutMs)
                     if k != "ok" then
                         best = candidate
                         progress = true
@@ -1146,7 +1150,7 @@ class CrashAnalyzer
                     array<int> candidate2 = removeRange(best, bp, 1)
                     ProcessResult r2 = target.runData(candidate2)
                     execsUsed += 1
-                    string k2 = classifyResult(r2.success, r2.exitCode, r2.stderr, r2.durationMs, self.timeoutMs)
+                    string k2 = classifyResult(r2.success, r2.exitCode, r2.stderr, float(r2.durationMs), self.timeoutMs)
                     if k2 != "ok" then
                         best = candidate2
                         progress = true
@@ -1391,23 +1395,29 @@ class Fuzzer
         if not dir.exists(self.workDir) then
             dir.createAll(self.workDir)
         end
-        self.target = Target(targetName, g_xl, 5000, self.workDir)
+        Target tgt = Target(targetName, g_xl, 5000, self.workDir)
+        self.target = tgt
         self.target.setup()
-        self.coverage = CoverageTracker()
-        self.stats = Stats()
+        CoverageTracker cov = CoverageTracker()
+        self.coverage = cov
+        Stats st = Stats()
+        self.stats = st
         self.budgetSec = minutes * 60
         // 字典
-        self.dict = Dictionary()
+        Dictionary d = Dictionary()
+        self.dict = d
         self.dict.buildForTarget(targetName)
         string dictPath = path.join(seedsDir, "xfuzz.dict")
         if file.exists(dictPath) then
             self.dict.load(dictPath)
         end
         // 变异引擎
-        self.engine = MutationEngine(1, 4096)
+        MutationEngine eng = MutationEngine(1, 4096)
+        self.engine = eng
         self.engine.setDictionary(self.dict.getTokens())
         // 种子语料库
-        self.corpus = SeedCorpus(1024, 65536)
+        SeedCorpus corp = SeedCorpus(1024, 65536)
+        self.corpus = corp
         self.corpus.loadDir(seedsDir)
         if self.corpus.size() == 0 then
             if targetName == "regex" then
@@ -1422,7 +1432,8 @@ class Fuzzer
         end
         // 崩溃分析器
         string crashDir = path.join(self.workDir, "crashes")
-        self.analyzer = CrashAnalyzer(crashDir, self.target.timeoutMs)
+        CrashAnalyzer anz = CrashAnalyzer(crashDir, self.target.timeoutMs)
+        self.analyzer = anz
     end
 
     func runLoop() as int
@@ -1480,8 +1491,8 @@ class Fuzzer
         self.corpus.markFuzzed(idx)
         // 运行目标
         ProcessResult r = self.target.runData(mutated)
-        string kind = classifyResult(r.success, r.exitCode, r.stderr, r.durationMs, self.target.timeoutMs)
-        self.stats.record(kind, r.durationMs)
+        string kind = classifyResult(r.success, r.exitCode, r.stderr, float(r.durationMs), self.target.timeoutMs)
+        self.stats.record(kind, float(r.durationMs))
         // 覆盖率
         string signal = self.coverage.makeSignal(r.exitCode, r.stdout)
         bool isNew = self.coverage.observe(signal)
@@ -1491,7 +1502,7 @@ class Fuzzer
         end
         // 崩溃分析
         if kind != "ok" then
-            bool newCrash = self.analyzer.consider(mutated, r.success, r.exitCode, r.stdout, r.stderr, r.durationMs)
+            bool newCrash = self.analyzer.consider(mutated, r.success, r.exitCode, r.stdout, r.stderr, float(r.durationMs))
             if newCrash then
                 string preview = printableBytes(mutated, 40)
                 println(C_RED + "[CRASH]" + C_RESET + " " + kind + " (" +
@@ -1590,7 +1601,8 @@ func testByteHelpers()
     string hex = bytesToHex(hb)
     check(hex == "48656c6c6f", "hex encoding: " + hex)
     // empty
-    check(bytesFromString("").length == 0, "empty string -> empty bytes")
+    array<int> eb = bytesFromString("")
+    check(eb.length == 0, "empty string -> empty bytes")
     check(stringFromBytes([]) == "", "empty bytes -> empty string")
     check(bytesToHex([]) == "", "empty bytes hex = ''")
     // printable
@@ -1625,9 +1637,12 @@ func testByteHelpers()
     check(not bytesEqual(array<int>[1, 2, 3], array<int>[1, 2, 4]), "bytesEqual false (diff)")
     check(not bytesEqual(array<int>[1, 2], array<int>[1, 2, 3]), "bytesEqual false (len)")
     // inputHash
-    string h1 = inputHash(array<int>[1, 2, 3])
-    string h2 = inputHash(array<int>[1, 2, 3])
-    string h3 = inputHash(array<int>[1, 2, 4])
+    array<int> inA = array<int>[1, 2, 3]
+    array<int> inA2 = array<int>[1, 2, 3]
+    array<int> inB = array<int>[1, 2, 4]
+    string h1 = inputHash(inA)
+    string h2 = inputHash(inA2)
+    string h3 = inputHash(inB)
     check(h1 == h2, "inputHash deterministic")
     check(h1 != h3, "inputHash differs for different input")
     check(string.len(h1) == 16, "inputHash is 16 hex chars: " + h1)
@@ -1731,9 +1746,10 @@ func testDictionary()
     d.buildForTarget("json")
     check(d.count() > 0, "json dict has tokens (" + string(d.count()) + ")")
     bool hasBrace = false
+    array<string> dToks = d.getTokens()
     int i = 0
     while i < d.count() do
-        if d.getTokens()[i] == "{" then
+        if dToks[i] == "{" then
             hasBrace = true
         end
         i += 1
@@ -1817,7 +1833,8 @@ func testCorpus()
     end
     c.add(big)
     int last = c.size() - 1
-    check(c.getData(last).length <= 4096, "large seed truncated to maxSeedLen")
+    array<int> lastData = c.getData(last)
+    check(lastData.length <= 4096, "large seed truncated to maxSeedLen")
     // totalBytes
     check(c.totalBytes() > 0, "totalBytes > 0")
 end

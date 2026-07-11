@@ -61,6 +61,8 @@ assert downcast.value() == 42
 array<ref<RefBase>> values = array[]
 values.append(derived)
 assert values[0].value() == 42
+values.append(ref(RefDerived(7)))
+assert values[1].value() == 7
 
 ref<RefBase> made = makeBaseRef(64)
 assert made.value() == 64

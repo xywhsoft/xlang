@@ -70,6 +70,22 @@ end
 expect(dynDictSum, 3)
 expect(dynSawB, 2)
 
+dict<int> typedTable = dict{"a": 1, "b": 2, "c": 3}
+int typedVisited = 0
+int typedSum = 0
+for key, value in typedTable
+    typedVisited += 1
+    typedSum += value
+    typedTable.remove(key)
+    if key == "a" then
+        typedTable["z"] = 9
+    end
+end
+expect(typedVisited, 3)
+expect(typedSum, 6)
+expect(typedTable.length, 1)
+expect(typedTable["z"], 9)
+
 int skipAndBreak = 0
 for value in values
     if int(value) == 2 then

@@ -330,7 +330,7 @@ end
 // 按频道名（大小写不敏感）找存储 key，找不到返回 ""
 func findChanKey(var chans, string name) as string
     for k, v in chans
-        if ircEqual(k, name) then
+        if ircEqual(string(k), name) then
             return k
         end
     end

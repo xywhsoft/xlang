@@ -1017,10 +1017,10 @@ func renderToString() as string
         hpBar = hpBar + "*"
         k += 1
     end
-    string hud = "frame " + string(g_frame) +
+    string hud = ("frame " + string(g_frame) +
                  "  hp[" + hpBar + "]" +
                  "  score " + string(g_score) +
-                 "  coins " + string(g_coinsCollected) + "/" + string(g_coinsTotal)
+                 "  coins " + string(g_coinsCollected) + "/" + string(g_coinsTotal))
     if g_gameOver then
         hud = hud + "  [GAME OVER]"
     end
@@ -1252,12 +1252,12 @@ end
 // T3: isSolidX 仅墙阻挡
 func testIsSolid() as bool
     println("[T3] isSolidX only wall blocks horizontally")
-    loadLevel(array["   ", "   ", "   "])
+    loadLevel(array["     ", "     ", "     ", "     ", "     "])
     setTile(1, 1, T_WALL)
     setTile(2, 1, T_SPIKE)
     bool ok = check("wall is solid", isSolidX(1, 1))
     ok = check("spike not solid", not isSolidX(2, 1)) and ok
-    ok = check("empty not solid", not isSolidX(0, 0)) and ok
+    ok = check("empty not solid", not isSolidX(3, 3)) and ok
     return ok
 end
 
@@ -1439,7 +1439,7 @@ end
 // T12: 金币收集加分并清空瓦片
 func testCoinPickup() as bool
     println("[T12] coin pickup increments score and clears tile")
-    loadLevel(array["        ", "        ", "        ", "        "])
+    loadLevel(array["        ", "        ", "        ", "        ", "        ", "        ", "        ", "        "])
     setTile(3, 6, T_COIN)
     g_coinsTotal = 1
     g_px = 3.0
@@ -1459,7 +1459,7 @@ end
 // T13: 尖刺伤害 + 无敌帧防止连扣
 func testSpikeDamage() as bool
     println("[T13] spike damages player, iframes prevent repeat")
-    loadLevel(array["        ", "        ", "        ", "        "])
+    loadLevel(array["        ", "        ", "        ", "        ", "        ", "        ", "        ", "        "])
     setTile(3, 6, T_SPIKE)
     g_px = 3.0
     g_py = 6.0
@@ -1499,7 +1499,7 @@ end
 // T15: 触碰出口触发胜利
 func testExitVictory() as bool
     println("[T15] exit tile triggers victory")
-    loadLevel(array["        ", "        ", "        ", "        "])
+    loadLevel(array["        ", "        ", "        ", "        ", "        ", "        ", "        ", "        "])
     setTile(3, 6, T_EXIT)
     g_exitCol = 3
     g_exitRow = 6
@@ -1531,13 +1531,18 @@ func testEnemyPatrolFlip() as bool
     int initDir = g_eDir[idx]
     // 跑足够多帧，敌人应走到锚点 +PATROL_RANGE 之外并翻转
     int k = 0
+    bool flipped = false
+    int lastDir = initDir
     while k < 400 do
         updateOneEnemy(idx)
+        if g_eDir[idx] != lastDir then
+            flipped = true
+        end
+        lastDir = g_eDir[idx]
         k += 1
     end
     bool ok = check("enemy moved from spawn", absF(g_eX[idx] - 5.0) > 0.5)
     // 在巡逻过程中方向至少翻转过一次（与初始方向不同 或 曾被墙夹紧）
-    bool flipped = (g_eDir[idx] != initDir)
     ok = check("enemy flipped direction during patrol", flipped) and ok
     return ok
 end

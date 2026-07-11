@@ -55,12 +55,12 @@
 string g_src
 int g_pos
 int g_len
-array<var> g_tokens = []
+var g_tokens = []
 int g_ti
 var g_ct
 
 // 语义分析期间的符号表栈（每层是一个 dict<string,string>）。
-array<var> g_scopes = []
+var g_scopes = []
 
 // 全局函数表：dict<string,var>，key=函数名。
 var g_funcTable = {}
@@ -539,7 +539,7 @@ func astProgram() as var
 end
 
 
-func astFunc(string name, array<var> params, string retType, array<var> body) as var
+func astFunc(string name, var params, string retType, var body) as var
     var n = astNode("func")
     n["name"] = name
     n["params"] = params
@@ -574,7 +574,7 @@ func astAssign(string name, var expr) as var
 end
 
 
-func astIf(var cond, array<var> thenBody, array<var> elseBody) as var
+func astIf(var cond, var thenBody, var elseBody) as var
     var n = astNode("if")
     n["cond"] = cond
     n["then"] = thenBody
@@ -584,7 +584,7 @@ func astIf(var cond, array<var> thenBody, array<var> elseBody) as var
 end
 
 
-func astWhile(var cond, array<var> body) as var
+func astWhile(var cond, var body) as var
     var n = astNode("while")
     n["cond"] = cond
     n["body"] = body
@@ -592,7 +592,7 @@ func astWhile(var cond, array<var> body) as var
 end
 
 
-func astFor(string iterName, var iterable, array<var> body) as var
+func astFor(string iterName, var iterable, var body) as var
     var n = astNode("for")
     n["iter"] = iterName
     n["iterable"] = iterable
@@ -657,7 +657,7 @@ func astVarRef(string name) as var
 end
 
 
-func astCall(string name, array<var> args) as var
+func astCall(string name, var args) as var
     var n = astNode("call")
     n["name"] = name
     n["args"] = args
@@ -1202,7 +1202,7 @@ end
 
 
 // 完整语法分析入口。
-func parseTokens(array<var> toks) as var
+func parseTokens(var toks) as var
     g_tokens = toks
     g_ti = 0
     g_ct = toks[0]
@@ -1312,7 +1312,7 @@ end
 
 // 收集所有函数声明到 g_funcTable。
 func collectFuncs(var prog)
-    array<var> stmts = prog["stmts"]
+    var stmts = prog["stmts"]
     for s in stmts
         if string(s["nt"]) == "func" then
             var fi = {}
@@ -1331,7 +1331,7 @@ func analyzeProgram(var prog) as string
     g_scopes = []
     collectFuncs(prog)
     pushScope()
-    array<var> stmts = prog["stmts"]
+    var stmts = prog["stmts"]
     for s in stmts
         string err = analyzeStmt(s)
         if string.len(err) > 0 then
@@ -1384,7 +1384,7 @@ end
 
 func analyzeFunc(var f) as string
     pushScope()
-    array<var> params = f["params"]
+    var params = f["params"]
     for p in params
         string pn = string(p["pname"])
         string pt = string(p["ptype"])
@@ -1393,7 +1393,7 @@ func analyzeFunc(var f) as string
             return "函数 " + string(f["name"]) + " 中重复声明参数 " + pn
         end
     end
-    array<var> body = f["body"]
+    var body = f["body"]
     for st in body
         string err = analyzeStmt(st)
         if string.len(err) > 0 then
@@ -1426,16 +1426,16 @@ end
 
 
 func analyzeIf(var n) as string
-    array<var> tb = n["then"]
+    var tb = n["then"]
     for s in tb
         string e = analyzeStmt(s)
         if string.len(e) > 0 then
             return e
         end
     end
-    array<var> eis = n["elseifs"]
+    var eis = n["elseifs"]
     for ei in eis
-        array<var> eb = ei["body"]
+        var eb = ei["body"]
         for s in eb
             string e = analyzeStmt(s)
             if string.len(e) > 0 then
@@ -1443,7 +1443,7 @@ func analyzeIf(var n) as string
             end
         end
     end
-    array<var> el = n["else"]
+    var el = n["else"]
     for s in el
         string e = analyzeStmt(s)
         if string.len(e) > 0 then
@@ -1456,7 +1456,7 @@ end
 
 func analyzeWhile(var n) as string
     pushScope()
-    array<var> body = n["body"]
+    var body = n["body"]
     for s in body
         string e = analyzeStmt(s)
         if string.len(e) > 0 then
@@ -1472,7 +1472,7 @@ end
 func analyzeFor(var n) as string
     pushScope()
     declareVar(string(n["iter"]), "int")
-    array<var> body = n["body"]
+    var body = n["body"]
     for s in body
         string e = analyzeStmt(s)
         if string.len(e) > 0 then
@@ -1602,7 +1602,7 @@ end
 
 func genCall(var e) as string
     string name = string(e["name"])
-    array<var> args = e["args"]
+    var args = e["args"]
     // print / println 特殊处理
     if name == "print" or name == "println" then
         return genPrintCall(name, args)
@@ -1622,7 +1622,7 @@ end
 
 
 // 根据参数类型选择 printf 格式串。
-func genPrintCall(string name, array<var> args) as string
+func genPrintCall(string name, var args) as string
     // 无参数：仅打印换行（println）或什么都不打印（print）。
     if args.length == 0 then
         if name == "println" then
@@ -1720,7 +1720,7 @@ end
 func genFunc(var f, int level) as string
     string name = string(f["name"])
     string rt = mapCType(string(f["retType"]))
-    array<var> params = f["params"]
+    var params = f["params"]
     string head = genIndent(level) + rt + " " + name + "("
     if params.length == 0 then
         head = head + "void"
@@ -1744,7 +1744,7 @@ func genFunc(var f, int level) as string
         i += 1
     end
     string body = ""
-    array<var> bs = f["body"]
+    var bs = f["body"]
     for st in bs
         body = body + genStmt(st, level + 1)
     end
@@ -1759,7 +1759,7 @@ func genFunc(var f, int level) as string
 end
 
 
-func blockEndsWithReturn(array<var> body) as bool
+func blockEndsWithReturn(var body) as bool
     if body.length == 0 then
         return false
     end
@@ -1795,18 +1795,18 @@ func genIf(var n, int level) as string
     string ind = genIndent(level)
     string out = ind + "if (" + genExpr(n["cond"]) + ") {\n"
     pushScope()
-    array<var> tb = n["then"]
+    var tb = n["then"]
     for s in tb
         out = out + genStmt(s, level + 1)
     end
     popScope()
     out = out + ind + "}\n"
     // elseif 链翻译成 else if
-    array<var> eis = n["elseifs"]
+    var eis = n["elseifs"]
     for ei in eis
         pushScope()
         out = out + ind + "else if (" + genExpr(ei["cond"]) + ") {\n"
-        array<var> eb = ei["body"]
+        var eb = ei["body"]
         for s in eb
             out = out + genStmt(s, level + 1)
         end
@@ -1814,7 +1814,7 @@ func genIf(var n, int level) as string
         popScope()
     end
     // else
-    array<var> el = n["else"]
+    var el = n["else"]
     if el.length > 0 then
         pushScope()
         out = out + ind + "else {\n"
@@ -1832,7 +1832,7 @@ func genWhile(var n, int level) as string
     string ind = genIndent(level)
     string out = ind + "while (" + genExpr(n["cond"]) + ") {\n"
     pushScope()
-    array<var> body = n["body"]
+    var body = n["body"]
     for s in body
         out = out + genStmt(s, level + 1)
     end
@@ -1852,7 +1852,7 @@ func genFor(var n, int level) as string
     var it = n["iterable"]
     // 如果是 range(n) 调用，直接取上界。
     if string(it["nt"]) == "call" and string(it["name"]) == "range" then
-        array<var> args = it["args"]
+        var args = it["args"]
         if args.length >= 1 then
             out = out + genExpr(args[0])
         else
@@ -1862,7 +1862,7 @@ func genFor(var n, int level) as string
         out = out + genExpr(it)
     end
     out = out + "; " + iter + "++) {\n"
-    array<var> body = n["body"]
+    var body = n["body"]
     for s in body
         out = out + genStmt(s, level + 1)
     end
@@ -1883,12 +1883,12 @@ end
 // 生成 forward declarations（函数原型）。
 func genForwardDecls(var prog) as string
     string out = ""
-    array<var> stmts = prog["stmts"]
+    var stmts = prog["stmts"]
     for s in stmts
         if string(s["nt"]) == "func" then
             string name = string(s["name"])
             string rt = mapCType(string(s["retType"]))
-            array<var> params = s["params"]
+            var params = s["params"]
             out = out + rt + " " + name + "("
             if params.length == 0 then
                 out = out + "void"
@@ -1923,7 +1923,7 @@ func genProgram(var prog) as string
     hdr = hdr + "\n"
     hdr = hdr + genForwardDecls(prog)
     string body = ""
-    array<var> stmts = prog["stmts"]
+    var stmts = prog["stmts"]
     for s in stmts
         body = body + genStmt(s, 0)
     end
@@ -1955,7 +1955,7 @@ end
 
 
 // 把编译结果 dump 成 token 列表字符串（调试用）。
-func dumpTokens(array<var> toks) as string
+func dumpTokens(var toks) as string
     string out = ""
     int i = 0
     while i < toks.length do
@@ -1982,7 +1982,7 @@ func dumpAst(var node, int depth) as string
     string out = pad + nt
     if nt == "program" then
         out = out + "\n"
-        array<var> ss = node["stmts"]
+        var ss = node["stmts"]
         for s in ss
             out = out + dumpAst(s, depth + 1)
         end
@@ -1990,11 +1990,11 @@ func dumpAst(var node, int depth) as string
     end
     if nt == "func" then
         out = out + " " + string(node["name"]) + " ret=" + string(node["retType"]) + "\n"
-        array<var> ps = node["params"]
+        var ps = node["params"]
         for p in ps
             out = out + dumpAst(p, depth + 1)
         end
-        array<var> bs = node["body"]
+        var bs = node["body"]
         for s in bs
             out = out + dumpAst(s, depth + 1)
         end
@@ -2020,19 +2020,19 @@ func dumpAst(var node, int depth) as string
     if nt == "if" then
         out = out + "\n" + pad + "  cond:\n" + dumpAst(node["cond"], depth + 2)
         out = out + pad + "  then:\n"
-        array<var> tb = node["then"]
+        var tb = node["then"]
         for s in tb
             out = out + dumpAst(s, depth + 2)
         end
-        array<var> eis = node["elseifs"]
+        var eis = node["elseifs"]
         for ei in eis
             out = out + pad + "  elseif:\n" + dumpAst(ei["cond"], depth + 2)
-            array<var> eb = ei["body"]
+            var eb = ei["body"]
             for s in eb
                 out = out + dumpAst(s, depth + 2)
             end
         end
-        array<var> el = node["else"]
+        var el = node["else"]
         if el.length > 0 then
             out = out + pad + "  else:\n"
             for s in el
@@ -2044,7 +2044,7 @@ func dumpAst(var node, int depth) as string
     if nt == "while" then
         out = out + "\n" + pad + "  cond:\n" + dumpAst(node["cond"], depth + 2)
         out = out + pad + "  body:\n"
-        array<var> body = node["body"]
+        var body = node["body"]
         for s in body
             out = out + dumpAst(s, depth + 2)
         end
@@ -2054,7 +2054,7 @@ func dumpAst(var node, int depth) as string
         out = out + " " + string(node["iter"]) + " in\n"
         out = out + dumpAst(node["iterable"], depth + 1)
         out = out + pad + "  body:\n"
-        array<var> body = node["body"]
+        var body = node["body"]
         for s in body
             out = out + dumpAst(s, depth + 2)
         end
@@ -2096,7 +2096,7 @@ func dumpAst(var node, int depth) as string
     end
     if nt == "call" then
         out = out + " " + string(node["name"]) + "\n"
-        array<var> args = node["args"]
+        var args = node["args"]
         for a in args
             out = out + dumpAst(a, depth + 1)
         end
@@ -2226,21 +2226,21 @@ func testLexer()
     tReset()
     try
         array<var> toks = tokenize("func main() as int\n    return 0\nend")
-        tCheckEq(toks[0]["kind"], "kw", "kw kind")
-        tCheckEq(toks[0]["text"], "func", "kw text")
-        tCheckEq(toks[1]["kind"], "id", "id kind")
-        tCheckEq(toks[1]["text"], "main", "id text")
-        tCheckEq(toks[2]["kind"], "op", "op ( kind")
-        tCheckEq(toks[2]["text"], "(", "op ( text")
-        tCheckEq(toks[3]["text"], ")", "op ) text")
-        tCheckEq(toks[4]["kind"], "kw", "as kw")
-        tCheckEq(toks[5]["kind"], "type", "int type")
-        tCheckEq(toks[5]["text"], "int", "int type text")
-        tCheckEq(toks[6]["kind"], "kw", "return kw")
-        tCheckEq(toks[7]["kind"], "num", "0 num")
-        tCheckEq(toks[7]["val"], "int", "0 val int")
-        tCheckEq(toks[8]["kind"], "kw", "end kw")
-        tCheckEq(toks[9]["kind"], "eof", "eof")
+        tCheckEq(string(toks[0]["kind"]), "kw", "kw kind")
+        tCheckEq(string(toks[0]["text"]), "func", "kw text")
+        tCheckEq(string(toks[1]["kind"]), "id", "id kind")
+        tCheckEq(string(toks[1]["text"]), "main", "id text")
+        tCheckEq(string(toks[2]["kind"]), "op", "op ( kind")
+        tCheckEq(string(toks[2]["text"]), "(", "op ( text")
+        tCheckEq(string(toks[3]["text"]), ")", "op ) text")
+        tCheckEq(string(toks[4]["kind"]), "kw", "as kw")
+        tCheckEq(string(toks[5]["kind"]), "type", "int type")
+        tCheckEq(string(toks[5]["text"]), "int", "int type text")
+        tCheckEq(string(toks[6]["kind"]), "kw", "return kw")
+        tCheckEq(string(toks[7]["kind"]), "num", "0 num")
+        tCheckEq(string(toks[7]["val"]), "int", "0 val int")
+        tCheckEq(string(toks[8]["kind"]), "kw", "end kw")
+        tCheckEq(string(toks[9]["kind"]), "eof", "eof")
     catch e
         tCheck(false, "lexer threw: " + e.message)
     end
@@ -2253,12 +2253,12 @@ func testLexerNumbers()
     tReset()
     try
         array<var> toks = tokenize("42 3.14 0 100")
-        tCheckEq(toks[0]["text"], "42", "42 text")
-        tCheckEq(toks[0]["val"], "int", "42 int")
-        tCheckEq(toks[1]["text"], "3.14", "3.14 text")
-        tCheckEq(toks[1]["val"], "float", "3.14 float")
-        tCheckEq(toks[2]["text"], "0", "0 text")
-        tCheckEq(toks[3]["text"], "100", "100 text")
+        tCheckEq(string(toks[0]["text"]), "42", "42 text")
+        tCheckEq(string(toks[0]["val"]), "int", "42 int")
+        tCheckEq(string(toks[1]["text"]), "3.14", "3.14 text")
+        tCheckEq(string(toks[1]["val"]), "float", "3.14 float")
+        tCheckEq(string(toks[2]["text"]), "0", "0 text")
+        tCheckEq(string(toks[3]["text"]), "100", "100 text")
     catch e
         tCheck(false, "lexer num threw: " + e.message)
     end
@@ -2271,9 +2271,9 @@ func testLexerStrings()
     tReset()
     try
         array<var> toks = tokenize("\"hello\" \"a\\nb\"")
-        tCheckEq(toks[0]["kind"], "str", "str kind")
-        tCheckEq(toks[0]["text"], "hello", "hello text")
-        tCheckEq(toks[1]["text"], "a\nb", "escape newline")
+        tCheckEq(string(toks[0]["kind"]), "str", "str kind")
+        tCheckEq(string(toks[0]["text"]), "hello", "hello text")
+        tCheckEq(string(toks[1]["text"]), "a\nb", "escape newline")
     catch e
         tCheck(false, "lexer str threw: " + e.message)
     end
@@ -2286,12 +2286,12 @@ func testLexerOperators()
     tReset()
     try
         array<var> toks = tokenize("a == b != c <= d >= e && f || g")
-        tCheckEq(toks[1]["text"], "==", "==")
-        tCheckEq(toks[3]["text"], "!=", "!=")
-        tCheckEq(toks[5]["text"], "<=", "<=")
-        tCheckEq(toks[7]["text"], ">=", ">=")
-        tCheckEq(toks[9]["text"], "&&", "&&")
-        tCheckEq(toks[11]["text"], "||", "||")
+        tCheckEq(string(toks[1]["text"]), "==", "==")
+        tCheckEq(string(toks[3]["text"]), "!=", "!=")
+        tCheckEq(string(toks[5]["text"]), "<=", "<=")
+        tCheckEq(string(toks[7]["text"]), ">=", ">=")
+        tCheckEq(string(toks[9]["text"]), "&&", "&&")
+        tCheckEq(string(toks[11]["text"]), "||", "||")
     catch e
         tCheck(false, "lexer op threw: " + e.message)
     end
@@ -2304,9 +2304,9 @@ func testLexerComments()
     tReset()
     try
         array<var> toks = tokenize("// this is a comment\nint x = 1")
-        tCheckEq(toks[0]["kind"], "type", "int after comment")
-        tCheckEq(toks[1]["text"], "x", "id x")
-        tCheckEq(toks[3]["text"], "1", "1 after comment")
+        tCheckEq(string(toks[0]["kind"]), "type", "int after comment")
+        tCheckEq(string(toks[1]["text"]), "x", "id x")
+        tCheckEq(string(toks[3]["text"]), "1", "1 after comment")
     catch e
         tCheck(false, "lexer comment threw: " + e.message)
     end
@@ -2323,19 +2323,19 @@ func testParseFunc()
         string src = "func add(int a, int b) as int\n    return a + b\nend"
         array<var> toks = tokenize(src)
         var prog = parseTokens(toks)
-        array<var> ss = prog["stmts"]
+        var ss = prog["stmts"]
         tCheck(ss.length == 1, "1 stmt")
         var f = ss[0]
-        tCheckEq(string(f["nt"]), "func", "func node")
-        tCheckEq(string(f["name"]), "add", "name add")
-        tCheckEq(string(f["retType"]), "int", "ret int")
-        array<var> ps = f["params"]
+        tCheckEq(string(string(f["nt"])), "func", "func node")
+        tCheckEq(string(string(f["name"])), "add", "name add")
+        tCheckEq(string(string(f["retType"])), "int", "ret int")
+        var ps = f["params"]
         tCheck(ps.length == 2, "2 params")
-        tCheckEq(string(ps[0]["pname"]), "a", "param a")
-        tCheckEq(string(ps[0]["ptype"]), "int", "param a int")
-        array<var> body = f["body"]
+        tCheckEq(string(string(ps[0]["pname"])), "a", "param a")
+        tCheckEq(string(string(ps[0]["ptype"])), "int", "param a int")
+        var body = f["body"]
         tCheck(body.length == 1, "1 body stmt")
-        tCheckEq(string(body[0]["nt"]), "return", "return")
+        tCheckEq(string(string(body[0]["nt"])), "return", "return")
     catch e
         tCheck(false, "parse func threw: " + e.message)
     end
@@ -2350,14 +2350,14 @@ func testParseVarDecl()
         string src = "int x = 42\nfloat pi = 3.14\nstring s = \"hi\"\nbool b = true"
         array<var> toks = tokenize(src)
         var prog = parseTokens(toks)
-        array<var> ss = prog["stmts"]
+        var ss = prog["stmts"]
         tCheck(ss.length == 4, "4 stmts")
-        tCheckEq(string(ss[0]["nt"]), "vardecl", "0 vardecl")
-        tCheckEq(string(ss[0]["vtype"]), "int", "0 int")
-        tCheckEq(string(ss[0]["name"]), "x", "0 x")
-        tCheckEq(string(ss[1]["vtype"]), "float", "1 float")
-        tCheckEq(string(ss[2]["vtype"]), "string", "2 string")
-        tCheckEq(string(ss[3]["vtype"]), "bool", "3 bool")
+        tCheckEq(string(string(ss[0]["nt"])), "vardecl", "0 vardecl")
+        tCheckEq(string(string(ss[0]["vtype"])), "int", "0 int")
+        tCheckEq(string(string(ss[0]["name"])), "x", "0 x")
+        tCheckEq(string(string(ss[1]["vtype"])), "float", "1 float")
+        tCheckEq(string(string(ss[2]["vtype"])), "string", "2 string")
+        tCheckEq(string(string(ss[3]["vtype"])), "bool", "3 bool")
     catch e
         tCheck(false, "parse vardecl threw: " + e.message)
     end
@@ -2372,15 +2372,15 @@ func testParseIf()
         string src = "if x > 10 then\n    print(1)\nelseif x == 5 then\n    print(2)\nelse\n    print(3)\nend"
         array<var> toks = tokenize(src)
         var prog = parseTokens(toks)
-        array<var> ss = prog["stmts"]
+        var ss = prog["stmts"]
         tCheck(ss.length == 1, "1 stmt")
         var n = ss[0]
-        tCheckEq(string(n["nt"]), "if", "if node")
-        tCheckEq(string(n["cond"]["nt"]), "binary", "cond binary")
-        tCheckEq(string(n["cond"]["op"]), ">", "cond >")
-        array<var> eis = n["elseifs"]
+        tCheckEq(string(string(n["nt"])), "if", "if node")
+        tCheckEq(string(string(n["cond"]["nt"])), "binary", "cond binary")
+        tCheckEq(string(string(n["cond"]["op"])), ">", "cond >")
+        var eis = n["elseifs"]
         tCheck(eis.length == 1, "1 elseif")
-        array<var> el = n["else"]
+        var el = n["else"]
         tCheck(el.length == 1, "1 else stmt")
     catch e
         tCheck(false, "parse if threw: " + e.message)
@@ -2396,13 +2396,13 @@ func testParseWhile()
         string src = "while x > 0 do\n    x = x - 1\nend"
         array<var> toks = tokenize(src)
         var prog = parseTokens(toks)
-        array<var> ss = prog["stmts"]
+        var ss = prog["stmts"]
         var n = ss[0]
-        tCheckEq(string(n["nt"]), "while", "while node")
-        tCheckEq(string(n["cond"]["op"]), ">", "cond >")
-        array<var> body = n["body"]
+        tCheckEq(string(string(n["nt"])), "while", "while node")
+        tCheckEq(string(string(n["cond"]["op"])), ">", "cond >")
+        var body = n["body"]
         tCheck(body.length == 1, "1 body stmt")
-        tCheckEq(string(body[0]["nt"]), "assign", "assign")
+        tCheckEq(string(string(body[0]["nt"])), "assign", "assign")
     catch e
         tCheck(false, "parse while threw: " + e.message)
     end
@@ -2417,12 +2417,12 @@ func testParseFor()
         string src = "for i in range(10)\n    print(i)\nend"
         array<var> toks = tokenize(src)
         var prog = parseTokens(toks)
-        array<var> ss = prog["stmts"]
+        var ss = prog["stmts"]
         var n = ss[0]
-        tCheckEq(string(n["nt"]), "for", "for node")
-        tCheckEq(string(n["iter"]), "i", "iter i")
-        tCheckEq(string(n["iterable"]["nt"]), "call", "iterable call")
-        tCheckEq(string(n["iterable"]["name"]), "range", "range")
+        tCheckEq(string(string(n["nt"])), "for", "for node")
+        tCheckEq(string(string(n["iter"])), "i", "iter i")
+        tCheckEq(string(string(n["iterable"]["nt"])), "call", "iterable call")
+        tCheckEq(string(string(n["iterable"]["name"])), "range", "range")
     catch e
         tCheck(false, "parse for threw: " + e.message)
     end
@@ -2437,12 +2437,12 @@ func testParseExpr()
         string src = "int x = 1 + 2 * 3"
         array<var> toks = tokenize(src)
         var prog = parseTokens(toks)
-        array<var> ss = prog["stmts"]
+        var ss = prog["stmts"]
         var d = ss[0]
-        var e = d["init"]
-        tCheckEq(string(e["nt"]), "binary", "top binary")
-        tCheckEq(string(e["op"]), "+", "top +")
-        tCheckEq(string(e["right"]["op"]), "*", "right *")
+        var initE = d["init"]
+        tCheckEq(string(initE["nt"]), "binary", "top binary")
+        tCheckEq(string(initE["op"]), "+", "top +")
+        tCheckEq(string(initE["right"]["op"]), "*", "right *")
     catch e
         tCheck(false, "parse expr threw: " + e.message)
     end
@@ -2630,7 +2630,7 @@ func testSemanticOk()
     try
         string src = "func f() as int\n    int x = 1\n    return x\nend"
         string err = analyzeOnly(src)
-        tCheckEq(err, "", "no error")
+        tCheckEq(string(err), "", "no error")
     catch e
         tCheck(false, "sem ok threw: " + e.message)
     end
@@ -2675,7 +2675,7 @@ func testSemanticScope()
         // 内层声明的 x 不应与外层冲突。
         string src = "func f() as int\n    int x = 1\n    if x > 0 then\n        int x = 2\n    end\n    return x\nend"
         string err = analyzeOnly(src)
-        tCheckEq(err, "", "no error in nested scope")
+        tCheckEq(string(err), "", "no error in nested scope")
     catch e
         tCheck(false, "sem scope threw: " + e.message)
     end

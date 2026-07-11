@@ -172,7 +172,7 @@ end
 
 // JSON 字符串转义
 func jsonString(string s) as string
-    if s == null then
+    if s == "" then
         return "\"\""
     end
     string out = "\""
@@ -1164,13 +1164,13 @@ end
 // + 若 item 是 dict，合并其字段。
 func tplMakeScope(var parent, var item, int index) as var
     var scope = {}
-    for k in parent do
+    for k in parent
         scope[k] = parent[k]
     end
     scope["__index__"] = index
     scope["__value__"] = item
     if item is dict then
-        for k in item do
+        for k in item
             scope[k] = item[k]
         end
     end
@@ -1214,11 +1214,11 @@ func tplRenderChain(string name, var data, var childBlocks) as string
     // 合并：本模板的 blocks 作为基础，childBlocks（来自更下级）覆盖之
     var effBlocks = {}
     var ownBlocks = parsed["blocks"]
-    for k in ownBlocks do
+    for k in ownBlocks
         effBlocks[k] = ownBlocks[k]
     end
     if childBlocks != null then
-        for k in childBlocks do
+        for k in childBlocks
             effBlocks[k] = childBlocks[k]
         end
     end
@@ -1303,7 +1303,7 @@ func loadTheme(string contentDir)
         int i = 0
         while i < n do
             string fp = string(files[i])
-            string baseName = path.base(fp)
+            string baseName = path.name(fp)
             string ext = path.ext(baseName)
             string stem = string.slice(baseName, 0, string.len(baseName) - string.len(ext))
             gTplText[stem] = file.readText(fp)
@@ -1361,7 +1361,7 @@ func defaultBaseTemplate() as string
     s = s + "</header>\n"
     s = s + "<main class=\"site-main\">\n"
     s = s + "<div class=\"wrap\">\n"
-    s = s + "{content}\n"
+    s = s + "{block:content}{endblock}\n"
     s = s + "</div>\n"
     s = s + "</main>\n"
     s = s + "<footer class=\"site-footer\">\n"
@@ -1634,10 +1634,9 @@ func loadPosts(string contentDir) as var
     int i = 0
     while i < n do
         string fp = string(files[i])
-        string baseName = path.base(fp)
-        string ext = string.lower(path.ext(baseName))
-        if ext == ".md" or ext == ".markdown" then
-            string stem = string.slice(baseName, 0, string.len(baseName) - string.len(ext))
+        string ext = string.lower(path.ext(fp))
+        if ext == "md" or ext == "markdown" then
+            string stem = path.name(fp)
             string slug = makeSlug(stem)
             string raw = file.readText(fp)
             var post = parsePostFile(raw, slug)
@@ -1913,7 +1912,7 @@ end
 func generateTagPages()
     string siteUrl = string(gConfig["url"])
     var tagNames = []
-    for t in gTags do
+    for t in gTags
         tagNames.push(t)
     end
     int n = tagNames.length
@@ -2115,7 +2114,7 @@ func buildSite(string contentDir, string outputDir) as int
 
     // 4. 标签索引
     buildTagIndex()
-    println("  tags: " + gTags.length.toString())
+    println("  tags: " + string(gTags.length))
 
     // 5. 准备 output 目录
     if not dir.exists(outputDir) then
@@ -2135,7 +2134,7 @@ func buildSite(string contentDir, string outputDir) as int
     // 7. 静态资源
     copyStaticAssets()
 
-    println("  urls recorded: " + gSiteUrls.length.toString())
+    println("  urls recorded: " + string(gSiteUrls.length))
     println("build done.")
     return 0
 end
@@ -2423,7 +2422,7 @@ func runBuildTests()
     file.writeText(path.join(contentDir, "site.json"), "{\"title\":\"TestSite\",\"url\":\"http://example.com\",\"description\":\"d\",\"per_page\":2,\"theme\":\"default\"}")
 
     // posts
-    file.writeText(path.join(contentDir, "posts", "hello.md"), "---\ntitle: Hello World\ndate: 2026-07-10\ntags: intro, welcome\n---\n# Hello\n\nThis is **bold**.\n")
+    file.writeText(path.join(contentDir, "posts", "hello-world.md"), "---\ntitle: Hello World\ndate: 2026-07-10\ntags: intro, welcome\n---\n# Hello\n\nThis is **bold**.\n")
     file.writeText(path.join(contentDir, "posts", "second.md"), "---\ntitle: Second Post\ndate: 2026-07-09\ntags: intro\n---\nSecond post content.\n")
     file.writeText(path.join(contentDir, "posts", "third.md"), "---\ntitle: Third\ndate: 2026-07-08\ntags: misc\n---\nThird.\n")
     file.writeText(path.join(contentDir, "posts", "draft.md"), "---\ntitle: Draft\ndate: 2026-07-11\ntags: intro\ndraft: true\n---\nDraft.\n")
@@ -2528,10 +2527,10 @@ func removeTree(string p)
     end
     int k = 0
     while k < dn do
-        dir.remove(string(dirs[k]))
+        dir.delete(string(dirs[k]))
         k = k + 1
     end
-    dir.remove(p)
+    dir.delete(p)
 end
 
 

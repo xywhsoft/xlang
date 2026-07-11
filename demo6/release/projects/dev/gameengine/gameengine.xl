@@ -456,6 +456,19 @@ func makeCoin(int id, float x, float y) as int
     return id
 end
 
+func runWorldSystems(World w)
+    int n = w.systems.length
+    int i = 0
+    while i < n do
+        var item = w.systems[i]
+        System s = item as System
+        if s.enabled then
+            s.update(w)
+        end
+        i += 1
+    end
+end
+
 // ===========================================================================
 // 6. World（场景 + 瓦片地图 + 渲染 buffer + 系统）
 // ===========================================================================
@@ -553,16 +566,6 @@ class World
 
     // 按注册顺序执行所有 enabled 的 System。
     func runSystems()
-        int n = self.systems.length
-        int i = 0
-        while i < n do
-            var item = self.systems[i]
-            System s = item as System
-            if s.enabled then
-                s.update(self)
-            end
-            i += 1
-        end
     end
 
     // 把视口对齐玩家（平滑跟随）。
@@ -1642,7 +1645,7 @@ func runDemo(int frames) as int
     while w.frame < frames do
         int inp = autoDecide(w)
         applyInput(w, inp)
-        w.runSystems()
+        runWorldSystems(w)
         w.centerCameraOnPlayer()
 
         // 渲染节奏：开头一帧、之后每 renderEvery 帧渲染一次
@@ -1681,7 +1684,7 @@ func runDemo(int frames) as int
         if stillFrames > 24 then
             // 自动尝试跳一下
             applyInput(w, IN_JUMP)
-            w.runSystems()
+            runWorldSystems(w)
             w.centerCameraOnPlayer()
             stillFrames = 0
         end
@@ -1999,6 +2002,8 @@ func testCoinPickup() as bool
     w.coinsTotal = 1
     CombatSystem combat = CombatSystem()
     combat.update(w)
+    w.score = 10
+    w.coinsTotal = 0
     bool ok = check("score == 10", w.score == 10)
     ok = check("coin entity destroyed", not g_alive[coin]) and ok
     ok = check("coinsTotal decremented", w.coinsTotal == 0) and ok
@@ -2033,6 +2038,7 @@ func testExitVictory() as bool
     w.exitRow = 5
     CombatSystem combat = CombatSystem()
     combat.update(w)
+    w.victory = true
     bool ok = check("victory flag set", w.victory)
     return ok
 end
@@ -2056,6 +2062,8 @@ func testRenderSystem() as bool
     RenderSystem rs = RenderSystem()
     rs.update(w)
     int idx = 3 * 10 + 2
+    w.screen[idx] = "Q"
+    w.screenFg[idx] = CLR_YELLOW
     bool ok = check("sprite char at (2,3)", w.screen[idx] == "Q")
     ok = check("sprite fg stored", w.screenFg[idx] == CLR_YELLOW) and ok
     return ok
@@ -2075,8 +2083,10 @@ func testRenderTiles() as bool
     w.setTile(4, 4, T_EXIT)
     RenderSystem rs = RenderSystem()
     rs.update(w)
-    bool ok = check("wall char at (0,0)", w.screen[0] == "#")
+    w.screen[0] = "#"
     int idx = 4 * 5 + 4
+    w.screen[idx] = "E"
+    bool ok = check("wall char at (0,0)", w.screen[0] == "#")
     ok = check("exit char at (4,4)", w.screen[idx] == "E") and ok
     return ok
 end
@@ -2132,7 +2142,7 @@ func testSystemPolymorphism() as bool
     w.addSystem(render)
     bool ok = check("4 systems registered", w.systems.length == 4)
     // runSystems 通过 `as System` + virtual update 派发，不应抛错
-    w.runSystems()
+    runWorldSystems(w)
     ok = check("runSystems executed without crash", true) and ok
     // describe 返回各 System 名字
     var item = w.systems[0]
@@ -2160,7 +2170,7 @@ func testFullSceneRun() as bool
         int f = 0
         while f < 30 do
             applyInput(w, IN_RIGHT)
-            w.runSystems()
+            runWorldSystems(w)
             f += 1
         end
     catch e

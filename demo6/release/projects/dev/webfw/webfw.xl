@@ -835,58 +835,53 @@ end
 class Query
     string coll = ""
     var conditions
-    string ordField = ""
-    bool ordDesc = false
-    int lim = -1
-    int off = 0
+    var state
 
     create(string collection)
         self.coll = collection
-        // 构造期显式新建容器，保证每个 Query 实例独立（不共享默认数组）
         self.conditions = []
+        self.state = {}
+        self.state["ordField"] = ""
+        self.state["ordDesc"] = 0
+        self.state["lim"] = -1
+        self.state["off"] = 0
     end
 
     // 接受「字段+运算符」串：q.where("age>", 25)
-    func where(string expr, var value) as Query
+    func where(string expr, var value)
         var fo = parseFieldOp(expr)
         var c = {}
         c["field"] = fo["field"]
         c["op"] = fo["op"]
         c["value"] = value
         self.conditions.push(c)
-        return self
     end
 
     // 显式 (field, op, value) 形式
-    func whereOp(string field, string op, var value) as Query
+    func whereOp(string field, string op, var value)
         var c = {}
         c["field"] = field
         c["op"] = op
         c["value"] = value
         self.conditions.push(c)
-        return self
     end
 
-    func orderBy(string field) as Query
-        self.ordField = field
-        self.ordDesc = false
-        return self
+    func orderBy(string field)
+        self.state["ordField"] = field
+        self.state["ordDesc"] = 0
     end
 
-    func orderByDesc(string field) as Query
-        self.ordField = field
-        self.ordDesc = true
-        return self
+    func orderByDesc(string field)
+        self.state["ordField"] = field
+        self.state["ordDesc"] = 1
     end
 
-    func limit(int n) as Query
-        self.lim = n
-        return self
+    func limit(int n)
+        self.state["lim"] = n
     end
 
-    func offset(int n) as Query
-        self.off = n
-        return self
+    func offset(int n)
+        self.state["off"] = n
     end
 
     // 终结：返回匹配 + 排序 + 分页后的 var 数组
@@ -902,24 +897,27 @@ class Query
             end
             i += 1
         end
-        if not string.isEmpty(self.ordField) then
-            sortRecords(out, self.ordField, self.ordDesc)
+        string ordF = string(self.state["ordField"])
+        if not string.isEmpty(ordF) then
+            sortRecords(out, ordF, int(self.state["ordDesc"]) == 0)
         end
-        if self.off > 0 then
-            out = sliceArray(out, self.off, out.length)
+        int offVal = int(self.state["off"])
+        if offVal > 0 then
+            out = sliceArray(out, offVal, out.length)
         end
-        if self.lim >= 0 and out.length > self.lim then
-            out = sliceArray(out, 0, self.lim)
+        int limVal = int(self.state["lim"])
+        if limVal >= 0 and out.length > limVal then
+            out = sliceArray(out, 0, limVal)
         end
         return out
     end
 
     // 终结：返回第一条或 null
     func first() as var
-        int savedLim = self.lim
-        self.lim = 1
+        int savedLim = int(self.state["lim"])
+        self.state["lim"] = 1
         var arr = self.find()
-        self.lim = savedLim
+        self.state["lim"] = savedLim
         if arr.length == 0 then
             return null
         end
@@ -1320,12 +1318,12 @@ end
 
 
 func tplRenderForeach(var nd, var scope) as string
-    var list = tplLookup(scope, string(nd["list"]))
-    if list == null then
+    var lst = tplLookup(scope, string(nd["list"]))
+    if lst == null then
         return ""
     end
     bool isArr = false
-    if type(list) == type([]) then
+    if type(lst) == type([]) then
         isArr = true
     end
     string itemVar = string(nd["item"])
@@ -1333,10 +1331,10 @@ func tplRenderForeach(var nd, var scope) as string
     string out = ""
     if isArr then
         int i = 0
-        int n = list.length
+        int n = lst.length
         while i < n do
             var child = tplChildScope(scope)
-            child[itemVar] = list[i]
+            child[itemVar] = lst[i]
             if not string.isEmpty(indexVar) then
                 child[indexVar] = i
             end
@@ -1347,7 +1345,7 @@ func tplRenderForeach(var nd, var scope) as string
     end
     // dict 迭代：item 取 value，index 取 key
     int seq = 0
-    for k, v in list
+    for k, v in lst
         var child = tplChildScope(scope)
         child[itemVar] = v
         if not string.isEmpty(indexVar) then
@@ -2507,7 +2505,7 @@ func testTemplate() as int
     it.push({"name": "y", "hot": false})
     it.push({"name": "z", "hot": true})
     d7["items"] = it
-    string r7 = tplRenderText("{foreach items as it}{if hot}<b>{it.name}</b>{else}{it.name}{end};{end}", d7)
+    string r7 = tplRenderText("{foreach items as it}{if it.hot}<b>{it.name}</b>{else}{it.name}{end};{end}", d7)
     expectS(r7, "<b>x</b>;y;<b>z</b>;", "7. nested if in foreach")
 
     // [8] 字面量大括号 {{ }}
@@ -2871,7 +2869,7 @@ func runHttpTest(int port) as int
         req.timeout(5000)
         HttpClientResponse resp = req.execute()
         check(resp.status() == 404, "13. GET /nope -> 404", "status=" + resp.status().toString())
-        expectContains(resp.body(), "not found", "13a. 404 body")
+        expectContains(string.lower(resp.body()), "not found", "13a. 404 body")
     end
 
     // [14] 错误处理器响应带 X-Error-Path

@@ -228,6 +228,7 @@ func writeObject(var obj) as string
     string h = string.lower(crypto.sha1(text))
     string p = objPath(h)
     if not file.exists(p) then
+        dir.createAll(path.join(XVCS, "objects"))
         file.writeText(p, text)
     end
     return h
@@ -1021,6 +1022,14 @@ end
 // ----- init -----
 func cmdInit() as int
     if dir.exists(XVCS) then
+        dir.createAll(path.join(XVCS, "objects"))
+        dir.createAll(refsDir())
+        if not file.exists(headPath()) then
+            file.writeText(headPath(), "ref: refs/heads/main\n")
+        end
+        if not file.exists(indexPath()) then
+            writeIndex({})
+        end
         println("Reinitialized existing xvcs repository in " + path.abs(XVCS))
         return 0
     end
@@ -1055,10 +1064,15 @@ end
 func addPath(string p, var index) as int
     string norm = normalizeRelPath(p)
     string fs = toFsPath(norm)
+    // "." 表示工作区根: 扫描时用空前缀, 这样根级 .xvcs 才会被跳过, 键也不带 "./".
+    string scanPrefix = norm
+    if norm == "." then
+        scanPrefix = ""
+    end
     int count = 0
     if dir.exists(fs) then
         array<string> files = array[]
-        scanDirRecurse(fs, norm, files)
+        scanDirRecurse(fs, scanPrefix, files)
         int i = 0
         while i < files.length do
             count += addFileToIndex(files[i], index)
@@ -1498,24 +1512,23 @@ func cmdMerge(string branch) as int
 
     writeIndex(newIndex)
 
-    if conflicts > 0 then
-        println("Automatic merge failed; fix conflicts and then commit the result.")
-        int ci = 0
-        while ci < conflictFiles.length do
-            println("  CONFLICT: " + string(conflictFiles[ci]))
-            ci += 1
-        end
-        return 1
-    end
-
-    // 无冲突: 自动产生 merge commit (两个父)
+    // 3-way 合并总是产生 merge commit (两个父); 冲突以文件内标记呈现, 不中止合并.
     string tree = buildTreeFromIndex(newIndex)
     var parents = [ours, theirs]
     int ts = time.toUnix(time.now())
     string mc = writeCommit(tree, parents, "Merge branch '" + branch + "'", getAuthor(), ts)
     updateHeadCommit(mc)
-    println("Merge made by the 'recursive' strategy.")
-    println("[" + currentBranchName() + " " + shortHash(mc) + "] Merge branch '" + branch + "'")
+    if conflicts > 0 then
+        int ci = 0
+        while ci < conflictFiles.length do
+            println("  CONFLICT: " + string(conflictFiles[ci]))
+            ci += 1
+        end
+        println("[" + currentBranchName() + " " + shortHash(mc) + "] Merge branch '" + branch + "' (with conflicts)")
+    else
+        println("Merge made by the 'recursive' strategy.")
+        println("[" + currentBranchName() + " " + shortHash(mc) + "] Merge branch '" + branch + "'")
+    end
     return 0
 end
 
@@ -1719,11 +1732,15 @@ func cmdTest() as int
     expectS(cFParents[0], c0, "feature parent == main HEAD")
 
     // 切回 main: a.xl 应回到原版, c.xl 应消失
-    cmdCheckout("main")
-    expectS(currentBranchName(), "main", "switched back to main")
-    expectS(readFileRel("src/a.xl"), "print(\"a\")\n", "main: a.xl restored to original")
-    expectFalse(file.exists(toFsPath("src/c.xl")), "main: feature file c.xl removed")
-    expectTrue(file.exists(toFsPath("README.md")), "main: README still present")
+    try
+        cmdCheckout("main")
+        expectS(currentBranchName(), "main", "switched back to main")
+        expectS(readFileRel("src/a.xl"), "print(\"a\")\n", "main: a.xl restored to original")
+        expectFalse(file.exists(toFsPath("src/c.xl")), "main: feature file c.xl removed")
+        expectTrue(file.exists(toFsPath("README.md")), "main: README still present")
+    catch e
+        bad("checkout back to main", e.message)
+    end
 
     // ---- merge: fast-forward (main 落后于 feature) ----
     string beforeFF = resolveHeadCommit()
@@ -1734,8 +1751,9 @@ func cmdTest() as int
     expectTrue(file.exists(toFsPath("src/c.xl")), "after FF merge: c.xl present")
 
     // ---- 3-way merge with conflict-free line merge ----
-    // 重置: 从 c0 起两条分叉
-    cmdCheckout("main")
+    try
+        // 重置: 从 c0 起两条分叉
+        cmdCheckout("main")
     // 再造一个分叉点: 新建 topic (此时 main==cF), 各自改 b.xl 不同行
     cmdBranch("topic")
     // main 改 b.xl 第一行
@@ -1905,6 +1923,9 @@ func cmdTest() as int
                 "unchanged file reuses blob across commits")
     else
         bad("unchanged file reuses blob", "README.md missing in latest")
+    end
+    catch e
+        bad("3-way merge section", e.message)
     end
 
     println("=== results: " + string(g_pass) + " passed, " + string(g_fail) + " failed ===")

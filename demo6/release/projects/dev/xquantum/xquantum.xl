@@ -715,8 +715,8 @@ func applyGate(array<float> re, array<float> im,
     int dim = re.length
     int k = targets.length
     if stateDim(k) != gDim then
-        throw "applyGate: target count " + string(k) +
-              " does not match gate dim " + string(gDim)
+        throw ("applyGate: target count " + string(k) +
+              " does not match gate dim " + string(gDim))
     end
     array<float> newRe = array[]
     array<float> newIm = array[]
@@ -752,8 +752,7 @@ end
 
 // 便利封装：对态施加单量子位门 g 于目标位 targ。
 func applySingle(array<float> re, array<float> im,
-                 array<float> gRe, array<float> gIm, int targ)
-                 as (array<float>, array<float>)
+                 array<float> gRe, array<float> gIm, int targ) as (array<float>, array<float>)
     array<int> targets = array<int>[targ]
     return applyGate(re, im, gRe, gIm, 2, targets)
 end
@@ -869,15 +868,17 @@ func measureAll(array<float> re, array<float> im) as int
 end
 
 // 对同一态矢量做 shots 次全测采样，返回 dict<基态索引, 次数>。
+// 注意: xlang dict 键必须是 string, 这里用 string(r) 作为键。
 func sampleMany(array<float> re, array<float> im, int shots) as dict<int>
     dict<int> counts = dict<int>{}
     int s = 0
     while s < shots do
         int r = measureAll(re, im)
-        if r in counts then
-            counts[r] = counts[r] + 1
+        string key = string(r)
+        if key in counts then
+            counts[key] = counts[key] + 1
         else
-            counts[r] = 1
+            counts[key] = 1
         end
         s += 1
     end
@@ -911,8 +912,9 @@ func printCounts(dict<int> counts, int n, int shots, int width)
     int i = 0
     while i < dim do
         int cnt = 0
-        if i in counts then
-            cnt = counts[i]
+        string ckey = string(i)
+        if ckey in counts then
+            cnt = counts[ckey]
         end
         float frac = float(cnt) / float(shots)
         string label = "|" + binString(i, n) + ">"
@@ -978,6 +980,8 @@ end
 
 // 单个门操作记录。
 class GateOp
+    derive value
+
     string name = ""
     array<float> re = array[]
     array<float> im = array[]
@@ -995,6 +999,8 @@ end
 
 // 电路：持有量子位数与门操作序列，可顺序施加并测量。
 class Circuit
+    derive value
+
     int n = 0
     array<GateOp> ops = array[]
 
@@ -1269,8 +1275,8 @@ func algoGrover(int n, int marked) as int
     random.seed(uint64(12345), uint64(67890))
     dict<int> countsA = sampleMany(reA, imA, shots)
     int hitA = 0
-    if marked in countsA then
-        hitA = countsA[marked]
+    if string(marked) in countsA then
+        hitA = countsA[string(marked)]
     end
     println("  Samples: " + string(shots) + ", hits: " + string(hitA) +
             " (" + string.formatFloat(float(hitA) / float(shots), ".3") + ")")
@@ -1334,8 +1340,8 @@ func algoGrover(int n, int marked) as int
     random.seed(uint64(12345), uint64(67890))
     dict<int> countsB = sampleMany(reB, imB, shots)
     int hitB = 0
-    if marked in countsB then
-        hitB = countsB[marked]
+    if string(marked) in countsB then
+        hitB = countsB[string(marked)]
     end
     println("  Samples: " + string(shots) + ", hits: " + string(hitB) +
             " (" + string.formatFloat(float(hitB) / float(shots), ".3") + ")")
@@ -1668,9 +1674,9 @@ func runSelfTest() as int
     r4, i4 = applySingle(r4, i4, hr, hi, 0)
     r4, i4 = applyDouble(r4, i4, cr, ci, 1, 0)
     // 期望 (|00>+|11>)/sqrt(2)。
-    if math.abs(r4[0] - INV_SQRT2) < tol and
+    if (math.abs(r4[0] - INV_SQRT2) < tol and
        math.abs(r4[3] - INV_SQRT2) < tol and
-       math.abs(r4[1]) < tol and math.abs(r4[2]) < tol then
+       math.abs(r4[1]) < tol and math.abs(r4[2]) < tol) then
         passed += 1
     else
         failed += 1

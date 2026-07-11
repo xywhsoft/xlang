@@ -130,24 +130,24 @@ func rdU16BE(Buffer buf, int off) as int
 end
 
 func rdU24BE(Buffer buf, int off) as int
-    return ((buf.byteAt(off) & 0xFF) << 16)
+    return (((buf.byteAt(off) & 0xFF) << 16)
          | ((buf.byteAt(off + 1) & 0xFF) << 8)
-         | (buf.byteAt(off + 2) & 0xFF)
+         | (buf.byteAt(off + 2) & 0xFF))
 end
 
 func rdU31BE(Buffer buf, int off) as int
     // 31-bit: top bit of first byte is reserved (R), mask it off
-    return ((buf.byteAt(off) & 0x7F) << 24)
+    return (((buf.byteAt(off) & 0x7F) << 24)
          | ((buf.byteAt(off + 1) & 0xFF) << 16)
          | ((buf.byteAt(off + 2) & 0xFF) << 8)
-         | (buf.byteAt(off + 3) & 0xFF)
+         | (buf.byteAt(off + 3) & 0xFF))
 end
 
 func rdU32BE(Buffer buf, int off) as int
-    return ((buf.byteAt(off) & 0xFF) << 24)
+    return (((buf.byteAt(off) & 0xFF) << 24)
          | ((buf.byteAt(off + 1) & 0xFF) << 16)
          | ((buf.byteAt(off + 2) & 0xFF) << 8)
-         | (buf.byteAt(off + 3) & 0xFF)
+         | (buf.byteAt(off + 3) & 0xFF))
 end
 
 func rdU64BE(Buffer buf, int off) as int64
@@ -350,6 +350,29 @@ class Frame
     int payloadOffset = 0
     bool valid = true
     string error = ""
+
+    // parse a frame header from buf at offset; returns next offset or -1
+    func parse(Buffer buf, int offset) as int
+        int total = buf.len()
+        if offset + FRAME_HEADER_LEN > total then
+            self.valid = false
+            self.error = "incomplete frame header (need " + string(FRAME_HEADER_LEN) + " bytes at offset " + string(offset) + ")"
+            return -1
+        end
+        self.length = rdU24BE(buf, offset)
+        self.frameType = buf.byteAt(offset + 3) & 0xFF
+        self.flags = buf.byteAt(offset + 4) & 0xFF
+        self.streamId = rdU31BE(buf, offset + 5)
+        self.payloadOffset = offset + FRAME_HEADER_LEN
+        self.valid = true
+        self.error = ""
+        if self.payloadOffset + self.length > total then
+            self.valid = false
+            self.error = "incomplete payload (declared " + string(self.length) + " bytes, only " + string(total - self.payloadOffset) + " available)"
+            return -1
+        end
+        return self.payloadOffset + self.length
+    end
 end
 
 
@@ -461,26 +484,7 @@ end
 // Returns the offset just past the full frame (header + payload), or -1 if
 // the buffer lacks a complete frame.
 
-func parseFrame(Buffer buf, int offset, Frame out) as int
-    int total = buf.len()
-    if offset + FRAME_HEADER_LEN > total then
-        out.valid = false
-        out.error = "incomplete frame header (need " + string(FRAME_HEADER_LEN) + " bytes at offset " + string(offset) + ")"
-        return -1
-    end
-    out.length = rdU24BE(buf, offset)
-    out.frameType = buf.byteAt(offset + 3) & 0xFF
-    out.flags = buf.byteAt(offset + 4) & 0xFF
-    out.streamId = rdU31BE(buf, offset + 5)
-    out.payloadOffset = offset + FRAME_HEADER_LEN
-    out.valid = true
-    out.error = ""
-    if out.payloadOffset + out.length > total then
-        out.valid = false
-        out.error = "incomplete payload (declared " + string(out.length) + " bytes, only " + string(total - out.payloadOffset) + " available)"
-        return -1
-    end
-    return out.payloadOffset + out.length
+func parseFrameRemovedPlaceholder()
 end
 
 
@@ -803,6 +807,7 @@ end
 // ============================== Header class ==============================
 
 class Header
+    derive value
     string name = ""
     string value = ""
 
@@ -812,7 +817,7 @@ class Header
     end
 
     func display() as string
-        return name + ": " + value
+        return self.name + ": " + self.value
     end
 end
 
@@ -858,20 +863,20 @@ class HpackEncoder
     end
 
     func addToDynamic(string name, string value)
-        int entrySz = entrySize(name, value)
+        int entrySz = self.entrySize(name, value)
         while curSize + entrySz > maxSize and dynamicTable.length > 0 do
             Header old = dynamicTable[dynamicTable.length - 1]
-            curSize -= entrySize(old.name, old.value)
+            self.curSize -= self.entrySize(old.name, old.value)
             dynamicTable.remove(dynamicTable.length - 1)
         end
         if entrySz > maxSize then
             dynamicTable.clear()
-            curSize = 0
+            self.curSize = 0
             return
         end
         Header h = Header(name, value)
         dynamicTable.insert(0, h)
-        curSize += entrySz
+        self.curSize += entrySz
     end
 
     func encodeOne(Buffer out, string name, string value)
@@ -880,14 +885,14 @@ class HpackEncoder
             hpackEncInt(out, idx, 7, 0x80)
             return
         end
-        idx = findDynamicExact(name, value)
+        idx = self.findDynamicExact(name, value)
         if idx > 0 then
             hpackEncInt(out, idx, 7, 0x80)
             return
         end
         int nameIdx = findStaticName(name)
         if nameIdx == 0 then
-            nameIdx = findDynamicName(name)
+            nameIdx = self.findDynamicName(name)
         end
         if useIndexing then
             if nameIdx > 0 then
@@ -897,7 +902,7 @@ class HpackEncoder
                 hpackEncStr(out, name)
             end
             hpackEncStr(out, value)
-            addToDynamic(name, value)
+            self.addToDynamic(name, value)
         else
             if nameIdx > 0 then
                 hpackEncInt(out, nameIdx, 4, 0x00)
@@ -914,7 +919,7 @@ end
 // `headers` is a var dict from json.parse: {"name":"value", ...}.
 
 func encodeHeadersBlock(HpackEncoder enc, Buffer out, var headers)
-    for k, v in headers do
+    for k, v in headers
         enc.encodeOne(out, string(k), string(v))
     end
 end
@@ -947,104 +952,104 @@ class HpackDecoder
                 return Header(h.name, h.value)
             end
         end
-        hasError = true
-        errorMsg = "invalid header table index " + string(idx)
+        self.hasError = true
+        self.errorMsg = "invalid header table index " + string(idx)
         return Header("", "")
     end
 
     func addToDynamic(string name, string value)
-        int entrySz = entrySize(name, value)
+        int entrySz = self.entrySize(name, value)
         while curSize + entrySz > maxSize and dynamicTable.length > 0 do
             Header old = dynamicTable[dynamicTable.length - 1]
-            curSize -= entrySize(old.name, old.value)
+            self.curSize -= self.entrySize(old.name, old.value)
             dynamicTable.remove(dynamicTable.length - 1)
         end
         if entrySz > maxSize then
             dynamicTable.clear()
-            curSize = 0
+            self.curSize = 0
             return
         end
         Header h = Header(name, value)
         dynamicTable.insert(0, h)
-        curSize += entrySz
+        self.curSize += entrySz
     end
 
     // Decode a header block from Buffer at [start, start+len).
     func decodeBlock(Buffer buf, int start, int len) as array<Header>
         array<Header> result = array[]
-        hasError = false
-        errorMsg = ""
+        self.hasError = false
+        self.errorMsg = ""
         int pos = start
         int blockEnd = start + len
         while pos < blockEnd do
             int b = buf.byteAt(pos)
             if (b & 0x80) != 0 then
                 // Indexed Header Field Representation (Section 6.1)
-                auto idx, auto next = hpackDecInt(buf, pos, 7)
+                auto idx, next = hpackDecInt(buf, pos, 7)
                 pos = next
                 if idx == 0 then
-                    hasError = true
-                    errorMsg = "indexed: index 0 is invalid"
+                    self.hasError = true
+                    self.errorMsg = "indexed: index 0 is invalid"
                     break
                 end
-                Header h = getIndexed(idx)
+                Header h = self.getIndexed(idx)
                 if hasError then break end
                 result.append(Header(h.name, h.value))
             elseif (b & 0xC0) == 0x40 then
                 // Literal with Incremental Indexing (Section 6.2.1)
-                auto idx, auto next = hpackDecInt(buf, pos, 6)
+                auto idx, next = hpackDecInt(buf, pos, 6)
                 pos = next
                 string name = ""
                 if idx > 0 then
-                    Header hn = getIndexed(idx)
+                    Header hn = self.getIndexed(idx)
                     if hasError then break end
                     name = hn.name
                 else
-                    auto s, auto sp = hpackDecStr(buf, pos)
+                    auto s, sp = hpackDecStr(buf, pos)
                     name = s
                     pos = sp
                 end
-                auto val, auto vp = hpackDecStr(buf, pos)
+                auto val, vp = hpackDecStr(buf, pos)
                 pos = vp
-                addToDynamic(name, val)
+                self.addToDynamic(name, val)
                 result.append(Header(name, val))
             elseif (b & 0xF0) == 0x00 then
                 // Literal without Indexing (Section 6.2.2)
-                auto idx, auto next = hpackDecInt(buf, pos, 4)
+                auto idx, next = hpackDecInt(buf, pos, 4)
                 pos = next
                 string name = ""
                 if idx > 0 then
-                    Header hn = getIndexed(idx)
+                    Header hn = self.getIndexed(idx)
                     if hasError then break end
                     name = hn.name
                 else
-                    auto s, auto sp = hpackDecStr(buf, pos)
+                    auto s, sp = hpackDecStr(buf, pos)
                     name = s
                     pos = sp
                 end
-                auto val, auto vp = hpackDecStr(buf, pos)
+                auto val, vp = hpackDecStr(buf, pos)
                 pos = vp
                 result.append(Header(name, val))
             elseif (b & 0xF0) == 0x10 then
                 // Literal Never Indexed (Section 6.2.3)
-                auto idx, auto next = hpackDecInt(buf, pos, 4)
+                auto idx, next = hpackDecInt(buf, pos, 4)
                 pos = next
                 string name = ""
                 if idx > 0 then
-                    Header hn = getIndexed(idx)
+                    Header hn = self.getIndexed(idx)
                     if hasError then break end
                     name = hn.name
                 else
-                    auto s, auto sp = hpackDecStr(buf, pos)
+                    auto s, sp = hpackDecStr(buf, pos)
                     name = s
                     pos = sp
                 end
-                auto val, auto vp = hpackDecStr(buf, pos)
+                auto val, vp = hpackDecStr(buf, pos)
                 pos = vp
                 result.append(Header(name, val))
             else
-                hasError = true
-                errorMsg = "unknown HPACK representation byte 0x" + string.formatInt(b, "x2")
+                self.hasError = true
+                self.errorMsg = "unknown HPACK representation byte 0x" + string.formatInt(b, "x2")
                 break
             end
         end
@@ -1074,6 +1079,7 @@ end
 // Also holds per-stream flow-control windows.
 
 class Stream
+    derive value
     int id = 0
     int state = ST_IDLE
     int sendWindow = DEFAULT_WINDOW
@@ -1091,22 +1097,22 @@ class Stream
 
     func updateState()
         if rstSent or rstReceived then
-            state = ST_CLOSED
+            self.state = ST_CLOSED
             return
         end
         if state == ST_IDLE then
-            state = ST_OPEN
+            self.state = ST_OPEN
         end
         if localClosed and remoteClosed then
-            state = ST_CLOSED
+            self.state = ST_CLOSED
         elseif localClosed and state == ST_OPEN then
-            state = ST_HALF_CLOSED_LOCAL
+            self.state = ST_HALF_CLOSED_LOCAL
         elseif remoteClosed and state == ST_OPEN then
-            state = ST_HALF_CLOSED_REMOTE
+            self.state = ST_HALF_CLOSED_REMOTE
         elseif localClosed and state == ST_HALF_CLOSED_REMOTE then
-            state = ST_CLOSED
+            self.state = ST_CLOSED
         elseif remoteClosed and state == ST_HALF_CLOSED_LOCAL then
-            state = ST_CLOSED
+            self.state = ST_CLOSED
         end
     end
 
@@ -1115,11 +1121,11 @@ class Stream
             return false
         end
         if state == ST_IDLE then
-            state = ST_OPEN
+            self.state = ST_OPEN
         end
         if endStream then
-            localClosed = true
-            updateState()
+            self.localClosed = true
+            self.updateState()
         end
         return true
     end
@@ -1129,11 +1135,11 @@ class Stream
             return false
         end
         if state == ST_IDLE then
-            state = ST_OPEN
+            self.state = ST_OPEN
         end
         if endStream then
-            remoteClosed = true
-            updateState()
+            self.remoteClosed = true
+            self.updateState()
         end
         return true
     end
@@ -1145,10 +1151,10 @@ class Stream
         if sendWindow < len then
             return false
         end
-        sendWindow -= len
+        self.sendWindow -= len
         if endStream then
-            localClosed = true
-            updateState()
+            self.localClosed = true
+            self.updateState()
         end
         return true
     end
@@ -1157,30 +1163,30 @@ class Stream
         if state == ST_CLOSED then
             return false
         end
-        recvWindow -= len
+        self.recvWindow -= len
         if endStream then
-            remoteClosed = true
-            updateState()
+            self.remoteClosed = true
+            self.updateState()
         end
         return true
     end
 
     func onRstStream()
-        rstSent = true
-        state = ST_CLOSED
+        self.rstSent = true
+        self.state = ST_CLOSED
     end
 
     func onRstReceived()
-        rstReceived = true
-        state = ST_CLOSED
+        self.rstReceived = true
+        self.state = ST_CLOSED
     end
 
     func onSendWindowUpdate(int inc)
-        recvWindow += inc
+        self.recvWindow += inc
     end
 
     func onRecvWindowUpdate(int inc)
-        sendWindow += inc
+        self.sendWindow += inc
     end
 
     func isOpen() as bool
@@ -1215,14 +1221,14 @@ class Connection
 
     func newStream() as Stream
         Stream s = Stream(nextClientStreamId)
-        nextClientStreamId += 2
+        self.nextClientStreamId += 2
         streams.append(s)
         return s
     end
 
     func newPushStream() as Stream
         Stream s = Stream(nextPushStreamId)
-        nextPushStreamId += 2
+        self.nextPushStreamId += 2
         streams.append(s)
         return s
     end
@@ -1240,7 +1246,7 @@ class Connection
     end
 
     func getStream(int id) as Stream
-        int idx = findStreamIndex(id)
+        int idx = self.findStreamIndex(id)
         if idx >= 0 then
             return streams[idx]
         end
@@ -1253,11 +1259,22 @@ class Connection
         return streams.length
     end
 
+    // set a stream's state by id (value-semantics write-back helper)
+    func setStreamState(int id, int st) as bool
+        int idx = self.findStreamIndex(id)
+        if idx < 0 then
+            return false
+        end
+        self.streams[idx].state = st
+        return true
+    end
+
     func activeStreamCount() as int
         int count = 0
         int i = 0
         while i < streams.length do
-            if not streams[i].isClosed() then
+            Stream si = streams[i]
+            if not si.isClosed() then
                 count += 1
             end
             i += 1
@@ -1266,7 +1283,7 @@ class Connection
     end
 
     func canSendData(int streamId, int len) as bool
-        int idx = findStreamIndex(streamId)
+        int idx = self.findStreamIndex(streamId)
         if idx < 0 then
             return false
         end
@@ -1281,38 +1298,38 @@ class Connection
     end
 
     func consumeSendCredit(int streamId, int len) as bool
-        int idx = findStreamIndex(streamId)
+        int idx = self.findStreamIndex(streamId)
         if idx < 0 then
             return false
         end
-        Stream s = streams[idx]
-        if s.sendWindow < len or connSendWindow < len then
+        if self.streams[idx].sendWindow < len or self.connSendWindow < len then
             return false
         end
-        s.sendWindow -= len
-        connSendWindow -= len
+        self.streams[idx].sendWindow -= len
+        self.connSendWindow -= len
         return true
     end
 
     func replenishSendCredit(int streamId, int inc) as bool
-        int idx = findStreamIndex(streamId)
+        int idx = self.findStreamIndex(streamId)
         if idx < 0 then
             return false
         end
-        Stream s = streams[idx]
+        Stream s = self.streams[idx]
         s.onRecvWindowUpdate(inc)
+        self.streams[idx] = s
         return true
     end
 
     func replenishConnSendCredit(int inc)
-        connSendWindow += inc
+        self.connSendWindow += inc
     end
 
     func consumeConnRecvCredit(int len) as bool
         if connRecvWindow < len then
             return false
         end
-        connRecvWindow -= len
+        self.connRecvWindow -= len
         return true
     end
 
@@ -1321,13 +1338,13 @@ class Connection
         int delta = initialWindowSize - DEFAULT_WINDOW
         int i = 0
         while i < streams.length do
-            streams[i].sendWindow += delta
+            self.streams[i].sendWindow += delta
             i += 1
         end
-        maxFrameSize = maxFrame
-        maxConcurrentStreams = maxStreams
-        headerTableSize = hdrTable
-        enablePush = push
+        self.maxFrameSize = maxFrame
+        self.maxConcurrentStreams = maxStreams
+        self.headerTableSize = hdrTable
+        self.enablePush = push
     end
 end
 
@@ -1340,18 +1357,18 @@ end
 func simulateServerPush(Buffer out, Connection conn, int parentStreamId,
                         int promisedStreamId, var requestHeaders,
                         var pushPromiseHeaders, var pushResponseHeaders,
-                        string pushResponseData) as int
+                        string pushResponseData) as (int, Connection)
     // 1. Verify the parent stream exists and is open
     int pidx = conn.findStreamIndex(parentStreamId)
     if pidx < 0 then
-        return ERR_STREAM_CLOSED
+        return ERR_STREAM_CLOSED, conn
     end
     Stream parent = conn.streams[pidx]
     if not parent.isOpen() then
-        return ERR_STREAM_CLOSED
+        return ERR_STREAM_CLOSED, conn
     end
     if not conn.enablePush then
-        return ERR_REFUSED_STREAM
+        return ERR_REFUSED_STREAM, conn
     end
 
     // 2. Send PUSH_PROMISE on the parent stream
@@ -1370,6 +1387,7 @@ func simulateServerPush(Buffer out, Connection conn, int parentStreamId,
 
     // 3. Create and open the push stream (reserved -> half-closed-remote)
     Stream pushStream = conn.newPushStream()
+    int pushIdx = conn.streamCount() - 1
     pushStream.state = ST_HALF_CLOSED_REMOTE
     pushStream.remoteClosed = true
 
@@ -1391,7 +1409,10 @@ func simulateServerPush(Buffer out, Connection conn, int parentStreamId,
         appendDataFrame(out, promisedStreamId, FH_END_STREAM, empty)
     end
 
-    return ERR_NO_ERROR
+    // write back the mutated push stream (value semantics)
+    conn.streams[pushIdx] = pushStream
+
+    return ERR_NO_ERROR, conn
 end
 
 
@@ -1492,7 +1513,7 @@ func testHpackIntegers() as int
     Buffer a = Buffer()
     hpackEncInt(a, 10, 5, 0x00)
     check("C.1.1: encInt(10, 5-bit) = 0a", a.len() == 1 and a.byteAt(0) == 0x0a)
-    auto dec, auto p = hpackDecInt(a, 0, 5)
+    auto dec, p = hpackDecInt(a, 0, 5)
     check("C.1.1: decInt back to 10", dec == 10 and p == 1)
 
     // C.1.2: value 1337, 5-bit prefix -> 1f 9a 0a
@@ -1503,14 +1524,14 @@ func testHpackIntegers() as int
     ok = ok and b.byteAt(1) == 0x9A
     ok = ok and b.byteAt(2) == 0x0A
     check("C.1.2: encInt(1337, 5-bit) = 1f 9a 0a", ok)
-    auto dec2, auto p2 = hpackDecInt(b, 0, 5)
+    auto dec2, p2 = hpackDecInt(b, 0, 5)
     check("C.1.2: decInt back to 1337", dec2 == 1337 and p2 == 3)
 
     // C.1.3: value 42, 8-bit prefix -> single byte 0x2a
     Buffer c = Buffer()
     hpackEncInt(c, 42, 8, 0x00)
     check("C.1.3: encInt(42, 8-bit) = 2a", c.len() == 1 and c.byteAt(0) == 0x2A)
-    auto dec3, auto p3 = hpackDecInt(c, 0, 8)
+    auto dec3, p3 = hpackDecInt(c, 0, 8)
     check("C.1.3: decInt back to 42", dec3 == 42 and p3 == 1)
 
     // Edge: value 0
@@ -1518,10 +1539,10 @@ func testHpackIntegers() as int
     hpackEncInt(z, 0, 5, 0x00)
     check("encInt(0, 5-bit) = 00", z.len() == 1 and z.byteAt(0) == 0x00)
 
-    // Edge: value exactly at prefix boundary (31 for 5-bit)
+    // Edge: value at prefix boundary (31 for 5-bit) uses continuation per RFC 7541
     Buffer e1 = Buffer()
     hpackEncInt(e1, 31, 5, 0x00)
-    check("encInt(31, 5-bit) = 1f", e1.len() == 1 and e1.byteAt(0) == 0x1F)
+    check("encInt(31, 5-bit) = 1f 00", e1.len() == 2 and e1.byteAt(0) == 0x1F and e1.byteAt(1) == 0x00)
 
     // Edge: value 32 (just over boundary)
     Buffer e2 = Buffer()
@@ -1531,7 +1552,7 @@ func testHpackIntegers() as int
     // Large value: 100000 with 8-bit prefix
     Buffer big = Buffer()
     hpackEncInt(big, 100000, 8, 0x00)
-    auto decBig, auto pBig = hpackDecInt(big, 0, 8)
+    auto decBig, pBig = hpackDecInt(big, 0, 8)
     check("encInt/decInt(100000, 8-bit) roundtrip", decBig == 100000)
 
     // Prefix flags preserved (e.g. 0x80 for indexed)
@@ -1558,21 +1579,21 @@ func testHpackStrings() as int
     ok = ok and a.byteAt(3) == 0x54
     check("encStr(\"GET\") = 03 47 45 54", ok)
 
-    auto s, auto p = hpackDecStr(a, 0)
+    auto s, p = hpackDecStr(a, 0)
     check("decStr back to \"GET\"", s == "GET" and p == 4)
 
     // Longer string
     Buffer b = Buffer()
     string longStr = "www.example.com"
     hpackEncStr(b, longStr)
-    auto s2, auto p2 = hpackDecStr(b, 0)
+    auto s2, p2 = hpackDecStr(b, 0)
     check("roundtrip \"www.example.com\"", s2 == longStr and p2 == b.len())
 
     // Empty string
     Buffer c = Buffer()
     hpackEncStr(c, "")
     check("encStr(\"\") = 00", c.len() == 1 and c.byteAt(0) == 0x00)
-    auto s3, auto p3 = hpackDecStr(c, 0)
+    auto s3, p3 = hpackDecStr(c, 0)
     check("decStr(\"\") back to empty", s3 == "" and p3 == 1)
 
     return 0
@@ -1705,7 +1726,7 @@ func testFrameCodec() as int
     check("DATA frame total len = 9 + 14 = 23", out.len() == 23)
 
     Frame f = Frame()
-    int next = parseFrame(out, 0, f)
+    int next = f.parse(out, 0)
     bool dataOk = f.valid and f.frameType == FT_DATA and f.flags == FH_END_STREAM
     dataOk = dataOk and f.streamId == 1 and f.length == 14 and next == 23
     check("DATA frame parsed correctly", dataOk)
@@ -1718,7 +1739,7 @@ func testFrameCodec() as int
     // Use non-pseudo names to avoid : prefix issues in test JSON
     appendHeadersFrame(out2, 3, FH_END_HEADERS + FH_END_STREAM, hdrs)
     Frame f2 = Frame()
-    int next2 = parseFrame(out2, 0, f2)
+    int next2 = f2.parse(out2, 0)
     bool hdrOk = f2.valid and f2.frameType == FT_HEADERS and f2.streamId == 3
     hdrOk = hdrOk and (f2.flags & FH_END_HEADERS) != 0 and (f2.flags & FH_END_STREAM) != 0
     check("HEADERS frame parsed correctly", hdrOk)
@@ -1740,7 +1761,7 @@ func testFrameCodec() as int
     ]
     appendSettingsFrame(out3, 0, settings)
     Frame f3 = Frame()
-    int next3 = parseFrame(out3, 0, f3)
+    int next3 = f3.parse(out3, 0)
     bool setOk = f3.valid and f3.frameType == FT_SETTINGS and f3.streamId == 0
     setOk = setOk and f3.length == 30 and next3 == 39
     check("SETTINGS frame parsed correctly", setOk)
@@ -1753,14 +1774,14 @@ func testFrameCodec() as int
     Buffer out3b = Buffer()
     appendSettingsAck(out3b)
     Frame f3b = Frame()
-    parseFrame(out3b, 0, f3b)
+    f3b.parse(out3b, 0)
     check("SETTINGS ACK: flags=ACK, len=0", (f3b.flags & FH_ACK) != 0 and f3b.length == 0)
 
     // --- PING frame ---
     Buffer out4 = Buffer()
     appendPingFrame(out4, 0, int64(0x0102030405060708))
     Frame f4 = Frame()
-    parseFrame(out4, 0, f4)
+    f4.parse(out4, 0)
     bool pingOk = f4.valid and f4.frameType == FT_PING and f4.length == 8 and f4.streamId == 0
     int64 pingData = rdU64BE(out4, f4.payloadOffset)
     pingOk = pingOk and pingData == int64(0x0102030405060708)
@@ -1770,14 +1791,14 @@ func testFrameCodec() as int
     Buffer out4b = Buffer()
     appendPingAck(out4b, int64(0xDEADBEEFCAFEBABE))
     Frame f4b = Frame()
-    parseFrame(out4b, 0, f4b)
+    f4b.parse(out4b, 0)
     check("PING ACK: flags=ACK", (f4b.flags & FH_ACK) != 0)
 
     // --- GOAWAY frame ---
     Buffer out5 = Buffer()
     appendGoawayFrame(out5, 7, ERR_NO_ERROR, "graceful shutdown")
     Frame f5 = Frame()
-    parseFrame(out5, 0, f5)
+    f5.parse(out5, 0)
     bool goawayOk = f5.valid and f5.frameType == FT_GOAWAY and f5.streamId == 0
     int lastSid = rdU31BE(out5, f5.payloadOffset)
     int ec = rdU32BE(out5, f5.payloadOffset + 4)
@@ -1789,7 +1810,7 @@ func testFrameCodec() as int
     Buffer out6 = Buffer()
     appendWindowUpdateFrame(out6, 0, 32768)
     Frame f6 = Frame()
-    parseFrame(out6, 0, f6)
+    f6.parse(out6, 0)
     int inc = rdU31BE(out6, f6.payloadOffset)
     bool wuOk = f6.valid and f6.frameType == FT_WINDOW_UPDATE and f6.length == 4
     wuOk = wuOk and f6.streamId == 0 and inc == 32768
@@ -1799,7 +1820,7 @@ func testFrameCodec() as int
     Buffer out7 = Buffer()
     appendRstStreamFrame(out7, 5, ERR_CANCEL)
     Frame f7 = Frame()
-    parseFrame(out7, 0, f7)
+    f7.parse(out7, 0)
     int ec7 = rdU32BE(out7, f7.payloadOffset)
     bool rstOk = f7.valid and f7.frameType == FT_RST_STREAM and f7.streamId == 5
     rstOk = rstOk and ec7 == ERR_CANCEL
@@ -1814,7 +1835,7 @@ func testFrameCodec() as int
     int frameCount = 0
     Frame sf = Frame()
     while off < seq.len() do
-        int r = parseFrame(seq, off, sf)
+        int r = sf.parse(seq, off)
         if r < 0 then
             break
         end
@@ -1824,19 +1845,19 @@ func testFrameCodec() as int
     check("3 sequential frames parsed", frameCount == 3)
 
     // --- Incomplete frame rejection ---
-    Buffer inc = Buffer()
-    inc.appendByte(0x00)
-    inc.appendByte(0x00)
-    inc.appendByte(0x10)    // declares 16 bytes payload
-    inc.appendByte(FT_DATA)
-    inc.appendByte(0x00)
-    inc.appendByte(0x00)
-    inc.appendByte(0x00)
-    inc.appendByte(0x00)
-    inc.appendByte(0x01)
-    inc.appendByte(0xAA)    // only 1 byte of payload, not 16
+    Buffer incBuf = Buffer()
+    incBuf.appendByte(0x00)
+    incBuf.appendByte(0x00)
+    incBuf.appendByte(0x10)    // declares 16 bytes payload
+    incBuf.appendByte(FT_DATA)
+    incBuf.appendByte(0x00)
+    incBuf.appendByte(0x00)
+    incBuf.appendByte(0x00)
+    incBuf.appendByte(0x00)
+    incBuf.appendByte(0x01)
+    incBuf.appendByte(0xAA)    // only 1 byte of payload, not 16
     Frame fi = Frame()
-    int ri = parseFrame(inc, 0, fi)
+    int ri = fi.parse(incBuf, 0)
     check("incomplete payload -> -1", ri == -1 and not fi.valid)
 
     return 0
@@ -1869,7 +1890,7 @@ func testFrameHeaderBits() as int
 
     // Roundtrip: encode then parse
     Frame f = Frame()
-    parseFrame(out, 0, f)
+    f.parse(out, 0)
     check("roundtrip length", f.length == 0x123456)
     check("roundtrip type", f.frameType == FT_DATA)
     check("roundtrip flags", f.flags == 0xFF)
@@ -1951,6 +1972,7 @@ func testFlowControl() as int
 
     // Consume credit by sending DATA
     conn.consumeSendCredit(1, 1000)
+    s = conn.getStream(1)
     check("stream send window after 1000 bytes", s.sendWindow == 64535)
     check("conn send window after 1000 bytes", conn.connSendWindow == 64535)
 
@@ -1960,6 +1982,7 @@ func testFlowControl() as int
 
     // Replenish via WINDOW_UPDATE
     conn.replenishSendCredit(1, 500)
+    s = conn.getStream(1)
     check("stream send window +500", s.sendWindow == 65035)
 
     conn.replenishConnSendCredit(2000)
@@ -1967,11 +1990,13 @@ func testFlowControl() as int
 
     // Exhaust stream window
     conn.consumeSendCredit(1, 65035)
+    s = conn.getStream(1)
     check("stream window exhausted", s.sendWindow == 0)
     check("cannot send when stream window = 0", not conn.canSendData(1, 1))
 
     // But connection-level WINDOW_UPDATE doesn't help the stream
     conn.replenishConnSendCredit(10000)
+    s = conn.getStream(1)
     check("conn window replenished but stream still 0", s.sendWindow == 0 and conn.connSendWindow > 0)
 
     return 0
@@ -2045,7 +2070,7 @@ func testMultiplexing() as int
     int dataFrames = 0
     Frame pf = Frame()
     while off < wire.len() do
-        int r = parseFrame(wire, off, pf)
+        int r = pf.parse(wire, off)
         if r < 0 then
             break
         end
@@ -2086,7 +2111,7 @@ func testServerPush() as int
 
     // Client initiates stream 1 with a request
     Stream reqStream = conn.newStream()    // id=1
-    reqStream.state = ST_OPEN
+    conn.setStreamState(1, ST_OPEN)
 
     // Server decides to push on stream 2
     var promiseHeaders = json.parse('{"x-push-promised":"true"}')
@@ -2094,7 +2119,8 @@ func testServerPush() as int
     var reqHeaders = json.parse('{"x-request":"GET-push"}')
 
     Buffer wire = Buffer()
-    int err = simulateServerPush(wire, conn, 1, 2,
+    int err
+    err, conn = simulateServerPush(wire, conn, 1, 2,
                                  reqHeaders, promiseHeaders, pushRespHeaders,
                                  "pushed-response-body-data")
 
@@ -2109,7 +2135,7 @@ func testServerPush() as int
     int promisedId = 0
     Frame pf = Frame()
     while off < wire.len() do
-        int r = parseFrame(wire, off, pf)
+        int r = pf.parse(wire, off)
         if r < 0 then
             break
         end
@@ -2133,7 +2159,7 @@ func testServerPush() as int
     off = 0
     bool parentOk = false
     while off < wire.len() do
-        int r = parseFrame(wire, off, pf)
+        int r = pf.parse(wire, off)
         if r < 0 then break end
         if pf.frameType == FT_PUSH_PROMISE then
             parentOk = pf.streamId == 1
@@ -2166,7 +2192,7 @@ func testConnectionPreface() as int
 
     // After preface, there should be a SETTINGS frame
     Frame f = Frame()
-    int r = parseFrame(out, PREFACE_LEN, f)
+    int r = f.parse(out, PREFACE_LEN)
     bool ok = r > 0 and f.frameType == FT_SETTINGS and f.streamId == 0
     check("SETTINGS frame follows preface", ok)
 
@@ -2308,7 +2334,7 @@ func testPriorityFrame() as int
     // exclusive=true, dependency=5, weight=201
     appendPriorityFrame(out, 3, true, 5, 201)
     Frame f = Frame()
-    parseFrame(out, 0, f)
+    f.parse(out, 0)
 
     bool ok = f.valid and f.frameType == FT_PRIORITY and f.length == 5
     ok = ok and f.streamId == 3
@@ -2323,7 +2349,7 @@ func testPriorityFrame() as int
     Buffer out2 = Buffer()
     appendPriorityFrame(out2, 7, false, 0, 256)
     Frame f2 = Frame()
-    parseFrame(out2, 0, f2)
+    f2.parse(out2, 0)
     int depWord2 = rdU32BE(out2, f2.payloadOffset)
     bool excl2 = (depWord2 & 0x80000000) != 0
     check("PRIORITY non-exclusive bit is 0", not excl2)
@@ -2443,7 +2469,7 @@ func cmdDecodeFrames(string path) as int
     Frame f = Frame()
     println("; decoding " + string(buf.len()) + " bytes from " + path)
     while off < buf.len() do
-        int r = parseFrame(buf, off, f)
+        int r = f.parse(buf, off)
         if r < 0 then
             println("; parse error at offset " + string(off) + ": " + f.error)
             break

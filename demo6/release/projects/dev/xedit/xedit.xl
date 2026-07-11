@@ -965,9 +965,9 @@ class Buffer
     // ===== 显示 =====
 
     // 显示 [start, end] 行（1-based），带行号和光标标记。
-    func displayRange(int start, int end)
+    func displayRange(int start, int endIdx)
         int s = start
-        int e = end
+        int e = endIdx
         if s < 1 then
             s = 1
         end
@@ -1000,9 +1000,9 @@ class Buffer
     end
 
     // 带 xlang 语法高亮显示 [start, end] 行。
-    func displayHighlightedRange(int start, int end)
+    func displayHighlightedRange(int start, int endIdx)
         int s = start
-        int e = end
+        int e = endIdx
         if s < 1 then
             s = 1
         end

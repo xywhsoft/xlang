@@ -1645,7 +1645,7 @@ func callContract(string addr, string method, string argsCsv) as var
         var fail = [1, 0, "contract not found: " + addr]
         return fail
     end
-    Contract c = g_contracts[addr]
+    Contract c = g_contracts[addr] as Contract
     array<int> args = array[]
     if string.len(argsCsv) > 0 then
         array<string> parts = splitOn(argsCsv, ",")
@@ -1790,6 +1790,7 @@ func cmdTest() as int
     // ---- 2. 账户 / 签名模拟 ----
     string alice = ensureAccount("alice")
     string bob = ensureAccount("bob")
+    string carol = ensureAccount("carol")
     expectTrue(string.startsWith(alice, "0x"), "address has 0x prefix")
     expectI(string.len(alice), 2 + ADDR_HEX_LEN, "address length = 2 + ADDR_HEX_LEN")
     string msg = "transfer:10"
@@ -1848,7 +1849,6 @@ func cmdTest() as int
     expectI(balanceOf(carol), GENESIS_ALLOC, "carol genesis balance")
 
     // ---- 6. 交易提交 + 挖矿 + 余额变化 ----
-    string carol = ensureAccount("carol")
     submitTransaction(makeTx(alice, bob, 300, 0, "pay1"))
     submitTransaction(makeTx(bob, carol, 200, 0, "pay2"))
     expectI(g_mempool.length, 2, "mempool has 2 txs after submit")
@@ -1860,12 +1860,12 @@ func cmdTest() as int
     // 区块应含 2 笔业务交易 + 1 coinbase
     expectI(b1.txs.length, 3, "block has 2 txs + 1 coinbase")
     expectI(g_mempool.length, 0, "mempool drained after mine")
-    // 余额：alice=预挖-300-手续费，bob=预挖+300-200-手续费，carol=预挖+200
-    expectI(balanceOf(alice), GENESIS_ALLOC - 300 - TX_FEE, "alice balance after block1")
+    // 余额：alice=预挖-300-手续费+矿工奖励，bob=预挖+300-200-手续费，carol=预挖+200
+    expectI(balanceOf(alice), GENESIS_ALLOC - 300 - TX_FEE + 500 + 2 * TX_FEE, "alice balance after block1")
     expectI(balanceOf(bob), GENESIS_ALLOC + 300 - 200 - TX_FEE, "bob balance after block1")
     expectI(balanceOf(carol), GENESIS_ALLOC + 200, "carol balance after block1")
     // 矿工奖励 = 500 + 2*TX_FEE 进 alice（矿工）
-    expectI(balanceOf(alice), GENESIS_ALLOC - 300 - TX_FEE, "miner (alice) balance includes reward")
+    expectI(balanceOf(alice), GENESIS_ALLOC - 300 - TX_FEE + 500 + 2 * TX_FEE, "miner (alice) balance includes reward")
 
     // 最长链现在 2 块
     array<string> chain1 = longestChain()
@@ -1889,7 +1889,7 @@ func cmdTest() as int
     int b2i = 0
     int b2n = b2.txs.length
     while b2i < b2n do
-        Transaction t = b2.txs[b2i]
+        Transaction t = b2.txs[b2i] as Transaction
         b2leaves.push(t.hash)
         b2i = b2i + 1
     end

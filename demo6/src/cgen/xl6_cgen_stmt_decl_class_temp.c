@@ -209,11 +209,32 @@ static void xl6CgenDeclCollectClassArgTempsInExprImpl(XL6_CgenContext* ctx,
     }
 
     /*
+        外层语句 scope 已经物化的表达式不能再次收集。
+        这让复合赋值、普通调用和专用参数 lowering 可以安全嵌套，
+        同一个 class 临时值只构造和析构一次。
+    */
+    for ( i = 0; i < ctx->exprReplacementCount; ++i ) {
+        if ( ctx->exprReplacements[i].expr == expr &&
+             ctx->exprReplacements[i].cName != NULL ) {
+            return;
+        }
+    }
+
+    /*
         匿名函数拥有独立的求值作用域。
         外层扫描器不能提前物化函数体里的 class 临时值，否则会引用尚不存在的形参，
         也会把调用时副作用错误地提升到闭包创建时。
     */
     if ( expr->kind == XL6_AST_ANON_FUNC ) {
+        return;
+    }
+
+    /*
+        ref(value) 是明确的所有权边界。它的专用 xvalue lowering 负责构造、
+        移动或复制内部 class 值；外层扫描器不能提前物化 value，否则会同时
+        破坏 ref 的移动语义和参数临时量收集。
+    */
+    if ( xl6CgenRefCtorValueExpr(expr) != NULL ) {
         return;
     }
 
