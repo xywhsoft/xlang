@@ -343,6 +343,7 @@ static void xl6CgenClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* classNode,
     if ( !xl6CgenBlockEndsWithReturn(funcNode->childCount > 3 ? funcNode->children[3] : NULL) ) {
         xl6CgenEmitCleanupsSince(ctx, cleanupMark);
     }
+    xl6CgenEmitDefaultErrorReturn(ctx);
     xl6CgenFreeCleanupsSince(ctx, cleanupMark);
     ctx->currentReturnType = prevReturnType;
     ctx->currentReturnParams = prevReturnParams;
@@ -402,6 +403,7 @@ static void xl6CgenGenericClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* cla
     if ( !xl6CgenBlockEndsWithReturn(funcNode->childCount > 3 ? funcNode->children[3] : NULL) ) {
         xl6CgenEmitCleanupsSince(ctx, cleanupMark);
     }
+    xl6CgenEmitDefaultErrorReturn(ctx);
     xl6CgenFreeCleanupsSince(ctx, cleanupMark);
     ctx->currentReturnType = prevReturnType;
     ctx->currentReturnParams = prevReturnParams;
@@ -907,6 +909,7 @@ static void xl6CgenNativeClassFunc(XL6_CgenContext* ctx, const XL6_AstNode* nati
     if ( !xl6CgenBlockEndsWithReturn(body) ) {
         xl6CgenEmitCleanupsSince(ctx, cleanupMark);
     }
+    xl6CgenEmitDefaultErrorReturn(ctx);
     xl6CgenFreeCleanupsSince(ctx, cleanupMark);
 
     ctx->currentReturnType = prevReturnType;

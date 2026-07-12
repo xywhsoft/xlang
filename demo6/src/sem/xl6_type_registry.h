@@ -22,6 +22,8 @@ typedef struct XL6_TypeRegistry {
     XL6_TypeInfo* items;
     size_t count;
     size_t capacity;
+    size_t* slots;
+    size_t slotCapacity;
 } XL6_TypeRegistry;
 
 void xl6TypeRegistryInit(XL6_TypeRegistry* registry);

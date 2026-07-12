@@ -227,7 +227,7 @@ static void xl6CgenEmitAsyncFileRuntime(XL6_Output* out)
     xl6OutputPuts("xfuture* xl6_xrt_file_read_text_async(const char* path, int charset)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_AsyncFileTextArg* arg = xl6_async_file_text_arg_new(path, 0, charset);\n", out);
-    xl6OutputPuts("    return arg != 0 ? xTaskRunThread(xl6_xrt_file_read_text_async_entry, arg, 0) : 0;\n", out);
+    xl6OutputPuts("    return arg != 0 ? xl6_task_run_thread_tracked(xl6_xrt_file_read_text_async_entry, arg, 0) : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("xfuture* xl6_xrt_file_read_text_async_utf8(const char* path)\n", out);
@@ -238,7 +238,7 @@ static void xl6CgenEmitAsyncFileRuntime(XL6_Output* out)
     xl6OutputPuts("xfuture* xl6_xrt_file_write_text_async(const char* path, const char* text, int charset)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_AsyncFileTextArg* arg = xl6_async_file_text_arg_new(path, text, charset);\n", out);
-    xl6OutputPuts("    return arg != 0 ? xTaskRunThread(xl6_xrt_file_write_text_async_entry, arg, 0) : 0;\n", out);
+    xl6OutputPuts("    return arg != 0 ? xl6_task_run_thread_tracked(xl6_xrt_file_write_text_async_entry, arg, 0) : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("xfuture* xl6_xrt_file_write_text_async_utf8(const char* path, const char* text)\n", out);
@@ -249,7 +249,7 @@ static void xl6CgenEmitAsyncFileRuntime(XL6_Output* out)
     xl6OutputPuts("xfuture* xl6_xrt_file_append_text_async(const char* path, const char* text, int charset)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_AsyncFileTextArg* arg = xl6_async_file_text_arg_new(path, text, charset);\n", out);
-    xl6OutputPuts("    return arg != 0 ? xTaskRunThread(xl6_xrt_file_append_text_async_entry, arg, 0) : 0;\n", out);
+    xl6OutputPuts("    return arg != 0 ? xl6_task_run_thread_tracked(xl6_xrt_file_append_text_async_entry, arg, 0) : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("xfuture* xl6_xrt_file_append_text_async_utf8(const char* path, const char* text)\n", out);
@@ -260,7 +260,7 @@ static void xl6CgenEmitAsyncFileRuntime(XL6_Output* out)
     xl6OutputPuts("xfuture* xl6_xrt_file_copy_async(const char* source, const char* target, bool overwrite)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_AsyncFileCopyArg* arg = xl6_async_file_copy_arg_new(source, target, overwrite);\n", out);
-    xl6OutputPuts("    return arg != 0 ? xTaskRunThread(xl6_xrt_file_copy_async_entry, arg, 0) : 0;\n", out);
+    xl6OutputPuts("    return arg != 0 ? xl6_task_run_thread_tracked(xl6_xrt_file_copy_async_entry, arg, 0) : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("xfuture* xl6_xrt_file_copy_async_overwrite(const char* source, const char* target)\n", out);
@@ -271,7 +271,7 @@ static void xl6CgenEmitAsyncFileRuntime(XL6_Output* out)
     xl6OutputPuts("xfuture* xl6_xrt_file_move_async(const char* source, const char* target, bool overwrite)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_AsyncFileCopyArg* arg = xl6_async_file_copy_arg_new(source, target, overwrite);\n", out);
-    xl6OutputPuts("    return arg != 0 ? xTaskRunThread(xl6_xrt_file_move_async_entry, arg, 0) : 0;\n", out);
+    xl6OutputPuts("    return arg != 0 ? xl6_task_run_thread_tracked(xl6_xrt_file_move_async_entry, arg, 0) : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("xfuture* xl6_xrt_file_move_async_overwrite(const char* source, const char* target)\n", out);
@@ -282,7 +282,7 @@ static void xl6CgenEmitAsyncFileRuntime(XL6_Output* out)
     xl6OutputPuts("xfuture* xl6_xrt_file_delete_async(const char* path)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_AsyncFileTextArg* arg = xl6_async_file_text_arg_new(path, 0, 0);\n", out);
-    xl6OutputPuts("    return arg != 0 ? xTaskRunThread(xl6_xrt_file_delete_async_entry, arg, 0) : 0;\n", out);
+    xl6OutputPuts("    return arg != 0 ? xl6_task_run_thread_tracked(xl6_xrt_file_delete_async_entry, arg, 0) : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static int xl6_xrt_file_delete_async_entry(void* pArg, xfuture_result* pOut)\n", out);

@@ -7,6 +7,15 @@ call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 set "XL6_DLL_LINKS="%XL6_TCC_LIBTCC1%" -lWs2_32 -lIPHLPAPI -lShell32"
 set "XL6_BUILD_TMP=build\tmp"
+set "XL6_RELEASE_CC=gcc"
+set "XL6_RELEASE_CFLAGS=-std=c11 -Wall -Wno-pointer-sign -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-format-truncation -Wno-dangling-pointer -Os -ffunction-sections -fdata-sections"
+set "XL6_RELEASE_LDFLAGS=-shared -Wl,--gc-sections -s"
+
+where "%XL6_RELEASE_CC%" >nul 2>nul
+if errorlevel 1 (
+    echo DEMO6 DLL build failed: MinGW GCC was not found in PATH.
+    exit /b 1
+)
 
 if not exist release mkdir release
 if not exist build mkdir build
@@ -90,7 +99,7 @@ if errorlevel 1 (
 )
 
 echo Building DEMO6 xl.dll runtime...
-"%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -DXL_RUNTIME_ONLY_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_SOURCE_INCLUDE% %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xl.dll ^
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% %XL6_RELEASE_LDFLAGS% -DXL_BUILD_DLL -DXL_RUNTIME_ONLY_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_LIB_FLAGS% -o release\xl.dll ^
     src\api\xl_api.c ^
     src\api\xl_api_symbols.c ^
     src\api\xl_api_path.c ^
@@ -111,6 +120,7 @@ echo Building DEMO6 xl.dll runtime...
     src\common\xl6_output.c ^
     src\diag\xl6_diag.c ^
     src\ast\xl6_ast.c ^
+    src\ir\xl6_hir.c ^
     src\cgen\xl6_cgen_entry.c ^
     src\cgen\xl6_cgen_lifecycle.c ^
     src\cgen\xl6_cgen_runtime.c ^
@@ -148,7 +158,7 @@ if errorlevel 1 (
 )
 
 echo Building DEMO6 xlc.dll compiler runtime...
-"%XL6_TCC%" -std=c11 -Wall -shared -DXL_BUILD_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_SOURCE_INCLUDE% %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o release\xlc.dll ^
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% %XL6_RELEASE_LDFLAGS% -DXL_BUILD_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -D_CRT_SECURE_NO_WARNINGS -DCONFIG_TCC_STATIC -I. -Irelease -Isrc -Ilib\lzma -I"%XL6_EMBED_TCC_SOURCE_ROOT%" %XL6_TCC_LIB_FLAGS% -o release\xlc.dll ^
     src\api\xl_api.c ^
     src\api\xl_api_symbols.c ^
     src\api\xl_api_path.c ^
@@ -171,6 +181,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\diag\xl6_diag.c ^
     src\ast\xl6_ast.c ^
     src\ast\xl6_ast_dump.c ^
+    src\ir\xl6_hir.c ^
     src\cgen\xl6_cgen_entry.c ^
     src\cgen\xl6_cgen_lifecycle.c ^
     src\cgen\xl6_cgen_runtime.c ^

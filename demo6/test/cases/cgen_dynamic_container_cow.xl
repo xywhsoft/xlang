@@ -1,0 +1,55 @@
+var values = [1, 2]
+var valuesCopy = values
+valuesCopy[0] = 9
+valuesCopy.push(3)
+assert int(values[0]) == 1, "array COW changed the source item"
+assert values.length == 2, "array COW changed the source length"
+assert int(valuesCopy[0]) == 9 and valuesCopy.length == 3, "array COW did not detach the copy"
+
+var names = list[0: "a"]
+var namesCopy = names
+namesCopy[2] = "b"
+assert names.length == 1 and string(names[0]) == "a", "list COW changed the source"
+assert namesCopy.length == 2 and string(namesCopy[2]) == "b", "list COW did not detach the copy"
+
+var ids = set{1, 2}
+var idsCopy = ids
+idsCopy.add(3)
+idsCopy.remove(1)
+assert ids.length == 2 and ids.contains(1), "set COW changed the source"
+assert idsCopy.length == 2 and idsCopy.contains(3), "set COW did not detach the copy"
+
+var scores = dict{"a": 1}
+var scoresCopy = scores
+scoresCopy["a"] = 10
+scoresCopy["b"] = 2
+assert scores.length == 1 and int(scores["a"]) == 1, "dict COW changed the source"
+assert scoresCopy.length == 2 and int(scoresCopy["a"]) == 10, "dict COW did not detach the copy"
+
+var nested = [[1], {"value": [2]}]
+var nestedCopy = nested
+nestedCopy[0][0] = 9
+nestedCopy[1]["value"][0] = 8
+assert int(nested[0][0]) == 1, "nested array COW changed the source"
+assert int(nested[1]["value"][0]) == 2, "nested dict COW changed the source"
+assert int(nestedCopy[0][0]) == 9, "nested array COW did not update the copy"
+assert int(nestedCopy[1]["value"][0]) == 8, "nested dict COW did not update the copy"
+
+var dynamicKey = "items"
+var dynamicNested = [{"items": [3]}]
+var dynamicNestedCopy = dynamicNested
+dynamicNestedCopy[0][dynamicKey][0] = 7
+assert int(dynamicNested[0][dynamicKey][0]) == 3, "dynamic-key COW changed the source"
+assert int(dynamicNestedCopy[0][dynamicKey][0]) == 7, "dynamic-key COW did not update the copy"
+
+var memberSource = {"nested": {"count": 1}}
+var memberCopy = memberSource
+memberCopy.nested.count = 2
+assert int(memberSource.nested.count) == 1, "nested member COW changed the source"
+assert int(memberCopy.nested.count) == 2, "nested member COW did not update the copy"
+
+var memberSingle = {"nested": {"count": 3}}
+memberSingle.nested.count = 4
+assert int(memberSingle.nested.count) == 4, "nested member write did not update the owner"
+
+println("dynamic container COW ok")

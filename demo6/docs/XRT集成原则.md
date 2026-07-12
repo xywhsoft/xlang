@@ -191,3 +191,21 @@ xvalue xvoDeepCopyEx(xvalue value, uint32 mode);
 - 当前共享值图最多允许 256 层容器嵌套；循环引用会以发布失败结束，不会无限递归。
 
 生成代码通过内部 `xl6_xrt_move_to_shared` 完成拥有权转移，原本地临时值在共享副本建立后立即释放。
+
+## 9. xvalue 内存池与容器写时复制
+
+`xvalue_struct` 保持固定长度，函数签名、class、native-backed class 等扩展数据继续放在独立对象中，不向值外壳追加可变字段。
+
+- xvalue 外壳统一使用 `xrtMalloc` / `xrtFree`，直接复用 XRT 线程本地 size-class 池，不再维护第二套专用对象池。
+- 动态 array/list/set/dict 复制时创建独立 xvalue 外壳并共享容器 backing。
+- 第一次写入通过 `xvoEnsureUnique` 分离 backing；嵌套写入通过 `xvoIndexGetMutableI64`、`xvoIndexGetMutableKey` 或 `xvoIndexGetMutableValue` 逐层分离。
+- 普通读取使用只读借用接口，不承担分离成本。
+- `xvoGetArray/List/Coll/Set/Table` 返回的底层对象只允许只读访问；需要直接修改底层对象时必须使用对应的 `xvoGetMutable*` 接口。
+- 静态泛型容器保持 eager value-copy。它们直接暴露稳定 C 结构和 `xtarray/xtlist/xtset/xtdict` ABI；引入透明 COW 会要求所有 C 写 API 改为二级句柄，并增加每次写入的间接访问。该取舍是正式语义，不是兼容回退。
+
+## 10. 裁剪与依赖元数据
+
+- 标准库函数依赖集中保存在 `src/stdlib/xl6_stdlib_deps.inc`，展开过程按有向依赖闭包注入所需符号。
+- 标准库查找索引由 `tools/generate_stdlib_index.ps1` 生成只读哈希表，不在运行时初始化，不依赖 TLS。
+- XRT 裁剪由 `src/compile/xl6_xrt_trim.c` 根据 HIR/生成代码实际使用的模块产生宏开关。
+- `xl.dll` 保留运行脚本所需模块；编译产物按实际依赖裁剪，未使用模块不进入最终 XRT 实现单元。

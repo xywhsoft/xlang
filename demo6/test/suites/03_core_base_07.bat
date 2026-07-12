@@ -505,7 +505,23 @@ if errorlevel 1 exit /b 1
 build\test\cgen_function_named_value.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_named_function_argument.xl --emit build\test\cgen_named_function_argument.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_fn_apply(5LL, xl6_fnvalue_xl_fn_doubleIt_make())" build\test\cgen_named_function_argument.c >nul
+if errorlevel 1 (
+    echo cgen_named_function_argument.c missing direct named function argument lowering.
+    exit /b 1
+)
+findstr /C:"xl_fn_apply(5LL, xl6_fnvalue_xl_fn_withDefault_arity1_make())" build\test\cgen_named_function_argument.c >nul
+if errorlevel 1 (
+    echo cgen_named_function_argument.c missing optional parameter adapter argument lowering.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_named_function_argument.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_named_function_argument.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_named_function_argument.exe
+if errorlevel 1 exit /b 1
+
 
 echo DEMO6 suite ok: core C generation and runtime baseline 7/10
 exit /b 0
-

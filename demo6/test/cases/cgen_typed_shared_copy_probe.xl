@@ -1,0 +1,5 @@
+array<int> left = array<int>[1, 2]
+array<int> right = array<int>[3, 4]
+auto values = left + right
+
+assert values.length == 4, "typed shared copy must preserve items"

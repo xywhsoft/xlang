@@ -453,6 +453,7 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
     XL6_AstNode* receiverType;
     int id;
     int receiverBorrow;
+    int receiverNeedsMutable;
     char receiverName[64];
     char tempName[64];
 
@@ -482,7 +483,10 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
     }
 
     id = ctx->tempId++;
-    receiverBorrow = xl6CgenExprIsXValueBorrow(ctx, receiver);
+    receiverNeedsMutable = receiver != NULL &&
+        (receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_SAFE_MEMBER ||
+         receiver->kind == XL6_AST_INDEX || receiver->kind == XL6_AST_SAFE_INDEX);
+    receiverBorrow = receiverNeedsMutable || xl6CgenExprIsXValueBorrow(ctx, receiver);
     receiverName[0] = '\0';
     snprintf(tempName, sizeof(tempName), "__xl6_member_assign_%d", id);
     if ( !receiverBorrow ) {
@@ -503,7 +507,9 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPuts("if ( !xl6_record_field_set_borrow(", ctx->out);
-    if ( receiverBorrow ) {
+    if ( receiverNeedsMutable ) {
+        xl6CgenXValueWriteReceiverExpr(ctx, receiver);
+    } else if ( receiverBorrow ) {
         xl6CgenExpr(ctx, receiver);
     } else {
         xl6OutputPuts(receiverName, ctx->out);

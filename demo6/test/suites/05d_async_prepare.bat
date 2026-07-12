@@ -72,9 +72,14 @@ if errorlevel 1 (
     echo cgen_async.c missing xTaskRunThread.
     exit /b 1
 )
-findstr /C:"xl6_async_require_future(xTaskRunThread" build\test\cgen_async.c >nul
+findstr /C:"xl6_async_require_future(xl6_task_run_thread_tracked" build\test\cgen_async.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing async no-arg task start guard.
+    exit /b 1
+)
+findstr /C:"if ( future == 0 ) { (void)xl6_async_active_add(-1); xrtFree(task); }" build\test\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing tracked task start rollback.
     exit /b 1
 )
 findstr /C:"async task args allocation failed" build\test\cgen_async.c >nul
@@ -90,4 +95,3 @@ if errorlevel 1 (
 
 echo DEMO6 suite ok: async execution and generation
 exit /b 0
-

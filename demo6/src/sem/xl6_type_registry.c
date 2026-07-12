@@ -27,6 +27,47 @@ static const XL6_BuiltinTypeSeed g_xl6BuiltinTypeSeeds[] = {
     {"thread", 0, 0}, {"mutex", 0, 0}, {"cond", 0, 0}, {"rwlock", 0, 0}, {"sem", 0, 0}
 };
 
+static unsigned long long xl6TypeRegistryHash(const char* name)
+{
+    unsigned long long hash = 1469598103934665603ULL;
+
+    while ( name != NULL && *name != '\0' ) {
+        hash ^= (unsigned char)*name++;
+        hash *= 1099511628211ULL;
+    }
+    return hash;
+}
+
+static int xl6TypeRegistryEnsureIndex(XL6_TypeRegistry* registry, size_t requiredCount)
+{
+    size_t capacity;
+    size_t* slots;
+    size_t i;
+
+    if ( registry->slotCapacity != 0 && requiredCount * 2 <= registry->slotCapacity ) {
+        return 1;
+    }
+    capacity = registry->slotCapacity == 0 ? 128 : registry->slotCapacity * 2;
+    while ( requiredCount * 2 > capacity ) {
+        capacity *= 2;
+    }
+    slots = (size_t*)xrtCalloc(capacity, sizeof(size_t));
+    if ( slots == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < registry->count; ++i ) {
+        size_t slot = (size_t)(xl6TypeRegistryHash(registry->items[i].name) & (capacity - 1));
+        while ( slots[slot] != 0 ) {
+            slot = (slot + 1) & (capacity - 1);
+        }
+        slots[slot] = i + 1;
+    }
+    xrtFree(registry->slots);
+    registry->slots = slots;
+    registry->slotCapacity = capacity;
+    return 1;
+}
+
 void xl6TypeRegistryInit(XL6_TypeRegistry* registry)
 {
     if ( registry != NULL ) {
@@ -45,19 +86,28 @@ void xl6TypeRegistryFree(XL6_TypeRegistry* registry)
         xrtFree(registry->items[i].name);
     }
     xrtFree(registry->items);
+    xrtFree(registry->slots);
     memset(registry, 0, sizeof(*registry));
 }
 
 const XL6_TypeInfo* xl6TypeRegistryFind(const XL6_TypeRegistry* registry, const char* name)
 {
-    size_t i;
+    size_t slot;
+    size_t start;
 
-    if ( registry == NULL || name == NULL ) {
+    if ( registry == NULL || name == NULL || registry->slotCapacity == 0 ) {
         return NULL;
     }
-    for ( i = 0; i < registry->count; ++i ) {
-        if ( registry->items[i].name != NULL && strcmp(registry->items[i].name, name) == 0 ) {
-            return &registry->items[i];
+    slot = (size_t)(xl6TypeRegistryHash(name) & (registry->slotCapacity - 1));
+    start = slot;
+    while ( registry->slots[slot] != 0 ) {
+        size_t index = registry->slots[slot] - 1;
+        if ( index < registry->count && strcmp(registry->items[index].name, name) == 0 ) {
+            return &registry->items[index];
+        }
+        slot = (slot + 1) & (registry->slotCapacity - 1);
+        if ( slot == start ) {
+            break;
         }
     }
     return NULL;
@@ -73,6 +123,9 @@ int xl6TypeRegistryAdd(XL6_TypeRegistry* registry, const char* name, XL6_TypeKin
         return 0;
     }
     if ( xl6TypeRegistryFind(registry, name) != NULL ) {
+        return 0;
+    }
+    if ( !xl6TypeRegistryEnsureIndex(registry, registry->count + 1) ) {
         return 0;
     }
 
@@ -97,6 +150,13 @@ int xl6TypeRegistryAdd(XL6_TypeRegistry* registry, const char* name, XL6_TypeKin
     item->genericArity = genericArity;
     item->decl = decl;
     registry->count += 1;
+    {
+        size_t slot = (size_t)(xl6TypeRegistryHash(item->name) & (registry->slotCapacity - 1));
+        while ( registry->slots[slot] != 0 ) {
+            slot = (slot + 1) & (registry->slotCapacity - 1);
+        }
+        registry->slots[slot] = registry->count;
+    }
     return 1;
 }
 

@@ -1,0 +1,15 @@
+array<future<func(int) as int> > jobs = array[]
+int state = 0
+
+try
+    future<func(int) as int> pending = task.race(jobs)
+    func(int) as int callback = await pending
+    state = callback(1)
+catch e
+    if e.message == "task.race requires a non-empty future array" then
+        state = 1
+    end
+end
+
+assert state == 1, "error cleanup must not touch values declared after the failing initializer"
+println("error cleanup milestone ok")

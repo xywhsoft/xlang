@@ -152,6 +152,7 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
     if ( !xl6CgenBlockEndsWithReturn(body) ) {
         xl6CgenEmitCleanupsSince(ctx, cleanupMark);
     }
+    xl6CgenEmitDefaultErrorReturn(ctx);
     xl6CgenFreeCleanupsSince(ctx, cleanupMark);
     ctx->currentReturnType = prevReturnType;
     ctx->currentReturnParams = prevReturnParams;

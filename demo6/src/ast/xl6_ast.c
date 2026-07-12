@@ -209,6 +209,7 @@ void xl6AstFree(XL6_AstNode* node)
         xl6AstFree(node->children[i]);
     }
     xrtFree(node->children);
+    xl6AstFree(node->inferredType);
     xrtFree(node->text);
     xrtFree(node->doc);
     xrtFree(node);

@@ -3,9 +3,11 @@
 #include "src/cgen/xl6_cgen_lifecycle.h"
 #include "src/cgen/xl6_cgen_needs_basic.h"
 #include "src/cgen/xl6_cgen_runtime.h"
+#include "src/ir/xl6_hir.h"
 
 #include <limits.h>
 #include <stddef.h>
+#include <stdint.h>
 
 /*
     Private implementation shards.
@@ -23,8 +25,10 @@ static XL6_AstNode* xl6CgenCloneImplicitSelfFieldType(XL6_CgenContext* ctx, cons
 #include "src/cgen/xl6_cgen_core_runtime_state.c"
 #include "src/cgen/xl6_cgen_builtin_object.c"
 #include "src/cgen/xl6_cgen_type_infer_helpers.c"
+#include "src/cgen/xl6_cgen_type_cache.c"
 #include "src/cgen/xl6_cgen_type_infer_literals.c"
 #include "src/cgen/xl6_cgen_type_infer.c"
+#include "src/cgen/xl6_cgen_type_hir.c"
 static const char* xl6CgenValueStorageCType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 #include "src/cgen/xl6_cgen_type_generic.c"
 #include "src/cgen/xl6_cgen_expr_support_types.c"
@@ -70,6 +74,7 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
 #include "src/cgen/xl6_cgen_assign_numeric.c"
 #include "src/cgen/xl6_cgen_value_assign_index.c"
 #include "src/cgen/xl6_cgen_value_assign_containers.c"
+static void xl6CgenXValueWriteReceiverExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver);
 #include "src/cgen/xl6_cgen_value_assign.c"
 #include "src/cgen/xl6_cgen_value_index.c"
 #include "src/cgen/xl6_cgen_expr.c"
@@ -91,6 +96,7 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
 #include "src/cgen/xl6_cgen_stmt_loop_typed.c"
 static void xl6CgenAsyncPendingResultCompletion(XL6_CgenContext* ctx, int targetId);
 #include "src/cgen/xl6_cgen_stmt_error.c"
+#include "src/cgen/xl6_cgen_stmt_effect.c"
 #include "src/cgen/xl6_cgen_stmt_dispatch.c"
 #include "src/cgen/xl6_cgen_decl_proto.c"
 #include "src/cgen/xl6_cgen_class_virtual.c"

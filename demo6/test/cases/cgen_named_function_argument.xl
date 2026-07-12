@@ -1,0 +1,30 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func doubleIt(int value) as int
+    return value * 2
+end
+
+func withDefault(int value, int step = 3) as int
+    return value + step
+end
+
+func choose(int value) as int
+    return value + 10
+end
+
+func choose(string value) as string
+    return value
+end
+
+func apply(int value, func(int) as int fn) as int
+    return fn(value)
+end
+
+func(int) as int closure = func(int value) as int
+    return value - 1
+end
+
+expect(apply(5, doubleIt), 10)
+expect(apply(5, withDefault), 8)
+expect(apply(5, choose), 15)
+expect(apply(5, closure), 4)

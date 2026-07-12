@@ -100,6 +100,8 @@ typedef struct XL6_AstNode {
     unsigned int flags;
     char* text;
     char* doc;
+    /* 语义阶段写入的规范化静态类型；由当前节点独占。 */
+    struct XL6_AstNode* inferredType;
     int line;
     int column;
     struct XL6_AstNode** children;

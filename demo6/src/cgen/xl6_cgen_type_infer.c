@@ -464,7 +464,7 @@ static XL6_AstNode* xl6CgenCloneClassMethodCallType(XL6_CgenContext* ctx, const 
     return result;
 }
 
-static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+static XL6_AstNode* xl6CgenCloneExprTypeForInferenceRaw(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
     const XL6_AstNode* varType;
     XL6_AstNode* receiverType;

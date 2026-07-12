@@ -64,7 +64,7 @@ if errorlevel 1 (
     echo stdlib_file_async.c missing async file read helper.
     exit /b 1
 )
-findstr /C:"xTaskRunThread(xl6_xrt_file_read_text_async_entry" build\test\stdlib_file_async.c >nul
+findstr /C:"xl6_task_run_thread_tracked(xl6_xrt_file_read_text_async_entry" build\test\stdlib_file_async.c >nul
 if errorlevel 1 (
     echo stdlib_file_async.c missing XRT task-backed read entry.
     exit /b 1
@@ -589,4 +589,3 @@ if errorlevel 1 (
 
 echo DEMO6 suite ok: core C generation and runtime baseline 10/10
 exit /b 0
-

@@ -45,10 +45,11 @@ static void xl6CgenBlock(XL6_CgenContext* ctx, const XL6_AstNode* block)
         return;
     }
     cleanupMark = ctx->cleanupCount;
+    xl6CgenPushErrorScope(ctx, cleanupMark);
     for ( i = 0; i < block->childCount; ++i ) {
         xl6CgenStmt(ctx, block->children[i]);
     }
-    xl6CgenCloseScope(ctx, cleanupMark);
+    xl6CgenCloseErrorScope(ctx, cleanupMark);
 }
 
 static int xl6CgenDeclIsNullCoalesceExpr(const XL6_AstNode* expr)

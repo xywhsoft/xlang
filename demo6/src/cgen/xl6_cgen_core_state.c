@@ -75,6 +75,7 @@ static void xl6CgenAddVarTypeWithFlags(XL6_CgenContext* ctx, const char* name, c
     ctx->vars[ctx->varCount].type = type;
     ctx->vars[ctx->varCount].flags = flags;
     ctx->varCount += 1;
+    ctx->typeScopeEpoch += 1;
 }
 
 static void xl6CgenAddVarType(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* type)
@@ -85,10 +86,12 @@ static void xl6CgenAddVarType(XL6_CgenContext* ctx, const char* name, const XL6_
 static void xl6CgenFreeVars(XL6_CgenContext* ctx)
 {
     size_t i;
+    int hadVars;
 
     if ( ctx == NULL ) {
         return;
     }
+    hadVars = ctx->varCount != 0;
     for ( i = 0; i < ctx->varCount; ++i ) {
         xrtFree(ctx->vars[i].name);
     }
@@ -96,19 +99,27 @@ static void xl6CgenFreeVars(XL6_CgenContext* ctx)
     ctx->vars = NULL;
     ctx->varCount = 0;
     ctx->varCapacity = 0;
+    if ( hadVars ) {
+        ctx->typeScopeEpoch += 1;
+    }
 }
 
 static void xl6CgenFreeVarsSince(XL6_CgenContext* ctx, size_t mark)
 {
     size_t i;
+    size_t oldCount;
 
     if ( ctx == NULL || mark > ctx->varCount ) {
         return;
     }
+    oldCount = ctx->varCount;
     for ( i = mark; i < ctx->varCount; ++i ) {
         xrtFree(ctx->vars[i].name);
     }
     ctx->varCount = mark;
+    if ( mark != oldCount ) {
+        ctx->typeScopeEpoch += 1;
+    }
 }
 
 static int xl6CgenClassWasEmitted(XL6_CgenContext* ctx, const char* name)

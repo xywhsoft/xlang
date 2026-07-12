@@ -20,5 +20,10 @@ if errorlevel 1 exit /b 1
 build\test\cgen_function_direct_owned_args.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\hir_vararg_length_index.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\hir_vararg_length_index.xl
+if errorlevel 1 exit /b 1
+
 echo DEMO6 suite ok: current core ownership regressions
 exit /b 0

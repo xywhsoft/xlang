@@ -1,6 +1,6 @@
 # DEMO6 功能清单
 
-> 更新日期：2026-07-07
+> 更新日期：2026-07-12
 >
 > 修订说明：本次根据 `demo6` 源码、`tools/check_*.ps1` 守门脚本和 `xl.exe` 实际 help 文本对齐口径。原 `xl xapi` 命令、`xlang-xapi-1` schema、`.xapi` 产物已不存在；接口元数据能力已并入 `abi` 阶段（`.abi.json` / `.abi.txt`），仅承载 C ABI 导出符号。所有数字基线更新到当前实测值。
 >
@@ -9,12 +9,18 @@
 
 ## 1. 当前总体状态
 
-DEMO6 当前已经具备完整的四阶段编译管线：
+DEMO6 当前已经具备完整的四阶段用户管线；编译器内部在语义阶段后增加 typed HIR 收口：
 
 1. 词法分析：Flex。
 2. 语法分析：Lemon。
 3. 语义检查与 IR。
 4. C 代码生成与 TCC 后端构建/运行。
+
+typed HIR 为所有确定产生单值的源码表达式保存权威静态类型。cgen 直接消费该类型，不再为源码表达式维护第二套推断口径；缺失必需类型会在 `hir` 阶段终止编译。泛型容器、重载、闭包、OOP、异步和任务 lowering 均共享这一类型来源。
+
+动态 `var` 容器采用 XRT 写时复制：赋值时共享 backing，首次写入时分离，嵌套索引写会逐层分离。静态泛型容器保持独立值复制，以维持直接 C ABI 和无额外写入间接层。
+
+xvalue 固定长度外壳通过 XRT size-class 内存池分配；标准库依赖使用集中元数据闭包；XRT 实现单元根据实际使用模块生成宏裁剪配置。
 
 当前可执行文件：
 
@@ -339,6 +345,24 @@ assert values[1].value() == 7
 - `ref<T>` 的 `T` 必须是普通 class。native-backed class 继续使用自身句柄所有权模型，不套用 ref。
 - 从已有的不可复制 class 值创建 ref 会被拒绝；可以直接从该 class 的 fresh 构造结果创建 ref 并移交所有权。
 - C ABI 将 ref 参数和返回值表示为 `xvalue` 共享对象句柄；C 侧使用 XRT retain/unref 与类型描述能力管理它。
+
+普通 class 参数与 `ref<T>` 参数的修改语义不同：
+
+```xlang
+class Box
+    int count
+end
+
+func mutateCopy(Box value)
+    value.count = 10       // 只修改参数副本
+end
+
+func mutateShared(ref<Box> value)
+    value.count = 10       // 修改引用指向的同一对象
+end
+```
+
+需要函数修改调用方可见对象时，应显式使用 `ref<Box>`；普通 `Box` 参数始终保持 C 结构体值语义。
 
 运行时类型判断与向下转换：
 
@@ -1311,7 +1335,7 @@ auto text = file.readText("data.txt")
 
 常用默认参数：
 - `string.compare(left, right, ignoreCase = false)`、`string.equals(...)`、`string.contains(...)`、`string.indexOf(...)`、`string.lastIndexOf(...)`、`string.count(...)`、`string.startsWith(...)`、`string.endsWith(...)`、`string.like(...)`。
-- `string.format(value, format = "")` 支持 `int`、`uint64`、`float` 重载；`string.formatInt(value, format = "")`、`string.formatUInt(value, format = "")`、`string.formatFloat(value, format = "")` 保留为显式类型入口；`string.formatInt(value, "c")` 将有效非 NUL Unicode codepoint 转为 UTF-8 字符；`string.trim(text, chars = "")`、`string.ltrim(...)`、`string.rtrim(...)`、`string.slice(text, start, count = -1)`、`string.mid(text, start, count = -1)`。
+- `string.format(value, format = "")` 支持 `int`、`uint64`、`float` 重载；`string.formatInt(value, format = "")`、`string.formatUInt(value, format = "")`、`string.formatFloat(value, format = "")` 保留为显式类型入口；`string.formatInt(value, "c")` 将有效非 NUL Unicode codepoint 转为 UTF-8 字符；`string.trim(text, chars = "")`、`string.ltrim(...)`、`string.rtrim(...)`、`string.slice(text, start, count = -1)`、`string.mid(text, start, count = -1)`。`slice` 和 `mid` 的第三参数都是 UTF-8 字符数量，不是结束索引；已有结束位置时使用 `string.slice(text, start, end - start)`。
 - `time.timezoneOffset()` 返回本地时区相对 UTC 的有符号偏移秒数，例如 UTC+8 返回 `28800`。
 - `string.join(values, sep = "")`、`string.padLeft(text, width, pad = " ")`、`string.padRight(text, width, pad = " ")`、`string.padCenter(text, width, pad = " ")`、`string.remove(text, part, ignoreCase = false)`。
 - `time.fromDateTime(year, month, day, hour = 0, minute = 0, second = 0)`、`time.firstDayOfWeek(value, startDay = 1)`、`time.lastDayOfWeek(value, startDay = 1)`、`time.format(value, format = 0)`。
