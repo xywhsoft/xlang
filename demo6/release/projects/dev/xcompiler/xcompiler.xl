@@ -89,6 +89,7 @@ func initTables()
     g_keywords.append("do")
     g_keywords.append("for")
     g_keywords.append("in")
+    g_keywords.append("as")
     g_keywords.append("return")
     g_keywords.append("break")
     g_keywords.append("continue")
@@ -97,8 +98,6 @@ func initTables()
     g_keywords.append("not")
     g_keywords.append("true")
     g_keywords.append("false")
-    g_keywords.append("print")
-    g_keywords.append("println")
 
     g_types = []
     g_types.append("int")
@@ -1426,30 +1425,39 @@ end
 
 
 func analyzeIf(var n) as string
+    pushScope()
     var tb = n["then"]
     for s in tb
         string e = analyzeStmt(s)
         if string.len(e) > 0 then
+            popScope()
             return e
         end
     end
+    popScope()
     var eis = n["elseifs"]
     for ei in eis
+        pushScope()
         var eb = ei["body"]
         for s in eb
             string e = analyzeStmt(s)
             if string.len(e) > 0 then
+                popScope()
                 return e
             end
         end
+        popScope()
     end
+    pushScope()
     var el = n["else"]
     for s in el
         string e = analyzeStmt(s)
         if string.len(e) > 0 then
+            popScope()
             return e
         end
     end
+    popScope()
     return ""
 end
 
@@ -1613,11 +1621,31 @@ func genCall(var e) as string
         if i > 0 then
             s = s + ", "
         end
-        s = s + genExpr(args[i])
+        s = s + genCallArg(args[i])
         i += 1
     end
     s = s + ")"
     return s
+end
+
+
+// 函数调用参数：若是 binary 表达式，genExpr 会包裹一层 (...)；在调用语境下
+// 外层 () 多余（调用本身已有 ()），去掉以避免 fib((n - 1)) 这样的双重括号。
+func genCallArg(var e) as string
+    string code = genExpr(e)
+    if e != null and string(e["nt"]) == "binary" then
+        int sl = string.len(code)
+        if sl >= 2 and string.charAt(code, 0) == "(" and string.charAt(code, sl - 1) == ")" then
+            string inner = ""
+            int j = 1
+            while j < sl - 1 do
+                inner = inner + string.charAt(code, j)
+                j += 1
+            end
+            return inner
+        end
+    end
+    return code
 end
 
 
@@ -1720,6 +1748,10 @@ end
 func genFunc(var f, int level) as string
     string name = string(f["name"])
     string rt = mapCType(string(f["retType"]))
+    // C 要求 main 返回 int（而非 int64_t）
+    if name == "main" then
+        rt = "int"
+    end
     var params = f["params"]
     string head = genIndent(level) + rt + " " + name + "("
     if params.length == 0 then
@@ -1888,22 +1920,10 @@ func genForwardDecls(var prog) as string
         if string(s["nt"]) == "func" then
             string name = string(s["name"])
             string rt = mapCType(string(s["retType"]))
-            var params = s["params"]
-            out = out + rt + " " + name + "("
-            if params.length == 0 then
-                out = out + "void"
-            else
-                int i = 0
-                while i < params.length do
-                    if i > 0 then
-                        out = out + ", "
-                    end
-                    var p = params[i]
-                    out = out + mapCType(string(p["ptype"]))
-                    i += 1
-                end
+            if name == "main" then
+                rt = "int"
             end
-            out = out + ");\n"
+            out = out + rt + " " + name + "();\n"
         end
     end
     return out + "\n"

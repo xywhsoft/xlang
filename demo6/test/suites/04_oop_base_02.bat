@@ -36,9 +36,9 @@ if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing direct dynamic member assignment lowering.
     exit /b 1
 )
-findstr /C:"xl6_record_field_set_borrow(__xl6_member_receiver_" build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_record_field_set_borrow(xl6_record_field_get_mutable(nested, \"inner\")," build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
-    echo cgen_dynamic_member_access.c missing nested dynamic member assignment lowering.
+    echo cgen_dynamic_member_access.c missing nested dynamic member COW assignment lowering.
     exit /b 1
 )
 findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_nc_" build\test\cgen_dynamic_member_access.c >nul
@@ -465,4 +465,3 @@ if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: OOP ABI export and interop baseline 2/8
 exit /b 0
-

@@ -246,6 +246,8 @@ xvalue xvoCreateListArgs(uint32 iCount, ...);
 xvalue xvoCreateSetArgs(uint32 iCount, ...);
 xvalue xvoCreateTableArgs(uint32 iCount, ...);
 void xvoAddRef(xvalue pVal);
+xvalue xvoShare(xvalue pVal);
+bool xvoEnsureUnique(xvalue pVal);
 bool xvoIsShared(xvalue pVal);
 void xvoUnref(xvalue pVal);
 xvalue xvoCopy(xvalue pVal);
@@ -304,14 +306,25 @@ bool xvoTableClear(xvalue pTbl);
 bool xvoTableWalk(xvalue pTbl, Dict_EachProc procEach, void* pArg);
 uint32 xvoTableItemCount(xvalue pTbl);
 xlist xvoGetList(xvalue pVal);
+xlist xvoGetMutableList(xvalue pVal);
 xdict xvoGetTable(xvalue pVal);
+xdict xvoGetMutableTable(xvalue pVal);
+ptr xvoGetArray(xvalue pVal);
+ptr xvoGetMutableArray(xvalue pVal);
+ptr xvoGetColl(xvalue pVal);
+ptr xvoGetMutableColl(xvalue pVal);
+ptr xvoGetSet(xvalue pVal);
+ptr xvoGetMutableSet(xvalue pVal);
 bool xvoBasicEqual(xvalue pLeft, xvalue pRight);
 int xvoBasicCompare(xvalue pLeft, xvalue pRight);
 bool xvoValueTruthy(xvalue pVal);
 xvalue xvoIndexGetI64(xvalue pVal, int64 iIndex);
+xvalue xvoIndexGetMutableI64(xvalue pVal, int64 iIndex);
 bool xvoIndexSetI64(xvalue pVal, int64 iIndex, xvalue pItem, bool bColloc);
 xvalue xvoIndexGetKey(xvalue pVal, str sKey, uint32 iKeySize);
+xvalue xvoIndexGetMutableKey(xvalue pVal, str sKey, uint32 iKeySize);
 xvalue xvoIndexGetValue(xvalue pVal, xvalue pKey);
+xvalue xvoIndexGetMutableValue(xvalue pVal, xvalue pKey);
 bool xvoValueContains(xvalue pValues, xvalue pItem);
 void xvoPrint(xvalue pVal, bool bNewLine);
 void xrtListWalk(xlist objList, List_EachProc procEach, ptr pArg);
@@ -405,10 +418,7 @@ static void xl6_runtime_fatal(int code)
 
 static xvalue xl6_xrt_retain(xvalue value)
 {
-    if ( value != 0 ) {
-        xvoAddRef(value);
-    }
-    return value;
+    return xvoShare(value);
 }
 
 static xvalue xl6_xrt_value_copy_release(xvalue value, int deep)
@@ -944,10 +954,7 @@ static xvalue xl6_xrt_array_concat(xvalue left, xvalue right)
     }
     leftCount = xvoArrayItemCount(left);
     for ( i = 0; i < leftCount; ++i ) {
-        xvalue item = xvoArrayGetValue(left, i);
-        if ( item != 0 ) {
-            xvoAddRef(item);
-        }
+        xvalue item = xvoShare(xvoArrayGetValue(left, i));
         if ( !xvoArrayAppendValue(result, item, true) ) {
             if ( item != 0 ) {
                 xvoUnref(item);
@@ -958,10 +965,7 @@ static xvalue xl6_xrt_array_concat(xvalue left, xvalue right)
     }
     rightCount = xvoArrayItemCount(right);
     for ( i = 0; i < rightCount; ++i ) {
-        xvalue item = xvoArrayGetValue(right, i);
-        if ( item != 0 ) {
-            xvoAddRef(item);
-        }
+        xvalue item = xvoShare(xvoArrayGetValue(right, i));
         if ( !xvoArrayAppendValue(result, item, true) ) {
             if ( item != 0 ) {
                 xvoUnref(item);
@@ -1817,8 +1821,7 @@ static int xl6_xrt_iter_snapshot_push(XL6_XrtIterSnapshot* snapshot, int64 index
     item->index = index;
     item->key = 0;
     item->keyLen = 0;
-    item->value = value;
-    if ( value != 0 ) { xvoAddRef(value); }
+    item->value = xvoShare(value);
     if ( key != 0 && keyLen > 0 ) {
         char* copy = (char*)xrtCopyStr((str)key, keyLen);
         if ( copy == 0 ) { return 0; }

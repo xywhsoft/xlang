@@ -309,6 +309,11 @@ static void xl6CgenEmitRecordFieldHelpers(XL6_CgenContext* ctx)
     xl6OutputPuts("    return result != 0 ? result : xvoCreateNull();\n", ctx->out);
     xl6OutputPuts("}\n\n", ctx->out);
 
+    xl6OutputPuts("static xvalue xl6_record_field_get_mutable(xvalue obj, const char* key)\n", ctx->out);
+    xl6OutputPuts("{\n", ctx->out);
+    xl6OutputPuts("    return xvoIndexGetMutableKey(obj, (str)key, 0);\n", ctx->out);
+    xl6OutputPuts("}\n\n", ctx->out);
+
     xl6OutputPuts("static bool xl6_record_field_set_borrow(xvalue obj, const char* key, xvalue value)\n", ctx->out);
     xl6OutputPuts("{\n", ctx->out);
     xl6OutputPuts("    const xrt_type_desc* desc = obj != 0 ? xvoTypeDesc(obj) : 0;\n", ctx->out);

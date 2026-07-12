@@ -723,6 +723,21 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_class_recursive_value_direct.xl >nul 2> build\test\sem_class_recursive_value_direct.err.txt
+if not errorlevel 1 exit /b 1
+findstr /C:"ref<T>" build\test\sem_class_recursive_value_direct.err.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_class_recursive_value_indirect.xl >nul 2> build\test\sem_class_recursive_value_indirect.err.txt
+if not errorlevel 1 exit /b 1
+findstr /C:"ref<T>" build\test\sem_class_recursive_value_indirect.err.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_class_recursive_value_generic.xl >nul 2> build\test\sem_class_recursive_value_generic.err.txt
+if not errorlevel 1 exit /b 1
+findstr /C:"ref<T>" build\test\sem_class_recursive_value_generic.err.txt >nul
+if errorlevel 1 exit /b 1
+
 
 echo DEMO6 suite ok: semantic negatives
 exit /b 0

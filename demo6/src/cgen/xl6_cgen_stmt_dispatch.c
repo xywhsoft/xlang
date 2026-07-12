@@ -563,13 +563,17 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     case XL6_AST_VAR_DECL:
     case XL6_AST_CONST_DECL:
         xl6CgenDecl(ctx, node);
-        xl6CgenEmitExceptionPropagate(ctx, node);
+        if ( xl6CgenNodeMayRaise(node) ) {
+            xl6CgenEmitExceptionPropagate(ctx, node);
+        }
         break;
     case XL6_AST_MULTI_VAR_DECL:
         if ( !xl6CgenTryMultiDeclWithTaskSpawnArgTemps(ctx, node) ) {
             xl6CgenMultiDecl(ctx, node);
         }
-        xl6CgenEmitExceptionPropagate(ctx, node);
+        if ( xl6CgenNodeMayRaise(node) ) {
+            xl6CgenEmitExceptionPropagate(ctx, node);
+        }
         break;
     case XL6_AST_ASSIGN: {
         const XL6_AstNode* right;
@@ -592,14 +596,18 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         if ( hasClassScope ) {
             xl6CgenClassExprTempScopeEnd(ctx, &classScope);
         }
-        xl6CgenEmitExceptionPropagate(ctx, node);
+        if ( xl6CgenNodeMayRaise(node) ) {
+            xl6CgenEmitExceptionPropagate(ctx, node);
+        }
         break;
     }
     case XL6_AST_MULTI_ASSIGN:
         if ( !xl6CgenTryMultiAssignWithTaskSpawnArgTemps(ctx, node) ) {
             xl6CgenMultiAssign(ctx, node);
         }
-        xl6CgenEmitExceptionPropagate(ctx, node);
+        if ( xl6CgenNodeMayRaise(node) ) {
+            xl6CgenEmitExceptionPropagate(ctx, node);
+        }
         break;
     case XL6_AST_RETURN: {
         XL6_CgenTaskSpawnArgTempScope taskScope;
@@ -801,24 +809,34 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         if ( hasTaskScope ) {
             xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
         }
-        xl6CgenEmitExceptionPropagate(ctx, node);
+        if ( xl6CgenNodeMayRaise(node) ) {
+            xl6CgenEmitExceptionPropagate(ctx, node);
+        }
         break;
     }
     case XL6_AST_IF:
         xl6CgenIf(ctx, node);
-        xl6CgenEmitExceptionPropagate(ctx, node);
+        if ( xl6CgenNodeMayRaise(node) ) {
+            xl6CgenEmitExceptionPropagate(ctx, node);
+        }
         break;
     case XL6_AST_WHILE:
         xl6CgenWhile(ctx, node);
-        xl6CgenEmitExceptionPropagate(ctx, node);
+        if ( xl6CgenNodeMayRaise(node) ) {
+            xl6CgenEmitExceptionPropagate(ctx, node);
+        }
         break;
     case XL6_AST_DO_WHILE:
         xl6CgenDoWhile(ctx, node);
-        xl6CgenEmitExceptionPropagate(ctx, node);
+        if ( xl6CgenNodeMayRaise(node) ) {
+            xl6CgenEmitExceptionPropagate(ctx, node);
+        }
         break;
     case XL6_AST_FOR:
         xl6CgenForIn(ctx, node);
-        xl6CgenEmitExceptionPropagate(ctx, node);
+        if ( xl6CgenNodeMayRaise(node) ) {
+            xl6CgenEmitExceptionPropagate(ctx, node);
+        }
         break;
     case XL6_AST_THROW:
         xl6CgenThrowStmt(ctx, node);
@@ -837,7 +855,9 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         break;
     case XL6_AST_YIELD:
         xl6CgenYieldStmt(ctx, node);
-        xl6CgenEmitExceptionPropagate(ctx, node);
+        if ( xl6CgenNodeMayRaise(node) ) {
+            xl6CgenEmitExceptionPropagate(ctx, node);
+        }
         break;
 
     default:

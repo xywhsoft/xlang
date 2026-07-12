@@ -268,17 +268,18 @@ static int xl6CgenXValueMemberAssignStmt(
     const XL6_AstNode* targetType)
 {
     int id;
-    char targetPath[512];
+    char slotName[64];
 
     if ( ctx == NULL || left == NULL || right == NULL || !xl6CgenIsXValueType(targetType) ) {
         return 0;
     }
-        if ( !xl6CgenSimpleAssignTargetPath(ctx, left, targetPath, sizeof(targetPath)) ) {
-        xl6CgenError(ctx, left, "var member assignment requires a direct field target");
-        return 1;
-    }
 
     id = ctx->tempId++;
+    snprintf(slotName, sizeof(slotName), "__xl6_xvalue_field_slot_%d", id);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = &(", slotName);
+    xl6CgenExpr(ctx, left);
+    xl6OutputPuts(");\n", ctx->out);
     if ( !xl6CgenAssignTryXValueConditionalStmt(ctx, targetType, right, id) &&
          !xl6CgenAssignTryXValueBinaryStmt(ctx, targetType, right, id) ) {
         char assignName[64];
@@ -288,14 +289,14 @@ static int xl6CgenXValueMemberAssignStmt(
 
     /* var 字段拥有 xvalue 引用，替换前必须释放旧值。 */
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", targetPath);
+    xl6OutputPrintf(ctx->out, "if (*%s != 0) {\n", slotName);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", targetPath);
+    xl6OutputPrintf(ctx->out, "xvoUnref(*%s);\n", slotName);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = __xl6_assign_%d;\n", targetPath, id);
+    xl6OutputPrintf(ctx->out, "*%s = __xl6_assign_%d;\n", slotName, id);
     return 1;
 }

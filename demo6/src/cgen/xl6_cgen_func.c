@@ -44,10 +44,13 @@ static void xl6CgenFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     }
     if ( !xl6CgenBlockEndsWithReturn(body) ) {
         xl6CgenEmitCleanupsSince(ctx, cleanupMark);
-        if ( xl6CgenFuncIsMainEntry(node) ) {
-            xl6CgenIndent(ctx);
-            xl6OutputPuts("return 0;\n", ctx->out);
-        }
+    }
+    if ( xl6CgenFuncIsMainEntry(node) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("return 0;\n", ctx->out);
+    } else {
+        /* 清理标签也可能成为 C 控制流入口，因此函数尾始终生成一个确定返回。 */
+        xl6CgenEmitDefaultErrorReturn(ctx);
     }
     xl6CgenFreeCleanupsSince(ctx, cleanupMark);
     ctx->currentReturnType = prevReturnType;
@@ -103,6 +106,7 @@ static void xl6CgenExportFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
     if ( !xl6CgenBlockEndsWithReturn(body) ) {
         xl6CgenEmitCleanupsSince(ctx, cleanupMark);
     }
+    xl6CgenEmitDefaultErrorReturn(ctx);
     xl6CgenFreeCleanupsSince(ctx, cleanupMark);
     ctx->currentReturnType = prevReturnType;
     ctx->currentReturnParams = prevReturnParams;

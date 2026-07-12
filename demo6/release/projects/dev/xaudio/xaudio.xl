@@ -621,19 +621,22 @@ class Score
     array<Track> tracks = array[]
 end
 
-// add a track to a score (creating it if missing) and return it
-func getOrAddTrack(Score sc, int idx) as Track
+// ensure a track with the given logical index exists in `tracks` (creating it
+// if missing) and return its ARRAY index. takes the array directly (a reference
+// type) so push is visible to the caller — passing the owning Score would copy
+// it (derive value) and lose the mutation.
+func getOrAddTrackIndex(array<Track> tracks, int idx) as int
     int i = 0
-    while i < sc.tracks.length do
-        if sc.tracks[i].index == idx then
-            return sc.tracks[i]
+    while i < tracks.length do
+        if tracks[i].index == idx then
+            return i
         end
         i += 1
     end
     Track t = Track()
     t.index = idx
-    sc.tracks.push(t)
-    return t
+    tracks.push(t)
+    return tracks.length - 1
 end
 
 // velocity (0..127) -> linear amplitude (0..1)
@@ -754,33 +757,114 @@ end
 // ===========================================================================
 
 // render a pitched note into `out` (length outLen), starting at `startSample`.
+// Envelope and oscillator are inlined to avoid per-sample function-call overhead
+// in the interpreter; phase is advanced incrementally to avoid math.floor.
 func renderPitchedNote(Note nt, Track tr, int startSample, array<float> out, int outLen) as int
     if nt.freq <= 0.0 then
         return 0
     end
-    float noteOn  = nt.startTime
-    float noteOff = nt.startTime + nt.gateDur
     float amp = velocityToAmp(nt.velocity) * tr.gain
     int gateSamples = secToSamples(nt.gateDur)
     int releaseSamples = secToSamples(tr.release)
     int totalSamples = gateSamples + releaseSamples
+
+    // Snapshot track params (tr is passed by value, so these are local copies).
+    float attack = tr.attack
+    float decay = tr.decay
+    float sustain = tr.sustain
+    float release = tr.release
+    int waveType = tr.waveType
+    int attackEnd = secToSamples(attack)
+    int decayEnd = attackEnd + secToSamples(decay)
+
+    float invAttack = 0.0
+    if attack > 0.0 then
+        invAttack = 1.0 / attack
+    end
+    float decaySlope = 0.0
+    if decay > 0.0 then
+        decaySlope = (sustain - 1.0) / decay
+    end
+    float releaseInv = 0.0
+    if release > 0.0 then
+        releaseInv = 1.0 / release
+    end
+
+    // Release start level: the envelope value at noteOff.
+    float relLevel = sustain
+    if attack > 0.0 and nt.gateDur < attack then
+        relLevel = nt.gateDur * invAttack
+    elseif decay > 0.0 and nt.gateDur < attack + decay then
+        relLevel = 1.0 + (nt.gateDur - attack) * decaySlope
+    end
+
+    float sr = float(SAMPLE_RATE)
+    float invSr = 1.0 / sr
+
+    // Incremental phase: p += freq/SAMPLE_RATE per sample.
+    float phaseInc = nt.freq / sr
+    float p = nt.phase0 / TWO_PI
+    p = p - math.floor(p)
+
+    // Compute the valid iteration range so no bounds check is needed inside.
+    int endSample = totalSamples
+    if startSample + endSample > outLen then
+        endSample = outLen - startSample
+    end
+    if endSample <= 0 then
+        return totalSamples
+    end
+
     int i = 0
-    while i < totalSamples do
+    while i < endSample do
         int idx = startSample + i
-        if idx < 0 or idx >= outLen then
-            // allow the loop to keep counting i so we return the right length
-            i += 1
-            continue
+
+        // ---- inline ADSR envelope ----
+        float env = 0.0
+        if i < gateSamples then
+            if attack > 0.0 and i < attackEnd then
+                env = float(i) * invSr * invAttack
+            elseif decay > 0.0 and i < decayEnd then
+                env = 1.0 + (float(i) * invSr - attack) * decaySlope
+            else
+                env = sustain
+            end
+        else
+            float rt = float(i - gateSamples) * invSr
+            if rt < release then
+                env = relLevel * (1.0 - rt * releaseInv)
+            end
         end
-        float t = float(idx) / float(SAMPLE_RATE)
-        float env = envelopeLevel(t, noteOn, noteOff, tr.attack, tr.decay,
-                                  tr.sustain, tr.release)
-        float phase = nt.freq * t * TWO_PI + nt.phase0
-        // normalize phase to [0,1)
-        float p = phase / TWO_PI
-        p = p - math.floor(p)
-        float s = oscSample(tr.waveType, p)
-        out[idx] += amp * env * s
+
+        // ---- inline oscillator ----
+        float s = 0.0
+        if waveType == WAVE_SINE then
+            s = math.sin(p * TWO_PI)
+        elseif waveType == WAVE_SQUARE then
+            if p < 0.5 then
+                s = 1.0
+            else
+                s = -1.0
+            end
+        elseif waveType == WAVE_SAW then
+            s = 2.0 * p - 1.0
+        elseif waveType == WAVE_TRIANGLE then
+            if p < 0.25 then
+                s = 4.0 * p
+            elseif p < 0.75 then
+                s = 2.0 - 4.0 * p
+            else
+                s = 4.0 * p - 4.0
+            end
+        end
+
+        out[idx] = out[idx] + amp * env * s
+
+        // advance phase incrementally
+        p = p + phaseInc
+        if p >= 1.0 then
+            p = p - 1.0
+        end
         i += 1
     end
     return totalSamples
@@ -819,12 +903,25 @@ func renderTrack(Track tr, int totalSamples) as array<float>
         array<float> state = array[0.0, 0.0]
         filterHighpass(buf, 0, totalSamples, highpassCoeff(tr.filterCutoff), state)
     end
-    // apply track gain
+    // apply track gain — only needed when the track has drum notes, since
+    // renderPitchedNote already applies tr.gain per pitched note. Skipping
+    // this pass for pitched-only tracks avoids a full-buffer multiply loop.
     if tr.gain != 1.0 then
-        int i = 0
-        while i < totalSamples do
-            buf[i] = buf[i] * tr.gain
-            i += 1
+        bool needGain = false
+        int gk = 0
+        while gk < tr.notes.length do
+            if tr.notes[gk].drumType != DRUM_NONE then
+                needGain = true
+                break
+            end
+            gk += 1
+        end
+        if needGain then
+            int i = 0
+            while i < totalSamples do
+                buf[i] = buf[i] * tr.gain
+                i += 1
+            end
         end
     end
     return buf
@@ -969,10 +1066,25 @@ func buildWavBytes(array<float> samples) as array<int>
     // ---- data subchunk ----
     b = appendTag(b, "data")
     b = appendLE32(b, dataSize)
+    // Inlined PCM conversion + LE16 push to avoid per-sample function calls.
     int i = 0
     while i < numSamples do
-        int v = sampleToInt16(samples[i])
-        b = appendLE16(b, v)
+        float sv = samples[i] * 32767.0
+        if sv > 32767.0 then
+            sv = 32767.0
+        end
+        if sv < -32768.0 then
+            sv = -32768.0
+        end
+        int v
+        if sv >= 0.0 then
+            v = int(sv + 0.5)
+        else
+            v = int(sv - 0.5)
+        end
+        int vv = v & 0xFFFF
+        b.push(vv & 0xFF)
+        b.push((vv >> 8) & 0xFF)
         i += 1
     end
     return b
@@ -1132,7 +1244,7 @@ func parseMidiEvents(string text, int defaultPPQ) as Score
                 end
                 j += 1
             end
-            Track tr = getOrAddTrack(sc, eon.channel)
+            int ti = getOrAddTrackIndex(sc.tracks, eon.channel)
             Note nt = Note()
             nt.startTime = float(eon.tick) * secPerTick
             if found >= 0 then
@@ -1146,7 +1258,7 @@ func parseMidiEvents(string text, int defaultPPQ) as Score
             end
             nt.freq = midiToFreq(eon.note)
             nt.velocity = eon.vel
-            tr.notes.push(nt)
+            sc.tracks[ti].notes.push(nt)
         end
         i += 1
     end
@@ -1280,43 +1392,43 @@ func parseScore(string text) as Score
         elseif cmd == "track" then
             if tok.length >= 2 and looksFloat(tok[1]) then
                 currentTrackIdx = int(float(tok[1]))
-                getOrAddTrack(sc, currentTrackIdx)
+                getOrAddTrackIndex(sc.tracks, currentTrackIdx)
             end
         elseif cmd == "wave" or cmd == "waveform" then
-            Track tr = getOrAddTrack(sc, currentTrackIdx)
+            int ti = getOrAddTrackIndex(sc.tracks, currentTrackIdx)
             if tok.length >= 2 then
-                tr.waveType = waveTypeFromName(tok[1])
+                sc.tracks[ti].waveType = waveTypeFromName(tok[1])
             end
         elseif cmd == "env" or cmd == "adsr" then
-            Track tr = getOrAddTrack(sc, currentTrackIdx)
+            int ti = getOrAddTrackIndex(sc.tracks, currentTrackIdx)
             if tok.length >= 5 then
-                tr.attack  = float(tok[1])
-                tr.decay   = float(tok[2])
-                tr.sustain = clampF(float(tok[3]), 0.0, 1.0)
-                tr.release = float(tok[4])
+                sc.tracks[ti].attack  = float(tok[1])
+                sc.tracks[ti].decay   = float(tok[2])
+                sc.tracks[ti].sustain = clampF(float(tok[3]), 0.0, 1.0)
+                sc.tracks[ti].release = float(tok[4])
             end
         elseif cmd == "gain" then
-            Track tr = getOrAddTrack(sc, currentTrackIdx)
+            int ti = getOrAddTrackIndex(sc.tracks, currentTrackIdx)
             if tok.length >= 2 and looksFloat(tok[1]) then
-                tr.gain = float(tok[1])
+                sc.tracks[ti].gain = float(tok[1])
             end
         elseif cmd == "filter" then
-            Track tr = getOrAddTrack(sc, currentTrackIdx)
+            int ti = getOrAddTrackIndex(sc.tracks, currentTrackIdx)
             if tok.length >= 2 then
                 string f = string.lower(tok[1])
                 if f == "lowpass" or f == "lp" then
-                    tr.filterType = FILT_LOWPASS
+                    sc.tracks[ti].filterType = FILT_LOWPASS
                 elseif f == "highpass" or f == "hp" then
-                    tr.filterType = FILT_HIGHPASS
+                    sc.tracks[ti].filterType = FILT_HIGHPASS
                 else
-                    tr.filterType = FILT_NONE
+                    sc.tracks[ti].filterType = FILT_NONE
                 end
                 if tok.length >= 3 and looksFloat(tok[2]) then
-                    tr.filterCutoff = float(tok[2])
+                    sc.tracks[ti].filterCutoff = float(tok[2])
                 end
             end
         elseif cmd == "note" then
-            Track tr = getOrAddTrack(sc, currentTrackIdx)
+            int ti = getOrAddTrackIndex(sc.tracks, currentTrackIdx)
             if tok.length >= 4 then
                 Note nt = Note()
                 nt.startTime = toSeconds(float(tok[1]), sc)
@@ -1329,7 +1441,7 @@ func parseScore(string text) as Score
                 if tok.length >= 5 and looksFloat(tok[4]) then
                     nt.velocity = int(float(tok[4]))
                 end
-                tr.notes.push(nt)
+                sc.tracks[ti].notes.push(nt)
             end
         elseif cmd == "rest" then
             // no-op placeholder (start/dur encoded purely for readability)
@@ -1343,9 +1455,10 @@ end
 
 // ============================ built-in songs ==============================
 
-// helper: append a pitched note to a track at a cumulative cursor (seconds).
-// returns the new cursor (after the note's gate).
-func addNoteAt(Track tr, float cursor, float dur, string pitch, int vel) as float
+// helper: append a pitched note to tracks[ti] at a cumulative cursor (seconds).
+// returns the new cursor (after the note's gate). takes the tracks array + the
+// array index so the push is visible to the caller (Track is derive value).
+func addNoteAt(array<Track> tracks, int ti, float cursor, float dur, string pitch, int vel) as float
     Note nt = Note()
     nt.startTime = cursor
     nt.gateDur = dur
@@ -1355,7 +1468,7 @@ func addNoteAt(Track tr, float cursor, float dur, string pitch, int vel) as floa
     nt.freq = f
     nt.drumType = dr
     nt.velocity = vel
-    tr.notes.push(nt)
+    tracks[ti].notes.push(nt)
     return cursor + dur
 end
 
@@ -1365,64 +1478,64 @@ func songTwinkle() as Score
     Score sc = Score()
     sc.tempo = 120.0
     sc.unit = UNIT_SECONDS
-    Track tr = getOrAddTrack(sc, 0)
-    tr.waveType = WAVE_TRIANGLE
-    tr.attack = 0.01
-    tr.decay = 0.08
-    tr.sustain = 0.7
-    tr.release = 0.18
-    tr.gain = 0.7
+    int ti = getOrAddTrackIndex(sc.tracks, 0)
+    sc.tracks[ti].waveType = WAVE_TRIANGLE
+    sc.tracks[ti].attack = 0.01
+    sc.tracks[ti].decay = 0.08
+    sc.tracks[ti].sustain = 0.7
+    sc.tracks[ti].release = 0.18
+    sc.tracks[ti].gain = 0.7
     float q = 0.5       // quarter
     float h = 1.0       // half
     float c = 0.0
     // phrase 1
-    c = addNoteAt(tr, c, q, "C4", 100)
-    c = addNoteAt(tr, c, q, "C4", 100)
-    c = addNoteAt(tr, c, q, "G4", 100)
-    c = addNoteAt(tr, c, q, "G4", 100)
-    c = addNoteAt(tr, c, q, "A4", 100)
-    c = addNoteAt(tr, c, q, "A4", 100)
-    c = addNoteAt(tr, c, h, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "C4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "C4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "A4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "A4", 100)
+    c = addNoteAt(sc.tracks, ti, c, h, "G4", 100)
     // phrase 2
-    c = addNoteAt(tr, c, q, "F4", 100)
-    c = addNoteAt(tr, c, q, "F4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, q, "D4", 100)
-    c = addNoteAt(tr, c, q, "D4", 100)
-    c = addNoteAt(tr, c, h, "C4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "F4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "F4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, h, "C4", 100)
     // phrase 3
-    c = addNoteAt(tr, c, q, "G4", 100)
-    c = addNoteAt(tr, c, q, "G4", 100)
-    c = addNoteAt(tr, c, q, "F4", 100)
-    c = addNoteAt(tr, c, q, "F4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, h, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "F4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "F4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, h, "D4", 100)
     // phrase 4
-    c = addNoteAt(tr, c, q, "G4", 100)
-    c = addNoteAt(tr, c, q, "G4", 100)
-    c = addNoteAt(tr, c, q, "F4", 100)
-    c = addNoteAt(tr, c, q, "F4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, h, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "F4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "F4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, h, "D4", 100)
     // phrase 1 (repeat)
-    c = addNoteAt(tr, c, q, "C4", 100)
-    c = addNoteAt(tr, c, q, "C4", 100)
-    c = addNoteAt(tr, c, q, "G4", 100)
-    c = addNoteAt(tr, c, q, "G4", 100)
-    c = addNoteAt(tr, c, q, "A4", 100)
-    c = addNoteAt(tr, c, q, "A4", 100)
-    c = addNoteAt(tr, c, h, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "C4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "C4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "A4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "A4", 100)
+    c = addNoteAt(sc.tracks, ti, c, h, "G4", 100)
     // phrase 2 (repeat)
-    c = addNoteAt(tr, c, q, "F4", 100)
-    c = addNoteAt(tr, c, q, "F4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, q, "D4", 100)
-    c = addNoteAt(tr, c, q, "D4", 100)
-    c = addNoteAt(tr, c, h, "C4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "F4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "F4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, h, "C4", 100)
     return sc
 end
 
@@ -1431,48 +1544,48 @@ func songOdeToJoy() as Score
     Score sc = Score()
     sc.tempo = 120.0
     sc.unit = UNIT_SECONDS
-    Track tr = getOrAddTrack(sc, 0)
-    tr.waveType = WAVE_SINE
-    tr.attack = 0.02
-    tr.decay = 0.10
-    tr.sustain = 0.75
-    tr.release = 0.22
-    tr.gain = 0.65
+    int ti = getOrAddTrackIndex(sc.tracks, 0)
+    sc.tracks[ti].waveType = WAVE_SINE
+    sc.tracks[ti].attack = 0.02
+    sc.tracks[ti].decay = 0.10
+    sc.tracks[ti].sustain = 0.75
+    sc.tracks[ti].release = 0.22
+    sc.tracks[ti].gain = 0.65
     float q = 0.5
     float h = 1.0
     float c = 0.0
     // phrase A
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, q, "F4", 100)
-    c = addNoteAt(tr, c, q, "G4", 100)
-    c = addNoteAt(tr, c, q, "G4", 100)
-    c = addNoteAt(tr, c, q, "F4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, q, "D4", 100)
-    c = addNoteAt(tr, c, q, "C4", 100)
-    c = addNoteAt(tr, c, q, "C4", 100)
-    c = addNoteAt(tr, c, q, "D4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, h + q * 0.5, "E4", 100)   // dotted half-ish
-    c = addNoteAt(tr, c, q * 0.5, "D4", 100)
-    c = addNoteAt(tr, c, h, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "F4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "F4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "C4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "C4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, h + q * 0.5, "E4", 100)   // dotted half-ish
+    c = addNoteAt(sc.tracks, ti, c, q * 0.5, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, h, "D4", 100)
     // phrase A (repeat)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, q, "F4", 100)
-    c = addNoteAt(tr, c, q, "G4", 100)
-    c = addNoteAt(tr, c, q, "G4", 100)
-    c = addNoteAt(tr, c, q, "F4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, q, "D4", 100)
-    c = addNoteAt(tr, c, q, "C4", 100)
-    c = addNoteAt(tr, c, q, "C4", 100)
-    c = addNoteAt(tr, c, q, "D4", 100)
-    c = addNoteAt(tr, c, q, "E4", 100)
-    c = addNoteAt(tr, c, h + q * 0.5, "D4", 100)
-    c = addNoteAt(tr, c, q * 0.5, "C4", 100)
-    c = addNoteAt(tr, c, h, "C4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "F4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "G4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "F4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "C4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "C4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q, "E4", 100)
+    c = addNoteAt(sc.tracks, ti, c, h + q * 0.5, "D4", 100)
+    c = addNoteAt(sc.tracks, ti, c, q * 0.5, "C4", 100)
+    c = addNoteAt(sc.tracks, ti, c, h, "C4", 100)
     return sc
 end
 
@@ -1483,21 +1596,21 @@ func songDrums() as Score
     sc.unit = UNIT_SECONDS
     float eighth = 0.25       // 0.25s = 1/8 note at 120 BPM
     // hihat track (closed hat on every eighth)
-    Track hat = getOrAddTrack(sc, 0)
-    hat.waveType = WAVE_NOISE
-    hat.attack = 0.001
-    hat.decay = 0.02
-    hat.sustain = 0.0
-    hat.release = 0.03
-    hat.gain = 0.45
+    int hatIdx = getOrAddTrackIndex(sc.tracks, 0)
+    sc.tracks[hatIdx].waveType = WAVE_NOISE
+    sc.tracks[hatIdx].attack = 0.001
+    sc.tracks[hatIdx].decay = 0.02
+    sc.tracks[hatIdx].sustain = 0.0
+    sc.tracks[hatIdx].release = 0.03
+    sc.tracks[hatIdx].gain = 0.45
     // kick + snare track
-    Track ks = getOrAddTrack(sc, 1)
-    ks.waveType = WAVE_NOISE
-    ks.attack = 0.001
-    ks.decay = 0.05
-    ks.sustain = 0.0
-    ks.release = 0.10
-    ks.gain = 0.9
+    int ksIdx = getOrAddTrackIndex(sc.tracks, 1)
+    sc.tracks[ksIdx].waveType = WAVE_NOISE
+    sc.tracks[ksIdx].attack = 0.001
+    sc.tracks[ksIdx].decay = 0.05
+    sc.tracks[ksIdx].sustain = 0.0
+    sc.tracks[ksIdx].release = 0.10
+    sc.tracks[ksIdx].gain = 0.9
     int bars = 4
     int bar = 0
     while bar < bars do
@@ -1511,7 +1624,7 @@ func songDrums() as Score
             hn.gateDur = eighth * 0.9
             hn.drumType = DRUM_HIHAT
             hn.velocity = 70
-            hat.notes.push(hn)
+            sc.tracks[hatIdx].notes.push(hn)
             // kick on e0 and e4 (beats 1 and 3)
             if e == 0 or e == 4 then
                 Note kn = Note()
@@ -1519,7 +1632,7 @@ func songDrums() as Score
                 kn.gateDur = eighth * 1.6
                 kn.drumType = DRUM_KICK
                 kn.velocity = 120
-                ks.notes.push(kn)
+                sc.tracks[ksIdx].notes.push(kn)
             end
             // snare on e2 and e6 (beats 2 and 4 / backbeat)
             if e == 2 or e == 6 then
@@ -1528,7 +1641,7 @@ func songDrums() as Score
                 sn.gateDur = eighth * 1.2
                 sn.drumType = DRUM_SNARE
                 sn.velocity = 110
-                ks.notes.push(sn)
+                sc.tracks[ksIdx].notes.push(sn)
             end
             e += 1
         end
@@ -1542,15 +1655,15 @@ end
 func songMix() as Score
     Score base = songTwinkle()
     // bass track: one low root per bar following the melody phrase roots
-    Track bass = getOrAddTrack(base, 1)
-    bass.waveType = WAVE_SAW
-    bass.attack = 0.02
-    bass.decay = 0.10
-    bass.sustain = 0.6
-    bass.release = 0.20
-    bass.gain = 0.35
-    bass.filterType = FILT_LOWPASS
-    bass.filterCutoff = 600.0
+    int bassIdx = getOrAddTrackIndex(base.tracks, 1)
+    base.tracks[bassIdx].waveType = WAVE_SAW
+    base.tracks[bassIdx].attack = 0.02
+    base.tracks[bassIdx].decay = 0.10
+    base.tracks[bassIdx].sustain = 0.6
+    base.tracks[bassIdx].release = 0.20
+    base.tracks[bassIdx].gain = 0.35
+    base.tracks[bassIdx].filterType = FILT_LOWPASS
+    base.tracks[bassIdx].filterCutoff = 600.0
     float bar = 2.0      // 2s per bar (4 quarter notes)
     int i = 0
     array<string> roots = array["C3", "C3", "G3", "G3", "F3", "F3", "C3", "C3"]
@@ -1560,17 +1673,17 @@ func songMix() as Score
         nt.gateDur = bar * 0.9
         nt.freq = noteNameToFreq(roots[i])
         nt.velocity = 95
-        bass.notes.push(nt)
+        base.tracks[bassIdx].notes.push(nt)
         i += 1
     end
     // light drums: kick on each beat over the first 4 bars
-    Track ks = getOrAddTrack(base, 2)
-    ks.waveType = WAVE_NOISE
-    ks.attack = 0.001
-    ks.decay = 0.05
-    ks.sustain = 0.0
-    ks.release = 0.10
-    ks.gain = 0.5
+    int ksIdx = getOrAddTrackIndex(base.tracks, 2)
+    base.tracks[ksIdx].waveType = WAVE_NOISE
+    base.tracks[ksIdx].attack = 0.001
+    base.tracks[ksIdx].decay = 0.05
+    base.tracks[ksIdx].sustain = 0.0
+    base.tracks[ksIdx].release = 0.10
+    base.tracks[ksIdx].gain = 0.5
     int beats = 32
     int b = 0
     while b < beats do
@@ -1581,14 +1694,14 @@ func songMix() as Score
             kn.gateDur = 0.4
             kn.drumType = DRUM_KICK
             kn.velocity = 90
-            ks.notes.push(kn)
+            base.tracks[ksIdx].notes.push(kn)
         else
             Note sn = Note()
             sn.startTime = t
             sn.gateDur = 0.3
             sn.drumType = DRUM_SNARE
             sn.velocity = 80
-            ks.notes.push(sn)
+            base.tracks[ksIdx].notes.push(sn)
         end
         b += 1
     end
@@ -1742,18 +1855,17 @@ end
 // verifies the WAV headers parse back correctly.
 // ===========================================================================
 
-// a tiny test counter helper
-class TestRun
-    int passed = 0
-    int failed = 0
-end
+// test counters (globals — passing a class instance to check() would copy it
+// because all xlang classes have value semantics, losing the increments).
+int g_test_pass = 0
+int g_test_fail = 0
 
-func check(TestRun r, bool cond, string label)
+func check(bool cond, string label)
     if cond then
-        r.passed += 1
+        g_test_pass += 1
         println("  [ OK ] " + label)
     else
-        r.failed += 1
+        g_test_fail += 1
         println("  [FAIL] " + label)
     end
 end
@@ -1767,49 +1879,50 @@ func approxEq(float a, float b, float eps) as bool
 end
 
 func cmdTest() as int
-    TestRun r = TestRun()
+    g_test_pass = 0
+    g_test_fail = 0
     println("xaudio self-test")
     println("================================================================")
 
     // ---- [1] note / frequency system ----
     println("[1] note / frequency system")
-    check(r, approxEq(noteNameToFreq("A4"), 440.0, 0.01), "A4 == 440 Hz")
-    check(r, noteNameToMidi("A4") == 69, "A4 -> MIDI 69")
-    check(r, noteNameToMidi("C4") == 60, "C4 -> MIDI 60")
-    check(r, noteNameToMidi("C5") == 72, "C5 -> MIDI 72")
-    check(r, noteNameToMidi("A#4") == 70, "A#4 -> MIDI 70")
-    check(r, noteNameToMidi("Db4") == 61, "Db4 -> MIDI 61")
-    check(r, noteNameToMidi("B3") == 59, "B3 -> MIDI 59")
-    check(r, approxEq(midiToFreq(69), 440.0, 0.01), "midi 69 -> 440 Hz")
-    check(r, approxEq(midiToFreq(81), 880.0, 0.01), "midi 81 (A5) -> 880 Hz")
-    check(r, approxEq(midiToFreq(57), 220.0, 0.01), "midi 57 (A3) -> 220 Hz")
+    check(approxEq(noteNameToFreq("A4"), 440.0, 0.01), "A4 == 440 Hz")
+    check(noteNameToMidi("A4") == 69, "A4 -> MIDI 69")
+    check(noteNameToMidi("C4") == 60, "C4 -> MIDI 60")
+    check(noteNameToMidi("C5") == 72, "C5 -> MIDI 72")
+    check(noteNameToMidi("A#4") == 70, "A#4 -> MIDI 70")
+    check(noteNameToMidi("Db4") == 61, "Db4 -> MIDI 61")
+    check(noteNameToMidi("B3") == 59, "B3 -> MIDI 59")
+    check(approxEq(midiToFreq(69), 440.0, 0.01), "midi 69 -> 440 Hz")
+    check(approxEq(midiToFreq(81), 880.0, 0.01), "midi 81 (A5) -> 880 Hz")
+    check(approxEq(midiToFreq(57), 220.0, 0.01), "midi 57 (A3) -> 220 Hz")
     // equal temperament: one octave up doubles the frequency
-    check(r, approxEq(midiToFreq(69) * 2.0, midiToFreq(81), 0.01), "octave doubles frequency")
+    check(approxEq(midiToFreq(69) * 2.0, midiToFreq(81), 0.01), "octave doubles frequency")
     // freqToMidi round trip
-    check(r, freqToMidi(440.0) == 69, "freq 440 -> MIDI 69")
-    check(r, freqToMidi(261.63) == 60, "freq 261.63 -> MIDI 60 (C4)")
+    check(freqToMidi(440.0) == 69, "freq 440 -> MIDI 69")
+    check(freqToMidi(261.63) == 60, "freq 261.63 -> MIDI 60 (C4)")
     // scale build
     array<int> cMajor = buildScale(60, MAJOR_SCALE, 1)
-    check(r, cMajor.length == 8, "C major scale has 8 notes")
-    check(r, cMajor[0] == 60 and cMajor[7] == 72, "C major spans C4..C5")
+    check(cMajor.length == 8, "C major scale has 8 notes")
+    check(cMajor[0] == 60 and cMajor[7] == 72, "C major spans C4..C5")
     // tempo conversion
-    check(r, approxEq(tempoToBPM(500000.0), 120.0, 0.001), "tempo 500000 -> 120 BPM")
-    check(r, approxEq(bpmToTempo(120.0), 500000.0, 0.001), "120 BPM -> tempo 500000")
+    check(approxEq(tempoToBPM(500000.0), 120.0, 0.001), "tempo 500000 -> 120 BPM")
+    check(approxEq(bpmToTempo(120.0), 500000.0, 0.001), "120 BPM -> tempo 500000")
 
     // ---- [2] oscillators ----
     println("[2] oscillators")
     // sine ranges within [-1,1] and equals 0 at phase 0, +1 at 0.25
-    check(r, approxEq(oscSine(0.0), 0.0, 1e-6), "sine(0) == 0")
-    check(r, approxEq(oscSine(0.25), 1.0, 1e-6), "sine(0.25) == +1")
-    check(r, approxEq(oscSine(0.5), 0.0, 1e-6), "sine(0.5) == 0")
-    check(r, approxEq(oscSine(0.75), -1.0, 1e-6), "sine(0.75) == -1")
-    check(r, oscSquare(0.1) == 1.0 and oscSquare(0.6) == -1.0, "square +/-1 halves")
-    check(r, approxEq(oscSaw(0.0), -1.0, 1e-6), "saw(0) == -1")
-    check(r, approxEq(oscSaw(0.5), 0.0, 1e-6), "saw(0.5) == 0")
-    check(r, approxEq(oscSaw(0.999), 1.0, 0.01), "saw(1-) ~= +1")
-    check(r, approxEq(oscTriangle(0.25), 1.0, 1e-6), "triangle peak at 0.25")
-    check(r, approxEq(oscTriangle(0.75), -1.0, 1e-6), "triangle trough at 0.75")
-    check(r, approxEq(oscTriangle(0.0), 0.0, 1e-6), "triangle(0) == 0")
+    check(approxEq(oscSine(0.0), 0.0, 1e-6), "sine(0) == 0")
+    check(approxEq(oscSine(0.25), 1.0, 1e-6), "sine(0.25) == +1")
+    check(approxEq(oscSine(0.5), 0.0, 1e-6), "sine(0.5) == 0")
+    check(approxEq(oscSine(0.75), -1.0, 1e-6), "sine(0.75) == -1")
+    check(oscSquare(0.1) == 1.0 and oscSquare(0.6) == -1.0, "square +/-1 halves")
+    check(approxEq(oscSaw(0.0), -1.0, 1e-6), "saw(0) == -1")
+    check(approxEq(oscSaw(0.5), 0.0, 1e-6), "saw(0.5) == 0")
+    check(approxEq(oscSaw(0.999), 1.0, 0.01), "saw(1-) ~= +1")
+    check(approxEq(oscTriangle(0.25), 1.0, 1e-6), "triangle peak at 0.25")
+    check(approxEq(oscTriangle(0.75), -1.0, 1e-6), "triangle trough at 0.75")
+    check(approxEq(oscTriangle(0.0), 0.0, 1e-6), "triangle(0) == 0")
     // noise within [-1,1]
     bool noiseOk = true
     int i = 0
@@ -1820,11 +1933,11 @@ func cmdTest() as int
         end
         i += 1
     end
-    check(r, noiseOk, "noise stays within [-1,1]")
+    check(noiseOk, "noise stays within [-1,1]")
     // dispatch
-    check(r, waveTypeFromName("SQUARE") == WAVE_SQUARE, "wave name square")
-    check(r, waveTypeFromName("sawtooth") == WAVE_SAW, "wave name sawtooth")
-    check(r, waveName(WAVE_TRIANGLE) == "triangle", "wave id -> name")
+    check(waveTypeFromName("SQUARE") == WAVE_SQUARE, "wave name square")
+    check(waveTypeFromName("sawtooth") == WAVE_SAW, "wave name sawtooth")
+    check(waveName(WAVE_TRIANGLE) == "triangle", "wave id -> name")
 
     // ---- [3] ADSR envelope ----
     println("[3] ADSR envelope")
@@ -1835,23 +1948,23 @@ func cmdTest() as int
     float R = 0.2
     float onT = 1.0
     float offT = 2.0
-    check(r, approxEq(envelopeLevel(onT + 0.0, onT, -1.0, A, D, S, R), 0.0, 1e-6), "env at note-on start == 0")
-    check(r, approxEq(envelopeLevel(onT + A, onT, -1.0, A, D, S, R), 1.0, 1e-6), "env at end of attack == 1")
-    check(r, approxEq(envelopeLevel(onT + A + D, onT, -1.0, A, D, S, R), S, 1e-6), "env at end of decay == sustain")
-    check(r, approxEq(envelopeLevel(onT + 1.0, onT, -1.0, A, D, S, R), S, 1e-6), "env holds at sustain")
+    check(approxEq(envelopeLevel(onT + 0.0, onT, -1.0, A, D, S, R), 0.0, 1e-6), "env at note-on start == 0")
+    check(approxEq(envelopeLevel(onT + A, onT, -1.0, A, D, S, R), 1.0, 1e-6), "env at end of attack == 1")
+    check(approxEq(envelopeLevel(onT + A + D, onT, -1.0, A, D, S, R), S, 1e-6), "env at end of decay == sustain")
+    check(approxEq(envelopeLevel(onT + 1.0, onT, -1.0, A, D, S, R), S, 1e-6), "env holds at sustain")
     // release falls from sustain to 0 over R seconds
-    check(r, approxEq(envelopeLevel(offT + 0.0, onT, offT, A, D, S, R), S, 1e-6), "release start == sustain")
-    check(r, approxEq(envelopeLevel(offT + R, onT, offT, A, D, S, R), 0.0, 1e-6), "release end == 0")
-    check(r, approxEq(envelopeLevel(offT + R / 2.0, onT, offT, A, D, S, R), S * 0.5, 1e-6), "release mid == sustain/2")
-    check(r, envelopeLevel(onT - 0.5, onT, -1.0, A, D, S, R) == 0.0, "env before note-on == 0")
+    check(approxEq(envelopeLevel(offT + 0.0, onT, offT, A, D, S, R), S, 1e-6), "release start == sustain")
+    check(approxEq(envelopeLevel(offT + R, onT, offT, A, D, S, R), 0.0, 1e-6), "release end == 0")
+    check(approxEq(envelopeLevel(offT + R / 2.0, onT, offT, A, D, S, R), S * 0.5, 1e-6), "release mid == sustain/2")
+    check(envelopeLevel(onT - 0.5, onT, -1.0, A, D, S, R) == 0.0, "env before note-on == 0")
 
     // ---- [4] filters ----
     println("[4] filters")
     // a low-pass coefficient is in (0,1) and grows with cutoff
     float aLow = lowpassCoeff(500.0)
     float aHigh = lowpassCoeff(5000.0)
-    check(r, aLow > 0.0 and aLow < 1.0, "lowpass coeff in (0,1)")
-    check(r, aHigh > aLow, "higher cutoff -> larger lp coeff")
+    check(aLow > 0.0 and aLow < 1.0, "lowpass coeff in (0,1)")
+    check(aHigh > aLow, "higher cutoff -> larger lp coeff")
     // apply low-pass to a DC step: output should monotonically approach input
     array<float> step = makeFloatBuf(100)
     int j = 0
@@ -1861,8 +1974,8 @@ func cmdTest() as int
     end
     array<float> stState = array[0.0]
     filterLowpass(step, 0, 100, lowpassCoeff(1000.0), stState)
-    check(r, step[0] < 0.5 and step[99] > 0.9, "low-pass smooths a step up toward 1")
-    check(r, step[99] >= step[0], "low-pass output is monotone increasing here")
+    check(step[0] < 0.5 and step[99] > 0.9, "low-pass smooths a step up toward 1")
+    check(step[99] >= step[0], "low-pass output is monotone increasing here")
     // high-pass on a constant signal drives it toward 0
     array<float> dc = makeFloatBuf(200)
     int k = 0
@@ -1872,9 +1985,9 @@ func cmdTest() as int
     end
     array<float> hpState = array[0.0, 0.0]
     filterHighpass(dc, 0, 200, highpassCoeff(500.0), hpState)
-    check(r, dc[199] < 0.05, "high-pass rejects DC (tail near 0)")
+    check(dc[199] < 0.05, "high-pass rejects DC (tail near 0)")
     // high-pass preserves a fast transition
-    check(r, dc[0] > 0.0, "high-pass initial response is non-zero")
+    check(dc[0] > 0.0, "high-pass initial response is non-zero")
 
     // ---- [5] WAV header build + parse round-trip ----
     println("[5] WAV encode / decode round-trip")
@@ -1886,51 +1999,51 @@ func cmdTest() as int
     end
     array<int> wavBytes = buildWavBytes(probe)
     int expectedLen = 44 + 1000 * CHANNELS * (BIT_DEPTH / 8)
-    check(r, wavBytes.length == expectedLen, "wav byte length == 44 + data")
+    check(wavBytes.length == expectedLen, "wav byte length == 44 + data")
     // RIFF tag
-    check(r, wavBytes[0] == 0x52 and wavBytes[1] == 0x49 and
+    check(wavBytes[0] == 0x52 and wavBytes[1] == 0x49 and
           wavBytes[2] == 0x46 and wavBytes[3] == 0x46, "RIFF tag present")
     // WAVE tag
-    check(r, wavBytes[8] == 0x57 and wavBytes[9] == 0x41 and
+    check(wavBytes[8] == 0x57 and wavBytes[9] == 0x41 and
           wavBytes[10] == 0x56 and wavBytes[11] == 0x45, "WAVE tag present")
     // fmt / data tags
-    check(r, wavBytes[12] == 0x66 and wavBytes[13] == 0x6D and
+    check(wavBytes[12] == 0x66 and wavBytes[13] == 0x6D and
           wavBytes[14] == 0x74 and wavBytes[15] == 0x20, "fmt tag present")
-    check(r, wavBytes[36] == 0x64 and wavBytes[37] == 0x61 and
+    check(wavBytes[36] == 0x64 and wavBytes[37] == 0x61 and
           wavBytes[38] == 0x74 and wavBytes[39] == 0x61, "data tag present")
     // audio format == 1 (PCM), 16-bit
-    check(r, wavBytes[20] == 1 and wavBytes[21] == 0, "audio format == PCM(1)")
-    check(r, wavBytes[34] == 16 and wavBytes[35] == 0, "bits per sample == 16")
+    check(wavBytes[20] == 1 and wavBytes[21] == 0, "audio format == PCM(1)")
+    check(wavBytes[34] == 16 and wavBytes[35] == 0, "bits per sample == 16")
     // sample rate little-endian 44100 == 0xAC44
-    check(r, wavBytes[24] == 0x44 and wavBytes[25] == 0xAC, "sample rate == 44100 LE")
+    check(wavBytes[24] == 0x44 and wavBytes[25] == 0xAC, "sample rate == 44100 LE")
     // data size == 2000 bytes
     int dSize = wavBytes[40] | (wavBytes[41] << 8) | (wavBytes[42] << 16) | (wavBytes[43] << 24)
-    check(r, dSize == 2000, "data subchunk size == 2000")
+    check(dSize == 2000, "data subchunk size == 2000")
 
     // ---- [6] render a short tone & write+read a WAV file ----
     println("[6] render -> file round-trip")
     string tmpDir = path.temp()
     string tonePath = path.join(tmpDir, "xaudio_test_tone.wav")
     Score sc = Score()
-    Track tr = getOrAddTrack(sc, 0)
-    tr.waveType = WAVE_SINE
-    tr.attack = 0.01
-    tr.decay = 0.05
-    tr.sustain = 0.8
-    tr.release = 0.10
-    tr.gain = 0.6
+    int ti6 = getOrAddTrackIndex(sc.tracks, 0)
+    sc.tracks[ti6].waveType = WAVE_SINE
+    sc.tracks[ti6].attack = 0.01
+    sc.tracks[ti6].decay = 0.05
+    sc.tracks[ti6].sustain = 0.8
+    sc.tracks[ti6].release = 0.10
+    sc.tracks[ti6].gain = 0.6
     Note nt = Note()
     nt.startTime = 0.0
     nt.gateDur = 0.3
     nt.freq = 440.0
     nt.velocity = 100
-    tr.notes.push(nt)
+    sc.tracks[ti6].notes.push(nt)
     bool ok
     int nSamples
     float peak
     ok, nSamples, peak = renderScoreToWav(sc, tonePath)
-    check(r, ok, "tone rendered + written")
-    check(r, file.exists(tonePath), "wav file exists on disk")
+    check(ok, "tone rendered + written")
+    check(file.exists(tonePath), "wav file exists on disk")
     // read back the header
     bool hdrOk = false
     int srBack = 0
@@ -1945,38 +2058,38 @@ func cmdTest() as int
     catch e
         hdrOk = false
     end
-    check(r, hdrOk, "written wav header parses back (sr/ch/bits)")
-    check(r, sizeBack > 0, "written wav data size > 0")
+    check(hdrOk, "written wav header parses back (sr/ch/bits)")
+    check(sizeBack > 0, "written wav data size > 0")
 
     // ---- [7] sequencer: multi-track mixdown ----
     println("[7] sequencer / mixdown")
     Score multi = Score()
-    Track t0 = getOrAddTrack(multi, 0)
-    t0.waveType = WAVE_SINE
-    t0.release = 0.1
+    int t0i = getOrAddTrackIndex(multi.tracks, 0)
+    multi.tracks[t0i].waveType = WAVE_SINE
+    multi.tracks[t0i].release = 0.1
     Note n0a = Note()
     n0a.startTime = 0.0
     n0a.gateDur = 0.5
     n0a.freq = 440.0
     n0a.velocity = 100
-    t0.notes.push(n0a)
+    multi.tracks[t0i].notes.push(n0a)
     Note n0b = Note()
     n0b.startTime = 0.5
     n0b.gateDur = 0.5
     n0b.freq = 660.0
     n0b.velocity = 100
-    t0.notes.push(n0b)
-    Track t1 = getOrAddTrack(multi, 1)
-    t1.waveType = WAVE_TRIANGLE
-    t1.release = 0.1
+    multi.tracks[t0i].notes.push(n0b)
+    int t1i = getOrAddTrackIndex(multi.tracks, 1)
+    multi.tracks[t1i].waveType = WAVE_TRIANGLE
+    multi.tracks[t1i].release = 0.1
     Note n1 = Note()
     n1.startTime = 0.0
     n1.gateDur = 1.0
     n1.freq = 220.0
     n1.velocity = 90
-    t1.notes.push(n1)
+    multi.tracks[t1i].notes.push(n1)
     array<float> mix = mixdown(multi)
-    check(r, mix.length > SAMPLE_RATE, "mixdown buffer longer than 1s")
+    check(mix.length > SAMPLE_RATE, "mixdown buffer longer than 1s")
     float mixPeak = 0.0
     int mi = 0
     while mi < mix.length do
@@ -1989,9 +2102,9 @@ func cmdTest() as int
         end
         mi += 1
     end
-    check(r, mixPeak > 0.0, "mixdown produced non-zero output")
+    check(mixPeak > 0.0, "mixdown produced non-zero output")
     float dur = scoreDuration(multi)
-    check(r, dur >= 1.0, "score duration >= 1.0s")
+    check(dur >= 1.0, "score duration >= 1.0s")
 
     // ---- [8] score parser ----
     println("[8] score parser")
@@ -2007,17 +2120,17 @@ func cmdTest() as int
                        "filter lowpass 800\n" +
                        "note 0.0 0.25 kick 120\n")
     Score parsed = parseScore(scoreText)
-    check(r, parsed.tracks.length == 2, "parser created 2 tracks")
-    check(r, parsed.tracks[0].waveType == WAVE_SINE, "track 0 wave == sine")
-    check(r, parsed.tracks[1].waveType == WAVE_NOISE, "track 1 wave == noise")
-    check(r, parsed.tracks[0].notes.length == 2, "track 0 has 2 notes")
-    check(r, parsed.tracks[1].filterType == FILT_LOWPASS, "track 1 has lowpass")
-    check(r, parsed.tracks[1].notes[0].drumType == DRUM_KICK, "track 1 note 0 is kick")
-    check(r, approxEq(parsed.tracks[0].notes[0].freq, noteNameToFreq("C4"), 0.01), "parsed C4 freq")
+    check(parsed.tracks.length == 2, "parser created 2 tracks")
+    check(parsed.tracks[0].waveType == WAVE_SINE, "track 0 wave == sine")
+    check(parsed.tracks[1].waveType == WAVE_NOISE, "track 1 wave == noise")
+    check(parsed.tracks[0].notes.length == 2, "track 0 has 2 notes")
+    check(parsed.tracks[1].filterType == FILT_LOWPASS, "track 1 has lowpass")
+    check(parsed.tracks[1].notes[0].drumType == DRUM_KICK, "track 1 note 0 is kick")
+    check(approxEq(parsed.tracks[0].notes[0].freq, noteNameToFreq("C4"), 0.01), "parsed C4 freq")
     // unit beats conversion
     Score beatScore = parseScore("tempo 60\nunit beats\nnote 0 4 A4 100\n")
-    check(r, approxEq(beatScore.tracks[0].notes[0].startTime, 0.0, 1e-6), "beat start 0 == 0s")
-    check(r, approxEq(beatScore.tracks[0].notes[0].gateDur, 4.0, 1e-6), "4 beats @60BPM == 4s")
+    check(approxEq(beatScore.tracks[0].notes[0].startTime, 0.0, 1e-6), "beat start 0 == 0s")
+    check(approxEq(beatScore.tracks[0].notes[0].gateDur, 4.0, 1e-6), "4 beats @60BPM == 4s")
 
     // ---- [9] MIDI event parser ----
     println("[9] MIDI event parser")
@@ -2028,24 +2141,24 @@ func cmdTest() as int
                       "480 0 on 72 100\n" +    // C5 on  at t=0.5
                       "960 0 off 72 0\n")      // C5 off at t=1.0
     Score msc = parseMidiEvents(midiText, 480)
-    check(r, msc.tracks.length == 1, "midi -> 1 track (channel 0)")
-    check(r, msc.tracks[0].notes.length == 2, "midi -> 2 notes")
-    check(r, approxEq(msc.tracks[0].notes[0].startTime, 0.0, 1e-6), "midi note 0 starts at 0s")
-    check(r, approxEq(msc.tracks[0].notes[0].gateDur, 0.5, 1e-6), "midi note 0 dur 0.5s")
-    check(r, approxEq(msc.tracks[0].notes[1].startTime, 0.5, 1e-6), "midi note 1 starts at 0.5s")
-    check(r, approxEq(msc.tracks[0].notes[0].freq, 440.0, 0.01), "midi A4 == 440 Hz")
-    check(r, approxEq(msc.tempo, 120.0, 0.001), "midi tempo -> 120 BPM")
+    check(msc.tracks.length == 1, "midi -> 1 track (channel 0)")
+    check(msc.tracks[0].notes.length == 2, "midi -> 2 notes")
+    check(approxEq(msc.tracks[0].notes[0].startTime, 0.0, 1e-6), "midi note 0 starts at 0s")
+    check(approxEq(msc.tracks[0].notes[0].gateDur, 0.5, 1e-6), "midi note 0 dur 0.5s")
+    check(approxEq(msc.tracks[0].notes[1].startTime, 0.5, 1e-6), "midi note 1 starts at 0.5s")
+    check(approxEq(msc.tracks[0].notes[0].freq, 440.0, 0.01), "midi A4 == 440 Hz")
+    check(approxEq(msc.tempo, 120.0, 0.001), "midi tempo -> 120 BPM")
 
     // ---- [10] built-in songs ----
     println("[10] built-in songs")
     Score tw = songTwinkle()
-    check(r, tw.tracks.length == 1, "twinkle has 1 track")
-    check(r, tw.tracks[0].notes.length > 10, "twinkle has many notes")
-    check(r, scoreDuration(tw) > 5.0, "twinkle duration > 5s")
+    check(tw.tracks.length == 1, "twinkle has 1 track")
+    check(tw.tracks[0].notes.length > 10, "twinkle has many notes")
+    check(scoreDuration(tw) > 5.0, "twinkle duration > 5s")
     Score joy = songOdeToJoy()
-    check(r, joy.tracks[0].notes.length > 10, "ode-to-joy has many notes")
+    check(joy.tracks[0].notes.length > 10, "ode-to-joy has many notes")
     Score drm = songDrums()
-    check(r, drm.tracks.length == 2, "drums has 2 tracks (hat + kick/snare)")
+    check(drm.tracks.length == 2, "drums has 2 tracks (hat + kick/snare)")
     bool drumHasKick = false
     bool drumHasSnare = false
     int di = 0
@@ -2058,15 +2171,15 @@ func cmdTest() as int
         end
         di += 1
     end
-    check(r, drumHasKick and drumHasSnare, "drums contain kick + snare")
+    check(drumHasKick and drumHasSnare, "drums contain kick + snare")
     Score mx = songMix()
-    check(r, mx.tracks.length == 3, "mix has 3 tracks (melody + bass + drums)")
+    check(mx.tracks.length == 3, "mix has 3 tracks (melody + bass + drums)")
 
     // ---- [11] drum synthesis ----
     println("[11] drum synthesis")
     array<float> drumOut = makeFloatBuf(SAMPLE_RATE)
     int written = renderDrum(DRUM_KICK, 120, 0, drumOut, SAMPLE_RATE)
-    check(r, written > 0, "kick renders >0 samples")
+    check(written > 0, "kick renders >0 samples")
     bool kickHasSignal = false
     int ki = 0
     while ki < written do
@@ -2075,9 +2188,9 @@ func cmdTest() as int
         end
         ki += 1
     end
-    check(r, kickHasSignal, "kick output is non-zero")
+    check(kickHasSignal, "kick output is non-zero")
     int snWritten = renderDrum(DRUM_SNARE, 110, 1000, drumOut, SAMPLE_RATE)
-    check(r, snWritten > 0, "snare renders >0 samples")
+    check(snWritten > 0, "snare renders >0 samples")
 
     // ---- [12] full demo render to temp (twinkle) ----
     println("[12] full demo render")
@@ -2086,17 +2199,17 @@ func cmdTest() as int
     int twN
     float twPeak
     twOk, twN, twPeak = renderScoreToWav(songTwinkle(), twPath)
-    check(r, twOk, "twinkle rendered to wav")
-    check(r, file.exists(twPath), "twinkle wav exists")
-    check(r, twN > SAMPLE_RATE * 5, "twinkle wav longer than 5s of samples")
+    check(twOk, "twinkle rendered to wav")
+    check(file.exists(twPath), "twinkle wav exists")
+    check(twN > SAMPLE_RATE * 5, "twinkle wav longer than 5s of samples")
 
     // ---- cleanup temp files ----
     file.delete(tonePath)
     file.delete(twPath)
 
     println("================================================================")
-    println("passed: " + string(r.passed) + "   failed: " + string(r.failed))
-    if r.failed == 0 then
+    println("passed: " + string(g_test_pass) + "   failed: " + string(g_test_fail))
+    if g_test_fail == 0 then
         return 0
     end
     return 1

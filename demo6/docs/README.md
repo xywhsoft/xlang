@@ -17,6 +17,7 @@
 - `类型系统设计.md`：`class`、native-backed class、成员、继承、生命周期、析构和 C opaque handle 映射。
 - `class_object协议设计.md`：class/object 统一对象模型、协议方法、derive 能力、copy/clone、动态字段和持久化设计。
 - `泛型设计.md`：泛型声明、类型参数、显式实例化、静态泛型容器、泛型约束和 C 混编限制。
+- `Typed_HIR与后端边界.md`：语义类型覆盖、typed HIR 完整性约束、后端唯一类型入口和静态容器存储决策。
 - `本批五项能力实现口径.md`：泛型约束、字段级持久化注解、泛型 class 迭代协议、native-backed class 和 class 成员 C ABI 导出的当前实现口径。
 - `ABI设计.md`：内部 ABI、C ABI、C 兼容类型、class 数据 ABI、成员导出 ABI、符号生成、类型映射和 ABI dump。
 - `C混编设计.md`：C 与 xlang 互相声明、导出、生成头文件和 C ABI wrapper。

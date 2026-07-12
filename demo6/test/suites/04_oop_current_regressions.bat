@@ -175,5 +175,12 @@ if errorlevel 1 exit /b 1
 build\test\import_package_ref_use.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe run test\cases\cgen_class_recursive_ref.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_class_recursive_ref.xl -o build\test\cgen_class_recursive_ref.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_class_recursive_ref.exe
+if errorlevel 1 exit /b 1
+
 echo DEMO6 suite ok: current OOP ref generic regressions
 exit /b 0

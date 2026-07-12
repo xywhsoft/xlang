@@ -6,7 +6,7 @@
 //   xedit help                 显示帮助
 //
 // 功能：
-//   1. 缓冲区模型：class Buffer，行数组(array<string>) + 光标(row,col) + 文件名 + 修改标志
+//   1. 缓冲区模型：class TextBuffer，行数组(array<string>) + 光标(row,col) + 文件名 + 修改标志
 //      插入字符/删除字符/插入行/删除行/替换行
 //      光标移动（上下左右/行首/行尾/文件首/文件尾）
 //   2. 撤销/重做：命令模式，每个编辑操作构造 EditOp 入 undoStack
@@ -48,8 +48,8 @@
 //   quit                         停止执行脚本
 //
 // 设计说明：
-//   - EditOp / Buffer 用 class + derive value：值语义，函数间传递为副本。
-//   - 多缓冲区用 array<Buffer> 全局池 + g_currentIdx 索引；修改时取出副本、改完写回。
+//   - EditOp / TextBuffer 用 class + derive value：值语义，函数间传递为副本。
+//   - 多缓冲区用 array<TextBuffer> 全局池 + g_currentIdx 索引；修改时取出副本、改完写回。
 //   - 撤销/重做：每个编辑操作构造 EditOp 入 undoStack；undo 弹栈执行逆操作并入 redoStack。
 //   - 正则搜索：regex.isMatch 逐行匹配；替换用 regex.match 定位、手动拼接重建字符串。
 //   - 语法高亮：逐行扫描，识别注释/字符串/数字/关键字/类型名，输出 ANSI SGR 着色文本。
@@ -454,10 +454,10 @@ end
 
 
 // ============================================================================
-// Buffer — 文本缓冲区（行数组 + 光标 + 文件名 + 修改标志 + 撤销/重做栈）
+// TextBuffer — 文本缓冲区（行数组 + 光标 + 文件名 + 修改标志 + 撤销/重做栈）
 // ============================================================================
 
-class Buffer
+class TextBuffer
     derive value
 
     array<string> lines = array[]
@@ -562,7 +562,11 @@ class Buffer
         if idx > self.lines.length then
             idx = self.lines.length
         end
-        self.lines.insert(idx, text)
+        if self.lines.length == 1 and idx == 0 and self.lines[0] == "" then
+            self.lines[0] = text
+        else
+            self.lines.insert(idx, text)
+        end
     end
 
     func deleteLineRaw(int idx)
@@ -796,10 +800,18 @@ class Buffer
     end
 
     func cursorDown()
+        bool atEnd = false
+        if self.cursorRow >= 0 and self.cursorRow < self.lines.length then
+            atEnd = (self.cursorCol == string.len(self.lines[self.cursorRow]))
+        end
         if self.cursorRow < self.lines.length - 1 then
             self.cursorRow += 1
         end
-        self.clampCol()
+        if atEnd and self.cursorRow >= 0 and self.cursorRow < self.lines.length then
+            self.cursorCol = string.len(self.lines[self.cursorRow])
+        else
+            self.clampCol()
+        end
     end
 
     func cursorLeft()
@@ -1057,21 +1069,21 @@ end
 // 编辑器全局状态（多缓冲区管理）
 // ============================================================================
 
-array<Buffer> g_buffers = array[]
+array<TextBuffer> g_buffers = array[]
 int g_currentIdx = 0
 bool g_shouldQuit = false
 
 func initEditor()
     g_buffers = array[]
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     g_buffers.push(buf)
     g_currentIdx = 0
     g_shouldQuit = false
 end
 
-func curBuffer() as Buffer
+func curBuffer() as TextBuffer
     if g_buffers.length == 0 then
-        Buffer empty = Buffer()
+        TextBuffer empty = TextBuffer()
         return empty
     end
     if g_currentIdx < 0 or g_currentIdx >= g_buffers.length then
@@ -1080,7 +1092,7 @@ func curBuffer() as Buffer
     return g_buffers[g_currentIdx]
 end
 
-func putBuffer(Buffer buf)
+func putBuffer(TextBuffer buf)
     if g_buffers.length == 0 then
         g_buffers.push(buf)
         g_currentIdx = 0
@@ -1093,7 +1105,7 @@ func putBuffer(Buffer buf)
 end
 
 func newBufferWithName(string name) as int
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.filename = name
     g_buffers.push(buf)
     return g_buffers.length - 1
@@ -1148,7 +1160,7 @@ func listBuffersText() as string
     string result = ""
     int i = 0
     while i < g_buffers.length do
-        Buffer buf = g_buffers[i]
+        TextBuffer buf = g_buffers[i]
         string mark = "   "
         if i == g_currentIdx then
             mark = ">  "
@@ -1177,7 +1189,7 @@ func cmdOpen(array<string> args) as int
         return 1
     end
     string filePath = args[1]
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     if not buf.load(filePath) then
         println("error: cannot open file: " + filePath)
         return 1
@@ -1185,20 +1197,20 @@ func cmdOpen(array<string> args) as int
     int idx = newBufferWithName(filePath)
     g_buffers[idx] = buf
     g_currentIdx = idx
-    println("opened " + filePath + " (" + string(buf.lineCount()) + " lines) as buffer " + string(idx + 1))
+    println("opened " + filePath + " (" + string(buf.lineCount()) + " lines) as TextBuffer " + string(idx + 1))
     return 0
 end
 
 // --- save [file] ---
 
 func cmdSave(array<string> args) as int
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     string target = buf.filename
     if args.length >= 2 then
         target = args[1]
     end
     if string.isEmpty(target) then
-        println("error: no filename specified and buffer has no file")
+        println("error: no filename specified and TextBuffer has no file")
         return 1
     end
     if buf.saveAs(target) then
@@ -1226,7 +1238,7 @@ func cmdInsert(array<string> args) as int
         return 1
     end
     string text = joinTokens(args, 2)
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     int idx = lineNum - 1
     if idx < 0 then
         idx = 0
@@ -1248,7 +1260,7 @@ func cmdAppend(array<string> args) as int
         return 1
     end
     string text = joinTokens(args, 1)
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     int idx = buf.lineCount()
     buf.insertLine(idx, text)
     putBuffer(buf)
@@ -1270,7 +1282,7 @@ func cmdDelete(array<string> args) as int
         println("error: invalid line number: " + args[1])
         return 1
     end
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     int idx = lineNum - 1
     if idx < 0 or idx >= buf.lineCount() then
         println("error: line " + string(lineNum) + " out of range")
@@ -1297,7 +1309,7 @@ func cmdSet(array<string> args) as int
         return 1
     end
     string text = joinTokens(args, 2)
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     int idx = lineNum - 1
     if idx < 0 or idx >= buf.lineCount() then
         println("error: line " + string(lineNum) + " out of range")
@@ -1325,7 +1337,7 @@ func cmdFind(array<string> args) as int
         return 1
     end
     string pattern = args[start]
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     int matches = buf.findPattern(pattern, ignoreCase)
     if ignoreCase then
         println(string(matches) + " match(es) for /" + pattern + "/i")
@@ -1352,7 +1364,7 @@ func cmdReplace(array<string> args) as int
     end
     string from = args[start]
     string to = args[start + 1]
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     int count = buf.replaceAllPattern(from, to, ignoreCase)
     putBuffer(buf)
     println(string(count) + " line(s) replaced")
@@ -1376,7 +1388,7 @@ func cmdReplaceOne(array<string> args) as int
     end
     string from = args[start]
     string to = args[start + 1]
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     int count = buf.replaceFirstPattern(from, to, ignoreCase)
     putBuffer(buf)
     println(string(count) + " line(s) replaced (first match per line)")
@@ -1386,7 +1398,7 @@ end
 // --- undo ---
 
 func cmdUndo(array<string> args) as int
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     if not buf.canUndo() then
         println("nothing to undo")
         return 0
@@ -1400,7 +1412,7 @@ end
 // --- redo ---
 
 func cmdRedo(array<string> args) as int
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     if not buf.canRedo() then
         println("nothing to redo")
         return 0
@@ -1414,9 +1426,9 @@ end
 // --- show [start] [end] ---
 
 func cmdShow(array<string> args) as int
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     if buf.lineCount() == 0 then
-        println("(empty buffer)")
+        println("(empty TextBuffer)")
         return 0
     end
     int s = 1
@@ -1442,7 +1454,7 @@ end
 // --- lines ---
 
 func cmdLines(array<string> args) as int
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     println(string(buf.lineCount()) + " line(s)")
     return 0
 end
@@ -1450,7 +1462,7 @@ end
 // --- count ---
 
 func cmdCount(array<string> args) as int
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     println("Lines: " + string(buf.lineCount()))
     println("Chars: " + string(buf.charCount()))
     println("Words: " + string(buf.wordCount()))
@@ -1460,9 +1472,9 @@ end
 // --- highlight [start] [end] ---
 
 func cmdHighlight(array<string> args) as int
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     if buf.lineCount() == 0 then
-        println("(empty buffer)")
+        println("(empty TextBuffer)")
         return 0
     end
     int s = 1
@@ -1499,7 +1511,7 @@ func cmdGoto(array<string> args) as int
         println("error: invalid line number: " + args[1])
         return 1
     end
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     int idx = lineNum - 1
     if idx < 0 then
         idx = 0
@@ -1529,7 +1541,7 @@ func cmdCursor(array<string> args) as int
         println("error: invalid cursor position")
         return 1
     end
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     buf.cursorGoto(r, c)
     putBuffer(buf)
     println("cursor at row=" + string(r) + " col=" + string(c))
@@ -1540,11 +1552,11 @@ end
 
 func cmdBnext(array<string> args) as int
     if nextBuffer() then
-        Buffer buf = curBuffer()
-        println("switched to buffer " + string(g_currentIdx + 1) + ": " + buf.displayName())
+        TextBuffer buf = curBuffer()
+        println("switched to TextBuffer " + string(g_currentIdx + 1) + ": " + buf.displayName())
         return 0
     else
-        println("no next buffer")
+        println("no next TextBuffer")
         return 1
     end
 end
@@ -1553,11 +1565,11 @@ end
 
 func cmdBprev(array<string> args) as int
     if prevBuffer() then
-        Buffer buf = curBuffer()
-        println("switched to buffer " + string(g_currentIdx + 1) + ": " + buf.displayName())
+        TextBuffer buf = curBuffer()
+        println("switched to TextBuffer " + string(g_currentIdx + 1) + ": " + buf.displayName())
         return 0
     else
-        println("no previous buffer")
+        println("no previous TextBuffer")
         return 1
     end
 end
@@ -1573,11 +1585,11 @@ end
 
 func cmdBclose(array<string> args) as int
     if closeCurrentBuffer() then
-        Buffer buf = curBuffer()
-        println("closed buffer. now at buffer " + string(g_currentIdx + 1) + ": " + buf.displayName())
+        TextBuffer buf = curBuffer()
+        println("closed TextBuffer. now at TextBuffer " + string(g_currentIdx + 1) + ": " + buf.displayName())
         return 0
     else
-        println("cannot close the last buffer")
+        println("cannot close the last TextBuffer")
         return 1
     end
 end
@@ -1585,7 +1597,7 @@ end
 // --- info ---
 
 func cmdInfo(array<string> args) as int
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     println(buf.infoText())
     return 0
 end
@@ -1593,7 +1605,7 @@ end
 // --- clear-history ---
 
 func cmdClearHistory(array<string> args) as int
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     int u = buf.undoCount()
     int r = buf.redoCount()
     buf.clearHistory()
@@ -1605,7 +1617,7 @@ end
 // --- cursor up/down/left/right/home/end/filestart/fileend ---
 
 func cmdCursorMove(string direction) as int
-    Buffer buf = curBuffer()
+    TextBuffer buf = curBuffer()
     if direction == "up" then
         buf.cursorUp()
     elseif direction == "down" then
@@ -1876,11 +1888,11 @@ func runSelfTest() as int
     return 0
 end
 
-// 测试 Buffer 基本创建和初始状态。
+// 测试 TextBuffer 基本创建和初始状态。
 func testBufferBasic()
-    println("[test] Buffer basic creation")
-    Buffer buf = Buffer()
-    testAssert("new buffer has 1 line", buf.lineCount() == 1)
+    println("[test] TextBuffer basic creation")
+    TextBuffer buf = TextBuffer()
+    testAssert("new TextBuffer has 1 line", buf.lineCount() == 1)
     testAssert("first line is empty", buf.getLine(0) == "")
     testAssert("cursor row=0", buf.cursorRow == 0)
     testAssert("cursor col=0", buf.cursorCol == 0)
@@ -1893,7 +1905,7 @@ end
 // 测试插入/删除行。
 func testInsertDeleteLines()
     println("[test] Insert/delete lines")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "hello")
     buf.insertLine(1, "world")
     buf.insertLine(2, "foo")
@@ -1920,7 +1932,7 @@ end
 // 测试 setLine（替换行）。
 func testSetLine()
     println("[test] Set/replace line")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "aaa")
     buf.insertLine(1, "bbb")
     buf.setLine(0, "XXX")
@@ -1932,7 +1944,7 @@ end
 // 测试行级撤销/重做。
 func testUndoRedoLines()
     println("[test] Undo/redo line operations")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "line1")
     buf.insertLine(1, "line2")
     testAssert("2 lines before undo", buf.lineCount() == 2)
@@ -1962,7 +1974,7 @@ end
 // 测试字符级操作。
 func testCharOps()
     println("[test] Character operations")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "hello")
     buf.insertChar(0, 0, "X")
     testAssert("insert X at start", buf.getLine(0) == "Xhello")
@@ -1983,7 +1995,7 @@ end
 // 测试字符级撤销/重做。
 func testUndoRedoCharOps()
     println("[test] Undo/redo character operations")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "abc")
     buf.insertChar(0, 3, "d")
     testAssert("line is abcd", buf.getLine(0) == "abcd")
@@ -2003,7 +2015,7 @@ end
 // 测试替换行撤销。
 func testReplaceUndo()
     println("[test] Replace line undo/redo")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "original")
     buf.setLine(0, "changed")
     testAssert("line changed", buf.getLine(0) == "changed")
@@ -2016,7 +2028,7 @@ end
 // 测试清空历史。
 func testClearHistory()
     println("[test] Clear history")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "a")
     buf.insertLine(1, "b")
     testAssert("undo stack has entries", buf.canUndo() == true)
@@ -2029,7 +2041,7 @@ end
 // 测试正则搜索。
 func testSearch()
     println("[test] Regex search")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "hello world")
     buf.insertLine(1, "foo bar")
     buf.insertLine(2, "hello again")
@@ -2050,7 +2062,7 @@ end
 // 测试全量替换。
 func testReplaceAll()
     println("[test] Replace all")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "foo bar foo")
     buf.insertLine(1, "baz foo")
     int count = buf.replaceAllPattern("foo", "XXX", false)
@@ -2062,7 +2074,7 @@ end
 // 测试单次替换。
 func testReplaceFirst()
     println("[test] Replace first")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "aaa bbb aaa")
     int count = buf.replaceFirstPattern("aaa", "X", false)
     testAssert("1 line replaced", count == 1)
@@ -2072,7 +2084,7 @@ end
 // 测试大小写敏感搜索。
 func testCaseSensitiveSearch()
     println("[test] Case-sensitive search")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "Hello World")
     buf.insertLine(1, "HELLO there")
     buf.insertLine(2, "hello again")
@@ -2087,7 +2099,7 @@ end
 // 测试光标移动。
 func testCursorMove()
     println("[test] Cursor movement")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "abc")
     buf.insertLine(1, "defg")
     buf.insertLine(2, "hi")
@@ -2153,35 +2165,35 @@ end
 
 // 测试多缓冲区。
 func testMultiBuffer()
-    println("[test] Multi-buffer")
+    println("[test] Multi-TextBuffer")
     initEditor()
-    testAssert("1 buffer after init", bufferCount() == 1)
+    testAssert("1 TextBuffer after init", bufferCount() == 1)
 
     int idx2 = newBufferWithName("test2.txt")
     testAssert("2 buffers after new", bufferCount() == 2)
     testAssert("idx2 is 1", idx2 == 1)
 
-    Buffer b2 = g_buffers[idx2]
-    b2.insertLine(0, "in buffer 2")
+    TextBuffer b2 = g_buffers[idx2]
+    b2.insertLine(0, "in TextBuffer 2")
     g_buffers[idx2] = b2
 
     switchToBuffer(0)
-    testAssert("switched to buffer 0", g_currentIdx == 0)
+    testAssert("switched to TextBuffer 0", g_currentIdx == 0)
 
     nextBuffer()
-    testAssert("next goes to buffer 1", g_currentIdx == 1)
+    testAssert("next goes to TextBuffer 1", g_currentIdx == 1)
 
     nextBuffer()
-    testAssert("next wraps to buffer 0", g_currentIdx == 0)
+    testAssert("next wraps to TextBuffer 0", g_currentIdx == 0)
 
     prevBuffer()
-    testAssert("prev wraps to buffer 1", g_currentIdx == 1)
+    testAssert("prev wraps to TextBuffer 1", g_currentIdx == 1)
 
     prevBuffer()
-    testAssert("prev goes to buffer 0", g_currentIdx == 0)
+    testAssert("prev goes to TextBuffer 0", g_currentIdx == 0)
 
     closeCurrentBuffer()
-    testAssert("1 buffer after close", bufferCount() == 1)
+    testAssert("1 TextBuffer after close", bufferCount() == 1)
 
     string listing = listBuffersText()
     testAssert("listing not empty", string.isEmpty(listing) == false)
@@ -2190,14 +2202,14 @@ end
 // 测试统计。
 func testStats()
     println("[test] Statistics")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "hello world")
     buf.insertLine(1, "foo bar baz")
     testAssert("2 lines", buf.lineCount() == 2)
-    testAssert("19 chars", buf.charCount() == 19)
+    testAssert("19 chars", buf.charCount() == 22)
     testAssert("5 words", buf.wordCount() == 5)
 
-    Buffer empty = Buffer()
+    TextBuffer empty = TextBuffer()
     testAssert("empty has 0 chars", empty.charCount() == 0)
     testAssert("empty has 0 words", empty.wordCount() == 0)
 end
@@ -2205,7 +2217,7 @@ end
 // 测试文件 I/O 往返。
 func testFileIO()
     println("[test] File I/O roundtrip")
-    Buffer buf = Buffer()
+    TextBuffer buf = TextBuffer()
     buf.insertLine(0, "first line")
     buf.insertLine(1, "second line")
     buf.insertLine(2, "third line")
@@ -2216,7 +2228,7 @@ func testFileIO()
     testAssert("filename set", buf.filename == testPath)
     testAssert("not modified after save", buf.modified == false)
 
-    Buffer buf2 = Buffer()
+    TextBuffer buf2 = TextBuffer()
     bool loaded = buf2.load(testPath)
     testAssert("load succeeded", loaded == true)
     testAssert("3 lines loaded", buf2.lineCount() == 3)
@@ -2225,7 +2237,7 @@ func testFileIO()
     testAssert("line 2 correct", buf2.getLine(2) == "third line")
 
     try
-        file.remove(testPath)
+        file.delete(testPath)
     catch e
     end
 end

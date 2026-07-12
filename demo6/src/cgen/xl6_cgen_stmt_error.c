@@ -281,12 +281,15 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
 
 static void xl6CgenEmitDefaultErrorReturn(XL6_CgenContext* ctx)
 {
+    int returnId;
+
     if ( ctx->currentReturns == NULL || ctx->currentReturns->childCount == 0 ) {
         xl6CgenIndent(ctx);
         xl6OutputPuts("return;\n", ctx->out);
         return;
     }
 
+    returnId = ctx->tempId++;
     xl6CgenIndent(ctx);
     if ( ctx->currentReturns->childCount > 1 ) {
         if ( ctx->currentReturnFunc != NULL ) {
@@ -302,11 +305,14 @@ static void xl6CgenEmitDefaultErrorReturn(XL6_CgenContext* ctx)
             xl6OutputPuts(xl6CgenTypeName(ctx, returnType), ctx->out);
         }
     }
-    xl6OutputPuts(" __xl6_error_return;\n", ctx->out);
+    xl6OutputPrintf(ctx->out, " __xl6_error_return_%d;\n", returnId);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("memset(&__xl6_error_return, 0, sizeof(__xl6_error_return));\n", ctx->out);
+    xl6OutputPrintf(ctx->out,
+                    "memset(&__xl6_error_return_%d, 0, sizeof(__xl6_error_return_%d));\n",
+                    returnId,
+                    returnId);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("return __xl6_error_return;\n", ctx->out);
+    xl6OutputPrintf(ctx->out, "return __xl6_error_return_%d;\n", returnId);
 }
 
 static void xl6CgenEmitExceptionPropagate(XL6_CgenContext* ctx, const XL6_AstNode* at)
@@ -335,7 +341,9 @@ static void xl6CgenEmitExceptionPropagate(XL6_CgenContext* ctx, const XL6_AstNod
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "__xl6_pending_kind_%d = 0;\n", finallyTarget->id);
     }
-    if ( target != NULL ) {
+    if ( xl6CgenEmitCurrentErrorScopeJump(ctx) ) {
+        ;
+    } else if ( target != NULL ) {
         xl6CgenEmitCleanupsSince(ctx, target->cleanupMark);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out,

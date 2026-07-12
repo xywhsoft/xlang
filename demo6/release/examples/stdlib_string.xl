@@ -41,7 +41,11 @@ assert(string.filter("x-lang-demo", "-") == "xlangdemo")
 assert(string.replace("a-b-c", "-", "/") == "a/b/c")
 println("case_trim=ok")
 
+// 第三个参数是 UTF-8 字符数量，不是结束索引。
 assert(string.slice("ab你好cd", 2, 2) == "你好")
+int sliceStart = 2
+int sliceEnd = 4
+assert(string.slice("ab你好cd", sliceStart, sliceEnd - sliceStart) == "你好")
 assert(string.slice("ab你好cd", -2) == "cd")
 assert(string.left("ab你好", 3) == "ab你")
 assert(string.right("ab你好", 2) == "你好")

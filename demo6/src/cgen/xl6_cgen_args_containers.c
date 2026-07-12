@@ -779,7 +779,9 @@ static int xl6CgenFixedParamXValueConvertArgExpr(XL6_CgenContext* ctx, const XL6
     concreteTarget = xl6CgenResolveAliasType(ctx, targetType);
     target = concreteTarget != NULL ? concreteTarget->text : NULL;
 
-    if ( sourceType == NULL || !xl6CgenIsXValueType(sourceType) || target == NULL ) {
+    if ( sourceType == NULL ||
+         (!xl6CgenIsXValueType(sourceType) && !xl6CgenBinaryArithmeticIsXValue(ctx, expr)) ||
+         target == NULL ) {
         xl6AstFree(exprType);
         return 0;
     }
@@ -836,6 +838,15 @@ static void xl6CgenFixedTypeArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* tar
          xl6CgenIsTypedContainerType(ctx, canonicalType) &&
          xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
         xl6CgenExpr(ctx, expr);
+        xl6AstFree(canonicalType);
+        return;
+    }
+    if ( canonicalType != NULL && xl6CgenIsFunctionType(canonicalType) ) {
+        /*
+            命名函数、匿名函数和已有函数值必须统一生成 XL6_Function。
+            直接走普通表达式会把命名函数原文写进 C，既没有符号改写，也没有签名适配。
+        */
+        xl6CgenFunctionValueExpr(ctx, expr, canonicalType);
         xl6AstFree(canonicalType);
         return;
     }

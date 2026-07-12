@@ -4,6 +4,12 @@ typedef struct XL6_CgenVar {
     unsigned int flags;
 } XL6_CgenVar;
 
+typedef struct XL6_CgenRootTypeSlot {
+    const char* name;
+    XL6_AstNode* classNode;
+    XL6_AstNode* unionNode;
+} XL6_CgenRootTypeSlot;
+
 #define XL6_CGEN_VAR_TYPED_CONTAINER 0x00000001u
 #define XL6_CGEN_VAR_BORROWED 0x00000002u
 #define XL6_CGEN_VAR_MODULE_GLOBAL 0x00000004u
@@ -75,6 +81,24 @@ typedef struct XL6_CgenTryTarget {
     int targetFinally;
 } XL6_CgenTryTarget;
 
+/*
+    每个词法块只生成一份异常清理代码。
+    块内错误点跳到这里，再按 try 边界逐层清理，避免重复展开全部局部变量。
+*/
+typedef struct XL6_CgenErrorCheckpoint {
+    size_t cleanupCount;
+    int id;
+} XL6_CgenErrorCheckpoint;
+
+typedef struct XL6_CgenErrorScope {
+    size_t cleanupMark;
+    XL6_CgenTryTarget target;
+    XL6_CgenErrorCheckpoint* checkpoints;
+    size_t checkpointCount;
+    size_t checkpointCapacity;
+    int hasTarget;
+} XL6_CgenErrorScope;
+
 typedef struct XL6_CgenFinallyTarget {
     size_t cleanupMark;
     size_t loopTargetCount;
@@ -87,10 +111,27 @@ typedef struct XL6_CgenExprReplacement {
     const char* cName;
 } XL6_CgenExprReplacement;
 
+/*
+    类型推断会被参数匹配、容器 lowering 和表达式生成反复调用。
+    缓存必须记录完整生成上下文，不能只使用 AST 地址，否则泛型实例之间会串型。
+*/
+typedef struct XL6_CgenTypeCacheEntry {
+    const XL6_AstNode* expr;
+    const XL6_AstNode* genericParams;
+    const XL6_AstNode* genericArgs;
+    const XL6_AstNode* currentClass;
+    const XL6_AstNode* currentNativeClass;
+    const XL6_CgenAnonFunc* currentAnonFunc;
+    unsigned long long scopeEpoch;
+    XL6_AstNode* type;
+} XL6_CgenTypeCacheEntry;
+
 typedef struct XL6_CgenContext {
     XL6_Output* out;
     XL6_AstNode* root;
     XL6_DiagList* diags;
+    XL6_CgenRootTypeSlot* rootTypeSlots;
+    size_t rootTypeSlotCount;
     XL6_CgenVar* vars;
     size_t varCount;
     size_t varCapacity;
@@ -103,6 +144,9 @@ typedef struct XL6_CgenContext {
     XL6_CgenCleanup* cleanups;
     size_t cleanupCount;
     size_t cleanupCapacity;
+    XL6_CgenErrorScope* errorScopes;
+    size_t errorScopeCount;
+    size_t errorScopeCapacity;
     XL6_CgenLoopTarget* loopTargets;
     size_t loopTargetCount;
     size_t loopTargetCapacity;
@@ -145,6 +189,10 @@ typedef struct XL6_CgenContext {
     const char* currentErrorExitLabel;
     const XL6_CgenExprReplacement* exprReplacements;
     size_t exprReplacementCount;
+    XL6_CgenTypeCacheEntry* typeCache;
+    size_t typeCacheCount;
+    size_t typeCacheCapacity;
+    unsigned long long typeScopeEpoch;
     int currentAsyncWorker;
     int debugMode;
     const char* debugSourcePath;
@@ -195,6 +243,8 @@ static void xl6CgenYieldStmt(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static XL6_AstNode* xl6CgenCloneGeneratorItemType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 static void xl6CgenAddGeneratorCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode);
 static void xl6CgenEmitExceptionPropagate(XL6_CgenContext* ctx, const XL6_AstNode* at);
+static void xl6CgenEmitDefaultErrorReturn(XL6_CgenContext* ctx);
+static void xl6CgenCloseScope(XL6_CgenContext* ctx, size_t mark);
 static void xl6CgenXValueFromExprForTarget(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr);
 static int xl6CgenSyncCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);
 static int xl6CgenSyncDefaultCtorExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, int line, int column);

@@ -937,7 +937,14 @@ func qrDecompose(Matrix a) as QRResult
             continue
         end
 
-        float alpha = 0.0 - signF(x[0]) * xNorm
+        // alpha = -sign(x[0]) * ||x||
+        // sign(0) must be ±1 (never 0), otherwise v[0] = x[0] - 0 = 0 and
+        // the Householder reflection degenerates, leaving R's diagonal at 0.
+        float sx = 1.0
+        if x[0] < 0.0 then
+            sx = -1.0
+        end
+        float alpha = 0.0 - sx * xNorm
 
         // v = x - alpha * e1
         array<float> v = array[]

@@ -341,10 +341,7 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    leftCount = xvoArrayItemCount(left);\n", out);
     xl6OutputPuts("    for ( i = 0; i < leftCount; ++i ) {\n", out);
-    xl6OutputPuts("        xvalue item = xvoArrayGetValue(left, i);\n", out);
-    xl6OutputPuts("        if ( item != 0 ) {\n", out);
-    xl6OutputPuts("            xvoAddRef(item);\n", out);
-    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        xvalue item = xvoShare(xvoArrayGetValue(left, i));\n", out);
     xl6OutputPuts("        if ( !xvoArrayAppendValue(result, item, true) ) {\n", out);
     xl6OutputPuts("            if ( item != 0 ) {\n", out);
     xl6OutputPuts("                xvoUnref(item);\n", out);
@@ -355,10 +352,7 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    rightCount = xvoArrayItemCount(right);\n", out);
     xl6OutputPuts("    for ( i = 0; i < rightCount; ++i ) {\n", out);
-    xl6OutputPuts("        xvalue item = xvoArrayGetValue(right, i);\n", out);
-    xl6OutputPuts("        if ( item != 0 ) {\n", out);
-    xl6OutputPuts("            xvoAddRef(item);\n", out);
-    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        xvalue item = xvoShare(xvoArrayGetValue(right, i));\n", out);
     xl6OutputPuts("        if ( !xvoArrayAppendValue(result, item, true) ) {\n", out);
     xl6OutputPuts("            if ( item != 0 ) {\n", out);
     xl6OutputPuts("                xvoUnref(item);\n", out);

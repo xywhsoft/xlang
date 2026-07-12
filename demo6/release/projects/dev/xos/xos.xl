@@ -68,7 +68,7 @@ int MLFQ_BOOST  = 50    // 闂?N 闂?tick 闂備胶顭堥鍡涙儗椤斿墽�
 
 // ---- 闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋?----
 int FRAME_SIZE      = 16
-int NUM_FRAMES      = 64
+int NUM_FRAMES      = 32
 int PAGE_DIR_SIZE   = 8
 int PAGE_TABLE_SIZE = 8
 int NUM_DIR_SLOTS   = 64
@@ -101,7 +101,7 @@ int MAX_INODES = 1024
 int SYS_FORK  = 1
 int SYS_EXEC  = 2
 int SYS_EXIT  = 3
-int SYS_OPEN  = 4
+int SYSOPEN  = 4
 int SYS_READ  = 5
 int SYS_WRITE = 6
 int SYS_CLOSE = 7
@@ -1801,6 +1801,9 @@ func shExecParsed(var parsed) as string
     if parsed["redirOut"] != null then
         string rout = string(parsed["redirOut"])
         if string.len(rout) > 0 then
+            if string.len(flow) > 0 and string.byteAt(flow, string.len(flow) - 1) == 10 then
+                flow = string.mid(flow, 0, string.len(flow) - 1)
+            end
             fsWriteFile(rout, flow)
             return ""
         end
@@ -2226,7 +2229,7 @@ func syscall(int op, var args) as var
     var res = {}
     res["ret"] = NIL
     res["msg"] = ""
-    if op == SYS_OPEN then
+    if op == SYSOPEN then
         string p = string(args[0])
         string mode = "r"
         if args.length > 1 then mode = string(args[1]) end
@@ -2909,9 +2912,9 @@ func testSyscall()
     fsWriteFile("/etc/sc.txt", "syscall-data")
     var r1 = syscall(SYS_CAT, ["/etc/sc.txt"])
     expectS(string(r1["ret"]), "syscall-data", "SYS_CAT returns content")
-    var r2 = syscall(SYS_OPEN, ["/etc/sc.txt", "r"])
+    var r2 = syscall(SYSOPEN, ["/etc/sc.txt", "r"])
     int fd = int(r2["ret"])
-    expectTrue(fd >= 0, "SYS_OPEN returns fd")
+    expectTrue(fd >= 0, "SYSOPEN returns fd")
     var r3 = syscall(SYS_READ, [fd, 8])
     expectS(string(r3["ret"]), "syscall-", "SYS_READ first 8 bytes")
     var r4 = syscall(SYS_CLOSE, [fd])

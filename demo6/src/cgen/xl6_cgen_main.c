@@ -924,7 +924,12 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
     }
 }
 
-static void xl6CgenEmitTopLevelXlangMain(XL6_CgenContext* ctx, XL6_AstNode* root, const XL6_AstNode* mainFunc, int hasErrorRuntime)
+static void xl6CgenEmitTopLevelXlangMain(
+    XL6_CgenContext* ctx,
+    XL6_AstNode* root,
+    const XL6_AstNode* mainFunc,
+    int hasErrorRuntime,
+    int hasAsyncRuntime)
 {
     const char* oldErrorExitLabel;
     size_t i;
@@ -938,6 +943,7 @@ static void xl6CgenEmitTopLevelXlangMain(XL6_CgenContext* ctx, XL6_AstNode* root
     }
     ctx->indent = 1;
     ctx->currentErrorExitLabel = "__xl6_script_error";
+    xl6CgenPushErrorScope(ctx, 0);
     for ( i = 0; i < root->childCount; ++i ) {
         if ( xl6CgenIsModuleGlobalDecl(root->children[i]) ) {
             xl6CgenEmitModuleGlobalInit(ctx, root->children[i]);
@@ -947,23 +953,47 @@ static void xl6CgenEmitTopLevelXlangMain(XL6_CgenContext* ctx, XL6_AstNode* root
     }
     if ( hasErrorRuntime ) {
         xl6OutputPuts("    if ( xl6_error_has() ) {\n", ctx->out);
-        xl6OutputPuts("        goto __xl6_script_error;\n", ctx->out);
+        ctx->indent += 1;
+        if ( !xl6CgenEmitCurrentErrorScopeJump(ctx) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPuts("goto __xl6_script_error;\n", ctx->out);
+        }
+        ctx->indent -= 1;
         xl6OutputPuts("    }\n", ctx->out);
     }
     if ( mainFunc != NULL ) {
         xl6OutputPuts("    __xl6_main_code = ", ctx->out);
         xl6CgenUserMainSymbol(ctx->out);
         xl6OutputPuts("(arg);\n", ctx->out);
-        xl6CgenCloseScope(ctx, 0);
+        if ( hasErrorRuntime ) {
+            xl6OutputPuts("    if ( xl6_error_has() ) {\n", ctx->out);
+            ctx->indent += 1;
+            if ( !xl6CgenEmitCurrentErrorScopeJump(ctx) ) {
+                xl6CgenIndent(ctx);
+                xl6OutputPuts("goto __xl6_script_error;\n", ctx->out);
+            }
+            ctx->indent -= 1;
+            xl6OutputPuts("    }\n", ctx->out);
+        }
+        xl6CgenCloseErrorScope(ctx, 0);
+        if ( hasAsyncRuntime ) {
+            xl6OutputPuts("    xl6_async_wait_idle();\n", ctx->out);
+        }
         xl6OutputPuts("    xrtTempScopeEnd(&__xl6_temp_scope_main);\n", ctx->out);
         xl6OutputPuts("    return __xl6_main_code;\n", ctx->out);
     } else {
-        xl6CgenCloseScope(ctx, 0);
+        xl6CgenCloseErrorScope(ctx, 0);
+        if ( hasAsyncRuntime ) {
+            xl6OutputPuts("    xl6_async_wait_idle();\n", ctx->out);
+        }
         xl6OutputPuts("    xrtTempScopeEnd(&__xl6_temp_scope_main);\n", ctx->out);
         xl6OutputPuts("    return 0;\n", ctx->out);
     }
     if ( hasErrorRuntime ) {
         xl6OutputPuts("__xl6_script_error:\n", ctx->out);
+        if ( hasAsyncRuntime ) {
+            xl6OutputPuts("    xl6_async_wait_idle();\n", ctx->out);
+        }
         xl6OutputPuts("    xrtTempScopeEnd(&__xl6_temp_scope_main);\n", ctx->out);
         xl6OutputPuts("    return 0;\n", ctx->out);
     }

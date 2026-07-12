@@ -411,6 +411,30 @@ class BitReader
     func eof() as bool
         return self.bytePos >= self.data.length
     end
+
+    // Decode one symbol from this reader using Huffman table `t`.
+    // Implemented as a method so bit advancement mutates `self` directly
+    // (xlang value-copies class parameters, so a free function taking a
+    // BitReader would lose the position update between calls).
+    func huffDecode(HuffTable t) as int
+        int code = 0
+        int first = 0
+        int index = 0
+        int L = 1
+        while L <= MAX_BITS do
+            code = code | self.bit()
+            int cnt = t.count[L]
+            if (code - first) < cnt then
+                return t.symbol[index + (code - first)]
+            end
+            index = index + cnt
+            first = first + cnt
+            first = first << 1
+            code = code << 1
+            L = L + 1
+        end
+        throw "DEFLATE: invalid Huffman code (no symbol within 15 bits)"
+    end
 end
 
 // ===========================================================================
@@ -481,28 +505,7 @@ func huffBuild(array<int> lengths) as HuffTable
     return t
 end
 
-// Decode one symbol from the bit reader using `t`.
-// Walks per-length: bit-by-bit accumulate, advance index/first, return when
-// code falls inside the count window for the current length.
-func huffDecode(BitReader br, HuffTable t) as int
-    int code = 0
-    int first = 0
-    int index = 0
-    int L = 1
-    while L <= MAX_BITS do
-        code = code | br.bit()
-        int cnt = t.count[L]
-        if (code - first) < cnt then
-            return t.symbol[index + (code - first)]
-        end
-        index = index + cnt
-        first = first + cnt
-        first = first << 1
-        code = code << 1
-        L = L + 1
-    end
-    throw "DEFLATE: invalid Huffman code (no symbol within 15 bits)"
-end
+// (huffDecode is a method on BitReader — see class BitReader above.)
 
 // ===========================================================================
 // Section 7 - DEFLATE constant tables (length / distance base + extra bits)
@@ -610,7 +613,7 @@ end
 
 func decodeBlockBody(BitReader br, HuffTable litLen, HuffTable dist, array<int> out)
     while true do
-        int sym = huffDecode(br, litLen)
+        int sym = br.huffDecode(litLen)
         if sym < 256 then
             out.push(sym)
         elseif sym == END_OF_BLK then
@@ -623,7 +626,7 @@ func decodeBlockBody(BitReader br, HuffTable litLen, HuffTable dist, array<int> 
             end
             int len = LEN_BASE[li] + br.bits(LEN_EXTRA[li])
             // distance code 0..29
-            int dsym = huffDecode(br, dist)
+            int dsym = br.huffDecode(dist)
             if dsym > 29 then
                 throw "DEFLATE: invalid distance symbol"
             end
@@ -673,7 +676,7 @@ end
 func expandCodeLens(BitReader br, HuffTable clTable, int total) as array<int>
     array<int> result = array[]
     while result.length < total do
-        int sym = huffDecode(br, clTable)
+        int sym = br.huffDecode(clTable)
         if sym < 16 then
             result.push(sym)
         elseif sym == 16 then
@@ -915,15 +918,16 @@ func readZipEntryPayload(array<int> data, ZipEntry e) as array<int>
     return out
 end
 
-// Extract (decompress) a single ZIP entry's payload into e.data.
-func extractZipEntry(array<int> data, ZipEntry e)
+// Extract (decompress) a single ZIP entry's payload. Returns the data array
+// (callers assign to e.data); xlang value-copies class parameters.
+func extractZipEntry(array<int> data, ZipEntry e) as array<int>
     array<int> raw = readZipEntryPayload(data, e)
     if e.method == 0 then
         // stored: bytes are already the file content
-        e.data = raw
+        return raw
     elseif e.method == 8 then
         // deflate
-        e.data = inflate(raw)
+        return inflate(raw)
     else
         throw "ZIP: unsupported method " + string(e.method) + " for " + e.name
     end
@@ -1011,7 +1015,7 @@ end
 
 // Parse one 512-byte TAR header into a TarEntry. Returns null on the
 // all-zero terminator block (end of archive).
-func parseTarHeader(array<int> data, int off) as TarEntry
+func parseTarHeader(array<int> data, int off) as var
     int i = 0
     bool allZero = true
     while i < 512 do
@@ -1043,12 +1047,12 @@ func parseTar(array<int> data) as array<TarEntry>
     int off = 0
     int n = data.length
     while off + 512 <= n do
-        TarEntry e = parseTarHeader(data, off)
+        var e = parseTarHeader(data, off)
         if e == null then
             // two consecutive zero blocks = end of archive; we stop at first.
             break
         end
-        entries.push(e)
+        entries.push(e as TarEntry)
         // advance past the 512-byte header and the file payload (padded to 512)
         int payload = e.size
         int blocks = payload / 512
@@ -1061,7 +1065,10 @@ func parseTar(array<int> data) as array<TarEntry>
 end
 
 // Read the file payload for a TarEntry into e.data.
-func readTarEntry(array<int> data, TarEntry e)
+// Read one TAR entry's payload bytes. Returns the data array (callers assign
+// to e.data); xlang value-copies class parameters, so we cannot mutate `e`
+// inside this function and have it visible to the caller.
+func readTarEntry(array<int> data, TarEntry e) as array<int>
     array<int> out = array[]
     int n = e.size
     if n > data.length - e.dataOffset then
@@ -1072,7 +1079,7 @@ func readTarEntry(array<int> data, TarEntry e)
         out.push(data[e.dataOffset + i] & 0xFF)
         i = i + 1
     end
-    e.data = out
+    return out
 end
 
 // ===========================================================================
@@ -1458,20 +1465,20 @@ func parentDir(string path) as string
 end
 
 // Ensure a directory exists, creating parent directories as needed.
-func ensureDir(string dir) as bool
-    if string.len(dir) == 0 then
+func ensureDir(string dirPath) as bool
+    if string.len(dirPath) == 0 then
         return true
     end
-    if dir.exists(dir) then
+    if dir.exists(dirPath) then
         return true
     end
-    string parent = parentDir(dir)
+    string parent = parentDir(dirPath)
     if string.len(parent) > 0 then
         if not ensureDir(parent) then
             return false
         end
     end
-    return dir.create(dir)
+    return dir.create(dirPath)
 end
 
 // ===========================================================================
@@ -1553,7 +1560,7 @@ func cmdExtractZip(array<int> data, string outDir) as int
     while i < n do
         ZipEntry e = entries[i]
         try
-            extractZipEntry(data, e)
+            e.data = extractZipEntry(data, e)
             // skip directory entries (name ends with '/')
             int nl = string.len(e.name)
             bool isDir = false
@@ -1578,7 +1585,7 @@ func cmdExtractZip(array<int> data, string outDir) as int
                 end
             end
         catch err
-            println("  [err ] " + e.name + ": " + string(err))
+            println("  [err ] " + e.name + ": " + err.message)
         end
         i = i + 1
     end
@@ -1605,7 +1612,7 @@ func cmdExtractTar(array<int> data, string outDir) as int
                 end
                 println("  [dir ] " + e.name)
             else
-                readTarEntry(data, e)
+                e.data = readTarEntry(data, e)
                 bool w = writeExtracted(outDir, e.name, e.data)
                 if w then
                     ok = ok + 1
@@ -1615,7 +1622,7 @@ func cmdExtractTar(array<int> data, string outDir) as int
                 end
             end
         catch err
-            println("  [err ] " + e.name + ": " + string(err))
+            println("  [err ] " + e.name + ": " + err.message)
         end
         i = i + 1
     end
@@ -1679,7 +1686,7 @@ func cmdCreate(string outPath, array<string> files) as int
                 totalBytes = totalBytes + bytes.length
                 println("  [add ] " + baseName + "  (" + formatSize(bytes.length) + ")")
             catch err
-                println("  [err ] " + src + ": " + string(err))
+                println("  [err ] " + src + ": " + err.message)
             end
         end
         i = i + 1
@@ -1709,7 +1716,7 @@ func cmdVerifyZip(array<int> data) as int
     while i < n do
         ZipEntry e = entries[i]
         try
-            extractZipEntry(data, e)
+            e.data = extractZipEntry(data, e)
             int actual = crc32(e.data)
             string sha = sha256Bytes(e.data)
             if actual == e.crc32 then
@@ -1721,7 +1728,7 @@ func cmdVerifyZip(array<int> data) as int
             end
         catch err
             failCount = failCount + 1
-            println("  [err ] " + e.name + ": " + string(err))
+            println("  [err ] " + e.name + ": " + err.message)
         end
         i = i + 1
     end
@@ -1744,7 +1751,7 @@ func cmdVerifyTar(array<int> data) as int
     int off = 0
     int limit = data.length
     while off + 512 <= limit do
-        TarEntry e = parseTarHeader(data, off)
+        var e = parseTarHeader(data, off)
         if e == null then
             break
         end
@@ -1760,7 +1767,8 @@ func cmdVerifyTar(array<int> data) as int
             failCount = failCount + 1
         else
             try
-                readTarEntry(data, e)
+                array<int> edata = readTarEntry(data, e as TarEntry)
+                e.data = edata
                 int crc = crc32(e.data)
                 string sha = sha256Bytes(e.data)
                 okCount = okCount + 1
@@ -1771,7 +1779,7 @@ func cmdVerifyTar(array<int> data) as int
                 end
             catch err
                 failCount = failCount + 1
-                println("  [err ] " + label + ": " + string(err))
+                println("  [err ] " + label + ": " + err.message)
             end
         end
         int payload = e.size
@@ -1925,12 +1933,12 @@ func testZipStored() as bool
             ok = check("method is stored", e.method == 0) and ok
             ok = check("crc matches", e.crc32 == crc) and ok
             ok = check("uncomp size matches", e.uncompSize == usize) and ok
-            extractZipEntry(zip, e)
+            e.data = extractZipEntry(zip, e)
             ok = check("body matches", bytesEqual(e.data, body)) and ok
             ok = check("format detected as zip", detectFormat(zip) == FMT_ZIP) and ok
         end
     catch err
-        ok = check("no exception (" + string(err) + ")", false) and ok
+        ok = check("no exception (" + err.message + ")", false) and ok
     end
     return ok
 end
@@ -1980,11 +1988,11 @@ func testTarRoundtrip() as bool
             ok = check("name is note.txt", e.name == "note.txt") and ok
             ok = check("size matches body", e.size == body.length) and ok
             ok = check("typeFlag is '0' (file)", e.typeFlag == 48) and ok
-            readTarEntry(out, e)
+            e.data = readTarEntry(out, e)
             ok = check("body matches", bytesEqual(e.data, body)) and ok
         end
     catch err
-        ok = check("no exception (" + string(err) + ")", false) and ok
+        ok = check("no exception (" + err.message + ")", false) and ok
     end
     return ok
 end
@@ -2005,7 +2013,8 @@ func testXorCipher() as bool
     array<int> dec = xorDecrypt(enc, "secret")
     bool ok = check("decrypt(encrypt(x)) == x", bytesEqual(dec, body))
     ok = check("ciphertext != plaintext", not bytesEqual(enc, body)) and ok
-    ok = check("keystream is 256 bytes", deriveKeystream("pw").length == 256) and ok
+    array<int> ks = deriveKeystream("pw")
+    ok = check("keystream is 256 bytes", ks.length == 256) and ok
     // wrong password should fail to recover plaintext
     array<int> decWrong = xorDecrypt(enc, "wrong")
     ok = check("wrong password fails", not bytesEqual(decWrong, body)) and ok
@@ -2068,14 +2077,14 @@ func testTarVerifyFlow() as bool
         if entries.length == 1 then
             TarEntry e = entries[0]
             ok = check("checksum ok", tarCheckChecksum(out, 0)) and ok
-            readTarEntry(out, e)
+            e.data = readTarEntry(out, e)
             int crc = crc32(e.data)
             ok = check("size matches", e.size == body.length) and ok
             ok = check("body matches", bytesEqual(e.data, body)) and ok
             ok = check("crc32 stable (" + hexDword(crc) + ")", true) and ok
         end
     catch err
-        ok = check("no exception (" + string(err) + ")", false)
+        ok = check("no exception (" + err.message + ")", false)
     end
     return ok
 end
@@ -2114,10 +2123,10 @@ func testHuffman() as bool
     array<int> src = array[]
     src.push(0b00000100)   // bits (LSB-first): 0,0,1,0,0,0,0,0 -> A,A,B,A,...
     BitReader br = BitReader(src)
-    int s1 = huffDecode(br, t)
-    int s2 = huffDecode(br, t)
-    int s3 = huffDecode(br, t)
-    int s4 = huffDecode(br, t)
+    int s1 = br.huffDecode(t)
+    int s2 = br.huffDecode(t)
+    int s3 = br.huffDecode(t)
+    int s4 = br.huffDecode(t)
     ok = check("decoded symbols A,A,B,A", s1 == 0 and s2 == 0 and s3 == 1 and s4 == 0) and ok
     return ok
 end
@@ -2126,7 +2135,7 @@ end
 func testBitReader() as bool
     println("[T9] BitReader bits/align/u16")
     array<int> src = array[]
-    src.push(0b00010010)   // bits LSB-first: 0,1,0,0,1,0,0,0
+    src.push(0b00100010)   // bits LSB-first: 0,1,0,0,0,1,0,0
     src.push(0xAB)
     src.push(0xCD)
     BitReader br = BitReader(src)

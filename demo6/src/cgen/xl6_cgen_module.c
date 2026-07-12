@@ -58,6 +58,10 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         ctx.debugSourcePath = options->debugSourcePath;
     }
 
+    if ( !xl6CgenBuildRootTypeIndex(&ctx) ) {
+        xl6CgenFreeRootTypeIndex(&ctx);
+        return 0;
+    }
     xl6CgenCollectAnonFuncs(&ctx, root);
     xl6CgenCollectGenericInstancesToFixedPoint(&ctx);
     xl6CgenCollectRuntimeTypeDescs(&ctx, root);
@@ -464,7 +468,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
 
     if ( hasEntryRuntime ) {
-        xl6CgenEmitTopLevelXlangMain(&ctx, root, mainFunc, hasErrorRuntime);
+        xl6CgenEmitTopLevelXlangMain(&ctx, root, mainFunc, hasErrorRuntime, hasAsyncRuntime);
     }
     if ( (mainFunc != NULL || hasEntryRuntime) && (options == NULL || !options->suppressMainWrapper) ) {
         xl6CgenEmitMainWrapper(&ctx);
@@ -487,5 +491,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     xl6CgenFreeRuntimeTypeDescs(&ctx);
     xl6CgenFreeAnonFuncs(&ctx);
     xl6CgenFreeOwnedTypeNodes(&ctx);
+    xl6CgenTypeCacheFree(&ctx);
+    xl6CgenFreeRootTypeIndex(&ctx);
     return hasTopLevel;
 }

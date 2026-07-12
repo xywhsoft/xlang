@@ -153,7 +153,7 @@ static void xl6CgenAsyncFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenIndent(ctx);
         xl6OutputPuts("(void)xl6_error_active_get();\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPuts("__xl6_future = xTaskRunThread(", ctx->out);
+    xl6OutputPuts("__xl6_future = xl6_task_run_thread_tracked(", ctx->out);
         xl6CgenAsyncWorkerSymbol(ctx, node);
         xl6OutputPuts(", __xl6_args, 0);\n", ctx->out);
         xl6CgenIndent(ctx);
@@ -176,7 +176,7 @@ static void xl6CgenAsyncFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenIndent(ctx);
         xl6OutputPuts("(void)xl6_error_active_get();\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPuts("return xl6_async_require_future(xTaskRunThread(", ctx->out);
+    xl6OutputPuts("return xl6_async_require_future(xl6_task_run_thread_tracked(", ctx->out);
         xl6CgenAsyncWorkerSymbol(ctx, node);
         xl6OutputPrintf(ctx->out, ", 0, 0), \"\", %d, %d);\n", node->line, node->column);
     }

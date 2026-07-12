@@ -394,6 +394,8 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe run test\cases\cgen_container_ops.xl
 if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_typed_shared_copy_probe.xl
+if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_container_ops.xl --emit build\test\cgen_container_ops.c
 if errorlevel 1 exit /b 1
 findstr /C:"xrtTypedArrayConcat(" build\test\cgen_container_ops.c >nul
@@ -419,6 +421,26 @@ if errorlevel 1 (
 findstr /C:"xl6_xrt_typed_set_relation(" build\test\cgen_container_ops.c >nul
 if errorlevel 1 (
     echo cgen_container_ops.c missing typed set relation lowering.
+    exit /b 1
+)
+
+release\xl.exe run test\cases\cgen_dynamic_container_cow.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_dynamic_container_cow.xl --emit build\test\cgen_dynamic_container_cow.c
+if errorlevel 1 exit /b 1
+findstr /C:"return xvoShare(value);" release\include\xl_runtime.h >nul
+if errorlevel 1 (
+    echo xl_runtime.h missing XRT copy-on-write retain path.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_retain(values)" build\test\cgen_dynamic_container_cow.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_container_cow.c missing copy-on-write assignment path.
+    exit /b 1
+)
+findstr /C:"xvoIndexGetMutableKey(xvoIndexGetMutableI64(nestedCopy" build\test\cgen_dynamic_container_cow.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_container_cow.c missing nested copy-on-write detach path.
     exit /b 1
 )
 
@@ -517,4 +539,3 @@ if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: core C generation and runtime baseline 2/10
 exit /b 0
-

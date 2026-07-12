@@ -34,15 +34,10 @@ static int xl6CgenDeclShouldUseTypedContainer(XL6_CgenContext* ctx, const XL6_As
     if ( !xl6CgenIsTypedContainerType(ctx, typeNode) ) {
         return 0;
     }
-    if ( !declaredAuto ) {
-        return 1;
-    }
-    if ( initExpr == NULL ) {
-        return 0;
-    }
-    return xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ||
-           xl6CgenTypedContainerCanCopyFromExpr(ctx, typeNode, initExpr) ||
-           xl6CgenTypedContainerCanMoveFromExpr(ctx, typeNode, initExpr);
+    (void)initExpr;
+    (void)declaredAuto;
+    /* typed HIR 已经确定为静态泛型容器，存储层不得再按 AST 形状降级为 xvalue。 */
+    return 1;
 }
 
 static void xl6CgenTypedContainerCreateExprMode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* mode)
@@ -303,7 +298,9 @@ static int xl6CgenTypedContainerCanImportDynamicExpr(
     XL6_AstNode* exprType;
     int result;
 
-    if ( initExpr == NULL || !xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+    if ( initExpr == NULL ||
+         !xl6CgenIsTypedContainerType(ctx, typeNode) ||
+         xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
         return 0;
     }
     targetType = xl6CgenTypedContainerConcreteType(ctx, typeNode);

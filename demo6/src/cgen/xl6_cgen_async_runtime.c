@@ -72,6 +72,52 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("bool xrtChannelIsClosed(xchannel pChannel);\n\n", out);
     xl6OutputPuts("void xrtSleep(unsigned int ms);\n\n", out);
 
+    /*
+        TCC 内存模块卸载前必须确认模块自己的任务回调已经退出。
+        计数器只覆盖当前生成模块，不会等待宿主或其他 XLangContext 的任务。
+    */
+    xl6OutputPuts("typedef struct XL6_TrackedTask { xtask_thread_fn fn; void* arg; } XL6_TrackedTask;\n", out);
+    xl6OutputPuts("static volatile long xl6_async_active_tasks = 0;\n", out);
+    xl6OutputPuts("#if defined(_WIN32) || defined(_WIN64)\n", out);
+    xl6OutputPuts("#include <windows.h>\n", out);
+    xl6OutputPuts("static long xl6_async_active_add(long value)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    long oldValue;\n", out);
+    xl6OutputPuts("    long newValue;\n", out);
+    xl6OutputPuts("    do { oldValue = InterlockedCompareExchange(&xl6_async_active_tasks, 0, 0); newValue = oldValue + value; }\n", out);
+    xl6OutputPuts("    while ( InterlockedCompareExchange(&xl6_async_active_tasks, newValue, oldValue) != oldValue );\n", out);
+    xl6OutputPuts("    return newValue;\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("#else\n", out);
+    xl6OutputPuts("static long xl6_async_active_add(long value) { return __sync_add_and_fetch(&xl6_async_active_tasks, value); }\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("static int xl6_tracked_task_entry(void* pArg, xfuture_result* pOut)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TrackedTask* task = (XL6_TrackedTask*)pArg;\n", out);
+    xl6OutputPuts("    xtask_thread_fn fn = task != 0 ? task->fn : 0;\n", out);
+    xl6OutputPuts("    void* arg = task != 0 ? task->arg : 0;\n", out);
+    xl6OutputPuts("    int result = -1;\n", out);
+    xl6OutputPuts("    xrtFree(task);\n", out);
+    xl6OutputPuts("    if ( fn != 0 ) { result = fn(arg, pOut); }\n", out);
+    xl6OutputPuts("    (void)xl6_async_active_add(-1);\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("static xfuture* xl6_task_run_thread_tracked(xtask_thread_fn fn, void* arg, size_t stackSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TrackedTask* task = (XL6_TrackedTask*)xrtMalloc(sizeof(XL6_TrackedTask));\n", out);
+    xl6OutputPuts("    xfuture* future;\n", out);
+    xl6OutputPuts("    if ( task == 0 || fn == 0 ) { xrtFree(task); return 0; }\n", out);
+    xl6OutputPuts("    task->fn = fn; task->arg = arg;\n", out);
+    xl6OutputPuts("    (void)xl6_async_active_add(1);\n", out);
+    xl6OutputPuts("    future = xTaskRunThread(xl6_tracked_task_entry, task, stackSize);\n", out);
+    xl6OutputPuts("    if ( future == 0 ) { (void)xl6_async_active_add(-1); xrtFree(task); }\n", out);
+    xl6OutputPuts("    return future;\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("static void xl6_async_wait_idle(void)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    while ( xl6_async_active_add(0) != 0 ) { xrtSleep(1); }\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("void xvoAddRef(xvalue pVal);\n", out);
     xl6OutputPuts("void xvoUnref(xvalue pVal);\n", out);
     xl6OutputPuts("xvalue xvoCreateArrayEx(unsigned int mode);\n", out);
@@ -524,7 +570,7 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    (void)xl6_error_active_get();\n", out);
-    xl6OutputPuts("    future = xTaskRunThread(xl6_task_spawn_entry, arg, 0);\n", out);
+    xl6OutputPuts("    future = xl6_task_run_thread_tracked(xl6_task_spawn_entry, arg, 0);\n", out);
     xl6OutputPuts("    if ( future == 0 ) {\n", out);
     xl6OutputPuts("        xl6_task_spawn_arg_release(arg);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -731,7 +777,7 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    groupFuture = xFutureAddRef(arg->groupFuture);\n", out);
     xl6OutputPuts("    (void)xl6_error_active_get();\n", out);
-    xl6OutputPuts("    future = xTaskRunThread(xl6_task_all_entry, arg, 0);\n", out);
+    xl6OutputPuts("    future = xl6_task_run_thread_tracked(xl6_task_all_entry, arg, 0);\n", out);
     xl6OutputPuts("    if ( future == 0 ) {\n", out);
     xl6OutputPuts("        xFutureRelease(groupFuture);\n", out);
     xl6OutputPuts("        xl6_task_all_arg_release(arg);\n", out);
@@ -847,7 +893,7 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    groupFuture = xFutureAddRef(arg->groupFuture);\n", out);
     xl6OutputPuts("    (void)xl6_error_active_get();\n", out);
-    xl6OutputPuts("    future = xTaskRunThread(xl6_task_when_any_entry, arg, 0);\n", out);
+    xl6OutputPuts("    future = xl6_task_run_thread_tracked(xl6_task_when_any_entry, arg, 0);\n", out);
     xl6OutputPuts("    if ( future == 0 ) {\n", out);
     xl6OutputPuts("        xFutureRelease(groupFuture);\n", out);
     xl6OutputPuts("        xl6_task_when_any_arg_release(arg);\n", out);

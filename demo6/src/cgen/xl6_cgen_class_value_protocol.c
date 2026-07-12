@@ -340,8 +340,20 @@ static void xl6CgenClassAssignFromValue(
         return;
     }
     if ( xl6CTextEquals(concreteType->text, "string") ) {
+        int id = ctx->tempId++;
+
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_temp_cstr(xvoGetText(%s));\n", valuePath, itemName);
+        xl6OutputPrintf(ctx->out, "char* __xl6_string_from_value_%d = xrtCopyStr(xvoGetText(%s), 0u);\n", id, itemName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (__xl6_string_from_value_%d == 0) { %s = 0; } else {\n", id, okName);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xrtFree((void*)%s);\n", valuePath);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = __xl6_string_from_value_%d;\n", valuePath, id);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
         return;
     }
     if ( xl6CTextEquals(concreteType->text, "time") ) {

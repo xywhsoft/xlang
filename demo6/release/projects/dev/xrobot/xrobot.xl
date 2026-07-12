@@ -1488,9 +1488,9 @@ class RRTPlanner
                 end
                 int nearId = self.nearestNode(nodes, rx, ry)
                 var nv = nodes[nearId]
-                RRTNode near = nv as RRTNode
-                float dx = rx - near.x
-                float dy = ry - near.y
+                RRTNode nearNode = nv as RRTNode
+                float dx = rx - nearNode.x
+                float dy = ry - nearNode.y
                 float dlen = math.sqrt(dx * dx + dy * dy)
                 if dlen < EPS then
                     // 重采样
@@ -1501,9 +1501,9 @@ class RRTPlanner
                     if dlen < step then
                         step = dlen
                     end
-                    float newX = near.x + ux * step
-                    float newY = near.y + uy * step
-                    if worldSegmentFree(self.world, near.x, near.y, newX, newY, self.robotRadius) then
+                    float newX = nearNode.x + ux * step
+                    float newY = nearNode.y + uy * step
+                    if worldSegmentFree(self.world, nearNode.x, nearNode.y, newX, newY, self.robotRadius) then
                         RRTNode newNode = RRTNode(newX, newY, nearId)
                         nodes.append(newNode)
                         // 检查是否到达目标
@@ -2332,11 +2332,13 @@ func cmdExplore(int maxSteps, string controllerName) as int
             float gy
             ok, gx, gy = pickFrontierGoal(m, slam.estPose)
             if ok then
-                goal = Vec2(gx, gy)
+                Vec2 g = Vec2(gx, gy)
+                goal = g
                 hasGoal = true
             else
                 // 没有前沿了：用随机点
-                goal = Vec2(randRange(1.0, 9.0), randRange(1.0, 9.0))
+                Vec2 rg = Vec2(randRange(1.0, 9.0), randRange(1.0, 9.0))
+                goal = rg
                 hasGoal = true
             end
         end
@@ -2640,7 +2642,7 @@ func testPose()
     checkApproxFloat(p2.y, 2.0 / PI, 0.01, "Pose arc quarter y")
     checkApproxFloat(p2.theta, HALF_PI, 0.0001, "Pose arc quarter theta")
     checkTrue(normalizeAngle(3.0 * PI) < PI, "normalizeAngle wraps 3pi")
-    checkTrue(normalizeAngle(0.0 - 3.0 * PI) > 0.0 - PI, "normalizeAngle wraps -3pi")
+    checkTrue(normalizeAngle(0.0 - 3.0 * PI) >= 0.0 - PI, "normalizeAngle wraps -3pi")
 end
 
 func testKinematics()
@@ -2666,10 +2668,10 @@ func testKinematics()
     r.setCommand(0.5, 0.0, 1.0)
     checkApproxFloat(r.x, 0.5, 0.001, "drive forward x")
     checkApproxFloat(r.y, 0.0, 0.001, "drive forward y")
-    // 原地旋转：v=0, w=PI/2, dt=1 -> theta=PI/2
+    // 原地旋转：v=0, w=1.0（在 maxAng=1.2 限速内），dt=1 -> theta=1.0
     Robot r2 = Robot(0.0, 0.0, 0.0)
-    r2.setCommand(0.0, HALF_PI, 1.0)
-    checkApproxFloat(r2.theta, HALF_PI, 0.001, "spin in place theta")
+    r2.setCommand(0.0, 1.0, 1.0)
+    checkApproxFloat(r2.theta, 1.0, 0.001, "spin in place theta")
     // 编码器累计
     Robot r3 = Robot(0.0, 0.0, 0.0)
     r3.setCommand(0.5, 0.0, 2.0)
@@ -2894,8 +2896,8 @@ func testSlam()
         i = i + 1
     end
     checkTrue(slam.scanCount == 6, "SLAM scanCount after 6 updates")
-    m.recount()
-    checkTrue(m.knownCount > 0, "SLAM mapped some cells")
+    slam.map.recount()
+    checkTrue(slam.map.knownCount > 0, "SLAM mapped some cells")
     float drift = math.sqrt(squareF(slam.estPose.x - r.x) + squareF(slam.estPose.y - r.y))
     checkTrue(drift < 0.01, "SLAM odometry tracks robot (drift small in this scenario)")
 end

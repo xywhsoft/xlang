@@ -1771,6 +1771,7 @@ static int xlAddEmbeddedXlangRuntimeSources(XL_Context* ctx, TCCState* s, const 
         "src\\lexer\\xl6_lexer_gen.c",
         "src\\parser\\xl6_parser.c",
         "src\\parser\\xl6_parser_api.c",
+        "src\\ir\\xl6_hir.c",
         "src\\package\\xl6_package.c",
         "src\\stdlib\\xl6_stdlib.c",
         "src\\stdlib\\xl6_stdlib_data.c",

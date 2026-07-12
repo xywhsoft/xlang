@@ -1,0 +1,12 @@
+func lastArg(...) as string
+    if arg.length == 0 then
+        return ""
+    end
+    return string(arg[arg.length - 1])
+end
+
+func main(...) as int
+    assert lastArg("first", "last") == "last"
+    println("hir vararg length index ok")
+    return 0
+end

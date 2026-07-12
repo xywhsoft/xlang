@@ -1,22 +1,108 @@
 static int xl6CgenClassHasNativeHandle(const XL6_AstNode* classNode);
 static void xl6CgenCStringSymbol(XL6_Output* out, const char* symbol);
+static XL6_AstNode* xl6CgenFindClass(XL6_CgenContext* ctx, const char* name);
 
-static XL6_AstNode* xl6CgenFindNativeBackedClass(XL6_CgenContext* ctx, const char* name)
+static unsigned long long xl6CgenRootTypeHash(const char* text)
 {
+    unsigned long long hash = 1469598103934665603ULL;
+
+    while ( text != NULL && *text != '\0' ) {
+        hash ^= (unsigned char)*text++;
+        hash *= 1099511628211ULL;
+    }
+    return hash;
+}
+
+static int xl6CgenBuildRootTypeIndex(XL6_CgenContext* ctx)
+{
+    size_t typeCount = 0;
+    size_t capacity = 8;
     size_t i;
 
-    if ( ctx == NULL || ctx->root == NULL || name == NULL ) {
-        return NULL;
+    if ( ctx == NULL || ctx->root == NULL ) {
+        return 0;
     }
     for ( i = 0; i < ctx->root->childCount; ++i ) {
         XL6_AstNode* node = ctx->root->children[i];
-        if ( node->kind == XL6_AST_CLASS &&
-             xl6CTextEquals(node->text, name) &&
-             xl6CgenClassHasNativeHandle(node) ) {
-            return node;
+        if ( node != NULL && node->text != NULL &&
+             (node->kind == XL6_AST_CLASS || node->kind == XL6_AST_UNION) ) {
+            typeCount += 1;
+        }
+    }
+    if ( typeCount == 0 ) {
+        return 1;
+    }
+    while ( capacity < typeCount * 2 ) {
+        capacity *= 2;
+    }
+    ctx->rootTypeSlots = (XL6_CgenRootTypeSlot*)xrtCalloc(capacity, sizeof(XL6_CgenRootTypeSlot));
+    if ( ctx->rootTypeSlots == NULL ) {
+        xl6CgenError(ctx, ctx->root, "out of memory while building cgen root type index");
+        return 0;
+    }
+    ctx->rootTypeSlotCount = capacity;
+
+    for ( i = 0; i < ctx->root->childCount; ++i ) {
+        XL6_AstNode* node = ctx->root->children[i];
+        size_t slot;
+
+        if ( node == NULL || node->text == NULL ||
+             (node->kind != XL6_AST_CLASS && node->kind != XL6_AST_UNION) ) {
+            continue;
+        }
+        slot = (size_t)(xl6CgenRootTypeHash(node->text) & (capacity - 1));
+        while ( ctx->rootTypeSlots[slot].name != NULL &&
+                !xl6CTextEquals(ctx->rootTypeSlots[slot].name, node->text) ) {
+            slot = (slot + 1) & (capacity - 1);
+        }
+        ctx->rootTypeSlots[slot].name = node->text;
+        if ( node->kind == XL6_AST_CLASS ) {
+            ctx->rootTypeSlots[slot].classNode = node;
+        } else {
+            ctx->rootTypeSlots[slot].unionNode = node;
+        }
+    }
+    return 1;
+}
+
+static XL6_CgenRootTypeSlot* xl6CgenFindRootTypeSlot(XL6_CgenContext* ctx, const char* name)
+{
+    size_t slot;
+    size_t start;
+
+    if ( ctx == NULL || name == NULL || ctx->rootTypeSlotCount == 0 ) {
+        return NULL;
+    }
+    slot = (size_t)(xl6CgenRootTypeHash(name) & (ctx->rootTypeSlotCount - 1));
+    start = slot;
+    while ( ctx->rootTypeSlots[slot].name != NULL ) {
+        if ( xl6CTextEquals(ctx->rootTypeSlots[slot].name, name) ) {
+            return &ctx->rootTypeSlots[slot];
+        }
+        slot = (slot + 1) & (ctx->rootTypeSlotCount - 1);
+        if ( slot == start ) {
+            break;
         }
     }
     return NULL;
+}
+
+static void xl6CgenFreeRootTypeIndex(XL6_CgenContext* ctx)
+{
+    if ( ctx == NULL ) {
+        return;
+    }
+    xrtFree(ctx->rootTypeSlots);
+    ctx->rootTypeSlots = NULL;
+    ctx->rootTypeSlotCount = 0;
+}
+
+static XL6_AstNode* xl6CgenFindNativeBackedClass(XL6_CgenContext* ctx, const char* name)
+{
+    XL6_AstNode* node;
+
+    node = xl6CgenFindClass(ctx, name);
+    return node != NULL && xl6CgenClassHasNativeHandle(node) ? node : NULL;
 }
 
 static const char* xl6CgenLookupCallableName(const XL6_AstNode* node)
@@ -35,34 +121,18 @@ static const char* xl6CgenLookupCallableName(const XL6_AstNode* node)
 
 static XL6_AstNode* xl6CgenFindClass(XL6_CgenContext* ctx, const char* name)
 {
-    size_t i;
+    XL6_CgenRootTypeSlot* slot;
 
-    if ( ctx == NULL || ctx->root == NULL || name == NULL ) {
-        return NULL;
-    }
-    for ( i = 0; i < ctx->root->childCount; ++i ) {
-        XL6_AstNode* node = ctx->root->children[i];
-        if ( node->kind == XL6_AST_CLASS && xl6CTextEquals(node->text, name) ) {
-            return node;
-        }
-    }
-    return NULL;
+    slot = xl6CgenFindRootTypeSlot(ctx, name);
+    return slot != NULL ? slot->classNode : NULL;
 }
 
 static XL6_AstNode* xl6CgenFindUnion(XL6_CgenContext* ctx, const char* name)
 {
-    size_t i;
+    XL6_CgenRootTypeSlot* slot;
 
-    if ( ctx == NULL || ctx->root == NULL || name == NULL ) {
-        return NULL;
-    }
-    for ( i = 0; i < ctx->root->childCount; ++i ) {
-        XL6_AstNode* node = ctx->root->children[i];
-        if ( node->kind == XL6_AST_UNION && node->text != NULL && xl6CTextEquals(node->text, name) ) {
-            return node;
-        }
-    }
-    return NULL;
+    slot = xl6CgenFindRootTypeSlot(ctx, name);
+    return slot != NULL ? slot->unionNode : NULL;
 }
 
 static int xl6CgenIsNativeBackedClassType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)

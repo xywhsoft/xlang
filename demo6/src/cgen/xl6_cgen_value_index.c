@@ -29,6 +29,65 @@ static int xl6CgenIndexKeyIsInteger(XL6_CgenContext* ctx, const XL6_AstNode* ind
     return result;
 }
 
+/*
+ * 左值中的每一级动态容器都必须先分离。
+ * 普通读取仍使用只读借用接口，不承担 COW 成本。
+ */
+static void xl6CgenXValueWriteReceiverExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
+{
+    const XL6_AstNode* parent;
+    const XL6_AstNode* index;
+
+    if ( receiver == NULL ) {
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+
+    if ( (receiver->kind == XL6_AST_INDEX || receiver->kind == XL6_AST_SAFE_INDEX) &&
+         receiver->childCount >= 2 ) {
+        parent = receiver->children[0];
+        index = receiver->children[1];
+        if ( xl6CgenExprStaticTypeIs(ctx, index, "string") ) {
+            xl6OutputPuts("xvoIndexGetMutableKey(", ctx->out);
+            xl6CgenXValueWriteReceiverExpr(ctx, parent);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, index);
+            xl6OutputPuts(", 0)", ctx->out);
+        } else if ( xl6CgenIndexKeyIsXValue(ctx, index) ) {
+            xl6OutputPuts("xvoIndexGetMutableValue(", ctx->out);
+            xl6CgenXValueWriteReceiverExpr(ctx, parent);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenXValueFromExpr(ctx, index);
+            xl6OutputPutc(')', ctx->out);
+        } else {
+            xl6OutputPuts("xvoIndexGetMutableI64(", ctx->out);
+            xl6CgenXValueWriteReceiverExpr(ctx, parent);
+            xl6OutputPuts(", (long long)(", ctx->out);
+            xl6CgenExpr(ctx, index);
+            xl6OutputPuts("))", ctx->out);
+        }
+        return;
+    }
+
+    if ( (receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_SAFE_MEMBER) &&
+         receiver->childCount > 0 && receiver->text != NULL ) {
+        XL6_AstNode* fieldType = xl6CgenCloneMemberFieldTypeForInference(ctx, receiver);
+        if ( fieldType != NULL ) {
+            xl6AstFree(fieldType);
+            xl6CgenExpr(ctx, receiver);
+            return;
+        }
+        xl6OutputPuts("xl6_record_field_get_mutable(", ctx->out);
+        xl6CgenXValueWriteReceiverExpr(ctx, receiver->children[0]);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenCStringLiteral(ctx->out, receiver->text);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+
+    xl6CgenExpr(ctx, receiver);
+}
+
 static void xl6CgenValueIndexRaiseFailure(XL6_CgenContext* ctx, const XL6_AstNode* at, const char* message);
 
 static void xl6CgenXValueDictGetExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver, const char* receiverName, const XL6_AstNode* index)
@@ -164,7 +223,7 @@ static void xl6CgenXValueDictSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_A
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (!(__xl6_dict_key_%d != 0 && xvoType(__xl6_dict_key_%d) == XL6_XVO_DT_TEXT && xvoTableSetValue(", id, id);
-    xl6CgenExpr(ctx, receiver);
+    xl6CgenXValueWriteReceiverExpr(ctx, receiver);
     xl6OutputPrintf(ctx->out, ", xvoGetText(__xl6_dict_key_%d), 0, %s, true)) && %s != 0) {\n", id, tempName != NULL ? tempName : "0", tempName != NULL ? tempName : "0");
     ctx->indent += 1;
     xl6CgenIndent(ctx);
@@ -190,7 +249,7 @@ static void xl6CgenXValueIndexSetI64Stmt(XL6_CgenContext* ctx, const XL6_AstNode
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "xvalue __xl6_index_values_%d = ", id);
-    xl6CgenExpr(ctx, receiver);
+    xl6CgenXValueWriteReceiverExpr(ctx, receiver);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "int __xl6_index_type_%d = (__xl6_index_values_%d != 0 ? xvoType(__xl6_index_values_%d) : 0);\n", id, id, id);
@@ -222,7 +281,7 @@ static void xl6CgenXValueIndexSetDynamicKeyStmt(XL6_CgenContext* ctx, const XL6_
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "xvalue __xl6_index_values_%d = ", id);
-    xl6CgenExpr(ctx, receiver);
+    xl6CgenXValueWriteReceiverExpr(ctx, receiver);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "xvalue __xl6_index_key_%d = ", id);

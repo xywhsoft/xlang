@@ -1,0 +1,3 @@
+class RecursiveNode
+    RecursiveNode left
+end

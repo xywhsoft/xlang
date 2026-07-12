@@ -1033,6 +1033,8 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoCreateSetArgs);
     XL_ADD_XRT_SYMBOL(s, xvoCreateTableArgs);
     XL_ADD_XRT_SYMBOL(s, xvoAddRef);
+    XL_ADD_XRT_SYMBOL(s, xvoShare);
+    XL_ADD_XRT_SYMBOL(s, xvoEnsureUnique);
     XL_ADD_XRT_SYMBOL(s, xvoIsShared);
     XL_ADD_XRT_SYMBOL(s, xvoUnref);
     XL_ADD_XRT_SYMBOL(s, xvoCopy);
@@ -1050,9 +1052,16 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoGetTime);
     XL_ADD_XRT_SYMBOL(s, xvoGetPoint);
     XL_ADD_XRT_SYMBOL(s, xvoGetCallable);
+    XL_ADD_XRT_SYMBOL(s, xvoGetArray);
+    XL_ADD_XRT_SYMBOL(s, xvoGetMutableArray);
     XL_ADD_XRT_SYMBOL(s, xvoGetColl);
+    XL_ADD_XRT_SYMBOL(s, xvoGetMutableColl);
     XL_ADD_XRT_SYMBOL(s, xvoGetList);
+    XL_ADD_XRT_SYMBOL(s, xvoGetMutableList);
+    XL_ADD_XRT_SYMBOL(s, xvoGetSet);
+    XL_ADD_XRT_SYMBOL(s, xvoGetMutableSet);
     XL_ADD_XRT_SYMBOL(s, xvoGetTable);
+    XL_ADD_XRT_SYMBOL(s, xvoGetMutableTable);
     XL_ADD_XRT_SYMBOL(s, xvoGetRecordData);
     XL_ADD_XRT_SYMBOL(s, xvoGetHandleData);
     XL_ADD_XRT_SYMBOL(s, xvoToString);
@@ -1098,9 +1107,12 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoBasicEqual);
     XL_ADD_XRT_SYMBOL(s, xvoValueTruthy);
     XL_ADD_XRT_SYMBOL(s, xvoIndexGetI64);
+    XL_ADD_XRT_SYMBOL(s, xvoIndexGetMutableI64);
     XL_ADD_XRT_SYMBOL(s, xvoIndexSetI64);
     XL_ADD_XRT_SYMBOL(s, xvoIndexGetKey);
+    XL_ADD_XRT_SYMBOL(s, xvoIndexGetMutableKey);
     XL_ADD_XRT_SYMBOL(s, xvoIndexGetValue);
+    XL_ADD_XRT_SYMBOL(s, xvoIndexGetMutableValue);
     XL_ADD_XRT_SYMBOL(s, xvoValueContains);
     XL_ADD_XRT_SYMBOL(s, xvoPrint);
     XL_ADD_XRT_SYMBOL(s, xvoSetTypeDesc);

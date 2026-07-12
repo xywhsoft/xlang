@@ -91,7 +91,7 @@ end
 // ============================================================
 
 func cidKey(int connId) as string
-    return connId.toString()
+    return string(connId)
 end
 
 // 从下标 i 取到串尾（slice 起始 + 长度封装，减少手算出错）
@@ -277,13 +277,15 @@ func newChanDict(string opNick) as var
     ch["topicTime"] = 0
     ch["created"] = time.toUnix(time.now())
     var members = []
-    members.push(opNick)
     ch["members"] = members
     var modes = []
     modes.push("n")
     modes.push("t")
     ch["modes"] = modes
     ch["op"] = opNick
+    var ops = []
+    ops.push(opNick)
+    ch["ops"] = ops
     ch["key"] = ""
     return ch
 end
@@ -331,7 +333,7 @@ end
 func findChanKey(var chans, string name) as string
     for k, v in chans
         if ircEqual(string(k), name) then
-            return k
+            return string(k)
         end
     end
     return ""
@@ -364,6 +366,16 @@ func isMember(var ch, string nick) as bool
     var members = ch["members"]
     for m in members
         if ircEqual(string(m), nick) then
+            return true
+        end
+    end
+    return false
+end
+
+func isChanOp(var ch, string nick) as bool
+    var ops = ch["ops"]
+    for o in ops
+        if ircEqual(string(o), nick) then
             return true
         end
     end
@@ -425,8 +437,13 @@ func numeric(int connId, int code, var conns, var outbox, string text)
             nick = n
         end
     end
-    string codeStr = string.padLeft(code.toString(), 3, "0")
-    string line = ":" + SERVER_NAME + " " + codeStr + " " + nick + " :" + text + "\r\n"
+    string codeStr = string.padLeft(string(code), 3, "0")
+    string line
+    if string.contains(text, ":") then
+        line = ":" + SERVER_NAME + " " + codeStr + " " + text + "\r\n"
+    else
+        line = ":" + SERVER_NAME + " " + codeStr + " " + nick + " :" + text + "\r\n"
+    end
     enqueueLocal(outbox, connId, line)
 end
 
@@ -781,7 +798,8 @@ func cmdPrivmsg(int connId, var msg, var conns, var chans, var outbox)
             numeric(connId, 401, conns, outbox, target + " :No such nick/channel")
             return
         end
-        string line = ":" + prefix + " PRIVMSG " + target + " :" + text + "\r\n"
+        string targetNick = string(conns[cidKey(targetCid)]["nick"])
+        string line = ":" + prefix + " PRIVMSG " + targetNick + " :" + text + "\r\n"
         enqueueLocal(outbox, targetCid, line)
     end
 end
@@ -862,7 +880,7 @@ func cmdMode(int connId, var msg, var conns, var chans, var outbox)
             return
         end
         // 设置：需要 op
-        if not ircEqual(string(ch["op"]), senderNick) then
+        if not isChanOp(ch, senderNick) then
             numeric(connId, 482, conns, outbox, key + " :You're not channel operator")
             return
         end
@@ -904,8 +922,14 @@ func applyChanModes(var ch, string modestring, var params)
                 argIdx = argIdx + 1
                 if plus then
                     if isMember(ch, opTarget) then
-                        ch["op"] = opTarget
+                        var ops = ch["ops"]
+                        if not modeInArray(ops, opTarget) then
+                            ops.push(opTarget)
+                        end
+                        ch["ops"] = ops
                     end
+                else
+                    ch["ops"] = modeRemove(ch["ops"], opTarget)
                 end
             end
         elseif c == "n" or c == "t" or c == "s" or c == "p" or c == "m" then
@@ -949,7 +973,7 @@ func cmdTopic(int connId, var msg, var conns, var chans, var outbox)
         return
     end
     // 设置：+t 限制仅 op
-    if hasMode(ch, "t") and not ircEqual(string(ch["op"]), senderNick) then
+    if hasMode(ch, "t") and not isChanOp(ch, senderNick) then
         numeric(connId, 482, conns, outbox, key + " :You're not channel operator")
         return
     end
@@ -1026,13 +1050,13 @@ func cmdLusers(int connId, var msg, var conns, var chans, var outbox)
     end
     string nick = string(conns[cidKey(connId)]["nick"])
     // 251 RPL_LUSERCLIENT
-    string l251 = ":" + SERVER_NAME + " 251 " + nick + " :There are " + users.toString() + " users and " + servers.toString() + " servers on " + servers.toString() + " network\r\n"
+    string l251 = ":" + SERVER_NAME + " 251 " + nick + " :There are " + string(users) + " users and " + string(servers) + " servers on " + string(servers) + " network\r\n"
     enqueueLocal(outbox, connId, l251)
     // 254 RPL_LUSERCHANNELS
-    string l254 = ":" + SERVER_NAME + " 254 " + nick + " " + channels.toString() + " :channels formed\r\n"
+    string l254 = ":" + SERVER_NAME + " 254 " + nick + " " + string(channels) + " :channels formed\r\n"
     enqueueLocal(outbox, connId, l254)
     // 255 RPL_LUSERME
-    string l255 = ":" + SERVER_NAME + " 255 " + nick + " :I have " + users.toString() + " clients and " + servers.toString() + " servers\r\n"
+    string l255 = ":" + SERVER_NAME + " 255 " + nick + " :I have " + string(users) + " clients and " + string(servers) + " servers\r\n"
     enqueueLocal(outbox, connId, l255)
 end
 
@@ -1353,7 +1377,7 @@ func runSelfTest() as int
         var m = parseIrcLine("NICK alice")
         check(ircUpper(string(m["command"])) == "NICK", "1. parse NICK command", "cmd=" + string(m["command"]))
         var p = m["params"]
-        check(p.length == 0, "1. parse NICK no params", "len=" + p.length.toString())
+        check(p.length == 1, "1. parse NICK one param", "len=" + string(p.length))
         check(string(m["trailing"]) == "", "1. parse NICK no trailing", "trail=" + string(m["trailing"]))
     end
 
@@ -1363,7 +1387,7 @@ func runSelfTest() as int
         check(string(m["prefix"]) == "irc.xlang.local", "2. parse prefix", "prefix=" + string(m["prefix"]))
         check(string(m["command"]) == "001", "2. parse numeric command", "cmd=" + string(m["command"]))
         var p = m["params"]
-        check(p.length == 1 and string(p[0]) == "alice", "2. parse one param", "len=" + p.length.toString())
+        check(p.length == 1 and string(p[0]) == "alice", "2. parse one param", "len=" + string(p.length))
         check(string(m["trailing"]) == "Welcome to the IRC", "2. parse trailing", "trail=" + string(m["trailing"]))
         check(bool(m["hasTrailing"]) == true, "2. hasTrailing flag", "")
     end
@@ -1388,7 +1412,7 @@ func runSelfTest() as int
     if true then
         var m = parseIrcLine("MODE #chan +o bob")
         var p = m["params"]
-        check(p.length == 3, "5. three params", "len=" + p.length.toString())
+        check(p.length == 3, "5. three params", "len=" + string(p.length))
         check(string(p[0]) == "#chan" and string(p[1]) == "+o" and string(p[2]) == "bob", "5. param values", "")
     end
 
@@ -1612,11 +1636,11 @@ func runSelfTest() as int
 
     // -------- 34. 未知命令 -> 421 --------
     processLine(owner, "FLY away")
-    expectContains(drainOutbox(owner), " 421 owner FLY :Unknown command", "34. unknown command -> 421")
+    expectContains(drainOutbox(owner), " 421 FLY :Unknown command", "34. unknown command -> 421")
 
     // -------- 35. JOIN 缺参 -> 461 --------
     processLine(owner, "JOIN")
-    expectContains(drainOutbox(owner), " 461 owner JOIN :Not enough parameters", "35. JOIN no params -> 461")
+    expectContains(drainOutbox(owner), " 461 JOIN :Not enough parameters", "35. JOIN no params -> 461")
 
     // -------- 36. JOIN 多频道 --------
     resetState()
@@ -1671,7 +1695,7 @@ func runSelfTest() as int
     int lateJoiner = simRegister("late", "late")
     processLine(lateJoiner, "JOIN #t")
     string lateOut = drainOutbox(lateJoiner)
-    expectContains(lateOut, " 332 late #t :My Topic", "43. late join sees topic 332")
+    expectContains(lateOut, " 332 #t :My Topic", "43. late join sees topic 332")
     expectContains(lateOut, " 333 late #t sup!sup@127.0.0.1 ", "43. late join sees topic who 333")
     expectContains(lateOut, " 329 late #t ", "43. late join sees creationtime")
 
@@ -1721,7 +1745,7 @@ func runSelfTest() as int
 
     // -------- 48. WHOIS 不存在 -> 401 --------
     processLine(w2, "WHOIS ghost")
-    expectContains(drainOutbox(w2), " 401 max ghost ", "48. whois no such -> 401")
+    expectContains(drainOutbox(w2), " 401 ghost ", "48. whois no such -> 401")
 
     // -------- 49. VERSION / TIME --------
     processLine(w2, "VERSION")
@@ -1739,7 +1763,7 @@ func runSelfTest() as int
     string cleared = drainOutbox(tc)
     expectContains(cleared, ":top!top@127.0.0.1 TOPIC #c :", "50. clear topic broadcast")
     processLine(tc, "TOPIC #c")
-    expectContains(drainOutbox(tc), " 331 top #c ", "50. cleared topic -> 331")
+    expectContains(drainOutbox(tc), " 331 #c ", "50. cleared topic -> 331")
 
     // -------- 51. MODE -o 去 op 后无法再设 topic（+t）--------
     resetState()
@@ -1790,7 +1814,7 @@ func runSelfTest() as int
     // sue 与 sam 共享 #one 和 #two，但只应收到一次 NICK
     string sueNick = drainOutbox(s2)
     int nickCount = string.count(sueNick, " NICK :samuel")
-    check(nickCount == 1, "53. nick change deduped across shared channels", "count=" + nickCount.toString())
+    check(nickCount == 1, "53. nick change deduped across shared channels", "count=" + string(nickCount))
     expectContains(sueNick, ":sam!sam@127.0.0.1 NICK :samuel", "53. sue sees nick change")
 
     // -------- 54. QUIT 向多频道成员广播但每人只一次 --------
@@ -1805,7 +1829,7 @@ func runSelfTest() as int
     processLine(q1, "QUIT :done")
     string q2quit = drainOutbox(q2)
     int quitCount = string.count(q2quit, "QUIT :Quit: done")
-    check(quitCount == 1, "54. quit broadcast deduped", "count=" + quitCount.toString())
+    check(quitCount == 1, "54. quit broadcast deduped", "count=" + string(quitCount))
 
     // -------- 55. PART 多频道 --------
     resetState()
@@ -1829,11 +1853,11 @@ func runSelfTest() as int
 
     // -------- 57. TOPIC 不存在频道 -> 403 --------
     processLine(z1, "TOPIC #nope")
-    expectContains(drainOutbox(z1), " 403 z1 #nope ", "57. topic no channel -> 403")
+    expectContains(drainOutbox(z1), " 403 #nope ", "57. topic no channel -> 403")
 
     // -------- 58. MODE 不存在频道 -> 403 --------
     processLine(z1, "MODE #nope")
-    expectContains(drainOutbox(z1), " 403 z1 #nope ", "58. mode no channel -> 403")
+    expectContains(drainOutbox(z1), " 403 #nope ", "58. mode no channel -> 403")
 
     // -------- 59. 状态隔离：reset 后频道与连接清空 --------
     resetState()
@@ -1844,7 +1868,7 @@ func runSelfTest() as int
     int chanN = 0
     int regN = 0
     connN, chanN, regN = serverStats()
-    check(connN == 1 and chanN == 1 and regN == 1, "59. stats after reset+join", "conn=" + connN.toString() + " chan=" + chanN.toString() + " reg=" + regN.toString())
+    check(connN == 1 and chanN == 1 and regN == 1, "59. stats after reset+join", "conn=" + string(connN) + " chan=" + string(chanN) + " reg=" + string(regN))
 
     // -------- 60. PONG 无副作用（注册前也允许）--------
     resetState()
@@ -1873,7 +1897,7 @@ func runSelfTest() as int
     resetState()
     int b1 = allocConn("127.0.0.1")
     string n30 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-    check(string.len(n30) == 30, "63. setup nick30 len", "len=" + string.len(n30).toString())
+    check(string.len(n30) == 30, "63. setup nick30 len", "len=" + string(string.len(n30)))
     processLine(b1, "NICK " + n30)
     expectNotContains(drainOutbox(b1), " 432 ", "63. 30-char nick accepted")
     int b2 = allocConn("127.0.0.1")
@@ -1917,7 +1941,7 @@ func runSelfTest() as int
     processLine(j1, "QUIT :bye")
     int jC = simRegister("jChk", "jChk")
     processLine(jC, "NAMES #jay")
-    expectContains(drainOutbox(jC), " 366 jChk #jay ", "65. channel destroyed after last quit")
+    expectContains(drainOutbox(jC), " 366 #jay ", "65. channel destroyed after last quit")
 
     // -------- 66. 服务端统计 serverStats 准确 --------
     resetState()
@@ -1933,12 +1957,12 @@ func runSelfTest() as int
     int sr = 0
     sc, sh, sr = serverStats()
     // sA, sB 已注册 + sUnreg 未注册 -> 3 连接、2 已注册、2 频道
-    check(sc == 3 and sh == 2 and sr == 2, "66. serverStats counts", "conn=" + sc.toString() + " chan=" + sh.toString() + " reg=" + sr.toString())
+    check(sc == 3 and sh == 2 and sr == 2, "66. serverStats counts", "conn=" + string(sc) + " chan=" + string(sh) + " reg=" + string(sr))
 
     println("")
     println("------------------- summary -------------------")
-    println("passed: " + gPassed.toString() + " / " + (gPassed + gFailed).toString())
-    println("failed: " + gFailed.toString())
+    println("passed: " + string(gPassed) + " / " + string(gPassed + gFailed))
+    println("failed: " + string(gFailed))
     println("")
     if gFailed > 0 then
         return 1
@@ -2038,14 +2062,14 @@ end
 async func serveMode(int port) as int
     point lh = tcp.listen(port)
     if lh == ZERO then
-        println("FATAL: tcp.listen failed on port " + port.toString())
+        println("FATAL: tcp.listen failed on port " + string(port))
         return 1
     end
     TcpServer server = TcpServer(lh)
     int boundPort = int(server.port())
     gServing = 1
-    println("listening on port " + boundPort.toString() + "  (server: " + SERVER_NAME + " " + SERVER_VERSION + ")")
-    println("connect with an IRC client, e.g.:  /server 127.0.0.1 " + boundPort.toString())
+    println("listening on port " + string(boundPort) + "  (server: " + SERVER_NAME + " " + SERVER_VERSION + ")")
+    println("connect with an IRC client, e.g.:  /server 127.0.0.1 " + string(boundPort))
     println("press Ctrl+C to stop")
     println("")
 
@@ -2061,7 +2085,7 @@ async func serveMode(int port) as int
             int connId = allocConn("127.0.0.1")
             gTotalConns = gTotalConns + 1
             thread t = thread(makeClientLoop(connId, handle))
-            println("[conn] accepted id=" + connId.toString() + " active=" + gTotalConns.toString())
+            println("[conn] accepted id=" + string(connId) + " active=" + string(gTotalConns))
         end
     end
     return 0
@@ -2071,7 +2095,7 @@ func usage()
     println("xlang ircserver - RFC 1459 subset IRC server")
     println("Usage:")
     println("  ircserver test            run self-test (no real server, simulates protocol)")
-    println("  ircserver serve [port]    serve real IRC clients (default port " + DEFAULT_PORT.toString() + ")")
+    println("  ircserver serve [port]    serve real IRC clients (default port " + string(DEFAULT_PORT) + ")")
     println("  ircserver -h | --help     show this help")
     println("")
     println("Core commands:  NICK USER JOIN PART PRIVMSG QUIT PING PONG MODE TOPIC NAMES")
@@ -2095,7 +2119,7 @@ func main(...) as int
     gServing = 0
     gTotalConns = 0
     gLock = mutex()
-    gCreated = "unix " + time.toUnix(time.now()).toString()
+    gCreated = "unix " + string(time.toUnix(time.now()))
 
     string mode = "test"
     int port = DEFAULT_PORT

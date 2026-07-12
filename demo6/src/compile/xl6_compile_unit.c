@@ -90,6 +90,11 @@ int xl6CompileUnitLoadFile(XL6_CompileUnit* unit, const char* path, int runSem)
         ok = xl6SemCheckModule(unit->parse.root, &unit->parse.diags);
         unit->semChecked = 1;
     }
+    if ( ok && runSem ) {
+        unit->phase = "hir";
+        ok = xl6HirFinalizeModule(unit->parse.root, &unit->parse.diags, &unit->hirStats);
+        unit->hirReady = ok;
+    }
     unit->success = ok && unit->parse.diags.count == 0;
     if ( unit->success ) {
         unit->phase = "checked";
@@ -124,6 +129,11 @@ int xl6CompileUnitLoadSource(XL6_CompileUnit* unit, const char* source, const ch
         unit->phase = "sem";
         ok = xl6SemCheckModule(unit->parse.root, &unit->parse.diags);
         unit->semChecked = 1;
+    }
+    if ( ok && runSem ) {
+        unit->phase = "hir";
+        ok = xl6HirFinalizeModule(unit->parse.root, &unit->parse.diags, &unit->hirStats);
+        unit->hirReady = ok;
     }
     unit->success = ok && unit->parse.diags.count == 0;
     if ( unit->success ) {

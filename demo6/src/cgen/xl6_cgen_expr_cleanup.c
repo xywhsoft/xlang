@@ -154,6 +154,8 @@ static void xl6CgenFreeCleanupsSince(XL6_CgenContext* ctx, size_t mark)
 
 static void xl6CgenFreeCleanups(XL6_CgenContext* ctx)
 {
+    size_t i;
+
     if ( ctx == NULL ) {
         return;
     }
@@ -161,6 +163,13 @@ static void xl6CgenFreeCleanups(XL6_CgenContext* ctx)
     xrtFree(ctx->cleanups);
     ctx->cleanups = NULL;
     ctx->cleanupCapacity = 0;
+    for ( i = 0; i < ctx->errorScopeCount; ++i ) {
+        xrtFree(ctx->errorScopes[i].checkpoints);
+    }
+    xrtFree(ctx->errorScopes);
+    ctx->errorScopes = NULL;
+    ctx->errorScopeCount = 0;
+    ctx->errorScopeCapacity = 0;
 }
 
 static int xl6CgenNativeClassCleanupIsTracked(XL6_CgenContext* ctx, const char* name)
@@ -564,17 +573,10 @@ static int xl6CgenExprIsXValueBorrow(XL6_CgenContext* ctx, const XL6_AstNode* ex
     }
     if ( expr->kind == XL6_AST_INDEX || expr->kind == XL6_AST_SAFE_INDEX ) {
         const XL6_AstNode* receiver = expr->childCount > 0 ? expr->children[0] : NULL;
-        const XL6_AstNode* index = expr->childCount > 1 ? expr->children[1] : NULL;
-        XL6_AstNode* receiverType;
         if ( xl6CgenExprUsesTypedContainerStorage(ctx, receiver) ) {
             return 0;
         }
-        receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-        if ( xl6CgenIsXValueType(receiverType) && xl6CgenExprStaticTypeIs(ctx, index, "string") ) {
-            xl6AstFree(receiverType);
-            return 0;
-        }
-        xl6AstFree(receiverType);
+        /* 已有动态容器返回借用元素；临时 receiver 的 lowering 会显式 retain 后再释放容器。 */
         return xl6CgenExprIsXValueBorrow(ctx, receiver);
     }
     if ( expr->kind == XL6_AST_AWAIT ) {
@@ -618,6 +620,202 @@ static void xl6CgenEmitCleanupsSinceExcept(XL6_CgenContext* ctx, size_t mark, co
 static void xl6CgenEmitCleanupsSince(XL6_CgenContext* ctx, size_t mark)
 {
     xl6CgenEmitCleanupsSinceExcept(ctx, mark, NULL);
+}
+
+static void xl6CgenEmitCleanupRange(XL6_CgenContext* ctx, size_t mark, size_t end)
+{
+    size_t i;
+
+    if ( ctx == NULL || mark > end || end > ctx->cleanupCount ) {
+        return;
+    }
+    for ( i = end; i > mark; --i ) {
+        xl6CgenEmitOneCleanup(ctx, &ctx->cleanups[i - 1]);
+    }
+}
+
+static XL6_CgenErrorScope* xl6CgenCurrentErrorScope(XL6_CgenContext* ctx)
+{
+    if ( ctx == NULL || ctx->errorScopeCount == 0 ) {
+        return NULL;
+    }
+    return &ctx->errorScopes[ctx->errorScopeCount - 1];
+}
+
+static int xl6CgenErrorTargetsEqual(const XL6_CgenErrorScope* left, const XL6_CgenErrorScope* right)
+{
+    if ( left == NULL || right == NULL || left->hasTarget != right->hasTarget ) {
+        return 0;
+    }
+    if ( !left->hasTarget ) {
+        return 1;
+    }
+    return left->target.cleanupMark == right->target.cleanupMark &&
+           left->target.id == right->target.id &&
+           left->target.targetFinally == right->target.targetFinally;
+}
+
+static int xl6CgenPushErrorScope(XL6_CgenContext* ctx, size_t cleanupMark)
+{
+    XL6_CgenErrorScope* items;
+    XL6_CgenErrorScope* scope;
+    XL6_CgenTryTarget* target;
+    size_t capacity;
+
+    if ( ctx == NULL || !ctx->needsErrorRuntime ) {
+        return 0;
+    }
+    if ( ctx->errorScopeCount == ctx->errorScopeCapacity ) {
+        capacity = ctx->errorScopeCapacity == 0 ? 16 : ctx->errorScopeCapacity * 2;
+        items = (XL6_CgenErrorScope*)xrtRealloc(
+            ctx->errorScopes,
+            capacity * sizeof(XL6_CgenErrorScope));
+        if ( items == NULL ) {
+            xl6CgenError(ctx, NULL, "out of memory while growing cgen error scope stack");
+            return 0;
+        }
+        ctx->errorScopes = items;
+        ctx->errorScopeCapacity = capacity;
+    }
+
+    scope = &ctx->errorScopes[ctx->errorScopeCount++];
+    memset(scope, 0, sizeof(*scope));
+    scope->cleanupMark = cleanupMark;
+    target = xl6CgenCurrentTryTarget(ctx);
+    if ( target != NULL ) {
+        scope->target = *target;
+        scope->hasTarget = 1;
+    }
+    return 1;
+}
+
+static XL6_CgenErrorCheckpoint* xl6CgenErrorScopeCheckpoint(
+    XL6_CgenContext* ctx,
+    XL6_CgenErrorScope* scope,
+    size_t cleanupCount)
+{
+    XL6_CgenErrorCheckpoint* items;
+    size_t i;
+    size_t capacity;
+
+    if ( ctx == NULL || scope == NULL || cleanupCount < scope->cleanupMark ) {
+        return NULL;
+    }
+    for ( i = 0; i < scope->checkpointCount; ++i ) {
+        if ( scope->checkpoints[i].cleanupCount == cleanupCount ) {
+            return &scope->checkpoints[i];
+        }
+    }
+    if ( scope->checkpointCount == scope->checkpointCapacity ) {
+        capacity = scope->checkpointCapacity == 0 ? 8 : scope->checkpointCapacity * 2;
+        items = (XL6_CgenErrorCheckpoint*)xrtRealloc(
+            scope->checkpoints,
+            capacity * sizeof(XL6_CgenErrorCheckpoint));
+        if ( items == NULL ) {
+            xl6CgenError(ctx, NULL, "out of memory while growing cgen error checkpoints");
+            return NULL;
+        }
+        scope->checkpoints = items;
+        scope->checkpointCapacity = capacity;
+    }
+    scope->checkpoints[scope->checkpointCount].cleanupCount = cleanupCount;
+    scope->checkpoints[scope->checkpointCount].id = ctx->tempId++;
+    scope->checkpointCount += 1;
+    return &scope->checkpoints[scope->checkpointCount - 1];
+}
+
+static int xl6CgenEmitCurrentErrorScopeJump(XL6_CgenContext* ctx)
+{
+    XL6_CgenErrorScope* scope = xl6CgenCurrentErrorScope(ctx);
+    XL6_CgenErrorCheckpoint* checkpoint;
+
+    if ( scope == NULL ) {
+        return 0;
+    }
+    checkpoint = xl6CgenErrorScopeCheckpoint(ctx, scope, ctx->cleanupCount);
+    if ( checkpoint == NULL ) {
+        return 0;
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "goto __xl6_cleanup_error_%d;\n", checkpoint->id);
+    return 1;
+}
+
+static void xl6CgenCloseErrorScope(XL6_CgenContext* ctx, size_t cleanupMark)
+{
+    XL6_CgenErrorScope scope;
+    XL6_CgenErrorScope* parent;
+    XL6_CgenErrorCheckpoint* parentCheckpoint;
+    size_t terminalMark;
+    size_t i;
+    size_t lowerMark;
+
+    if ( ctx == NULL || ctx->errorScopeCount == 0 ) {
+        xl6CgenCloseScope(ctx, cleanupMark);
+        return;
+    }
+
+    scope = ctx->errorScopes[ctx->errorScopeCount - 1];
+    ctx->errorScopeCount -= 1;
+    if ( scope.cleanupMark != cleanupMark || scope.checkpointCount == 0 ) {
+        xrtFree(scope.checkpoints);
+        xl6CgenCloseScope(ctx, cleanupMark);
+        return;
+    }
+
+    /* 正常路径跳过异常清理标签。 */
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "goto __xl6_cleanup_done_%d;\n", scope.checkpoints[scope.checkpointCount - 1].id);
+
+    parent = xl6CgenCurrentErrorScope(ctx);
+    parentCheckpoint = NULL;
+    if ( parent != NULL && xl6CgenErrorTargetsEqual(&scope, parent) ) {
+        parentCheckpoint = xl6CgenErrorScopeCheckpoint(ctx, parent, cleanupMark);
+    }
+
+    /*
+        checkpoint 按源码生成顺序递增。每段只销毁前一个里程碑之后新增的值，
+        因而不会触碰错误点之后尚未初始化的局部变量。
+    */
+    for ( i = scope.checkpointCount; i > 0; --i ) {
+        XL6_CgenErrorCheckpoint* checkpoint = &scope.checkpoints[i - 1];
+        lowerMark = i > 1 ? scope.checkpoints[i - 2].cleanupCount : cleanupMark;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "__xl6_cleanup_error_%d:\n", checkpoint->id);
+        xl6CgenEmitCleanupRange(ctx, lowerMark, checkpoint->cleanupCount);
+        if ( i > 1 ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "goto __xl6_cleanup_error_%d;\n", scope.checkpoints[i - 2].id);
+            continue;
+        }
+        if ( parentCheckpoint != NULL ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "goto __xl6_cleanup_error_%d;\n", parentCheckpoint->id);
+            continue;
+        }
+
+        terminalMark = scope.hasTarget ? scope.target.cleanupMark : 0;
+        xl6CgenEmitCleanupRange(ctx, terminalMark, cleanupMark);
+        if ( scope.hasTarget ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(
+                ctx->out,
+                "goto __xl6_try_%s_%d;\n",
+                scope.target.targetFinally ? "finally" : "catch",
+                scope.target.id);
+        } else if ( ctx->currentErrorExitLabel != NULL ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "goto %s;\n", ctx->currentErrorExitLabel);
+        } else {
+            xl6CgenEmitDefaultErrorReturn(ctx);
+        }
+    }
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "__xl6_cleanup_done_%d:\n", scope.checkpoints[scope.checkpointCount - 1].id);
+    xl6CgenEmitCleanupsSince(ctx, cleanupMark);
+    xl6CgenFreeCleanupsSince(ctx, cleanupMark);
+    xrtFree(scope.checkpoints);
 }
 
 static void xl6CgenCloseScope(XL6_CgenContext* ctx, size_t mark)
