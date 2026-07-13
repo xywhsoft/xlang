@@ -32,7 +32,6 @@
 //
 // 设计要点 (对齐 dev/README.md 现有能力与限制):
 //   * 路径规范: index/tree 内一律用 "/" 分隔; 文件系统操作前 toFsPath 转 path.sep().
-//   * splitLines 尾部空串 (BUG-S1): toLines 丢掉恰好一个尾部空串.
 //   * pop() 不走 auto (auto 无法从 pop 推断): 用显式 int/string 接收, 或索引 + remove.
 //   * var 实参传重载 (BUG-VO1): 容器内值先用 string()/int() 显式转换再传 API.
 //   * LCS 行级 diff: 一维 DP 表 + 回溯 (复用 dev/diff 思路).
@@ -110,7 +109,7 @@ func stripNewline(string s) as string
     return string.mid(s, 0, n)
 end
 
-// 把全文拆成行, 丢掉 splitLines 的尾部空串 (BUG-S1).
+// 把全文拆成行.
 func toLines(string content) as array<string>
     array raw = string.splitLines(content)
     array<string> out = array[]
@@ -119,11 +118,6 @@ func toLines(string content) as array<string>
     while i < n do
         out.push(string(raw[i]))
         i += 1
-    end
-    if out.length > 0 then
-        if out[out.length - 1] == "" then
-            out.remove(out.length - 1)
-        end
     end
     return out
 end
@@ -1148,7 +1142,7 @@ func cmdStatus() as int
     // 分支头
     var head = readHead()
     if head["mode"] == "ref" then
-        println("On branch " + string(head["branch"]))
+        println("On branch " + head["branch"])
     elseif head["mode"] == "detached" then
         println("HEAD detached at " + shortHash(string(head["commit"])))
     else

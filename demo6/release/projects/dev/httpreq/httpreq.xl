@@ -96,7 +96,7 @@ func main(...) as int
             end
             int parsed = int(arg[i + 1])
             if parsed <= 0 then
-                println("Error: timeout must be positive (got '" + string(arg[i + 1]) + "')")
+                println("Error: timeout must be positive (got '" + arg[i + 1] + "')")
                 return 1
             end
             timeoutMs = parsed

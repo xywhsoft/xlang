@@ -152,13 +152,52 @@ static const XL6_AstNode* xl6AbiResolveAliasType(const XL6_AstNode* root, const 
     return typeNode;
 }
 
+static const XL6_AstNode* xl6AbiPublicType(const XL6_AstNode* root, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* args;
+
+    typeNode = xl6AbiResolveAliasType(root, typeNode);
+    if ( typeNode == NULL ||
+         (typeNode->flags & XL6_AST_FLAG_CLASS_HANDLE) == 0 ||
+         !xl6AbiTextEquals(typeNode->text, "__class_handle") ) {
+        return typeNode;
+    }
+    args = typeNode->childCount > 0 ? typeNode->children[0] : NULL;
+    return args != NULL && args->kind == XL6_AST_LIST && args->childCount == 1 ?
+           xl6AbiResolveAliasType(root, args->children[0]) : typeNode;
+}
+
+static const char* xl6AbiParamModeName(const XL6_AstNode* node)
+{
+    if ( node != NULL && (node->flags & XL6_AST_FLAG_BYVAL) != 0 ) {
+        return "byval";
+    }
+    if ( node != NULL && (node->flags & XL6_AST_FLAG_BYREF) != 0 ) {
+        return "byref";
+    }
+    if ( node != NULL && (node->flags & XL6_AST_FLAG_OUT) != 0 ) {
+        return "out";
+    }
+    return NULL;
+}
+
+static void xl6AbiDumpParamMode(XL6_Output* out, const XL6_AstNode* node)
+{
+    const char* mode = xl6AbiParamModeName(node);
+    if ( mode != NULL ) {
+        xl6OutputPuts(mode, out);
+        xl6OutputPutc(' ', out);
+    }
+}
+
 static void xl6AbiDumpType(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* typeNode)
 {
     size_t i;
     const XL6_AstNode* args;
     const XL6_AstNode* returns;
 
-    typeNode = xl6AbiResolveAliasType(root, typeNode);
+    xl6AbiDumpParamMode(out, typeNode);
+    typeNode = xl6AbiPublicType(root, typeNode);
     if ( typeNode == NULL ) {
         xl6OutputPuts("<missing-type>", out);
         return;
@@ -221,7 +260,8 @@ static void xl6AbiDumpTypeJsonBody(XL6_Output* out, const XL6_AstNode* root, con
     const XL6_AstNode* args;
     const XL6_AstNode* returns;
 
-    typeNode = xl6AbiResolveAliasType(root, typeNode);
+    xl6AbiDumpParamMode(out, typeNode);
+    typeNode = xl6AbiPublicType(root, typeNode);
     if ( typeNode == NULL ) {
         xl6OutputPuts("<missing-type>", out);
         return;
@@ -433,8 +473,13 @@ static void xl6AbiDumpParamSignatureSuffix(XL6_Output* out, const XL6_AstNode* n
     }
     for ( i = 0; i < params->childCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
+        const char* mode = xl6AbiParamModeName(param);
 
         xl6OutputPuts("__", out);
+        if ( mode != NULL ) {
+            xl6OutputPuts(mode, out);
+            xl6OutputPutc('_', out);
+        }
         if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
             xl6AbiEncodedText(out, param->children[0]->text);
         } else {
@@ -474,7 +519,12 @@ static void xl6AbiDumpInternalSymbol(XL6_Output* out, const XL6_AstNode* root, c
     }
     for ( i = 0; i < params->childCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
+        const char* mode = xl6AbiParamModeName(param);
         xl6OutputPuts("__", out);
+        if ( mode != NULL ) {
+            xl6OutputPuts(mode, out);
+            xl6OutputPutc('_', out);
+        }
         if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
             xl6AbiEncodedText(out, param->children[0]->text);
         } else {

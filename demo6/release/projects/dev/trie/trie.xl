@@ -12,23 +12,23 @@
 // 设计要点（结合 dev/README.md 与 BUGS.md）：
 //   - 节点池模式（参考 btree）：Trie.nodes 为 var 数组（index = node id），
 //     TrieNode 之间用整数 id 引用，而非嵌套指针。
-//     原因：BUG-RT1/RT2/XL1 使「dict<string, TrieNode> 直接嵌套类实例」
+//     原因：BUG-RT1/RT2 使「dict<string, TrieNode> 直接嵌套类实例」
 //     （typed 容器装 class、class 字段递归引用同类）脆弱；节点池 + id 是
 //     dev 工具群已验证的安全写法（var 数组承载 class 实例 + as 还原）。
 //     children 仍是 dict<string, ...>，只是值为 node id（int）。
 //   - TrieNode.children 为 var dict（char 字符串 -> 子节点 id）。
 //     derive value 已验证可与 var 字段共存（参考 graphalg.Graph / UnionFind）。
 //   - 值语义 write-back：getNode 取副本，改标量后 setNode 写回
-//     （BUG-XT2：class 标量字段修改不自动回传；容器字段虽因引用共享，
+//     （class 标量字段修改不自动回传；容器字段虽因引用共享，
 //      但统一 setNode 保证两种语义下都正确）。
-//   - 递归安全（BUG-LP1）：autocomplete / count / fuzzy / remove 的递归只
+//   - 递归安全：autocomplete / count / fuzzy / remove 的递归只
 //     「读」已有 children dict、仅分配 var 数组（结果集 / DP 行），不在递归帧
 //     里新建 dict —— 规避 var dict 递归分配的二次方 GC 劣化。
-//   - 字符串拼接（BUG-CE1）：来自 var dict 的 key/value 先 string() / int()
+//   - 字符串拼接：来自 var dict 的 key/value 先 string / int
 //     显式转换再拼接，避免 var + string 乱码。
 //   - UTF-8：字符遍历统一用 string.chars（按字符，非字节）；string.mid 是
 //     字节偏移故不用于取字符。
-//   - class 方法形参（BUG-C1）：不把 array / array<T> 作 class 方法形参；
+//   - class 方法形参：不把 array / array<T> 作 class 方法形参；
 //     fuzzy/remove 在方法内用局部 array = string.chars(word) 取字符。
 
 
@@ -188,7 +188,7 @@ class Trie
     end
 
     // ---- 自动补全：返回所有以 prefix 开头的完整单词 ----
-    // 递归收集（结果经 var 数组按引用传递，BUG-XL1 更正：var 数组写回传播）。
+    // 递归收集。
     func autocomplete(string prefix) as var
         var results = []
         int startId = self.findNode(prefix)
@@ -322,7 +322,7 @@ class Trie
 
     // ---- 模糊匹配：返回 [[word, distance], ...]，编辑距离 ≤ maxDist ----
     // 在 Trie 上做 Levenshtein DP（按行下推 + 剪枝）。
-    // 每帧只分配 var 数组（DP 行），不分配 dict（规避 BUG-LP1）。
+    // 每帧只分配 var 数组（DP 行），不分配 dict。
     func fuzzy(string word, int maxDist) as var
         var results = []
         array chars = string.chars(word)
@@ -343,7 +343,7 @@ class Trie
     end
 
     // letter = 本节点对应的字符；path = 到本节点累计的完整单词串。
-    // 形参只取 string/int/var（不把 array 作 class 方法形参，规避 BUG-C1）；
+    // 形参只取 string/int/var；
     // chars 在方法内局部取得（局部 array 在 class 方法中安全）。
     func fuzzyRec(int id, string letter, string path, string word, int maxDist, var prevRow, var results)
         TrieNode n = self.getNode(id)
@@ -603,7 +603,7 @@ func cmdComplete(string prefix) as int
     println("autocomplete '" + prefix + "' -> " + string(matches.length) + " matches:")
     int k = 0
     while k < matches.length do
-        println("  " + string(matches[k]))
+        println("  " + matches[k])
         k = k + 1
     end
     return 0
@@ -624,7 +624,7 @@ func cmdFuzzy(string word, int maxDist) as int
     int k = 0
     while k < matches.length do
         var e = matches[k]
-        println("  " + string(e[0]) + "  (dist=" + string(e[1]) + ")")
+        println("  " + e[0] + "  (dist=" + e[1] + ")")
         k = k + 1
     end
     return 0
@@ -788,8 +788,8 @@ func cmdTest() as int
 
     Trie lt = Trie()
     int loadedN = lt.loadFile(dictPath)
-    // BUG-S1: splitLines("...hand\n") 多出尾部空串 -> 被空行过滤，应为 7 个有效词
-    expectI(loadedN, 7, "loadFile loads 7 words (trailing empty skipped)")
+    // loadFile 跳过空行，"hello\n...hand\n" 中 7 个非空词全部加载
+    expectI(loadedN, 7, "loadFile loads 7 words")
     expectI(lt.size(), 7, "loaded unique count == 7")
     expectTrue(lt.search("hello"), "loaded hello")
     expectTrue(lt.search("helicopter"), "loaded helicopter")
@@ -814,7 +814,6 @@ func cmdTest() as int
 
     // ---- T9: 拼写检查器场景 ----
     // 把字典当正确词库，对疑似拼写错误做 fuzzy 找最近似单词。
-    // （变量名避开 stdlib 容器名 dict，参考 BUG-RT5 命名空间冲突）
     Trie checker = Trie()
     var dictWords = ["receive", "definitely", "separate", "occurrence", "necessary", "restaurant"]
     int di = 0

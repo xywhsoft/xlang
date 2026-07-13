@@ -515,6 +515,41 @@ static XL6_AstNode* xl6CgenFindFunctionValueFunc(XL6_CgenContext* ctx, const cha
     return NULL;
 }
 
+static XL6_AstNode* xl6CgenFindUniqueBareFunctionValueFunc(
+    XL6_CgenContext* ctx,
+    const char* name,
+    int* outCandidateCount)
+{
+    XL6_AstNode* selected;
+    size_t i;
+    int candidateCount;
+
+    selected = NULL;
+    candidateCount = 0;
+    if ( ctx != NULL && ctx->root != NULL && name != NULL ) {
+        for ( i = 0; i < ctx->root->childCount; ++i ) {
+            XL6_AstNode* func = ctx->root->children[i];
+
+            if ( func == NULL ||
+                 (func->kind != XL6_AST_FUNC &&
+                  func->kind != XL6_AST_EXTERN_FUNC &&
+                  func->kind != XL6_AST_EXPORT_FUNC) ||
+                 xl6CgenFuncIsGeneric(func) ||
+                 func->childCount == 0 ||
+                 func->children[0] == NULL ||
+                 !xl6CTextEquals(func->children[0]->text, name) ) {
+                continue;
+            }
+            selected = func;
+            candidateCount += 1;
+        }
+    }
+    if ( outCandidateCount != NULL ) {
+        *outCandidateCount = candidateCount;
+    }
+    return candidateCount == 1 ? selected : NULL;
+}
+
 static void xl6CgenFunctionValueCName(XL6_CgenContext* ctx, const char* name, char* cName, size_t cNameSize)
 {
     char baseName[512];
@@ -578,13 +613,22 @@ static void xl6CgenFunctionInvokeDirectCall(XL6_CgenContext* ctx,
     for ( i = 0; paramTypes != NULL && i < paramTypes->childCount; ++i ) {
         xl6OutputPuts(", ", ctx->out);
         xl6OutputPuts(xl6CgenValueStorageCType(ctx, paramTypes->children[i]), ctx->out);
+        if ( xl6CgenParamUsesReferenceAbi(paramTypes->children[i]) ) {
+            xl6OutputPutc('*', ctx->out);
+        }
     }
     xl6OutputPrintf(ctx->out, "))%s.invoke)(%s.env", cName, cName);
     for ( i = 0; i < fixedCount; ++i ) {
         const XL6_AstNode* arg = xl6CgenFunctionValuePositionalArg(args, i);
         xl6OutputPuts(", ", ctx->out);
         if ( arg != NULL && arg->childCount > 0 ) {
-            xl6CgenFixedTypeArgExpr(ctx, paramTypes->children[i], arg->children[0]);
+            if ( xl6CgenParamUsesReferenceAbi(paramTypes->children[i]) ) {
+                xl6OutputPuts("&(", ctx->out);
+                xl6CgenExpr(ctx, arg->children[0]);
+                xl6OutputPutc(')', ctx->out);
+            } else {
+                xl6CgenFixedTypeArgExpr(ctx, paramTypes->children[i], arg->children[0]);
+            }
         } else {
             xl6OutputPuts("0", ctx->out);
         }
@@ -623,6 +667,9 @@ static void xl6CgenFunctionInvokeDirectCallExpr(XL6_CgenContext* ctx,
     for ( i = 0; paramTypes != NULL && i < paramTypes->childCount; ++i ) {
         xl6OutputPuts(", ", ctx->out);
         xl6OutputPuts(xl6CgenValueStorageCType(ctx, paramTypes->children[i]), ctx->out);
+        if ( xl6CgenParamUsesReferenceAbi(paramTypes->children[i]) ) {
+            xl6OutputPutc('*', ctx->out);
+        }
     }
     xl6OutputPuts("))", ctx->out);
     xl6CgenExpr(ctx, fnExpr);
@@ -633,7 +680,13 @@ static void xl6CgenFunctionInvokeDirectCallExpr(XL6_CgenContext* ctx,
         const XL6_AstNode* arg = xl6CgenFunctionValuePositionalArg(args, i);
         xl6OutputPuts(", ", ctx->out);
         if ( arg != NULL && arg->childCount > 0 ) {
-            xl6CgenFixedTypeArgExpr(ctx, paramTypes->children[i], arg->children[0]);
+            if ( xl6CgenParamUsesReferenceAbi(paramTypes->children[i]) ) {
+                xl6OutputPuts("&(", ctx->out);
+                xl6CgenExpr(ctx, arg->children[0]);
+                xl6OutputPutc(')', ctx->out);
+            } else {
+                xl6CgenFixedTypeArgExpr(ctx, paramTypes->children[i], arg->children[0]);
+            }
         } else {
             xl6OutputPuts("0", ctx->out);
         }
@@ -694,7 +747,7 @@ static void xl6CgenFunctionDefaultReturnExpr(XL6_CgenContext* ctx, const XL6_Ast
         xl6OutputPuts("xvoCreateNull()", ctx->out);
     } else if ( xl6CgenIsFunctionType(concreteType) ||
                 xl6CgenIsClassType(ctx, concreteType) ||
-                xl6CgenIsUnionType(ctx, concreteType) ||
+                xl6CgenIsPlainRecordType(ctx, concreteType) ||
                 xl6CgenIsNativeBackedClassType(ctx, concreteType) ) {
         xl6OutputPrintf(ctx->out, "(%s){0}", xl6CgenTypeName(ctx, concreteType));
     } else if ( xl6CTextEquals(typeName, "string") ) {

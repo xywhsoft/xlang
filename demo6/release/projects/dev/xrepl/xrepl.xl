@@ -312,12 +312,6 @@ func readLogicalLines(string src) as array<string>
     for r in raw
         lines.push(string(r))
     end
-    // BUG-S1 规避：splitLines 末尾可能多出空串
-    if lines.length > 0 then
-        if lines[lines.length - 1] == "" then
-            lines.remove(lines.length - 1)
-        end
-    end
     array<string> result = []
     string buf = ""
     int i = 0

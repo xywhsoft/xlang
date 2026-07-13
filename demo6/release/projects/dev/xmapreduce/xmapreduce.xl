@@ -245,7 +245,7 @@ func splitWords(string line, bool lower) as array<string>
     return words
 end
 
-// 读取文件全部行，返回 array<string>。去掉 splitLines 尾部空串（见 README 限制）。
+// 读取文件全部行，返回 array<string>。
 // 读失败抛异常由调用方 catch（map task 会因此触发重试）。
 func loadFileLines(string path) as array<string>
     string text = file.readText(path)
@@ -256,11 +256,6 @@ func loadFileLines(string path) as array<string>
     while i < n do
         result.append(toStr(raw[i]))
         i += 1
-    end
-    if result.length > 0 then
-        if result[result.length - 1] == "" then
-            result.remove(result.length - 1)
-        end
     end
     return result
 end

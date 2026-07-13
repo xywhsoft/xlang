@@ -53,7 +53,6 @@
 //   - 撤销/重做：每个编辑操作构造 EditOp 入 undoStack；undo 弹栈执行逆操作并入 redoStack。
 //   - 正则搜索：regex.isMatch 逐行匹配；替换用 regex.match 定位、手动拼接重建字符串。
 //   - 语法高亮：逐行扫描，识别注释/字符串/数字/关键字/类型名，输出 ANSI SGR 着色文本。
-//   - 绕过 BUG-S1（splitLines 尾部空串）：加载文件时丢掉恰好一个尾部空串。
 //   - 脚本参数解析支持双引号：insert 3 "hello world" → ["insert","3","hello world"]。
 
 
@@ -101,7 +100,7 @@ string g_xlangLiterals = " true false null "
 // 通用辅助函数
 // ============================================================================
 
-// 把全文拆成行，丢掉 splitLines 的尾部空串（BUG-S1）。
+// 把全文拆成行.
 func splitLinesSafe(string content) as array<string>
     array<string> result = array[]
     if string.isEmpty(content) then
@@ -113,11 +112,6 @@ func splitLinesSafe(string content) as array<string>
     while i < n do
         result.push(string(raw[i]))
         i += 1
-    end
-    if result.length > 0 then
-        if result[result.length - 1] == "" then
-            result.remove(result.length - 1)
-        end
     end
     return result
 end

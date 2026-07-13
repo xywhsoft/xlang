@@ -60,6 +60,7 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_KW_EXPORT: return XL6PG_KW_EXPORT;
     case XL6_KW_INCLUDE: return XL6PG_KW_INCLUDE;
     case XL6_KW_CLASS: return XL6PG_KW_CLASS;
+    case XL6_KW_STRUCT: return XL6PG_KW_STRUCT;
     case XL6_KW_EXTENDS: return XL6PG_KW_EXTENDS;
     case XL6_KW_UNION: return XL6PG_KW_UNION;
     case XL6_KW_DERIVE: return XL6PG_KW_DERIVE;
@@ -73,6 +74,9 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_KW_FINAL: return XL6PG_KW_FINAL;
     case XL6_KW_VIRTUAL: return XL6PG_KW_VIRTUAL;
     case XL6_KW_NATIVE: return XL6PG_KW_NATIVE;
+    case XL6_KW_BYVAL: return XL6PG_KW_BYVAL;
+    case XL6_KW_BYREF: return XL6PG_KW_BYREF;
+    case XL6_KW_OUT: return XL6PG_KW_OUT;
     case XL6_KW_RETURN: return XL6PG_KW_RETURN;
     case XL6_KW_END: return XL6PG_KW_END;
     case XL6_KW_IF: return XL6PG_KW_IF;
@@ -265,6 +269,14 @@ static int xl6ParserMatchFuncTypeParam(const XL6_ParseTokenStream* stream, size_
 {
     if ( stream == NULL || index >= stream->count ) {
         return 0;
+    }
+    if ( stream->tokens[index].kind == XL6_KW_BYVAL ||
+         stream->tokens[index].kind == XL6_KW_BYREF ||
+         stream->tokens[index].kind == XL6_KW_OUT ) {
+        index += 1;
+        if ( index >= stream->count ) {
+            return 0;
+        }
     }
     if ( stream->tokens[index].kind == XL6_TK_ELLIPSIS ||
          stream->tokens[index].kind == XL6_TK_TRIPLE_STAR ) {

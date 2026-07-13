@@ -7,12 +7,15 @@ typedef struct XL6_CgenVar {
 typedef struct XL6_CgenRootTypeSlot {
     const char* name;
     XL6_AstNode* classNode;
+    XL6_AstNode* structNode;
     XL6_AstNode* unionNode;
 } XL6_CgenRootTypeSlot;
 
 #define XL6_CGEN_VAR_TYPED_CONTAINER 0x00000001u
 #define XL6_CGEN_VAR_BORROWED 0x00000002u
 #define XL6_CGEN_VAR_MODULE_GLOBAL 0x00000004u
+#define XL6_CGEN_VAR_BYREF 0x00000008u
+#define XL6_CGEN_VAR_OUT 0x00000010u
 
 typedef enum XL6_CgenCleanupKind {
     XL6_CGEN_CLEANUP_NATIVE_CLASS,
@@ -109,7 +112,10 @@ typedef struct XL6_CgenFinallyTarget {
 typedef struct XL6_CgenExprReplacement {
     const XL6_AstNode* expr;
     const char* cName;
+    unsigned int flags;
 } XL6_CgenExprReplacement;
+
+#define XL6_CGEN_EXPR_REPLACEMENT_XVALUE 0x1u
 
 /*
     类型推断会被参数匹配、容器 lowering 和表达式生成反复调用。
@@ -141,6 +147,9 @@ typedef struct XL6_CgenContext {
     char** emittedUnions;
     size_t emittedUnionCount;
     size_t emittedUnionCapacity;
+    char** emittedStructs;
+    size_t emittedStructCount;
+    size_t emittedStructCapacity;
     XL6_CgenCleanup* cleanups;
     size_t cleanupCount;
     size_t cleanupCapacity;
@@ -252,6 +261,11 @@ static int xl6CgenSyncMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, 
 static void xl6CgenTypedParamOwnerName(char* buffer, size_t capacity, const char* name);
 static void xl6CgenAddTypedContainerParamCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode);
 static void xl6CgenTypedContainerDestroyValue(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* cName);
+static void xl6CgenTypedContainerCopyExprMode(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* expr,
+    const char* mode);
 
 static int xl6CTextEquals(const char* a, const char* b)
 {

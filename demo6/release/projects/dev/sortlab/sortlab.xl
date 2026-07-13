@@ -16,7 +16,7 @@
 //
 // 设计要点 (与 xlang 当前语义/限制对齐):
 //   - 数据载体: 全程使用 **var 数组** (而非 array<int>)。
-//     原因: typed array<int> 作为函数实参按值拷贝 (BUG-XL1), 递归排序
+//     原因: typed array<int> 作为函数实参按值拷贝, 递归排序
 //     (merge/quick) 的子函数拿到的会是副本, 原地排序不生效。实测 var 数组
 //     按引用传递 (swap/push 在被调函数里对调用方可见), 递归 by-ref 完全正常。
 //   - 计数: 全局 g_cmp / g_swap, 每次 benchOne 前 resetStats()。comparisons 计
@@ -28,7 +28,7 @@
 //   - 快排采用三数取中 (median-of-three) 选 pivot, 使已排序/逆序数据下递归深度
 //     保持 O(log n), 避免 n=10000 时栈溢出 (压测点: 递归深度)。
 //   - 结果收集用并行数组 (g_names/g_times/g_cmps/g_swaps/g_oks), 规避 class 实例
-//     入参浅拷贝丢标量字段问题 (BUG-XT2) 与 array<Base> 丢派生实例问题 (BUG-RT1)。
+//     array<Base> 丢派生实例问题 (BUG-RT1)。
 
 // ---- 全局状态 ----
 
@@ -851,7 +851,7 @@ func cmdTest() as int
     var data3 = genRandom(300)
     var sorted = sortMerge(data3)
     int minv = int(sorted[0])
-    int maxv = int(sorted[sorted.length - 1])
+    int maxv = int(sorted[-1])
     int origMin = int(data3[0])
     int origMax = int(data3[0])
     int k = 1

@@ -1,0 +1,6 @@
+func invalid(out int value)
+    auto reader = func()
+        println(value)
+    end
+    value = 1
+end

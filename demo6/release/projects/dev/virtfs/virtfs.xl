@@ -15,15 +15,15 @@
 //   - inode 计数：全局自增 nextInode，每个节点分配唯一 inode。
 //   - 挂载点：mount(mountPath, subVFS) 把子树节点整体导入池（id 偏移重映射）并挂到目录下，
 //     子树根 isMount=true；unmount 摘除挂载（子树节点成为孤立，保留在池中不挪动 id）。
-//   - find 用显式 var 数组栈迭代 DFS，避免递归中分配 dict（BUG-LP1）。
+//   - find 用显式 var 数组栈迭代 DFS，避免递归中分配 dict。
 //   - dumpTree 为纯字符串递归（不分配 dict），安全。
-//   - class 方法不接收 array<int> / Buffer 形参（BUG-C1），全用 int/string 标量参数。
-//   - 不直接 return self.field.length（BUG-C2），先落局部 int。
-//   - 避开 stdlib 命名空间同名局部变量（BUG-RT5）：用 p / pathStr 而非 path/dir。
+//   - class 方法不接收 array<int> / Buffer 形参，全用 int/string 标量参数。
+//   - 不直接 return self.field.length，先落局部 int。
+//   - 避开 stdlib 命名空间同名局部变量：用 p / pathStr 而非 path/dir。
 //   - 不用 set/get/let 作方法名（BUG-RAS1）：用 putChild / dropChild / hasChild。
-//   - 复合赋值 += 仅用于标量（BUG-V1）。
+//   - 复合赋值 += 仅用于标量。
 //   - 顶层函数名避开 C 标准库保留名（BUG-CL2）。
-//   - 序列化：手动遍历节点池构造 var 结构 + json.stringify（compact 保序，规避 BUG-K1）。
+//   - 序列化：手动遍历节点池构造 var 结构 + json.stringify。
 
 const int NT_FILE = 0
 const int NT_DIR = 1
@@ -165,7 +165,7 @@ class VFS
     int rootId = 0
     int cwdId = 0             // 当前工作目录节点 id
     int nextInode = 1         // 下一个可用 inode（自增）
-    var mountRoots = []       // 已挂载子树根 id 列表（var 数组，规避 BUG-LP1）
+    var mountRoots = []  // 已挂载子树根 id 列表
 
     create()
         self.nodes = []
@@ -211,7 +211,7 @@ class VFS
         return n
     end
 
-    // ---- 子节点操作（标量参数，规避 BUG-C1）----
+    // ---- 子节点操作----
 
     // 在 dirId 子节点中找名为 name 的子节点 id，找不到返回 NIL。
     func findChild(int dirId, string name) as int

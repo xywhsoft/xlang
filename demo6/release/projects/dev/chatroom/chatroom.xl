@@ -12,13 +12,9 @@
 //   5. JSON API：login/message/messages/users/logout
 //   6. 内嵌 HTML+JS 客户端（GET /）
 //
-// 设计约束（见 dev/README "当前限制" 与 dev/BUGS.md BUG-XB1）：
+// 设计约束：
 //   * native-backed class（HttpRequest/HttpResponse/HttpClientRequest/
 //     HttpClientResponse）不可跨函数按值传参，对象化操作全部内联到 handler。
-//   * BUG-XB1：文件作用域 var 容器在 HTTP 回调里元素引用丢失（length 对、
-//     元素空）。绕过：状态只用全局 string（gMessages/gSessions，存 JSON 文本）
-//     和全局 int（gNextId/gNextTokenSeq），这两种在回调里访问完全正常；
-//     每次请求把 string parse 成 *局部* var 再读写，局部 var 在回调里正常。
 //   * 多 worker（workerCount=4）下共享可变 string 需要 mutex 串行化临界区。
 //   * 长轮询的 sleep 循环里不能持锁，否则 POST 拿不到锁 → 死锁；只在
 //     快速的 int 读取 / parse-modify-stringify 临界区持锁。
@@ -31,7 +27,7 @@ const int WORKERS = 4
 
 
 // ============================================================
-// 全局状态（string/int/mutex 在 HTTP 回调里访问正常，见 BUG-XB1）
+// 全局状态
 // ============================================================
 string gMessages = "[]"        // JSON 数组：[{id,user,text,time}]
 string gSessions = "{}"        // JSON 对象：{token: username}

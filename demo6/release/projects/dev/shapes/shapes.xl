@@ -18,7 +18,7 @@
 //   因此 vtable 动态派发的验证改回正常的「向上转型」+「函数参数多态」写法。
 //
 //   注意：带 destroy 的 class（Shape/Circle/Cylinder）被视为不可按值复制的资源，
-//   不能按值传入/传出函数，也不能直接装箱进 var（BUG-G1 未修复）。所以：
+//   不能按值传入/传出函数，也不能直接装箱进 var。所以：
 //     - 向上转型赋值（Shape s = Circle）可用，但 printArea(Shape s) 这类按值形参
 //       不适用于带 destroy 的类型。
 //     - 「函数参数多态」与「var 装箱 downcast」两条 vtable 路径改由一对无 destroy 的

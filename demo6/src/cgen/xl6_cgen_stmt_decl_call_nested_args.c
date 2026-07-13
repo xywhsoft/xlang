@@ -71,7 +71,7 @@ static int xl6CgenDeclCallArgumentNeedsTemp(
     if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
         /*
             typed container 参数传递的是 XRT 对象句柄。具名变量、成员和索引都是借用值，
-            直接传递即可让被调函数的就地修改对调用方可见；只有字面量和拥有型返回值
+            直接传递可让被调函数的就地修改对调用方可见。只有字面量和拥有型返回值
             需要先物化，并在调用结束后释放临时句柄。
         */
         return xl6CgenTypedContainerInitLiteral(ctx, typeNode, expr) != NULL ||
@@ -140,8 +140,10 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
     const XL6_AstNode* prevArgs;
     const XL6_AstNode* prevClass;
     const XL6_AstNode* ownerClass;
+    const XL6_AstNode* callReceiver;
     XL6_AstNode* inferredArgs;
     XL6_AstNode* receiverType;
+    const XL6_AstNode* receiverClassType;
     XL6_AstNode* classNode;
     XL6_AstNode* func;
     int fixedCount;
@@ -158,8 +160,10 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
     prevArgs = ctx->currentGenericArgs;
     prevClass = ctx->currentClass;
     receiverType = NULL;
+    receiverClassType = NULL;
     classNode = NULL;
     ownerClass = NULL;
+    callReceiver = NULL;
 
     if ( callee != NULL && callee->kind == XL6_AST_GENERIC_INSTANT ) {
         const XL6_AstNode* nameNode = callee->childCount > 0 ? callee->children[0] : NULL;
@@ -199,18 +203,23 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
                 callee->text,
                 &ownerClass);
         } else {
+            callReceiver = receiver;
             if ( receiver != NULL && receiver->kind == XL6_AST_NAME &&
                  xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
                 classNode = (XL6_AstNode*)ctx->currentClass;
             } else {
                 receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-                classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
+                receiverClassType = xl6CgenClassHandleTargetType(ctx, receiverType);
+                if ( receiverClassType == NULL ) {
+                    receiverClassType = xl6CgenResolveAliasType(ctx, receiverType);
+                }
+                classNode = xl6CgenClassNodeForType(ctx, receiverType);
             }
             if ( classNode != NULL ) {
-                if ( receiverType != NULL && receiverType->childCount > 0 &&
-                     xl6CgenClassHasTypeParams(classNode) ) {
+                const XL6_AstNode* receiverTypeArgs = xl6CgenTypeNodeGenericArgs(receiverClassType);
+                if ( receiverTypeArgs != NULL && xl6CgenClassHasTypeParams(classNode) ) {
                     ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
-                    ctx->currentGenericArgs = receiverType->children[0];
+                    ctx->currentGenericArgs = receiverTypeArgs;
                 }
                 ctx->currentClass = classNode;
                 func = (XL6_AstNode*)xl6CgenResolveClassFunc(
@@ -233,6 +242,28 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
         ctx->currentGenericArgs = prevArgs;
         ctx->currentClass = prevClass;
         return 0;
+    }
+
+    if ( callReceiver != NULL && receiverType != NULL &&
+         xl6CgenClassHandleTargetType(ctx, receiverType) != NULL &&
+         !xl6CgenExprIsXValueBorrow(ctx, callReceiver) &&
+         !xl6CgenDeclExprHasReplacement(ctx, callReceiver) ) {
+        XL6_AstNode* tempType;
+
+        xl6CgenDeclCollectExprCallArgTemps(ctx, callReceiver, temps, count, capacity);
+        tempType = xl6CgenCloneCanonicalTypeNode(ctx, receiverType);
+        if ( tempType != NULL &&
+             xl6CgenDeclCallArgTempAppend(
+                 ctx,
+                 temps,
+                 count,
+                 capacity,
+                 callReceiver,
+                 tempType,
+                 "__xl6_call_receiver_",
+                 "out of memory while preparing class call receiver temporary") ) {
+            (*temps)[*count - 1].releaseAfterUse = 1;
+        }
     }
 
     params = func->childCount > 1 ? func->children[1] : NULL;
@@ -258,9 +289,8 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
         }
 
         /*
-            显式/推断泛型调用收集实参临时量时，参数类型必须先替换 T。
-            否则 array<T> + [1, 2] 会被当成未定型容器，调用点就会退回
-            动态 xvalue 字面量，传给 xtarray 形参后在运行期崩溃。
+            显式或推断泛型调用收集实参临时量时，参数类型必须先替换 T。
+            否则 array<T> 与字面量会被当作未定型容器，错误退回动态 xvalue 路径。
         */
         tempType = xl6CgenCloneCanonicalTypeNode(ctx, xl6CgenSubstituteGenericType(ctx, paramType));
         if ( tempType != NULL && xl6CgenDeclCallArgumentNeedsTemp(ctx, tempType, argExpr) ) {
@@ -320,18 +350,7 @@ static void xl6CgenDeclCollectCallExprArgTemps(
             continue;
         }
 
-        /*
-            未通过普通函数签名解析的内建成员调用通常沿用动态 var 路径；
-            ref(...) 是例外，它必须保留 ref<Derived> 等静态类型，才能选择
-            class 移动装箱路径，不能丢失明确的所有权语义。
-        */
-        if ( xl6CgenRefCtorValueExpr(argExpr) != NULL ) {
-            XL6_AstNode* inferredType = xl6CgenCloneExprTypeForInference(ctx, argExpr);
-            tempType = xl6CgenCloneCanonicalTypeNode(ctx, inferredType);
-            xl6AstFree(inferredType);
-        } else {
-            tempType = NULL;
-        }
+        tempType = NULL;
         if ( tempType == NULL ) {
             tempType = xl6CgenNewSimpleType("var", argExpr);
         }
@@ -344,8 +363,8 @@ static void xl6CgenDeclCollectCallExprArgTemps(
         xl6AstFree(tempType);
 
         /*
-            如果当前实参本身不需要临时量，但内部还有 callable 调用，
-            继续向下扫描，避免嵌套 kwargs 绕过 replacement。
+            当前实参本身不需要临时量时，仍继续扫描内部 callable 调用，
+            避免嵌套 kwargs 绕过 replacement。
         */
         xl6CgenDeclCollectCallExprArgTemps(ctx, argExpr, temps, count, capacity);
     }
@@ -370,6 +389,11 @@ static void xl6CgenDeclDestroyCallArgTemps(XL6_CgenContext* ctx, XL6_CgenDeclCal
         if ( temps[i].active && xl6CgenIsTypedContainerType(ctx, temps[i].typeNode) ) {
             xl6CgenIndent(ctx);
             xl6CgenTypedContainerDestroyValue(ctx, temps[i].typeNode, temps[i].name);
+        } else if ( temps[i].active && temps[i].releaseAfterUse &&
+                    xl6CgenClassHandleTargetType(ctx, temps[i].typeNode) != NULL ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n",
+                            temps[i].name, temps[i].name, temps[i].name);
         }
     }
 }
@@ -628,8 +652,8 @@ static int xl6CgenDeclEmitScalarCallExprWithArgTemps(
     }
 
     /*
-        标量返回值本身不需要特殊包装；真正需要语句级 lowering 的是调用实参。
-        这里复用表达式替换表，确保 array<T> 字面量等参数按形参类型先落到临时量。
+        标量返回值本身不需要特殊包装，真正需要语句级 lowering 的是调用实参。
+        这里复用表达式替换表，确保 array<T> 字面量等参数先按形参类型落到临时量。
     */
     prevExprReplacements = ctx->exprReplacements;
     prevExprReplacementCount = ctx->exprReplacementCount;

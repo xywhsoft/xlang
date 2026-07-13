@@ -25,7 +25,7 @@
 //   - 字节载体: 全程用 string.bytes(s) 取 UTF-8 字节为 array<int>,
 //     所有算法工作在字节序列上; 对 ASCII 文本字节偏移 == 字符偏移。
 //   - 全局函数 (非 class 方法): 规避 class 方法不能安全接收 array<int> 的问题。
-//   - array<int> 实参按值拷贝 (BUG-XL1): 本库所有算法对输入 array<int> 仅读
+//   - array<int> 实参按值拷贝: 本库所有算法对输入 array<int> 仅读
 //     不写, 返回新数组, 值拷贝不影响正确性。
 //   - DP 用 array<int>: 一维展开 dp[i*cols+j], 仿 diff.xl / life.xl 模式。
 //   - Rabin-Karp: int64 乘法不会溢出 (byte*prime^... 每步取模); 负数取模后 +prime 修正。

@@ -291,7 +291,7 @@ func showTerm(var t) as string
     end
     if t is Abs then
         Abs a = t as Abs
-        return "(λ" + string(a.param) + "." + showTerm(a.body) + ")"
+        return "(λ" + a.param + "." + showTerm(a.body) + ")"
     end
     if t is App then
         App ap = t as App
@@ -302,7 +302,7 @@ end
 
 
 // ====================== 自由变量 ======================
-// 收集结果用扁平 var 数组（线性去重），避免递归热路径分配 dict（BUG-LP1）。
+// 收集结果用扁平 var 数组（线性去重），避免递归热路径分配 dict。
 
 func addUnique(var arr, string s)
     int i = 0

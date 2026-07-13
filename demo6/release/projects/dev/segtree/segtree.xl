@@ -17,7 +17,7 @@
 //   - 单点 update 为「赋值」语义：沿路径 pushDown 后置叶再回拉 merge。
 //   - 状态持久化：源数组 + op 落盘到脚本同目录 segtree.state.json（var + json），
 //     每条命令载入后在内存重建树（O(n)）。xl run 与 build 出的 exe 共享同一份状态。
-//   - 递归热路径不分配 dict/大对象，规避 BUG-LP1；数组元素更新一律展开为 a=a+b
+//   - 递归热路径不分配 dict/大对象，规避 ；数组元素更新一律展开为 a=a+b
 //     （复合赋值 += 不派发协议，热路径显式展开更稳）。
 //   - 命令行驱动（无 stdin API），数字解析用手写字节扫描，兼容多种分隔符与负号。
 
@@ -179,7 +179,7 @@ class SegTree
     end
 
     // 分配 4n+5 的 tree/lazy 数组（self 写入，确定持久）。
-    // 注：不在此接收 array<int> 形参——BUG-C1：class 方法不能安全接收
+    // 注：不在此接收 array<int> 形参——class 方法不能安全接收
     // array<int> 参数。源数据由顶层 segBuild/segBuildRec（普通函数）读取，
     // tree 元素写入经 class 实例形参持久（参照 chip8 loadBytes）。
     func allocTree(int dn)
@@ -315,7 +315,7 @@ class SegTree
         return res
     end
 
-    // 树占用数组大小（调试/统计用）。BUG-C2：不能直接 return self.field.length。
+    // 树占用数组大小（调试/统计用）。不能直接 return self.field.length。
     func capacity() as int
         int c = self.tree.length
         return c

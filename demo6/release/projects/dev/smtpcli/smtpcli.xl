@@ -22,14 +22,6 @@
 // Stress points: TCP protocol state machine, Base64, string processing, MIME.
 //
 // Design constraints honored (see dev/README.md "当前限制" + dev/BUGS.md):
-//   * BUG-FTP1: accept 之后服务端首次 send 静默丢失。self-test 的内置 test
-//     server 的 220 greeting 以及每条 server 回复都走 sendRetry 重试。
-//   * BUG-FTP2: TcpStream.close() abortive。QUIT/221 交换后 time.sleep 再 close。
-//   * BUG-FTP3: 每个 point 只包装一次 TcpStream，整个生命周期复用。
-//   * BUG-CE1: 不用 var + string。所有拼接用 string 类型变量 / string(v) 强转。
-//   * BUG-RT5: 局部变量名不与 stdlib 命名空间冲突（避免 dir/path/time/file 等）。
-//   * BUG-M1: int() 失败返回 0，端口手工校验。
-//   * BUG-S1: splitLines 尾部空串——本工具用 string.split 自行处理换行。
 
 const int DEFAULT_TIMEOUT = 15000
 const int SEND_RETRY_TRIES = 40
@@ -42,7 +34,6 @@ point ZERO
 
 // ============================================================
 // self-test accounting + server/client shared state
-// (global scalars only — safe across threads, BUG-XT3 only hits containers)
 // ============================================================
 int gPassed = 0
 int gFailed = 0
@@ -68,10 +59,10 @@ end
 
 // ============================================================
 // TCP / SMTP wire helpers (TcpStream passed by param; verified safe —
-// the underlying handle survives the call, see BUG-FTP3 note in ftpserver)
+// the underlying handle survives the call, see note in ftpserver)
 // ============================================================
 
-// Retry-send raw text (no CRLF appended). Works around BUG-FTP1 (first send
+// Retry-send raw text (no CRLF appended). Works around (first send
 // after accept is dropped) and transient full-buffer false returns.
 func sendRetry(TcpStream s, string text) as bool
     int tries = 0
@@ -358,7 +349,7 @@ end
 
 // ============================================================
 // SMTP client: full send flow. Returns 0 on success, non-zero on error.
-// All client TcpStream usage is inline (native-backed class, BUG-FTP3).
+// All client TcpStream usage is inline.
 // ============================================================
 func smtpSend(string host, int port, string heloName, string fromAddr, string toAddrs, string ccAddrs, string user, string pass, string subject, string body, array<string> attachments, int timeoutMs, bool useAuth) as int
     point cp = tcp.connect(host, port, timeoutMs)
@@ -490,7 +481,6 @@ func smtpSend(string host, int port, string heloName, string fromAddr, string to
     if not ok or not string.startsWith(reply, "221") then
         println("Warning: QUIT did not return 221: " + reply)
     end
-    // BUG-FTP2: close is abortive; small sleep lets the 221 ACK land first.
     time.sleep(QUIT_CLOSE_DELAY)
     sock.close()
 
@@ -511,7 +501,7 @@ func handleSmtpClient(point clientHandle) as int
     bool ok
     gServerAccepted = true
 
-    // 220 greeting (BUG-FTP1: first send after accept needs retry via sendLine)
+    // 220 greeting
     if not sendLine(peer, "220 xlang test SMTP ready") then
         return 1
     end
@@ -735,7 +725,7 @@ func usage()
     println("               --subject Report --body see-file --attach report.csv")
 end
 
-// Validate that a string is a plausible positive integer (BUG-M1 defense).
+// Validate that a string is a plausible positive integer.
 func parsePositiveInt(string s) as int
     if s == "" then
         return -1

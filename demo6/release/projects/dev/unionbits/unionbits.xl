@@ -281,7 +281,7 @@ func testAbiMetadata()
     v.f = 2.0
     IntFloat w = uIdent(v)
     expectFExact(w.f, 2.0, "export uIdent(u) round-trip (ABI wrapper)")
-    // type 值可转字符串 —— BUG-U1：union 类型值的字符串化返回 "unknown"
+    // type 值可转字符串 —— union 类型值的字符串化返回 "unknown"
     // type 身份和名称反查都应保留声明类型。
     string tn = string(type(u))
     println("    string(type(u)) = '" + tn + "'")

@@ -104,6 +104,7 @@ static const XL6_AstNode* xl6CgenResolveMultiReturnClassMethod(
     const XL6_AstNode* callee;
     const XL6_AstNode* receiver;
     const XL6_AstNode* receiverType;
+    const XL6_AstNode* concreteReceiverType;
     const XL6_AstNode* classNode;
     const XL6_AstNode* ownerClass;
     const XL6_AstNode* method;
@@ -130,12 +131,18 @@ static const XL6_AstNode* xl6CgenResolveMultiReturnClassMethod(
     }
 
     receiverType = NULL;
+    concreteReceiverType = NULL;
     if ( xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
         receiverType = ctx->currentClass;
+        concreteReceiverType = receiverType;
         classNode = ctx->currentClass;
     } else {
         receiverType = xl6CgenFindVarType(ctx, receiver->text);
-        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
+        concreteReceiverType = xl6CgenClassHandleTargetType(ctx, receiverType);
+        if ( concreteReceiverType == NULL ) {
+            concreteReceiverType = xl6CgenResolveAliasType(ctx, receiverType);
+        }
+        classNode = xl6CgenClassNodeForType(ctx, receiverType);
     }
     if ( classNode == NULL ) {
         return NULL;
@@ -143,9 +150,10 @@ static const XL6_AstNode* xl6CgenResolveMultiReturnClassMethod(
 
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
-    if ( receiverType != NULL && receiverType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+    if ( concreteReceiverType != NULL && concreteReceiverType->childCount > 0 &&
+         xl6CgenClassHasTypeParams(classNode) ) {
         ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
-        ctx->currentGenericArgs = receiverType->children[0];
+        ctx->currentGenericArgs = concreteReceiverType->children[0];
     }
     ownerClass = NULL;
     method = xl6CgenResolveClassFunc(ctx, classNode, expr, callee->text, &ownerClass);
@@ -160,7 +168,7 @@ static const XL6_AstNode* xl6CgenResolveMultiReturnClassMethod(
         *outOwnerClass = ownerClass != NULL ? ownerClass : classNode;
     }
     if ( outReceiverType != NULL ) {
-        *outReceiverType = receiverType;
+        *outReceiverType = concreteReceiverType;
     }
     return method;
 }
@@ -569,7 +577,7 @@ static void xl6CgenXValueFromTypedCExpr(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), concreteType);
         xl6CgenBoxSymbol(ctx->out, cTypeName);
         xl6OutputPrintf(ctx->out, "(%s)", exprText != NULL ? exprText : "{}");
-    } else if ( xl6CgenIsUnionType(ctx, concreteType) ) {
+    } else if ( xl6CgenIsPlainRecordType(ctx, concreteType) ) {
         xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), typeName);
         xl6CgenBoxSymbol(ctx->out, cTypeName);
         xl6OutputPrintf(ctx->out, "(%s)", exprText != NULL ? exprText : "{}");

@@ -1,5 +1,5 @@
 /*
-    class、ref<class> 与 union 的成员字段访问集中在此分片。
+    class、class handle 与 union 的成员字段访问集中在此分片。
     本文件由 xl6_cgen_value_object.c 在原有声明位置包含，以保持静态函数可见性与生成顺序不变。
 */
 
@@ -77,8 +77,10 @@ static const XL6_AstNode* xl6CgenMemberFieldType(XL6_CgenContext* ctx, const XL6
         classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
     }
 
-    if ( receiverType != NULL && xl6CgenIsUnionType(ctx, receiverType) ) {
-        field = xl6CgenFindUnionFieldNode(xl6CgenFindUnion(ctx, receiverType->text), member->text);
+    if ( receiverType != NULL && xl6CgenIsPlainRecordType(ctx, receiverType) ) {
+        field = xl6CgenIsStructType(ctx, receiverType)
+            ? xl6CgenFindStructFieldNode(xl6CgenFindStruct(ctx, receiverType->text), member->text)
+            : xl6CgenFindUnionFieldNode(xl6CgenFindUnion(ctx, receiverType->text), member->text);
         xl6AstFree(ownedReceiverType);
         return field != NULL && field->childCount > 0 ? field->children[0] : NULL;
     }
@@ -92,11 +94,11 @@ static const XL6_AstNode* xl6CgenMemberFieldType(XL6_CgenContext* ctx, const XL6
     return field != NULL && field->childCount > 0 ? field->children[0] : NULL;
 }
 
-static int xl6CgenUnionFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* member)
+static int xl6CgenPlainRecordFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* member)
 {
     const XL6_AstNode* receiver;
     const XL6_AstNode* receiverType;
-    const XL6_AstNode* unionNode;
+    const XL6_AstNode* recordNode;
     const XL6_AstNode* field;
     XL6_AstNode* ownedReceiverType;
 
@@ -119,13 +121,17 @@ static int xl6CgenUnionFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* memb
     } else {
         receiverType = xl6CgenFindVarType(ctx, receiver->text);
     }
-    if ( !xl6CgenIsUnionType(ctx, receiverType) ) {
+    if ( !xl6CgenIsPlainRecordType(ctx, receiverType) ) {
         xl6AstFree(ownedReceiverType);
         return 0;
     }
 
-    unionNode = xl6CgenFindUnion(ctx, receiverType->text);
-    field = xl6CgenFindUnionFieldNode(unionNode, member->text);
+    recordNode = xl6CgenIsStructType(ctx, receiverType)
+        ? xl6CgenFindStruct(ctx, receiverType->text)
+        : xl6CgenFindUnion(ctx, receiverType->text);
+    field = xl6CgenIsStructType(ctx, receiverType)
+        ? xl6CgenFindStructFieldNode(recordNode, member->text)
+        : xl6CgenFindUnionFieldNode(recordNode, member->text);
     if ( field == NULL ) {
         xl6AstFree(ownedReceiverType);
         return 0;
@@ -182,7 +188,7 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
             ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
             : xl6CgenCloneExprTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
-        refTarget = xl6CgenRefTargetType(ctx, receiverType);
+        refTarget = xl6CgenClassHandleTargetType(ctx, receiverType);
         classNode = refTarget != NULL ? xl6CgenFindClass(ctx, refTarget->text) :
                     (receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL);
         if ( classNode == NULL ) {
@@ -200,7 +206,7 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
             }
         }
         if ( refTarget != NULL ) {
-            xl6OutputPrintf(ctx->out, "(*((%s*)xl6_ref_data(", xl6CgenTypeName(ctx, refTarget));
+            xl6OutputPrintf(ctx->out, "(*((%s*)xl6_class_data(", xl6CgenTypeName(ctx, refTarget));
             xl6CgenExpr(ctx, receiver);
             xl6OutputPrintf(ctx->out, ", \"\", %d, %d)))", receiver->line, receiver->column);
         } else {
@@ -216,7 +222,7 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
     ownedReceiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
     receiverType = ownedReceiverType;
     {
-        const XL6_AstNode* refTarget = xl6CgenRefTargetType(ctx, receiverType);
+        const XL6_AstNode* refTarget = xl6CgenClassHandleTargetType(ctx, receiverType);
         classNode = refTarget != NULL ? xl6CgenFindClass(ctx, refTarget->text) :
                     (receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL);
     }
@@ -234,9 +240,9 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
             return;
         }
     }
-    if ( xl6CgenRefTargetType(ctx, receiverType) != NULL ) {
-        const XL6_AstNode* refTarget = xl6CgenRefTargetType(ctx, receiverType);
-        xl6OutputPrintf(ctx->out, "(*((%s*)xl6_ref_data(", xl6CgenTypeName(ctx, refTarget));
+    if ( xl6CgenClassHandleTargetType(ctx, receiverType) != NULL ) {
+        const XL6_AstNode* refTarget = xl6CgenClassHandleTargetType(ctx, receiverType);
+        xl6OutputPrintf(ctx->out, "(*((%s*)xl6_class_data(", xl6CgenTypeName(ctx, refTarget));
         xl6CgenNamedValueReference(ctx, receiver->text);
         xl6OutputPrintf(ctx->out, ", \"\", %d, %d)))", receiver->line, receiver->column);
     } else {

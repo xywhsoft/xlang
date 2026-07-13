@@ -5,8 +5,8 @@
 
 ## 固定原则
 
-- 普通 `class` 保持 C 结构体值语义，不恢复隐式 `Derived -> Base` 按值转换。
-- 继承多态统一使用显式 `ref<T>`；`ref<Base>` 保存完整动态对象，不产生基类切片。
+- `class` 统一使用受管理引用语义；`Derived -> Base` 安全拓宽保留完整动态对象，不发生切片。
+- C 兼容值聚合使用独立的 `struct` 语句，不让 class 同时承担对象和值结构两套相反语义。
 - 同一根因必须在公共语义、公共 lowering 或公共运行时边界一次修复，不为单个范例增加兼容分支。
 - XRT 能承担的通用能力优先在 XRT 实现，并保持 C 与 xlang 都可直接使用。
 - 每个确认缺陷至少有行为回归；cgen 缺陷还必须检查生成 C，并覆盖 `run/build`。
@@ -41,7 +41,7 @@
 | --- | --- | --- | --- |
 | S01 | `var` 与 string 拼接进入静态 string 时产生乱码 | 所有动态字符串结果在进入 string 所有者前统一检查、解箱和复制 | 已关闭：统一动态 string 解箱/复制，run/build 和所有权回归通过 |
 | S02 | `encoding.toBytes(..., encoding.bom)` 曾导致堆损坏 | 保持 BOM flag 拆分和独立缓冲构造，补齐编码矩阵与 DLL/run/build 回归 | 已关闭：BOM 与编码 flag 分离，独立缓冲和编码矩阵回归通过 |
-| S03 | class 继承缺少无切片多态模型 | 实现 `ref<T>` 多态引用；普通 class 继续按 C 结构体值语义工作 | 已关闭：`ref<T>` 语义、运行时、泛型 class、容器、XAPI 和 C ABI 全链路完成 |
+| S03 | class 继承缺少无切片多态模型 | class 统一为默认引用语义，并完成自然多态、参数模式与 C ABI | 已关闭：class 句柄、泛型 class、容器、XAPI、C ABI、`byval/byref/out` 全链路完成 |
 
 ## 第三轮：确认需要修复的 3 项
 
@@ -51,17 +51,15 @@
 | T02 | 泛型函数/class 方法的多返回值没有完整替换 `T` | 调用签名统一具体化，覆盖显式/推断泛型和全部返回项 | 已关闭：完整返回元组执行泛型替换，函数与泛型 class 方法均覆盖 |
 | T03 | class 字段初始化器引用模块 const 时生成未声明 C 标识符 | 模块声明先于 class helper，初始化顺序稳定，覆盖不同 const 类型 | 已关闭：模块 const 声明先于 class helper，字段初始化回归通过 |
 
-## ref<T> 工作包边界
+## class 与参数模式工作包边界
 
-`ref<T>` 的目标是提供显式、无切片、可跨函数和容器保存的多态引用，同时不改变普通 class：
-
-- `ref<Derived>` 可以安全拓宽为 `ref<Base>`，共享同一个完整动态对象。
-- `ref<Base>` 的成员访问和 virtual 调用基于动态对象，不复制 `.base` 前缀。
-- ref 对象具有独立引用计数、动态类型描述和析构入口；引用本身可复制，底层对象只析构一次。
-- C ABI 公开稳定的引用句柄和查询/retain/release API；C 可以读取动态类型并取得合法基类视图。
-- `Base value = Derived()` 继续拒绝；`array<Base>` 继续保存 Base 值，不承担多态。
-- 多态容器使用 `array<ref<Base>>`，返回值和参数同理。
-- `ref<Base> as ref<Derived>` 进行运行时检查；不匹配时直接产生可捕获的运行时类型错误，不返回伪造的空引用。
+- 普通 class、泛型 class、object 派生 class 和 native-backed class 统一使用受管理引用句柄。
+- `Derived` 可以安全拓宽为 `Base`；成员访问、virtual 调用、参数、返回值和容器都保留完整动态对象。
+- 默认 class 参数共享对象；显式 `byval` 按复制协议建立独立对象。
+- `byref` 绑定调用方变量槽；`out` 采用写前不可读且正常出口必须赋值的确定赋值规则。
+- `byref` 和 `out` 必须在调用点显式标记，并禁止跨 async、generator、闭包捕获和线程边界。
+- 标量、`struct`、`union` 保持值语义；容器默认共享存储，`byval` 创建独立浅副本。
+- C ABI 使用 `xvalue` 表示 class 句柄，使用 `xvalue*` 表示 class 的 `byref/out` 变量槽。
 
 ## 衍生问题闭环
 
@@ -89,7 +87,7 @@ XRT 新增 C 级 async TCP/UDP 压力测试，并已同步单头文件到 demo6�
 ## 验收顺序
 
 1. 先关闭内存破坏、静默数据损坏和前后端不一致问题。
-2. 再完成 `ref<T>`、泛型多返回和 finally/async 类型闭包。
+2. 再完成 class 引用语义、参数模式、泛型多返回和 finally/async 类型闭包。
 3. 随后收口 package、DLL/TLS、调试器和旧代码。
 4. 最后执行模块拆分、测试工程化、CI/Sanitizer/模糊测试和发布目录清理。
 5. 全部 24 项现均具有明确的“已修复、设计行为或移出发布能力”结论，不保留模糊状态。

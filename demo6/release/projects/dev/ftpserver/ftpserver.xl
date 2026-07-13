@@ -19,7 +19,7 @@
 // Design constraints honored (see dev/README.md "当前限制" + dev/BUGS.md):
 //   * TcpStream/TcpServer are native-backed. Verified this session that a
 //     TcpStream CAN be passed by value to a helper (the handle survives the
-//     call; BUG-HD1's "作函数参数传入 OK" holds) — so sendLine/recvLine/
+//     call; "作函数参数传入 OK" holds) — so sendLine/recvLine/
 //     sendBytesRetry take TcpStream directly. However a class must NEVER be
 //     re-wrapped twice from the same point: probing showed that double-wrapping
 //     the same handle corrupts the XRT heap (0xC0000374). So each accepted
@@ -30,25 +30,7 @@
 //     then the client has connected). This avoids (a) re-wrap heap corruption
 //     from recreating the listener per PASV, and (b) starving the command
 //     channel by blocking in accept inside the PASV handler.
-//   * BUG-FTP1 (found this session): a server's FIRST stream.send/sendBytes
-//     immediately after TcpServer.accept() returns false and the bytes are
-//     lost (the peer never sees them). A short retry loop (5ms gaps, ~30 tries)
-//     reliably lands the send. Hits the FTP "220 welcome" path (server speaks
-//     first) and every server->client data transfer. See sendRetry /
-//     sendBytesRetry.
-//   * BUG-FTP2 (found this session): TcpStream.close() is ABORTIVE — it
-//     discards the socket's not-yet-acked send buffer (RST). drain() only waits
-//     for the local buffer to empty into the OS, NOT for peer receipt, so
-//     send+drain+close can still lose data at the peer. Worked around with a
-//     short DATA_CLOSE_DELAY sleep after drain, before close, so the kernel
-//     delivers the bytes first. Affects every transfer that uses
-//     close-as-EOF (the standard TCP pattern).
-//   * BUG-CE1: never `var + string`. All reply builders use string(...) coercion
-//     before concatenation.
-//   * BUG-RT5: no local variable shadows stdlib namespaces (dir/path/time/file).
-//   * BUG-XT3: global mutable scalars only (gRootDir, gTestPort, gPassed, gFailed);
-//     no global containers are rebound at runtime.
-//   * BUG-S1 / int(): defensive parsing of the 227 reply and command verbs.
+//   * int(): defensive parsing of the 227 reply and command verbs.
 
 const int DEFAULT_PORT = 12121
 const int CMD_RECV_TIMEOUT = 60000      // command-channel idle read timeout
@@ -60,11 +42,11 @@ const int SEND_RETRY_GAP = 5            // ms between send retries
 const int DATA_CLOSE_DELAY = 300        // ms: let OS deliver data before abortive close
                                          // (XRT close() is abortive and discards unacked
                                          // send buffer; a short sleep lets the receiver
-                                         // drain the kernel buffer first. BUG-FTP2.)
+                                         // drain the kernel buffer first.)
 
 point ZERO                             // default-initialized point; failed connect/accept returns this
 
-// ---- global scalars (safe across threads; BUG-XT3 only hits containers) ----
+// ---- global scalars ----
 string gRootDir = ""                   // absolute filesystem root, set once before serving
 int gTestPort = 0                      // port the self-test server listens on
 string gTestRoot = ""                  // temp root used by self-test
@@ -197,7 +179,7 @@ end
 // the underlying handle survives the call, see probe notes in header)
 // ============================================================
 
-// Retry-send raw text (no CRLF appended). Works around BUG-FTP1 (first send
+// Retry-send raw text (no CRLF appended). Works around (first send
 // after accept is dropped) and transient full-buffer false returns.
 func sendRetry(TcpStream s, string text) as bool
     int tries = 0
@@ -295,7 +277,7 @@ func handleClient(point clientHandle, string peerAddr) as int
     bool dataPending = false        // PASV sent; client should be (connecting to) data port
 
     // Server speaks first: "220 welcome". This is a first-send-after-accept and
-    // needs the retry loop inside sendLine (BUG-FTP1).
+    // needs the retry loop inside sendLine.
     if not sendLine(client, "220 xlang FTP server ready.") then
         return 1
     end
@@ -387,7 +369,7 @@ func handleClient(point clientHandle, string peerAddr) as int
             // Report the session data-listener port. The client connects to it
             // right after reading 227; we accept lazily when the transfer
             // command (LIST/RETR/STOR) arrives. We must NOT block in accept
-            // here, otherwise the command channel starves (BUG-FTP3, found this
+            // here, otherwise the command channel starves (, found this
             // session: eager accept in PASV deadlocks the control connection).
             int p1 = dataListenPort / 256
             int p2 = dataListenPort % 256
@@ -691,7 +673,7 @@ func runClientTest() as int
         check(o and string.startsWith(r, "150"), "23. STOR upload.txt -> 150", "reply=" + r)
         // client sends known bytes then closes data socket to signal EOF.
         // Sleep before close: XRT close() is abortive and would discard the
-        // just-buffered send (BUG-FTP2).
+        // just-buffered send.
         Buffer payload = Buffer()
         payload.append("uploaded by ftp server!")
         bool sent = data.sendBytes(payload.data(), c_size(payload.len()))

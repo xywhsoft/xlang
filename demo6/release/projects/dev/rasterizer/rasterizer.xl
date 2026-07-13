@@ -171,7 +171,7 @@ end
 //     z' = m[8]*x + m[9]*y + m[10]*z + m[11]
 //     w' = m[12]*x + m[13]*y + m[14]*z + m[15]
 //
-// 重要（BUG-C1/C2 绕过）：所有对 array<float> 的读写都在 self.m（class 字段）
+// 重要：所有对 array<float> 的读写都在 self.m（class 字段）
 //   或全局函数读取参数 Mat4 的 m 字段上进行——这两种路径经实战验证正常。
 //   绝不让 class 方法接收裸 array<float> 形参。
 // ========================================================================
@@ -251,7 +251,7 @@ end
 
 // ========================================================================
 // 矩阵构造器（全局函数，返回 Mat4 实例）
-//   注意（BUG-RT3 边界）：Mat4 没有 virtual 方法，从函数 return 安全。
+//   注意：Mat4 没有 virtual 方法，从函数 return 安全。
 // ========================================================================
 func matIdentity() as Mat4
     Mat4 r = Mat4()
@@ -352,7 +352,7 @@ end
 //   tris  : array<int>    三角形索引，每 3 个一组 (i0,i1,i2)
 //   colors: array<float>  每个三角形的基色 (r,g,b)，与 tris 同序
 //
-//   全部用扁平 array 存储，避免 class-as-field 的 derive 限制（BUG-JP1）
+//   全部用扁平 array 存储，避免 class-as-field 的 derive 限制
 //   和多态容器陷阱（BUG-RT1/RT2）。
 // ========================================================================
 class Mesh
@@ -769,7 +769,7 @@ func countNonBg(RenderTarget rt, int bgR, int bgG, int bgB) as int
 end
 
 // ========================================================================
-// 参数解析（避免 int("abc") 静默返回 0，BUG-M1）
+// 参数解析
 // ========================================================================
 func parseArgInt(string s, int defValue) as int
     s = string.trim(s)

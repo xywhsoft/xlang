@@ -35,7 +35,7 @@
 //     if-chain on the worker index (the actorsys mailbox-dispatch pattern).
 //   - Global containers shared with worker threads are initialized at the
 //     declaration site and only modified in place (push / index assign),
-//     never re-bound (BUG-XT3).
+//     never re-bound.
 
 // ============================== constants =================================
 

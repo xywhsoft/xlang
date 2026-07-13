@@ -213,7 +213,7 @@ func cmdSelftest() as int
     var d2 = json.parse(rt)
     println("parse back keys:")
     for k, v in d2
-        println("  " + string(k) + " = " + string(v))
+        println("  " + k + " = " + string(v))
     end
     return 0
 end
@@ -276,7 +276,7 @@ func main(...) as int
         var data = json.parse(raw)
         int count = 0
         for k, v in data
-            println(string(k) + " = " + string(v))
+            println(k + " = " + string(v))
             count += 1
         end
         if count == 0 then

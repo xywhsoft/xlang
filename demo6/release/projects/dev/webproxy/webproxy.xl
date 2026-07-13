@@ -17,9 +17,6 @@
 // Design constraints (per dev/README and BUGS.md):
 //   * native-backed class (HttpClientRequest/HttpResponse/HttpRequest) cannot be
 //     passed to functions by value -- all forwarding logic is inline in the handler.
-//   * BUG-XB1: file-scope var arrays lose elements in HTTP C-callbacks.
-//     Config is stored as a JSON string global; each callback parses it to a LOCAL
-//     var (local vars work correctly per xblog workaround).
 //   * Global state uses only string/int types (confirmed safe in callbacks).
 
 
@@ -27,7 +24,7 @@ const int DEFAULT_TIMEOUT_MS = 10000
 
 
 // ============================================================
-// Global state (string/int only -- safe across HTTP callbacks per BUG-XB1)
+// Global state
 // ============================================================
 string gConfigJson = "{}"       // full config as JSON text
 int    gListenPort = 0
@@ -144,9 +141,9 @@ func(point, point) as bool backendEchoHandler = backendEcho
 // Proxy handler -- the core reverse proxy logic.
 //
 // All HttpClientRequest / HttpClientResponse operations are inline
-// because native-backed classes cannot be passed to functions (BUG-HD1).
+// because native-backed classes cannot be passed to functions.
 // Config routing data is parsed from gConfigJson to a LOCAL var each
-// call to avoid BUG-XB1 (global var array element loss in callbacks).
+// call to avoid (global var array element loss in callbacks).
 // ============================================================
 func proxyRoute(point reqHandle, point respHandle) as bool
     HttpRequest req = HttpRequest(reqHandle)
@@ -185,7 +182,7 @@ func proxyRoute(point reqHandle, point respHandle) as bool
         return resp.jsonText("{\"status\":\"ok\",\"backends\":\"" + gHealthMap + "\"}")
     end
 
-    // ---- parse config to local var (BUG-XB1 workaround) ----
+    // ---- parse config to local var ----
     var cfg = json.parse(gConfigJson)
     if cfg == null then
         gReqError += 1

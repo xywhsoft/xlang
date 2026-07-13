@@ -22,7 +22,7 @@
 //   - no var dict allocated inside recursion (filter/compute eval is read-only
 //     recursion; sorting is iterative bottom-up merge sort);
 //   - all string concatenation uses statically-typed `string` operands (the
-//     left side is never a bare `var`, avoiding BUG-CE1); cells are funneled
+//     left side is never a bare `var`, avoiding); cells are funneled
 //     through string(...) before joining;
 //   - dynamic `is` checks are lowered to a bool local before `not`;
 //   - `+=` is never used (expanded to `x = x + 1` style).
@@ -1359,7 +1359,7 @@ end
 func listOps()
     println("registered operations:")
     for name, desc in gOpRegistry
-        println("  " + string(name) + "  - " + string(desc))
+        println("  " + name + "  - " + desc)
     end
 end
 
@@ -1944,7 +1944,7 @@ func testSort()
     sAsc["desc"] = false
     var rAsc = opSort(rows, sAsc)
     check(getCell(rAsc[0], "age") == "25", "asc first age 25")
-    check(getCell(rAsc[rAsc.length - 1], "age") == "40", "asc last age 40")
+    check(getCell(rAsc[-1], "age") == "40", "asc last age 40")
 
     var sDesc = {}
     sDesc["op"] = "sort"
@@ -1952,7 +1952,7 @@ func testSort()
     sDesc["desc"] = true
     var rDesc = opSort(rows, sDesc)
     check(getCell(rDesc[0], "age") == "40", "desc first age 40")
-    check(getCell(rDesc[rDesc.length - 1], "age") == "25", "desc last age 25")
+    check(getCell(rDesc[-1], "age") == "25", "desc last age 25")
 
     // multi-key: dept asc, age desc
     var sMulti = {}
@@ -1962,8 +1962,8 @@ func testSort()
     var rMulti = opSort(rows, sMulti)
     check(getCell(rMulti[0], "dept") == "eng", "multi first dept eng")
     check(getCell(rMulti[0], "age") == "30", "multi eng first age 30 (desc)")
-    check(getCell(rMulti[rMulti.length - 1], "dept") == "sales", "multi last dept sales")
-    check(getCell(rMulti[rMulti.length - 1], "age") == "25", "multi sales last age 25 (desc)")
+    check(getCell(rMulti[-1], "dept") == "sales", "multi last dept sales")
+    check(getCell(rMulti[-1], "age") == "25", "multi sales last age 25 (desc)")
 end
 
 
@@ -2000,8 +2000,8 @@ func testJoin(string tmpDir)
     s2["type"] = "left"
     var r2 = opJoin(rows2, s2)
     check(r2.length == 4, "left join -> 4 rows  got=" + string(r2.length))
-    check(getCell(r2[r2.length - 1], "name") == "Dave", "left join last is Dave")
-    check(getCell(r2[r2.length - 1], "d_dept_name") == "", "Dave unmatched -> empty right cols")
+    check(getCell(r2[-1], "name") == "Dave", "left join last is Dave")
+    check(getCell(r2[-1], "d_dept_name") == "", "Dave unmatched -> empty right cols")
 
     file.delete(rpath)
 end

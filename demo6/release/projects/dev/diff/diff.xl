@@ -12,10 +12,8 @@
 //   - file.readText + string.splitLines 读取行
 //   - LCS (最长公共子序列) DP 做行级对齐, 回溯生成 same/del/add 操作序列
 //   - 简单格式: 全部行 + Summary; unified: 标准 @@ hunk (3 行上下文); -s: 仅 Summary
-//
-// 绕过 BUG-S1 (splitLines 尾部空串): toLines 丢掉恰好一个尾部空串
 
-// 把全文拆成行, 丢掉 splitLines 的尾部空串 (BUG-S1).
+// 把全文拆成行.
 func toLines(string content) as array<string>
     array raw = string.splitLines(content)
     int n = raw.length
@@ -25,11 +23,6 @@ func toLines(string content) as array<string>
     while i < n do
         result.push(string(raw[i]))
         i += 1
-    end
-    if result.length > 0 then
-        if result[result.length - 1] == "" then
-            result.remove(result.length - 1)
-        end
     end
     return result
 end

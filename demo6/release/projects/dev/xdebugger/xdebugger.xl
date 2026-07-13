@@ -354,17 +354,12 @@ func isWS(int b) as bool
     return b == 32 or b == 9 or b == 13 or b == 10
 end
 
-// 安全 splitLines：去掉尾部空串（规避 xlang splitLines 尾部多 "" 的行为）
+// 把源码按行拆成 array<string>（splitLines 返回动态 array，元素需 string 转换）.
 func splitLinesSafe(string src) as array<string>
     var raw = string.splitLines(src)
     array<string> lines = []
     for r in raw
         lines.push(string(r))
-    end
-    if lines.length > 0 then
-        if lines[lines.length - 1] == "" then
-            lines.remove(lines.length - 1)
-        end
     end
     return lines
 end
@@ -1246,7 +1241,7 @@ func bpmCheckHit(var bpm, string file, int line, string funcName, var locals) as
         end
         bool matched = false
         if int(bp.kind) == BP_FUNC then
-            if funcName == string(bp.funcName) or string.endsWith(funcName, "." + string(bp.funcName)) then
+            if funcName == string(bp.funcName) or string.endsWith(funcName, "." + bp.funcName) then
                 matched = true
             end
         elseif int(bp.kind) == BP_LINE then
@@ -2155,7 +2150,7 @@ func valueToString(var v) as string
         return "null"
     end
     if v is string then
-        return "\"" + string(v) + "\""
+        return "\"" + v + "\""
     end
     if v is int then
         return string(int(v))

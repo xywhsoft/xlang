@@ -19,15 +19,10 @@
 //                          441/442, 451, 461, 462, 482, 501
 //  10. self-test 模式      不启动真实 server，直接驱动核心状态机验证协议交互
 //
-// 设计约束（见 dev/README "当前设计限制" 与 dev/BUGS.md BUG-XB1）：
+// 设计约束：
 //   * native-backed class（TcpStream / TcpServer）不跨函数按值传参。
 //     每个 client 连接的 TcpStream 只存在于该连接的 thread 闭包内部，
 //     协议处理函数（processLine 等）完全不接触 TcpStream，只读写全局状态。
-//   * BUG-XB1：文件作用域 var 容器在 native 回调里元素引用丢失。绕过方式：
-//     所有共享状态只用全局 string（gConns / gChannels / gOutbox，存 JSON 文本）
-//     和全局 int（gNextConnId / gServing / gTotalConns）+ 一个全局 mutex。
-//     string / int / mutex 在 thread / native 回调里访问完全正常；每次操作把
-//     JSON string parse 成局部 var，改完再 stringify 写回全局 string。
 //   * IRC 大小写：RFC 1459 2.2 规定 `{}|^` 为 `[]\~` 的小写形式，ircUpper 做
 //     ASCII 大写 + 这四组特殊折叠；昵称 / 频道名比较一律走 ircEqual。
 //   * processLine 是唯一触碰全局可变状态（gConns/gChannels/gOutbox）的入口：
@@ -48,7 +43,7 @@ string CHAN_MODES = "nstspm"          // 频道模式（n/t/s/p/m 无参，o 带
 point ZERO                            // 默认零句柄（tcp.connect/listen 失败判定）
 
 // ============================================================
-// 共享状态（全局 string/int/mutex，见 BUG-XB1）
+// 共享状态
 //   gConns    : { "<connId>": {nick,user,host,real,registered,channels:[...]} }
 //   gChannels : { "#name": {topic,members:[nick],modes:[c],op:nick,key:""} }
 //   gOutbox   : { "<connId>": ["raw line\r\n", ...] }  待发送队列
@@ -316,7 +311,7 @@ func buildPrefix(int connId, var conns) as string
         return "*"
     end
     var conn = conns[cidKey(connId)]
-    return string(conn["nick"]) + "!" + string(conn["user"]) + "@" + string(conn["host"])
+    return conn["nick"] + "!" + conn["user"] + "@" + conn["host"]
 end
 
 // 按昵称（大小写不敏感）找 connId，找不到返回 0
@@ -557,7 +552,7 @@ func cmdNick(int connId, var msg, var conns, var chans, var outbox)
 
     // 已注册用户改名：更新所有频道成员表 + 广播 NICK
     if oldNick != "" and wasReg then
-        string prefix = oldNick + "!" + string(conn["user"]) + "@" + string(conn["host"])
+        string prefix = oldNick + "!" + conn["user"] + "@" + conn["host"]
         string line = ":" + prefix + " NICK :" + newNick + "\r\n"
         // 更新频道成员表 / op
         for ck, cv in chans
@@ -682,7 +677,7 @@ func joinOne(int connId, string c, var conns, var chans, var outbox)
     if string(ch["topic"]) == "" then
         numeric(connId, 331, conns, outbox, key + " :No topic is set")
     else
-        numeric(connId, 332, conns, outbox, key + " :" + string(ch["topic"]))
+        numeric(connId, 332, conns, outbox, key + " :" + ch["topic"])
         string who = string(ch["topicWho"])
         if who != "" then
             string l333 = ":" + SERVER_NAME + " 333 " + nick + " " + key + " " + who + " " + string(ch["topicTime"]) + "\r\n"
@@ -892,7 +887,7 @@ func cmdMode(int connId, var msg, var conns, var chans, var outbox)
         string modeLine = ":" + prefix + " MODE " + key + " " + modestring
         int ai = 2
         while ai < params.length do
-            modeLine = modeLine + " " + string(params[ai])
+            modeLine = modeLine + " " + params[ai]
             ai = ai + 1
         end
         modeLine = modeLine + "\r\n"
@@ -968,7 +963,7 @@ func cmdTopic(int connId, var msg, var conns, var chans, var outbox)
         if string(ch["topic"]) == "" then
             numeric(connId, 331, conns, outbox, key + " :No topic is set")
         else
-            numeric(connId, 332, conns, outbox, key + " :" + string(ch["topic"]))
+            numeric(connId, 332, conns, outbox, key + " :" + ch["topic"])
         end
         return
     end
@@ -1375,20 +1370,20 @@ func runSelfTest() as int
     // -------- 1. parseIrcLine 基础 --------
     if true then
         var m = parseIrcLine("NICK alice")
-        check(ircUpper(string(m["command"])) == "NICK", "1. parse NICK command", "cmd=" + string(m["command"]))
+        check(ircUpper(string(m["command"])) == "NICK", "1. parse NICK command", "cmd=" + m["command"])
         var p = m["params"]
         check(p.length == 1, "1. parse NICK one param", "len=" + string(p.length))
-        check(string(m["trailing"]) == "", "1. parse NICK no trailing", "trail=" + string(m["trailing"]))
+        check(string(m["trailing"]) == "", "1. parse NICK no trailing", "trail=" + m["trailing"])
     end
 
     // -------- 2. parseIrcLine 带前缀 --------
     if true then
         var m = parseIrcLine(":irc.xlang.local 001 alice :Welcome to the IRC")
-        check(string(m["prefix"]) == "irc.xlang.local", "2. parse prefix", "prefix=" + string(m["prefix"]))
-        check(string(m["command"]) == "001", "2. parse numeric command", "cmd=" + string(m["command"]))
+        check(string(m["prefix"]) == "irc.xlang.local", "2. parse prefix", "prefix=" + m["prefix"])
+        check(string(m["command"]) == "001", "2. parse numeric command", "cmd=" + m["command"])
         var p = m["params"]
         check(p.length == 1 and string(p[0]) == "alice", "2. parse one param", "len=" + string(p.length))
-        check(string(m["trailing"]) == "Welcome to the IRC", "2. parse trailing", "trail=" + string(m["trailing"]))
+        check(string(m["trailing"]) == "Welcome to the IRC", "2. parse trailing", "trail=" + m["trailing"])
         check(bool(m["hasTrailing"]) == true, "2. hasTrailing flag", "")
     end
 
@@ -1398,7 +1393,7 @@ func runSelfTest() as int
         check(ircUpper(string(m["command"])) == "PRIVMSG", "3. parse PRIVMSG", "")
         var p = m["params"]
         check(p.length == 1 and string(p[0]) == "#test", "3. parse target #test", "")
-        check(string(m["trailing"]) == "hello world foo", "3. trailing keeps spaces", "trail=" + string(m["trailing"]))
+        check(string(m["trailing"]) == "hello world foo", "3. trailing keeps spaces", "trail=" + m["trailing"])
     end
 
     // -------- 4. parseIrcLine 空 trailing --------

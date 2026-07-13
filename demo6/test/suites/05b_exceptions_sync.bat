@@ -439,16 +439,16 @@ if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\sem_var_function_init.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_var_call_arg_destroy_class.xl >nul 2> build\test\sem_var_call_arg_destroy_class.err.txt
-if not errorlevel 1 (
-    echo sem_var_call_arg_destroy_class.xl should fail.
-    exit /b 1
-)
-findstr /C:"target var, source Resource" build\test\sem_var_call_arg_destroy_class.err.txt >nul
-if errorlevel 1 (
-    echo sem_var_call_arg_destroy_class.xl missing var call argument boxing context.
-    exit /b 1
-)
+release\xl.exe check test\cases\cgen_var_call_arg_destroy_class.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_var_call_arg_destroy_class.xl --emit build\test\cgen_var_call_arg_destroy_class.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_function_to_xvalue(" build\test\cgen_var_call_arg_destroy_class.c >nul
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_retain(__xl6_class_arg_" build\test\cgen_var_call_arg_destroy_class.c >nul
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_var_call_arg_destroy_class.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_var_call_named_order.xl >nul 2> build\test\sem_var_call_named_order.err.txt
 if not errorlevel 1 (
@@ -456,27 +456,15 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_var_destroy_class_init.xl >nul 2> build\test\sem_var_destroy_class_init.err.txt
-if not errorlevel 1 (
-    echo sem_var_destroy_class_init.xl should fail.
-    exit /b 1
-)
-findstr /C:"target var, value Resource" build\test\sem_var_destroy_class_init.err.txt >nul
-if errorlevel 1 (
-    echo sem_var_destroy_class_init.xl missing constructor value type context.
-    exit /b 1
-)
+release\xl.exe check test\cases\cgen_var_destroy_class_init.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_var_destroy_class_init.xl
+if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_var_destroy_class_return.xl >nul 2> build\test\sem_var_destroy_class_return.err.txt
-if not errorlevel 1 (
-    echo sem_var_destroy_class_return.xl should fail.
-    exit /b 1
-)
-findstr /C:"target var, value Resource" build\test\sem_var_destroy_class_return.err.txt >nul
-if errorlevel 1 (
-    echo sem_var_destroy_class_return.xl missing constructor value type context.
-    exit /b 1
-)
+release\xl.exe check test\cases\cgen_var_destroy_class_return.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_var_destroy_class_return.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_overload_ambiguous.xl >nul 2> build\test\sem_overload_ambiguous.err.txt
 if not errorlevel 1 (
@@ -666,7 +654,7 @@ for /L %%I in (1,1,5) do (
 release\xl.exe cgen test\cases\cgen_global_shared_publish.xl --emit build\test\cgen_global_shared_publish.c
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_global_shared_publish.c',[System.Text.Encoding]::UTF8); $checks=@('gPublished = __xl6_global_init_','xl6_xrt_move_to_shared(__xl6_global_init_','__xl6_assign_','XRT_OBJMODE_SHARED','__xl6_typed_container_source_','gStore.posts = xl6_xrt_move_to_shared(gStore.posts)','__xl6_class_shared_'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_global_shared_publish.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_global_shared_publish.c',[System.Text.Encoding]::UTF8); $checks=@('gPublished = __xl6_global_init_','xl6_xrt_move_to_shared(__xl6_global_init_','__xl6_assign_','XRT_OBJMODE_SHARED','__xl6_typed_container_source_','.posts = xl6_xrt_move_to_shared(','.values = xrtTypedArrayMoveToShared('); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_global_shared_publish.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_global_shared_publish.c missing shared publication lowering.
     exit /b 1
@@ -773,4 +761,3 @@ if errorlevel 1 (
 
 echo DEMO6 suite ok: exceptions and synchronization
 exit /b 0
-

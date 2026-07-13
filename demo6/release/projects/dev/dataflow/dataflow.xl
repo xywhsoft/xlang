@@ -15,17 +15,17 @@
 // 设计要点（结合 dev/README.md 与 BUGS.md）：
 //   - 集合一律用 dict<string, bool> 模拟（key=元素，value=true）。
 //     提供并/交/差/相等/拷贝 等集合算子（set* 系列自由函数）。
-//   - 节点池 + id 引用（参考 trie/btree，规避 BUG-RT1/RT2/XL1：
+//   - 节点池 + id 引用（参考 trie/btree，规避 BUG-RT1/RT2：
 //     「typed 容器直接嵌套 class 实例」脆弱）。BasicBlock 存于 CFG.blocks
 //     （var dict），Instr 存于 BasicBlock.instrs（var 数组），取出时用 as 还原。
 //   - 值语义 write-back：derive value class，getBlock 取副本，改字段后 setBlock 写回
 //     （容器字段虽因引用共享，但统一 write-back 保证两种语义下都正确，参考 trie）。
-//   - Worklist 框架为纯迭代实现（非递归），规避 BUG-LP1（var dict 递归分配二次方劣化）。
+//   - Worklist 框架为纯迭代实现（非递归），规避 （var dict 递归分配二次方劣化）。
 //   - 传递函数与 meet 算子作为一等公民 func 值传入求解器（func 是一等公民，已验证）；
 //     各分析的传递函数用 auto 闭包捕获预计算的 use/def、gen/kill 字典。
 //   - 形参不重载 var（BUG：var 实参传给重载函数失败）；class 方法形参用 var 而非
-//     array<T>（BUG-C1）。
-//   - 字符串拼接前对来自 var 容器的 key/value 先 string() 显式转换（BUG-CE1）。
+//     array<T>。
+//   - 字符串拼接前对来自 var 容器的 key/value 先 string 显式转换。
 
 
 // ============================================================

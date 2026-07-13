@@ -14,7 +14,7 @@
 //
 // Concurrency model:
 //   - channel<int> carries message IDs. channel<T> only supports value types
-//     and string is excluded [BUG-AC1], so an int message ID indexes into a
+//     and string is excluded [], so an int message ID indexes into a
 //     global message table (g_msgTopic / g_msgData).
 //   - One dispatch worker thread routes published messages to subscriber
 //     channels, and re-delivers timed-out (unacked) messages.
@@ -27,7 +27,7 @@
 //     Subscriber channels are pre-declared globals (one per slot, g_subCh0..7);
 //     threads are fire-and-forget spawned via closure factories.
 //   - Global containers accessed by worker threads are initialized at
-//     declaration and never re-bound [BUG-XT3]. The registry uses parallel
+//     declaration and never re-bound []. The registry uses parallel
 //     global arrays populated via push() before threads spawn.
 //   - Ack is idempotent: a (slot, msgId) pair is acked at most once even if
 //     redelivery races with the subscriber's ack.

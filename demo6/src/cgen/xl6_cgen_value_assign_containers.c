@@ -106,6 +106,7 @@ static int xl6CgenTypedContainerCompoundAssignStmt(
     const XL6_AstNode* concreteType;
     const char* typeName;
     char targetPath[512];
+    char targetSlot[64];
     char rightTemp[64];
     char resultTemp[64];
     const char* setFunc;
@@ -126,7 +127,14 @@ static int xl6CgenTypedContainerCompoundAssignStmt(
         xl6AstFree(ownedType);
         return 0;
     }
-    if ( !xl6CgenSimpleAssignTargetPath(ctx, left, targetPath, sizeof(targetPath)) ) {
+    if ( left->kind == XL6_AST_MEMBER ) {
+        snprintf(targetSlot, sizeof(targetSlot), "__xl6_typed_compound_slot_%d", ctx->tempId++);
+        snprintf(targetPath, sizeof(targetPath), "(*%s)", targetSlot);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s* %s = &(", xl6CgenTypedContainerCType(ctx, targetType), targetSlot);
+        xl6CgenExpr(ctx, left);
+        xl6OutputPuts(");\n", ctx->out);
+    } else if ( !xl6CgenSimpleAssignTargetPath(ctx, left, targetPath, sizeof(targetPath)) ) {
         xl6CgenError(ctx, left, "typed container compound assignment requires a direct variable or class field target");
         xl6AstFree(ownedType);
         return 1;
@@ -272,18 +280,14 @@ static int xl6CgenTypedContainerMemberAssignStmt(
     int moveReturn;
     int importDynamic;
     int id;
-    char targetPath[512];
     char tempName[64];
+    char slotName[64];
+    char slotPath[80];
     char memberTempName[64];
 
     if ( !xl6CgenIsTypedContainerType(ctx, fieldType) ) {
         return 0;
     }
-    if ( !xl6CgenSimpleAssignTargetPath(ctx, left, targetPath, sizeof(targetPath)) ) {
-        xl6CgenError(ctx, left, "typed container member assignment requires a direct class field target");
-        return 1;
-    }
-
     literal = xl6CgenTypedContainerInitLiteral(ctx, fieldType, right);
     fieldCanonical = xl6CgenCloneCanonicalTypeNode(ctx, fieldType);
     rightType = literal == NULL ? xl6CgenCloneExprTypeForInference(ctx, right) : NULL;
@@ -299,6 +303,8 @@ static int xl6CgenTypedContainerMemberAssignStmt(
 
     id = ctx->tempId++;
     snprintf(tempName, sizeof(tempName), "__xl6_typed_member_assign_%d", id);
+    snprintf(slotName, sizeof(slotName), "__xl6_typed_member_slot_%d", id);
+    snprintf(slotPath, sizeof(slotPath), "(*%s)", slotName);
     memberTempName[0] = '\0';
     memberFunctionType = NULL;
     if ( moveReturn ) {
@@ -322,7 +328,7 @@ static int xl6CgenTypedContainerMemberAssignStmt(
     } else if ( importDynamic ) {
         xl6CgenTypedContainerImportDynamicExpr(ctx, fieldType, right);
     } else {
-        xl6CgenTypedContainerCopyExpr(ctx, fieldType, right);
+        xl6CgenTypedContainerRetainExpr(ctx, fieldType, right);
     }
     xl6OutputPuts(";\n", ctx->out);
     if ( importDynamic ) {
@@ -333,9 +339,13 @@ static int xl6CgenTypedContainerMemberAssignStmt(
         xl6CgenTypedContainerFillFromLiteral(ctx, tempName, fieldType, right);
     }
     xl6CgenIndent(ctx);
-    xl6CgenTypedContainerDestroyValue(ctx, fieldType, targetPath);
+    xl6OutputPrintf(ctx->out, "%s* %s = &(", xl6CgenTypedContainerCType(ctx, fieldType), slotName);
+    xl6CgenExpr(ctx, left);
+    xl6OutputPuts(");\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = %s;\n", targetPath, tempName);
+    xl6CgenTypedContainerDestroyValue(ctx, fieldType, slotPath);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "*%s = %s;\n", slotName, tempName);
 
     xl6AstFree(fieldCanonical);
     xl6AstFree(rightType);

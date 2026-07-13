@@ -1,0 +1,5 @@
+func invalid(byref int value = 1)
+end
+
+int value = 0
+invalid(value)

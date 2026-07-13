@@ -18,7 +18,7 @@ func inc(int value) as int
     return value + 1
 end
 
-Pair pair
+Pair pair = Pair()
 pair.left = 7
 pair.right = 8
 

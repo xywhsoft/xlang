@@ -1,4 +1,4 @@
-﻿// graphalg - 图算法库
+// graphalg - 图算法库
 //
 // 用法：
 //   graphalg dijkstra <graph.json> <from> <to>   Dijkstra 最短路径
@@ -40,8 +40,8 @@
 //   - 手写 MinHeap 优先队列（array<float> + array<string> 双轨）。
 //   - 手写 UnionFind 并查集（路径压缩 + 按 rank 合并）。
 //   - Graph class 封装邻接表（dict<string, var>）、坐标表、有向标志。
-//   - 全部算法用迭代实现（避免递归 + var dict 触发 BUG-LP1 二次方劣化）。
-//   - 复合赋值 += 不派发 class 协议（BUG-V1/P1），展开为 a = a + b。
+//   - 全部算法用迭代实现。
+//   - 复合赋值 += 不派发 class 协议，展开为 a = a + b。
 //   - 不使用 set/get/let 作 class 方法名（编译器拒绝）。
 
 
@@ -1109,7 +1109,7 @@ func testDijkstra(var fails)
     expectFloat("dijkstra A->F distance", dist, 5.0, fails)
     expectInt("dijkstra A->F hop count", route.length, 4, fails)
     expectStr("dijkstra A->F start", string(route[0]), "A", fails)
-    var lastElem = route[route.length - 1]
+    var lastElem = route[-1]
     expectStr("dijkstra A->F end", string(lastElem), "F", fails)
 
     dist, route = g.dijkstra("A", "C")
@@ -1400,7 +1400,7 @@ func main(...) as int
             end
             Graph g = loadGraphFile(string(arg[2]))
             var order = g.bfs(string(arg[3]))
-            println("BFS from " + string(arg[3]) + " (" + string(order.length) + " nodes):")
+            println("BFS from " + arg[3] + " (" + string(order.length) + " nodes):")
             println("  " + fmtPath(order))
             return 0
         end
@@ -1411,7 +1411,7 @@ func main(...) as int
             end
             Graph g = loadGraphFile(string(arg[2]))
             var order = g.dfs(string(arg[3]))
-            println("DFS from " + string(arg[3]) + " (" + string(order.length) + " nodes):")
+            println("DFS from " + arg[3] + " (" + string(order.length) + " nodes):")
             println("  " + fmtPath(order))
             return 0
         end
@@ -1424,7 +1424,7 @@ func main(...) as int
             float dist = 0.0
             var route = []
             dist, route = g.dijkstra(string(arg[3]), string(arg[4]))
-            println("Dijkstra " + string(arg[3]) + " -> " + string(arg[4]) + ":")
+            println("Dijkstra " + arg[3] + " -> " + arg[4] + ":")
             println("  distance: " + fmtDist(dist))
             println("  path:     " + fmtPath(route))
             return 0
@@ -1438,7 +1438,7 @@ func main(...) as int
             float dist = 0.0
             var route = []
             dist, route = g.astar(string(arg[3]), string(arg[4]))
-            println("A* " + string(arg[3]) + " -> " + string(arg[4]) + ":")
+            println("A* " + arg[3] + " -> " + arg[4] + ":")
             println("  distance: " + fmtDist(dist))
             println("  path:     " + fmtPath(route))
             return 0
@@ -1499,9 +1499,9 @@ func main(...) as int
             Graph g = loadGraphFile(string(arg[2]))
             bool conn = g.connected(string(arg[3]), string(arg[4]))
             if conn then
-                println(string(arg[3]) + " and " + string(arg[4]) + " are CONNECTED")
+                println(arg[3] + " and " + arg[4] + " are CONNECTED")
             else
-                println(string(arg[3]) + " and " + string(arg[4]) + " are NOT connected")
+                println(arg[3] + " and " + arg[4] + " are NOT connected")
             end
             return 0
         end
@@ -1510,7 +1510,7 @@ func main(...) as int
         printUsage()
         return 1
     catch e
-        string msg = e.message + ""
+        string msg = e.message
         println("Error: " + msg)
         return 1
     end

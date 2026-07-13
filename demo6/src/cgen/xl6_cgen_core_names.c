@@ -377,6 +377,12 @@ static void xl6CgenUnionTypeName(XL6_Output* out, const char* name)
     xl6CgenFputsEncodedText(out, name);
 }
 
+static void xl6CgenStructTypeName(XL6_Output* out, const char* name)
+{
+    xl6OutputPuts("XL_Struct_", out);
+    xl6CgenFputsEncodedText(out, name);
+}
+
 static void xl6CgenTypeDescSymbol(XL6_Output* out, const char* cTypeName)
 {
     xl6OutputPuts("xl6_type_desc_", out);
@@ -476,6 +482,16 @@ static void xl6CgenUnionTypeTextName(char* buffer, size_t capacity, const char* 
     }
     buffer[0] = '\0';
     xl6CgenAppendText(buffer, capacity, "XL_Union_");
+    xl6CgenAppendMangledText(buffer, capacity, name);
+}
+
+static void xl6CgenStructTypeTextName(char* buffer, size_t capacity, const char* name)
+{
+    if ( buffer == NULL || capacity == 0 ) {
+        return;
+    }
+    buffer[0] = '\0';
+    xl6CgenAppendText(buffer, capacity, "XL_Struct_");
     xl6CgenAppendMangledText(buffer, capacity, name);
 }
 

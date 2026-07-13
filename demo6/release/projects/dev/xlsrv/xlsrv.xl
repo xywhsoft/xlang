@@ -205,18 +205,12 @@ end
 // 字符串/行处理工具
 // ====================================================================
 
-// 安全按行拆分 (处理 splitLines 尾部空串)
+// 按行拆分成动态 array（splitLines 返回值转 string 元素）.
 func splitLinesSafe(string s) as array
     var tmp = string.splitLines(s)
     array ls = []
     for line in tmp
         ls.push(string(line))
-    end
-    int n = ls.length
-    if n > 0 then
-        if string(ls[n - 1]) == "" then
-            ls.remove(n - 1)
-        end
     end
     return ls
 end
@@ -2080,7 +2074,7 @@ func handleDidChange(var params)
     var changes = params["contentChanges"]
     if changes is array then
         if changes.length > 0 then
-            var last = changes[changes.length - 1]
+            var last = changes[-1]
             string text = string(last["text"])
             updateDocument(uri, text, version)
         end
@@ -2425,7 +2419,7 @@ func outputAnalysisText(string filePath)
     else
         for d in diags
             string sev = sevName(d.severity)
-            println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + string(d.message))
+            println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + d.message)
         end
     end
     println("")
@@ -2586,7 +2580,7 @@ func cmdCheck(string filePath) as int
     int errors = 0
     for d in diags
         string sev = sevName(d.severity)
-        println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + string(d.source) + ": " + string(d.message))
+        println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + d.source + ": " + d.message)
         if d.severity == DS_ERROR then
             errors += 1
         end

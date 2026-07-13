@@ -17,7 +17,7 @@
 //   默认词间关系为 AND；AND/OR/NOT 必须全大写。
 //
 // 设计说明（与 xlang 当前语义/限制对齐）:
-//   - 数据载体: 全程 var 容器。typed array<T> 作函数实参按值拷贝（BUG-XL1），
+//   - 数据载体: 全程 var 容器。typed array<T> 作函数实参按值拷贝，
 //     故索引/查询集/词表均用 var dict 与 var array。
 //   - 嵌套 dict 写入: 采用「取值→改→写回」模式（var ref/ copy 语义两端都安全）。
 //   - 倒排索引结构: dict<string, dict<string, array<int>>>  term -> doc -> [positions]。
@@ -25,7 +25,7 @@
 //   - 分词: string.chars 遍历 UTF-8 字符；ASCII 连续字母数字成词，非 ASCII（中文等）
 //     每字一词；统一小写；去英文停用词。位置基于去停用词后的序号，保证短语连续性。
 //   - 查询解析: 递归下降（OR < AND < NOT < primary），递归深度=表达式嵌套层数（浅），
-//     不触发 BUG-LP1（dict 递归二次方 GC 仅在深递归每帧分配 dict 时出现）。
+//     不触发 （dict 递归二次方 GC 仅在深递归每帧分配 dict 时出现）。
 //   - 打分: tf * log(N/df)，多词查询对结果文档累加各词得分后按分降序排列。
 //     NOT 操作数也计入评分表，但因结果集已排除不含该词的文档，tf=0 不影响分数。
 
@@ -890,7 +890,7 @@ func cmdTest() as int
         if string(pairs[0][1]) == "doc02" then
             println("  [OK]   tf-idf ranking       query: learning  (doc02 tf=2 ranks above doc05 tf=1)")
         else
-            println("  [FAIL] tf-idf ranking       expected doc02 first, got " + string(pairs[0][1]))
+            println("  [FAIL] tf-idf ranking       expected doc02 first, got " + pairs[0][1])
             fails += 1
         end
     else

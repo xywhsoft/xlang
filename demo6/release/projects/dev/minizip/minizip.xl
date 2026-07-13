@@ -1,4 +1,4 @@
-﻿// minizip.xl - LZ77/LZSS compression and file archiving tool
+// minizip.xl - LZ77/LZSS compression and file archiving tool
 //
 // Implements LZSS (LZ77 variant) compression with hash-chain match finding,
 // a custom MXA archive format, and CRC32 integrity checking.
@@ -30,7 +30,7 @@
 //
 // Implementation notes:
 //   * Buffer (native-backed class) cannot be returned from user functions
-//     (BUG-HD1). All Buffer usage is inlined in the calling function scope;
+//     . All Buffer usage is inlined in the calling function scope;
 //     functions that need Buffer receive it as a parameter.
 //   * Compressed data is stored/transferred in array<int> (basic type, safe
 //     to return/pass). Each element is a byte value 0..255.
@@ -278,7 +278,7 @@ func lz77Decompress(array<int> compressed, int originalSize) as array<int>
 end
 
 // ===========================================================================
-// Binary I/O helpers (Buffer is passed as parameter per BUG-HD1)
+// Binary I/O helpers
 // ===========================================================================
 
 func readU16(Buffer buf, int pos) as int

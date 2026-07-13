@@ -27,12 +27,6 @@
 //     { "instance", "service", "host", "port", "txt", "ttl", "registered", "expire" }
 //
 // xlang constraints honored (see dev/README.md + dev/BUGS.md):
-//   * BUG-XT3: global containers (g_registry, g_cache) are initialized at
-//     declaration and only modified in-place (clear + key-assign), never
-//     rebound with `g = ...`.
-//   * BUG-DN1: never `for _, _ in dict`; at least the key is always named.
-//   * BUG-CE1: every var value drawn from a container is coerced with
-//     string()/int() before being concatenated; no `var + string`.
 //   * var containers are reference-typed through function calls, so helpers
 //     mutate the shared registry / cache in place.
 
@@ -375,7 +369,7 @@ func cmdList()
         svcCount = svcCount + 1
         int live = countInstances(string(svc))
         println("")
-        println("PTR  " + string(svc) + "  (" + live.toString() + " live)")
+        println("PTR  " + svc + "  (" + live.toString() + " live)")
         for inst in arr
             string name  = string(inst["instance"])
             string host  = string(inst["host"])
@@ -563,7 +557,7 @@ func main(...) as int
         string txt = ""
         if arg.length >= 5 then txt = string(arg[4]) end
         if pp <= 0 or pp > 65535 then
-            println("ERROR: invalid port '" + string(arg[3]) + "'")
+            println("ERROR: invalid port '" + arg[3] + "'")
             return 1
         end
         return cmdRegister(service, pp, txt)

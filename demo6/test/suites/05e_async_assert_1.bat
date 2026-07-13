@@ -34,9 +34,9 @@ if errorlevel 1 (
     echo cgen_async.c missing async class function-field retain.
     exit /b 1
 )
-findstr /C:"pOut->pfnFreeValue = xl_async_result_free_xl_fn_makeBoxAsync" build\test\cgen_async.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_async_worker_xl_fn_makeBoxAsync[\s\S]*?pOut->pfnFreeValue = xl6_async_free_xvalue_value'){ exit 1 }"
 if errorlevel 1 (
-    echo cgen_async.c missing async class result free hook.
+    echo cgen_async.c missing async class-handle xvalue free hook.
     exit /b 1
 )
 findstr /C:"pOut->pfnFreeValue = xl6_async_free_function_value" build\test\cgen_async.c >nul
@@ -74,19 +74,19 @@ if errorlevel 1 (
     echo cgen_async.c missing await function retain.
     exit /b 1
 )
-findstr /C:"secondBox.op.retain(secondBox.op.env)" build\test\cgen_async.c >nul
+findstr /C:"secondBox = xl6_xrt_move_to_shared(xl6_xrt_bind_type(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(sharedBoxFuture" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing repeated await class retain.
+    echo cgen_async.c missing repeated await class-handle retain.
     exit /b 1
 )
-findstr /C:"autoBox.op.retain(autoBox.op.env)" build\test\cgen_async.c >nul
+findstr /C:"autoBox = xl6_xrt_move_to_shared(xl6_xrt_bind_type(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(autoBoxFuture" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing auto await class retain.
+    echo cgen_async.c missing auto await class-handle retain.
     exit /b 1
 )
-findstr /C:"xl_class_AsyncBox__destroy(&autoBox)" build\test\cgen_async.c >nul
+findstr /C:"xvoUnref(autoBox);" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing auto await class cleanup.
+    echo cgen_async.c missing auto await class-handle cleanup.
     exit /b 1
 )
 findstr /C:"temporaryValue = xl6_future_await_i64_release(xl_fn_addAsync(8LL, 9LL)" build\test\cgen_async.c >nul
@@ -149,14 +149,14 @@ if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed function normalization.
     exit /b 1
 )
-findstr /C:"conditionalBoxBorrowed = (chooseConditionalAwait ? xl6_future_await_class_xl_fn_makeBoxAsync_release(xl6_future_add_ref_if_needed(conditionalBoxSource)" build\test\cgen_async.c >nul
+findstr /C:"conditionalBoxBorrowed = xl6_xrt_move_to_shared(xl6_xrt_bind_type(xl6_future_await_xvalue_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalBoxSource)" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing conditional await borrowed class release helper.
+    echo cgen_async.c missing conditional await borrowed class-handle release helper.
     exit /b 1
 )
-findstr /C:": xl6_future_await_class_xl_fn_makeBoxAsync_release(xl_fn_makeBoxAsync(395LL)" build\test\cgen_async.c >nul
+findstr /C:"conditionalBoxOwned = xl6_xrt_move_to_shared(xl6_xrt_bind_type(xl6_future_await_xvalue_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalBoxSource) : xl_fn_makeBoxAsync(395LL))" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing conditional await owned class release helper.
+    echo cgen_async.c missing conditional await owned class-handle release helper.
     exit /b 1
 )
 findstr /C:"conditionalGreetingBorrowed = xrtCopyStr((chooseConditionalGreeting ? xl6_future_await_cstr_copy(conditionalGreetingSource" build\test\cgen_async.c >nul
@@ -247,4 +247,3 @@ if errorlevel 1 (
 
 echo DEMO6 suite ok: async cgen assertions 1/4
 exit /b 0
-

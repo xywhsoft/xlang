@@ -152,20 +152,21 @@ void xl6CgenEmitStringRuntime(XL6_Output* out)
     xl6OutputPuts("}\n\n", out);
 }
 
-void xl6CgenEmitRefRuntime(XL6_Output* out)
+void xl6CgenEmitClassHandleRuntime(XL6_Output* out)
 {
-    xl6OutputPuts("#ifndef XL6_REF_DATA_HELPER\n", out);
-    xl6OutputPuts("#define XL6_REF_DATA_HELPER\n", out);
-    xl6OutputPuts("static void* xl6_ref_data(xvalue value, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("#ifndef XL6_CLASS_DATA_HELPER\n", out);
+    xl6OutputPuts("#define XL6_CLASS_DATA_HELPER\n", out);
+    xl6OutputPuts("static void* xl6_class_data(xvalue value, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    void* data = value != 0 ? xvoGetRecordData(value) : 0;\n", out);
+    xl6OutputPuts("    if ( data == 0 && value != 0 ) { data = xvoGetHandleSlot(value); }\n", out);
     xl6OutputPuts("    if ( data == 0 ) {\n", out);
-    xl6OutputPuts("        xl6_error_raise(\"NullReferenceError\", \"null ref dereference\", file, line, column);\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"NullReferenceError\", \"null class dereference\", file, line, column);\n", out);
     xl6OutputPuts("        xl6_runtime_fatal(4);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return data;\n", out);
     xl6OutputPuts("}\n", out);
-    xl6OutputPuts("static bool xl6_ref_identity_equal_release(xvalue left, xvalue right)\n", out);
+    xl6OutputPuts("static bool xl6_class_identity_equal_release(xvalue left, xvalue right)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    bool leftNull = left == 0 || xvoIsNull(left);\n", out);
     xl6OutputPuts("    bool rightNull = right == 0 || xvoIsNull(right);\n", out);

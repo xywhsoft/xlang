@@ -42,12 +42,6 @@
 // PPM 格式：ASCII (P3)，可用 GIMP / ImageMagick / 在线查看器打开。
 //
 // 绕过记录（参照 rasterizer / imgcodecs 的 BUG 规避策略）：
-//   * BUG-C1/C2 : class 方法不接收裸 array<T> 形参；所有大循环放在全局函数中，
-//                 读取 Mesh/Texture/RenderTarget 实例参数的字段。
-//   * BUG-RT3   : Vec3/Mat4/Mesh/Texture/Material 无 virtual 方法，可安全 return。
-//   * BUG-M1    : int("abc") 静默返回 0 -> 手动校验数字串。
-//   * BUG-S1    : string.splitLines 尾部空串 -> 去除末尾空行。
-//   * BUG-V1/P1 : class 字段不用 += -> 展开为 a = a + b。
 //   * derive value : 含 array 字段的 class 标注 derive value。
 
 // ========================================================================
@@ -144,7 +138,7 @@ func clampByte(float v) as int
     return int(v)
 end
 
-// 安全整数解析（BUG-M1 绕过：int("abc") 返回 0）
+// 安全整数解析
 func parseArgInt(string s, int defValue) as int
     s = string.trim(s)
     if string.len(s) == 0 then
@@ -663,14 +657,6 @@ func loadObj(string path) as Mesh
 
     Mesh mesh = Mesh()
     array lines = string.splitLines(text)
-
-    // BUG-S1 绕过：去除尾部空行
-    if lines.length > 0 then
-        string lastLine = string(lines[lines.length - 1])
-        if string.trim(lastLine) == "" then
-            lines.remove(lines.length - 1)
-        end
-    end
 
     bool foundUv = false
     bool foundNormal = false
@@ -1890,7 +1876,7 @@ func writePpm(string path, RenderTarget rt)
         if li > 0 then
             body = body + "\n"
         end
-        body = body + string(lines[li])
+        body = body + lines[li]
         li = li + 1
     end
     body = body + "\n"

@@ -1,0 +1,13 @@
+class RefNode
+    int value
+    RefNode left
+    RefNode right
+end
+
+RefNode root = RefNode()
+root.value = 7
+root.left = RefNode()
+root.left.value = 9
+assert(root.value == 7)
+assert(root.left.value == 9)
+println("recursive class ok")

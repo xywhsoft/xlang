@@ -43,12 +43,12 @@ if errorlevel 1 (
     echo cgen_native_class_helper.c missing native-backed class helper self handle call.
     exit /b 1
 )
-findstr /C:"xl_class_Counter__isZero(&counter)" build\test\cgen_native_class_helper.c >nul
+findstr /C:"xl_class_Counter__isZero(((XL_Class_Counter*)xl6_class_data(counter" build\test\cgen_native_class_helper.c >nul
 if errorlevel 1 (
     echo cgen_native_class_helper.c missing native-backed class helper call.
     exit /b 1
 )
-findstr /C:"xl_class_Counter__plus(&counter, 7LL)" build\test\cgen_native_class_helper.c >nul
+findstr /C:"xl_class_Counter__plus(((XL_Class_Counter*)xl6_class_data(counter" build\test\cgen_native_class_helper.c >nul
 if errorlevel 1 (
     echo cgen_native_class_helper.c missing native-backed class helper call args.
     exit /b 1
@@ -60,14 +60,14 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_native_class_bind_point_basic.xl --emit build\test\cgen_native_class_bind_point_basic.c
 if errorlevel 1 exit /b 1
-findstr /C:"box.handle = make_borrowed_box(55LL);" build\test\cgen_native_class_bind_point_basic.c >nul
+findstr /C:"box = xl6_box_XL_Class_BorrowedBox((XL_Class_BorrowedBox){make_borrowed_box(55LL)});" build\test\cgen_native_class_bind_point_basic.c >nul
 if errorlevel 1 (
-    echo cgen_native_class_bind_point_basic.c missing point binding.
+    echo cgen_native_class_bind_point_basic.c missing managed point binding.
     exit /b 1
 )
-findstr /C:"borrowed_box_close(box.handle);" build\test\cgen_native_class_bind_point_basic.c >nul
+findstr /C:"if (box != 0)" build\test\cgen_native_class_bind_point_basic.c >nul
 if errorlevel 1 (
-    echo cgen_native_class_bind_point_basic.c missing direct borrowed destroy.
+    echo cgen_native_class_bind_point_basic.c missing managed native-backed cleanup.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_bind_point_basic.c test\cases\cgen_native_class_bind_point_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_bind_point_basic.exe
@@ -77,14 +77,14 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_native_class_ownership.xl --emit build\test\cgen_native_class_ownership.c
 if errorlevel 1 exit /b 1
-findstr /C:"box.handle = make_borrowed_box(66LL);" build\test\cgen_native_class_ownership.c >nul
+findstr /C:"box = xl6_box_XL_Class_OpenOnly((XL_Class_OpenOnly){make_borrowed_box(66LL)});" build\test\cgen_native_class_ownership.c >nul
 if errorlevel 1 (
-    echo cgen_native_class_ownership.c missing create-only native-backed class direct construction.
+    echo cgen_native_class_ownership.c missing managed create-only native-backed class construction.
     exit /b 1
 )
-findstr /C:"box.handle = handle;" build\test\cgen_native_class_ownership.c >nul
+findstr /C:"box = xl6_box_XL_Class_ViewOnly((XL_Class_ViewOnly){handle});" build\test\cgen_native_class_ownership.c >nul
 if errorlevel 1 (
-    echo cgen_native_class_ownership.c missing view-only point binding.
+    echo cgen_native_class_ownership.c missing managed view-only point binding.
     exit /b 1
 )
 findstr /C:"xl6_point_take((void**)&(handle))" build\test\cgen_native_class_ownership.c >nul
@@ -126,14 +126,14 @@ if errorlevel 1 (
     echo cgen_class.c missing base field.
     exit /b 1
 )
-findstr /C:"p.x = 3LL;" build\test\cgen_class.c >nul
+findstr /C:"__xl6_default_class_" build\test\cgen_class.c >nul
 if errorlevel 1 (
-    echo cgen_class.c missing field default.
+    echo cgen_class.c missing managed default class construction.
     exit /b 1
 )
-findstr /C:"q.base.x = 10LL;" build\test\cgen_class.c >nul
+findstr /C:")).base.x = 10LL;" build\test\cgen_class.c >nul
 if errorlevel 1 (
-    echo cgen_class.c missing inherited field assignment.
+    echo cgen_class.c missing managed inherited field assignment.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class.exe
@@ -148,7 +148,7 @@ if errorlevel 1 (
     echo cgen_base_create.c missing explicit base create call.
     exit /b 1
 )
-findstr /C:"xl_class_AutoBase__create(&autoChild.base);" build\test\cgen_base_create.c >nul
+findstr /C:"xl_class_AutoBase__create(&__xl6_box_ctor_stmt_" build\test\cgen_base_create.c >nul
 if errorlevel 1 (
     echo cgen_base_create.c missing auto base create call.
     exit /b 1
@@ -160,7 +160,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_base_create_overloads.xl --emit build\test\cgen_base_create_overloads.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Base__create__void(&child.base);" build\test\cgen_base_create_overloads.c >nul
+findstr /C:"xl_class_Base__create__void(&__xl6_box_ctor_stmt_" build\test\cgen_base_create_overloads.c >nul
 if errorlevel 1 (
     echo cgen_base_create_overloads.c missing auto no-arg base create overload call.
     exit /b 1
@@ -182,12 +182,12 @@ if errorlevel 1 (
     echo cgen_class_methods.c missing method prototype.
     exit /b 1
 )
-findstr /C:"xl_class_Point__create(&p, 3LL, 4LL);" build\test\cgen_class_methods.c >nul
+findstr /C:"xl_class_Point__create(&__xl6_box_ctor_stmt_" build\test\cgen_class_methods.c >nul
 if errorlevel 1 (
     echo cgen_class_methods.c missing create call.
     exit /b 1
 )
-findstr /C:"value = xl_class_Point__length2(&p);" build\test\cgen_class_methods.c >nul
+findstr /C:"value = xl_class_Point__length2(((XL_Class_Point*)xl6_class_data(p" build\test\cgen_class_methods.c >nul
 if errorlevel 1 (
     echo cgen_class_methods.c missing method call.
     exit /b 1
@@ -206,7 +206,7 @@ if errorlevel 1 (
     echo cgen_class_method_multi_return.c missing class method multi-return struct.
     exit /b 1
 )
-findstr /C:"xl_class_Pairer__pair(&pairer, 3LL)" build\test\cgen_class_method_multi_return.c >nul
+findstr /C:"xl_class_Pairer__pair(((XL_Class_Pairer*)xl6_class_data(pairer" build\test\cgen_class_method_multi_return.c >nul
 if errorlevel 1 (
     echo cgen_class_method_multi_return.c missing class method multi-return call.
     exit /b 1
@@ -218,12 +218,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_object_protocol.xl --emit build\test\cgen_object_protocol.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_object______setField____(&a.base" build\test\cgen_object_protocol.c >nul
+findstr /C:"xl_class_object______setField____(&((XL_Class_Actor*)xl6_class_data(a" build\test\cgen_object_protocol.c >nul
 if errorlevel 1 (
     echo cgen_object_protocol.c missing object field protocol setter call.
     exit /b 1
 )
-findstr /C:"xl_class_object______setItem____(&a.base" build\test\cgen_object_protocol.c >nul
+findstr /C:"xl_class_object______setItem____(&((XL_Class_Actor*)xl6_class_data(a" build\test\cgen_object_protocol.c >nul
 if errorlevel 1 (
     echo cgen_object_protocol.c missing object item protocol setter call.
     exit /b 1
@@ -245,17 +245,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_protocol_ops.xl --emit build\test\cgen_protocol_ops.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Counter______add____(&c" build\test\cgen_protocol_ops.c >nul
+findstr /C:"xl_class_Counter______add____(((XL_Class_Counter*)xl6_class_data(c" build\test\cgen_protocol_ops.c >nul
 if errorlevel 1 (
     echo cgen_protocol_ops.c missing operator protocol call.
     exit /b 1
 )
-findstr /C:"xl_class_Counter______contains____(&c" build\test\cgen_protocol_ops.c >nul
+findstr /C:"xl_class_Counter______contains____(((XL_Class_Counter*)xl6_class_data(c" build\test\cgen_protocol_ops.c >nul
 if errorlevel 1 (
     echo cgen_protocol_ops.c missing contains protocol call.
     exit /b 1
 )
-findstr /C:"xl_class_Counter______call____(&c" build\test\cgen_protocol_ops.c >nul
+findstr /C:"xl_class_Counter______call____(((XL_Class_Counter*)xl6_class_data(c" build\test\cgen_protocol_ops.c >nul
 if errorlevel 1 (
     echo cgen_protocol_ops.c missing call protocol call.
     exit /b 1
@@ -267,17 +267,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_protocol_compound_assign.xl --emit build\test\cgen_protocol_compound_assign.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Meter______add______int(&value, 5LL)" build\test\cgen_protocol_compound_assign.c >nul
+findstr /C:"xl_class_Meter______add______int(((XL_Class_Meter*)xl6_class_data(value" build\test\cgen_protocol_compound_assign.c >nul
 if errorlevel 1 (
     echo cgen_protocol_compound_assign.c missing class += protocol call.
     exit /b 1
 )
-findstr /C:"XL_Class_Meter __xl6_class_arg_" build\test\cgen_protocol_compound_assign.c >nul
+findstr /C:"xvalue __xl6_class_arg_" build\test\cgen_protocol_compound_assign.c >nul
 if errorlevel 1 (
     echo cgen_protocol_compound_assign.c missing inline class argument temporary.
     exit /b 1
 )
-findstr /C:"xl_class_Meter______add______Meter(&value, __xl6_class_arg_" build\test\cgen_protocol_compound_assign.c >nul
+findstr /C:"xl_class_Meter______add__________class__handle_of_Meter(((XL_Class_Meter*)xl6_class_data(value" build\test\cgen_protocol_compound_assign.c >nul
 if errorlevel 1 (
     echo cgen_protocol_compound_assign.c missing inline class += overload call.
     exit /b 1
@@ -355,7 +355,7 @@ if errorlevel 1 (
     echo cgen_class_property_get_let.c missing multi-dimensional property setter symbol.
     exit /b 1
 )
-findstr /C:"xl_class_Player______get______hp__int__int(&player, 2LL, 4LL)" build\test\cgen_class_property_get_let.c >nul
+findstr /C:"xl_class_Player______get______hp__int__int(((XL_Class_Player*)xl6_class_data(player" build\test\cgen_class_property_get_let.c >nul
 if errorlevel 1 (
     echo cgen_class_property_get_let.c missing multi-dimensional property getter call.
     exit /b 1
@@ -372,7 +372,7 @@ if errorlevel 1 (
     echo cgen_class_property_compound_managed.c missing property read-modify-write temporary.
     exit /b 1
 )
-findstr /C:"xl_class_Score______add____(&__xl6_property_current_" build\test\cgen_class_property_compound_managed.c >nul
+findstr /C:"xl_class_Score______add____(((XL_Class_Score*)xl6_class_data(__xl6_property_current_" build\test\cgen_class_property_compound_managed.c >nul
 if errorlevel 1 (
     echo cgen_class_property_compound_managed.c missing class protocol compound call.
     exit /b 1
@@ -384,24 +384,29 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_nested_class_constructor.xl --emit build\test\cgen_nested_class_constructor.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Ray__create(&direct, __xl6_class_arg_" build\test\cgen_nested_class_constructor.c >nul
+findstr /C:"direct = xvoCreateRecordMove(xl6_type_desc_XL_Class_Ray()" build\test\cgen_nested_class_constructor.c >nul
 if errorlevel 1 (
-    echo cgen_nested_class_constructor.c missing nested global constructor temporaries.
+    echo cgen_nested_class_constructor.c missing managed nested global construction.
     exit /b 1
 )
-findstr /C:".value1 = (XL_Class_Ray){0};" build\test\cgen_nested_class_constructor.c >nul
+findstr /C:".value1 = xvoCreateRecordMove(xl6_type_desc_XL_Class_Ray()" build\test\cgen_nested_class_constructor.c >nul
 if errorlevel 1 (
-    echo cgen_nested_class_constructor.c missing multi-return class construction.
+    echo cgen_nested_class_constructor.c missing managed multi-return class construction.
     exit /b 1
 )
-findstr /C:"xl_class_Box__Vec3__create(&boxed, __xl6_class_arg_" build\test\cgen_nested_class_constructor.c >nul
+findstr /C:"boxed = xvoCreateRecordMove(xl6_type_desc_XL_Class_Box" build\test\cgen_nested_class_constructor.c >nul
 if errorlevel 1 (
-    echo cgen_nested_class_constructor.c missing generic class nested constructor lowering.
+    echo cgen_nested_class_constructor.c missing managed generic class nested construction.
     exit /b 1
 )
-findstr /C:"XL_Class_Ray __xl6_async_return_" build\test\cgen_nested_class_constructor.c >nul
+findstr /C:"xvalue __xl6_async_return_" build\test\cgen_nested_class_constructor.c >nul
 if errorlevel 1 (
-    echo cgen_nested_class_constructor.c missing async class constructor lowering.
+    echo cgen_nested_class_constructor.c missing managed async class return storage.
+    exit /b 1
+)
+findstr /R /C:"__xl6_async_return_[0-9][0-9]* = xl6_xrt_move_to_shared(__xl6_async_return_" build\test\cgen_nested_class_constructor.c >nul
+if errorlevel 1 (
+    echo cgen_nested_class_constructor.c missing shared async class publication.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_nested_class_constructor.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_nested_class_constructor.exe
@@ -411,7 +416,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_stdlib_namespace_shadow.xl --emit build\test\cgen_stdlib_namespace_shadow.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Vec__nearZero(&dir)" build\test\cgen_stdlib_namespace_shadow.c >nul
+findstr /C:"xl_class_Vec__nearZero(((XL_Class_Vec*)xl6_class_data(dir" build\test\cgen_stdlib_namespace_shadow.c >nul
 if errorlevel 1 (
     echo cgen_stdlib_namespace_shadow.c did not preserve the local dir receiver.
     exit /b 1
@@ -445,7 +450,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_protocol_len.xl --emit build\test\cgen_protocol_len.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Sized______len____(&value)" build\test\cgen_protocol_len.c >nul
+findstr /C:"xl_class_Sized______len____(((XL_Class_Sized*)xl6_class_data(value" build\test\cgen_protocol_len.c >nul
 if errorlevel 1 (
     echo cgen_protocol_len.c missing named receiver len protocol call.
     exit /b 1
@@ -455,7 +460,7 @@ if errorlevel 1 (
     echo cgen_protocol_len.c missing temporary receiver len protocol wrapper.
     exit /b 1
 )
-findstr /C:"withField.length = 4LL;" build\test\cgen_protocol_len.c >nul
+findstr /C:"xl6_class_data(withField" build\test\cgen_protocol_len.c >nul
 if errorlevel 1 (
     echo cgen_protocol_len.c missing static length field assignment.
     exit /b 1
@@ -474,7 +479,7 @@ if errorlevel 1 (
     echo cgen_protocol_iter.c missing temporary receiver iter protocol wrapper.
     exit /b 1
 )
-findstr /C:"xl_class_CounterIter______next____(&__xl6_class_iter_" build\test\cgen_protocol_iter.c >nul
+findstr /C:"xl_class_CounterIter______next____((XL_Class_CounterIter*)xl6_class_data(__xl6_class_iter_" build\test\cgen_protocol_iter.c >nul
 if errorlevel 1 (
     echo cgen_protocol_iter.c missing iterator next protocol call.
     exit /b 1

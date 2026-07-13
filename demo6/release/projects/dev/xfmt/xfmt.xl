@@ -43,7 +43,7 @@ string g_xl
 
 // ============================================================================
 // AST 访问辅助
-// 注意：所有 helper 一律返回静态 string/int，规避 var+string 乱码 BUG-CE1。
+// 注意：所有 helper 一律返回静态 string/int，规避 var+string 乱码。
 // ============================================================================
 
 func nk(var n) as string
@@ -126,11 +126,6 @@ func splitLinesSafe(string s) as array<string>
     array<string> ls = []
     for line in tmp
         ls.push(string(line))
-    end
-    if ls.length > 0 then
-        if ls[ls.length - 1] == "" then
-            ls.remove(ls.length - 1)
-        end
     end
     return ls
 end
@@ -842,7 +837,7 @@ func emitTry(var s, int level) as string
     return string.join(lines, "\n")
 end
 
-// 把 block 下所有语句追加到 lines（var 数组按引用传递，规避 BUG-XL1）。
+// 把 block 下所有语句追加到 lines。
 func appendBlockLines(var lines, var blk, int level)
     if blk is null then return end
     var ch = nch(blk)
@@ -1226,8 +1221,7 @@ func formatFile(string filePath) as string
     try
         root = json.parse(r.stdout)
     catch e
-        // BUG-XT1: catch e.message 借用异常缓冲区，强制 owned 拷贝
-        string msg = e.message + ""
+        string msg = e.message
         println("xfmt: AST JSON parse failed: " + msg)
         return ""
     end

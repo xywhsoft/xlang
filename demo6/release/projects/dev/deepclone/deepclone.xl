@@ -7,9 +7,9 @@
 //   derive value       - __toValue__ / __fromValue__（经 json/xson 路径验证）
 //   derive json        - json.stringify / json.parse::<Class>
 //   derive xson        - xson.stringify / xson.parse::<Class>
-//   derive string      - 字符串表示（详见 BUG-D2，当前 derive 不生成代码）
-//   derive hash        - 字段哈希（详见 BUG-D2，当前 derive 不生成代码）
-//   derive equals      - == / != 比较（详见 BUG-D2，当前 derive 不生成代码）
+//   derive string - 字符串表示
+//   derive hash - 字段哈希
+//   derive equals - == / != 比较
 //   字段级注解:
 //     @json("name")            - 自定义 JSON 字段名
 //     @persist(name="...")     - 通用字段名（同时影响 json/xson）
@@ -24,7 +24,7 @@
 //  * derive string / hash / equals 当前只通过语义校验，不生成任何协议方法。
 //    为演示这些 derive 「应该生成什么」，Product 上手写了
 //    __eq__ / __ne__ / __toString__ / hashByFields 作为兜底实现；
-//    derive 本身没有提供这些能力（BUG-D2）。
+//    derive 本身没有提供这些能力。
 // ---------------------------------------------------------------------------
 
 const string SEPARATOR = "----------------------------------------"
@@ -131,7 +131,7 @@ class Product
     string internalNote @persist(skip) = ""
     string memo @json(omit=empty) @xson(omit=null) = ""
 
-    // ---- derive equals 兜底（BUG-D2：derive 不生成 __eq__/__ne__） ----
+    // ---- derive equals 兜底 ----
     func __eq__(Product other) as bool
         if self.id != other.id then
             return false
@@ -158,7 +158,7 @@ class Product
         return false
     end
 
-    // ---- derive string 兜底（BUG-D2：derive 不生成 __toString__） ----
+    // ---- derive string 兜底 ----
     func __toString__() as string
         string s = "Product(id=" + string.formatInt(self.id)
         s = s + ", name=\"" + self.name + "\""
@@ -166,7 +166,7 @@ class Product
         return s
     end
 
-    // ---- derive hash 兜底（BUG-D2：derive 不生成 hash） ----
+    // ---- derive hash 兜底 ----
     // 把字段拼成字符串后交给 hash.u32 / hash.u64。
     func hashByFields() as uint64
         string buf = "Product|" + string.formatInt(self.id) + "|"
@@ -345,7 +345,6 @@ func testDeriveString() as int
     p.name = "StringItem"
     p.price = 12.34
 
-    // BUG-D2: derive string 不生成 __toString__，且 string(p) 报
     // [sem] 该表达式不能转换为目标类型。本工具靠手写 __toString__ 协议方法。
     string s = p.__toString__()
     println("  toString: " + s)
@@ -379,7 +378,6 @@ func testDeriveHash() as int
     c.price = 0.5
     c.createdAt = "2026-05-06"
 
-    // BUG-D2: derive hash 不生成代码。本工具用手写 hashByFields 演示预期行为。
     uint64 ha = a.hashByFields()
     uint64 hb = b.hashByFields()
     uint64 hc = c.hashByFields()
@@ -414,7 +412,6 @@ func testDeriveEquals() as int
     c.name = "Other"
     c.price = 4.0
 
-    // BUG-D2: derive equals 不生成 __eq__/__ne__，必须手写。
     if expectBool(a == b, true, "a == b (同值)") then pass("== 同值返回 true") end
     if expectBool(a == c, false, "a == c (异值)") then pass("== 异值返回 false") end
     if expectBool(a != c, true, "a != c (异值)") then pass("!= 异值返回 true") end

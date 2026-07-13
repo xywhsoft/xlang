@@ -11,6 +11,7 @@
 %type doc_block { XL6_Token }
 %type class_member_mods { unsigned int }
 %type class_member_modifier { unsigned int }
+%type param_mode { unsigned int }
 %type field_attr_arg { XL6_AstNode* }
 %type field_attr_word { XL6_Token }
 
@@ -646,6 +647,7 @@ item_base(A) ::= export_const_decl(B). { A = B; }
 item_base(A) ::= type_alias_decl(B). { A = B; }
 item_base(A) ::= extern_type_alias_decl(B). { A = B; }
 item_base(A) ::= class_decl(B). { A = B; }
+item_base(A) ::= struct_decl(B). { A = B; }
 item_base(A) ::= union_decl(B). { A = B; }
 item_base(A) ::= stmt(B). { A = B; }
 item(A) ::= TOK_ERROR(E). {
@@ -821,6 +823,28 @@ class_decl(A) ::= KW_CLASS(C) name_tok(N) generic_params_opt(G) class_extends(E)
     xl6AstAddChild(A, B);
     xl6AstAddChild(A, G);
     (void)C;
+}
+
+/* struct 是显式值语义聚合，只承载 C 兼容字段布局。 */
+struct_decl(A) ::= KW_STRUCT(S) name_tok(N) need_sep struct_body(B) KW_END. {
+    A = xl6AstNew(XL6_AST_STRUCT, &N);
+    xl6AstAddChild(A, B);
+    (void)S;
+}
+
+struct_body(A) ::= . {
+    A = xl6PList();
+}
+struct_body(A) ::= struct_body(B) SEP. {
+    A = B;
+}
+struct_body(A) ::= struct_body(B) field_decl(F). {
+    A = B;
+    xl6AstAddChild(A, F);
+}
+struct_body(A) ::= struct_body(B) union_decl(U). {
+    A = B;
+    xl6AstAddChild(A, U);
 }
 
 class_extends(A) ::= . {
@@ -1110,12 +1134,21 @@ type_expr(A) ::= KW_ASYNC type_ref(T). {
 
 param_type_ref(A) ::= type_expr(T). { A = T; }
 
-param(A) ::= param_type_ref(T) name_tok(N). {
+param_mode(A) ::= . { A = 0; }
+param_mode(A) ::= KW_BYVAL. { A = XL6_AST_FLAG_BYVAL; }
+param_mode(A) ::= KW_BYREF. { A = XL6_AST_FLAG_BYREF; }
+param_mode(A) ::= KW_OUT. { A = XL6_AST_FLAG_OUT; }
+
+param(A) ::= param_mode(M) param_type_ref(T) name_tok(N). {
     A = xl6AstNew(XL6_AST_PARAM, &N);
+    A->flags |= M;
+    T->flags |= M;
     xl6AstAddChild(A, T);
 }
-param(A) ::= param_type_ref(T) name_tok(N) ASSIGN expr(E). {
+param(A) ::= param_mode(M) param_type_ref(T) name_tok(N) ASSIGN expr(E). {
     A = xl6AstNew(XL6_AST_PARAM, &N);
+    A->flags |= M;
+    T->flags |= M;
     xl6AstAddChild(A, T);
     xl6AstAddChild(A, E);
 }
@@ -1189,7 +1222,10 @@ func_type_params(A) ::= func_type_params(B) COMMA func_type_param(T). {
     xl6AstAddChild(A, T);
 }
 
-func_type_param(A) ::= type_expr(T). { A = T; }
+func_type_param(A) ::= param_mode(M) type_expr(T). {
+    T->flags |= M;
+    A = T;
+}
 func_type_param(A) ::= ELLIPSIS(T). {
     A = xl6AstNewText(XL6_AST_TYPE, "array<var>", 10, &T);
 }
@@ -1700,7 +1736,27 @@ call_arg(A) ::= expr(E). {
     A = xl6AstNew(XL6_AST_ARG, NULL);
     xl6AstAddChild(A, E);
 }
+call_arg(A) ::= KW_BYREF(B) expr(E). {
+    A = xl6AstNew(XL6_AST_ARG, &B);
+    A->flags |= XL6_AST_FLAG_BYREF;
+    xl6AstAddChild(A, E);
+}
+call_arg(A) ::= KW_OUT(O) expr(E). {
+    A = xl6AstNew(XL6_AST_ARG, &O);
+    A->flags |= XL6_AST_FLAG_OUT;
+    xl6AstAddChild(A, E);
+}
 call_arg(A) ::= name_tok(N) ASSIGN expr(E). {
     A = xl6AstNew(XL6_AST_NAMED_ARG, &N);
+    xl6AstAddChild(A, E);
+}
+call_arg(A) ::= name_tok(N) ASSIGN KW_BYREF expr(E). {
+    A = xl6AstNew(XL6_AST_NAMED_ARG, &N);
+    A->flags |= XL6_AST_FLAG_BYREF;
+    xl6AstAddChild(A, E);
+}
+call_arg(A) ::= name_tok(N) ASSIGN KW_OUT expr(E). {
+    A = xl6AstNew(XL6_AST_NAMED_ARG, &N);
+    A->flags |= XL6_AST_FLAG_OUT;
     xl6AstAddChild(A, E);
 }

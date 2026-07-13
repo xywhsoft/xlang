@@ -1232,7 +1232,7 @@ func printPacket(var p, Buffer buf)
          + "  cap=" + string(capLen) + "/" + string(origLen))
 
     if bool(p.hasEth) then
-        println("  ETH  " + string(p.srcMac) + " -> " + string(p.dstMac)
+        println("  ETH  " + p.srcMac + " -> " + p.dstMac
              + "  type=0x" + string.formatInt(int(p.etherType), "X4")
              + " (" + etherTypeName(int(p.etherType)) + ")")
     end
@@ -1245,7 +1245,7 @@ func printPacket(var p, Buffer buf)
         if int(p.ipFragOff) != 0 then
             fragNote = fragNote + " frag=" + string(int(p.ipFragOff))
         end
-        println("  IP   v" + string(int(p.ipVer)) + "  " + string(p.srcIp) + " -> " + string(p.dstIp)
+        println("  IP   v" + string(int(p.ipVer)) + "  " + p.srcIp + " -> " + p.dstIp
              + "  proto=" + ipProtoName(int(p.ipProto)) + "(" + string(int(p.ipProto)) + ")"
              + " ttl=" + string(int(p.ipTtl))
              + " len=" + string(int(p.ipTotalLen))
@@ -1268,7 +1268,7 @@ func printPacket(var p, Buffer buf)
 
     string appProtoStr = string(p.appProto)
     if string.len(appProtoStr) > 0 then
-        println("  APP  " + appProtoStr + ": " + string(p.appInfo))
+        println("  APP  " + appProtoStr + ": " + p.appInfo)
     end
 
     if int(p.payloadLen) > 0 and string.len(appProtoStr) == 0 then
@@ -1509,8 +1509,8 @@ end
 
 // 规范化双向 4 元组 key
 func flowKey(var p) as string
-    string a = string(p.srcIp) + ":" + string(p.srcPort)
-    string b = string(p.dstIp) + ":" + string(p.dstPort)
+    string a = p.srcIp + ":" + string(p.srcPort)
+    string b = p.dstIp + ":" + string(p.dstPort)
     if string.compare(a, b) <= 0 then
         return a + " <-> " + b
     end
@@ -1998,7 +1998,7 @@ func main(...) as int
             if string.len(expr) > 0 then
                 expr = expr + " "
             end
-            expr = expr + string(arg[i])
+            expr = expr + arg[i]
             i += 1
         end
         return cmdFilter(expr, file)

@@ -9,7 +9,12 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
     if ( expr == NULL ) {
         return NULL;
     }
-    if ( xl6HirExprType(expr) != NULL && (ctx == NULL || ctx->exprReplacements == NULL) ) {
+    /*
+        表达式替换只改变 C 端的求值位置，不改变 xlang 语义类型。
+        重载解析必须始终优先采用 typed HIR，否则 class 构造临时量会退化成 var，
+        进而选错协议重载或错误地落入动态运算路径。
+    */
+    if ( xl6HirExprType(expr) != NULL ) {
         result = ctx != NULL ?
                  xl6CgenCloneCanonicalTypeNode(ctx, xl6HirExprType(expr)) :
                  xl6CgenCloneTypeNode(xl6HirExprType(expr));

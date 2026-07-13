@@ -21,7 +21,6 @@
 // 设计约束（来自 dev/README）：
 //   * native-backed class（HttpRequest/HttpResponse/HttpClientRequest/
 //     HttpClientResponse/Buffer）不能按值传给函数，HTTP 操作全部内联。
-//   * string.splitLines 末尾换行产生空串（BUG-S1），用末元素判空收缩长度。
 //   * json pretty 模式会 hash 重排键序，需要保序时手工拼接 JSON 文本。
 //   * `#` 不是注释（开启时间字面量），注释统一用 `//`。
 //   * 没有裸块作用域，多个独立测试用 `if true then ... end` 隔离作用域。
@@ -315,11 +314,6 @@ func mdToPlainText(string md) as string
     string out = ""
     array lines = string.splitLines(md)
     int total = lines.length
-    if total > 0 then
-        if string(lines[total - 1]) == "" then
-            total = total - 1
-        end
-    end
     int i = 0
     bool inCode = false
     while i < total do
@@ -634,11 +628,6 @@ end
 func renderMarkdown(string md) as string
     array lines = string.splitLines(md)
     int totalLines = lines.length
-    if totalLines > 0 then
-        if string(lines[totalLines - 1]) == "" then
-            totalLines = totalLines - 1
-        end
-    end
 
     string html = ""
     string openBlock = ""    // "", "p", "ul", "ol", "code", "blockquote"
@@ -737,7 +726,7 @@ func renderMarkdown(string md) as string
             int qn = quoteLines.length
             int qi = 0
             while qi < qn do
-                innerMd = innerMd + string(quoteLines[qi]) + "\n"
+                innerMd = innerMd + quoteLines[qi] + "\n"
                 qi = qi + 1
             end
             html = html + "<blockquote>\n" + renderMarkdown(innerMd) + "</blockquote>\n"
@@ -1097,7 +1086,7 @@ func tplRenderNodes(var nodes, var data, var blocks) as string
         var node = nodes[i]
         string tt = string(node["type"])
         if tt == "text" then
-            out = out + string(node["value"])
+            out = out + node["value"]
         elseif tt == "var" then
             var v = tplResolve(string(node["name"]), data)
             out = out + tplVarToString(v)
@@ -1518,11 +1507,6 @@ func parsePostFile(string rawText, string fileSlug) as var
     var post = {}
     array lines = string.splitLines(rawText)
     int total = lines.length
-    if total > 0 then
-        if string(lines[total - 1]) == "" then
-            total = total - 1
-        end
-    end
 
     string body = ""
     var meta = {}
@@ -1551,13 +1535,13 @@ func parsePostFile(string rawText, string fileSlug) as var
     if hasFm then
         int bi = bodyStart
         while bi < total do
-            body = body + string(lines[bi]) + "\n"
+            body = body + lines[bi] + "\n"
             bi = bi + 1
         end
     else
         int bi = 0
         while bi < total do
-            body = body + string(lines[bi]) + "\n"
+            body = body + lines[bi] + "\n"
             bi = bi + 1
         end
     end
@@ -1794,9 +1778,9 @@ func generatePostPages()
         var tags = p["tags"]
         data["hasTags"] = tags.length > 0
         string html = tplRender("post", data)
-        string rel = "post" + "/" + string(p["slug"]) + "/index.html"
+        string rel = "post" + "/" + p["slug"] + "/index.html"
         writeOutput(rel, html)
-        recordUrl(siteUrl + string(p["url"]), string(p["date"]), "0.8")
+        recordUrl(siteUrl + p["url"], string(p["date"]), "0.8")
         i = i + 1
     end
 end
@@ -2091,7 +2075,7 @@ func buildSite(string contentDir, string outputDir) as int
     // 1. 配置
     bool hasCfg = loadConfig(contentDir)
     if hasCfg then
-        println("  loaded site.json (theme=" + string(gConfig["theme"]) + ")")
+        println("  loaded site.json (theme=" + gConfig["theme"] + ")")
     else
         println("  no site.json, using defaults")
     end
@@ -2637,7 +2621,7 @@ func main(...) as int
         try
             port = int(string(arg[2]))
         catch e
-            println("invalid port: " + string(arg[2]))
+            println("invalid port: " + arg[2])
             return 1
         end
         if port <= 0 or port > 65535 then

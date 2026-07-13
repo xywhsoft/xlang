@@ -35,7 +35,7 @@
 //     arrays. Mailboxes are pre-declared global channels; threads are
 //     fire-and-forget (spawned via thread(closure), not stored).
 //   - Global containers accessed by worker threads must be initialized at
-//     declaration and never re-bound (BUG-XT3). Registry uses parallel
+//     declaration and never re-bound. Registry uses parallel
 //     global arrays (array[]) populated via push() before threads spawn.
 //   - Actor threads capture their slot index (int, by value) via a closure
 //     factory makeActorBody(idx), mirroring the proven prodcon pattern.

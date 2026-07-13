@@ -1,4 +1,4 @@
-﻿#ifndef XL6_AST_H
+#ifndef XL6_AST_H
 #define XL6_AST_H
 
 #include "src/lexer/xl6_token.h"
@@ -18,6 +18,7 @@ typedef enum XL6_AstKind {
     XL6_AST_TYPE_ALIAS,
     XL6_AST_EXTERN_TYPE_ALIAS,
     XL6_AST_CLASS,
+    XL6_AST_STRUCT,
     XL6_AST_UNION,
     XL6_AST_DERIVE,
     XL6_AST_FIELD,
@@ -94,6 +95,11 @@ typedef enum XL6_AstKind {
 #define XL6_AST_FLAG_NATIVE   0x00000080u
 #define XL6_AST_FLAG_ASYNC    0x00000100u
 #define XL6_AST_FLAG_EXTERN   0x00000200u
+#define XL6_AST_FLAG_BYVAL    0x00000400u
+#define XL6_AST_FLAG_BYREF    0x00000800u
+#define XL6_AST_FLAG_OUT      0x00001000u
+/* 仅供语义规范化使用，源码不能构造该标记。 */
+#define XL6_AST_FLAG_CLASS_HANDLE 0x80000000u
 
 typedef struct XL6_AstNode {
     XL6_AstKind kind;

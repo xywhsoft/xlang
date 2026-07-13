@@ -41,7 +41,7 @@ for item in pairSet
     pairCount = pairCount + 1
     expect(type(item) == Pair, 1)
 end
-expect(pairCount, 2)
+expect(pairCount, 3)
 
 point raw = nativeHandle(1)
 point otherRaw = nativeHandle(2)
@@ -60,4 +60,4 @@ for handle in nativeSet
     nativeCount = nativeCount + 1
     expect(type(handle) == Native, 1)
 end
-expect(nativeCount, 2)
+expect(nativeCount, 3)

@@ -260,7 +260,7 @@ func main(...) as int
         end
         auto okY, y = intArg(string(arg[2]))
         if not okY or y < 1 or y > 9999 then
-            println("Error: 无效年份 '" + string(arg[2]) + "'")
+            println("Error: 无效年份 '" + arg[2] + "'")
             return 1
         end
         printYear(y)

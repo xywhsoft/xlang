@@ -677,11 +677,6 @@ func splitLinesSafe(string s) as array<string>
     for line in tmp
         ls.push(string(line))
     end
-    if ls.length > 0 then
-        if ls[ls.length - 1] == "" then
-            ls.remove(ls.length - 1)
-        end
-    end
     return ls
 end
 

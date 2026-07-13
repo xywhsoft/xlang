@@ -13,7 +13,7 @@
 //
 // 设计要点 (与 xlang 当前语义/限制对齐):
 //   - 数据载体: 三种结构均为 class，核心数组是 array<int> 字段，方法经 self.field
-//     读写 (避开 BUG-C1: class 方法不能安全接收 array<int> 形参；BUG-C2: 不能直接
+//     读写 (避开 class 方法不能安全接收 array<int> 形参；不能直接
 //     return self.field.length —— 全部先落到局部 int 再用)。
 //   - 哈希: 用 hash.u64WithSeed(key, uint64(seed)) 做 double hashing。seed 取两个
 //     不相关的 64-bit 常数；h2==0 时强制为 1 避免退化。

@@ -12,7 +12,7 @@
 //   __field__/__setField__ 与一元/比较协议可在同一 class 上稳定共存。
 //
 //   另：复合赋值 a += b / a -= b 不分派到 __add__/__sub__（编译期 [sem] 直接拒绝），
-//   见 BUGS.md BUG-V1。
+//   见 BUGS.md。
 //
 // 程序始终返回 0（即使发现 BUG 也只记录不中断），保证 xl run / xl build 双路径 EXIT=0。
 

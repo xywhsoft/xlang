@@ -1,4 +1,4 @@
-﻿// xregex — 从零手写的正则表达式引擎（不使用 regex 标准库）
+// xregex — 从零手写的正则表达式引擎（不使用 regex 标准库）
 //
 // 用法:
 //   xregex match   <pattern> <text>            是否匹配（搜索语义，支持 ^ $ 锚点）
@@ -14,13 +14,7 @@
 //   3. Matcher —— 递归回溯 VM：直线指令迭代推进，SPLIT 两个出口递归回溯
 //
 // 实现要点（避坑）:
-//   - BUG-JP1: 不把 class 作为另一 class 的成员字段。Parser 只有原始类型字段；
-//     AST/程序/类表全部用全局 var dict 数组承载。
-//   - BUG-XL1: typed 容器按值传参不回传，故匹配所需的可变状态（程序、文本、
-//     捕获位置）全部放全局，函数只传原始类型 (int/bool/string)。
 //   - BUG-XL3: 不用 is 作标识符。
-//   - BUG-RT5: 避开 stdlib 命名空间（math/dir/path/time）作局部变量名。
-//   - BUG-M1: 不用 int() 解析 {n,m} 数字，手写逐字符解析。
 //   - 不使用 regex 标准库，全程手写解析、NFA 构造、回溯匹配。
 
 // ===== 操作码 =====

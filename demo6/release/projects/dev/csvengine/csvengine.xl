@@ -995,7 +995,7 @@ func buildOutHeaders(var q) as var
         elseif kind == "agg" then
             string alias = string(item["alias"])
             if string.isEmpty(alias) then
-                headers.append(string(item["func"]) + "(" + string(item["arg"]) + ")")
+                headers.append(item["func"] + "(" + item["arg"] + ")")
             else
                 headers.append(alias)
             end
@@ -1295,7 +1295,7 @@ func runQuery(var q, string mainText, string mainDir, string mainBase, string ma
         parseCsvStream(mainText, delimForFile(mainFile))
     else
         // load main fully (qualified by FROM alias)
-        gAlias = string(q["fromalias"]) + "."
+        gAlias = q["fromalias"] + "."
         gApplyFilter = false
         gTarget = []
         parseCsvStream(mainText, delimForFile(mainFile))
@@ -1311,7 +1311,7 @@ func runQuery(var q, string mainText, string mainDir, string mainBase, string ma
             if file.exists(jpath) then
                 jtext = file.readText(jpath)
             end
-            gAlias = string(j["alias"]) + "."
+            gAlias = j["alias"] + "."
             gApplyFilter = false
             gTarget = []
             parseCsvStream(jtext, delimForFile(jpath))
@@ -1867,19 +1867,9 @@ func testOrderBy()
     checkHas(asc, "name", "asc header")
     // first data line should be B(25)
     var lines = string.splitLines(asc)
-    if lines.length > 0 then
-        if string(lines[lines.length - 1]) == "" then
-            lines.remove(lines.length - 1)
-        end
-    end
     check(string(lines[1]) == "B", "ORDER BY age ASC first=B  got=" + string(lines[1]))
     string desc = executeQueryText(t, "", "data", "data.csv", "SELECT name FROM data ORDER BY age DESC", "csv")
     var dlines = string.splitLines(desc)
-    if dlines.length > 0 then
-        if string(dlines[dlines.length - 1]) == "" then
-            dlines.remove(dlines.length - 1)
-        end
-    end
     check(string(dlines[1]) == "C", "ORDER BY age DESC first=C  got=" + string(dlines[1]))
 end
 
@@ -2001,11 +1991,6 @@ func testLargeStream()
     // ordered by val desc -> first data row should be 999,1998
     string out2 = executeQueryText(t, "", "data", "data.csv", "SELECT id, val FROM data ORDER BY val DESC", "csv")
     var lines = string.splitLines(out2)
-    if lines.length > 0 then
-        if string(lines[lines.length - 1]) == "" then
-            lines.remove(lines.length - 1)
-        end
-    end
     check(string(lines[1]) == "999,1998", "ORDER BY val DESC first=999,1998  got=" + string(lines[1]))
 end
 

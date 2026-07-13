@@ -347,7 +347,7 @@ func labelDisplay(string packed) as string
         if i > 0 then
             out = out + ", "
         end
-        out = out + string(parts[i])
+        out = out + parts[i]
         i += 1
     end
     return out

@@ -1,0 +1,40 @@
+class ParamModeBox
+    int value
+
+    create(int value)
+        self.value = value
+    end
+
+    derive copy
+end
+
+func mutate(ParamModeBox box)
+    box.value = 20
+end
+
+func mutateCopy(byval ParamModeBox box)
+    box.value = 30
+end
+
+func replace(byref ParamModeBox box)
+    ParamModeBox next = ParamModeBox(40)
+    box = next
+end
+
+func writeValue(out int value)
+    value = 50
+end
+
+ParamModeBox box = ParamModeBox(10)
+mutate(box)
+assert box.value == 20
+
+mutateCopy(box)
+assert box.value == 20
+
+replace(byref box)
+assert box.value == 40
+
+int value = 0
+writeValue(out value)
+assert value == 50

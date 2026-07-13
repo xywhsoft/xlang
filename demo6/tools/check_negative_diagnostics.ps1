@@ -87,6 +87,10 @@ $diagFunctionOverloadConflict = Join-CodePoints @(0x91CD, 0x590D, 0x6216, 0x6B67
 $diagConstAssign = Join-CodePoints @(0x0063, 0x006F, 0x006E, 0x0073, 0x0074, 0x0020, 0x4E0D, 0x80FD, 0x88AB, 0x91CD, 0x65B0, 0x8D4B, 0x503C)
 $diagDuplicateDecl = Join-CodePoints @(0x540C, 0x4E00, 0x4F5C, 0x7528, 0x57DF, 0x5185, 0x91CD, 0x590D, 0x58F0, 0x660E)
 $diagParamDefaultTypeMismatch = Join-CodePoints @(0x9ED8, 0x8BA4, 0x503C, 0x8868, 0x8FBE, 0x5F0F, 0x7C7B, 0x578B, 0x548C, 0x53C2, 0x6570, 0x7C7B, 0x578B, 0x4E0D, 0x5339, 0x914D)
+$diagParamModeDefault = Join-CodePoints @(0x0062, 0x0079, 0x0072, 0x0065, 0x0066, 0x0020, 0x548C, 0x0020, 0x006F, 0x0075, 0x0074, 0x0020, 0x53C2, 0x6570, 0x4E0D, 0x80FD, 0x58F0, 0x660E, 0x9ED8, 0x8BA4, 0x503C)
+$diagOutReadBeforeWrite = Join-CodePoints @(0x006F, 0x0075, 0x0074, 0x0020, 0x53C2, 0x6570, 0x5728, 0x6574, 0x4F53, 0x8D4B, 0x503C, 0x524D, 0x4E0D, 0x80FD, 0x8BFB, 0x53D6)
+$diagOutMissingWrite = Join-CodePoints @(0x006F, 0x0075, 0x0074, 0x0020, 0x53C2, 0x6570, 0x5FC5, 0x987B, 0x5728, 0x51FD, 0x6570, 0x6B63, 0x5E38, 0x7ED3, 0x675F, 0x524D, 0x6574, 0x4F53, 0x8D4B, 0x503C)
+$diagOutCapture = Join-CodePoints @(0x533F, 0x540D, 0x51FD, 0x6570, 0x4E0D, 0x80FD, 0x6355, 0x83B7, 0x0020, 0x0062, 0x0079, 0x0072, 0x0065, 0x0066, 0x0020, 0x6216, 0x0020, 0x006F, 0x0075, 0x0074, 0x0020, 0x53C2, 0x6570)
 $diagSelfAssign = Join-CodePoints @(0x0073, 0x0065, 0x006C, 0x0066, 0x0020, 0x4E0D, 0x80FD, 0x88AB, 0x91CD, 0x65B0, 0x8D4B, 0x503C)
 $diagSafeAssignNameOnly = Join-CodePoints @(0x5F53, 0x524D, 0x8D4B, 0x503C, 0x5DE6, 0x4FA7, 0x5FC5, 0x987B, 0x662F, 0x53D8, 0x91CF, 0x540D)
 $diagArrayListIndexInt = Join-CodePoints @(0x0061, 0x0072, 0x0072, 0x0061, 0x0079, 0x002F, 0x006C, 0x0069, 0x0073, 0x0074, 0x0020, 0x7D22, 0x5F15, 0x5FC5, 0x987B, 0x662F, 0x0020, 0x0069, 0x006E, 0x0074)
@@ -308,6 +312,10 @@ $requiredArtifactSubstrings = @{
     "sem_duplicate.err.txt" = $diagDuplicateDecl
     "sem_global_func_value_conflict.err.txt" = $diagDuplicateDecl
     "sem_param_default_type.err.txt" = $diagParamDefaultTypeMismatch
+    "sem_param_modes_invalid.err.txt" = $diagParamModeDefault
+    "sem_out_read_before_write.err.txt" = $diagOutReadBeforeWrite
+    "sem_out_missing_branch.err.txt" = $diagOutMissingWrite
+    "sem_out_capture.err.txt" = $diagOutCapture
     "sem_return_type_mismatch.err.txt" = $diagReturnTypeMismatch
     "sem_type_convert_invalid.err.txt" = "target point, source int"
     "sem_self_assign.err.txt" = $diagSelfAssign
@@ -367,6 +375,7 @@ $maxArtifactLineCounts = @{
     "sem_var_to_concrete_implicit.err.txt" = 4
     "sem_class_property_vararg.err.txt" = 2
     "sem_container_literal_target_item_mismatch.err.txt" = 4
+    "sem_param_modes_invalid.err.txt" = 2
     "sem_async_return_channel.err.txt" = 1
     "sem_async_return_future.err.txt" = 1
     "sem_async_return_sync.err.txt" = 1
@@ -411,6 +420,7 @@ $allowedMultiLineArtifacts.Add("sem_multi_return_type_diagnostic.err.txt") | Out
 $allowedMultiLineArtifacts.Add("sem_var_to_concrete_implicit.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_class_property_vararg.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_container_literal_target_item_mismatch.err.txt") | Out-Null
+$allowedMultiLineArtifacts.Add("sem_param_modes_invalid.err.txt") | Out-Null
 
 function Add-Failure($message)
 {
@@ -571,6 +581,8 @@ for ( $i = 0; $i -lt $lines.Count; ++$i ) {
         $assertedExpectedFailures += 1
     } else {
         $unassertedExpectedFailures += 1
+        Add-Failure ("expected-failure command lacks a diagnostic assertion at {0}:{1}: {2}" -f
+            $lineRecords[$i].Source, $lineRecords[$i].Line, $commandLine)
     }
 }
 

@@ -1,0 +1,37 @@
+class ExportHandleBase
+    int value
+
+    create(int value)
+        self.value = value
+    end
+
+    virtual func read() as int
+        return self.value
+    end
+end
+
+class ExportHandleDerived extends ExportHandleBase
+    create(int value)
+        base(value)
+    end
+
+    override func read() as int
+        return self.value + 1
+    end
+end
+
+export "xl6_class_make" func makeHandle(int value) as ExportHandleBase
+    return ExportHandleDerived(value)
+end
+
+export "xl6_class_read" func readHandle(ExportHandleBase value) as int
+    return value.read()
+end
+
+export "xl6_mode_increment" func increment(byref int value)
+    value += 1
+end
+
+export "xl6_mode_make" func makeOut(out ExportHandleBase value)
+    value = ExportHandleDerived(9)
+end

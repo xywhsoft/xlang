@@ -59,6 +59,16 @@ static void xl6CgenHeaderUnionTypeTextName(char* buffer, size_t capacity, const 
     xl6CgenHeaderAppendEncodedText(buffer, capacity, name);
 }
 
+static void xl6CgenHeaderStructTypeTextName(char* buffer, size_t capacity, const char* name)
+{
+    if ( buffer == NULL || capacity == 0 ) {
+        return;
+    }
+    buffer[0] = '\0';
+    xl6CgenHeaderAppendText(buffer, capacity, "XL_Struct_");
+    xl6CgenHeaderAppendEncodedText(buffer, capacity, name);
+}
+
 static void xl6CgenHeaderClassTypeTextName(char* buffer, size_t capacity, const char* name)
 {
     if ( buffer == NULL || capacity == 0 ) {
@@ -136,6 +146,22 @@ static const XL6_AstNode* xl6CgenHeaderFindUnion(const XL6_AstNode* root, const 
     return NULL;
 }
 
+static const XL6_AstNode* xl6CgenHeaderFindStruct(const XL6_AstNode* root, const char* name)
+{
+    size_t i;
+
+    if ( root == NULL || name == NULL ) {
+        return NULL;
+    }
+    for ( i = 0; i < root->childCount; ++i ) {
+        const XL6_AstNode* node = root->children[i];
+        if ( node != NULL && node->kind == XL6_AST_STRUCT && xl6CgenHeaderTextEquals(node->text, name) ) {
+            return node;
+        }
+    }
+    return NULL;
+}
+
 static const XL6_AstNode* xl6CgenHeaderFindClass(const XL6_AstNode* root, const char* name)
 {
     size_t i;
@@ -181,6 +207,7 @@ static const XL6_AstNode* xl6CgenHeaderResolveAliasType(const XL6_AstNode* root,
 static const char* xl6CgenHeaderTypeName(const XL6_AstNode* root, const XL6_AstNode* typeNode)
 {
     static char unionTypeName[256];
+    static char structTypeName[256];
     static char classTypeName[256];
 
     typeNode = xl6CgenHeaderResolveAliasType(root, typeNode);
@@ -287,7 +314,7 @@ static const char* xl6CgenHeaderTypeName(const XL6_AstNode* root, const XL6_AstN
         return "void*";
     }
     if ( xl6CgenHeaderTextEquals(typeNode->text, "var") ||
-         xl6CgenHeaderTextEquals(typeNode->text, "ref") ||
+         xl6CgenHeaderTextEquals(typeNode->text, "__class_handle") ||
          xl6CgenHeaderTextEquals(typeNode->text, "array") || xl6CgenHeaderTextEquals(typeNode->text, "array<var>") ||
          xl6CgenHeaderTextEquals(typeNode->text, "list") || xl6CgenHeaderTextEquals(typeNode->text, "list<var>") ||
          xl6CgenHeaderTextEquals(typeNode->text, "set") || xl6CgenHeaderTextEquals(typeNode->text, "set<var>") ||
@@ -301,11 +328,27 @@ static const char* xl6CgenHeaderTypeName(const XL6_AstNode* root, const XL6_AstN
         xl6CgenHeaderUnionTypeTextName(unionTypeName, sizeof(unionTypeName), typeNode->text);
         return unionTypeName;
     }
+    if ( xl6CgenHeaderFindStruct(root, typeNode->text) != NULL ) {
+        xl6CgenHeaderStructTypeTextName(structTypeName, sizeof(structTypeName), typeNode->text);
+        return structTypeName;
+    }
     if ( xl6CgenHeaderFindClass(root, typeNode->text) != NULL ) {
         xl6CgenHeaderClassTypeTextName(classTypeName, sizeof(classTypeName), typeNode->text);
         return classTypeName;
     }
     return "void";
+}
+
+static void xl6CgenHeaderParamDecl(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* param)
+{
+    const XL6_AstNode* typeNode = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
+
+    xl6OutputPuts(xl6CgenHeaderTypeName(root, typeNode), out);
+    if ( param != NULL && (param->flags & (XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT)) != 0 ) {
+        xl6OutputPutc('*', out);
+    }
+    xl6OutputPutc(' ', out);
+    xl6CgenHeaderFputsCIdent(out, param != NULL ? param->text : NULL);
 }
 
 static void xl6CgenHeaderInlineUnionDecl(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node)
@@ -402,6 +445,9 @@ static void xl6CgenHeaderTypeDependencyDecl(
     }
 
     decl = xl6CgenHeaderFindUnion(root, typeNode->text);
+    if ( decl == NULL ) {
+        decl = xl6CgenHeaderFindStruct(root, typeNode->text);
+    }
     if ( decl != NULL ) {
         xl6CgenHeaderUnionDecl(
             out,
@@ -489,11 +535,20 @@ static void xl6CgenHeaderUnionDecl(
         }
     }
 
-    xl6CgenHeaderUnionTypeTextName(typeName, sizeof(typeName), node->text);
-    xl6OutputPrintf(out, "typedef union %s {\n", typeName);
+    if ( node->kind == XL6_AST_STRUCT ) {
+        xl6CgenHeaderStructTypeTextName(typeName, sizeof(typeName), node->text);
+        xl6OutputPrintf(out, "typedef struct %s {\n", typeName);
+    } else {
+        xl6CgenHeaderUnionTypeTextName(typeName, sizeof(typeName), node->text);
+        xl6OutputPrintf(out, "typedef union %s {\n", typeName);
+    }
     if ( body != NULL ) {
         for ( i = 0; i < body->childCount; ++i ) {
             const XL6_AstNode* field = body->children[i];
+            if ( field != NULL && field->kind == XL6_AST_UNION && node->kind == XL6_AST_STRUCT ) {
+                xl6CgenHeaderInlineUnionDecl(out, root, field);
+                continue;
+            }
             if ( field == NULL || field->kind != XL6_AST_FIELD || field->childCount == 0 ) {
                 continue;
             }
@@ -641,9 +696,7 @@ static void xl6CgenHeaderExportFuncProto(XL6_Output* out, const XL6_AstNode* roo
                 if ( wroteParam ) {
                     xl6OutputPuts(", ", out);
                 }
-                xl6OutputPuts(xl6CgenHeaderTypeName(root, param != NULL && param->childCount > 0 ? param->children[0] : NULL), out);
-                xl6OutputPutc(' ', out);
-                xl6CgenHeaderFputsCIdent(out, param != NULL ? param->text : NULL);
+                xl6CgenHeaderParamDecl(out, root, param);
                 wroteParam = 1;
             }
         }
@@ -695,9 +748,7 @@ static void xl6CgenHeaderClassExportFuncProto(XL6_Output* out, const XL6_AstNode
             if ( wroteParam ) {
                 xl6OutputPuts(", ", out);
             }
-            xl6OutputPuts(xl6CgenHeaderTypeName(root, param != NULL && param->childCount > 0 ? param->children[0] : NULL), out);
-            xl6OutputPutc(' ', out);
-            xl6CgenHeaderFputsCIdent(out, param != NULL ? param->text : NULL);
+            xl6CgenHeaderParamDecl(out, root, param);
             wroteParam = 1;
         }
     }
@@ -807,7 +858,7 @@ int xl6CgenEmitHeader(XL6_Output* out, XL6_AstNode* root, const char* guardName,
     }
     for ( i = 0; i < root->childCount; ++i ) {
         const XL6_AstNode* node = root->children[i];
-        if ( node != NULL && node->kind == XL6_AST_UNION ) {
+        if ( node != NULL && (node->kind == XL6_AST_STRUCT || node->kind == XL6_AST_UNION) ) {
             xl6CgenHeaderUnionDecl(
                 out,
                 root,

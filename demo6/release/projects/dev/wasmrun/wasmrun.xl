@@ -292,7 +292,7 @@ func parseExportSec(array<int> b, int start, int endPos) as bool
             modError("export sec: name truncated")
             return false
         end
-        // Build name via Buffer (BUG-HD2: string.formatInt "c" doesn't format as char)
+        // Build name via Buffer
         Buffer nameBuf = Buffer()
         int j = 0
         while j < nameLen do

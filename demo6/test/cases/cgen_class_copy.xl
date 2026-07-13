@@ -1,0 +1,18 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class RefCopyValue
+    int value
+
+    create(int input)
+        self.value = input
+    end
+end
+
+RefCopyValue source = RefCopyValue(21)
+RefCopyValue first = copy(source)
+RefCopyValue second = copy(source)
+
+source.value = 99
+expect(first.value, 21)
+expect(second.value, 21)
+assert first != second

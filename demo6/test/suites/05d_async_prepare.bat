@@ -53,9 +53,19 @@ if errorlevel 1 (
     echo cgen_async_param_ownership.c missing owned typed-array argument frame copy.
     exit /b 1
 )
-findstr /C:"__xl6_args->box = xl_class_AsyncParamBox______xl6__copy__value(box, 1);" build\test\cgen_async_param_ownership.c >nul
+findstr /C:"__xl6_args->box = xl6_xrt_retain(box);" build\test\cgen_async_param_ownership.c >nul
 if errorlevel 1 (
-    echo cgen_async_param_ownership.c missing owned class argument frame copy.
+    echo cgen_async_param_ownership.c missing owned class-handle argument frame retain.
+    exit /b 1
+)
+findstr /C:"xvalue box = __xl6_args->box;" build\test\cgen_async_param_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_async_param_ownership.c missing worker class-handle ownership transfer.
+    exit /b 1
+)
+findstr /C:"xl_class_____class__handle__AsyncParamBox__destroy" build\test\cgen_async_param_ownership.c >nul
+if not errorlevel 1 (
+    echo cgen_async_param_ownership.c emitted stale value-class cleanup for a class handle.
     exit /b 1
 )
 findstr /C:"__xl6_typed_param_owned_values = 1;" build\test\cgen_async_param_ownership.c >nul

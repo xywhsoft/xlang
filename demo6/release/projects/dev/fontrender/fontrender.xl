@@ -1,4 +1,4 @@
-﻿// fontrender - 位图字体渲染器（5x7 Bitmap Font -> ASCII Art）
+// fontrender - 位图字体渲染器（5x7 Bitmap Font -> ASCII Art）
 //
 // 完整的命令行 ASCII Art 文本渲染工具，验证 xlang 的：
 //   * var 大型字库的构建与查找
@@ -36,7 +36,7 @@
 //   key   = 单个字符（大写）
 //   value = array<string>，7 个字符串，每个 5 字符（# 或空格）
 //
-// 全局只初始化一次，全程只读，规避「typed 容器作函数形参被值拷贝（BUG-XL1）」。
+// 全局只初始化一次，全程只读，规避「typed 容器作函数形参被值拷贝」。
 // ========================================================================
 var gFont = {}
 
@@ -522,7 +522,7 @@ end
 // 参数解析辅助
 // ========================================================================
 
-// 安全整数解析（避免 int("abc") 静默返回 0，BUG-M1）。
+// 安全整数解析。
 func parseArgInt(string s, int defValue) as int
     s = string.trim(s)
     if string.len(s) == 0 then

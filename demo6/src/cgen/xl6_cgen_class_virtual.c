@@ -585,14 +585,30 @@ static int xl6CgenVirtualEmitReceiverObject(
     if ( receiver == NULL || fromClass == NULL || targetClass == NULL ) {
         return 0;
     }
+    if ( receiver->kind == XL6_AST_NAME && xl6CTextEquals(receiver->text, "self") &&
+         ctx->currentClass != NULL ) {
+        basePath[0] = '\0';
+        if ( !xl6CgenClassBasePath(ctx, fromClass, targetClass, basePath, sizeof(basePath)) ) {
+            return 0;
+        }
+        if ( basePath[0] == '\0' ) {
+            xl6OutputPuts("(*self)", ctx->out);
+        } else {
+            xl6OutputPuts("self->base", ctx->out);
+            if ( strlen(basePath) > 5 ) {
+                xl6OutputPuts(basePath + 5, ctx->out);
+            }
+        }
+        return 1;
+    }
     {
         XL6_AstNode* receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-        const XL6_AstNode* refTarget = xl6CgenRefTargetType(ctx, receiverType);
+        const XL6_AstNode* refTarget = xl6CgenClassHandleTargetType(ctx, receiverType);
 
         if ( refTarget != NULL ) {
             char targetTypeName[512];
             xl6CgenClassTypeRefName(targetTypeName, sizeof(targetTypeName), targetClass);
-            xl6OutputPrintf(ctx->out, "(*((%s*)xl6_ref_data(", targetTypeName);
+            xl6OutputPrintf(ctx->out, "(*((%s*)xl6_class_data(", targetTypeName);
             xl6CgenExpr(ctx, receiver);
             xl6OutputPrintf(ctx->out, ", \"\", %d, %d)))", receiver->line, receiver->column);
             xl6AstFree(receiverType);
@@ -603,17 +619,6 @@ static int xl6CgenVirtualEmitReceiverObject(
     basePath[0] = '\0';
     if ( !xl6CgenClassBasePath(ctx, fromClass, targetClass, basePath, sizeof(basePath)) ) {
         return 0;
-    }
-    if ( receiver->kind == XL6_AST_NAME && xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
-        if ( basePath[0] == '\0' ) {
-            xl6OutputPuts("(*self)", ctx->out);
-        } else {
-            xl6OutputPuts("self->base", ctx->out);
-            if ( strlen(basePath) > 5 ) {
-                xl6OutputPuts(basePath + 5, ctx->out);
-            }
-        }
-        return 1;
     }
     if ( receiver->kind == XL6_AST_NAME ) {
         xl6CgenNamedValueReference(ctx, receiver->text);
@@ -634,14 +639,30 @@ static int xl6CgenVirtualEmitReceiverPointer(
     if ( receiver == NULL || fromClass == NULL || targetClass == NULL ) {
         return 0;
     }
+    if ( receiver->kind == XL6_AST_NAME && xl6CTextEquals(receiver->text, "self") &&
+         ctx->currentClass != NULL ) {
+        basePath[0] = '\0';
+        if ( !xl6CgenClassBasePath(ctx, fromClass, targetClass, basePath, sizeof(basePath)) ) {
+            return 0;
+        }
+        if ( basePath[0] == '\0' ) {
+            xl6OutputPuts("self", ctx->out);
+        } else {
+            xl6OutputPuts("&self->base", ctx->out);
+            if ( strlen(basePath) > 5 ) {
+                xl6OutputPuts(basePath + 5, ctx->out);
+            }
+        }
+        return 1;
+    }
     {
         XL6_AstNode* receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-        const XL6_AstNode* refTarget = xl6CgenRefTargetType(ctx, receiverType);
+        const XL6_AstNode* refTarget = xl6CgenClassHandleTargetType(ctx, receiverType);
 
         if ( refTarget != NULL ) {
             char targetTypeName[512];
             xl6CgenClassTypeRefName(targetTypeName, sizeof(targetTypeName), targetClass);
-            xl6OutputPrintf(ctx->out, "((%s*)xl6_ref_data(", targetTypeName);
+            xl6OutputPrintf(ctx->out, "((%s*)xl6_class_data(", targetTypeName);
             xl6CgenExpr(ctx, receiver);
             xl6OutputPrintf(ctx->out, ", \"\", %d, %d))", receiver->line, receiver->column);
             xl6AstFree(receiverType);
@@ -652,17 +673,6 @@ static int xl6CgenVirtualEmitReceiverPointer(
     basePath[0] = '\0';
     if ( !xl6CgenClassBasePath(ctx, fromClass, targetClass, basePath, sizeof(basePath)) ) {
         return 0;
-    }
-    if ( receiver->kind == XL6_AST_NAME && xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
-        if ( basePath[0] == '\0' ) {
-            xl6OutputPuts("self", ctx->out);
-        } else {
-            xl6OutputPuts("&self->base", ctx->out);
-            if ( strlen(basePath) > 5 ) {
-                xl6OutputPuts(basePath + 5, ctx->out);
-            }
-        }
-        return 1;
     }
     if ( receiver->kind == XL6_AST_NAME ) {
         xl6OutputPutc('&', ctx->out);

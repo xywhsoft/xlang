@@ -9,16 +9,16 @@
 //   - 阶 m=4：internal 最多 4 子（3 键），leaf 最多 3 键。
 //     leaf 下限 = 2 键，internal 下限 = 1 键（2 子）；root 可更少。
 //   - 节点用单一 BPlusTreeNode class（leaf 标志区分 leaf/internal）——组合而非继承，
-//     规避 BUG-RT1/RT2/RT3（typed Base 字段/array<Base>/返回带 virtual 的 class 致 vtable 切片/崩溃）。
+//     规避 BUG-RT1/RT2（typed Base 字段/array<Base> 致 vtable 切片/崩溃）。
 //   - 节点池：BPlusTree.nodes 为 var 数组（index = node id）；节点按 id 引用。
 //     var 数组承载 class 实例 + as 还原是 README 记录的已验证能力。
 //   - 值语义：getNode 取出的是副本，修改后用 setNode 写回（探针已确认 write-back 持久）。
-//   - 递归用 var 数组承载 split 结果（[upKey, newRightId]），避免 var dict 在递归中触发 BUG-LP1。
+//   - 递归用 var 数组承载 split 结果（[upKey, newRightId]），避免 var dict 在递归中触发。
 //   - class 继承：BPlusTree extends IndexEngine（virtual engineKind + base() + describe），
-//     始终以具体 BPlusTree 实例调用，不从函数返回带 virtual 的实例（BUG-RT3）。
-//   - 序列化：手动遍历节点池构造 var 结构 + json.stringify（compact 保序，规避 BUG-K1 pretty 重排）；
+//     始终以具体 BPlusTree 实例调用，不从函数返回带 virtual 的实例。
+//   - 序列化：手动遍历节点池构造 var 结构 + json.stringify；
 //     另演示 BPlusTreeNode 的 derive json 单节点往返。
-//   - 复合赋值 += 仅用于标量；不派发 class 协议（BUG-V1），运算符协议本工具不涉及。
+//   - 复合赋值 += 仅用于标量；不派发 class 协议，运算符协议本工具不涉及。
 
 const int ORDER = 4       // 最大子节点数
 const int MAX_KEYS = 3    // ORDER - 1
@@ -27,7 +27,7 @@ const int MIN_INTERNAL = 1 // ORDER/2 - 1（internal 下限）
 
 
 // ============================================================================
-// 只读顶层辅助函数（避免 BUG-C1：class 方法不宜接收 array<int> 形参）
+// 只读顶层辅助函数
 // ============================================================================
 
 // 在有序 array<int> 中找 key 的下标，找不到返回 -1。

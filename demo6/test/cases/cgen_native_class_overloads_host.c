@@ -6,12 +6,27 @@ typedef struct NativeScore {
 } NativeScore;
 
 static long long gClosed = 0;
+static int gExitCheckRegistered = 0;
+
+static void score_verify_exit(void)
+{
+    if ( gClosed != 1 ) {
+        abort();
+    }
+}
 
 void* score_open(long long seed)
 {
     NativeScore* p = (NativeScore*)malloc(sizeof(NativeScore));
     if ( p == 0 ) {
         exit(2);
+    }
+    if ( !gExitCheckRegistered ) {
+        if ( atexit(score_verify_exit) != 0 ) {
+            free(p);
+            exit(3);
+        }
+        gExitCheckRegistered = 1;
     }
     p->value = seed;
     return p;

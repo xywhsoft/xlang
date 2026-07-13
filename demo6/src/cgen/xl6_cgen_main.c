@@ -451,7 +451,11 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), tempName);
             if ( initByCopy ) {
-                xl6CgenTypedContainerCopyExprMode(ctx, typeNode, initExpr, "XRT_OBJMODE_SHARED");
+                if ( xl6CgenTypedContainerExprIsSharedStorage(ctx, initExpr) ) {
+                    xl6CgenTypedContainerRetainExpr(ctx, typeNode, initExpr);
+                } else {
+                    xl6CgenTypedContainerCopyExprMode(ctx, typeNode, initExpr, "XRT_OBJMODE_SHARED");
+                }
             } else if ( initByMove ) {
                 if ( memberFunctionType != NULL ) {
                     xl6CgenMemberFunctionStatementInvokeExpr(ctx, initExpr, memberFunctionType, memberTempName);
@@ -563,7 +567,7 @@ static int xl6CgenEmitModuleGlobalClassArgTempInit(
     int exprTempCapacity;
 
     if ( ctx == NULL || node == NULL || typeNode == NULL || initExpr == NULL || cName == NULL ||
-         xl6CgenIsFunctionType(typeNode) ) {
+         xl6CgenIsFunctionType(typeNode) || xl6CgenIsTypedContainerType(ctx, typeNode) ) {
         return 0;
     }
 
@@ -588,15 +592,23 @@ static int xl6CgenEmitModuleGlobalClassArgTempInit(
     xl6CgenDeclEmitClassArgTemps(ctx, exprTemps, exprTempCount, 0);
     ctx->exprReplacements = exprReplacements;
     ctx->exprReplacementCount = (size_t)exprTempCount;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts(cName, ctx->out);
-    xl6OutputPuts(" = ", ctx->out);
-    if ( xl6CgenIsXValueType(typeNode) ) {
-        xl6CgenXValueFromExprForTarget(ctx, typeNode, initExpr);
+    if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
+        if ( !xl6CgenTryClassCtorBoxXValueStmt(ctx, typeNode, initExpr, cName) ) {
+            xl6CgenError(ctx, initExpr, "module global class constructor boxing failed");
+        }
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_move_to_shared(%s);\n", cName, cName);
     } else {
-        xl6CgenExpr(ctx, initExpr);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts(cName, ctx->out);
+        xl6OutputPuts(" = ", ctx->out);
+        if ( xl6CgenIsXValueType(typeNode) ) {
+            xl6CgenXValueFromExprForTarget(ctx, typeNode, initExpr);
+        } else {
+            xl6CgenExpr(ctx, initExpr);
+        }
+        xl6OutputPuts(";\n", ctx->out);
     }
-    xl6OutputPuts(";\n", ctx->out);
     ctx->exprReplacements = prevExprReplacements;
     ctx->exprReplacementCount = prevExprReplacementCount;
     xl6CgenDeclDestroyClassArgTemps(ctx, exprTemps, exprTempCount);
@@ -871,11 +883,20 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
     if ( initExpr == NULL && !xl6CgenModuleGlobalNeedsDefaultInit(ctx, node, typeNode) ) {
         return;
     }
+    if ( initExpr != NULL &&
+         xl6CgenEmitModuleGlobalClassArgTempInit(ctx, node, typeNode, initExpr, cName) ) {
+        return;
+    }
     if ( initExpr != NULL && xl6CgenEmitModuleGlobalLoweredInit(ctx, node, typeNode, initExpr) ) {
         return;
     }
-    if ( initExpr != NULL &&
-         xl6CgenEmitModuleGlobalClassArgTempInit(ctx, node, typeNode, initExpr, cName) ) {
+    if ( initExpr == NULL && xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
+        if ( !xl6CgenDefaultClassHandleXValueStmt(ctx, typeNode, cName, node) ) {
+            xl6CgenError(ctx, node, "module global default class construction lowering failed");
+            return;
+        }
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_move_to_shared(%s);\n", cName, cName);
         return;
     }
     if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {

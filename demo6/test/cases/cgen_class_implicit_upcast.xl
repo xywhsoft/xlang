@@ -1,0 +1,41 @@
+class UpcastBase
+    virtual func value() as int
+        return 1
+    end
+end
+
+class UpcastDerived extends UpcastBase
+    int extra = 2
+
+    override func value() as int
+        return self.extra
+    end
+end
+
+class UpcastHolder
+    UpcastBase item
+end
+
+func takeBase(UpcastBase value) as int
+    return value.value()
+end
+
+func main(...) as int
+    UpcastDerived derived
+
+    UpcastBase direct = derived
+    assert direct.value() == 2
+    assert direct is UpcastDerived
+    assert takeBase(derived) == 2
+
+    array<UpcastBase> values = array[]
+    values.append(derived)
+    assert values[0].value() == 2
+    assert values[0] is UpcastDerived
+
+    UpcastHolder holder
+    holder.item = derived
+    assert holder.item.value() == 2
+    assert holder.item is UpcastDerived
+    return 0
+end

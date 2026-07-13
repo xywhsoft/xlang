@@ -923,12 +923,6 @@ end
 // 支持: c 注释行, p cnf 头, 跨行子句 (以 0 结束).
 func parseDimacs(string content)
     array lines = string.splitLines(content)
-    // BUG-S1 绕过: splitLines 末尾换行产生空串, 用 pop 弃掉末元素.
-    if lines.length > 0 then
-        if lines[lines.length - 1] == "" then
-            lines.pop()
-        end
-    end
     array<int> cur = array[]
     int i = 0
     while i < lines.length do

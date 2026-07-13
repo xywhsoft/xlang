@@ -1030,7 +1030,7 @@ func evalExpr(var row, var e, var aggCache) as var
     if k == "star" or k == "qstar" then
         return null
     end
-    throw "cannot evaluate expression node: " + string(k)
+    throw "cannot evaluate expression node: " + k
 end
 
 
@@ -1323,7 +1323,7 @@ func expandStar(var srcTables) as array
             for cdef in t["columns"]
                 string nm = string(cdef["name"])
                 if qualify then
-                    cols.append({"name":string(tn) + "." + nm, "expr":{"k":"col", "table":tn, "name":nm}})
+                    cols.append({"name":tn + "." + nm, "expr":{"k":"col", "table":tn, "name":nm}})
                 else
                     cols.append({"name":nm, "expr":{"k":"col", "name":nm}})
                 end
@@ -1343,7 +1343,7 @@ func expandTableStar(var tableName) as array
     end
     for cdef in t["columns"]
         string nm = string(cdef["name"])
-        cols.append({"name":string(tableName) + "." + nm, "expr":{"k":"col", "table":tableName, "name":nm}})
+        cols.append({"name":tableName + "." + nm, "expr":{"k":"col", "table":tableName, "name":nm}})
     end
     return cols
 end
@@ -1430,7 +1430,7 @@ func execSelect(var ast) as var
         end
         var jtab = gTables[j["table"]]
         if jtab == null then
-            throw "no such table: " + string(j["table"])
+            throw "no such table: " + j["table"]
         end
         srcTables.append(j["table"])
         var onExpr = j["on"]
@@ -1849,11 +1849,6 @@ func runScriptFile(string path) as int
     end
     string text = file.readText(path)
     array lines = string.splitLines(text)
-    if lines.length > 0 then
-        if string(lines[lines.length - 1]) == "" then
-            lines.remove(lines.length - 1)
-        end
-    end
     string joined = ""
     for line in lines
         string trimmed = string.trim(string(line))

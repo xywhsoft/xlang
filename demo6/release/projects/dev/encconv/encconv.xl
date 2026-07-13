@@ -322,7 +322,6 @@ end
 // 用例 13: detectBytes / isUtf8Bytes 对合法 UTF-8 字节流的识别
 //   （与用例 5 的「非法字节 -> oem」互补：合法 UTF-8 字节应被识别为 utf8）
 //   注：toBytes(charset + encoding.bom) 存在返回空缓冲的 BUG（见 BUGS.md
-//   BUG-E1），故本用例只测无 BOM 的合法字节流。
 func testDetectValidUtf8Bytes() as bool
     string text = "你好"
     Buffer utf8 = encoding.toBytes(text, encoding.utf8)

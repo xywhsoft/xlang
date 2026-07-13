@@ -40,14 +40,21 @@ static int xl6CgenGenericClassMemberHasSignatureTypes(const XL6_AstNode* member)
 static void xl6CgenGenericClassTypeDeclDependency(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     XL6_AstNode* depType;
+    const XL6_AstNode* depTarget;
+    XL6_AstNode* depClass;
 
     if ( ctx == NULL || typeNode == NULL ) {
         return;
     }
     depType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
-    if ( depType != NULL && depType->kind == XL6_AST_TYPE && depType->childCount > 0 &&
-         xl6CgenIsClassType(ctx, depType) ) {
-        xl6CgenGenericClassDecl(ctx, depType);
+    depTarget = xl6CgenClassHandleTargetType(ctx, depType);
+    if ( depTarget == NULL ) {
+        depTarget = depType;
+    }
+    depClass = depTarget != NULL && depTarget->text != NULL ? xl6CgenFindClass(ctx, depTarget->text) : NULL;
+    if ( depTarget != NULL && depTarget->childCount > 0 && depClass != NULL &&
+         xl6CgenClassHasTypeParams(depClass) ) {
+        xl6CgenGenericClassDecl(ctx, depTarget);
     } else {
         xl6CgenTypeDeclDependency(ctx, depType != NULL ? depType : typeNode);
     }
@@ -666,13 +673,21 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
             xl6OutputPuts(fieldPath, ctx->out);
             xl6OutputPuts(" = ", ctx->out);
             if ( initByCopy ) {
-                xl6CgenTypedContainerCopyExpr(ctx, fieldType, initExpr);
+                if ( xl6CgenTypedContainerExprIsSharedStorage(ctx, initExpr) ) {
+                    xl6CgenTypedContainerRetainExpr(ctx, fieldType, initExpr);
+                } else {
+                    xl6CgenTypedContainerCopyExprMode(ctx, fieldType, initExpr, "XRT_OBJMODE_SHARED");
+                }
             } else if ( initByMove ) {
-                xl6CgenExpr(ctx, initExpr);
+                xl6CgenTypedContainerMoveToSharedExpr(ctx, fieldType, initExpr);
             } else if ( initByImport ) {
-                xl6CgenTypedContainerImportDynamicExpr(ctx, fieldType, initExpr);
+                xl6CgenTypedContainerImportDynamicExprMode(
+                    ctx,
+                    fieldType,
+                    initExpr,
+                    "XRT_OBJMODE_SHARED");
             } else {
-                xl6CgenTypedContainerCreateExpr(ctx, fieldType);
+                xl6CgenTypedContainerCreateExprMode(ctx, fieldType, "XRT_OBJMODE_SHARED");
             }
             xl6OutputPuts(";\n", ctx->out);
             if ( initByImport ) {
@@ -680,6 +695,14 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
             }
             if ( !initByCopy && !initByMove && !initByImport ) {
                 xl6CgenTypedContainerFillFromLiteral(ctx, fieldPath, fieldType, initExpr);
+            }
+            continue;
+        }
+        if ( xl6CgenClassHandleTargetType(ctx, fieldType) != NULL ) {
+            if ( initExpr != NULL ) {
+                xl6CgenXValueAssignStmt(ctx, fieldType, fieldPath, initExpr);
+            } else if ( !xl6CgenDefaultClassHandleXValueStmt(ctx, fieldType, fieldPath, member) ) {
+                xl6CgenError(ctx, member, "class field default construction failed");
             }
             continue;
         }
@@ -777,17 +800,10 @@ static void xl6CgenClassPublishSharedFields(
             continue;
         }
         if ( xl6CgenIsTypedContainerType(ctx, fieldType) ) {
-            char tempName[64];
-
-            snprintf(tempName, sizeof(tempName), "__xl6_class_shared_%d", ctx->tempId++);
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, fieldType), tempName);
-            xl6CgenTypedContainerCopyCExprMode(ctx, fieldType, fieldPath, "XRT_OBJMODE_SHARED");
+            xl6OutputPrintf(ctx->out, "%s = ", fieldPath);
+            xl6CgenTypedContainerMoveToSharedCExpr(ctx, fieldType, fieldPath);
             xl6OutputPuts(";\n", ctx->out);
-            xl6CgenIndent(ctx);
-            xl6CgenTypedContainerDestroyValue(ctx, fieldType, fieldPath);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = %s;\n", fieldPath, tempName);
             continue;
         }
         fieldClass = xl6CgenClassNodeForType(ctx, fieldType);

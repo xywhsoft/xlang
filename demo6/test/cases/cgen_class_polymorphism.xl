@@ -1,0 +1,70 @@
+class RefBase
+    int tag = 3
+
+    virtual func value() as int
+        return 1
+    end
+
+    get doubled() as int
+        return self.value() * 2
+    end
+
+    get tagValue() as int
+        return self.tag
+    end
+
+    let tagValue(int value)
+        self.tag = value
+    end
+end
+
+class RefDerived extends RefBase
+    int extra
+
+    create(int value)
+        self.extra = value
+    end
+
+    override func value() as int
+        return self.extra
+    end
+end
+
+func readBase(RefBase value) as int
+    return value.value()
+end
+
+func makeBaseRef(int value) as RefBase
+    return RefDerived(value)
+end
+
+func widenRef(RefDerived value) as RefBase
+    return value
+end
+
+RefDerived derived = RefDerived(42)
+RefBase base = derived
+
+assert base.value() == 42
+assert readBase(derived) == 42
+assert base.doubled == 84
+assert base.tag == 3
+base.tag = 9
+assert base.tagValue == 9
+base.tagValue = 11
+assert base.tag == 11
+assert base is RefDerived
+
+RefDerived downcast = base as RefDerived
+assert downcast.value() == 42
+
+array<RefBase> values = array[]
+values.append(derived)
+assert values[0].value() == 42
+values.append(RefDerived(7))
+assert values[1].value() == 7
+
+RefBase made = makeBaseRef(64)
+assert made.value() == 64
+RefBase widened = widenRef(derived)
+assert widened.value() == 42

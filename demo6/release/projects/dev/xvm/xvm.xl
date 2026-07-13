@@ -30,10 +30,10 @@
 // Design notes / BUG workarounds:
 //   * No stdin API -> READ instruction returns 0 (reads from an optional
 //     input queue that can only be filled programmatically).
-//   * Class methods cannot safely receive array<int> params (BUG-C1) ->
+//   * Class methods cannot safely receive array<int> params ->
 //     the VM loads bytecode in its constructor via a local copy loop;
 //     execution only touches self.* fields (indexed read/write works fine).
-//   * `return self.field.length` rejected (BUG-C2) -> cache into int local.
+//   * `return self.field.length` rejected -> cache into int local.
 //   * `#` is not a comment -> use `//` in xlang source and `;` in asm source.
 
 
@@ -233,13 +233,6 @@ func assemble(string src) as array<int>
 
     var rawLines = string.splitLines(src)
     int numLines = rawLines.length
-    // BUG-S1: splitLines may append a trailing empty string.
-    if numLines > 0 then
-        string lastRaw = string(rawLines[numLines - 1])
-        if string.len(string.trim(lastRaw)) == 0 then
-            numLines = numLines - 1
-        end
-    end
 
     // Pass 1: parse lines into instruction list + collect label addresses.
     array<string> instrMnem = array[]

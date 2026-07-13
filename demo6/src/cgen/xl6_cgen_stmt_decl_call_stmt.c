@@ -271,10 +271,10 @@ static int xl6CgenTryKnownCallStatementWithClassArgTemps(XL6_CgenContext* ctx, c
             continue;
         }
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, temps[i].valueType), temps[i].valueName);
+        xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", temps[i].valueName);
         if ( temps[i].isConstructor ) {
-            if ( !xl6CgenEmitClassCtorInto(ctx, argExpr, temps[i].valueName) ) {
-                xl6CgenError(ctx, argExpr, "class argument constructor lowering failed");
+            if ( !xl6CgenTryClassCtorBoxXValueStmt(ctx, temps[i].valueType, argExpr, temps[i].valueName) ) {
+                xl6CgenError(ctx, argExpr, "class argument constructor boxing failed");
             }
         } else if ( temps[i].isUpcast ) {
             if ( !xl6CgenClassUpcastStmt(ctx, temps[i].valueType, argExpr, temps[i].valueName) ) {

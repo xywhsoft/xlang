@@ -7,7 +7,7 @@
 //   * 多返回值 + 解构（loss/grad、optimizer compute、forward/backward）
 //   * 数值计算密集（矩阵乘、激活、梯度检查、XOR 训练）
 //
-// 多态存储说明（重要，BUG-RT1/RT2/RT3 绕过）：
+// 多态存储说明（重要，BUG-RT1/RT2 绕过）：
 //   xlang 对多态 class 实例的存储有以下边界（参考 raytrace/btree 等 dev 项目）：
 //     (RT1) typed array<Layer> 在 append(Derived) 时会丢派生实例 -> 改用 array<var>
 //     (RT2) typed Base 字段 + derive value 会把派生类切片到基类 -> 用 var 槽位
@@ -100,7 +100,7 @@ end
 // ========================================================================
 // Tensor：2D 矩阵（row-major 一维 array<float> 存储）
 //   提供 matMul/add/sub/transpose/relu/sigmoid 及其导数。
-//   Tensor 无 virtual 方法，可安全按值传递与从函数返回（BUG-RT3 不适用）。
+//   Tensor 无 virtual 方法，可安全按值传递与从函数返回。
 // ========================================================================
 class Tensor
     int rows = 0
@@ -317,7 +317,7 @@ end
 //   forward/backward/update 均为 virtual，子类 override。
 //   层实例只由调用方直接 new（Dense(2,4) / ReLU() / Sigmoid()），存入
 //   Sequential 的 array<var>，再 as Layer 还原后通过 self 调用 virtual 方法。
-//   不从函数返回带 virtual 的 Layer 实例（BUG-RT3）。
+//   不从函数返回带 virtual 的 Layer 实例。
 // ========================================================================
 class Layer
     string kind = "layer"
@@ -596,7 +596,7 @@ end
 // ========================================================================
 // Sequential：线性堆叠的层容器
 //   layers 用 array<var> 存储（BUG-RT1 绕过），取用时 as Layer 还原 +
-//   通过 self 调用 virtual 方法（BUG-RT3 绕过）。
+//   通过 self 调用 virtual 方法。
 // ========================================================================
 class Sequential
     array<var> layers = array[]

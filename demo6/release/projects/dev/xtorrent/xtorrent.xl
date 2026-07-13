@@ -14,14 +14,13 @@
 // design notes (informed by dev/README.md + sibling projects btree/chip8):
 //   * bencode AST uses a single BNode class with typed scalar fields + var
 //     arrays (.items/.keys). this mirrors btree's node design and avoids
-//     BUG-LP1 (var dict created inside the recursive decoder).
 //   * the decoder is a recursive-descent parser that threads the source
 //     Buffer through every call and keeps mutable position in a single
 //     file-scope int (g_pos), so no var container is allocated across the
-//     recursion (which would trip BUG-LP1).
+//     recursion.
 //   * logic lives in free functions (per spec). free functions freely take
 //     Buffer / array<int> / BNode parameters - class methods cannot
-//     (BUG-C1 / chip8 note), so no class methods do real work here.
+//     , so no class methods do real work here.
 //   * SHA-1 verification uses crypto.sha1 (hashes the UTF-8 bytes of a
 //     string). simulated piece content is printable ASCII, so every digest
 //     is exact and end-to-end verification is real.
@@ -1518,7 +1517,7 @@ func simulateDownload(var torrent, string outputDir, int peerCount) as var
     println("  piece length: " + humanSize(float(pieceLength)))
     println("  pieces      : " + string(pieceCount) + " (" + string(totalBlocks) + " blocks)")
     println("  peers       : " + string(peers.length))
-    println("  info_hash   : " + string(torrent["infoHash"]))
+    println("  info_hash   : " + torrent["infoHash"])
     println("  our peer id : " + makePeerId("DOWN"))
     println("")
 
@@ -1672,9 +1671,9 @@ func cmdParse(array argv) as int
 end
 
 func printTorrentInfo(var torrent, bool verbose) as int
-    println("name         : " + string(torrent["name"]))
+    println("name         : " + torrent["name"])
     if string.len(string(torrent["announce"])) > 0 then
-        println("announce     : " + string(torrent["announce"]))
+        println("announce     : " + torrent["announce"])
     end
     var al = torrent["announceList"]
     if al.length > 0 then
@@ -1682,16 +1681,16 @@ func printTorrentInfo(var torrent, bool verbose) as int
         if verbose then
             int i = 0
             while i < al.length do
-                println("               " + string(al[i]))
+                println("               " + al[i])
                 i += 1
             end
         end
     end
     if string.len(string(torrent["comment"])) > 0 then
-        println("comment      : " + string(torrent["comment"]))
+        println("comment      : " + torrent["comment"])
     end
     if string.len(string(torrent["createdBy"])) > 0 then
-        println("created by   : " + string(torrent["createdBy"]))
+        println("created by   : " + torrent["createdBy"])
     end
     int cd = int(torrent["creationDate"])
     if cd > 0 then
@@ -1699,12 +1698,12 @@ func printTorrentInfo(var torrent, bool verbose) as int
         println("creation date: " + time.format(t) + " (" + string(cd) + ")")
     end
     if string.len(string(torrent["infoHash"])) > 0 then
-        println("info_hash    : " + string(torrent["infoHash"]))
+        println("info_hash    : " + torrent["infoHash"])
     end
     int total = int(torrent["totalLength"])
     println("total size   : " + humanSize(float(total)) + " (" + string(total) + " bytes)")
-    println("piece length : " + humanSize(float(int(torrent["pieceLength"]))) + " (" + string(torrent["pieceLength"]) + " bytes)")
-    println("piece count  : " + string(torrent["pieceCount"]))
+    println("piece length : " + humanSize(float(int(torrent["pieceLength"]))) + " (" + torrent["pieceLength"] + " bytes)")
+    println("piece count  : " + torrent["pieceCount"])
     if int(torrent["private"]) == 1 then
         println("private      : yes")
     else
@@ -1716,7 +1715,7 @@ func printTorrentInfo(var torrent, bool verbose) as int
     int i = 0
     while i < files.length do
         var f = files[i]
-        println("               " + string(f["pathText"]) + "  (" + humanSize(float(int(f["length"]))) + ")")
+        println("               " + f["pathText"] + "  (" + humanSize(float(int(f["length"]))) + ")")
         i += 1
     end
 
@@ -1729,7 +1728,7 @@ func printTorrentInfo(var torrent, bool verbose) as int
         int j = 0
         while j < show do
             var p = table[j]
-            println("  #" + string.format(int(p["index"]), "04") + "  " + string(p["hash"]))
+            println("  #" + string.format(int(p["index"]), "04") + "  " + p["hash"]))
             j += 1
         end
     end
@@ -1772,12 +1771,12 @@ func printDownloadResult(var torrent, var result) as int
     else
         println("download finished with errors")
     end
-    println("  pieces verified : " + string(result["verified"]) + "/" + string(result["pieces"]))
+    println("  pieces verified : " + result["verified"] + "/" + result["pieces"])
     println("  downloaded (sim): " + humanSize(float(int(result["downloaded"]))))
     println("  uploaded   (sim): " + humanSize(float(int(result["uploaded"]))))
     println("  elapsed         : " + formatDuration(float(result["elapsed"])) + " (" + string.formatFloat(float(result["elapsed"]), ".3") + "s)")
     println("  avg rate        : " + humanSize(float(result["avgDownRate"])) + "/s")
-    println("  rounds          : " + string(result["rounds"]))
+    println("  rounds          : " + result["rounds"])
     var written = result["written"]
     println("  output files    : " + string(written.length))
     int i = 0
@@ -1785,7 +1784,7 @@ func printDownloadResult(var torrent, var result) as int
         var w = written[i]
         string okText = "ok"
         if not bool(w["ok"]) then okText = "FAILED" end
-        println("     " + string(w["path"]) + "  (" + humanSize(float(int(w["length"]))) + ") [" + okText + "]")
+        println("     " + w["path"] + "  (" + humanSize(float(int(w["length"]))) + ") [" + okText + "]")
         i += 1
     end
 
@@ -1795,7 +1794,7 @@ func printDownloadResult(var torrent, var result) as int
         var firstEntry = written[0]
         string firstPath = string(firstEntry["path"])
         var vf = verifyAssembledFile(firstPath, pieceLength, working)
-        println("  re-verify on disk: " + string(vf["verified"]) + "/" + string(vf["total"]) + " pieces matched")
+        println("  re-verify on disk: " + vf["verified"] + "/" + vf["total"] + " pieces matched")
     end
     println("")
     if bool(result["ok"]) then return 0 end
@@ -1825,21 +1824,21 @@ func testBencodeRoundTrip() as int
     fails += assertOk("str a:b", bnodeEqual(bdecode(bufferFromText("3:a:b")), bStrText("a:b")))
 
     BNode lst = bList()
-    lst = bListPush(lst, bInt(1))
-    lst = bListPush(lst, bStrText("two"))
-    lst = bListPush(lst, bInt(3))
+    bListPush(lst, bInt(1))
+    bListPush(lst, bStrText("two"))
+    bListPush(lst, bInt(3))
     fails += assertOk("list mix", bnodeEqual(bdecode(bufferFromText("li1e3:twoi3ee")), lst))
 
     BNode d = bDict()
-    d = bDictPut(d, "a", bInt(1))
-    d = bDictPut(d, "b", bStrText("xx"))
+    bDictPut(d, "a", bInt(1))
+    bDictPut(d, "b", bStrText("xx"))
     fails += assertOk("dict", bnodeEqual(bdecode(bufferFromText("d1:ai1e1:b2:xxe")), d))
 
     BNode nested = bDict()
     BNode inner = bList()
-    inner = bListPush(inner, bInt(10))
-    inner = bListPush(inner, bStrText("hi"))
-    nested = bDictPut(nested, "k", inner)
+    bListPush(inner, bInt(10))
+    bListPush(inner, bStrText("hi"))
+    bDictPut(nested, "k", inner)
     fails += assertOk("nested", bnodeEqual(bdecode(bufferFromText("d1:kli10e2:hiee")), nested))
 
     Buffer enc1 = bencode(bInt(42))
@@ -2071,54 +2070,54 @@ func buildSampleTorrentNode(string name, int pieceLength, Buffer content, int to
     end
 
     BNode info = bDict()
-    info = bDictPut(info, "name", bStrText(name))
-    info = bDictPut(info, "piece length", bInt(pieceLength))
-    info = bDictPut(info, "pieces", bStrBytes(piecesBytes))
+    bDictPut(info, "name", bStrText(name))
+    bDictPut(info, "piece length", bInt(pieceLength))
+    bDictPut(info, "pieces", bStrBytes(piecesBytes))
     if files.length == 1 then
-        info = bDictPut(info, "length", bInt(totalLength))
+        bDictPut(info, "length", bInt(totalLength))
     else
         BNode flist = bList()
         int j = 0
         while j < files.length do
             var finfo = files[j]
             BNode fnode = bDict()
-            fnode = bDictPut(fnode, "length", bInt(int(finfo["length"])))
+            bDictPut(fnode, "length", bInt(int(finfo["length"])))
             BNode pathList = bList()
             var segsVar = finfo["path"]
             int sn = segsVar.length
             int k = 0
             while k < sn do
-                pathList = bListPush(pathList, bStrText(string(segsVar[k])))
+                bListPush(pathList, bStrText(string(segsVar[k])))
                 k += 1
             end
-            fnode = bDictPut(fnode, "path", pathList)
-            flist = bListPush(flist, fnode)
+            bDictPut(fnode, "path", pathList)
+            bListPush(flist, fnode)
             j += 1
         end
-        info = bDictPut(info, "files", flist)
+        bDictPut(info, "files", flist)
     end
 
     BNode root = bDict()
-    root = bDictPut(root, "announce", bStrText("udp://tracker.xlang.dev:1337"))
+    bDictPut(root, "announce", bStrText("udp://tracker.xlang.dev:1337"))
     BNode al = bList()
     BNode tier1 = bList()
-    tier1 = bListPush(tier1, bStrText("udp://tracker.xlang.dev:1337"))
-    tier1 = bListPush(tier1, bStrText("http://tracker.xlang.dev/announce"))
-    al = bListPush(al, tier1)
-    root = bDictPut(root, "announce-list", al)
-    root = bDictPut(root, "comment", bStrText("xlang sample torrent"))
-    root = bDictPut(root, "created by", bStrText("xtorrent/test"))
-    root = bDictPut(root, "creation date", bInt(int(time.toUnix(time.now()))))
-    root = bDictPut(root, "info", info)
+    bListPush(tier1, bStrText("udp://tracker.xlang.dev:1337"))
+    bListPush(tier1, bStrText("http://tracker.xlang.dev/announce"))
+    bListPush(al, tier1)
+    bDictPut(root, "announce-list", al)
+    bDictPut(root, "comment", bStrText("xlang sample torrent"))
+    bDictPut(root, "created by", bStrText("xtorrent/test"))
+    bDictPut(root, "creation date", bInt(int(time.toUnix(time.now()))))
+    bDictPut(root, "info", info)
     return root
 end
 
 func testTorrentStructuralParse() as int
     int fails = 0
     BNode node = bDict()
-    node = bDictPut(node, "a", bInt(1))
-    node = bDictPut(node, "b", bStrText("two"))
-    node = bDictPut(node, "c", bList())
+    bDictPut(node, "a", bInt(1))
+    bDictPut(node, "b", bStrText("two"))
+    bDictPut(node, "c", bList())
     Buffer enc = bencode(node)
     BNode back = bdecode(enc)
     fails += assertOk("parse dict ok", g_ok == 1)

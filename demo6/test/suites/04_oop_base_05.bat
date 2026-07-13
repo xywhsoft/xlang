@@ -26,12 +26,12 @@ if errorlevel 1 (
     echo cgen_generic_class.c missing string field substitution.
     exit /b 1
 )
-findstr /C:"XL_Class_Box__int intBox;" build\test\cgen_generic_class.c >nul
+findstr /C:"xvalue intBox;" build\test\cgen_generic_class.c >nul
 if errorlevel 1 (
     echo cgen_generic_class.c missing int variable declaration.
     exit /b 1
 )
-findstr /C:"XL_Class_Box__string stringBox;" build\test\cgen_generic_class.c >nul
+findstr /C:"xvalue stringBox;" build\test\cgen_generic_class.c >nul
 if errorlevel 1 (
     echo cgen_generic_class.c missing string variable declaration.
     exit /b 1
@@ -48,12 +48,12 @@ if errorlevel 1 (
     echo cgen_generic_class_fields.c missing int class instance.
     exit /b 1
 )
-findstr /C:"intBox.value = 123LL;" build\test\cgen_generic_class_fields.c >nul
+findstr /C:"(*((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_fields.c missing generic class field assignment.
     exit /b 1
 )
-findstr /C:"expect_i64(intBox.value, 123LL);" build\test\cgen_generic_class_fields.c >nul
+findstr /C:")).value, 123LL);" build\test\cgen_generic_class_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_fields.c missing generic class field read.
     exit /b 1
@@ -80,12 +80,12 @@ if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic class box helper.
     exit /b 1
 )
-findstr /C:"xl6_function_call_var(copied.op" build\test\cgen_generic_class_function_fields.c >nul
+findstr /C:"xl6_function_call_var((*((XL_Class_Mapper__int*)xl6_class_data(copied" build\test\cgen_generic_class_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic member function call lowering.
     exit /b 1
 )
-findstr /C:"xl6_function_call_var(item.op" build\test\cgen_generic_class_function_fields.c >nul
+findstr /C:"xl6_function_call_var((*((XL_Class_Mapper__int*)xl6_class_data(item" build\test\cgen_generic_class_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic iteration member function call lowering.
     exit /b 1
@@ -95,12 +95,12 @@ if not errorlevel 1 (
     echo cgen_generic_class_function_fields.c should not use GNU statement expressions for generic member function calls.
     exit /b 1
 )
-findstr /C:"fromArray.op.retain(fromArray.op.env);" build\test\cgen_generic_class_function_fields.c >nul
+findstr /C:"xl6_xrt_retain(*((xvalue*)xl6_xrt_typed_require_item" build\test\cgen_generic_class_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic typed index retain.
     exit /b 1
 )
-findstr /C:"item.op.retain(item.op.env);" build\test\cgen_generic_class_function_fields.c >nul
+findstr /C:"if (item != 0) { xvoAddRef(item); }" build\test\cgen_generic_class_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic typed iteration retain.
     exit /b 1
@@ -127,22 +127,22 @@ if errorlevel 1 (
     echo cgen_generic_class_nested_function_fields.c missing nested Mapper int instance.
     exit /b 1
 )
-findstr /C:"XL_Class_Mapper__int inner;" build\test\cgen_generic_class_nested_function_fields.c >nul
+findstr /C:"xvalue inner;" build\test\cgen_generic_class_nested_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_nested_function_fields.c missing substituted nested class field.
     exit /b 1
 )
-findstr /C:"xl_class_Mapper__int__destroy(&self->inner);" build\test\cgen_generic_class_nested_function_fields.c >nul
+findstr /C:"if (self->inner != 0) { xvoUnref(self->inner); self->inner = 0; }" build\test\cgen_generic_class_nested_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_nested_function_fields.c missing generic nested destroy call.
     exit /b 1
 )
-findstr /C:"fromArray.inner.op.retain(fromArray.inner.op.env);" build\test\cgen_generic_class_nested_function_fields.c >nul
+findstr /C:"xl6_xrt_retain(*((xvalue*)xl6_xrt_typed_require_item" build\test\cgen_generic_class_nested_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_nested_function_fields.c missing nested typed index retain.
     exit /b 1
 )
-findstr /C:"item.inner.op.retain(item.inner.op.env);" build\test\cgen_generic_class_nested_function_fields.c >nul
+findstr /C:"if (item != 0) { xvoAddRef(item); }" build\test\cgen_generic_class_nested_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_nested_function_fields.c missing nested typed iteration retain.
     exit /b 1
@@ -174,32 +174,32 @@ if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing nested Middle int instance.
     exit /b 1
 )
-findstr /C:"XL_Class_Mapper__int mapper;" build\test\cgen_generic_class_deep_function_fields.c >nul
+findstr /C:"xvalue mapper;" build\test\cgen_generic_class_deep_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing substituted Mapper field.
     exit /b 1
 )
-findstr /C:"XL_Class_Middle__int middle;" build\test\cgen_generic_class_deep_function_fields.c >nul
+findstr /C:"xvalue middle;" build\test\cgen_generic_class_deep_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing substituted Middle field.
     exit /b 1
 )
-findstr /C:"xl_class_Middle__int__destroy(&self->middle);" build\test\cgen_generic_class_deep_function_fields.c >nul
+findstr /C:"if (self->middle != 0) { xvoUnref(self->middle); self->middle = 0; }" build\test\cgen_generic_class_deep_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing generic Middle destroy call.
     exit /b 1
 )
-findstr /C:"xl_class_Mapper__int__destroy(&self->mapper);" build\test\cgen_generic_class_deep_function_fields.c >nul
+findstr /C:"if (self->mapper != 0) { xvoUnref(self->mapper); self->mapper = 0; }" build\test\cgen_generic_class_deep_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing generic Mapper destroy call.
     exit /b 1
 )
-findstr /C:"fromArray.middle.mapper.op.retain(fromArray.middle.mapper.op.env);" build\test\cgen_generic_class_deep_function_fields.c >nul
+findstr /C:"xl6_xrt_retain(*((xvalue*)xl6_xrt_typed_require_item" build\test\cgen_generic_class_deep_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing deep typed index retain.
     exit /b 1
 )
-findstr /C:"item.middle.mapper.op.retain(item.middle.mapper.op.env);" build\test\cgen_generic_class_deep_function_fields.c >nul
+findstr /C:"if (item != 0) { xvoAddRef(item); }" build\test\cgen_generic_class_deep_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing deep typed iteration retain.
     exit /b 1
@@ -221,7 +221,7 @@ if errorlevel 1 (
     echo cgen_generic_class_methods.c missing generic class method body.
     exit /b 1
 )
-findstr /C:"value = xl_class_Box__int__valueOf(&intBox);" build\test\cgen_generic_class_methods.c >nul
+findstr /C:"value = xl_class_Box__int__valueOf(((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_methods.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_methods.c missing generic class method call.
     exit /b 1
@@ -233,12 +233,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_class_auto.xl --emit build\test\cgen_generic_class_auto.c
 if errorlevel 1 exit /b 1
-findstr /C:"fromField = intBox.value;" build\test\cgen_generic_class_auto.c >nul
+findstr /C:"fromField = (*((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_auto.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_auto.c missing generic field auto inference.
     exit /b 1
 )
-findstr /C:"fromMethod = xl_class_Box__int__valueOf(&intBox);" build\test\cgen_generic_class_auto.c >nul
+findstr /C:"fromMethod = xl_class_Box__int__valueOf(((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_auto.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_auto.c missing generic method return auto inference.
     exit /b 1
@@ -260,12 +260,12 @@ if errorlevel 1 (
     echo cgen_generic_class_overloads.c missing string generic class overload prototype.
     exit /b 1
 )
-findstr /C:"expect_i64(xl_class_Box__int__pick__int(&intBox, 1LL), 10LL);" build\test\cgen_generic_class_overloads.c >nul
+findstr /C:"expect_i64(xl_class_Box__int__pick__int(((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_overloads.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_overloads.c missing int generic class overload call.
     exit /b 1
 )
-findstr /C:"expect_i64(xl_class_Box__int__pick__string(&intBox, \"x\"), 20LL);" build\test\cgen_generic_class_overloads.c >nul
+findstr /C:"expect_i64(xl_class_Box__int__pick__string(((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_overloads.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_overloads.c missing string generic class overload call.
     exit /b 1
@@ -287,12 +287,12 @@ if errorlevel 1 (
     echo cgen_generic_class_ctor.c missing generic class create body.
     exit /b 1
 )
-findstr /C:"xl_class_Box__int__create(&intBox, 123LL);" build\test\cgen_generic_class_ctor.c >nul
+findstr /C:"xl_class_Box__int__create(&__xl6_box_ctor_stmt_" build\test\cgen_generic_class_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_ctor.c missing generic class create call.
     exit /b 1
 )
-findstr /C:"value = xl_class_Box__int__valueOf(&intBox);" build\test\cgen_generic_class_ctor.c >nul
+findstr /C:"value = xl_class_Box__int__valueOf(((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_ctor.c missing generic class method call after create.
     exit /b 1
@@ -314,12 +314,12 @@ if not errorlevel 1 (
     echo cgen_generic_class_iter_protocol.c leaked unresolved iterator generic type.
     exit /b 1
 )
-findstr /C:"XL_Class_PairIter__int xl_class_PairBox__int______iter____" build\test\cgen_generic_class_iter_protocol.c >nul
+findstr /C:"xvalue xl_class_PairBox__int______iter____" build\test\cgen_generic_class_iter_protocol.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_iter_protocol.c missing generic __iter__ return type.
     exit /b 1
 )
-findstr /C:"xl_class_PairIter__int______next____(&__xl6_class_iter_" build\test\cgen_generic_class_iter_protocol.c >nul
+findstr /C:"xl_class_PairIter__int______next____((XL_Class_PairIter__int*)xl6_class_data(__xl6_class_iter_" build\test\cgen_generic_class_iter_protocol.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_iter_protocol.c missing generic __next__ call.
     exit /b 1
@@ -331,17 +331,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_class_explicit_ctor.xl --emit build\test\cgen_generic_class_explicit_ctor.c
 if errorlevel 1 exit /b 1
-findstr /C:"XL_Class_Box__int intBox;" build\test\cgen_generic_class_explicit_ctor.c >nul
+findstr /C:"xvalue intBox;" build\test\cgen_generic_class_explicit_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing explicit generic class variable declaration.
     exit /b 1
 )
-findstr /C:"xl_class_Box__int__create(&intBox, 123LL);" build\test\cgen_generic_class_explicit_ctor.c >nul
+findstr /C:"xl_class_Box__int__create(&__xl6_box_ctor_stmt_" build\test\cgen_generic_class_explicit_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing explicit generic class create call.
     exit /b 1
 )
-findstr /C:"value = xl_class_Box__int__valueOf(&intBox);" build\test\cgen_generic_class_explicit_ctor.c >nul
+findstr /C:"value = xl_class_Box__int__valueOf(((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_explicit_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing method call after explicit create.
     exit /b 1
@@ -499,4 +499,3 @@ if exist cgen_basic.exe del /f /q cgen_basic.exe
 
 echo DEMO6 suite ok: OOP ABI export and interop baseline 5/8
 exit /b 0
-

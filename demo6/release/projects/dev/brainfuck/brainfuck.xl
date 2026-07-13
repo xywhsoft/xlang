@@ -16,8 +16,8 @@
 //   * a single interleaved array<int> stream for the optimizer
 //     (op,arg pairs at code[2k]/code[2k+1]); multi-return of
 //     array<int> containers was found to silently drop on the caller
-//     side, so the two streams are packed into one -- see BUG-BF1)
-//   * Buffer + encoding.fromBytes for byte -> string output (BUG-HD2
+//     side, so the two streams are packed into one -- see)
+//   * Buffer + encoding.fromBytes for byte -> string output (
 //     makes string.formatInt(n,"c") unusable, so output is buffered as
 //     raw bytes and decoded once at the end)
 //   * time.timer() for benchmark timing

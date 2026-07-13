@@ -24,12 +24,11 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
     ctorClassType = NULL;
     declClassType = NULL;
 
-    if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "auto") && initExpr != NULL ) {
-        xl6CgenCallIsNativeBackedCtor(ctx, initExpr, &ctorNativeClass);
-        if ( !xl6CgenCallIsClassCtor(ctx, initExpr, &ctorClass) ) {
-            ctorClassType = xl6CgenGenericClassCtorType(ctx, initExpr, &ctorClass);
-        }
-    } else if ( xl6CgenIsNativeBackedClassType(ctx, typeNode) ) {
+    /*
+        auto 必须先采用语义层已经推断完成的类型。
+        class 推断结果统一为 __class_handle<T>，不能在这里重新把构造表达式降回旧结构体值语义。
+    */
+    if ( xl6CgenIsNativeBackedClassType(ctx, typeNode) ) {
         declNativeClass = xl6CgenFindNativeBackedClass(ctx, typeNode->text);
     } else if ( xl6CgenIsClassType(ctx, typeNode) ) {
         declClass = xl6CgenFindClass(ctx, typeNode->text);
@@ -345,7 +344,7 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         }
         xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), cName);
         if ( initByCopy ) {
-            xl6CgenTypedContainerCopyExpr(ctx, typeNode, initExpr);
+            xl6CgenTypedContainerRetainExpr(ctx, typeNode, initExpr);
         } else if ( initByMove ) {
             if ( memberFunctionType != NULL ) {
                 xl6CgenMemberFunctionStatementInvokeExpr(ctx, initExpr, memberFunctionType, memberTempName);
@@ -397,6 +396,11 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         }
         if ( initExpr != NULL ) {
             xl6CgenXValueLocalInitStmt(ctx, typeNode, cName, initExpr);
+        } else if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
+            xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", cName);
+            if ( !xl6CgenDefaultClassHandleXValueStmt(ctx, typeNode, cName, node) ) {
+                xl6CgenError(ctx, node, "default class construction lowering failed");
+            }
         } else {
             xl6OutputPrintf(ctx->out, "xvalue %s = ", cName);
             xl6CgenDefaultXValueForTarget(ctx, typeNode);

@@ -10,20 +10,20 @@
 //       leafCount 个叶子（2 的幂），nodeCount = 2*leafCount - 1。
 //       根 hashes[0]；节点 i 的左子 = 2i+1，右子 = 2i+2，父 = (i-1)/2。
 //       叶子落在 [leafCount-1 .. 2*leafCount-2]。
-//     单一扁平数组避免 var dict 在递归中触发 BUG-LP1（递归热路径用 typed array）。
+//     单一扁平数组避免 var dict 在递归中触发 （递归热路径用 typed array）。
 //   - 叶子哈希 = sha256(数据块)；内部哈希 = sha256(左哈希 + 右哈希)（hex 串拼接）。
 //     crypto.sha256 返回大写 hex，统一 string.lower 输出。
 //   - Merkle 证明（membership proof）：从叶子走父链，每层记录 [兄弟哈希, 方向]。
 //     方向 dir=1 表示兄弟在右（当前是左子，验证时 h=H(h+sib)）；
 //           dir=0 表示兄弟在左（当前是右子，验证时 h=H(sib+h)）。
 //   - 验证证明：仅用 leafHash + proof + rootHash，不需要整棵树（核心特性）。
-//     verifyProof 设为顶层函数（不在 class 内），规避 BUG-C1（class 方法接收容器形参受限）。
+//     verifyProof 设为顶层函数（不在 class 内），规避 （class 方法接收容器形参受限）。
 //   - 递归哈希：buildNode(node) 递归计算子树哈希并写回 self.hashes[node]，
 //     压测「递归 + crypto 密集调用」；updateLeaf 沿父链迭代重算（O(log n)）。
 //   - 继承/virtual：MerkleTree extends HashTree（virtual algorithmName + base()），
-//     始终在调用方直接 new 实例，不从函数返回带 virtual 的 class（BUG-RT3）。
-//   - 复合赋值 += 仅用于标量（BUG-V1）；不派发 class 运算符协议。
-//   - 字符串拼接两边的静态类型都是 string（避免 BUG-CE1：var + string 乱码）。
+//     始终在调用方直接 new 实例，不从函数返回带 virtual 的 class。
+//   - 复合赋值 += 仅用于标量；不派发 class 运算符协议。
+//   - 字符串拼接两边的静态类型都是 string。
 
 const string EMPTY_LEAF_DATA = ""
 
@@ -37,7 +37,7 @@ func hashStr(string s) as string
     return string.lower(crypto.sha256(s))
 end
 
-// 两段 hex 串拼接后 SHA-256 → 小写 hex。a/b 静态类型均为 string，避开 BUG-CE1。
+// 两段 hex 串拼接后 SHA-256 → 小写 hex。a/b 静态类型均为 string，避开。
 func hashPair(string a, string b) as string
     return string.lower(crypto.sha256(a + b))
 end
@@ -274,7 +274,7 @@ class MerkleTree extends HashTree
         return h
     end
 
-    // ---- 序列化（手动遍历，compact 保序，规避 BUG-K1 pretty 重排）----
+    // ---- 序列化----
     func serialize() as string
         var out = {}
         out["algorithm"] = self.algorithmName()

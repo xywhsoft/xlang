@@ -532,7 +532,7 @@ func routerMatch(string method, string path) as var
                     if not string.isEmpty(rest) then
                         rest = rest + "/"
                     end
-                    rest = rest + string(pathSegs[pi])
+                    rest = rest + pathSegs[pi]
                     pi += 1
                 end
                 params[string(seg["name"])] = rest
@@ -590,7 +590,7 @@ func routerDump() as string
     int n = gRoutes.length
     while i < n do
         var r = gRoutes[i]
-        out = out + string(r["method"]) + " " + string(r["pattern"]) + " -> " + string(r["handler"]) + "\n"
+        out = out + r["method"] + " " + r["pattern"] + " -> " + r["handler"] + "\n"
         i += 1
     end
     return out
@@ -1284,7 +1284,7 @@ func tplRender(var nodes, var scope) as string
         var nd = nodes[i]
         string ty = string(nd["type"])
         if ty == "text" then
-            out = out + string(nd["text"])
+            out = out + nd["text"]
         elseif ty == "var" then
             out = out + htmlEscape(stringify(tplLookup(scope, string(nd["inner"]))))
         elseif ty == "if" then
@@ -1562,7 +1562,7 @@ end
 
 // logging：记录请求行到 ctx["log"]，控制台打印。
 func mwLogging(var ctx) as bool
-    string line = string(ctx["method"]) + " " + string(ctx["path"])
+    string line = ctx["method"] + " " + ctx["path"]
     ctx["log"] = line
     println("[webfw] " + line)
     return true
@@ -1974,7 +1974,7 @@ func frameworkRoute(point reqHandle, point respHandle) as bool
             return resp.redirect("/dashboard", 302)
         end
         resp.status(401)
-        return resp.text("login failed: " + string(res["error"]), "text/plain; charset=utf-8")
+        return resp.text("login failed: " + res["error"], "text/plain; charset=utf-8")
     end
 
     if handler == "register_submit" then
@@ -1986,7 +1986,7 @@ func frameworkRoute(point reqHandle, point respHandle) as bool
             return resp.redirect("/login", 302)
         end
         resp.status(400)
-        return resp.text("register failed: " + string(res["error"]), "text/plain; charset=utf-8")
+        return resp.text("register failed: " + res["error"], "text/plain; charset=utf-8")
     end
 
     if handler == "logout" then

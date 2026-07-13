@@ -28,23 +28,6 @@
 //   * 3x3 convolution kernels (box / sharpen / Sobel) with edge replication
 //
 // BUG workarounds applied (see dev/BUGS.md):
-//   * BUG-HD1  : native-backed Buffer cannot be RETURNED from a function as a
-//                named value. BMP/PPM binary output is built into array<int>
-//                (returnable) then converted to Buffer in the caller.
-//                Buffer is only ever PASSED AS A PARAMETER (bmpDecode/ppmDecode).
-//   * BUG-C1   : class methods cannot safely take array<int> / Buffer params.
-//                All codec decode functions are STANDALONE funcs taking Buffer;
-//                filters are Image METHODS operating on self.pixels (own field).
-//   * BUG-C2   : never `return self.field.length`; compute into a local first.
-//   * BUG-XL1  : typed array<int> params are value-copied -> appends lost.
-//                No helper appends to a passed array<int>; BMP header bytes are
-//                appended inline to the local array.
-//   * BUG-JP1  : Image has `derive value` (it has an array<int> field; matches
-//                the rasterizer Mesh/Mat4 pattern).
-//   * BUG-RT3  : Image has NO virtual methods -> safe to return from functions.
-//   * BUG-M1   : int("abc") silently returns 0 -> manual digit validation.
-//   * BUG-S1   : string.splitLines trailing empty -> trimmed when used.
-//   * BUG-V1/P1: no `+=` on class fields/properties; expanded to `a = a + b`.
 // ---------------------------------------------------------------------------
 
 // =====================================================================
@@ -71,7 +54,7 @@ func clampi(int v, int lo, int hi) as int
     return v
 end
 
-// manual positive-integer parser (BUG-M1: int("abc") returns 0 silently)
+// manual positive-integer parser (int("abc") returns 0 silently)
 func parsePosInt(string s) as int
     s = string.trim(s)
     int n = string.len(s)
@@ -115,7 +98,7 @@ func hasSuffixI(string s, string suf) as bool
 end
 
 // =====================================================================
-// little-endian readers over a Buffer (Buffer as param per BUG-HD1)
+// little-endian readers over a Buffer
 // =====================================================================
 
 func readU32LE(Buffer buf, int off) as int
@@ -142,8 +125,8 @@ end
 
 // =====================================================================
 // Image: width / height / pixels (array<int> of RGB triples, len = w*h*3)
-//   derive value (BUG-JP1: class with array field needs it).
-//   No virtual methods (BUG-RT3: safe to return from functions).
+//   derive value.
+//   No virtual methods.
 // =====================================================================
 
 class Image
@@ -355,10 +338,10 @@ end
 
 // =====================================================================
 // BMP codec (24-bit BGR, BI_RGB, bottom-up or top-down)
-//   decode takes Buffer as param (BUG-HD1); returns Image (safe, no virtuals).
+//   decode takes Buffer as param; returns Image (safe, no virtuals).
 //   encode builds array<int> of raw bytes (returnable; converted to Buffer
 //   by the caller) because helpers cannot append to a passed array<int>
-//   (BUG-XL1 value-copy) -> header bytes are appended inline.
+//    -> header bytes are appended inline.
 // =====================================================================
 
 func bmpDecode(Buffer buf) as Image
@@ -421,7 +404,7 @@ func bmpDecode(Buffer buf) as Image
     return img
 end
 
-// build BMP raw bytes into a local array<int> (header inlined due to BUG-XL1)
+// build BMP raw bytes into a local array<int>
 func bmpEncodeBytes(Image img) as array<int>
     int w = img.width
     int h = img.height

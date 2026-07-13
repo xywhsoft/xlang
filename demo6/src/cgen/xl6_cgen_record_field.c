@@ -172,7 +172,11 @@ static void xl6CgenRecordFieldProtocolGetCase(
 {
     const XL6_AstNode* ownerClass;
     const XL6_AstNode* method;
+    const XL6_AstNode* returns;
+    const XL6_AstNode* returnType;
     char basePath[256];
+    char valueName[64];
+    int id;
 
     ownerClass = NULL;
     method = xl6CgenFindClassProtocolFunc(ctx, classNode, "__field__", &ownerClass);
@@ -184,11 +188,27 @@ static void xl6CgenRecordFieldProtocolGetCase(
         return;
     }
 
-    xl6OutputPuts("        result = ", ctx->out);
+    returns = method->childCount > 2 ? method->children[2] : NULL;
+    returnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;
+    if ( returnType == NULL ) {
+        return;
+    }
+    id = ctx->tempId++;
+    snprintf(valueName, sizeof(valueName), "__xl6_record_field_result_%d", id);
+
+    /* __field__ 可以返回任意可装箱类型，先保留真实 C 类型，再统一转换为 xvalue。 */
+    xl6OutputPuts("        ", ctx->out);
+    xl6OutputPuts(xl6CgenTypeName(ctx, returnType), ctx->out);
+    xl6OutputPutc(' ', ctx->out);
+    xl6OutputPuts(valueName, ctx->out);
+    xl6OutputPuts(" = ", ctx->out);
     xl6CgenClassCallableSymbol(ctx, ownerClass, method);
     xl6OutputPuts("(", ctx->out);
     xl6CgenRecordFieldSelfBaseAddressExpr(ctx, basePath);
     xl6OutputPuts(", key);\n", ctx->out);
+    xl6OutputPuts("        result = ", ctx->out);
+    xl6CgenRecordFieldValueExpr(ctx, returnType, valueName);
+    xl6OutputPuts(";\n", ctx->out);
     xl6OutputPuts("        goto done;\n", ctx->out);
 }
 

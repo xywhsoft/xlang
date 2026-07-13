@@ -264,9 +264,9 @@ channel<T>
 class
 object
 native-backed class
+struct
 union
 typedef alias
-ref<Class>
 ```
 
 函数值类型：
@@ -296,7 +296,7 @@ func(string, ***) as int namedVarargProc
 - `object` 是标准库普通 class，不是特殊黑盒类型。
 - `void` 不属于 DEMO6 类型系统。
 
-显式多态引用 `ref<T>`：
+class 默认引用语义与继承多态：
 
 ```xlang
 class Base
@@ -317,52 +317,88 @@ class Child extends Base
     end
 end
 
-ref<Child> child = ref(Child(42))
-ref<Base> base = child
+Child child = Child(42)
+Base base = child
 
 assert base.value() == 42
-assert base is ref<Child>
+assert base is Child
 
-ref<Child> checked = base as ref<Child>
-array<ref<Base>> values = array[]
+Child checked = base as Child
+array<Base> values = array[]
 values.append(child)
 assert values[0].value() == 42
-values.append(ref(Child(7)))
+values.append(Child(7))
 assert values[1].value() == 7
 ```
 
 已实现规则：
 
-- 普通 class 继续保持 C 结构体值语义；`Base value = Child()` 不合法，也不会发生静默对象切片。
-- `ref(ClassValue)` 创建拥有完整动态对象的引用。命名 class 值会复制到独立对象；新建临时值和 fresh return 可直接移交所有权。
-- `ref<Child>` 可安全拓宽为 `ref<Base>`，参数、返回值、赋值和静态泛型容器使用同一规则。
-- `array<ref<Base>>` 等静态泛型容器既可接收具名 `ref<Child>`，也可直接接收 `ref(Child(...))`；fresh class 值按移动装箱语义进入容器，不产生多余 class 副本。
-- 多个 ref 副本共享同一动态对象；引用计数保证完整对象只析构一次。
-- 字段、属性、协议和 virtual 调用都通过引用指向的动态对象执行。
-- `ref<T>` 支持泛型 class，例如 `ref<Box<int>>`，并保留具体泛型类型身份。
-- `ref<T>` 可与 `null` 比较；两个 ref 使用对象身份比较，不执行 class 值比较。
-- `expr is ref<T>` 执行运行时继承关系判断；`expr as ref<T>` 执行 checked downcast，失败触发可捕获的运行时类型错误。
-- `ref<T>` 的 `T` 必须是普通 class。native-backed class 继续使用自身句柄所有权模型，不套用 ref。
-- 从已有的不可复制 class 值创建 ref 会被拒绝；可以直接从该 class 的 fresh 构造结果创建 ref 并移交所有权。
-- C ABI 将 ref 参数和返回值表示为 `xvalue` 共享对象句柄；C 侧使用 XRT retain/unref 与类型描述能力管理它。
+- 所有 class，包括普通 class、泛型 class、object 派生 class 和 native-backed class，默认使用受管理引用语义。
+- class 赋值、默认参数传递、函数返回和容器存储共享同一个对象身份，不复制对象主体。
+- `Child` 可安全拓宽为 `Base`，不会发生对象切片；virtual 调用按对象的动态类型派发。
+- `array<Base>` 等静态泛型容器可直接保存 `Child` 对象。
+- class 可与 `null` 比较；class 的默认相等比较使用对象身份，协议重载除外。
+- `expr is Child` 执行运行时继承关系判断；`expr as Child` 执行 checked downcast。
+- 引用计数保证同一对象只析构一次；闭包、容器、字段和函数值持有 class 时都会保留对象。
+- class 发布到全局、线程或异步边界前，会把拥有的动态容器和静态泛型容器统一提升为 XRT shared 模式；对应 C API 为 `xvoMoveToShared`、`xrtTypedArrayMoveToShared`、`xrtTypedListMoveToShared`、`xrtTypedSetMoveToShared`、`xrtTypedDictMoveToShared`。
+- C ABI 将 class 参数和返回值表示为 `xvalue` 共享对象句柄；C 侧使用完整 XRT `xvalue` API 管理它。
 
-普通 class 参数与 `ref<T>` 参数的修改语义不同：
+参数传递模式：
 
 ```xlang
 class Box
     int count
 end
 
-func mutateCopy(Box value)
-    value.count = 10       // 只修改参数副本
+func mutateShared(Box value)
+    value.count = 10       // 默认共享同一对象
 end
 
-func mutateShared(ref<Box> value)
-    value.count = 10       // 修改引用指向的同一对象
+func mutateCopy(byval Box value)
+    value.count = 20       // 显式复制独立对象
+end
+
+func replace(byref Box value)
+    value = Box()          // 改写调用方变量槽
+end
+
+func createBox(out Box value)
+    value = Box()          // out 在返回前必须赋值
+end
+
+Box box = Box()
+mutateShared(box)
+mutateCopy(box)
+replace(byref box)
+createBox(out box)
+```
+
+自然传递语义：
+
+- `bool`、整数、浮点、`time`、`point`、`type`、`struct`、`union` 默认按值传递。
+- class、native-backed class、object 和容器默认按引用传递。
+- `byval` 强制创建独立语义副本。class 必须支持复制协议；容器执行独立的浅复制，外层容器不共享，内部 class/容器元素仍保留其引用身份。
+- `byref` 绑定调用方已有且已初始化的可写变量槽；对参数重新赋值会修改调用方变量。
+- `out` 绑定调用方可写变量槽，进入函数时不可读取，并且必须在每一个正常返回路径和正常落空路径上完成赋值。
+- `byref` 与 `out` 的调用点必须显式写出同名标记，例如 `replace(byref box)`、`createBox(out box)`，防止隐藏副作用。
+- `byref`、`out` 不允许默认值、可变参数、匿名函数捕获，也不允许进入 async、generator 或跨线程边界。
+- 参数模式属于函数签名、重载身份、XAPI 和 ABI 元数据的一部分。
+
+C 风格值聚合使用 `struct`：
+
+```xlang
+struct Pair
+    int x
+    int y
+end
+
+func move(Pair value) as Pair
+    value.x += 1
+    return value
 end
 ```
 
-需要函数修改调用方可见对象时，应显式使用 `ref<Box>`；普通 `Box` 参数始终保持 C 结构体值语义。
+`struct` 没有继承、virtual、动态字段或 class 生命周期协议，按 C 兼容布局和值语义生成；需要共享可变对象身份时应使用 class。
 
 运行时类型判断与向下转换：
 
@@ -392,14 +428,14 @@ end
 - `expr is Type` 返回 `bool`。
 - `is` 用于判断运行时值是否满足目标类型。
 - `is` 对非 `var` 的静态表达式会尽量在编译期折叠为常量。
-- `is` 支持基础类型、`null`、class 继承关系、`ref<class>`、union、native-backed class、函数签名类型和静态泛型容器 descriptor。
+- `is` 支持基础类型、`null`、class 继承关系、union、native-backed class、函数签名类型和静态泛型容器 descriptor。
 - `is` 判断 class 时支持 `Child is Base`。
 - `is` 判断函数值时保留完整 `func(...) as ...` 签名，不退化为裸 `function`。
 - `is` 判断 `array<T>`、`list<T>`、`set<T>`、`dict<T>` 时使用静态泛型容器 descriptor，`array<int>` 与 `array<string>` 不相等。
 - `expr as Type` 表示显式 checked downcast。
 - `as` 成功时返回目标类型的静态值。
 - `as` 失败时触发运行时 fatal，当前阶段不返回 nullable/option。
-- `as` 当前支持从 `var` 转出基础值、`string`、`time`、`point`、`type`、class、union、native-backed class，也支持 `ref<Base> as ref<Child>` checked downcast。
+- `as` 当前支持从 `var` 转出基础值、`string`、`time`、`point`、`type`、class、union、native-backed class，也支持 `Base as Child` checked downcast。
 - `as` 也允许目标类型与源静态类型完全一致的 no-op 写法。
 - `as` 不用于普通数值转换；普通转换继续使用 `int(expr)`、`float(expr)`、`string(expr)` 等构造/转换函数。
 - `is auto`、`is var`、`as auto`、`as var` 不合法。
@@ -497,6 +533,7 @@ move(y = 2, x = 1)
 - 声明 `***` 的函数值仍支持命名参数，全部额外名称和值进入 `arg` 字典。
 - 可选参数导出到 C 环境时，默认值语义不导出，C 侧按普通参数调用。
 - 支持函数值赋值与调用。
+- 唯一、非泛型的具名函数可直接装入 `var` 并动态调用；存在重载歧义时必须先用 `func(...) as ...` 明确签名。
 - 支持匿名函数与闭包。
 - 支持函数重载。
 - 支持泛型函数显式实例化。
@@ -1048,7 +1085,7 @@ auto p = json.parse::<Packet>(text)
 - `__len__` 可将 `.length` 作为只读协议属性暴露给 class；静态字段 `length` 优先于协议。
 - class 构造表达式可作为成员/协议临时接收者，例如 `Sized(2).length`。
 - class 方法支持多返回值，并可参与解构声明、解构赋值和成员调用返回类型推断。
-- 普通 class 参数采用值语义：被调函数为含 owned 字段的普通或泛型 class 形参建立独立副本，修改或清理形参不会影响调用方；native-backed class 继续遵循 owned/borrowed/move 资源规则，不隐式复制底层句柄。
+- class 参数默认共享受管理对象引用；修改字段对调用方可见。显式 `byval` 才建立独立副本，native-backed class 仅在复制协议允许时支持 `byval`。
 - 普通 class 支持 `__iter__` / `__next__` 迭代协议。
 - `__iter__() as IteratorClass` 创建迭代器，`IteratorClass.__next__() as (bool, T)` 返回是否存在下一项和值。
 - `for value in obj` 绑定迭代项类型 `T`；`for index, value in obj` 绑定 `int` 索引和 `T` 值。
@@ -1504,7 +1541,9 @@ Buffer packetBytes = packet.bytes()
 - 成员导出符号进入生成头文件和 ABI dump；ABI kind 为 `class_method`，并记录 `owner`。
 - 当前阶段不支持 static 成员导出为 class method C ABI。
 - 当前阶段不支持泛型 class 成员直接导出 C ABI。
-- `ref<Class>` 参数和返回值导出为 `xvalue`；C 侧可用完整 XRT `xvalue` API 检查类型、保留与释放引用。
+- class 参数和返回值导出为 `xvalue`；C 侧可用完整 XRT `xvalue` API 检查类型、保留与释放引用。
+- `byref` / `out` 标量参数导出为对应 C 类型的指针；class 参数导出为 `xvalue*` 变量槽。
+- `byval` 不改变公开 C 参数形状，但生成的 wrapper 会按 xlang 复制协议建立独立副本。
 
 变量与常量声明示例：
 

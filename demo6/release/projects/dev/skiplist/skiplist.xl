@@ -24,13 +24,13 @@
 //     id 0 恒为 header（哨兵，key/value 不参与比较），真实节点从 id 1 起。
 //   - 值语义：derive value class，getNode 取出的是副本，修改后用 setNode 写回
 //     （探针确认 write-back 持久，与 btree 工具一致）。
-//   - 递归热路径用扁平 var 数组 / 标量，不分配 var dict（规避 BUG-LP1）。
-//   - class 方法不接收 array<int> 形参（规避 BUG-C1）；访问器全部用 int 标量参数。
-//   - 不直接 return self.field.length（规避 BUG-C2），先落局部 int。
+//   - 递归热路径用扁平 var 数组 / 标量，不分配 var dict。
+//   - class 方法不接收 array<int> 形参；访问器全部用 int 标量参数。
+//   - 不直接 return self.field.length，先落局部 int。
 //   - 迭代器：SkipIter 持有预先收集的 [key,value] var 数组快照（避免持有 class 引用，
 //     规避值/引用语义歧义），实现 __iter__/__next__，支持 for-in。
 //   - 序列化：手动遍历节点池构造 var 结构 + json.stringify（compact 保序，
-//     规避 BUG-K1 pretty 键序重排）。
+//     规避 pretty 键序重排）。
 //   - int 在 xlang 中为 64-bit，位运算（& 1、>> 1）对 32-bit 随机数无符号位问题。
 
 const int MAXLVL = 16       // 最大层数（n=1000 时期望最高层 ~10，16 足够余量）
@@ -131,7 +131,7 @@ class SkipList
         return nid
     end
 
-    // 只读标量访问器（避免 class 方法接收 array<int> 形参 — BUG-C1）
+    // 只读标量访问器
 
     func keyAt(int id) as int
         SkipNode n = self.getNode(id)

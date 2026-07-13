@@ -13,8 +13,8 @@ static XL6_AstNode* xl6CgenCloneClassProtocolReturnTypeForCall(
     XL6_AstNode* result;
 
     concreteType = xl6CgenResolveAliasType(ctx, receiverType);
-    if ( xl6CgenRefTargetType(ctx, concreteType) != NULL ) {
-        concreteType = xl6CgenRefTargetType(ctx, concreteType);
+    if ( xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
+        concreteType = xl6CgenClassHandleTargetType(ctx, concreteType);
     }
     if ( concreteType == NULL || concreteType->text == NULL || protocolName == NULL || call == NULL ) {
         return NULL;

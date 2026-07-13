@@ -24,7 +24,7 @@
 // 实现要点：
 //   - 计时用 time.timer()（单调秒，float），enter/exit 各取一次。
 //   - 栈用三组并行原生数组（names/starts/childTimes）承载，避免在递归热路径
-//     分配 class / dict（规避 BUG-LP1：递归中分配 var dict 触发 O(n^2) GC 劣化）。
+//     分配 class / dict。
 //   - 调用图来自采样而非每次调用的边计数，进一步消除热路径字符串拼接。
 //   - 插桩只增行不改行：在每个 return 前、函数 end 前插入计时代码，main 的
 //     退出路径额外注入 __xprof_dump()，无 main 的脚本在文件末尾追加 dump。
@@ -285,11 +285,6 @@ func splitLinesSafe(string s) as array<string>
     for line in tmp
         ls.push(string(line))
     end
-    if ls.length > 0 then
-        if ls[ls.length - 1] == "" then
-            ls.remove(ls.length - 1)
-        end
-    end
     return ls
 end
 
@@ -365,7 +360,7 @@ func parseAst(string xl, string absFile) as var
     try
         root = json.parse(r.stdout)
     catch e
-        string msg = e.message + ""
+        string msg = e.message
         println("xprof: AST JSON parse failed: " + msg)
         return null
     end

@@ -839,14 +839,14 @@ func main(...) as int
         string g = DEFAULT_G
         if arg.length >= 3 then
             if isValidNumber(string(arg[2])) == false then
-                println("Error: invalid prime p = '" + string(arg[2]) + "'")
+                println("Error: invalid prime p = '" + arg[2] + "'")
                 return 1
             end
             p = normalize(string(arg[2]))
         end
         if arg.length >= 4 then
             if isValidNumber(string(arg[3])) == false then
-                println("Error: invalid generator g = '" + string(arg[3]) + "'")
+                println("Error: invalid generator g = '" + arg[3] + "'")
                 return 1
             end
             g = normalize(string(arg[3]))

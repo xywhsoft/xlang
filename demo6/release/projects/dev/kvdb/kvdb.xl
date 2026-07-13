@@ -270,7 +270,7 @@ func cmdSearch(string path_, string needle)
     for key, item in data
         string vs = valueToString(item)
         if string.contains(vs, needle) then
-            println(string(key) + "=" + vs)
+            println(key + "=" + vs)
             hits += 1
         end
     end

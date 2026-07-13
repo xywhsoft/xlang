@@ -35,7 +35,7 @@
 //     读取时 json.parse 还原并重建 Block/Transaction 实例，保证 mine/balance 跨进程可见。
 //   - xlang 边界：`#` 不是注释（用 //）；while 必须带 do；for 不带 do；类型转换用 int()/string()；
 //     crypto.sha256 返回大写 hex 需 lower；string 拼接两边都用 string 静态类型避免乱码；
-//     `auto` 无法从 pop() 推断 → 显式 int 局部；splitLines 尾部空串需裁剪。
+//     `auto` 无法从 pop() 推断 → 显式 int 局部.
 
 // ============================================================================
 // 常量
@@ -622,12 +622,6 @@ func assemble(string src) as array<int>
 
     var rawLines = string.splitLines(src)
     int numLines = rawLines.length
-    if numLines > 0 then
-        string lastRaw = string.trim(string(rawLines[numLines - 1]))
-        if string.len(lastRaw) == 0 then
-            numLines = numLines - 1
-        end
-    end
 
     array<string> instrMnem = array[]
     array<string> instrOperand = array[]
@@ -810,12 +804,6 @@ class Contract
         // 重新扫一遍源码提取标签表（供 call 查方法地址）
         var rawLines = string.splitLines(self.source)
         int numLines = rawLines.length
-        if numLines > 0 then
-            string lastRaw = string.trim(string(rawLines[numLines - 1]))
-            if string.len(lastRaw) == 0 then
-                numLines = numLines - 1
-            end
-        end
         // 重算 addr 与 pass1 一致
         int addr = 0
         int li = 0
@@ -1175,7 +1163,7 @@ func printEvents(string typeFilter) as int
         var e = g_events[i]
         string etype = string(e["type"])
         if string.len(typeFilter) == 0 or etype == typeFilter then
-            println("  [" + string(e["ts"]) + "] blk#" + string(e["block"]) + " " + etype + " src=" + shortHash(string(e["source"])) + " :: " + string(e["data"]))
+            println("  [" + e["ts"] + "] blk#" + e["block"] + " " + etype + " src=" + shortHash(string(e["source"])) + " :: " + e["data"])
             shown = shown + 1
         end
         i = i + 1
@@ -1631,7 +1619,7 @@ func deployContract(string ownerAddr, string sourcePath) as string
     var initResult = c.runInit()
     int rc = int(initResult[0])
     if rc != 0 then
-        println("xchain: init error: " + string(initResult[2]))
+        println("xchain: init error: " + initResult[2])
         return ""
     end
     g_contracts[c.address] = c
@@ -2311,7 +2299,7 @@ func main(...) as int
         return cmdEvents(scriptPath, filter)
     end
 
-    println("xchain: unknown command: " + string(arg[1]))
+    println("xchain: unknown command: " + arg[1])
     printUsage()
     return 1
 end

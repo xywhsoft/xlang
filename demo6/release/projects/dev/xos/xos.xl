@@ -42,9 +42,9 @@
 //   - 闂備胶顭堢换鍫ュ礉瀹€鍕剳妞ゆ帒瀚崑鎰版煠閸濄儺鏆柛瀣尰閹峰懘鎮滃Ο缁橆吂濠碉紕鍋戦崐娑樷枖濞戙垺鍎?var/typed array, 闂?push/clear 濠电姭鎷冮崨顓濈捕闂? 濠电偞鍨堕幐鍝ョ矓瑜版帒闂柛婵勫劤绾惧ジ鏌熺€涙绠橀柡?(procmgr 闂備礁鎲￠懝楣冨嫉椤掑嫷鏁?.
 //   - class PCB/Inode/TlbEntry derive value, 闂傚倷绶￠崑鍛┍閾忚宕?g_xxx[i].field 闂備胶鍎甸弲娑㈡偤閵娧勬殰?mutate
 //     (cpusched 闁诲海鎳撻幉锟犳偂閿熺姵鍋樻繛鍡樻尰閺?array<T> 闂備胶顭堢换鎰板疮閹殿喚鐭嗙€光偓閳ь剟鍩€椤掍胶鈯曟い銊ユ椤㈡瑥鐣濋崟顒€鍓柣搴㈢⊕閿氬璺虹Ч閹顦叉い鎴濇嚇閸┾偓妞ゆ帒鍊哥敮鍓佹喐閻楀牏鍙€妤犵偞鍔栭幏鍛槹鎼达絾姣?.
-//   - 濠电偞鍨堕幐鍝ョ矓閸洖鏋?set/get/let 濠电偠鎻徊鍓у垝瀹€鍕惞闂侇剙绉撮弸渚€鏌℃径瀣嚋闁? 闂佽绻掗崑鎰板磻閹剧粯鈷戞い鏂挎惈婵倸霉鐏忔牗娅呮い鏇秮閸┾偓?path/dir 闂?stdlib 闂備礁鎲＄粙鏍涢崟顖氱畺闁哄洨濮烽惌姘箾瀹割喕绨奸柨?(BUG-RT5).
+//   - 濠电偞鍨堕幐鍝ョ矓閸洖鏋?set/get/let 濠电偠鎻徊鍓у垝瀹€鍕惞闂侇剙绉撮弸渚€鏌℃径瀣嚋闁? 闂佽绻掗崑鎰板磻閹剧粯鈷戞い鏂挎惈婵倸霉鐏忔牗娅呮い鏇秮閸┾偓?path/dir 闂?stdlib 闂備礁鎲＄粙鏍涢崟顖氱畺闁哄洨濮烽惌姘箾瀹割喕绨奸柨?.
 //   - 濠碉紕鍋戦崐娑樷枖濞戙垺鍎戝ù鍏兼綑缁€鍕煠閹帒鍔滄繛鍫濈埣閺屾稑顫濋鍌傃兠圭亸鏍ㄦ珔妞ゆ洩缍侀崺鈧?C 闂備礁鎼粔鏉懨洪妶澶婇棷妞ゆ牗绋掗崕鐔兼煙閹规劕鐨虹紒鐘辩矙閺岋綁鏁愰崱娆愬櫑闂?(BUG-CL2).
-//   - 濠电偞鍨堕幐鍝ョ矓鐠哄ソ娲锤濡や焦娅?return self.field.length (BUG-C2), 闂備胶顭堢换鎰版偋閹版澘绠氶柕鍫濇矗濞岊亪鏌嶈閸撶喖寮?int.
+//   - 濠电偞鍨堕幐鍝ョ矓鐠哄ソ娲锤濡や焦娅?return self.field.length, 闂備胶顭堢换鎰版偋閹版澘绠氶柕鍫濇矗濞岊亪鏌嶈閸撶喖寮?int.
 //   - 闂?stdin API, 闂備胶顭堢换鍫ュ礉閹达箑纾块柟缁㈠枟閺?argv / 闂備礁鎲￠崝鏇㈠箠閹扮増鍋柛鈩冪⊕閸ゅ洦鎱ㄥ鍡楀箺闁瑰嘲宕—鍐偡閺夎儻鍩炴繝?
 
 
@@ -1279,7 +1279,7 @@ func fsAbsPath(int ino) as string
     int n = parts.length
     int i = n - 1
     while i >= 0 do
-        result = result + "/" + string(parts[i])
+        result = result + "/" + parts[i]
         i -= 1
     end
     if string.len(result) == 0 then
@@ -1888,7 +1888,7 @@ func shEcho(var args) as string
     int i = 0
     while i < n do
         if i > 0 then s = s + " " end
-        s = s + string(args[i])
+        s = s + args[i]
         i += 1
     end
     return s + "\n"
@@ -1911,7 +1911,7 @@ func shLs(var args) as string
     string s = ""
     int i = 0
     while i < items.length do
-        s = s + string(items[i]) + "\n"
+        s = s + items[i] + "\n"
         i += 1
     end
     return s
@@ -1981,7 +1981,7 @@ func shKill(var args) as string
     end
     int pid = parseIntSafe(string(args[0]), -1)
     if pid < 1 or pid >= g_pcb.length then
-        return "kill: no such process: " + string(args[0]) + "\n"
+        return "kill: no such process: " + args[0] + "\n"
     end
     procTerminate(pid, 9)
     mlfqRemove(pid)
@@ -2078,7 +2078,7 @@ func shWrite(var args) as string
     int i = 1
     while i < args.length do
         if i > 1 then txt = txt + " " end
-        txt = txt + string(args[i])
+        txt = txt + args[i]
         i += 1
     end
     if not fsWriteFile(p, txt) then
@@ -2189,13 +2189,6 @@ func shRunScript(string path) as int
     end
     string text = file.readText(path)
     var lines = string.splitLines(text)
-    // 闂備礁鎲￠…鍥╁垝椤栨粍鏆滈柍褜鍓熼幃妯跨疀濞戞氨鏆梺绋块椤曨厾鍒掑顓熷闁瑰嘲鐭堝ú?(string.splitLines 闁诲氦顫夐悺鏇犱焊濞嗘挻鍋傞柨娑樺閸嬫﹢鎮橀悙璺侯棈缂佲偓?
-    if lines.length > 0 then
-        string last = string(lines[lines.length - 1])
-        if string.len(last) == 0 then
-            lines.remove(lines.length - 1)
-        end
-    end
     int n = lines.length
     int i = 0
     int errors = 0
@@ -2436,7 +2429,7 @@ func execOp(int pid, string line) as int
         int ti = 2
         while ti < tokens.length do
             if ti > 2 then data = data + " " end
-            data = data + string(tokens[ti])
+            data = data + tokens[ti]
             ti += 1
         end
         int gslot = procLocalToGlobal(pid, localFd)

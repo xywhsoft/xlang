@@ -17,6 +17,7 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_TYPE_ALIAS: return "type_alias";
     case XL6_AST_EXTERN_TYPE_ALIAS: return "extern_type_alias";
     case XL6_AST_CLASS: return "class";
+    case XL6_AST_STRUCT: return "struct";
     case XL6_AST_UNION: return "union";
     case XL6_AST_DERIVE: return "derive";
     case XL6_AST_FIELD: return "field";

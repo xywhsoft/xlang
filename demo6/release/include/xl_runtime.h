@@ -53,7 +53,8 @@ typedef bool (*xrt_xcall_proc)(xrt_call_frame* pFrame, xrt_call_result* pResult)
 #define XL6_XRT_TYPE_KIND_DICT 12u
 #define XL6_XRT_TYPE_KIND_RECORD 13u
 #define XL6_XRT_TYPE_KIND_HANDLE 14u
-#define XL6_XRT_TYPE_KIND_REF 17u
+#define XL6_XRT_TYPE_KIND_CLASS 17u
+#define XL6_XRT_HANDLE_FLAG_OWNED 0x00000001u
 #define XL6_XRT_HANDLE_FLAG_BORROWED 0x00000002u
 #define XL6_XRT_HANDLE_FLAG_NULLABLE 0x00000004u
 #ifndef XRT_OBJMODE_LOCAL
@@ -95,6 +96,7 @@ struct xrt_type_desc {
     const xrt_type_ops* Ops;
     const xrt_method_table* Methods;
     const void* Extra;
+    const xrt_type_desc* BaseType;
 };
 
 struct xrt_generic_type {
@@ -222,6 +224,9 @@ const xrt_type_desc* xrtTypeSet(void);
 const xrt_type_desc* xrtTypeDict(void);
 const xrt_type_desc* xrtTypeType(void);
 bool xrtTypeSame(const xrt_type_desc* pA, const xrt_type_desc* pB);
+bool xrtTypeIsA(const xrt_type_desc* pType, const xrt_type_desc* pTarget);
+uint32 xrtTypeGenericArgCount(const xrt_type_desc* pType);
+const xrt_type_desc* xrtTypeGenericArg(const xrt_type_desc* pType, uint32 iIndex);
 xvalue xrtTypeBoxValue(const xrt_type_desc* pType, const void* pObj);
 uint64 xrtFuncSigTypeId(const xrt_func_sig* pSig);
 
@@ -254,6 +259,7 @@ xvalue xvoCopy(xvalue pVal);
 xvalue xvoDeepCopy(xvalue pVal);
 xvalue xvoCopyEx(xvalue pVal, uint32 iMode);
 xvalue xvoDeepCopyEx(xvalue pVal, uint32 iMode);
+xvalue xvoMoveToShared(xvalue pVal);
 int xvoType(xvalue pVal);
 bool xvoIsNull(xvalue pVal);
 bool xvoGetBool(xvalue pVal);
@@ -267,6 +273,7 @@ const xrt_type_desc* xvoTypeDesc(xvalue pVal);
 bool xvoSetTypeDesc(xvalue pVal, const xrt_type_desc* pType);
 ptr xvoGetRecordData(xvalue pVal);
 ptr xvoGetHandleData(xvalue pVal);
+ptr* xvoGetHandleSlot(xvalue pVal);
 xrt_callable* xvoGetCallable(xvalue pVal);
 const xrt_func_sig* xvoCallableSig(xvalue pVal);
 bool xvoInvoke(xvalue pFunc, xrt_call_frame* pFrame, xrt_call_result* pResult);
@@ -616,16 +623,7 @@ static char* xl6_xrt_fstr_join(int count, ...)
 #ifdef XL_RUNTIME_NEED_XVALUE
 static xvalue xl6_xrt_move_to_shared(xvalue value)
 {
-    xvalue result;
-
-    if ( value == 0 || xvoIsShared(value) ) {
-        return value;
-    }
-    result = xvoDeepCopyEx(value, XRT_OBJMODE_SHARED);
-    if ( value != 0 ) {
-        xvoUnref(value);
-    }
-    return result;
+    return xvoMoveToShared(value);
 }
 
 static uint64 xl6_xrt_type_name_id(const char* name, uint32 size)
@@ -684,7 +682,7 @@ static const char* xl6_xrt_type_name_from_id(uint64 typeId)
 
 static xvalue xl6_xrt_bind_type(xvalue value, const xrt_type_desc* desc)
 {
-    if ( value != 0 && desc != 0 && desc->Kind != XL6_XRT_TYPE_KIND_REF ) {
+    if ( value != 0 && desc != 0 && desc->Kind != XL6_XRT_TYPE_KIND_CLASS ) {
         (void)xvoSetTypeDesc(value, desc);
     }
     return value;
@@ -1618,7 +1616,7 @@ static void* xl6_xrt_typed_array_get_at(xtarray values, int64 index)
         xrtTypedArrayGet(values, resolved + 1u) : 0;
 }
 
-static xvalue xl6_xrt_typed_array_to_xvalue_map(xtarray values, xl6_xrt_typed_item_box_fn box)
+static xvalue xl6_xrt_typed_array_to_xvalue_map(xtarray values, xl6_xrt_typed_item_box_fn box, bool classHandle)
 {
     xvalue result = xvoCreateArray();
     uint32 count = xrtTypedArrayCount(values);
@@ -1628,7 +1626,12 @@ static xvalue xl6_xrt_typed_array_to_xvalue_map(xtarray values, xl6_xrt_typed_it
     }
     for ( i = 0; i < count; ++i ) {
         void* rawItem = xl6_xrt_typed_array_get_at(values, i);
-        xvalue item = rawItem != 0 && box != 0 ? box(rawItem) : xvoCreateNull();
+        void* boxItem = rawItem;
+        if ( classHandle && rawItem != 0 ) {
+            xvalue handle = *(xvalue*)rawItem;
+            boxItem = handle != 0 && !xvoIsNull(handle) ? xvoGetRecordData(handle) : 0;
+        }
+        xvalue item = boxItem != 0 && box != 0 ? box(boxItem) : xvoCreateNull();
         if ( !xvoArrayAppendValue(result, item, true) && item != 0 ) {
             xvoUnref(item);
         }

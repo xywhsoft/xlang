@@ -27,7 +27,7 @@ static const XL6_AstNode* xl6CgenTypeNodeGenericArgs(const XL6_AstNode* typeNode
     return NULL;
 }
 
-static const XL6_AstNode* xl6CgenRefTargetType(
+static const XL6_AstNode* xl6CgenClassHandleTargetType(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode)
 {
@@ -35,12 +35,18 @@ static const XL6_AstNode* xl6CgenRefTargetType(
 
     typeNode = xl6CgenSubstituteGenericType(ctx, typeNode);
     typeNode = xl6CgenResolveAliasType(ctx, typeNode);
-    if ( typeNode == NULL || !xl6CTextEquals(typeNode->text, "ref") ) {
+    if ( typeNode == NULL || !xl6CTextEquals(typeNode->text, "__class_handle") ) {
         return NULL;
     }
     args = xl6CgenTypeNodeGenericArgs(typeNode);
     return args != NULL && args->childCount == 1 ?
            xl6CgenResolveAliasType(ctx, args->children[0]) : NULL;
+}
+
+static int xl6CgenParamUsesReferenceAbi(const XL6_AstNode* param)
+{
+    return param != NULL &&
+           (param->flags & (XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT)) != 0;
 }
 
 static int xl6CgenContainerGenericIsVar(XL6_CgenContext* ctx, const XL6_AstNode* concreteType)
@@ -89,7 +95,7 @@ static int xl6CgenIsRuntimeContainerTypeDesc(XL6_CgenContext* ctx, const XL6_Ast
     args = xl6CgenTypeNodeGenericArgs(concreteType);
     return args != NULL && args->childCount > 0 &&
            !xl6CgenContainerGenericIsVar(ctx, concreteType) &&
-           (xl6CTextEquals(name, "ref") ||
+           (xl6CTextEquals(name, "__class_handle") ||
             xl6CTextEquals(name, "array") ||
             xl6CTextEquals(name, "list") ||
             xl6CTextEquals(name, "set") ||

@@ -1,4 +1,4 @@
-﻿// pager - 内存页式管理模拟器
+// pager - 内存页式管理模拟器
 //
 // 用法:
 //   pager run <algo> <access_trace.txt> [frames=4]
@@ -25,7 +25,7 @@
 //     xlang class 值语义影响; 值语义只影响赋值/传参, 不影响 local.method()).
 //     这与 dev/cpusched 的 cloneProcess(Process) -> ScheduleResult 同构, 已验证.
 //   - 置换算法 (LRU/Clock/OPT 选受害者逻辑内联于 simulate, 直接操作局部 pt;
-//      仅 OPT 的 nextUse 前瞻为独立纯函数, 避免 class 带数组形参, 见 BUG-C1):
+//      仅 OPT 的 nextUse 前瞻为独立纯函数, 避免 class 带数组形参, 见):
 //       FIFO  按 load 顺序 (fifoOrder) 淘汰队首;
 //       LRU   淘汰 lastUsed 最小的驻留页 (每次访问 touch 刷新);
 //       Clock 二次机会: 手绕帧环形扫描, ref=1 清零跳过, ref=0 淘汰 (内联, 需写 ref 位);
@@ -211,7 +211,7 @@ end
 
 // ============================================================
 // OPT 前瞻辅助 (纯模块函数, 不涉及 class)
-//   注意: 遵循 BUG-C1, 凡带 array 形参的算法辅助一律做模块函数, 不做 class 方法.
+//   注意: 遵循, 凡带 array 形参的算法辅助一律做模块函数, 不做 class 方法.
 // ============================================================
 
 // page 在 trace 中 fromIdx 之后首次出现的下标; 不再出现返回 trace.length (最远).

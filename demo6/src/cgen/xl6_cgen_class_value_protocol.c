@@ -1,3 +1,5 @@
+static int xl6CgenPersistenceFormatKind(const char* format);
+
 static int xl6CgenClassHasValueDerive(const XL6_AstNode* classNode)
 {
     return xl6CgenClassHasDerive(classNode, "value") ||
@@ -139,6 +141,9 @@ static XL6_AstNode* xl6CgenPersistenceClassForType(XL6_CgenContext* ctx, const X
         return (XL6_AstNode*)typeNode;
     }
     concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
+    if ( xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
+        concreteType = xl6CgenClassHandleTargetType(ctx, concreteType);
+    }
     if ( concreteType == NULL || concreteType->text == NULL ) {
         return NULL;
     }
@@ -369,6 +374,56 @@ static void xl6CgenClassAssignFromValue(
     if ( xl6CgenClassArrayAssignFromValueStmt(ctx, concreteType, valuePath, itemName, okName, format) ) {
         return;
     }
+    if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
+        const XL6_AstNode* recordType = xl6CgenClassHandleTargetType(ctx, typeNode);
+        char cTypeName[512];
+        int id = ctx->tempId++;
+
+        classNode = xl6CgenPersistenceClassForType(ctx, typeNode);
+        if ( classNode == NULL || !xl6CgenClassHasValueDerive(classNode) ) {
+            xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), recordType);
+            xl6CgenIndent(ctx);
+            xl6OutputPuts("if (", ctx->out);
+            xl6OutputPuts(itemName, ctx->out);
+            xl6OutputPuts(" == 0 || !xrtTypeIsA(xvoTypeDesc(", ctx->out);
+            xl6OutputPuts(itemName, ctx->out);
+            xl6OutputPuts("), ", ctx->out);
+            xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+            xl6OutputPrintf(ctx->out, "())) { %s = 0; } else {\n", okName);
+            ctx->indent += 1;
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", valuePath, valuePath);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = xvoCopy(%s);\n", valuePath, itemName);
+            ctx->indent -= 1;
+            xl6CgenIndent(ctx);
+            xl6OutputPuts("}\n", ctx->out);
+            return;
+        }
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xvalue __xl6_class_from_value_%d = ", id);
+        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "__xl6_from_value_release");
+        xl6OutputPrintf(ctx->out, "(xvoCopy(%s), %d);\n", itemName, xl6CgenPersistenceFormatKind(format));
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (__xl6_class_from_value_%d == 0 || xvoIsNull(__xl6_class_from_value_%d)) {\n", id, id);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (__xl6_class_from_value_%d != 0) { xvoUnref(__xl6_class_from_value_%d); }\n", id, id);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = 0;\n", okName);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("} else {\n", ctx->out);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", valuePath, valuePath);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = __xl6_class_from_value_%d;\n", valuePath, id);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        return;
+    }
     if ( xl6CgenIsXValueType(typeNode) ) {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", valuePath, valuePath);
@@ -550,7 +605,9 @@ static int xl6CgenClassArrayValueStmt(
 {
     const XL6_AstNode* concreteType;
     const XL6_AstNode* itemType;
+    const XL6_AstNode* itemRecordType;
     XL6_AstNode* itemClass;
+    char itemCType[512];
     int id;
 
     concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
@@ -562,6 +619,11 @@ static int xl6CgenClassArrayValueStmt(
     if ( itemType == NULL || itemClass == NULL ) {
         return 0;
     }
+    itemRecordType = xl6CgenClassHandleTargetType(ctx, itemType);
+    if ( itemRecordType == NULL ) {
+        return 0;
+    }
+    xl6CgenClassTypeRefName(itemCType, sizeof(itemCType), itemRecordType);
 
     id = ctx->tempId++;
     xl6CgenIndent(ctx);
@@ -578,14 +640,14 @@ static int xl6CgenClassArrayValueStmt(
                     id, id, id, id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPuts(xl6CgenTypeName(ctx, itemType), ctx->out);
+    xl6OutputPuts("xvalue", ctx->out);
     xl6OutputPrintf(ctx->out, "* __xl6_array_item_%d = (", id);
-    xl6OutputPuts(xl6CgenTypeName(ctx, itemType), ctx->out);
+    xl6OutputPuts("xvalue", ctx->out);
     xl6OutputPrintf(ctx->out, "*)xl6_xrt_typed_array_get_at(%s, __xl6_array_i_%d);\n", valuePath, id);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_array_item_value_%d = __xl6_array_item_%d != 0 ? ", id, id);
+    xl6OutputPrintf(ctx->out, "xvalue __xl6_array_item_value_%d = (__xl6_array_item_%d != 0 && *__xl6_array_item_%d != 0) ? ", id, id, id);
     xl6CgenEmitClassToValueForFormat(ctx, itemClass, format);
-    xl6OutputPrintf(ctx->out, "(__xl6_array_item_%d) : xvoCreateNull();\n", id);
+    xl6OutputPrintf(ctx->out, "((%s*)xl6_class_data(*__xl6_array_item_%d, \"\", 0, 0)) : xvoCreateNull();\n", itemCType, id);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out,
                     "if ( !xvoArrayAppendValue(__xl6_array_value_%d, __xl6_array_item_value_%d, true) && __xl6_array_item_value_%d != 0 ) { xvoUnref(__xl6_array_item_value_%d); }\n",
@@ -629,7 +691,9 @@ static int xl6CgenClassArrayAssignFromValueStmt(
 {
     const XL6_AstNode* concreteType;
     const XL6_AstNode* itemType;
+    const XL6_AstNode* itemRecordType;
     XL6_AstNode* itemClass;
+    char itemCType[512];
     int id;
 
     concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
@@ -641,6 +705,14 @@ static int xl6CgenClassArrayAssignFromValueStmt(
         return 0;
     }
     itemClass = xl6CgenPersistenceContainerItemClass(ctx, concreteType);
+    itemRecordType = itemClass != NULL ? xl6CgenClassHandleTargetType(ctx, itemType) : NULL;
+    if ( itemClass != NULL && itemRecordType == NULL ) {
+        return 0;
+    }
+    itemCType[0] = '\0';
+    if ( itemRecordType != NULL ) {
+        xl6CgenClassTypeRefName(itemCType, sizeof(itemCType), itemRecordType);
+    }
 
     id = ctx->tempId++;
     xl6CgenIndent(ctx);
@@ -673,17 +745,29 @@ static int xl6CgenClassArrayAssignFromValueStmt(
     xl6OutputPrintf(ctx->out, "xvalue __xl6_array_item_value_%d = xvoArrayGetValue(%s, __xl6_array_i_%d);\n", id, itemName, id);
     if ( itemClass != NULL ) {
         char elemName[64];
+        char boxedName[64];
         snprintf(elemName, sizeof(elemName), "__xl6_array_item_%d", id);
+        snprintf(boxedName, sizeof(boxedName), "__xl6_array_item_boxed_%d", id);
         xl6CgenIndent(ctx);
-        xl6OutputPuts(xl6CgenTypeName(ctx, itemType), ctx->out);
+        xl6OutputPuts(itemCType, ctx->out);
         xl6OutputPrintf(ctx->out, " %s = {0};\n", elemName);
         xl6CgenClassDefaultInitFields(ctx, itemClass, elemName);
         xl6CgenIndent(ctx);
         xl6OutputPuts("if (!", ctx->out);
         xl6CgenEmitClassFromValueForFormat(ctx, itemClass, format);
-        xl6OutputPrintf(ctx->out, "(&%s, __xl6_array_item_value_%d)) { %s = 0; }\n", elemName, id, okName);
+        xl6OutputPrintf(ctx->out, "(&%s, __xl6_array_item_value_%d)) { %s = 0; } else {\n", elemName, id, okName);
+        ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (xrtTypedArrayAppend(%s, &%s) == 0) { %s = 0; }\n", valuePath, elemName, okName);
+        xl6OutputPrintf(ctx->out, "xvalue %s = ", boxedName);
+        xl6CgenBoxSymbol(ctx->out, itemCType);
+        xl6OutputPrintf(ctx->out, "(%s);\n", elemName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (!xrtTypedArrayAppendValue(%s, %s)) { %s = 0; }\n", valuePath, boxedName, okName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", boxedName, boxedName);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
         if ( xl6CgenClassNeedsDestroy(ctx, itemClass) ) {
             xl6CgenIndent(ctx);
             xl6CgenClassMemberSymbol(ctx->out, itemClass->text, "destroy");
@@ -752,6 +836,8 @@ static void xl6CgenClassAutoToValueFormatProtocol(
     for ( i = 0; body != NULL && i < body->childCount; ++i ) {
         const XL6_AstNode* member = body->children[i];
         const XL6_AstNode* fieldType;
+        const XL6_AstNode* fieldRecordType;
+        XL6_AstNode* fieldClass;
         XL6_CgenFieldPersistConfig cfg;
         char fieldPath[512];
 
@@ -763,8 +849,21 @@ static void xl6CgenClassAutoToValueFormatProtocol(
             continue;
         }
         fieldType = member->children[0];
+        fieldRecordType = xl6CgenClassHandleTargetType(ctx, fieldType);
+        fieldClass = fieldRecordType != NULL ? xl6CgenPersistenceClassForType(ctx, fieldType) : NULL;
         xl6CgenClassFieldPath(fieldPath, sizeof(fieldPath), "self", 1, member->text);
-        if ( !xl6CgenClassArrayValueStmt(ctx, fieldType, fieldPath, "item", format) ) {
+        if ( fieldClass != NULL ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPuts("item = ", ctx->out);
+            xl6OutputPuts(fieldPath, ctx->out);
+            xl6OutputPuts(" != 0 ? ", ctx->out);
+            xl6CgenEmitClassToValueForFormat(ctx, fieldClass, format);
+            xl6OutputPuts("((", ctx->out);
+            xl6OutputPuts(xl6CgenTypeName(ctx, fieldRecordType), ctx->out);
+            xl6OutputPuts("*)xl6_class_data(", ctx->out);
+            xl6OutputPuts(fieldPath, ctx->out);
+            xl6OutputPuts(", \"\", 0, 0)) : xvoCreateNull();\n", ctx->out);
+        } else if ( !xl6CgenClassArrayValueStmt(ctx, fieldType, fieldPath, "item", format) ) {
             xl6CgenIndent(ctx);
             xl6OutputPuts("item = ", ctx->out);
             xl6CgenClassValueExpr(ctx, fieldType, fieldPath);
@@ -884,3 +983,13 @@ static void xl6CgenClassAutoFromValueProtocol(XL6_CgenContext* ctx, const XL6_As
     xl6OutputPuts("}\n\n", ctx->out);
 }
 
+static int xl6CgenPersistenceFormatKind(const char* format)
+{
+    if ( xl6CTextEquals(format, "json") ) {
+        return 1;
+    }
+    if ( xl6CTextEquals(format, "xson") ) {
+        return 2;
+    }
+    return 0;
+}

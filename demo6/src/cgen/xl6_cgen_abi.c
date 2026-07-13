@@ -1,4 +1,4 @@
-﻿static void xl6CgenHashText(unsigned long long* hash, const char* text)
+static void xl6CgenHashText(unsigned long long* hash, const char* text)
 {
     const unsigned char* p;
 
@@ -57,6 +57,9 @@ static void xl6CgenTypeText(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, c
 
     concreteType = xl6CgenSubstituteGenericType(ctx, typeNode);
     concreteType = xl6CgenResolveAliasType(ctx, concreteType);
+    if ( xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
+        concreteType = xl6CgenClassHandleTargetType(ctx, concreteType);
+    }
     if ( concreteType == NULL ) {
         xl6CgenAppendText(buffer, capacity, "_");
         return;
@@ -84,6 +87,9 @@ static void xl6CgenHashSignatureTypeNode(XL6_CgenContext* ctx, unsigned long lon
 
     typeNode = xl6CgenSubstituteGenericType(ctx, typeNode);
     typeNode = xl6CgenResolveAliasType(ctx, typeNode);
+    if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
+        typeNode = xl6CgenClassHandleTargetType(ctx, typeNode);
+    }
     if ( typeNode == NULL ) {
         xl6CgenHashText(hash, "_");
         return;
@@ -128,6 +134,13 @@ static void xl6CgenHashFunctionTypeList(XL6_CgenContext* ctx, unsigned long long
         if ( i > 0 ) {
             xl6CgenHashText(hash, ",");
         }
+        if ( item != NULL && (item->flags & XL6_AST_FLAG_BYVAL) != 0 ) {
+            xl6CgenHashText(hash, "byval:");
+        } else if ( item != NULL && (item->flags & XL6_AST_FLAG_BYREF) != 0 ) {
+            xl6CgenHashText(hash, "byref:");
+        } else if ( item != NULL && (item->flags & XL6_AST_FLAG_OUT) != 0 ) {
+            xl6CgenHashText(hash, "out:");
+        }
         xl6CgenHashSignatureTypeNode(ctx, hash, typeNode);
     }
 }
@@ -145,6 +158,13 @@ static void xl6CgenHashFunctionTypePrefix(XL6_CgenContext* ctx, unsigned long lo
         const XL6_AstNode* typeNode = xl6CgenCallableItemType(item);
         if ( i > 0 ) {
             xl6CgenHashText(hash, ",");
+        }
+        if ( item != NULL && (item->flags & XL6_AST_FLAG_BYVAL) != 0 ) {
+            xl6CgenHashText(hash, "byval:");
+        } else if ( item != NULL && (item->flags & XL6_AST_FLAG_BYREF) != 0 ) {
+            xl6CgenHashText(hash, "byref:");
+        } else if ( item != NULL && (item->flags & XL6_AST_FLAG_OUT) != 0 ) {
+            xl6CgenHashText(hash, "out:");
         }
         xl6CgenHashSignatureTypeNode(ctx, hash, typeNode);
     }
@@ -309,8 +329,8 @@ static const char* xl6CgenRuntimeTypeDescKind(const XL6_AstNode* typeNode)
     if ( xl6CTextEquals(name, "dict") ) {
         return "XL6_XRT_TYPE_KIND_DICT";
     }
-    if ( xl6CTextEquals(name, "ref") ) {
-        return "XL6_XRT_TYPE_KIND_REF";
+    if ( xl6CTextEquals(name, "__class_handle") ) {
+        return "XL6_XRT_TYPE_KIND_CLASS";
     }
     return "XL6_XRT_TYPE_KIND_INVALID";
 }
@@ -375,7 +395,7 @@ static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* t
         xl6OutputPuts("xrtTypeSet()", ctx->out);
     } else if ( xl6CTextEquals(name, "dict") || xl6CTextEquals(name, "dict<var>") ) {
         xl6OutputPuts("xrtTypeDict()", ctx->out);
-    } else if ( xl6CTextEquals(name, "ref") ) {
+    } else if ( xl6CTextEquals(name, "__class_handle") ) {
         xl6OutputPuts("xrtTypeValue()", ctx->out);
     } else if ( xl6CTextEquals(name, "type") ) {
         xl6OutputPuts("xrtTypeType()", ctx->out);
@@ -383,8 +403,12 @@ static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* t
         xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), concreteType);
         xl6CgenTypeDescSymbol(ctx->out, cTypeName);
         xl6OutputPuts("()", ctx->out);
-    } else if ( xl6CgenIsUnionType(ctx, concreteType) ) {
-        xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), concreteType->text);
+    } else if ( xl6CgenIsPlainRecordType(ctx, concreteType) ) {
+        if ( xl6CgenIsStructType(ctx, concreteType) ) {
+            xl6CgenStructTypeTextName(cTypeName, sizeof(cTypeName), concreteType->text);
+        } else {
+            xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), concreteType->text);
+        }
         xl6CgenTypeDescSymbol(ctx->out, cTypeName);
         xl6OutputPuts("()", ctx->out);
     } else if ( xl6CgenIsNativeBackedClassType(ctx, concreteType) ) {
@@ -466,10 +490,22 @@ static unsigned int xl6CgenFunctionSigFlags(const XL6_AstNode* params, size_t pa
 
 static unsigned int xl6CgenFunctionSigParamFlags(const XL6_AstNode* param)
 {
-    if ( param != NULL && param->kind == XL6_AST_PARAM && !xl6CgenParamIsVararg(param) && param->childCount > 1 ) {
-        return 0x00000001u;
+    unsigned int flags = 0u;
+
+    if ( param == NULL ) {
+        return 0u;
     }
-    return 0u;
+    if ( param->kind == XL6_AST_PARAM && !xl6CgenParamIsVararg(param) && param->childCount > 1 ) {
+        flags |= 0x00000001u;
+    }
+    if ( (param->flags & XL6_AST_FLAG_BYVAL) != 0 ) {
+        flags |= 0x00000010u;
+    } else if ( (param->flags & XL6_AST_FLAG_BYREF) != 0 ) {
+        flags |= 0x00000020u;
+    } else if ( (param->flags & XL6_AST_FLAG_OUT) != 0 ) {
+        flags |= 0x00000040u;
+    }
+    return flags;
 }
 
 static const char* xl6CgenFunctionSigParamName(const XL6_AstNode* param)
@@ -615,8 +651,12 @@ static void xl6CgenEmitRuntimeTypeDescDependencyProto(XL6_CgenContext* ctx, cons
 
     if ( xl6CgenIsClassType(ctx, concreteType) ) {
         xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), concreteType);
-    } else if ( xl6CgenIsUnionType(ctx, concreteType) ) {
-        xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), name);
+    } else if ( xl6CgenIsPlainRecordType(ctx, concreteType) ) {
+        if ( xl6CgenIsStructType(ctx, concreteType) ) {
+            xl6CgenStructTypeTextName(cTypeName, sizeof(cTypeName), name);
+        } else {
+            xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), name);
+        }
     } else if ( xl6CgenIsNativeBackedClassType(ctx, concreteType) ) {
         xl6CgenNativeBackedTypeRefName(cTypeName, sizeof(cTypeName), name);
     } else {
@@ -637,6 +677,9 @@ static void xl6CgenEmitRuntimeXValueTypeOps(XL6_CgenContext* ctx)
     }
 
     out = ctx->out;
+    xl6OutputPuts("#ifndef XL6_XRT_TYPE_KIND_CLASS\n", out);
+    xl6OutputPuts("#define XL6_XRT_TYPE_KIND_CLASS 17u\n", out);
+    xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("#ifndef XL6_RUNTIME_XVALUE_TYPE_OPS\n", out);
     xl6OutputPuts("#define XL6_RUNTIME_XVALUE_TYPE_OPS\n", out);
     xl6OutputPuts("static void xl6_runtime_xvalue_init(void* pObj)\n", out);
@@ -786,13 +829,13 @@ static void xl6CgenEmitRuntimeXValueTypeOps(XL6_CgenContext* ctx)
     xl6OutputPuts("    xl6_runtime_xvalue_box,\n", out);
     xl6OutputPuts("    xl6_runtime_xvalue_unbox\n", out);
     xl6OutputPuts("};\n", out);
-    xl6OutputPuts("\nstatic void xl6_runtime_ref_copy(void* pDst, const void* pSrc)\n", out);
+    xl6OutputPuts("\nstatic void xl6_runtime_class_copy(void* pDst, const void* pSrc)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xvalue value = pSrc != 0 ? *(xvalue const*)pSrc : 0;\n", out);
     xl6OutputPuts("    if ( value != 0 ) { xvoAddRef(value); }\n", out);
     xl6OutputPuts("    if ( pDst != 0 ) { *(xvalue*)pDst = value; }\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("static int xl6_runtime_ref_compare(const void* pA, const void* pB)\n", out);
+    xl6OutputPuts("static int xl6_runtime_class_compare(const void* pA, const void* pB)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xvalue left = pA != 0 ? *(xvalue const*)pA : 0;\n", out);
     xl6OutputPuts("    xvalue right = pB != 0 ? *(xvalue const*)pB : 0;\n", out);
@@ -801,46 +844,55 @@ static void xl6CgenEmitRuntimeXValueTypeOps(XL6_CgenContext* ctx)
     xl6OutputPuts("    if ( leftNull || rightNull ) { return leftNull == rightNull ? 0 : (leftNull ? -1 : 1); }\n", out);
     xl6OutputPuts("    return left == right ? 0 : ((uintptr_t)left < (uintptr_t)right ? -1 : 1);\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("static uint64 xl6_runtime_ref_hash(const void* pObj)\n", out);
+    xl6OutputPuts("static uint64 xl6_runtime_class_hash(const void* pObj)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xvalue value = pObj != 0 ? *(xvalue const*)pObj : 0;\n", out);
     xl6OutputPuts("    return value == 0 || xvoIsNull(value) ? 0 : xrtHash64(&value, sizeof(value));\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("static xvalue xl6_runtime_ref_box(const void* pObj, const xrt_type_desc* pType)\n", out);
+    xl6OutputPuts("static xvalue xl6_runtime_class_box(const void* pObj, const xrt_type_desc* pType)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xvalue value = pObj != 0 ? *(xvalue const*)pObj : 0;\n", out);
     xl6OutputPuts("    (void)pType;\n", out);
     xl6OutputPuts("    if ( value != 0 ) { xvoAddRef(value); return value; }\n", out);
     xl6OutputPuts("    return xvoCreateNull();\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("static bool xl6_runtime_ref_unbox(xvalue value, void* pOut, const xrt_type_desc* pType)\n", out);
+    xl6OutputPuts("static bool xl6_runtime_class_unbox(xvalue value, void* pOut, const xrt_type_desc* pType)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    const xrt_type_desc* actual;\n", out);
-    xl6OutputPuts("    (void)pType;\n", out);
+    xl6OutputPuts("    const xrt_type_desc* target;\n", out);
     xl6OutputPuts("    if ( pOut == 0 ) { return false; }\n", out);
     xl6OutputPuts("    if ( value == 0 || xvoIsNull(value) ) { *(xvalue*)pOut = xvoCreateNull(); return true; }\n", out);
     xl6OutputPuts("    actual = xvoTypeDesc(value);\n", out);
-    xl6OutputPuts("    if ( actual == 0 || actual->Kind != XL6_XRT_TYPE_KIND_RECORD ) { return false; }\n", out);
+    xl6OutputPuts("    target = xrtTypeGenericArg(pType, 0u);\n", out);
+    xl6OutputPuts("    if ( actual == 0 || target == 0 || !xrtTypeIsA(actual, target) ) { return false; }\n", out);
     xl6OutputPuts("    xvoAddRef(value);\n", out);
     xl6OutputPuts("    *(xvalue*)pOut = value;\n", out);
     xl6OutputPuts("    return true;\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("static const xrt_type_ops xl6_runtime_ref_ops = {\n", out);
+    xl6OutputPuts("static const xrt_type_ops xl6_runtime_class_ops = {\n", out);
     xl6OutputPuts("    xl6_runtime_xvalue_init,\n", out);
-    xl6OutputPuts("    xl6_runtime_ref_copy,\n", out);
+    xl6OutputPuts("    xl6_runtime_class_copy,\n", out);
     xl6OutputPuts("    xl6_runtime_xvalue_move,\n", out);
     xl6OutputPuts("    xl6_runtime_xvalue_drop,\n", out);
-    xl6OutputPuts("    xl6_runtime_ref_compare,\n", out);
-    xl6OutputPuts("    xl6_runtime_ref_hash,\n", out);
+    xl6OutputPuts("    xl6_runtime_class_compare,\n", out);
+    xl6OutputPuts("    xl6_runtime_class_hash,\n", out);
     xl6OutputPuts("    xl6_runtime_xvalue_to_string,\n", out);
-    xl6OutputPuts("    xl6_runtime_ref_box,\n", out);
-    xl6OutputPuts("    xl6_runtime_ref_unbox\n", out);
+    xl6OutputPuts("    xl6_runtime_class_box,\n", out);
+    xl6OutputPuts("    xl6_runtime_class_unbox\n", out);
     xl6OutputPuts("};\n", out);
 
     xl6OutputPuts("\nxtarray xrtTypedArrayClone(xtarray value);\n", out);
     xl6OutputPuts("xtlist xrtTypedListClone(xtlist value);\n", out);
     xl6OutputPuts("xtset xrtTypedSetClone(xtset value);\n", out);
     xl6OutputPuts("xtdict xrtTypedDictClone(xtdict value);\n", out);
+    xl6OutputPuts("xtarray xrtTypedArrayMoveToShared(xtarray value);\n", out);
+    xl6OutputPuts("xtlist xrtTypedListMoveToShared(xtlist value);\n", out);
+    xl6OutputPuts("xtset xrtTypedSetMoveToShared(xtset value);\n", out);
+    xl6OutputPuts("xtdict xrtTypedDictMoveToShared(xtdict value);\n", out);
+    xl6OutputPuts("xtarray xrtTypedArrayRetain(xtarray value);\n", out);
+    xl6OutputPuts("xtlist xrtTypedListRetain(xtlist value);\n", out);
+    xl6OutputPuts("xtset xrtTypedSetRetain(xtset value);\n", out);
+    xl6OutputPuts("xtdict xrtTypedDictRetain(xtdict value);\n", out);
     xl6OutputPuts("xvalue xrtTypedArrayToValue(xtarray value);\n", out);
     xl6OutputPuts("xvalue xrtTypedListToValue(xtlist value);\n", out);
     xl6OutputPuts("xvalue xrtTypedSetToValue(xtset value);\n", out);
@@ -857,10 +909,10 @@ static void xl6CgenEmitRuntimeXValueTypeOps(XL6_CgenContext* ctx)
     xl6OutputPuts("static void xl6_runtime_handle_move(void* pDst, void* pSrc) { if (pDst != 0) { *(void**)pDst = pSrc != 0 ? *(void**)pSrc : 0; } if (pSrc != 0) { *(void**)pSrc = 0; } }\n", out);
     xl6OutputPuts("static int xl6_runtime_handle_compare(const void* pA, const void* pB) { void* a = pA != 0 ? *(void* const*)pA : 0; void* b = pB != 0 ? *(void* const*)pB : 0; return a == b ? 0 : ((uintptr_t)a < (uintptr_t)b ? -1 : 1); }\n", out);
     xl6OutputPuts("static uint64 xl6_runtime_handle_hash(const void* pObj) { void* value = pObj != 0 ? *(void* const*)pObj : 0; return value != 0 ? xrtHash64(&value, sizeof(value)) : 0; }\n", out);
-    xl6OutputPuts("static void xl6_runtime_array_copy(void* pDst, const void* pSrc) { if (pDst != 0) { xtarray value = pSrc != 0 ? *(xtarray const*)pSrc : 0; *(xtarray*)pDst = value != 0 ? xrtTypedArrayClone(value) : 0; } }\n", out);
-    xl6OutputPuts("static void xl6_runtime_list_copy(void* pDst, const void* pSrc) { if (pDst != 0) { xtlist value = pSrc != 0 ? *(xtlist const*)pSrc : 0; *(xtlist*)pDst = value != 0 ? xrtTypedListClone(value) : 0; } }\n", out);
-    xl6OutputPuts("static void xl6_runtime_set_copy(void* pDst, const void* pSrc) { if (pDst != 0) { xtset value = pSrc != 0 ? *(xtset const*)pSrc : 0; *(xtset*)pDst = value != 0 ? xrtTypedSetClone(value) : 0; } }\n", out);
-    xl6OutputPuts("static void xl6_runtime_dict_copy(void* pDst, const void* pSrc) { if (pDst != 0) { xtdict value = pSrc != 0 ? *(xtdict const*)pSrc : 0; *(xtdict*)pDst = value != 0 ? xrtTypedDictClone(value) : 0; } }\n", out);
+    xl6OutputPuts("static void xl6_runtime_array_copy(void* pDst, const void* pSrc) { if (pDst != 0) { xtarray value = pSrc != 0 ? *(xtarray const*)pSrc : 0; *(xtarray*)pDst = value != 0 ? xrtTypedArrayRetain(value) : 0; } }\n", out);
+    xl6OutputPuts("static void xl6_runtime_list_copy(void* pDst, const void* pSrc) { if (pDst != 0) { xtlist value = pSrc != 0 ? *(xtlist const*)pSrc : 0; *(xtlist*)pDst = value != 0 ? xrtTypedListRetain(value) : 0; } }\n", out);
+    xl6OutputPuts("static void xl6_runtime_set_copy(void* pDst, const void* pSrc) { if (pDst != 0) { xtset value = pSrc != 0 ? *(xtset const*)pSrc : 0; *(xtset*)pDst = value != 0 ? xrtTypedSetRetain(value) : 0; } }\n", out);
+    xl6OutputPuts("static void xl6_runtime_dict_copy(void* pDst, const void* pSrc) { if (pDst != 0) { xtdict value = pSrc != 0 ? *(xtdict const*)pSrc : 0; *(xtdict*)pDst = value != 0 ? xrtTypedDictRetain(value) : 0; } }\n", out);
     xl6OutputPuts("static void xl6_runtime_array_drop(void* pObj) { if (pObj != 0 && *(xtarray*)pObj != 0) { xrtTypedArrayDestroy(*(xtarray*)pObj); *(xtarray*)pObj = 0; } }\n", out);
     xl6OutputPuts("static void xl6_runtime_list_drop(void* pObj) { if (pObj != 0 && *(xtlist*)pObj != 0) { xrtTypedListDestroy(*(xtlist*)pObj); *(xtlist*)pObj = 0; } }\n", out);
     xl6OutputPuts("static void xl6_runtime_set_drop(void* pObj) { if (pObj != 0 && *(xtset*)pObj != 0) { xrtTypedSetDestroy(*(xtset*)pObj); *(xtset*)pObj = 0; } }\n", out);
@@ -911,8 +963,8 @@ static void xl6CgenEmitRuntimeTypeDesc(XL6_CgenContext* ctx, const XL6_AstNode* 
     xl6OutputPuts("        6u,\n", ctx->out);
     xl6OutputPuts("        sizeof(void*),\n", ctx->out);
     xl6OutputPuts("        sizeof(void*),\n", ctx->out);
-    if ( xl6CTextEquals(typeNode->text, "ref") ) {
-        xl6OutputPuts("        &xl6_runtime_ref_ops,\n", ctx->out);
+    if ( xl6CTextEquals(typeNode->text, "__class_handle") ) {
+        xl6OutputPuts("        &xl6_runtime_class_ops,\n", ctx->out);
     } else if ( xl6CTextEquals(typeNode->text, "array") ) {
         xl6OutputPuts("        &xl6_runtime_array_ops,\n", ctx->out);
     } else if ( xl6CTextEquals(typeNode->text, "list") ) {

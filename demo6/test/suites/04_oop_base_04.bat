@@ -72,7 +72,7 @@ if errorlevel 1 (
     echo cgen_class_overloads.c missing class string method overload symbol.
     exit /b 1
 )
-findstr /C:"xl_class_Base__pick(&child.base, 7LL)" build\test\cgen_class_overloads.c >nul
+findstr /C:"xl_class_Base__pick(&((XL_Class_Child*)xl6_class_data(child" build\test\cgen_class_overloads.c >nul
 if errorlevel 1 (
     echo cgen_class_overloads.c missing inherited method base receiver path.
     exit /b 1
@@ -121,7 +121,7 @@ if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded local variable.
     exit /b 1
 )
-findstr /C:"XL_Class__u70B9_ _u5750__u6807_;" build\test\cgen_unicode_identifiers.c >nul
+findstr /C:"xvalue _u5750__u6807_;" build\test\cgen_unicode_identifiers.c >nul
 if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded class variable.
     exit /b 1
@@ -138,7 +138,7 @@ if errorlevel 1 (
     echo cgen_class_destroy.c missing destroy prototype.
     exit /b 1
 )
-findstr /C:"xl_class_Tracker__destroy(&tracker);" build\test\cgen_class_destroy.c >nul
+findstr /C:"xvoUnref(tracker);" build\test\cgen_class_destroy.c >nul
 if errorlevel 1 (
     echo cgen_class_destroy.c missing scope destroy call.
     exit /b 1
@@ -150,7 +150,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_cleanup_order.xl --emit build\test\cgen_cleanup_order.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_cleanup_order.c'; $second=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&second);' | Select-Object -Last 1).LineNumber; $first=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&first);' | Select-Object -Last 1).LineNumber; if(-not $second -or -not $first -or $second -ge $first){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_cleanup_order.c'; $second=($lines | Select-String -SimpleMatch 'xvoUnref(second);' | Select-Object -Last 1).LineNumber; $first=($lines | Select-String -SimpleMatch 'xvoUnref(first);' | Select-Object -Last 1).LineNumber; if(-not $second -or -not $first -or $second -ge $first){exit 1}"
 if errorlevel 1 (
     echo cgen_cleanup_order.c should destroy later local before earlier local.
     exit /b 1
@@ -189,27 +189,27 @@ if errorlevel 1 (
     echo cgen_class_native_field.c missing auto destroy prototype.
     exit /b 1
 )
-findstr /C:"self->first.handle = native_box_open(10LL);" build\test\cgen_class_native_field.c >nul
+findstr /C:"xl6_box_XL_Class_NativeBox((XL_Class_NativeBox){native_box_open(10LL)})" build\test\cgen_class_native_field.c >nul
 if errorlevel 1 (
     echo cgen_class_native_field.c missing first native-backed field create.
     exit /b 1
 )
-findstr /C:"native_box_close(self->second.handle);" build\test\cgen_class_native_field.c >nul
+findstr /C:"xvoUnref(self->second);" build\test\cgen_class_native_field.c >nul
 if errorlevel 1 (
     echo cgen_class_native_field.c missing second native-backed field cleanup.
     exit /b 1
 )
-findstr /C:"native_box_close(self->first.handle);" build\test\cgen_class_native_field.c >nul
+findstr /C:"xvoUnref(self->first);" build\test\cgen_class_native_field.c >nul
 if errorlevel 1 (
     echo cgen_class_native_field.c missing first native-backed field cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_class_native_field.c'; $second=($lines | Select-String -SimpleMatch 'native_box_close(self->second.handle);' | Select-Object -First 1).LineNumber; $first=($lines | Select-String -SimpleMatch 'native_box_close(self->first.handle);' | Select-Object -First 1).LineNumber; if(-not $second -or -not $first -or $second -ge $first){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_class_native_field.c'; $second=($lines | Select-String -SimpleMatch 'xvoUnref(self->second);' | Select-Object -Last 1).LineNumber; $first=($lines | Select-String -SimpleMatch 'xvoUnref(self->first);' | Select-Object -Last 1).LineNumber; if(-not $second -or -not $first -or $second -ge $first){exit 1}"
 if errorlevel 1 (
     echo cgen_class_native_field.c should destroy native-backed fields in reverse declaration order.
     exit /b 1
 )
-findstr /C:"xl_class_Holder__destroy(&holder);" build\test\cgen_class_native_field.c >nul
+findstr /C:"xvoUnref(holder);" build\test\cgen_class_native_field.c >nul
 if errorlevel 1 (
     echo cgen_class_native_field.c missing holder scope cleanup.
     exit /b 1
@@ -221,7 +221,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_native_class_field_method.xl --emit build\test\cgen_native_class_field_method.c
 if errorlevel 1 exit /b 1
-findstr /C:"= native_box_value(self->box.handle);" build\test\cgen_native_class_field_method.c >nul
+findstr /C:"xl_class_NativeBox__value(((XL_Class_NativeBox*)xl6_class_data(__xl6_call_receiver_" build\test\cgen_native_class_field_method.c >nul
 if errorlevel 1 (
     echo cgen_native_class_field_method.c missing native-backed class field method call.
     exit /b 1
@@ -240,7 +240,7 @@ if errorlevel 1 (
     echo cgen_native_class_overloads.c missing int native-backed overload ABI wrapper.
     exit /b 1
 )
-findstr /C:"expect_i64(score_add_i(score.handle, 5LL), 15LL);" build\test\cgen_native_class_overloads.c >nul
+findstr /C:"xl_class_NativeScore__add__int(((XL_Class_NativeScore*)xl6_class_data(score" build\test\cgen_native_class_overloads.c >nul
 if errorlevel 1 (
     echo cgen_native_class_overloads.c missing int native-backed direct overload call.
     exit /b 1
@@ -250,14 +250,14 @@ if errorlevel 1 (
     echo cgen_native_class_overloads.c missing string native-backed overload ABI wrapper.
     exit /b 1
 )
-findstr /C:"expect_i64(score_add_s(score.handle," build\test\cgen_native_class_overloads.c >nul
+findstr /C:"xl_class_NativeScore__add__string(((XL_Class_NativeScore*)xl6_class_data(score" build\test\cgen_native_class_overloads.c >nul
 if errorlevel 1 (
     echo cgen_native_class_overloads.c missing string native-backed direct overload call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_overloads.c test\cases\cgen_native_class_overloads_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_overloads.exe
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_overloads.c test\cases\cgen_native_class_overloads_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_overloads_ownership.exe
 if errorlevel 1 exit /b 1
-build\test\cgen_native_class_overloads.exe
+build\test\cgen_native_class_overloads_ownership.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_overloads.xl --emit build\test\cgen_overloads.c
@@ -507,9 +507,9 @@ if not errorlevel 1 (
     echo cgen_generic_class_alias.c should not mangle transparent alias into class symbol.
     exit /b 1
 )
-findstr /C:"XL_Class_Box__int aliasBox;" build\test\cgen_generic_class_alias.c >nul
+findstr /C:"xvalue aliasBox;" build\test\cgen_generic_class_alias.c >nul
 if errorlevel 1 (
-    echo cgen_generic_class_alias.c missing canonical alias variable type.
+    echo cgen_generic_class_alias.c missing managed canonical alias variable.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_alias.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_alias.exe
@@ -520,4 +520,3 @@ if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: OOP ABI export and interop baseline 4/8
 exit /b 0
-

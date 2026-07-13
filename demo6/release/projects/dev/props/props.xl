@@ -229,7 +229,7 @@ func testMeterHp()
     expectI(computed, 40, "int x = m.hp + 10 expression")
 
     // NOTE: 复合赋值 m.hp += 10 在编译期被拒 (sem: class property assignment only supports =)
-    //       见同目录 BUGS.md BUG-P1。属性只支持直接 = 赋值，复合赋值需展开为 m.hp = m.hp + 10。
+    //       见同目录 BUGS.md。属性只支持直接 = 赋值，复合赋值需展开为 m.hp = m.hp + 10。
     m.hp = m.hp + 10
     expectI(m.hp, 40, "m.hp = m.hp + 10 (manual compound on property)")
 end

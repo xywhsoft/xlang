@@ -36,7 +36,7 @@
 //
 // 设计要点（结合 dev/README.md 与 BUGS.md）：
 //   * 多态控制器：ControllerBase (virtual computeCommand) + 两个 override 子类，
-//     始终以具体子类实例调用，array<var> 承载（见 BUG-RT1/RT2/RT3 说明）。
+//     始终以具体子类实例调用，array<var> 承载（见 BUG-RT1/RT2 说明）。
 //   * 栅格地图用 1D array<float> 模拟 2D：cells[row * width + col]。
 //   * A* 的开放集用自定义二叉堆 MinHeap（O(log n) push/pop）。
 //   * 随机浮点用 random.u32()/2^32 包装，random.range 提供整数区间。

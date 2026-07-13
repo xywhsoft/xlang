@@ -399,7 +399,7 @@ func cmdList(string p) as int
         if ok then
             nextStr = time.format(nextTime(c, now))
         end
-        println(string(name) + "  [" + cronText + "]  " + command)
+        println(name + "  [" + cronText + "]  " + command)
         println("    runs=" + string(runs) + "  next=" + nextStr)
     end
     return 0
@@ -465,7 +465,7 @@ func cmdRun(string p, string logP, int durationSec) as int
             exprs.append(c)
             commands.append(string(entry["command"]))
         else
-            logLine(logP, "WARN skip " + string(name) + " (invalid cron: " + cronText + ")")
+            logLine(logP, "WARN skip " + name + " (invalid cron: " + cronText + ")")
         end
     end
     if names.length == 0 then

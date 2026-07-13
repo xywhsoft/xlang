@@ -18,8 +18,7 @@
 //     HttpClientResponse/Buffer）不能按值传给函数。route handler 和 self-test
 //     中的 HTTP client 操作全部内联。纯字符串/数据处理的 Markdown 渲染、
 //     JSON 拼接、模板数据构造可以拆成普通函数。
-//   * json pretty 模式会 hash 重排键序（BUG-K1），需要保序时手工拼接 JSON 文本。
-//   * string.splitLines 末尾换行产生空串（BUG-S1），用末元素判空收缩长度。
+//   * json pretty 模式会 hash 重排键序，需要保序时手工拼接 JSON 文本。
 //   * `#` 不是注释（开启时间字面量），注释统一用 `//`。
 
 
@@ -211,12 +210,6 @@ end
 func renderMarkdown(string md) as string
     array lines = string.splitLines(md)
     int totalLines = lines.length
-    // BUG-S1 绕过：splitLines 末尾换行多出空串
-    if totalLines > 0 then
-        if string(lines[totalLines - 1]) == "" then
-            totalLines = totalLines - 1
-        end
-    end
 
     string html = ""
     string openBlock = ""    // "", "p", "ul", "ol", "code"
@@ -507,7 +500,7 @@ func joinTags(var tags) as string
         if i > 0 then
             out = out + ", "
         end
-        out = out + string(tags[i])
+        out = out + tags[i]
         i = i + 1
     end
     return out

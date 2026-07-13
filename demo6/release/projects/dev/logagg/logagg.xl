@@ -20,20 +20,20 @@
 //   * HTTP API        - http.server full route table + JSON responses
 //
 // Design notes (BUG-aware):
-//   * Globals reachable from HTTP callbacks are kept as `string` only. Per BUG-XB1 a
+//   * Globals reachable from HTTP callbacks are kept as `string` only. Per a
 //     file-scope `var` container loses its elements when read inside a native C
 //     callback, while string/int globals stay intact. So analyzeDir() renders every
 //     aggregate into owned JSON/text strings and writes them into string globals;
 //     the route handler just forwards those strings. /api/refresh re-runs analyzeDir
 //     (local var dicts never cross the callback boundary as containers, only the
 //     resulting strings do).
-//   * No var/string `+` pitfall (BUG-CE1): every value concatenated into a report is
+//   * No var/string `+` pitfall: every value concatenated into a report is
 //     first forced to a static `string` (via string(...) or .toString()).
-//   * No recursion on var dict (BUG-LP1): all counting is plain linear loops.
-//   * No local name clashes with stdlib namespaces (BUG-RT5): locals use logDir /
+//   * No recursion on var dict: all counting is plain linear loops.
+//   * No local name clashes with stdlib namespaces: locals use logDir /
 //     logPath / tsText / hourKey etc., never bare `dir`/`path`/`time`/`file`/`json`.
 //   * `array xs = dir.glob(...)` untyped initializer (BUG-XL5), iterated by index.
-//   * JSON built by hand to preserve key order (BUG-K1); pretty mode is not used.
+//   * JSON built by hand to preserve key order; pretty mode is not used.
 
 
 const int DEFAULT_PORT = 18200
@@ -42,7 +42,7 @@ const int ALERT_ERR_PER_MIN = 10
 const int CHART_WIDTH = 40
 
 
-// ---- globals consumed by HTTP callbacks (string-only, BUG-XB1 safe) ----
+// ---- globals consumed by HTTP callbacks ----
 string gWatchDir = "."
 string gStatsJson = "{}"
 string gErrorsJson = "[]"
@@ -79,7 +79,7 @@ end
 
 
 // Render an ascii bar chart for hourly buckets. Read-only on its args, so the
-// var/list by-value copy semantics (BUG-XL1) are harmless here. Buckets are
+// var/list by-value copy semantics are harmless here. Buckets are
 // keyed "YYYY-MM-DD HH" which sort lexicographically == chronologically.
 func renderTimeline(var hourly, list<string> sortedKeys, int keyCount) as string
     if keyCount == 0 then
@@ -127,7 +127,7 @@ end
 //
 // All var-dict increments and dict->list sorts are INLINED here (not factored
 // into helpers) because var/typed containers passed to functions are copied by
-// value (BUG-XL1) so writes would be lost, and repeated var-dict param calls
+// value so writes would be lost, and repeated var-dict param calls
 // were observed to hard-crash the process (EXIT=3).
 func analyzeDir(string logDir) as int
     var levelCounts = {}
@@ -160,13 +160,7 @@ func analyzeDir(string logDir) as int
         end
 
         array lines = string.splitLines(content)
-        // BUG-S1: splitLines keeps a trailing "" for a trailing newline; drop it.
         int lineCount = lines.length
-        if lineCount > 0 then
-            if string(lines[lineCount - 1]) == "" then
-                lineCount = lineCount - 1
-            end
-        end
 
         int li = 0
         while li < lineCount do
@@ -480,7 +474,7 @@ end
 
 
 // ============================================================
-// HTTP route handler. Reads only string globals (BUG-XB1 safe).
+// HTTP route handler. Reads only string globals.
 // ============================================================
 func route(point reqHandle, point respHandle) as bool
     HttpRequest req = HttpRequest(reqHandle)

@@ -17,7 +17,7 @@
 //
 // xlang constraints worked around:
 //   - channel<T> only supports value types (int); no string/struct
-//     (BUG-AC1). RPCs use a slot-envelope: channel<int> carries a slot id;
+//     . RPCs use a slot-envelope: channel<int> carries a slot id;
 //     the actual payload lives in parallel global arrays indexed by slot.
 //   - channel / thread are non-copyable; cannot live in typed arrays.
 //     Node inboxes are pre-declared globals; node bodies are spawned
@@ -27,7 +27,7 @@
 //     close hangs forever. Nodes poll with tryRecvInto and never close.
 //   - Global containers accessed by worker threads are initialized at
 //     module scope (array[]) and only mutated in place via push()/index
-//     assignment, never re-bound (BUG-XT3).
+//     assignment, never re-bound.
 //   - time.timer() returns float seconds (wall clock) usable under
 //     `xl run`; used for election deadlines and heartbeat pacing.
 //     time.sleep(ms) sleeps in milliseconds.
@@ -1080,7 +1080,7 @@ end
 
 // ============================== module-level setup =======================
 // Populate all global state arrays before main spawns any thread. Arrays are
-// only mutated in place afterwards (never re-bound) - see BUG-XT3.
+// only mutated in place afterwards (never re-bound) - see.
 
 setupCluster()
 

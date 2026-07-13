@@ -1231,7 +1231,7 @@ func declareVar(string name, string vtype) as bool
     if g_scopes.length == 0 then
         return false
     end
-    var top = g_scopes[g_scopes.length - 1]
+    var top = g_scopes[-1]
     if top[name] != null then
         return false
     end
@@ -1389,7 +1389,7 @@ func analyzeFunc(var f) as string
         string pt = string(p["ptype"])
         if not declareVar(pn, pt) then
             popScope()
-            return "函数 " + string(f["name"]) + " 中重复声明参数 " + pn
+            return "函数 " + f["name"] + " 中重复声明参数 " + pn
         end
     end
     var body = f["body"]
@@ -1718,7 +1718,7 @@ func genStmt(var s, int level) as string
         return genVarDecl(s, level)
     end
     if nt == "assign" then
-        return genIndent(level) + string(s["name"]) + " = " + genExpr(s["expr"]) + ";\n"
+        return genIndent(level) + s["name"] + " = " + genExpr(s["expr"]) + ";\n"
     end
     if nt == "if" then
         return genIf(s, level)
@@ -1763,7 +1763,7 @@ func genFunc(var f, int level) as string
                 head = head + ", "
             end
             var p = params[i]
-            head = head + mapCType(string(p["ptype"])) + " " + string(p["pname"])
+            head = head + mapCType(string(p["ptype"])) + " " + p["pname"]
             i += 1
         end
     end
@@ -1980,7 +1980,7 @@ func dumpTokens(var toks) as string
     int i = 0
     while i < toks.length do
         var t = toks[i]
-        out = out + "[" + string(i) + "] " + string(t["kind"]) + " '" + string(t["text"]) + "'\n"
+        out = out + "[" + string(i) + "] " + t["kind"] + " '" + t["text"] + "'\n"
         i += 1
     end
     return out
@@ -2009,7 +2009,7 @@ func dumpAst(var node, int depth) as string
         return out
     end
     if nt == "func" then
-        out = out + " " + string(node["name"]) + " ret=" + string(node["retType"]) + "\n"
+        out = out + " " + node["name"] + " ret=" + node["retType"] + "\n"
         var ps = node["params"]
         for p in ps
             out = out + dumpAst(p, depth + 1)
@@ -2021,10 +2021,10 @@ func dumpAst(var node, int depth) as string
         return out
     end
     if nt == "param" then
-        return out + " " + string(node["ptype"]) + " " + string(node["pname"]) + "\n"
+        return out + " " + node["ptype"] + " " + node["pname"] + "\n"
     end
     if nt == "vardecl" then
-        out = out + " " + string(node["vtype"]) + " " + string(node["name"])
+        out = out + " " + node["vtype"] + " " + node["name"]
         if node["init"] != null then
             out = out + " =\n" + dumpAst(node["init"], depth + 1)
         else
@@ -2033,7 +2033,7 @@ func dumpAst(var node, int depth) as string
         return out
     end
     if nt == "assign" then
-        out = out + " " + string(node["name"]) + " =\n"
+        out = out + " " + node["name"] + " =\n"
         out = out + dumpAst(node["expr"], depth + 1)
         return out
     end
@@ -2071,7 +2071,7 @@ func dumpAst(var node, int depth) as string
         return out
     end
     if nt == "for" then
-        out = out + " " + string(node["iter"]) + " in\n"
+        out = out + " " + node["iter"] + " in\n"
         out = out + dumpAst(node["iterable"], depth + 1)
         out = out + pad + "  body:\n"
         var body = node["body"]
@@ -2098,24 +2098,24 @@ func dumpAst(var node, int depth) as string
         return out
     end
     if nt == "binary" then
-        out = out + " " + string(node["op"]) + "\n"
+        out = out + " " + node["op"] + "\n"
         out = out + dumpAst(node["left"], depth + 1)
         out = out + dumpAst(node["right"], depth + 1)
         return out
     end
     if nt == "unary" then
-        out = out + " " + string(node["op"]) + "\n"
+        out = out + " " + node["op"] + "\n"
         out = out + dumpAst(node["expr"], depth + 1)
         return out
     end
     if nt == "literal" then
-        return out + " " + string(node["litType"]) + " " + string(node["value"]) + "\n"
+        return out + " " + node["litType"] + " " + node["value"] + "\n"
     end
     if nt == "varref" then
-        return out + " " + string(node["name"]) + "\n"
+        return out + " " + node["name"] + "\n"
     end
     if nt == "call" then
-        out = out + " " + string(node["name"]) + "\n"
+        out = out + " " + node["name"] + "\n"
         var args = node["args"]
         for a in args
             out = out + dumpAst(a, depth + 1)

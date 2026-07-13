@@ -648,10 +648,10 @@ end
 // ========================================================================
 // 场景构造
 //
-// 重要：经实测，xlang 当前存在 BUG（详见 BUGS.md BUG-RT3）：
+// 重要：经实测，xlang 当前存在 BUG：
 //   从函数返回带 virtual 方法 + var 字段的 class 实例，会丢失 vtable。
 // 因此场景构造中所有 Shape / Material 实例都必须直接构造，不能用工厂函数。
-// 「class 构造嵌套 class 构造」会触发 statement-level lowering 限制（BUG-RT4），
+// 「class 构造嵌套 class 构造」会触发 statement-level lowering 限制，
 // 所以每个 class 实例都先单独构造，再传给下一个构造。
 // ========================================================================
 
@@ -873,7 +873,7 @@ func parseArgInt(string s, int defValue) as int
     if string.len(s) == 0 then
         return defValue
     end
-    // 必须全部是数字（首位可以是 +/-）；逐字符校验避免 int("abc") 静默返回 0（BUG-M1）
+    // 必须全部是数字（首位可以是 +/-）；逐字符校验避免 int("abc") 静默返回 0
     int start = 0
     string first = string.slice(s, 0, 1)
     if first == "-" or first == "+" then

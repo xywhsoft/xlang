@@ -129,7 +129,7 @@ if errorlevel 1 (
     echo stdlib_tcp_lifecycle.c missing TcpStream ownership transfer.
     exit /b 1
 )
-findstr /C:"xrtNetTcpStreamClose(client.handle);" build\test\stdlib_tcp_lifecycle.c >nul
+findstr /C:"xl_class_TcpStream__close(((XL_Class_TcpStream*)xl6_class_data(client" build\test\stdlib_tcp_lifecycle.c >nul
 if errorlevel 1 (
     echo stdlib_tcp_lifecycle.c missing graceful close call.
     exit /b 1
@@ -450,12 +450,12 @@ if errorlevel 1 (
     echo cgen_closure_ownership.c missing retained var capture.
     exit /b 1
 )
-findstr /C:"__env->box = xl_class_ClosureBox______xl6__copy__value(box, 1);" build\test\cgen_closure_ownership.c >nul
+findstr /C:"__env->box = xl6_xrt_retain(box);" build\test\cgen_closure_ownership.c >nul
 if errorlevel 1 (
-    echo cgen_closure_ownership.c missing owned class capture copy.
+    echo cgen_closure_ownership.c missing retained class handle capture.
     exit /b 1
 )
-findstr /C:"__env->box.text" build\test\cgen_closure_ownership.c >nul
+findstr /C:"xl6_class_data(__env->box" build\test\cgen_closure_ownership.c >nul
 if errorlevel 1 (
     echo cgen_closure_ownership.c missing captured class receiver rewrite.
     exit /b 1
@@ -465,9 +465,9 @@ if errorlevel 1 (
     echo cgen_closure_ownership.c missing typed-container capture destruction.
     exit /b 1
 )
-findstr /C:"xl_class_ClosureBox__destroy(&__env->box);" build\test\cgen_closure_ownership.c >nul
+findstr /C:"xvoUnref(__env->box);" build\test\cgen_closure_ownership.c >nul
 if errorlevel 1 (
-    echo cgen_closure_ownership.c missing class capture destruction.
+    echo cgen_closure_ownership.c missing class handle capture release.
     exit /b 1
 )
 "%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_closure_ownership.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_closure_ownership.exe

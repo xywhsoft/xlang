@@ -1939,13 +1939,6 @@ func runScript(string path) as int
     end
     string text = file.readText(path)
     var lines = string.splitLines(text)
-    // 处理 splitLines 尾部空串
-    if lines.length > 0 then
-        string last = string(lines[lines.length - 1])
-        if string.trim(last) == "" then
-            lines.remove(lines.length - 1)
-        end
-    end
     int i = 0
     while i < lines.length do
         string line = string(lines[i])
@@ -2056,7 +2049,7 @@ func checkEq(var got, var want, string label)
         println("  [PASS] " + label)
     else
         gTestFail += 1
-        println("  [FAIL] " + label + "   got=" + string(got) + "  want=" + string(want))
+        println("  [FAIL] " + label + "   got=" + got + "  want=" + want)
     end
 end
 

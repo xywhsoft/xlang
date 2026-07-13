@@ -21,7 +21,7 @@
 //     (GHASH + GCTR + 128-bit tag).
 //   * State stored in array<int> (each element 0..255). Heavy bit-ops, table lookup,
 //     GF multiplications, array loops -- exercises the language on crypto workloads.
-//   * All transforms are standalone functions (the chip8 pattern): avoids BUG-C1
+//   * All transforms are standalone functions (the chip8 pattern): avoids
 //     (class methods can't take array<int> params). Functions take array<int> args
 //     and return new/modified array<int>; the value-copy semantics of typed arrays
 //     means reads from params are safe, and returning the result propagates changes.

@@ -32,19 +32,9 @@
 //     is used with explicit shifts and masks.
 //
 // Design constraints honored (see dev/README.md + dev/BUGS.md):
-//   * BUG-HD1: never return Buffer from a function. All Buffer-building
-//     helpers receive the target Buffer as a parameter (global functions
-//     accept native-backed class params fine; only class methods cannot).
-//   * BUG-C1: no class methods with Buffer/array params. All DNS helpers are
-//     global functions.
-//   * BUG-CE1: never `var + string`. Every value drawn from a var container
-//     is coerced with string(...) / int(...) before concatenation.
-//   * BUG-XT3: global containers (g_zone, g_cache) are initialized at
-//     declaration and only modified in-place (clear + key-assign), never
-//     rebound with `g = ...`.
 //   * portscan BUG: `point is null` is always false; we compare against a
 //     default-initialized `point ZERO` to detect failed recv.
-//   * BUG-S1 / int(): defensive parsing of arg strings.
+//   * int(): defensive parsing of arg strings.
 
 const int TYPE_A     = 1
 const int TYPE_CNAME = 5
@@ -129,7 +119,7 @@ end
 
 
 // ============================================================
-// zone management (in-place only; BUG-XT3)
+// zone management
 // ============================================================
 func zoneLoad(string path) as bool
     if not file.exists(path) then

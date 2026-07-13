@@ -1440,13 +1440,6 @@ func assemble(string src) as int
     g_image = makeIntArray(MEM_SIZE, 0)
 
     array rawLines = string.splitLines(src)
-    // string.splitLines leaves a trailing "" if src ends with newline; drop it.
-    if rawLines.length > 0 then
-        int last = rawLines.length - 1
-        if string(rawLines[last]) == "" then
-            rawLines.pop()
-        end
-    end
 
     // ---- Pass 1: collect labels and compute instruction sizes ----
     int addr = 0

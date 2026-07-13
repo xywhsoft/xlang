@@ -1,0 +1,19 @@
+int destroyed = 0
+
+class Resource
+    int value = 0
+
+    destroy()
+        destroyed += 1
+    end
+end
+
+func count(...) as int
+    return arg.length
+end
+
+var fn = count
+var result = fn(Resource())
+
+assert int(result) == 1
+assert destroyed == 1

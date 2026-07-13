@@ -39,7 +39,7 @@
 //   function. So WAV bytes are first collected into a returnable array<int>,
 //   then copied into a Buffer in the caller (main / cmdRender) exactly like
 //   the imgcodecs BMP path. All array<float> DSP lives in global functions
-//   (the rasterizer BUG-C1/C2 note warns against bare array<float> params on
+//   (the rasterizer note warns against bare array<float> params on
 //   *class methods*; global functions taking array<float> are exercised by
 //   voxel.xl and are used here freely).
 // ---------------------------------------------------------------------------

@@ -23,15 +23,15 @@
 // Architecture notes (xlang gotchas worked around):
 //   * All turtle mutation happens through METHODS on a single instance held in
 //     main scope (never passed by value to a function), so scalar fields
-//     (x/y/angle) survive (see BUG-XT2: class-by-value param loses scalars).
+//     (x/y/angle) survive.
 //   * runCommands / interpret take only scalar (string/float) parameters; the
-//     command text is split into LOCAL var arrays, avoiding BUG-C1 (container
+//     command text is split into LOCAL var arrays, avoiding (container
 //     params to methods) and BUG-XL5 (typed array<T> from stdlib).
 //   * The path is stored as array<string> of "M x y" / "L x y" segments with a
 //     parallel array<string> of colours; renderBody bakes scale+translate into
 //     the coordinates so stroke-width stays in screen units.
 //   * lsystemExpand is iterative (no per-frame dict allocation in recursion),
-//     so BUG-LP1 (quadratic dict GC) does not apply.
+//     so (quadratic dict GC) does not apply.
 
 
 // ============================================================ numeric helpers
@@ -147,7 +147,7 @@ end
 // ============================================================ L-system expand
 // Iteratively rewrite axiom: each char with a rule key maps to its value,
 // every other char is kept. `rules` is built once by lsystemConfig (no dict
-// allocation inside the loop, so BUG-LP1 cannot trigger).
+// allocation inside the loop, so cannot trigger).
 func lsystemExpand(string axiom, var rules, int iter) as string
     string cur = axiom
     int it = 0
@@ -307,7 +307,7 @@ class Turtle
     end
 
 
-    // Number of recorded path segments (BUG-C2: route self.field.length
+    // Number of recorded path segments (route self.field.length
     // through a local before returning).
     func segmentCount() as int
         int n = self.cmds.length
@@ -539,7 +539,7 @@ end
 
 // ============================================================ pattern builder
 // Build a fully-drawn Turtle for a named L-system. Returning a class instance
-// from a function is safe (BUG-XT2: return preserves all fields).
+// from a function is safe.
 func buildPatternTurtle(string name, int iter) as Turtle
     var cfg = lsystemConfig(name)
     float sa = float(cfg["startAngle"])

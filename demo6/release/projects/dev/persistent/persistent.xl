@@ -16,7 +16,7 @@
 //   链表 / BST 是纯 id 表示; HashMap 的桶数组按 version 扁平存入池中, 同样以 id 引用。
 //
 // 对齐 xlang 当前限制:
-//   * 热路径一律用扁平 array<int>/array<string> (避开 BUG-LP1: var dict 递归二次方 GC)。
+//   * 热路径一律用扁平 array<int>/array<string>。
 //   * 显式类型接收 pop() (auto 无法推断)。
 //   * 注释用 // (# 是时间字面量)。
 

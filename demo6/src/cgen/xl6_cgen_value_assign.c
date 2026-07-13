@@ -99,11 +99,19 @@ static const XL6_AstNode* xl6CgenNameAssignTargetType(XL6_CgenContext* ctx, cons
 static void xl6CgenNameAssignTargetPath(XL6_CgenContext* ctx, const char* name, char* buffer, size_t capacity)
 {
     const XL6_AstNode* externalVar;
+    unsigned int flags;
+    char cName[512];
 
     if ( buffer == NULL || capacity == 0 ) {
         return;
     }
     if ( xl6CgenImplicitSelfFieldPath(ctx, name, buffer, capacity) ) {
+        return;
+    }
+    flags = xl6CgenFindTrackedVarFlags(ctx, name);
+    if ( (flags & (XL6_CGEN_VAR_BYREF | XL6_CGEN_VAR_OUT)) != 0 ) {
+        xl6CgenCIdentText(cName, sizeof(cName), name);
+        snprintf(buffer, capacity, "(*%s)", cName);
         return;
     }
     if ( xl6CgenFindTrackedVarType(ctx, name) == NULL ) {
@@ -441,7 +449,7 @@ static int xl6CgenMemberAssignIsDynamicTarget(XL6_CgenContext* ctx, const XL6_As
     }
     receiver = left->children[0];
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-    result = xl6CgenRefTargetType(ctx, receiverType) == NULL &&
+    result = xl6CgenClassHandleTargetType(ctx, receiverType) == NULL &&
              xl6CgenIsXValueType(receiverType);
     xl6AstFree(receiverType);
     return result;
@@ -463,7 +471,7 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
 
     receiver = left->children[0];
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-    if ( xl6CgenRefTargetType(ctx, receiverType) != NULL ) {
+    if ( xl6CgenClassHandleTargetType(ctx, receiverType) != NULL ) {
         xl6AstFree(receiverType);
         return 0;
     }
@@ -768,7 +776,8 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         int moveReturn = literal == NULL && xl6CgenTypedContainerCanMoveFromExpr(ctx, targetType, right);
         int importDynamic = literal == NULL && xl6CgenTypedContainerCanImportDynamicExpr(ctx, targetType, right);
         unsigned int targetFlags = xl6CgenFindTrackedVarFlags(ctx, left->text);
-        int targetBorrowed = (targetFlags & XL6_CGEN_VAR_BORROWED) != 0;
+        int targetBorrowed = (targetFlags & XL6_CGEN_VAR_BORROWED) != 0 &&
+                             (targetFlags & (XL6_CGEN_VAR_BYREF | XL6_CGEN_VAR_OUT)) == 0;
         int targetShared = (targetFlags & XL6_CGEN_VAR_MODULE_GLOBAL) != 0;
         int id = ctx->tempId++;
         char cName[512];
@@ -828,11 +837,11 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 right,
                 targetShared ? "XRT_OBJMODE_SHARED" : "XRT_OBJMODE_LOCAL");
         } else {
-            xl6CgenTypedContainerCopyExprMode(
-                ctx,
-                targetType,
-                right,
-                targetShared ? "XRT_OBJMODE_SHARED" : "XRT_OBJMODE_LOCAL");
+            if ( targetShared && !xl6CgenTypedContainerExprIsSharedStorage(ctx, right) ) {
+                xl6CgenTypedContainerCopyExprMode(ctx, targetType, right, "XRT_OBJMODE_SHARED");
+            } else {
+                xl6CgenTypedContainerRetainExpr(ctx, targetType, right);
+            }
         }
         xl6OutputPuts(";\n", ctx->out);
         if ( importDynamic ) {
@@ -879,7 +888,9 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         XL6_AstNode* classNode = xl6CgenClassNodeForType(ctx, targetType);
         int upcastAssign = xl6CgenExprNeedsClassUpcast(ctx, targetType, right, NULL, 0, NULL, NULL);
 
-        if ( classNode != NULL && (upcastAssign || xl6CgenClassNeedsDestroy(ctx, classNode)) ) {
+        if ( classNode != NULL &&
+             !xl6CgenIsXValueType(targetType) &&
+             (upcastAssign || xl6CgenClassNeedsDestroy(ctx, classNode)) ) {
             int id = ctx->tempId++;
             char cName[512];
             char tempName[64];

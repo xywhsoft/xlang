@@ -23,16 +23,16 @@
 //     -> EstablishedState
 //
 // xlang constraints worked around:
-//   - class param shallow-copy loses scalar writes (BUG-XT2): the engine mutates
+//   - class param shallow-copy loses scalar writes: the engine mutates
 //     self.ctx (field access, never a param); state describe() methods are READ-ONLY
 //     on ctx (shallow copy of same values is harmless for reads).
 //   - array<Base> silently drops derived (BUG-RT1): vtable polymorphism test uses a
 //     var array + `as HandshakeState` downcast (vtable preserved per shapes.xl SH1).
-//   - returning a class-with-virtual from a function loses vtable (BUG-RT3): every
+//   - returning a class-with-virtual from a function loses vtable: every
 //     state instance is constructed locally at its use site, never returned.
-//   - var + string garbles (BUG-CE1): all hex values stored as typed `string`.
-//   - `return self.field.length` rejected (BUG-C2): cached into a local int first.
-//   - class method cannot safely receive array<T> param (BUG-C1): describe() reads
+//   - var + string garbles: all hex values stored as typed `string`.
+//   - `return self.field.length` rejected: cached into a local int first.
+//   - class method cannot safely receive array<T> param: describe reads
 //     only scalar string/int fields from ctx (cipher lists are pre-joined to a string
 //     field by the engine before dispatch).
 //   - program always returns 0 (EXIT=0 for xl run / xl build).

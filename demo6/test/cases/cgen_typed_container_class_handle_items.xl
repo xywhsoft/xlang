@@ -1,0 +1,18 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class Item
+    int value = 7
+end
+
+class DerivedItem extends Item
+    int extra = 9
+end
+
+DerivedItem item = DerivedItem()
+array<Item> items = array<Item>[item]
+list<Item> itemList = list<Item>[3: item]
+dict<Item> itemDict = dict<Item>{"item": item}
+
+expect(items[0].value, 7)
+expect(itemList[3].value, 7)
+expect(itemDict["item"].value, 7)

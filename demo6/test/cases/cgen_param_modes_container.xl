@@ -1,0 +1,42 @@
+func appendShared(array<int> values)
+    values.append(2)
+end
+
+func appendCopy(byval array<int> values)
+    values.append(3)
+end
+
+func replaceArray(byref array<int> values)
+    array<int> next = array[7, 8]
+    values = next
+end
+
+func writeArray(out array<int> values)
+    array<int> next = array[9]
+    values = next
+end
+
+func main(...) as int
+    array<int> source = array[1]
+    array<int> alias = source
+    alias.append(4)
+    assert source.length == 2
+    assert source[1] == 4
+
+    appendShared(source)
+    assert source.length == 3
+    assert source[2] == 2
+
+    appendCopy(source)
+    assert source.length == 3
+
+    replaceArray(byref source)
+    assert source.length == 2
+    assert source[0] == 7
+
+    array<int> output = array[]
+    writeArray(out output)
+    assert output.length == 1
+    assert output[0] == 9
+    return 0
+end

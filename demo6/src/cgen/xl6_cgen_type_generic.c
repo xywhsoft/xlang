@@ -505,6 +505,65 @@ static void xl6CgenCollectGenericInstancesToFixedPoint(XL6_CgenContext* ctx)
     }
 }
 
+static void xl6CgenDiscoverGenericClassInstancesInNode(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( ctx == NULL || node == NULL ) {
+        return;
+    }
+    if ( node->kind == XL6_AST_CLASS && xl6CgenClassHasTypeParams(node) && ctx->currentGenericArgs == NULL ) {
+        return;
+    }
+    if ( node->kind == XL6_AST_TYPE ) {
+        XL6_AstNode* canonicalType = xl6CgenCloneCanonicalTypeNode(ctx, node);
+        const XL6_AstNode* classType = xl6CgenClassHandleTargetType(ctx, canonicalType);
+        XL6_AstNode* classNode;
+
+        if ( classType == NULL ) {
+            classType = canonicalType;
+        }
+        classNode = classType != NULL && classType->text != NULL ? xl6CgenFindClass(ctx, classType->text) : NULL;
+        if ( classNode != NULL && classType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+            xl6CgenAddGenericClassInstance(ctx, classNode, classType);
+        }
+        xl6AstFree(canonicalType);
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        xl6CgenDiscoverGenericClassInstancesInNode(ctx, node->children[i]);
+    }
+}
+
+static void xl6CgenDiscoverGenericClassInstancesToFixedPoint(XL6_CgenContext* ctx)
+{
+    size_t scanned;
+
+    if ( ctx == NULL ) {
+        return;
+    }
+    xl6CgenDiscoverGenericClassInstancesInNode(ctx, ctx->root);
+    scanned = 0;
+    while ( scanned < ctx->genericClassInstanceCount ) {
+        const XL6_CgenGenericClassInstance* instance = &ctx->genericClassInstances[scanned];
+        const XL6_AstNode* classNode = instance->classNode;
+        const XL6_AstNode* typeNode = instance->typeNode;
+        const XL6_AstNode* prevParams = ctx->currentGenericParams;
+        const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
+        size_t i;
+
+        if ( classNode != NULL && typeNode != NULL && typeNode->childCount > 0 ) {
+            ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+            ctx->currentGenericArgs = typeNode->children[0];
+            for ( i = 0; i < classNode->childCount; ++i ) {
+                xl6CgenDiscoverGenericClassInstancesInNode(ctx, classNode->children[i]);
+            }
+            ctx->currentGenericParams = prevParams;
+            ctx->currentGenericArgs = prevArgs;
+        }
+        scanned += 1;
+    }
+}
+
 static void xl6CgenCollectRuntimeTypeDescsInNode(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     size_t i;
@@ -513,6 +572,10 @@ static void xl6CgenCollectRuntimeTypeDescsInNode(XL6_CgenContext* ctx, const XL6
         return;
     }
     if ( (node->kind == XL6_AST_FUNC || node->kind == XL6_AST_ASYNC_FUNC) && xl6CgenFuncIsGeneric(node) && ctx->currentGenericArgs == NULL ) {
+        return;
+    }
+    /* 开放泛型 class 没有可注册的运行时类型，只收集其具体实例。 */
+    if ( node->kind == XL6_AST_CLASS && xl6CgenClassHasTypeParams(node) && ctx->currentGenericArgs == NULL ) {
         return;
     }
     if ( node->kind == XL6_AST_TYPE ) {
@@ -570,6 +633,21 @@ static void xl6CgenCollectRuntimeTypeDescs(XL6_CgenContext* ctx, const XL6_AstNo
         ctx->currentGenericParams = xl6CgenFuncTypeParams(ctx->genericInstances[i].func);
         ctx->currentGenericArgs = ctx->genericInstances[i].typeArgs;
         xl6CgenCollectRuntimeTypeDescsInNode(ctx, ctx->genericInstances[i].func);
+        ctx->currentGenericParams = prevParams;
+        ctx->currentGenericArgs = prevArgs;
+    }
+    for ( i = 0; i < ctx->genericClassInstanceCount; ++i ) {
+        const XL6_CgenGenericClassInstance* instance = &ctx->genericClassInstances[i];
+        const XL6_AstNode* typeNode = instance->typeNode;
+
+        if ( instance->classNode == NULL || typeNode == NULL || typeNode->childCount == 0 ) {
+            continue;
+        }
+        prevParams = ctx->currentGenericParams;
+        prevArgs = ctx->currentGenericArgs;
+        ctx->currentGenericParams = xl6CgenClassTypeParams(instance->classNode);
+        ctx->currentGenericArgs = typeNode->children[0];
+        xl6CgenCollectRuntimeTypeDescsInNode(ctx, instance->classNode);
         ctx->currentGenericParams = prevParams;
         ctx->currentGenericArgs = prevArgs;
     }

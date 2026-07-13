@@ -42,7 +42,7 @@
 //   - 索引在 SET dict 值时自动建立标量字段；DELETE/ROLLBACK 自动维护。
 //   - 事务快照用 json.parse(json.stringify(data)) 深拷贝（值语义独立）。
 //   - TTL 用 time.toUnix(time.now()) 取当前秒；每次命令前惰性清理过期键。
-//   - HTTP serve 模式：状态经磁盘文件跨越 native callback 边界（绕开 BUG-XB1），
+//   - HTTP serve 模式：状态经磁盘文件跨越 native callback 边界，
 //     每个请求内 load → execute → store，execute 复用全局引擎。
 // ============================================================================
 
@@ -568,12 +568,6 @@ func runScript(string scriptPath) as int
     end
     string text = file.readText(scriptPath)
     array lines = string.splitLines(text)
-    // BUG-S1 绕过：splitLines 末尾换行多出一个空串，删一个。
-    if lines.length > 0 then
-        if string(lines[lines.length - 1]) == "" then
-            lines.remove(lines.length - 1)
-        end
-    end
     int i = 0
     while i < lines.length do
         string ln = string(lines[i])
@@ -633,7 +627,7 @@ end
 
 
 // ============================================================================
-// HTTP serve 模式（磁盘跨越 native callback 边界，绕开 BUG-XB1）
+// HTTP serve 模式
 // ============================================================================
 
 string gServeFile = ""    // serve 模式数据文件路径，main 中赋值

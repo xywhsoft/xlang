@@ -151,13 +151,6 @@ func main(...) as int
 
     array lines = string.splitLines(content)
     int totalLines = lines.length
-    // BUG-S1 绕过：splitLines 把末尾换行当分隔符，会多出尾部空串。
-    // 不直接 remove，改用有效长度，避免对 splitLines 返回值做改动。
-    if totalLines > 0 then
-        if string(lines[totalLines - 1]) == "" then
-            totalLines = totalLines - 1
-        end
-    end
 
     // 解析标题 -> 平行动态数组 (level, title)
     array levels = []
@@ -256,7 +249,7 @@ func main(...) as int
     end
     // TOC 前若与上一行没有空行分隔，则补一个
     if outLines.length > 0 then
-        if string(outLines[outLines.length - 1]) != "" then
+        if string(outLines[-1]) != "" then
             outLines.push("")
         end
     end
@@ -278,7 +271,7 @@ func main(...) as int
     int on = outLines.length
     int ox = 0
     while ox < on do
-        newContent = newContent + string(outLines[ox]) + "\n"
+        newContent = newContent + outLines[ox] + "\n"
         ox = ox + 1
     end
 

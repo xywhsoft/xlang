@@ -68,7 +68,7 @@ static int xl6CgenExprParamMatchCost(XL6_CgenContext* ctx, const XL6_AstNode* ex
              paramType->childCount == 0 &&
              ((xl6CgenIsClassType(ctx, exprType) && xl6CgenIsClassType(ctx, paramType)) ||
               (xl6CgenIsNativeBackedClassType(ctx, exprType) && xl6CgenIsNativeBackedClassType(ctx, paramType)) ||
-              (xl6CgenIsUnionType(ctx, exprType) && xl6CgenIsUnionType(ctx, paramType))) ) {
+              (xl6CgenIsPlainRecordType(ctx, exprType) && xl6CgenIsPlainRecordType(ctx, paramType))) ) {
             xl6AstFree(exprType);
             return 0;
         }

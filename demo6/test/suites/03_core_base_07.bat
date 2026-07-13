@@ -31,7 +31,7 @@ if errorlevel 1 (
     echo cgen_runtime_type_baseline.c missing callable runtime type boxing.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_to_xvalue(xl6_type_desc_XL_Class_Child()" build\test\cgen_runtime_type_baseline.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_runtime_type_baseline.c' -Raw; if($t -notmatch 'xrtTypedArrayCreate\(xl6_runtime_type_desc_([0-9A-F]+)\(\),[\s\S]*?xl6_xrt_typed_array_to_xvalue\(xl6_runtime_type_desc_\1\(\), children\)'){exit 1}"
 if errorlevel 1 (
     echo cgen_runtime_type_baseline.c missing typed class array runtime descriptor binding.
     exit /b 1
@@ -229,9 +229,14 @@ release\xl.exe run test\cases\cgen_closure_class_ctor_scope.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_closure_class_ctor_scope.xl --emit build\test\cgen_closure_class_ctor_scope.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Box__create(&box, input);" build\test\cgen_closure_class_ctor_scope.c >nul
+findstr /C:"xl_class_Box__create(&__xl6_box_ctor_stmt_" build\test\cgen_closure_class_ctor_scope.c >nul
 if errorlevel 1 (
-    echo cgen_closure_class_ctor_scope.c should construct class values inside the closure invoke body.
+    echo cgen_closure_class_ctor_scope.c should construct class records inside the closure invoke body.
+    exit /b 1
+)
+findstr /C:"box = xvoCreateRecordMove(xl6_type_desc_XL_Class_Box()" build\test\cgen_closure_class_ctor_scope.c >nul
+if errorlevel 1 (
+    echo cgen_closure_class_ctor_scope.c should publish the closure-local class handle.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_closure_class_ctor_scope.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_closure_class_ctor_scope.exe

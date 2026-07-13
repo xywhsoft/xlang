@@ -144,7 +144,9 @@ static void xl6CgenExportWrapper(XL6_CgenContext* ctx, const XL6_AstNode* node)
             if ( i > 0 ) {
                 xl6OutputPuts(", ", ctx->out);
             }
-            if ( param != NULL && param->childCount > 0 && xl6CgenIsXValueType(param->children[0]) ) {
+            if ( param != NULL && (param->flags & (XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT)) != 0 ) {
+                xl6CgenFputsCIdent(ctx->out, param->text);
+            } else if ( param != NULL && param->childCount > 0 && xl6CgenIsXValueType(param->children[0]) ) {
                 /* C ABI 参数由调用方拥有，进入内部 owned-parameter ABI 前增加引用。 */
                 xl6OutputPuts("xl6_xrt_retain(", ctx->out);
                 xl6CgenFputsCIdent(ctx->out, param->text);

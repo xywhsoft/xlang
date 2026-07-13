@@ -1,0 +1,22 @@
+import class_handle_api
+
+func main(...) as int
+    auto value = class_handle_api.make(42)
+    if value.value() != 42 then
+        return 1
+    end
+    if class_handle_api.read(value) != 42 then
+        return 2
+    end
+    int number = 1
+    class_handle_api.increment(byref number)
+    if number != 2 then
+        return 3
+    end
+    int output
+    class_handle_api.makeOut(7, out output)
+    if output != 7 then
+        return 4
+    end
+    return 0
+end

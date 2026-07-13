@@ -140,21 +140,21 @@ func main(...) as int
     if arg.length >= 3 then
         p = int(arg[2])
         if p <= 0 then
-            println("Error: producers must be a positive integer (got '" + string(arg[2]) + "')")
+            println("Error: producers must be a positive integer (got '" + arg[2] + "')")
             return 1
         end
     end
     if arg.length >= 4 then
         c = int(arg[3])
         if c <= 0 then
-            println("Error: consumers must be a positive integer (got '" + string(arg[3]) + "')")
+            println("Error: consumers must be a positive integer (got '" + arg[3] + "')")
             return 1
         end
     end
     if arg.length >= 5 then
         items = int(arg[4])
         if items <= 0 then
-            println("Error: items must be a positive integer (got '" + string(arg[4]) + "')")
+            println("Error: items must be a positive integer (got '" + arg[4] + "')")
             return 1
         end
     end

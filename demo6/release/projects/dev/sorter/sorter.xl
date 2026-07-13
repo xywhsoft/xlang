@@ -26,9 +26,6 @@ func toStr(var v) as string
 end
 
 // 读取文件全部非空处理: 返回每行的 array<string> (不去空行, 不去空白).
-// 注意: string.splitLines 把末尾换行当成"分隔符"而非"行终结符",
-// "a\nb\n" 会得到 ["a","b",""] (多一个尾部空串, 见 BUG-S1).
-// 这里按 Unix 行工具惯例丢掉恰好一个尾部空串, 使 "a\nb\n" 等价于两行.
 func loadLines(string path) as array<string>
     string text = file.readText(path)
     array raw = string.splitLines(text)
@@ -39,11 +36,6 @@ func loadLines(string path) as array<string>
     while i < n do
         result.push(toStr(raw[i]))
         i += 1
-    end
-    if result.length > 0 then
-        if result[result.length - 1] == "" then
-            result.remove(result.length - 1)
-        end
     end
     return result
 end

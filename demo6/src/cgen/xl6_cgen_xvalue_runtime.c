@@ -336,7 +336,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("#define XL6_XRT_TYPE_KIND_DICT 12u\n", out);
     xl6OutputPuts("#define XL6_XRT_TYPE_KIND_RECORD 13u\n", out);
     xl6OutputPuts("#define XL6_XRT_TYPE_KIND_HANDLE 14u\n", out);
-    xl6OutputPuts("#define XL6_XRT_TYPE_KIND_REF 17u\n", out);
+    xl6OutputPuts("#define XL6_XRT_TYPE_KIND_CLASS 17u\n", out);
     xl6OutputPuts("#define XL6_XRT_HANDLE_FLAG_BORROWED 0x00000002u\n", out);
     xl6OutputPuts("#define XL6_XRT_HANDLE_FLAG_NULLABLE 0x00000004u\n", out);
     xl6OutputPuts("#ifndef XRT_OBJMODE_LOCAL\n", out);
@@ -836,7 +836,8 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static xvalue xl6_xrt_retain(xvalue value)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return xvoShare(value);\n", out);
+    xl6OutputPuts("    if ( value != 0 ) { xvoAddRef(value); }\n", out);
+    xl6OutputPuts("    return value;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static xvalue xl6_xrt_value_copy_release(xvalue value, int deep)\n", out);

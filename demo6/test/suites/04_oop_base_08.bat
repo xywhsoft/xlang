@@ -33,7 +33,7 @@ if errorlevel 1 (
     echo cgen_typed_container_param_mutation.c should borrow named typed-container arguments.
     exit /b 1
 )
-findstr /C:"mutateArray(store.values);" build\test\cgen_typed_container_param_mutation.c >nul
+findstr /C:"xl_fn_mutateArray((*((XL_Class_Store*)xl6_class_data(store" build\test\cgen_typed_container_param_mutation.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_param_mutation.c should borrow typed-container field arguments.
     exit /b 1
@@ -71,9 +71,9 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\cgen_class_param_value_ownership.xl --emit build\test\cgen_class_param_value_ownership.c
 if errorlevel 1 exit /b 1
-findstr /C:"box = xl_class_ValueBox______xl6__copy__value(box, 1);" build\test\cgen_class_param_value_ownership.c >nul
+findstr /C:"xl_class_ValueBox______xl6__copy__value" build\test\cgen_class_param_value_ownership.c >nul
 if errorlevel 1 (
-    echo cgen_class_param_value_ownership.c missing class parameter ownership copy.
+    echo cgen_class_param_value_ownership.c missing byval class copy path.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_param_value_ownership.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_param_value_ownership.exe
@@ -103,4 +103,3 @@ if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: OOP ABI export and interop baseline 8/8
 exit /b 0
-

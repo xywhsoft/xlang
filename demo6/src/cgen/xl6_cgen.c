@@ -44,6 +44,7 @@ static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6
 static void xl6CgenTypedContainerStorageToXValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* storageName);
 static const XL6_AstNode* xl6CgenResolveClassCreateMode(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* call, int reportNoMatch);
 static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name);
+#include "src/cgen/xl6_cgen_args_box_typed.c"
 #include "src/cgen/xl6_cgen_args.c"
 #include "src/cgen/xl6_cgen_debug.c"
 #include "src/cgen/xl6_cgen_fstring.c"
@@ -101,6 +102,7 @@ static void xl6CgenAsyncPendingResultCompletion(XL6_CgenContext* ctx, int target
 #include "src/cgen/xl6_cgen_decl_proto.c"
 #include "src/cgen/xl6_cgen_class_virtual.c"
 #include "src/cgen/xl6_cgen_decl_union.c"
+#include "src/cgen/xl6_cgen_decl_struct.c"
 #include "src/cgen/xl6_cgen_decl_class.c"
 #include "src/cgen/xl6_cgen_decl_methods.c"
 #include "src/cgen/xl6_cgen_async.c"
