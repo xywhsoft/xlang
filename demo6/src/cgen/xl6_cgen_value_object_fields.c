@@ -78,9 +78,7 @@ static const XL6_AstNode* xl6CgenMemberFieldType(XL6_CgenContext* ctx, const XL6
     }
 
     if ( receiverType != NULL && xl6CgenIsPlainRecordType(ctx, receiverType) ) {
-        field = xl6CgenIsStructType(ctx, receiverType)
-            ? xl6CgenFindStructFieldNode(xl6CgenFindStruct(ctx, receiverType->text), member->text)
-            : xl6CgenFindUnionFieldNode(xl6CgenFindUnion(ctx, receiverType->text), member->text);
+        field = xl6CgenFindUnionFieldNode(xl6CgenFindUnion(ctx, receiverType->text), member->text);
         xl6AstFree(ownedReceiverType);
         return field != NULL && field->childCount > 0 ? field->children[0] : NULL;
     }
@@ -126,12 +124,8 @@ static int xl6CgenPlainRecordFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode
         return 0;
     }
 
-    recordNode = xl6CgenIsStructType(ctx, receiverType)
-        ? xl6CgenFindStruct(ctx, receiverType->text)
-        : xl6CgenFindUnion(ctx, receiverType->text);
-    field = xl6CgenIsStructType(ctx, receiverType)
-        ? xl6CgenFindStructFieldNode(recordNode, member->text)
-        : xl6CgenFindUnionFieldNode(recordNode, member->text);
+    recordNode = xl6CgenFindUnion(ctx, receiverType->text);
+    field = xl6CgenFindUnionFieldNode(recordNode, member->text);
     if ( field == NULL ) {
         xl6AstFree(ownedReceiverType);
         return 0;

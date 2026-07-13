@@ -397,10 +397,7 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         if ( initExpr != NULL ) {
             xl6CgenXValueLocalInitStmt(ctx, typeNode, cName, initExpr);
         } else if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
-            xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", cName);
-            if ( !xl6CgenDefaultClassHandleXValueStmt(ctx, typeNode, cName, node) ) {
-                xl6CgenError(ctx, node, "default class construction lowering failed");
-            }
+            xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateNull();\n", cName);
         } else {
             xl6OutputPrintf(ctx->out, "xvalue %s = ", cName);
             xl6CgenDefaultXValueForTarget(ctx, typeNode);

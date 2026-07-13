@@ -83,18 +83,18 @@ assert string.formatInt(-8, "o") == "-10", "negative octal format should keep si
 var boxed = boxFloat()
 assert float(boxed) == 1.5, "returning scalar expression from var function should box value"
 
-VarSlot slot
+VarSlot slot = VarSlot()
 slot.value = 2.5
 assert float(slot.value) == 2.5, "assigning scalar expression to var field should box value"
 
-TypedFieldBox typedFieldBox
+TypedFieldBox typedFieldBox = TypedFieldBox()
 assert typedFieldBox.peek(1) == "beta", "class method typed list field read should preserve value"
 
-NoParenCreateBox noParenCreateBox
-assert noParenCreateBox.value == 41, "class declaration without initializer should call no-arg create"
+NoParenCreateBox noParenCreateBox = NoParenCreateBox()
+assert noParenCreateBox.value == 41, "explicit empty constructor call should select no-arg create"
 
-OptionalNoParenCreateBox optionalNoParenCreateBox
-assert optionalNoParenCreateBox.value == 9, "class declaration without initializer should call create defaults"
+OptionalNoParenCreateBox optionalNoParenCreateBox = OptionalNoParenCreateBox()
+assert optionalNoParenCreateBox.value == 9, "explicit empty constructor call should apply create defaults"
 
 var dynamic = json.parse("{}")
 dynamic["ratio"] = 0.75

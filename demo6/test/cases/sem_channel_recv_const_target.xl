@@ -1,4 +1,4 @@
 channel<int> ch = channel::<int>(1)
-const int out = 0
+const int result = 0
 
-ch.recvInto(out)
+ch.recvInto(result)

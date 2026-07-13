@@ -382,17 +382,6 @@ if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\sem_async_capture_top_level.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_noncopyable_byval.xl >nul 2> build\test\sem_noncopyable_byval.err.txt
-if not errorlevel 1 (
-    echo sem_noncopyable_byval.xl should fail.
-    exit /b 1
-)
-findstr /C:"byval" build\test\sem_noncopyable_byval.err.txt >nul
-if errorlevel 1 (
-    echo sem_noncopyable_byval.xl missing expected diagnostic.
-    exit /b 1
-)
-
 release\xl.exe check test\cases\sem_noncopyable_fresh_return.xl >nul
 if errorlevel 1 (
     echo sem_noncopyable_fresh_return.xl should pass.
@@ -665,21 +654,37 @@ if errorlevel 1 (
     exit /b 1
 )
 
-for %%F in (
-    sem_out_read_before_write
-    sem_out_missing_branch
-    sem_out_capture
-) do (
-    release\xl.exe check test\cases\%%F.xl >nul 2>build\test\%%F.err.txt
-    if not errorlevel 1 (
-        echo %%F.xl should fail.
-        exit /b 1
-    )
-    findstr /C:"[sem]" build\test\%%F.err.txt >nul
-    if errorlevel 1 (
-        echo %%F.err.txt missing semantic diagnostic.
-        exit /b 1
-    )
+release\xl.exe check test\cases\sem_out_read_before_write.xl >nul 2>build\test\sem_out_read_before_write.err.txt
+if not errorlevel 1 (
+    echo sem_out_read_before_write.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" build\test\sem_out_read_before_write.err.txt >nul
+if errorlevel 1 (
+    echo sem_out_read_before_write.err.txt missing semantic diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_out_missing_branch.xl >nul 2>build\test\sem_out_missing_branch.err.txt
+if not errorlevel 1 (
+    echo sem_out_missing_branch.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" build\test\sem_out_missing_branch.err.txt >nul
+if errorlevel 1 (
+    echo sem_out_missing_branch.err.txt missing semantic diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_out_capture.xl >nul 2>build\test\sem_out_capture.err.txt
+if not errorlevel 1 (
+    echo sem_out_capture.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" build\test\sem_out_capture.err.txt >nul
+if errorlevel 1 (
+    echo sem_out_capture.err.txt missing semantic diagnostic.
+    exit /b 1
 )
 
 echo DEMO6 suite ok: semantic negatives

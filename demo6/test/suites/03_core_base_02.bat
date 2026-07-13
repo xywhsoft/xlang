@@ -424,23 +424,38 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run test\cases\cgen_dynamic_container_cow.xl
+release\xl.exe run test\cases\cgen_dynamic_container_reference.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\cgen_dynamic_container_cow.xl --emit build\test\cgen_dynamic_container_cow.c
+release\xl.exe cgen test\cases\cgen_dynamic_container_reference.xl --emit build\test\cgen_dynamic_container_reference.c
 if errorlevel 1 exit /b 1
-findstr /C:"return xvoShare(value);" release\include\xl_runtime.h >nul
+findstr /C:"if ( value != 0 ) { xvoAddRef(value); }" release\include\xl_runtime.h >nul
 if errorlevel 1 (
-    echo xl_runtime.h missing XRT copy-on-write retain path.
+    echo xl_runtime.h missing managed-reference retain path.
     exit /b 1
 )
-findstr /C:"xl6_xrt_retain(values)" build\test\cgen_dynamic_container_cow.c >nul
+findstr /C:"void (*clone)(void* pDst, const void* pSrc);" release\include\xl_runtime.h >nul
 if errorlevel 1 (
-    echo cgen_dynamic_container_cow.c missing copy-on-write assignment path.
+    echo xl_runtime.h is missing the XRT clone type operation.
     exit /b 1
 )
-findstr /C:"xvoIndexGetMutableKey(xvoIndexGetMutableI64(nestedCopy" build\test\cgen_dynamic_container_cow.c >nul
+findstr /C:"xvalue xvoGetRecordOwner(const ptr pData);" release\include\xl_runtime.h >nul
 if errorlevel 1 (
-    echo cgen_dynamic_container_cow.c missing nested copy-on-write detach path.
+    echo xl_runtime.h is missing the managed record owner lookup.
+    exit /b 1
+)
+findstr /C:"int32_t xrtAtomicRefRetain(volatile int32_t* pCount);" release\include\xl_runtime.h >nul
+if errorlevel 1 (
+    echo xl_runtime.h is missing the atomic reference retain API.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_retain(values)" build\test\cgen_dynamic_container_reference.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_container_reference.c missing managed-reference assignment path.
+    exit /b 1
+)
+findstr /C:"xvoIndexGetMutableKey(xvoIndexGetMutableI64(nestedAlias" build\test\cgen_dynamic_container_reference.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_container_reference.c missing nested mutable access path.
     exit /b 1
 )
 

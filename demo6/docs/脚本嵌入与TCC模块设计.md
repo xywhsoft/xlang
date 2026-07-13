@@ -595,6 +595,7 @@ xlang compiler is not embedded. Add `import xlang.compiler`.
 - `tcc.run`、`TccContext.compileString + run`、`tcc.vfsMount + tcc.runFile` 已在宿主运行态和生成 exe 产物中验证通过。
 - `import xlang` 会自动启用 `feature.xlang.runtime`，并在外部 exe 产物中嵌入运行版 xlang API 源码集。
 - `xlang.run`、`XLangContext.run` 已在宿主运行态和生成 exe 产物中验证通过；普通 `import xlang` 不携带外部 exe/dll 输出能力。
+- `TccHandler` 与 `XLangHandler` 均提供 `point` 构造重载，用于常驻 handler 池显式接管已有句柄；临时借用者必须在离开作用域前将 `handle` 置空，避免重复释放。
 - 外部 exe 输出路径已经接入 XRT 模块级裁剪基础，普通 hello world、crypto、regex、json、path/file 等样例均通过裁剪后产物验证。
 - `release/examples/script_embed_tcc.xl` 和 `release/examples/script_embed_xlang.xl` 作为发布示例覆盖脚本嵌入主路径。
 - `test/suites/09_artifact_closure.bat` 已加入独立 exe 的 `tcc` / `xlang` 脚本嵌入闭包测试。

@@ -66,8 +66,8 @@ if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_generic_class_function_fields.xl --emit build\test\cgen_generic_class_function_fields.c
 if errorlevel 1 exit /b 1
 findstr /C:"static void xl6_type_copy_XL_Class_Mapper__int" build\test\cgen_generic_class_function_fields.c >nul
-if errorlevel 1 (
-    echo cgen_generic_class_function_fields.c missing generic class type copy helper.
+if not errorlevel 1 (
+    echo cgen_generic_class_function_fields.c should not synthesize implicit object copy support.
     exit /b 1
 )
 findstr /C:"static const xrt_type_desc* xl6_type_desc_XL_Class_Mapper__int" build\test\cgen_generic_class_function_fields.c >nul
@@ -287,7 +287,7 @@ if errorlevel 1 (
     echo cgen_generic_class_ctor.c missing generic class create body.
     exit /b 1
 )
-findstr /C:"xl_class_Box__int__create(&__xl6_box_ctor_stmt_" build\test\cgen_generic_class_ctor.c >nul
+findstr /C:"xl_class_Box__int__create(&(*__xl6_object_data_" build\test\cgen_generic_class_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_ctor.c missing generic class create call.
     exit /b 1
@@ -336,7 +336,7 @@ if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing explicit generic class variable declaration.
     exit /b 1
 )
-findstr /C:"xl_class_Box__int__create(&__xl6_box_ctor_stmt_" build\test\cgen_generic_class_explicit_ctor.c >nul
+findstr /C:"xl_class_Box__int__create(&(*__xl6_object_data_" build\test\cgen_generic_class_explicit_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing explicit generic class create call.
     exit /b 1

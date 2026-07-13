@@ -453,7 +453,6 @@ static int xl6CgenIsKnownTypeName(XL6_CgenContext* ctx, const char* name)
            xl6CgenFindTypeAlias(ctx, name) != NULL ||
            xl6CgenFindClass(ctx, name) != NULL ||
            xl6CgenFindNativeBackedClass(ctx, name) != NULL ||
-           xl6CgenFindStruct(ctx, name) != NULL ||
            xl6CgenFindUnion(ctx, name) != NULL;
 }
 
@@ -572,10 +571,6 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
         }
         xl6CgenClassTypeRefName(typeTextBuffer, sizeof(typeTextBuffer), refType);
         xl6AstFree(canonicalType);
-        return typeTextBuffer;
-    }
-    if ( xl6CgenIsStructType(ctx, typeNode) ) {
-        xl6CgenStructTypeTextName(typeTextBuffer, sizeof(typeTextBuffer), typeNode->text);
         return typeTextBuffer;
     }
     if ( xl6CgenIsUnionType(ctx, typeNode) ) {

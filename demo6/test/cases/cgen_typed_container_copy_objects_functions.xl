@@ -36,11 +36,11 @@ funcs[0] = add5
 copiedFunc = funcsCopy[0]
 expect(copiedFunc(1), 6)
 
-FnBox boxA
+FnBox boxA = FnBox()
 boxA.op = add5
 boxA.bias = 10
 
-FnBox boxB
+FnBox boxB = FnBox()
 boxB.op = add9
 boxB.bias = 20
 

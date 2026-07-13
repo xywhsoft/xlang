@@ -26,11 +26,11 @@ scores["b"] = 9
 expect(scores["a"], 8)
 expect(scores["b"], 9)
 
-Pair seed
+Pair seed = Pair()
 seed.left = 5
 seed.right = 6
 
-Pair replacement
+Pair replacement = Pair()
 replacement.left = 9
 replacement.right = 10
 

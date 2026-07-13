@@ -219,15 +219,6 @@ static int xl6CgenClassPropertyEmitSelf(
         xl6OutputPuts("0", ctx->out);
         return 0;
     }
-    if ( xl6CgenClassHandleTargetType(ctx, receiverType) != NULL ) {
-        char ownerTypeName[512];
-        const XL6_AstNode* concreteReceiver = xl6CgenClassHandleTargetType(ctx, receiverType);
-        xl6CgenClassTypeRefName(ownerTypeName, sizeof(ownerTypeName), concreteReceiver);
-        xl6OutputPrintf(ctx->out, "((%s*)xl6_class_data(", ownerTypeName);
-        xl6CgenExpr(ctx, receiver);
-        xl6OutputPrintf(ctx->out, ", \"\", %d, %d))", receiver->line, receiver->column);
-        return 1;
-    }
     basePath[0] = '\0';
     if ( !xl6CgenClassBasePath(ctx, classNode, ownerClass, basePath, sizeof(basePath)) ) {
         xl6CgenError(ctx, receiver, "cannot generate property base path");
@@ -242,6 +233,19 @@ static int xl6CgenClassPropertyEmitSelf(
                 xl6OutputPuts(basePath + 5, ctx->out);
             }
         }
+        return 1;
+    }
+    /*
+        成员函数中的 self 已经是对象 payload 指针。即使 class 在语言层使用
+        xvalue 句柄，也不能再次调用 xl6_class_data，否则会把 payload 当成 xvalue。
+    */
+    if ( xl6CgenClassHandleTargetType(ctx, receiverType) != NULL ) {
+        char ownerTypeName[512];
+        const XL6_AstNode* concreteReceiver = xl6CgenClassHandleTargetType(ctx, receiverType);
+        xl6CgenClassTypeRefName(ownerTypeName, sizeof(ownerTypeName), concreteReceiver);
+        xl6OutputPrintf(ctx->out, "((%s*)xl6_class_data(", ownerTypeName);
+        xl6CgenExpr(ctx, receiver);
+        xl6OutputPrintf(ctx->out, ", \"\", %d, %d))", receiver->line, receiver->column);
         return 1;
     }
     if ( receiver->kind == XL6_AST_NAME ) {

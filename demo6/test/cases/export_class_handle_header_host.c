@@ -3,6 +3,7 @@
 int main(void)
 {
     xvalue value;
+    xvalue copied;
     xvalue output;
     int64_t number;
     int result;
@@ -15,6 +16,22 @@ int main(void)
         xrtUnit();
         return 2;
     }
+    copied = xvoCopy(value);
+    if ( copied != NULL ) {
+        xvoUnref(copied);
+        xvoUnref(value);
+        xrtUnit();
+        return 5;
+    }
+    xvoAddRef(value);
+    copied = value;
+    if ( xl6_class_read(copied) != 42 ) {
+        xvoUnref(copied);
+        xvoUnref(value);
+        xrtUnit();
+        return 6;
+    }
+    xvoUnref(copied);
     result = (int)xl6_class_read(value);
     number = 1;
     xl6_mode_increment(&number);

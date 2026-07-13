@@ -302,7 +302,7 @@ if not errorlevel 1 (
     echo sem_container_literal_target_item_mismatch.xl should fail.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build/test/sem_container_literal_target_item_mismatch.err.txt'); $count=([regex]::Matches($text,'\[sem\].*target (array|list|set|dict), value')).Count; if($count -ne 4){ Write-Host ('expected 4 container literal item mismatch diagnostics, got '+$count); exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build/test/sem_container_literal_target_item_mismatch.err.txt'); $count=([regex]::Matches($text,'\[sem\].*target (array|list|set|dict)<[^>]+>, value')).Count; if($count -ne 4){ Write-Host ('expected 4 container literal item mismatch diagnostics, got '+$count); exit 1 }"
 if errorlevel 1 exit /b 1
 
 release\xl.exe parse test\cases\type_values.xl > build\test\type_values.ast.txt
@@ -643,9 +643,9 @@ if errorlevel 1 (
     echo cgen_class_virtual.c missing derived vtable object.
     exit /b 1
 )
-findstr /C:"player.base.__xl6_vt_Entity = &xl6_vtable_Entity__Player;" build\test\cgen_class_virtual.c >nul
+findstr /C:").base.__xl6_vt_Entity = &xl6_vtable_Entity__Player;" build\test\cgen_class_virtual.c >nul
 if errorlevel 1 (
-    echo cgen_class_virtual.c missing derived vtable initialization.
+    echo cgen_class_virtual.c missing heap object derived vtable initialization.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_virtual.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_virtual.exe

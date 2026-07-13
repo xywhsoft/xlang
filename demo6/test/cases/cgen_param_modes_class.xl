@@ -5,7 +5,6 @@ class ParamModeBox
         self.value = value
     end
 
-    derive copy
 end
 
 func mutate(ParamModeBox box)
@@ -14,6 +13,10 @@ end
 
 func mutateCopy(byval ParamModeBox box)
     box.value = 30
+end
+
+func rebindLocal(byval ParamModeBox box)
+    box = ParamModeBox(35)
 end
 
 func replace(byref ParamModeBox box)
@@ -30,7 +33,10 @@ mutate(box)
 assert box.value == 20
 
 mutateCopy(box)
-assert box.value == 20
+assert box.value == 30
+
+rebindLocal(box)
+assert box.value == 30
 
 replace(byref box)
 assert box.value == 40

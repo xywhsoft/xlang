@@ -15,6 +15,7 @@ static void xl6CgenEmitBufferRuntime(XL6_Output* out)
     xl6OutputPuts("void xrtBufferDestroy(xbuffer pBuf);\n", out);
     xl6OutputPuts("void xrtBufferUnit(xbuffer pBuf);\n", out);
     xl6OutputPuts("bool xrtBufferMalloc(xbuffer pBuf, unsigned int iCount);\n", out);
+    xl6OutputPuts("bool xrtBufferInsert(xbuffer pBuf, unsigned int iPos, void* pData, unsigned int iSize, unsigned int bStrMode);\n", out);
     xl6OutputPuts("bool xrtBufferAppend(xbuffer pBuf, void* pData, unsigned int iSize, unsigned int bStrMode);\n\n", out);
     xl6OutputPuts("bool xrtIsUTF8(const char* sText, size_t iSize);\n", out);
     xl6OutputPuts("bool xrtFileExists(const char* sPath);\n", out);
@@ -162,6 +163,27 @@ static void xl6CgenEmitBufferRuntime(XL6_Output* out)
     xl6OutputPuts("int xl6_xrt_buffer_append_string(void* self, const char* text)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return text == 0 ? xl6_xrt_buffer_append_bytes(self, \"\", 0u) : xl6_xrt_buffer_append_bytes(self, text, strlen(text));\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_buffer_insert_raw(void* self, long long index, void* data, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xbuffer buf = (xbuffer)self;\n", out);
+    xl6OutputPuts("    if ( buf == 0 || index < 0 || (unsigned long long)index > (unsigned long long)buf->Length || size > 4294967295u ) {\n", out);
+    xl6OutputPuts("        xl6_buffer_raise(\"RangeError\", \"buffer insert index out of range\", \"Buffer.insert\");\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( size == 0u ) { return 1; }\n", out);
+    xl6OutputPuts("    if ( data == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_buffer_raise(\"ValueError\", \"buffer insert data is null\", \"Buffer.insert\");\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return xrtBufferInsert(buf, (unsigned int)index, data, (unsigned int)size, 0u);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_buffer_insert_string(void* self, long long index, const char* text)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    const char* safe = text != 0 ? text : \"\";\n", out);
+    xl6OutputPuts("    return xl6_xrt_buffer_insert_raw(self, index, (void*)safe, strlen(safe));\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("int xl6_xrt_buffer_append_byte(void* self, long long value)\n", out);

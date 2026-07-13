@@ -23,28 +23,28 @@ class UnaryBox
     func(int) as int op
 end
 
-FnBox seed
+FnBox seed = FnBox()
 seed.op = add
 seed.bias = 10
 
-FnBox next
+FnBox next = FnBox()
 next.op = mul
 next.bias = 20
 
-FnBox copied
+FnBox copied = FnBox()
 copied.op = seed.op
 copied.bias = 30
 
-FnBox reassigned
+FnBox reassigned = FnBox()
 reassigned.op = mul
 reassigned.bias = 1
 reassigned = seed
 reassigned = reassigned
 
-UnaryBox closureBox
+UnaryBox closureBox = UnaryBox()
 closureBox.op = makeAdder(5)
 
-UnaryBox closureCopy
+UnaryBox closureCopy = UnaryBox()
 closureCopy.op = closureBox.op
 
 array<FnBox> boxes = array[seed]

@@ -1,0 +1,46 @@
+func makeOffset(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+class AsyncFunctionBox
+    string name
+    array<int> values
+    func(int) as int op
+end
+
+func makeSyncBox(string name, int base) as AsyncFunctionBox
+    AsyncFunctionBox box = AsyncFunctionBox()
+    box.name = name
+    box.values = array[base]
+    box.op = makeOffset(base)
+    return box
+end
+
+async func makeAsyncBox(string name, int base) as AsyncFunctionBox
+    AsyncFunctionBox box = AsyncFunctionBox()
+    box.name = name
+    box.values = array[base]
+    box.op = makeOffset(base)
+    return box
+end
+
+AsyncFunctionBox syncBox = makeSyncBox("sync", 10)
+assert syncBox.op(1) == 11, "sync class function field failed"
+assert syncBox.values[0] == 10, "sync class container field failed"
+println("async class function sync ok")
+
+future<AsyncFunctionBox> directFuture = makeAsyncBox("direct", 20)
+AsyncFunctionBox directBox = await directFuture
+assert directBox.name == "direct", "direct await class string field failed"
+assert directBox.values[0] == 20, "direct await class container field failed"
+assert directBox.op(2) == 22, "direct await class function field failed"
+println("async class function direct await ok")
+
+array<AsyncFunctionBox> boxes = await task.all([makeAsyncBox("all", 30)])
+AsyncFunctionBox allBox = boxes[0]
+assert allBox.name == "all", "task.all class string field failed"
+assert allBox.values[0] == 30, "task.all class container field failed"
+assert allBox.op(3) == 33, "task.all class function field failed"
+println("async class function aggregate ok")

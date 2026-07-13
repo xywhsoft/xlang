@@ -1,0 +1,50 @@
+union PairValue
+    int integer
+    float64 decimal
+end
+
+func mutateDefault(PairValue value)
+    value.integer = 20
+end
+
+func mutateByVal(byval PairValue value)
+    value.integer = 30
+end
+
+func mutateByRef(byref PairValue value)
+    value.integer = 40
+end
+
+func writeValue(out PairValue value)
+    PairValue next
+    next.integer = 50
+    value = next
+end
+
+func passThrough(PairValue value) as PairValue
+    return value
+end
+
+func main(...) as int
+    PairValue value
+    value.integer = 10
+
+    mutateDefault(value)
+    assert value.integer == 10
+
+    mutateByVal(value)
+    assert value.integer == 10
+
+    mutateByRef(byref value)
+    assert value.integer == 40
+
+    PairValue output
+    writeValue(out output)
+    assert output.integer == 50
+
+    PairValue copied = passThrough(output)
+    copied.integer = 7
+    assert copied.integer == 7
+    assert output.integer == 50
+    return 0
+end

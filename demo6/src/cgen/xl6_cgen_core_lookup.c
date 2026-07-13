@@ -25,7 +25,7 @@ static int xl6CgenBuildRootTypeIndex(XL6_CgenContext* ctx)
     for ( i = 0; i < ctx->root->childCount; ++i ) {
         XL6_AstNode* node = ctx->root->children[i];
         if ( node != NULL && node->text != NULL &&
-             (node->kind == XL6_AST_CLASS || node->kind == XL6_AST_STRUCT || node->kind == XL6_AST_UNION) ) {
+             (node->kind == XL6_AST_CLASS || node->kind == XL6_AST_UNION) ) {
             typeCount += 1;
         }
     }
@@ -47,7 +47,7 @@ static int xl6CgenBuildRootTypeIndex(XL6_CgenContext* ctx)
         size_t slot;
 
         if ( node == NULL || node->text == NULL ||
-             (node->kind != XL6_AST_CLASS && node->kind != XL6_AST_STRUCT && node->kind != XL6_AST_UNION) ) {
+             (node->kind != XL6_AST_CLASS && node->kind != XL6_AST_UNION) ) {
             continue;
         }
         slot = (size_t)(xl6CgenRootTypeHash(node->text) & (capacity - 1));
@@ -58,8 +58,6 @@ static int xl6CgenBuildRootTypeIndex(XL6_CgenContext* ctx)
         ctx->rootTypeSlots[slot].name = node->text;
         if ( node->kind == XL6_AST_CLASS ) {
             ctx->rootTypeSlots[slot].classNode = node;
-        } else if ( node->kind == XL6_AST_STRUCT ) {
-            ctx->rootTypeSlots[slot].structNode = node;
         } else {
             ctx->rootTypeSlots[slot].unionNode = node;
         }
@@ -137,14 +135,6 @@ static XL6_AstNode* xl6CgenFindUnion(XL6_CgenContext* ctx, const char* name)
     return slot != NULL ? slot->unionNode : NULL;
 }
 
-static XL6_AstNode* xl6CgenFindStruct(XL6_CgenContext* ctx, const char* name)
-{
-    XL6_CgenRootTypeSlot* slot;
-
-    slot = xl6CgenFindRootTypeSlot(ctx, name);
-    return slot != NULL ? slot->structNode : NULL;
-}
-
 static int xl6CgenIsNativeBackedClassType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     return typeNode != NULL && typeNode->text != NULL && xl6CgenFindNativeBackedClass(ctx, typeNode->text) != NULL;
@@ -161,15 +151,9 @@ static int xl6CgenIsUnionType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
            xl6CgenFindUnion(ctx, typeNode->text) != NULL;
 }
 
-static int xl6CgenIsStructType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
-{
-    return typeNode != NULL && typeNode->text != NULL && typeNode->childCount == 0 &&
-           xl6CgenFindStruct(ctx, typeNode->text) != NULL;
-}
-
 static int xl6CgenIsPlainRecordType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
-    return xl6CgenIsStructType(ctx, typeNode) || xl6CgenIsUnionType(ctx, typeNode);
+    return xl6CgenIsUnionType(ctx, typeNode);
 }
 
 static int xl6CgenClassHasTypeParams(const XL6_AstNode* classNode)
@@ -311,40 +295,11 @@ static const XL6_AstNode* xl6CgenUnionBody(const XL6_AstNode* unionNode)
 
 static const XL6_AstNode* xl6CgenFindUnionFieldNode(const XL6_AstNode* unionNode, const char* fieldName);
 
-static const XL6_AstNode* xl6CgenStructBody(const XL6_AstNode* structNode)
-{
-    return structNode != NULL && structNode->childCount > 0 ? structNode->children[0] : NULL;
-}
-
-static const XL6_AstNode* xl6CgenFindStructFieldNode(const XL6_AstNode* structNode, const char* fieldName)
-{
-    const XL6_AstNode* body;
-    size_t i;
-
-    body = xl6CgenStructBody(structNode);
-    for ( i = 0; body != NULL && fieldName != NULL && i < body->childCount; ++i ) {
-        const XL6_AstNode* member = body->children[i];
-        if ( member != NULL && member->kind == XL6_AST_FIELD && xl6CTextEquals(member->text, fieldName) ) {
-            return member;
-        }
-        if ( member != NULL && member->kind == XL6_AST_UNION && member->text == NULL ) {
-            const XL6_AstNode* field = xl6CgenFindUnionFieldNode(member, fieldName);
-            if ( field != NULL ) {
-                return field;
-            }
-        }
-    }
-    return NULL;
-}
-
 static const XL6_AstNode* xl6CgenFindPlainRecordFieldNode(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode,
     const char* fieldName)
 {
-    if ( xl6CgenIsStructType(ctx, typeNode) ) {
-        return xl6CgenFindStructFieldNode(xl6CgenFindStruct(ctx, typeNode->text), fieldName);
-    }
     if ( xl6CgenIsUnionType(ctx, typeNode) ) {
         return xl6CgenFindUnionFieldNode(xl6CgenFindUnion(ctx, typeNode->text), fieldName);
     }

@@ -1,0 +1,8 @@
+class ImageTag
+end
+
+class AudioTag
+end
+
+point<ImageTag> image = null
+point<AudioTag> audio = image

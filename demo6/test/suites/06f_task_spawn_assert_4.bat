@@ -131,7 +131,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.all fast-failure over task.spawn fixture.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeString(), (*(xtarray*)xl6_future_await_value(typedSpawnStringAllFailureGroup" build\test\cgen_task_spawn.c >nul
+findstr /C:"xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(typedSpawnStringAllFailureGroup" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.all fast-failure group await.
     exit /b 1
@@ -216,7 +216,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array bool task.all fast-failure over task.spawn fixture.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolAllFailureValues = xl6_xrt_typed_array_copy_mode(xrtTypeBool(), (*(xtarray*)xl6_future_await_value(typedSpawnBoolAllFailureGroup')){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolAllFailureValues = xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(typedSpawnBoolAllFailureGroup')){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array bool task.all fast-failure group await.
     exit /b 1
@@ -261,7 +261,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array float task.all fast-failure over task.spawn fixture.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnFloatAllFailureValues = xl6_xrt_typed_array_copy_mode(xrtTypeFloat(), (*(xtarray*)xl6_future_await_value(typedSpawnFloatAllFailureGroup')){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnFloatAllFailureValues = xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(typedSpawnFloatAllFailureGroup')){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array float task.all fast-failure group await.
     exit /b 1

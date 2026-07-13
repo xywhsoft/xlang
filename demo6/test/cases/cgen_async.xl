@@ -30,7 +30,7 @@ class AsyncBox
 end
 
 func makeBox(int base) as AsyncBox
-    AsyncBox box
+    AsyncBox box = AsyncBox()
     box.op = makeAdder(base)
     box.bias = base
     return box

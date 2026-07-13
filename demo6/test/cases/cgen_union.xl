@@ -21,7 +21,7 @@ class Packet
     end
 end
 
-Packet pkt
+Packet pkt = Packet()
 pkt.tag = 7
 pkt.code = 11
 expect(pkt.tag, 7)
@@ -33,7 +33,7 @@ class Envelope
     Payload payload
 end
 
-Envelope e
+Envelope e = Envelope()
 e.payload.i = 9
 expect(e.payload.i, 9)
 expect(string(type(e)) == "Envelope", 1)

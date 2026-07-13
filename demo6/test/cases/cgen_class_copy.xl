@@ -1,6 +1,8 @@
 extern "expect_i64" func expect(int actual, int expected)
 
 class RefCopyValue
+derive copy
+
     int value
 
     create(int input)

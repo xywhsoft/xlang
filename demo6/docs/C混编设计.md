@@ -206,7 +206,7 @@ xxx_destroy(a.handle);
 - 后续如果支持 `xxx* self` 这类 typed pointer receiver，必须作为显式增强能力，不影响第一阶段统一黑盒指针规则。
 - 如果 class 声明了 extern `__create__`，`Type(...)` 调用对应 C 构造函数并保存返回句柄。
 - 如果 class 没有声明 extern `__create__`，可通过显式 native 绑定规则接收已有 C 指针。
-- 如果 class 声明了 extern `__destroy__`，编译器在变量生命周期结束处对非空句柄插入清理调用。
+- 如果 class 声明了 extern `__destroy__`，最后一个受管理 `xvalue` 引用释放时，由 XRT 类型描述器对非空句柄调用一次析构。
 - 如果 class 没有声明 extern `__destroy__`，xlang 不释放句柄，也不猜测释放方式。
 - native 资源的默认初始化值是空句柄；普通方法调用不自动做空句柄检查，而是直接把句柄传给 C 函数。
 - 第一阶段不引入手写 `delete` 语句，也不把普通关闭方法自动识别为生命周期结束。
@@ -224,6 +224,7 @@ xxx_destroy(a.handle);
 - C ABI 专用类型：`c_char` / `c_schar` / `c_uchar` / `c_short` / `c_ushort` / `c_int` / `c_uint` / `c_long` / `c_ulong` / `c_longlong` / `c_ulonglong` / `c_size` / `c_ssize` / `c_ptrdiff` / `c_intptr` / `c_uintptr` / `c_bool` / `c_float` / `c_double` / `c_wchar`
 - `string` 参数与 C UTF-8 只读字符串指针互转，xlang 导出到 C 时第一阶段不直接返回 `string`
 - `point` -> C 黑盒指针
+- 普通 class、泛型 class 实例和 native-backed class -> C `xvalue`；`byref/out` class -> C `xvalue*`
 
 `c_*` 类型只用于 ABI 对齐，不作为 xlang 日常推荐类型。需要固定宽度时使用 `int32`、`uint64` 等类型；需要跟随 C 编译器和目标平台 ABI 时使用 `c_int`、`c_long`、`c_size` 等类型。
 
@@ -231,7 +232,7 @@ xxx_destroy(a.handle);
 
 - `var`
 - `array/list/set/dict`
-- `class`
+- class 的裸 payload 值；class 正式 C ABI 必须使用 `xvalue` 句柄和 ABI 元数据
 - `error`
 - `future/task/channel/generator`
 - 多返回值函数
@@ -240,7 +241,7 @@ xxx_destroy(a.handle);
 处理规则：
 
 - 不支持的类型在 `check` 或 `cgen` 阶段直接报错。
-- 不做自动回退到 `xvalue` 的兼容方案。
+- class 使用 `xvalue` 是固定 C ABI，不是旧写法失败后的兼容回退。
 - 如果要跨 C 暴露复杂对象，应显式使用 XRT 类型、ABI 元数据、生成头文件或 C ABI wrapper。
 - C 可以访问 xlang 的数据结构，但访问方式必须由 XRT 类型和 ABI 元数据支撑。
 - C 调用 xlang 成员函数必须通过显式 `export "c_symbol"` wrapper 或未来的 xcall 入口。

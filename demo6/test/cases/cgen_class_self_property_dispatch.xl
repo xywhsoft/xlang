@@ -1,0 +1,30 @@
+class SelfProperty
+    int value = 40
+
+    get current() as int
+        return self.value
+    end
+
+    let current(int value)
+        self.value = value
+    end
+
+    func read() as int
+        return self.current
+    end
+
+    func write(int value)
+        self.current = value
+    end
+end
+
+SelfProperty item = SelfProperty()
+if item.read() != 40 then
+    throw "internal property get lost the self payload"
+end
+item.write(42)
+if item.read() != 42 then
+    throw "internal property let lost the self payload"
+end
+
+println("class self property dispatch ok")

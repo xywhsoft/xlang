@@ -12,7 +12,7 @@ end
 
 extern "expect_i64" func expect(int actual, int expected)
 
-Box<int> intBox
+Box<int> intBox = Box::<int>()
 
 expect(intBox.pick(1), 10)
 expect(intBox.pick("x"), 20)

@@ -11,9 +11,9 @@ if errorlevel 1 (
     echo cgen_runtime_type_baseline.c missing boxed class runtime type query.
     exit /b 1
 )
-findstr /C:"xvoCreateRecord(xl6_type_desc_XL_Class_Actor()" build\test\cgen_runtime_type_baseline.c >nul
+findstr /C:"xvoCreateObject(xl6_type_desc_XL_Class_Actor()" build\test\cgen_runtime_type_baseline.c >nul
 if errorlevel 1 (
-    echo cgen_runtime_type_baseline.c missing object-derived class record boxing.
+    echo cgen_runtime_type_baseline.c missing object-derived class heap allocation.
     exit /b 1
 )
 findstr /C:"xvoCreateHandle(xl6_type_desc_XL_Class_Native()" build\test\cgen_runtime_type_baseline.c >nul
@@ -229,12 +229,12 @@ release\xl.exe run test\cases\cgen_closure_class_ctor_scope.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_closure_class_ctor_scope.xl --emit build\test\cgen_closure_class_ctor_scope.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Box__create(&__xl6_box_ctor_stmt_" build\test\cgen_closure_class_ctor_scope.c >nul
+findstr /C:"xl_class_Box__create(&(*__xl6_object_data_" build\test\cgen_closure_class_ctor_scope.c >nul
 if errorlevel 1 (
-    echo cgen_closure_class_ctor_scope.c should construct class records inside the closure invoke body.
+    echo cgen_closure_class_ctor_scope.c should construct the heap object payload inside the closure invoke body.
     exit /b 1
 )
-findstr /C:"box = xvoCreateRecordMove(xl6_type_desc_XL_Class_Box()" build\test\cgen_closure_class_ctor_scope.c >nul
+findstr /C:"box = xvoCreateObject(xl6_type_desc_XL_Class_Box()" build\test\cgen_closure_class_ctor_scope.c >nul
 if errorlevel 1 (
     echo cgen_closure_class_ctor_scope.c should publish the closure-local class handle.
     exit /b 1

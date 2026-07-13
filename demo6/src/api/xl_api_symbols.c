@@ -182,6 +182,8 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtCalloc);
     XL_ADD_XRT_SYMBOL(s, xrtRealloc);
     XL_ADD_XRT_SYMBOL(s, xrtFree);
+    XL_ADD_XRT_SYMBOL(s, xrtAtomicRefRetain);
+    XL_ADD_XRT_SYMBOL(s, xrtAtomicRefRelease);
     XL_ADD_XRT_SYMBOL(s, xrtTempMemory);
     XL_ADD_XRT_SYMBOL(s, xrtFreeTempMemory);
     XL_ADD_XRT_SYMBOL(s, xrtTempScopeBegin);
@@ -1039,6 +1041,7 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoCreateColl);
     XL_ADD_XRT_SYMBOL(s, xvoCreateCallable);
     XL_ADD_XRT_SYMBOL(s, xvoCreateRecord);
+    XL_ADD_XRT_SYMBOL(s, xvoCreateObject);
     XL_ADD_XRT_SYMBOL(s, xvoCreateRecordMove);
     XL_ADD_XRT_SYMBOL(s, xvoCreateHandle);
     XL_ADD_XRT_SYMBOL(s, xvoCreateArrayArgs);
@@ -1077,6 +1080,7 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoGetTable);
     XL_ADD_XRT_SYMBOL(s, xvoGetMutableTable);
     XL_ADD_XRT_SYMBOL(s, xvoGetRecordData);
+    XL_ADD_XRT_SYMBOL(s, xvoGetRecordOwner);
     XL_ADD_XRT_SYMBOL(s, xvoGetHandleData);
     XL_ADD_XRT_SYMBOL(s, xvoGetHandleSlot);
     XL_ADD_XRT_SYMBOL(s, xvoToString);

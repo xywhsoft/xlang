@@ -15,18 +15,18 @@ class Mapper<T>
     T value
 end
 
-Mapper<int> direct
+Mapper<int> direct = Mapper::<int>()
 direct.op = inc
 direct.value = 10
 
 Mapper<int> copied = direct
 expect(copied.op(copied.value), 11)
 
-Mapper<int> closureBox
+Mapper<int> closureBox = Mapper::<int>()
 closureBox.op = makeAdder(5)
 closureBox.value = 20
 
-Mapper<int> reassigned
+Mapper<int> reassigned = Mapper::<int>()
 reassigned.op = inc
 reassigned.value = 1
 reassigned = closureBox

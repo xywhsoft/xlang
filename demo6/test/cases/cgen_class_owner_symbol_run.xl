@@ -1,0 +1,24 @@
+class Snapshot
+    int value = 0
+
+    func __copy__() as Snapshot
+        return self
+    end
+
+    func __clone__() as Snapshot
+        return self
+    end
+end
+
+Snapshot source = Snapshot()
+source.value = 42
+
+Snapshot copied = copy(source)
+Snapshot cloned = clone(source)
+copied.value = 1
+cloned.value = 2
+
+assert source.value == 42, "custom copy must create an independent managed record"
+assert copied.value == 1
+assert cloned.value == 2
+println("class owner symbol run ok")

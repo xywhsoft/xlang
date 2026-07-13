@@ -71,9 +71,9 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\cgen_class_param_value_ownership.xl --emit build\test\cgen_class_param_value_ownership.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_ValueBox______xl6__copy__value" build\test\cgen_class_param_value_ownership.c >nul
+findstr /C:"xl_fn_mutateCopy(xl6_xrt_bind_type(xl6_xrt_retain(source)" build\test\cgen_class_param_value_ownership.c >nul
 if errorlevel 1 (
-    echo cgen_class_param_value_ownership.c missing byval class copy path.
+    echo cgen_class_param_value_ownership.c missing retained byval managed handle.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_param_value_ownership.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_param_value_ownership.exe

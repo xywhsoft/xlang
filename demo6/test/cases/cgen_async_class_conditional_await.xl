@@ -3,7 +3,7 @@ class ConditionalAwaitBox
 end
 
 async func conditionalAwaitBoxAsync(int value) as ConditionalAwaitBox
-    ConditionalAwaitBox box
+    ConditionalAwaitBox box = ConditionalAwaitBox()
     box.value = value
     return box
 end

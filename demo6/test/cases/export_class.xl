@@ -4,7 +4,7 @@ class Point
 end
 
 export "xl6_point_make" func makePoint(int x, int y) as Point
-    Point point
+    Point point = Point()
     point.x = x
     point.y = y
     return point

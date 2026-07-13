@@ -405,24 +405,19 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\export_union_class_field.xl --emit build\test\export_union_class_field.c --emit-header build\test\export_union_class_field.h
 if errorlevel 1 exit /b 1
-findstr /C:"typedef struct XL_Struct_Point" build\test\export_union_class_field.h >nul
-if errorlevel 1 (
-    echo export_union_class_field.h missing dependent struct typedef.
-    exit /b 1
-)
 findstr /C:"typedef union XL_Union_Payload" build\test\export_union_class_field.h >nul
 if errorlevel 1 (
     echo export_union_class_field.h missing union typedef.
     exit /b 1
 )
-findstr /C:"XL_Struct_Point point;" build\test\export_union_class_field.h >nul
+findstr /C:"int64_t integer;" build\test\export_union_class_field.h >nul
 if errorlevel 1 (
-    echo export_union_class_field.h missing union struct field.
+    echo export_union_class_field.h missing union scalar field.
     exit /b 1
 )
-findstr /C:"XL_Union_Payload xl6_payload_make(int64_t x, int64_t y);" build\test\export_union_class_field.h >nul
+findstr /C:"XL_Union_Payload xl6_payload_make(int64_t value);" build\test\export_union_class_field.h >nul
 if errorlevel 1 (
-    echo export_union_class_field.h missing union-with-struct export declaration.
+    echo export_union_class_field.h missing union export declaration.
     exit /b 1
 )
 "%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_union_class_field.c test\cases\export_union_class_field_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_union_class_field_header_host.exe

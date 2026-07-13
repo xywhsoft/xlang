@@ -70,7 +70,7 @@ static void xl6CgenEmitManagedParamOwners(XL6_CgenContext* ctx, const XL6_AstNod
         }
         classTarget = xl6CgenClassHandleTargetType(ctx, typeNode);
         if ( classTarget != NULL ) {
-            /* 调用侧已经传递一个 owned 句柄；默认模式共享对象，byval 传递独立副本。 */
+            /* 调用侧已经传递一个 owned 句柄；默认模式和 byval 都共享对象身份。 */
             continue;
         }
         if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
@@ -94,7 +94,7 @@ static void xl6CgenEmitManagedParamOwners(XL6_CgenContext* ctx, const XL6_AstNod
             xl6OutputPrintf(ctx->out,
                             "int %s = %d;\n",
                             ownerName,
-                            (param->flags & XL6_AST_FLAG_BYVAL) != 0 ? 1 : 0);
+                            0);
             continue;
         }
 
@@ -840,7 +840,6 @@ static void xl6CgenClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* classNo
     if ( xl6CgenClassNeedsAutoDeriveProtocol(ctx, classNode, "equals", "__ne__") ) {
         xl6CgenClassAutoEqualsBody(ctx, classNode, 1);
     }
-    xl6CgenClassCopyBuiltinHelpers(ctx, classNode);
     xl6CgenClassPersistenceHelpers(ctx, classNode);
 }
 

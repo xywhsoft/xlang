@@ -6,7 +6,7 @@
 
 本轮目标是让 xlang 的对象系统同时满足三件事：
 
-- `class` 是唯一的用户静态类模型，承担结构体布局、继承、方法、生命周期和 C 混编职责。
+- `class` 是唯一的用户对象模型，承担堆对象 payload 布局、继承、方法、生命周期和 C 混编职责。
 - `object` 是标准库提供的普通基类，不再是独立于 class 的黑盒动态对象系统。
 - 特殊语义通过协议方法和 `derive` 能力开关表达，而不是通过大量硬编码关键字或旧的运行时分支表达。
 
@@ -153,7 +153,7 @@ end
 - `__create__` 可绑定 C 构造函数，也可以由 xlang 代码实现。
 - `__destroy__` 可绑定 C 析构函数，也可以由 xlang 代码实现。
 - native-backed class 默认不可复制；只有显式提供 `derive copy`、`derive clone` 或对应协议后才允许复制。
-- 旧的 `custom` 可以作为实现层术语或迁移入口存在，但设计口径以 native-backed class 为准。
+- 旧 `custom` 只允许出现在明确标记的历史说明中；当前词法、语法、AST、语义和 cgen 均不存在兼容入口。
 
 ## 3. 协议方法
 
@@ -392,16 +392,17 @@ auto c = clone(a)
 规则：
 
 - 基础值类型默认可复制。
-- string/time/point 按值语义处理。
+- string 由运行时管理；time/point/point<T> 按值语义处理。
 - array/list/set/dict 的 `copy` 复制容器外壳，元素按浅拷贝处理。
 - array/list/set/dict 的 `clone` 递归复制元素。
 - xlang 中 `clone` 固定表示深复制，不保留 `deepcopy` 公开函数或兼容别名。
-- class 默认根据字段能力推导是否可复制。
+- class 默认只允许共享受管理引用，不根据字段形态自动开放对象复制。
 - `derive copy` 自动生成 `__copy__`，`derive clone` 自动生成 `__clone__`。
 - `derive copy/clone` 的字段和父类必须可复制。
 - `derive moveOnly` 明确禁止复制，且不能与 `derive copy/clone` 同时出现。
 - native-backed class 默认不可复制，拥有 `__destroy__` 的 native 资源不能通过 class 自动复制绕过。
 - 资源型 class 默认不可复制，除非显式声明复制协议或 derive 能力。
+- 默认参数、`byval`、赋值、返回、闭包捕获和容器存储不调用复制协议；它们只保留同一对象引用。
 
 ### 4.4 索引协议
 

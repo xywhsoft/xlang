@@ -1062,6 +1062,21 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
         break;
     }
 
+    /*
+        auto 的存储类型必须以统一表达式类型推断为最终依据。
+        前面的快速分支只负责常见路径；导入包中的类型别名、托管 class
+        和嵌套成员调用由统一推断器规范化，不能在这里重复维护一套残缺规则。
+    */
+    {
+        XL6_AstNode* typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
+        const char* cType = typeNode != NULL ? xl6CgenValueStorageCType(ctx, typeNode) : NULL;
+
+        xl6AstFree(typeNode);
+        if ( cType != NULL ) {
+            return cType;
+        }
+    }
+
     xl6CgenError(ctx, expr, "cannot infer C type from auto");
     return "int";
 }

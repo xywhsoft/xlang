@@ -19,7 +19,7 @@ end
 extern "expect_i64" func expect(int actual, int expected)
 extern "expect_str" func expectText(string actual, string expected)
 
-Profile p
+Profile p = Profile()
 p.id = 42
 p.displayName = "Alice"
 p.setSecret("open")

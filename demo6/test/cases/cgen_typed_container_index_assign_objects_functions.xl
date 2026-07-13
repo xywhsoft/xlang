@@ -22,11 +22,11 @@ func mul(int left, int right) as int
     return left * right
 end
 
-Pair first
+Pair first = Pair()
 first.left = 1
 first.right = 2
 
-Pair second
+Pair second = Pair()
 second.left = 5
 second.right = 6
 

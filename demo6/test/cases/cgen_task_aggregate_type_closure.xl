@@ -36,7 +36,7 @@ async func makeDict(int value) as dict<int>
 end
 
 async func makeBox(string name, int value) as AggregateBox
-    AggregateBox box
+    AggregateBox box = AggregateBox()
     box.name = name
     box.values = array[value, value + 1]
     box.op = makeAdder(value)
@@ -44,12 +44,12 @@ async func makeBox(string name, int value) as AggregateBox
 end
 
 async func makeEnvelope(string name, int value) as AggregateEnvelope
-    AggregateBox box
+    AggregateBox box = AggregateBox()
     box.name = name
     box.values = array[value, value + 1]
     box.op = makeAdder(value)
 
-    AggregateEnvelope envelope
+    AggregateEnvelope envelope = AggregateEnvelope()
     envelope.box = box
     envelope.metadata = dict{"value": value}
     return envelope
@@ -62,7 +62,7 @@ end
 
 async func failBox() as AggregateBox
     throw "aggregate class failed"
-    AggregateBox box
+    AggregateBox box = AggregateBox()
     return box
 end
 
@@ -82,7 +82,7 @@ var racedVar = await task.race([makeVar("race")])
 assert string(racedVar) == "race", "task.race future<var> failed"
 println("aggregate var ok")
 
-// 四种静态容器都通过 XRT 类型描述符执行深复制和析构。
+// 四种静态容器都通过 XRT 类型描述符保留共享引用并统一析构。
 future<array<array<int>>> arraysFuture = task.all([makeArray(1), makeArray(10)])
 array<array<int>> arraysA = await arraysFuture
 array<array<int>> arraysB = await arraysFuture
@@ -119,7 +119,7 @@ dict<int> racedDict = await task.race([makeDict(9)])
 assert racedDict["value"] == 9, "task.race dict<T> failed"
 println("aggregate dict ok")
 
-// 带 string、容器和闭包字段的 class 用同一类型描述符完成复制。
+// 带 string、容器和闭包字段的 class 通过受管理句柄保持对象身份。
 future<array<AggregateBox>> boxesFuture = task.all([makeBox("left", 10), makeBox("right", 20)])
 array<AggregateBox> boxesA = await boxesFuture
 array<AggregateBox> boxesB = await boxesFuture

@@ -1,5 +1,4 @@
 class ValueBox
-    derive copy
     string text
 
     create(string value)
@@ -8,7 +7,6 @@ class ValueBox
 end
 
 class GenericValueBox<T>
-    derive copy
     T value
     string text
 
@@ -40,6 +38,10 @@ func mutateGenericCopy(byval GenericValueBox<int> box, string value) as string
     return box.text
 end
 
+func rebindLocal(byval ValueBox box)
+    box = ValueBox("rebound")
+end
+
 ValueBox source = ValueBox("source")
 GenericValueBox<int> genericSource = GenericValueBox::<int>(7, "generic-source")
 
@@ -49,7 +51,10 @@ for i in range(0, 64)
     source.text = "source"
 
     assert mutateCopy(source, "local") == "local", "byval class parameter mutation failed"
-    assert source.text == "source", "byval class parameter changed caller object"
+    assert source.text == "local", "byval class parameter must preserve object identity"
+    rebindLocal(source)
+    assert source.text == "local", "byval class parameter must not replace the caller slot"
+    source.text = "source"
 
     assert mutateGenericShared(genericSource, "generic-shared") == "generic-shared", "default generic class mutation failed"
     assert genericSource.value == 8, "default generic class parameter should preserve object identity"
@@ -58,8 +63,10 @@ for i in range(0, 64)
     genericSource.text = "generic-source"
 
     assert mutateGenericCopy(genericSource, "generic-local") == "generic-local", "byval generic class mutation failed"
-    assert genericSource.value == 7, "byval generic class changed caller scalar field"
-    assert genericSource.text == "generic-source", "byval generic class changed caller string field"
+    assert genericSource.value == 8, "byval generic class must preserve object identity"
+    assert genericSource.text == "generic-local", "byval generic class string mutation must be visible"
+    genericSource.value = 7
+    genericSource.text = "generic-source"
 end
 
-println("class parameter reference and byval ownership ok")
+println("class managed-handle parameter ownership ok")

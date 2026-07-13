@@ -76,9 +76,43 @@ static void xl6CgenClassPersistenceFromValueHelper(XL6_CgenContext* ctx, const X
     ctx->indent += 1;
     xl6CgenClassTypeTextName(cTypeName, sizeof(cTypeName), classNode->text);
     xl6CgenIndent(ctx);
+    xl6OutputPuts("xvalue result = xvoCreateObject(", ctx->out);
+    xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+    xl6OutputPuts("());\n", ctx->out);
+    xl6CgenIndent(ctx);
     xl6CgenClassTypeName(ctx->out, classNode->text);
-    xl6OutputPuts(" object = {0};\n", ctx->out);
-    xl6CgenClassDefaultInitFields(ctx, classNode, "object");
+    xl6OutputPuts("* object;\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if ( result == 0 ) {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if ( value != 0 ) { xvoUnref(value); }\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("return xvoCreateNull();\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("object = (", ctx->out);
+    xl6CgenClassTypeName(ctx->out, classNode->text);
+    xl6OutputPuts("*)xvoGetRecordData(result);\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if ( object == 0 ) {\n", ctx->out);
+    ctx->indent += 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("xvoUnref(result);\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if ( value != 0 ) { xvoUnref(value); }\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("return xvoCreateNull();\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("(*object) = (", ctx->out);
+    xl6CgenClassTypeName(ctx->out, classNode->text);
+    xl6OutputPuts("){0};\n", ctx->out);
+    xl6CgenClassDefaultInitFields(ctx, classNode, "(*object)");
     xl6CgenIndent(ctx);
     xl6OutputPuts("if ( value != 0 ) {\n", ctx->out);
     ctx->indent += 1;
@@ -90,23 +124,23 @@ static void xl6CgenClassPersistenceFromValueHelper(XL6_CgenContext* ctx, const X
         if ( hasJson ) {
             xl6OutputPuts("if ( formatKind == 1 ) { ", ctx->out);
             xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, "json");
-            xl6OutputPuts("(&object, value); }\n", ctx->out);
+            xl6OutputPuts("(object, value); }\n", ctx->out);
             emittedBranch = 1;
         }
         if ( hasXson ) {
             xl6CgenIndent(ctx);
             xl6OutputPuts(emittedBranch ? "else if ( formatKind == 2 ) { " : "if ( formatKind == 2 ) { ", ctx->out);
             xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, "xson");
-            xl6OutputPuts("(&object, value); }\n", ctx->out);
+            xl6OutputPuts("(object, value); }\n", ctx->out);
             emittedBranch = 1;
         }
         xl6CgenIndent(ctx);
         xl6OutputPuts(emittedBranch ? "else { " : "", ctx->out);
         xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, NULL);
-        xl6OutputPuts(emittedBranch ? "(&object, value); }\n" : "(&object, value);\n", ctx->out);
+        xl6OutputPuts(emittedBranch ? "(object, value); }\n" : "(object, value);\n", ctx->out);
     } else {
         xl6CgenEmitClassFromValueSymbol(ctx, classNode);
-        xl6OutputPuts("(&object, value);\n", ctx->out);
+        xl6OutputPuts("(object, value);\n", ctx->out);
     }
     xl6CgenIndent(ctx);
     xl6OutputPuts("xvoUnref(value);\n", ctx->out);
@@ -114,22 +148,16 @@ static void xl6CgenClassPersistenceFromValueHelper(XL6_CgenContext* ctx, const X
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("xvalue result = xvoCreateRecordMove(", ctx->out);
-    xl6CgenTypeDescSymbol(ctx->out, cTypeName);
-    xl6OutputPuts("(), &object);\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("if ( result == 0 ) {\n", ctx->out);
+    xl6OutputPuts("if ( xl6_error_has() ) {\n", ctx->out);
     ctx->indent += 1;
-    if ( xl6CgenClassNeedsDestroy(ctx, classNode) ) {
-        xl6CgenIndent(ctx);
-        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
-        xl6OutputPuts("(&object);\n", ctx->out);
-    }
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("xvoUnref(result);\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPuts("return xvoCreateNull();\n", ctx->out);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
+    xl6CgenClassPublishSharedFields(ctx, classNode, "(*object)");
     xl6CgenIndent(ctx);
     xl6OutputPuts("return result;\n", ctx->out);
     ctx->indent -= 1;
@@ -188,7 +216,7 @@ static void xl6CgenClassPersistenceStringifyHelper(
         xl6OutputPuts("(&source);\n", ctx->out);
     }
     xl6CgenIndent(ctx);
-    xl6OutputPuts("text = stringify_fn != 0 ? stringify_fn(value, pretty ? 1 : 0) : \"\";\n", ctx->out);
+    xl6OutputPuts("text = stringify_fn != 0 ? stringify_fn(xl6_xrt_retain(value), pretty ? 1 : 0) : \"\";\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPuts("if ( value != 0 ) { xvoUnref(value); }\n", ctx->out);
     if ( xl6CgenClassNeedsDestroy(ctx, classNode) ) {
@@ -254,7 +282,7 @@ static void xl6CgenClassPersistenceWriteHelper(
         xl6OutputPuts("(&source);\n", ctx->out);
     }
     xl6CgenIndent(ctx);
-    xl6OutputPuts("ok = write_fn != 0 ? (write_fn(path != 0 ? path : \"\", value, pretty ? 1 : 0) ? 1 : 0) : 0;\n", ctx->out);
+    xl6OutputPuts("ok = write_fn != 0 ? (write_fn(path != 0 ? path : \"\", xl6_xrt_retain(value), pretty ? 1 : 0) ? 1 : 0) : 0;\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPuts("if ( value != 0 ) { xvoUnref(value); }\n", ctx->out);
     if ( xl6CgenClassNeedsDestroy(ctx, classNode) ) {

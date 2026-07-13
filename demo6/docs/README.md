@@ -14,8 +14,8 @@
 - `函数重载设计.md`：函数、方法、构造、native-backed class extern 方法和泛型函数的重载解析。
 - `类型与隐性类设计.md`：隐性类、类型标识符三重角色、`type` 类型、透明别名和类型值比较。
 - `类型转换规则.md`：普通隐式转换、安全拓宽、显式构造转换、`as` 运行时检查和 XRT 层统一转换 API。
-- `类型系统设计.md`：`class`、native-backed class、成员、继承、生命周期、析构和 C opaque handle 映射。
-- `对象与参数传递设计.md`：class/容器引用语义、struct 值语义、`byval/byref/out`、多态和 C ABI。
+- `类型系统设计.md`：统一堆 class、native-backed class、透明 C payload、继承、生命周期和 C opaque handle 映射。
+- `对象与参数传递设计.md`：class/容器受管理引用语义、`union` 值语义、`point<T>`、`byval/byref/out`、多态和 C ABI。
 - `class_object协议设计.md`：class/object 统一对象模型、协议方法、derive 能力、copy/clone、动态字段和持久化设计。
 - `泛型设计.md`：泛型声明、类型参数、显式实例化、静态泛型容器、泛型约束和 C 混编限制。
 - `Typed_HIR与后端边界.md`：语义类型覆盖、typed HIR 完整性约束、后端唯一类型入口和静态容器存储决策。

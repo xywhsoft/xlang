@@ -19,14 +19,16 @@ class Outer<T>
     Middle<T> middle
 end
 
-Outer<int> direct
+Outer<int> direct = Outer::<int>()
+direct.middle = Middle::<int>()
+direct.middle.mapper = Mapper::<int>()
 direct.middle.mapper.op = makeAdder(7)
 direct.middle.mapper.value = 35
 
 Outer<int> copied = direct
 expect(copied.middle.mapper.op(copied.middle.mapper.value), 42)
 
-Outer<int> reassigned
+Outer<int> reassigned = Outer::<int>()
 reassigned = copied
 reassigned = reassigned
 expect(reassigned.middle.mapper.op(reassigned.middle.mapper.value), 42)

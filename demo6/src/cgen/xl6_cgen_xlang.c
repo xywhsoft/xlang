@@ -85,6 +85,11 @@ static void xl6CgenEmitXlangRuntime(XL6_Output* out)
 
     xl6OutputPuts("typedef struct xl6_xlang_handler { void* ctx; void* module; void* lock; } XL6_XlangHandler;\n\n", out);
 
+    xl6OutputPuts("void* xl6_xlang_handler_wrap(void* value)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return value;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("void* xl6_xlang_handler_create(const char* path, const char* workDir)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_XlangHandler* handler;\n", out);

@@ -39,8 +39,8 @@ expect(castFloat > 1.0, 1)
 expect(castText == "hello", 1)
 expect((boxedInt as int) < 50, 1)
 
-Base base
-Child child
+Base base = Base()
+Child child = Child()
 base.seed = 7
 child.seed = 11
 child.extra = 23

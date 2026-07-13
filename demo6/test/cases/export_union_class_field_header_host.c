@@ -2,12 +2,9 @@
 
 int main(void)
 {
-    XL_Union_Payload payload = xl6_payload_make(19, 23);
-    if ( payload.point.x != 19 ) {
+    XL_Union_Payload payload = xl6_payload_make(42);
+    if ( payload.integer != 42 ) {
         return 1;
     }
-    if ( payload.point.y != 23 ) {
-        return 2;
-    }
-    return xl6_payload_sum(payload) == 42 ? 0 : 3;
+    return xl6_payload_read(payload) == 42 ? 0 : 2;
 }

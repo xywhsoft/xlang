@@ -14,7 +14,7 @@ class Counter
     end
 end
 
-Counter counter
+Counter counter = Counter()
 expect(counter.reveal(), 5)
 expect(Counter.total, 2)
 expect(Counter.add(3), 5)

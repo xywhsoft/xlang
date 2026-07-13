@@ -6,25 +6,33 @@ echo Running DEMO6 suite: channel...
 
 release\xl.exe run test\cases\cgen_channel.xl
 if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
 
 release\xl.exe run test\cases\cgen_module_global_closure.xl
 if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
 
 release\xl.exe build test\cases\cgen_module_global_closure.xl -o build\test\cgen_module_global_closure.exe
 if errorlevel 1 exit /b 1
 
 build\test\cgen_module_global_closure.exe
 if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
 
 release\xl.exe build test\cases\cgen_channel.xl -o build\test\cgen_channel.exe
 if errorlevel 1 exit /b 1
 
 build\test\cgen_channel.exe
 if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
 for /L %%I in (1,1,5) do (
     build\test\cgen_channel.exe
     if errorlevel 1 (
         echo cgen_channel.exe repeat run %%I failed.
+        exit /b 1
+    )
+    if not errorlevel 0 (
+        echo cgen_channel.exe repeat run %%I crashed.
         exit /b 1
     )
 )
@@ -90,12 +98,17 @@ if errorlevel 1 (
 
 release\xl.exe run test\cases\cgen_channel_string.xl
 if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
 release\xl.exe build test\cases\cgen_channel_string.xl -o build\test\cgen_channel_string.exe
 if errorlevel 1 exit /b 1
 for /L %%I in (1,1,5) do (
     build\test\cgen_channel_string.exe >nul
     if errorlevel 1 (
         echo cgen_channel_string.exe repeat run %%I failed.
+        exit /b 1
+    )
+    if not errorlevel 0 (
+        echo cgen_channel_string.exe repeat run %%I crashed.
         exit /b 1
     )
 )
@@ -355,4 +368,3 @@ if errorlevel 1 (
 
 echo DEMO6 suite ok: channel
 exit /b 0
-

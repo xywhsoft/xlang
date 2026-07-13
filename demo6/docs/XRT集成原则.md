@@ -187,21 +187,25 @@ xvalue xvoDeepCopyEx(xvalue value, uint32 mode);
 - `XRT_OBJMODE_LOCAL` 保持原有 copy/deep-copy 语义。
 - `XRT_OBJMODE_SHARED` 递归创建共享 array/list/set/dict 根，并将标量值头切换为原子引用计数模式。
 - 向共享 xvalue 容器写入本地复合值时，XRT 自动创建共享图副本；array/list/set/dict 的公开写入 API 使用同一规则。
+- class 字段写入动态容器、静态泛型容器和 class 句柄时立即发布为 shared；异步函数返回 class 时还会先发布其 payload 中的受管理字段，再发布外层句柄。
 - 共享发布不会替用户消除数据竞争；多个线程写同一对象时仍必须使用 mutex/rwlock 等同步原语。
 - 当前共享值图最多允许 256 层容器嵌套；循环引用会以发布失败结束，不会无限递归。
 
 生成代码通过内部 `xl6_xrt_move_to_shared` 完成拥有权转移，原本地临时值在共享副本建立后立即释放。
 
-## 9. xvalue 内存池与容器写时复制
+## 9. xvalue 内存池与容器引用语义
 
 `xvalue_struct` 保持固定长度，函数签名、class、native-backed class 等扩展数据继续放在独立对象中，不向值外壳追加可变字段。
 
 - xvalue 外壳统一使用 `xrtMalloc` / `xrtFree`，直接复用 XRT 线程本地 size-class 池，不再维护第二套专用对象池。
-- 动态 array/list/set/dict 复制时创建独立 xvalue 外壳并共享容器 backing。
-- 第一次写入通过 `xvoEnsureUnique` 分离 backing；嵌套写入通过 `xvoIndexGetMutableI64`、`xvoIndexGetMutableKey` 或 `xvoIndexGetMutableValue` 逐层分离。
-- 普通读取使用只读借用接口，不承担分离成本。
+- xlang 的动态 array/list/set/dict 赋值、返回和默认/`byval` 参数传递通过 `xvoAddRef` 保留同一受管理对象；任一别名修改容器内容，其他别名都能观察到变化。
+- xlang 的静态泛型容器使用 `xrtTypedArrayRetain`、`xrtTypedListRetain`、`xrtTypedSetRetain`、`xrtTypedDictRetain` 保留同一 typed container 句柄，语义与动态容器一致。
+- 变量重新绑定只替换当前变量槽；`byref`/`out` 才能替换调用方变量槽。
+- `copy()` 使用 `xvoCopy` 或 typed container `Clone` 建立独立浅副本，`clone()` 建立独立深副本；普通赋值和参数传递不隐式调用复制协议。
+- `xrt_type_ops.copy` 与 `xrt_type_ops.clone` 是独立能力；class 协议返回 payload 指针时使用 `xvoGetRecordOwner()` 恢复其受管理 record 外壳。
+- 生成的捕获闭包通过 `xrtAtomicRefRetain()` / `xrtAtomicRefRelease()` 管理环境，不能直接对引用计数字段做非原子加减。
+- XRT 仍保留 `xvoShare`、`xvoEnsureUnique` 和 mutable accessor 作为 C 调用方可直接使用的写时复制设施，但 xlang 普通赋值不以 COW 伪装引用语义。
 - `xvoGetArray/List/Coll/Set/Table` 返回的底层对象只允许只读访问；需要直接修改底层对象时必须使用对应的 `xvoGetMutable*` 接口。
-- 静态泛型容器保持 eager value-copy。它们直接暴露稳定 C 结构和 `xtarray/xtlist/xtset/xtdict` ABI；引入透明 COW 会要求所有 C 写 API 改为二级句柄，并增加每次写入的间接访问。该取舍是正式语义，不是兼容回退。
 
 ## 10. 裁剪与依赖元数据
 

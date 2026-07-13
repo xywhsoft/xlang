@@ -3,9 +3,9 @@ class EqBox
 end
 
 func main(...) as int
-    EqBox first
+    EqBox first = EqBox()
     EqBox alias = first
-    EqBox other
+    EqBox other = EqBox()
 
     assert first == alias
     assert first != other

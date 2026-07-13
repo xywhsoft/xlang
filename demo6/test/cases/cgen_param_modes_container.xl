@@ -6,6 +6,10 @@ func appendCopy(byval array<int> values)
     values.append(3)
 end
 
+func rebindLocal(byval array<int> values)
+    values = array[90]
+end
+
 func replaceArray(byref array<int> values)
     array<int> next = array[7, 8]
     values = next
@@ -28,7 +32,12 @@ func main(...) as int
     assert source[2] == 2
 
     appendCopy(source)
-    assert source.length == 3
+    assert source.length == 4
+    assert source[3] == 3
+
+    rebindLocal(source)
+    assert source.length == 4
+    assert source[0] == 1
 
     replaceArray(byref source)
     assert source.length == 2

@@ -853,7 +853,7 @@ int mixedTaskBorrowedClosureValue = await task.spawn(chooseMixedTaskClosure ? mi
 assert mixedTaskBorrowedClosureValue == 263, "task.spawn mixed conditional borrowed closure value"
 assert mixedTaskClosureSource(4) == 264, "task.spawn mixed conditional should retain copied borrowed branch"
 
-SpawnFuncBox memberClosureBox
+SpawnFuncBox memberClosureBox = SpawnFuncBox()
 memberClosureBox.op = makeAdder(120)
 int memberClosureValue = await task.spawn(memberClosureBox.op, 3)
 assert memberClosureValue == 123, "task.spawn should accept class function field"
@@ -866,7 +866,7 @@ assert not task.cancel(memberClosureFuture), "completed class function field tas
 int memberClosureAfterCancel = await memberClosureFuture
 assert memberClosureAfterCancel == 124, "completed class function field task.spawn future should remain awaitable"
 
-SpawnFuncBox memberClosureAlt
+SpawnFuncBox memberClosureAlt = SpawnFuncBox()
 memberClosureAlt.op = makeAdder(250)
 bool chooseMemberClosure = false
 int borrowedMemberConditionalValue = await task.spawn(chooseMemberClosure ? memberClosureBox.op : memberClosureAlt.op, 9)

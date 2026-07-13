@@ -288,6 +288,13 @@ static int xl6CgenXValueMemberAssignStmt(
         xl6CgenXValueLocalInitStmt(ctx, targetType, assignName, right);
     }
 
+    /* class 拥有的动态值和嵌套 class 句柄必须在写入时完成跨线程发布。 */
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out,
+                    "__xl6_assign_%d = xl6_xrt_move_to_shared(__xl6_assign_%d);\n",
+                    id,
+                    id);
+
     /* var 字段拥有 xvalue 引用，替换前必须释放旧值。 */
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (*%s != 0) {\n", slotName);

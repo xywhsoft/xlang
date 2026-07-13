@@ -600,7 +600,6 @@ static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode
             xl6CgenClassAutoEqualsProto(ctx, classNode, "__ne__");
             xl6OutputPuts(";\n", ctx->out);
         }
-        xl6CgenClassCopyBuiltinHelperProtos(ctx, classNode);
         xl6CgenClassPersistenceHelperProtos(ctx, classNode);
     }
     xl6CgenVirtualTableStructDecl(ctx, classNode);
@@ -674,7 +673,7 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
             xl6OutputPuts(" = ", ctx->out);
             if ( initByCopy ) {
                 if ( xl6CgenTypedContainerExprIsSharedStorage(ctx, initExpr) ) {
-                    xl6CgenTypedContainerRetainExpr(ctx, fieldType, initExpr);
+            xl6CgenTypedContainerRetainExpr(ctx, fieldType, initExpr);
                 } else {
                     xl6CgenTypedContainerCopyExprMode(ctx, fieldType, initExpr, "XRT_OBJMODE_SHARED");
                 }
@@ -701,8 +700,9 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
         if ( xl6CgenClassHandleTargetType(ctx, fieldType) != NULL ) {
             if ( initExpr != NULL ) {
                 xl6CgenXValueAssignStmt(ctx, fieldType, fieldPath, initExpr);
-            } else if ( !xl6CgenDefaultClassHandleXValueStmt(ctx, fieldType, fieldPath, member) ) {
-                xl6CgenError(ctx, member, "class field default construction failed");
+            } else {
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(ctx->out, "%s = xvoCreateNull();\n", fieldPath);
             }
             continue;
         }
@@ -751,8 +751,8 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
 
 
 /*
-	class 本体保持零额外头部的 C 结构体布局。跨线程发布 class 时，
-	这里只把其中拥有的动态值和 typed 容器切换为共享根，并递归处理值成员。
+	class 的堆对象外壳由 XRT 管理，payload 仍保持透明 C 结构体布局。
+	跨线程发布时，只需把 payload 拥有的动态值和 typed 容器切换为共享根。
 */
 static void xl6CgenClassPublishSharedFields(
     XL6_CgenContext* ctx,
@@ -794,6 +794,12 @@ static void xl6CgenClassPublishSharedFields(
             sizeof(fieldPath) - strlen(fieldPath),
             field->text);
 
+        /* class 字段已经是 xvalue 句柄；发布句柄即可，不能按内嵌结构递归展开。 */
+        if ( xl6CgenClassHandleTargetType(ctx, fieldType) != NULL ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = xl6_xrt_move_to_shared(%s);\n", fieldPath, fieldPath);
+            continue;
+        }
         if ( xl6CgenIsXValueType(fieldType) ) {
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s = xl6_xrt_move_to_shared(%s);\n", fieldPath, fieldPath);
@@ -836,6 +842,55 @@ static void xl6CgenClassValuePublishShared(
     xl6CgenClassPublishSharedFields(ctx, classNode, varPath);
     ctx->currentGenericParams = prevParams;
     ctx->currentGenericArgs = prevArgs;
+}
+
+
+/*
+    class handle 的外壳由 XRT 管理，字段发布必须作用到它背后的透明 payload。
+    这里先发布 payload，再把对象外壳切换为共享模式；空句柄保持为空。
+*/
+static void xl6CgenClassHandlePublishShared(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* handlePath)
+{
+    const XL6_AstNode* recordType;
+    XL6_AstNode* classNode;
+    char cTypeName[512];
+    char dataName[64];
+    char dataPath[80];
+    int id;
+
+    if ( ctx == NULL || typeNode == NULL || handlePath == NULL ) {
+        return;
+    }
+    recordType = xl6CgenClassHandleTargetType(ctx, typeNode);
+    classNode = recordType != NULL ? xl6CgenClassNodeForType(ctx, recordType) : NULL;
+    if ( recordType == NULL || classNode == NULL ) {
+        return;
+    }
+    if ( xl6CgenFindNativeBackedClass(ctx, classNode->text) == NULL ) {
+        id = ctx->tempId++;
+        snprintf(dataName, sizeof(dataName), "__xl6_shared_class_data_%d", id);
+        snprintf(dataPath, sizeof(dataPath), "(*%s)", dataName);
+        xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), recordType);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out,
+                        "%s* %s = (%s*)xvoGetRecordData(%s);\n",
+                        cTypeName,
+                        dataName,
+                        cTypeName,
+                        handlePath);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", dataName);
+        ctx->indent += 1;
+        xl6CgenClassValuePublishShared(ctx, recordType, dataPath);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = xl6_xrt_move_to_shared(%s);\n", handlePath, handlePath);
 }
 
 static void xl6CgenNativeParamList(XL6_CgenContext* ctx, const XL6_AstNode* params, int includeSelf)

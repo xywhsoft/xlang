@@ -591,8 +591,7 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
     xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, resultType, returnName, node->children[0]);
     /* future 可在任意线程完成和读取，class 内部拥有的对象必须在发布前共享化。 */
     if ( xl6CgenClassHandleTargetType(ctx, resultType) != NULL ) {
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_move_to_shared(%s);\n", returnName, returnName);
+        xl6CgenClassHandlePublishShared(ctx, resultType, returnName);
     } else if ( xl6CgenClassNodeForType(ctx, resultType) != NULL ) {
         xl6CgenClassValuePublishShared(ctx, resultType, returnName);
     }

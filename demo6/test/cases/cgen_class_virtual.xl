@@ -44,7 +44,7 @@ class Player extends Entity
     end
 end
 
-Player player
+Player player = Player()
 expect(player.score(), 45)
 expect(player.run(), 46)
 expect(player.prop, 70)

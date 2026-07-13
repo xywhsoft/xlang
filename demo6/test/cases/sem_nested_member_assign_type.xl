@@ -1,12 +1,12 @@
-union Payload
-    Point point
-end
-
 class Point
     int x
 end
 
+class Holder
+    Point point = Point()
+end
+
 func bad()
-    Payload payload
-    payload.point.x = "bad"
+    Holder holder = Holder()
+    holder.point.x = "bad"
 end

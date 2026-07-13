@@ -342,6 +342,8 @@ xlang float    -> C double
 xlang float32  -> C float
 xlang float64  -> C double
 xlang point    -> C xptr
+xlang class    -> C xvalue
+byref/out class -> C xvalue*
 ```
 
 `string` 需要单独处理所有权：
@@ -355,7 +357,6 @@ xlang point    -> C xptr
 
 - `var`
 - `array/list/set/dict`
-- `class/native-backed class`
 - 多返回值
 - 泛型声明
 - 捕获闭包
@@ -368,7 +369,7 @@ class 数据 ABI 采用“数据尽量透明，行为显式导出”的原则。
 
 也就是说，C 侧可以通过生成的头文件、XRT 类型和 ABI 元数据理解并操作 xlang 数据结构；但 C 侧不能默认直接调用所有 xlang 成员函数，成员函数需要显式 export 或通过 xcall/协议接口调用。
 
-建议内部 C 布局：
+class 本体由 XRT `xvalue` 句柄管理，下面的 C 结构体只描述对象的透明字段 payload：
 
 ```c
 typedef struct XL_Class_Vec2 {
@@ -381,6 +382,8 @@ typedef struct XL_Class_Vec2 {
 
 - class 字段顺序按源码声明顺序。
 - 继承时父类字段作为子类布局前缀。
+- class 参数、返回值和变量跨 C ABI 时使用 `xvalue`；C 侧通过 `xvoGetRecordData` 取得受管理对象的 payload 指针。
+- C 侧保留对象必须调用 `xvoAddRef`，释放对象必须调用 `xvoUnref`，不能复制 payload 伪造对象身份。
 - 字段类型使用 XRT 或 ABI 文档中定义的 C 可见类型表达。
 - `string`、`array`、`list`、`set`、`dict`、`function`、object 动态字段等复合数据，应通过 XRT 类型和协议 API 向 C 暴露。
 - 泛型已实例化类型应生成具体布局和类型元数据。
@@ -392,7 +395,7 @@ typedef struct XL_Class_Vec2 {
 
 原 `custom` 的 C opaque handle 能力并入 native-backed class ABI。
 
-建议内部布局：
+native-backed class 同样由外层 `xvalue` 管理；下面的结构体是受管理对象的 native payload：
 
 ```c
 typedef struct XL_Class_Image {
@@ -410,7 +413,7 @@ typedef struct XL_Class_Image {
 - native-backed class 不生成动态 method table，除非 class 自身声明 virtual 能力。
 - 如果声明 `__create__`，ABI 元信息必须记录构造对应的 C 符号、返回句柄类型和失败策略。
 - 如果没有声明 `__create__`，ABI 元信息必须标记该类型只能通过已有指针或默认构造规则初始化。
-- 如果声明 `__destroy__`，ABI 元信息必须记录析构对应的 C 符号，cgen 在生命周期结束处对非空资源插入清理调用。
+- 如果声明 `__destroy__`，ABI 元信息必须记录析构对应的 C 符号；最后一个 `xvalue` 引用释放时，由 XRT 类型描述器对非空资源调用一次析构。
 - 如果没有声明 `__destroy__`，cgen 不释放 native 资源。
 
 ### 12.1 class 成员函数 C export ABI
@@ -523,7 +526,7 @@ export math_add_i64
 - 多返回值作为多个 C 返回值直接导出；应使用 out 参数或 xcall wrapper。
 - `var` 脱离 XRT 类型信息直接裸导出。
 - 容器脱离 XRT 类型和 ABI 元数据直接裸导出。
-- class 按值传参与按值返回。
+- class payload 脱离 `xvalue` 生命周期按值传参与返回。
 - C 调用约定属性，例如 stdcall/fastcall。
 - C 结构体按值互传。
 - 字符串返回自动分配和自动释放协议。

@@ -647,7 +647,6 @@ item_base(A) ::= export_const_decl(B). { A = B; }
 item_base(A) ::= type_alias_decl(B). { A = B; }
 item_base(A) ::= extern_type_alias_decl(B). { A = B; }
 item_base(A) ::= class_decl(B). { A = B; }
-item_base(A) ::= struct_decl(B). { A = B; }
 item_base(A) ::= union_decl(B). { A = B; }
 item_base(A) ::= stmt(B). { A = B; }
 item(A) ::= TOK_ERROR(E). {
@@ -823,28 +822,6 @@ class_decl(A) ::= KW_CLASS(C) name_tok(N) generic_params_opt(G) class_extends(E)
     xl6AstAddChild(A, B);
     xl6AstAddChild(A, G);
     (void)C;
-}
-
-/* struct 是显式值语义聚合，只承载 C 兼容字段布局。 */
-struct_decl(A) ::= KW_STRUCT(S) name_tok(N) need_sep struct_body(B) KW_END. {
-    A = xl6AstNew(XL6_AST_STRUCT, &N);
-    xl6AstAddChild(A, B);
-    (void)S;
-}
-
-struct_body(A) ::= . {
-    A = xl6PList();
-}
-struct_body(A) ::= struct_body(B) SEP. {
-    A = B;
-}
-struct_body(A) ::= struct_body(B) field_decl(F). {
-    A = B;
-    xl6AstAddChild(A, F);
-}
-struct_body(A) ::= struct_body(B) union_decl(U). {
-    A = B;
-    xl6AstAddChild(A, U);
 }
 
 class_extends(A) ::= . {

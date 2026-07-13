@@ -518,17 +518,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should consume normalized mixed conditional function values for task.spawn.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'memberClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(memberClosureBox\.op,' -or $text -notmatch 'memberClosureFuture\s*=\s*xl6_task_spawn_values\(memberClosureBox\.op,'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'memberClosureValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(\*\(\(XL_Class_SpawnFuncBox\*\)xl6_class_data\(memberClosureBox,[^)]*\)\)\)\.op,' -or $text -notmatch 'memberClosureFuture\s*=\s*xl6_task_spawn_values\(\(\*\(\(XL_Class_SpawnFuncBox\*\)xl6_class_data\(memberClosureBox,[^)]*\)\)\)\.op,'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing class function field task.spawn source.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(memberClosureBox\.op, xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 37, 1, 1' -or $text -notmatch 'xl6_task_spawn_values\(memberClosureBox\.op, xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 40, 1, 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl6_task_spawn_values\(\(\*\(\(XL_Class_SpawnFuncBox\*\)xl6_class_data\(memberClosureBox,[^)]*\)\)\)\.op, xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 37, 1, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(\*\(\(XL_Class_SpawnFuncBox\*\)xl6_class_data\(memberClosureBox,[^)]*\)\)\)\.op, xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 40, 1, 1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should retain borrowed class function fields for task.spawn.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'borrowedMemberConditionalValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(chooseMemberClosure \? memberClosureBox\.op : memberClosureAlt\.op\)' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseMemberClosure \? memberClosureBox\.op : memberClosureAlt\.op\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 49, 1, 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'borrowedMemberConditionalValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(\(chooseMemberClosure \? \(\*\(\(XL_Class_SpawnFuncBox\*\)xl6_class_data\(memberClosureBox,[^)]*\)\)\)\.op : \(\*\(\(XL_Class_SpawnFuncBox\*\)xl6_class_data\(memberClosureAlt,[^)]*\)\)\)\.op\)' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseMemberClosure \? \(\*\(\(XL_Class_SpawnFuncBox\*\)xl6_class_data\(memberClosureBox,[^)]*\)\)\)\.op : \(\*\(\(XL_Class_SpawnFuncBox\*\)xl6_class_data\(memberClosureAlt,[^)]*\)\)\)\.op\), xrtTypeInt\(\), sizeof\(long long\), [^,]*, \d+, 49, 1, 1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should retain borrowed conditional class function fields for task.spawn.
     exit /b 1
@@ -598,7 +598,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array task.all fast-failure over task.spawn fixture.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(typedSpawnAllFailureGroup" build\test\cgen_task_spawn.c >nul
+findstr /C:"xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(typedSpawnAllFailureGroup" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array task.all fast-failure group await.
     exit /b 1
@@ -711,4 +711,3 @@ if errorlevel 1 (
 
 echo DEMO6 suite ok: task spawn cgen assertions 1/4
 exit /b 0
-

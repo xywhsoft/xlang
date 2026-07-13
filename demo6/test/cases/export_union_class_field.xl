@@ -1,19 +1,14 @@
 union Payload
-    Point point
+    int integer
+    float64 decimal
 end
 
-struct Point
-    int x
-    int y
-end
-
-export "xl6_payload_make" func makePayload(int x, int y) as Payload
+export "xl6_payload_make" func makePayload(int value) as Payload
     Payload payload
-    payload.point.x = x
-    payload.point.y = y
+    payload.integer = value
     return payload
 end
 
-export "xl6_payload_sum" func sumPayload(Payload payload) as int
-    return payload.point.x + payload.point.y
+export "xl6_payload_read" func readPayload(Payload payload) as int
+    return payload.integer
 end

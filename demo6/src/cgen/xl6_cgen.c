@@ -59,6 +59,10 @@ static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name);
 #include "src/cgen/xl6_cgen_value_object_containers.c"
 #include "src/cgen/xl6_cgen_value_object.c"
 #include "src/cgen/xl6_cgen_value_object_member.c"
+static void xl6CgenClassPublishSharedFields(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const char* varPath);
 #include "src/cgen/xl6_cgen_class_value_protocol.c"
 #include "src/cgen/xl6_cgen_record_field.c"
 #include "src/cgen/xl6_cgen_class_copy.c"
@@ -99,10 +103,14 @@ static void xl6CgenAsyncPendingResultCompletion(XL6_CgenContext* ctx, int target
 #include "src/cgen/xl6_cgen_stmt_error.c"
 #include "src/cgen/xl6_cgen_stmt_effect.c"
 #include "src/cgen/xl6_cgen_stmt_dispatch.c"
+static void xl6CgenGenericClassFuncProto(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* funcNode);
 #include "src/cgen/xl6_cgen_decl_proto.c"
 #include "src/cgen/xl6_cgen_class_virtual.c"
 #include "src/cgen/xl6_cgen_decl_union.c"
-#include "src/cgen/xl6_cgen_decl_struct.c"
 #include "src/cgen/xl6_cgen_decl_class.c"
 #include "src/cgen/xl6_cgen_decl_methods.c"
 #include "src/cgen/xl6_cgen_async.c"

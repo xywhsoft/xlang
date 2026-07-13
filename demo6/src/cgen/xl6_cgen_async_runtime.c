@@ -406,11 +406,11 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    result = bWait ? xrtChannelRecv(pChannel, (void**)&box) : xrtChannelTryRecv(pChannel, (void**)&box);\n", out);
     xl6OutputPuts("    if ( result == XQUEUE_OK ) {\n", out);
-    xl6OutputPuts("        size = box != 0 ? strlen(box) + 1u : 1u;\n", out);
-    xl6OutputPuts("        copy = (char*)xrtTempMemory(size);\n", out);
+    xl6OutputPuts("        size = box != 0 ? strlen(box) : 0u;\n", out);
+    xl6OutputPuts("        copy = xrtCopyStr(box != 0 ? box : \"\", size);\n", out);
     xl6OutputPuts("        if ( copy == 0 ) { xrtFree(box); xl6_error_raise(\"ChannelError\", \"out of memory while receiving channel string\", file, line, column); return false; }\n", out);
-    xl6OutputPuts("        if ( box != 0 ) { memcpy(copy, box, size); } else { copy[0] = 0; }\n", out);
     xl6OutputPuts("        xrtFree(box);\n", out);
+    xl6OutputPuts("        if ( *pOut != 0 ) { xrtFree((void*)*pOut); }\n", out);
     xl6OutputPuts("        *pOut = copy;\n", out);
     xl6OutputPuts("        return true;\n", out);
     xl6OutputPuts("    }\n", out);

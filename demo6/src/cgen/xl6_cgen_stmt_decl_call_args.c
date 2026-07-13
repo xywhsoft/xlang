@@ -634,7 +634,7 @@ static int xl6CgenDeclEmitCallArgTemp(
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = ", cName);
         if ( initByCopy ) {
-            xl6CgenTypedContainerRetainExpr(ctx, typeNode, expr);
+        xl6CgenTypedContainerRetainExpr(ctx, typeNode, expr);
         } else if ( initByMove ) {
             xl6CgenExpr(ctx, expr);
         } else if ( initByImport ) {

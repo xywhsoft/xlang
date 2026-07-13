@@ -840,7 +840,7 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             if ( targetShared && !xl6CgenTypedContainerExprIsSharedStorage(ctx, right) ) {
                 xl6CgenTypedContainerCopyExprMode(ctx, targetType, right, "XRT_OBJMODE_SHARED");
             } else {
-                xl6CgenTypedContainerRetainExpr(ctx, targetType, right);
+            xl6CgenTypedContainerRetainExpr(ctx, targetType, right);
             }
         }
         xl6OutputPuts(";\n", ctx->out);

@@ -22,7 +22,8 @@ source.values[0] = 99
 
 expect(copied.id, 7)
 expect(cloned.id, 7)
-expect(int(copied.values[0]), 7)
+// copy 只复制 Packet 的字段槽，嵌套容器仍保留同一受管理对象。
+expect(int(copied.values[0]), 99)
 expect(int(cloned.values[0]), 7)
 
 var values = [1, 2, 3]

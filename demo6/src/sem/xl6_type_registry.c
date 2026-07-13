@@ -19,7 +19,7 @@ static const XL6_BuiltinTypeSeed g_xl6BuiltinTypeSeeds[] = {
     {"c_size", 0, 0}, {"c_ssize", 0, 0}, {"c_ptrdiff", 0, 0},
     {"c_intptr", 0, 0}, {"c_uintptr", 0, 0}, {"c_bool", 0, 0},
     {"c_float", 0, 0}, {"c_double", 0, 0}, {"c_wchar", 0, 0},
-    {"string", 0, 0}, {"time", 0, 0}, {"point", 0, 0}, {"error", 0, 0},
+    {"string", 0, 0}, {"time", 0, 0}, {"point", 1, 1}, {"error", 0, 0},
     {"function", 0, 0}, {"var", 0, 0}, {"type", 0, 0},
     {"array", 1, 1}, {"list", 1, 1}, {"set", 1, 1}, {"dict", 1, 1},
     {"future", 1, 1}, {"task", 1, 1}, {"channel", 1, 1}, {"generator", 1, 1},
