@@ -8,10 +8,7 @@ static int xl6CgenDeclTemporaryClassFieldTypeIsPlain(XL6_CgenContext* ctx, const
     }
 
     /*
-        当前只接管普通按值字段。function、class、native-backed class、var、
-        容器和并发句柄字段涉及借用/保留语义，必须由专门路径处理，
-        避免从临时 class 中借出悬空值。
-    */
+        褰撳墠鍙帴绠℃櫘閫氭寜鍊煎瓧娈点€俧unction銆乧lass銆乶ative-backed class銆乿ar銆?        瀹瑰櫒鍜屽苟鍙戝彞鏌勫瓧娈垫秹鍙婂€熺敤/淇濈暀璇箟锛屽繀椤荤敱涓撻棬璺緞澶勭悊锛?        閬垮厤浠庝复鏃?class 涓€熷嚭鎮┖鍊笺€?    */
     if ( xl6CgenIsXValueType(concreteType) ||
          xl6CgenIsFunctionType(concreteType) ||
          xl6CgenIsClassType(ctx, concreteType) ||
@@ -30,17 +27,13 @@ static int xl6CgenDeclTemporaryClassFieldTypeIsPlain(XL6_CgenContext* ctx, const
 
 static void xl6CgenDeclDestroyTemporaryClassValue(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* classTypeNode, const char* tempName)
 {
-    if ( classNode == NULL || tempName == NULL || !xl6CgenClassNeedsDestroy(ctx, classNode) ) {
+    (void)classNode;
+    (void)classTypeNode;
+    if ( tempName == NULL ) {
         return;
     }
-
     xl6CgenIndent(ctx);
-    if ( classTypeNode != NULL && classTypeNode->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
-        xl6CgenGenericClassMemberSymbol(ctx, classNode, classTypeNode, "destroy");
-    } else {
-        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
-    }
-    xl6OutputPrintf(ctx->out, "(&%s);\n", tempName);
+    xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", tempName, tempName, tempName);
 }
 
 typedef struct XL6_CgenDeclClassArgTemp {
@@ -209,9 +202,8 @@ static void xl6CgenDeclCollectClassArgTempsInExprImpl(XL6_CgenContext* ctx,
     }
 
     /*
-        外层语句 scope 已经物化的表达式不能再次收集。
-        这让复合赋值、普通调用和专用参数 lowering 可以安全嵌套，
-        同一个 class 临时值只构造和析构一次。
+        外层语句 scope 已经物化的表达式不能再次收集。这样复合赋值、普通调用和
+        专用参数 lowering 可以安全嵌套，同一个 class 临时值只构造和析构一次。
     */
     for ( i = 0; i < ctx->exprReplacementCount; ++i ) {
         if ( ctx->exprReplacements[i].expr == expr &&
@@ -221,22 +213,13 @@ static void xl6CgenDeclCollectClassArgTempsInExprImpl(XL6_CgenContext* ctx,
     }
 
     /*
-        匿名函数拥有独立的求值作用域。
-        外层扫描器不能提前物化函数体里的 class 临时值，否则会引用尚不存在的形参，
-        也会把调用时副作用错误地提升到闭包创建时。
+        匿名函数拥有独立的求值作用域。外层扫描器不能提前物化函数体内的 class
+        临时值，否则会引用尚不存在的形参，并把调用副作用提前到闭包创建时。
     */
     if ( expr->kind == XL6_AST_ANON_FUNC ) {
         return;
     }
 
-    /*
-        ref(value) 是明确的所有权边界。它的专用 xvalue lowering 负责构造、
-        移动或复制内部 class 值；外层扫描器不能提前物化 value，否则会同时
-        破坏 ref 的移动语义和参数临时量收集。
-    */
-    if ( xl6CgenRefCtorValueExpr(expr) != NULL ) {
-        return;
-    }
 
     /*
         条件、短路逻辑和空合并只会求值部分分支，不能把分支中的构造提前到外层。
@@ -252,7 +235,7 @@ static void xl6CgenDeclCollectClassArgTempsInExprImpl(XL6_CgenContext* ctx,
 
     /*
         子表达式先于父表达式物化，确保多层嵌套构造按源码求值顺序完成。
-        根表达式由它所在的声明、return 或调用语句接管，这里只收集内部 class 值。
+        根表达式由所在声明、return 或调用语句接管，这里只收集内部 class 值。
     */
     for ( i = 0; i < expr->childCount; ++i ) {
         xl6CgenDeclCollectClassArgTempsInExprImpl(ctx, expr->children[i], 1, temps, count, capacity);
@@ -313,10 +296,10 @@ static void xl6CgenDeclEmitClassArgTemps(XL6_CgenContext* ctx,
         } else {
             xl6CgenIndent(ctx);
         }
-        xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, temps[i].valueType), temps[i].valueName);
+        xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", temps[i].valueName);
         if ( temps[i].isConstructor ) {
-            if ( !xl6CgenEmitClassCtorInto(ctx, temps[i].expr, temps[i].valueName) ) {
-                xl6CgenError(ctx, temps[i].expr, "nested class constructor lowering failed");
+            if ( !xl6CgenTryClassCtorBoxXValueStmt(ctx, temps[i].valueType, temps[i].expr, temps[i].valueName) ) {
+                xl6CgenError(ctx, temps[i].expr, "nested class constructor boxing failed");
             }
         } else if ( temps[i].isUpcast ) {
             if ( !xl6CgenClassUpcastStmt(ctx, temps[i].valueType, temps[i].expr, temps[i].valueName) ) {
@@ -331,6 +314,7 @@ static void xl6CgenDeclEmitClassArgTemps(XL6_CgenContext* ctx,
         }
         dependencies[savedReplacementCount + emittedCount].expr = temps[i].expr;
         dependencies[savedReplacementCount + emittedCount].cName = temps[i].valueName;
+        dependencies[savedReplacementCount + emittedCount].flags = XL6_CGEN_EXPR_REPLACEMENT_XVALUE;
         emittedCount += 1;
     }
     ctx->exprReplacements = savedReplacements;
@@ -398,6 +382,7 @@ static int xl6CgenClassExprTempScopeBegin(
     for ( i = 0; i < scope->count; ++i ) {
         scope->replacements[scope->savedReplacementCount + (size_t)i].expr = scope->temps[i].expr;
         scope->replacements[scope->savedReplacementCount + (size_t)i].cName = scope->temps[i].valueName;
+        scope->replacements[scope->savedReplacementCount + (size_t)i].flags = XL6_CGEN_EXPR_REPLACEMENT_XVALUE;
     }
 
     xl6CgenDeclEmitClassArgTemps(ctx, scope->temps, scope->count, 0);
@@ -437,12 +422,14 @@ static XL6_CgenExprReplacement* xl6CgenDeclCreateExprReplacements(XL6_CgenContex
     for ( i = 0; i < count; ++i ) {
         replacements[i].expr = temps[i].expr;
         replacements[i].cName = temps[i].valueName;
+        replacements[i].flags = XL6_CGEN_EXPR_REPLACEMENT_XVALUE;
     }
     return replacements;
 }
 
 typedef struct XL6_CgenDeclCallArgTemp {
     int active;
+    int releaseAfterUse;
     const XL6_AstNode* expr;
     XL6_AstNode* typeNode;
     char name[64];
@@ -483,6 +470,7 @@ static XL6_CgenExprReplacement* xl6CgenDeclCreateCallArgReplacements(XL6_CgenCon
         }
         replacements[replacementIndex].expr = temps[i].expr;
         replacements[replacementIndex].cName = temps[i].name;
+        replacements[replacementIndex].flags = 0u;
         replacementIndex += 1;
     }
     return replacements;
@@ -507,7 +495,13 @@ static void xl6CgenDeclEmitKnownCallArgsWithClassTemps(
             xl6OutputPuts(", ", ctx->out);
         }
         if ( temps != NULL && temps[i].active ) {
-            xl6OutputPuts(temps[i].valueName, ctx->out);
+            if ( xl6CgenClassHandleTargetType(ctx, temps[i].valueType) != NULL ) {
+                xl6OutputPuts("xl6_xrt_retain(", ctx->out);
+                xl6OutputPuts(temps[i].valueName, ctx->out);
+                xl6OutputPutc(')', ctx->out);
+            } else {
+                xl6OutputPuts(temps[i].valueName, ctx->out);
+            }
         } else if ( expr != NULL ) {
             xl6CgenExpr(ctx, expr);
         } else if ( param != NULL && param->childCount > 1 ) {
@@ -624,10 +618,10 @@ static int xl6CgenDeclTryTemporaryClassArgInit(
             xl6CgenIndent(ctx);
         }
         firstOutput = 0;
-        xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, temps[i].valueType), temps[i].valueName);
+        xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", temps[i].valueName);
         if ( temps[i].isConstructor ) {
-            if ( !xl6CgenEmitClassCtorInto(ctx, expr, temps[i].valueName) ) {
-                xl6CgenError(ctx, expr, "class argument constructor lowering failed");
+            if ( !xl6CgenTryClassCtorBoxXValueStmt(ctx, temps[i].valueType, expr, temps[i].valueName) ) {
+                xl6CgenError(ctx, expr, "class argument constructor boxing failed");
             }
         } else if ( temps[i].isUpcast ) {
             if ( !xl6CgenClassUpcastStmt(ctx, temps[i].valueType, expr, temps[i].valueName) ) {

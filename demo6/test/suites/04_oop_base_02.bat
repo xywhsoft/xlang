@@ -349,17 +349,17 @@ if errorlevel 1 (
     echo cgen_native_class_lifecycle.c missing native-backed class handle struct.
     exit /b 1
 )
-findstr /C:"counter.handle = counter_open(40LL);" build\test\cgen_native_class_lifecycle.c >nul
+findstr /C:"counter = xl6_box_XL_Class_Counter((XL_Class_Counter){counter_open(40LL)});" build\test\cgen_native_class_lifecycle.c >nul
 if errorlevel 1 (
     echo cgen_native_class_lifecycle.c missing native-backed class direct create call.
     exit /b 1
 )
-findstr /C:"long long afterAdd = counter_add(counter.handle, 2LL);" build\test\cgen_native_class_lifecycle.c >nul
+findstr /C:"long long afterAdd = xl_class_Counter__add(((XL_Class_Counter*)xl6_class_data(counter" build\test\cgen_native_class_lifecycle.c >nul
 if errorlevel 1 (
     echo cgen_native_class_lifecycle.c missing native-backed class direct method call.
     exit /b 1
 )
-findstr /C:"counter_close(counter.handle);" build\test\cgen_native_class_lifecycle.c >nul
+findstr /C:"counter_close(*handle);" build\test\cgen_native_class_lifecycle.c >nul
 if errorlevel 1 (
     echo cgen_native_class_lifecycle.c missing native-backed class direct destroy call.
     exit /b 1
@@ -403,12 +403,12 @@ if errorlevel 1 (
     echo cgen_native_class_bind_point.c missing native point move runtime gate.
     exit /b 1
 )
-findstr /C:"box.handle = xl6_point_take((void**)&(raw));" build\test\cgen_native_class_bind_point.c >nul
+findstr /C:"box = xl6_box_XL_Class_BorrowedBox((XL_Class_BorrowedBox){xl6_point_take((void**)&(raw))});" build\test\cgen_native_class_bind_point.c >nul
 if errorlevel 1 (
     echo cgen_native_class_bind_point.c missing owning native point transfer.
     exit /b 1
 )
-findstr /C:"empty.handle = xl6_point_take((void**)&(raw));" build\test\cgen_native_class_bind_point.c >nul
+findstr /C:"empty = xl6_box_XL_Class_BorrowedBox((XL_Class_BorrowedBox){xl6_point_take((void**)&(raw))});" build\test\cgen_native_class_bind_point.c >nul
 if errorlevel 1 (
     echo cgen_native_class_bind_point.c missing repeated empty point transfer.
     exit /b 1
@@ -418,7 +418,7 @@ if errorlevel 1 (
     echo cgen_native_class_bind_point.c missing nested argument point transfer.
     exit /b 1
 )
-findstr /C:"if (empty.handle != 0)" build\test\cgen_native_class_bind_point.c >nul
+findstr /C:"if (empty != 0)" build\test\cgen_native_class_bind_point.c >nul
 if errorlevel 1 (
     echo cgen_native_class_bind_point.c missing null-safe destroy guard.
     exit /b 1
@@ -435,14 +435,14 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_native_class_field.xl --emit build\test\cgen_native_class_field.c
 if errorlevel 1 exit /b 1
-findstr /C:"native_box_value(self->box.handle)" build\test\cgen_native_class_field.c >nul
+findstr /C:"xl_class_NativeBox__value(((XL_Class_NativeBox*)xl6_class_data(__xl6_call_receiver_" build\test\cgen_native_class_field.c >nul
 if errorlevel 1 (
-    echo cgen_native_class_field.c missing direct native class field method call.
+    echo cgen_native_class_field.c missing managed native class field method call.
     exit /b 1
 )
-findstr /C:"native_box_close(self->box.handle);" build\test\cgen_native_class_field.c >nul
+findstr /C:"if (self->box != 0) { xvoUnref(self->box); self->box = 0; }" build\test\cgen_native_class_field.c >nul
 if errorlevel 1 (
-    echo cgen_native_class_field.c missing direct native class field cleanup.
+    echo cgen_native_class_field.c missing managed native class field cleanup.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_field.c test\cases\cgen_class_native_field_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_field.exe
@@ -452,9 +452,14 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_native_class_return_move.xl --emit build\test\cgen_native_class_return_move.c
 if errorlevel 1 exit /b 1
-findstr /C:"box.handle = 0;" build\test\cgen_native_class_return_move.c >nul
+findstr /C:"xvalue __xl6_return_" build\test\cgen_native_class_return_move.c >nul
 if errorlevel 1 (
-    echo cgen_native_class_return_move.c missing moved native class return source clear.
+    echo cgen_native_class_return_move.c missing managed class return value.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_retain(box)" build\test\cgen_native_class_return_move.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_return_move.c missing retained managed class return.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_return_move.c test\cases\cgen_class_native_field_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_return_move.exe

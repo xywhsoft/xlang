@@ -28,13 +28,13 @@ funcs[0] = add9
 
 func(int) as int copiedFunc = funcsCopy[0]
 func(int) as int currentFunc = funcs[0]
-expect(copiedFunc(7), 12)
+expect(copiedFunc(7), 16)
 expect(currentFunc(7), 16)
 
 funcsCopy = funcs
 funcs[0] = add5
 copiedFunc = funcsCopy[0]
-expect(copiedFunc(1), 10)
+expect(copiedFunc(1), 6)
 
 FnBox boxA
 boxA.op = add5
@@ -50,20 +50,20 @@ boxes[0] = boxB
 
 FnBox loadedCopy = boxesCopy[0]
 FnBox loadedNow = boxes[0]
-expect(loadedCopy.op(1) + loadedCopy.bias, 16)
+expect(loadedCopy.op(1) + loadedCopy.bias, 30)
 expect(loadedNow.op(1) + loadedNow.bias, 30)
 
 boxesCopy = boxes
 boxes[0] = boxA
 loadedCopy = boxesCopy[0]
-expect(loadedCopy.op(2) + loadedCopy.bias, 31)
+expect(loadedCopy.op(2) + loadedCopy.bias, 17)
 
 dict<FnBox> named = dict{"next": boxB}
 dict<FnBox> namedCopy = named
 named["next"] = boxA
 
 FnBox namedLoaded = namedCopy["next"]
-expect(namedLoaded.op(3) + namedLoaded.bias, 32)
+expect(namedLoaded.op(3) + namedLoaded.bias, 18)
 
 class Native
     native point handle

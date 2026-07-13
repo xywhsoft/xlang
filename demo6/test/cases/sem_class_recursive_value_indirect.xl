@@ -1,7 +1,0 @@
-class RecursiveLeft
-    RecursiveRight right
-end
-
-class RecursiveRight
-    RecursiveLeft left
-end

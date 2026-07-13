@@ -9,7 +9,7 @@ static int xl6CgenIsBuiltinTypeName(const char* name)
         "c_size", "c_ssize", "c_ptrdiff", "c_intptr", "c_uintptr", "c_bool",
         "c_float", "c_double", "c_wchar",
         "string", "time", "point", "error", "function", "var", "type",
-        "array", "list", "set", "dict", "ref",
+        "array", "list", "set", "dict", "__class_handle",
         "future", "task", "channel", "generator",
         "thread", "mutex", "cond", "rwlock", "sem"
     };
@@ -322,7 +322,7 @@ static int xl6CgenIsXValueTypeName(const char* name)
            xl6CTextEquals(name, "list") ||
            xl6CTextEquals(name, "set") ||
            xl6CTextEquals(name, "dict") ||
-           xl6CTextEquals(name, "ref");
+           xl6CTextEquals(name, "__class_handle");
 }
 
 static int xl6CgenIsStringTypeNode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
@@ -453,6 +453,7 @@ static int xl6CgenIsKnownTypeName(XL6_CgenContext* ctx, const char* name)
            xl6CgenFindTypeAlias(ctx, name) != NULL ||
            xl6CgenFindClass(ctx, name) != NULL ||
            xl6CgenFindNativeBackedClass(ctx, name) != NULL ||
+           xl6CgenFindStruct(ctx, name) != NULL ||
            xl6CgenFindUnion(ctx, name) != NULL;
 }
 
@@ -545,7 +546,7 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
     if ( xl6CTextEquals(typeNode->text, "type") ) {
         return "unsigned long long";
     }
-    if ( xl6CTextEquals(typeNode->text, "var") || xl6CTextEquals(typeNode->text, "ref") ||
+    if ( xl6CTextEquals(typeNode->text, "var") || xl6CTextEquals(typeNode->text, "__class_handle") ||
          xl6CTextEquals(typeNode->text, "array") || xl6CTextEquals(typeNode->text, "array<var>") ||
          xl6CTextEquals(typeNode->text, "list") || xl6CTextEquals(typeNode->text, "list<var>") ||
          xl6CTextEquals(typeNode->text, "set") || xl6CTextEquals(typeNode->text, "set<var>") ||
@@ -571,6 +572,10 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
         }
         xl6CgenClassTypeRefName(typeTextBuffer, sizeof(typeTextBuffer), refType);
         xl6AstFree(canonicalType);
+        return typeTextBuffer;
+    }
+    if ( xl6CgenIsStructType(ctx, typeNode) ) {
+        xl6CgenStructTypeTextName(typeTextBuffer, sizeof(typeTextBuffer), typeNode->text);
         return typeTextBuffer;
     }
     if ( xl6CgenIsUnionType(ctx, typeNode) ) {

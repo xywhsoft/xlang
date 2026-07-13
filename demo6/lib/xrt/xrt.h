@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-07-12 18:30:57
+    Generated: 2026-07-13 08:42:12
 
     MIT License
 
@@ -7028,7 +7028,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	#define XRT_TYPE_KIND_HANDLE		14u
 	#define XRT_TYPE_KIND_TYPE			15u
 	#define XRT_TYPE_KIND_FUTURE		16u
-	#define XRT_TYPE_KIND_REF			17u
+	#define XRT_TYPE_KIND_CLASS		17u
 	#define XRT_NATIVE_ABI_XCALL		0u
 	#define XRT_NATIVE_ABI_CDECL		1u
 	#define XRT_NATIVE_ABI_STDCALL		2u
@@ -7067,6 +7067,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 		const xrt_type_ops* Ops;
 		const xrt_method_table* Methods;
 		const void* Extra;
+		const xrt_type_desc* BaseType;
 	};
 	struct xrt_generic_type {
 		uint32 ArgCount;
@@ -7141,16 +7142,22 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 		uint32 Flags;
 	};
 	struct xrt_typed_array_struct {
+		volatile long RefCount;
+		bool HeapOwned;
 		const xrt_type_desc* ItemType;
 		uint32 ItemLength;
 		xarray_struct Array;
 	};
 	struct xrt_typed_list_struct {
+		volatile long RefCount;
+		bool HeapOwned;
 		const xrt_type_desc* ItemType;
 		uint32 ItemLength;
 		xlist_struct List;
 	};
 	struct xrt_typed_dict_struct {
+		volatile long RefCount;
+		bool HeapOwned;
 		const xrt_type_desc* ItemType;
 		uint32 ItemLength;
 		xdict_struct Dict;
@@ -7166,6 +7173,8 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 		uint8* Data;
 	};
 	struct xrt_typed_set_struct {
+		volatile long RefCount;
+		bool HeapOwned;
 		const xrt_type_desc* ItemType;
 		uint32 ItemLength;
 		xset_struct Set;
@@ -7188,6 +7197,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI const xrt_type_desc* xrtTypeType();
 	XXAPI const xrt_type_desc* xrtTypeValue();
 	XXAPI bool xrtTypeSame(const xrt_type_desc* pA, const xrt_type_desc* pB);
+	XXAPI bool xrtTypeIsA(const xrt_type_desc* pType, const xrt_type_desc* pTarget);
 	XXAPI const char* xrtTypeName(const xrt_type_desc* pType);
 	XXAPI uint32 xrtTypeGenericArgCount(const xrt_type_desc* pType);
 	XXAPI const xrt_type_desc* xrtTypeGenericArg(const xrt_type_desc* pType, uint32 iIndex);
@@ -7218,6 +7228,8 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 			元素生命周期由 type desc / type ops 驱动，C 和 xlang 都可以直接使用。
 	*/
 	XXAPI xtarray xrtTypedArrayCreate(const xrt_type_desc* pItemType, uint32 iMode);
+	XXAPI xtarray xrtTypedArrayRetain(xtarray pArray);
+	XXAPI void xrtTypedArrayRelease(xtarray pArray);
 	XXAPI xtarray xrtTypedArrayFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
 	XXAPI xvalue xrtTypedArrayToValue(xtarray pArray);
 	XXAPI void xrtTypedArrayDestroy(xtarray pArray);
@@ -7243,12 +7255,15 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI bool xrtTypedArrayContainsValue(xtarray pArray, xvalue pVal);
 	XXAPI bool xrtTypedArrayExtend(xtarray pTarget, xtarray pSource);
 	XXAPI xtarray xrtTypedArrayCloneEx(xtarray pArray, uint32 iMode);
+	XXAPI xtarray xrtTypedArrayMoveToShared(xtarray pArray);
 	XXAPI xtarray xrtTypedArrayClone(xtarray pArray);
 	XXAPI xtarray xrtTypedArrayConcat(xtarray pLeft, xtarray pRight);
 	XXAPI bool xrtTypedArrayEquals(xtarray pLeft, xtarray pRight);
 	XXAPI uint32 xrtTypedArrayCount(xtarray pArray);
 	XXAPI const xrt_type_desc* xrtTypedArrayItemType(xtarray pArray);
 	XXAPI xtlist xrtTypedListCreate(const xrt_type_desc* pItemType, uint32 iMode);
+	XXAPI xtlist xrtTypedListRetain(xtlist pList);
+	XXAPI void xrtTypedListRelease(xtlist pList);
 	XXAPI xtlist xrtTypedListFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
 	XXAPI xvalue xrtTypedListToValue(xtlist pList);
 	XXAPI void xrtTypedListDestroy(xtlist pList);
@@ -7266,11 +7281,14 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI bool xrtTypedListContainsValue(xtlist pList, xvalue pVal);
 	XXAPI bool xrtTypedListMerge(xtlist pTarget, xtlist pSource);
 	XXAPI xtlist xrtTypedListCloneEx(xtlist pList, uint32 iMode);
+	XXAPI xtlist xrtTypedListMoveToShared(xtlist pList);
 	XXAPI xtlist xrtTypedListClone(xtlist pList);
 	XXAPI bool xrtTypedListEquals(xtlist pLeft, xtlist pRight);
 	XXAPI uint32 xrtTypedListCount(xtlist pList);
 	XXAPI const xrt_type_desc* xrtTypedListItemType(xtlist pList);
 	XXAPI xtset xrtTypedSetCreate(const xrt_type_desc* pItemType, uint32 iMode);
+	XXAPI xtset xrtTypedSetRetain(xtset pSet);
+	XXAPI void xrtTypedSetRelease(xtset pSet);
 	XXAPI xtset xrtTypedSetFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
 	XXAPI xvalue xrtTypedSetToValue(xtset pSet);
 	XXAPI void xrtTypedSetDestroy(xtset pSet);
@@ -7287,6 +7305,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI bool xrtTypedSetClear(xtset pSet);
 	XXAPI bool xrtTypedSetMerge(xtset pTarget, xtset pSource);
 	XXAPI xtset xrtTypedSetCloneEx(xtset pSet, uint32 iMode);
+	XXAPI xtset xrtTypedSetMoveToShared(xtset pSet);
 	XXAPI xtset xrtTypedSetClone(xtset pSet);
 	XXAPI xtset xrtTypedSetUnion(xtset pLeft, xtset pRight);
 	XXAPI xtset xrtTypedSetIntersection(xtset pLeft, xtset pRight);
@@ -7298,6 +7317,8 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI uint32 xrtTypedSetCount(xtset pSet);
 	XXAPI const xrt_type_desc* xrtTypedSetItemType(xtset pSet);
 	XXAPI xtdict xrtTypedDictCreate(const xrt_type_desc* pItemType, uint32 iMode);
+	XXAPI xtdict xrtTypedDictRetain(xtdict pDict);
+	XXAPI void xrtTypedDictRelease(xtdict pDict);
 	XXAPI xtdict xrtTypedDictFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
 	XXAPI xvalue xrtTypedDictToValue(xtdict pDict);
 	XXAPI void xrtTypedDictDestroy(xtdict pDict);
@@ -7314,6 +7335,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI bool xrtTypedDictClear(xtdict pDict);
 	XXAPI bool xrtTypedDictMerge(xtdict pTarget, xtdict pSource);
 	XXAPI xtdict xrtTypedDictCloneEx(xtdict pDict, uint32 iMode);
+	XXAPI xtdict xrtTypedDictMoveToShared(xtdict pDict);
 	XXAPI xtdict xrtTypedDictClone(xtdict pDict);
 	XXAPI bool xrtTypedDictEquals(xtdict pLeft, xtdict pRight);
 	XXAPI uint32 xrtTypedDictCount(xtdict pDict);
@@ -7682,6 +7704,8 @@ XXAPI xvalue xvoCreateRecordMove(const xrt_type_desc* pType, ptr pData);
 	XXAPI ptr xvoGetCustom(xvalue pVal);
 	// 获取 handle/custom 句柄
 	XXAPI ptr xvoGetHandleData(xvalue pVal);
+	// 获取 typed handle 的可写句柄槽；裸 custom 或其他类型返回 NULL
+	XXAPI ptr* xvoGetHandleSlot(xvalue pVal);
 	
 	// Array 读数据
 	XXAPI xvalue xvoArrayGetValue(xvalue pArr, uint32 index);
@@ -8022,6 +8046,8 @@ XXAPI xvalue xvoCreateRecordMove(const xrt_type_desc* pType, ptr pData);
 	XXAPI xvalue xvoDeepCopy(xvalue pVal);
 	// 按对象模式深拷贝
 	XXAPI xvalue xvoDeepCopyEx(xvalue pVal, uint32 iMode);
+	// 将值的所有权发布到共享环境；成功后调用方不再持有原本地值
+	XXAPI xvalue xvoMoveToShared(xvalue pVal);
 	
 	// 输出 xte Value 的结构和值
 	XXAPI void xvoPrintValue(xvalue objVal, int iLevel, int iMode, int64 iKey, str sKey);
@@ -86675,14 +86701,30 @@ XXAPI xtarray xrtTypedArrayCreate(const xrt_type_desc* pItemType, uint32 iMode)
 		return NULL;
 	}
 	xrtTypedArrayInit(pArray, pItemType, iMode);
+	pArray->RefCount = 1;
+	pArray->HeapOwned = TRUE;
 	return pArray;
 }
-XXAPI void xrtTypedArrayDestroy(xtarray pArray)
+XXAPI xtarray xrtTypedArrayRetain(xtarray pArray)
 {
-	if ( pArray != NULL ) {
+	if ( pArray != NULL && pArray->HeapOwned && pArray->RefCount > 0 ) {
+		__xrtAtomicAddFetch32(&pArray->RefCount, 1);
+	}
+	return pArray;
+}
+XXAPI void xrtTypedArrayRelease(xtarray pArray)
+{
+	if ( pArray == NULL || !pArray->HeapOwned || pArray->RefCount <= 0 ) {
+		return;
+	}
+	if ( __xrtAtomicAddFetch32(&pArray->RefCount, -1) == 0 ) {
 		xrtTypedArrayUnit(pArray);
 		xrtFree(pArray);
 	}
+}
+XXAPI void xrtTypedArrayDestroy(xtarray pArray)
+{
+	xrtTypedArrayRelease(pArray);
 }
 XXAPI void xrtTypedArrayInit(xtarray pArray, const xrt_type_desc* pItemType, uint32 iMode)
 {
@@ -86691,6 +86733,8 @@ XXAPI void xrtTypedArrayInit(xtarray pArray, const xrt_type_desc* pItemType, uin
 	}
 	pArray->ItemType = pItemType;
 	pArray->ItemLength = __xrtTypedItemLength(pItemType);
+	pArray->RefCount = 0;
+	pArray->HeapOwned = FALSE;
 	xrtArrayInit(&pArray->Array, pArray->ItemLength, iMode);
 }
 XXAPI void xrtTypedArrayUnit(xtarray pArray)
@@ -86967,6 +87011,22 @@ XXAPI xtarray xrtTypedArrayCloneEx(xtarray pArray, uint32 iMode)
 	}
 	return pRet;
 }
+XXAPI xtarray xrtTypedArrayMoveToShared(xtarray pArray)
+{
+	xtarray pResult;
+	if ( pArray == NULL || xrtOwnerGetMode(&pArray->Array.Owner) == XRT_OBJMODE_SHARED ) {
+		return pArray;
+	}
+	pResult = xrtTypedArrayCloneEx(pArray, XRT_OBJMODE_SHARED);
+	if ( pResult != NULL ) {
+		if ( pArray->HeapOwned ) {
+			xrtTypedArrayDestroy(pArray);
+		} else {
+			xrtTypedArrayUnit(pArray);
+		}
+	}
+	return pResult;
+}
 XXAPI xtarray xrtTypedArrayClone(xtarray pArray)
 {
 	return pArray != NULL ?
@@ -87108,14 +87168,30 @@ XXAPI xtlist xrtTypedListCreate(const xrt_type_desc* pItemType, uint32 iMode)
 		return NULL;
 	}
 	xrtTypedListInit(pList, pItemType, iMode);
+	pList->RefCount = 1;
+	pList->HeapOwned = TRUE;
 	return pList;
 }
-XXAPI void xrtTypedListDestroy(xtlist pList)
+XXAPI xtlist xrtTypedListRetain(xtlist pList)
 {
-	if ( pList != NULL ) {
+	if ( pList != NULL && pList->HeapOwned && pList->RefCount > 0 ) {
+		__xrtAtomicAddFetch32(&pList->RefCount, 1);
+	}
+	return pList;
+}
+XXAPI void xrtTypedListRelease(xtlist pList)
+{
+	if ( pList == NULL || !pList->HeapOwned || pList->RefCount <= 0 ) {
+		return;
+	}
+	if ( __xrtAtomicAddFetch32(&pList->RefCount, -1) == 0 ) {
 		xrtTypedListUnit(pList);
 		xrtFree(pList);
 	}
+}
+XXAPI void xrtTypedListDestroy(xtlist pList)
+{
+	xrtTypedListRelease(pList);
 }
 XXAPI void xrtTypedListInit(xtlist pList, const xrt_type_desc* pItemType, uint32 iMode)
 {
@@ -87124,6 +87200,8 @@ XXAPI void xrtTypedListInit(xtlist pList, const xrt_type_desc* pItemType, uint32
 	}
 	pList->ItemType = pItemType;
 	pList->ItemLength = __xrtTypedItemLength(pItemType);
+	pList->RefCount = 0;
+	pList->HeapOwned = FALSE;
 	xrtListInit(&pList->List, pList->ItemLength, iMode);
 }
 XXAPI void xrtTypedListUnit(xtlist pList)
@@ -87320,6 +87398,22 @@ XXAPI xtlist xrtTypedListCloneEx(xtlist pList, uint32 iMode)
 	}
 	return pRet;
 }
+XXAPI xtlist xrtTypedListMoveToShared(xtlist pList)
+{
+	xtlist pResult;
+	if ( pList == NULL || xrtOwnerGetMode(&pList->List.Owner) == XRT_OBJMODE_SHARED ) {
+		return pList;
+	}
+	pResult = xrtTypedListCloneEx(pList, XRT_OBJMODE_SHARED);
+	if ( pResult != NULL ) {
+		if ( pList->HeapOwned ) {
+			xrtTypedListDestroy(pList);
+		} else {
+			xrtTypedListUnit(pList);
+		}
+	}
+	return pResult;
+}
 XXAPI xtlist xrtTypedListClone(xtlist pList)
 {
 	return pList != NULL ?
@@ -87359,14 +87453,30 @@ XXAPI xtset xrtTypedSetCreate(const xrt_type_desc* pItemType, uint32 iMode)
 		return NULL;
 	}
 	xrtTypedSetInit(pSet, pItemType, iMode);
+	pSet->RefCount = 1;
+	pSet->HeapOwned = TRUE;
 	return pSet;
 }
-XXAPI void xrtTypedSetDestroy(xtset pSet)
+XXAPI xtset xrtTypedSetRetain(xtset pSet)
 {
-	if ( pSet != NULL ) {
+	if ( pSet != NULL && pSet->HeapOwned && pSet->RefCount > 0 ) {
+		__xrtAtomicAddFetch32(&pSet->RefCount, 1);
+	}
+	return pSet;
+}
+XXAPI void xrtTypedSetRelease(xtset pSet)
+{
+	if ( pSet == NULL || !pSet->HeapOwned || pSet->RefCount <= 0 ) {
+		return;
+	}
+	if ( __xrtAtomicAddFetch32(&pSet->RefCount, -1) == 0 ) {
 		xrtTypedSetUnit(pSet);
 		xrtFree(pSet);
 	}
+}
+XXAPI void xrtTypedSetDestroy(xtset pSet)
+{
+	xrtTypedSetRelease(pSet);
 }
 XXAPI void xrtTypedSetInit(xtset pSet, const xrt_type_desc* pItemType, uint32 iMode)
 {
@@ -87375,6 +87485,8 @@ XXAPI void xrtTypedSetInit(xtset pSet, const xrt_type_desc* pItemType, uint32 iM
 	}
 	pSet->ItemType = pItemType;
 	pSet->ItemLength = __xrtTypedItemLength(pItemType);
+	pSet->RefCount = 0;
+	pSet->HeapOwned = FALSE;
 	xrtSetInit(&pSet->Set, pItemType, iMode);
 }
 XXAPI void xrtTypedSetUnit(xtset pSet)
@@ -87498,6 +87610,22 @@ XXAPI xtset xrtTypedSetCloneEx(xtset pSet, uint32 iMode)
 		return NULL;
 	}
 	return pRet;
+}
+XXAPI xtset xrtTypedSetMoveToShared(xtset pSet)
+{
+	xtset pResult;
+	if ( pSet == NULL || xrtOwnerGetMode(&pSet->Set.Owner) == XRT_OBJMODE_SHARED ) {
+		return pSet;
+	}
+	pResult = xrtTypedSetCloneEx(pSet, XRT_OBJMODE_SHARED);
+	if ( pResult != NULL ) {
+		if ( pSet->HeapOwned ) {
+			xrtTypedSetDestroy(pSet);
+		} else {
+			xrtTypedSetUnit(pSet);
+		}
+	}
+	return pResult;
 }
 XXAPI xtset xrtTypedSetClone(xtset pSet)
 {
@@ -87642,14 +87770,30 @@ XXAPI xtdict xrtTypedDictCreate(const xrt_type_desc* pItemType, uint32 iMode)
 		return NULL;
 	}
 	xrtTypedDictInit(pDict, pItemType, iMode);
+	pDict->RefCount = 1;
+	pDict->HeapOwned = TRUE;
 	return pDict;
 }
-XXAPI void xrtTypedDictDestroy(xtdict pDict)
+XXAPI xtdict xrtTypedDictRetain(xtdict pDict)
 {
-	if ( pDict != NULL ) {
+	if ( pDict != NULL && pDict->HeapOwned && pDict->RefCount > 0 ) {
+		__xrtAtomicAddFetch32(&pDict->RefCount, 1);
+	}
+	return pDict;
+}
+XXAPI void xrtTypedDictRelease(xtdict pDict)
+{
+	if ( pDict == NULL || !pDict->HeapOwned || pDict->RefCount <= 0 ) {
+		return;
+	}
+	if ( __xrtAtomicAddFetch32(&pDict->RefCount, -1) == 0 ) {
 		xrtTypedDictUnit(pDict);
 		xrtFree(pDict);
 	}
+}
+XXAPI void xrtTypedDictDestroy(xtdict pDict)
+{
+	xrtTypedDictRelease(pDict);
 }
 XXAPI void xrtTypedDictInit(xtdict pDict, const xrt_type_desc* pItemType, uint32 iMode)
 {
@@ -87658,6 +87802,8 @@ XXAPI void xrtTypedDictInit(xtdict pDict, const xrt_type_desc* pItemType, uint32
 	}
 	pDict->ItemType = pItemType;
 	pDict->ItemLength = __xrtTypedItemLength(pItemType);
+	pDict->RefCount = 0;
+	pDict->HeapOwned = FALSE;
 	xrtDictInit(&pDict->Dict, pDict->ItemLength, iMode);
 }
 XXAPI void xrtTypedDictUnit(xtdict pDict)
@@ -87852,6 +87998,22 @@ XXAPI xtdict xrtTypedDictCloneEx(xtdict pDict, uint32 iMode)
 		return NULL;
 	}
 	return pRet;
+}
+XXAPI xtdict xrtTypedDictMoveToShared(xtdict pDict)
+{
+	xtdict pResult;
+	if ( pDict == NULL || xrtOwnerGetMode(&pDict->Dict.Owner) == XRT_OBJMODE_SHARED ) {
+		return pDict;
+	}
+	pResult = xrtTypedDictCloneEx(pDict, XRT_OBJMODE_SHARED);
+	if ( pResult != NULL ) {
+		if ( pDict->HeapOwned ) {
+			xrtTypedDictDestroy(pDict);
+		} else {
+			xrtTypedDictUnit(pDict);
+		}
+	}
+	return pResult;
 }
 XXAPI xtdict xrtTypedDictClone(xtdict pDict)
 {
@@ -89251,6 +89413,16 @@ XXAPI ptr xvoGetCustom(xvalue pVal)
 XXAPI ptr xvoGetHandleData(xvalue pVal)
 {
 	return xvoGetCustom(pVal);
+}
+// 获取 typed handle 内部的稳定句柄槽，供 C 层原位更新或清空句柄。
+XXAPI ptr* xvoGetHandleSlot(xvalue pVal)
+{
+	xrt_handle_value* pHandle;
+	if ( pVal == NULL || pVal->Type != XVO_DT_CUSTOM || pVal->vTypeDesc == NULL || pVal->vCustom == NULL ) {
+		return NULL;
+	}
+	pHandle = (xrt_handle_value*)pVal->vCustom;
+	return &pHandle->Handle;
 }
 // Array 读数据
 XXAPI xvalue xvoArrayGetValue(xvalue pArr, uint32 index)
@@ -91991,6 +92163,24 @@ XXAPI xvalue xvoDeepCopyEx(xvalue pVal, uint32 iMode)
 	return iMode == XRT_OBJMODE_SHARED ? __xvoDeepCopyShared(pVal) : xvoDeepCopy(pVal);
 }
 /*
+	把一个值的所有权发布到共享环境。
+	typed handle 本身没有可递归复制的数据图，必须移动原外壳；复制句柄后再释放
+	原值会让新外壳持有已经析构的 native 指针。其他复合值仍创建独立共享图。
+*/
+XXAPI xvalue xvoMoveToShared(xvalue pVal)
+{
+	xvalue pResult;
+	if ( pVal == NULL || xvoIsShared_Inline(pVal) ) {
+		return pVal;
+	}
+	if ( pVal->Type == XVO_DT_CUSTOM && pVal->vTypeDesc != NULL ) {
+		return xvoMakeShared_Inline(pVal) ? pVal : NULL;
+	}
+	pResult = xvoDeepCopyEx(pVal, XRT_OBJMODE_SHARED);
+	xvoUnref(pVal);
+	return pResult;
+}
+/*
 	容器第一次写入时分离 backing。
 	共享模式使用完整共享图复制，避免新根夹带本地线程对象；本地模式使用浅拷贝根。
 */
@@ -93014,6 +93204,23 @@ XXAPI bool xrtTypeSame(const xrt_type_desc* pA, const xrt_type_desc* pB)
 		return FALSE;
 	}
 	return memcmp(pA->Name, pB->Name, pA->NameSize) == 0;
+}
+// 判断运行时类型是否等于目标类型，或由目标类型派生。
+XXAPI bool xrtTypeIsA(const xrt_type_desc* pType, const xrt_type_desc* pTarget)
+{
+	const xrt_type_desc* pCurrent = pType;
+	uint32 iDepth = 0;
+	if ( pTarget == NULL ) {
+		return FALSE;
+	}
+	while ( pCurrent != NULL && iDepth < 256u ) {
+		if ( xrtTypeSame(pCurrent, pTarget) ) {
+			return TRUE;
+		}
+		pCurrent = pCurrent->BaseType;
+		iDepth++;
+	}
+	return FALSE;
 }
 // 读取类型名，便于 C 层诊断和调试
 XXAPI const char* xrtTypeName(const xrt_type_desc* pType)

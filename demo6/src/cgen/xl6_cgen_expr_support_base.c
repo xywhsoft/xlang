@@ -4,7 +4,7 @@ static int xl6CgenIsXValueType(const XL6_AstNode* typeNode)
 {
     return typeNode != NULL && typeNode->text != NULL &&
            (xl6CTextEquals(typeNode->text, "var") ||
-            xl6CTextEquals(typeNode->text, "ref") ||
+            xl6CTextEquals(typeNode->text, "__class_handle") ||
             xl6CgenIsArrayXValueType(typeNode) ||
             xl6CgenIsListXValueType(typeNode) ||
             xl6CgenIsSetXValueType(typeNode) ||
@@ -355,13 +355,13 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
         receiverType = receiver->kind == XL6_AST_MEMBER
             ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
             : xl6CgenCloneExprTypeForInference(ctx, receiver);
-        if ( receiverType != NULL && xl6CgenIsUnionType(ctx, receiverType) ) {
-            field = xl6CgenFindUnionFieldNode(xl6CgenFindUnion(ctx, receiverType->text), member->text);
+        if ( receiverType != NULL && xl6CgenIsPlainRecordType(ctx, receiverType) ) {
+            field = xl6CgenFindPlainRecordFieldNode(ctx, receiverType, member->text);
             result = field != NULL && field->childCount > 0 ? xl6CgenCloneCanonicalTypeNode(ctx, field->children[0]) : NULL;
             xl6AstFree((XL6_AstNode*)receiverType);
             return result;
         }
-        classType = xl6CgenRefTargetType(ctx, receiverType);
+        classType = xl6CgenClassHandleTargetType(ctx, receiverType);
         if ( classType == NULL ) {
             classType = receiverType;
         }
@@ -405,14 +405,14 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
     } else {
         ownedReceiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
-        classType = xl6CgenRefTargetType(ctx, receiverType);
+        classType = xl6CgenClassHandleTargetType(ctx, receiverType);
         if ( classType == NULL ) {
             classType = receiverType;
         }
         classNode = classType != NULL ? xl6CgenFindClass(ctx, classType->text) : NULL;
     }
-    if ( receiverType != NULL && xl6CgenIsUnionType(ctx, receiverType) ) {
-        field = xl6CgenFindUnionFieldNode(xl6CgenFindUnion(ctx, receiverType->text), member->text);
+    if ( receiverType != NULL && xl6CgenIsPlainRecordType(ctx, receiverType) ) {
+        field = xl6CgenFindPlainRecordFieldNode(ctx, receiverType, member->text);
         result = field != NULL && field->childCount > 0 ? xl6CgenCloneCanonicalTypeNode(ctx, field->children[0]) : NULL;
         xl6AstFree((XL6_AstNode*)ownedReceiverType);
         return result;
@@ -835,6 +835,10 @@ static XL6_AstNode* xl6CgenClassNodeForType(XL6_CgenContext* ctx, const XL6_AstN
     }
     concreteType = xl6CgenSubstituteGenericType(ctx, typeNode);
     resolvedType = xl6CgenResolveAliasType(ctx, concreteType);
+    concreteType = xl6CgenClassHandleTargetType(ctx, resolvedType);
+    if ( concreteType != NULL ) {
+        resolvedType = xl6CgenResolveAliasType(ctx, concreteType);
+    }
     if ( resolvedType == NULL || resolvedType->text == NULL ) {
         return NULL;
     }
@@ -865,6 +869,12 @@ static void xl6CgenRetainClassFunctionFieldsForType(XL6_CgenContext* ctx, const 
 {
     XL6_AstNode* classNode;
 
+    /* class 对外是 xvalue 句柄；借用读取只需保留对象本身，字段随对象共同存活。 */
+    if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoAddRef(%s); }\n", valuePath, valuePath);
+        return;
+    }
     classNode = xl6CgenClassNodeForType(ctx, typeNode);
     if ( classNode != NULL ) {
         xl6CgenRetainClassFunctionFields(ctx, classNode, valuePath);
@@ -875,6 +885,11 @@ static void xl6CgenReleaseClassFunctionFieldsForType(XL6_CgenContext* ctx, const
 {
     XL6_AstNode* classNode;
 
+    if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", valuePath, valuePath, valuePath);
+        return;
+    }
     classNode = xl6CgenClassNodeForType(ctx, typeNode);
     if ( classNode != NULL ) {
         xl6CgenReleaseClassFunctionFields(ctx, classNode, valuePath);
@@ -885,6 +900,10 @@ static int xl6CgenClassTypeNeedsFunctionFieldCleanup(XL6_CgenContext* ctx, const
 {
     XL6_AstNode* classNode;
 
+    /* class 句柄由 xvalue 类型操作统一管理内部字段，不能按结构体再次 retain/drop。 */
+    if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
+        return 0;
+    }
     classNode = xl6CgenClassNodeForType(ctx, typeNode);
     return classNode != NULL && xl6CgenClassNeedsDestroy(ctx, classNode);
 }

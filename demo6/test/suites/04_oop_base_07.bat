@@ -455,16 +455,8 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_class_implicit_upcast.xl >nul 2>build\test\sem_class_implicit_upcast.err.txt
-if not errorlevel 1 (
-    echo sem_class_implicit_upcast.xl should fail.
-    exit /b 1
-)
-powershell -NoProfile -Command "$count=(Select-String -Path 'build\test\sem_class_implicit_upcast.err.txt' -SimpleMatch 'target UpcastBase, value UpcastDerived').Count; if ($count -ne 4) { exit 1 }"
-if errorlevel 1 (
-    echo sem_class_implicit_upcast.err.txt should contain four slicing diagnostics.
-    exit /b 1
-)
+release\xl.exe run test\cases\cgen_class_implicit_upcast.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_class_virtual_return_move.xl --emit build\test\cgen_class_virtual_return_move.c
 if errorlevel 1 exit /b 1
@@ -478,23 +470,9 @@ if errorlevel 1 exit /b 1
 build\test\cgen_class_virtual_return_move.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_class_equality_without_protocol.xl >nul 2> build\test\sem_class_equality_without_protocol.err.txt
-if not errorlevel 1 (
-    echo sem_class_equality_without_protocol.xl should fail.
-    exit /b 1
-)
-findstr /C:"class equality requires __eq__/__ne__ protocol" build\test\sem_class_equality_without_protocol.err.txt >nul
-if errorlevel 1 (
-    echo sem_class_equality_without_protocol.err.txt missing class equality diagnostic.
-    exit /b 1
-)
-findstr /C:"code generation error" build\test\sem_class_equality_without_protocol.err.txt >nul
-if not errorlevel 1 (
-    echo sem_class_equality_without_protocol.err.txt regressed to generic cgen diagnostic.
-    exit /b 1
-)
+release\xl.exe run test\cases\cgen_class_identity_equality.xl
+if errorlevel 1 exit /b 1
 
 
 echo DEMO6 suite ok: OOP ABI export and interop baseline 7/8
 exit /b 0
-

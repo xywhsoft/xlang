@@ -70,14 +70,14 @@ if errorlevel 1 (
     echo cgen_member_function_multi_return.c missing member multi-return struct.
     exit /b 1
 )
-findstr /C:".op.retain != 0" build\test\cgen_member_function_multi_return.c >nul
+findstr /C:".value0 = xl6_xrt_bind_type(xl6_xrt_retain(box)" build\test\cgen_member_function_multi_return.c >nul
 if errorlevel 1 (
-    echo cgen_member_function_multi_return.c missing class return function-field retain.
+    echo cgen_member_function_multi_return.c missing class handle return retain.
     exit /b 1
 )
-findstr /C:"__xl6_class_assign_" build\test\cgen_member_function_multi_return.c >nul
+findstr /C:"assignedBox = __xl6_multi_" build\test\cgen_member_function_multi_return.c >nul
 if errorlevel 1 (
-    echo cgen_member_function_multi_return.c missing borrowed class assignment temporary.
+    echo cgen_member_function_multi_return.c missing owned class handle multi-assignment.
     exit /b 1
 )
 findstr /C:"returned.op.retain" build\test\cgen_member_function_multi_return.c >nul
@@ -90,9 +90,9 @@ if not errorlevel 1 (
     echo cgen_member_function_multi_return.c should not retain function fields for multi-return rvalue assignment.
     exit /b 1
 )
-findstr /C:"assignedBox.op.release != 0" build\test\cgen_member_function_multi_return.c >nul
+findstr /C:"if (assignedBox != 0)" build\test\cgen_member_function_multi_return.c >nul
 if errorlevel 1 (
-    echo cgen_member_function_multi_return.c missing class multi-assignment release.
+    echo cgen_member_function_multi_return.c missing previous class handle release before multi-assignment.
     exit /b 1
 )
 findstr /C:"assignedOp.release != 0" build\test\cgen_member_function_multi_return.c >nul
@@ -100,9 +100,9 @@ if errorlevel 1 (
     echo cgen_member_function_multi_return.c missing function multi-assignment release.
     exit /b 1
 )
-findstr /C:".value0.op.release != 0" build\test\cgen_member_function_multi_return.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_member_function_multi_return.c' -Raw; if($t -notmatch 'if \(__xl6_multi_\d+\.value0 != 0\) \{\s*xvoUnref\(__xl6_multi_\d+\.value0\);'){exit 1}"
 if errorlevel 1 (
-    echo cgen_member_function_multi_return.c missing discarded class multi-return release.
+    echo cgen_member_function_multi_return.c missing discarded class handle multi-return release.
     exit /b 1
 )
 findstr /C:".value1.release != 0" build\test\cgen_member_function_multi_return.c >nul
@@ -120,9 +120,9 @@ if errorlevel 1 (
     echo cgen_member_function_multi_return.c missing ignored member multi-return result temporary.
     exit /b 1
 )
-findstr /C:"xl_class_PairBox__destroy(&__xl6_member_result_" build\test\cgen_member_function_multi_return.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_member_function_multi_return.c' -Raw; if($t -notmatch 'if \(__xl6_member_result_\d+\.value0 != 0\) \{ xvoUnref\(__xl6_member_result_\d+\.value0\);'){exit 1}"
 if errorlevel 1 (
-    echo cgen_member_function_multi_return.c missing ignored member multi-return class cleanup.
+    echo cgen_member_function_multi_return.c missing ignored member multi-return class handle cleanup.
     exit /b 1
 )
 findstr /C:"__xl6_member_result_" build\test\cgen_member_function_multi_return.c | findstr /C:".value1.release != 0" >nul
@@ -167,32 +167,32 @@ if not errorlevel 1 (
     echo cgen_member_function_class_return.c should not use GNU statement expressions for class-return member function calls.
     exit /b 1
 )
-findstr /C:"madeText = xrtCopyStr(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"madeText = xrtCopyStr(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing string-return member function declaration conversion.
     exit /b 1
 )
-findstr /C:"textArgValue = xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"textArgValue = xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing string-return member function call argument conversion.
     exit /b 1
 )
-findstr /C:"textNestedValue = (xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"textNestedValue = (xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing nested string-return member function argument conversion.
     exit /b 1
 )
-findstr /C:"textTwoArgValue = xl_fn_joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"textTwoArgValue = xl_fn_joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing two string-return member function argument conversions.
     exit /b 1
 )
-findstr /C:"namedTextArgValue = xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"namedTextArgValue = xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named string-return member function argument conversion.
     exit /b 1
 )
-findstr /C:"namedTextTwoArgValue = xl_fn_joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"namedTextTwoArgValue = xl_fn_joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing reordered named string-return member function argument conversions.
     exit /b 1
@@ -202,39 +202,34 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named string-return member function runtime assertion.
     exit /b 1
 )
-findstr /C:"xrtCopyStr(xl6_xvalue_to_string_release(xl6_function_call_var(textMaker.make" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"xrtCopyStr(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing discarded string-return member function conversion.
     exit /b 1
 )
-findstr /C:"__xl6_class_assign_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"__xl6_assign_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
-    echo cgen_member_function_class_return.c missing class assignment temporary.
+    echo cgen_member_function_class_return.c missing class handle assignment temporary.
     exit /b 1
 )
-findstr /C:"XL_Class_Payload __xl6_member_recv_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"xvalue __xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
-    echo cgen_member_function_class_return.c missing class field receiver temporary.
+    echo cgen_member_function_class_return.c missing class handle receiver temporary.
     exit /b 1
 )
-findstr /C:"xl_class_Payload__destroy(&__xl6_member_recv_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"xvoUnref(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
-    echo cgen_member_function_class_return.c missing class field receiver cleanup.
+    echo cgen_member_function_class_return.c missing class handle receiver cleanup.
     exit /b 1
 )
-findstr /C:"__xl6_member_fn_call_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"xl6_function_call_var((*((XL_Class_Payload*)xl6_class_data(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
-    echo cgen_member_function_class_return.c missing temporary receiver member function call value.
+    echo cgen_member_function_class_return.c missing temporary class handle member function call.
     exit /b 1
 )
-findstr /C:"xl_class_Payload__destroy(&__xl6_member_recv_" build\test\cgen_member_function_class_return.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xvalue (__xl6_class_arg_\d+) = 0;[\s\S]*?tempFunctionFieldValue\s*=\s*[\s\S]*?xl6_class_data\(\1,[\s\S]*?if \(\1 != 0\) \{ xvoUnref\(\1\); \1 = 0; \}'){ exit 1 }"
 if errorlevel 1 (
-    echo cgen_member_function_class_return.c missing temporary receiver member function cleanup.
-    exit /b 1
-)
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long\s+(__xl6_global_init_\d+)\s*=\s*0;\s*\{[\s\S]*?XL_Class_Payload\s+(__xl6_member_recv_\d+)\s*=\s*\{0\};[\s\S]*?XL6_Function\s+__xl6_member_fn_call_\d+\s*=\s*\2\.op;[\s\S]*?\1\s*=[\s\S]*?xl_class_Payload__destroy\(&\2\);\s*\}\s*tempFunctionFieldValue\s*=\s*\1;'){ exit 1 }"
-if errorlevel 1 (
-    echo cgen_member_function_class_return.c missing statement-level cleanup for temporary receiver function-field call.
+    echo cgen_member_function_class_return.c missing statement-level cleanup for temporary class handle function-field call.
     exit /b 1
 )
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -match 'tempFunctionFieldValue\s*=\s*\(\([^\r\n]*maker\.make\.invoke'){ exit 1 }"
@@ -247,12 +242,12 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing class argument temporary.
     exit /b 1
 )
-findstr /C:"xl_fn_storePayload(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"xl_fn_storePayload(xl6_xrt_retain(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing expression-statement class argument call.
     exit /b 1
 )
-findstr /C:"nestedArgumentValue = (xl_fn_readPayload(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"nestedArgumentValue = (xl_fn_readPayload(xl6_xrt_bind_type(xl6_xrt_retain(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing nested expression class argument temporary.
     exit /b 1
@@ -262,37 +257,37 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing nested expression class argument expectation.
     exit /b 1
 )
-findstr /C:"expect_i64((xl_fn_readPayload(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"expect_i64((xl_fn_readPayload(xl6_xrt_bind_type(xl6_xrt_retain(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing extern nested expression class argument temporary.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'twoArgumentValue\s*=\s*xl_fn_sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'twoArgumentValue\s*=\s*xl_fn_sumPayload\([^;]*xl6_xrt_retain\((__xl6_class_arg_\d+)\)[^;]*xl6_xrt_retain\((__xl6_class_arg_\d+)\)[^;]*;\s*if \(\2 != 0\) \{ xvoUnref\(\2\); \2 = 0; \}\s*if \(\1 != 0\) \{ xvoUnref\(\1\); \1 = 0; \}'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing two temporary class arguments with reverse cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'expect_i64\(xl_fn_sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\),\s*270LL\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'expect_i64\(xl_fn_sumPayload\([^;]*xl6_xrt_retain\((__xl6_class_arg_\d+)\)[^;]*xl6_xrt_retain\((__xl6_class_arg_\d+)\)[^;]*,\s*270LL\);\s*if \(\2 != 0\) \{ xvoUnref\(\2\); \2 = 0; \}\s*if \(\1 != 0\) \{ xvoUnref\(\1\); \1 = 0; \}'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing extern two temporary class arguments with reverse cleanup.
     exit /b 1
 )
-findstr /C:"namedArgumentValue = xl_fn_readPayload(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"namedArgumentValue = xl_fn_readPayload(xl6_xrt_bind_type(xl6_xrt_retain(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named class argument temporary.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_fn_storePayload\((__xl6_class_arg_\d+),\s*160LL\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_fn_storePayload\(xl6_xrt_retain\((__xl6_class_arg_\d+)\),\s*160LL\);\s*if \(\1 != 0\) \{ xvoUnref\(\1\); \1 = 0; \}'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named expression-statement class argument temporary.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedTwoArgumentValue\s*=\s*xl_fn_sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\);\s*xl_class_Payload__destroy\(&\2\);\s*xl_class_Payload__destroy\(&\1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedTwoArgumentValue\s*=\s*xl_fn_sumPayload\([^;]*xl6_xrt_retain\((__xl6_class_arg_\d+)\)[^;]*xl6_xrt_retain\((__xl6_class_arg_\d+)\)[^;]*;\s*if \(\2 != 0\) \{ xvoUnref\(\2\); \2 = 0; \}\s*if \(\1 != 0\) \{ xvoUnref\(\1\); \1 = 0; \}'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named two temporary class arguments with reverse cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'expect_i64\(xl_fn_sumPayload\((__xl6_class_arg_\d+),\s*(__xl6_class_arg_\d+)\),\s*390LL\);\s*xl_class_Payload__destroy\(&\1\);\s*xl_class_Payload__destroy\(&\2\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_member_function_class_return.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'expect_i64\(xl_fn_sumPayload\([^;]*xl6_xrt_retain\((__xl6_class_arg_\d+)\)[^;]*xl6_xrt_retain\((__xl6_class_arg_\d+)\)[^;]*,\s*390LL\);\s*if \(\1 != 0\) \{ xvoUnref\(\1\); \1 = 0; \}\s*if \(\2 != 0\) \{ xvoUnref\(\2\); \2 = 0; \}'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing reordered named two temporary class arguments with reverse cleanup.
     exit /b 1
@@ -307,7 +302,7 @@ if not errorlevel 1 (
     echo cgen_member_function_class_return.c should not use GNU statement expressions in nested class argument calls.
     exit /b 1
 )
-findstr /C:"void*, XL_Class_Payload, long long))__xl6_member_fn_stmt_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"void*, xvalue, long long))__xl6_member_fn_stmt_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing statement-level member function invoke with class argument.
     exit /b 1
@@ -317,19 +312,19 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing ignored member function return temporary.
     exit /b 1
 )
-findstr /C:"xl_class_Payload__destroy(&__xl6_member_result_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"xvoUnref(__xl6_member_result_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
-    echo cgen_member_function_class_return.c missing ignored member function return cleanup.
+    echo cgen_member_function_class_return.c missing ignored member function class handle cleanup.
     exit /b 1
 )
-findstr /C:"xl_class_Payload__destroy(&__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"xvoUnref(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
-    echo cgen_member_function_class_return.c missing class argument cleanup.
+    echo cgen_member_function_class_return.c missing class handle argument cleanup.
     exit /b 1
 )
-findstr /C:"(XL_Class_Payload){0}" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"(xl6_function_fatal(3), xvoCreateNull())" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
-    echo cgen_member_function_class_return.c missing class return fallback default.
+    echo cgen_member_function_class_return.c missing class handle return fallback default.
     exit /b 1
 )
 findstr /C:"(XL_Class_Payload)0" build\test\cgen_member_function_class_return.c >nul
@@ -505,4 +500,3 @@ if errorlevel 1 (
 
 echo DEMO6 suite ok: core C generation and runtime baseline 8/10
 exit /b 0
-

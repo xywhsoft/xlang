@@ -63,26 +63,27 @@ static int xl6CgenNeedsBasicIsXValueType(const XL6_AstNode* typeNode)
 {
     return typeNode != NULL && typeNode->text != NULL &&
            (xl6CgenNeedsBasicTextEquals(typeNode->text, "var") ||
-            xl6CgenNeedsBasicTextEquals(typeNode->text, "ref") ||
+            xl6CgenNeedsBasicTextEquals(typeNode->text, "__class_handle") ||
             xl6CgenNeedsBasicIsArrayXValueType(typeNode) ||
             xl6CgenNeedsBasicIsListXValueType(typeNode) ||
             xl6CgenNeedsBasicIsSetXValueType(typeNode) ||
             xl6CgenNeedsBasicIsDictXValueType(typeNode));
 }
 
-int xl6CgenNodeNeedsRefRuntime(const XL6_AstNode* node)
+int xl6CgenNodeNeedsClassHandleRuntime(const XL6_AstNode* node)
 {
     size_t i;
 
     if ( node == NULL ) {
         return 0;
     }
-    if ( node->kind == XL6_AST_TYPE && node->text != NULL &&
-         xl6CgenNeedsBasicTextEquals(node->text, "ref") ) {
+    if ( node->kind == XL6_AST_CLASS ||
+         (node->kind == XL6_AST_TYPE && node->text != NULL &&
+          xl6CgenNeedsBasicTextEquals(node->text, "__class_handle")) ) {
         return 1;
     }
     for ( i = 0; i < node->childCount; ++i ) {
-        if ( xl6CgenNodeNeedsRefRuntime(node->children[i]) ) {
+        if ( xl6CgenNodeNeedsClassHandleRuntime(node->children[i]) ) {
             return 1;
         }
     }

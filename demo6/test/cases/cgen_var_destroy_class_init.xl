@@ -1,0 +1,18 @@
+int destroyed = 0
+
+class Resource
+    int value = 0
+
+    destroy()
+        destroyed += 1
+    end
+end
+
+func boxResource()
+    var boxed = Resource()
+    assert boxed is Resource
+    assert destroyed == 0
+end
+
+boxResource()
+assert destroyed == 1

@@ -1,7 +1,0 @@
-class RecursiveHolder<T>
-    T value
-end
-
-class RecursiveGeneric
-    RecursiveHolder<RecursiveGeneric> child
-end

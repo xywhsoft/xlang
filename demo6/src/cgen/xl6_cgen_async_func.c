@@ -204,6 +204,9 @@ static void xl6CgenRegisterAsyncParamOwnerCleanups(XL6_CgenContext* ctx, const X
             xl6CgenTypedParamOwnerName(ownerName, sizeof(ownerName), param->text);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s = 1;\n", ownerName);
+        } else if ( xl6CgenIsXValueType(typeNode) ) {
+            /* var 与 class handle 已由普通参数清理栈统一持有，不能重复注册 class 析构。 */
+            continue;
         } else if ( xl6CgenIsFunctionType(typeNode) ) {
             xl6CgenAddFunctionCleanup(ctx, param->text, typeNode);
         } else {
@@ -531,6 +534,7 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
         XL6_AstNode* genericCtorType = NULL;
         int isClassCtor = xl6CgenCallIsClassCtor(ctx, node->children[0], &ctorClass);
         int emittedCtor;
+        int emittedHandleCtor;
 
         if ( !isClassCtor ) {
             genericCtorType = xl6CgenGenericClassCtorType(ctx, node->children[0], &ctorClass);
@@ -540,9 +544,16 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
                       isClassCtor &&
                       ctorClass != NULL &&
                       xl6CTextEquals(returnClass->text, ctorClass->text);
+        emittedHandleCtor = emittedCtor &&
+                            xl6CgenClassHandleTargetType(ctx, resultType) != NULL;
         xl6CgenIndent(ctx);
         xl6OutputPuts(cType, ctx->out);
-        if ( emittedCtor ) {
+        if ( emittedHandleCtor ) {
+            xl6OutputPrintf(ctx->out, " %s = 0;\n", returnName);
+            if ( !xl6CgenTryClassCtorBoxXValueStmt(ctx, resultType, node->children[0], returnName) ) {
+                xl6CgenError(ctx, node->children[0], "async class handle constructor lowering failed");
+            }
+        } else if ( emittedCtor ) {
             xl6OutputPrintf(ctx->out, " %s = {0};\n", returnName);
             if ( !xl6CgenEmitClassCtorInto(ctx, node->children[0], returnName) ) {
                 xl6CgenError(ctx, node->children[0], "async class constructor lowering failed");
@@ -579,7 +590,10 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
     }
     xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, resultType, returnName, node->children[0]);
     /* future 可在任意线程完成和读取，class 内部拥有的对象必须在发布前共享化。 */
-    if ( xl6CgenClassNodeForType(ctx, resultType) != NULL ) {
+    if ( xl6CgenClassHandleTargetType(ctx, resultType) != NULL ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_move_to_shared(%s);\n", returnName, returnName);
+    } else if ( xl6CgenClassNodeForType(ctx, resultType) != NULL ) {
         xl6CgenClassValuePublishShared(ctx, resultType, returnName);
     }
     if ( hasReturnArgScope ) {

@@ -43,7 +43,7 @@ static void xl6CgenEmitXValueTypedContainerRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("    return xl6_xrt_typed_array_resolve_index(values, index, &resolved) ? xrtTypedArrayGet(values, resolved + 1u) : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static xvalue xl6_xrt_typed_array_to_xvalue_map(xtarray values, xl6_xrt_typed_item_box_fn box)\n", out);
+    xl6OutputPuts("static xvalue xl6_xrt_typed_array_to_xvalue_map(xtarray values, xl6_xrt_typed_item_box_fn box, bool classHandle)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xvalue result = xvoCreateArray();\n", out);
     xl6OutputPuts("    unsigned int count = xrtTypedArrayCount(values);\n", out);
@@ -53,7 +53,12 @@ static void xl6CgenEmitXValueTypedContainerRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
     xl6OutputPuts("        void* rawItem = xl6_xrt_typed_array_get_at(values, i);\n", out);
-    xl6OutputPuts("        xvalue item = rawItem != 0 && box != 0 ? box(rawItem) : xvoCreateNull();\n", out);
+    xl6OutputPuts("        void* boxItem = rawItem;\n", out);
+    xl6OutputPuts("        if ( classHandle && rawItem != 0 ) {\n", out);
+    xl6OutputPuts("            xvalue handle = *(xvalue*)rawItem;\n", out);
+    xl6OutputPuts("            boxItem = handle != 0 && !xvoIsNull(handle) ? xvoGetRecordData(handle) : 0;\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        xvalue item = boxItem != 0 && box != 0 ? box(boxItem) : xvoCreateNull();\n", out);
     xl6OutputPuts("        if ( !xvoArrayAppendValue(result, item, true) && item != 0 ) {\n", out);
     xl6OutputPuts("            xvoUnref(item);\n", out);
     xl6OutputPuts("        }\n", out);

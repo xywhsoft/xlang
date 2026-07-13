@@ -177,7 +177,7 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenEmitTypeIdForName(ctx, node->text, node);
             break;
         }
-        xl6CgenFputsCIdent(ctx->out, node->text);
+        xl6CgenNamedValueReference(ctx, node->text);
         break;
     case XL6_AST_INT:
         xl6CgenIntLiteralExpr(ctx, node);
@@ -226,7 +226,7 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
              !xl6CgenErrorMemberAccess(ctx, node) &&
              !xl6CgenTypedContainerMemberAccess(ctx, node) &&
              !xl6CgenXValueMemberAccess(ctx, node) &&
-             !xl6CgenUnionFieldAccess(ctx, node) ) {
+             !xl6CgenPlainRecordFieldAccess(ctx, node) ) {
             xl6CgenClassFieldAccess(ctx, node);
         }
         break;

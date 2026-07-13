@@ -96,7 +96,7 @@ static int xl6CgenClassPropertyResolve(
 
     receiver = member->children[0];
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
-    concreteType = xl6CgenRefTargetType(ctx, receiverType);
+    concreteType = xl6CgenClassHandleTargetType(ctx, receiverType);
     if ( concreteType == NULL ) {
         concreteType = xl6CgenResolveAliasType(ctx, receiverType);
     }
@@ -187,7 +187,7 @@ static XL6_AstNode* xl6CgenCloneClassPropertyMemberType(XL6_CgenContext* ctx, co
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
     {
-        const XL6_AstNode* concreteReceiver = xl6CgenRefTargetType(ctx, receiverType);
+        const XL6_AstNode* concreteReceiver = xl6CgenClassHandleTargetType(ctx, receiverType);
         if ( concreteReceiver == NULL ) {
             concreteReceiver = receiverType;
         }
@@ -219,11 +219,11 @@ static int xl6CgenClassPropertyEmitSelf(
         xl6OutputPuts("0", ctx->out);
         return 0;
     }
-    if ( xl6CgenRefTargetType(ctx, receiverType) != NULL ) {
+    if ( xl6CgenClassHandleTargetType(ctx, receiverType) != NULL ) {
         char ownerTypeName[512];
-        const XL6_AstNode* concreteReceiver = xl6CgenRefTargetType(ctx, receiverType);
+        const XL6_AstNode* concreteReceiver = xl6CgenClassHandleTargetType(ctx, receiverType);
         xl6CgenClassTypeRefName(ownerTypeName, sizeof(ownerTypeName), concreteReceiver);
-        xl6OutputPrintf(ctx->out, "((%s*)xl6_ref_data(", ownerTypeName);
+        xl6OutputPrintf(ctx->out, "((%s*)xl6_class_data(", ownerTypeName);
         xl6CgenExpr(ctx, receiver);
         xl6OutputPrintf(ctx->out, ", \"\", %d, %d))", receiver->line, receiver->column);
         return 1;
@@ -290,7 +290,7 @@ static int xl6CgenClassPropertyEmitCall(
     }
 
     {
-        const XL6_AstNode* concreteReceiver = xl6CgenRefTargetType(ctx, receiverType);
+        const XL6_AstNode* concreteReceiver = xl6CgenClassHandleTargetType(ctx, receiverType);
         if ( concreteReceiver == NULL ) {
             concreteReceiver = receiverType;
         }

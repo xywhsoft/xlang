@@ -153,6 +153,7 @@ static int xl6CgenAssignTryStaticXValueCompareStmt(
     if ( ctx == NULL || targetType == NULL || cType == NULL || cName == NULL ||
          right == NULL || right->kind != XL6_AST_BINARY || right->childCount < 2 ||
          !xl6CgenAssignStaticBoolLikeType(targetType) ||
+         xl6CgenClassProtocolBinaryAvailable(ctx, right) ||
          !xl6CgenBinaryCompareIsXValue(ctx, right) ) {
         return 0;
     }
@@ -176,7 +177,7 @@ static int xl6CgenAssignTryStaticXValueCompareStmt(
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
     if ( equalMode ) {
-        if ( xl6CgenBinaryCompareHasRef(ctx, right) ) {
+        if ( xl6CgenBinaryCompareHasClassHandle(ctx, right) ) {
             xl6OutputPrintf(ctx->out,
                             "int __xl6_cmp_result_%d = "
                             "(((__xl6_cmp_left_%d == 0 || xvoIsNull(__xl6_cmp_left_%d)) && "

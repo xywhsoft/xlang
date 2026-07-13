@@ -122,6 +122,9 @@ static void xl6CgenExportWrapperProto(XL6_CgenContext* ctx, const XL6_AstNode* n
                     xl6OutputPuts("int ", ctx->out);
                 } else {
                     xl6OutputPuts(xl6CgenCAbiTypeName(ctx, param->children[0]), ctx->out);
+                    if ( (param->flags & (XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT)) != 0 ) {
+                        xl6OutputPutc('*', ctx->out);
+                    }
                     xl6OutputPutc(' ', ctx->out);
                 }
                 xl6CgenFputsCIdent(ctx->out, param->text);
@@ -177,6 +180,9 @@ static void xl6CgenClassExportWrapperProto(XL6_CgenContext* ctx, const XL6_AstNo
                 xl6OutputPuts("int ", ctx->out);
             } else {
                 xl6OutputPuts(xl6CgenCAbiTypeName(ctx, param->children[0]), ctx->out);
+                if ( (param->flags & (XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT)) != 0 ) {
+                    xl6OutputPutc('*', ctx->out);
+                }
                 xl6OutputPutc(' ', ctx->out);
             }
             xl6CgenFputsCIdent(ctx->out, param->text);
@@ -367,6 +373,29 @@ static void xl6CgenClassAutoCopyProto(XL6_CgenContext* ctx, const XL6_AstNode* c
     xl6OutputPuts("* self)", ctx->out);
 }
 
+static void xl6CgenEmitClassBaseTypeDesc(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
+{
+    const XL6_AstNode* base;
+    char cTypeName[512];
+
+    base = classNode != NULL && classNode->childCount > 0 ? classNode->children[0] : NULL;
+    if ( base == NULL || base->kind != XL6_AST_NAME || base->text == NULL ) {
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), base);
+    xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+    xl6OutputPuts("()", ctx->out);
+}
+
+static int xl6CgenClassHasBaseType(const XL6_AstNode* classNode)
+{
+    const XL6_AstNode* base;
+
+    base = classNode != NULL && classNode->childCount > 0 ? classNode->children[0] : NULL;
+    return base != NULL && base->kind == XL6_AST_NAME && base->text != NULL;
+}
+
 static void xl6CgenEmitRecordBoxRuntime(
     XL6_CgenContext* ctx,
     const XL6_AstNode* classNode,
@@ -498,7 +527,7 @@ static void xl6CgenEmitRecordBoxRuntime(
     xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
     xl6CgenTypeDescSymbol(ctx->out, cTypeName);
     xl6OutputPuts("(void)\n{\n", ctx->out);
-    xl6OutputPuts("    static const xrt_type_desc desc = {\n", ctx->out);
+    xl6OutputPuts("    static xrt_type_desc desc = {\n", ctx->out);
     xl6OutputPuts("        0u,\n", ctx->out);
     xl6OutputPuts("        XL6_XRT_TYPE_KIND_RECORD,\n", ctx->out);
     xl6OutputPuts("        ", ctx->out);
@@ -508,8 +537,13 @@ static void xl6CgenEmitRecordBoxRuntime(
     xl6CgenCStringLiteral(ctx->out, cTypeName);
     xl6OutputPrintf(ctx->out, ", %uu,\n", (unsigned)strlen(cTypeName));
     xl6OutputPrintf(ctx->out, "        sizeof(%s), sizeof(void*),\n", cTypeName);
-    xl6OutputPrintf(ctx->out, "        &xl6_type_ops_%s, 0, 0\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "        &xl6_type_ops_%s, 0, 0, 0\n", cTypeName);
     xl6OutputPuts("    };\n", ctx->out);
+    if ( xl6CgenClassHasBaseType(classNode) ) {
+        xl6OutputPuts("    if ( desc.BaseType == 0 ) { desc.BaseType = ", ctx->out);
+        xl6CgenEmitClassBaseTypeDesc(ctx, classNode);
+        xl6OutputPuts("; }\n", ctx->out);
+    }
     xl6OutputPuts("    return &desc;\n", ctx->out);
     xl6OutputPuts("}\n\n", ctx->out);
 
@@ -738,7 +772,7 @@ static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
     xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
     xl6CgenTypeDescSymbol(ctx->out, cTypeName);
     xl6OutputPuts("(void)\n{\n", ctx->out);
-    xl6OutputPuts("    static const xrt_type_desc desc = {\n", ctx->out);
+    xl6OutputPuts("    static xrt_type_desc desc = {\n", ctx->out);
     xl6OutputPuts("        0u,\n", ctx->out);
     xl6OutputPuts("        XL6_XRT_TYPE_KIND_HANDLE,\n", ctx->out);
     xl6OutputPuts("        ", ctx->out);
@@ -748,8 +782,13 @@ static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
     xl6CgenCStringLiteral(ctx->out, cTypeName);
     xl6OutputPrintf(ctx->out, ", %uu,\n", (unsigned)strlen(cTypeName));
     xl6OutputPuts("        sizeof(void*), sizeof(void*),\n", ctx->out);
-    xl6OutputPrintf(ctx->out, "        &xl6_type_ops_%s, 0, 0\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "        &xl6_type_ops_%s, 0, 0, 0\n", cTypeName);
     xl6OutputPuts("    };\n", ctx->out);
+    if ( xl6CgenClassHasBaseType(nativeClassNode) ) {
+        xl6OutputPuts("    if ( desc.BaseType == 0 ) { desc.BaseType = ", ctx->out);
+        xl6CgenEmitClassBaseTypeDesc(ctx, nativeClassNode);
+        xl6OutputPuts("; }\n", ctx->out);
+    }
     xl6OutputPuts("    return &desc;\n", ctx->out);
     xl6OutputPuts("}\n\n", ctx->out);
 
@@ -758,7 +797,9 @@ static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
     xl6OutputPrintf(ctx->out, "(%s value)\n{\n", cTypeName);
     xl6OutputPuts("    xvalue boxed = xvoCreateHandle(", ctx->out);
     xl6CgenTypeDescSymbol(ctx->out, cTypeName);
-    xl6OutputPuts("(), value.handle, XL6_XRT_HANDLE_FLAG_BORROWED | XL6_XRT_HANDLE_FLAG_NULLABLE);\n", ctx->out);
+    xl6OutputPuts("(), value.handle, ", ctx->out);
+    xl6OutputPuts(destroyNode != NULL ? "XL6_XRT_HANDLE_FLAG_OWNED" : "XL6_XRT_HANDLE_FLAG_BORROWED", ctx->out);
+    xl6OutputPuts(" | XL6_XRT_HANDLE_FLAG_NULLABLE);\n", ctx->out);
     xl6OutputPuts("    return boxed != 0 ? boxed : xvoCreateNull();\n", ctx->out);
     xl6OutputPuts("}\n\n", ctx->out);
 }

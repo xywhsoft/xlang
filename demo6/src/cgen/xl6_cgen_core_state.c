@@ -212,6 +212,42 @@ static void xl6CgenMarkUnionEmitted(XL6_CgenContext* ctx, const char* name)
     ctx->emittedUnionCount += 1;
 }
 
+static int xl6CgenStructWasEmitted(XL6_CgenContext* ctx, const char* name)
+{
+    size_t i;
+
+    if ( ctx == NULL || name == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < ctx->emittedStructCount; ++i ) {
+        if ( xl6CTextEquals(ctx->emittedStructs[i], name) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void xl6CgenMarkStructEmitted(XL6_CgenContext* ctx, const char* name)
+{
+    char** items;
+    size_t capacity;
+
+    if ( ctx == NULL || name == NULL || xl6CgenStructWasEmitted(ctx, name) ) {
+        return;
+    }
+    if ( ctx->emittedStructCount == ctx->emittedStructCapacity ) {
+        capacity = ctx->emittedStructCapacity == 0 ? 16 : ctx->emittedStructCapacity * 2;
+        items = (char**)xrtRealloc(ctx->emittedStructs, capacity * sizeof(char*));
+        if ( items == NULL ) {
+            xl6CgenError(ctx, NULL, "C struct emit table allocation failed");
+            return;
+        }
+        ctx->emittedStructs = items;
+        ctx->emittedStructCapacity = capacity;
+    }
+    ctx->emittedStructs[ctx->emittedStructCount++] = xrtCopyStr((char*)name, strlen(name));
+}
+
 static void xl6CgenFreeEmittedUnions(XL6_CgenContext* ctx)
 {
     size_t i;
@@ -226,6 +262,22 @@ static void xl6CgenFreeEmittedUnions(XL6_CgenContext* ctx)
     ctx->emittedUnions = NULL;
     ctx->emittedUnionCount = 0;
     ctx->emittedUnionCapacity = 0;
+}
+
+static void xl6CgenFreeEmittedStructs(XL6_CgenContext* ctx)
+{
+    size_t i;
+
+    if ( ctx == NULL ) {
+        return;
+    }
+    for ( i = 0; i < ctx->emittedStructCount; ++i ) {
+        xrtFree(ctx->emittedStructs[i]);
+    }
+    xrtFree(ctx->emittedStructs);
+    ctx->emittedStructs = NULL;
+    ctx->emittedStructCount = 0;
+    ctx->emittedStructCapacity = 0;
 }
 
 static int xl6CgenHasFunctionReturnStruct(const XL6_CgenContext* ctx, unsigned long long signatureId)

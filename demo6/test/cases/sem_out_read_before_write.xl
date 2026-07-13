@@ -1,0 +1,4 @@
+func invalid(out int value)
+    println(value)
+    value = 1
+end

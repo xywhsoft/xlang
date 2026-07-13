@@ -1,0 +1,33 @@
+class HandleApiBase
+    virtual func value() as int
+        return 1
+    end
+end
+
+class HandleApiDerived extends HandleApiBase
+    int stored
+
+    create(int value)
+        self.stored = value
+    end
+
+    override func value() as int
+        return self.stored
+    end
+end
+
+export func make(int value) as HandleApiBase
+    return HandleApiDerived(value)
+end
+
+export func read(HandleApiBase value) as int
+    return value.value()
+end
+
+export func increment(byref int value)
+    value += 1
+end
+
+export func makeOut(int source, out int value)
+    value = source
+end

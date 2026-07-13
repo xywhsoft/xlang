@@ -9,7 +9,7 @@ int xl6CgenNodeNeedsFunctionRuntime(const XL6_AstNode* node);
 int xl6CgenNodeNeedsApprox(const XL6_AstNode* node);
 int xl6CgenNodeNeedsTimeRuntime(const XL6_AstNode* node);
 int xl6CgenNodeNeedsXValueRuntime(const XL6_AstNode* node);
-int xl6CgenNodeNeedsRefRuntime(const XL6_AstNode* node);
+int xl6CgenNodeNeedsClassHandleRuntime(const XL6_AstNode* node);
 int xl6CgenNodeNeedsCryptoRuntime(const XL6_AstNode* node);
 int xl6CgenNodeNeedsUrlRuntime(const XL6_AstNode* node);
 int xl6CgenNodeNeedsQueryRuntime(const XL6_AstNode* node);

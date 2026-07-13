@@ -1,0 +1,22 @@
+int destroyed = 0
+
+class Resource
+    int value = 0
+
+    destroy()
+        destroyed += 1
+    end
+end
+
+func make() as var
+    return Resource()
+end
+
+func receiveResource()
+    var boxed = make()
+    assert boxed is Resource
+    assert destroyed == 0
+end
+
+receiveResource()
+assert destroyed == 1

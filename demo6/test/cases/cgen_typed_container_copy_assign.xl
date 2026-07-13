@@ -5,13 +5,13 @@ array<int> values = array[1, 2, 3]
 array<int> valuesCopy = values
 
 values[0] = 10
-expect(valuesCopy[0], 1)
+expect(valuesCopy[0], 10)
 expect(values[0], 10)
 
 valuesCopy = values
 values[1] = 20
 expect(valuesCopy[0], 10)
-expect(valuesCopy[1], 2)
+expect(valuesCopy[1], 20)
 expect(values[1], 20)
 
 valuesCopy = array[7, 8]
@@ -25,11 +25,11 @@ list<string> names = list[0: "a", 2: "b"]
 list<string> namesCopy = names
 
 names[2] = "c"
-expectStr(namesCopy[2], "b")
+expectStr(namesCopy[2], "c")
 
 namesCopy = names
 names[0] = "z"
-expectStr(namesCopy[0], "a")
+expectStr(namesCopy[0], "z")
 expectStr(namesCopy[2], "c")
 
 namesCopy = list[5: "five"]
@@ -57,13 +57,13 @@ dict<int> scores = dict{"a": 1, "b": 2}
 dict<int> scoresCopy = scores
 
 scores["a"] = 10
-expect(scoresCopy["a"], 1)
+expect(scoresCopy["a"], 10)
 expect(scores["a"], 10)
 
 scoresCopy = scores
 scores["b"] = 20
 expect(scoresCopy["a"], 10)
-expect(scoresCopy["b"], 2)
+expect(scoresCopy["b"], 20)
 expect(scores["b"], 20)
 
 scoresCopy = dict{"z": 99}

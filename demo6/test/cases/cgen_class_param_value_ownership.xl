@@ -1,4 +1,5 @@
 class ValueBox
+    derive copy
     string text
 
     create(string value)
@@ -7,6 +8,7 @@ class ValueBox
 end
 
 class GenericValueBox<T>
+    derive copy
     T value
     string text
 
@@ -16,12 +18,23 @@ class GenericValueBox<T>
     end
 end
 
-func mutateValue(ValueBox box, string value) as string
+func mutateShared(ValueBox box, string value) as string
     box.text = value
     return box.text
 end
 
-func mutateGeneric(GenericValueBox<int> box, string value) as string
+func mutateCopy(byval ValueBox box, string value) as string
+    box.text = value
+    return box.text
+end
+
+func mutateGenericShared(GenericValueBox<int> box, string value) as string
+    box.value = box.value + 1
+    box.text = value
+    return box.text
+end
+
+func mutateGenericCopy(byval GenericValueBox<int> box, string value) as string
     box.value = box.value + 1
     box.text = value
     return box.text
@@ -31,11 +44,22 @@ ValueBox source = ValueBox("source")
 GenericValueBox<int> genericSource = GenericValueBox::<int>(7, "generic-source")
 
 for i in range(0, 64)
-    assert mutateValue(source, "local") == "local", "class value parameter mutation failed"
-    assert source.text == "source", "class value parameter changed caller ownership"
-    assert mutateGeneric(genericSource, "generic-local") == "generic-local", "generic class value parameter mutation failed"
-    assert genericSource.value == 7, "generic class value parameter changed caller scalar field"
-    assert genericSource.text == "generic-source", "generic class value parameter changed caller ownership"
+    assert mutateShared(source, "shared") == "shared", "default class parameter mutation failed"
+    assert source.text == "shared", "default class parameter should preserve object identity"
+    source.text = "source"
+
+    assert mutateCopy(source, "local") == "local", "byval class parameter mutation failed"
+    assert source.text == "source", "byval class parameter changed caller object"
+
+    assert mutateGenericShared(genericSource, "generic-shared") == "generic-shared", "default generic class mutation failed"
+    assert genericSource.value == 8, "default generic class parameter should preserve object identity"
+    assert genericSource.text == "generic-shared", "default generic class string mutation should be visible"
+    genericSource.value = 7
+    genericSource.text = "generic-source"
+
+    assert mutateGenericCopy(genericSource, "generic-local") == "generic-local", "byval generic class mutation failed"
+    assert genericSource.value == 7, "byval generic class changed caller scalar field"
+    assert genericSource.text == "generic-source", "byval generic class changed caller string field"
 end
 
-println("class parameter value ownership ok")
+println("class parameter reference and byval ownership ok")

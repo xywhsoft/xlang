@@ -47,10 +47,15 @@ static XL6_AstNode* xl6CgenNewSimpleType(const char* name, const XL6_AstNode* at
 
 static int xl6CgenTypeHasImplicitToString(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
+    const XL6_AstNode* concreteType;
     const char* name;
     XL6_AstNode* classNode;
 
-    name = typeNode != NULL ? typeNode->text : NULL;
+    concreteType = xl6CgenResolveAliasType(ctx, typeNode);
+    if ( xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
+        concreteType = xl6CgenClassHandleTargetType(ctx, concreteType);
+    }
+    name = concreteType != NULL ? concreteType->text : NULL;
     if ( xl6CTextEquals(name, "null") ||
          xl6CTextEquals(name, "var") ||
          xl6CTextEquals(name, "bool") ||

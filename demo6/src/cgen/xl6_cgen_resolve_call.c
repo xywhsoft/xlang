@@ -703,7 +703,7 @@ static void xl6CgenDefaultValue(XL6_CgenContext* ctx, const XL6_AstNode* typeNod
         xl6OutputPuts("{0}", ctx->out);
         return;
     }
-    if ( xl6CgenIsUnionType(ctx, typeNode) ) {
+    if ( xl6CgenIsPlainRecordType(ctx, typeNode) ) {
         xl6OutputPuts("{0}", ctx->out);
         return;
     }

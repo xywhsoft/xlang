@@ -65,16 +65,19 @@ static XL6_CgenExprReplacement* xl6CgenPropertyReplacementsNew(
     if ( receiver != NULL && receiverName != NULL ) {
         replacements[count].expr = receiver;
         replacements[count].cName = receiverName;
+        replacements[count].flags = 0u;
         count += 1;
     }
     for ( i = 0; i < tempCount; ++i ) {
         replacements[count].expr = temps[i].expr;
         replacements[count].cName = temps[i].name;
+        replacements[count].flags = 0u;
         count += 1;
     }
     if ( valueExpr != NULL && valueName != NULL ) {
         replacements[count].expr = valueExpr;
         replacements[count].cName = valueName;
+        replacements[count].flags = 0u;
         count += 1;
     }
     if ( outCount != NULL ) {
@@ -153,6 +156,7 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
     size_t cleanupMark;
     size_t i;
     int id;
+    int receiverIsClassHandle;
     char currentName[64];
     char receiverPointerName[64];
     char receiverReplacementName[80];
@@ -277,15 +281,26 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
     varMark = ctx->varCount;
     savedReplacements = ctx->exprReplacements;
     savedReplacementCount = ctx->exprReplacementCount;
+    receiverIsClassHandle = xl6CgenClassHandleTargetType(ctx, receiverType) != NULL;
 
     /* 复杂接收者先保存地址，getter 和 setter 共用同一个对象。 */
     if ( receiver != NULL && (receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX) ) {
         snprintf(receiverPointerName, sizeof(receiverPointerName), "__xl6_property_self_%d", id);
-        snprintf(receiverReplacementName, sizeof(receiverReplacementName), "(*%s)", receiverPointerName);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s* %s = &(", xl6CgenTypeName(ctx, receiverType), receiverPointerName);
-        xl6CgenExpr(ctx, receiver);
-        xl6OutputPuts(");\n", ctx->out);
+        if ( receiverIsClassHandle ) {
+            snprintf(receiverReplacementName, sizeof(receiverReplacementName), "%s", receiverPointerName);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenValueStorageCType(ctx, receiverType), receiverPointerName);
+            xl6CgenExpr(ctx, receiver);
+            xl6OutputPuts(";\n", ctx->out);
+            xl6CgenAddVarType(ctx, receiverPointerName, receiverType);
+            xl6CgenAddManagedCleanupForType(ctx, receiverPointerName, receiverType);
+        } else {
+            snprintf(receiverReplacementName, sizeof(receiverReplacementName), "(*%s)", receiverPointerName);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s* %s = &(", xl6CgenTypeName(ctx, receiverType), receiverPointerName);
+            xl6CgenExpr(ctx, receiver);
+            xl6OutputPuts(");\n", ctx->out);
+        }
         receiverReplacement = receiverReplacementName;
     }
 

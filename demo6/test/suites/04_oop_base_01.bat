@@ -48,12 +48,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_loop_multilevel_cleanup.xl --emit build\test\cgen_loop_multilevel_cleanup.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_loop_multilevel_cleanup.c'; $breakGoto=($lines | Select-String -SimpleMatch 'goto __xl6_break_' | Select-Object -First 1).LineNumber; $breakInner=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&innerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $breakOuter=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&outerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $continueGoto=($lines | Select-String -SimpleMatch 'goto __xl6_continue_' | Select-Object -First 1).LineNumber; $continueInner=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&innerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; $continueOuter=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&outerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; if(-not $breakInner -or -not $breakOuter -or -not $breakGoto -or -not ($breakInner -lt $breakOuter -and $breakOuter -lt $breakGoto)){exit 1}; if(-not $continueInner -or -not $continueOuter -or -not $continueGoto -or -not ($continueInner -lt $continueOuter -and $continueOuter -lt $continueGoto)){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_loop_multilevel_cleanup.c'; $breakGoto=($lines | Select-String -SimpleMatch 'goto __xl6_break_' | Select-Object -First 1).LineNumber; $breakInner=($lines | Select-String -SimpleMatch 'xvoUnref(innerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $breakOuter=($lines | Select-String -SimpleMatch 'xvoUnref(outerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $continueGoto=($lines | Select-String -SimpleMatch 'goto __xl6_continue_' | Select-Object -First 1).LineNumber; $continueInner=($lines | Select-String -SimpleMatch 'xvoUnref(innerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; $continueOuter=($lines | Select-String -SimpleMatch 'xvoUnref(outerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; if(-not $breakInner -or -not $breakOuter -or -not $breakGoto -or -not ($breakInner -lt $breakOuter -and $breakOuter -lt $breakGoto)){exit 1}; if(-not $continueInner -or -not $continueOuter -or -not $continueGoto -or -not ($continueInner -lt $continueOuter -and $continueOuter -lt $continueGoto)){exit 1}"
 if errorlevel 1 (
     echo cgen_loop_multilevel_cleanup.c should destroy inner and outer locals before multi-level jump.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_loop_multilevel_cleanup.c'; $breakGotos=@($lines | Select-String -SimpleMatch 'goto __xl6_break_'); $continueGotos=@($lines | Select-String -SimpleMatch 'goto __xl6_continue_'); if($breakGotos.Count -lt 2 -or $continueGotos.Count -lt 2){exit 1}; $breakGoto=$breakGotos[1].LineNumber; $breakInner=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&innerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $breakOuter=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&outerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $continueGoto=$continueGotos[1].LineNumber; $continueInner=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&innerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; $continueOuter=($lines | Select-String -SimpleMatch 'xl_class_Tracker__destroy(&outerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; if(-not $breakInner -or -not $breakOuter -or -not ($breakInner -lt $breakOuter -and $breakOuter -lt $breakGoto)){exit 1}; if(-not $continueInner -or -not $continueOuter -or -not ($continueInner -lt $continueOuter -and $continueOuter -lt $continueGoto)){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_loop_multilevel_cleanup.c'; $breakGotos=@($lines | Select-String -SimpleMatch 'goto __xl6_break_'); $continueGotos=@($lines | Select-String -SimpleMatch 'goto __xl6_continue_'); if($breakGotos.Count -lt 2 -or $continueGotos.Count -lt 2){exit 1}; $breakGoto=$breakGotos[1].LineNumber; $breakInner=($lines | Select-String -SimpleMatch 'xvoUnref(innerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $breakOuter=($lines | Select-String -SimpleMatch 'xvoUnref(outerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $continueGoto=$continueGotos[1].LineNumber; $continueInner=($lines | Select-String -SimpleMatch 'xvoUnref(innerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; $continueOuter=($lines | Select-String -SimpleMatch 'xvoUnref(outerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; if(-not $breakInner -or -not $breakOuter -or -not ($breakInner -lt $breakOuter -and $breakOuter -lt $breakGoto)){exit 1}; if(-not $continueInner -or -not $continueOuter -or -not ($continueInner -lt $continueOuter -and $continueOuter -lt $continueGoto)){exit 1}"
 if errorlevel 1 (
     echo cgen_loop_multilevel_cleanup.c should destroy while-loop inner and outer locals before multi-level jump.
     exit /b 1
@@ -117,7 +117,7 @@ if errorlevel 1 (
     echo cgen_named_args.c missing named default lowering.
     exit /b 1
 )
-findstr /C:"xl_class_Box__create(&box, 6LL, 4LL);" build\test\cgen_named_args.c >nul
+findstr /C:"xl_class_Box__create(&__xl6_box_ctor_stmt_" build\test\cgen_named_args.c >nul
 if errorlevel 1 (
     echo cgen_named_args.c missing named class constructor lowering.
     exit /b 1
@@ -444,7 +444,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_safe_index_objects_functions.xl --emit build\test\cgen_typed_container_safe_index_objects_functions.c
 if errorlevel 1 exit /b 1
-findstr /C:"maybePair = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xl6_xrt_typed_array_get_at(pairs" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybePair = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_runtime_type_desc_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed array safe index lowering.
     exit /b 1
@@ -454,7 +454,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeNative = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xl6_xrt_typed_array_get_at(natives" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeNative = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_runtime_type_desc_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed array safe index lowering.
     exit /b 1
@@ -464,7 +464,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeListPair = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Pair(), xrtTypedListGet(pairList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeListPair = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_runtime_type_desc_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed list safe index lowering.
     exit /b 1
@@ -474,7 +474,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeListNative = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xrtTypedListGet(nativeList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeListNative = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_runtime_type_desc_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed list safe index lowering.
     exit /b 1
@@ -494,7 +494,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed dict safe index lowering.
     exit /b 1
 )
-findstr /C:"maybeDictNative = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Class_Native(), xrtTypedDictGet(nativeDict" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"maybeDictNative = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_runtime_type_desc_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed dict safe index lowering.
     exit /b 1
@@ -539,7 +539,20 @@ if errorlevel 1 exit /b 1
 build\test\cgen_typed_container_safe_index_objects_functions.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_typed_container_class_handle_items.xl --emit build\test\cgen_typed_container_class_handle_items.c
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_typed_container_class_handle_items.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_typed_container_class_handle_items.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_typed_container_class_handle_items.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_typed_container_native_class_items.xl --emit build\test\cgen_typed_container_native_class_items.c
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_typed_container_native_class_items.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_typed_container_native_class_items.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_typed_container_native_class_items.exe
+if errorlevel 1 exit /b 1
+
 
 echo DEMO6 suite ok: OOP ABI export and interop baseline 1/8
 exit /b 0
-

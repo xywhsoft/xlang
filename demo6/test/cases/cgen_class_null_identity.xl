@@ -1,0 +1,18 @@
+class RefIdentity
+    int value
+
+    create(int input)
+        self.value = input
+    end
+end
+
+RefIdentity empty = null
+RefIdentity first = RefIdentity(1)
+RefIdentity alias = first
+RefIdentity second = RefIdentity(1)
+
+assert empty == null
+assert null == empty
+assert first != null
+assert first == alias
+assert first != second

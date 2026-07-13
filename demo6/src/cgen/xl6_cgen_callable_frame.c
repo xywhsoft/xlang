@@ -19,6 +19,9 @@ static void xl6CgenEmitAnonInvokeProto(XL6_CgenContext* ctx, const XL6_CgenAnonF
             const XL6_AstNode* param = params->children[i];
             xl6OutputPuts(", ", ctx->out);
             xl6OutputPuts(xl6CgenValueStorageCType(ctx, param->children[0]), ctx->out);
+            if ( xl6CgenParamUsesReferenceAbi(param) ) {
+                xl6OutputPutc('*', ctx->out);
+            }
             xl6OutputPutc(' ', ctx->out);
             xl6CgenFputsCIdent(ctx->out, param->text);
         }
@@ -99,6 +102,7 @@ static int xl6CgenCallableSupportsXCall(XL6_CgenContext* ctx, const XL6_AstNode*
     for ( i = 0; params != NULL && i < params->childCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
         if ( param == NULL || param->childCount == 0 ||
+             xl6CgenParamUsesReferenceAbi(param) ||
              !xl6CgenTypeSupportsVarInvokeValue(ctx, param->children[0]) ) {
             return 0;
         }

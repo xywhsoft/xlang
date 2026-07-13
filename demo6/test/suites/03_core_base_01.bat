@@ -426,33 +426,6 @@ if errorlevel 1 exit /b 1
 build\test\cgen_union_var_box.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe cgen test\cases\cgen_inline_union_generic_class_field.xl --emit build\test\cgen_inline_union_generic_class_field.c
-if errorlevel 1 exit /b 1
-findstr /C:"typedef struct XL_Class_Box__int {" build\test\cgen_inline_union_generic_class_field.c >nul
-if errorlevel 1 (
-    echo cgen_inline_union_generic_class_field.c missing generic class dependency.
-    exit /b 1
-)
-findstr /C:"XL_Class_Box__int boxed;" build\test\cgen_inline_union_generic_class_field.c >nul
-if errorlevel 1 (
-    echo cgen_inline_union_generic_class_field.c missing inline union generic class field.
-    exit /b 1
-)
-findstr /C:"XL_Class_Box__T" build\test\cgen_inline_union_generic_class_field.c >nul
-if not errorlevel 1 (
-    echo cgen_inline_union_generic_class_field.c leaked unresolved generic class field.
-    exit /b 1
-)
-findstr /C:"packet.boxed.value = 41LL;" build\test\cgen_inline_union_generic_class_field.c >nul
-if errorlevel 1 (
-    echo cgen_inline_union_generic_class_field.c missing inline union generic member write.
-    exit /b 1
-)
-"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_inline_union_generic_class_field.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_inline_union_generic_class_field.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_inline_union_generic_class_field.exe
-if errorlevel 1 exit /b 1
-
 release\xl.exe cgen test\cases\export_union.xl --dump-dir build\test\dump_export_union
 if errorlevel 1 exit /b 1
 findstr /C:"typedef union XL_Union_Payload" build\test\dump_export_union\export_union.h >nul
@@ -508,4 +481,3 @@ if errorlevel 1 (
 
 echo DEMO6 suite ok: core C generation and runtime baseline 1/10
 exit /b 0
-

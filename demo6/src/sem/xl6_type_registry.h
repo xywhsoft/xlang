@@ -7,6 +7,7 @@ typedef enum XL6_TypeKind {
     XL6_TYPE_BUILTIN,
     XL6_TYPE_ALIAS,
     XL6_TYPE_CLASS,
+    XL6_TYPE_STRUCT,
     XL6_TYPE_UNION
 } XL6_TypeKind;
 

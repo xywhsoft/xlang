@@ -634,7 +634,7 @@ static int xl6CgenDeclEmitCallArgTemp(
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = ", cName);
         if ( initByCopy ) {
-            xl6CgenTypedContainerCopyExpr(ctx, typeNode, expr);
+            xl6CgenTypedContainerRetainExpr(ctx, typeNode, expr);
         } else if ( initByMove ) {
             xl6CgenExpr(ctx, expr);
         } else if ( initByImport ) {
@@ -650,6 +650,16 @@ static int xl6CgenDeclEmitCallArgTemp(
             xl6CgenTypedContainerFillFromLiteral(ctx, cName, typeNode, expr);
         }
         (void)cType;
+        return 1;
+    }
+    if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
+        if ( xl6CgenTrySpecialXValueAssignStmt(ctx, typeNode, cName, expr) ) {
+            return 1;
+        }
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", cName);
+        xl6CgenXValueFromExprForTarget(ctx, typeNode, expr);
+        xl6OutputPuts(";\n", ctx->out);
         return 1;
     }
     if ( xl6CgenDeclTryMemberFunctionTempReceiverCallTemp(ctx, typeNode, cType, cName, expr) ) {

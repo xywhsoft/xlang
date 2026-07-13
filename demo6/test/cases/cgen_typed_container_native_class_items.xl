@@ -1,0 +1,16 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class NativeItem
+    native point handle
+end
+
+point raw
+NativeItem item = NativeItem(raw)
+array<NativeItem> items = array[item]
+list<NativeItem> itemList = list[3: item]
+dict<NativeItem> itemDict = dict{"item": item}
+
+expect(type(items[0]) == NativeItem, 1)
+expect(type(itemList[3]) == NativeItem, 1)
+expect(type(itemDict["item"]) == NativeItem, 1)
+

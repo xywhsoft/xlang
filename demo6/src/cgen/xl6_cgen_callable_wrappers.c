@@ -273,6 +273,7 @@ static int xl6CgenFuncSupportsVarInvoke(XL6_CgenContext* ctx, const XL6_AstNode*
         for ( i = 0; i < params->childCount; ++i ) {
             const XL6_AstNode* param = params->children[i];
             if ( param == NULL || param->childCount == 0 ||
+                 xl6CgenParamUsesReferenceAbi(param) ||
                  !xl6CgenTypeSupportsVarInvokeValue(ctx, param->children[0]) ) {
                 return 0;
             }
@@ -305,6 +306,9 @@ static void xl6CgenEmitFunctionValueInvokeProto(XL6_CgenContext* ctx, const XL6_
             const XL6_AstNode* param = params->children[i];
             xl6OutputPuts(", ", ctx->out);
             xl6OutputPuts(param != NULL && param->childCount > 0 ? xl6CgenValueStorageCType(ctx, param->children[0]) : "int", ctx->out);
+            if ( xl6CgenParamUsesReferenceAbi(param) ) {
+                xl6OutputPutc('*', ctx->out);
+            }
             xl6OutputPutc(' ', ctx->out);
             xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : "_");
         }
@@ -607,6 +611,9 @@ static void xl6CgenEmitFunctionValueAdapterInvokeProto(XL6_CgenContext* ctx, con
         const XL6_AstNode* param = params->children[i];
         xl6OutputPuts(", ", ctx->out);
         xl6OutputPuts(param != NULL && param->childCount > 0 ? xl6CgenValueStorageCType(ctx, param->children[0]) : "int", ctx->out);
+        if ( xl6CgenParamUsesReferenceAbi(param) ) {
+            xl6OutputPutc('*', ctx->out);
+        }
         xl6OutputPutc(' ', ctx->out);
         xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : "_");
     }

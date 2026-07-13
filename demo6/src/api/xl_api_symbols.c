@@ -575,6 +575,7 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypeRecord);
     XL_ADD_XRT_SYMBOL(s, xrtTypeHandle);
     XL_ADD_XRT_SYMBOL(s, xrtTypeSame);
+    XL_ADD_XRT_SYMBOL(s, xrtTypeIsA);
     XL_ADD_XRT_SYMBOL(s, xrtTypeName);
     XL_ADD_XRT_SYMBOL(s, xrtTypeGenericArgCount);
     XL_ADD_XRT_SYMBOL(s, xrtTypeGenericArg);
@@ -587,8 +588,11 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayCreate);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayFromValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayToValue);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedArrayRetain);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedArrayRelease);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayCloneEx);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedArrayMoveToShared);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayClone);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayInit);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayUnit);
@@ -613,8 +617,11 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypedListCreate);
     XL_ADD_XRT_SYMBOL(s, xrtTypedListFromValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedListToValue);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedListRetain);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedListRelease);
     XL_ADD_XRT_SYMBOL(s, xrtTypedListDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtTypedListCloneEx);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedListMoveToShared);
     XL_ADD_XRT_SYMBOL(s, xrtTypedListInit);
     XL_ADD_XRT_SYMBOL(s, xrtTypedListUnit);
     XL_ADD_XRT_SYMBOL(s, xrtTypedListCount);
@@ -633,8 +640,11 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetCreate);
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetFromValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetToValue);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedSetRetain);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedSetRelease);
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetCloneEx);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedSetMoveToShared);
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetInit);
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetUnit);
     XL_ADD_XRT_SYMBOL(s, xrtTypedSetCount);
@@ -660,8 +670,11 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictCreate);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictFromValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictToValue);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedDictRetain);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedDictRelease);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictCloneEx);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedDictMoveToShared);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictInit);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictUnit);
     XL_ADD_XRT_SYMBOL(s, xrtTypedDictCount);
@@ -1034,6 +1047,7 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoCreateTableArgs);
     XL_ADD_XRT_SYMBOL(s, xvoAddRef);
     XL_ADD_XRT_SYMBOL(s, xvoShare);
+    XL_ADD_XRT_SYMBOL(s, xvoMoveToShared);
     XL_ADD_XRT_SYMBOL(s, xvoEnsureUnique);
     XL_ADD_XRT_SYMBOL(s, xvoIsShared);
     XL_ADD_XRT_SYMBOL(s, xvoUnref);
@@ -1064,6 +1078,7 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoGetMutableTable);
     XL_ADD_XRT_SYMBOL(s, xvoGetRecordData);
     XL_ADD_XRT_SYMBOL(s, xvoGetHandleData);
+    XL_ADD_XRT_SYMBOL(s, xvoGetHandleSlot);
     XL_ADD_XRT_SYMBOL(s, xvoToString);
     XL_ADD_XRT_SYMBOL(s, xvoInvoke);
     XL_ADD_XRT_SYMBOL(s, xvoCallableSig);

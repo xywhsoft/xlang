@@ -1,0 +1,5 @@
+func invalid(out int value, bool enabled)
+    if enabled then
+        value = 1
+    end
+end

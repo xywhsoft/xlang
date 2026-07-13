@@ -9,9 +9,9 @@ if not "%XL6_ASYNC_CGEN_READY%"=="1" (
     if errorlevel 1 exit /b 1
 )
 
-findstr /C:"pendingAsyncSetValueB = xl6_xrt_typed_set_copy_mode(xrtTypeInt(), (*(xtset*)xl6_future_await_value(pendingAsyncSet" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncSetValueB = xrtTypedSetRetain((*(xtset*)xl6_future_await_value(pendingAsyncSet" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing late typed set await copy after pending async worker completion.
+    echo cgen_async.c missing late typed set await retain after pending async worker completion.
     exit /b 1
 )
 findstr /C:"pendingAsyncSetStateB == 42LL" build\test\cgen_async.c >nul
@@ -29,14 +29,14 @@ if errorlevel 1 (
     echo cgen_async.c should cancel pending async typed dict future as borrowed.
     exit /b 1
 )
-findstr /C:"pendingAsyncDictValueA = xl6_xrt_typed_dict_copy_mode(xrtTypeInt(), (*(xtdict*)xl6_future_await_value(pendingAsyncDict" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncDictValueA = xrtTypedDictRetain((*(xtdict*)xl6_future_await_value(pendingAsyncDict" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing first typed dict await copy after pending async cancel.
+    echo cgen_async.c missing first typed dict await retain after pending async cancel.
     exit /b 1
 )
-findstr /C:"pendingAsyncDictValueB = xl6_xrt_typed_dict_copy_mode(xrtTypeInt(), (*(xtdict*)xl6_future_await_value(pendingAsyncDict" build\test\cgen_async.c >nul
+findstr /C:"pendingAsyncDictValueB = xrtTypedDictRetain((*(xtdict*)xl6_future_await_value(pendingAsyncDict" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing late typed dict await copy after pending async worker completion.
+    echo cgen_async.c missing late typed dict await retain after pending async worker completion.
     exit /b 1
 )
 findstr /C:"pendingAsyncDictStateB == 42LL" build\test\cgen_async.c >nul
@@ -209,19 +209,19 @@ if not errorlevel 1 (
     echo cgen_async.c should not use statement expression for temporary void await.
     exit /b 1
 )
-findstr /C:"static XL_Class_AsyncBox xl6_future_await_class_xl_fn_makeBoxAsync_release" build\test\cgen_async.c >nul
+findstr /C:"static xvalue xl6_future_await_xvalue_release" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing temporary await class release helper.
+    echo cgen_async.c missing temporary await class-handle release helper.
     exit /b 1
 )
-findstr /C:"temporaryBox = xl6_future_await_class_xl_fn_makeBoxAsync_release(xl_fn_makeBoxAsync(110LL)" build\test\cgen_async.c >nul
+findstr /C:"temporaryBox = xl6_xrt_move_to_shared(xl6_xrt_bind_type(xl6_future_await_xvalue_release(xl_fn_makeBoxAsync(110LL)" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing temporary await class helper call.
+    echo cgen_async.c missing temporary await class-handle helper call.
     exit /b 1
 )
-findstr /C:"result.op.retain(result.op.env)" build\test\cgen_async.c >nul
+findstr /C:"if ( result != 0 ) { xvoAddRef(result); }" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing temporary await class retained function field.
+    echo cgen_async.c missing temporary await class-handle retain.
     exit /b 1
 )
 findstr /C:"xl6_future_release_if_needed(pFuture)" build\test\cgen_async.c >nul
@@ -249,12 +249,11 @@ if not errorlevel 1 (
     echo cgen_async.c should not double-retain temporary await function result.
     exit /b 1
 )
-findstr /C:"temporaryBox.op.retain(temporaryBox.op.env)" build\test\cgen_async.c >nul
+findstr /C:"xl6_xrt_retain(temporaryBox)" build\test\cgen_async.c >nul
 if not errorlevel 1 (
-    echo cgen_async.c should not double-retain temporary await class result.
+    echo cgen_async.c should not double-retain temporary await class-handle result.
     exit /b 1
 )
 
 echo DEMO6 suite ok: async cgen assertions 4/4
 exit /b 0
-

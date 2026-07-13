@@ -313,6 +313,9 @@ static int xl6CgenClassAutoEqualsBinaryExpr(
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
     argType = xl6CgenCloneExprTypeForInference(ctx, arg);
     concreteType = xl6CgenResolveAliasType(ctx, receiverType);
+    if ( xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
+        concreteType = xl6CgenClassHandleTargetType(ctx, concreteType);
+    }
     classNode = concreteType != NULL && concreteType->text != NULL ? xl6CgenFindClass(ctx, concreteType->text) : NULL;
     result = classNode != NULL &&
              !xl6CgenClassHasTypeParams(classNode) &&
@@ -321,21 +324,18 @@ static int xl6CgenClassAutoEqualsBinaryExpr(
     if ( result ) {
         xl6CgenClassMemberSymbol(ctx->out, classNode->text, protocolName);
         xl6OutputPutc('(', ctx->out);
-        if ( receiver->kind == XL6_AST_NAME &&
-             xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
-            xl6OutputPuts("self", ctx->out);
-        } else {
-            xl6OutputPutc('&', ctx->out);
-            if ( receiver->kind == XL6_AST_NAME ) {
-                xl6CgenNamedValueReference(ctx, receiver->text);
-            } else {
-                xl6OutputPutc('(', ctx->out);
-                xl6CgenExpr(ctx, receiver);
-                xl6OutputPutc(')', ctx->out);
-            }
-        }
+        xl6CgenClassToStringSelfExpr(ctx, receiver, receiverType, concreteType);
         xl6OutputPuts(", ", ctx->out);
-        xl6CgenExpr(ctx, arg);
+        if ( xl6CgenClassHandleTargetType(ctx, argType) != NULL ) {
+            char cTypeName[512];
+
+            xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), concreteType);
+            xl6OutputPrintf(ctx->out, "(*((%s*)xl6_class_data(", cTypeName);
+            xl6CgenExpr(ctx, arg);
+            xl6OutputPrintf(ctx->out, ", \"\", %d, %d)))", arg->line, arg->column);
+        } else {
+            xl6CgenExpr(ctx, arg);
+        }
         xl6OutputPutc(')', ctx->out);
     }
     xl6AstFree(receiverType);

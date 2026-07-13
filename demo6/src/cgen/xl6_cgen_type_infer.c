@@ -439,7 +439,7 @@ static XL6_AstNode* xl6CgenCloneClassMethodCallType(XL6_CgenContext* ctx, const 
     } else {
         receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
         {
-            const XL6_AstNode* classType = xl6CgenRefTargetType(ctx, receiverType);
+            const XL6_AstNode* classType = xl6CgenClassHandleTargetType(ctx, receiverType);
             if ( classType == NULL ) {
                 classType = receiverType;
             }
@@ -595,8 +595,8 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInferenceRaw(XL6_CgenContext* ctx, co
                                           xl6CTextEquals(leftContainerName, "list") ||
                                           xl6CTextEquals(leftContainerName, "dict"));
             int isXValue = !isTypedContainerConcat &&
-                            ((xl6CgenIsXValueType(leftType) && xl6CgenRefTargetType(ctx, leftType) == NULL) ||
-                             (xl6CgenIsXValueType(rightType) && xl6CgenRefTargetType(ctx, rightType) == NULL));
+                            ((xl6CgenIsXValueType(leftType) && xl6CgenClassHandleTargetType(ctx, leftType) == NULL) ||
+                             (xl6CgenIsXValueType(rightType) && xl6CgenClassHandleTargetType(ctx, rightType) == NULL));
             int isNumeric = leftType != NULL && rightType != NULL &&
                             (xl6CgenIsIntegerTypeName(leftType->text) || xl6CgenIsFloatTypeName(leftType->text)) &&
                             (xl6CgenIsIntegerTypeName(rightType->text) || xl6CgenIsFloatTypeName(rightType->text));
@@ -863,18 +863,6 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInferenceRaw(XL6_CgenContext* ctx, co
     case XL6_AST_CALL:
         if ( xl6CgenIsImplicitToStringCall(ctx, expr) ) {
             return xl6CgenNewSimpleType("string", expr);
-        }
-        if ( expr->childCount > 1 && expr->children[0] != NULL &&
-             expr->children[0]->kind == XL6_AST_NAME &&
-             xl6CTextEquals(expr->children[0]->text, "ref") &&
-             expr->children[1] != NULL && expr->children[1]->childCount == 1 ) {
-            const XL6_AstNode* arg = expr->children[1]->children[0];
-            const XL6_AstNode* valueExpr = arg != NULL && arg->childCount > 0 ? arg->children[0] : NULL;
-            XL6_AstNode* valueType = xl6CgenCloneExprTypeForInference(ctx, valueExpr);
-
-            if ( valueType != NULL ) {
-                return xl6CgenNewGenericTypeNode("ref", valueType, expr);
-            }
         }
         {
             XL6_AstNode* threadMethodType = xl6CgenThreadMethodType(ctx, expr);

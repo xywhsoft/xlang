@@ -1,0 +1,22 @@
+struct AbiPair
+    int x
+    int y
+end
+
+export "xl6_pair_shift" func shift(AbiPair value) as AbiPair
+    value.x += 1
+    value.y += 2
+    return value
+end
+
+export "xl6_pair_reset" func reset(byref AbiPair value)
+    value.x = 0
+    value.y = 0
+end
+
+export "xl6_pair_make" func make(out AbiPair value)
+    AbiPair result
+    result.x = 3
+    result.y = 4
+    value = result
+end

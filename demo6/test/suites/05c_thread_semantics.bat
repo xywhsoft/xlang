@@ -186,7 +186,7 @@ if errorlevel 1 (
     echo cgen_thread.c missing waitTimeout timeout/completed-state guard lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('conditionalBorrowedThread = xl6_thread_require_handle(xl6_thread_start((chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight), 1','conditionalBorrowedThreadAgain = xl6_thread_require_handle(xl6_thread_start((chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight), 1','mixedThreadOwned = xl6_thread_require_handle(xl6_thread_start((chooseMixedThread ? xl6_function_copy_value(mixedThreadSource) : xl_fn_makeThreadWorker(16LL)), 0','mixedThreadBorrowed = xl6_thread_require_handle(xl6_thread_start((chooseMixedThread ? xl6_function_copy_value(mixedThreadSource) : xl_fn_makeThreadWorker(17LL)), 0','conditionalMemberThread = xl6_thread_require_handle(xl6_thread_start((chooseThreadMember ? threadBox.op : threadBoxAlt.op), 1','borrowedThreadRight.signature ==','borrowedThreadLeft.signature ==','mixedThreadSource.signature ==','xl6_function_call_var(threadBoxAlt.op, 0)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_thread.c',[System.Text.Encoding]::UTF8); $checks=@('conditionalBorrowedThread = xl6_thread_require_handle(xl6_thread_start((chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight), 1','conditionalBorrowedThreadAgain = xl6_thread_require_handle(xl6_thread_start((chooseBorrowedThread ? borrowedThreadLeft : borrowedThreadRight), 1','mixedThreadOwned = xl6_thread_require_handle(xl6_thread_start((chooseMixedThread ? xl6_function_copy_value(mixedThreadSource) : xl_fn_makeThreadWorker(16LL)), 0','mixedThreadBorrowed = xl6_thread_require_handle(xl6_thread_start((chooseMixedThread ? xl6_function_copy_value(mixedThreadSource) : xl_fn_makeThreadWorker(17LL)), 0','conditionalMemberThread = xl6_thread_require_handle(xl6_thread_start((chooseThreadMember ? (*((XL_Class_ThreadFuncBox*)xl6_class_data(threadBox','(*((XL_Class_ThreadFuncBox*)xl6_class_data(threadBoxAlt','borrowedThreadRight.signature ==','borrowedThreadLeft.signature ==','mixedThreadSource.signature ==','xl6_function_call_var((*((XL_Class_ThreadFuncBox*)xl6_class_data(threadBoxAlt'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_thread.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_thread.c missing borrowed conditional thread callable ownership guard.
     exit /b 1
@@ -321,4 +321,3 @@ if not errorlevel 1 (
 
 echo DEMO6 suite ok: thread semantics
 exit /b 0
-

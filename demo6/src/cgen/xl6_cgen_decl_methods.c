@@ -8,17 +8,26 @@ static void xl6CgenRegisterParamTypesEx(XL6_CgenContext* ctx, const XL6_AstNode*
     for ( i = 0; i < params->childCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
         if ( param != NULL && param->childCount > 0 ) {
+            unsigned int modeFlags = 0u;
+            if ( (param->flags & XL6_AST_FLAG_BYREF) != 0 ) {
+                modeFlags |= XL6_CGEN_VAR_BYREF;
+            }
+            if ( (param->flags & XL6_AST_FLAG_OUT) != 0 ) {
+                modeFlags |= XL6_CGEN_VAR_OUT;
+            }
             if ( xl6CgenParamTypeUsesTypedContainerStorage(ctx, param->children[0]) ) {
                 xl6CgenAddVarTypeWithFlags(ctx, param->text, param->children[0],
-                                           XL6_CGEN_VAR_TYPED_CONTAINER | XL6_CGEN_VAR_BORROWED);
-                xl6CgenAddTypedContainerParamCleanup(ctx, param->text, param->children[0]);
+                                           XL6_CGEN_VAR_TYPED_CONTAINER | XL6_CGEN_VAR_BORROWED | modeFlags);
+                if ( modeFlags == 0 ) {
+                    xl6CgenAddTypedContainerParamCleanup(ctx, param->text, param->children[0]);
+                }
             } else {
-                xl6CgenAddVarType(ctx, param->text, param->children[0]);
+                xl6CgenAddVarTypeWithFlags(ctx, param->text, param->children[0], modeFlags);
                 /*
                     普通调用把 xvalue 实参的一个 owned 引用交给被调函数。
                     main 的 arg 由入口包装器持有，因此只在 borrowed 入口跳过释放。
                 */
-                if ( !borrowXValues && xl6CgenIsXValueType(param->children[0]) ) {
+                if ( modeFlags == 0 && !borrowXValues && xl6CgenIsXValueType(param->children[0]) ) {
                     xl6CgenAddXValueCleanup(ctx, param->text, param->children[0]);
                 }
             }
@@ -48,6 +57,7 @@ static void xl6CgenEmitManagedParamOwners(XL6_CgenContext* ctx, const XL6_AstNod
     for ( i = 0; i < params->childCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
         const XL6_AstNode* typeNode;
+        const XL6_AstNode* classTarget;
         XL6_AstNode* classNode;
         char ownerName[512];
 
@@ -55,6 +65,14 @@ static void xl6CgenEmitManagedParamOwners(XL6_CgenContext* ctx, const XL6_AstNod
             continue;
         }
         typeNode = param->children[0];
+        if ( (param->flags & (XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT)) != 0 ) {
+            continue;
+        }
+        classTarget = xl6CgenClassHandleTargetType(ctx, typeNode);
+        if ( classTarget != NULL ) {
+            /* 调用侧已经传递一个 owned 句柄；默认模式共享对象，byval 传递独立副本。 */
+            continue;
+        }
         if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
             char paramName[512];
 
@@ -73,7 +91,10 @@ static void xl6CgenEmitManagedParamOwners(XL6_CgenContext* ctx, const XL6_AstNod
         if ( xl6CgenParamTypeUsesTypedContainerStorage(ctx, typeNode) ) {
             xl6CgenTypedParamOwnerName(ownerName, sizeof(ownerName), param->text);
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "int %s = 0;\n", ownerName);
+            xl6OutputPrintf(ctx->out,
+                            "int %s = %d;\n",
+                            ownerName,
+                            (param->flags & XL6_AST_FLAG_BYVAL) != 0 ? 1 : 0);
             continue;
         }
 
@@ -613,10 +634,12 @@ static void xl6CgenClassExternFunc(XL6_CgenContext* ctx, const XL6_AstNode* clas
     const XL6_AstNode* params;
     const XL6_AstNode* returns;
     int hasReturn;
+    int copyExternString;
 
     params = xl6CgenCallableParams(funcNode);
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     hasReturn = returns != NULL && returns->childCount == 1;
+    copyExternString = hasReturn && xl6CgenIsStringTypeNode(ctx, returns->children[0]);
 
     xl6CgenClassFuncProto(ctx, classNode, funcNode);
     xl6OutputPuts("\n{\n", ctx->out);
@@ -626,10 +649,17 @@ static void xl6CgenClassExternFunc(XL6_CgenContext* ctx, const XL6_AstNode* clas
     if ( hasReturn ) {
         xl6OutputPuts("return ", ctx->out);
     }
+    if ( copyExternString ) {
+        xl6OutputPuts("xl6_xrt_external_string_copy(", ctx->out);
+    }
     xl6CgenCStringSymbol(ctx->out, funcNode->text);
     xl6OutputPuts("(self->handle", ctx->out);
     xl6CgenEmitNativeExternArgNames(ctx, params, 1);
-    xl6OutputPuts(");\n", ctx->out);
+    xl6OutputPutc(')', ctx->out);
+    if ( copyExternString ) {
+        xl6OutputPutc(')', ctx->out);
+    }
+    xl6OutputPuts(";\n", ctx->out);
 
     ctx->indent -= 1;
     xl6OutputPuts("}\n\n", ctx->out);

@@ -1,10 +1,23 @@
+#include "../../lib/xrt/xrt.h"
 #include "export_class_union_field.h"
 
 int main(void)
 {
-    XL_Class_Box box = xl6_box_make(42);
-    if ( box.payload.i != 42 ) {
+    xvalue box;
+    XL_Class_Box* data;
+    int result = 0;
+
+    if ( xrtInit() == NULL ) {
         return 1;
     }
-    return xl6_box_pick(box) == 42 ? 0 : 2;
+    box = xl6_box_make(42);
+    data = (XL_Class_Box*)xvoGetRecordData(box);
+    if ( data == NULL || data->payload.i != 42 ) {
+        result = 2;
+    } else if ( xl6_box_pick(box) != 42 ) {
+        result = 3;
+    }
+    xvoUnref(box);
+    xrtUnit();
+    return result;
 }

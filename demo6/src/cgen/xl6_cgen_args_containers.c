@@ -871,7 +871,32 @@ static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* pa
 {
     const XL6_AstNode* targetType;
 
+    if ( param != NULL &&
+         (param->flags & (XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT)) != 0 ) {
+        xl6OutputPuts("&(", ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
     targetType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
+    if ( param != NULL && (param->flags & XL6_AST_FLAG_BYVAL) != 0 &&
+         targetType != NULL && xl6CgenIsTypedContainerType(ctx, targetType) ) {
+        xl6CgenTypedContainerCopyExprMode(ctx, targetType, expr, "XRT_OBJMODE_LOCAL");
+        return;
+    }
+    if ( param != NULL && (param->flags & XL6_AST_FLAG_BYVAL) != 0 &&
+         targetType != NULL && xl6CgenIsXValueType(targetType) ) {
+        if ( xl6CgenExprIsXValueBorrow(ctx, expr) ) {
+            xl6OutputPuts("xvoCopy(", ctx->out);
+            xl6CgenExpr(ctx, expr);
+            xl6OutputPutc(')', ctx->out);
+        } else {
+            xl6OutputPuts("xl6_xrt_value_copy_release(", ctx->out);
+            xl6CgenExpr(ctx, expr);
+            xl6OutputPuts(", 0)", ctx->out);
+        }
+        return;
+    }
     xl6CgenFixedTypeArgExpr(ctx, targetType, expr);
 }
 

@@ -72,6 +72,41 @@ static void xl6CgenTypedContainerCreateExpr(XL6_CgenContext* ctx, const XL6_AstN
     xl6CgenTypedContainerCreateExprMode(ctx, typeNode, "XRT_OBJMODE_LOCAL");
 }
 
+static void xl6CgenTypedContainerRetainExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* expr)
+{
+    const XL6_AstNode* concreteType;
+    const char* typeName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( xl6CTextEquals(typeName, "array") ) {
+        xl6OutputPuts("xrtTypedArrayRetain(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "list") ) {
+        xl6OutputPuts("xrtTypedListRetain(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "set") ) {
+        xl6OutputPuts("xrtTypedSetRetain(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "dict") ) {
+        xl6OutputPuts("xrtTypedDictRetain(", ctx->out);
+    } else {
+        xl6CgenError(ctx, typeNode, "typed container retain requires array/list/set/dict");
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPutc(')', ctx->out);
+}
+
+static int xl6CgenTypedContainerExprIsSharedStorage(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* expr)
+{
+    return ctx != NULL && expr != NULL && expr->kind == XL6_AST_NAME &&
+           (xl6CgenFindTrackedVarFlags(ctx, expr->text) & XL6_CGEN_VAR_MODULE_GLOBAL) != 0;
+}
+
 static const XL6_AstNode* xl6CgenTypedContainerInitLiteral(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* initExpr)
 {
     const XL6_AstNode* concreteType;
@@ -409,6 +444,59 @@ static void xl6CgenTypedContainerCopyExprMode(XL6_CgenContext* ctx, const XL6_As
     xl6CgenExpr(ctx, expr);
     xl6OutputPuts(", ", ctx->out);
     xl6OutputPuts(mode != NULL ? mode : "XRT_OBJMODE_LOCAL", ctx->out);
+    xl6OutputPutc(')', ctx->out);
+}
+
+static void xl6CgenTypedContainerMoveToSharedExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const XL6_AstNode* expr)
+{
+    const XL6_AstNode* concreteType;
+    const char* typeName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( xl6CTextEquals(typeName, "array") ) {
+        xl6OutputPuts("xrtTypedArrayMoveToShared(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "list") ) {
+        xl6OutputPuts("xrtTypedListMoveToShared(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "set") ) {
+        xl6OutputPuts("xrtTypedSetMoveToShared(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "dict") ) {
+        xl6OutputPuts("xrtTypedDictMoveToShared(", ctx->out);
+    } else {
+        xl6CgenError(ctx, expr, "typed container shared move requires array/list/set/dict");
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPutc(')', ctx->out);
+}
+
+static void xl6CgenTypedContainerMoveToSharedCExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cExpr)
+{
+    const XL6_AstNode* concreteType;
+    const char* typeName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( xl6CTextEquals(typeName, "array") ) {
+        xl6OutputPuts("xrtTypedArrayMoveToShared(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "list") ) {
+        xl6OutputPuts("xrtTypedListMoveToShared(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "set") ) {
+        xl6OutputPuts("xrtTypedSetMoveToShared(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "dict") ) {
+        xl6OutputPuts("xrtTypedDictMoveToShared(", ctx->out);
+    } else {
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    xl6OutputPuts(cExpr != NULL ? cExpr : "0", ctx->out);
     xl6OutputPutc(')', ctx->out);
 }
 

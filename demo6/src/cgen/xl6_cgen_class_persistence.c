@@ -16,9 +16,7 @@ static void xl6CgenClassPersistenceFormatHelperSymbol(
 
 static void xl6CgenClassPersistenceFromValueHelperProto(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
 {
-    xl6OutputPuts("static ", ctx->out);
-    xl6CgenClassTypeName(ctx->out, classNode->text);
-    xl6OutputPutc(' ', ctx->out);
+    xl6OutputPuts("static xvalue ", ctx->out);
     xl6CgenClassPersistenceFromValueHelperSymbol(ctx->out, classNode);
     xl6OutputPuts("(xvalue value, int formatKind)", ctx->out);
 }
@@ -50,17 +48,6 @@ static void xl6CgenClassPersistenceWriteHelperProto(
     xl6OutputPuts(" source, int borrowed, int pretty, int formatKind)", ctx->out);
 }
 
-static int xl6CgenPersistenceFormatKind(const char* format)
-{
-    if ( xl6CTextEquals(format, "json") ) {
-        return 1;
-    }
-    if ( xl6CTextEquals(format, "xson") ) {
-        return 2;
-    }
-    return 0;
-}
-
 static void xl6CgenClassPersistenceHelperProtos(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
 {
     if ( ctx == NULL || classNode == NULL || !xl6CgenClassHasValueDerive(classNode) ) {
@@ -79,6 +66,7 @@ static void xl6CgenClassPersistenceHelperProtos(XL6_CgenContext* ctx, const XL6_
 
 static void xl6CgenClassPersistenceFromValueHelper(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
 {
+    char cTypeName[512];
     int hasJson;
     int hasXson;
     int emittedBranch;
@@ -86,6 +74,7 @@ static void xl6CgenClassPersistenceFromValueHelper(XL6_CgenContext* ctx, const X
     xl6CgenClassPersistenceFromValueHelperProto(ctx, classNode);
     xl6OutputPuts("\n{\n", ctx->out);
     ctx->indent += 1;
+    xl6CgenClassTypeTextName(cTypeName, sizeof(cTypeName), classNode->text);
     xl6CgenIndent(ctx);
     xl6CgenClassTypeName(ctx->out, classNode->text);
     xl6OutputPuts(" object = {0};\n", ctx->out);
@@ -125,7 +114,24 @@ static void xl6CgenClassPersistenceFromValueHelper(XL6_CgenContext* ctx, const X
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("return object;\n", ctx->out);
+    xl6OutputPuts("xvalue result = xvoCreateRecordMove(", ctx->out);
+    xl6CgenTypeDescSymbol(ctx->out, cTypeName);
+    xl6OutputPuts("(), &object);\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("if ( result == 0 ) {\n", ctx->out);
+    ctx->indent += 1;
+    if ( xl6CgenClassNeedsDestroy(ctx, classNode) ) {
+        xl6CgenIndent(ctx);
+        xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
+        xl6OutputPuts("(&object);\n", ctx->out);
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("return xvoCreateNull();\n", ctx->out);
+    ctx->indent -= 1;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("}\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("return result;\n", ctx->out);
     ctx->indent -= 1;
     xl6OutputPuts("}\n\n", ctx->out);
 }
@@ -491,6 +497,31 @@ static int xl6CgenPersistenceGenericCall(XL6_CgenContext* ctx, const XL6_AstNode
     return 1;
 }
 
+static int xl6CgenPersistenceSourceIsManagedClass(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* valueType)
+{
+    return xl6CgenClassHandleTargetType(ctx, valueType) != NULL;
+}
+
+static void xl6CgenPersistenceSourceExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* valueExpr,
+    const XL6_AstNode* valueType)
+{
+    const XL6_AstNode* recordType = xl6CgenClassHandleTargetType(ctx, valueType);
+
+    if ( recordType == NULL ) {
+        xl6CgenClassCopySourceExpr(ctx, valueExpr);
+        return;
+    }
+    xl6OutputPuts("(*((", ctx->out);
+    xl6OutputPuts(xl6CgenTypeName(ctx, recordType), ctx->out);
+    xl6OutputPuts("*)xl6_class_data(", ctx->out);
+    xl6CgenExpr(ctx, valueExpr);
+    xl6OutputPrintf(ctx->out, ", \"\", %d, %d)))", valueExpr->line, valueExpr->column);
+}
+
 static int xl6CgenPersistenceStdlibCall(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* callee;
@@ -568,9 +599,10 @@ static int xl6CgenPersistenceStdlibCall(XL6_CgenContext* ctx, const XL6_AstNode*
             xl6OutputPuts("\"\"", ctx->out);
         }
         xl6OutputPuts(", ", ctx->out);
-        xl6CgenClassCopySourceExpr(ctx, valueExpr);
+        xl6CgenPersistenceSourceExpr(ctx, valueExpr, valueType);
         xl6OutputPuts(", ", ctx->out);
-        xl6OutputPuts(xl6CgenExprIsClassBorrow(ctx, valueExpr, valueType) ? "1" : "0", ctx->out);
+        xl6OutputPuts(xl6CgenPersistenceSourceIsManagedClass(ctx, valueType) ||
+                      xl6CgenExprIsClassBorrow(ctx, valueExpr, valueType) ? "1" : "0", ctx->out);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenPersistencePrettyExpr(ctx, node, 2);
         xl6OutputPuts(", ", ctx->out);
@@ -581,9 +613,10 @@ static int xl6CgenPersistenceStdlibCall(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6OutputPutc('(', ctx->out);
         xl6CgenPersistenceCallableSymbol(ctx, node, funcName);
         xl6OutputPuts(", ", ctx->out);
-        xl6CgenClassCopySourceExpr(ctx, valueExpr);
+        xl6CgenPersistenceSourceExpr(ctx, valueExpr, valueType);
         xl6OutputPuts(", ", ctx->out);
-        xl6OutputPuts(xl6CgenExprIsClassBorrow(ctx, valueExpr, valueType) ? "1" : "0", ctx->out);
+        xl6OutputPuts(xl6CgenPersistenceSourceIsManagedClass(ctx, valueType) ||
+                      xl6CgenExprIsClassBorrow(ctx, valueExpr, valueType) ? "1" : "0", ctx->out);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenPersistencePrettyExpr(ctx, node, 1);
         xl6OutputPuts(", ", ctx->out);

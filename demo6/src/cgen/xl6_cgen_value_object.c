@@ -4,12 +4,16 @@ static void xl6CgenTypedContainerStorageToXValueExpr(XL6_CgenContext* ctx, const
 {
     const XL6_AstNode* concreteType;
     const XL6_AstNode* itemType;
+    const XL6_AstNode* itemRecordType;
     XL6_AstNode* itemClass;
     const char* typeName;
 
     concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
     itemType = xl6CgenTypedContainerItemType(ctx, typeNode);
-    itemClass = itemType != NULL && itemType->text != NULL ? xl6CgenFindClass(ctx, itemType->text) : NULL;
+    itemRecordType = xl6CgenClassHandleTargetType(ctx, itemType);
+    itemClass = itemRecordType != NULL && itemRecordType->text != NULL ?
+                xl6CgenFindClass(ctx, itemRecordType->text) :
+                (itemType != NULL && itemType->text != NULL ? xl6CgenFindClass(ctx, itemType->text) : NULL);
     typeName = concreteType != NULL ? concreteType->text : NULL;
 
     xl6OutputPuts("xl6_xrt_bind_type(", ctx->out);
@@ -20,6 +24,7 @@ static void xl6CgenTypedContainerStorageToXValueExpr(XL6_CgenContext* ctx, const
         xl6OutputPuts(storageName != NULL ? storageName : "0", ctx->out);
         xl6OutputPuts(", (xl6_xrt_typed_item_box_fn)", ctx->out);
         xl6CgenClassAutoToValueFormatSymbol(ctx->out, itemClass, NULL);
+        xl6OutputPuts(itemRecordType != NULL ? ", true" : ", false", ctx->out);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(typeName, "array") ) {
         xl6OutputPuts("xl6_xrt_typed_array_to_xvalue(", ctx->out);
@@ -342,10 +347,20 @@ static int xl6CgenParamTypeUsesTypedContainerStorage(XL6_CgenContext* ctx, const
 
 static const char* xl6CgenParamCType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
+    static char pointerType[768];
+    const char* baseType;
+
     if ( xl6CgenParamTypeUsesTypedContainerStorage(ctx, typeNode) ) {
-        return xl6CgenTypedContainerCType(ctx, typeNode);
+        baseType = xl6CgenTypedContainerCType(ctx, typeNode);
+    } else {
+        baseType = xl6CgenTypeName(ctx, typeNode);
     }
-    return xl6CgenTypeName(ctx, typeNode);
+    if ( typeNode != NULL &&
+         (typeNode->flags & (XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT)) != 0 ) {
+        snprintf(pointerType, sizeof(pointerType), "%s*", baseType);
+        return pointerType;
+    }
+    return baseType;
 }
 
 static void xl6CgenTypedContainerValueFromExprMode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr, const char* mode)
@@ -358,8 +373,16 @@ static void xl6CgenTypedContainerValueFromExprMode(XL6_CgenContext* ctx, const X
         return;
     }
 
+    if ( xl6CgenTypedContainerCanMoveFromExpr(ctx, typeNode, expr) ) {
+        xl6CgenExpr(ctx, expr);
+        return;
+    }
     if ( xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
-        xl6CgenTypedContainerCopyExprMode(ctx, typeNode, expr, mode);
+        if ( mode != NULL && xl6CTextEquals(mode, "XRT_OBJMODE_SHARED") ) {
+            xl6CgenTypedContainerCopyExprMode(ctx, typeNode, expr, mode);
+        } else {
+            xl6CgenTypedContainerRetainExpr(ctx, typeNode, expr);
+        }
         return;
     }
 
@@ -404,6 +427,7 @@ static int xl6CgenIsCurrentNativeClassSelfReceiver(XL6_CgenContext* ctx, const X
 static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name)
 {
     const XL6_AstNode* externalVar;
+    unsigned int flags;
 
     if ( ctx == NULL || name == NULL ) {
         return;
@@ -423,7 +447,14 @@ static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name)
             return;
         }
     }
-    xl6CgenFputsCIdent(ctx->out, name);
+    flags = xl6CgenFindTrackedVarFlags(ctx, name);
+    if ( (flags & (XL6_CGEN_VAR_BYREF | XL6_CGEN_VAR_OUT)) != 0 ) {
+        xl6OutputPuts("(*", ctx->out);
+        xl6CgenFputsCIdent(ctx->out, name);
+        xl6OutputPutc(')', ctx->out);
+    } else {
+        xl6CgenFputsCIdent(ctx->out, name);
+    }
 }
 
 static void xl6CgenNativeReceiverHandleExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
@@ -567,6 +598,9 @@ static int xl6CgenImplicitClassToStringCall(XL6_CgenContext* ctx, const XL6_AstN
     receiver = member != NULL && member->childCount > 0 ? member->children[0] : NULL;
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
     concreteType = xl6CgenResolveAliasType(ctx, receiverType);
+    if ( xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
+        concreteType = xl6CgenClassHandleTargetType(ctx, concreteType);
+    }
     classNode = concreteType != NULL && concreteType->text != NULL ? xl6CgenFindClass(ctx, concreteType->text) : NULL;
     if ( classNode == NULL ) {
         xl6AstFree(receiverType);
@@ -586,19 +620,7 @@ static int xl6CgenImplicitClassToStringCall(XL6_CgenContext* ctx, const XL6_AstN
     if ( !xl6CgenClassHasTypeParams(classNode) && xl6CgenClassHasDerive(classNode, "string") ) {
         xl6CgenClassMemberSymbol(ctx->out, classNode->text, "__toString__");
         xl6OutputPutc('(', ctx->out);
-        if ( receiver != NULL && receiver->kind == XL6_AST_NAME &&
-             xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
-            xl6OutputPuts("self", ctx->out);
-        } else {
-            xl6OutputPutc('&', ctx->out);
-            if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
-                xl6CgenNamedValueReference(ctx, receiver->text);
-            } else {
-                xl6OutputPutc('(', ctx->out);
-                xl6CgenExpr(ctx, receiver);
-                xl6OutputPutc(')', ctx->out);
-            }
-        }
+        xl6CgenClassToStringSelfExpr(ctx, receiver, receiverType, concreteType);
         xl6OutputPutc(')', ctx->out);
         xl6AstFree(receiverType);
         return 1;
@@ -655,7 +677,7 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
     } else if ( receiver->kind == XL6_AST_MEMBER ) {
         ownedReceiverType = xl6CgenCloneMemberFieldTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
-        classType = xl6CgenRefTargetType(ctx, receiverType);
+        classType = xl6CgenClassHandleTargetType(ctx, receiverType);
         if ( classType == NULL ) {
             classType = receiverType;
         }
@@ -663,14 +685,14 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
     } else {
         ownedReceiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
-        classType = xl6CgenRefTargetType(ctx, receiverType);
+        classType = xl6CgenClassHandleTargetType(ctx, receiverType);
         if ( classType == NULL ) {
             classType = receiverType;
         }
         classNode = classType != NULL ? xl6CgenFindClass(ctx, classType->text) : NULL;
     }
     if ( receiver->kind != XL6_AST_NAME && receiver->kind != XL6_AST_MEMBER &&
-         xl6CgenRefTargetType(ctx, receiverType) == NULL ) {
+         xl6CgenClassHandleTargetType(ctx, receiverType) == NULL ) {
         xl6AstFree(ownedReceiverType);
         return 0;
     }
@@ -729,16 +751,26 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
                 xl6OutputPuts(basePath + 5, ctx->out);
             }
         }
-    } else if ( xl6CgenRefTargetType(ctx, receiverType) != NULL ) {
-        char ownerTypeName[512];
-        xl6CgenClassTypeRefName(ownerTypeName, sizeof(ownerTypeName), classType);
-        xl6OutputPrintf(ctx->out, "((%s*)xl6_ref_data(", ownerTypeName);
+    } else if ( xl6CgenClassHandleTargetType(ctx, receiverType) != NULL ) {
+        char receiverTypeName[512];
+        xl6CgenClassTypeRefName(receiverTypeName, sizeof(receiverTypeName), classType);
+        if ( basePath[0] == '\0' ) {
+            xl6OutputPrintf(ctx->out, "((%s*)xl6_class_data(", receiverTypeName);
+        } else {
+            xl6OutputPrintf(ctx->out, "&((%s*)xl6_class_data(", receiverTypeName);
+        }
         if ( receiver->kind == XL6_AST_NAME ) {
             xl6CgenNamedValueReference(ctx, receiver->text);
         } else {
             xl6CgenExpr(ctx, receiver);
         }
         xl6OutputPrintf(ctx->out, ", \"\", %d, %d))", receiver->line, receiver->column);
+        if ( basePath[0] != '\0' ) {
+            xl6OutputPuts("->base", ctx->out);
+            if ( strlen(basePath) > 5 ) {
+                xl6OutputPuts(basePath + 5, ctx->out);
+            }
+        }
     } else {
         xl6OutputPutc('&', ctx->out);
         if ( receiver->kind == XL6_AST_NAME ) {

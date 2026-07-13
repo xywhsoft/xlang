@@ -231,6 +231,12 @@ static int xl6CgenReturnTryMultiXValueFieldStmt(
          !xl6CgenIsXValueType(returnType) ) {
         return 0;
     }
+
+    /* class 对外是托管引用，多返回值字段必须构造并装箱，不能写入底层 C 记录。 */
+    if ( xl6CgenClassHandleTargetType(ctx, returnType) != NULL &&
+         xl6CgenTryClassCtorBoxXValueStmt(ctx, returnType, expr, returnField) ) {
+        return 1;
+    }
     if ( !xl6CgenReturnCanMultiXValueFieldStmt(ctx, returnType, expr) ) {
         return 0;
     }
@@ -668,7 +674,8 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                             genericCtorType = xl6CgenGenericClassCtorType(ctx, node->children[i], &ctorClass);
                             isClassCtor = genericCtorType != NULL;
                         }
-                        emittedCtor = returnClass != NULL &&
+                        emittedCtor = xl6CgenClassHandleTargetType(ctx, retType) == NULL &&
+                                      returnClass != NULL &&
                                       isClassCtor &&
                                       ctorClass != NULL &&
                                       xl6CTextEquals(returnClass->text, ctorClass->text) &&

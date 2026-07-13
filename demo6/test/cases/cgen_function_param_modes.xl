@@ -1,0 +1,18 @@
+func increment(byref int value)
+    value += 1
+end
+
+func produce(out int value)
+    value = 42
+end
+
+func(byref int) incrementer = increment
+func(out int) producer = produce
+
+int number = 1
+incrementer(byref number)
+assert number == 2
+
+int result
+producer(out result)
+assert result == 42

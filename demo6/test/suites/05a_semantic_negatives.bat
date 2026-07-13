@@ -382,39 +382,14 @@ if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\sem_async_capture_top_level.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_closure_capture_destroy_class.xl >nul 2> build\test\sem_closure_capture_destroy_class.err.txt
+release\xl.exe check test\cases\sem_noncopyable_byval.xl >nul 2> build\test\sem_noncopyable_byval.err.txt
 if not errorlevel 1 (
-    echo sem_closure_capture_destroy_class.xl should fail.
+    echo sem_noncopyable_byval.xl should fail.
     exit /b 1
 )
-
-release\xl.exe check test\cases\sem_closure_capture_native_class.xl >nul 2> build\test\sem_closure_capture_native_class.err.txt
-if not errorlevel 1 (
-    echo sem_closure_capture_native_class.xl should fail.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_closure_capture_native_class_field.xl >nul 2> build\test\sem_closure_capture_native_class_field.err.txt
-if not errorlevel 1 (
-    echo sem_closure_capture_native_class_field.xl should fail.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_noncopyable_class_copy_init.xl >nul 2> build\test\sem_noncopyable_class_copy_init.err.txt
-if not errorlevel 1 (
-    echo sem_noncopyable_class_copy_init.xl should fail.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_noncopyable_assign.xl >nul 2> build\test\sem_noncopyable_assign.err.txt
-if not errorlevel 1 (
-    echo sem_noncopyable_assign.xl should fail.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_noncopyable_native_class_param.xl
+findstr /C:"byval" build\test\sem_noncopyable_byval.err.txt >nul
 if errorlevel 1 (
-    echo native-backed class borrowed parameter declaration should pass.
+    echo sem_noncopyable_byval.xl missing expected diagnostic.
     exit /b 1
 )
 
@@ -432,39 +407,6 @@ release\xl.exe build test\cases\sem_noncopyable_return.xl -o build\test\sem_nonc
 if errorlevel 1 exit /b 1
 build\test\sem_noncopyable_return.exe
 if errorlevel 1 exit /b 1
-
-release\xl.exe check test\cases\sem_typed_container_noncopyable_native_class.xl >nul 2> build\test\sem_typed_container_noncopyable_native_class.err.txt
-if not errorlevel 1 (
-    echo sem_typed_container_noncopyable_native_class.xl should fail.
-    exit /b 1
-)
-findstr /C:"typed container item type must be copyable" build\test\sem_typed_container_noncopyable_native_class.err.txt >nul
-if errorlevel 1 (
-    echo sem_typed_container_noncopyable_native_class.xl missing expected diagnostic.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_typed_container_noncopyable_class.xl >nul 2> build\test\sem_typed_container_noncopyable_class.err.txt
-if not errorlevel 1 (
-    echo sem_typed_container_noncopyable_class.xl should fail.
-    exit /b 1
-)
-findstr /C:"typed container item type must be copyable" build\test\sem_typed_container_noncopyable_class.err.txt >nul
-if errorlevel 1 (
-    echo sem_typed_container_noncopyable_class.xl missing expected diagnostic.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_typed_container_noncopyable_nested.xl >nul 2> build\test\sem_typed_container_noncopyable_nested.err.txt
-if not errorlevel 1 (
-    echo sem_typed_container_noncopyable_nested.xl should fail.
-    exit /b 1
-)
-findstr /C:"typed container item type must be copyable" build\test\sem_typed_container_noncopyable_nested.err.txt >nul
-if errorlevel 1 (
-    echo sem_typed_container_noncopyable_nested.xl missing expected diagnostic.
-    exit /b 1
-)
 
 release\xl.exe check test\cases\sem_class_unknown_base.xl >nul 2> build\test\sem_class_unknown_base.err.txt
 if not errorlevel 1 (
@@ -723,21 +665,22 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_class_recursive_value_direct.xl >nul 2> build\test\sem_class_recursive_value_direct.err.txt
-if not errorlevel 1 exit /b 1
-findstr /C:"ref<T>" build\test\sem_class_recursive_value_direct.err.txt >nul
-if errorlevel 1 exit /b 1
-
-release\xl.exe check test\cases\sem_class_recursive_value_indirect.xl >nul 2> build\test\sem_class_recursive_value_indirect.err.txt
-if not errorlevel 1 exit /b 1
-findstr /C:"ref<T>" build\test\sem_class_recursive_value_indirect.err.txt >nul
-if errorlevel 1 exit /b 1
-
-release\xl.exe check test\cases\sem_class_recursive_value_generic.xl >nul 2> build\test\sem_class_recursive_value_generic.err.txt
-if not errorlevel 1 exit /b 1
-findstr /C:"ref<T>" build\test\sem_class_recursive_value_generic.err.txt >nul
-if errorlevel 1 exit /b 1
-
+for %%F in (
+    sem_out_read_before_write
+    sem_out_missing_branch
+    sem_out_capture
+) do (
+    release\xl.exe check test\cases\%%F.xl >nul 2>build\test\%%F.err.txt
+    if not errorlevel 1 (
+        echo %%F.xl should fail.
+        exit /b 1
+    )
+    findstr /C:"[sem]" build\test\%%F.err.txt >nul
+    if errorlevel 1 (
+        echo %%F.err.txt missing semantic diagnostic.
+        exit /b 1
+    )
+)
 
 echo DEMO6 suite ok: semantic negatives
 exit /b 0

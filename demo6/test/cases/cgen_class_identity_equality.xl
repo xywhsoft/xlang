@@ -1,0 +1,13 @@
+class EqBox
+    int value
+end
+
+func main(...) as int
+    EqBox first
+    EqBox alias = first
+    EqBox other
+
+    assert first == alias
+    assert first != other
+    return 0
+end

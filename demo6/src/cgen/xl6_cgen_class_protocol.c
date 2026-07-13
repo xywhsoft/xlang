@@ -31,8 +31,8 @@ static int xl6CgenResolveClassProtocolReceiver(
 
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
     concreteType = xl6CgenResolveAliasType(ctx, receiverType);
-    if ( xl6CgenRefTargetType(ctx, concreteType) != NULL ) {
-        concreteType = xl6CgenRefTargetType(ctx, concreteType);
+    if ( xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
+        concreteType = xl6CgenClassHandleTargetType(ctx, concreteType);
     }
     classNode = concreteType != NULL && concreteType->text != NULL
         ? xl6CgenFindClass(ctx, concreteType->text)
@@ -107,8 +107,8 @@ static int xl6CgenResolveClassProtocolReceiverForCall(
 
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
     concreteType = xl6CgenResolveAliasType(ctx, receiverType);
-    if ( xl6CgenRefTargetType(ctx, concreteType) != NULL ) {
-        concreteType = xl6CgenRefTargetType(ctx, concreteType);
+    if ( xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
+        concreteType = xl6CgenClassHandleTargetType(ctx, concreteType);
     }
     classNode = concreteType != NULL && concreteType->text != NULL
         ? xl6CgenFindClass(ctx, concreteType->text)
@@ -516,10 +516,11 @@ static int xl6CgenClassProtocolCallPrefix(
     const XL6_AstNode* method,
     const XL6_AstNode* receiverType)
 {
-    const XL6_AstNode* refTarget = xl6CgenRefTargetType(ctx, receiverType);
+    const XL6_AstNode* refTarget = xl6CgenClassHandleTargetType(ctx, receiverType);
 
     if ( refTarget != NULL ) {
         char ownerTypeName[512];
+        char basePath[256];
 
         if ( refTarget->childCount > 0 && xl6CgenClassHasTypeParams(ownerClass) ) {
             const XL6_AstNode* prevParams = ctx->currentGenericParams;
@@ -535,9 +536,24 @@ static int xl6CgenClassProtocolCallPrefix(
         }
         xl6CgenClassTypeRefName(ownerTypeName, sizeof(ownerTypeName), refTarget);
         xl6OutputPutc('(', ctx->out);
-        xl6OutputPrintf(ctx->out, "((%s*)xl6_ref_data(", ownerTypeName);
-        xl6CgenExpr(ctx, receiver);
-        xl6OutputPrintf(ctx->out, ", \"\", %d, %d))", receiver->line, receiver->column);
+        basePath[0] = '\0';
+        if ( !xl6CgenClassBasePath(ctx, classNode, ownerClass, basePath, sizeof(basePath)) ) {
+            xl6CgenError(ctx, receiver, "cannot generate managed class protocol base path");
+            xl6OutputPuts("0", ctx->out);
+            return 0;
+        }
+        if ( basePath[0] == '\0' ) {
+            xl6OutputPrintf(ctx->out, "((%s*)xl6_class_data(", ownerTypeName);
+            xl6CgenExpr(ctx, receiver);
+            xl6OutputPrintf(ctx->out, ", \"\", %d, %d))", receiver->line, receiver->column);
+        } else {
+            xl6OutputPrintf(ctx->out, "&((%s*)xl6_class_data(", ownerTypeName);
+            xl6CgenExpr(ctx, receiver);
+            xl6OutputPrintf(ctx->out, ", \"\", %d, %d))->base", receiver->line, receiver->column);
+            if ( strlen(basePath) > 5 ) {
+                xl6OutputPuts(basePath + 5, ctx->out);
+            }
+        }
         return 1;
     }
 
@@ -677,6 +693,76 @@ static int xl6CgenClassProtocolUnaryExpr(XL6_CgenContext* ctx, const XL6_AstNode
     xl6AstFree(receiverType);
     xl6OutputPutc(')', ctx->out);
     return 1;
+}
+
+static int xl6CgenClassProtocolBinaryAvailable(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* receiver;
+    const XL6_AstNode* arg;
+    const XL6_AstNode* classNode;
+    const XL6_AstNode* ownerClass;
+    const XL6_AstNode* method;
+    XL6_AstNode* receiverType;
+    XL6_AstNode* protocolCall;
+    const char* protocolName;
+    int result;
+
+    if ( node == NULL || node->kind != XL6_AST_BINARY || node->childCount < 2 ) {
+        return 0;
+    }
+    if ( xl6CTextEquals(node->text, "in") ) {
+        receiver = node->children[1];
+        arg = node->children[0];
+        protocolName = "__contains__";
+    } else {
+        receiver = node->children[0];
+        arg = node->children[1];
+        protocolName = xl6CgenBinaryProtocolName(node->text);
+    }
+    if ( protocolName == NULL ) {
+        return 0;
+    }
+
+    receiverType = NULL;
+    protocolCall = xl6CgenProtocolTempCallNew(node);
+    if ( protocolCall != NULL ) {
+        xl6CgenProtocolTempCallAddArg(protocolCall, arg);
+    }
+    result = protocolCall != NULL &&
+             xl6CgenResolveClassProtocolReceiverForCall(
+                 ctx,
+                 receiver,
+                 protocolName,
+                 protocolCall,
+                 &classNode,
+                 &ownerClass,
+                 &method,
+                 &receiverType);
+    xl6AstFree(receiverType);
+    xl6CgenProtocolTempCallFree(protocolCall);
+    if ( result ) {
+        return 1;
+    }
+
+    if ( xl6CTextEquals(protocolName, "__eq__") || xl6CTextEquals(protocolName, "__ne__") ) {
+        XL6_AstNode* leftType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+        XL6_AstNode* rightType = xl6CgenCloneExprTypeForInference(ctx, arg);
+        const XL6_AstNode* concreteType = xl6CgenResolveAliasType(ctx, leftType);
+        XL6_AstNode* derivedClass;
+
+        if ( xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
+            concreteType = xl6CgenClassHandleTargetType(ctx, concreteType);
+        }
+        derivedClass = concreteType != NULL && concreteType->text != NULL ?
+                       xl6CgenFindClass(ctx, concreteType->text) : NULL;
+        result = derivedClass != NULL &&
+                 !xl6CgenClassHasTypeParams(derivedClass) &&
+                 xl6CgenClassNeedsAutoDeriveProtocol(ctx, derivedClass, "equals", protocolName) &&
+                 xl6CgenTypeNodeEqual(leftType, rightType);
+        xl6AstFree(leftType);
+        xl6AstFree(rightType);
+    }
+    return result;
 }
 
 static int xl6CgenClassProtocolBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)

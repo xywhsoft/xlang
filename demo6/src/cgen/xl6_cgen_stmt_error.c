@@ -249,9 +249,10 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    if ( error == 0 ) {\n", out);
     xl6OutputPuts("        return;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    kind = xl6_error_kind(error);\n", out);
-    xl6OutputPuts("    message = xl6_error_message(error);\n", out);
-    xl6OutputPuts("    file = xl6_error_file(error);\n", out);
+    /* 未捕获错误会在打印完成后才释放，直接读取拥有字段即可，避免额外临时内存。 */
+    xl6OutputPuts("    kind = error->kind;\n", out);
+    xl6OutputPuts("    message = error->message;\n", out);
+    xl6OutputPuts("    file = error->file;\n", out);
     xl6OutputPuts("    line = xl6_error_line(error);\n", out);
     xl6OutputPuts("    column = xl6_error_column(error);\n", out);
     xl6OutputPuts("    if ( kind == 0 || kind[0] == 0 ) {\n", out);
