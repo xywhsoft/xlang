@@ -258,19 +258,19 @@ export func resp_encode5(string a0, string a1, string a2, string a3, string a4) 
 end
 
 export func resp_encode_array(list<string> args) as string
-	auto out = "*" + string.formatInt(args.length, "") + "\r\n"
+	auto result = "*" + string.formatInt(args.length, "") + "\r\n"
 	for value in args
-		out = out + bulk(value)
+		result = result + bulk(value)
 	end
-	return out
+	return result
 end
 
 func resp_encode_array_values(var args) as string
-	auto out = "*" + string.formatInt(args.length, "") + "\r\n"
+	auto result = "*" + string.formatInt(args.length, "") + "\r\n"
 	for value in args
-		out = out + bulk(string(value))
+		result = result + bulk(string(value))
 	end
-	return out
+	return result
 end
 
 export func resp_encode_json(string argv_json) as string
@@ -280,12 +280,12 @@ end
 
 export func resp_encode_pipeline_json(string commands_json) as string
     var commands = json.parse(commands_json)
-	auto out = ""
+	auto result = ""
 	for command in commands
         var args = command
-		out = out + resp_encode_array_values(args)
+		result = result + resp_encode_array_values(args)
 	end
-	return out
+	return result
 end
 
 export func parse_response_json(string text) as string
@@ -296,9 +296,9 @@ end
 export func parse_response_chunks_json(string first, string second) as string
 	reader_reset("")
 	reader_append(first)
-	auto out = parse_one_json()
-	if out != "" then
-		return out
+	auto result = parse_one_json()
+	if result != "" then
+		return result
 	end
 	reader_append(second)
 	return parse_one_json()
@@ -349,24 +349,24 @@ export func argv_json4(string a0, string a1, string a2, string a3) as string
 end
 
 export func argv_json_list(string command, array<string> values) as string
-	auto out = "[" + json_string(command)
+	auto result = "[" + json_string(command)
 	for value in values
-		out = out + "," + json_string(value)
+		result = result + "," + json_string(value)
 	end
-	return out + "]"
+	return result + "]"
 end
 
 export func pipeline_json_array(array<string> commands) as string
-	auto out = "["
+	auto result = "["
 	int index = 0
 	for command in commands
 		if index > 0 then
-			out = out + ","
+			result = result + ","
 		end
-		out = out + command
+		result = result + command
 		index = index + 1
 	end
-	return out + "]"
+	return result + "]"
 end
 
 export func pipeline_json1(string command0) as string
@@ -491,11 +491,11 @@ end
 func parse_one_json() as string
 	auto save = g_resp_pos
 	g_resp_error = ""
-	auto out = parse_value_json(0)
-	if out == "" and g_resp_error == "" then
+	auto result = parse_value_json(0)
+	if result == "" and g_resp_error == "" then
 		g_resp_pos = save
 	end
-	return out
+	return result
 end
 
 func parse_value_json(int depth) as string
@@ -916,14 +916,14 @@ export func cluster_command_redirect_once_json(Client client, string argv_json, 
 			return ask_error
 		end
 	end
-	auto out = command_json(target, argv_json)
-	if response_type(out) == "error" then
-		client.last_error_text = response_value(out)
+	auto result = command_json(target, argv_json)
+	if response_type(result) == "error" then
+		client.last_error_text = response_value(result)
 	else
 		client.last_error_text = ""
 	end
 	xredis_close(target)
-	return out
+	return result
 end
 
 export func cluster_command_redirect_retry_json(Client client, string argv_json, int max_redirects) as string
@@ -931,11 +931,11 @@ export func cluster_command_redirect_retry_json(Client client, string argv_json,
 end
 
 export func cluster_command_redirect_retry_json(Client client, string argv_json, int max_redirects, int timeout_ms) as string
-	auto out = command_json(client, argv_json)
+	auto result = command_json(client, argv_json)
 	int redirects = 0
-	while cluster_redirect_type(out) != "" and redirects < max_redirects do
-		auto redirect_type = cluster_redirect_type(out)
-		auto target = cluster_connect_redirect(out, timeout_ms)
+	while cluster_redirect_type(result) != "" and redirects < max_redirects do
+		auto redirect_type = cluster_redirect_type(result)
+		auto target = cluster_connect_redirect(result, timeout_ms)
 		if target.valid() == false then
 			client.last_error_text = target.last_error()
 			return json_error(client.last_error_text)
@@ -948,16 +948,16 @@ export func cluster_command_redirect_retry_json(Client client, string argv_json,
 				return ask_error
 			end
 		end
-		out = command_json(target, argv_json)
+		result = command_json(target, argv_json)
 		xredis_close(target)
 		redirects = redirects + 1
 	end
-	if response_type(out) == "error" then
-		client.last_error_text = response_value(out)
+	if response_type(result) == "error" then
+		client.last_error_text = response_value(result)
 	else
 		client.last_error_text = ""
 	end
-	return out
+	return result
 end
 
 export func command_pipeline_json(Client client, string commands_json) as string
@@ -1353,14 +1353,14 @@ export func sentinel_command_master_once_json(Client sentinel, string name, stri
 		sentinel.last_error_text = master.last_error()
 		return json_error(sentinel.last_error_text)
 	end
-	auto out = command_json(master, argv_json)
-	if response_type(out) == "error" then
-		sentinel.last_error_text = response_value(out)
+	auto result = command_json(master, argv_json)
+	if response_type(result) == "error" then
+		sentinel.last_error_text = response_value(result)
 	else
 		sentinel.last_error_text = ""
 	end
 	xredis_close(master)
-	return out
+	return result
 end
 
 export func sentinel_command_master_once_password_json(Client sentinel, string name, string password, string argv_json) as string
@@ -1379,14 +1379,14 @@ export func sentinel_command_master_once_password_json(Client sentinel, string n
 		xredis_close(master)
 		return auth_response
 	end
-	auto out = command_json(master, argv_json)
-	if response_type(out) == "error" then
-		sentinel.last_error_text = response_value(out)
+	auto result = command_json(master, argv_json)
+	if response_type(result) == "error" then
+		sentinel.last_error_text = response_value(result)
 	else
 		sentinel.last_error_text = ""
 	end
 	xredis_close(master)
-	return out
+	return result
 end
 
 export func sentinel_command_master_once_auth_json(Client sentinel, string name, string username, string password, string argv_json) as string
@@ -1405,14 +1405,14 @@ export func sentinel_command_master_once_auth_json(Client sentinel, string name,
 		xredis_close(master)
 		return auth_response
 	end
-	auto out = command_json(master, argv_json)
-	if response_type(out) == "error" then
-		sentinel.last_error_text = response_value(out)
+	auto result = command_json(master, argv_json)
+	if response_type(result) == "error" then
+		sentinel.last_error_text = response_value(result)
 	else
 		sentinel.last_error_text = ""
 	end
 	xredis_close(master)
-	return out
+	return result
 end
 
 export func sentinel_command_master_retry_json(Client sentinel, string name, string argv_json, int max_attempts) as string
@@ -1424,15 +1424,15 @@ export func sentinel_command_master_retry_json(Client sentinel, string name, str
 		max_attempts = 1
 	end
 	int attempt = 0
-	auto out = ""
+	auto result = ""
 	while attempt < max_attempts do
-		out = sentinel_command_master_once_json(sentinel, name, argv_json, timeout_ms)
-		if response_type(out) != "error" then
-			return out
+		result = sentinel_command_master_once_json(sentinel, name, argv_json, timeout_ms)
+		if response_type(result) != "error" then
+			return result
 		end
 		attempt = attempt + 1
 	end
-	return out
+	return result
 end
 
 export func sentinel_command_master_retry_password_json(Client sentinel, string name, string password, string argv_json, int max_attempts) as string
@@ -1444,15 +1444,15 @@ export func sentinel_command_master_retry_password_json(Client sentinel, string 
 		max_attempts = 1
 	end
 	int attempt = 0
-	auto out = ""
+	auto result = ""
 	while attempt < max_attempts do
-		out = sentinel_command_master_once_password_json(sentinel, name, password, argv_json, timeout_ms)
-		if response_type(out) != "error" then
-			return out
+		result = sentinel_command_master_once_password_json(sentinel, name, password, argv_json, timeout_ms)
+		if response_type(result) != "error" then
+			return result
 		end
 		attempt = attempt + 1
 	end
-	return out
+	return result
 end
 
 export func sentinel_command_master_retry_auth_json(Client sentinel, string name, string username, string password, string argv_json, int max_attempts) as string
@@ -1464,15 +1464,15 @@ export func sentinel_command_master_retry_auth_json(Client sentinel, string name
 		max_attempts = 1
 	end
 	int attempt = 0
-	auto out = ""
+	auto result = ""
 	while attempt < max_attempts do
-		out = sentinel_command_master_once_auth_json(sentinel, name, username, password, argv_json, timeout_ms)
-		if response_type(out) != "error" then
-			return out
+		result = sentinel_command_master_once_auth_json(sentinel, name, username, password, argv_json, timeout_ms)
+		if response_type(result) != "error" then
+			return result
 		end
 		attempt = attempt + 1
 	end
-	return out
+	return result
 end
 
 export func sentinel_ping(Client sentinel, string name) as string
@@ -1771,14 +1771,14 @@ export func cluster_command_slot_once_json(Client seed, string slots_response_js
 		seed.last_error_text = target.last_error()
 		return json_error(seed.last_error_text)
 	end
-	auto out = command_json(target, argv_json)
-	if response_type(out) == "error" then
-		seed.last_error_text = response_value(out)
+	auto result = command_json(target, argv_json)
+	if response_type(result) == "error" then
+		seed.last_error_text = response_value(result)
 	else
 		seed.last_error_text = ""
 	end
 	xredis_close(target)
-	return out
+	return result
 end
 
 export func cluster_command_slot_once_password_json(Client seed, string slots_response_json, string key, string password, string argv_json) as string
@@ -1802,14 +1802,14 @@ export func cluster_command_slot_once_password_json(Client seed, string slots_re
 		xredis_close(target)
 		return auth_response
 	end
-	auto out = command_json(target, argv_json)
-	if response_type(out) == "error" then
-		seed.last_error_text = response_value(out)
+	auto result = command_json(target, argv_json)
+	if response_type(result) == "error" then
+		seed.last_error_text = response_value(result)
 	else
 		seed.last_error_text = ""
 	end
 	xredis_close(target)
-	return out
+	return result
 end
 
 export func cluster_command_slot_once_auth_json(Client seed, string slots_response_json, string key, string username, string password, string argv_json) as string
@@ -1833,14 +1833,14 @@ export func cluster_command_slot_once_auth_json(Client seed, string slots_respon
 		xredis_close(target)
 		return auth_response
 	end
-	auto out = command_json(target, argv_json)
-	if response_type(out) == "error" then
-		seed.last_error_text = response_value(out)
+	auto result = command_json(target, argv_json)
+	if response_type(result) == "error" then
+		seed.last_error_text = response_value(result)
 	else
 		seed.last_error_text = ""
 	end
 	xredis_close(target)
-	return out
+	return result
 end
 
 export func cluster_command_slot_retry_json(Client seed, string slots_response_json, string key, string argv_json, int max_redirects) as string
@@ -1848,11 +1848,11 @@ export func cluster_command_slot_retry_json(Client seed, string slots_response_j
 end
 
 export func cluster_command_slot_retry_json(Client seed, string slots_response_json, string key, string argv_json, int max_redirects, int timeout_ms) as string
-	auto out = cluster_command_slot_once_json(seed, slots_response_json, key, argv_json, timeout_ms)
+	auto result = cluster_command_slot_once_json(seed, slots_response_json, key, argv_json, timeout_ms)
 	int redirects = 0
-	while cluster_redirect_type(out) != "" and redirects < max_redirects do
-		auto redirect_type = cluster_redirect_type(out)
-		auto target = cluster_connect_redirect(out, timeout_ms)
+	while cluster_redirect_type(result) != "" and redirects < max_redirects do
+		auto redirect_type = cluster_redirect_type(result)
+		auto target = cluster_connect_redirect(result, timeout_ms)
 		if target.valid() == false then
 			seed.last_error_text = target.last_error()
 			return json_error(seed.last_error_text)
@@ -1865,16 +1865,16 @@ export func cluster_command_slot_retry_json(Client seed, string slots_response_j
 				return ask_error
 			end
 		end
-		out = command_json(target, argv_json)
+		result = command_json(target, argv_json)
 		xredis_close(target)
 		redirects = redirects + 1
 	end
-	if response_type(out) == "error" then
-		seed.last_error_text = response_value(out)
+	if response_type(result) == "error" then
+		seed.last_error_text = response_value(result)
 	else
 		seed.last_error_text = ""
 	end
-	return out
+	return result
 end
 
 export func cluster_command_slot_retry_password_json(Client seed, string slots_response_json, string key, string password, string argv_json, int max_redirects) as string
@@ -1882,11 +1882,11 @@ export func cluster_command_slot_retry_password_json(Client seed, string slots_r
 end
 
 export func cluster_command_slot_retry_password_json(Client seed, string slots_response_json, string key, string password, string argv_json, int max_redirects, int timeout_ms) as string
-	auto out = cluster_command_slot_once_password_json(seed, slots_response_json, key, password, argv_json, timeout_ms)
+	auto result = cluster_command_slot_once_password_json(seed, slots_response_json, key, password, argv_json, timeout_ms)
 	int redirects = 0
-	while cluster_redirect_type(out) != "" and redirects < max_redirects do
-		auto redirect_type = cluster_redirect_type(out)
-		auto target = cluster_connect_redirect(out, timeout_ms)
+	while cluster_redirect_type(result) != "" and redirects < max_redirects do
+		auto redirect_type = cluster_redirect_type(result)
+		auto target = cluster_connect_redirect(result, timeout_ms)
 		if target.valid() == false then
 			seed.last_error_text = target.last_error()
 			return json_error(seed.last_error_text)
@@ -1905,16 +1905,16 @@ export func cluster_command_slot_retry_password_json(Client seed, string slots_r
 				return ask_error
 			end
 		end
-		out = command_json(target, argv_json)
+		result = command_json(target, argv_json)
 		xredis_close(target)
 		redirects = redirects + 1
 	end
-	if response_type(out) == "error" then
-		seed.last_error_text = response_value(out)
+	if response_type(result) == "error" then
+		seed.last_error_text = response_value(result)
 	else
 		seed.last_error_text = ""
 	end
-	return out
+	return result
 end
 
 export func cluster_command_slot_retry_auth_json(Client seed, string slots_response_json, string key, string username, string password, string argv_json, int max_redirects) as string
@@ -1922,11 +1922,11 @@ export func cluster_command_slot_retry_auth_json(Client seed, string slots_respo
 end
 
 export func cluster_command_slot_retry_auth_json(Client seed, string slots_response_json, string key, string username, string password, string argv_json, int max_redirects, int timeout_ms) as string
-	auto out = cluster_command_slot_once_auth_json(seed, slots_response_json, key, username, password, argv_json, timeout_ms)
+	auto result = cluster_command_slot_once_auth_json(seed, slots_response_json, key, username, password, argv_json, timeout_ms)
 	int redirects = 0
-	while cluster_redirect_type(out) != "" and redirects < max_redirects do
-		auto redirect_type = cluster_redirect_type(out)
-		auto target = cluster_connect_redirect(out, timeout_ms)
+	while cluster_redirect_type(result) != "" and redirects < max_redirects do
+		auto redirect_type = cluster_redirect_type(result)
+		auto target = cluster_connect_redirect(result, timeout_ms)
 		if target.valid() == false then
 			seed.last_error_text = target.last_error()
 			return json_error(seed.last_error_text)
@@ -1945,16 +1945,16 @@ export func cluster_command_slot_retry_auth_json(Client seed, string slots_respo
 				return ask_error
 			end
 		end
-		out = command_json(target, argv_json)
+		result = command_json(target, argv_json)
 		xredis_close(target)
 		redirects = redirects + 1
 	end
-	if response_type(out) == "error" then
-		seed.last_error_text = response_value(out)
+	if response_type(result) == "error" then
+		seed.last_error_text = response_value(result)
 	else
 		seed.last_error_text = ""
 	end
-	return out
+	return result
 end
 
 export func cluster_command_key_once_json(Client seed, string key, string argv_json) as string
@@ -2130,18 +2130,18 @@ export func cluster_command_cache_refresh_key_retry_json(Client seed, ClusterSlo
 			return json_error(seed.last_error_text)
 		end
 	end
-	auto out = cluster_command_cached_key_retry_json(seed, cache, key, argv_json, max_redirects, timeout_ms)
-	if cluster_redirect_type(out) != "" then
+	auto result = cluster_command_cached_key_retry_json(seed, cache, key, argv_json, max_redirects, timeout_ms)
+	if cluster_redirect_type(result) != "" then
 		if cluster_slots_cache_refresh(cache, seed) then
-			out = cluster_command_cached_key_retry_json(seed, cache, key, argv_json, max_redirects, timeout_ms)
+			result = cluster_command_cached_key_retry_json(seed, cache, key, argv_json, max_redirects, timeout_ms)
 		end
 	end
-	if cluster_retryable_error(out) then
+	if cluster_retryable_error(result) then
 		if cluster_slots_cache_refresh(cache, seed) then
-			out = cluster_command_cached_key_retry_json(seed, cache, key, argv_json, max_redirects, timeout_ms)
+			result = cluster_command_cached_key_retry_json(seed, cache, key, argv_json, max_redirects, timeout_ms)
 		end
 	end
-	return out
+	return result
 end
 
 export func cluster_command_cache_refresh_key_once_password_json(Client seed, ClusterSlotsCache cache, string key, string password, string argv_json) as string
@@ -2167,18 +2167,18 @@ export func cluster_command_cache_refresh_key_retry_password_json(Client seed, C
 			return json_error(seed.last_error_text)
 		end
 	end
-	auto out = cluster_command_cached_key_retry_password_json(seed, cache, key, password, argv_json, max_redirects, timeout_ms)
-	if cluster_redirect_type(out) != "" then
+	auto result = cluster_command_cached_key_retry_password_json(seed, cache, key, password, argv_json, max_redirects, timeout_ms)
+	if cluster_redirect_type(result) != "" then
 		if cluster_slots_cache_refresh(cache, seed) then
-			out = cluster_command_cached_key_retry_password_json(seed, cache, key, password, argv_json, max_redirects, timeout_ms)
+			result = cluster_command_cached_key_retry_password_json(seed, cache, key, password, argv_json, max_redirects, timeout_ms)
 		end
 	end
-	if cluster_retryable_error(out) then
+	if cluster_retryable_error(result) then
 		if cluster_slots_cache_refresh(cache, seed) then
-			out = cluster_command_cached_key_retry_password_json(seed, cache, key, password, argv_json, max_redirects, timeout_ms)
+			result = cluster_command_cached_key_retry_password_json(seed, cache, key, password, argv_json, max_redirects, timeout_ms)
 		end
 	end
-	return out
+	return result
 end
 
 export func cluster_command_cache_refresh_key_once_auth_json(Client seed, ClusterSlotsCache cache, string key, string username, string password, string argv_json) as string
@@ -2204,18 +2204,18 @@ export func cluster_command_cache_refresh_key_retry_auth_json(Client seed, Clust
 			return json_error(seed.last_error_text)
 		end
 	end
-	auto out = cluster_command_cached_key_retry_auth_json(seed, cache, key, username, password, argv_json, max_redirects, timeout_ms)
-	if cluster_redirect_type(out) != "" then
+	auto result = cluster_command_cached_key_retry_auth_json(seed, cache, key, username, password, argv_json, max_redirects, timeout_ms)
+	if cluster_redirect_type(result) != "" then
 		if cluster_slots_cache_refresh(cache, seed) then
-			out = cluster_command_cached_key_retry_auth_json(seed, cache, key, username, password, argv_json, max_redirects, timeout_ms)
+			result = cluster_command_cached_key_retry_auth_json(seed, cache, key, username, password, argv_json, max_redirects, timeout_ms)
 		end
 	end
-	if cluster_retryable_error(out) then
+	if cluster_retryable_error(result) then
 		if cluster_slots_cache_refresh(cache, seed) then
-			out = cluster_command_cached_key_retry_auth_json(seed, cache, key, username, password, argv_json, max_redirects, timeout_ms)
+			result = cluster_command_cached_key_retry_auth_json(seed, cache, key, username, password, argv_json, max_redirects, timeout_ms)
 		end
 	end
-	return out
+	return result
 end
 
 export func cluster_myid(Client client) as string

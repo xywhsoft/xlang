@@ -36,7 +36,7 @@ var boxedPairFn = pairFn
 var firstValue = boxedPairFn(20)
 int optionTotal = optionCount(path = "demo.txt", mode = "fast", retry = 3)
 
-Pair pair
+Pair pair = Pair()
 pair.left = left
 pair.right = right
 

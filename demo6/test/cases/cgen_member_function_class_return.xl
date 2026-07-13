@@ -13,7 +13,7 @@ class Payload
 end
 
 func makePayload(int base) as Payload
-    Payload result
+    Payload result = Payload()
     result.value = base
     result.op = makeAdder(base)
     return result
@@ -71,13 +71,13 @@ class TextMaker
     func(string) as string make
 end
 
-Maker maker
+Maker maker = Maker()
 maker.make = makePayload
 
-Sink sink
+Sink sink = Sink()
 sink.consume = consumePayload
 
-TextMaker textMaker
+TextMaker textMaker = TextMaker()
 textMaker.make = makeText
 
 Payload explicitPayload = maker.make(10)

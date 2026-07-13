@@ -1,8 +1,8 @@
 # DEMO6 功能清单
 
-> 更新日期：2026-07-12
+> 更新日期：2026-07-13
 >
-> 修订说明：本次根据 `demo6` 源码、`tools/check_*.ps1` 守门脚本和 `xl.exe` 实际 help 文本对齐口径。原 `xl xapi` 命令、`xlang-xapi-1` schema、`.xapi` 产物已不存在；接口元数据能力已并入 `abi` 阶段（`.abi.json` / `.abi.txt`），仅承载 C ABI 导出符号。所有数字基线更新到当前实测值。
+> 修订说明：本次固定统一堆 class 对象模型、默认与 `byval` 的受管理引用语义、显式 `copy/clone`、自引用 class 字段、`point<T>` 静态指针标签，以及公开 `struct` 语法彻底移除后的当前口径。
 >
 > 本清单用于快速核对当前 `demo6/release/xl.exe` 的已实现能力、测试入口和验收边界。
 > 本文只描述 DEMO6 当前代码、测试、范例和守门脚本已经覆盖的能力；`demo3`、`demo4`、`demo5`、`dev` 目录中的材料只能作为历史参考，不能作为 DEMO6 设计来源。
@@ -18,7 +18,7 @@ DEMO6 当前已经具备完整的四阶段用户管线；编译器内部在语�
 
 typed HIR 为所有确定产生单值的源码表达式保存权威静态类型。cgen 直接消费该类型，不再为源码表达式维护第二套推断口径；缺失必需类型会在 `hir` 阶段终止编译。泛型容器、重载、闭包、OOP、异步和任务 lowering 均共享这一类型来源。
 
-动态 `var` 容器采用 XRT 写时复制：赋值时共享 backing，首次写入时分离，嵌套索引写会逐层分离。静态泛型容器保持独立值复制，以维持直接 C ABI 和无额外写入间接层。
+动态 `var` 容器采用 XRT 写时复制：赋值时共享 backing，首次写入时分离，嵌套索引写会逐层分离。静态泛型容器是受管理容器句柄；普通赋值、默认参数和 `byval` 保留同一 backing，显式 `copy/clone` 才建立独立容器。
 
 xvalue 固定长度外壳通过 XRT size-class 内存池分配；标准库依赖使用集中元数据闭包；XRT 实现单元根据实际使用模块生成宏裁剪配置。
 
@@ -225,7 +225,7 @@ int int8 uint8 int16 uint16 int32 uint32 int64 uint64
 float float32 float64
 string
 time
-point
+point point<T>
 var
 type
 ```
@@ -264,7 +264,6 @@ channel<T>
 class
 object
 native-backed class
-struct
 union
 typedef alias
 ```
@@ -293,6 +292,7 @@ func(string, ***) as int namedVarargProc
 - 内置泛型约束名固定为 `comparable`、`cloneable`、`json`、`xson`；其他约束名必须指向已声明 class。
 - 泛型容器支持静态元素类型。
 - `future<T>`、`generator<T>`、`channel<T>` 服务 async/yield/channel 能力。
+- `point<T>` 是零运行时开销的静态 opaque pointer 标签；不同标签不能隐式转换，C ABI 仍为 `void*`。
 - `object` 是标准库普通 class，不是特殊黑盒类型。
 - `void` 不属于 DEMO6 类型系统。
 
@@ -338,6 +338,7 @@ assert values[1].value() == 7
 - `Child` 可安全拓宽为 `Base`，不会发生对象切片；virtual 调用按对象的动态类型派发。
 - `array<Base>` 等静态泛型容器可直接保存 `Child` 对象。
 - class 可与 `null` 比较；class 的默认相等比较使用对象身份，协议重载除外。
+- 未初始化 class 变量和字段为 `null`；构造表达式才分配堆对象，自引用 class 字段因此是有限大小的可空句柄。
 - `expr is Child` 执行运行时继承关系判断；`expr as Child` 执行 checked downcast。
 - 引用计数保证同一对象只析构一次；闭包、容器、字段和函数值持有 class 时都会保留对象。
 - class 发布到全局、线程或异步边界前，会把拥有的动态容器和静态泛型容器统一提升为 XRT shared 模式；对应 C API 为 `xvoMoveToShared`、`xrtTypedArrayMoveToShared`、`xrtTypedListMoveToShared`、`xrtTypedSetMoveToShared`、`xrtTypedDictMoveToShared`。
@@ -354,8 +355,9 @@ func mutateShared(Box value)
     value.count = 10       // 默认共享同一对象
 end
 
-func mutateCopy(byval Box value)
-    value.count = 20       // 显式复制独立对象
+func mutateByval(byval Box value)
+    value.count = 20       // 仍修改同一对象
+    value = Box()          // 只重新绑定局部参数
 end
 
 func replace(byref Box value)
@@ -368,37 +370,33 @@ end
 
 Box box = Box()
 mutateShared(box)
-mutateCopy(box)
+mutateByval(box)
 replace(byref box)
 createBox(out box)
 ```
 
 自然传递语义：
 
-- `bool`、整数、浮点、`time`、`point`、`type`、`struct`、`union` 默认按值传递。
+- `bool`、整数、浮点、`time`、`point<T>`、`type`、`union` 默认按值传递。
 - class、native-backed class、object 和容器默认按引用传递。
-- `byval` 强制创建独立语义副本。class 必须支持复制协议；容器执行独立的浅复制，外层容器不共享，内部 class/容器元素仍保留其引用身份。
+- `byval` 对标量和 union 复制值；对 class、容器和 function 只保留同一受管理引用。成员修改对调用方可见，参数变量重新绑定只影响函数局部。
+- `byval` 不是对象复制语法；独立对象或容器必须显式使用 `copy()` / `clone()`，并满足对应能力协议。
 - `byref` 绑定调用方已有且已初始化的可写变量槽；对参数重新赋值会修改调用方变量。
 - `out` 绑定调用方可写变量槽，进入函数时不可读取，并且必须在每一个正常返回路径和正常落空路径上完成赋值。
 - `byref` 与 `out` 的调用点必须显式写出同名标记，例如 `replace(byref box)`、`createBox(out box)`，防止隐藏副作用。
 - `byref`、`out` 不允许默认值、可变参数、匿名函数捕获，也不允许进入 async、generator 或跨线程边界。
 - 参数模式属于函数签名、重载身份、XAPI 和 ABI 元数据的一部分。
 
-C 风格值聚合使用 `struct`：
+C 风格值聚合使用 `union`：
 
 ```xlang
-struct Pair
-    int x
-    int y
-end
-
-func move(Pair value) as Pair
-    value.x += 1
-    return value
+union NumberBits
+    int64 integer
+    float64 real
 end
 ```
 
-`struct` 没有继承、virtual、动态字段或 class 生命周期协议，按 C 兼容布局和值语义生成；需要共享可变对象身份时应使用 class。
+DEMO6 不提供公开 `struct` 语句。class 始终是受管理堆对象，但生成的 C 代码会公开真实 payload struct，供 C 检查布局；需要由 C 完整控制值结构时，在 C 源中定义结构体，再通过 extern 或 native-backed class 暴露。
 
 运行时类型判断与向下转换：
 
@@ -1085,7 +1083,7 @@ auto p = json.parse::<Packet>(text)
 - `__len__` 可将 `.length` 作为只读协议属性暴露给 class；静态字段 `length` 优先于协议。
 - class 构造表达式可作为成员/协议临时接收者，例如 `Sized(2).length`。
 - class 方法支持多返回值，并可参与解构声明、解构赋值和成员调用返回类型推断。
-- class 参数默认共享受管理对象引用；修改字段对调用方可见。显式 `byval` 才建立独立副本，native-backed class 仅在复制协议允许时支持 `byval`。
+- class 参数默认和 `byval` 都共享受管理对象引用；修改字段对调用方可见，参数重新绑定只影响局部。独立副本必须显式 `copy/clone`，native-backed class 默认不可复制。
 - 普通 class 支持 `__iter__` / `__next__` 迭代协议。
 - `__iter__() as IteratorClass` 创建迭代器，`IteratorClass.__next__() as (bool, T)` 返回是否存在下一项和值。
 - `for value in obj` 绑定迭代项类型 `T`；`for index, value in obj` 绑定 `int` 索引和 `T` 值。
@@ -1504,7 +1502,7 @@ Buffer packetBytes = packet.bytes()
 - `tcp.connect`、`tcp.connectAsync`、`tcp.listen`、`udp.bind` 返回 `point`，调用者必须显式构造对应 class，避免网络句柄发生隐式复制。
 - TCP 已支持同步/异步 connect、accept、文本 send/recv、二进制 `sendBytes/readBytes/recvBytes`、drain 和 close。
 - UDP 已支持同步/异步文本 send/recv，并支持二进制 `sendBytes` 与 `UdpPacket.bytes()`。
-- 二进制发送采用 `point data, c_size size` 字节视图参数，例如 `stream.sendBytes(buf.data(), c_size(buf.len()))`。这是因为 `Buffer` 是不可复制 native-backed class，不能作为按值参数传入函数。
+- 二进制发送采用 `point data, c_size size` 字节视图参数，例如 `stream.sendBytes(buf.data(), c_size(buf.len()))`。这直接表达借用字节范围并避免隐藏复制；`Buffer` 本身仍可按受管理 class 引用传递。
 - XRT 底层已补齐 TCP/UDP 配置型 API 与二进制便捷 API：`xrtNetTcpConnectEx`、`xrtNetTcpListenEx`、`xrtNetUdpBindEx`、`xrtNetStreamReadBytes`、`xrtNetStreamRecvBytes`、`xrtNetStreamSendBytes`、`xrtNetUdpSendBytes`、`xrtNetDgramPacketBytesCopy`。
 - xlang 标准库已把上述二进制能力封装到 `Buffer`/字节视图写法中，C/XRT 对照范例和 xlang 范例输出在主回归中比较一致性。
 
@@ -1543,7 +1541,7 @@ Buffer packetBytes = packet.bytes()
 - 当前阶段不支持泛型 class 成员直接导出 C ABI。
 - class 参数和返回值导出为 `xvalue`；C 侧可用完整 XRT `xvalue` API 检查类型、保留与释放引用。
 - `byref` / `out` 标量参数导出为对应 C 类型的指针；class 参数导出为 `xvalue*` 变量槽。
-- `byval` 不改变公开 C 参数形状，但生成的 wrapper 会按 xlang 复制协议建立独立副本。
+- `byval` 不改变公开 C 参数形状；对 class 和容器只保留同一受管理句柄，不隐式调用复制协议。
 
 变量与常量声明示例：
 

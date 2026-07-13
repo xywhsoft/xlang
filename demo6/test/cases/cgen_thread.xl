@@ -129,9 +129,9 @@ assert mixedThreadBorrowed.wait(), "thread mixed conditional borrowed wait faile
 assert mixedThreadBorrowed.exitCode() == 15, "thread mixed conditional borrowed exit code failed"
 assert mixedThreadSource() == 15, "thread mixed conditional should retain copied borrowed branch"
 
-ThreadFuncBox threadBox
+ThreadFuncBox threadBox = ThreadFuncBox()
 threadBox.op = makeThreadWorker(13)
-ThreadFuncBox threadBoxAlt
+ThreadFuncBox threadBoxAlt = ThreadFuncBox()
 threadBoxAlt.op = makeThreadWorker(14)
 bool chooseThreadMember = false
 thread conditionalMemberThread = thread(chooseThreadMember ? threadBox.op : threadBoxAlt.op)

@@ -13,18 +13,18 @@ class Store
     array<Item> items = array[]
 end
 
-Item first
+Item first = Item()
 first.id = 1
 first.text = "x"
 
-Item second
+Item second = Item()
 second.id = 2
 second.text = "y"
 
 array<Item> items = array[first, second]
 assert json.stringify(items) == "[{\"id\":1,\"text\":\"x\"},{\"id\":2,\"text\":\"y\"}]", "typed class array should stringify as json array"
 
-Store store
+Store store = Store()
 store.items = items
 
 string packed = json.stringify(store)

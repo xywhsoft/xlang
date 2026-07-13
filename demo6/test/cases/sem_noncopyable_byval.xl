@@ -1,7 +1,0 @@
-class Resource
-    destroy()
-    end
-end
-
-func consume(byval Resource value)
-end

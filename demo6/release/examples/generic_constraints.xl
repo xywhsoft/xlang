@@ -5,6 +5,8 @@ class Entity
 end
 
 class Player extends Entity
+    derive clone
+
     int score = 0
 end
 
@@ -33,13 +35,13 @@ func main(...) as int
         return 1
     end
 
-    Box<int> box
+    Box<int> box = Box::<int>()
     box.value = n
     if box.value != 7 then
         return 2
     end
 
-    Player p
+    Player p = Player()
     p.id = 10
     p.score = 5
 

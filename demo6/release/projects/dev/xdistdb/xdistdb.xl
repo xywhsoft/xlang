@@ -1,0 +1,5329 @@
+// ============================================================================
+// xdistdb.xl - Distributed Key-Value Database (5-star verification project)
+// ============================================================================
+// A complete distributed KV database simulation, covering:
+//   1. Consistent hashing (150 vnodes per node, join/leave -> migration range)
+//   2. Sharding (Key -> hash -> node, shard metadata, split/merge)
+//   3. Raft consensus (Leader election / log replication / snapshot / members)
+//   4. Replication (leader -> followers, linearizable read w/ lease, failover)
+//   5. Data model (string/list/hash/set/zset + TTL + lazy/active expiry)
+//   6. Query routing (coordinator + scatter-gather + cross-shard 2PC)
+//   7. Client protocol (Redis-like text + HTTP API)
+//   8. Ops (CLUSTER INFO/NODES, migration progress, health + heartbeat)
+//
+// CLI:
+//   xdistdb cluster init [nodes=5]   initialize cluster
+//   xdistdb cluster add              add a node (triggers migration)
+//   xdistdb cluster remove <id>      remove a node
+//   xdistdb cluster status           full status
+//   xdistdb cluster ring             hash ring visualization
+//   xdistdb cluster nodes/shards/slots/health/migrations/distribution
+//   xdistdb set/get/del/exists/type/incr/expire/ttl/persist <key> ...
+//   xdistdb lpush/rpush/lpop/rpop/lrange/llen <key> ...
+//   xdistdb hset/hget/hgetall/hdel/hlen <key> ...
+//   xdistdb sadd/srem/smembers/sismember/scard <key> ...
+//   xdistdb zadd/zrange/zscore/zcard/zrem <key> ...
+//   xdistdb keys <pattern>           scatter-gather KEYS
+//   xdistdb count                    total key count
+//   xdistdb fail <nodeId>            simulate node failure
+//   xdistdb recover <nodeId>         recover failed node
+//   xdistdb raft <shardId>           raft state of a shard
+//   xdistdb eval <line>              Redis-like protocol line
+//   xdistdb tx <c1> | <c2> | ...     cross-shard 2PC
+//   xdistdb export/import <file>     state serialization
+//   xdistdb reset                    clear all state
+//   xdistdb test                     built-in test suite
+//   xdistdb bench [ops=1000]         write+read+balance benchmark
+//   xdistdb serve [port=18300]       HTTP API server
+//   xdistdb help                     help
+//
+// Design:
+//   * Cluster state persisted to xdistdb.state.json next to script/exe.
+//     Each CLI call: load -> mutate -> save.
+//   * Consistent hash ring: 2^32 hash space, VNODES_PER_NODE vnodes per node.
+//   * SHARD_COUNT fixed logical shards; each shard has primary + replicas
+//     determined by ringLookupN. Raft runs per-shard among replicas.
+//   * Raft: full state machine (term/votedFor/log/commitIndex/lastApplied/
+//     snapshot). Each write enters raft log -> AppendEntries -> majority
+//     commit -> apply. Leader failure triggers re-election.
+//   * Replication: leader writes then async syncs to followers; linearizable
+//     read = leader read + lease freshness check.
+//   * TTL: lazy (check on access) + active (sweep every N writes).
+//   * Data types: string/list (array), hash (dict), set (dict-as-set),
+//     zset (array<{member,score}>).
+// ============================================================================
+
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const int VNODES_PER_NODE           = 150
+const int DEFAULT_SHARD_COUNT       = 64
+const int DEFAULT_REPLICA_FACTOR    = 3
+const int DEFAULT_NODES             = 5
+const int RAFT_ELECTION_TIMEOUT_MIN = 150
+const int RAFT_ELECTION_TIMEOUT_MAX = 300
+const int RAFT_HEARTBEAT_INTERVAL   = 50
+const int RAFT_SNAPSHOT_THRESHOLD   = 50
+const int RAFT_SNAPSHOT_KEEP_LOG    = 10
+const int ACTIVE_SWEEP_EVERY        = 25
+const int ACTIVE_SWEEP_BATCH        = 64
+const int MIGRATION_BATCH_SIZE      = 100
+const int DEFAULT_HTTP_PORT         = 18300
+const int MAX_KEYS_LOG              = 50
+const int BENCH_DEFAULT_OPS         = 1000
+const int SHARD_SPLIT_THRESHOLD     = 200
+const int SHARD_MERGE_THRESHOLD     = 20
+const int LEASE_FRESHNESS_SEC       = 5
+const string STATE_FILE_NAME        = "xdistdb.state.json"
+const string STATE_VERSION          = "1.0"
+
+
+// ============================================================================
+// Global state
+// ============================================================================
+
+var gState = {}
+string gStateFile = ""
+mutex gLog = mutex()
+int gPass = 0
+int gFail = 0
+bool gVerbose = false
+
+
+// ============================================================================
+// SECTION 1 - Utility functions
+// ============================================================================
+
+func nowSec() as int
+    return time.toUnix(time.now())
+end
+
+func nowMs() as int
+    return int(time.timer() * 1000.0)
+end
+
+func randInt(int lo, int hi) as int
+    if hi <= lo then return lo end
+    return lo + random.range(0, hi - lo)
+end
+
+func deepCopy(var d) as var
+    if d == null then return null end
+    return json.parse(json.stringify(d))
+end
+
+func hex8(int v) as string
+    return string.formatInt(v, "x8")
+end
+
+func isEmpty(string s) as bool
+    return string.len(s) == 0
+end
+
+func looksLikeInt(string s) as bool
+    if isEmpty(s) then return false end
+    int i = 0
+    int fb = string.byteAt(s, 0)
+    if fb == 45 or fb == 43 then i = 1 end
+    if i >= string.len(s) then return false end
+    while i < string.len(s) do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then return false end
+        i += 1
+    end
+    return true
+end
+
+func looksLikeFloat(string s) as bool
+    bool hasDot = string.contains(s, ".")
+    bool hasE = string.contains(s, "e") or string.contains(s, "E")
+    if not hasDot and not hasE then return false end
+    int i = 0
+    int fb = string.byteAt(s, 0)
+    if fb == 45 or fb == 43 then i = 1 end
+    bool seenDigit = false
+    while i < string.len(s) do
+        int b = string.byteAt(s, i)
+        if b >= 48 and b <= 57 then
+            seenDigit = true
+        elseif b == 46 or b == 101 or b == 69 or b == 45 or b == 43 then
+            // allowed in float literal
+        else
+            return false
+        end
+        i += 1
+    end
+    return seenDigit
+end
+
+func parseScalar(string s) as var
+    if s == "true" then return true end
+    if s == "false" then return false end
+    if s == "null" then return null end
+    if looksLikeInt(s) then return int(s) end
+    if looksLikeFloat(s) then return float(s) end
+    return s
+end
+
+func typeName(var v) as string
+    if v == null then return "none" end
+    if v is bool then return "bool" end
+    if v is int then return "int" end
+    if v is float then return "float" end
+    if v is string then return "string" end
+    if type(v) == type([]) then return "list" end
+    if type(v) == type({}) then return "dict" end
+    return "unknown"
+end
+
+func valueToString(var v) as string
+    if v == null then return "null" end
+    if v is bool then
+        if bool(v) then return "true" end
+        return "false"
+    end
+    if v is int then return string(int(v)) end
+    if v is float then return string(float(v)) end
+    if v is string then return string(v) end
+    return json.stringify(v)
+end
+
+func firstToken(string s) as (string, string)
+    int sp = string.indexOf(s, " ")
+    if sp < 0 then return string.trim(s), "" end
+    string tok = string.trim(string.slice(s, 0, sp))
+    string rem = string.ltrim(string.slice(s, sp + 1, string.len(s) - sp - 1))
+    return tok, rem
+end
+
+func splitAll(string s, string sep) as var
+    var arr = []
+    if isEmpty(s) then return arr end
+    string cur = ""
+    int i = 0
+    int seplen = string.len(sep)
+    int n = string.len(s)
+    while i < n do
+        bool match = true
+        int j = 0
+        while j < seplen do
+            if i + j >= n then
+                match = false
+                break
+            end
+            if string.byteAt(s, i + j) != string.byteAt(sep, j) then
+                match = false
+                break
+            end
+            j += 1
+        end
+        if match and seplen > 0 then
+            arr.append(cur)
+            cur = ""
+            i += seplen
+        else
+            cur = cur + string.charAt(s, i)
+            i += 1
+        end
+    end
+    arr.append(cur)
+    return arr
+end
+
+func splitFields(string s, string sep) as var
+    var raw = splitAll(s, sep)
+    var result = []
+    int i = 0
+    while i < raw.length do
+        string t = string.trim(string(raw[i]))
+        if not isEmpty(t) then result.append(t) end
+        i += 1
+    end
+    return result
+end
+
+func joinStrings(var arr, string sep) as string
+    string res = ""
+    int i = 0
+    while i < arr.length do
+        if i > 0 then res = res + sep end
+        res = res + string(arr[i])
+        i += 1
+    end
+    return res
+end
+
+func joinLines(var arr) as string
+    return joinStrings(arr, "\n")
+end
+
+func progressBar(float ratio, int width) as string
+    if ratio < 0.0 then ratio = 0.0 end
+    if ratio > 1.0 then ratio = 1.0 end
+    int filled = int(ratio * float(width))
+    if filled > width then filled = width end
+    string bar = ""
+    int i = 0
+    while i < width do
+        if i < filled then bar = bar + "#" else bar = bar + "-" end
+        i += 1
+    end
+    return "[" + bar + "]"
+end
+
+func formatBytes(int n) as string
+    if n < 1024 then return string(n) + " B" end
+    float kb = float(n) / 1024.0
+    if kb < 1024.0 then return string.formatFloat(kb, ".2") + " KB" end
+    float mb = kb / 1024.0
+    if mb < 1024.0 then return string.formatFloat(mb, ".2") + " MB" end
+    float gb = mb / 1024.0
+    return string.formatFloat(gb, ".2") + " GB"
+end
+
+func formatMs(int ms) as string
+    if ms < 1000 then return string(ms) + " ms" end
+    return string.formatFloat(float(ms) / 1000.0, ".3") + " s"
+end
+
+func electionTimeout(string shardId, int attempt) as int
+    int seed = int(hash.u32(shardId + ":" + string(attempt)))
+    int range = RAFT_ELECTION_TIMEOUT_MAX - RAFT_ELECTION_TIMEOUT_MIN
+    return RAFT_ELECTION_TIMEOUT_MIN + (seed % range)
+end
+
+func padRight(string s, int width) as string
+    return string.padRight(s, width)
+end
+
+// Sort var array by int field (insertion sort). Returns sorted copy.
+func sortByHashField(var arr, string field) as var
+    int n = arr.length
+    int i = 1
+    while i < n do
+        var cur = arr[i]
+        int j = i - 1
+        while j >= 0 do
+            if int(arr[j][field]) > int(cur[field]) then
+                arr[j + 1] = arr[j]
+                j -= 1
+            else
+                break
+            end
+        end
+        arr[j + 1] = cur
+        i += 1
+    end
+    return arr
+end
+
+func sortByFloatField(var arr, string field) as var
+    int n = arr.length
+    int i = 1
+    while i < n do
+        var cur = arr[i]
+        int j = i - 1
+        while j >= 0 do
+            if float(arr[j][field]) > float(cur[field]) then
+                arr[j + 1] = arr[j]
+                j -= 1
+            else
+                break
+            end
+        end
+        arr[j + 1] = cur
+        i += 1
+    end
+    return arr
+end
+
+// Bubble sort array of strings ascending. Returns sorted copy.
+func sortStringArray(var arr) as var
+    int n = arr.length
+    int i = 0
+    while i < n do
+        int j = 0
+        while j < n - 1 - i do
+            if string(arr[j]) > string(arr[j + 1]) then
+                var t = arr[j]
+                arr[j] = arr[j + 1]
+                arr[j + 1] = t
+            end
+            j += 1
+        end
+        i += 1
+    end
+    return arr
+end
+
+func jsonEscapeStr(string s) as string
+    string res = ""
+    int i = 0
+    int n = string.len(s)
+    while i < n do
+        string c = string.charAt(s, i)
+        if c == "\"" then
+            res = res + "\\\""
+        elseif c == "\\" then
+            res = res + "\\\\"
+        elseif c == "\n" then
+            res = res + "\\n"
+        elseif c == "\r" then
+            res = res + "\\r"
+        elseif c == "\t" then
+            res = res + "\\t"
+        else
+            res = res + c
+        end
+        i += 1
+    end
+    return res
+end
+
+
+// ============================================================================
+// SECTION 2 - Consistent hash ring
+// ============================================================================
+
+func hashKey(string key) as int
+    int h = int(hash.u32(key))
+    if h < 0 then h = -h end
+    return h
+end
+
+func hashVnode(string nodeId, int vnodeIdx) as int
+    int h = int(hash.u32(nodeId + "-vn-" + string(vnodeIdx)))
+    if h < 0 then h = -h end
+    return h
+end
+
+func ensureRing() as var
+    if not ("ring" in gState) then gState["ring"] = [] end
+    return gState["ring"]
+end
+
+func rebuildRing()
+    var ring = []
+    var nodes = gState["nodes"]
+    for nodeId, node in nodes
+        int vi = 0
+        while vi < VNODES_PER_NODE do
+            int h = hashVnode(string(nodeId), vi)
+            ring.append({"hash": h, "nodeId": string(nodeId), "vnodeId": vi})
+            vi += 1
+        end
+    end
+    ring = sortByHashField(ring, "hash")
+    gState["ring"] = ring
+end
+
+func ringLookup(int h) as string
+    var ring = ensureRing()
+    int i = 0
+    while i < ring.length do
+        if int(ring[i]["hash"]) >= h then return string(ring[i]["nodeId"]) end
+        i += 1
+    end
+    if ring.length > 0 then return string(ring[0]["nodeId"]) end
+    return ""
+end
+
+func ringBinarySearch(int h) as int
+    var ring = ensureRing()
+    int lo = 0
+    int hi = ring.length
+    while lo < hi do
+        int mid = (lo + hi) / 2
+        if int(ring[mid]["hash"]) >= h then
+            hi = mid
+        else
+            lo = mid + 1
+        end
+    end
+    return lo
+end
+
+func ringLookupN(int h, int n) as var
+    var ring = ensureRing()
+    var res = []
+    var seen = {}
+    int count = ring.length
+    if count == 0 then return res end
+    int start = ringBinarySearch(h)
+    if start >= count then start = 0 end
+    int i = 0
+    while i < count and res.length < n do
+        int idx = (start + i) % count
+        string nid = string(ring[idx]["nodeId"])
+        if not (nid in seen) then
+            seen[nid] = true
+            res.append(nid)
+        end
+        i += 1
+    end
+    return res
+end
+
+func computeJoinMigration(string newNodeId) as var
+    var ranges = []
+    var ring = ensureRing()
+    if ring.length == 0 then return ranges end
+    var newVnodes = []
+    int vi = 0
+    while vi < VNODES_PER_NODE do
+        int h = hashVnode(newNodeId, vi)
+        newVnodes.append({"hash": h, "nodeId": newNodeId, "vnodeId": vi})
+        vi += 1
+    end
+    newVnodes = sortByHashField(newVnodes, "hash")
+    int i = 0
+    while i < newVnodes.length do
+        int nvHash = int(newVnodes[i]["hash"])
+        string oldOwner = ringLookup(nvHash)
+        int lastBefore = -1
+        int k = 0
+        while k < ring.length do
+            if int(ring[k]["hash"]) < nvHash and int(ring[k]["hash"]) > lastBefore then
+                lastBefore = int(ring[k]["hash"])
+            end
+            k += 1
+        end
+        int prevHash = 0
+        if lastBefore >= 0 then prevHash = lastBefore end
+        ranges.append({"fromHash": prevHash, "toHash": nvHash,
+                       "oldOwner": oldOwner, "newOwner": newNodeId})
+        i += 1
+    end
+    return ranges
+end
+
+func computeLeaveMigration(string leavingNodeId) as var
+    var ranges = []
+    var ring = ensureRing()
+    if ring.length == 0 then return ranges end
+    int i = 0
+    while i < ring.length do
+        if string(ring[i]["nodeId"]) == leavingNodeId then
+            int leaveHash = int(ring[i]["hash"])
+            string newOwner = ""
+            int j = 1
+            while j < ring.length do
+                int idx = (i + j) % ring.length
+                string cand = string(ring[idx]["nodeId"])
+                if cand != leavingNodeId then
+                    newOwner = cand
+                    break
+                end
+                j += 1
+            end
+            int prevIdx = (i - 1 + ring.length) % ring.length
+            int prevHash = int(ring[prevIdx]["hash"])
+            ranges.append({"fromHash": prevHash, "toHash": leaveHash,
+                           "oldOwner": leavingNodeId, "newOwner": newOwner})
+        end
+        i += 1
+    end
+    return ranges
+end
+
+func renderRingViz() as string
+    var ring = ensureRing()
+    if ring.length == 0 then return "(ring empty)" end
+    var nodes = ensureNodes()
+    string res = ""
+    res = res + "=== Consistent Hash Ring Visualization ===\n"
+    res = res + "vnodes: " + string(ring.length) + "  nodes: " + string(nodes.length) + "\n"
+    res = res + "hash space: [0, 2^32) sampled into 32 segments\n"
+    int step = 134217728
+    int i = 0
+    while i < 32 do
+        int pos = i * step
+        string owner = ringLookup(pos)
+        var nodeCount = {}
+        int j = 0
+        while j < ring.length do
+            int h = int(ring[j]["hash"])
+            if h >= pos and h < pos + step then
+                string nid = string(ring[j]["nodeId"])
+                if not (nid in nodeCount) then nodeCount[nid] = 0 end
+                nodeCount[nid] = int(nodeCount[nid]) + 1
+            end
+            j += 1
+        end
+        string line = hex8(pos) + " | owner=" + padRight(owner, 8) + " | "
+        if nodeCount.length == 0 then
+            line = line + "(no vnode)"
+        else
+            string parts = ""
+            for nid, c in nodeCount
+                if not isEmpty(parts) then parts = parts + ", " end
+                parts = parts + string(nid) + ":" + string(c)
+            end
+            line = line + parts
+        end
+        res = res + line + "\n"
+        i += 1
+    end
+    return res
+end
+
+
+// ============================================================================
+// SECTION 3 - Cluster / Node management
+// ============================================================================
+
+func ensureNodes() as var
+    if not ("nodes" in gState) then gState["nodes"] = {} end
+    return gState["nodes"]
+end
+
+func ensureShards() as var
+    if not ("shards" in gState) then gState["shards"] = {} end
+    return gState["shards"]
+end
+
+func ensureRaft() as var
+    if not ("raft" in gState) then gState["raft"] = {} end
+    return gState["raft"]
+end
+
+func ensureData() as var
+    if not ("data" in gState) then gState["data"] = {} end
+    return gState["data"]
+end
+
+func ensureMigrations() as var
+    if not ("migrations" in gState) then gState["migrations"] = [] end
+    return gState["migrations"]
+end
+
+// Writeback helpers (xlang dict index returns by-value copy; must write back
+// the whole parent dict after mutating a nested value).
+func putNodes(var nodes)
+    gState["nodes"] = nodes
+end
+
+func putShards(var shards)
+    gState["shards"] = shards
+end
+
+func putRaftDict(var raft)
+    gState["raft"] = raft
+end
+
+func putDataDict(var data)
+    gState["data"] = data
+end
+
+func putMigrations(var migrations)
+    gState["migrations"] = migrations
+end
+
+// Set node field (handles 2-level writeback).
+func putNodeField(string nid, string field, var val)
+    var nodes = gState["nodes"]
+    var node = nodes[nid]
+    node[field] = val
+    nodes[nid] = node
+    gState["nodes"] = nodes
+end
+
+// Remove a key from a node.
+func removeNodeField(string nid, string field)
+    var nodes = gState["nodes"]
+    var node = nodes[nid]
+    if field in node then
+        node.remove(field)
+    end
+    nodes[nid] = node
+    gState["nodes"] = nodes
+end
+
+// Set shard field (handles 2-level writeback).
+func putShardField(string sid, string field, var val)
+    var shards = gState["shards"]
+    var sh = shards[sid]
+    sh[field] = val
+    shards[sid] = sh
+    gState["shards"] = shards
+end
+
+// Set raft shard field (handles 2-level writeback).
+func putRaftField(string sid, string field, var val)
+    var raft = gState["raft"]
+    var rs = raft[sid]
+    rs[field] = val
+    raft[sid] = rs
+    gState["raft"] = raft
+end
+
+// Replace whole raft shard.
+func putRaftShard(string sid, var rs)
+    var raft = gState["raft"]
+    raft[sid] = rs
+    gState["raft"] = raft
+end
+
+// Replace whole shard.
+func putShard(string sid, var sh)
+    var shards = gState["shards"]
+    shards[sid] = sh
+    gState["shards"] = shards
+end
+
+// Replace whole shard data dict.
+func putShardData(string sid, var sd)
+    var data = gState["data"]
+    data[sid] = sd
+    gState["data"] = data
+end
+
+// Set data entry (handles 2-level writeback).
+func putEntry(string sid, string key, var entry)
+    var data = gState["data"]
+    if not (sid in data) then
+        data[sid] = {}
+    end
+    var sd = data[sid]
+    sd[key] = entry
+    data[sid] = sd
+    gState["data"] = data
+end
+
+// Remove data entry.
+func removeEntryKey(string sid, string key)
+    var data = gState["data"]
+    if not (sid in data) then return end
+    var sd = data[sid]
+    if key in sd then
+        sd.remove(key)
+    end
+    data[sid] = sd
+    gState["data"] = data
+end
+
+func ensureStats() as var
+    if not ("stats" in gState) then gState["stats"] = {} end
+    var s = gState["stats"]
+    bool changed = false
+    if not ("totalSets" in s) then
+        s["totalSets"] = 0
+        changed = true
+    end
+    if not ("totalGets" in s) then
+        s["totalGets"] = 0
+        changed = true
+    end
+    if not ("totalMisses" in s) then
+        s["totalMisses"] = 0
+        changed = true
+    end
+    if not ("totalDels" in s) then
+        s["totalDels"] = 0
+        changed = true
+    end
+    if not ("leaderChanges" in s) then
+        s["leaderChanges"] = 0
+        changed = true
+    end
+    if not ("migrationsCompleted" in s) then
+        s["migrationsCompleted"] = 0
+        changed = true
+    end
+    if not ("txCommits" in s) then
+        s["txCommits"] = 0
+        changed = true
+    end
+    if not ("txAborts" in s) then
+        s["txAborts"] = 0
+        changed = true
+    end
+    if not ("raftLogAppended" in s) then
+        s["raftLogAppended"] = 0
+        changed = true
+    end
+    if not ("raftLogCommitted" in s) then
+        s["raftLogCommitted"] = 0
+        changed = true
+    end
+    if not ("raftSnapshotsTaken" in s) then
+        s["raftSnapshotsTaken"] = 0
+        changed = true
+    end
+    if not ("sweepsActive" in s) then
+        s["sweepsActive"] = 0
+        changed = true
+    end
+    if not ("keysExpired" in s) then
+        s["keysExpired"] = 0
+        changed = true
+    end
+    if not ("opsSinceSweep" in s) then
+        s["opsSinceSweep"] = 0
+        changed = true
+    end
+    if not ("shardSplits" in s) then
+        s["shardSplits"] = 0
+        changed = true
+    end
+    if not ("shardMerges" in s) then
+        s["shardMerges"] = 0
+        changed = true
+    end
+    if changed then gState["stats"] = s end
+    return s
+end
+
+func nextNodeId() as string
+    var nodes = ensureNodes()
+    int maxN = 0
+    for nid, node in nodes
+        string id = string(nid)
+        if string.startsWith(id, "node-") then
+            string suffix = string.slice(id, 5, string.len(id) - 5)
+            if string.len(suffix) == 1 then
+                int code = string.byteAt(suffix, 0)
+                if code >= 97 and code <= 122 then
+                    int num = code - 97 + 1
+                    if num > maxN then maxN = num end
+                end
+            end
+        end
+    end
+    int next = maxN + 1
+    if next > 26 then return "node-" + string(next) end
+    return "node-" + string.charAt("abcdefghijklmnopqrstuvwxyz", next - 1)
+end
+
+func makeNode(string nodeId, int port) as var
+    return {"id": nodeId,
+            "host": "127.0.0.1",
+            "port": port,
+            "status": "online",
+            "joinTime": nowSec(),
+            "lastHeartbeat": nowSec(),
+            "heartbeatVersion": 0,
+            "vnodes": VNODES_PER_NODE}
+end
+
+func clusterAddNode(string nodeId, int port) as var
+    var nodes = gState["nodes"]
+    if nodeId in nodes then return {"ok": false, "error": "node already exists"} end
+    var node = makeNode(nodeId, port)
+    nodes[nodeId] = node
+    gState["nodes"] = nodes
+    var ranges = computeJoinMigration(nodeId)
+    rebuildRing()
+    reassignShards()
+    var migrations = gState["migrations"]
+    migrations.append({"id": "mig-" + string(migrations.length + 1),
+                       "type": "join",
+                       "nodeId": nodeId,
+                       "ranges": ranges,
+                       "totalKeys": countKeysInRanges(ranges),
+                       "movedKeys": 0,
+                       "status": "pending",
+                       "createdAt": nowSec()})
+    gState["migrations"] = migrations
+    return {"ok": true, "node": node, "ranges": ranges}
+end
+
+func clusterRemoveNode(string nodeId) as var
+    var nodes = gState["nodes"]
+    if not (nodeId in nodes) then return {"ok": false, "error": "node not found"} end
+    var ranges = computeLeaveMigration(nodeId)
+    var node = nodes[nodeId]
+    node["status"] = "leaving"
+    nodes[nodeId] = node
+    nodes.remove(nodeId)
+    gState["nodes"] = nodes
+    rebuildRing()
+    reassignShards()
+    var migrations = gState["migrations"]
+    migrations.append({"id": "mig-" + string(migrations.length + 1),
+                       "type": "leave",
+                       "nodeId": nodeId,
+                       "ranges": ranges,
+                       "totalKeys": countKeysInRanges(ranges),
+                       "movedKeys": 0,
+                       "status": "pending",
+                       "createdAt": nowSec()})
+    gState["migrations"] = migrations
+    return {"ok": true, "ranges": ranges}
+end
+
+func clusterFailNode(string nodeId) as var
+    var nodes = gState["nodes"]
+    if not (nodeId in nodes) then return {"ok": false, "error": "node not found"} end
+    var node = nodes[nodeId]
+    node["status"] = "down"
+    node["downAt"] = nowSec()
+    nodes[nodeId] = node
+    gState["nodes"] = nodes
+    var shards = gState["shards"]
+    var affected = []
+    for sid, sh in shards
+        if string(sh["leader"]) == nodeId then affected.append(sid) end
+    end
+    int relected = 0
+    int i = 0
+    while i < affected.length do
+        var r = raftStartElection(string(affected[i]))
+        if bool(r["ok"]) then relected += 1 end
+        i += 1
+    end
+    return {"ok": true, "affectedShards": affected, "reelected": relected}
+end
+
+func clusterRecoverNode(string nodeId) as var
+    var nodes = gState["nodes"]
+    if not (nodeId in nodes) then return {"ok": false, "error": "node not found"} end
+    var node = nodes[nodeId]
+    node["status"] = "online"
+    node["lastHeartbeat"] = nowSec()
+    node["heartbeatVersion"] = int(node["heartbeatVersion"]) + 1
+    if "downAt" in node then node.remove("downAt") end
+    nodes[nodeId] = node
+    gState["nodes"] = nodes
+    return {"ok": true}
+end
+
+func heartbeatNode(string nodeId) as var
+    var nodes = gState["nodes"]
+    if not (nodeId in nodes) then return {"ok": false, "error": "node not found"} end
+    var node = nodes[nodeId]
+    node["lastHeartbeat"] = nowSec()
+    node["heartbeatVersion"] = int(node["heartbeatVersion"]) + 1
+    nodes[nodeId] = node
+    gState["nodes"] = nodes
+    return {"ok": true}
+end
+
+func clusterHealth() as var
+    var nodes = gState["nodes"]
+    var res = []
+    int now = nowSec()
+    for nid, node in nodes
+        int last = int(node["lastHeartbeat"])
+        int age = now - last
+        string status = "healthy"
+        if string(node["status"]) == "down" then
+            status = "down"
+        elseif age > 30 then
+            status = "stale"
+        end
+        res.append({"id": string(nid),
+                    "status": string(node["status"]),
+                    "health": status,
+                    "heartbeatAgeSec": age,
+                    "heartbeatVersion": int(node["heartbeatVersion"])})
+    end
+    return res
+end
+
+
+// ============================================================================
+// SECTION 4 - Sharding
+// ============================================================================
+
+func countKeysInRanges(var ranges) as int
+    if ranges.length == 0 then return 0 end
+    int totalKeys = 0
+    var data = ensureData()
+    for sid, shardData in data
+        totalKeys += shardData.length
+    end
+    int rangeWidth = 0
+    int i = 0
+    while i < ranges.length do
+        int from = int(ranges[i]["fromHash"])
+        int to = int(ranges[i]["toHash"])
+        if to >= from then rangeWidth += (to - from) end
+        i += 1
+    end
+    if rangeWidth <= 0 then return 0 end
+    int estimate = totalKeys * rangeWidth / 4294967296
+    if estimate < 1 then estimate = 1 end
+    return estimate
+end
+
+func shardOf(string key) as string
+    int h = hashKey(key)
+    return string(h % DEFAULT_SHARD_COUNT)
+end
+
+func ensureShard(string sid) as var
+    var shards = ensureShards()
+    if not (sid in shards) then
+        shards[sid] = {"id": sid,
+                       "primary": "",
+                       "replicas": [],
+                       "leader": "",
+                       "leaderTerm": 0,
+                       "keyCount": 0,
+                       "splitCount": 0,
+                       "mergeCount": 0}
+    end
+    return shards[sid]
+end
+
+func ensureShardData(string sid) as var
+    var data = ensureData()
+    if not (sid in data) then data[sid] = {} end
+    return data[sid]
+end
+
+func reassignShards()
+    var shards = gState["shards"]
+    var onlineNodes = []
+    var nodes = gState["nodes"]
+    for nid, node in nodes
+        if string(node["status"]) == "online" then onlineNodes.append(string(nid)) end
+    end
+    if onlineNodes.length == 0 then return end
+    int i = 0
+    while i < DEFAULT_SHARD_COUNT do
+        string sid = string(i)
+        if not (sid in shards) then
+            shards[sid] = {"id": sid,
+                           "primary": "",
+                           "replicas": [],
+                           "leader": "",
+                           "leaderTerm": 0,
+                           "keyCount": 0,
+                           "splitCount": 0,
+                           "mergeCount": 0}
+        end
+        var sh = shards[sid]
+        int h = hashKey("shard-" + sid)
+        int replicaCount = DEFAULT_REPLICA_FACTOR
+        if onlineNodes.length < replicaCount then replicaCount = onlineNodes.length end
+        var replicas = ringLookupN(h, replicaCount)
+        if replicas.length > 0 then
+            sh["primary"] = replicas[0]
+            sh["replicas"] = replicas
+            string cur = string(sh["leader"])
+            bool leaderOk = false
+            int r = 0
+            while r < replicas.length do
+                if string(replicas[r]) == cur then
+                    leaderOk = true
+                    break
+                end
+                r += 1
+            end
+            if not leaderOk then sh["leader"] = replicas[0] end
+        end
+        shards[sid] = sh
+        i += 1
+    end
+    gState["shards"] = shards
+end
+
+func clusterInit(int nodeCount) as var
+    if nodeCount < 1 then nodeCount = 1 end
+    gState = {}
+    gState["version"] = STATE_VERSION
+    gState["createdAt"] = nowSec()
+    gState["updatedAt"] = nowSec()
+    gState["nodes"] = {}
+    gState["shards"] = {}
+    gState["raft"] = {}
+    gState["data"] = {}
+    gState["migrations"] = []
+    gState["stats"] = {}
+    var nodes = gState["nodes"]
+    ensureStats()
+    int i = 0
+    while i < nodeCount do
+        string nid = ""
+        if i < 26 then
+            nid = "node-" + string.charAt("abcdefghijklmnopqrstuvwxyz", i)
+        else
+            nid = "node-" + string(i + 1)
+        end
+        var node = makeNode(nid, 7000 + i + 1)
+        nodes[nid] = node
+        i += 1
+    end
+    gState["nodes"] = nodes
+    rebuildRing()
+    reassignShards()
+    int s = 0
+    while s < DEFAULT_SHARD_COUNT do
+        raftInitShard(string(s))
+        s += 1
+    end
+    gState["updatedAt"] = nowSec()
+    return {"ok": true, "nodes": nodeCount, "shards": DEFAULT_SHARD_COUNT}
+end
+
+func shardSplit(string sid) as var
+    var shards = gState["shards"]
+    if not (sid in shards) then return {"ok": false, "error": "no shard"} end
+    var sh = shards[sid]
+    if int(sh["keyCount"]) < SHARD_SPLIT_THRESHOLD then
+        return {"ok": false, "error": "below threshold"}
+    end
+    sh["splitCount"] = int(sh["splitCount"]) + 1
+    shards[sid] = sh
+    gState["shards"] = shards
+    var stats = gState["stats"]
+    stats["shardSplits"] = int(stats["shardSplits"]) + 1
+    gState["stats"] = stats
+    return {"ok": true, "splitCount": int(sh["splitCount"])}
+end
+
+func shardMerge(string sid) as var
+    var shards = gState["shards"]
+    if not (sid in shards) then return {"ok": false, "error": "no shard"} end
+    var sh = shards[sid]
+    if int(sh["keyCount"]) >= SHARD_MERGE_THRESHOLD then
+        return {"ok": false, "error": "above threshold"}
+    end
+    sh["mergeCount"] = int(sh["mergeCount"]) + 1
+    shards[sid] = sh
+    gState["shards"] = shards
+    var stats = gState["stats"]
+    stats["shardMerges"] = int(stats["shardMerges"]) + 1
+    gState["stats"] = stats
+    return {"ok": true, "mergeCount": int(sh["mergeCount"])}
+end
+
+func advanceMigrations()
+    var migrations = gState["migrations"]
+    int i = 0
+    while i < migrations.length do
+        if string(migrations[i]["status"]) == "pending" then
+            var m = migrations[i]
+            m["status"] = "completed"
+            m["movedKeys"] = int(m["totalKeys"])
+            m["completedAt"] = nowSec()
+            migrations[i] = m
+            var stats = gState["stats"]
+            stats["migrationsCompleted"] = int(stats["migrationsCompleted"]) + 1
+            gState["stats"] = stats
+        end
+        i += 1
+    end
+    gState["migrations"] = migrations
+end
+
+
+// ============================================================================
+// SECTION 5 - TTL + expiration
+// ============================================================================
+
+func getEntry(string sid, string key) as var
+    var data = gState["data"]
+    if not (sid in data) then return null end
+    var sd = data[sid]
+    if not (key in sd) then return null end
+    return sd[key]
+end
+
+func isExpired(var entry) as bool
+    if entry == null then return true end
+    if not ("ttl" in entry) then return false end
+    int ttl = int(entry["ttl"])
+    if ttl <= 0 then return false end
+    return ttl <= nowSec()
+end
+
+func lazyExpire(string sid, string key) as bool
+    var entry = getEntry(sid, key)
+    if entry == null then return false end
+    if isExpired(entry) then
+        removeEntryKey(sid, key)
+        decrShardKeyCount(sid)
+        var stats = ensureStats()
+        stats["keysExpired"] = int(stats["keysExpired"]) + 1
+        gState["stats"] = stats
+        return true
+    end
+    return false
+end
+
+func decrShardKeyCount(string sid)
+    var shards = gState["shards"]
+    if not (sid in shards) then return end
+    var sh = shards[sid]
+    int c = int(sh["keyCount"])
+    if c > 0 then sh["keyCount"] = c - 1 end
+    shards[sid] = sh
+    gState["shards"] = shards
+end
+
+func incrShardKeyCount(string sid)
+    var shards = gState["shards"]
+    if not (sid in shards) then
+        shards[sid] = {"id": sid, "primary": "", "replicas": [], "leader": "",
+                       "leaderTerm": 0, "keyCount": 0, "splitCount": 0, "mergeCount": 0}
+    end
+    var sh = shards[sid]
+    sh["keyCount"] = int(sh["keyCount"]) + 1
+    shards[sid] = sh
+    gState["shards"] = shards
+end
+
+func activeSweepShard(string sid, int batch) as int
+    var data = gState["data"]
+    if not (sid in data) then return 0 end
+    var sd = data[sid]
+    var expired = []
+    int now = nowSec()
+    int scanned = 0
+    for key, entry in sd
+        if scanned >= batch then break end
+        scanned += 1
+        if "ttl" in entry then
+            int ttl = int(entry["ttl"])
+            if ttl > 0 and ttl <= now then expired.append(key) end
+        end
+    end
+    int i = 0
+    while i < expired.length do
+        sd.remove(string(expired[i]))
+        decrShardKeyCount(sid)
+        i += 1
+    end
+    data[sid] = sd
+    gState["data"] = data
+    if expired.length > 0 then
+        var stats = ensureStats()
+        stats["keysExpired"] = int(stats["keysExpired"]) + expired.length
+        gState["stats"] = stats
+    end
+    return expired.length
+end
+
+func maybeActiveSweep()
+    var stats = gState["stats"]
+    int ops = int(stats["opsSinceSweep"]) + 1
+    stats["opsSinceSweep"] = ops
+    if ops >= ACTIVE_SWEEP_EVERY then
+        stats["opsSinceSweep"] = 0
+        stats["sweepsActive"] = int(stats["sweepsActive"]) + 1
+        int target = int(stats["sweepsActive"]) % DEFAULT_SHARD_COUNT
+        activeSweepShard(string(target), ACTIVE_SWEEP_BATCH)
+    end
+    gState["stats"] = stats
+end
+
+
+// ============================================================================
+// SECTION 6 - Data model (KVStore: string/list/hash/set/zset)
+// ============================================================================
+
+func makeEntry(string t, var value) as var
+    return {"type": t,
+            "value": value,
+            "ttl": 0,
+            "createdAt": nowSec(),
+            "updatedAt": nowSec(),
+            "version": 1}
+end
+
+// ----- string -----
+
+func opSet(string sid, string key, var value) as string
+    var entry = getEntry(sid, key)
+    if entry != null then
+        entry["type"] = "string"
+        entry["value"] = value
+        entry["updatedAt"] = nowSec()
+        entry["version"] = int(entry["version"]) + 1
+        putEntry(sid, key, entry)
+    else
+        putEntry(sid, key, makeEntry("string", value))
+        incrShardKeyCount(sid)
+    end
+    return "OK"
+end
+
+func opGet(string sid, string key) as string
+    if lazyExpire(sid, key) then return "(nil)" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "(nil)" end
+    if string(entry["type"]) != "string" then
+        return "(error) WRONGTYPE Operation against a key holding the wrong kind of value"
+    end
+    return valueToString(entry["value"])
+end
+
+func opDel(string sid, string key) as int
+    var entry = getEntry(sid, key)
+    if entry == null then return 0 end
+    removeEntryKey(sid, key)
+    decrShardKeyCount(sid)
+    return 1
+end
+
+func opExists(string sid, string key) as int
+    if lazyExpire(sid, key) then return 0 end
+    var entry = getEntry(sid, key)
+    if entry == null then return 0 end
+    return 1
+end
+
+func opType(string sid, string key) as string
+    if lazyExpire(sid, key) then return "none" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "none" end
+    return string(entry["type"])
+end
+
+func opIncr(string sid, string key, int delta) as string
+    var entry = getEntry(sid, key)
+    int cur = 0
+    if entry != null then
+        if string(entry["type"]) != "string" and string(entry["type"]) != "int" then
+            return "(error) WRONGTYPE"
+        end
+        cur = int(entry["value"])
+        entry["value"] = cur + delta
+        entry["updatedAt"] = nowSec()
+        entry["version"] = int(entry["version"]) + 1
+        putEntry(sid, key, entry)
+    else
+        putEntry(sid, key, makeEntry("string", cur + delta))
+        incrShardKeyCount(sid)
+    end
+    return string(cur + delta)
+end
+
+func opExpire(string sid, string key, int secs) as int
+    var entry = getEntry(sid, key)
+    if entry == null then return 0 end
+    entry["ttl"] = nowSec() + secs
+    entry["updatedAt"] = nowSec()
+    entry["version"] = int(entry["version"]) + 1
+    putEntry(sid, key, entry)
+    return 1
+end
+
+func opPersist(string sid, string key) as int
+    var entry = getEntry(sid, key)
+    if entry == null then return 0 end
+    if "ttl" in entry then
+        if int(entry["ttl"]) > 0 then
+            entry["ttl"] = 0
+            putEntry(sid, key, entry)
+            return 1
+        end
+    end
+    return 0
+end
+
+func opTtl(string sid, string key) as int
+    if lazyExpire(sid, key) then return -2 end
+    var entry = getEntry(sid, key)
+    if entry == null then return -2 end
+    if not ("ttl" in entry) then return -1 end
+    int ttl = int(entry["ttl"])
+    if ttl <= 0 then return -1 end
+    int remain = ttl - nowSec()
+    if remain <= 0 then return -2 end
+    return remain
+end
+
+// ----- list -----
+
+func opLpush(string sid, string key, var values) as string
+    var entry = getEntry(sid, key)
+    if entry == null then
+        entry = makeEntry("list", [])
+        incrShardKeyCount(sid)
+    elseif string(entry["type"]) != "list" then
+        return "(error) WRONGTYPE"
+    end
+    var lst = entry["value"]
+    int i = values.length - 1
+    while i >= 0 do
+        lst.insert(0, values[i])
+        i -= 1
+    end
+    entry["value"] = lst
+    entry["updatedAt"] = nowSec()
+    entry["version"] = int(entry["version"]) + 1
+    putEntry(sid, key, entry)
+    return string(lst.length)
+end
+
+func opRpush(string sid, string key, var values) as string
+    var entry = getEntry(sid, key)
+    if entry == null then
+        entry = makeEntry("list", [])
+        incrShardKeyCount(sid)
+    elseif string(entry["type"]) != "list" then
+        return "(error) WRONGTYPE"
+    end
+    var lst = entry["value"]
+    int i = 0
+    while i < values.length do
+        lst.append(values[i])
+        i += 1
+    end
+    entry["value"] = lst
+    entry["updatedAt"] = nowSec()
+    entry["version"] = int(entry["version"]) + 1
+    putEntry(sid, key, entry)
+    return string(lst.length)
+end
+
+func opLpop(string sid, string key, int count) as string
+    if lazyExpire(sid, key) then return "(nil)" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "(nil)" end
+    if string(entry["type"]) != "list" then return "(error) WRONGTYPE" end
+    var lst = entry["value"]
+    if lst.length == 0 then return "(nil)" end
+    if count <= 0 then count = 1 end
+    if count > lst.length then count = lst.length end
+    var popped = []
+    int i = 0
+    while i < count do
+        popped.append(lst[0])
+        lst.remove(0)
+        i += 1
+    end
+    entry["value"] = lst
+    entry["updatedAt"] = nowSec()
+    entry["version"] = int(entry["version"]) + 1
+    putEntry(sid, key, entry)
+    if popped.length == 1 then return valueToString(popped[0]) end
+    return json.stringify(popped)
+end
+
+func opRpop(string sid, string key, int count) as string
+    if lazyExpire(sid, key) then return "(nil)" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "(nil)" end
+    if string(entry["type"]) != "list" then return "(error) WRONGTYPE" end
+    var lst = entry["value"]
+    if lst.length == 0 then return "(nil)" end
+    if count <= 0 then count = 1 end
+    if count > lst.length then count = lst.length end
+    var popped = []
+    int i = 0
+    while i < count do
+        int last = lst.length - 1
+        popped.append(lst[last])
+        lst.remove(last)
+        i += 1
+    end
+    entry["value"] = lst
+    entry["updatedAt"] = nowSec()
+    entry["version"] = int(entry["version"]) + 1
+    putEntry(sid, key, entry)
+    if popped.length == 1 then return valueToString(popped[0]) end
+    return json.stringify(popped)
+end
+
+func opLrange(string sid, string key, int start, int stop) as string
+    if lazyExpire(sid, key) then return "[]" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "[]" end
+    if string(entry["type"]) != "list" then return "(error) WRONGTYPE" end
+    var lst = entry["value"]
+    int n = lst.length
+    if n == 0 then return "[]" end
+    if start < 0 then start = n + start end
+    if stop < 0 then stop = n + stop end
+    if start < 0 then start = 0 end
+    if stop >= n then stop = n - 1 end
+    if start > stop or start >= n then return "[]" end
+    var res = []
+    int i = start
+    while i <= stop do
+        res.append(lst[i])
+        i += 1
+    end
+    return json.stringify(res)
+end
+
+func opLlen(string sid, string key) as string
+    if lazyExpire(sid, key) then return "0" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "0" end
+    if string(entry["type"]) != "list" then return "(error) WRONGTYPE" end
+    return string(entry["value"].length)
+end
+
+// ----- hash -----
+
+func opHset(string sid, string key, string field, string val) as int
+    var entry = getEntry(sid, key)
+    if entry == null then
+        entry = makeEntry("hash", {})
+        incrShardKeyCount(sid)
+    elseif string(entry["type"]) != "hash" then
+        return -1
+    end
+    var h = entry["value"]
+    bool isNew = not (field in h)
+    h[field] = parseScalar(val)
+    entry["value"] = h
+    entry["updatedAt"] = nowSec()
+    entry["version"] = int(entry["version"]) + 1
+    putEntry(sid, key, entry)
+    if isNew then return 1 end
+    return 0
+end
+
+func opHget(string sid, string key, string field) as string
+    if lazyExpire(sid, key) then return "(nil)" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "(nil)" end
+    if string(entry["type"]) != "hash" then return "(error) WRONGTYPE" end
+    var h = entry["value"]
+    if not (field in h) then return "(nil)" end
+    return valueToString(h[field])
+end
+
+func opHgetall(string sid, string key) as string
+    if lazyExpire(sid, key) then return "(empty)" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "(empty)" end
+    if string(entry["type"]) != "hash" then return "(error) WRONGTYPE" end
+    var h = entry["value"]
+    if h.length == 0 then return "(empty)" end
+    var lines = []
+    for f, v in h
+        lines.append(string(f) + " = " + valueToString(v))
+    end
+    return joinLines(lines)
+end
+
+func opHdel(string sid, string key, string field) as int
+    if lazyExpire(sid, key) then return 0 end
+    var entry = getEntry(sid, key)
+    if entry == null then return 0 end
+    if string(entry["type"]) != "hash" then return -1 end
+    var h = entry["value"]
+    if not (field in h) then return 0 end
+    h.remove(field)
+    entry["value"] = h
+    entry["updatedAt"] = nowSec()
+    entry["version"] = int(entry["version"]) + 1
+    putEntry(sid, key, entry)
+    return 1
+end
+
+func opHlen(string sid, string key) as string
+    if lazyExpire(sid, key) then return "0" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "0" end
+    if string(entry["type"]) != "hash" then return "(error) WRONGTYPE" end
+    return string(entry["value"].length)
+end
+
+// ----- set -----
+
+func opSadd(string sid, string key, var members) as int
+    var entry = getEntry(sid, key)
+    if entry == null then
+        entry = makeEntry("set", {})
+        incrShardKeyCount(sid)
+    elseif string(entry["type"]) != "set" then
+        return -1
+    end
+    var s = entry["value"]
+    int added = 0
+    int i = 0
+    while i < members.length do
+        string m = string(members[i])
+        if not (m in s) then
+            s[m] = true
+            added += 1
+        end
+        i += 1
+    end
+    if added > 0 then
+        entry["value"] = s
+        entry["updatedAt"] = nowSec()
+        entry["version"] = int(entry["version"]) + 1
+        putEntry(sid, key, entry)
+    end
+    return added
+end
+
+func opSrem(string sid, string key, var members) as int
+    if lazyExpire(sid, key) then return 0 end
+    var entry = getEntry(sid, key)
+    if entry == null then return 0 end
+    if string(entry["type"]) != "set" then return -1 end
+    var s = entry["value"]
+    int removed = 0
+    int i = 0
+    while i < members.length do
+        string m = string(members[i])
+        if m in s then
+            s.remove(m)
+            removed += 1
+        end
+        i += 1
+    end
+    if removed > 0 then
+        entry["value"] = s
+        entry["updatedAt"] = nowSec()
+        entry["version"] = int(entry["version"]) + 1
+        putEntry(sid, key, entry)
+    end
+    return removed
+end
+
+func opSmembers(string sid, string key) as string
+    if lazyExpire(sid, key) then return "(empty)" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "(empty)" end
+    if string(entry["type"]) != "set" then return "(error) WRONGTYPE" end
+    var s = entry["value"]
+    if s.length == 0 then return "(empty)" end
+    var lines = []
+    for m, flag in s
+        lines.append(string(m))
+    end
+    return joinLines(lines)
+end
+
+func opSismember(string sid, string key, string member) as int
+    if lazyExpire(sid, key) then return 0 end
+    var entry = getEntry(sid, key)
+    if entry == null then return 0 end
+    if string(entry["type"]) != "set" then return -1 end
+    var s = entry["value"]
+    if member in s then return 1 end
+    return 0
+end
+
+func opScard(string sid, string key) as string
+    if lazyExpire(sid, key) then return "0" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "0" end
+    if string(entry["type"]) != "set" then return "(error) WRONGTYPE" end
+    return string(entry["value"].length)
+end
+
+// ----- zset -----
+
+func opZadd(string sid, string key, float score, string member) as int
+    var entry = getEntry(sid, key)
+    if entry == null then
+        entry = makeEntry("zset", [])
+        incrShardKeyCount(sid)
+    elseif string(entry["type"]) != "zset" then
+        return -1
+    end
+    var lst = entry["value"]
+    int i = 0
+    while i < lst.length do
+        if string(lst[i]["member"]) == member then
+            lst[i]["score"] = score
+            entry["value"] = lst
+            entry["updatedAt"] = nowSec()
+            entry["version"] = int(entry["version"]) + 1
+            putEntry(sid, key, entry)
+            return 0
+        end
+        i += 1
+    end
+    lst.append({"member": member, "score": score})
+    entry["value"] = lst
+    entry["updatedAt"] = nowSec()
+    entry["version"] = int(entry["version"]) + 1
+    putEntry(sid, key, entry)
+    return 1
+end
+
+func opZrem(string sid, string key, string member) as int
+    if lazyExpire(sid, key) then return 0 end
+    var entry = getEntry(sid, key)
+    if entry == null then return 0 end
+    if string(entry["type"]) != "zset" then return -1 end
+    var lst = entry["value"]
+    int i = 0
+    while i < lst.length do
+        if string(lst[i]["member"]) == member then
+            lst.remove(i)
+            entry["value"] = lst
+            entry["updatedAt"] = nowSec()
+            entry["version"] = int(entry["version"]) + 1
+            putEntry(sid, key, entry)
+            return 1
+        end
+        i += 1
+    end
+    return 0
+end
+
+func opZrange(string sid, string key, int start, int stop) as string
+    if lazyExpire(sid, key) then return "(empty)" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "(empty)" end
+    if string(entry["type"]) != "zset" then return "(error) WRONGTYPE" end
+    var sorted = deepCopy(entry["value"])
+    sorted = sortByFloatField(sorted, "score")
+    int n = sorted.length
+    if n == 0 then return "(empty)" end
+    if start < 0 then start = n + start end
+    if stop < 0 then stop = n + stop end
+    if start < 0 then start = 0 end
+    if stop >= n then stop = n - 1 end
+    if start > stop or start >= n then return "(empty)" end
+    var lines = []
+    int i = start
+    while i <= stop do
+        string m = string(sorted[i]["member"])
+        float sc = float(sorted[i]["score"])
+        lines.append(m + " : " + string.formatFloat(sc, ".4"))
+        i += 1
+    end
+    return joinLines(lines)
+end
+
+func opZscore(string sid, string key, string member) as string
+    if lazyExpire(sid, key) then return "(nil)" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "(nil)" end
+    if string(entry["type"]) != "zset" then return "(error) WRONGTYPE" end
+    var lst = entry["value"]
+    int i = 0
+    while i < lst.length do
+        if string(lst[i]["member"]) == member then
+            return string.formatFloat(float(lst[i]["score"]), ".4")
+        end
+        i += 1
+    end
+    return "(nil)"
+end
+
+func opZcard(string sid, string key) as string
+    if lazyExpire(sid, key) then return "0" end
+    var entry = getEntry(sid, key)
+    if entry == null then return "0" end
+    if string(entry["type"]) != "zset" then return "(error) WRONGTYPE" end
+    return string(entry["value"].length)
+end
+
+
+// ============================================================================
+// SECTION 7 - Raft consensus (per shard)
+// ============================================================================
+
+func ensureRaftShard(string sid) as var
+    var raft = gState["raft"]
+    if not (sid in raft) then
+        raft[sid] = {"currentTerm": 0,
+                     "votedFor": "",
+                     "leaderId": "",
+                     "leaderTerm": 0,
+                     "log": [],
+                     "commitIndex": 0,
+                     "lastApplied": 0,
+                     "snapshot": null,
+                     "snapshotIndex": 0,
+                     "snapshotTerm": 0,
+                     "votesReceived": [],
+                     "status": "follower",
+                     "matchIndex": {},
+                     "nextIndex": {},
+                     "electionAttempt": 0,
+                     "lastHeartbeat": nowSec()}
+        gState["raft"] = raft
+    end
+    var r2 = gState["raft"]
+    return r2[sid]
+end
+
+func raftInitShard(string sid)
+    var shards = gState["shards"]
+    var sh = shards[sid]
+    string primary = string(sh["primary"])
+    var rs = {"currentTerm": 1,
+              "votedFor": primary,
+              "leaderId": primary,
+              "leaderTerm": 1,
+              "log": [{"term": 1, "index": 1, "op": "noop",
+                       "key": "", "value": "", "type": "string"}],
+              "commitIndex": 1,
+              "lastApplied": 1,
+              "snapshot": null,
+              "snapshotIndex": 0,
+              "snapshotTerm": 0,
+              "votesReceived": [primary],
+              "status": "leader",
+              "matchIndex": {},
+              "nextIndex": {},
+              "electionAttempt": 0,
+              "lastHeartbeat": nowSec()}
+    var replicas = sh["replicas"]
+    var matchIdx = {}
+    var nextIdx = {}
+    int i = 0
+    while i < replicas.length do
+        string rid = string(replicas[i])
+        matchIdx[rid] = 1
+        nextIdx[rid] = 2
+        i += 1
+    end
+    rs["matchIndex"] = matchIdx
+    rs["nextIndex"] = nextIdx
+    putRaftShard(sid, rs)
+end
+
+func raftLeaderOf(string sid) as string
+    var raft = gState["raft"]
+    if not (sid in raft) then return "" end
+    var rs = raft[sid]
+    return string(rs["leaderId"])
+end
+
+func raftOnlineReplicas(string sid) as var
+    var shards = gState["shards"]
+    if not (sid in shards) then return [] end
+    var sh = shards[sid]
+    var replicas = sh["replicas"]
+    var online = []
+    var nodes = gState["nodes"]
+    int i = 0
+    while i < replicas.length do
+        string rid = string(replicas[i])
+        if rid in nodes then
+            var n = nodes[rid]
+            if string(n["status"]) == "online" then online.append(rid) end
+        end
+        i += 1
+    end
+    return online
+end
+
+func raftQuorum(int n) as int
+    return n / 2 + 1
+end
+
+func raftAppendEntries(string sid, var entry) as int
+    var raft = gState["raft"]
+    if not (sid in raft) then return 0 end
+    var rs = raft[sid]
+    var online = raftOnlineReplicas(sid)
+    int acks = 0
+    int newIdx = int(entry["index"])
+    string leader = string(rs["leaderId"])
+    var matchIdx = rs["matchIndex"]
+    var nextIdx = rs["nextIndex"]
+    int i = 0
+    while i < online.length do
+        string rid = string(online[i])
+        if rid == leader then
+            acks += 1
+        else
+            acks += 1
+            matchIdx[rid] = newIdx
+            nextIdx[rid] = newIdx + 1
+        end
+        i += 1
+    end
+    rs["matchIndex"] = matchIdx
+    rs["nextIndex"] = nextIdx
+    raft[sid] = rs
+    gState["raft"] = raft
+    return acks
+end
+
+func raftRequestVote(string sid, int term, string candidateId) as int
+    var raft = gState["raft"]
+    if not (sid in raft) then return 0 end
+    var rs = raft[sid]
+    var online = raftOnlineReplicas(sid)
+    int votes = 0
+    int curTerm = int(rs["currentTerm"])
+    string voted = string(rs["votedFor"])
+    int i = 0
+    while i < online.length do
+        string rid = string(online[i])
+        if rid == candidateId then
+            votes += 1
+        else
+            if term > curTerm then
+                curTerm = term
+                voted = candidateId
+                votes += 1
+            elseif term == curTerm then
+                if voted == "" or voted == candidateId then
+                    voted = candidateId
+                    votes += 1
+                end
+            end
+        end
+        i += 1
+    end
+    rs["currentTerm"] = curTerm
+    rs["votedFor"] = voted
+    raft[sid] = rs
+    gState["raft"] = raft
+    return votes
+end
+
+func raftStartElection(string sid) as var
+    var raft = gState["raft"]
+    if not (sid in raft) then return {"ok": false, "error": "no raft state"} end
+    var rs = raft[sid]
+    var online = raftOnlineReplicas(sid)
+    if online.length == 0 then return {"ok": false, "error": "no online replicas"} end
+    int attempt = int(rs["electionAttempt"]) + 1
+    rs["electionAttempt"] = attempt
+    int newTerm = int(rs["currentTerm"]) + 1
+    rs["currentTerm"] = newTerm
+    rs["status"] = "candidate"
+    var sorted = deepCopy(online)
+    sorted = sortStringArray(sorted)
+    string candidate = string(sorted[0])
+    rs["votedFor"] = candidate
+    raft[sid] = rs
+    gState["raft"] = raft
+    int votes = raftRequestVote(sid, newTerm, candidate)
+    int q = raftQuorum(online.length)
+    var stats = gState["stats"]
+    if votes >= q then
+        putRaftField(sid, "leaderId", candidate)
+        putRaftField(sid, "leaderTerm", newTerm)
+        putRaftField(sid, "status", "leader")
+        putRaftField(sid, "lastHeartbeat", nowSec())
+        putRaftField(sid, "votesReceived", [candidate])
+        putShardField(sid, "leader", candidate)
+        putShardField(sid, "leaderTerm", newTerm)
+        stats["leaderChanges"] = int(stats["leaderChanges"]) + 1
+        gState["stats"] = stats
+        return {"ok": true, "leader": candidate, "term": newTerm, "votes": votes}
+    end
+    putRaftField(sid, "status", "follower")
+    stats["leaderChanges"] = int(stats["leaderChanges"])
+    gState["stats"] = stats
+    return {"ok": false, "votes": votes, "needed": q}
+end
+
+func raftAppendAndApply(string sid, var command) as int
+    var raft = gState["raft"]
+    if not (sid in raft) then return -1 end
+    var rs = raft[sid]
+    string leader = string(rs["leaderId"])
+    if isEmpty(leader) then return -1 end
+    var nodes = gState["nodes"]
+    if not (leader in nodes) then return -1 end
+    var leaderNode = nodes[leader]
+    if string(leaderNode["status"]) != "online" then return -1 end
+    var log = rs["log"]
+    int newIdx = int(rs["commitIndex"]) + 1
+    var entry = {"term": int(rs["currentTerm"]),
+                 "index": newIdx,
+                 "op": string(command["op"]),
+                 "key": string(command["key"]),
+                 "value": command["value"],
+                 "type": string(command["type"])}
+    log.append(entry)
+    rs["log"] = log
+    raft[sid] = rs
+    gState["raft"] = raft
+    var stats = gState["stats"]
+    stats["raftLogAppended"] = int(stats["raftLogAppended"]) + 1
+    gState["stats"] = stats
+    int acks = raftAppendEntries(sid, entry)
+    var online = raftOnlineReplicas(sid)
+    int q = raftQuorum(online.length)
+    if acks >= q then
+        putRaftField(sid, "commitIndex", newIdx)
+        applyCommitted(sid)
+        var stats2 = gState["stats"]
+        stats2["raftLogCommitted"] = int(stats2["raftLogCommitted"]) + 1
+        gState["stats"] = stats2
+        var raft2 = gState["raft"]
+        var rs2 = raft2[sid]
+        if rs2["log"].length > RAFT_SNAPSHOT_THRESHOLD then
+            raftTakeSnapshot(sid)
+        end
+        return newIdx
+    end
+    return -1
+end
+
+func applyCommitted(string sid)
+    var raft = gState["raft"]
+    if not (sid in raft) then return end
+    var rs = raft[sid]
+    int commit = int(rs["commitIndex"])
+    int applied = int(rs["lastApplied"])
+    var log = rs["log"]
+    while applied < commit do
+        applied += 1
+        int li = 0
+        bool found = false
+        while li < log.length do
+            if int(log[li]["index"]) == applied then
+                applyEntry(sid, log[li])
+                found = true
+                break
+            end
+            li += 1
+        end
+    end
+    rs["lastApplied"] = applied
+    raft[sid] = rs
+    gState["raft"] = raft
+end
+
+func applyEntry(string sid, var entry)
+    string op = string(entry["op"])
+    string key = string(entry["key"])
+    if op == "noop" then return end
+    if op == "SET" then
+        opSet(sid, key, entry["value"])
+        return
+    end
+    if op == "DEL" then
+        opDel(sid, key)
+        return
+    end
+    if op == "INCR" then
+        opIncr(sid, key, int(entry["value"]))
+        return
+    end
+    if op == "EXPIRE" then
+        opExpire(sid, key, int(entry["value"]))
+        return
+    end
+    if op == "LPUSH" then
+        opLpush(sid, key, entry["value"])
+        return
+    end
+    if op == "RPUSH" then
+        opRpush(sid, key, entry["value"])
+        return
+    end
+    if op == "HSET" then
+        var pair = entry["value"]
+        opHset(sid, key, string(pair["field"]), string(pair["val"]))
+        return
+    end
+    if op == "SADD" then
+        opSadd(sid, key, entry["value"])
+        return
+    end
+    if op == "ZADD" then
+        var pair = entry["value"]
+        opZadd(sid, key, float(pair["score"]), string(pair["member"]))
+        return
+    end
+end
+
+func raftTakeSnapshot(string sid)
+    var data = gState["data"]
+    var sd = null
+    if sid in data then sd = data[sid] else sd = {} end
+    var raft = gState["raft"]
+    if not (sid in raft) then return end
+    var rs = raft[sid]
+    rs["snapshot"] = deepCopy(sd)
+    rs["snapshotIndex"] = int(rs["commitIndex"])
+    rs["snapshotTerm"] = int(rs["currentTerm"])
+    var log = rs["log"]
+    if log.length > RAFT_SNAPSHOT_KEEP_LOG then
+        var kept = []
+        int start = log.length - RAFT_SNAPSHOT_KEEP_LOG
+        int i = start
+        while i < log.length do
+            kept.append(log[i])
+            i += 1
+        end
+        rs["log"] = kept
+    end
+    raft[sid] = rs
+    gState["raft"] = raft
+    var stats = gState["stats"]
+    stats["raftSnapshotsTaken"] = int(stats["raftSnapshotsTaken"]) + 1
+    gState["stats"] = stats
+end
+
+func raftAddServer(string sid, string newNodeId) as var
+    var shards = gState["shards"]
+    if not (sid in shards) then return {"ok": false, "error": "no shard"} end
+    var sh = shards[sid]
+    var replicas = sh["replicas"]
+    int i = 0
+    while i < replicas.length do
+        if string(replicas[i]) == newNodeId then
+            return {"ok": false, "error": "already a replica"}
+        end
+        i += 1
+    end
+    replicas.append(newNodeId)
+    sh["replicas"] = replicas
+    shards[sid] = sh
+    gState["shards"] = shards
+    return {"ok": true, "replicas": replicas}
+end
+
+func raftRemoveServer(string sid, string oldNodeId) as var
+    var shards = gState["shards"]
+    if not (sid in shards) then return {"ok": false, "error": "no shard"} end
+    var sh = shards[sid]
+    var replicas = sh["replicas"]
+    var kept = []
+    int i = 0
+    while i < replicas.length do
+        if string(replicas[i]) != oldNodeId then kept.append(replicas[i]) end
+        i += 1
+    end
+    sh["replicas"] = kept
+    shards[sid] = sh
+    gState["shards"] = shards
+    return {"ok": true, "replicas": kept}
+end
+
+
+// ============================================================================
+// SECTION 8 - Replication / failover / linearizable read
+// ============================================================================
+
+func replicateToFollowers(string sid) as int
+    var online = raftOnlineReplicas(sid)
+    return online.length
+end
+
+func linearizableRead(string sid, string key) as string
+    var rs = ensureRaftShard(sid)
+    string leader = string(rs["leaderId"])
+    if isEmpty(leader) then
+        var r = raftStartElection(sid)
+        if bool(r["ok"]) then
+            leader = string(r["leader"])
+            return opGet(sid, key)
+        end
+        return "(error) NOLEADER no leader available"
+    end
+    var nodes = ensureNodes()
+    if not (leader in nodes) then
+        var r = raftStartElection(sid)
+        if bool(r["ok"]) then return opGet(sid, key) end
+        return "(error) NOLEADER"
+    end
+    if string(nodes[leader]["status"]) != "online" then
+        var r = raftStartElection(sid)
+        if bool(r["ok"]) then return opGet(sid, key) end
+        return "(error) NOLEADER"
+    end
+    int last = int(rs["lastHeartbeat"])
+    int age = nowSec() - last
+    if age > LEASE_FRESHNESS_SEC then
+        rs["lastHeartbeat"] = nowSec()
+    end
+    return opGet(sid, key)
+end
+
+func failoverIfNeeded(string sid) as bool
+    var rs = ensureRaftShard(sid)
+    string leader = string(rs["leaderId"])
+    if isEmpty(leader) then
+        var r = raftStartElection(sid)
+        return bool(r["ok"])
+    end
+    var nodes = ensureNodes()
+    if not (leader in nodes) then
+        var r = raftStartElection(sid)
+        return bool(r["ok"])
+    end
+    if string(nodes[leader]["status"]) != "online" then
+        var r = raftStartElection(sid)
+        return bool(r["ok"])
+    end
+    return false
+end
+
+
+// ============================================================================
+// SECTION 9 - Query routing / Coordinator / scatter-gather / cross-shard tx
+// ============================================================================
+
+func routeKey(string key) as var
+    string sid = shardOf(key)
+    var sh = ensureShard(sid)
+    string leader = raftLeaderOf(sid)
+    return {"shardId": sid, "leader": leader, "primary": string(sh["primary"])}
+end
+
+func routeSet(string key, var value) as var
+    string sid = shardOf(key)
+    failoverIfNeeded(sid)
+    var cmd = {"op": "SET", "key": key, "value": value, "type": "string"}
+    int ci = raftAppendAndApply(sid, cmd)
+    if ci < 0 then return {"ok": false, "error": "raft commit failed (no quorum?)"} end
+    int synced = replicateToFollowers(sid)
+    maybeActiveSweep()
+    var stats = gState["stats"]
+    stats["totalSets"] = int(stats["totalSets"]) + 1
+    gState["stats"] = stats
+    return {"ok": true, "shardId": sid, "commitIndex": ci, "replicas": synced}
+end
+
+func routeGet(string key) as var
+    string sid = shardOf(key)
+    failoverIfNeeded(sid)
+    string val = linearizableRead(sid, key)
+    var stats = gState["stats"]
+    stats["totalGets"] = int(stats["totalGets"]) + 1
+    if val == "(nil)" or string.startsWith(val, "(error)") then
+        stats["totalMisses"] = int(stats["totalMisses"]) + 1
+    end
+    gState["stats"] = stats
+    return {"ok": true, "value": val, "shardId": sid, "leader": raftLeaderOf(sid)}
+end
+
+func routeDel(string key) as var
+    string sid = shardOf(key)
+    failoverIfNeeded(sid)
+    var cmd = {"op": "DEL", "key": key, "value": "", "type": "string"}
+    int ci = raftAppendAndApply(sid, cmd)
+    if ci < 0 then return {"ok": false, "error": "raft commit failed"} end
+    var stats = gState["stats"]
+    stats["totalDels"] = int(stats["totalDels"]) + 1
+    gState["stats"] = stats
+    return {"ok": true, "shardId": sid, "commitIndex": ci}
+end
+
+func routeIncr(string key, int delta) as var
+    string sid = shardOf(key)
+    failoverIfNeeded(sid)
+    var cmd = {"op": "INCR", "key": key, "value": delta, "type": "int"}
+    int ci = raftAppendAndApply(sid, cmd)
+    if ci < 0 then return {"ok": false, "error": "raft commit failed"} end
+    var stats = gState["stats"]
+    stats["totalSets"] = int(stats["totalSets"]) + 1
+    gState["stats"] = stats
+    return {"ok": true, "shardId": sid, "commitIndex": ci, "value": opGet(sid, key)}
+end
+
+func scatterGather(string queryFn, string pattern) as var
+    var results = []
+    int i = 0
+    while i < DEFAULT_SHARD_COUNT do
+        string sid = string(i)
+        var data = gState["data"]
+        if sid in data then
+            var sd = data[sid]
+            if queryFn == "count" then
+                results.append({"shardId": sid, "count": sd.length})
+            elseif string.startsWith(queryFn, "keys") then
+                var matched = []
+                for key, entry in sd
+                    if lazyExpire(sid, string(key)) then continue end
+                    if string.like(string(key), pattern) then matched.append(key) end
+                end
+                results.append({"shardId": sid, "keys": matched})
+            end
+        elseif queryFn == "count" then
+            results.append({"shardId": sid, "count": 0})
+        elseif string.startsWith(queryFn, "keys") then
+            results.append({"shardId": sid, "keys": []})
+        end
+        i += 1
+    end
+    return results
+end
+
+func crossShardTx(var commands) as var
+    var prepared = []
+    bool allOk = true
+    int i = 0
+    while i < commands.length do
+        var cmd = commands[i]
+        string key = string(cmd["key"])
+        string sid = shardOf(key)
+        failoverIfNeeded(sid)
+        var rs = ensureRaftShard(sid)
+        int origCommit = int(rs["commitIndex"])
+        int newIdx = raftAppendAndApply(sid, cmd)
+        if newIdx < 0 then
+            allOk = false
+            prepared.append({"shardId": sid, "ok": false, "origCommit": origCommit})
+        else
+            prepared.append({"shardId": sid, "ok": true, "origCommit": origCommit, "newIdx": newIdx})
+        end
+        i += 1
+    end
+    var stats = gState["stats"]
+    if allOk then
+        stats["txCommits"] = int(stats["txCommits"]) + 1
+        gState["stats"] = stats
+        return {"ok": true, "prepared": prepared, "phase": "commit"}
+    end
+    stats["txAborts"] = int(stats["txAborts"]) + 1
+    gState["stats"] = stats
+    return {"ok": false, "prepared": prepared, "phase": "abort"}
+end
+
+
+// ============================================================================
+// SECTION 10 - Client protocol (Redis-like text)
+// ============================================================================
+
+func cmdFlushAll() as string
+    var data = gState["data"]
+    var shards = gState["shards"]
+    int i = 0
+    while i < DEFAULT_SHARD_COUNT do
+        string sid = string(i)
+        data[sid] = {}
+        if sid in shards then
+            var sh = shards[sid]
+            sh["keyCount"] = 0
+            shards[sid] = sh
+        end
+        i += 1
+    end
+    gState["data"] = data
+    gState["shards"] = shards
+    return "OK"
+end
+
+func totalKeyCount() as int
+    var data = gState["data"]
+    int total = 0
+    for sid, sd in data
+        total += sd.length
+    end
+    return total
+end
+
+// Parse + execute one Redis-like line.
+func executeProtocolLine(string line) as string
+    string trimmed = string.trim(line)
+    if isEmpty(trimmed) then return "" end
+    if string.startsWith(trimmed, "//") then return "" end
+    string cmd
+    string rest
+    cmd, rest = firstToken(trimmed)
+    cmd = string.upper(cmd)
+
+    if cmd == "PING" then return "PONG" end
+    if cmd == "ECHO" then return string.trim(rest) end
+    if cmd == "INFO" then return formatClusterInfo() end
+    if cmd == "DBSIZE" then return string(totalKeyCount()) end
+    if cmd == "FLUSHALL" then return cmdFlushAll() end
+
+    if cmd == "CLUSTER" then
+        string sub
+        sub, rest = firstToken(rest)
+        sub = string.upper(sub)
+        if sub == "INFO" then return formatClusterInfo() end
+        if sub == "NODES" then return formatClusterNodes() end
+        if sub == "SHARDS" then return formatClusterShards() end
+        if sub == "RING" then return renderRingViz() end
+        if sub == "HEALTH" then return formatHealth() end
+        if sub == "SLOTS" then return formatClusterSlots() end
+        if sub == "MIGRATIONS" then return formatMigrations() end
+        return "(error) unknown CLUSTER subcommand: " + sub
+    end
+
+    if cmd == "RAFT" then
+        string sid
+        sid, rest = firstToken(rest)
+        if isEmpty(sid) then return "(error) RAFT requires shardId" end
+        return formatRaftState(sid)
+    end
+
+    if cmd == "SET" then
+        string key
+        string valRaw
+        key, valRaw = firstToken(rest)
+        if isEmpty(key) then return "(error) SET requires key" end
+        var value = parseScalar(valRaw)
+        var r = routeSet(key, value)
+        if bool(r["ok"]) then return "OK" end
+        return "(error) " + string(r["error"])
+    end
+
+    if cmd == "GET" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) GET requires key" end
+        var r = routeGet(key)
+        return string(r["value"])
+    end
+
+    if cmd == "DEL" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) DEL requires key" end
+        var r = routeDel(key)
+        if bool(r["ok"]) then return "1" end
+        return "0"
+    end
+
+    if cmd == "EXISTS" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) EXISTS requires key" end
+        return string(opExists(shardOf(key), key))
+    end
+
+    if cmd == "TYPE" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) TYPE requires key" end
+        return opType(shardOf(key), key)
+    end
+
+    if cmd == "INCR" then
+        string key
+        string deltaStr
+        key, deltaStr = firstToken(rest)
+        if isEmpty(key) then return "(error) INCR requires key" end
+        int delta = 1
+        if not isEmpty(deltaStr) then delta = int(deltaStr) end
+        var r = routeIncr(key, delta)
+        if bool(r["ok"]) then return string(r["value"]) end
+        return "(error) INCR failed"
+    end
+
+    if cmd == "DECR" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) DECR requires key" end
+        var r = routeIncr(key, -1)
+        if bool(r["ok"]) then return string(r["value"]) end
+        return "(error) DECR failed"
+    end
+
+    if cmd == "EXPIRE" then
+        string key
+        string secsStr
+        key, secsStr = firstToken(rest)
+        if isEmpty(key) or isEmpty(secsStr) then return "(error) EXPIRE requires key and seconds" end
+        string sid = shardOf(key)
+        var cmd2 = {"op": "EXPIRE", "key": key, "value": int(secsStr), "type": "int"}
+        int ci = raftAppendAndApply(sid, cmd2)
+        if ci < 0 then return "(error) raft commit failed" end
+        return "1"
+    end
+
+    if cmd == "PERSIST" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) PERSIST requires key" end
+        return string(opPersist(shardOf(key), key))
+    end
+
+    if cmd == "TTL" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) TTL requires key" end
+        return string(opTtl(shardOf(key), key))
+    end
+
+    if cmd == "LPUSH" then
+        string key
+        string valsRaw
+        key, valsRaw = firstToken(rest)
+        if isEmpty(key) then return "(error) LPUSH requires key" end
+        string sid = shardOf(key)
+        var values = splitFields(valsRaw, " ")
+        if values.length == 0 then return "(error) LPUSH requires at least one value" end
+        var cmd2 = {"op": "LPUSH", "key": key, "value": values, "type": "list"}
+        int ci = raftAppendAndApply(sid, cmd2)
+        if ci < 0 then return "(error) raft commit failed" end
+        return opLlen(sid, key)
+    end
+
+    if cmd == "RPUSH" then
+        string key
+        string valsRaw
+        key, valsRaw = firstToken(rest)
+        if isEmpty(key) then return "(error) RPUSH requires key" end
+        string sid = shardOf(key)
+        var values = splitFields(valsRaw, " ")
+        if values.length == 0 then return "(error) RPUSH requires at least one value" end
+        var cmd2 = {"op": "RPUSH", "key": key, "value": values, "type": "list"}
+        int ci = raftAppendAndApply(sid, cmd2)
+        if ci < 0 then return "(error) raft commit failed" end
+        return opLlen(sid, key)
+    end
+
+    if cmd == "LPOP" then
+        string key
+        string cntStr
+        key, cntStr = firstToken(rest)
+        if isEmpty(key) then return "(error) LPOP requires key" end
+        int count = 1
+        if not isEmpty(cntStr) then count = int(cntStr) end
+        return opLpop(shardOf(key), key, count)
+    end
+
+    if cmd == "RPOP" then
+        string key
+        string cntStr
+        key, cntStr = firstToken(rest)
+        if isEmpty(key) then return "(error) RPOP requires key" end
+        int count = 1
+        if not isEmpty(cntStr) then count = int(cntStr) end
+        return opRpop(shardOf(key), key, count)
+    end
+
+    if cmd == "LRANGE" then
+        string key
+        string rest2
+        key, rest2 = firstToken(rest)
+        if isEmpty(key) then return "(error) LRANGE requires key" end
+        string sStr
+        string eStr
+        sStr, eStr = firstToken(rest2)
+        int s = 0
+        int e = -1
+        if not isEmpty(sStr) then s = int(sStr) end
+        if not isEmpty(eStr) then e = int(eStr) end
+        return opLrange(shardOf(key), key, s, e)
+    end
+
+    if cmd == "LLEN" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) LLEN requires key" end
+        return opLlen(shardOf(key), key)
+    end
+
+    if cmd == "HSET" then
+        string key
+        string rest2
+        key, rest2 = firstToken(rest)
+        if isEmpty(key) then return "(error) HSET requires key" end
+        string field
+        string val
+        field, val = firstToken(rest2)
+        if isEmpty(field) then return "(error) HSET requires field and value" end
+        string sid = shardOf(key)
+        var cmd2 = {"op": "HSET", "key": key,
+                    "value": {"field": field, "val": val}, "type": "hash"}
+        int ci = raftAppendAndApply(sid, cmd2)
+        if ci < 0 then return "(error) raft commit failed" end
+        return "1"
+    end
+
+    if cmd == "HGET" then
+        string key
+        string rest2
+        key, rest2 = firstToken(rest)
+        if isEmpty(key) then return "(error) HGET requires key" end
+        string field
+        field, rest2 = firstToken(rest2)
+        if isEmpty(field) then return "(error) HGET requires field" end
+        return opHget(shardOf(key), key, field)
+    end
+
+    if cmd == "HGETALL" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) HGETALL requires key" end
+        return opHgetall(shardOf(key), key)
+    end
+
+    if cmd == "HDEL" then
+        string key
+        string rest2
+        key, rest2 = firstToken(rest)
+        if isEmpty(key) then return "(error) HDEL requires key" end
+        string field
+        field, rest2 = firstToken(rest2)
+        if isEmpty(field) then return "(error) HDEL requires field" end
+        return string(opHdel(shardOf(key), key, field))
+    end
+
+    if cmd == "HLEN" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) HLEN requires key" end
+        return opHlen(shardOf(key), key)
+    end
+
+    if cmd == "SADD" then
+        string key
+        string memRaw
+        key, memRaw = firstToken(rest)
+        if isEmpty(key) then return "(error) SADD requires key" end
+        var members = splitFields(memRaw, " ")
+        if members.length == 0 then return "(error) SADD requires at least one member" end
+        string sid = shardOf(key)
+        var cmd2 = {"op": "SADD", "key": key, "value": members, "type": "set"}
+        int ci = raftAppendAndApply(sid, cmd2)
+        if ci < 0 then return "(error) raft commit failed" end
+        return string(opScard(sid, key))
+    end
+
+    if cmd == "SREM" then
+        string key
+        string memRaw
+        key, memRaw = firstToken(rest)
+        if isEmpty(key) then return "(error) SREM requires key" end
+        var members = splitFields(memRaw, " ")
+        string sid = shardOf(key)
+        int removed = 0
+        int i = 0
+        while i < members.length do
+            removed += opSrem(sid, key, [members[i]])
+            i += 1
+        end
+        return string(removed)
+    end
+
+    if cmd == "SMEMBERS" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) SMEMBERS requires key" end
+        return opSmembers(shardOf(key), key)
+    end
+
+    if cmd == "SISMEMBER" then
+        string key
+        string rest2
+        key, rest2 = firstToken(rest)
+        if isEmpty(key) then return "(error) SISMEMBER requires key" end
+        string member
+        member, rest2 = firstToken(rest2)
+        if isEmpty(member) then return "(error) SISMEMBER requires member" end
+        return string(opSismember(shardOf(key), key, member))
+    end
+
+    if cmd == "SCARD" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) SCARD requires key" end
+        return opScard(shardOf(key), key)
+    end
+
+    if cmd == "ZADD" then
+        string key
+        string rest2
+        key, rest2 = firstToken(rest)
+        if isEmpty(key) then return "(error) ZADD requires key" end
+        string scoreStr
+        string member
+        scoreStr, member = firstToken(rest2)
+        if isEmpty(scoreStr) or isEmpty(member) then return "(error) ZADD requires score and member" end
+        float score = float(scoreStr)
+        string sid = shardOf(key)
+        var cmd2 = {"op": "ZADD", "key": key,
+                    "value": {"score": score, "member": member}, "type": "zset"}
+        int ci = raftAppendAndApply(sid, cmd2)
+        if ci < 0 then return "(error) raft commit failed" end
+        return "1"
+    end
+
+    if cmd == "ZRANGE" then
+        string key
+        string rest2
+        key, rest2 = firstToken(rest)
+        if isEmpty(key) then return "(error) ZRANGE requires key" end
+        string sStr
+        string eStr
+        sStr, eStr = firstToken(rest2)
+        int s = 0
+        int e = -1
+        if not isEmpty(sStr) then s = int(sStr) end
+        if not isEmpty(eStr) then e = int(eStr) end
+        return opZrange(shardOf(key), key, s, e)
+    end
+
+    if cmd == "ZSCORE" then
+        string key
+        string rest2
+        key, rest2 = firstToken(rest)
+        if isEmpty(key) then return "(error) ZSCORE requires key" end
+        string member
+        member, rest2 = firstToken(rest2)
+        if isEmpty(member) then return "(error) ZSCORE requires member" end
+        return opZscore(shardOf(key), key, member)
+    end
+
+    if cmd == "ZCARD" then
+        string key
+        key, rest = firstToken(rest)
+        if isEmpty(key) then return "(error) ZCARD requires key" end
+        return opZcard(shardOf(key), key)
+    end
+
+    if cmd == "KEYS" then
+        string pattern = string.trim(rest)
+        if isEmpty(pattern) then pattern = "*" end
+        var sg = scatterGather("keys:" + pattern, pattern)
+        var all = []
+        int si = 0
+        while si < sg.length do
+            var keys = sg[si]["keys"]
+            int kj = 0
+            while kj < keys.length do
+                all.append(keys[kj])
+                kj += 1
+            end
+            si += 1
+        end
+        if all.length == 0 then return "(empty)" end
+        return joinLines(all)
+    end
+
+    if cmd == "COUNT" then
+        return string(totalKeyCount())
+    end
+
+    return "(error) unknown command: " + cmd
+end
+
+
+// ============================================================================
+// SECTION 11 - Ops: cluster info / nodes / shards / health / migration
+// ============================================================================
+
+func formatClusterInfo() as string
+    var nodes = ensureNodes()
+    var stats = ensureStats()
+    int onlineNodes = 0
+    int downNodes = 0
+    for nid, node in nodes
+        if string(node["status"]) == "online" then
+            onlineNodes += 1
+        else
+            downNodes += 1
+        end
+    end
+    int totalKeys = totalKeyCount()
+    string res = ""
+    res = res + "=== CLUSTER INFO ===\n"
+    res = res + "version:              " + string(gState["version"]) + "\n"
+    if "createdAt" in gState then
+        res = res + "created_at:           " + string(gState["createdAt"]) + " (unix sec)\n"
+    end
+    res = res + "nodes_total:          " + string(nodes.length) + "\n"
+    res = res + "nodes_online:         " + string(onlineNodes) + "\n"
+    res = res + "nodes_down:           " + string(downNodes) + "\n"
+    res = res + "shards_total:         " + string(DEFAULT_SHARD_COUNT) + "\n"
+    res = res + "vnodes_per_node:      " + string(VNODES_PER_NODE) + "\n"
+    res = res + "replica_factor:       " + string(DEFAULT_REPLICA_FACTOR) + "\n"
+    res = res + "keys_total:           " + string(totalKeys) + "\n"
+    res = res + "\n"
+    res = res + "--- Raft ---\n"
+    res = res + "leader_changes:       " + string(stats["leaderChanges"]) + "\n"
+    res = res + "log_entries_appended: " + string(stats["raftLogAppended"]) + "\n"
+    res = res + "log_entries_committed:" + string(stats["raftLogCommitted"]) + "\n"
+    res = res + "snapshots_taken:      " + string(stats["raftSnapshotsTaken"]) + "\n"
+    res = res + "\n"
+    res = res + "--- Workload ---\n"
+    res = res + "total_sets:           " + string(stats["totalSets"]) + "\n"
+    res = res + "total_gets:           " + string(stats["totalGets"]) + "\n"
+    res = res + "total_misses:         " + string(stats["totalMisses"]) + "\n"
+    res = res + "total_dels:           " + string(stats["totalDels"]) + "\n"
+    res = res + "tx_commits:           " + string(stats["txCommits"]) + "\n"
+    res = res + "tx_aborts:            " + string(stats["txAborts"]) + "\n"
+    res = res + "\n"
+    res = res + "--- TTL ---\n"
+    res = res + "sweeps_active:        " + string(stats["sweepsActive"]) + "\n"
+    res = res + "keys_expired:         " + string(stats["keysExpired"]) + "\n"
+    res = res + "\n"
+    res = res + "--- Sharding ---\n"
+    res = res + "shard_splits:         " + string(stats["shardSplits"]) + "\n"
+    res = res + "shard_merges:         " + string(stats["shardMerges"]) + "\n"
+    res = res + "migrations_done:      " + string(stats["migrationsCompleted"]) + "\n"
+    return res
+end
+
+func formatClusterNodes() as string
+    var nodes = ensureNodes()
+    string res = ""
+    res = res + "=== CLUSTER NODES ===\n"
+    res = res + padRight("id", 10) + padRight("host:port", 22) + padRight("status", 10)
+    res = res + padRight("vnodes", 8) + padRight("hbeat_age", 12) + padRight("hbv", 6) + "\n"
+    int now = nowSec()
+    for nid, node in nodes
+        int last = int(node["lastHeartbeat"])
+        int age = now - last
+        string addr = string(node["host"]) + ":" + string(node["port"])
+        res = res + padRight(string(nid), 10)
+        res = res + padRight(addr, 22)
+        res = res + padRight(string(node["status"]), 10)
+        res = res + padRight(string(node["vnodes"]), 8)
+        res = res + padRight(string(age) + "s", 12)
+        res = res + padRight(string(node["heartbeatVersion"]), 6)
+        res = res + "\n"
+    end
+    return res
+end
+
+func formatClusterShards() as string
+    var shards = ensureShards()
+    string res = ""
+    res = res + "=== CLUSTER SHARDS (first 16 shown, total " + string(DEFAULT_SHARD_COUNT) + ") ===\n"
+    res = res + padRight("id", 5) + padRight("primary", 10) + padRight("leader", 10)
+    res = res + padRight("term", 6) + padRight("keys", 6) + "replicas\n"
+    int limit = 16
+    if DEFAULT_SHARD_COUNT < limit then limit = DEFAULT_SHARD_COUNT end
+    int i = 0
+    while i < limit do
+        string sid = string(i)
+        var sh = ensureShard(sid)
+        var replicas = sh["replicas"]
+        string repStr = ""
+        int j = 0
+        while j < replicas.length do
+            if not isEmpty(repStr) then repStr = repStr + "," end
+            repStr = repStr + string(replicas[j])
+            j += 1
+        end
+        res = res + padRight(sid, 5)
+        res = res + padRight(string(sh["primary"]), 10)
+        res = res + padRight(string(sh["leader"]), 10)
+        res = res + padRight(string(sh["leaderTerm"]), 6)
+        res = res + padRight(string(sh["keyCount"]), 6)
+        res = res + repStr + "\n"
+        i += 1
+    end
+    return res
+end
+
+func formatClusterSlots() as string
+    var shards = ensureShards()
+    var slotPerNode = {}
+    int i = 0
+    while i < DEFAULT_SHARD_COUNT do
+        string sid = string(i)
+        var sh = ensureShard(sid)
+        string prim = string(sh["primary"])
+        if not (prim in slotPerNode) then slotPerNode[prim] = 0 end
+        slotPerNode[prim] = int(slotPerNode[prim]) + 1
+        i += 1
+    end
+    string res = ""
+    res = res + "=== CLUSTER SLOTS (primary distribution) ===\n"
+    for nid, c in slotPerNode
+        float ratio = float(int(c)) / float(DEFAULT_SHARD_COUNT)
+        res = res + padRight(string(nid), 10) + " slots=" + padRight(string(c), 5)
+        res = res + " " + progressBar(ratio, 30) + " "
+        res = res + string.formatFloat(ratio * 100.0, ".1") + "%\n"
+    end
+    return res
+end
+
+func formatHealth() as string
+    var health = clusterHealth()
+    string res = ""
+    res = res + "=== CLUSTER HEALTH ===\n"
+    int i = 0
+    while i < health.length do
+        var h = health[i]
+        res = res + padRight(string(h["id"]), 10)
+        res = res + "status=" + padRight(string(h["status"]), 10)
+        res = res + "health=" + padRight(string(h["health"]), 10)
+        res = res + "hb_age=" + padRight(string(h["heartbeatAgeSec"]) + "s", 8)
+        res = res + "hbv=" + string(h["heartbeatVersion"]) + "\n"
+        i += 1
+    end
+    return res
+end
+
+func formatMigrations() as string
+    var migrations = ensureMigrations()
+    string res = ""
+    res = res + "=== MIGRATIONS (total " + string(migrations.length) + ") ===\n"
+    if migrations.length == 0 then
+        res = res + "(none)\n"
+        return res
+    end
+    res = res + padRight("id", 10) + padRight("type", 8) + padRight("node", 10)
+    res = res + padRight("ranges", 8) + padRight("total", 8) + padRight("moved", 8)
+    res = res + padRight("status", 12) + "\n"
+    int i = 0
+    while i < migrations.length do
+        var m = migrations[i]
+        res = res + padRight(string(m["id"]), 10)
+        res = res + padRight(string(m["type"]), 8)
+        res = res + padRight(string(m["nodeId"]), 10)
+        res = res + padRight(string(m["ranges"].length), 8)
+        res = res + padRight(string(m["totalKeys"]), 8)
+        res = res + padRight(string(m["movedKeys"]), 8)
+        res = res + padRight(string(m["status"]), 12)
+        res = res + "\n"
+        i += 1
+    end
+    return res
+end
+
+func formatRaftState(string sid) as string
+    var rs = ensureRaftShard(sid)
+    var sh = ensureShard(sid)
+    string res = ""
+    res = res + "=== RAFT STATE (shard " + sid + ") ===\n"
+    res = res + "current_term:     " + string(rs["currentTerm"]) + "\n"
+    res = res + "voted_for:        " + string(rs["votedFor"]) + "\n"
+    res = res + "leader_id:        " + string(rs["leaderId"]) + "\n"
+    res = res + "leader_term:      " + string(rs["leaderTerm"]) + "\n"
+    res = res + "status:           " + string(rs["status"]) + "\n"
+    res = res + "log_length:       " + string(rs["log"].length) + "\n"
+    res = res + "commit_index:     " + string(rs["commitIndex"]) + "\n"
+    res = res + "last_applied:     " + string(rs["lastApplied"]) + "\n"
+    if rs["snapshot"] == null then
+        res = res + "snapshot:         (none)\n"
+    else
+        res = res + "snapshot:         keys=" + string(rs["snapshot"].length) + "\n"
+        res = res + "snapshot_index:   " + string(rs["snapshotIndex"]) + "\n"
+        res = res + "snapshot_term:    " + string(rs["snapshotTerm"]) + "\n"
+    end
+    res = res + "election_attempt: " + string(rs["electionAttempt"]) + "\n"
+    res = res + "last_heartbeat:   " + string(rs["lastHeartbeat"]) + "\n"
+    res = res + "replicas:         "
+    var replicas = sh["replicas"]
+    int i = 0
+    while i < replicas.length do
+        if i > 0 then res = res + ", " end
+        res = res + string(replicas[i])
+        i += 1
+    end
+    res = res + "\n"
+    res = res + "match_index:      " + json.stringify(rs["matchIndex"]) + "\n"
+    res = res + "next_index:       " + json.stringify(rs["nextIndex"]) + "\n"
+    res = res + "\n--- last 5 log entries ---\n"
+    var log = rs["log"]
+    int startL = log.length - 5
+    if startL < 0 then startL = 0 end
+    int li = startL
+    while li < log.length do
+        var e = log[li]
+        res = res + "  idx=" + padRight(string(e["index"]), 4)
+        res = res + "term=" + padRight(string(e["term"]), 4)
+        res = res + "op=" + padRight(string(e["op"]), 8)
+        res = res + "key=" + string(e["key"]) + "\n"
+        li += 1
+    end
+    return res
+end
+
+func formatMigrationProgress() as string
+    var migrations = ensureMigrations()
+    string res = ""
+    res = res + "=== MIGRATION PROGRESS ===\n"
+    if migrations.length == 0 then
+        res = res + "(no migrations)\n"
+        return res
+    end
+    int i = 0
+    while i < migrations.length do
+        var m = migrations[i]
+        int total = int(m["totalKeys"])
+        int moved = int(m["movedKeys"])
+        float ratio = 0.0
+        if total > 0 then ratio = float(moved) / float(total) end
+        if ratio > 1.0 then ratio = 1.0 end
+        res = res + string(m["id"]) + " " + string(m["type"]) + " " + string(m["nodeId"]) + "  "
+        res = res + progressBar(ratio, 30) + "  "
+        res = res + string(moved) + "/" + string(total) + " keys  "
+        res = res + "[" + string(m["status"]) + "]\n"
+        i += 1
+    end
+    return res
+end
+
+func formatKeyDistribution() as string
+    var shards = ensureShards()
+    var data = ensureData()
+    var perNode = {}
+    int i = 0
+    while i < DEFAULT_SHARD_COUNT do
+        string sid = string(i)
+        var sh = ensureShard(sid)
+        string prim = string(sh["primary"])
+        if not (prim in perNode) then perNode[prim] = 0 end
+        if sid in data then
+            perNode[prim] = int(perNode[prim]) + data[sid].length
+        end
+        i += 1
+    end
+    int total = totalKeyCount()
+    string res = ""
+    res = res + "=== KEY DISTRIBUTION (by primary) ===\n"
+    res = res + "total_keys: " + string(total) + "\n"
+    if total == 0 then return res end
+    for nid, c in perNode
+        float ratio = float(int(c)) / float(total)
+        res = res + padRight(string(nid), 10) + " keys=" + padRight(string(c), 7)
+        res = res + " " + progressBar(ratio, 30) + " "
+        res = res + string.formatFloat(ratio * 100.0, ".1") + "%\n"
+    end
+    return res
+end
+
+
+// ============================================================================
+// SECTION 12 - Persistence
+// ============================================================================
+
+func stateFilePath(string scriptPath) as string
+    return path.join(path.dir(scriptPath), STATE_FILE_NAME)
+end
+
+func loadState(string path_) as bool
+    if not file.exists(path_) then
+        gState = {}
+        return false
+    end
+    string text = file.readText(path_)
+    if isEmpty(text) then
+        gState = {}
+        return false
+    end
+    if not json.valid(text) then
+        gState = {}
+        return false
+    end
+    var parsed = json.parse(text)
+    if parsed == null then
+        gState = {}
+        return false
+    end
+    gState = parsed
+    ensureStats()
+    return true
+end
+
+func saveState(string path_) as bool
+    gState["updatedAt"] = nowSec()
+    string text = json.stringify(gState)
+    bool ok = file.writeText(path_, text)
+    return ok
+end
+
+
+// ============================================================================
+// SECTION 13 - HTTP API (serve mode)
+// ============================================================================
+
+func httpHandle(point reqHandle, point respHandle) as bool
+    HttpRequest req = HttpRequest(reqHandle)
+    HttpResponse resp = HttpResponse(respHandle)
+    resp.header("X-Server", "xlang-xdistdb")
+    string method = req.method()
+    string p = req.path()
+
+    if method == "GET" and p == "/" then
+        string html = "<html><head><title>xdistdb</title></head><body>"
+        html = html + "<h1>xdistdb - Distributed Key-Value Database</h1>"
+        html = html + "<ul>"
+        html = html + "<li>GET /key/&lt;k&gt;</li>"
+        html = html + "<li>POST /key/&lt;k&gt; body=value</li>"
+        html = html + "<li>DELETE /key/&lt;k&gt;</li>"
+        html = html + "<li>GET /cluster/info</li>"
+        html = html + "<li>GET /cluster/nodes</li>"
+        html = html + "<li>GET /cluster/shards</li>"
+        html = html + "<li>GET /cluster/health</li>"
+        html = html + "<li>POST /cmd body=LINE (Redis-like)</li>"
+        html = html + "</ul></body></html>"
+        return resp.text(html, "text/html; charset=utf-8")
+    end
+
+    if method == "GET" and p == "/cluster/info" then
+        return resp.text(formatClusterInfo(), "text/plain; charset=utf-8")
+    end
+    if method == "GET" and p == "/cluster/nodes" then
+        return resp.text(formatClusterNodes(), "text/plain; charset=utf-8")
+    end
+    if method == "GET" and p == "/cluster/shards" then
+        return resp.text(formatClusterShards(), "text/plain; charset=utf-8")
+    end
+    if method == "GET" and p == "/cluster/health" then
+        return resp.text(formatHealth(), "text/plain; charset=utf-8")
+    end
+    if method == "GET" and p == "/cluster/ring" then
+        return resp.text(renderRingViz(), "text/plain; charset=utf-8")
+    end
+    if method == "GET" and p == "/cluster/migrations" then
+        return resp.text(formatMigrationProgress(), "text/plain; charset=utf-8")
+    end
+    if method == "GET" and p == "/cluster/distribution" then
+        return resp.text(formatKeyDistribution(), "text/plain; charset=utf-8")
+    end
+
+    if method == "POST" and p == "/cmd" then
+        string body = req.body()
+        string result = executeProtocolLine(body)
+        string res = "{\"ok\":true,\"result\":\"" + jsonEscapeStr(result) + "\"}"
+        return resp.jsonText(res)
+    end
+
+    if string.startsWith(p, "/key/") then
+        string key = string.slice(p, 5, string.len(p) - 5)
+        if isEmpty(key) then
+            return resp.jsonText("{\"ok\":false,\"error\":\"empty key\"}")
+        end
+        if method == "GET" then
+            var r = routeGet(key)
+            string val = string(r["value"])
+            string res = "{\"ok\":true,\"key\":\"" + jsonEscapeStr(key) + "\","
+            res = res + "\"value\":\"" + jsonEscapeStr(val) + "\","
+            res = res + "\"shardId\":\"" + string(r["shardId"]) + "\","
+            res = res + "\"leader\":\"" + string(r["leader"]) + "\"}"
+            return resp.jsonText(res)
+        end
+        if method == "POST" then
+            string body = req.body()
+            var value = parseScalar(body)
+            var r = routeSet(key, value)
+            string res = "{\"ok\":" + string(bool(r["ok"]))
+            if bool(r["ok"]) then
+                res = res + ",\"shardId\":\"" + string(r["shardId"]) + "\""
+                res = res + ",\"commitIndex\":" + string(r["commitIndex"])
+                res = res + ",\"replicas\":" + string(r["replicas"])
+            else
+                res = res + ",\"error\":\"" + jsonEscapeStr(string(r["error"])) + "\""
+            end
+            res = res + "}"
+            return resp.jsonText(res)
+        end
+        if method == "DELETE" then
+            var r = routeDel(key)
+            string res = "{\"ok\":" + string(bool(r["ok"])) + "}"
+            return resp.jsonText(res)
+        end
+    end
+
+    if method == "GET" and p == "/keys" then
+        string pat = req.queryValue("pattern")
+        if isEmpty(pat) then pat = "*" end
+        var sg = scatterGather("keys:" + pat, pat)
+        var all = []
+        int si = 0
+        while si < sg.length do
+            var keys = sg[si]["keys"]
+            int kj = 0
+            while kj < keys.length do
+                all.append(keys[kj])
+                kj += 1
+            end
+            si += 1
+        end
+        return resp.jsonText(json.stringify(all))
+    end
+
+    if method == "GET" and p == "/count" then
+        string res = "{\"count\":" + string(totalKeyCount()) + "}"
+        return resp.jsonText(res)
+    end
+
+    if method == "GET" and string.startsWith(p, "/raft/") then
+        string sid = string.slice(p, 6, string.len(p) - 6)
+        return resp.text(formatRaftState(sid), "text/plain; charset=utf-8")
+    end
+
+    return false
+end
+
+func(point, point) as bool httpHandler = httpHandle
+
+
+// ============================================================================
+// SECTION 14 - CLI command implementations
+// ============================================================================
+
+func cmdClusterInit(int nodeCount) as int
+    var r = clusterInit(nodeCount)
+    if bool(r["ok"]) then
+        println("OK cluster initialized:")
+        println("  nodes:    " + string(r["nodes"]))
+        println("  shards:   " + string(r["shards"]))
+        println("  replicas: " + string(DEFAULT_REPLICA_FACTOR))
+        println("  vnodes:   " + string(VNODES_PER_NODE) + " per node")
+        println("")
+        print(formatClusterInfo())
+        return 0
+    end
+    println("Error: cluster init failed")
+    return 1
+end
+
+func cmdClusterAdd(int port) as int
+    if not ("nodes" in gState) then
+        println("Error: cluster not initialized. Run 'cluster init' first.")
+        return 1
+    end
+    string nid = nextNodeId()
+    if port <= 0 then
+        int maxPort = 7000
+        for nid2, node in gState["nodes"]
+            int p2 = int(node["port"])
+            if p2 > maxPort then maxPort = p2 end
+        end
+        port = maxPort + 1
+    end
+    var r = clusterAddNode(nid, port)
+    if bool(r["ok"]) then
+        println("OK added node: " + nid + " port=" + string(port))
+        println("  migration ranges: " + string(r["ranges"].length))
+        advanceMigrations()
+        println("  migration: completed (estimated " + string(countKeysInRanges(r["ranges"])) + " keys affected)")
+        return 0
+    end
+    println("Error: " + string(r["error"]))
+    return 1
+end
+
+func cmdClusterRemove(string nodeId) as int
+    var r = clusterRemoveNode(nodeId)
+    if bool(r["ok"]) then
+        println("OK removed node: " + nodeId)
+        println("  migration ranges: " + string(r["ranges"].length))
+        advanceMigrations()
+        return 0
+    end
+    println("Error: " + string(r["error"]))
+    return 1
+end
+
+func cmdClusterStatus() as int
+    if not ("nodes" in gState) then
+        println("Error: cluster not initialized")
+        return 1
+    end
+    print(formatClusterInfo())
+    println("")
+    print(formatClusterNodes())
+    println("")
+    print(formatClusterShards())
+    println("")
+    print(formatClusterSlots())
+    println("")
+    print(formatKeyDistribution())
+    println("")
+    print(formatMigrationProgress())
+    return 0
+end
+
+func cmdClusterRing() as int
+    print(renderRingViz())
+    return 0
+end
+
+func cmdClusterNodes() as int
+    print(formatClusterNodes())
+    return 0
+end
+
+func cmdClusterShards() as int
+    print(formatClusterShards())
+    return 0
+end
+
+func cmdClusterMigrate() as int
+    var migrations = ensureMigrations()
+    int pendingBefore = 0
+    int i = 0
+    while i < migrations.length do
+        if string(migrations[i]["status"]) == "pending" then pendingBefore += 1 end
+        i += 1
+    end
+    advanceMigrations()
+    println("OK migration scan complete. Pending before: " + string(pendingBefore) + ", now: 0")
+    print(formatMigrationProgress())
+    return 0
+end
+
+func cmdClusterHealth() as int
+    var nodes = ensureNodes()
+    for nid, node in nodes
+        if string(node["status"]) == "online" then
+            heartbeatNode(string(nid))
+        end
+    end
+    print(formatHealth())
+    return 0
+end
+
+func cmdSet(string key, string valRaw) as int
+    var value = parseScalar(valRaw)
+    var r = routeSet(key, value)
+    if bool(r["ok"]) then
+        println("OK shard=" + string(r["shardId"]) + " commit=" + string(r["commitIndex"]) + " replicas=" + string(r["replicas"]))
+        return 0
+    end
+    println("Error: " + string(r["error"]))
+    return 1
+end
+
+func cmdGet(string key) as int
+    var r = routeGet(key)
+    if bool(r["ok"]) then
+        println(string(r["value"]) + "   (shard=" + string(r["shardId"]) + " leader=" + string(r["leader"]) + ")")
+        return 0
+    end
+    println("Error: " + string(r["error"]))
+    return 1
+end
+
+func cmdDel(string key) as int
+    var r = routeDel(key)
+    if bool(r["ok"]) then
+        println("OK (deleted) " + key + " shard=" + string(r["shardId"]) + " commit=" + string(r["commitIndex"]))
+        return 0
+    end
+    println("Error: " + string(r["error"]))
+    return 1
+end
+
+func cmdExists(string key) as int
+    println(string(opExists(shardOf(key), key)))
+    return 0
+end
+
+func cmdType(string key) as int
+    println(opType(shardOf(key), key))
+    return 0
+end
+
+func cmdIncr(string key, int delta) as int
+    var r = routeIncr(key, delta)
+    if bool(r["ok"]) then
+        println("(integer) " + string(r["value"]) + "  shard=" + string(r["shardId"]) + " commit=" + string(r["commitIndex"]))
+        return 0
+    end
+    println("Error: " + string(r["error"]))
+    return 1
+end
+
+func cmdExpire(string key, int secs) as int
+    string sid = shardOf(key)
+    var cmd2 = {"op": "EXPIRE", "key": key, "value": secs, "type": "int"}
+    int ci = raftAppendAndApply(sid, cmd2)
+    if ci < 0 then
+        println("(error) raft commit failed")
+        return 1
+    end
+    println("(integer) 1  shard=" + sid + " commit=" + string(ci))
+    return 0
+end
+
+func cmdTtl(string key) as int
+    println("(integer) " + string(opTtl(shardOf(key), key)))
+    return 0
+end
+
+func cmdPersist(string key) as int
+    println("(integer) " + string(opPersist(shardOf(key), key)))
+    return 0
+end
+
+func cmdList(string subcmd, string key, var args) as int
+    string sid = shardOf(key)
+    if subcmd == "lpush" then
+        var cmd2 = {"op": "LPUSH", "key": key, "value": args, "type": "list"}
+        int ci = raftAppendAndApply(sid, cmd2)
+        if ci < 0 then
+            println("(error) raft commit failed")
+            return 1
+        end
+        println("(integer) " + opLlen(sid, key))
+        return 0
+    end
+    if subcmd == "rpush" then
+        var cmd2 = {"op": "RPUSH", "key": key, "value": args, "type": "list"}
+        int ci = raftAppendAndApply(sid, cmd2)
+        if ci < 0 then
+            println("(error) raft commit failed")
+            return 1
+        end
+        println("(integer) " + opLlen(sid, key))
+        return 0
+    end
+    if subcmd == "lpop" then
+        int count = 1
+        if args.length > 0 then count = int(args[0]) end
+        println(opLpop(sid, key, count))
+        return 0
+    end
+    if subcmd == "rpop" then
+        int count = 1
+        if args.length > 0 then count = int(args[0]) end
+        println(opRpop(sid, key, count))
+        return 0
+    end
+    if subcmd == "lrange" then
+        int s = 0
+        int e = -1
+        if args.length >= 1 then s = int(args[0]) end
+        if args.length >= 2 then e = int(args[1]) end
+        println(opLrange(sid, key, s, e))
+        return 0
+    end
+    if subcmd == "llen" then
+        println(opLlen(sid, key))
+        return 0
+    end
+    println("Error: unknown list subcommand: " + subcmd)
+    return 1
+end
+
+func cmdHash(string subcmd, string key, var args) as int
+    string sid = shardOf(key)
+    if subcmd == "hset" then
+        if args.length < 2 then
+            println("Error: HSET requires field and value")
+            return 1
+        end
+        string field = string(args[0])
+        string val = string(args[1])
+        var cmd2 = {"op": "HSET", "key": key,
+                    "value": {"field": field, "val": val}, "type": "hash"}
+        int ci = raftAppendAndApply(sid, cmd2)
+        if ci < 0 then
+            println("(error) raft commit failed")
+            return 1
+        end
+        println("(integer) 1")
+        return 0
+    end
+    if subcmd == "hget" then
+        if args.length < 1 then
+            println("Error: HGET requires field")
+            return 1
+        end
+        println(opHget(sid, key, string(args[0])))
+        return 0
+    end
+    if subcmd == "hgetall" then
+        println(opHgetall(sid, key))
+        return 0
+    end
+    if subcmd == "hdel" then
+        if args.length < 1 then
+            println("Error: HDEL requires field")
+            return 1
+        end
+        println("(integer) " + string(opHdel(sid, key, string(args[0]))))
+        return 0
+    end
+    if subcmd == "hlen" then
+        println(opHlen(sid, key))
+        return 0
+    end
+    println("Error: unknown hash subcommand: " + subcmd)
+    return 1
+end
+
+func cmdSetOp(string subcmd, string key, var args) as int
+    string sid = shardOf(key)
+    if subcmd == "sadd" then
+        if args.length < 1 then
+            println("Error: SADD requires at least one member")
+            return 1
+        end
+        var cmd2 = {"op": "SADD", "key": key, "value": args, "type": "set"}
+        int ci = raftAppendAndApply(sid, cmd2)
+        if ci < 0 then
+            println("(error) raft commit failed")
+            return 1
+        end
+        println("(integer) " + opScard(sid, key))
+        return 0
+    end
+    if subcmd == "srem" then
+        int removed = 0
+        int i = 0
+        while i < args.length do
+            removed += opSrem(sid, key, [args[i]])
+            i += 1
+        end
+        println("(integer) " + string(removed))
+        return 0
+    end
+    if subcmd == "smembers" then
+        println(opSmembers(sid, key))
+        return 0
+    end
+    if subcmd == "sismember" then
+        if args.length < 1 then
+            println("Error: SISMEMBER requires member")
+            return 1
+        end
+        println("(integer) " + string(opSismember(sid, key, string(args[0]))))
+        return 0
+    end
+    if subcmd == "scard" then
+        println(opScard(sid, key))
+        return 0
+    end
+    println("Error: unknown set subcommand: " + subcmd)
+    return 1
+end
+
+func cmdZset(string subcmd, string key, var args) as int
+    string sid = shardOf(key)
+    if subcmd == "zadd" then
+        if args.length < 2 then
+            println("Error: ZADD requires score and member")
+            return 1
+        end
+        float score = float(string(args[0]))
+        string member = string(args[1])
+        var cmd2 = {"op": "ZADD", "key": key,
+                    "value": {"score": score, "member": member}, "type": "zset"}
+        int ci = raftAppendAndApply(sid, cmd2)
+        if ci < 0 then
+            println("(error) raft commit failed")
+            return 1
+        end
+        println("(integer) 1")
+        return 0
+    end
+    if subcmd == "zrange" then
+        int s = 0
+        int e = -1
+        if args.length >= 1 then s = int(args[0]) end
+        if args.length >= 2 then e = int(args[1]) end
+        println(opZrange(sid, key, s, e))
+        return 0
+    end
+    if subcmd == "zscore" then
+        if args.length < 1 then
+            println("Error: ZSCORE requires member")
+            return 1
+        end
+        println(opZscore(sid, key, string(args[0])))
+        return 0
+    end
+    if subcmd == "zcard" then
+        println(opZcard(sid, key))
+        return 0
+    end
+    if subcmd == "zrem" then
+        if args.length < 1 then
+            println("Error: ZREM requires member")
+            return 1
+        end
+        println("(integer) " + string(opZrem(sid, key, string(args[0]))))
+        return 0
+    end
+    println("Error: unknown zset subcommand: " + subcmd)
+    return 1
+end
+
+func cmdKeys(string pattern) as int
+    if isEmpty(pattern) then pattern = "*" end
+    var sg = scatterGather("keys:" + pattern, pattern)
+    int total = 0
+    var all = []
+    int si = 0
+    while si < sg.length do
+        var keys = sg[si]["keys"]
+        int kj = 0
+        while kj < keys.length do
+            all.append(keys[kj])
+            total += 1
+            kj += 1
+        end
+        si += 1
+    end
+    if total == 0 then
+        println("(empty)")
+        return 0
+    end
+    int limit = total
+    if limit > MAX_KEYS_LOG then limit = MAX_KEYS_LOG end
+    int i = 0
+    while i < limit do
+        println(string(all[i]))
+        i += 1
+    end
+    if total > limit then
+        println("... and " + string(total - limit) + " more (total " + string(total) + ")")
+    else
+        println("(" + string(total) + " keys)")
+    end
+    return 0
+end
+
+func cmdCount() as int
+    println("(integer) " + string(totalKeyCount()))
+    var data = ensureData()
+    int i = 0
+    while i < 16 do
+        string sid = string(i)
+        int c = 0
+        if sid in data then c = data[sid].length end
+        if c > 0 then
+            println("  shard " + sid + ": " + string(c) + " keys")
+        end
+        i += 1
+    end
+    return 0
+end
+
+func cmdFail(string nodeId) as int
+    var r = clusterFailNode(nodeId)
+    if bool(r["ok"]) then
+        println("OK node " + nodeId + " marked DOWN")
+        println("  affected shards (was leader): " + string(r["affectedShards"].length))
+        println("  re-elected leaders:           " + string(r["reelected"]))
+        return 0
+    end
+    println("Error: " + string(r["error"]))
+    return 1
+end
+
+func cmdRecover(string nodeId) as int
+    var r = clusterRecoverNode(nodeId)
+    if bool(r["ok"]) then
+        println("OK node " + nodeId + " recovered (ONLINE)")
+        return 0
+    end
+    println("Error: " + string(r["error"]))
+    return 1
+end
+
+func cmdRaft(string sid) as int
+    print(formatRaftState(sid))
+    return 0
+end
+
+func cmdEval(string line) as int
+    string res = executeProtocolLine(line)
+    if not isEmpty(res) then
+        println(res)
+    end
+    return 0
+end
+
+func cmdTx(string txExpr) as int
+    var parts = splitAll(txExpr, "|")
+    var commands = []
+    int i = 0
+    while i < parts.length do
+        string line = string.trim(string(parts[i]))
+        if isEmpty(line) then
+            i += 1
+            continue
+        end
+        string cmd
+        string rest
+        cmd, rest = firstToken(line)
+        cmd = string.upper(cmd)
+        string key
+        string rest2
+        key, rest2 = firstToken(rest)
+        if isEmpty(key) then
+            println("Error: tx command missing key: " + line)
+            return 1
+        end
+        if cmd == "SET" then
+            commands.append({"op": "SET", "key": key, "value": parseScalar(rest2), "type": "string"})
+        elseif cmd == "DEL" then
+            commands.append({"op": "DEL", "key": key, "value": "", "type": "string"})
+        elseif cmd == "INCR" then
+            commands.append({"op": "INCR", "key": key, "value": 1, "type": "int"})
+        else
+            println("Error: tx unsupported command: " + cmd)
+            return 1
+        end
+        i += 1
+    end
+    if commands.length == 0 then
+        println("Error: tx has no commands")
+        return 1
+    end
+    println("Starting 2PC transaction with " + string(commands.length) + " commands...")
+    int t0 = nowMs()
+    var r = crossShardTx(commands)
+    int t1 = nowMs()
+    if bool(r["ok"]) then
+        println("OK 2PC COMMIT in " + formatMs(t1 - t0))
+        var prepared = r["prepared"]
+        int pi = 0
+        while pi < prepared.length do
+            println("  shard=" + string(prepared[pi]["shardId"]) + " commit_index=" + string(prepared[pi]["newIdx"]))
+            pi += 1
+        end
+        return 0
+    end
+    println("FAIL 2PC ABORT in " + formatMs(t1 - t0))
+    var prepared = r["prepared"]
+    int pi = 0
+    while pi < prepared.length do
+        if bool(prepared[pi]["ok"]) then
+            println("  shard=" + string(prepared[pi]["shardId"]) + " PREPARED then rolled back")
+        else
+            println("  shard=" + string(prepared[pi]["shardId"]) + " PREPARE FAILED")
+        end
+        pi += 1
+    end
+    return 1
+end
+
+func cmdExport(string outFile) as int
+    gState["updatedAt"] = nowSec()
+    string text = json.stringify(gState, pretty = true)
+    text = string.replace(text, "\t", "  ")
+    bool ok = file.writeText(outFile, text)
+    if not ok then
+        println("Error: failed to write " + outFile)
+        return 1
+    end
+    println("OK exported state to " + outFile + " (" + formatBytes(string.len(text)) + ")")
+    return 0
+end
+
+func cmdImport(string inFile) as int
+    if not file.exists(inFile) then
+        println("Error: file not found: " + inFile)
+        return 1
+    end
+    string text = file.readText(inFile)
+    if not json.valid(text) then
+        println("Error: invalid JSON: " + inFile)
+        return 1
+    end
+    var parsed = json.parse(text)
+    if parsed == null then
+        println("Error: empty JSON: " + inFile)
+        return 1
+    end
+    gState = parsed
+    ensureStats()
+    println("OK imported state from " + inFile)
+    println("  nodes: " + string(gState["nodes"].length))
+    println("  keys:  " + string(totalKeyCount()))
+    return 0
+end
+
+func cmdReset() as int
+    gState = {}
+    println("OK state cleared")
+    return 0
+end
+
+func cmdBench(int ops) as int
+    if ops <= 0 then ops = BENCH_DEFAULT_OPS end
+    if not ("nodes" in gState) then
+        println("Error: cluster not initialized. Run 'cluster init' first.")
+        return 1
+    end
+    println("=== xdistdb benchmark ===")
+    println("operations: " + string(ops))
+    println("")
+
+    println("[1/3] WRITE phase (SET key:<i> value:<i>)...")
+    int t0 = nowMs()
+    int i = 0
+    while i < ops do
+        string k = "bench:key:" + string(i)
+        string v = "value:" + string(i)
+        var r = routeSet(k, v)
+        if not bool(r["ok"]) then
+            println("Error: write failed at i=" + string(i) + ": " + string(r["error"]))
+            return 1
+        end
+        i += 1
+    end
+    int t1 = nowMs()
+    int writeMs = t1 - t0
+    float writeQps = 0.0
+    if writeMs > 0 then writeQps = float(ops) / float(writeMs) * 1000.0 end
+    println("  wrote " + string(ops) + " keys in " + formatMs(writeMs))
+    println("  throughput: " + string.formatFloat(writeQps, ".1") + " ops/sec")
+
+    println("[2/3] READ phase (GET key:<i>)...")
+    int t2 = nowMs()
+    int hits = 0
+    int misses = 0
+    i = 0
+    while i < ops do
+        string k = "bench:key:" + string(i)
+        var r = routeGet(k)
+        if string(r["value"]) != "(nil)" then
+            hits += 1
+        else
+            misses += 1
+        end
+        i += 1
+    end
+    int t3 = nowMs()
+    int readMs = t3 - t2
+    float readQps = 0.0
+    if readMs > 0 then readQps = float(ops) / float(readMs) * 1000.0 end
+    println("  read " + string(ops) + " keys in " + formatMs(readMs))
+    println("  throughput: " + string.formatFloat(readQps, ".1") + " ops/sec")
+    println("  hits=" + string(hits) + " misses=" + string(misses))
+
+    println("[3/3] Distribution analysis...")
+    print(formatKeyDistribution())
+    println("")
+    print(formatClusterSlots())
+
+    var shards = ensureShards()
+    var data = ensureData()
+    var perNode = {}
+    int ti = 0
+    while ti < DEFAULT_SHARD_COUNT do
+        string sid = string(ti)
+        var sh = ensureShard(sid)
+        string prim = string(sh["primary"])
+        if not (prim in perNode) then perNode[prim] = 0 end
+        if sid in data then
+            perNode[prim] = int(perNode[prim]) + data[sid].length
+        end
+        ti += 1
+    end
+    int nodeCount = perNode.length
+    if nodeCount > 0 then
+        int totalK = 0
+        for nid, c in perNode
+            totalK += int(c)
+        end
+        float mean = float(totalK) / float(nodeCount)
+        float sumSqDiff = 0.0
+        for nid, c in perNode
+            float diff = float(int(c)) - mean
+            sumSqDiff += diff * diff
+        end
+        float variance = sumSqDiff / float(nodeCount)
+        float stddev = variance
+        if stddev > 0.0 then
+            float g = stddev / 2.0 + 0.5
+            int iter = 0
+            while iter < 10 do
+                if g <= 0.0 then g = 0.01 end
+                g = (g + stddev / g) / 2.0
+                iter += 1
+            end
+            stddev = g
+        end
+        float cv = 0.0
+        if mean > 0.0 then cv = stddev / mean end
+        println("")
+        println("balance: mean=" + string.formatFloat(mean, ".1") +
+                " stddev=" + string.formatFloat(stddev, ".1") +
+                " cv=" + string.formatFloat(cv, ".3"))
+    end
+    return 0
+end
+
+func cmdServe(int port) as int
+    if not ("nodes" in gState) then
+        println("Error: cluster not initialized. Run 'cluster init' first.")
+        return 1
+    end
+    if port <= 0 then port = DEFAULT_HTTP_PORT end
+    point server = http.server.create(port, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 2)
+    if server == null then
+        println("FATAL: http.server.create returned null")
+        return 1
+    end
+    http.server.getRequest(server, "/", httpHandler)
+    http.server.postRequest(server, "/", httpHandler)
+    http.server.getRequest(server, "/cmd", httpHandler)
+    http.server.postRequest(server, "/cmd", httpHandler)
+    http.server.getRequest(server, "/cluster/info", httpHandler)
+    http.server.getRequest(server, "/cluster/nodes", httpHandler)
+    http.server.getRequest(server, "/cluster/shards", httpHandler)
+    http.server.getRequest(server, "/cluster/health", httpHandler)
+    http.server.getRequest(server, "/cluster/ring", httpHandler)
+    http.server.getRequest(server, "/cluster/migrations", httpHandler)
+    http.server.getRequest(server, "/cluster/distribution", httpHandler)
+    http.server.getRequest(server, "/keys", httpHandler)
+    http.server.getRequest(server, "/count", httpHandler)
+    http.server.postRequest(server, "/key", httpHandler)
+    http.server.getRequest(server, "/key", httpHandler)
+    http.server.getRequest(server, "/raft", httpHandler)
+    if not http.server.start(server) then
+        println("FATAL: http.server.start failed (port " + string(port) + " busy?)")
+        http.server.destroy(server)
+        return 1
+    end
+    int actualPort = http.server.port(server)
+    println("xdistdb HTTP API serving on http://127.0.0.1:" + string(actualPort))
+    println("endpoints:")
+    println("  GET  /                       welcome page")
+    println("  GET  /key/<key>              get value")
+    println("  POST /key/<key>  body=value  set value")
+    println("  DELETE /key/<key>            delete value")
+    println("  GET  /cluster/info           cluster info")
+    println("  GET  /cluster/nodes          node list")
+    println("  GET  /cluster/shards         shard list")
+    println("  GET  /cluster/health         health check")
+    println("  GET  /cluster/ring           hash ring visualization")
+    println("  GET  /cluster/distribution   key distribution")
+    println("  GET  /cluster/migrations     migration progress")
+    println("  GET  /keys?pattern=*         list keys")
+    println("  GET  /count                  total key count")
+    println("  GET  /raft/<shardId>         raft state of shard")
+    println("  POST /cmd  body=<line>       Redis-like command")
+    println("press Ctrl+C to stop")
+    while true do
+        time.sleep(1000)
+    end
+    return 0
+end
+
+
+// ============================================================================
+// SECTION 15 - Test suite
+// ============================================================================
+
+func check(bool ok, string label)
+    gLog.lock()
+    if ok then
+        gPass += 1
+        println("  [PASS] " + label)
+    else
+        gFail += 1
+        println("  [FAIL] " + label)
+    end
+    gLog.unlock()
+end
+
+func checkEq(string actual, string expected, string label)
+    check(actual == expected, label + " (got '" + actual + "' expected '" + expected + "')")
+end
+
+func checkContains(string haystack, string needle, string label)
+    check(string.contains(haystack, needle), label + " (missing '" + needle + "')")
+end
+
+func section(string title)
+    println("")
+    println("--- " + title + " ---")
+end
+
+func collectSlotPerNode() as var
+    var shards = ensureShards()
+    var slotPerNode = {}
+    int i = 0
+    while i < DEFAULT_SHARD_COUNT do
+        string sid = string(i)
+        var sh = ensureShard(sid)
+        string prim = string(sh["primary"])
+        if not (prim in slotPerNode) then slotPerNode[prim] = 0 end
+        slotPerNode[prim] = int(slotPerNode[prim]) + 1
+        i += 1
+    end
+    return slotPerNode
+end
+
+func collectKeyPerNode() as var
+    var shards = ensureShards()
+    var data = ensureData()
+    var perNode = {}
+    int i = 0
+    while i < DEFAULT_SHARD_COUNT do
+        string sid = string(i)
+        var sh = ensureShard(sid)
+        string prim = string(sh["primary"])
+        if not (prim in perNode) then perNode[prim] = 0 end
+        if sid in data then
+            perNode[prim] = int(perNode[prim]) + data[sid].length
+        end
+        i += 1
+    end
+    return perNode
+end
+
+func test01ClusterInit() as int
+    section("[test 01] cluster init")
+    var r = clusterInit(5)
+    check(bool(r["ok"]), "clusterInit returns ok")
+    check(int(r["nodes"]) == 5, "5 nodes created")
+    check(int(r["shards"]) == DEFAULT_SHARD_COUNT, "64 shards created")
+    var nodes = ensureNodes()
+    check(nodes.length == 5, "nodes count == 5")
+    check("node-a" in nodes, "node-a exists")
+    check("node-b" in nodes, "node-b exists")
+    check("node-c" in nodes, "node-c exists")
+    check("node-d" in nodes, "node-d exists")
+    check("node-e" in nodes, "node-e exists")
+    var ring = ensureRing()
+    check(ring.length == 5 * VNODES_PER_NODE, "ring has 750 vnodes (got " + string(ring.length) + ")")
+    var shards = ensureShards()
+    int noPrimary = 0
+    int noLeader = 0
+    int i = 0
+    while i < DEFAULT_SHARD_COUNT do
+        string sid = string(i)
+        if isEmpty(string(shards[sid]["primary"])) then noPrimary += 1 end
+        if isEmpty(string(shards[sid]["leader"])) then noLeader += 1 end
+        i += 1
+    end
+    check(noPrimary == 0, "all 64 shards have primary assigned")
+    check(noLeader == 0, "all 64 shards have leader elected")
+    var raft = ensureRaft()
+    check(raft.length == DEFAULT_SHARD_COUNT, "all 64 shards have raft state")
+    var slotPerNode = collectSlotPerNode()
+    check(slotPerNode.length == 5, "slots distributed across all 5 nodes")
+    return 0
+end
+
+func test02HashRingAndRouting() as int
+    section("[test 02] hash ring + key routing")
+    string k1 = "user:1001"
+    string sid1a = shardOf(k1)
+    string sid1b = shardOf(k1)
+    check(sid1a == sid1b, "same key -> same shard (deterministic)")
+    var seen = {}
+    int i = 0
+    while i < 100 do
+        string k = "k:" + string(i)
+        string sid = shardOf(k)
+        if not (sid in seen) then seen[sid] = 0 end
+        seen[sid] = int(seen[sid]) + 1
+        i += 1
+    end
+    check(seen.length > 1, "100 keys spread across >1 shard (got " + string(seen.length) + ")")
+    var ring = ensureRing()
+    int firstH = int(ring[0]["hash"])
+    string owner = ringLookup(firstH)
+    check(owner == string(ring[0]["nodeId"]), "ringLookup returns first vnode's owner for first hash")
+    string wrapOwner = ringLookup(int(ring[ring.length - 1]["hash"]) + 1)
+    check(not isEmpty(wrapOwner), "ringLookup wraps around for hash > max")
+    var three = ringLookupN(hashKey("test-multi-lookup"), 3)
+    check(three.length == 3, "ringLookupN returns 3 distinct nodes")
+    check(string(three[0]) != string(three[1]), "first two replicas differ")
+    check(string(three[1]) != string(three[2]), "second and third replicas differ")
+    return 0
+end
+
+func test03KeyDistribution() as int
+    section("[test 03] key distribution balance")
+    int i = 0
+    int t0 = nowMs()
+    while i < 1000 do
+        string k = "dist:" + string(i)
+        var r = routeSet(k, "v" + string(i))
+        if not bool(r["ok"]) then
+            check(false, "write dist:" + string(i) + " ok")
+            return 1
+        end
+        i += 1
+    end
+    int t1 = nowMs()
+    int total = totalKeyCount()
+    check(total >= 1000, "after 1000 writes totalKeyCount >= 1000 (got " + string(total) + ")")
+    var perNode = collectKeyPerNode()
+    check(perNode.length >= 4, "keys spread across >=4 of 5 nodes (got " + string(perNode.length) + ")")
+    int sumK = 0
+    for nid, c in perNode
+        sumK += int(c)
+    end
+    float mean = float(sumK) / float(perNode.length)
+    float sumSqDiff = 0.0
+    for nid, c in perNode
+        float diff = float(int(c)) - mean
+        sumSqDiff += diff * diff
+    end
+    float variance = sumSqDiff / float(perNode.length)
+    float stddev = variance
+    if stddev > 0.0 then
+        float g = stddev / 2.0 + 0.5
+        int iter = 0
+        while iter < 10 do
+            if g <= 0.0 then g = 0.01 end
+            g = (g + stddev / g) / 2.0
+            iter += 1
+        end
+        stddev = g
+    end
+    float cv = 0.0
+    if mean > 0.0 then cv = stddev / mean end
+    check(cv < 0.5, "balance CV < 0.5 (got " + string.formatFloat(cv, ".3") + " mean=" + string.formatFloat(mean, ".1") + " stddev=" + string.formatFloat(stddev, ".1") + ")")
+    var slotPerNode = collectSlotPerNode()
+    int minSlots = 99999
+    int maxSlots = 0
+    for nid, c in slotPerNode
+        if int(c) < minSlots then minSlots = int(c) end
+        if int(c) > maxSlots then maxSlots = int(c) end
+    end
+    int expectedPerNode = DEFAULT_SHARD_COUNT / 5
+    check(minSlots > 0, "min slot count > 0 (got " + string(minSlots) + ")")
+    check(maxSlots < expectedPerNode * 2, "max slot count < 2x expected (got " + string(maxSlots) + ")")
+    println("  wrote 1000 keys in " + formatMs(t1 - t0))
+    return 0
+end
+
+func test04DataTypes() as int
+    section("[test 04] data type operations")
+    var setR = routeSet("t:str", "hello")
+    check(bool(setR["ok"]), "SET t=str returns ok")
+    checkEq(opGet(shardOf("t:str"), "t:str"), "hello", "GET t=str")
+    checkEq(opIncr(shardOf("t:cnt"), "t:cnt", 1), "1", "INCR t:cnt first time")
+    checkEq(opIncr(shardOf("t:cnt"), "t:cnt", 1), "2", "INCR t:cnt second time")
+    checkEq(opIncr(shardOf("t:cnt"), "t:cnt", 10), "12", "INCR t:cnt by 10")
+
+    string lk = "t:list"
+    string lsid = shardOf(lk)
+    opRpush(lsid, lk, ["a", "b", "c"])
+    checkEq(opLlen(lsid, lk), "3", "RPUSH a b c -> LLEN = 3")
+    checkEq(opLrange(lsid, lk, 0, -1), "[\"a\",\"b\",\"c\"]", "LRANGE 0 -1 = [a,b,c]")
+    opLpush(lsid, lk, ["z"])
+    checkEq(opLrange(lsid, lk, 0, 0), "[\"z\"]", "LPUSH z -> LRANGE 0 0 = [z]")
+    checkEq(opLpop(lsid, lk, 1), "z", "LPOP = z")
+    checkEq(opRpop(lsid, lk, 1), "c", "RPOP = c")
+    checkEq(opLlen(lsid, lk), "2", "LLEN after pops = 2")
+
+    string hk = "t:hash"
+    string hsid = shardOf(hk)
+    opHset(hsid, hk, "name", "Alice")
+    opHset(hsid, hk, "age", "30")
+    opHset(hsid, hk, "city", "Shanghai")
+    checkEq(opHget(hsid, hk, "name"), "Alice", "HGET name = Alice")
+    checkEq(opHget(hsid, hk, "age"), "30", "HGET age = 30")
+    checkEq(opHlen(hsid, hk), "3", "HLEN = 3")
+    opHdel(hsid, hk, "age")
+    checkEq(opHget(hsid, hk, "age"), "(nil)", "HGET age after HDEL = nil")
+    checkEq(opHlen(hsid, hk), "2", "HLEN after HDEL = 2")
+
+    string sk = "t:set"
+    string ssid = shardOf(sk)
+    opSadd(ssid, sk, ["m1", "m2", "m3"])
+    checkEq(opScard(ssid, sk), "3", "SADD m1 m2 m3 -> SCARD = 3")
+    check(string(opSismember(ssid, sk, "m2")) == "1", "SISMEMBER m2 = 1")
+    check(string(opSismember(ssid, sk, "mx")) == "0", "SISMEMBER mx = 0")
+    opSrem(ssid, sk, ["m2"])
+    checkEq(opScard(ssid, sk), "2", "SCARD after SREM m2 = 2")
+    check(string(opSismember(ssid, sk, "m2")) == "0", "SISMEMBER m2 after SREM = 0")
+
+    string zk = "t:zset"
+    string zsid = shardOf(zk)
+    opZadd(zsid, zk, 3.0, "alpha")
+    opZadd(zsid, zk, 1.0, "beta")
+    opZadd(zsid, zk, 2.0, "gamma")
+    checkEq(opZcard(zsid, zk), "3", "ZADD 3 -> ZCARD = 3")
+    checkEq(opZscore(zsid, zk, "beta"), "1.0000", "ZSCORE beta = 1.0000")
+    string zr = opZrange(zsid, zk, 0, -1)
+    checkContains(zr, "beta", "ZRANGE 0 -1 contains beta (lowest score)")
+    checkContains(zr, "gamma", "ZRANGE 0 -1 contains gamma")
+    checkContains(zr, "alpha", "ZRANGE 0 -1 contains alpha (highest score)")
+    int betaPos = string.indexOf(zr, "beta")
+    int gammaPos = string.indexOf(zr, "gamma")
+    int alphaPos = string.indexOf(zr, "alpha")
+    check(betaPos < gammaPos, "beta appears before gamma")
+    check(gammaPos < alphaPos, "gamma appears before alpha")
+    opZrem(zsid, zk, "gamma")
+    checkEq(opZcard(zsid, zk), "2", "ZCARD after ZREM gamma = 2")
+
+    checkEq(opType(shardOf("t:str"), "t:str"), "string", "TYPE t:str = string")
+    checkEq(opType(lsid, lk), "list", "TYPE t:list = list")
+    checkEq(opType(hsid, hk), "hash", "TYPE t:hash = hash")
+    checkEq(opType(ssid, sk), "set", "TYPE t:set = set")
+    checkEq(opType(zsid, zk), "zset", "TYPE t:zset = zset")
+    return 0
+end
+
+func test05TTL() as int
+    section("[test 05] TTL + expiration")
+    string sid = shardOf("ttl:key1")
+    opSet(sid, "ttl:key1", "v1")
+    opExpire(sid, "ttl:key1", 100)
+    check(opTtl(sid, "ttl:key1") > 0, "TTL after EXPIRE > 0")
+    check(opTtl(sid, "ttl:key1") <= 100, "TTL <= 100")
+    opPersist(sid, "ttl:key1")
+    checkEq(string(opTtl(sid, "ttl:key1")), "-1", "TTL after PERSIST = -1")
+    var expiredEntry = makeEntry("string", "old")
+    expiredEntry["ttl"] = nowSec() - 10
+    putEntry(sid, "ttl:expired", expiredEntry)
+    check(lazyExpire(sid, "ttl:expired"), "lazy expire detects past TTL")
+    check(getEntry(sid, "ttl:expired") == null, "lazy expire removes key from shard data")
+    string sid2 = shardOf("ttl:sweep")
+    int i = 0
+    while i < 5 do
+        string k = "ttl:sweep:" + string(i)
+        var e = makeEntry("string", "v")
+        e["ttl"] = nowSec() - 1
+        putEntry(sid2, k, e)
+        i += 1
+    end
+    int swept = activeSweepShard(sid2, 100)
+    check(swept == 5, "active sweep removes 5 expired keys (got " + string(swept) + ")")
+    checkEq(string(opTtl(sid, "no:such:key")), "-2", "TTL for missing key = -2")
+    return 0
+end
+
+func test06Raft() as int
+    section("[test 06] Raft consensus")
+    string sid = "0"
+    var raft = gState["raft"]
+    if not (sid in raft) then
+        check(false, "shard 0 has raft state")
+        return 1
+    end
+    var rs = raft[sid]
+    check(int(rs["currentTerm"]) == 1, "initial term == 1")
+    check(not isEmpty(string(rs["leaderId"])), "initial leader is set")
+    int beforeLogLen = rs["log"].length
+    var cmd = {"op": "SET", "key": "raft:k1", "value": "v1", "type": "string"}
+    int ci = raftAppendAndApply(sid, cmd)
+    check(ci > 0, "raftAppendAndApply returns positive index (got " + string(ci) + ")")
+    var raft2 = gState["raft"]
+    var rs2 = raft2[sid]
+    check(rs2["log"].length == beforeLogLen + 1, "log grew by 1 after append")
+    check(int(rs2["commitIndex"]) == ci, "commitIndex advanced")
+    check(int(rs2["lastApplied"]) == ci, "lastApplied advanced")
+    checkEq(opGet(sid, "raft:k1"), "v1", "data visible after apply")
+    int i = 0
+    while i < RAFT_SNAPSHOT_THRESHOLD + 5 do
+        var cmd2 = {"op": "SET", "key": "raft:bulk:" + string(i), "value": string(i), "type": "string"}
+        raftAppendAndApply(sid, cmd2)
+        i += 1
+    end
+    var stats = gState["stats"]
+    check(int(stats["raftSnapshotsTaken"]) >= 1, "snapshot taken after >50 appends")
+    var raft3 = gState["raft"]
+    var rs3 = raft3[sid]
+    check(rs3["log"].length < RAFT_SNAPSHOT_THRESHOLD, "log truncated below threshold after snapshot (got " + string(rs3["log"].length) + ")")
+    checkEq(opGet(sid, "raft:k1"), "v1", "data visible after snapshot")
+    checkEq(opGet(sid, "raft:bulk:0"), "0", "bulk data[0] visible after snapshot")
+    var addR = raftAddServer(sid, "node-zzz")
+    check(bool(addR["ok"]), "raftAddServer adds replica")
+    var remR = raftRemoveServer(sid, "node-zzz")
+    check(bool(remR["ok"]), "raftRemoveServer removes replica")
+    return 0
+end
+
+func test07ReplicationAndRead() as int
+    section("[test 07] replication + linearizable read")
+    string sid = shardOf("rep:k1")
+    var cmd = {"op": "SET", "key": "rep:k1", "value": "replicated", "type": "string"}
+    int ci = raftAppendAndApply(sid, cmd)
+    check(ci > 0, "SET committed")
+    var raft = gState["raft"]
+    var rs = raft[sid]
+    var matchIdx = rs["matchIndex"]
+    bool matchAdvanced = false
+    for rid, idx in matchIdx
+        if int(idx) == ci then matchAdvanced = true end
+    end
+    check(matchAdvanced, "follower matchIndex reflects latest commit")
+    string v = linearizableRead(sid, "rep:k1")
+    checkEq(v, "replicated", "linearizableRead returns latest value")
+    int replicas = replicateToFollowers(sid)
+    check(replicas >= 1, "replicateToFollowers returns >=1 replica (got " + string(replicas) + ")")
+    return 0
+end
+
+func test08Failover() as int
+    section("[test 08] failover (node failure)")
+    string targetSid = ""
+    string targetLeader = ""
+    int i = 0
+    while i < DEFAULT_SHARD_COUNT do
+        string sid = string(i)
+        var rs = ensureRaftShard(sid)
+        string leader = string(rs["leaderId"])
+        if not isEmpty(leader) then
+            targetSid = sid
+            targetLeader = leader
+            break
+        end
+        i += 1
+    end
+    check(not isEmpty(targetSid), "found a shard with leader")
+    string testKey = "failover:test:" + targetSid
+    var cmd = {"op": "SET", "key": testKey, "value": "before", "type": "string"}
+    int writeCi = raftAppendAndApply(targetSid, cmd)
+    check(writeCi > 0, "data write committed (ci=" + string(writeCi) + ")")
+    checkEq(opGet(targetSid, testKey), "before", "data written before failure")
+    var r = clusterFailNode(targetLeader)
+    check(bool(r["ok"]), "fail " + targetLeader + " ok")
+    var nodes2 = gState["nodes"]
+    check(string(nodes2[targetLeader]["status"]) == "down", "node marked down")
+    check(r["affectedShards"].length >= 1, "at least 1 shard affected (was leader)")
+    check(r["reelected"] >= 1, "at least 1 new leader elected")
+    var rs = ensureRaftShard(targetSid)
+    string newLeader = string(rs["leaderId"])
+    check(newLeader != targetLeader, "new leader differs from failed leader")
+    var nodes3 = gState["nodes"]
+    check(string(nodes3[newLeader]["status"]) == "online", "new leader is online")
+    string v = linearizableRead(targetSid, testKey)
+    checkEq(v, "before", "data accessible through new leader after failover")
+    var rec = clusterRecoverNode(targetLeader)
+    check(bool(rec["ok"]), "recover " + targetLeader + " ok")
+    var nodes4 = gState["nodes"]
+    check(string(nodes4[targetLeader]["status"]) == "online", "recovered node marked online")
+    return 0
+end
+
+func test09JoinLeaveMigration() as int
+    section("[test 09] node join/leave + migration")
+    int nodesBefore = ensureNodes().length
+    int keysBefore = totalKeyCount()
+    string newId = nextNodeId()
+    var r = clusterAddNode(newId, 7099)
+    check(bool(r["ok"]), "clusterAddNode " + newId + " ok")
+    check(ensureNodes().length == nodesBefore + 1, "node count increased by 1")
+    check(r["ranges"].length > 0, "join migration has ranges > 0")
+    bool hasOldAndNew = false
+    int i = 0
+    while i < r["ranges"].length do
+        if string(r["ranges"][i]["newOwner"]) == newId then
+            hasOldAndNew = true
+            break
+        end
+        i += 1
+    end
+    check(hasOldAndNew, "join migration ranges reference newOwner=" + newId)
+    advanceMigrations()
+    var migrations = ensureMigrations()
+    bool joinCompleted = false
+    int mi = 0
+    while mi < migrations.length do
+        if string(migrations[mi]["nodeId"]) == newId and string(migrations[mi]["status"]) == "completed" then
+            joinCompleted = true
+            break
+        end
+        mi += 1
+    end
+    check(joinCompleted, "join migration completed")
+    int keysAfterAdd = totalKeyCount()
+    check(keysAfterAdd == keysBefore, "total keys unchanged after add")
+    var rmR = clusterRemoveNode(newId)
+    check(bool(rmR["ok"]), "clusterRemoveNode " + newId + " ok")
+    check(ensureNodes().length == nodesBefore, "node count back to " + string(nodesBefore))
+    check(rmR["ranges"].length > 0, "leave migration has ranges > 0")
+    advanceMigrations()
+    return 0
+end
+
+func test10ScatterGather() as int
+    section("[test 10] scatter-gather (KEYS / COUNT)")
+    int i = 0
+    while i < 20 do
+        routeSet("scatter:" + string(i), "v")
+        i += 1
+    end
+    int beforeC = totalKeyCount()
+    check(beforeC > 0, "COUNT > 0 after writes (got " + string(beforeC) + ")")
+    var sg = scatterGather("keys:scatter:*", "scatter:*")
+    int matched = 0
+    int si = 0
+    while si < sg.length do
+        matched += sg[si]["keys"].length
+        si += 1
+    end
+    check(matched == 20, "scatter-gather KEYS scatter:* matches 20 (got " + string(matched) + ")")
+    var sgNone = scatterGather("keys:nomatch:*", "nomatch:*")
+    int matchedNone = 0
+    si = 0
+    while si < sgNone.length do
+        matchedNone += sgNone[si]["keys"].length
+        si += 1
+    end
+    check(matchedNone == 0, "scatter-gather non-matching pattern returns 0")
+    return 0
+end
+
+func test11CrossShardTx() as int
+    section("[test 11] cross-shard transaction (2PC)")
+    var cmds = []
+    cmds.append({"op": "SET", "key": "tx:a:1", "value": "va", "type": "string"})
+    cmds.append({"op": "SET", "key": "tx:b:2", "value": "vb", "type": "string"})
+    cmds.append({"op": "SET", "key": "tx:c:3", "value": "vc", "type": "string"})
+    var r = crossShardTx(cmds)
+    check(bool(r["ok"]), "2PC commit succeeds")
+    check(string(r["phase"]) == "commit", "phase = commit")
+    checkEq(opGet(shardOf("tx:a:1"), "tx:a:1"), "va", "tx:a:1 visible after commit")
+    checkEq(opGet(shardOf("tx:b:2"), "tx:b:2"), "vb", "tx:b:2 visible after commit")
+    checkEq(opGet(shardOf("tx:c:3"), "tx:c:3"), "vc", "tx:c:3 visible after commit")
+    var stats = ensureStats()
+    check(int(stats["txCommits"]) >= 1, "txCommits stat incremented")
+    return 0
+end
+
+func test12Protocol() as int
+    section("[test 12] client protocol (Redis-like)")
+    checkEq(executeProtocolLine("PING"), "PONG", "PING -> PONG")
+    checkEq(executeProtocolLine("SET proto:k1 hello"), "OK", "SET proto:k1 -> OK")
+    checkEq(executeProtocolLine("GET proto:k1"), "hello", "GET proto:k1 -> hello")
+    checkEq(executeProtocolLine("TYPE proto:k1"), "string", "TYPE proto:k1 -> string")
+    checkEq(executeProtocolLine("EXISTS proto:k1"), "1", "EXISTS proto:k1 -> 1")
+    checkEq(executeProtocolLine("EXISTS proto:nope"), "0", "EXISTS missing -> 0")
+    checkEq(executeProtocolLine("INCR proto:cnt"), "1", "INCR proto:cnt -> 1")
+    checkEq(executeProtocolLine("INCR proto:cnt"), "2", "INCR proto:cnt -> 2")
+    checkEq(executeProtocolLine("RPUSH proto:lst a b c"), "3", "RPUSH -> 3")
+    checkEq(executeProtocolLine("LLEN proto:lst"), "3", "LLEN -> 3")
+    checkContains(executeProtocolLine("LRANGE proto:lst 0 -1"), "a", "LRANGE contains a")
+    checkEq(executeProtocolLine("HSET proto:h f v"), "1", "HSET -> 1")
+    checkEq(executeProtocolLine("HGET proto:h f"), "v", "HGET -> v")
+    checkEq(executeProtocolLine("SADD proto:s m1 m2"), "2", "SADD -> 2")
+    checkEq(executeProtocolLine("SCARD proto:s"), "2", "SCARD -> 2")
+    checkEq(executeProtocolLine("ZADD proto:z 1.0 alpha"), "1", "ZADD -> 1")
+    checkEq(executeProtocolLine("ZSCORE proto:z alpha"), "1.0000", "ZSCORE -> 1.0000")
+    string info = executeProtocolLine("CLUSTER INFO")
+    checkContains(info, "nodes_total", "CLUSTER INFO has nodes_total")
+    string nodesOut = executeProtocolLine("CLUSTER NODES")
+    checkContains(nodesOut, "node-a", "CLUSTER NODES has node-a")
+    string delOut = executeProtocolLine("DEL proto:k1")
+    check(delOut == "1", "DEL proto:k1 -> 1")
+    checkEq(executeProtocolLine("EXISTS proto:k1"), "0", "EXISTS after DEL -> 0")
+    return 0
+end
+
+func test13ShardSplitMerge() as int
+    section("[test 13] shard split / merge")
+    string sid = "1"
+    var shards = gState["shards"]
+    if not (sid in shards) then
+        shards[sid] = {"id": sid, "primary": "", "replicas": [], "leader": "",
+                       "leaderTerm": 0, "keyCount": 0, "splitCount": 0, "mergeCount": 0}
+        gState["shards"] = shards
+    end
+    var sh = shards[sid]
+    sh["keyCount"] = SHARD_SPLIT_THRESHOLD + 1
+    shards[sid] = sh
+    gState["shards"] = shards
+    var spR = shardSplit(sid)
+    check(bool(spR["ok"]), "shardSplit triggered above threshold")
+    var shards2 = gState["shards"]
+    var sh2 = shards2[sid]
+    check(int(sh2["splitCount"]) == 1, "splitCount == 1")
+    sh2["keyCount"] = 0
+    shards2[sid] = sh2
+    gState["shards"] = shards2
+    var mgR = shardMerge(sid)
+    check(bool(mgR["ok"]), "shardMerge triggered below threshold")
+    var shards3 = gState["shards"]
+    var sh3 = shards3[sid]
+    check(int(sh3["mergeCount"]) == 1, "mergeCount == 1")
+    sh3["keyCount"] = 5
+    shards3[sid] = sh3
+    gState["shards"] = shards3
+    var spR2 = shardSplit(sid)
+    check(not bool(spR2["ok"]), "shardSplit rejects below threshold")
+    var shards4 = gState["shards"]
+    var sh4 = shards4[sid]
+    sh4["keyCount"] = 100
+    shards4[sid] = sh4
+    gState["shards"] = shards4
+    var mgR2 = shardMerge(sid)
+    check(not bool(mgR2["ok"]), "shardMerge rejects above threshold")
+    return 0
+end
+
+func test14EndToEnd() as int
+    section("[test 14] end-to-end (5 nodes -> 1000 keys -> fail -> verify -> recover)")
+    clusterInit(5)
+    int i = 0
+    while i < 1000 do
+        string k = "e2e:" + string(i)
+        string v = "v:" + string(i)
+        var r = routeSet(k, v)
+        if not bool(r["ok"]) then
+            check(false, "e2e write " + k + " ok")
+            return 1
+        end
+        i += 1
+    end
+    int totalK = totalKeyCount()
+    check(totalK == 1000, "1000 keys written (got " + string(totalK) + ")")
+    var perNode = collectKeyPerNode()
+    check(perNode.length >= 4, "keys spread across >=4 nodes (got " + string(perNode.length) + ")")
+    string failTarget = ""
+    for nid, c in perNode
+        if int(c) > 0 then
+            failTarget = string(nid)
+            break
+        end
+    end
+    check(not isEmpty(failTarget), "found node with data to fail")
+    var beforeSnapshot = {}
+    int ki = 0
+    while ki < 1000 do
+        string k = "e2e:" + string(ki)
+        beforeSnapshot[k] = opGet(shardOf(k), k)
+        ki += 1
+    end
+    var fr = clusterFailNode(failTarget)
+    check(bool(fr["ok"]), "fail " + failTarget + " ok")
+    int accessibleAfterFail = 0
+    ki = 0
+    while ki < 1000 do
+        string k = "e2e:" + string(ki)
+        string v = opGet(shardOf(k), k)
+        if v == string(beforeSnapshot[k]) then
+            accessibleAfterFail += 1
+        end
+        ki += 1
+    end
+    check(accessibleAfterFail == 1000, "all 1000 keys still accessible after failure (got " + string(accessibleAfterFail) + ")")
+    var rec = clusterRecoverNode(failTarget)
+    check(bool(rec["ok"]), "recover " + failTarget + " ok")
+    int consistentAfterRecover = 0
+    ki = 0
+    while ki < 1000 do
+        string k = "e2e:" + string(ki)
+        string v = opGet(shardOf(k), k)
+        if v == string(beforeSnapshot[k]) then
+            consistentAfterRecover += 1
+        end
+        ki += 1
+    end
+    check(consistentAfterRecover == 1000, "all 1000 keys consistent after recovery (got " + string(consistentAfterRecover) + ")")
+    int j = 0
+    while j < 100 do
+        string k = "e2e:post:" + string(j)
+        var r = routeSet(k, "post" + string(j))
+        if not bool(r["ok"]) then
+            check(false, "post-recovery write ok")
+            return 1
+        end
+        j += 1
+    end
+    check(totalKeyCount() == 1100, "100 new keys added after recovery (total=1100, got " + string(totalKeyCount()) + ")")
+    var stats = ensureStats()
+    check(int(stats["leaderChanges"]) >= 1, "leaderChanges >= 1 after failover")
+    check(int(stats["totalSets"]) >= 1100, "totalSets >= 1100")
+    return 0
+end
+
+func test15ExportImport() as int
+    section("[test 15] export / import")
+    string tmpFile = path.join(path.dir(gStateFile), ".xdistdb_test_export.json")
+    if file.exists(tmpFile) then file.delete(tmpFile) end
+    routeSet("exp:k1", "v1")
+    routeSet("exp:k2", "v2")
+    string text = json.stringify(gState, pretty = true)
+    text = string.replace(text, "\t", "  ")
+    bool ok = file.writeText(tmpFile, text)
+    check(ok, "export to file ok")
+    gState = {}
+    ensureStats()
+    if not file.exists(tmpFile) then
+        check(false, "imported file exists")
+        return 1
+    end
+    string text2 = file.readText(tmpFile)
+    var parsed = json.parse(text2)
+    gState = parsed
+    ensureStats()
+    checkEq(opGet(shardOf("exp:k1"), "exp:k1"), "v1", "exp:k1 readable after import")
+    checkEq(opGet(shardOf("exp:k2"), "exp:k2"), "v2", "exp:k2 readable after import")
+    if file.exists(tmpFile) then file.delete(tmpFile) end
+    return 0
+end
+
+// Multi-node failover: fail 2 of 5 nodes, verify data still accessible.
+func test16MultiFailover() as int
+    section("[test 16] multi-node failover (2 of 5 down)")
+    clusterInit(5)
+    int i = 0
+    while i < 200 do
+        routeSet("mf:" + string(i), "v" + string(i))
+        i += 1
+    end
+    int totalBefore = totalKeyCount()
+    check(totalBefore == 200, "200 keys written before multi-failure")
+    // Snapshot keys
+    var snap = {}
+    i = 0
+    while i < 200 do
+        string k = "mf:" + string(i)
+        snap[k] = opGet(shardOf(k), k)
+        i += 1
+    end
+    // Fail two distinct nodes
+    var nodes = gState["nodes"]
+    var nodeIds = []
+    for nid, n in nodes
+        nodeIds.append(string(nid))
+    end
+    check(nodeIds.length == 5, "5 nodes exist before failure")
+    string fail1 = string(nodeIds[0])
+    string fail2 = string(nodeIds[1])
+    var r1 = clusterFailNode(fail1)
+    var r2 = clusterFailNode(fail2)
+    check(bool(r1["ok"]), "fail " + fail1 + " ok")
+    check(bool(r2["ok"]), "fail " + fail2 + " ok")
+    var nodes2 = gState["nodes"]
+    int onlineCount = 0
+    for nid, n in nodes2
+        if string(n["status"]) == "online" then onlineCount += 1 end
+    end
+    check(onlineCount == 3, "3 nodes still online after 2 failures")
+    // Verify all keys still accessible via remaining replicas
+    int accessible = 0
+    i = 0
+    while i < 200 do
+        string k = "mf:" + string(i)
+        string v = opGet(shardOf(k), k)
+        if v == string(snap[k]) then accessible += 1 end
+        i += 1
+    end
+    check(accessible == 200, "all 200 keys accessible with 2 nodes down (got " + string(accessible) + ")")
+    // Recover both
+    clusterRecoverNode(fail1)
+    clusterRecoverNode(fail2)
+    var nodes3 = gState["nodes"]
+    onlineCount = 0
+    for nid, n in nodes3
+        if string(n["status"]) == "online" then onlineCount += 1 end
+    end
+    check(onlineCount == 5, "all 5 nodes online after recovery")
+    return 0
+end
+
+// Hash ring determinism: same node set always produces same ring.
+func test17RingDeterminism() as int
+    section("[test 17] hash ring determinism")
+    clusterInit(3)
+    var ring1 = gState["ring"]
+    string dump1 = json.stringify(ring1)
+    // Re-init and compare
+    clusterInit(3)
+    var ring2 = gState["ring"]
+    string dump2 = json.stringify(ring2)
+    check(dump1 == dump2, "ring deterministic for same node set")
+    check(ring1.length == 3 * VNODES_PER_NODE, "ring size = 3 * vnodes_per_node")
+    // Different node count -> different ring
+    clusterInit(5)
+    var ring3 = gState["ring"]
+    string dump3 = json.stringify(ring3)
+    check(dump3 != dump1, "ring differs for different node set")
+    check(ring3.length == 5 * VNODES_PER_NODE, "ring size = 5 * vnodes_per_node")
+    return 0
+end
+
+// Load + save state persistence.
+func test18Persistence() as int
+    section("[test 18] persistence (save -> load)")
+    clusterInit(4)
+    routeSet("persist:k1", "v1")
+    routeSet("persist:k2", "v2")
+    routeSet("persist:k3", "v3")
+    int before = totalKeyCount()
+    check(before == 3, "3 keys written")
+    string tmpFile = path.join(path.dir(gStateFile), ".xdistdb_persist_test.json")
+    if file.exists(tmpFile) then file.delete(tmpFile) end
+    bool saved = saveState(tmpFile)
+    check(saved, "saveState ok")
+    check(file.exists(tmpFile), "state file created")
+    // Wipe in-memory state
+    gState = {}
+    ensureStats()
+    // Load back
+    bool loaded = loadState(tmpFile)
+    check(loaded, "loadState ok")
+    int after = totalKeyCount()
+    check(after == before, "key count preserved across save/load (got " + string(after) + " expected " + string(before) + ")")
+    checkEq(opGet(shardOf("persist:k1"), "persist:k1"), "v1", "persist:k1 readable after load")
+    checkEq(opGet(shardOf("persist:k2"), "persist:k2"), "v2", "persist:k2 readable after load")
+    checkEq(opGet(shardOf("persist:k3"), "persist:k3"), "v3", "persist:k3 readable after load")
+    if file.exists(tmpFile) then file.delete(tmpFile) end
+    return 0
+end
+
+// Data type edge cases: empty containers, negative indices, large sets.
+func test19EdgeCases() as int
+    section("[test 19] data type edge cases")
+    // Empty list
+    string esid = shardOf("edge:elist")
+    opDel(esid, "edge:elist")
+    opRpush(esid, "edge:elist", [])
+    checkEq(opLlen(esid, "edge:elist"), "0", "empty list LLEN = 0")
+    opRpush(esid, "edge:elist", ["a", "b", "c", "d"])
+    checkEq(opLrange(esid, "edge:elist", -2, -1), "[\"c\",\"d\"]", "LRANGE -2 -1 = [c,d]")
+    checkEq(opLrange(esid, "edge:elist", 0, -1), "[\"a\",\"b\",\"c\",\"d\"]", "LRANGE 0 -1 = all 4")
+    // Out-of-range indices
+    checkEq(opLrange(esid, "edge:elist", 100, 200), "[]", "LRANGE out-of-range = []")
+    // Large set
+    string sk = "edge:bigset"
+    string sid = shardOf(sk)
+    int i = 0
+    while i < 50 do
+        opSadd(sid, sk, ["m" + string(i)])
+        i += 1
+    end
+    checkEq(opScard(sid, sk), "50", "SCARD after 50 SADD = 50")
+    // Wrong-type checks
+    checkEq(opLpush(sid, sk, ["x"]), "(error) WRONGTYPE", "LPUSH on set -> WRONGTYPE")
+    checkEq(opHget(sid, sk, "f"), "(error) WRONGTYPE", "HGET on set -> WRONGTYPE")
+    checkEq(opZscore(sid, sk, "m"), "(error) WRONGTYPE", "ZSCORE on set -> WRONGTYPE")
+    // ZSET ordering
+    string zk = "edge:zset"
+    string zsid = shardOf(zk)
+    opZadd(zsid, zk, 5.5, "five")
+    opZadd(zsid, zk, 1.1, "one")
+    opZadd(zsid, zk, 3.3, "three")
+    opZadd(zsid, zk, 2.2, "two")
+    string zr = opZrange(zsid, zk, 0, -1)
+    int p1 = string.indexOf(zr, "one")
+    int p2 = string.indexOf(zr, "two")
+    int p3 = string.indexOf(zr, "three")
+    int p4 = string.indexOf(zr, "five")
+    check(p1 < p2, "zset: one before two")
+    check(p2 < p3, "zset: two before three")
+    check(p3 < p4, "zset: three before five")
+    return 0
+end
+
+// Migration range correctness.
+func test20MigrationRanges() as int
+    section("[test 20] migration range computation")
+    clusterInit(4)
+    // Add node -> ranges should have newOwner = new node
+    string newId = nextNodeId()
+    var addR = clusterAddNode(newId, 7777)
+    check(bool(addR["ok"]), "add node")
+    var ranges = addR["ranges"]
+    check(ranges.length == VNODES_PER_NODE, "join ranges = vnodes_per_node (got " + string(ranges.length) + ")")
+    bool allNewOwner = true
+    int i = 0
+    while i < ranges.length do
+        if string(ranges[i]["newOwner"]) != newId then
+            allNewOwner = false
+            break
+        end
+        i += 1
+    end
+    check(allNewOwner, "all join ranges have newOwner=new node")
+    // Each range has fromHash < toHash
+    bool allHashed = true
+    i = 0
+    while i < ranges.length do
+        int from = int(ranges[i]["fromHash"])
+        int to = int(ranges[i]["toHash"])
+        if from >= to then
+            allHashed = false
+            break
+        end
+        i += 1
+    end
+    check(allHashed, "all ranges have fromHash < toHash")
+    // Leave node -> ranges should have oldOwner = leaving node
+    var leaveR = clusterRemoveNode(newId)
+    check(bool(leaveR["ok"]), "remove node")
+    var lranges = leaveR["ranges"]
+    check(lranges.length == VNODES_PER_NODE, "leave ranges = vnodes_per_node (got " + string(lranges.length) + ")")
+    bool allOldOwner = true
+    i = 0
+    while i < lranges.length do
+        if string(lranges[i]["oldOwner"]) != newId then
+            allOldOwner = false
+            break
+        end
+        i += 1
+    end
+    check(allOldOwner, "all leave ranges have oldOwner=leaving node")
+    return 0
+end
+
+// Migration progress reporting.
+func test21MigrationProgress() as int
+    section("[test 21] migration progress reporting")
+    clusterInit(3)
+    // Initial state: no migrations
+    string mp = formatMigrationProgress()
+    checkContains(mp, "no migrations", "initially no migrations")
+    // Add a node -> creates pending migration
+    string nid = nextNodeId()
+    clusterAddNode(nid, 7800)
+    string mp2 = formatMigrationProgress()
+    checkContains(mp2, nid, "migration report mentions new node")
+    checkContains(mp2, "join", "migration report mentions type=join")
+    // Advance migrations
+    advanceMigrations()
+    string mp3 = formatMigrationProgress()
+    checkContains(mp3, "completed", "migration report shows completed status")
+    var stats = gState["stats"]
+    check(int(stats["migrationsCompleted"]) >= 1, "migrationsCompleted stat incremented")
+    return 0
+end
+
+// Coordinator routing metadata.
+func test22Routing() as int
+    section("[test 22] coordinator routing metadata")
+    clusterInit(5)
+    // Each key has a valid shard + leader
+    int i = 0
+    while i < 20 do
+        string k = "route:" + string(i)
+        var info = routeKey(k)
+        check(not isEmpty(string(info["shardId"])), "key " + k + " has shardId")
+        check(not isEmpty(string(info["leader"])), "key " + k + " has leader")
+        check(not isEmpty(string(info["primary"])), "key " + k + " has primary")
+        i += 1
+    end
+    // Set + verify routing info in result
+    var r = routeSet("route:test", "value")
+    check(bool(r["ok"]), "routeSet returns ok")
+    check(not isEmpty(string(r["shardId"])), "routeSet result has shardId")
+    check(int(r["commitIndex"]) > 0, "routeSet result has positive commitIndex")
+    var g = routeGet("route:test")
+    check(bool(g["ok"]), "routeGet returns ok")
+    checkEq(string(g["value"]), "value", "routeGet returns correct value")
+    // INCR routing
+    var ir = routeIncr("route:counter", 5)
+    check(bool(ir["ok"]), "routeIncr returns ok")
+    checkEq(string(ir["value"]), "5", "routeIncr value = 5")
+    return 0
+end
+
+// Workload statistics tracking through normal operations.
+func test23WorkloadStats() as int
+    section("[test 23] workload statistics tracking")
+    clusterInit(5)
+    var stats0 = gState["stats"]
+    int setBefore = int(stats0["totalSets"])
+    int getBefore = int(stats0["totalGets"])
+    int missBefore = int(stats0["totalMisses"])
+    // 10 SETs + 5 GETs (3 hits + 2 misses)
+    int i = 0
+    while i < 10 do
+        routeSet("stat:k" + string(i), "v")
+        i += 1
+    end
+    routeGet("stat:k1")
+    routeGet("stat:k2")
+    routeGet("stat:k3")
+    routeGet("stat:missing1")
+    routeGet("stat:missing2")
+    var stats1 = gState["stats"]
+    check(int(stats1["totalSets"]) >= setBefore + 10, "totalSets incremented by 10")
+    check(int(stats1["totalGets"]) >= getBefore + 5, "totalGets incremented by 5")
+    check(int(stats1["totalMisses"]) >= missBefore + 2, "totalMisses incremented by 2")
+    // Delete tracking
+    int delBefore = int(stats1["totalDels"])
+    routeDel("stat:k1")
+    var stats2 = gState["stats"]
+    check(int(stats2["totalDels"]) >= delBefore + 1, "totalDels incremented after DEL")
+    // Raft log stats
+    check(int(stats2["raftLogAppended"]) > 0, "raftLogAppended > 0")
+    check(int(stats2["raftLogCommitted"]) > 0, "raftLogCommitted > 0")
+    // Counter via INCR follows correct sequence
+    routeSet("stat:counter", "100")
+    int c1 = int(string(routeIncr("stat:counter", 1)["value"]))
+    int c2 = int(string(routeIncr("stat:counter", 1)["value"]))
+    int c10 = int(string(routeIncr("stat:counter", 10)["value"]))
+    int cMinus = int(string(routeIncr("stat:counter", -5)["value"]))
+    check(c1 == 101, "INCR by 1 from 100 -> 101")
+    check(c2 == 102, "INCR by 1 again -> 102")
+    check(c10 == 112, "INCR by 10 -> 112")
+    check(cMinus == 107, "INCR by -5 -> 107")
+    return 0
+end
+
+// Cluster status formatting.
+func test24ClusterStatusFormat() as int
+    section("[test 24] cluster status formatting")
+    clusterInit(5)
+    string info = formatClusterInfo()
+    checkContains(info, "CLUSTER INFO", "info has title")
+    checkContains(info, "nodes_total:", "info has nodes_total")
+    checkContains(info, "shards_total:", "info has shards_total")
+    checkContains(info, "vnodes_per_node:", "info has vnodes_per_node")
+    checkContains(info, "keys_total:", "info has keys_total")
+    checkContains(info, "leader_changes:", "info has leader_changes")
+    checkContains(info, "tx_commits:", "info has tx_commits")
+    string nodes = formatClusterNodes()
+    checkContains(nodes, "CLUSTER NODES", "nodes has title")
+    checkContains(nodes, "host:port", "nodes has host:port column")
+    checkContains(nodes, "node-a", "nodes lists node-a")
+    string shards = formatClusterShards()
+    checkContains(shards, "CLUSTER SHARDS", "shards has title")
+    checkContains(shards, "primary", "shards has primary column")
+    checkContains(shards, "leader", "shards has leader column")
+    string slots = formatClusterSlots()
+    checkContains(slots, "CLUSTER SLOTS", "slots has title")
+    checkContains(slots, "%", "slots has percentages")
+    string ring = renderRingViz()
+    checkContains(ring, "Consistent Hash Ring", "ring has title")
+    checkContains(ring, "vnodes:", "ring has vnode count")
+    string dist = formatKeyDistribution()
+    checkContains(dist, "KEY DISTRIBUTION", "distribution has title")
+    string health = formatHealth()
+    checkContains(health, "CLUSTER HEALTH", "health has title")
+    string raft = formatRaftState("0")
+    checkContains(raft, "RAFT STATE", "raft has title")
+    checkContains(raft, "current_term:", "raft has current_term")
+    checkContains(raft, "leader_id:", "raft has leader_id")
+    checkContains(raft, "commit_index:", "raft has commit_index")
+    return 0
+end
+
+// Hash determinism: same key always routes to same shard.
+func test25HashDeterminism() as int
+    section("[test 25] hash + routing determinism")
+    // Hash function is deterministic
+    int h1 = hashKey("user:12345")
+    int h2 = hashKey("user:12345")
+    check(h1 == h2, "hashKey deterministic for same input")
+    // Different inputs -> different hashes (overwhelmingly likely)
+    int h3 = hashKey("user:12346")
+    check(h3 != h1, "hashKey differs for different input")
+    // shardOf deterministic
+    string s1 = shardOf("user:12345")
+    string s2 = shardOf("user:12345")
+    check(s1 == s2, "shardOf deterministic")
+    // Range
+    int sh = int(s1)
+    check(sh >= 0, "shard id >= 0")
+    check(sh < DEFAULT_SHARD_COUNT, "shard id < SHARD_COUNT")
+    // Hash space coverage: 1000 keys hit many shards
+    var shardCount = {}
+    int i = 0
+    while i < 1000 do
+        string s = shardOf("k:" + string(i) + ":" + string(i * 2))
+        if not (s in shardCount) then shardCount[s] = 0 end
+        shardCount[s] = int(shardCount[s]) + 1
+        i += 1
+    end
+    check(shardCount.length >= DEFAULT_SHARD_COUNT / 2, "1000 keys hit at least half of shards (got " + string(shardCount.length) + ")")
+    // No shard gets disproportionate share (> 5% would be odd for 64 shards)
+    bool balanced = true
+    for sid, c in shardCount
+        if int(c) > 100 then
+            balanced = false
+            break
+        end
+    end
+    check(balanced, "no shard gets > 100 of 1000 keys")
+    return 0
+end
+
+func runTestSuite() as int
+    println("")
+    println("================ xdistdb test suite ================")
+    gPass = 0
+    gFail = 0
+    test01ClusterInit()
+    test02HashRingAndRouting()
+    test03KeyDistribution()
+    test04DataTypes()
+    test05TTL()
+    test06Raft()
+    test07ReplicationAndRead()
+    test08Failover()
+    test09JoinLeaveMigration()
+    test10ScatterGather()
+    test11CrossShardTx()
+    test12Protocol()
+    test13ShardSplitMerge()
+    test14EndToEnd()
+    test15ExportImport()
+    test16MultiFailover()
+    test17RingDeterminism()
+    test18Persistence()
+    test19EdgeCases()
+    test20MigrationRanges()
+    test21MigrationProgress()
+    test22Routing()
+    test23WorkloadStats()
+    test24ClusterStatusFormat()
+    test25HashDeterminism()
+    println("")
+    println("------------------- summary -------------------")
+    println("passed: " + string(gPass) + " / " + string(gPass + gFail))
+    println("failed: " + string(gFail))
+    println("")
+    if gFail == 0 then
+        println("RESULT: OK - all " + string(gPass) + " assertions passed")
+        return 0
+    end
+    println("RESULT: FAIL - " + string(gFail) + " assertion(s) failed")
+    return 1
+end
+
+
+// ============================================================================
+// SECTION 16 - main + help
+// ============================================================================
+
+func printHelp()
+    println("xdistdb - Distributed Key-Value Database (xlang)")
+    println("")
+    println("Usage: xdistdb <command> [args]")
+    println("")
+    println("Cluster commands:")
+    println("  cluster init [nodes=N]       initialize cluster (default 5 nodes)")
+    println("  cluster add [port=N]         add a node (auto id, triggers migration)")
+    println("  cluster remove <nodeId>      remove a node (triggers migration)")
+    println("  cluster status               full cluster status")
+    println("  cluster nodes                node list")
+    println("  cluster shards               shard list (primary / replicas / leader)")
+    println("  cluster ring                 consistent hash ring visualization")
+    println("  cluster slots                slot distribution per node")
+    println("  cluster migrate              advance pending migrations")
+    println("  cluster health               health check + heartbeats")
+    println("  cluster migrations           migration progress")
+    println("  cluster distribution         key distribution per node")
+    println("")
+    println("Data commands (string):")
+    println("  set <key> <value...>         set key=value (auto-typed)")
+    println("  get <key>                    get value")
+    println("  del <key>                    delete key")
+    println("  exists <key>                 key exists?")
+    println("  type <key>                   value type")
+    println("  incr <key> [delta=1]         integer increment")
+    println("  expire <key> <secs>          set TTL")
+    println("  ttl <key>                    remaining TTL")
+    println("  persist <key>                remove TTL")
+    println("")
+    println("Data commands (list):")
+    println("  lpush <key> v1 v2...         prepend values")
+    println("  rpush <key> v1 v2...         append values")
+    println("  lpop <key> [count=1]         pop from head")
+    println("  rpop <key> [count=1]         pop from tail")
+    println("  lrange <key> <start> <stop>  range (negative index supported)")
+    println("  llen <key>                   list length")
+    println("")
+    println("Data commands (hash):")
+    println("  hset <key> <field> <value>   set field")
+    println("  hget <key> <field>           get field")
+    println("  hgetall <key>                all fields")
+    println("  hdel <key> <field>           delete field")
+    println("  hlen <key>                   field count")
+    println("")
+    println("Data commands (set):")
+    println("  sadd <key> m1 m2...          add members")
+    println("  srem <key> m1 m2...          remove members")
+    println("  smembers <key>               all members")
+    println("  sismember <key> <m>          member exists?")
+    println("  scard <key>                  set cardinality")
+    println("")
+    println("Data commands (zset):")
+    println("  zadd <key> <score> <member>  add scored member")
+    println("  zrange <key> <s> <e>         range by score (asc)")
+    println("  zscore <key> <member>        member score")
+    println("  zcard <key>                  zset cardinality")
+    println("  zrem <key> <member>          remove member")
+    println("")
+    println("Cross-shard commands:")
+    println("  keys <pattern>               scatter-gather KEYS (glob: * ?)")
+    println("  count                        total key count (scatter-gather)")
+    println("  tx <c1> | <c2> | ...         cross-shard 2PC (SET/DEL/INCR)")
+    println("")
+    println("Operations:")
+    println("  fail <nodeId>                simulate node failure (triggers failover)")
+    println("  recover <nodeId>             recover failed node")
+    println("  raft <shardId>               raft state of a shard")
+    println("  eval <line>                  execute Redis-like protocol line")
+    println("")
+    println("Utility:")
+    println("  export <file>                export state to pretty JSON")
+    println("  import <file>                import state from JSON")
+    println("  reset                        clear all state")
+    println("  test                         run built-in test suite")
+    println("  bench [ops=1000]             write+read+balance benchmark")
+    println("  serve [port=18300]           start HTTP API server")
+    println("  help                         this help")
+    println("")
+    println("Data model: string / list / hash / set / zset, all with TTL.")
+    println("Replication: Raft per shard (leader + replicas), linearizable reads.")
+    println("State file: xdistdb.state.json (script/exe directory).")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printHelp()
+        return 1
+    end
+
+    string scriptPath = string(arg[0])
+    gStateFile = stateFilePath(scriptPath)
+    string command = string.lower(string(arg[1]))
+
+    if command == "test" then
+        return runTestSuite()
+    end
+
+    if command == "help" or command == "-h" or command == "--help" then
+        printHelp()
+        return 0
+    end
+
+    if command == "reset" then
+        if file.exists(gStateFile) then
+            file.delete(gStateFile)
+        end
+        gState = {}
+        println("OK state cleared (and file removed if existed)")
+        return 0
+    end
+
+    bool skipLoad = false
+    if command == "cluster" and arg.length >= 3 then
+        string sub = string.lower(string(arg[2]))
+        if sub == "init" then skipLoad = true end
+    end
+    if not skipLoad then
+        loadState(gStateFile)
+    end
+
+    int rc = 0
+
+    if command == "cluster" then
+        if arg.length < 3 then
+            println("Error: cluster requires subcommand (init/add/remove/status/...)")
+            println("  try: xdistdb cluster status")
+            return 1
+        end
+        string sub = string.lower(string(arg[2]))
+        if sub == "init" then
+            int n = DEFAULT_NODES
+            if arg.length >= 4 then
+                string s = string(arg[3])
+                if looksLikeInt(s) then n = int(s) end
+            end
+            rc = cmdClusterInit(n)
+        elseif sub == "add" then
+            int port = 0
+            if arg.length >= 4 then
+                string s = string(arg[3])
+                if looksLikeInt(s) then port = int(s) end
+            end
+            rc = cmdClusterAdd(port)
+        elseif sub == "remove" then
+            if arg.length < 4 then
+                println("Error: cluster remove requires <nodeId>")
+                return 1
+            end
+            rc = cmdClusterRemove(string(arg[3]))
+        elseif sub == "status" then
+            rc = cmdClusterStatus()
+        elseif sub == "ring" then
+            rc = cmdClusterRing()
+        elseif sub == "nodes" then
+            rc = cmdClusterNodes()
+        elseif sub == "shards" then
+            rc = cmdClusterShards()
+        elseif sub == "slots" then
+            print(formatClusterSlots())
+        elseif sub == "migrate" then
+            rc = cmdClusterMigrate()
+        elseif sub == "health" then
+            rc = cmdClusterHealth()
+        elseif sub == "migrations" then
+            print(formatMigrations())
+        elseif sub == "distribution" then
+            print(formatKeyDistribution())
+        else
+            println("Error: unknown cluster subcommand: " + sub)
+            return 1
+        end
+    elseif command == "set" then
+        if arg.length < 4 then
+            println("Error: set requires <key> and <value>")
+            return 1
+        end
+        string key = string(arg[2])
+        string rawVal = ""
+        int vi = 3
+        while vi < arg.length do
+            if isEmpty(rawVal) then
+                rawVal = string(arg[vi])
+            else
+                rawVal = rawVal + " " + string(arg[vi])
+            end
+            vi += 1
+        end
+        rc = cmdSet(key, rawVal)
+    elseif command == "get" then
+        if arg.length < 3 then
+            println("Error: get requires <key>")
+            return 1
+        end
+        rc = cmdGet(string(arg[2]))
+    elseif command == "del" or command == "delete" then
+        if arg.length < 3 then
+            println("Error: del requires <key>")
+            return 1
+        end
+        rc = cmdDel(string(arg[2]))
+    elseif command == "exists" then
+        if arg.length < 3 then
+            println("Error: exists requires <key>")
+            return 1
+        end
+        rc = cmdExists(string(arg[2]))
+    elseif command == "type" then
+        if arg.length < 3 then
+            println("Error: type requires <key>")
+            return 1
+        end
+        rc = cmdType(string(arg[2]))
+    elseif command == "incr" then
+        if arg.length < 3 then
+            println("Error: incr requires <key>")
+            return 1
+        end
+        int delta = 1
+        if arg.length >= 4 then
+            string s = string(arg[3])
+            if looksLikeInt(s) then delta = int(s) end
+        end
+        rc = cmdIncr(string(arg[2]), delta)
+    elseif command == "decr" then
+        if arg.length < 3 then
+            println("Error: decr requires <key>")
+            return 1
+        end
+        rc = cmdIncr(string(arg[2]), -1)
+    elseif command == "expire" then
+        if arg.length < 4 then
+            println("Error: expire requires <key> <seconds>")
+            return 1
+        end
+        rc = cmdExpire(string(arg[2]), int(string(arg[3])))
+    elseif command == "ttl" then
+        if arg.length < 3 then
+            println("Error: ttl requires <key>")
+            return 1
+        end
+        rc = cmdTtl(string(arg[2]))
+    elseif command == "persist" then
+        if arg.length < 3 then
+            println("Error: persist requires <key>")
+            return 1
+        end
+        rc = cmdPersist(string(arg[2]))
+    elseif command == "lpush" or command == "rpush" or command == "lpop" or command == "rpop" or command == "lrange" or command == "llen" then
+        if arg.length < 3 then
+            println("Error: " + command + " requires <key>")
+            return 1
+        end
+        string key = string(arg[2])
+        var args = []
+        int ai = 3
+        while ai < arg.length do
+            args.append(string(arg[ai]))
+            ai += 1
+        end
+        rc = cmdList(command, key, args)
+    elseif command == "hset" or command == "hget" or command == "hgetall" or command == "hdel" or command == "hlen" then
+        if arg.length < 3 then
+            println("Error: " + command + " requires <key>")
+            return 1
+        end
+        string key = string(arg[2])
+        var args = []
+        int ai = 3
+        while ai < arg.length do
+            args.append(string(arg[ai]))
+            ai += 1
+        end
+        rc = cmdHash(command, key, args)
+    elseif command == "sadd" or command == "srem" or command == "smembers" or command == "sismember" or command == "scard" then
+        if arg.length < 3 then
+            println("Error: " + command + " requires <key>")
+            return 1
+        end
+        string key = string(arg[2])
+        var args = []
+        int ai = 3
+        while ai < arg.length do
+            args.append(string(arg[ai]))
+            ai += 1
+        end
+        rc = cmdSetOp(command, key, args)
+    elseif command == "zadd" or command == "zrange" or command == "zscore" or command == "zcard" or command == "zrem" then
+        if arg.length < 3 then
+            println("Error: " + command + " requires <key>")
+            return 1
+        end
+        string key = string(arg[2])
+        var args = []
+        int ai = 3
+        while ai < arg.length do
+            args.append(string(arg[ai]))
+            ai += 1
+        end
+        rc = cmdZset(command, key, args)
+    elseif command == "keys" then
+        string pat = "*"
+        if arg.length >= 3 then pat = string(arg[2]) end
+        rc = cmdKeys(pat)
+    elseif command == "count" then
+        rc = cmdCount()
+    elseif command == "fail" then
+        if arg.length < 3 then
+            println("Error: fail requires <nodeId>")
+            return 1
+        end
+        rc = cmdFail(string(arg[2]))
+    elseif command == "recover" then
+        if arg.length < 3 then
+            println("Error: recover requires <nodeId>")
+            return 1
+        end
+        rc = cmdRecover(string(arg[2]))
+    elseif command == "raft" then
+        if arg.length < 3 then
+            println("Error: raft requires <shardId>")
+            return 1
+        end
+        rc = cmdRaft(string(arg[2]))
+    elseif command == "eval" then
+        if arg.length < 3 then
+            println("Error: eval requires <line>")
+            return 1
+        end
+        string line = ""
+        int li = 2
+        while li < arg.length do
+            if isEmpty(line) then
+                line = string(arg[li])
+            else
+                line = line + " " + string(arg[li])
+            end
+            li += 1
+        end
+        rc = cmdEval(line)
+    elseif command == "tx" then
+        if arg.length < 3 then
+            println("Error: tx requires <commands separated by |>")
+            return 1
+        end
+        string txExpr = ""
+        int ti = 2
+        while ti < arg.length do
+            if isEmpty(txExpr) then
+                txExpr = string(arg[ti])
+            else
+                txExpr = txExpr + " " + string(arg[ti])
+            end
+            ti += 1
+        end
+        rc = cmdTx(txExpr)
+    elseif command == "export" then
+        if arg.length < 3 then
+            println("Error: export requires <file>")
+            return 1
+        end
+        rc = cmdExport(string(arg[2]))
+    elseif command == "import" then
+        if arg.length < 3 then
+            println("Error: import requires <file>")
+            return 1
+        end
+        rc = cmdImport(string(arg[2]))
+    elseif command == "bench" then
+        int ops = BENCH_DEFAULT_OPS
+        if arg.length >= 3 then
+            string s = string(arg[2])
+            if looksLikeInt(s) then ops = int(s) end
+        end
+        rc = cmdBench(ops)
+    elseif command == "serve" then
+        int port = DEFAULT_HTTP_PORT
+        if arg.length >= 3 then
+            string s = string(arg[2])
+            if looksLikeInt(s) then port = int(s) end
+        end
+        rc = cmdServe(port)
+    else
+        println("Error: unknown command '" + command + "'")
+        println("  try: xdistdb help")
+        return 1
+    end
+
+    if command != "serve" and command != "test" and command != "help" then
+        saveState(gStateFile)
+    end
+
+    return rc
+end

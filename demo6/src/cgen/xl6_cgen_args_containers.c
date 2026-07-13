@@ -879,24 +879,10 @@ static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* pa
         return;
     }
     targetType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
-    if ( param != NULL && (param->flags & XL6_AST_FLAG_BYVAL) != 0 &&
-         targetType != NULL && xl6CgenIsTypedContainerType(ctx, targetType) ) {
-        xl6CgenTypedContainerCopyExprMode(ctx, targetType, expr, "XRT_OBJMODE_LOCAL");
-        return;
-    }
-    if ( param != NULL && (param->flags & XL6_AST_FLAG_BYVAL) != 0 &&
-         targetType != NULL && xl6CgenIsXValueType(targetType) ) {
-        if ( xl6CgenExprIsXValueBorrow(ctx, expr) ) {
-            xl6OutputPuts("xvoCopy(", ctx->out);
-            xl6CgenExpr(ctx, expr);
-            xl6OutputPutc(')', ctx->out);
-        } else {
-            xl6OutputPuts("xl6_xrt_value_copy_release(", ctx->out);
-            xl6CgenExpr(ctx, expr);
-            xl6OutputPuts(", 0)", ctx->out);
-        }
-        return;
-    }
+    /*
+        byval 传递变量中保存的值。class、容器和 var 的值都是受管理句柄，
+        因而与默认模式一样保留对象身份；需要新对象时必须显式调用 copy/clone。
+    */
     xl6CgenFixedTypeArgExpr(ctx, targetType, expr);
 }
 

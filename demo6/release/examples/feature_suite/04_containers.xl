@@ -158,7 +158,7 @@ expectStr(string(boxedNames[2]), "beta")
 expect(2 in boxedIds, 1)
 expect(int(boxedScores["beta"]), 20)
 
-// 静态泛型容器复制和赋值会生成独立容器。
+// 静态泛型容器是受管理引用；赋值保留同一容器，重新绑定只替换当前变量。
 array<int> numbersCopy = numbers
 list<string> namesCopy = names
 set<int> idsCopy = ids
@@ -169,11 +169,11 @@ names[2] = "gamma"
 ids = set{3, 4}
 scores["beta"] = 25
 
-expect(numbersCopy[0], 10)
-expectStr(namesCopy[2], "beta")
+expect(numbersCopy[0], 99)
+expectStr(namesCopy[2], "gamma")
 expect(1 in idsCopy, 1)
 expect(3 in idsCopy, 0)
-expect(scoresCopy["beta"], 20)
+expect(scoresCopy["beta"], 25)
 
 numbersCopy = array[7, 8]
 namesCopy = list[5: "five"]
@@ -211,7 +211,7 @@ func makeAdder(int base) as func(int) as int
     end
 end
 
-Pair seed
+Pair seed = Pair()
 seed.left = 5
 seed.right = 6
 array<Pair> pairs = array[seed]
@@ -235,12 +235,12 @@ array<func(int) as int> unaryFuncs = array[add5]
 array<func(int) as int> unaryFuncsCopy = unaryFuncs
 unaryFuncs[0] = add9
 func(int) as int copiedUnary = unaryFuncsCopy[0]
-expect(copiedUnary(7), 12)
+expect(copiedUnary(7), 16)
 
-FnBox box
+FnBox box = FnBox()
 box.op = add5
 box.bias = 10
-FnBox nextBox
+FnBox nextBox = FnBox()
 nextBox.op = add9
 nextBox.bias = 20
 
@@ -248,4 +248,4 @@ array<FnBox> boxes = array[box]
 array<FnBox> boxesCopy = boxes
 boxes[0] = nextBox
 FnBox copiedBox = boxesCopy[0]
-expect(copiedBox.op(1) + copiedBox.bias, 16)
+expect(copiedBox.op(1) + copiedBox.bias, 30)

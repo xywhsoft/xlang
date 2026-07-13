@@ -1,0 +1,26 @@
+class Packet
+    int value = 0
+
+    func __copy__() as Packet
+        auto result = Packet()
+        result.value = self.value + 10
+        return result
+    end
+
+    func __clone__() as Packet
+        auto result = Packet()
+        result.value = self.value + 20
+        return result
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+auto source = Packet()
+source.value = 7
+
+auto copied = copy(source)
+auto cloned = clone(source)
+
+expect(copied.value, 17)
+expect(cloned.value, 27)

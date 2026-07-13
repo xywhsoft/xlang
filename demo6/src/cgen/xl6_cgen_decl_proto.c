@@ -405,6 +405,10 @@ static void xl6CgenEmitRecordBoxRuntime(
 {
     int needsDestroy;
     int isGeneric;
+    int canCopy;
+    int canClone;
+    const XL6_AstNode* copyMethod;
+    const XL6_AstNode* cloneMethod;
     const XL6_AstNode* prevParams;
     const XL6_AstNode* prevArgs;
 
@@ -413,6 +417,12 @@ static void xl6CgenEmitRecordBoxRuntime(
     }
     needsDestroy = xl6CgenClassNeedsDestroy(ctx, classNode);
     isGeneric = typeNode != NULL && typeNode->childCount > 0 && xl6CgenClassHasTypeParams(classNode);
+    copyMethod = xl6CgenFindClassFunc(classNode, "__copy__");
+    cloneMethod = xl6CgenFindClassFunc(classNode, "__clone__");
+    canCopy = classNode != NULL &&
+              (xl6CgenClassHasDerive(classNode, "copy") || copyMethod != NULL);
+    canClone = classNode != NULL &&
+               (xl6CgenClassHasDerive(classNode, "clone") || cloneMethod != NULL);
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
     if ( isGeneric ) {
@@ -420,25 +430,109 @@ static void xl6CgenEmitRecordBoxRuntime(
         ctx->currentGenericArgs = typeNode->children[0];
     }
 
-    xl6OutputPrintf(ctx->out, "static void xl6_type_copy_%s(void* dst, const void* src)\n{\n", cTypeName);
-    xl6OutputPrintf(ctx->out, "    if ( dst == 0 ) {\n");
-    xl6OutputPrintf(ctx->out, "        return;\n");
-    xl6OutputPrintf(ctx->out, "    }\n");
-    xl6OutputPrintf(ctx->out, "    if ( src != 0 ) {\n");
-    xl6OutputPrintf(ctx->out, "        memcpy(dst, src, sizeof(%s));\n", cTypeName);
-    if ( needsDestroy ) {
-        char dstPath[512];
-        int prevIndent = ctx->indent;
-
-        snprintf(dstPath, sizeof(dstPath), "(*(%s*)dst)", cTypeName);
-        ctx->indent = 2;
-        xl6CgenRetainClassFunctionFields(ctx, classNode, dstPath);
-        ctx->indent = prevIndent;
+    /* 类型操作先于泛型方法声明输出，用户协议需要在这里提供准确原型。 */
+    if ( isGeneric && copyMethod != NULL ) {
+        xl6CgenGenericClassFuncProto(ctx, classNode, typeNode, copyMethod);
+        xl6OutputPuts(";\n", ctx->out);
     }
-    xl6OutputPrintf(ctx->out, "    } else {\n");
-    xl6OutputPrintf(ctx->out, "        memset(dst, 0, sizeof(%s));\n", cTypeName);
-    xl6OutputPrintf(ctx->out, "    }\n");
-    xl6OutputPrintf(ctx->out, "}\n\n");
+    if ( isGeneric && cloneMethod != NULL ) {
+        xl6CgenGenericClassFuncProto(ctx, classNode, typeNode, cloneMethod);
+        xl6OutputPuts(";\n", ctx->out);
+    }
+
+    if ( canCopy ) {
+        xl6OutputPrintf(ctx->out, "static void xl6_type_copy_%s(void* dst, const void* src)\n{\n", cTypeName);
+        xl6OutputPrintf(ctx->out, "    if ( dst == 0 ) {\n");
+        xl6OutputPrintf(ctx->out, "        return;\n");
+        xl6OutputPrintf(ctx->out, "    }\n");
+        xl6OutputPrintf(ctx->out, "    if ( src != 0 ) {\n");
+        if ( copyMethod != NULL ) {
+            xl6OutputPuts("        xvalue protocolValue = ", ctx->out);
+            if ( isGeneric ) {
+                xl6CgenGenericClassCallableSymbol(ctx, classNode, typeNode, copyMethod);
+            } else {
+                xl6CgenClassCallableSymbol(ctx, classNode, copyMethod);
+            }
+            xl6OutputPuts("((", ctx->out);
+            xl6OutputPuts(cTypeName, ctx->out);
+            xl6OutputPuts("*)src);\n", ctx->out);
+            xl6OutputPrintf(ctx->out,
+                            "        const %s* protocolData = protocolValue != 0 ? (const %s*)xvoGetRecordData(protocolValue) : 0;\n",
+                            cTypeName,
+                            cTypeName);
+            xl6OutputPuts("        if ( protocolData != 0 ) {\n", ctx->out);
+            xl6OutputPrintf(ctx->out, "            memcpy(dst, protocolData, sizeof(%s));\n", cTypeName);
+        } else {
+            xl6OutputPrintf(ctx->out, "        memcpy(dst, src, sizeof(%s));\n", cTypeName);
+        }
+        if ( needsDestroy ) {
+            char dstPath[512];
+            int prevIndent = ctx->indent;
+
+            snprintf(dstPath, sizeof(dstPath), "(*(%s*)dst)", cTypeName);
+            ctx->indent = copyMethod != NULL ? 3 : 2;
+            xl6CgenRetainClassFunctionFields(ctx, classNode, dstPath);
+            ctx->indent = prevIndent;
+        }
+        if ( copyMethod != NULL ) {
+            xl6OutputPuts("        } else {\n", ctx->out);
+            xl6OutputPrintf(ctx->out, "            memset(dst, 0, sizeof(%s));\n", cTypeName);
+            xl6OutputPuts("        }\n", ctx->out);
+            xl6OutputPuts("        if ( protocolValue != 0 ) { xvoUnref(protocolValue); }\n", ctx->out);
+        }
+        xl6OutputPrintf(ctx->out, "    } else {\n");
+        xl6OutputPrintf(ctx->out, "        memset(dst, 0, sizeof(%s));\n", cTypeName);
+        xl6OutputPrintf(ctx->out, "    }\n");
+        xl6OutputPrintf(ctx->out, "}\n\n");
+    }
+
+    if ( canClone ) {
+        xl6OutputPrintf(ctx->out, "static void xl6_type_clone_%s(void* dst, const void* src)\n{\n", cTypeName);
+        xl6OutputPuts("    if ( dst == 0 ) {\n        return;\n    }\n", ctx->out);
+        xl6OutputPuts("    if ( src != 0 ) {\n", ctx->out);
+        if ( cloneMethod != NULL ) {
+            xl6OutputPuts("        xvalue protocolValue = ", ctx->out);
+            if ( isGeneric ) {
+                xl6CgenGenericClassCallableSymbol(ctx, classNode, typeNode, cloneMethod);
+            } else {
+                xl6CgenClassCallableSymbol(ctx, classNode, cloneMethod);
+            }
+            xl6OutputPuts("((", ctx->out);
+            xl6OutputPuts(cTypeName, ctx->out);
+            xl6OutputPuts("*)src);\n", ctx->out);
+            xl6OutputPrintf(ctx->out,
+                            "        const %s* protocolData = protocolValue != 0 ? (const %s*)xvoGetRecordData(protocolValue) : 0;\n",
+                            cTypeName,
+                            cTypeName);
+            xl6OutputPuts("        if ( protocolData != 0 ) {\n", ctx->out);
+            xl6OutputPrintf(ctx->out, "            memcpy(dst, protocolData, sizeof(%s));\n", cTypeName);
+            if ( needsDestroy ) {
+                char dstPath[512];
+                int prevIndent = ctx->indent;
+
+                snprintf(dstPath, sizeof(dstPath), "(*(%s*)dst)", cTypeName);
+                ctx->indent = 3;
+                xl6CgenRetainClassFunctionFields(ctx, classNode, dstPath);
+                ctx->indent = prevIndent;
+            }
+            xl6OutputPuts("        } else {\n", ctx->out);
+            xl6OutputPrintf(ctx->out, "            memset(dst, 0, sizeof(%s));\n", cTypeName);
+            xl6OutputPuts("        }\n", ctx->out);
+            xl6OutputPuts("        if ( protocolValue != 0 ) { xvoUnref(protocolValue); }\n", ctx->out);
+        } else {
+            char dstPath[512];
+            int prevIndent = ctx->indent;
+
+            xl6OutputPrintf(ctx->out, "        memcpy(dst, src, sizeof(%s));\n", cTypeName);
+            snprintf(dstPath, sizeof(dstPath), "(*(%s*)dst)", cTypeName);
+            ctx->indent = 2;
+            xl6CgenDeepCopyClassFunctionFields(ctx, classNode, dstPath);
+            ctx->indent = prevIndent;
+        }
+        xl6OutputPuts("    } else {\n        memset(dst, 0, sizeof(", ctx->out);
+        xl6OutputPuts(cTypeName, ctx->out);
+        xl6OutputPuts("));\n    }\n}\n\n", ctx->out);
+    }
 
     if ( needsDestroy ) {
         xl6OutputPuts("void ", ctx->out);
@@ -504,13 +598,21 @@ static void xl6CgenEmitRecordBoxRuntime(
     xl6OutputPrintf(ctx->out, "    if ( data == 0 ) {\n");
     xl6OutputPrintf(ctx->out, "        return false;\n");
     xl6OutputPrintf(ctx->out, "    }\n");
-    xl6OutputPrintf(ctx->out, "    xl6_type_copy_%s(out, data);\n", cTypeName);
-    xl6OutputPrintf(ctx->out, "    return true;\n");
+    if ( canCopy ) {
+        xl6OutputPrintf(ctx->out, "    xl6_type_copy_%s(out, data);\n", cTypeName);
+        xl6OutputPrintf(ctx->out, "    return true;\n");
+    } else {
+        xl6OutputPuts("    return false;\n", ctx->out);
+    }
     xl6OutputPrintf(ctx->out, "}\n\n");
 
     xl6OutputPrintf(ctx->out, "static const xrt_type_ops xl6_type_ops_%s = {\n", cTypeName);
     xl6OutputPuts("    0,\n", ctx->out);
-    xl6OutputPrintf(ctx->out, "    xl6_type_copy_%s,\n", cTypeName);
+    if ( canCopy ) {
+        xl6OutputPrintf(ctx->out, "    xl6_type_copy_%s,\n", cTypeName);
+    } else {
+        xl6OutputPuts("    0,\n", ctx->out);
+    }
     xl6OutputPuts("    0,\n", ctx->out);
     if ( needsDestroy ) {
         xl6OutputPrintf(ctx->out, "    xl6_type_drop_%s,\n", cTypeName);
@@ -521,7 +623,12 @@ static void xl6CgenEmitRecordBoxRuntime(
     xl6OutputPrintf(ctx->out, "    xl6_type_hash_%s,\n", cTypeName);
     xl6OutputPuts("    0,\n", ctx->out);
     xl6OutputPrintf(ctx->out, "    xl6_type_box_%s,\n", cTypeName);
-    xl6OutputPrintf(ctx->out, "    xl6_type_unbox_%s\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "    xl6_type_unbox_%s,\n", cTypeName);
+    if ( canClone ) {
+        xl6OutputPrintf(ctx->out, "    xl6_type_clone_%s\n", cTypeName);
+    } else {
+        xl6OutputPuts("    0\n", ctx->out);
+    }
     xl6OutputPuts("};\n\n", ctx->out);
 
     xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
@@ -529,7 +636,7 @@ static void xl6CgenEmitRecordBoxRuntime(
     xl6OutputPuts("(void)\n{\n", ctx->out);
     xl6OutputPuts("    static xrt_type_desc desc = {\n", ctx->out);
     xl6OutputPuts("        0u,\n", ctx->out);
-    xl6OutputPuts("        XL6_XRT_TYPE_KIND_RECORD,\n", ctx->out);
+    xl6OutputPuts("        XL6_XRT_TYPE_KIND_CLASS,\n", ctx->out);
     xl6OutputPuts("        ", ctx->out);
     xl6CgenCStringLiteral(ctx->out, sourceName);
     xl6OutputPrintf(ctx->out, ", %uu,\n", (unsigned)strlen(sourceName));
@@ -689,17 +796,6 @@ static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
         destroyNode = xl6CgenFindNativeBackedClassSpecial(nativeClassNode, "destroy");
     }
 
-    xl6OutputPrintf(ctx->out, "static void xl6_type_copy_%s(void* dst, const void* src)\n{\n", cTypeName);
-    xl6OutputPrintf(ctx->out, "    if ( dst == 0 ) {\n");
-    xl6OutputPrintf(ctx->out, "        return;\n");
-    xl6OutputPrintf(ctx->out, "    }\n");
-    xl6OutputPrintf(ctx->out, "    if ( src != 0 ) {\n");
-    xl6OutputPrintf(ctx->out, "        memcpy(dst, src, sizeof(void*));\n");
-    xl6OutputPrintf(ctx->out, "    } else {\n");
-    xl6OutputPrintf(ctx->out, "        memset(dst, 0, sizeof(void*));\n");
-    xl6OutputPrintf(ctx->out, "    }\n");
-    xl6OutputPrintf(ctx->out, "}\n\n");
-
     if ( destroyNode != NULL ) {
         xl6OutputPuts("long long ", ctx->out);
         xl6CgenCStringSymbol(ctx->out, destroyNode->text);
@@ -755,7 +851,8 @@ static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
 
     xl6OutputPrintf(ctx->out, "static const xrt_type_ops xl6_type_ops_%s = {\n", cTypeName);
     xl6OutputPuts("    0,\n", ctx->out);
-    xl6OutputPrintf(ctx->out, "    xl6_type_copy_%s,\n", cTypeName);
+    /* native handle 没有映射复制协议时只能共享，绝不能复制指针并伪造所有权。 */
+    xl6OutputPuts("    0,\n", ctx->out);
     xl6OutputPuts("    0,\n", ctx->out);
     if ( destroyNode != NULL ) {
         xl6OutputPrintf(ctx->out, "    xl6_type_drop_%s,\n", cTypeName);

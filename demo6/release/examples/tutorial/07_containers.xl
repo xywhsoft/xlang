@@ -103,7 +103,7 @@ func main(...) as int
     set<int> idsCopy = ids
     numbers[0] = 99
     ids = set{3, 4}
-    if numbersCopy[0] != 10 or numbers[0] != 99 then
+    if numbersCopy[0] != 99 or numbers[0] != 99 then
         return 15
     end
     if 1 in idsCopy != true or 3 in idsCopy != false or 3 in ids != true then

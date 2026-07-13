@@ -27,7 +27,7 @@ func pair() as (int, int)
 end
 
 func makePairPayload() as (Pair, Payload)
-    Pair pair
+    Pair pair = Pair()
     pair.left = 4
     pair.right = 5
 
@@ -53,7 +53,7 @@ values[0], scores["main"] = pair()
 expect(values[0], 7)
 expect(scores["main"], 8)
 
-Pair emptyPair
+Pair emptyPair = Pair()
 Payload emptyPayload
 
 array<Pair> pairs = array[emptyPair]

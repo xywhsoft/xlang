@@ -352,6 +352,31 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe run test\cases\cgen_async_class_function_field.xl > build\test\cgen_async_class_function_field.out.txt 2> build\test\cgen_async_class_function_field.err.txt
+if errorlevel 1 (
+    type build\test\cgen_async_class_function_field.err.txt
+    echo cgen_async_class_function_field.xl run failed.
+    exit /b 1
+)
+findstr /C:"async class function aggregate ok" build\test\cgen_async_class_function_field.out.txt >nul
+if errorlevel 1 (
+    echo cgen_async_class_function_field.xl missing success marker.
+    exit /b 1
+)
+
+release\xl.exe build test\cases\cgen_async_class_function_field.xl -o build\test\cgen_async_class_function_field.exe >nul 2> build\test\cgen_async_class_function_field_build.err.txt
+if errorlevel 1 (
+    type build\test\cgen_async_class_function_field_build.err.txt
+    echo cgen_async_class_function_field.xl build failed.
+    exit /b 1
+)
+build\test\cgen_async_class_function_field.exe > build\test\cgen_async_class_function_field_exe.out.txt 2> build\test\cgen_async_class_function_field_exe.err.txt
+if errorlevel 1 (
+    type build\test\cgen_async_class_function_field_exe.err.txt
+    echo cgen_async_class_function_field.exe failed.
+    exit /b 1
+)
+
 release\xl.exe build test\cases\cgen_task_aggregate_type_closure.xl -o build\test\cgen_task_aggregate_type_closure.exe >nul 2> build\test\cgen_task_aggregate_type_closure_build.err.txt
 if errorlevel 1 (
     type build\test\cgen_task_aggregate_type_closure_build.err.txt
@@ -362,6 +387,30 @@ build\test\cgen_task_aggregate_type_closure.exe > build\test\cgen_task_aggregate
 if errorlevel 1 (
     type build\test\cgen_task_aggregate_type_closure_exe.err.txt
     echo cgen_task_aggregate_type_closure.exe failed.
+    exit /b 1
+)
+
+release\xl.exe run test\cases\cgen_task_shared_closure_refcount.xl > build\test\cgen_task_shared_closure_refcount.out.txt 2> build\test\cgen_task_shared_closure_refcount.err.txt
+if errorlevel 1 (
+    type build\test\cgen_task_shared_closure_refcount.err.txt
+    echo cgen_task_shared_closure_refcount.xl run failed.
+    exit /b 1
+)
+findstr /C:"shared closure refcount ok" build\test\cgen_task_shared_closure_refcount.out.txt >nul
+if errorlevel 1 (
+    echo cgen_task_shared_closure_refcount.xl missing success marker.
+    exit /b 1
+)
+release\xl.exe cgen test\cases\cgen_task_shared_closure_refcount.xl --emit build\test\cgen_task_shared_closure_refcount.c
+if errorlevel 1 exit /b 1
+findstr /C:"xrtAtomicRefRetain(&__env->ref_count)" build\test\cgen_task_shared_closure_refcount.c >nul
+if errorlevel 1 (
+    echo cgen_task_shared_closure_refcount.c missing atomic closure retain.
+    exit /b 1
+)
+findstr /C:"xrtAtomicRefRelease(&__env->ref_count)" build\test\cgen_task_shared_closure_refcount.c >nul
+if errorlevel 1 (
+    echo cgen_task_shared_closure_refcount.c missing atomic closure release.
     exit /b 1
 )
 
@@ -605,4 +654,3 @@ if errorlevel 1 (
 
 echo DEMO6 suite ok: async task and async-generator part 2/3
 exit /b 0
-

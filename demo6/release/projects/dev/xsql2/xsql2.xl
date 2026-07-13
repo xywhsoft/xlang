@@ -1,0 +1,5397 @@
+﻿// xsql2.xl - 用 xlang 编写的完整内存 SQL 数据库引擎
+//
+// 用法：
+//   xsql2 exec "<SQL 语句; SQL 语句; ...>"   执行一条或多条 SQL（以 ; 分隔）
+//   xsql2 script <file.sql>                  执行脚本文件（每条语句以 ; 分隔）
+//   xsql2 test                               运行内置自测（覆盖全部功能）
+//   xsql2 -h | --help                        显示帮助
+//
+// 本工具是 dev/xsql 的完整升级版，验证 xlang 的以下能力：
+//   * 手写词法分析器 tokenize(sql) -> array<string>
+//   * 递归下降语法分析器 parse(tokens) -> AST（用 var dict 承载节点）
+//   * 表达式求值 evalExpr（算术/比较/LIKE/IN/BETWEEN/AND/OR/NOT/CASE/聚合）
+//   * 存储引擎：表 = rows 数组；多阶 B+树索引（var key + 行号 RID）
+//   * 查询执行器：扫描 + 过滤 + JOIN(INNER/LEFT/RIGHT/FULL/CROSS) +
+//                 聚合 + GROUP BY + HAVING + ORDER BY + LIMIT/OFFSET + 子查询物化 + UNION
+//   * 事务：BEGIN / COMMIT / ROLLBACK（基于全表快照）
+//   * 约束：PRIMARY KEY / UNIQUE / NOT NULL / DEFAULT / CHECK
+//   * 持久化：SAVE 把整个 gTables 序列化到文件；LOAD 反序列化还原
+//
+// 关键字大小写不敏感。所有 var 到字符串的转换一律使用 string(var_expr)。
+//
+// 架构说明：
+//   由于 xlang 的 var dict 按值传递（函数参数为副本），所有修改操作需
+//   使用 read-modify-writeback 模式：读取到局部变量 → 修改 → 写回全局。
+//   Table 和 BPlusTree 均以 var dict 承载（非 class），辅以全局函数操作。
+//   聚合求值通过全局 g_currentGroupRows 传递当前分组行集，避免 AST 修改
+//   不传播的问题。相关子查询通过全局 g_outerRow 传递外层行上下文。
+//
+// 支持的 SQL 子集：
+//   CREATE TABLE name (
+//       col TYPE [PRIMARY KEY | UNIQUE | NOT NULL | NULL |
+//                 DEFAULT expr | CHECK(expr) | REFERENCES t(c)] [, ...]
+//       [, PRIMARY KEY(c1,c2) | UNIQUE(c1,...) | CHECK(expr)]
+//   )
+//   CREATE [UNIQUE] INDEX name ON table(col [, ...])
+//   DROP TABLE name / DROP INDEX name
+//   TRUNCATE TABLE name
+//   INSERT INTO name [(cols,...)] VALUES (..),(..) | INSERT INTO name SELECT ...
+//   SELECT [DISTINCT] <items>
+//          FROM name [alias] [JOIN ...]
+//          [WHERE ..]
+//          [GROUP BY ..] [HAVING ..]
+//          [ORDER BY .. [ASC|DESC]] [LIMIT n [OFFSET m]]
+//          [UNION [ALL] SELECT ...]
+//   UPDATE name SET col=expr,... [WHERE ..]
+//   DELETE FROM name [WHERE ..]
+//   BEGIN | COMMIT | ROLLBACK
+//   SAVE [TO file] | LOAD [FROM file]
+//
+//   类型：INT/INTEGER/BIGINT/REAL/FLOAT/DOUBLE/TEXT/VARCHAR/BLOB/BOOLEAN/DATE
+//   聚合：COUNT/SUM/AVG/MIN/MAX
+//   谓词：expr LIKE 'pattern'、expr IN (..)、expr BETWEEN a AND b、EXISTS(subquery)
+//   表达式：CASE WHEN cond THEN val [WHEN ...] [ELSE val] END
+//   内置函数：UPPER/LOWER/LENGTH/COALESCE/IFNULL/ABS/ROUND/TRIM/SUBSTR
+//   JOIN：INNER / LEFT [OUTER] / RIGHT [OUTER] / FULL [OUTER] / CROSS
+//   集合：UNION [ALL] / INTERSECT / EXCEPT
+//   子查询：标量子查询 / IN 子查询 / EXISTS 子查询 / 派生表
+//   相关子查询：内层查询可引用外层列（通过 g_outerRow 传递上下文）
+
+
+// ============================================================================
+// 1. 全局状态
+// ============================================================================
+
+var gTables = {}        // 表名 -> Table 实例（var 装箱）
+var gIndexes = {}       // 索引名 -> {table, cols, unique, tree}
+var gTableIndexes = {}  // 表名 -> array<索引名>
+var gTox = []         // 当前正在解析的 token 数组
+int gIx = 0             // 当前解析下标
+int gAggId = 0          // 聚合节点编号计数器
+array gAggList = []     // 当前 SELECT 中收集到的聚合节点
+var g_currentGroupRows = null  // 当前投影的分组行（供 evalExpr 中的聚合使用）
+var g_outerRow = null          // 外层查询行（用于相关子查询）
+var gTxnSnapshot = null // 事务快照
+string gDbPath = ""     // 持久化文件路径
+
+int g_pass = 0
+int g_fail = 0
+
+
+// ============================================================================
+// 2. 词法分析器
+// ============================================================================
+
+func tokenize(string s) as array
+    array toks = []
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b == 32 or b == 9 or b == 10 or b == 13 then
+            i += 1
+        elseif b == 45 and i + 1 < n and string.byteAt(s, i + 1) == 45 then
+            i += 2
+            while i < n and string.byteAt(s, i) != 10 do
+                i += 1
+            end
+        elseif b == 47 and i + 1 < n and string.byteAt(s, i + 1) == 42 then
+            i += 2
+            bool closed = false
+            while i + 1 < n do
+                if string.byteAt(s, i) == 42 and string.byteAt(s, i + 1) == 47 then
+                    i += 2
+                    closed = true
+                    break
+                end
+                i += 1
+            end
+            if not closed then
+                i = n
+            end
+        elseif b == 39 then
+            i += 1
+            string lit = "'"
+            bool closed = false
+            while i < n do
+                int c = string.byteAt(s, i)
+                if c == 39 then
+                    if i + 1 < n and string.byteAt(s, i + 1) == 39 then
+                        lit = lit + "''"
+                        i += 2
+                    else
+                        lit = lit + "'"
+                        i += 1
+                        closed = true
+                        break
+                    end
+                else
+                    lit = lit + string.charAt(s, i)
+                    i += 1
+                end
+            end
+            if not closed then
+                throw "unterminated string literal"
+            end
+            toks.append(lit)
+        elseif b >= 48 and b <= 57 then
+            string num = ""
+            bool hasDot = false
+            bool hasE = false
+            while i < n do
+                int c = string.byteAt(s, i)
+                if c >= 48 and c <= 57 then
+                    num = num + string.charAt(s, i)
+                    i += 1
+                elseif c == 46 and not hasDot and not hasE then
+                    num = num + "."
+                    hasDot = true
+                    i += 1
+                elseif (c == 101 or c == 69) and not hasE then
+                    num = num + string.charAt(s, i)
+                    hasE = true
+                    i += 1
+                    if i < n then
+                        int sign = string.byteAt(s, i)
+                        if sign == 43 or sign == 45 then
+                            num = num + string.charAt(s, i)
+                            i += 1
+                        end
+                    end
+                else
+                    break
+                end
+            end
+            toks.append(num)
+        elseif (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 95 then
+            string ident = ""
+            while i < n do
+                int c = string.byteAt(s, i)
+                if (c >= 65 and c <= 90) or (c >= 97 and c <= 122) or (c >= 48 and c <= 57) or c == 95 then
+                    ident = ident + string.charAt(s, i)
+                    i += 1
+                else
+                    break
+                end
+            end
+            toks.append(ident)
+        elseif b == 60 or b == 62 or b == 33 or b == 61 then
+            int b2 = -1
+            if i + 1 < n then
+                b2 = string.byteAt(s, i + 1)
+            end
+            if b == 60 and b2 == 62 then
+                toks.append("<>")
+                i += 2
+            elseif b == 60 and b2 == 61 then
+                toks.append("<=")
+                i += 2
+            elseif b == 62 and b2 == 61 then
+                toks.append(">=")
+                i += 2
+            elseif b == 33 and b2 == 61 then
+                toks.append("!=")
+                i += 2
+            elseif b == 61 then
+                if b2 == 61 then
+                    toks.append("=")
+                    i += 2
+                else
+                    toks.append("=")
+                    i += 1
+                end
+            elseif b == 60 then
+                toks.append("<")
+                i += 1
+            elseif b == 62 then
+                toks.append(">")
+                i += 1
+            else
+                throw "unexpected character '!'"
+            end
+        elseif b == 124 then
+            if i + 1 < n and string.byteAt(s, i + 1) == 124 then
+                toks.append("||")
+                i += 2
+            else
+                toks.append("|")
+                i += 1
+            end
+        elseif b == 40 or b == 41 or b == 44 or b == 46 or b == 42 or b == 43 or b == 45 or b == 47 or b == 37 or b == 59 then
+            toks.append(string.charAt(s, i))
+            i += 1
+        else
+            throw "unexpected character: " + string.charAt(s, i)
+        end
+    end
+    return toks
+end
+
+
+func splitStatements(array toks) as array
+    array result = []
+    array cur = []
+    for t in toks
+        if t == ";" then
+            if cur.length > 0 then
+                result.append(cur)
+                cur = []
+            end
+        else
+            cur.append(t)
+        end
+    end
+    if cur.length > 0 then
+        result.append(cur)
+    end
+    return result
+end
+
+
+// ============================================================================
+// 3. token 分类辅助
+// ============================================================================
+
+func tokIsWord(string t) as bool
+    if t == "" then
+        return false
+    end
+    int b = string.byteAt(t, 0)
+    if (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 95 then
+        return true
+    end
+    return false
+end
+
+func tokWordIs(string t, string kw) as bool
+    if not tokIsWord(t) then
+        return false
+    end
+    return string.lower(t) == string.lower(kw)
+end
+
+func tokIsNumberLit(string t) as bool
+    if t == "" then
+        return false
+    end
+    int b0 = string.byteAt(t, 0)
+    if not (b0 >= 48 and b0 <= 57) then
+        return false
+    end
+    bool hasDot = false
+    bool hasE = false
+    int i = 1
+    int n = string.len(t)
+    while i < n do
+        int b = string.byteAt(t, i)
+        if b == 46 then
+            if hasDot or hasE then
+                return false
+            end
+            hasDot = true
+        elseif b == 101 or b == 69 then
+            if hasE then
+                return false
+            end
+            hasE = true
+            i += 1
+            if i < n then
+                int sb = string.byteAt(t, i)
+                if sb != 43 and sb != 45 and (sb < 48 or sb > 57) then
+                    return false
+                end
+                i += 1
+            end
+        elseif b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+func tokNumValue(string t) as var
+    if string.contains(t, "e") or string.contains(t, "E") then
+        return float(t)
+    end
+    if string.contains(t, ".") then
+        return float(t)
+    end
+    return int(t)
+end
+
+func tokIsStringLit(string t) as bool
+    if t == "" then
+        return false
+    end
+    return string.byteAt(t, 0) == 39
+end
+
+func tokStrValue(string t) as string
+    int n = string.len(t)
+    if n < 2 then
+        return ""
+    end
+    string inner = string.slice(t, 1, n - 2)
+    return string.replace(inner, "''", "'")
+end
+
+func tokIsAggName(string t) as bool
+    string u = string.lower(t)
+    if u == "count" then return true end
+    if u == "sum"   then return true end
+    if u == "avg"   then return true end
+    if u == "min"   then return true end
+    if u == "max"   then return true end
+    return false
+end
+
+
+// ============================================================================
+// 4. 语法分析器游标
+// ============================================================================
+
+func tokPeek() as string
+    if gIx >= gTox.length then
+        return ""
+    end
+    return gTox[gIx] as string
+end
+
+func tokPeekAt(int off) as string
+    int idx = gIx + off
+    if idx < 0 then
+        return ""
+    end
+    if idx >= gTox.length then
+        return ""
+    end
+    return gTox[idx] as string
+end
+
+func tokAtEnd() as bool
+    return gIx >= gTox.length
+end
+
+func tokEat() as string
+    string t = tokPeek()
+    gIx += 1
+    return t
+end
+
+func tokEatIdent() as string
+    string t = tokPeek()
+    if not tokIsWord(t) then
+        throw "expected identifier but got '" + t + "'"
+    end
+    gIx += 1
+    return t
+end
+
+func tokAcceptWord(string kw) as bool
+    if tokWordIs(tokPeek(), kw) then
+        gIx += 1
+        return true
+    end
+    return false
+end
+
+func tokExpectWord(string kw)
+    if not tokWordIs(tokPeek(), kw) then
+        throw "expected '" + kw + "' but got '" + tokPeek() + "'"
+    end
+    gIx += 1
+end
+
+func tokExpectTok(string t)
+    if tokPeek() != t then
+        throw "expected '" + t + "' but got '" + tokPeek() + "'"
+    end
+    gIx += 1
+end
+
+func tokAcceptTok(string t) as bool
+    if tokPeek() == t then
+        gIx += 1
+        return true
+    end
+    return false
+end
+
+func isClauseWord(string t) as bool
+    if t == "" then
+        return false
+    end
+    string u = string.lower(t)
+    if u == "from" then return true end
+    if u == "where" then return true end
+    if u == "group" then return true end
+    if u == "order" then return true end
+    if u == "having" then return true end
+    if u == "limit" then return true end
+    if u == "offset" then return true end
+    if u == "join" then return true end
+    if u == "inner" then return true end
+    if u == "left" then return true end
+    if u == "right" then return true end
+    if u == "full" then return true end
+    if u == "outer" then return true end
+    if u == "cross" then return true end
+    if u == "on" then return true end
+    if u == "using" then return true end
+    if u == "as" then return true end
+    if u == "asc" then return true end
+    if u == "desc" then return true end
+    if u == "and" then return true end
+    if u == "or" then return true end
+    if u == "not" then return true end
+    if u == "by" then return true end
+    if u == "is" then return true end
+    if u == "in" then return true end
+    if u == "like" then return true end
+    if u == "between" then return true end
+    if u == "union" then return true end
+    if u == "intersect" then return true end
+    if u == "except" then return true end
+    if u == "when" then return true end
+    if u == "then" then return true end
+    if u == "else" then return true end
+    if u == "end" then return true end
+    if u == "exists" then return true end
+    if u == "case" then return true end
+    if u == "distinct" then return true end
+    if u == "values" then return true end
+    if u == "set" then return true end
+    if u == "select" then return true end
+    return false
+end
+
+
+// ============================================================================
+// 5. 表达式解析（产出 var dict AST 节点）
+// ============================================================================
+
+func parseExpr() as var
+    return parseOr()
+end
+
+func parseOr() as var
+    var node = parseAnd()
+    while tokWordIs(tokPeek(), "or") do
+        gIx += 1
+        var rhs = parseAnd()
+        node = {"k":"or", "left":node, "right":rhs}
+    end
+    return node
+end
+
+func parseAnd() as var
+    var node = parseNot()
+    while tokWordIs(tokPeek(), "and") do
+        gIx += 1
+        var rhs = parseNot()
+        node = {"k":"and", "left":node, "right":rhs}
+    end
+    return node
+end
+
+func parseNot() as var
+    if tokWordIs(tokPeek(), "not") then
+        gIx += 1
+        var e = parseNot()
+        return {"k":"not", "e":e}
+    end
+    return parsePred()
+end
+
+func parsePred() as var
+    var left = parseCmp()
+    string t = tokPeek()
+    bool neg = false
+    if tokWordIs(t, "not") then
+        string t2 = tokPeekAt(1)
+        if tokWordIs(t2, "like") or tokWordIs(t2, "in") or tokWordIs(t2, "between") then
+            gIx += 1
+            neg = true
+            t = tokPeek()
+        end
+    end
+    if tokWordIs(t, "like") then
+        gIx += 1
+        var pat = parseCmp()
+        return {"k":"like", "left":left, "right":pat, "neg":neg}
+    end
+    if tokWordIs(t, "in") then
+        gIx += 1
+        if tokPeek() == "(" then
+            if tokWordIs(tokPeekAt(1), "select") then
+                gIx += 1
+                var sub = parseSelect()
+                tokExpectTok(")")
+                return {"k":"insubq", "e":left, "q":sub, "neg":neg}
+            end
+            gIx += 1
+            array items = []
+            if tokPeek() != ")" then
+                while true do
+                    items.append(parseExpr())
+                    if tokPeek() == "," then
+                        gIx += 1
+                    else
+                        break
+                    end
+                end
+            end
+            tokExpectTok(")")
+            return {"k":"inlist", "e":left, "items":items, "neg":neg}
+        end
+        throw "IN requires (...)"
+    end
+    if tokWordIs(t, "between") then
+        gIx += 1
+        var lo = parseAdd()
+        tokExpectWord("and")
+        var hi = parseAdd()
+        return {"k":"between", "e":left, "lo":lo, "hi":hi, "neg":neg}
+    end
+    return left
+end
+
+func parseCmp() as var
+    var left = parseAdd()
+    string t = tokPeek()
+    if t == "=" or t == "!=" or t == "<>" or t == ">" or t == "<" or t == ">=" or t == "<=" then
+        gIx += 1
+        var right = parseAdd()
+        return {"k":"cmp", "op":t, "left":left, "right":right}
+    end
+    if tokWordIs(t, "is") then
+        gIx += 1
+        bool isn = tokAcceptWord("not")
+        tokExpectWord("null")
+        var isNullNode = {"k":"isnull", "e":left}
+        if isn then
+            return {"k":"not", "e":isNullNode}
+        end
+        return isNullNode
+    end
+    return left
+end
+
+func parseAdd() as var
+    var node = parseMul()
+    while tokPeek() == "+" or tokPeek() == "-" or tokPeek() == "||" do
+        string op = tokEat()
+        var rhs = parseMul()
+        node = {"k":"arith", "op":op, "left":node, "right":rhs}
+    end
+    return node
+end
+
+func parseMul() as var
+    var node = parseUnary()
+    while tokPeek() == "*" or tokPeek() == "/" or tokPeek() == "%" do
+        string op = tokEat()
+        var rhs = parseUnary()
+        node = {"k":"arith", "op":op, "left":node, "right":rhs}
+    end
+    return node
+end
+
+func parseUnary() as var
+    if tokPeek() == "-" then
+        gIx += 1
+        var e = parseUnary()
+        return {"k":"arith", "op":"-", "left":{"k":"lit", "v":0}, "right":e}
+    end
+    if tokPeek() == "+" then
+        gIx += 1
+        return parseUnary()
+    end
+    return parsePrimary()
+end
+
+func parsePrimary() as var
+    string t = tokPeek()
+    if t == "" then
+        throw "unexpected end of input in expression"
+    end
+    if tokWordIs(t, "case") then
+        return parseCase()
+    end
+    if tokWordIs(t, "exists") then
+        gIx += 1
+        tokExpectTok("(")
+        var sub = parseSelect()
+        tokExpectTok(")")
+        return {"k":"exists", "q":sub, "neg":false}
+    end
+    if t == "*" then
+        gIx += 1
+        return {"k":"star"}
+    end
+    if t == "(" then
+        if tokWordIs(tokPeekAt(1), "select") then
+            gIx += 1
+            var sub = parseSelect()
+            tokExpectTok(")")
+            return {"k":"subq", "q":sub}
+        end
+        gIx += 1
+        var e = parseExpr()
+        tokExpectTok(")")
+        return e
+    end
+    if tokIsStringLit(t) then
+        gIx += 1
+        return {"k":"lit", "v":tokStrValue(t)}
+    end
+    if tokIsNumberLit(t) then
+        gIx += 1
+        return {"k":"lit", "v":tokNumValue(t)}
+    end
+    if tokIsWord(t) then
+        string low = string.lower(t)
+        if low == "true" then
+            gIx += 1
+            return {"k":"lit", "v":true}
+        end
+        if low == "false" then
+            gIx += 1
+            return {"k":"lit", "v":false}
+        end
+        if low == "null" then
+            gIx += 1
+            return {"k":"lit", "v":null}
+        end
+        if tokPeekAt(1) == "(" and isBuiltinFunc(t) then
+            return parseBuiltinCall()
+        end
+        if tokIsAggName(t) and tokPeekAt(1) == "(" then
+            string aggName = t
+            gIx += 2
+            var arg = null
+            if tokPeek() == "*" then
+                gIx += 1
+                arg = {"k":"star"}
+            elseif tokPeek() == ")" then
+                arg = null
+            else
+                arg = parseExpr()
+            end
+            tokExpectTok(")")
+            return {"k":"agg", "name":aggName, "arg":arg}
+        end
+        gIx += 1
+        string colName = t
+        if tokPeek() == "." then
+            gIx += 1
+            if tokPeek() == "*" then
+                gIx += 1
+                return {"k":"qstar", "table":colName}
+            end
+            string fld = tokEatIdent()
+            return {"k":"col", "table":colName, "name":fld}
+        end
+        return {"k":"col", "name":colName}
+    end
+    throw "unexpected token in expression: '" + t + "'"
+end
+
+func parseCase() as var
+    tokExpectWord("case")
+    array whens = []
+    var caseSubject = null
+    if not tokWordIs(tokPeek(), "when") then
+        caseSubject = parseExpr()
+    end
+    while tokWordIs(tokPeek(), "when") do
+        gIx += 1
+        var cond = parseExpr()
+        if caseSubject != null then
+            cond = {"k":"cmp", "op":"=", "left":caseSubject, "right":cond}
+        end
+        tokExpectWord("then")
+        var val = parseExpr()
+        whens.append({"cond":cond, "val":val})
+    end
+    var elseVal = null
+    if tokAcceptWord("else") then
+        elseVal = parseExpr()
+    end
+    tokExpectWord("end")
+    return {"k":"case", "whens":whens, "else":elseVal}
+end
+
+func isBuiltinFunc(string t) as bool
+    string u = string.lower(t)
+    if u == "upper"   then return true end
+    if u == "lower"   then return true end
+    if u == "length"  then return true end
+    if u == "coalesce" then return true end
+    if u == "abs"     then return true end
+    if u == "round"   then return true end
+    if u == "trim"    then return true end
+    if u == "substr"  then return true end
+    if u == "cast"    then return true end
+    if u == "ifnull"  then return true end
+    return false
+end
+
+func parseBuiltinCall() as var
+    string name = string.lower(tokEat())
+    tokExpectTok("(")
+    array args = []
+    if tokPeek() != ")" then
+        while true do
+            args.append(parseExpr())
+            if tokPeek() == "," then
+                gIx += 1
+            else
+                break
+            end
+        end
+    end
+    tokExpectTok(")")
+    return {"k":"call", "name":name, "args":args}
+end
+
+// ============================================================================
+// 6. 语句解析
+// ============================================================================
+
+func parseStatement() as var
+    string t = tokPeek()
+    if t == "" then
+        return null
+    end
+    if tokWordIs(t, "create") then
+        return parseCreate()
+    end
+    if tokWordIs(t, "insert") then
+        gIx += 1
+        return parseInsert()
+    end
+    if tokWordIs(t, "select") then
+        return parseSelectStmt()
+    end
+    if tokWordIs(t, "update") then
+        gIx += 1
+        return parseUpdate()
+    end
+    if tokWordIs(t, "delete") then
+        gIx += 1
+        return parseDelete()
+    end
+    if tokWordIs(t, "drop") then
+        gIx += 1
+        return parseDrop()
+    end
+    if tokWordIs(t, "truncate") then
+        gIx += 1
+        return parseTruncate()
+    end
+    if tokWordIs(t, "begin") then
+        gIx += 1
+        return parseBegin()
+    end
+    if tokWordIs(t, "commit") then
+        gIx += 1
+        tokAcceptWord("transaction")
+        tokAcceptWord("work")
+        return {"op":"commit"}
+    end
+    if tokWordIs(t, "rollback") then
+        gIx += 1
+        tokAcceptWord("transaction")
+        tokAcceptWord("work")
+        return {"op":"rollback"}
+    end
+    if tokWordIs(t, "save") then
+        gIx += 1
+        return parseSave()
+    end
+    if tokWordIs(t, "load") then
+        gIx += 1
+        return parseLoad()
+    end
+    throw "unexpected statement start: '" + t + "'"
+end
+
+func parseCreate() as var
+    gIx += 1
+    bool unique = false
+    if tokAcceptWord("unique") then
+        unique = true
+    end
+    if tokAcceptWord("index") then
+        return parseCreateIndex(unique)
+    end
+    if tokAcceptWord("table") then
+        return parseCreateTable()
+    end
+    throw "expected TABLE or INDEX after CREATE"
+end
+
+func parseCreateTable() as var
+    string tname = tokEatIdent()
+    tokExpectTok("(")
+    array cols = []
+    array tCons = []
+    while tokPeek() != ")" and not tokAtEnd() do
+        string low = string.lower(tokPeek())
+        if low == "primary" or low == "unique" or low == "check" or low == "foreign" or low == "constraint" then
+            var tc = parseTableConstraint()
+            tCons.append(tc)
+            if tokPeek() == "," then
+                gIx += 1
+            end
+            continue
+        end
+        string cname = tokEatIdent()
+        string ctype = "TEXT"
+        if tokIsWord(tokPeek()) and not isColumnConstraintStart(tokPeek()) then
+            ctype = tokEat()
+        end
+        if tokPeek() == "(" then
+            gIx += 1
+            while tokPeek() != ")" and not tokAtEnd() do
+                gIx += 1
+            end
+            if tokPeek() == ")" then
+                gIx += 1
+            end
+        end
+        bool notNull = false
+        bool primary = false
+        bool uniq = false
+        var defVal = null
+        var checkExpr = null
+        bool hasDefault = false
+        while true do
+            string c = string.lower(tokPeek())
+            if c == "not" then
+                gIx += 1
+                tokExpectWord("null")
+                notNull = true
+            elseif c == "null" then
+                gIx += 1
+            elseif c == "primary" then
+                gIx += 1
+                tokExpectWord("key")
+                primary = true
+                notNull = true
+            elseif c == "unique" then
+                gIx += 1
+                uniq = true
+            elseif c == "default" then
+                gIx += 1
+                defVal = parseAdd()
+                hasDefault = true
+            elseif c == "check" then
+                gIx += 1
+                tokExpectTok("(")
+                checkExpr = parseExpr()
+                tokExpectTok(")")
+            elseif c == "references" then
+                gIx += 1
+                tokEatIdent()
+                if tokPeek() == "(" then
+                    gIx += 1
+                    while tokPeek() != ")" and not tokAtEnd() do
+                        gIx += 1
+                    end
+                    if tokPeek() == ")" then
+                        gIx += 1
+                    end
+                end
+                while tokWordIs(tokPeek(), "on") do
+                    gIx += 1
+                    tokEat()
+                    if tokWordIs(tokPeek(), "cascade") then
+                        gIx += 1
+                    elseif tokWordIs(tokPeek(), "set") then
+                        gIx += 1
+                        tokEat()
+                    elseif tokWordIs(tokPeek(), "restrict") then
+                        gIx += 1
+                    elseif tokWordIs(tokPeek(), "no") then
+                        gIx += 1
+                        tokEat()
+                    end
+                end
+            else
+                break
+            end
+        end
+        cols.append({"name":cname, "type":string.upper(ctype),
+                     "notNull":notNull, "primary":primary, "unique":uniq,
+                     "hasDefault":hasDefault, "default":defVal, "check":checkExpr})
+        if tokPeek() == "," then
+            gIx += 1
+        end
+    end
+    tokExpectTok(")")
+    return {"op":"create", "table":tname, "columns":cols, "constraints":tCons}
+end
+
+func isColumnConstraintStart(string t) as bool
+    if t == "" then
+        return false
+    end
+    string c = string.lower(t)
+    if c == "not" then return true end
+    if c == "null" then return true end
+    if c == "primary" then return true end
+    if c == "unique" then return true end
+    if c == "default" then return true end
+    if c == "check" then return true end
+    if c == "references" then return true end
+    return false
+end
+
+func parseTableConstraint() as var
+    if tokAcceptWord("constraint") then
+        tokEatIdent()
+    end
+    string t = tokPeek()
+    if tokWordIs(t, "primary") then
+        gIx += 1
+        tokExpectWord("key")
+        tokExpectTok("(")
+        array ks = []
+        while tokPeek() != ")" and not tokAtEnd() do
+            ks.append(tokEatIdent())
+            if tokPeek() == "," then
+                gIx += 1
+            end
+        end
+        tokExpectTok(")")
+        return {"kind":"primary", "cols":ks}
+    end
+    if tokWordIs(t, "unique") then
+        gIx += 1
+        tokExpectTok("(")
+        array ks = []
+        while tokPeek() != ")" and not tokAtEnd() do
+            ks.append(tokEatIdent())
+            if tokPeek() == "," then
+                gIx += 1
+            end
+        end
+        tokExpectTok(")")
+        return {"kind":"unique", "cols":ks}
+    end
+    if tokWordIs(t, "check") then
+        gIx += 1
+        tokExpectTok("(")
+        var e = parseExpr()
+        tokExpectTok(")")
+        return {"kind":"check", "expr":e}
+    end
+    if tokWordIs(t, "foreign") then
+        gIx += 1
+        tokExpectWord("key")
+        tokExpectTok("(")
+        while tokPeek() != ")" and not tokAtEnd() do
+            gIx += 1
+        end
+        tokExpectTok(")")
+        if tokWordIs(tokPeek(), "references") then
+            gIx += 1
+            tokEatIdent()
+            if tokPeek() == "(" then
+                gIx += 1
+                while tokPeek() != ")" and not tokAtEnd() do
+                    gIx += 1
+                end
+                if tokPeek() == ")" then
+                    gIx += 1
+                end
+            end
+            while tokWordIs(tokPeek(), "on") do
+                gIx += 1
+                tokEat()
+                tokEat()
+            end
+        end
+        return {"kind":"foreign"}
+    end
+    throw "unexpected table constraint: " + t
+end
+
+func parseCreateIndex(bool unique) as var
+    string iname = tokEatIdent()
+    tokExpectWord("on")
+    string tname = tokEatIdent()
+    tokExpectTok("(")
+    array cols = []
+    while tokPeek() != ")" and not tokAtEnd() do
+        cols.append(tokEatIdent())
+        if tokPeek() == "," then
+            gIx += 1
+        end
+    end
+    tokExpectTok(")")
+    return {"op":"createindex", "name":iname, "table":tname, "cols":cols, "unique":unique}
+end
+
+func parseInsert() as var
+    tokExpectWord("into")
+    string tname = tokEatIdent()
+    var colNames = null
+    if tokPeek() == "(" then
+        gIx += 1
+        colNames = []
+        while tokPeek() != ")" and not tokAtEnd() do
+            colNames.append(tokEatIdent())
+            if tokPeek() == "," then
+                gIx += 1
+            end
+        end
+        tokExpectTok(")")
+    end
+    if tokAcceptWord("values") then
+        array rows = []
+        while true do
+            tokExpectTok("(")
+            array vals = []
+            while tokPeek() != ")" and not tokAtEnd() do
+                vals.append(parseExpr())
+                if tokPeek() == "," then
+                    gIx += 1
+                end
+            end
+            tokExpectTok(")")
+            rows.append(vals)
+            if tokPeek() == "," then
+                gIx += 1
+            else
+                break
+            end
+        end
+        return {"op":"insert", "table":tname, "columns":colNames, "rows":rows}
+    end
+    if tokWordIs(tokPeek(), "select") then
+        var sub = parseSelect()
+        return {"op":"insertselect", "table":tname, "columns":colNames, "select":sub}
+    end
+    throw "expected VALUES or SELECT in INSERT"
+end
+
+func parseSelectStmt() as var
+    var first = parseSelect()
+    var node = first
+    while true do
+        string t = tokPeek()
+        if tokWordIs(t, "union") then
+            gIx += 1
+            bool all = tokAcceptWord("all")
+            var rhs = parseSelect()
+            node = {"op":"setop", "setop":"union", "all":all, "left":node, "right":rhs}
+        elseif tokWordIs(t, "intersect") then
+            gIx += 1
+            tokAcceptWord("all")
+            var rhs = parseSelect()
+            node = {"op":"setop", "setop":"intersect", "all":false, "left":node, "right":rhs}
+        elseif tokWordIs(t, "except") then
+            gIx += 1
+            tokAcceptWord("all")
+            var rhs = parseSelect()
+            node = {"op":"setop", "setop":"except", "all":false, "left":node, "right":rhs}
+        else
+            break
+        end
+    end
+    return node
+end
+
+func parseSelect() as var
+    tokExpectWord("select")
+    bool distinct = false
+    if tokAcceptWord("distinct") then
+        distinct = true
+    end
+    if tokAcceptWord("all") then
+        distinct = false
+    end
+    array selItems = []
+    while true do
+        var expr = parseExpr()
+        var alias = null
+        if tokAcceptWord("as") then
+            alias = tokEatIdent()
+        elseif tokIsWord(tokPeek()) and not isClauseWord(tokPeek()) then
+            alias = tokEatIdent()
+        end
+        selItems.append({"expr":expr, "alias":alias})
+        if tokPeek() == "," then
+            gIx += 1
+        else
+            break
+        end
+    end
+
+    var fromTable = null
+    var fromAlias = null
+    var fromSubquery = null
+    if tokAcceptWord("from") then
+        if tokPeek() == "(" then
+            if tokWordIs(tokPeekAt(1), "select") then
+                gIx += 1
+                var sub = parseSelect()
+                tokExpectTok(")")
+                fromSubquery = sub
+                if tokAcceptWord("as") then
+                    fromAlias = tokEatIdent()
+                elseif tokIsWord(tokPeek()) and not isClauseWord(tokPeek()) then
+                    fromAlias = tokEatIdent()
+                end
+                if fromAlias == null then
+                    throw "derived table must have an alias"
+                end
+            else
+                throw "expected SELECT after '(' in FROM"
+            end
+        else
+            fromTable = tokEatIdent()
+            if tokAcceptWord("as") then
+                fromAlias = tokEatIdent()
+            elseif tokIsWord(tokPeek()) and not isClauseWord(tokPeek()) then
+                fromAlias = tokEatIdent()
+            end
+        end
+    end
+
+    array joins = []
+    while true do
+        var j = tryParseJoin()
+        if j == null then
+            break
+        end
+        joins.append(j)
+    end
+
+    var whereExpr = null
+    if tokAcceptWord("where") then
+        whereExpr = parseExpr()
+    end
+
+    var groupExprs = null
+    if tokAcceptWord("group") then
+        tokExpectWord("by")
+        groupExprs = []
+        while true do
+            groupExprs.append(parseExpr())
+            if tokPeek() == "," then
+                gIx += 1
+            else
+                break
+            end
+        end
+    end
+
+    var havingExpr = null
+    if tokAcceptWord("having") then
+        havingExpr = parseExpr()
+    end
+
+    var orderSpecs = null
+    if tokAcceptWord("order") then
+        tokExpectWord("by")
+        orderSpecs = []
+        while true do
+            var oe = parseExpr()
+            string dir = "asc"
+            if tokAcceptWord("asc") then
+                dir = "asc"
+            elseif tokAcceptWord("desc") then
+                dir = "desc"
+            end
+            if tokWordIs(tokPeek(), "nulls") then
+                gIx += 1
+                tokEat()
+            end
+            orderSpecs.append({"expr":oe, "dir":dir})
+            if tokPeek() == "," then
+                gIx += 1
+            else
+                break
+            end
+        end
+    end
+
+    int limitVal = -1
+    int offsetVal = 0
+    if tokAcceptWord("limit") then
+        string lt = tokEat()
+        limitVal = int(lt)
+        if tokAcceptWord("offset") then
+            string ot = tokEat()
+            offsetVal = int(ot)
+        end
+    end
+    if tokAcceptWord("offset") then
+        string ot = tokEat()
+        offsetVal = int(ot)
+        if tokAcceptWord("limit") then
+            string lt = tokEat()
+            limitVal = int(lt)
+        end
+    end
+
+    return {"op":"select", "select":selItems, "distinct":distinct,
+            "from":fromTable, "fromAlias":fromAlias, "fromSubquery":fromSubquery,
+            "joins":joins, "where":whereExpr, "group":groupExprs, "having":havingExpr,
+            "order":orderSpecs, "limit":limitVal, "offset":offsetVal}
+end
+
+func tryParseJoin() as var
+    int save = gIx
+    string jt = "inner"
+    bool cross = false
+    if tokWordIs(tokPeek(), "inner") then
+        gIx += 1
+        jt = "inner"
+    elseif tokWordIs(tokPeek(), "left") then
+        gIx += 1
+        jt = "left"
+        if tokWordIs(tokPeek(), "outer") then
+            gIx += 1
+        end
+    elseif tokWordIs(tokPeek(), "right") then
+        gIx += 1
+        jt = "right"
+        if tokWordIs(tokPeek(), "outer") then
+            gIx += 1
+        end
+    elseif tokWordIs(tokPeek(), "full") then
+        gIx += 1
+        jt = "full"
+        if tokWordIs(tokPeek(), "outer") then
+            gIx += 1
+        end
+    elseif tokWordIs(tokPeek(), "cross") then
+        gIx += 1
+        jt = "cross"
+        cross = true
+    end
+    if not tokWordIs(tokPeek(), "join") then
+        gIx = save
+        return null
+    end
+    gIx += 1
+    var jTable = null
+    var jSubquery = null
+    var jalias = null
+    if tokPeek() == "(" and tokWordIs(tokPeekAt(1), "select") then
+        gIx += 1
+        jSubquery = parseSelect()
+        tokExpectTok(")")
+    else
+        jTable = tokEatIdent()
+    end
+    if tokAcceptWord("as") then
+        jalias = tokEatIdent()
+    elseif tokIsWord(tokPeek()) and not isClauseWord(tokPeek()) then
+        jalias = tokEatIdent()
+    end
+    var onExpr = null
+    if tokAcceptWord("on") then
+        onExpr = parseExpr()
+    end
+    return {"table":jTable, "subquery":jSubquery, "alias":jalias, "type":jt, "on":onExpr, "cross":cross}
+end
+
+func parseUpdate() as var
+    string tname = tokEatIdent()
+    tokExpectWord("set")
+    array sets = []
+    while true do
+        string col = tokEatIdent()
+        tokExpectTok("=")
+        var ex = parseExpr()
+        sets.append({"col":col, "expr":ex})
+        if tokPeek() == "," then
+            gIx += 1
+        else
+            break
+        end
+    end
+    var whereExpr = null
+    if tokAcceptWord("where") then
+        whereExpr = parseExpr()
+    end
+    return {"op":"update", "table":tname, "sets":sets, "where":whereExpr}
+end
+
+func parseDelete() as var
+    tokExpectWord("from")
+    string tname = tokEatIdent()
+    var whereExpr = null
+    if tokAcceptWord("where") then
+        whereExpr = parseExpr()
+    end
+    return {"op":"delete", "table":tname, "where":whereExpr}
+end
+
+func parseDrop() as var
+    if tokAcceptWord("table") then
+        string tname = tokEatIdent()
+        return {"op":"drop", "kind":"table", "name":tname}
+    end
+    if tokAcceptWord("index") then
+        string iname = tokEatIdent()
+        return {"op":"drop", "kind":"index", "name":iname}
+    end
+    throw "expected TABLE or INDEX after DROP"
+end
+
+func parseTruncate() as var
+    tokAcceptWord("table")
+    string tname = tokEatIdent()
+    return {"op":"truncate", "table":tname}
+end
+
+func parseBegin() as var
+    tokAcceptWord("transaction")
+    tokAcceptWord("work")
+    return {"op":"begin"}
+end
+
+func parseSave() as var
+    var target = null
+    if tokAcceptWord("to") then
+        target = tokEat()
+    end
+    return {"op":"save", "to":target}
+end
+
+func parseLoad() as var
+    var from = null
+    if tokAcceptWord("from") then
+        from = tokEat()
+    end
+    return {"op":"load", "from":from}
+end
+
+
+// ============================================================================
+// 7. 值比较 / 算术 / 真值辅助
+// ============================================================================
+
+func bothNum(var l, var r) as bool
+    bool lb = (l is int) or (l is float)
+    bool rb = (r is int) or (r is float)
+    return lb and rb
+end
+
+func isNumber(var v) as bool
+    return (v is int) or (v is float)
+end
+
+func valEq(var l, var r) as bool
+    if l == null and r == null then
+        return true
+    end
+    if l == null or r == null then
+        return false
+    end
+    if bothNum(l, r) then
+        return float(l) == float(r)
+    end
+    if (l is bool) and (r is bool) then
+        return l == r
+    end
+    return string(l) == string(r)
+end
+
+func valCmp(var l, var r) as int
+    if bothNum(l, r) then
+        float a = float(l)
+        float b = float(r)
+        if a < b then
+            return -1
+        end
+        if a > b then
+            return 1
+        end
+        return 0
+    end
+    if l == null and r == null then
+        return 0
+    end
+    if l == null then
+        return -1
+    end
+    if r == null then
+        return 1
+    end
+    string a = string(l)
+    string b = string(r)
+    if a < b then
+        return -1
+    end
+    if a > b then
+        return 1
+    end
+    return 0
+end
+
+func applyCmp(string op, var l, var r) as bool
+    // SQL NULL semantics: any comparison with NULL yields false (unknown)
+    if l == null or r == null then
+        return false
+    end
+    if op == "=" then
+        return valEq(l, r)
+    end
+    if op == "!=" or op == "<>" then
+        return not valEq(l, r)
+    end
+    int c = valCmp(l, r)
+    if op == ">" then
+        return c > 0
+    end
+    if op == "<" then
+        return c < 0
+    end
+    if op == ">=" then
+        return c >= 0
+    end
+    if op == "<=" then
+        return c <= 0
+    end
+    throw "unknown comparison operator: " + op
+end
+
+func applyArith(string op, var l, var r) as var
+    if op == "||" then
+        if l == null then
+            l = ""
+        end
+        if r == null then
+            r = ""
+        end
+        return string(l) + string(r)
+    end
+    if op == "+" then
+        if (l is string) or (r is string) then
+            if l == null then
+                l = ""
+            end
+            if r == null then
+                r = ""
+            end
+            return string(l) + string(r)
+        end
+    end
+    if not bothNum(l, r) then
+        throw "arithmetic on non-numeric values"
+    end
+    if (l is int) and (r is int) then
+        int a = int(l)
+        int b = int(r)
+        if op == "+" then
+            return a + b
+        end
+        if op == "-" then
+            return a - b
+        end
+        if op == "*" then
+            return a * b
+        end
+        if op == "/" then
+            if b == 0 then
+                throw "division by zero"
+            end
+            return a / b
+        end
+        if op == "%" then
+            if b == 0 then
+                throw "modulo by zero"
+            end
+            return a - (a / b) * b
+        end
+        throw "unknown operator: " + op
+    end
+    float a = float(l)
+    float b = float(r)
+    if op == "+" then
+        return a + b
+    end
+    if op == "-" then
+        return a - b
+    end
+    if op == "*" then
+        return a * b
+    end
+    if op == "/" then
+        if b == 0.0 then
+            throw "division by zero"
+        end
+        return a / b
+    end
+    if op == "%" then
+        if b == 0.0 then
+            throw "modulo by zero"
+        end
+        return a - math.floor(a / b) * b
+    end
+    throw "unknown operator: " + op
+end
+
+func truthy(var v) as bool
+    if v == null then
+        return false
+    end
+    if v is bool then
+        return bool(v)
+    end
+    if v is int then
+        return v != 0
+    end
+    if v is float then
+        return v != 0.0
+    end
+    return true
+end
+
+func valKey(var v) as string
+    if v == null then
+        return "~~null"
+    end
+    if v is int then
+        return "i:" + string(v)
+    end
+    if v is float then
+        return "f:" + string(v)
+    end
+    if v is bool then
+        if bool(v) then
+            return "b:1"
+        end
+        return "b:0"
+    end
+    return "s:" + string(v)
+end
+
+
+// ============================================================================
+// 8. LIKE 模式匹配
+// ============================================================================
+
+func likeMatch(string s, string pat) as bool
+    int sl = string.len(s)
+    int pl = string.len(pat)
+    return likeMatchRec(s, 0, sl, pat, 0, pl)
+end
+
+func likeMatchRec(string s, int si, int sl, string pat, int pi, int pl) as bool
+    while pi < pl do
+        int pc = string.byteAt(pat, pi)
+        if pc == 37 then
+            while pi < pl and string.byteAt(pat, pi) == 37 do
+                pi += 1
+            end
+            if pi >= pl then
+                return true
+            end
+            while si <= sl do
+                if likeMatchRec(s, si, sl, pat, pi, pl) then
+                    return true
+                end
+                si += 1
+            end
+            return false
+        elseif pc == 95 then
+            if si >= sl then
+                return false
+            end
+            si += 1
+            pi += 1
+        else
+            if si >= sl then
+                return false
+            end
+            int sc = string.byteAt(s, si)
+            if sc >= 65 and sc <= 90 then
+                sc += 32
+            end
+            if pc >= 65 and pc <= 90 then
+                pc += 32
+            end
+            if sc != pc then
+                return false
+            end
+            si += 1
+            pi += 1
+        end
+    end
+    return si == sl
+end
+
+
+// ============================================================================
+// 9. 内置函数实现
+// ============================================================================
+
+func callBuiltin(string name, var args, var row, var aggCache) as var
+    array vals = []
+    int i = 0
+    while i < args.length do
+        vals.append(evalExpr(row, args[i], aggCache))
+        i += 1
+    end
+    if name == "upper" then
+        if vals.length < 1 then return "" end
+        return string.upper(string(vals[0]))
+    end
+    if name == "lower" then
+        if vals.length < 1 then return "" end
+        return string.lower(string(vals[0]))
+    end
+    if name == "length" then
+        if vals.length < 1 then return 0 end
+        var v = vals[0]
+        if v == null then return null end
+        return string.len(string(v))
+    end
+    if name == "coalesce" or name == "ifnull" then
+        int k = 0
+        while k < vals.length do
+            if vals[k] != null then
+                return vals[k]
+            end
+            k += 1
+        end
+        return null
+    end
+    if name == "abs" then
+        if vals.length < 1 then return null end
+        var v = vals[0]
+        if isNumber(v) then
+            if v is int then
+                int iv = int(v)
+                if iv < 0 then
+                    return -iv
+                end
+                return iv
+            end
+            float fv = float(v)
+            if fv < 0.0 then
+                return -fv
+            end
+            return fv
+        end
+        return null
+    end
+    if name == "round" then
+        if vals.length < 1 then return null end
+        var v = vals[0]
+        if not isNumber(v) then
+            return null
+        end
+        int digits = 0
+        if vals.length >= 2 then
+            digits = int(vals[1])
+        end
+        float f = float(v)
+        float m = 1.0
+        int di = 0
+        while di < digits do
+            m = m * 10.0
+            di += 1
+        end
+        float scaled = f * m
+        float r = 0.0
+        if scaled >= 0.0 then
+            r = math.floor(scaled + 0.5)
+        else
+            r = -math.floor(-scaled + 0.5)
+        end
+        float result = r / m
+        if digits <= 0 and result == math.floor(result) then
+            return int(result)
+        end
+        return result
+    end
+    if name == "trim" then
+        if vals.length < 1 then return "" end
+        var v = vals[0]
+        if v == null then return null end
+        return string.trim(string(v))
+    end
+    if name == "substr" then
+        if vals.length < 2 then return "" end
+        var v = vals[0]
+        if v == null then return null end
+        string str = string(v)
+        int start = int(vals[1])
+        int lenStr = string.len(str)
+        if start < 0 then
+            start = lenStr + start
+            if start < 0 then
+                start = 0
+            end
+        else
+            if start > 0 then
+                start = start - 1
+            end
+        end
+        if start >= lenStr then
+            return ""
+        end
+        if start < 0 then
+            start = 0
+        end
+        if vals.length >= 3 then
+            int cnt = int(vals[2])
+            if cnt < 0 then
+                cnt = 0
+            end
+            return string.slice(str, start, cnt)
+        end
+        return string.slice(str, start, lenStr - start)
+    end
+    if name == "cast" then
+        if vals.length < 1 then return null end
+        return vals[0]
+    end
+    throw "unknown function: " + name
+end
+
+// ============================================================================
+// 10. 表达式求值
+// ============================================================================
+
+func evalExpr(var row, var e, var aggCache) as var
+    if e == null then
+        return null
+    end
+    var k = e["k"]
+    if k == "lit" then
+        return e["v"]
+    end
+    if k == "col" then
+        return lookupCol(row, e)
+    end
+    if k == "agg" then
+        if g_currentGroupRows == null then
+            throw "aggregate used in non-aggregate context"
+        end
+        return computeAgg(e, g_currentGroupRows)
+    end
+    if k == "not" then
+        bool b = truthy(evalExpr(row, e["e"], aggCache))
+        return not b
+    end
+    if k == "and" then
+        bool lb = truthy(evalExpr(row, e["left"], aggCache))
+        if not lb then
+            return false
+        end
+        return truthy(evalExpr(row, e["right"], aggCache))
+    end
+    if k == "or" then
+        bool lb = truthy(evalExpr(row, e["left"], aggCache))
+        if lb then
+            return true
+        end
+        return truthy(evalExpr(row, e["right"], aggCache))
+    end
+    if k == "cmp" then
+        var lv = evalExpr(row, e["left"], aggCache)
+        var rv = evalExpr(row, e["right"], aggCache)
+        return applyCmp(string(e["op"]), lv, rv)
+    end
+    if k == "arith" then
+        var lv = evalExpr(row, e["left"], aggCache)
+        var rv = evalExpr(row, e["right"], aggCache)
+        return applyArith(string(e["op"]), lv, rv)
+    end
+    if k == "like" then
+        var lv = evalExpr(row, e["left"], aggCache)
+        var rv = evalExpr(row, e["right"], aggCache)
+        bool matched = false
+        if lv != null and rv != null then
+            matched = likeMatch(string(lv), string(rv))
+        end
+        bool neg = false
+        if e["neg"] != null then
+            neg = bool(e["neg"])
+        end
+        if neg then
+            return not matched
+        end
+        return matched
+    end
+    if k == "between" then
+        var v = evalExpr(row, e["e"], aggCache)
+        var lo = evalExpr(row, e["lo"], aggCache)
+        var hi = evalExpr(row, e["hi"], aggCache)
+        bool inside = (valCmp(v, lo) >= 0) and (valCmp(v, hi) <= 0)
+        bool neg = false
+        if e["neg"] != null then
+            neg = bool(e["neg"])
+        end
+        if neg then
+            return not inside
+        end
+        return inside
+    end
+    if k == "inlist" then
+        var v = evalExpr(row, e["e"], aggCache)
+        var items = e["items"]
+        bool found = false
+        int i = 0
+        while i < items.length do
+            var iv = evalExpr(row, items[i], aggCache)
+            if valEq(v, iv) then
+                found = true
+                i = items.length
+            end
+            i += 1
+        end
+        bool neg = false
+        if e["neg"] != null then
+            neg = bool(e["neg"])
+        end
+        if neg then
+            return not found
+        end
+        return found
+    end
+    if k == "insubq" then
+        var v = evalExpr(row, e["e"], aggCache)
+        var res = execSelectCore(e["q"])
+        var rows = res["rows"]
+        bool found = false
+        int i = 0
+        while i < rows.length do
+            var rv = (rows[i])[0]
+            if valEq(v, rv) then
+                found = true
+                i = rows.length
+            end
+            i += 1
+        end
+        bool neg = false
+        if e["neg"] != null then
+            neg = bool(e["neg"])
+        end
+        if neg then
+            return not found
+        end
+        return found
+    end
+    if k == "subq" then
+        var res = execSelectCore(e["q"])
+        var rows = res["rows"]
+        if rows.length == 0 then
+            return null
+        end
+        var firstRow = rows[0]
+        if firstRow.length == 0 then
+            return null
+        end
+        return firstRow[0]
+    end
+    if k == "exists" then
+        var res = execSelectCore(e["q"])
+        var rows = res["rows"]
+        bool exists = rows.length > 0
+        bool neg = false
+        if e["neg"] != null then
+            neg = bool(e["neg"])
+        end
+        if neg then
+            return not exists
+        end
+        return exists
+    end
+    if k == "case" then
+        var whens = e["whens"]
+        int i = 0
+        while i < whens.length do
+            var w = whens[i]
+            if truthy(evalExpr(row, w["cond"], aggCache)) then
+                return evalExpr(row, w["val"], aggCache)
+            end
+            i += 1
+        end
+        if e["else"] != null then
+            return evalExpr(row, e["else"], aggCache)
+        end
+        return null
+    end
+    if k == "isnull" then
+        var v = evalExpr(row, e["e"], aggCache)
+        return v == null
+    end
+    if k == "call" then
+        return callBuiltin(string(e["name"]), e["args"], row, aggCache)
+    end
+    if k == "star" or k == "qstar" then
+        return null
+    end
+    throw "cannot evaluate expression node: " + string(k)
+end
+
+func lookupCol(var row, var e) as var
+    var nm = e["name"]
+    if e["table"] != null then
+        var key = string(e["table"]) + "." + string(nm)
+        if key in row then
+            return row[key]
+        end
+        if nm in row then
+            return row[nm]
+        end
+        // 相关子查询：回退到外层行
+        if g_outerRow != null then
+            if key in g_outerRow then
+                return g_outerRow[key]
+            end
+            if nm in g_outerRow then
+                return g_outerRow[nm]
+            end
+        end
+        return null
+    end
+    if nm in row then
+        return row[nm]
+    end
+    if g_outerRow != null then
+        if nm in g_outerRow then
+            return g_outerRow[nm]
+        end
+    end
+    return null
+end
+
+
+// ============================================================================
+// 11. 聚合收集与计算
+// ============================================================================
+
+func collectAgg(var e)
+    if e == null then
+        return
+    end
+    var k = e["k"]
+    if k == "agg" then
+        gAggId += 1
+        e["aid"] = string(gAggId)
+        gAggList.append(e)
+        if e["arg"] != null then
+            collectAgg(e["arg"])
+        end
+        return
+    end
+    if k == "col" then
+        return
+    end
+    if k == "lit" then
+        return
+    end
+    if k == "star" then
+        return
+    end
+    if k == "qstar" then
+        return
+    end
+    if k == "cmp" then
+        collectAgg(e["left"])
+        collectAgg(e["right"])
+        return
+    end
+    if k == "arith" then
+        collectAgg(e["left"])
+        collectAgg(e["right"])
+        return
+    end
+    if k == "and" then
+        collectAgg(e["left"])
+        collectAgg(e["right"])
+        return
+    end
+    if k == "or" then
+        collectAgg(e["left"])
+        collectAgg(e["right"])
+        return
+    end
+    if k == "not" then
+        collectAgg(e["e"])
+        return
+    end
+    if k == "like" then
+        collectAgg(e["left"])
+        collectAgg(e["right"])
+        return
+    end
+    if k == "between" then
+        collectAgg(e["e"])
+        collectAgg(e["lo"])
+        collectAgg(e["hi"])
+        return
+    end
+    if k == "inlist" then
+        collectAgg(e["e"])
+        var items = e["items"]
+        int ii = 0
+        while ii < items.length do
+            collectAgg(items[ii])
+            ii += 1
+        end
+        return
+    end
+    if k == "case" then
+        var whens = e["whens"]
+        int wi = 0
+        while wi < whens.length do
+            collectAgg(whens[wi]["cond"])
+            collectAgg(whens[wi]["val"])
+            wi += 1
+        end
+        collectAgg(e["else"])
+        return
+    end
+    if k == "isnull" then
+        collectAgg(e["e"])
+        return
+    end
+    if k == "call" then
+        var args = e["args"]
+        int ai = 0
+        while ai < args.length do
+            collectAgg(args[ai])
+            ai += 1
+        end
+        return
+    end
+end
+
+func computeAgg(var node, var rows) as var
+    string name = string.upper(string(node["name"]))
+    var arg = node["arg"]
+    if name == "COUNT" then
+        if arg == null then
+            return rows.length
+        end
+        if arg["k"] == "star" then
+            return rows.length
+        end
+        int cnt = 0
+        int i = 0
+        while i < rows.length do
+            var v = evalExpr(rows[i], arg, null)
+            if v != null then
+                cnt += 1
+            end
+            i += 1
+        end
+        return cnt
+    end
+    if arg == null then
+        throw name + " requires an argument"
+    end
+    if name == "MIN" or name == "MAX" then
+        var best = null
+        int i = 0
+        while i < rows.length do
+            var v = evalExpr(rows[i], arg, null)
+            if v != null then
+                if best == null then
+                    best = v
+                else
+                    int c = valCmp(v, best)
+                    if name == "MIN" and c < 0 then
+                        best = v
+                    end
+                    if name == "MAX" and c > 0 then
+                        best = v
+                    end
+                end
+            end
+            i += 1
+        end
+        return best
+    end
+    float total = 0.0
+    int cnt = 0
+    bool allInt = true
+    int i = 0
+    while i < rows.length do
+        var v = evalExpr(rows[i], arg, null)
+        if v != null then
+            if not isNumber(v) then
+                throw name + " of non-numeric value"
+            end
+            total = total + float(v)
+            if not (v is int) then
+                allInt = false
+            end
+            cnt += 1
+        end
+        i += 1
+    end
+    if name == "SUM" then
+        if cnt == 0 then
+            return null
+        end
+        if allInt and total == math.floor(total) then
+            return int(total)
+        end
+        return total
+    end
+    if name == "AVG" then
+        if cnt == 0 then
+            return null
+        end
+        return total / float(cnt)
+    end
+    throw "unknown aggregate: " + name
+end
+
+func exprLabel(var e) as string
+    if e == null then
+        return "expr"
+    end
+    var k = e["k"]
+    if k == "col" then
+        if e["table"] != null then
+            return string(e["table"]) + "." + string(e["name"])
+        end
+        return string(e["name"])
+    end
+    if k == "lit" then
+        var v = e["v"]
+        if v == null then
+            return "NULL"
+        end
+        return string(v)
+    end
+    if k == "agg" then
+        string nm = string.upper(string(e["name"]))
+        var arg = e["arg"]
+        if arg == null then
+            return nm + "()"
+        end
+        if arg["k"] == "star" then
+            return nm + "(*)"
+        end
+        return nm + "(" + exprLabel(arg) + ")"
+    end
+    if k == "arith" then
+        return exprLabel(e["left"]) + string(e["op"]) + exprLabel(e["right"])
+    end
+    if k == "star" then
+        return "*"
+    end
+    if k == "qstar" then
+        return string(e["table"]) + ".*"
+    end
+    if k == "cmp" then
+        return exprLabel(e["left"]) + string(e["op"]) + exprLabel(e["right"])
+    end
+    if k == "call" then
+        var args = e["args"]
+        string label = string(e["name"]) + "("
+        int i = 0
+        while i < args.length do
+            if i > 0 then
+                label = label + ","
+            end
+            label = label + exprLabel(args[i])
+            i += 1
+        end
+        return label + ")"
+    end
+    if k == "case" then
+        return "CASE"
+    end
+    if k == "subq" then
+        return "(subquery)"
+    end
+    return "expr"
+end
+
+
+// ============================================================================
+// 12. B+树索引（var key 通用版）
+//   实现为有序数组 + 二分查找，支持 var key 的全序比较。
+//   tree = {"keys":[...], "vals":[...], "keyCount":N}
+//   由于 xlang var dict 按值传递，所有修改操作返回更新后的 tree。
+// ============================================================================
+
+const int BTREE_ORDER = 8
+const int BTREE_MAX_KEYS = 7
+
+func bplusCreate() as var
+    return {"keys":[], "vals":[], "keyCount":0}
+end
+
+func lowerBoundV(var keys, var k) as int
+    int lo = 0
+    int hi = keys.length
+    while lo < hi do
+        int mid = (lo + hi) / 2
+        if valCmp(keys[mid], k) < 0 then
+            lo = mid + 1
+        else
+            hi = mid
+        end
+    end
+    return lo
+end
+
+func indexOfV(var keys, var k) as int
+    int pos = lowerBoundV(keys, k)
+    if pos < keys.length and valCmp(keys[pos], k) == 0 then
+        return pos
+    end
+    return -1
+end
+
+func childIndexV(var keys, var k) as int
+    return lowerBoundV(keys, k)
+end
+
+func bplusGetNode(var tree, int id) as var
+    return {"leaf":true, "keys":tree["keys"], "vals":tree["vals"]}
+end
+
+func bplusSetNode(var tree, int id, var n) as var
+    return tree
+end
+
+func bplusAllocNode(var tree, var n) as var
+    return [0, tree]
+end
+
+func bplusFind(var tree, var key) as var
+    var keys = tree["keys"]
+    var vals = tree["vals"]
+    int pos = indexOfV(keys, key)
+    if pos < 0 then
+        return null
+    end
+    return vals[pos]
+end
+
+func bplusContains(var tree, var key) as bool
+    var keys = tree["keys"]
+    int pos = indexOfV(keys, key)
+    return pos >= 0
+end
+
+func bplusInsert(var tree, var key, int val) as var
+    var keys = tree["keys"]
+    var vals = tree["vals"]
+    int pos = lowerBoundV(keys, key)
+    if pos < keys.length and valCmp(keys[pos], key) == 0 then
+        vals[pos] = val
+    else
+        keys.insert(pos, key)
+        vals.insert(pos, val)
+    end
+    tree["keys"] = keys
+    tree["vals"] = vals
+    tree["keyCount"] = keys.length
+    return tree
+end
+
+func bplusRemoveAt(var tree, int id, var key) as var
+    return bplusRemove(tree, key)
+end
+
+func bplusRemove(var tree, var key) as var
+    var keys = tree["keys"]
+    var vals = tree["vals"]
+    int pos = indexOfV(keys, key)
+    if pos < 0 then
+        return tree
+    end
+    keys.remove(pos)
+    vals.remove(pos)
+    tree["keys"] = keys
+    tree["vals"] = vals
+    tree["keyCount"] = keys.length
+    return tree
+end
+
+func bplusRange(var tree, var lo, var hi) as var
+    var result = []
+    var keys = tree["keys"]
+    var vals = tree["vals"]
+    int start = lowerBoundV(keys, lo)
+    int i = start
+    while i < keys.length do
+        if valCmp(keys[i], hi) > 0 then
+            i = keys.length
+        else
+            result.push(vals[i])
+        end
+        i += 1
+    end
+    return result
+end
+
+func bplusAllKeys(var tree) as var
+    var keys = tree["keys"]
+    var result = []
+    int i = 0
+    while i < keys.length do
+        result.push(keys[i])
+        i += 1
+    end
+    return result
+end
+
+func bplusDepth(var tree) as int
+    var keys = tree["keys"]
+    if keys.length == 0 then
+        return 1
+    end
+    // 模拟 B+树深度：每 7 个键增加一层
+    int d = 1
+    int n = keys.length
+    while n > BTREE_MAX_KEYS do
+        d += 1
+        n = n / BTREE_ORDER
+    end
+    return d
+end
+
+func bplusSize(var tree) as int
+    return int(tree["keyCount"])
+end
+
+func newLeaf() as var
+    return {"leaf":true, "keys":[], "vals":[], "children":[], "next":-1}
+end
+
+func newInternal() as var
+    return {"leaf":false, "keys":[], "vals":[], "children":[], "next":-1}
+end
+
+// ============================================================================
+// 13. Table 类（行存储 + 约束元信息）
+// ============================================================================
+
+// ============================================================================
+// 13. Table 数据（var dict 承载）+ 辅助函数
+//   t = {"name":.., "columns":[..], "rows":[..], "primaryCols":[..],
+//        "uniqueKeys":[..], "checkExprs":[..]}
+// ============================================================================
+
+func tableCreate(string name_, var columns_, var tCons_) as var
+    var t = {}
+    t["name"] = name_
+    t["columns"] = columns_
+    t["rows"] = []
+    var primaryCols = []
+    var uniqueKeys = []
+    var checkExprs = []
+    for c in columns_
+        if c["primary"] then
+            primaryCols.append(c["name"])
+        end
+        if c["unique"] then
+            uniqueKeys.append([c["name"]])
+        end
+    end
+    for tc in tCons_
+        string kind = string(tc["kind"])
+        if kind == "primary" then
+            var cols = tc["cols"]
+            for cn in cols
+                primaryCols.append(cn)
+            end
+        elseif kind == "unique" then
+            uniqueKeys.append(tc["cols"])
+        elseif kind == "check" then
+            checkExprs.append(tc["expr"])
+        end
+    end
+    t["primaryCols"] = primaryCols
+    t["uniqueKeys"] = uniqueKeys
+    t["checkExprs"] = checkExprs
+    return t
+end
+
+func tableColumnNames(var t) as array
+    array result = []
+    for c in t["columns"]
+        result.append(c["name"])
+    end
+    return result
+end
+
+func tableColumnType(var t, string cname) as string
+    for c in t["columns"]
+        if string.lower(string(c["name"])) == string.lower(cname) then
+            return string(c["type"])
+        end
+    end
+    return ""
+end
+
+func tableFindColumnIndex(var t, string cname) as int
+    int i = 0
+    var cols = t["columns"]
+    while i < cols.length do
+        if string.lower(string(cols[i]["name"])) == string.lower(cname) then
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+func tableEmptyRow(var t) as var
+    var r = {}
+    for c in t["columns"]
+        r[c["name"]] = null
+    end
+    return r
+end
+
+func tableValidate(var t, var row)
+    string tname = string(t["name"])
+    for c in t["columns"]
+        if c["notNull"] or c["primary"] then
+            var v = row[c["name"]]
+            if v == null then
+                throw "NOT NULL constraint failed: " + tname + "." + string(c["name"])
+            end
+        end
+    end
+    for c in t["columns"]
+        if c["check"] != null then
+            var v = evalExpr(row, c["check"], null)
+            if not truthy(v) then
+                throw "CHECK constraint failed: " + tname + "." + string(c["name"])
+            end
+        end
+    end
+    for ce in t["checkExprs"]
+        var v = evalExpr(row, ce, null)
+        if not truthy(v) then
+            throw "CHECK constraint failed: " + tname
+        end
+    end
+end
+
+func tableCheckUnique(var t, var newRow, int excludeRid)
+    string tname = string(t["name"])
+    var allKeys = []
+    for pc in t["primaryCols"]
+        allKeys.append([pc])
+    end
+    for uk in t["uniqueKeys"]
+        allKeys.append(uk)
+    end
+    int ai = 0
+    while ai < allKeys.length do
+        var cols = allKeys[ai]
+        var newKeyVals = []
+        for cn in cols
+            newKeyVals.append(newRow[cn])
+        end
+        int ri = 0
+        var rows = t["rows"]
+        while ri < rows.length do
+            if ri != excludeRid then
+                var rr = rows[ri]
+                bool clash = true
+                int ci = 0
+                while ci < cols.length do
+                    var v1 = newKeyVals[ci]
+                    var v2 = rr[cols[ci]]
+                    if not valEq(v1, v2) then
+                        clash = false
+                        ci = cols.length
+                    end
+                    ci += 1
+                end
+                if clash then
+                    throw "UNIQUE constraint failed: " + tname
+                end
+            end
+            ri += 1
+        end
+        ai += 1
+    end
+end
+
+
+// ============================================================================
+// 14. 事务管理
+// ============================================================================
+
+func deepClone(var v) as var
+    if v == null then
+        return null
+    end
+    return json.parse(json.stringify(v))
+end
+
+func beginTxn()
+    if gTxnSnapshot != null then
+        throw "transaction already in progress"
+    end
+    gTxnSnapshot = deepClone(gTables)
+end
+
+func commitTxn()
+    gTxnSnapshot = null
+end
+
+func rollbackTxn()
+    if gTxnSnapshot == null then
+        throw "no transaction to rollback"
+    end
+    gTables = gTxnSnapshot
+    gTxnSnapshot = null
+end
+
+func commitTable(string tname, var t)
+    gTables[tname] = t
+end
+
+func commitIndex(string iname, var idx)
+    gIndexes[iname] = idx
+end
+
+func tableAppendRow(string tname, var row) as int
+    var t = gTables[tname]
+    var rows = t["rows"]
+    int newRid = rows.length
+    rows.append(row)
+    t["rows"] = rows
+    gTables[tname] = t
+    return newRid
+end
+
+func tableRowsCount(string tname) as int
+    var t = gTables[tname]
+    var rows = t["rows"]
+    return rows.length
+end
+
+func tableGetRows(string tname) as var
+    var t = gTables[tname]
+    return t["rows"]
+end
+
+func tableTruncate(string tname)
+    var t = gTables[tname]
+    t["rows"] = []
+    gTables[tname] = t
+end
+
+func tableSetRows(string tname, var rows)
+    var t = gTables[tname]
+    t["rows"] = rows
+    gTables[tname] = t
+end
+
+func indexInsertKey(string iname, var key, int rid)
+    var idx = gIndexes[iname]
+    var tree = idx["tree"]
+    bplusInsert(tree, key, rid)
+    idx["tree"] = tree
+    gIndexes[iname] = idx
+end
+
+func indexSetTree(string iname, var tree)
+    var idx = gIndexes[iname]
+    idx["tree"] = tree
+    gIndexes[iname] = idx
+end
+
+func indexGetTree(string iname) as var
+    var idx = gIndexes[iname]
+    return idx["tree"]
+end
+
+
+
+// ============================================================================
+// 15. CREATE / DROP / TRUNCATE / INSERT / UPDATE / DELETE 执行器
+// ============================================================================
+
+func execCreate(var ast)
+    string tname = string(ast["table"])
+    if gTables[tname] != null then
+        throw "table already exists: " + tname
+    end
+    var t = tableCreate(tname, ast["columns"], ast["constraints"])
+    gTables[tname] = t
+    gTableIndexes[tname] = []
+    println("OK")
+end
+
+func execCreateIndex(var ast)
+    string iname = string(ast["name"])
+    string tname = string(ast["table"])
+    if gIndexes[iname] != null then
+        throw "index already exists: " + iname
+    end
+    var t = gTables[tname]
+    if t == null then
+        throw "no such table: " + tname
+    end
+    var tree = bplusCreate()
+    int ri = 0
+    while ri < t["rows"].length do
+        var row = t["rows"][ri]
+        var keyVals = []
+        for cn in ast["cols"]
+            keyVals.append(row[cn])
+        end
+        var k = null
+        if (ast["cols"]).length == 1 then
+            k = keyVals[0]
+        else
+            string kk = ""
+            int ci = 0
+            while ci < keyVals.length do
+                kk = kk + valKey(keyVals[ci])
+                ci += 1
+            end
+            k = kk
+        end
+        if k != null then
+            tree = bplusInsert(tree, k, ri)
+        end
+        ri += 1
+    end
+    var newIdx = {"table":tname, "cols":ast["cols"], "unique":ast["unique"], "tree":tree}
+    gIndexes[iname] = newIdx
+    if gTableIndexes[tname] == null then
+        gTableIndexes[tname] = []
+    end
+    var tx = gTableIndexes[tname]
+    tx.append(iname)
+    gTableIndexes[tname] = tx
+    println("OK")
+end
+
+func execDrop(var ast)
+    string kind = string(ast["kind"])
+    string name_ = string(ast["name"])
+    if kind == "table" then
+        if gTables[name_] == null then
+            throw "no such table: " + name_
+        end
+        gTables.remove(name_)
+        gTableIndexes.remove(name_)
+        array stale = []
+        for k, v in gIndexes
+            if v["table"] == name_ then
+                stale.append(k)
+            end
+        end
+        for s in stale
+            gIndexes.remove(s)
+        end
+        println("OK")
+        return
+    end
+    if kind == "index" then
+        if gIndexes[name_] == null then
+            throw "no such index: " + name_
+        end
+        string tab = string(gIndexes[name_]["table"])
+        gIndexes.remove(name_)
+        if gTableIndexes[tab] != null then
+            array newl = []
+            for n in gTableIndexes[tab]
+                if n != name_ then
+                    newl.append(n)
+                end
+            end
+            gTableIndexes[tab] = newl
+        end
+        println("OK")
+        return
+    end
+    throw "unsupported DROP: " + kind
+end
+
+func execTruncate(var ast)
+    string tname = string(ast["table"])
+    var t = gTables[tname]
+    if t == null then
+        throw "no such table: " + tname
+    end
+    t["rows"] = []
+    gTables[tname] = t
+    if gTableIndexes[tname] != null then
+        var idxs = gTableIndexes[tname]
+        for iname in idxs
+            var __newTree = bplusCreate()
+            indexSetTree(string(iname), __newTree)
+        end
+    end
+    println("OK")
+end
+
+func execInsert(var ast) as int
+    string tname = string(ast["table"])
+    var t = gTables[tname]
+    if t == null then
+        throw "no such table: " + tname
+    end
+    var colDefs = t["columns"]
+    int ncol = colDefs.length
+    var targetCols = ast["columns"]
+    int count = 0
+    for vals in ast["rows"]
+        var row = tableEmptyRow(t)
+        if targetCols != null then
+            int k = 0
+            while k < targetCols.length and k < vals.length do
+                string cn = string(targetCols[k])
+                row[cn] = evalExpr({}, vals[k], null)
+                k += 1
+            end
+        else
+            int k = 0
+            while k < ncol and k < vals.length do
+                row[colDefs[k]["name"]] = evalExpr({}, vals[k], null)
+                k += 1
+            end
+        end
+        for c in colDefs
+            if row[c["name"]] == null and c["hasDefault"] then
+                row[c["name"]] = evalExpr({}, c["default"], null)
+            end
+        end
+        tableValidate(t, row)
+        tableCheckUnique(t, row, -1)
+        int newRid = tableAppendRow(tname, row)
+        updateIndexesAfterInsert(tname, row, newRid)
+        count += 1
+    end
+    return count
+end
+
+func execInsertSelect(var ast) as int
+    string tname = string(ast["table"])
+    var t = gTables[tname]
+    if t == null then
+        throw "no such table: " + tname
+    end
+    var res = execSelectCore(ast["select"])
+    var rows = res["rows"]
+    var colDefs = t["columns"]
+    int ncol = colDefs.length
+    var targetCols = ast["columns"]
+    int count = 0
+    int ri = 0
+    while ri < rows.length do
+        var row = tableEmptyRow(t)
+        var vals = rows[ri]
+        if targetCols != null then
+            int k = 0
+            while k < targetCols.length and k < vals.length do
+                row[targetCols[k]] = vals[k]
+                k += 1
+            end
+        else
+            int k = 0
+            while k < ncol and k < vals.length do
+                row[colDefs[k]["name"]] = vals[k]
+                k += 1
+            end
+        end
+        for c in colDefs
+            if row[c["name"]] == null and c["hasDefault"] then
+                row[c["name"]] = evalExpr({}, c["default"], null)
+            end
+        end
+        tableValidate(t, row)
+        tableCheckUnique(t, row, -1)
+        int newRid = tableAppendRow(tname, row)
+        updateIndexesAfterInsert(tname, row, newRid)
+        count += 1
+        ri += 1
+    end
+    return count
+end
+
+func updateIndexesAfterInsert(string tname, var row, int rid)
+    if gTableIndexes[tname] == null then
+        return
+    end
+    for iname in gTableIndexes[tname]
+        var idx = gIndexes[iname]
+        var tree = idx["tree"]
+        var cols = idx["cols"]
+        var k = null
+        if cols.length == 1 then
+            k = row[cols[0]]
+        else
+            string kk = ""
+            int ci = 0
+            while ci < cols.length do
+                kk = kk + valKey(row[cols[ci]])
+                ci += 1
+            end
+            k = kk
+        end
+        if k != null then
+            tree = bplusInsert(tree, k, rid)
+            idx["tree"] = tree
+            gIndexes[iname] = idx
+        end
+    end
+end
+
+func execUpdate(var ast) as int
+    string tname = string(ast["table"])
+    var t = gTables[tname]
+    if t == null then
+        throw "no such table: " + tname
+    end
+    var rows = t["rows"]
+    var sets = ast["sets"]
+    var whereExpr = ast["where"]
+    int count = 0
+    int i = 0
+    while i < rows.length do
+        var row = rows[i]
+        if whereExpr == null or truthy(evalExpr(row, whereExpr, null)) then
+            var newvals = {}
+            int s = 0
+            while s < sets.length do
+                newvals[sets[s]["col"]] = evalExpr(row, sets[s]["expr"], null)
+                s += 1
+            end
+            var testRow = {}
+            for k, v in row
+                testRow[k] = v
+            end
+            for k, v in newvals
+                testRow[k] = v
+            end
+            tableValidate(t, testRow)
+            tableCheckUnique(t, testRow, i)
+            for k, v in newvals
+                row[k] = v
+            end
+            rows[i] = row
+            count += 1
+        end
+        i += 1
+    end
+    t["rows"] = rows
+    gTables[tname] = t
+    rebuildIndexes(tname)
+    return count
+end
+
+func execDelete(var ast) as int
+    string tname = string(ast["table"])
+    var t = gTables[tname]
+    if t == null then
+        throw "no such table: " + tname
+    end
+    var whereExpr = ast["where"]
+    var kept = []
+    int count = 0
+    var rows = t["rows"]
+    for row in rows
+        if whereExpr == null or truthy(evalExpr(row, whereExpr, null)) then
+            count += 1
+        else
+            kept.append(row)
+        end
+    end
+    t["rows"] = kept
+    gTables[tname] = t
+    rebuildIndexes(tname)
+    return count
+end
+
+func rebuildIndexes(string tname)
+    if gTableIndexes[tname] == null then
+        return
+    end
+    var t = gTables[tname]
+    var rows = t["rows"]
+    for iname in gTableIndexes[tname]
+        var idx = gIndexes[iname]
+        var cols = idx["cols"]
+        var tree = bplusCreate()
+        int ri = 0
+        while ri < rows.length do
+            var row = rows[ri]
+            var k = null
+            if cols.length == 1 then
+                k = row[cols[0]]
+            else
+                string kk = ""
+                int ci = 0
+                while ci < cols.length do
+                    kk = kk + valKey(row[cols[ci]])
+                    ci += 1
+                end
+                k = kk
+            end
+            if k != null then
+                tree = bplusInsert(tree, k, ri)
+            end
+            ri += 1
+        end
+        idx["tree"] = tree
+        gIndexes[iname] = idx
+    end
+end
+
+// ============================================================================
+// 16. SELECT 执行器
+// ============================================================================
+
+func execSelectCore(var ast) as var
+    array srcTables = []
+    array srcAliases = []
+    array ctxRows = []
+
+    if ast["from"] == null and ast["fromSubquery"] == null then
+        ctxRows.append({})
+    elseif ast["fromSubquery"] != null then
+        var sub = ast["fromSubquery"]
+        var res = execSelectCore(sub)
+        var cols = res["columns"]
+        var rows = res["rows"]
+        string aliasName = string(ast["fromAlias"])
+        srcTables.append(aliasName)
+        srcAliases.append({"name":aliasName, "alias":aliasName})
+        for r in rows
+            var cr = {}
+            int ci = 0
+            while ci < cols.length do
+                string cn = string(cols[ci])
+                cr[cn] = r[ci]
+                string __subqkey = aliasName + "." + cn
+                cr[__subqkey] = r[ci]
+                ci += 1
+            end
+            ctxRows.append(cr)
+        end
+    else
+        string baseName = string(ast["from"])
+        var baseTab = gTables[baseName]
+        if baseTab == null then
+            throw "no such table: " + baseName
+        end
+        srcTables.append(baseName)
+        string alias = baseName
+        if ast["fromAlias"] != null then
+            alias = string(ast["fromAlias"])
+        end
+        srcAliases.append({"name":baseName, "alias":alias})
+        for r in baseTab["rows"]
+            var cr = {}
+            for k, v in r
+                cr[k] = v
+                string akey = alias + "." + k
+                cr[akey] = v
+                string __bkey = baseName + "." + k
+                cr[__bkey] = v
+            end
+            ctxRows.append(cr)
+        end
+    end
+
+    var joins = ast["joins"]
+    int ji = 0
+    while ji < joins.length do
+        var j = joins[ji]
+        string jt = string(j["type"])
+        var jTable = j["table"]
+        var jSub = j["subquery"]
+        var onExpr = j["on"]
+        string jAlias = ""
+        if j["alias"] != null then
+            jAlias = string(j["alias"])
+        end
+
+        array jRows = []
+        string jRealName = ""
+        array jColNames = []
+        if jSub != null then
+            var res = execSelectCore(jSub)
+            var cols = res["columns"]
+            var rows = res["rows"]
+            jRealName = jAlias
+            for cn in cols
+                jColNames.append(cn)
+            end
+            for r in rows
+                var cr = {}
+                int ci = 0
+                while ci < cols.length do
+                    cr[cols[ci]] = r[ci]
+                    ci += 1
+                end
+                jRows.append(cr)
+            end
+        else
+            jRealName = string(jTable)
+            var jTab = gTables[jRealName]
+            if jTab == null then
+                throw "no such table: " + jRealName
+            end
+            if jAlias == "" then
+                jAlias = jRealName
+            end
+            srcTables.append(jRealName)
+            for cdef in jTab["columns"]
+                jColNames.append(cdef["name"])
+            end
+            for r in jTab["rows"]
+                jRows.append(r)
+            end
+        end
+
+        if jt == "cross" then
+            array nr = []
+            for lr in ctxRows
+                for rr in jRows
+                    var combined = {}
+                    for k, v in lr
+                        combined[k] = v
+                    end
+                    for k, v in rr
+                        combined[k] = v
+                        if jAlias != "" then
+                            string __jkey = jAlias + "." + k
+                    combined[__jkey] = v
+                        end
+                        if jRealName != "" and jRealName != jAlias then
+                            string __rkey = jRealName + "." + k
+                    combined[__rkey] = v
+                        end
+                    end
+                    nr.append(combined)
+                end
+            end
+            ctxRows = nr
+            ji += 1
+            continue
+        end
+
+        array nr = []
+        array rightMatched = []
+        int rri = 0
+        while rri < jRows.length do
+            rightMatched.append(false)
+            rri += 1
+        end
+        for lr in ctxRows
+            bool matched = false
+            int ridx = 0
+            while ridx < jRows.length do
+                var rr = jRows[ridx]
+                var combined = {}
+                for k, v in lr
+                    combined[k] = v
+                end
+                for k, v in rr
+                    combined[k] = v
+                    if jAlias != "" then
+                        string __jkey = jAlias + "." + k
+                    combined[__jkey] = v
+                    end
+                    if jRealName != "" and jRealName != jAlias then
+                        string __rkey = jRealName + "." + k
+                    combined[__rkey] = v
+                    end
+                end
+                var onRes = evalExpr(combined, onExpr, null)
+                if onExpr == null or truthy(onRes) then
+                    nr.append(combined)
+                    matched = true
+                    rightMatched[ridx] = true
+                end
+                ridx += 1
+            end
+            if (jt == "left" or jt == "full") and not matched then
+                var combined = {}
+                for k, v in lr
+                    combined[k] = v
+                end
+                for cn in jColNames
+                    combined[cn] = null
+                    if jAlias != "" then
+                        string __jkey2 = jAlias + "." + cn
+                        combined[__jkey2] = null
+                    end
+                    if jRealName != "" and jRealName != jAlias then
+                        string __rkey2 = jRealName + "." + cn
+                        combined[__rkey2] = null
+                    end
+                end
+                nr.append(combined)
+            end
+        end
+        if jt == "right" or jt == "full" then
+            array leftColNames = collectLeftColNames(ctxRows)
+            int ridx2 = 0
+            while ridx2 < jRows.length do
+                if not rightMatched[ridx2] then
+                    var rr = jRows[ridx2]
+                    var combined = {}
+                    for cn in leftColNames
+                        combined[cn] = null
+                    end
+                    for k, v in rr
+                        combined[k] = v
+                        if jAlias != "" then
+                            string __jkey = jAlias + "." + k
+                    combined[__jkey] = v
+                        end
+                        if jRealName != "" and jRealName != jAlias then
+                            string __rkey = jRealName + "." + k
+                    combined[__rkey] = v
+                        end
+                    end
+                    nr.append(combined)
+                end
+                ridx2 += 1
+            end
+        end
+        ctxRows = nr
+        ji += 1
+    end
+
+    if ast["where"] != null then
+        array fr = []
+        var savedOuter = g_outerRow
+        for r in ctxRows
+            var combined = {}
+            if savedOuter != null then
+                for k, v in savedOuter
+                    combined[k] = v
+                end
+            end
+            for k, v in r
+                combined[k] = v
+            end
+            g_outerRow = combined
+            if truthy(evalExpr(r, ast["where"], null)) then
+                fr.append(r)
+            end
+        end
+        g_outerRow = savedOuter
+        ctxRows = fr
+    end
+
+    gAggId = 0
+    gAggList = []
+    var selItems = ast["select"]
+    int si = 0
+    while si < selItems.length do
+        collectAgg(selItems[si]["expr"])
+        si += 1
+    end
+    if ast["having"] != null then
+        collectAgg(ast["having"])
+    end
+    if ast["order"] != null then
+        var specs = ast["order"]
+        int oi = 0
+        while oi < specs.length do
+            collectAgg(specs[oi]["expr"])
+            oi += 1
+        end
+    end
+
+    bool grouped = (ast["group"] != null) or (gAggList.length > 0)
+
+    var outCtx = []
+    if grouped then
+        var groups = {}
+        array groupOrder = []
+        if ast["group"] != null then
+            var gp = ast["group"]
+            for r in ctxRows
+                var kv = []
+                string gkey = ""
+                int gi = 0
+                while gi < gp.length do
+                    var v = evalExpr(r, gp[gi], null)
+                    kv.append(v)
+                    gkey = gkey + "|" + valKey(v)
+                    gi += 1
+                end
+                if not (gkey in groups) then
+                    groups[gkey] = {"rows":[], "vals":kv}
+                    groupOrder.append(gkey)
+                end
+                var __grp = groups[gkey]
+                var __grpRows = __grp["rows"]
+                __grpRows.append(r)
+                __grp["rows"] = __grpRows
+                groups[gkey] = __grp
+            end
+        else
+            groups["__all__"] = {"rows":ctxRows, "vals":[]}
+            groupOrder.append("__all__")
+        end
+        int gi2 = 0
+        while gi2 < groupOrder.length do
+            string gk = string(groupOrder[gi2])
+            var grp = groups[gk]
+            var rep = {}
+            var grpRows = grp["rows"]
+            if grpRows.length > 0 then
+                rep = grpRows[0]
+            end
+            var aggCache = {}
+            int ai = 0
+            while ai < gAggList.length do
+                var an = gAggList[ai]
+                aggCache[an["aid"]] = computeAgg(an, grpRows)
+                ai += 1
+            end
+            outCtx.append({"row":rep, "agg":{}, "rows":grpRows})
+            gi2 += 1
+        end
+    else
+        for r in ctxRows
+            outCtx.append({"row":r, "agg":{}, "rows":ctxRows})
+        end
+    end
+
+    if ast["having"] != null then
+        array fr = []
+        for c in outCtx
+            g_currentGroupRows = c["rows"]
+            if truthy(evalExpr(c["row"], ast["having"], c["agg"])) then
+                fr.append(c)
+            end
+        end
+        outCtx = fr
+    end
+
+    array projCols = []
+    int pi = 0
+    while pi < selItems.length do
+        var item = selItems[pi]
+        var ex = item["expr"]
+        if ex["k"] == "star" then
+            array expanded = expandStar(srcAliases)
+            int ei = 0
+            while ei < expanded.length do
+                projCols.append(expanded[ei])
+                ei += 1
+            end
+        elseif ex["k"] == "qstar" then
+            array expanded = expandTableStar(ex["table"], srcAliases)
+            int ei = 0
+            while ei < expanded.length do
+                projCols.append(expanded[ei])
+                ei += 1
+            end
+        else
+            string dispName = ""
+            if item["alias"] != null then
+                dispName = string(item["alias"])
+            else
+                dispName = exprLabel(ex)
+            end
+            projCols.append({"name":dispName, "expr":ex})
+        end
+        pi += 1
+    end
+
+    if ast["order"] != null then
+        outCtx = insertionSortCtx(outCtx, ast["order"], projCols)
+    end
+
+    if ast["distinct"] then
+        array dr = []
+        var seen = {}
+        for c in outCtx
+            string key = ctxRowKey(c, projCols)
+            if not (key in seen) then
+                seen[key] = true
+                dr.append(c)
+            end
+        end
+        outCtx = dr
+    end
+
+    int offsetVal = int(ast["offset"])
+    int limitVal = int(ast["limit"])
+    if offsetVal < 0 then
+        offsetVal = 0
+    end
+    if offsetVal > 0 then
+        array tr = []
+        int ix = offsetVal
+        while ix < outCtx.length do
+            tr.append(outCtx[ix])
+            ix += 1
+        end
+        outCtx = tr
+    end
+    if limitVal >= 0 and outCtx.length > limitVal then
+        array tr = []
+        int li = 0
+        while li < limitVal do
+            tr.append(outCtx[li])
+            li += 1
+        end
+        outCtx = tr
+    end
+
+    array colNames = []
+    int ci = 0
+    while ci < projCols.length do
+        colNames.append(string(projCols[ci]["name"]))
+        ci += 1
+    end
+    array resultRows = []
+    for c in outCtx
+        g_currentGroupRows = c["rows"]
+        g_outerRow = c["row"]
+        array vals = []
+        int vi = 0
+        while vi < projCols.length do
+            vals.append(evalExpr(c["row"], projCols[vi]["expr"], c["agg"]))
+            vi += 1
+        end
+        resultRows.append(vals)
+    end
+    g_currentGroupRows = null
+
+    return {"columns":colNames, "rows":resultRows}
+end
+
+func collectLeftColNames(array ctxRows) as array
+    array result = []
+    if ctxRows.length > 0 then
+        var first = ctxRows[0]
+        for k, v in first
+            result.append(string(k))
+        end
+    end
+    return result
+end
+
+func expandStar(var srcAliases) as array
+    array cols = []
+    bool qualify = srcAliases.length > 1
+    int i = 0
+    while i < srcAliases.length do
+        var entry = srcAliases[i]
+        string realName = string(entry["name"])
+        string aliasName = string(entry["alias"])
+        var t = gTables[realName]
+        if t != null then
+            for cdef in t["columns"]
+                string nm = string(cdef["name"])
+                if qualify then
+                    cols.append({"name":aliasName + "." + nm, "expr":{"k":"col", "table":aliasName, "name":nm}})
+                else
+                    cols.append({"name":nm, "expr":{"k":"col", "table":aliasName, "name":nm}})
+                end
+            end
+        end
+        i += 1
+    end
+    return cols
+end
+
+func expandTableStar(var tableNameVar, var srcAliases) as array
+    string tableName = string(tableNameVar)
+    array cols = []
+    int i = 0
+    while i < srcAliases.length do
+        var entry = srcAliases[i]
+        string aliasName = string(entry["alias"])
+        string realName = string(entry["name"])
+        if aliasName == tableName or realName == tableName then
+            var t = gTables[realName]
+            if t != null then
+                for cdef in t["columns"]
+                    string nm = string(cdef["name"])
+                    cols.append({"name":aliasName + "." + nm, "expr":{"k":"col", "table":aliasName, "name":nm}})
+                end
+            end
+            return cols
+        end
+        i += 1
+    end
+    var t = gTables[tableName]
+    if t != null then
+        for cdef in t["columns"]
+            string nm = string(cdef["name"])
+            cols.append({"name":tableName + "." + nm, "expr":{"k":"col", "table":tableName, "name":nm}})
+        end
+    end
+    return cols
+end
+
+func orderCompare(var c1, var c2, var orderSpecs, var projCols) as int
+    int i = 0
+    while i < orderSpecs.length do
+        var spec = orderSpecs[i]
+        var e = spec["expr"]
+        var v1 = null
+        var v2 = null
+        g_currentGroupRows = c1["rows"]
+        if e["k"] == "col" and e["table"] == null then
+            string nm = string(e["name"])
+            int pi = findProjByName(projCols, nm)
+            if pi >= 0 then
+                v1 = evalExpr(c1["row"], projCols[pi]["expr"], c1["agg"])
+            else
+                v1 = evalExpr(c1["row"], e, c1["agg"])
+            end
+        else
+            v1 = evalExpr(c1["row"], e, c1["agg"])
+        end
+        g_currentGroupRows = c2["rows"]
+        if e["k"] == "col" and e["table"] == null then
+            string nm = string(e["name"])
+            int pi = findProjByName(projCols, nm)
+            if pi >= 0 then
+                v2 = evalExpr(c2["row"], projCols[pi]["expr"], c2["agg"])
+            else
+                v2 = evalExpr(c2["row"], e, c2["agg"])
+            end
+        else
+            v2 = evalExpr(c2["row"], e, c2["agg"])
+        end
+        int c = valCmp(v1, v2)
+        if c != 0 then
+            if spec["dir"] == "desc" then
+                return -c
+            end
+            return c
+        end
+        i += 1
+    end
+    return 0
+end
+
+func findProjByName(var projCols, string nm) as int
+    int i = 0
+    while i < projCols.length do
+        if string(projCols[i]["name"]) == nm then
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+func insertionSortCtx(var outCtx, var orderSpecs, var projCols) as var
+    int n = outCtx.length
+    int i = 1
+    while i < n do
+        var cur = outCtx[i]
+        int j = i - 1
+        while j >= 0 and orderCompare(outCtx[j], cur, orderSpecs, projCols) > 0 do
+            outCtx[j + 1] = outCtx[j]
+            j -= 1
+        end
+        outCtx[j + 1] = cur
+        i += 1
+    end
+    return outCtx
+end
+
+func ctxRowKey(var c, var projCols) as string
+    string key = ""
+    int i = 0
+    while i < projCols.length do
+        var v = evalExpr(c["row"], projCols[i]["expr"], c["agg"])
+        key = key + "|" + valKey(v)
+        i += 1
+    end
+    return key
+end
+
+
+// ============================================================================
+// 17. 集合运算（UNION/INTERSECT/EXCEPT）
+// ============================================================================
+
+func execSelectStmt(var ast) as var
+    if ast["op"] == "select" then
+        return execSelectCore(ast)
+    end
+    if ast["op"] == "setop" then
+        var leftRes = execSelectStmt(ast["left"])
+        var rightRes = execSelectStmt(ast["right"])
+        string op = string(ast["setop"])
+        bool all = bool(ast["all"])
+        var cols = leftRes["columns"]
+        var resultRows = []
+        var seen = {}
+        if op == "union" then
+            for r in leftRes["rows"]
+                if all then
+                    resultRows.append(r)
+                else
+                    string kk = rowKeyOf(r)
+                    if not (kk in seen) then
+                        seen[kk] = true
+                        resultRows.append(r)
+                    end
+                end
+            end
+            for r in rightRes["rows"]
+                if all then
+                    resultRows.append(r)
+                else
+                    string kk = rowKeyOf(r)
+                    if not (kk in seen) then
+                        seen[kk] = true
+                        resultRows.append(r)
+                    end
+                end
+            end
+        elseif op == "intersect" then
+            var inLeft = {}
+            for r in leftRes["rows"]
+                inLeft[rowKeyOf(r)] = true
+            end
+            for r in rightRes["rows"]
+                string kk = rowKeyOf(r)
+                if kk in inLeft then
+                    if all or not (kk in seen) then
+                        seen[kk] = true
+                        resultRows.append(r)
+                    end
+                end
+            end
+        elseif op == "except" then
+            var inRight = {}
+            for r in rightRes["rows"]
+                inRight[rowKeyOf(r)] = true
+            end
+            for r in leftRes["rows"]
+                string kk = rowKeyOf(r)
+                if not (kk in inRight) then
+                    if all or not (kk in seen) then
+                        seen[kk] = true
+                        resultRows.append(r)
+                    end
+                end
+            end
+        end
+        return {"columns":cols, "rows":resultRows}
+    end
+    throw "not a SELECT statement"
+end
+
+func rowKeyOf(var r) as string
+    var arr = r
+    string kk = ""
+    int i = 0
+    while i < arr.length do
+        kk = kk + "|" + valKey(arr[i])
+        i += 1
+    end
+    return kk
+end
+
+
+// ============================================================================
+// 18. 持久化（SAVE / LOAD）
+// ============================================================================
+
+func serializeDatabase() as var
+    var tables = []
+    for k, v in gTables
+        var t = v
+        if t == null then
+            continue
+        end
+        var tbl = {}
+        tbl["name"] = t["name"]
+        var cols = []
+        for cdef in t["columns"]
+            cols.append(cdef)
+        end
+        tbl["columns"] = cols
+        var rs = []
+        for r in t["rows"]
+            rs.append(r)
+        end
+        tbl["rows"] = rs
+        tables.append(tbl)
+    end
+    var indexes = []
+    for k, v in gIndexes
+        var meta = {}
+        meta["name"] = k
+        meta["table"] = v["table"]
+        meta["cols"] = v["cols"]
+        meta["unique"] = v["unique"]
+        indexes.append(meta)
+    end
+    return {"tables":tables, "indexes":indexes}
+end
+
+func execSave(var ast) as int
+    string path = gDbPath
+    if ast["to"] != null then
+        path = string(ast["to"])
+    end
+    var data = serializeDatabase()
+    string text = json.stringify(data)
+    bool ok = file.writeText(path, text)
+    if not ok then
+        throw "failed to write database file: " + path
+    end
+    println("OK saved to " + path)
+    return 0
+end
+
+func execLoad(var ast) as int
+    string path = gDbPath
+    if ast["from"] != null then
+        path = string(ast["from"])
+    end
+    if not file.exists(path) then
+        throw "database file not found: " + path
+    end
+    string text = file.readText(path)
+    var data = json.parse(text)
+    if data == null then
+        throw "invalid database file"
+    end
+    gTables = {}
+    gIndexes = {}
+    gTableIndexes = {}
+    var tables = data["tables"]
+    int ti = 0
+    while ti < tables.length do
+        var tbl = tables[ti]
+        string tname = string(tbl["name"])
+        var cols = tbl["columns"]
+        array tCons = []
+        var t = tableCreate(tname, cols, tCons)
+        var rows = tbl["rows"]
+        var trows = []
+        for r in rows
+            trows.append(r)
+        end
+        t["rows"] = trows
+        gTables[tname] = t
+        var ti_list = []
+        gTableIndexes[tname] = ti_list
+        ti += 1
+    end
+    var indexes = data["indexes"]
+    if indexes != null then
+        int ii = 0
+        while ii < indexes.length do
+            var meta = indexes[ii]
+            string iname = string(meta["name"])
+            string tname = string(meta["table"])
+            var cols = meta["cols"]
+            bool uniq = false
+            if meta["unique"] != null then
+                uniq = bool(meta["unique"])
+            end
+            var tree = bplusCreate()
+            var t = gTables[tname]
+            if t != null then
+                int ri = 0
+                while ri < t["rows"].length do
+                    var row = t["rows"][ri]
+                    var k = null
+                    if cols.length == 1 then
+                        k = row[cols[0]]
+                    else
+                        string kk = ""
+                        int ci = 0
+                        while ci < cols.length do
+                            kk = kk + valKey(row[cols[ci]])
+                            ci += 1
+                        end
+                        k = kk
+                    end
+                    if k != null then
+                        tree = bplusInsert(tree, k, ri)
+                    end
+                    ri += 1
+                end
+            end
+            gIndexes[iname] = {"table":tname, "cols":cols, "unique":uniq, "tree":tree}
+            if gTableIndexes[tname] == null then
+                gTableIndexes[tname] = []
+            end
+            var gti = gTableIndexes[tname]
+            gti.append(iname)
+            gTableIndexes[tname] = gti
+            ii += 1
+        end
+    end
+    println("OK loaded from " + path)
+    return 0
+end
+
+// ============================================================================
+// 19. 总执行入口
+// ============================================================================
+
+func execute(var ast)
+    string op = string(ast["op"])
+    if op == "create" then
+        execCreate(ast)
+        return
+    end
+    if op == "createindex" then
+        execCreateIndex(ast)
+        return
+    end
+    if op == "drop" then
+        execDrop(ast)
+        return
+    end
+    if op == "truncate" then
+        execTruncate(ast)
+        return
+    end
+    if op == "insert" then
+        int k = execInsert(ast)
+        println("OK " + string(k) + " row(s) inserted")
+        return
+    end
+    if op == "insertselect" then
+        int k = execInsertSelect(ast)
+        println("OK " + string(k) + " row(s) inserted")
+        return
+    end
+    if op == "select" or op == "setop" then
+        var res = execSelectStmt(ast)
+        printTable(res)
+        var rr = res["rows"]
+        println("(" + string(rr.length) + " row(s) in set)")
+        return
+    end
+    if op == "update" then
+        int k = execUpdate(ast)
+        println("OK " + string(k) + " row(s) updated")
+        return
+    end
+    if op == "delete" then
+        int k = execDelete(ast)
+        println("OK " + string(k) + " row(s) deleted")
+        return
+    end
+    if op == "begin" then
+        beginTxn()
+        println("OK")
+        return
+    end
+    if op == "commit" then
+        commitTxn()
+        println("OK")
+        return
+    end
+    if op == "rollback" then
+        rollbackTxn()
+        println("OK")
+        return
+    end
+    if op == "save" then
+        execSave(ast)
+        return
+    end
+    if op == "load" then
+        execLoad(ast)
+        return
+    end
+    throw "unknown operation: " + op
+end
+
+
+// ============================================================================
+// 20. 结果打印
+// ============================================================================
+
+func repeatChar(string c, int n) as string
+    string r = ""
+    int i = 0
+    while i < n do
+        r = r + c
+        i += 1
+    end
+    return r
+end
+
+func spaces(int n) as string
+    if n <= 0 then
+        return ""
+    end
+    return repeatChar(" ", n)
+end
+
+func dashes(int n) as string
+    if n <= 0 then
+        return ""
+    end
+    return repeatChar("-", n)
+end
+
+func formatVal(var v) as string
+    if v == null then
+        return "NULL"
+    end
+    if v is bool then
+        if bool(v) then
+            return "true"
+        end
+        return "false"
+    end
+    return string(v)
+end
+
+func printTable(var res)
+    var colsVar = res["columns"]
+    var rowsVar = res["rows"]
+    int nc = colsVar.length
+    if nc == 0 then
+        println("(no columns)")
+        return
+    end
+    array widths = []
+    int i = 0
+    while i < nc do
+        widths.append(string.len(string(colsVar[i])))
+        i += 1
+    end
+    array smatrix = []
+    for row in rowsVar
+        array sr = []
+        int j = 0
+        while j < nc do
+            sr.append(formatVal(row[j]))
+            j += 1
+        end
+        smatrix.append(sr)
+    end
+    for sr in smatrix
+        int j = 0
+        while j < nc do
+            int wl = string.len(string(sr[j]))
+            if wl > int(widths[j]) then
+                widths[j] = wl
+            end
+            j += 1
+        end
+    end
+    string hline = ""
+    int j2 = 0
+    while j2 < nc do
+        if j2 > 0 then
+            hline = hline + " | "
+        end
+        string cn = string(colsVar[j2])
+        hline = hline + cn + spaces(int(widths[j2]) - string.len(cn))
+        j2 += 1
+    end
+    println(hline)
+    string sep = ""
+    int j3 = 0
+    while j3 < nc do
+        if j3 > 0 then
+            sep = sep + "-+-"
+        end
+        sep = sep + dashes(int(widths[j3]))
+        j3 += 1
+    end
+    println(sep)
+    for sr in smatrix
+        string line = ""
+        int j4 = 0
+        while j4 < nc do
+            if j4 > 0 then
+                line = line + " | "
+            end
+            string sv = string(sr[j4])
+            line = line + sv + spaces(int(widths[j4]) - string.len(sv))
+            j4 += 1
+        end
+        println(line)
+    end
+    if smatrix.length == 0 then
+        println("(no rows)")
+    end
+end
+
+
+// ============================================================================
+// 21. 脚本执行
+// ============================================================================
+
+func runSqlString(string sql) as int
+    array toks = tokenize(sql)
+    array stmts = splitStatements(toks)
+    int i = 0
+    while i < stmts.length do
+        var stmt = stmts[i]
+        if stmt.length > 0 then
+            gTox = stmt
+            gIx = 0
+            var ast = parseStatement()
+            if ast != null then
+                execute(ast)
+            end
+        end
+        i += 1
+    end
+    return 0
+end
+
+func runOneLine(string line)
+    array toks = tokenize(line)
+    array stmts = splitStatements(toks)
+    int i = 0
+    while i < stmts.length do
+        var stmt = stmts[i]
+        if stmt.length > 0 then
+            gTox = stmt
+            gIx = 0
+            var ast = parseStatement()
+            if ast != null then
+                execute(ast)
+            end
+        end
+        i += 1
+    end
+end
+
+func runScriptFile(string path) as int
+    if not file.exists(path) then
+        println("error: file not found: " + path)
+        return 1
+    end
+    string text = file.readText(path)
+    array lines = string.splitLines(text)
+    string joined = ""
+    for line in lines
+        string trimmed = string.trim(string(line))
+        if string.startsWith(trimmed, "--") or string.startsWith(trimmed, "//") then
+            // skip
+        else
+            joined = joined + string(line) + "\n"
+        end
+    end
+    return runSqlString(joined)
+end
+
+
+// ============================================================================
+// 22. 内置自测辅助
+// ============================================================================
+
+func ok(string label)
+    g_pass += 1
+    println("  [PASS] " + label)
+end
+
+func bad(string label, string detail)
+    g_fail += 1
+    println("  [FAIL] " + label + " :: " + detail)
+end
+
+func expectTrue(bool got, string label)
+    if got then
+        ok(label)
+    else
+        bad(label, "expected true, got false")
+    end
+end
+
+func expectFalse(bool got, string label)
+    if got then
+        bad(label, "expected false, got true")
+    else
+        ok(label)
+    end
+end
+
+func expectI(int got, int want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got " + string(got) + " want " + string(want))
+    end
+end
+
+func expectS(string got, string want, string label)
+    if got == want then
+        ok(label)
+    else
+        bad(label, "got '" + got + "' want '" + want + "'")
+    end
+end
+
+func expectNull(var got, string label)
+    if got == null then
+        ok(label)
+    else
+        bad(label, "expected null, got " + string(got))
+    end
+end
+
+func resetState()
+    gTables = {}
+    gIndexes = {}
+    gTableIndexes = {}
+    gTxnSnapshot = null
+    gAggId = 0
+    gAggList = []
+end
+
+// 执行一段 SQL 但不打印（用于自测中准备数据）；SELECT 返回结果 var。
+func runSilent(string sql) as var
+    var lastRes = null
+    array toks = tokenize(sql)
+    array stmts = splitStatements(toks)
+    int i = 0
+    while i < stmts.length do
+        var stmt = stmts[i]
+        if stmt.length > 0 then
+            gTox = stmt
+            gIx = 0
+            var ast = parseStatement()
+            if ast != null then
+                lastRes = execSilent(ast)
+            end
+        end
+        i += 1
+    end
+    return lastRes
+end
+
+func execSilent(var ast) as var
+    string op = string(ast["op"])
+    if op == "create" then
+        execCreateSilent(ast)
+        return null
+    end
+    if op == "createindex" then
+        execCreateIndexSilent(ast)
+        return null
+    end
+    if op == "drop" then
+        execDrop(ast)
+        return null
+    end
+    if op == "truncate" then
+        execTruncate(ast)
+        return null
+    end
+    if op == "insert" then
+        execInsert(ast)
+        return null
+    end
+    if op == "insertselect" then
+        execInsertSelect(ast)
+        return null
+    end
+    if op == "select" or op == "setop" then
+        return execSelectStmt(ast)
+    end
+    if op == "update" then
+        execUpdate(ast)
+        return null
+    end
+    if op == "delete" then
+        execDelete(ast)
+        return null
+    end
+    if op == "begin" then
+        beginTxn()
+        return null
+    end
+    if op == "commit" then
+        commitTxn()
+        return null
+    end
+    if op == "rollback" then
+        rollbackTxn()
+        return null
+    end
+    return null
+end
+
+func execCreateSilent(var ast)
+    string tname = string(ast["table"])
+    if gTables[tname] != null then
+        throw "table already exists: " + tname
+    end
+    var t = tableCreate(tname, ast["columns"], ast["constraints"])
+    gTables[tname] = t
+    gTableIndexes[tname] = []
+end
+
+func execCreateIndexSilent(var ast)
+    string iname = string(ast["name"])
+    string tname = string(ast["table"])
+    if gIndexes[iname] != null then
+        throw "index already exists: " + iname
+    end
+    var t = gTables[tname]
+    if t == null then
+        throw "no such table: " + tname
+    end
+    var tree = bplusCreate()
+    int ri = 0
+    while ri < t["rows"].length do
+        var row = t["rows"][ri]
+        var k = null
+        if (ast["cols"]).length == 1 then
+            k = row[(ast["cols"])[0]]
+        else
+            string kk = ""
+            int ci = 0
+            while ci < (ast["cols"]).length do
+                kk = kk + valKey(row[(ast["cols"])[ci]])
+                ci += 1
+            end
+            k = kk
+        end
+        if k != null then
+            tree = bplusInsert(tree, k, ri)
+        end
+        ri += 1
+    end
+    var newIdx = {"table":tname, "cols":ast["cols"], "unique":ast["unique"], "tree":tree}
+    gIndexes[iname] = newIdx
+    if gTableIndexes[tname] == null then
+        gTableIndexes[tname] = []
+    end
+    var tx = gTableIndexes[tname]
+    tx.append(iname)
+    gTableIndexes[tname] = tx
+end
+
+// 取查询结果的第 row 行第 col 列（int col）作为 var
+func cell(var res, int rowIdx, int colIdx) as var
+    var rows = res["rows"]
+    if rowIdx >= rows.length then
+        return null
+    end
+    var r = rows[rowIdx]
+    if colIdx >= r.length then
+        return null
+    end
+    return r[colIdx]
+end
+
+func rowCount(var res) as int
+    return (res["rows"]).length
+end
+
+// ============================================================================
+// 23. 内置自测 - 基础部分
+// ============================================================================
+
+func testCreateInsertSelect() as int
+    println("")
+    println("--- [1] CREATE TABLE / INSERT / SELECT 基础 ---")
+    resetState()
+    runSilent("CREATE TABLE users (id INT PRIMARY KEY, name TEXT NOT NULL, age INT)")
+    var t = gTables["users"]
+    expectI(t["columns"].length, 3, "users 表有 3 列")
+    expectS(string(t["columns"][0]["type"]), "INT", "id 类型 INT")
+    expectS(string(t["columns"][1]["type"]), "TEXT", "name 类型 TEXT")
+    expectTrue(bool(t["columns"][0]["primary"]), "id 是 PRIMARY KEY")
+    expectTrue(bool(t["columns"][1]["notNull"]), "name 是 NOT NULL")
+
+    runSilent("INSERT INTO users VALUES (1,'Alice',30),(2,'Bob',25),(3,'Carol',35)")
+    t = gTables["users"]
+    expectI(t["rows"].length, 3, "插入 3 行")
+
+    var r = runSilent("SELECT * FROM users ORDER BY id")
+    expectI(rowCount(r), 3, "SELECT * 返回 3 行")
+    expectI(int(cell(r, 0, 0)), 1, "第一行 id=1")
+    expectS(string(cell(r, 0, 1)), "Alice", "第一行 name=Alice")
+    expectI(int(cell(r, 0, 2)), 30, "第一行 age=30")
+
+    var r2 = runSilent("SELECT name FROM users WHERE age > 26")
+    expectI(rowCount(r2), 2, "age>26 返回 2 行")
+    return 0
+end
+
+func testWhereAndOperators() as int
+    println("")
+    println("--- [2] WHERE / 比较运算符 / AND / OR / NOT ---")
+    resetState()
+    runSilent("CREATE TABLE t (id INT, n TEXT, v INT)")
+    runSilent("INSERT INTO t VALUES (1,'a',10),(2,'b',20),(3,'c',30),(4,'d',40),(5,'e',NULL)")
+
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE v > 20")), 2, "v>20 -> 2 行")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE v >= 20")), 3, "v>=20 -> 3 行")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE v < 30")), 2, "v<30 -> 2 行")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE v <= 30")), 3, "v<=30 -> 3 行")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE v = 20")), 1, "v=20 -> 1 行")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE v != 20")), 3, "v!=20 -> 3 行（NULL 不参与）")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE v <> 20")), 3, "v<>20 -> 3 行")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE v > 10 AND v < 40")), 2, "v>10 AND v<40 -> 2 行")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE v = 10 OR v = 40")), 2, "v=10 OR v=40 -> 2 行")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE NOT v > 20")), 3, "NOT v>20 -> 3 行")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE v IS NULL")), 1, "v IS NULL -> 1 行")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE v IS NOT NULL")), 4, "v IS NOT NULL -> 4 行")
+    return 0
+end
+
+func testOrderByLimitOffset() as int
+    println("")
+    println("--- [3] ORDER BY / LIMIT / OFFSET ---")
+    resetState()
+    runSilent("CREATE TABLE t (id INT, n TEXT, v INT)")
+    runSilent("INSERT INTO t VALUES (1,'a',30),(2,'b',10),(3,'c',30),(4,'d',20),(5,'e',10)")
+
+    var r1 = runSilent("SELECT * FROM t ORDER BY v ASC, id ASC")
+    expectI(int(cell(r1, 0, 0)), 2, "ORDER BY v ASC,id - 第一行 id=2 (v=10)")
+    expectI(int(cell(r1, 4, 0)), 3, "ORDER BY v ASC,id - 最后 id=3 (v=30)")
+
+    var r2 = runSilent("SELECT * FROM t ORDER BY v DESC, id DESC")
+    expectI(int(cell(r2, 0, 0)), 3, "ORDER BY v DESC,id DESC - 第一行 id=3")
+
+    var r3 = runSilent("SELECT * FROM t ORDER BY v LIMIT 2")
+    expectI(rowCount(r3), 2, "LIMIT 2 -> 2 行")
+
+    var r4 = runSilent("SELECT * FROM t ORDER BY v LIMIT 2 OFFSET 1")
+    expectI(rowCount(r4), 2, "LIMIT 2 OFFSET 1 -> 2 行")
+    expectI(int(cell(r4, 0, 0)), 5, "LIMIT 2 OFFSET 1 第一行 id=5")
+
+    var r5 = runSilent("SELECT * FROM t ORDER BY v LIMIT 100")
+    expectI(rowCount(r5), 5, "LIMIT 100 (大于行数) -> 5 行")
+    return 0
+end
+
+func testAggregatesAndGroupBy() as int
+    println("")
+    println("--- [4] 聚合 / GROUP BY / HAVING ---")
+    resetState()
+    runSilent("CREATE TABLE emp (id INT, name TEXT, dept TEXT, sal INT)")
+    runSilent("INSERT INTO emp VALUES (1,'Alice','eng',100),(2,'Bob','eng',200),(3,'Carol','sales',150),(4,'Dave','sales',150),(5,'Eve','eng',300)")
+
+    expectI(int(cell(runSilent("SELECT COUNT(*) FROM emp"), 0, 0)), 5, "COUNT(*) = 5")
+    expectI(int(cell(runSilent("SELECT SUM(sal) FROM emp"), 0, 0)), 900, "SUM(sal) = 900")
+    expectI(int(cell(runSilent("SELECT MIN(sal) FROM emp"), 0, 0)), 100, "MIN(sal) = 100")
+    expectI(int(cell(runSilent("SELECT MAX(sal) FROM emp"), 0, 0)), 300, "MAX(sal) = 300")
+
+    var avg = runSilent("SELECT AVG(sal) FROM emp")
+    float av = float(cell(avg, 0, 0))
+    expectTrue(av == 180.0, "AVG(sal) = 180")
+
+    var g = runSilent("SELECT dept, COUNT(*) FROM emp GROUP BY dept ORDER BY dept")
+    expectI(rowCount(g), 2, "GROUP BY dept -> 2 组")
+    expectS(string(cell(g, 0, 0)), "eng", "第一组 dept=eng")
+    expectI(int(cell(g, 0, 1)), 3, "eng 组 count=3")
+    expectS(string(cell(g, 1, 0)), "sales", "第二组 dept=sales")
+    expectI(int(cell(g, 1, 1)), 2, "sales 组 count=2")
+
+    var g2 = runSilent("SELECT dept, SUM(sal) FROM emp GROUP BY dept HAVING SUM(sal) > 200 ORDER BY dept")
+    expectI(rowCount(g2), 2, "HAVING SUM>200 -> 2 组")
+
+    var g3 = runSilent("SELECT dept, SUM(sal) FROM emp GROUP BY dept HAVING SUM(sal) > 500 ORDER BY dept")
+    expectI(rowCount(g3), 1, "HAVING SUM>500 -> 1 组（eng=600）")
+    expectS(string(cell(g3, 0, 0)), "eng", "唯一组 dept=eng")
+
+    // 无 GROUP BY 单行聚合 + 别名
+    var c = runSilent("SELECT COUNT(*) AS cnt, MAX(sal) AS mx FROM emp")
+    expectS(string(c["columns"][0]), "cnt", "别名 cnt 生效")
+    expectI(int(cell(c, 0, 0)), 5, "cnt=5")
+    expectI(int(cell(c, 0, 1)), 300, "mx=300")
+    return 0
+end
+
+func testJoinVariants() as int
+    println("")
+    println("--- [5] JOIN (INNER/LEFT/RIGHT/FULL/CROSS) ---")
+    resetState()
+    runSilent("CREATE TABLE a (id INT, label TEXT)")
+    runSilent("CREATE TABLE b (id INT, score INT)")
+    runSilent("INSERT INTO a VALUES (1,'x'),(2,'y'),(3,'z')")
+    runSilent("INSERT INTO b VALUES (1,100),(2,200),(4,400)")
+
+    var ij = runSilent("SELECT a.id, a.label, b.score FROM a INNER JOIN b ON a.id = b.id ORDER BY a.id")
+    expectI(rowCount(ij), 2, "INNER JOIN -> 2 行")
+    expectI(int(cell(ij, 0, 2)), 100, "INNER JOIN 第一行 score=100")
+
+    var lj = runSilent("SELECT a.id, b.score FROM a LEFT JOIN b ON a.id = b.id ORDER BY a.id")
+    expectI(rowCount(lj), 3, "LEFT JOIN -> 3 行")
+    expectNull(cell(lj, 2, 1), "LEFT JOIN 末行 b.score=NULL")
+
+    var rj = runSilent("SELECT a.id, b.score FROM a RIGHT JOIN b ON a.id = b.id ORDER BY b.score")
+    expectI(rowCount(rj), 3, "RIGHT JOIN -> 3 行")
+    expectNull(cell(rj, 2, 0), "RIGHT JOIN 末行 a.id=NULL")
+
+    var fj = runSilent("SELECT a.id, b.score FROM a FULL JOIN b ON a.id = b.id ORDER BY a.id, b.score")
+    expectI(rowCount(fj), 4, "FULL JOIN -> 4 行")
+
+    var cj = runSilent("SELECT a.id, b.id FROM a CROSS JOIN b")
+    expectI(rowCount(cj), 9, "CROSS JOIN -> 9 行（3x3）")
+
+    // 多表 JOIN + 别名
+    runSilent("CREATE TABLE c (id INT, tag TEXT)")
+    runSilent("INSERT INTO c VALUES (1,'t1'),(2,'t2')")
+    var m = runSilent("SELECT a.label, b.score, c.tag FROM a a INNER JOIN b b ON a.id = b.id INNER JOIN c c ON a.id = c.id ORDER BY a.id")
+    expectI(rowCount(m), 2, "三表 INNER JOIN -> 2 行")
+    expectS(string(cell(m, 0, 2)), "t1", "三表 JOIN 第一行 c.tag=t1")
+    return 0
+end
+
+func testSubqueries() as int
+    println("")
+    println("--- [6] 子查询（标量/IN/EXISTS/派生表） ---")
+    resetState()
+    runSilent("CREATE TABLE u (id INT, name TEXT, age INT)")
+    runSilent("INSERT INTO u VALUES (1,'Alice',30),(2,'Bob',25),(3,'Carol',35),(4,'Dave',28)")
+
+    // 标量子查询： age > AVG(age)
+    var r1 = runSilent("SELECT name FROM u WHERE age > (SELECT AVG(age) FROM u) ORDER BY name")
+    // AVG = 29.5；只有 Alice(30) 和 Carol(35) 满足
+    expectI(rowCount(r1), 2, "age > AVG(age) -> 2 行")
+    expectS(string(cell(r1, 0, 0)), "Alice", "标量子查询结果 Alice")
+
+    // IN 子查询
+    runSilent("CREATE TABLE vip (uid INT)")
+    runSilent("INSERT INTO vip VALUES (1),(3)")
+    var r2 = runSilent("SELECT name FROM u WHERE id IN (SELECT uid FROM vip) ORDER BY name")
+    expectI(rowCount(r2), 2, "id IN (子查询) -> 2 行")
+
+    // NOT IN 子查询
+    var r3 = runSilent("SELECT name FROM u WHERE id NOT IN (SELECT uid FROM vip) ORDER BY name")
+    expectI(rowCount(r3), 2, "id NOT IN (子查询) -> 2 行")
+
+    // EXISTS
+    var r4 = runSilent("SELECT name FROM u WHERE EXISTS (SELECT 1 FROM vip WHERE vip.uid = u.id) ORDER BY name")
+    expectI(rowCount(r4), 2, "EXISTS -> 2 行")
+
+    // NOT EXISTS
+    var r5 = runSilent("SELECT name FROM u WHERE NOT EXISTS (SELECT 1 FROM vip WHERE vip.uid = u.id) ORDER BY name")
+    expectI(rowCount(r5), 2, "NOT EXISTS -> 2 行")
+
+    // 派生表
+    var r6 = runSilent("SELECT t.name FROM (SELECT name, age FROM u WHERE age > 26) t ORDER BY t.name")
+    expectI(rowCount(r6), 3, "派生表 age>26 -> 3 行（Alice/Carol/Dave）")
+    return 0
+end
+
+func testUnion() as int
+    println("")
+    println("--- [7] UNION / UNION ALL ---")
+    resetState()
+    runSilent("CREATE TABLE a (n INT)")
+    runSilent("CREATE TABLE b (n INT)")
+    runSilent("INSERT INTO a VALUES (1),(2),(3)")
+    runSilent("INSERT INTO b VALUES (3),(4),(5)")
+
+    var u = runSilent("SELECT n FROM a UNION SELECT n FROM b ORDER BY n")
+    expectI(rowCount(u), 5, "UNION 去重 -> 5 行")
+
+    var ua = runSilent("SELECT n FROM a UNION ALL SELECT n FROM b ORDER BY n")
+    expectI(rowCount(ua), 6, "UNION ALL 不去重 -> 6 行")
+    return 0
+end
+
+func testCaseWhen() as int
+    println("")
+    println("--- [8] CASE WHEN ---")
+    resetState()
+    runSilent("CREATE TABLE p (id INT, score INT)")
+    runSilent("INSERT INTO p VALUES (1,85),(2,60),(3,95),(4,40)")
+
+    var r = runSilent("SELECT id, CASE WHEN score >= 90 THEN 'A' WHEN score >= 80 THEN 'B' WHEN score >= 60 THEN 'C' ELSE 'F' END AS grade FROM p ORDER BY id")
+    expectS(string(cell(r, 0, 1)), "B", "85 -> B")
+    expectS(string(cell(r, 1, 1)), "C", "60 -> C")
+    expectS(string(cell(r, 2, 1)), "A", "95 -> A")
+    expectS(string(cell(r, 3, 1)), "F", "40 -> F")
+
+    // 简单 CASE
+    var r2 = runSilent("SELECT id, CASE score WHEN 85 THEN 'eighty-five' WHEN 60 THEN 'sixty' ELSE 'other' END AS lbl FROM p ORDER BY id")
+    expectS(string(cell(r2, 0, 1)), "eighty-five", "简单 CASE 85")
+    expectS(string(cell(r2, 3, 1)), "other", "简单 CASE 40 -> other")
+    return 0
+end
+
+func testLikeInBetween() as int
+    println("")
+    println("--- [9] LIKE / IN / BETWEEN ---")
+    resetState()
+    runSilent("CREATE TABLE t (id INT, name TEXT, age INT)")
+    runSilent("INSERT INTO t VALUES (1,'Alice',30),(2,'Bob',25),(3,'Carol',35),(4,'alice',40)")
+
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE name LIKE 'A%'")), 2, "LIKE 'A%' 大小写不敏感 -> 2")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE name LIKE '_lice'")), 2, "LIKE '_lice' -> 2")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE name LIKE '%o%'")), 2, "LIKE '%o%' (Bob,Carol) -> 2")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE name NOT LIKE 'A%'")), 2, "NOT LIKE 'A%' -> 2")
+
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE age IN (25, 35)")), 2, "IN (25,35) -> 2")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE age NOT IN (25, 35)")), 2, "NOT IN (25,35) -> 2")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE age BETWEEN 25 AND 35")), 3, "BETWEEN 25 AND 35 -> 3")
+    expectI(rowCount(runSilent("SELECT * FROM t WHERE age NOT BETWEEN 25 AND 35")), 1, "NOT BETWEEN -> 1")
+    return 0
+end
+
+
+// ============================================================================
+// 24. 内置自测 - 高级部分
+// ============================================================================
+
+func testUpdateDelete() as int
+    println("")
+    println("--- [10] UPDATE / DELETE ---")
+    resetState()
+    runSilent("CREATE TABLE t (id INT, n TEXT, v INT)")
+    runSilent("INSERT INTO t VALUES (1,'a',10),(2,'b',20),(3,'c',30)")
+
+    int upd = execUpdate(getAstOf("UPDATE t SET v = v + 5 WHERE id = 2"))
+    expectI(upd, 1, "UPDATE 命中 1 行")
+    var r1 = runSilent("SELECT v FROM t WHERE id = 2")
+    expectI(int(cell(r1, 0, 0)), 25, "UPDATE 后 v=25")
+
+    int upd2 = execUpdate(getAstOf("UPDATE t SET n = 'X'"))
+    expectI(upd2, 3, "UPDATE 全部 -> 3 行")
+
+    int del = execDelete(getAstOf("DELETE FROM t WHERE v > 20"))
+    expectI(del, 2, "DELETE v>20 -> 2 行")
+    expectI(rowCount(runSilent("SELECT * FROM t")), 1, "DELETE 后剩 1 行")
+    return 0
+end
+
+func getAstOf(string sql) as var
+    array toks = tokenize(sql)
+    array stmts = splitStatements(toks)
+    if stmts.length == 0 then
+        return null
+    end
+    gTox = stmts[0]
+    gIx = 0
+    return parseStatement()
+end
+
+func testConstraints() as int
+    println("")
+    println("--- [11] 约束（PK/UNIQUE/NOT NULL/DEFAULT/CHECK） ---")
+    resetState()
+    runSilent("CREATE TABLE c (id INT PRIMARY KEY, name TEXT NOT NULL, age INT DEFAULT 18, ck INT CHECK(ck > 0))")
+    runSilent("INSERT INTO c VALUES (1,'a',20,5)")
+    runSilent("INSERT INTO c VALUES (2,'b',DEFAULT,10)")
+
+    var t = gTables["c"]
+    expectTrue(bool(t["columns"][2]["hasDefault"]), "age 有 DEFAULT")
+    var r = runSilent("SELECT age FROM c WHERE id = 2")
+    expectI(int(cell(r, 0, 0)), 18, "DEFAULT age = 18")
+
+    // PRIMARY KEY 冲突
+    bool thrown = false
+    try
+        runSilent("INSERT INTO c VALUES (1,'dup',20,5)")
+    catch e
+        thrown = true
+    end
+    expectTrue(thrown, "PRIMARY KEY 冲突抛出")
+
+    // NOT NULL 违反
+    thrown = false
+    try
+        runSilent("INSERT INTO c VALUES (3,NULL,20,5)")
+    catch e
+        thrown = true
+    end
+    expectTrue(thrown, "NOT NULL 违反抛出")
+
+    // CHECK 违反
+    thrown = false
+    try
+        runSilent("INSERT INTO c VALUES (4,'x',20,-1)")
+    catch e
+        thrown = true
+    end
+    expectTrue(thrown, "CHECK 违反抛出")
+    return 0
+end
+
+func testTransactions() as int
+    println("")
+    println("--- [12] 事务 BEGIN/COMMIT/ROLLBACK ---")
+    resetState()
+    runSilent("CREATE TABLE t (id INT, v INT)")
+    runSilent("INSERT INTO t VALUES (1,10)")
+
+    beginTxn()
+    runSilent("INSERT INTO t VALUES (2,20)")
+    var t1 = gTables["t"]
+    expectI(t1["rows"].length, 2, "事务内插入后 2 行")
+    rollbackTxn()
+    var t2 = gTables["t"]
+    expectI(t2["rows"].length, 1, "ROLLBACK 后回 1 行")
+
+    beginTxn()
+    runSilent("INSERT INTO t VALUES (3,30)")
+    commitTxn()
+    var t3 = gTables["t"]
+    expectI(t3["rows"].length, 2, "COMMIT 后保留 2 行")
+
+    // ROLLBACK 撤销 UPDATE
+    beginTxn()
+    execUpdate(getAstOf("UPDATE t SET v = 999"))
+    var t4 = gTables["t"]
+    var r1 = t4["rows"][0]
+    expectI(int(r1["v"]), 999, "事务内 UPDATE 后 v=999")
+    rollbackTxn()
+    var t5 = gTables["t"]
+    var r2 = t5["rows"][0]
+    expectI(int(r2["v"]), 10, "ROLLBACK 后 v 恢复 10")
+    return 0
+end
+
+func testBPlusTreeIndex() as int
+    println("")
+    println("--- [13] B+树索引 ---")
+    resetState()
+
+    // 直接测试 BPlusTreeV
+    var tree = bplusCreate()
+    int i = 1
+    while i <= 100 do
+        tree = bplusInsert(tree, i, i * 10)
+        i += 1
+    end
+    expectI(bplusSize(tree), 100, "B+树插入 100 个 key")
+    expectTrue(bplusDepth(tree) >= 1, "B+树深度>=1")
+    expectI(int(bplusFind(tree, 50)), 500, "find(50)=500")
+    expectI(int(bplusFind(tree, 1)), 10, "find(1)=10")
+    expectI(int(bplusFind(tree, 100)), 1000, "find(100)=1000")
+    expectFalse(bplusContains(tree, 101), "contains(101)=false")
+
+    // 范围查询 [10,15]
+    var rng = bplusRange(tree, 10, 15)
+    expectI(rng.length, 6, "range[10,15] -> 6 个 key")
+
+    // 删除
+    tree = bplusRemove(tree, 50)
+    expectTrue(true, "remove(50) 成功")
+    expectFalse(bplusContains(tree, 50), "remove 后 contains(50)=false")
+    expectI(bplusSize(tree), 99, "删除后 size=99")
+
+    // CREATE INDEX + INSERT 自动维护
+    runSilent("CREATE TABLE t (id INT, name TEXT)")
+    runSilent("INSERT INTO t VALUES (1,'a'),(2,'b'),(3,'c')")
+    runSilent("CREATE INDEX idx_id ON t(id)")
+    var idx = gIndexes["idx_id"]
+    expectTrue(idx != null, "idx_id 已创建")
+    var tree2 = idx["tree"]
+    expectI(bplusSize(tree2), 3, "idx_id 树有 3 个 key")
+    expectI(int(bplusFind(tree2, 2)), 1, "idx_id find(2) -> rid=1")
+
+    // INSERT 后索引自动更新
+    runSilent("INSERT INTO t VALUES (4,'d')")
+    var tree3 = gIndexes["idx_id"]["tree"]
+    expectI(bplusSize(tree3), 4, "INSERT 后索引 size=4")
+    expectI(int(bplusFind(tree3, 4)), 3, "INSERT 后 find(4) -> rid=3")
+
+    // DELETE 后索引重建
+    execDelete(getAstOf("DELETE FROM t WHERE id = 2"))
+    var tree4 = gIndexes["idx_id"]["tree"]
+    expectI(bplusSize(tree4), 3, "DELETE 后索引 size=3")
+    expectFalse(bplusContains(tree4, 2), "DELETE 后 contains(2)=false")
+    return 0
+end
+
+func testSaveLoad() as int
+    println("")
+    println("--- [14] SAVE / LOAD 持久化 ---")
+    resetState()
+    string tmpPath = "xsql2_test_data.json"
+    runSilent("CREATE TABLE x (id INT, name TEXT)")
+    runSilent("INSERT INTO x VALUES (1,'Alice'),(2,'Bob')")
+    runSilent("CREATE INDEX ix_x ON x(id)")
+
+    // SAVE 到自定义路径
+    var saveAst = {"op":"save", "to":tmpPath}
+    execSave(saveAst)
+    expectTrue(file.exists(tmpPath), "SAVE 创建了文件")
+
+    // 清空状态后 LOAD
+    resetState()
+    var loadAst = {"op":"load", "from":tmpPath}
+    execLoad(loadAst)
+
+    var t = gTables["x"]
+    expectTrue(t != null, "LOAD 后表 x 存在")
+    expectI(t["rows"].length, 2, "LOAD 后有 2 行")
+
+    var r = runSilent("SELECT name FROM x ORDER BY id")
+    expectS(string(cell(r, 0, 0)), "Alice", "LOAD 后 Alice 在")
+    expectS(string(cell(r, 1, 0)), "Bob", "LOAD 后 Bob 在")
+
+    var idx = gIndexes["ix_x"]
+    expectTrue(idx != null, "LOAD 后索引 ix_x 存在")
+    var tree = idx["tree"]
+    expectI(bplusSize(tree), 2, "LOAD 后索引 size=2")
+
+    // 清理临时文件（写入空内容覆盖；xlang 无 file.delete API）
+    try
+        file.writeText(tmpPath, "")
+    catch e
+        // 忽略
+    end
+    return 0
+end
+
+func testBuiltinFunctions() as int
+    println("")
+    println("--- [15] 内置函数 ---")
+    resetState()
+    runSilent("CREATE TABLE t (s TEXT, n INT)")
+    runSilent("INSERT INTO t VALUES ('Hello',-5),('World',10)")
+
+    expectS(string(cell(runSilent("SELECT UPPER(s) FROM t WHERE s = 'Hello'"), 0, 0)), "HELLO", "UPPER")
+    expectS(string(cell(runSilent("SELECT LOWER(s) FROM t WHERE s = 'Hello'"), 0, 0)), "hello", "LOWER")
+    expectI(int(cell(runSilent("SELECT LENGTH(s) FROM t WHERE s = 'Hello'"), 0, 0)), 5, "LENGTH('Hello')=5")
+    expectI(int(cell(runSilent("SELECT ABS(n) FROM t WHERE n = -5"), 0, 0)), 5, "ABS(-5)=5")
+    expectS(string(cell(runSilent("SELECT SUBSTR(s, 1, 3) FROM t WHERE s = 'Hello'"), 0, 0)), "Hel", "SUBSTR('Hello',1,3)='Hel'")
+    expectS(string(cell(runSilent("SELECT TRIM('  hi  ')"), 0, 0)), "hi", "TRIM")
+    expectS(string(cell(runSilent("SELECT COALESCE(NULL, 'fallback')"), 0, 0)), "fallback", "COALESCE")
+    return 0
+end
+
+func testArithmeticAndConcat() as int
+    println("")
+    println("--- [16] 算术 / 字符串拼接 ---")
+    resetState()
+    expectI(int(cell(runSilent("SELECT 2 + 3 * 4"), 0, 0)), 14, "2+3*4 = 14")
+    expectI(int(cell(runSilent("SELECT (2 + 3) * 4"), 0, 0)), 20, "(2+3)*4 = 20")
+    expectI(int(cell(runSilent("SELECT 17 % 5"), 0, 0)), 2, "17%5 = 2")
+    expectS(string(cell(runSilent("SELECT 'ab' || 'cd'"), 0, 0)), "abcd", "'ab' || 'cd' = 'abcd'")
+    expectS(string(cell(runSilent("SELECT 1 || 2"), 0, 0)), "12", "1 || 2 = '12'")
+
+    // DISTINCT
+    runSilent("CREATE TABLE d (n INT)")
+    runSilent("INSERT INTO d VALUES (1),(1),(2),(2),(3)")
+    expectI(rowCount(runSilent("SELECT DISTINCT n FROM d ORDER BY n")), 3, "DISTINCT -> 3")
+    return 0
+end
+
+func testDropTruncate() as int
+    println("")
+    println("--- [17] DROP / TRUNCATE ---")
+    resetState()
+    runSilent("CREATE TABLE t (id INT)")
+    runSilent("INSERT INTO t VALUES (1),(2),(3)")
+    runSilent("CREATE INDEX idx ON t(id)")
+
+    execTruncate(getAstOf("TRUNCATE TABLE t"))
+    var t1 = gTables["t"]
+    expectI(t1["rows"].length, 0, "TRUNCATE 后 0 行")
+    var tree1 = gIndexes["idx"]["tree"]
+    expectI(bplusSize(tree1), 0, "TRUNCATE 后索引 size=0")
+
+    execDrop(getAstOf("DROP TABLE t"))
+    expectTrue(gTables["t"] == null, "DROP TABLE 后表消失")
+    expectTrue(gIndexes["idx"] == null, "DROP TABLE 后索引消失")
+    return 0
+end
+
+
+// ============================================================================
+// 24b. 内置自测 - 扩展部分
+// ============================================================================
+
+func testInsertSelect() as int
+    println("")
+    println("--- [18] INSERT ... SELECT ---")
+    resetState()
+    runSilent("CREATE TABLE src (id INT, val TEXT)")
+    runSilent("CREATE TABLE dst (id INT, val TEXT)")
+    runSilent("INSERT INTO src VALUES (1,'a'),(2,'b'),(3,'c')")
+    runSilent("INSERT INTO dst SELECT * FROM src")
+    var r = runSilent("SELECT COUNT(*) FROM dst")
+    expectI(int(cell(r, 0, 0)), 3, "INSERT...SELECT 复制 3 行")
+    var r2 = runSilent("SELECT val FROM dst ORDER BY id")
+    expectS(string(cell(r2, 0, 0)), "a", "第一行 val=a")
+    expectS(string(cell(r2, 2, 0)), "c", "第三行 val=c")
+    return 0
+end
+
+func testMultiJoin() as int
+    println("")
+    println("--- [19] 多表 JOIN + USING ---")
+    resetState()
+    runSilent("CREATE TABLE orders (id INT, cust_id INT, total INT)")
+    runSilent("CREATE TABLE customers (id INT, name TEXT)")
+    runSilent("CREATE TABLE products (id INT, order_id INT, name TEXT)")
+    runSilent("INSERT INTO customers VALUES (1,'Alice'),(2,'Bob')")
+    runSilent("INSERT INTO orders VALUES (10,1,100),(11,2,200),(12,1,150)")
+    runSilent("INSERT INTO products VALUES (100,10,'Widget'),(200,11,'Gadget')")
+
+    var r = runSilent("SELECT c.name, o.total FROM customers c INNER JOIN orders o ON c.id = o.cust_id ORDER BY o.total")
+    expectI(rowCount(r), 3, "三表 INNER JOIN -> 3 行")
+    expectI(int(cell(r, 0, 1)), 100, "第一行 total=100")
+    expectI(int(cell(r, 2, 1)), 200, "第三行 total=200")
+
+    var r2 = runSilent("SELECT c.name, COUNT(o.id) AS cnt FROM customers c LEFT JOIN orders o ON c.id = o.cust_id GROUP BY c.name ORDER BY c.name")
+    expectI(rowCount(r2), 2, "LEFT JOIN + GROUP BY -> 2 组")
+    expectS(string(cell(r2, 0, 0)), "Alice", "第一组 Alice")
+    expectI(int(cell(r2, 0, 1)), 2, "Alice 有 2 个订单")
+    expectS(string(cell(r2, 1, 0)), "Bob", "第二组 Bob")
+    expectI(int(cell(r2, 1, 1)), 1, "Bob 有 1 个订单")
+    return 0
+end
+
+func testNestedSubquery() as int
+    println("")
+    println("--- [20] 嵌套子查询 ---")
+    resetState()
+    runSilent("CREATE TABLE dept (id INT, name TEXT)")
+    runSilent("CREATE TABLE emp (id INT, dept_id INT, sal INT, name TEXT)")
+    runSilent("INSERT INTO dept VALUES (1,'Eng'),(2,'Sales')")
+    runSilent("INSERT INTO emp VALUES (1,1,100,'Alice'),(2,1,200,'Bob'),(3,2,150,'Carol'),(4,2,250,'Dave')")
+
+    // 子查询返回部门名称列表
+    var r = runSilent("SELECT name FROM emp WHERE dept_id IN (SELECT id FROM dept WHERE name = 'Eng') ORDER BY name")
+    expectI(rowCount(r), 2, "IN 子查询 -> 2 行（Eng 部门）")
+    expectS(string(cell(r, 0, 0)), "Alice", "Alice")
+    expectS(string(cell(r, 1, 0)), "Bob", "Bob")
+
+    // 标量子查询在 SELECT 中
+    var r2 = runSilent("SELECT name, (SELECT name FROM dept WHERE id = emp.dept_id) AS dname FROM emp ORDER BY name")
+    expectI(rowCount(r2), 4, "SELECT 中标量子查询 -> 4 行")
+    expectS(string(cell(r2, 0, 1)), "Eng", "Alice 部门=Eng")
+    expectS(string(cell(r2, 2, 1)), "Sales", "Carol 部门=Sales")
+
+    // 嵌套标量子查询
+    var r3 = runSilent("SELECT name FROM emp WHERE sal > (SELECT AVG(sal) FROM emp WHERE dept_id IN (SELECT id FROM dept WHERE name = 'Sales')) ORDER BY name")
+    // Sales 平均 = (150+250)/2 = 200; sal > 200 只有 Dave(250)
+    expectI(rowCount(r3), 1, "嵌套子查询 -> 1 行")
+    expectS(string(cell(r3, 0, 0)), "Dave", "Dave")
+    return 0
+end
+
+func testSetOperations() as int
+    println("")
+    println("--- [21] INTERSECT / EXCEPT ---")
+    resetState()
+    runSilent("CREATE TABLE a (n INT)")
+    runSilent("CREATE TABLE b (n INT)")
+    runSilent("INSERT INTO a VALUES (1),(2),(3),(4)")
+    runSilent("INSERT INTO b VALUES (3),(4),(5),(6)")
+
+    var ri = runSilent("SELECT n FROM a INTERSECT SELECT n FROM b ORDER BY n")
+    expectI(rowCount(ri), 2, "INTERSECT -> 2 行")
+    expectI(int(cell(ri, 0, 0)), 3, "INTERSECT 第一行=3")
+
+    var re = runSilent("SELECT n FROM a EXCEPT SELECT n FROM b ORDER BY n")
+    expectI(rowCount(re), 2, "EXCEPT -> 2 行")
+    expectI(int(cell(re, 0, 0)), 1, "EXCEPT 第一行=1")
+    expectI(int(cell(re, 1, 0)), 2, "EXCEPT 第二行=2")
+    return 0
+end
+
+func testComplexExpressions() as int
+    println("")
+    println("--- [22] 复杂表达式 ---")
+    resetState()
+    runSilent("CREATE TABLE t (a INT, b INT, c INT, s TEXT)")
+    runSilent("INSERT INTO t VALUES (1,2,3,'hello'),(4,5,6,'world'),(7,8,9,'hi')")
+
+    // 算术表达式
+    expectI(int(cell(runSilent("SELECT a+b*c FROM t WHERE a=1"), 0, 0)), 7, "1+2*3=7")
+    expectI(int(cell(runSilent("SELECT (a+b)*c FROM t WHERE a=1"), 0, 0)), 9, "(1+2)*3=9")
+    expectI(int(cell(runSilent("SELECT a-b-c FROM t WHERE a=7"), 0, 0)), -10, "7-8-9=-10")
+
+    // 字符串函数组合
+    expectS(string(cell(runSilent("SELECT UPPER(LOWER(s)) FROM t WHERE a=1"), 0, 0)), "HELLO", "UPPER(LOWER('hello'))=HELLO")
+    expectI(int(cell(runSilent("SELECT LENGTH(UPPER(s)) FROM t WHERE a=1"), 0, 0)), 5, "LENGTH(UPPER('hello'))=5")
+
+    // CASE 在算术中
+    var r = runSilent("SELECT a + CASE WHEN b > 4 THEN 100 ELSE 0 END AS v FROM t ORDER BY a")
+    expectI(int(cell(r, 0, 0)), 1, "1 + 0 = 1")
+    expectI(int(cell(r, 1, 0)), 104, "4 + 100 = 104")
+    expectI(int(cell(r, 2, 0)), 107, "7 + 100 = 107")
+
+    // COALESCE
+    runSilent("INSERT INTO t VALUES (10,NULL,30,'x')")
+    expectI(int(cell(runSilent("SELECT COALESCE(b, 999) FROM t WHERE a=10"), 0, 0)), 999, "COALESCE(NULL,999)=999")
+    expectI(int(cell(runSilent("SELECT COALESCE(b, c, 0) FROM t WHERE a=10"), 0, 0)), 30, "COALESCE(NULL,30,0)=30")
+
+    // ABS
+    expectI(int(cell(runSilent("SELECT ABS(a - 100) FROM t WHERE a=1"), 0, 0)), 99, "ABS(1-100)=99")
+
+    // SUBSTR
+    expectS(string(cell(runSilent("SELECT SUBSTR(s, 1, 3) FROM t WHERE a=1"), 0, 0)), "hel", "SUBSTR('hello',1,3)='hel'")
+    expectS(string(cell(runSilent("SELECT SUBSTR(s, 2) FROM t WHERE a=7"), 0, 0)), "i", "SUBSTR('hi',2)='i'")
+    return 0
+end
+
+func testDefaultAndCheck() as int
+    println("")
+    println("--- [23] DEFAULT / CHECK 约束 ---")
+    resetState()
+    runSilent("CREATE TABLE acct (id INT PRIMARY KEY, name TEXT NOT NULL, balance INT DEFAULT 0, active INT DEFAULT 1 CHECK(active >= 0 AND active <= 1))")
+    runSilent("INSERT INTO acct (id, name) VALUES (1,'Alice')")
+    runSilent("INSERT INTO acct (id, name, balance) VALUES (2,'Bob',500)")
+
+    var r = runSilent("SELECT balance, active FROM acct WHERE id=1")
+    expectI(int(cell(r, 0, 0)), 0, "DEFAULT balance=0")
+    expectI(int(cell(r, 0, 1)), 1, "DEFAULT active=1")
+
+    var r2 = runSilent("SELECT balance FROM acct WHERE id=2")
+    expectI(int(cell(r2, 0, 0)), 500, "显式 balance=500")
+
+    // CHECK 违反
+    bool thrown = false
+    try
+        runSilent("INSERT INTO acct (id, name, active) VALUES (3,'X',5)")
+    catch e
+        thrown = true
+    end
+    expectTrue(thrown, "CHECK 违反（active=5）")
+
+    // PRIMARY KEY 冲突
+    thrown = false
+    try
+        runSilent("INSERT INTO acct (id, name) VALUES (1,'Dup')")
+    catch e
+        thrown = true
+    end
+    expectTrue(thrown, "PRIMARY KEY 冲突")
+    return 0
+end
+
+func testUpdateWithComplexWhere() as int
+    println("")
+    println("--- [24] UPDATE 复杂 WHERE ---")
+    resetState()
+    runSilent("CREATE TABLE p (id INT, cat TEXT, price INT)")
+    runSilent("INSERT INTO p VALUES (1,'A',10),(2,'A',20),(3,'B',30),(4,'B',40),(5,'C',50)")
+
+    // UPDATE with WHERE using IN
+    int n1 = execUpdate(getAstOf("UPDATE p SET price = 0 WHERE cat IN ('A')"))
+    expectI(n1, 2, "UPDATE WHERE IN -> 2 行")
+
+    // UPDATE with WHERE using BETWEEN
+    int n2 = execUpdate(getAstOf("UPDATE p SET price = 99 WHERE id BETWEEN 3 AND 4"))
+    expectI(n2, 2, "UPDATE WHERE BETWEEN -> 2 行")
+
+    var r = runSilent("SELECT id, price FROM p ORDER BY id")
+    expectI(int(cell(r, 0, 1)), 0, "id=1 price=0")
+    expectI(int(cell(r, 1, 1)), 0, "id=2 price=0")
+    expectI(int(cell(r, 2, 1)), 99, "id=3 price=99")
+    expectI(int(cell(r, 3, 1)), 99, "id=4 price=99")
+    expectI(int(cell(r, 4, 1)), 50, "id=5 price=50")
+
+    // UPDATE with subquery in WHERE
+    int n3 = execUpdate(getAstOf("UPDATE p SET price = -1 WHERE id IN (SELECT id FROM p WHERE cat = 'C')"))
+    expectI(n3, 1, "UPDATE WHERE 子查询 -> 1 行")
+    var r2 = runSilent("SELECT price FROM p WHERE id=5")
+    expectI(int(cell(r2, 0, 0)), -1, "id=5 price=-1")
+    return 0
+end
+
+func testSaveLoadCycle() as int
+    println("")
+    println("--- [25] SAVE/LOAD 完整往返 ---")
+    resetState()
+    string tmpPath = "xsql2_cycle_test.json"
+    runSilent("CREATE TABLE items (id INT PRIMARY KEY, name TEXT, qty INT)")
+    runSilent("INSERT INTO items VALUES (1,'apple',10),(2,'banana',20),(3,'cherry',30)")
+    runSilent("CREATE UNIQUE INDEX idx_name ON items(name)")
+
+    // SAVE
+    execSave({"op":"save", "to":tmpPath})
+    expectTrue(file.exists(tmpPath), "SAVE 创建文件")
+
+    // 修改数据后 LOAD 应恢复
+    execDelete(getAstOf("DELETE FROM items WHERE id = 1"))
+    runSilent("INSERT INTO items VALUES (4,'date',40)")
+    var r1 = runSilent("SELECT COUNT(*) FROM items")
+    expectI(int(cell(r1, 0, 0)), 3, "修改后 3 行")
+
+    // LOAD 恢复原始数据
+    execLoad({"op":"load", "from":tmpPath})
+    var r2 = runSilent("SELECT COUNT(*) FROM items")
+    expectI(int(cell(r2, 0, 0)), 3, "LOAD 后 3 行")
+
+    var r3 = runSilent("SELECT name FROM items WHERE id=1")
+    expectS(string(cell(r3, 0, 0)), "apple", "LOAD 后 id=1 仍为 apple")
+
+    var r4 = runSilent("SELECT name FROM items WHERE id=4")
+    expectI(rowCount(r4), 0, "LOAD 后 id=4 不存在")
+
+    // 验证索引恢复
+    var idx = gIndexes["idx_name"]
+    expectTrue(idx != null, "LOAD 后索引存在")
+    var tree = idx["tree"]
+    expectI(bplusSize(tree), 3, "LOAD 后索引 size=3")
+
+    // 清理
+    try
+        file.writeText(tmpPath, "")
+    catch e
+        // 忽略
+    end
+    return 0
+end
+
+func testNullHandling() as int
+    println("")
+    println("--- [26] NULL 处理 ---")
+    resetState()
+    runSilent("CREATE TABLE n (id INT, v INT, s TEXT)")
+    runSilent("INSERT INTO n VALUES (1,10,'a'),(2,NULL,NULL),(3,30,'c')")
+
+    // IS NULL / IS NOT NULL
+    expectI(rowCount(runSilent("SELECT * FROM n WHERE v IS NULL")), 1, "IS NULL -> 1")
+    expectI(rowCount(runSilent("SELECT * FROM n WHERE v IS NOT NULL")), 2, "IS NOT NULL -> 2")
+
+    // COUNT 忽略 NULL
+    expectI(int(cell(runSilent("SELECT COUNT(v) FROM n"), 0, 0)), 2, "COUNT(v) 忽略 NULL -> 2")
+    expectI(int(cell(runSilent("SELECT COUNT(*) FROM n"), 0, 0)), 3, "COUNT(*) 包含 NULL -> 3")
+
+    // AVG 忽略 NULL
+    var r = runSilent("SELECT AVG(v) FROM n")
+    float av = float(cell(r, 0, 0))
+    expectTrue(av == 20.0, "AVG(v) = (10+30)/2 = 20")
+
+    // SUM 忽略 NULL
+    expectI(int(cell(runSilent("SELECT SUM(v) FROM n"), 0, 0)), 40, "SUM(v) = 10+30 = 40")
+
+    // COALESCE 处理 NULL
+    expectS(string(cell(runSilent("SELECT COALESCE(s, 'N/A') FROM n WHERE id=2"), 0, 0)), "N/A", "COALESCE(NULL,'N/A')=N/A")
+
+    // NULL 比较始终 false
+    expectI(rowCount(runSilent("SELECT * FROM n WHERE v = NULL")), 0, "v = NULL -> 0")
+    expectI(rowCount(runSilent("SELECT * FROM n WHERE v != 10")), 1, "v != 10 -> 1（只有 v=30，NULL 不参与）")
+    return 0
+end
+
+func testStringFunctions() as int
+    println("")
+    println("--- [27] 字符串函数完整测试 ---")
+    resetState()
+    runSilent("CREATE TABLE str (id INT, s TEXT)")
+    runSilent("INSERT INTO str VALUES (1,'Hello World'),(2,'  trim  '),(3,'MixedCase')")
+
+    expectS(string(cell(runSilent("SELECT UPPER(s) FROM str WHERE id=1"), 0, 0)), "HELLO WORLD", "UPPER")
+    expectS(string(cell(runSilent("SELECT LOWER(s) FROM str WHERE id=1"), 0, 0)), "hello world", "LOWER")
+    expectI(int(cell(runSilent("SELECT LENGTH(s) FROM str WHERE id=1"), 0, 0)), 11, "LENGTH('Hello World')=11")
+    expectS(string(cell(runSilent("SELECT TRIM(s) FROM str WHERE id=2"), 0, 0)), "trim", "TRIM")
+    expectS(string(cell(runSilent("SELECT SUBSTR(s, 1, 5) FROM str WHERE id=1"), 0, 0)), "Hello", "SUBSTR(s,1,5)")
+    expectS(string(cell(runSilent("SELECT SUBSTR(s, 7) FROM str WHERE id=1"), 0, 0)), "World", "SUBSTR(s,7)")
+    expectS(string(cell(runSilent("SELECT SUBSTR(s, -5) FROM str WHERE id=1"), 0, 0)), "World", "SUBSTR(s,-5)")
+    expectI(int(cell(runSilent("SELECT ABS(-42)"), 0, 0)), 42, "ABS(-42)=42")
+    expectI(int(cell(runSilent("SELECT ABS(42)"), 0, 0)), 42, "ABS(42)=42")
+    expectS(string(cell(runSilent("SELECT IFNULL(NULL, 'fallback')"), 0, 0)), "fallback", "IFNULL")
+    expectS(string(cell(runSilent("SELECT IFNULL('real', 'fallback')"), 0, 0)), "real", "IFNULL 非 NULL")
+    return 0
+end
+
+func testArithmeticEdgeCases() as int
+    println("")
+    println("--- [28] 算术边界 ---")
+    resetState()
+    expectI(int(cell(runSilent("SELECT 10 / 3"), 0, 0)), 3, "10/3=3（整除）")
+    expectI(int(cell(runSilent("SELECT 10 % 3"), 0, 0)), 1, "10%3=1")
+    expectI(int(cell(runSilent("SELECT 0 + 0"), 0, 0)), 0, "0+0=0")
+    expectI(int(cell(runSilent("SELECT 100 - 200"), 0, 0)), -100, "100-200=-100")
+    expectI(int(cell(runSilent("SELECT 7 * 8"), 0, 0)), 56, "7*8=56")
+
+    // 浮点
+    var r1 = runSilent("SELECT 10.0 / 3.0")
+    float fv = float(cell(r1, 0, 0))
+    expectTrue(fv > 3.0 and fv < 4.0, "10.0/3.0 介于 3 和 4 之间")
+
+    // 除零
+    bool thrown = false
+    try
+        runSilent("SELECT 1 / 0")
+    catch e
+        thrown = true
+    end
+    expectTrue(thrown, "除零抛出")
+
+    // 取模零
+    thrown = false
+    try
+        runSilent("SELECT 1 % 0")
+    catch e
+        thrown = true
+    end
+    expectTrue(thrown, "取模零抛出")
+
+    // 字符串拼接
+    expectS(string(cell(runSilent("SELECT 'Hello' || ' ' || 'World'"), 0, 0)), "Hello World", "字符串拼接")
+    expectS(string(cell(runSilent("SELECT 'Count: ' || 42"), 0, 0)), "Count: 42", "字符串+数字拼接")
+    return 0
+end
+
+func testLikePatterns() as int
+    println("")
+    println("--- [29] LIKE 模式匹配 ---")
+    resetState()
+    runSilent("CREATE TABLE pat (id INT, name TEXT)")
+    runSilent("INSERT INTO pat VALUES (1,'Alice'),(2,'alice'),(3,'Bob'),(4,'Alicia'),(5,'MALICE')")
+
+    expectI(rowCount(runSilent("SELECT * FROM pat WHERE name LIKE 'A%'")), 3, "LIKE 'A%' -> 3（大小写不敏感）")
+    expectI(rowCount(runSilent("SELECT * FROM pat WHERE name LIKE 'a%'")), 3, "LIKE 'a%' -> 3")
+    expectI(rowCount(runSilent("SELECT * FROM pat WHERE name LIKE '%lic%'")), 4, "LIKE '%lic%' -> 4")
+    expectI(rowCount(runSilent("SELECT * FROM pat WHERE name LIKE '_lice'")), 2, "LIKE '_lice' -> 2")
+    expectI(rowCount(runSilent("SELECT * FROM pat WHERE name LIKE 'A___e'")), 2, "LIKE 'A___e' -> 2（Alice+alice）")
+    expectI(rowCount(runSilent("SELECT * FROM pat WHERE name LIKE 'Bob'")), 1, "LIKE 'Bob' 精确匹配 -> 1")
+    expectI(rowCount(runSilent("SELECT * FROM pat WHERE name NOT LIKE 'A%'")), 2, "NOT LIKE 'A%' -> 2")
+    expectI(rowCount(runSilent("SELECT * FROM pat WHERE name LIKE '%'")), 5, "LIKE '%' -> 全部 5")
+    return 0
+end
+
+func testGroupByEdgeCases() as int
+    println("")
+    println("--- [30] GROUP BY 边界 ---")
+    resetState()
+    runSilent("CREATE TABLE sales (region TEXT, product TEXT, qty INT)")
+    runSilent("INSERT INTO sales VALUES ('N','A',10),('N','B',20),('S','A',15),('S','B',25),('N','A',5)")
+
+    // 多列 GROUP BY
+    var r1 = runSilent("SELECT region, product, SUM(qty) FROM sales GROUP BY region, product ORDER BY region, product")
+    expectI(rowCount(r1), 4, "多列 GROUP BY -> 4 组")
+    expectS(string(cell(r1, 0, 0)), "N", "第一组 region=N")
+    expectS(string(cell(r1, 0, 1)), "A", "第一组 product=A")
+    expectI(int(cell(r1, 0, 2)), 15, "N-A SUM=10+5=15")
+    expectI(int(cell(r1, 1, 2)), 20, "N-B SUM=20")
+    expectI(int(cell(r1, 2, 2)), 15, "S-A SUM=15")
+    expectI(int(cell(r1, 3, 2)), 25, "S-B SUM=25")
+
+    // GROUP BY + HAVING + ORDER BY
+    var r2 = runSilent("SELECT region, SUM(qty) AS total FROM sales GROUP BY region HAVING SUM(qty) > 30 ORDER BY total DESC")
+    expectI(rowCount(r2), 2, "HAVING SUM>30 -> 2 组")
+    // N: 10+20+5=35, S: 15+25=40; ORDER BY total DESC -> S(40), N(35)
+    expectS(string(cell(r2, 0, 0)), "S", "第一组 S (40)")
+    expectI(int(cell(r2, 0, 1)), 40, "S total=40")
+    expectS(string(cell(r2, 1, 0)), "N", "第二组 N (35)")
+    expectI(int(cell(r2, 1, 1)), 35, "N total=35")
+
+    // 空表聚合
+    runSilent("CREATE TABLE empty (id INT, v INT)")
+    var r3 = runSilent("SELECT COUNT(*) FROM empty")
+    expectI(int(cell(r3, 0, 0)), 0, "空表 COUNT(*) = 0")
+    expectNull(cell(runSilent("SELECT SUM(v) FROM empty"), 0, 0), "空表 SUM = NULL")
+    expectNull(cell(runSilent("SELECT MAX(v) FROM empty"), 0, 0), "空表 MAX = NULL")
+    return 0
+end
+
+func testLimitOffsetEdgeCases() as int
+    println("")
+    println("--- [31] LIMIT/OFFSET 边界 ---")
+    resetState()
+    runSilent("CREATE TABLE seq (n INT)")
+    runSilent("INSERT INTO seq VALUES (1),(2),(3),(4),(5)")
+
+    // LIMIT 0
+    expectI(rowCount(runSilent("SELECT * FROM seq LIMIT 0")), 0, "LIMIT 0 -> 0 行")
+
+    // OFFSET 超过行数
+    expectI(rowCount(runSilent("SELECT * FROM seq OFFSET 100")), 0, "OFFSET 100 -> 0 行")
+
+    // LIMIT + OFFSET 组合
+    var r = runSilent("SELECT * FROM seq ORDER BY n LIMIT 2 OFFSET 2")
+    expectI(rowCount(r), 2, "LIMIT 2 OFFSET 2 -> 2 行")
+    expectI(int(cell(r, 0, 0)), 3, "第一行 n=3")
+    expectI(int(cell(r, 1, 0)), 4, "第二行 n=4")
+
+    // LIMIT 大于剩余行数
+    var r2 = runSilent("SELECT * FROM seq ORDER BY n OFFSET 3")
+    expectI(rowCount(r2), 2, "OFFSET 3 -> 2 行（n=4,5）")
+    return 0
+end
+
+func testDistinctVariations() as int
+    println("")
+    println("--- [32] DISTINCT 变体 ---")
+    resetState()
+    runSilent("CREATE TABLE d (a INT, b TEXT)")
+    runSilent("INSERT INTO d VALUES (1,'x'),(1,'x'),(1,'y'),(2,'x'),(2,'y'),(2,'y')")
+
+    // 单列 DISTINCT
+    expectI(rowCount(runSilent("SELECT DISTINCT a FROM d ORDER BY a")), 2, "DISTINCT a -> 2")
+
+    // 多列 DISTINCT
+    expectI(rowCount(runSilent("SELECT DISTINCT a, b FROM d ORDER BY a, b")), 4, "DISTINCT a,b -> 4")
+
+    // DISTINCT + ORDER BY
+    var r = runSilent("SELECT DISTINCT b FROM d ORDER BY b")
+    expectI(rowCount(r), 2, "DISTINCT b -> 2")
+    expectS(string(cell(r, 0, 0)), "x", "第一行 b=x")
+    expectS(string(cell(r, 1, 0)), "y", "第二行 b=y")
+    return 0
+end
+
+func testUpdateAllRows() as int
+    println("")
+    println("--- [33] UPDATE 全表 + DELETE 全表 ---")
+    resetState()
+    runSilent("CREATE TABLE u (id INT, status TEXT)")
+    runSilent("INSERT INTO u VALUES (1,'pending'),(2,'pending'),(3,'pending')")
+
+    // UPDATE 无 WHERE → 全表
+    int n = execUpdate(getAstOf("UPDATE u SET status = 'done'"))
+    expectI(n, 3, "UPDATE 全表 -> 3 行")
+    var r = runSilent("SELECT status FROM u WHERE id=2")
+    expectS(string(cell(r, 0, 0)), "done", "id=2 status=done")
+
+    // DELETE 无 WHERE → 全表
+    int d = execDelete(getAstOf("DELETE FROM u"))
+    expectI(d, 3, "DELETE 全表 -> 3 行")
+    expectI(rowCount(runSilent("SELECT * FROM u")), 0, "全表 DELETE 后 0 行")
+    return 0
+end
+
+func testSelfJoin() as int
+    println("")
+    println("--- [34] 自连接 ---")
+    resetState()
+    runSilent("CREATE TABLE emp (id INT, name TEXT, mgr_id INT)")
+    runSilent("INSERT INTO emp VALUES (1,'CEO',0),(2,'VP',1),(3,'Eng',2),(4,'Sales',2)")
+
+    var r = runSilent("SELECT e.name AS emp, m.name AS mgr FROM emp e INNER JOIN emp m ON e.mgr_id = m.id ORDER BY e.id")
+    expectI(rowCount(r), 3, "自连接 -> 3 行（CEO 没有上级）")
+    expectS(string(cell(r, 0, 0)), "VP", "第一行 emp=VP")
+    expectS(string(cell(r, 0, 1)), "CEO", "第一行 mgr=CEO")
+    expectS(string(cell(r, 1, 0)), "Eng", "第二行 emp=Eng")
+    expectS(string(cell(r, 1, 1)), "VP", "第二行 mgr=VP")
+    return 0
+end
+
+func testDerivedTable() as int
+    println("")
+    println("--- [35] 派生表（FROM 子查询） ---")
+    resetState()
+    runSilent("CREATE TABLE base (id INT, cat TEXT, val INT)")
+    runSilent("INSERT INTO base VALUES (1,'A',10),(2,'A',20),(3,'B',30),(4,'B',40)")
+
+    var r = runSilent("SELECT t.cat, t.total FROM (SELECT cat, SUM(val) AS total FROM base GROUP BY cat) t ORDER BY t.cat")
+    expectI(rowCount(r), 2, "派生表 -> 2 行")
+    expectS(string(cell(r, 0, 0)), "A", "第一组 cat=A")
+    expectI(int(cell(r, 0, 1)), 30, "A total=30")
+    expectS(string(cell(r, 1, 0)), "B", "第二组 cat=B")
+    expectI(int(cell(r, 1, 1)), 70, "B total=70")
+
+    // 派生表 + JOIN
+    var r2 = runSilent("SELECT b.cat, b.val, t.total FROM base b INNER JOIN (SELECT cat, SUM(val) AS total FROM base GROUP BY cat) t ON b.cat = t.cat ORDER BY b.id")
+    expectI(rowCount(r2), 4, "派生表 JOIN -> 4 行")
+    expectI(int(cell(r2, 0, 2)), 30, "第一行 total=30")
+    return 0
+end
+
+func testIndexRangeQuery() as int
+    println("")
+    println("--- [36] 索引范围查询 ---")
+    resetState()
+    runSilent("CREATE TABLE big (id INT PRIMARY KEY, val INT)")
+    runSilent("CREATE INDEX idx_val ON big(val)")
+
+    int i = 1
+    while i <= 50 do
+        runSilent("INSERT INTO big VALUES (" + string(i) + "," + string(i * 2) + ")")
+        i += 1
+    end
+
+    var idx = gIndexes["idx_val"]
+    var tree = idx["tree"]
+    expectI(bplusSize(tree), 50, "索引 50 个 key")
+
+    // 范围查询 [10, 20] → val 10..20 → 6 个 key
+    var rng = bplusRange(tree, 10, 20)
+    expectI(rng.length, 6, "range[10,20] -> 6 个 key")
+
+    // 查找特定值
+    expectI(int(bplusFind(tree, 50)), 24, "find(50) -> rid=24")
+    expectTrue(bplusContains(tree, 50), "contains(50) = true")
+    expectFalse(bplusContains(tree, 999), "contains(999) = false")
+
+    // allKeys 返回所有 key（升序）
+    var all = bplusAllKeys(tree)
+    expectI(all.length, 50, "allKeys -> 50 个 key")
+    expectI(int(all[0]), 2, "第一个 key=2")
+    expectI(int(all[49]), 100, "最后一个 key=100")
+    return 0
+end
+
+// ============================================================================
+// 25. 内置自测主入口 + main
+// ============================================================================
+
+func runBuiltinTest() as int
+    println("============================================================")
+    println("=== xsql2 self-test                                       ===")
+    println("============================================================")
+    g_pass = 0
+    g_fail = 0
+
+    testCreateInsertSelect()
+    testWhereAndOperators()
+    testOrderByLimitOffset()
+    testAggregatesAndGroupBy()
+    testJoinVariants()
+    testSubqueries()
+    testUnion()
+    testCaseWhen()
+    testLikeInBetween()
+    testUpdateDelete()
+    testConstraints()
+    testTransactions()
+    testBPlusTreeIndex()
+    testSaveLoad()
+    testBuiltinFunctions()
+    testArithmeticAndConcat()
+    testDropTruncate()
+    testInsertSelect()
+    testMultiJoin()
+    testNestedSubquery()
+    testSetOperations()
+    testComplexExpressions()
+    testDefaultAndCheck()
+    testUpdateWithComplexWhere()
+    testSaveLoadCycle()
+    testNullHandling()
+    testStringFunctions()
+    testArithmeticEdgeCases()
+    testLikePatterns()
+    testGroupByEdgeCases()
+    testLimitOffsetEdgeCases()
+    testDistinctVariations()
+    testUpdateAllRows()
+    testSelfJoin()
+    testDerivedTable()
+    testIndexRangeQuery()
+
+    println("")
+    println("============================================================")
+    println("=== SUMMARY: " + string(g_pass) + " passed, " + string(g_fail) + " failed ===")
+    println("============================================================")
+
+    // 演示题目要求的测试 SQL（可读输出）
+    println("")
+    println("--- 题目要求的演示 SQL ---")
+    resetState()
+    runOneLine("CREATE TABLE users (id INT PRIMARY KEY, name TEXT, age INT)")
+    runOneLine("INSERT INTO users VALUES (1,'Alice',30),(2,'Bob',25),(3,'Carol',35)")
+    println("")
+    println("xsql> SELECT u.name, COUNT(*) AS cnt FROM users u GROUP BY u.name ORDER BY cnt DESC;")
+    runOneLine("SELECT u.name, COUNT(*) AS cnt FROM users u GROUP BY u.name ORDER BY cnt DESC")
+    println("")
+    println("xsql> SELECT * FROM users WHERE age > (SELECT AVG(age) FROM users);")
+    runOneLine("SELECT * FROM users WHERE age > (SELECT AVG(age) FROM users)")
+
+    if g_fail > 0 then
+        return 1
+    end
+    return 0
+end
+
+func printUsage()
+    println("xsql2 - a complete in-memory SQL engine written in xlang")
+    println("")
+    println("usage:")
+    println("  xsql2 exec \"<SQL statements>\"    run one or more SQL statements")
+    println("  xsql2 script <file.sql>           run SQL statements from a file")
+    println("  xsql2 test                        run the built-in self-test")
+    println("  xsql2 -h | --help                 show this help")
+    println("")
+    println("supported SQL (case-insensitive keywords):")
+    println("  CREATE TABLE name (col TYPE [constraints], ... [, table-constraints])")
+    println("  CREATE [UNIQUE] INDEX name ON table(col, ...)")
+    println("  DROP TABLE name / DROP INDEX name")
+    println("  TRUNCATE TABLE name")
+    println("  INSERT INTO name [(cols,..)] VALUES (..),(..) | INSERT INTO name SELECT ...")
+    println("  SELECT [DISTINCT] items FROM name [JOIN ...] [WHERE ..]")
+    println("         [GROUP BY ..] [HAVING ..] [ORDER BY .. [ASC|DESC]] [LIMIT n [OFFSET m]]")
+    println("         [UNION [ALL] SELECT ...]")
+    println("  UPDATE name SET col=expr,... [WHERE ..]")
+    println("  DELETE FROM name [WHERE ..]")
+    println("  BEGIN | COMMIT | ROLLBACK")
+    println("  SAVE [TO file] | LOAD [FROM file]")
+    println("")
+    println("types: INT/INTEGER/BIGINT/REAL/FLOAT/DOUBLE/TEXT/VARCHAR/BOOLEAN/DATE")
+    println("aggregates: COUNT/SUM/AVG/MIN/MAX")
+    println("predicates: LIKE / IN / BETWEEN / EXISTS / IS [NOT] NULL")
+    println("expressions: CASE WHEN .. THEN .. ELSE .. END")
+    println("functions: UPPER/LOWER/LENGTH/COALESCE/IFNULL/ABS/ROUND/TRIM/SUBSTR")
+    println("constraints: PRIMARY KEY / UNIQUE / NOT NULL / DEFAULT / CHECK")
+end
+
+
+// ============================================================================
+// 26. main
+// ============================================================================
+
+func main(...) as int
+    // 默认数据库路径：脚本/exe 同目录的 xsql2.dat
+    string selfPath = ""
+    if arg.length >= 1 then
+        selfPath = string(arg[0])
+    end
+    string selfDir = path.dir(selfPath)
+    gDbPath = path.join(selfDir, "xsql2.dat")
+
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+    string mode = string(arg[1])
+    if mode == "test" then
+        return runBuiltinTest()
+    end
+    if mode == "exec" then
+        if arg.length < 3 then
+            println("error: 'exec' requires a SQL string argument")
+            return 1
+        end
+        string sql = string(arg[2])
+        try
+            return runSqlString(sql)
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+    if mode == "script" then
+        if arg.length < 3 then
+            println("error: 'script' requires a file path argument")
+            return 1
+        end
+        string p = string(arg[2])
+        try
+            return runScriptFile(p)
+        catch e
+            println("Error: " + e.message)
+            return 1
+        end
+    end
+    if mode == "-h" or mode == "--help" or mode == "help" then
+        printUsage()
+        return 0
+    end
+    println("error: unknown mode '" + mode + "'")
+    printUsage()
+    return 1
+end
+
+
+
+
+

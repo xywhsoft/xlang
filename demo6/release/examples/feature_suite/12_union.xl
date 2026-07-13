@@ -38,7 +38,7 @@ class Packet
     end
 end
 
-Packet packet
+Packet packet = Packet()
 packet.tag = 7
 packet.code = 200
 assert packet.tag == 7, "class field beside union failed"
@@ -51,6 +51,6 @@ class Envelope
     Payload payload
 end
 
-Envelope envelope
+Envelope envelope = Envelope()
 envelope.payload.i = 99
 assert envelope.payload.i == 99, "nested union field failed"

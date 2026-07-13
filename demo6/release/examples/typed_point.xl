@@ -1,0 +1,18 @@
+// point<T> 只增加编译期标签，运行时和 C ABI 仍是普通 opaque pointer。
+class ImageTag
+end
+
+func keep(point<ImageTag> value) as point<ImageTag>
+    return value
+end
+
+func main(...) as int
+    point<ImageTag> image = null
+    point<ImageTag> same = keep(image)
+    point raw = null
+
+    assert image == null
+    assert same == null
+    assert raw == null
+    return 0
+end

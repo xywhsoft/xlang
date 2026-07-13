@@ -17,7 +17,7 @@ class Player extends Entity
     end
 end
 
-Player player
+Player player = Player()
 
 assert player.value() == 100, "protected base field initial value failed"
 assert player.hit(15) == 85, "protected base method access failed"

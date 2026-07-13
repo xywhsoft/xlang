@@ -452,7 +452,7 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
             xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), tempName);
             if ( initByCopy ) {
                 if ( xl6CgenTypedContainerExprIsSharedStorage(ctx, initExpr) ) {
-                    xl6CgenTypedContainerRetainExpr(ctx, typeNode, initExpr);
+            xl6CgenTypedContainerRetainExpr(ctx, typeNode, initExpr);
                 } else {
                     xl6CgenTypedContainerCopyExprMode(ctx, typeNode, initExpr, "XRT_OBJMODE_SHARED");
                 }
@@ -891,12 +891,8 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
         return;
     }
     if ( initExpr == NULL && xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
-        if ( !xl6CgenDefaultClassHandleXValueStmt(ctx, typeNode, cName, node) ) {
-            xl6CgenError(ctx, node, "module global default class construction lowering failed");
-            return;
-        }
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_move_to_shared(%s);\n", cName, cName);
+        xl6OutputPrintf(ctx->out, "%s = xvoCreateNull();\n", cName);
         return;
     }
     if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {

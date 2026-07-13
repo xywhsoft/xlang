@@ -17,7 +17,7 @@ expect(numberType == int, 1)
 expect(type("hello") == string, 1)
 expect(type(#2026-06-18#) == time, 1)
 
-TypeBox box
+TypeBox box = TypeBox()
 expect(type(box) == TypeBox, 1)
 
 // 类型标识符同时承担声明、转换、type 字面量三种角色。
@@ -84,4 +84,3 @@ expect(int(dynamicInt), 7)
 expect(int("91"), 91)
 expectStr(string(dynamicString), "hello")
 expect(time(dynamicTime) == #2026-06-18 12:30:59#, 1)
-

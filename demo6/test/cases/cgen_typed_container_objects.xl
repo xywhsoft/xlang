@@ -10,15 +10,15 @@ class Native
     native point handle
 end
 
-Pair seed
+Pair seed = Pair()
 seed.left = 5
 seed.right = 6
 
-Pair sameSeed
+Pair sameSeed = Pair()
 sameSeed.left = 5
 sameSeed.right = 6
 
-Pair otherSeed
+Pair otherSeed = Pair()
 otherSeed.left = 7
 otherSeed.right = 8
 

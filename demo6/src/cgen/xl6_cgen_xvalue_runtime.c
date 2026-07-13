@@ -271,6 +271,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("    char* (*to_string)(const void* pObj, unsigned int* pSize);\n", out);
     xl6OutputPuts("    xvalue (*box)(const void* pObj, const xrt_type_desc* pType);\n", out);
     xl6OutputPuts("    bool (*unbox)(xvalue pVal, void* pOut, const xrt_type_desc* pType);\n", out);
+    xl6OutputPuts("    void (*clone)(void* pDst, const void* pSrc);\n", out);
     xl6OutputPuts("};\n", out);
     xl6OutputPuts("struct xrt_type_desc {\n", out);
     xl6OutputPuts("    unsigned int TypeId;\n", out);
@@ -379,6 +380,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("xvalue xvoCreateText(void* sVal, unsigned int iSize, bool bColloc);\n", out);
     xl6OutputPuts("xvalue xvoCreateCallable(xrt_callable* pCallable, bool bColloc);\n", out);
     xl6OutputPuts("xvalue xvoCreateRecord(const xrt_type_desc* pType, const void* pData);\n", out);
+    xl6OutputPuts("xvalue xvoCreateObject(const xrt_type_desc* pType);\n", out);
     xl6OutputPuts("xvalue xvoCreateHandle(const xrt_type_desc* pType, void* pHandle, unsigned int iFlags);\n", out);
     xl6OutputPuts("xvalue xvoCreateArray(void);\n", out);
     xl6OutputPuts("xvalue xvoCreateList(void);\n", out);
@@ -751,7 +753,8 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static xvalue xl6_xrt_bind_type(xvalue value, const xrt_type_desc* desc)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    if ( value != 0 && desc != 0 ) {\n", out);
+    /* class 必须保留对象创建时携带的具体描述符，不能用静态包装类型覆盖 payload 语义。 */
+    xl6OutputPuts("    if ( value != 0 && desc != 0 && desc->Kind != XL6_XRT_TYPE_KIND_CLASS ) {\n", out);
     xl6OutputPuts("        (void)xvoSetTypeDesc(value, desc);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return value;\n", out);

@@ -121,7 +121,7 @@ end
 
 async func slowBoxAsync(int base) as AsyncExampleBox
     time.sleep(120)
-    AsyncExampleBox box
+    AsyncExampleBox box = AsyncExampleBox()
     box.bias = base
     box.op = makeOffset(base)
     return box

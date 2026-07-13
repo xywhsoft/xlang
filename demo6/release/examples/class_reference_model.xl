@@ -1,0 +1,27 @@
+// class 始终是堆上受管理对象，自引用字段保存可空对象句柄。
+class Node
+    Node next
+    int value
+
+    create(int value)
+        self.value = value
+    end
+end
+
+// byval 保留同一对象；修改字段可见，重新绑定参数变量不可见。
+func update(byval Node node)
+    node.value = 20
+    node = Node(99)
+end
+
+func main(...) as int
+    Node head = Node(10)
+    assert head.next == null
+
+    head.next = Node(30)
+    assert head.next.value == 30
+
+    update(head)
+    assert head.value == 20
+    return 0
+end

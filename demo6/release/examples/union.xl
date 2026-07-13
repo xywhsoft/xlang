@@ -26,7 +26,7 @@ class Packet
     end
 end
 
-Packet packet
+Packet packet = Packet()
 packet.tag = 1
 packet.code = 200
 assert packet.tag == 1, "class field beside union failed"

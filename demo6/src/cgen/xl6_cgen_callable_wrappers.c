@@ -109,8 +109,10 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
     if ( info->captureCount > 0 ) {
         xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", ctx->out);
         xl6OutputPuts("void xrtFree(void* pMem);\n\n", ctx->out);
+        xl6OutputPuts("int32_t xrtAtomicRefRetain(volatile int32_t* pCount);\n", ctx->out);
+        xl6OutputPuts("int32_t xrtAtomicRefRelease(volatile int32_t* pCount);\n\n", ctx->out);
         xl6OutputPrintf(ctx->out, "typedef struct XL6_Closure_%d {\n", info->id);
-        xl6OutputPuts("    int ref_count;\n", ctx->out);
+        xl6OutputPuts("    volatile int32_t ref_count;\n", ctx->out);
         for ( i = 0; i < info->captureCount; ++i ) {
             xl6OutputPuts("    ", ctx->out);
             xl6OutputPuts(xl6CgenParamCType(ctx, info->captures[i].type), ctx->out);
@@ -167,7 +169,9 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
         xl6OutputPrintf(ctx->out, "static void xl6_anon_%d_retain(void* env)\n{\n", info->id);
         xl6OutputPrintf(ctx->out, "    XL6_Closure_%d* __env = (XL6_Closure_%d*)env;\n", info->id, info->id);
         xl6OutputPuts("    if (__env != 0) {\n", ctx->out);
-        xl6OutputPuts("        __env->ref_count += 1;\n", ctx->out);
+        xl6OutputPuts("        if (xrtAtomicRefRetain(&__env->ref_count) < 0) {\n", ctx->out);
+        xl6OutputPuts("            xl6_function_fatal(3);\n", ctx->out);
+        xl6OutputPuts("        }\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
         xl6OutputPuts("}\n\n", ctx->out);
 
@@ -176,8 +180,11 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
         xl6OutputPuts("    if (__env == 0) {\n", ctx->out);
         xl6OutputPuts("        return;\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
-        xl6OutputPuts("    __env->ref_count -= 1;\n", ctx->out);
-        xl6OutputPuts("    if (__env->ref_count == 0) {\n", ctx->out);
+        xl6OutputPuts("    int32_t __remaining = xrtAtomicRefRelease(&__env->ref_count);\n", ctx->out);
+        xl6OutputPuts("    if (__remaining < 0) {\n", ctx->out);
+        xl6OutputPuts("        xl6_function_fatal(3);\n", ctx->out);
+        xl6OutputPuts("    }\n", ctx->out);
+        xl6OutputPuts("    if (__remaining == 0) {\n", ctx->out);
         ctx->indent += 2;
         for ( i = 0; i < info->captureCount; ++i ) {
             xl6CgenReleaseClosureCapture(ctx, &info->captures[i]);

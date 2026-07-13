@@ -229,6 +229,7 @@ static void xl6CgenEmitClassFromValueSymbol(XL6_CgenContext* ctx, const XL6_AstN
 static void xl6CgenClassValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* valuePath)
 {
     const XL6_AstNode* concreteType;
+    const XL6_AstNode* recordType;
     XL6_AstNode* classNode;
 
     concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
@@ -290,6 +291,30 @@ static void xl6CgenClassValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeN
         xl6OutputPuts(valuePath, ctx->out);
         xl6OutputPutc(')', ctx->out);
         return;
+    }
+    recordType = xl6CgenClassHandleTargetType(ctx, concreteType);
+    if ( recordType != NULL ) {
+        char cTypeName[512];
+
+        classNode = xl6CgenPersistenceClassForType(ctx, recordType);
+        xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), recordType);
+        if ( classNode != NULL && xl6CTextEquals(classNode->text, "object") ) {
+            xl6OutputPuts("xvoCopy(((", ctx->out);
+            xl6OutputPuts(cTypeName, ctx->out);
+            xl6OutputPuts("*)xvoGetRecordData(", ctx->out);
+            xl6OutputPuts(valuePath, ctx->out);
+            xl6OutputPuts("))->__fields)", ctx->out);
+            return;
+        }
+        if ( classNode != NULL ) {
+            xl6CgenEmitClassToValueSymbol(ctx, classNode);
+            xl6OutputPuts("((", ctx->out);
+            xl6OutputPuts(cTypeName, ctx->out);
+            xl6OutputPuts("*)xvoGetRecordData(", ctx->out);
+            xl6OutputPuts(valuePath, ctx->out);
+            xl6OutputPuts("))", ctx->out);
+            return;
+        }
     }
     if ( xl6CgenIsXValueType(typeNode) ) {
         xl6OutputPuts("xvoCopy(", ctx->out);
@@ -394,7 +419,7 @@ static void xl6CgenClassAssignFromValue(
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", valuePath, valuePath);
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = xvoCopy(%s);\n", valuePath, itemName);
+            xl6OutputPrintf(ctx->out, "%s = xl6_xrt_retain(%s);\n", valuePath, itemName);
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
@@ -403,7 +428,8 @@ static void xl6CgenClassAssignFromValue(
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "xvalue __xl6_class_from_value_%d = ", id);
         xl6CgenClassMemberSymbol(ctx->out, classNode->text, "__xl6_from_value_release");
-        xl6OutputPrintf(ctx->out, "(xvoCopy(%s), %d);\n", itemName, xl6CgenPersistenceFormatKind(format));
+        /* 反序列化只读取子值；保留同一引用，避免浅拷贝容器 backing。 */
+        xl6OutputPrintf(ctx->out, "(xl6_xrt_retain(%s), %d);\n", itemName, xl6CgenPersistenceFormatKind(format));
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (__xl6_class_from_value_%d == 0 || xvoIsNull(__xl6_class_from_value_%d)) {\n", id, id);
         ctx->indent += 1;
@@ -746,33 +772,50 @@ static int xl6CgenClassArrayAssignFromValueStmt(
     if ( itemClass != NULL ) {
         char elemName[64];
         char boxedName[64];
+        char targetExpr[96];
         snprintf(elemName, sizeof(elemName), "__xl6_array_item_%d", id);
         snprintf(boxedName, sizeof(boxedName), "__xl6_array_item_boxed_%d", id);
+        snprintf(targetExpr, sizeof(targetExpr), "(*%s)", elemName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateObject(", boxedName);
+        xl6CgenTypeDescSymbol(ctx->out, itemCType);
+        xl6OutputPuts("());\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPuts(itemCType, ctx->out);
-        xl6OutputPrintf(ctx->out, " %s = {0};\n", elemName);
-        xl6CgenClassDefaultInitFields(ctx, itemClass, elemName);
+        xl6OutputPrintf(ctx->out,
+                        "* %s = %s != 0 ? (%s*)xvoGetRecordData(%s) : 0;\n",
+                        elemName,
+                        boxedName,
+                        itemCType,
+                        boxedName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s == 0) {\n", elemName);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = 0;\n", okName);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("} else {\n", ctx->out);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = (%s){0};\n", targetExpr, itemCType);
+        xl6CgenClassDefaultInitFields(ctx, itemClass, targetExpr);
         xl6CgenIndent(ctx);
         xl6OutputPuts("if (!", ctx->out);
         xl6CgenEmitClassFromValueForFormat(ctx, itemClass, format);
-        xl6OutputPrintf(ctx->out, "(&%s, __xl6_array_item_value_%d)) { %s = 0; } else {\n", elemName, id, okName);
+        xl6OutputPrintf(ctx->out, "(%s, __xl6_array_item_value_%d)) { %s = 0; } else {\n", elemName, id, okName);
         ctx->indent += 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = ", boxedName);
-        xl6CgenBoxSymbol(ctx->out, itemCType);
-        xl6OutputPrintf(ctx->out, "(%s);\n", elemName);
+        xl6CgenClassPublishSharedFields(ctx, itemClass, targetExpr);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (!xrtTypedArrayAppendValue(%s, %s)) { %s = 0; }\n", valuePath, boxedName, okName);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", boxedName, boxedName);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);
-        if ( xl6CgenClassNeedsDestroy(ctx, itemClass) ) {
-            xl6CgenIndent(ctx);
-            xl6CgenClassMemberSymbol(ctx->out, itemClass->text, "destroy");
-            xl6OutputPrintf(ctx->out, "(&%s);\n", elemName);
-        }
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", boxedName, boxedName);
     } else {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (!xrtTypedArrayAppendValue(%s, __xl6_array_item_value_%d)) { %s = 0; }\n",

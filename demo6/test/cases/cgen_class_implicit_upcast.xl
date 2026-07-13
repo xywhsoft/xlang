@@ -21,7 +21,7 @@ func takeBase(UpcastBase value) as int
 end
 
 func main(...) as int
-    UpcastDerived derived
+    UpcastDerived derived = UpcastDerived()
 
     UpcastBase direct = derived
     assert direct.value() == 2
@@ -33,7 +33,7 @@ func main(...) as int
     assert values[0].value() == 2
     assert values[0] is UpcastDerived
 
-    UpcastHolder holder
+    UpcastHolder holder = UpcastHolder()
     holder.item = derived
     assert holder.item.value() == 2
     assert holder.item is UpcastDerived

@@ -117,9 +117,14 @@ if errorlevel 1 (
     echo cgen_named_args.c missing named default lowering.
     exit /b 1
 )
-findstr /C:"xl_class_Box__create(&__xl6_box_ctor_stmt_" build\test\cgen_named_args.c >nul
+findstr /C:"xvoCreateObject(xl6_type_desc_XL_Class_Box())" build\test\cgen_named_args.c >nul
 if errorlevel 1 (
-    echo cgen_named_args.c missing named class constructor lowering.
+    echo cgen_named_args.c missing managed class object allocation.
+    exit /b 1
+)
+findstr /C:"xl_class_Box__create(&(*__xl6_object_data_" build\test\cgen_named_args.c >nul
+if errorlevel 1 (
+    echo cgen_named_args.c missing named class payload constructor lowering.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_named_args.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_named_args.exe

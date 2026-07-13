@@ -49,7 +49,6 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_KW_INCLUDE: return "KW_INCLUDE";
     case XL6_KW_DEFINE: return "KW_DEFINE";
     case XL6_KW_CLASS: return "KW_CLASS";
-    case XL6_KW_STRUCT: return "KW_STRUCT";
     case XL6_KW_EXTENDS: return "KW_EXTENDS";
     case XL6_KW_UNION: return "KW_UNION";
     case XL6_KW_DERIVE: return "KW_DERIVE";

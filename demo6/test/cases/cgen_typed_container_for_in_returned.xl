@@ -231,7 +231,7 @@ for value in makeValues()
 end
 assert breakTotal == 3, "returned typed container break cleanup failed"
 
-ArrayMaker maker
+ArrayMaker maker = ArrayMaker()
 maker.values = makeValues
 
 array<int> memberValues = maker.values()

@@ -77,24 +77,21 @@ func xsRememberHandler(array kinds, array handles, string kind, point raw)
 end
 
 func xsTccHandlerRun(point raw, array args) as int
-    TccHandler borrowed
-    borrowed.handle = raw
+    TccHandler borrowed = TccHandler(raw)
     int rc = borrowed.run(args)
     borrowed.handle = null
     return rc
 end
 
 func xsXlangHandlerRun(point raw, array args) as bool
-    XLangHandler borrowed
-    borrowed.handle = raw
+    XLangHandler borrowed = XLangHandler(raw)
     bool ok = borrowed.run(args)
     borrowed.handle = null
     return ok
 end
 
 func xsXlangHandlerLastError(point raw) as string
-    XLangHandler borrowed
-    borrowed.handle = raw
+    XLangHandler borrowed = XLangHandler(raw)
     string text = borrowed.lastError
     borrowed.handle = null
     return text
@@ -106,13 +103,11 @@ func xsDestroyHandler(string kind, point raw)
     end
 
     if kind == "c" then
-        TccHandler owned
-        owned.handle = raw
+        TccHandler owned = TccHandler(raw)
         return
     end
 
-    XLangHandler owned
-    owned.handle = raw
+    XLangHandler owned = XLangHandler(raw)
 end
 
 func xsDestroyHandlers(array kinds, array handles)
@@ -168,10 +163,10 @@ func xsMakeHttpHandler(string handler, int timeoutMs, string contentType, bool v
     return func(point reqHandle, point respHandle) as bool
         HttpRequest req = HttpRequest(reqHandle)
         HttpResponse resp = HttpResponse(respHandle)
-        string out = invoke("http", req.method(), req.path(), req.query(), req.body())
+        string output = invoke("http", req.method(), req.path(), req.query(), req.body())
 
         resp.header("X-XS-Handler", handler)
-        resp.text(out, contentType)
+        resp.text(output, contentType)
         return true
     end
 end
@@ -273,12 +268,12 @@ func xsMakeTcpWorker(string name, string host, int port, string handler, int tim
             TcpStream peer = TcpStream(peerHandle)
             Buffer dataBytes = peer.recvBytes(timeoutMs, 65536)
             string data = dataBytes.text()
-            string out = invoke("tcp", name, data, "", "")
+            string output = invoke("tcp", name, data, "", "")
             if verbose then
                 println("xs tcp request [", name, "]: ", data)
-                println("xs tcp response [", name, "]: ", out)
+                println("xs tcp response [", name, "]: ", output)
             end
-            bool sent = peer.send(out)
+            bool sent = peer.send(output)
             bool drained = peer.drain(timeoutMs)
             if verbose then
                 println("xs tcp sent [", name, "]: ", sent, " drain=", drained)
@@ -331,12 +326,12 @@ func xsMakeUdpWorker(string name, string host, int port, string handler, int tim
             string data = packet.text()
             string remoteAddr = packet.addr()
             int remotePort = packet.port()
-            string out = invoke("udp", name, data, remoteAddr, remotePort.toString())
+            string output = invoke("udp", name, data, remoteAddr, remotePort.toString())
             if verbose then
                 println("xs udp request [", name, "]: ", data)
-                println("xs udp response [", name, "]: ", out)
+                println("xs udp response [", name, "]: ", output)
             end
-            sock.send(remoteAddr, uint16(remotePort), out)
+            sock.send(remoteAddr, uint16(remotePort), output)
             count += 1
         end
 
@@ -350,9 +345,9 @@ func xsMakeCustomWorker(string name, string handler, int timeoutMs, int interval
     return func() as int
         int count = 0
         while requestLimit <= 0 or count < requestLimit do
-            string out = invoke("custom", name, "", "", "")
-            if verbose and out != "" then
-                println("xs custom output [", name, "]: ", out)
+            string output = invoke("custom", name, "", "", "")
+            if verbose and output != "" then
+                println("xs custom output [", name, "]: ", output)
             end
             count += 1
 

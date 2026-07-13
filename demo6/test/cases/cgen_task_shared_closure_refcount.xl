@@ -1,0 +1,35 @@
+func makeSharedJob(int base) as func(int) as int
+    return func(int value) as int
+        time.sleep(1)
+        return base + value
+    end
+end
+
+func(int) as int sharedJob = makeSharedJob(40)
+array<future<int>> jobs = array[
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2),
+    task.spawn(sharedJob, 2), task.spawn(sharedJob, 2)
+]
+
+array<int> values = await task.all(jobs)
+assert values.length == 32, "shared closure task count"
+for value in values
+    assert value == 42, "shared closure task result"
+end
+
+assert sharedJob(2) == 42, "shared closure must remain callable after concurrent release"
+println("shared closure refcount ok")

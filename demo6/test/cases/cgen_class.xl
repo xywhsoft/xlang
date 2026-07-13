@@ -9,11 +9,11 @@ end
 
 extern "expect_i64" func expect(int actual, int expected)
 
-Point p
+Point p = Point()
 expect(p.x, 3)
 expect(p.y, 4)
 
-Point3 q
+Point3 q = Point3()
 q.x = 10
 q.y = 20
 q.z = 30

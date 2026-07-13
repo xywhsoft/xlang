@@ -11,9 +11,12 @@ extern "counter_closed" func counterClosed() as int
 
 func exercise()
     auto counter = Counter(40)
+    var dynamicCounter = counter
+    var rejectedCopy = copy(dynamicCounter)
     int afterAdd = counter.add(2)
     int current = counter.value()
 
+    expect(type(rejectedCopy) == null, 1)
     expect(afterAdd, 42)
     expect(current, 42)
 end

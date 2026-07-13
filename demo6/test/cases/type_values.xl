@@ -8,7 +8,7 @@ int value = 1
 type valueType = type(value)
 auto textType = type("x")
 auto nullType = type(null)
-Box box
+Box box = Box()
 type boxType = type(box)
 auto values = [1, 2, 3]
 auto otherValues = [4, 5]

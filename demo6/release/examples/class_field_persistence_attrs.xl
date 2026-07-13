@@ -19,7 +19,7 @@ class UserRecord
 end
 
 func main(...) as int
-    UserRecord user
+    UserRecord user = UserRecord()
     user.id = 12
     user.name = "Alice"
     user.setToken("open")

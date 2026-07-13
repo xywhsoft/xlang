@@ -1,0 +1,26 @@
+class Packet<T>
+    derive copy
+    derive clone
+
+    T id
+    var values = [0]
+
+    create(T id)
+        self.id = id
+        self.values = [id]
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+auto source = Packet::<int>(7)
+auto copied = copy(source)
+auto cloned = clone(source)
+
+source.id = 9
+source.values[0] = 99
+
+expect(copied.id, 7)
+expect(cloned.id, 7)
+expect(int(copied.values[0]), 99)
+expect(int(cloned.values[0]), 7)

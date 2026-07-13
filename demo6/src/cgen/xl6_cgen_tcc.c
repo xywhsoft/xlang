@@ -231,6 +231,7 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoCreateFloat);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoCreateText);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoCreateArray);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoCreateObject);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoAddRef);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoShare);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoEnsureUnique);\n", out);
@@ -358,6 +359,11 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("int xl6_tcc_context_run_args(void* state, xvalue args)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xl6_tcc_run_state(state, args);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_tcc_handler_wrap(void* value)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return value;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_tcc_handler_create(const char* path)\n", out);

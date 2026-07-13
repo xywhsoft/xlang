@@ -7,7 +7,6 @@ typedef struct XL6_CgenVar {
 typedef struct XL6_CgenRootTypeSlot {
     const char* name;
     XL6_AstNode* classNode;
-    XL6_AstNode* structNode;
     XL6_AstNode* unionNode;
 } XL6_CgenRootTypeSlot;
 
@@ -147,9 +146,6 @@ typedef struct XL6_CgenContext {
     char** emittedUnions;
     size_t emittedUnionCount;
     size_t emittedUnionCapacity;
-    char** emittedStructs;
-    size_t emittedStructCount;
-    size_t emittedStructCapacity;
     XL6_CgenCleanup* cleanups;
     size_t cleanupCount;
     size_t cleanupCapacity;

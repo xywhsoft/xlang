@@ -6,7 +6,7 @@
 ## 固定原则
 
 - `class` 统一使用受管理引用语义；`Derived -> Base` 安全拓宽保留完整动态对象，不发生切片。
-- C 兼容值聚合使用独立的 `struct` 语句，不让 class 同时承担对象和值结构两套相反语义。
+- xlang 不公开 `struct` 值语句；C 兼容布局由生成的 class payload struct、公开 `union` 或 C 源定义承担。
 - 同一根因必须在公共语义、公共 lowering 或公共运行时边界一次修复，不为单个范例增加兼容分支。
 - XRT 能承担的通用能力优先在 XRT 实现，并保持 C 与 xlang 都可直接使用。
 - 每个确认缺陷至少有行为回归；cgen 缺陷还必须检查生成 C，并覆盖 `run/build`。
@@ -55,10 +55,10 @@
 
 - 普通 class、泛型 class、object 派生 class 和 native-backed class 统一使用受管理引用句柄。
 - `Derived` 可以安全拓宽为 `Base`；成员访问、virtual 调用、参数、返回值和容器都保留完整动态对象。
-- 默认 class 参数共享对象；显式 `byval` 按复制协议建立独立对象。
+- 默认和 `byval` class 参数都保留同一对象引用；重新绑定只影响局部参数。独立对象只能显式 `copy/clone`。
 - `byref` 绑定调用方变量槽；`out` 采用写前不可读且正常出口必须赋值的确定赋值规则。
 - `byref` 和 `out` 必须在调用点显式标记，并禁止跨 async、generator、闭包捕获和线程边界。
-- 标量、`struct`、`union` 保持值语义；容器默认共享存储，`byval` 创建独立浅副本。
+- 标量和 `union` 保持值语义；容器默认和 `byval` 都保留同一容器句柄或 backing，独立副本只能显式 `copy/clone`。
 - C ABI 使用 `xvalue` 表示 class 句柄，使用 `xvalue*` 表示 class 的 `byref/out` 变量槽。
 
 ## 衍生问题闭环

@@ -1,0 +1,5904 @@
+﻿// =============================================================================
+// xos2.xl - Complete Operating System Simulator
+// =============================================================================
+// A from-scratch, single-file OS simulator written in xlang.
+//
+// Subsystems modelled:
+//   1. Boot loader        - POST + kernel bring-up + init (PID 1)
+//   2. Process manager    - PCB, MLFQ scheduler (Q0=2/Q1=4/Q2=8), boost,
+//                           fork / exec / wait / exit, signal delivery
+//   3. Memory manager     - two-level page tables, 64-entry LRU TLB,
+//                           swappable page replacement (LRU / CLOCK / OPT),
+//                           shared memory (SHM), copy-on-write fork
+//   4. File system        - inode FS with hardlinks and symbolic links,
+//                           VFS with mount points, rwx permissions,
+//                           per-process fd tables, anonymous pipes + FIFOs,
+//                           device files (/dev/null, /dev/zero, /dev/random,
+//                           /dev/console)
+//   5. Shell              - pipeline / redirect / background / sequence,
+//                           environment variables (PATH, HOME, PWD, USER),
+//                           built-in commands and command history
+//   6. Syscall interface  - unified syscall(op, args) dispatcher
+//
+// CLI:
+//   xos2 boot <script.xsh>   boot the kernel and execute a shell script
+//   xos2 test                run the integrated self-test suite
+//   xos2 help                show usage
+//
+// All comments are pure ASCII on purpose: xlang's lexer honours // and the
+// file is parsed as UTF-8, which keeps the source portable across locales.
+//
+// xlang notes baked into this implementation:
+//   * derive value classes are stored in typed arrays; mutation requires a
+//     read -> modify -> write-back cycle (g_arr[i].field = v then write back).
+//   * Return type uses 'as', not '->'. while loops require 'do'.
+//   * No stdin API: scripts are loaded with file.readText and parsed.
+//   * auto cannot infer pop() return, so explicit types are used everywhere.
+// =============================================================================
+
+
+// =============================================================================
+//  Part 0: Constants
+// =============================================================================
+
+// --- Process states ---------------------------------------------------------
+int PROC_NEW        = 0
+int PROC_READY      = 1
+int PROC_RUNNING    = 2
+int PROC_WAITING    = 3
+int PROC_STOPPED    = 4
+int PROC_ZOMBIE     = 5
+int PROC_TERMINATED = 6
+
+// --- MLFQ scheduler ---------------------------------------------------------
+int MLFQ_LEVELS   = 3
+int MLFQ_Q0       = 2
+int MLFQ_Q1       = 4
+int MLFQ_Q2       = 8
+int MLFQ_BOOST    = 50
+int NICE_DEFAULT  = 0
+
+// --- Signals ----------------------------------------------------------------
+int SIG_NONE  = 0
+int SIGTERM   = 1
+int SIGKILL   = 2
+int SIGINT    = 3
+int SIGCHLD   = 4
+int SIGSTOP   = 5
+int SIGCONT   = 6
+int SIGUSER   = 7
+
+// --- Exit codes -------------------------------------------------------------
+int EXIT_OK            = 0
+int EXIT_FAIL          = 1
+int EXIT_KILLED        = 2
+int EXIT_SEGFAULT      = 11
+int EXIT_OOM           = 12
+
+// --- Memory layout ----------------------------------------------------------
+int FRAME_SIZE      = 4096
+int NUM_FRAMES      = 256
+int PAGE_DIR_SIZE   = 1024
+int PAGE_TABLE_SIZE = 1024
+int TLB_SIZE        = 64
+int PAGE_INVALID    = -1
+
+// Address split: 32-bit virtual address -> [dir:10][tab:10][off:12]
+int OFF_BITS  = 12
+int OFF_MASK  = 0xFFF
+int TAB_BITS  = 10
+int TAB_MASK  = 0x3FF
+int DIR_BITS  = 10
+int DIR_MASK  = 0x3FF
+
+// --- Page replacement policies ----------------------------------------------
+int REPL_LRU   = 0
+int REPL_CLOCK = 1
+int REPL_OPT   = 2
+
+// --- File system ------------------------------------------------------------
+int FT_FILE     = 0
+int FT_DIR      = 1
+int FT_SYMLINK  = 2
+int FT_FIFO     = 3
+int FT_CHARDEV  = 4
+int FT_BLOCKDEV = 5
+
+int NIL = -1
+
+// Permission bits (octal style)
+int PERM_NONE = 0
+int PERM_X    = 1
+int PERM_W    = 2
+int PERM_R    = 4
+int PERM_RX   = 5
+int PERM_RW   = 6
+int PERM_RWX  = 7
+
+// Owner shift 6, group shift 3, other shift 0
+int PERM_OWNER_SHIFT = 6
+int PERM_GROUP_SHIFT = 3
+int PERM_OTHER_SHIFT = 0
+
+int MAX_OPEN_FILES   = 256
+int MAX_INODES       = 4096
+int MAX_FD_PER_PROC  = 32
+int MAX_MOUNTS       = 16
+int MAX_PIPES        = 64
+int MAX_SHM          = 64
+int PIPE_BUF         = 4096
+
+// OpenFile modes
+int OM_READ  = 0
+int OM_WRITE = 1
+int OM_RW    = 2
+int OM_APPEND = 3
+
+// lseek whence
+int XL_SEEK_SET = 0
+int XL_SEEK_CUR = 1
+int XL_SEEK_END = 2
+
+// Special bytes
+int SLASH_BYTE     = 47
+int SPACE_BYTE     = 32
+int TAB_BYTE       = 9
+int NEWLINE_BYTE   = 10
+int RETURN_BYTE    = 13
+int NULL_BYTE      = 0
+int PIPE_BYTE      = 124    // |
+int GT_BYTE        = 62     // >
+int LT_BYTE        = 60     // <
+int AMP_BYTE       = 38     // &
+int SEMI_BYTE      = 59     // ;
+int HASH_BYTE      = 35     // #
+int DQUOTE_BYTE    = 34     // "
+int SQUOTE_BYTE    = 39     // '
+int DASH_BYTE      = 45     // -
+int STAR_BYTE      = 42     // *
+int DOT_BYTE       = 46     // .
+int COLON_BYTE     = 58     // :
+int EQUAL_BYTE     = 61     // =
+
+// --- System call numbers ----------------------------------------------------
+int SYS_FORK   = 1
+int SYS_EXEC   = 2
+int SYS_EXIT   = 3
+int SYS_WAIT   = 4
+int SYS_KILL   = 5
+int SYS_SIGNAL = 6
+int SYSOPEN   = 7
+int SYS_CLOSE  = 8
+int SYS_READ   = 9
+int SYS_WRITE  = 10
+int SYS_LSEEK  = 11
+int SYS_MKDIR  = 12
+int SYS_RMDIR  = 13
+int SYS_LIST   = 14
+int SYS_REMOVE = 15
+int SYS_STAT   = 16
+int SYS_CHMOD  = 17
+int SYS_CHOWN  = 18
+int SYS_LINK   = 19
+int SYS_SYMLINK = 20
+int SYS_READLINK = 21
+int SYS_MOUNT  = 22
+int SYS_UMOUNT = 23
+int SYS_PIPE   = 24
+int SYS_MKIFO  = 25
+int SYS_DUP    = 26
+int SYS_DUP2   = 27
+int SYS_GETPID = 28
+int SYS_GETPPID = 29
+int SYS_NICE   = 30
+int SYS_SHMGET = 31
+int SYS_SHMAT  = 32
+int SYS_SHMDT  = 33
+int SYS_SLEEP  = 34
+int SYS_ENV_GET = 35
+int SYS_ENV_SET = 36
+int SYS_PS     = 37
+int SYS_MEM    = 38
+int SYS_HELP   = 39
+int SYS_TOUCH  = 40
+int SYS_CAT    = 41
+int SYS_LS     = 42
+int SYS_ALLOC  = 43
+int SYS_ACCESS = 44
+
+// --- Devices ----------------------------------------------------------------
+int DEV_NULL    = 1
+int DEV_ZERO    = 2
+int DEV_RANDOM  = 3
+int DEV_CONSOLE = 4
+
+
+// =============================================================================
+//  Part 1: Global state
+// =============================================================================
+
+// --- Process table ----------------------------------------------------------
+array<PCB> g_pcb       = array[]
+array<int> g_mlfq0     = array[]
+array<int> g_mlfq1     = array[]
+array<int> g_mlfq2     = array[]
+array<int> g_zombies   = array[]
+array<int> g_orphans   = array[]
+
+int g_currentPid       = NIL
+int g_nextPid          = 1
+int g_contextSwitches  = 0
+int g_totalTick        = 0
+int g_lastBoost        = 0
+int g_idleTicks        = 0
+bool g_trace           = false
+int g_bootStage        = 0
+
+// --- Memory -----------------------------------------------------------------
+array<int>  g_frameOwner   = array[]
+array<int>  g_frameTick    = array[]
+array<bool> g_frameDirty   = array[]
+array<bool> g_frameRefBit  = array[]
+array<int>  g_clockHand    = array[]
+array<int>  g_ptDir        = array[]
+array<bool> g_ptDirUsed    = array[]
+array<int>  g_ptTab        = array[]
+array<bool> g_ptTabUsed    = array[]
+array<bool> g_ptTabCow     = array[]
+array<TlbEntry> g_tlb      = array[]
+
+int g_memTranslate = 0
+int g_memTlbHit    = 0
+int g_memTlbMiss   = 0
+int g_memPageFault = 0
+int g_memEvict     = 0
+int g_memAlloc     = 0
+int g_memCowFault  = 0
+int g_memReplPolicy = REPL_LRU
+
+// Future access log for OPT page replacement simulation
+array<int> g_futureAccess = array[]
+int g_futureIdx = 0
+
+// --- Shared memory segments -------------------------------------------------
+array<ShmSeg> g_shm = array[]
+
+// --- Inode file system ------------------------------------------------------
+array<Inode> g_inodes = array[]
+int g_rootIno  = 0
+int g_cwdIno   = 0
+int g_nextIno  = 1
+int g_uid      = 0
+int g_gid      = 0
+
+array<OpenFile> g_open    = array[]
+array<bool>     g_openUsed = array[]
+int g_openCount = 0
+
+// --- VFS mount table --------------------------------------------------------
+array<Mount> g_mounts = array[]
+int g_mountCount = 0
+
+// --- Pipes ------------------------------------------------------------------
+array<Pipe> g_pipes = array[]
+
+// --- Devices ----------------------------------------------------------------
+array<Device> g_devices = array[]
+
+// --- Environment ------------------------------------------------------------
+var g_env = {}
+
+// --- Directory entry name registry ------------------------------------------
+// Maps "parentIno:childName" -> childIno. This decouples the directory-entry
+// name from the inode's canonical name, so hard links work correctly: the
+// same inode can be referenced by multiple names in the same or different
+// directories.
+var g_names = {}
+
+// --- Shell state ------------------------------------------------------------
+array<string> g_history = array[]
+int g_historyLimit = 64
+
+// --- Test framework ---------------------------------------------------------
+int g_pass = 0
+int g_fail = 0
+int g_skip = 0
+array<string> g_failNames = array[]
+
+
+// =============================================================================
+//  Part 2: Helpers
+// =============================================================================
+
+func padR(string s, int w) as string
+    return string.padRight(s, w)
+end
+
+func padL(string s, int w) as string
+    return string.padLeft(s, w)
+end
+
+func rep(string s, int n) as string
+    return string.repeat(s, n)
+end
+
+func clamp(int v, int lo, int hi) as int
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
+end
+
+func mini(int a, int b) as int
+    if a < b then return a end
+    return b
+end
+
+func maxi(int a, int b) as int
+    if a > b then return a end
+    return b
+end
+
+func absi(int v) as int
+    if v < 0 then return -v end
+    return v
+end
+
+func i2s(int v) as string
+    return string(v)
+end
+
+func b2s(bool b) as string
+    if b then return "true" end
+    return "false"
+end
+
+func hex2(int b) as string
+    return string.formatInt(b & 0xFF, "x2")
+end
+
+func hex4(int w) as string
+    return string.formatInt(w & 0xFFFF, "x4")
+end
+
+func hex8(int w) as string
+    return string.formatInt(w & 0xFFFFFFFF, "x8")
+end
+
+func startsWithP(string s, string pre) as bool
+    return string.startsWith(s, pre)
+end
+
+func endsWithP(string s, string suf) as bool
+    return string.endsWith(s, suf)
+end
+
+func containsP(string s, string sub) as bool
+    return string.contains(s, sub)
+end
+
+func splitP(string s, string sep) as var
+    return string.split(s, sep)
+end
+
+func trimP(string s) as string
+    return string.trim(s)
+end
+
+func lenP(string s) as int
+    return string.len(s)
+end
+
+func lowerP(string s) as string
+    return string.lower(s)
+end
+
+func upperP(string s) as string
+    return string.upper(s)
+end
+
+func findByte(string s, int ch) as int
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        if string.byteAt(s, i) == ch then
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+func findByteFrom(string s, int ch, int fromIdx) as int
+    int n = string.len(s)
+    int i = fromIdx
+    while i < n do
+        if string.byteAt(s, i) == ch then
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+func rfindByte(string s, int ch) as int
+    int n = string.len(s)
+    int i = n - 1
+    while i >= 0 do
+        if string.byteAt(s, i) == ch then
+            return i
+        end
+        i -= 1
+    end
+    return -1
+end
+
+func isDigits(string s) as bool
+    int n = string.len(s)
+    if n == 0 then return false end
+    int i = 0
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 57 then
+            return false
+        end
+        i += 1
+    end
+    return true
+end
+
+func parseIntSafe(string s, int def) as int
+    if not isDigits(s) then
+        int n = string.len(s)
+        if n > 1 and string.byteAt(s, 0) == DASH_BYTE then
+            if isDigits(string.mid(s, 1, n - 1)) then
+                return int(s)
+            end
+        end
+        return def
+    end
+    return int(s)
+end
+
+func boolSafe(var v, bool def) as bool
+    if v == null then return def end
+    return bool(v)
+end
+
+func intSafe(var v, int def) as int
+    if v == null then return def end
+    return int(v)
+end
+
+func stringSafe(var v, string def) as string
+    if v == null then return def end
+    return string(v)
+end
+
+// perm bits -> rwxrwxrwx string
+func permString(int perm) as string
+    string s = ""
+    int shift = 6
+    while shift >= 0 do
+        int bits = (perm >> shift) & 7
+        if (bits & PERM_R) != 0 then s = s + "r" else s = s + "-" end
+        if (bits & PERM_W) != 0 then s = s + "w" else s = s + "-" end
+        if (bits & PERM_X) != 0 then s = s + "x" else s = s + "-" end
+        shift -= 3
+    end
+    return s
+end
+
+// rwxrwxrwx string -> perm bits; returns -1 on parse error
+func parsePerm(string s) as int
+    int n = string.len(s)
+    if n != 9 then return -1 end
+    int perm = 0
+    int i = 0
+    while i < 9 do
+        int b = string.byteAt(s, i)
+        int bits = 0
+        int col = i % 3
+        if col == 0 then
+            if b == 114 then
+                bits = PERM_R
+            elseif b == 45 then
+                bits = 0
+            else
+                return -1
+            end
+        elseif col == 1 then
+            if b == 119 then
+                bits = PERM_W
+            elseif b == 45 then
+                bits = 0
+            else
+                return -1
+            end
+        else
+            if b == 120 then
+                bits = PERM_X
+            elseif b == 45 then
+                bits = 0
+            else
+                return -1
+            end
+        end
+        int shift = (2 - (i / 3)) * 3
+        perm = perm | (bits << shift)
+        i += 1
+    end
+    return perm
+end
+
+// Octal string like "0755" -> int perm
+func parsePermOctal(string s) as int
+    int n = string.len(s)
+    if n == 0 then return -1 end
+    int start = 0
+    if n > 1 and (string.byteAt(s, 0) == 48) then
+        start = 1
+    end
+    int v = 0
+    int i = start
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b < 48 or b > 55 then return -1 end
+        v = v * 8 + (b - 48)
+        i += 1
+    end
+    return v
+end
+
+func procStateName(int s) as string
+    if s == PROC_NEW        then return "new"        end
+    if s == PROC_READY      then return "ready"      end
+    if s == PROC_RUNNING    then return "running"    end
+    if s == PROC_WAITING    then return "waiting"    end
+    if s == PROC_STOPPED    then return "stopped"    end
+    if s == PROC_ZOMBIE     then return "zombie"     end
+    if s == PROC_TERMINATED then return "terminated" end
+    return "unknown"
+end
+
+func procStateShort(int s) as string
+    if s == PROC_NEW        then return "N" end
+    if s == PROC_READY      then return "R" end
+    if s == PROC_RUNNING    then return "*" end
+    if s == PROC_WAITING    then return "W" end
+    if s == PROC_STOPPED    then return "S" end
+    if s == PROC_ZOMBIE     then return "Z" end
+    if s == PROC_TERMINATED then return "T" end
+    return "?"
+end
+
+func sigName(int s) as string
+    if s == SIGTERM then return "SIGTERM" end
+    if s == SIGKILL then return "SIGKILL" end
+    if s == SIGINT  then return "SIGINT"  end
+    if s == SIGCHLD then return "SIGCHLD" end
+    if s == SIGSTOP then return "SIGSTOP" end
+    if s == SIGCONT then return "SIGCONT" end
+    if s == SIGUSER then return "SIGUSER" end
+    return "SIG" + i2s(s)
+end
+
+func fileTypeName(int t) as string
+    if t == FT_FILE     then return "file"     end
+    if t == FT_DIR      then return "dir"      end
+    if t == FT_SYMLINK  then return "symlink" end
+    if t == FT_FIFO     then return "fifo"     end
+    if t == FT_CHARDEV  then return "chardev" end
+    if t == FT_BLOCKDEV then return "blkdev"  end
+    return "unknown"
+end
+
+func fileTypeNameShort(int t) as string
+    if t == FT_DIR      then return "d" end
+    if t == FT_SYMLINK  then return "l" end
+    if t == FT_FIFO     then return "p" end
+    if t == FT_CHARDEV  then return "c" end
+    if t == FT_BLOCKDEV then return "b" end
+    return "-"
+end
+
+func replPolicyName(int p) as string
+    if p == REPL_LRU   then return "LRU"   end
+    if p == REPL_CLOCK then return "CLOCK" end
+    if p == REPL_OPT   then return "OPT"   end
+    return "?"
+end
+
+func trace(string s)
+    if g_trace then
+        println("    [trace] " + s)
+    end
+end
+
+func banner(string s)
+    println("")
+    println(rep("=", 72))
+    println("  " + s)
+    println(rep("=", 72))
+end
+
+func section(string s)
+    println("")
+    println("--- " + s + " ---")
+end
+
+
+// =============================================================================
+//  Part 3: Assertion / test framework
+// =============================================================================
+
+func expectTrue(bool cond, string label)
+    if cond then
+        g_pass += 1
+    else
+        g_fail += 1
+        g_failNames.append(label)
+        println("  [FAIL] " + label)
+    end
+end
+
+func expectFalse(bool cond, string label)
+    if not cond then
+        g_pass += 1
+    else
+        g_fail += 1
+        g_failNames.append(label)
+        println("  [FAIL] " + label)
+    end
+end
+
+func expectEq(int a, int b, string label)
+    if a == b then
+        g_pass += 1
+    else
+        g_fail += 1
+        g_failNames.append(label)
+        println("  [FAIL] " + label + ": expected " + i2s(b) + " got " + i2s(a))
+    end
+end
+
+func expectS(string a, string b, string label)
+    if a == b then
+        g_pass += 1
+    else
+        g_fail += 1
+        g_failNames.append(label)
+        println("  [FAIL] " + label + ": expected [" + b + "] got [" + a + "]")
+    end
+end
+
+func expectNe(int a, int b, string label)
+    if a != b then
+        g_pass += 1
+    else
+        g_fail += 1
+        g_failNames.append(label)
+        println("  [FAIL] " + label + ": expected != " + i2s(b) + " but equal")
+    end
+end
+
+func expectGe(int a, int b, string label)
+    if a >= b then
+        g_pass += 1
+    else
+        g_fail += 1
+        g_failNames.append(label)
+        println("  [FAIL] " + label + ": expected >= " + i2s(b) + " got " + i2s(a))
+    end
+end
+
+func expectGt(int a, int b, string label)
+    if a > b then
+        g_pass += 1
+    else
+        g_fail += 1
+        g_failNames.append(label)
+        println("  [FAIL] " + label + ": expected > " + i2s(b) + " got " + i2s(a))
+    end
+end
+
+func skip(string label)
+    g_skip += 1
+end
+
+func testSummary() as int
+    println("")
+    println(rep("=", 72))
+    println("  Results: " + i2s(g_pass) + " passed, " + i2s(g_fail) + " failed, " + i2s(g_skip) + " skipped")
+    if g_fail > 0 then
+        println("  Failed tests:")
+        int i = 0
+        int n = g_failNames.length
+        while i < n do
+            println("    - " + g_failNames[i])
+            i += 1
+        end
+    end
+    println(rep("=", 72))
+    if g_fail == 0 then return 0 end
+    return 1
+end
+
+
+// =============================================================================
+//  Part 4: Forward class declarations / class definitions
+// =============================================================================
+//
+// In xlang, classes are declared at file scope. We declare them here up-front
+// so they can be referenced by typed globals and helper functions below.
+// =============================================================================
+
+// --- PCB (process control block) --------------------------------------------
+class PCB
+    derive value
+    int pid            = 0
+    int ppid           = NIL
+    string name        = ""
+    int state          = PROC_NEW
+    int level          = 0
+    int priority       = 0
+    int nice           = NICE_DEFAULT
+    int burstTime      = 0
+    int arrivalTime    = 0
+    int remaining      = 0
+    int usedInLevel    = 0
+    int waitTime       = 0
+    int startTime      = -1
+    int completionTime = 0
+    int responseTime   = -1
+    int pc             = 0
+    int ptDirId        = NIL
+    int sleepUntil     = -1
+    int exitCode       = 0
+    int pendingSignal  = SIG_NONE
+    int signalMask     = 0
+    int uid            = 0
+    int gid            = 0
+    int cwdIno         = 0
+    int computeLeft    = 0
+    int waitChildPid   = NIL
+    int childrenDone   = 0
+    int userId         = 0
+    int groupId        = 0
+    int openFileCount  = 0
+    bool isKernelProc  = false
+    array<string> program   = array[]
+    array<int> fdMap        = array[]
+    array<int> registers    = array[]
+    array<int> pendingSignals = array[]
+    array<int> shmList      = array[]
+end
+
+// --- Page-table / TLB entries -----------------------------------------------
+class TlbEntry
+    derive value
+    int vpn  = -1
+    int pid  = -1
+    int frame = -1
+    bool valid = false
+    int tick = 0
+end
+
+// --- Shared memory segment --------------------------------------------------
+class ShmSeg
+    derive value
+    int key        = 0
+    int size       = 0
+    array<int> frames = array[]
+    array<int> attached = array[]
+    int refCount   = 0
+    bool used      = false
+end
+
+// --- Inode ------------------------------------------------------------------
+class Inode
+    derive value
+    int ino        = 0
+    string name    = ""
+    int type       = FT_FILE
+    int perm       = PERM_RWX
+    int uid        = 0
+    int gid        = 0
+    int size       = 0
+    int parent     = NIL
+    int nlink      = 1
+    int createTime = 0
+    int modTime    = 0
+    int accessTime = 0
+    string content = ""
+    string target  = ""
+    int devId      = 0
+    int mountId    = NIL
+    array<int> children = array[]
+end
+
+// --- Open file table entry --------------------------------------------------
+class OpenFile
+    derive value
+    int ino  = NIL
+    int pos  = 0
+    int mode = OM_READ
+    int pid  = NIL
+    int pipeId = NIL
+    int devId  = NIL
+    bool used = false
+    bool append = false
+end
+
+// --- VFS Mount entry --------------------------------------------------------
+class Mount
+    derive value
+    string source = ""
+    string target = ""
+    string fstype = ""
+    int rootIno   = NIL
+    int mountIno  = NIL
+    bool used     = false
+end
+
+// --- Pipe -------------------------------------------------------------------
+class Pipe
+    derive value
+    int id          = 0
+    string buffer   = ""
+    int readPos     = 0
+    bool closedRead = false
+    bool closedWrite = false
+    bool named      = false
+    int ino         = NIL
+    bool used       = false
+end
+
+// --- Device -----------------------------------------------------------------
+class Device
+    derive value
+    int id       = 0
+    string name  = ""
+    int kind     = DEV_NULL
+    int ino      = NIL
+    bool used    = false
+end
+
+
+// =============================================================================
+//  Part 5: Power-On Self-Test (POST) and Boot sequence
+// =============================================================================
+//
+// boot() performs:
+//   stage 1: POST        - validate runtime invariants (helpers, encoding)
+//   stage 2: kernel init - clear all global tables
+//   stage 3: memory init - allocate frame array, TLB, page-table pools
+//   stage 4: fs init     - create root inode, mount table, devices
+//   stage 5: spawn init  - create PID 1 (the init process)
+// =============================================================================
+
+func postCheckHelpers() as bool
+    bool ok = true
+    if not isDigits("12345") then ok = false end
+    if isDigits("12a") then ok = false end
+    if parseIntSafe("42", -1) != 42 then ok = false end
+    if parseIntSafe("xx", 7) != 7 then ok = false end
+    if permString(PERM_RWX * 64 + PERM_RX * 8 + PERM_R) != "rwxr-xr--" then ok = false end
+    if parsePerm("rwxr-xr--") != (PERM_RWX * 64 + PERM_RX * 8 + PERM_R) then ok = false end
+    if parsePermOctal("0755") != 493 then ok = false end
+    if clamp(15, 0, 10) != 10 then ok = false end
+    if mini(3, 5) != 3 then ok = false end
+    if maxi(3, 5) != 5 then ok = false end
+    return ok
+end
+
+func postCheckContainers() as bool
+    bool ok = true
+    array<int> a = array[]
+    a.append(1)
+    a.append(2)
+    a.append(3)
+    if a.length != 3 then ok = false end
+    if a[1] != 2 then ok = false end
+    a.remove(0)
+    if a.length != 2 then ok = false end
+    if a[0] != 2 then ok = false end
+    var d = {}
+    d["x"] = 1
+    d["y"] = 2
+    if int(d["x"]) != 1 then ok = false end
+    if int(d["y"]) != 2 then ok = false end
+    return ok
+end
+
+func postRun() as bool
+    println("[POST] stage 1: power-on self test")
+    bool ok = true
+    if not postCheckHelpers() then
+        println("[POST] FAIL: helper functions failed")
+        ok = false
+    end
+    if not postCheckContainers() then
+        println("[POST] FAIL: container ops failed")
+        ok = false
+    end
+    if ok then
+        println("[POST] OK basic invariants verified")
+    end
+    return ok
+end
+
+func kernelClearTables()
+    g_pcb.clear()
+    g_mlfq0.clear()
+    g_mlfq1.clear()
+    g_mlfq2.clear()
+    g_zombies.clear()
+    g_orphans.clear()
+    g_currentPid = NIL
+    g_nextPid = 1
+    g_contextSwitches = 0
+    g_totalTick = 0
+    g_lastBoost = 0
+    g_idleTicks = 0
+    g_bootStage = 0
+end
+
+func kernelClearMemory()
+    g_frameOwner.clear()
+    g_frameTick.clear()
+    g_frameDirty.clear()
+    g_frameRefBit.clear()
+    g_clockHand.clear()
+    g_ptDir.clear()
+    g_ptDirUsed.clear()
+    g_ptTab.clear()
+    g_ptTabUsed.clear()
+    g_ptTabCow.clear()
+    g_tlb.clear()
+    g_memTranslate = 0
+    g_memTlbHit = 0
+    g_memTlbMiss = 0
+    g_memPageFault = 0
+    g_memEvict = 0
+    g_memAlloc = 0
+    g_memCowFault = 0
+    g_futureAccess.clear()
+    g_futureIdx = 0
+    g_shm.clear()
+end
+
+func kernelClearFS()
+    g_inodes.clear()
+    g_open.clear()
+    g_openUsed.clear()
+    g_openCount = 0
+    g_nextIno = 1
+    g_rootIno = 0
+    g_cwdIno = 0
+    g_mounts.clear()
+    g_mountCount = 0
+    g_pipes.clear()
+    g_devices.clear()
+    g_names = {}
+end
+
+func boot()
+    // Stage 1: POST
+    g_bootStage = 1
+    if not postRun() then
+        println("[boot] POST failed; aborting")
+        return
+    end
+
+    // Stage 2: kernel tables cleared
+    g_bootStage = 2
+    println("[boot] stage 2: kernel tables cleared")
+    kernelClearTables()
+    kernelClearMemory()
+    kernelClearFS()
+    g_env = {}
+
+    // Reserve PCB slot 0 as the idle sentinel so that pid == g_pcb index.
+    PCB idle = PCB()
+    idle.pid = 0
+    idle.name = "idle"
+    idle.state = PROC_TERMINATED
+    idle.isKernelProc = true
+    g_pcb.append(idle)
+
+    // Stage 3: memory subsystem
+    g_bootStage = 3
+    println("[boot] stage 3: memory subsystem online")
+    memInit()
+
+    // Stage 4: file system + devices + mounts
+    g_bootStage = 4
+    println("[boot] stage 4: file system + VFS + devices online")
+    fsInit()
+    devInit()
+    mountsInit()
+    pipeInit()
+    shmInit()
+
+    // Default environment
+    envInit()
+
+    // Stage 5: spawn init (PID 1)
+    g_bootStage = 5
+    println("[boot] stage 5: spawning init (PID 1)")
+    array<string> initProg = array["compute 1"]
+    int initPid = procCreate("init", 0, 1, 0, initProg)
+    g_pcb[initPid].ppid = NIL
+    g_pcb[initPid].isKernelProc = true
+    procArrive(initPid)
+
+    println("[boot] kernel ready: init=PID " + i2s(initPid) + " ticks=0")
+    println("[boot] mount table: / on rootfs")
+end
+
+
+// =============================================================================
+//  Part 6: Process manager - PCB utilities
+// =============================================================================
+
+func procCreate(string name, int arrival, int burst, int level, array<string> program) as int
+    PCB p = PCB()
+    p.pid = g_nextPid
+    p.name = name
+    p.state = PROC_NEW
+    p.level = clamp(level, 0, MLFQ_LEVELS - 1)
+    p.priority = 0
+    p.nice = NICE_DEFAULT
+    p.burstTime = burst
+    p.arrivalTime = arrival
+    p.remaining = burst
+    p.usedInLevel = 0
+    p.ppid = g_currentPid
+    if g_currentPid == NIL then
+        p.ppid = NIL
+    end
+    p.pc = 0
+    p.ptDirId = memAllocDir()
+    p.cwdIno = g_cwdIno
+    p.uid = g_uid
+    p.gid = g_gid
+    p.userId = g_uid
+    p.groupId = g_gid
+    p.program = program
+    int i = 0
+    while i < 8 do
+        p.registers.append(0)
+        i += 1
+    end
+    g_pcb.append(p)
+    int pid = g_nextPid
+    g_nextPid += 1
+    trace("procCreate pid=" + i2s(pid) + " name=" + name + " burst=" + i2s(burst))
+    return pid
+end
+
+// Terminate a process: release fds, page tables, mark ZOMBIE for reaping
+func procTerminate(int pid, int code)
+    if pid < 0 or pid >= g_pcb.length then return end
+    if g_pcb[pid].state == PROC_TERMINATED then return end
+    if g_pcb[pid].state == PROC_ZOMBIE then return end
+    // Reparent children to init (PID 1) and notify parent if it is waiting
+    int i = 1
+    int n = g_pcb.length
+    while i < n do
+        PCB c = g_pcb[i]
+        if c.ppid == pid and c.state != PROC_TERMINATED then
+            c.ppid = 1
+            g_orphans.append(i)
+            g_pcb[i] = c
+        end
+        i += 1
+    end
+    PCB p = g_pcb[pid]
+    p.state = PROC_ZOMBIE
+    p.completionTime = g_totalTick
+    p.exitCode = code
+    p.remaining = 0
+    procCloseAllFd(pid)
+    if p.ptDirId != NIL then
+        memReleaseProc(pid)
+    end
+    // Detach shm segments
+    int s = 0
+    while s < p.shmList.length do
+        shmDetachByPid(p.shmList[s], pid)
+        s += 1
+    end
+    p.shmList.clear()
+    g_pcb[pid] = p
+    // Notify parent (SIGCHLD)
+    if p.ppid != NIL and p.ppid >= 1 and p.ppid < g_pcb.length then
+        PCB par = g_pcb[p.ppid]
+        par.pendingSignals.append(SIGCHLD)
+        if par.waitChildPid == -1 or par.waitChildPid == pid then
+            // Parent was waiting in wait(): wake it up
+            par.state = PROC_READY
+            par.waitChildPid = NIL
+            par.childrenDone += 1
+            mlfqEnqueue(p.ppid, par.level)
+        end
+        g_pcb[p.ppid] = par
+    end
+    g_zombies.append(pid)
+    if g_currentPid == pid then
+        g_currentPid = NIL
+    end
+    trace("procTerminate pid=" + i2s(pid) + " code=" + i2s(code))
+end
+
+// Reap a zombie: free its slot and remove from zombie list
+func procReap(int pid)
+    if pid < 0 or pid >= g_pcb.length then return end
+    if g_pcb[pid].state != PROC_ZOMBIE then return end
+    g_pcb[pid].state = PROC_TERMINATED
+    int i = 0
+    int n = g_zombies.length
+    bool done = false
+    while i < n and not done do
+        if g_zombies[i] == pid then
+            g_zombies.remove(i)
+            done = true
+        end
+        i += 1
+    end
+end
+
+// --- File-descriptor handling per process -----------------------------------
+
+func procOpen(int pid, string path, string mode) as int
+    int gslot = fsOpen(path, mode)
+    if gslot == NIL then return NIL end
+    PCB p = g_pcb[pid]
+    int localFd = NIL
+    int i = 0
+    int m = p.fdMap.length
+    while i < m do
+        if p.fdMap[i] == NIL then
+            localFd = i
+            i = m
+        end
+        i += 1
+    end
+    if localFd == NIL then
+        if p.fdMap.length >= MAX_FD_PER_PROC then
+            fsClose(gslot)
+            return NIL
+        end
+        p.fdMap.append(gslot)
+        localFd = p.fdMap.length - 1
+    else
+        p.fdMap[localFd] = gslot
+    end
+    p.openFileCount += 1
+    g_pcb[pid] = p
+    return localFd
+end
+
+func procLocalToGlobal(int pid, int localFd) as int
+    PCB p = g_pcb[pid]
+    if localFd < 0 or localFd >= p.fdMap.length then return NIL end
+    return p.fdMap[localFd]
+end
+
+func procCloseLocal(int pid, int localFd) as bool
+    PCB p = g_pcb[pid]
+    if localFd < 0 or localFd >= p.fdMap.length then return false end
+    int gslot = p.fdMap[localFd]
+    if gslot == NIL then return false end
+    fsClose(gslot)
+    p.fdMap[localFd] = NIL
+    if p.openFileCount > 0 then
+        p.openFileCount -= 1
+    end
+    g_pcb[pid] = p
+    return true
+end
+
+func procCloseAllFd(int pid)
+    PCB p = g_pcb[pid]
+    int i = 0
+    int m = p.fdMap.length
+    while i < m do
+        if p.fdMap[i] != NIL then
+            fsClose(p.fdMap[i])
+            p.fdMap[i] = NIL
+        end
+        i += 1
+    end
+    p.openFileCount = 0
+    g_pcb[pid] = p
+end
+
+// --- MLFQ helpers -----------------------------------------------------------
+
+func procRemoveFromQueue(array<int> q, int pid)
+    int i = 0
+    int n = q.length
+    bool done = false
+    while i < n and not done do
+        if q[i] == pid then
+            q.remove(i)
+            done = true
+        end
+        i += 1
+    end
+end
+
+func mlfqRemove(int pid)
+    procRemoveFromQueue(g_mlfq0, pid)
+    procRemoveFromQueue(g_mlfq1, pid)
+    procRemoveFromQueue(g_mlfq2, pid)
+end
+
+func mlfqEnqueue(int pid, int level)
+    if pid < 0 or pid >= g_pcb.length then return end
+    g_pcb[pid].level = clamp(level, 0, MLFQ_LEVELS - 1)
+    g_pcb[pid].usedInLevel = 0
+    if g_pcb[pid].state != PROC_RUNNING then
+        g_pcb[pid].state = PROC_READY
+    end
+    if g_pcb[pid].level == 0 then
+        g_mlfq0.append(pid)
+    elseif g_pcb[pid].level == 1 then
+        g_mlfq1.append(pid)
+    else
+        g_mlfq2.append(pid)
+    end
+end
+
+func procArrive(int pid)
+    if pid < 0 or pid >= g_pcb.length then return end
+    PCB p = g_pcb[pid]
+    if p.state != PROC_NEW then return end
+    mlfqEnqueue(pid, p.level)
+    trace("procArrive pid=" + i2s(pid) + " at tick " + i2s(g_totalTick))
+end
+
+func mlfqPopHead() as int
+    if g_mlfq0.length > 0 then
+        int pid = g_mlfq0[0]
+        g_mlfq0.remove(0)
+        return pid
+    end
+    if g_mlfq1.length > 0 then
+        int pid = g_mlfq1[0]
+        g_mlfq1.remove(0)
+        return pid
+    end
+    if g_mlfq2.length > 0 then
+        int pid = g_mlfq2[0]
+        g_mlfq2.remove(0)
+        return pid
+    end
+    return NIL
+end
+
+func levelQuantum(int level) as int
+    if level == 0 then return MLFQ_Q0 end
+    if level == 1 then return MLFQ_Q1 end
+    return MLFQ_Q2
+end
+
+// Periodic boost: move every runnable process back to the top queue
+func mlfqBoost()
+    while g_mlfq1.length > 0 do
+        int pid = g_mlfq1[0]
+        g_mlfq1.remove(0)
+        g_mlfq0.append(pid)
+        g_pcb[pid].level = 0
+        g_pcb[pid].usedInLevel = 0
+    end
+    while g_mlfq2.length > 0 do
+        int pid = g_mlfq2[0]
+        g_mlfq2.remove(0)
+        g_mlfq0.append(pid)
+        g_pcb[pid].level = 0
+        g_pcb[pid].usedInLevel = 0
+    end
+    g_lastBoost = g_totalTick
+    trace("mlfqBoost at tick " + i2s(g_totalTick))
+end
+
+// --- Signal handling --------------------------------------------------------
+
+func procSignal(int pid, int sig)
+    if pid < 0 or pid >= g_pcb.length then return end
+    if sig == SIG_NONE then return end
+    PCB p = g_pcb[pid]
+    // SIGKILL cannot be masked
+    if sig != SIGKILL then
+        if (p.signalMask & (1 << sig)) != 0 then
+            return
+        end
+    end
+    if sig == SIGKILL then
+        procTerminate(pid, EXIT_KILLED)
+        mlfqRemove(pid)
+        return
+    end
+    if sig == SIGTERM then
+        procTerminate(pid, EXIT_KILLED)
+        mlfqRemove(pid)
+        return
+    end
+    if sig == SIGINT then
+        procTerminate(pid, EXIT_KILLED)
+        mlfqRemove(pid)
+        return
+    end
+    if sig == SIGSTOP then
+        p.state = PROC_STOPPED
+        mlfqRemove(pid)
+        g_pcb[pid] = p
+        return
+    end
+    if sig == SIGCONT then
+        if p.state == PROC_STOPPED then
+            mlfqEnqueue(pid, p.level)
+        end
+        return
+    end
+    p.pendingSignals.append(sig)
+    g_pcb[pid] = p
+end
+
+func procDeliverPending(int pid) as bool
+    if pid < 0 or pid >= g_pcb.length then return false end
+    PCB p = g_pcb[pid]
+    if p.pendingSignals.length == 0 then return false end
+    int sig = p.pendingSignals[0]
+    p.pendingSignals.remove(0)
+    g_pcb[pid] = p
+    if sig == SIGCHLD then
+        // Reap any zombies belonging to this pid
+        int i = 0
+        while i < g_zombies.length do
+            int z = g_zombies[i]
+            if z < g_pcb.length then
+                if g_pcb[z].ppid == pid then
+                    procReap(z)
+                end
+            end
+            i += 1
+        end
+        return true
+    end
+    procSignal(pid, sig)
+    return true
+end
+
+
+// =============================================================================
+//  Part 7: Process scheduler core (MLFQ tick loop)
+// =============================================================================
+//
+// schedulerStep(): one tick.
+//   1. Increment tick, maybe boost
+//   2. Wake any sleepers whose time has come
+//   3. Pick head of the highest non-empty queue
+//   4. Run up to quantum; consume computeLeft + remaining
+//   5. If quantum exhausted -> demote; if remaining exhausted -> terminate
+// =============================================================================
+
+func procWakeSleepers()
+    int i = 1
+    int n = g_pcb.length
+    while i < n do
+        PCB p = g_pcb[i]
+        if p.state == PROC_WAITING and p.sleepUntil >= 0 then
+            if g_totalTick >= p.sleepUntil then
+                p.state = PROC_READY
+                p.sleepUntil = -1
+                mlfqEnqueue(i, p.level)
+            end
+        end
+        i += 1
+    end
+end
+
+func procHasAlive() as bool
+    int i = 1
+    int n = g_pcb.length
+    while i < n do
+        int s = g_pcb[i].state
+        if s != PROC_ZOMBIE and s != PROC_TERMINATED then
+            return true
+        end
+        i += 1
+    end
+    return false
+end
+
+func procHasRunnable() as bool
+    if g_mlfq0.length > 0 then return true end
+    if g_mlfq1.length > 0 then return true end
+    if g_mlfq2.length > 0 then return true end
+    return false
+end
+
+func procDecRemaining(int pid, int n)
+    g_pcb[pid].remaining -= n
+    if g_pcb[pid].remaining < 0 then
+        g_pcb[pid].remaining = 0
+    end
+end
+
+// Run one process for a quantum slice; returns when slice consumed or process exits
+func procRunQuantum(int pid, int quantum)
+    PCB p = g_pcb[pid]
+    int used = 0
+    p.state = PROC_RUNNING
+    if p.startTime < 0 then
+        p.startTime = g_totalTick
+        p.responseTime = g_totalTick - p.arrivalTime
+    end
+    g_pcb[pid] = p
+    bool stop = false
+    while used < quantum and not stop do
+        // Signal delivery at slice boundary
+        procDeliverPending(pid)
+        if g_pcb[pid].state != PROC_RUNNING then
+            stop = true
+        else
+            if p.computeLeft > 0 then
+                int n = mini(p.computeLeft, quantum - used)
+                procDecRemaining(pid, n)
+                p = g_pcb[pid]
+                p.computeLeft -= n
+                if p.computeLeft < 0 then p.computeLeft = 0 end
+                used += n
+                g_totalTick += n
+                g_pcb[pid] = p
+            else
+                if p.pc < p.program.length then
+                    string line = p.program[p.pc]
+                    p = g_pcb[pid]
+                    p.pc += 1
+                    g_pcb[pid] = p
+                    int code = execOp(pid, line)
+                    p = g_pcb[pid]
+                    if code == 0 then
+                        stop = true
+                    end
+                    used += 1
+                    g_totalTick += 1
+                    g_pcb[pid] = p
+                else
+                    procDecRemaining(pid, 1)
+                    used += 1
+                    g_totalTick += 1
+                    p = g_pcb[pid]
+                end
+            end
+        end
+        if g_pcb[pid].remaining <= 0 then
+            procTerminate(pid, EXIT_OK)
+            stop = true
+        end
+        p = g_pcb[pid]
+    end
+    // Update accounting
+    if g_pcb[pid].state == PROC_RUNNING then
+        g_pcb[pid].usedInLevel += used
+        if g_pcb[pid].remaining <= 0 then
+            procTerminate(pid, EXIT_OK)
+        else
+            int nl = g_pcb[pid].level
+            if g_pcb[pid].usedInLevel >= levelQuantum(g_pcb[pid].level) then
+                nl = g_pcb[pid].level + 1
+                if nl > MLFQ_LEVELS - 1 then nl = MLFQ_LEVELS - 1 end
+            end
+            g_pcb[pid].state = PROC_READY
+            mlfqEnqueue(pid, nl)
+        end
+    end
+    g_contextSwitches += 1
+end
+
+func schedulerStep()
+    g_totalTick += 1
+    if g_totalTick - g_lastBoost >= MLFQ_BOOST then
+        mlfqBoost()
+    end
+    procWakeSleepers()
+    // Charge wait time to ready processes (simplified)
+    int i = 1
+    int n = g_pcb.length
+    while i < n do
+        if g_pcb[i].state == PROC_READY then
+            g_pcb[i].waitTime += 1
+        end
+        i += 1
+    end
+    int pid = mlfqPopHead()
+    if pid == NIL then
+        g_idleTicks += 1
+        return
+    end
+    g_currentPid = pid
+    int q = levelQuantum(g_pcb[pid].level)
+    procRunQuantum(pid, q)
+    g_currentPid = NIL
+end
+
+func schedulerLoop(int maxTicks)
+    int ticks = 0
+    while ticks < maxTicks do
+        if not procHasAlive() then
+            return
+        end
+        schedulerStep()
+        ticks += 1
+    end
+end
+
+// Reap all zombie processes, transitioning them to TERMINATED. Useful after
+// schedulerLoop so tests can check for terminal state.
+func procReapZombies()
+    int i = 1
+    int n = g_pcb.length
+    while i < n do
+        if g_pcb[i].state == PROC_ZOMBIE then
+            g_pcb[i].state = PROC_TERMINATED
+        end
+        i += 1
+    end
+    g_zombies.clear()
+end
+
+
+// =============================================================================
+//  Part 8: fork / exec / wait / exit system calls
+// =============================================================================
+
+// fork - duplicate the calling process. Uses copy-on-write for the page tables
+// (child shares parent's frames marked COW; first write triggers dup).
+func procFork(int parentPid) as int
+    if parentPid < 1 or parentPid >= g_pcb.length then return NIL end
+    PCB par = g_pcb[parentPid]
+    array<string> prog = array[]
+    int j = par.pc
+    while j < par.program.length do
+        prog.append(par.program[j])
+        j += 1
+    end
+    int burst = par.remaining
+    if burst < 1 then burst = 1 end
+    PCB child = PCB()
+    child.pid = g_nextPid
+    child.ppid = parentPid
+    child.name = par.name + ".child"
+    child.state = PROC_NEW
+    child.level = par.level
+    child.priority = par.priority
+    child.nice = par.nice
+    child.burstTime = burst
+    child.arrivalTime = g_totalTick
+    child.remaining = burst
+    child.usedInLevel = 0
+    child.pc = 0
+    child.program = prog
+    child.cwdIno = par.cwdIno
+    child.uid = par.uid
+    child.gid = par.gid
+    child.userId = par.userId
+    child.groupId = par.groupId
+    child.ptDirId = memAllocDir()
+    int k = 0
+    while k < 8 do
+        child.registers.append(par.registers[k])
+        k += 1
+    end
+    // COW: share frame mappings but mark them COW. For each PTE in parent dir
+    // that points to a frame, copy PTE to child and bump frame refcount. We
+    // model this by giving the child a clone of the parent's page table that
+    // points to the same frames; the frame owner becomes shared.
+    int newPid = g_nextPid
+    g_pcb.append(child)
+    g_nextPid += 1
+    // COW clone must run AFTER the child PCB is in g_pcb (memCowCloneDir
+    // looks up parent and child by pid).
+    memCowCloneDir(parentPid, newPid)
+    procArrive(newPid)
+    trace("fork parent=" + i2s(parentPid) + " child=" + i2s(newPid))
+    return newPid
+end
+
+// exec - replace the current process image with a new program
+func procExecOp(int pid, string name, int burst, array<string> program) as bool
+    if pid < 0 or pid >= g_pcb.length then return false end
+    PCB p = g_pcb[pid]
+    p.name = name
+    p.program = program
+    p.pc = 0
+    p.burstTime = burst
+    p.remaining = burst
+    p.usedInLevel = 0
+    // Reset to highest priority queue
+    mlfqRemove(pid)
+    p.level = 0
+    p.state = PROC_READY
+    g_pcb[pid] = p
+    mlfqEnqueue(pid, 0)
+    trace("exec pid=" + i2s(pid) + " name=" + name + " burst=" + i2s(burst))
+    return true
+end
+
+// wait - block until any child (or specific child) terminates
+func procWait(int parentPid, int childPid) as int
+    if parentPid < 1 or parentPid >= g_pcb.length then return NIL end
+    int target = NIL
+    int i = 1
+    int n = g_pcb.length
+    while i < n do
+        PCB c = g_pcb[i]
+        if c.ppid == parentPid then
+            if childPid == NIL or childPid == -1 or childPid == i then
+                if c.state == PROC_ZOMBIE then
+                    int code = c.exitCode
+                    procReap(i)
+                    return code
+                end
+                if target == NIL then target = i end
+            end
+        end
+        i += 1
+    end
+    if target == NIL then
+        return NIL
+    end
+    // Block parent
+    PCB par = g_pcb[parentPid]
+    par.state = PROC_WAITING
+    par.waitChildPid = childPid
+    g_pcb[parentPid] = par
+    mlfqRemove(parentPid)
+    return NIL
+end
+
+func procExit(int pid, int code)
+    if pid < 0 or pid >= g_pcb.length then return end
+    procTerminate(pid, code)
+    mlfqRemove(pid)
+end
+
+
+// =============================================================================
+//  Part 9: Process-targeted program execution (execOp)
+// =============================================================================
+//
+// Each "instruction" in a process program is a small string DSL:
+//   compute <n>          consume n ticks of CPU
+//   open <path> <mode>   open a file (per-process fd)
+//   read <fd> <n>        read from fd
+//   write <fd> <text>    write to fd
+//   close <fd>           close fd
+//   mkdir <path>         create directory
+//   create <path>        create empty file
+//   ls <path>            list directory (does not print)
+//   access <vaddr>       touch a virtual address (drives paging)
+//   sleep <n>            sleep n ticks
+//   fork                 create a child process
+//   wait                 wait for any child
+//   exit <code>          exit the process
+//   signal <pid> <sig>   send a signal
+//   shmget <key> <size>  allocate a shared memory segment
+//   shmat <shmid>        attach a shared segment
+// =============================================================================
+
+func execOp(int pid, string line) as int
+    string t = trimP(line)
+    if string.len(t) == 0 then return 1 end
+    var tokens = shTokenize(t)
+    if tokens.length == 0 then return 1 end
+    string op = lowerP(string(tokens[0]))
+    if op == "compute" then
+        int n = 1
+        if tokens.length > 1 then n = parseIntSafe(string(tokens[1]), 1) end
+        if n < 1 then n = 1 end
+        g_pcb[pid].computeLeft = n - 1
+        procDecRemaining(pid, 1)
+        return 1
+    end
+    if op == "open" then
+        if tokens.length < 2 then return 1 end
+        string mode = "r"
+        if tokens.length > 2 then mode = string(tokens[2]) end
+        procOpen(pid, string(tokens[1]), mode)
+        return 1
+    end
+    if op == "read" then
+        int localFd = 0
+        if tokens.length > 1 then localFd = parseIntSafe(string(tokens[1]), 0) end
+        int n = 32
+        if tokens.length > 2 then n = parseIntSafe(string(tokens[2]), 32) end
+        int gslot = procLocalToGlobal(pid, localFd)
+        if gslot != NIL then
+            syscall(SYS_READ, [gslot, n])
+        end
+        return 1
+    end
+    if op == "write" then
+        int localFd = 0
+        if tokens.length > 1 then localFd = parseIntSafe(string(tokens[1]), 0) end
+        string data = ""
+        int ti = 2
+        while ti < tokens.length do
+            if ti > 2 then data = data + " " end
+            data = data + tokens[ti]
+            ti += 1
+        end
+        int gslot = procLocalToGlobal(pid, localFd)
+        if gslot != NIL then
+            var wargs = []
+            wargs.append(gslot)
+            wargs.append(data)
+            syscall(SYS_WRITE, wargs)
+        end
+        return 1
+    end
+    if op == "close" then
+        int localFd = 0
+        if tokens.length > 1 then localFd = parseIntSafe(string(tokens[1]), 0) end
+        procCloseLocal(pid, localFd)
+        return 1
+    end
+    if op == "mkdir" then
+        if tokens.length > 1 then
+            syscall(SYS_MKDIR, [string(tokens[1])])
+        end
+        return 1
+    end
+    if op == "create" then
+        if tokens.length > 1 then
+            syscall(SYS_TOUCH, [string(tokens[1])])
+        end
+        return 1
+    end
+    if op == "ls" then
+        if tokens.length > 1 then
+            syscall(SYS_LS, [string(tokens[1])])
+        end
+        return 1
+    end
+    if op == "access" then
+        int vaddr = 0
+        if tokens.length > 1 then vaddr = parseIntSafe(string(tokens[1]), 0) end
+        syscall(SYS_ACCESS, [pid, vaddr])
+        return 1
+    end
+    if op == "sleep" then
+        int n = 1
+        if tokens.length > 1 then n = parseIntSafe(string(tokens[1]), 1) end
+        g_pcb[pid].state = PROC_WAITING
+        g_pcb[pid].sleepUntil = g_totalTick + n
+        return 0
+    end
+    if op == "fork" then
+        procFork(pid)
+        return 1
+    end
+    if op == "wait" then
+        procWait(pid, NIL)
+        return 0
+    end
+    if op == "exit" then
+        int code = 0
+        if tokens.length > 1 then code = parseIntSafe(string(tokens[1]), 0) end
+        procTerminate(pid, code)
+        return 0
+    end
+    if op == "signal" then
+        if tokens.length > 2 then
+            int dst = parseIntSafe(string(tokens[1]), -1)
+            int s = parseIntSafe(string(tokens[2]), 0)
+            procSignal(dst, s)
+        end
+        return 1
+    end
+    if op == "shmget" then
+        if tokens.length > 2 then
+            int key = parseIntSafe(string(tokens[1]), 0)
+            int size = parseIntSafe(string(tokens[2]), 1)
+            int sid = shmGet(key, size)
+            if sid != NIL then
+                g_pcb[pid].shmList.append(sid)
+            end
+        end
+        return 1
+    end
+    if op == "shmat" then
+        if tokens.length > 1 then
+            int sid = parseIntSafe(string(tokens[1]), -1)
+            shmAttach(sid, pid)
+        end
+        return 1
+    end
+    if op == "accessv" then
+        int vaddr = 0
+        if tokens.length > 1 then vaddr = parseIntSafe(string(tokens[1]), 0) end
+        memTranslate(pid, vaddr)
+        return 1
+    end
+    // Default: 1 tick of compute
+    procDecRemaining(pid, 1)
+    return 1
+end
+
+
+// =============================================================================
+//  Part 10: Process dump / reporting
+// =============================================================================
+
+func procListReport() as string
+    string s = ""
+    s = padR("PID", 6) + padR("PPID", 6) + padR("NAME", 16)
+    s = s + padR("STATE", 12) + padR("LVL", 5) + padR("PRIO", 5)
+    s = s + padR("NICE", 5) + padR("BURST", 6) + padR("REMAIN", 7)
+    s = s + padR("ARR", 6) + padR("WAIT", 6) + "\n"
+    int i = 1
+    int n = g_pcb.length
+    while i < n do
+        PCB p = g_pcb[i]
+        s = s + padR(i2s(p.pid), 6)
+        if p.ppid == NIL then
+            s = s + padR("-", 6)
+        else
+            s = s + padR(i2s(p.ppid), 6)
+        end
+        s = s + padR(p.name, 16)
+        s = s + padR(procStateName(p.state), 12)
+        s = s + padR(i2s(p.level), 5)
+        s = s + padR(i2s(p.priority), 5)
+        s = s + padR(i2s(p.nice), 5)
+        s = s + padR(i2s(p.burstTime), 6)
+        s = s + padR(i2s(p.remaining), 7)
+        s = s + padR(i2s(p.arrivalTime), 6)
+        s = s + padR(i2s(p.waitTime), 6) + "\n"
+        i += 1
+    end
+    return s
+end
+
+func procTop() as string
+    int ready = 0
+    int running = 0
+    int waiting = 0
+    int stopped = 0
+    int zombie = 0
+    int total = 0
+    int i = 1
+    int n = g_pcb.length
+    while i < n do
+        int st = g_pcb[i].state
+        if st == PROC_READY then ready += 1 end
+        if st == PROC_RUNNING then running += 1 end
+        if st == PROC_WAITING then waiting += 1 end
+        if st == PROC_STOPPED then stopped += 1 end
+        if st == PROC_ZOMBIE then zombie += 1 end
+        total += 1
+        i += 1
+    end
+    string s = ""
+    s = s + "xos2 top - tick " + i2s(g_totalTick) + "\n"
+    s = s + "Tasks: " + i2s(total) + " total, "
+    s = s + i2s(running) + " running, "
+    s = s + i2s(ready) + " ready, "
+    s = s + i2s(waiting) + " sleeping, "
+    s = s + i2s(stopped) + " stopped, "
+    s = s + i2s(zombie) + " zombie\n"
+    s = s + "Cpu: " + i2s(g_contextSwitches) + " ctx, " + i2s(g_idleTicks) + " idle\n"
+    return s
+end
+
+
+// =============================================================================
+//  Part 11: Memory subsystem - frame allocator
+// =============================================================================
+//
+// Frame layout: NUM_FRAMES frames of FRAME_SIZE bytes each.
+//   g_frameOwner[i]  - owning pid, NIL = free
+//   g_frameTick[i]   - last access tick (LRU)
+//   g_frameDirty[i]  - dirty bit
+//   g_frameRefBit[i] - reference bit (CLOCK)
+//   g_clockHand      - single hand position for CLOCK policy
+//
+// Page tables:
+//   g_ptDir[ptDirId * PAGE_DIR_SIZE + idx] -> pageTableId | NIL
+//   g_ptTab[ptTabId * PAGE_TABLE_SIZE + idx] -> frame | NIL
+//   g_ptTabCow[ptTabId * PAGE_TABLE_SIZE + idx] -> true if page is COW
+// =============================================================================
+
+func memInit()
+    g_frameOwner.clear()
+    g_frameTick.clear()
+    g_frameDirty.clear()
+    g_frameRefBit.clear()
+    g_clockHand.clear()
+    g_ptDir.clear()
+    g_ptDirUsed.clear()
+    g_ptTab.clear()
+    g_ptTabUsed.clear()
+    g_ptTabCow.clear()
+    g_tlb.clear()
+    int i = 0
+    while i < NUM_FRAMES do
+        g_frameOwner.append(NIL)
+        g_frameTick.append(0)
+        g_frameDirty.append(false)
+        g_frameRefBit.append(false)
+        i += 1
+    end
+    g_clockHand.append(0)
+    // Page-directory pool: 32 directories, each PAGE_DIR_SIZE entries
+    i = 0
+    while i < 32 * PAGE_DIR_SIZE do
+        g_ptDir.append(NIL)
+        i += 1
+    end
+    i = 0
+    while i < 32 do
+        g_ptDirUsed.append(false)
+        i += 1
+    end
+    // Page-table pool: 256 tables, each PAGE_TABLE_SIZE entries
+    i = 0
+    while i < 256 * PAGE_TABLE_SIZE do
+        g_ptTab.append(NIL)
+        g_ptTabCow.append(false)
+        i += 1
+    end
+    i = 0
+    while i < 256 do
+        g_ptTabUsed.append(false)
+        i += 1
+    end
+    // TLB
+    i = 0
+    while i < TLB_SIZE do
+        g_tlb.append(TlbEntry())
+        i += 1
+    end
+end
+
+func memAllocDir() as int
+    int i = 0
+    while i < 32 do
+        if not g_ptDirUsed[i] then
+            g_ptDirUsed[i] = true
+            int j = 0
+            while j < PAGE_DIR_SIZE do
+                g_ptDir[i * PAGE_DIR_SIZE + j] = NIL
+                j += 1
+            end
+            return i
+        end
+        i += 1
+    end
+    return NIL
+end
+
+func memAllocTab() as int
+    int i = 0
+    while i < 256 do
+        if not g_ptTabUsed[i] then
+            g_ptTabUsed[i] = true
+            int j = 0
+            while j < PAGE_TABLE_SIZE do
+                g_ptTab[i * PAGE_TABLE_SIZE + j] = NIL
+                g_ptTabCow[i * PAGE_TABLE_SIZE + j] = false
+                j += 1
+            end
+            return i
+        end
+        i += 1
+    end
+    return NIL
+end
+
+func memFreeDir(int dirId)
+    if dirId < 0 or dirId >= 32 then return end
+    int j = 0
+    while j < PAGE_DIR_SIZE do
+        g_ptDir[dirId * PAGE_DIR_SIZE + j] = NIL
+        j += 1
+    end
+    g_ptDirUsed[dirId] = false
+end
+
+func memFreeTab(int tabId)
+    if tabId < 0 or tabId >= 256 then return end
+    int j = 0
+    while j < PAGE_TABLE_SIZE do
+        g_ptTab[tabId * PAGE_TABLE_SIZE + j] = NIL
+        g_ptTabCow[tabId * PAGE_TABLE_SIZE + j] = false
+        j += 1
+    end
+    g_ptTabUsed[tabId] = false
+end
+
+// Allocate a frame, evicting if necessary. Eviction policy is selected by
+// g_memReplPolicy: REPL_LRU, REPL_CLOCK, or REPL_OPT.
+func memAllocFrame(int pid) as int
+    int i = 0
+    while i < NUM_FRAMES do
+        if g_frameOwner[i] == NIL then
+            g_frameOwner[i] = pid
+            g_frameTick[i] = g_totalTick
+            g_frameDirty[i] = false
+            g_frameRefBit[i] = true
+            g_memAlloc += 1
+            return i
+        end
+        i += 1
+    end
+    int victim = memPickVictim()
+    if victim == NIL then
+        return NIL
+    end
+    memEvictFrame(victim)
+    g_frameOwner[victim] = pid
+    g_frameTick[victim] = g_totalTick
+    g_frameDirty[victim] = false
+    g_frameRefBit[victim] = true
+    g_memAlloc += 1
+    return victim
+end
+
+// Select a victim frame based on the active policy.
+func memPickVictim() as int
+    if g_memReplPolicy == REPL_LRU then
+        return memLruVictim()
+    end
+    if g_memReplPolicy == REPL_CLOCK then
+        return memClockVictim()
+    end
+    if g_memReplPolicy == REPL_OPT then
+        return memOptVictim()
+    end
+    return memLruVictim()
+end
+
+// LRU victim: frame with the smallest last-access tick
+func memLruVictim() as int
+    int best = NIL
+    int bestTick = -1
+    int i = 0
+    while i < NUM_FRAMES do
+        if g_frameOwner[i] != NIL then
+            if bestTick < 0 or g_frameTick[i] < bestTick then
+                bestTick = g_frameTick[i]
+                best = i
+            end
+        end
+        i += 1
+    end
+    return best
+end
+
+// CLOCK victim: advance the hand until we find a frame with refBit == false
+func memClockVictim() as int
+    int scanned = 0
+    int cap = NUM_FRAMES * 4
+    while scanned < cap do
+        int idx = g_clockHand[0] % NUM_FRAMES
+        if g_frameOwner[idx] != NIL then
+            if not g_frameRefBit[idx] then
+                g_clockHand[0] = (idx + 1) % NUM_FRAMES
+                return idx
+            end
+            g_frameRefBit[idx] = false
+        end
+        g_clockHand[0] = (g_clockHand[0] + 1) % NUM_FRAMES
+        scanned += 1
+    end
+    // Fallback: first owned frame
+    int i = 0
+    while i < NUM_FRAMES do
+        if g_frameOwner[i] != NIL then return i end
+        i += 1
+    end
+    return NIL
+end
+
+// OPT victim: frame whose next access is farthest in the future (or never)
+func memOptVictim() as int
+    int best = NIL
+    int bestNext = -1
+    int i = 0
+    while i < NUM_FRAMES do
+        if g_frameOwner[i] != NIL then
+            int nextUse = memNextUse(i)
+            if nextUse == NIL then
+                return i
+            end
+            if bestNext < 0 or nextUse > bestNext then
+                bestNext = nextUse
+                best = i
+            end
+        end
+        i += 1
+    end
+    return best
+end
+
+// Find next use of a frame in the future access trace
+func memNextUse(int frame) as int
+    int i = g_futureIdx
+    int n = g_futureAccess.length
+    while i < n do
+        if g_futureAccess[i] == frame then
+            return i
+        end
+        i += 1
+    end
+    return NIL
+end
+
+// Push an access onto the future trace (for OPT simulation)
+func memPushFuture(int frame)
+    g_futureAccess.append(frame)
+end
+
+// Evict a frame: write back if dirty, invalidate PTE / TLB
+func memEvictFrame(int frame)
+    g_memEvict += 1
+    int owner = g_frameOwner[frame]
+    if g_frameDirty[frame] then
+        // Simulated writeback
+        trace("memEvict writeback frame=" + i2s(frame))
+    end
+    g_frameOwner[frame] = NIL
+    g_frameDirty[frame] = false
+    g_frameRefBit[frame] = false
+    trace("memEvict frame=" + i2s(frame) + " owner=" + i2s(owner))
+    // Invalidate PTEs that pointed to this frame
+    int i = 0
+    while i < 256 do
+        if g_ptTabUsed[i] then
+            int j = 0
+            while j < PAGE_TABLE_SIZE do
+                if g_ptTab[i * PAGE_TABLE_SIZE + j] == frame then
+                    g_ptTab[i * PAGE_TABLE_SIZE + j] = NIL
+                    g_ptTabCow[i * PAGE_TABLE_SIZE + j] = false
+                end
+                j += 1
+            end
+        end
+        i += 1
+    end
+    // Invalidate any TLB entry pointing to this frame
+    int t = 0
+    while t < TLB_SIZE do
+        if g_tlb[t].valid and g_tlb[t].frame == frame then
+            g_tlb[t].valid = false
+            g_tlb[t].vpn = -1
+            g_tlb[t].frame = -1
+            g_tlb[t].pid = -1
+        end
+        t += 1
+    end
+end
+
+// Release all frames held by a process
+func memReleaseProc(int pid)
+    int i = 0
+    while i < NUM_FRAMES do
+        if g_frameOwner[i] == pid then
+            g_frameOwner[i] = NIL
+            g_frameDirty[i] = false
+            g_frameRefBit[i] = false
+        end
+        i += 1
+    end
+    // Flush TLB entries for this pid
+    int t = 0
+    while t < TLB_SIZE do
+        if g_tlb[t].valid and g_tlb[t].pid == pid then
+            g_tlb[t].valid = false
+            g_tlb[t].vpn = -1
+            g_tlb[t].frame = -1
+            g_tlb[t].pid = -1
+        end
+        t += 1
+    end
+    if pid < 0 or pid >= g_pcb.length then return end
+    int dirId = g_pcb[pid].ptDirId
+    if dirId == NIL then return end
+    int j = 0
+    while j < PAGE_DIR_SIZE do
+        int tabId = g_ptDir[dirId * PAGE_DIR_SIZE + j]
+        if tabId != NIL then
+            memFreeTab(tabId)
+            g_ptDir[dirId * PAGE_DIR_SIZE + j] = NIL
+        end
+        j += 1
+    end
+    memFreeDir(dirId)
+    g_pcb[pid].ptDirId = NIL
+end
+
+
+// =============================================================================
+//  Part 12: TLB
+// =============================================================================
+
+func memTlbLookup(int pid, int vpn) as int
+    int i = 0
+    while i < TLB_SIZE do
+        if g_tlb[i].valid and g_tlb[i].pid == pid and g_tlb[i].vpn == vpn then
+            g_tlb[i].tick = g_totalTick
+            return g_tlb[i].frame
+        end
+        i += 1
+    end
+    return NIL
+end
+
+// Insert into TLB; if no free slot, evict the LRU entry
+func memTlbInsert(int pid, int vpn, int frame)
+    int victimSlot = NIL
+    int oldestTick = -1
+    int i = 0
+    while i < TLB_SIZE do
+        if not g_tlb[i].valid then
+            victimSlot = i
+            oldestTick = -1
+            i = TLB_SIZE
+        else
+            if oldestTick < 0 or g_tlb[i].tick < oldestTick then
+                oldestTick = g_tlb[i].tick
+                victimSlot = i
+            end
+        end
+        i += 1
+    end
+    if victimSlot == NIL then return end
+    g_tlb[victimSlot].valid = true
+    g_tlb[victimSlot].pid = pid
+    g_tlb[victimSlot].vpn = vpn
+    g_tlb[victimSlot].frame = frame
+    g_tlb[victimSlot].tick = g_totalTick
+end
+
+func memFlushTlb()
+    int i = 0
+    while i < TLB_SIZE do
+        g_tlb[i].valid = false
+        g_tlb[i].vpn = -1
+        g_tlb[i].frame = -1
+        g_tlb[i].pid = -1
+        i += 1
+    end
+end
+
+// Flush only TLB entries for a particular process
+func memFlushTlbPid(int pid)
+    int i = 0
+    while i < TLB_SIZE do
+        if g_tlb[i].valid and g_tlb[i].pid == pid then
+            g_tlb[i].valid = false
+            g_tlb[i].vpn = -1
+            g_tlb[i].frame = -1
+            g_tlb[i].pid = -1
+        end
+        i += 1
+    end
+end
+
+
+// =============================================================================
+//  Part 13: Page fault handling + virtual address translation
+// =============================================================================
+//
+// Virtual address -> physical address translation walks the page directory:
+//   dirIdx = (vaddr >> 22) & DIR_MASK    // top 10 bits
+//   tabIdx = (vaddr >> 12) & TAB_MASK    // middle 10 bits
+//   offset = vaddr & OFF_MASK            // low 12 bits
+// On page fault, allocate a frame and populate the page table.
+// =============================================================================
+
+func memHandleFault(int pid, int dirIdx, int tabIdx, int vpn) as int
+    g_memPageFault += 1
+    PCB p = g_pcb[pid]
+    int dirId = p.ptDirId
+    if dirId == NIL then
+        dirId = memAllocDir()
+        p.ptDirId = dirId
+        g_pcb[pid] = p
+    end
+    int tabId = g_ptDir[dirId * PAGE_DIR_SIZE + dirIdx]
+    if tabId == NIL then
+        tabId = memAllocTab()
+        g_ptDir[dirId * PAGE_DIR_SIZE + dirIdx] = tabId
+    end
+    int frame = memAllocFrame(pid)
+    if frame == NIL then
+        return NIL
+    end
+    g_ptTab[tabId * PAGE_TABLE_SIZE + tabIdx] = frame
+    g_ptTabCow[tabId * PAGE_TABLE_SIZE + tabIdx] = false
+    trace("pageFault pid=" + i2s(pid) + " vpn=" + i2s(vpn) + " frame=" + i2s(frame))
+    return frame
+end
+
+// Translate a virtual address. Updates TLB and frame stats. Returns the
+// physical address (frame * FRAME_SIZE + offset) or NIL on failure.
+func memTranslate(int pid, int vaddr) as int
+    if pid < 0 or pid >= g_pcb.length then return NIL end
+    g_memTranslate += 1
+    int offset = vaddr & OFF_MASK
+    int vpn = vaddr >> OFF_BITS
+    int dirIdx = (vpn >> TAB_BITS) & DIR_MASK
+    int tabIdx = vpn & TAB_MASK
+    int frame = memTlbLookup(pid, vpn)
+    if frame != NIL then
+        g_memTlbHit += 1
+        g_frameTick[frame] = g_totalTick
+        g_frameRefBit[frame] = true
+        memPushFuture(frame)
+        return frame * FRAME_SIZE + offset
+    end
+    g_memTlbMiss += 1
+    PCB p = g_pcb[pid]
+    int dirId = p.ptDirId
+    if dirId != NIL then
+        int tabId = g_ptDir[dirId * PAGE_DIR_SIZE + dirIdx]
+        if tabId != NIL then
+            int fr = g_ptTab[tabId * PAGE_TABLE_SIZE + tabIdx]
+            if fr != NIL then
+                frame = fr
+            end
+        end
+    end
+    if frame == NIL then
+        frame = memHandleFault(pid, dirIdx, tabIdx, vpn)
+        if frame == NIL then
+            return NIL
+        end
+    end
+    memTlbInsert(pid, vpn, frame)
+    g_frameTick[frame] = g_totalTick
+    g_frameRefBit[frame] = true
+    memPushFuture(frame)
+    return frame * FRAME_SIZE + offset
+end
+
+// Trigger a write fault: marks the page dirty and triggers COW if needed
+func memWrite(int pid, int vaddr) as int
+    int paddr = memTranslate(pid, vaddr)
+    if paddr == NIL then return NIL end
+    int frame = paddr / FRAME_SIZE
+    if frame < 0 or frame >= NUM_FRAMES then return NIL end
+    // Check COW: if the page is marked COW, clone it before writing
+    PCB p = g_pcb[pid]
+    int dirId = p.ptDirId
+    if dirId != NIL then
+        int vpn = vaddr >> OFF_BITS
+        int dirIdx = (vpn >> TAB_BITS) & DIR_MASK
+        int tabIdx = vpn & TAB_MASK
+        int tabId = g_ptDir[dirId * PAGE_DIR_SIZE + dirIdx]
+        if tabId != NIL then
+            if g_ptTabCow[tabId * PAGE_TABLE_SIZE + tabIdx] then
+                int newFrame = memAllocFrame(pid)
+                if newFrame != NIL then
+                    g_ptTab[tabId * PAGE_TABLE_SIZE + tabIdx] = newFrame
+                    g_ptTabCow[tabId * PAGE_TABLE_SIZE + tabIdx] = false
+                    g_memCowFault += 1
+                    memFlushTlbPid(pid)
+                    frame = newFrame
+                end
+            end
+        end
+    end
+    g_frameDirty[frame] = true
+    g_frameTick[frame] = g_totalTick
+    g_frameRefBit[frame] = true
+    return frame * FRAME_SIZE + (vaddr & OFF_MASK)
+end
+
+// Clone the parent's page tables for a forked child, marking all present
+// pages copy-on-write so the parent and child share frames until first write.
+func memCowCloneDir(int parentPid, int childPid)
+    PCB par = g_pcb[parentPid]
+    PCB child = g_pcb[childPid]
+    int parentDirId = par.ptDirId
+    int childDirId = child.ptDirId
+    if parentDirId == NIL or childDirId == NIL then return end
+    int d = 0
+    while d < PAGE_DIR_SIZE do
+        int pTabId = g_ptDir[parentDirId * PAGE_DIR_SIZE + d]
+        if pTabId != NIL then
+            int cTabId = memAllocTab()
+            g_ptDir[childDirId * PAGE_DIR_SIZE + d] = cTabId
+            int t = 0
+            while t < PAGE_TABLE_SIZE do
+                int frame = g_ptTab[pTabId * PAGE_TABLE_SIZE + t]
+                if frame != NIL then
+                    // Share the frame between parent and child, mark COW
+                    g_ptTab[cTabId * PAGE_TABLE_SIZE + t] = frame
+                    g_ptTabCow[cTabId * PAGE_TABLE_SIZE + t] = true
+                    g_ptTabCow[pTabId * PAGE_TABLE_SIZE + t] = true
+                    g_frameRefBit[frame] = true
+                end
+                t += 1
+            end
+        end
+        d += 1
+    end
+    // Flush TLBs so the next access re-reads the page tables
+    memFlushTlbPid(parentPid)
+    memFlushTlbPid(childPid)
+end
+
+
+// =============================================================================
+//  Part 14: Memory reporting
+// =============================================================================
+
+func memReport()
+    int used = 0
+    int dirty = 0
+    int i = 0
+    while i < NUM_FRAMES do
+        if g_frameOwner[i] != NIL then
+            used += 1
+            if g_frameDirty[i] then dirty += 1 end
+        end
+        i += 1
+    end
+    int hitRate = 0
+    if g_memTranslate > 0 then
+        hitRate = (g_memTlbHit * 100) / g_memTranslate
+    end
+    println(rep("=", 72))
+    println("Memory Report  (policy=" + replPolicyName(g_memReplPolicy) + ")")
+    println(rep("=", 72))
+    println("Frames: " + i2s(used) + "/" + i2s(NUM_FRAMES) + " used, " + i2s(dirty) + " dirty")
+    println("Translates : " + i2s(g_memTranslate))
+    println("TLB hits   : " + i2s(g_memTlbHit) + "  misses: " + i2s(g_memTlbMiss)
+        + "  hitRate=" + i2s(hitRate) + "%")
+    println("Page faults: " + i2s(g_memPageFault) + "  COW faults: " + i2s(g_memCowFault))
+    println("Evictions  : " + i2s(g_memEvict) + "  allocs: " + i2s(g_memAlloc))
+    int dirUsed = 0
+    int tabUsed = 0
+    int di = 0
+    while di < 32 do
+        if g_ptDirUsed[di] then dirUsed += 1 end
+        di += 1
+    end
+    int ti = 0
+    while ti < 256 do
+        if g_ptTabUsed[ti] then tabUsed += 1 end
+        ti += 1
+    end
+    println("Dirs in use: " + i2s(dirUsed) + "/32   tables in use: " + i2s(tabUsed) + "/256")
+end
+
+func memReportString() as string
+    int used = 0
+    int dirty = 0
+    int i = 0
+    while i < NUM_FRAMES do
+        if g_frameOwner[i] != NIL then
+            used += 1
+            if g_frameDirty[i] then dirty += 1 end
+        end
+        i += 1
+    end
+    int hitRate = 0
+    if g_memTranslate > 0 then
+        hitRate = (g_memTlbHit * 100) / g_memTranslate
+    end
+    string s = ""
+    s = s + "Mem: " + i2s(used) + "/" + i2s(NUM_FRAMES) + " frames, " + i2s(dirty) + " dirty\n"
+    s = s + "TLB hit=" + i2s(g_memTlbHit) + " miss=" + i2s(g_memTlbMiss) + " rate=" + i2s(hitRate) + "%\n"
+    s = s + "faults=" + i2s(g_memPageFault) + " evicts=" + i2s(g_memEvict) + " cow=" + i2s(g_memCowFault) + "\n"
+    s = s + "policy=" + replPolicyName(g_memReplPolicy) + "\n"
+    return s
+end
+
+func memDumpProc(int pid) as string
+    if pid < 0 or pid >= g_pcb.length then return "" end
+    PCB p = g_pcb[pid]
+    string s = "PID " + i2s(pid) + " page table:\n"
+    int dirId = p.ptDirId
+    if dirId == NIL then
+        return s + "  (no page directory)\n"
+    end
+    int d = 0
+    while d < PAGE_DIR_SIZE do
+        int tabId = g_ptDir[dirId * PAGE_DIR_SIZE + d]
+        if tabId != NIL then
+            int t = 0
+            while t < PAGE_TABLE_SIZE do
+                int fr = g_ptTab[tabId * PAGE_TABLE_SIZE + t]
+                if fr != NIL then
+                    int vpn = (d << TAB_BITS) | t
+                    string cow = ""
+                    if g_ptTabCow[tabId * PAGE_TABLE_SIZE + t] then
+                        cow = " (COW)"
+                    end
+                    s = s + "  vpn=" + i2s(vpn) + " -> frame=" + i2s(fr) + cow + "\n"
+                end
+                t += 1
+            end
+        end
+        d += 1
+    end
+    return s
+end
+
+func memDumpTlb() as string
+    string s = "TLB dump:\n"
+    int i = 0
+    while i < TLB_SIZE do
+        if g_tlb[i].valid then
+            s = s + "  slot=" + i2s(i) + " pid=" + i2s(g_tlb[i].pid)
+            s = s + " vpn=" + i2s(g_tlb[i].vpn) + " frame=" + i2s(g_tlb[i].frame)
+            s = s + " tick=" + i2s(g_tlb[i].tick) + "\n"
+        end
+        i += 1
+    end
+    return s
+end
+
+func memFree() as string
+    int used = 0
+    int i = 0
+    while i < NUM_FRAMES do
+        if g_frameOwner[i] != NIL then used += 1 end
+        i += 1
+    end
+    int free = NUM_FRAMES - used
+    string s = ""
+    s = s + "frames: " + i2s(used) + " used, " + i2s(free) + " free\n"
+    int kb = free * FRAME_SIZE / 1024
+    s = s + "free mem: " + i2s(kb) + " KB\n"
+    return s
+end
+
+
+// =============================================================================
+//  Part 15: Shared memory subsystem (SHM)
+// =============================================================================
+//
+// SHM segments let multiple processes map the same physical frames. We model
+// each segment as a list of frames stored in g_shm; attaching a segment adds
+// its frames to the process's page table at a chosen virtual address.
+// =============================================================================
+
+func shmInit()
+    g_shm.clear()
+    int i = 0
+    while i < MAX_SHM do
+        ShmSeg seg = ShmSeg()
+        seg.used = false
+        g_shm.append(seg)
+        i += 1
+    end
+end
+
+func shmAllocSlot() as int
+    int i = 0
+    while i < MAX_SHM do
+        if not g_shm[i].used then
+            g_shm[i].used = true
+            return i
+        end
+        i += 1
+    end
+    return NIL
+end
+
+func shmGet(int key, int size) as int
+    // Reuse existing segment if same key
+    int i = 0
+    while i < MAX_SHM do
+        if g_shm[i].used and g_shm[i].key == key then
+            return i
+        end
+        i += 1
+    end
+    int slot = shmAllocSlot()
+    if slot == NIL then return NIL end
+    ShmSeg seg = g_shm[slot]
+    seg.key = key
+    seg.size = size
+    seg.frames.clear()
+    seg.attached.clear()
+    seg.refCount = 0
+    // Allocate frames for the segment (1 frame per FRAME_SIZE bytes, rounded up)
+    int nframes = (size + FRAME_SIZE - 1) / FRAME_SIZE
+    if nframes < 1 then nframes = 1 end
+    int j = 0
+    while j < nframes do
+        int f = memAllocFrame(-1)
+        if f == NIL then
+            // clean up partial allocation
+            seg.used = false
+            return NIL
+        end
+        seg.frames.append(f)
+        j += 1
+    end
+    g_shm[slot] = seg
+    return slot
+end
+
+func shmAttach(int shmid, int pid) as bool
+    if shmid < 0 or shmid >= MAX_SHM then return false end
+    if not g_shm[shmid].used then return false end
+    if pid < 0 or pid >= g_pcb.length then return false end
+    ShmSeg seg = g_shm[shmid]
+    seg.attached.append(pid)
+    seg.refCount += 1
+    g_shm[shmid] = seg
+    return true
+end
+
+func shmDetachByPid(int shmid, int pid)
+    if shmid < 0 or shmid >= MAX_SHM then return end
+    if not g_shm[shmid].used then return end
+    ShmSeg seg = g_shm[shmid]
+    int i = 0
+    bool done = false
+    while i < seg.attached.length and not done do
+        if seg.attached[i] == pid then
+            seg.attached.remove(i)
+            done = true
+        end
+        i += 1
+    end
+    if seg.refCount > 0 then seg.refCount -= 1 end
+    if seg.refCount <= 0 then
+        // Release frames back to the global pool
+        int j = 0
+        while j < seg.frames.length do
+            int fr = seg.frames[j]
+            if fr >= 0 and fr < NUM_FRAMES then
+                g_frameOwner[fr] = NIL
+                g_frameDirty[fr] = false
+                g_frameRefBit[fr] = false
+            end
+            j += 1
+        end
+        seg.used = false
+    end
+    g_shm[shmid] = seg
+end
+
+func shmReport() as string
+    string s = "Shared memory segments:\n"
+    int i = 0
+    while i < MAX_SHM do
+        if g_shm[i].used then
+            ShmSeg seg = g_shm[i]
+            s = s + "  id=" + i2s(i) + " key=" + i2s(seg.key)
+            s = s + " size=" + i2s(seg.size) + " frames=" + i2s(seg.frames.length)
+            s = s + " attached=" + i2s(seg.refCount) + "\n"
+        end
+        i += 1
+    end
+    return s
+end
+
+
+// =============================================================================
+//  Part 16: File system - inode allocation and path resolution
+// =============================================================================
+//
+// We use a flat inode table where the index *is* the inode number. The root
+// directory inode is at index 0. Directories maintain a list of child ino
+// indices. Symbolic links store their target as a string and are followed on
+// resolution unless 'nofollow' is requested. Hard links bump nlink on the
+// existing inode and add a new directory entry pointing to it.
+// =============================================================================
+
+func fsInit()
+    g_inodes.clear()
+    g_open.clear()
+    g_openUsed.clear()
+    g_openCount = 0
+    g_nextIno = 1
+    Inode root = Inode()
+    root.ino = fsAllocIno()
+    root.name = "/"
+    root.type = FT_DIR
+    root.perm = PERM_RWX
+    root.uid = 0
+    root.gid = 0
+    root.parent = NIL
+    root.nlink = 2
+    root.createTime = g_totalTick
+    root.modTime = g_totalTick
+    root.accessTime = g_totalTick
+    g_inodes.append(root)
+    g_rootIno = 0
+    g_cwdIno = 0
+    int i = 0
+    while i < MAX_OPEN_FILES do
+        g_open.append(OpenFile())
+        g_openUsed.append(false)
+        i += 1
+    end
+    fsMkdir("/etc", PERM_RWX)
+    fsMkdir("/bin", PERM_RWX)
+    fsMkdir("/home", PERM_RWX)
+    fsMkdir("/tmp", PERM_RWX)
+    fsMkdir("/var", PERM_RWX)
+    fsMkdir("/var/log", PERM_RWX)
+    fsMkdir("/dev", PERM_RWX)
+    fsMkdir("/mnt", PERM_RWX)
+    fsMkdir("/root", PERM_RWX)
+    fsMkdir("/proc", PERM_RWX)
+    fsWriteFile("/etc/hostname", "xos2")
+    fsWriteFile("/etc/os-release", "NAME=xos2\nVERSION=2.0\n")
+    fsWriteFile("/etc/motd", "Welcome to xos2 - the xlang operating system simulator\n")
+end
+
+func fsAllocIno() as int
+    int v = g_nextIno
+    g_nextIno += 1
+    return v
+end
+
+func fsCheckPerm(int ino, int need) as bool
+    if ino < 0 or ino >= g_inodes.length then return false end
+    Inode n = g_inodes[ino]
+    int bits = 0
+    // Superuser bypass
+    if g_uid == 0 then return true end
+    if n.uid == g_uid then
+        bits = (n.perm >> PERM_OWNER_SHIFT) & 7
+    elseif n.gid == g_gid then
+        bits = (n.perm >> PERM_GROUP_SHIFT) & 7
+    else
+        bits = (n.perm >> PERM_OTHER_SHIFT) & 7
+    end
+    if (bits & need) == need then
+        return true
+    end
+    return false
+end
+
+func fsIsAbsolute(string p) as bool
+    if string.len(p) > 0 then
+        if string.byteAt(p, 0) == SLASH_BYTE then
+            return true
+        end
+    end
+    return false
+end
+
+// Split a path into [parentPath, lastSegment]
+func fsSplitParent(string p) as var
+    int last = -1
+    int n = string.len(p)
+    int i = 0
+    while i < n do
+        if string.byteAt(p, i) == SLASH_BYTE then
+            last = i
+        end
+        i += 1
+    end
+    string parent = ""
+    string fname = ""
+    if last < 0 then
+        parent = ""
+        fname = p
+    else
+        parent = string.mid(p, 0, last)
+        fname = string.mid(p, last + 1, n - last - 1)
+        if string.len(parent) == 0 then
+            parent = "/"
+        end
+    end
+    var result = [parent, fname]
+    return result
+end
+
+// Resolve a path to an inode index, following symlinks up to 10 levels deep
+func fsResolve(string p) as int
+    return fsResolveDepth(p, 0)
+end
+
+func fsResolveDepth(string p, int depth) as int
+    if depth > 10 then return NIL end
+    if string.len(p) == 0 then
+        return g_cwdIno
+    end
+    int cur = g_cwdIno
+    if fsIsAbsolute(p) then
+        cur = g_rootIno
+    end
+    var segs = string.split(p, "/")
+    int n = segs.length
+    int i = 0
+    while i < n do
+        string seg = string(segs[i])
+        if seg == "" or seg == "." then
+            // skip
+        elseif seg == ".." then
+            Inode c = g_inodes[cur]
+            if c.parent != NIL then
+                cur = c.parent
+            end
+        else
+            Inode dir = g_inodes[cur]
+            if dir.type != FT_DIR then
+                return NIL
+            end
+            int found = fsFindChild(cur, seg)
+            if found == NIL then
+                return NIL
+            end
+            // Follow symlink
+            Inode nxt = g_inodes[found]
+            if nxt.type == FT_SYMLINK then
+                int target = fsResolveDepth(nxt.target, depth + 1)
+                if target == NIL then return NIL end
+                cur = target
+            else
+                cur = found
+            end
+        end
+        i += 1
+    end
+    return cur
+end
+
+// Resolve without following the trailing symlink (for symlink stat/unlink)
+func fsResolveNoFollow(string p) as int
+    if string.len(p) == 0 then
+        return g_cwdIno
+    end
+    int cur = g_cwdIno
+    if fsIsAbsolute(p) then
+        cur = g_rootIno
+    end
+    var segs = string.split(p, "/")
+    int n = segs.length
+    int i = 0
+    while i < n do
+        string seg = string(segs[i])
+        bool last = (i == n - 1)
+        if seg == "" or seg == "." then
+            // skip
+        elseif seg == ".." then
+            Inode c = g_inodes[cur]
+            if c.parent != NIL then
+                cur = c.parent
+            end
+        else
+            Inode dir = g_inodes[cur]
+            if dir.type != FT_DIR then
+                return NIL
+            end
+            int found = fsFindChild(cur, seg)
+            if found == NIL then
+                return NIL
+            end
+            if not last then
+                Inode nxt = g_inodes[found]
+                if nxt.type == FT_SYMLINK then
+                    int target = fsResolveDepth(nxt.target, 0)
+                    if target == NIL then return NIL end
+                    cur = target
+                else
+                    cur = found
+                end
+            else
+                cur = found
+            end
+        end
+        i += 1
+    end
+    return cur
+end
+
+// Build an absolute path string for a given inode
+func fsAbsPath(int ino) as string
+    if ino == g_rootIno then return "/" end
+    var parts = []
+    int cur = ino
+    bool stop = false
+    while not stop do
+        if cur == NIL or cur == g_rootIno then
+            stop = true
+        else
+            Inode n = g_inodes[cur]
+            parts.append(n.name)
+            cur = n.parent
+        end
+    end
+    string result = ""
+    int n = parts.length
+    int i = n - 1
+    while i >= 0 do
+        result = result + "/" + parts[i]
+        i -= 1
+    end
+    if string.len(result) == 0 then
+        return "/"
+    end
+    return result
+end
+
+func fsPwd() as string
+    return fsAbsPath(g_cwdIno)
+end
+
+func fsCd(string p) as bool
+    int id = fsResolve(p)
+    if id == NIL then return false end
+    if g_inodes[id].type != FT_DIR then return false end
+    if not fsCheckPerm(id, PERM_X) then return false end
+    g_cwdIno = id
+    return true
+end
+
+func fsExists(string p) as bool
+    int id = fsResolve(p)
+    if id == NIL then return false end
+    return true
+end
+
+func dirEntryKey(int parentIno, string name) as string
+    return i2s(parentIno) + ":" + name
+end
+
+func fsFindChild(int dirIno, string name) as int
+    string k = dirEntryKey(dirIno, name)
+    if g_names[k] == null then return NIL end
+    return int(g_names[k])
+end
+
+func fsAppendChild(int dirIno, int childIno)
+    Inode d = g_inodes[dirIno]
+    d.children.append(childIno)
+    d.modTime = g_totalTick
+    g_inodes[dirIno] = d
+    // Register name in the directory-entry map
+    string childName = g_inodes[childIno].name
+    g_names[dirEntryKey(dirIno, childName)] = childIno
+end
+
+// Append a directory entry with an explicit name (used for hard links, where
+// the new name differs from the inode's canonical name).
+func fsAppendNamedChild(int dirIno, int childIno, string name)
+    Inode d = g_inodes[dirIno]
+    d.children.append(childIno)
+    d.modTime = g_totalTick
+    g_inodes[dirIno] = d
+    g_names[dirEntryKey(dirIno, name)] = childIno
+end
+
+func fsDropChild(int dirIno, int childIno)
+    Inode d = g_inodes[dirIno]
+    int n = d.children.length
+    int i = 0
+    bool done = false
+    while i < n and not done do
+        if d.children[i] == childIno then
+            d.children.remove(i)
+            done = true
+        end
+        i += 1
+    end
+    d.modTime = g_totalTick
+    g_inodes[dirIno] = d
+    // Remove ALL name entries that pointed at childIno in this directory
+    var toRemove = []
+    for k, v in g_names
+        if int(v) == childIno then
+            // Only remove names whose parent prefix matches dirIno
+            string prefix = i2s(dirIno) + ":"
+            if startsWithP(string(k), prefix) then
+                toRemove.append(k)
+            end
+        end
+    end
+    int ri = 0
+    while ri < toRemove.length do
+        dict.remove(g_names, string(toRemove[ri]))
+        ri += 1
+    end
+end
+
+// Drop a single directory entry identified by (parentIno, name). Removes
+// only that one name from the registry and a single occurrence of the inode
+// from the parent's children list. Used by fsRemove to support hard links:
+// removing one name does not invalidate other names pointing at the same inode.
+func fsDropNamedChild(int dirIno, int childIno, string name)
+    Inode d = g_inodes[dirIno]
+    int n = d.children.length
+    int i = 0
+    bool done = false
+    while i < n and not done do
+        if d.children[i] == childIno then
+            d.children.remove(i)
+            done = true
+        end
+        i += 1
+    end
+    d.modTime = g_totalTick
+    g_inodes[dirIno] = d
+    dict.remove(g_names, dirEntryKey(dirIno, name))
+end
+
+
+// =============================================================================
+//  Part 17: File system - create / mkdir / remove / read / write
+// =============================================================================
+
+func fsMkdir(string p, int perm) as int
+    var parts = fsSplitParent(p)
+    string parentP = string(parts[0])
+    string fname = string(parts[1])
+    if string.len(fname) == 0 then return NIL end
+    int parentId = fsResolve(parentP)
+    if parentId == NIL then return NIL end
+    Inode parent = g_inodes[parentId]
+    if parent.type != FT_DIR then return NIL end
+    if not fsCheckPerm(parentId, PERM_W) then return NIL end
+    if fsFindChild(parentId, fname) != NIL then return NIL end
+    Inode d = Inode()
+    d.name = fname
+    d.type = FT_DIR
+    d.perm = perm
+    d.parent = parentId
+    d.nlink = 2
+    d.uid = g_uid
+    d.gid = g_gid
+    d.ino = fsAllocIno()
+    d.createTime = g_totalTick
+    d.modTime = g_totalTick
+    d.accessTime = g_totalTick
+    g_inodes.append(d)
+    int newIno = g_inodes.length - 1
+    fsAppendChild(parentId, newIno)
+    // Bump parent's nlink for the new ".."
+    Inode par2 = g_inodes[parentId]
+    par2.nlink += 1
+    g_inodes[parentId] = par2
+    return newIno
+end
+
+func fsCreate(string p, int perm) as int
+    var parts = fsSplitParent(p)
+    string parentP = string(parts[0])
+    string fname = string(parts[1])
+    if string.len(fname) == 0 then return NIL end
+    int parentId = fsResolve(parentP)
+    if parentId == NIL then return NIL end
+    Inode parent = g_inodes[parentId]
+    if parent.type != FT_DIR then return NIL end
+    if not fsCheckPerm(parentId, PERM_W) then return NIL end
+    if fsFindChild(parentId, fname) != NIL then return NIL end
+    Inode f = Inode()
+    f.name = fname
+    f.type = FT_FILE
+    f.perm = perm
+    f.parent = parentId
+    f.nlink = 1
+    f.uid = g_uid
+    f.gid = g_gid
+    f.ino = fsAllocIno()
+    f.createTime = g_totalTick
+    f.modTime = g_totalTick
+    f.accessTime = g_totalTick
+    g_inodes.append(f)
+    int newIno = g_inodes.length - 1
+    fsAppendChild(parentId, newIno)
+    return newIno
+end
+
+func fsReadFile(string p) as string
+    int id = fsResolve(p)
+    if id == NIL then return "" end
+    if not fsCheckPerm(id, PERM_R) then return "" end
+    Inode n = g_inodes[id]
+    if n.type != FT_FILE then return "" end
+    g_inodes[id].accessTime = g_totalTick
+    return n.content
+end
+
+func fsWriteFile(string p, string content) as bool
+    int id = fsResolve(p)
+    if id == NIL then
+        int created = fsCreate(p, PERM_RW)
+        if created == NIL then return false end
+        id = created
+    end
+    if not fsCheckPerm(id, PERM_W) then return false end
+    Inode n = g_inodes[id]
+    if n.type != FT_FILE then return false end
+    n.content = content
+    n.size = string.len(content)
+    n.modTime = g_totalTick
+    g_inodes[id] = n
+    return true
+end
+
+func fsAppendFile(string p, string content) as bool
+    int id = fsResolve(p)
+    if id == NIL then
+        int created = fsCreate(p, PERM_RW)
+        if created == NIL then return false end
+        id = created
+    end
+    if not fsCheckPerm(id, PERM_W) then return false end
+    Inode n = g_inodes[id]
+    if n.type != FT_FILE then return false end
+    n.content = n.content + content
+    n.size = string.len(n.content)
+    n.modTime = g_totalTick
+    g_inodes[id] = n
+    return true
+end
+
+func fsListDir(string p) as var
+    var items = []
+    int id = fsResolve(p)
+    if id == NIL then return items end
+    Inode n = g_inodes[id]
+    if n.type != FT_DIR then
+        items.append(n.name)
+        return items
+    end
+    int cn = n.children.length
+    int i = 0
+    while i < cn do
+        items.append(g_inodes[n.children[i]].name)
+        i += 1
+    end
+    return items
+end
+
+// Remove a file or an empty directory
+func fsRemove(string p) as bool
+    int id = fsResolveNoFollow(p)
+    if id == NIL then return false end
+    Inode n = g_inodes[id]
+    if n.parent == NIL then return false end
+    if not fsCheckPerm(n.parent, PERM_W) then return false end
+    if n.type == FT_DIR then
+        if n.children.length > 0 then
+            return false
+        end
+        Inode par = g_inodes[n.parent]
+        par.nlink -= 1
+        g_inodes[n.parent] = par
+    end
+    n.nlink -= 1
+    if n.nlink <= 0 then
+        n.content = ""
+        n.size = 0
+    end
+    // Extract the basename so we drop only this directory entry (important
+    // for hard links where the same inode has multiple entries).
+    var parts = fsSplitParent(p)
+    string fname = string(parts[1])
+    if string.len(fname) == 0 then
+        fname = n.name
+    end
+    fsDropNamedChild(n.parent, id, fname)
+    g_inodes[id] = n
+    return true
+end
+
+// Recursive removal
+func fsRemoveRecursive(string p) as bool
+    int id = fsResolveNoFollow(p)
+    if id == NIL then return false end
+    Inode n = g_inodes[id]
+    if n.parent == NIL then return false end
+    if n.type == FT_DIR then
+        // Copy out the children list before mutating
+        array<int> kids = array[]
+        int i = 0
+        while i < n.children.length do
+            kids.append(n.children[i])
+            i += 1
+        end
+        i = 0
+        while i < kids.length do
+            int child = kids[i]
+            string cp = fsAbsPath(child)
+            fsRemoveRecursive(cp)
+            i += 1
+        end
+    end
+    return fsRemove(p)
+end
+
+
+// =============================================================================
+//  Part 18: File system - links, chmod/chown, stat
+// =============================================================================
+
+// Hard link: directory entry in <targetDir> that points at <src>'s inode
+func fsLink(string src, string linkPath) as bool
+    int srcId = fsResolve(src)
+    if srcId == NIL then return false end
+    Inode srcNode = g_inodes[srcId]
+    if srcNode.type == FT_DIR then return false end
+    var parts = fsSplitParent(linkPath)
+    string parentP = string(parts[0])
+    string fname = string(parts[1])
+    if string.len(fname) == 0 then return false end
+    int parentId = fsResolve(parentP)
+    if parentId == NIL then return false end
+    if not fsCheckPerm(parentId, PERM_W) then return false end
+    if fsFindChild(parentId, fname) != NIL then return false end
+    srcNode.nlink += 1
+    g_inodes[srcId] = srcNode
+    fsAppendNamedChild(parentId, srcId, fname)
+    return true
+end
+
+// Symbolic link: create a new FT_SYMLINK inode whose target string is src
+func fsSymlink(string src, string linkPath) as bool
+    var parts = fsSplitParent(linkPath)
+    string parentP = string(parts[0])
+    string fname = string(parts[1])
+    if string.len(fname) == 0 then return false end
+    int parentId = fsResolve(parentP)
+    if parentId == NIL then return false end
+    if not fsCheckPerm(parentId, PERM_W) then return false end
+    if fsFindChild(parentId, fname) != NIL then return false end
+    Inode l = Inode()
+    l.name = fname
+    l.type = FT_SYMLINK
+    l.perm = PERM_RWX
+    l.parent = parentId
+    l.nlink = 1
+    l.target = src
+    l.uid = g_uid
+    l.gid = g_gid
+    l.ino = fsAllocIno()
+    l.createTime = g_totalTick
+    l.modTime = g_totalTick
+    l.accessTime = g_totalTick
+    g_inodes.append(l)
+    int newIno = g_inodes.length - 1
+    fsAppendChild(parentId, newIno)
+    return true
+end
+
+func fsReadlink(string p) as string
+    int id = fsResolveNoFollow(p)
+    if id == NIL then return "" end
+    Inode n = g_inodes[id]
+    if n.type != FT_SYMLINK then return "" end
+    return n.target
+end
+
+func fsChmod(string p, int perm) as bool
+    int id = fsResolveNoFollow(p)
+    if id == NIL then return false end
+    if g_uid != 0 and g_inodes[id].uid != g_uid then return false end
+    Inode n = g_inodes[id]
+    n.perm = perm
+    g_inodes[id] = n
+    return true
+end
+
+func fsChown(string p, int uid, int gid) as bool
+    int id = fsResolveNoFollow(p)
+    if id == NIL then return false end
+    if g_uid != 0 then return false end
+    Inode n = g_inodes[id]
+    n.uid = uid
+    n.gid = gid
+    g_inodes[id] = n
+    return true
+end
+
+// Stat-like dictionary
+func fsStat(string p) as var
+    var st = {}
+    int id = fsResolveNoFollow(p)
+    if id == NIL then
+        st["ok"] = false
+        return st
+    end
+    Inode n = g_inodes[id]
+    st["ok"] = true
+    st["ino"] = id
+    st["name"] = n.name
+    st["type"] = n.type
+    st["perm"] = n.perm
+    st["permStr"] = permString(n.perm)
+    st["uid"] = n.uid
+    st["gid"] = n.gid
+    st["size"] = n.size
+    st["nlink"] = n.nlink
+    st["mtime"] = n.modTime
+    st["ctime"] = n.createTime
+    st["atime"] = n.accessTime
+    return st
+end
+
+
+// =============================================================================
+//  Part 19: File system - open/close/read/write/lseek
+// =============================================================================
+
+func fsAllocFd() as int
+    int i = 0
+    while i < MAX_OPEN_FILES do
+        if not g_openUsed[i] then
+            g_openUsed[i] = true
+            g_openCount += 1
+            return i
+        end
+        i += 1
+    end
+    return NIL
+end
+
+func fsFreeFd(int fd)
+    if fd < 0 or fd >= MAX_OPEN_FILES then return end
+    if not g_openUsed[fd] then return end
+    OpenFile of = g_open[fd]
+    of.used = false
+    of.ino = NIL
+    of.pos = 0
+    g_open[fd] = of
+    g_openUsed[fd] = false
+    if g_openCount > 0 then
+        g_openCount -= 1
+    end
+end
+
+// Open by path. Modes: "r", "w", "rw", "a". Returns NIL on failure.
+func fsOpen(string p, string mode) as int
+    int id = fsResolve(p)
+    if id == NIL then
+        if mode == "w" or mode == "rw" or mode == "a" then
+            int created = fsCreate(p, PERM_RW)
+            if created == NIL then return NIL end
+            id = created
+        else
+            return NIL
+        end
+    end
+    Inode n = g_inodes[id]
+    // For special types dispatch to device or pipe layer
+    if n.type == FT_CHARDEV then
+        return devOpen(n.devId, mode)
+    end
+    if n.type == FT_FIFO then
+        return pipeOpen(id, mode)
+    end
+    if n.type == FT_DIR then return NIL end
+    int modeVal = OM_READ
+    bool append = false
+    if mode == "r" then
+        if not fsCheckPerm(id, PERM_R) then return NIL end
+        modeVal = OM_READ
+    elseif mode == "w" then
+        if not fsCheckPerm(id, PERM_W) then return NIL end
+        modeVal = OM_WRITE
+    elseif mode == "rw" then
+        if not fsCheckPerm(id, PERM_RW) then return NIL end
+        modeVal = OM_RW
+    elseif mode == "a" then
+        if not fsCheckPerm(id, PERM_W) then return NIL end
+        modeVal = OM_WRITE
+        append = true
+    else
+        return NIL
+    end
+    int fd = fsAllocFd()
+    if fd == NIL then return NIL end
+    OpenFile of = g_open[fd]
+    of.used = true
+    of.ino = id
+    of.mode = modeVal
+    of.append = append
+    of.pos = 0
+    if append then
+        of.pos = n.size
+    end
+    g_open[fd] = of
+    return fd
+end
+
+func fsClose(int fd) as bool
+    if fd < 0 or fd >= MAX_OPEN_FILES then return false end
+    if not g_openUsed[fd] then return false end
+    // If this is a pipe, do not actually free until both ends close
+    OpenFile of = g_open[fd]
+    if of.pipeId != NIL then
+        pipeClose(of.pipeId, of.mode == OM_READ)
+    end
+    fsFreeFd(fd)
+    return true
+end
+
+func fsRead(int fd, int n) as string
+    if fd < 0 or fd >= MAX_OPEN_FILES then return "" end
+    if not g_openUsed[fd] then return "" end
+    OpenFile of = g_open[fd]
+    if of.pipeId != NIL then
+        return pipeRead(of.pipeId, n)
+    end
+    if of.devId != NIL then
+        return devRead(of.devId, n)
+    end
+    if of.mode == OM_WRITE then return "" end
+    if of.ino == NIL then return "" end
+    Inode node = g_inodes[of.ino]
+    if node.type == FT_CHARDEV then
+        return devRead(node.devId, n)
+    end
+    int total = string.len(node.content)
+    if of.pos >= total then return "" end
+    int remain = total - of.pos
+    int take = n
+    if take > remain then take = remain end
+    if take < 0 then take = 0 end
+    string s = string.mid(node.content, of.pos, take)
+    of.pos += take
+    g_open[fd] = of
+    return s
+end
+
+func fsWrite(int fd, string data) as int
+    if fd < 0 or fd >= MAX_OPEN_FILES then return 0 end
+    if not g_openUsed[fd] then return 0 end
+    OpenFile of = g_open[fd]
+    if of.pipeId != NIL then
+        return pipeWrite(of.pipeId, data)
+    end
+    if of.devId != NIL then
+        return devWrite(of.devId, data)
+    end
+    if of.mode == OM_READ then return 0 end
+    if of.ino == NIL then return 0 end
+    Inode node = g_inodes[of.ino]
+    if node.type == FT_CHARDEV then
+        return devWrite(node.devId, data)
+    end
+    int dataLen = string.len(data)
+    if dataLen == 0 then return 0 end
+    int pos = of.pos
+    if of.append then
+        pos = node.size
+    end
+    string before = ""
+    string after = ""
+    int total = string.len(node.content)
+    if pos <= 0 then
+        before = ""
+        after = node.content
+    elseif pos >= total then
+        before = node.content
+        int gap = pos - total
+        int g = 0
+        while g < gap do
+            before = before + " "
+            g += 1
+        end
+        after = ""
+    else
+        before = string.mid(node.content, 0, pos)
+        after = string.mid(node.content, pos, total - pos)
+    end
+    node.content = before + data + after
+    node.size = string.len(node.content)
+    node.modTime = g_totalTick
+    g_inodes[of.ino] = node
+    if of.append then
+        of.pos = node.size
+    else
+        of.pos = pos + dataLen
+    end
+    g_open[fd] = of
+    return dataLen
+end
+
+func fsLseek(int fd, int offset, int whence) as int
+    if fd < 0 or fd >= MAX_OPEN_FILES then return NIL end
+    if not g_openUsed[fd] then return NIL end
+    OpenFile of = g_open[fd]
+    if of.pipeId != NIL then return NIL end
+    if of.ino == NIL then return NIL end
+    Inode node = g_inodes[of.ino]
+    int total = string.len(node.content)
+    int newPos = of.pos
+    if whence == XL_SEEK_SET then
+        newPos = offset
+    elseif whence == XL_SEEK_CUR then
+        newPos = of.pos + offset
+    else
+        newPos = total + offset
+    end
+    if newPos < 0 then newPos = 0 end
+    of.pos = newPos
+    g_open[fd] = of
+    return newPos
+end
+
+// Duplicate an fd, returning the new fd
+func fsDup(int oldfd) as int
+    if oldfd < 0 or oldfd >= MAX_OPEN_FILES then return NIL end
+    if not g_openUsed[oldfd] then return NIL end
+    int newFd = fsAllocFd()
+    if newFd == NIL then return NIL end
+    OpenFile src = g_open[oldfd]
+    OpenFile dst = g_open[newFd]
+    dst.used = true
+    dst.ino = src.ino
+    dst.mode = src.mode
+    dst.pos = src.pos
+    dst.append = src.append
+    dst.pipeId = src.pipeId
+    g_open[newFd] = dst
+    return newFd
+end
+
+// Duplicate oldfd onto newfd (closing newfd if open)
+func fsDup2(int oldfd, int newfd) as int
+    if oldfd < 0 or oldfd >= MAX_OPEN_FILES then return NIL end
+    if newfd < 0 or newfd >= MAX_OPEN_FILES then return NIL end
+    if not g_openUsed[oldfd] then return NIL end
+    if oldfd == newfd then return newfd end
+    if g_openUsed[newfd] then
+        fsClose(newfd)
+    end
+    OpenFile src = g_open[oldfd]
+    OpenFile dst = g_open[newfd]
+    dst.used = true
+    dst.ino = src.ino
+    dst.mode = src.mode
+    dst.pos = src.pos
+    dst.append = src.append
+    dst.pipeId = src.pipeId
+    g_openUsed[newfd] = true
+    g_open[newfd] = dst
+    return newfd
+end
+
+
+// =============================================================================
+//  Part 20: File system dump
+// =============================================================================
+
+func fsDumpTree()
+    println("Filesystem tree (inodes=" + i2s(g_inodes.length) + ", nextIno=" + i2s(g_nextIno) + "):")
+    fsDumpNode(g_rootIno, 0)
+end
+
+func fsDumpNode(int ino, int depth)
+    Inode n = g_inodes[ino]
+    string pad = ""
+    int d = 0
+    while d < depth do
+        pad = pad + "  "
+        d += 1
+    end
+    string typ = "DIR "
+    if n.type == FT_FILE then
+        typ = "FILE"
+    elseif n.type == FT_SYMLINK then
+        typ = "LNK "
+    elseif n.type == FT_FIFO then
+        typ = "FIFO"
+    elseif n.type == FT_CHARDEV then
+        typ = "CHAR"
+    end
+    string line = pad + "[" + i2s(ino) + "] " + typ + " " + n.name
+    line = line + "  perm=" + permString(n.perm) + " ino=" + i2s(n.ino)
+    line = line + " nlink=" + i2s(n.nlink) + " uid=" + i2s(n.uid) + " gid=" + i2s(n.gid)
+    if n.type == FT_FILE then
+        line = line + " size=" + i2s(n.size)
+    elseif n.type == FT_SYMLINK then
+        line = line + " -> " + n.target
+    end
+    println(line)
+    int cn = n.children.length
+    int i = 0
+    while i < cn do
+        fsDumpNode(n.children[i], depth + 1)
+        i += 1
+    end
+end
+
+
+// =============================================================================
+//  Part 21: VFS mount table
+// =============================================================================
+//
+// We support mounting a "virtual" filesystem at a directory. After mount, the
+// mount root inode shadows the directory inode for path resolution. Unmounting
+// removes the binding. The root filesystem is always mounted at /.
+// =============================================================================
+
+func mountsInit()
+    g_mounts.clear()
+    g_mountCount = 0
+    Mount rootMount = Mount()
+    rootMount.source = "rootfs"
+    rootMount.target = "/"
+    rootMount.fstype = "xfs"
+    rootMount.rootIno = g_rootIno
+    rootMount.mountIno = g_rootIno
+    rootMount.used = true
+    g_mounts.append(rootMount)
+    g_mountCount = 1
+    int i = 1
+    while i < MAX_MOUNTS do
+        Mount m = Mount()
+        m.used = false
+        g_mounts.append(m)
+        i += 1
+    end
+end
+
+func mountsAlloc() as int
+    int i = 0
+    while i < MAX_MOUNTS do
+        if not g_mounts[i].used then
+            g_mounts[i].used = true
+            g_mountCount += 1
+            return i
+        end
+        i += 1
+    end
+    return NIL
+end
+
+func fsMount(string source, string target, string fstype) as bool
+    int targetId = fsResolve(target)
+    if targetId == NIL then return false end
+    if g_inodes[targetId].type != FT_DIR then return false end
+    // Check duplicate mount
+    int i = 0
+    while i < MAX_MOUNTS do
+        if g_mounts[i].used then
+            if g_mounts[i].target == target then return false end
+        end
+        i += 1
+    end
+    int slot = mountsAlloc()
+    if slot == NIL then return false end
+    Mount m = Mount()
+    m.source = source
+    m.target = target
+    m.fstype = fstype
+    m.rootIno = targetId
+    m.mountIno = targetId
+    m.used = true
+    g_mounts[slot] = m
+    return true
+end
+
+func fsUmount(string target) as bool
+    if target == "/" then return false end
+    int i = 1
+    while i < MAX_MOUNTS do
+        if g_mounts[i].used then
+            if g_mounts[i].target == target then
+                g_mounts[i].used = false
+                if g_mountCount > 0 then g_mountCount -= 1 end
+                return true
+            end
+        end
+        i += 1
+    end
+    return false
+end
+
+func mountsReport() as string
+    string s = "Mount table:\n"
+    s = s + padR("Source", 16) + padR("Target", 16) + padR("Type", 10) + "RootIno\n"
+    int i = 0
+    while i < MAX_MOUNTS do
+        if g_mounts[i].used then
+            Mount m = g_mounts[i]
+            s = s + padR(m.source, 16) + padR(m.target, 16) + padR(m.fstype, 10)
+            s = s + i2s(m.mountIno) + "\n"
+        end
+        i += 1
+    end
+    return s
+end
+
+
+// =============================================================================
+//  Part 22: Pipes (anonymous + FIFO)
+// =============================================================================
+//
+// A Pipe owns a byte string buffer that holds PIPE_BUF bytes max. Reads
+// consume from the front; writes append at the back. If the buffer is full,
+// writes are short (we return whatever fits). For named pipes (FIFOs) the
+// pipe is associated with an inode in the FS.
+// =============================================================================
+
+func pipeInit()
+    g_pipes.clear()
+    int i = 0
+    while i < MAX_PIPES do
+        Pipe p = Pipe()
+        p.used = false
+        g_pipes.append(p)
+        i += 1
+    end
+end
+
+func pipeAlloc() as int
+    int i = 0
+    while i < MAX_PIPES do
+        if not g_pipes[i].used then
+            g_pipes[i].used = true
+            g_pipes[i].id = i
+            g_pipes[i].buffer = ""
+            g_pipes[i].readPos = 0
+            g_pipes[i].closedRead = false
+            g_pipes[i].closedWrite = false
+            g_pipes[i].named = false
+            g_pipes[i].ino = NIL
+            return i
+        end
+        i += 1
+    end
+    return NIL
+end
+
+// Create an anonymous pipe and return [readFd, writeFd]
+func pipeCreate() as var
+    int pid = g_currentPid
+    if pid == NIL then pid = 1 end
+    int pipeId = pipeAlloc()
+    if pipeId == NIL then return [NIL, NIL] end
+    // Allocate two fds that point at the same pipe
+    int rfd = fsAllocFd()
+    int wfd = fsAllocFd()
+    if rfd == NIL or wfd == NIL then
+        if rfd != NIL then fsFreeFd(rfd) end
+        if wfd != NIL then fsFreeFd(wfd) end
+        g_pipes[pipeId].used = false
+        return [NIL, NIL]
+    end
+    OpenFile rof = g_open[rfd]
+    rof.used = true
+    rof.ino = NIL
+    rof.pipeId = pipeId
+    rof.mode = OM_READ
+    g_open[rfd] = rof
+    OpenFile wof = g_open[wfd]
+    wof.used = true
+    wof.ino = NIL
+    wof.pipeId = pipeId
+    wof.mode = OM_WRITE
+    g_open[wfd] = wof
+    return [rfd, wfd]
+end
+
+// Create a named pipe (FIFO) at the given path
+func fsMkfifo(string p, int perm) as bool
+    var parts = fsSplitParent(p)
+    string parentP = string(parts[0])
+    string fname = string(parts[1])
+    if string.len(fname) == 0 then return false end
+    int parentId = fsResolve(parentP)
+    if parentId == NIL then return false end
+    if not fsCheckPerm(parentId, PERM_W) then return false end
+    if fsFindChild(parentId, fname) != NIL then return false end
+    int pipeId = pipeAlloc()
+    if pipeId == NIL then return false end
+    Inode f = Inode()
+    f.name = fname
+    f.type = FT_FIFO
+    f.perm = perm
+    f.parent = parentId
+    f.nlink = 1
+    f.uid = g_uid
+    f.gid = g_gid
+    f.ino = fsAllocIno()
+    f.createTime = g_totalTick
+    f.modTime = g_totalTick
+    f.accessTime = g_totalTick
+    g_inodes.append(f)
+    int newIno = g_inodes.length - 1
+    fsAppendChild(parentId, newIno)
+    Pipe pp = g_pipes[pipeId]
+    pp.named = true
+    pp.ino = newIno
+    g_pipes[pipeId] = pp
+    return true
+end
+
+// Open a named pipe by its inode number
+func pipeOpen(int ino, string mode) as int
+    int pipeId = NIL
+    int i = 0
+    while i < MAX_PIPES do
+        if g_pipes[i].used and g_pipes[i].ino == ino then
+            pipeId = i
+            i = MAX_PIPES
+        end
+        i += 1
+    end
+    if pipeId == NIL then return NIL end
+    int fd = fsAllocFd()
+    if fd == NIL then return NIL end
+    OpenFile of = g_open[fd]
+    of.used = true
+    of.ino = ino
+    of.pipeId = pipeId
+    if mode == "r" then
+        of.mode = OM_READ
+    elseif mode == "w" then
+        of.mode = OM_WRITE
+    else
+        of.mode = OM_RW
+    end
+    g_open[fd] = of
+    return fd
+end
+
+func pipeRead(int pipeId, int n) as string
+    if pipeId < 0 or pipeId >= MAX_PIPES then return "" end
+    if not g_pipes[pipeId].used then return "" end
+    Pipe p = g_pipes[pipeId]
+    int len = string.len(p.buffer) - p.readPos
+    if len <= 0 then return "" end
+    int take = n
+    if take > len then take = len end
+    string s = string.mid(p.buffer, p.readPos, take)
+    p.readPos += take
+    // Compact buffer when read pointer drifts
+    if p.readPos > 1024 then
+        p.buffer = string.mid(p.buffer, p.readPos, string.len(p.buffer) - p.readPos)
+        p.readPos = 0
+    end
+    g_pipes[pipeId] = p
+    return s
+end
+
+func pipeWrite(int pipeId, string data) as int
+    if pipeId < 0 or pipeId >= MAX_PIPES then return 0 end
+    if not g_pipes[pipeId].used then return 0 end
+    Pipe p = g_pipes[pipeId]
+    int cur = string.len(p.buffer) - p.readPos
+    int room = PIPE_BUF - cur
+    if room <= 0 then return 0 end
+    int take = string.len(data)
+    if take > room then take = room end
+    p.buffer = p.buffer + string.mid(data, 0, take)
+    g_pipes[pipeId] = p
+    return take
+end
+
+func pipeClose(int pipeId, bool isReadEnd)
+    if pipeId < 0 or pipeId >= MAX_PIPES then return end
+    if not g_pipes[pipeId].used then return end
+    Pipe p = g_pipes[pipeId]
+    if isReadEnd then
+        p.closedRead = true
+    else
+        p.closedWrite = true
+    end
+    if p.closedRead and p.closedWrite then
+        p.used = false
+        p.buffer = ""
+        p.readPos = 0
+    end
+    g_pipes[pipeId] = p
+end
+
+
+// =============================================================================
+//  Part 23: Device simulation (/dev/null, /dev/zero, /dev/random, /dev/console)
+// =============================================================================
+
+func devInit()
+    g_devices.clear()
+    int i = 0
+    while i < 8 do
+        Device d = Device()
+        d.used = false
+        g_devices.append(d)
+        i += 1
+    end
+    devRegister("/dev/null", DEV_NULL)
+    devRegister("/dev/zero", DEV_ZERO)
+    devRegister("/dev/random", DEV_RANDOM)
+    devRegister("/dev/console", DEV_CONSOLE)
+end
+
+func devRegister(string path, int kind) as int
+    string name = path
+    int last = rfindByte(path, SLASH_BYTE)
+    if last >= 0 then
+        name = string.mid(path, last + 1, string.len(path) - last - 1)
+    end
+    // Allocate the device record
+    int slot = NIL
+    int i = 0
+    while i < g_devices.length do
+        if not g_devices[i].used then
+            slot = i
+            i = g_devices.length
+        end
+        i += 1
+    end
+    if slot == NIL then
+        Device dn = Device()
+        dn.used = true
+        dn.id = g_devices.length
+        dn.name = name
+        dn.kind = kind
+        g_devices.append(dn)
+        slot = g_devices.length - 1
+    else
+        Device d = g_devices[slot]
+        d.used = true
+        d.id = slot
+        d.name = name
+        d.kind = kind
+        g_devices[slot] = d
+    end
+    // Create the inode in /dev
+    int parentId = fsResolve("/dev")
+    if parentId == NIL then return slot end
+    if fsFindChild(parentId, name) != NIL then return slot end
+    Inode n = Inode()
+    n.name = name
+    n.type = FT_CHARDEV
+    n.perm = PERM_RW
+    n.parent = parentId
+    n.nlink = 1
+    n.uid = 0
+    n.gid = 0
+    n.ino = fsAllocIno()
+    n.devId = slot
+    n.createTime = g_totalTick
+    n.modTime = g_totalTick
+    n.accessTime = g_totalTick
+    g_inodes.append(n)
+    int newIno = g_inodes.length - 1
+    fsAppendChild(parentId, newIno)
+    return slot
+end
+
+func devOpen(int devId, string mode) as int
+    if devId < 0 or devId >= g_devices.length then return NIL end
+    int fd = fsAllocFd()
+    if fd == NIL then return NIL end
+    OpenFile of = g_open[fd]
+    of.used = true
+    of.ino = NIL
+    of.pipeId = NIL
+    of.devId = devId
+    of.mode = OM_RW
+    g_open[fd] = of
+    return fd
+end
+
+func devRead(int devId, int n) as string
+    if devId < 0 or devId >= g_devices.length then return "" end
+    Device d = g_devices[devId]
+    if d.kind == DEV_NULL then
+        return ""
+    end
+    if d.kind == DEV_ZERO then
+        // xlang strings are NUL-terminated, so we cannot emit literal \0
+        // bytes. Return placeholder '0' characters of the requested length
+        // to model "n bytes of zeros" abstractly.
+        return string.repeat("0", n)
+    end
+    if d.kind == DEV_RANDOM then
+        string alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        int alphaLen = string.len(alphabet)
+        int i = 0
+        string s = ""
+        while i < n do
+            int v = random.range(0, alphaLen - 1)
+            s = s + string.charAt(alphabet, v)
+            i += 1
+        end
+        return s
+    end
+    if d.kind == DEV_CONSOLE then
+        return ""
+    end
+    return ""
+end
+
+func devWrite(int devId, string data) as int
+    if devId < 0 or devId >= g_devices.length then return 0 end
+    Device d = g_devices[devId]
+    if d.kind == DEV_CONSOLE then
+        print(data)
+        return string.len(data)
+    end
+    if d.kind == DEV_NULL then
+        return string.len(data)
+    end
+    if d.kind == DEV_ZERO then
+        return string.len(data)
+    end
+    if d.kind == DEV_RANDOM then
+        return string.len(data)
+    end
+    return 0
+end
+
+
+// =============================================================================
+//  Part 24: Environment variables
+// =============================================================================
+
+func envInit()
+    g_env = {}
+    g_env["PATH"] = "/bin:/usr/bin:/sbin"
+    g_env["HOME"] = "/root"
+    g_env["PWD"] = "/"
+    g_env["USER"] = "root"
+    g_env["SHELL"] = "/bin/sh"
+    g_env["TERM"] = "xterm"
+    g_env["LANG"] = "en_US.UTF-8"
+    g_env["PS1"] = "xos2# "
+end
+
+func envGet(string key) as string
+    if g_env[key] == null then return "" end
+    return string(g_env[key])
+end
+
+func envSet(string key, string val)
+    g_env[key] = val
+end
+
+func envUnset(string key)
+    dict.remove(g_env, key)
+end
+
+func envList() as string
+    string s = ""
+    for k, v in g_env
+        s = s + string(k) + "=" + string(v) + "\n"
+    end
+    return s
+end
+
+// Expand $VAR or ${VAR} references inside a string
+func envExpand(string s) as string
+    string r = ""
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b == 36 then
+            // $ - variable expansion
+            if i + 1 < n then
+                int next = string.byteAt(s, i + 1)
+                if next == 123 then
+                    // ${VAR}
+                    int close = findByteFrom(s, 125, i + 2)
+                    if close > 0 then
+                        string k = string.mid(s, i + 2, close - i - 2)
+                        r = r + envGet(k)
+                        i = close + 1
+                    else
+                        r = r + "$"
+                        i += 1
+                    end
+                elseif next >= 65 and next <= 90 then
+                    // $VAR uppercase letters/digits/underscore
+                    int j = i + 1
+                    bool stop = false
+                    while j < n and not stop do
+                        int c = string.byteAt(s, j)
+                        if (c >= 65 and c <= 90) or (c >= 48 and c <= 57) or c == 95 then
+                            j += 1
+                        else
+                            stop = true
+                        end
+                    end
+                    string k = string.mid(s, i + 1, j - i - 1)
+                    r = r + envGet(k)
+                    i = j
+                else
+                    r = r + string.mid(s, i, 1)
+                    i += 1
+                end
+            else
+                r = r + "$"
+                i += 1
+            end
+        else
+            r = r + string.mid(s, i, 1)
+            i += 1
+        end
+    end
+    return r
+end
+
+
+// =============================================================================
+//  Part 25: Unified syscall dispatcher
+// =============================================================================
+//
+// syscall(op, args) is the single entry point that user-space shell and the
+// program DSL use. It returns a var dict with 'ret' and 'msg'.
+// =============================================================================
+
+func syscall(int op, var args) as var
+    var res = {}
+    res["ret"] = NIL
+    res["msg"] = ""
+    if op == SYSOPEN then
+        string p = string(args[0])
+        string mode = "r"
+        if args.length > 1 then mode = string(args[1]) end
+        int fd = fsOpen(p, mode)
+        res["ret"] = fd
+        if fd == NIL then res["msg"] = "open failed: " + p end
+        return res
+    end
+    if op == SYS_CLOSE then
+        int fd = int(args[0])
+        bool ok = fsClose(fd)
+        res["ret"] = ok
+        return res
+    end
+    if op == SYS_READ then
+        int fd = int(args[0])
+        int n = 4096
+        if args.length > 1 then n = int(args[1]) end
+        string s = fsRead(fd, n)
+        res["ret"] = s
+        return res
+    end
+    if op == SYS_WRITE then
+        int fd = int(args[0])
+        string data = string(args[1])
+        int w = fsWrite(fd, data)
+        res["ret"] = w
+        return res
+    end
+    if op == SYS_LSEEK then
+        int fd = int(args[0])
+        int off = int(args[1])
+        int whence = 0
+        if args.length > 2 then whence = int(args[2]) end
+        res["ret"] = fsLseek(fd, off, whence)
+        return res
+    end
+    if op == SYS_MKDIR then
+        string p = string(args[0])
+        int perm = PERM_RWX
+        if args.length > 1 then perm = int(args[1]) end
+        res["ret"] = fsMkdir(p, perm)
+        return res
+    end
+    if op == SYS_RMDIR then
+        string p = string(args[0])
+        res["ret"] = fsRemove(p)
+        return res
+    end
+    if op == SYS_LIST then
+        string p = string(args[0])
+        res["ret"] = fsListDir(p)
+        return res
+    end
+    if op == SYS_REMOVE then
+        string p = string(args[0])
+        bool rflag = false
+        if args.length > 1 then rflag = bool(args[1]) end
+        if rflag then
+            res["ret"] = fsRemoveRecursive(p)
+        else
+            res["ret"] = fsRemove(p)
+        end
+        return res
+    end
+    if op == SYS_STAT then
+        string p = string(args[0])
+        res["ret"] = fsStat(p)
+        return res
+    end
+    if op == SYS_CHMOD then
+        string p = string(args[0])
+        int perm = int(args[1])
+        res["ret"] = fsChmod(p, perm)
+        return res
+    end
+    if op == SYS_CHOWN then
+        string p = string(args[0])
+        int uid = int(args[1])
+        int gid = 0
+        if args.length > 2 then gid = int(args[2]) end
+        res["ret"] = fsChown(p, uid, gid)
+        return res
+    end
+    if op == SYS_LINK then
+        string src = string(args[0])
+        string dst = string(args[1])
+        res["ret"] = fsLink(src, dst)
+        return res
+    end
+    if op == SYS_SYMLINK then
+        string src = string(args[0])
+        string dst = string(args[1])
+        res["ret"] = fsSymlink(src, dst)
+        return res
+    end
+    if op == SYS_READLINK then
+        string p = string(args[0])
+        res["ret"] = fsReadlink(p)
+        return res
+    end
+    if op == SYS_MOUNT then
+        string src = string(args[0])
+        string tgt = string(args[1])
+        string fst = "xfs"
+        if args.length > 2 then fst = string(args[2]) end
+        res["ret"] = fsMount(src, tgt, fst)
+        return res
+    end
+    if op == SYS_UMOUNT then
+        string tgt = string(args[0])
+        res["ret"] = fsUmount(tgt)
+        return res
+    end
+    if op == SYS_PIPE then
+        res["ret"] = pipeCreate()
+        return res
+    end
+    if op == SYS_MKIFO then
+        string p = string(args[0])
+        int perm = PERM_RW
+        if args.length > 1 then perm = int(args[1]) end
+        res["ret"] = fsMkfifo(p, perm)
+        return res
+    end
+    if op == SYS_DUP then
+        int oldfd = int(args[0])
+        res["ret"] = fsDup(oldfd)
+        return res
+    end
+    if op == SYS_DUP2 then
+        int oldfd = int(args[0])
+        int newfd = int(args[1])
+        res["ret"] = fsDup2(oldfd, newfd)
+        return res
+    end
+    if op == SYS_GETPID then
+        res["ret"] = g_currentPid
+        return res
+    end
+    if op == SYS_GETPPID then
+        int pid = int(args[0])
+        if pid >= 0 and pid < g_pcb.length then
+            res["ret"] = g_pcb[pid].ppid
+        end
+        return res
+    end
+    if op == SYS_NICE then
+        int pid = int(args[0])
+        int incr = int(args[1])
+        if pid >= 0 and pid < g_pcb.length then
+            PCB p = g_pcb[pid]
+            p.nice = clamp(p.nice + incr, -20, 19)
+            g_pcb[pid] = p
+            res["ret"] = p.nice
+        end
+        return res
+    end
+    if op == SYS_FORK then
+        int parent = g_currentPid
+        if parent == NIL then parent = 1 end
+        res["ret"] = procFork(parent)
+        return res
+    end
+    if op == SYS_EXEC then
+        string name = string(args[0])
+        int burst = int(args[1])
+        var progArr = args[2]
+        array<string> prog = array[]
+        int j = 0
+        while j < progArr.length do
+            prog.append(string(progArr[j]))
+            j += 1
+        end
+        int pid = g_currentPid
+        if pid == NIL then pid = 1 end
+        res["ret"] = procExecOp(pid, name, burst, prog)
+        return res
+    end
+    if op == SYS_EXIT then
+        int code = 0
+        if args.length > 0 then code = int(args[0]) end
+        int pid = g_currentPid
+        if pid == NIL then pid = 1 end
+        procTerminate(pid, code)
+        res["ret"] = true
+        return res
+    end
+    if op == SYS_WAIT then
+        int parent = g_currentPid
+        if parent == NIL then parent = 1 end
+        int child = NIL
+        if args.length > 0 then child = int(args[0]) end
+        res["ret"] = procWait(parent, child)
+        return res
+    end
+    if op == SYS_KILL then
+        int pid = int(args[0])
+        int sig = SIGTERM
+        if args.length > 1 then sig = int(args[1]) end
+        procSignal(pid, sig)
+        res["ret"] = true
+        return res
+    end
+    if op == SYS_SIGNAL then
+        int pid = int(args[0])
+        int sig = int(args[1])
+        procSignal(pid, sig)
+        res["ret"] = true
+        return res
+    end
+    if op == SYS_SHMGET then
+        int key = int(args[0])
+        int size = int(args[1])
+        res["ret"] = shmGet(key, size)
+        return res
+    end
+    if op == SYS_SHMAT then
+        int sid = int(args[0])
+        int pid = g_currentPid
+        if pid == NIL then pid = 1 end
+        res["ret"] = shmAttach(sid, pid)
+        return res
+    end
+    if op == SYS_SHMDT then
+        int sid = int(args[0])
+        int pid = g_currentPid
+        if pid == NIL then pid = 1 end
+        shmDetachByPid(sid, pid)
+        res["ret"] = true
+        return res
+    end
+    if op == SYS_SLEEP then
+        int n = int(args[0])
+        int pid = g_currentPid
+        if pid == NIL then pid = 1 end
+        if pid >= 1 and pid < g_pcb.length then
+            PCB p = g_pcb[pid]
+            p.state = PROC_WAITING
+            p.sleepUntil = g_totalTick + n
+            g_pcb[pid] = p
+        end
+        res["ret"] = 0
+        return res
+    end
+    if op == SYS_ENV_GET then
+        string k = string(args[0])
+        res["ret"] = envGet(k)
+        return res
+    end
+    if op == SYS_ENV_SET then
+        string k = string(args[0])
+        string v = string(args[1])
+        envSet(k, v)
+        res["ret"] = true
+        return res
+    end
+    if op == SYS_PS then
+        res["ret"] = procListReport()
+        return res
+    end
+    if op == SYS_MEM then
+        res["ret"] = memReportString()
+        return res
+    end
+    if op == SYS_HELP then
+        res["ret"] = shHelp()
+        return res
+    end
+    if op == SYS_TOUCH then
+        string p = string(args[0])
+        int perm = PERM_RW
+        if args.length > 1 then perm = int(args[1]) end
+        res["ret"] = fsCreate(p, perm)
+        return res
+    end
+    if op == SYS_CAT then
+        string p = string(args[0])
+        res["ret"] = fsReadFile(p)
+        return res
+    end
+    if op == SYS_LS then
+        string p = "."
+        if args.length > 0 then p = string(args[0]) end
+        res["ret"] = fsListDir(p)
+        return res
+    end
+    if op == SYS_ALLOC then
+        int pid = int(args[0])
+        int vaddr = int(args[1])
+        res["ret"] = memTranslate(pid, vaddr)
+        return res
+    end
+    if op == SYS_ACCESS then
+        int pid = int(args[0])
+        int vaddr = int(args[1])
+        res["ret"] = memTranslate(pid, vaddr)
+        return res
+    end
+    res["msg"] = "unknown syscall " + i2s(op)
+    return res
+end
+
+
+// =============================================================================
+//  Part 26: Shell tokenizer and parser
+// =============================================================================
+//
+// Shell grammar supported:
+//   cmd arg arg                       simple command
+//   cmd1 | cmd2 | cmd3                pipeline
+//   cmd > file                        redirect stdout to file (truncate)
+//   cmd >> file                       redirect stdout to file (append)
+//   cmd < file                        redirect stdin from file
+//   cmd &                             run in background (parsed only)
+//   cmd1 ; cmd2                       sequence
+//   $VAR / ${VAR}                     environment variable expansion
+//   "double quoted" / 'single quoted' literal strings
+// =============================================================================
+
+func shTokenize(string s) as var
+    var tokens = []
+    int n = string.len(s)
+    int i = 0
+    while i < n do
+        int b = string.byteAt(s, i)
+        if b == SPACE_BYTE or b == TAB_BYTE or b == NEWLINE_BYTE or b == RETURN_BYTE then
+            i += 1
+        else
+            string cur = ""
+            bool stop = false
+            while i < n and not stop do
+                int c = string.byteAt(s, i)
+                if c == SPACE_BYTE or c == TAB_BYTE or c == NEWLINE_BYTE or c == RETURN_BYTE then
+                    stop = true
+                elseif c == DQUOTE_BYTE then
+                    i += 1
+                    bool closed = false
+                    while i < n and not closed do
+                        int cc = string.byteAt(s, i)
+                        if cc == DQUOTE_BYTE then
+                            i += 1
+                            closed = true
+                        else
+                            cur = cur + string.mid(s, i, 1)
+                            i += 1
+                        end
+                    end
+                elseif c == SQUOTE_BYTE then
+                    i += 1
+                    bool closed = false
+                    while i < n and not closed do
+                        int cc = string.byteAt(s, i)
+                        if cc == SQUOTE_BYTE then
+                            i += 1
+                            closed = true
+                        else
+                            cur = cur + string.mid(s, i, 1)
+                            i += 1
+                        end
+                    end
+                else
+                    cur = cur + string.mid(s, i, 1)
+                    i += 1
+                end
+            end
+            if string.len(cur) > 0 then
+                tokens.append(cur)
+            end
+        end
+    end
+    return tokens
+end
+
+// Parse one pipeline / simple command into a dict
+// Returns: {empty:bool, bg:bool, redirOut:string, redirAppend:bool,
+//           redirIn:string, pipeline:[ [args...], [args...], ... ]}
+func shParse(string line) as var
+    var cmd = {}
+    string s = trimP(line)
+    if string.len(s) == 0 then
+        cmd["empty"] = true
+        return cmd
+    end
+    cmd["empty"] = false
+    cmd["bg"] = false
+    if string.byteAt(s, string.len(s) - 1) == AMP_BYTE then
+        cmd["bg"] = true
+        s = trimP(string.mid(s, 0, string.len(s) - 1))
+    end
+    // Detect '>>' first to avoid clashing with '>'
+    string redirOut = ""
+    bool append = false
+    int gt2 = -1
+    // Find '>>'
+    int scan = 0
+    bool stopScan = false
+    while scan < string.len(s) - 1 and not stopScan do
+        if string.byteAt(s, scan) == GT_BYTE and string.byteAt(s, scan + 1) == GT_BYTE then
+            gt2 = scan
+            stopScan = true
+        end
+        scan += 1
+    end
+    if gt2 >= 0 then
+        append = true
+        redirOut = trimP(string.mid(s, gt2 + 2, string.len(s) - gt2 - 2))
+        s = trimP(string.mid(s, 0, gt2))
+    else
+        int gt = findByte(s, GT_BYTE)
+        if gt >= 0 then
+            redirOut = trimP(string.mid(s, gt + 1, string.len(s) - gt - 1))
+            s = trimP(string.mid(s, 0, gt))
+        end
+    end
+    cmd["redirOut"] = redirOut
+    cmd["redirAppend"] = append
+    // Detect '<'
+    string redirIn = ""
+    int lt = findByte(s, LT_BYTE)
+    if lt >= 0 then
+        redirIn = trimP(string.mid(s, lt + 1, string.len(s) - lt - 1))
+        s = trimP(string.mid(s, 0, lt))
+    end
+    cmd["redirIn"] = redirIn
+    // Split pipeline on '|'
+    var segs = string.split(s, "|")
+    var pipeline = []
+    int n = segs.length
+    int i = 0
+    while i < n do
+        string seg = trimP(string(segs[i]))
+        if string.len(seg) > 0 then
+            var tokens = shTokenize(seg)
+            if tokens.length > 0 then
+                // Expand env vars on each token
+                int ti = 0
+                var expanded = []
+                while ti < tokens.length do
+                    string t = string(tokens[ti])
+                    expanded.append(envExpand(t))
+                    ti += 1
+                end
+                pipeline.append(expanded)
+            end
+        end
+        i += 1
+    end
+    cmd["pipeline"] = pipeline
+    return cmd
+end
+
+// Execute a parsed command structure. Returns the resulting stdout string.
+func shExecParsed(var parsed) as string
+    if parsed["empty"] != null then
+        if bool(parsed["empty"]) then
+            return ""
+        end
+    end
+    var pipeline = parsed["pipeline"]
+    int n = pipeline.length
+    if n == 0 then return "" end
+    string flow = ""
+    if parsed["redirIn"] != null then
+        string rin = string(parsed["redirIn"])
+        if string.len(rin) > 0 then
+            flow = fsReadFile(rin)
+        end
+    end
+    int i = 0
+    while i < n do
+        var tokens = pipeline[i]
+        bool last = (i == n - 1)
+        var res = shRunOne(tokens, flow, last, parsed)
+        flow = string(res["out"])
+        i += 1
+    end
+    if parsed["redirOut"] != null then
+        string rout = string(parsed["redirOut"])
+        if string.len(rout) > 0 then
+            bool doAppend = false
+            if parsed["redirAppend"] != null then
+                doAppend = bool(parsed["redirAppend"])
+            end
+            if doAppend then
+                fsAppendFile(rout, flow)
+            else
+                // Truncate-write: preserve the natural newline so files
+                // behave like POSIX shell redirections.
+                fsWriteFile(rout, flow)
+            end
+            return ""
+        end
+    end
+    return flow
+end
+
+func shRunOne(var tokens, string stdin, bool isLast, var parsed) as var
+    var res = {}
+    res["out"] = ""
+    res["code"] = 0
+    int tn = tokens.length
+    if tn == 0 then return res end
+    string name = string(tokens[0])
+    var args = []
+    int i = 1
+    while i < tn do
+        args.append(tokens[i])
+        i += 1
+    end
+    string sout = shDispatch(name, args, stdin)
+    res["out"] = sout
+    if isLast then
+        if parsed["redirOut"] != null then
+            string rout = string(parsed["redirOut"])
+            if string.len(rout) == 0 then
+                if string.len(sout) > 0 then
+                    print(sout)
+                    if not containsP(sout, "\n") then
+                        println("")
+                    end
+                end
+            end
+        else
+            if string.len(sout) > 0 then
+                print(sout)
+                if string.len(sout) > 0 then
+                    int lastByte = string.byteAt(sout, string.len(sout) - 1)
+                    if lastByte != NEWLINE_BYTE then
+                        println("")
+                    end
+                end
+            end
+        end
+    end
+    return res
+end
+
+
+// =============================================================================
+//  Part 27: Shell built-in command dispatchers
+// =============================================================================
+
+func shDispatch(string name, var args, string stdin) as string
+    if name == "echo"   then return shEcho(args)       end
+    if name == "ls"     then return shLs(args)         end
+    if name == "ll"     then return shLs(args)         end
+    if name == "cat"    then return shCat(args, stdin) end
+    if name == "ps"     then return shPs()             end
+    if name == "top"    then return procTop()          end
+    if name == "mem"    then return shMem()            end
+    if name == "free"   then return memFree()          end
+    if name == "kill"   then return shKill(args)       end
+    if name == "exec"   then return shExec(args)       end
+    if name == "cd"     then return shCd(args)         end
+    if name == "pwd"    then return shPwd()            end
+    if name == "mkdir"  then return shMkdir(args)      end
+    if name == "rmdir"  then return shRmdir(args)      end
+    if name == "touch"  then return shTouch(args)      end
+    if name == "rm"     then return shRm(args)         end
+    if name == "ln"     then return shLn(args)         end
+    if name == "readlink" then return shReadlink(args) end
+    if name == "stat"   then return shStat(args)       end
+    if name == "chmod"  then return shChmod(args)      end
+    if name == "chown"  then return shChown(args)      end
+    if name == "mount"  then return shMount(args)      end
+    if name == "umount" then return shUmount(args)     end
+    if name == "export" then return shExport(args)     end
+    if name == "unset"  then return shUnset(args)      end
+    if name == "env"    then return envList()          end
+    if name == "printenv" then return envList()        end
+    if name == "sleep"  then return shSleep(args)      end
+    if name == "help"   then return shHelp()           end
+    if name == "history" then return shHistory()       end
+    if name == "tree"   then return shTree()           end
+    if name == "write"  then return shWrite(args)      end
+    if name == "alloc"  then return shAlloc(args)      end
+    if name == "free"   then return memFree()          end
+    if name == "pipe"   then return shPipe(args)       end
+    if name == "mkfifo" then return shMkfifo(args)     end
+    if name == "date"   then return shDate()           end
+    if name == "uname"  then return shUname()          end
+    if name == "whoami" then return envGet("USER") + "\n" end
+    if name == "id"     then return "uid=0(root) gid=0(root)\n" end
+    if name == "head"   then return shHead(args, stdin) end
+    if name == "tail"   then return shTail(args, stdin) end
+    if name == "wc"     then return shWc(args, stdin)   end
+    if name == "grep"   then return shGrep(args, stdin) end
+    if name == "sort"   then return shSort(args, stdin) end
+    if name == "uniq"   then return shUniq(args, stdin) end
+    if name == "true"   then return ""                  end
+    if name == "false"  then return ""                  end
+    if name == "noop"   then return ""                  end
+    if name == "version" then return "xos2 v2.0\n"      end
+    if name == "clear"  then return ""                  end
+    return "xos2: unknown command: " + name + "\n"
+end
+
+// ---- Command implementations ----------------------------------------------
+
+func shEcho(var args) as string
+    string s = ""
+    int n = args.length
+    int i = 0
+    while i < n do
+        if i > 0 then s = s + " " end
+        s = s + string(args[i])
+        i += 1
+    end
+    return s + "\n"
+end
+
+func shLs(var args) as string
+    string target = "."
+    bool longFmt = false
+    bool showAll = false
+    int i = 0
+    while i < args.length do
+        string a = string(args[i])
+        if startsWithP(a, "-") then
+            if containsP(a, "l") then longFmt = true end
+            if containsP(a, "a") then showAll = true end
+        else
+            target = a
+        end
+        i += 1
+    end
+    int id = fsResolve(target)
+    if id == NIL then
+        return "ls: cannot access '" + target + "'\n"
+    end
+    Inode n = g_inodes[id]
+    if n.type == FT_FILE or n.type == FT_SYMLINK or n.type == FT_FIFO or n.type == FT_CHARDEV then
+        if longFmt then
+            return shFormatLongLine(n) + "\n"
+        end
+        return n.name + "\n"
+    end
+    var items = fsListDir(target)
+    if not longFmt then
+        string s = ""
+        int j = 0
+        int m = items.length
+        while j < m do
+            s = s + string(items[j]) + "\n"
+            j += 1
+        end
+        return s
+    end
+    string s = padR("total", 10) + i2s(items.length) + "\n"
+    int j = 0
+    int m = items.length
+    while j < m do
+        string nm = string(items[j])
+        int childId = fsFindChild(id, nm)
+        if childId != NIL then
+            Inode child = g_inodes[childId]
+            s = s + shFormatLongLine(child) + "\n"
+        end
+        j += 1
+    end
+    return s
+end
+
+func shFormatLongLine(Inode n) as string
+    string typ = fileTypeNameShort(n.type)
+    string perm = typ + permString(n.perm)
+    string line = padR(perm, 14)
+    line = line + padR(i2s(n.nlink), 6)
+    line = line + padR(i2s(n.uid), 6) + padR(i2s(n.gid), 6)
+    line = line + padR(i2s(n.size), 10)
+    line = line + padR(i2s(n.modTime), 8)
+    line = line + " " + n.name
+    if n.type == FT_SYMLINK then
+        line = line + " -> " + n.target
+    end
+    return line
+end
+
+func shCat(var args, string stdin) as string
+    if args.length == 0 then
+        return stdin
+    end
+    string s = ""
+    int i = 0
+    while i < args.length do
+        string p = string(args[i])
+        int id = fsResolve(p)
+        if id == NIL then
+            s = s + "cat: " + p + ": no such file\n"
+        else
+            Inode n = g_inodes[id]
+            if n.type == FT_DIR then
+                s = s + "cat: " + p + ": is a directory\n"
+            else
+                s = s + n.content
+            end
+        end
+        i += 1
+    end
+    return s
+end
+
+func shPs() as string
+    return procListReport()
+end
+
+func shMem() as string
+    return memReportString()
+end
+
+func shKill(var args) as string
+    if args.length == 0 then
+        return "kill: usage: kill <pid> [signal]\n"
+    end
+    int pid = parseIntSafe(string(args[0]), -1)
+    int sig = SIGTERM
+    if args.length > 1 then
+        sig = parseIntSafe(string(args[1]), SIGTERM)
+    end
+    if pid < 1 or pid >= g_pcb.length then
+        return "kill: no such process: " + args[0] + "\n"
+    end
+    procSignal(pid, sig)
+    mlfqRemove(pid)
+    return "sent " + sigName(sig) + " to pid " + i2s(pid) + "\n"
+end
+
+func shExec(var args) as string
+    if args.length < 2 then
+        return "exec: usage: exec <name> <burst> [level] [program...]\n"
+    end
+    string pname = string(args[0])
+    int burst = parseIntSafe(string(args[1]), 5)
+    int level = 0
+    if args.length >= 3 then
+        level = parseIntSafe(string(args[2]), 0)
+    end
+    array<string> prog = array[]
+    int i = 3
+    while i < args.length do
+        prog.append(string(args[i]))
+        i += 1
+    end
+    if prog.length == 0 then
+        prog.append("compute " + i2s(burst))
+    end
+    int pid = procCreate(pname, g_totalTick, burst, level, prog)
+    procArrive(pid)
+    return "executed pid=" + i2s(pid) + " name=" + pname + "\n"
+end
+
+func shCd(var args) as string
+    string target = "/"
+    if args.length > 0 then
+        target = string(args[0])
+        if target == "~" then
+            target = envGet("HOME")
+        end
+    end
+    if not fsCd(target) then
+        return "cd: " + target + ": no such directory\n"
+    end
+    envSet("PWD", fsPwd())
+    g_pcb[1].cwdIno = g_cwdIno
+    return ""
+end
+
+func shPwd() as string
+    return fsPwd() + "\n"
+end
+
+func shMkdir(var args) as string
+    if args.length == 0 then
+        return "mkdir: usage: mkdir <path> [path...]\n"
+    end
+    string s = ""
+    int i = 0
+    while i < args.length do
+        string p = string(args[i])
+        if fsMkdir(p, PERM_RWX) == NIL then
+            s = s + "mkdir: cannot create '" + p + "'\n"
+        end
+        i += 1
+    end
+    return s
+end
+
+func shRmdir(var args) as string
+    if args.length == 0 then
+        return "rmdir: usage: rmdir <path>\n"
+    end
+    string p = string(args[0])
+    if not fsRemove(p) then
+        return "rmdir: cannot remove '" + p + "'\n"
+    end
+    return ""
+end
+
+func shTouch(var args) as string
+    if args.length == 0 then
+        return "touch: usage: touch <path>\n"
+    end
+    int i = 0
+    while i < args.length do
+        string p = string(args[i])
+        if not fsExists(p) then
+            if fsCreate(p, PERM_RW) == NIL then
+                return "touch: cannot create '" + p + "'\n"
+            end
+        end
+        i += 1
+    end
+    return ""
+end
+
+func shRm(var args) as string
+    if args.length == 0 then
+        return "rm: usage: rm [-r] <path>\n"
+    end
+    bool rflag = false
+    bool fflag = false
+    array<string> targets = array[]
+    int idx = 0
+    while idx < args.length do
+        string a = string(args[idx])
+        if startsWithP(a, "-") and string.len(a) > 1 then
+            if containsP(a, "r") then rflag = true end
+            if containsP(a, "f") then fflag = true end
+        else
+            targets.append(a)
+        end
+        idx += 1
+    end
+    string s = ""
+    int j = 0
+    while j < targets.length do
+        string p = targets[j]
+        bool ok = false
+        if rflag then
+            ok = fsRemoveRecursive(p)
+        else
+            ok = fsRemove(p)
+        end
+        if not ok and not fflag then
+            s = s + "rm: cannot remove '" + p + "'\n"
+        end
+        j += 1
+    end
+    return s
+end
+
+func shLn(var args) as string
+    if args.length < 2 then
+        return "ln: usage: ln [-s] <src> <dst>\n"
+    end
+    bool sym = false
+    int idx = 0
+    if startsWithP(string(args[0]), "-") then
+        if containsP(string(args[0]), "s") then sym = true end
+        idx = 1
+    end
+    if idx + 1 >= args.length then
+        return "ln: usage: ln [-s] <src> <dst>\n"
+    end
+    string src = string(args[idx])
+    string dst = string(args[idx + 1])
+    bool ok = false
+    if sym then
+        ok = fsSymlink(src, dst)
+    else
+        ok = fsLink(src, dst)
+    end
+    if not ok then
+        return "ln: failed to link '" + src + "' -> '" + dst + "'\n"
+    end
+    return ""
+end
+
+func shReadlink(var args) as string
+    if args.length == 0 then
+        return "readlink: usage: readlink <path>\n"
+    end
+    string p = string(args[0])
+    string t = fsReadlink(p)
+    if string.len(t) == 0 then
+        return "readlink: " + p + ": not a symlink\n"
+    end
+    return t + "\n"
+end
+
+func shStat(var args) as string
+    if args.length == 0 then
+        return "stat: usage: stat <path>\n"
+    end
+    string p = string(args[0])
+    var st = fsStat(p)
+    if st["ok"] == null or not bool(st["ok"]) then
+        return "stat: cannot stat '" + p + "'\n"
+    end
+    string s = ""
+    s = s + "  File: " + string(st["name"]) + "\n"
+    s = s + "  Ino: " + i2s(int(st["ino"])) + "  Type: " + fileTypeName(int(st["type"])) + "\n"
+    s = s + "  Perm: " + string(st["permStr"]) + "  Uid: " + i2s(int(st["uid"])) + "  Gid: " + i2s(int(st["gid"])) + "\n"
+    s = s + "  Size: " + i2s(int(st["size"])) + "  Nlink: " + i2s(int(st["nlink"])) + "\n"
+    s = s + "  Mtime: " + i2s(int(st["mtime"])) + "  Ctime: " + i2s(int(st["ctime"])) + "\n"
+    return s
+end
+
+func shChmod(var args) as string
+    if args.length < 2 then
+        return "chmod: usage: chmod <perm> <path>\n"
+    end
+    string pp = string(args[0])
+    int perm = -1
+    if startsWithP(pp, "r") or startsWithP(pp, "-") then
+        perm = parsePerm(pp)
+    else
+        perm = parsePermOctal(pp)
+    end
+    if perm < 0 then
+        return "chmod: invalid mode: " + pp + "\n"
+    end
+    int i = 1
+    while i < args.length do
+        string p = string(args[i])
+        if not fsChmod(p, perm) then
+            return "chmod: cannot change mode of '" + p + "'\n"
+        end
+        i += 1
+    end
+    return ""
+end
+
+func shChown(var args) as string
+    if args.length < 2 then
+        return "chown: usage: chown <uid> <path>\n"
+    end
+    int uid = parseIntSafe(string(args[0]), -1)
+    if uid < 0 then
+        return "chown: invalid uid\n"
+    end
+    int i = 1
+    while i < args.length do
+        string p = string(args[i])
+        if not fsChown(p, uid, 0) then
+            return "chown: cannot change owner of '" + p + "'\n"
+        end
+        i += 1
+    end
+    return ""
+end
+
+func shMount(var args) as string
+    if args.length < 2 then
+        return mountsReport()
+    end
+    string src = string(args[0])
+    string tgt = string(args[1])
+    string fst = "xfs"
+    if args.length > 2 then fst = string(args[2]) end
+    if not fsMount(src, tgt, fst) then
+        return "mount: failed to mount " + src + " on " + tgt + "\n"
+    end
+    return ""
+end
+
+func shUmount(var args) as string
+    if args.length == 0 then
+        return "umount: usage: umount <target>\n"
+    end
+    string tgt = string(args[0])
+    if not fsUmount(tgt) then
+        return "umount: " + tgt + ": not mounted\n"
+    end
+    return ""
+end
+
+func shExport(var args) as string
+    if args.length == 0 then
+        return envList()
+    end
+    int i = 0
+    while i < args.length do
+        string a = string(args[i])
+        int eq = findByte(a, EQUAL_BYTE)
+        if eq > 0 then
+            string k = string.mid(a, 0, eq)
+            string v = string.mid(a, eq + 1, string.len(a) - eq - 1)
+            envSet(k, v)
+        end
+        i += 1
+    end
+    return ""
+end
+
+func shUnset(var args) as string
+    if args.length == 0 then
+        return "unset: usage: unset <var>\n"
+    end
+    int i = 0
+    while i < args.length do
+        envUnset(string(args[i]))
+        i += 1
+    end
+    return ""
+end
+
+func shSleep(var args) as string
+    int n = 1
+    if args.length > 0 then
+        n = parseIntSafe(string(args[0]), 1)
+    end
+    if n < 1 then n = 1 end
+    // Advance the scheduler N ticks so sleepers wake up
+    int i = 0
+    while i < n do
+        schedulerStep()
+        i += 1
+    end
+    return ""
+end
+
+func shHelp() as string
+    string s = ""
+    s = s + "xos2 shell built-in commands:\n"
+    s = s + "  echo <text>             print text\n"
+    s = s + "  ls [-l] [path]          list directory\n"
+    s = s + "  cat <file>              print file (reads stdin if no arg)\n"
+    s = s + "  pwd                     print working directory\n"
+    s = s + "  cd <path>               change directory\n"
+    s = s + "  mkdir <path>            create directory\n"
+    s = s + "  rmdir <path>            remove empty directory\n"
+    s = s + "  touch <path>            create empty file\n"
+    s = s + "  rm [-rf] <path>         remove file or tree\n"
+    s = s + "  ln [-s] <src> <dst>     hard / symbolic link\n"
+    s = s + "  readlink <path>         print symlink target\n"
+    s = s + "  stat <path>             print file info\n"
+    s = s + "  chmod <perm> <path>     change permissions\n"
+    s = s + "  chown <uid> <path>      change owner\n"
+    s = s + "  mount <src> <tgt>       mount filesystem\n"
+    s = s + "  umount <tgt>            unmount filesystem\n"
+    s = s + "  export VAR=VAL          set environment variable\n"
+    s = s + "  unset VAR               unset environment variable\n"
+    s = s + "  env                     list environment\n"
+    s = s + "  ps                      list processes\n"
+    s = s + "  top                     process summary\n"
+    s = s + "  mem                     memory stats\n"
+    s = s + "  free                    free memory\n"
+    s = s + "  kill <pid> [sig]        terminate process\n"
+    s = s + "  exec <name> <burst>     create a process\n"
+    s = s + "  alloc <pid> <vaddr>     translate virtual address\n"
+    s = s + "  pipe <a> | <b>          create a pipe\n"
+    s = s + "  mkfifo <path>           create named pipe\n"
+    s = s + "  sleep <n>               sleep n ticks\n"
+    s = s + "  date                    show current tick\n"
+    s = s + "  uname                   show system info\n"
+    s = s + "  whoami / id / version   misc info\n"
+    s = s + "  head/tail/wc/grep/sort/uniq   text filters\n"
+    s = s + "  tree                    dump filesystem tree\n"
+    s = s + "  history                 command history\n"
+    s = s + "  help                    this message\n"
+    s = s + "syntax: cmd1 | cmd2  > file  >> file  < file  &\n"
+    return s
+end
+
+func shHistory() as string
+    string s = ""
+    int i = 0
+    int n = g_history.length
+    while i < n do
+        s = s + i2s(i + 1) + "  " + g_history[i] + "\n"
+        i += 1
+    end
+    return s
+end
+
+func shTree() as string
+    string s = ""
+    int i = 0
+    while i < g_inodes.length do
+        Inode n = g_inodes[i]
+        if n.parent == NIL and i != g_rootIno then
+            // orphan, skip
+        else
+            string pad = ""
+            int cur = i
+            int depth = 0
+            while cur != g_rootIno and cur != NIL do
+                Inode c = g_inodes[cur]
+                cur = c.parent
+                depth += 1
+                if depth > 64 then cur = g_rootIno end
+            end
+            int d = 0
+            while d < depth do
+                pad = pad + "  "
+                d += 1
+            end
+            string typ = "D"
+            if n.type == FT_FILE then
+                typ = "F"
+            elseif n.type == FT_SYMLINK then
+                typ = "L"
+            elseif n.type == FT_FIFO then
+                typ = "P"
+            elseif n.type == FT_CHARDEV then
+                typ = "C"
+            end
+            s = s + pad + typ + " " + n.name
+            if n.type == FT_SYMLINK then
+                s = s + " -> " + n.target
+            end
+            s = s + "\n"
+        end
+        i += 1
+    end
+    return s
+end
+
+func shWrite(var args) as string
+    if args.length < 2 then
+        return "write: usage: write <path> <text>\n"
+    end
+    string p = string(args[0])
+    string txt = ""
+    int i = 1
+    while i < args.length do
+        if i > 1 then txt = txt + " " end
+        txt = txt + args[i]
+        i += 1
+    end
+    if not fsWriteFile(p, txt) then
+        return "write: cannot write '" + p + "'\n"
+    end
+    return ""
+end
+
+func shAlloc(var args) as string
+    if args.length < 2 then
+        return "alloc: usage: alloc <pid> <vaddr>\n"
+    end
+    int pid = parseIntSafe(string(args[0]), -1)
+    int vaddr = parseIntSafe(string(args[1]), 0)
+    if pid < 1 or pid >= g_pcb.length then
+        return "alloc: invalid pid\n"
+    end
+    int paddr = memTranslate(pid, vaddr)
+    if paddr == NIL then
+        return "alloc: translation failed\n"
+    end
+    return "vaddr " + i2s(vaddr) + " -> paddr " + i2s(paddr) + "\n"
+end
+
+func shPipe(var args) as string
+    var r = pipeCreate()
+    int rfd = int(r[0])
+    int wfd = int(r[1])
+    return "pipe: read_fd=" + i2s(rfd) + " write_fd=" + i2s(wfd) + "\n"
+end
+
+func shMkfifo(var args) as string
+    if args.length == 0 then
+        return "mkfifo: usage: mkfifo <path>\n"
+    end
+    if not fsMkfifo(string(args[0]), PERM_RW) then
+        return "mkfifo: cannot create '" + string(args[0]) + "'\n"
+    end
+    return ""
+end
+
+func shDate() as string
+    return "tick=" + i2s(g_totalTick) + "\n"
+end
+
+func shUname() as string
+    return "xos2 xlang-2.0 " + fsReadFile("/etc/hostname") + "\n"
+end
+
+func shHead(var args, string stdin) as string
+    int n = 10
+    int i = 0
+    while i < args.length do
+        string a = string(args[i])
+        if startsWithP(a, "-") and string.len(a) > 1 then
+            int v = parseIntSafe(string.mid(a, 1, string.len(a) - 1), 10)
+            if v > 0 then n = v end
+        end
+        i += 1
+    end
+    var lines = string.splitLines(stdin)
+    if lines.length == 0 then return "" end
+    int take = mini(n, lines.length)
+    string s = ""
+    int j = 0
+    while j < take do
+        s = s + string(lines[j]) + "\n"
+        j += 1
+    end
+    return s
+end
+
+func shTail(var args, string stdin) as string
+    int n = 10
+    int i = 0
+    while i < args.length do
+        string a = string(args[i])
+        if startsWithP(a, "-") and string.len(a) > 1 then
+            int v = parseIntSafe(string.mid(a, 1, string.len(a) - 1), 10)
+            if v > 0 then n = v end
+        end
+        i += 1
+    end
+    var lines = string.splitLines(stdin)
+    if lines.length == 0 then return "" end
+    int start = lines.length - n
+    if start < 0 then start = 0 end
+    string s = ""
+    int j = start
+    while j < lines.length do
+        s = s + string(lines[j]) + "\n"
+        j += 1
+    end
+    return s
+end
+
+func shWc(var args, string stdin) as string
+    int lines = 0
+    int words = 0
+    int chars = string.len(stdin)
+    var ls = string.splitLines(stdin)
+    lines = ls.length
+    var ws = string.split(stdin, " ")
+    words = ws.length
+    return i2s(lines) + " " + i2s(words) + " " + i2s(chars) + "\n"
+end
+
+func shGrep(var args, string stdin) as string
+    if args.length == 0 then
+        return "grep: usage: grep <pattern>\n"
+    end
+    string pat = string(args[0])
+    var lines = string.splitLines(stdin)
+    string s = ""
+    int i = 0
+    while i < lines.length do
+        string l = string(lines[i])
+        if containsP(l, pat) then
+            s = s + l + "\n"
+        end
+        i += 1
+    end
+    return s
+end
+
+func shSort(var args, string stdin) as string
+    var lines = string.splitLines(stdin)
+    if lines.length <= 1 then return stdin end
+    // Simple insertion sort (var comparisons via string)
+    int i = 1
+    while i < lines.length do
+        string cur = string(lines[i])
+        int j = i - 1
+        bool stop = false
+        while j >= 0 and not stop do
+            string prev = string(lines[j])
+            if string.compare(prev, cur) > 0 then
+                lines[j + 1] = prev
+                j -= 1
+            else
+                stop = true
+            end
+        end
+        lines[j + 1] = cur
+        i += 1
+    end
+    string s = ""
+    int k = 0
+    while k < lines.length do
+        s = s + string(lines[k]) + "\n"
+        k += 1
+    end
+    return s
+end
+
+func shUniq(var args, string stdin) as string
+    var lines = string.splitLines(stdin)
+    if lines.length == 0 then return "" end
+    string s = string(lines[0]) + "\n"
+    string prev = string(lines[0])
+    int i = 1
+    while i < lines.length do
+        string cur = string(lines[i])
+        if cur != prev then
+            s = s + cur + "\n"
+            prev = cur
+        end
+        i += 1
+    end
+    return s
+end
+
+
+// =============================================================================
+//  Part 28: Shell script runner
+// =============================================================================
+//
+// Reads a file from the host filesystem and runs each line as a shell command.
+// Lines starting with '#' are comments. The sequence separator ';' is honoured
+// by splitting before parsing.
+// =============================================================================
+
+func shRunScript(string path) as int
+    if not file.exists(path) then
+        println("xos2: script not found: " + path)
+        return 1
+    end
+    string text = file.readText(path)
+    var rawLines = string.splitLines(text)
+    int n = rawLines.length
+    int i = 0
+    int errors = 0
+    while i < n do
+        string line = string(rawLines[i])
+        i += 1
+        string t = trimP(line)
+        if string.len(t) == 0 then
+            // blank
+        else
+            int hb = string.byteAt(t, 0)
+            if hb == HASH_BYTE then
+                // comment
+            else
+                g_history.append(t)
+                if g_history.length > g_historyLimit then
+                    g_history.remove(0)
+                end
+                // Split on ';' for sequence
+                var seq = string.split(t, ";")
+                int j = 0
+                while j < seq.length do
+                    string stmt = trimP(string(seq[j]))
+                    if string.len(stmt) > 0 then
+                        var parsed = shParse(stmt)
+                        shExecParsed(parsed)
+                    end
+                    j += 1
+                end
+            end
+        end
+    end
+    return errors
+end
+
+// Run an in-memory script (string of newline-separated commands)
+func shRunText(string text) as int
+    var rawLines = string.splitLines(text)
+    int n = rawLines.length
+    int i = 0
+    int errors = 0
+    while i < n do
+        string line = string(rawLines[i])
+        i += 1
+        string t = trimP(line)
+        if string.len(t) == 0 then
+            // blank
+        else
+            int hb = string.byteAt(t, 0)
+            if hb == HASH_BYTE then
+                // comment
+            else
+                g_history.append(t)
+                if g_history.length > g_historyLimit then
+                    g_history.remove(0)
+                end
+                var seq = string.split(t, ";")
+                int j = 0
+                while j < seq.length do
+                    string stmt = trimP(string(seq[j]))
+                    if string.len(stmt) > 0 then
+                        var parsed = shParse(stmt)
+                        shExecParsed(parsed)
+                    end
+                    j += 1
+                end
+            end
+        end
+    end
+    return errors
+end
+
+
+// =============================================================================
+//  Part 29: Self-test suite
+// =============================================================================
+
+func testFS()
+    println("[testFS] file system: mkdir/ls/write/read/links/chmod")
+    fsMkdir("/home", PERM_RWX)
+    expectTrue(fsExists("/home"), "fs mkdir /home")
+    fsWriteFile("/home/a.txt", "hello")
+    expectS(fsReadFile("/home/a.txt"), "hello", "fs write+read")
+    fsAppendFile("/home/a.txt", " world")
+    expectS(fsReadFile("/home/a.txt"), "hello world", "fs append")
+    var items = fsListDir("/home")
+    expectTrue(items.length >= 1, "fs ls /home")
+    // Hard link
+    fsLink("/home/a.txt", "/home/b.txt")
+    expectEq(g_inodes[fsResolve("/home/a.txt")].nlink, 2, "fs hardlink nlink==2")
+    // Symlink
+    fsSymlink("/home/a.txt", "/home/c.txt")
+    expectEq(g_inodes[fsResolveNoFollow("/home/c.txt")].type, FT_SYMLINK, "fs symlink type")
+    expectS(fsReadlink("/home/c.txt"), "/home/a.txt", "fs readlink target")
+    expectS(fsReadFile("/home/c.txt"), "hello world", "fs symlink follows target")
+    // Chmod
+    fsChmod("/home/a.txt", PERM_R)
+    expectEq(g_inodes[fsResolve("/home/a.txt")].perm, PERM_R, "fs chmod 0444 -> r--")
+    fsChmod("/home/a.txt", PERM_RW)
+    // Stat
+    var st = fsStat("/home/a.txt")
+    expectTrue(bool(st["ok"]), "fs stat ok")
+    expectEq(int(st["size"]), 11, "fs stat size==11")
+    // Remove
+    expectTrue(fsRemove("/home/b.txt"), "fs remove hardlink")
+    expectEq(g_inodes[fsResolve("/home/a.txt")].nlink, 1, "fs nlink back to 1 after rm")
+    expectTrue(fsRemove("/home/c.txt"), "fs remove symlink")
+    expectTrue(fsRemove("/home/a.txt"), "fs remove file")
+    expectFalse(fsExists("/home/a.txt"), "fs file gone after rm")
+end
+
+func testMem()
+    println("[testMem] memory: paging / TLB / replacement / SHM / COW")
+    int pid = procCreate("mem-test", 0, 5, 0, array["compute 1"])
+    procArrive(pid)
+    int paddr1 = memTranslate(pid, 0)
+    expectNe(paddr1, NIL, "mem translate vaddr 0")
+    int paddr2 = memTranslate(pid, 0)
+    expectEq(paddr1, paddr2, "mem TLB hit returns same paddr")
+    expectGt(g_memTlbHit, 0, "mem TLB hit count > 0")
+    // Different vaddr should produce different frame
+    int paddr3 = memTranslate(pid, FRAME_SIZE)
+    expectNe(paddr3, paddr1, "mem different vaddr -> different paddr")
+    expectGt(g_memPageFault, 0, "mem page fault occurred")
+    // SHM
+    int sid = shmGet(42, 8192)
+    expectNe(sid, NIL, "shmget returns id")
+    expectTrue(shmAttach(sid, pid), "shmat attaches")
+    shmDetachByPid(sid, pid)
+    // COW fork
+    memTranslate(pid, 0)
+    int childPid = procFork(pid)
+    expectNe(childPid, NIL, "fork creates child")
+    expectGt(g_pcb[childPid].ptDirId, -1, "child has its own page dir")
+    // All replacement policies should at least run
+    g_memReplPolicy = REPL_LRU
+    int p4 = memTranslate(pid, 0)
+    expectNe(p4, NIL, "LRU translate")
+    g_memReplPolicy = REPL_CLOCK
+    int p5 = memTranslate(pid, 0)
+    expectNe(p5, NIL, "CLOCK translate")
+    g_memReplPolicy = REPL_OPT
+    int p6 = memTranslate(pid, 0)
+    expectNe(p6, NIL, "OPT translate")
+    g_memReplPolicy = REPL_LRU
+end
+
+func testSched()
+    println("[testSched] MLFQ + fork/exec/wait/exit")
+    int p1 = procCreate("alpha", 0, 5, 0, array["compute 5"])
+    int p2 = procCreate("beta",  0, 6, 1, array["compute 6"])
+    int p3 = procCreate("gamma", 0, 8, 2, array["compute 8"])
+    procArrive(p1)
+    procArrive(p2)
+    procArrive(p3)
+    schedulerLoop(500)
+    procReapZombies()
+    expectTrue(g_pcb[p1].state >= PROC_ZOMBIE, "alpha terminated")
+    expectTrue(g_pcb[p2].state >= PROC_ZOMBIE, "beta terminated")
+    expectTrue(g_pcb[p3].state >= PROC_ZOMBIE, "gamma terminated")
+    expectGt(g_contextSwitches, 2, "multiple context switches")
+    // Boost: run a process long enough to trigger the periodic priority boost
+    g_totalTick = 0
+    g_lastBoost = 0
+    int q = procCreate("longrun", 0, 200, 2, array["compute 200"])
+    procArrive(q)
+    schedulerLoop(300)
+    procReapZombies()
+    expectTrue(g_pcb[q].state >= PROC_ZOMBIE, "longrun finished")
+    expectGe(g_totalTick, MLFQ_BOOST, "boost threshold reached")
+end
+
+func testShellParse()
+    println("[testShellParse] pipeline/redirect/env expansion")
+    boot()
+    var p = shParse("echo hi | cat")
+    expectFalse(bool(p["empty"]), "pipeline not empty")
+    expectEq(p["pipeline"].length, 2, "two pipeline stages")
+    var p2 = shParse("echo x > /tmp/out")
+    expectS(string(p2["redirOut"]), "/tmp/out", "redirect out parsed")
+    var p3 = shParse("cat < /tmp/in")
+    expectS(string(p3["redirIn"]), "/tmp/in", "redirect in parsed")
+    var p4 = shParse("sleep 5 &")
+    expectTrue(bool(p4["bg"]), "background parsed")
+    // env expansion
+    envSet("FOO", "bar99")
+    expectS(envExpand("x$FOO"), "xbar99", "env expand $VAR")
+    expectS(envExpand("x${FOO}y"), "xbar99y", "env expand ${VAR}")
+end
+
+func testShellExec()
+    println("[testShellExec] end-to-end shell commands")
+    boot()
+    shRunText("mkdir /t1\ncd /t1\necho hello > a.txt\ncat a.txt\nls")
+    expectTrue(fsExists("/t1"), "shell mkdir /t1")
+    expectTrue(fsExists("/t1/a.txt"), "shell echo > a.txt creates file")
+    expectS(fsReadFile("/t1/a.txt"), "hello\n", "shell echo > writes content")
+    // Append
+    shRunText("echo world >> /t1/a.txt")
+    expectS(fsReadFile("/t1/a.txt"), "hello\nworld\n", "shell >> appends")
+    // Pipe
+    shRunText("echo abc | cat")
+    // Env vars
+    shRunText("export FOO=baz")
+    expectS(envGet("FOO"), "baz", "shell export sets env")
+end
+
+func testSyscall()
+    println("[testSyscall] unified syscall interface")
+    fsWriteFile("/etc/s.txt", "syscall-data")
+    var r1 = syscall(SYS_CAT, ["/etc/s.txt"])
+    expectS(string(r1["ret"]), "syscall-data", "SYS_CAT returns content")
+    var r2 = syscall(SYSOPEN, ["/etc/s.txt", "r"])
+    int fd = int(r2["ret"])
+    expectTrue(fd >= 0, "SYSOPEN returns fd")
+    var r3 = syscall(SYS_READ, [fd, 8])
+    expectS(string(r3["ret"]), "syscall-", "SYS_READ first 8 bytes")
+    var r4 = syscall(SYS_CLOSE, [fd])
+    expectTrue(bool(r4["ret"]), "SYS_CLOSE ok")
+    var r5 = syscall(SYS_LS, ["/etc"])
+    expectTrue(r5["ret"].length > 0, "SYS_LS returns entries")
+    int beforeIno = g_nextIno
+    var r6 = syscall(SYS_MKDIR, ["/scdir"])
+    expectTrue(int(r6["ret"]) >= 0, "SYS_MKDIR returns ino")
+    expectTrue(g_nextIno > beforeIno, "nextIno advanced after mkdir")
+    var r7 = syscall(SYS_PIPE, [])
+    expectTrue(r7["ret"].length == 2, "SYS_PIPE returns two fds")
+    var r8 = syscall(9999, [])
+    expectTrue(containsP(string(r8["msg"]), "unknown syscall"), "unknown syscall reported")
+end
+
+func testSignals()
+    println("[testSignals] signal delivery: SIGTERM/SIGKILL/SIGCHLD")
+    boot()
+    int p1 = procCreate("target", 0, 50, 0, array["compute 50"])
+    procArrive(p1)
+    procSignal(p1, SIGTERM)
+    expectEq(g_pcb[p1].state, PROC_ZOMBIE, "SIGTERM terminates target")
+    int p2 = procCreate("hard", 0, 50, 0, array["compute 50"])
+    procArrive(p2)
+    procSignal(p2, SIGKILL)
+    expectEq(g_pcb[p2].state, PROC_ZOMBIE, "SIGKILL terminates hard")
+    int p3 = procCreate("parent", 0, 50, 0, array["compute 50"])
+    procArrive(p3)
+    int c = procFork(p3)
+    expectNe(c, NIL, "fork before SIGCHLD")
+    procTerminate(c, 0)
+    // Parent should have a SIGCHLD pending
+    bool hasSig = false
+    PCB par = g_pcb[p3]
+    int i = 0
+    while i < par.pendingSignals.length do
+        if par.pendingSignals[i] == SIGCHLD then hasSig = true end
+        i += 1
+    end
+    expectTrue(hasSig, "SIGCHLD delivered to parent")
+end
+
+func testPipes()
+    println("[testPipes] anonymous + FIFO")
+    boot()
+    var pr = pipeCreate()
+    int rfd = int(pr[0])
+    int wfd = int(pr[1])
+    expectTrue(rfd >= 0, "pipe read fd")
+    expectTrue(wfd >= 0, "pipe write fd")
+    int wn = fsWrite(wfd, "hello-pipe")
+    expectEq(wn, 10, "pipe write returns 10")
+    string rd = fsRead(rfd, 100)
+    expectS(rd, "hello-pipe", "pipe read returns content")
+    fsClose(rfd)
+    fsClose(wfd)
+    // FIFO
+    fsMkfifo("/tmp/fifo", PERM_RW)
+    expectEq(g_inodes[fsResolve("/tmp/fifo")].type, FT_FIFO, "mkfifo creates FT_FIFO")
+    int frd = fsOpen("/tmp/fifo", "r")
+    int fwd = fsOpen("/tmp/fifo", "w")
+    expectTrue(frd >= 0, "fifo open read end")
+    expectTrue(fwd >= 0, "fifo open write end")
+    fsWrite(fwd, "fifo-data")
+    expectS(fsRead(frd, 100), "fifo-data", "fifo read after write")
+end
+
+func testDevices()
+    println("[testDevices] /dev/null /dev/zero /dev/random /dev/console")
+    boot()
+    expectTrue(fsExists("/dev/null"), "/dev/null exists")
+    expectTrue(fsExists("/dev/zero"), "/dev/zero exists")
+    expectTrue(fsExists("/dev/random"), "/dev/random exists")
+    expectTrue(fsExists("/dev/console"), "/dev/console exists")
+    int dn = fsOpen("/dev/null", "w")
+    expectTrue(dn >= 0, "/dev/null open")
+    int wn = fsWrite(dn, "ignored")
+    expectEq(wn, 7, "/dev/null write returns len")
+    fsClose(dn)
+    int dz = fsOpen("/dev/zero", "r")
+    string z = fsRead(dz, 4)
+    expectEq(string.len(z), 4, "/dev/zero read 4 bytes")
+    fsClose(dz)
+    int dr = fsOpen("/dev/random", "r")
+    string r = fsRead(dr, 8)
+    expectEq(string.len(r), 8, "/dev/random read 8 bytes")
+    fsClose(dr)
+end
+
+func testVFS()
+    println("[testVFS] mount / umount")
+    boot()
+    fsMkdir("/mnt/test", PERM_RWX)
+    expectTrue(fsMount("srcfs", "/mnt/test", "xfs"), "fsMount /mnt/test")
+    expectFalse(fsMount("srcfs", "/mnt/test", "xfs"), "duplicate mount fails")
+    expectTrue(fsUmount("/mnt/test"), "fsUmount /mnt/test")
+    expectFalse(fsUmount("/mnt/test"), "double umount fails")
+    expectFalse(fsUmount("/"), "umount / fails")
+end
+
+func testIntegration()
+    println("[testIntegration] boot -> schedule -> memory -> fs -> terminate")
+    boot()
+    int p1 = procCreate("writer", 0, 8, 0, array["compute 4", "mkdir /srv", "create /srv/a", "compute 2"])
+    int p2 = procCreate("reader", 0, 6, 0, array["compute 6"])
+    // memhog touches the same vaddr twice so we get at least one TLB hit
+    int p3 = procCreate("memhog", 0, 9, 1, array["access 0", "access 4096", "access 8192", "access 0", "compute 4"])
+    int p4 = procCreate("cpu",    0, 10, 0, array["compute 10"])
+    procArrive(p1)
+    procArrive(p2)
+    procArrive(p3)
+    procArrive(p4)
+    schedulerLoop(4000)
+    procReapZombies()
+    bool allDone = true
+    if g_pcb[p1].state < PROC_ZOMBIE then allDone = false end
+    if g_pcb[p2].state < PROC_ZOMBIE then allDone = false end
+    if g_pcb[p3].state < PROC_ZOMBIE then allDone = false end
+    if g_pcb[p4].state < PROC_ZOMBIE then allDone = false end
+    expectTrue(allDone, "integration: all 4 procs terminated")
+    expectGt(g_contextSwitches, 3, "integration: context switches")
+    expectGt(g_memTranslate, 0, "integration: memory translates")
+    expectGt(g_memPageFault, 0, "integration: page faults")
+    expectGt(g_memTlbHit, 0, "integration: TLB hits")
+    expectTrue(fsExists("/srv"), "integration: writer created /srv")
+end
+
+func runAllTests() as int
+    banner("xos2 self-test")
+    boot()
+    testFS()
+    boot()
+    testMem()
+    boot()
+    testSched()
+    testShellParse()
+    testShellExec()
+    boot()
+    testSyscall()
+    boot()
+    testSignals()
+    boot()
+    testPipes()
+    boot()
+    testDevices()
+    boot()
+    testVFS()
+    boot()
+    testIntegration()
+    return testSummary()
+end
+
+
+// =============================================================================
+//  Part 30: Demo / main entrypoint
+// =============================================================================
+
+func runDemo() as int
+    banner("xos2 demo")
+    boot()
+    banner("file system")
+    fsDumpTree()
+    banner("process / memory / fs scenario")
+    shRunText("# Demo script\n" +
+              "mkdir /home\n" +
+              "cd /home\n" +
+              "echo hello > test.txt\n" +
+              "cat test.txt\n" +
+              "ls -l\n" +
+              "ps\n" +
+              "mem\n" +
+              "echo world >> test.txt\n" +
+              "cat test.txt\n" +
+              "sleep 2\n" +
+              "env\n" +
+              "help\n")
+    banner("state after demo")
+    procListReport()
+    println(procTop())
+    memReport()
+    return 0
+end
+
+func printUsage()
+    println("xos2 - Complete Operating System Simulator (xlang)")
+    println("")
+    println("usage:")
+    println("  xos2 boot <script.xsh>    boot the kernel and run a shell script")
+    println("  xos2 test                 run the integrated self-test suite")
+    println("  xos2 demo                 run a short interactive demo")
+    println("  xos2 help                 show this help")
+end
+
+func main(...) as int
+    if arg.length < 2 then
+        printUsage()
+        return 1
+    end
+    string cmd = string(arg[1])
+    if cmd == "help" or cmd == "-h" or cmd == "--help" then
+        printUsage()
+        return 0
+    end
+    if cmd == "test" then
+        return runAllTests()
+    end
+    if cmd == "demo" then
+        return runDemo()
+    end
+    if cmd == "boot" then
+        if arg.length < 3 then
+            println("xos2: 'boot' needs <script.xsh>")
+            return 1
+        end
+        boot()
+        // Create an idle shell process so kill/exec have a target
+        int sh = procCreate("shell", 0, 999, 0, array["compute 999"])
+        procArrive(sh)
+        g_currentPid = sh
+        string script = string(arg[2])
+        return shRunScript(script)
+    end
+    println("xos2: unknown command: " + cmd)
+    println("")
+    printUsage()
+    return 1
+end

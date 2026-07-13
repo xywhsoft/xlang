@@ -47,14 +47,14 @@ class TaskBox
 end
 
 async func makeTaskBox(int base) as TaskBox
-    TaskBox box
+    TaskBox box = TaskBox()
     box.base = base
     return box
 end
 
 async func slowMakeTaskBox(int base) as TaskBox
     time.sleep(120)
-    TaskBox box
+    TaskBox box = TaskBox()
     box.base = base
     return box
 end
@@ -665,7 +665,7 @@ int mixedTaskBorrowedClosure = await task.spawn(chooseMixedTaskClosure ? mixedTa
 assert mixedTaskBorrowedClosure == 263, "task.spawn mixed conditional borrowed closure"
 assert mixedTaskClosureSource(4) == 264, "mixed conditional closure source remains usable after borrowed branch"
 
-TaskFuncBox memberClosureBox
+TaskFuncBox memberClosureBox = TaskFuncBox()
 memberClosureBox.op = makeAdder(120)
 int memberClosureSpawned = await task.spawn(memberClosureBox.op, 3)
 assert memberClosureSpawned == 123, "task.spawn member closure result"
@@ -675,7 +675,7 @@ int memberClosureB = await memberClosureFuture
 assert memberClosureA == 124, "task.spawn member closure first await"
 assert memberClosureB == 124, "task.spawn member closure repeated await"
 
-TaskFuncBox memberClosureAlt
+TaskFuncBox memberClosureAlt = TaskFuncBox()
 memberClosureAlt.op = makeAdder(250)
 bool chooseMemberClosure = false
 int borrowedMemberConditionalClosure = await task.spawn(chooseMemberClosure ? memberClosureBox.op : memberClosureAlt.op, 9)

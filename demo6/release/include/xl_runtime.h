@@ -82,6 +82,7 @@ struct xrt_type_ops {
     str (*to_string)(const void* pObj, uint32* pSize);
     xvalue (*box)(const void* pObj, const xrt_type_desc* pType);
     bool (*unbox)(xvalue pVal, void* pOut, const xrt_type_desc* pType);
+    void (*clone)(void* pDst, const void* pSrc);
 };
 
 struct xrt_type_desc {
@@ -192,6 +193,8 @@ void xrtUnit(void);
 void* xrtMalloc(size_t iSize);
 void* xrtRealloc(void* pMem, size_t iSize);
 void xrtFree(void* pMem);
+int32_t xrtAtomicRefRetain(volatile int32_t* pCount);
+int32_t xrtAtomicRefRelease(volatile int32_t* pCount);
 void* xrtTempMemory(size_t iSize);
 char* xrtCopyStr(const char* sText, size_t iSize);
 char* xrtStrConcat(const char* sLeft, const char* sRight);
@@ -239,6 +242,7 @@ xvalue xvoCreateTime(xtime tVal);
 xvalue xvoCreatePoint(ptr point);
 xvalue xvoCreateCallable(xrt_callable* pCallable, bool bColloc);
 xvalue xvoCreateRecord(const xrt_type_desc* pType, const void* pData);
+xvalue xvoCreateObject(const xrt_type_desc* pType);
 xvalue xvoCreateRecordMove(const xrt_type_desc* pType, void* pData);
 xvalue xvoCreateHandle(const xrt_type_desc* pType, ptr pHandle, uint32 iFlags);
 xvalue xvoCreateArray(void);
@@ -272,6 +276,7 @@ str xvoToString(xvalue pVal, uint32* pSize);
 const xrt_type_desc* xvoTypeDesc(xvalue pVal);
 bool xvoSetTypeDesc(xvalue pVal, const xrt_type_desc* pType);
 ptr xvoGetRecordData(xvalue pVal);
+xvalue xvoGetRecordOwner(const ptr pData);
 ptr xvoGetHandleData(xvalue pVal);
 ptr* xvoGetHandleSlot(xvalue pVal);
 xrt_callable* xvoGetCallable(xvalue pVal);
@@ -425,7 +430,8 @@ static void xl6_runtime_fatal(int code)
 
 static xvalue xl6_xrt_retain(xvalue value)
 {
-    return xvoShare(value);
+    if ( value != 0 ) { xvoAddRef(value); }
+    return value;
 }
 
 static xvalue xl6_xrt_value_copy_release(xvalue value, int deep)

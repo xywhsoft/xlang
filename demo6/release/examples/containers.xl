@@ -59,10 +59,10 @@ handlers[0] = add9
 func(int) as int copiedHandler = handlersCopy[0]
 int copiedHandlerValue = copiedHandler(7)
 
-FnBox box
+FnBox box = FnBox()
 box.op = add5
 box.bias = 10
-FnBox nextBox
+FnBox nextBox = FnBox()
 nextBox.op = add9
 nextBox.bias = 20
 array<FnBox> boxes = array[box]

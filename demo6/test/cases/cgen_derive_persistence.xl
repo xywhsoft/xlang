@@ -10,7 +10,7 @@ class Player extends object
 
     int id = 0
     string name = ""
-    Stats stats
+    Stats stats = Stats()
     var tags = []
 end
 

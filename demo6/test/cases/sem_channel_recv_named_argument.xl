@@ -1,4 +1,4 @@
 channel<int> ch = channel::<int>(1)
-int out = 0
+int result = 0
 
-bool ok = ch.recvInto(target = out)
+bool ok = ch.recvInto(target = result)

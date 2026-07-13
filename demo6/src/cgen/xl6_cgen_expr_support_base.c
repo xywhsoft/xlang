@@ -689,7 +689,7 @@ static void xl6CgenClassFunctionFieldRefs(
         if ( !xl6CgenIsInstanceField(member) || member->childCount == 0 || member->text == NULL ) {
             continue;
         }
-        typeNode = member->children[0];
+        typeNode = xl6CgenSubstituteGenericType(ctx, member->children[0]);
         xl6CgenCIdentText(cFieldName, sizeof(cFieldName), member->text);
         snprintf(fieldPath, sizeof(fieldPath), "%s.%s", valuePath, cFieldName);
         if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {

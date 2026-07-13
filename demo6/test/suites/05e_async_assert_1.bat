@@ -29,9 +29,14 @@ if errorlevel 1 (
     echo cgen_async.c missing async return temporary.
     exit /b 1
 )
-findstr /C:".op.retain != 0" build\test\cgen_async.c >nul
+findstr /C:"xvoGetRecordData(__xl6_async_return_" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing async class function-field retain.
+    echo cgen_async.c missing async class payload publication.
+    exit /b 1
+)
+findstr /C:"= xl6_xrt_move_to_shared(__xl6_async_return_" build\test\cgen_async.c >nul
+if errorlevel 1 (
+    echo cgen_async.c missing async class managed-handle publication.
     exit /b 1
 )
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_async_worker_xl_fn_makeBoxAsync[\s\S]*?pOut->pfnFreeValue = xl6_async_free_xvalue_value'){ exit 1 }"

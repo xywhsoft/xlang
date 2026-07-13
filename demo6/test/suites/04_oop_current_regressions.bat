@@ -27,6 +27,7 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_multi_return.exe
 if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
 
 release\xl.exe check test\cases\cgen_class_field_module_const.xl
 if errorlevel 1 exit /b 1
@@ -41,6 +42,7 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\cgen_class_field_module_const.exe
 if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
 
 release\xl.exe check test\cases\cgen_generic_self_method.xl
 if errorlevel 1 exit /b 1
@@ -55,6 +57,7 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_self_method.exe
 if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
 
 rem ------------------------------------------------------------------
 rem class: default reference semantics, polymorphism and parameter modes.
@@ -62,10 +65,11 @@ rem ------------------------------------------------------------------
 for %%F in (
     cgen_class_polymorphism
     cgen_class_null_identity
+    cgen_class_self_property_dispatch
     cgen_param_modes_class
     cgen_param_modes_container
     cgen_param_modes_container_matrix
-    cgen_struct_value_semantics
+    cgen_union_value_semantics
     cgen_out_definite_assignment
     cgen_function_param_modes
 ) do (
@@ -73,6 +77,7 @@ for %%F in (
     if errorlevel 1 exit /b 1
     build\test\%%F.exe
     if errorlevel 1 exit /b 1
+    if not errorlevel 0 exit /b 1
 )
 
 release\xl.exe cgen test\cases\cgen_function_param_modes.xl --emit build\test\cgen_function_param_modes.c
@@ -95,14 +100,24 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\cgen_class_polymorphism.xl --emit build\test\cgen_class_polymorphism.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvoCreateRecordMove(xl6_type_desc_XL_Class_RefDerived()" build\test\cgen_class_polymorphism.c >nul
+findstr /C:"xvoCreateObject(xl6_type_desc_XL_Class_RefDerived()" build\test\cgen_class_polymorphism.c >nul
 if errorlevel 1 (
-    echo cgen_class_polymorphism.c missing inline derived class boxing.
+    echo cgen_class_polymorphism.c missing managed derived object allocation.
     exit /b 1
 )
 findstr /C:"xl6_xrt_typed_array_append_value_release(values," build\test\cgen_class_polymorphism.c >nul
 if errorlevel 1 (
     echo cgen_class_polymorphism.c missing inline class container append.
+    exit /b 1
+)
+findstr /C:"#include <__xl_runtime/xl_runtime.h>" build\test\cgen_class_polymorphism.c >nul
+if errorlevel 1 (
+    echo cgen_class_polymorphism.c lost the shared runtime header.
+    exit /b 1
+)
+findstr /C:"desc->Kind != XL6_XRT_TYPE_KIND_CLASS" release\include\xl_runtime.h >nul
+if errorlevel 1 (
+    echo xl_runtime.h may overwrite concrete class runtime descriptors.
     exit /b 1
 )
 
@@ -116,6 +131,7 @@ for %%F in (
     if errorlevel 1 exit /b 1
     build\test\%%F.exe
     if errorlevel 1 exit /b 1
+    if not errorlevel 0 exit /b 1
 )
 
 release\xl.exe build test\cases\cgen_class_null_dereference.xl -o build\test\cgen_class_null_dereference.exe
@@ -160,35 +176,45 @@ release\xl.exe build test\cases\export_class_handle.xl test\cases\export_class_h
 if errorlevel 1 exit /b 1
 build\test\export_class_handle_header_host.exe
 if errorlevel 1 exit /b 1
-
-release\xl.exe cgen test\cases\export_struct_param_modes.xl --emit build\test\export_struct_param_modes.c --emit-header build\test\export_struct_param_modes.h
-if errorlevel 1 exit /b 1
-findstr /C:"XL_Struct_AbiPair xl6_pair_shift(XL_Struct_AbiPair value);" build\test\export_struct_param_modes.h >nul
-if errorlevel 1 exit /b 1
-findstr /C:"void xl6_pair_reset(XL_Struct_AbiPair* value);" build\test\export_struct_param_modes.h >nul
-if errorlevel 1 exit /b 1
-findstr /C:"void xl6_pair_make(XL_Struct_AbiPair* value);" build\test\export_struct_param_modes.h >nul
-if errorlevel 1 exit /b 1
-release\xl.exe build test\cases\export_struct_param_modes.xl test\cases\export_struct_param_modes_host.c -o build\test\export_struct_param_modes_host.exe
-if errorlevel 1 exit /b 1
-build\test\export_struct_param_modes_host.exe
-if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
 
 release\xl.exe check test\cases\import_package_class_handle_use.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\import_package_class_handle_use.xl
 if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
 release\xl.exe build test\cases\import_package_class_handle_use.xl -o build\test\import_package_class_handle_use.exe
 if errorlevel 1 exit /b 1
 build\test\import_package_class_handle_use.exe
 if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
 
 release\xl.exe run test\cases\cgen_class_recursive_object.xl
 if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
 release\xl.exe build test\cases\cgen_class_recursive_object.xl -o build\test\cgen_class_recursive_object.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_recursive_object.exe
 if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
+
+release\xl.exe run release\examples\class_reference_model.xl
+if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
+release\xl.exe run release\examples\typed_point.xl
+if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
+
+release\xl.exe check test\cases\sem_struct_removed.xl > build\test\sem_struct_removed.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_struct_removed.xl should fail.
+    exit /b 1
+)
+findstr /C:"[parse]" build\test\sem_struct_removed.err.txt >nul
+if errorlevel 1 (
+    echo sem_struct_removed.xl missing ordinary syntax diagnostic.
+    exit /b 1
+)
 
 for %%F in (
     sem_closure_capture_destroy_class
@@ -213,6 +239,32 @@ if not errorlevel 1 (
 findstr /C:"byref" /C:"out" build\test\sem_param_modes_invalid.err.txt >nul
 if errorlevel 1 (
     echo sem_param_modes_invalid.xl missing parameter-mode diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\cgen_typed_point.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_typed_point.xl -o build\test\cgen_typed_point.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_typed_point.exe
+if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
+release\xl.exe cgen test\cases\cgen_typed_point.xl --emit build\test\cgen_typed_point.c
+if errorlevel 1 exit /b 1
+findstr /C:"void* xl_fn_keep(void* value);" build\test\cgen_typed_point.c >nul
+if errorlevel 1 (
+    echo cgen_typed_point.c lost the zero-cost void pointer ABI.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_typed_point_mismatch.xl > build\test\sem_typed_point_mismatch.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_typed_point_mismatch.xl should reject different point tags.
+    exit /b 1
+)
+findstr /C:"target point<AudioTag>, value point<ImageTag>" build\test\sem_typed_point_mismatch.err.txt >nul
+if errorlevel 1 (
+    echo sem_typed_point_mismatch.xl lost concrete typed point diagnostics.
     exit /b 1
 )
 

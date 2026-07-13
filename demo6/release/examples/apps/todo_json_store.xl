@@ -12,9 +12,9 @@ class TodoBook
     derive value
 
     string owner = ""
-    Todo first
-    Todo second
-    Todo third
+    Todo first = Todo()
+    Todo second = Todo()
+    Todo third = Todo()
 end
 
 func score(Todo item) as int
@@ -27,7 +27,7 @@ string filePath = path.join(root, "todo.json")
 dir.delete(root)
 dir.createAll(root)
 
-TodoBook book
+TodoBook book = TodoBook()
 book.owner = "demo"
 book.first.title = "write examples"
 book.first.done = true

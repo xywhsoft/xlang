@@ -126,9 +126,14 @@ if errorlevel 1 (
     echo cgen_class.c missing base field.
     exit /b 1
 )
-findstr /C:"__xl6_default_class_" build\test\cgen_class.c >nul
+findstr /C:"xvoCreateObject(xl6_type_desc_XL_Class_Point())" build\test\cgen_class.c >nul
 if errorlevel 1 (
-    echo cgen_class.c missing managed default class construction.
+    echo cgen_class.c missing managed Point construction.
+    exit /b 1
+)
+findstr /C:"xvoCreateObject(xl6_type_desc_XL_Class_Point3())" build\test\cgen_class.c >nul
+if errorlevel 1 (
+    echo cgen_class.c missing managed derived class construction.
     exit /b 1
 )
 findstr /C:")).base.x = 10LL;" build\test\cgen_class.c >nul
@@ -148,7 +153,7 @@ if errorlevel 1 (
     echo cgen_base_create.c missing explicit base create call.
     exit /b 1
 )
-findstr /C:"xl_class_AutoBase__create(&__xl6_box_ctor_stmt_" build\test\cgen_base_create.c >nul
+findstr /C:"xl_class_AutoBase__create(&(*__xl6_object_data_" build\test\cgen_base_create.c >nul
 if errorlevel 1 (
     echo cgen_base_create.c missing auto base create call.
     exit /b 1
@@ -160,7 +165,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_base_create_overloads.xl --emit build\test\cgen_base_create_overloads.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Base__create__void(&__xl6_box_ctor_stmt_" build\test\cgen_base_create_overloads.c >nul
+findstr /C:"xl_class_Base__create__void(&(*__xl6_object_data_" build\test\cgen_base_create_overloads.c >nul
 if errorlevel 1 (
     echo cgen_base_create_overloads.c missing auto no-arg base create overload call.
     exit /b 1
@@ -182,7 +187,7 @@ if errorlevel 1 (
     echo cgen_class_methods.c missing method prototype.
     exit /b 1
 )
-findstr /C:"xl_class_Point__create(&__xl6_box_ctor_stmt_" build\test\cgen_class_methods.c >nul
+findstr /C:"xl_class_Point__create(&(*__xl6_object_data_" build\test\cgen_class_methods.c >nul
 if errorlevel 1 (
     echo cgen_class_methods.c missing create call.
     exit /b 1
@@ -384,17 +389,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_nested_class_constructor.xl --emit build\test\cgen_nested_class_constructor.c
 if errorlevel 1 exit /b 1
-findstr /C:"direct = xvoCreateRecordMove(xl6_type_desc_XL_Class_Ray()" build\test\cgen_nested_class_constructor.c >nul
+findstr /C:"direct = xvoCreateObject(xl6_type_desc_XL_Class_Ray()" build\test\cgen_nested_class_constructor.c >nul
 if errorlevel 1 (
     echo cgen_nested_class_constructor.c missing managed nested global construction.
     exit /b 1
 )
-findstr /C:".value1 = xvoCreateRecordMove(xl6_type_desc_XL_Class_Ray()" build\test\cgen_nested_class_constructor.c >nul
+findstr /C:".value1 = xvoCreateObject(xl6_type_desc_XL_Class_Ray()" build\test\cgen_nested_class_constructor.c >nul
 if errorlevel 1 (
     echo cgen_nested_class_constructor.c missing managed multi-return class construction.
     exit /b 1
 )
-findstr /C:"boxed = xvoCreateRecordMove(xl6_type_desc_XL_Class_Box" build\test\cgen_nested_class_constructor.c >nul
+findstr /C:"boxed = xvoCreateObject(xl6_type_desc_XL_Class_Box" build\test\cgen_nested_class_constructor.c >nul
 if errorlevel 1 (
     echo cgen_nested_class_constructor.c missing managed generic class nested construction.
     exit /b 1
@@ -501,6 +506,16 @@ if errorlevel 1 (
     echo cgen_copy_clone.c missing derived clone protocol.
     exit /b 1
 )
+findstr /C:"static void xl6_type_clone_XL_Class_Packet" build\test\cgen_copy_clone.c >nul
+if errorlevel 1 (
+    echo cgen_copy_clone.c missing XRT class clone adapter.
+    exit /b 1
+)
+findstr /C:"xl6_type_clone_XL_Class_Packet" build\test\cgen_copy_clone.c >nul
+if errorlevel 1 (
+    echo cgen_copy_clone.c does not register the class clone adapter.
+    exit /b 1
+)
 findstr /C:"xvoDeepCopy(value.values)" build\test\cgen_copy_clone.c >nul
 if errorlevel 1 (
     echo cgen_copy_clone.c missing deep xvalue field copy.
@@ -510,6 +525,74 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\cgen_copy_clone.exe
 if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_generic_class_copy_clone.xl --emit build\test\cgen_generic_class_copy_clone.c
+if errorlevel 1 exit /b 1
+findstr /C:"static void xl6_type_clone_XL_Class_Packet__int" build\test\cgen_generic_class_copy_clone.c >nul
+if errorlevel 1 (
+    echo cgen_generic_class_copy_clone.c missing generic XRT class clone adapter.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_copy_clone.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_copy_clone.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_generic_class_copy_clone.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_class_custom_copy_clone.xl --emit build\test\cgen_class_custom_copy_clone.c
+if errorlevel 1 exit /b 1
+findstr /C:"xvalue protocolValue = xl_class_Packet______copy____" build\test\cgen_class_custom_copy_clone.c >nul
+if errorlevel 1 (
+    echo cgen_class_custom_copy_clone.c does not dispatch custom copy through XRT.
+    exit /b 1
+)
+findstr /C:"xvalue protocolValue = xl_class_Packet______clone____" build\test\cgen_class_custom_copy_clone.c >nul
+if errorlevel 1 (
+    echo cgen_class_custom_copy_clone.c does not dispatch custom clone through XRT.
+    exit /b 1
+)
+findstr /C:"______xl6__copy__value" build\test\cgen_class_custom_copy_clone.c >nul
+if not errorlevel 1 (
+    echo cgen_class_custom_copy_clone.c still emits the removed payload-value copy helper.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_custom_copy_clone.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_custom_copy_clone.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_class_custom_copy_clone.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_generic_class_custom_copy_clone.xl --emit build\test\cgen_generic_class_custom_copy_clone.c
+if errorlevel 1 exit /b 1
+findstr /C:"xvalue xl_class_Packet__int______copy____" build\test\cgen_generic_class_custom_copy_clone.c >nul
+if errorlevel 1 (
+    echo cgen_generic_class_custom_copy_clone.c missing generic custom copy prototype.
+    exit /b 1
+)
+findstr /C:"xvalue protocolValue = xl_class_Packet__int______clone____" build\test\cgen_generic_class_custom_copy_clone.c >nul
+if errorlevel 1 (
+    echo cgen_generic_class_custom_copy_clone.c does not dispatch generic custom clone.
+    exit /b 1
+)
+findstr /C:"xvoShare(xvoGetRecordOwner(self))" build\test\cgen_generic_class_custom_copy_clone.c >nul
+if errorlevel 1 (
+    echo cgen_generic_class_custom_copy_clone.c cannot recover the managed self handle.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_custom_copy_clone.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_custom_copy_clone.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_generic_class_custom_copy_clone.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\cgen_class_owner_symbol_run.xl > build\test\cgen_class_owner_symbol_run.out.txt 2> build\test\cgen_class_owner_symbol_run.err.txt
+if errorlevel 1 (
+    type build\test\cgen_class_owner_symbol_run.err.txt
+    echo cgen_class_owner_symbol_run.xl failed in memory-run mode.
+    exit /b 1
+)
+findstr /C:"class owner symbol run ok" build\test\cgen_class_owner_symbol_run.out.txt >nul
+if errorlevel 1 (
+    echo cgen_class_owner_symbol_run.xl missing success marker.
+    exit /b 1
+)
 
 release\xl.exe cgen test\cases\cgen_deepcopy_removed.xl --emit build\test\cgen_deepcopy_removed.c > build\test\cgen_deepcopy_removed.err.txt 2>&1
 if not errorlevel 1 (

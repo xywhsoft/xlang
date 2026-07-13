@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-07-13 08:42:12
+    Generated: 2026-07-14 01:10:04
 
     MIT License
 
@@ -1092,6 +1092,10 @@
 	
 	// 释放内存（ 会先判断是否为 null ）
 	XXAPI void xrtFree(ptr pmem);
+	// 原子保留引用，成功时返回递增后的引用计数，非法状态返回 -1
+	XXAPI int32 xrtAtomicRefRetain(volatile int32* pCount);
+	// 原子释放引用，成功时返回递减后的引用计数，非法状态返回 -1
+	XXAPI int32 xrtAtomicRefRelease(volatile int32* pCount);
 	
 	// 申请无需主动释放的临时内存
 	XXAPI ptr xrtTempMemory(size_t iSize);
@@ -7054,6 +7058,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 		str (*to_string)(const ptr pObj, uint32* pSize);
 		xvalue (*box)(const ptr pObj, const xrt_type_desc* pType);
 		bool (*unbox)(xvalue pVal, ptr pOut, const xrt_type_desc* pType);
+		void (*clone)(ptr pDst, const ptr pSrc);
 	};
 	struct xrt_type_desc {
 		uint32 TypeId;
@@ -7132,6 +7137,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	};
 	struct xrt_record_value {
 		const xrt_type_desc* Type;
+		xvalue Owner;
 		uint32 Flags;
 		uint32 Size;
 		uint8 Data[1];
@@ -7616,8 +7622,10 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	// 创建 callable 函数值
 	XXAPI xvalue xvoCreateCallable(xrt_callable* pCallable, bool bColloc);
 	// 创建 record/class 动态值
-XXAPI xvalue xvoCreateRecord(const xrt_type_desc* pType, const ptr pData);
-XXAPI xvalue xvoCreateRecordMove(const xrt_type_desc* pType, ptr pData);
+	XXAPI xvalue xvoCreateRecord(const xrt_type_desc* pType, const ptr pData);
+	XXAPI xvalue xvoCreateRecordMove(const xrt_type_desc* pType, ptr pData);
+	// 创建具有对象身份的 class；payload 由类型描述初始化并由引用计数管理
+	XXAPI xvalue xvoCreateObject(const xrt_type_desc* pType);
 	// 创建 handle/custom 动态值
 	XXAPI xvalue xvoCreateHandle(const xrt_type_desc* pType, ptr pHandle, uint32 iFlags);
 	// 创建数组
@@ -7700,6 +7708,8 @@ XXAPI xvalue xvoCreateRecordMove(const xrt_type_desc* pType, ptr pData);
 	XXAPI ptr xvoGetClass(xvalue pVal);
 	// 获取 record/class 数据指针
 	XXAPI ptr xvoGetRecordData(xvalue pVal);
+	// 根据 record/class 数据指针获取非持有的 xvalue 外壳
+	XXAPI xvalue xvoGetRecordOwner(const ptr pData);
 	// 获取自定义对象值
 	XXAPI ptr xvoGetCustom(xvalue pVal);
 	// 获取 handle/custom 句柄
@@ -11245,6 +11255,46 @@ XXAPI void xrtFree(ptr pmem)
 	#else
 		__xrtFreeSite(pmem, NULL, 0);
 	#endif
+}
+// 原子保留引用，成功时返回递增后的引用计数
+XXAPI int32 xrtAtomicRefRetain(volatile int32* pCount)
+{
+	uint32 iOld;
+	uint32 iNext;
+	if ( pCount == NULL ) {
+		return -1;
+	}
+	iOld = __xrtAtomicLoadU32((const volatile uint32*)pCount);
+	for ( ;; ) {
+		if ( iOld == 0 || iOld >= (uint32)INT32_MAX ) {
+			return -1;
+		}
+		iNext = iOld + 1;
+		if ( __xrtAtomicCompareExchangeU32((volatile uint32*)pCount, iNext, iOld) == iOld ) {
+			return (int32)iNext;
+		}
+		iOld = __xrtAtomicLoadU32((const volatile uint32*)pCount);
+	}
+}
+// 原子释放引用，成功时返回递减后的引用计数
+XXAPI int32 xrtAtomicRefRelease(volatile int32* pCount)
+{
+	uint32 iOld;
+	uint32 iNext;
+	if ( pCount == NULL ) {
+		return -1;
+	}
+	iOld = __xrtAtomicLoadU32((const volatile uint32*)pCount);
+	for ( ;; ) {
+		if ( iOld == 0 || iOld > (uint32)INT32_MAX ) {
+			return -1;
+		}
+		iNext = iOld - 1;
+		if ( __xrtAtomicCompareExchangeU32((volatile uint32*)pCount, iNext, iOld) == iOld ) {
+			return (int32)iNext;
+		}
+		iOld = __xrtAtomicLoadU32((const volatile uint32*)pCount);
+	}
 }
 // 内部函数：获取临时内存区块头部大小
 static inline size_t __xrtTempArenaBlockHeaderSize()
@@ -88991,12 +89041,17 @@ XXAPI xvalue xvoCreateClass(uint32 iSize)
 	return pVal;
 }
 // 创建 record/class 动态值
-static xvalue __xvoCreateRecord(const xrt_type_desc* pType, ptr pData, bool bMove)
+static xvalue __xvoCreateRecord(const xrt_type_desc* pType, ptr pData, bool bMove, bool bClone)
 {
 	xvalue pVal;
 	xrt_record_value* pRecord;
 	size_t iAllocSize;
 	if ( (pType == NULL) || (pType->Size == 0) ) {
+		return NULL;
+	}
+	/* class 的 payload 只能通过显式复制操作创建副本，禁止退化为 memcpy。 */
+	if ( pData != NULL && !bMove && pType->Kind == XRT_TYPE_KIND_CLASS &&
+		 (pType->Ops == NULL || (bClone ? pType->Ops->clone == NULL : pType->Ops->copy == NULL)) ) {
 		return NULL;
 	}
 	iAllocSize = sizeof(xrt_record_value) + pType->Size;
@@ -89010,10 +89065,13 @@ static xvalue __xvoCreateRecord(const xrt_type_desc* pType, ptr pData, bool bMov
 		return NULL;
 	}
 	pRecord->Type = pType;
+	pRecord->Owner = pVal;
 	pRecord->Flags = 0;
 	pRecord->Size = (uint32)pType->Size;
 	if ( pData ) {
-		if ( bMove && pType->Ops && pType->Ops->move ) {
+		if ( bClone && pType->Ops && pType->Ops->clone ) {
+			pType->Ops->clone(pRecord->Data, pData);
+		} else if ( bMove && pType->Ops && pType->Ops->move ) {
 			pType->Ops->move(pRecord->Data, pData);
 		} else if ( bMove ) {
 			memcpy(pRecord->Data, pData, pType->Size);
@@ -89038,12 +89096,25 @@ static xvalue __xvoCreateRecord(const xrt_type_desc* pType, ptr pData, bool bMov
 }
 XXAPI xvalue xvoCreateRecord(const xrt_type_desc* pType, const ptr pData)
 {
-	return __xvoCreateRecord(pType, (ptr)pData, false);
+	return __xvoCreateRecord(pType, (ptr)pData, false, false);
 }
 // 转移 record/class 所有权，成功后源对象进入零值状态
 XXAPI xvalue xvoCreateRecordMove(const xrt_type_desc* pType, ptr pData)
 {
-	return __xvoCreateRecord(pType, pData, true);
+	return __xvoCreateRecord(pType, pData, true, false);
+}
+// 创建具有稳定身份的对象；普通赋值只共享返回的句柄，不复制 payload
+XXAPI xvalue xvoCreateObject(const xrt_type_desc* pType)
+{
+	xvalue pVal;
+	if ( (pType == NULL) || (pType->Kind != XRT_TYPE_KIND_CLASS) ) {
+		return NULL;
+	}
+	pVal = __xvoCreateRecord(pType, NULL, false, false);
+	if ( pVal != NULL ) {
+		xvoSetShared_Inline(pVal);
+	}
+	return pVal;
 }
 // xvoCreateCustom 相关处理
 XXAPI xvalue xvoCreateCustom(ptr pObj)
@@ -89395,6 +89466,16 @@ XXAPI xdict xvoGetMutableTable(xvalue pVal)
 XXAPI ptr xvoGetRecordData(xvalue pVal)
 {
 	return xvoGetClass(pVal);
+}
+// 根据 record/class 数据指针获取非持有的 xvalue 外壳
+XXAPI xvalue xvoGetRecordOwner(const ptr pData)
+{
+	xrt_record_value* pRecord;
+	if ( pData == NULL ) {
+		return NULL;
+	}
+	pRecord = (xrt_record_value*)((uint8*)pData - offsetof(xrt_record_value, Data));
+	return pRecord->Data == pData ? pRecord->Owner : NULL;
 }
 // xvoGetCustom 相关处理
 XXAPI ptr xvoGetCustom(xvalue pVal)
@@ -91008,7 +91089,8 @@ static bool __xvoCanBindTypeDesc(xvalue pVal, const xrt_type_desc* pType)
 		case XVO_DT_TABLE:
 			return pType->Kind == XRT_TYPE_KIND_DICT;
 		case XVO_DT_CLASS:
-			return pType->Kind == XRT_TYPE_KIND_RECORD;
+			return pType->Kind == XRT_TYPE_KIND_RECORD
+				|| pType->Kind == XRT_TYPE_KIND_CLASS;
 		case XVO_DT_CUSTOM:
 			return pType->Kind == XRT_TYPE_KIND_HANDLE
 				|| pType->Kind == XRT_TYPE_KIND_FUTURE;
@@ -91787,9 +91869,8 @@ XXAPI xvalue xvoCopy(xvalue pVal)
 				iFlags |= XRT_HANDLE_FLAG_OWNED;
 				return xvoCreateHandle(pVal->vTypeDesc, pNewHandle, iFlags | XRT_HANDLE_FLAG_NULLABLE);
 			}
-			iFlags &= ~XRT_HANDLE_FLAG_OWNED;
-			iFlags |= XRT_HANDLE_FLAG_BORROWED;
-			return xvoCreateHandle(pVal->vTypeDesc, pHandle ? pHandle->Handle : NULL, iFlags | XRT_HANDLE_FLAG_NULLABLE);
+			/* typed handle 没有复制协议时不可复制；共享同一对象应使用 xvoShare。 */
+			return NULL;
 		}
 		return xvoCreateCustom(pVal->vCustom);
 	} else {
@@ -91912,6 +91993,12 @@ XXAPI xvalue xvoDeepCopy(xvalue pVal)
 	} else if ( pVal->Type == XVO_DT_CLASS ) {
 		if ( pVal->vTypeDesc != NULL ) {
 			xrt_record_value* pRecord = (xrt_record_value*)pVal->vStruct;
+			if ( pVal->vTypeDesc->Ops != NULL && pVal->vTypeDesc->Ops->clone != NULL ) {
+				return __xvoCreateRecord(pVal->vTypeDesc, pRecord ? pRecord->Data : NULL, false, true);
+			}
+			if ( pVal->vTypeDesc->Kind == XRT_TYPE_KIND_CLASS ) {
+				return NULL;
+			}
 			return xvoCreateRecord(pVal->vTypeDesc, pRecord ? pRecord->Data : NULL);
 		} else {
 			xvalue varRet = xvoCreateClass(pVal->Size);
@@ -92052,6 +92139,16 @@ static xvalue __xvoDeepCopySharedDepth(xvalue pVal, uint32 iDepth)
 	if ( pVal->Type == XVO_DT_BOOL ) {
 		return pVal->vBool ? &XVO_VALUE_TRUE : &XVO_VALUE_FALSE;
 	}
+	/*
+		class 与 native-backed class 具有稳定对象身份。
+		共享容器复制值图时只复制容器结构，对已经发布的对象保留同一句柄，
+		否则会误入 payload 深拷贝，并破坏对象身份或 native 资源生命周期。
+	*/
+	if ( xvoIsShared_Inline(pVal) &&
+		(pVal->Type == XVO_DT_CLASS || pVal->Type == XVO_DT_CUSTOM) ) {
+		xvoAddRef_Inline(pVal);
+		return pVal;
+	}
 	if ( pVal->Type == XVO_DT_ARRAY ) {
 		const xrt_type_desc* pType = __xvoValueTypeDesc(pVal);
 		pResult = xvoCreateArrayEx(XRT_OBJMODE_SHARED);
@@ -92164,8 +92261,9 @@ XXAPI xvalue xvoDeepCopyEx(xvalue pVal, uint32 iMode)
 }
 /*
 	把一个值的所有权发布到共享环境。
-	typed handle 本身没有可递归复制的数据图，必须移动原外壳；复制句柄后再释放
-	原值会让新外壳持有已经析构的 native 指针。其他复合值仍创建独立共享图。
+	class 和 typed handle 都具有稳定对象身份，必须移动原外壳；复制对象或句柄后
+	再释放原值会破坏身份，native handle 还可能指向已经析构的资源。
+	class 的字段由生成代码在对象发布前逐项发布，其他复合值仍创建独立共享图。
 */
 XXAPI xvalue xvoMoveToShared(xvalue pVal)
 {
@@ -92173,7 +92271,7 @@ XXAPI xvalue xvoMoveToShared(xvalue pVal)
 	if ( pVal == NULL || xvoIsShared_Inline(pVal) ) {
 		return pVal;
 	}
-	if ( pVal->Type == XVO_DT_CUSTOM && pVal->vTypeDesc != NULL ) {
+	if ( (pVal->Type == XVO_DT_CLASS || pVal->Type == XVO_DT_CUSTOM) && pVal->vTypeDesc != NULL ) {
 		return xvoMakeShared_Inline(pVal) ? pVal : NULL;
 	}
 	pResult = xvoDeepCopyEx(pVal, XRT_OBJMODE_SHARED);

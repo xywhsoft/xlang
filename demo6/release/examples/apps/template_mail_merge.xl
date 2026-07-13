@@ -16,11 +16,11 @@ string outDir = "examples_out/examples_apps/mail"
 dir.delete(outDir)
 dir.createAll(outDir)
 
-Customer alice
+Customer alice = Customer()
 alice.name = "Alice"
 alice.score = 95
 
-Customer bob
+Customer bob = Customer()
 bob.name = "Bob"
 bob.score = 72
 

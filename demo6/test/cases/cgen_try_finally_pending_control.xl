@@ -59,7 +59,7 @@ func returnArray() as array<int>
 end
 
 func returnClass() as FinallyBox
-    FinallyBox value
+    FinallyBox value = FinallyBox()
     value.value = 12
     try
         return value

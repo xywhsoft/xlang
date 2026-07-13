@@ -8,7 +8,7 @@ class NamedPoint extends Entity
 end
 
 export "xl6_named_point_make" func makeNamedPoint(int id, int x, int y) as NamedPoint
-    NamedPoint point
+    NamedPoint point = NamedPoint()
     point.id = id
     point.x = x
     point.y = y

@@ -1,0 +1,46 @@
+var values = [1, 2]
+var valuesAlias = values
+valuesAlias[0] = 9
+valuesAlias.push(3)
+assert int(values[0]) == 9, "array alias must observe item mutation"
+assert values.length == 3, "array alias must observe length mutation"
+
+var names = list[0: "a"]
+var namesAlias = names
+namesAlias[2] = "b"
+assert names.length == 2, "list alias must observe insertion"
+assert string(names[2]) == "b", "list alias must observe item mutation"
+
+var ids = set{1, 2}
+var idsAlias = ids
+idsAlias.add(3)
+idsAlias.remove(1)
+assert ids.length == 2, "set alias must observe mutations"
+assert ids.contains(3) and not ids.contains(1), "set alias contents mismatch"
+
+var scores = dict{"a": 1}
+var scoresAlias = scores
+scoresAlias["a"] = 10
+scoresAlias["b"] = 2
+assert scores.length == 2, "dict alias must observe insertion"
+assert int(scores["a"]) == 10, "dict alias must observe item mutation"
+
+var nested = [[1], {"value": [2]}]
+var nestedAlias = nested
+nestedAlias[0][0] = 9
+nestedAlias[1]["value"][0] = 8
+assert int(nested[0][0]) == 9, "nested array alias must observe mutation"
+assert int(nested[1]["value"][0]) == 8, "nested dict alias must observe mutation"
+
+var dynamicKey = "items"
+var dynamicNested = [{"items": [3]}]
+var dynamicNestedAlias = dynamicNested
+dynamicNestedAlias[0][dynamicKey][0] = 7
+assert int(dynamicNested[0][dynamicKey][0]) == 7, "dynamic-key alias must observe mutation"
+
+var memberSource = {"nested": {"count": 1}}
+var memberAlias = memberSource
+memberAlias.nested.count = 2
+assert int(memberSource.nested.count) == 2, "member alias must observe mutation"
+
+println("dynamic container reference semantics ok")

@@ -95,6 +95,7 @@ foreach ( $file in $files ) {
     $text = $null
     $relative = $file.FullName.Substring($Root.Length).TrimStart("\", "/").Replace("\", "/")
     $isHandwrittenSource = $relative.StartsWith("src/", [System.StringComparison]::OrdinalIgnoreCase)
+    $isXlangSource = $file.Extension -eq ".xl"
 
     try {
         $text = $strictUtf8.GetString($bytes)
@@ -105,6 +106,12 @@ foreach ( $file in $files ) {
 
     $lines = $text -split "`r?`n"
     for ( $i = 0; $i -lt $lines.Count; ++$i ) {
+        if ( $isXlangSource ) {
+            $codeLine = $lines[$i] -replace '//.*$', ''
+            if ( $codeLine -match '(?<![A-Za-z0-9_])(?:const\s+)?(?:auto|var|[A-Za-z_\p{L}][A-Za-z0-9_\p{L}]*(?:\s*<[^>\r\n]+>)?)\s+out(?=\s*(?:=|,|$))' ) {
+                Add-Failure ("reserved parameter-mode keyword used as identifier in {0}:{1}: {2}" -f $file.FullName, ($i + 1), $lines[$i].Trim())
+            }
+        }
         foreach ( $token in $badTokens ) {
             if ( $lines[$i].Contains($token) ) {
                 Add-Failure ("mojibake token in {0}:{1}: {2}" -f $file.FullName, ($i + 1), $lines[$i].Trim())

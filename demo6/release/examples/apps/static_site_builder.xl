@@ -31,7 +31,7 @@ string outFile = path.join(outDir, "index.html")
 dir.delete(outDir)
 dir.createAll(outDir)
 
-Page page
+Page page = Page()
 page.title = "xlang <demo>"
 page.body = "safe & simple"
 

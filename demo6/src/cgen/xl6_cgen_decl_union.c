@@ -16,7 +16,6 @@ static void xl6CgenUnionFieldDecl(XL6_CgenContext* ctx, const XL6_AstNode* field
 
 static void xl6CgenUnionDecls(XL6_CgenContext* ctx, const XL6_AstNode* unionNode);
 static void xl6CgenClassDecls(XL6_CgenContext* ctx, const XL6_AstNode* classNode);
-static void xl6CgenStructDecls(XL6_CgenContext* ctx, const XL6_AstNode* structNode);
 
 static void xl6CgenTypeDeclDependency(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
@@ -32,14 +31,6 @@ static void xl6CgenTypeDeclDependency(XL6_CgenContext* ctx, const XL6_AstNode* t
     if ( classNode != NULL ) {
         xl6CgenClassDecls(ctx, classNode);
         return;
-    }
-
-    {
-        XL6_AstNode* structNode = xl6CgenFindStruct(ctx, typeNode->text);
-        if ( structNode != NULL ) {
-            xl6CgenStructDecls(ctx, structNode);
-            return;
-        }
     }
 
     unionNode = xl6CgenFindUnion(ctx, typeNode->text);

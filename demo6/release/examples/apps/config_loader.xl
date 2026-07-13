@@ -16,7 +16,7 @@ func loadConfig(string text) as ServerConfig
     var debug = raw?.debug ?? false
     var logLevel = raw?.logLevel ?? "info"
 
-    ServerConfig cfg
+    ServerConfig cfg = ServerConfig()
     cfg.host = string(host)
     cfg.port = int(port)
     cfg.debug = bool(debug)

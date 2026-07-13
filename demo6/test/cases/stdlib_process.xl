@@ -1,8 +1,8 @@
 extern "expect_i64" func expect(int actual, int expected)
 extern "expect_str" func expectStr(string actual, string expected)
 
-string out = process.exec("cmd /c echo xlang-process")
-expectStr(string.trim(out), "xlang-process")
+string result = process.exec("cmd /c echo xlang-process")
+expectStr(string.trim(result), "xlang-process")
 
 expect(process.success("cmd /c exit /b 0"), 1)
 expect(process.success("cmd /c exit /b 7"), 0)

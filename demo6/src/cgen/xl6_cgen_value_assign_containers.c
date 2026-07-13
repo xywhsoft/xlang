@@ -318,7 +318,8 @@ static int xl6CgenTypedContainerMemberAssignStmt(
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, fieldType), tempName);
     if ( literal != NULL ) {
-        xl6CgenTypedContainerCreateExpr(ctx, fieldType);
+        /* class 是可跨线程共享的引用对象，其拥有的容器字段从写入时起就必须是共享根。 */
+        xl6CgenTypedContainerCreateExprMode(ctx, fieldType, "XRT_OBJMODE_SHARED");
     } else if ( moveReturn ) {
         if ( memberFunctionType != NULL ) {
             xl6CgenMemberFunctionStatementInvokeExpr(ctx, right, memberFunctionType, memberTempName);
@@ -326,7 +327,7 @@ static int xl6CgenTypedContainerMemberAssignStmt(
             xl6CgenExpr(ctx, right);
         }
     } else if ( importDynamic ) {
-        xl6CgenTypedContainerImportDynamicExpr(ctx, fieldType, right);
+        xl6CgenTypedContainerImportDynamicExprMode(ctx, fieldType, right, "XRT_OBJMODE_SHARED");
     } else {
         xl6CgenTypedContainerRetainExpr(ctx, fieldType, right);
     }
@@ -337,6 +338,11 @@ static int xl6CgenTypedContainerMemberAssignStmt(
     xl6AstFree(memberFunctionType);
     if ( literal != NULL ) {
         xl6CgenTypedContainerFillFromLiteral(ctx, tempName, fieldType, right);
+    } else if ( moveReturn ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", tempName);
+        xl6CgenTypedContainerMoveToSharedCExpr(ctx, fieldType, tempName);
+        xl6OutputPuts(";\n", ctx->out);
     }
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s* %s = &(", xl6CgenTypedContainerCType(ctx, fieldType), slotName);

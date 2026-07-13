@@ -1,0 +1,40 @@
+class Packet<T>
+    T value
+    int marker = 0
+
+    func __copy__() as Packet<T>
+        auto result = Packet::<T>()
+        result.value = self.value
+        result.marker = self.marker + 10
+        return result
+    end
+
+    func __clone__() as Packet<T>
+        auto result = Packet::<T>()
+        result.value = self.value
+        result.marker = self.marker + 20
+        return result
+    end
+
+    func identity() as Packet<T>
+        return self
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+auto source = Packet::<int>()
+source.value = 42
+source.marker = 7
+
+auto alias = source.identity()
+alias.value = 43
+expect(source.value, 43)
+
+auto copied = copy(source)
+expect(copied.value, 43)
+expect(copied.marker, 17)
+
+auto cloned = clone(source)
+expect(cloned.value, 43)
+expect(cloned.marker, 27)

@@ -4,6 +4,6 @@ end
 
 extern "expect_i64" func expect(int actual, int expected)
 
-Box<int> intBox
+Box<int> intBox = Box::<int>()
 intBox.value = 123
 expect(intBox.value, 123)

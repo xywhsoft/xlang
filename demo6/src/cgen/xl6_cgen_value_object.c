@@ -381,7 +381,7 @@ static void xl6CgenTypedContainerValueFromExprMode(XL6_CgenContext* ctx, const X
         if ( mode != NULL && xl6CTextEquals(mode, "XRT_OBJMODE_SHARED") ) {
             xl6CgenTypedContainerCopyExprMode(ctx, typeNode, expr, mode);
         } else {
-            xl6CgenTypedContainerRetainExpr(ctx, typeNode, expr);
+        xl6CgenTypedContainerRetainExpr(ctx, typeNode, expr);
         }
         return;
     }
@@ -430,6 +430,10 @@ static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name)
     unsigned int flags;
 
     if ( ctx == NULL || name == NULL ) {
+        return;
+    }
+    if ( xl6CTextEquals(name, "self") && ctx->currentClass != NULL ) {
+        xl6OutputPuts("xvoShare(xvoGetRecordOwner(self))", ctx->out);
         return;
     }
     if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, name) >= 0 ) {

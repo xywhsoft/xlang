@@ -49,14 +49,14 @@ class TaskBox
 end
 
 async func makeTaskBox(int base) as TaskBox
-    TaskBox box
+    TaskBox box = TaskBox()
     box.base = base
     return box
 end
 
 async func slowMakeTaskBox(int base) as TaskBox
     time.sleep(250)
-    TaskBox box
+    TaskBox box = TaskBox()
     box.base = base
     return box
 end

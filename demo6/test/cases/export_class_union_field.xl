@@ -8,7 +8,7 @@ union Payload
 end
 
 export "xl6_box_make" func makeBox(int value) as Box
-    Box box
+    Box box = Box()
     box.payload.i = value
     return box
 end

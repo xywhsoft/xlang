@@ -43,12 +43,12 @@ if "%XL6_REGEN_GRAMMAR%"=="1" (
     echo Generating DEMO6 parser...
     pushd src\parser
     "%XL6_ROOT%\%XL6_LEMON%" -q xl6_parser.y
-    set XL6_LEMON_RC=%errorlevel%
-    popd
-    if not "%XL6_LEMON_RC%"=="0" (
+    if errorlevel 1 (
+        popd
         echo DEMO6 parser generation failed.
         exit /b 1
     )
+    popd
 ) else (
     if not exist src\lexer\xl6_lexer_gen.c (
         echo DEMO6 lexer source missing: src\lexer\xl6_lexer_gen.c.

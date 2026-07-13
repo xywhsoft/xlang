@@ -1,0 +1,17 @@
+class ImageTag
+end
+
+func keep(point<ImageTag> value) as point<ImageTag>
+    return value
+end
+
+point<ImageTag> image = null
+point<ImageTag> same = keep(image)
+point raw = null
+
+func main(...) as int
+    if image == null and same == null and raw == null then
+        return 0
+    end
+    return 1
+end

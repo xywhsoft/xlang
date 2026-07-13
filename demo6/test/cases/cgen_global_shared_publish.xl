@@ -10,7 +10,7 @@ class SharedStore
     array<int> values = array[3]
 end
 
-SharedStore gStore
+SharedStore gStore = SharedStore()
 
 func makeNumbers() as array<int>
     return array[10, 20, 30]

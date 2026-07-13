@@ -273,9 +273,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     xl6CgenClassForwardDecls(&ctx, root);
 
     for ( i = 0; i < root->childCount; ++i ) {
-        if ( root->children[i]->kind == XL6_AST_STRUCT ) {
-            xl6CgenStructDecls(&ctx, root->children[i]);
-        } else if ( root->children[i]->kind == XL6_AST_UNION ) {
+        if ( root->children[i]->kind == XL6_AST_UNION ) {
             xl6CgenUnionDecls(&ctx, root->children[i]);
         }
     }
@@ -485,7 +483,6 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     xl6CgenFreeVars(&ctx);
     xl6CgenFreeEmittedClasses(&ctx);
     xl6CgenFreeEmittedUnions(&ctx);
-    xl6CgenFreeEmittedStructs(&ctx);
     xl6CgenFreeFunctionReturnStructs(&ctx);
     xl6CgenFreeCleanups(&ctx);
     xl6CgenFreeLoopTargets(&ctx);

@@ -13,7 +13,7 @@ class XSConfig
 end
 
 func xsDefaultConfig() as XSConfig
-    XSConfig cfg
+    XSConfig cfg = XSConfig()
     return cfg
 end
 

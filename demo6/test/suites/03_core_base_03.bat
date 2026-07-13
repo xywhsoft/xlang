@@ -350,9 +350,14 @@ if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed native-backed class array shared retain.
     exit /b 1
 )
-findstr /C:"(*(XL_Class_FnBox*)dst).op.retain" build\test\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"static void xl6_runtime_class_copy" build\test\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_copy_objects_functions.c missing class copy function retain.
+    echo cgen_typed_container_copy_objects_functions.c missing class handle retain operation.
+    exit /b 1
+)
+findstr /C:"(*(XL_Class_FnBox*)dst).op.retain" build\test\cgen_typed_container_copy_objects_functions.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_copy_objects_functions.c regressed to class payload copying.
     exit /b 1
 )
 "%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_typed_container_copy_objects_functions.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_typed_container_copy_objects_functions.exe
@@ -461,9 +466,14 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_function_field_objects.xl --emit build\test\cgen_typed_container_function_field_objects.c
 if errorlevel 1 exit /b 1
-findstr /C:"static void xl6_type_copy_XL_Class_FnBox" build\test\cgen_typed_container_function_field_objects.c >nul
+findstr /C:"static void xl6_runtime_class_copy" build\test\cgen_typed_container_function_field_objects.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_function_field_objects.c missing class type copy helper.
+    echo cgen_typed_container_function_field_objects.c missing class handle retain helper.
+    exit /b 1
+)
+findstr /C:"static void xl6_type_copy_XL_Class_FnBox" build\test\cgen_typed_container_function_field_objects.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_function_field_objects.c regressed to class payload copy helper.
     exit /b 1
 )
 findstr /C:"__xl6_function_field_assign_" build\test\cgen_typed_container_function_field_objects.c >nul

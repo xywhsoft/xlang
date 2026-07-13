@@ -3,12 +3,13 @@ class Point
     int y
 end
 
-extern "xl6_class_api_make" func __xl6_native_class_api_makePoint(int x, int y) as Point
 extern "xl6_class_api_sum" func __xl6_native_class_api_sum(Point point) as int
-export extern "xl6_class_api_origin" Point origin
 
 export func makePoint(int x, int y) as Point
-    return __xl6_native_class_api_makePoint(x, y)
+    Point point = Point()
+    point.x = x
+    point.y = y
+    return point
 end
 
 export func sum(Point point) as int

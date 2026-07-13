@@ -43,11 +43,11 @@ func xfeat_floor32(int value) as int
 end
 
 func xfeat_round_scaled(int value, float scale) as int
-	int out = int(value * scale + 0.5)
-	if out < 16 then
+	int result = int(value * scale + 0.5)
+	if result < 16 then
 		return 16
 	end
-	return out
+	return result
 end
 
 func xfeat_release_session(point session_handle)

@@ -11,7 +11,7 @@ class MatrixBox
 end
 
 func makeBox(int value, string label) as MatrixBox
-    MatrixBox box
+    MatrixBox box = MatrixBox()
     box.value = value
     box.label = label
     return box

@@ -28,20 +28,20 @@ func main(...) as int
     mutateList(sparseAlias)
     assert sparse[1] == 2
     mutateListCopy(sparse)
-    assert not sparse.contains(3)
+    assert sparse.contains(3)
 
     set<int> unique = set{1}
     set<int> uniqueAlias = unique
     mutateSet(uniqueAlias)
     assert unique.contains(2)
     mutateSetCopy(unique)
-    assert not unique.contains(3)
+    assert unique.contains(3)
 
     dict<int> table = dict{"a": 1}
     dict<int> tableAlias = table
     mutateDict(tableAlias)
     assert table["b"] == 2
     mutateDictCopy(table)
-    assert not ("c" in table)
+    assert "c" in table
     return 0
 end

@@ -20,7 +20,7 @@ class Factory
 end
 
 func makeBox(int base) as PairBox
-    PairBox box
+    PairBox box = PairBox()
     box.op = makePairer(base)
     box.bias = base
     return box
@@ -31,7 +31,7 @@ func makeBoxAndOp(int base) as (PairBox, func(int) as (int, int))
     return box, box.op
 end
 
-PairBox direct
+PairBox direct = PairBox()
 direct.op = pair
 direct.bias = 10
 
@@ -39,7 +39,7 @@ auto first, second = direct.op(3)
 expect(first, 3)
 expect(second, 4)
 
-PairBox closureBox
+PairBox closureBox = PairBox()
 closureBox.op = makePairer(20)
 closureBox.bias = 5
 
@@ -67,7 +67,7 @@ auto returnedLeft, returnedRight = returned.op(2)
 expect(returnedLeft + returned.bias, 82)
 expect(returnedRight + returned.bias, 78)
 
-PairBox assignedBox
+PairBox assignedBox = PairBox()
 assignedBox.op = pair
 assignedBox.bias = 1
 func(int) as (int, int) assignedOp = pair
@@ -93,6 +93,6 @@ expect(declaredFnRight, 54)
 
 _, _ = makeBoxAndOp(70)
 
-Factory factory
+Factory factory = Factory()
 factory.build = makeBoxAndOp
 factory.build(80)
