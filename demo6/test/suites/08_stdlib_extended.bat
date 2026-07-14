@@ -45,6 +45,24 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_json.exe
 if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\stdlib_json_stream.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_json_stream.xl --emit build\test\stdlib_json_stream.c
+if errorlevel 1 exit /b 1
+findstr /C:"int xrtJsonVisit" build\test\stdlib_json_stream.c >nul
+if errorlevel 1 (
+    echo stdlib_json_stream.c missing xrtJsonVisit prototype.
+    exit /b 1
+)
+findstr /C:"xjsonwriter xrtJsonWriterCreate" build\test\stdlib_json_stream.c >nul
+if errorlevel 1 (
+    echo stdlib_json_stream.c missing xrtJsonWriterCreate prototype.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\stdlib_json_stream.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_json_stream.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_json_stream.exe
+if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\stdlib_json.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_json_xlang.out.txt
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_json_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_json_c.exe
@@ -58,22 +76,22 @@ release\xl.exe check test\cases\stdlib_xson.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_xson.xl --emit build\test\stdlib_xson.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue xrtParseXSON" build\test\stdlib_xson.c >nul
+findstr /C:"xvalue xrtParseXSONWithOptions" build\test\stdlib_xson.c >nul
 if errorlevel 1 (
-    echo stdlib_xson.c missing xrtParseXSON extern prototype.
+    echo stdlib_xson.c missing xrtParseXSONWithOptions extern prototype.
     exit /b 1
 )
-findstr /C:"bool xrtXsonValid" build\test\stdlib_xson.c >nul
+findstr /C:"bool xrtXsonValidWithOptions" build\test\stdlib_xson.c >nul
 if errorlevel 1 (
-    echo stdlib_xson.c missing xrtXsonValid extern prototype.
+    echo stdlib_xson.c missing xrtXsonValidWithOptions extern prototype.
     exit /b 1
 )
-findstr /C:"void* xrtStringifyXSON" build\test\stdlib_xson.c >nul
+findstr /C:"char* xrtStringifyXSONWithOptions" build\test\stdlib_xson.c >nul
 if errorlevel 1 (
-    echo stdlib_xson.c missing xrtStringifyXSON extern prototype.
+    echo stdlib_xson.c missing xrtStringifyXSONWithOptions extern prototype.
     exit /b 1
 )
-findstr /C:"const char* __xl_std_xson_stringify" build\test\stdlib_xson.c >nul
+findstr /C:"xl_fn_____xl__std__xson__stringify__var" build\test\stdlib_xson.c >nul
 if errorlevel 1 (
     echo stdlib_xson.c missing xson.stringify helper.
     exit /b 1
@@ -274,6 +292,16 @@ if errorlevel 1 (
     echo stdlib_encoding.c missing encoding.isUtf8Bytes runtime helper.
     exit /b 1
 )
+findstr /C:"void* xl6_xrt_encoding_swap_utf16" build\test\stdlib_encoding.c >nul
+if errorlevel 1 (
+    echo stdlib_encoding.c missing UTF-16 endian runtime helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_encoding_swap_utf32" build\test\stdlib_encoding.c >nul
+if errorlevel 1 (
+    echo stdlib_encoding.c missing UTF-32 endian runtime helper.
+    exit /b 1
+)
 findstr /C:"void* xl6_xrt_buffer_wrap_handle" build\test\stdlib_encoding.c >nul
 if errorlevel 1 (
     echo stdlib_encoding.c missing Buffer handle wrapper.
@@ -361,6 +389,16 @@ if errorlevel 1 (
 findstr /C:"void* xl6_xrt_sha256_stream_create" build\test\stdlib_crypto.c >nul
 if errorlevel 1 (
     echo stdlib_crypto.c missing sha256 stream runtime helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_sha256_bytes" build\test\stdlib_crypto.c >nul
+if errorlevel 1 (
+    echo stdlib_crypto.c missing binary sha256 runtime helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_aes256_gcm_decrypt_bytes" build\test\stdlib_crypto.c >nul
+if errorlevel 1 (
+    echo stdlib_crypto.c missing binary AEAD runtime helper.
     exit /b 1
 )
 findstr /C:"xvalue xl6_xrt_ed25519_keypair" build\test\stdlib_crypto.c >nul
@@ -501,6 +539,14 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_log.exe
 if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\stdlib_log_object.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_log_object.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_log_object.xl -o build\test\stdlib_log_object.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_log_object.exe
+if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\stdlib_log.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_log_xlang.out.txt
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_log_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_log_c.exe
@@ -537,6 +583,14 @@ if errorlevel 1 (
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\stdlib_template.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_template.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_template.exe
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\stdlib_template_engine.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_template_engine.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_template_engine.xl -o build\test\stdlib_template_engine.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_template_engine.exe
 if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\stdlib_template.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_template_xlang.out.txt
 if errorlevel 1 exit /b 1
@@ -580,6 +634,26 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\stdlib_regex.exe
 if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_regex_extended.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_regex_extended.xl --emit build\test\stdlib_regex_extended.c
+if errorlevel 1 exit /b 1
+findstr /C:"long long xl6_xrt_regex_match_capture_start" build\test\stdlib_regex_extended.c >nul
+if errorlevel 1 (
+    echo stdlib_regex_extended.c missing capture range helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_regex_error_message" build\test\stdlib_regex_extended.c >nul
+if errorlevel 1 (
+    echo stdlib_regex_extended.c missing compile diagnostic helper.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\stdlib_regex_extended.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_regex_extended.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_regex_extended.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe run release\examples\stdlib_regex.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_regex_xlang.out.txt
 if errorlevel 1 exit /b 1
 "%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_regex_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_regex_c.exe
@@ -613,9 +687,18 @@ if errorlevel 1 (
     echo stdlib_process.c missing process exitCode runtime helper.
     exit /b 1
 )
+findstr /C:"xrtProcessReadEventsSince" build\test\stdlib_process.c >nul
+if errorlevel 1 (
+    echo stdlib_process.c missing incremental process event API.
+    exit /b 1
+)
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\stdlib_process.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_process.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_process.exe
+if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\stdlib_process_extended.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_process_extended.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\stdlib_process_shell_quotes.xl
 if errorlevel 1 exit /b 1
@@ -630,6 +713,24 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_process_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_process_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib process xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\stdlib_net_extended_config.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_net_extended_config.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_net_extended_config.xl -o build\test\stdlib_net_extended_config.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_net_extended_config.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_net_extended_io.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_net_extended_io.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\stdlib_net_extended_io.xl -o build\test\stdlib_net_extended_io.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_net_extended_io.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe check test\cases\stdlib_http_client.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_http_client.xl --emit build\test\stdlib_http_client.c
@@ -642,6 +743,16 @@ if errorlevel 1 (
 findstr /C:"void* xl6_xrt_http_client_response_body_text" build\test\stdlib_http_client.c >nul
 if errorlevel 1 (
     echo stdlib_http_client.c missing http client response helper.
+    exit /b 1
+)
+findstr /C:"static void xl6_http_client_free_response_value" build\test\stdlib_http_client.c >nul
+if errorlevel 1 (
+    echo stdlib_http_client.c missing typed future response release helper.
+    exit /b 1
+)
+findstr /C:"xvoCreateHandle(xl6_type_desc_XL_Class_HttpClientResponse()" build\test\stdlib_http_client.c >nul
+if errorlevel 1 (
+    echo stdlib_http_client.c does not publish async responses as typed class values.
     exit /b 1
 )
 findstr /C:"bool xl6_xrt_http_server_get_request" build\test\stdlib_http_client.c >nul
@@ -673,6 +784,23 @@ if errorlevel 1 (
     echo stdlib_http_client.out.txt missing http_request_method verification.
     exit /b 1
 )
+for %%L in (
+    "http_request_bytes=ok"
+    "http_request_proxy=ok"
+    "http_response_metadata=ok"
+    "http_diagnostics=ok"
+    "http_async=ok"
+    "http_stream=ok"
+    "http_stream_abort=ok"
+    "http_async_cancel=ok"
+    "http_explicit_engine=ok"
+) do (
+    findstr /C:%%L build\test\stdlib_http_client.out.txt >nul
+    if errorlevel 1 (
+        echo stdlib_http_client.out.txt missing %%L verification.
+        exit /b 1
+    )
+)
 "%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_http_client_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_http_client_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_http_client_c.exe > build\test\stdlib_http_client_c.out.txt
@@ -696,6 +824,20 @@ findstr /C:"http_request_method=ok" build\test\stdlib_http_client_c.out.txt >nul
 if errorlevel 1 (
     echo stdlib_http_client_c.out.txt missing http_request_method verification.
     exit /b 1
+)
+for %%L in (
+    "http_response_metadata=ok"
+    "http_diagnostics=ok"
+    "http_async=ok"
+    "http_stream=ok"
+    "http_stream_abort=ok"
+    "http_async_cancel=ok"
+) do (
+    findstr /C:%%L build\test\stdlib_http_client_c.out.txt >nul
+    if errorlevel 1 (
+        echo stdlib_http_client_c.out.txt missing %%L verification.
+        exit /b 1
+    )
 )
 
 release\xl.exe check test\cases\stdlib_http_server.xl
@@ -752,6 +894,16 @@ if errorlevel 1 (
     echo stdlib_http_server.c missing http request body size helper.
     exit /b 1
 )
+findstr /C:"int xl6_xrt_http_request_connection_open" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing raw connection state helper.
+    exit /b 1
+)
+findstr /C:"int xl6_xrt_http_request_close_connection" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing raw connection close helper.
+    exit /b 1
+)
 findstr /C:"int xl6_xrt_http_response_text" build\test\stdlib_http_server.c >nul
 if errorlevel 1 (
     echo stdlib_http_server.c missing http response object helper.
@@ -780,6 +932,21 @@ if errorlevel 1 (
 findstr /C:"int xl6_xrt_http_response_file" build\test\stdlib_http_server.c >nul
 if errorlevel 1 (
     echo stdlib_http_server.c missing http response file helper.
+    exit /b 1
+)
+findstr /C:"int xl6_xrt_http_response_file_range" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http response file range helper.
+    exit /b 1
+)
+findstr /C:"long long xl6_xrt_http_response_status_code" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http response metadata helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_http_response_body_buffer" build\test\stdlib_http_server.c >nul
+if errorlevel 1 (
+    echo stdlib_http_server.c missing http response body view helper.
     exit /b 1
 )
 findstr /C:"int xl6_xrt_http_response_redirect" build\test\stdlib_http_server.c >nul
@@ -957,6 +1124,107 @@ if errorlevel 1 (
     echo xlang_nested_child.out.txt missing nested file output.
     exit /b 1
 )
+
+release\xl.exe run test\cases\stdlib_special_collections.xl > build\test\stdlib_special_collections.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"stdlib special collections ok" build\test\stdlib_special_collections.out.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\stdlib_special_collections_lifecycle.xl > build\test\stdlib_special_collections_lifecycle.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"stdlib special collection lifecycle ok" build\test\stdlib_special_collections_lifecycle.out.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\stdlib_special_collections_concurrent.xl > build\test\stdlib_special_collections_concurrent.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"stdlib special collection concurrent ok" build\test\stdlib_special_collections_concurrent.out.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\stdlib_special_collections_async.xl > build\test\stdlib_special_collections_async.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"stdlib special collection async ok" build\test\stdlib_special_collections_async.out.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_special_collection_temporary_receiver.xl >nul 2> build\test\sem_special_collection_temporary_receiver.err.txt
+if not errorlevel 1 (
+    echo sem_special_collection_temporary_receiver.xl should fail.
+    exit /b 1
+)
+findstr /C:"[SC-TEMP-RECEIVER]" build\test\sem_special_collection_temporary_receiver.err.txt >nul
+if errorlevel 1 (
+    echo sem_special_collection_temporary_receiver.xl missing temporary receiver diagnostic.
+    exit /b 1
+)
+
+release\xl.exe run release\examples\stdlib_special_collections.xl > build\test\stdlib_special_collections_example.out.txt
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_special_collections_c.c > build\test\stdlib_special_collections_c_example.out.txt
+if errorlevel 1 exit /b 1
+fc build\test\stdlib_special_collections_example.out.txt build\test\stdlib_special_collections_c_example.out.txt >nul
+if errorlevel 1 (
+    echo special collection C/xlang example output mismatch.
+    exit /b 1
+)
+
+release\xl.exe run test\cases\stdlib_tls_session.xl > build\test\stdlib_tls_session.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"tls_session=ok" build\test\stdlib_tls_session.out.txt >nul
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_tls_session.xl --emit build\test\stdlib_tls_session.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_tls_session_create" build\test\stdlib_tls_session.c >nul
+if errorlevel 1 (
+    echo stdlib_tls_session.c missing raw TLS wrapper.
+    exit /b 1
+)
+release\xl.exe build test\cases\stdlib_tls_session.xl -o build\test\stdlib_tls_session.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_tls_session.exe > build\test\stdlib_tls_session_static.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"tls_session=ok" build\test\stdlib_tls_session_static.out.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\stdlib_tls_session_pair.xl > build\test\stdlib_tls_session_pair.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"tls_session_pair=ok" build\test\stdlib_tls_session_pair.out.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe run release\examples\stdlib_tls_session_pair.xl > build\test\stdlib_tls_session_pair_example.out.txt
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_tls_session_pair_c.c > build\test\stdlib_tls_session_pair_c_example.out.txt
+if errorlevel 1 exit /b 1
+fc build\test\stdlib_tls_session_pair_example.out.txt build\test\stdlib_tls_session_pair_c_example.out.txt >nul
+if errorlevel 1 (
+    echo raw TLS C/xlang example output mismatch.
+    exit /b 1
+)
+
+release\xl.exe run test\cases\stdlib_url_query_extended.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\stdlib_xid_object.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe run release\examples\stdlib_url.xl > build\test\stdlib_url_extended_xlang.out.txt
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_url_c.c > build\test\stdlib_url_extended_c.out.txt
+if errorlevel 1 exit /b 1
+fc build\test\stdlib_url_extended_xlang.out.txt build\test\stdlib_url_extended_c.out.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe run release\examples\stdlib_query.xl > build\test\stdlib_query_extended_xlang.out.txt
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_query_c.c > build\test\stdlib_query_extended_c.out.txt
+if errorlevel 1 exit /b 1
+fc build\test\stdlib_query_extended_xlang.out.txt build\test\stdlib_query_extended_c.out.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe run release\examples\stdlib_id_net.xl > build\test\stdlib_id_extended_xlang.out.txt
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_id_net_c.c > build\test\stdlib_id_extended_c.out.txt
+if errorlevel 1 exit /b 1
+fc build\test\stdlib_id_extended_xlang.out.txt build\test\stdlib_id_extended_c.out.txt >nul
+if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: extended standard library
 exit /b 0

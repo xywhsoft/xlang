@@ -83,3 +83,33 @@
 - TLS 覆盖内存握手、TCP 回环、错误证书、截断数据、重复关闭和 session resume。
 - C 与 xlang 范例实现相同场景并校验相同结果。
 - 标准库依赖裁剪、DLL 符号、XAPI、`xl run`、`xl build` 和完整 RC0 守门全部通过。
+
+## 4. 完成状态（2026-07-15）
+
+本批任务已经完成实现、双语范例、边界测试和发布守门，不再保留未完成的兼容分支。
+
+### 4.1 标准库公开面
+
+- 当前公开 `488` 个函数、`105` 个常量，共 `593` 个标准库符号。
+- 注册表包含 `862` 条函数注册记录；发布守门验证 `405` 个绑定 C 符号和 `1245` 个运行时导出符号。
+- `31` 个 xlang 标准库范例全部通过检查和运行；其中 `26` 个场景提供直接 C 对照范例，其余为语言级或组合应用范例。
+- 标准库测试接线覆盖 `56` 个测试文件，负例诊断基线为 `420/420`。
+
+### 4.2 本批核心交付
+
+- 专用结构已公开 `Stack<T>`、`AvlTree<K, V>`、`SpscQueue<T>`、`MpscQueue<T>`、`MpmcQueue<T>` 和 `WaitQueue<T>`，并覆盖所有权、满/空队列、超时、关闭和竞争边界。
+- 原始 TLS 已公开 `TlsConfig`、`TlsSession` 和 `TlsResume`，覆盖内存握手、TCP 回环、证书错误、截断输入、重复关闭和会话恢复。
+- 补齐此前仅部分公开的 URL/query/XID、regex、crypto、encoding、JSON/XSON、process、network、HTTP、logger、template、future/task 等 XRT 能力。
+- XRT Windows IOCP 限时 `accept` 的取消窗口已在 XRT 层修复，并新增“超时后无等待者间隙到达连接”的确定性回归测试。
+- XRT 共享 AVL 完整遍历后的所有权锁泄漏已在迭代器层修复，并增加锁深度和锁状态归零断言。
+- `xl run` 的 C 入口已消除“销毁上下文后读取退出码”的 use-after-free，并增加精确返回 `37` 的入口回归。
+- XRT 单头文件已重新生成并同步到 demo6；XRT 源单头文件与 demo6 副本的 SHA-256 均为 `D69DC389C2DA75C4CA3A757EFC91DA897FD355B540A2FB5FAFC2A5B46BD854BC`。
+
+### 4.3 发布验证
+
+- XRT GCC x64 完整测试通过；IOCP `accept` 间隙回归连续 `50/50` 通过。
+- 专用结构 C 范例连续 `50/50` 通过，C 与 xlang 输出一致。
+- 动态 xs 安静压测连续 `50/50` 通过，正式 xs smoke 测试通过并能自然退出。
+- `build.bat` 成功重建 `xl.exe`、`xl.dll` 和 `xlc.dll`。
+- demo6 完整 `test.bat` 通过，最终输出 `DEMO6 smoke tests ok.`。
+- 完整回归未产生磁盘临时文件，xs 运行目录仅保留 `.gitkeep`。

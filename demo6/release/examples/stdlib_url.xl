@@ -30,4 +30,9 @@ assert api == "https://example.com/api/list?limit=10", "resolve mismatch"
 string clean = url.normalizePath("/app/./data/../index.html")
 assert clean == "/app/index.html", "normalizePath mismatch"
 
+assert url.defaultPort("HTTPS") == 443, "defaultPort mismatch"
+assert url.isDefaultPort("https://example.com/docs"), "default port detection mismatch"
+assert url.hostHeader("https://example.com:8443/docs") == "example.com:8443", "hostHeader mismatch"
+assert url.build("https", "example.com", 443, "/api", "page=1", "top") == "https://example.com:443/api?page=1#top", "build mismatch"
+
 println("url=ok")

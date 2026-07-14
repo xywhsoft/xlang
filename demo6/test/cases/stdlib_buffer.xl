@@ -113,3 +113,32 @@ Buffer copied = Buffer()
 expect(copied.append(stepped), 1)
 expect(copied.len(), 2)
 expectStr(copied.text(), "he")
+
+Buffer inserted = Buffer()
+expect(inserted.append("ad"), 1)
+expect(inserted.insert(1, "bc"), 1)
+expectStr(inserted.text(), "abcd")
+expect(inserted.insert(0, stepped), 1)
+expectStr(inserted.text(), "heabcd")
+expect(inserted.insert(inserted.len(), "!"), 1)
+expectStr(inserted.text(), "heabcd!")
+
+bool insertNegativeCaught = false
+try
+    inserted.insert(-1, "x")
+catch e
+    if e.kind == "RangeError" then
+        insertNegativeCaught = true
+    end
+end
+expect(insertNegativeCaught, 1)
+
+bool insertOverflowCaught = false
+try
+    inserted.insert(inserted.len() + 1, "x")
+catch e
+    if e.kind == "RangeError" then
+        insertOverflowCaught = true
+    end
+end
+expect(insertOverflowCaught, 1)

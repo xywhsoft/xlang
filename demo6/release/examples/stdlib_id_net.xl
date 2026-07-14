@@ -2,6 +2,14 @@ string requestId = id.xid()
 
 assert string.len(requestId) == 32, "xid length mismatch"
 
+Xid original = id.make()
+string encoded = id.encode(original)
+Xid decoded = id.decode(encoded)
+assert original.valid and decoded.valid, "xid object should be valid"
+assert original == decoded, "xid object roundtrip mismatch"
+assert id.compare(original, decoded), "id.compare should use XID value equality"
+assert not id.decode("invalid").valid, "invalid xid should be rejected"
+
 string localIP = net.localIP()
 string localMAC = net.localMAC()
 string localName = net.localName()
@@ -9,5 +17,27 @@ string localName = net.localName()
 assert string.len(localIP) >= 0, "localIP should return a string"
 assert string.len(localMAC) >= 0, "localMAC should return a string"
 assert string.len(localName) >= 0, "localName should return a string"
+
+NetAddress resolved = net.resolve("localhost", 80)
+assert resolved.port == 80 and resolved.text() != ""
+
+NetProxy noProxy = net.proxy(net.proxyNone, "127.0.0.1", 0)
+NetProxy socksProxy = net.proxy(net.proxySocks5, "127.0.0.1", 1080)
+NetProxy httpProxy = net.proxy(net.proxyHttpConnect, "127.0.0.1", 8080)
+assert noProxy.type == net.proxyNone
+assert socksProxy.type == net.proxySocks5
+assert httpProxy.type == net.proxyHttpConnect
+
+TcpConnectConfig connectConfig = tcp.connectConfig("127.0.0.1", 65535)
+assert connectConfig.flags(tcp.connectNoDelay + tcp.connectKeepAlive)
+TcpListenConfig listenConfig = tcp.listenConfig(0, "127.0.0.1")
+assert listenConfig.flags(tcp.listenReuseAddr + tcp.listenReusePort + tcp.listenNoDelay + tcp.listenKeepAlive)
+UdpConfig udpConfig = udp.config(0, "127.0.0.1")
+assert udpConfig.flags(udp.reuseAddr + udp.reusePort)
+
+assert net.closeAbort + net.closeGraceful + net.closeWaitPeer == 7
+NetEngine engine = net.engine(1, net.engineAutoWorkers)
+assert engine.start()
+engine.stop()
 
 println("id_net=ok")

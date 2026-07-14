@@ -1,0 +1,47 @@
+string normal = "https://example.com/a?q=1"
+string custom = "https://example.com:8443/a"
+
+assert url.defaultPort("http") == 80
+assert url.defaultPort("HTTPS") == 443
+assert url.defaultPort("unknown") == 0
+assert url.isDefaultPort(normal)
+assert not url.isDefaultPort(custom)
+assert url.hostHeader(normal) == "example.com"
+assert url.hostHeader(custom) == "example.com:8443"
+assert url.hostHeader("not a url") == ""
+assert url.build("https", "example.com", 443, "/a", "q=1", "part") == "https://example.com:443/a?q=1#part"
+assert url.build("https", "example.com", 8443, "/a", "", "", "user") == "https://user@example.com:8443/a"
+assert url.build("https", "example.com", 70000) == ""
+
+string text = "name=hello+world&flag&empty=&name=again&%E4%BD%A0=%E5%A5%BD"
+assert query.count(text) == 5
+assert query.count("") == 0
+assert query.find(text, "name") == "hello world"
+assert query.find(text, "flag") == null
+assert query.find(text, "empty") == ""
+assert query.find(text, "你") == "好"
+assert query.find(text, "missing") == null
+
+array items = query.items(text)
+assert items.length == 5
+assert string(items[0][0]) == "name"
+assert string(items[0][1]) == "hello world"
+assert bool(items[0][2])
+assert string(items[1][0]) == "flag"
+assert items[1][1] == null
+assert not bool(items[1][2])
+assert string(items[4][0]) == "你"
+assert string(items[4][1]) == "好"
+
+dict values = query.toDict(text)
+assert values["name"] == "again"
+assert values["flag"] == null
+assert values["你"] == "好"
+
+dict source = {"a": "hello world", "flag": null, "你": "好"}
+string encoded = query.fromDict(source)
+assert query.find(encoded, "a") == "hello world"
+assert query.find(encoded, "flag") == null
+assert query.find(encoded, "你") == "好"
+
+println("stdlib url query extended ok")

@@ -1,0 +1,18 @@
+Xid original = id.make()
+assert original.valid
+
+string encoded = id.encode(original)
+assert string.byteLen(encoded) == 32
+
+Xid decoded = id.decode(encoded)
+assert decoded.valid
+assert id.compare(original, decoded)
+assert original == decoded
+assert decoded.toString() == encoded
+
+Xid invalid = id.decode("not-an-xid")
+assert not invalid.valid
+assert id.encode(invalid) == ""
+assert not id.compare(original, invalid)
+
+println("stdlib xid object ok")

@@ -67,6 +67,15 @@ static void xl6XrtTrimKeepNetworkStack(XL6_XrtTrimConfig* cfg)
     cfg->keepFileAsync = 1;
 }
 
+static void xl6XrtTrimKeepNetTlsStack(XL6_XrtTrimConfig* cfg)
+{
+    if ( cfg == NULL ) {
+        return;
+    }
+    xl6XrtTrimKeepNetworkStack(cfg);
+    cfg->keepNetTls = 1;
+}
+
 static void xl6XrtTrimKeepUrlStack(XL6_XrtTrimConfig* cfg)
 {
     if ( cfg == NULL ) {
@@ -249,6 +258,13 @@ static void xl6XrtTrimScanText(XL6_XrtTrimConfig* cfg, const char* text)
          xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_udp_") ) {
         xl6XrtTrimKeepNetworkStack(cfg);
     }
+    if ( strcmp(text, "TlsConfig") == 0 ||
+         strcmp(text, "TlsSession") == 0 ||
+         strcmp(text, "TlsResume") == 0 ||
+         xl6XrtTrimTextStartsWith(text, "xl6_xrt_tls_") ||
+         xl6XrtTrimTextStartsWith(text, "xrtNetTls") ) {
+        xl6XrtTrimKeepNetTlsStack(cfg);
+    }
     if ( xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_percent_") ||
          xl6XrtTrimTextStartsWith(text, "__xl_std_xrt_form_url_") ) {
         xl6XrtTrimKeepHttpUtilStack(cfg);
@@ -418,6 +434,11 @@ static void xl6XrtTrimScanGeneratedSource(XL6_XrtTrimConfig* cfg, const char* so
         xl6XrtTrimKeepValueStack(cfg);
     }
 
+    if ( xl6XrtTrimTextContains(source, "xrtNetTls") ||
+         xl6XrtTrimTextContains(source, "xl6_xrt_tls_") ) {
+        xl6XrtTrimKeepNetTlsStack(cfg);
+    }
+
     if ( xl6XrtTrimTextContains(source, "xrtNet") ) {
         xl6XrtTrimKeepNetworkStack(cfg);
     }
@@ -453,7 +474,8 @@ static void xl6XrtTrimScanGeneratedSource(XL6_XrtTrimConfig* cfg, const char* so
         cfg->keepTime = 1;
     }
 
-    if ( xl6XrtTrimTextContains(source, "xrtTemplate") ) {
+    if ( xl6XrtTrimTextContains(source, "xrtTemplate") ||
+         xl6XrtTrimTextContains(source, "xte") ) {
         cfg->keepTemplate = 1;
         cfg->keepJnum = 1;
         xl6XrtTrimKeepValueStack(cfg);
@@ -637,6 +659,10 @@ int xl6XrtTrimEmitImplementationSource(XL6_Output* out, const XL6_XrtTrimConfig*
     }
     if ( xl6OutputPuts("/* Generated XRT implementation for xlang output. */\n", out) == EOF ||
          xl6OutputPuts("#define XRT_IMPLEMENTATION\n", out) == EOF ) {
+        return 0;
+    }
+    if ( (cfg == NULL || cfg->full || cfg->keepTemplate) &&
+         xl6OutputPuts("#define XTE_ENABLE_FILE\n", out) == EOF ) {
         return 0;
     }
     if ( cfg == NULL || cfg->full ) {

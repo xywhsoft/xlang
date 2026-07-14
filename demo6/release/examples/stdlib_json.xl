@@ -1,5 +1,16 @@
 string filePath = "examples_out/example_stdlib_json.json"
 
+int visitCount = 0
+string visitedName = ""
+
+func visitJson(var event) as bool
+    visitCount += 1
+    if string(event["type"]) == "string" and string(event["key"]) == "name" then
+        visitedName = string(event["value"])
+    end
+    return true
+end
+
 dir.createAll("examples_out")
 
 bool validOk = json.valid('{"name":"xlang","stage":6}')
@@ -17,6 +28,18 @@ var loaded = json.read(filePath)
 string loadedText = json.stringify(loaded)
 bool deleted = file.delete(filePath)
 
+int visitStatus = json.visit('{"name":"xlang","items":[1,true,null]}', visitJson)
+JsonWriter writer = json.writer()
+assert(writer.beginObject())
+assert(writer.writeString("name", "xlang"))
+assert(writer.beginArray("items"))
+assert(writer.writeInt(1))
+assert(writer.writeBool(true))
+assert(writer.writeNull())
+assert(writer.endArray())
+assert(writer.endObject())
+string streamed = writer.finish()
+
 auto compactText = compact.toString()
 auto prettyText = pretty.toString()
 auto objectJsonText = objectText.toString()
@@ -32,4 +55,10 @@ assert(string.contains(objectText, '"xlang"'))
 assert(written)
 assert(string.contains(loadedText, '"stage"'))
 assert(deleted)
+assert(visitStatus == json.visitComplete)
+assert(json.visitStopped == 1)
+assert(json.visitInvalid == -1)
+assert(visitCount == 8)
+assert(visitedName == "xlang")
+assert(streamed == '{"name":"xlang","items":[1,true,null]}')
 println("json=ok")

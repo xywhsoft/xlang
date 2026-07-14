@@ -21,12 +21,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array completed string task.race over task.spawn futures awaitable after cancel.
     exit /b 1
 )
-findstr /C:"spawnBoolAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnBoolAllCompletedJobs), xrtTypeBool()" build\test\cgen_task_spawn.c >nul
+findstr /C:"spawnBoolAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnBoolAllCompletedJobs), xrtTypeBool32()" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array completed bool task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeBool(), (*(xtarray*)xl6_future_await_value(spawnBoolAllCompletedFuture" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeBool32(), (*(xtarray*)xl6_future_await_value(spawnBoolAllCompletedFuture" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing repeated await for typed-array completed bool task.all over task.spawn futures.
     exit /b 1
@@ -36,7 +36,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array completed bool task.all over task.spawn futures as borrowed.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeBool(), (*(xtarray*)xl6_future_await_value(spawnBoolAllCompletedFuture" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeBool32(), (*(xtarray*)xl6_future_await_value(spawnBoolAllCompletedFuture" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array completed bool task.all over task.spawn futures awaitable after cancel.
     exit /b 1
@@ -191,7 +191,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should preserve canceled typed-array string task.spawn race loser after worker completes.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(failedBoolSpawnAllJobs), xrtTypeBool()" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(failedBoolSpawnAllJobs), xrtTypeBool32()" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array bool task.all over task.spawn futures.
     exit /b 1
@@ -211,7 +211,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array float task.race over task.spawn futures.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolAllFailureGroup = xl6_task_all_from_array((xtarray)(typedSpawnBoolAllFailureJobs), xrtTypeBool()')){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolAllFailureGroup = xl6_task_all_from_array((xtarray)(typedSpawnBoolAllFailureJobs), xrtTypeBool32()')){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array bool task.all fast-failure over task.spawn fixture.
     exit /b 1
@@ -311,7 +311,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array string task.race over task.spawn futures as owned.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'cancelSpawnBoolTypedAll\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(cancelSpawnBoolAllJobs\),\s*xrtTypeBool\(\),\s*[^;]+?\),\s*1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'cancelSpawnBoolTypedAll\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(cancelSpawnBoolAllJobs\),\s*xrtTypeBool32\(\),\s*[^;]+?\),\s*1\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array bool task.all over task.spawn futures as owned.
     exit /b 1

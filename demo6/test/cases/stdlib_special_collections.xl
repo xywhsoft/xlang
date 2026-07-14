@@ -1,0 +1,79 @@
+func main(...) as int
+    Stack<int> numbers = Stack::<int>()
+    assert(numbers.push(10))
+    assert(numbers.push(20))
+    assert(numbers.count() == 2)
+
+    int number = 0
+    assert(numbers.peekInto(number))
+    assert(number == 20)
+    assert(numbers.popInto(number))
+    assert(number == 20)
+    assert(numbers.popInto(number))
+    assert(number == 10)
+    assert(not numbers.popInto(number))
+
+    Stack<int8> tinyNumbers = Stack::<int8>()
+    int8 tiny = int8(-7)
+    int8 tinyResult = int8(0)
+    assert(tinyNumbers.push(tiny))
+    assert(tinyNumbers.popInto(tinyResult))
+    assert(tinyResult == tiny)
+
+    Stack<float32> reals = Stack::<float32>()
+    float32 real = float32(1.25)
+    float32 realResult = float32(0.0)
+    assert(reals.push(real))
+    assert(reals.popInto(realResult))
+    assert(realResult == real)
+
+    Stack<bool> flags = Stack::<bool>()
+    bool flag = false
+    assert(flags.push(true))
+    assert(flags.popInto(flag))
+    assert(flag)
+
+    AvlTree<string, int> scores = AvlTree::<string, int>()
+    assert(scores.set("bob", 70))
+    assert(scores.set("alice", 90))
+    assert(scores.set("bob", 80))
+    assert(scores.count() == 2)
+    assert(scores.contains("alice"))
+    assert(scores.getInto("bob", number))
+    assert(number == 80)
+
+    array<string> names = scores.keys()
+    assert(names.length == 2)
+    assert(names[0] == "alice")
+    assert(names[1] == "bob")
+    assert(scores.remove("alice"))
+    assert(not scores.contains("alice"))
+
+    SpscQueue<int> spsc = SpscQueue::<int>(4)
+    assert(spsc.tryPush(1))
+    assert(spsc.tryPopInto(number))
+    assert(number == 1)
+
+    MpscQueue<int> mpsc = MpscQueue::<int>(4)
+    assert(mpsc.tryPush(2))
+    assert(mpsc.tryPopInto(number))
+    assert(number == 2)
+
+    MpmcQueue<string> messages = MpmcQueue::<string>(4)
+    assert(messages.tryPush("hello"))
+    string message = "old"
+    assert(messages.tryPopInto(message))
+    assert(message == "hello")
+
+    WaitQueue<int> waits = WaitQueue::<int>(4)
+    assert(not waits.popTimeoutInto(number, 1))
+    assert(waits.tryPush(42))
+    assert(waits.popInto(number))
+    assert(number == 42)
+    waits.close()
+    assert(waits.isClosed())
+    assert(waits.isDrained())
+
+    println("stdlib special collections ok")
+    return 0
+end

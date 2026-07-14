@@ -148,6 +148,29 @@ static void check_run(void)
     require_line("run", ok);
 }
 
+static void check_configured(void)
+{
+    xprocessconfig config;
+    xprocessresult result;
+    str env[] = {(str)"XL6_PROCESS_EXAMPLE=configured"};
+    int ok;
+
+    memset(&result, 0, sizeof(result));
+    config_shell(&config, "cmd /c echo %XL6_PROCESS_EXAMPLE%");
+    config.arrEnv = env;
+    config.iEnvCount = 1;
+    config.bInheritEnv = true;
+    config.iReadChunkSize = 1024;
+    config.iMaxEventCount = 64;
+    ok =
+        xrtProcessRun(&config, NULL, 0, &result, 5000) &&
+        xrtProcessResultSuccess(&result) &&
+        result_stdout_trim_equals(&result, "configured") &&
+        result.ExitInfo.iExitCode == 0;
+    xrtProcessResultUnit(&result);
+    require_line("configured", ok);
+}
+
 static void check_run_file(void)
 {
     xprocessresult result;
@@ -257,16 +280,62 @@ static void check_process(void)
         check_interactive_process(&shellConfig, "shell-process"));
 }
 
+static void check_incremental(void)
+{
+    xprocessconfig config;
+    xprocess* process;
+    xprocessreadinfo outInfo;
+    xprocessreadinfo errInfo;
+    xprocesseventreadinfo eventInfo;
+    xprocessexitinfo exitInfo;
+    xprocessevent* events;
+    void* out;
+    void* err;
+    size_t outSize = 0;
+    size_t errSize = 0;
+    uint32 eventCount = 0;
+    int ok;
+
+    config_shell(&config, "cmd /c echo incremental-out ^& echo incremental-err 1^>^&2");
+    process = xrtProcessSpawn(&config);
+    if ( process == NULL ) {
+        require_line("incremental", 0);
+        return;
+    }
+
+    ok = xrtProcessWaitTimeout(process, 5000) == 0;
+    out = xrtProcessReadStdoutSince(process, 0, 4, &outSize, &outInfo);
+    err = xrtProcessReadStderrSince(process, 0, 0, &errSize, &errInfo);
+    events = xrtProcessReadEventsSince(process, 0, 0, &eventCount, &eventInfo);
+    ok =
+        ok &&
+        out != NULL && outSize == 4 && memcmp(out, "incr", 4) == 0 &&
+        outInfo.iNextOffset == 4 &&
+        bytes_trim_equals(err, errSize, "incremental-err") &&
+        eventInfo.iEventEndSeq >= eventInfo.iNextSeq &&
+        eventInfo.bDone &&
+        xrtProcessGetExitInfo(process, &exitInfo) &&
+        exitInfo.iExitCode == 0;
+
+    xrtFree(out);
+    xrtFree(err);
+    xrtFree(events);
+    xrtProcessDestroy(process);
+    require_line("incremental", ok);
+}
+
 int main(void)
 {
     xrtInit();
 
     check_legacy();
     check_run();
+    check_configured();
     check_run_file();
     check_pipeline();
     check_pipeline_fail();
     check_process();
+    check_incremental();
 
     xrtUnit();
     return 0;

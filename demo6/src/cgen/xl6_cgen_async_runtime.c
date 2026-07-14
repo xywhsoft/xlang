@@ -1,6 +1,6 @@
 #include "xl6_cgen_async_runtime_await.c"
 
-static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
+static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn, int hasSpecialCollections)
 {
     xl6OutputPuts("#include <stddef.h>\n", out);
     xl6OutputPuts("#include <stdarg.h>\n", out);
@@ -8,6 +8,7 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("#ifndef XL6_XRT_ASYNC_TYPEDEF\n", out);
     xl6OutputPuts("#define XL6_XRT_ASYNC_TYPEDEF\n", out);
     xl6OutputPuts("typedef struct xrt_net_future xfuture;\n", out);
+    xl6OutputPuts("typedef struct xrt_task_group xtaskgroup;\n", out);
     xl6OutputPuts("typedef struct xchannel_struct* xchannel;\n", out);
     xl6OutputPuts("typedef struct xrt_type_desc xrt_type_desc;\n", out);
     xl6OutputPuts("typedef struct xrt_typed_array_struct* xtarray;\n", out);
@@ -25,6 +26,9 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("} xfuture_result;\n", out);
     xl6OutputPuts("typedef enum xfuture_state { XFUTURE_PENDING = 0, XFUTURE_RESOLVED = 1, XFUTURE_REJECTED = 2, XFUTURE_CANCELLED = 3, XFUTURE_CLOSED = 4 } xfuture_state;\n", out);
     xl6OutputPuts("typedef int (*xtask_thread_fn)(void* pArg, xfuture_result* pOut);\n", out);
+    xl6OutputPuts("typedef int (*xfuture_cont_fn)(const xfuture_result* pIn, void* pArg, xfuture_result* pOut);\n", out);
+    xl6OutputPuts("typedef int (*xfuture_finally_result_fn)(const xfuture_result* pIn, void* pArg, xfuture_result* pOut);\n", out);
+    xl6OutputPuts("typedef void (*xfuture_arg_free_fn)(void* pArg);\n", out);
     xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("#ifndef XFUTURE_RESULT_F_OWN_VALUE\n", out);
     xl6OutputPuts("#define XFUTURE_RESULT_F_OWN_VALUE 0x00000001u\n", out);
@@ -43,11 +47,17 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    xrtFree(pValue);\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("xfuture* xTaskRunThread(xtask_thread_fn pfnTask, void* pArg, size_t iStackSize);\nxfuture* xFutureAddRef(xfuture* pFuture);\nbool xFutureWait(xfuture* pFuture);\nbool xFutureWaitTimeout(xfuture* pFuture, long long iTimeoutMs);\nxfuture_state xFutureState(xfuture* pFuture);\nint xFutureStatus(xfuture* pFuture);\nvoid* xFutureValue(xfuture* pFuture);\nbool xFutureValueIsOwned(xfuture* pFuture);\nchar* xFutureError(xfuture* pFuture);\nvoid xFutureRelease(xfuture* pFuture);\n", out);
+    xl6OutputPuts("xfuture* xTaskRunThread(xtask_thread_fn pfnTask, void* pArg, size_t iStackSize);\nxfuture* xFutureAddRef(xfuture* pFuture);\nbool xFutureWait(xfuture* pFuture);\nbool xFutureWaitTimeout(xfuture* pFuture, long long iTimeoutMs);\nbool xFutureWaitUntil(xfuture* pFuture, long long iDeadlineMs);\nbool xFutureSetDebugName(xfuture* pFuture, const char* sDebugName);\nconst char* xFutureGetDebugName(xfuture* pFuture);\nunsigned long long xFutureGetCreateTimeMs(xfuture* pFuture);\nunsigned long long xFutureGetCompleteTimeMs(xfuture* pFuture);\nint xFutureGetPendingContinuationCount(xfuture* pFuture);\nxfuture_state xFutureState(xfuture* pFuture);\nint xFutureStatus(xfuture* pFuture);\nvoid* xFutureValue(xfuture* pFuture);\nbool xFutureValueIsOwned(xfuture* pFuture);\nchar* xFutureError(xfuture* pFuture);\nvoid xFutureRelease(xfuture* pFuture);\n", out);
     xl6OutputPuts("bool xFutureRequestCancel(xfuture* pFuture);\nbool xFutureForwardCancelTo(xfuture* pFuture, xfuture* pTarget);\nxfuture* xFutureWhenAny(xfuture** arrFuture, int iCount);\nxfuture* xFutureWhenAll(xfuture** arrFuture, int iCount);\nxfuture* xFutureRace(xfuture** arrFuture, int iCount);\nint xFutureGetGroupSourceIndex(xfuture* pFuture);\nint xFutureGetAllValueCount(xfuture* pFuture);\nvoid* xFutureGetAllValueItem(xfuture* pFuture, int iIndex);\n", out);
+    xl6OutputPuts("static bool xl6_future_request_cancel(xfuture* future)\n{\n    return future != 0 && xFutureRequestCancel(future);\n}\n", out);
+    xl6OutputPuts("xfuture* xFutureThenSourceEx(xfuture* pFuture, xfuture_cont_fn pfnCont, void* pArg, xfuture_arg_free_fn pfnFreeArg);\n", out);
+    xl6OutputPuts("xfuture* xFutureCatchSourceEx(xfuture* pFuture, xfuture_cont_fn pfnCont, void* pArg, xfuture_arg_free_fn pfnFreeArg);\n", out);
+    xl6OutputPuts("xfuture* xFutureFinallyResultSourceEx(xfuture* pFuture, xfuture_finally_result_fn pfnCont, void* pArg, xfuture_arg_free_fn pfnFreeArg);\n", out);
+    xl6OutputPuts("xtaskgroup* xTaskGroupCreate(void);\nvoid xTaskGroupDestroy(xtaskgroup* pGroup);\nvoid xTaskGroupClose(xtaskgroup* pGroup);\nxtaskgroup* xTaskGroupCreateChild(xtaskgroup* pParent);\nbool xTaskGroupBindParent(xtaskgroup* pGroup, xfuture* pParent);\nbool xTaskGroupAddFuture(xtaskgroup* pGroup, xfuture* pFuture);\nint xTaskGroupCount(xtaskgroup* pGroup);\nint xTaskGroupReapCompleted(xtaskgroup* pGroup);\nxfuture* xTaskGroupJoinFuture(xtaskgroup* pGroup);\nbool xTaskGroupJoin(xtaskgroup* pGroup);\nbool xTaskGroupJoinTimeout(xtaskgroup* pGroup, long long iTimeoutMs);\nbool xTaskGroupJoinUntil(xtaskgroup* pGroup, long long iDeadlineMs);\nbool xTaskGroupWait(xtaskgroup* pGroup);\nbool xTaskGroupWaitTimeout(xtaskgroup* pGroup, long long iTimeoutMs);\nbool xTaskGroupWaitUntil(xtaskgroup* pGroup, long long iDeadlineMs);\nvoid xTaskGroupCancel(xtaskgroup* pGroup);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeNull(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeFuture(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeValue(void);\n", out);
+    xl6OutputPuts("xvalue xrtTypeBoxValue(const xrt_type_desc* pType, const void* pObj);\nbool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, void* pOut);\n", out);
     xl6OutputPuts("xtarray xrtTypedArrayCreate(const xrt_type_desc* pItemType, unsigned int iMode);\n", out);
     xl6OutputPuts("void xrtTypedArrayDestroy(xtarray pArray);\n", out);
     xl6OutputPuts("void xrtTypedListDestroy(xtlist pList);\n", out);
@@ -187,6 +197,28 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("    xrtFree(pValue);\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    if ( hasSpecialCollections ) {
+        /* 仅在程序实际使用专用结构时生成对应句柄释放函数。 */
+        xl6OutputPuts("static void xl6_async_free_typed_stack_value(void* pValue)\n", out);
+        xl6OutputPuts("{\n", out);
+        xl6OutputPuts("    xtstack* value = (xtstack*)pValue;\n", out);
+        xl6OutputPuts("    if ( value != 0 && *value != 0 ) { xrtTypedStackRelease(*value); *value = 0; }\n", out);
+        xl6OutputPuts("    xrtFree(pValue);\n", out);
+        xl6OutputPuts("}\n", out);
+        xl6OutputPuts("static void xl6_async_free_typed_avl_value(void* pValue)\n", out);
+        xl6OutputPuts("{\n", out);
+        xl6OutputPuts("    xtavltree* value = (xtavltree*)pValue;\n", out);
+        xl6OutputPuts("    if ( value != 0 && *value != 0 ) { xrtTypedAvlTreeRelease(*value); *value = 0; }\n", out);
+        xl6OutputPuts("    xrtFree(pValue);\n", out);
+        xl6OutputPuts("}\n", out);
+        xl6OutputPuts("static void xl6_async_free_typed_queue_value(void* pValue)\n", out);
+        xl6OutputPuts("{\n", out);
+        xl6OutputPuts("    xtqueue* value = (xtqueue*)pValue;\n", out);
+        xl6OutputPuts("    if ( value != 0 && *value != 0 ) { xrtTypedQueueRelease(*value); *value = 0; }\n", out);
+        xl6OutputPuts("    xrtFree(pValue);\n", out);
+        xl6OutputPuts("}\n\n", out);
+    }
+
     xl6OutputPuts("void* xrtMutexCreate(void);\n", out);
     xl6OutputPuts("void xrtMutexDestroy(void* pMutex);\n", out);
     xl6OutputPuts("void xrtMutexLock(void* pMutex);\n", out);
@@ -256,6 +288,26 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
 
     xl6OutputPuts("static xfuture* xl6_future_add_ref_if_needed(xfuture* pFuture)\n{\n    return pFuture != 0 ? xFutureAddRef(pFuture) : 0;\n}\n\n", out);
     xl6OutputPuts("static const char* xl6_future_error_text(xfuture* pFuture)\n{\n    const char* sError = pFuture != 0 ? xFutureError(pFuture) : 0;\n    return sError != 0 ? sError : \"\";\n}\n\n", out);
+    xl6OutputPuts("static const char* xl6_future_debug_name(xfuture* pFuture)\n{\n    const char* name = pFuture != 0 ? xFutureGetDebugName(pFuture) : 0;\n    return name != 0 ? name : \"\";\n}\n\n", out);
+    xl6OutputPuts("static xvalue xl6_future_to_xvalue(xfuture* future, int releaseSource)\n{\n    xvalue value = future != 0 ? xrtTypeBoxValue(xrtTypeFuture(), &future) : xvoCreateNull();\n    if ( releaseSource && future != 0 ) { xFutureRelease(future); }\n    return value;\n}\n", out);
+    xl6OutputPuts("void* xl6_xrt_task_group_create(void)\n{\n    return xTaskGroupCreate();\n}\n", out);
+    xl6OutputPuts("void* xl6_xrt_task_group_wrap(void* handle)\n{\n    return handle;\n}\n", out);
+    xl6OutputPuts("long long xl6_xrt_task_group_destroy(void* value)\n{\n    xtaskgroup* group = (xtaskgroup*)value;\n    if ( group != 0 ) { xTaskGroupClose(group); xTaskGroupCancel(group); xTaskGroupDestroy(group); }\n    return 0;\n}\n", out);
+    xl6OutputPuts("static bool xl6_xrt_task_group_unbox_future(xvalue value, xfuture** outFuture)\n{\n    if ( outFuture == 0 ) { return false; }\n    *outFuture = 0;\n    return xrtTypeUnboxValue(xrtTypeFuture(), value, outFuture) && *outFuture != 0;\n}\n", out);
+    xl6OutputPuts("int xl6_xrt_task_group_add(void* value, xvalue task)\n{\n    xfuture* future = 0; bool ok;\n    if ( value == 0 || !xl6_xrt_task_group_unbox_future(task, &future) ) { return false; }\n    ok = xTaskGroupAddFuture((xtaskgroup*)value, future);\n    xFutureRelease(future);\n    return ok;\n}\n", out);
+    xl6OutputPuts("int xl6_xrt_task_group_bind_parent(void* value, xvalue task)\n{\n    xfuture* future = 0; bool ok;\n    if ( value == 0 || !xl6_xrt_task_group_unbox_future(task, &future) ) { return false; }\n    ok = xTaskGroupBindParent((xtaskgroup*)value, future);\n    xFutureRelease(future);\n    return ok;\n}\n", out);
+    xl6OutputPuts("void* xl6_xrt_task_group_child(void* value)\n{\n    return value != 0 ? xTaskGroupCreateChild((xtaskgroup*)value) : 0;\n}\n", out);
+    xl6OutputPuts("void xl6_xrt_task_group_close(void* value)\n{\n    if ( value != 0 ) { xTaskGroupClose((xtaskgroup*)value); }\n}\n", out);
+    xl6OutputPuts("void xl6_xrt_task_group_cancel(void* value)\n{\n    if ( value != 0 ) { xTaskGroupCancel((xtaskgroup*)value); }\n}\n", out);
+    xl6OutputPuts("int xl6_xrt_task_group_count(void* value)\n{\n    return value != 0 ? xTaskGroupCount((xtaskgroup*)value) : 0;\n}\n", out);
+    xl6OutputPuts("int xl6_xrt_task_group_reap(void* value)\n{\n    return value != 0 ? xTaskGroupReapCompleted((xtaskgroup*)value) : 0;\n}\n", out);
+    xl6OutputPuts("int xl6_xrt_task_group_join(void* value)\n{\n    return value != 0 && xTaskGroupJoin((xtaskgroup*)value);\n}\n", out);
+    xl6OutputPuts("int xl6_xrt_task_group_join_timeout(void* value, long long timeoutMs)\n{\n    return value != 0 && xTaskGroupJoinTimeout((xtaskgroup*)value, timeoutMs);\n}\n", out);
+    xl6OutputPuts("int xl6_xrt_task_group_join_until(void* value, long long deadlineMs)\n{\n    return value != 0 && xTaskGroupJoinUntil((xtaskgroup*)value, deadlineMs);\n}\n", out);
+    xl6OutputPuts("int xl6_xrt_task_group_wait(void* value)\n{\n    return value != 0 && xTaskGroupWait((xtaskgroup*)value);\n}\n", out);
+    xl6OutputPuts("int xl6_xrt_task_group_wait_timeout(void* value, long long timeoutMs)\n{\n    return value != 0 && xTaskGroupWaitTimeout((xtaskgroup*)value, timeoutMs);\n}\n", out);
+    xl6OutputPuts("int xl6_xrt_task_group_wait_until(void* value, long long deadlineMs)\n{\n    return value != 0 && xTaskGroupWaitUntil((xtaskgroup*)value, deadlineMs);\n}\n", out);
+    xl6OutputPuts("xfuture* xl6_xrt_task_group_join_async(void* value)\n{\n    xfuture* future;\n    if ( value == 0 ) { return 0; }\n    future = xTaskGroupJoinFuture((xtaskgroup*)value);\n    if ( future != 0 ) { xTaskGroupClose((xtaskgroup*)value); }\n    return future;\n}\n\n", out);
 
     xl6OutputPuts("static void xl6_thread_release(void* pThread)\n", out);
     xl6OutputPuts("{\n", out);
@@ -610,6 +662,114 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn)
     xl6OutputPuts("        xrtFree(argv);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return future;\n", out);
+        xl6OutputPuts("}\n", out);
+
+        /*
+            Future 延续回调统一在 XRT 的源完成线程中执行。
+            XRT 管理回调上下文的最终释放，xlang 只负责函数值和类型装箱。
+        */
+        xl6OutputPuts("typedef struct XL6_FutureContinuation {\n", out);
+        xl6OutputPuts("    XL6_Function fn;\n", out);
+        xl6OutputPuts("    const xrt_type_desc* inputType;\n", out);
+        xl6OutputPuts("    const xrt_type_desc* outputType;\n", out);
+        xl6OutputPuts("    size_t outputSize;\n", out);
+        xl6OutputPuts("    int kind;\n", out);
+        xl6OutputPuts("} XL6_FutureContinuation;\n\n", out);
+        xl6OutputPuts("static void xl6_future_continuation_free(void* pArg)\n", out);
+        xl6OutputPuts("{\n", out);
+        xl6OutputPuts("    XL6_FutureContinuation* arg = (XL6_FutureContinuation*)pArg;\n", out);
+        xl6OutputPuts("    if ( arg == 0 ) { return; }\n", out);
+        xl6OutputPuts("    xl6_function_release_value(arg->fn);\n", out);
+        xl6OutputPuts("    xrtFree(arg);\n", out);
+        xl6OutputPuts("}\n\n", out);
+        xl6OutputPuts("static int xl6_future_continuation_error(xfuture_result* pOut, xvalue value)\n", out);
+        xl6OutputPuts("{\n", out);
+        xl6OutputPuts("    XL6_Error* error = xl6_error_take();\n", out);
+        xl6OutputPuts("    const char* message = xl6_error_message(error);\n", out);
+        xl6OutputPuts("    if ( value != 0 ) { xvoUnref(value); }\n", out);
+        xl6OutputPuts("    xl6_async_result_error(pOut, message);\n", out);
+        xl6OutputPuts("    xl6_error_free(error);\n", out);
+        xl6OutputPuts("    return -1;\n", out);
+        xl6OutputPuts("}\n\n", out);
+        xl6OutputPuts("static int xl6_future_continuation_call(const xfuture_result* pIn, void* pArg, xfuture_result* pOut)\n", out);
+        xl6OutputPuts("{\n", out);
+        xl6OutputPuts("    XL6_FutureContinuation* arg = (XL6_FutureContinuation*)pArg;\n", out);
+        xl6OutputPuts("    xvalue argv[1] = { 0 };\n", out);
+        xl6OutputPuts("    xvalue value;\n", out);
+        xl6OutputPuts("    void* box;\n", out);
+        xl6OutputPuts("    int argc = 0;\n", out);
+        xl6OutputPuts("    if ( arg == 0 || pIn == 0 || pOut == 0 || (arg->fn.invoke_var == 0 && arg->fn.invoke_xcall == 0) ) {\n", out);
+        xl6OutputPuts("        return xl6_async_result_error(pOut, \"future continuation received an invalid function frame\");\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    if ( arg->kind == 1 ) {\n", out);
+        xl6OutputPuts("        argv[0] = pIn->pValue != 0 ? xrtTypeBoxValue(arg->inputType, pIn->pValue) : xvoCreateNull();\n", out);
+        xl6OutputPuts("        argc = 1;\n", out);
+        xl6OutputPuts("    } else if ( arg->kind == 2 ) {\n", out);
+        xl6OutputPuts("        argv[0] = xvoCreateText((void*)(pIn->sError != 0 ? pIn->sError : \"future failed\"), 0u, false);\n", out);
+        xl6OutputPuts("        argc = 1;\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    if ( argc != 0 && argv[0] == 0 ) {\n", out);
+        xl6OutputPuts("        return xl6_async_result_error(pOut, \"out of memory while preparing future continuation argument\");\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    value = xl6_function_call_argv_borrow(arg->fn, argc, argv);\n", out);
+        xl6OutputPuts("    if ( argv[0] != 0 ) { xvoUnref(argv[0]); }\n", out);
+        xl6OutputPuts("    if ( xl6_error_has() ) { return xl6_future_continuation_error(pOut, value); }\n", out);
+        xl6OutputPuts("    if ( arg->kind == 3 ) {\n", out);
+        xl6OutputPuts("        if ( value != 0 ) { xvoUnref(value); }\n", out);
+        xl6OutputPuts("        return 0;\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    if ( arg->outputSize == 0 ) {\n", out);
+        xl6OutputPuts("        if ( value != 0 ) { xvoUnref(value); }\n", out);
+        xl6OutputPuts("        return 0;\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    if ( value == 0 ) {\n", out);
+        xl6OutputPuts("        return xl6_async_result_error(pOut, \"future continuation returned an empty value\");\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    box = xl6_async_typed_box_alloc(arg->outputType, arg->outputSize);\n", out);
+        xl6OutputPuts("    if ( box == 0 ) {\n", out);
+        xl6OutputPuts("        xvoUnref(value);\n", out);
+        xl6OutputPuts("        return xl6_async_result_error(pOut, \"out of memory while storing future continuation result\");\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    if ( !xrtTypeUnboxValue(arg->outputType, value, box) ) {\n", out);
+        xl6OutputPuts("        xl6_async_free_typed_value_box(box);\n", out);
+        xl6OutputPuts("        xvoUnref(value);\n", out);
+        xl6OutputPuts("        return xl6_async_result_error(pOut, \"future continuation result type conversion failed\");\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    xvoUnref(value);\n", out);
+        xl6OutputPuts("    pOut->pValue = box;\n", out);
+        xl6OutputPuts("    pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE;\n", out);
+        xl6OutputPuts("    pOut->pfnFreeValue = xl6_async_free_typed_value_box;\n", out);
+        xl6OutputPuts("    return 0;\n", out);
+        xl6OutputPuts("}\n\n", out);
+        xl6OutputPuts("static xfuture* xl6_future_continue(xfuture* source, int releaseSource, XL6_Function fn, int retainBorrow, int kind, const xrt_type_desc* inputType, const xrt_type_desc* outputType, size_t outputSize, const char* file, int line, int column)\n", out);
+        xl6OutputPuts("{\n", out);
+        xl6OutputPuts("    XL6_FutureContinuation* arg;\n", out);
+        xl6OutputPuts("    xfuture* result = 0;\n", out);
+        xl6OutputPuts("    if ( source == 0 || (fn.invoke_var == 0 && fn.invoke_xcall == 0) || inputType == 0 || outputType == 0 || kind < 1 || kind > 3 ) {\n", out);
+        xl6OutputPuts("        if ( !retainBorrow ) { xl6_function_release_value(fn); }\n", out);
+        xl6OutputPuts("        if ( releaseSource && source != 0 ) { xFutureRelease(source); }\n", out);
+        xl6OutputPuts("        xl6_error_raise(\"FutureError\", \"invalid future continuation\", file, line, column);\n", out);
+        xl6OutputPuts("        return 0;\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    arg = (XL6_FutureContinuation*)xrtMalloc(sizeof(*arg));\n", out);
+        xl6OutputPuts("    if ( arg == 0 ) {\n", out);
+        xl6OutputPuts("        if ( !retainBorrow ) { xl6_function_release_value(fn); }\n", out);
+        xl6OutputPuts("        if ( releaseSource ) { xFutureRelease(source); }\n", out);
+        xl6OutputPuts("        xl6_error_raise(\"FutureError\", \"out of memory while creating future continuation\", file, line, column);\n", out);
+        xl6OutputPuts("        return 0;\n", out);
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    arg->fn = retainBorrow ? xl6_function_copy_value(fn) : fn;\n", out);
+        xl6OutputPuts("    arg->inputType = inputType;\n", out);
+        xl6OutputPuts("    arg->outputType = outputType;\n", out);
+        xl6OutputPuts("    arg->outputSize = outputSize;\n", out);
+        xl6OutputPuts("    arg->kind = kind;\n", out);
+        xl6OutputPuts("    if ( kind == 1 ) { result = xFutureThenSourceEx(source, xl6_future_continuation_call, arg, xl6_future_continuation_free); }\n", out);
+        xl6OutputPuts("    else if ( kind == 2 ) { result = xFutureCatchSourceEx(source, xl6_future_continuation_call, arg, xl6_future_continuation_free); }\n", out);
+        xl6OutputPuts("    else { result = xFutureFinallyResultSourceEx(source, xl6_future_continuation_call, arg, xl6_future_continuation_free); }\n", out);
+        xl6OutputPuts("    if ( result == 0 ) { xl6_future_continuation_free(arg); }\n", out);
+        xl6OutputPuts("    if ( releaseSource ) { xFutureRelease(source); }\n", out);
+        xl6OutputPuts("    if ( result == 0 ) { xl6_error_raise(\"FutureError\", \"future continuation registration failed\", file, line, column); }\n", out);
+        xl6OutputPuts("    return result;\n", out);
         xl6OutputPuts("}\n", out);
         xl6OutputPuts("#endif\n\n", out);
     }

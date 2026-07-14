@@ -16,9 +16,14 @@ if errorlevel 1 (
     echo cgen_derive_persistence.c missing derived fromValue protocol.
     exit /b 1
 )
-findstr /C:"__xl6__stringify__value" build\test\cgen_derive_persistence.c >nul
+findstr /C:"__xl6__json__stringify__value(const char* (*stringify_fn)(xvalue, int)" build\test\cgen_derive_persistence.c >nul
 if errorlevel 1 (
-    echo cgen_derive_persistence.c missing class stringify helper.
+    echo cgen_derive_persistence.c missing typed JSON class stringify helper.
+    exit /b 1
+)
+findstr /C:"__xl6__xson__stringify__value(const char* (*stringify_fn)(xvalue)" build\test\cgen_derive_persistence.c >nul
+if errorlevel 1 (
+    echo cgen_derive_persistence.c missing typed XSON class stringify helper.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_derive_persistence.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_derive_persistence.exe

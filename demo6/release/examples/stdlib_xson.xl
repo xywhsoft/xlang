@@ -2,18 +2,20 @@ dir.createAll("examples_out")
 
 bool validOk = xson.valid('{"name":"xlang","level":6,"enabled":true}')
 bool validBad = xson.valid('{"keep":1,"skip":ptr(123),"after":2}')
-bool validIgnored = xson.valid('{"keep":1,"skip":ptr(123),"after":2}', true)
+XsonOptions decodeOptions = xson.options(ignoreUnsupportedDecode = true)
+bool validIgnored = xson.valid('{"keep":1,"skip":ptr(123),"after":2}', decodeOptions)
 
 var config = xson.parse('{"name":"xlang","level":6,"enabled":true}')
 
 string compact = xson.stringify(config)
-string pretty = xson.stringify(config, pretty = true)
+XsonOptions prettyOptions = xson.options(pretty = true)
+string pretty = xson.stringify(config, prettyOptions)
 
 var copy = xson.parse(compact)
 string jsonText = json.stringify(copy)
 
-xson.write("examples_out/stdlib_xson_example.xson", config)
-var fileCopy = xson.read("examples_out/stdlib_xson_example.xson")
+xson.write("examples_out/stdlib_xson_example.xson", config, prettyOptions)
+var fileCopy = xson.read("examples_out/stdlib_xson_example.xson", prettyOptions)
 string fileText = xson.stringify(fileCopy)
 file.delete("examples_out/stdlib_xson_example.xson")
 

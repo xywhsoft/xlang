@@ -12,6 +12,7 @@ static void xl6CgenEmitBufferRuntime(XL6_Output* out)
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* pMem);\n", out);
     xl6OutputPuts("xbuffer xrtBufferCreate(unsigned int iStep);\n", out);
+    xl6OutputPuts("xbuffer xrtBufferAdopt(void* pData, size_t iSize);\n", out);
     xl6OutputPuts("void xrtBufferDestroy(xbuffer pBuf);\n", out);
     xl6OutputPuts("void xrtBufferUnit(xbuffer pBuf);\n", out);
     xl6OutputPuts("bool xrtBufferMalloc(xbuffer pBuf, unsigned int iCount);\n", out);
@@ -50,25 +51,15 @@ static void xl6CgenEmitBufferRuntime(XL6_Output* out)
 
     xl6OutputPuts("static void* xl6_xrt_buffer_from_owned_bytes(void* data, size_t size)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xbuffer buf;\n", out);
     xl6OutputPuts("    if ( size > 4294967295u ) {\n", out);
     xl6OutputPuts("        xrtFree(data);\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    buf = (xbuffer)xrtBufferCreate(0u);\n", out);
-    xl6OutputPuts("    if ( buf == 0 ) {\n", out);
-    xl6OutputPuts("        xrtFree(data);\n", out);
-    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    {\n", out);
+    xl6OutputPuts("        xbuffer buf = xrtBufferAdopt(data, size);\n", out);
+    xl6OutputPuts("        if ( buf == 0 ) { xrtFree(data); }\n", out);
+    xl6OutputPuts("        return buf;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if ( size > 0u ) {\n", out);
-    xl6OutputPuts("        if ( data == 0 || !xrtBufferAppend(buf, data, (unsigned int)size, 0u) ) {\n", out);
-    xl6OutputPuts("            xrtBufferDestroy(buf);\n", out);
-    xl6OutputPuts("            xrtFree(data);\n", out);
-    xl6OutputPuts("            return 0;\n", out);
-    xl6OutputPuts("        }\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    xrtFree(data);\n", out);
-    xl6OutputPuts("    return buf;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static void* xl6_xrt_buffer_from_view_bytes(const void* data, size_t size)\n", out);
@@ -265,6 +256,12 @@ static void xl6CgenEmitBufferRuntime(XL6_Output* out)
     xl6OutputPuts("void* xl6_xrt_buffer_data(void* self)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return self != 0 ? ((xbuffer)self)->Buffer : 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    /* Buffer 自身拥有 native handle 适配器，任何模块都不应替它补定义。 */
+    xl6OutputPuts("void* xl6_xrt_buffer_native_handle(void* self)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return self;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_buffer_file_read_bytes(const char* path)\n", out);

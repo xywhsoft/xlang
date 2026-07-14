@@ -9,7 +9,6 @@ if ( $Root -eq "" ) {
 }
 
 $stdlibPaths = @(
-    (Join-Path $Root "src\stdlib\xl6_stdlib.c"),
     (Join-Path $Root "src\stdlib\xl6_stdlib_data.c")
 )
 $apiPath = Join-Path $Root "src\api\xl_api_symbols.c"

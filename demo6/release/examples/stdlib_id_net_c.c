@@ -18,6 +18,9 @@ int main(void)
     str localIP;
     str localMAC;
     str localName;
+    xid original;
+    xid decoded;
+    str encoded;
 
     xrtInit();
 
@@ -31,12 +34,24 @@ int main(void)
     require_id_net(localMAC != NULL);
     require_id_net(localName != NULL);
 
+    original = xrtMakeXID();
+    require_id_net(original != NULL);
+    encoded = xrtEncodeXID(original);
+    require_id_net(encoded != NULL);
+    decoded = xrtDecodeXID(encoded);
+    require_id_net(decoded != NULL && xrtCompXID(original, decoded));
+    require_id_net(xrtDecodeXID((str)"invalid") == NULL);
+
     xrtFree(requestId);
     xrtFree(localIP);
     xrtFree(localMAC);
     xrtFree(localName);
+    xrtFree(decoded);
+    xrtFree(encoded);
+    xrtFree(original);
 
     printf("id_net=ok\n");
+    fflush(stdout);
     xrtUnit();
     return 0;
 }

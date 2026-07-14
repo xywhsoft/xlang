@@ -1,0 +1,26 @@
+func probe3() as int
+    int a = 1
+    int b = 2
+    a += 5
+    a -= 1
+    a *= b
+    a /= b
+    a %= 2
+    var c = -a
+    var d = not true
+    var e = +a
+    if a > 0 then
+        println("p")
+    elseif a == 0 then
+        println("z")
+    elseif a < 0 then
+        println("n")
+    else
+        println("?")
+    end
+    var arr = [1,2,3]
+    arr[0] = 99
+    var m = arr[a]
+    var n = range(a, b)
+    return 0
+end

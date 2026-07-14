@@ -662,6 +662,20 @@ static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNod
         ctorClass = NULL;
         snprintf(fieldPath, sizeof(fieldPath), "%s.", varPath);
         xl6CgenCIdentText(fieldPath + strlen(fieldPath), sizeof(fieldPath) - strlen(fieldPath), member->text);
+        if ( xl6CgenIsSpecialCollectionType(ctx, fieldType) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPuts(fieldPath, ctx->out);
+            xl6OutputPuts(" = ", ctx->out);
+            if ( initExpr == NULL ) {
+                xl6CgenSpecialCollectionDefaultCreateExpr(ctx, fieldType);
+            } else if ( xl6CgenSpecialCollectionExprIsOwned(ctx, initExpr) ) {
+                xl6CgenExpr(ctx, initExpr);
+            } else {
+                xl6CgenSpecialCollectionRetainExpr(ctx, fieldType, initExpr);
+            }
+            xl6OutputPuts(";\n", ctx->out);
+            continue;
+        }
         if ( xl6CgenIsTypedContainerType(ctx, fieldType) ) {
             const XL6_AstNode* literal = xl6CgenTypedContainerInitLiteral(ctx, fieldType, initExpr);
             int initByCopy = initExpr != NULL && literal == NULL && xl6CgenTypedContainerCanCopyFromExpr(ctx, fieldType, initExpr);

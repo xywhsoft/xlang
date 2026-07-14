@@ -10,6 +10,10 @@ if not exist release mkdir release
 if not exist build mkdir build
 if not exist build\tmp mkdir build\tmp
 
+rem Regenerate the static stdlib hash index before every build.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\generate_stdlib_index.ps1
+if errorlevel 1 exit /b 1
+
 call tools\bootstrap_tcc.bat
 if errorlevel 1 exit /b 1
 

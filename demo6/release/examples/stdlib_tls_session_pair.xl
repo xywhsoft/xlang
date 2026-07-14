@@ -1,0 +1,100 @@
+// 原始 TLS 会话：在内存中交换密文，不依赖 TCP。
+
+func tlsStatusOk(int status) as bool
+    return status == 0 or status == -2
+end
+
+// 每次只搬运一小段密文，验证 TLS 状态机能够处理分片输入。
+func moveTlsCipher(TlsSession source, TlsSession target, int chunkSize) as bool
+    bool moved = false
+    while source.pendingCipher > 0 do
+        Buffer cipher = source.peekCipher(chunkSize)
+        if cipher.len() <= 0 then
+            return moved
+        end
+        assert tlsStatusOk(target.feed(cipher))
+        source.consumeCipher(cipher.len())
+        moved = true
+    end
+    return moved
+end
+
+func handshakeTlsPair(TlsSession client, TlsSession server) as bool
+    int step = 0
+    while step < 4096 do
+        int clientStatus = client.handshake()
+        int serverStatus = server.handshake()
+        if not tlsStatusOk(clientStatus) or not tlsStatusOk(serverStatus) then
+            return false
+        end
+        moveTlsCipher(client, server, 37)
+        moveTlsCipher(server, client, 53)
+        if client.ready and server.ready then
+            return true
+        end
+        step += 1
+    end
+    return false
+end
+
+func makeServerConfig() as TlsConfig
+    TlsConfig config = TlsConfig()
+    assert config.certificate("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem")
+    config.verifyPeer(false)
+    config.maxVersion(0x0303)
+    return config
+end
+
+func makeClientConfig() as TlsConfig
+    TlsConfig config = TlsConfig()
+    assert config.host("localhost")
+    config.verifyPeer(false)
+    config.maxVersion(0x0303)
+    return config
+end
+
+TlsConfig serverConfig = makeServerConfig()
+TlsConfig clientConfig = makeClientConfig()
+TlsSession client = clientConfig.session()
+TlsSession server = serverConfig.session(true)
+assert handshakeTlsPair(client, server)
+assert server.sni() == "localhost"
+
+// 明文写入后只会从另一端读出，传输过程中始终是 TLS 密文。
+Buffer request = Buffer()
+assert request.append("hello tls")
+assert client.write(request) == request.len()
+assert moveTlsCipher(client, server, 19)
+assert server.read().text() == "hello tls"
+
+// 恢复信息由独立对象持有，可以在原会话关闭后创建新会话。
+TlsResume resume = client.exportResume()
+int closeStatus = client.close()
+int closeBytes = client.pendingCipher
+assert tlsStatusOk(closeStatus)
+assert tlsStatusOk(client.close())
+assert client.pendingCipher == closeBytes
+
+TlsSession resumedClient = clientConfig.session(resume)
+TlsSession resumedServer = serverConfig.session(true)
+assert handshakeTlsPair(resumedClient, resumedServer)
+assert resumedClient.resumed
+assert resumedServer.resumed
+
+// 缺失证书以及截断握手报文都必须稳定失败或等待更多数据。
+TlsConfig badConfig = TlsConfig()
+assert badConfig.certificate("missing-cert.pem", "missing-key.pem")
+TlsSession badServer = badConfig.session(true)
+assert badServer.handshake() == -1
+
+TlsSession partialClient = clientConfig.session()
+TlsSession partialServer = serverConfig.session(true)
+assert tlsStatusOk(partialClient.handshake())
+Buffer hello = partialClient.peekCipher()
+Buffer truncated = Buffer()
+assert truncated.appendByte(hello.byteAt(0))
+assert tlsStatusOk(partialServer.feed(truncated))
+assert partialServer.handshake() == -2
+assert not partialServer.ready
+
+println("tls_session_pair=ok")

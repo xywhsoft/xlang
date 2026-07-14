@@ -1,0 +1,42 @@
+Stack<int> globalStack
+
+class CollectionHolder
+    Stack<int> values
+end
+
+func shareStack(Stack<int> source) as Stack<int>
+    return source
+end
+
+func stackCount(Stack<int> source) as int
+    return source.count()
+end
+
+func main(...) as int
+    assert(globalStack.push(7))
+    assert(globalStack.count() == 1)
+
+    CollectionHolder holder = CollectionHolder()
+    assert(holder.values.push(10))
+
+    Stack<int> firstAlias = holder.values
+    assert(firstAlias.push(20))
+    assert(holder.values.count() == 2)
+
+    Stack<int> returnedAlias = shareStack(firstAlias)
+    holder.values = Stack::<int>()
+    assert(holder.values.count() == 0)
+    assert(returnedAlias.count() == 2)
+    assert(stackCount(returnedAlias) == 2)
+
+    firstAlias = Stack::<int>()
+    assert(firstAlias.push(30))
+    assert(returnedAlias.count() == 2)
+
+    auto inferred = Stack::<int>()
+    assert(inferred.push(40))
+    assert(inferred.count() == 1)
+
+    println("stdlib special collection lifecycle ok")
+    return 0
+end

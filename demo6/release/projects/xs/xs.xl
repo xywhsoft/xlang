@@ -269,6 +269,9 @@ func xsMakeTcpWorker(string name, string host, int port, string handler, int tim
             Buffer dataBytes = peer.recvBytes(timeoutMs, 65536)
             string data = dataBytes.text()
             string output = invoke("tcp", name, data, "", "")
+            if output == "" then
+                println("xs tcp handler produced empty output [", name, "] data=", data, " handler=", handler)
+            end
             if verbose then
                 println("xs tcp request [", name, "]: ", data)
                 println("xs tcp response [", name, "]: ", output)
@@ -278,8 +281,8 @@ func xsMakeTcpWorker(string name, string host, int port, string handler, int tim
             if verbose then
                 println("xs tcp sent [", name, "]: ", sent, " drain=", drained)
             end
-            time.sleep(10)
-            peer.close()
+            peer.close(net.closeGraceful)
+            peer.waitClose(timeoutMs)
             count += 1
         end
 

@@ -1312,6 +1312,7 @@ static int xlcShellRunC(int argc, char** argv)
     int runArgCount;
     int argStart;
     int ok;
+    int rc;
     int i;
 
     if ( !xlcShellCollectCInputs(argc, argv, cInputs, XLC_SHELL_MAX_C_INPUTS, &cInputCount) ) {
@@ -1334,6 +1335,7 @@ static int xlcShellRunC(int argc, char** argv)
         runArgs[runArgCount++] = argv[i];
     }
     ok = runtime != NULL && xlRunCSourceFiles(runtime, cInputs, cInputCount, runArgCount, runArgs);
+    rc = ok ? xlGetLastExitCode(runtime) : 1;
     if ( !ok ) {
         const char* errorText = runtime != NULL ? xlGetLastError(runtime) : xlcGetLastError(ctx);
         if ( errorText != NULL && errorText[0] != '\0' ) {
@@ -1341,7 +1343,7 @@ static int xlcShellRunC(int argc, char** argv)
         }
     }
     xlcDestroyContext(ctx);
-    return ok ? xlGetLastExitCode(runtime) : 1;
+    return rc;
 }
 
 static int xlcShellCgenDumpDir(XLC_Context* ctx, const char* inputPath, const char* dumpDir)

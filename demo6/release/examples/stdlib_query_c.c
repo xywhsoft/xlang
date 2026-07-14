@@ -27,6 +27,7 @@ int main(void)
     size_t offset = 0u;
     const char* text = "hello world/\xE4\xB8\xAD\xE6\x96\x87";
     str encoded;
+    xrtquerypair pair;
 
     xrtInit();
 
@@ -41,6 +42,9 @@ int main(void)
     require_text(xrtFormUrlDecode("hello+world%2F%E4%B8%AD%E6%96%87", strlen("hello+world%2F%E4%B8%AD%E6%96%87"), NULL), text);
 
     require_query(xrtQueryValidate(query, NULL));
+    require_query(xrtQueryCountN(query, strlen(query)) == 3u);
+    require_query(xrtQueryFindN(query, strlen(query), "page", strlen("page"), &pair));
+    require_query(pair.tValue.iLen == 1u && pair.tValue.sPtr[0] == '1');
 
     printf("query=ok\n");
     xrtUnit();

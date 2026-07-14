@@ -127,7 +127,15 @@ static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node)
               xl6CTextEquals(callee->text, "writeUnlock") ||
               xl6CTextEquals(callee->text, "downgrade") ||
               xl6CTextEquals(callee->text, "upgrade") ||
-              xl6CTextEquals(callee->text, "waitTimeout") ||
+              xl6CTextEquals(callee->text, "waitUntil") ||
+              xl6CTextEquals(callee->text, "setDebugName") ||
+              xl6CTextEquals(callee->text, "debugName") ||
+              xl6CTextEquals(callee->text, "createTimeMs") ||
+              xl6CTextEquals(callee->text, "completeTimeMs") ||
+              xl6CTextEquals(callee->text, "pendingContinuations") ||
+              xl6CTextEquals(callee->text, "then") ||
+              xl6CTextEquals(callee->text, "catch") ||
+              xl6CTextEquals(callee->text, "finally") ||
               xl6CTextEquals(callee->text, "isDone") ||
               xl6CTextEquals(callee->text, "isPending") ||
               xl6CTextEquals(callee->text, "isCancelled") ||
@@ -164,6 +172,12 @@ static int xl6CgenNodeNeedsTaskSpawn(const XL6_AstNode* node)
              xl6CTextEquals(callee->children[0]->text, "task") &&
              (xl6CTextEquals(callee->text, "spawn") ||
               xl6CTextEquals(callee->text, "whenAny")) ) {
+            return 1;
+        }
+        if ( callee->kind == XL6_AST_MEMBER &&
+             (xl6CTextEquals(callee->text, "then") ||
+              xl6CTextEquals(callee->text, "catch") ||
+              xl6CTextEquals(callee->text, "finally")) ) {
             return 1;
         }
     }

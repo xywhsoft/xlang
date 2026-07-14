@@ -1,0 +1,75 @@
+func produce() as int
+    return 20
+end
+
+func fail() as int
+    throw "task boom"
+    return 0
+end
+
+func plusTwo(int value) as int
+    return value + 2
+end
+
+func recover(string message) as int
+    assert message == "task boom"
+    return 77
+end
+
+func selectValue(int value) as int
+    return value + 3
+end
+
+func selectValue(string value) as string
+    return value + "!"
+end
+
+int cleanupCount = 0
+
+func cleanup()
+    cleanupCount += 1
+end
+
+func brokenCleanup()
+    throw "cleanup boom"
+end
+
+async func capturedContinuation() as int
+    int delta = 5
+    future<int> result = task.spawn(producer).then(func(int value) as int => value + delta)
+    return await result
+end
+
+func() as int producer = produce
+func() as int failure = fail
+
+future<int> mapped = task.spawn(producer).then(plusTwo)
+assert await mapped == 22
+
+future<int> selected = task.spawn(producer).then(selectValue)
+assert await selected == 23
+
+future<int> recovered = task.spawn(failure).catch(recover)
+assert await recovered == 77
+
+future<int> finalized = task.spawn(producer).finally(cleanup)
+assert await finalized == 20
+assert cleanupCount == 1
+
+future<string> chained = task.spawn(producer).then(func(int value) as string => f"value={value}").finally(cleanup)
+assert await chained == "value=20"
+assert cleanupCount == 2
+
+future<int> cleanupFailed = task.spawn(producer).finally(brokenCleanup)
+int cleanupError = 0
+try
+    int ignored = await cleanupFailed
+catch e
+    if e.message == "cleanup boom" then
+        cleanupError = 1
+    end
+end
+assert cleanupError == 1
+assert await capturedContinuation() == 25
+
+println("future continuation ok")

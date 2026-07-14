@@ -354,6 +354,7 @@ static int xl6CgenModuleGlobalNeedsDefaultInit(
            xl6CgenModuleGlobalUsesTypedContainerStorage(ctx, node, typeNode) ||
            xl6CgenIsFutureLikeType(typeNode) ||
            xl6CgenIsChannelType(typeNode) ||
+           xl6CgenIsSpecialCollectionType(ctx, typeNode) ||
            xl6CgenIsThreadType(typeNode) ||
            xl6CgenIsGeneratorType(typeNode) ||
            xl6CgenIsSyncHandleType(typeNode);
@@ -388,6 +389,10 @@ static void xl6CgenAddModuleGlobalCleanup(XL6_CgenContext* ctx, const XL6_AstNod
     }
     if ( xl6CgenModuleGlobalUsesTypedContainerStorage(ctx, node, concreteType) ) {
         xl6CgenAddTypedContainerCleanup(ctx, name, concreteType);
+        return;
+    }
+    if ( xl6CgenIsSpecialCollectionType(ctx, concreteType) ) {
+        xl6CgenAddSpecialCollectionCleanup(ctx, name, concreteType);
         return;
     }
     if ( xl6CgenIsFunctionType(concreteType) ) {
@@ -916,6 +921,8 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
     if ( initExpr == NULL ) {
         if ( xl6CgenModuleGlobalUsesTypedContainerStorage(ctx, node, typeNode) ) {
             xl6CgenTypedContainerCreateExprMode(ctx, typeNode, "XRT_OBJMODE_SHARED");
+        } else if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
+            xl6CgenSpecialCollectionDefaultCreateExpr(ctx, typeNode);
         } else if ( xl6CgenIsSyncHandleType(typeNode) ) {
             if ( !xl6CgenSyncDefaultCtorExpr(ctx, typeNode, node->line, node->column) ) {
                 xl6CgenDefaultValue(ctx, typeNode);
@@ -936,6 +943,14 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
     if ( initExpr != NULL ) {
         if ( xl6CgenIsFunctionType(typeNode) && xl6CgenExprIsFunctionBorrow(ctx, initExpr) ) {
             xl6CgenRetainFunctionValue(ctx, name);
+        }
+        if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) &&
+             !xl6CgenSpecialCollectionExprIsOwned(ctx, initExpr) ) {
+            xl6CgenIndent(ctx);
+            xl6CgenFputsCIdent(ctx->out, name);
+            xl6OutputPuts(" = ", ctx->out);
+            xl6CgenSpecialCollectionRetainCExpr(ctx, typeNode, cName);
+            xl6OutputPuts(";\n", ctx->out);
         }
         xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, typeNode, cName, initExpr);
     }

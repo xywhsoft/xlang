@@ -81,6 +81,7 @@ static xwebaction handle_user(xwebrequest* req, xwebresponse* resp, ptr userData
          strcmp(firstQueryName, "name") == 0 &&
          strcmp(firstQueryValue, "xlang") == 0 &&
          xrtWebRequestCookieCount(req) == 1 &&
+         xrtWebRequestConnectionOpen(req) &&
          strcmp(firstCookieName, "sid") == 0 &&
          strcmp(firstCookieValue, "abc") == 0;
     xrtFree(idCopy);
@@ -244,6 +245,43 @@ static xwebaction handle_cookie(xwebrequest* req, xwebresponse* resp, ptr userDa
     return xrtWebResponseText(resp, "cookie set", "text/plain; charset=utf-8") ? XWEB_DONE : XWEB_ERROR;
 }
 
+static xwebaction handle_response_meta(xwebrequest* req, xwebresponse* resp, ptr userData)
+{
+    const void* body;
+    size_t bodyLen = 0;
+    size_t headerCount;
+    (void)req;
+    (void)userData;
+
+    xrtWebResponseStatus(resp, 200, "Metadata");
+    if ( !xrtWebResponseSetHeader(resp, "Content-Type", "text/plain; charset=utf-8") ||
+         !xrtWebResponseAddHeader(resp, "X-Duplicate", "first") ||
+         !xrtWebResponseAddHeader(resp, "X-Duplicate", "second") ||
+         !xrtWebResponseAppendText(resp, "meta-body") ) {
+        return XWEB_ERROR;
+    }
+    headerCount = xrtWebResponseHeaderCount(resp);
+    body = xrtWebResponseBodyView(resp, &bodyLen);
+    if ( xrtWebResponseStatusCode(resp) != 200 ||
+         strcmp(xrtWebResponseReason(resp), "Metadata") != 0 ||
+         strcmp(xrtWebResponseHeader(resp, "X-Duplicate"), "first") != 0 ||
+         headerCount < 3 ||
+         xrtWebResponseHeaderNameAt(resp, headerCount) != NULL ||
+         xrtWebResponseHeaderValueAt(resp, headerCount) != NULL ||
+         bodyLen != 9 || !body || memcmp(body, "meta-body", 9) != 0 ||
+         xrtWebResponseCommitted(resp) ) {
+        return XWEB_ERROR;
+    }
+    return XWEB_DONE;
+}
+
+static xwebaction handle_file_range(xwebrequest* req, xwebresponse* resp, ptr userData)
+{
+    (void)req;
+    xrtWebResponseStatus(resp, 206, "Partial Content");
+    return xrtWebResponseFileRange(resp, (const char*)userData, 1, 4, 4096) ? XWEB_DONE : XWEB_ERROR;
+}
+
 static xhttpresponse* request_text(const char* url, const char* method, const char* body)
 {
     xhttprequest req;
@@ -355,6 +393,8 @@ int main(void)
     require_line("route_stream", xrtWebServerStreamRoute(server, XWEB_METHOD_POST, "/stream/{name}", stream_begin, stream_chunk, stream_end, &state));
     require_line("route_any", xrtWebServerAny(server, "/any", handle_any, &state));
     require_line("route_cookie", xrtWebServerGet(server, "/cookie", handle_cookie, &state));
+    require_line("route_response_meta", xrtWebServerGet(server, "/response-meta", handle_response_meta, &state));
+    require_line("route_file_range", xrtWebServerGet(server, "/file-range", handle_file_range, "examples_out/example_http_server_c_static/index.txt"));
 
     xrtWebStaticConfigInit(&staticCfg);
     require_line("static_mount", xrtWebServerStatic(server, "/public", "examples_out/example_http_server_c_static", &staticCfg));
@@ -403,6 +443,14 @@ int main(void)
     snprintf(url, sizeof(url), "http://127.0.0.1:%u/cookie", (unsigned)port);
     resp = request_text(url, "GET", NULL);
     require_header_response("cookie_response", resp, 200, "cookie set", "Set-Cookie", "sid=example; Path=/; Max-Age=3600; SameSite=Lax; HttpOnly");
+
+    snprintf(url, sizeof(url), "http://127.0.0.1:%u/response-meta", (unsigned)port);
+    resp = request_text(url, "GET", NULL);
+    require_response("response_meta", resp, 200, "meta-body");
+
+    snprintf(url, sizeof(url), "http://127.0.0.1:%u/file-range", (unsigned)port);
+    resp = request_text(url, "GET", NULL);
+    require_response("file_range", resp, 206, "tati");
 
     snprintf(url, sizeof(url), "http://127.0.0.1:%u/public/index.txt", (unsigned)port);
     resp = request_text(url, "GET", NULL);

@@ -107,6 +107,25 @@ static int request_once(int64_t port, const char* request, const char* expected)
     return ok;
 }
 
+static int request_close_once(int64_t port, const char* request)
+{
+    SOCKET sock;
+    char byte;
+    int n;
+
+    sock = connect_local_http(port, 5000);
+    if ( sock == INVALID_SOCKET ) {
+        return 0;
+    }
+    if ( !send_all(sock, request, (int)strlen(request)) ) {
+        closesocket(sock);
+        return 0;
+    }
+    n = recv(sock, &byte, 1, 0);
+    closesocket(sock);
+    return n == 0;
+}
+
 static int request_parts_once(int64_t port, const char* part1, const char* part2, const char* part3, const char* expected)
 {
     SOCKET sock = INVALID_SOCKET;
@@ -319,6 +338,22 @@ int main(void)
         "\r\n",
         (long long)port);
     check_step("append body", request_once(port, request, "append-body"), &ok);
+
+    snprintf(request, sizeof(request),
+        "GET /file-range HTTP/1.1\r\n"
+        "Host: 127.0.0.1:%lld\r\n"
+        "Connection: close\r\n"
+        "\r\n",
+        (long long)port);
+    check_step("file range", request_once(port, request, "ile-"), &ok);
+
+    snprintf(request, sizeof(request),
+        "GET /close HTTP/1.1\r\n"
+        "Host: 127.0.0.1:%lld\r\n"
+        "Connection: keep-alive\r\n"
+        "\r\n",
+        (long long)port);
+    check_step("explicit connection close", request_close_once(port, request), &ok);
 
     snprintf(request, sizeof(request),
         "POST /bytes HTTP/1.1\r\n"

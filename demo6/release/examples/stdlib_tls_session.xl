@@ -1,0 +1,15 @@
+// 原始 TLS 会话只负责 TLS 状态机，网络收发由 TcpStream 或调用方完成。
+TlsConfig config = TlsConfig()
+assert(config.host("localhost"))
+config.verifyPeer(false)
+
+TlsSession session = config.session()
+int status = session.handshake()
+assert(status == 0 or status == -2)
+
+// 首次客户端握手会生成 ClientHello 密文，发送后必须显式消费。
+Buffer clientHello = session.peekCipher()
+assert(clientHello.len() > 0)
+session.consumeCipher(clientHello.len())
+
+println("tls_session=ok")

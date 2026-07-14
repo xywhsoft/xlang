@@ -1,0 +1,85 @@
+func require(string name, bool condition)
+    if not condition then
+        println("FAILED: " + name)
+        assert false
+    end
+end
+
+async func run() as int
+    TcpListenConfig listenConfig = tcp.listenConfig(0)
+    require("listen_flags", listenConfig.flags(tcp.listenReuseAddr))
+    TcpServer server = listenConfig.listen()
+    int port = int(server.port())
+    require("listen_port", port > 0)
+
+    future<point> accepted = server.acceptAsync(8000)
+    TcpConnectConfig connectConfig = tcp.connectConfig("127.0.0.1", port)
+    require("connect_flags", connectConfig.flags(tcp.connectNoDelay + tcp.connectKeepAlive))
+    require("connect_timeout", connectConfig.timeout(8000))
+    TcpStream client = connectConfig.connect()
+    TcpStream peer = TcpStream(await accepted)
+
+    require("wait_writable", client.waitWritable(2000))
+    peer.pauseRead()
+
+    Buffer first = Buffer()
+    Buffer second = Buffer()
+    first.append("vector-")
+    second.append("send")
+    array parts = [first, second]
+    require("send_vec", client.sendVec(parts))
+    require("wait_drain_vec", client.waitDrain(8000))
+
+    require("wait_readable_vec", peer.waitReadable(8000))
+    require("recv_vec", peer.read() == "vector-send")
+    peer.resumeRead()
+
+    Buffer moved = Buffer()
+    moved.append("move")
+    require("send_move", client.sendMove(moved))
+    require("send_move_detach", moved.len() == 0 and moved.capacity() == 0)
+    require("wait_drain_move", client.waitDrain(8000))
+    require("recv_move", peer.recv(8000) == "move")
+    require("pending_send", client.pendingSend() >= 0)
+    require("wait_close_timeout", not client.waitClose(1))
+
+    client.close(net.closeGraceful)
+    peer.close(net.closeGraceful)
+
+    UdpConfig leftConfig = udp.config(0)
+    UdpConfig rightConfig = udp.config(0)
+    require("udp_left_flags", leftConfig.flags(udp.reuseAddr))
+    require("udp_right_flags", rightConfig.flags(udp.reuseAddr))
+    require("udp_left_batch", leftConfig.recvBatch(4))
+    require("udp_right_queues", rightConfig.queueLimits(64, 64))
+    UdpSocket left = leftConfig.bind()
+    UdpSocket right = rightConfig.bind()
+    require("udp_ports", left.port() > 0 and right.port() > 0)
+    require("udp_send", left.send("127.0.0.1", uint16(right.port()), "configured"))
+    UdpPacket packet = UdpPacket(right.recv(8000))
+    require("udp_recv", packet.text() == "configured")
+
+    NetEngine engine = net.engine(1, 0)
+    require("engine_start", engine.start())
+    channel<int> events = channel::<int>(2)
+    func() immediate = func()
+        events.send(1)
+    end
+    func() delayed = func()
+        events.send(2)
+    end
+    require("engine_post", engine.post(immediate))
+    require("engine_post_delayed", engine.postDelayed(delayed, 10))
+    int firstEvent = 0
+    int secondEvent = 0
+    require("engine_event_one", events.recvInto(firstEvent))
+    require("engine_event_two", events.recvInto(secondEvent))
+    require("engine_event_values", firstEvent == 1 and secondEvent == 2)
+    engine.stop()
+
+    println("stdlib net extended io ok")
+    return 0
+end
+
+int exitCode = await run()
+assert exitCode == 0

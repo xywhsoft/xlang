@@ -435,7 +435,8 @@ static void xl6CgenCollectGenericCall(XL6_CgenContext* ctx, const XL6_AstNode* c
     if ( xl6CgenFindClass(ctx, nameNode->text) != NULL ) {
         return;
     }
-    if ( xl6CTextEquals(nameNode->text, "channel") ) {
+    if ( xl6CTextEquals(nameNode->text, "channel") ||
+         xl6CgenIsSpecialCollectionTypeName(nameNode->text) ) {
         return;
     }
     if ( xl6CgenIsPersistenceGenericCall(call) ) {
@@ -811,6 +812,14 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
             }
         }
         {
+            XL6_AstNode* specialCollectionMethodType = xl6CgenSpecialCollectionMethodType(ctx, expr);
+            if ( specialCollectionMethodType != NULL ) {
+                const char* cType = xl6CgenTypeName(ctx, specialCollectionMethodType);
+                xl6AstFree(specialCollectionMethodType);
+                return cType;
+            }
+        }
+        {
             XL6_AstNode* channelMethodType = xl6CgenChannelMethodType(ctx, expr);
             if ( channelMethodType != NULL ) {
                 const char* cType = xl6CgenTypeName(ctx, channelMethodType);
@@ -861,6 +870,14 @@ static const char* xl6CgenInferExprType(XL6_CgenContext* ctx, const XL6_AstNode*
             if ( genericClassType != NULL ) {
                 const char* cType = xl6CgenTypeName(ctx, genericClassType);
                 xl6AstFree(genericClassType);
+                return cType;
+            }
+        }
+        {
+            XL6_AstNode* specialCollectionCtorType = xl6CgenSpecialCollectionCtorType(ctx, expr);
+            if ( specialCollectionCtorType != NULL ) {
+                const char* cType = xl6CgenTypeName(ctx, specialCollectionCtorType);
+                xl6AstFree(specialCollectionCtorType);
                 return cType;
             }
         }

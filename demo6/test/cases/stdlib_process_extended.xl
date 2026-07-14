@@ -1,0 +1,84 @@
+// 常量值是 XRT 进程 ABI 的稳定部分，状态和流编号可直接用于配置与诊断。
+assert process.stdin == 0 and process.stdout == 1 and process.stderr == 2
+assert process.stdioInherit == 0 and process.stdioPipe == 1 and process.stdioNull == 2
+assert process.stateFailed == -1 and process.stateInit == 0 and process.stateRunning == 1
+assert process.stateExited == 2 and process.stateClosed == 3
+
+// ProcessCommand 应完整承接 XRT 的进程配置能力。
+ProcessCommand envCommand = process.shell("cmd /c echo %XL6_PROCESS_EXT%")
+assert envCommand.workDir(".")
+assert envCommand.env("XL6_PROCESS_EXT", "configured")
+assert envCommand.inheritEnv(true)
+assert envCommand.mergeStderr(false)
+assert envCommand.processGroup(false)
+assert envCommand.hideWindow(true)
+assert envCommand.readChunkSize(1024)
+assert envCommand.maxCaptureBytes(1024 * 1024)
+assert envCommand.maxEventCount(128)
+assert envCommand.stdio(process.stdout, process.stdioPipe, true)
+assert !envCommand.stdio(9, process.stdioPipe, false)
+assert !envCommand.terminalSize(0, 24)
+
+ProcessResult envResult = process.run(envCommand, "", 5000)
+assert envResult.success
+assert string.trim(envResult.stdout) == "configured"
+
+var resultExit = envResult.exitInfo()
+assert int(resultExit["exitCode"]) == 0
+assert !bool(resultExit["timedOut"])
+assert !bool(resultExit["cancelled"])
+
+// 启动后的增量读取必须同时返回数据与稳定游标。
+ProcessCommand ioCommand = process.shell("cmd /c echo incremental-out ^& echo incremental-err 1^>^&2")
+Process ioProcess = process.start(ioCommand)
+assert ioProcess.wait(5000)
+assert ioProcess.state == process.stateExited
+
+var stdoutPart = ioProcess.readStdout(0, 4)
+assert string(stdoutPart["data"]) == "incr"
+assert int(stdoutPart["baseOffset"]) == 0
+assert int(stdoutPart["nextOffset"]) == 4
+assert int(stdoutPart["streamEndOffset"]) >= 15
+
+var stdoutRest = ioProcess.readStdout(int(stdoutPart["nextOffset"]), 0)
+assert string.startsWith(string(stdoutRest["data"]), "emental-out")
+assert bool(stdoutRest["done"])
+
+var stderrAll = ioProcess.readStderr()
+assert string.trim(string(stderrAll["data"])) == "incremental-err"
+assert bool(stderrAll["done"])
+
+var events = ioProcess.readEvents()
+assert int(events["nextSeq"]) >= int(events["baseSeq"])
+assert int(events["eventEndSeq"]) >= int(events["nextSeq"])
+assert bool(events["done"])
+
+var processExit = ioProcess.exitInfo()
+assert int(processExit["exitCode"]) == 0
+
+// Buffer 写入路径不能退化为仅文本接口。
+Process bytesProcess = process.start("cmd /c more")
+Buffer input = Buffer()
+assert input.append("bytes-process\n")
+assert bytesProcess.writeBytes(input)
+assert bytesProcess.closeStdin()
+assert bytesProcess.wait(5000)
+assert string.trim(bytesProcess.stdout) == "bytes-process"
+
+// 与平台能力相关的接口必须可查询，非法参数必须稳定失败。
+bool terminalAvailable = process.terminalSupported()
+assert terminalAvailable or !terminalAvailable
+assert !bytesProcess.resizeTerminal(0, 0)
+
+Process asyncProcess = process.start("cmd /c exit /b 0")
+future<point> waitFuture = asyncProcess.waitAsync()
+assert waitFuture.wait()
+assert await waitFuture != null
+assert asyncProcess.exitCode == 0
+
+// clearEnv 会释放由命令对象持有的环境副本。
+ProcessCommand cleanupCommand = process.shell("cmd /c exit /b 0")
+assert cleanupCommand.env("XL6_TEMP", "1")
+assert cleanupCommand.clearEnv()
+
+println("stdlib process extended ok")

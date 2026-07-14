@@ -3,6 +3,13 @@ func require(string name, bool ok)
     println(name + "=ok")
 end
 
+assert process.stdin == 0 and process.stdout == 1 and process.stderr == 2
+assert process.stdioInherit == 0 and process.stdioPipe == 1 and process.stdioNull == 2
+assert process.stateFailed == -1 and process.stateInit == 0 and process.stateRunning == 1
+assert process.stateExited == 2 and process.stateClosed == 3
+bool terminalAvailable = process.terminalSupported()
+assert terminalAvailable or not terminalAvailable
+
 string text = process.exec("cmd /c echo hello-process")
 require("legacy",
     string.trim(text) == "hello-process" and
@@ -19,6 +26,17 @@ require("run",
     !runResult.spawnFailed and
     string.trim(runResult.stdout) == "process-run" and
     string.trim(runResult.stderr) == "")
+
+ProcessCommand configured = process.shell("cmd /c echo %XL6_PROCESS_EXAMPLE%")
+configured.env("XL6_PROCESS_EXAMPLE", "configured")
+configured.readChunkSize(1024)
+configured.maxEventCount(64)
+ProcessResult configuredResult = process.run(configured, "", 5000)
+var configuredExit = configuredResult.exitInfo()
+require("configured",
+    configuredResult.success and
+    string.trim(configuredResult.stdout) == "configured" and
+    int(configuredExit["exitCode"]) == 0)
 
 ProcessResult fileResult = process.runFile("cmd", ["/c", "echo", "process-file"])
 require("runFile",
@@ -68,3 +86,18 @@ require("process",
     !shellProc.running and
     shellProc.exitCode == 0 and
     string.trim(shellProc.stdout) == "shell-process")
+
+ProcessCommand incrementalCommand = process.shell("cmd /c echo incremental-out ^& echo incremental-err 1^>^&2")
+Process incremental = process.start(incrementalCommand)
+incremental.wait(5000)
+var incrementalOut = incremental.readStdout(0, 4)
+var incrementalErr = incremental.readStderr()
+var incrementalEvents = incremental.readEvents()
+var incrementalExit = incremental.exitInfo()
+require("incremental",
+    string(incrementalOut["data"]) == "incr" and
+    int(incrementalOut["nextOffset"]) == 4 and
+    string.trim(string(incrementalErr["data"])) == "incremental-err" and
+    int(incrementalEvents["eventEndSeq"]) >= int(incrementalEvents["nextSeq"]) and
+    bool(incrementalEvents["done"]) and
+    int(incrementalExit["exitCode"]) == 0)

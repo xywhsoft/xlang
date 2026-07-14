@@ -30,6 +30,7 @@ int main(void)
     unsigned char byte;
     xbuffer buf;
     xbuffer stepped;
+    xbuffer inserted;
 
     xrtInit();
 
@@ -62,8 +63,19 @@ int main(void)
         1 &&
         stepped->Length == 2);
 
+    inserted = xrtBufferCreate(0);
+    require_line(
+        "insert",
+        inserted != NULL &&
+        xrtBufferAppend(inserted, "ad", 2, XBUF_BINARY) &&
+        xrtBufferInsert(inserted, 1, "bc", 2, XBUF_BINARY) &&
+        buffer_equals(inserted, "abcd") &&
+        xrtBufferInsert(inserted, 0, stepped->Buffer, stepped->Length, XBUF_BINARY) &&
+        buffer_equals(inserted, "heabcd"));
+
     xrtBufferDestroy(buf);
     xrtBufferDestroy(stepped);
+    xrtBufferDestroy(inserted);
     xrtUnit();
     return 0;
 }

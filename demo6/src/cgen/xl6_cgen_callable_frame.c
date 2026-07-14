@@ -45,6 +45,10 @@ static void xl6CgenEmitVarInvokeValueExpr(XL6_CgenContext* ctx, const XL6_AstNod
         xl6OutputPuts("xl6_xrt_retain(", ctx->out);
         xl6OutputPuts(valueExpr != NULL ? valueExpr : "0", ctx->out);
         xl6OutputPutc(')', ctx->out);
+    } else if ( xl6CgenIsSpecialCollectionType(ctx, concreteType) ) {
+        xl6OutputPrintf(ctx->out, "((%s)xvoGetHandleData(%s))",
+                        xl6CgenValueStorageCType(ctx, concreteType),
+                        valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CgenIsIntegerTypeName(typeName) ) {
         xl6OutputPrintf(ctx->out, "((%s)xvoGetInt(%s))", xl6CgenTypeName(ctx, concreteType), valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CgenIsFloatTypeName(typeName) ) {
@@ -250,7 +254,15 @@ static void xl6CgenEmitXCallTypeChecks(XL6_CgenContext* ctx, const XL6_AstNode* 
         const XL6_AstNode* param = params->children[i];
         const XL6_AstNode* paramType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
         const char* runtimeType = xl6CgenXValueRuntimeTypeConst(ctx, paramType);
-        if ( runtimeType != NULL ) {
+        if ( xl6CgenIsSpecialCollectionType(ctx, paramType) ) {
+            xl6OutputPrintf(ctx->out,
+                "    if (__xl6_arg_%u != 0 && (xvoType(__xl6_arg_%u) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_arg_%u) != ",
+                (unsigned)i, (unsigned)i, (unsigned)i);
+            xl6CgenEmitXrtTypeDescRef(ctx, paramType);
+            xl6OutputPuts(")) {\n", ctx->out);
+            xl6OutputPuts("        return false;\n", ctx->out);
+            xl6OutputPuts("    }\n", ctx->out);
+        } else if ( runtimeType != NULL ) {
             xl6OutputPrintf(ctx->out, "    if (__xl6_arg_%u != 0 && xvoType(__xl6_arg_%u) != %s) {\n", (unsigned)i, (unsigned)i, runtimeType);
             xl6OutputPuts("        return false;\n", ctx->out);
             xl6OutputPuts("    }\n", ctx->out);
@@ -339,7 +351,21 @@ static void xl6CgenEmitVarInvokeTypeChecks(XL6_CgenContext* ctx, const XL6_AstNo
         const XL6_AstNode* param = params->children[i];
         const XL6_AstNode* paramType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
         const char* runtimeType = xl6CgenXValueRuntimeTypeConst(ctx, paramType);
-        if ( runtimeType != NULL ) {
+        if ( xl6CgenIsSpecialCollectionType(ctx, paramType) ) {
+            if ( (int)i >= requiredCount ) {
+                xl6OutputPrintf(ctx->out,
+                    "    if (__xl6_argc > %u && (xvoType(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_argv[%u]) != ",
+                    (unsigned)i, (unsigned)i, (unsigned)i);
+            } else {
+                xl6OutputPrintf(ctx->out,
+                    "    if ((xvoType(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_argv[%u]) != ",
+                    (unsigned)i, (unsigned)i);
+            }
+            xl6CgenEmitXrtTypeDescRef(ctx, paramType);
+            xl6OutputPuts(")) {\n", ctx->out);
+            xl6OutputPuts("        xl6_function_fatal(3);\n", ctx->out);
+            xl6OutputPuts("    }\n", ctx->out);
+        } else if ( runtimeType != NULL ) {
             if ( (int)i >= requiredCount ) {
                 xl6OutputPrintf(ctx->out, "    if (__xl6_argc > %u && xvoType(__xl6_argv[%u]) != %s) {\n", (unsigned)i, (unsigned)i, runtimeType);
             } else {
@@ -472,9 +498,17 @@ static void xl6CgenEmitAnonVarInvoke(XL6_CgenContext* ctx, const XL6_CgenAnonFun
     xl6OutputPuts(");\n", ctx->out);
 
     if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts("    return ", ctx->out);
-        xl6CgenXValueFromTypedCExpr(ctx, returns->children[0], "__xl6_result");
-        xl6OutputPuts(";\n", ctx->out);
+        if ( xl6CgenIsSpecialCollectionType(ctx, returns->children[0]) ) {
+            xl6OutputPuts("    xvalue __xl6_boxed = ", ctx->out);
+            xl6CgenXValueFromTypedCExpr(ctx, returns->children[0], "__xl6_result");
+            xl6OutputPuts(";\n    ", ctx->out);
+            xl6CgenSpecialCollectionReleaseCExpr(ctx, returns->children[0], "__xl6_result");
+            xl6OutputPuts(";\n    return __xl6_boxed;\n", ctx->out);
+        } else {
+            xl6OutputPuts("    return ", ctx->out);
+            xl6CgenXValueFromTypedCExpr(ctx, returns->children[0], "__xl6_result");
+            xl6OutputPuts(";\n", ctx->out);
+        }
     } else {
         xl6OutputPuts("    return xvoCreateNull();\n", ctx->out);
     }

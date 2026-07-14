@@ -1,0 +1,79 @@
+async func stackCountAsync(Stack<int> values) as int
+    time.sleep(5)
+    return values.count()
+end
+
+async func makeStackAsync(int value) as Stack<int>
+    Stack<int> result = Stack::<int>()
+    result.push(value)
+    return result
+end
+
+async func makeTreeAsync() as AvlTree<string, int>
+    AvlTree<string, int> result = AvlTree::<string, int>()
+    result.set("answer", 42)
+    return result
+end
+
+async func makeQueueAsync() as WaitQueue<string>
+    WaitQueue<string> result = WaitQueue::<string>(4)
+    result.tryPush("ready")
+    return result
+end
+
+func makeStackSync() as Stack<int>
+    Stack<int> result = Stack::<int>()
+    result.push(99)
+    return result
+end
+
+func takeStackValue(Stack<int> values) as int
+    int value = 0
+    assert values.popInto(value)
+    return value
+end
+
+Stack<int> source = Stack::<int>()
+source.push(1)
+source.push(2)
+future<int> countFuture = stackCountAsync(source)
+assert await countFuture == 2
+assert source.count() == 2
+
+future<Stack<int>> stackFuture = makeStackAsync(7)
+Stack<int> stackA = await stackFuture
+Stack<int> stackB = await stackFuture
+int number = 0
+assert stackA.popInto(number) and number == 7
+assert stackB.count() == 0
+
+Stack<int> temporaryStack = await makeStackAsync(8)
+assert temporaryStack.popInto(number) and number == 8
+
+bool chooseNamed = true
+future<Stack<int>> conditionalSource = makeStackAsync(9)
+Stack<int> conditionalNamed = await (chooseNamed ? conditionalSource : makeStackAsync(10))
+assert conditionalNamed.popInto(number) and number == 9
+chooseNamed = false
+Stack<int> conditionalOwned = await (chooseNamed ? conditionalSource : makeStackAsync(10))
+assert conditionalOwned.popInto(number) and number == 10
+
+AvlTree<string, int> tree = await makeTreeAsync()
+assert tree.getInto("answer", number) and number == 42
+
+WaitQueue<string> queue = await makeQueueAsync()
+string text = ""
+assert queue.popInto(text) and text == "ready"
+
+func() as Stack<int> maker = makeStackSync
+future<Stack<int>> spawned = task.spawn(maker)
+Stack<int> spawnedStack = await spawned
+assert spawnedStack.popInto(number) and number == 99
+
+Stack<int> inputStack = Stack::<int>()
+inputStack.push(123)
+func(Stack<int>) as int consumer = takeStackValue
+assert await task.spawn(consumer, inputStack) == 123
+assert inputStack.count() == 0
+
+println("stdlib special collection async ok")

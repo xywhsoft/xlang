@@ -44,7 +44,7 @@ function Wait-HttpReady {
 }
 
 $proc = Start-Process -FilePath $xl `
-    -ArgumentList @("run", "projects\xs\xs.xl", "--", "--duration", "8000", "--quiet") `
+    -ArgumentList @("run", "projects\xs\xs.xl", "--", "--duration", "12000", "--quiet") `
     -WorkingDirectory $release `
     -RedirectStandardOutput $outLog `
     -RedirectStandardError $errLog `
@@ -60,10 +60,24 @@ try {
         -Wait `
         -PassThru
     if ($client.ExitCode -ne 0) {
-        throw "xs smoke client failed with code $($client.ExitCode)"
+        if (!$proc.HasExited) {
+            Stop-Process -Id $proc.Id -Force
+            $proc.WaitForExit()
+        }
+        $serverOut = if (Test-Path -LiteralPath $outLog) {
+            [System.IO.File]::ReadAllText($outLog, [System.Text.Encoding]::UTF8).Trim()
+        } else {
+            ""
+        }
+        $serverErr = if (Test-Path -LiteralPath $errLog) {
+            [System.IO.File]::ReadAllText($errLog, [System.Text.Encoding]::UTF8).Trim()
+        } else {
+            ""
+        }
+        throw "xs smoke client failed with code $($client.ExitCode), stdout=$serverOut, stderr=$serverErr"
     }
 
-    if (!$proc.WaitForExit(12000)) {
+    if (!$proc.WaitForExit(16000)) {
         throw "xs process did not exit after duration"
     }
     $proc.Refresh()

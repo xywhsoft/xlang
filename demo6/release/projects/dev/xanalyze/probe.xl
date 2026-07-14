@@ -1,0 +1,19 @@
+func add(int a, int b) as int
+    return a + b
+end
+
+func main() as int
+    var x = 10
+    var y = 20
+    var z = add(x, y)
+    if z > 25 then
+        println("big")
+    else
+        println("small")
+    end
+    var arr = [1, 2, 3]
+    for i in arr
+        println(i)
+    end
+    return 0
+end

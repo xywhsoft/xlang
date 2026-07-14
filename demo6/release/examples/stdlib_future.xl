@@ -1,0 +1,40 @@
+func produce() as int
+    return 20
+end
+
+func fail() as int
+    throw "boom"
+    return 0
+end
+
+func addTwo(int value) as int
+    return value + 2
+end
+
+func recover(string message) as int
+    assert message == "boom"
+    return 77
+end
+
+int finalized = 0
+
+func cleanup()
+    finalized += 1
+end
+
+func() as int producer = produce
+func() as int failure = fail
+
+future<int> mapped = task.spawn(producer).then(addTwo)
+future<int> recovered = task.spawn(failure).catch(recover)
+future<int> completed = task.spawn(producer).finally(cleanup)
+
+TaskGroup group = task.group()
+assert group.valid
+assert group.add(mapped)
+group.close()
+
+println("then=" + string(await mapped))
+println("catch=" + string(await recovered))
+println("finally=" + string(await completed))
+println("finalized=" + string(finalized))

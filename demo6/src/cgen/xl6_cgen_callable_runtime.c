@@ -80,6 +80,7 @@ static void xl6CgenEmitFunctionRuntime(XL6_Output* out)
 
 static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out, int emitArgvBorrow)
 {
+	xl6OutputPuts("#define XL6_FUNCTION_VAR_RUNTIME 1\n", out);
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* pMem);\n\n", out);
 

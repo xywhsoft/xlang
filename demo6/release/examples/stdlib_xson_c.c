@@ -21,23 +21,30 @@ int main(void)
     str pretty;
     str jsonText;
     str fileText;
+    xson_options decodeOptions;
+    xson_options prettyOptions;
 
     xrtInit();
     xrtDirCreateAll((str)"examples_out");
     xrtFileDelete((str)filePath);
 
-    require_xson(xrtXsonValid((str)"{\"name\":\"xlang\",\"level\":6,\"enabled\":true}", 0, 0));
-    require_xson(!xrtXsonValid((str)"{\"keep\":1,\"skip\":ptr(123),\"after\":2}", 0, 0));
-    require_xson(xrtXsonValid((str)"{\"keep\":1,\"skip\":ptr(123),\"after\":2}", 0, XSON_F_IGNORE_UNSUPPORTED_DECODE));
+    decodeOptions = xrtXsonOptionsDefault();
+    decodeOptions.ignore_unsupported_decode = TRUE;
+    prettyOptions = xrtXsonOptionsDefault();
+    prettyOptions.pretty = TRUE;
 
-    config = xrtParseXSON((str)"{\"name\":\"xlang\",\"level\":6,\"enabled\":true}", 0);
-    compact = xrtStringifyXSON(config, FALSE, 0, NULL);
-    pretty = xrtStringifyXSON(config, TRUE, 0, NULL);
-    copy = xrtParseXSON(compact, 0);
+    require_xson(xrtXsonValidWithOptions("{\"name\":\"xlang\",\"level\":6,\"enabled\":true}", 0, NULL));
+    require_xson(!xrtXsonValidWithOptions("{\"keep\":1,\"skip\":ptr(123),\"after\":2}", 0, NULL));
+    require_xson(xrtXsonValidWithOptions("{\"keep\":1,\"skip\":ptr(123),\"after\":2}", 0, &decodeOptions));
+
+    config = xrtParseXSONWithOptions("{\"name\":\"xlang\",\"level\":6,\"enabled\":true}", 0, NULL);
+    compact = (str)xrtStringifyXSONWithOptions(config, NULL, NULL);
+    pretty = (str)xrtStringifyXSONWithOptions(config, &prettyOptions, NULL);
+    copy = xrtParseXSONWithOptions((const char*)compact, 0, NULL);
     jsonText = xrtStringifyJSON(copy, FALSE, NULL);
-    require_xson(xrtStringifyXSON_File((str)filePath, config, FALSE, 0) != 0);
-    fileCopy = xrtParseXSON_File((str)filePath);
-    fileText = xrtStringifyXSON(fileCopy, FALSE, 0, NULL);
+    require_xson(xrtStringifyXSONFileWithOptions(filePath, config, &prettyOptions) != 0);
+    fileCopy = xrtParseXSONFileWithOptions(filePath, &prettyOptions);
+    fileText = (str)xrtStringifyXSONWithOptions(fileCopy, NULL, NULL);
     xrtFileDelete((str)filePath);
 
     require_xson(xrtStrIndexOf(compact, 0, (str)"xlang", 0, FALSE) >= 0);

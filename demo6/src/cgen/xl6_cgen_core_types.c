@@ -11,6 +11,7 @@ static int xl6CgenIsBuiltinTypeName(const char* name)
         "string", "time", "point", "error", "function", "var", "type",
         "array", "list", "set", "dict", "__class_handle",
         "future", "task", "channel", "generator",
+        "Stack", "AvlTree", "SpscQueue", "MpscQueue", "MpmcQueue", "WaitQueue",
         "thread", "mutex", "cond", "rwlock", "sem"
     };
     size_t i;
@@ -528,6 +529,18 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
     }
     if ( xl6CTextEquals(typeNode->text, "channel") ) {
         return "xchannel";
+    }
+    if ( xl6CTextEquals(typeNode->text, "Stack") ) {
+        return "xtstack";
+    }
+    if ( xl6CTextEquals(typeNode->text, "AvlTree") ) {
+        return "xtavltree";
+    }
+    if ( xl6CTextEquals(typeNode->text, "SpscQueue") ||
+         xl6CTextEquals(typeNode->text, "MpscQueue") ||
+         xl6CTextEquals(typeNode->text, "MpmcQueue") ||
+         xl6CTextEquals(typeNode->text, "WaitQueue") ) {
+        return "xtqueue";
     }
     if ( xl6CTextEquals(typeNode->text, "thread") ||
          xl6CTextEquals(typeNode->text, "mutex") ||

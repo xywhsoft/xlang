@@ -11,5 +11,16 @@ string decoded = query.decode(encoded)
 assert decoded == "hello world/中文", "query decode mismatch"
 
 assert query.valid(q), "query should be valid"
+assert query.count(q) == 3, "query count mismatch"
+assert query.find(q, "keyword") == "xlang demo6", "query find mismatch"
+
+array items = query.items(q)
+assert items.length == 3, "query items mismatch"
+
+dict values = query.toDict(q)
+assert values["page"] == "1", "query toDict mismatch"
+
+dict source = {"keyword": "xlang demo6", "page": "1", "lang": "zh-cn"}
+assert query.count(query.fromDict(source)) == 3, "query fromDict mismatch"
 
 println("query=ok")

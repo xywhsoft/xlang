@@ -25,5 +25,11 @@ requireLine("bracket", template.render("{{$title}}", data, "{{}}") == "xlang" an
 dir.createAll("examples_out/stdlib_template_example")
 file.writeText("examples_out/stdlib_template_example/page.xte", "File {$title}")
 requireLine("file", template.renderFile("examples_out/stdlib_template_example/page.xte", data) == "File xlang")
+assert compiled.save("examples_out/stdlib_template_example/page.xteb")
+Template loaded = template.load("examples_out/stdlib_template_example/page.xteb")
+assert loaded.render(data) == "<h1>xlang</h1>Y:Ada;Lin;"
+TemplateEngine engine = template.engine()
+assert engine.compile("Engine {$title}").render(data) == "Engine xlang"
 file.delete("examples_out/stdlib_template_example/page.xte")
+file.delete("examples_out/stdlib_template_example/page.xteb")
 dir.delete("examples_out/stdlib_template_example")

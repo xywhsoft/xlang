@@ -23,17 +23,12 @@ require("tcp_connect", tcpHandle != null)
 TcpStream tcpClient = TcpStream(tcpHandle)
 require("tcp_send", tcpClient.send("ping"))
 require("tcp_drain", tcpClient.drain(5000))
-string tcpReply = ""
-int tcpReadTry = 0
-while tcpReadTry < 30 and tcpReply == "" do
-    if tcpClient.available() > 0 then
-        tcpReply = tcpClient.read(65536)
-    else
-        time.sleep(100)
-    end
-    tcpReadTry += 1
-end
+Buffer tcpReplyBytes = tcpClient.recvBytes(10000, 65536)
+string tcpReply = tcpReplyBytes.text()
 tcpClient.close()
+if string.trim(tcpReply) != "xl-tcp:tcp-xl:ping" then
+    println("tcp_reply=[", tcpReply, "]")
+end
 require("tcp_xlang_handler", string.trim(tcpReply) == "xl-tcp:tcp-xl:ping")
 
 point udpHandle = udp.bind(0)

@@ -11,6 +11,10 @@ func route(point reqHandle, point respHandle) as bool
 
     resp.header("X-Server", "xlang")
 
+    if not req.connectionOpen() then
+        return false
+    end
+
     if req.method() == "GET" and req.path() == "/hello" then
         return resp.text("hello from xlang")
     end
@@ -64,6 +68,9 @@ func route(point reqHandle, point respHandle) as bool
     end
 
     if req.path() == "/append-body" then
+        resp.status(200, "Append")
+        resp.addHeader("X-Duplicate", "first")
+        resp.addHeader("X-Duplicate", "second")
         if not resp.reserveBody(16) then
             resp.status(500)
             return resp.text("append reserve failed")
@@ -76,11 +83,24 @@ func route(point reqHandle, point respHandle) as bool
             resp.status(500)
             return resp.text("append failed")
         end
+        Buffer responseBytes = resp.bodyBytes()
+        assert resp.statusCode() == 200 and resp.reason() == "Append", "response status metadata mismatch"
+        assert resp.header("X-Duplicate") == "first" and resp.headerCount() >= 3, "response header metadata mismatch"
+        assert resp.bodySize() == 11 and responseBytes.len() == 11 and not resp.committed(), "response body view mismatch"
         return true
     end
 
     if req.path() == "/download" then
         return resp.file("examples_out/example_http_static/index.txt")
+    end
+
+    if req.path() == "/download-range" then
+        resp.status(206, "Partial Content")
+        return resp.fileRange("examples_out/example_http_static/index.txt", 7, 4)
+    end
+
+    if req.path() == "/close" then
+        return req.closeConnection()
     end
 
     if req.path() == "/go" then
@@ -201,6 +221,8 @@ http.server.getRequest(server, "/append-body", requestHandler)
 http.server.route(server, "OPTIONS", "/legacy-route", handler)
 http.server.routeRequest(server, "PUT|PATCH|DELETE|OPTIONS", "/generic-method", requestHandler)
 http.server.getRequest(server, "/download", requestHandler)
+http.server.getRequest(server, "/download-range", requestHandler)
+http.server.getRequest(server, "/close", requestHandler)
 http.server.getRequest(server, "/go", requestHandler)
 http.server.getRequest(server, "/cookie", requestHandler)
 http.server.getRequest(server, "/stream", requestHandler)

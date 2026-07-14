@@ -1,0 +1,43 @@
+func delayed(int value, int delayMs) as int
+    time.sleep(delayMs)
+    return value
+end
+
+func(int, int) as int job = delayed
+
+TaskGroup group = task.group()
+assert group.valid
+assert group.count == 0
+assert not group.add(123)
+
+future<int> first = task.spawn(job, 10, 30)
+future<int> second = task.spawn(job, 20, 40)
+assert group.add(first)
+assert group.add(second)
+assert group.count == 2
+assert group.waitTimeout(2000)
+assert group.count == 0
+assert await first == 10
+assert await second == 20
+
+TaskGroup parent = task.group()
+TaskGroup child = parent.child()
+assert child.valid
+
+future<int> nested = task.spawn(job, 30, 20)
+assert child.add(nested)
+future<null> childDone = child.joinAsync()
+await childDone
+assert child.reapCompleted() == 1
+assert await nested == 30
+
+future<null> parentDone = parent.joinAsync()
+await parentDone
+assert parent.reapCompleted() >= 0
+
+TaskGroup closed = task.group()
+closed.close()
+assert not closed.add(first)
+assert closed.joinTimeout(100)
+
+println("task group ok")

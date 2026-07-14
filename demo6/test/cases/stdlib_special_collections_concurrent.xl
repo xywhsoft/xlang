@@ -1,0 +1,69 @@
+func main(...) as int
+    MpmcQueue<int> queue = MpmcQueue::<int>(1024)
+
+    auto producerA = func() as int
+        for i in range(0, 100)
+            if not queue.tryPush(i) then return 10 end
+        end
+        return 0
+    end
+    auto producerB = func() as int
+        for i in range(100, 200)
+            if not queue.tryPush(i) then return 11 end
+        end
+        return 0
+    end
+    auto producerC = func() as int
+        for i in range(200, 300)
+            if not queue.tryPush(i) then return 12 end
+        end
+        return 0
+    end
+    auto producerD = func() as int
+        for i in range(300, 400)
+            if not queue.tryPush(i) then return 13 end
+        end
+        return 0
+    end
+
+    thread a = thread(producerA)
+    thread b = thread(producerB)
+    thread c = thread(producerC)
+    thread d = thread(producerD)
+    assert(a.waitTimeout(5000))
+    assert(b.waitTimeout(5000))
+    assert(c.waitTimeout(5000))
+    assert(d.waitTimeout(5000))
+    assert(a.exitCode() == 0)
+    assert(b.exitCode() == 0)
+    assert(c.exitCode() == 0)
+    assert(d.exitCode() == 0)
+    assert(queue.count() == 400)
+
+    int sum = 0
+    int value = 0
+    for i in range(0, 400)
+        assert(queue.tryPopInto(value))
+        sum += value
+    end
+    assert(sum == 79800)
+    assert(queue.count() == 0)
+
+    WaitQueue<string> waits = WaitQueue::<string>(8)
+    auto delayed = func() as int
+        if not waits.tryPush("ready") then return 20 end
+        return 0
+    end
+    thread worker = thread(delayed)
+    string message = ""
+    assert(waits.popTimeoutInto(message, 5000))
+    assert(message == "ready")
+    assert(worker.waitTimeout(5000))
+    assert(worker.exitCode() == 0)
+
+    queue.close()
+    assert(queue.isClosed())
+    assert(queue.isDrained())
+    println("stdlib special collection concurrent ok")
+    return 0
+end

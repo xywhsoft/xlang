@@ -308,7 +308,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing empty bool function value task.spawn fixture.
     exit /b 1
 )
-findstr /C:"missingBoolJobValue = xl6_future_await_i32_release(xl6_task_spawn_values(missingBoolJob, xrtTypeBool()" build\test\cgen_task_spawn.c >nul
+findstr /C:"missingBoolJobValue = xl6_future_await_i32_release(xl6_task_spawn_values(missingBoolJob, xrtTypeBool32()" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing empty bool function value task.spawn call.
     exit /b 1

@@ -690,6 +690,35 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6AstFree(fieldType);
             return;
         }
+        if ( xl6CgenIsSpecialCollectionType(ctx, fieldType) ) {
+            int id = ctx->tempId++;
+            char slotName[64];
+            char valueName[64];
+            char slotExpr[72];
+
+            snprintf(slotName, sizeof(slotName), "__xl6_special_field_slot_%d", id);
+            snprintf(valueName, sizeof(valueName), "__xl6_special_field_value_%d", id);
+            snprintf(slotExpr, sizeof(slotExpr), "*%s", slotName);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s* %s = &(", xl6CgenTypeName(ctx, fieldType), slotName);
+            xl6CgenExpr(ctx, left);
+            xl6OutputPuts(");\n", ctx->out);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypeName(ctx, fieldType), valueName);
+            if ( xl6CgenSpecialCollectionExprIsOwned(ctx, right) ) {
+                xl6CgenExpr(ctx, right);
+            } else {
+                xl6CgenSpecialCollectionRetainExpr(ctx, fieldType, right);
+            }
+            xl6OutputPuts(";\n", ctx->out);
+            xl6CgenIndent(ctx);
+            xl6CgenSpecialCollectionReleaseCExpr(ctx, fieldType, slotExpr);
+            xl6OutputPuts(";\n", ctx->out);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "*%s = %s;\n", slotName, valueName);
+            xl6AstFree(fieldType);
+            return;
+        }
         if ( xl6CgenTypedContainerMemberAssignStmt(ctx, left, right, fieldType) ) {
             xl6AstFree(fieldType);
             return;
@@ -765,6 +794,30 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     }
     if ( left->kind == XL6_AST_MEMBER && xl6CgenMemberAssignIsDynamicTarget(ctx, left) ) {
         xl6CgenError(ctx, node, "dynamic member assignment only supports =");
+        return;
+    }
+    if ( xl6CTextEquals(op, "=") && left->kind == XL6_AST_NAME &&
+         xl6CgenIsSpecialCollectionType(ctx, xl6CgenNameAssignTargetType(ctx, left->text)) ) {
+        const XL6_AstNode* targetType = xl6CgenNameAssignTargetType(ctx, left->text);
+        int id = ctx->tempId++;
+        char targetName[512];
+        char tempName[64];
+
+        xl6CgenNameAssignTargetPath(ctx, left->text, targetName, sizeof(targetName));
+        snprintf(tempName, sizeof(tempName), "__xl6_special_assign_%d", id);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypeName(ctx, targetType), tempName);
+        if ( xl6CgenSpecialCollectionExprIsOwned(ctx, right) ) {
+            xl6CgenExpr(ctx, right);
+        } else {
+            xl6CgenSpecialCollectionRetainExpr(ctx, targetType, right);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6CgenSpecialCollectionReleaseCExpr(ctx, targetType, targetName);
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = %s;\n", targetName, tempName);
         return;
     }
     if ( xl6CTextEquals(op, "=") && left->kind == XL6_AST_NAME &&

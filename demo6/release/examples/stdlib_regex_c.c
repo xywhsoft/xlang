@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static size_t text_byte_len(const char* text)
 {
@@ -32,6 +33,17 @@ int main(void)
     xregexspan span;
     str matchText;
     str shiftedText;
+    xregexerror compileError;
+    xregex* namedRegex;
+    xregex* namedClone;
+    xregex* invalidRegex = NULL;
+    xregexmatch* namedMatch;
+    xregexmatch* optional;
+    str groupText;
+    const char* groupName;
+    size_t groupNameSize = 0;
+    xregexset* setClone = NULL;
+    int namedOk;
     int basicOk = 1;
 
     xrtInit();
@@ -111,6 +123,40 @@ int main(void)
         count == 2 &&
         (indexes[0] == 0 || indexes[1] == 0) &&
         (indexes[0] == 1 || indexes[1] == 1));
+
+    namedRegex = NULL;
+    namedOk = xrtRegexCompile("(?<word>[a-z]+)-([0-9]+)?", 0, XRT_REGEX_FLAG_MULTILINE, &namedRegex, &compileError) == 0 &&
+        namedRegex != NULL && xrtRegexCaptureCount(namedRegex) == 3;
+    namedMatch = namedOk ? xrtRegexFindMatchAt(namedRegex, "你abc-42好", text_byte_len("你abc-42好"), 0) : NULL;
+    groupName = namedMatch != NULL ? xrtRegexMatchCaptureName(namedMatch, 1, &groupNameSize) : NULL;
+    groupText = namedMatch != NULL ? xrtRegexMatchCaptureTextCopy(namedMatch, 1) : NULL;
+    require_line("capture",
+        namedOk && namedMatch != NULL &&
+        xrtRegexMatchCaptureCount(namedMatch) == 3 &&
+        xrtRegexMatchCaptureIndex(namedMatch, "word", 0) == 1 &&
+        groupName != NULL && groupNameSize == 4 && memcmp(groupName, "word", 4) == 0 &&
+        groupText != NULL && xrtStrComp(groupText, "abc", 0, FALSE) == 0 &&
+        xrtRegexMatchCaptureStart(namedMatch, 1) == 1 &&
+        xrtRegexMatchCaptureByteStart(namedMatch, 1) == 3);
+    xrtFree(groupText);
+
+    optional = xrtRegexFindMatchAt(namedRegex, "abc-", 4, 0);
+    namedClone = NULL;
+    require_line("diagnostic",
+        !xrtRegexMatchCaptureMatched(optional, 2) &&
+        xrtRegexMatchCaptureTextCopy(optional, 2) == NULL &&
+        xrtRegexCompile("[", 0, 0, &invalidRegex, &compileError) != 0 &&
+        compileError.sMessage != NULL &&
+        xrtRegexClone(&namedClone, namedRegex, 0) == 0 &&
+        namedClone != NULL &&
+        xrtRegexSetClone(&setClone, set, 0) == 0 &&
+        xrtRegexSetPatternCount(setClone) == 2);
+    xrtRegexMatchDestroy(namedMatch);
+    xrtRegexMatchDestroy(optional);
+    xrtRegexDestroy(namedClone);
+    xrtRegexDestroy(namedRegex);
+    xrtRegexDestroy(invalidRegex);
+    xrtRegexSetDestroy(setClone);
     xrtRegexSetDestroy(set);
 
     xrtUnit();

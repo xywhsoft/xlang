@@ -47,3 +47,33 @@ require("set",
     indexes.length == 2 and
     (int(indexes[0]) == 0 or int(indexes[1]) == 0) and
     (int(indexes[0]) == 1 or int(indexes[1]) == 1))
+
+RegexBuilder builder = regex.builder("(?<word>[a-z]+)-([0-9]+)?")
+builder.addFlags(regex.multiline)
+Regex namedRegex = builder.build()
+RegexMatch namedMatch = namedRegex.match("你abc-42好")
+array groups = namedMatch.groups()
+dict namedGroups = namedMatch.namedGroups()
+require("capture",
+    namedRegex.captureCount == 3 and
+    namedRegex.captureName(1) == "word" and
+    namedMatch.captureCount == 3 and
+    string(namedMatch.group("word")) == "abc" and
+    namedMatch.groupStart(1) == 1 and
+    namedMatch.groupByteStart(1) == 3 and
+    groups.length == 3 and
+    string(namedGroups["word"]) == "abc")
+
+RegexMatch optional = namedRegex.match("abc-")
+Regex cloned = namedRegex.clone()
+RegexSet clonedSet = regexSet.clone()
+require("diagnostic",
+    regex.valid("[a-z]+") and
+    not regex.valid("[") and
+    regex.error("[") != "" and
+    regex.errorPos("[") >= 0 and
+    regex.errorBytePos("[") >= 0 and
+    not optional.groupMatched(2) and
+    type(optional.group(2)) == null and
+    string(cloned.match("copy-7").group("word")) == "copy" and
+    clonedSet.patternCount == 2)

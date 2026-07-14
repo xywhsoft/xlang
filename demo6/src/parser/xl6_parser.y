@@ -667,6 +667,9 @@ member_name_tok(A) ::= KW_GET(N). { A = N; }
 member_name_tok(A) ::= KW_LET(N). { A = N; }
 member_name_tok(A) ::= KW_STATIC(N). { A = N; }
 member_name_tok(A) ::= KW_END(N). { A = N; }
+member_name_tok(A) ::= KW_THEN(N). { A = N; }
+member_name_tok(A) ::= KW_CATCH(N). { A = N; }
+member_name_tok(A) ::= KW_FINALLY(N). { A = N; }
 
 import_name(A) ::= import_name_part(N). {
     A = xl6PImportNameFromToken(&N);

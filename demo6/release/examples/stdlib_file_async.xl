@@ -1,11 +1,17 @@
 string filePath = "examples_out/example_file_async.txt"
 string copyPath = "examples_out/example_file_async.copy.txt"
 string movePath = "examples_out/example_file_async.move.txt"
+string binaryPath = "examples_out/example_file_async.bin"
+string handlePath = "examples_out/example_file_async.handle.bin"
+string dirRoot = "examples_out/example_dir_async"
 
 dir.createAll("examples_out")
 file.delete(filePath)
 file.delete(copyPath)
 file.delete(movePath)
+file.delete(binaryPath)
+file.delete(handlePath)
+dir.delete(dirRoot)
 
 if await file.writeTextAsync(filePath, "hello") and await file.readTextAsync(filePath) == "hello" then
     println("write_read=ok")
@@ -24,3 +30,38 @@ if await file.moveAsync(copyPath, movePath) and not file.exists(copyPath) and aw
 else
     println("move_delete=fail")
 end
+
+// Buffer 可以直接异步写入和读回，不需要转成文本。
+Buffer bytes = Buffer()
+bytes.appendByte(0)
+bytes.appendByte(127)
+bytes.appendByte(255)
+assert await file.writeBytesAsync(binaryPath, bytes)
+assert await file.readBytesAsync(binaryPath) == bytes
+
+// openAsync 适合需要偏移读写、刷新和截断的文件。
+AsyncFile asyncFile = file.openAsync(
+    handlePath,
+    file.asyncRead + file.asyncWrite + file.asyncCreate + file.asyncTruncate,
+    file.shareRead + file.shareWrite + file.shareDelete
+)
+assert await asyncFile.write(0, bytes) == bytes.len()
+assert await asyncFile.flush()
+Buffer handleRead = Buffer(await asyncFile.read(0, bytes.len()))
+assert handleRead == bytes
+assert await asyncFile.resize(2)
+assert await asyncFile.size() == 2
+assert asyncFile.close()
+
+// 目录操作同样返回 future，可直接与 await 组合。
+assert await dir.createAsync(dirRoot)
+assert await dir.createAllAsync(dirRoot + "/source/nested")
+assert file.writeText(dirRoot + "/source/nested/value.txt", "dir async")
+assert await dir.copyAsync(dirRoot + "/source", dirRoot + "/copy")
+assert await dir.moveAsync(dirRoot + "/copy", dirRoot + "/moved")
+assert await dir.deleteAsync(dirRoot + "/moved")
+assert await dir.deleteAsync(dirRoot + "/source")
+assert await dir.deleteAsync(dirRoot)
+
+file.delete(binaryPath)
+file.delete(handlePath)

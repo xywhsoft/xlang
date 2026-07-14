@@ -154,6 +154,17 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("static void* xl6_future_await_handle_copy(xfuture* pFuture, const xrt_type_desc* valueType, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    void* result = 0;\n", out);
+    xl6OutputPuts("    void* value = xl6_future_await_value(pFuture, file, line, column, 1, sizeof(result));\n", out);
+    xl6OutputPuts("    if ( value != 0 && !xl6_error_has() ) {\n", out);
+    xl6OutputPuts("        if ( valueType != 0 && valueType->Ops != 0 && valueType->Ops->copy != 0 ) { valueType->Ops->copy(&result, value); }\n", out);
+    xl6OutputPuts("        else { xl6_error_raise(\"AsyncError\", \"async handle is not copyable\", file, line, column); }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("static int xl6_future_await_void_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xl6_future_await_value(pFuture, file, line, column, 0, 0);\n", out);

@@ -77,6 +77,13 @@ static int xl6CgenTypeSupportsVarInvokeValue(XL6_CgenContext* ctx, const XL6_Ast
     if ( xl6CTextEquals(concreteType->text, "var") ) {
         return 1;
     }
+    /*
+        专用数据结构通过 XRT typed handle 进入 xvalue。
+        它们不是 array/list 这类普通 typed container，动态调用时使用运行时类型描述符校验。
+    */
+    if ( xl6CgenIsSpecialCollectionType(ctx, concreteType) ) {
+        return 1;
+    }
     if ( xl6CgenIsTypedContainerType(ctx, concreteType) ) {
         return 0;
     }
@@ -705,6 +712,21 @@ static void xl6CgenClassFunctionFieldRefs(
             xl6CgenTypedContainerFieldRef(ctx, typeNode, fieldPath, retain);
             continue;
         }
+        if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
+            xl6CgenIndent(ctx);
+            if ( retain ) {
+                xl6OutputPuts(fieldPath, ctx->out);
+                xl6OutputPuts(" = ", ctx->out);
+                xl6CgenSpecialCollectionRetainCExpr(ctx, typeNode, fieldPath);
+                xl6OutputPuts(";\n", ctx->out);
+            } else {
+                xl6CgenSpecialCollectionReleaseCExpr(ctx, typeNode, fieldPath);
+                xl6OutputPuts("; ", ctx->out);
+                xl6OutputPuts(fieldPath, ctx->out);
+                xl6OutputPuts(" = 0;\n", ctx->out);
+            }
+            continue;
+        }
         if ( xl6CgenIsXValueType(typeNode) ) {
             xl6CgenIndent(ctx);
             if ( retain ) {
@@ -1010,6 +1032,12 @@ static void xl6CgenRetainClassFunctionFieldsForBorrowedExpr(
 
 static void xl6CgenReleaseReturnedValuePath(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* valuePath)
 {
+    if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
+        xl6CgenIndent(ctx);
+        xl6CgenSpecialCollectionReleaseCExpr(ctx, typeNode, valuePath);
+        xl6OutputPuts(";\n", ctx->out);
+        return;
+    }
     if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
         xl6CgenIndent(ctx);
         xl6CgenTypedContainerDestroyValue(ctx, typeNode, valuePath);

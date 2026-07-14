@@ -7,11 +7,13 @@ file.delete(filePath)
 
 expect(xson.valid('{"name":"xlang","ok":true}'), 1)
 expect(xson.valid('{"keep":1,"skip":ptr(123),"after":2}'), 0)
-expect(xson.valid('{"keep":1,"skip":ptr(123),"after":2}', true), 1)
+XsonOptions decodeOptions = xson.options(ignoreUnsupportedDecode = true)
+expect(xson.valid('{"keep":1,"skip":ptr(123),"after":2}', decodeOptions), 1)
 
 var values = xson.parse("[1,2,3]")
 string compactValues = xson.stringify(values)
-string prettyValues = xson.stringify(values, pretty = true)
+XsonOptions prettyOptions = xson.options(pretty = true)
+string prettyValues = xson.stringify(values, prettyOptions)
 
 expect(string.contains(compactValues, "1"), 1)
 expect(string.contains(compactValues, "2"), 1)
@@ -27,10 +29,10 @@ string objectText = xson.stringify(object)
 expect(string.contains(objectText, "name"), 1)
 expect(string.contains(objectText, "xlang"), 1)
 
-expect(xson.write(filePath, object), 1)
+expect(xson.write(filePath, object, prettyOptions), 1)
 expect(file.exists(filePath), 1)
 
-var fileObject = xson.read(filePath)
+var fileObject = xson.read(filePath, prettyOptions)
 string fileObjectText = json.stringify(fileObject)
 
 expect(string.contains(fileObjectText, '"name"'), 1)

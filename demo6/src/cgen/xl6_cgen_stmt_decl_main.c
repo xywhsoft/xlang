@@ -314,6 +314,20 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
     if ( initExpr != NULL && xl6CgenDeclTryTemporaryClassFieldInit(ctx, node, typeNode, cType, cName, initExpr) ) {
         return;
     }
+    if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
+        xl6OutputPrintf(ctx->out, "%s %s = ", cType, cName);
+        if ( initExpr == NULL ) {
+            xl6CgenSpecialCollectionDefaultCreateExpr(ctx, typeNode);
+        } else if ( xl6CgenSpecialCollectionExprIsOwned(ctx, initExpr) ) {
+            xl6CgenExpr(ctx, initExpr);
+        } else {
+            xl6CgenSpecialCollectionRetainExpr(ctx, typeNode, initExpr);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenAddVarType(ctx, node->text, typeNode);
+        xl6CgenAddSpecialCollectionCleanup(ctx, node->text, typeNode);
+        return;
+    }
     if ( xl6CgenDeclShouldUseTypedContainer(ctx, typeNode, initExpr, declaredAuto) ) {
         int initByCopy = xl6CgenTypedContainerCanCopyFromExpr(ctx, typeNode, initExpr);
         int initByMove = xl6CgenTypedContainerCanMoveFromExpr(ctx, typeNode, initExpr);

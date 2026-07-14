@@ -304,6 +304,23 @@ static void xl6CgenStringLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
     xl6OutputPutc('"', ctx->out);
 }
 
+static void xl6CgenFutureToXValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    if ( expr != NULL && expr->kind == XL6_AST_CONDITIONAL && expr->childCount > 2 ) {
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenConditionExpr(ctx, expr->children[0]);
+        xl6OutputPuts(" ? ", ctx->out);
+        xl6CgenFutureToXValueExpr(ctx, expr->children[1]);
+        xl6OutputPuts(" : ", ctx->out);
+        xl6CgenFutureToXValueExpr(ctx, expr->children[2]);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+    xl6OutputPuts("xl6_future_to_xvalue(", ctx->out);
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPrintf(ctx->out, ", %d)", expr != NULL && expr->kind == XL6_AST_CALL ? 1 : 0);
+}
+
 static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
     XL6_AstNode* rawTypeNode;
@@ -438,6 +455,16 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6OutputPuts("xl6_function_to_xvalue(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPutc(')', ctx->out);
+    } else if ( typeNode != NULL && xl6CgenIsFutureLikeType(typeNode) ) {
+        xl6CgenFutureToXValueExpr(ctx, expr);
+    } else if ( typeNode != NULL && xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
+        xl6OutputPuts("xrtTypeBoxValue(", ctx->out);
+        xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
+        xl6OutputPuts(", &(", ctx->out);
+        xl6OutputPuts(xl6CgenTypeName(ctx, typeNode), ctx->out);
+        xl6OutputPuts("){", ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPuts("})", ctx->out);
     } else if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "error") ) {
         xl6OutputPuts("xvoCreateText((void*)xl6_error_message(", ctx->out);
         xl6CgenExpr(ctx, expr);

@@ -71,6 +71,13 @@
 - `stdlib_json_c.c`: C/XRT counterpart for `stdlib_json.xl`; covers validation, parse/stringify and file read/write.
 - `stdlib_file_async.xl`
 - `stdlib_file_async_c.c`: C/XRT async file counterpart; main regression compares both outputs.
+- `stdlib_future.xl`
+- `stdlib_future_c.c`: C/XRT counterpart for `stdlib_future.xl`; covers `then`, `catch`, result-preserving `finally`, and Future ownership.
+- `stdlib_special_collections.xl`
+- `stdlib_special_collections_c.c`: C/XRT counterpart for the specialized stack, AVL tree, SPSC/MPSC/MPMC queue and wait queue APIs.
+- `stdlib_tls_session.xl`
+- `stdlib_tls_session_pair.xl`
+- `stdlib_tls_session_pair_c.c`: C/XRT counterpart for raw TLS client/server sessions, handshake, encrypted transport and close lifecycle.
 - `stdlib_xson.xl`
 - `stdlib_xson_c.c`: C/XRT counterpart for `stdlib_xson.xl`; covers strict validation, ignore-unsupported validation, stringify and file read/write.
 - `stdlib_print.xl`

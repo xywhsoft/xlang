@@ -248,6 +248,18 @@ static int xl6StdlibFuncUsed(const int* used, const char* ns, const char* name)
     return 0;
 }
 
+static int xl6StdlibIsCompilerIntrinsicMember(const char* ns, const char* name)
+{
+    if ( !xl6StdlibTextEquals(ns, "task") ) {
+        return 0;
+    }
+    return xl6StdlibTextEquals(name, "spawn") ||
+           xl6StdlibTextEquals(name, "cancel") ||
+           xl6StdlibTextEquals(name, "whenAny") ||
+           xl6StdlibTextEquals(name, "all") ||
+           xl6StdlibTextEquals(name, "race");
+}
+
 static void xl6StdlibApplyDeps(int* used)
 {
     size_t i;
@@ -657,7 +669,8 @@ static int xl6StdlibRewriteRefsScoped(
                 xl6StdlibRewriteMemberToName(node, func->internalName);
                 return node->text != NULL;
             }
-            if ( xl6StdlibNamespaceExists(ns) ) {
+            if ( xl6StdlibNamespaceExists(ns) &&
+                 !xl6StdlibIsCompilerIntrinsicMember(ns, node->text) ) {
                 if ( diags != NULL ) {
                     xl6DiagAdd(diags, node->line, node->column, "standard library namespace has no such symbol");
                 }
@@ -710,6 +723,15 @@ static int xl6StdlibNeedsBufferClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
 
+    /* Buffer 返回值是标准库公开面的类型依赖，统一从注册表推导。 */
+    if ( used != NULL ) {
+        for ( index = 0; index < xl6StdlibFuncCount; ++index ) {
+            if ( used[index] &&
+                 xl6StdlibTextEquals(xl6StdlibFuncs[index].returnType, "Buffer") ) {
+                return 1;
+            }
+        }
+    }
     if ( xl6StdlibFindFunc("encoding", "toBytes", &index) != NULL && used[index] ) {
         return 1;
     }
@@ -728,6 +750,26 @@ static int xl6StdlibNeedsBufferClass(const XL6_AstNode* root, const int* used)
     return xl6StdlibNodeUsesTypeName(root, "Buffer");
 }
 
+static int xl6StdlibNeedsXidClass(const XL6_AstNode* root, const int* used)
+{
+    static const char* names[] = {"make", "decode", "encode", "compare"};
+    size_t i;
+    size_t index;
+
+    if ( xl6StdlibNodeUsesTypeName(root, "Xid") ) {
+        return 1;
+    }
+    if ( used == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < sizeof(names) / sizeof(names[0]); ++i ) {
+        if ( xl6StdlibFindFunc("id", names[i], &index) != NULL && used[index] ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int xl6StdlibNeedsNetClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
@@ -735,7 +777,16 @@ static int xl6StdlibNeedsNetClass(const XL6_AstNode* root, const int* used)
     if ( xl6StdlibNodeUsesTypeName(root, "TcpStream") ||
          xl6StdlibNodeUsesTypeName(root, "TcpServer") ||
          xl6StdlibNodeUsesTypeName(root, "UdpSocket") ||
-         xl6StdlibNodeUsesTypeName(root, "UdpPacket") ) {
+         xl6StdlibNodeUsesTypeName(root, "UdpPacket") ||
+         xl6StdlibNodeUsesTypeName(root, "NetAddress") ||
+         xl6StdlibNodeUsesTypeName(root, "NetProxy") ||
+         xl6StdlibNodeUsesTypeName(root, "NetEngine") ||
+         xl6StdlibNodeUsesTypeName(root, "TcpConnectConfig") ||
+         xl6StdlibNodeUsesTypeName(root, "TcpListenConfig") ||
+         xl6StdlibNodeUsesTypeName(root, "UdpConfig") ||
+         xl6StdlibNodeUsesTypeName(root, "TlsConfig") ||
+         xl6StdlibNodeUsesTypeName(root, "TlsSession") ||
+         xl6StdlibNodeUsesTypeName(root, "TlsResume") ) {
         return 1;
     }
     if ( used == NULL ) {
@@ -753,7 +804,32 @@ static int xl6StdlibNeedsNetClass(const XL6_AstNode* root, const int* used)
     if ( xl6StdlibFindFunc("udp", "bind", &index) != NULL && used[index] ) {
         return 1;
     }
+    if ( xl6StdlibFindFunc("net", "resolve", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("net", "proxy", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("net", "engine", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("tcp", "connectConfig", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("tcp", "listenConfig", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("udp", "config", &index) != NULL && used[index] ) {
+        return 1;
+    }
     return 0;
+}
+
+static int xl6StdlibNeedsNetTlsClass(const XL6_AstNode* root)
+{
+    return xl6StdlibNodeUsesTypeName(root, "TlsConfig") ||
+           xl6StdlibNodeUsesTypeName(root, "TlsSession") ||
+           xl6StdlibNodeUsesTypeName(root, "TlsResume");
 }
 
 static int xl6StdlibNeedsFileInfoClass(const XL6_AstNode* root, const int* used)
@@ -782,13 +858,17 @@ static int xl6StdlibNeedsRegexClass(const XL6_AstNode* root, const int* used)
 
     if ( xl6StdlibNodeUsesTypeName(root, "Regex") ||
          xl6StdlibNodeUsesTypeName(root, "RegexMatch") ||
-         xl6StdlibNodeUsesTypeName(root, "RegexSet") ) {
+         xl6StdlibNodeUsesTypeName(root, "RegexSet") ||
+         xl6StdlibNodeUsesTypeName(root, "RegexBuilder") ) {
         return 1;
     }
     if ( used == NULL ) {
         return 0;
     }
     if ( xl6StdlibFindFunc("regex", "compile", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("regex", "builder", &index) != NULL && used[index] ) {
         return 1;
     }
     if ( xl6StdlibFindFunc("regex", "match", &index) != NULL && used[index] ) {
@@ -884,7 +964,8 @@ static int xl6StdlibNeedsLoggerClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
 
-    if ( xl6StdlibNodeUsesTypeName(root, "Logger") ) {
+    if ( xl6StdlibNodeUsesTypeName(root, "Logger") ||
+         xl6StdlibNodeUsesTypeName(root, "LogAppender") ) {
         return 1;
     }
     if ( used == NULL ) {
@@ -903,13 +984,20 @@ static int xl6StdlibNeedsTemplateClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
 
-    if ( xl6StdlibNodeUsesTypeName(root, "Template") ) {
+    if ( xl6StdlibNodeUsesTypeName(root, "Template") ||
+         xl6StdlibNodeUsesTypeName(root, "TemplateEngine") ) {
         return 1;
     }
     if ( used == NULL ) {
         return 0;
     }
     if ( xl6StdlibFindFunc("template", "compile", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("template", "engine", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("template", "load", &index) != NULL && used[index] ) {
         return 1;
     }
     if ( xl6StdlibFindFunc("template", "render", &index) != NULL && used[index] ) {
@@ -925,9 +1013,13 @@ static int xl6StdlibNeedsCryptoClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
 
-    if ( xl6StdlibNodeUsesTypeName(root, "Sha256") ||
+    if ( xl6StdlibNodeUsesTypeName(root, "Sha1") ||
+         xl6StdlibNodeUsesTypeName(root, "Sha256") ||
          xl6StdlibNodeUsesTypeName(root, "Sha384") ||
          xl6StdlibNodeUsesTypeName(root, "Sha512") ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("crypto", "sha1Stream", &index) != NULL && used[index] ) {
         return 1;
     }
     if ( xl6StdlibFindFunc("crypto", "sha256Stream", &index) != NULL && used[index] ) {
@@ -989,12 +1081,70 @@ static int xl6StdlibNeedsHttpServerClass(const XL6_AstNode* root, const int* use
     return 0;
 }
 
+static int xl6StdlibNeedsTaskGroupClass(const XL6_AstNode* root, const int* used)
+{
+    size_t index;
+
+    if ( xl6StdlibNodeUsesTypeName(root, "TaskGroup") ) {
+        return 1;
+    }
+    return used != NULL &&
+           xl6StdlibFindFunc("task", "group", &index) != NULL &&
+           used[index];
+}
+
+static int xl6StdlibNeedsJsonClass(const XL6_AstNode* root, const int* used)
+{
+    size_t index;
+
+    if ( xl6StdlibNodeUsesTypeName(root, "JsonWriter") ||
+         xl6StdlibNodeUsesTypeName(root, "XsonOptions") ) {
+        return 1;
+    }
+    if ( used == NULL ) {
+        return 0;
+    }
+    if ( xl6StdlibFuncUsed(used, "xson", "parse") ||
+         xl6StdlibFuncUsed(used, "xson", "valid") ||
+         xl6StdlibFuncUsed(used, "xson", "read") ||
+         xl6StdlibFuncUsed(used, "xson", "stringify") ||
+         xl6StdlibFuncUsed(used, "xson", "write") ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("json", "writer", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    if ( xl6StdlibFindFunc("xson", "options", &index) != NULL && used[index] ) {
+        return 1;
+    }
+    return 0;
+}
+
+static int xl6StdlibNeedsAsyncFileClass(const XL6_AstNode* root, const int* used)
+{
+    size_t index;
+
+    if ( xl6StdlibNodeUsesTypeName(root, "AsyncFile") ) {
+        return 1;
+    }
+    return xl6StdlibFindFunc("file", "openAsync", &index) != NULL && used[index];
+}
+
 static int xl6StdlibNeedsHttpClientClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
 
-    if ( xl6StdlibNodeUsesTypeName(root, "HttpClientRequest") ||
-         xl6StdlibNodeUsesTypeName(root, "HttpClientResponse") ) {
+    if ( xl6StdlibNodeUsesTypeName(root, "HttpClient") ||
+         xl6StdlibNodeUsesTypeName(root, "HttpClientRequest") ||
+         xl6StdlibNodeUsesTypeName(root, "HttpClientResponse") ||
+         xl6StdlibNodeUsesTypeName(root, "HttpDiagnostics") ) {
+        return 1;
+    }
+    if ( used == NULL ) {
+        return 0;
+    }
+    if ( xl6StdlibFuncUsed(used, "http", "client") ||
+         xl6StdlibFuncUsed(used, "http", "copyChunk") ) {
         return 1;
     }
     if ( xl6StdlibFindFunc("http", "request", &index) != NULL && used[index] ) {
@@ -1079,12 +1229,17 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     XL6_StdlibTextBuilder builder;
     size_t i;
     int needsRandomClass;
+    int needsXidClass;
     int needsBufferClass;
     int needsNetClass;
+    int needsNetTlsClass;
     int needsFileInfoClass;
     int needsFileClass;
+    int needsAsyncFileClass;
     int needsRegexClass;
+    int needsJsonClass;
     int needsProcessClass;
+    int needsTaskGroupClass;
     int needsLoggerClass;
     int needsTemplateClass;
     int needsCryptoClass;
@@ -1104,17 +1259,22 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         return 0;
     }
     needsRandomClass = xl6StdlibNeedsRandomClass(root, used);
-    needsNetClass = xl6StdlibNeedsNetClass(root, used);
+    needsXidClass = xl6StdlibNeedsXidClass(root, used);
     needsHttpServerClass = xl6StdlibNeedsHttpServerClass(root, used);
     needsHttpClientClass = xl6StdlibNeedsHttpClientClass(root, used);
+    needsNetTlsClass = xl6StdlibNeedsNetTlsClass(root);
+    needsNetClass = xl6StdlibNeedsNetClass(root, used) || needsHttpClientClass;
     needsFileInfoClass = xl6StdlibNeedsFileInfoClass(root, used);
     needsFileClass = xl6StdlibNeedsFileClass(root, used);
-    needsBufferClass = xl6StdlibNeedsBufferClass(root, used) || needsNetClass || needsHttpServerClass || needsHttpClientClass || needsFileClass;
+    needsAsyncFileClass = xl6StdlibNeedsAsyncFileClass(root, used);
     needsRegexClass = xl6StdlibNeedsRegexClass(root, used);
+    needsJsonClass = xl6StdlibNeedsJsonClass(root, used);
     needsProcessClass = xl6StdlibNeedsProcessClass(root, used);
+    needsTaskGroupClass = xl6StdlibNeedsTaskGroupClass(root, used);
     needsLoggerClass = xl6StdlibNeedsLoggerClass(root, used);
     needsTemplateClass = xl6StdlibNeedsTemplateClass(root, used);
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
+    needsBufferClass = xl6StdlibNeedsBufferClass(root, used) || needsNetClass || needsHttpServerClass || needsHttpClientClass || needsFileClass || needsAsyncFileClass || needsCryptoClass || needsProcessClass;
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
     needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
     if ( needsRegexClass ) {
@@ -1123,13 +1283,17 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCryptoClass ) {
         xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
     }
-    if ( needsFileClass ) {
+    if ( needsFileClass || needsProcessClass ) {
         xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
     }
     if ( needsHttpClientClass ) {
         xl6StdlibMarkFuncUsed(used, "__crt_string", "strlen");
     }
-    if ( needsRandomClass || needsBufferClass || needsNetClass || needsFileClass || needsRegexClass || needsProcessClass || needsHttpServerClass || needsHttpClientClass || needsTemplateClass || needsCryptoClass || needsXlangClass ) {
+    if ( needsNetClass ) {
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "netEnginePost");
+        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "netEnginePostDelayed");
+    }
+    if ( needsRandomClass || needsXidClass || needsBufferClass || needsNetClass || needsFileClass || needsRegexClass || needsJsonClass || needsProcessClass || needsLoggerClass || needsHttpServerClass || needsHttpClientClass || needsTemplateClass || needsCryptoClass || needsXlangClass ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
     }
     xl6StdlibApplyDeps(used);
@@ -1140,11 +1304,17 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsRandomClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibRandomClassSource);
     }
+    if ( needsXidClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibXidClassSource);
+    }
     if ( needsBufferClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibBufferClassSource);
     }
     if ( needsLoggerClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibLoggerClassSource);
+    }
+    if ( needsTaskGroupClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibTaskGroupClassSource);
     }
     if ( needsTemplateClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTemplateClassSource);
@@ -1159,7 +1329,13 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder, xl6StdlibHttpClientClassSource);
     }
     if ( needsNetClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibNetClassSource);
+        xl6StdlibBuilderAppend(&builder, xl6StdlibNetBaseClassSource);
+        if ( needsNetTlsClass ) {
+            xl6StdlibBuilderAppend(&builder, xl6StdlibNetTlsClassSource);
+        }
+        else {
+            xl6StdlibBuilderAppend(&builder, xl6StdlibNetConfigClassSource);
+        }
     }
     if ( needsFileInfoClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibFileInfoClassSource);
@@ -1167,8 +1343,14 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsFileClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibFileClassSource);
     }
+    if ( needsAsyncFileClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibAsyncFileClassSource);
+    }
     if ( needsRegexClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibRegexClassSource);
+    }
+    if ( needsJsonClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibJsonClassSource);
     }
     if ( needsProcessClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibProcessClassSource);

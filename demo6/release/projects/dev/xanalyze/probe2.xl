@@ -1,0 +1,40 @@
+// probe2 - explore more AST node kinds
+class Res
+    int fd = 0
+    func open(string path) as int
+        self.fd = 1
+        return self.fd
+    end
+    func close()
+        self.fd = 0
+    end
+end
+
+func risky(int p) as int
+    while p > 0 do
+        if p == 5 then
+            break
+        end
+        p = p - 1
+        continue
+    end
+    var q = p / 0
+    try
+        var r = Res()
+        r.open("x")
+        throw "boom"
+    catch e
+        println(e)
+    finally
+        println("done")
+    end
+    return q
+end
+
+func main() as int
+    var n = null
+    var m = n.field
+    var arr = [1,2,3]
+    var v = arr[10]
+    return 0
+end

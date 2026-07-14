@@ -28,6 +28,10 @@ static void xl6CgenReleaseClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAno
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);
+    } else if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
+        xl6CgenIndent(ctx);
+        xl6CgenSpecialCollectionReleaseCExpr(ctx, typeNode, path);
+        xl6OutputPuts(";\n", ctx->out);
     } else if ( xl6CgenIsXValueType(typeNode) ) {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", path, path, path);
@@ -60,6 +64,8 @@ static void xl6CgenCopyClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAnonCa
         xl6OutputPrintf(ctx->out, "xrtCopyStr(%s, 0u)", sourceName);
     } else if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
         xl6CgenTypedContainerCopyCExprMode(ctx, typeNode, sourceName, "XRT_OBJMODE_SHARED");
+    } else if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
+        xl6CgenSpecialCollectionRetainCExpr(ctx, typeNode, sourceName);
     } else if ( xl6CgenIsXValueType(typeNode) ) {
         xl6OutputPrintf(ctx->out, "xl6_xrt_retain(%s)", sourceName);
     } else if ( xl6CgenIsFunctionType(typeNode) ) {
@@ -434,9 +440,17 @@ static void xl6CgenEmitFunctionValueVarInvoke(XL6_CgenContext* ctx, const XL6_As
     xl6OutputPuts(");\n", ctx->out);
 
     if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts("    return ", ctx->out);
-        xl6CgenXValueFromTypedCExpr(ctx, returns->children[0], "__xl6_result");
-        xl6OutputPuts(";\n", ctx->out);
+        if ( xl6CgenIsSpecialCollectionType(ctx, returns->children[0]) ) {
+            xl6OutputPuts("    xvalue __xl6_boxed = ", ctx->out);
+            xl6CgenXValueFromTypedCExpr(ctx, returns->children[0], "__xl6_result");
+            xl6OutputPuts(";\n    ", ctx->out);
+            xl6CgenSpecialCollectionReleaseCExpr(ctx, returns->children[0], "__xl6_result");
+            xl6OutputPuts(";\n    return __xl6_boxed;\n", ctx->out);
+        } else {
+            xl6OutputPuts("    return ", ctx->out);
+            xl6CgenXValueFromTypedCExpr(ctx, returns->children[0], "__xl6_result");
+            xl6OutputPuts(";\n", ctx->out);
+        }
     } else {
         xl6OutputPuts("    return xvoCreateNull();\n", ctx->out);
     }

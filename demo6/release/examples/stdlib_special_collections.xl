@@ -1,0 +1,26 @@
+func main(...) as int
+    Stack<int> stack = Stack::<int>()
+    stack.push(10)
+    stack.push(20)
+    int value = 0
+    assert(stack.popInto(value) and value == 20)
+    println("stack=ok")
+
+    AvlTree<string, int> tree = AvlTree::<string, int>()
+    tree.set("b", 2)
+    tree.set("a", 1)
+    array<string> keys = tree.keys()
+    assert(keys.length == 2 and keys[0] == "a" and keys[1] == "b")
+    println("avl=ok")
+
+    MpmcQueue<string> queue = MpmcQueue::<string>(8)
+    string text = ""
+    assert(queue.tryPush("hello") and queue.tryPopInto(text) and text == "hello")
+    println("queue=ok")
+
+    WaitQueue<int> waits = WaitQueue::<int>(4)
+    assert(not waits.popTimeoutInto(value, 1))
+    assert(waits.tryPush(42) and waits.popInto(value) and value == 42)
+    println("wait_queue=ok")
+    return 0
+end
