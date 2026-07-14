@@ -23,8 +23,11 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int hasCryptoRuntime;
     int hasUrlRuntime;
     int hasQueryRuntime;
+    int hasXidRuntime;
     int hasRegexRuntime;
+    int hasJsonRuntime;
     int hasProcessRuntime;
+    int hasNetRuntime;
     int hasDirRuntime;
     int hasStringEdgeRuntime;
     int hasStdStringRuntime;
@@ -32,6 +35,8 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int hasHttpServerRuntime;
     int hasHttpClientRuntime;
     int hasBufferRuntime;
+    int hasTlsRuntime;
+    int hasSpecialCollectionRuntime;
     int hasEncodingRuntime;
     int hasLogRuntime;
     int hasTemplateRuntime;
@@ -89,8 +94,11 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasCryptoRuntime = xl6CgenNodeNeedsCryptoRuntime(root);
     hasUrlRuntime = xl6CgenNodeNeedsUrlRuntime(root);
     hasQueryRuntime = xl6CgenNodeNeedsQueryRuntime(root);
+    hasXidRuntime = xl6CgenNodeNeedsXidRuntime(root);
     hasRegexRuntime = xl6CgenNodeNeedsRegexRuntime(root);
+    hasJsonRuntime = xl6CgenNodeNeedsJsonRuntime(root);
     hasProcessRuntime = xl6CgenNodeNeedsProcessRuntime(root);
+    hasNetRuntime = xl6CgenNodeNeedsNetRuntime(root);
     hasDirRuntime = xl6CgenNodeNeedsDirRuntime(root);
     hasStringEdgeRuntime = xl6CgenNodeNeedsStringEdgeRuntime(root);
     hasStdStringRuntime = xl6CgenNodeNeedsStdStringRuntime(root);
@@ -98,6 +106,15 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasHttpServerRuntime = xl6CgenNodeNeedsHttpServerRuntime(root);
     hasHttpClientRuntime = xl6CgenNodeNeedsHttpClientRuntime(root);
     hasBufferRuntime = xl6CgenNodeNeedsBufferRuntime(root);
+    hasTlsRuntime = xl6CgenNodeNeedsTlsRuntime(root);
+    hasSpecialCollectionRuntime = xl6CgenNodeNeedsSpecialCollectionRuntime(root);
+    if ( hasHttpClientRuntime ) {
+        hasAsyncRuntime = 1;
+        hasErrorRuntime = 1;
+    }
+    if ( hasTlsRuntime || hasNetRuntime ) {
+        hasBufferRuntime = 1;
+    }
     if ( hasHttpServerRuntime || hasHttpClientRuntime ) {
         /*
             HTTP 请求/响应 helper 会暴露 Buffer 视图复制函数。
@@ -115,6 +132,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasAsyncFileRuntime ) {
         hasAsyncRuntime = 1;
         hasErrorRuntime = 1;
+        hasBufferRuntime = 1;
     }
     if ( hasFileRuntime ) {
         hasErrorRuntime = 1;
@@ -122,7 +140,19 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasStdStringRuntime || hasDirRuntime ) {
         hasXValueRuntime = 1;
     }
+    if ( hasSpecialCollectionRuntime ) {
+        hasXValueRuntime = 1;
+    }
     if ( hasTemplateRuntime ) {
+        hasFunctionVarRuntime = 1;
+        hasXValueRuntime = 1;
+    }
+    if ( xl6CgenNodeNeedsLogObjectRuntime(root) ) {
+        hasFunctionVarRuntime = 1;
+        hasXValueRuntime = 1;
+    }
+    if ( hasJsonRuntime ) {
+        hasFunctionVarRuntime = 1;
         hasXValueRuntime = 1;
     }
     if ( hasXlangRuntime ) {
@@ -198,8 +228,11 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasClassHandleRuntime ) {
         xl6CgenEmitClassHandleRuntime(out);
     }
+    if ( hasSpecialCollectionRuntime ) {
+        xl6CgenEmitSpecialCollectionRuntime(out);
+    }
     if ( hasAsyncRuntime ) {
-        xl6CgenEmitAsyncRuntime(out, hasTaskSpawn);
+        xl6CgenEmitAsyncRuntime(out, hasTaskSpawn, hasSpecialCollectionRuntime);
     }
     if ( hasAsyncFileRuntime ) {
         xl6CgenEmitAsyncFileRuntime(out);
@@ -219,8 +252,14 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasQueryRuntime ) {
         xl6CgenEmitQueryRuntime(out);
     }
+    if ( hasXidRuntime ) {
+        xl6CgenEmitXidRuntime(out);
+    }
     if ( hasRegexRuntime ) {
         xl6CgenEmitRegexRuntime(out);
+    }
+    if ( hasJsonRuntime ) {
+        xl6CgenEmitJsonRuntime(out);
     }
     if ( hasProcessRuntime ) {
         xl6CgenEmitProcessRuntime(out);
@@ -242,6 +281,12 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     if ( hasBufferRuntime ) {
         xl6CgenEmitBufferRuntime(out);
+    }
+    if ( hasNetRuntime ) {
+        xl6CgenEmitNetExtendedRuntime(out);
+    }
+    if ( hasTlsRuntime ) {
+        xl6CgenEmitTlsRuntime(out);
     }
     if ( hasHttpServerRuntime ) {
         xl6CgenEmitHttpServerRuntime(out);

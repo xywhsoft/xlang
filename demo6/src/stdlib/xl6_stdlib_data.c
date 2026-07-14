@@ -80,6 +80,7 @@ const char* xl6StdlibBufferClassSource =
     "    extern \"xl6_xrt_buffer_set_byte\" func setByte(int index, int value) as bool\n"
     "    extern \"xl6_xrt_buffer_text\" func textNative() as point\n"
     "    extern \"xl6_xrt_buffer_data\" func data() as point\n"
+    "    extern \"xl6_xrt_buffer_native_handle\" func nativeHandle() as point\n"
     "    extern \"xl6_xrt_buffer_iter_create\" func iterNative() as point\n"
     "\n"
     "    func append(Buffer other) as bool\n"
@@ -125,17 +126,71 @@ const char* xl6StdlibBufferClassSource =
     "    end\n"
     "end\n";
 
+const char* xl6StdlibXidClassSource =
+    "class Xid\n"
+    "    native point handle\n"
+    "    extern \"xrtMakeXID\" create()\n"
+    "    extern \"xrtDecodeXID\" create(string encoded)\n"
+    "    extern \"xl6_xrt_xid_destroy\" destroy()\n"
+    "    extern \"xrtEncodeXID\" func encodeNative() as point\n"
+    "\n"
+    "    get valid() as bool\n"
+    "        return self.handle != null\n"
+    "    end\n"
+    "\n"
+    "    func encode() as string\n"
+    "        if not self.valid then\n"
+    "            return \"\"\n"
+    "        end\n"
+    "        return __xl_std_runtime_take_cstr(self.encodeNative())\n"
+    "    end\n"
+    "\n"
+    "    func equals(Xid other) as bool\n"
+    "        return self.valid and other.valid and self.encode() == other.encode()\n"
+    "    end\n"
+    "\n"
+    "    func __eq__(Xid other) as bool\n"
+    "        return self.equals(other)\n"
+    "    end\n"
+    "\n"
+    "    func __toString__() as string\n"
+    "        return self.encode()\n"
+    "    end\n"
+    "end\n";
+
 const char* xl6StdlibLoggerClassSource =
+    "class LogAppender\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_log_appender_wrap_handle\" create(point handle)\n"
+    "    extern \"xl6_xrt_log_appender_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_log_appender_name\" func nameNative() as point\n"
+    "    extern \"xl6_xrt_log_appender_set_level\" func setLevel(int level)\n"
+    "    extern \"xl6_xrt_log_appender_get_level\" func getLevel() as int\n"
+    "    extern \"xl6_xrt_log_appender_set_format\" func setFormat(int format)\n"
+    "    extern \"xl6_xrt_log_appender_get_format\" func getFormat() as int\n"
+    "    extern \"xl6_xrt_log_appender_set_color\" func setColor(bool color)\n"
+    "    extern \"xl6_xrt_log_appender_get_color\" func getColor() as bool\n"
+    "\n"
+    "    get name() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.nameNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
     "class Logger\n"
     "    native point handle\n"
     "    extern \"xl6_xrt_log_create\" create(string name)\n"
     "    extern \"xl6_xrt_log_wrap_handle\" create(point handle)\n"
     "    extern \"xl6_xrt_log_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_log_set_default\" func makeDefault() as bool\n"
     "    extern \"xl6_xrt_log_set_level\" func setLevel(int level)\n"
     "    extern \"xl6_xrt_log_get_level\" func getLevel() as int\n"
     "    extern \"xl6_xrt_log_add_console\" func addConsoleNative(int level, bool color, int format) as bool\n"
     "    extern \"xl6_xrt_log_add_file\" func addFileNative(string path, int level, int format) as bool\n"
     "    extern \"xl6_xrt_log_add_rolling_file\" func addRollingFileNative(string path, int maxSize, int maxBackup, int level, int format) as bool\n"
+    "    extern \"xl6_xrt_log_console_appender\" func consoleAppenderNative(int level, bool color, int format) as point\n"
+    "    extern \"xl6_xrt_log_file_appender\" func fileAppenderNative(string path, int level, int format) as point\n"
+    "    extern \"xl6_xrt_log_rolling_file_appender\" func rollingFileAppenderNative(string path, int maxSize, int maxBackup, int level, int format) as point\n"
+    "    extern \"xl6_xrt_log_custom_appender\" func __xl_std_runtime_log_custom_appender(string name, func(var) handler, int level) as point\n"
     "    extern \"xl6_xrt_log_write\" func write(int level, string message)\n"
     "    extern \"xl6_xrt_log_flush\" func flush()\n"
     "\n"
@@ -149,6 +204,22 @@ const char* xl6StdlibLoggerClassSource =
     "\n"
     "    func addRollingFile(string path, int maxSize = 10485760, int maxBackup = 5, int level = 2, int format = 0) as bool\n"
     "        return self.addRollingFileNative(path, maxSize, maxBackup, level, format)\n"
+    "    end\n"
+    "\n"
+    "    func consoleAppender(int level = 0, bool color = true, int format = 0) as LogAppender\n"
+    "        return LogAppender(self.consoleAppenderNative(level, color, format))\n"
+    "    end\n"
+    "\n"
+    "    func fileAppender(string path, int level = 2, int format = 0) as LogAppender\n"
+    "        return LogAppender(self.fileAppenderNative(path, level, format))\n"
+    "    end\n"
+    "\n"
+    "    func rollingFileAppender(string path, int maxSize = 10485760, int maxBackup = 5, int level = 2, int format = 0) as LogAppender\n"
+    "        return LogAppender(self.rollingFileAppenderNative(path, maxSize, maxBackup, level, format))\n"
+    "    end\n"
+    "\n"
+    "    func customAppender(string name, func(var) handler, int level = 0) as LogAppender\n"
+    "        return LogAppender(self.__xl_std_runtime_log_custom_appender(name, handler, level))\n"
     "    end\n"
     "\n"
     "    func trace(string message)\n"
@@ -180,32 +251,140 @@ const char* xl6StdlibTemplateClassSource =
     "class Template\n"
     "    native point handle\n"
     "    extern \"xl6_xrt_template_parse\" create(string text, string bracket)\n"
+    "    extern \"xl6_xrt_template_wrap_handle\" create(point handle)\n"
     "    extern \"xl6_xrt_template_destroy\" destroy()\n"
     "    extern \"xl6_xrt_template_node_count\" get nodeCount() as uint32\n"
     "    extern \"xl6_xrt_template_expr_count\" get exprCount() as uint32\n"
     "    extern \"xl6_xrt_template_arg_count\" get argCount() as uint32\n"
     "    extern \"xl6_xrt_template_string_pool_size\" get stringPoolSize() as uint32\n"
     "    extern \"xl6_xrt_template_render\" func renderNative(var data) as point\n"
+    "    extern \"xl6_xrt_template_save\" func save(string path) as bool\n"
+    "    extern \"xl6_xrt_template_error\" func error() as var\n"
+    "    extern \"xl6_xrt_template_root\" func root() as var\n"
+    "    extern \"xl6_xrt_template_node\" func node(int index) as var\n"
+    "    extern \"xl6_xrt_template_expr\" func expression(int index) as var\n"
+    "    extern \"xl6_xrt_template_arg\" func argument(int index) as var\n"
     "\n"
     "    func render(var data = null) as string\n"
     "        return __xl_std_runtime_take_cstr(self.renderNative(data))\n"
     "    end\n"
+    "end\n"
+    "\n"
+    "class TemplateEngine\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_template_engine_create\" create()\n"
+    "    extern \"xl6_xrt_template_engine_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_template_engine_register_function\" func __xl_std_runtime_template_register_function(string name, func(array<var>) as var handler, int minArgs, int maxArgs) as bool\n"
+    "    extern \"xl6_xrt_template_engine_register_statement\" func __xl_std_runtime_template_register_statement(string name, func(array<var>, string) as string handler, int minArgs, int maxArgs) as bool\n"
+    "    extern \"xl6_xrt_template_engine_compile\" func compileNative(string text, string bracket) as point\n"
+    "    extern \"xl6_xrt_template_engine_load\" func loadNative(string path) as point\n"
+    "    extern \"xl6_xrt_template_engine_error\" func error() as var\n"
+    "\n"
+    "    func registerFunction(string name, func(array<var>) as var handler, int minArgs = 0, int maxArgs = 65535) as bool\n"
+    "        return self.__xl_std_runtime_template_register_function(name, handler, minArgs, maxArgs)\n"
+    "    end\n"
+    "\n"
+    "    func registerStatement(string name, func(array<var>, string) as string handler, int minArgs = 0, int maxArgs = 65535) as bool\n"
+    "        return self.__xl_std_runtime_template_register_statement(name, handler, minArgs, maxArgs)\n"
+    "    end\n"
+    "\n"
+    "    func compile(string text, string bracket = \"{}\") as Template\n"
+    "        return Template(self.compileNative(text, bracket))\n"
+    "    end\n"
+    "\n"
+    "    func load(string path) as Template\n"
+    "        return Template(self.loadNative(path))\n"
+    "    end\n"
+    "end\n";
+
+const char* xl6StdlibTaskGroupClassSource =
+    "class TaskGroup\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_task_group_create\" create()\n"
+    "    extern \"xl6_xrt_task_group_wrap\" create(point handle)\n"
+    "    extern \"xl6_xrt_task_group_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_task_group_child\" func childNative() as point\n"
+    "    extern \"xl6_xrt_task_group_add\" func add(var task) as bool\n"
+    "    extern \"xl6_xrt_task_group_bind_parent\" func bindParent(var task) as bool\n"
+    "    extern \"xl6_xrt_task_group_close\" func close()\n"
+    "    extern \"xl6_xrt_task_group_cancel\" func cancel()\n"
+    "    extern \"xl6_xrt_task_group_count\" func countNative() as c_int\n"
+    "    extern \"xl6_xrt_task_group_reap\" func reapNative() as c_int\n"
+    "    extern \"xl6_xrt_task_group_join\" func join() as bool\n"
+    "    extern \"xl6_xrt_task_group_join_timeout\" func joinTimeout(int timeoutMs) as bool\n"
+    "    extern \"xl6_xrt_task_group_join_until\" func joinUntil(int deadlineMs) as bool\n"
+    "    extern \"xl6_xrt_task_group_wait\" func wait() as bool\n"
+    "    extern \"xl6_xrt_task_group_wait_timeout\" func waitTimeout(int timeoutMs) as bool\n"
+    "    extern \"xl6_xrt_task_group_wait_until\" func waitUntil(int deadlineMs) as bool\n"
+    "    extern \"xl6_xrt_task_group_join_async\" func joinAsync() as future<null>\n"
+    "\n"
+    "    get valid() as bool\n"
+    "        return self.handle != null\n"
+    "    end\n"
+    "\n"
+    "    get count() as int\n"
+    "        return int(self.countNative())\n"
+    "    end\n"
+    "\n"
+    "    func child() as TaskGroup\n"
+    "        return TaskGroup(self.childNative())\n"
+    "    end\n"
+    "\n"
+    "    func reapCompleted() as int\n"
+    "        return int(self.reapNative())\n"
+    "    end\n"
     "end\n";
 
 const char* xl6StdlibCryptoClassSource =
+    "class Sha1\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_sha1_stream_create\" create()\n"
+    "    extern \"xl6_xrt_sha1_stream_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_sha1_stream_update\" func updateNative(string text, c_size size) as bool\n"
+    "    extern \"xl6_xrt_sha1_stream_hex\" func hexNative() as point\n"
+    "    extern \"xl6_xrt_sha1_stream_update_bytes\" func updateBytesNative(point data, c_size size) as bool\n"
+    "    extern \"xl6_xrt_sha1_stream_bytes\" func bytesNative() as point\n"
+    "\n"
+    "    func update(string text) as bool\n"
+    "        return self.updateNative(text, __xl_std_crt_strlen(text))\n"
+    "    end\n"
+    "\n"
+    "    func update(Buffer data) as bool\n"
+    "        return self.updateBytesNative(data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "\n"
+    "    func hex() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.hexNative())\n"
+    "    end\n"
+    "\n"
+    "    func bytes() as Buffer\n"
+    "        return Buffer(point(self.bytesNative()))\n"
+    "    end\n"
+    "end\n"
+    "\n"
     "class Sha256\n"
     "    native point handle\n"
     "    extern \"xl6_xrt_sha256_stream_create\" create()\n"
     "    extern \"xl6_xrt_sha256_stream_destroy\" destroy()\n"
     "    extern \"xl6_xrt_sha256_stream_update\" func updateNative(string text, c_size size) as bool\n"
     "    extern \"xl6_xrt_sha256_stream_hex\" func hexNative() as point\n"
+    "    extern \"xl6_xrt_sha256_stream_update_bytes\" func updateBytesNative(point data, c_size size) as bool\n"
+    "    extern \"xl6_xrt_sha256_stream_bytes\" func bytesNative() as point\n"
     "\n"
     "    func update(string text) as bool\n"
     "        return self.updateNative(text, __xl_std_crt_strlen(text))\n"
     "    end\n"
     "\n"
+    "    func update(Buffer data) as bool\n"
+    "        return self.updateBytesNative(data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "\n"
     "    func hex() as string\n"
     "        return __xl_std_runtime_take_cstr(self.hexNative())\n"
+    "    end\n"
+    "\n"
+    "    func bytes() as Buffer\n"
+    "        return Buffer(point(self.bytesNative()))\n"
     "    end\n"
     "end\n"
     "\n"
@@ -215,13 +394,23 @@ const char* xl6StdlibCryptoClassSource =
     "    extern \"xl6_xrt_sha384_stream_destroy\" destroy()\n"
     "    extern \"xl6_xrt_sha384_stream_update\" func updateNative(string text, c_size size) as bool\n"
     "    extern \"xl6_xrt_sha384_stream_hex\" func hexNative() as point\n"
+    "    extern \"xl6_xrt_sha384_stream_update_bytes\" func updateBytesNative(point data, c_size size) as bool\n"
+    "    extern \"xl6_xrt_sha384_stream_bytes\" func bytesNative() as point\n"
     "\n"
     "    func update(string text) as bool\n"
     "        return self.updateNative(text, __xl_std_crt_strlen(text))\n"
     "    end\n"
     "\n"
+    "    func update(Buffer data) as bool\n"
+    "        return self.updateBytesNative(data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "\n"
     "    func hex() as string\n"
     "        return __xl_std_runtime_take_cstr(self.hexNative())\n"
+    "    end\n"
+    "\n"
+    "    func bytes() as Buffer\n"
+    "        return Buffer(point(self.bytesNative()))\n"
     "    end\n"
     "end\n"
     "\n"
@@ -231,13 +420,23 @@ const char* xl6StdlibCryptoClassSource =
     "    extern \"xl6_xrt_sha512_stream_destroy\" destroy()\n"
     "    extern \"xl6_xrt_sha512_stream_update\" func updateNative(string text, c_size size) as bool\n"
     "    extern \"xl6_xrt_sha512_stream_hex\" func hexNative() as point\n"
+    "    extern \"xl6_xrt_sha512_stream_update_bytes\" func updateBytesNative(point data, c_size size) as bool\n"
+    "    extern \"xl6_xrt_sha512_stream_bytes\" func bytesNative() as point\n"
     "\n"
     "    func update(string text) as bool\n"
     "        return self.updateNative(text, __xl_std_crt_strlen(text))\n"
     "    end\n"
     "\n"
+    "    func update(Buffer data) as bool\n"
+    "        return self.updateBytesNative(data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "\n"
     "    func hex() as string\n"
     "        return __xl_std_runtime_take_cstr(self.hexNative())\n"
+    "    end\n"
+    "\n"
+    "    func bytes() as Buffer\n"
+    "        return Buffer(point(self.bytesNative()))\n"
     "    end\n"
     "end\n";
 
@@ -294,6 +493,8 @@ const char* xl6StdlibHttpServerClassSource =
     "    extern \"xl6_xrt_http_request_tls_sni\" func tlsSNINative() as point\n"
     "    extern \"xl6_xrt_http_request_local_port\" func localPort() as int\n"
     "    extern \"xl6_xrt_http_request_remote_port\" func remotePort() as int\n"
+    "    extern \"xl6_xrt_http_request_connection_open\" func connectionOpen() as bool\n"
+    "    extern \"xl6_xrt_http_request_close_connection\" func closeConnectionNative(bool abortConnection) as bool\n"
     "\n"
     "    func method() as string\n"
     "        return __xl_std_runtime_take_cstr(self.methodNative())\n"
@@ -420,6 +621,10 @@ const char* xl6StdlibHttpServerClassSource =
     "    func tlsSNI() as string\n"
     "        return __xl_std_runtime_take_cstr(self.tlsSNINative())\n"
     "    end\n"
+    "\n"
+    "    func closeConnection(bool abortConnection = false) as bool\n"
+    "        return self.closeConnectionNative(abortConnection)\n"
+    "    end\n"
     "end\n"
     "\n"
     "class HttpResponse\n"
@@ -428,6 +633,15 @@ const char* xl6StdlibHttpServerClassSource =
     "    extern \"xl6_xrt_http_response_status\" func statusNative(int code, string reason)\n"
     "    extern \"xl6_xrt_http_response_header\" func header(string name, string value) as bool\n"
     "    extern \"xl6_xrt_http_response_add_header\" func addHeader(string name, string value) as bool\n"
+    "    extern \"xl6_xrt_http_response_status_code\" func statusCode() as int\n"
+    "    extern \"xl6_xrt_http_response_reason\" func reasonNative() as point\n"
+    "    extern \"xl6_xrt_http_response_header_value\" func headerValueNative(string name) as point\n"
+    "    extern \"xl6_xrt_http_response_header_count\" func headerCount() as int\n"
+    "    extern \"xl6_xrt_http_response_header_name\" func headerNameNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_response_header_value_at\" func headerValueAtNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_response_body_size\" func bodySize() as int\n"
+    "    extern \"xl6_xrt_http_response_body_buffer\" func bodyBytesNative() as point\n"
+    "    extern \"xl6_xrt_http_response_committed\" func committed() as bool\n"
     "    extern \"xl6_xrt_http_response_cookie\" func cookieNative(string name, string value, string path, int maxAge, int sameSite, c_uint flags) as bool\n"
     "    extern \"xl6_xrt_http_response_delete_cookie\" func deleteCookieNative(string name, string path) as bool\n"
     "    extern \"xl6_xrt_http_response_text\" func textNative(string text, string contentType) as bool\n"
@@ -441,10 +655,31 @@ const char* xl6StdlibHttpServerClassSource =
     "    extern \"xl6_xrt_http_response_write\" func write(string text) as bool\n"
     "    extern \"xl6_xrt_http_response_end\" func finish() as bool\n"
     "    extern \"xl6_xrt_http_response_file\" func fileNative(string path, c_size chunkSize) as bool\n"
+    "    extern \"xl6_xrt_http_response_file_range\" func fileRangeNative(string path, int offset, int length, c_size chunkSize) as bool\n"
     "    extern \"xl6_xrt_http_response_redirect\" func redirectNative(string url, int code) as bool\n"
     "\n"
     "    func status(int code, string reason = \"\")\n"
     "        self.statusNative(code, reason)\n"
+    "    end\n"
+    "\n"
+    "    func reason() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.reasonNative())\n"
+    "    end\n"
+    "\n"
+    "    func header(string name) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.headerValueNative(name))\n"
+    "    end\n"
+    "\n"
+    "    func headerName(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.headerNameNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func headerValue(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.headerValueAtNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func bodyBytes() as Buffer\n"
+    "        return Buffer(point(self.bodyBytesNative()))\n"
     "    end\n"
     "\n"
     "    func text(string text, string contentType = \"text/plain; charset=utf-8\") as bool\n"
@@ -479,24 +714,70 @@ const char* xl6StdlibHttpServerClassSource =
     "        return self.fileNative(path, c_size(chunkSize))\n"
     "    end\n"
     "\n"
+    "    func fileRange(string path, int offset, int length, int chunkSize = 65536) as bool\n"
+    "        return self.fileRangeNative(path, offset, length, c_size(chunkSize))\n"
+    "    end\n"
+    "\n"
     "    func redirect(string url, int code = 302) as bool\n"
     "        return self.redirectNative(url, code)\n"
     "    end\n"
     "end\n";
 
 const char* xl6StdlibHttpClientClassSource =
+    "extern \"xl6_xrt_http_client_request_stream_async\" func __xl_std_runtime_http_client_stream_async(point request, func(int, string) as bool onHeaders, func(point, int) as bool onBody) as future<HttpClientResponse>\n"
+    "extern \"xl6_xrt_http_client_request_stream_client_async\" func __xl_std_runtime_http_client_stream_client_async(point request, point client, func(int, string) as bool onHeaders, func(point, int) as bool onBody) as future<HttpClientResponse>\n"
+    "\n"
+    "class HttpDiagnostics\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_http_diagnostics_wrap\" create(point handle)\n"
+    "    extern \"xl6_xrt_http_diagnostics_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_http_diagnostics_error_code\" get errorCode() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_phase_code\" get phaseCode() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_transport_status\" get transportStatus() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_system_error\" get systemError() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_reused\" get reusedConnection() as bool\n"
+    "    extern \"xl6_xrt_http_diagnostics_started\" get startedMs() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_connected\" get connectedMs() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_request_sent\" get requestSentMs() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_first_byte\" get firstByteMs() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_headers\" get headersMs() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_completed\" get completedMs() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_connect_duration\" get connectDurationMs() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_ttfb\" get timeToFirstByteMs() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_transfer_duration\" get transferDurationMs() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_total_duration\" get totalDurationMs() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_request_bytes\" get requestBytes() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_response_bytes\" get responseBodyBytes() as int\n"
+    "    extern \"xl6_xrt_http_diagnostics_error_name\" func errorNameNative() as point\n"
+    "    extern \"xl6_xrt_http_diagnostics_phase_name\" func phaseNameNative() as point\n"
+    "\n"
+    "    func errorName() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.errorNameNative())\n"
+    "    end\n"
+    "\n"
+    "    func phaseName() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.phaseNameNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
     "class HttpClientResponse\n"
     "    native point handle\n"
     "    extern \"xl6_xrt_http_client_response_wrap\" create(point handle)\n"
     "    extern \"xl6_xrt_http_client_response_destroy\" destroy()\n"
     "    extern \"xl6_xrt_http_client_response_status\" func status() as int\n"
+    "    extern \"xl6_xrt_http_client_response_flags\" func flags() as int\n"
+    "    extern \"xl6_xrt_http_client_response_header_count\" func headerCount() as int\n"
+    "    extern \"xl6_xrt_http_client_response_version\" func versionNative() as point\n"
     "    extern \"xl6_xrt_http_client_response_reason\" func reasonNative() as point\n"
     "    extern \"xl6_xrt_http_client_response_header\" func headerNative(string name) as point\n"
+    "    extern \"xl6_xrt_http_client_response_header_name\" func headerNameNative(int index) as point\n"
+    "    extern \"xl6_xrt_http_client_response_header_value\" func headerValueNative(int index) as point\n"
     "    extern \"xl6_xrt_http_client_response_content_length\" func contentLength() as int\n"
     "    extern \"xl6_xrt_http_client_response_body_text\" func bodyNative() as point\n"
     "    extern \"xl6_xrt_http_client_response_body_data\" func bodyData() as point\n"
     "    extern \"xl6_xrt_http_client_response_body_size\" func bodySize() as int\n"
     "    extern \"xl6_xrt_http_client_response_body_buffer\" func bodyBytesNative() as point\n"
+    "    extern \"xl6_xrt_http_client_response_diagnostics\" func diagnosticsNative() as point\n"
     "\n"
     "    func ok() as bool\n"
     "        int code = self.status()\n"
@@ -507,8 +788,20 @@ const char* xl6StdlibHttpClientClassSource =
     "        return __xl_std_runtime_take_cstr(self.reasonNative())\n"
     "    end\n"
     "\n"
+    "    func version() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.versionNative())\n"
+    "    end\n"
+    "\n"
     "    func header(string name) as string\n"
     "        return __xl_std_runtime_take_cstr(self.headerNative(name))\n"
+    "    end\n"
+    "\n"
+    "    func headerName(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.headerNameNative(index))\n"
+    "    end\n"
+    "\n"
+    "    func headerValue(int index) as string\n"
+    "        return __xl_std_runtime_take_cstr(self.headerValueNative(index))\n"
     "    end\n"
     "\n"
     "    func body() as string\n"
@@ -519,6 +812,19 @@ const char* xl6StdlibHttpClientClassSource =
     "        point handle = self.bodyBytesNative()\n"
     "        return Buffer(point(handle))\n"
     "    end\n"
+    "\n"
+    "    func diagnostics() as HttpDiagnostics\n"
+    "        return HttpDiagnostics(point(self.diagnosticsNative()))\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class HttpClient\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_http_client_create\" create()\n"
+    "    extern \"xl6_xrt_http_client_create_engine\" create(point engine)\n"
+    "    extern \"xl6_xrt_http_client_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_http_client_close_idle\" func closeIdle()\n"
+    "    extern \"xl6_xrt_http_client_native\" func nativeHandle() as point\n"
     "end\n"
     "\n"
     "class HttpClientRequest\n"
@@ -526,25 +832,109 @@ const char* xl6StdlibHttpClientClassSource =
     "    extern \"xl6_xrt_http_client_request_create\" create()\n"
     "    extern \"xl6_xrt_http_client_request_create_url\" create(string url)\n"
     "    extern \"xl6_xrt_http_client_request_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_http_client_request_native\" func nativeHandle() as point\n"
     "    extern \"xl6_xrt_http_client_request_method\" func method(string method) as bool\n"
     "    extern \"xl6_xrt_http_client_request_url\" func url(string url) as bool\n"
     "    extern \"xl6_xrt_http_client_request_header\" func header(string name, string value) as bool\n"
+    "    extern \"xl6_xrt_http_client_request_add_header\" func addHeader(string name, string value) as bool\n"
+    "    extern \"xl6_xrt_http_client_request_remove_header\" func removeHeader(string name) as int\n"
     "    extern \"xl6_xrt_http_client_request_body\" func body(string data, c_size size, string contentType) as bool\n"
+    "    extern \"xl6_xrt_http_client_request_body_raw\" func bodyRaw(point data, c_size size, string contentType) as bool\n"
     "    extern \"xl6_xrt_http_client_request_timeout\" func timeout(int timeoutMs)\n"
     "    extern \"xl6_xrt_http_client_request_idle_timeout\" func idleTimeout(int timeoutMs)\n"
+    "    extern \"xl6_xrt_http_client_request_proxy\" func proxyNative(point proxy)\n"
     "    extern \"xl6_xrt_http_client_request_verify_peer\" func verifyPeer(bool value)\n"
     "    extern \"xl6_xrt_http_client_request_execute\" func executeNative() as point\n"
+    "    extern \"xl6_xrt_http_client_request_execute_client\" func executeClientNative(point client) as point\n"
+    "    extern \"xl6_xrt_http_client_request_execute_async\" func executeAsync() as future<HttpClientResponse>\n"
+    "    extern \"xl6_xrt_http_client_request_execute_client_async\" func executeClientAsyncNative(point client) as future<HttpClientResponse>\n"
     "\n"
     "    func text(string data, string contentType = \"text/plain; charset=utf-8\") as bool\n"
     "        return self.body(data, __xl_std_crt_strlen(data), contentType)\n"
     "    end\n"
     "\n"
+    "    func bytes(Buffer data, string contentType = \"application/octet-stream\") as bool\n"
+    "        return self.bodyRaw(data.data(), c_size(data.len()), contentType)\n"
+    "    end\n"
+    "\n"
+    "    func proxy(NetProxy value)\n"
+    "        self.proxyNative(value.nativeHandle())\n"
+    "    end\n"
+    "\n"
     "    func execute() as HttpClientResponse\n"
     "        return HttpClientResponse(self.executeNative())\n"
     "    end\n"
+    "\n"
+    "    func execute(HttpClient client) as HttpClientResponse\n"
+    "        return HttpClientResponse(self.executeClientNative(client.nativeHandle()))\n"
+    "    end\n"
+    "\n"
+    "    func executeAsync(HttpClient client) as future<HttpClientResponse>\n"
+    "        return self.executeClientAsyncNative(client.nativeHandle())\n"
+    "    end\n"
+    "\n"
+    "    func stream(func(int, string) as bool onHeaders, func(point, int) as bool onBody) as future<HttpClientResponse>\n"
+    "        return __xl_std_runtime_http_client_stream_async(self.nativeHandle(), onHeaders, onBody)\n"
+    "    end\n"
+    "\n"
+    "    func stream(HttpClient client, func(int, string) as bool onHeaders, func(point, int) as bool onBody) as future<HttpClientResponse>\n"
+    "        return __xl_std_runtime_http_client_stream_client_async(self.nativeHandle(), client.nativeHandle(), onHeaders, onBody)\n"
+    "    end\n"
     "end\n";
 
-const char* xl6StdlibNetClassSource =
+const char* xl6StdlibNetBaseClassSource =
+    "class NetAddress\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_net_address_create\" create()\n"
+    "    extern \"xl6_xrt_net_address_resolve\" create(string host, int port)\n"
+    "    extern \"xl6_xrt_net_address_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_net_address_text\" func textNative() as point\n"
+    "    extern \"xl6_xrt_net_address_family\" get family() as int\n"
+    "    extern \"xl6_xrt_net_address_port\" get port() as int\n"
+    "    extern \"xl6_xrt_net_address_scope\" get scope() as int\n"
+    "\n"
+    "    func text() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.textNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class NetProxy\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_net_proxy_create\" create(int type, string host, int port, string user, string password)\n"
+    "    extern \"xl6_xrt_net_proxy_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_net_proxy_type\" get type() as int\n"
+    "    extern \"xl6_xrt_net_proxy_port\" get port() as int\n"
+    "    extern \"xl6_xrt_net_proxy_native\" func nativeHandle() as point\n"
+    "    extern \"xl6_xrt_net_proxy_host\" func hostNative() as point\n"
+    "    extern \"xl6_xrt_net_proxy_user\" func userNative() as point\n"
+    "\n"
+    "    func host() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.hostNative())\n"
+    "    end\n"
+    "\n"
+    "    func user() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.userNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class NetEngine\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_net_engine_create\" create(int workerCount, int flags)\n"
+    "    extern \"xl6_xrt_net_engine_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_net_engine_native\" func nativeHandle() as point\n"
+    "    extern \"xl6_xrt_net_engine_start\" func start() as bool\n"
+    "    extern \"xl6_xrt_net_engine_stop\" func stop()\n"
+    "    extern \"xl6_xrt_net_engine_workers\" get workerCount() as int\n"
+    "\n"
+    "    func post(func() task, int affinity = 0) as bool\n"
+    "        return __xl_std_runtime_net_engine_post(self.nativeHandle(), task, affinity)\n"
+    "    end\n"
+    "\n"
+    "    func postDelayed(func() task, int delayMs, int affinity = 0) as bool\n"
+    "        return __xl_std_runtime_net_engine_post_delayed(self.nativeHandle(), task, delayMs, affinity)\n"
+    "    end\n"
+    "end\n"
+    "\n"
     "class TcpStream\n"
     "    native point handle\n"
     "    extern \"xrtNetTcpStreamDestroy\" destroy()\n"
@@ -564,6 +954,13 @@ const char* xl6StdlibNetClassSource =
     "    extern \"xrtNetStreamRemoteAddrText\" func remoteAddrNative() as point\n"
     "    extern \"xrtNetStreamLocalPort\" func localPort() as int\n"
     "    extern \"xrtNetStreamRemotePort\" func remotePort() as int\n"
+    "    extern \"xl6_xrt_net_stream_pause\" func pauseRead()\n"
+    "    extern \"xl6_xrt_net_stream_resume\" func resumeRead()\n"
+    "    extern \"xl6_xrt_net_stream_pending_send\" func pendingSend() as int\n"
+    "    extern \"xl6_xrt_net_stream_wait\" func waitNative(int kind, int timeoutMs) as bool\n"
+    "    extern \"xl6_xrt_net_stream_close_ex\" func closeNative(int flags)\n"
+    "    extern \"xl6_xrt_net_stream_send_vec\" func sendVec(array buffers) as bool\n"
+    "    extern \"xl6_xrt_net_stream_send_move\" func sendMoveNative(point buffer) as bool\n"
     "\n"
     "    func available() as int\n"
     "        return int(self.availableNative())\n"
@@ -609,6 +1006,30 @@ const char* xl6StdlibNetClassSource =
     "\n"
     "    func remoteAddr() as string\n"
     "        return __xl_std_runtime_take_cstr(self.remoteAddrNative())\n"
+    "    end\n"
+    "\n"
+    "    func sendMove(Buffer data) as bool\n"
+    "        return self.sendMoveNative(data.nativeHandle())\n"
+    "    end\n"
+    "\n"
+    "    func waitReadable(int timeoutMs = -1) as bool\n"
+    "        return self.waitNative(0, timeoutMs)\n"
+    "    end\n"
+    "\n"
+    "    func waitWritable(int timeoutMs = -1) as bool\n"
+    "        return self.waitNative(1, timeoutMs)\n"
+    "    end\n"
+    "\n"
+    "    func waitDrain(int timeoutMs = -1) as bool\n"
+    "        return self.waitNative(2, timeoutMs)\n"
+    "    end\n"
+    "\n"
+    "    func waitClose(int timeoutMs = -1) as bool\n"
+    "        return self.waitNative(3, timeoutMs)\n"
+    "    end\n"
+    "\n"
+    "    func close(int flags)\n"
+    "        self.closeNative(flags)\n"
     "    end\n"
     "end\n"
     "\n"
@@ -678,6 +1099,212 @@ const char* xl6StdlibNetClassSource =
     "    end\n"
     "end\n";
 
+const char* xl6StdlibNetTlsClassSource =
+    "class TlsResume\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_tls_resume_wrap\" create(point handle)\n"
+    "    extern \"xl6_xrt_tls_resume_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_tls_resume_native\" func nativeHandle() as point\n"
+    "end\n"
+    "\n"
+    "class TlsConfig\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_tls_config_create\" create()\n"
+    "    extern \"xl6_xrt_tls_config_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_tls_config_native\" func nativeHandle() as point\n"
+    "    extern \"xl6_xrt_tls_config_host\" func host(string name) as bool\n"
+    "    extern \"xl6_xrt_tls_config_cert\" func certificate(string certFile, string keyFile) as bool\n"
+    "    extern \"xl6_xrt_tls_config_ca\" func ca(string caFile) as bool\n"
+    "    extern \"xl6_xrt_tls_config_crl\" func crl(string crlFile) as bool\n"
+    "    extern \"xl6_xrt_tls_config_verify\" func verifyPeer(bool enabled)\n"
+    "    extern \"xl6_xrt_tls_config_allow_ed25519\" func allowTls12Ed25519(bool enabled)\n"
+    "    extern \"xl6_xrt_tls_config_max_version\" func maxVersion(int version)\n"
+    "    extern \"xl6_xrt_tls_config_cert_data\" func certificateDataNative(point cert, c_size certSize, point key, c_size keySize) as bool\n"
+    "    extern \"xl6_xrt_tls_config_ca_data\" func caDataNative(point data, c_size size) as bool\n"
+    "    extern \"xl6_xrt_tls_config_crl_data\" func crlDataNative(point data, c_size size) as bool\n"
+    "\n"
+    "    func certificateData(Buffer cert, Buffer key) as bool\n"
+    "        return self.certificateDataNative(cert.data(), c_size(cert.len()), key.data(), c_size(key.len()))\n"
+    "    end\n"
+    "\n"
+    "    func caData(Buffer data) as bool\n"
+    "        return self.caDataNative(data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "\n"
+    "    func crlData(Buffer data) as bool\n"
+    "        return self.crlDataNative(data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "\n"
+    "    func session(bool server = false) as TlsSession\n"
+    "        point noResume = null\n"
+    "        return TlsSession(self.nativeHandle(), server, noResume)\n"
+    "    end\n"
+    "\n"
+    "    func session(TlsResume resume, bool server = false) as TlsSession\n"
+    "        return TlsSession(self.nativeHandle(), server, resume.nativeHandle())\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class TlsSession\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_tls_session_create\" create(point config, bool server, point resume)\n"
+    "    extern \"xl6_xrt_tls_session_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_tls_session_ready\" get ready() as bool\n"
+    "    extern \"xl6_xrt_tls_session_last_status\" get status() as int\n"
+    "    extern \"xl6_xrt_tls_session_pending_cipher\" get pendingCipher() as int\n"
+    "    extern \"xl6_xrt_tls_session_pending_plain\" get pendingPlain() as int\n"
+    "    extern \"xl6_xrt_tls_session_resumed\" get resumed() as bool\n"
+    "    extern \"xl6_xrt_tls_session_drive\" func handshake() as int\n"
+    "    extern \"xl6_xrt_tls_session_feed\" func feedBytes(point data, c_size size) as int\n"
+    "    extern \"xl6_xrt_tls_session_peek_cipher\" func peekCipherNative(int maxBytes) as point\n"
+    "    extern \"xl6_xrt_tls_session_consume_cipher\" func consumeCipher(int size)\n"
+    "    extern \"xl6_xrt_tls_session_write_plain\" func writeBytes(point data, c_size size) as int\n"
+    "    extern \"xl6_xrt_tls_session_read_plain\" func readNative(int maxBytes) as point\n"
+    "    extern \"xl6_xrt_tls_session_close\" func close() as int\n"
+    "    extern \"xl6_xrt_tls_session_sni\" func sniNative() as point\n"
+    "    extern \"xl6_xrt_tls_session_export_resume\" func exportResumeNative() as point\n"
+    "    extern \"xl6_xrt_tls_session_set_cert\" func certificate(string certFile, string keyFile) as bool\n"
+    "    extern \"xl6_xrt_tls_session_set_cert_data\" func certificateDataNative(point cert, c_size certSize, point key, c_size keySize) as bool\n"
+    "    extern \"xl6_xrt_tls_session_allow_ed25519\" func allowTls12Ed25519(bool enabled)\n"
+    "\n"
+    "    func feed(Buffer data) as int\n"
+    "        return self.feedBytes(data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "\n"
+    "    func peekCipher(int maxBytes = 0) as Buffer\n"
+    "        return Buffer(point(self.peekCipherNative(maxBytes)))\n"
+    "    end\n"
+    "\n"
+    "    func write(Buffer data) as int\n"
+    "        return self.writeBytes(data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "\n"
+    "    func read(int maxBytes = 0) as Buffer\n"
+    "        return Buffer(point(self.readNative(maxBytes)))\n"
+    "    end\n"
+    "\n"
+    "    func sni() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.sniNative())\n"
+    "    end\n"
+    "\n"
+    "    func exportResume() as TlsResume\n"
+    "        return TlsResume(point(self.exportResumeNative()))\n"
+    "    end\n"
+    "\n"
+    "    func certificateData(Buffer cert, Buffer key) as bool\n"
+    "        return self.certificateDataNative(cert.data(), c_size(cert.len()), key.data(), c_size(key.len()))\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class TcpConnectConfig\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_tcp_connect_config_create\" create(string host, int port)\n"
+    "    extern \"xl6_xrt_tcp_connect_config_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_tcp_connect_config_flags\" func flags(int value) as bool\n"
+    "    extern \"xl6_xrt_tcp_connect_config_timeout\" func timeout(int timeoutMs) as bool\n"
+    "    extern \"xl6_xrt_tcp_connect_config_water\" func watermarks(int high, int low) as bool\n"
+    "    extern \"xl6_xrt_tcp_connect_config_recv_limit\" func recvLimit(int size) as bool\n"
+    "    extern \"xl6_xrt_tcp_connect_config_tls\" func tlsNative(point config) as bool\n"
+    "    extern \"xl6_xrt_tcp_connect_config_proxy\" func proxyNative(point proxy) as bool\n"
+    "    extern \"xl6_xrt_tcp_connect_config_connect\" func connectNative() as point\n"
+    "\n"
+    "    func tls(TlsConfig config) as bool\n"
+    "        return self.tlsNative(config.nativeHandle())\n"
+    "    end\n"
+    "\n"
+    "    func proxy(NetProxy proxy) as bool\n"
+    "        return self.proxyNative(proxy.nativeHandle())\n"
+    "    end\n"
+    "\n"
+    "    func connect() as TcpStream\n"
+    "        return TcpStream(self.connectNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class TcpListenConfig\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_tcp_listen_config_create\" create(string host, int port)\n"
+    "    extern \"xl6_xrt_tcp_listen_config_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_tcp_listen_config_flags\" func flags(int value) as bool\n"
+    "    extern \"xl6_xrt_tcp_listen_config_backlog\" func backlog(int value) as bool\n"
+    "    extern \"xl6_xrt_tcp_listen_config_water\" func watermarks(int high, int low) as bool\n"
+    "    extern \"xl6_xrt_tcp_listen_config_recv_limit\" func recvLimit(int size) as bool\n"
+    "    extern \"xl6_xrt_tcp_listen_config_tls\" func tlsNative(point config) as bool\n"
+    "    extern \"xl6_xrt_tcp_listen_config_listen\" func listenNative() as point\n"
+    "\n"
+    "    func tls(TlsConfig config) as bool\n"
+    "        return self.tlsNative(config.nativeHandle())\n"
+    "    end\n"
+    "\n"
+    "    func listen() as TcpServer\n"
+    "        return TcpServer(self.listenNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class UdpConfig\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_udp_config_create\" create(string host, int port)\n"
+    "    extern \"xl6_xrt_udp_config_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_udp_config_flags\" func flags(int value) as bool\n"
+    "    extern \"xl6_xrt_udp_config_recv_batch\" func recvBatch(int value) as bool\n"
+    "    extern \"xl6_xrt_udp_config_queues\" func queueLimits(int sendLimit, int recvLimit) as bool\n"
+    "    extern \"xl6_xrt_udp_config_bind\" func bindNative() as point\n"
+    "\n"
+    "    func bind() as UdpSocket\n"
+    "        return UdpSocket(self.bindNative())\n"
+    "    end\n"
+    "end\n";
+
+const char* xl6StdlibNetConfigClassSource =
+    "class TcpConnectConfig\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_tcp_connect_config_create\" create(string host, int port)\n"
+    "    extern \"xl6_xrt_tcp_connect_config_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_tcp_connect_config_flags\" func flags(int value) as bool\n"
+    "    extern \"xl6_xrt_tcp_connect_config_timeout\" func timeout(int timeoutMs) as bool\n"
+    "    extern \"xl6_xrt_tcp_connect_config_water\" func watermarks(int high, int low) as bool\n"
+    "    extern \"xl6_xrt_tcp_connect_config_recv_limit\" func recvLimit(int size) as bool\n"
+    "    extern \"xl6_xrt_tcp_connect_config_proxy\" func proxyNative(point proxy) as bool\n"
+    "    extern \"xl6_xrt_tcp_connect_config_connect\" func connectNative() as point\n"
+    "\n"
+    "    func proxy(NetProxy proxy) as bool\n"
+    "        return self.proxyNative(proxy.nativeHandle())\n"
+    "    end\n"
+    "\n"
+    "    func connect() as TcpStream\n"
+    "        return TcpStream(self.connectNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class TcpListenConfig\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_tcp_listen_config_create\" create(string host, int port)\n"
+    "    extern \"xl6_xrt_tcp_listen_config_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_tcp_listen_config_flags\" func flags(int value) as bool\n"
+    "    extern \"xl6_xrt_tcp_listen_config_backlog\" func backlog(int value) as bool\n"
+    "    extern \"xl6_xrt_tcp_listen_config_water\" func watermarks(int high, int low) as bool\n"
+    "    extern \"xl6_xrt_tcp_listen_config_recv_limit\" func recvLimit(int size) as bool\n"
+    "    extern \"xl6_xrt_tcp_listen_config_listen\" func listenNative() as point\n"
+    "\n"
+    "    func listen() as TcpServer\n"
+    "        return TcpServer(self.listenNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class UdpConfig\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_udp_config_create\" create(string host, int port)\n"
+    "    extern \"xl6_xrt_udp_config_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_udp_config_flags\" func flags(int value) as bool\n"
+    "    extern \"xl6_xrt_udp_config_recv_batch\" func recvBatch(int value) as bool\n"
+    "    extern \"xl6_xrt_udp_config_queues\" func queueLimits(int sendLimit, int recvLimit) as bool\n"
+    "    extern \"xl6_xrt_udp_config_bind\" func bindNative() as point\n"
+    "\n"
+    "    func bind() as UdpSocket\n"
+    "        return UdpSocket(self.bindNative())\n"
+    "    end\n"
+    "end\n";
+
 const char* xl6StdlibFileInfoClassSource =
     "class FileInfo\n"
     "    string path\n"
@@ -730,6 +1357,27 @@ const char* xl6StdlibFileClassSource =
     "    end\n"
     "end\n";
 
+const char* xl6StdlibAsyncFileClassSource =
+    "class AsyncFile\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_async_file_open\" create(string path, int flags, int shareFlags)\n"
+    "    extern \"xl6_xrt_async_file_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_async_file_close\" func close() as bool\n"
+    "    extern \"xl6_xrt_async_file_read\" func readNative(int offset, int size) as future<point>\n"
+    "    extern \"xl6_xrt_async_file_write\" func writeNative(int offset, point data, c_size size) as future<int>\n"
+    "    extern \"xl6_xrt_async_file_flush\" func flush() as future<bool>\n"
+    "    extern \"xl6_xrt_async_file_size\" func size() as future<int>\n"
+    "    extern \"xl6_xrt_async_file_resize\" func resize(int size) as future<bool>\n"
+    "\n"
+    "    func read(int offset, int size) as future<point>\n"
+    "        return self.readNative(offset, size)\n"
+    "    end\n"
+    "\n"
+    "    func write(int offset, Buffer data) as future<int>\n"
+    "        return self.writeNative(offset, data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "end\n";
+
 const char* xl6StdlibRegexClassSource =
     "class RegexMatch\n"
     "    native point handle\n"
@@ -740,6 +1388,15 @@ const char* xl6StdlibRegexClassSource =
     "    extern \"xl6_xrt_regex_match_start\" get start() as int\n"
     "    extern \"xl6_xrt_regex_match_end\" get end() as int\n"
     "    extern \"xl6_xrt_regex_match_text_copy\" func textNative() as point\n"
+    "    extern \"xl6_xrt_regex_match_capture_count\" get captureCount() as uint32\n"
+    "    extern \"xl6_xrt_regex_match_capture_matched\" func groupMatchedNative(uint32 index) as bool\n"
+    "    extern \"xl6_xrt_regex_match_capture_byte_start\" func groupByteStartNative(uint32 index) as int\n"
+    "    extern \"xl6_xrt_regex_match_capture_byte_end\" func groupByteEndNative(uint32 index) as int\n"
+    "    extern \"xl6_xrt_regex_match_capture_start\" func groupStartNative(uint32 index) as int\n"
+    "    extern \"xl6_xrt_regex_match_capture_end\" func groupEndNative(uint32 index) as int\n"
+    "    extern \"xl6_xrt_regex_match_capture_name_copy\" func groupNameNative(uint32 index) as point\n"
+    "    extern \"xl6_xrt_regex_match_capture_index\" func groupIndex(string name) as int\n"
+    "    extern \"xl6_xrt_regex_match_capture_text_copy\" func groupTextNative(uint32 index) as point\n"
     "\n"
     "    get text() as var\n"
     "        if not self.ok then\n"
@@ -747,18 +1404,98 @@ const char* xl6StdlibRegexClassSource =
     "        end\n"
     "        return __xl_std_runtime_take_cstr(self.textNative())\n"
     "    end\n"
+    "\n"
+    "    func groupMatched(int index) as bool\n"
+    "        return index >= 0 and self.groupMatchedNative(uint32(index))\n"
+    "    end\n"
+    "\n"
+    "    func group(int index) as var\n"
+    "        if not self.groupMatched(index) then\n"
+    "            return null\n"
+    "        end\n"
+    "        return __xl_std_runtime_take_cstr(self.groupTextNative(uint32(index)))\n"
+    "    end\n"
+    "\n"
+    "    func group(string name) as var\n"
+    "        int index = self.groupIndex(name)\n"
+    "        return self.group(index)\n"
+    "    end\n"
+    "\n"
+    "    func groupName(int index) as string\n"
+    "        if index < 0 then\n"
+    "            return \"\"\n"
+    "        end\n"
+    "        return __xl_std_runtime_take_cstr(self.groupNameNative(uint32(index)))\n"
+    "    end\n"
+    "\n"
+    "    func groupStart(int index) as int\n"
+    "        if index < 0 then\n"
+    "            return -1\n"
+    "        end\n"
+    "        return self.groupStartNative(uint32(index))\n"
+    "    end\n"
+    "\n"
+    "    func groupEnd(int index) as int\n"
+    "        if index < 0 then\n"
+    "            return -1\n"
+    "        end\n"
+    "        return self.groupEndNative(uint32(index))\n"
+    "    end\n"
+    "\n"
+    "    func groupByteStart(int index) as int\n"
+    "        if index < 0 then\n"
+    "            return -1\n"
+    "        end\n"
+    "        return self.groupByteStartNative(uint32(index))\n"
+    "    end\n"
+    "\n"
+    "    func groupByteEnd(int index) as int\n"
+    "        if index < 0 then\n"
+    "            return -1\n"
+    "        end\n"
+    "        return self.groupByteEndNative(uint32(index))\n"
+    "    end\n"
+    "\n"
+    "    func groups() as array\n"
+    "        array result = []\n"
+    "        int index = 0\n"
+    "        while index < int(self.captureCount) do\n"
+    "            result.append(self.group(index))\n"
+    "            index += 1\n"
+    "        end\n"
+    "        return result\n"
+    "    end\n"
+    "\n"
+    "    func namedGroups() as dict\n"
+    "        dict result = {}\n"
+    "        int index = 1\n"
+    "        while index < int(self.captureCount) do\n"
+    "            string name = self.groupName(index)\n"
+    "            if name != \"\" then\n"
+    "                result[name] = self.group(index)\n"
+    "            end\n"
+    "            index += 1\n"
+    "        end\n"
+    "        return result\n"
+    "    end\n"
     "end\n"
     "\n"
     "class Regex\n"
     "    native point handle\n"
     "    extern \"xl6_xrt_regex_create_default\" create(string pattern)\n"
     "    extern \"xl6_xrt_regex_create_flags\" create(string pattern, int flags)\n"
+    "    extern \"xl6_xrt_regex_wrap\" create(point handle)\n"
     "    extern \"xl6_xrt_regex_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_regex_clone\" func cloneNative() as point\n"
     "    extern \"xl6_xrt_regex_is_match_native\" func isMatchNative(string text, c_size textSize) as c_int\n"
     "    extern \"xl6_xrt_regex_full_match_native\" func fullMatchNative(string text, c_size textSize) as c_int\n"
     "    extern \"xl6_xrt_regex_match_at\" func matchNative(string text, c_size textSize, c_size start) as point\n"
     "    extern \"xl6_xrt_regex_capture_count\" get captureCount() as uint32\n"
     "    extern \"xl6_xrt_regex_capture_name_copy\" func captureNameNative(uint32 index) as point\n"
+    "\n"
+    "    get valid() as bool\n"
+    "        return self.handle != null\n"
+    "    end\n"
     "\n"
     "    func isMatch(string text) as bool\n"
     "        return self.isMatchNative(text, __xl_std_crt_strlen(text)) != 0\n"
@@ -785,11 +1522,19 @@ const char* xl6StdlibRegexClassSource =
     "        end\n"
     "        return __xl_std_runtime_take_cstr(self.captureNameNative(uint32(index)))\n"
     "    end\n"
+    "\n"
+    "    func clone() as Regex\n"
+    "        return Regex(point(self.cloneNative()))\n"
+    "    end\n"
     "end\n"
     "\n"
     "class RegexSet\n"
     "    native point handle\n"
+    "    extern \"xl6_xrt_regex_set_wrap\" create(point handle)\n"
     "    extern \"xl6_xrt_regex_set_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_regex_set_clone\" func cloneNative() as point\n"
+    "    extern \"xl6_xrt_regex_set_pattern_count\" get patternCount() as uint32\n"
+    "    extern \"xl6_xrt_regex_set_match\" func matchNative(uint32 index, string text, c_size textSize, c_size start) as point\n"
     "    extern \"xl6_xrt_regex_set_is_match\" func isMatchNative(string text, c_size textSize, c_size start) as bool\n"
     "    extern \"xl6_xrt_regex_set_first\" func firstNative(string text, c_size textSize, c_size start) as int\n"
     "    extern \"xl6_xrt_regex_set_matches\" func matchesNative(string text, c_size textSize, c_size start, uint32 maxCount) as var\n"
@@ -817,6 +1562,87 @@ const char* xl6StdlibRegexClassSource =
     "        end\n"
     "        return array(self.matchesNative(text, __xl_std_crt_strlen(text), c_size(start), uint32(maxCount)))\n"
     "    end\n"
+    "\n"
+    "    func match(int index, string text, int start = 0) as RegexMatch\n"
+    "        if index < 0 then\n"
+    "            index = int(self.patternCount)\n"
+    "        end\n"
+    "        if start < 0 then\n"
+    "            start = 0\n"
+    "        end\n"
+    "        return RegexMatch(self.matchNative(uint32(index), text, __xl_std_crt_strlen(text), c_size(start)))\n"
+    "    end\n"
+    "\n"
+    "    func clone() as RegexSet\n"
+    "        return RegexSet(point(self.cloneNative()))\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class RegexBuilder\n"
+    "    string pattern\n"
+    "    int flags\n"
+    "\n"
+    "    create(string pattern, int flags = 0)\n"
+    "        self.pattern = pattern\n"
+    "        self.flags = flags\n"
+    "    end\n"
+    "\n"
+    "    func setFlags(int flags) as RegexBuilder\n"
+    "        self.flags = flags\n"
+    "        return self\n"
+    "    end\n"
+    "\n"
+    "    func addFlags(int flags) as RegexBuilder\n"
+    "        self.flags = self.flags + flags\n"
+    "        return self\n"
+    "    end\n"
+    "\n"
+    "    func build() as Regex\n"
+    "        return Regex(self.pattern, self.flags)\n"
+    "    end\n"
+    "end\n";
+
+const char* xl6StdlibJsonClassSource =
+    "class JsonWriter\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_json_writer_create_default\" create()\n"
+    "    extern \"xl6_xrt_json_writer_create_pretty\" create(bool pretty)\n"
+    "    extern \"xl6_xrt_json_writer_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_json_writer_begin_object\" func beginObject() as bool\n"
+    "    extern \"xl6_xrt_json_writer_begin_object_key\" func beginObject(string key) as bool\n"
+    "    extern \"xl6_xrt_json_writer_end_object\" func endObject() as bool\n"
+    "    extern \"xl6_xrt_json_writer_begin_array\" func beginArray() as bool\n"
+    "    extern \"xl6_xrt_json_writer_begin_array_key\" func beginArray(string key) as bool\n"
+    "    extern \"xl6_xrt_json_writer_end_array\" func endArray() as bool\n"
+    "    extern \"xl6_xrt_json_writer_null\" func writeNull() as bool\n"
+    "    extern \"xl6_xrt_json_writer_null_key\" func writeNull(string key) as bool\n"
+    "    extern \"xl6_xrt_json_writer_bool\" func writeBool(bool value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_bool_key\" func writeBool(string key, bool value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_int\" func writeInt(int value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_int_key\" func writeInt(string key, int value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_float\" func writeFloat(float value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_float_key\" func writeFloat(string key, float value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_string\" func writeString(string value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_string_key\" func writeString(string key, string value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_value\" func writeValue(var value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_value_key\" func writeValue(string key, var value) as bool\n"
+    "    extern \"xl6_xrt_json_writer_finish\" func finishNative() as point\n"
+    "\n"
+    "    func finish() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.finishNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class XsonOptions\n"
+    "    bool pretty = false\n"
+    "    bool ignoreUnsupportedEncode = false\n"
+    "    bool ignoreUnsupportedDecode = false\n"
+    "\n"
+    "    create(bool pretty = false, bool ignoreUnsupportedEncode = false, bool ignoreUnsupportedDecode = false)\n"
+    "        self.pretty = pretty\n"
+    "        self.ignoreUnsupportedEncode = ignoreUnsupportedEncode\n"
+    "        self.ignoreUnsupportedDecode = ignoreUnsupportedDecode\n"
+    "    end\n"
     "end\n";
 
 const char* xl6StdlibProcessClassSource =
@@ -832,6 +1658,7 @@ const char* xl6StdlibProcessClassSource =
     "    extern \"xl6_xrt_process_result_stdout_truncated\" get stdoutTruncated() as bool\n"
     "    extern \"xl6_xrt_process_result_stderr_truncated\" get stderrTruncated() as bool\n"
     "    extern \"xl6_xrt_process_result_duration_ms\" get durationMs() as int\n"
+    "    extern \"xl6_xrt_process_result_exit_info\" func exitInfo() as var\n"
     "    extern \"xl6_xrt_process_result_stdout_copy\" func stdoutNative() as point\n"
     "    extern \"xl6_xrt_process_result_stderr_copy\" func stderrNative() as point\n"
     "\n"
@@ -849,6 +1676,50 @@ const char* xl6StdlibProcessClassSource =
     "    extern \"xl6_xrt_process_command_create_file\" create(string program, array args)\n"
     "    extern \"xl6_xrt_process_command_create_shell\" create(string command)\n"
     "    extern \"xl6_xrt_process_command_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_process_command_work_dir\" func workDir(string path) as bool\n"
+    "    extern \"xl6_xrt_process_command_env\" func env(string name, string value) as bool\n"
+    "    extern \"xl6_xrt_process_command_clear_env\" func clearEnv() as bool\n"
+    "    extern \"xl6_xrt_process_command_inherit_env\" func inheritEnv(bool enabled) as bool\n"
+    "    extern \"xl6_xrt_process_command_use_terminal\" func terminalNative(bool enabled) as bool\n"
+    "    extern \"xl6_xrt_process_command_new_console\" func newConsoleNative(bool enabled) as bool\n"
+    "    extern \"xl6_xrt_process_command_merge_stderr\" func mergeStderrNative(bool enabled) as bool\n"
+    "    extern \"xl6_xrt_process_command_process_group\" func processGroupNative(bool enabled) as bool\n"
+    "    extern \"xl6_xrt_process_command_hide_window\" func hideWindowNative(bool enabled) as bool\n"
+    "    extern \"xl6_xrt_process_command_terminal_size\" func terminalSize(int cols, int rows) as bool\n"
+    "    extern \"xl6_xrt_process_command_read_chunk_size\" func readChunkSize(int size) as bool\n"
+    "    extern \"xl6_xrt_process_command_max_capture_bytes\" func maxCaptureBytes(int size) as bool\n"
+    "    extern \"xl6_xrt_process_command_max_event_count\" func maxEventCount(int count) as bool\n"
+    "    extern \"xl6_xrt_process_command_stdio\" func stdioNative(int stream, int mode, bool capture) as bool\n"
+    "    extern \"xl6_xrt_process_command_run\" func runNative(string input, c_size inputSize, int timeoutMs) as point\n"
+    "    extern \"xl6_xrt_process_command_start\" func startNative() as point\n"
+    "\n"
+    "    func stdio(int stream, int mode, bool capture = false) as bool\n"
+    "        return self.stdioNative(stream, mode, capture)\n"
+    "    end\n"
+    "\n"
+    "    func terminal(bool enabled = true) as bool\n"
+    "        return self.terminalNative(enabled)\n"
+    "    end\n"
+    "\n"
+    "    func newConsole(bool enabled = true) as bool\n"
+    "        return self.newConsoleNative(enabled)\n"
+    "    end\n"
+    "\n"
+    "    func mergeStderr(bool enabled = true) as bool\n"
+    "        return self.mergeStderrNative(enabled)\n"
+    "    end\n"
+    "\n"
+    "    func processGroup(bool enabled = true) as bool\n"
+    "        return self.processGroupNative(enabled)\n"
+    "    end\n"
+    "\n"
+    "    func hideWindow(bool enabled = true) as bool\n"
+    "        return self.hideWindowNative(enabled)\n"
+    "    end\n"
+    "\n"
+    "    func run(string input = \"\", int timeoutMs = 0) as ProcessResult\n"
+    "        return ProcessResult(self.runNative(input, __xl_std_crt_strlen(input), timeoutMs))\n"
+    "    end\n"
     "end\n"
     "\n"
     "class PipelineResult\n"
@@ -880,14 +1751,24 @@ const char* xl6StdlibProcessClassSource =
     "\n"
     "class Process\n"
     "    native point handle\n"
+    "    extern \"xl6_xrt_process_wrap\" create(point handle)\n"
     "    extern \"xl6_xrt_process_spawn_file\" create(string program, array args)\n"
     "    extern \"xl6_xrt_process_spawn_shell\" create(string command)\n"
     "    extern \"xl6_xrt_process_destroy\" destroy()\n"
     "    extern \"xl6_xrt_process_running\" get running() as bool\n"
+    "    extern \"xl6_xrt_process_state\" get state() as int\n"
     "    extern \"xl6_xrt_process_handle_exit_code\" get exitCode() as int\n"
     "    extern \"xl6_xrt_process_write\" func write(string text) as bool\n"
+    "    extern \"xl6_xrt_process_write_bytes\" func writeBytesNative(point data, c_size size) as bool\n"
     "    extern \"xl6_xrt_process_close_stdin\" func closeStdin() as bool\n"
     "    extern \"xl6_xrt_process_wait\" func waitNative(int timeoutMs) as bool\n"
+    "    extern \"xl6_xrt_process_wait_future\" func waitFutureNative() as future<point>\n"
+    "    extern \"xl6_xrt_process_exit_info\" func exitInfo() as var\n"
+    "    extern \"xl6_xrt_process_read_stdout\" func readStdoutNative(int offset, int maxBytes) as var\n"
+    "    extern \"xl6_xrt_process_read_stderr\" func readStderrNative(int offset, int maxBytes) as var\n"
+    "    extern \"xl6_xrt_process_read_events\" func readEventsNative(int seq, int maxCount) as var\n"
+    "    extern \"xl6_xrt_process_interrupt\" func interrupt() as bool\n"
+    "    extern \"xl6_xrt_process_resize_terminal\" func resizeTerminal(int cols, int rows) as bool\n"
     "    extern \"xl6_xrt_process_terminate\" func terminate() as bool\n"
     "    extern \"xl6_xrt_process_kill\" func kill() as bool\n"
     "    extern \"xl6_xrt_process_kill_tree\" func killTree() as bool\n"
@@ -898,8 +1779,28 @@ const char* xl6StdlibProcessClassSource =
     "        return self.write(text + \"\\n\")\n"
     "    end\n"
     "\n"
+    "    func writeBytes(Buffer data) as bool\n"
+    "        return self.writeBytesNative(data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "\n"
     "    func wait(int timeoutMs = -1) as bool\n"
     "        return self.waitNative(timeoutMs)\n"
+    "    end\n"
+    "\n"
+    "    func waitAsync() as future<point>\n"
+    "        return self.waitFutureNative()\n"
+    "    end\n"
+    "\n"
+    "    func readStdout(int offset = 0, int maxBytes = 0) as var\n"
+    "        return self.readStdoutNative(offset, maxBytes)\n"
+    "    end\n"
+    "\n"
+    "    func readStderr(int offset = 0, int maxBytes = 0) as var\n"
+    "        return self.readStderrNative(offset, maxBytes)\n"
+    "    end\n"
+    "\n"
+    "    func readEvents(int seq = 0, int maxCount = 0) as var\n"
+    "        return self.readEventsNative(seq, maxCount)\n"
     "    end\n"
     "\n"
     "    get stdout() as string\n"
@@ -1134,11 +2035,23 @@ static const XL6_StdlibParam xl6StdRuntimeCryptoTextParams[] = {
     {"c_size", "size"}
 };
 
+static const XL6_StdlibParam xl6StdRuntimeCryptoBytesParams[] = {
+    {"point", "data"},
+    {"c_size", "size"}
+};
+
 static const XL6_StdlibParam xl6StdRuntimeCryptoHmacParams[] = {
     {"string", "key"},
     {"c_size", "keySize"},
     {"string", "text"},
     {"c_size", "textSize"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeCryptoHmacBytesParams[] = {
+    {"point", "key"},
+    {"c_size", "keySize"},
+    {"point", "data"},
+    {"c_size", "dataSize"}
 };
 
 static const XL6_StdlibParam xl6StdRuntimeCryptoAeadParams[] = {
@@ -1152,12 +2065,33 @@ static const XL6_StdlibParam xl6StdRuntimeCryptoAeadParams[] = {
     {"c_size", "aadSize"}
 };
 
+static const XL6_StdlibParam xl6StdRuntimeCryptoAeadBytesParams[] = {
+    {"point", "key"},
+    {"c_size", "keySize"},
+    {"point", "nonce"},
+    {"c_size", "nonceSize"},
+    {"point", "data"},
+    {"c_size", "dataSize"},
+    {"point", "aad"},
+    {"c_size", "aadSize"}
+};
+
 static const XL6_StdlibParam xl6StdRuntimeCryptoHkdfParams[] = {
     {"string", "key"},
     {"c_size", "keySize"},
     {"string", "salt"},
     {"c_size", "saltSize"},
     {"string", "info"},
+    {"c_size", "infoSize"},
+    {"c_size", "outSize"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeCryptoHkdfBytesParams[] = {
+    {"point", "key"},
+    {"c_size", "keySize"},
+    {"point", "salt"},
+    {"c_size", "saltSize"},
+    {"point", "info"},
     {"c_size", "infoSize"},
     {"c_size", "outSize"}
 };
@@ -1173,6 +2107,16 @@ static const XL6_StdlibParam xl6StdRuntimeCryptoChacha20Params[] = {
     {"c_size", "nonceSize"},
     {"string", "text"},
     {"c_size", "textSize"},
+    {"c_uint", "counter"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeCryptoChacha20BytesParams[] = {
+    {"point", "key"},
+    {"c_size", "keySize"},
+    {"point", "nonce"},
+    {"c_size", "nonceSize"},
+    {"point", "data"},
+    {"c_size", "dataSize"},
     {"c_uint", "counter"}
 };
 
@@ -1254,6 +2198,29 @@ static const XL6_StdlibParam xl6StdRuntimeQueryAppendParams[] = {
     {"c_size", "valueSize"}
 };
 
+static const XL6_StdlibParam xl6StdRuntimeUrlBuildParams[] = {
+    {"string", "scheme"},
+    {"c_size", "schemeSize"},
+    {"string", "host"},
+    {"c_size", "hostSize"},
+    {"c_uint", "port"},
+    {"string", "path"},
+    {"c_size", "pathSize"},
+    {"string", "query"},
+    {"c_size", "querySize"},
+    {"string", "fragment"},
+    {"c_size", "fragmentSize"},
+    {"string", "userInfo"},
+    {"c_size", "userInfoSize"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeQueryFindParams[] = {
+    {"string", "text"},
+    {"c_size", "size"},
+    {"string", "key"},
+    {"c_size", "keySize"}
+};
+
 static const XL6_StdlibParam xl6StdRuntimeRegexTextParams[] = {
     {"string", "text"},
     {"c_size", "textSize"},
@@ -1271,6 +2238,11 @@ static const XL6_StdlibParam xl6StdRuntimeRegexMatchParams[] = {
 
 static const XL6_StdlibParam xl6StdRuntimeRegexSetCreateParams[] = {
     {"var", "patterns"},
+    {"c_int", "flags"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeRegexPatternParams[] = {
+    {"string", "pattern"},
     {"c_int", "flags"}
 };
 
@@ -1376,6 +2348,19 @@ static const XL6_StdlibParam xl6StdRuntimePathJoinParams[] = {
     {"string", "first"},
     {"string", "second"},
     {"var", "rest"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeNetEnginePostParams[] = {
+    {"point", "engine"},
+    {"func()", "task"},
+    {"int", "affinity"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeNetEnginePostDelayedParams[] = {
+    {"point", "engine"},
+    {"func()", "task"},
+    {"int", "delayMs"},
+    {"int", "affinity"}
 };
 
 static const XL6_StdlibParam xl6StdRuntimeHttpServerCreateParams[] = {
@@ -1978,22 +2963,9 @@ static const XL6_StdlibParam xl6StdXrtJsonParseParams[] = {
     {"c_size", "size"}
 };
 
-static const XL6_StdlibParam xl6StdXrtXsonValidParams[] = {
-    {"string", "text"},
-    {"c_size", "size"},
-    {"c_uint", "flags"}
-};
-
 static const XL6_StdlibParam xl6StdXrtJsonStringifyParams[] = {
     {"var", "value"},
     {"c_int", "format"},
-    {"point", "retSize"}
-};
-
-static const XL6_StdlibParam xl6StdXrtXsonStringifyParams[] = {
-    {"var", "value"},
-    {"c_int", "format"},
-    {"c_uint", "flags"},
     {"point", "retSize"}
 };
 
@@ -2001,13 +2973,6 @@ static const XL6_StdlibParam xl6StdXrtJsonWriteParams[] = {
     {"string", "path"},
     {"var", "value"},
     {"c_int", "format"}
-};
-
-static const XL6_StdlibParam xl6StdXrtXsonWriteParams[] = {
-    {"string", "path"},
-    {"var", "value"},
-    {"c_int", "format"},
-    {"c_uint", "flags"}
 };
 
 static const XL6_StdlibParam xl6StdJsonStringifyParams[] = {
@@ -2030,6 +2995,33 @@ static const XL6_StdlibParam xl6StdJsonWriteParams[] = {
     {"string", "path"},
     {"var", "value"},
     {"bool", "pretty"}
+};
+
+static const XL6_StdlibParam xl6StdJsonVisitRuntimeParams[] = {
+    {"string", "text"},
+    {"func(var) as bool", "visitor"}
+};
+
+static const XL6_StdlibParam xl6StdXsonTextOptionsRuntimeParams[] = {
+    {"string", "text"},
+    {"bool", "pretty"},
+    {"bool", "ignoreUnsupportedEncode"},
+    {"bool", "ignoreUnsupportedDecode"}
+};
+
+static const XL6_StdlibParam xl6StdXsonValueOptionsRuntimeParams[] = {
+    {"var", "value"},
+    {"bool", "pretty"},
+    {"bool", "ignoreUnsupportedEncode"},
+    {"bool", "ignoreUnsupportedDecode"}
+};
+
+static const XL6_StdlibParam xl6StdXsonWriteOptionsRuntimeParams[] = {
+    {"string", "path"},
+    {"var", "value"},
+    {"bool", "pretty"},
+    {"bool", "ignoreUnsupportedEncode"},
+    {"bool", "ignoreUnsupportedDecode"}
 };
 
 static const XL6_StdlibParam xl6StdXrtCodecTextParams[] = {
@@ -2401,6 +3393,31 @@ static const char xl6StdRegexCompileBody[] =
     "    return Regex(pattern, flags)\n"
     "end\n";
 
+static const char xl6StdRegexBuilderBody[] =
+    "func __xl_std_regex_builder(string pattern, int flags = 0) as RegexBuilder\n"
+    "    return RegexBuilder(pattern, flags)\n"
+    "end\n";
+
+static const char xl6StdRegexValidBody[] =
+    "func __xl_std_regex_valid(string pattern, int flags = 0) as bool\n"
+    "    return __xl_std_runtime_regex_valid_pattern(pattern, c_int(flags))\n"
+    "end\n";
+
+static const char xl6StdRegexErrorBody[] =
+    "func __xl_std_regex_error(string pattern, int flags = 0) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_regex_error_message(pattern, c_int(flags)))\n"
+    "end\n";
+
+static const char xl6StdRegexErrorPosBody[] =
+    "func __xl_std_regex_error_pos(string pattern, int flags = 0) as int\n"
+    "    return int(__xl_std_runtime_regex_error_pos(pattern, c_int(flags)))\n"
+    "end\n";
+
+static const char xl6StdRegexErrorBytePosBody[] =
+    "func __xl_std_regex_error_byte_pos(string pattern, int flags = 0) as int\n"
+    "    return int(__xl_std_runtime_regex_error_byte_pos(pattern, c_int(flags)))\n"
+    "end\n";
+
 static const char xl6StdRegexIsMatchBody[] =
     "func __xl_std_regex_is_match(string text, string pattern, int flags = 0) as bool\n"
     "    return __xl_std_runtime_regex_is_match(text, __xl_std_crt_strlen(text), pattern, c_int(flags))\n"
@@ -2449,6 +3466,11 @@ static const char xl6StdProcessRunBody[] =
     "    return ProcessResult(__xl_std_runtime_process_run(command, c_int(timeoutMs)))\n"
     "end\n";
 
+static const char xl6StdProcessRunCommandBody[] =
+    "func __xl_std_process_run(ProcessCommand command, string input = \"\", int timeoutMs = 0) as ProcessResult\n"
+    "    return command.run(input, timeoutMs)\n"
+    "end\n";
+
 static const char xl6StdProcessRunFileBody[] =
     "func __xl_std_process_run_file(string program, array args = [], int timeoutMs = 0) as ProcessResult\n"
     "    return ProcessResult(__xl_std_runtime_process_run_file(program, args, c_int(timeoutMs)))\n"
@@ -2474,9 +3496,19 @@ static const char xl6StdProcessStartBody[] =
     "    return Process(command)\n"
     "end\n";
 
+static const char xl6StdProcessStartCommandBody[] =
+    "func __xl_std_process_start(ProcessCommand command) as Process\n"
+    "    return Process(command.startNative())\n"
+    "end\n";
+
 static const char xl6StdProcessStartFileBody[] =
     "func __xl_std_process_start_file(string program, array args = []) as Process\n"
     "    return Process(program, args)\n"
+    "end\n";
+
+static const char xl6StdProcessTerminalSupportedBody[] =
+    "func __xl_std_process_terminal_supported() as bool\n"
+    "    return __xl_std_runtime_process_terminal_supported()\n"
     "end\n";
 
 static const char xl6StdLogCreateBody[] =
@@ -3094,6 +4126,22 @@ static const char xl6StdFileReadTextBody[] =
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_file_read_text_strict(path, c_int(charset), retSize))\n"
     "end\n";
 
+static const char xl6StdTaskGroupBody[] =
+    "func __xl_std_task_group() as TaskGroup\n"
+    "    return TaskGroup()\n"
+    "end\n";
+
+static const char xl6StdTemplateEngineBody[] =
+    "func __xl_std_template_engine() as TemplateEngine\n"
+    "    return TemplateEngine()\n"
+    "end\n";
+
+static const char xl6StdTemplateLoadBody[] =
+    "func __xl_std_template_load(string path) as Template\n"
+    "    TemplateEngine engine = TemplateEngine()\n"
+    "    return engine.load(path)\n"
+    "end\n";
+
 static const char xl6StdFileReadBytesBody[] =
     "func __xl_std_file_read_bytes(string path) as Buffer\n"
     "    return Buffer(point(__xl_std_runtime_file_read_bytes(path)))\n"
@@ -3163,6 +4211,24 @@ static const char xl6StdFileInfoBody[] =
 static const char xl6StdFileOpenBody[] =
     "func __xl_std_file_open(string filePath, bool readOnly = false, int charset = -2) as File\n"
     "    return File(filePath, readOnly, charset)\n"
+    "end\n";
+
+static const char xl6StdFileReadBytesAsyncBody[] =
+    "extern \"xl6_xrt_file_read_bytes_async\" func __xl_std_file_read_bytes_async_native(string path) as future<point>\n"
+    "async func __xl_std_file_read_bytes_async(string path) as Buffer\n"
+    "    point data = await __xl_std_file_read_bytes_async_native(path)\n"
+    "    return Buffer(data)\n"
+    "end\n";
+
+static const char xl6StdFileWriteBytesAsyncBody[] =
+    "extern \"xl6_xrt_file_write_bytes_async\" func __xl_std_file_write_bytes_async_native(string path, point data, c_size size) as future<bool>\n"
+    "func __xl_std_file_write_bytes_async(string path, Buffer data) as future<bool>\n"
+    "    return __xl_std_file_write_bytes_async_native(path, data.data(), c_size(data.len()))\n"
+    "end\n";
+
+static const char xl6StdFileOpenAsyncBody[] =
+    "func __xl_std_file_open_async(string path, int flags = 1, int shareFlags = 7) as AsyncFile\n"
+    "    return AsyncFile(path, flags, shareFlags)\n"
     "end\n";
 
 static const char xl6StdDirExistsBody[] =
@@ -3292,6 +4358,16 @@ static const char xl6StdJsonWriteBody[] =
     "    return __xl_std_xrt_json_write_file(path, value, c_int(pretty)) != 0\n"
     "end\n";
 
+static const char xl6StdJsonWriterBody[] =
+    "func __xl_std_json_writer(bool pretty = false) as JsonWriter\n"
+    "    return JsonWriter(pretty)\n"
+    "end\n";
+
+static const char xl6StdJsonVisitBody[] =
+    "func __xl_std_json_visit(string text, func(var) as bool visitor) as int\n"
+    "    return int(__xl_std_runtime_json_visit(text, visitor))\n"
+    "end\n";
+
 static const char xl6StdDictRemoveBody[] =
     "func __xl_std_dict_remove(var table, string key) as bool\n"
     "    return __xl_std_xrt_table_remove(table, key, c_uint(0))\n"
@@ -3299,30 +4375,57 @@ static const char xl6StdDictRemoveBody[] =
 
 static const char xl6StdXsonParseBody[] =
     "func __xl_std_xson_parse(string text) as var\n"
-    "    return __xl_std_xrt_xson_parse(text, 0)\n"
+    "    return __xl_std_runtime_xson_parse_options(text, false, false, false)\n"
+    "end\n";
+
+static const char xl6StdXsonParseOptionsBody[] =
+    "func __xl_std_xson_parse(string text, XsonOptions options) as var\n"
+    "    return __xl_std_runtime_xson_parse_options(text, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
     "end\n";
 
 static const char xl6StdXsonValidBody[] =
-    "func __xl_std_xson_valid(string text, bool ignoreUnsupported = false) as bool\n"
-    "    if ignoreUnsupported then\n"
-    "        return __xl_std_xrt_xson_valid(text, 0, c_uint(2))\n"
-    "    end\n"
-    "    return __xl_std_xrt_xson_valid(text, 0, c_uint(0))\n"
+    "func __xl_std_xson_valid(string text) as bool\n"
+    "    return __xl_std_runtime_xson_valid_options(text, false, false, false)\n"
+    "end\n";
+
+static const char xl6StdXsonValidOptionsBody[] =
+    "func __xl_std_xson_valid(string text, XsonOptions options) as bool\n"
+    "    return __xl_std_runtime_xson_valid_options(text, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
     "end\n";
 
 static const char xl6StdXsonReadBody[] =
     "func __xl_std_xson_read(string path) as var\n"
-    "    return __xl_std_xrt_xson_parse_file(path)\n"
+    "    return __xl_std_runtime_xson_read_options(path, false, false, false)\n"
+    "end\n";
+
+static const char xl6StdXsonReadOptionsBody[] =
+    "func __xl_std_xson_read(string path, XsonOptions options) as var\n"
+    "    return __xl_std_runtime_xson_read_options(path, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
     "end\n";
 
 static const char xl6StdXsonStringifyBody[] =
-    "func __xl_std_xson_stringify(var value, bool pretty = false) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_xson_stringify(value, c_int(pretty), 0, null))\n"
+    "func __xl_std_xson_stringify(var value) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_xson_stringify_options(value, false, false, false))\n"
+    "end\n";
+
+static const char xl6StdXsonStringifyOptionsBody[] =
+    "func __xl_std_xson_stringify(var value, XsonOptions options) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_xson_stringify_options(value, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode))\n"
     "end\n";
 
 static const char xl6StdXsonWriteBody[] =
-    "func __xl_std_xson_write(string path, var value, bool pretty = false) as bool\n"
-    "    return __xl_std_xrt_xson_write_file(path, value, c_int(pretty), 0) != 0\n"
+    "func __xl_std_xson_write(string path, var value) as bool\n"
+    "    return __xl_std_runtime_xson_write_options(path, value, false, false, false)\n"
+    "end\n";
+
+static const char xl6StdXsonWriteOptionsBody[] =
+    "func __xl_std_xson_write(string path, var value, XsonOptions options) as bool\n"
+    "    return __xl_std_runtime_xson_write_options(path, value, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
+    "end\n";
+
+static const char xl6StdXsonOptionsBody[] =
+    "func __xl_std_xson_options(bool pretty = false, bool ignoreUnsupportedEncode = false, bool ignoreUnsupportedDecode = false) as XsonOptions\n"
+    "    return XsonOptions(pretty, ignoreUnsupportedEncode, ignoreUnsupportedDecode)\n"
     "end\n";
 
 static const char xl6StdCodecHexEncodeBody[] =
@@ -3428,6 +4531,86 @@ static const char xl6StdEncodingConvertBytesBody[] =
 static const char xl6StdEncodingNameBody[] =
     "func __xl_std_encoding_name(int charset) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_name(charset))\n"
+    "end\n";
+
+static const char xl6StdEncodingEncodeUtf8Body[] =
+    "func __xl_std_encoding_encode_utf8(string text, bool bom = false) as Buffer\n"
+    "    int charset = 65001\n"
+    "    if bom then charset += 1073741824 end\n"
+    "    return Buffer(point(__xl_std_runtime_encoding_to_bytes(text, charset)))\n"
+    "end\n";
+
+static const char xl6StdEncodingEncodeUtf16LeBody[] =
+    "func __xl_std_encoding_encode_utf16_le(string text, bool bom = false) as Buffer\n"
+    "    int charset = 1200\n"
+    "    if bom then charset += 1073741824 end\n"
+    "    return Buffer(point(__xl_std_runtime_encoding_to_bytes(text, charset)))\n"
+    "end\n";
+
+static const char xl6StdEncodingEncodeUtf16BeBody[] =
+    "func __xl_std_encoding_encode_utf16_be(string text, bool bom = false) as Buffer\n"
+    "    int charset = 1201\n"
+    "    if bom then charset += 1073741824 end\n"
+    "    return Buffer(point(__xl_std_runtime_encoding_to_bytes(text, charset)))\n"
+    "end\n";
+
+static const char xl6StdEncodingEncodeUtf32LeBody[] =
+    "func __xl_std_encoding_encode_utf32_le(string text, bool bom = false) as Buffer\n"
+    "    int charset = 65005\n"
+    "    if bom then charset += 1073741824 end\n"
+    "    return Buffer(point(__xl_std_runtime_encoding_to_bytes(text, charset)))\n"
+    "end\n";
+
+static const char xl6StdEncodingEncodeUtf32BeBody[] =
+    "func __xl_std_encoding_encode_utf32_be(string text, bool bom = false) as Buffer\n"
+    "    int charset = 65006\n"
+    "    if bom then charset += 1073741824 end\n"
+    "    return Buffer(point(__xl_std_runtime_encoding_to_bytes(text, charset)))\n"
+    "end\n";
+
+static const char xl6StdEncodingDecodeUtf8Body[] =
+    "func __xl_std_encoding_decode_utf8(Buffer data, bool bom = false) as string\n"
+    "    int charset = 65001\n"
+    "    if bom then charset += 1073741824 end\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_from_bytes(data.data(), c_size(data.len()), charset))\n"
+    "end\n";
+
+static const char xl6StdEncodingDecodeUtf16LeBody[] =
+    "func __xl_std_encoding_decode_utf16_le(Buffer data, bool bom = false) as string\n"
+    "    int charset = 1200\n"
+    "    if bom then charset += 1073741824 end\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_from_bytes(data.data(), c_size(data.len()), charset))\n"
+    "end\n";
+
+static const char xl6StdEncodingDecodeUtf16BeBody[] =
+    "func __xl_std_encoding_decode_utf16_be(Buffer data, bool bom = false) as string\n"
+    "    int charset = 1201\n"
+    "    if bom then charset += 1073741824 end\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_from_bytes(data.data(), c_size(data.len()), charset))\n"
+    "end\n";
+
+static const char xl6StdEncodingDecodeUtf32LeBody[] =
+    "func __xl_std_encoding_decode_utf32_le(Buffer data, bool bom = false) as string\n"
+    "    int charset = 65005\n"
+    "    if bom then charset += 1073741824 end\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_from_bytes(data.data(), c_size(data.len()), charset))\n"
+    "end\n";
+
+static const char xl6StdEncodingDecodeUtf32BeBody[] =
+    "func __xl_std_encoding_decode_utf32_be(Buffer data, bool bom = false) as string\n"
+    "    int charset = 65006\n"
+    "    if bom then charset += 1073741824 end\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_encoding_from_bytes(data.data(), c_size(data.len()), charset))\n"
+    "end\n";
+
+static const char xl6StdEncodingSwapUtf16EndianBody[] =
+    "func __xl_std_encoding_swap_utf16_endian(Buffer data) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_encoding_swap_utf16(data.data(), c_size(data.len()))))\n"
+    "end\n";
+
+static const char xl6StdEncodingSwapUtf32EndianBody[] =
+    "func __xl_std_encoding_swap_utf32_endian(Buffer data) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_encoding_swap_utf32(data.data(), c_size(data.len()))))\n"
     "end\n";
 
 static const char xl6StdHashU32Body[] =
@@ -3559,6 +4742,11 @@ static const char xl6StdCryptoRandomHexBody[] =
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_random_hex(c_size(len)))\n"
     "end\n";
 
+static const char xl6StdCryptoSha1StreamBody[] =
+    "func __xl_std_crypto_sha1_stream() as Sha1\n"
+    "    return Sha1()\n"
+    "end\n";
+
 static const char xl6StdCryptoSha256StreamBody[] =
     "func __xl_std_crypto_sha256_stream() as Sha256\n"
     "    return Sha256()\n"
@@ -3588,6 +4776,103 @@ static const char xl6StdCryptoChaCha20DecryptBody[] =
     "        return \"\"\n"
     "    end\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_chacha20_decrypt_text(key, __xl_std_crt_strlen(key), nonce, __xl_std_crt_strlen(nonce), cipherHex, __xl_std_crt_strlen(cipherHex), c_uint(counter)))\n"
+    "end\n";
+
+static const char xl6StdCryptoSha1BytesBody[] =
+    "func __xl_std_crypto_sha1_bytes(Buffer data) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_sha1_bytes(data.data(), c_size(data.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoSha256BytesBody[] =
+    "func __xl_std_crypto_sha256_bytes(Buffer data) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_sha256_bytes(data.data(), c_size(data.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoSha384BytesBody[] =
+    "func __xl_std_crypto_sha384_bytes(Buffer data) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_sha384_bytes(data.data(), c_size(data.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoSha512BytesBody[] =
+    "func __xl_std_crypto_sha512_bytes(Buffer data) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_sha512_bytes(data.data(), c_size(data.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoHmacSha256BytesBody[] =
+    "func __xl_std_crypto_hmac_sha256_bytes(Buffer key, Buffer data) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_hmac_sha256_bytes(key.data(), c_size(key.len()), data.data(), c_size(data.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoHmacSha384BytesBody[] =
+    "func __xl_std_crypto_hmac_sha384_bytes(Buffer key, Buffer data) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_hmac_sha384_bytes(key.data(), c_size(key.len()), data.data(), c_size(data.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoHmacSha512BytesBody[] =
+    "func __xl_std_crypto_hmac_sha512_bytes(Buffer key, Buffer data) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_hmac_sha512_bytes(key.data(), c_size(key.len()), data.data(), c_size(data.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoChaCha20BytesBody[] =
+    "func __xl_std_crypto_chacha20_bytes(Buffer key, Buffer nonce, Buffer data, int counter = 1) as Buffer\n"
+    "    if counter < 0 then\n"
+    "        return Buffer()\n"
+    "    end\n"
+    "    return Buffer(point(__xl_std_runtime_chacha20_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), c_uint(counter))))\n"
+    "end\n";
+
+static const char xl6StdCryptoChaCha20Poly1305EncryptBytesBody[] =
+    "func __xl_std_crypto_chacha20_poly1305_encrypt_bytes(Buffer key, Buffer nonce, Buffer data, Buffer aad) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_chacha20_poly1305_encrypt_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), aad.data(), c_size(aad.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoChaCha20Poly1305DecryptBytesBody[] =
+    "func __xl_std_crypto_chacha20_poly1305_decrypt_bytes(Buffer key, Buffer nonce, Buffer data, Buffer aad) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_chacha20_poly1305_decrypt_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), aad.data(), c_size(aad.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoAes128GcmEncryptBytesBody[] =
+    "func __xl_std_crypto_aes128_gcm_encrypt_bytes(Buffer key, Buffer nonce, Buffer data, Buffer aad) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_aes128_gcm_encrypt_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), aad.data(), c_size(aad.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoAes128GcmDecryptBytesBody[] =
+    "func __xl_std_crypto_aes128_gcm_decrypt_bytes(Buffer key, Buffer nonce, Buffer data, Buffer aad) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_aes128_gcm_decrypt_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), aad.data(), c_size(aad.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoAes256GcmEncryptBytesBody[] =
+    "func __xl_std_crypto_aes256_gcm_encrypt_bytes(Buffer key, Buffer nonce, Buffer data, Buffer aad) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_aes256_gcm_encrypt_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), aad.data(), c_size(aad.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoAes256GcmDecryptBytesBody[] =
+    "func __xl_std_crypto_aes256_gcm_decrypt_bytes(Buffer key, Buffer nonce, Buffer data, Buffer aad) as Buffer\n"
+    "    return Buffer(point(__xl_std_runtime_aes256_gcm_decrypt_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), aad.data(), c_size(aad.len()))))\n"
+    "end\n";
+
+static const char xl6StdCryptoHkdfSha256BytesBody[] =
+    "func __xl_std_crypto_hkdf_sha256_bytes(Buffer key, Buffer salt, Buffer info, int len = 32) as Buffer\n"
+    "    if len <= 0 then\n"
+    "        return Buffer()\n"
+    "    end\n"
+    "    return Buffer(point(__xl_std_runtime_hkdf_sha256_bytes(key.data(), c_size(key.len()), salt.data(), c_size(salt.len()), info.data(), c_size(info.len()), c_size(len))))\n"
+    "end\n";
+
+static const char xl6StdCryptoHkdfSha384BytesBody[] =
+    "func __xl_std_crypto_hkdf_sha384_bytes(Buffer key, Buffer salt, Buffer info, int len = 32) as Buffer\n"
+    "    if len <= 0 then\n"
+    "        return Buffer()\n"
+    "    end\n"
+    "    return Buffer(point(__xl_std_runtime_hkdf_sha384_bytes(key.data(), c_size(key.len()), salt.data(), c_size(salt.len()), info.data(), c_size(info.len()), c_size(len))))\n"
+    "end\n";
+
+static const char xl6StdCryptoRandomBytesBody[] =
+    "func __xl_std_crypto_random_bytes(int len) as Buffer\n"
+    "    if len <= 0 then\n"
+    "        return Buffer()\n"
+    "    end\n"
+    "    return Buffer(point(__xl_std_runtime_random_bytes(c_size(len))))\n"
     "end\n";
 
 static const char xl6StdCryptoEd25519KeypairBody[] =
@@ -3630,6 +4915,31 @@ static const char xl6StdCryptoX448SharedSecretBody[] =
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_x448_shared_secret_hex(privateKeyHex, __xl_std_crt_strlen(privateKeyHex), publicKeyHex, __xl_std_crt_strlen(publicKeyHex)))\n"
     "end\n";
 
+static const char xl6StdCryptoP256KeypairBody[] =
+    "func __xl_std_crypto_p256_keypair() as var\n"
+    "    return __xl_std_runtime_p256_keypair()\n"
+    "end\n";
+
+static const char xl6StdCryptoP256SharedSecretBody[] =
+    "func __xl_std_crypto_p256_shared_secret(string privateKeyHex, string publicKeyHex) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_p256_shared_secret_hex(privateKeyHex, __xl_std_crt_strlen(privateKeyHex), publicKeyHex, __xl_std_crt_strlen(publicKeyHex)))\n"
+    "end\n";
+
+static const char xl6StdCryptoP384KeypairBody[] =
+    "func __xl_std_crypto_p384_keypair() as var\n"
+    "    return __xl_std_runtime_p384_keypair()\n"
+    "end\n";
+
+static const char xl6StdCryptoP384SharedSecretBody[] =
+    "func __xl_std_crypto_p384_shared_secret(string privateKeyHex, string publicKeyHex) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_p384_shared_secret_hex(privateKeyHex, __xl_std_crt_strlen(privateKeyHex), publicKeyHex, __xl_std_crt_strlen(publicKeyHex)))\n"
+    "end\n";
+
+static const char xl6StdCryptoEcdsaVerifyBody[] =
+    "func __xl_std_crypto_ecdsa_verify(string publicKeyHex, string hashHex, string signatureHex) as bool\n"
+    "    return __xl_std_runtime_ecdsa_verify(publicKeyHex, __xl_std_crt_strlen(publicKeyHex), hashHex, __xl_std_crt_strlen(hashHex), signatureHex, __xl_std_crt_strlen(signatureHex))\n"
+    "end\n";
+
 static const char xl6StdCryptoRsaPssVerifyBody[] =
     "func __xl_std_crypto_rsa_pss_verify(string hashHex, string signatureHex, string modulusHex, string exponentHex) as bool\n"
     "    return __xl_std_runtime_rsa_pss_verify(hashHex, __xl_std_crt_strlen(hashHex), signatureHex, __xl_std_crt_strlen(signatureHex), modulusHex, __xl_std_crt_strlen(modulusHex), exponentHex, __xl_std_crt_strlen(exponentHex))\n"
@@ -3645,6 +4955,26 @@ static const char xl6StdIdXidBody[] =
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_make_xids())\n"
     "end\n";
 
+static const char xl6StdIdMakeBody[] =
+    "func __xl_std_id_make() as Xid\n"
+    "    return Xid()\n"
+    "end\n";
+
+static const char xl6StdIdDecodeBody[] =
+    "func __xl_std_id_decode(string encoded) as Xid\n"
+    "    return Xid(encoded)\n"
+    "end\n";
+
+static const char xl6StdIdEncodeBody[] =
+    "func __xl_std_id_encode(Xid value) as string\n"
+    "    return value.encode()\n"
+    "end\n";
+
+static const char xl6StdIdCompareBody[] =
+    "func __xl_std_id_compare(Xid left, Xid right) as bool\n"
+    "    return left.equals(right)\n"
+    "end\n";
+
 static const char xl6StdNetLocalIPBody[] =
     "func __xl_std_net_local_ip() as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_get_local_ip())\n"
@@ -3658,6 +4988,36 @@ static const char xl6StdNetLocalMACBody[] =
 static const char xl6StdNetLocalNameBody[] =
     "func __xl_std_net_local_name() as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_get_local_name())\n"
+    "end\n";
+
+static const char xl6StdNetResolveBody[] =
+    "func __xl_std_net_resolve(string host, int port = 0) as NetAddress\n"
+    "    return NetAddress(host, port)\n"
+    "end\n";
+
+static const char xl6StdNetProxyBody[] =
+    "func __xl_std_net_proxy(int type, string host, int port, string user = \"\", string password = \"\") as NetProxy\n"
+    "    return NetProxy(type, host, port, user, password)\n"
+    "end\n";
+
+static const char xl6StdNetEngineBody[] =
+    "func __xl_std_net_engine(int workerCount = 0, int flags = 1) as NetEngine\n"
+    "    return NetEngine(workerCount, flags)\n"
+    "end\n";
+
+static const char xl6StdTcpConnectConfigBody[] =
+    "func __xl_std_tcp_connect_config(string host, int port) as TcpConnectConfig\n"
+    "    return TcpConnectConfig(host, port)\n"
+    "end\n";
+
+static const char xl6StdTcpListenConfigBody[] =
+    "func __xl_std_tcp_listen_config(int port, string host = \"127.0.0.1\") as TcpListenConfig\n"
+    "    return TcpListenConfig(host, port)\n"
+    "end\n";
+
+static const char xl6StdUdpConfigBody[] =
+    "func __xl_std_udp_config(int port, string host = \"127.0.0.1\") as UdpConfig\n"
+    "    return UdpConfig(host, port)\n"
     "end\n";
 
 static const char xl6StdTcpConnectBody[] =
@@ -3713,6 +5073,21 @@ static const char xl6StdUrlIsSecureBody[] =
 static const char xl6StdUrlPortBody[] =
     "func __xl_std_url_port(string text) as int\n"
     "    return int(__xl_std_runtime_url_port(text, __xl_std_crt_strlen(text)))\n"
+    "end\n";
+
+static const char xl6StdUrlDefaultPortBody[] =
+    "func __xl_std_url_default_port(string scheme) as int\n"
+    "    return int(__xl_std_runtime_url_default_port(scheme, __xl_std_crt_strlen(scheme)))\n"
+    "end\n";
+
+static const char xl6StdUrlIsDefaultPortBody[] =
+    "func __xl_std_url_is_default_port(string text) as bool\n"
+    "    return __xl_std_runtime_url_is_default_port(text, __xl_std_crt_strlen(text))\n"
+    "end\n";
+
+static const char xl6StdUrlHostHeaderBody[] =
+    "func __xl_std_url_host_header(string text) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_url_host_header(text, __xl_std_crt_strlen(text)))\n"
     "end\n";
 
 static const char xl6StdUrlSchemeBody[] =
@@ -3788,6 +5163,54 @@ static const char xl6StdQueryPairBody[] =
 static const char xl6StdQueryAppendBody[] =
     "func __xl_std_query_append(string query, string name, string value) as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_query_append(query, __xl_std_crt_strlen(query), name, __xl_std_crt_strlen(name), value, __xl_std_crt_strlen(value)))\n"
+    "end\n";
+
+static const char xl6StdUrlBuildBody[] =
+    "func __xl_std_url_build(string scheme, string host, int port = 0, string path = \"\", string query = \"\", string fragment = \"\", string userInfo = \"\") as string\n"
+    "    if port < 0 or port > 65535 then\n"
+    "        return \"\"\n"
+    "    end\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_url_build(scheme, __xl_std_crt_strlen(scheme), host, __xl_std_crt_strlen(host), c_uint(port), path, __xl_std_crt_strlen(path), query, __xl_std_crt_strlen(query), fragment, __xl_std_crt_strlen(fragment), userInfo, __xl_std_crt_strlen(userInfo)))\n"
+    "end\n";
+
+static const char xl6StdQueryCountBody[] =
+    "func __xl_std_query_count(string text) as int\n"
+    "    return __xl_std_runtime_query_count(text, __xl_std_crt_strlen(text))\n"
+    "end\n";
+
+static const char xl6StdQueryFindBody[] =
+    "func __xl_std_query_find(string text, string key) as var\n"
+    "    return __xl_std_runtime_query_find(text, __xl_std_crt_strlen(text), key, __xl_std_crt_strlen(key))\n"
+    "end\n";
+
+static const char xl6StdQueryItemsBody[] =
+    "func __xl_std_query_items(string text) as array\n"
+    "    return array(__xl_std_runtime_query_items(text, __xl_std_crt_strlen(text)))\n"
+    "end\n";
+
+static const char xl6StdQueryToDictBody[] =
+    "func __xl_std_query_to_dict(string text) as dict\n"
+    "    dict result = dict{}\n"
+    "    array pairs = array(__xl_std_runtime_query_items(text, __xl_std_crt_strlen(text)))\n"
+    "    for index, pair in pairs\n"
+    "        result[string(pair[0])] = pair[1]\n"
+    "    end\n"
+    "    return result\n"
+    "end\n";
+
+static const char xl6StdQueryFromDictBody[] =
+    "func __xl_std_query_from_dict(dict values) as string\n"
+    "    string result = \"\"\n"
+    "    for key, value in values\n"
+    "        string name = string(key)\n"
+    "        if value == null then\n"
+    "            result = __xl_std_runtime_take_cstr(__xl_std_runtime_query_append_name(result, __xl_std_crt_strlen(result), name, __xl_std_crt_strlen(name)))\n"
+    "        else\n"
+    "            string text = string(value)\n"
+    "            result = __xl_std_runtime_take_cstr(__xl_std_runtime_query_append(result, __xl_std_crt_strlen(result), name, __xl_std_crt_strlen(name), text, __xl_std_crt_strlen(text)))\n"
+    "        end\n"
+    "    end\n"
+    "    return result\n"
     "end\n";
 
 static const char xl6StdHttpServerCreateBody[] =
@@ -4031,6 +5454,25 @@ static const char xl6StdHttpServerChunkBytesBody[] =
     "    return Buffer(point(handle))\n"
     "end\n";
 
+static const char xl6StdHttpClientBody[] =
+    "func __xl_std_http_client() as HttpClient\n"
+    "    return HttpClient()\n"
+    "end\n";
+
+static const char xl6StdHttpClientEngineBody[] =
+    "func __xl_std_http_client(NetEngine engine) as HttpClient\n"
+    "    return HttpClient(engine.nativeHandle())\n"
+    "end\n";
+
+static const char xl6StdHttpCopyChunkBody[] =
+    "func __xl_std_http_copy_chunk(point data, int size) as Buffer\n"
+    "    Buffer result = Buffer()\n"
+    "    if size > 0 then\n"
+    "        result.appendRaw(data, c_size(size))\n"
+    "    end\n"
+    "    return result\n"
+    "end\n";
+
 static const char xl6StdHttpRequestBody[] =
     "func __xl_std_http_request(string method, string url, string body = \"\", string contentType = \"\", int timeoutMs = 30000) as HttpClientResponse\n"
     "    HttpClientRequest req = HttpClientRequest(url)\n"
@@ -4152,9 +5594,30 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
     {"log", "textFormat", XL6_AST_INT, "0"},
     {"log", "simpleFormat", XL6_AST_INT, "1"},
     {"log", "jsonFormat", XL6_AST_INT, "2"},
+    {"json", "visitComplete", XL6_AST_INT, "0"},
+    {"json", "visitStopped", XL6_AST_INT, "1"},
+    {"json", "visitInvalid", XL6_AST_INT, "-1"},
     {"file", "seekSet", XL6_AST_INT, "0"},
     {"file", "seekCur", XL6_AST_INT, "1"},
     {"file", "seekEnd", XL6_AST_INT, "2"},
+    {"file", "asyncRead", XL6_AST_INT, "1"},
+    {"file", "asyncWrite", XL6_AST_INT, "2"},
+    {"file", "asyncCreate", XL6_AST_INT, "4"},
+    {"file", "asyncTruncate", XL6_AST_INT, "8"},
+    {"file", "shareRead", XL6_AST_INT, "1"},
+    {"file", "shareWrite", XL6_AST_INT, "2"},
+    {"file", "shareDelete", XL6_AST_INT, "4"},
+    {"process", "stdin", XL6_AST_INT, "0"},
+    {"process", "stdout", XL6_AST_INT, "1"},
+    {"process", "stderr", XL6_AST_INT, "2"},
+    {"process", "stdioInherit", XL6_AST_INT, "0"},
+    {"process", "stdioPipe", XL6_AST_INT, "1"},
+    {"process", "stdioNull", XL6_AST_INT, "2"},
+    {"process", "stateFailed", XL6_AST_INT, "-1"},
+    {"process", "stateInit", XL6_AST_INT, "0"},
+    {"process", "stateRunning", XL6_AST_INT, "1"},
+    {"process", "stateExited", XL6_AST_INT, "2"},
+    {"process", "stateClosed", XL6_AST_INT, "3"},
     {"encoding", "autoDetect", XL6_AST_INT, "-2"},
     {"encoding", "binary", XL6_AST_INT, "-1"},
     {"encoding", "oem", XL6_AST_INT, "0"},
@@ -4178,7 +5641,45 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
     {"http.server", "cookieSecure", XL6_AST_INT, "64"},
     {"http.server", "cookieHttpOnly", XL6_AST_INT, "128"},
     {"http.server", "cookiePartitioned", XL6_AST_INT, "256"},
-    {"http.server", "cookieSameParty", XL6_AST_INT, "512"}
+    {"http.server", "cookieSameParty", XL6_AST_INT, "512"},
+    {"net", "engineAutoWorkers", XL6_AST_INT, "1"},
+    {"net", "proxyNone", XL6_AST_INT, "0"},
+    {"net", "proxySocks5", XL6_AST_INT, "1"},
+    {"net", "proxyHttpConnect", XL6_AST_INT, "2"},
+    {"net", "closeAbort", XL6_AST_INT, "1"},
+    {"net", "closeGraceful", XL6_AST_INT, "2"},
+    {"net", "closeWaitPeer", XL6_AST_INT, "4"},
+    {"tcp", "connectNoDelay", XL6_AST_INT, "1"},
+    {"tcp", "connectKeepAlive", XL6_AST_INT, "2"},
+    {"tcp", "listenReuseAddr", XL6_AST_INT, "1"},
+    {"tcp", "listenReusePort", XL6_AST_INT, "2"},
+    {"tcp", "listenNoDelay", XL6_AST_INT, "4"},
+    {"tcp", "listenKeepAlive", XL6_AST_INT, "8"},
+    {"udp", "reuseAddr", XL6_AST_INT, "1"},
+    {"udp", "reusePort", XL6_AST_INT, "2"},
+    {"http", "responseChunked", XL6_AST_INT, "1"},
+    {"http", "responseKeepAlive", XL6_AST_INT, "2"},
+    {"http", "responseUpgrade", XL6_AST_INT, "4"},
+    {"http", "phaseNone", XL6_AST_INT, "0"},
+    {"http", "phasePrepare", XL6_AST_INT, "1"},
+    {"http", "phaseConnect", XL6_AST_INT, "2"},
+    {"http", "phaseWrite", XL6_AST_INT, "3"},
+    {"http", "phaseResponseHeaders", XL6_AST_INT, "4"},
+    {"http", "phaseResponseBody", XL6_AST_INT, "5"},
+    {"http", "phaseComplete", XL6_AST_INT, "6"},
+    {"http", "errorNone", XL6_AST_INT, "0"},
+    {"http", "errorInvalidArgument", XL6_AST_INT, "1"},
+    {"http", "errorOutOfMemory", XL6_AST_INT, "2"},
+    {"http", "errorInvalidUrl", XL6_AST_INT, "3"},
+    {"http", "errorConnect", XL6_AST_INT, "4"},
+    {"http", "errorWrite", XL6_AST_INT, "5"},
+    {"http", "errorProtocol", XL6_AST_INT, "6"},
+    {"http", "errorCallbackAbort", XL6_AST_INT, "7"},
+    {"http", "errorTimeoutTotal", XL6_AST_INT, "8"},
+    {"http", "errorTimeoutIdle", XL6_AST_INT, "9"},
+    {"http", "errorCancelled", XL6_AST_INT, "10"},
+    {"http", "errorConnectionClosed", XL6_AST_INT, "11"},
+    {"http", "errorTransport", XL6_AST_INT, "12"}
 };
 
 const XL6_StdlibFunc xl6StdlibFuncs[] = {
@@ -4213,6 +5714,23 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "hkdfSha256Hex", "__xl_std_runtime_hkdf_sha256_hex", "xl6_xrt_hkdf_sha256_hex", xl6StdRuntimeCryptoHkdfParams, 7, "point", NULL},
     {"__xl_runtime", "hkdfSha384Hex", "__xl_std_runtime_hkdf_sha384_hex", "xl6_xrt_hkdf_sha384_hex", xl6StdRuntimeCryptoHkdfParams, 7, "point", NULL},
     {"__xl_runtime", "randomHex", "__xl_std_runtime_random_hex", "xl6_xrt_random_hex", xl6StdRuntimeCryptoRandomParams, 1, "point", NULL},
+    {"__xl_runtime", "sha1Bytes", "__xl_std_runtime_sha1_bytes", "xl6_xrt_sha1_bytes", xl6StdRuntimeCryptoBytesParams, 2, "point", NULL},
+    {"__xl_runtime", "sha256Bytes", "__xl_std_runtime_sha256_bytes", "xl6_xrt_sha256_bytes", xl6StdRuntimeCryptoBytesParams, 2, "point", NULL},
+    {"__xl_runtime", "sha384Bytes", "__xl_std_runtime_sha384_bytes", "xl6_xrt_sha384_bytes", xl6StdRuntimeCryptoBytesParams, 2, "point", NULL},
+    {"__xl_runtime", "sha512Bytes", "__xl_std_runtime_sha512_bytes", "xl6_xrt_sha512_bytes", xl6StdRuntimeCryptoBytesParams, 2, "point", NULL},
+    {"__xl_runtime", "hmacSha256Bytes", "__xl_std_runtime_hmac_sha256_bytes", "xl6_xrt_hmac_sha256_bytes", xl6StdRuntimeCryptoHmacBytesParams, 4, "point", NULL},
+    {"__xl_runtime", "hmacSha384Bytes", "__xl_std_runtime_hmac_sha384_bytes", "xl6_xrt_hmac_sha384_bytes", xl6StdRuntimeCryptoHmacBytesParams, 4, "point", NULL},
+    {"__xl_runtime", "hmacSha512Bytes", "__xl_std_runtime_hmac_sha512_bytes", "xl6_xrt_hmac_sha512_bytes", xl6StdRuntimeCryptoHmacBytesParams, 4, "point", NULL},
+    {"__xl_runtime", "chacha20Bytes", "__xl_std_runtime_chacha20_bytes", "xl6_xrt_chacha20_bytes", xl6StdRuntimeCryptoChacha20BytesParams, 7, "point", NULL},
+    {"__xl_runtime", "chacha20Poly1305EncryptBytes", "__xl_std_runtime_chacha20_poly1305_encrypt_bytes", "xl6_xrt_chacha20_poly1305_encrypt_bytes", xl6StdRuntimeCryptoAeadBytesParams, 8, "point", NULL},
+    {"__xl_runtime", "chacha20Poly1305DecryptBytes", "__xl_std_runtime_chacha20_poly1305_decrypt_bytes", "xl6_xrt_chacha20_poly1305_decrypt_bytes", xl6StdRuntimeCryptoAeadBytesParams, 8, "point", NULL},
+    {"__xl_runtime", "aes128GcmEncryptBytes", "__xl_std_runtime_aes128_gcm_encrypt_bytes", "xl6_xrt_aes128_gcm_encrypt_bytes", xl6StdRuntimeCryptoAeadBytesParams, 8, "point", NULL},
+    {"__xl_runtime", "aes128GcmDecryptBytes", "__xl_std_runtime_aes128_gcm_decrypt_bytes", "xl6_xrt_aes128_gcm_decrypt_bytes", xl6StdRuntimeCryptoAeadBytesParams, 8, "point", NULL},
+    {"__xl_runtime", "aes256GcmEncryptBytes", "__xl_std_runtime_aes256_gcm_encrypt_bytes", "xl6_xrt_aes256_gcm_encrypt_bytes", xl6StdRuntimeCryptoAeadBytesParams, 8, "point", NULL},
+    {"__xl_runtime", "aes256GcmDecryptBytes", "__xl_std_runtime_aes256_gcm_decrypt_bytes", "xl6_xrt_aes256_gcm_decrypt_bytes", xl6StdRuntimeCryptoAeadBytesParams, 8, "point", NULL},
+    {"__xl_runtime", "hkdfSha256Bytes", "__xl_std_runtime_hkdf_sha256_bytes", "xl6_xrt_hkdf_sha256_bytes", xl6StdRuntimeCryptoHkdfBytesParams, 7, "point", NULL},
+    {"__xl_runtime", "hkdfSha384Bytes", "__xl_std_runtime_hkdf_sha384_bytes", "xl6_xrt_hkdf_sha384_bytes", xl6StdRuntimeCryptoHkdfBytesParams, 7, "point", NULL},
+    {"__xl_runtime", "randomBytes", "__xl_std_runtime_random_bytes", "xl6_xrt_random_bytes", xl6StdRuntimeCryptoRandomParams, 1, "point", NULL},
     {"__xl_runtime", "ed25519Keypair", "__xl_std_runtime_ed25519_keypair", "xl6_xrt_ed25519_keypair", NULL, 0, "var", NULL},
     {"__xl_runtime", "ed25519PublicKeyHex", "__xl_std_runtime_ed25519_public_key_hex", "xl6_xrt_ed25519_public_key_hex", xl6StdRuntimeCryptoTextHexParams, 2, "point", NULL},
     {"__xl_runtime", "ed25519SignHex", "__xl_std_runtime_ed25519_sign_hex", "xl6_xrt_ed25519_sign_hex", xl6StdRuntimeCryptoSignParams, 4, "point", NULL},
@@ -4221,29 +5739,47 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "x25519SharedSecretHex", "__xl_std_runtime_x25519_shared_secret_hex", "xl6_xrt_x25519_shared_secret_hex", xl6StdRuntimeCryptoSharedSecretParams, 4, "point", NULL},
     {"__xl_runtime", "x448Keypair", "__xl_std_runtime_x448_keypair", "xl6_xrt_x448_keypair", NULL, 0, "var", NULL},
     {"__xl_runtime", "x448SharedSecretHex", "__xl_std_runtime_x448_shared_secret_hex", "xl6_xrt_x448_shared_secret_hex", xl6StdRuntimeCryptoSharedSecretParams, 4, "point", NULL},
+    {"__xl_runtime", "p256Keypair", "__xl_std_runtime_p256_keypair", "xl6_xrt_p256_keypair", NULL, 0, "var", NULL},
+    {"__xl_runtime", "p256SharedSecretHex", "__xl_std_runtime_p256_shared_secret_hex", "xl6_xrt_p256_shared_secret_hex", xl6StdRuntimeCryptoSharedSecretParams, 4, "point", NULL},
+    {"__xl_runtime", "p384Keypair", "__xl_std_runtime_p384_keypair", "xl6_xrt_p384_keypair", NULL, 0, "var", NULL},
+    {"__xl_runtime", "p384SharedSecretHex", "__xl_std_runtime_p384_shared_secret_hex", "xl6_xrt_p384_shared_secret_hex", xl6StdRuntimeCryptoSharedSecretParams, 4, "point", NULL},
+    {"__xl_runtime", "ecdsaVerify", "__xl_std_runtime_ecdsa_verify", "xl6_xrt_ecdsa_verify", xl6StdRuntimeCryptoVerifyParams, 6, "c_bool", NULL},
     {"__xl_runtime", "rsaPssVerify", "__xl_std_runtime_rsa_pss_verify", "xl6_xrt_rsa_pss_verify", xl6StdRuntimeCryptoRsaVerifyParams, 8, "c_bool", NULL},
     {"__xl_runtime", "rsaPkcs1Verify", "__xl_std_runtime_rsa_pkcs1_verify", "xl6_xrt_rsa_pkcs1_verify", xl6StdRuntimeCryptoRsaVerifyParams, 8, "c_bool", NULL},
     {"__xl_runtime", "urlPart", "__xl_std_runtime_url_part", "xl6_xrt_url_part", xl6StdRuntimeUrlPartParams, 3, "point", NULL},
     {"__xl_runtime", "urlFlag", "__xl_std_runtime_url_flag", "xl6_xrt_url_flag", xl6StdRuntimeUrlPartParams, 3, "c_bool", NULL},
     {"__xl_runtime", "urlPort", "__xl_std_runtime_url_port", "xl6_xrt_url_port", xl6StdRuntimeUrlTextParams, 2, "c_int", NULL},
+    {"__xl_runtime", "urlDefaultPort", "__xl_std_runtime_url_default_port", "xl6_xrt_url_default_port", xl6StdRuntimeUrlTextParams, 2, "c_int", NULL},
+    {"__xl_runtime", "urlIsDefaultPort", "__xl_std_runtime_url_is_default_port", "xl6_xrt_url_is_default_port", xl6StdRuntimeUrlTextParams, 2, "c_bool", NULL},
+    {"__xl_runtime", "urlHostHeader", "__xl_std_runtime_url_host_header", "xl6_xrt_url_host_header", xl6StdRuntimeUrlTextParams, 2, "point", NULL},
     {"__xl_runtime", "urlResolve", "__xl_std_runtime_url_resolve", "xl6_xrt_url_resolve", xl6StdRuntimeUrlResolveParams, 4, "point", NULL},
     {"__xl_runtime", "urlNormalizePath", "__xl_std_runtime_url_normalize_path", "xl6_xrt_url_normalize_path", xl6StdRuntimeUrlTextParams, 2, "point", NULL},
+    {"__xl_runtime", "urlBuild", "__xl_std_runtime_url_build", "xl6_xrt_url_build", xl6StdRuntimeUrlBuildParams, 13, "point", NULL},
     {"__xl_runtime", "queryEncode", "__xl_std_runtime_query_encode", "xl6_xrt_query_encode", xl6StdRuntimeQueryTextParams, 2, "point", NULL},
     {"__xl_runtime", "queryDecode", "__xl_std_runtime_query_decode", "xl6_xrt_query_decode", xl6StdRuntimeQueryTextParams, 2, "point", NULL},
     {"__xl_runtime", "queryValid", "__xl_std_runtime_query_valid", "xl6_xrt_query_valid", xl6StdRuntimeQueryTextParams, 2, "c_bool", NULL},
     {"__xl_runtime", "queryPair", "__xl_std_runtime_query_pair", "xl6_xrt_query_pair", xl6StdRuntimeQueryPairParams, 4, "point", NULL},
     {"__xl_runtime", "queryAppend", "__xl_std_runtime_query_append", "xl6_xrt_query_append", xl6StdRuntimeQueryAppendParams, 6, "point", NULL},
+    {"__xl_runtime", "queryAppendName", "__xl_std_runtime_query_append_name", "xl6_xrt_query_append_name", xl6StdRuntimeQueryFindParams, 4, "point", NULL},
+    {"__xl_runtime", "queryCount", "__xl_std_runtime_query_count", "xl6_xrt_query_count", xl6StdRuntimeQueryTextParams, 2, "int", NULL},
+    {"__xl_runtime", "queryFind", "__xl_std_runtime_query_find", "xl6_xrt_query_find", xl6StdRuntimeQueryFindParams, 4, "var", NULL},
+    {"__xl_runtime", "queryItems", "__xl_std_runtime_query_items", "xl6_xrt_query_items", xl6StdRuntimeQueryTextParams, 2, "var", NULL},
     {"__xl_runtime", "regexIsMatch", "__xl_std_runtime_regex_is_match", "xl6_xrt_regex_is_match", xl6StdRuntimeRegexTextParams, 4, "c_bool", NULL},
     {"__xl_runtime", "regexFullMatch", "__xl_std_runtime_regex_full_match", "xl6_xrt_regex_full_match", xl6StdRuntimeRegexTextParams, 4, "c_bool", NULL},
     {"__xl_runtime", "regexFind", "__xl_std_runtime_regex_find", "xl6_xrt_regex_find", xl6StdRuntimeRegexTextParams, 4, "c_ssize", NULL},
     {"__xl_runtime", "regexMatch", "__xl_std_runtime_regex_match", "xl6_xrt_regex_match", xl6StdRuntimeRegexMatchParams, 5, "point", NULL},
     {"__xl_runtime", "regexSetCreate", "__xl_std_runtime_regex_set_create", "xl6_xrt_regex_set_create", xl6StdRuntimeRegexSetCreateParams, 2, "point", NULL},
+    {"__xl_runtime", "regexValidPattern", "__xl_std_runtime_regex_valid_pattern", "xl6_xrt_regex_valid_pattern", xl6StdRuntimeRegexPatternParams, 2, "c_bool", NULL},
+    {"__xl_runtime", "regexErrorMessage", "__xl_std_runtime_regex_error_message", "xl6_xrt_regex_error_message", xl6StdRuntimeRegexPatternParams, 2, "point", NULL},
+    {"__xl_runtime", "regexErrorPos", "__xl_std_runtime_regex_error_pos", "xl6_xrt_regex_error_pos", xl6StdRuntimeRegexPatternParams, 2, "c_ssize", NULL},
+    {"__xl_runtime", "regexErrorBytePos", "__xl_std_runtime_regex_error_byte_pos", "xl6_xrt_regex_error_byte_pos", xl6StdRuntimeRegexPatternParams, 2, "c_ssize", NULL},
     {"__xl_runtime", "processExec", "__xl_std_runtime_process_exec", "xl6_xrt_process_exec", xl6StdRuntimeProcessExecParams, 2, "point", NULL},
     {"__xl_runtime", "processSuccess", "__xl_std_runtime_process_success", "xl6_xrt_process_success", xl6StdRuntimeProcessExecParams, 2, "c_bool", NULL},
     {"__xl_runtime", "processExitCode", "__xl_std_runtime_process_exit_code", "xl6_xrt_process_exit_code", xl6StdRuntimeProcessExecParams, 2, "c_int", NULL},
     {"__xl_runtime", "processRun", "__xl_std_runtime_process_run", "xl6_xrt_process_run_shell_result", xl6StdRuntimeProcessExecParams, 2, "point", NULL},
     {"__xl_runtime", "processRunFile", "__xl_std_runtime_process_run_file", "xl6_xrt_process_run_file_result", xl6StdRuntimeProcessRunFileParams, 3, "point", NULL},
     {"__xl_runtime", "processPipeline", "__xl_std_runtime_process_pipeline", "xl6_xrt_process_pipeline_run", xl6StdRuntimeProcessPipelineParams, 2, "point", NULL},
+    {"__xl_runtime", "processTerminalSupported", "__xl_std_runtime_process_terminal_supported", "xl6_xrt_process_terminal_supported", NULL, 0, "c_bool", NULL},
     {"__xl_runtime", "logCreate", "__xl_std_runtime_log_create", "xl6_xrt_log_create", xl6StdRuntimeLogCreateParams, 1, "point", NULL},
     {"__xl_runtime", "logDefault", "__xl_std_runtime_log_default", "xl6_xrt_log_default", NULL, 0, "point", NULL},
     {"__xl_runtime", "logDefaultSetLevel", "__xl_std_runtime_log_default_set_level", "xl6_xrt_log_default_set_level", xl6StdRuntimeLogLevelParams, 1, "", NULL},
@@ -4263,10 +5799,14 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "encodingFromBytes", "__xl_std_runtime_encoding_from_bytes", "xl6_xrt_encoding_from_bytes", xl6StdRuntimeEncodingFromBytesParams, 3, "point", NULL},
     {"__xl_runtime", "encodingConvertBytes", "__xl_std_runtime_encoding_convert_bytes", "xl6_xrt_encoding_convert_bytes", xl6StdRuntimeEncodingConvertBytesParams, 4, "point", NULL},
     {"__xl_runtime", "encodingName", "__xl_std_runtime_encoding_name", "xl6_xrt_encoding_name", xl6StdRuntimeEncodingCharsetParams, 1, "point", NULL},
+    {"__xl_runtime", "encodingSwapUtf16", "__xl_std_runtime_encoding_swap_utf16", "xl6_xrt_encoding_swap_utf16", xl6StdRuntimeEncodingBytesParams, 2, "point", NULL},
+    {"__xl_runtime", "encodingSwapUtf32", "__xl_std_runtime_encoding_swap_utf32", "xl6_xrt_encoding_swap_utf32", xl6StdRuntimeEncodingBytesParams, 2, "point", NULL},
     {"__xl_runtime", "dirList", "__xl_std_runtime_dir_list", "xl6_xrt_dir_list", xl6StdRuntimeDirListParams, 3, "var", NULL},
     {"__xl_runtime", "dirGlob", "__xl_std_runtime_dir_glob", "xl6_xrt_dir_glob", xl6StdRuntimeDirGlobParams, 4, "var", NULL},
     {"__xl_runtime", "dirEntries", "__xl_std_runtime_dir_entries", "xl6_xrt_dir_entries", xl6StdRuntimeDirEntriesParams, 5, "var", NULL},
     {"__xl_runtime", "pathJoin", "__xl_std_runtime_path_join", "xl6_xrt_path_join", xl6StdRuntimePathJoinParams, 3, "point", NULL},
+    {"__xl_runtime", "netEnginePost", "__xl_std_runtime_net_engine_post", "xl6_xrt_net_engine_post", xl6StdRuntimeNetEnginePostParams, 3, "c_bool", NULL},
+    {"__xl_runtime", "netEnginePostDelayed", "__xl_std_runtime_net_engine_post_delayed", "xl6_xrt_net_engine_post_delayed", xl6StdRuntimeNetEnginePostDelayedParams, 4, "c_bool", NULL},
     {"__xl_runtime", "httpServerCreate", "__xl_std_runtime_http_server_create", "xl6_xrt_http_server_create", xl6StdRuntimeHttpServerCreateParams, 14, "point", NULL},
     {"__xl_runtime", "httpServerCreateTls", "__xl_std_runtime_http_server_create_tls", "xl6_xrt_http_server_create_tls", xl6StdRuntimeHttpServerCreateTlsParams, 16, "point", NULL},
     {"__xl_runtime", "httpAppCreate", "__xl_std_runtime_http_app_create", "xl6_xrt_http_app_create", NULL, 0, "point", NULL},
@@ -4474,11 +6014,12 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_json", "stringify", "__xl_std_xrt_json_stringify", "xrtStringifyJSON", xl6StdXrtJsonStringifyParams, 3, "point", NULL},
     {"__xrt_json", "writeFile", "__xl_std_xrt_json_write_file", "xrtStringifyJSON_File", xl6StdXrtJsonWriteParams, 3, "c_int", NULL},
     {"__xrt_value", "tableRemove", "__xl_std_xrt_table_remove", "xl6_xrt_std_table_remove", xl6StdXrtTableRemoveParams, 3, "c_bool", NULL},
-    {"__xrt_xson", "parse", "__xl_std_xrt_xson_parse", "xrtParseXSON", xl6StdXrtJsonParseParams, 2, "var", NULL},
-    {"__xrt_xson", "valid", "__xl_std_xrt_xson_valid", "xrtXsonValid", xl6StdXrtXsonValidParams, 3, "c_bool", NULL},
-    {"__xrt_xson", "parseFile", "__xl_std_xrt_xson_parse_file", "xrtParseXSON_File", xl6StdPathUnaryParams, 1, "var", NULL},
-    {"__xrt_xson", "stringify", "__xl_std_xrt_xson_stringify", "xrtStringifyXSON", xl6StdXrtXsonStringifyParams, 4, "point", NULL},
-    {"__xrt_xson", "writeFile", "__xl_std_xrt_xson_write_file", "xrtStringifyXSON_File", xl6StdXrtXsonWriteParams, 4, "c_int", NULL},
+    {"__runtime", "jsonVisit", "__xl_std_runtime_json_visit", "xl6_xrt_json_visit", xl6StdJsonVisitRuntimeParams, 2, "c_int", NULL},
+    {"__runtime", "xsonParseOptions", "__xl_std_runtime_xson_parse_options", "xl6_xrt_xson_parse_options", xl6StdXsonTextOptionsRuntimeParams, 4, "var", NULL},
+    {"__runtime", "xsonValidOptions", "__xl_std_runtime_xson_valid_options", "xl6_xrt_xson_valid_options", xl6StdXsonTextOptionsRuntimeParams, 4, "bool", NULL},
+    {"__runtime", "xsonReadOptions", "__xl_std_runtime_xson_read_options", "xl6_xrt_xson_read_options", xl6StdXsonTextOptionsRuntimeParams, 4, "var", NULL},
+    {"__runtime", "xsonStringifyOptions", "__xl_std_runtime_xson_stringify_options", "xl6_xrt_xson_stringify_options", xl6StdXsonValueOptionsRuntimeParams, 4, "point", NULL},
+    {"__runtime", "xsonWriteOptions", "__xl_std_runtime_xson_write_options", "xl6_xrt_xson_write_options", xl6StdXsonWriteOptionsRuntimeParams, 5, "bool", NULL},
     {"__xrt_codec", "hexEncode", "__xl_std_xrt_hex_encode", "xl6_xrt_hex_encode_text", xl6StdXrtCodecTextParams, 2, "point", NULL},
     {"__xrt_codec", "hexDecode", "__xl_std_xrt_hex_decode", "xrtHexDecode", xl6StdXrtCodecTextParams, 2, "point", NULL},
     {"__xrt_codec", "base64Encode", "__xl_std_xrt_base64_encode", "xl6_xrt_base64_encode_text", xl6StdXrtCodecBase64Params, 3, "point", NULL},
@@ -4721,11 +6262,14 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"file", "info", "__xl_std_file_info", NULL, NULL, 0, "FileInfo", xl6StdFileInfoBody},
     {"file", "open", "__xl_std_file_open", NULL, NULL, 0, "File", xl6StdFileOpenBody},
     {"file", "readTextAsync", "__xl_std_file_read_text_async", "xl6_xrt_file_read_text_async_utf8", xl6StdPathUnaryParams, 1, "future<string>", NULL},
+    {"file", "readBytesAsync", "__xl_std_file_read_bytes_async", NULL, NULL, 0, "future<Buffer>", xl6StdFileReadBytesAsyncBody},
     {"file", "writeTextAsync", "__xl_std_file_write_text_async", "xl6_xrt_file_write_text_async_utf8", xl6StdFileWriteTextUtf8Params, 2, "future<bool>", NULL},
+    {"file", "writeBytesAsync", "__xl_std_file_write_bytes_async", NULL, NULL, 0, "future<bool>", xl6StdFileWriteBytesAsyncBody},
     {"file", "appendTextAsync", "__xl_std_file_append_text_async", "xl6_xrt_file_append_text_async_utf8", xl6StdFileWriteTextUtf8Params, 2, "future<bool>", NULL},
     {"file", "copyAsync", "__xl_std_file_copy_async", "xl6_xrt_file_copy_async_overwrite", xl6StdFileReplaceParams, 2, "future<bool>", NULL},
     {"file", "moveAsync", "__xl_std_file_move_async", "xl6_xrt_file_move_async_overwrite", xl6StdFileReplaceParams, 2, "future<bool>", NULL},
     {"file", "deleteAsync", "__xl_std_file_delete_async", "xl6_xrt_file_delete_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
+    {"file", "openAsync", "__xl_std_file_open_async", NULL, NULL, 0, "AsyncFile", xl6StdFileOpenAsyncBody},
 
     {"dir", "exists", "__xl_std_dir_exists", NULL, NULL, 0, "bool", xl6StdDirExistsBody},
     {"dir", "create", "__xl_std_dir_create", NULL, NULL, 0, "bool", xl6StdDirCreateBody},
@@ -4745,20 +6289,33 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"dir", "entries", "__xl_std_dir_entries", NULL, NULL, 0, "array", xl6StdDirEntriesBody},
     {"dir", "match", "__xl_std_dir_match", NULL, NULL, 0, "array", xl6StdDirMatchBody},
     {"dir", "walk", "__xl_std_dir_walk", NULL, NULL, 0, "array", xl6StdDirWalkBody},
+    {"dir", "createAsync", "__xl_std_dir_create_async", "xl6_xrt_dir_create_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
+    {"dir", "createAllAsync", "__xl_std_dir_create_all_async", "xl6_xrt_dir_create_all_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
+    {"dir", "copyAsync", "__xl_std_dir_copy_async", "xl6_xrt_dir_copy_async", xl6StdFileReplaceParams, 2, "future<bool>", NULL},
+    {"dir", "moveAsync", "__xl_std_dir_move_async", "xl6_xrt_dir_move_async", xl6StdFileReplaceParams, 2, "future<bool>", NULL},
+    {"dir", "deleteAsync", "__xl_std_dir_delete_async", "xl6_xrt_dir_delete_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
 
     {"json", "parse", "__xl_std_json_parse", NULL, NULL, 0, "var", xl6StdJsonParseBody},
     {"json", "valid", "__xl_std_json_valid", NULL, NULL, 0, "bool", xl6StdJsonValidBody},
     {"json", "read", "__xl_std_json_read", NULL, NULL, 0, "var", xl6StdJsonReadBody},
     {"json", "stringify", "__xl_std_json_stringify", NULL, xl6StdJsonStringifyParams, 2, "string", xl6StdJsonStringifyBody},
     {"json", "write", "__xl_std_json_write", NULL, xl6StdJsonWriteParams, 3, "bool", xl6StdJsonWriteBody},
+    {"json", "writer", "__xl_std_json_writer", NULL, NULL, 0, "JsonWriter", xl6StdJsonWriterBody},
+    {"json", "visit", "__xl_std_json_visit", NULL, NULL, 0, "int", xl6StdJsonVisitBody},
 
     {"dict", "remove", "__xl_std_dict_remove", NULL, xl6StdDictRemoveParams, 2, "bool", xl6StdDictRemoveBody},
 
     {"xson", "parse", "__xl_std_xson_parse", NULL, NULL, 0, "var", xl6StdXsonParseBody},
+    {"xson", "parse", "__xl_std_xson_parse", NULL, NULL, 0, "var", xl6StdXsonParseOptionsBody},
     {"xson", "valid", "__xl_std_xson_valid", NULL, NULL, 0, "bool", xl6StdXsonValidBody},
+    {"xson", "valid", "__xl_std_xson_valid", NULL, NULL, 0, "bool", xl6StdXsonValidOptionsBody},
     {"xson", "read", "__xl_std_xson_read", NULL, NULL, 0, "var", xl6StdXsonReadBody},
-    {"xson", "stringify", "__xl_std_xson_stringify", NULL, xl6StdJsonStringifyParams, 2, "string", xl6StdXsonStringifyBody},
-    {"xson", "write", "__xl_std_xson_write", NULL, xl6StdJsonWriteParams, 3, "bool", xl6StdXsonWriteBody},
+    {"xson", "read", "__xl_std_xson_read", NULL, NULL, 0, "var", xl6StdXsonReadOptionsBody},
+    {"xson", "stringify", "__xl_std_xson_stringify", NULL, NULL, 0, "string", xl6StdXsonStringifyBody},
+    {"xson", "stringify", "__xl_std_xson_stringify", NULL, NULL, 0, "string", xl6StdXsonStringifyOptionsBody},
+    {"xson", "write", "__xl_std_xson_write", NULL, NULL, 0, "bool", xl6StdXsonWriteBody},
+    {"xson", "write", "__xl_std_xson_write", NULL, NULL, 0, "bool", xl6StdXsonWriteOptionsBody},
+    {"xson", "options", "__xl_std_xson_options", NULL, NULL, 0, "XsonOptions", xl6StdXsonOptionsBody},
 
     {"codec", "hexEncode", "__xl_std_codec_hex_encode", NULL, NULL, 0, "string", xl6StdCodecHexEncodeBody},
     {"codec", "hexDecode", "__xl_std_codec_hex_decode", NULL, NULL, 0, "string", xl6StdCodecHexDecodeBody},
@@ -4782,6 +6339,18 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"encoding", "fromBytes", "__xl_std_encoding_from_bytes", NULL, NULL, 0, "string", xl6StdEncodingFromBytesBody},
     {"encoding", "convertBytes", "__xl_std_encoding_convert_bytes", NULL, NULL, 0, "Buffer", xl6StdEncodingConvertBytesBody},
     {"encoding", "name", "__xl_std_encoding_name", NULL, NULL, 0, "string", xl6StdEncodingNameBody},
+    {"encoding", "encodeUtf8", "__xl_std_encoding_encode_utf8", NULL, NULL, 0, "Buffer", xl6StdEncodingEncodeUtf8Body},
+    {"encoding", "encodeUtf16LE", "__xl_std_encoding_encode_utf16_le", NULL, NULL, 0, "Buffer", xl6StdEncodingEncodeUtf16LeBody},
+    {"encoding", "encodeUtf16BE", "__xl_std_encoding_encode_utf16_be", NULL, NULL, 0, "Buffer", xl6StdEncodingEncodeUtf16BeBody},
+    {"encoding", "encodeUtf32LE", "__xl_std_encoding_encode_utf32_le", NULL, NULL, 0, "Buffer", xl6StdEncodingEncodeUtf32LeBody},
+    {"encoding", "encodeUtf32BE", "__xl_std_encoding_encode_utf32_be", NULL, NULL, 0, "Buffer", xl6StdEncodingEncodeUtf32BeBody},
+    {"encoding", "decodeUtf8", "__xl_std_encoding_decode_utf8", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf8Body},
+    {"encoding", "decodeUtf16LE", "__xl_std_encoding_decode_utf16_le", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf16LeBody},
+    {"encoding", "decodeUtf16BE", "__xl_std_encoding_decode_utf16_be", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf16BeBody},
+    {"encoding", "decodeUtf32LE", "__xl_std_encoding_decode_utf32_le", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf32LeBody},
+    {"encoding", "decodeUtf32BE", "__xl_std_encoding_decode_utf32_be", NULL, NULL, 0, "string", xl6StdEncodingDecodeUtf32BeBody},
+    {"encoding", "swapUtf16Endian", "__xl_std_encoding_swap_utf16_endian", NULL, NULL, 0, "Buffer", xl6StdEncodingSwapUtf16EndianBody},
+    {"encoding", "swapUtf32Endian", "__xl_std_encoding_swap_utf32_endian", NULL, NULL, 0, "Buffer", xl6StdEncodingSwapUtf32EndianBody},
 
     {"hash", "u32", "__xl_std_hash_u32", NULL, NULL, 0, "uint32", xl6StdHashU32Body},
     {"hash", "u32WithSeed", "__xl_std_hash_u32_with_seed", NULL, NULL, 0, "uint32", xl6StdHashU32WithSeedBody},
@@ -4799,6 +6368,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"crypto", "hmacSha256", "__xl_std_crypto_hmac_sha256", NULL, NULL, 0, "string", xl6StdCryptoHmacSha256Body},
     {"crypto", "hmacSha384", "__xl_std_crypto_hmac_sha384", NULL, NULL, 0, "string", xl6StdCryptoHmacSha384Body},
     {"crypto", "hmacSha512", "__xl_std_crypto_hmac_sha512", NULL, NULL, 0, "string", xl6StdCryptoHmacSha512Body},
+    {"crypto", "sha1Stream", "__xl_std_crypto_sha1_stream", NULL, NULL, 0, "Sha1", xl6StdCryptoSha1StreamBody},
     {"crypto", "sha256Stream", "__xl_std_crypto_sha256_stream", NULL, NULL, 0, "Sha256", xl6StdCryptoSha256StreamBody},
     {"crypto", "sha384Stream", "__xl_std_crypto_sha384_stream", NULL, NULL, 0, "Sha384", xl6StdCryptoSha384StreamBody},
     {"crypto", "sha512Stream", "__xl_std_crypto_sha512_stream", NULL, NULL, 0, "Sha512", xl6StdCryptoSha512StreamBody},
@@ -4813,6 +6383,23 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"crypto", "hkdfSha256", "__xl_std_crypto_hkdf_sha256", NULL, NULL, 0, "string", xl6StdCryptoHkdfSha256Body},
     {"crypto", "hkdfSha384", "__xl_std_crypto_hkdf_sha384", NULL, NULL, 0, "string", xl6StdCryptoHkdfSha384Body},
     {"crypto", "randomHex", "__xl_std_crypto_random_hex", NULL, NULL, 0, "string", xl6StdCryptoRandomHexBody},
+    {"crypto", "sha1Bytes", "__xl_std_crypto_sha1_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoSha1BytesBody},
+    {"crypto", "sha256Bytes", "__xl_std_crypto_sha256_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoSha256BytesBody},
+    {"crypto", "sha384Bytes", "__xl_std_crypto_sha384_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoSha384BytesBody},
+    {"crypto", "sha512Bytes", "__xl_std_crypto_sha512_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoSha512BytesBody},
+    {"crypto", "hmacSha256Bytes", "__xl_std_crypto_hmac_sha256_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoHmacSha256BytesBody},
+    {"crypto", "hmacSha384Bytes", "__xl_std_crypto_hmac_sha384_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoHmacSha384BytesBody},
+    {"crypto", "hmacSha512Bytes", "__xl_std_crypto_hmac_sha512_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoHmacSha512BytesBody},
+    {"crypto", "chacha20Bytes", "__xl_std_crypto_chacha20_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoChaCha20BytesBody},
+    {"crypto", "chacha20Poly1305EncryptBytes", "__xl_std_crypto_chacha20_poly1305_encrypt_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoChaCha20Poly1305EncryptBytesBody},
+    {"crypto", "chacha20Poly1305DecryptBytes", "__xl_std_crypto_chacha20_poly1305_decrypt_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoChaCha20Poly1305DecryptBytesBody},
+    {"crypto", "aes128GcmEncryptBytes", "__xl_std_crypto_aes128_gcm_encrypt_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoAes128GcmEncryptBytesBody},
+    {"crypto", "aes128GcmDecryptBytes", "__xl_std_crypto_aes128_gcm_decrypt_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoAes128GcmDecryptBytesBody},
+    {"crypto", "aes256GcmEncryptBytes", "__xl_std_crypto_aes256_gcm_encrypt_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoAes256GcmEncryptBytesBody},
+    {"crypto", "aes256GcmDecryptBytes", "__xl_std_crypto_aes256_gcm_decrypt_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoAes256GcmDecryptBytesBody},
+    {"crypto", "hkdfSha256Bytes", "__xl_std_crypto_hkdf_sha256_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoHkdfSha256BytesBody},
+    {"crypto", "hkdfSha384Bytes", "__xl_std_crypto_hkdf_sha384_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoHkdfSha384BytesBody},
+    {"crypto", "randomBytes", "__xl_std_crypto_random_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoRandomBytesBody},
     {"crypto", "ed25519Keypair", "__xl_std_crypto_ed25519_keypair", NULL, NULL, 0, "var", xl6StdCryptoEd25519KeypairBody},
     {"crypto", "ed25519PublicKey", "__xl_std_crypto_ed25519_public_key", NULL, NULL, 0, "string", xl6StdCryptoEd25519PublicKeyBody},
     {"crypto", "ed25519Sign", "__xl_std_crypto_ed25519_sign", NULL, NULL, 0, "string", xl6StdCryptoEd25519SignBody},
@@ -4821,25 +6408,43 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"crypto", "x25519SharedSecret", "__xl_std_crypto_x25519_shared_secret", NULL, NULL, 0, "string", xl6StdCryptoX25519SharedSecretBody},
     {"crypto", "x448Keypair", "__xl_std_crypto_x448_keypair", NULL, NULL, 0, "var", xl6StdCryptoX448KeypairBody},
     {"crypto", "x448SharedSecret", "__xl_std_crypto_x448_shared_secret", NULL, NULL, 0, "string", xl6StdCryptoX448SharedSecretBody},
+    {"crypto", "p256Keypair", "__xl_std_crypto_p256_keypair", NULL, NULL, 0, "var", xl6StdCryptoP256KeypairBody},
+    {"crypto", "p256SharedSecret", "__xl_std_crypto_p256_shared_secret", NULL, NULL, 0, "string", xl6StdCryptoP256SharedSecretBody},
+    {"crypto", "p384Keypair", "__xl_std_crypto_p384_keypair", NULL, NULL, 0, "var", xl6StdCryptoP384KeypairBody},
+    {"crypto", "p384SharedSecret", "__xl_std_crypto_p384_shared_secret", NULL, NULL, 0, "string", xl6StdCryptoP384SharedSecretBody},
+    {"crypto", "ecdsaVerify", "__xl_std_crypto_ecdsa_verify", NULL, NULL, 0, "bool", xl6StdCryptoEcdsaVerifyBody},
     {"crypto", "rsaPssVerify", "__xl_std_crypto_rsa_pss_verify", NULL, NULL, 0, "bool", xl6StdCryptoRsaPssVerifyBody},
     {"crypto", "rsaPkcs1Verify", "__xl_std_crypto_rsa_pkcs1_verify", NULL, NULL, 0, "bool", xl6StdCryptoRsaPkcs1VerifyBody},
 
     {"id", "xid", "__xl_std_id_xid", NULL, NULL, 0, "string", xl6StdIdXidBody},
+    {"id", "make", "__xl_std_id_make", NULL, NULL, 0, "Xid", xl6StdIdMakeBody},
+    {"id", "decode", "__xl_std_id_decode", NULL, NULL, 0, "Xid", xl6StdIdDecodeBody},
+    {"id", "encode", "__xl_std_id_encode", NULL, NULL, 0, "string", xl6StdIdEncodeBody},
+    {"id", "compare", "__xl_std_id_compare", NULL, NULL, 0, "bool", xl6StdIdCompareBody},
 
     {"net", "localIP", "__xl_std_net_local_ip", NULL, NULL, 0, "string", xl6StdNetLocalIPBody},
     {"net", "localMAC", "__xl_std_net_local_mac", NULL, NULL, 0, "string", xl6StdNetLocalMACBody},
     {"net", "localName", "__xl_std_net_local_name", NULL, NULL, 0, "string", xl6StdNetLocalNameBody},
+    {"net", "resolve", "__xl_std_net_resolve", NULL, NULL, 0, "NetAddress", xl6StdNetResolveBody},
+    {"net", "proxy", "__xl_std_net_proxy", NULL, NULL, 0, "NetProxy", xl6StdNetProxyBody},
+    {"net", "engine", "__xl_std_net_engine", NULL, NULL, 0, "NetEngine", xl6StdNetEngineBody},
 
     {"tcp", "connect", "__xl_std_tcp_connect", NULL, NULL, 0, "point", xl6StdTcpConnectBody},
     {"tcp", "connectAsync", "__xl_std_tcp_connect_async", NULL, NULL, 0, "future<point>", xl6StdTcpConnectAsyncBody},
     {"tcp", "listen", "__xl_std_tcp_listen", NULL, NULL, 0, "point", xl6StdTcpListenBody},
+    {"tcp", "connectConfig", "__xl_std_tcp_connect_config", NULL, NULL, 0, "TcpConnectConfig", xl6StdTcpConnectConfigBody},
+    {"tcp", "listenConfig", "__xl_std_tcp_listen_config", NULL, NULL, 0, "TcpListenConfig", xl6StdTcpListenConfigBody},
 
     {"udp", "bind", "__xl_std_udp_bind", NULL, NULL, 0, "point", xl6StdUdpBindBody},
+    {"udp", "config", "__xl_std_udp_config", NULL, NULL, 0, "UdpConfig", xl6StdUdpConfigBody},
 
     {"url", "valid", "__xl_std_url_valid", NULL, NULL, 0, "bool", xl6StdUrlValidBody},
     {"url", "isAbsolute", "__xl_std_url_is_absolute", NULL, NULL, 0, "bool", xl6StdUrlIsAbsoluteBody},
     {"url", "isSecure", "__xl_std_url_is_secure", NULL, NULL, 0, "bool", xl6StdUrlIsSecureBody},
     {"url", "port", "__xl_std_url_port", NULL, NULL, 0, "int", xl6StdUrlPortBody},
+    {"url", "defaultPort", "__xl_std_url_default_port", NULL, NULL, 0, "int", xl6StdUrlDefaultPortBody},
+    {"url", "isDefaultPort", "__xl_std_url_is_default_port", NULL, NULL, 0, "bool", xl6StdUrlIsDefaultPortBody},
+    {"url", "hostHeader", "__xl_std_url_host_header", NULL, NULL, 0, "string", xl6StdUrlHostHeaderBody},
     {"url", "scheme", "__xl_std_url_scheme", NULL, NULL, 0, "string", xl6StdUrlSchemeBody},
     {"url", "authority", "__xl_std_url_authority", NULL, NULL, 0, "string", xl6StdUrlAuthorityBody},
     {"url", "userInfo", "__xl_std_url_user_info", NULL, NULL, 0, "string", xl6StdUrlUserInfoBody},
@@ -4850,14 +6455,25 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"url", "target", "__xl_std_url_target", NULL, NULL, 0, "string", xl6StdUrlTargetBody},
     {"url", "resolve", "__xl_std_url_resolve", NULL, NULL, 0, "string", xl6StdUrlResolveBody},
     {"url", "normalizePath", "__xl_std_url_normalize_path", NULL, NULL, 0, "string", xl6StdUrlNormalizePathBody},
+    {"url", "build", "__xl_std_url_build", NULL, NULL, 0, "string", xl6StdUrlBuildBody},
 
     {"query", "encode", "__xl_std_query_encode", NULL, NULL, 0, "string", xl6StdQueryEncodeBody},
     {"query", "decode", "__xl_std_query_decode", NULL, NULL, 0, "string", xl6StdQueryDecodeBody},
     {"query", "valid", "__xl_std_query_valid", NULL, NULL, 0, "bool", xl6StdQueryValidBody},
     {"query", "pair", "__xl_std_query_pair", NULL, NULL, 0, "string", xl6StdQueryPairBody},
     {"query", "append", "__xl_std_query_append", NULL, NULL, 0, "string", xl6StdQueryAppendBody},
+    {"query", "count", "__xl_std_query_count", NULL, NULL, 0, "int", xl6StdQueryCountBody},
+    {"query", "find", "__xl_std_query_find", NULL, NULL, 0, "var", xl6StdQueryFindBody},
+    {"query", "items", "__xl_std_query_items", NULL, NULL, 0, "array", xl6StdQueryItemsBody},
+    {"query", "toDict", "__xl_std_query_to_dict", NULL, NULL, 0, "dict", xl6StdQueryToDictBody},
+    {"query", "fromDict", "__xl_std_query_from_dict", NULL, NULL, 0, "string", xl6StdQueryFromDictBody},
 
     {"regex", "compile", "__xl_std_regex_compile", NULL, NULL, 0, "Regex", xl6StdRegexCompileBody},
+    {"regex", "builder", "__xl_std_regex_builder", NULL, NULL, 0, "RegexBuilder", xl6StdRegexBuilderBody},
+    {"regex", "valid", "__xl_std_regex_valid", NULL, NULL, 0, "bool", xl6StdRegexValidBody},
+    {"regex", "error", "__xl_std_regex_error", NULL, NULL, 0, "string", xl6StdRegexErrorBody},
+    {"regex", "errorPos", "__xl_std_regex_error_pos", NULL, NULL, 0, "int", xl6StdRegexErrorPosBody},
+    {"regex", "errorBytePos", "__xl_std_regex_error_byte_pos", NULL, NULL, 0, "int", xl6StdRegexErrorBytePosBody},
     {"regex", "isMatch", "__xl_std_regex_is_match", NULL, NULL, 0, "bool", xl6StdRegexIsMatchBody},
     {"regex", "fullMatch", "__xl_std_regex_full_match", NULL, NULL, 0, "bool", xl6StdRegexFullMatchBody},
     {"regex", "find", "__xl_std_regex_find", NULL, NULL, 0, "int", xl6StdRegexFindBody},
@@ -4868,12 +6484,17 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"process", "success", "__xl_std_process_success", NULL, NULL, 0, "bool", xl6StdProcessSuccessBody},
     {"process", "exitCode", "__xl_std_process_exit_code", NULL, NULL, 0, "int", xl6StdProcessExitCodeBody},
     {"process", "run", "__xl_std_process_run", NULL, NULL, 0, "ProcessResult", xl6StdProcessRunBody},
+    {"process", "run", "__xl_std_process_run", NULL, NULL, 0, "ProcessResult", xl6StdProcessRunCommandBody},
     {"process", "runFile", "__xl_std_process_run_file", NULL, NULL, 0, "ProcessResult", xl6StdProcessRunFileBody},
     {"process", "cmd", "__xl_std_process_cmd", NULL, NULL, 0, "ProcessCommand", xl6StdProcessCmdBody},
     {"process", "shell", "__xl_std_process_shell", NULL, NULL, 0, "ProcessCommand", xl6StdProcessShellBody},
     {"process", "pipeline", "__xl_std_process_pipeline", NULL, NULL, 0, "PipelineResult", xl6StdProcessPipelineBody},
     {"process", "start", "__xl_std_process_start", NULL, NULL, 0, "Process", xl6StdProcessStartBody},
+    {"process", "start", "__xl_std_process_start", NULL, NULL, 0, "Process", xl6StdProcessStartCommandBody},
     {"process", "startFile", "__xl_std_process_start_file", NULL, NULL, 0, "Process", xl6StdProcessStartFileBody},
+    {"process", "terminalSupported", "__xl_std_process_terminal_supported", NULL, NULL, 0, "bool", xl6StdProcessTerminalSupportedBody},
+
+    {"task", "group", "__xl_std_task_group", NULL, NULL, 0, "TaskGroup", xl6StdTaskGroupBody},
 
     {"log", "create", "__xl_std_log_create", NULL, NULL, 0, "Logger", xl6StdLogCreateBody},
     {"log", "default", "__xl_std_log_default", NULL, NULL, 0, "Logger", xl6StdLogDefaultBody},
@@ -4893,6 +6514,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"log", "flush", "__xl_std_log_flush", NULL, NULL, 0, "", xl6StdLogFlushBody},
 
     {"template", "compile", "__xl_std_template_compile", NULL, xl6StdTemplateCompileParams, 2, "Template", xl6StdTemplateCompileBody},
+    {"template", "engine", "__xl_std_template_engine", NULL, NULL, 0, "TemplateEngine", xl6StdTemplateEngineBody},
+    {"template", "load", "__xl_std_template_load", NULL, xl6StdPathUnaryParams, 1, "Template", xl6StdTemplateLoadBody},
     {"template", "render", "__xl_std_template_render", NULL, xl6StdTemplateRenderParams, 3, "string", xl6StdTemplateRenderBody},
     {"template", "renderFile", "__xl_std_template_render_file", NULL, xl6StdTemplateRenderFileParams, 3, "string", xl6StdTemplateRenderFileBody},
 
@@ -4944,6 +6567,9 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"http.server", "mimeByPath", "__xl_std_http_server_mime_by_path", NULL, NULL, 0, "string", xl6StdHttpServerMimeByPathBody},
     {"http.server", "chunkText", "__xl_std_http_server_chunk_text", NULL, NULL, 0, "string", xl6StdHttpServerChunkTextBody},
     {"http.server", "chunkBytes", "__xl_std_http_server_chunk_bytes", NULL, NULL, 0, "Buffer", xl6StdHttpServerChunkBytesBody},
+    {"http", "client", "__xl_std_http_client", NULL, NULL, 0, "HttpClient", xl6StdHttpClientBody},
+    {"http", "client", "__xl_std_http_client", NULL, NULL, 0, "HttpClient", xl6StdHttpClientEngineBody},
+    {"http", "copyChunk", "__xl_std_http_copy_chunk", NULL, NULL, 0, "Buffer", xl6StdHttpCopyChunkBody},
     {"http", "request", "__xl_std_http_request", NULL, NULL, 0, "HttpClientResponse", xl6StdHttpRequestBody},
     {"http", "get", "__xl_std_http_get", NULL, NULL, 0, "HttpClientResponse", xl6StdHttpGetBody},
     {"http", "post", "__xl_std_http_post", NULL, NULL, 0, "HttpClientResponse", xl6StdHttpPostBody}

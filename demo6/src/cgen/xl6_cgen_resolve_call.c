@@ -104,7 +104,10 @@ static XL6_AstNode* xl6CgenResolveCallFuncInternal(
             xl6CgenError(ctx, call, "重载调用存在歧义，C 生成无法选择唯一函数");
         }
     } else if ( report ) {
-        xl6CgenError(ctx, call, "找不到匹配的重载函数");
+        char message[256];
+
+        snprintf(message, sizeof(message), "找不到匹配的重载函数: %s", name);
+        xl6CgenError(ctx, call, message);
     }
     return NULL;
 }
@@ -279,7 +282,10 @@ static XL6_AstNode* xl6CgenResolveCallFunc(XL6_CgenContext* ctx, const XL6_AstNo
     if ( varargBestCount > 1 ) {
         xl6CgenError(ctx, call, "重载调用存在歧义，C 生成无法选择唯一函数");
     } else {
-        xl6CgenError(ctx, call, "找不到匹配的重载函数");
+        char message[256];
+
+        snprintf(message, sizeof(message), "找不到匹配的重载函数: %s", name);
+        xl6CgenError(ctx, call, message);
     }
     return NULL;
 }

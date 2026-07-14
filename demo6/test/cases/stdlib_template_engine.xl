@@ -1,0 +1,53 @@
+func joinArgs(array<var> args) as var
+    string result = ""
+    for value in args
+        result += string(value)
+    end
+    return result
+end
+
+func upperRaw(array<var> args, string body) as string
+    assert args.length == 1
+    return string.upper(string(args[0]) + body)
+end
+
+func makeCustomTemplate() as Template
+    TemplateEngine engine = template.engine()
+    assert engine.registerFunction("join", joinArgs, 1, 4)
+    assert engine.registerStatement("upperraw", upperRaw, 1, 1)
+    return engine.compile("{@join:'A':'B'}|{#upperraw:'x'}hello{#end}")
+end
+
+Template custom = makeCustomTemplate()
+assert custom.render() == "AB|XHELLO"
+
+var root = custom.root()
+assert int(root["count"]) > 0
+assert int(custom.node(0)["type"]) >= 0
+assert int(custom.expression(0)["type"]) >= 0
+assert int(custom.argument(0)["flags"]) >= 0
+
+string outputDir = "build/test/stdlib_template_engine"
+string outputPath = outputDir + "/compiled.xteb"
+dir.createAll(outputDir)
+
+Template serializable = template.compile("Saved {$name}")
+assert serializable.save(outputPath)
+Template loaded = template.load(outputPath)
+assert loaded.render({"name": "Ada"}) == "Saved Ada"
+
+Template bad = template.compile("{#for:1:3:0}X{#end}")
+assert bad.render() == ""
+var renderError = bad.error()
+assert int(renderError["code"]) > 0
+assert string(renderError["description"]) != ""
+
+TemplateEngine errorEngine = template.engine()
+Template invalid = errorEngine.compile("{@missing}")
+var parseError = errorEngine.error()
+assert int(parseError["code"]) > 0
+assert string(parseError["description"]) != ""
+
+file.delete(outputPath)
+dir.delete(outputDir)
+

@@ -1,0 +1,103 @@
+func tlsStatusOk(int status) as bool
+    return status == 0 or status == -2
+end
+
+func moveTlsCipher(TlsSession source, TlsSession target, int chunkSize) as bool
+    bool moved = false
+    while source.pendingCipher > 0 do
+        Buffer cipher = source.peekCipher(chunkSize)
+        if cipher.len() <= 0 then
+            return moved
+        end
+        assert tlsStatusOk(target.feed(cipher))
+        source.consumeCipher(cipher.len())
+        moved = true
+    end
+    return moved
+end
+
+func handshakeTlsPair(TlsSession client, TlsSession server) as bool
+    int step = 0
+    while step < 4096 do
+        int clientStatus = client.handshake()
+        int serverStatus = server.handshake()
+        if not tlsStatusOk(clientStatus) or not tlsStatusOk(serverStatus) then
+            println(f"tls_handshake_error client={clientStatus} server={serverStatus} step={step}")
+            return false
+        end
+        bool movedClient = moveTlsCipher(client, server, 37)
+        bool movedServer = moveTlsCipher(server, client, 53)
+        if client.ready and server.ready then
+            return true
+        end
+        step += 1
+    end
+    return false
+end
+
+func makeServerConfig() as TlsConfig
+    TlsConfig config = TlsConfig()
+    assert config.certificate("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem")
+    config.verifyPeer(false)
+    config.maxVersion(0x0303)
+    return config
+end
+
+func makeClientConfig() as TlsConfig
+    TlsConfig config = TlsConfig()
+    assert config.host("localhost")
+    config.verifyPeer(false)
+    config.maxVersion(0x0303)
+    return config
+end
+
+TlsConfig serverConfig = makeServerConfig()
+TlsConfig clientConfig = makeClientConfig()
+assert file.exists("release/examples/fixtures/tls_cert.pem")
+assert file.exists("release/examples/fixtures/tls_key.pem")
+TlsSession client = clientConfig.session()
+TlsSession server = serverConfig.session(true)
+assert server.certificate("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem")
+assert handshakeTlsPair(client, server)
+assert server.sni() == "localhost"
+
+Buffer request = Buffer()
+assert request.append("hello tls")
+assert client.write(request) == request.len()
+assert moveTlsCipher(client, server, 19)
+Buffer received = server.read()
+assert received.text() == "hello tls"
+
+TlsResume resume = client.exportResume()
+int closeFirst = client.close()
+int closeBytes = client.pendingCipher
+int closeSecond = client.close()
+assert tlsStatusOk(closeFirst)
+assert tlsStatusOk(closeSecond)
+assert client.pendingCipher == closeBytes
+
+TlsSession resumedClient = clientConfig.session(resume)
+TlsSession resumedServer = serverConfig.session(true)
+assert handshakeTlsPair(resumedClient, resumedServer)
+assert resumedClient.resumed
+assert resumedServer.resumed
+
+TlsConfig badServerConfig = TlsConfig()
+assert badServerConfig.certificate("missing-cert.pem", "missing-key.pem")
+badServerConfig.verifyPeer(false)
+TlsSession badServer = badServerConfig.session(true)
+assert not badServer.ready
+assert badServer.handshake() == -1
+
+TlsSession partialClient = clientConfig.session()
+TlsSession partialServer = serverConfig.session(true)
+assert tlsStatusOk(partialClient.handshake())
+Buffer hello = partialClient.peekCipher()
+assert hello.len() > 1
+Buffer truncated = Buffer()
+assert truncated.appendByte(hello.byteAt(0))
+assert tlsStatusOk(partialServer.feed(truncated))
+assert partialServer.handshake() == -2
+assert not partialServer.ready
+
+println("tls_session_pair=ok")

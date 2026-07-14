@@ -375,6 +375,8 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                     ;
                 } else if ( xl6CgenSyncMethodCall(ctx, node, callee) ) {
                     ;
+                } else if ( xl6CgenSpecialCollectionMethodCall(ctx, node, callee) ) {
+                    ;
                 } else if ( xl6CgenChannelMethodCall(ctx, node, callee) ) {
                     ;
                 } else if ( xl6CgenFutureMethodCall(ctx, node, callee) ) {
@@ -426,6 +428,9 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 const XL6_AstNode* prevParams = ctx->currentGenericParams;
                 const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
 
+                if ( xl6CgenSpecialCollectionCtorCall(ctx, node, callee) ) {
+                    break;
+                }
                 if ( xl6CgenChannelCtorCall(ctx, node, callee) ) {
                     break;
                 }

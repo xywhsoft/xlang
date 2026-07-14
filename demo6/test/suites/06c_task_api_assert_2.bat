@@ -321,7 +321,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep late typed-array string task.race source canceled.
     exit /b 1
 )
-findstr /C:"pendingBoolAllGroup = xl6_task_all_from_array((xtarray)(pendingBoolAllJobs), xrtTypeBool()" build\test\cgen_task_api.c >nul
+findstr /C:"pendingBoolAllGroup = xl6_task_all_from_array((xtarray)(pendingBoolAllJobs), xrtTypeBool32()" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing cancelable typed-array bool task.all group fixture.
     exit /b 1
@@ -806,7 +806,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should release temporary typed-array string task.race future after task.cancel.
     exit /b 1
 )
-findstr /C:"cancelTemporaryBoolAll = xl6_task_cancel_value(xl6_task_all_values(xrtTypeBool()" build\test\cgen_task_api.c >nul
+findstr /C:"cancelTemporaryBoolAll = xl6_task_cancel_value(xl6_task_all_values(xrtTypeBool32()" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should cancel temporary bool task.all future through ownership helper.
     exit /b 1

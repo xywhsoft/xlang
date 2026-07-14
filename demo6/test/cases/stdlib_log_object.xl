@@ -1,0 +1,41 @@
+int eventCount = 0
+bool nested = false
+string lastMessage = ""
+
+func onLog(var event)
+    eventCount += 1
+    lastMessage = string(event["message"])
+    assert int(event["level"]) == log.infoLevel
+    assert string(event["logger"]) == "object-test"
+    assert int(event["threadId"]) > 0
+    if not nested then
+        nested = true
+        log.info("nested")
+    end
+end
+
+func installLogger(func(var) handler) as LogAppender
+    Logger logger = log.create("object-test")
+    logger.setLevel(log.traceLevel)
+    assert logger.makeDefault()
+    return logger.customAppender("capture", handler, log.infoLevel)
+end
+
+LogAppender appender = installLogger(onLog)
+assert appender.name == "capture"
+assert appender.getLevel() == log.infoLevel
+appender.setLevel(log.debugLevel)
+appender.setFormat(log.jsonFormat)
+appender.setColor(true)
+assert appender.getLevel() == log.debugLevel
+assert appender.getFormat() == log.jsonFormat
+assert appender.getColor()
+
+log.info("outer")
+assert eventCount == 2
+assert lastMessage == "nested"
+
+Logger wrapped = log.default()
+assert wrapped.getLevel() == log.traceLevel
+wrapped.flush()
+

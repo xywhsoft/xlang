@@ -10,8 +10,12 @@ static void xl6CgenEmitCryptoRuntime(XL6_Output* out)
     xl6OutputPuts("void xrtSHA256(const void* pData, size_t iLen, unsigned char* pOut);\n", out);
     xl6OutputPuts("void xrtSHA384(const void* pData, size_t iLen, unsigned char* pOut);\n", out);
     xl6OutputPuts("void xrtSHA512(const void* pData, size_t iLen, unsigned char* pOut);\n", out);
+    xl6OutputPuts("typedef struct { unsigned int state[5]; unsigned char buffer[64]; unsigned int len; unsigned long long bits; } xsha1_ctx;\n", out);
     xl6OutputPuts("typedef struct { unsigned int state[8]; unsigned char buffer[64]; unsigned int len; unsigned long long bits; } xsha256_ctx;\n", out);
     xl6OutputPuts("typedef struct { unsigned long long state[8]; unsigned char buffer[128]; unsigned int len; unsigned long long bits; } xsha512_ctx;\n", out);
+    xl6OutputPuts("void xrtSHA1Init(xsha1_ctx* pCtx);\n", out);
+    xl6OutputPuts("void xrtSHA1Update(xsha1_ctx* pCtx, const void* pData, size_t iLen);\n", out);
+    xl6OutputPuts("void xrtSHA1Final(xsha1_ctx* pCtx, unsigned char* pOut);\n", out);
     xl6OutputPuts("void xrtSHA256Init(xsha256_ctx* pCtx);\n", out);
     xl6OutputPuts("void xrtSHA256Update(xsha256_ctx* pCtx, const void* pData, size_t iLen);\n", out);
     xl6OutputPuts("void xrtSHA256Final(xsha256_ctx* pCtx, unsigned char* pOut);\n", out);
@@ -38,6 +42,11 @@ static void xl6CgenEmitCryptoRuntime(XL6_Output* out)
     xl6OutputPuts("void xrtX25519SharedSecret(unsigned char* pOut, const unsigned char* pPrivKey, const unsigned char* pPubKey);\n", out);
     xl6OutputPuts("void xrtX448Keypair(unsigned char* pPrivKey, unsigned char* pPubKey);\n", out);
     xl6OutputPuts("void xrtX448SharedSecret(unsigned char* pOut, const unsigned char* pPrivKey, const unsigned char* pPubKey);\n", out);
+    xl6OutputPuts("void xrtECDHSecp256r1Keypair(unsigned char* pPrivKey, unsigned char* pPubKey);\n", out);
+    xl6OutputPuts("void xrtECDHSecp256r1SharedSecret(unsigned char* pOut, const unsigned char* pPrivKey, const unsigned char* pPubKey);\n", out);
+    xl6OutputPuts("void xrtECDHSecp384r1Keypair(unsigned char* pPrivKey, unsigned char* pPubKey);\n", out);
+    xl6OutputPuts("void xrtECDHSecp384r1SharedSecret(unsigned char* pOut, const unsigned char* pPrivKey, const unsigned char* pPubKey);\n", out);
+    xl6OutputPuts("bool xrtECDSAVerify(const unsigned char* pHash, size_t iHashLen, const unsigned char* pSig, size_t iSigLen, const unsigned char* pPubKey, size_t iPubKeyLen);\n", out);
     xl6OutputPuts("void xrtEd25519Keypair(unsigned char* pSeed, unsigned char* pPubKey);\n", out);
     xl6OutputPuts("void xrtEd25519PublicKey(unsigned char* pPubKey, const unsigned char* pSeed);\n", out);
     xl6OutputPuts("bool xrtEd25519Sign(unsigned char* pSig, const unsigned char* pMsg, size_t iMsgLen, const unsigned char* pSeed);\n", out);
@@ -49,6 +58,13 @@ static void xl6CgenEmitCryptoRuntime(XL6_Output* out)
     xl6OutputPuts("void xrtFree(void* p);\n", out);
     xl6OutputPuts("void* xrtHexEncode(void* pMem, size_t iSize);\n", out);
     xl6OutputPuts("void* xrtHexDecode(const char* sText, size_t iSize);\n", out);
+    xl6OutputPuts("#ifndef XL6_XBUFFER_TYPEDEF\n", out);
+    xl6OutputPuts("#define XL6_XBUFFER_TYPEDEF\n", out);
+    xl6OutputPuts("typedef struct xbuffer_struct { void* Buffer; unsigned int Length; unsigned int AllocLength; unsigned int AllocStep; } xbuffer_struct, *xbuffer;\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("xbuffer xrtBufferCreate(unsigned int iStep);\n", out);
+    xl6OutputPuts("void xrtBufferDestroy(xbuffer pBuf);\n", out);
+    xl6OutputPuts("bool xrtBufferAppend(xbuffer pBuf, void* pData, unsigned int iSize, unsigned int bStrMode);\n", out);
     xl6OutputPuts("typedef struct xvalue_struct* xvalue;\n", out);
     xl6OutputPuts("xvalue xvoCreateTable(void);\n", out);
     xl6OutputPuts("xvalue xvoCreateText(void* sVal, unsigned int iSize, bool bColloc);\n", out);
@@ -98,6 +114,19 @@ static void xl6CgenEmitCryptoRuntime(XL6_Output* out)
     xl6OutputPuts("    return hex != 0 ? hex : xl6_crypto_empty_result();\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("static void* xl6_crypto_buffer_from_bytes(const void* data, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xbuffer buffer;\n", out);
+    xl6OutputPuts("    if ( size > 4294967295u ) { return 0; }\n", out);
+    xl6OutputPuts("    buffer = xrtBufferCreate(0u);\n", out);
+    xl6OutputPuts("    if ( buffer == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    if ( size > 0u && (data == 0 || !xrtBufferAppend(buffer, (void*)data, (unsigned int)size, 0u)) ) {\n", out);
+    xl6OutputPuts("        xrtBufferDestroy(buffer);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return buffer;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("static void xl6_crypto_table_set_hex(xvalue table, const char* name, const unsigned char* data, size_t size)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    char* hex;\n", out);
@@ -135,6 +164,57 @@ static void xl6CgenEmitCryptoRuntime(XL6_Output* out)
     xl6OutputPuts("    unsigned char digest[64];\n", out);
     xl6OutputPuts("    xrtSHA512((const void*)xl6_crypto_text_or_empty(text), size, digest);\n", out);
     xl6OutputPuts("    return xrtHexEncode((void*)digest, sizeof(digest));\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void* xl6_crypto_hash_bytes(int algorithm, const void* data, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned char digest[64];\n", out);
+    xl6OutputPuts("    size_t digestSize;\n", out);
+    xl6OutputPuts("    const void* input = data != 0 ? data : \"\";\n", out);
+    xl6OutputPuts("    if ( data == 0 && size != 0u ) { return 0; }\n", out);
+    xl6OutputPuts("    switch ( algorithm ) {\n", out);
+    xl6OutputPuts("        case 1: xrtSHA1(input, size, digest); digestSize = 20u; break;\n", out);
+    xl6OutputPuts("        case 2: xrtSHA256(input, size, digest); digestSize = 32u; break;\n", out);
+    xl6OutputPuts("        case 3: xrtSHA384(input, size, digest); digestSize = 48u; break;\n", out);
+    xl6OutputPuts("        case 4: xrtSHA512(input, size, digest); digestSize = 64u; break;\n", out);
+    xl6OutputPuts("        default: return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return xl6_crypto_buffer_from_bytes(digest, digestSize);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_sha1_bytes(void* data, size_t size) { return xl6_crypto_hash_bytes(1, data, size); }\n", out);
+    xl6OutputPuts("void* xl6_xrt_sha256_bytes(void* data, size_t size) { return xl6_crypto_hash_bytes(2, data, size); }\n", out);
+    xl6OutputPuts("void* xl6_xrt_sha384_bytes(void* data, size_t size) { return xl6_crypto_hash_bytes(3, data, size); }\n", out);
+    xl6OutputPuts("void* xl6_xrt_sha512_bytes(void* data, size_t size) { return xl6_crypto_hash_bytes(4, data, size); }\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_sha1_stream_create(void)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xsha1_ctx* ctx = (xsha1_ctx*)xrtMalloc(sizeof(xsha1_ctx));\n", out);
+    xl6OutputPuts("    if ( ctx != 0 ) { xrtSHA1Init(ctx); }\n", out);
+    xl6OutputPuts("    return ctx;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_xrt_sha1_stream_destroy(void* self)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( self != 0 ) { xrtFree(self); }\n", out);
+    xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_sha1_stream_update(void* self, const char* text, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( self == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    xrtSHA1Update((xsha1_ctx*)self, (const void*)xl6_crypto_text_or_empty(text), size);\n", out);
+    xl6OutputPuts("    return 1;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_sha1_stream_hex(void* self)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned char digest[20];\n", out);
+    xl6OutputPuts("    xsha1_ctx copy;\n", out);
+    xl6OutputPuts("    if ( self == 0 ) { return xl6_crypto_empty_result(); }\n", out);
+    xl6OutputPuts("    copy = *(xsha1_ctx*)self;\n", out);
+    xl6OutputPuts("    xrtSHA1Final(&copy, digest);\n", out);
+    xl6OutputPuts("    return xl6_crypto_hex_from_bytes(digest, sizeof(digest));\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_sha256_stream_create(void)\n", out);
@@ -227,6 +307,37 @@ static void xl6CgenEmitCryptoRuntime(XL6_Output* out)
     xl6OutputPuts("    return xl6_crypto_hex_from_bytes(digest, sizeof(digest));\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("int xl6_xrt_sha1_stream_update_bytes(void* self, void* data, size_t size)\n", out);
+    xl6OutputPuts("{ if ( self == 0 || (data == 0 && size != 0u) ) { return 0; } xrtSHA1Update((xsha1_ctx*)self, data != 0 ? data : \"\", size); return 1; }\n", out);
+    xl6OutputPuts("void* xl6_xrt_sha1_stream_bytes(void* self)\n", out);
+    xl6OutputPuts("{ unsigned char digest[20]; xsha1_ctx copy; if ( self == 0 ) { return 0; } copy = *(xsha1_ctx*)self; xrtSHA1Final(&copy, digest); return xl6_crypto_buffer_from_bytes(digest, sizeof(digest)); }\n", out);
+    xl6OutputPuts("int xl6_xrt_sha256_stream_update_bytes(void* self, void* data, size_t size)\n", out);
+    xl6OutputPuts("{ if ( self == 0 || (data == 0 && size != 0u) ) { return 0; } xrtSHA256Update((xsha256_ctx*)self, data != 0 ? data : \"\", size); return 1; }\n", out);
+    xl6OutputPuts("void* xl6_xrt_sha256_stream_bytes(void* self)\n", out);
+    xl6OutputPuts("{ unsigned char digest[32]; xsha256_ctx copy; if ( self == 0 ) { return 0; } copy = *(xsha256_ctx*)self; xrtSHA256Final(&copy, digest); return xl6_crypto_buffer_from_bytes(digest, sizeof(digest)); }\n", out);
+    xl6OutputPuts("int xl6_xrt_sha384_stream_update_bytes(void* self, void* data, size_t size)\n", out);
+    xl6OutputPuts("{ if ( self == 0 || (data == 0 && size != 0u) ) { return 0; } xrtSHA512Update((xsha512_ctx*)self, data != 0 ? data : \"\", size); return 1; }\n", out);
+    xl6OutputPuts("void* xl6_xrt_sha384_stream_bytes(void* self)\n", out);
+    xl6OutputPuts("{ unsigned char digest[48]; xsha512_ctx copy; if ( self == 0 ) { return 0; } copy = *(xsha512_ctx*)self; xrtSHA384Final(&copy, digest); return xl6_crypto_buffer_from_bytes(digest, sizeof(digest)); }\n", out);
+    xl6OutputPuts("int xl6_xrt_sha512_stream_update_bytes(void* self, void* data, size_t size)\n", out);
+    xl6OutputPuts("{ if ( self == 0 || (data == 0 && size != 0u) ) { return 0; } xrtSHA512Update((xsha512_ctx*)self, data != 0 ? data : \"\", size); return 1; }\n", out);
+    xl6OutputPuts("void* xl6_xrt_sha512_stream_bytes(void* self)\n", out);
+    xl6OutputPuts("{ unsigned char digest[64]; xsha512_ctx copy; if ( self == 0 ) { return 0; } copy = *(xsha512_ctx*)self; xrtSHA512Final(&copy, digest); return xl6_crypto_buffer_from_bytes(digest, sizeof(digest)); }\n\n", out);
+
+    xl6OutputPuts("static void* xl6_crypto_hmac_bytes(int algorithm, const void* key, size_t keySize, const void* data, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned char digest[64]; size_t digestSize;\n", out);
+    xl6OutputPuts("    if ( (key == 0 && keySize != 0u) || (data == 0 && size != 0u) ) { return 0; }\n", out);
+    xl6OutputPuts("    if ( algorithm == 1 ) { xrtHMAC_SHA256((const unsigned char*)(key != 0 ? key : \"\"), keySize, (const unsigned char*)(data != 0 ? data : \"\"), size, digest); digestSize = 32u; }\n", out);
+    xl6OutputPuts("    else if ( algorithm == 2 ) { xrtHMAC_SHA384((const unsigned char*)(key != 0 ? key : \"\"), keySize, (const unsigned char*)(data != 0 ? data : \"\"), size, digest); digestSize = 48u; }\n", out);
+    xl6OutputPuts("    else if ( algorithm == 3 ) { xrtHMAC_SHA512((const unsigned char*)(key != 0 ? key : \"\"), keySize, (const unsigned char*)(data != 0 ? data : \"\"), size, digest); digestSize = 64u; }\n", out);
+    xl6OutputPuts("    else { return 0; }\n", out);
+    xl6OutputPuts("    return xl6_crypto_buffer_from_bytes(digest, digestSize);\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("void* xl6_xrt_hmac_sha256_bytes(void* key, size_t keySize, void* data, size_t size) { return xl6_crypto_hmac_bytes(1, key, keySize, data, size); }\n", out);
+    xl6OutputPuts("void* xl6_xrt_hmac_sha384_bytes(void* key, size_t keySize, void* data, size_t size) { return xl6_crypto_hmac_bytes(2, key, keySize, data, size); }\n", out);
+    xl6OutputPuts("void* xl6_xrt_hmac_sha512_bytes(void* key, size_t keySize, void* data, size_t size) { return xl6_crypto_hmac_bytes(3, key, keySize, data, size); }\n\n", out);
+
     xl6OutputPuts("void* xl6_xrt_hmac_sha256_hex(const char* key, size_t keySize, const char* text, size_t textSize)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    unsigned char digest[32];\n", out);
@@ -246,6 +357,16 @@ static void xl6CgenEmitCryptoRuntime(XL6_Output* out)
     xl6OutputPuts("    unsigned char digest[64];\n", out);
     xl6OutputPuts("    xrtHMAC_SHA512((const unsigned char*)xl6_crypto_text_or_empty(key), keySize, (const unsigned char*)xl6_crypto_text_or_empty(text), textSize, digest);\n", out);
     xl6OutputPuts("    return xrtHexEncode((void*)digest, sizeof(digest));\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_chacha20_bytes(void* key, size_t keySize, void* nonce, size_t nonceSize, void* data, size_t size, unsigned int counter)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned char* output; void* result;\n", out);
+    xl6OutputPuts("    if ( key == 0 || keySize != 32u || nonce == 0 || nonceSize != 12u || (data == 0 && size != 0u) ) { return 0; }\n", out);
+    xl6OutputPuts("    if ( size == 0u ) { return xl6_crypto_buffer_from_bytes(0, 0); }\n", out);
+    xl6OutputPuts("    output = (unsigned char*)xrtMalloc(size); if ( output == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    xrtChaCha20(output, (const unsigned char*)key, (const unsigned char*)nonce, counter, (const unsigned char*)data, size);\n", out);
+    xl6OutputPuts("    result = xl6_crypto_buffer_from_bytes(output, size); xrtFree(output); return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_chacha20_encrypt_hex(const char* key, size_t keySize, const char* nonce, size_t nonceSize, const char* text, size_t textSize, unsigned int counter)\n", out);
@@ -333,6 +454,28 @@ static void xl6CgenEmitCryptoRuntime(XL6_Output* out)
     xl6OutputPuts("    return plain;\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("static void* xl6_crypto_aead_bytes(int algorithm, int decrypt, const void* key, size_t keySize, const void* nonce, size_t nonceSize, const void* data, size_t size, const void* aad, size_t aadSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned char* output; size_t outputSize; bool ok; void* result;\n", out);
+    xl6OutputPuts("    if ( key == 0 || nonce == 0 || nonceSize == 0u || (data == 0 && size != 0u) || (aad == 0 && aadSize != 0u) ) { return 0; }\n", out);
+    xl6OutputPuts("    if ( (algorithm == 0 && (keySize != 32u || nonceSize != 12u)) || (algorithm == 1 && keySize != 16u) || (algorithm == 2 && keySize != 32u) ) { return 0; }\n", out);
+    xl6OutputPuts("    if ( decrypt && size < 16u ) { return 0; }\n", out);
+    xl6OutputPuts("    if ( !decrypt && size > (size_t)-1 - 16u ) { return 0; }\n", out);
+    xl6OutputPuts("    outputSize = decrypt ? size - 16u : size + 16u;\n", out);
+    xl6OutputPuts("    output = (unsigned char*)xrtMalloc(outputSize > 0u ? outputSize : 1u); if ( output == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    if ( algorithm == 0 ) { ok = decrypt ? xrtChaCha20Poly1305Decrypt(output, (const unsigned char*)key, (const unsigned char*)nonce, (const unsigned char*)(aad != 0 ? aad : \"\"), aadSize, (const unsigned char*)(data != 0 ? data : \"\"), size) : xrtChaCha20Poly1305Encrypt(output, (const unsigned char*)key, (const unsigned char*)nonce, (const unsigned char*)(aad != 0 ? aad : \"\"), aadSize, (const unsigned char*)(data != 0 ? data : \"\"), size); }\n", out);
+    xl6OutputPuts("    else if ( algorithm == 1 ) { ok = decrypt ? xrtAES128GCMDecrypt(output, (const unsigned char*)key, (const unsigned char*)nonce, nonceSize, (const unsigned char*)(aad != 0 ? aad : \"\"), aadSize, (const unsigned char*)(data != 0 ? data : \"\"), size) : xrtAES128GCMEncrypt(output, (const unsigned char*)key, (const unsigned char*)nonce, nonceSize, (const unsigned char*)(aad != 0 ? aad : \"\"), aadSize, (const unsigned char*)(data != 0 ? data : \"\"), size); }\n", out);
+    xl6OutputPuts("    else { ok = decrypt ? xrtAES256GCMDecrypt(output, (const unsigned char*)key, (const unsigned char*)nonce, nonceSize, (const unsigned char*)(aad != 0 ? aad : \"\"), aadSize, (const unsigned char*)(data != 0 ? data : \"\"), size) : xrtAES256GCMEncrypt(output, (const unsigned char*)key, (const unsigned char*)nonce, nonceSize, (const unsigned char*)(aad != 0 ? aad : \"\"), aadSize, (const unsigned char*)(data != 0 ? data : \"\"), size); }\n", out);
+    xl6OutputPuts("    if ( !ok ) { xrtFree(output); return 0; }\n", out);
+    xl6OutputPuts("    result = xl6_crypto_buffer_from_bytes(output, outputSize); xrtFree(output); return result;\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("void* xl6_xrt_chacha20_poly1305_encrypt_bytes(void* key, size_t keySize, void* nonce, size_t nonceSize, void* data, size_t size, void* aad, size_t aadSize) { return xl6_crypto_aead_bytes(0, 0, key, keySize, nonce, nonceSize, data, size, aad, aadSize); }\n", out);
+    xl6OutputPuts("void* xl6_xrt_chacha20_poly1305_decrypt_bytes(void* key, size_t keySize, void* nonce, size_t nonceSize, void* data, size_t size, void* aad, size_t aadSize) { return xl6_crypto_aead_bytes(0, 1, key, keySize, nonce, nonceSize, data, size, aad, aadSize); }\n", out);
+    xl6OutputPuts("void* xl6_xrt_aes128_gcm_encrypt_bytes(void* key, size_t keySize, void* nonce, size_t nonceSize, void* data, size_t size, void* aad, size_t aadSize) { return xl6_crypto_aead_bytes(1, 0, key, keySize, nonce, nonceSize, data, size, aad, aadSize); }\n", out);
+    xl6OutputPuts("void* xl6_xrt_aes128_gcm_decrypt_bytes(void* key, size_t keySize, void* nonce, size_t nonceSize, void* data, size_t size, void* aad, size_t aadSize) { return xl6_crypto_aead_bytes(1, 1, key, keySize, nonce, nonceSize, data, size, aad, aadSize); }\n", out);
+    xl6OutputPuts("void* xl6_xrt_aes256_gcm_encrypt_bytes(void* key, size_t keySize, void* nonce, size_t nonceSize, void* data, size_t size, void* aad, size_t aadSize) { return xl6_crypto_aead_bytes(2, 0, key, keySize, nonce, nonceSize, data, size, aad, aadSize); }\n", out);
+    xl6OutputPuts("void* xl6_xrt_aes256_gcm_decrypt_bytes(void* key, size_t keySize, void* nonce, size_t nonceSize, void* data, size_t size, void* aad, size_t aadSize) { return xl6_crypto_aead_bytes(2, 1, key, keySize, nonce, nonceSize, data, size, aad, aadSize); }\n\n", out);
+
     xl6OutputPuts("void* xl6_xrt_chacha20_poly1305_encrypt_hex(const char* key, size_t keySize, const char* nonce, size_t nonceSize, const char* text, size_t textSize, const char* aad, size_t aadSize)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xl6_crypto_aead_encrypt_hex(0, key, keySize, nonce, nonceSize, text, textSize, aad, aadSize);\n", out);
@@ -362,6 +505,19 @@ static void xl6CgenEmitCryptoRuntime(XL6_Output* out)
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xl6_crypto_aead_decrypt_text(2, key, keySize, nonce, nonceSize, cipherHex, cipherHexSize, aad, aadSize);\n", out);
     xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void* xl6_crypto_hkdf_bytes(int algorithm, const void* ikm, size_t ikmSize, const void* salt, size_t saltSize, const void* info, size_t infoSize, size_t outSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned char prk[48]; unsigned char* output; void* result;\n", out);
+    xl6OutputPuts("    size_t maxSize = algorithm == 1 ? 8160u : 12240u;\n", out);
+    xl6OutputPuts("    if ( outSize == 0u || outSize > maxSize || (ikm == 0 && ikmSize != 0u) || (salt == 0 && saltSize != 0u) || (info == 0 && infoSize != 0u) ) { return 0; }\n", out);
+    xl6OutputPuts("    output = (unsigned char*)xrtMalloc(outSize); if ( output == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    if ( algorithm == 1 ) { xrtHKDFExtract(prk, (const unsigned char*)(salt != 0 ? salt : \"\"), saltSize, (const unsigned char*)(ikm != 0 ? ikm : \"\"), ikmSize); xrtHKDFExpand(output, outSize, prk, 32u, (const unsigned char*)(info != 0 ? info : \"\"), infoSize); }\n", out);
+    xl6OutputPuts("    else { xrtHKDFExtract_SHA384(prk, (const unsigned char*)(salt != 0 ? salt : \"\"), saltSize, (const unsigned char*)(ikm != 0 ? ikm : \"\"), ikmSize); xrtHKDFExpand_SHA384(output, outSize, prk, 48u, (const unsigned char*)(info != 0 ? info : \"\"), infoSize); }\n", out);
+    xl6OutputPuts("    result = xl6_crypto_buffer_from_bytes(output, outSize); xrtFree(output); return result;\n", out);
+    xl6OutputPuts("}\n", out);
+    xl6OutputPuts("void* xl6_xrt_hkdf_sha256_bytes(void* ikm, size_t ikmSize, void* salt, size_t saltSize, void* info, size_t infoSize, size_t outSize) { return xl6_crypto_hkdf_bytes(1, ikm, ikmSize, salt, saltSize, info, infoSize, outSize); }\n", out);
+    xl6OutputPuts("void* xl6_xrt_hkdf_sha384_bytes(void* ikm, size_t ikmSize, void* salt, size_t saltSize, void* info, size_t infoSize, size_t outSize) { return xl6_crypto_hkdf_bytes(2, ikm, ikmSize, salt, saltSize, info, infoSize, outSize); }\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_hkdf_sha256_hex(const char* ikm, size_t ikmSize, const char* salt, size_t saltSize, const char* info, size_t infoSize, size_t outSize)\n", out);
     xl6OutputPuts("{\n", out);
@@ -478,6 +634,77 @@ static void xl6CgenEmitCryptoRuntime(XL6_Output* out)
     xl6OutputPuts("    return xl6_crypto_hex_from_bytes(secret, sizeof(secret));\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("xvalue xl6_xrt_p256_keypair(void)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned char priv[32];\n", out);
+    xl6OutputPuts("    unsigned char pub[65];\n", out);
+    xl6OutputPuts("    xvalue table = xvoCreateTable();\n", out);
+    xl6OutputPuts("    if ( table == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    xrtECDHSecp256r1Keypair(priv, pub);\n", out);
+    xl6OutputPuts("    xl6_crypto_table_set_hex(table, \"privateKey\", priv, sizeof(priv));\n", out);
+    xl6OutputPuts("    xl6_crypto_table_set_hex(table, \"publicKey\", pub, sizeof(pub));\n", out);
+    xl6OutputPuts("    return table;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_p256_shared_secret_hex(const char* privateKeyHex, size_t privateKeyHexSize, const char* publicKeyHex, size_t publicKeyHexSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned char priv[32];\n", out);
+    xl6OutputPuts("    unsigned char pub[65];\n", out);
+    xl6OutputPuts("    unsigned char secret[32];\n", out);
+    xl6OutputPuts("    if ( !xl6_crypto_decode_hex_exact(privateKeyHex, privateKeyHexSize, sizeof(priv), priv) ) { return xl6_crypto_empty_result(); }\n", out);
+    xl6OutputPuts("    if ( !xl6_crypto_decode_hex_exact(publicKeyHex, publicKeyHexSize, sizeof(pub), pub) ) { return xl6_crypto_empty_result(); }\n", out);
+    xl6OutputPuts("    xrtECDHSecp256r1SharedSecret(secret, priv, pub);\n", out);
+    xl6OutputPuts("    return xl6_crypto_hex_from_bytes(secret, sizeof(secret));\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("xvalue xl6_xrt_p384_keypair(void)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned char priv[48];\n", out);
+    xl6OutputPuts("    unsigned char pub[97];\n", out);
+    xl6OutputPuts("    xvalue table = xvoCreateTable();\n", out);
+    xl6OutputPuts("    if ( table == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    xrtECDHSecp384r1Keypair(priv, pub);\n", out);
+    xl6OutputPuts("    xl6_crypto_table_set_hex(table, \"privateKey\", priv, sizeof(priv));\n", out);
+    xl6OutputPuts("    xl6_crypto_table_set_hex(table, \"publicKey\", pub, sizeof(pub));\n", out);
+    xl6OutputPuts("    return table;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_p384_shared_secret_hex(const char* privateKeyHex, size_t privateKeyHexSize, const char* publicKeyHex, size_t publicKeyHexSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned char priv[48];\n", out);
+    xl6OutputPuts("    unsigned char pub[97];\n", out);
+    xl6OutputPuts("    unsigned char secret[48];\n", out);
+    xl6OutputPuts("    if ( !xl6_crypto_decode_hex_exact(privateKeyHex, privateKeyHexSize, sizeof(priv), priv) ) { return xl6_crypto_empty_result(); }\n", out);
+    xl6OutputPuts("    if ( !xl6_crypto_decode_hex_exact(publicKeyHex, publicKeyHexSize, sizeof(pub), pub) ) { return xl6_crypto_empty_result(); }\n", out);
+    xl6OutputPuts("    xrtECDHSecp384r1SharedSecret(secret, priv, pub);\n", out);
+    xl6OutputPuts("    return xl6_crypto_hex_from_bytes(secret, sizeof(secret));\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("bool xl6_xrt_ecdsa_verify(const char* publicKeyHex, size_t publicKeyHexSize, const char* hashHex, size_t hashHexSize, const char* signatureHex, size_t signatureHexSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned char* pub;\n", out);
+    xl6OutputPuts("    unsigned char* hash;\n", out);
+    xl6OutputPuts("    unsigned char* sig;\n", out);
+    xl6OutputPuts("    size_t pubSize;\n", out);
+    xl6OutputPuts("    size_t hashSize;\n", out);
+    xl6OutputPuts("    size_t sigSize;\n", out);
+    xl6OutputPuts("    bool ok;\n", out);
+    xl6OutputPuts("    if ( !xl6_crypto_hex_text(publicKeyHex, publicKeyHexSize) || !xl6_crypto_hex_text(hashHex, hashHexSize) || !xl6_crypto_hex_text(signatureHex, signatureHexSize) ) { return false; }\n", out);
+    xl6OutputPuts("    pubSize = publicKeyHexSize / 2u;\n", out);
+    xl6OutputPuts("    hashSize = hashHexSize / 2u;\n", out);
+    xl6OutputPuts("    sigSize = signatureHexSize / 2u;\n", out);
+    xl6OutputPuts("    if ( (pubSize != 65u && pubSize != 97u) || hashSize == 0u || sigSize == 0u ) { return false; }\n", out);
+    xl6OutputPuts("    pub = (unsigned char*)xrtHexDecode(publicKeyHex, publicKeyHexSize);\n", out);
+    xl6OutputPuts("    hash = (unsigned char*)xrtHexDecode(hashHex, hashHexSize);\n", out);
+    xl6OutputPuts("    sig = (unsigned char*)xrtHexDecode(signatureHex, signatureHexSize);\n", out);
+    xl6OutputPuts("    if ( pub == 0 || hash == 0 || sig == 0 ) { xrtFree(pub); xrtFree(hash); xrtFree(sig); return false; }\n", out);
+    xl6OutputPuts("    ok = xrtECDSAVerify(hash, hashSize, sig, sigSize, pub, pubSize);\n", out);
+    xl6OutputPuts("    xrtFree(pub);\n", out);
+    xl6OutputPuts("    xrtFree(hash);\n", out);
+    xl6OutputPuts("    xrtFree(sig);\n", out);
+    xl6OutputPuts("    return ok;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("static bool xl6_crypto_rsa_verify(int alg, const char* hashHex, size_t hashHexSize, const char* sigHex, size_t sigHexSize, const char* modHex, size_t modHexSize, const char* expHex, size_t expHexSize)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    unsigned char* hash;\n", out);
@@ -508,6 +735,15 @@ static void xl6CgenEmitCryptoRuntime(XL6_Output* out)
     xl6OutputPuts("bool xl6_xrt_rsa_pkcs1_verify(const char* hashHex, size_t hashHexSize, const char* sigHex, size_t sigHexSize, const char* modHex, size_t modHexSize, const char* expHex, size_t expHexSize)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xl6_crypto_rsa_verify(1, hashHex, hashHexSize, sigHex, sigHexSize, modHex, modHexSize, expHex, expHexSize);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_random_bytes(size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned char* data; void* result;\n", out);
+    xl6OutputPuts("    if ( size > 4294967295u ) { return 0; }\n", out);
+    xl6OutputPuts("    if ( size == 0u ) { return xl6_crypto_buffer_from_bytes(0, 0); }\n", out);
+    xl6OutputPuts("    data = (unsigned char*)xrtMalloc(size); if ( data == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    xrtRandomBytes(data, size); result = xl6_crypto_buffer_from_bytes(data, size); xrtFree(data); return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_random_hex(size_t size)\n", out);

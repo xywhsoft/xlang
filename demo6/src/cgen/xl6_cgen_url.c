@@ -8,6 +8,13 @@ static void xl6CgenEmitUrlRuntime(XL6_Output* out)
     xl6OutputPuts("#define XL6_URL_RUNTIME\n", out);
     xl6OutputPuts("#include <string.h>\n", out);
     xl6OutputPuts("#define XL6_URL_F_ABSOLUTE 0x00000001u\n", out);
+    xl6OutputPuts("#define XL6_URL_F_HAS_AUTHORITY 0x00000004u\n", out);
+    xl6OutputPuts("#define XL6_URL_F_HAS_USERINFO 0x00000008u\n", out);
+    xl6OutputPuts("#define XL6_URL_F_HAS_HOST 0x00000010u\n", out);
+    xl6OutputPuts("#define XL6_URL_F_HAS_PORT 0x00000020u\n", out);
+    xl6OutputPuts("#define XL6_URL_F_HAS_PATH 0x00000040u\n", out);
+    xl6OutputPuts("#define XL6_URL_F_HAS_QUERY 0x00000080u\n", out);
+    xl6OutputPuts("#define XL6_URL_F_HAS_FRAGMENT 0x00000100u\n", out);
     xl6OutputPuts("#define XL6_URL_F_SECURE 0x00000200u\n", out);
     xl6OutputPuts("#ifndef XL6_XRT_URL_TYPEDEF\n", out);
     xl6OutputPuts("#define XL6_XRT_URL_TYPEDEF\n", out);
@@ -27,6 +34,10 @@ static void xl6CgenEmitUrlRuntime(XL6_Output* out)
     xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("bool xrtUrlParseViewN(const char* sText, size_t iLen, xrturlview* pOut);\n", out);
+    xl6OutputPuts("uint16_t xrtUrlDefaultPort(xrtstrview tScheme);\n", out);
+    xl6OutputPuts("bool xrtUrlIsDefaultPort(const xrturlview* pURL);\n", out);
+    xl6OutputPuts("bool xrtUrlMakeHostHeader(const xrturlview* pURL, char* sOut, size_t iOutCap);\n", out);
+    xl6OutputPuts("bool xrtUrlBuild(const xrturlview* pURL, char* sOut, size_t iOutCap, size_t* pOutLen);\n", out);
     xl6OutputPuts("bool xrtUrlResolveTo(const xrturlview* pBase, const char* sRef, size_t iRefLen, char* sOut, size_t iOutCap, size_t* pOutLen);\n", out);
     xl6OutputPuts("bool xrtUrlNormalizePathTo(const char* sPath, size_t iLen, char* sOut, size_t iOutCap, size_t* pOutLen);\n\n", out);
 
@@ -90,6 +101,71 @@ static void xl6CgenEmitUrlRuntime(XL6_Output* out)
     xl6OutputPuts("    xrturlview url;\n", out);
     xl6OutputPuts("    if ( !xl6_url_parse_view(text, size, &url) ) { return 0; }\n", out);
     xl6OutputPuts("    return (int)url.iPort;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_url_default_port(const char* scheme, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xrtstrview view;\n", out);
+    xl6OutputPuts("    view.sPtr = scheme != 0 ? scheme : \"\";\n", out);
+    xl6OutputPuts("    view.iLen = scheme != 0 ? size : 0u;\n", out);
+    xl6OutputPuts("    return (int)xrtUrlDefaultPort(view);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("bool xl6_xrt_url_is_default_port(const char* text, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xrturlview url;\n", out);
+    xl6OutputPuts("    return xl6_url_parse_view(text, size, &url) && xrtUrlIsDefaultPort(&url);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_url_host_header(const char* text, size_t size)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xrturlview url;\n", out);
+    xl6OutputPuts("    char* result;\n", out);
+    xl6OutputPuts("    size_t cap = size + 16u;\n", out);
+    xl6OutputPuts("    if ( !xl6_url_parse_view(text, size, &url) ) { return xl6_url_empty_string(); }\n", out);
+    xl6OutputPuts("    result = (char*)xrtMalloc(cap);\n", out);
+    xl6OutputPuts("    if ( result == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    if ( !xrtUrlMakeHostHeader(&url, result, cap) ) { result[0] = '\\0'; }\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_url_build(const char* scheme, size_t schemeSize, const char* host, size_t hostSize, unsigned int port, const char* path, size_t pathSize, const char* query, size_t querySize, const char* fragment, size_t fragmentSize, const char* userInfo, size_t userInfoSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xrturlview url;\n", out);
+    xl6OutputPuts("    char* result;\n", out);
+    xl6OutputPuts("    size_t cap;\n", out);
+    xl6OutputPuts("    size_t outSize = 0u;\n", out);
+    xl6OutputPuts("    memset(&url, 0, sizeof(url));\n", out);
+    xl6OutputPuts("    if ( scheme == 0 ) { scheme = \"\"; schemeSize = 0u; }\n", out);
+    xl6OutputPuts("    if ( host == 0 ) { host = \"\"; hostSize = 0u; }\n", out);
+    xl6OutputPuts("    if ( path == 0 ) { path = \"\"; pathSize = 0u; }\n", out);
+    xl6OutputPuts("    if ( query == 0 ) { query = \"\"; querySize = 0u; }\n", out);
+    xl6OutputPuts("    if ( fragment == 0 ) { fragment = \"\"; fragmentSize = 0u; }\n", out);
+    xl6OutputPuts("    if ( userInfo == 0 ) { userInfo = \"\"; userInfoSize = 0u; }\n", out);
+    xl6OutputPuts("    cap = 64u;\n", out);
+    xl6OutputPuts("    if ( schemeSize > ((size_t)-1) - cap ) { return xl6_url_empty_string(); } cap += schemeSize;\n", out);
+    xl6OutputPuts("    if ( hostSize > ((size_t)-1) - cap ) { return xl6_url_empty_string(); } cap += hostSize;\n", out);
+    xl6OutputPuts("    if ( pathSize > ((size_t)-1) - cap ) { return xl6_url_empty_string(); } cap += pathSize;\n", out);
+    xl6OutputPuts("    if ( querySize > ((size_t)-1) - cap ) { return xl6_url_empty_string(); } cap += querySize;\n", out);
+    xl6OutputPuts("    if ( fragmentSize > ((size_t)-1) - cap ) { return xl6_url_empty_string(); } cap += fragmentSize;\n", out);
+    xl6OutputPuts("    if ( userInfoSize > ((size_t)-1) - cap ) { return xl6_url_empty_string(); } cap += userInfoSize;\n", out);
+    xl6OutputPuts("    result = (char*)xrtMalloc(cap);\n", out);
+    xl6OutputPuts("    if ( result == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    url.iFlags = XL6_URL_F_ABSOLUTE | XL6_URL_F_HAS_AUTHORITY | XL6_URL_F_HAS_HOST;\n", out);
+    xl6OutputPuts("    url.iPort = (uint16_t)port;\n", out);
+    xl6OutputPuts("    url.tScheme.sPtr = scheme; url.tScheme.iLen = schemeSize;\n", out);
+    xl6OutputPuts("    url.tHost.sPtr = host; url.tHost.iLen = hostSize;\n", out);
+    xl6OutputPuts("    url.tPath.sPtr = path; url.tPath.iLen = pathSize;\n", out);
+    xl6OutputPuts("    url.tQuery.sPtr = query; url.tQuery.iLen = querySize;\n", out);
+    xl6OutputPuts("    url.tFragment.sPtr = fragment; url.tFragment.iLen = fragmentSize;\n", out);
+    xl6OutputPuts("    url.tUserInfo.sPtr = userInfo; url.tUserInfo.iLen = userInfoSize;\n", out);
+    xl6OutputPuts("    if ( port != 0u ) { url.iFlags |= XL6_URL_F_HAS_PORT; }\n", out);
+    xl6OutputPuts("    if ( pathSize != 0u ) { url.iFlags |= XL6_URL_F_HAS_PATH; }\n", out);
+    xl6OutputPuts("    if ( querySize != 0u ) { url.iFlags |= XL6_URL_F_HAS_QUERY; }\n", out);
+    xl6OutputPuts("    if ( fragmentSize != 0u ) { url.iFlags |= XL6_URL_F_HAS_FRAGMENT; }\n", out);
+    xl6OutputPuts("    if ( userInfoSize != 0u ) { url.iFlags |= XL6_URL_F_HAS_USERINFO; }\n", out);
+    xl6OutputPuts("    if ( !xrtUrlBuild(&url, result, cap, &outSize) ) { result[0] = '\\0'; }\n", out);
+    xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_url_resolve(const char* base, size_t baseSize, const char* ref, size_t refSize)\n", out);

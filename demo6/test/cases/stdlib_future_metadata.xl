@@ -1,0 +1,21 @@
+func delayedValue() as int
+    time.sleep(25)
+    return 42
+end
+
+func() as int job = delayedValue
+future<int> work = task.spawn(job)
+
+assert work.setDebugName("metadata-test")
+assert work.debugName() == "metadata-test"
+assert work.createTimeMs() > 0
+assert work.completeTimeMs() == 0
+assert work.pendingContinuations() == 0
+
+int deadline = int(time.timer() * 1000.0) + 2000
+assert work.waitUntil(deadline)
+assert work.isDone()
+assert work.completeTimeMs() >= work.createTimeMs()
+assert await work == 42
+
+println("future metadata ok")

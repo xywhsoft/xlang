@@ -22,6 +22,7 @@ typedef enum XL6_CgenCleanupKind {
     XL6_CGEN_CLEANUP_FUNCTION,
     XL6_CGEN_CLEANUP_FUTURE,
     XL6_CGEN_CLEANUP_CHANNEL,
+    XL6_CGEN_CLEANUP_SPECIAL_COLLECTION,
     XL6_CGEN_CLEANUP_THREAD,
     XL6_CGEN_CLEANUP_GENERATOR,
     XL6_CGEN_CLEANUP_SYNC,
@@ -214,12 +215,14 @@ static int xl6CgenParamRequiredCount(const XL6_AstNode* params);
 static int xl6CgenIsAsyncFunc(const XL6_AstNode* node);
 static int xl6CgenIsFutureLikeType(const XL6_AstNode* typeNode);
 static int xl6CgenIsChannelType(const XL6_AstNode* typeNode);
+static int xl6CgenIsSpecialCollectionTypeName(const char* name);
+static int xl6CgenIsSpecialCollectionType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 static int xl6CgenIsThreadType(const XL6_AstNode* typeNode);
 static int xl6CgenIsGeneratorType(const XL6_AstNode* typeNode);
 static int xl6CgenIsSyncHandleType(const XL6_AstNode* typeNode);
 static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node);
 static int xl6CgenNodeNeedsTaskSpawn(const XL6_AstNode* node);
-static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn);
+static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn, int hasSpecialCollections);
 static void xl6CgenEmitGeneratorRuntime(XL6_Output* out);
 static void xl6CgenEmitDebugRuntime(XL6_Output* out);
 static void xl6CgenDebugProbe(XL6_CgenContext* ctx, const XL6_AstNode* node);
@@ -237,6 +240,17 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
 static void xl6CgenAwaitExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static int xl6CgenChannelCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);
 static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
+static int xl6CgenSpecialCollectionCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);
+static int xl6CgenSpecialCollectionMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
+static XL6_AstNode* xl6CgenSpecialCollectionCtorType(XL6_CgenContext* ctx, const XL6_AstNode* call);
+static XL6_AstNode* xl6CgenSpecialCollectionMethodType(XL6_CgenContext* ctx, const XL6_AstNode* call);
+static void xl6CgenEmitSpecialCollectionRuntime(XL6_Output* out);
+static void xl6CgenAddSpecialCollectionCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode);
+static void xl6CgenSpecialCollectionRetainExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr);
+static void xl6CgenSpecialCollectionRetainCExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* expr);
+static void xl6CgenSpecialCollectionReleaseCExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* expr);
+static void xl6CgenSpecialCollectionDefaultCreateExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
+static int xl6CgenSpecialCollectionExprIsOwned(XL6_CgenContext* ctx, const XL6_AstNode* expr);
 static int xl6CgenFutureMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
 static int xl6CgenTaskNamespaceCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
 static int xl6CgenThreadCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);

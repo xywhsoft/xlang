@@ -25,5 +25,12 @@ if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\hir_vararg_length_index.xl
 if errorlevel 1 exit /b 1
 
+release\xl.exe run test\cases\c_run_exit_code.c
+set "C_RUN_EXIT=%ERRORLEVEL%"
+if not "%C_RUN_EXIT%"=="37" (
+    echo c_run_exit_code.c returned %C_RUN_EXIT%, expected 37.
+    exit /b 1
+)
+
 echo DEMO6 suite ok: current core ownership regressions
 exit /b 0

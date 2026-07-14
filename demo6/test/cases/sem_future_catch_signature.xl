@@ -1,0 +1,11 @@
+func work() as int
+    return 1
+end
+
+func recover(int code) as int
+    return code
+end
+
+func() as int worker = work
+future<int> source = task.spawn(worker)
+future<int> result = source.catch(recover)

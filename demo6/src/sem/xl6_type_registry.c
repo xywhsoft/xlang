@@ -23,6 +23,8 @@ static const XL6_BuiltinTypeSeed g_xl6BuiltinTypeSeeds[] = {
     {"function", 0, 0}, {"var", 0, 0}, {"type", 0, 0},
     {"array", 1, 1}, {"list", 1, 1}, {"set", 1, 1}, {"dict", 1, 1},
     {"future", 1, 1}, {"task", 1, 1}, {"channel", 1, 1}, {"generator", 1, 1},
+    {"Stack", 1, 1}, {"AvlTree", 1, 2},
+    {"SpscQueue", 1, 1}, {"MpscQueue", 1, 1}, {"MpmcQueue", 1, 1}, {"WaitQueue", 1, 1},
     {"thread", 0, 0}, {"mutex", 0, 0}, {"cond", 0, 0}, {"rwlock", 0, 0}, {"sem", 0, 0}
 };
 

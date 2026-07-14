@@ -271,12 +271,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing string task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_values(xrtTypeBool()" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_all_values(xrtTypeBool32()" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing bool task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(flipJob, xrtTypeBool(), sizeof(int)" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_spawn_values(flipJob, xrtTypeBool32(), sizeof(int)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing bool task.spawn source for task aggregation.
     exit /b 1
@@ -316,12 +316,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing failed string task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_values(xrtTypeBool()" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_all_values(xrtTypeBool32()" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed bool task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(throwingBoolJob, xrtTypeBool(), sizeof(int)" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_spawn_values(throwingBoolJob, xrtTypeBool32(), sizeof(int)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed bool task.spawn source for task aggregation.
     exit /b 1
@@ -356,7 +356,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(spawnBoolAllJobs), xrtTypeBool()" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(spawnBoolAllJobs), xrtTypeBool32()" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array bool task.all over task.spawn futures.
     exit /b 1
@@ -526,7 +526,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first bool task.all source array over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(typedNullFirstSpawnBoolAllJobs), xrtTypeBool()" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(typedNullFirstSpawnBoolAllJobs), xrtTypeBool32()" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first bool task.all await over task.spawn futures.
     exit /b 1

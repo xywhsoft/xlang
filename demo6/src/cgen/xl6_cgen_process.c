@@ -94,7 +94,7 @@ static void xl6CgenEmitProcessRuntime(XL6_Output* out)
     xl6OutputPuts("    bool bStderrTruncated;\n", out);
     xl6OutputPuts("    uint64_t iDurationMs;\n", out);
     xl6OutputPuts("} xprocesspipelineresult;\n", out);
-    xl6OutputPuts("typedef struct { xprocessconfig Config; char* sProgram; char* sCommand; char** arrArgs; uint32_t iArgCount; } xl6_process_command;\n", out);
+    xl6OutputPuts("typedef struct { xprocessconfig Config; char* sProgram; char* sCommand; char* sWorkDir; char** arrArgs; uint32_t iArgCount; char** arrEnv; uint32_t iEnvCount; } xl6_process_command;\n", out);
     xl6OutputPuts("typedef struct { xprocesspipelineresult Result; } xl6_process_pipeline_result;\n\n", out);
 
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
@@ -159,9 +159,14 @@ static void xl6CgenEmitProcessRuntime(XL6_Output* out)
     xl6OutputPuts("    if ( command == 0 ) { return; }\n", out);
     xl6OutputPuts("    if ( command->sProgram != 0 ) { xrtFree(command->sProgram); }\n", out);
     xl6OutputPuts("    if ( command->sCommand != 0 ) { xrtFree(command->sCommand); }\n", out);
+    xl6OutputPuts("    if ( command->sWorkDir != 0 ) { xrtFree(command->sWorkDir); }\n", out);
     xl6OutputPuts("    if ( command->arrArgs != 0 ) {\n", out);
     xl6OutputPuts("        for ( i = 0; i < command->iArgCount; ++i ) { if ( command->arrArgs[i] != 0 ) { xrtFree(command->arrArgs[i]); } }\n", out);
     xl6OutputPuts("        xrtFree(command->arrArgs);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( command->arrEnv != 0 ) {\n", out);
+    xl6OutputPuts("        for ( i = 0; i < command->iEnvCount; ++i ) { if ( command->arrEnv[i] != 0 ) { xrtFree(command->arrEnv[i]); } }\n", out);
+    xl6OutputPuts("        xrtFree(command->arrEnv);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    xrtFree(command);\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -174,6 +179,9 @@ static void xl6CgenEmitProcessRuntime(XL6_Output* out)
     xl6OutputPuts("    xrtProcessConfigInit(&command->Config);\n", out);
     xl6OutputPuts("    command->Config.iTargetKind = XL6_XPROC_TARGET_EXEC;\n", out);
     xl6OutputPuts("    command->Config.bHideWindow = true;\n", out);
+    xl6OutputPuts("    command->Config.Stdin.iMode = XL6_XPROC_STDIO_PIPE;\n", out);
+    xl6OutputPuts("    command->Config.Stdout.iMode = XL6_XPROC_STDIO_PIPE;\n", out);
+    xl6OutputPuts("    command->Config.Stderr.iMode = XL6_XPROC_STDIO_PIPE;\n", out);
     xl6OutputPuts("    command->sProgram = xl6_process_copy_text(program);\n", out);
     xl6OutputPuts("    if ( command->sProgram == 0 ) { xl6_process_command_destroy(command); return 0; }\n", out);
     xl6OutputPuts("    command->Config.sProgram = command->sProgram;\n", out);
@@ -198,6 +206,9 @@ static void xl6CgenEmitProcessRuntime(XL6_Output* out)
     xl6OutputPuts("    xrtProcessConfigInit(&command->Config);\n", out);
     xl6OutputPuts("    command->Config.iTargetKind = XL6_XPROC_TARGET_SHELL;\n", out);
     xl6OutputPuts("    command->Config.bHideWindow = true;\n", out);
+    xl6OutputPuts("    command->Config.Stdin.iMode = XL6_XPROC_STDIO_PIPE;\n", out);
+    xl6OutputPuts("    command->Config.Stdout.iMode = XL6_XPROC_STDIO_PIPE;\n", out);
+    xl6OutputPuts("    command->Config.Stderr.iMode = XL6_XPROC_STDIO_PIPE;\n", out);
     xl6OutputPuts("    command->sCommand = xl6_process_copy_text(text);\n", out);
     xl6OutputPuts("    if ( command->sCommand == 0 ) { xl6_process_command_destroy(command); return 0; }\n", out);
     xl6OutputPuts("    command->Config.sCommand = command->sCommand;\n", out);
@@ -464,5 +475,6 @@ static void xl6CgenEmitProcessRuntime(XL6_Output* out)
     xl6OutputPuts("    xl6_xrt_process_result_destroy(result);\n", out);
     xl6OutputPuts("    return code;\n", out);
     xl6OutputPuts("}\n\n", out);
+    xl6CgenEmitProcessExtendedRuntime(out);
     xl6OutputPuts("#endif\n\n", out);
 }

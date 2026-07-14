@@ -64,9 +64,19 @@ if errorlevel 1 (
     echo stdlib_file_async.c missing async file read helper.
     exit /b 1
 )
-findstr /C:"xl6_task_run_thread_tracked(xl6_xrt_file_read_text_async_entry" build\test\stdlib_file_async.c >nul
+findstr /C:"xfuture* xrtFileReadAllAsync" build\test\stdlib_file_async.c >nul
 if errorlevel 1 (
-    echo stdlib_file_async.c missing XRT task-backed read entry.
+    echo stdlib_file_async.c missing direct XRT async file API.
+    exit /b 1
+)
+findstr /C:"xFutureThenSource" build\test\stdlib_file_async.c >nul
+if errorlevel 1 (
+    echo stdlib_file_async.c missing XRT future result adapter.
+    exit /b 1
+)
+findstr /C:"xl6_task_run_thread_tracked(xl6_xrt_file" build\test\stdlib_file_async.c >nul
+if not errorlevel 1 (
+    echo stdlib_file_async.c still contains the removed duplicate thread-backed file path.
     exit /b 1
 )
 findstr /C:"xfuture* xl6_xrt_file_delete_async" build\test\stdlib_file_async.c >nul
@@ -116,6 +126,11 @@ if errorlevel 1 (
     echo stdlib_net_tcp_udp.c missing UDP packet buffer bridge.
     exit /b 1
 )
+findstr /C:"xl6_xrt_tls_session_create" build\test\stdlib_net_tcp_udp.c >nul
+if not errorlevel 1 (
+    echo stdlib_net_tcp_udp.c unexpectedly contains raw TLS wrappers.
+    exit /b 1
+)
 release\xl.exe build test\cases\stdlib_net_tcp_udp.xl -o build\test\stdlib_net_tcp_udp.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_net_tcp_udp.exe
@@ -129,7 +144,7 @@ if errorlevel 1 (
     echo stdlib_tcp_lifecycle.c missing TcpStream ownership transfer.
     exit /b 1
 )
-findstr /C:"xl_class_TcpStream__close(((XL_Class_TcpStream*)xl6_class_data(client" build\test\stdlib_tcp_lifecycle.c >nul
+findstr /C:"xl_class_TcpStream__close__void(((XL_Class_TcpStream*)xl6_class_data(client" build\test\stdlib_tcp_lifecycle.c >nul
 if errorlevel 1 (
     echo stdlib_tcp_lifecycle.c missing graceful close call.
     exit /b 1

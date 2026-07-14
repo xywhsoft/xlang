@@ -56,11 +56,87 @@ expectStr(crypto.hkdfSha384("key", "salt", "info", 0), "")
 expect(string.len(crypto.randomHex(16)), 32)
 expectStr(crypto.randomHex(0), "")
 
+Buffer binary = Buffer()
+binary.appendByte(0)
+binary.appendByte(1)
+binary.appendByte(2)
+binary.appendByte(255)
+
+Buffer binarySha1 = crypto.sha1Bytes(binary)
+Buffer binarySha256 = crypto.sha256Bytes(binary)
+Buffer binarySha384 = crypto.sha384Bytes(binary)
+Buffer binarySha512 = crypto.sha512Bytes(binary)
+expect(binarySha1.len(), 20)
+expect(binarySha256.len(), 32)
+expect(binarySha384.len(), 48)
+expect(binarySha512.len(), 64)
+expectStr(codec.hexEncodeBytes(binarySha256.data(), c_size(binarySha256.len())), "3D1F57C984978EF98A18378C8166C1CB8EDE02C03EEB6AEE7E2F121DFEEE3E56")
+
+Buffer binaryHmacKey = Buffer()
+binaryHmacKey.appendByte(107)
+binaryHmacKey.appendByte(0)
+binaryHmacKey.appendByte(101)
+binaryHmacKey.appendByte(121)
+Buffer binaryHmac256 = crypto.hmacSha256Bytes(binaryHmacKey, binary)
+Buffer binaryHmac384 = crypto.hmacSha384Bytes(binaryHmacKey, binary)
+Buffer binaryHmac512 = crypto.hmacSha512Bytes(binaryHmacKey, binary)
+expectStr(codec.hexEncodeBytes(binaryHmac256.data(), c_size(binaryHmac256.len())), "ED8E5575104941F74E6529671B739D9DA41EA7A01747E53EAD88B999EE547360")
+expect(binaryHmac384.len(), 48)
+expect(binaryHmac512.len(), 64)
+
+Buffer key16Bytes = encoding.toBytes(key16)
+Buffer key32Bytes = encoding.toBytes(key32)
+Buffer nonceBytes = encoding.toBytes(nonce)
+Buffer aadBytes = encoding.toBytes(aad)
+Buffer streamBinaryCipher = crypto.chacha20Bytes(key32Bytes, nonceBytes, binary, 7)
+Buffer streamBinaryPlain = crypto.chacha20Bytes(key32Bytes, nonceBytes, streamBinaryCipher, 7)
+assert streamBinaryPlain == binary, "binary chacha20 roundtrip failed"
+
+Buffer chachaBinaryCipher = crypto.chacha20Poly1305EncryptBytes(key32Bytes, nonceBytes, binary, aadBytes)
+Buffer chachaBinaryPlain = crypto.chacha20Poly1305DecryptBytes(key32Bytes, nonceBytes, chachaBinaryCipher, aadBytes)
+expect(chachaBinaryCipher.len(), binary.len() + 16)
+assert chachaBinaryPlain == binary, "binary chacha20-poly1305 roundtrip failed"
+
+Buffer aes128BinaryCipher = crypto.aes128GcmEncryptBytes(key16Bytes, nonceBytes, binary, aadBytes)
+Buffer aes128BinaryPlain = crypto.aes128GcmDecryptBytes(key16Bytes, nonceBytes, aes128BinaryCipher, aadBytes)
+expect(aes128BinaryCipher.len(), binary.len() + 16)
+assert aes128BinaryPlain == binary, "binary aes128-gcm roundtrip failed"
+
+Buffer aes256BinaryCipher = crypto.aes256GcmEncryptBytes(key32Bytes, nonceBytes, binary, aadBytes)
+Buffer aes256BinaryPlain = crypto.aes256GcmDecryptBytes(key32Bytes, nonceBytes, aes256BinaryCipher, aadBytes)
+expect(aes256BinaryCipher.len(), binary.len() + 16)
+assert aes256BinaryPlain == binary, "binary aes256-gcm roundtrip failed"
+aes256BinaryCipher[0] = aes256BinaryCipher[0] ^ 1
+expect(crypto.aes256GcmDecryptBytes(key32Bytes, nonceBytes, aes256BinaryCipher, aadBytes).len(), 0)
+
+Buffer hkdfKeyBytes = encoding.toBytes("key")
+Buffer hkdfSaltBytes = encoding.toBytes("salt")
+Buffer hkdfInfoBytes = encoding.toBytes("info")
+Buffer hkdf256Bytes = crypto.hkdfSha256Bytes(hkdfKeyBytes, hkdfSaltBytes, hkdfInfoBytes, 32)
+Buffer hkdf384Bytes = crypto.hkdfSha384Bytes(hkdfKeyBytes, hkdfSaltBytes, hkdfInfoBytes, 48)
+expect(hkdf256Bytes.len(), 32)
+expect(hkdf384Bytes.len(), 48)
+assert hkdf256Bytes == crypto.hkdfSha256Bytes(hkdfKeyBytes, hkdfSaltBytes, hkdfInfoBytes, 32), "binary hkdf should be stable"
+expect(crypto.hkdfSha256Bytes(hkdfKeyBytes, hkdfSaltBytes, hkdfInfoBytes, 0).len(), 0)
+expect(crypto.randomBytes(17).len(), 17)
+expect(crypto.randomBytes(0).len(), 0)
+
+Sha1 sha1Stream = crypto.sha1Stream()
+assert sha1Stream.update("a"), "sha1 stream update failed"
+assert sha1Stream.update("bc"), "sha1 stream second update failed"
+expectStr(sha1Stream.hex(), crypto.sha1("abc"))
+expectStr(sha1Stream.hex(), crypto.sha1("abc"))
+assert sha1Stream.bytes() == crypto.sha1Bytes(encoding.toBytes("abc")), "sha1 stream bytes mismatch"
+
 Sha256 sha256Stream = crypto.sha256Stream()
 assert sha256Stream.update("a"), "sha256 stream update failed"
 assert sha256Stream.update("bc"), "sha256 stream second update failed"
 expectStr(sha256Stream.hex(), crypto.sha256("abc"))
 expectStr(sha256Stream.hex(), crypto.sha256("abc"))
+
+Sha256 binaryStream = crypto.sha256Stream()
+assert binaryStream.update(binary), "binary sha256 stream update failed"
+assert binaryStream.bytes() == binarySha256, "binary sha256 stream digest mismatch"
 
 Sha384 sha384Stream = crypto.sha384Stream()
 assert sha384Stream.update("ab"), "sha384 stream update failed"
@@ -104,6 +180,37 @@ string x448SecretB = crypto.x448SharedSecret(string(x448B["privateKey"]), string
 expect(string.len(x448SecretA), 112)
 expectStr(x448SecretA, x448SecretB)
 expectStr(crypto.x448SharedSecret("bad", string(x448B["publicKey"])), "")
+
+var p256A = crypto.p256Keypair()
+var p256B = crypto.p256Keypair()
+string p256PrivateA = string(p256A["privateKey"])
+string p256PublicA = string(p256A["publicKey"])
+string p256PrivateB = string(p256B["privateKey"])
+string p256PublicB = string(p256B["publicKey"])
+expect(string.len(p256PrivateA), 64)
+expect(string.len(p256PublicA), 130)
+string p256SecretA = crypto.p256SharedSecret(p256PrivateA, p256PublicB)
+string p256SecretB = crypto.p256SharedSecret(p256PrivateB, p256PublicA)
+expect(string.len(p256SecretA), 64)
+expectStr(p256SecretA, p256SecretB)
+expectStr(crypto.p256SharedSecret("bad", p256PublicB), "")
+
+var p384A = crypto.p384Keypair()
+var p384B = crypto.p384Keypair()
+string p384PrivateA = string(p384A["privateKey"])
+string p384PublicA = string(p384A["publicKey"])
+string p384PrivateB = string(p384B["privateKey"])
+string p384PublicB = string(p384B["publicKey"])
+expect(string.len(p384PrivateA), 96)
+expect(string.len(p384PublicA), 194)
+string p384SecretA = crypto.p384SharedSecret(p384PrivateA, p384PublicB)
+string p384SecretB = crypto.p384SharedSecret(p384PrivateB, p384PublicA)
+expect(string.len(p384SecretA), 96)
+expectStr(p384SecretA, p384SecretB)
+expectStr(crypto.p384SharedSecret(p384PrivateA, "bad"), "")
+
+assert not crypto.ecdsaVerify("", "", ""), "ecdsaVerify should reject empty values"
+assert not crypto.ecdsaVerify(p256PublicA, "00", "00"), "ecdsaVerify should reject malformed signature"
 
 assert not crypto.rsaPssVerify("", "", "", ""), "rsaPssVerify should reject empty hex"
 assert not crypto.rsaPkcs1Verify("bad", "00", "00", "010001"), "rsaPkcs1Verify should reject invalid hex"

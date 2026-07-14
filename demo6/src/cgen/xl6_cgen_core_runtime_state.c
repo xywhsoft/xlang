@@ -99,7 +99,8 @@ static int xl6CgenIsRuntimeContainerTypeDesc(XL6_CgenContext* ctx, const XL6_Ast
             xl6CTextEquals(name, "array") ||
             xl6CTextEquals(name, "list") ||
             xl6CTextEquals(name, "set") ||
-            xl6CTextEquals(name, "dict"));
+            xl6CTextEquals(name, "dict") ||
+            xl6CgenIsSpecialCollectionTypeName(name));
 }
 
 static int xl6CgenIsContainerTypeName(const char* name)

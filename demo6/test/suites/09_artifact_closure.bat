@@ -22,7 +22,7 @@ release\xl.exe build release\examples\stdlib_crypto.xl -o build\test\trim_stdlib
 if errorlevel 1 exit /b 1
 build\test\trim_stdlib_crypto.exe > build\test\trim_stdlib_crypto.out
 if errorlevel 1 exit /b 1
-findstr /C:"rsa_guard=ok" build\test\trim_stdlib_crypto.out >nul
+findstr /C:"signature_guard=ok" build\test\trim_stdlib_crypto.out >nul
 if errorlevel 1 exit /b 1
 
 release\xl.exe build release\examples\stdlib_regex.xl -o build\test\trim_stdlib_regex.exe

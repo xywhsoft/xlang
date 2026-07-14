@@ -68,6 +68,7 @@ static const char* xl6SemExprStaticTypeName(XL6_SemContext* ctx, XL6_AstNode* ex
 static XL6_AstNode* xl6SemInferAutoTypeNode(XL6_SemContext* ctx, XL6_AstNode* expr);
 static XL6_AstNode* xl6SemInferAutoTypeNodeRaw(XL6_SemContext* ctx, XL6_AstNode* expr);
 static XL6_AstNode* xl6SemTypeNodeFromConstructorCallee(XL6_SemContext* ctx, const XL6_AstNode* callee);
+static XL6_AstNode* xl6SemNewGenericContainerType(const char* name, XL6_AstNode* itemType, const XL6_AstNode* at);
 static XL6_AstNode* xl6SemCloneAwaitResultType(XL6_SemContext* ctx, XL6_AstNode* expr);
 static XL6_AstNode* xl6SemCloneAsyncCallResultType(XL6_SemContext* ctx, const XL6_AstNode* func, const XL6_AstNode* typeArgs, const XL6_AstNode* at);
 static const char* xl6SemStaticTypeNameFromTypeNode(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
@@ -83,8 +84,13 @@ static int xl6SemCheckChannelTypeArg(XL6_SemContext* ctx, const XL6_AstNode* cal
 static int xl6SemChannelElementTypeIsFirstStageSafe(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static int xl6SemCheckChannelCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemChannelCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
+static int xl6SemIsSpecialCollectionTypeName(const char* name);
+static int xl6SemCheckSpecialCollectionCall(XL6_SemContext* ctx, XL6_AstNode* node);
+static const char* xl6SemSpecialCollectionCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
+static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckFutureCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemFutureCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
+static XL6_AstNode* xl6SemCloneFutureValueTypeFromType(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static int xl6SemCheckTaskCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemTaskCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
 static XL6_AstNode* xl6SemCloneTaskCallType(XL6_SemContext* ctx, XL6_AstNode* call);
@@ -707,7 +713,9 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
 
     typeInfo = xl6TypeRegistryFind(&ctx->types, typeNode->text);
     if ( typeInfo == NULL ) {
-        xl6SemErrorNode(ctx, typeNode, "未知类型");
+        str message = xrtFormat("未知类型: %s", typeNode->text != NULL ? typeNode->text : "");
+        xl6SemErrorNode(ctx, typeNode, message != NULL ? (const char*)message : "未知类型");
+        xrtFree(message);
         return 0;
     }
 
@@ -1372,6 +1380,15 @@ static int xl6SemTypeSupportsTaskSpawnXValueBridge(XL6_SemContext* ctx, const XL
         return 0;
     }
     if ( xl6TextEquals(typeName, "var") ) {
+        return 1;
+    }
+    if ( xl6SemTypeNodeGenericArgs(concreteType) != NULL &&
+         (xl6TextEquals(typeName, "Stack") ||
+          xl6TextEquals(typeName, "AvlTree") ||
+          xl6TextEquals(typeName, "SpscQueue") ||
+          xl6TextEquals(typeName, "MpscQueue") ||
+          xl6TextEquals(typeName, "MpmcQueue") ||
+          xl6TextEquals(typeName, "WaitQueue")) ) {
         return 1;
     }
     if ( xl6SemTypeNodeGenericArgs(concreteType) != NULL &&
@@ -7750,6 +7767,7 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     int ok;
     int channelOk;
+    int specialCollectionOk;
     int syncOk;
     int taskOk;
     int threadOk;
@@ -7829,6 +7847,10 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
     syncOk = xl6SemCheckSyncCall(ctx, node);
     if ( syncOk >= 0 ) {
         return syncOk && ok;
+    }
+    specialCollectionOk = xl6SemCheckSpecialCollectionCall(ctx, node);
+    if ( specialCollectionOk >= 0 ) {
+        return specialCollectionOk && ok;
     }
     channelOk = xl6SemCheckChannelCall(ctx, node);
     if ( channelOk >= 0 ) {
@@ -8039,6 +8061,19 @@ static int xl6SemCheckGenericInstant(XL6_SemContext* ctx, XL6_AstNode* node)
             xl6SemCountMismatchError(ctx, node, "channel generic argument count mismatch", (size_t)typeInfo->genericArity, typeArgs->childCount);
             ok = 0;
         } else if ( !xl6SemCheckChannelTypeArg(ctx, node) ) {
+            ok = 0;
+        }
+        return ok;
+    }
+    if ( typeInfo != NULL && typeInfo->kind == XL6_TYPE_BUILTIN &&
+         xl6SemIsSpecialCollectionTypeName(nameNode->text) ) {
+        if ( !typeInfo->allowGeneric || typeInfo->genericArity != (int)typeArgs->childCount ) {
+            xl6SemCountMismatchError(
+                ctx,
+                node,
+                "专用数据结构泛型实参数量不匹配",
+                (size_t)typeInfo->genericArity,
+                typeArgs->childCount);
             ok = 0;
         }
         return ok;
@@ -8338,6 +8373,12 @@ static const char* xl6SemExprStaticTypeName(XL6_SemContext* ctx, XL6_AstNode* ex
             const char* syncResultType = xl6SemSyncCallResultTypeName(ctx, expr);
             if ( syncResultType != NULL ) {
                 return syncResultType;
+            }
+        }
+        {
+            const char* specialCollectionResultType = xl6SemSpecialCollectionCallResultTypeName(ctx, expr);
+            if ( specialCollectionResultType != NULL ) {
+                return specialCollectionResultType;
             }
         }
         {
@@ -8906,7 +8947,12 @@ static XL6_AstNode* xl6SemCloneFutureReceiverType(XL6_SemContext* ctx, XL6_AstNo
 
 static int xl6SemFutureMethodArgCount(const char* name)
 {
-    if ( xl6TextEquals(name, "waitTimeout") ) {
+    if ( xl6TextEquals(name, "waitTimeout") ||
+         xl6TextEquals(name, "waitUntil") ||
+         xl6TextEquals(name, "setDebugName") ||
+         xl6TextEquals(name, "then") ||
+         xl6TextEquals(name, "catch") ||
+         xl6TextEquals(name, "finally") ) {
         return 1;
     }
     if ( xl6TextEquals(name, "wait") ||
@@ -8917,10 +8963,281 @@ static int xl6SemFutureMethodArgCount(const char* name)
          xl6TextEquals(name, "isPending") ||
          xl6TextEquals(name, "isCancelled") ||
          xl6TextEquals(name, "isFailed") ||
-         xl6TextEquals(name, "error") ) {
+         xl6TextEquals(name, "error") ||
+         xl6TextEquals(name, "debugName") ||
+         xl6TextEquals(name, "createTimeMs") ||
+         xl6TextEquals(name, "completeTimeMs") ||
+         xl6TextEquals(name, "pendingContinuations") ) {
         return 0;
     }
     return -1;
+}
+
+static XL6_AstNode* xl6SemFunctionTypeFromCallableParts(
+    const XL6_AstNode* params,
+    const XL6_AstNode* returns,
+    const XL6_AstNode* at)
+{
+    XL6_AstNode* typeNode;
+    XL6_AstNode* paramTypes;
+    XL6_AstNode* returnTypes;
+    size_t i;
+
+    typeNode = xl6AstNewText(XL6_AST_TYPE, "function", 8u, NULL);
+    paramTypes = xl6AstNew(XL6_AST_LIST, NULL);
+    returnTypes = returns != NULL
+        ? xl6SemCloneTypeNode(returns)
+        : xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
+    if ( typeNode == NULL || paramTypes == NULL || returnTypes == NULL ) {
+        xl6AstFree(typeNode);
+        xl6AstFree(paramTypes);
+        xl6AstFree(returnTypes);
+        return NULL;
+    }
+    if ( at != NULL ) {
+        typeNode->line = at->line;
+        typeNode->column = at->column;
+    }
+    for ( i = 0; params != NULL && i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+        XL6_AstNode* paramType = param != NULL && param->childCount > 0
+            ? xl6SemCloneTypeNode(param->children[0])
+            : NULL;
+        if ( paramType == NULL ) {
+            xl6AstFree(typeNode);
+            xl6AstFree(paramTypes);
+            xl6AstFree(returnTypes);
+            return NULL;
+        }
+        xl6AstAddChild(paramTypes, paramType);
+    }
+    xl6AstAddChild(typeNode, paramTypes);
+    xl6AstAddChild(typeNode, returnTypes);
+    return typeNode;
+}
+
+static XL6_AstNode* xl6SemNewFutureCallbackType(
+    const XL6_AstNode* paramType,
+    const XL6_AstNode* returnType,
+    const XL6_AstNode* at)
+{
+    XL6_AstNode* typeNode;
+    XL6_AstNode* params;
+    XL6_AstNode* returns;
+
+    typeNode = xl6AstNewText(XL6_AST_TYPE, "function", 8u, NULL);
+    params = xl6AstNew(XL6_AST_LIST, NULL);
+    returns = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
+    if ( typeNode == NULL || params == NULL || returns == NULL ) {
+        xl6AstFree(typeNode);
+        xl6AstFree(params);
+        xl6AstFree(returns);
+        return NULL;
+    }
+    if ( at != NULL ) {
+        typeNode->line = at->line;
+        typeNode->column = at->column;
+    }
+    if ( paramType != NULL ) {
+        xl6AstAddChild(params, xl6SemCloneTypeNode(paramType));
+    }
+    if ( returnType != NULL ) {
+        xl6AstAddChild(returns, xl6SemCloneTypeNode(returnType));
+    }
+    xl6AstAddChild(typeNode, params);
+    xl6AstAddChild(typeNode, returns);
+    return typeNode;
+}
+
+static XL6_AstNode* xl6SemResolveFutureNamedCallbackType(
+    XL6_SemContext* ctx,
+    XL6_AstNode* callbackExpr,
+    int kind,
+    const XL6_AstNode* inputType,
+    int* diagnosed)
+{
+    XL6_AstNode stringType;
+    XL6_AstNode* selectedType;
+    int candidateCount;
+    int matchCount;
+    size_t i;
+
+    if ( diagnosed != NULL ) {
+        *diagnosed = 0;
+    }
+    if ( ctx == NULL || ctx->root == NULL || callbackExpr == NULL ||
+         callbackExpr->kind != XL6_AST_NAME || callbackExpr->text == NULL ||
+         inputType == NULL ) {
+        return NULL;
+    }
+
+    memset(&stringType, 0, sizeof(stringType));
+    stringType.kind = XL6_AST_TYPE;
+    stringType.text = "string";
+    selectedType = NULL;
+    candidateCount = 0;
+    matchCount = 0;
+    for ( i = 0; i < ctx->root->childCount; ++i ) {
+        XL6_AstNode* func = ctx->root->children[i];
+        const XL6_AstNode* params;
+        const XL6_AstNode* returns;
+        const XL6_AstNode* outputType;
+        XL6_AstNode* expectedType;
+
+        if ( func == NULL ||
+             (func->kind != XL6_AST_FUNC && func->kind != XL6_AST_EXTERN_FUNC &&
+              func->kind != XL6_AST_EXPORT_FUNC) ||
+             xl6SemFuncIsGeneric(func) ||
+             !xl6TextEquals(xl6SemFuncName(func), callbackExpr->text) ) {
+            continue;
+        }
+        candidateCount += 1;
+        params = func->childCount > 1 ? func->children[1] : NULL;
+        returns = func->childCount > 2 ? func->children[2] : NULL;
+        outputType = kind == 1 && returns != NULL && returns->childCount == 1
+            ? returns->children[0]
+            : (kind == 2 ? inputType : NULL);
+        if ( kind == 1 && outputType == NULL ) {
+            continue;
+        }
+        expectedType = xl6SemNewFutureCallbackType(
+            kind == 1 ? inputType : (kind == 2 ? &stringType : NULL),
+            outputType,
+            callbackExpr);
+        if ( expectedType == NULL ) {
+            continue;
+        }
+        if ( !xl6SemFunctionTypeMatchesParts(ctx, expectedType, params, returns) ) {
+            xl6AstFree(expectedType);
+            continue;
+        }
+        matchCount += 1;
+        if ( matchCount == 1 ) {
+            selectedType = expectedType;
+        } else {
+            xl6AstFree(expectedType);
+            xl6AstFree(selectedType);
+            selectedType = NULL;
+        }
+    }
+
+    if ( matchCount == 1 ) {
+        return selectedType;
+    }
+    if ( diagnosed != NULL ) {
+        *diagnosed = 1;
+    }
+    xl6SemErrorNode(
+        ctx,
+        callbackExpr,
+        candidateCount == 0
+            ? "future continuation callback function was not found"
+            : (matchCount == 0
+                ? (kind == 1
+                    ? "future.then named callback must have one matching parameter and one return value"
+                    : (kind == 2
+                        ? "future.catch named callback must match func(string) as T"
+                        : "future.finally named callback must match func()"))
+                : "future continuation callback is ambiguous; use an explicitly typed func value"));
+    return NULL;
+}
+
+static int xl6SemCheckFutureContinuation(
+    XL6_SemContext* ctx,
+    XL6_AstNode* call,
+    XL6_AstNode* member,
+    const XL6_AstNode* receiverType)
+{
+    XL6_AstNode stringType;
+    XL6_AstNode* callbackExpr;
+    XL6_AstNode* callbackType;
+    XL6_AstNode* inputType;
+    XL6_AstNode* outputType;
+    XL6_AstNode* expectedType;
+    XL6_AstNode* inferredType;
+    const XL6_AstNode* params;
+    const XL6_AstNode* returns;
+    int kind;
+    int ok;
+    int diagnosed;
+
+    kind = xl6TextEquals(member->text, "then") ? 1 :
+           (xl6TextEquals(member->text, "catch") ? 2 :
+            (xl6TextEquals(member->text, "finally") ? 3 : 0));
+    if ( kind == 0 ) {
+        return 1;
+    }
+
+    callbackExpr = xl6SemCallArgExprAt(call, 0);
+    callbackType = xl6SemInferAutoTypeNode(ctx, callbackExpr);
+    inputType = xl6SemCloneFutureValueTypeFromType(ctx, receiverType);
+    diagnosed = 0;
+    if ( (callbackType == NULL || !xl6TextEquals(callbackType->text, "function") ||
+          callbackType->childCount < 2) &&
+         callbackExpr != NULL && callbackExpr->kind == XL6_AST_NAME ) {
+        xl6AstFree(callbackType);
+        callbackType = xl6SemResolveFutureNamedCallbackType(
+            ctx,
+            callbackExpr,
+            kind,
+            inputType,
+            &diagnosed);
+        if ( callbackType != NULL && callbackExpr->inferredType == NULL ) {
+            callbackExpr->inferredType = xl6SemCloneTypeNode(callbackType);
+        }
+    }
+    params = callbackType != NULL && callbackType->childCount > 0 ? callbackType->children[0] : NULL;
+    returns = callbackType != NULL && callbackType->childCount > 1 ? callbackType->children[1] : NULL;
+    if ( callbackType == NULL || !xl6TextEquals(callbackType->text, "function") || inputType == NULL ) {
+        if ( !diagnosed ) {
+            xl6SemErrorNode(ctx, callbackExpr != NULL ? callbackExpr : call, "future continuation requires a complete func value");
+        }
+        xl6AstFree(callbackType);
+        xl6AstFree(inputType);
+        return 0;
+    }
+
+    outputType = NULL;
+    expectedType = NULL;
+    if ( kind == 1 ) {
+        if ( params == NULL || params->childCount != 1 || returns == NULL || returns->childCount != 1 ) {
+            xl6SemErrorNode(ctx, callbackExpr, "future.then requires func(T) as U");
+        } else {
+            outputType = xl6SemCloneTypeNode(returns->children[0]);
+            expectedType = xl6SemNewFutureCallbackType(inputType, outputType, callbackExpr);
+        }
+    } else if ( kind == 2 ) {
+        memset(&stringType, 0, sizeof(stringType));
+        stringType.kind = XL6_AST_TYPE;
+        stringType.text = "string";
+        outputType = xl6SemCloneTypeNode(inputType);
+        expectedType = xl6SemNewFutureCallbackType(&stringType, inputType, callbackExpr);
+    } else {
+        outputType = xl6SemCloneTypeNode(inputType);
+        expectedType = xl6SemNewFutureCallbackType(NULL, NULL, callbackExpr);
+    }
+
+    ok = expectedType != NULL && outputType != NULL &&
+         xl6SemExprCanMatchFunctionTypeEx(ctx, callbackExpr, expectedType, 0);
+    if ( !ok && expectedType != NULL ) {
+        xl6SemErrorNode(ctx, callbackExpr,
+                        kind == 1 ? "future.then callback must match func(T) as U" :
+                        (kind == 2 ? "future.catch callback must match func(string) as T" :
+                         "future.finally callback must match func()"));
+    }
+
+    if ( ok && call->inferredType == NULL ) {
+        inferredType = kind == 1
+            ? xl6SemNewGenericContainerType("future", xl6SemCloneTypeNode(outputType), call)
+            : xl6SemCloneTypeNode(receiverType);
+        call->inferredType = inferredType;
+    }
+
+    xl6AstFree(expectedType);
+    xl6AstFree(outputType);
+    xl6AstFree(inputType);
+    xl6AstFree(callbackType);
+    return ok;
 }
 
 static int xl6SemCheckFutureCall(XL6_SemContext* ctx, XL6_AstNode* node)
@@ -8931,6 +9248,7 @@ static int xl6SemCheckFutureCall(XL6_SemContext* ctx, XL6_AstNode* node)
     XL6_AstNode intType;
     const XL6_AstNode* concreteReceiverType;
     int expectedCount;
+    int isContinuation;
 
     if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
         return -1;
@@ -8946,7 +9264,10 @@ static int xl6SemCheckFutureCall(XL6_SemContext* ctx, XL6_AstNode* node)
         xl6AstFree(receiverType);
         return -1;
     }
-    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
+    isContinuation = xl6TextEquals(member->text, "then") ||
+                     xl6TextEquals(member->text, "catch") ||
+                     xl6TextEquals(member->text, "finally");
+    if ( (receiver == NULL || receiver->kind != XL6_AST_NAME) && !isContinuation ) {
         xl6SemErrorNode(ctx, receiver != NULL ? receiver : member, "future receiver 当前只支持具名变量");
         xl6AstFree(receiverType);
         return 0;
@@ -8967,10 +9288,15 @@ static int xl6SemCheckFutureCall(XL6_SemContext* ctx, XL6_AstNode* node)
         xl6AstFree(receiverType);
         return 0;
     }
+    if ( isContinuation && !xl6SemCheckFutureContinuation(ctx, node, member, receiverType) ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
     memset(&intType, 0, sizeof(intType));
     intType.kind = XL6_AST_TYPE;
     intType.text = "int";
-    if ( xl6TextEquals(member->text, "waitTimeout") &&
+    if ( (xl6TextEquals(member->text, "waitTimeout") ||
+          xl6TextEquals(member->text, "waitUntil")) &&
          !xl6SemExprCanMatchParamType(ctx, xl6SemCallArgExprAt(node, 0), &intType) ) {
         xl6SemTypeMismatchError(ctx,
                                 xl6SemCallArgExprAt(node, 0),
@@ -8979,6 +9305,21 @@ static int xl6SemCheckFutureCall(XL6_SemContext* ctx, XL6_AstNode* node)
                                 xl6SemExprStaticTypeName(ctx, xl6SemCallArgExprAt(node, 0)));
         xl6AstFree(receiverType);
         return 0;
+    }
+    if ( xl6TextEquals(member->text, "setDebugName") ) {
+        XL6_AstNode stringType;
+        memset(&stringType, 0, sizeof(stringType));
+        stringType.kind = XL6_AST_TYPE;
+        stringType.text = "string";
+        if ( !xl6SemExprCanMatchParamType(ctx, xl6SemCallArgExprAt(node, 0), &stringType) ) {
+            xl6SemTypeMismatchError(ctx,
+                                    xl6SemCallArgExprAt(node, 0),
+                                    "future.setDebugName parameter must be string",
+                                    &stringType,
+                                    xl6SemExprStaticTypeName(ctx, xl6SemCallArgExprAt(node, 0)));
+            xl6AstFree(receiverType);
+            return 0;
+        }
     }
     xl6AstFree(receiverType);
     return 1;
@@ -9008,6 +9349,8 @@ static const char* xl6SemFutureCallResultTypeName(XL6_SemContext* ctx, XL6_AstNo
     result = NULL;
     if ( xl6TextEquals(member->text, "wait") ||
          xl6TextEquals(member->text, "waitTimeout") ||
+         xl6TextEquals(member->text, "waitUntil") ||
+         xl6TextEquals(member->text, "setDebugName") ||
          xl6TextEquals(member->text, "cancel") ||
          xl6TextEquals(member->text, "isDone") ||
          xl6TextEquals(member->text, "isPending") ||
@@ -9015,10 +9358,18 @@ static const char* xl6SemFutureCallResultTypeName(XL6_SemContext* ctx, XL6_AstNo
          xl6TextEquals(member->text, "isFailed") ) {
         result = "bool";
     } else if ( xl6TextEquals(member->text, "state") ||
-                xl6TextEquals(member->text, "status") ) {
+                xl6TextEquals(member->text, "status") ||
+                xl6TextEquals(member->text, "createTimeMs") ||
+                xl6TextEquals(member->text, "completeTimeMs") ||
+                xl6TextEquals(member->text, "pendingContinuations") ) {
         result = "int";
-    } else if ( xl6TextEquals(member->text, "error") ) {
+    } else if ( xl6TextEquals(member->text, "error") ||
+                xl6TextEquals(member->text, "debugName") ) {
         result = "string";
+    } else if ( xl6TextEquals(member->text, "then") ||
+                xl6TextEquals(member->text, "catch") ||
+                xl6TextEquals(member->text, "finally") ) {
+        result = "future";
     }
     xl6AstFree(receiverType);
     return result;
@@ -9380,7 +9731,7 @@ static int xl6SemCheckTaskCall(XL6_SemContext* ctx, XL6_AstNode* node)
     }
     if ( !xl6SemIsKnownTaskApiName(name) ) {
         callee = node != NULL && node->childCount > 0 ? node->children[0] : node;
-        xl6SemErrorNode(ctx, callee, "unknown task API");
+        xl6SemErrorNode(ctx, callee, "standard library namespace has no such symbol");
         return 0;
     }
 
@@ -9446,6 +9797,8 @@ static int xl6SemCheckTaskCall(XL6_SemContext* ctx, XL6_AstNode* node)
     xl6AstFree(valueType);
     return 1;
 }
+
+#include "src/sem/xl6_sem_special_collection.c"
 
 static const char* xl6SemTaskCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node)
 {
@@ -9603,45 +9956,15 @@ static XL6_AstNode* xl6SemCloneIndexedItemType(XL6_SemContext* ctx, XL6_AstNode*
 
 static XL6_AstNode* xl6SemFunctionTypeFromAnon(const XL6_AstNode* expr)
 {
-    XL6_AstNode* typeNode;
-    XL6_AstNode* paramTypes;
-    XL6_AstNode* returnTypes;
     const XL6_AstNode* params;
     const XL6_AstNode* returns;
-    size_t i;
 
     if ( expr == NULL || expr->kind != XL6_AST_ANON_FUNC ) {
         return NULL;
     }
-    typeNode = xl6AstNewText(XL6_AST_TYPE, "function", 8, NULL);
-    paramTypes = xl6AstNew(XL6_AST_LIST, NULL);
-    returns = expr->childCount > 1 ? expr->children[1] : NULL;
-    returnTypes = xl6SemCloneTypeNode(returns);
-    if ( typeNode == NULL || paramTypes == NULL || returnTypes == NULL ) {
-        xl6AstFree(typeNode);
-        xl6AstFree(paramTypes);
-        xl6AstFree(returnTypes);
-        return NULL;
-    }
-    typeNode->line = expr->line;
-    typeNode->column = expr->column;
     params = expr->childCount > 0 ? expr->children[0] : NULL;
-    if ( params != NULL ) {
-        for ( i = 0; i < params->childCount; ++i ) {
-            const XL6_AstNode* param = params->children[i];
-            XL6_AstNode* paramType = (param != NULL && param->childCount > 0) ? xl6SemCloneTypeNode(param->children[0]) : NULL;
-            if ( paramType == NULL ) {
-                xl6AstFree(typeNode);
-                xl6AstFree(paramTypes);
-                xl6AstFree(returnTypes);
-                return NULL;
-            }
-            xl6AstAddChild(paramTypes, paramType);
-        }
-    }
-    xl6AstAddChild(typeNode, paramTypes);
-    xl6AstAddChild(typeNode, returnTypes);
-    return typeNode;
+    returns = expr->childCount > 1 ? expr->children[1] : NULL;
+    return xl6SemFunctionTypeFromCallableParts(params, returns, expr);
 }
 
 static XL6_AstNode* xl6SemTypeNodeFromConstructorCallee(XL6_SemContext* ctx, const XL6_AstNode* callee)
@@ -9670,6 +9993,7 @@ static XL6_AstNode* xl6SemTypeNodeFromConstructorCallee(XL6_SemContext* ctx, con
     }
     if ( typeInfo->kind != XL6_TYPE_CLASS &&
          typeInfo->kind != XL6_TYPE_CLASS &&
+         !(typeInfo->kind == XL6_TYPE_BUILTIN && xl6SemIsSpecialCollectionTypeName(nameNode->text) && callee->kind == XL6_AST_GENERIC_INSTANT) &&
          !(typeInfo->kind == XL6_TYPE_BUILTIN && xl6TextEquals(nameNode->text, "channel") && xl6SemIsChannelGenericInstant(callee)) &&
          !(typeInfo->kind == XL6_TYPE_BUILTIN && xl6SemIsSyncHandleTypeName(nameNode->text) && callee->kind == XL6_AST_NAME) &&
          !(typeInfo->kind == XL6_TYPE_BUILTIN && xl6SemIsThreadTypeName(nameNode->text) && callee->kind == XL6_AST_NAME) ) {
@@ -10002,6 +10326,11 @@ static XL6_AstNode* xl6SemInferAutoTypeNodeRaw(XL6_SemContext* ctx, XL6_AstNode*
             XL6_AstNode* memberReturns = xl6SemCallReturnTypesEx(ctx, expr, &ownedReturnType);
             XL6_AstNode* result = NULL;
 
+            result = xl6SemCloneSpecialCollectionCallType(ctx, expr);
+            if ( result != NULL ) {
+                return result;
+            }
+
             /*
              * 成员函数返回的泛型容器必须保留完整类型节点。
              * 只返回 array/list/set/dict 名称会让 for-in 无法推断 item 类型。
@@ -10190,6 +10519,20 @@ static int xl6SemExprIsFreshTypeValue(XL6_SemContext* ctx, const XL6_AstNode* ex
                 xl6SemFuncReturnsFreshOnlyValue(ctx, func));
     }
     if ( callee != NULL && callee->kind == XL6_AST_MEMBER ) {
+        if ( xl6TextEquals(callee->text, "then") ||
+             xl6TextEquals(callee->text, "catch") ||
+             xl6TextEquals(callee->text, "finally") ) {
+            XL6_AstNode* receiverType = xl6SemCloneFutureReceiverType(
+                ctx,
+                (XL6_AstNode*)callee);
+            const XL6_AstNode* concreteType = xl6SemResolveAliasType(ctx, receiverType);
+            int freshFuture = concreteType != NULL &&
+                              xl6SemIsFutureLikeTypeName(concreteType->text);
+            xl6AstFree(receiverType);
+            if ( freshFuture ) {
+                return 1;
+            }
+        }
         XL6_AstNode* ownedReturnType = NULL;
         XL6_AstNode* returns = xl6SemCallReturnTypesEx(ctx, (XL6_AstNode*)expr, &ownedReturnType);
         const XL6_AstNode* returnType = returns != NULL && returns->childCount == 1 ? returns->children[0] : NULL;

@@ -713,6 +713,13 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                         xl6CgenIndent(ctx);
                         xl6OutputPuts("}\n", ctx->out);
                     }
+                    if ( xl6CgenIsSpecialCollectionType(ctx, retType) &&
+                         !xl6CgenSpecialCollectionExprIsOwned(ctx, node->children[i]) ) {
+                        xl6CgenIndent(ctx);
+                        xl6OutputPrintf(ctx->out, "%s = ", returnValuePath);
+                        xl6CgenSpecialCollectionRetainCExpr(ctx, retType, returnValuePath);
+                        xl6OutputPuts(";\n", ctx->out);
+                    }
                     xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, retType, returnValuePath, node->children[i]);
                     if ( hasFieldArgScope ) {
                         xl6CgenClassExprTempScopeEnd(ctx, &fieldArgScope);
@@ -755,6 +762,14 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 if ( xl6CgenIsFunctionType(ctx->currentReturnType) && xl6CgenExprIsFunctionBorrow(ctx, node->children[0]) ) {
                     snprintf(returnName, sizeof(returnName), "__xl6_return_%d", id);
                     xl6CgenRetainFunctionValue(ctx, returnName);
+                }
+                if ( xl6CgenIsSpecialCollectionType(ctx, ctx->currentReturnType) &&
+                     !xl6CgenSpecialCollectionExprIsOwned(ctx, node->children[0]) ) {
+                    snprintf(returnName, sizeof(returnName), "__xl6_return_%d", id);
+                    xl6CgenIndent(ctx);
+                    xl6OutputPrintf(ctx->out, "%s = ", returnName);
+                    xl6CgenSpecialCollectionRetainCExpr(ctx, ctx->currentReturnType, returnName);
+                    xl6OutputPuts(";\n", ctx->out);
                 }
                 snprintf(returnName, sizeof(returnName), "__xl6_return_%d", id);
                 xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, ctx->currentReturnType, returnName, node->children[0]);

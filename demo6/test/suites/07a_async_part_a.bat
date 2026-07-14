@@ -563,9 +563,9 @@ if not errorlevel 1 (
     echo sem_task_unknown_member.xl should fail.
     exit /b 1
 )
-findstr /C:"unknown task API" build\test\sem_task_unknown_member.err.txt >nul
+findstr /C:"standard library namespace has no such symbol" build\test\sem_task_unknown_member.err.txt >nul
 if errorlevel 1 (
-    echo sem_task_unknown_member.xl missing unknown task API diagnostic.
+    echo sem_task_unknown_member.xl missing unknown standard-library symbol diagnostic.
     exit /b 1
 )
 

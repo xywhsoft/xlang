@@ -188,6 +188,8 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
 }
 
 static const XL6_AstNode* xl6CgenCallArgExpr(const XL6_AstNode* call, size_t index);
+static int xl6CgenTaskFutureExprIsOwned(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+static void xl6CgenTaskFutureArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr);
 
 static void xl6CgenFutureReceiverExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
@@ -203,6 +205,66 @@ static void xl6CgenFutureReceiverExpr(XL6_CgenContext* ctx, const XL6_AstNode* r
     xl6CgenExpr(ctx, receiver);
 }
 
+static int xl6CgenFutureContinuationCall(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* call,
+    const XL6_AstNode* member,
+    const XL6_AstNode* receiver,
+    const XL6_AstNode* receiverType)
+{
+    const XL6_AstNode* callbackExpr;
+    const XL6_AstNode* returns;
+    XL6_AstNode* callbackType;
+    XL6_AstNode* inputType;
+    XL6_AstNode* outputType;
+    int kind;
+
+    if ( !xl6CTextEquals(member->text, "then") &&
+         !xl6CTextEquals(member->text, "catch") &&
+         !xl6CTextEquals(member->text, "finally") ) {
+        return 0;
+    }
+
+    callbackExpr = xl6CgenCallArgExpr(call, 0);
+    callbackType = xl6CgenCloneExprTypeForInference(ctx, callbackExpr);
+    inputType = xl6CgenCloneFutureValueTypeFromType(ctx, receiverType);
+    returns = xl6CgenFunctionReturnTypes(callbackType);
+    kind = xl6CTextEquals(member->text, "then") ? 1 :
+           (xl6CTextEquals(member->text, "catch") ? 2 : 3);
+    outputType = kind == 1 && returns != NULL && returns->childCount == 1
+        ? xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0])
+        : xl6CgenCloneTypeNode(inputType);
+
+    if ( callbackExpr == NULL || !xl6CgenIsFunctionType(callbackType) ||
+         inputType == NULL || outputType == NULL ) {
+        xl6CgenError(ctx, call, "future continuation requires a complete func signature");
+        xl6OutputPuts("0", ctx->out);
+        xl6AstFree(callbackType);
+        xl6AstFree(inputType);
+        xl6AstFree(outputType);
+        return 1;
+    }
+
+    xl6OutputPuts("xl6_future_continue(", ctx->out);
+    xl6CgenTaskFutureArgExpr(ctx, receiver);
+    xl6OutputPrintf(ctx->out, ", %d, ", xl6CgenTaskFutureExprIsOwned(ctx, receiver));
+    xl6CgenFunctionValueExpr(ctx, callbackExpr, callbackType);
+    xl6OutputPrintf(ctx->out, ", %d, %d, ",
+                    xl6CgenExprIsFunctionBorrow(ctx, callbackExpr) ? 1 : 0,
+                    kind);
+    xl6CgenEmitXrtTypeDescRef(ctx, inputType);
+    xl6OutputPuts(", ", ctx->out);
+    xl6CgenEmitXrtTypeDescRef(ctx, outputType);
+    xl6OutputPuts(", sizeof(", ctx->out);
+    xl6OutputPuts(xl6CgenTypeName(ctx, outputType), ctx->out);
+    xl6OutputPrintf(ctx->out, "), \"\", %d, %d)", member->line, member->column);
+
+    xl6AstFree(callbackType);
+    xl6AstFree(inputType);
+    xl6AstFree(outputType);
+    return 1;
+}
+
 static int xl6CgenFutureMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member)
 {
     const XL6_AstNode* receiver;
@@ -212,7 +274,7 @@ static int xl6CgenFutureMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call
         return 0;
     }
     receiver = member->childCount > 0 ? member->children[0] : NULL;
-    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
+    if ( receiver == NULL ) {
         return 0;
     }
 
@@ -221,7 +283,15 @@ static int xl6CgenFutureMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call
         xl6AstFree(receiverType);
         return 0;
     }
+    if ( xl6CgenFutureContinuationCall(ctx, call, member, receiver, receiverType) ) {
+        xl6AstFree(receiverType);
+        return 1;
+    }
     xl6AstFree(receiverType);
+
+    if ( receiver->kind != XL6_AST_NAME ) {
+        return 0;
+    }
 
     if ( xl6CTextEquals(member->text, "wait") ) {
         xl6OutputPuts("xFutureWait(", ctx->out);
@@ -234,6 +304,46 @@ static int xl6CgenFutureMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "waitUntil") ) {
+        xl6OutputPuts("xFutureWaitUntil(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "setDebugName") ) {
+        xl6OutputPuts("xFutureSetDebugName(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "debugName") ) {
+        xl6OutputPuts("xl6_future_debug_name(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "createTimeMs") ) {
+        xl6OutputPuts("(long long)xFutureGetCreateTimeMs(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "completeTimeMs") ) {
+        xl6OutputPuts("(long long)xFutureGetCompleteTimeMs(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
+        xl6OutputPutc(')', ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "pendingContinuations") ) {
+        xl6OutputPuts("(long long)xFutureGetPendingContinuationCount(", ctx->out);
+        xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPutc(')', ctx->out);
         return 1;
     }

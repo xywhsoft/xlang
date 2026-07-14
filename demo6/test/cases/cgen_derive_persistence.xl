@@ -40,3 +40,21 @@ expectText(fromXson.name, "hero")
 expect(fromXson.stats.hp, 120)
 expect(int(fromXson.rank), 9)
 expectText(string(fromXson.tags[1]), "lead")
+
+string jsonPath = "build/test/cgen_derive_persistence.json"
+string xsonPath = "build/test/cgen_derive_persistence.xson"
+file.delete(jsonPath)
+file.delete(xsonPath)
+
+assert json.write(jsonPath, p, true), "json class persistence write should succeed"
+auto fromJsonFile = json.read::<Player>(jsonPath)
+expect(fromJsonFile.id, 7)
+expectText(fromJsonFile.name, "hero")
+
+assert xson.write(xsonPath, p), "xson class persistence write should succeed"
+auto fromXsonFile = xson.read::<Player>(xsonPath)
+expect(fromXsonFile.stats.hp, 120)
+expectText(string(fromXsonFile.tags[1]), "lead")
+
+file.delete(jsonPath)
+file.delete(xsonPath)

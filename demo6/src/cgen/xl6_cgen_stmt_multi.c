@@ -555,7 +555,13 @@ static void xl6CgenXValueFromTypedCExpr(XL6_CgenContext* ctx, const XL6_AstNode*
     concreteType = xl6CgenResolveAliasType(ctx, concreteType);
     typeName = concreteType != NULL ? concreteType->text : NULL;
 
-    if ( xl6CgenIsTypedContainerType(ctx, concreteType) ) {
+    if ( xl6CgenIsSpecialCollectionType(ctx, concreteType) ) {
+        xl6OutputPuts("xrtTypeBoxValue(", ctx->out);
+        xl6CgenEmitXrtTypeDescRef(ctx, concreteType);
+        xl6OutputPuts(", &(", ctx->out);
+        xl6OutputPuts(xl6CgenValueStorageCType(ctx, concreteType), ctx->out);
+        xl6OutputPrintf(ctx->out, "){%s})", exprText != NULL ? exprText : "0");
+    } else if ( xl6CgenIsTypedContainerType(ctx, concreteType) ) {
         xl6CgenTypedContainerStorageToXValueExpr(ctx, concreteType, exprText);
     } else if ( xl6CgenIsXValueType(concreteType) ) {
         xl6OutputPuts(exprText != NULL ? exprText : "xvoCreateNull()", ctx->out);

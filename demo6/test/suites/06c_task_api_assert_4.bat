@@ -51,7 +51,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing failed typed-array string task.race await.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(failedBoolAllJobs), xrtTypeBool()" build\test\cgen_task_api.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(failedBoolAllJobs), xrtTypeBool32()" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing failed typed-array bool task.all await.
     exit /b 1
@@ -71,12 +71,12 @@ if errorlevel 1 (
     echo cgen_task_api.c missing failed typed-array float task.race await.
     exit /b 1
 )
-findstr /C:"xl6_task_all_values(xrtTypeBool()" build\test\cgen_task_api.c >nul
+findstr /C:"xl6_task_all_values(xrtTypeBool32()" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing failed bool task.all temporary release await.
     exit /b 1
 )
-findstr /C:"repeatedFailedBoolAll = xl6_task_all_values(xrtTypeBool()" build\test\cgen_task_api.c >nul
+findstr /C:"repeatedFailedBoolAll = xl6_task_all_values(xrtTypeBool32()" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing failed bool task.all named future fixture.
     exit /b 1
@@ -246,7 +246,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing task.race default string typed-array path.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(emptyBoolJobs), xrtTypeBool()" build\test\cgen_task_api.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(emptyBoolJobs), xrtTypeBool32()" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all empty bool typed-array path.
     exit /b 1
@@ -266,7 +266,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should default-initialize bool future array as empty.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(defaultBoolJobs), xrtTypeBool()" build\test\cgen_task_api.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(defaultBoolJobs), xrtTypeBool32()" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all default bool typed-array path.
     exit /b 1
@@ -436,7 +436,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed bool null future fixture.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(nullBoolJobs), xrtTypeBool()" build\test\cgen_task_api.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(nullBoolJobs), xrtTypeBool32()" build\test\cgen_task_api.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed bool task.all null source path.
     exit /b 1
@@ -636,7 +636,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array future append failure cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalBoolAll \? xl6_future_add_ref_if_needed\(typedConditionalBoolAllSource\) : xl_fn_flipAsync\(1\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalBoolAllSource\) : xl_fn_flipAsync\(0\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalBoolAllJobs\), xrtTypeBool\(\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalBoolRace \? xl6_future_add_ref_if_needed\(typedConditionalBoolRaceSource\) : xl_fn_flipAsync\(1\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_i32_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalBoolRaceJobs\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalBoolAll \? xl6_future_add_ref_if_needed\(typedConditionalBoolAllSource\) : xl_fn_flipAsync\(1\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch '0 \? xl6_future_add_ref_if_needed\(typedConditionalBoolAllSource\) : xl_fn_flipAsync\(0\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_handle_release\(xl6_task_all_from_array\(\(xtarray\)\(typedConditionalBoolAllJobs\), xrtTypeBool32\(\)' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'chooseTypedConditionalBoolRace \? xl6_future_add_ref_if_needed\(typedConditionalBoolRaceSource\) : xl_fn_flipAsync\(1\)[\s\S]*?xrtTypedArrayAppend\([^,]+,[\s\S]*?xFutureRelease\(__xl6_typed_future_' -or $text -notmatch 'xl6_future_await_i32_release\(xl6_task_race_from_array\(\(xtarray\)\(typedConditionalBoolRaceJobs\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array conditional bool future ownership normalization.
     exit /b 1

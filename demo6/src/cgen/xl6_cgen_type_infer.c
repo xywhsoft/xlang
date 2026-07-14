@@ -1,42 +1,4 @@
-static XL6_AstNode* xl6CgenCloneSingleGenericArgType(
-    XL6_CgenContext* ctx,
-    const XL6_AstNode* typeNode,
-    const char* baseName)
-{
-    const XL6_AstNode* concrete;
-    const XL6_AstNode* args;
-
-    concrete = xl6CgenSubstituteGenericType(ctx, typeNode);
-    concrete = xl6CgenResolveAliasType(ctx, concrete);
-    if ( concrete == NULL || !xl6CTextEquals(concrete->text, baseName) ) {
-        return NULL;
-    }
-
-    args = concrete->childCount > 0 && concrete->children[0] != NULL &&
-           concrete->children[0]->kind == XL6_AST_LIST ? concrete->children[0] : NULL;
-    if ( args == NULL || args->childCount == 0 ) {
-        return xl6CgenNewSimpleType("null", concrete);
-    }
-    return xl6CgenCloneCanonicalTypeNode(ctx, args->children[0]);
-}
-
-static XL6_AstNode* xl6CgenCloneAwaitResultType(XL6_CgenContext* ctx, const XL6_AstNode* awaitNode)
-{
-    XL6_AstNode* futureType;
-    XL6_AstNode* result;
-
-    if ( awaitNode == NULL || awaitNode->childCount == 0 ) {
-        return NULL;
-    }
-
-    futureType = xl6CgenCloneExprTypeForInference(ctx, awaitNode->children[0]);
-    result = xl6CgenCloneSingleGenericArgType(ctx, futureType, "future");
-    if ( result == NULL ) {
-        result = xl6CgenCloneSingleGenericArgType(ctx, futureType, "task");
-    }
-    xl6AstFree(futureType);
-    return result;
-}
+#include "src/cgen/xl6_cgen_type_infer_async.c"
 
 static XL6_AstNode* xl6CgenCloneAsyncCallType(
     XL6_CgenContext* ctx,
@@ -248,7 +210,13 @@ static XL6_AstNode* xl6CgenFutureMethodType(XL6_CgenContext* ctx, const XL6_AstN
 {
     const XL6_AstNode* member;
     const XL6_AstNode* receiver;
+    const XL6_AstNode* args;
+    const XL6_AstNode* callbackArg;
+    const XL6_AstNode* callbackExpr;
+    const XL6_AstNode* callbackReturns;
     XL6_AstNode* receiverType;
+    XL6_AstNode* callbackType;
+    XL6_AstNode* valueType;
     XL6_AstNode* result;
 
     if ( call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
@@ -268,6 +236,8 @@ static XL6_AstNode* xl6CgenFutureMethodType(XL6_CgenContext* ctx, const XL6_AstN
     result = NULL;
     if ( xl6CTextEquals(member->text, "wait") ||
          xl6CTextEquals(member->text, "waitTimeout") ||
+         xl6CTextEquals(member->text, "waitUntil") ||
+         xl6CTextEquals(member->text, "setDebugName") ||
          xl6CTextEquals(member->text, "cancel") ||
          xl6CTextEquals(member->text, "isDone") ||
          xl6CTextEquals(member->text, "isPending") ||
@@ -275,10 +245,31 @@ static XL6_AstNode* xl6CgenFutureMethodType(XL6_CgenContext* ctx, const XL6_AstN
          xl6CTextEquals(member->text, "isFailed") ) {
         result = xl6CgenNewSimpleType("bool", call);
     } else if ( xl6CTextEquals(member->text, "state") ||
-                xl6CTextEquals(member->text, "status") ) {
+                xl6CTextEquals(member->text, "status") ||
+                xl6CTextEquals(member->text, "createTimeMs") ||
+                xl6CTextEquals(member->text, "completeTimeMs") ||
+                xl6CTextEquals(member->text, "pendingContinuations") ) {
         result = xl6CgenNewSimpleType("int", call);
-    } else if ( xl6CTextEquals(member->text, "error") ) {
+    } else if ( xl6CTextEquals(member->text, "error") ||
+                xl6CTextEquals(member->text, "debugName") ) {
         result = xl6CgenNewSimpleType("string", call);
+    } else if ( xl6CTextEquals(member->text, "catch") ||
+                xl6CTextEquals(member->text, "finally") ) {
+        result = receiverType;
+        receiverType = NULL;
+    } else if ( xl6CTextEquals(member->text, "then") ) {
+        args = call->childCount > 1 ? call->children[1] : NULL;
+        callbackArg = args != NULL && args->childCount == 1 ? args->children[0] : NULL;
+        callbackExpr = callbackArg != NULL && callbackArg->childCount > 0 ? callbackArg->children[0] : NULL;
+        callbackType = xl6CgenCloneExprTypeForInference(ctx, callbackExpr);
+        callbackReturns = xl6CgenFunctionReturnTypes(callbackType);
+        valueType = callbackReturns != NULL && callbackReturns->childCount == 1
+            ? xl6CgenCloneCanonicalTypeNode(ctx, callbackReturns->children[0])
+            : NULL;
+        if ( valueType != NULL ) {
+            result = xl6CgenNewGenericTypeNode("future", valueType, call);
+        }
+        xl6AstFree(callbackType);
     }
     xl6AstFree(receiverType);
     return result;
@@ -877,6 +868,12 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInferenceRaw(XL6_CgenContext* ctx, co
             }
         }
         {
+            XL6_AstNode* specialCollectionMethodType = xl6CgenSpecialCollectionMethodType(ctx, expr);
+            if ( specialCollectionMethodType != NULL ) {
+                return specialCollectionMethodType;
+            }
+        }
+        {
             XL6_AstNode* channelMethodType = xl6CgenChannelMethodType(ctx, expr);
             if ( channelMethodType != NULL ) {
                 return channelMethodType;
@@ -1048,6 +1045,12 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInferenceRaw(XL6_CgenContext* ctx, co
             }
             if ( genericClassType != NULL ) {
                 return genericClassType;
+            }
+            {
+                XL6_AstNode* specialCollectionCtorType = xl6CgenSpecialCollectionCtorType(ctx, expr);
+                if ( specialCollectionCtorType != NULL ) {
+                    return specialCollectionCtorType;
+                }
             }
             {
                 XL6_AstNode* channelCtorType = xl6CgenChannelCtorType(ctx, expr);

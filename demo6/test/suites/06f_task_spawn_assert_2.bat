@@ -96,12 +96,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing bool null task.spawn aggregation source fixture.
     exit /b 1
 )
-findstr /C:"xl6_task_all_values(xrtTypeBool()" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_all_values(xrtTypeBool32()" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing bool task.all null source fixture over task.spawn.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(flipJob, xrtTypeBool(), sizeof(int)" build\test\cgen_task_spawn.c >nul
+findstr /C:"xl6_task_spawn_values(flipJob, xrtTypeBool32(), sizeof(int)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing owned bool task.spawn source for null aggregation fixture.
     exit /b 1
@@ -191,7 +191,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing failed bool task.spawn temporary future await.
     exit /b 1
 )
-findstr /C:"repeatedFailedBoolSpawn = xl6_task_spawn_values(throwingBoolJob, xrtTypeBool()" build\test\cgen_task_spawn.c >nul
+findstr /C:"repeatedFailedBoolSpawn = xl6_task_spawn_values(throwingBoolJob, xrtTypeBool32()" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed bool task.spawn future fixture.
     exit /b 1
@@ -356,12 +356,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep pending string task.race source canceled after worker completes.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'flippedValue\s*=\s*xl6_future_await_i32_release\(xl6_task_spawn_values\(flipJob,\s*xrtTypeBool\(\),\s*sizeof\(int\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateBool\(1\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'flippedValue\s*=\s*xl6_future_await_i32_release\(xl6_task_spawn_values\(flipJob,\s*xrtTypeBool32\(\),\s*sizeof\(int\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateBool\(1\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn bool temporary future bridge.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedFlipFuture\s*=\s*xl6_task_spawn_values\(flipJob,\s*xrtTypeBool\(\),\s*sizeof\(int\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateBool\(0\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedFlipFuture\s*=\s*xl6_task_spawn_values\(flipJob,\s*xrtTypeBool32\(\),\s*sizeof\(int\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateBool\(0\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn bool named future initialization.
     exit /b 1
@@ -381,7 +381,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep completed bool task.spawn future awaitable after cancel.
     exit /b 1
 )
-findstr /C:"pendingBoolSpawn = xl6_task_spawn_values(slowFlipJob, xrtTypeBool(), sizeof(int)" build\test\cgen_task_spawn.c >nul
+findstr /C:"pendingBoolSpawn = xl6_task_spawn_values(slowFlipJob, xrtTypeBool32(), sizeof(int)" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing pending bool task.spawn cancel fixture.
     exit /b 1
@@ -406,7 +406,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep pending bool task.spawn future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingBoolAllGroup = xl6_task_all_values(xrtTypeBool()" build\test\cgen_task_spawn.c >nul
+findstr /C:"pendingBoolAllGroup = xl6_task_all_values(xrtTypeBool32()" build\test\cgen_task_spawn.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing pending bool task.all over task.spawn group fixture.
     exit /b 1

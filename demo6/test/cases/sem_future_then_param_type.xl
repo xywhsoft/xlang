@@ -1,0 +1,11 @@
+func work() as int
+    return 1
+end
+
+func wrong(string value) as int
+    return string.len(value)
+end
+
+func() as int worker = work
+future<int> source = task.spawn(worker)
+future<int> result = source.then(wrong)

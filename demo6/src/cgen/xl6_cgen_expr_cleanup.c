@@ -65,6 +65,14 @@ static void xl6CgenAddChannelCleanup(XL6_CgenContext* ctx, const char* name, con
     xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_CHANNEL, typeNode, NULL);
 }
 
+static void xl6CgenAddSpecialCollectionCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode)
+{
+    if ( !xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
+        return;
+    }
+    xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_SPECIAL_COLLECTION, typeNode, NULL);
+}
+
 static void xl6CgenAddThreadCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode)
 {
     if ( !xl6CgenIsThreadType(typeNode) ) {
@@ -327,6 +335,20 @@ static void xl6CgenEmitOneCleanup(XL6_CgenContext* ctx, const XL6_CgenCleanup* c
         ctx->indent += 1;
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "xl6_channel_destroy(%s);\n", cleanup->name);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = 0;\n", cleanup->name);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        return;
+    }
+    if ( cleanup->kind == XL6_CGEN_CLEANUP_SPECIAL_COLLECTION ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", cleanup->name);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6CgenSpecialCollectionReleaseCExpr(ctx, cleanup->typeNode, cleanup->name);
+        xl6OutputPuts(";\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = 0;\n", cleanup->name);
         ctx->indent -= 1;

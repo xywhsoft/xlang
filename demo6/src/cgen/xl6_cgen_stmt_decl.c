@@ -538,6 +538,14 @@ static void xl6CgenDiscardTemporaryResultByType(XL6_CgenContext* ctx, const XL6_
         return;
     }
 
+    if ( xl6CgenIsSpecialCollectionType(ctx, concreteType) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { ", tempName);
+        xl6CgenSpecialCollectionReleaseCExpr(ctx, concreteType, tempName);
+        xl6OutputPrintf(ctx->out, "; %s = 0; }\n", tempName);
+        return;
+    }
+
     if ( xl6CgenIsXValueType(concreteType) ) {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", tempName, tempName, tempName);

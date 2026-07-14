@@ -1208,6 +1208,19 @@ future<int> a = addAsync(1, 2)
 future<int> b = addAsync(3, 4)
 array<int> allValues = await task.all([a, b])
 int firstValue = await task.race([addAsync(10, 1), addAsync(20, 2)])
+
+func plusOne(int value) as int
+    return value + 1
+end
+
+future<int> mapped = addAsync(20, 21).then(plusOne)
+future<int> recovered = mapped.catch(func(string message) as int => 0)
+future<int> finalized = recovered.finally(func() => println("done"))
+
+TaskGroup group = task.group()
+group.add(finalized)
+group.waitTimeout(5000)
+group.close()
 ```
 
 生成器示例：
@@ -1289,6 +1302,10 @@ rw.readUnlock()
 - `async` 函数返回 `future<T>`；无显式返回值的 async 函数可被 `await`。
 - `async` 函数参数会进入异步执行帧，因此不能按值声明 `future<T>`、`generator<T>`、`channel<T>`、`sem`、`thread` 等不可复制资源句柄。
 - `future<T>` 支持重复 `await` 已完成结果。
+- `future<T>.then(callback)` 在成功时执行 `func(T) as U` 并返回 `future<U>`；`.catch(callback)` 使用 `func(string) as T` 恢复失败；`.finally(callback)` 始终执行无参数无返回值回调并保持原结果，只有 finally 自身抛错时才覆盖原结果。
+- Future continuation 支持具名函数、重载选择和捕获闭包；回调参数、返回值、多返回值和命名参数错误在语义阶段诊断。
+- Future 元数据支持 `setDebugName/debugName/createTimeMs/completeTimeMs/pendingContinuations`，绝对截止时间等待使用 `waitUntil`。
+- `TaskGroup` 由 `task.group()` 创建，支持 `add`、`child`、`cancel`、`joinAsync`、`waitTimeout`、`joinTimeout`、`reapCompleted`、`close` 和 `count/valid`；关闭后不再接受新任务。
 - `task.all` / `task.race` 接收非空的 `[future<T>, ...]` 数组字面量或 `array<future<T>>`，并要求所有 future 的完成值类型一致。
 - `task.all` 返回 `future<array<T>>`，因此常见写法是 `array<T> values = await task.all(jobs)`。
 - `task.race` 返回 `future<T>`，因此常见写法是 `T value = await task.race(jobs)`。
@@ -1335,7 +1352,7 @@ auto now = time.now()
 auto text = file.readText("data.txt")
 ```
 
-当前标准库公开函数为 412 个，另有标准库常量 46 个；全局输出入口 `print` / `println` 也默认进入环境（这两条因空命名空间未计入守门脚本 `check_stdlib_coverage.ps1` 的 412 公开计数，实际公开函数合计 414 个）。用户可直接调用的当前列表如下：
+当前标准库公开函数为 488 个，另有标准库常量 105 个；`check_stdlib_coverage.ps1` 已把空命名空间的 `print` / `println` 一并计入 488 个函数，并要求每个公开函数和常量同时具备文档、测试与范例覆盖。用户可直接调用的当前列表如下：
 
 - 全局：`print`、`println`。
 - `math` 常量：`pi`、`tau`、`e`、`nan`、`inf`。
@@ -1344,27 +1361,28 @@ auto text = file.readText("data.txt")
 - `time`：`addDays`、`addHours`、`addMinutes`、`addMonths`、`addQuarters`、`addSeconds`、`addWeeks`、`addYears`、`approx`、`clock`、`datePart`、`dateString`、`day`、`dayOfYear`、`daysInMonth`、`daysInYear`、`diffDays`、`diffHours`、`diffMinutes`、`diffMonths`、`diffQuarters`、`diffSeconds`、`diffWeeks`、`diffYears`、`firstDayOfMonth`、`firstDayOfWeek`、`firstDayOfYear`、`format`、`formatPattern`、`fromDate`、`fromDateTime`、`fromTime`、`fromUnix`、`hour`、`inRange`、`isLeapYear`、`isSameDay`、`isSameMonth`、`isSameYear`、`lastDayOfMonth`、`lastDayOfWeek`、`lastDayOfYear`、`localToUTC`、`minute`、`month`、`now`、`nowUTC`、`parse`、`parsePattern`、`quarter`、`rangeOverlap`、`relative`、`second`、`sleep`、`timePart`、`timer`、`timeString`、`timezoneOffset`、`today`、`toUnix`、`tryParse`、`tryParsePattern`、`utcToLocal`、`weekday`、`weekOfMonth`、`weekOfYear`、`year`。`weekday` 返回周日开头编码：`0=Sunday`、`1=Monday`、...、`6=Saturday`。
 - `random`：`range`、`seed`、`string`、`u32`、`u64`。
 - `path`：`abs`、`appDir`、`cwd`、`dir`、`exists`、`ext`、`home`、`isAbs`、`join`、`name`、`nameExt`、`normalize`、`random`、`rel`、`sep`、`setCwd`、`temp`、`withExt`、`withName`。
-- `file`：`accessTime`、`appendBytes`、`appendText`、`appendTextAsync`、`attr`、`changeTime`、`copy`、`copyAsync`、`delete`、`deleteAsync`、`exists`、`info`、`move`、`moveAsync`、`readBytes`、`readText`、`readTextAsync`、`rename`、`replace`、`setAttr`、`setSize`、`size`、`touch`、`writeBytes`、`writeText`、`writeTextAsync`、`writeTextAtomic`。
-- `dir`：`copy`、`create`、`createAll`、`delete`、`dirs`、`exists`、`files`、`list`、`move`。
-- `json`：`parse`、`valid`、`read`、`stringify`、`write`。
-- `xson`：`parse`、`valid`、`read`、`stringify`、`write`。
+- `file`：`accessTime`、`appendBytes`、`appendText`、`appendTextAsync`、`attr`、`changeTime`、`copy`、`copyAsync`、`delete`、`deleteAsync`、`exists`、`info`、`move`、`moveAsync`、`open`、`openAsync`、`readBytes`、`readBytesAsync`、`readText`、`readTextAsync`、`rename`、`replace`、`setAttr`、`setSize`、`size`、`touch`、`writeBytes`、`writeBytesAsync`、`writeText`、`writeTextAsync`、`writeTextAtomic`。
+- `dir`：`clean`、`copy`、`copyAsync`、`count`、`create`、`createAll`、`createAllAsync`、`createAsync`、`delete`、`deleteAsync`、`dirs`、`empty`、`ensureEmpty`、`entries`、`exists`、`files`、`glob`、`list`、`match`、`move`、`moveAsync`、`size`、`walk`。
+- `json`：`parse`、`valid`、`read`、`stringify`、`visit`、`write`、`writer`。
+- `xson`：`options`、`parse`、`valid`、`read`、`stringify`、`write`。
 - `codec`：`base64Decode`、`base64DecodeBytes`、`base64Encode`、`base64EncodeBytes`、`formUrlDecode`、`formUrlEncode`、`hexDecode`、`hexDecodeBytes`、`hexEncode`、`hexEncodeBytes`、`percentDecode`、`percentEncode`。
 - `encoding` 常量：`autoDetect`、`binary`、`oem`、`utf8`、`utf16`、`utf16BE`、`utf32`、`utf32BE`、`bom`。
-- `encoding`：`charSize`、`isUtf8`、`isUtf8Bytes`、`detect`、`detectBytes`、`toBytes`、`fromBytes`、`convertBytes`、`name`。
+- `encoding`：`charSize`、`convertBytes`、`decodeUtf8`、`decodeUtf16LE`、`decodeUtf16BE`、`decodeUtf32LE`、`decodeUtf32BE`、`detect`、`detectBytes`、`encodeUtf8`、`encodeUtf16LE`、`encodeUtf16BE`、`encodeUtf32LE`、`encodeUtf32BE`、`fromBytes`、`isUtf8`、`isUtf8Bytes`、`name`、`swapUtf16Endian`、`swapUtf32Endian`、`toBytes`。
 - `hash`：`u32`、`u32WithSeed`、`u64`、`u64WithSeed`、`u64Micro`、`u64MicroWithSeed`、`u64Nano`、`u64NanoWithSeed`。
-- `crypto`：`sha1`、`sha256`、`sha384`、`sha512`、`sha256Stream`、`sha384Stream`、`sha512Stream`、`hmacSha256`、`hmacSha384`、`hmacSha512`、`hkdfSha256`、`hkdfSha384`、`randomHex`、`chacha20Encrypt`、`chacha20Decrypt`、`chacha20Poly1305Encrypt`、`chacha20Poly1305Decrypt`、`aes128GcmEncrypt`、`aes128GcmDecrypt`、`aes256GcmEncrypt`、`aes256GcmDecrypt`、`ed25519Keypair`、`ed25519PublicKey`、`ed25519Sign`、`ed25519Verify`、`x25519Keypair`、`x25519SharedSecret`、`x448Keypair`、`x448SharedSecret`、`rsaPssVerify`、`rsaPkcs1Verify`。
-- `id`：`xid`。
-- `net`：`localIP`、`localMAC`、`localName`。
-- `tcp`：`connect`、`connectAsync`、`listen`。
-- `udp`：`bind`。
-- `url`：`authority`、`fragment`、`host`、`isAbsolute`、`isSecure`、`normalizePath`、`path`、`port`、`query`、`resolve`、`scheme`、`target`、`userInfo`、`valid`。
-- `query`：`append`、`decode`、`encode`、`pair`、`valid`。
-- `regex`：`find`、`isMatch`。
-- `process`：`exec`、`exitCode`、`success`。
+- `crypto`：文本/HEX 接口、`sha1/256/384/512Bytes`、`hmacSha256/384/512Bytes`、`hkdfSha256/384Bytes`、`randomBytes`、ChaCha20/AEAD/AES-GCM `Bytes` 接口、SHA-1/256/384/512 streaming、Ed25519、X25519、X448、P-256/P-384 ECDH、ECDSA verify 和 RSA verify。
+- `id`：`compare`、`decode`、`encode`、`make`、`xid`。
+- `net`：`engine`、`localIP`、`localMAC`、`localName`、`proxy`、`resolve`。
+- `tcp`：`connect`、`connectAsync`、`connectConfig`、`listen`、`listenConfig`。
+- `udp`：`bind`、`config`。
+- `url`：`authority`、`build`、`defaultPort`、`fragment`、`host`、`hostHeader`、`isAbsolute`、`isDefaultPort`、`isSecure`、`normalizePath`、`path`、`port`、`query`、`resolve`、`scheme`、`target`、`userInfo`、`valid`。
+- `query`：`append`、`count`、`decode`、`encode`、`find`、`fromDict`、`items`、`pair`、`toDict`、`valid`。
+- `regex`：`builder`、`compile`、`error`、`errorBytePos`、`errorPos`、`find`、`fullMatch`、`isMatch`、`match`、`set`、`valid`。
+- `process`：`cmd`、`exec`、`exitCode`、`pipeline`、`run`、`runFile`、`shell`、`start`、`startFile`、`success`、`terminalSupported`。
 - `log` 常量：`traceLevel`、`debugLevel`、`infoLevel`、`warnLevel`、`errorLevel`、`fatalLevel`、`offLevel`、`textFormat`、`simpleFormat`、`jsonFormat`。
 - `log`：`create`、`default`、`setLevel`、`getLevel`、`levelName`、`addConsole`、`addFile`、`addRollingFile`、`write`、`trace`、`debug`、`info`、`warn`、`error`、`fatal`、`flush`。
-- `template`：`compile`、`render`、`renderFile`；预编译对象使用 `Template`，支持 `render`、`nodeCount`、`exprCount`、`argCount`、`stringPoolSize`。
-- `http`：`get`、`post`、`request`；对象化客户端使用 `HttpClientRequest`、`HttpClientResponse`。
+- `template`：`compile`、`engine`、`load`、`render`、`renderFile`；预编译对象使用 `Template`，独立编译环境使用 `TemplateEngine`。
+- `http`：`client`、`copyChunk`、`get`、`post`、`request`；对象化客户端使用 `HttpClient`、`HttpClientRequest`、`HttpClientResponse`。
+- `task`：`group`；其余 `spawn/all/race/whenAll/whenAny/cancel/run/sleep/yield` 由任务语义内建路径提供。
 - `http.server` 常量：`allowDotfiles`、`allowBackslash`、`sameSiteUnspecified`、`sameSiteLax`、`sameSiteStrict`、`sameSiteNone`、`cookieSecure`、`cookieHttpOnly`、`cookiePartitioned`、`cookieSameParty`。
 - `http.server`：`create`、`createTls`、`tlsHost`、`removeTlsHost`、`app`、`destroyApp`、`appRoute`、`appRouteRequest`、`appRouteStreamRequest`、`appGet`、`appPost`、`appAny`、`appGetRequest`、`appPostRequest`、`appAnyRequest`、`appPostStreamRequest`、`appAnyStreamRequest`、`appStatic`、`appStaticEx`、`appError`、`setApp`、`reloadApp`、`host`、`removeHost`、`error`、`route`、`routeRequest`、`routeStreamRequest`、`get`、`post`、`any`、`getRequest`、`postRequest`、`anyRequest`、`postStreamRequest`、`anyStreamRequest`、`chunkText`、`chunkBytes`、`static`、`staticEx`、`destroy`、`port`、`requestCount`、`connectionCount`、`start`、`drain`、`stop`、`mimeByPath`；对象化路由使用 `HttpRequest`、`HttpResponse`。
 
@@ -1460,6 +1478,34 @@ end
 - `for byte in buf` 按字节高效迭代，迭代值为 `int`。
 - `buf.text()` 只用于 UTF-8 文本缓冲；缓冲区包含中间 NUL 或非法 UTF-8 时抛 `BufferError`。二进制数据不要通过 `string` 承载，统一使用 `Buffer`。
 
+专用数据结构：
+
+```xlang
+Stack<int> stack = Stack::<int>()
+stack.push(10)
+int top = 0
+stack.popInto(top)
+
+AvlTree<string, int> tree = AvlTree::<string, int>()
+tree.set("b", 2)
+tree.set("a", 1)
+array<string> ordered = tree.keys()
+
+MpmcQueue<string> queue = MpmcQueue::<string>(64)
+queue.tryPush("work")
+string work = ""
+queue.tryPopInto(work)
+
+WaitQueue<int> waits = WaitQueue::<int>(64)
+waits.tryPush(42)
+waits.popTimeoutInto(top, 1000)
+```
+
+- `Stack<T>` 和 `AvlTree<K,V>` 分别对应 XRT 栈与 AVL 有序映射；`AvlTree.keys/values/items` 按 key 顺序输出。
+- `SpscQueue<T>`、`MpscQueue<T>`、`MpmcQueue<T>` 是有界并发队列，分别表达单生产单消费、多生产单消费和多生产多消费拓扑。
+- `WaitQueue<T>` 是支持阻塞、超时、close 与 drain 的等待队列。
+- 所有结构保存完整 XRT 类型描述符，插入和取出都执行正确的 retain/release；临时接收者被语义阶段拒绝，避免资源句柄立即析构。
+
 随机数对象：
 
 ```xlang
@@ -1474,6 +1520,26 @@ rng.seed(uint64(12345), uint64(7))
 - `random.seed` 重置当前线程默认随机源，影响 `random.u32/u64/range/string`。
 - `Random(seed, seq)` 创建独立 `Random` 对象，适合游戏、模拟、测试等需要复现随机序列的场景。
 - `Random` 是 native-backed class，底层使用 XRT `xrtRandObj`，对象销毁时自动释放 XRT 句柄。
+
+原始 TLS 会话：
+
+```xlang
+TlsConfig tls = TlsConfig()
+tls.host("example.com")
+tls.verifyPeer(true)
+TlsSession session = tls.session()
+
+int state = session.handshake()
+Buffer cipher = session.peekCipher()
+session.consumeCipher(cipher.len())
+session.feed(peerCipher)
+Buffer plain = session.read(65536)
+```
+
+- `TlsConfig` 保存证书、私钥、CA、SNI、协议版本、验证策略和 session resume 配置。
+- `TlsSession` 是与 socket 解耦的状态机；调用方负责传输 `peekCipher()` 得到的密文，并通过 `feed()` 输入对端密文。
+- `TlsResume` 是可持久化传递的恢复信息；会话对象拥有明确析构，`close()` 可重复调用。
+- `TlsStream` 把同一状态机与 `TcpStream` 组合，适合不需要手工驱动密文交换的普通 TLS 客户端/服务端。
 
 TCP/UDP 网络对象：
 
@@ -1510,12 +1576,12 @@ Buffer packetBytes = packet.bytes()
 - 标准库命名空间只在成员访问位置生效，例如 `math.sqrt`、`math.pi`；写成已存在命名空间但不存在符号时会报错。
 - `math.pi`、`math.tau`、`math.e`、`math.nan`、`math.inf` 是标准库常量，编译期直接重写为字面量，不产生运行时函数调用。
 - 文件、目录、路径能力优先通过 XRT 处理，避免 Windows 下 CRT 对 UTF-8 路径支持不足的问题。
-- `file.*Async` 返回 `future<string>` 或 `future<bool>`，当前覆盖 read/write/append/copy/move/delete 的 UTF-8 文本和基础文件操作。
+- `file.*Async` 返回明确的 `future<T>`：文本读取为 `future<string>`，二进制读取为 `future<Buffer>`，写入/复制/移动/删除为 `future<bool>`；`file.openAsync` 返回 `AsyncFile`，支持偏移读写、flush、size、resize 与显式 close。`dir.createAsync/createAllAsync/copyAsync/moveAsync/deleteAsync` 直接适配 XRT future。
 - `string.len(text)` 按 UTF-8 字符数量计数，`string.byteLen(text)` 才是原始字节长度。
 - `for c in "1234你好"` 默认按 UTF-8 字符迭代，双目标 `for i, c in text` 的 `i` 为 0 基字符索引；需要逐字节处理时使用 `string.bytes(text)`。
 - `encoding` 负责字符集探测和 UTF-8/UTF-16/UTF-32 字节转换；普通文本返回 `string`，非 UTF-8 字节结果返回不可复制的 `Buffer`。`encoding.fromBytes`、`encoding.detectBytes` 等字节视图函数接收 `point data, c_size size`，常见写法是 `encoding.fromBytes(buf.data(), c_size(buf.len()), encoding.utf16)`。
-- `crypto` 当前是文本/HEX 级 API：输入字符串按 UTF-8 原始字节处理；摘要、HMAC、HKDF、随机字节、ChaCha20 密文、AEAD 密文、Ed25519/X25519/X448 密钥和签名统一使用大写 HEX；AEAD 解密校验失败返回空字符串，签名/密钥参数无效时返回空字符串或 `false`。
-- XRT TLS 状态机不直接放入 `crypto` 命名空间，后续应作为 `net.tls`、HTTP client 或 native-backed class 形式设计。
+- `crypto` 同时提供文本/HEX 与 `Buffer` 二进制 API：文本输入按 UTF-8 原始字节处理，HEX 输出统一大写；`Bytes` 接口不经过字符集转换。AEAD 校验失败返回空字符串或空 `Buffer`，签名/密钥参数无效时返回空值或 `false`。
+- 原始 TLS 以 `TlsConfig`、`TlsSession`、`TlsResume` native-backed class 公开，不塞入 `crypto` 命名空间。`TlsSession` 支持内存握手、feed/read/write、密文 pending/drain、close、SNI 和 session resume；`TlsStream` 负责与 `TcpStream` 的组合路径。
 
 ## 15. C 混编、ABI 与导出
 
@@ -1720,8 +1786,8 @@ void xlClearLastError(XL_Context* ctx);
 - 负例诊断产物基线为 441 个。
 - 负例诊断内容断言基线为 442 条。
 - package/extlib fixture 基线为 48 个。
-- 标准库测试基线为 26 个。
-- 标准库公开函数当前为 406 个（外加全局 `print` / `println` 2 个；守门脚本 `check_stdlib_coverage.ps1` 因正则未覆盖空命名空间，当前报 406），标准库常量当前为 46 个。
+- 标准库测试文件守门基线为 56 个。
+- 标准库公开函数当前为 488 个，标准库常量当前为 105 个；`check_stdlib_coverage.ps1` 已覆盖空命名空间，并要求文档、测试、范例三侧完整引用。
 - DLL API 基线为 70 个。
 - 风险总账基线为 21 条，当前 21 条已收口，0 条开放。
 

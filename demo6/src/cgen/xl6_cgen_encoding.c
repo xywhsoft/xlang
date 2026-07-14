@@ -34,6 +34,8 @@ static void xl6CgenEmitEncodingRuntime(XL6_Output* out)
     xl6OutputPuts("void xrtBufferDestroy(xbuffer pBuf);\n", out);
     xl6OutputPuts("bool xrtBufferAppend(xbuffer pBuf, void* pData, unsigned int iSize, unsigned int bStrMode);\n", out);
     xl6OutputPuts("void* xrtConvCharset(void* sText, size_t iSize, int iInCP, int iOutCP, size_t* iRetSize);\n", out);
+    xl6OutputPuts("unsigned short* xrtUTF16LEtoBE(unsigned short* sText, size_t iSize, bool bSrcRevise);\n", out);
+    xl6OutputPuts("unsigned int* xrtUTF32LEtoBE(unsigned int* sText, size_t iSize, bool bSrcRevise);\n", out);
     xl6OutputPuts("bool xrtIsUTF8(const char* sText, size_t iSize);\n", out);
     xl6OutputPuts("int xrtDetectCharset(void* sText, size_t iSize, bool bBOM);\n", out);
     xl6OutputPuts("int xrtGetCharSize(int iCP);\n\n", out);
@@ -289,6 +291,26 @@ static void xl6CgenEmitEncodingRuntime(XL6_Output* out)
     xl6OutputPuts("    case XRT_CP_UTF32_BE: return xrtCopyStr(\"utf-32be\", 0u);\n", out);
     xl6OutputPuts("    default: return xrtCopyStr(\"unknown\", 0u);\n", out);
     xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_encoding_swap_utf16(void* data, size_t byteSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned short* swapped; xbuffer result;\n", out);
+    xl6OutputPuts("    if ( byteSize == 0u ) { return xl6_encoding_empty_buffer(); }\n", out);
+    xl6OutputPuts("    if ( data == 0 || (byteSize & 1u) != 0u ) { return xl6_encoding_empty_buffer(); }\n", out);
+    xl6OutputPuts("    swapped = xrtUTF16LEtoBE((unsigned short*)data, byteSize / 2u, false);\n", out);
+    xl6OutputPuts("    if ( swapped == 0 ) { return xl6_encoding_empty_buffer(); }\n", out);
+    xl6OutputPuts("    result = xl6_encoding_buffer_from_bytes(swapped, byteSize); xrtFree(swapped); return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_encoding_swap_utf32(void* data, size_t byteSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    unsigned int* swapped; xbuffer result;\n", out);
+    xl6OutputPuts("    if ( byteSize == 0u ) { return xl6_encoding_empty_buffer(); }\n", out);
+    xl6OutputPuts("    if ( data == 0 || (byteSize & 3u) != 0u ) { return xl6_encoding_empty_buffer(); }\n", out);
+    xl6OutputPuts("    swapped = xrtUTF32LEtoBE((unsigned int*)data, byteSize / 4u, false);\n", out);
+    xl6OutputPuts("    if ( swapped == 0 ) { return xl6_encoding_empty_buffer(); }\n", out);
+    xl6OutputPuts("    result = xl6_encoding_buffer_from_bytes(swapped, byteSize); xrtFree(swapped); return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("#endif\n\n", out);

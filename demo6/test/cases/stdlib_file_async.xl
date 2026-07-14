@@ -2,11 +2,20 @@ string filePath = "build/test/stdlib_file_async_case.txt"
 string copyPath = "build/test/stdlib_file_async_case.copy.txt"
 string movePath = "build/test/stdlib_file_async_case.move.txt"
 string missingPath = "build/test/stdlib_file_async_case.missing.txt"
+string binaryPath = "build/test/stdlib_file_async_case.bin"
+string handlePath = "build/test/stdlib_file_async_handle.bin"
+string dirRoot = "build/test/stdlib_dir_async_case"
+string dirSource = dirRoot + "/source"
+string dirCopy = dirRoot + "/copy"
+string dirMoved = dirRoot + "/moved"
 
 file.delete(filePath)
 file.delete(copyPath)
 file.delete(movePath)
 file.delete(missingPath)
+file.delete(binaryPath)
+file.delete(handlePath)
+dir.delete(dirRoot)
 
 future<bool> writeFuture = file.writeTextAsync(filePath, "hello")
 assert writeFuture.wait(), "writeTextAsync future should complete"
@@ -40,10 +49,47 @@ bool missingReadCaught = false
 try
     string missingText = await file.readTextAsync(missingPath)
 catch e
-    if string.contains(e.message, "does not exist") then
+    if string.contains(e.message, missingPath) then
         missingReadCaught = true
     end
 end
 assert missingReadCaught, "readTextAsync missing file should reject with a future error"
+
+// 二进制便捷接口必须保持 Buffer 的长度和内容。
+Buffer binary = Buffer()
+assert binary.appendByte(0)
+assert binary.appendByte(127)
+assert binary.appendByte(255)
+assert await file.writeBytesAsync(binaryPath, binary)
+Buffer binaryRead = await file.readBytesAsync(binaryPath)
+assert binaryRead == binary, "binary async roundtrip mismatch"
+
+// AsyncFile 覆盖随机读写、刷新、截断、共享标志和显式关闭。
+int openFlags = file.asyncRead + file.asyncWrite + file.asyncCreate + file.asyncTruncate
+int shareFlags = file.shareRead + file.shareWrite + file.shareDelete
+AsyncFile asyncFile = file.openAsync(handlePath, openFlags, shareFlags)
+assert await asyncFile.write(0, binary) == binary.len()
+assert await asyncFile.flush()
+assert await asyncFile.size() == binary.len()
+Buffer handleRead = Buffer(await asyncFile.read(0, binary.len()))
+assert handleRead == binary
+assert await asyncFile.resize(2)
+assert await asyncFile.size() == 2
+assert asyncFile.close()
+
+// 目录异步接口覆盖单层创建、递归创建、复制、移动与递归删除。
+assert await dir.createAsync(dirRoot)
+assert await dir.createAllAsync(dirSource + "/nested")
+assert file.writeText(dirSource + "/nested/value.txt", "dir async")
+assert await dir.copyAsync(dirSource, dirCopy)
+assert file.readText(dirCopy + "/nested/value.txt") == "dir async"
+assert await dir.moveAsync(dirCopy, dirMoved)
+assert not dir.exists(dirCopy)
+assert await dir.deleteAsync(dirMoved)
+assert await dir.deleteAsync(dirSource)
+assert await dir.deleteAsync(dirRoot)
+
+file.delete(binaryPath)
+file.delete(handlePath)
 
 println("stdlib file async ok")

@@ -1,0 +1,11 @@
+func work() as int
+    return 1
+end
+
+func cleanup(int value)
+    assert value == 1
+end
+
+func() as int worker = work
+future<int> source = task.spawn(worker)
+future<int> result = source.finally(cleanup)

@@ -1,26 +1,12 @@
+#include "src/cgen/xl6_cgen_http_server_types.c"
+
 static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
 {
     if ( out == NULL ) {
         return;
     }
 
-    xl6OutputPuts("#ifndef XL6_HTTP_SERVER_RUNTIME\n", out);
-    xl6OutputPuts("#define XL6_HTTP_SERVER_RUNTIME\n", out);
-    xl6OutputPuts("#include <stdlib.h>\n", out);
-    xl6OutputPuts("#include <stdint.h>\n", out);
-    xl6OutputPuts("#include <string.h>\n\n", out);
-
-    xl6OutputPuts("typedef struct xrt_net_engine xnetengine;\n", out);
-    xl6OutputPuts("typedef struct xrt_web_server xwebserver;\n", out);
-    xl6OutputPuts("typedef struct xrt_web_app xwebapp;\n", out);
-    xl6OutputPuts("typedef struct xrt_web_request xwebrequest;\n", out);
-    xl6OutputPuts("typedef struct xrt_web_response xwebresponse;\n", out);
-    xl6OutputPuts("typedef struct xrt_net_future xfuture;\n", out);
-    xl6OutputPuts("typedef struct xrt_tls_session xtlssession;\n", out);
-    xl6OutputPuts("typedef struct xrt_tls_resume xtlsresume;\n", out);
-    xl6OutputPuts("typedef struct { uint16_t iFamily; uint16_t iPort; uint32_t iScopeId; uint8_t aAddr[16]; } xnetaddr;\n", out);
-    xl6OutputPuts("typedef struct { const char* sCertFile; const char* sKeyFile; const char* sCaFile; const char* sCrlFile; const void* pCertData; size_t iCertDataLen; const void* pKeyData; size_t iKeyDataLen; const void* pCaData; size_t iCaDataLen; const void* pCrlData; size_t iCrlDataLen; const char* sHostName; bool bVerifyPeer; void (*OnSNI)(xtlssession* pSession, const char* sHostName, void* pUserData); void* pSNIUserData; bool bAllowTLS12Ed25519; uint16_t iMaxVersion; const xtlsresume* pResume; volatile long iDataLock; } xtlsconfig;\n", out);
-    xl6OutputPuts("typedef struct { xnetaddr tBindAddr; uint32_t iFlags; uint32_t iBacklog; uint32_t iRecvLimit; uint32_t iBodyLimit; uint32_t iHeaderLimit; uint32_t iHeaderBytesLimit; uint32_t iHeaderTimeoutMs; uint32_t iBodyTimeoutMs; uint32_t iIdleTimeoutMs; uint32_t iWriteTimeoutMs; uint32_t iMultipartPartLimit; uint32_t iMultipartPartSizeLimit; uint32_t iWorkerCount; const xtlsconfig* pTlsConfig; } xwebconfig;\n", out);
+    xl6CgenEmitHttpServerRuntimeTypes(out);
 
     xl6OutputPuts("#define XL6_XWEB_DONE 1\n", out);
     xl6OutputPuts("#define XL6_XWEB_ERROR -1\n", out);
@@ -130,6 +116,8 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("char* xrtWebRequestTlsSNICopy(const xwebrequest* pReq);\n", out);
     xl6OutputPuts("int xrtWebRequestLocalPort(const xwebrequest* pReq);\n", out);
     xl6OutputPuts("int xrtWebRequestRemotePort(const xwebrequest* pReq);\n", out);
+    xl6OutputPuts("bool xrtWebRequestConnectionOpen(const xwebrequest* pReq);\n", out);
+    xl6OutputPuts("bool xrtWebRequestCloseConnection(xwebrequest* pReq, bool bAbort);\n", out);
     xl6OutputPuts("char* xrtWebRequestParamCopy(const xwebrequest* pReq, const char* sName);\n", out);
     xl6OutputPuts("size_t xrtWebRequestParamCount(const xwebrequest* pReq);\n", out);
     xl6OutputPuts("char* xrtWebRequestParamNameCopyAt(const xwebrequest* pReq, size_t iIndex);\n", out);
@@ -142,6 +130,14 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("void xrtWebResponseStatus(xwebresponse* pResp, uint32_t iStatusCode, const char* sReason);\n", out);
     xl6OutputPuts("bool xrtWebResponseSetHeader(xwebresponse* pResp, const char* sName, const char* sValue);\n", out);
     xl6OutputPuts("bool xrtWebResponseAddHeader(xwebresponse* pResp, const char* sName, const char* sValue);\n", out);
+    xl6OutputPuts("uint32_t xrtWebResponseStatusCode(const xwebresponse* pResp);\n", out);
+    xl6OutputPuts("const char* xrtWebResponseReason(const xwebresponse* pResp);\n", out);
+    xl6OutputPuts("const char* xrtWebResponseHeader(const xwebresponse* pResp, const char* sName);\n", out);
+    xl6OutputPuts("size_t xrtWebResponseHeaderCount(const xwebresponse* pResp);\n", out);
+    xl6OutputPuts("const char* xrtWebResponseHeaderNameAt(const xwebresponse* pResp, size_t iIndex);\n", out);
+    xl6OutputPuts("const char* xrtWebResponseHeaderValueAt(const xwebresponse* pResp, size_t iIndex);\n", out);
+    xl6OutputPuts("const void* xrtWebResponseBodyView(const xwebresponse* pResp, size_t* pLen);\n", out);
+    xl6OutputPuts("bool xrtWebResponseCommitted(const xwebresponse* pResp);\n", out);
     xl6OutputPuts("bool xrtWebResponseCookie(xwebresponse* pResp, const char* sName, const char* sValue, const char* sPath, int32_t iMaxAge, uint32_t iSameSite, uint32_t iFlags);\n", out);
     xl6OutputPuts("bool xrtWebResponseDeleteCookie(xwebresponse* pResp, const char* sName, const char* sPath);\n", out);
     xl6OutputPuts("bool xrtWebResponseText(xwebresponse* pResp, const char* sText, const char* sContentType);\n\n", out);
@@ -155,6 +151,7 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("bool xrtWebResponseWriteText(xwebresponse* pResp, const char* sText);\n", out);
     xl6OutputPuts("bool xrtWebResponseEnd(xwebresponse* pResp);\n", out);
     xl6OutputPuts("bool xrtWebResponseFile(xwebresponse* pResp, const char* sFilePath, size_t iChunkSize);\n", out);
+    xl6OutputPuts("bool xrtWebResponseFileRange(xwebresponse* pResp, const char* sFilePath, uint64_t iOffset, uint64_t iLength, size_t iChunkSize);\n", out);
     xl6OutputPuts("bool xrtWebResponseRedirect(xwebresponse* pResp, const char* sURL, uint32_t iStatusCode);\n", out);
     xl6OutputPuts("const char* xrtWebMimeByPath(const char* sPath);\n\n", out);
 
@@ -561,6 +558,16 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("    return (long long)xrtWebRequestRemotePort((const xwebrequest*)req);\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("int xl6_xrt_http_request_connection_open(void* req)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebRequestConnectionOpen((const xwebrequest*)req) ? 1 : 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_request_close_connection(void* req, int abortConnection)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebRequestCloseConnection((xwebrequest*)req, abortConnection != 0) ? 1 : 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("void xl6_xrt_http_response_status(void* resp, long long code, const char* reason)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( code < 100 || code > 999 ) { code = 500; }\n", out);
@@ -575,6 +582,57 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("int xl6_xrt_http_response_add_header(void* resp, const char* name, const char* value)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xrtWebResponseAddHeader((xwebresponse*)resp, name, value);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_xrt_http_response_status_code(void* resp)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return (long long)xrtWebResponseStatusCode((const xwebresponse*)resp);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_response_reason(void* resp)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtCopyStr((str)xrtWebResponseReason((const xwebresponse*)resp), 0);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_response_header_value(void* resp, const char* name)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtCopyStr((str)xrtWebResponseHeader((const xwebresponse*)resp, name), 0);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_xrt_http_response_header_count(void* resp)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return (long long)xrtWebResponseHeaderCount((const xwebresponse*)resp);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_response_header_name(void* resp, long long index)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( index < 0 ) { return xrtCopyStr((str)\"\", 0); }\n", out);
+    xl6OutputPuts("    return xrtCopyStr((str)xrtWebResponseHeaderNameAt((const xwebresponse*)resp, (size_t)index), 0);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_response_header_value_at(void* resp, long long index)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( index < 0 ) { return xrtCopyStr((str)\"\", 0); }\n", out);
+    xl6OutputPuts("    return xrtCopyStr((str)xrtWebResponseHeaderValueAt((const xwebresponse*)resp, (size_t)index), 0);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_xrt_http_response_body_size(void* resp)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t size = 0u;\n", out);
+    xl6OutputPuts("    (void)xrtWebResponseBodyView((const xwebresponse*)resp, &size);\n", out);
+    xl6OutputPuts("    return (long long)size;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_response_body_buffer(void* resp)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t size = 0u;\n", out);
+    xl6OutputPuts("    const void* data = xrtWebResponseBodyView((const xwebresponse*)resp, &size);\n", out);
+    xl6OutputPuts("    return xl6_xrt_buffer_from_view_bytes(data, size);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_response_committed(void* resp)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtWebResponseCommitted((const xwebresponse*)resp) ? 1 : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("int xl6_xrt_http_response_cookie(void* resp, const char* name, const char* value, const char* path, long long maxAge, long long sameSite, unsigned int flags)\n", out);
@@ -640,6 +698,12 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("int xl6_xrt_http_response_file(void* resp, const char* path, size_t chunkSize)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xrtWebResponseFile((xwebresponse*)resp, path, chunkSize);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_http_response_file_range(void* resp, const char* path, long long offset, long long length, size_t chunkSize)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( offset < 0 || length < 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    return xrtWebResponseFileRange((xwebresponse*)resp, path, (uint64_t)offset, (uint64_t)length, chunkSize);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("int xl6_xrt_http_response_redirect(void* resp, const char* url, long long code)\n", out);

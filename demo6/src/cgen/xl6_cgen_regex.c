@@ -15,10 +15,12 @@ static void xl6CgenEmitRegexRuntime(XL6_Output* out)
     xl6OutputPuts("typedef struct xrt_regex_match xregexmatch;\n", out);
     xl6OutputPuts("typedef struct xrt_regex_set xregexset;\n", out);
     xl6OutputPuts("typedef struct { size_t iBegin; size_t iEnd; } xregexspan;\n", out);
+    xl6OutputPuts("typedef struct { int iCode; size_t iPos; const char* sMessage; } xregexerror;\n", out);
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
     xl6OutputPuts("void xrtFree(void* p);\n", out);
     xl6OutputPuts("char* xrtCopyStr(const char* sText, size_t iSize);\n", out);
     xl6OutputPuts("size_t xrtStrCharToBytePos(const char* sText, size_t iSize, size_t iCharIndex);\n", out);
+    xl6OutputPuts("size_t xrtStrCharLen(const char* sText, size_t iSize);\n", out);
     xl6OutputPuts("xvalue xvoCreateArray(void);\n", out);
     xl6OutputPuts("xvalue xvoCreateInt(long long iVal);\n", out);
     xl6OutputPuts("bool xvoArrayAppendValue(xvalue pArr, xvalue pVal, bool bColloc);\n", out);
@@ -28,6 +30,8 @@ static void xl6CgenEmitRegexRuntime(XL6_Output* out)
     xl6OutputPuts("void xvoUnref(xvalue pVal);\n", out);
     xl6OutputPuts("xregex* xrtRegexCreate(const char* sPatternNt);\n", out);
     xl6OutputPuts("xregex* xrtRegexCreateEx(const char* sPattern, size_t iPatternSize, xregexflags iFlags);\n", out);
+    xl6OutputPuts("int xrtRegexCompile(const char* sPattern, size_t iPatternSize, xregexflags iFlags, xregex** ppRegex, xregexerror* pError);\n", out);
+    xl6OutputPuts("int xrtRegexClone(xregex** ppOut, const xregex* pRegex, const void* pAlloc);\n", out);
     xl6OutputPuts("void xrtRegexDestroy(xregex* pRegex);\n", out);
     xl6OutputPuts("int xrtRegexIsMatch(xregex* pRegex, const char* sText, size_t iTextSize);\n", out);
     xl6OutputPuts("int xrtRegexFullMatch(xregex* pRegex, const char* sText, size_t iTextSize);\n", out);
@@ -40,6 +44,15 @@ static void xl6CgenEmitRegexRuntime(XL6_Output* out)
     xl6OutputPuts("long long xrtRegexMatchStart(xregexmatch* pMatch);\n", out);
     xl6OutputPuts("long long xrtRegexMatchEnd(xregexmatch* pMatch);\n", out);
     xl6OutputPuts("char* xrtRegexMatchTextCopy(xregexmatch* pMatch);\n", out);
+    xl6OutputPuts("unsigned int xrtRegexMatchCaptureCount(const xregexmatch* pMatch);\n", out);
+    xl6OutputPuts("int xrtRegexMatchCaptureMatched(const xregexmatch* pMatch, unsigned int iCaptureIndex);\n", out);
+    xl6OutputPuts("long long xrtRegexMatchCaptureByteStart(const xregexmatch* pMatch, unsigned int iCaptureIndex);\n", out);
+    xl6OutputPuts("long long xrtRegexMatchCaptureByteEnd(const xregexmatch* pMatch, unsigned int iCaptureIndex);\n", out);
+    xl6OutputPuts("long long xrtRegexMatchCaptureStart(xregexmatch* pMatch, unsigned int iCaptureIndex);\n", out);
+    xl6OutputPuts("long long xrtRegexMatchCaptureEnd(xregexmatch* pMatch, unsigned int iCaptureIndex);\n", out);
+    xl6OutputPuts("const char* xrtRegexMatchCaptureName(const xregexmatch* pMatch, unsigned int iCaptureIndex, size_t* pOutNameSize);\n", out);
+    xl6OutputPuts("int xrtRegexMatchCaptureIndex(const xregexmatch* pMatch, const char* sName, size_t iNameSize);\n", out);
+    xl6OutputPuts("char* xrtRegexMatchCaptureTextCopy(const xregexmatch* pMatch, unsigned int iCaptureIndex);\n", out);
     xl6OutputPuts("unsigned int xrtRegexCaptureCount(const xregex* pRegex);\n", out);
     xl6OutputPuts("const char* xrtRegexCaptureName(const xregex* pRegex, unsigned int iCaptureIndex, size_t* pOutNameSize);\n", out);
     xl6OutputPuts("xregexset* xrtRegexSetCreateEx(const char* const* arrPatternsNt, size_t iPatternCount, xregexflags iFlags);\n", out);
@@ -47,6 +60,9 @@ static void xl6CgenEmitRegexRuntime(XL6_Output* out)
     xl6OutputPuts("int xrtRegexSetIsMatchAt(xregexset* pSet, const char* sText, size_t iTextSize, size_t iPos);\n", out);
     xl6OutputPuts("int xrtRegexSetFirstAt(xregexset* pSet, const char* sText, size_t iTextSize, size_t iPos);\n", out);
     xl6OutputPuts("int xrtRegexSetMatchesAt(xregexset* pSet, const char* sText, size_t iTextSize, size_t iPos, unsigned int* pOutIndexes, unsigned int iMaxIndexes, unsigned int* pOutIndexCount);\n\n", out);
+    xl6OutputPuts("unsigned int xrtRegexSetPatternCount(const xregexset* pSet);\n", out);
+    xl6OutputPuts("xregexmatch* xrtRegexSetFindMatchAt(xregexset* pSet, unsigned int iPatternIndex, const char* sText, size_t iTextSize, size_t iPos);\n", out);
+    xl6OutputPuts("int xrtRegexSetClone(xregexset** ppOut, const xregexset* pSet, const void* pAlloc);\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_regex_create_default(const char* pattern)\n", out);
     xl6OutputPuts("{\n", out);
@@ -58,10 +74,55 @@ static void xl6CgenEmitRegexRuntime(XL6_Output* out)
     xl6OutputPuts("    return xrtRegexCreateEx(pattern != 0 ? pattern : \"\", 0, (xregexflags)flags);\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    xl6OutputPuts("void* xl6_xrt_regex_wrap(void* regex)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return regex;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("long long xl6_xrt_regex_destroy(void* regex)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xrtRegexDestroy((xregex*)regex);\n", out);
     xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_regex_clone(void* regex)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xregex* clone = 0;\n", out);
+    xl6OutputPuts("    if ( regex == 0 || xrtRegexClone(&clone, (const xregex*)regex, 0) != 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    return clone;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("bool xl6_xrt_regex_valid_pattern(const char* pattern, int flags)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xregex* regex = 0;\n", out);
+    xl6OutputPuts("    int code = xrtRegexCompile(pattern != 0 ? pattern : \"\", 0, (xregexflags)flags, &regex, 0);\n", out);
+    xl6OutputPuts("    xrtRegexDestroy(regex);\n", out);
+    xl6OutputPuts("    return code == 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_regex_error_message(const char* pattern, int flags)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xregex* regex = 0;\n", out);
+    xl6OutputPuts("    xregexerror error;\n", out);
+    xl6OutputPuts("    int code = xrtRegexCompile(pattern != 0 ? pattern : \"\", 0, (xregexflags)flags, &regex, &error);\n", out);
+    xl6OutputPuts("    xrtRegexDestroy(regex);\n", out);
+    xl6OutputPuts("    return xrtCopyStr(code != 0 && error.sMessage != 0 ? error.sMessage : \"\", 0);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_xrt_regex_error_byte_pos(const char* pattern, int flags)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xregex* regex = 0;\n", out);
+    xl6OutputPuts("    xregexerror error;\n", out);
+    xl6OutputPuts("    int code = xrtRegexCompile(pattern != 0 ? pattern : \"\", 0, (xregexflags)flags, &regex, &error);\n", out);
+    xl6OutputPuts("    xrtRegexDestroy(regex);\n", out);
+    xl6OutputPuts("    return code != 0 ? (long long)error.iPos : -1;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_xrt_regex_error_pos(const char* pattern, int flags)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    long long bytePos = xl6_xrt_regex_error_byte_pos(pattern, flags);\n", out);
+    xl6OutputPuts("    if ( bytePos < 0 ) { return -1; }\n", out);
+    xl6OutputPuts("    return (long long)xrtStrCharLen(pattern != 0 ? pattern : \"\", (size_t)bytePos);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("int xl6_xrt_regex_is_match_native(void* regex, const char* text, size_t textSize)\n", out);
@@ -122,6 +183,53 @@ static void xl6CgenEmitRegexRuntime(XL6_Output* out)
     xl6OutputPuts("void* xl6_xrt_regex_match_text_copy(void* match)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xrtRegexMatchTextCopy((xregexmatch*)match);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("unsigned int xl6_xrt_regex_match_capture_count(void* match)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtRegexMatchCaptureCount((const xregexmatch*)match);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("int xl6_xrt_regex_match_capture_matched(void* match, unsigned int index)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtRegexMatchCaptureMatched((const xregexmatch*)match, index);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_xrt_regex_match_capture_byte_start(void* match, unsigned int index)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtRegexMatchCaptureByteStart((const xregexmatch*)match, index);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_xrt_regex_match_capture_byte_end(void* match, unsigned int index)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtRegexMatchCaptureByteEnd((const xregexmatch*)match, index);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_xrt_regex_match_capture_start(void* match, unsigned int index)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtRegexMatchCaptureStart((xregexmatch*)match, index);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_xrt_regex_match_capture_end(void* match, unsigned int index)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtRegexMatchCaptureEnd((xregexmatch*)match, index);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_regex_match_capture_name_copy(void* match, unsigned int index)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t size = 0;\n", out);
+    xl6OutputPuts("    const char* name = xrtRegexMatchCaptureName((const xregexmatch*)match, index, &size);\n", out);
+    xl6OutputPuts("    return name != 0 ? xrtCopyStr(name, size) : 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("long long xl6_xrt_regex_match_capture_index(void* match, const char* name)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtRegexMatchCaptureIndex((const xregexmatch*)match, name != 0 ? name : \"\", 0);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_regex_match_capture_text_copy(void* match, unsigned int index)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtRegexMatchCaptureTextCopy((const xregexmatch*)match, index);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_regex_capture_name_copy(void* regex, unsigned int index)\n", out);
@@ -214,6 +322,30 @@ static void xl6CgenEmitRegexRuntime(XL6_Output* out)
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xrtRegexSetDestroy((xregexset*)set);\n", out);
     xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_regex_set_wrap(void* set)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return set;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_regex_set_clone(void* set)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xregexset* clone = 0;\n", out);
+    xl6OutputPuts("    if ( set == 0 || xrtRegexSetClone(&clone, (const xregexset*)set, 0) != 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    return clone;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("unsigned int xl6_xrt_regex_set_pattern_count(void* set)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xrtRegexSetPatternCount((const xregexset*)set);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_regex_set_match(void* set, unsigned int index, const char* text, size_t textSize, size_t start)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( text == 0 ) { text = \"\"; textSize = 0; }\n", out);
+    xl6OutputPuts("    start = xrtStrCharToBytePos(text, textSize, start);\n", out);
+    xl6OutputPuts("    return xrtRegexSetFindMatchAt((xregexset*)set, index, text, textSize, start);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("int xl6_xrt_regex_set_is_match(void* set, const char* text, size_t textSize, size_t start)\n", out);

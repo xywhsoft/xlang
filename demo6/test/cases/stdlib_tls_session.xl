@@ -1,0 +1,21 @@
+TlsConfig config = TlsConfig()
+assert(config.host("localhost"))
+config.verifyPeer(false)
+config.maxVersion(0x0304)
+
+TlsSession session = config.session()
+assert(not session.ready)
+int status = session.handshake()
+assert(status == 0 or status == -2)
+assert(session.status == status)
+assert(session.pendingCipher > 0)
+
+Buffer clientHello = session.peekCipher()
+assert(clientHello.len() == session.pendingCipher)
+session.consumeCipher(clientHello.len())
+assert(session.pendingCipher == 0)
+assert(not session.resumed)
+assert(session.sni() == "")
+assert(session.close() == 0 or session.status == -2)
+
+println("tls_session=ok")

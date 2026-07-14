@@ -1,0 +1,43 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+int eventCount = 0
+array savedEvents = []
+
+func onJsonEvent(var event) as bool
+    eventCount += 1
+    if string(event["type"]) == "string" then
+        savedEvents.append(event)
+    end
+    return true
+end
+
+func stopJsonEvent(var event) as bool
+    return int(event["depth"]) < 1
+end
+
+string source = '{"name":"xlang","items":[1,true,null]}'
+expect(json.visit(source, onJsonEvent), json.visitComplete)
+expect(eventCount, 8)
+expect(savedEvents.length, 1)
+expectStr(string(savedEvents[0]["key"]), "name")
+expectStr(string(savedEvents[0]["value"]), "xlang")
+expect(json.visit(source, stopJsonEvent), json.visitStopped)
+expect(json.visit("{bad}", onJsonEvent), json.visitInvalid)
+
+JsonWriter writer = json.writer()
+expect(writer.beginObject(), 1)
+expect(writer.writeString("name", "xlang"), 1)
+expect(writer.beginArray("items"), 1)
+expect(writer.writeInt(1), 1)
+expect(writer.writeBool(true), 1)
+expect(writer.writeNull(), 1)
+expect(writer.endArray(), 1)
+expect(writer.writeValue("nested", json.parse('{"value":2.5}')), 1)
+expect(writer.endObject(), 1)
+expectStr(writer.finish(), '{"name":"xlang","items":[1,true,null],"nested":{"value":2.5}}')
+
+JsonWriter badWriter = JsonWriter()
+expect(badWriter.beginArray(), 1)
+expect(badWriter.writeInt("key", 1), 0)
+expectStr(badWriter.finish(), "")
