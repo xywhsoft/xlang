@@ -13,6 +13,9 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_tcc_export_environment.ps1
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_standalone_compiler_vfs.ps1
+if errorlevel 1 exit /b 1
+
 release\xl.exe build release\examples\hello.xl -o build\test\trim_hello.exe
 if errorlevel 1 exit /b 1
 build\test\trim_hello.exe
