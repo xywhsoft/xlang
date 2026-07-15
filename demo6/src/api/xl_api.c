@@ -1528,7 +1528,7 @@ static int xlBuildCSourceWrapperText(XL_Context* ctx, const char* sourcePath, ch
         xlSetError(ctx, "cannot create C source wrapper output");
         return 0;
     }
-    ok = xl6OutputPuts("#include \"lib/xrt/xrt.h\"\n", &out) != EOF &&
+    ok = xl6OutputPuts("#include \"xrt.h\"\n", &out) != EOF &&
          xl6OutputPuts("#include \"module.h\"\n", &out) != EOF &&
          xl6OutputPuts("#include \"", &out) != EOF &&
          xlOutputNormalizedCIncludePath(ctx, &out, sourcePath) &&
@@ -1652,7 +1652,7 @@ static int xlCompileAdditionalCSourceFilesDisk(XL_Context* ctx, TCCState* s, XL6
         written = snprintf(sourceText,
                            sizeof(sourceText),
                            "/* generated wrapper for %s */\n"
-                           "#include \"lib/xrt/xrt.h\"\n"
+                           "#include \"xrt.h\"\n"
                            "#include \"module.h\"\n"
                            "#include \"%s\"\n",
                            includePath,
@@ -3581,7 +3581,7 @@ static int xlCompileCSourceFilesToExternalOutput(
          xlAddDependenciesToTcc(ctx, s, NULL) &&
          xlTccCompileSourceText(ctx, s, XL_TCC_VFS_XRT_C,
              "#define XRT_IMPLEMENTATION\n"
-             "#include \"lib/xrt/xrt.h\"\n",
+             "#include \"xrt.h\"\n",
              "cannot compile XRT single header");
     if ( ok ) {
         ok = xl__tcc.tcc_output_file(s, outputPath) == 0;

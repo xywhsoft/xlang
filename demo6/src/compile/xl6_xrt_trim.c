@@ -666,7 +666,7 @@ int xl6XrtTrimEmitImplementationSource(XL6_Output* out, const XL6_XrtTrimConfig*
         return 0;
     }
     if ( cfg == NULL || cfg->full ) {
-        return xl6OutputPuts("#include \"lib/xrt/xrt.h\"\n", out) != EOF;
+        return xl6OutputPuts("#include \"xrt.h\"\n", out) != EOF;
     }
     if ( xl6OutputPuts("/* XRT module-level trim macros. */\n", out) == EOF ) {
         return 0;
@@ -710,7 +710,7 @@ int xl6XrtTrimEmitImplementationSource(XL6_Output* out, const XL6_XrtTrimConfig*
           !xl6XrtTrimEmitNoMacro(out, cfg->keepXWs, "XRT_NO_XWS")) ) {
         return 0;
     }
-    return xl6OutputPuts("#include \"lib/xrt/xrt.h\"\n", out) != EOF;
+    return xl6OutputPuts("#include \"xrt.h\"\n", out) != EOF;
 }
 
 int xl6XrtTrimBuildImplementationSource(const XL6_AstNode* root, const XL6_ImportDeps* deps, char** outText)
