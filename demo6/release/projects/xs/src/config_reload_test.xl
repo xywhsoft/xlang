@@ -1,0 +1,41 @@
+import "./service_runtime.xl"
+
+func serviceName(var status, int index) as string
+    return string(status[index]["name"])
+end
+
+func serviceRunning(var status, int index) as bool
+    return bool(status[index]["running"])
+end
+
+string sourcePath = "projects/xs/tests/config/multiservice.json"
+string testPath = "projects/xs/tests/config/_runtime_reload_test.json"
+string original = file.readText(sourcePath)
+file.delete(testPath)
+assert file.writeText(testPath, original), "cannot create reload test config"
+
+string includeDir = path.join(path.abs("projects/xs"), "include")
+auto runtime = service_runtime.open(testPath, includeDir)
+assert runtime.ready(), runtime.lastError()
+assert runtime.start(), runtime.lastError()
+
+// 解析或校验失败不能触碰当前运行态。
+assert file.writeText(testPath, "{\"version\":2,\"services\":[]}"), "cannot write invalid reload config"
+assert not runtime.reload(), "invalid config reload must fail"
+var afterRejected = runtime.status()
+assert afterRejected.length == 3, "rejected reload changed service count"
+assert serviceName(afterRejected, 0) == "web", "rejected reload changed active service"
+assert serviceRunning(afterRejected, 0), "rejected reload stopped active service"
+
+// 结构变化使用候选运行时整体切换，不能留下旧服务。
+string changed = string.replace(original, "\"name\": \"web\"", "\"name\": \"web-reloaded\"")
+assert file.writeText(testPath, changed), "cannot write changed reload config"
+assert runtime.reload(), runtime.lastError()
+var afterCommitted = runtime.status()
+assert afterCommitted.length == 3, "committed reload service count mismatch"
+assert serviceName(afterCommitted, 0) == "web-reloaded", "committed reload did not publish candidate"
+assert serviceRunning(afterCommitted, 0), "committed reload did not start candidate"
+
+assert runtime.stop(), runtime.lastError()
+file.delete(testPath)
+println("xs2 config reload test ok")

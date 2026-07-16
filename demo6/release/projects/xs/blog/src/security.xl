@@ -1,0 +1,149 @@
+// ============================================================
+// 博客安全辅助：密码派生、随机令牌和输出编码
+// ============================================================
+
+extern "xrtPBKDF2_SHA256" func xsBlogPBKDF2(
+    string password,
+    c_size passwordLength,
+    string salt,
+    c_size saltLength,
+    c_uint iterations,
+    point output,
+    c_size outputLength) as bool
+
+extern "xrtConstTimeEqual" func xsBlogConstTimeEqual(
+    string left,
+    string right,
+    c_size length) as bool
+
+const int PASSWORD_ITERATIONS = 210000
+const int PASSWORD_BYTES = 32
+
+func derivePassword(string password, string salt, int iterations) as string
+    Buffer derived = Buffer(PASSWORD_BYTES)
+    int index = 0
+    while index < PASSWORD_BYTES do
+        if not derived.appendByte(0) then return "" end
+        index += 1
+    end
+    if not xsBlogPBKDF2(
+        password,
+        c_size(string.byteLen(password)),
+        salt,
+        c_size(string.byteLen(salt)),
+        c_uint(iterations),
+        derived.data(),
+        c_size(PASSWORD_BYTES)) then
+        return ""
+    end
+    return codec.hexEncodeBytes(derived.data(), c_size(derived.len()))
+end
+
+export func hashPassword(string password) as string
+    if string.byteLen(password) < 12 or string.byteLen(password) > 1024 then
+        return ""
+    end
+    string salt = crypto.randomHex(16)
+    string digest = derivePassword(password, salt, PASSWORD_ITERATIONS)
+    if digest == "" then return "" end
+    return "pbkdf2-sha256$" + PASSWORD_ITERATIONS.toString() + "$" + salt + "$" + digest
+end
+
+export func verifyPassword(string password, string encoded) as bool
+    array parts = string.split(encoded, "$")
+    if parts.length != 4 or string(parts[0]) != "pbkdf2-sha256" then
+        return false
+    end
+
+    int iterations = 0
+    try
+        iterations = int(parts[1])
+    catch e
+        return false
+    end
+    if iterations < 100000 or iterations > 2000000 then return false end
+
+    string expected = string(parts[3])
+    string actual = derivePassword(password, string(parts[2]), iterations)
+    if actual == "" or string.byteLen(actual) != string.byteLen(expected) then
+        return false
+    end
+    return xsBlogConstTimeEqual(actual, expected, c_size(string.byteLen(actual)))
+end
+
+export func randomToken() as string
+    return crypto.randomHex(32)
+end
+
+export func tokenDigest(string token) as string
+    return crypto.sha256(token)
+end
+
+export func equal(string left, string right) as bool
+    if string.byteLen(left) != string.byteLen(right) then return false end
+    return xsBlogConstTimeEqual(left, right, c_size(string.byteLen(left)))
+end
+
+export func html(string text) as string
+    string escaped = string.replace(text, "&", "&amp;")
+    escaped = string.replace(escaped, "<", "&lt;")
+    escaped = string.replace(escaped, ">", "&gt;")
+    escaped = string.replace(escaped, "\"", "&quot;")
+    escaped = string.replace(escaped, "'", "&#39;")
+    return escaped
+end
+
+export func attribute(string text) as string
+    return html(text)
+end
+
+export func slug(string text) as string
+    string source = string.lower(string.trim(text))
+    string result = ""
+    bool separator = false
+    for ch in source
+        bool alpha = ch >= "a" and ch <= "z"
+        bool digit = ch >= "0" and ch <= "9"
+        if alpha or digit then
+            result += ch
+            separator = false
+        elseif not separator and result != "" then
+            result += "-"
+            separator = true
+        end
+    end
+    result = string.trim(result, "-")
+    if string.len(result) > 80 then
+        result = string.slice(result, 0, 80)
+        result = string.trim(result, "-")
+    end
+    return result
+end
+
+export func parseInt(string text, int defaultValue = 0) as int
+    string value = string.trim(text)
+    if value == "" then return defaultValue end
+    int start = 0
+    if string.slice(value, 0, 1) == "-" then
+        if string.len(value) == 1 then return defaultValue end
+        start = 1
+    end
+    int index = start
+    while index < string.len(value) do
+        string ch = string.slice(value, index, 1)
+        if ch < "0" or ch > "9" then return defaultValue end
+        index += 1
+    end
+    return int(value)
+end
+
+export func validUsername(string username) as bool
+    int length = string.len(username)
+    if length < 3 or length > 64 then return false end
+    for ch in username
+        bool alpha = (ch >= "a" and ch <= "z") or (ch >= "A" and ch <= "Z")
+        bool digit = ch >= "0" and ch <= "9"
+        if not alpha and not digit and ch != "_" and ch != "-" then return false end
+    end
+    return true
+end

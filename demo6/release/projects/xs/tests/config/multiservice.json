@@ -1,0 +1,56 @@
+{
+  "version": 2,
+  "runtime": {
+    "workDir": "../..",
+    "shutdownTimeoutMs": 5000,
+    "handlerPoolSize": 2,
+    "handlerQueueLimit": 32
+  },
+  "services": [
+    {
+      "type": "http",
+      "name": "web",
+      "host": "127.0.0.1",
+      "port": 0,
+      "workerCount": 2,
+      "routes": [
+        {
+          "name": "echo",
+          "kind": "handler",
+          "method": "POST",
+          "pattern": "/echo",
+          "contentType": "application/octet-stream",
+          "handler": {
+            "language": "c",
+            "path": "../handlers/abi_c.c",
+            "mode": "embedded"
+          }
+        }
+      ]
+    },
+    {
+      "type": "tcp",
+      "name": "tcp-echo",
+      "host": "127.0.0.1",
+      "port": 0,
+      "workerCount": 2,
+      "handler": {
+        "language": "c",
+        "path": "../handlers/abi_c.c",
+        "mode": "embedded"
+      }
+    },
+    {
+      "type": "udp",
+      "name": "udp-echo",
+      "host": "127.0.0.1",
+      "port": 0,
+      "workerCount": 2,
+      "handler": {
+        "language": "xlang",
+        "path": "../handlers/abi_xlang.xl",
+        "mode": "embedded"
+      }
+    }
+  ]
+}

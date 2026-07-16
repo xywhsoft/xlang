@@ -1,0 +1,277 @@
+import "./security.xl"
+import "./db.xl"
+import "./auth_store.xl"
+import "./settings_store.xl"
+import "./content_store.xl"
+import "./comment_store.xl"
+import "./admin_view.xl"
+
+const string SESSION_COOKIE = "xs_blog_session"
+const int SESSION_SECONDS = 43200
+
+func sendHtml(HttpResponse response, string html, int status = 200) as int
+    response.status(status)
+    response.header("Cache-Control", "no-store")
+    return response.text(html, "text/html; charset=utf-8") ? 1 : 0
+end
+
+func currentSession(point handle, HttpRequest request) as var
+    string token = request.cookie(SESSION_COOKIE)
+    if token == "" or string.len(token) != 64 then return null end
+    return auth_store.findSession(handle, security.tokenDigest(token), time.toUnix(time.nowUTC()))
+end
+
+func csrfValid(HttpRequest request, var session) as bool
+    if session == null or not request.isFormUrlEncoded() then return false end
+    return security.equal(request.formValue("csrf"), string(session["csrf_token"]))
+end
+
+func setSessionCookie(HttpRequest request, HttpResponse response, string token) as bool
+    int flags = http.server.cookieHttpOnly
+    if request.tlsSNI() != "" then flags += http.server.cookieSecure end
+    return response.cookie(SESSION_COOKIE, token, "/", SESSION_SECONDS, http.server.sameSiteLax, flags)
+end
+
+func clearSessionCookie(HttpResponse response) as bool
+    return response.deleteCookie(SESSION_COOKIE, "/")
+end
+
+func renderCategories(point handle, HttpResponse response, var session, string message = "") as int
+    return sendHtml(response, admin_view.categories(
+        string(session["username"]),
+        string(session["csrf_token"]),
+        content_store.categories(handle, true),
+        message))
+end
+
+func login(point handle, HttpRequest request, HttpResponse response) as int
+    if request.method() == "GET" then
+        if currentSession(handle, request) != null then return response.redirect("/admin", 303) ? 1 : 0 end
+        return sendHtml(response, admin_view.login())
+    end
+    if request.method() != "POST" or not request.isFormUrlEncoded() then
+        response.status(405)
+        return response.text("method not allowed") ? 1 : 0
+    end
+
+    string username = string.trim(request.formValue("username"))
+    string password = request.formValue("password")
+    int now = time.toUnix(time.nowUTC())
+    bool loginRequestValid = security.validUsername(username) and string.byteLen(password) <= 1024
+    loginRequestValid = loginRequestValid and auth_store.loginAllowed(handle, username, request.remoteAddr(), now)
+    if not loginRequestValid then
+        auth_store.audit(handle, 0, "login.failed", username, "rejected", request.remoteAddr())
+        return sendHtml(response, admin_view.login("Invalid credentials or too many attempts."), 401)
+    end
+
+    var admin = auth_store.findAdmin(handle, username)
+    bool accepted = admin != null and int(admin["enabled"]) == 1
+    if accepted then accepted = security.verifyPassword(password, string(admin["password_hash"])) end
+    if not accepted then
+        auth_store.audit(handle, 0, "login.failed", username, "invalid credentials", request.remoteAddr())
+        return sendHtml(response, admin_view.login("Invalid credentials or too many attempts."), 401)
+    end
+
+    string token = security.randomToken()
+    string csrf = security.randomToken()
+    bool created = auth_store.createSession(
+        handle,
+        security.tokenDigest(token),
+        int(admin["id"]),
+        csrf,
+        now + SESSION_SECONDS,
+        request.remoteAddr(),
+        request.header("User-Agent"))
+    if not created then
+        response.status(500)
+        return response.text("cannot persist session") ? 1 : 0
+    end
+    if not setSessionCookie(request, response, token) then
+        auth_store.deleteSession(handle, security.tokenDigest(token))
+        response.status(500)
+        return response.text("cannot set session cookie") ? 1 : 0
+    end
+    auth_store.audit(handle, int(admin["id"]), "login.success", username, "", request.remoteAddr())
+    return response.redirect("/admin", 303) ? 1 : 0
+end
+
+func handleCategories(point handle, HttpRequest request, HttpResponse response, var session) as int
+    if request.method() == "GET" then return renderCategories(handle, response, session) end
+    if request.method() != "POST" or not csrfValid(request, session) then
+        response.status(403)
+        return response.text("forbidden") ? 1 : 0
+    end
+    int id = security.parseInt(request.formValue("id"), 0)
+    string action = request.formValue("action")
+    if action == "delete" and id > 0 then
+        bool deleted = content_store.deleteCategory(handle, id)
+        if deleted then auth_store.audit(handle, int(session["admin_id"]), "category.delete", id.toString(), "", request.remoteAddr()) end
+        return renderCategories(handle, response, session, deleted ? "Category deleted." : "Category could not be deleted.")
+    end
+
+    string name = string.trim(request.formValue("name"))
+    string slug = security.slug(request.formValue("slug"))
+    if slug == "" then slug = security.slug(name) end
+    string description = string.trim(request.formValue("description"))
+    int sortOrder = security.parseInt(request.formValue("sortOrder"), 0)
+    bool enabled = request.formValue("enabled") == "1"
+    if name == "" or string.len(name) > 100 or slug == "" or string.len(description) > 1000 then
+        return renderCategories(handle, response, session, "Invalid category fields.")
+    end
+    bool saved
+    if id > 0 then
+        saved = content_store.updateCategory(handle, id, name, slug, description, sortOrder, enabled)
+    else
+        id = content_store.createCategory(handle, name, slug, description, sortOrder, enabled)
+        saved = id > 0
+    end
+    if saved then auth_store.audit(handle, int(session["admin_id"]), "category.save", id.toString(), name, request.remoteAddr()) end
+    return renderCategories(handle, response, session, saved ? "Category saved." : "Category could not be saved; check the slug.")
+end
+
+func handleArticles(point handle, HttpRequest request, HttpResponse response, var session) as int
+    string requestPath = request.path()
+    if requestPath == "/admin/articles" and request.method() == "GET" then
+        return sendHtml(response, admin_view.articles(
+            string(session["username"]),
+            string(session["csrf_token"]),
+            content_store.adminArticles(handle, request.queryValue("status")),
+            request.queryValue("status")))
+    end
+    if requestPath == "/admin/article/edit" and request.method() == "GET" then
+        int id = security.parseInt(request.queryValue("id"), 0)
+        var article = null
+        if id > 0 then article = content_store.articleById(handle, id) end
+        if id > 0 and article == null then
+            response.status(404)
+            return response.text("article not found") ? 1 : 0
+        end
+        return sendHtml(response, admin_view.articleForm(
+            string(session["username"]),
+            string(session["csrf_token"]),
+            article,
+            content_store.categories(handle, true)))
+    end
+    if request.method() != "POST" or not csrfValid(request, session) then
+        response.status(403)
+        return response.text("forbidden") ? 1 : 0
+    end
+    int id = security.parseInt(request.formValue("id"), 0)
+    if requestPath == "/admin/article/delete" then
+        bool deleted = id > 0 and content_store.deleteArticle(handle, id)
+        if deleted then auth_store.audit(handle, int(session["admin_id"]), "article.delete", id.toString(), "", request.remoteAddr()) end
+        return response.redirect("/admin/articles", 303) ? 1 : 0
+    end
+    if requestPath == "/admin/article/save" then
+        string title = string.trim(request.formValue("title"))
+        string slug = security.slug(request.formValue("slug"))
+        if slug == "" then slug = security.slug(title) end
+        string summary = string.trim(request.formValue("summary"))
+        string markdown = request.formValue("markdown")
+        string status = request.formValue("status")
+        int categoryId = security.parseInt(request.formValue("categoryId"), 0)
+        bool valid = title != "" and string.len(title) <= 200 and slug != ""
+        valid = valid and string.len(summary) <= 1000 and string.len(markdown) >= 1 and string.len(markdown) <= 200000
+        valid = valid and (status == "draft" or status == "published")
+        if not valid then
+            response.status(400)
+            return response.text("invalid article") ? 1 : 0
+        end
+        int savedId = content_store.saveArticle(handle, id, categoryId, title, slug, summary, markdown, status)
+        if savedId <= 0 then
+            response.status(409)
+            return response.text("article could not be saved; check the slug") ? 1 : 0
+        end
+        auth_store.audit(handle, int(session["admin_id"]), "article.save", savedId.toString(), title, request.remoteAddr())
+        return response.redirect("/admin/article/edit?id=" + savedId.toString(), 303) ? 1 : 0
+    end
+    return 0
+end
+
+func handleComments(point handle, HttpRequest request, HttpResponse response, var session) as int
+    if request.path() == "/admin/comments" and request.method() == "GET" then
+        return sendHtml(response, admin_view.comments(
+            string(session["username"]),
+            string(session["csrf_token"]),
+            comment_store.adminList(handle, request.queryValue("status"))))
+    end
+    if request.path() != "/admin/comment/action" or request.method() != "POST" or not csrfValid(request, session) then
+        response.status(403)
+        return response.text("forbidden") ? 1 : 0
+    end
+    int id = security.parseInt(request.formValue("id"), 0)
+    string action = request.formValue("action")
+    bool changed = false
+    if action == "delete" then
+        changed = comment_store.remove(handle, id)
+    elseif action == "reply" then
+        string body = string.trim(request.formValue("body"))
+        if body != "" and string.len(body) <= 4000 then changed = comment_store.reply(handle, id, int(session["admin_id"]), body) > 0 end
+    elseif action == "visible" or action == "hidden" then
+        changed = comment_store.moderate(handle, id, action)
+    end
+    if changed then auth_store.audit(handle, int(session["admin_id"]), "comment." + action, id.toString(), "", request.remoteAddr()) end
+    return response.redirect("/admin/comments", 303) ? 1 : 0
+end
+
+func handleSettings(point handle, HttpRequest request, HttpResponse response, var session) as int
+    if request.method() == "GET" then
+        return sendHtml(response, admin_view.settings(string(session["username"]), string(session["csrf_token"]), settings_store.all(handle)))
+    end
+    if request.method() != "POST" or not csrfValid(request, session) then
+        response.status(403)
+        return response.text("forbidden") ? 1 : 0
+    end
+    string title = string.trim(request.formValue("title"))
+    string subtitle = string.trim(request.formValue("subtitle"))
+    string description = string.trim(request.formValue("description"))
+    int pageSize = security.parseInt(request.formValue("postsPerPage"), 10)
+    bool moderation = request.formValue("moderation") == "1"
+    bool valid = title != "" and string.len(title) <= 120 and string.len(subtitle) <= 200 and string.len(description) <= 500
+    bool saved = valid and settings_store.updateSite(handle, title, subtitle, description, pageSize, moderation)
+    if saved then auth_store.audit(handle, int(session["admin_id"]), "settings.save", "site", "", request.remoteAddr()) end
+    return sendHtml(response, admin_view.settings(
+        string(session["username"]),
+        string(session["csrf_token"]),
+        settings_store.all(handle),
+        saved ? "Settings saved." : "Settings could not be saved."))
+end
+
+export func handle(point handle, point requestHandle, point responseHandle) as int
+    HttpRequest request = HttpRequest(requestHandle)
+    HttpResponse response = HttpResponse(responseHandle)
+    string requestPath = request.path()
+    if not string.startsWith(requestPath, "/admin") then return -1 end
+    if requestPath == "/admin/login" then return login(handle, request, response) end
+
+    var session = currentSession(handle, request)
+    if session == null then return response.redirect("/admin/login", 303) ? 1 : 0 end
+
+    if requestPath == "/admin/logout" then
+        if request.method() != "POST" or not csrfValid(request, session) then
+            response.status(403)
+            return response.text("forbidden") ? 1 : 0
+        end
+        string token = request.cookie(SESSION_COOKIE)
+        auth_store.deleteSession(handle, security.tokenDigest(token))
+        auth_store.audit(handle, int(session["admin_id"]), "logout", string(session["username"]), "", request.remoteAddr())
+        clearSessionCookie(response)
+        return response.redirect("/admin/login", 303) ? 1 : 0
+    end
+
+    if requestPath == "/admin" and request.method() == "GET" then
+        int articleCount = content_store.adminArticles(handle, "", 500).length
+        int categoryCount = content_store.categories(handle, true).length
+        int pendingCount = comment_store.adminList(handle, "pending", 500).length
+        return sendHtml(response, admin_view.dashboard(string(session["username"]), string(session["csrf_token"]), articleCount, categoryCount, pendingCount))
+    end
+    if requestPath == "/admin/categories" then return handleCategories(handle, request, response, session) end
+    if string.startsWith(requestPath, "/admin/article") or requestPath == "/admin/articles" then return handleArticles(handle, request, response, session) end
+    if string.startsWith(requestPath, "/admin/comment") then return handleComments(handle, request, response, session) end
+    if requestPath == "/admin/settings" then return handleSettings(handle, request, response, session) end
+    if requestPath == "/admin/audit" and request.method() == "GET" then
+        return sendHtml(response, admin_view.audit(string(session["username"]), string(session["csrf_token"]), auth_store.auditLog(handle)))
+    end
+    response.status(404)
+    return response.text("admin page not found") ? 1 : 0
+end

@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "services": [
+    {
+      "type": "tcp",
+      "name": "bad-framing",
+      "framing": "magic",
+      "handler": {
+        "language": "c",
+        "path": "../handlers/abi_c.c"
+      }
+    }
+  ]
+}

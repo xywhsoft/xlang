@@ -1,0 +1,23 @@
+import "../../sdk/handler.xl"
+
+export "xs_handler" func handle(point rawFrame) as c_int
+    auto frame = sdk.handler.wrap(rawFrame)
+    int kind = frame.kind()
+
+    if kind >= sdk.handler.INIT and kind <= sdk.handler.UNIT then
+        return c_int(sdk.handler.OK)
+    end
+    if kind == sdk.handler.TCP_OPEN or kind == sdk.handler.TCP_CLOSE then
+        return c_int(sdk.handler.OK)
+    end
+    if kind != sdk.handler.HTTP and kind != sdk.handler.TCP_DATA and kind != sdk.handler.UDP then
+        return c_int(sdk.handler.BAD_REQUEST)
+    end
+    if frame.cancelled() then
+        return c_int(sdk.handler.TIMEOUT)
+    end
+    if not frame.write("xl:" + frame.text()) then
+        return c_int(sdk.handler.ERROR)
+    end
+    return c_int(sdk.handler.OK)
+end

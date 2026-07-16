@@ -1,0 +1,63 @@
+export const int NONE = 0
+export const int HTTP = 1
+export const int TCP_OPEN = 2
+export const int TCP_DATA = 3
+export const int TCP_CLOSE = 4
+export const int UDP = 5
+export const int INIT = 6
+export const int START = 7
+export const int STOP = 8
+export const int UNIT = 9
+
+export const int OK = 0
+export const int ERROR = 1
+export const int BAD_REQUEST = 2
+export const int UNAUTHORIZED = 3
+export const int FORBIDDEN = 4
+export const int NOT_FOUND = 5
+export const int TIMEOUT = 6
+export const int OVERLOADED = 7
+export const int UNAVAILABLE = 8
+
+export const int LOG_TRACE = 0
+export const int LOG_DEBUG = 1
+export const int LOG_INFO = 2
+export const int LOG_WARN = 3
+export const int LOG_ERROR = 4
+export const int LOG_FATAL = 5
+
+// Frame 只是宿主调用期间的借用视图，离开 xs_handler 后不能保存。
+class Frame
+    native point handle
+    extern "xs2_handler_frame_wrap" create(point frame)
+    extern "xs2_handler_frame_release" destroy()
+    extern "xs2_handler_frame_kind" func kind() as int
+    extern "xs2_handler_frame_request_id" func requestId() as int
+    extern "xs2_handler_frame_service" func service() as string
+    extern "xs2_handler_frame_route" func route() as string
+    extern "xs2_handler_frame_remote_address" func remoteAddress() as string
+    extern "xs2_handler_frame_remote_port" func remotePort() as int
+    extern "xs2_handler_frame_request" func request() as point
+    extern "xs2_handler_frame_response" func response() as point
+    extern "xs2_handler_frame_data" func data() as point
+    extern "xs2_handler_frame_data_size" func dataSize() as c_size
+    extern "xs2_handler_frame_text_copy" func textNative() as point
+    extern "xs2_handler_frame_cancelled" func cancelled() as bool
+    extern "xs2_handler_frame_clear" func clear() as bool
+    extern "xs2_handler_frame_write_text" func write(string text) as bool
+    extern "xs2_handler_frame_append_text" func append(string text) as bool
+    extern "xs2_handler_frame_append" func appendRaw(point data, c_size size) as bool
+    extern "xs2_handler_frame_log" func log(int level, string message)
+
+    func text() as string
+        return __xl_std_runtime_take_cstr(self.textNative())
+    end
+
+    func append(Buffer data) as bool
+        return self.appendRaw(data.data(), c_size(data.len()))
+    end
+end
+
+export func wrap(point rawFrame) as Frame
+    return Frame(rawFrame)
+end

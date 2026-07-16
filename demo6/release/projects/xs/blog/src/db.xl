@@ -1,0 +1,163 @@
+import sqlite
+
+// ============================================================
+// SQLite 薄层：统一错误、绑定和行读取
+// ============================================================
+
+string gLastError = ""
+
+func setError(point db, string operation) as bool
+    if db == null then
+        gLastError = operation + ": database is not open"
+    else
+        gLastError = operation + ": " + sqlite.sqlite3_errmsg(db)
+    end
+    return false
+end
+
+export func lastError() as string
+    return gLastError
+end
+
+export func open(string path) as point
+    point handle = sqlite.sqlite3_open_v2(
+        path,
+        sqlite.SQLITE_OPEN_READWRITE + sqlite.SQLITE_OPEN_CREATE + sqlite.SQLITE_OPEN_FULLMUTEX,
+        "")
+    if handle == null then
+        gLastError = "cannot open database: " + path
+        return null
+    end
+    if sqlite.sqlite3_busy_timeout(handle, 5000) != sqlite.SQLITE_OK then
+        setError(handle, "busy_timeout")
+        sqlite.sqlite3_close_v2(handle)
+        return null
+    end
+    bool pragmasReady = sqlite.sqlite3_exec(handle, "pragma foreign_keys=on") == sqlite.SQLITE_OK
+    pragmasReady = pragmasReady and sqlite.sqlite3_exec(handle, "pragma journal_mode=wal") == sqlite.SQLITE_OK
+    pragmasReady = pragmasReady and sqlite.sqlite3_exec(handle, "pragma synchronous=normal") == sqlite.SQLITE_OK
+    if not pragmasReady then
+        setError(handle, "database pragmas")
+        sqlite.sqlite3_close_v2(handle)
+        return null
+    end
+    gLastError = ""
+    return handle
+end
+
+export func close(point handle) as bool
+    if handle == null then return true end
+    if sqlite.sqlite3_close_v2(handle) != sqlite.SQLITE_OK then
+        return setError(handle, "close")
+    end
+    return true
+end
+
+export func execute(point handle, string sql) as bool
+    if handle == null then return setError(handle, "execute") end
+    if sqlite.sqlite3_exec(handle, sql) != sqlite.SQLITE_OK then
+        return setError(handle, "execute")
+    end
+    gLastError = ""
+    return true
+end
+
+export func prepare(point handle, string sql) as point
+    if handle == null then
+        setError(handle, "prepare")
+        return null
+    end
+    point statement = sqlite.sqlite3_prepare_v2(handle, sql)
+    if statement == null then setError(handle, "prepare") end
+    return statement
+end
+
+export func finalize(point statement) as bool
+    return statement == null or sqlite.sqlite3_finalize(statement) == sqlite.SQLITE_OK
+end
+
+export func bindInt(point statement, int index, int value) as bool
+    return statement != null and sqlite.sqlite3_bind_int64(statement, index, value) == sqlite.SQLITE_OK
+end
+
+export func bindText(point statement, int index, string value) as bool
+    return statement != null and sqlite.sqlite3_bind_text(statement, index, value) == sqlite.SQLITE_OK
+end
+
+export func bindNull(point statement, int index) as bool
+    return statement != null and sqlite.sqlite3_bind_null(statement, index) == sqlite.SQLITE_OK
+end
+
+export func stepDone(point statement) as bool
+    return statement != null and sqlite.sqlite3_step(statement) == sqlite.SQLITE_DONE
+end
+
+export func step(point statement) as int
+    if statement == null then return sqlite.SQLITE_MISUSE end
+    return sqlite.sqlite3_step(statement)
+end
+
+export func columnInt(point statement, int index) as int
+    return sqlite.sqlite3_column_int64(statement, index)
+end
+
+export func columnText(point statement, int index) as string
+    return sqlite.sqlite3_column_text(statement, index)
+end
+
+export func row(point statement) as var
+    var value = {}
+    int count = sqlite.sqlite3_column_count(statement)
+    int index = 0
+    while index < count do
+        string name = sqlite.sqlite3_column_name(statement, index)
+        int kind = sqlite.sqlite3_column_type(statement, index)
+        if kind == sqlite.SQLITE_INTEGER then
+            value[name] = sqlite.sqlite3_column_int64(statement, index)
+        elseif kind == sqlite.SQLITE_FLOAT then
+            value[name] = sqlite.sqlite3_column_double(statement, index)
+        elseif kind == sqlite.SQLITE_NULL then
+            value[name] = null
+        else
+            value[name] = sqlite.sqlite3_column_text(statement, index)
+        end
+        index += 1
+    end
+    return value
+end
+
+export func query(point handle, string sql) as array
+    array rows = []
+    point statement = prepare(handle, sql)
+    if statement == null then return rows end
+    int code = step(statement)
+    while code == sqlite.SQLITE_ROW do
+        rows.append(row(statement))
+        code = step(statement)
+    end
+    if code != sqlite.SQLITE_DONE then setError(handle, "query") end
+    finalize(statement)
+    return rows
+end
+
+export func changes(point handle) as int
+    if handle == null then return 0 end
+    return sqlite.sqlite3_changes(handle)
+end
+
+export func lastInsertId(point handle) as int
+    if handle == null then return 0 end
+    return sqlite.sqlite3_last_insert_rowid(handle)
+end
+
+export func begin(point handle) as bool
+    return execute(handle, "begin immediate")
+end
+
+export func commit(point handle) as bool
+    return execute(handle, "commit")
+end
+
+export func rollback(point handle) as bool
+    return execute(handle, "rollback")
+end

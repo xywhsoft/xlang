@@ -8990,12 +8990,12 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
             xl6SemErrorNode(ctx, expr, message);
             ok = 0;
         } else if ( xl6SemSymbolIsConst(targetSym) ) {
-            xl6SemErrorNode(ctx, expr, "const cannot be reassigned");
+            xl6SemErrorNode(ctx, expr, "const 不能被重新赋值");
             ok = 0;
         } else if ( !xl6SemCheckBoundarySymbolUse(ctx, expr, targetSym, 1) ) {
             ok = 0;
         } else if ( itemType == NULL || !xl6SemTypeEquals(ctx, targetSym->type, itemType) ) {
-            snprintf(message, sizeof(message), "%s target variable type must equal channel<T> item type", methodName);
+            snprintf(message, sizeof(message), "%s 目标变量类型必须等于 channel<T> 的元素类型", methodName);
             xl6SemTypeMismatchError(
                 ctx,
                 expr,

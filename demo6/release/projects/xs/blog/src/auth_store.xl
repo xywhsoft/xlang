@@ -1,0 +1,143 @@
+import "./db.xl"
+import sqlite
+
+// ============================================================
+// 管理员、会话和审计日志
+// ============================================================
+
+export func adminCount(point handle) as int
+    point statement = db.prepare(handle, "select count(*) from admins")
+    if statement == null then return 0 end
+    int count = 0
+    if db.step(statement) == sqlite.SQLITE_ROW then count = db.columnInt(statement, 0) end
+    db.finalize(statement)
+    return count
+end
+
+export func createAdmin(point handle, string username, string passwordHash) as bool
+    int now = time.toUnix(time.nowUTC())
+    point statement = db.prepare(handle, "insert into admins(username, password_hash, enabled, created_at, updated_at) values(?, ?, 1, ?, ?)")
+    if statement == null then return false end
+    bool ready = db.bindText(statement, 1, username)
+    ready = ready and db.bindText(statement, 2, passwordHash)
+    ready = ready and db.bindInt(statement, 3, now)
+    ready = ready and db.bindInt(statement, 4, now)
+    ready = ready and db.stepDone(statement)
+    db.finalize(statement)
+    return ready
+end
+
+export func findAdmin(point handle, string username) as var
+    point statement = db.prepare(handle, "select id, username, password_hash, enabled from admins where username=? limit 1")
+    if statement == null then return null end
+    db.bindText(statement, 1, username)
+    var result = null
+    if db.step(statement) == sqlite.SQLITE_ROW then result = db.row(statement) end
+    db.finalize(statement)
+    return result
+end
+
+export func updatePassword(point handle, int adminId, string passwordHash) as bool
+    point statement = db.prepare(handle, "update admins set password_hash=?, updated_at=? where id=?")
+    if statement == null then return false end
+    bool ready = db.bindText(statement, 1, passwordHash)
+    ready = ready and db.bindInt(statement, 2, time.toUnix(time.nowUTC()))
+    ready = ready and db.bindInt(statement, 3, adminId)
+    ready = ready and db.stepDone(statement)
+    db.finalize(statement)
+    return ready and db.changes(handle) == 1
+end
+
+export func createSession(
+    point handle,
+    string tokenHash,
+    int adminId,
+    string csrfToken,
+    int expiresAt,
+    string remoteAddress,
+    string userAgent) as bool
+    point statement = db.prepare(handle, "insert into sessions(token_hash, admin_id, csrf_token, expires_at, remote_address, user_agent, created_at) values(?, ?, ?, ?, ?, ?, ?)")
+    if statement == null then return false end
+    bool ready = db.bindText(statement, 1, tokenHash)
+    ready = ready and db.bindInt(statement, 2, adminId)
+    ready = ready and db.bindText(statement, 3, csrfToken)
+    ready = ready and db.bindInt(statement, 4, expiresAt)
+    ready = ready and db.bindText(statement, 5, remoteAddress)
+    ready = ready and db.bindText(statement, 6, userAgent)
+    ready = ready and db.bindInt(statement, 7, time.toUnix(time.nowUTC()))
+    ready = ready and db.stepDone(statement)
+    db.finalize(statement)
+    return ready
+end
+
+export func findSession(point handle, string tokenHash, int now) as var
+    point statement = db.prepare(handle, "select s.admin_id, s.csrf_token, s.expires_at, a.username from sessions s join admins a on a.id=s.admin_id where s.token_hash=? and s.expires_at>? and a.enabled=1 limit 1")
+    if statement == null then return null end
+    db.bindText(statement, 1, tokenHash)
+    db.bindInt(statement, 2, now)
+    var result = null
+    if db.step(statement) == sqlite.SQLITE_ROW then result = db.row(statement) end
+    db.finalize(statement)
+    return result
+end
+
+export func deleteSession(point handle, string tokenHash) as bool
+    point statement = db.prepare(handle, "delete from sessions where token_hash=?")
+    if statement == null then return false end
+    db.bindText(statement, 1, tokenHash)
+    bool ready = db.stepDone(statement)
+    db.finalize(statement)
+    return ready
+end
+
+export func deleteExpiredSessions(point handle, int now) as bool
+    point statement = db.prepare(handle, "delete from sessions where expires_at<=?")
+    if statement == null then return false end
+    db.bindInt(statement, 1, now)
+    bool ready = db.stepDone(statement)
+    db.finalize(statement)
+    return ready
+end
+
+export func loginAllowed(point handle, string username, string remoteAddress, int now) as bool
+    point statement = db.prepare(handle, "select count(*) from audit_logs where action='login.failed' and target=? and remote_address=? and created_at>?")
+    if statement == null then return false end
+    db.bindText(statement, 1, username)
+    db.bindText(statement, 2, remoteAddress)
+    db.bindInt(statement, 3, now - 900)
+    int failures = 0
+    if db.step(statement) == sqlite.SQLITE_ROW then failures = db.columnInt(statement, 0) end
+    db.finalize(statement)
+    return failures < 10
+end
+
+export func audit(point handle, int adminId, string action, string target, string detail, string remoteAddress) as bool
+    point statement = db.prepare(handle, "insert into audit_logs(admin_id, action, target, detail, remote_address, created_at) values(?, ?, ?, ?, ?, ?)")
+    if statement == null then return false end
+    bool ready = true
+    if adminId > 0 then ready = db.bindInt(statement, 1, adminId) else ready = db.bindNull(statement, 1) end
+    ready = ready and db.bindText(statement, 2, action)
+    ready = ready and db.bindText(statement, 3, target)
+    ready = ready and db.bindText(statement, 4, detail)
+    ready = ready and db.bindText(statement, 5, remoteAddress)
+    ready = ready and db.bindInt(statement, 6, time.toUnix(time.nowUTC()))
+    ready = ready and db.stepDone(statement)
+    db.finalize(statement)
+    return ready
+end
+
+export func auditLog(point handle, int limit = 100) as array
+    if limit < 1 then limit = 1 end
+    if limit > 500 then limit = 500 end
+    point statement = db.prepare(handle, "select l.id, l.action, l.target, l.detail, l.remote_address, l.created_at, coalesce(a.username, '') as username from audit_logs l left join admins a on a.id=l.admin_id order by l.id desc limit ?")
+    array rows = []
+    if statement == null then return rows end
+    db.bindInt(statement, 1, limit)
+    int code = db.step(statement)
+    while code == sqlite.SQLITE_ROW do
+        rows.append(db.row(statement))
+        code = db.step(statement)
+    end
+    db.finalize(statement)
+    return rows
+end

@@ -1,0 +1,46 @@
+import "./src/db.xl"
+import "./src/schema.xl"
+import "./src/security.xl"
+import "./src/auth_store.xl"
+
+func main(...) as int
+    string username = os.env("XS_BLOG_ADMIN_USER", "admin")
+    string password = os.env("XS_BLOG_ADMIN_PASSWORD", "")
+    string databasePath = os.env("XS_BLOG_DB", "projects/xs/blog/data/blog.db")
+    if password == "" then
+        println("XS_BLOG_ADMIN_PASSWORD is required")
+        return 2
+    end
+    if not src.security.validUsername(username) then
+        println("XS_BLOG_ADMIN_USER is invalid")
+        return 2
+    end
+    if string.byteLen(password) < 12 then
+        println("administrator password must contain at least 12 bytes")
+        return 2
+    end
+
+    string directory = path.dir(databasePath)
+    if directory != "" then dir.createAll(directory) end
+    point handle = src.db.open(databasePath)
+    if handle == null or not src.schema.migrate(handle) then
+        println("database setup failed: " + src.db.lastError())
+        return 3
+    end
+    string passwordHash = src.security.hashPassword(password)
+    var existing = src.auth_store.findAdmin(handle, username)
+    bool saved
+    if existing == null then
+        saved = src.auth_store.createAdmin(handle, username, passwordHash)
+    else
+        saved = src.auth_store.updatePassword(handle, int(existing["id"]), passwordHash)
+    end
+    src.db.close(handle)
+    if not saved then
+        println("administrator setup failed")
+        return 4
+    end
+    println("blog administrator is ready: " + username)
+    return 0
+end
+

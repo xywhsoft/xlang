@@ -1,0 +1,133 @@
+import "./db.xl"
+import sqlite
+
+// ============================================================
+// 数据库版本与迁移
+// ============================================================
+
+const int SCHEMA_VERSION = 1
+
+export func migrate(point handle) as bool
+    string schema = r"""
+create table if not exists schema_migrations(
+    version integer primary key,
+    applied_at integer not null
+);
+create table if not exists admins(
+    id integer primary key autoincrement,
+    username text not null unique,
+    password_hash text not null,
+    enabled integer not null default 1,
+    created_at integer not null,
+    updated_at integer not null
+);
+create table if not exists sessions(
+    token_hash text primary key,
+    admin_id integer not null references admins(id) on delete cascade,
+    csrf_token text not null,
+    expires_at integer not null,
+    remote_address text not null default '',
+    user_agent text not null default '',
+    created_at integer not null
+);
+create index if not exists idx_sessions_expiry on sessions(expires_at);
+create table if not exists categories(
+    id integer primary key autoincrement,
+    name text not null,
+    slug text not null unique,
+    description text not null default '',
+    sort_order integer not null default 0,
+    enabled integer not null default 1,
+    created_at integer not null,
+    updated_at integer not null
+);
+create table if not exists articles(
+    id integer primary key autoincrement,
+    category_id integer references categories(id) on delete set null,
+    title text not null,
+    slug text not null unique,
+    summary text not null default '',
+    markdown text not null,
+    status text not null check(status in ('draft','published')),
+    published_at integer,
+    created_at integer not null,
+    updated_at integer not null
+);
+create index if not exists idx_articles_public on articles(status, published_at desc, id desc);
+create index if not exists idx_articles_category on articles(category_id, status, published_at desc);
+create table if not exists comments(
+    id integer primary key autoincrement,
+    article_id integer references articles(id) on delete cascade,
+    parent_id integer references comments(id) on delete set null,
+    author text not null,
+    email text not null default '',
+    body text not null,
+    status text not null check(status in ('pending','visible','hidden')),
+    remote_address text not null default '',
+    created_at integer not null,
+    updated_at integer not null
+);
+create index if not exists idx_comments_article on comments(article_id, status, created_at);
+create index if not exists idx_comments_guestbook on comments(status, created_at) where article_id is null;
+create table if not exists settings(
+    key text primary key,
+    value text not null,
+    updated_at integer not null
+);
+create table if not exists audit_logs(
+    id integer primary key autoincrement,
+    admin_id integer references admins(id) on delete set null,
+    action text not null,
+    target text not null default '',
+    detail text not null default '',
+    remote_address text not null default '',
+    created_at integer not null
+);
+create index if not exists idx_audit_created on audit_logs(created_at desc);
+"""
+    if not db.begin(handle) then return false end
+    if not db.execute(handle, schema) then
+        db.rollback(handle)
+        return false
+    end
+
+    int now = time.toUnix(time.nowUTC())
+    point statement = db.prepare(handle, "insert or ignore into schema_migrations(version, applied_at) values(?, ?)")
+    bool versionSaved = statement != null
+    versionSaved = versionSaved and db.bindInt(statement, 1, SCHEMA_VERSION)
+    versionSaved = versionSaved and db.bindInt(statement, 2, now)
+    versionSaved = versionSaved and db.stepDone(statement)
+    if not versionSaved then
+        db.finalize(statement)
+        db.rollback(handle)
+        return false
+    end
+    db.finalize(statement)
+
+    statement = db.prepare(handle, "insert or ignore into settings(key, value, updated_at) values(?, ?, ?)")
+    array defaults = [
+        ["site.title", "XLang Blog"],
+        ["site.subtitle", "Built with XS 2.0"],
+        ["site.description", "A production blog powered by xlang and XRT"],
+        ["site.postsPerPage", "10"],
+        ["comments.moderation", "true"]
+    ]
+    for item in defaults
+        db.bindText(statement, 1, string(item[0]))
+        db.bindText(statement, 2, string(item[1]))
+        db.bindInt(statement, 3, now)
+        if not db.stepDone(statement) then
+            db.finalize(statement)
+            db.rollback(handle)
+            return false
+        end
+        sqlite.sqlite3_reset(statement)
+        sqlite.sqlite3_clear_bindings(statement)
+    end
+    db.finalize(statement)
+    if not db.commit(handle) then
+        db.rollback(handle)
+        return false
+    end
+    return true
+end

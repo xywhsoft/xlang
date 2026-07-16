@@ -186,7 +186,36 @@ int main(void)
     TCCState* s = tcc_new();
     int (*fn)(void);
     int rc;
-    const char* code = "double xrtMathHypot(double,double); int host_check(void){ double v = xrtMathHypot(3.0,4.0); return (v > 4.999 && v < 5.001) ? 0 : 7; }";
+    const char* code =
+        "double xrtMathHypot(double,double);"
+        "void xrtNetTlsConfigClone(void);"
+        "void xrtNetTlsConfigDestroy(void);"
+        "void xrtNetStreamSendRefs(void);"
+        "void xrtWsClientConfigSetTlsConfig(void);"
+        "void xrtWsServerConfigSetTlsConfig(void);"
+        "void xrtWsClientSendTextRef(void);"
+        "void xrtWsClientSendBinaryRef(void);"
+        "void xrtWsConnSendTextRef(void);"
+        "void xrtWsConnSendBinaryRef(void);"
+        "void xrtWsWriterWriteRef(void);"
+        "void xrtWsWriterFinishRef(void);"
+        "int host_check(void){"
+        " const void* required[]={"
+        "  (const void*)&xrtNetTlsConfigClone,"
+        "  (const void*)&xrtNetTlsConfigDestroy,"
+        "  (const void*)&xrtNetStreamSendRefs,"
+        "  (const void*)&xrtWsClientConfigSetTlsConfig,"
+        "  (const void*)&xrtWsServerConfigSetTlsConfig,"
+        "  (const void*)&xrtWsClientSendTextRef,"
+        "  (const void*)&xrtWsClientSendBinaryRef,"
+        "  (const void*)&xrtWsConnSendTextRef,"
+        "  (const void*)&xrtWsConnSendBinaryRef,"
+        "  (const void*)&xrtWsWriterWriteRef,"
+        "  (const void*)&xrtWsWriterFinishRef};"
+        " unsigned int i; double v=xrtMathHypot(3.0,4.0);"
+        " for(i=0;i<sizeof(required)/sizeof(required[0]);++i)"
+        "  if(required[i]==0) return 8;"
+        " return (v>4.999&&v<5.001)?0:7; }";
     if ( s == NULL ) return 1;
     if ( tcc_set_output_type(s, TCC_OUTPUT_MEMORY) != 0 ) return 2;
     if ( !xlTccRegisterXrtEnvironment(s) ) return 3;

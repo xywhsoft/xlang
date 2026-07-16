@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "runtime": {
+    "workDir": "../.."
+  },
+  "services": [
+    {
+      "type": "tcp",
+      "name": "framed",
+      "host": "127.0.0.1",
+      "port": 0,
+      "backlog": 19,
+      "workerCount": 2,
+      "queueLimit": 7,
+      "recvLimit": 1024,
+      "framing": "delimiter",
+      "delimiter": "\r\n",
+      "frameLimit": 64,
+      "handler": {
+        "language": "c",
+        "path": "../handlers/abi_c.c",
+        "mode": "embedded"
+      }
+    }
+  ]
+}

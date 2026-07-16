@@ -35,6 +35,8 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int hasOsRuntime;
     int hasHttpServerRuntime;
     int hasHttpClientRuntime;
+    int hasHttpSemanticsRuntime;
+    int hasWebSocketRuntime;
     int hasBufferRuntime;
     int hasTlsRuntime;
     int hasSpecialCollectionRuntime;
@@ -109,6 +111,8 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasOsRuntime = xl6CgenNodeNeedsOsRuntime(root);
     hasHttpServerRuntime = xl6CgenNodeNeedsHttpServerRuntime(root);
     hasHttpClientRuntime = xl6CgenNodeNeedsHttpClientRuntime(root);
+    hasHttpSemanticsRuntime = xl6CgenNodeNeedsHttpSemanticsRuntime(root);
+    hasWebSocketRuntime = xl6CgenNodeNeedsWebSocketRuntime(root);
     hasBufferRuntime = xl6CgenNodeNeedsBufferRuntime(root);
     hasTlsRuntime = xl6CgenNodeNeedsTlsRuntime(root);
     hasSpecialCollectionRuntime = xl6CgenNodeNeedsSpecialCollectionRuntime(root);
@@ -116,10 +120,15 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         hasAsyncRuntime = 1;
         hasErrorRuntime = 1;
     }
+    if ( hasWebSocketRuntime ) {
+        hasAsyncRuntime = 1;
+        hasErrorRuntime = 1;
+        hasBufferRuntime = 1;
+    }
     if ( hasTlsRuntime || hasNetRuntime ) {
         hasBufferRuntime = 1;
     }
-    if ( hasHttpServerRuntime || hasHttpClientRuntime ) {
+    if ( hasHttpServerRuntime || hasHttpClientRuntime || hasHttpSemanticsRuntime ) {
         /*
             HTTP 请求/响应 helper 会暴露 Buffer 视图复制函数。
             即使用户代码没有显式声明 Buffer，也必须生成这组运行时封装。
@@ -300,6 +309,12 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasBufferRuntime ) {
         xl6CgenEmitBufferRuntime(out);
     }
+    if ( hasHttpSemanticsRuntime ) {
+        xl6CgenEmitHttpSemanticsRuntime(out);
+    }
+    if ( hasWebSocketRuntime ) {
+        xl6CgenEmitWebSocketRuntime(out);
+    }
     if ( hasNetRuntime ) {
         xl6CgenEmitNetExtendedRuntime(out);
     }
@@ -308,6 +323,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     if ( hasHttpServerRuntime ) {
         xl6CgenEmitHttpServerRuntime(out);
+    }
+    if ( hasHttpServerRuntime && hasWebSocketRuntime ) {
+        xl6CgenEmitWebSocketHttpBridge(out);
     }
     if ( hasHttpClientRuntime ) {
         xl6CgenEmitHttpClientRuntime(out);

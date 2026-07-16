@@ -1,0 +1,26 @@
+import "../src/db.xl"
+import "../src/schema.xl"
+
+dir.createAll("projects/xs/blog/data")
+string path = "projects/xs/blog/data/schema_test.db"
+file.delete(path)
+file.delete(path + "-wal")
+file.delete(path + "-shm")
+
+point handle = src.db.open(path)
+assert handle != null, src.db.lastError()
+assert src.schema.migrate(handle), src.db.lastError()
+assert src.schema.migrate(handle), "migration must be idempotent: " + src.db.lastError()
+
+array tables = src.db.query(handle, "select name from sqlite_master where type='table' order by name")
+assert tables.length >= 9, "schema tables are incomplete"
+array settings = src.db.query(handle, "select key, value from settings order by key")
+assert settings.length == 5, "default settings are incomplete"
+array versions = src.db.query(handle, "select version from schema_migrations")
+assert versions.length == 1 and int(versions[0]["version"]) == 1, "schema version mismatch"
+
+assert src.db.close(handle), src.db.lastError()
+file.delete(path)
+file.delete(path + "-wal")
+file.delete(path + "-shm")
+println("xs2 blog schema test ok")

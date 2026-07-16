@@ -1,0 +1,101 @@
+// ============================================================
+// xs 2.0 日志
+// ============================================================
+
+func xs2LogLevel(string name) as int
+    if name == "trace" then return log.traceLevel end
+    if name == "debug" then return log.debugLevel end
+    if name == "warn" then return log.warnLevel end
+    if name == "error" then return log.errorLevel end
+    if name == "fatal" then return log.fatalLevel end
+    if name == "off" then return log.offLevel end
+    return log.infoLevel
+end
+
+class RuntimeLog
+    Logger logger
+    bool valid = false
+    string error = ""
+
+    create(var config)
+        int level = xs2LogLevel(string(config["level"]))
+        self.logger = log.create("xs")
+        self.logger.setLevel(level)
+
+        bool hasSink = false
+        if bool(config["console"]) then
+            if not self.logger.addConsole(level, false, log.simpleFormat) then
+                self.error = "cannot create console log sink"
+                return
+            end
+            hasSink = true
+        end
+
+        string logPath = string(config["file"])
+        if logPath != "" then
+            string logDir = path.dir(logPath)
+            if logDir != "" and not dir.createAll(logDir) then
+                self.error = "cannot create log directory: " + logDir
+                return
+            end
+            if not self.logger.addRollingFile(
+                logPath,
+                int(config["rollingBytes"]),
+                int(config["rollingFiles"]),
+                level,
+                log.jsonFormat) then
+                self.error = "cannot create rolling log sink: " + logPath
+                return
+            end
+            hasSink = true
+        end
+
+        if not hasSink and level != log.offLevel then
+            self.error = "logging requires a console or file sink unless level is off"
+            return
+        end
+        self.valid = true
+    end
+
+    destroy()
+        if self.valid then
+            self.logger.flush()
+        end
+    end
+
+    func ready() as bool
+        return self.valid
+    end
+
+    func lastError() as string
+        return self.error
+    end
+
+    func trace(string message)
+        self.logger.trace(message)
+    end
+
+    func debug(string message)
+        self.logger.debug(message)
+    end
+
+    func info(string message)
+        self.logger.info(message)
+    end
+
+    func warn(string message)
+        self.logger.warn(message)
+    end
+
+    func errorMessage(string message)
+        self.logger.error(message)
+    end
+
+    func flush()
+        self.logger.flush()
+    end
+end
+
+export func open(var config) as RuntimeLog
+    return RuntimeLog(config)
+end

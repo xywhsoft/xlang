@@ -1,0 +1,51 @@
+import "./config.xl"
+import "./http_service.xl"
+
+func requestWorker(int port, int workerId, int rounds) as bool
+    int index = 0
+    while index < rounds do
+        HttpClientRequest request = HttpClientRequest("http://127.0.0.1:" + port.toString() + "/")
+        request.header("Host", "example.test")
+        request.header("X-Worker", workerId.toString())
+        request.timeout(5000)
+        HttpClientResponse response = request.execute()
+        if response.status() != 200 or response.body() != "c:" then return false end
+        int generation = int(response.header("X-XS-Handler-Generation"))
+        if generation < 1 then return false end
+        index += 1
+    end
+    return true
+end
+
+auto loaded = config.load("projects/xs/tests/config/vhosts.json")
+assert loaded.ok, loaded.error
+var normalized = json.parse(loaded.json)
+string includeDir = path.join(path.abs("projects/xs"), "include")
+auto service = http_service.open(normalized["services"][0], normalized["runtime"], includeDir)
+assert service.ready(), service.lastError()
+assert service.start(), service.lastError()
+
+const int WORKERS = 16
+const int ROUNDS = 75
+array<future<bool>> jobs = []
+func(int, int, int) as bool worker = requestWorker
+int index = 0
+while index < WORKERS do
+    jobs.append(task.spawn(worker, service.port(), index, ROUNDS))
+    index += 1
+end
+
+index = 0
+while index < 5 do
+    time.sleep(20)
+    assert service.reloadHandlers(), service.lastError()
+    index += 1
+end
+
+array<bool> completed = await task.all(jobs)
+for _, ok in completed
+    assert ok, "HTTP stress worker failed"
+end
+assert service.requestCount() == WORKERS * ROUNDS, "HTTP request metric lost updates"
+assert service.stop(), service.lastError()
+println("xs2 http stress test ok")

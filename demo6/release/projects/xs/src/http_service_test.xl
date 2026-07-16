@@ -1,0 +1,72 @@
+import "./config.xl"
+import "./http_service.xl"
+
+func require(bool condition, string message)
+    assert condition, message
+end
+
+auto loaded = config.load("projects/xs/tests/config/vhosts.json")
+require(loaded.ok, loaded.error)
+var normalized = json.parse(loaded.json)
+var serviceConfig = normalized["services"][0]
+var runtimeConfig = normalized["runtime"]
+string includeDir = path.join(path.abs("projects/xs"), "include")
+
+auto service = http_service.open(serviceConfig, runtimeConfig, includeDir)
+require(service.ready(), service.lastError())
+require(service.start(), service.lastError())
+require(service.port() > 0, "HTTP service must publish its bound port")
+
+string baseUrl = "http://127.0.0.1:" + service.port().toString() + "/"
+HttpClientRequest hostRequest = HttpClientRequest(baseUrl)
+hostRequest.header("Host", "example.test")
+hostRequest.timeout(3000)
+HttpClientResponse hostResponse = hostRequest.execute()
+require(hostResponse.status() == 200, "exact virtual host must route")
+require(hostResponse.body() == "c:", "virtual host must invoke C handler")
+require(hostResponse.header("X-XS-Handler-Generation") == "1", "handler generation header must be present")
+
+HttpClientRequest defaultRequest = HttpClientRequest(baseUrl)
+defaultRequest.timeout(3000)
+HttpClientResponse defaultResponse = defaultRequest.execute()
+require(defaultResponse.status() == 404, "default app must not inherit virtual-host routes")
+
+require(service.reloadHandlers(), service.lastError())
+HttpClientRequest reloadedRequest = HttpClientRequest(baseUrl)
+reloadedRequest.header("Host", "example.test")
+reloadedRequest.timeout(3000)
+HttpClientResponse reloadedResponse = reloadedRequest.execute()
+require(reloadedResponse.status() == 200, "reloaded virtual host must remain available")
+require(reloadedResponse.header("X-XS-Handler-Generation") == "2", "reload must publish the new generation")
+
+require(service.requestCount() >= 3, "request metric must advance")
+require(service.stop(), service.lastError())
+
+auto tlsLoaded = config.load("projects/xs/tests/config/https.json")
+require(tlsLoaded.ok, tlsLoaded.error)
+var tlsNormalized = json.parse(tlsLoaded.json)
+require(file.exists(string(tlsNormalized["services"][0]["certFile"])), "TLS certificate must exist")
+require(file.exists(string(tlsNormalized["services"][0]["keyFile"])), "TLS key must exist")
+auto tlsService = http_service.open(
+    tlsNormalized["services"][0],
+    tlsNormalized["runtime"],
+    includeDir)
+require(tlsService.ready(), tlsService.lastError())
+require(tlsService.start(), tlsService.lastError())
+
+HttpClientRequest tlsRequest = HttpClientRequest(
+    "https://127.0.0.1:" + tlsService.port().toString() + "/")
+tlsRequest.verifyPeer(false)
+tlsRequest.timeout(5000)
+HttpClientResponse tlsResponse = tlsRequest.execute()
+HttpDiagnostics tlsDiagnostics = tlsResponse.diagnostics()
+string tlsFailure = (
+    "HTTPS service must complete TLS and route: status=" + tlsResponse.status().toString() +
+    ", error=" + tlsDiagnostics.errorName() +
+    ", phase=" + tlsDiagnostics.phaseName() +
+    ", transport=" + tlsDiagnostics.transportStatus.toString() +
+    ", system=" + tlsDiagnostics.systemError.toString())
+require(tlsResponse.status() == 200, tlsFailure)
+require(tlsResponse.body() == "c:", "HTTPS route must invoke the C handler")
+require(tlsService.stop(), tlsService.lastError())
+println("xs2 http service test ok")

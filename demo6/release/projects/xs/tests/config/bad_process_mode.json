@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "services": [
+    {
+      "type": "tcp",
+      "name": "bad-process",
+      "handler": {
+        "language": "c",
+        "path": "../handlers/abi_c.c",
+        "mode": "process"
+      }
+    }
+  ]
+}

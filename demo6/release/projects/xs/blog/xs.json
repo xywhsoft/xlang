@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "runtime": {
+    "workDir": ".",
+    "shutdownTimeoutMs": 15000,
+    "reloadDebounceMs": 300,
+    "handlerPoolSize": 4,
+    "handlerQueueLimit": 1024
+  },
+  "logging": {
+    "level": "info",
+    "console": true,
+    "file": "data/xs-blog.log",
+    "rollingBytes": 10485760,
+    "rollingFiles": 5
+  },
+  "services": [
+    {
+      "type": "http",
+      "name": "blog-http",
+      "host": "127.0.0.1",
+      "port": 18090,
+      "backlog": 256,
+      "recvLimit": 1048576,
+      "bodyLimit": 524288,
+      "headerLimit": 100,
+      "headerBytesLimit": 65536,
+      "workerCount": 4,
+      "headerTimeoutMs": 15000,
+      "bodyTimeoutMs": 30000,
+      "idleTimeoutMs": 60000,
+      "writeTimeoutMs": 30000,
+      "routes": [
+        {
+          "name": "blog",
+          "kind": "handler",
+          "method": "*",
+          "pattern": "/*",
+          "contentType": "text/html; charset=utf-8",
+          "handler": {
+            "language": "xlang",
+            "path": "handlers/blog_handler.xl",
+            "mode": "embedded",
+            "poolSize": 4,
+            "queueLimit": 1024,
+            "queueTimeoutMs": 2000,
+            "timeoutMs": 30000
+          }
+        }
+      ]
+    }
+  ]
+}

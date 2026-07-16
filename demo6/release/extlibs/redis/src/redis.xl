@@ -297,7 +297,7 @@ class ClusterSlotsCache
 end
 
 func bulk(string value) as string
-	return "$" + string.formatInt(string.len(value), "") + "\r\n" + value + "\r\n"
+	return "$" + string.format(string.len(value), "") + "\r\n" + value + "\r\n"
 end
 
 export func resp_encode1(string a0) as string
@@ -321,7 +321,7 @@ export func resp_encode5(string a0, string a1, string a2, string a3, string a4) 
 end
 
 export func resp_encode_array(list<string> args) as string
-	auto result = "*" + string.formatInt(args.length, "") + "\r\n"
+	auto result = "*" + string.format(args.length, "") + "\r\n"
 	for value in args
 		result = result + bulk(value)
 	end
@@ -329,7 +329,7 @@ export func resp_encode_array(list<string> args) as string
 end
 
 func resp_encode_array_values(var args) as string
-	auto result = "*" + string.formatInt(args.length, "") + "\r\n"
+	auto result = "*" + string.format(args.length, "") + "\r\n"
 	for value in args
 		result = result + bulk(string(value))
 	end
@@ -459,7 +459,7 @@ func command_array_with_head(Client client, string command, array<string> values
 		encoded = encoded + bulk(value)
 		count = count + 1
 	end
-	return command_raw(client, "*" + string.formatInt(count, "") + "\r\n" + encoded)
+	return command_raw(client, "*" + string.format(count, "") + "\r\n" + encoded)
 end
 
 func json_simple(string value) as string
@@ -842,13 +842,13 @@ func xredis_connect(string host, int port, int timeout_ms) as Client
 	try
 		socket = xredis_tcp_connect_native(host, port, timeout_ms)
 	catch e
-		error_text = "tcp connect failed: " + host + ":" + string.formatInt(port, "") + ": " + e.message
+		error_text = "tcp connect failed: " + host + ":" + string.format(port, "") + ": " + e.message
 	end
 	if error_text != "" then
 		return Client(host, port, timeout_ms, error_text)
 	end
 	if socket == null then
-		return Client(host, port, timeout_ms, "tcp connect failed: " + host + ":" + string.formatInt(port, ""))
+		return Client(host, port, timeout_ms, "tcp connect failed: " + host + ":" + string.format(port, ""))
 	end
 	return Client(socket, host, port, timeout_ms)
 end
@@ -1361,15 +1361,15 @@ export func auth(Client client, string username, string password) as bool
 end
 
 export func hello(Client client, int protocol) as string
-	return command2(client, "HELLO", string.formatInt(protocol, ""))
+	return command2(client, "HELLO", string.format(protocol, ""))
 end
 
 export func hello_auth(Client client, int protocol, string username, string password) as string
-	return command5(client, "HELLO", string.formatInt(protocol, ""), "AUTH", username, password)
+	return command5(client, "HELLO", string.format(protocol, ""), "AUTH", username, password)
 end
 
 func xredis_select(Client client, int db) as bool
-	return response_ok(command2(client, "SELECT", string.formatInt(db, "")))
+	return response_ok(command2(client, "SELECT", string.format(db, "")))
 end
 
 export func dbsize(Client client) as int
@@ -1549,7 +1549,7 @@ export func sentinel_ping(Client sentinel, string name, string message) as strin
 end
 
 export func sentinel_select(Client sentinel, string name, int db) as bool
-	return response_ok(sentinel_command_master_retry_json(sentinel, name, argv_json2("SELECT", string.formatInt(db, "")), 2, sentinel.timeout_ms))
+	return response_ok(sentinel_command_master_retry_json(sentinel, name, argv_json2("SELECT", string.format(db, "")), 2, sentinel.timeout_ms))
 end
 
 export func sentinel_dbsize(Client sentinel, string name) as int
@@ -1588,7 +1588,7 @@ export func sentinel_set_xx(Client sentinel, string name, string key, string val
 end
 
 export func sentinel_set_ex(Client sentinel, string name, string key, string value, int seconds) as bool
-	return response_ok(sentinel_command_master_retry_json(sentinel, name, argv_json4("SETEX", key, string.formatInt(seconds, ""), value), 2, sentinel.timeout_ms))
+	return response_ok(sentinel_command_master_retry_json(sentinel, name, argv_json4("SETEX", key, string.format(seconds, ""), value), 2, sentinel.timeout_ms))
 end
 
 export func sentinel_mget_json(Client sentinel, string name, array<string> keys) as string
@@ -1616,7 +1616,7 @@ export func sentinel_exists(Client sentinel, string name, string key) as bool
 end
 
 export func sentinel_expire(Client sentinel, string name, string key, int seconds) as bool
-	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("EXPIRE", key, string.formatInt(seconds, "")), 2, sentinel.timeout_ms)) == 1
+	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("EXPIRE", key, string.format(seconds, "")), 2, sentinel.timeout_ms)) == 1
 end
 
 export func sentinel_persist(Client sentinel, string name, string key) as bool
@@ -1636,7 +1636,7 @@ export func sentinel_incr(Client sentinel, string name, string key) as int
 end
 
 export func sentinel_incr_by(Client sentinel, string name, string key, int amount) as int
-	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("INCRBY", key, string.formatInt(amount, "")), 2, sentinel.timeout_ms))
+	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("INCRBY", key, string.format(amount, "")), 2, sentinel.timeout_ms))
 end
 
 export func sentinel_decr(Client sentinel, string name, string key) as int
@@ -1644,7 +1644,7 @@ export func sentinel_decr(Client sentinel, string name, string key) as int
 end
 
 export func sentinel_decr_by(Client sentinel, string name, string key, int amount) as int
-	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("DECRBY", key, string.formatInt(amount, "")), 2, sentinel.timeout_ms))
+	return response_int(sentinel_command_master_retry_json(sentinel, name, argv_json3("DECRBY", key, string.format(amount, "")), 2, sentinel.timeout_ms))
 end
 
 export func sentinel_hget(Client sentinel, string name, string key, string field) as string
@@ -1741,7 +1741,7 @@ export func sentinel_llen(Client sentinel, string name, string key) as int
 end
 
 export func sentinel_lrange_json(Client sentinel, string name, string key, int start, int stop) as string
-	return sentinel_command_master_retry_json(sentinel, name, argv_json4("LRANGE", key, string.formatInt(start, ""), string.formatInt(stop, "")), 2, sentinel.timeout_ms)
+	return sentinel_command_master_retry_json(sentinel, name, argv_json4("LRANGE", key, string.format(start, ""), string.format(stop, "")), 2, sentinel.timeout_ms)
 end
 
 export func sentinel_sadd(Client sentinel, string name, string key, string member) as int
@@ -2322,7 +2322,7 @@ export func cluster_set_xx(Client seed, ClusterSlotsCache cache, string key, str
 end
 
 export func cluster_set_ex(Client seed, ClusterSlotsCache cache, string key, string value, int seconds) as bool
-	return response_ok(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json4("SETEX", key, string.formatInt(seconds, ""), value), 1, seed.timeout_ms))
+	return response_ok(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json4("SETEX", key, string.format(seconds, ""), value), 1, seed.timeout_ms))
 end
 
 export func cluster_mget_json(Client seed, ClusterSlotsCache cache, array<string> keys) as string
@@ -2358,7 +2358,7 @@ export func cluster_exists(Client seed, ClusterSlotsCache cache, string key) as 
 end
 
 export func cluster_expire(Client seed, ClusterSlotsCache cache, string key, int seconds) as bool
-	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("EXPIRE", key, string.formatInt(seconds, "")), 1, seed.timeout_ms)) == 1
+	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("EXPIRE", key, string.format(seconds, "")), 1, seed.timeout_ms)) == 1
 end
 
 export func cluster_persist(Client seed, ClusterSlotsCache cache, string key) as bool
@@ -2378,7 +2378,7 @@ export func cluster_incr(Client seed, ClusterSlotsCache cache, string key) as in
 end
 
 export func cluster_incr_by(Client seed, ClusterSlotsCache cache, string key, int amount) as int
-	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("INCRBY", key, string.formatInt(amount, "")), 1, seed.timeout_ms))
+	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("INCRBY", key, string.format(amount, "")), 1, seed.timeout_ms))
 end
 
 export func cluster_decr(Client seed, ClusterSlotsCache cache, string key) as int
@@ -2386,7 +2386,7 @@ export func cluster_decr(Client seed, ClusterSlotsCache cache, string key) as in
 end
 
 export func cluster_decr_by(Client seed, ClusterSlotsCache cache, string key, int amount) as int
-	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("DECRBY", key, string.formatInt(amount, "")), 1, seed.timeout_ms))
+	return response_int(cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json3("DECRBY", key, string.format(amount, "")), 1, seed.timeout_ms))
 end
 
 export func cluster_hget(Client seed, ClusterSlotsCache cache, string key, string field) as string
@@ -2483,7 +2483,7 @@ export func cluster_llen(Client seed, ClusterSlotsCache cache, string key) as in
 end
 
 export func cluster_lrange_json(Client seed, ClusterSlotsCache cache, string key, int start, int stop) as string
-	return cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json4("LRANGE", key, string.formatInt(start, ""), string.formatInt(stop, "")), 1, seed.timeout_ms)
+	return cluster_command_cache_refresh_key_retry_json(seed, cache, key, argv_json4("LRANGE", key, string.format(start, ""), string.format(stop, "")), 1, seed.timeout_ms)
 end
 
 export func cluster_sadd(Client seed, ClusterSlotsCache cache, string key, string member) as int
@@ -2550,7 +2550,7 @@ export func set_xx(Client client, string key, string value) as bool
 end
 
 export func set_ex(Client client, string key, string value, int seconds) as bool
-	return response_ok(command4(client, "SETEX", key, string.formatInt(seconds, ""), value))
+	return response_ok(command4(client, "SETEX", key, string.format(seconds, ""), value))
 end
 
 export func mget_json(Client client, array<string> keys) as string
@@ -2574,7 +2574,7 @@ func xredis_del(Client client, string key) as int
 end
 
 export func expire(Client client, string key, int seconds) as bool
-	return response_int(command3(client, "EXPIRE", key, string.formatInt(seconds, ""))) == 1
+	return response_int(command3(client, "EXPIRE", key, string.format(seconds, ""))) == 1
 end
 
 export func persist(Client client, string key) as bool
@@ -2594,7 +2594,7 @@ export func incr(Client client, string key) as int
 end
 
 export func incr_by(Client client, string key, int amount) as int
-	return response_int(command3(client, "INCRBY", key, string.formatInt(amount, "")))
+	return response_int(command3(client, "INCRBY", key, string.format(amount, "")))
 end
 
 export func decr(Client client, string key) as int
@@ -2602,7 +2602,7 @@ export func decr(Client client, string key) as int
 end
 
 export func decr_by(Client client, string key, int amount) as int
-	return response_int(command3(client, "DECRBY", key, string.formatInt(amount, "")))
+	return response_int(command3(client, "DECRBY", key, string.format(amount, "")))
 end
 
 export func hget(Client client, string key, string field) as string
@@ -2699,7 +2699,7 @@ export func llen(Client client, string key) as int
 end
 
 export func lrange_json(Client client, string key, int start, int stop) as string
-	return command4(client, "LRANGE", key, string.formatInt(start, ""), string.formatInt(stop, ""))
+	return command4(client, "LRANGE", key, string.format(start, ""), string.format(stop, ""))
 end
 
 export func sadd(Client client, string key, string member) as int

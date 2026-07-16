@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "runtime": {
+    "handlerPoolSize": 2
+  },
+  "logging": {
+    "level": "debug",
+    "console": true
+  },
+  "services": [
+    {
+      "type": "http",
+      "name": "main",
+      "host": "127.0.0.1",
+      "port": 0,
+      "routes": [
+        {
+          "name": "static",
+          "kind": "static",
+          "pattern": "/",
+          "root": "../../wwwroot"
+        }
+      ]
+    }
+  ]
+}

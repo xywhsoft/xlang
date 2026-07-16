@@ -145,6 +145,8 @@ static void xl6CgenGenericClassFuncProto(
 #include "src/cgen/xl6_cgen_std_string.c"
 #include "src/cgen/xl6_cgen_path.c"
 #include "src/cgen/xl6_cgen_os.c"
+#include "src/cgen/xl6_cgen_http_semantics.c"
+#include "src/cgen/xl6_cgen_ws.c"
 #include "src/cgen/xl6_cgen_http_server.c"
 #include "src/cgen/xl6_cgen_http_client.c"
 #include "src/cgen/xl6_cgen_buffer.c"

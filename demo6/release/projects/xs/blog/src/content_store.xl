@@ -1,0 +1,204 @@
+import "./db.xl"
+import sqlite
+
+// ============================================================
+// 栏目与文章仓储
+// ============================================================
+
+export func categories(point handle, bool includeDisabled = false) as array
+    string sql = "select id, name, slug, description, sort_order, enabled, created_at, updated_at from categories"
+    if not includeDisabled then sql += " where enabled=1" end
+    sql += " order by sort_order, id"
+    return db.query(handle, sql)
+end
+
+export func categoryById(point handle, int id) as var
+    point statement = db.prepare(handle, "select id, name, slug, description, sort_order, enabled from categories where id=? limit 1")
+    if statement == null then return null end
+    db.bindInt(statement, 1, id)
+    var result = null
+    if db.step(statement) == sqlite.SQLITE_ROW then result = db.row(statement) end
+    db.finalize(statement)
+    return result
+end
+
+export func categoryBySlug(point handle, string slug) as var
+    point statement = db.prepare(handle, "select id, name, slug, description, sort_order, enabled from categories where slug=? and enabled=1 limit 1")
+    if statement == null then return null end
+    db.bindText(statement, 1, slug)
+    var result = null
+    if db.step(statement) == sqlite.SQLITE_ROW then result = db.row(statement) end
+    db.finalize(statement)
+    return result
+end
+
+export func createCategory(point handle, string name, string slug, string description, int sortOrder, bool enabled) as int
+    point statement = db.prepare(handle, "insert into categories(name, slug, description, sort_order, enabled, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?)")
+    if statement == null then return 0 end
+    int now = time.toUnix(time.nowUTC())
+    bool ready = db.bindText(statement, 1, name)
+    ready = ready and db.bindText(statement, 2, slug)
+    ready = ready and db.bindText(statement, 3, description)
+    ready = ready and db.bindInt(statement, 4, sortOrder)
+    ready = ready and db.bindInt(statement, 5, enabled ? 1 : 0)
+    ready = ready and db.bindInt(statement, 6, now)
+    ready = ready and db.bindInt(statement, 7, now)
+    ready = ready and db.stepDone(statement)
+    db.finalize(statement)
+    if not ready then return 0 end
+    return db.lastInsertId(handle)
+end
+
+export func updateCategory(point handle, int id, string name, string slug, string description, int sortOrder, bool enabled) as bool
+    point statement = db.prepare(handle, "update categories set name=?, slug=?, description=?, sort_order=?, enabled=?, updated_at=? where id=?")
+    if statement == null then return false end
+    bool ready = db.bindText(statement, 1, name)
+    ready = ready and db.bindText(statement, 2, slug)
+    ready = ready and db.bindText(statement, 3, description)
+    ready = ready and db.bindInt(statement, 4, sortOrder)
+    ready = ready and db.bindInt(statement, 5, enabled ? 1 : 0)
+    ready = ready and db.bindInt(statement, 6, time.toUnix(time.nowUTC()))
+    ready = ready and db.bindInt(statement, 7, id)
+    ready = ready and db.stepDone(statement)
+    db.finalize(statement)
+    return ready and db.changes(handle) == 1
+end
+
+export func deleteCategory(point handle, int id) as bool
+    point statement = db.prepare(handle, "delete from categories where id=?")
+    if statement == null then return false end
+    db.bindInt(statement, 1, id)
+    bool ready = db.stepDone(statement)
+    db.finalize(statement)
+    return ready and db.changes(handle) == 1
+end
+
+func articleSelect() as string
+    return "select a.id, a.category_id, a.title, a.slug, a.summary, a.markdown, a.status, a.published_at, a.created_at, a.updated_at, coalesce(c.name, '') as category_name, coalesce(c.slug, '') as category_slug from articles a left join categories c on c.id=a.category_id"
+end
+
+export func publicArticles(point handle, int page, int pageSize, string categorySlug = "", string search = "") as array
+    if page < 1 then page = 1 end
+    if pageSize < 1 then pageSize = 10 end
+    if pageSize > 100 then pageSize = 100 end
+    string sql = articleSelect() + " where a.status='published' and a.published_at<=?"
+    if categorySlug != "" then sql += " and c.slug=? and c.enabled=1" end
+    if search != "" then sql += " and (a.title like ? or a.summary like ? or a.markdown like ?)" end
+    sql += " order by a.published_at desc, a.id desc limit ? offset ?"
+
+    point statement = db.prepare(handle, sql)
+    array rows = []
+    if statement == null then return rows end
+    int index = 1
+    db.bindInt(statement, index, time.toUnix(time.nowUTC()))
+    index += 1
+    if categorySlug != "" then
+        db.bindText(statement, index, categorySlug)
+        index += 1
+    end
+    if search != "" then
+        string pattern = "%" + search + "%"
+        db.bindText(statement, index, pattern)
+        db.bindText(statement, index + 1, pattern)
+        db.bindText(statement, index + 2, pattern)
+        index += 3
+    end
+    db.bindInt(statement, index, pageSize)
+    db.bindInt(statement, index + 1, (page - 1) * pageSize)
+    int code = db.step(statement)
+    while code == sqlite.SQLITE_ROW do
+        rows.append(db.row(statement))
+        code = db.step(statement)
+    end
+    db.finalize(statement)
+    return rows
+end
+
+export func articleBySlug(point handle, string slug) as var
+    point statement = db.prepare(handle, articleSelect() + " where a.slug=? and a.status='published' and a.published_at<=? limit 1")
+    if statement == null then return null end
+    db.bindText(statement, 1, slug)
+    db.bindInt(statement, 2, time.toUnix(time.nowUTC()))
+    var result = null
+    if db.step(statement) == sqlite.SQLITE_ROW then result = db.row(statement) end
+    db.finalize(statement)
+    return result
+end
+
+export func articleById(point handle, int id) as var
+    point statement = db.prepare(handle, articleSelect() + " where a.id=? limit 1")
+    if statement == null then return null end
+    db.bindInt(statement, 1, id)
+    var result = null
+    if db.step(statement) == sqlite.SQLITE_ROW then result = db.row(statement) end
+    db.finalize(statement)
+    return result
+end
+
+export func adminArticles(point handle, string status = "", int limit = 200) as array
+    if limit < 1 then limit = 1 end
+    if limit > 500 then limit = 500 end
+    string sql = articleSelect()
+    if status == "draft" or status == "published" then sql += " where a.status=?" end
+    sql += " order by a.updated_at desc, a.id desc limit ?"
+    point statement = db.prepare(handle, sql)
+    array rows = []
+    if statement == null then return rows end
+    int index = 1
+    if status == "draft" or status == "published" then
+        db.bindText(statement, index, status)
+        index += 1
+    end
+    db.bindInt(statement, index, limit)
+    int code = db.step(statement)
+    while code == sqlite.SQLITE_ROW do
+        rows.append(db.row(statement))
+        code = db.step(statement)
+    end
+    db.finalize(statement)
+    return rows
+end
+
+export func saveArticle(point handle, int id, int categoryId, string title, string slug, string summary, string markdown, string status) as int
+    if status != "draft" and status != "published" then return 0 end
+    int now = time.toUnix(time.nowUTC())
+    point statement
+    if id <= 0 then
+        statement = db.prepare(handle, "insert into articles(category_id, title, slug, summary, markdown, status, published_at, created_at, updated_at) values(?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    else
+        statement = db.prepare(handle, "update articles set category_id=?, title=?, slug=?, summary=?, markdown=?, status=?, published_at=case when ?='published' then coalesce(published_at, ?) else null end, updated_at=? where id=?")
+    end
+    if statement == null then return 0 end
+    bool ready = true
+    if categoryId > 0 then ready = db.bindInt(statement, 1, categoryId) else ready = db.bindNull(statement, 1) end
+    ready = ready and db.bindText(statement, 2, title)
+    ready = ready and db.bindText(statement, 3, slug)
+    ready = ready and db.bindText(statement, 4, summary)
+    ready = ready and db.bindText(statement, 5, markdown)
+    ready = ready and db.bindText(statement, 6, status)
+    if id <= 0 then
+        if status == "published" then ready = ready and db.bindInt(statement, 7, now) else ready = ready and db.bindNull(statement, 7) end
+        ready = ready and db.bindInt(statement, 8, now)
+        ready = ready and db.bindInt(statement, 9, now)
+    else
+        ready = ready and db.bindText(statement, 7, status)
+        ready = ready and db.bindInt(statement, 8, now)
+        ready = ready and db.bindInt(statement, 9, now)
+        ready = ready and db.bindInt(statement, 10, id)
+    end
+    ready = ready and db.stepDone(statement)
+    db.finalize(statement)
+    if not ready then return 0 end
+    if id > 0 then return id end
+    return db.lastInsertId(handle)
+end
+
+export func deleteArticle(point handle, int id) as bool
+    point statement = db.prepare(handle, "delete from articles where id=?")
+    if statement == null then return false end
+    db.bindInt(statement, 1, id)
+    bool ready = db.stepDone(statement)
+    db.finalize(statement)
+    return ready and db.changes(handle) == 1
+end
+

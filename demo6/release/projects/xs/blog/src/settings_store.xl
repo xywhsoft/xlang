@@ -1,0 +1,50 @@
+import "./db.xl"
+import sqlite
+
+export func all(point handle) as var
+    var values = {}
+    point statement = db.prepare(handle, "select key, value from settings order by key")
+    if statement == null then return values end
+    int code = db.step(statement)
+    while code == sqlite.SQLITE_ROW do
+        values[db.columnText(statement, 0)] = db.columnText(statement, 1)
+        code = db.step(statement)
+    end
+    db.finalize(statement)
+    return values
+end
+
+export func get(point handle, string key, string defaultValue = "") as string
+    point statement = db.prepare(handle, "select value from settings where key=? limit 1")
+    if statement == null then return defaultValue end
+    db.bindText(statement, 1, key)
+    string value = defaultValue
+    if db.step(statement) == sqlite.SQLITE_ROW then value = db.columnText(statement, 0) end
+    db.finalize(statement)
+    return value
+end
+
+export func set(point handle, string key, string value) as bool
+    point statement = db.prepare(handle, "insert into settings(key, value, updated_at) values(?, ?, ?) on conflict(key) do update set value=excluded.value, updated_at=excluded.updated_at")
+    if statement == null then return false end
+    bool ready = db.bindText(statement, 1, key)
+    ready = ready and db.bindText(statement, 2, value)
+    ready = ready and db.bindInt(statement, 3, time.toUnix(time.nowUTC()))
+    ready = ready and db.stepDone(statement)
+    db.finalize(statement)
+    return ready
+end
+
+export func updateSite(point handle, string title, string subtitle, string description, int postsPerPage, bool moderation) as bool
+    if postsPerPage < 1 or postsPerPage > 100 then return false end
+    if not db.begin(handle) then return false end
+    bool ready = set(handle, "site.title", title)
+    ready = ready and set(handle, "site.subtitle", subtitle)
+    ready = ready and set(handle, "site.description", description)
+    ready = ready and set(handle, "site.postsPerPage", postsPerPage.toString())
+    ready = ready and set(handle, "comments.moderation", moderation ? "true" : "false")
+    if ready and db.commit(handle) then return true end
+    db.rollback(handle)
+    return false
+end
+

@@ -1,0 +1,118 @@
+import "./socket_service.xl"
+
+func require(bool condition, string message)
+    assert condition, message
+end
+
+func recvText(TcpStream stream, string expected) as string
+    string result = ""
+    while string.byteLen(result) < string.byteLen(expected) do
+        string chunk = stream.recv(3000)
+        if chunk == "" then break end
+        result += chunk
+    end
+    return result
+end
+
+func recvBytes(TcpStream stream, int expectedSize) as Buffer
+    Buffer result = Buffer()
+    while result.len() < expectedSize do
+        Buffer chunk = stream.recvBytes(3000)
+        if chunk.len() == 0 then break end
+        require(result.append(chunk), "response buffer append must succeed")
+    end
+    return result
+end
+
+string root = path.abs("projects/xs")
+string includeDir = path.join(root, "include")
+string handlerPath = path.join(root, "tests/handlers/abi_c.c")
+
+// text 使用 UTF-8 行，输入同时接受 LF 和 CRLF，输出统一为 LF。
+auto textService = socket_service.open(
+    "tcp", "text", "127.0.0.1", 0, 32, 2, 32, 1024,
+    "text", "", 64, 3000, 3000,
+    handlerPath, root, includeDir, 2, 32, 1000, 3000)
+require(textService.ready() and textService.start(), "text service must start: " + textService.lastError)
+TcpStream textClient = TcpStream(tcp.connect("127.0.0.1", textService.port(), 3000))
+require(textClient.handle != null, "text client must connect")
+require(textClient.send("hel") and textClient.drain(3000), "text first fragment must send")
+time.sleep(30)
+require(textClient.send("lo\r\n") and textClient.drain(3000), "text second fragment must send")
+require(recvText(textClient, "c:hello\n") == "c:hello\n", "text framing must reassemble CRLF input")
+textClient.close()
+TcpStream invalidTextClient = TcpStream(tcp.connect("127.0.0.1", textService.port(), 3000))
+Buffer invalidText = Buffer()
+invalidText.appendByte(237)
+invalidText.appendByte(160)
+invalidText.appendByte(128)
+invalidText.appendByte(10)
+require(invalidTextClient.sendBytes(invalidText.data(), c_size(invalidText.len())) and invalidTextClient.drain(3000), "invalid UTF-8 frame bytes must send")
+time.sleep(100)
+require(textService.rejected() >= 1 and textService.errors() >= 1, "invalid UTF-8 text frame must be rejected")
+invalidTextClient.close()
+require(textService.stop(), "text service must stop")
+
+// delimiter 必须处理跨 read 的分隔符和一次 read 中的多帧。
+auto delimiterService = socket_service.open(
+    "tcp", "delimiter", "127.0.0.1", 0, 32, 2, 32, 1024,
+    "delimiter", "|#|", 64, 3000, 3000,
+    handlerPath, root, includeDir, 2, 32, 1000, 3000)
+require(delimiterService.ready() and delimiterService.start(), "delimiter service must start: " + delimiterService.lastError)
+TcpStream delimiterClient = TcpStream(tcp.connect("127.0.0.1", delimiterService.port(), 3000))
+require(delimiterClient.send("alpha|") and delimiterClient.drain(3000), "delimiter first fragment must send")
+time.sleep(30)
+require(delimiterClient.send("#|beta|#|") and delimiterClient.drain(3000), "delimiter coalesced frames must send")
+string delimiterReply = "c:alpha|#|c:beta|#|"
+require(recvText(delimiterClient, delimiterReply) == delimiterReply, "delimiter framing must preserve two frame boundaries")
+delimiterClient.close()
+require(delimiterService.stop(), "delimiter service must stop")
+
+// length-prefix 使用 4 字节网络字节序无符号长度。
+auto lengthService = socket_service.open(
+    "tcp", "length", "127.0.0.1", 0, 32, 2, 32, 1024,
+    "length-prefix", "", 64, 3000, 3000,
+    handlerPath, root, includeDir, 2, 32, 1000, 3000)
+require(lengthService.ready() and lengthService.start(), "length-prefix service must start: " + lengthService.lastError)
+TcpStream lengthClient = TcpStream(tcp.connect("127.0.0.1", lengthService.port(), 3000))
+Buffer prefixPart = Buffer()
+prefixPart.appendByte(0)
+prefixPart.appendByte(0)
+require(lengthClient.sendBytes(prefixPart.data(), c_size(prefixPart.len())) and lengthClient.drain(3000), "partial length prefix must send")
+time.sleep(30)
+Buffer payloadPart = Buffer()
+payloadPart.appendByte(0)
+payloadPart.appendByte(5)
+payloadPart.append("hello")
+require(lengthClient.sendBytes(payloadPart.data(), c_size(payloadPart.len())) and lengthClient.drain(3000), "length payload must send")
+Buffer lengthReply = recvBytes(lengthClient, 11)
+require(lengthReply.len() == 11, "length-prefix response must contain header and payload")
+require(lengthReply[0] == 0 and lengthReply[1] == 0 and lengthReply[2] == 0 and lengthReply[3] == 7, "response length prefix must be network byte order")
+require(lengthReply[4] == 99 and lengthReply[5] == 58 and lengthReply[6] == 104 and lengthReply[10] == 111, "response payload must be c:hello")
+lengthClient.close()
+TcpStream oversizedLengthClient = TcpStream(tcp.connect("127.0.0.1", lengthService.port(), 3000))
+Buffer oversizedLength = Buffer()
+oversizedLength.appendByte(0)
+oversizedLength.appendByte(0)
+oversizedLength.appendByte(0)
+oversizedLength.appendByte(65)
+require(oversizedLengthClient.sendBytes(oversizedLength.data(), c_size(oversizedLength.len())) and oversizedLengthClient.drain(3000), "oversized length prefix must send")
+time.sleep(100)
+require(lengthService.rejected() >= 1 and lengthService.errors() >= 1, "oversized declared length must be rejected before payload allocation")
+oversizedLengthClient.close()
+require(lengthService.stop(), "length-prefix service must stop")
+
+// 未找到分隔符时也必须执行 frameLimit，不能无限累积会话内存。
+auto limitService = socket_service.open(
+    "tcp", "limit", "127.0.0.1", 0, 32, 2, 32, 1024,
+    "delimiter", "\n", 4, 3000, 3000,
+    handlerPath, root, includeDir, 2, 32, 1000, 3000)
+require(limitService.ready() and limitService.start(), "limit service must start: " + limitService.lastError)
+TcpStream limitClient = TcpStream(tcp.connect("127.0.0.1", limitService.port(), 3000))
+require(limitClient.send("12345") and limitClient.drain(3000), "oversized frame bytes must send")
+time.sleep(150)
+require(limitService.rejected() >= 1 and limitService.errors() >= 1, "oversized frame must be rejected and counted")
+limitClient.close()
+require(limitService.stop(), "limit service must stop")
+
+println("xs2 socket framing test ok")

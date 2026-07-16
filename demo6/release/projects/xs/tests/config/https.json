@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "runtime": {
+    "workDir": "../..",
+    "handlerPoolSize": 2,
+    "handlerQueueLimit": 16
+  },
+  "services": [
+    {
+      "type": "https",
+      "name": "secure-web",
+      "host": "127.0.0.1",
+      "port": 0,
+      "workerCount": 2,
+      "certFile": "../../../../examples/fixtures/tls_cert.pem",
+      "keyFile": "../../../../examples/fixtures/tls_key.pem",
+      "routes": [
+        {
+          "name": "secure-index",
+          "kind": "handler",
+          "method": "GET",
+          "pattern": "/",
+          "contentType": "text/plain; charset=utf-8",
+          "handler": {
+            "language": "c",
+            "path": "../handlers/abi_c.c",
+            "mode": "embedded"
+          }
+        }
+      ]
+    }
+  ]
+}

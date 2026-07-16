@@ -1,0 +1,111 @@
+import "./service_runtime.xl"
+
+func require(bool condition, string message)
+    assert condition, message
+end
+
+func servicePort(var status, string name) as int
+    for _, item in status
+        if string(item["name"]) == name then
+            return int(item["port"])
+        end
+    end
+    return 0
+end
+
+func verifyAtomicReload(
+    string configPath,
+    string includeDir,
+    string tcpHandler,
+    string sourceHandler)
+    auto runtime = service_runtime.open(configPath, includeDir)
+    require(runtime.ready(), runtime.lastError())
+    require(runtime.start(), runtime.lastError())
+    int httpPort = servicePort(runtime.status(), "web")
+    require(httpPort > 0, "HTTP service did not bind")
+
+    HttpClientResponse before = http.post(
+        "http://127.0.0.1:" + httpPort.toString() + "/echo",
+        "before",
+        "text/plain",
+        3000)
+    require(before.header("X-XS-Handler-Generation") == "1", "initial generation must be 1")
+
+    // 第二个服务的候选 generation 编译失败时，第一个服务也不能提前提交。
+    require(file.writeTextAtomic(tcpHandler, "int xs_handler("), "cannot install broken handler")
+    require(not runtime.reloadHandlers(), "reload with a broken generation must fail")
+    HttpClientResponse rejected = http.post(
+        "http://127.0.0.1:" + httpPort.toString() + "/echo",
+        "rejected",
+        "text/plain",
+        3000)
+    require(rejected.body() == "c:rejected", "old web generation must continue serving")
+    require(rejected.header("X-XS-Handler-Generation") == "1", "failed batch reload must not partially commit")
+
+    require(file.writeTextAtomic(tcpHandler, file.readText(sourceHandler)), "cannot restore TCP handler")
+    require(runtime.reloadHandlers(), runtime.lastError())
+    HttpClientResponse committed = http.post(
+        "http://127.0.0.1:" + httpPort.toString() + "/echo",
+        "committed",
+        "text/plain",
+        3000)
+    require(committed.body() == "c:committed", "committed generation must serve")
+    require(committed.header("X-XS-Handler-Generation") == "2", "successful batch reload must commit once")
+    require(runtime.stop(), runtime.lastError())
+end
+
+string includeDir = path.join(path.abs("projects/xs"), "include")
+string sourceHandler = path.abs("projects/xs/tests/handlers/abi_c.c")
+string tempRoot = path.join(path.temp(), path.random("xs2_atomic_reload_", "", 10))
+require(dir.createAll(tempRoot), "cannot create atomic reload fixture directory")
+
+string webHandler = path.join(tempRoot, "web.c")
+string tcpHandler = path.join(tempRoot, "tcp.c")
+string configPath = path.join(tempRoot, "xs.json")
+require(file.copy(sourceHandler, webHandler), "cannot copy web handler fixture")
+require(file.copy(sourceHandler, tcpHandler), "cannot copy TCP handler fixture")
+
+var configValue = {
+    "version": 2,
+    "runtime": {
+        "workDir": tempRoot,
+        "shutdownTimeoutMs": 5000,
+        "handlerPoolSize": 2,
+        "handlerQueueLimit": 16
+    },
+    "services": [
+        {
+            "type": "http",
+            "name": "web",
+            "host": "127.0.0.1",
+            "port": 0,
+            "workerCount": 2,
+            "routes": [
+                {
+                    "name": "echo",
+                    "kind": "handler",
+                    "method": "POST",
+                    "pattern": "/echo",
+                    "contentType": "text/plain; charset=utf-8",
+                    "handler": {"language": "c", "path": webHandler, "mode": "embedded"}
+                }
+            ]
+        },
+        {
+            "type": "tcp",
+            "name": "tcp-echo",
+            "host": "127.0.0.1",
+            "port": 0,
+            "workerCount": 2,
+            "handler": {"language": "c", "path": tcpHandler, "mode": "embedded"}
+        }
+    ]
+}
+require(file.writeTextAtomic(configPath, json.stringify(configValue)), "cannot write atomic reload config")
+
+verifyAtomicReload(configPath, includeDir, tcpHandler, sourceHandler)
+require(file.delete(configPath), "cannot delete atomic reload config")
+require(file.delete(webHandler), "cannot delete web handler fixture")
+require(file.delete(tcpHandler), "cannot delete TCP handler fixture")
+require(dir.delete(tempRoot), "cannot delete atomic reload fixture directory")
+println("xs2 atomic reload test ok")

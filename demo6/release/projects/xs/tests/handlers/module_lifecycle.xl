@@ -1,0 +1,8 @@
+const string MODULE_NAME = "resident-module"
+int requestCount = 40
+
+export "xs_test_module_read" func read() as c_int
+    requestCount += 1
+    if MODULE_NAME != "resident-module" then return c_int(-1) end
+    return c_int(requestCount)
+end

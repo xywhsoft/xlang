@@ -1,0 +1,94 @@
+import "../../sdk/handler.xl"
+import "../src/db.xl"
+import "../src/schema.xl"
+import "../src/security.xl"
+import "../src/auth_store.xl"
+import "../src/admin_routes.xl"
+import "../src/public_routes.xl"
+
+point gDatabase = null
+
+func initialize(point raw) as bool
+    auto frame = sdk.handler.wrap(raw)
+    string databasePath = os.env("XS_BLOG_DB", "projects/xs/blog/data/blog.db")
+    string directory = path.dir(databasePath)
+    if directory != "" and not dir.createAll(directory) then
+        frame.log(sdk.handler.LOG_ERROR, "cannot create blog data directory: " + directory)
+        return false
+    end
+    gDatabase = src.db.open(databasePath)
+    if gDatabase == null then
+        frame.log(sdk.handler.LOG_ERROR, src.db.lastError())
+        return false
+    end
+    if not src.schema.migrate(gDatabase) then
+        frame.log(sdk.handler.LOG_ERROR, "blog migration failed: " + src.db.lastError())
+        src.db.close(gDatabase)
+        gDatabase = null
+        return false
+    end
+    src.auth_store.deleteExpiredSessions(gDatabase, time.toUnix(time.nowUTC()))
+
+    if src.auth_store.adminCount(gDatabase) == 0 then
+        string username = os.env("XS_BLOG_ADMIN_USER", "admin")
+        string password = os.env("XS_BLOG_ADMIN_PASSWORD", "")
+        if password == "" then
+            frame.log(sdk.handler.LOG_WARN, "blog has no administrator; run setup.xl or set XS_BLOG_ADMIN_PASSWORD for first start")
+        elseif not src.security.validUsername(username) then
+            frame.log(sdk.handler.LOG_ERROR, "XS_BLOG_ADMIN_USER is invalid")
+            return false
+        else
+            string passwordHash = src.security.hashPassword(password)
+            bool created = passwordHash != "" and src.auth_store.createAdmin(gDatabase, username, passwordHash)
+            if not created and src.auth_store.findAdmin(gDatabase, username) == null then
+                frame.log(sdk.handler.LOG_ERROR, "cannot create initial blog administrator")
+                return false
+            end
+            frame.log(sdk.handler.LOG_INFO, "initial blog administrator created: " + username)
+        end
+    end
+    return true
+end
+
+func unit() as bool
+    if gDatabase == null then return true end
+    bool closed = src.db.close(gDatabase)
+    gDatabase = null
+    return closed
+end
+
+func securityHeaders(HttpResponse response)
+    response.header("Content-Security-Policy", "default-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'self'")
+    response.header("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.header("X-Frame-Options", "DENY")
+    response.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+end
+
+func handleHttp(point raw) as c_int
+    auto frame = sdk.handler.wrap(raw)
+    if gDatabase == null then return c_int(sdk.handler.UNAVAILABLE) end
+    HttpRequest request = HttpRequest(frame.request())
+    HttpResponse response = HttpResponse(frame.response())
+    securityHeaders(response)
+
+    if request.method() == "GET" and request.path() == "/assets/blog.css" then
+        response.header("Cache-Control", "public, max-age=3600")
+        response.header("Content-Type", "text/css; charset=utf-8")
+        if response.file("projects/xs/blog/static/blog.css") then return c_int(sdk.handler.OK) end
+        return c_int(sdk.handler.NOT_FOUND)
+    end
+
+    int handled = src.admin_routes.handle(gDatabase, frame.request(), frame.response())
+    if handled < 0 then handled = src.public_routes.handle(gDatabase, frame.request(), frame.response()) end
+    return handled == 1 ? c_int(sdk.handler.OK) : c_int(sdk.handler.ERROR)
+end
+
+export "xs_handler" func handle(point raw) as c_int
+    auto frame = sdk.handler.wrap(raw)
+    int kind = frame.kind()
+    if kind == sdk.handler.INIT then return initialize(raw) ? c_int(sdk.handler.OK) : c_int(sdk.handler.ERROR) end
+    if kind == sdk.handler.START or kind == sdk.handler.STOP then return c_int(sdk.handler.OK) end
+    if kind == sdk.handler.UNIT then return unit() ? c_int(sdk.handler.OK) : c_int(sdk.handler.ERROR) end
+    if kind != sdk.handler.HTTP then return c_int(sdk.handler.BAD_REQUEST) end
+    return handleHttp(raw)
+end

@@ -1,3 +1,41 @@
+int xl6CgenNodeNeedsWebSocketRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsWebSocketClass(node) ||
+         xl6CgenNeedsBasicIsWebSocketRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsWebSocketRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsHttpSemanticsRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsHttpSemanticsClass(node) ||
+         xl6CgenNeedsBasicIsHttpSemanticsRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsHttpSemanticsRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int xl6CgenNodeNeedsHttpServerRuntime(const XL6_AstNode* node)
 {
     size_t i;

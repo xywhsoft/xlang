@@ -1,0 +1,29 @@
+func cookieRoute(point requestHandle, point responseHandle) as bool
+    HttpResponse response = HttpResponse(responseHandle)
+    response.header("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'")
+    response.header("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.header("X-Frame-Options", "DENY")
+    response.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    string token = crypto.randomHex(32)
+    int flags = http.server.cookieHttpOnly
+    if not response.cookie("xs_blog_session", token, "/", 43200, http.server.sameSiteLax, flags) then
+        response.status(500)
+        return response.text("cookie failed")
+    end
+    return response.text("ok")
+end
+
+func(point, point) as bool callback = cookieRoute
+point server = http.server.create(0, "127.0.0.1", 64, 65536, 65536, 32, 16384, 1)
+assert server != null and http.server.getRequest(server, "/cookie", callback), "cookie test server setup failed"
+assert http.server.start(server), "cookie test server start failed"
+
+HttpClientResponse response = http.get("http://127.0.0.1:" + http.server.port(server).toString() + "/cookie", 3000)
+assert response.status() == 200, "session cookie response failed"
+assert string.contains(response.header("Set-Cookie"), "xs_blog_session="), "session cookie header missing"
+assert string.contains(response.header("Set-Cookie"), "HttpOnly"), "HttpOnly attribute missing"
+assert string.contains(response.header("Set-Cookie"), "SameSite=Lax"), "SameSite attribute missing"
+
+http.server.stop(server)
+http.server.destroy(server)
+println("xs2 blog cookie test ok")

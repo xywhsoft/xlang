@@ -15,6 +15,11 @@ extern "C" {
 #define XLC_API_VERSION XL_API_VERSION
 #endif
 
+/* A context accepts at most this many independent C translation units. */
+#ifndef XLC_MAX_C_SOURCE_FILES
+#define XLC_MAX_C_SOURCE_FILES 256
+#endif
+
 typedef struct XLC_Context XLC_Context;
 typedef XL_ContextOptions XLC_ContextOptions;
 

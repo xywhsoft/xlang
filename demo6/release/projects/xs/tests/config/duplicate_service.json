@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "services": [
+    {
+      "type": "http",
+      "name": "same",
+      "routes": []
+    },
+    {
+      "type": "http",
+      "name": "same",
+      "routes": []
+    }
+  ]
+}

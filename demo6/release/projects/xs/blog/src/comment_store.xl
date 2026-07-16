@@ -1,0 +1,122 @@
+import "./db.xl"
+import sqlite
+
+// articleId 为 0 时表示留言本。
+export func create(point handle, int articleId, string author, string email, string body, bool moderation, string remoteAddress) as int
+    point statement = db.prepare(handle, "insert into comments(article_id, parent_id, author, email, body, status, remote_address, created_at, updated_at) values(?, null, ?, ?, ?, ?, ?, ?, ?)")
+    if statement == null then return 0 end
+    int now = time.toUnix(time.nowUTC())
+    bool ready = true
+    if articleId > 0 then ready = db.bindInt(statement, 1, articleId) else ready = db.bindNull(statement, 1) end
+    ready = ready and db.bindText(statement, 2, author)
+    ready = ready and db.bindText(statement, 3, email)
+    ready = ready and db.bindText(statement, 4, body)
+    ready = ready and db.bindText(statement, 5, moderation ? "pending" : "visible")
+    ready = ready and db.bindText(statement, 6, remoteAddress)
+    ready = ready and db.bindInt(statement, 7, now)
+    ready = ready and db.bindInt(statement, 8, now)
+    ready = ready and db.stepDone(statement)
+    db.finalize(statement)
+    if not ready then return 0 end
+    return db.lastInsertId(handle)
+end
+
+export func visible(point handle, int articleId, int limit = 200) as array
+    if limit < 1 then limit = 1 end
+    if limit > 500 then limit = 500 end
+    string sql = "select id, article_id, parent_id, author, body, created_at from comments where status='visible' and "
+    if articleId > 0 then sql += "article_id=?" else sql += "article_id is null" end
+    sql += " order by created_at, id limit ?"
+    point statement = db.prepare(handle, sql)
+    array rows = []
+    if statement == null then return rows end
+    int index = 1
+    if articleId > 0 then
+        db.bindInt(statement, index, articleId)
+        index += 1
+    end
+    db.bindInt(statement, index, limit)
+    int code = db.step(statement)
+    while code == sqlite.SQLITE_ROW do
+        rows.append(db.row(statement))
+        code = db.step(statement)
+    end
+    db.finalize(statement)
+    return rows
+end
+
+export func adminList(point handle, string status = "", int limit = 300) as array
+    if limit < 1 then limit = 1 end
+    if limit > 500 then limit = 500 end
+    string sql = "select c.id, c.article_id, c.parent_id, c.author, c.email, c.body, c.status, c.remote_address, c.created_at, coalesce(a.title, 'Guestbook') as target from comments c left join articles a on a.id=c.article_id"
+    if status == "pending" or status == "visible" or status == "hidden" then sql += " where c.status=?" end
+    sql += " order by c.id desc limit ?"
+    point statement = db.prepare(handle, sql)
+    array rows = []
+    if statement == null then return rows end
+    int index = 1
+    if status == "pending" or status == "visible" or status == "hidden" then
+        db.bindText(statement, index, status)
+        index += 1
+    end
+    db.bindInt(statement, index, limit)
+    int code = db.step(statement)
+    while code == sqlite.SQLITE_ROW do
+        rows.append(db.row(statement))
+        code = db.step(statement)
+    end
+    db.finalize(statement)
+    return rows
+end
+
+export func moderate(point handle, int id, string status) as bool
+    if status != "pending" and status != "visible" and status != "hidden" then return false end
+    point statement = db.prepare(handle, "update comments set status=?, updated_at=? where id=?")
+    if statement == null then return false end
+    db.bindText(statement, 1, status)
+    db.bindInt(statement, 2, time.toUnix(time.nowUTC()))
+    db.bindInt(statement, 3, id)
+    bool ready = db.stepDone(statement)
+    db.finalize(statement)
+    return ready and db.changes(handle) == 1
+end
+
+export func reply(point handle, int parentId, int adminId, string body) as int
+    point lookup = db.prepare(handle, "select article_id from comments where id=? limit 1")
+    if lookup == null then return 0 end
+    db.bindInt(lookup, 1, parentId)
+    bool found = db.step(lookup) == sqlite.SQLITE_ROW
+    int articleId = 0
+    bool articleIsNull = true
+    if found then
+        articleIsNull = sqlite.sqlite3_column_type(lookup, 0) == sqlite.SQLITE_NULL
+        if not articleIsNull then articleId = db.columnInt(lookup, 0) end
+    end
+    db.finalize(lookup)
+    if not found then return 0 end
+
+    point statement = db.prepare(handle, "insert into comments(article_id, parent_id, author, email, body, status, remote_address, created_at, updated_at) values(?, ?, ?, '', ?, 'visible', '', ?, ?)")
+    if statement == null then return 0 end
+    int now = time.toUnix(time.nowUTC())
+    bool ready = true
+    if articleIsNull then ready = db.bindNull(statement, 1) else ready = db.bindInt(statement, 1, articleId) end
+    ready = ready and db.bindInt(statement, 2, parentId)
+    ready = ready and db.bindText(statement, 3, "Admin #" + adminId.toString())
+    ready = ready and db.bindText(statement, 4, body)
+    ready = ready and db.bindInt(statement, 5, now)
+    ready = ready and db.bindInt(statement, 6, now)
+    ready = ready and db.stepDone(statement)
+    db.finalize(statement)
+    if not ready then return 0 end
+    return db.lastInsertId(handle)
+end
+
+export func remove(point handle, int id) as bool
+    point statement = db.prepare(handle, "delete from comments where id=?")
+    if statement == null then return false end
+    db.bindInt(statement, 1, id)
+    bool ready = db.stepDone(statement)
+    db.finalize(statement)
+    return ready and db.changes(handle) == 1
+end
+

@@ -86,7 +86,7 @@ class Image
 	end
 
 	func shape_json() as string
-		return "{\"width\":" + string.formatInt(self.width(), "") + ",\"height\":" + string.formatInt(self.height(), "") + ",\"channels\":" + string.formatInt(self.channels(), "") + "}"
+		return "{\"width\":" + string.format(self.width(), "") + ",\"height\":" + string.format(self.height(), "") + ",\"channels\":" + string.format(self.channels(), "") + "}"
 	end
 
 	func resize(int width, int height) as Image

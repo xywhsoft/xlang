@@ -3,7 +3,7 @@ import "./src/service_runtime.xl"
 
 func xsUsage()
     println("xs 2.0")
-    println("usage: xl run projects/xs/xs.xl -- [options]")
+    println("usage: xl run <xs.xl> -- [options]")
     println("  --config <path>   configuration file")
     println("  --check           validate configuration and exit")
     println("  --status          start, print status, then stop")
@@ -112,8 +112,20 @@ func xsRun(
 end
 
 func main(...) as int
-    string configPath = path.abs("projects/xs/xs.json")
-    string includeDir = path.abs("projects/xs/include")
+    // 默认配置跟随入口文件，避免依赖调用者的当前工作目录。
+    string projectDir = path.appDir()
+    if arg.length > 0 then
+        string entryPath = path.abs(string(arg[0]))
+        string entryDir = path.dir(entryPath)
+        if file.exists(path.join(entryDir, "xs.json")) then
+            projectDir = entryDir
+        elseif file.exists(path.join(projectDir, "projects/xs/xs.json")) then
+            projectDir = path.join(projectDir, "projects/xs")
+        end
+    end
+    string configPath = path.join(projectDir, "xs.json")
+    // 留空时由 Runtime 从配置文件目录向上查找共享 include。
+    string includeDir = ""
     bool checkOnly = false
     bool printStatus = false
     int durationMs = -1

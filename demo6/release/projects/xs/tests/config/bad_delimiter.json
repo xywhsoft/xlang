@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "services": [
+    {
+      "type": "tcp",
+      "name": "bad-delimiter",
+      "framing": "delimiter",
+      "delimiter": "",
+      "handler": {
+        "language": "c",
+        "path": "../handlers/abi_c.c"
+      }
+    }
+  ]
+}

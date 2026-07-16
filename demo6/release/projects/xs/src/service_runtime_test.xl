@@ -1,0 +1,55 @@
+import "./service_runtime.xl"
+
+func require(bool condition, string message)
+    assert condition, message
+end
+
+func servicePort(var status, string name) as int
+    for _, item in status
+        if string(item["name"]) == name then
+            return int(item["port"])
+        end
+    end
+    return 0
+end
+
+string includeDir = path.join(path.abs("projects/xs"), "include")
+auto runtime = service_runtime.open("projects/xs/tests/config/multiservice.json", includeDir)
+require(runtime.ready(), runtime.lastError())
+require(runtime.serviceCount() == 3, "all configured services must be built")
+require(runtime.start(), runtime.lastError())
+
+var status = runtime.status()
+int httpPort = servicePort(status, "web")
+int tcpPort = servicePort(status, "tcp-echo")
+int udpPort = servicePort(status, "udp-echo")
+require(httpPort > 0 and tcpPort > 0 and udpPort > 0, "all services must publish bound ports")
+
+HttpClientResponse httpResponse = http.post(
+    "http://127.0.0.1:" + httpPort.toString() + "/echo",
+    "http",
+    "text/plain",
+    3000)
+require(httpResponse.status() == 200 and httpResponse.body() == "c:http", "HTTP handler must respond")
+
+TcpStream tcpClient = TcpStream(tcp.connect("127.0.0.1", tcpPort, 3000))
+require(tcpClient.send("tcp") and tcpClient.drain(3000), "TCP request must send")
+require(tcpClient.recv(3000) == "c:tcp", "TCP handler must respond")
+tcpClient.close()
+
+UdpSocket udpClient = UdpSocket(udp.bind(0, "127.0.0.1"))
+require(udpClient.send("127.0.0.1", uint16(udpPort), "udp"), "UDP request must send")
+UdpPacket udpResponse = UdpPacket(udpClient.recv(3000))
+require(udpResponse.text() == "xl:udp", "UDP handler must respond")
+
+require(runtime.reloadHandlers(), runtime.lastError())
+HttpClientResponse afterReload = http.post(
+    "http://127.0.0.1:" + httpPort.toString() + "/echo",
+    "again",
+    "text/plain",
+    3000)
+require(afterReload.body() == "c:again", "HTTP service must survive handler reload")
+require(afterReload.header("X-XS-Handler-Generation") == "2", "HTTP route must expose reloaded generation")
+
+require(runtime.stop(), runtime.lastError())
+println("xs2 service runtime test ok")

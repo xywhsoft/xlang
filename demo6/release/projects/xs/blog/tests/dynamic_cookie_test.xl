@@ -1,0 +1,30 @@
+import "../../src/handler_runtime.xl"
+
+string includeDir = path.join(path.abs("projects/xs"), "include")
+auto binding = src.handler_runtime.openHttpRoute(
+    "projects/xs/blog/tests/dynamic_cookie_handler.xl",
+    ".",
+    includeDir,
+    1,
+    8,
+    1000,
+    5000,
+    "blog-test",
+    "cookie",
+    "text/plain; charset=utf-8")
+assert binding.ready(), binding.error()
+
+point server = http.server.create(0, "127.0.0.1", 64, 65536, 65536, 32, 16384, 1)
+assert server != null and http.server.getRequest(server, "/cookie", binding.callback()), "dynamic cookie server setup failed"
+assert http.server.start(server), "dynamic cookie server start failed"
+HttpClientResponse response = http.get("http://127.0.0.1:" + http.server.port(server).toString() + "/cookie", 3000)
+assert response.status() == 200, "dynamic session cookie response failed: " + response.body()
+assert string.contains(response.header("Set-Cookie"), "xs_blog_session="), "dynamic session cookie missing"
+assert response.body() == "ok:41", "module global initialization failed"
+
+response = http.get("http://127.0.0.1:" + http.server.port(server).toString() + "/cookie", 3000)
+assert response.status() == 200 and response.body() == "ok:42", "module global state did not survive between requests"
+
+http.server.stop(server)
+http.server.destroy(server)
+println("xs2 blog dynamic cookie test ok")

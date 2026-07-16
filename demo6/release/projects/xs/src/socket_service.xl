@@ -1,0 +1,252 @@
+import "./handler_runtime.xl"
+
+// TCP/UDP 的线程、队列和句柄全部由原生服务对象持有。
+// xlang 只负责配置与生命周期编排，避免复制不可复制的线程对象。
+class SocketService
+    native point handle
+    extern "xs2_socket_service_create" create(
+        string serviceType,
+        string name,
+        string host,
+        int port,
+        int backlog,
+        int workerCount,
+        int queueCapacity,
+        int recvLimit,
+        string framing,
+        string delimiter,
+        int frameLimit,
+        int idleTimeoutMs,
+        int writeTimeoutMs,
+        string sourcePath,
+        string workDir,
+        string includeDir,
+        int handlerPoolSize,
+        int handlerQueueCapacity,
+        int handlerQueueTimeoutMs,
+        int handlerTimeoutMs)
+    extern "xs2_socket_service_destroy" destroy()
+    extern "xs2_socket_service_ready" func ready() as bool
+    extern "xs2_socket_service_started" func started() as bool
+    extern "xs2_socket_service_start" func start() as bool
+    extern "xs2_socket_service_stop" func stop() as bool
+    extern "xs2_socket_service_reload" func reload() as bool
+    extern "xs2_socket_service_prepare_reload" func prepareReload() as point
+    extern "xs2_socket_service_commit_reload" func commitReload(point prepared) as bool
+    extern "xs2_socket_service_discard_reload" func discardReload(point prepared)
+    extern "xs2_socket_service_port" func port() as int
+    extern "xs2_socket_service_last_error_copy" func lastErrorNative() as point
+    extern "xs2_socket_service_accepted" func accepted() as int
+    extern "xs2_socket_service_received" func received() as int
+    extern "xs2_socket_service_sent" func sent() as int
+    extern "xs2_socket_service_rejected" func rejected() as int
+    extern "xs2_socket_service_errors" func errors() as int
+    extern "xs2_socket_service_active" func active() as int
+    extern "xs2_socket_service_queued" func queued() as int
+
+    get lastError() as string
+        return __xl_std_runtime_take_cstr(self.lastErrorNative())
+    end
+
+end
+
+// 普通托管对象持有不可复制的 native-backed service。
+// 控制闭包捕获托管引用，不复制原生句柄。
+class SocketControl
+    SocketService service
+    point preparedReload = null
+
+    create(SocketService service)
+        self.service = service
+    end
+
+    destroy()
+        if self.preparedReload != null then
+            self.service.discardReload(self.preparedReload)
+            self.preparedReload = null
+        end
+    end
+
+    func ready() as bool
+        return self.service.ready()
+    end
+
+    func lastError() as string
+        return self.service.lastError
+    end
+
+    func startCallback() as func() as bool
+        SocketControl control = self
+        return func() as bool
+            return control.service.start()
+        end
+    end
+
+    func stopCallback() as func() as bool
+        SocketControl control = self
+        return func() as bool
+            return control.service.stop()
+        end
+    end
+
+    func reloadCallback() as func() as bool
+        SocketControl control = self
+        return func() as bool
+            return control.service.reload()
+        end
+    end
+
+    func prepareReloadCallback() as func() as bool
+        SocketControl control = self
+        return func() as bool
+            if control.preparedReload != null then
+                control.service.discardReload(control.preparedReload)
+                control.preparedReload = null
+            end
+            control.preparedReload = control.service.prepareReload()
+            return control.preparedReload != null
+        end
+    end
+
+    func commitReloadCallback() as func() as bool
+        SocketControl control = self
+        return func() as bool
+            if control.preparedReload == null then return false end
+            if not control.service.commitReload(control.preparedReload) then
+                return false
+            end
+            control.preparedReload = null
+            return true
+        end
+    end
+
+    func discardReloadCallback() as func() as bool
+        SocketControl control = self
+        return func() as bool
+            if control.preparedReload != null then
+                control.service.discardReload(control.preparedReload)
+                control.preparedReload = null
+            end
+            return true
+        end
+    end
+
+    func errorCallback() as func() as string
+        SocketControl control = self
+        return func() as string
+            return control.service.lastError
+        end
+    end
+
+    func portCallback() as func() as int
+        SocketControl control = self
+        return func() as int
+            return control.service.port()
+        end
+    end
+
+    func statusCallback() as func() as string
+        SocketControl control = self
+        return func() as string
+            return json.stringify({
+                "running": control.service.started(),
+                "port": control.service.port(),
+                "accepted": control.service.accepted(),
+                "receivedBytes": control.service.received(),
+                "sentBytes": control.service.sent(),
+                "rejected": control.service.rejected(),
+                "errors": control.service.errors(),
+                "active": control.service.active(),
+                "queued": control.service.queued()
+            })
+        end
+    end
+end
+
+export func open(
+    string serviceType,
+    string name,
+    string host,
+    int port,
+    int backlog,
+    int workerCount,
+    int queueCapacity,
+    int recvLimit,
+    string framing,
+    string delimiter,
+    int frameLimit,
+    int idleTimeoutMs,
+    int writeTimeoutMs,
+    string sourcePath,
+    string workDir,
+    string includeDir,
+    int handlerPoolSize,
+    int handlerQueueCapacity,
+    int handlerQueueTimeoutMs,
+    int handlerTimeoutMs) as SocketService
+    return SocketService(
+        serviceType,
+        name,
+        host,
+        port,
+        backlog,
+        workerCount,
+        queueCapacity,
+        recvLimit,
+        framing,
+        delimiter,
+        frameLimit,
+        idleTimeoutMs,
+        writeTimeoutMs,
+        sourcePath,
+        workDir,
+        includeDir,
+        handlerPoolSize,
+        handlerQueueCapacity,
+        handlerQueueTimeoutMs,
+        handlerTimeoutMs)
+end
+
+export func openManaged(
+    string serviceType,
+    string name,
+    string host,
+    int port,
+    int backlog,
+    int workerCount,
+    int queueCapacity,
+    int recvLimit,
+    string framing,
+    string delimiter,
+    int frameLimit,
+    int idleTimeoutMs,
+    int writeTimeoutMs,
+    string sourcePath,
+    string workDir,
+    string includeDir,
+    int handlerPoolSize,
+    int handlerQueueCapacity,
+    int handlerQueueTimeoutMs,
+    int handlerTimeoutMs) as SocketControl
+    return SocketControl(SocketService(
+        serviceType,
+        name,
+        host,
+        port,
+        backlog,
+        workerCount,
+        queueCapacity,
+        recvLimit,
+        framing,
+        delimiter,
+        frameLimit,
+        idleTimeoutMs,
+        writeTimeoutMs,
+        sourcePath,
+        workDir,
+        includeDir,
+        handlerPoolSize,
+        handlerQueueCapacity,
+        handlerQueueTimeoutMs,
+        handlerTimeoutMs))
+end

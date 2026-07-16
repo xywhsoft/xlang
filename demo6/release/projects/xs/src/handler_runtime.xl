@@ -1,0 +1,294 @@
+import "./handler_generation.xl"
+
+// HandlerSlot 持有不可变 generation。reload 先完成新 generation 编译，
+// 再原子切换；旧 generation 等活跃调用归零后回收。
+class HandlerSlot
+    native point handle
+    extern "xs2_handler_slot_create" create(
+        string sourcePath,
+        string workDir,
+        string includeDir,
+        int poolSize,
+        int queueCapacity,
+        int queueTimeoutMs,
+        int executionTimeoutMs)
+    extern "xs2_handler_slot_destroy" destroy()
+    extern "xs2_handler_slot_ready" func ready() as bool
+    extern "xs2_handler_slot_reload" func reload() as bool
+    extern "xs2_handler_slot_prepare_reload" func prepareReload() as point
+    extern "xs2_handler_slot_commit_reload" func commitReload(point prepared) as bool
+    extern "xs2_handler_slot_discard_reload" func discardReload(point prepared)
+    extern "xs2_handler_slot_generation" func generation() as int
+    extern "xs2_handler_slot_pool_size" func poolSize() as int
+    extern "xs2_handler_slot_last_error_copy" func lastErrorNative() as point
+    extern "xs2_handler_slot_call_text" func callTextNative(
+        int kind,
+        string serviceName,
+        string routeName,
+        point requestHandle,
+        point protocolResponseHandle,
+        string data,
+        c_size dataSize,
+        string remoteAddress,
+        c_uint remotePort,
+        point responseBuffer) as int
+    extern "xs2_handler_slot_call_buffer" func callBufferNative(
+        int kind,
+        string serviceName,
+        string routeName,
+        point requestHandle,
+        point protocolResponseHandle,
+        point data,
+        c_size dataSize,
+        string remoteAddress,
+        c_uint remotePort,
+        point responseBuffer) as int
+
+    get lastError() as string
+        return __xl_std_runtime_take_cstr(self.lastErrorNative())
+    end
+
+    func call(
+        int kind,
+        string serviceName,
+        string routeName,
+        string data,
+        Buffer response,
+        string remoteAddress = "",
+        int remotePort = 0,
+        point requestHandle = null,
+        point protocolResponseHandle = null) as int
+        return self.callTextNative(
+            kind,
+            serviceName,
+            routeName,
+            requestHandle,
+            protocolResponseHandle,
+            data,
+            c_size(string.byteLen(data)),
+            remoteAddress,
+            c_uint(remotePort),
+            response.nativeHandle())
+    end
+
+    func call(
+        int kind,
+        string serviceName,
+        string routeName,
+        Buffer data,
+        Buffer response,
+        string remoteAddress = "",
+        int remotePort = 0,
+        point requestHandle = null,
+        point protocolResponseHandle = null) as int
+        return self.callBufferNative(
+            kind,
+            serviceName,
+            routeName,
+            requestHandle,
+            protocolResponseHandle,
+            data.data(),
+            c_size(data.len()),
+            remoteAddress,
+            c_uint(remotePort),
+            response.nativeHandle())
+    end
+end
+
+export func open(
+    string sourcePath,
+    string workDir,
+    string includeDir,
+    int poolSize,
+    int queueCapacity,
+    int queueTimeoutMs,
+    int executionTimeoutMs) as HandlerSlot
+    return HandlerSlot(
+        sourcePath,
+        workDir,
+        includeDir,
+        poolSize,
+        queueCapacity,
+        queueTimeoutMs,
+        executionTimeoutMs)
+end
+
+func xs2HttpStatusFor(int result) as int
+    if result == 2 then return 400 end
+    if result == 3 then return 401 end
+    if result == 4 then return 403 end
+    if result == 5 then return 404 end
+    if result == 6 then return 504 end
+    if result == 7 or result == 8 then return 503 end
+    return 500
+end
+
+// HTTP 绑定保持 HandlerSlot 的强类型。上层只接触固定签名回调，
+// 不把 class 降级为 var，也不依赖运行时反射调用。
+class HttpRouteBinding
+    HandlerSlot slot
+    string serviceName
+    string routeName
+    string contentType
+
+    create(
+        string sourcePath,
+        string workDir,
+        string includeDir,
+        int poolSize,
+        int queueCapacity,
+        int queueTimeoutMs,
+        int executionTimeoutMs,
+        string serviceName,
+        string routeName,
+        string contentType)
+        self.slot = HandlerSlot(
+            sourcePath,
+            workDir,
+            includeDir,
+            poolSize,
+            queueCapacity,
+            queueTimeoutMs,
+            executionTimeoutMs)
+        self.serviceName = serviceName
+        self.routeName = routeName
+        self.contentType = contentType
+    end
+
+    func ready() as bool
+        return self.slot != null and self.slot.ready()
+    end
+
+    func error() as string
+        if self.slot == null then
+            return "handler slot is null"
+        end
+        return self.slot.lastError
+    end
+
+    func reload() as bool
+        return self.slot != null and self.slot.reload()
+    end
+
+    func prepareReload() as point
+        if self.slot == null then return null end
+        return self.slot.prepareReload()
+    end
+
+    func commitReload(point prepared) as bool
+        return self.slot != null and self.slot.commitReload(prepared)
+    end
+
+    func discardReload(point prepared) as bool
+        if prepared != null then
+            self.slot.discardReload(prepared)
+        end
+        return true
+    end
+
+    func invoke(point requestHandle, point responseHandle) as bool
+        HttpRequest request = HttpRequest(requestHandle)
+        HttpResponse response = HttpResponse(responseHandle)
+        Buffer input = request.bodyBytes()
+        Buffer output = Buffer(4096)
+        int result = self.slot.call(
+            1,
+            self.serviceName,
+            self.routeName,
+            input,
+            output,
+            request.remoteAddr(),
+            request.remotePort(),
+            requestHandle,
+            responseHandle)
+
+        response.header("X-XS-Handler-Generation", self.slot.generation().toString())
+        if result == 0 then
+            if response.committed() then
+                return true
+            end
+            if output.len() > 0 then
+                return response.body(output.data(), c_size(output.len()), self.contentType)
+            end
+            if response.bodySize() > 0 or response.statusCode() != 200 then
+                return true
+            end
+            return response.text("", self.contentType)
+        end
+
+        if response.committed() then
+            return true
+        end
+        response.status(xs2HttpStatusFor(result))
+        if output.len() > 0 then
+            return response.body(output.data(), c_size(output.len()), self.contentType)
+        end
+        return response.text("request handler failed", "text/plain; charset=utf-8")
+    end
+
+    func callback() as func(point, point) as bool
+        HttpRouteBinding binding = self
+        return func(point requestHandle, point responseHandle) as bool
+            return binding.invoke(requestHandle, responseHandle)
+        end
+    end
+
+    func reloadCallback() as func() as bool
+        HttpRouteBinding binding = self
+        return func() as bool
+            return binding.reload()
+        end
+    end
+
+    func prepareReloadCallback() as func() as point
+        HttpRouteBinding binding = self
+        return func() as point
+            return binding.prepareReload()
+        end
+    end
+
+    func commitReloadCallback() as func(point) as bool
+        HttpRouteBinding binding = self
+        return func(point prepared) as bool
+            return binding.commitReload(prepared)
+        end
+    end
+
+    func discardReloadCallback() as func(point) as bool
+        HttpRouteBinding binding = self
+        return func(point prepared) as bool
+            return binding.discardReload(prepared)
+        end
+    end
+
+    func errorCallback() as func() as string
+        HttpRouteBinding binding = self
+        return func() as string
+            return binding.error()
+        end
+    end
+end
+
+export func openHttpRoute(
+    string sourcePath,
+    string workDir,
+    string includeDir,
+    int poolSize,
+    int queueCapacity,
+    int queueTimeoutMs,
+    int executionTimeoutMs,
+    string serviceName,
+    string routeName,
+    string contentType) as HttpRouteBinding
+    return HttpRouteBinding(
+        sourcePath,
+        workDir,
+        includeDir,
+        poolSize,
+        queueCapacity,
+        queueTimeoutMs,
+        executionTimeoutMs,
+        serviceName,
+        routeName,
+        contentType)
+end

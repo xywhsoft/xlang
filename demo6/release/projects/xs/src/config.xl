@@ -1,0 +1,776 @@
+// ============================================================
+// xs 2.0 配置读取与严格校验
+// ============================================================
+
+class ConfigLoadResult
+    bool ok = false
+    string error = ""
+    string json = ""
+end
+
+func xsConfigResult(bool ok, string errorText, var value) as var
+    return {"ok": ok, "error": errorText, "value": value}
+end
+
+func xsConfigContains(array values, string expected) as bool
+    for _, value in values
+        if string(value) == expected then
+            return true
+        end
+    end
+    return false
+end
+
+func xsConfigCheckFields(var value, array allowed, string location) as string
+    if type(value) != dict then
+        return location + " must be an object"
+    end
+
+    for key, _ in value
+        string field = string(key)
+        if not xsConfigContains(allowed, field) then
+            return location + " contains unknown field: " + field
+        end
+    end
+    return ""
+end
+
+func xsConfigCheckFieldTypes(
+    var value,
+    array stringFields,
+    array intFields,
+    array boolFields,
+    string location) as string
+    for _, item in stringFields
+        string field = item as string
+        var fieldValue = value[field]
+        if fieldValue != null and type(fieldValue) != string then
+            return location + "." + field + " must be a string"
+        end
+    end
+    for _, item in intFields
+        string field = item as string
+        var fieldValue = value[field]
+        if fieldValue != null and type(fieldValue) != int then
+            return location + "." + field + " must be an integer"
+        end
+    end
+    for _, item in boolFields
+        string field = item as string
+        var fieldValue = value[field]
+        if fieldValue != null and type(fieldValue) != bool then
+            return location + "." + field + " must be a boolean"
+        end
+    end
+    return ""
+end
+
+func xsConfigReadString(var value, string fallback) as string
+    if value == null then
+        return fallback
+    end
+    return string(value)
+end
+
+func xsConfigReadInt(var value, int fallback) as int
+    if value == null then
+        return fallback
+    end
+    return int(value)
+end
+
+func xsConfigReadBool(var value, bool fallback) as bool
+    if value == null then
+        return fallback
+    end
+    return bool(value)
+end
+
+func xsConfigResolvePath(string baseDir, string value) as string
+    if value == "" then
+        return ""
+    end
+    if path.isAbs(value) then
+        return path.normalize(value)
+    end
+    return path.normalize(path.join(baseDir, value))
+end
+
+func xsConfigHostPatternValid(string pattern) as bool
+    string domain = pattern
+    if string.startsWith(domain, "*.") then
+        domain = string.slice(domain, 2, string.len(domain) - 2)
+    end
+    if domain == "" then
+        return false
+    end
+    for _, item in string.bytes(domain)
+        int code = item as int
+        bool digit = code >= 48 and code <= 57
+        bool lower = code >= 97 and code <= 122
+        bool upper = code >= 65 and code <= 90
+        if not digit and not lower and not upper and code != 45 and code != 46 then
+            return false
+        end
+    end
+    for _, item in string.split(domain, ".")
+        string label = item as string
+        if label == "" or string.startsWith(label, "-") or string.endsWith(label, "-") then
+            return false
+        end
+    end
+    return true
+end
+
+func xsConfigBindHostIsWildcard(string host) as bool
+    string value = string.lower(string.trim(host))
+    return value == "" or value == "*" or value == "0.0.0.0" or value == "::" or value == "[::]"
+end
+
+func xsConfigBindEndpointsOverlap(var left, var right) as bool
+    if string(left["transport"]) != string(right["transport"]) or int(left["port"]) != int(right["port"]) then
+        return false
+    end
+    string leftHost = string(left["host"])
+    string rightHost = string(right["host"])
+    return leftHost == rightHost or xsConfigBindHostIsWildcard(leftHost) or xsConfigBindHostIsWildcard(rightHost)
+end
+
+// ============================================================
+// handler
+// ============================================================
+
+func xsConfigValidateHandler(var handler, string baseDir, string location) as var
+    string fieldError = xsConfigCheckFields(handler, [
+        "language", "path", "poolSize", "queueLimit", "queueTimeoutMs", "timeoutMs", "mode"
+    ], location)
+    if fieldError != "" then
+        return xsConfigResult(false, fieldError, null)
+    end
+    fieldError = xsConfigCheckFieldTypes(
+        handler,
+        ["language", "path", "mode"],
+        ["poolSize", "queueLimit", "queueTimeoutMs", "timeoutMs"],
+        [],
+        location)
+    if fieldError != "" then
+        return xsConfigResult(false, fieldError, null)
+    end
+
+    string language = xsConfigReadString(handler?.language, "")
+    string handlerPath = xsConfigReadString(handler?.path, "")
+    string mode = xsConfigReadString(handler?.mode, "embedded")
+    int poolSize = xsConfigReadInt(handler?.poolSize, 0)
+    int queueLimit = xsConfigReadInt(handler?.queueLimit, 0)
+    int queueTimeoutMs = xsConfigReadInt(handler?.queueTimeoutMs, 1000)
+    int timeoutMs = xsConfigReadInt(handler?.timeoutMs, 5000)
+
+    if language != "c" and language != "xlang" then
+        return xsConfigResult(false, location + ".language must be c or xlang", null)
+    end
+    if handlerPath == "" then
+        return xsConfigResult(false, location + ".path is required", null)
+    end
+    if mode != "embedded" then
+        return xsConfigResult(false, location + ".mode must be embedded in xs 2.0 RC0", null)
+    end
+    if poolSize < 0 or poolSize > 256 then
+        return xsConfigResult(false, location + ".poolSize must be between 0 and 256", null)
+    end
+    if queueLimit < 0 or queueLimit > 65536 then
+        return xsConfigResult(false, location + ".queueLimit must be between 0 and 65536", null)
+    end
+    if queueTimeoutMs < 0 or queueTimeoutMs > 3600000 or timeoutMs < 0 or timeoutMs > 3600000 then
+        return xsConfigResult(false, location + " timeouts must be between 0 and 3600000 ms", null)
+    end
+
+    string resolvedPath = xsConfigResolvePath(baseDir, handlerPath)
+    if not file.exists(resolvedPath) then
+        return xsConfigResult(false, location + ".path does not exist: " + handlerPath, null)
+    end
+
+    return xsConfigResult(true, "", {
+        "language": language,
+        "path": resolvedPath,
+        "poolSize": poolSize,
+        "queueLimit": queueLimit,
+        "queueTimeoutMs": queueTimeoutMs,
+        "timeoutMs": timeoutMs,
+        "mode": mode
+    })
+end
+
+// ============================================================
+// HTTP route 与 Host
+// ============================================================
+
+func xsConfigValidateRoute(var route, string baseDir, string location) as var
+    string fieldError = xsConfigCheckFields(route, [
+        "name", "kind", "method", "pattern", "handler", "root",
+        "indexNames", "cacheControl", "chunkSize", "flags", "contentType"
+    ], location)
+    if fieldError != "" then
+        return xsConfigResult(false, fieldError, null)
+    end
+    fieldError = xsConfigCheckFieldTypes(
+        route,
+        ["name", "kind", "method", "pattern", "root", "indexNames", "cacheControl", "contentType"],
+        ["chunkSize", "flags"],
+        [],
+        location)
+    if fieldError != "" then
+        return xsConfigResult(false, fieldError, null)
+    end
+
+    string name = xsConfigReadString(route?.name, "")
+    string kind = xsConfigReadString(route?.kind, "handler")
+    string method = xsConfigReadString(route?.method, "GET")
+    string pattern = xsConfigReadString(route?.pattern, "")
+
+    if name == "" then
+        return xsConfigResult(false, location + ".name is required", null)
+    end
+    if pattern == "" or not string.startsWith(pattern, "/") then
+        return xsConfigResult(false, location + ".pattern must start with /", null)
+    end
+    method = string.upper(method)
+    if kind == "handler" and method != "*" and not regex.fullMatch(method, "[A-Z]+(\\|[A-Z]+)*") then
+        return xsConfigResult(false, location + ".method must be * or uppercase HTTP methods separated by |", null)
+    end
+
+    if kind == "static" then
+        string root = xsConfigReadString(route?.root, "")
+        if root == "" then
+            return xsConfigResult(false, location + ".root is required for static route", null)
+        end
+        string resolvedRoot = xsConfigResolvePath(baseDir, root)
+        if not dir.exists(resolvedRoot) then
+            return xsConfigResult(false, location + ".root does not exist: " + root, null)
+        end
+        int chunkSize = xsConfigReadInt(route?.chunkSize, 65536)
+        if chunkSize < 1024 or chunkSize > 16777216 then
+            return xsConfigResult(false, location + ".chunkSize must be between 1024 and 16777216", null)
+        end
+        return xsConfigResult(true, "", {
+            "name": name,
+            "kind": kind,
+            "method": method,
+            "pattern": pattern,
+            "root": resolvedRoot,
+            "indexNames": xsConfigReadString(route?.indexNames, "index.html;index.htm"),
+            "cacheControl": xsConfigReadString(route?.cacheControl, ""),
+            "chunkSize": chunkSize,
+            "flags": xsConfigReadInt(route?.flags, 0)
+        })
+    end
+
+    if kind != "handler" then
+        return xsConfigResult(false, location + ".kind must be handler or static", null)
+    end
+
+    var handlerResult = xsConfigValidateHandler(route?.handler, baseDir, location + ".handler")
+    if not bool(handlerResult["ok"]) then
+        return handlerResult
+    end
+
+    return xsConfigResult(true, "", {
+        "name": name,
+        "kind": kind,
+        "method": method,
+        "pattern": pattern,
+        "contentType": xsConfigReadString(route?.contentType, "application/octet-stream"),
+        "handler": handlerResult["value"]
+    })
+end
+
+func xsConfigValidateHosts(var hosts, string baseDir, string location) as var
+    if type(hosts) != array then
+        return xsConfigResult(false, location + " must be an array", null)
+    end
+
+    var normalized = []
+    var names = {}
+    var patterns = {}
+    int index = 0
+    for _, host in hosts
+        string itemLocation = location + "[" + index.toString() + "]"
+        string fieldError = xsConfigCheckFields(host, ["name", "pattern", "routes", "certFile", "keyFile"], itemLocation)
+        if fieldError != "" then
+            return xsConfigResult(false, fieldError, null)
+        end
+        fieldError = xsConfigCheckFieldTypes(
+            host,
+            ["name", "pattern", "certFile", "keyFile"],
+            [],
+            [],
+            itemLocation)
+        if fieldError != "" then
+            return xsConfigResult(false, fieldError, null)
+        end
+
+        string name = xsConfigReadString(host?.name, "")
+        string pattern = string.lower(xsConfigReadString(host?.pattern, ""))
+        if name == "" or pattern == "" then
+            return xsConfigResult(false, itemLocation + ".name and .pattern are required", null)
+        end
+        if not xsConfigHostPatternValid(pattern) then
+            return xsConfigResult(false, itemLocation + ".pattern must be an ASCII host or leading *. wildcard", null)
+        end
+        if names[name] != null or patterns[pattern] != null then
+            return xsConfigResult(false, location + " contains duplicate host name or pattern", null)
+        end
+
+        var routesValue = host?.routes
+        if routesValue == null then
+            routesValue = []
+        end
+        var routesResult = xsConfigValidateRoutes(routesValue, baseDir, itemLocation + ".routes")
+        if not bool(routesResult["ok"]) then
+            return routesResult
+        end
+
+        string certFile = xsConfigResolvePath(baseDir, xsConfigReadString(host?.certFile, ""))
+        string keyFile = xsConfigResolvePath(baseDir, xsConfigReadString(host?.keyFile, ""))
+        if (certFile == "") != (keyFile == "") then
+            return xsConfigResult(false, itemLocation + " requires certFile and keyFile together", null)
+        end
+        if certFile != "" and (not file.exists(certFile) or not file.exists(keyFile)) then
+            return xsConfigResult(false, itemLocation + " certificate file does not exist", null)
+        end
+
+        names[name] = true
+        patterns[pattern] = true
+        normalized.append({
+            "name": name,
+            "pattern": pattern,
+            "routes": routesResult["value"],
+            "certFile": certFile,
+            "keyFile": keyFile
+        })
+        index += 1
+    end
+    return xsConfigResult(true, "", normalized)
+end
+
+func xsConfigValidateRoutes(var routes, string baseDir, string location) as var
+    if type(routes) != array then
+        return xsConfigResult(false, location + " must be an array", null)
+    end
+
+    var normalized = []
+    var names = {}
+    var signatures = {}
+    int index = 0
+    for _, route in routes
+        string itemLocation = location + "[" + index.toString() + "]"
+        var routeResult = xsConfigValidateRoute(route, baseDir, itemLocation)
+        if not bool(routeResult["ok"]) then
+            return routeResult
+        end
+
+        var routeValue = routeResult["value"]
+        string name = string(routeValue["name"])
+        var seen = names[name]
+        if seen != null and bool(seen) then
+            return xsConfigResult(false, location + " contains duplicate route name: " + name, null)
+        end
+        names[name] = true
+        string routeMethod = ""
+        if routeValue["method"] != null then
+            routeMethod = string(routeValue["method"])
+        end
+        string signature = string(routeValue["kind"]) + ":" + routeMethod + ":" + string(routeValue["pattern"])
+        if signatures[signature] != null then
+            return xsConfigResult(false, location + " contains duplicate route match: " + signature, null)
+        end
+        signatures[signature] = true
+        normalized.append(routeValue)
+        index += 1
+    end
+    return xsConfigResult(true, "", normalized)
+end
+
+// ============================================================
+// service
+// ============================================================
+
+func xsConfigValidateService(var service, string baseDir, string location) as var
+    string fieldError = xsConfigCheckFields(service, [
+        "type", "name", "enabled", "host", "port", "backlog", "workerCount",
+        "queueLimit",
+        "recvLimit", "bodyLimit", "headerLimit", "headerBytesLimit",
+        "headerTimeoutMs", "bodyTimeoutMs", "idleTimeoutMs", "writeTimeoutMs",
+        "framing", "delimiter", "frameLimit",
+        "tls", "certFile", "keyFile", "routes", "hosts", "handler"
+    ], location)
+    if fieldError != "" then
+        return xsConfigResult(false, fieldError, null)
+    end
+    fieldError = xsConfigCheckFieldTypes(
+        service,
+        ["type", "name", "host", "framing", "delimiter", "certFile", "keyFile"],
+        [
+            "port", "backlog", "workerCount", "queueLimit", "recvLimit", "bodyLimit",
+            "headerLimit", "headerBytesLimit", "headerTimeoutMs", "bodyTimeoutMs",
+            "idleTimeoutMs", "writeTimeoutMs", "frameLimit"
+        ],
+        ["enabled", "tls"],
+        location)
+    if fieldError != "" then
+        return xsConfigResult(false, fieldError, null)
+    end
+
+    string serviceType = xsConfigReadString(service?.type, "")
+    string name = xsConfigReadString(service?.name, "")
+    string host = xsConfigReadString(service?.host, "127.0.0.1")
+    int port = xsConfigReadInt(service?.port, 0)
+    bool enabled = xsConfigReadBool(service?.enabled, true)
+
+    if serviceType != "http" and serviceType != "https" and serviceType != "tcp" and serviceType != "udp" then
+        return xsConfigResult(false, location + ".type must be http, https, tcp or udp", null)
+    end
+    if name == "" then
+        return xsConfigResult(false, location + ".name is required", null)
+    end
+    if port < 0 or port > 65535 then
+        return xsConfigResult(false, location + ".port must be between 0 and 65535", null)
+    end
+
+    var normalized = {
+        "type": serviceType,
+        "name": name,
+        "enabled": enabled,
+        "host": host,
+        "port": port,
+        "backlog": xsConfigReadInt(service?.backlog, 128),
+        "workerCount": xsConfigReadInt(service?.workerCount, 1),
+        "queueLimit": xsConfigReadInt(service?.queueLimit, xsConfigReadInt(service?.backlog, 128)),
+        "recvLimit": xsConfigReadInt(service?.recvLimit, 1048576),
+        "bodyLimit": xsConfigReadInt(service?.bodyLimit, 1048576),
+        "headerLimit": xsConfigReadInt(service?.headerLimit, 100),
+        "headerBytesLimit": xsConfigReadInt(service?.headerBytesLimit, 65536),
+        "headerTimeoutMs": xsConfigReadInt(service?.headerTimeoutMs, 30000),
+        "bodyTimeoutMs": xsConfigReadInt(service?.bodyTimeoutMs, 30000),
+        "idleTimeoutMs": xsConfigReadInt(service?.idleTimeoutMs, 60000),
+        "writeTimeoutMs": xsConfigReadInt(service?.writeTimeoutMs, 30000)
+    }
+
+    if int(normalized["backlog"]) <= 0 or int(normalized["backlog"]) > 65535 then
+        return xsConfigResult(false, location + ".backlog must be between 1 and 65535", null)
+    end
+    if int(normalized["workerCount"]) <= 0 or int(normalized["workerCount"]) > 256 then
+        return xsConfigResult(false, location + ".workerCount must be between 1 and 256", null)
+    end
+    if int(normalized["queueLimit"]) <= 0 or int(normalized["queueLimit"]) > 65536 then
+        return xsConfigResult(false, location + ".queueLimit must be between 1 and 65536", null)
+    end
+    if int(normalized["recvLimit"]) <= 0 or int(normalized["recvLimit"]) > 67108864 then
+        return xsConfigResult(false, location + ".recvLimit must be between 1 and 67108864", null)
+    end
+    array<string> timeoutFields = ["idleTimeoutMs", "writeTimeoutMs"]
+    for field in timeoutFields
+        int timeoutValue = int(normalized[field])
+        if timeoutValue < 1 or timeoutValue > 3600000 then
+            return xsConfigResult(false, location + "." + field + " must be between 1 and 3600000 ms", null)
+        end
+    end
+
+    if serviceType == "http" or serviceType == "https" then
+        if service?.framing != null or service?.delimiter != null or service?.frameLimit != null then
+            return xsConfigResult(false, location + " framing fields are only valid for TCP services", null)
+        end
+        if int(normalized["bodyLimit"]) <= 0 or int(normalized["bodyLimit"]) > int(normalized["recvLimit"]) then
+            return xsConfigResult(false, location + ".bodyLimit must be positive and not exceed recvLimit", null)
+        end
+        if int(normalized["headerLimit"]) <= 0 or int(normalized["headerLimit"]) > 1024 then
+            return xsConfigResult(false, location + ".headerLimit must be between 1 and 1024", null)
+        end
+        if (
+            int(normalized["headerBytesLimit"]) <= 0 or
+            int(normalized["headerBytesLimit"]) > 1048576 or
+            int(normalized["headerBytesLimit"]) > int(normalized["recvLimit"])
+        ) then
+            return xsConfigResult(false, location + ".headerBytesLimit must be positive, at most 1048576, and not exceed recvLimit", null)
+        end
+        array<string> httpTimeoutFields = ["headerTimeoutMs", "bodyTimeoutMs"]
+        for field in httpTimeoutFields
+            int timeoutValue = int(normalized[field])
+            if timeoutValue < 1 or timeoutValue > 3600000 then
+                return xsConfigResult(false, location + "." + field + " must be between 1 and 3600000 ms", null)
+            end
+        end
+        var routesValue = service?.routes
+        if routesValue == null then
+            routesValue = []
+        end
+        var routesResult = xsConfigValidateRoutes(routesValue, baseDir, location + ".routes")
+        if not bool(routesResult["ok"]) then
+            return routesResult
+        end
+        normalized["routes"] = routesResult["value"]
+
+        var hostsValue = service?.hosts
+        if hostsValue == null then
+            hostsValue = []
+        end
+        var hostsResult = xsConfigValidateHosts(hostsValue, baseDir, location + ".hosts")
+        if not bool(hostsResult["ok"]) then
+            return hostsResult
+        end
+        normalized["hosts"] = hostsResult["value"]
+
+        bool tlsEnabled = serviceType == "https" or xsConfigReadBool(service?.tls, false)
+        normalized["tls"] = tlsEnabled
+        if tlsEnabled then
+            string certFile = xsConfigResolvePath(baseDir, xsConfigReadString(service?.certFile, ""))
+            string keyFile = xsConfigResolvePath(baseDir, xsConfigReadString(service?.keyFile, ""))
+            if certFile == "" or keyFile == "" then
+                return xsConfigResult(false, location + " requires certFile and keyFile", null)
+            end
+            if not file.exists(certFile) or not file.exists(keyFile) then
+                return xsConfigResult(false, location + " certificate file does not exist", null)
+            end
+            normalized["certFile"] = certFile
+            normalized["keyFile"] = keyFile
+        end
+
+        for _, hostValue in normalized["hosts"]
+            if string(hostValue["certFile"]) != "" and not tlsEnabled then
+                return xsConfigResult(false, location + ".hosts certificate requires TLS service", null)
+            end
+        end
+    else
+        if (
+            service?.bodyLimit != null or service?.headerLimit != null or
+            service?.headerBytesLimit != null or service?.headerTimeoutMs != null or
+            service?.bodyTimeoutMs != null or service?.tls != null or
+            service?.certFile != null or service?.keyFile != null or
+            service?.routes != null or service?.hosts != null
+        ) then
+            return xsConfigResult(false, location + " contains HTTP-only fields for a TCP/UDP service", null)
+        end
+        string framing = xsConfigReadString(service?.framing, "raw")
+        string delimiter = xsConfigReadString(service?.delimiter, "")
+        int frameLimit = xsConfigReadInt(service?.frameLimit, int(normalized["recvLimit"]))
+        if serviceType == "udp" then
+            if framing != "raw" or delimiter != "" or service?.frameLimit != null then
+                return xsConfigResult(false, location + " UDP preserves datagram boundaries and does not accept framing fields", null)
+            end
+        else
+            if framing != "raw" and framing != "text" and framing != "delimiter" and framing != "length-prefix" then
+                return xsConfigResult(false, location + ".framing must be raw, text, delimiter or length-prefix", null)
+            end
+            if framing == "delimiter" then
+                int delimiterBytes = string.byteLen(delimiter)
+                if delimiterBytes < 1 or delimiterBytes > 256 then
+                    return xsConfigResult(false, location + ".delimiter must contain between 1 and 256 UTF-8 bytes", null)
+                end
+            elseif delimiter != "" then
+                return xsConfigResult(false, location + ".delimiter is only valid when framing is delimiter", null)
+            end
+            if frameLimit < 1 or frameLimit > int(normalized["recvLimit"]) then
+                return xsConfigResult(false, location + ".frameLimit must be positive and not exceed recvLimit", null)
+            end
+        end
+        normalized["framing"] = framing
+        normalized["delimiter"] = delimiter
+        normalized["frameLimit"] = frameLimit
+
+        var handlerResult = xsConfigValidateHandler(service?.handler, baseDir, location + ".handler")
+        if not bool(handlerResult["ok"]) then
+            return handlerResult
+        end
+        normalized["handler"] = handlerResult["value"]
+    end
+
+    return xsConfigResult(true, "", normalized)
+end
+
+// ============================================================
+// 根配置
+// ============================================================
+
+func xsConfigLoadValue(string configPath) as var
+    if configPath == "" then
+        return xsConfigResult(false, "config path is empty", null)
+    end
+
+    string absolutePath = path.abs(configPath)
+    if not file.exists(absolutePath) then
+        return xsConfigResult(false, "config file does not exist: " + configPath, null)
+    end
+
+    string text = file.readText(absolutePath)
+    if not json.valid(text) then
+        return xsConfigResult(false, "config file is not valid JSON: " + configPath, null)
+    end
+
+    var root = json.parse(text)
+    string fieldError = xsConfigCheckFields(root, ["version", "runtime", "logging", "services"], "config")
+    if fieldError != "" then
+        return xsConfigResult(false, fieldError, null)
+    end
+    var versionValue = root?.version
+    if versionValue == null or int(versionValue) != 2 then
+        return xsConfigResult(false, "config.version must be 2", null)
+    end
+
+    var runtime = root?.runtime
+    if runtime == null then
+        runtime = {}
+    end
+    fieldError = xsConfigCheckFields(runtime, [
+        "workDir", "shutdownTimeoutMs", "reloadDebounceMs", "handlerPoolSize", "handlerQueueLimit"
+    ], "config.runtime")
+    if fieldError != "" then
+        return xsConfigResult(false, fieldError, null)
+    end
+    fieldError = xsConfigCheckFieldTypes(
+        runtime,
+        ["workDir"],
+        ["shutdownTimeoutMs", "reloadDebounceMs", "handlerPoolSize", "handlerQueueLimit"],
+        [],
+        "config.runtime")
+    if fieldError != "" then
+        return xsConfigResult(false, fieldError, null)
+    end
+
+    var logging = root?.logging
+    if logging == null then
+        logging = {}
+    end
+    fieldError = xsConfigCheckFields(logging, [
+        "level", "console", "file", "rollingBytes", "rollingFiles"
+    ], "config.logging")
+    if fieldError != "" then
+        return xsConfigResult(false, fieldError, null)
+    end
+    fieldError = xsConfigCheckFieldTypes(
+        logging,
+        ["level", "file"],
+        ["rollingBytes", "rollingFiles"],
+        ["console"],
+        "config.logging")
+    if fieldError != "" then
+        return xsConfigResult(false, fieldError, null)
+    end
+
+    string baseDir = path.dir(absolutePath)
+    var services = root?.services
+    if services == null then
+        services = []
+    end
+    if type(services) != array then
+        return xsConfigResult(false, "config.services must be an array", null)
+    end
+
+    var normalizedServices = []
+    var names = {}
+    var boundEndpoints = []
+    int enabledCount = 0
+    int index = 0
+    for _, service in services
+        string location = "config.services[" + index.toString() + "]"
+        var serviceResult = xsConfigValidateService(service, baseDir, location)
+        if not bool(serviceResult["ok"]) then
+            return serviceResult
+        end
+
+        var serviceValue = serviceResult["value"]
+        string name = string(serviceValue["name"])
+        var seen = names[name]
+        if seen != null and bool(seen) then
+            return xsConfigResult(false, "config.services contains duplicate name: " + name, null)
+        end
+        names[name] = true
+        if bool(serviceValue["enabled"]) then
+            enabledCount += 1
+            int servicePort = int(serviceValue["port"])
+            if servicePort != 0 then
+                string serviceType = string(serviceValue["type"])
+                var endpoint = {
+                    "name": name,
+                    "transport": serviceType == "udp" ? "dgram" : "stream",
+                    "host": string.lower(string(serviceValue["host"])),
+                    "port": servicePort
+                }
+                for _, existing in boundEndpoints
+                    if xsConfigBindEndpointsOverlap(existing, endpoint) then
+                        return xsConfigResult(
+                            false,
+                            "config.services bind endpoint conflicts: " + string(existing["name"]) + " and " + name,
+                            null)
+                    end
+                end
+                boundEndpoints.append(endpoint)
+            end
+        end
+        normalizedServices.append(serviceValue)
+        index += 1
+    end
+
+    string workDir = xsConfigReadString(runtime?.workDir, ".")
+    string logFile = xsConfigReadString(logging?.file, "run/xs.log")
+    var normalized = {
+        "version": 2,
+        "configPath": absolutePath,
+        "configDir": baseDir,
+        "runtime": {
+            "workDir": xsConfigResolvePath(baseDir, workDir),
+            "shutdownTimeoutMs": xsConfigReadInt(runtime?.shutdownTimeoutMs, 10000),
+            "reloadDebounceMs": xsConfigReadInt(runtime?.reloadDebounceMs, 300),
+            "handlerPoolSize": xsConfigReadInt(runtime?.handlerPoolSize, 4),
+            "handlerQueueLimit": xsConfigReadInt(runtime?.handlerQueueLimit, 1024)
+        },
+        "logging": {
+            "level": xsConfigReadString(logging?.level, "info"),
+            "console": xsConfigReadBool(logging?.console, true),
+            "file": xsConfigResolvePath(baseDir, logFile),
+            "rollingBytes": xsConfigReadInt(logging?.rollingBytes, 10485760),
+            "rollingFiles": xsConfigReadInt(logging?.rollingFiles, 5)
+        },
+        "services": normalizedServices
+    }
+
+    if enabledCount == 0 then
+        return xsConfigResult(false, "config.services must contain at least one enabled service", null)
+    end
+    if not dir.exists(string(normalized["runtime"]["workDir"])) then
+        return xsConfigResult(false, "config.runtime.workDir does not exist", null)
+    end
+    if int(normalized["runtime"]["shutdownTimeoutMs"]) < 0 or int(normalized["runtime"]["shutdownTimeoutMs"]) > 300000 then
+        return xsConfigResult(false, "config.runtime.shutdownTimeoutMs must be between 0 and 300000", null)
+    end
+    if int(normalized["runtime"]["reloadDebounceMs"]) < 0 or int(normalized["runtime"]["reloadDebounceMs"]) > 60000 then
+        return xsConfigResult(false, "config.runtime.reloadDebounceMs must be between 0 and 60000", null)
+    end
+    if int(normalized["runtime"]["handlerPoolSize"]) <= 0 or int(normalized["runtime"]["handlerPoolSize"]) > 256 then
+        return xsConfigResult(false, "config.runtime.handlerPoolSize must be between 1 and 256", null)
+    end
+    if int(normalized["runtime"]["handlerQueueLimit"]) <= 0 or int(normalized["runtime"]["handlerQueueLimit"]) > 65536 then
+        return xsConfigResult(false, "config.runtime.handlerQueueLimit must be between 1 and 65536", null)
+    end
+    string logLevel = string(normalized["logging"]["level"])
+    if not xsConfigContains(["trace", "debug", "info", "warn", "error", "fatal", "off"], logLevel) then
+        return xsConfigResult(false, "config.logging.level is invalid", null)
+    end
+    if int(normalized["logging"]["rollingBytes"]) < 4096 or int(normalized["logging"]["rollingBytes"]) > 1099511627776 then
+        return xsConfigResult(false, "config.logging.rollingBytes must be between 4096 and 1099511627776", null)
+    end
+    if int(normalized["logging"]["rollingFiles"]) < 1 or int(normalized["logging"]["rollingFiles"]) > 100 then
+        return xsConfigResult(false, "config.logging.rollingFiles must be between 1 and 100", null)
+    end
+
+    return xsConfigResult(true, "", normalized)
+end
+
+export "xs2_config_load" func load(string configPath) as ConfigLoadResult
+    var value = xsConfigLoadValue(configPath)
+    ConfigLoadResult result = ConfigLoadResult()
+    result.ok = bool(value["ok"])
+    result.error = string(value["error"])
+    if result.ok then
+        result.json = json.stringify(value["value"])
+    end
+    return result
+end

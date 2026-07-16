@@ -1,0 +1,63 @@
+import "./service_runtime.xl"
+
+func require(bool condition, string message)
+    assert condition, message
+end
+
+func servicePort(var status, string name) as int
+    for _, item in status
+        if string(item["name"]) == name then return int(item["port"]) end
+    end
+    return 0
+end
+
+string configPath = "projects/xs/tests/config/multiservice.json"
+string includeDir = path.join(path.abs("projects/xs"), "include")
+int cycle = 0
+while cycle < 5 do
+    auto runtime = service_runtime.open(configPath, includeDir)
+    require(runtime.ready(), "soak runtime prepare failed: " + runtime.lastError())
+    require(runtime.start(), "soak runtime start failed: " + runtime.lastError())
+
+    var status = runtime.status()
+    int httpPort = servicePort(status, "web")
+    int tcpPort = servicePort(status, "tcp-echo")
+    int udpPort = servicePort(status, "udp-echo")
+    require(httpPort > 0 and tcpPort > 0 and udpPort > 0, "soak services must bind")
+    UdpSocket udpClient = UdpSocket(udp.bind(0, "127.0.0.1"))
+
+    int round = 0
+    while round < 60 do
+        string payload = cycle.toString() + ":" + round.toString()
+        HttpClientResponse httpResponse = http.post(
+            "http://127.0.0.1:" + httpPort.toString() + "/echo",
+            payload,
+            "text/plain",
+            3000)
+        require(httpResponse.status() == 200 and httpResponse.body() == "c:" + payload, "HTTP soak request failed")
+
+        if round % 5 == 0 then
+            TcpStream tcpClient = TcpStream(tcp.connect("127.0.0.1", tcpPort, 3000))
+            require(tcpClient.handle != null, "TCP soak connect failed")
+            require(tcpClient.send(payload) and tcpClient.drain(3000), "TCP soak send failed")
+            require(tcpClient.recv(3000) == "c:" + payload, "TCP soak response failed")
+            tcpClient.close()
+
+            require(udpClient.send("127.0.0.1", uint16(udpPort), payload), "UDP soak send failed")
+            UdpPacket udpResponse = UdpPacket(udpClient.recv(3000))
+            require(udpResponse.handle != null and udpResponse.text() == "xl:" + payload, "UDP soak response failed")
+        end
+        if round > 0 and round % 15 == 0 then
+            require(runtime.reloadHandlers(), "soak handler reload failed: " + runtime.lastError())
+        end
+        round += 1
+    end
+
+    require(runtime.stop(), "soak runtime stop failed: " + runtime.lastError())
+    for _, item in runtime.status()
+        require(not bool(item["running"]), "soak service remained active after stop")
+    end
+    cycle += 1
+end
+
+println("xs2 runtime soak test ok")

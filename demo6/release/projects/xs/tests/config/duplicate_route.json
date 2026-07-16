@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "services": [
+    {
+      "type": "http",
+      "name": "web",
+      "host": "127.0.0.1",
+      "port": 0,
+      "routes": [
+        {
+          "name": "first",
+          "kind": "handler",
+          "method": "GET",
+          "pattern": "/same",
+          "handler": {"language": "c", "path": "../handlers/abi_c.c", "mode": "embedded"}
+        },
+        {
+          "name": "second",
+          "kind": "handler",
+          "method": "GET",
+          "pattern": "/same",
+          "handler": {"language": "c", "path": "../handlers/abi_c.c", "mode": "embedded"}
+        }
+      ]
+    }
+  ]
+}

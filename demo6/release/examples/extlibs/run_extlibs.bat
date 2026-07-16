@@ -1,6 +1,7 @@
 @echo off
 setlocal
 cd /d %~dp0\..\..\..
+set "REPO_ROOT=%CD%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_fixtures.ps1
 if errorlevel 1 exit /b 1
@@ -122,6 +123,7 @@ exit /b 0
 set "example=%~1"
 set "name=%~2"
 set "symbol=%~3"
+set "runtime_example=%example:release\=%"
 
 release\xl.exe check %example%
 if errorlevel 1 exit /b 1
@@ -134,8 +136,16 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe run %example%
-if errorlevel 1 exit /b 1
+if /I "%name%"=="clipboard" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_with_named_mutex.ps1 -Name "Local\XLangDemo6ClipboardExample" -FilePath "%REPO_ROOT%\release\xl.exe" -WorkingDirectory "%REPO_ROOT%\release" -Argument0 "run" -Argument1 "%runtime_example%"
+    set "run_result=%errorlevel%"
+) else (
+    pushd release
+    xl.exe run "%runtime_example%"
+    set "run_result=%errorlevel%"
+    popd
+)
+if not "%run_result%"=="0" exit /b %run_result%
 
 if exist "%EXTLIB_TEST_DIR%\ext_%name%_example.exe" (
     del /f /q "%EXTLIB_TEST_DIR%\ext_%name%_example.exe"
@@ -156,7 +166,15 @@ if not exist "%EXTLIB_TEST_DIR%\ext_%name%_example.exe" (
     exit /b 1
 )
 
-"%EXTLIB_TEST_DIR%\ext_%name%_example.exe"
-if errorlevel 1 exit /b 1
+if /I "%name%"=="clipboard" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_with_named_mutex.ps1 -Name "Local\XLangDemo6ClipboardExample" -FilePath "%REPO_ROOT%\%EXTLIB_TEST_DIR%\ext_%name%_example.exe" -WorkingDirectory "%REPO_ROOT%\release"
+    set "run_result=%errorlevel%"
+) else (
+    pushd release
+    "%REPO_ROOT%\%EXTLIB_TEST_DIR%\ext_%name%_example.exe"
+    set "run_result=%errorlevel%"
+    popd
+)
+if not "%run_result%"=="0" exit /b %run_result%
 
 exit /b 0

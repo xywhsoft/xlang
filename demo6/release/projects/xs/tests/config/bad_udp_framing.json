@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "services": [
+    {
+      "type": "udp",
+      "name": "bad-udp-framing",
+      "framing": "text",
+      "handler": {
+        "language": "c",
+        "path": "../handlers/abi_c.c"
+      }
+    }
+  ]
+}

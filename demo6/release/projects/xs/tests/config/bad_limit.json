@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "services": [
+    {
+      "type": "http",
+      "name": "web",
+      "host": "127.0.0.1",
+      "port": 0,
+      "recvLimit": 1024,
+      "bodyLimit": 2048,
+      "routes": []
+    }
+  ]
+}

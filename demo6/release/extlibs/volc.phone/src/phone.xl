@@ -153,17 +153,17 @@ class Client
 	end
 
 	func list_pods() as Response
-		string spec = "action=ListPod\nversion=2023-10-30\naccess_key=" + self.access_key + "\nsecret_key=" + self.secret_key + "\nsession_token=" + self.session_token + "\nbody=" + product_body(self.product_id) + "\ntimeout_ms=" + string.formatInt(self.timeout_ms, "")
+		string spec = "action=ListPod\nversion=2023-10-30\naccess_key=" + self.access_key + "\nsecret_key=" + self.secret_key + "\nsession_token=" + self.session_token + "\nbody=" + product_body(self.product_id) + "\ntimeout_ms=" + string.format(self.timeout_ms, "")
 		return normalize_response("ListPod", phone_request_acep_spec(spec))
 	end
 
 	func list_hosts() as Response
-		string spec = "action=ListHost\nversion=2023-10-30\naccess_key=" + self.access_key + "\nsecret_key=" + self.secret_key + "\nsession_token=" + self.session_token + "\nbody=" + product_body(self.product_id) + "\ntimeout_ms=" + string.formatInt(self.timeout_ms, "")
+		string spec = "action=ListHost\nversion=2023-10-30\naccess_key=" + self.access_key + "\nsecret_key=" + self.secret_key + "\nsession_token=" + self.session_token + "\nbody=" + product_body(self.product_id) + "\ntimeout_ms=" + string.format(self.timeout_ms, "")
 		return normalize_response("ListHost", phone_request_acep_spec(spec))
 	end
 
 	func list_dcs() as Response
-		string spec = "action=ListDc\nversion=2023-10-30\naccess_key=" + self.access_key + "\nsecret_key=" + self.secret_key + "\nsession_token=" + self.session_token + "\nbody=" + product_body(self.product_id) + "\ntimeout_ms=" + string.formatInt(self.timeout_ms, "")
+		string spec = "action=ListDc\nversion=2023-10-30\naccess_key=" + self.access_key + "\nsecret_key=" + self.secret_key + "\nsession_token=" + self.session_token + "\nbody=" + product_body(self.product_id) + "\ntimeout_ms=" + string.format(self.timeout_ms, "")
 		return normalize_response("ListDc", phone_request_acep_spec(spec))
 	end
 
@@ -306,7 +306,7 @@ export func client_token(string access_key, string secret_key, string session_to
 end
 
 export func raw_call(string access_key, string secret_key, string session_token, string action, string version, string body, int timeout_ms) as string
-	string spec = "action=" + action + "\nversion=" + version + "\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + body + "\ntimeout_ms=" + string.formatInt(timeout_ms, "")
+	string spec = "action=" + action + "\nversion=" + version + "\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + body + "\ntimeout_ms=" + string.format(timeout_ms, "")
 	return phone_request_acep_spec(spec)
 end
 
@@ -327,12 +327,12 @@ export func pod_body(string product_id, string pod_id) as string
 end
 
 export func create_pod_body(string product_id, string dc, string configuration_code, int resource_type, string host_id, string pod_name, string display_layout_id, bool start) as string
-	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"ResourceType\":" + string.formatInt(resource_type, "") + ",\"PodName\":" + volc.core.json_string(pod_name) + ",\"HostId\":" + volc.core.json_string(host_id) + ",\"ConfigurationCode\":" + volc.core.json_string(configuration_code) + ",\"Dc\":" + volc.core.json_string(dc) + ",\"DisplayLayoutId\":" + volc.core.json_string(display_layout_id) + ",\"UpBandwidthLimit\":0,\"DownBandwidthLimit\":0,\"Start\":" + bool_text(start) + "}"
+	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"ResourceType\":" + string.format(resource_type, "") + ",\"PodName\":" + volc.core.json_string(pod_name) + ",\"HostId\":" + volc.core.json_string(host_id) + ",\"ConfigurationCode\":" + volc.core.json_string(configuration_code) + ",\"Dc\":" + volc.core.json_string(dc) + ",\"DisplayLayoutId\":" + volc.core.json_string(display_layout_id) + ",\"UpBandwidthLimit\":0,\"DownBandwidthLimit\":0,\"Start\":" + bool_text(start) + "}"
 end
 
 export func create_pod_batch_body(string product_id, string dc, string configuration_code, int apply_num, int resource_type, string host_id, string pod_name, string display_layout_id, bool start) as string
-	string spec = "{\"ApplyNum\":" + string.formatInt(apply_num, "") + ",\"Dc\":" + volc.core.json_string(dc) + ",\"ConfigurationCode\":" + volc.core.json_string(configuration_code) + ",\"HostId\":" + volc.core.json_string(host_id) + ",\"PodName\":" + volc.core.json_string(pod_name) + ",\"DisplayLayoutId\":" + volc.core.json_string(display_layout_id) + ",\"UpBandwidthLimit\":0,\"DownBandwidthLimit\":0,\"Start\":" + bool_text(start) + "}"
-	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"ResourceType\":" + string.formatInt(resource_type, "") + ",\"PodSpecList\":[" + spec + "]}"
+	string spec = "{\"ApplyNum\":" + string.format(apply_num, "") + ",\"Dc\":" + volc.core.json_string(dc) + ",\"ConfigurationCode\":" + volc.core.json_string(configuration_code) + ",\"HostId\":" + volc.core.json_string(host_id) + ",\"PodName\":" + volc.core.json_string(pod_name) + ",\"DisplayLayoutId\":" + volc.core.json_string(display_layout_id) + ",\"UpBandwidthLimit\":0,\"DownBandwidthLimit\":0,\"Start\":" + bool_text(start) + "}"
+	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"ResourceType\":" + string.format(resource_type, "") + ",\"PodSpecList\":[" + spec + "]}"
 end
 
 export func pod_adb_body(string product_id, string pod_id, bool enable) as string
@@ -360,7 +360,7 @@ export func batch_screenshot_body(string product_id, string pod_id_list_json, st
 end
 
 export func recording_body(string product_id, string pod_id, string round_id, int duration_limit, bool saved_on_pod) as string
-	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"PodId\":" + volc.core.json_string(pod_id) + ",\"RoundId\":" + volc.core.json_string(round_id) + ",\"DurationLimit\":" + string.formatInt(duration_limit, "") + ",\"IsSavedOnPod\":" + bool_text(saved_on_pod) + "}"
+	return "{\"ProductId\":" + volc.core.json_string(product_id) + ",\"PodId\":" + volc.core.json_string(pod_id) + ",\"RoundId\":" + volc.core.json_string(round_id) + ",\"DurationLimit\":" + string.format(duration_limit, "") + ",\"IsSavedOnPod\":" + bool_text(saved_on_pod) + "}"
 end
 
 export func file_body(string product_id, string pod_id, string local_path, string remote_path) as string
@@ -455,17 +455,17 @@ export func json_section(string raw, string key) as string
 end
 
 export func list_pod(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
-	string spec = "action=ListPod\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.formatInt(timeout_ms, "")
+	string spec = "action=ListPod\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.format(timeout_ms, "")
 	return phone_request_acep_spec(spec)
 end
 
 export func list_host(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
-	string spec = "action=ListHost\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.formatInt(timeout_ms, "")
+	string spec = "action=ListHost\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.format(timeout_ms, "")
 	return phone_request_acep_spec(spec)
 end
 
 export func list_dc(string access_key, string secret_key, string session_token, string product_id, int timeout_ms) as string
-	string spec = "action=ListDc\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.formatInt(timeout_ms, "")
+	string spec = "action=ListDc\nversion=2023-10-30\naccess_key=" + access_key + "\nsecret_key=" + secret_key + "\nsession_token=" + session_token + "\nbody=" + product_body(product_id) + "\ntimeout_ms=" + string.format(timeout_ms, "")
 	return phone_request_acep_spec(spec)
 end
 
@@ -659,7 +659,7 @@ end
 export func host_remain_text(string detail_host_json) as string
 	int available = json_int_field(detail_host_json, "PodNumAvailable")
 	int on_host = json_int_field(detail_host_json, "PodNumOnHost")
-	return string.formatInt(on_host, "") + "," + string.formatInt(available - on_host, "")
+	return string.format(on_host, "") + "," + string.format(available - on_host, "")
 end
 
 export func push_file(string access_key, string secret_key, string session_token, string product_id, string pod_id, string local_path, string remote_path, int timeout_ms) as string

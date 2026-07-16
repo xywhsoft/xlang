@@ -1,0 +1,73 @@
+import "./handler_runtime.xl"
+
+func verifyHandler(string sourcePath, string expectedPrefix)
+    string workDir = path.cwd()
+    string includeDir = path.join(workDir, "projects/xs/include")
+    auto slot = handler_runtime.open(
+        sourcePath,
+        workDir,
+        includeDir,
+        2,
+        8,
+        1000,
+        5000)
+
+    assert slot.ready(), "handler slot create failed: " + slot.lastError
+    assert slot.poolSize() == 2, "handler pool size mismatch"
+    assert slot.generation() == 1, "initial generation mismatch"
+
+    int i = 0
+    while i < 20 do
+        Buffer response = Buffer(64)
+        int result = slot.call(1, "test", "/echo", "hello", response, "127.0.0.1", 9000)
+        assert result == 0, "handler call failed: " + slot.lastError
+        assert response.text() == expectedPrefix + "hello", "handler response mismatch"
+        i += 1
+    end
+
+    assert slot.reload(), "handler reload failed: " + slot.lastError
+    assert slot.generation() == 2, "reloaded generation mismatch"
+
+    Buffer afterReload = Buffer(64)
+    assert slot.call(1, "test", "/echo", "again", afterReload) == 0, "reloaded handler call failed"
+    assert afterReload.text() == expectedPrefix + "again", "reloaded handler response mismatch"
+end
+
+func verifyConcurrentModules()
+    string workDir = path.cwd()
+    string includeDir = path.join(workDir, "projects/xs/include")
+    auto cSlot = handler_runtime.open(
+        "projects/xs/tests/handlers/abi_c.c",
+        workDir,
+        includeDir,
+        1,
+        2,
+        1000,
+        5000)
+    auto xlSlot = handler_runtime.open(
+        "projects/xs/tests/handlers/abi_xlang.xl",
+        workDir,
+        includeDir,
+        1,
+        2,
+        1000,
+        5000)
+
+    assert cSlot.ready(), "concurrent C handler create failed: " + cSlot.lastError
+    assert xlSlot.ready(), "concurrent xlang handler create failed: " + xlSlot.lastError
+
+    Buffer cResponse = Buffer(32)
+    Buffer xlResponse = Buffer(32)
+    assert cSlot.call(1, "test", "/c", "one", cResponse) == 0, "concurrent C handler call failed"
+    assert xlSlot.call(1, "test", "/xl", "two", xlResponse) == 0, "concurrent xlang handler call failed"
+    assert cResponse.text() == "c:one", "concurrent C handler response mismatch"
+    assert xlResponse.text() == "xl:two", "concurrent xlang handler response mismatch"
+end
+
+func main(...) as int
+    verifyHandler("projects/xs/tests/handlers/abi_c.c", "c:")
+    verifyHandler("projects/xs/tests/handlers/abi_xlang.xl", "xl:")
+    verifyConcurrentModules()
+    println("xs2 handler runtime test ok")
+    return 0
+end

@@ -1,0 +1,20 @@
+import "../../sdk/handler.xl"
+
+const string COOKIE_NAME = "xs_blog_session"
+int requestCount = 40
+
+export "xs_handler" func handle(point raw) as c_int
+    auto frame = sdk.handler.wrap(raw)
+    if frame.kind() >= sdk.handler.INIT and frame.kind() <= sdk.handler.UNIT then return c_int(sdk.handler.OK) end
+    if frame.kind() != sdk.handler.HTTP then return c_int(sdk.handler.BAD_REQUEST) end
+    requestCount += 1
+    HttpResponse response = HttpResponse(frame.response())
+    string token = crypto.randomHex(32)
+    if not response.cookie(COOKIE_NAME, token, "/", 43200, http.server.sameSiteLax, http.server.cookieHttpOnly) then
+        response.status(500)
+        response.text("cookie failed")
+        return c_int(sdk.handler.ERROR)
+    end
+    response.text("ok:" + requestCount.toString())
+    return c_int(sdk.handler.OK)
+end

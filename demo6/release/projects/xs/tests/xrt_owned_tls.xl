@@ -1,0 +1,13 @@
+string certFile = path.abs("examples/fixtures/tls_cert.pem")
+string keyFile = path.abs("examples/fixtures/tls_key.pem")
+assert file.exists(certFile), "TLS certificate must exist"
+assert file.exists(keyFile), "TLS key must exist"
+
+point server = http.server.createTls(certFile, keyFile, 0, "127.0.0.1", 128,
+    1048576, 1048576, 100, 65536, 2)
+assert server != null, "xlang TLS wrapper must create server"
+assert http.server.start(server), "xlang TLS wrapper must start server"
+assert http.server.port(server) > 0, "xlang TLS wrapper must publish a port"
+http.server.stop(server)
+http.server.destroy(server)
+println("xs2 xlang owned TLS test ok")

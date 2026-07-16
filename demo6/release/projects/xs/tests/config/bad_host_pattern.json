@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "services": [
+    {
+      "type": "http",
+      "name": "bad-host",
+      "hosts": [
+        {
+          "name": "bad",
+          "pattern": "api.*.example.test",
+          "routes": []
+        }
+      ]
+    }
+  ]
+}

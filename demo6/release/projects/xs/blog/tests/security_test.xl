@@ -1,0 +1,18 @@
+import "../src/security.xl"
+
+string encoded = src.security.hashPassword("correct horse battery staple")
+assert encoded != "", "password hash should be generated"
+assert src.security.verifyPassword("correct horse battery staple", encoded), "password verification failed"
+assert not src.security.verifyPassword("wrong password", encoded), "wrong password should fail"
+assert not src.security.verifyPassword("short", src.security.hashPassword("short")), "short password should be rejected"
+
+string tokenA = src.security.randomToken()
+string tokenB = src.security.randomToken()
+assert string.len(tokenA) == 64 and tokenA != tokenB, "secure token generation failed"
+assert string.len(src.security.tokenDigest(tokenA)) == 64, "token digest failed"
+assert src.security.html("<a title='x'>&\"") == "&lt;a title=&#39;x&#39;&gt;&amp;&quot;", "html escaping failed"
+assert src.security.slug(" Hello, XS 2.0! ") == "hello-xs-2-0", "slug normalization failed"
+assert src.security.parseInt("42", 0) == 42 and src.security.parseInt("bad", 7) == 7, "integer parsing failed"
+assert src.security.validUsername("admin_2") and not src.security.validUsername("bad name"), "username validation failed"
+
+println("xs2 blog security test ok")

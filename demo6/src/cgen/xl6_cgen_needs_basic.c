@@ -262,6 +262,26 @@ static int xl6CgenNeedsBasicIsHttpClientClass(const XL6_AstNode* node)
             xl6CgenNeedsBasicTextEquals(node->text, "HttpDiagnostics"));
 }
 
+static int xl6CgenNeedsBasicIsHttpSemanticsClass(const XL6_AstNode* node)
+{
+    return node != NULL &&
+           node->kind == XL6_AST_CLASS &&
+           node->text != NULL &&
+           (xl6CgenNeedsBasicTextEquals(node->text, "HttpHeaders") ||
+            xl6CgenNeedsBasicTextEquals(node->text, "SearchParams") ||
+            xl6CgenNeedsBasicTextEquals(node->text, "HttpContext") ||
+            xl6CgenNeedsBasicTextEquals(node->text, "HttpBody") ||
+            xl6CgenNeedsBasicTextEquals(node->text, "FormData") ||
+            xl6CgenNeedsBasicTextEquals(node->text, "FormDataEncoded") ||
+            xl6CgenNeedsBasicTextEquals(node->text, "CookieJar"));
+}
+
+static int xl6CgenNeedsBasicIsWebSocketClass(const XL6_AstNode* node)
+{
+    return node != NULL && node->kind == XL6_AST_CLASS && node->text != NULL &&
+           xl6CgenNeedsBasicTextStartsWith(node->text, "WebSocket");
+}
+
 static int xl6CgenNeedsBasicIsTemplateClass(const XL6_AstNode* node)
 {
     return node != NULL &&
@@ -706,6 +726,37 @@ static int xl6CgenNeedsBasicIsHttpClientRuntimeCall(const XL6_AstNode* node)
     }
     return xl6CgenNeedsBasicTextStartsWith(callee->text, "xl6_xrt_http_client_") ||
            xl6CgenNeedsBasicTextStartsWith(callee->text, "xl6_xrt_http_diagnostics_");
+}
+
+static int xl6CgenNeedsBasicIsHttpSemanticsRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextStartsWith(callee->text, "xl6_xrt_http_headers_") ||
+           xl6CgenNeedsBasicTextStartsWith(callee->text, "xl6_xrt_http_search_params_") ||
+           xl6CgenNeedsBasicTextStartsWith(callee->text, "xl6_xrt_http_context_") ||
+           xl6CgenNeedsBasicTextStartsWith(callee->text, "xl6_xrt_http_body_") ||
+           xl6CgenNeedsBasicTextStartsWith(callee->text, "xl6_xrt_http_form_") ||
+           xl6CgenNeedsBasicTextStartsWith(callee->text, "xl6_xrt_http_cookie_jar_");
+}
+
+static int xl6CgenNeedsBasicIsWebSocketRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    return callee != NULL && callee->kind == XL6_AST_NAME &&
+           xl6CgenNeedsBasicTextStartsWith(callee->text, "xl6_xrt_ws_");
 }
 
 static int xl6CgenNeedsBasicIsTemplateRuntimeCall(const XL6_AstNode* node)

@@ -1,0 +1,331 @@
+import "./config.xl"
+import "./http_service.xl"
+import "./socket_service.xl"
+
+// xs 运行时只保存稳定的控制回调。具体服务对象由闭包强引用，
+// HTTP 与 socket 的资源模型不会被压成 var，也不会发生隐式复制。
+class Runtime
+    array<string> names = []
+    array<string> types = []
+    array<func() as bool> startCallbacks = []
+    array<func() as bool> stopCallbacks = []
+    array<func() as bool> prepareReloadCallbacks = []
+    array<func() as bool> commitReloadCallbacks = []
+    array<func() as bool> discardReloadCallbacks = []
+    array<func() as string> errorCallbacks = []
+    array<func() as string> statusCallbacks = []
+    string configPath = ""
+    string includeDir = ""
+    string normalizedJson = ""
+    string error = ""
+    bool valid = false
+    bool running = false
+    bool reloading = false
+
+    create(string inputConfigPath, string inputIncludeDir = "")
+        self.names = []
+        self.types = []
+        self.startCallbacks = []
+        self.stopCallbacks = []
+        self.prepareReloadCallbacks = []
+        self.commitReloadCallbacks = []
+        self.discardReloadCallbacks = []
+        self.errorCallbacks = []
+        self.statusCallbacks = []
+
+        auto loaded = config.load(inputConfigPath)
+        if not loaded.ok then
+            self.error = loaded.error
+            return
+        end
+        var normalized = json.parse(loaded.json)
+        self.normalizedJson = loaded.json
+        self.configPath = string(normalized["configPath"])
+        self.includeDir = inputIncludeDir
+        if self.includeDir == "" then
+            string configDir = string(normalized["configDir"])
+            string searchDir = configDir
+            string candidate = path.join(searchDir, "include")
+            int depth = 0
+            while not dir.exists(candidate) and depth < 8 do
+                string parentDir = path.dir(searchDir)
+                if parentDir == searchDir then
+                    break
+                end
+                searchDir = parentDir
+                candidate = path.join(searchDir, "include")
+                depth += 1
+            end
+            self.includeDir = path.normalize(candidate)
+        end
+        if not dir.exists(self.includeDir) then
+            self.error = "xs handler include directory does not exist: " + self.includeDir
+            return
+        end
+
+        var runtimeConfig = normalized["runtime"]
+        for _, serviceConfig in normalized["services"]
+            if not bool(serviceConfig["enabled"]) then
+                continue
+            end
+            string serviceType = string(serviceConfig["type"])
+            string serviceName = string(serviceConfig["name"])
+
+            if serviceType == "http" or serviceType == "https" then
+                auto service = http_service.open(serviceConfig, runtimeConfig, self.includeDir)
+                if not service.ready() then
+                    self.error = service.lastError()
+                    return
+                end
+                self.names.append(serviceName)
+                self.types.append(serviceType)
+                self.startCallbacks.append(service.startCallback())
+                self.stopCallbacks.append(service.stopCallback())
+                self.prepareReloadCallbacks.append(service.prepareReloadCallback())
+                self.commitReloadCallbacks.append(service.commitReloadCallback())
+                self.discardReloadCallbacks.append(service.discardReloadCallback())
+                self.errorCallbacks.append(service.errorCallback())
+                self.statusCallbacks.append(service.statusCallback())
+                continue
+            end
+
+            var handler = serviceConfig["handler"]
+            int handlerPoolSize = int(handler["poolSize"])
+            int handlerQueueCapacity = int(handler["queueLimit"])
+            if handlerPoolSize <= 0 then
+                handlerPoolSize = int(runtimeConfig["handlerPoolSize"])
+            end
+            if handlerQueueCapacity <= 0 then
+                handlerQueueCapacity = int(runtimeConfig["handlerQueueLimit"])
+            end
+            auto socketService = socket_service.openManaged(
+                serviceType,
+                serviceName,
+                string(serviceConfig["host"]),
+                int(serviceConfig["port"]),
+                int(serviceConfig["backlog"]),
+                int(serviceConfig["workerCount"]),
+                int(serviceConfig["queueLimit"]),
+                int(serviceConfig["recvLimit"]),
+                string(serviceConfig["framing"]),
+                string(serviceConfig["delimiter"]),
+                int(serviceConfig["frameLimit"]),
+                int(serviceConfig["idleTimeoutMs"]),
+                int(serviceConfig["writeTimeoutMs"]),
+                string(handler["path"]),
+                string(runtimeConfig["workDir"]),
+                self.includeDir,
+                handlerPoolSize,
+                handlerQueueCapacity,
+                int(handler["queueTimeoutMs"]),
+                int(handler["timeoutMs"]))
+            if not socketService.ready() then
+                self.error = socketService.lastError()
+                return
+            end
+            self.names.append(serviceName)
+            self.types.append(serviceType)
+            self.startCallbacks.append(socketService.startCallback())
+            self.stopCallbacks.append(socketService.stopCallback())
+            self.prepareReloadCallbacks.append(socketService.prepareReloadCallback())
+            self.commitReloadCallbacks.append(socketService.commitReloadCallback())
+            self.discardReloadCallbacks.append(socketService.discardReloadCallback())
+            self.errorCallbacks.append(socketService.errorCallback())
+            self.statusCallbacks.append(socketService.statusCallback())
+        end
+        self.valid = true
+    end
+
+    destroy()
+        // 已显式 stop 的运行时不再次进入用户态回调。具体服务对象在字段释放时
+        // 仍会执行自己的幂等析构，因此未启动或启动失败的资源也不会泄漏。
+        if self.running then
+            self.stop()
+        end
+    end
+
+    func ready() as bool
+        return self.valid
+    end
+
+    func lastError() as string
+        return self.error
+    end
+
+    func serviceCount() as int
+        return int(self.names.length)
+    end
+
+    func start() as bool
+        if not self.valid then return false end
+        if self.running then return true end
+
+        int startedCount = 0
+        while startedCount < int(self.startCallbacks.length) do
+            func() as bool startOne = self.startCallbacks[startedCount]
+            if not startOne() then
+                func() as string getError = self.errorCallbacks[startedCount]
+                self.error = "cannot start " + self.names[startedCount] + ": " + getError()
+                int rollback = startedCount - 1
+                while rollback >= 0 do
+                    func() as bool stopOne = self.stopCallbacks[rollback]
+                    stopOne()
+                    rollback -= 1
+                end
+                return false
+            end
+            startedCount += 1
+        end
+        self.running = true
+        self.error = ""
+        return true
+    end
+
+    func stop() as bool
+        bool allStopped = true
+        int index = int(self.stopCallbacks.length) - 1
+        while index >= 0 do
+            func() as bool stopOne = self.stopCallbacks[index]
+            if not stopOne() then
+                func() as string getError = self.errorCallbacks[index]
+                self.error = "cannot stop " + self.names[index] + ": " + getError()
+                allStopped = false
+            end
+            index -= 1
+        end
+        self.running = false
+        return allStopped
+    end
+
+    func reloadHandlers() as bool
+        int preparedCount = 0
+        while preparedCount < int(self.prepareReloadCallbacks.length) do
+            func() as bool prepareOne = self.prepareReloadCallbacks[preparedCount]
+            if not prepareOne() then
+                func() as string getError = self.errorCallbacks[preparedCount]
+                self.error = "cannot prepare reload for " + self.names[preparedCount] + ": " + getError()
+                int rollback = preparedCount - 1
+                while rollback >= 0 do
+                    func() as bool discardOne = self.discardReloadCallbacks[rollback]
+                    discardOne()
+                    rollback -= 1
+                end
+                return false
+            end
+            preparedCount += 1
+        end
+
+        int index = 0
+        while index < int(self.commitReloadCallbacks.length) do
+            func() as bool commitOne = self.commitReloadCallbacks[index]
+            if not commitOne() then
+                func() as string getError = self.errorCallbacks[index]
+                self.error = "cannot commit reload for " + self.names[index] + ": " + getError()
+                int discardIndex = index
+                while discardIndex < int(self.discardReloadCallbacks.length) do
+                    func() as bool discardOne = self.discardReloadCallbacks[discardIndex]
+                    discardOne()
+                    discardIndex += 1
+                end
+                return false
+            end
+            index += 1
+        end
+        self.error = ""
+        return true
+    end
+
+    // 配置内容没有变化时只更新 handler generation，不中断 listener。
+    // 结构变化时先完整构建候选运行时，再执行可回滚的有界切换。
+    func reload() as bool
+        if self.reloading then
+            self.error = "reload is already in progress"
+            return false
+        end
+        self.reloading = true
+
+        auto loaded = config.load(self.configPath)
+        if not loaded.ok then
+            self.error = "reload config rejected: " + loaded.error
+            self.reloading = false
+            return false
+        end
+        if loaded.json == self.normalizedJson then
+            bool handlerResult = self.reloadHandlers()
+            self.reloading = false
+            return handlerResult
+        end
+
+        Runtime candidate = Runtime(self.configPath, self.includeDir)
+        if not candidate.ready() then
+            self.error = "reload candidate rejected: " + candidate.lastError()
+            self.reloading = false
+            return false
+        end
+
+        bool wasRunning = self.running
+        if wasRunning and not self.stop() then
+            string stopError = self.error
+            bool restored = self.start()
+            self.error = "cannot stop current runtime for reload: " + stopError
+            if not restored then
+                self.error += "; rollback start failed"
+            end
+            self.reloading = false
+            return false
+        end
+
+        if wasRunning and not candidate.start() then
+            string candidateError = candidate.lastError()
+            bool restored = self.start()
+            self.error = "cannot start reload candidate: " + candidateError
+            if not restored then
+                self.error += "; rollback start failed: " + self.lastError()
+            end
+            self.reloading = false
+            return false
+        end
+
+        // 回调数组持有具体服务对象。复制引用后让 candidate 放弃运行态所有权，
+        // 旧数组释放时只会回收已经停止的旧服务。
+        self.names = candidate.names
+        self.types = candidate.types
+        self.startCallbacks = candidate.startCallbacks
+        self.stopCallbacks = candidate.stopCallbacks
+        self.prepareReloadCallbacks = candidate.prepareReloadCallbacks
+        self.commitReloadCallbacks = candidate.commitReloadCallbacks
+        self.discardReloadCallbacks = candidate.discardReloadCallbacks
+        self.errorCallbacks = candidate.errorCallbacks
+        self.statusCallbacks = candidate.statusCallbacks
+        self.normalizedJson = candidate.normalizedJson
+        self.valid = candidate.valid
+        self.running = candidate.running
+        candidate.running = false
+
+        self.error = ""
+        self.reloading = false
+        return true
+    end
+
+    func status() as var
+        var result = []
+        int index = 0
+        while index < int(self.names.length) do
+            func() as string getStatus = self.statusCallbacks[index]
+            var item = json.parse(getStatus())
+            item["name"] = self.names[index]
+            item["type"] = self.types[index]
+            result.append(item)
+            index += 1
+        end
+        return result
+    end
+end
+
+export func open(string configPath, string includeDir = "") as Runtime
+    return Runtime(configPath, includeDir)
+end
+
+export func loadConfig(string configPath) as var
+    return config.load(configPath)
+end

@@ -1,0 +1,192 @@
+string wsServerText = ""
+string wsClientText = ""
+bool wsServerOpened = false
+bool wsClientOpened = false
+bool wsClientHandshake = false
+point wsConnectionData = null
+bool wsRejectNext = false
+bool wsServerBinary = false
+bool wsClientBinary = false
+bool wsServerPing = false
+bool wsClientPong = false
+
+func wsServerHandshake(point connHandle, point requestHandle, point responseHandle) as int
+    WebSocketHandshakeMessage request = WebSocketHandshakeMessage(requestHandle)
+    WebSocketHandshakeResponse response = WebSocketHandshakeResponse(responseHandle)
+    assert(request.target() == "/ws")
+    assert(request.header("Sec-WebSocket-Key") != "")
+    if wsRejectNext then
+        response.reject(403, "blocked-" + "xlang")
+        return 1
+    end
+    assert(response.header("X-Xlang-WebSocket", "ok"))
+    response.connectionData(wsConnectionData)
+    response.accept("chat", true)
+    return 0
+end
+
+func wsServerOpen(point connHandle)
+    WebSocketConnection conn = WebSocketConnection(connHandle)
+    wsServerOpened = conn.open
+    assert(conn.data == wsConnectionData)
+    conn.setData(wsConnectionData)
+    assert(conn.data == wsConnectionData)
+end
+
+func wsServerMessage(point connHandle, string data)
+    WebSocketConnection conn = WebSocketConnection(connHandle)
+    wsServerText = data
+    assert(conn.send("echo:" + data) == 0)
+end
+
+func wsClientOpen()
+    wsClientOpened = true
+end
+
+func wsClientMessage(string data)
+    wsClientText = data
+end
+
+func wsServerBinaryMessage(point connHandle, point data, int size)
+    Buffer payload = Buffer()
+    assert(payload.appendRaw(data, c_size(size)))
+    wsServerBinary = payload.len() == 4 and payload[0] == 0 and payload[1] == 1 and payload[2] == 2 and payload[3] == 255
+    WebSocketConnection conn = WebSocketConnection(connHandle)
+    assert(conn.send(payload) == 0)
+end
+
+func wsClientBinaryMessage(point data, int size)
+    Buffer payload = Buffer()
+    assert(payload.appendRaw(data, c_size(size)))
+    wsClientBinary = payload.len() == 4 and payload[0] == 0 and payload[1] == 1 and payload[2] == 2 and payload[3] == 255
+end
+
+func wsServerPingMessage(point connHandle, point data, int size)
+    wsServerPing = size == 4
+end
+
+func wsClientPongMessage(point data, int size)
+    wsClientPong = size == 4
+end
+
+func wsClientHandshakeResponse(point responseHandle) as bool
+    WebSocketHandshakeMessage response = WebSocketHandshakeMessage(responseHandle)
+    wsClientHandshake = response.status == 101 and response.header("X-Xlang-WebSocket") == "ok"
+    return wsClientHandshake
+end
+
+NetEngine wsEngine = NetEngine(2, 0)
+assert(wsEngine.start())
+WebSocketServerOptions serverOptions = WebSocketServerOptions(0, "127.0.0.1")
+wsConnectionData = serverOptions.nativeHandle()
+assert(serverOptions.path("/ws"))
+assert(serverOptions.protocol("chat"))
+serverOptions.listener(128, 0)
+serverOptions.handshakeLimit(65536)
+serverOptions.compression(true, 1, 1)
+WebSocketServer server = serverOptions.server(wsEngine)
+func(point, point, point) as int serverHandshakeFn = wsServerHandshake
+func(point) serverOpenFn = wsServerOpen
+func(point, string) serverTextFn = wsServerMessage
+func(point, point, int) serverBinaryFn = wsServerBinaryMessage
+func(point, point, int) serverPingFn = wsServerPingMessage
+assert(server.onHandshake(serverHandshakeFn))
+assert(server.onOpen(serverOpenFn))
+assert(server.onText(serverTextFn))
+assert(server.onBinary(serverBinaryFn))
+assert(server.onPing(serverPingFn))
+assert(server.start() == 0)
+assert(server.port > 0)
+
+string wsUrl = "ws://127.0.0.1:" + server.port.toString() + "/ws"
+WebSocketClientOptions clientOptions = WebSocketClientOptions(wsUrl)
+assert(clientOptions.protocols("chat"))
+clientOptions.handshakeLimit(65536)
+clientOptions.compression(true, 1, 1)
+WebSocketClient client = clientOptions.client(wsEngine)
+func() clientOpenFn = wsClientOpen
+func(string) clientTextFn = wsClientMessage
+func(point) as bool clientHandshakeFn = wsClientHandshakeResponse
+func(point, int) clientBinaryFn = wsClientBinaryMessage
+func(point, int) clientPongFn = wsClientPongMessage
+assert(client.onOpen(clientOpenFn))
+assert(client.onText(clientTextFn))
+assert(client.onHandshake(clientHandshakeFn))
+assert(client.onBinary(clientBinaryFn))
+assert(client.onPong(clientPongFn))
+assert(client.start() == 0)
+int openResult = client.waitOpen(5000)
+if openResult != 0 then
+    WebSocketError openError = client.lastError()
+    WebSocketError serverError = server.lastError()
+    println("waitOpen=" + openResult.toString() + " result=" + openError.result.toString() + " http=" + openError.httpStatus.toString() + " protocol=" + openError.protocolError.toString() + " message=" + openError.message())
+    println("server result=" + serverError.result.toString() + " http=" + serverError.httpStatus.toString() + " protocol=" + serverError.protocolError.toString() + " message=" + serverError.message())
+end
+assert(openResult == 0)
+assert(client.open)
+assert(client.protocol() == "chat")
+assert(client.perMessageDeflate)
+assert(client.send("hello") == 0)
+
+int waitCount = 0
+while wsClientText == "" and waitCount < 500 do
+    time.sleep(10)
+    waitCount = waitCount + 1
+end
+assert(wsServerOpened)
+assert(wsClientOpened)
+assert(wsClientHandshake)
+assert(wsServerText == "hello")
+assert(wsClientText == "echo:hello")
+
+assert(await client.writableAsync())
+assert(await client.drainAsync())
+wsServerText = ""
+wsClientText = ""
+WebSocketWriter textWriter = client.beginText()
+assert(textWriter.write("stream-") == 0)
+assert(textWriter.finish("message") == 0)
+waitCount = 0
+while wsClientText == "" and waitCount < 500 do
+    time.sleep(10)
+    waitCount = waitCount + 1
+end
+assert(wsServerText == "stream-message")
+assert(wsClientText == "echo:stream-message")
+
+Buffer binaryPayload = Buffer()
+assert(binaryPayload.appendByte(0))
+assert(binaryPayload.appendByte(1))
+assert(binaryPayload.appendByte(2))
+assert(binaryPayload.appendByte(255))
+assert(client.send(binaryPayload) == 0)
+waitCount = 0
+while (not wsClientBinary) and waitCount < 500 do
+    time.sleep(10)
+    waitCount = waitCount + 1
+end
+assert(wsServerBinary)
+assert(wsClientBinary)
+assert(client.ping(binaryPayload) == 0)
+waitCount = 0
+while (not wsClientPong) and waitCount < 500 do
+    time.sleep(10)
+    waitCount = waitCount + 1
+end
+assert(wsServerPing)
+assert(wsClientPong)
+assert(client.close(1000, "done") == 0)
+assert(client.waitClose(5000) == -4)
+WebSocketCloseInfo closeInfo = client.closeInfo()
+assert(closeInfo.localCode == 1000)
+client.stop()
+
+wsRejectNext = true
+WebSocketClient rejectedClient = WebSocketClient(wsUrl, wsEngine.nativeHandle())
+assert(rejectedClient.start() == 0)
+assert(rejectedClient.waitOpen(5000) != 0)
+WebSocketError rejectedError = rejectedClient.lastError()
+assert(rejectedError.httpStatus == 403)
+rejectedClient.stop()
+server.stop()
+println("stdlib websocket ok")

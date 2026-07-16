@@ -1,0 +1,128 @@
+import "./security.xl"
+import md4c
+
+func setting(var settings, string key, string fallback = "") as string
+    if settings[key] == null then return fallback end
+    return string(settings[key])
+end
+
+func dateText(int unixSeconds) as string
+    if unixSeconds <= 0 then return "" end
+    return time.formatPattern(time.fromUnix(unixSeconds), "yyyy-mm-dd")
+end
+
+func nav(array categories) as string
+    string html = "<nav><a href='/'>Home</a>"
+    for category in categories
+        html += "<a href='/category/" + security.attribute(string(category["slug"])) + "'>"
+        html += security.html(string(category["name"])) + "</a>"
+    end
+    html += "<a href='/guestbook'>Guestbook</a></nav>"
+    return html
+end
+
+export func layout(var settings, array categories, string title, string body) as string
+    string siteTitle = setting(settings, "site.title", "XLang Blog")
+    string description = setting(settings, "site.description", "")
+    string html = "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
+    html += "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+    html += "<meta name='description' content='" + security.attribute(description) + "'>"
+    html += "<title>" + security.html(title) + " - " + security.html(siteTitle) + "</title>"
+    html += "<link rel='stylesheet' href='/assets/blog.css'></head><body>"
+    html += "<header><div class='shell'><a class='brand' href='/'>" + security.html(siteTitle) + "</a>"
+    html += "<p>" + security.html(setting(settings, "site.subtitle", "")) + "</p>"
+    html += nav(categories) + "</div></header>"
+    html += "<main class='shell'>" + body + "</main>"
+    html += "<footer><div class='shell'>Powered by XS 2.0 and xlang. <a href='/admin'>Admin</a></div></footer>"
+    html += "</body></html>"
+    return html
+end
+
+export func home(var settings, array categories, array articles, int page, string heading = "Latest articles") as string
+    string body = "<section class='page-head'><h1>" + security.html(heading) + "</h1>"
+    body += "<form class='search' action='/' method='get'><input name='q' placeholder='Search articles'><button>Search</button></form></section>"
+    if articles.length == 0 then
+        body += "<div class='empty'>No published articles.</div>"
+    end
+    for article in articles
+        body += "<article class='post-card'><div class='meta'>"
+        if string(article["category_name"]) != "" then body += security.html(string(article["category_name"])) + " · " end
+        body += dateText(int(article["published_at"])) + "</div>"
+        body += "<h2><a href='/article/" + security.attribute(string(article["slug"])) + "'>" + security.html(string(article["title"])) + "</a></h2>"
+        body += "<p>" + security.html(string(article["summary"])) + "</p></article>"
+    end
+    body += "<div class='pager'>"
+    if page > 1 then body += "<a href='?page=" + (page - 1).toString() + "'>Previous</a>" end
+    if articles.length > 0 then body += "<a href='?page=" + (page + 1).toString() + "'>Next</a>" end
+    body += "</div>"
+    return layout(settings, categories, heading, body)
+end
+
+func commentsHtml(array comments) as string
+    string html = "<section class='comments'><h2>Comments</h2>"
+    if comments.length == 0 then html += "<p class='muted'>No comments yet.</p>" end
+    for comment in comments
+        html += "<article class='comment'><strong>" + security.html(string(comment["author"])) + "</strong>"
+        html += "<time>" + dateText(int(comment["created_at"])) + "</time>"
+        html += "<p>" + string.replace(security.html(string(comment["body"])), "\n", "<br>") + "</p></article>"
+    end
+    return html + "</section>"
+end
+
+export func article(var settings, array categories, var article, array comments, string notice = "") as string
+    string markdown = md4c.html_flags(
+        string(article["markdown"]),
+        md4c.github_flags() + md4c.no_html_flag(),
+        c_int(0))
+    string body = "<article class='article'><div class='meta'>" + dateText(int(article["published_at"])) + "</div>"
+    body += "<h1>" + security.html(string(article["title"])) + "</h1><div class='markdown'>" + markdown + "</div></article>"
+    if notice != "" then body += "<div class='notice'>" + security.html(notice) + "</div>" end
+    body += commentsHtml(comments)
+    body += "<section><h2>Leave a comment</h2><form method='post' action='/article/" + security.attribute(string(article["slug"])) + "/comment'>"
+    body += "<label>Name<input name='author' maxlength='80' required></label>"
+    body += "<label>Email<input type='email' name='email' maxlength='200'></label>"
+    body += "<label>Comment<textarea name='body' maxlength='4000' required></textarea></label>"
+    body += "<button>Submit comment</button></form></section>"
+    return layout(settings, categories, string(article["title"]), body)
+end
+
+export func guestbook(var settings, array categories, array comments, string notice = "") as string
+    string body = "<h1>Guestbook</h1>"
+    if notice != "" then body += "<div class='notice'>" + security.html(notice) + "</div>" end
+    body += commentsHtml(comments)
+    body += "<section><h2>Leave a message</h2><form method='post' action='/guestbook'>"
+    body += "<label>Name<input name='author' maxlength='80' required></label>"
+    body += "<label>Email<input type='email' name='email' maxlength='200'></label>"
+    body += "<label>Message<textarea name='body' maxlength='4000' required></textarea></label>"
+    body += "<button>Submit message</button></form></section>"
+    return layout(settings, categories, "Guestbook", body)
+end
+
+export func notFound(var settings, array categories) as string
+    return layout(settings, categories, "Not found", "<div class='empty'><h1>404</h1><p>The requested page does not exist.</p></div>")
+end
+
+export func feed(var settings, array articles, string baseUrl) as string
+    string title = setting(settings, "site.title", "XLang Blog")
+    string xml = "<?xml version='1.0' encoding='UTF-8'?><rss version='2.0'><channel>"
+    xml += "<title>" + security.html(title) + "</title><link>" + security.html(baseUrl) + "</link>"
+    xml += "<description>" + security.html(setting(settings, "site.description", "")) + "</description>"
+    for article in articles
+        string link = baseUrl + "/article/" + string(article["slug"])
+        xml += "<item><title>" + security.html(string(article["title"])) + "</title>"
+        xml += "<link>" + security.html(link) + "</link><guid>" + security.html(link) + "</guid>"
+        xml += "<description>" + security.html(string(article["summary"])) + "</description></item>"
+    end
+    return xml + "</channel></rss>"
+end
+
+export func sitemap(array articles, string baseUrl) as string
+    string xml = "<?xml version='1.0' encoding='UTF-8'?><urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>"
+    xml += "<url><loc>" + security.html(baseUrl) + "/</loc></url>"
+    xml += "<url><loc>" + security.html(baseUrl) + "/guestbook</loc></url>"
+    for article in articles
+        xml += "<url><loc>" + security.html(baseUrl + "/article/" + string(article["slug"])) + "</loc></url>"
+    end
+    return xml + "</urlset>"
+end
+

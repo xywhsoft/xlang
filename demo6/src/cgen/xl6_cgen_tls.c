@@ -25,9 +25,14 @@ static void xl6CgenEmitTlsRuntime(XL6_Output* out)
     xl6OutputPuts("    XL6_Function verifyCallback;\n    int hasVerifyCallback;\n", out);
     xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("} XL6_TlsConfig;\n", out);
+    xl6OutputPuts("typedef struct XL6_TlsLease { int32_t refCount; xtlsconfig* value;\n", out);
+    xl6OutputPuts("#ifdef XL6_FUNCTION_VAR_RUNTIME\n    XL6_TlsConfig callbackOwner;\n#endif\n", out);
+    xl6OutputPuts("} XL6_TlsLease;\n", out);
     xl6OutputPuts("typedef struct XL6_TlsSession { xtlssession* value; int lastStatus; } XL6_TlsSession;\n\n", out);
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\nvoid* xrtCalloc(size_t iCount, size_t iSize);\nvoid xrtFree(void* pMem);\n", out);
     xl6OutputPuts("char* xrtCopyStr(const char* sText, size_t iSize);\nvoid* xrtCopyMem(void* pMem, size_t iSize);\n", out);
+    xl6OutputPuts("int32_t xrtAtomicRefRetain(volatile int32_t*);\nint32_t xrtAtomicRefRelease(volatile int32_t*);\n", out);
+    xl6OutputPuts("xtlsconfig* xrtNetTlsConfigClone(const xtlsconfig*);\nvoid xrtNetTlsConfigDestroy(xtlsconfig*);\n", out);
     xl6OutputPuts("xtlssession* xrtNetTlsSessionCreate(const xtlsconfig* pCfg, bool bIsServer);\n", out);
     xl6OutputPuts("void xrtNetTlsSessionDestroy(xtlssession* pSession);\nbool xrtNetTlsSessionIsReady(const xtlssession* pSession);\n", out);
     xl6OutputPuts("int xrtNetTlsSessionDriveHandshake(xtlssession* pSession);\n", out);
@@ -77,6 +82,19 @@ static void xl6CgenEmitTlsRuntime(XL6_Output* out)
     xl6OutputPuts("    if ( result != 0 ) { xvoUnref(result); }\n", out);
     xl6OutputPuts("    return accepted;\n}\n\n", out);
     xl6OutputPuts("#endif\n\n", out);
+
+    xl6OutputPuts("XL6_TlsLease* xl6_xrt_tls_lease_create(void* handle)\n{\n", out);
+    xl6OutputPuts("    XL6_TlsConfig* source = (XL6_TlsConfig*)handle; XL6_TlsLease* lease;\n", out);
+    xl6OutputPuts("    if ( source == 0 ) { return 0; } lease = (XL6_TlsLease*)xrtCalloc(1u, sizeof(*lease)); if ( lease == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    lease->refCount = 1; lease->value = xrtNetTlsConfigClone(&source->value); if ( lease->value == 0 ) { xrtFree(lease); return 0; }\n", out);
+    xl6OutputPuts("#ifdef XL6_FUNCTION_VAR_RUNTIME\n", out);
+    xl6OutputPuts("    if ( source->hasVerifyCallback ) { lease->callbackOwner.verifyCallback = xl6_function_copy_value(source->verifyCallback); lease->callbackOwner.hasVerifyCallback = 1; lease->value->OnVerify = xl6_tls_verify_callback_call; lease->value->pVerifyUserData = &lease->callbackOwner; }\n", out);
+    xl6OutputPuts("#endif\n    return lease;\n}\n", out);
+    xl6OutputPuts("XL6_TlsLease* xl6_xrt_tls_lease_retain(XL6_TlsLease* lease) { return lease != 0 && xrtAtomicRefRetain(&lease->refCount) > 0 ? lease : 0; }\n", out);
+    xl6OutputPuts("void xl6_xrt_tls_lease_release(XL6_TlsLease* lease) { if ( lease == 0 || xrtAtomicRefRelease(&lease->refCount) != 0 ) { return; }\n", out);
+    xl6OutputPuts("#ifdef XL6_FUNCTION_VAR_RUNTIME\n    if ( lease->callbackOwner.hasVerifyCallback ) { xl6_function_release_value(lease->callbackOwner.verifyCallback); }\n#endif\n", out);
+    xl6OutputPuts("    xrtNetTlsConfigDestroy(lease->value); memset(lease, 0, sizeof(*lease)); xrtFree(lease); }\n", out);
+    xl6OutputPuts("void* xl6_xrt_tls_lease_value(XL6_TlsLease* lease) { return lease != 0 ? lease->value : 0; }\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_tls_config_create(void)\n{\n", out);
     xl6OutputPuts("    XL6_TlsConfig* config = (XL6_TlsConfig*)xrtCalloc(1u, sizeof(XL6_TlsConfig));\n", out);

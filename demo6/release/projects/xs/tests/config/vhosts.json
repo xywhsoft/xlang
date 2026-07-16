@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "services": [
+    {
+      "type": "http",
+      "name": "web",
+      "host": "127.0.0.1",
+      "port": 0,
+      "routes": [],
+      "hosts": [
+        {
+          "name": "main",
+          "pattern": "example.test",
+          "routes": [
+            {
+              "name": "main-index",
+              "kind": "handler",
+              "method": "GET",
+              "pattern": "/",
+              "contentType": "text/plain; charset=utf-8",
+              "handler": {
+                "language": "c",
+                "path": "../handlers/abi_c.c",
+                "poolSize": 2,
+                "queueLimit": 16,
+                "queueTimeoutMs": 250,
+                "timeoutMs": 2000,
+                "mode": "embedded"
+              }
+            }
+          ]
+        },
+        {
+          "name": "wildcard",
+          "pattern": "*.example.test",
+          "routes": []
+        }
+      ]
+    }
+  ]
+}

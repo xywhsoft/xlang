@@ -7,7 +7,7 @@ func require(string name, bool ok)
 end
 
 HttpClientResponse home = http.get("http://127.0.0.1:18080/", 5000)
-require("http_static", home.status() == 200 and string.contains(home.body(), "xs prototype") != 0)
+require("http_static", home.status() == 200 and string.contains(home.body(), "XS 2.0") != 0)
 
 HttpClientResponse xlResp = http.post("http://127.0.0.1:18080/api/xlang", "from-xlang", "text/plain", 5000)
 require("http_xlang_handler", xlResp.status() == 200 and xlResp.body() == "from-xlang")

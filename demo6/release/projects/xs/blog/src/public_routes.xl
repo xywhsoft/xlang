@@ -1,0 +1,144 @@
+import "./security.xl"
+import "./settings_store.xl"
+import "./content_store.xl"
+import "./comment_store.xl"
+import "./public_view.xl"
+
+func tail(string value, string prefix) as string
+    int start = string.len(prefix)
+    return string.slice(value, start, string.len(value) - start)
+end
+
+func siteData(point handle) as var
+    return settings_store.all(handle)
+end
+
+func categoryData(point handle) as array
+    return content_store.categories(handle)
+end
+
+func sendHtml(HttpResponse response, string html, int status = 200) as bool
+    response.status(status)
+    response.header("Cache-Control", "no-cache")
+    return response.text(html, "text/html; charset=utf-8")
+end
+
+func validComment(string author, string email, string body) as bool
+    bool valid = string.len(string.trim(author)) >= 1 and string.len(author) <= 80
+    valid = valid and string.len(email) <= 200
+    valid = valid and string.len(string.trim(body)) >= 1 and string.len(body) <= 4000
+    return valid
+end
+
+func baseUrl(HttpRequest request) as string
+    string scheme = request.tlsSNI() == "" ? "http" : "https"
+    string host = request.header("Host")
+    if host == "" or string.contains(host, "\r") or string.contains(host, "\n") then host = "localhost" end
+    return scheme + "://" + host
+end
+
+export func handle(point handle, point requestHandle, point responseHandle) as int
+    HttpRequest request = HttpRequest(requestHandle)
+    HttpResponse response = HttpResponse(responseHandle)
+    string method = request.method()
+    string requestPath = request.path()
+    var settings = siteData(handle)
+    array categories = categoryData(handle)
+
+    if method == "GET" and requestPath == "/healthz" then
+        response.header("Cache-Control", "no-store")
+        return response.jsonText("{\"status\":\"ok\"}") ? 1 : 0
+    end
+
+    if method == "GET" and requestPath == "/" then
+        int page = security.parseInt(request.queryValue("page"), 1)
+        if page < 1 then page = 1 end
+        int pageSize = security.parseInt(string(settings["site.postsPerPage"]), 10)
+        string query = string.trim(request.queryValue("q"))
+        array articles = content_store.publicArticles(handle, page, pageSize, "", query)
+        string heading = query == "" ? "Latest articles" : "Search: " + query
+        return sendHtml(response, public_view.home(settings, categories, articles, page, heading)) ? 1 : 0
+    end
+
+    if method == "GET" and string.startsWith(requestPath, "/category/") then
+        string categorySlug = tail(requestPath, "/category/")
+        var category = content_store.categoryBySlug(handle, categorySlug)
+        if category == null then
+            return sendHtml(response, public_view.notFound(settings, categories), 404) ? 1 : 0
+        end
+        int page = security.parseInt(request.queryValue("page"), 1)
+        array articles = content_store.publicArticles(handle, page, security.parseInt(string(settings["site.postsPerPage"]), 10), categorySlug)
+        return sendHtml(response, public_view.home(settings, categories, articles, page, string(category["name"]))) ? 1 : 0
+    end
+
+    if string.startsWith(requestPath, "/article/") then
+        string articlePath = tail(requestPath, "/article/")
+        bool commentPost = string.endsWith(articlePath, "/comment")
+        string slug = articlePath
+        if commentPost then slug = string.slice(articlePath, 0, string.len(articlePath) - string.len("/comment")) end
+        var article = content_store.articleBySlug(handle, slug)
+        if article == null then
+            return sendHtml(response, public_view.notFound(settings, categories), 404) ? 1 : 0
+        end
+        if method == "POST" and commentPost then
+            string author = string.trim(request.formValue("author"))
+            string email = string.trim(request.formValue("email"))
+            string body = string.trim(request.formValue("body"))
+            if not request.isFormUrlEncoded() or not validComment(author, email, body) then
+                response.status(400)
+                return response.text("invalid comment", "text/plain; charset=utf-8") ? 1 : 0
+            end
+            bool moderation = string(settings["comments.moderation"]) == "true"
+            if comment_store.create(handle, int(article["id"]), author, email, body, moderation, request.remoteAddr()) <= 0 then
+                response.status(500)
+                return response.text("cannot save comment", "text/plain; charset=utf-8") ? 1 : 0
+            end
+            return response.redirect("/article/" + slug + "?submitted=1", 303) ? 1 : 0
+        end
+        if method == "GET" and not commentPost then
+            string notice = request.queryValue("submitted") == "1" ? "Your comment was submitted." : ""
+            array comments = comment_store.visible(handle, int(article["id"]))
+            return sendHtml(response, public_view.article(settings, categories, article, comments, notice)) ? 1 : 0
+        end
+    end
+
+    if requestPath == "/guestbook" then
+        if method == "POST" then
+            string author = string.trim(request.formValue("author"))
+            string email = string.trim(request.formValue("email"))
+            string body = string.trim(request.formValue("body"))
+            if not request.isFormUrlEncoded() or not validComment(author, email, body) then
+                response.status(400)
+                return response.text("invalid message", "text/plain; charset=utf-8") ? 1 : 0
+            end
+            bool moderation = string(settings["comments.moderation"]) == "true"
+            if comment_store.create(handle, 0, author, email, body, moderation, request.remoteAddr()) <= 0 then
+                response.status(500)
+                return response.text("cannot save message", "text/plain; charset=utf-8") ? 1 : 0
+            end
+            return response.redirect("/guestbook?submitted=1", 303) ? 1 : 0
+        elseif method == "GET" then
+            string notice = request.queryValue("submitted") == "1" ? "Your message was submitted." : ""
+            return sendHtml(response, public_view.guestbook(settings, categories, comment_store.visible(handle, 0), notice)) ? 1 : 0
+        end
+    end
+
+    if method == "GET" and requestPath == "/rss.xml" then
+        response.header("Cache-Control", "public, max-age=300")
+        return response.text(public_view.feed(settings, content_store.publicArticles(handle, 1, 50), baseUrl(request)), "application/rss+xml; charset=utf-8") ? 1 : 0
+    end
+    if method == "GET" and requestPath == "/sitemap.xml" then
+        response.header("Cache-Control", "public, max-age=300")
+        return response.text(public_view.sitemap(content_store.publicArticles(handle, 1, 500), baseUrl(request)), "application/xml; charset=utf-8") ? 1 : 0
+    end
+    if method == "GET" and requestPath == "/robots.txt" then
+        return response.text("User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: " + baseUrl(request) + "/sitemap.xml\n") ? 1 : 0
+    end
+
+    if method != "GET" and method != "HEAD" and method != "POST" then
+        response.status(405)
+        response.header("Allow", "GET, HEAD, POST")
+        return response.text("method not allowed") ? 1 : 0
+    end
+    return sendHtml(response, public_view.notFound(settings, categories), 404) ? 1 : 0
+end

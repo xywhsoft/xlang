@@ -1,0 +1,57 @@
+import "./config.xl"
+import "./http_service.xl"
+
+func rawRequest(int port, string payload) as string
+    TcpStream stream = TcpStream(tcp.connect("127.0.0.1", port, 3000))
+    assert stream.handle != null, "raw HTTP client must connect"
+    assert stream.send(payload), "raw HTTP request must send"
+    assert stream.drain(3000), "raw HTTP request must drain"
+    string response = stream.recv(3000)
+    stream.close()
+    return response
+end
+
+auto loaded = config.load("projects/xs/tests/config/vhosts.json")
+assert loaded.ok, loaded.error
+var normalized = json.parse(loaded.json)
+var runtimeConfig = normalized["runtime"]
+var serviceConfig = normalized["services"][0]
+serviceConfig["recvLimit"] = 1024
+serviceConfig["bodyLimit"] = 8
+serviceConfig["headerLimit"] = 16
+serviceConfig["headerBytesLimit"] = 128
+string includeDir = path.join(path.abs("projects/xs"), "include")
+
+auto service = http_service.open(serviceConfig, runtimeConfig, includeDir)
+assert service.ready(), service.lastError()
+assert service.start(), service.lastError()
+
+string bodyResponse = rawRequest(
+    service.port(),
+    "POST / HTTP/1.1\r\nHost: example.test\r\nContent-Length: 9\r\nConnection: close\r\n\r\n123456789")
+assert string.contains(bodyResponse, "HTTP/1.1 413") != 0, "oversized body must return 413"
+
+string headerResponse = rawRequest(
+    service.port(),
+    "GET / HTTP/1.1\r\nHost: example.test\r\nX-Fill: 12345678901234567890123456789012345678901234567890123456789012345678901234567890\r\nConnection: close\r\n\r\n")
+assert string.contains(headerResponse, "HTTP/1.1 431") != 0, "oversized headers must return 431"
+
+string malformedResponse = rawRequest(service.port(), "BROKEN\r\n\r\n")
+assert string.contains(malformedResponse, "HTTP/1.1 400") != 0, "malformed request must return 400"
+
+HttpClientRequest healthy = HttpClientRequest(
+    "http://127.0.0.1:" + service.port().toString() + "/")
+healthy.header("Host", "example.test")
+healthy.timeout(3000)
+HttpClientResponse healthyResponse = healthy.execute()
+assert healthyResponse.status() == 200, "service must survive rejected requests"
+assert healthyResponse.body() == "c:", "healthy request must still reach handler"
+
+var conflictConfig = clone(serviceConfig)
+conflictConfig["port"] = service.port()
+auto conflict = http_service.open(conflictConfig, runtimeConfig, includeDir)
+assert conflict.ready(), conflict.lastError()
+assert not conflict.start(), "second listener on the same address must fail"
+
+assert service.stop(), service.lastError()
+println("xs2 http fault test ok")

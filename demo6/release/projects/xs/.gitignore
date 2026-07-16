@@ -1,2 +1,4 @@
 run/*
 !run/.gitkeep
+blog/data/*
+!blog/data/.gitkeep

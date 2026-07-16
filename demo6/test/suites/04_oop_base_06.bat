@@ -22,7 +22,7 @@ if errorlevel 1 exit /b 1
 build\test\build_mixed_two_c.exe
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$argsList=@('build','release\examples\feature_suite\09_c_export_abi.xl'); for($i=0;$i -lt 33;$i++){ $argsList += 'test\cases\build_mixed_extra.c' }; $argsList += @('-o','build\test\too_many_c.exe'); $p=Start-Process -FilePath 'release\xl.exe' -ArgumentList $argsList -NoNewWindow -PassThru -Wait -RedirectStandardOutput 'build\test\build_too_many_c.out.txt' -RedirectStandardError 'build\test\build_too_many_c.err.txt'; if($p.ExitCode -eq 0){exit 1}; if(-not (Select-String -Path 'build\test\build_too_many_c.err.txt' -SimpleMatch 'too many C source files')){exit 2}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$argsList=@('build','release\examples\feature_suite\09_c_export_abi.xl'); for($i=0;$i -lt 257;$i++){ $argsList += 'test\cases\build_mixed_extra.c' }; $argsList += @('-o','build\test\too_many_c.exe'); $p=Start-Process -FilePath 'release\xl.exe' -ArgumentList $argsList -NoNewWindow -PassThru -Wait -RedirectStandardOutput 'build\test\build_too_many_c.out.txt' -RedirectStandardError 'build\test\build_too_many_c.err.txt'; if($p.ExitCode -eq 0){exit 1}; if(-not (Select-String -Path 'build\test\build_too_many_c.err.txt' -SimpleMatch 'too many C source files')){exit 2}"
 if errorlevel 1 (
     echo build too many C source diagnostic missing.
     exit /b 1

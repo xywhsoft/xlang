@@ -1,0 +1,3 @@
+// xs 处理器 generation 的 C 实现由 handler_generation.c 提供。
+// 保留独立源模块，是为了让源码 import 自动带入对应的 C 编译单元。
+const int XS_HANDLER_GENERATION_INTERNAL = 1

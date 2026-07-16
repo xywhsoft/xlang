@@ -1,0 +1,95 @@
+import "./config.xl"
+
+func main(...) as int
+    string root = path.dir(string(arg[0]))
+    string fixtures = path.join(root, "../tests/config")
+
+    auto good = config.load(path.join(fixtures, "valid.json"))
+    assert good.ok, good.error
+    var cfg = json.parse(good.json)
+    assert int(cfg["version"]) == 2
+    assert int(cfg["services"].length) == 1
+    assert string(cfg["services"][0]["name"]) == "main"
+    assert path.isAbs(string(cfg["services"][0]["routes"][0]["root"]))
+
+    auto badVersion = config.load(path.join(fixtures, "bad_version.json"))
+    assert not badVersion.ok
+    assert string.contains(badVersion.error, "version") != 0
+
+    auto unknown = config.load(path.join(fixtures, "unknown_field.json"))
+    assert not unknown.ok
+    assert string.contains(unknown.error, "unknown field") != 0
+
+    auto duplicate = config.load(path.join(fixtures, "duplicate_service.json"))
+    assert not duplicate.ok
+    assert string.contains(duplicate.error, "duplicate name") != 0
+
+    auto vhosts = config.load(path.join(fixtures, "vhosts.json"))
+    assert vhosts.ok, vhosts.error
+    var vhostConfig = json.parse(vhosts.json)
+    assert int(vhostConfig["services"][0]["hosts"].length) == 2
+    assert string(vhostConfig["services"][0]["hosts"][0]["pattern"]) == "example.test"
+    assert int(vhostConfig["services"][0]["hosts"][0]["routes"][0]["handler"]["timeoutMs"]) == 2000
+
+    auto multi = config.load(path.join(fixtures, "multiservice.json"))
+    assert multi.ok, multi.error
+    var multiConfig = json.parse(multi.json)
+    assert int(multiConfig["services"].length) == 3
+
+    auto framing = config.load(path.join(fixtures, "framing.json"))
+    assert framing.ok, framing.error
+    var framingConfig = json.parse(framing.json)
+    assert string(framingConfig["services"][0]["framing"]) == "delimiter"
+    assert string(framingConfig["services"][0]["delimiter"]) == "\r\n"
+    assert int(framingConfig["services"][0]["frameLimit"]) == 64
+    assert int(framingConfig["services"][0]["backlog"]) == 19
+    assert int(framingConfig["services"][0]["queueLimit"]) == 7
+
+    auto badFraming = config.load(path.join(fixtures, "bad_framing.json"))
+    assert not badFraming.ok
+    assert string.contains(badFraming.error, "framing") != 0
+
+    auto badDelimiter = config.load(path.join(fixtures, "bad_delimiter.json"))
+    assert not badDelimiter.ok
+    assert string.contains(badDelimiter.error, "delimiter") != 0
+
+    auto badUdpFraming = config.load(path.join(fixtures, "bad_udp_framing.json"))
+    assert not badUdpFraming.ok
+    assert string.contains(badUdpFraming.error, "UDP") != 0
+
+    auto https = config.load(path.join(fixtures, "https.json"))
+    assert https.ok, https.error
+    var httpsConfig = json.parse(https.json)
+    assert path.isAbs(string(httpsConfig["services"][0]["certFile"]))
+
+    auto processMode = config.load(path.join(fixtures, "bad_process_mode.json"))
+    assert not processMode.ok
+    assert string.contains(processMode.error, "embedded") != 0
+
+    auto badHost = config.load(path.join(fixtures, "bad_host_pattern.json"))
+    assert not badHost.ok
+    assert string.contains(badHost.error, "wildcard") != 0
+
+    auto badType = config.load(path.join(fixtures, "bad_field_type.json"))
+    assert not badType.ok
+    assert string.contains(badType.error, "must be an integer") != 0
+
+    auto duplicateBind = config.load(path.join(fixtures, "duplicate_bind.json"))
+    assert not duplicateBind.ok
+    assert string.contains(duplicateBind.error, "bind endpoint conflicts") != 0
+
+    auto badLimit = config.load(path.join(fixtures, "bad_limit.json"))
+    assert not badLimit.ok
+    assert string.contains(badLimit.error, "bodyLimit") != 0
+
+    auto duplicateRoute = config.load(path.join(fixtures, "duplicate_route.json"))
+    assert not duplicateRoute.ok
+    assert string.contains(duplicateRoute.error, "duplicate route match") != 0
+
+    auto emptyServices = config.load(path.join(fixtures, "empty_services.json"))
+    assert not emptyServices.ok
+    assert string.contains(emptyServices.error, "enabled service") != 0
+
+    println("xs2 config test ok")
+    return 0
+end

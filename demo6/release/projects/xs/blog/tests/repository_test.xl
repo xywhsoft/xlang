@@ -1,0 +1,65 @@
+import "../src/db.xl"
+import "../src/schema.xl"
+import "../src/security.xl"
+import "../src/auth_store.xl"
+import "../src/settings_store.xl"
+import "../src/content_store.xl"
+import "../src/comment_store.xl"
+
+string path = "projects/xs/blog/data/repository_test.db"
+file.delete(path)
+file.delete(path + "-wal")
+file.delete(path + "-shm")
+
+point handle = src.db.open(path)
+assert handle != null and src.schema.migrate(handle), src.db.lastError()
+
+// 管理员和会话
+string passwordHash = src.security.hashPassword("test administrator password")
+assert src.auth_store.createAdmin(handle, "admin", passwordHash), "create admin failed"
+assert src.auth_store.adminCount(handle) == 1, "admin count mismatch"
+var admin = src.auth_store.findAdmin(handle, "admin")
+assert admin != null and src.security.verifyPassword("test administrator password", string(admin["password_hash"])), "admin lookup failed"
+
+string token = src.security.randomToken()
+string csrf = src.security.randomToken()
+int now = time.toUnix(time.nowUTC())
+assert src.auth_store.createSession(handle, src.security.tokenDigest(token), int(admin["id"]), csrf, now + 3600, "127.0.0.1", "test"), "create session failed"
+var session = src.auth_store.findSession(handle, src.security.tokenDigest(token), now)
+assert session != null and string(session["csrf_token"]) == csrf, "session lookup failed"
+assert src.auth_store.findSession(handle, src.security.tokenDigest(token), now + 7200) == null, "expired session should fail"
+
+// 网站配置、栏目和文章
+assert src.settings_store.updateSite(handle, "Test Blog", "Subtitle", "Description", 12, true), "settings update failed"
+assert src.settings_store.get(handle, "site.title") == "Test Blog", "settings read failed"
+
+int categoryId = src.content_store.createCategory(handle, "News", "news", "Latest news", 1, true)
+assert categoryId > 0, "create category failed"
+assert src.content_store.categories(handle).length == 1, "category list failed"
+
+int articleId = src.content_store.saveArticle(handle, 0, categoryId, "First Post", "first-post", "Summary", "# First", "published")
+assert articleId > 0, "create article failed"
+assert src.content_store.publicArticles(handle, 1, 10).length == 1, "public article list failed"
+assert src.content_store.publicArticles(handle, 1, 10, "news", "First").length == 1, "article filtering failed"
+var article = src.content_store.articleBySlug(handle, "first-post")
+assert article != null and int(article["id"]) == articleId, "article lookup failed"
+
+// 评论和留言本
+int pendingId = src.comment_store.create(handle, articleId, "Reader", "reader@example.com", "Good post", true, "127.0.0.1")
+assert pendingId > 0 and src.comment_store.visible(handle, articleId).length == 0, "moderated comment should be pending"
+assert src.comment_store.moderate(handle, pendingId, "visible"), "comment moderation failed"
+assert src.comment_store.visible(handle, articleId).length == 1, "visible comment missing"
+int guestId = src.comment_store.create(handle, 0, "Guest", "", "Hello", false, "127.0.0.1")
+assert guestId > 0 and src.comment_store.visible(handle, 0).length == 1, "guestbook entry failed"
+assert src.comment_store.reply(handle, guestId, int(admin["id"]), "Welcome") > 0, "admin reply failed"
+
+assert src.auth_store.audit(handle, int(admin["id"]), "article.create", articleId.toString(), "First Post", "127.0.0.1"), "audit write failed"
+assert src.auth_store.auditLog(handle).length == 1, "audit query failed"
+assert src.auth_store.deleteSession(handle, src.security.tokenDigest(token)), "delete session failed"
+
+assert src.db.close(handle), src.db.lastError()
+file.delete(path)
+file.delete(path + "-wal")
+file.delete(path + "-shm")
+println("xs2 blog repository test ok")
+

@@ -1,0 +1,141 @@
+import "./security.xl"
+
+func dateText(int unixSeconds) as string
+    if unixSeconds <= 0 then return "" end
+    return time.format(time.fromUnix(unixSeconds))
+end
+
+func nav() as string
+    return "<nav><a href='/admin'>Dashboard</a><a href='/admin/articles'>Articles</a><a href='/admin/categories'>Categories</a><a href='/admin/comments'>Comments</a><a href='/admin/settings'>Settings</a><a href='/admin/audit'>Audit</a><a href='/'>View site</a></nav>"
+end
+
+export func layout(string title, string username, string csrf, string body) as string
+    string html = "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+    html += "<title>" + security.html(title) + " - Blog Admin</title><link rel='stylesheet' href='/assets/blog.css'></head>"
+    html += "<body class='admin'><header><div class='shell'><a class='brand' href='/admin'>Blog Admin</a>" + nav()
+    html += "<form class='logout' method='post' action='/admin/logout'><input type='hidden' name='csrf' value='" + security.attribute(csrf) + "'><button>Sign out " + security.html(username) + "</button></form>"
+    html += "</div></header><main class='shell'>" + body + "</main></body></html>"
+    return html
+end
+
+export func login(string message = "") as string
+    string body = "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+    body += "<title>Blog Admin Login</title><link rel='stylesheet' href='/assets/blog.css'></head><body class='admin-login'><main>"
+    body += "<form method='post' action='/admin/login'><h1>Blog Admin</h1>"
+    if message != "" then body += "<div class='error'>" + security.html(message) + "</div>" end
+    body += "<label>Username<input name='username' autocomplete='username' required></label>"
+    body += "<label>Password<input type='password' name='password' autocomplete='current-password' required></label>"
+    body += "<button>Sign in</button></form></main></body></html>"
+    return body
+end
+
+export func dashboard(string username, string csrf, int articleCount, int categoryCount, int pendingCount) as string
+    string body = "<h1>Dashboard</h1><div class='stats'>"
+    body += "<a href='/admin/articles'><strong>" + articleCount.toString() + "</strong><span>Articles</span></a>"
+    body += "<a href='/admin/categories'><strong>" + categoryCount.toString() + "</strong><span>Categories</span></a>"
+    body += "<a href='/admin/comments?status=pending'><strong>" + pendingCount.toString() + "</strong><span>Pending comments</span></a></div>"
+    return layout("Dashboard", username, csrf, body)
+end
+
+export func categories(string username, string csrf, array rows, string message = "") as string
+    string body = "<div class='page-head'><h1>Categories</h1></div>"
+    if message != "" then body += "<div class='notice'>" + security.html(message) + "</div>" end
+    body += "<form class='panel' method='post' action='/admin/categories'><input type='hidden' name='csrf' value='" + security.attribute(csrf) + "'>"
+    body += "<input type='hidden' name='id' value='0'><h2>New category</h2>"
+    body += "<label>Name<input name='name' maxlength='100' required></label><label>Slug<input name='slug' maxlength='80'></label>"
+    body += "<label>Description<textarea name='description' maxlength='1000'></textarea></label><label>Sort order<input type='number' name='sortOrder' value='0'></label>"
+    body += "<label class='check'><input type='checkbox' name='enabled' value='1' checked> Enabled</label><button name='action' value='save'>Create</button></form>"
+    body += "<div class='table-wrap'><table><thead><tr><th>Name</th><th>Slug</th><th>Order</th><th>Enabled</th><th>Actions</th></tr></thead><tbody>"
+    for row in rows
+        int id = int(row["id"])
+        body += "<tr><td>" + security.html(string(row["name"])) + "</td><td>" + security.html(string(row["slug"])) + "</td>"
+        body += "<td>" + int(row["sort_order"]).toString() + "</td><td>" + (int(row["enabled"]) == 1 ? "yes" : "no") + "</td><td>"
+        body += "<details><summary>Edit</summary><form method='post' action='/admin/categories'><input type='hidden' name='csrf' value='" + security.attribute(csrf) + "'><input type='hidden' name='id' value='" + id.toString() + "'>"
+        body += "<input name='name' value='" + security.attribute(string(row["name"])) + "' required><input name='slug' value='" + security.attribute(string(row["slug"])) + "' required>"
+        body += "<textarea name='description'>" + security.html(string(row["description"])) + "</textarea><input type='number' name='sortOrder' value='" + int(row["sort_order"]).toString() + "'>"
+        body += "<label class='check'><input type='checkbox' name='enabled' value='1' " + (int(row["enabled"]) == 1 ? "checked" : "") + "> Enabled</label><button name='action' value='save'>Save</button>"
+        body += "<button class='danger' name='action' value='delete'>Delete</button></form></details></td></tr>"
+    end
+    body += "</tbody></table></div>"
+    return layout("Categories", username, csrf, body)
+end
+
+export func articles(string username, string csrf, array rows, string status = "") as string
+    string body = "<div class='page-head'><h1>Articles</h1><a class='button' href='/admin/article/edit'>New article</a></div>"
+    body += "<p><a href='/admin/articles'>All</a> · <a href='/admin/articles?status=draft'>Drafts</a> · <a href='/admin/articles?status=published'>Published</a></p>"
+    body += "<div class='table-wrap'><table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Updated</th><th></th></tr></thead><tbody>"
+    for row in rows
+        body += "<tr><td><a href='/admin/article/edit?id=" + int(row["id"]).toString() + "'>" + security.html(string(row["title"])) + "</a></td>"
+        body += "<td>" + security.html(string(row["category_name"])) + "</td><td>" + security.html(string(row["status"])) + "</td>"
+        body += "<td>" + dateText(int(row["updated_at"])) + "</td><td><form method='post' action='/admin/article/delete'><input type='hidden' name='csrf' value='" + security.attribute(csrf) + "'><input type='hidden' name='id' value='" + int(row["id"]).toString() + "'><button class='danger'>Delete</button></form></td></tr>"
+    end
+    body += "</tbody></table></div>"
+    return layout("Articles", username, csrf, body)
+end
+
+export func articleForm(string username, string csrf, var article, array categories) as string
+    int id = 0
+    int categoryId = 0
+    string title = ""
+    string slug = ""
+    string summary = ""
+    string markdown = ""
+    string status = "draft"
+    if article != null then
+        id = int(article["id"])
+        if article["category_id"] != null then categoryId = int(article["category_id"]) end
+        title = string(article["title"])
+        slug = string(article["slug"])
+        summary = string(article["summary"])
+        markdown = string(article["markdown"])
+        status = string(article["status"])
+    end
+    string body = "<h1>" + (id > 0 ? "Edit article" : "New article") + "</h1><form class='panel' method='post' action='/admin/article/save'>"
+    body += "<input type='hidden' name='csrf' value='" + security.attribute(csrf) + "'><input type='hidden' name='id' value='" + id.toString() + "'>"
+    body += "<label>Title<input name='title' maxlength='200' value='" + security.attribute(title) + "' required></label>"
+    body += "<label>Slug<input name='slug' maxlength='80' value='" + security.attribute(slug) + "'></label>"
+    body += "<label>Category<select name='categoryId'><option value='0'>Uncategorized</option>"
+    for category in categories
+        int optionId = int(category["id"])
+        body += "<option value='" + optionId.toString() + "' " + (optionId == categoryId ? "selected" : "") + ">" + security.html(string(category["name"])) + "</option>"
+    end
+    body += "</select></label><label>Summary<textarea name='summary' maxlength='1000'>" + security.html(summary) + "</textarea></label>"
+    body += "<label>Markdown<textarea class='editor' name='markdown' maxlength='200000' required>" + security.html(markdown) + "</textarea></label>"
+    body += "<label>Status<select name='status'><option value='draft' " + (status == "draft" ? "selected" : "") + ">Draft</option><option value='published' " + (status == "published" ? "selected" : "") + ">Published</option></select></label>"
+    body += "<button>Save article</button></form>"
+    return layout(id > 0 ? "Edit article" : "New article", username, csrf, body)
+end
+
+export func comments(string username, string csrf, array rows) as string
+    string body = "<h1>Comments and guestbook</h1><p><a href='/admin/comments'>All</a> · <a href='/admin/comments?status=pending'>Pending</a> · <a href='/admin/comments?status=visible'>Visible</a> · <a href='/admin/comments?status=hidden'>Hidden</a></p>"
+    for row in rows
+        body += "<article class='panel'><div class='meta'>" + security.html(string(row["target"])) + " · " + dateText(int(row["created_at"])) + " · " + security.html(string(row["status"])) + "</div>"
+        body += "<h3>" + security.html(string(row["author"])) + "</h3><p>" + string.replace(security.html(string(row["body"])), "\n", "<br>") + "</p>"
+        body += "<form class='inline' method='post' action='/admin/comment/action'><input type='hidden' name='csrf' value='" + security.attribute(csrf) + "'><input type='hidden' name='id' value='" + int(row["id"]).toString() + "'>"
+        body += "<button name='action' value='visible'>Approve</button><button name='action' value='hidden'>Hide</button><button class='danger' name='action' value='delete'>Delete</button></form>"
+        body += "<form class='inline' method='post' action='/admin/comment/action'><input type='hidden' name='csrf' value='" + security.attribute(csrf) + "'><input type='hidden' name='id' value='" + int(row["id"]).toString() + "'><input name='body' maxlength='4000' placeholder='Reply'><button name='action' value='reply'>Reply</button></form></article>"
+    end
+    return layout("Comments", username, csrf, body)
+end
+
+export func settings(string username, string csrf, var values, string message = "") as string
+    string body = "<h1>Site settings</h1>"
+    if message != "" then body += "<div class='notice'>" + security.html(message) + "</div>" end
+    body += "<form class='panel' method='post' action='/admin/settings'><input type='hidden' name='csrf' value='" + security.attribute(csrf) + "'>"
+    body += "<label>Site title<input name='title' maxlength='120' value='" + security.attribute(string(values["site.title"])) + "' required></label>"
+    body += "<label>Subtitle<input name='subtitle' maxlength='200' value='" + security.attribute(string(values["site.subtitle"])) + "'></label>"
+    body += "<label>Description<textarea name='description' maxlength='500'>" + security.html(string(values["site.description"])) + "</textarea></label>"
+    body += "<label>Posts per page<input type='number' min='1' max='100' name='postsPerPage' value='" + security.attribute(string(values["site.postsPerPage"])) + "'></label>"
+    body += "<label class='check'><input type='checkbox' name='moderation' value='1' " + (string(values["comments.moderation"]) == "true" ? "checked" : "") + "> Moderate new comments</label><button>Save settings</button></form>"
+    return layout("Settings", username, csrf, body)
+end
+
+export func audit(string username, string csrf, array rows) as string
+    string body = "<h1>Audit log</h1><div class='table-wrap'><table><thead><tr><th>Time</th><th>Admin</th><th>Action</th><th>Target</th><th>Address</th></tr></thead><tbody>"
+    for row in rows
+        body += "<tr><td>" + dateText(int(row["created_at"])) + "</td><td>" + security.html(string(row["username"])) + "</td><td>" + security.html(string(row["action"])) + "</td><td>" + security.html(string(row["target"])) + "</td><td>" + security.html(string(row["remote_address"])) + "</td></tr>"
+    end
+    body += "</tbody></table></div>"
+    return layout("Audit log", username, csrf, body)
+end
+

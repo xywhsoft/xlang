@@ -1,0 +1,26 @@
+import "./logging.xl"
+
+func verifyLog(string logPath)
+    auto runtimeLog = logging.open({
+        "level": "debug",
+        "console": false,
+        "file": logPath,
+        "rollingBytes": 4096,
+        "rollingFiles": 2
+    })
+    assert runtimeLog.ready(), runtimeLog.lastError()
+    runtimeLog.debug("debug-event")
+    runtimeLog.info("info-event")
+    runtimeLog.flush()
+    assert file.exists(logPath)
+    string content = file.readText(logPath)
+    assert string.contains(content, "debug-event") != 0
+    assert string.contains(content, "info-event") != 0
+end
+
+string root = path.join(path.temp(), path.random("xs2_log_", "", 10))
+string logPath = path.join(root, "xs.log")
+verifyLog(logPath)
+assert file.delete(logPath)
+assert dir.delete(root)
+println("xs2 logging test ok")

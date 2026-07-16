@@ -1174,6 +1174,34 @@ static int xl6StdlibNeedsHttpClientClass(const XL6_AstNode* root, const int* use
     return 0;
 }
 
+static int xl6StdlibNeedsHttpSemanticsClass(const XL6_AstNode* root)
+{
+    return xl6StdlibNodeUsesTypeName(root, "HttpHeaders") ||
+           xl6StdlibNodeUsesTypeName(root, "SearchParams") ||
+           xl6StdlibNodeUsesTypeName(root, "HttpContext") ||
+           xl6StdlibNodeUsesTypeName(root, "HttpBody") ||
+           xl6StdlibNodeUsesTypeName(root, "FormData") ||
+           xl6StdlibNodeUsesTypeName(root, "FormDataEncoded") ||
+           xl6StdlibNodeUsesTypeName(root, "CookieJar");
+}
+
+static int xl6StdlibNeedsWebSocketClass(const XL6_AstNode* root)
+{
+    static const char* names[] = {
+        "WebSocketCloseInfo", "WebSocketError", "WebSocketHandshakeMessage",
+        "WebSocketHandshakeResponse", "WebSocketWriter", "WebSocketClientOptions",
+        "WebSocketConnection", "WebSocketClient", "WebSocketServerOptions",
+        "WebSocketServer"
+    };
+    size_t i;
+    for ( i = 0; i < sizeof(names) / sizeof(names[0]); ++i ) {
+        if ( xl6StdlibNodeUsesTypeName(root, names[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static void xl6StdlibAppendFuncDecl(XL6_StdlibTextBuilder* builder, const XL6_StdlibFunc* func)
 {
     size_t i;
@@ -1261,6 +1289,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsCryptoClass;
     int needsHttpServerClass;
     int needsHttpClientClass;
+    int needsHttpSemanticsClass;
+    int needsWebSocketClass;
     int needsTccClass;
     int needsXlangClass;
     int ok;
@@ -1279,8 +1309,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsXidClass = xl6StdlibNeedsXidClass(root, used);
     needsHttpServerClass = xl6StdlibNeedsHttpServerClass(root, used);
     needsHttpClientClass = xl6StdlibNeedsHttpClientClass(root, used);
-    needsNetTlsClass = xl6StdlibNeedsNetTlsClass(root);
-    needsNetClass = xl6StdlibNeedsNetClass(root, used) || needsHttpClientClass;
+    needsHttpSemanticsClass = xl6StdlibNeedsHttpSemanticsClass(root) || needsHttpClientClass;
+    needsWebSocketClass = xl6StdlibNeedsWebSocketClass(root);
+    needsNetTlsClass = xl6StdlibNeedsNetTlsClass(root) || needsWebSocketClass;
+    needsNetClass = xl6StdlibNeedsNetClass(root, used) || needsHttpServerClass || needsHttpClientClass || needsWebSocketClass;
     needsFileInfoClass = xl6StdlibNeedsFileInfoClass(root, used);
     needsFileClass = xl6StdlibNeedsFileClass(root, used);
     needsAsyncFileClass = xl6StdlibNeedsAsyncFileClass(root, used);
@@ -1292,7 +1324,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsSignalClass = xl6StdlibNeedsSignalClass(root, used);
     needsTemplateClass = xl6StdlibNeedsTemplateClass(root, used);
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
-    needsBufferClass = xl6StdlibNeedsBufferClass(root, used) || needsNetClass || needsHttpServerClass || needsHttpClientClass || needsFileClass || needsAsyncFileClass || needsCryptoClass || needsProcessClass;
+    needsBufferClass = xl6StdlibNeedsBufferClass(root, used) || needsNetClass || needsHttpServerClass || needsHttpClientClass || needsHttpSemanticsClass || needsWebSocketClass || needsFileClass || needsAsyncFileClass || needsCryptoClass || needsProcessClass;
     needsTccClass = xl6StdlibNeedsTccClass(root, used);
     needsXlangClass = xl6StdlibNeedsXlangClass(root, used);
     if ( needsRegexClass ) {
@@ -1314,7 +1346,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( xl6StdlibFuncUsed(used, "signal", "cancelOn") ) {
         needsTaskGroupClass = 1;
     }
-    if ( needsRandomClass || needsXidClass || needsBufferClass || needsNetClass || needsFileClass || needsRegexClass || needsJsonClass || needsProcessClass || needsLoggerClass || needsHttpServerClass || needsHttpClientClass || needsTemplateClass || needsCryptoClass || needsXlangClass ) {
+    if ( needsRandomClass || needsXidClass || needsBufferClass || needsNetClass || needsFileClass || needsRegexClass || needsJsonClass || needsProcessClass || needsLoggerClass || needsHttpServerClass || needsHttpClientClass || needsHttpSemanticsClass || needsWebSocketClass || needsTemplateClass || needsCryptoClass || needsXlangClass ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
     }
     xl6StdlibApplyDeps(used);
@@ -1346,8 +1378,18 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCryptoClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibCryptoClassSource);
     }
+    if ( needsHttpSemanticsClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibHttpSemanticsClassSource);
+    }
+    if ( needsWebSocketClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibWebSocketClassSource);
+    }
     if ( needsHttpServerClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibHttpServerClassSource);
+        if ( needsWebSocketClass ) {
+            xl6StdlibBuilderAppend(&builder, xl6StdlibHttpServerWebSocketMethodSource);
+        }
+        xl6StdlibBuilderAppend(&builder, xl6StdlibHttpServerClassEndSource);
     }
     if ( needsHttpClientClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibHttpClientClassSource);

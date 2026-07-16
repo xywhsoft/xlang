@@ -1,0 +1,34 @@
+import "./handler_runtime.xl"
+
+string root = path.abs("projects/xs")
+auto slot = handler_runtime.open(
+    path.join(root, "tests/handlers/slow_c.c"),
+    root,
+    path.join(root, "include"),
+    1,
+    1,
+    20,
+    40)
+assert slot.ready(), slot.lastError
+
+func() as int worker = func() as int
+    Buffer response = Buffer(32)
+    return slot.call(1, "fault", "/slow", "slow", response)
+end
+future<int> active = task.spawn(worker)
+time.sleep(10)
+
+Buffer queuedResponse = Buffer(32)
+int queued = slot.call(1, "fault", "/queued", "fast", queuedResponse)
+assert queued == 6, "queued call must stop at queue timeout"
+assert await active == 6, "slow call must stop at execution deadline"
+
+Buffer recovered = Buffer(32)
+assert slot.call(1, "fault", "/recovered", "fast", recovered) == 0, "pool did not recover after timeout"
+assert recovered.text() == "ready", "recovered handler response mismatch"
+
+Buffer invalid = Buffer(32)
+assert slot.call(1, "fault", "/invalid", "invalid", invalid) == 1, "invalid handler result must map to error"
+assert invalid.length == 0, "invalid handler result must clear output"
+
+println("xs2 handler fault test ok")

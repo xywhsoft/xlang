@@ -1,0 +1,410 @@
+import "./handler_runtime.xl"
+
+// ============================================================
+// HTTP route generation
+// ============================================================
+
+func xs2HttpAddRoutes(
+    point app,
+    var routes,
+    string serviceName,
+    var runtimeConfig,
+    string includeDir,
+    array<func() as bool> reloadCallbacks,
+    array<func() as point> prepareReloadCallbacks,
+    array<func(point) as bool> commitReloadCallbacks,
+    array<func(point) as bool> discardReloadCallbacks,
+    array<func() as string> errorCallbacks) as string
+    for _, route in routes
+        string kind = string(route["kind"])
+        string pattern = string(route["pattern"])
+        if kind == "static" then
+            bool added = http.server.appStaticEx(
+                app,
+                pattern,
+                string(route["root"]),
+                string(route["indexNames"]),
+                string(route["cacheControl"]),
+                int(route["chunkSize"]),
+                int(route["flags"]))
+            if not added then
+                return "cannot register static route " + pattern
+            end
+            continue
+        end
+
+        var handler = route["handler"]
+        int poolSize = int(handler["poolSize"])
+        int queueCapacity = int(handler["queueLimit"])
+        if poolSize <= 0 then
+            poolSize = int(runtimeConfig["handlerPoolSize"])
+        end
+        if queueCapacity <= 0 then
+            queueCapacity = int(runtimeConfig["handlerQueueLimit"])
+        end
+
+        auto binding = handler_runtime.openHttpRoute(
+            string(handler["path"]),
+            string(runtimeConfig["workDir"]),
+            includeDir,
+            poolSize,
+            queueCapacity,
+            int(handler["queueTimeoutMs"]),
+            int(handler["timeoutMs"]),
+            serviceName,
+            string(route["name"]),
+            string(route["contentType"]))
+        if not binding.ready() then
+            return "cannot compile route " + string(route["name"]) + ": " + binding.error()
+        end
+
+        func(point, point) as bool callback = binding.callback()
+        if not http.server.appRouteRequest(
+            app,
+            string(route["method"]),
+            pattern,
+            callback) then
+            return "cannot register handler route " + pattern
+        end
+        reloadCallbacks.append(binding.reloadCallback())
+        prepareReloadCallbacks.append(binding.prepareReloadCallback())
+        commitReloadCallbacks.append(binding.commitReloadCallback())
+        discardReloadCallbacks.append(binding.discardReloadCallback())
+        errorCallbacks.append(binding.errorCallback())
+    end
+    return ""
+end
+
+// ============================================================
+// HTTP/HTTPS service
+// ============================================================
+
+class HttpService
+    point server = null
+    string name = ""
+    string error = ""
+    int shutdownTimeoutMs = 10000
+    array<func() as bool> reloadCallbacks = []
+    array<func() as point> prepareReloadCallbacks = []
+    array<func(point) as bool> commitReloadCallbacks = []
+    array<func(point) as bool> discardReloadCallbacks = []
+    array<func() as string> errorCallbacks = []
+    array<point> preparedReloads = []
+    bool running = false
+    bool valid = false
+
+    create(var serviceConfig, var runtimeConfig, string includeDir)
+        self.name = string(serviceConfig["name"])
+        self.shutdownTimeoutMs = int(runtimeConfig["shutdownTimeoutMs"])
+        self.reloadCallbacks = []
+        self.prepareReloadCallbacks = []
+        self.commitReloadCallbacks = []
+        self.discardReloadCallbacks = []
+        self.errorCallbacks = []
+        self.preparedReloads = []
+
+        if bool(serviceConfig["tls"]) then
+            self.server = http.server.createTls(
+                string(serviceConfig["certFile"]),
+                string(serviceConfig["keyFile"]),
+                int(serviceConfig["port"]),
+                string(serviceConfig["host"]),
+                int(serviceConfig["backlog"]),
+                int(serviceConfig["recvLimit"]),
+                int(serviceConfig["bodyLimit"]),
+                int(serviceConfig["headerLimit"]),
+                int(serviceConfig["headerBytesLimit"]),
+                int(serviceConfig["workerCount"]),
+                int(serviceConfig["headerTimeoutMs"]),
+                int(serviceConfig["bodyTimeoutMs"]),
+                int(serviceConfig["idleTimeoutMs"]),
+                int(serviceConfig["writeTimeoutMs"]))
+        else
+            self.server = http.server.create(
+                int(serviceConfig["port"]),
+                string(serviceConfig["host"]),
+                int(serviceConfig["backlog"]),
+                int(serviceConfig["recvLimit"]),
+                int(serviceConfig["bodyLimit"]),
+                int(serviceConfig["headerLimit"]),
+                int(serviceConfig["headerBytesLimit"]),
+                int(serviceConfig["workerCount"]),
+                int(serviceConfig["headerTimeoutMs"]),
+                int(serviceConfig["bodyTimeoutMs"]),
+                int(serviceConfig["idleTimeoutMs"]),
+                int(serviceConfig["writeTimeoutMs"]))
+        end
+        if self.server == null then
+            self.error = "cannot create HTTP server " + self.name
+            return
+        end
+
+        point defaultApp = http.server.app()
+        if defaultApp == null then
+            self.error = "cannot create default HTTP app " + self.name
+            return
+        end
+        string routeError = xs2HttpAddRoutes(
+            defaultApp,
+            serviceConfig["routes"],
+            self.name,
+            runtimeConfig,
+            includeDir,
+            self.reloadCallbacks,
+            self.prepareReloadCallbacks,
+            self.commitReloadCallbacks,
+            self.discardReloadCallbacks,
+            self.errorCallbacks)
+        if routeError != "" then
+            self.error = routeError
+            http.server.destroyApp(defaultApp)
+            return
+        end
+        if not http.server.setApp(self.server, defaultApp) then
+            self.error = "cannot install default app for " + self.name
+            http.server.destroyApp(defaultApp)
+            return
+        end
+        http.server.destroyApp(defaultApp)
+
+        for _, hostConfig in serviceConfig["hosts"]
+            point hostApp = http.server.app()
+            if hostApp == null then
+                self.error = "cannot create virtual host app " + string(hostConfig["name"])
+                return
+            end
+            routeError = xs2HttpAddRoutes(
+                hostApp,
+                hostConfig["routes"],
+                self.name + ":" + string(hostConfig["name"]),
+                runtimeConfig,
+                includeDir,
+                self.reloadCallbacks,
+                self.prepareReloadCallbacks,
+                self.commitReloadCallbacks,
+                self.discardReloadCallbacks,
+                self.errorCallbacks)
+            if routeError != "" then
+                self.error = routeError
+                http.server.destroyApp(hostApp)
+                return
+            end
+
+            string hostPattern = string(hostConfig["pattern"])
+            if not http.server.host(self.server, hostPattern, hostApp) then
+                self.error = "cannot register virtual host " + hostPattern
+                http.server.destroyApp(hostApp)
+                return
+            end
+            if string(hostConfig["certFile"]) != "" then
+                if not http.server.tlsHost(
+                    self.server,
+                    hostPattern,
+                    string(hostConfig["certFile"]),
+                    string(hostConfig["keyFile"])) then
+                    self.error = "cannot register virtual host certificate " + hostPattern
+                    http.server.removeHost(self.server, hostPattern)
+                    http.server.destroyApp(hostApp)
+                    return
+                end
+            end
+            http.server.destroyApp(hostApp)
+        end
+        self.valid = true
+    end
+
+    destroy()
+        self.discardPreparedReload()
+        if self.server != null then
+            if self.running then
+                http.server.drain(self.server, self.shutdownTimeoutMs)
+                http.server.stop(self.server)
+                self.running = false
+            end
+            http.server.destroy(self.server)
+            self.server = null
+        end
+    end
+
+    func ready() as bool
+        return self.valid and self.server != null
+    end
+
+    func lastError() as string
+        return self.error
+    end
+
+    func start() as bool
+        if not self.ready() then
+            return false
+        end
+        if self.running then
+            return true
+        end
+        self.running = http.server.start(self.server)
+        if not self.running then
+            self.error = "cannot start HTTP service " + self.name
+        end
+        return self.running
+    end
+
+    func stop() as bool
+        if self.server == null or not self.running then
+            return true
+        end
+        bool drained = http.server.drain(self.server, self.shutdownTimeoutMs)
+        http.server.stop(self.server)
+        self.running = false
+        if not drained then
+            self.error = "HTTP service drain timed out: " + self.name
+        end
+        return drained
+    end
+
+    func reloadHandlers() as bool
+        if not self.prepareReload() then return false end
+        if self.commitPreparedReload() then return true end
+        self.discardPreparedReload()
+        return false
+    end
+
+    func prepareReload() as bool
+        self.discardPreparedReload()
+        int index = 0
+        while index < int(self.prepareReloadCallbacks.length) do
+            func() as point prepareOne = self.prepareReloadCallbacks[index]
+            point prepared = prepareOne()
+            if prepared == null then
+                func() as string getError = self.errorCallbacks[index]
+                self.error = "handler reload preparation failed: " + getError()
+                self.discardPreparedReload()
+                return false
+            end
+            self.preparedReloads.append(prepared)
+            index += 1
+        end
+        self.error = ""
+        return true
+    end
+
+    func commitPreparedReload() as bool
+        if self.preparedReloads.length != self.commitReloadCallbacks.length then
+            self.error = "handler reload was not prepared"
+            return false
+        end
+        int index = 0
+        while index < int(self.preparedReloads.length) do
+            func(point) as bool commitOne = self.commitReloadCallbacks[index]
+            if not commitOne(self.preparedReloads[index]) then
+                func() as string getError = self.errorCallbacks[index]
+                self.error = "handler reload commit failed: " + getError()
+                return false
+            end
+            self.preparedReloads[index] = null
+            index += 1
+        end
+        self.preparedReloads = []
+        self.error = ""
+        return true
+    end
+
+    func discardPreparedReload() as bool
+        int index = 0
+        while index < int(self.preparedReloads.length) do
+            func(point) as bool discardOne = self.discardReloadCallbacks[index]
+            discardOne(self.preparedReloads[index])
+            index += 1
+        end
+        self.preparedReloads = []
+        return true
+    end
+
+    func port() as int
+        if self.server == null then
+            return 0
+        end
+        return http.server.port(self.server)
+    end
+
+    func requestCount() as int
+        if self.server == null then return 0 end
+        return http.server.requestCount(self.server)
+    end
+
+    func connectionCount() as int
+        if self.server == null then return 0 end
+        return http.server.connectionCount(self.server)
+    end
+
+    func startCallback() as func() as bool
+        HttpService service = self
+        return func() as bool
+            return service.start()
+        end
+    end
+
+    func stopCallback() as func() as bool
+        HttpService service = self
+        return func() as bool
+            return service.stop()
+        end
+    end
+
+    func reloadCallback() as func() as bool
+        HttpService service = self
+        return func() as bool
+            return service.reloadHandlers()
+        end
+    end
+
+    func prepareReloadCallback() as func() as bool
+        HttpService service = self
+        return func() as bool
+            return service.prepareReload()
+        end
+    end
+
+    func commitReloadCallback() as func() as bool
+        HttpService service = self
+        return func() as bool
+            return service.commitPreparedReload()
+        end
+    end
+
+    func discardReloadCallback() as func() as bool
+        HttpService service = self
+        return func() as bool
+            return service.discardPreparedReload()
+        end
+    end
+
+    func errorCallback() as func() as string
+        HttpService service = self
+        return func() as string
+            return service.lastError()
+        end
+    end
+
+    func portCallback() as func() as int
+        HttpService service = self
+        return func() as int
+            return service.port()
+        end
+    end
+
+    func statusCallback() as func() as string
+        HttpService service = self
+        return func() as string
+            return json.stringify({
+                "running": service.running,
+                "port": service.port(),
+                "requests": service.requestCount(),
+                "connections": service.connectionCount()
+            })
+        end
+    end
+end
+
+export func open(var serviceConfig, var runtimeConfig, string includeDir) as HttpService
+    return HttpService(serviceConfig, runtimeConfig, includeDir)
+end

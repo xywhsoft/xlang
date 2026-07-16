@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "runtime": {"shutdownTimeoutMs": "fast"},
+  "services": [
+    {"type": "http", "name": "web", "host": "127.0.0.1", "port": 0, "routes": []}
+  ]
+}

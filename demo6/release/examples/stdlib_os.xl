@@ -1,24 +1,24 @@
-println("platform=", os.platform())
+println("platform=" + os.platform())
 array args = os.args()
-println("args_count=", args.length)
+println("args_count=" + args.length.toString())
 if args.length > 0 then
-    println("args0=", string(args[0]))
+    println("args0=" + string(args[0]))
 end
-println("cwd=", os.cwd())
-println("set_cwd=", os.setCwd(os.cwd()))
-println("missing_env=", os.env("__XLANG_DEMO6_MISSING_ENV__", "fallback"))
-println("exec=", string.trim(os.exec("cmd /c echo os-example")))
+println("cwd=" + os.cwd())
+println("set_cwd=" + os.setCwd(os.cwd()).toString())
+println("missing_env=" + os.env("__XLANG_DEMO6_MISSING_ENV__", "fallback"))
+println("exec=" + string.trim(os.exec("cmd /c echo os-example")))
 
 ProcessResult result = os.run("cmd /c echo os-run")
-println("run_success=", result.success)
-println("run_stdout=", string.trim(result.stdout))
+println("run_success=" + result.success.toString())
+println("run_stdout=" + string.trim(result.stdout))
 
 Process started = os.start("cmd /c echo os-start")
 started.wait(5000)
-println("start_exit=", started.exitCode)
+println("start_exit=" + started.exitCode.toString())
 
 Process startedFile = os.startFile("cmd", ["/c", "echo", "os-start-file"])
 startedFile.wait(5000)
-println("start_file_exit=", startedFile.exitCode)
+println("start_file_exit=" + startedFile.exitCode.toString())
 
-println("chain_exit=", os.chain("cmd /c exit /b 0"))
+println("chain_exit=" + os.chain("cmd /c exit /b 0").toString())

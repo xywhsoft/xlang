@@ -13,13 +13,37 @@
 
 ## 运行
 
-从 `demo6/release` 目录执行：
+最简单的启动方式是在任意目录执行：
+
+```bat
+D:\GIT\x-lang\demo6\release\projects\xs\start.bat
+```
+
+检查配置或短时启动：
+
+```bat
+D:\GIT\x-lang\demo6\release\projects\xs\start.bat --check
+D:\GIT\x-lang\demo6\release\projects\xs\start.bat --status
+D:\GIT\x-lang\demo6\release\projects\xs\start.bat --duration 10000
+```
+
+也可以从 `demo6/release` 目录直接使用 `xl`：
 
 ```bat
 xl run projects\xs\xs.xl -- --check
 xl run projects\xs\xs.xl -- --status
 xl run projects\xs\xs.xl -- --duration 10000
 ```
+
+从 `projects/xs` 目录执行时可简写为：
+
+```bat
+xl run xs.xl -- --check
+xl run xs.xl
+```
+
+默认配置文件根据 `xs.xl` 或构建后的 `xs.exe` 入口路径定位，不依赖当前工作目录。
+配置中的 handler、静态目录、证书和日志路径均相对配置文件所在目录解析。
 
 默认端口：HTTP `18080`、TCP `18081`、UDP `18082`。
 
