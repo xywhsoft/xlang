@@ -188,8 +188,10 @@ static int xl__runtimeContextCount = 0;
 #define XL_TCC_VFS_C_MODULE_C "__xlvfs__/c_module.c"
 #define XL_TCC_VFS_RUNTIME_C "__xlvfs__/runtime.c"
 #define XL_TCC_VFS_XRT_C "__xlvfs__/xrt_impl.c"
-/* 官方大型 C 库通常包含上百个独立编译单元，限制只负责阻止异常输入。 */
+/* 官方大型 C 库通常包含上百个独立编译单元，上限只负责阻止异常输入。 */
+#ifndef XLC_MAX_C_SOURCE_FILES
 #define XLC_MAX_C_SOURCE_FILES 256
+#endif
 #define XLC_MAX_RESOURCE_FILES 32
 
 /* DLL API 会修改全局 TCC 状态和进程 cwd，公开入口必须串行化。 */

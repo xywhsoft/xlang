@@ -1,6 +1,9 @@
 @echo off
 cd /d "%~dp0\..\.."
 
+rem Enable command echo explicitly while debugging a suite.
+if "%XL6_TRACE_TESTS%"=="1" echo on
+
 if not defined XLANG_PACKAGE_PATH set "XLANG_PACKAGE_PATH=release\extlibs;test\fixtures"
 
 if "%XL6_SUITE_PREPARED%"=="1" exit /b 0

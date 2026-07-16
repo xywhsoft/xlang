@@ -131,6 +131,30 @@ static void xl6XrtTrimKeepHttpClientStack(XL6_XrtTrimConfig* cfg)
     cfg->keepNetTls = 1;
 }
 
+static void xl6XrtTrimKeepHttpSemanticsStack(XL6_XrtTrimConfig* cfg)
+{
+    if ( cfg == NULL ) {
+        return;
+    }
+    xl6XrtTrimKeepNetworkStack(cfg);
+    cfg->keepXUrl = 1;
+    cfg->keepHttpUtil = 1;
+}
+
+static void xl6XrtTrimKeepWebSocketStack(XL6_XrtTrimConfig* cfg)
+{
+    if ( cfg == NULL ) {
+        return;
+    }
+    xl6XrtTrimKeepNetworkStack(cfg);
+    cfg->keepXUrl = 1;
+    cfg->keepHttpUtil = 1;
+    cfg->keepXCodec = 1;
+    cfg->keepXWs = 1;
+    cfg->keepCrypto = 1;
+    cfg->keepNetTls = 1;
+}
+
 static void xl6XrtTrimKeepCoroutineStack(XL6_XrtTrimConfig* cfg)
 {
     if ( cfg == NULL ) {
@@ -246,6 +270,22 @@ static void xl6XrtTrimScanText(XL6_XrtTrimConfig* cfg, const char* text)
          strcmp(text, "HttpClientRequest") == 0 ||
          strcmp(text, "HttpClientResponse") == 0 ) {
         xl6XrtTrimKeepHttpClientStack(cfg);
+    }
+    if ( xl6XrtTrimTextStartsWith(text, "xl6_xrt_http_headers_") ||
+         xl6XrtTrimTextStartsWith(text, "xl6_xrt_http_search_params_") ||
+         xl6XrtTrimTextStartsWith(text, "xl6_xrt_http_context_") ||
+         xl6XrtTrimTextStartsWith(text, "xl6_xrt_http_body_") ||
+         xl6XrtTrimTextStartsWith(text, "xl6_xrt_http_form_") ||
+         xl6XrtTrimTextStartsWith(text, "xl6_xrt_http_cookie_jar_") ||
+         strcmp(text, "HttpHeaders") == 0 || strcmp(text, "SearchParams") == 0 ||
+         strcmp(text, "HttpContext") == 0 || strcmp(text, "HttpBody") == 0 ||
+         strcmp(text, "FormData") == 0 || strcmp(text, "FormDataEncoded") == 0 ||
+         strcmp(text, "CookieJar") == 0 ) {
+        xl6XrtTrimKeepHttpSemanticsStack(cfg);
+    }
+    if ( xl6XrtTrimTextStartsWith(text, "xl6_xrt_ws_") ||
+         xl6XrtTrimTextStartsWith(text, "WebSocket") ) {
+        xl6XrtTrimKeepWebSocketStack(cfg);
     }
     if ( xl6XrtTrimTextStartsWith(text, "__xl_std_runtime_url_") ) {
         xl6XrtTrimKeepUrlStack(cfg);
@@ -528,6 +568,12 @@ static void xl6XrtTrimApplyBasicNeeds(XL6_XrtTrimConfig* cfg, const XL6_AstNode*
     }
     if ( xl6CgenNodeNeedsHttpClientRuntime(root) ) {
         xl6XrtTrimKeepHttpClientStack(cfg);
+    }
+    if ( xl6CgenNodeNeedsHttpSemanticsRuntime(root) ) {
+        xl6XrtTrimKeepHttpSemanticsStack(cfg);
+    }
+    if ( xl6CgenNodeNeedsWebSocketRuntime(root) ) {
+        xl6XrtTrimKeepWebSocketStack(cfg);
     }
     if ( xl6CgenNodeNeedsLogRuntime(root) ) {
         cfg->keepLogger = 1;

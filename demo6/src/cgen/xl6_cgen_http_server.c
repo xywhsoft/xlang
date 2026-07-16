@@ -725,19 +725,29 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("    return xl6_xrt_buffer_from_view_bytes(data, size);\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("void* xl6_xrt_http_server_create(const char* host, int port, uint32_t backlog, uint32_t recvLimit, uint32_t bodyLimit, uint32_t headerLimit, uint32_t headerBytesLimit, uint32_t workerCount, uint32_t headerTimeoutMs, uint32_t bodyTimeoutMs, uint32_t idleTimeoutMs, uint32_t writeTimeoutMs, uint32_t multipartPartLimit, uint32_t multipartPartSizeLimit)\n", out);
+    xl6OutputPuts("static void* xl6_xrt_http_server_create_core(xnetengine* engine, const char* host, int port, uint32_t backlog, uint32_t recvLimit, uint32_t bodyLimit, uint32_t headerLimit, uint32_t headerBytesLimit, uint32_t workerCount, uint32_t headerTimeoutMs, uint32_t bodyTimeoutMs, uint32_t idleTimeoutMs, uint32_t writeTimeoutMs, uint32_t multipartPartLimit, uint32_t multipartPartSizeLimit)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_Http_Server* self;\n", out);
     xl6OutputPuts("    if ( port < 0 || port > 65535 ) { return 0; }\n", out);
     xl6OutputPuts("    self = (XL6_Http_Server*)xrtMalloc(sizeof(XL6_Http_Server));\n", out);
     xl6OutputPuts("    if ( self == 0 ) { return 0; }\n", out);
     xl6OutputPuts("    memset(self, 0, sizeof(*self));\n", out);
-    xl6OutputPuts("    self->server = xrtWebServerCreateHostFullEx(0, (host != 0 && host[0] != 0) ? host : \"127.0.0.1\", (uint16_t)port, backlog, recvLimit, bodyLimit, headerLimit, headerBytesLimit, workerCount, headerTimeoutMs, bodyTimeoutMs, idleTimeoutMs, writeTimeoutMs, multipartPartLimit, multipartPartSizeLimit);\n", out);
+    xl6OutputPuts("    self->server = xrtWebServerCreateHostFullEx(engine, (host != 0 && host[0] != 0) ? host : \"127.0.0.1\", (uint16_t)port, backlog, recvLimit, bodyLimit, headerLimit, headerBytesLimit, workerCount, headerTimeoutMs, bodyTimeoutMs, idleTimeoutMs, writeTimeoutMs, multipartPartLimit, multipartPartSizeLimit);\n", out);
     xl6OutputPuts("    if ( self->server == 0 ) { xrtFree(self); return 0; }\n", out);
     xl6OutputPuts("    return self;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("void* xl6_xrt_http_server_create_tls(const char* certFile, const char* keyFile, const char* host, int port, uint32_t backlog, uint32_t recvLimit, uint32_t bodyLimit, uint32_t headerLimit, uint32_t headerBytesLimit, uint32_t workerCount, uint32_t headerTimeoutMs, uint32_t bodyTimeoutMs, uint32_t idleTimeoutMs, uint32_t writeTimeoutMs, uint32_t multipartPartLimit, uint32_t multipartPartSizeLimit)\n", out);
+    xl6OutputPuts("void* xl6_xrt_http_server_create(const char* host, int port, uint32_t backlog, uint32_t recvLimit, uint32_t bodyLimit, uint32_t headerLimit, uint32_t headerBytesLimit, uint32_t workerCount, uint32_t headerTimeoutMs, uint32_t bodyTimeoutMs, uint32_t idleTimeoutMs, uint32_t writeTimeoutMs, uint32_t multipartPartLimit, uint32_t multipartPartSizeLimit)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_xrt_http_server_create_core(0, host, port, backlog, recvLimit, bodyLimit, headerLimit, headerBytesLimit, workerCount, headerTimeoutMs, bodyTimeoutMs, idleTimeoutMs, writeTimeoutMs, multipartPartLimit, multipartPartSizeLimit);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_server_create_engine(void* engine, const char* host, int port, uint32_t backlog, uint32_t recvLimit, uint32_t bodyLimit, uint32_t headerLimit, uint32_t headerBytesLimit, uint32_t workerCount, uint32_t headerTimeoutMs, uint32_t bodyTimeoutMs, uint32_t idleTimeoutMs, uint32_t writeTimeoutMs, uint32_t multipartPartLimit, uint32_t multipartPartSizeLimit)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return engine != 0 ? xl6_xrt_http_server_create_core((xnetengine*)engine, host, port, backlog, recvLimit, bodyLimit, headerLimit, headerBytesLimit, workerCount, headerTimeoutMs, bodyTimeoutMs, idleTimeoutMs, writeTimeoutMs, multipartPartLimit, multipartPartSizeLimit) : 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void* xl6_xrt_http_server_create_tls_core(xnetengine* engine, const char* certFile, const char* keyFile, const char* host, int port, uint32_t backlog, uint32_t recvLimit, uint32_t bodyLimit, uint32_t headerLimit, uint32_t headerBytesLimit, uint32_t workerCount, uint32_t headerTimeoutMs, uint32_t bodyTimeoutMs, uint32_t idleTimeoutMs, uint32_t writeTimeoutMs, uint32_t multipartPartLimit, uint32_t multipartPartSizeLimit)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_Http_Server* self;\n", out);
     xl6OutputPuts("    if ( certFile == 0 || certFile[0] == 0 || keyFile == 0 || keyFile[0] == 0 ) { return 0; }\n", out);
@@ -745,9 +755,19 @@ static void xl6CgenEmitHttpServerRuntime(XL6_Output* out)
     xl6OutputPuts("    self = (XL6_Http_Server*)xrtMalloc(sizeof(XL6_Http_Server));\n", out);
     xl6OutputPuts("    if ( self == 0 ) { return 0; }\n", out);
     xl6OutputPuts("    memset(self, 0, sizeof(*self));\n", out);
-    xl6OutputPuts("    self->server = xrtWebServerCreateHostTlsFullEx(0, certFile, keyFile, (host != 0 && host[0] != 0) ? host : \"127.0.0.1\", (uint16_t)port, backlog, recvLimit, bodyLimit, headerLimit, headerBytesLimit, workerCount, headerTimeoutMs, bodyTimeoutMs, idleTimeoutMs, writeTimeoutMs, multipartPartLimit, multipartPartSizeLimit);\n", out);
+    xl6OutputPuts("    self->server = xrtWebServerCreateHostTlsFullEx(engine, certFile, keyFile, (host != 0 && host[0] != 0) ? host : \"127.0.0.1\", (uint16_t)port, backlog, recvLimit, bodyLimit, headerLimit, headerBytesLimit, workerCount, headerTimeoutMs, bodyTimeoutMs, idleTimeoutMs, writeTimeoutMs, multipartPartLimit, multipartPartSizeLimit);\n", out);
     xl6OutputPuts("    if ( self->server == 0 ) { xrtFree(self); return 0; }\n", out);
     xl6OutputPuts("    return self;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_server_create_tls(const char* certFile, const char* keyFile, const char* host, int port, uint32_t backlog, uint32_t recvLimit, uint32_t bodyLimit, uint32_t headerLimit, uint32_t headerBytesLimit, uint32_t workerCount, uint32_t headerTimeoutMs, uint32_t bodyTimeoutMs, uint32_t idleTimeoutMs, uint32_t writeTimeoutMs, uint32_t multipartPartLimit, uint32_t multipartPartSizeLimit)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_xrt_http_server_create_tls_core(0, certFile, keyFile, host, port, backlog, recvLimit, bodyLimit, headerLimit, headerBytesLimit, workerCount, headerTimeoutMs, bodyTimeoutMs, idleTimeoutMs, writeTimeoutMs, multipartPartLimit, multipartPartSizeLimit);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void* xl6_xrt_http_server_create_tls_engine(void* engine, const char* certFile, const char* keyFile, const char* host, int port, uint32_t backlog, uint32_t recvLimit, uint32_t bodyLimit, uint32_t headerLimit, uint32_t headerBytesLimit, uint32_t workerCount, uint32_t headerTimeoutMs, uint32_t bodyTimeoutMs, uint32_t idleTimeoutMs, uint32_t writeTimeoutMs, uint32_t multipartPartLimit, uint32_t multipartPartSizeLimit)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return engine != 0 ? xl6_xrt_http_server_create_tls_core((xnetengine*)engine, certFile, keyFile, host, port, backlog, recvLimit, bodyLimit, headerLimit, headerBytesLimit, workerCount, headerTimeoutMs, bodyTimeoutMs, idleTimeoutMs, writeTimeoutMs, multipartPartLimit, multipartPartSizeLimit) : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_http_app_create(void)\n", out);

@@ -885,7 +885,7 @@ static int xlcShellProjectLoad(const char* path, XLC_ShellProject* project)
 static int xlcShellOptionTakesValue(const char* arg);
 
 /* 与 DLL 编译 API 保持一致，允许直接编译官方库的完整源文件清单。 */
-#define XLC_SHELL_MAX_C_INPUTS 256
+#define XLC_SHELL_MAX_C_INPUTS XLC_MAX_C_SOURCE_FILES
 
 static int xlcShellCollectCInputs(int argc, char** argv, const char** inputs, int maxInputs, int* outCount)
 {

@@ -2,6 +2,7 @@
 setlocal
 call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
+if "%XL6_TRACE_TESTS%"=="1" echo on
 echo Running DEMO6 suite: extended standard library...
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=(Resolve-Path 'build\test').Path; for($i=0; $i -lt 20; $i++){ $left=@(Get-ChildItem -LiteralPath $root -Filter 'stdlib_*.exe' -File); if($left.Count -eq 0){ break }; foreach($f in $left){ Remove-Item -LiteralPath $f.FullName -Force -ErrorAction SilentlyContinue }; if($i -lt 19){ Start-Sleep -Milliseconds 250 } }; $left=@(Get-ChildItem -LiteralPath $root -Filter 'stdlib_*.exe' -File); if($left.Count -gt 0){ Write-Host 'stdlib test executables are still present before build.'; $left.FullName; exit 1 }"
@@ -735,7 +736,7 @@ findstr /C:"stdlib_os=ok" build\test\stdlib_os.out.txt >nul
 if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\stdlib_os.xl > build\test\stdlib_os_example.out.txt
 if errorlevel 1 exit /b 1
-findstr /C:"missing_env= fallback" build\test\stdlib_os_example.out.txt >nul
+findstr /C:"missing_env=fallback" build\test\stdlib_os_example.out.txt >nul
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_process.xl
@@ -919,11 +920,23 @@ for %%L in (
         exit /b 1
     )
 )
+release\xl.exe run release\examples\stdlib_http_client_c.c > build\test\stdlib_http_client_c_xl_run.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"http_diagnostics=ok" build\test\stdlib_http_client_c_xl_run.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_http_client_c_xl_run.out.txt missing HTTP diagnostics verification.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\stdlib_http_server.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_http_server.xl --emit build\test\stdlib_http_server.c
 if errorlevel 1 exit /b 1
+findstr /C:"#define XL6_WEBSOCKET_RUNTIME" build\test\stdlib_http_server.c >nul
+if not errorlevel 1 (
+    echo stdlib_http_server.c unexpectedly contains WebSocket runtime.
+    exit /b 1
+)
 findstr /C:"xwebserver* xrtWebServerCreate" build\test\stdlib_http_server.c >nul
 if errorlevel 1 (
     echo stdlib_http_server.c missing xrtWebServerCreate runtime prototype.
@@ -1091,6 +1104,58 @@ cmd /c release\projects\xs\test_smoke.bat
 if errorlevel 1 exit /b 1
 
 :after_deferred_http
+
+release\xl.exe run test\cases\stdlib_http_semantics.xl > build\test\stdlib_http_semantics.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"stdlib http semantics ok" build\test\stdlib_http_semantics.out.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_websocket.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_websocket.xl --emit build\test\stdlib_websocket.c
+if errorlevel 1 exit /b 1
+findstr /C:"#define XL6_WEBSOCKET_RUNTIME" build\test\stdlib_websocket.c >nul
+if errorlevel 1 (
+    echo stdlib_websocket.c missing WebSocket runtime.
+    exit /b 1
+)
+release\xl.exe run test\cases\stdlib_websocket.xl > build\test\stdlib_websocket.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"stdlib websocket ok" build\test\stdlib_websocket.out.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_websocket_http_upgrade.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_websocket_http_upgrade.xl --emit build\test\stdlib_websocket_http_upgrade.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_http_response_upgrade_websocket" build\test\stdlib_websocket_http_upgrade.c >nul
+if errorlevel 1 (
+    echo stdlib_websocket_http_upgrade.c missing shared HTTP Upgrade bridge.
+    exit /b 1
+)
+findstr /C:"xrtWebServerCreateHostFullEx((xnetengine*)engine" build\test\stdlib_websocket_http_upgrade.c >nul
+if errorlevel 1 (
+    echo stdlib_websocket_http_upgrade.c missing shared NetEngine HTTP server path.
+    exit /b 1
+)
+release\xl.exe run test\cases\stdlib_websocket_http_upgrade.xl > build\test\stdlib_websocket_http_upgrade.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"stdlib websocket http upgrade ok" build\test\stdlib_websocket_http_upgrade.out.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_websocket_tls.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_websocket_tls.xl --emit build\test\stdlib_websocket_tls.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_tls_lease_create" build\test\stdlib_websocket_tls.c >nul
+if errorlevel 1 (
+    echo stdlib_websocket_tls.c missing TLS lease runtime.
+    exit /b 1
+)
+release\xl.exe run test\cases\stdlib_websocket_tls.xl > build\test\stdlib_websocket_tls.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"stdlib websocket tls ok" build\test\stdlib_websocket_tls.out.txt >nul
+if errorlevel 1 exit /b 1
 
 release\xl.exe run test\cases\stdlib_tcc_import_only.xl > build\test\stdlib_tcc_import_only.out.txt
 if errorlevel 1 exit /b 1

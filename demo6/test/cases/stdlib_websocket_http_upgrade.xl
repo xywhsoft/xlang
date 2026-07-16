@@ -1,0 +1,80 @@
+WebSocketServer sharedUpgradeServer = null
+string sharedUpgradeServerText = ""
+string sharedUpgradeClientText = ""
+bool sharedUpgradeOpened = false
+
+func sharedUpgradeRoute(point requestHandle, point responseHandle) as bool
+    HttpRequest request = HttpRequest(requestHandle)
+    HttpResponse response = HttpResponse(responseHandle)
+    assert(request.path() == "/shared")
+    return response.upgradeWebSocket(sharedUpgradeServer)
+end
+
+func sharedUpgradeOpen(point connectionHandle)
+    WebSocketConnection connection = WebSocketConnection(connectionHandle)
+    sharedUpgradeOpened = connection.open
+end
+
+func sharedUpgradeText(point connectionHandle, string data)
+    WebSocketConnection connection = WebSocketConnection(connectionHandle)
+    sharedUpgradeServerText = data
+    assert(connection.send("shared:" + data) == 0)
+end
+
+func sharedUpgradeClientMessage(string data)
+    sharedUpgradeClientText = data
+end
+
+NetEngine sharedEngine = NetEngine(2, 0)
+assert(sharedEngine.start())
+
+point httpServer = http.server.create(sharedEngine, 0, "127.0.0.1")
+assert(httpServer != null)
+
+WebSocketServerOptions sharedOptions = WebSocketServerOptions(0, "127.0.0.1")
+assert(sharedOptions.path("/shared"))
+assert(sharedOptions.protocol("shared.v1"))
+sharedOptions.compression(true, 1, 1)
+sharedUpgradeServer = sharedOptions.server(sharedEngine)
+
+func(point) sharedOpenFn = sharedUpgradeOpen
+func(point, string) sharedTextFn = sharedUpgradeText
+assert(sharedUpgradeServer.onOpen(sharedOpenFn))
+assert(sharedUpgradeServer.onText(sharedTextFn))
+
+func(point, point) as bool sharedRouteFn = sharedUpgradeRoute
+assert(http.server.getRequest(httpServer, "/shared", sharedRouteFn))
+assert(http.server.start(httpServer))
+assert(http.server.port(httpServer) > 0)
+
+string sharedUrl = "ws://127.0.0.1:" + http.server.port(httpServer).toString() + "/shared"
+WebSocketClientOptions sharedClientOptions = WebSocketClientOptions(sharedUrl)
+assert(sharedClientOptions.protocols("shared.v1"))
+sharedClientOptions.compression(true, 1, 1)
+WebSocketClient sharedClient = sharedClientOptions.client(sharedEngine)
+func(string) sharedClientTextFn = sharedUpgradeClientMessage
+assert(sharedClient.onText(sharedClientTextFn))
+assert(sharedClient.start() == 0)
+assert(sharedClient.waitOpen(5000) == 0)
+assert(sharedClient.protocol() == "shared.v1")
+assert(sharedClient.send("hello") == 0)
+
+int sharedWaitCount = 0
+while sharedUpgradeClientText == "" and sharedWaitCount < 500 do
+    time.sleep(10)
+    sharedWaitCount += 1
+end
+
+assert(sharedUpgradeOpened)
+assert(sharedUpgradeServerText == "hello")
+assert(sharedUpgradeClientText == "shared:hello")
+assert(http.server.connectionCount(httpServer) == 0)
+assert(sharedClient.close(1000, "done") == 0)
+assert(sharedClient.waitClose(5000) == -4)
+
+sharedClient.stop()
+sharedUpgradeServer.stop()
+http.server.stop(httpServer)
+http.server.destroy(httpServer)
+sharedUpgradeServer = null
+println("stdlib websocket http upgrade ok")
